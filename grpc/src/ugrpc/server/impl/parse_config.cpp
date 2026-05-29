@@ -1,7 +1,6 @@
 #include <ugrpc/server/impl/parse_config.hpp>
 
 #include <boost/container/flat_map.hpp>
-#include <boost/range/adaptor/transformed.hpp>
 
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/fs/blocking/read.hpp>
@@ -65,7 +64,7 @@ ServiceDefaults ParseServiceDefaults(
     const components::ComponentContext& context
 ) {
     return ServiceDefaults{
-        /*task_processor=*/ParseOptional(value[kTaskProcessorKey], context, ParseTaskProcessor),
+        .task_processor = ParseOptional(value[kTaskProcessorKey], context, ParseTaskProcessor),
     };
 }
 
@@ -75,11 +74,11 @@ server::ServiceConfig ParseServiceConfig(
     const ServiceDefaults& defaults
 ) {
     return server::ServiceConfig{
-        /*task_processor=*/
-        GetFieldOrDefault(value[kTaskProcessorKey], defaults.task_processor, context, ParseTaskProcessor),
-        /*middlewares=*/{},
-        /*status_codes_log_level=*/
-        value[kStatusCodesLogLevelKey].As<boost::container::flat_map<grpc::StatusCode, logging::Level>>({}),
+        .task_processor =
+            GetFieldOrDefault(value[kTaskProcessorKey], defaults.task_processor, context, ParseTaskProcessor),
+        .middlewares = {},
+        .status_codes_log_level =
+            value[kStatusCodesLogLevelKey].As<boost::container::flat_map<grpc::StatusCode, logging::Level>>({}),
     };
 }
 

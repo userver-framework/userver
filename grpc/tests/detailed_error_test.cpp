@@ -50,8 +50,8 @@ public:
         ugrpc::RichStatus rich_status{
             grpc::StatusCode::RESOURCE_EXHAUSTED,
             "message",
-            ugrpc::Help{{{"test_url", "http://help.url/auth/fts-documentation/tvm"}}},
-            ugrpc::QuotaFailure{{{"123-pipepline000", "fts quota [fts-receive] exhausted"}}},
+            ugrpc::Help{{{.description = "test_url", .url = "http://help.url/auth/fts-documentation/tvm"}}},
+            ugrpc::QuotaFailure{{{.subject = "123-pipepline000", .description = "fts quota [fts-receive] exhausted"}}},
         };
 
         return rich_status.ToGrpcStatus();

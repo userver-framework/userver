@@ -55,7 +55,7 @@ public:
     /// @brief Execute a statement at some host of the cluster
     /// with args as query parameters.
     ///
-    /// It is convinient to keep SQL queries in separate files, see @ref scripts/docs/en/userver/sql_files.md
+    /// It is convenient to keep SQL queries in separate files, see @ref scripts/docs/en/userver/sql_files.md
     /// for more info.
     template <typename... Args>
     ExecutionResult Execute(const Query& query, const Args&... args) const;
@@ -63,7 +63,7 @@ public:
     /// @brief Execute a statement with specified command control settings
     /// at some host of the cluster with args as query parameters.
     ///
-    /// It is convinient to keep SQL queries in separate files, see @ref scripts/docs/en/userver/sql_files.md
+    /// It is convenient to keep SQL queries in separate files, see @ref scripts/docs/en/userver/sql_files.md
     /// for more info.
     ///
     /// # Example usage:
@@ -82,7 +82,7 @@ public:
     /// @param table_name table to insert into
     /// @param column_names names of columns of the table
     /// @param data data to insert
-    /// See @ref clickhouse_io for better understanding of T's requirements.
+    /// See @ref scripts/docs/en/userver/clickhouse/io.md for better understanding of T's requirements.
     template <typename T>
     void Insert(const std::string& table_name, const std::vector<std::string_view>& column_names, const T& data) const;
 
@@ -93,7 +93,7 @@ public:
     /// @param table_name table to insert into
     /// @param column_names names of columns of the table
     /// @param data data to insert
-    /// See @ref clickhouse_io for better understanding of T's requirements.
+    /// See @ref scripts/docs/en/userver/clickhouse/io.md for better understanding of T's requirements.
     template <typename T>
     void Insert(
         OptionalCommandControl optional_cc,
@@ -107,7 +107,7 @@ public:
     /// @param table_name table to insert into
     /// @param column_names names of columns of the table
     /// @param data data to insert
-    /// See @ref clickhouse_io for better understanding of
+    /// See @ref scripts/docs/en/userver/clickhouse/io.md for better understanding of
     /// `Container::value_type`'s requirements.
     /// @note This version of insert is less performant than `Insert` (it makes 2
     /// copies of data instead of just 1 copy) due to implementation details, so
@@ -127,7 +127,7 @@ public:
     /// @param table_name table to insert into
     /// @param column_names names of columns of the table
     /// @param data data to insert
-    /// See @ref clickhouse_io for better understanding of
+    /// See @ref scripts/docs/en/userver/clickhouse/io.md for better understanding of
     /// `Container::value_type`'s requirements.
     /// @note This version of insert is less performant than `Insert` (it makes 2
     /// copies of data instead of just 1 copy) due to implementation details, so

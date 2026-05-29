@@ -1,0 +1,11 @@
+default: true
+description: |
+    When `false`, this service stops using the absolute instant from `X-Request-Deadline`
+    as the local request/task deadline, even if enabled in static config. Use for emergency
+    shutdown without restart.
+
+    The header may still be parsed and stored for forwarding to downstream services
+    (see `TaskInheritedData::original_deadline`). Duration-based propagation
+    (`X-YaTaxi-Client-TimeoutMs`) remains unaffected.
+schema:
+    type: boolean

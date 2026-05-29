@@ -22,8 +22,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace formats::bson {
 
-// clang-format off
-
 /// @brief Builder for BSON.
 ///
 /// Class provides methods for building BSON. For read only access to the
@@ -38,9 +36,6 @@ namespace formats::bson {
 /// @snippet formats/bson/value_builder_test.cpp  Sample Customization formats::bson::ValueBuilder usage
 ///
 /// @see @ref scripts/docs/en/userver/formats.md
-
-// clang-format on
-
 class ValueBuilder {
 public:
     using iterator = Iterator<ValueBuilder>;
@@ -119,11 +114,11 @@ public:
 
     /// @brief Access member by key for modification.
     /// @throw `TypeMismatchException` if not object or null value.
-    template <
-        typename Tag,
-        utils::StrongTypedefOps Ops,
-        typename Enable = std::enable_if_t<utils::IsStrongTypedefLoggable(Ops)>>
-    ValueBuilder operator[](const utils::StrongTypedef<Tag, std::string, Ops>& name);
+    template <typename Tag, utils::StrongTypedefOps Ops>
+    requires(utils::IsStrongTypedefLoggable(Ops))
+    ValueBuilder operator[](const utils::StrongTypedef<Tag, std::string, Ops>& name) {
+        return (*this)[name.GetUnderlying()];
+    }
 
     /// @brief Retrieves array element by index
     /// @throws TypeMismatchException if value is not an array or `null`
@@ -184,6 +179,9 @@ public:
     /// @throws TypeMismatchExcepiton if value is not a document or `null`
     bool HasMember(const std::string& name) const;
 
+    /// @brief Returns full path to this value.
+    std::string GetPath() const;
+
     /// @brief Creates or resizes the array
     /// @param size new size
     /// @throws TypeMismatchException if value is not an array or `null`
@@ -208,20 +206,14 @@ private:
     impl::ValueImplPtr impl_;
 };
 
-template <typename Tag, utils::StrongTypedefOps Ops, typename Enable>
-ValueBuilder ValueBuilder::operator[](const utils::StrongTypedef<Tag, std::string, Ops>& name) {
-    return (*this)[name.GetUnderlying()];
-}
-
 template <typename T>
 Value ValueBuilder::DoSerialize(const T& t) {
     static_assert(
-        formats::common::impl::kHasSerialize<Value, T>,
+        formats::common::impl::HasSerialize<Value, T>,
         "There is no `Serialize(const T&, formats::serialize::To<bson::Value>)` "
         "in namespace of `T` or `formats::serialize`. "
         ""
-        "Probably you forgot to include the "
-        "<userver/formats/serialize/common_containers.hpp> or you "
+        "Probably you forgot to include the <userver/formats/serialize/common_containers.hpp> or you "
         "have not provided a `Serialize` function overload."
     );
 

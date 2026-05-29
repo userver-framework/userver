@@ -1,6 +1,6 @@
 #pragma once
 
-#include <userver/chaotic/object.hpp>
+#include <userver/chaotic/additional_properties.hpp>
 #include <userver/chaotic/primitive.hpp>
 #include <userver/chaotic/validators.hpp>
 #include <userver/chaotic/with_type.hpp>
@@ -25,7 +25,7 @@ static constexpr USERVER_NAMESPACE::utils::TrivialSet k__ns__AllOf_PropertiesNam
   return selector().template Type<std::string_view>().Case("foo");
 };
 
-template <typename Value, typename = std::enable_if_t<USERVER_NAMESPACE::formats::common::kIsFormatValue<Value>>>
+template <USERVER_NAMESPACE::formats::common::IsFormatValue Value>
 AllOf::Foo__P0 Parse(Value value, USERVER_NAMESPACE::formats::parse::To<AllOf::Foo__P0>) {
   value.CheckNotMissing();
   value.CheckObjectOrNull();
@@ -34,12 +34,14 @@ AllOf::Foo__P0 Parse(Value value, USERVER_NAMESPACE::formats::parse::To<AllOf::F
 
   res.foo = value["foo"].template As<std::optional<USERVER_NAMESPACE::chaotic::Primitive<std::string>>>();
 
-  res.extra = USERVER_NAMESPACE::chaotic::ExtractAdditionalPropertiesTrue(value, k__ns__AllOf__Foo__P0_PropertiesNames);
+  res.extra = USERVER_NAMESPACE::chaotic::ExtractAdditionalPropertiesTrue(
+      Parse(std::move(value), USERVER_NAMESPACE::formats::parse::To<USERVER_NAMESPACE::formats::json::Value>()),
+      k__ns__AllOf__Foo__P0_PropertiesNames);
 
   return res;
 }
 
-template <typename Value, typename = std::enable_if_t<USERVER_NAMESPACE::formats::common::kIsFormatValue<Value>>>
+template <USERVER_NAMESPACE::formats::common::IsFormatValue Value>
 AllOf::Foo__P1 Parse(Value value, USERVER_NAMESPACE::formats::parse::To<AllOf::Foo__P1>) {
   value.CheckNotMissing();
   value.CheckObjectOrNull();
@@ -48,17 +50,19 @@ AllOf::Foo__P1 Parse(Value value, USERVER_NAMESPACE::formats::parse::To<AllOf::F
 
   res.bar = value["bar"].template As<std::optional<USERVER_NAMESPACE::chaotic::Primitive<int>>>();
 
-  res.extra = USERVER_NAMESPACE::chaotic::ExtractAdditionalPropertiesTrue(value, k__ns__AllOf__Foo__P1_PropertiesNames);
+  res.extra = USERVER_NAMESPACE::chaotic::ExtractAdditionalPropertiesTrue(
+      Parse(std::move(value), USERVER_NAMESPACE::formats::parse::To<USERVER_NAMESPACE::formats::json::Value>()),
+      k__ns__AllOf__Foo__P1_PropertiesNames);
 
   return res;
 }
 
-template <typename Value, typename = std::enable_if_t<USERVER_NAMESPACE::formats::common::kIsFormatValue<Value>>>
+template <USERVER_NAMESPACE::formats::common::IsFormatValue Value>
 AllOf::Foo Parse(Value value, USERVER_NAMESPACE::formats::parse::To<AllOf::Foo>) {
   return AllOf::Foo(value.template As<AllOf::Foo__P0>(), value.template As<AllOf::Foo__P1>());
 }
 
-template <typename Value, typename = std::enable_if_t<USERVER_NAMESPACE::formats::common::kIsFormatValue<Value>>>
+template <USERVER_NAMESPACE::formats::common::IsFormatValue Value>
 AllOf Parse(Value value, USERVER_NAMESPACE::formats::parse::To<AllOf>) {
   value.CheckNotMissing();
   value.CheckObjectOrNull();

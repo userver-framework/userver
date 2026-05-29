@@ -1,4 +1,4 @@
-## The list of TODOs for uMySQL driver. 
+## The list of TODOs for uMySQL driver.
 For my personal use mostly, in no particular order
 
 * More topologies (multi-primary, automatic primary detection etc.) (~10h)

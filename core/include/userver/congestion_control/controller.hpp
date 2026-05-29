@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/congestion_control/controller.hpp
+/// @brief Congestion control controller and policy state
+
 #include <atomic>
 #include <chrono>
 #include <cstddef>

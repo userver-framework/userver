@@ -12,7 +12,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-/// Generators
+/// @brief Generators, including UUID and random string/id generators.
 namespace generators {
 
 /// Generates UUIDv4

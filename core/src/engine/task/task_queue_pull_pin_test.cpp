@@ -34,7 +34,7 @@ TEST(TaskQueuePullPin, TheSameThreadAfterYield) {
         std::vector<engine::TaskWithResult<void>> tasks;
         tasks.reserve(kAsyncTasksTourtureCount);
         for (std::size_t i = 0; i < kAsyncTasksTourtureCount; ++i) {
-            tasks.emplace_back(engine::AsyncNoSpan(payload));
+            tasks.emplace_back(engine::AsyncNoTracing(payload));
         }
 
         engine::GetAll(tasks);
@@ -64,7 +64,7 @@ TEST(TaskQueuePullPin, TheSameThreadAfterLockUnlock) {
         std::vector<engine::TaskWithResult<void>> tasks;
         tasks.reserve(kAsyncTasksTourtureCount);
         for (std::size_t i = 0; i < kAsyncTasksTourtureCount; ++i) {
-            tasks.emplace_back(engine::AsyncNoSpan(payload));
+            tasks.emplace_back(engine::AsyncNoTracing(payload));
         }
 
         engine::GetAll(tasks);

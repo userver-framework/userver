@@ -23,6 +23,7 @@ struct PortConfig {
     boost::filesystem::perms unix_socket_perms{static_cast<boost::filesystem::perms>(0600)};
     uint16_t port = 0;
     std::string address = "::";
+    std::optional<int> listen_socket_fd;
 
     bool tls{false};
     crypto::CertificatesChain tls_cert_chain;

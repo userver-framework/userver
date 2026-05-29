@@ -1,4 +1,4 @@
-from chaotic_openapi.back.cpp_client import types
+from chaotic_openapi.back.cpp.client import types
 
 from chaotic.back.cpp import type_name
 from chaotic.back.cpp import types as cpp_types

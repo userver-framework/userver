@@ -33,6 +33,9 @@ HttpRequestConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To
     conf.deadline_propagation_enabled = value["deadline_propagation_enabled"].As<bool>(conf.deadline_propagation_enabled
     );
 
+    conf.deadline_propagation_prefer_timestamp =
+        value["deadline_propagation_prefer_timestamp"].As<bool>(conf.deadline_propagation_prefer_timestamp);
+
     conf.deadline_expired_status_code =
         value["deadline_expired_status_code"].As<http::HttpStatus>(conf.deadline_expired_status_code);
 

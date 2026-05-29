@@ -23,164 +23,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres {
 
-/// @page pg_process_results uPg: Working with result sets
-///
-/// A result set returned from Execute function is a thin read only wrapper
-/// around the libpq result. It can be copied around as it contains only a
-/// smart pointer to the underlying result set.
-///
-/// The result set's lifetime is not limited by the transaction in which it was
-/// created. In can be used after the transaction is committed or rolled back.
-///
-/// @par Iterating result set's rows
-///
-/// The ResultSet provides interface for range-based iteration over its rows.
-/// @code
-/// auto result = trx.Execute("select foo, bar from foobar");
-/// for (auto row : result) {
-///   // Process row data here
-/// }
-/// @endcode
-///
-/// Also rows can be accessed via indexing operators.
-/// @code
-/// auto result = trx.Execute("select foo, bar from foobar");
-/// for (auto idx = 0; idx < result.Size(); ++idx) {
-///   auto row = result[idx];
-///   // process row data here
-/// }
-/// @endcode
-///
-/// @par Accessing fields in a row
-///
-/// Fields in a row can be accessed by their index, by field name and can be
-/// iterated over. Invalid index or name will throw an exception.
-/// @code
-/// auto f1 = row[0];
-/// auto f2 = row["foo"];
-/// auto f3 = row[1];
-/// auto f4 = row["bar"];
-///
-/// for (auto f : row) {
-///   // Process field here
-/// }
-/// @endcode
-///
-/// @par Extracting field's data to variables
-///
-/// A Field object provides an interface to convert underlying buffer to a
-/// C++ variable of supported type. Please see
-/// @ref scripts/docs/en/userver/pg_types.md for more information on supported
-/// types.
-///
-/// Functions Field::As and Field::To can throw an exception if the field
-/// value is `null`. Their Field::Coalesce counterparts instead set the result
-/// to default value.
-///
-/// All data extraction functions can throw parsing errors (descendants of
-/// ResultSetError).
-///
-/// @code
-/// auto foo = row["foo"].As<int>();
-/// auto bar = row["bar"].As<std::string>();
-///
-/// foo = row["foo"].Coalesce(42);
-/// // There is no parser for char*, so a string object must be passed here.
-/// bar = row["bar"].Coalesce(std::string{"bar"});
-///
-/// row["foo"].To(foo);
-/// row["bar"].To(bar);
-///
-/// row["foo"].Coalesce(foo, 42);
-/// // The type is deduced by the first argument, so the second will be also
-/// // treated as std::string
-/// row["bar"].Coalesce(bar, "baz");
-/// @endcode
-///
-/// @par Extracting data directly from a Row object
-///
-/// Data can be extracted straight from a Row object to a pack or a tuple of
-/// user variables. The number of user variables cannot exceed the number of
-/// fields in the result. If it does, an exception will be thrown.
-///
-/// When used without additional parameters, the field values are extracted
-/// in the order of their appearance.
-///
-/// When a subset of the fields is needed, the fields can be specified by their
-/// indexes or names.
-///
-/// Row's data extraction functions throw exceptions as the field extraction
-/// functions. Also a FieldIndexOutOfBounds or FieldNameDoesntExist can be
-/// thrown.
-///
-/// Statements that return user-defined PostgreSQL type may be called as
-/// returning either one-column row with the whole type in it or as multi-column
-/// row with every column representing a field in the type. For the purpose of
-/// disambiguation, kRowTag may be used.
-///
-/// When a first column is extracted, it is expected that the result set
-/// contains the only column, otherwise an exception will be thrown.
-///
-/// @code
-/// auto [foo, bar] = row.As<int, std::string>();
-/// row.To(foo, bar);
-///
-/// auto [bar, foo] = row.As<std::string, int>({1, 0});
-/// row.To({1, 0}, bar, foo);
-///
-/// auto [bar, foo] = row.As<std::string, int>({"bar", "foo"});
-/// row.To({"bar", "foo"}, bar, foo);
-///
-/// // extract the whole row into a row-type structure.
-/// // The FooBar type must not have the C++ to PostgreSQL mapping in this case
-/// auto foobar = row.As<FooBar>();
-/// row.To(foobar);
-/// // If the FooBar type does have the mapping, the function call must be
-/// // disambiguated.
-/// foobar = row.As<FooBar>(kRowTag);
-/// row.To(foobar, kRowTag);
-/// @endcode
-///
-/// In the following example it is assumed that the row has a single column
-/// and the FooBar type is mapped to a PostgreSQL type.
-///
-/// @note The row is used to extract different types, it doesn't mean it will
-/// actually work with incompatible types.
-///
-/// @code
-/// auto foobar = row.As<FooBar>();
-/// row.To(foobar);
-///
-/// auto str = row.As<std::string>();
-/// auto i = row.As<int>();
-/// @endcode
-///
-///
-/// @par Converting a Row to a user row type
-///
-/// A row can be converted to a user type (tuple, structure, class), for more
-/// information on data type requirements see @ref pg_user_row_types
-///
-/// @todo Interface for converting rows to arbitrary user types
-///
-/// @par Converting ResultSet to a result set with user row types
-///
-/// A result set can be represented as a set of user row types or extracted to
-/// a container. For more information see @ref pg_user_row_types
-///
-/// @todo Interface for copying a ResultSet to an output iterator.
-///
-/// @par Non-select query results
-///
-/// @todo Process non-select result and provide interface. Do the docs.
-///
-///
-/// ----------
-///
-/// @htmlonly <div class="bottom-nav"> @endhtmlonly
-/// ⇦ @ref pg_run_queries | @ref scripts/docs/en/userver/pg_types.md ⇨
-/// @htmlonly </div> @endhtmlonly
-
 template <typename T, typename ExtractionTag>
 class TypedResultSet;
 
@@ -277,7 +119,7 @@ public:
     //@{
     /** @name Typed results */
     /// @brief Get a wrapper for iterating over a set of typed results.
-    /// For more information see @ref pg_user_row_types
+    /// For more information see @ref scripts/docs/en/userver/pg/user_row_types.md
     template <typename T>
     auto AsSetOf() const;
     template <typename T>
@@ -286,7 +128,7 @@ public:
     auto AsSetOf(FieldTag) const;
 
     /// @brief Extract data into a container.
-    /// For more information see @ref pg_user_row_types
+    /// For more information see @ref scripts/docs/en/userver/pg/user_row_types.md
     template <typename Container>
     Container AsContainer() const;
     template <typename Container>
@@ -333,7 +175,7 @@ auto ResultSet::AsSetOf() const {
 template <typename T>
 auto ResultSet::AsSetOf(RowTag) const {
     detail::AssertSaneTypeToDeserialize<T>();
-    using ValueType = std::decay_t<T>;
+    using ValueType = std::remove_cvref_t<T>;
     io::traits::AssertIsValidRowType<ValueType>();
     return TypedResultSet<T, RowTag>{*this};
 }
@@ -341,7 +183,7 @@ auto ResultSet::AsSetOf(RowTag) const {
 template <typename T>
 auto ResultSet::AsSetOf(FieldTag) const {
     detail::AssertSaneTypeToDeserialize<T>();
-    using ValueType = std::decay_t<T>;
+    using ValueType = std::remove_cvref_t<T>;
     detail::AssertRowTypeIsMappedToPgOrIsCompositeType<ValueType>();
     if (FieldCount() > 1) {
         throw NonSingleColumnResultSet{FieldCount(), compiler::GetTypeName<T>(), "AsSetOf"};
@@ -354,7 +196,7 @@ Container ResultSet::AsContainer() const {
     detail::AssertSaneTypeToDeserialize<Container>();
     using ValueType = typename Container::value_type;
     Container c;
-    if constexpr (io::traits::kCanReserve<Container>) {
+    if constexpr (io::traits::CanReserve<Container>) {
         c.reserve(Size());
     }
     auto res = AsSetOf<ValueType>();
@@ -373,7 +215,7 @@ Container ResultSet::AsContainer(RowTag) const {
     detail::AssertSaneTypeToDeserialize<Container>();
     using ValueType = typename Container::value_type;
     Container c;
-    if constexpr (io::traits::kCanReserve<Container>) {
+    if constexpr (io::traits::CanReserve<Container>) {
         c.reserve(Size());
     }
     auto res = AsSetOf<ValueType>(kRowTag);
@@ -424,141 +266,6 @@ template <typename T>
 std::optional<T> ResultSet::AsOptionalSingleRow(FieldTag) const {
     return IsEmpty() ? std::nullopt : std::optional<T>{AsSingleRow<T>(kFieldTag)};
 }
-
-/// @page pg_user_row_types uPg: Typed PostgreSQL results
-///
-/// The ResultSet provides access to a generic PostgreSQL result buffer wrapper
-/// with access to individual column buffers and means to parse the buffers into
-/// a certain type.
-///
-/// For a user that wishes to get the results in a form of a sequence or a
-/// container of C++ tuples or structures, the driver provides a way to coerce
-/// the generic result set into a typed result set or a container of tuples or
-/// structures that fulfill certain conditions.
-///
-/// TypedResultSet provides container interface for typed result rows for
-/// iteration or random access without converting all the result set at once.
-/// The iterators in the TypedResultSet satisfy requirements for a constant
-/// RandomAccessIterator with the exception of dereferencing iterators.
-///
-/// @warning The operator* of the iterators returns value (not a reference to
-/// it) and the iterators don't have the operator->.
-///
-/// @par Data row extraction
-///
-/// The data rows can be obtained as:
-///   - std::tuple;
-///   - aggregate class as is;
-///   - non-aggregate class with some augmentation.
-///
-/// Data members of the tuple or the classes must be supported by the driver.
-/// For more information on supported data types please see
-/// @ref scripts/docs/en/userver/pg_types.md.
-///
-/// @par std::tuple.
-///
-/// The first option is to convert ResultSet's row to std::tuples.
-///
-/// ```
-/// using MyRowType = std::tuple<int, string>;
-/// auto trx = ...;
-/// auto generic_result = trx.Execute("select a, b from my_table");
-/// auto iteration = generic_result.AsSetOf<MyRowType>();
-/// for (auto row : iteration) {
-///   static_assert(std::is_same_v<decltype(row), MyRowType>,
-///       "Iterate over tuples");
-///   auto [a, b] = row;
-///   std::cout << "a = " << a << "; b = " << b << "\n";
-/// }
-///
-/// auto data = geric_result.AsContainer<std::vector<MyRowType>>();
-/// ```
-///
-/// @par Aggregate classes.
-///
-/// A data row can be coerced to an aggregate class.
-///
-/// An aggregate class (C++03 8.5.1 §1) is a class that with no base classes, no
-/// protected or private non-static data members, no user-declared constructors
-/// and no virtual functions.
-///
-/// ```
-/// struct MyRowType {
-///   int a;
-///   std::string b;
-/// };
-/// auto generic_result = trx.Execute("select a, b from my_table");
-/// auto iteration = generic_result.AsSetOf<MyRowType>();
-/// for (auto row : iteration) {
-///   static_assert(std::is_same_v<decltype(row), MyRowType>,
-///       "Iterate over aggregate classes");
-///   std::cout << "a = " << row.a << "; b = " << row.b << "\n";
-/// }
-///
-/// auto data = geric_result.AsContainer<std::vector<MyRowType>>();
-/// ```
-///
-/// @par Non-aggregate classes.
-///
-/// Classes that do not satisfy the aggregate class requirements can be used
-/// to be created from data rows by providing additional `Introspect` non-static
-/// member function. The function should return a tuple of references to
-/// member data fields. The class must be default constructible.
-///
-/// ```
-/// class MyRowType {
-///  private:
-///   int a_;
-///   std::string b_;
-///  public:
-///   MyRowType() = default; // default ctor is required
-///   explicit MyRowType(int x);
-///
-///   auto Introspect() {
-///     return std::tie(a_, b_);
-///   }
-///   int GetA() const;
-///   const std::string& GetB() const;
-/// };
-///
-/// auto generic_result = trx.Execute("select a, b from my_table");
-/// auto iteration = generic_result.AsSetOf<MyRowType>();
-/// for (auto row : iteration) {
-///   static_assert(std::is_same_v<decltype(row), MyRowType>,
-///       "Iterate over non-aggregate classes");
-///   std::cout << "a = " << row.GetA() << "; b = " << row.GetB() << "\n";
-/// }
-///
-/// auto data = geric_result.AsContainer<std::vector<MyRowType>>();
-/// ```
-/// @par Single-column result set
-///
-/// A single-column result set can be used to extract directly to the column
-/// type. User types mapped to PostgreSQL will work as well. If you need to
-/// extract the whole row into such a structure, you will need to disambiguate
-/// the call with the kRowTag.
-///
-/// @code
-/// auto string_set = generic_result.AsSetOf<std::string>();
-/// std::string s = string_set[0];
-///
-/// auto string_vec = generic_result.AsContainer<std::vector<std::string>>();
-///
-/// // Extract first column into the composite type
-/// auto foo_set = generic_result.AsSetOf<FooBar>();
-/// auto foo_vec = generic_result.AsContainer<std::vector<FooBar>>();
-///
-/// // Extract the whole row, disambiguation
-/// auto foo_set = generic_result.AsSetOf<FooBar>(kRowTag);
-///
-/// @endcode
-///
-///
-/// ----------
-///
-/// @htmlonly <div class="bottom-nav"> @endhtmlonly
-/// ⇦ @ref scripts/docs/en/userver/pg_types.md | @ref pg_errors ⇨
-/// @htmlonly </div> @endhtmlonly
 
 template <typename T, typename ExtractionTag>
 class TypedResultSet {

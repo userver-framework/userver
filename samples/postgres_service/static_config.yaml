@@ -1,9 +1,9 @@
 # /// [Postgres service sample - static config]
 # yaml
 components_manager:
-    components:                       # Configuring components that were registered via component_list
+    components:  # Configuring components that were registered via component_list
         handler-key-value:
-            path: /v1/key-value                  # Registering handler by URL '/v1/key-value'.
+            path: /v1/key-value  # Registering handler by URL '/v1/key-value'.
             task_processor: main-task-processor  # Run it on CPU bound task processor
             method: GET,DELETE,POST
 
@@ -12,7 +12,7 @@ components_manager:
             blocking_task_processor: fs-task-processor
             dns_resolver: async
 
-        dynamic-config:                      # Dynamic config storage options
+        dynamic-config:  # Dynamic config storage options
             defaults:
                 POSTGRES_CONNECTION_POOL_SETTINGS:
                     key-value-database:
@@ -36,11 +36,11 @@ components_manager:
                         max_statement_metrics: 5
 
         server:
-            # ...
-# /// [Postgres service sample - static config]
-            listener:                 # configuring the main listening socket...
-                port: 8087            # ...to listen on this port and...
-                task_processor: main-task-processor    # ...process incoming requests on this task processor.
+            # /// [Postgres service sample - static config]
+            listener:  # configuring the main listening socket...
+                port: 8087  # ...to listen on this port and...
+                task_processor: main-task-processor  # ...process incoming requests on this task processor.
+                # ...
         logging:
             fs-task-processor: fs-task-processor
             loggers:
@@ -65,12 +65,12 @@ components_manager:
             testpoint-url: $mockserver/testpoint
             throttling_enabled: false
 
-    task_processors:                  # Task processor is an executor for coroutine tasks
+    task_processors:  # Task processor is an executor for coroutine tasks
 
-        main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
-            worker_threads: 4         # Process tasks in 4 threads.
+        main-task-processor:  # Make a task processor for CPU-bound coroutine tasks.
+            worker_threads: 4  # Process tasks in 4 threads.
 
-        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+        fs-task-processor:  # Make a separate task processor for filesystem bound tasks.
             worker_threads: 4
 
     default_task_processor: main-task-processor  # Task processor in which components start.

@@ -117,6 +117,11 @@ public:
     /// @brief Returns underlying `google.protobuf.Any`.
     [[nodiscard]] ::google::protobuf::Any&& GetProtobufAny() && noexcept { return std::move(storage_); }
 
+    /// @ref Any is not comparable, because same values may have different binary representations (e.g. for an integral
+    /// field explicitly writing out `0` and not writing the field result in the same value), and unpacking the value
+    /// would be too heavy for `operator==` and could result in an "unknown type" error.
+    bool operator==(const Any&) const = delete;
+
 private:
     ::google::protobuf::Any storage_;
 };

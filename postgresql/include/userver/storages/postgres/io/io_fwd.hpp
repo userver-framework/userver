@@ -16,13 +16,11 @@ struct CppToSystemPg;
 ///
 /// Must contain a `static constexpr DBTypeName postgres_name` member.
 ///
-/// For more information see @ref pg_user_types
+/// For more information see @ref scripts/docs/en/userver/pg/user_types.md
 ///
 /// For enumerated types must derive from EnumMappingBase template and have a
 /// `static constexpr EnumeratorList enumerators` member. The EnumeratorList
 /// is a type alias declared in EnumMappingBase.
-///
-/// For more information see @ref scripts/docs/en/userver/pg_user_types.md
 template <typename T>
 struct CppToUserPg;
 

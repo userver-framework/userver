@@ -1,8 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <map>
-
-#include <boost/range/adaptor/reversed.hpp>
+#include <ranges>
 
 #include <formats/common/serialize_test.hpp>
 #include <userver/formats/json/exception.hpp>

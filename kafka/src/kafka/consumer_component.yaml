@@ -2,6 +2,18 @@ type: object
 description: Kafka consumer component
 additionalProperties: false
 properties:
+    task-processor:
+        type: string
+        description: the name of the TaskProcessor to invoke callbacks
+        default: main-task-processor
+    consumer-task-processor:
+        type: string
+        description: TaskProcessor for message batches polling. Feel free to use 'main-task-processor'.
+        default: consumer-task-processor
+    consumer-blocking-task-processor:
+        type: string
+        description: TaskProcessor for consumer blocking operations. Feel free to use 'fs-task-processor'.
+        default: consumer-blocking-task-processor
     group_id:
         type: string
         description: |

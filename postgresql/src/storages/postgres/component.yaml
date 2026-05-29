@@ -140,9 +140,18 @@ properties:
         description: |
             limit for concurrent establishing connections number per PostgreSQL host (0 - unlimited)
         default: 0
+    connecting_interval_ms:
+        type: integer
+        minimum: 0
+        description: |
+            minimum time in milliseconds between starting new connections to each PostgreSQL host (0 - unlimited)
+        default: 0
     connlimit_mode:
         type: string
         enum:
           - auto
           - manual
         description: how to learn the `max_pool_size`
+    application_name:
+        type: string
+        description: will be displayed in postgres statistics and logs

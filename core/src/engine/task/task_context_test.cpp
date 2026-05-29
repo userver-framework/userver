@@ -50,20 +50,20 @@ constexpr size_t kWorkerThreads = 1;
 }  // namespace
 
 UTEST_MT(TaskContext, DetachedAndCancelledOnStart, kWorkerThreads) {
-    auto task = engine::AsyncNoSpan([checker = DtorInCoroChecker()] { FAIL() << "Cancelled task started"; });
+    auto task = engine::AsyncNoTracing([checker = DtorInCoroChecker()] { FAIL() << "Cancelled task started"; });
     task.RequestCancel();
     engine::DetachUnscopedUnsafe(std::move(task));
 }
 
 UTEST_MT(TaskContext, DetachedAndCancelledOnStartWithWrappedCall, kWorkerThreads) {
-    auto task = engine::AsyncNoSpan([](auto&&) { FAIL() << "Cancelled task started"; }, DtorInCoroChecker());
+    auto task = engine::AsyncNoTracing([](auto&&) { FAIL() << "Cancelled task started"; }, DtorInCoroChecker());
     task.RequestCancel();
     engine::DetachUnscopedUnsafe(std::move(task));
 }
 
 UTEST(TaskContext, WaitInterruptedReason) {
-    auto long_task = engine::AsyncNoSpan([] { engine::InterruptibleSleepFor(std::chrono::seconds{5}); });
-    auto waiter = engine::AsyncNoSpan([&] {
+    auto long_task = engine::AsyncNoTracing([] { engine::InterruptibleSleepFor(std::chrono::seconds{5}); });
+    auto waiter = engine::AsyncNoTracing([&] {
         auto reason = engine::TaskCancellationReason::kNone;
         try {
             long_task.Get();

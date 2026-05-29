@@ -58,9 +58,6 @@ public:
 
     virtual void ForwardTo(LoggerBase* logger_to);
 
-protected:
-    virtual bool DoShouldLog(Level level) const noexcept;
-
 private:
     std::atomic<Level> level_{Level::kNone};
     std::atomic<Level> flush_level_{Level::kWarning};
@@ -90,7 +87,11 @@ private:
     const Format format_;
 };
 
-bool ShouldLogNoSpan(const LoggerBase& logger, Level level) noexcept;
+inline bool ShouldLogNoSpan(const LoggerBase& logger, Level level) noexcept {
+    return logger.GetLevel() <= level && level != Level::kNone;
+}
+
+bool ShouldLogWithSpanCheck(const LoggerBase& logger, Level level) noexcept;
 
 }  // namespace logging::impl
 

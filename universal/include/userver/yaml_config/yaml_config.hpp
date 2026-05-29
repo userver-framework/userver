@@ -220,12 +220,11 @@ using Value = YamlConfig;
 template <typename T>
 auto YamlConfig::As() const {
     static_assert(
-        formats::common::impl::kHasParse<YamlConfig, T>,
-        "There is no `Parse(const yaml_config::YamlConfig&, "
-        "formats::parse::To<T>)`"
+        formats::common::impl::HasParse<YamlConfig, T>,
+        "There is no `Parse(const yaml_config::YamlConfig&, formats::parse::To<T>)` "
         "in namespace of `T` or `formats::parse`. "
-        "Probably you forgot to include the "
-        "<userver/formats/parse/common_containers.hpp> or you "
+        ""
+        "Probably you forgot to include the <userver/formats/parse/common_containers.hpp> or you "
         "have not provided a `Parse` function overload."
     );
 
@@ -244,7 +243,7 @@ std::string Parse(const YamlConfig& value, formats::parse::To<std::string>);
 
 template <typename T, typename First, typename... Rest>
 auto YamlConfig::As(First&& default_arg, Rest&&... more_default_args) const {
-    if (IsMissing()) {
+    if (IsMissing() || IsNull()) {
         // intended raw ctor call, sometimes casts
         // NOLINTNEXTLINE(google-readability-casting)
         return decltype(As<T>())(std::forward<First>(default_arg), std::forward<Rest>(more_default_args)...);
@@ -254,7 +253,7 @@ auto YamlConfig::As(First&& default_arg, Rest&&... more_default_args) const {
 
 template <typename T>
 auto YamlConfig::As(YamlConfig::DefaultConstructed) const {
-    return IsMissing() ? decltype(As<T>())() : As<T>();
+    return (IsMissing() || IsNull()) ? decltype(As<T>())() : As<T>();
 }
 
 /// @brief Wrapper for handy python-like iteration over a map

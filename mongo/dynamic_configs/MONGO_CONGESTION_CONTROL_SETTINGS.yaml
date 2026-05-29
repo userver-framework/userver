@@ -5,26 +5,33 @@ schema:
     additionalProperties: false
     properties:
         errors-threshold-percent:
+            description: Percentage of errors that triggers Congestion Control activation
             default: 5.0
             type: number
         safe-delta-limit:
             type: integer
             default: 10
         deactivate-delta:
+            description: Number of free connections at which Congestion Control deactivates
             type: integer
         timings-burst-times-threshold:
+            description: Increase in timings by this multiplier triggers Congestion Control
             type: number
             default: 5.0
         min-timings-ms:
+            description: Minimum timings value
             type: integer
             x-usrv-cpp-type: std::chrono::milliseconds
             default: 20
         min-limit:
+            description: Minimum connections count
             type: integer
             default: 10
         min-qps:
+            description: Minimum QPS required to affect statistics
             type: integer
             default: 10
         use-separate-stats:
+            description: Whether to assess congestion based on per collection metrics (separate stats per collection).
             type: boolean
             default: false

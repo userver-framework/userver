@@ -1,5 +1,7 @@
 #include <ugrpc/client/middlewares/log/middleware.hpp>
 
+#include <fmt/format.h>
+
 #include <userver/logging/level.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/tags.hpp>
@@ -94,18 +96,36 @@ void Middleware::PostRecvMessage(MiddlewareCallContext& context, const google::p
 }
 /// [MiddlewareBase Message methods example]
 
-void Middleware::PostFinish(MiddlewareCallContext& context, const grpc::Status& status) const {
+void Middleware::PostFinish(MiddlewareCallContext& context, const CompletionStatus& result) const {
     const SpanLogger logger{context.GetSpan(), settings_.log_level};
-    if (status.ok()) {
-        if (!IsSingleResponseMethod(context.GetRpcType())) {
-            logger.Log(settings_.msg_log_level, "gRPC response stream finished", logging::LogExtra{});
+
+    if (result.has_value()) {
+        // Normal completion with grpc::Status
+        const auto& status = result.value();
+        if (status.ok()) {
+            if (!IsSingleResponseMethod(context.GetRpcType())) {
+                logger.Log(settings_.msg_log_level, "gRPC response stream finished", logging::LogExtra{});
+            }
+        } else {
+            auto error_details = ugrpc::ToUnlimitedDebugString(status);
+            logging::LogExtra extra{
+                {ugrpc::impl::kTypeTag, "error_status"},
+                {ugrpc::impl::kCodeTag, ugrpc::ToString(status.error_code())},
+                {tracing::kErrorMessage, std::move(error_details)}
+            };
+            logger.Log(logging::Level::kWarning, "gRPC error", std::move(extra));
         }
     } else {
-        auto error_details = ugrpc::ToUnlimitedDebugString(status);
+        // Special case completion
+        const auto completion_type = result.error();
         logging::LogExtra extra{
-            {ugrpc::impl::kTypeTag, "error_status"},
-            {ugrpc::impl::kCodeTag, ugrpc::ToString(status.error_code())},
-            {tracing::kErrorMessage, std::move(error_details)}
+            {ugrpc::impl::kTypeTag, "special_case_completion"},
+            {"completion_type", ToString(completion_type)},
+            {tracing::kErrorMessage,
+             fmt::format(
+                 "Call is interrupted before it was finished and response with status code was received, reason='{}'",
+                 GetSpecialCaseCompletionTypeDescription(completion_type)
+             )}
         };
         logger.Log(logging::Level::kWarning, "gRPC error", std::move(extra));
     }

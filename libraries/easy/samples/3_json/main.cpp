@@ -26,6 +26,13 @@ int main(int argc, char* argv[]) {
             }
         )
         .Post("/kv", [](schemas::KeyValue key_value, easy::PgDep dep) {
+            if (key_value.key == 42) {
+                throw server::handlers::ClientError(
+                    server::handlers::ExternalBody{"We do not accept key 42"},  // goes to HTTP response
+                    server::handlers::InternalMessage{"User sent a 42 key"}     // goes to logs
+                );
+            }
+
             dep.pg().Execute(
                 storages::postgres::ClusterHostType::kMaster,
                 "INSERT INTO key_value_table(key, value) VALUES($1, $2) ON CONFLICT (key) DO UPDATE SET value = $2",

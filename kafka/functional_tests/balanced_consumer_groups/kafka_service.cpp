@@ -212,7 +212,7 @@ bool HandlerKafkaConsumerGroups::HasConsumer(const std::string& consumer_name) c
 kafka::ConsumerScope& HandlerKafkaConsumerGroups::GetConsumerScope(const std::string& consumer_name) const {
     auto consumer_by_name = consumer_by_name_.Lock();
 
-    return consumer_by_name->at(consumer_name);
+    return consumer_by_name.GetUnsafeForStableSubobject().at(consumer_name);
 }
 
 yaml_config::Schema HandlerKafkaConsumerGroups::GetStaticConfigSchema() {

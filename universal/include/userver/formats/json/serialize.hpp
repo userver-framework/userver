@@ -55,8 +55,7 @@ std::string ToPrettyString(const formats::json::Value& doc, PrettyFormat format 
 /// Log JSON
 logging::LogHelper& operator<<(logging::LogHelper&, const formats::json::Value&);
 
-/// Blocking operations that should not be used on main task processor after
-/// startup
+/// @brief Blocking operations that should not be used on main task processor after startup
 namespace blocking {
 /// Read JSON from file
 formats::json::Value FromFile(const std::string& path);

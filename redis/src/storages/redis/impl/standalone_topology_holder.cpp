@@ -12,14 +12,14 @@ StandaloneTopologyHolder::StandaloneTopologyHolder(
     const engine::ev::ThreadControl& sentinel_thread_control,
     const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
     const std::string& shard_group_name,
-    const Password& password,
+    const Credentials& credentials,
     std::size_t database_index,
     ConnectionInfo conn
 )
     : ev_thread_(sentinel_thread_control),
       redis_thread_pool_(redis_thread_pool),
       shard_group_name_(shard_group_name),
-      password_(std::move(password)),
+      credentials_(credentials),
       database_index_(database_index),
       conn_to_create_(conn),
       create_node_watch_(
@@ -166,7 +166,7 @@ std::shared_ptr<RedisConnectionHolder> StandaloneTopologyHolder::CreateRedisInst
         shard_group_name_,
         info.HostPort().first,
         info.HostPort().second,
-        GetPassword(),
+        GetCredentials(),
         database_index_,
         buffering_settings_ptr->value_or(CommandsBufferingSettings{}),
         *replication_monitoring_settings_ptr,
@@ -220,13 +220,13 @@ void StandaloneTopologyHolder::CreateNode() {
     signal_topology_changed_(1);
 }
 
-void StandaloneTopologyHolder::UpdatePassword(const Password& password) {
-    auto lock = password_.UniqueLock();
-    *lock = password;
+void StandaloneTopologyHolder::UpdateCredentials(const Credentials& credentials) {
+    auto lock = credentials_.UniqueLock();
+    *lock = credentials;
 }
 
-Password StandaloneTopologyHolder::GetPassword() {
-    const auto lock = password_.Lock();
+Credentials StandaloneTopologyHolder::GetCredentials() {
+    const auto lock = credentials_.Lock();
     return *lock;
 }
 

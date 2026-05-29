@@ -1,6 +1,10 @@
-async def test_upsert_row(service_client, ydb):
+import pytest
+
+
+@pytest.mark.parametrize('handler', ['upsert-row', 'upsert-row-old'])
+async def test_upsert_row(service_client, ydb, handler):
     response = await service_client.post(
-        'ydb/upsert-row',
+        f'ydb/{handler}',
         json={
             'id': 'id-upsert',
             'name': 'name-upsert',
@@ -26,10 +30,11 @@ async def test_upsert_row(service_client, ydb):
     }
 
 
-async def test_trx_force_failure(service_client, ydb, userver_ydb_trx):
+@pytest.mark.parametrize('handler', ['upsert-row', 'upsert-row-old'])
+async def test_trx_force_failure(service_client, ydb, userver_ydb_trx, handler):
     userver_ydb_trx.enable_failure('trx')
     response = await service_client.post(
-        'ydb/upsert-row',
+        f'ydb/{handler}',
         json={
             'id': 'id-upsert',
             'name': 'name-upsert',

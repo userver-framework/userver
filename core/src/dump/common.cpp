@@ -13,11 +13,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace dump {
 
-static_assert(impl::kIsDumpedAsNanoseconds<std::chrono::system_clock::duration>);
-static_assert(impl::kIsDumpedAsNanoseconds<std::chrono::steady_clock::duration>);
+static_assert(impl::IsDumpedAsNanoseconds<std::chrono::system_clock::duration>);
+static_assert(impl::IsDumpedAsNanoseconds<std::chrono::steady_clock::duration>);
 
-static_assert(impl::kIsDumpedAsNanoseconds<std::chrono::nanoseconds>);
-static_assert(impl::kIsDumpedAsNanoseconds<std::chrono::microseconds>);
+static_assert(impl::IsDumpedAsNanoseconds<std::chrono::nanoseconds>);
+static_assert(impl::IsDumpedAsNanoseconds<std::chrono::microseconds>);
 
 namespace impl {
 

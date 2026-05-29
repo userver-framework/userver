@@ -9,7 +9,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-/// Cryptographic hashing
+/// @brief Cryptographic hashing, base64 encoding and decoding helpers.
 namespace crypto::base64 {
 
 enum class Pad { kWith, kWithout };

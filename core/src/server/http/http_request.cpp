@@ -8,6 +8,7 @@
 #include <userver/http/parser/http_request_parse_args.hpp>
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/logger.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/encoding/tskv.hpp>
 
@@ -113,7 +114,7 @@ const std::string& HttpRequest::GetArg(std::string_view arg_name) const {
 #ifndef NDEBUG
     pimpl_->args_referenced = true;
 #endif
-    const auto* ptr = utils::impl::FindTransparentOrNullptr(pimpl_->request_args, arg_name);
+    const auto* ptr = utils::FindOrNullptr(pimpl_->request_args, arg_name);
     if (!ptr) {
         return kEmptyString;
     }
@@ -124,7 +125,7 @@ const std::vector<std::string>& HttpRequest::GetArgVector(std::string_view arg_n
 #ifndef NDEBUG
     pimpl_->args_referenced = true;
 #endif
-    const auto* ptr = utils::impl::FindTransparentOrNullptr(pimpl_->request_args, arg_name);
+    const auto* ptr = utils::FindOrNullptr(pimpl_->request_args, arg_name);
     if (!ptr) {
         return kEmptyVector;
     }
@@ -132,7 +133,7 @@ const std::vector<std::string>& HttpRequest::GetArgVector(std::string_view arg_n
 }
 
 bool HttpRequest::HasArg(std::string_view arg_name) const {
-    const auto* ptr = utils::impl::FindTransparentOrNullptr(pimpl_->request_args, arg_name);
+    const auto* ptr = utils::FindOrNullptr(pimpl_->request_args, arg_name);
     return !!ptr;
 }
 
@@ -150,7 +151,7 @@ std::vector<std::string> HttpRequest::ArgNames() const {
 const FormDataArg& HttpRequest::GetFormDataArg(std::string_view arg_name) const {
     static const FormDataArg kEmptyFormDataArg{};
 
-    const auto* ptr = utils::impl::FindTransparentOrNullptr(pimpl_->form_data_args, arg_name);
+    const auto* ptr = utils::FindOrNullptr(pimpl_->form_data_args, arg_name);
     if (!ptr) {
         return kEmptyFormDataArg;
     }
@@ -160,7 +161,7 @@ const FormDataArg& HttpRequest::GetFormDataArg(std::string_view arg_name) const 
 const std::vector<FormDataArg>& HttpRequest::GetFormDataArgVector(std::string_view arg_name) const {
     static const std::vector<FormDataArg> kEmptyFormDataArgVector{};
 
-    const auto* ptr = utils::impl::FindTransparentOrNullptr(pimpl_->form_data_args, arg_name);
+    const auto* ptr = utils::FindOrNullptr(pimpl_->form_data_args, arg_name);
     if (!ptr) {
         return kEmptyFormDataArgVector;
     }
@@ -168,7 +169,7 @@ const std::vector<FormDataArg>& HttpRequest::GetFormDataArgVector(std::string_vi
 }
 
 bool HttpRequest::HasFormDataArg(std::string_view arg_name) const {
-    const auto* ptr = utils::impl::FindTransparentOrNullptr(pimpl_->form_data_args, arg_name);
+    const auto* ptr = utils::FindOrNullptr(pimpl_->form_data_args, arg_name);
     return !!ptr;
 }
 
@@ -184,7 +185,7 @@ std::vector<std::string> HttpRequest::FormDataArgNames() const {
 }
 
 const std::string& HttpRequest::GetPathArg(std::string_view arg_name) const {
-    const auto* ptr = utils::impl::FindTransparentOrNullptr(pimpl_->path_args_by_name_index, arg_name);
+    const auto* ptr = utils::FindOrNullptr(pimpl_->path_args_by_name_index, arg_name);
     if (!ptr) {
         return kEmptyString;
     }
@@ -197,7 +198,7 @@ const std::string& HttpRequest::GetPathArg(size_t index) const {
 }
 
 bool HttpRequest::HasPathArg(std::string_view arg_name) const {
-    return !!utils::impl::FindTransparentOrNullptr(pimpl_->path_args_by_name_index, arg_name);
+    return !!utils::FindOrNullptr(pimpl_->path_args_by_name_index, arg_name);
 }
 
 bool HttpRequest::HasPathArg(size_t index) const { return index < PathArgCount(); }

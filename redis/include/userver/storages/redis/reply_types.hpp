@@ -9,7 +9,6 @@
 #include <userver/storages/redis/base.hpp>
 #include <userver/storages/redis/expire_reply.hpp>
 #include <userver/storages/redis/ttl_reply.hpp>
-#include <userver/utils/void_t.hpp>
 
 #include <userver/storages/redis/key_type.hpp>
 #include <userver/storages/redis/reply_fwd.hpp>
@@ -46,8 +45,6 @@ struct GeoPoint final {
     bool operator==(const GeoPoint& rhs) const {
         return std::tie(member, dist, hash, point) == std::tie(rhs.member, rhs.dist, rhs.hash, rhs.point);
     }
-
-    bool operator!=(const GeoPoint& rhs) const { return !(*this == rhs); }
 };
 
 /// @brief Data type that holds `member` and `score`.
@@ -73,8 +70,6 @@ struct MemberScore final {
     operator std::pair<const std::string, double>() && { return {std::move(member), score}; }
 
     bool operator==(const MemberScore& rhs) const { return member == rhs.member && score == rhs.score; }
-
-    bool operator!=(const MemberScore& rhs) const { return !(*this == rhs); }
 };
 
 enum class PersistReply { kKeyOrTimeoutNotFound, kTimeoutRemoved };

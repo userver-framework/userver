@@ -196,27 +196,18 @@ public:
     /// See @ref tracing::Span::SetLogLevel.
     logging::Level GetLogLevel() const;
 
-    /// @brief Sets an additional cutoff for the logs written in the scope of this `Span`,
-    /// and in nested scopes recursively.
+    /// @brief Sets the log level for the scope of this `Span` and nested scopes recursively.
+    ///
+    /// Overrides the global log level in both directions: can raise the threshold
+    /// (suppress logs) or lower it (enable debug logs even if the global level is higher).
     ///
     /// For example, if the global log level is `info`, and the current `Span` has
-    /// (own or inherited) local log level `warning`, then all `LOG_INFO`s within the current
-    /// scope will be thrown away.
+    /// local log level `debug`, then all `LOG_DEBUG`s within the current scope will be written.
     ///
     /// The cutoff also applies to the span itself. If the @ref tracing::Span::SetLogLevel "span's log level"
     /// is less than the local log level, then the span is not written to the tracing system.
     ///
     /// Local log level of child spans can override local log level of parent spans in both directions.
-    /// For example:
-    /// * if local log level of a parent `Span` is `warning`,
-    /// * and local log level of a child span is set `info`,
-    /// * then `info` logs within that `Span` will be written,
-    /// * as long as the global log level is not higher than `info`.
-    ///
-    /// Currently, local log level cannot override the global log level of the logger.
-    /// For example, if the global log level is `info`, and the current `Span` has
-    /// (own or inherited) local log level `debug`, then all `LOG_DEBUG`s within the current
-    /// scope will **still** be thrown away.
     void SetLocalLogLevel(std::optional<logging::Level> log_level);
 
     /// See @ref tracing::Span::SetLocalLogLevel.
@@ -276,6 +267,8 @@ public:
     void AttachToCoroStack();
 
     std::chrono::system_clock::time_point GetStartSystemTime() const;
+
+    std::chrono::steady_clock::time_point GetStartSteadyTime() const;
 
     /// @cond
     // For internal use only.

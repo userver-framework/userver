@@ -16,6 +16,7 @@ components_manager:
             path: /chaos/httpserver
             task_processor: main-task-processor
             method: GET,DELETE,POST
+            deadline_propagation_prefer_timestamp: true
 
         handler-chaos-httpserver-parse-body-args:
             path: /chaos/httpserver-parse-body-args

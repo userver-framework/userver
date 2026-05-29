@@ -69,9 +69,7 @@ components_manager:
 
         ydb:
             operation-settings:
-                cancel-after: 1001ms
                 client-timeout: 1101ms
-                operation-timeout: 1001ms
                 retries: 2
                 get-session-timeout: 5001ms
             databases:
@@ -92,6 +90,10 @@ components_manager:
         handler-upsert-row:
             method: POST
             path: /ydb/upsert-row
+            task_processor: main-task-processor
+        handler-upsert-row-old:
+            method: POST
+            path: /ydb/upsert-row-old
             task_processor: main-task-processor
         handler-describe-table:
             method: POST

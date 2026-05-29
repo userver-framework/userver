@@ -168,8 +168,8 @@ struct MyKeyValue {
 //  The function must be declared in the namespace of your type
 MyKeyValue Parse(const formats::json::Value& json, formats::parse::To<MyKeyValue>) {
     return MyKeyValue{
-        json["field1"].As<std::string>(""),
-        json["field2"].As<int>(1),  // return `1` if "field2" is missing
+        .field1 = json["field1"].As<std::string>(""),
+        .field2 = json["field2"].As<int>(1),  // return `1` if "field2" is missing
     };
 }
 

@@ -1,5 +1,9 @@
 #pragma once
 
+/// @file userver/formats/json/parser/int_parser.hpp
+/// @brief SAX parsers for JSON integral numbers.
+/// @ingroup userver_universal
+
 #include <cstdint>
 
 #include <userver/formats/json/parser/typed_parser.hpp>

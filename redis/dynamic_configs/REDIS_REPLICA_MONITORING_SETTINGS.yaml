@@ -19,8 +19,10 @@ schema:
             additionalProperties: false
             properties:
                 enable-monitoring:
+                    description: enable sync metrics tracking
                     type: boolean
                 forbid-requests-to-syncing-replicas:
+                    description: forbid query execution on syncing replicas
                     type: boolean
             required:
               - enable-monitoring

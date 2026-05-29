@@ -26,7 +26,7 @@ private:
 };
 
 namespace query_args {
-constexpr std::string_view kDelimeter = "delimiter";
+constexpr std::string_view kDelimiter = "delimiter";
 constexpr std::string_view kEncodingType = "encoding-type";
 constexpr std::string_view kMarker = "marker";
 constexpr std::string_view kMaxKeys = "max-keys";
@@ -63,7 +63,7 @@ Request PutObject(
     Request req;
     req.method = clients::http::HttpMethod::kPut;
     req.bucket = bucket;
-    req.req = path;
+    req.req = http::EncodeS3Key(path);
 
     req.headers[USERVER_NAMESPACE::http::headers::kContentLength] = std::to_string(data.size());
     req.headers[USERVER_NAMESPACE::http::headers::kContentType] = content_type;
@@ -80,7 +80,7 @@ Request DeleteObject(std::string_view bucket, std::string_view path) {
     Request req;
     req.method = clients::http::HttpMethod::kDelete;
     req.bucket = bucket;
-    req.req = path;
+    req.req = http::EncodeS3Key(path);
     return req;
 }
 
@@ -88,7 +88,7 @@ Request GetObject(std::string_view bucket, std::string_view path, std::optional<
     Request req;
     req.method = clients::http::HttpMethod::kGet;
     req.bucket = bucket;
-    req.req = path;
+    req.req = http::EncodeS3Key(path);
 
     if (version) {
         req.req += "?" + USERVER_NAMESPACE::http::MakeQuery({{"versionId", *version}});
@@ -101,7 +101,7 @@ Request GetObjectHead(std::string_view bucket, std::string_view path) {
     Request req;
     req.method = clients::http::HttpMethod::kHead;
     req.bucket = bucket;
-    req.req = path;
+    req.req = http::EncodeS3Key(path);
     return req;
 }
 
@@ -136,7 +136,7 @@ Request ListBucketContents(
     }
 
     if (!delimiter.empty()) {
-        params.emplace(query_args::kDelimeter, delimiter);
+        params.emplace(query_args::kDelimiter, delimiter);
     }
 
     req.req = "?" + USERVER_NAMESPACE::http::MakeQuery(params);
@@ -152,9 +152,9 @@ Request CopyObject(
     Request req;
     req.method = clients::http::HttpMethod::kPut;
     req.bucket = dest_bucket;
-    req.req = dest_key;
+    req.req = http::EncodeS3Key(dest_key);
 
-    req.headers[headers::kAmzCopySource] = fmt::format("/{}/{}", source_bucket, source_key);
+    req.headers[headers::kAmzCopySource] = fmt::format("/{}/{}", source_bucket, http::EncodeS3Key(source_key));
     req.headers[USERVER_NAMESPACE::http::headers::kContentType] = content_type;
 
     return req;
@@ -167,7 +167,7 @@ Request CreateInternalApiRequest(
     Request result;
     result.method = clients::http::HttpMethod::kPost;
     result.bucket = bucket;
-    result.req = fmt::format("{}?uploads", request.key);
+    result.req = fmt::format("{}?uploads", http::EncodeS3Key(request.key));
 
     if (request.content_type) {
         result.headers[http::headers::kContentType] = *request.content_type;
@@ -195,7 +195,11 @@ Request CreateInternalApiRequest(
     Request result;
     result.method = clients::http::HttpMethod::kDelete;
     result.bucket = bucket;
-    result.req = fmt::format("{}?{}", request.key, http::MakeQuery({{query_args::kUploadId, request.upload_id}}));
+    result.req = fmt::format(
+        "{}?{}",
+        http::EncodeS3Key(request.key),
+        http::MakeQuery({{query_args::kUploadId, request.upload_id}})
+    );
     return result;
 }
 
@@ -206,7 +210,11 @@ Request CreateInternalApiRequest(
     Request result;
     result.method = clients::http::HttpMethod::kPost;
     result.bucket = bucket;
-    result.req = fmt::format("{}?{}", request.key, http::MakeQuery({{query_args::kUploadId, request.upload_id}}));
+    result.req = fmt::format(
+        "{}?{}",
+        http::EncodeS3Key(request.key),
+        http::MakeQuery({{query_args::kUploadId, request.upload_id}})
+    );
 
     pugi::xml_document doc;
     auto multipart_upload_node = doc.append_child("CompleteMultipartUpload");
@@ -231,9 +239,9 @@ Request CreateInternalApiRequest(
 Request CreateInternalApiRequest(const std::string& bucket, const multipart_upload::UploadPartRequest& request) {
     Request result;
     result.method = clients::http::HttpMethod::kPut;
-    // `Content-Type`-header is absent in S3 API, however PUT-request implementaion in CURL for URIs with query
+    // `Content-Type`-header is absent in S3 API, however PUT-request implementation in CURL for URIs with query
     // may implicitly insert `application/x-www-form-urlencoded` which must be taken into account when making
-    // canonical request for signature. But it happens after we sign the request without knowlege of this header.
+    // canonical request for signature. But it happens after we sign the request without knowledge of this header.
     // We explicitly override this Content-Type value here to make this request be signed correctly.
     result.headers = clients::http::Headers{
         {http::headers::kContentLength, std::to_string(request.data.size())},
@@ -243,7 +251,7 @@ Request CreateInternalApiRequest(const std::string& bucket, const multipart_uplo
     result.bucket = bucket;
     result.req = fmt::format(
         "{}?{}",
-        request.key,
+        http::EncodeS3Key(request.key),
         http::MakeQuery(
             {{query_args::kUploadId, request.upload_id}, {query_args::kPartNumber, std::to_string(request.part_number)}}
         )
@@ -256,7 +264,7 @@ Request CreateInternalApiRequest(const std::string& bucket, const multipart_uplo
     Request result;
     result.method = clients::http::HttpMethod::kGet;
     result.bucket = bucket;
-    result.req = request.key;
+    result.req = http::EncodeS3Key(request.key);
 
     http::Args params{{std::string{query_args::kUploadId}, request.upload_id}};
 
@@ -268,7 +276,7 @@ Request CreateInternalApiRequest(const std::string& bucket, const multipart_uplo
         params.emplace(query_args::kPartNumberMarker, std::to_string(part_number_marker));
     }
 
-    result.req = fmt::format("{}?{}", request.key, http::MakeQuery(params));
+    result.req = fmt::format("{}?{}", http::EncodeS3Key(request.key), http::MakeQuery(params));
 
     return result;
 }
@@ -285,7 +293,7 @@ Request CreateInternalApiRequest(
 
     http::Args params;
     if (request.delimiter) {
-        params.emplace(query_args::kDelimeter, *request.delimiter);
+        params.emplace(query_args::kDelimiter, *request.delimiter);
     }
 
     if (request.prefix) {

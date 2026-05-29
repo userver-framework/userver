@@ -38,7 +38,7 @@ public:
         const std::string& shard_group_name,
         const std::string& host,
         uint16_t port,
-        Password password,
+        Credentials credentials,
         std::size_t database_index,
         CommandsBufferingSettings buffering_settings,
         ReplicationMonitoringSettings replication_monitoring_settings,
@@ -56,7 +56,7 @@ public:
         const std::string& shard_group_name,
         const std::string& host,
         uint16_t port,
-        Password password,
+        Credentials credentials,
         std::size_t database_index,
         CommandsBufferingSettings buffering_settings,
         ReplicationMonitoringSettings replication_monitoring_settings,
@@ -90,7 +90,7 @@ private:
     const std::string shard_group_name_;
     const std::string host_;
     const uint16_t port_;
-    const Password password_;
+    const Credentials credentials_;
     const std::size_t database_index_;
     Statistics& statistics_;
     rcu::Variable<std::shared_ptr<Redis>, rcu::BlockingRcuTraits> redis_;

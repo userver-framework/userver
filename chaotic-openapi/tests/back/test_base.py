@@ -1,4 +1,4 @@
-from chaotic_openapi.back.cpp_client import types
+from chaotic_openapi.back.cpp.client import types
 
 
 def test_base(translate_single_schema):

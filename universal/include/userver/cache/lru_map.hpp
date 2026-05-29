@@ -7,7 +7,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-/// Utilities for caching
+/// @brief LRU/LRU-set caches and related utilities.
 namespace cache {
 
 /// @ingroup userver_universal userver_containers

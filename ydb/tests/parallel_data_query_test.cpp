@@ -1,5 +1,6 @@
 #include <string>
 
+#include <userver/engine/async.hpp>
 #include <userver/engine/get_all.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/utest/utest.hpp>
@@ -36,7 +37,7 @@ UTEST_F(YdbExecuteParallelDataQuery, SimpleReadParallel) {
     responses.reserve(requests_count);
 
     for (auto i = 0; i < requests_count; ++i) {
-        responses.emplace_back(engine::AsyncNoSpan([&]() {
+        responses.emplace_back(engine::AsyncNoTracing([&]() {
             return GetTableClient().ExecuteDataQuery(ydb::Query{R"(
             SELECT key, value_str
             FROM simple_read
@@ -71,7 +72,7 @@ UTEST_F(YdbExecuteParallelDataQuery, PreparedReadParallel) {
         auto builder = GetTableClient().GetBuilder();
         UASSERT_NO_THROW(builder.Add("$search_key", std::string{"key1"}));
 
-        responses.emplace_back(engine::AsyncNoSpan([builder = std::move(builder), query = query, this]() mutable {
+        responses.emplace_back(engine::AsyncNoTracing([builder = std::move(builder), query = query, this]() mutable {
             return GetTableClient().ExecuteDataQuery(ydb::OperationSettings{}, query, std::move(builder));
         }));
     }

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/clients/http/form.hpp
+/// @brief @copybrief clients::http::Form
+
 #include <memory>
 #include <string>
 
@@ -13,6 +16,7 @@ class form;
 
 namespace clients::http {
 
+/// @brief Multipart HTTP form builder
 class Form final {
 public:
     Form();

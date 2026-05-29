@@ -1,10 +1,13 @@
 #include <userver/formats/json/iterator.hpp>
 
+#include <limits>
+
 #include <rapidjson/document.h>
 
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
+#include <userver/utils/assert.hpp>
 
 #include <formats/json/impl/exttypes.hpp>
 
@@ -24,6 +27,13 @@ const formats::json::Value& GetValue(const impl::MutableValueWrapper& container)
 formats::json::Value& GetValue(impl::MutableValueWrapper& container) { return *container; }
 
 }  // namespace
+
+template <typename Traits, IteratorDirection Direction>
+Iterator<Traits, Direction>::Iterator()
+    : container_(),
+      type_(impl::Type::kObjectValue),
+      pos_(std::numeric_limits<int>::max())
+{}
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
 template <typename Traits, IteratorDirection Direction>
@@ -72,7 +82,13 @@ template <typename Traits, IteratorDirection Direction>
 Iterator<Traits, Direction>::~Iterator() = default;
 
 template <typename Traits, IteratorDirection Direction>
+bool Iterator<Traits, Direction>::IsValid() const {
+    return pos_ != std::numeric_limits<int>::max();
+}
+
+template <typename Traits, IteratorDirection Direction>
 Iterator<Traits, Direction> Iterator<Traits, Direction>::operator++(int) {
+    UASSERT(IsValid());
     current_.reset();
     const auto prev_pos = pos_;
     pos_ += static_cast<int>(Direction);
@@ -81,6 +97,7 @@ Iterator<Traits, Direction> Iterator<Traits, Direction>::operator++(int) {
 
 template <typename Traits, IteratorDirection Direction>
 Iterator<Traits, Direction>& Iterator<Traits, Direction>::operator++() {
+    UASSERT(IsValid());
     current_.reset();
     pos_ += static_cast<int>(Direction);
     return *this;
@@ -88,6 +105,7 @@ Iterator<Traits, Direction>& Iterator<Traits, Direction>::operator++() {
 
 template <typename Traits, IteratorDirection Direction>
 typename Iterator<Traits, Direction>::reference Iterator<Traits, Direction>::operator*() const {
+    UASSERT(IsValid());
     UpdateValue();
     return *current_;
 }
@@ -109,6 +127,7 @@ bool Iterator<Traits, Direction>::operator!=(const Iterator<Traits, Direction>& 
 
 template <typename Traits, IteratorDirection Direction>
 std::string Iterator<Traits, Direction>::GetNameImpl() const {
+    UASSERT(IsValid());
     if (type_ == impl::Type::kObjectValue) {
         const auto& key = GetValue(container_).value_ptr_->MemberBegin()[pos_].name;
         return std::string(key.GetString(), key.GetString() + key.GetStringLength());
@@ -118,6 +137,7 @@ std::string Iterator<Traits, Direction>::GetNameImpl() const {
 
 template <typename Traits, IteratorDirection Direction>
 size_t Iterator<Traits, Direction>::GetIndex() const {
+    UASSERT(IsValid());
     if (type_ == impl::Type::kArrayValue) {
         return pos_;
     }
@@ -126,6 +146,7 @@ size_t Iterator<Traits, Direction>::GetIndex() const {
 
 template <>
 void Iterator<Value::IterTraits, IteratorDirection::kForward>::UpdateValue() const {
+    UASSERT(IsValid());
     if (current_) {
         return;
     }
@@ -151,6 +172,7 @@ void Iterator<Value::IterTraits, IteratorDirection::kForward>::UpdateValue() con
 
 template <>
 void Iterator<Value::IterTraits, IteratorDirection::kReverse>::UpdateValue() const {
+    UASSERT(IsValid());
     if (current_) {
         return;
     }
@@ -170,6 +192,7 @@ void Iterator<Value::IterTraits, IteratorDirection::kReverse>::UpdateValue() con
 
 template <>
 void Iterator<ValueBuilder::IterTraits, IteratorDirection::kForward>::UpdateValue() const {
+    UASSERT(IsValid());
     if (current_) {
         return;
     }
@@ -186,6 +209,7 @@ void Iterator<ValueBuilder::IterTraits, IteratorDirection::kForward>::UpdateValu
 
 template <>
 void Iterator<ValueBuilder::IterTraits, IteratorDirection::kReverse>::UpdateValue() const {
+    UASSERT(IsValid());
     if (current_) {
         return;
     }

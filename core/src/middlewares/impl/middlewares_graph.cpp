@@ -68,10 +68,10 @@ void ValidateDependencies(const Dependencies& dependencies) {
 
 void AddEdges(Graph& graph, const MiddlewareDependency& dep) {
     for (const auto& before : dep.befores) {
-        graph.AddEdge({before.node_name, dep.middleware_name, before.type});
+        graph.AddEdge({.from = before.node_name, .to = dep.middleware_name, .type = before.type});
     }
     for (const auto& after : dep.afters) {
-        graph.AddEdge({dep.middleware_name, after.node_name, after.type});
+        graph.AddEdge({.from = dep.middleware_name, .to = after.node_name, .type = after.type});
     }
     graph.AddNode(dep.middleware_name, dep.enabled);
 }
@@ -82,12 +82,12 @@ void AddEdgesForGroup(Graph& graph, const MiddlewareDependency& dep) {
     const auto end = impl::EndOfGroup<Group>();
     graph.AddNode(begin, true);
     graph.AddNode(end, true);
-    graph.AddEdge({end, begin, DependencyType::kStrong});
+    graph.AddEdge({.from = end, .to = begin, .type = DependencyType::kStrong});
 
     UASSERT(dep.afters.size() <= 1 && dep.befores.empty());
     if (dep.afters.size() == 1) {
         const auto after_end = dep.afters.front().node_name;
-        graph.AddEdge({begin, after_end, DependencyType::kStrong});
+        graph.AddEdge({.from = begin, .to = after_end, .type = DependencyType::kStrong});
     }
 }
 
@@ -167,7 +167,7 @@ MiddlewareOrderedList BuildPipeline(Dependencies&& dependencies) {
         }
         const auto it = dependencies.find(mid);
         UINVARIANT(it != dependencies.end(), fmt::format("Middleware `{}` does not exist.", mid));
-        list.push_back({mid, it->second.enabled});
+        list.push_back({.name = mid, .enabled = it->second.enabled});
     }
 
     return list;

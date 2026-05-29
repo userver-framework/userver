@@ -26,7 +26,6 @@ namespace detail {
 // and are not intended to be used as types for geometry calculations
 struct Point {
     constexpr bool operator==(const Point& rhs) const { return x == rhs.x && y == rhs.y; }
-    constexpr bool operator!=(const Point& rhs) const { return !(*this == rhs); }
 
     double x;
     double y;
@@ -34,7 +33,6 @@ struct Point {
 
 struct LineSegment {
     constexpr bool operator==(const LineSegment& rhs) const { return ends[0] == rhs.ends[0] && ends[1] == rhs.ends[1]; }
-    constexpr bool operator!=(const LineSegment& rhs) const { return !(*this == rhs); }
 
     std::array<Point, 2> ends{};
 };
@@ -42,7 +40,6 @@ struct LineSegment {
 // Line is stored as coefficients to equation a*x + b*y + c = 0
 struct Line {
     constexpr bool operator==(const Line& rhs) const { return a == rhs.a && b == rhs.b && c == rhs.c; }
-    constexpr bool operator!=(const Line& rhs) const { return !(*this == rhs); }
 
     double a;
     double b;
@@ -53,14 +50,12 @@ struct Box {
     constexpr bool operator==(const Box& rhs) const {
         return corners[0] == rhs.corners[0] && corners[1] == rhs.corners[1];
     }
-    constexpr bool operator!=(const Box& rhs) const { return !(*this == rhs); }
 
     std::array<Point, 2> corners{};
 };
 
 struct Path {
     bool operator==(const Path& rhs) const { return is_closed == rhs.is_closed && points == rhs.points; }
-    bool operator!=(const Path& rhs) const { return !(*this == rhs); }
 
     bool is_closed{false};
     std::vector<Point> points;
@@ -68,14 +63,12 @@ struct Path {
 
 struct Polygon {
     bool operator==(const Polygon& rhs) const { return points == rhs.points; }
-    bool operator!=(const Polygon& rhs) const { return !(*this == rhs); }
 
     std::vector<Point> points;
 };
 
 struct Circle {
     constexpr bool operator==(const Circle& rhs) const { return center == rhs.center && radius == rhs.radius; }
-    constexpr bool operator!=(const Circle& rhs) const { return !(*this == rhs); }
 
     Point center;
     double radius;

@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2024 Antony Polukhin
+// Copyright (c) 2016-2025 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -12,11 +12,8 @@
 #include <boost/pfr/detail/size_t_.hpp>
 #include <boost/pfr/detail/unsafe_declval.hpp>
 
-#ifdef BOOST_PFR_HAS_STD_MODULE
-import std;
-#else
-#include <climits>      // CHAR_BIT
-#include <cstdint>      // SIZE_MAX
+#if !defined(BOOST_PFR_INTERFACE_UNIT)
+#include <limits>
 #include <type_traits>
 #include <utility>      // metaprogramming stuff
 #endif
@@ -210,6 +207,7 @@ using is_one_element_range = std::integral_constant<bool, Begin == Last>;
 using multi_element_range = std::false_type;
 using one_element_range = std::true_type;
 
+#if !BOOST_PFR_USE_CPP26
 ///////////////////// Fields count next expected compiler limitation
 constexpr std::size_t fields_count_compiler_limitation_next(std::size_t n) noexcept {
 #if defined(_MSC_VER) && (_MSC_VER <= 1920)
@@ -218,13 +216,13 @@ constexpr std::size_t fields_count_compiler_limitation_next(std::size_t n) noexc
 #else
     static_cast<void>(n);
 #endif
-    return SIZE_MAX;
+    return (std::numeric_limits<std::size_t>::max)();
 }
 
 ///////////////////// Fields count upper bound based on sizeof(T)
 template <class T>
 constexpr std::size_t fields_count_upper_bound_loose() noexcept {
-    return sizeof(T) * CHAR_BIT;
+    return sizeof(T) * std::numeric_limits<unsigned char>::digits + 1 /* +1 for "Arrays of Length Zero" extension */;
 }
 
 ///////////////////// Fields count binary search.
@@ -331,6 +329,7 @@ constexpr std::size_t fields_count_lower_bound_unbounded(int, size_t_<0>) noexce
     );
     return detail::fields_count_lower_bound_unbounded<T, last + 1>(1L, size_t_<result_maybe>{});
 }
+#endif
 
 ///////////////////// Choosing between array size, unbounded binary search, and linear search followed by unbounded binary search.
 template <class T>
@@ -345,6 +344,27 @@ constexpr auto fields_count_dispatch(long, long, std::true_type /*are_preconditi
     return sizeof(T) / sizeof(std::remove_all_extents_t<T>);
 }
 
+#if BOOST_PFR_USE_CPP26
+template<class T>
+constexpr auto fields_count_dispatch_impl(const T &t) noexcept
+{
+    const auto &[... elts] = t;
+    return std::integral_constant<std::size_t, sizeof...(elts)>{};
+}
+
+template<class T>
+constexpr auto fields_count_dispatch(long, int, std::true_type /*are_preconditions_met*/) noexcept
+    -> std::enable_if_t<std::is_scalar<T>::value, std::size_t>
+{
+    return 1;
+}
+
+template<class T>
+constexpr auto fields_count_dispatch(int, int, std::true_type /*are_preconditions_met*/) noexcept
+{
+    return decltype(detail::fields_count_dispatch_impl(std::declval<const T &>()))::value;
+}
+#else
 template <class T>
 constexpr auto fields_count_dispatch(long, int, std::true_type /*are_preconditions_met*/) noexcept
     -> decltype(sizeof(T{}))
@@ -363,6 +383,7 @@ constexpr std::size_t fields_count_dispatch(int, int, std::true_type /*are_preco
     constexpr std::size_t last = detail::fields_count_upper_bound<T, begin, begin + 1>(1L, 1L);
     return detail::fields_count_binary_search<T, begin, last>(detail::is_one_element_range<begin, last>{}, 1L);
 }
+#endif
 
 ///////////////////// Returns fields count
 template <class T>
@@ -428,9 +449,8 @@ constexpr std::size_t fields_count() noexcept {
     constexpr bool no_errors =
         type_is_complete && type_is_not_a_reference && type_fields_are_move_constructible
         && type_is_not_polymorphic && type_is_aggregate;
-
-    constexpr std::size_t result = detail::fields_count_dispatch<type>(1L, 1L, std::integral_constant<bool, no_errors>{});
-
+    constexpr std::size_t result
+        = detail::fields_count_dispatch<type>(1L, 1L, std::integral_constant<bool, no_errors>{});
     detail::assert_first_not_base<type, result>(1L);
 
 #ifndef __cpp_lib_is_aggregate

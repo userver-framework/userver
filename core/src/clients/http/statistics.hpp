@@ -28,7 +28,7 @@ public:
     RequestStats& operator=(const RequestStats&) = delete;
 
     RequestStats(RequestStats&&) noexcept;
-    RequestStats& operator=(RequestStats&&) = delete;
+    RequestStats& operator=(RequestStats&&) noexcept;
 
     void Start();
     void FinishOk(int code, unsigned int attempts) noexcept;

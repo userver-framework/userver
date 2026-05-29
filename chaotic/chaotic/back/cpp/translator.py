@@ -87,14 +87,6 @@ class FormatChooser:
                     type_,
                     f'{type_.raw_cpp_type} has JSON-specific field "extra"',
                 )
-            if isinstance(type_, cpp_types.CppStruct):
-                assert isinstance(type_, cpp_types.CppStruct)
-
-                if type_.extra_type is True:
-                    mark_as_only_json(
-                        type_,
-                        f'{type_.raw_cpp_type} has JSON-specific field "extra"',
-                    )
 
 
 class TranslatorError(error.BaseError):
@@ -493,12 +485,37 @@ class Generator:
         )
 
     @staticmethod
+    def _is_emoji(code_point: int) -> bool:
+        return (
+            # Box Drawing, Block Elements, Geometric Shapes, Miscellaneous Symbols, Dingbats
+            (0x2500 <= code_point and code_point <= 0x27BF)
+            # Miscellaneous Symbols and Pictographs, Ornamental Dingbats, Transport and Map Symbols, Alchemical Symbols
+            or (0x1F300 <= code_point and code_point <= 0x1F77F)
+        )
+
+    @staticmethod
     def _normalize_name(name: str) -> str:
         if re.search(NON_NAME_SYMBOL_RE, name):
+            initially_with_leading_underscore = name.startswith('_')
+
             lang = transliterate.detect_language(name, heavy_check=True)
             if lang:
                 name = transliterate.translit(name, lang, reversed=True)
+
+            replacements = {}
+            for symbol in name:
+                code_point = ord(symbol)
+                if Generator._is_emoji(code_point):
+                    replacements[symbol] = f'_u{code_point:X}'
+
+            for symbol, replacement in replacements.items():
+                name = name.replace(symbol, replacement)
+
             name = re.sub(NON_NAME_SYMBOL_RE, '_', name)
+
+            if not initially_with_leading_underscore and name.startswith('_'):
+                name = name[1:]
+
         return name
 
     def _gen_field(
@@ -551,6 +568,12 @@ class Generator:
         # TODO: name?
         items = self._generate_type(name.add_suffix('A'), schema.items)
 
+        if schema.uniqueItems and not isinstance(schema.items, (types.Integer, types.String, types.Boolean)):
+            self._raise(
+                schema,
+                'uniqueItems is only supported for integer, string, and boolean item types',
+            )
+
         user_cpp_type = self._extract_user_cpp_type(schema)
         container = self._extract_container(schema)
 
@@ -568,6 +591,7 @@ class Generator:
             validators=cpp_types.CppArrayValidator(
                 minItems=schema.minItems,
                 maxItems=schema.maxItems,
+                uniqueItems=schema.uniqueItems,
             ),
         )
 

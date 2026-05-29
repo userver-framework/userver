@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/redis/request_data_base.hpp
+/// @brief Abstract bases for Redis request/scan pending results
+
 #include <string>
 
 #include <userver/engine/impl/context_accessor.hpp>

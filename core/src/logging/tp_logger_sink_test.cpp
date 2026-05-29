@@ -85,7 +85,7 @@ UTEST_MT(TpLogger, SerializesSinkOperations, 4) {
     });
 
     auto reopen_tasks = utils::GenerateFixedArray(2, [&](std::size_t) {
-        return engine::AsyncNoSpan([&] {
+        return engine::AsyncNoTracing([&] {
             Backoff backoff;
             while (keep_running) {
                 logger.Reopen(logging::impl::ReopenMode::kAppend);

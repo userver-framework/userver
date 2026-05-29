@@ -12,17 +12,11 @@ namespace utils::statistics {
 namespace {
 
 void RemoveAddedLabels(std::vector<Label>& labels, const Request::AddLabels& add_labels) {
-    labels.erase(
-        std::remove_if(
-            labels.begin(),
-            labels.end(),
-            [&add_labels](const auto& label) {
-                auto it = add_labels.find(label.Name());
-                return it != add_labels.end() && it->second == label.Value();
-            }
-        ),
-        labels.end()
-    );
+    const auto garbage = std::ranges::remove_if(labels, [&add_labels](const auto& label) {
+        auto it = add_labels.find(label.Name());
+        return it != add_labels.end() && it->second == label.Value();
+    });
+    labels.erase(garbage.begin(), garbage.end());
 }
 
 }  // namespace

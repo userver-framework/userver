@@ -14,7 +14,7 @@ namespace {
 std::string ToLower(std::string_view str) {
     std::string result;
     result.resize(str.size());
-    std::transform(str.begin(), str.end(), result.begin(), [](unsigned char c) { return std::tolower(c); });
+    std::ranges::transform(str, result.begin(), [](unsigned char c) { return std::tolower(c); });
     return result;
 }
 

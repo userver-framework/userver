@@ -27,13 +27,9 @@ public:
         constexpr std::size_t kInitialVectorSize = 16;
         boost::container::small_vector<std::size_t, kInitialVectorSize> sorted_labels_indexes(labels.size());
         std::iota(sorted_labels_indexes.begin(), sorted_labels_indexes.end(), 0);
-        std::sort(
-            sorted_labels_indexes.begin(),
-            sorted_labels_indexes.end(),
-            [&labels](const auto& lhs, const auto& rhs) {
-                return (labels.begin() + lhs)->Name() < (labels.begin() + rhs)->Name();
-            }
-        );
+        std::ranges::sort(sorted_labels_indexes, [&labels](const auto& lhs, const auto& rhs) {
+            return (labels.begin() + lhs)->Name() < (labels.begin() + rhs)->Name();
+        });
 
         for (std::size_t i = 0; i < sorted_labels_indexes.size(); ++i) {
             PutLabel(*(labels.begin() + sorted_labels_indexes[i]));

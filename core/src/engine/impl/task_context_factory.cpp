@@ -1,6 +1,7 @@
 #include <userver/engine/impl/task_context_factory.hpp>
 
 #include <engine/task/task_context.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -13,8 +14,8 @@ static_assert(kTaskContextAlignment >= alignof(TaskContext));
 static_assert(sizeof(TaskContext) % kTaskContextAlignment == 0);
 
 TaskContext& PlacementNewTaskContext(std::byte* storage, TaskConfig config, utils::impl::WrappedCallBase& payload) {
-    return *new (storage
-    ) TaskContext{config.task_processor, config.importance, config.wait_mode, config.deadline, payload};
+    auto& task_processor = config.task_processor ? *config.task_processor : engine::current_task::GetTaskProcessor();
+    return *new (storage) TaskContext{task_processor, config.importance, config.wait_mode, config.deadline, payload};
 }
 
 std::byte* AllocateFusedTaskContext(std::size_t total_size) {

@@ -362,13 +362,18 @@ static void pqxParseInput3(PGconn* conn, const PGresult* description) {
 #else
           if (conn->queryclass == PGXQUERY_BIND) {
 #endif
-            /* In case of portal bind, the query ends here without a result */
-#if PG_VERSION_NUM >= 140005
+            /*
+              In case of portal bind, only in pipeline mode
+              the query ends here without a result
+            */
+#if PG_VERSION_NUM >= 140000
             if (conn->pipelineStatus != PQ_PIPELINE_OFF)
+#if PG_VERSION_NUM >= 140005
               conn->asyncStatus = PGASYNC_PIPELINE_IDLE;
-            else
-#endif
+#else
               conn->asyncStatus = PGASYNC_IDLE;
+#endif
+#endif
           }
           break;
         case '3': /* Close Complete */

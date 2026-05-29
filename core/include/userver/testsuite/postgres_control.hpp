@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/testsuite/postgres_control.hpp
+/// @brief @copybrief testsuite::PostgresControl
+
 #include <chrono>
 
 #include <userver/engine/deadline.hpp>
@@ -8,6 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace testsuite {
 
+/// @brief Testsuite overrides for PostgreSQL query timeouts
 class PostgresControl {
 public:
     enum class ReadonlyMaster { kNotExpected, kExpected };

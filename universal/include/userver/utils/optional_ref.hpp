@@ -3,6 +3,7 @@
 /// @file userver/utils/optional_ref.hpp
 /// @brief @copybrief utils::OptionalRef
 
+#include <memory>
 #include <optional>
 #include <type_traits>
 
@@ -35,7 +36,7 @@ public:
     constexpr OptionalRef(const OptionalRef&) noexcept = default;
     constexpr OptionalRef& operator=(const OptionalRef&) noexcept = delete;
 
-    constexpr OptionalRef(T& other) noexcept : data_(&other) {}
+    constexpr OptionalRef(T& other) noexcept : data_(std::addressof(other)) {}
 
     // Forming a reference to a temporary is forbidden
     explicit constexpr OptionalRef(const T&&) = delete;
@@ -101,12 +102,7 @@ private:
             "Attempt to initialize non-const T from a const optional value"
         );
 
-        if (!other) {
-            return nullptr;
-        }
-
-        auto& value = *other;
-        return &value;
+        return other.has_value() ? std::addressof(*other) : nullptr;
     }
 
     T* const data_ = nullptr;
@@ -118,11 +114,6 @@ constexpr bool operator==(OptionalRef<T> lhs, OptionalRef<U> rhs) noexcept {
         return !lhs && !rhs;
     }
     return *lhs == *rhs;
-}
-
-template <class T, class U>
-constexpr bool operator!=(OptionalRef<T> lhs, OptionalRef<U> rhs) noexcept {
-    return !(lhs == rhs);
 }
 
 }  // namespace utils

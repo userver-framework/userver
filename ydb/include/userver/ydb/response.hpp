@@ -1,6 +1,9 @@
 #pragma once
 
-#include <ydb-cpp-sdk/client/query/fwd.h>
+/// @file userver/ydb/response.hpp
+/// @brief YDB query result rows, cursors and execute responses
+
+#include <ydb-cpp-sdk/client/query/client.h>
 #include <ydb-cpp-sdk/client/result/result.h>
 #include <ydb-cpp-sdk/client/table/table.h>
 
@@ -174,8 +177,8 @@ private:
 class ExecuteResponse final {
 public:
     /// @cond
-    explicit ExecuteResponse(NYdb::NTable::TDataQueryResult&& query_result);
-    explicit ExecuteResponse(NYdb::NQuery::TExecuteQueryResult&& query_result);
+    explicit ExecuteResponse(std::variant<NYdb::NQuery::TExecuteQueryResult, NYdb::NTable::TDataQueryResult>&&
+                                 query_result);
     /// @endcond
 
     ExecuteResponse(const ExecuteResponse&) = delete;
@@ -256,7 +259,7 @@ T Row::Get(std::string_view column_name) {
     ConsumedColumnsCheck(parse_state_.parser.ColumnIndex(impl::ToString(column_name)));
 #endif
     auto& column = GetColumn(column_name);
-    return Parse<T>(column, ParseContext{/*column_name=*/column_name});
+    return Parse<T>(column, ParseContext{.column_name = column_name});
 }
 
 template <typename T>
@@ -266,7 +269,7 @@ T Row::Get(std::size_t column_index) {
 #endif
     auto& column = GetColumn(column_index);
     const auto column_name = std::to_string(column_index);
-    return Parse<T>(column, ParseContext{/*column_name=*/column_name});
+    return Parse<T>(column, ParseContext{.column_name = column_name});
 }
 
 template <typename Container>

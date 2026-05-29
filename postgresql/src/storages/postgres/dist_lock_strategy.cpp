@@ -17,7 +17,7 @@ namespace {
 // key - $1
 // owner - $2
 // timeout in seconds - $3
-std::string MakeAcquireQuery(const std::string& table) {
+Query MakeAcquireQuery(const std::string& table) {
     static constexpr std::string_view kAcquireQueryFmt = R"(
     INSERT INTO {} AS t (key, owner, expiration_time) SELECT
     $1, $2, current_timestamp + make_interval(secs => $3)
@@ -35,19 +35,19 @@ std::string MakeAcquireQuery(const std::string& table) {
     WHERE (t.owner = $2) OR
     (t.expiration_time <= current_timestamp) RETURNING 1;
 )";
-    return fmt::format(FMT_COMPILE(kAcquireQueryFmt), table, table);
+    return {fmt::format(FMT_COMPILE(kAcquireQueryFmt), table, table), Query::Name{"dist_lock_acquire"}};
 }
 
 // key - $1
 // owner - $2
-std::string MakeReleaseQuery(const std::string& table) {
+Query MakeReleaseQuery(const std::string& table) {
     static constexpr std::string_view kReleaseQueryFmt = R"(
     DELETE FROM {}
     WHERE key = $1
     AND owner = $2
     RETURNING 1;
 )";
-    return fmt::format(FMT_COMPILE(kReleaseQueryFmt), table);
+    return {fmt::format(FMT_COMPILE(kReleaseQueryFmt), table), Query::Name{"dist_lock_release"}};
 }
 
 std::string MakeOwnerId(const std::string& prefix, const std::string& locker) {
@@ -79,17 +79,28 @@ void DistLockStrategy::UpdateCommandControl(CommandControl cc) {
 void DistLockStrategy::Acquire(std::chrono::milliseconds lock_ttl, const std::string& locker_id) {
     const double timeout_seconds = lock_ttl.count() / 1000.0;
     auto cc_ptr = cc_.Read();
-    auto result = cluster_->Execute(
-        ClusterHostType::kMaster,
-        *cc_ptr,
-        acquire_query_,
-        lock_name_,
-        MakeOwnerId(owner_prefix_, locker_id),
-        timeout_seconds
-    );
 
-    if (result.IsEmpty()) {
-        throw dist_lock::LockIsAcquiredByAnotherHostException();
+    try {
+        auto result = cluster_->Execute(
+            ClusterHostType::kMaster,
+            *cc_ptr,
+            acquire_query_,
+            lock_name_,
+            MakeOwnerId(owner_prefix_, locker_id),
+            timeout_seconds
+        );
+
+        if (result.IsEmpty()) {
+            throw dist_lock::LockIsAcquiredByAnotherHostException();
+        }
+    } catch (const TransactionRollback& exc) {
+        if (exc.GetSqlState() == SqlState::kSerializationFailure) {
+            //  Looks like the default transaction isolation is 'repeatable read' or 'serializable' and we were hit by
+            //  "could not serialize access due to concurrent update"
+            throw dist_lock::LockIsAcquiredByAnotherHostException();
+        } else {
+            throw;
+        }
     }
 }
 

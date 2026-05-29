@@ -1,5 +1,8 @@
 project(userver-mongo CXX)
 
+set(USERVER_MONGO_LIBMONGOC_NAME mongo::mongoc_static)
+set(USERVER_MONGO_LIBBSON_NAME mongo::bson_static)
+
 if(USERVER_CONAN)
     find_package(mongoc-1.0 REQUIRED)
 else()
@@ -9,8 +12,8 @@ endif()
 userver_module(
     mongo
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
-    LINK_LIBRARIES mongo::bson_static
-    LINK_LIBRARIES_PRIVATE mongo::mongoc_static
+    LINK_LIBRARIES "${USERVER_MONGO_LIBBSON_NAME}"
+    LINK_LIBRARIES_PRIVATE "${USERVER_MONGO_LIBMONGOC_NAME}"
     UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
     DBTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_mongotest.cpp"
     DBTEST_DATABASES mongo

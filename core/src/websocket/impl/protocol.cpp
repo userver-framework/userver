@@ -255,8 +255,12 @@ CloseStatus ReadWSFrameImpl(
             break;
         case kText:
             frame.is_text = true;
-            [[fallthrough]];
+            frame.waiting_continuation = !fin;
+            break;
         case kBinary:
+            frame.is_text = false;
+            frame.waiting_continuation = !fin;
+            break;
         case kContinuation:
             frame.waiting_continuation = !fin;
             break;

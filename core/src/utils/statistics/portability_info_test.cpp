@@ -1,8 +1,7 @@
 #include <userver/utils/statistics/portability_info.hpp>
 
 #include <limits>
-
-#include <boost/range/irange.hpp>
+#include <ranges>
 
 #include <userver/utils/algo.hpp>
 #include <userver/utils/statistics/histogram.hpp>
@@ -66,15 +65,12 @@ UTEST(MetricsPortabilityInfo, TooManyLabels) {
         [](Writer& writer) {
             writer.ValueWithLabels(
                 42,
-                {{"1", "1"},
-                 {"2", "2"},
-                 {"3", "3"},
-                 {"4", "4"},
-                 {"5", "5"},
-                 {"6", "6"},
-                 {"7", "7"},
-                 {"8", "8"},
-                 {"9", "9"}}
+                {
+                    {"1", "1"},   {"2", "2"},   {"3", "3"},   {"4", "4"},   {"5", "5"},   {"6", "6"},   {"7", "7"},
+                    {"8", "8"},   {"9", "9"},   {"10", "10"}, {"11", "11"}, {"12", "12"}, {"13", "13"}, {"14", "14"},
+                    {"15", "15"}, {"16", "16"}, {"17", "17"}, {"18", "18"}, {"19", "19"}, {"20", "20"}, {"21", "21"},
+                    {"22", "22"}, {"23", "23"}, {"24", "24"}, {"25", "25"},
+                }
             );
         },
         {{"0", "0"}}
@@ -194,7 +190,9 @@ UTEST(MetricsPortabilityInfo, LabelsMismatch) {
 UTEST(MetricsPortabilityInfo, HistogramBucketsCount) {
     Storage storage;
     auto holder = storage.RegisterWriter("test", [](Writer& writer) {
-        writer = utils::statistics::Histogram{utils::AsContainer<std::vector<double>>(boost::irange(1, 300))};
+        writer = utils::statistics::Histogram{
+            utils::impl::AsContainerViaInsert<std::vector<double>>(std::views::iota(1, 300))
+        };
     });
 
     const auto warnings = GetPortabilityWarnings(storage, {});

@@ -24,7 +24,7 @@ after executing [logrotate](https://github.com/logrotate/logrotate).
   os_signals::Subscriber signal_subscribe_
   ```
 
-2. In in the component's constructor, register a signal listener. For example,
+2. In the component's constructor, register a signal listener. For example,
   components::Logging uses the following code:
   @snippet core/src/logging/component.cpp  Signals sample - init
 

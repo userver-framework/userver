@@ -17,7 +17,7 @@ class GenericWaitList final {
 public:
     explicit GenericWaitList(Task::WaitMode wait_mode) noexcept;
 
-    bool GetSignalOrAppend(boost::intrusive_ptr<Awaiter>&& awaiter, std::uintptr_t context) noexcept;
+    void GetSignalOrAppend(boost::intrusive_ptr<Awaiter>& awaiter, std::uintptr_t context) noexcept;
 
     void Remove(Awaiter& awaiter, std::uintptr_t context) noexcept;
 

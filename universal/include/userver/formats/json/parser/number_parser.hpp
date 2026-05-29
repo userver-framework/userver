@@ -1,11 +1,16 @@
 #pragma once
 
+/// @file userver/formats/json/parser/number_parser.hpp
+/// @brief @copybrief formats::json::parser::NumberParser
+/// @ingroup userver_universal
+
 #include <userver/formats/json/parser/typed_parser.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace formats::json::parser {
 
+/// @brief SAX parsers for JSON floating-point numbers.
 template <typename Number>
 class NumberParser final : public formats::json::parser::TypedParser<Number> {
 public:

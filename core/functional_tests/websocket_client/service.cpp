@@ -5,6 +5,7 @@
 #include <userver/clients/http/component_list.hpp>
 #include <userver/clients/http/websocket_response.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
+#include <userver/engine/wait_any.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/handlers/websocket_handler.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
@@ -36,6 +37,20 @@ public:
     }
 };
 
+class WebSocketUnauth final : public server::handlers::WebsocketHandlerBase {
+public:
+    static constexpr std::string_view kName = "websocket-unauth-handler";
+
+    using WebsocketHandlerBase::WebsocketHandlerBase;
+
+    bool HandleHandshake(server::http::HttpRequest& request, server::request::RequestContext&) const override {
+        request.GetHttpResponse().SetStatus(server::http::HttpStatus::kUnauthorized);
+        return false;
+    }
+
+    void Handle(websocket::WebSocketConnection&, server::request::RequestContext&) const override {}
+};
+
 // HTTP handler for testing C++ WebSocket client
 class TestClientHandler final : public server::handlers::HttpHandlerBase {
 public:
@@ -53,18 +68,22 @@ public:
         try {
             if (test_name == "echo") {
                 return TestEcho(request);
-            }
-            if (test_name == "large") {
+            } else if (test_name == "large") {
                 return TestLarge(request);
-            }
-            if (test_name == "multiple") {
+            } else if (test_name == "multiple") {
                 return TestMultiple(request);
-            }
-            if (test_name == "binary") {
+            } else if (test_name == "binary") {
                 return TestBinary(request);
-            }
-            if (test_name == "concurrent") {
+            } else if (test_name == "concurrent") {
                 return TestConcurrent(request);
+            } else if (test_name == "nonblocking_read") {
+                return TestNonblockingRead(request);
+            } else if (test_name == "nonblocking_write") {
+                return TestNonblockingWrite(request);
+            } else if (test_name == "unauth") {
+                return TestUnauth(request);
+            } else if (test_name == "connection_already_extracted") {
+                return TestConnectionAlreadyExtracted(request);
             }
             return "Unknown test";
         } catch (const std::exception& e) {
@@ -73,20 +92,15 @@ public:
     }
 
 private:
-    std::shared_ptr<websocket::WebSocketConnection> MakeWebSocketConnection(
-        const server::http::HttpRequest& request,
-        const std::string& uri = "/echo"
-    ) const {
+    clients::http::WebSocketResponse PerformWebSocket(const server::http::HttpRequest& request, const std::string& uri)
+        const {
         const auto port = std::stoi(request.GetArg("port"));
 
-        auto ws_response =
-            client_.CreateRequest().url(fmt::format("ws://localhost:{}{}", port, uri)).PerformWebSocketHandshake();
-
-        return ws_response.MakeWebSocketConnection();
+        return client_.CreateRequest().url(fmt::format("ws://localhost:{}{}", port, uri)).PerformWebSocketHandshake();
     }
 
     std::string TestEcho(const server::http::HttpRequest& request) const {
-        auto conn = MakeWebSocketConnection(request);
+        auto conn = PerformWebSocket(request, "/echo").MakeWebSocketConnection();
 
         conn->SendText("Hello WebSocket");
         websocket::Message msg;
@@ -96,7 +110,7 @@ private:
     }
 
     std::string TestLarge(const server::http::HttpRequest& request) const {
-        auto conn = MakeWebSocketConnection(request);
+        auto conn = PerformWebSocket(request, "/echo").MakeWebSocketConnection();
 
         std::string large_msg(50000, 'X');
         conn->SendText(large_msg);
@@ -107,7 +121,7 @@ private:
     }
 
     std::string TestMultiple(const server::http::HttpRequest& request) const {
-        auto conn = MakeWebSocketConnection(request);
+        auto conn = PerformWebSocket(request, "/echo").MakeWebSocketConnection();
 
         for (int i = 0; i < 50; ++i) {
             const auto text = fmt::format("msg{}", i);
@@ -123,7 +137,7 @@ private:
     }
 
     std::string TestBinary(const server::http::HttpRequest& request) const {
-        auto conn = MakeWebSocketConnection(request);
+        auto conn = PerformWebSocket(request, "/echo").MakeWebSocketConnection();
 
         std::vector<std::byte> data{std::byte{0x01}, std::byte{0xFF}};
         conn->SendBinary(data);
@@ -142,13 +156,95 @@ private:
             return resp.data == msg;
         };
 
-        auto conn1 = MakeWebSocketConnection(request);
-        auto conn2 = MakeWebSocketConnection(request);
+        auto conn1 = PerformWebSocket(request, "/echo").MakeWebSocketConnection();
+        auto conn2 = PerformWebSocket(request, "/echo").MakeWebSocketConnection();
 
         auto task1 = utils::Async("task1", func, std::ref(*conn1), std::string("msg1"));
         auto task2 = utils::Async("task2", func, std::ref(*conn2), std::string("msg2"));
 
         return (task1.Get() && task2.Get()) ? "OK" : "FAIL";
+    }
+
+    std::string TestNonblockingRead(const server::http::HttpRequest& request) const {
+        auto conn0 = PerformWebSocket(request, "/echo").MakeWebSocketConnection();
+        auto conn1 = PerformWebSocket(request, "/echo").MakeWebSocketConnection();
+
+        conn0->SendText("msg0");
+        conn1->SendText("msg1");
+
+        auto wait_ctx = engine::MakeWaitAny(conn0->ReadAwaiter(), conn1->ReadAwaiter());
+
+        websocket::Message msg;
+        std::set<std::string> recv_messages{};
+        while (!engine::current_task::ShouldCancel() && recv_messages.size() < 2) {
+            auto result = wait_ctx.Wait();
+            if (!result.has_value()) {
+                return "WAIT CANCELED";
+            }
+
+            auto& conn = *result == 0 ? conn0 : conn1;
+
+            conn->Recv(msg);
+            recv_messages.insert(msg.data);
+        }
+
+        if (recv_messages != std::set<std::string>{"msg0", "msg1"}) {
+            return "FAIL";
+        }
+
+        return "OK";
+    }
+
+    std::string TestNonblockingWrite(const server::http::HttpRequest& request) const {
+        auto conn0 = PerformWebSocket(request, "/echo").MakeWebSocketConnection();
+        auto conn1 = PerformWebSocket(request, "/echo").MakeWebSocketConnection();
+
+        std::vector<std::string> messages{};
+        for (int i = 0; i < 10; ++i) {
+            auto wait_ctx = engine::MakeWaitAny(conn0->WriteAwaiter(), conn1->WriteAwaiter());
+            auto result = wait_ctx.Wait();
+            if (!result.has_value()) {
+                return "WAIT CANCELED";
+            }
+
+            auto& conn = *result == 0 ? conn0 : conn1;
+            conn->SendText(fmt::format("msg{}", i));
+        }
+
+        return "OK";
+    }
+
+    std::string TestUnauth(const server::http::HttpRequest& request) const {
+        auto ws_response = PerformWebSocket(request, "/unauth");
+
+        if (ws_response.IsProtocolUpgraded()) {
+            return "FAIL: Protocol upgraded";
+        }
+
+        const auto status_code = ws_response.GetHandshakeResponse()->status_code();
+        if (status_code != http::StatusCode::kUnauthorized) {
+            return "FAIL: Status code is " + ToString(status_code);
+        }
+
+        try {
+            ws_response.MakeWebSocketConnection();
+            return "FAIL: connection should not be created";
+        } catch (const std::exception&) {  // NOLINT(bugprone-empty-catch)
+        }
+
+        return "OK";
+    }
+
+    std::string TestConnectionAlreadyExtracted(const server::http::HttpRequest& request) const {
+        auto ws_response = PerformWebSocket(request, "/echo");
+        ws_response.MakeWebSocketConnection();
+
+        try {
+            ws_response.MakeWebSocketConnection();
+            return "FAIL: connection should not be created twice";
+        } catch (const std::exception&) {  // NOLINT(bugprone-empty-catch)
+        }
+        return "OK";
     }
 
     clients::http::Client& client_;
@@ -160,6 +256,7 @@ int main(int argc, char* argv[]) {
             .AppendComponentList(clients::http::ComponentList())
             .Append<clients::dns::Component>()
             .Append<WebSocketEcho>()
+            .Append<WebSocketUnauth>()
             .Append<TestClientHandler>()
             .Append<components::TestsuiteSupport>();
     return utils::DaemonMain(argc, argv, component_list);

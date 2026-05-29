@@ -8,17 +8,27 @@
 #include <string>
 #include <string_view>
 
+#include <fmt/core.h>
+
 #include <userver/logging/fwd.hpp>
 #include <userver/utils/str_icase.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-/// HTTP helpers
+/// @brief HTTP primitives: status codes, URLs, headers, and parsing helpers.
 namespace http {
 
 /// @brief Content-Type parsing error
 class MalformedContentType : public std::runtime_error {
+public:
     using std::runtime_error::runtime_error;
+
+    MalformedContentType(const MalformedContentType&) = default;
+    MalformedContentType(MalformedContentType&&) = default;
+    MalformedContentType& operator=(const MalformedContentType&) = default;
+    MalformedContentType& operator=(MalformedContentType&&) = default;
+
+    ~MalformedContentType() override;
 };
 
 /// @ingroup userver_universal userver_containers
@@ -78,7 +88,6 @@ private:
 };
 
 bool operator==(const ContentType&, const ContentType&);
-bool operator!=(const ContentType&, const ContentType&);
 
 /// Weak ordering for Accept media-ranges checking.
 /// Positions less specific types before more specific, so that the most
@@ -93,6 +102,7 @@ private:
     utils::StrIcaseHash str_hasher_;
 };
 
+/// @brief MIME content type helpers.
 namespace content_type {
 
 extern const ContentType kApplicationOctetStream;
@@ -103,3 +113,13 @@ extern const ContentType kTextPlain;
 }  // namespace http
 
 USERVER_NAMESPACE_END
+
+template <>
+struct fmt::formatter<USERVER_NAMESPACE::http::ContentType> {
+    constexpr static auto parse(format_parse_context& ctx) { return ctx.begin(); }
+
+    template <typename FormatContext>
+    auto format(const USERVER_NAMESPACE::http::ContentType& value, FormatContext& ctx) const -> decltype(ctx.out()) {
+        return fmt::format_to(ctx.out(), "{}", value.ToString());
+    }
+};

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/auth/user_env.hpp
+/// @brief @copybrief server::auth::UserEnv
+
 #include <stdexcept>
 #include <string>
 

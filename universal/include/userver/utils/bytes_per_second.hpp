@@ -21,8 +21,6 @@ constexpr long long ToLongLong(BytesPerSecond x) { return static_cast<long long>
 
 constexpr bool operator==(BytesPerSecond lhs, BytesPerSecond rhs) { return ToLongLong(lhs) == ToLongLong(rhs); }
 
-constexpr bool operator!=(BytesPerSecond lhs, BytesPerSecond rhs) { return !(lhs == rhs); }
-
 /// Understands all the date-rate unit suffixes from
 /// https://en.wikipedia.org/wiki/Data-rate_units#Conversion_table
 BytesPerSecond StringToBytesPerSecond(const std::string& data);

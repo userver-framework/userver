@@ -2,16 +2,17 @@
 
 Developing a good service requires many routine code and types to be written.
 Sometimes it is handy to define types (and code) in declarative way out-of-code in external contracts and generate types/code from that.
-It allows one to separate external contracts and business logic, and to define these contracts in language agnostic way. 
+It allows one to separate external contracts and business logic, and to define these contracts in language agnostic way.
 
 You may use code generators for the following activity:
-* @ref scripts/docs/en/userver/chaotic.md
+* @ref scripts/docs/en/userver/chaotic.md — JSON Schema → C++ types, parsers, serializers
   * for PostgreSQL JSON/JSONB types
-  * for dynamic configs 
   * for static configs
   * for Kafka/RabbitMQ messages
-* @ref scripts/docs/en/userver/chaotic_clients.md
-* @ref scripts/docs/en/userver/sql_files.md 
+* @ref scripts/docs/en/userver/chaotic_dynamic_configs.md — JSON Schema → dynamic config variable wrappers
+* @ref scripts/docs/en/userver/chaotic_clients.md — OpenAPI/Swagger → C++ HTTP client
+* @ref scripts/docs/en/userver/chaotic_handlers.md — OpenAPI/Swagger → C++ server handlers and view stubs
+* @ref scripts/docs/en/userver/sql_files.md
 
 ## userver_embed_file and embedding files
 

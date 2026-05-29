@@ -30,6 +30,7 @@ namespace {
 constexpr utils::StringLiteral kTracingTypeRequest = "request";
 constexpr utils::StringLiteral kTracingBody = "body";
 constexpr utils::StringLiteral kTracingUri = "uri";
+constexpr utils::StringLiteral kTracingRequestBodyLength = "request_body_length";
 
 constexpr utils::StringLiteral kAcceptLanguageTag = "acceptlang";
 
@@ -55,7 +56,7 @@ std::string GetHeadersLogString(
         max_result_size += header.first.size() + (header_hide ? kMask.size() : header.second.size()) + 3;
         sorted_headers.emplace_back(header, header_hide);
     }
-    std::sort(sorted_headers.begin(), sorted_headers.end(), [](const auto& lhs, const auto& rhs) {
+    std::ranges::sort(sorted_headers, [](const auto& lhs, const auto& rhs) {
         return std::tie(lhs.second, *lhs.first) < std::tie(rhs.second, *rhs.first);
     });
 
@@ -149,7 +150,7 @@ void HandlerAdapter::LogRequest(const http::HttpRequest& request, request::Reque
         logging::LogExtra log_extra{
             {tracing::kHttpMetaType, meta_type},
             {tracing::kType, kTracingTypeRequest},
-            {"request_body_length", request.RequestBody().length()},
+            {kTracingRequestBodyLength, request.RequestBody().length()},
             {kTracingBody, handler_.GetRequestBodyForLoggingChecked(request, context, request.RequestBody())},
             {kTracingUri, handler_.GetUrlForLoggingChecked(request, context)},
             {tracing::kHttpMethod, request.GetMethodStr()},

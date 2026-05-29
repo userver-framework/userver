@@ -158,21 +158,6 @@ bool TaskContext::IsSharedWaitAllowed() const { return finish_awaiters_->IsShare
 
 bool TaskContext::IsFinished() const noexcept { return finish_awaiters_->IsSignaled(); }
 
-void TaskContext::SetDetached(DetachedTasksSyncBlock::Token& token) noexcept {
-    DetachedTasksSyncBlock::Token* expected = nullptr;
-    if (!detached_token_.compare_exchange_strong(expected, &token)) {
-        UASSERT(expected == kFinishedDetachedToken);
-        DetachedTasksSyncBlock::Dispose(token);
-    }
-}
-
-void TaskContext::FinishDetached() noexcept {
-    auto* const token = detached_token_.exchange(kFinishedDetachedToken);
-    if (token != nullptr && token != kFinishedDetachedToken) {
-        DetachedTasksSyncBlock::Dispose(*token);
-    }
-}
-
 FutureStatus TaskContext::WaitUntil(Deadline deadline) const noexcept {
     // try to avoid ctx switch if possible
     static_assert(noexcept(IsFinished()));
@@ -578,6 +563,10 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
                 try {
                     context->TraceStateTransition(Task::State::kRunning);
                     context->payload_->Perform();
+                    // We store an exception in the context to be able to handle
+                    // ContextAccessor::GetErrorResult() even when the owning
+                    // task is destroyed (and payload_ is reset to nullptr).
+                    context->exception_ = context->payload_->GetException();
                     yield_reason_guard.SetYieldReason(YieldReason::kTaskComplete);
                 } catch (const CoroUnwinder&) {
                     yield_reason_guard.SetYieldReason(YieldReason::kTaskCancelled);
@@ -612,23 +601,26 @@ task_local::Storage& TaskContext::GetLocalStorage() noexcept {
 
 bool TaskContext::IsReady() const noexcept { return IsFinished(); }
 
-EarlyNotify TaskContext::TryAppendAwaiter(Awaiter& awaiter, std::uintptr_t context) {
-    if (&awaiter == static_cast<Awaiter*>(this)) {
+void TaskContext::TryAppendAwaiter(boost::intrusive_ptr<Awaiter>& awaiter, std::uintptr_t context) {
+    if (awaiter.get() == static_cast<Awaiter*>(this)) {
         ReportDeadlock();
     }
-    return EarlyNotify{finish_awaiters_->GetSignalOrAppend(&awaiter, context)};
+    finish_awaiters_->GetSignalOrAppend(awaiter, context);
 }
 
 void TaskContext::RemoveAwaiter(Awaiter& awaiter, std::uintptr_t context) noexcept {
     finish_awaiters_->Remove(awaiter, context);
 }
 
-void TaskContext::RethrowErrorResult() const {
+std::exception_ptr TaskContext::GetErrorResult() const noexcept {
     UASSERT(IsFinished());
-    if (state_.load(std::memory_order_relaxed) != Task::State::kCompleted) {
-        throw TaskCancelledException(CancellationReason());
+    if (state_.load(std::memory_order_acquire) != Task::State::kCompleted) {
+        return std::make_exception_ptr(TaskCancelledException(CancellationReason()));
     }
-    payload_->RethrowErrorResult();
+    if (exception_) {
+        return exception_;
+    }
+    return {};
 }
 
 std::size_t TaskContext::DecrementFetchSharedTaskUsages() noexcept { return --shared_task_usages_; }
@@ -667,7 +659,7 @@ void TaskContext::Schedule() noexcept {
     SetState(Task::State::kQueued);
     TraceStateTransition(Task::State::kQueued);
     try {
-        task_processor_.Schedule(this);
+        task_processor_.Schedule(boost::intrusive_ptr<TaskContext>{this});
     } catch (...) {
         // We cannot just refuse to run the task because of the lifetime guarantees for tasks and their data.
         utils::AbortWithStacktrace(

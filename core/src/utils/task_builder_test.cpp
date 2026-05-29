@@ -2,6 +2,7 @@
 #include <userver/engine/wait_all_checked.hpp>
 #include <userver/utest/utest.hpp>
 
+#include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/inherited_variable.hpp>
 #include <userver/tracing/span.hpp>
@@ -9,15 +10,36 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace {
+
+void PrepareFrobnication() {}
+void Frobnicate() {}
+int ExtractFrobnicationResult() { return 42; }
+
+}  // namespace
+
+UTEST(TaskBuilder, Sample) {
+    auto& custom_task_processor = engine::current_task::GetTaskProcessor();
+    /// [sample]
+    auto task = utils::TaskBuilder{}.HideSpan().TaskProcessor(custom_task_processor).Build([] {
+        PrepareFrobnication();
+        Frobnicate();
+        return ExtractFrobnicationResult();
+    });
+    const auto result = task.Get();
+    /// [sample]
+    EXPECT_EQ(result, 42);
+}
+
 UTEST(TaskBuilder, Smoke) {
     utils::TaskBuilder builder;
-    engine::TaskWithResult<int> task = builder.NoSpan().Build([] { return 1; });
+    engine::TaskWithResult<int> task = builder.NoSpan().Background().Build([] { return 1; });
     EXPECT_EQ(task.Get(), 1);
 }
 
 UTEST(TaskBuilder, SmokeShared) {
     utils::TaskBuilder builder;
-    engine::SharedTaskWithResult<int> task = builder.NoSpan().BuildShared([] { return 1; });
+    engine::SharedTaskWithResult<int> task = builder.NoSpan().Background().BuildShared([] { return 1; });
     EXPECT_EQ(task.Get(), 1);
 }
 
@@ -26,18 +48,18 @@ UTEST(TaskBuilder, MultipleAwaitOnShared) {
     engine::SingleUseEvent first_ready;
     engine::SingleUseEvent second_ready;
 
-    engine::SharedTaskWithResult<int> task = builder.NoSpan().BuildShared([&first_ready, &second_ready] {
+    engine::SharedTaskWithResult<int> task = builder.NoSpan().Background().BuildShared([&first_ready, &second_ready] {
         first_ready.Wait();
         second_ready.Wait();
         engine::InterruptibleSleepFor(std::chrono::milliseconds(100));
         return 1;
     });
 
-    auto first_res = engine::AsyncNoSpan([&first_ready, &task] {
+    auto first_res = engine::AsyncNoTracing([&first_ready, &task] {
         first_ready.Send();
         EXPECT_EQ(task.Get(), 1);
     });
-    auto second_res = engine::AsyncNoSpan([&second_ready, &task] {
+    auto second_res = engine::AsyncNoTracing([&second_ready, &task] {
         second_ready.Send();
         EXPECT_EQ(task.Get(), 1);
     });
@@ -61,27 +83,29 @@ UTEST(TaskBuilder, HideSpan) {
 
 UTEST(TaskBuilder, NoSpan) {
     utils::TaskBuilder builder;
-    auto task = builder.NoSpan().Build([] { return tracing::Span::CurrentSpanUnchecked(); });
+    auto task = builder.NoSpan().Background().Build([] { return tracing::Span::CurrentSpanUnchecked(); });
     EXPECT_EQ(task.Get(), nullptr);
 }
 
 UTEST(TaskBuilder, NonCritical) {
     utils::TaskBuilder builder;
-    auto task = builder.NoSpan().Build([] { return engine::current_task::impl::IsCritical(); });
+    auto task = builder.NoSpan().Background().Build([] { return engine::current_task::impl::IsCritical(); });
     EXPECT_FALSE(task.Get());
 }
 
 UTEST(TaskBuilder, Critical) {
     utils::TaskBuilder builder;
-    auto task = builder.NoSpan().Critical().Build([] { return engine::current_task::impl::IsCritical(); });
+    auto task = builder.NoSpan().Background().Critical().Build([] { return engine::current_task::impl::IsCritical(); });
     EXPECT_TRUE(task.Get());
 }
 
 UTEST(TaskBuilder, Deadline) {
     utils::TaskBuilder builder;
-    auto task = builder.NoSpan().Deadline(engine::Deadline::FromDuration(std::chrono::milliseconds(100))).Build([] {
-        engine::InterruptibleSleepFor(std::chrono::seconds(5));
-    });
+    auto task =
+        builder.NoSpan()
+            .Background()
+            .Deadline(engine::Deadline::FromDuration(std::chrono::milliseconds(100)))
+            .Build([] { engine::InterruptibleSleepFor(std::chrono::seconds(5)); });
 
     task.WaitFor(std::chrono::seconds(1));
     EXPECT_TRUE(task.IsFinished());
@@ -93,12 +117,14 @@ UTEST(TaskBuilder, ForwardsMoveOnlyType) {
     utils::TaskBuilder builder;
 
     auto ptr = std::make_unique<int>(42);
-    builder.NoSpan().Build(test_function, std::move(ptr)).Get();
+    builder.NoSpan().Background().Build(test_function, std::move(ptr)).Get();
 
     EXPECT_TRUE(task_executed);
 }
 
+namespace {
 engine::TaskInheritedVariable<int> task_local_variable;
+}  // namespace
 
 UTEST(TaskBuilder, Background) {
     task_local_variable.Set(1);
@@ -109,9 +135,13 @@ UTEST(TaskBuilder, Background) {
     EXPECT_EQ(task.Get(), nullptr);
 }
 
-UTEST_DEATH(TaskBuilderDeathTest, Misuse) {
-    utils::TaskBuilder builder;
-    EXPECT_UINVARIANT_FAILURE((void)builder.Build([] {}));
+UTEST(TaskBuilder, Reuse) {
+    static constexpr std::string_view span_name = "a long span name that definitely exceeds string SSO limits";
+    auto builder = utils::TaskBuilder{}.SpanName(std::string{span_name});
+    for (int i = 0; i < 10; ++i) {
+        auto task = builder.Build([] { return std::string{tracing::Span::CurrentSpan().GetName()}; });
+        EXPECT_EQ(task.Get(), span_name);
+    }
 }
 
 USERVER_NAMESPACE_END

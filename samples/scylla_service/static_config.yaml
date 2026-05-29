@@ -1,0 +1,110 @@
+components_manager:
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+        fs-task-processor:
+            worker_threads: 1
+
+    components:
+        server:
+            listener:
+                port: 8080
+                handler-defaults:
+                    max_url_size: 65536
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+        logging:
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        handler-kv:
+            path: /v1/kv
+            method: GET,POST,PATCH,DELETE
+            task_processor: main-task-processor
+
+        handler-kv-list:
+            path: /v1/kv/list
+            method: GET
+            task_processor: main-task-processor
+
+        handler-kv-count:
+            path: /v1/kv/count
+            method: GET
+            task_processor: main-task-processor
+
+        handler-kv-bulk:
+            path: /v1/kv/bulk
+            method: POST
+            task_processor: main-task-processor
+
+        handler-kv-pages:
+            path: /v1/kv/pages
+            method: GET
+            task_processor: main-task-processor
+
+        handler-kv-truncate:
+            path: /v1/kv/truncate
+            method: POST
+            task_processor: main-task-processor
+
+        handler-kv-create-if-absent:
+            path: /v1/kv/create_if_absent
+            method: POST
+            task_processor: main-task-processor
+
+        handler-kv-cas:
+            path: /v1/kv/cas
+            method: POST
+            task_processor: main-task-processor
+
+        handler-kv-delete-if-exists:
+            path: /v1/kv/delete_if_exists
+            method: DELETE
+            task_processor: main-task-processor
+
+        handler-schema-init:
+            path: /v1/schema/init
+            method: POST
+            task_processor: main-task-processor
+
+        handler-events:
+            path: /v1/events
+            method: GET,POST
+            task_processor: main-task-processor
+
+        handler-event-list:
+            path: /v1/events/list
+            method: GET
+            task_processor: main-task-processor
+
+        handler-raw:
+            path: /v1/raw
+            method: POST
+            task_processor: main-task-processor
+
+        scylla-db:
+            dbconnection: scylla
+            consistency: local_quorum
+            serial_consistency: local_serial
+            request_timeout: 10s
+            pool:
+                num_threads_io: 2
+                core_connections_per_host: 4
+            app_name: scylla_sample
+            retry_policy: default
+            load_balancing_policy: round_robin
+            speculative_execution:
+                enabled: false
+                max_attempts: 2
+                delay: 100ms
+            default_keyspace: examples
+
+        secdist:
+            provider: default-secdist-provider
+        default-secdist-provider:
+            config: ../secdist.json

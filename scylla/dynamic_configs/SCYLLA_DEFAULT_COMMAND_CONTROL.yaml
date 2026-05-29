@@ -1,0 +1,59 @@
+default: {}
+description: |
+    Default command control settings for ScyllaDB queries.
+    Overrides static config values for request_timeout, consistency,
+    and serial_consistency on a per-statement basis (no cluster rebuild needed).
+
+    Dictionary keys can be either the service **component name**
+    or `__default__`. The latter is applied for every non-matching
+    Scylla component of the service.
+
+    All fields within each entry are optional — when absent, the
+    corresponding static config value is used.
+schema:
+    type: object
+    example: |
+        {
+            "scylla-orders": {
+                "request_timeout_ms": 5000,
+                "consistency": "one"
+            },
+            "__default__": {
+                "request_timeout_ms": 10000,
+                "consistency": "local_quorum",
+                "serial_consistency": "local_serial"
+            }
+        }
+    properties:
+        __default__:
+            $ref: "#/definitions/CommandControl"
+    additionalProperties:
+        $ref: "#/definitions/CommandControl"
+    definitions:
+        CommandControl:
+            type: object
+            additionalProperties: false
+            properties:
+                request_timeout_ms:
+                    type: integer
+                    minimum: 1
+                    description: Per-statement request timeout in milliseconds.
+                consistency:
+                    type: string
+                    enum:
+                      - any
+                      - one
+                      - two
+                      - three
+                      - quorum
+                      - all
+                      - local_quorum
+                      - each_quorum
+                      - local_one
+                    description: CQL consistency level for queries.
+                serial_consistency:
+                    type: string
+                    enum:
+                      - serial
+                      - local_serial
+                    description: CQL serial consistency level for LWT queries.

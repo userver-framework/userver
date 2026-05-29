@@ -87,7 +87,7 @@ private:
             sqlite_client_->Execute(storages::sqlite::OperationType::kReadOnly, db::sql::kSelectAllKeyValue.data())
                 .AsVector<Row>();
 
-        std::sort(records.begin(), records.end(), [](const auto& lhs, const auto& rhs) { return lhs.key < rhs.key; });
+        std::ranges::sort(records, [](const auto& lhs, const auto& rhs) { return lhs.key < rhs.key; });
 
         formats::json::ValueBuilder builder{};
         builder["values"] = records;
@@ -99,7 +99,7 @@ private:
         auto rows =
             sqlite_client_->Execute(storages::sqlite::OperationType::kReadOnly, db::sql::kSelectAllKeyValue.data())
                 .AsVector<Row>();
-        std::sort(rows.begin(), rows.end(), [](const Row& lhs, const Row& rhs) -> bool { return lhs.key < rhs.key; });
+        std::ranges::sort(rows, [](const Row& lhs, const Row& rhs) -> bool { return lhs.key < rhs.key; });
 
         formats::json::ValueBuilder builder{};
         builder["values"] = rows;

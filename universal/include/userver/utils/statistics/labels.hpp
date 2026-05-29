@@ -32,7 +32,8 @@ public:
         UINVARIANT(!name_.empty(), "The label name must not be empty.");
     }
 
-    template <class T, std::enable_if_t<std::is_arithmetic_v<T>>* = nullptr>
+    template <class T>
+    requires std::is_arithmetic_v<T>
     constexpr LabelView(std::string_view, T) {
         static_assert(!sizeof(T), "Labels should not be arithmetic values, only strings!");
     }
@@ -59,7 +60,8 @@ public:
     explicit Label(LabelView view);
     Label(std::string name, std::string value);
 
-    template <class T, std::enable_if_t<std::is_arithmetic_v<T>>* = nullptr>
+    template <class T>
+    requires std::is_arithmetic_v<T>
     Label(std::string, T) {
         static_assert(!sizeof(T), "Labels should not be arithmetic values, only strings!");
     }
@@ -92,13 +94,10 @@ public:
     LabelsSpan(const LabelView* begin, const LabelView* end) noexcept;
     LabelsSpan(std::initializer_list<LabelView> il) noexcept : LabelsSpan(il.begin(), il.end()) {}
 
-    template <
-        class Container,
-        std::enable_if_t<
-            std::is_same_v<
-                decltype(*(std::declval<const Container&>().data() + std::declval<const Container&>().size())),
-                const LabelView&>,
-            int> = 0>
+    template <class Container>
+        requires std::is_same_v<
+            decltype(*(std::declval<const Container&>().data() + std::declval<const Container&>().size())),
+            const LabelView&>
     /*implicit*/ LabelsSpan(const Container& cont) noexcept : LabelsSpan(cont.data(), cont.data() + cont.size()) {}
 
     const LabelView* begin() const noexcept { return begin_; }

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/utils/statistics/metric_tag_impl.hpp
+/// @brief MetricTag implementation details and metric map utilities
+
 #include <atomic>
 #include <cstddef>
 #include <functional>
@@ -12,7 +15,6 @@
 
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
-#include <userver/utils/meta_light.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -32,10 +34,10 @@ void ResetMetric(std::atomic<Metric>& m) {
 }
 
 template <typename Metric>
-using HasDumpMetric = decltype(DumpMetric(std::declval<Metric&>()));
+concept HasDumpMetric = requires(Metric& m) { DumpMetric(m); };
 
 template <typename Metric>
-using HasResetMetric = decltype(ResetMetric(std::declval<Metric&>()));
+concept HasResetMetric = requires(Metric& m) { ResetMetric(m); };
 
 // TODO remove after C++20 atomic value-initialization
 template <typename T>
@@ -63,7 +65,7 @@ public:
 template <typename Metric>
 class MetricWrapper final : public MetricWrapperBase {
     static_assert(
-        meta::IsDetected<HasDumpMetric, Metric> || kHasWriterSupport<Metric>,
+        HasDumpMetric<Metric> || utils::statistics::HasWriterSupport<Metric>,
         "Provide a `void DumpMetric(utils::statistics::Writer&, const Metric&)`"
         "function in the namespace of `Metric`."
     );
@@ -81,22 +83,22 @@ public:
     }
 
     formats::json::ValueBuilder DeprecatedJsonDump() override {
-        if constexpr (!kHasWriterSupport<Metric>) {
+        if constexpr (!utils::statistics::HasWriterSupport<Metric>) {
             return DumpMetric(data_);
         }
         return {};
     }
 
     void DumpToWriter(Writer& writer) override {
-        if constexpr (kHasWriterSupport<Metric>) {
+        if constexpr (utils::statistics::HasWriterSupport<Metric>) {
             writer = data_;
         }
     }
 
-    bool HasWriterSupport() const noexcept override { return kHasWriterSupport<Metric>; }
+    bool HasWriterSupport() const noexcept override { return utils::statistics::HasWriterSupport<Metric>; }
 
     void Reset() override {
-        if constexpr (meta::IsDetected<HasResetMetric, Metric>) {
+        if constexpr (HasResetMetric<Metric>) {
             ResetMetric(data_);
         }
     }

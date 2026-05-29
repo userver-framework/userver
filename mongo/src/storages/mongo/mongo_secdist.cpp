@@ -1,13 +1,12 @@
 #include "mongo_secdist.hpp"
 
+#include <ranges>
 #include <unordered_map>
 
 #include <userver/formats/json/value.hpp>
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/secdist/exceptions.hpp>
 #include <userver/storages/secdist/helpers.hpp>
-
-#include <boost/range/adaptor/map.hpp>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -51,7 +50,7 @@ const std::string& MongoSettings::GetConnectionString(const std::string& dbalias
         throw storages::secdist::UnknownMongoDbAlias(fmt::format(
             "dbalias {} not found in secdist config. Available aliases: [{}]",
             dbalias,
-            fmt::join(settings_ | boost::adaptors::map_keys, ", ")
+            fmt::join(settings_ | std::views::keys, ", ")
         ));
     }
 

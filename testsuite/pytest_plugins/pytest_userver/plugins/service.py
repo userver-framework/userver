@@ -108,6 +108,25 @@ def service_start_timeout() -> float:
 
 
 @pytest.fixture(scope='session')
+async def service_binary_launcher():
+    """
+    If non-empty, defines a list of arguments starting with executable
+    that is used instead of `service_binary`. The final argument list consists of
+    `service_binary_launcher` plus the common service cmdline.
+
+    Can be used for:
+    - resource limiting (rlimit, cgroup)
+    - security limiting (capabilities, LSM)
+    - resource profiling (perf)
+    - tracing (strace, ltrace)
+
+    @see @ref pytest_userver.plugins.service.service_daemon_instance "service_daemon_instance"
+    @ingroup userver_testsuite_fixtures
+    """
+    return []
+
+
+@pytest.fixture(scope='session')
 async def service_daemon_scope(
     create_daemon_scope,
     daemon_scoped_mark,
@@ -115,6 +134,7 @@ async def service_daemon_scope(
     service_http_ping_url,
     service_config_path_temp,
     service_binary,
+    service_binary_launcher,
     service_non_http_health_checks,
     service_start_timeout,
 ):
@@ -162,7 +182,7 @@ async def service_daemon_scope(
     poll_retries = int(service_start_timeout / 0.05)
 
     async with create_daemon_scope(
-        args=[str(service_binary), '--config', str(service_config_path_temp)],
+        args=service_binary_launcher + [str(service_binary), '--config', str(service_config_path_temp)],
         ping_url=service_http_ping_url,
         health_check=health_check,
         env=service_env,
@@ -199,6 +219,7 @@ def auto_client_deps(request) -> None:
     * `redis_store`
     * `mysql`
     * @ref pytest_userver.plugins.ydb.ydbsupport.ydb "ydb"
+    * @ref pytest_userver.plugins.scylla.scylla "scylla"
     * @ref pytest_userver.plugins.grpc.mockserver.grpc_mockserver "grpc_mockserver"
 
     To add other dependencies prefer overriding the
@@ -217,6 +238,7 @@ def auto_client_deps(request) -> None:
         'redis_store',
         'mysql',
         'ydb',
+        'scylla',
         'grpc_mockserver',
     }
 

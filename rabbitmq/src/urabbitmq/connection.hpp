@@ -29,6 +29,7 @@ public:
         const EndpointInfo& endpoint,
         const AuthSettings& auth_settings,
         size_t max_in_flight_requests,
+        size_t heartbeat_interval_seconds,
         bool secure,
         statistics::ConnectionStatistics& stats,
         engine::Deadline deadline

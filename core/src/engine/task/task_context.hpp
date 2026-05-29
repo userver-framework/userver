@@ -106,9 +106,6 @@ public:
     // whether user code finished executing, coroutine may still be running
     bool IsFinished() const noexcept;
 
-    void SetDetached(DetachedTasksSyncBlock::Token& token) noexcept;
-    void FinishDetached() noexcept;
-
     // wait for this to become finished
     // should only be called from other context
     [[nodiscard]] FutureStatus WaitUntil(Deadline) const noexcept;
@@ -172,15 +169,16 @@ public:
     void SetQueueWaitTimepoint(std::chrono::steady_clock::time_point tp) { task_queue_wait_timepoint_ = tp; }
 
     void SetCancelDeadline(Deadline deadline);
+    Deadline GetCancelDeadline() const noexcept { return cancel_deadline_; }
 
     bool HasLocalStorage() const noexcept;
     task_local::Storage& GetLocalStorage() noexcept;
 
     // ContextAccessor implementation
     bool IsReady() const noexcept override;
-    EarlyNotify TryAppendAwaiter(Awaiter& awaiter, std::uintptr_t context) override;
+    void TryAppendAwaiter(boost::intrusive_ptr<Awaiter>& awaiter, std::uintptr_t context) override;
     void RemoveAwaiter(Awaiter& awaiter, std::uintptr_t context) noexcept override;
-    void RethrowErrorResult() const override;
+    std::exception_ptr GetErrorResult() const noexcept override;
 
     std::size_t DecrementFetchSharedTaskUsages() noexcept;
     std::size_t IncrementFetchSharedTaskUsages() noexcept;
@@ -229,6 +227,7 @@ private:
     EhGlobals eh_globals_;
 
     utils::impl::WrappedCallBase* payload_;
+    std::exception_ptr exception_;
 
     std::atomic<Task::State> state_{Task::State::kNew};
     std::atomic<DetachedTasksSyncBlock::Token*> detached_token_{nullptr};

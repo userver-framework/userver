@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/proto-structs/type_mapping.hpp
-/// @brief Concepts and traits for checking proto struct and protobuf message compatability.
+/// @brief Concepts and traits for checking proto struct and protobuf message compatibility.
 
 #include <cstdint>
 #include <iosfwd>
@@ -97,7 +97,7 @@ namespace traits {
 
 /// @brief Concept of the @ref proto_structs::Oneof.
 template <typename T>
-concept Oneof = impl::traits::kInheritsFromInstantiation<proto_structs::Oneof, T>;
+concept Oneof = impl::traits::InheritsFromInstantiation<T, proto_structs::Oneof>;
 
 }  // namespace traits
 

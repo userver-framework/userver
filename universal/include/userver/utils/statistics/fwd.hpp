@@ -7,6 +7,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
+/// @brief Statistics writers, metric types, and histogram helpers.
 namespace utils::statistics {
 
 // NOLINTNEXTLINE(bugprone-forward-declaration-namespace)

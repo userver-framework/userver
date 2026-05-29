@@ -1,13 +1,12 @@
 #include <storages/postgres/postgres_secdist.hpp>
 
+#include <ranges>
 #include <set>
 
 #include <userver/storages/secdist/exceptions.hpp>
 #include <userver/storages/secdist/helpers.hpp>
 
 #include <userver/logging/log.hpp>
-
-#include <boost/range/adaptor/map.hpp>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -91,7 +90,7 @@ std::vector<DsnList> PostgresSettings::GetShardedClusterDescription(const std::s
         throw storages::secdist::UnknownPostgresDbAlias(fmt::format(
             "dbalias {} not found in secdist config. Available aliases: [{}]",
             dbalias,
-            fmt::join(sharded_cluster_descs_ | boost::adaptors::map_keys, ", ")
+            fmt::join(sharded_cluster_descs_ | std::views::keys, ", ")
         ));
     }
     return it->second;

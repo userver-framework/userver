@@ -1,5 +1,6 @@
 #include "client_impl.hpp"
 
+#include <userver/formats/json/serialize.hpp>
 #include <userver/utils/assert.hpp>
 
 #include <storages/redis/impl/sentinel.hpp>
@@ -186,6 +187,40 @@ RequestEvalShaCommon ClientImpl::EvalShaCommon(
         CmdArgs{"evalsha", std::move(script_hash), keys_size, std::move(keys), std::move(args)},
         shard,
         true,
+        GetCommandControl(command_control)
+    ));
+}
+
+RequestEvalCommon ClientImpl::EvalReadOnlyCommon(
+    std::string script,
+    std::vector<std::string> keys,
+    std::vector<std::string> args,
+    const CommandControl& command_control
+) {
+    UASSERT(!keys.empty());
+    auto shard = ShardByKey(keys.at(0), command_control);
+    size_t keys_size = keys.size();
+    return CreateRequest<RequestEvalCommon>(MakeRequest(
+        CmdArgs{"eval_ro", std::move(script), keys_size, std::move(keys), std::move(args)},
+        shard,
+        false,
+        GetCommandControl(command_control)
+    ));
+}
+
+RequestEvalShaCommon ClientImpl::EvalShaReadOnlyCommon(
+    std::string script_hash,
+    std::vector<std::string> keys,
+    std::vector<std::string> args,
+    const CommandControl& command_control
+) {
+    UASSERT(!keys.empty());
+    auto shard = ShardByKey(keys.at(0), command_control);
+    size_t keys_size = keys.size();
+    return CreateRequest<RequestEvalShaCommon>(MakeRequest(
+        CmdArgs{"evalsha_ro", std::move(script_hash), keys_size, std::move(keys), std::move(args)},
+        shard,
+        false,
         GetCommandControl(command_control)
     ));
 }
@@ -994,6 +1029,21 @@ RequestSetex ClientImpl::Setex(
     ));
 }
 
+RequestSetAndGetPrevious ClientImpl::SetAndGetPrevious(
+    std::string key,
+    std::string value,
+    std::chrono::milliseconds ttl,
+    const CommandControl& command_control
+) {
+    auto shard = ShardByKey(key, command_control);
+    return CreateRequest<RequestSetAndGetPrevious>(MakeRequest(
+        CmdArgs{"set", std::move(key), std::move(value), "PX", ttl.count(), "GET"},
+        shard,
+        true,
+        GetCommandControl(command_control)
+    ));
+}
+
 RequestSismember ClientImpl::Sismember(std::string key, std::string member, const CommandControl& command_control) {
     auto shard = ShardByKey(key, command_control);
     return CreateRequest<RequestSismember>(MakeRequest(
@@ -1415,6 +1465,124 @@ RequestZscore ClientImpl::Zscore(std::string key, std::string member, const Comm
         false,
         GetCommandControl(command_control)
     ));
+}
+
+// JSON module commands:
+
+RequestJsonSet ClientImpl::JsonSet(
+    std::string key,
+    std::string path,
+    formats::json::Value value,
+    const CommandControl& command_control
+) {
+    auto shard = ShardByKey(key, command_control);
+    auto json_string = formats::json::ToString(value);
+    return CreateRequest<RequestJsonSet>(MakeRequest(
+        CmdArgs{"json.set", std::move(key), std::move(path), std::move(json_string)},
+        shard,
+        true,
+        GetCommandControl(command_control)
+    ));
+}
+
+RequestJsonSetIfNotExist ClientImpl::JsonSetIfNotExist(
+    std::string key,
+    std::string path,
+    formats::json::Value value,
+    const CommandControl& command_control
+) {
+    auto shard = ShardByKey(key, command_control);
+    auto json_string = formats::json::ToString(value);
+    return CreateRequest<RequestJsonSetIfNotExist>(MakeRequest(
+        CmdArgs{"json.set", std::move(key), std::move(path), std::move(json_string), "NX"},
+        shard,
+        true,
+        GetCommandControl(command_control)
+    ));
+}
+
+RequestJsonSetIfExist ClientImpl::JsonSetIfExist(
+    std::string key,
+    std::string path,
+    formats::json::Value value,
+    const CommandControl& command_control
+) {
+    auto shard = ShardByKey(key, command_control);
+    auto json_string = formats::json::ToString(value);
+    return CreateRequest<RequestJsonSetIfExist>(MakeRequest(
+        CmdArgs{"json.set", std::move(key), std::move(path), std::move(json_string), "XX"},
+        shard,
+        true,
+        GetCommandControl(command_control)
+    ));
+}
+
+RequestJsonGet ClientImpl::JsonGet(std::string key, const CommandControl& command_control) {
+    auto shard = ShardByKey(key, command_control);
+    return CreateRequest<RequestJsonGet>(
+        MakeRequest(CmdArgs{"json.get", std::move(key)}, shard, false, GetCommandControl(command_control))
+    );
+}
+
+RequestJsonGet ClientImpl::JsonGet(std::string key, std::string path, const CommandControl& command_control) {
+    auto shard = ShardByKey(key, command_control);
+    return CreateRequest<RequestJsonGet>(MakeRequest(
+        CmdArgs{"json.get", std::move(key), std::move(path)},
+        shard,
+        false,
+        GetCommandControl(command_control)
+    ));
+}
+
+RequestJsonGet ClientImpl::JsonGet(
+    std::string key,
+    std::vector<std::string> paths,
+    const CommandControl& command_control
+) {
+    auto shard = ShardByKey(key, command_control);
+    return CreateRequest<RequestJsonGet>(MakeRequest(
+        CmdArgs{"json.get", std::move(key), std::move(paths)},
+        shard,
+        false,
+        GetCommandControl(command_control)
+    ));
+}
+
+RequestJsonMget ClientImpl::JsonMget(
+    std::vector<std::string> keys,
+    std::string path,
+    const CommandControl& command_control
+) {
+    if (keys.empty()) {
+        return CreateDummyRequest<RequestJsonMget>(std::make_shared<Reply>("json.mget", ReplyData::Array{}));
+    }
+    auto shard = ShardByKey(keys.at(0), command_control);
+    return CreateRequest<RequestJsonMget>(MakeRequest(
+        CmdArgs{"json.mget", std::move(keys), std::move(path)},
+        shard,
+        false,
+        GetCommandControl(command_control)
+    ));
+}
+
+RequestJsonMset ClientImpl::JsonMset(
+    std::vector<JsonKeyPathValue> key_path_values,
+    const CommandControl& command_control
+) {
+    if (key_path_values.empty()) {
+        return CreateDummyRequest<RequestJsonMset>(std::make_shared<Reply>("json.mset", ReplyData::CreateStatus("OK")));
+    }
+    auto shard = ShardByKey(key_path_values.at(0).key, command_control);
+    std::vector<std::string> args;
+    args.reserve(key_path_values.size() * 3);
+    for (auto&& [key, path, value] : key_path_values) {
+        args.push_back(std::move(key));
+        args.push_back(std::move(path));
+        args.push_back(formats::json::ToString(std::move(value)));
+    }
+    return CreateRequest<RequestJsonMset>(
+        MakeRequest(CmdArgs{"json.mset", std::move(args)}, shard, true, GetCommandControl(command_control))
+    );
 }
 
 // end of redis commands

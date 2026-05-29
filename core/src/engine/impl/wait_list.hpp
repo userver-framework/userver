@@ -3,10 +3,10 @@
 #include <atomic>
 #include <mutex>
 
+#include <boost/intrusive/list.hpp>
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
 #include <userver/engine/impl/awaiter.hpp>
-#include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -71,16 +71,18 @@ public:
     std::size_t GetCountOfSleepies() const noexcept { return sleepies_.load(); }
 
 private:
-    std::atomic<std::size_t> sleepies_{0};
-    std::mutex mutex_;
-
     using MemberHookConfig =
         boost::intrusive::member_hook<impl::Awaiter, impl::Awaiter::WaitListData, &impl::Awaiter::wait_list_data_>;
 
-    struct List;
-    static constexpr std::size_t kListSize = sizeof(void*) * 2;
-    static constexpr std::size_t kListAlignment = alignof(void*);
-    utils::FastPimpl<List, kListSize, kListAlignment> awaiters_;
+    struct List
+        : public boost::intrusive::make_list<
+              impl::Awaiter,
+              boost::intrusive::constant_time_size<false>,
+              MemberHookConfig>::type {};
+
+    std::atomic<std::size_t> sleepies_{0};
+    std::mutex mutex_;
+    List awaiters_;
 };
 
 }  // namespace engine::impl

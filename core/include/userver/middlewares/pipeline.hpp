@@ -156,16 +156,17 @@ private:
 namespace impl {
 
 template <typename T>
-using IsGroup = decltype(T::kDependency);
-
-template <typename T>
-constexpr bool kIsGroup = std::is_same_v<meta::DetectedType<IsGroup, T>, const MiddlewareDependencyBuilder>;
+concept IsGroup = requires {
+    {
+        T::kDependency
+    } -> std::same_as<const MiddlewareDependencyBuilder&>;
+};
 
 }  // namespace impl
 
 template <typename MiddlewareBefore>
 MiddlewareDependencyBuilder MiddlewareDependencyBuilder::Before(DependencyType type) && {
-    if constexpr (impl::kIsGroup<MiddlewareBefore>) {
+    if constexpr (impl::IsGroup<MiddlewareBefore>) {
         return std::move(*this).Before(impl::BeginOfGroup<MiddlewareBefore>(), type);
     }
     return std::move(*this).Before(MiddlewareBefore::kName, type);
@@ -173,7 +174,7 @@ MiddlewareDependencyBuilder MiddlewareDependencyBuilder::Before(DependencyType t
 
 template <typename MiddlewareAfter>
 MiddlewareDependencyBuilder MiddlewareDependencyBuilder::After(DependencyType type) && {
-    if constexpr (impl::kIsGroup<MiddlewareAfter>) {
+    if constexpr (impl::IsGroup<MiddlewareAfter>) {
         return std::move(*this).After(impl::EndOfGroup<MiddlewareAfter>(), type);
     }
     return std::move(*this).After(MiddlewareAfter::kName, type);

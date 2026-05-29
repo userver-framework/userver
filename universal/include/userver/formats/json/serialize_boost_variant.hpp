@@ -12,6 +12,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
+/// @brief Generic serialization helpers (`formats::serialize::To` and friends).
 namespace formats::serialize {
 
 template <typename... Types>

@@ -3,7 +3,6 @@
 #include <string_view>
 #include <type_traits>
 
-#include <userver/compiler/impl/constexpr.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/logging/log_helper.hpp>
 #include <userver/utils/encoding/tskv.hpp>
@@ -16,8 +15,9 @@ namespace logging::impl {
 
 class TagKey final {
 public:
-    template <typename StringType, typename Enabled = std::enable_if_t<!std::is_same_v<StringType, TagKey>>>
-    USERVER_IMPL_CONSTEVAL /*implicit*/ TagKey(const StringType& escaped_key);
+    template <typename StringType>
+    requires(!std::is_same_v<StringType, TagKey>)
+    consteval /*implicit*/ TagKey(const StringType& escaped_key);
 
     std::string_view GetEscapedKey() const noexcept;
 
@@ -50,19 +50,10 @@ public:
     // The tags must not be duplicated in other Put* calls.
     void PutLogExtra(const LogExtra& extra);
 
-    // Copies the tags to the internal LogExtra. They will be deduplicated
-    // automatically.
-    void ExtendLogExtra(const LogExtra& extra);
-
 private:
     friend class logging::LogHelper;
 
     explicit TagWriter(LogHelper& lh) noexcept;
-
-    void PutKey(TagKey key);
-    void PutKey(RuntimeTagKey key);
-
-    void MarkValueEnd() noexcept;
 
     LogHelper& lh_;
 };
@@ -79,8 +70,9 @@ constexpr bool DoesTagNeedEscaping(std::string_view key) noexcept {
     return false;
 }
 
-template <typename StringType, typename Enabled>
-USERVER_IMPL_CONSTEVAL TagKey::TagKey(const StringType& escaped_key)
+template <typename StringType>
+requires(!std::is_same_v<StringType, TagKey>)
+consteval TagKey::TagKey(const StringType& escaped_key)
     : escaped_key_(escaped_key)
 {
     if (DoesTagNeedEscaping(escaped_key_)) {
@@ -90,12 +82,20 @@ USERVER_IMPL_CONSTEVAL TagKey::TagKey(const StringType& escaped_key)
 
 template <typename T>
 void TagWriter::PutTag(TagKey key, const T& value) {
-    lh_.PutTag(key.GetEscapedKey(), value);
+    if constexpr (std::is_convertible_v<T, std::string_view>) {
+        lh_.PutSwTag(key.GetEscapedKey(), value);
+    } else {
+        lh_.PutTag(key.GetEscapedKey(), value);
+    }
 }
 
 template <typename T>
 void TagWriter::PutTag(RuntimeTagKey key, const T& value) {
-    lh_.PutTag(key.GetUnescapedKey(), std::variant{value});
+    if constexpr (std::is_convertible_v<T, std::string_view>) {
+        lh_.PutSwTag(key.GetUnescapedKey(), value);
+    } else {
+        lh_.PutTag(key.GetUnescapedKey(), value);
+    }
 }
 
 }  // namespace logging::impl

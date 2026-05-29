@@ -7,6 +7,7 @@
 
 #include <fmt/format.h>
 #include <re2/re2.h>
+#include <re2/stringpiece.h>
 #include <boost/container/small_vector.hpp>
 
 #include <userver/utils/assert.hpp>
@@ -37,6 +38,8 @@ re2::RE2::Options MakeRE2Options() {
     return options;
 }
 
+re2::StringPiece ToRE2(std::string_view s) noexcept { return {s.data(), s.size()}; }
+
 }  // namespace
 
 class regex::Impl {
@@ -44,7 +47,7 @@ public:
     Impl() = default;
 
     explicit Impl(std::string_view pattern)
-        : regex_(std::make_shared<const re2::RE2>(pattern, MakeRE2Options()))
+        : regex_(std::make_shared<const re2::RE2>(ToRE2(pattern), MakeRE2Options()))
     {
         if (regex_->ok()) {
             return;
@@ -82,7 +85,7 @@ regex::~regex() = default;
 
 bool regex::operator==(const regex& other) const { return GetPatternView() == other.GetPatternView(); }
 
-std::string_view regex::GetPatternView() const { return impl_->Get().pattern(); }
+std::string_view regex::GetPatternView() const USERVER_IMPL_LIFETIME_BOUND { return impl_->Get().pattern(); }
 
 std::string regex::str() const { return std::string{GetPatternView()}; }
 
@@ -151,25 +154,37 @@ std::string_view match_results::suffix() const {
 
 ////////////////////////////////////////////////////////////////
 
-bool regex_match(std::string_view str, const regex& pattern) { return re2::RE2::FullMatch(str, pattern.impl_->Get()); }
+bool regex_match(std::string_view str, const regex& pattern) {
+    return re2::RE2::FullMatch(ToRE2(str), pattern.impl_->Get());
+}
 
 bool regex_match(std::string_view str, match_results& m, const regex& pattern) {
     m.impl_->Prepare(str, pattern);
-    const bool success =
-        pattern.impl_->Get()
-            .Match(str, 0, str.size(), re2::RE2::Anchor::ANCHOR_BOTH, m.impl_->groups.data(), m.impl_->groups.size());
+    const bool success = pattern.impl_->Get().Match(
+        ToRE2(str),
+        0,
+        str.size(),
+        re2::RE2::Anchor::ANCHOR_BOTH,
+        m.impl_->groups.data(),
+        m.impl_->groups.size()
+    );
     return success;
 }
 
 bool regex_search(std::string_view str, const regex& pattern) {
-    return re2::RE2::PartialMatch(str, pattern.impl_->Get());
+    return re2::RE2::PartialMatch(ToRE2(str), pattern.impl_->Get());
 }
 
 bool regex_search(std::string_view str, match_results& m, const regex& pattern) {
     m.impl_->Prepare(str, pattern);
-    const bool success =
-        pattern.impl_->Get()
-            .Match(str, 0, str.size(), re2::RE2::Anchor::UNANCHORED, m.impl_->groups.data(), m.impl_->groups.size());
+    const bool success = pattern.impl_->Get().Match(
+        ToRE2(str),
+        0,
+        str.size(),
+        re2::RE2::Anchor::UNANCHORED,
+        m.impl_->groups.data(),
+        m.impl_->groups.size()
+    );
     return success;
 }
 
@@ -181,7 +196,7 @@ std::string regex_replace(std::string_view str, const regex& pattern, std::strin
     re2::StringPiece match;
 
     while (true) {
-        const bool success = regex.Match(str, 0, str.size(), re2::RE2::Anchor::UNANCHORED, &match, 1);
+        const bool success = regex.Match(ToRE2(str), 0, str.size(), re2::RE2::Anchor::UNANCHORED, &match, 1);
         if (!success) {
             res += str;
             break;
@@ -210,7 +225,7 @@ std::string regex_replace(std::string_view str, const regex& pattern, Re2Replace
     res.reserve(str.size() + str.size() / 4);
 
     res.assign(str);
-    re2::RE2::GlobalReplace(&res, pattern.impl_->Get(), repl.replacement);
+    re2::RE2::GlobalReplace(&res, pattern.impl_->Get(), ToRE2(repl.replacement));
 
     return res;
 }

@@ -1,8 +1,12 @@
 #pragma once
 
+/// @file userver/server/server.hpp
+/// @brief @copybrief server::Server
+
 #include <userver/formats/json/value.hpp>
 
 #include <userver/components/component_context.hpp>
+#include <userver/engine/deadline.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/server/congestion_control/limiter.hpp>
 #include <userver/server/congestion_control/sensor.hpp>
@@ -29,6 +33,7 @@ class RequestsView;
 class ServerImpl;
 struct ServerConfig;
 
+/// @brief Main HTTP server instance
 class Server final : public congestion_control::Limitee, public congestion_control::RequestsSource {
 public:
     Server(
@@ -50,18 +55,21 @@ public:
 
     void AddHandler(const handlers::HttpHandlerBase& handler, engine::TaskProcessor& task_processor);
 
-    size_t GetThrottlableHandlersCount() const;
-
     const http::HttpRequestHandler& GetHttpRequestHandler(bool is_monitor = false) const;
 
     void StartMonitorPort();
+
     void Start();
+
+    void StopServing(engine::Deadline serving_shutdown_deadline);
 
     void Stop();
 
     RequestsView& GetRequestsView();
 
     void SetLimit(std::optional<size_t> new_limit) override;
+
+    size_t GetLimitableHandlersCount() const override;
 
     void SetRpsRatelimit(std::optional<size_t> rps);
 

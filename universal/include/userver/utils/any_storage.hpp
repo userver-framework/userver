@@ -10,6 +10,8 @@
 #include <type_traits>
 #include <vector>
 
+#include <userver/compiler/impl/lifetime.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
@@ -86,31 +88,31 @@ public:
 
     /// @returns Stored data.
     template <typename Data>
-    const Data& Get(const AnyStorageDataTag<StorageTag, Data>& tag) const;
+    const Data& Get(const AnyStorageDataTag<StorageTag, Data>& tag) const USERVER_IMPL_LIFETIME_BOUND;
 
     /// @returns Stored data.
     /// @throws std::runtime_error if no data was stored
     template <typename Data>
-    Data& Get(const AnyStorageDataTag<StorageTag, Data>& tag);
+    Data& Get(const AnyStorageDataTag<StorageTag, Data>& tag) USERVER_IMPL_LIFETIME_BOUND;
 
     /// @brief Stores the data.
     template <typename Data>
-    Data& Set(AnyStorageDataTag<StorageTag, Data> tag, Data data);
+    Data& Set(AnyStorageDataTag<StorageTag, Data> tag, Data data) USERVER_IMPL_LIFETIME_BOUND;
 
     /// @brief Emplaces the data. The data is rewritten if
     /// already stored.
     template <typename Data, typename... Args>
-    Data& Emplace(const AnyStorageDataTag<StorageTag, Data>& tag, Args&&... args);
+    Data& Emplace(const AnyStorageDataTag<StorageTag, Data>& tag, Args&&... args) USERVER_IMPL_LIFETIME_BOUND;
 
     /// @returns Pointer to stored data or nullptr if
     /// no data is found.
     template <typename Data>
-    Data* GetOptional(const AnyStorageDataTag<StorageTag, Data>& tag) noexcept;
+    Data* GetOptional(const AnyStorageDataTag<StorageTag, Data>& tag) noexcept USERVER_IMPL_LIFETIME_BOUND;
 
     /// @returns Pointer to stored data or nullptr if
     /// no data found.
     template <typename Data>
-    const Data* GetOptional(const AnyStorageDataTag<StorageTag, Data>& tag) const noexcept;
+    const Data* GetOptional(const AnyStorageDataTag<StorageTag, Data>& tag) const noexcept USERVER_IMPL_LIFETIME_BOUND;
 
     /// @brief Erase data.
     template <typename Data>
@@ -139,7 +141,7 @@ any_storage::impl::Offset AnyStorage<StorageTag>::CalcOffset() noexcept {
 
 template <typename StorageTag>
 AnyStorage<StorageTag>::AnyStorage()
-    : raw_data_(new std::byte[CalcOffset() + sizeof(AllocRecord) * any_storage::impl::count<StorageTag>])
+    : raw_data_(new std::byte[CalcOffset() + (sizeof(AllocRecord) * any_storage::impl::count<StorageTag>)])
 {
     static_assert(std::is_trivial_v<AllocRecord>);
 
@@ -184,7 +186,8 @@ void AnyStorage<StorageTag>::Destroy() noexcept {
 
 template <typename StorageTag>
 template <typename Data>
-Data& AnyStorage<StorageTag>::Set(const AnyStorageDataTag<StorageTag, Data> tag, Data data) {
+Data& AnyStorage<StorageTag>::Set(const AnyStorageDataTag<StorageTag, Data> tag, Data data)
+    USERVER_IMPL_LIFETIME_BOUND {
     auto number = tag.number_;
     if (!GetRecords()[number].deleter) {
         return Emplace(tag, std::move(data));
@@ -196,7 +199,8 @@ Data& AnyStorage<StorageTag>::Set(const AnyStorageDataTag<StorageTag, Data> tag,
 
 template <typename StorageTag>
 template <typename Data, typename... Args>
-Data& AnyStorage<StorageTag>::Emplace(const AnyStorageDataTag<StorageTag, Data>& tag, Args&&... args) {
+Data& AnyStorage<StorageTag>::Emplace(const AnyStorageDataTag<StorageTag, Data>& tag, Args&&... args)
+    USERVER_IMPL_LIFETIME_BOUND {
     auto number = tag.number_;
     auto& record = GetRecords()[number];
     if (record.deleter) {
@@ -205,13 +209,13 @@ Data& AnyStorage<StorageTag>::Emplace(const AnyStorageDataTag<StorageTag, Data>&
 
     auto offset = tag.offset_;
     auto ptr = new (&raw_data_[offset]) Data(std::forward<Args>(args)...);
-    record = {&any_storage::impl::Delete<Data>, offset};
+    record = {.deleter = &any_storage::impl::Delete<Data>, .offset = offset};
     return *ptr;
 }
 
 template <typename StorageTag>
 template <typename Data>
-Data& AnyStorage<StorageTag>::Get(const AnyStorageDataTag<StorageTag, Data>& tag) {
+Data& AnyStorage<StorageTag>::Get(const AnyStorageDataTag<StorageTag, Data>& tag) USERVER_IMPL_LIFETIME_BOUND {
     auto ptr = GetOptional(tag);
     if (ptr) {
         return *ptr;
@@ -221,14 +225,16 @@ Data& AnyStorage<StorageTag>::Get(const AnyStorageDataTag<StorageTag, Data>& tag
 
 template <typename StorageTag>
 template <typename Data>
-const Data& AnyStorage<StorageTag>::Get(const AnyStorageDataTag<StorageTag, Data>& tag) const {
+const Data& AnyStorage<StorageTag>::Get(const AnyStorageDataTag<StorageTag, Data>& tag
+) const USERVER_IMPL_LIFETIME_BOUND {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     return const_cast<AnyStorage<StorageTag>*>(this)->Get<Data>(tag);
 }
 
 template <typename StorageTag>
 template <typename Data>
-Data* AnyStorage<StorageTag>::GetOptional(const AnyStorageDataTag<StorageTag, Data>& tag) noexcept {
+Data* AnyStorage<StorageTag>::GetOptional(const AnyStorageDataTag<StorageTag, Data>& tag
+) noexcept USERVER_IMPL_LIFETIME_BOUND {
     auto number = tag.number_;
     auto offset = tag.offset_;
     if (!GetRecords()[number].deleter) {
@@ -239,7 +245,8 @@ Data* AnyStorage<StorageTag>::GetOptional(const AnyStorageDataTag<StorageTag, Da
 
 template <typename StorageTag>
 template <typename Data>
-const Data* AnyStorage<StorageTag>::GetOptional(const AnyStorageDataTag<StorageTag, Data>& tag) const noexcept {
+const Data* AnyStorage<StorageTag>::GetOptional(const AnyStorageDataTag<StorageTag, Data>& tag
+) const noexcept USERVER_IMPL_LIFETIME_BOUND {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     return const_cast<AnyStorage*>(this)->GetOptional<Data>(tag);
 }

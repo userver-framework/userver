@@ -14,6 +14,7 @@
 #include <userver/ugrpc/client/middlewares/fwd.hpp>
 #include <userver/ugrpc/client/proxy_settings.hpp>
 #include <userver/ugrpc/client/retry_config.hpp>
+#include <userver/ugrpc/client/retry_limiter.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -49,6 +50,7 @@ struct ClientInternals final {
     DedicatedMethodsConfig dedicated_methods_config;
     ChannelFactory channel_factory;
     const RetryConfig& retry_config;
+    RetryLimiterFactory* retry_limiter_factory;
     const grpc::ChannelArguments& channel_args;
     const std::optional<std::string>& default_service_config;
     const ProxySettings& proxy_settings;

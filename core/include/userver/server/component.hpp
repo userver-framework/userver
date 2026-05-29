@@ -55,6 +55,8 @@ public:
 
     void OnAllComponentsLoaded() override;
 
+    void OnGracefulShutdown(engine::Deadline serving_shutdown_deadline) override;
+
     void OnAllComponentsAreStopping() override;
 
     const server::Server& GetServer() const;

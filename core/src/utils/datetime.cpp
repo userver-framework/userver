@@ -104,7 +104,7 @@ std::optional<cctz::time_zone> GetOptionalTimezone(const std::string& timezone) 
 
         // DoGetOptionalTimezone() may access filesystem, run it in blocking task processor
         auto [value, _] =
-            map.Emplace(timezone, engine::AsyncNoSpan(engine::current_task::GetBlockingTaskProcessor(), [&timezone] {
+            map.Emplace(timezone, engine::AsyncNoTracing(engine::current_task::GetBlockingTaskProcessor(), [&timezone] {
                                       return DoGetOptionalTimezone(timezone);
                                   }).Get());
         return *value;

@@ -63,7 +63,13 @@ namespace storages::postgres {
 /// @see @ref scripts/docs/en/userver/periodics.md
 class DistLockComponentBase : public components::ComponentBase {
 public:
-    DistLockComponentBase(const components::ComponentConfig&, const components::ComponentContext&);
+    enum class AutostartDistlock : bool { kNo = false, kYes = true };
+
+    DistLockComponentBase(
+        const components::ComponentConfig&,
+        const components::ComponentContext&,
+        AutostartDistlock autostart_at_base_component = AutostartDistlock::kNo
+    );
 
     ~DistLockComponentBase() override;
 
@@ -134,6 +140,8 @@ private:
     std::unique_ptr<dist_lock::DistLockedWorker> worker_;
     bool autostart_;
     bool testsuite_enabled_{false};
+    // temporary parameter, will be removed when all AutostartDistlock calls will be removed from the ctors
+    AutostartDistlock autostart_at_base_component_{AutostartDistlock::kNo};
     dist_lock::DistLockSettings default_settings_;
 
     concurrent::AsyncEventSubscriberScope subscription_token_;

@@ -9,3 +9,56 @@ definitions:
                 type: array
                 items:
                     $ref: '#/definitions/RecursiveObject'
+
+    RecursiveEntityA:
+        type: object
+        additionalProperties: false
+        properties:
+            field1:
+                type: array
+                items:
+                    $ref: "#/definitions/RecursiveEntityB"
+            field2:
+                type: array
+                items:
+                    $ref: "#/definitions/RecursiveEntityC"
+
+    RecursiveEntityB:
+        type: object
+        additionalProperties:
+            type: string
+        properties:
+            field3:
+                oneOf:
+                  - type: string
+                  - type: array
+                    items:
+                        type: string
+            field4:
+                type: array
+                items:
+                    type: string
+            field5:
+                type: array
+                items:
+                    $ref: "#/definitions/RecursiveEntityB"
+            field6:
+                type: string
+
+    RecursiveEntityC:
+        type: object
+        additionalProperties:
+            type: string
+        properties:
+            field7:
+                type: string
+            field8:
+                oneOf:
+                  - type: string
+                  - type: array
+                    items:
+                        type: string
+            field9:
+                type: array
+                items:
+                    $ref: "#/definitions/RecursiveEntityC"

@@ -37,7 +37,7 @@ void MutexSetLockUnlockNoContention(benchmark::State& state) {
         tasks.reserve(concurrent_jobs);
 
         for (std::size_t thread_id = 1; thread_id < concurrent_jobs; ++thread_id) {
-            tasks.push_back(engine::AsyncNoSpan([&, thread_id] {
+            tasks.push_back(engine::AsyncNoTracing([&, thread_id] {
                 auto mutex = ms.GetMutexForKey(GetKeyForBenchmark<T>(thread_id));
 
                 while (keep_running) {
@@ -105,7 +105,7 @@ void MutexSetLockUnlockContention(benchmark::State& state) {
         tasks.reserve(concurrent_jobs);
 
         for (std::size_t thread_id = 1; thread_id < concurrent_jobs; ++thread_id) {
-            tasks.push_back(engine::AsyncNoSpan([&] {
+            tasks.push_back(engine::AsyncNoTracing([&] {
                 auto mutexes = make_mutexes();
                 while (keep_running) {
                     do_work(mutexes);
@@ -152,7 +152,7 @@ void MutexSet8waysLockUnlockContention(benchmark::State& state) {
         tasks.reserve(concurrent_jobs);
 
         for (std::size_t thread_id = 1; thread_id < concurrent_jobs; ++thread_id) {
-            tasks.push_back(engine::AsyncNoSpan([&, thread_id] {
+            tasks.push_back(engine::AsyncNoTracing([&, thread_id] {
                 while (keep_running) {
                     do_work(thread_id);
                 }

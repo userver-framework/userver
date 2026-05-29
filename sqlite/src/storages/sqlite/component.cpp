@@ -108,8 +108,8 @@ SQLite::SQLite(const ComponentConfig& config, const ComponentContext& context)
       fs_task_processor_(GetFsTaskProcessor(config, context)),
       client_(std::make_shared<storages::sqlite::Client>(settings_, fs_task_processor_))
 {
-    auto& statistics_storage = context.FindComponent<components::StatisticsStorage>();
-    statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
+    utils::statistics::RegisterWriterScope(
+        context,
         "sqlite",
         [this](utils::statistics::Writer& writer) { client_->WriteStatistics(writer); },
         {{"component", config.Name()}}
@@ -135,7 +135,7 @@ SQLite::SQLite(const ComponentConfig& config, const ComponentContext& context)
     }
 }
 
-SQLite::~SQLite() { statistics_holder_.Unregister(); }
+SQLite::~SQLite() = default;
 
 storages::sqlite::ClientPtr SQLite::GetClient() const { return client_; }
 

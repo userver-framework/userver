@@ -1,5 +1,7 @@
 #include <userver/storages/postgres/io/uuid.hpp>
 
+#include <algorithm>
+
 #include <boost/uuid/uuid.hpp>
 
 USERVER_NAMESPACE_BEGIN

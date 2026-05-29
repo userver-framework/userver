@@ -18,6 +18,41 @@ constexpr std::string_view kSchemaSeparator = "://";
 constexpr char kQuerySeparator = '?';
 constexpr char kFragmentSeparator = '#';
 
+// RFC 3986 unreserved characters plus some additional characters that are safe
+// in path segments for S3 and similar APIs
+bool IsPathSafeChar(unsigned char c) {
+    // Alphanumeric characters are always safe
+    if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) {
+        return true;
+    }
+    // RFC 3986 unreserved: - _ . ~
+    // Additional path-safe characters for S3 compatibility: $ & , : = @
+    switch (c) {
+        case '-':
+        case '_':
+        case '.':
+        case '~':
+        case '$':
+        case '&':
+        case ',':
+        case ':':
+        case '=':
+        case '@':
+            return true;
+        default:
+            return false;
+    }
+}
+
+void EncodeByte(unsigned char symbol, std::string& result) {
+    std::array<char, 3> bytes = {'%', 0, 0};
+    bytes[1] = (symbol & 0xF0) / 16;
+    bytes[1] += (bytes[1] > 9) ? 'A' - 10 : '0';
+    bytes[2] = symbol & 0x0F;
+    bytes[2] += (bytes[2] > 9) ? 'A' - 10 : '0';
+    result.append(bytes.data(), bytes.size());
+}
+
 void UrlEncodeTo(std::string_view input_string, std::string& result) {
     for (const char symbol : input_string) {
         if (isalnum(symbol)) {
@@ -37,13 +72,18 @@ void UrlEncodeTo(std::string_view input_string, std::string& result) {
                 result.append(1, symbol);
                 break;
             default:
-                std::array<char, 3> bytes = {'%', 0, 0};
-                bytes[1] = (symbol & 0xF0) / 16;
-                bytes[1] += (bytes[1] > 9) ? 'A' - 10 : '0';
-                bytes[2] = symbol & 0x0F;
-                bytes[2] += (bytes[2] > 9) ? 'A' - 10 : '0';
-                result.append(bytes.data(), bytes.size());
+                EncodeByte(static_cast<unsigned char>(symbol), result);
                 break;
+        }
+    }
+}
+
+void UrlEncodePathSegmentTo(std::string_view input_string, std::string& result) {
+    for (const unsigned char symbol : input_string) {
+        if (IsPathSafeChar(symbol)) {
+            result.append(1, symbol);
+        } else {
+            EncodeByte(symbol, result);
         }
     }
 }
@@ -55,6 +95,34 @@ std::string UrlEncode(std::string_view input_string) {
     result.reserve(3 * input_string.size());
 
     UrlEncodeTo(input_string, result);
+    return result;
+}
+
+std::string UrlEncodePathSegment(std::string_view input_string) {
+    std::string result;
+    result.reserve(3 * input_string.size());
+
+    UrlEncodePathSegmentTo(input_string, result);
+    return result;
+}
+
+std::string EncodeS3Key(std::string_view key) {
+    std::string result;
+    result.reserve(key.size());
+
+    size_t start = 0;
+    while (start < key.size()) {
+        size_t slash_pos = key.find('/', start);
+        if (slash_pos == std::string::npos) {
+            UrlEncodePathSegmentTo(key.substr(start), result);
+            break;
+        } else {
+            UrlEncodePathSegmentTo(key.substr(start, slash_pos - start), result);
+            result.push_back('/');
+            start = slash_pos + 1;
+        }
+    }
+
     return result;
 }
 

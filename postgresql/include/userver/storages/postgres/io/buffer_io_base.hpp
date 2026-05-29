@@ -1,17 +1,13 @@
 #pragma once
 
 #include <userver/storages/postgres/io/type_mapping.hpp>
-#include <userver/utils/void_t.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::io::detail {
 
-template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
-struct ShouldInitMapping : std::false_type {};
-
 template <typename T>
-struct ShouldInitMapping<T, USERVER_NAMESPACE::utils::void_t<decltype(T::init)>> : std::true_type {};
+inline constexpr bool kShouldInitMapping = requires { T::init; };
 
 template <typename T>
 struct BufferParserBase {
@@ -22,7 +18,7 @@ struct BufferParserBase {
         : value{v}
     {
         using PgMapping = CppToPg<ValueType>;
-        if constexpr (ShouldInitMapping<PgMapping>{}) {
+        if constexpr (kShouldInitMapping<PgMapping>) {
             ForceReference(PgMapping::init);
         }
     }
@@ -37,7 +33,7 @@ struct BufferParserBase<T&&> {
         : value{std::move(v)}
     {
         using PgMapping = CppToPg<ValueType>;
-        if constexpr (ShouldInitMapping<PgMapping>{}) {
+        if constexpr (kShouldInitMapping<PgMapping>) {
             ForceReference(PgMapping::init);
         }
     }

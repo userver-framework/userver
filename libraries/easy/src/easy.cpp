@@ -16,6 +16,7 @@
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/components/run.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
+#include <userver/server/handlers/json_error_builder.hpp>
 #include <userver/storages/postgres/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/daemon_run.hpp>
@@ -80,18 +81,36 @@ DependenciesBase::~DependenciesBase() = default;
 
 class HttpBase::Handle final : public server::handlers::HttpHandlerBase {
 public:
+    using CustomHandlerException = server::handlers::CustomHandlerException;
+    using FormattedErrorData = server::handlers::FormattedErrorData;
+
     Handle(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
           deps_{context.FindComponent<impl::DependenciesBase>()},
           callback_{globals.http_functions.at(config.Name())}
-    {}
+    {
+        if (!callback_.content_type && globals.default_content_type) {
+            callback_.content_type = *globals.default_content_type;
+        }
+    }
 
     std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
         const override {
-        if (globals.default_content_type) {
-            request.GetHttpResponse().SetContentType(*globals.default_content_type);
+        if (callback_.content_type) {
+            request.GetHttpResponse().SetContentType(*callback_.content_type);
         }
-        return callback_(request, deps_);
+        return callback_.function(request, deps_);
+    }
+
+    FormattedErrorData GetFormattedExternalErrorBody(const CustomHandlerException& exc) const override {
+        if (callback_.content_type == http::content_type::kApplicationJson) {
+            return {
+                server::handlers::JsonErrorBuilder(exc).GetExternalBody(),
+                server::handlers::JsonErrorBuilder::GetContentType()
+            };
+        }
+
+        return HttpHandlerBase::GetFormattedExternalErrorBody(exc);
     }
 
 private:

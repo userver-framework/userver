@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/testsuite/http_testpoint_client.hpp
+/// @brief @copybrief testsuite::impl::HttpTestpointClient
+
 #include <chrono>
 #include <memory>
 #include <string>
@@ -15,6 +18,7 @@ class Client;
 
 namespace testsuite::impl {
 
+/// @brief HTTP-based testsuite testpoint client
 class HttpTestpointClient final : public TestpointClientBase {
 public:
     HttpTestpointClient(clients::http::Client& http_client, const std::string& url, std::chrono::milliseconds timeout);

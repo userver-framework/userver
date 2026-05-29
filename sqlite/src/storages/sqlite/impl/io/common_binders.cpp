@@ -1,6 +1,7 @@
 #include <userver/storages/sqlite/impl/io/common_binders.hpp>
 
-#include <boost/range/algorithm/copy.hpp>
+#include <algorithm>
+
 #include <boost/uuid/uuid.hpp>
 
 #include <userver/formats/json/serialize.hpp>
@@ -95,7 +96,7 @@ void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos, ExplicitRef<boo
     if (blob.size() != boost::uuids::uuid::static_size()) {
         throw SQLiteException{"Incorrect representation of UUIDv4 in SQLite"};
     }
-    boost::range::copy(blob, val.Get().begin());
+    std::ranges::copy(blob, val.Get().begin());
 }
 
 void FreestandingBind(OutputBindingsFwd& binds, std::size_t pos, ExplicitRef<formats::json::Value> val) {

@@ -217,7 +217,7 @@ The essential parts of the testsuite are
 @ref service_client "pytest_userver.plugins.service_client.service_client" and
 pytest_userver.plugins.service_client.monitor_client fixtures that give you
 access to the pytest_userver.client.Client and
-pytest_userver.client.ClientMonitor respectively. Those types allow to interact
+pytest_userver.client.ClientMonitor respectively. Those types allow you to interact
 with a running service.
 
 Testsuite functions reference could be found at @ref userver_testsuite.
@@ -276,10 +276,10 @@ usually you do not need to manually register any dependencies.
 
 #### Mockserver
 
-[Mockserver](https://yandex.github.io/yandex-taxi-testsuite/mockserver/) allows to mock external
+[Mockserver](https://yandex.github.io/yandex-taxi-testsuite/mockserver/) allows you to mock external
 HTTP handlers. It starts its own HTTP server that receives HTTP traffic from
 the service being tested.
-And allows to install custom HTTP handlers within testsuite.
+It also allows you to install custom HTTP handlers within testsuite.
 In order to use it all HTTP clients must be pointed to mockserver address.
 
 Mockserver usage example:
@@ -388,7 +388,7 @@ Example on logs capture usage could be found here:
 @anchor TESTSUITE_TASKS
 #### Testsuite tasks
 
-Testsuite tasks facility allows to register a custom function and call it by name from testsuite.
+Testsuite tasks facility allows you to register a custom function and call it by name from testsuite.
 It's useful for testing components that perform periodic job not related to its own HTTP handler.
 
 You can use `testsuite::TestsuiteTasks` to register your own task:
@@ -416,7 +416,7 @@ Testsuite provides access to userver metrics written by @ref utils::statistics::
 @ref pytest_userver.plugins.service_client.monitor_client "monitor_client"
 , see @ref tutorial_metrics "tutorial on configuration".
 
-It allows to:
+It allows you to:
 
 - retrieve specific service metric by path and (optionally) labels:
   @ref pytest_userver.client.ClientMonitor.single_metric "await monitor_client.single_metric(path, labels)"
@@ -505,7 +505,7 @@ def test_service(service_client):
 @anchor uservice_oneshot
 #### uservice_oneshot testsuite tests
 
-Testsuite allows to create tests that start a new service instance for the test and stop it on test finish:
+Testsuite allows you to create tests that start a new service instance for the test and stop it on test finish:
 
 @snippet samples/testsuite-support/tests/test_metrics.py  uservice_oneshot sample
 

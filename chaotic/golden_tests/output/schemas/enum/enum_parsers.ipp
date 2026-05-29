@@ -1,7 +1,7 @@
 #pragma once
 
+#include <userver/chaotic/additional_properties.hpp>
 #include <userver/chaotic/exception.hpp>
-#include <userver/chaotic/object.hpp>
 #include <userver/chaotic/primitive.hpp>
 #include <userver/chaotic/with_type.hpp>
 #include <userver/formats/common/meta.hpp>
@@ -25,7 +25,7 @@ static constexpr USERVER_NAMESPACE::utils::TrivialSet k__ns__Enum_PropertiesName
   return selector().template Type<std::string_view>().Case("foo");
 };
 
-template <typename Value, typename = std::enable_if_t<USERVER_NAMESPACE::formats::common::kIsFormatValue<Value>>>
+template <USERVER_NAMESPACE::formats::common::IsFormatValue Value>
 Enum::Foo Parse(Value val, USERVER_NAMESPACE::formats::parse::To<Enum::Foo>) {
   const auto value = val.template As<std::string>();
   const auto result = k__ns__Enum__Foo_Mapping.TryFindBySecond(value);
@@ -36,7 +36,7 @@ Enum::Foo Parse(Value val, USERVER_NAMESPACE::formats::parse::To<Enum::Foo>) {
                                             val);
 }
 
-template <typename Value, typename = std::enable_if_t<USERVER_NAMESPACE::formats::common::kIsFormatValue<Value>>>
+template <USERVER_NAMESPACE::formats::common::IsFormatValue Value>
 Enum Parse(Value value, USERVER_NAMESPACE::formats::parse::To<Enum>) {
   value.CheckNotMissing();
   value.CheckObjectOrNull();

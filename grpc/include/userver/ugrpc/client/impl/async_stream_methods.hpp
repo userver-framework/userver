@@ -10,6 +10,7 @@
 #include <userver/ugrpc/client/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/client/impl/async_methods.hpp>
 #include <userver/ugrpc/client/impl/call_state.hpp>
+#include <userver/ugrpc/client/impl/deadline_propagation_detect.hpp>
 #include <userver/ugrpc/impl/status_utils.hpp>
 #include <userver/ugrpc/time_utils.hpp>
 
@@ -28,19 +29,20 @@ void CheckOk(
     std::string_view stage
 );
 
-void CheckFinishStatus(StreamingCallState& state);
-
 void ProcessFinish(
     StreamingCallState& state,
-    const grpc::Status& status,
+    bool throw_on_error,
+    CompletionStatus&& completion_status,
     const google::protobuf::Message* final_response
 );
 
+void ProcessTimeoutDeadlinePropagated(StreamingCallState& state, bool throw_on_error, std::string_view stage);
+
+void ProcessCancelled(StreamingCallState& state, bool throw_on_error, std::string_view stage);
+
+void ProcessNetworkError(StreamingCallState& state, bool throw_on_error, std::string_view stage);
+
 void ProcessFinishAbandoned(StreamingCallState& state, const grpc::Status& status) noexcept;
-
-void ProcessCancelled(StreamingCallState& state, std::string_view stage) noexcept;
-
-void ProcessNetworkError(StreamingCallState& state, std::string_view stage) noexcept;
 
 void ThrowIfDeadlineIsExceeded(grpc::ClientContext& client_context, std::string_view call_name);
 
@@ -62,47 +64,44 @@ void Finish(
 
     state.SetFinished();
 
-    FinishAsyncMethodInvocation invocation;
-    stream.Finish(&state.GetStatus(), invocation.GetCompletionTag());
+    // `completion_status` must be destroyed not earlier than `invocation`,
+    // because it couldn't be destroyed before request is finished
+    CompletionStatus completion_status = grpc::Status{};
+    FinishAsyncMethodInvocation invocation;  // Calls WaitNonCancellable in the destructor
+    stream.Finish(&completion_status.value(), invocation.GetCompletionTag());
     const auto wait_status = WaitAndTryCancelIfNeeded(invocation, state.GetClientContext());
 
     switch (wait_status) {
-        case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kOk:
+        case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kOk: {
+            auto& status = completion_status.value();
             state.GetStatsScope().SetFinishTime(invocation.GetNotifyTime());
-            try {
-                ugrpc::impl::ClampStatusCodeToValidRange(state.GetStatus());
-                ProcessFinish(state, state.GetStatus(), final_response);
-            } catch (const std::exception& ex) {
-                if (throw_on_error) {
-                    throw;
-                } else {
-                    LOG_WARNING() << "There is a caught exception in 'impl::Finish': " << ex;
-                }
-            }
-            if (throw_on_error) {
-                CheckFinishStatus(state);
-            }
-            break;
 
+            ugrpc::impl::ClampStatusCodeToValidRange(status);
+            if (impl::IsRequestCancelledByDeadlinePropagation(status, state)) {
+                ProcessTimeoutDeadlinePropagated(state, throw_on_error, "Finish");
+            } else {
+                ProcessFinish(state, throw_on_error, std::move(completion_status), final_response);
+            }
+            return;
+        }
         case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kError:
             state.GetStatsScope().SetFinishTime(invocation.GetNotifyTime());
-            ProcessNetworkError(state, "Finish");
-            if (throw_on_error) {
-                ThrowIfDeadlineIsExceeded(state.GetClientContext(), state.GetCallName());
-                throw RpcInterruptedError(state.GetCallName(), "Finish");
-            }
-            break;
+            ProcessNetworkError(state, throw_on_error, "Finish");
+            return;
 
         case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kCancelled:
-            ProcessCancelled(state, "Finish");
-            // Finish AsyncMethodInvocation will be awaited in its destructor.
-            if (throw_on_error) {
-                throw RpcCancelledError(state.GetCallName(), "Finish");
+            // NOTE: `completion_status` couldn't be safely used here
+            if (impl::IsTaskCancelledByDeadlinePropagation()) {
+                ProcessTimeoutDeadlinePropagated(state, true, "Finish");
+            } else {
+                ProcessCancelled(state, true, "Finish");
             }
-            break;
+            // Finish AsyncMethodInvocation will be awaited in its destructor.
+            return;
 
         case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kDeadline:
             UINVARIANT(false, "unreachable");
+            return;
     }
 }
 
@@ -116,17 +115,18 @@ void FinishAbandoned(GrpcStream& stream, StreamingCallState& state) noexcept try
 
     state.GetClientContext().TryCancel();
 
+    grpc::Status status;
     FinishAsyncMethodInvocation invocation;
-    stream.Finish(&state.GetStatus(), invocation.GetCompletionTag());
+    stream.Finish(&status, invocation.GetCompletionTag());
     const auto ok = invocation.WaitNonCancellable();
 
     state.GetStatsScope().SetFinishTime(invocation.GetNotifyTime());
 
     if (ok) {
-        ugrpc::impl::ClampStatusCodeToValidRange(state.GetStatus());
-        ProcessFinishAbandoned(state, state.GetStatus());
+        ugrpc::impl::ClampStatusCodeToValidRange(status);
+        ProcessFinishAbandoned(state, status);
     } else {
-        ProcessNetworkError(state, "Finish");
+        ProcessNetworkError(state, false, "Finish");
     }
 } catch (const std::exception& ex) {
     LOG_WARNING() << "There is a caught exception in 'FinishAbandoned': " << ex;

@@ -14,8 +14,6 @@ class Logging;
 }  // namespace components
 
 namespace server::handlers {
-// clang-format off
-
 /// @ingroup userver_components userver_http_handlers
 ///
 /// @brief Handler that controls logging levels of all the loggers.
@@ -44,8 +42,6 @@ namespace server::handlers {
 /// the initial values.
 ///
 /// @see @ref scripts/docs/en/userver/log_level_running_service.md
-
-// clang-format on
 class LogLevel final : public HttpHandlerBase {
 public:
     LogLevel(const components::ComponentConfig& config, const components::ComponentContext& component_context);

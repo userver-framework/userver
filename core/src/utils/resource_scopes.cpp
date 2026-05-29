@@ -1,9 +1,9 @@
 #include <userver/utils/resource_scopes.hpp>
 
+#include <ranges>
+
 #include <userver/components/component_base.hpp>
 #include <userver/components/component_context.hpp>
-
-#include <boost/range/adaptor/reversed.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -19,7 +19,7 @@ void ResourceScopeStorage::AfterConstruction()
 {
     scope_registration_finished_ = true;
 
-    // A tweak to be sure in case of parial initialization only
+    // A tweak to be sure in case of partial initialization only
     // already initialized scopes' before_dtr() are called
     for (auto& resource_scope : registered_scopes_) {
         resource_scope->AfterConstruction();
@@ -31,7 +31,7 @@ void ResourceScopeStorage::AfterConstruction()
 void ResourceScopeStorage::BeforeDestruction()
 {
     // Call Scopes' pre-destruction callbacks in reverse order
-    for (auto& scope : initialized_scopes_ | boost::adaptors::reversed) {
+    for (auto& scope : initialized_scopes_ | std::views::reverse) {
         scope.reset();
     }
 }

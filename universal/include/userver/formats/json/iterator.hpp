@@ -25,6 +25,8 @@ public:
 
     using ContainerType = typename Traits::ContainerType;
 
+    Iterator();
+
     Iterator(ContainerType container, int pos);
 
     Iterator(const Iterator& other);
@@ -59,6 +61,7 @@ public:
     size_t GetIndex() const;
 
 private:
+    bool IsValid() const;
     std::string GetNameImpl() const;
     Iterator(ContainerType&& container, int type, int pos) noexcept;
 

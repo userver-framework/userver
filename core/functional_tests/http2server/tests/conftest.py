@@ -93,6 +93,25 @@ class Http2Client:
             timeout,
         )
 
+    async def head(
+        self,
+        path,
+        params={},
+        headers={},
+        data=None,
+        json={},
+        timeout=DEFAULT_TIMEOUT,
+    ) -> httpx.Response:
+        return await self._request(
+            'HEAD',
+            path,
+            params,
+            headers,
+            data,
+            json,
+            timeout,
+        )
+
     async def _request(
         self,
         method,

@@ -202,7 +202,7 @@ INSTANTIATE_TEST_SUITE_P(
         ///{ Test read_only request first try, first attempt, NearestPingServer,
         ///  do not allow reads from master.
         ///  We always want one of fastest server. the less index the faster.
-        ///  But we can cylcle through first best_dc_count servers and default
+        ///  But we can cycle through first best_dc_count servers and default
         ///  value is 0.
         ///  So expected results only 0, 1
         std::make_tuple(
@@ -246,7 +246,7 @@ INSTANTIATE_TEST_SUITE_P(
         ///{ Test read_only request first try, first attempt, NearestPingServer,
         ///  allow reads from master.
         ///  We always want one of fastest server. the less index the faster.
-        ///  But we can cylcle through first best_dc_count servers now it is 1.
+        ///  But we can cycle through first best_dc_count servers now it is 1.
         ///  So expected results only 0, only the best each time
         std::make_tuple(
             MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 1),
@@ -289,7 +289,7 @@ INSTANTIATE_TEST_SUITE_P(
         ///{ Test read_only request first try, first attempt, NearestPingServer,
         ///  allow reads from master.
         ///  We always want one of fastest server. the less index the faster.
-        ///  But we can cylcle through first best_dc_count servers now it is 2.
+        ///  But we can cycle through first best_dc_count servers now it is 2.
         ///  So expected results only 0 and 1, only one of the best each time
         ///  (one of this numbers can be master)
         std::make_tuple(
@@ -333,7 +333,7 @@ INSTANTIATE_TEST_SUITE_P(
         ///{ Test read_only request first try, first attempt, NearestPingServer,
         ///  allow reads from master.
         ///  We always want one of fastest server. the less index the faster.
-        ///  But we can cylcle through first best_dc_count servers now it is 3.
+        ///  But we can cycle through first best_dc_count servers now it is 3.
         ///  So expected results only 0, 1 and 2 (one of this numbers is master)
         std::make_tuple(
             MakeCC(kAllowReadFromMaster, storages::redis::CommandControl::Strategy::kNearestServerPing, 3),

@@ -258,6 +258,7 @@ class CompilerBase:
         return self.renderer_for_variable(
             name,
             False,
+            False,
             namespace='taxi_config',
         ).extract_external_includes(types, '')
 
@@ -279,6 +280,7 @@ class CompilerBase:
         self,
         name: str,
         parse_extra_formats: bool,
+        generate_stream_writer: bool,
         namespace: str,
     ) -> renderer.OneToOneFileRenderer:
         return renderer.OneToOneFileRenderer(
@@ -293,6 +295,8 @@ class CompilerBase:
             clang_format_bin=get_clang_format_bin(),
             parse_extra_formats=parse_extra_formats,
             generate_serializer=parse_extra_formats,
+            generate_sax_parser=False,
+            generate_stream_writer=False,
         )
 
     def variable_type(self, name: str) -> str:
@@ -307,11 +311,12 @@ class CompilerBase:
         name: str,
         output_dir: str,
         parse_extra_formats: bool,
+        generate_stream_writer: bool = False,
         namespace: str = 'taxi_config',
         generate_taxi_aliases: bool = True,
     ) -> None:
         types = self._variables_types[name]
-        outputs = self.renderer_for_variable(name, parse_extra_formats, namespace).render(
+        outputs = self.renderer_for_variable(name, parse_extra_formats, generate_stream_writer, namespace).render(
             types,
             local_pair_header=False,
             # pair_header=f'taxi_config/variables/{name}.types.hpp',

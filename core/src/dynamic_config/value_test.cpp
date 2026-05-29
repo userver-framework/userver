@@ -1,7 +1,8 @@
 #include <userver/dynamic_config/value.hpp>
 
+#include <ranges>
+
 #include <gtest/gtest.h>
-#include <boost/range/adaptor/map.hpp>
 
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>

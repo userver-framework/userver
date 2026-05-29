@@ -1,5 +1,9 @@
 #pragma once
 
+/// @file userver/utest/literals.hpp
+/// @brief Brings format literals into scope for unit tests.
+/// @ingroup userver_universal
+
 USERVER_NAMESPACE_BEGIN
 
 namespace formats::literals {}

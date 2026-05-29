@@ -1,0 +1,29 @@
+# yaml
+components_manager:
+    task_processors:
+        main-task-processor:
+            worker_threads: 1
+
+        fs-task-processor:
+            worker_threads: 1
+
+    components:
+        server:
+            listener:
+                port: 8080
+
+        logging:
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        testsuite-support:
+        tests-control:
+            load-enabled: $testsuite-enabled
+            path: /tests/{action}
+            method: POST
+
+        s3-sample-component:
+            url: s3-some-site.awsornot.com

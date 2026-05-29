@@ -4,10 +4,12 @@
 /// @brief @copybrief ugrpc::tests::StandaloneClientFactory
 
 #include <string>
+#include <vector>
 
 #include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/testsuite/grpc_control.hpp>
+#include <userver/utils/resource_scopes.hpp>
 #include <userver/utils/statistics/metrics_storage.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
@@ -47,13 +49,12 @@ private:
     utils::statistics::Storage statistics_storage_;
     utils::statistics::MetricsStorage metrics_storage_;
     std::vector<utils::statistics::Entry> metrics_storage_registration_;
-    ugrpc::impl::StatisticsStorage
-        client_statistics_storage_{statistics_storage_, ugrpc::impl::StatisticsDomain::kClient};
+    utils::WithResourceScopes<ugrpc::impl::StatisticsStorage>
+        client_statistics_storage_{std::in_place, statistics_storage_, ugrpc::impl::StatisticsDomain::kClient};
     dynamic_config::StorageMock config_storage_{dynamic_config::MakeDefaultStorage({})};
     client::impl::CompletionQueuePool completion_queues_{1};
     testsuite::GrpcControl testsuite_control_{{}, false};
     SimpleClientMiddlewarePipeline simple_client_middleware_pipeline_;
-    // must be the last filed.
     client::ClientFactory client_factory_;
 };
 

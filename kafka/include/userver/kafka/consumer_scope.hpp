@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/kafka/consumer_scope.hpp
+/// @brief @copybrief kafka::ConsumerScope
+
 #include <functional>
 
 #include <userver/kafka/message.hpp>
@@ -16,8 +19,6 @@ namespace impl {
 class Consumer;
 
 }  // namespace impl
-
-// clang-format off
 
 /// @ingroup userver_clients
 ///
@@ -64,9 +65,6 @@ class Consumer;
 /// @code
 /// // Subscription must be the last field! Add new fields above this comment.
 /// @endcode
-
-// clang-format on
-
 class ConsumerScope final {
 public:
     /// @brief Callback that is invoked on each polled message batch.

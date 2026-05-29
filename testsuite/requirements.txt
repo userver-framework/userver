@@ -9,7 +9,7 @@
 userver_requires_at_least_python_3_10 >= 9999; python_version < '3.10'
 
 requests >= 2.28.0
-websockets >= 11.0.3, < 13.0.0
+websockets >= 16.0, < 17.0
 # pytest 8.4 contains fix required for uservice_oneshot:
 # https://github.com/pytest-dev/pytest/issues/13248
 pytest >= 8.4

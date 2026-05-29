@@ -70,5 +70,5 @@ storages::mysql::StatementResultSet
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/pg_user_types.md | @ref scripts/docs/en/userver/mysql/supported_types.md ⇨
+⇦ @ref scripts/docs/en/userver/pg/user_types.md | @ref scripts/docs/en/userver/mysql/supported_types.md ⇨
 @htmlonly </div> @endhtmlonly

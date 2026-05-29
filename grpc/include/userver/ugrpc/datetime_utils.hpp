@@ -29,7 +29,7 @@ namespace ugrpc {
 bool IsValid(const google::protobuf::Timestamp& grpc_ts);
 
 /// @brief Exception thrown when timestamp conversion functions receive/produce invalid @c google::protobuf::Timestamp
-/// accrording to @c IsValid or otherwise lead to undefined behavior due to integer overflow.
+/// according to @c IsValid or otherwise lead to undefined behavior due to integer overflow.
 class TimestampConversionError : public std::overflow_error {
     using std::overflow_error::overflow_error;
 };
@@ -86,7 +86,7 @@ google::protobuf::Timestamp NowTimestamp();
 bool IsValid(const google::type::Date& grpc_date);
 
 /// @brief Exception thrown when date conversion functions receive/produce invalid @c google::type::Date
-/// accrording to @c IsValid or otherwise lead to undefined behavior due to integer overflow.
+/// according to @c IsValid or otherwise lead to undefined behavior due to integer overflow.
 class DateConversionError : public std::overflow_error {
     using std::overflow_error::overflow_error;
 };
@@ -142,7 +142,7 @@ google::type::Date NowDate();
 bool IsValid(const google::protobuf::Duration& grpc_duration);
 
 /// @brief Exception thrown when duration conversion functions receive/produce invalid @c google::protobuf::Duration
-/// accrording to @c IsValid or otherwise lead to undefined behavior due to integer overflow.
+/// according to @c IsValid or otherwise lead to undefined behavior due to integer overflow.
 class DurationConversionError : public std::overflow_error {
     using std::overflow_error::overflow_error;
 };

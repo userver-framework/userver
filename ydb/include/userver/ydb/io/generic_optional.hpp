@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/ydb/io/generic_optional.hpp
+/// @brief YDB std::optional value traits implementation
+
 #include <ydb-cpp-sdk/client/value/value.h>
 
 #include <optional>

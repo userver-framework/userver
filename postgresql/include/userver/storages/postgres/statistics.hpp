@@ -86,6 +86,8 @@ struct ConnectionStatistics {
     Counter error_total = 0;
     /// Connection timeouts (timeouts while connecting)
     Counter error_timeout = 0;
+    /// Number of rejected connection attempts due to rate limiting
+    Counter rate_limit_throttled = 0;
     /// Number of maximum allowed waiting requests
     Counter max_queue_size = 0;
 
@@ -168,6 +170,7 @@ struct InstanceStatisticsNonatomic : InstanceStatisticsNonatomicBase {
         connection.waiting = stats.connection.waiting;
         connection.error_total = stats.connection.error_total;
         connection.error_timeout = stats.connection.error_timeout;
+        connection.rate_limit_throttled = stats.connection.rate_limit_throttled;
         connection.prepared_statements = stats.connection.prepared_statements.GetStatsForPeriod();
         connection.max_queue_size = stats.connection.max_queue_size;
 

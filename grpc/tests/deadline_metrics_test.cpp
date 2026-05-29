@@ -78,6 +78,8 @@ public:
             return true;
         } catch (const ugrpc::client::DeadlineExceededError& /*exception*/) {
             return false;
+        } catch (const ugrpc::client::RpcCancelledError& /*exception*/) {
+            return false;
         }
     }
 

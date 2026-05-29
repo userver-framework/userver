@@ -117,7 +117,7 @@ UTEST_F_MT(SQLiteMetricsTest, PoolWriteInProcess, 10) {
     bool blocked_writer_inserted = false;
     bool stat_read = false;
 
-    auto blocked_writer = engine::AsyncNoSpan([&]() {
+    auto blocked_writer = engine::AsyncNoTracing([&]() {
         auto trx = client->Begin(OperationType::kReadWrite, {});
         UEXPECT_NO_THROW(trx.Execute("INSERT INTO test VALUES (NULL, 'data')"));
         std::unique_lock<engine::Mutex> lock(mu);
@@ -132,7 +132,7 @@ UTEST_F_MT(SQLiteMetricsTest, PoolWriteInProcess, 10) {
     lock.unlock();
 
     for (size_t i = 0; i < kWriteTaskCount; ++i) {
-        tasks.push_back(engine::AsyncNoSpan([&client]() {
+        tasks.push_back(engine::AsyncNoTracing([&client]() {
             UEXPECT_NO_THROW(
                 client->Execute(storages::sqlite::OperationType::kReadWrite, "INSERT INTO test VALUES (NULL, 'data')")
             );
@@ -189,7 +189,7 @@ UTEST_F_MT(SQLiteMetricsTest, PoolReadsInProcess, 10) {
     std::atomic_size_t read_trx_start = 0;
 
     for (size_t i = 0; i < kReadTaskCount; ++i) {
-        tasks.push_back(engine::AsyncNoSpan([&]() {
+        tasks.push_back(engine::AsyncNoTracing([&]() {
             auto trx = client->Begin(OperationType::kReadOnly, {});
             UEXPECT_NO_THROW(trx.Execute("SELECT * FROM test").AsVector<RowTuple>());
             std::unique_lock<engine::Mutex> lock(mu);

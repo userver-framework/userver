@@ -82,8 +82,7 @@ void ClusterTest::CreateSentinelClient(storages::redis::impl::KeyShardFactory ke
         settings,
         "test_cluster_shard_group_name",
         dynamic_config::GetDefaultSource(),
-        "test_cluster_client_name",
-        std::move(key_shard)
+        storages::redis::impl::SentinelStaticConfig{"test_cluster_client_name", std::move(key_shard), {}, {}}
     );
     sentinel_client_->WaitConnectedDebug(slaves_.empty());
 
@@ -138,8 +137,7 @@ void SentinelTest::CreateSentinelClient(storages::redis::impl::KeyShardFactory k
         settings,
         "test_shard_group_name",
         dynamic_config::GetDefaultSource(),
-        "test_client_name",
-        std::move(key_shard)
+        storages::redis::impl::SentinelStaticConfig{"test_client_name", std::move(key_shard), {}, {}}
     );
     sentinel_client_->WaitConnectedDebug(slaves_.empty());
 
@@ -206,8 +204,7 @@ void SentinelShardTest::CreateSentinelClient(storages::redis::impl::KeyShardFact
         settings,
         "test_shard_group_name",
         dynamic_config::GetDefaultSource(),
-        "test_client_name",
-        std::move(key_shard)
+        storages::redis::impl::SentinelStaticConfig{"test_client_name", std::move(key_shard), {}, {}}
     );
     sentinel_client_->WaitConnectedDebug(slaves_.empty());
 

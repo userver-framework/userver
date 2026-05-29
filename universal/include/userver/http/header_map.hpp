@@ -1,5 +1,9 @@
 #pragma once
 
+/// @file userver/http/header_map.hpp
+/// @brief @copybrief http::headers::HeaderMap
+/// @ingroup userver_universal
+
 #include <initializer_list>
 #include <iterator>
 #include <string>
@@ -16,6 +20,7 @@ namespace http::headers {
 
 class TestsHelper;
 
+/// @brief Internal helpers for `HeaderMap` storage and iteration.
 namespace header_map {
 class Map;
 }
@@ -50,7 +55,15 @@ public:
 
     /// The exception being thrown in case of capacity overflow
     class TooManyHeadersException final : public std::runtime_error {
+    public:
         using std::runtime_error::runtime_error;
+
+        TooManyHeadersException(const TooManyHeadersException&) = default;
+        TooManyHeadersException(TooManyHeadersException&&) = default;
+        TooManyHeadersException& operator=(const TooManyHeadersException&) = default;
+        TooManyHeadersException& operator=(TooManyHeadersException&&) = default;
+
+        ~TooManyHeadersException() override;
     };
 
     /// Default constructor.
@@ -371,10 +384,8 @@ public:
     Iterator operator++(int);
     Iterator& operator++();
 
-    reference operator*();
-    const_reference operator*() const;
-    pointer operator->();
-    const_pointer operator->() const;
+    reference operator*() const;
+    pointer operator->() const;
 
     bool operator==(const Iterator& other) const;
     bool operator!=(const Iterator& other) const;
@@ -414,9 +425,7 @@ public:
     ConstIterator operator++(int);
     ConstIterator& operator++();
 
-    reference operator*();
     const_reference operator*() const;
-    pointer operator->();
     const_pointer operator->() const;
 
     bool operator==(const ConstIterator& other) const;

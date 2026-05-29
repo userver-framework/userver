@@ -2,9 +2,15 @@
 
 #include <userver/utils/string_to_duration.hpp>
 
+#include <fmt/format.h>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace chaotic::convert {
+
+std::string Convert(const std::chrono::milliseconds& value, chaotic::convert::To<std::string>) {
+    return fmt::format("{}ms", value.count());
+}
 
 std::chrono::milliseconds Convert(const std::string& str, chaotic::convert::To<std::chrono::milliseconds>) {
     return std::chrono::milliseconds{utils::StringToDuration(str)};

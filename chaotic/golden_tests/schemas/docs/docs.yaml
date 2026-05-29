@@ -1,0 +1,141 @@
+components:
+    schemas:
+        # /// [chaotic docs - type boolean]
+        # yaml
+        ShouldGreet:
+            type: boolean
+
+        # => bool
+        # /// [chaotic docs - type boolean]
+
+        # /// [chaotic docs - type integer]
+        # yaml
+        PetCount:
+            type: integer
+            format: int64
+            minimum: 0
+
+        # => std::int64_t + validator
+        # /// [chaotic docs - type integer]
+
+        # /// [chaotic docs - type integer cpp type]
+        # yaml
+        PetCountSize:
+            type: integer
+            format: int64
+            minimum: 0
+            x-usrv-cpp-type: std::size_t
+
+        # => std::size_t + validator
+        # /// [chaotic docs - type integer cpp type]
+
+        # /// [chaotic docs - type number]
+        # yaml
+        Latitude:
+            type: number
+            minimum: -90.0
+            maximum: 90.0
+
+        # => double + validator
+        # /// [chaotic docs - type number]
+
+        # /// [chaotic docs - type string uuid]
+        # yaml
+        EntityUuid:
+            type: string
+            format: uuid
+
+        # => boost::uuids::uuid
+        # /// [chaotic docs - type string uuid]
+
+        # /// [chaotic docs - enum]
+        # yaml
+        Status:
+            type: string
+            enum:
+              - pending
+              - running
+              - done
+        # /// [chaotic docs - enum]
+
+        # /// [chaotic docs - type array]
+        # yaml
+        PetNames:
+            type: array
+            maxItems: 10
+            items:
+                type: string
+                pattern: '\w+'
+                maxLength: 20
+
+        # => std::vector<std::string> + validator
+        # /// [chaotic docs - type array]
+
+        # /// [chaotic docs - type object]
+        # yaml
+        Object:
+            type: object
+            additionalProperties: false
+            properties:
+                foo:
+                    type: integer
+                bar:
+                    type: string
+            required:
+              - foo
+        # /// [chaotic docs - type object]
+
+        # /// [chaotic docs - object cpp name]
+        # yaml
+        ObjectCpp:
+            type: object
+            additionalProperties: false
+            properties:
+                some-hyphenated-key:
+                    type: string
+                    x-usrv-cpp-name: some_hyphenated_key
+        # /// [chaotic docs - object cpp name]
+
+        # /// [chaotic docs - oneOf discriminator]
+        # yaml
+        Shape:
+            oneOf:
+              - $ref: '#/components/schemas/Circle'
+              - $ref: '#/components/schemas/Rectangle'
+            discriminator:
+                propertyName: kind
+                mapping:
+                    circle: '#/components/schemas/Circle'
+                    rectangle: '#/components/schemas/Rectangle'
+
+        Circle:
+            type: object
+            additionalProperties: true
+            properties:
+                kind: {type: string}
+                radius: {type: number}
+
+        Rectangle:
+            type: object
+            additionalProperties: true
+            properties:
+                kind: {type: string}
+                width: {type: number}
+                height: {type: number}
+        # /// [chaotic docs - oneOf discriminator]
+
+        # /// [chaotic docs - ref TreeNode]
+        # yaml
+        TreeNode:
+            type: object
+            additionalProperties: false
+            properties:
+                data:
+                    type: string
+                left:
+                    $ref: '#/components/schemas/TreeNode'
+                    x-usrv-cpp-indirect: true
+                right:
+                    $ref: '#/components/schemas/TreeNode'
+                    x-usrv-cpp-indirect: true
+                    # /// [chaotic docs - ref TreeNode]

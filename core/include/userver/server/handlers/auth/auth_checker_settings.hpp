@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/handlers/auth/auth_checker_settings.hpp
+/// @brief @copybrief server::handlers::auth::AuthCheckerSettings
+
 #include <optional>
 
 #include <userver/formats/json/value.hpp>
@@ -10,6 +13,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth {
 
+/// @brief Authentication checker settings parsed from JSON
 class AuthCheckerSettings final {
 public:
     explicit AuthCheckerSettings(const formats::json::Value& doc);

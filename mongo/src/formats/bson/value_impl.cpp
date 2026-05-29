@@ -817,8 +817,6 @@ bool ValueImpl::operator==(ValueImpl& rhs) {
     return std::visit(Visitor(rhs), *parsed_ptr);
 }
 
-bool ValueImpl::operator!=(ValueImpl& rhs) { return !(*this == rhs); }
-
 void ValueImpl::CheckNotMissing() const {
     if (Type() == BSON_TYPE_EOD) {
         throw MemberMissingException(path_.ToStringView());

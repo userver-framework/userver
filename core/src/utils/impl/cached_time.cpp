@@ -23,7 +23,10 @@ void UpdateGlobalTime() {
 }
 
 SystemAndSteadyTimePoints GetGlobalTime() {
-    return {system_clock_now.load(std::memory_order_relaxed), steady_clock_now.load(std::memory_order_relaxed)};
+    return {
+        .system = system_clock_now.load(std::memory_order_relaxed),
+        .steady = steady_clock_now.load(std::memory_order_relaxed),
+    };
 }
 
 }  // namespace utils::impl

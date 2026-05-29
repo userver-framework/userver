@@ -55,6 +55,20 @@ Testsuite module is provided as part of testsuite plugins and can be found at:
 
 @ref testsuite/pytest_plugins/pytest_userver/plugins/s3api.py
 
+To mock the S3 in testsuite adjust path to the S3 mocked URL in static service config from config hook:
+
+@include samples/s3api/testsuite/conftest.py
+
+Changes from the service would be visible in @ref pytest_userver.s3api.s3_mock_storage "s3_mock_storage fixture":
+
+@snippet samples/s3api/testsuite/test_s3.py  s3 mock
+
+To fill the mocked S3 with data either a `@pytest.mark.s3` can be used:
+
+@snippet samples/s3api/testsuite/test_s3.py  s3 mark
+
+or it can be done directly via the @ref pytest_userver.s3api.s3_mock_storage "s3_mock_storage fixture".
+
 
 ## Full Sources
 
@@ -63,7 +77,10 @@ See the full example at:
 * @ref samples/s3api/src/s3api_client.hpp
 * @ref samples/s3api/src/s3api_client.cpp
 * @ref samples/s3api/unittests/client_test.cpp
+* @ref samples/s3api/testsuite/conftest.py
+* @ref samples/s3api/testsuite/test_s3.py
 * @ref samples/s3api/main.cpp
+* @ref samples/s3api/static_config.yaml
 * @ref samples/s3api/CMakeLists.txt
 
 
@@ -76,7 +93,10 @@ See the full example at:
 @example samples/s3api/src/s3api_client.hpp
 @example samples/s3api/src/s3api_client.cpp
 @example samples/s3api/unittests/client_test.cpp
+@example samples/s3api/testsuite/conftest.py
+@example samples/s3api/testsuite/test_s3.py
 @example samples/s3api/main.cpp
+@example samples/s3api/static_config.yaml
 @example samples/s3api/CMakeLists.txt
 
 @example testsuite/pytest_plugins/pytest_userver/plugins/s3api.py

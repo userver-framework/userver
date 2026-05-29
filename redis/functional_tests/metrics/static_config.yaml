@@ -13,6 +13,9 @@ components_manager:
             subscribe_groups:
               - config_name: metrics_test
                 db: metrics_test
+              - config_name: metrics_test
+                db: metrics_test2
+                per_channel_statistics: false
             thread_pools:
                 redis_thread_pool_size: 8
                 sentinel_thread_pool_size: 1

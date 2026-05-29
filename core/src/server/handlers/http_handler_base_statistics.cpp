@@ -14,7 +14,7 @@ struct HttpHandlerStatisticsHelper {
     const HttpHandlerStatisticsSnapshot& snapshot;
 };
 
-void DumpMetric(utils::statistics::Writer& writer, HttpHandlerStatisticsHelper helper) {
+[[maybe_unused]] void DumpMetric(utils::statistics::Writer& writer, HttpHandlerStatisticsHelper helper) {
     const auto& stats = helper.snapshot;
     writer["rps"] = stats.finished;
     writer["reply-codes"] = stats.reply_codes;
@@ -84,8 +84,15 @@ std::size_t HttpMethodToIndex(http::HttpMethod method) noexcept {
     return static_cast<std::size_t>(method);
 }
 
+HttpHandlerStatistics& HttpHandlerStatisticsAggregate::GetOverallStatistics() { return overall_handler_statistics_; }
+
+utils::statistics::impl::MonotonicConcurrentStatisticsMap<HttpHandlerStatistics>&
+HttpHandlerStatisticsAggregate::GetShardedStatisticsStorage() {
+    return sharded_handler_statistics_;
+}
+
 HttpHandlerStatisticsScope::HttpHandlerStatisticsScope(
-    HttpHandlerStatistics& stats,
+    HttpHandlerStatisticsAggregate& stats,
     http::HttpMethod method,
     server::http::HttpResponse& response
 )
@@ -94,7 +101,20 @@ HttpHandlerStatisticsScope::HttpHandlerStatisticsScope(
       start_time_(std::chrono::steady_clock::now()),
       response_(response)
 {
-    stats_.ForMethod(method).IncrementInFlight();
+    stats_.GetOverallStatistics().ForMethod(method).IncrementInFlight();
+}
+
+void HttpHandlerStatisticsScope::SetShardedStats(
+    std::string_view sensor_path_part,
+    utils::statistics::LabelsSpan labels
+) {
+    UINVARIANT(
+        std::ranges::is_sorted(labels, [](const auto& a, const auto& b) { return a.Name() < b.Name(); }),
+        "Labels for sharded metrics should be lexicographically sorted"
+    );
+    auto [item, inserted] = stats_.GetShardedStatisticsStorage().TryEmplace({sensor_path_part, labels});
+    sharded_stats_ = &item;
+    sharded_stats_->ForMethod(method_).IncrementInFlight();
 }
 
 HttpHandlerStatisticsScope::~HttpHandlerStatisticsScope() {
@@ -106,8 +126,14 @@ HttpHandlerStatisticsScope::~HttpHandlerStatisticsScope() {
     stats.timing = std::chrono::duration_cast<std::chrono::milliseconds>(finish_time - start_time_);
     stats.deadline = data ? data->deadline : engine::Deadline{};
     stats.cancelled_by_deadline = cancelled_by_deadline_;
-    stats_.ForMethod(method_).Account(stats);
-    stats_.ForMethod(method_).DecrementInFlight();
+    auto& overall_for_method = stats_.GetOverallStatistics().ForMethod(method_);
+    overall_for_method.Account(stats);
+    overall_for_method.DecrementInFlight();
+    if (sharded_stats_) {
+        auto& sharded_for_method = sharded_stats_->ForMethod(method_);
+        sharded_for_method.Account(stats);
+        sharded_for_method.DecrementInFlight();
+    }
 }
 
 void HttpHandlerStatisticsScope::OnCancelledByDeadline() noexcept { cancelled_by_deadline_ = true; }

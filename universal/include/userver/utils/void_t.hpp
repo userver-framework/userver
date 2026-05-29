@@ -9,6 +9,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
+#ifndef ARCADIA_ROOT
+
 #if (__cpp_lib_void_t >= 201411 && !defined(__clang__)) || defined(DOXYGEN)
 /// @brief std::void_t implementation with workarounds for compiler bugs
 ///
@@ -23,6 +25,8 @@ struct make_void_t {  // NOLINT(readability-identifier-naming)
 };
 template <typename... T>
 using void_t = typename make_void_t<T...>::type;
+
+#endif
 
 #endif
 

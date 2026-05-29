@@ -29,11 +29,11 @@ public:
     using ProtobufMessage = ::google::protobuf::Duration;
 
     /// @brief Minimum allowed number of seconds
-    /// @note Appoximately `-10'000` years.
+    /// @note Approximately `-10'000` years.
     static constexpr std::chrono::seconds kMinSeconds{-315'576'000'000LL};
 
     /// @brief Maximum allowed number of seconds
-    /// @note Appoximately `10'000` years.
+    /// @note Approximately `10'000` years.
     static constexpr std::chrono::seconds kMaxSeconds{315'576'000'000LL};
 
     /// @brief Creates zero duration.

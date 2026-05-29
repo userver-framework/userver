@@ -5,13 +5,11 @@
 #ifdef USERVER_IMPL_HAS_RSEQ
 
 #include <cstdint>
-
-#include <boost/range/adaptor/strided.hpp>
+#include <ranges>
 
 #include <userver/concurrent/impl/interference_shield.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/not_null.hpp>
-#include <userver/utils/span.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -53,14 +51,15 @@ public:
     const std::intptr_t& operator[](std::size_t index) const noexcept { return array_.GetBase()[kStride * index]; }
 
     auto Elements() {
-        return utils::span<std::intptr_t>(array_.GetBase(), array_.GetBase() + GetRseqArraySizeUnsafe() * kStride) |
-               boost::adaptors::strided(kStride);
+        return std::views::iota(std::size_t{0}, GetRseqArraySizeUnsafe()) |
+               std::views::transform([this](std::size_t i) -> std::intptr_t& { return array_.GetBase()[i * kStride]; });
     }
 
     auto Elements() const {
-        return utils::span<
-                   const std::intptr_t>(array_.GetBase(), array_.GetBase() + GetRseqArraySizeUnsafe() * kStride) |
-               boost::adaptors::strided(kStride);
+        return std::views::iota(std::size_t{0}, GetRseqArraySizeUnsafe()) |
+               std::views::transform([this](std::size_t i) -> const std::intptr_t& {
+                   return array_.GetBase()[i * kStride];
+               });
     }
 
 private:

@@ -5,7 +5,11 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::io {
 
 // Forcing vtable instantiation only in this translation unit
+ReadAwaiter::~ReadAwaiter() = default;
+
 ReadableBase::~ReadableBase() = default;
+
+WriteAwaiter::~WriteAwaiter() = default;
 
 WritableBase::~WritableBase() = default;
 

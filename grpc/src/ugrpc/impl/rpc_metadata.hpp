@@ -6,6 +6,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
 
+extern const grpc::string kXPrevAttempts;
+
 extern const grpc::string kXYaTraceId;
 extern const grpc::string kXYaSpanId;
 extern const grpc::string kXYaRequestId;
@@ -28,6 +30,8 @@ extern const grpc::string kXTestsuiteClientName;
 
 extern const grpc::string kTestsuiteNetworkCode;
 extern const grpc::string kTestsuiteTimeoutCode;
+
+extern const grpc::string kXRequestDeadline;
 
 }  // namespace ugrpc::impl
 

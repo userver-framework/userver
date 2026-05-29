@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/auth/user_scopes.hpp
+/// @brief User authorization scope types
+
 #include <functional>
 #include <string>
 #include <string_view>

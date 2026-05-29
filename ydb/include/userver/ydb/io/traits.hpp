@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/ydb/io/traits.hpp
+/// @brief YDB value serialization traits and helpers
+
 #include <ydb-cpp-sdk/client/params/fwd.h>
 #include <ydb-cpp-sdk/client/value/fwd.h>
 
@@ -15,7 +18,7 @@ struct ParseContext final {
     std::string_view column_name;
 };
 
-template <typename T, typename Enable = void>
+template <typename T>
 struct ValueTraits {
     /// Parses an element of type `T` from `parser`. `context` may be used
     /// for diagnostic messages.

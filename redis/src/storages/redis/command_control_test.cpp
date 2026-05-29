@@ -4,7 +4,6 @@
 
 USERVER_NAMESPACE_BEGIN
 
-#ifdef USERVER_IMPL_HAS_THREE_WAY_COMPARISON
 TEST(CommandControl, Comparison) {
     const storages::redis::CommandControl cc1{std::chrono::milliseconds(500), std::chrono::milliseconds(500), 1};
     const storages::redis::CommandControl cc2{std::chrono::milliseconds(500), std::chrono::milliseconds(500), 2};
@@ -17,6 +16,5 @@ TEST(CommandControl, Comparison) {
     EXPECT_EQ(cc2, cc2);
     EXPECT_EQ(cc3, cc3);
 }
-#endif
 
 USERVER_NAMESPACE_END

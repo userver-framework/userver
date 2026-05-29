@@ -56,15 +56,15 @@ struct IncorrectSignatureOfFindOperation {
 };
 
 TEST(CheckTraits, DeserializeObject) {
-    EXPECT_TRUE(mongo_cache::impl::kHasCorrectDeserializeObject<CorrectDeserializeObject>);
-    EXPECT_FALSE(mongo_cache::impl::kHasCorrectDeserializeObject<IncorrectReturnTypeOfDeserializeObject>);
-    EXPECT_FALSE(mongo_cache::impl::kHasCorrectDeserializeObject<IncorrectSignatureOfFindOperation>);
+    EXPECT_TRUE(mongo_cache::impl::HasCorrectDeserializeObject<CorrectDeserializeObject>);
+    EXPECT_FALSE(mongo_cache::impl::HasCorrectDeserializeObject<IncorrectReturnTypeOfDeserializeObject>);
+    EXPECT_FALSE(mongo_cache::impl::HasCorrectDeserializeObject<IncorrectSignatureOfFindOperation>);
 }
 
 TEST(CheckTraits, FindOperation) {
-    EXPECT_TRUE(mongo_cache::impl::kHasCorrectFindOperation<CorrectMongoCacheTraits>);
-    EXPECT_FALSE(mongo_cache::impl::kHasCorrectFindOperation<IncorrectReturnTypeOfFindOperation>);
-    EXPECT_FALSE(mongo_cache::impl::kHasCorrectFindOperation<IncorrectSignatureOfFindOperation>);
+    EXPECT_TRUE(mongo_cache::impl::HasCorrectFindOperation<CorrectMongoCacheTraits>);
+    EXPECT_FALSE(mongo_cache::impl::HasCorrectFindOperation<IncorrectReturnTypeOfFindOperation>);
+    EXPECT_FALSE(mongo_cache::impl::HasCorrectFindOperation<IncorrectSignatureOfFindOperation>);
 }
 
 TEST(CheckTraits, CorrectTraits) { mongo_cache::impl::CheckTraits<CorrectMongoCacheTraits>{}; }

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/components/static_config_validator.hpp
+/// @brief Static component configuration validation helpers
+
 #include <userver/components/component_config.hpp>
 #include <userver/components/raw_component_base.hpp>
 #include <userver/yaml_config/impl/validate_static_config.hpp>

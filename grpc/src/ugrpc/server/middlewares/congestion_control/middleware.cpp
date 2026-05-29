@@ -1,6 +1,6 @@
 #include <ugrpc/server/middlewares/congestion_control/middleware.hpp>
 
-#include <ugrpc/impl/rpc_metadata.hpp>
+#include <userver/ugrpc/server/impl/ratelimit_metadata.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -31,12 +31,7 @@ Middleware::Middleware(const Settings& settings, std::shared_ptr<utils::TokenBuc
 
 void Middleware::OnCallStart(MiddlewareCallContext& context) const {
     if (!CheckRatelimit(*rate_limit_, context.GetCallName())) {
-        auto& server_context = context.GetServerContext();
-
-        server_context.AddInitialMetadata(ugrpc::impl::kXYaTaxiRatelimitedBy, ugrpc::impl::kHostname);
-        server_context
-            .AddInitialMetadata(ugrpc::impl::kXYaTaxiRatelimitReason, ugrpc::impl::kCongestionControlRatelimitReason);
-
+        impl::AddRatelimitMetadata(context.GetServerContext());
         context.SetError(grpc::Status{settings_.reject_status_code, "Congestion control: rate limit exceeded"});
         return;
     }

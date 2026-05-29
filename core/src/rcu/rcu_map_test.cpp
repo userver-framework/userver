@@ -213,7 +213,7 @@ UTEST_MT(RcuMap, ConcurrentTryEmplace, 16) {
         std::vector<engine::TaskWithResult<void>> tasks;
         tasks.reserve(kTaskCount);
         for (std::size_t i = 0; i < kTaskCount; ++i) {
-            tasks.push_back(engine::AsyncNoSpan([&map, &insertions, i] {
+            tasks.push_back(engine::AsyncNoTracing([&map, &insertions, i] {
                 auto key = std::string(20 + i / 2, 'x');
                 auto res = map.TryEmplace(key, i);
                 if (res.inserted) {
@@ -315,7 +315,7 @@ UTEST(RcuMap, StartWriteNoTearing) {
     using Map = rcu::RcuMap<std::string, int>;
     Map map;
 
-    auto checker = engine::AsyncNoSpan([&] {
+    auto checker = engine::AsyncNoTracing([&] {
         Map::Snapshot snapshot;
         while (true) {
             snapshot = map.GetSnapshot();

@@ -4,11 +4,11 @@
 /// @brief @copybrief utils::datetime::Date
 
 #include <chrono>
+#include <compare>
 #include <iosfwd>
 #include <stdexcept>
 #include <string>
 
-#include <userver/compiler/impl/three_way_comparison.hpp>
 #include <userver/formats/common/meta.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -50,16 +50,7 @@ public:
     /// @copydoc GetSysDays()
     constexpr explicit operator SysDays() const { return sys_days_; }
 
-#ifdef USERVER_IMPL_HAS_THREE_WAY_COMPARISON
     constexpr auto operator<=>(const Date&) const = default;
-#else
-    constexpr bool operator==(Date other) const { return sys_days_ == other.sys_days_; }
-    constexpr bool operator!=(Date other) const { return !(*this == other); }
-    constexpr bool operator<(Date other) const { return sys_days_ < other.sys_days_; }
-    constexpr bool operator<=(Date other) const { return sys_days_ <= other.sys_days_; }
-    constexpr bool operator>(Date other) const { return sys_days_ > other.sys_days_; }
-    constexpr bool operator>=(Date other) const { return sys_days_ >= other.sys_days_; }
-#endif
 
 private:
     SysDays sys_days_{};
@@ -71,8 +62,8 @@ Date DateFromRFC3339String(const std::string& date_string);
 /// Outputs date as a YYYY-MM-DD string
 std::string ToString(Date date);
 
-template <typename Value>
-std::enable_if_t<formats::common::kIsFormatValue<Value>, Date> Parse(const Value& value, formats::parse::To<Date>) {
+template <formats::common::IsFormatValue Value>
+Date Parse(const Value& value, formats::parse::To<Date>) {
     std::string str;
     try {
         str = value.template As<std::string>();
@@ -87,8 +78,8 @@ std::enable_if_t<formats::common::kIsFormatValue<Value>, Date> Parse(const Value
     }
 }
 
-template <typename Value>
-std::enable_if_t<formats::common::kIsFormatValue<Value>, Value> Serialize(Date date, formats::serialize::To<Value>) {
+template <formats::common::IsFormatValue Value>
+Value Serialize(Date date, formats::serialize::To<Value>) {
     return typename Value::Builder(ToString(date)).ExtractValue();
 }
 

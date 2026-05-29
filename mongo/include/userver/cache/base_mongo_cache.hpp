@@ -168,8 +168,8 @@ MongoCache<MongoCacheTraits>::MongoCache(const ComponentConfig& config, const Co
 
     if (CachingComponentBase<typename MongoCacheTraits::DataType>::GetAllowedUpdateTypes() ==
             cache::AllowedUpdateTypes::kFullAndIncremental &&
-        !mongo_cache::impl::kHasUpdateFieldName<MongoCacheTraits> &&
-        !mongo_cache::impl::kHasFindOperation<MongoCacheTraits>)
+        !mongo_cache::impl::HasUpdateFieldName<MongoCacheTraits> &&
+        !mongo_cache::impl::HasFindOperation<MongoCacheTraits>)
     {
         throw std::logic_error(fmt::format(
             "Incremental update support is requested in config but no update field "
@@ -267,10 +267,10 @@ void MongoCache<MongoCacheTraits>::Update(
 template <class MongoCacheTraits>
 typename MongoCacheTraits::ObjectType MongoCache<MongoCacheTraits>::DeserializeObject(const formats::bson::Document& doc
 ) const {
-    if constexpr (mongo_cache::impl::kHasDeserializeObject<MongoCacheTraits>) {
+    if constexpr (mongo_cache::impl::HasDeserializeObject<MongoCacheTraits>) {
         return MongoCacheTraits::DeserializeObject(doc);
     }
-    if constexpr (mongo_cache::impl::kHasDefaultDeserializeObject<MongoCacheTraits>) {
+    if constexpr (mongo_cache::impl::HasDefaultDeserializeObject<MongoCacheTraits>) {
         return doc.As<typename MongoCacheTraits::ObjectType>();
     }
     UASSERT_MSG(false, "No deserialize operation defined but DeserializeObject invoked");
@@ -287,12 +287,12 @@ storages::mongo::operations::Find MongoCache<MongoCacheTraits>::GetFindOperation
     namespace sm = storages::mongo;
 
     auto find_op = [&]() -> sm::operations::Find {
-        if constexpr (mongo_cache::impl::kHasFindOperation<MongoCacheTraits>) {
+        if constexpr (mongo_cache::impl::HasFindOperation<MongoCacheTraits>) {
             return MongoCacheTraits::GetFindOperation(type, last_update, now, correction);
         }
-        if constexpr (mongo_cache::impl::kHasDefaultFindOperation<MongoCacheTraits>) {
+        if constexpr (mongo_cache::impl::HasDefaultFindOperation<MongoCacheTraits>) {
             bson::ValueBuilder query_builder(bson::ValueBuilder::Type::kObject);
-            if constexpr (mongo_cache::impl::kHasUpdateFieldName<MongoCacheTraits>) {
+            if constexpr (mongo_cache::impl::HasUpdateFieldName<MongoCacheTraits>) {
                 if (type == cache::UpdateType::kIncremental) {
                     query_builder
                         [MongoCacheTraits::kMongoUpdateFieldName] = bson::MakeDoc("$gt", last_update - correction);

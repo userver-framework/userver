@@ -31,10 +31,22 @@ void DumpMetric(utils::statistics::Writer& writer, const PubsubShardStatistics& 
 void DumpMetric(utils::statistics::Writer& writer, const PubsubClusterStatistics& stats) {
     if (stats.settings.per_shard_stats_enabled) {
         for (const auto& [name, shard_stats] : stats.by_shard) {
-            writer.ValueWithLabels(shard_stats, {"redis_shard", name});
+            if (stats.per_channel_stats_enabled) {
+                writer.ValueWithLabels(shard_stats, {"redis_shard", name});
+            } else {
+                writer.ValueWithLabels(
+                    shard_stats.SumByChannel(),
+                    {{"redis_pubsub_channel", "total"}, {"redis_shard", name}}
+                );
+            }
         }
     }
-    writer = stats.SumByShards();
+
+    if (stats.per_channel_stats_enabled) {
+        writer = stats.SumByShards();
+    } else {
+        writer.ValueWithLabels(stats.SumByShardsAndChannel(), {"redis_pubsub_channel", "total"});
+    }
 }
 
 }  // namespace storages::redis::impl

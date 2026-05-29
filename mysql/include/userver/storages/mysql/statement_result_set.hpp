@@ -43,127 +43,109 @@ public:
     StatementResultSet(const StatementResultSet& other) = delete;
     StatementResultSet(StatementResultSet&& other) noexcept;
 
-    // clang-format off
-  /// @brief Parse statement result set as std::vector<T>.
-  /// `T` is expected to be an aggregate of supported types.
-  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of
-  /// `T` requirements.
-  ///
-  /// UINVARIANTs on columns count mismatch or types mismatch.
-  ///
-  /// @snippet mysql/tests/statement_result_set.cpp uMySQL usage sample - StatementResultSet AsVector
-    // clang-format on
+    /// @brief Parse statement result set as std::vector<T>.
+    /// `T` is expected to be an aggregate of supported types.
+    /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of
+    /// `T` requirements.
+    ///
+    /// UINVARIANTs on columns count mismatch or types mismatch.
+    ///
+    /// @snippet mysql/tests/statement_result_set.cpp uMySQL usage sample - StatementResultSet AsVector
     template <typename T>
     std::vector<T> AsVector() &&;
 
-    // clang-format off
-  /// @brief Parse statement result set as std::vector<T>.
-  /// Result set is expected to have a single column, `T` is expected to be one
-  /// of supported types.
-  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for supported typed.
-  ///
-  /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
-  ///
-  /// @snippet mysql/tests/statement_result_set.cpp uMySQL usage sample - StatementResultSet AsVectorFieldTag
-    // clang-format on
+    /// @brief Parse statement result set as std::vector<T>.
+    /// Result set is expected to have a single column, `T` is expected to be one
+    /// of supported types.
+    /// See @ref scripts/docs/en/userver/mysql/supported_types.md for supported typed.
+    ///
+    /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
+    ///
+    /// @snippet mysql/tests/statement_result_set.cpp uMySQL usage sample - StatementResultSet AsVectorFieldTag
     template <typename T>
     std::vector<T> AsVector(FieldTag) &&;
 
-    // clang-format off
-  /// @brief Parse statement result set as Container<T>.
-  /// `T` is expected to be an aggregate of supported types, `Container` is
-  /// expected to meet std::Container requirements.
-  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of
-  /// `Container::value_type` requirements.
-  ///
-  /// UINVARIANTs on columns count mismatch or types mismatch.
-  ///
-  /// @snippet mysql/tests/statement_result_set.cpp uMySQL usage sample - StatementResultSet AsContainer
-    // clang-format on
+    /// @brief Parse statement result set as Container<T>.
+    /// `T` is expected to be an aggregate of supported types, `Container` is
+    /// expected to meet std::Container requirements.
+    /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of
+    /// `Container::value_type` requirements.
+    ///
+    /// UINVARIANTs on columns count mismatch or types mismatch.
+    ///
+    /// @snippet mysql/tests/statement_result_set.cpp uMySQL usage sample - StatementResultSet AsContainer
     template <typename Container>
     Container AsContainer() &&;
 
-    // clang-format off
-  /// @brief Parse statement result as Container<T>.
-  /// Result set is expected to have a single column, `T` is expected to be one
-  /// of supported types,
-  /// `Container` is expected to meed std::Container requirements.
-  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for supported types.
-  ///
-  /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
-  ///
-  /// @snippet mysql/tests/statement_result_set.cpp uMySQL usage sample - StatementResultSet AsContainerFieldTag
-    // clang-format on
+    /// @brief Parse statement result as Container<T>.
+    /// Result set is expected to have a single column, `T` is expected to be one
+    /// of supported types,
+    /// `Container` is expected to meed std::Container requirements.
+    /// See @ref scripts/docs/en/userver/mysql/supported_types.md for supported types.
+    ///
+    /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
+    ///
+    /// @snippet mysql/tests/statement_result_set.cpp uMySQL usage sample - StatementResultSet AsContainerFieldTag
     template <typename Container>
     Container AsContainer(FieldTag) &&;
 
-    // clang-format off
-  /// @brief Parse statement result as T.
-  /// Result set is expected to have a single row, `T` is expected to be an
-  /// aggregate of supported types.
-  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of
-  /// `T` requirements.
-  ///
-  /// UINVARIANTs on columns count mismatch or types mismatch.
-  /// throws if result set is empty or contains more than one row.
-  ///
-  /// @snippet mysql/tests/statement_result_set.cpp uMySQL usage sample - StatementResultSet AsSingleRow
-    // clang-format on
+    /// @brief Parse statement result as T.
+    /// Result set is expected to have a single row, `T` is expected to be an
+    /// aggregate of supported types.
+    /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of
+    /// `T` requirements.
+    ///
+    /// UINVARIANTs on columns count mismatch or types mismatch.
+    /// throws if result set is empty or contains more than one row.
+    ///
+    /// @snippet mysql/tests/statement_result_set.cpp uMySQL usage sample - StatementResultSet AsSingleRow
     template <typename T>
     T AsSingleRow() &&;
 
-    // clang-format off
-  /// @brief Parse statement result as T.
-  /// Result set is expected to have a single row and a single column,
-  /// `T` is expected to be one of supported types.
-  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for supported types.
-  ///
-  /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
-  /// throws if result set is empty of contains more than one row.
-  ///
-  /// @snippet mysql/tests/statement_result_set.cpp uMySQL usage sample - StatementResultSet AsSingleField
-    // clang-format on
+    /// @brief Parse statement result as T.
+    /// Result set is expected to have a single row and a single column,
+    /// `T` is expected to be one of supported types.
+    /// See @ref scripts/docs/en/userver/mysql/supported_types.md for supported types.
+    ///
+    /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
+    /// throws if result set is empty of contains more than one row.
+    ///
+    /// @snippet mysql/tests/statement_result_set.cpp uMySQL usage sample - StatementResultSet AsSingleField
     template <typename T>
     T AsSingleField() &&;
 
-    // clang-format off
-  /// @brief Parse statement result as std::optional<T>.
-  /// Result set is expected to have not more than one row,
-  /// `T` is expected to be an aggregate of supported types.
-  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of
-  /// `T` requirements.
-  ///
-  /// UINVARIANTs on columns count mismatch or types mismatch.
-  /// throws if result set contains more than one row.
-  ///
-  /// @snippet mysql/tests/statement_result_set.cpp uMySQL usage sample - StatementResultSet AsOptionalSingleRow
-    // clang-format on
+    /// @brief Parse statement result as std::optional<T>.
+    /// Result set is expected to have not more than one row,
+    /// `T` is expected to be an aggregate of supported types.
+    /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of
+    /// `T` requirements.
+    ///
+    /// UINVARIANTs on columns count mismatch or types mismatch.
+    /// throws if result set contains more than one row.
+    ///
+    /// @snippet mysql/tests/statement_result_set.cpp uMySQL usage sample - StatementResultSet AsOptionalSingleRow
     template <typename T>
     std::optional<T> AsOptionalSingleRow() &&;
 
-    // clang-format off
-  /// @brief Parse statement result as T.
-  /// Result set is expected to have not more than one row,
-  /// `T` is expected to be one of supported types.
-  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for supported types.
-  ///
-  /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
-  /// throws if result set contains more than one row.
-  ///
-  /// @snippet mysql/tests/statement_result_set.cpp uMySQL usage sample - StatementResultSet AsOptionalSingleField
-    // clang-format on
+    /// @brief Parse statement result as T.
+    /// Result set is expected to have not more than one row,
+    /// `T` is expected to be one of supported types.
+    /// See @ref scripts/docs/en/userver/mysql/supported_types.md for supported types.
+    ///
+    /// UINVARIANTs on columns count not being equal to 1 or type mismatch.
+    /// throws if result set contains more than one row.
+    ///
+    /// @snippet mysql/tests/statement_result_set.cpp uMySQL usage sample - StatementResultSet AsOptionalSingleField
     template <typename T>
     std::optional<T> AsOptionalSingleField() &&;
 
-    // clang-format off
-  /// @brief Converts to an interface for on-the-flight mapping
-  /// statement result set from `DbType`.
-  /// `DbType` is expected to be an aggregate of supported types.
-  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of
-  /// `DbType` requirements.
-  ///
-  /// @snippet mysql/tests/statement_result_set.cpp uMySQL usage sample - StatementResultSet MapFrom
-    // clang-format on
+    /// @brief Converts to an interface for on-the-flight mapping
+    /// statement result set from `DbType`.
+    /// `DbType` is expected to be an aggregate of supported types.
+    /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of
+    /// `DbType` requirements.
+    ///
+    /// @snippet mysql/tests/statement_result_set.cpp uMySQL usage sample - StatementResultSet MapFrom
     template <typename DbType>
     MappedStatementResultSet<DbType> MapFrom() &&;
 

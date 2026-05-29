@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/dump/config.hpp
+/// @brief Dump storage configuration types
+
 #include <chrono>
 #include <optional>
 #include <string>
@@ -50,7 +53,6 @@ struct DynamicConfig final {
     explicit DynamicConfig(const Config& config, ConfigPatch&& patch);
 
     bool operator==(const DynamicConfig& other) const noexcept;
-    bool operator!=(const DynamicConfig& other) const noexcept;
 
     bool dumps_enabled;
     std::chrono::milliseconds min_dump_interval;

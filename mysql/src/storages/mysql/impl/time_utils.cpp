@@ -32,13 +32,11 @@ std::chrono::system_clock::time_point FromMariadbTimepointSafe(
 
 }  // namespace
 
-namespace date = utils::datetime::date;
-
 MYSQL_TIME TimeUtils::ToNativeTime(std::chrono::system_clock::time_point tp) {
     // https://stackoverflow.com/a/15958113/10508079
-    const auto dp = date::floor<date::days>(tp);
-    const auto ymd = date::year_month_day{dp};
-    const auto time = date::make_time(std::chrono::duration_cast<std::chrono::microseconds>(tp - dp));
+    const auto dp = std::chrono::floor<std::chrono::days>(tp);
+    const auto ymd = std::chrono::year_month_day{dp};
+    const auto time = std::chrono::hh_mm_ss(std::chrono::duration_cast<std::chrono::microseconds>(tp - dp));
 
     MYSQL_TIME native_time{};
     native_time.year = static_cast<int>(ymd.year());
@@ -55,19 +53,19 @@ MYSQL_TIME TimeUtils::ToNativeTime(std::chrono::system_clock::time_point tp) {
 std::chrono::system_clock::time_point TimeUtils::FromNativeTime(const MYSQL_TIME& native_time) {
     // https://stackoverflow.com/a/15958113/10508079
 
-    const date::year year(native_time.year);
-    const date::month month{native_time.month};
-    const date::day day{native_time.day};
+    const std::chrono::year year(native_time.year);
+    const std::chrono::month month{native_time.month};
+    const std::chrono::day day{native_time.day};
     const std::chrono::hours hour{native_time.hour};
     const std::chrono::minutes minute{native_time.minute};
     const std::chrono::seconds second{native_time.second};
     const std::chrono::microseconds microsecond{native_time.second_part};
 
-    return FromMariadbTimepointSafe(date::sys_days{year / month / day} + hour + minute + second + microsecond);
+    return FromMariadbTimepointSafe(std::chrono::sys_days{year / month / day} + hour + minute + second + microsecond);
 }
 
 Date TimeUtils::DateFromChrono(std::chrono::system_clock::time_point tp) {
-    const auto ymd = date::year_month_day{date::floor<date::days>(tp)};
+    const auto ymd = std::chrono::year_month_day{std::chrono::floor<std::chrono::days>(tp)};
     return Date{
         static_cast<std::uint32_t>(static_cast<int>(ymd.year())),
         static_cast<std::uint32_t>(ymd.month()),
@@ -76,17 +74,17 @@ Date TimeUtils::DateFromChrono(std::chrono::system_clock::time_point tp) {
 }
 
 std::chrono::system_clock::time_point TimeUtils::DateToChrono(const Date& date) {
-    const date::year year(date.GetYear());
-    const date::month month{date.GetMonth()};
-    const date::day day{date.GetDay()};
+    const std::chrono::year year(date.GetYear());
+    const std::chrono::month month{date.GetMonth()};
+    const std::chrono::day day{date.GetDay()};
 
-    return FromMariadbTimepointSafe(date::sys_days{year / month / day});
+    return FromMariadbTimepointSafe(std::chrono::sys_days{year / month / day});
 }
 
 DateTime TimeUtils::DateTimeFromChrono(std::chrono::system_clock::time_point tp) {
-    const auto dp = date::floor<date::days>(tp);
-    const auto ymd = date::year_month_day{dp};
-    const auto time = date::make_time(std::chrono::duration_cast<std::chrono::microseconds>(tp - dp));
+    const auto dp = std::chrono::floor<std::chrono::days>(tp);
+    const auto ymd = std::chrono::year_month_day{dp};
+    const auto time = std::chrono::hh_mm_ss(std::chrono::duration_cast<std::chrono::microseconds>(tp - dp));
 
     // TODO : signs in all these casts?
     return {
@@ -101,15 +99,15 @@ DateTime TimeUtils::DateTimeFromChrono(std::chrono::system_clock::time_point tp)
 }
 
 std::chrono::system_clock::time_point TimeUtils::DateTimeToChrono(const DateTime& datetime) {
-    const date::year year(datetime.GetDate().GetYear());
-    const date::month month{datetime.GetDate().GetMonth()};
-    const date::day day{datetime.GetDate().GetDay()};
+    const std::chrono::year year(datetime.GetDate().GetYear());
+    const std::chrono::month month{datetime.GetDate().GetMonth()};
+    const std::chrono::day day{datetime.GetDate().GetDay()};
     const std::chrono::hours hour{datetime.GetHour()};
     const std::chrono::minutes minute{datetime.GetMinute()};
     const std::chrono::seconds second{datetime.GetSecond()};
     const std::chrono::microseconds microsecond{datetime.GetMicrosecond()};
 
-    return FromMariadbTimepointSafe(date::sys_days{year / month / day} + hour + minute + second + microsecond);
+    return FromMariadbTimepointSafe(std::chrono::sys_days{year / month / day} + hour + minute + second + microsecond);
 }
 
 }  // namespace storages::mysql::impl

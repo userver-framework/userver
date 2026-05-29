@@ -1,0 +1,5 @@
+components_manager:
+    components:
+        handler-testme-post:
+            path: /testme
+            method: POST

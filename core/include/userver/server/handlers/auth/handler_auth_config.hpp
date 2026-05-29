@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/handlers/auth/handler_auth_config.hpp
+/// @brief @copybrief server::handlers::auth::HandlerAuthConfig
+
 #include <string>
 #include <vector>
 
@@ -9,6 +12,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth {
 
+/// @brief Handler authentication configuration
 class HandlerAuthConfig final : public yaml_config::YamlConfig {
 public:
     explicit HandlerAuthConfig(yaml_config::YamlConfig value);

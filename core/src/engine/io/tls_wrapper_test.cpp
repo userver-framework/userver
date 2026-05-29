@@ -222,7 +222,7 @@ void Tests2Servers2Clients(const crypto::SslCtx& ssl_ctx1, const crypto::SslCtx&
     auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
     auto [other_server, other_client] = tcp_listener.MakeSocketPair(test_deadline);
 
-    auto server_task = engine::AsyncNoSpan(
+    auto server_task = engine::AsyncNoTracing(
         [test_deadline, &ssl_ctx1](auto&& server) {
             auto tls_server =
                 io::TlsWrapper::StartTlsServer(std::forward<decltype(server)>(server), ssl_ctx1, test_deadline);
@@ -239,7 +239,7 @@ void Tests2Servers2Clients(const crypto::SslCtx& ssl_ctx1, const crypto::SslCtx&
         std::move(server)
     );
 
-    auto other_server_task = engine::AsyncNoSpan(
+    auto other_server_task = engine::AsyncNoTracing(
         [test_deadline, &ssl_ctx2](auto&& server) {
             auto tls_server =
                 io::TlsWrapper::StartTlsServer(std::forward<decltype(server)>(server), ssl_ctx2, test_deadline);
@@ -256,7 +256,7 @@ void Tests2Servers2Clients(const crypto::SslCtx& ssl_ctx1, const crypto::SslCtx&
         std::move(other_server)
     );
 
-    auto other_client_task = engine::AsyncNoSpan(
+    auto other_client_task = engine::AsyncNoTracing(
         [test_deadline](auto&& client) {
             auto tls_client = io::TlsWrapper::StartTlsClient(std::forward<decltype(client)>(client), {}, test_deadline);
             char c = 0;
@@ -410,7 +410,7 @@ UTEST_MT(TlsWrapper, Smoke, 2) {
     TcpListener tcp_listener;
     auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
 
-    auto server_task = engine::AsyncNoSpan(
+    auto server_task = engine::AsyncNoTracing(
         [test_deadline](auto&& server) {
             try {
                 crypto::SslCtx ssl_ctx = crypto::SslCtx::CreateServerTlsContext(
@@ -488,7 +488,7 @@ UTEST(TlsWrapper, Move) {
     TcpListener tcp_listener;
     auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
 
-    auto server_task = engine::AsyncNoSpan(
+    auto server_task = engine::AsyncNoTracing(
         [test_deadline](auto&& server) {
             try {
                 crypto::SslCtx ssl_ctx = crypto::SslCtx::CreateServerTlsContext(
@@ -497,7 +497,7 @@ UTEST(TlsWrapper, Move) {
                 );
                 auto tls_server =
                     io::TlsWrapper::StartTlsServer(std::forward<decltype(server)>(server), ssl_ctx, test_deadline);
-                engine::AsyncNoSpan(
+                engine::AsyncNoTracing(
                     [test_deadline](auto&& tls_server) {
                         EXPECT_EQ(1, tls_server.SendAll("1", 1, test_deadline));
                         char c = 0;
@@ -517,7 +517,7 @@ UTEST(TlsWrapper, Move) {
 
     auto tls_client = io::TlsWrapper::StartTlsClient(std::move(client), {}, test_deadline);
 
-    engine::AsyncNoSpan(
+    engine::AsyncNoTracing(
         [test_deadline](auto&& tls_client) {
             char c = 0;
             EXPECT_EQ(1, tls_client.RecvSome(&c, 1, test_deadline));
@@ -559,7 +559,7 @@ UTEST_MT(TlsWrapper, IoTimeout, 2) {
     auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
 
     engine::SingleConsumerEvent timeout_happened;
-    auto server_task = engine::AsyncNoSpan(
+    auto server_task = engine::AsyncNoTracing(
         [test_deadline, &timeout_happened](auto&& server) {
             crypto::SslCtx ssl_ctx = crypto::SslCtx::CreateServerTlsContext(
                 crypto::LoadCertificatesChainFromString(cert),
@@ -597,7 +597,7 @@ UTEST(TlsWrapper, Cancel) {
     TcpListener tcp_listener;
     auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
 
-    auto server_task = engine::AsyncNoSpan(
+    auto server_task = engine::AsyncNoTracing(
         [test_deadline](auto&& server) {
             crypto::SslCtx ssl_ctx = crypto::SslCtx::CreateServerTlsContext(
                 crypto::LoadCertificatesChainFromString(cert),
@@ -623,7 +623,7 @@ UTEST_MT(TlsWrapper, CertKeyMismatch, 2) {
     TcpListener tcp_listener;
     auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
 
-    auto server_task = engine::AsyncNoSpan(
+    auto server_task = engine::AsyncNoTracing(
         [test_deadline](auto&& server) {
             UEXPECT_THROW(
                 crypto::SslCtx ssl_ctx = crypto::SslCtx::CreateServerTlsContext(
@@ -652,7 +652,7 @@ UTEST_MT(TlsWrapper, NonTlsClient, 2) {
     TcpListener tcp_listener;
     auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
 
-    auto server_task = engine::AsyncNoSpan(
+    auto server_task = engine::AsyncNoTracing(
         [test_deadline](auto&& server) {
             UEXPECT_THROW(
                 crypto::SslCtx ssl_ctx = crypto::SslCtx::CreateServerTlsContext(
@@ -678,7 +678,7 @@ UTEST_MT(TlsWrapper, NonTlsServer, 2) {
     TcpListener tcp_listener;
     auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
 
-    auto server_task = engine::AsyncNoSpan(
+    auto server_task = engine::AsyncNoTracing(
         [test_deadline](auto&& server) { EXPECT_EQ(5, server.SendAll("hello", 5, test_deadline)); },
         std::move(server)
     );
@@ -720,7 +720,7 @@ UTEST_MT(TlsWrapper, SmokeSameCtxTorture, 4) {
     std::vector<engine::TaskWithResult<void>> tasks;
     tasks.reserve(kTasksCount);
     for (unsigned i = 0; i < kTasksCount; ++i) {
-        tasks.push_back(engine::AsyncNoSpan(&Tests2Servers2Clients, std::ref(ssl_ctx), std::ref(ssl_ctx)));
+        tasks.push_back(engine::AsyncNoTracing(&Tests2Servers2Clients, std::ref(ssl_ctx), std::ref(ssl_ctx)));
     }
 
     engine::GetAll(tasks);
@@ -743,7 +743,7 @@ UTEST(TlsWrapper, PeerShutdown) {
     TcpListener tcp_listener;
     auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
 
-    auto server_task = engine::AsyncNoSpan(
+    auto server_task = engine::AsyncNoTracing(
         [test_deadline](auto&& server) {
             try {
                 crypto::SslCtx ssl_ctx = crypto::SslCtx::CreateServerTlsContext(
@@ -785,7 +785,7 @@ UTEST(TlsWrapper, PeerDisconnect) {
     TcpListener tcp_listener;
     auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
 
-    auto server_task = engine::AsyncNoSpan(
+    auto server_task = engine::AsyncNoTracing(
         [test_deadline](auto&& server) {
             try {
                 crypto::SslCtx ssl_ctx = crypto::SslCtx::CreateServerTlsContext(
@@ -832,7 +832,7 @@ UTEST(TlsWrapper, RecvNoblock) {
     TcpListener tcp_listener;
     auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
 
-    auto server_task = engine::AsyncNoSpan(
+    auto server_task = engine::AsyncNoTracing(
         [test_deadline](auto&& server) {
             try {
                 crypto::SslCtx ssl_ctx = crypto::SslCtx::CreateServerTlsContext(
@@ -883,7 +883,7 @@ UTEST(TlsWrapper, RecvNoblockNoData) {
     TcpListener tcp_listener;
     auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
 
-    auto server_task = engine::AsyncNoSpan(
+    auto server_task = engine::AsyncNoTracing(
         [test_deadline](auto&& server) {
             try {
                 crypto::SslCtx ssl_ctx = crypto::SslCtx::CreateServerTlsContext(

@@ -140,7 +140,7 @@ SimpleServer::Impl::Impl(OnRequest callback, Protocol protocol)
 
 void SimpleServer::Impl::StartPortListening() {
     // NOLINTNEXTLINE(cppcoreguidelines-slicing)
-    listener_task_ = engine::AsyncNoSpan([this, cb = callback_]() mutable {
+    listener_task_ = engine::AsyncNoTracing([this, cb = callback_]() mutable {
         while (!engine::current_task::IsCancelRequested()) {
             auto socket = listener_.socket.Accept({});
 

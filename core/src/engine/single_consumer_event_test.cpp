@@ -32,7 +32,7 @@ UTEST(SingleConsumerEvent, IsReady) {
 
 UTEST(SingleConsumerEvent, WaitAndCancel) {
     engine::SingleConsumerEvent event;
-    auto task = engine::AsyncNoSpan([&event]() { EXPECT_FALSE(event.WaitForEvent()); });
+    auto task = engine::AsyncNoTracing([&event]() { EXPECT_FALSE(event.WaitForEvent()); });
 
     task.WaitFor(50ms);
     EXPECT_FALSE(task.IsFinished());
@@ -40,7 +40,7 @@ UTEST(SingleConsumerEvent, WaitAndCancel) {
 
 UTEST(SingleConsumerEvent, WaitAndSend) {
     engine::SingleConsumerEvent event;
-    auto task = engine::AsyncNoSpan([&event]() { EXPECT_TRUE(event.WaitForEvent()); });
+    auto task = engine::AsyncNoTracing([&event]() { EXPECT_TRUE(event.WaitForEvent()); });
 
     engine::SleepFor(50ms);
     event.Send();
@@ -51,7 +51,7 @@ UTEST(SingleConsumerEvent, WaitAndSend) {
 
 UTEST(SingleConsumerEvent, WaitAndSendDouble) {
     engine::SingleConsumerEvent event;
-    auto task = engine::AsyncNoSpan([&event]() {
+    auto task = engine::AsyncNoTracing([&event]() {
         for (int i = 0; i < 2; i++) {
             EXPECT_TRUE(event.WaitForEvent());
         }
@@ -70,7 +70,7 @@ UTEST(SingleConsumerEvent, SendAndWait) {
     engine::SingleConsumerEvent event;
     std::atomic<bool> is_event_sent{false};
 
-    auto task = engine::AsyncNoSpan([&event, &is_event_sent]() {
+    auto task = engine::AsyncNoTracing([&event, &is_event_sent]() {
         while (!is_event_sent) {
             engine::SleepFor(10ms);
         }
@@ -92,7 +92,7 @@ UTEST(SingleConsumerEvent, WaitFailed) {
 
 UTEST(SingleConsumerEvent, SendAndWait2) {
     engine::SingleConsumerEvent event;
-    auto task = engine::AsyncNoSpan([&event]() {
+    auto task = engine::AsyncNoTracing([&event]() {
         EXPECT_TRUE(event.WaitForEvent());
         EXPECT_TRUE(event.WaitForEvent());
     });
@@ -107,7 +107,7 @@ UTEST(SingleConsumerEvent, SendAndWait2) {
 
 UTEST(SingleConsumerEvent, SendAndWait3) {
     engine::SingleConsumerEvent event;
-    auto task = engine::AsyncNoSpan([&event]() {
+    auto task = engine::AsyncNoTracing([&event]() {
         EXPECT_TRUE(event.WaitForEvent());
         EXPECT_TRUE(event.WaitForEvent());
         EXPECT_FALSE(event.WaitForEvent());
@@ -125,7 +125,7 @@ UTEST_MT(SingleConsumerEvent, Multithread, 2) {
     engine::SingleConsumerEvent event;
     std::atomic<int> got{0};
 
-    auto task = engine::AsyncNoSpan([&got, &event]() {
+    auto task = engine::AsyncNoTracing([&got, &event]() {
         while (event.WaitForEvent()) {
             got++;
         }
@@ -151,7 +151,7 @@ UTEST(SingleConsumerEvent, PassBetweenTasks) {
     engine::SingleConsumerEvent event;
 
     for (size_t i = 0; i < kIterations; ++i) {
-        auto task = engine::AsyncNoSpan([&event, &task_started] {
+        auto task = engine::AsyncNoTracing([&event, &task_started] {
             task_started.Send();
             EXPECT_TRUE(event.WaitForEventFor(utest::kMaxTestWaitTime));
         });
@@ -185,7 +185,7 @@ UTEST_MT(SingleConsumerEvent, NoSignalDuplication, 2) {
     engine::SingleConsumerEvent event;
     std::atomic<std::size_t> events_received{0};
 
-    auto waiter = engine::AsyncNoSpan([&] {
+    auto waiter = engine::AsyncNoTracing([&] {
         if (event.WaitForEvent()) {
             ++events_received;
         }
@@ -212,7 +212,7 @@ UTEST_MT(SingleConsumerEvent, ParallelSend, 3) {
     std::vector<engine::TaskWithResult<void>> producers;
     producers.reserve(kProducersCount);
     for (std::size_t i = 0; i < kProducersCount; ++i) {
-        producers.push_back(engine::CriticalAsyncNoSpan([&] {
+        producers.push_back(engine::CriticalAsyncNoTracing([&] {
             while (!engine::current_task::ShouldCancel()) {
                 event.Send();
                 engine::Yield();
@@ -238,7 +238,7 @@ UTEST_MT(SingleConsumerEvent, AsConditionVariable, 4) {
     /// [CV init]
 
     auto incrementors = utils::GenerateFixedArray(GetThreadCount() - 1, [&](std::size_t) {
-        return engine::CriticalAsyncNoSpan([&count, &event] {
+        return engine::CriticalAsyncNoTracing([&count, &event] {
             while (!engine::current_task::ShouldCancel()) {
                 /// [CV notifier]
                 // First, mutate the state.
@@ -280,7 +280,7 @@ auto WaitAndDestroySample() {
     engine::TaskWithResult<void> sender;
     {
         engine::SingleConsumerEvent event;
-        sender = engine::AsyncNoSpan([&event] { event.Send(); });
+        sender = engine::AsyncNoTracing([&event] { event.Send(); });
         // will be woken up by 'Send()' above
         const bool success = event.WaitForEvent();
 

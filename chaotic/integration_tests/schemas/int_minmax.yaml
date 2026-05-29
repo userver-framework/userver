@@ -17,6 +17,8 @@ definitions:
                 $ref: '#/definitions/StringMinMaxLength'
             zoo:
                 $ref: '#/definitions/ArrayMinMaxItems'
+            qux:
+                $ref: '#/definitions/ArrayUniqueItems'
     StringMinMaxLength:
         type: string
         minLength: 2
@@ -27,6 +29,11 @@ definitions:
             type: integer
         minItems: 2
         maxItems: 5
+    ArrayUniqueItems:
+        type: array
+        items:
+            type: integer
+        uniqueItems: true
     IntegerMinMaxExclusiveLegacy:
         type: integer
         minimum: 1

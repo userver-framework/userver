@@ -20,6 +20,8 @@
 
 #include <array>
 #include <cassert>
+#include <compare>
+#include <concepts>
 #include <cstdint>
 #include <ios>
 #include <iosfwd>
@@ -35,7 +37,6 @@
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
-#include <userver/compiler/impl/three_way_comparison.hpp>
 #include <userver/decimal64/format_options.hpp>
 #include <userver/formats/common/meta.hpp>
 #include <userver/utils/assert.hpp>
@@ -50,7 +51,7 @@ class LogHelper;
 
 }  // namespace logging
 
-/// Fixed-point decimal data type and related functions
+/// @brief Fixed-point `decimal64` arithmetic and formatting.
 namespace decimal64 {
 
 /// The base class for Decimal-related exceptions
@@ -88,12 +89,6 @@ inline constexpr auto kMinRepresentableLongDouble =
     static_cast<long double>(impl::kMinInt64) * (1 - 2 * std::numeric_limits<long double>::epsilon());
 inline constexpr auto kMaxRepresentableLongDouble =
     static_cast<long double>(impl::kMaxInt64) * (1 - 2 * std::numeric_limits<long double>::epsilon());
-
-template <typename T>
-using EnableIfInt = std::enable_if_t<meta::kIsInteger<T>, int>;
-
-template <typename T>
-using EnableIfFloat = std::enable_if_t<std::is_floating_point_v<T>, int>;
 
 template <int MaxExp>
 constexpr std::array<int64_t, MaxExp + 1> PowSeries(int64_t base) {
@@ -466,7 +461,7 @@ public:
     constexpr Decimal() noexcept = default;
 
     /// @brief Convert from an integer
-    template <typename Int, impl::EnableIfInt<Int> = 0>
+    template <meta::kIsInteger Int>
     explicit constexpr Decimal(Int value)
         : Decimal(FromDecimal(Decimal<0>::FromUnbiased(impl::ToInt64(value))))
     {}
@@ -565,27 +560,13 @@ public:
     }
 
     /// @brief Assignment from an integer
-    template <typename Int, impl::EnableIfInt<Int> = 0>
+    template <meta::kIsInteger Int>
     constexpr Decimal& operator=(Int rhs) {
         *this = Decimal{rhs};
         return *this;
     }
 
-#ifdef USERVER_IMPL_HAS_THREE_WAY_COMPARISON
     constexpr auto operator<=>(const Decimal& rhs) const = default;
-#else
-    constexpr bool operator==(Decimal rhs) const { return value_ == rhs.value_; }
-
-    constexpr bool operator!=(Decimal rhs) const { return value_ != rhs.value_; }
-
-    constexpr bool operator<(Decimal rhs) const { return value_ < rhs.value_; }
-
-    constexpr bool operator<=(Decimal rhs) const { return value_ <= rhs.value_; }
-
-    constexpr bool operator>(Decimal rhs) const { return value_ > rhs.value_; }
-
-    constexpr bool operator>=(Decimal rhs) const { return value_ >= rhs.value_; }
-#endif
 
     constexpr Decimal operator+() const { return *this; }
 
@@ -611,12 +592,12 @@ public:
         }
     }
 
-    template <typename Int, impl::EnableIfInt<Int> = 0>
+    template <meta::kIsInteger Int>
     constexpr Decimal operator+(Int rhs) const {
         return *this + Decimal{rhs};
     }
 
-    template <typename Int, impl::EnableIfInt<Int> = 0>
+    template <meta::kIsInteger Int>
     friend constexpr Decimal operator+(Int lhs, Decimal rhs) {
         return Decimal{lhs} + rhs;
     }
@@ -628,7 +609,7 @@ public:
         return *this;
     }
 
-    template <typename Int, impl::EnableIfInt<Int> = 0>
+    template <meta::kIsInteger Int>
     constexpr Decimal& operator+=(Int rhs) {
         *this = *this + rhs;
         return *this;
@@ -649,12 +630,12 @@ public:
         }
     }
 
-    template <typename Int, impl::EnableIfInt<Int> = 0>
+    template <meta::kIsInteger Int>
     constexpr Decimal operator-(Int rhs) const {
         return *this - Decimal{rhs};
     }
 
-    template <typename Int, impl::EnableIfInt<Int> = 0>
+    template <meta::kIsInteger Int>
     friend constexpr Decimal operator-(Int lhs, Decimal rhs) {
         return Decimal{lhs} - rhs;
     }
@@ -666,13 +647,13 @@ public:
         return *this;
     }
 
-    template <typename Int, impl::EnableIfInt<Int> = 0>
+    template <meta::kIsInteger Int>
     constexpr Decimal& operator-=(Int rhs) {
         *this = *this - rhs;
         return *this;
     }
 
-    template <typename Int, typename = impl::EnableIfInt<Int>>
+    template <meta::kIsInteger Int>
     constexpr Decimal operator*(Int rhs) const {
         int64_t result{};
         if (rhs > impl::kMaxInt64 || __builtin_mul_overflow(value_, static_cast<int64_t>(rhs), &result)) {
@@ -681,12 +662,12 @@ public:
         return FromUnbiased(result);
     }
 
-    template <typename Int, impl::EnableIfInt<Int> = 0>
+    template <meta::kIsInteger Int>
     friend constexpr Decimal operator*(Int lhs, Decimal rhs) {
         return rhs * lhs;
     }
 
-    template <typename Int, impl::EnableIfInt<Int> = 0>
+    template <meta::kIsInteger Int>
     constexpr Decimal& operator*=(Int rhs) {
         *this = *this * rhs;
         return *this;
@@ -703,17 +684,17 @@ public:
         return *this;
     }
 
-    template <typename Int, typename = impl::EnableIfInt<Int>>
+    template <meta::kIsInteger Int>
     constexpr Decimal operator/(Int rhs) const {
         return FromUnbiased(impl::Div<RoundPolicy>(AsUnbiased(), rhs));
     }
 
-    template <typename Int, typename = impl::EnableIfInt<Int>>
+    template <meta::kIsInteger Int>
     friend constexpr Decimal operator/(Int lhs, Decimal rhs) {
         return Decimal{lhs} / rhs;
     }
 
-    template <typename Int, typename = impl::EnableIfInt<Int>>
+    template <meta::kIsInteger Int>
     constexpr Decimal& operator/=(Int rhs) {
         *this = *this / rhs;
         return *this;
@@ -821,7 +802,11 @@ struct IsDecimal<Decimal<Prec, RoundPolicy>> : std::true_type {};
 
 /// `true` if the type is an instantiation of `Decimal`
 template <typename T>
-inline constexpr bool kIsDecimal = impl::IsDecimal<T>::value;
+concept IsDecimal = impl::IsDecimal<T>::value;
+
+/// @deprecated Use @ref decimal64::IsDecimal instead.
+template <typename T>
+concept kIsDecimal = IsDecimal<T>;  // NOLINT(readability-identifier-naming)
 
 /// @brief Cast one `Decimal` to another `Decimal` type
 ///
@@ -1603,9 +1588,8 @@ logging::LogHelper& operator<<(logging::LogHelper& lh, const Decimal<Prec, Round
 
 /// @brief Parses the `Decimal` from the string
 /// @see Decimal::Decimal(std::string_view)
-template <int Prec, typename RoundPolicy, typename Value>
-std::enable_if_t<formats::common::kIsFormatValue<Value>, Decimal<Prec, RoundPolicy>>
-Parse(const Value& value, formats::parse::To<Decimal<Prec, RoundPolicy>>) {
+template <int Prec, typename RoundPolicy, formats::common::IsFormatValue Value>
+Decimal<Prec, RoundPolicy> Parse(const Value& value, formats::parse::To<Decimal<Prec, RoundPolicy>>) {
     const std::string input = value.template As<std::string>();
 
     const auto result =

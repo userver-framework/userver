@@ -30,8 +30,8 @@ ClickHouse::ClickHouse(const ComponentConfig& config, const ComponentContext& co
 
     cluster_ = std::make_shared<storages::clickhouse::Cluster>(dns_.GetResolver(), settings, config);
 
-    auto& statistics_storage = context.FindComponent<components::StatisticsStorage>();
-    statistics_holder_ = statistics_storage.GetStorage().RegisterWriter(
+    utils::statistics::RegisterWriterScope(
+        context,
         "clickhouse",
         [this](utils::statistics::Writer& writer) {
             if (cluster_) {
@@ -42,7 +42,7 @@ ClickHouse::ClickHouse(const ComponentConfig& config, const ComponentContext& co
     );
 }
 
-ClickHouse::~ClickHouse() { statistics_holder_.Unregister(); }
+ClickHouse::~ClickHouse() = default;
 
 storages::clickhouse::ClusterPtr ClickHouse::GetCluster() const { return cluster_; }
 

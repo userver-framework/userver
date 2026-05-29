@@ -9,8 +9,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
-// clang-format off
-
 /// @ingroup userver_components userver_http_handlers
 ///
 /// @brief Handler that controls the jemalloc allocator.
@@ -31,9 +29,6 @@ namespace server::handlers {
 /// * `bg_threads_set_max` - to set maximum number of background threads
 /// * `bg_threads_enable` - to start background threads
 /// * `bg_threads_disable` - to *synchronously* stop background threads
-
-// clang-format on
-
 class Jemalloc final : public HttpHandlerBase {
 public:
     enum class Command {

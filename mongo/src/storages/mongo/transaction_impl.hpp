@@ -1,8 +1,10 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 
+#include <storages/mongo/cdriver/pool_impl.hpp>
 #include <storages/mongo/cdriver/wrappers.hpp>
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/transaction.hpp>
@@ -20,9 +22,11 @@ struct TransactionData {
     {}
 
     Transaction::State state;
+    std::optional<cdriver::CDriverPoolImpl::BoundClientPtr> client;
     cdriver::SessionPtr session;
 
     void EnsureActive() const;
+    void ReleaseClient();
 };
 
 /// @brief Implementation details for MongoDB transactions

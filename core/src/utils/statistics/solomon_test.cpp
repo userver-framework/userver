@@ -23,7 +23,7 @@ formats::json::Value Sorted(const formats::json::Value& array) {
     for (const auto& metric : array) {
         data.emplace_back(metric);
     }
-    std::sort(data.begin(), data.end(), [](const formats::json::Value& lhs, const formats::json::Value& rhs) {
+    std::ranges::sort(data, [](const formats::json::Value& lhs, const formats::json::Value& rhs) {
         return lhs["labels"]["sensor"].As<std::string>() > rhs["labels"]["sensor"].As<std::string>();
     });
 

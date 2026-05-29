@@ -4,21 +4,20 @@
 #include <memory>
 #include <type_traits>
 
-#include <userver/utils/void_t.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres {
 
 namespace detail {
 
-template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
+template <typename T>
 struct GuardedValueImpl {
     using Type = T;
 };
 
 template <typename T>
-struct GuardedValueImpl<T, USERVER_NAMESPACE::utils::void_t<typename T::ValueType>> {
+requires requires { typename T::ValueType; }
+struct GuardedValueImpl<T> {
     using Type = typename T::ValueType;
 };
 

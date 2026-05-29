@@ -26,7 +26,7 @@ git clone --recurse-submodules -b ${GRPC_VERSION} --depth 1 --shallow-submodules
   cmake \
     -DgRPC_INSTALL=ON \
     -DgRPC_BUILD_TESTS=OFF \
-    -DCMAKE_CXX_STANDARD=17 \
+    -DCMAKE_CXX_STANDARD=20 \
     -DCMAKE_INSTALL_PREFIX=/usr \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_POLICY_VERSION_MINIMUM=3.5 \

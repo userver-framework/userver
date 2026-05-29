@@ -61,6 +61,7 @@ def main():
             name,
             args.output_dir,
             parse_extra_formats=True,
+            generate_stream_writer=False,
             generate_taxi_aliases=False,
             namespace='dynamic_config',
         )

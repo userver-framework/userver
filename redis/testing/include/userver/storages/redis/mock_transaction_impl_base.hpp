@@ -187,6 +187,12 @@ public:
 
     virtual RequestSetex Setex(std::string key, std::chrono::seconds seconds, std::string value);
 
+    virtual RequestSetAndGetPrevious SetAndGetPrevious(
+        std::string key,
+        std::string value,
+        std::chrono::milliseconds ttl
+    );
+
     virtual RequestSismember Sismember(std::string key, std::string member);
 
     virtual RequestSmembers Smembers(std::string key);
@@ -278,6 +284,22 @@ public:
     virtual RequestZremrangebyscore Zremrangebyscore(std::string key, std::string min, std::string max);
 
     virtual RequestZscore Zscore(std::string key, std::string member);
+
+    virtual RequestJsonSet JsonSet(std::string key, std::string path, formats::json::Value value);
+
+    virtual RequestJsonSetIfNotExist JsonSetIfNotExist(std::string key, std::string path, formats::json::Value value);
+
+    virtual RequestJsonSetIfExist JsonSetIfExist(std::string key, std::string path, formats::json::Value value);
+
+    virtual RequestJsonGet JsonGet(std::string key);
+
+    virtual RequestJsonGet JsonGet(std::string key, std::string path);
+
+    virtual RequestJsonGet JsonGet(std::string key, std::vector<std::string> paths);
+
+    virtual RequestJsonMget JsonMget(std::vector<std::string> keys, std::string path);
+
+    virtual RequestJsonMset JsonMset(std::vector<JsonKeyPathValue> key_path_values);
 
     // end of redis commands
 };

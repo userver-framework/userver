@@ -20,8 +20,6 @@ async def test_query_span(service_client):
         stopwatch_name='ydb_query',
         max_retries='3',
         get_session_timeout_ms='1000',
-        operation_timeout_ms='1000',
-        cancel_after_ms='1000',
         client_timeout_ms='1100',
     )
 
@@ -30,8 +28,6 @@ async def test_query_span(service_client):
     YDB_QUERIES_COMMAND_CONTROL={
         'select': {
             'attempts': 11,
-            'operation-timeout-ms': 5001,
-            'cancel-after-ms': 5002,
             'client-timeout-ms': 5003,
             'get-session-timeout-ms': 5004,
         },
@@ -56,7 +52,5 @@ async def test_config_command_control(service_client):
         stopwatch_name='ydb_query',
         max_retries='10',
         get_session_timeout_ms='5004',
-        operation_timeout_ms='5001',
-        cancel_after_ms='5002',
         client_timeout_ms='5003',
     )

@@ -8,6 +8,7 @@
 #include <userver/storages/postgres/component.hpp>
 #include <userver/testsuite/tasks.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/resource_scopes.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #ifndef ARCADIA_ROOT
@@ -22,12 +23,14 @@ namespace storages::postgres {
 
 DistLockComponentBase::DistLockComponentBase(
     const components::ComponentConfig& component_config,
-    const components::ComponentContext& component_context
+    const components::ComponentContext& component_context,
+    AutostartDistlock autostart_at_base_component
 )
     : components::ComponentBase(component_config, component_context),
       config_(component_context.FindComponent<components::DynamicConfig>().GetSource()),
       name_(component_config.Name()),
-      real_host_name_(hostinfo::blocking::GetRealHostName())
+      real_host_name_(hostinfo::blocking::GetRealHostName()),
+      autostart_at_base_component_(autostart_at_base_component)
 {
     auto shard_number = component_config["shard-number"].As<size_t>(components::Postgres::kDefaultShardNumber);
     auto cluster =
@@ -83,13 +86,24 @@ DistLockComponentBase::DistLockComponentBase(
         {{"distlock_name", component_config.Name()}}
     );
 
-    if (component_config["testsuite-support"].As<bool>(false)) {
+    const bool autostart_enabled = autostart_at_base_component_ == AutostartDistlock::kYes;
+    if (component_config["testsuite-support"].As<bool>(autostart_enabled)) {
         auto& testsuite_tasks = testsuite::GetTestsuiteTasks(component_context);
 
         if (testsuite_tasks.IsEnabled()) {
             testsuite_tasks.RegisterTask("distlock/" + component_config.Name(), [this] { worker_->RunOnce(); });
             testsuite_enabled_ = true;
         }
+    }
+
+    if (autostart_enabled && !testsuite_enabled_) {
+        component_context.Scopes().Register([this] {
+            if (autostart_) {
+                worker_->Start();
+            }
+            // if StopDistLock() throws, we are probably in unrecoverable state
+            return utils::FastScopeGuard([this]() noexcept { StopDistLock(); });
+        });
     }
 }
 
@@ -100,6 +114,8 @@ dist_lock::DistLockedWorker& DistLockComponentBase::GetWorker() { return *worker
 bool DistLockComponentBase::OwnsLock() const noexcept { return worker_->OwnsLock() || testsuite_enabled_; }
 
 void DistLockComponentBase::AutostartDistLock() {
+    UASSERT(autostart_at_base_component_ == AutostartDistlock::kNo);
+
     if (testsuite_enabled_) {
         return;
     }

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/testsuite/middlewares.hpp
+/// @brief Testsuite HTTP middleware for exception handling
+
 #include <userver/server/middlewares/http_middleware_base.hpp>
 
 USERVER_NAMESPACE_BEGIN

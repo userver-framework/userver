@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/congestion_control/sensor.hpp
+/// @brief @copybrief server::congestion_control::Sensor
+
 #include <cstdint>
 
 #include <userver/congestion_control/sensor.hpp>
@@ -18,6 +21,7 @@ public:
     virtual std::uint64_t GetTotalRequests() const = 0;
 };
 
+/// @brief HTTP server congestion control sensor
 class Sensor final : public USERVER_NAMESPACE::congestion_control::Sensor {
 public:
     explicit Sensor(engine::TaskProcessor& tp);

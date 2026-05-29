@@ -1,5 +1,7 @@
 #include <userver/s3api/models/multipart_upload/responses.hpp>
 
+#include <concepts>
+
 #include <fmt/format.h>
 #include <pugixml.hpp>
 
@@ -50,11 +52,8 @@ bool ToBoolean(const std::optional<std::string_view>& maybe_str) {
     return true;
 }
 
-template <typename T>
-std::enable_if_t<std::is_integral_v<T>, std::optional<T>> ExtractChildValueAsIntegral(
-    const pugi::xml_node& node,
-    const char* child_name
-) try
+template <std::integral T>
+std::optional<T> ExtractChildValueAsIntegral(const pugi::xml_node& node, const char* child_name) try
 {
     const auto maybe_str = ExtractChildValue(node, child_name, false);
     if (!maybe_str) {
@@ -69,11 +68,8 @@ std::enable_if_t<std::is_integral_v<T>, std::optional<T>> ExtractChildValueAsInt
     );
 }
 
-template <typename T>
-std::enable_if_t<std::is_integral_v<T>, T> ExtractRequiredChildValueAsIntegral(
-    const pugi::xml_node& node,
-    const char* child_name
-) {
+template <std::integral T>
+T ExtractRequiredChildValueAsIntegral(const pugi::xml_node& node, const char* child_name) {
     const auto maybe_value = ExtractChildValueAsIntegral<T>(node, child_name);
     if (!maybe_value) {
         throw ResponseParsingError(
@@ -89,11 +85,11 @@ constexpr auto kExtractChildValueAsULong = ExtractChildValueAsIntegral<unsigned 
 
 }  // namespace
 
-InitiateMultipartUploadResult InitiateMultipartUploadResult::Parse(utils::zstring_view http_s3_respose_body) {
+InitiateMultipartUploadResult InitiateMultipartUploadResult::Parse(utils::zstring_view http_s3_response_body) {
     InitiateMultipartUploadResult result;
     pugi::xml_document xml;
     const pugi::xml_parse_result
-        parse_result = xml.load_string(http_s3_respose_body.c_str(), pugi::parse_default | pugi::parse_escapes);
+        parse_result = xml.load_string(http_s3_response_body.c_str(), pugi::parse_default | pugi::parse_escapes);
     if (parse_result.status != pugi::status_ok) {
         throw ResponseParsingError(parse_result.description());
     }
@@ -104,11 +100,11 @@ InitiateMultipartUploadResult InitiateMultipartUploadResult::Parse(utils::zstrin
     return result;
 }
 
-CompleteMultipartUploadResult CompleteMultipartUploadResult::Parse(utils::zstring_view http_s3_respose_body) {
+CompleteMultipartUploadResult CompleteMultipartUploadResult::Parse(utils::zstring_view http_s3_response_body) {
     CompleteMultipartUploadResult result;
     pugi::xml_document xml;
     const pugi::xml_parse_result
-        parse_result = xml.load_string(http_s3_respose_body.c_str(), pugi::parse_default | pugi::parse_escapes);
+        parse_result = xml.load_string(http_s3_response_body.c_str(), pugi::parse_default | pugi::parse_escapes);
     if (parse_result.status != pugi::status_ok) {
         throw ResponseParsingError(parse_result.description());
     }
@@ -119,11 +115,11 @@ CompleteMultipartUploadResult CompleteMultipartUploadResult::Parse(utils::zstrin
     return result;
 }
 
-ListMultipartUploadsResult ListMultipartUploadsResult::Parse(utils::zstring_view http_s3_respose_body) {
+ListMultipartUploadsResult ListMultipartUploadsResult::Parse(utils::zstring_view http_s3_response_body) {
     ListMultipartUploadsResult result;
     pugi::xml_document xml;
     const pugi::xml_parse_result
-        parse_result = xml.load_string(http_s3_respose_body.c_str(), pugi::parse_default | pugi::parse_escapes);
+        parse_result = xml.load_string(http_s3_response_body.c_str(), pugi::parse_default | pugi::parse_escapes);
     if (parse_result.status != pugi::status_ok) {
         throw ResponseParsingError(parse_result.description());
     }
@@ -143,7 +139,7 @@ ListMultipartUploadsResult ListMultipartUploadsResult::Parse(utils::zstring_view
         multipart_upload.key = ExtractRequiredChildValue(node, "Key");
         multipart_upload.upload_id = ExtractRequiredChildValue(node, "UploadId");
         if (const auto maybe_initiated_str = ExtractChildValue(node, "Initiated")) {
-            // See S3 client aws-sdk-cpp implementaton references:
+            // See S3 client aws-sdk-cpp implementation references:
             // https://github.com/aws/aws-sdk-cpp/blob/6762e8220ae37a35c7a8f762f9b97c5d2eda7455/generated/src/aws-cpp-sdk-s3/source/model/MultipartUpload.cpp#L49
             multipart_upload.initiated_ts =
                 USERVER_NAMESPACE::utils::datetime::GuessStringtime(std::string{*maybe_initiated_str}, "UTC");
@@ -158,11 +154,11 @@ ListMultipartUploadsResult ListMultipartUploadsResult::Parse(utils::zstring_view
     return result;
 }
 
-ListPartsResult ListPartsResult::Parse(utils::zstring_view http_s3_respose_body) {
+ListPartsResult ListPartsResult::Parse(utils::zstring_view http_s3_response_body) {
     ListPartsResult result;
     pugi::xml_document xml;
     const pugi::xml_parse_result
-        parse_result = xml.load_string(http_s3_respose_body.c_str(), pugi::parse_default | pugi::parse_escapes);
+        parse_result = xml.load_string(http_s3_response_body.c_str(), pugi::parse_default | pugi::parse_escapes);
     if (parse_result.status != pugi::status_ok) {
         throw ResponseParsingError(parse_result.description());
     }
@@ -183,7 +179,7 @@ ListPartsResult ListPartsResult::Parse(utils::zstring_view http_s3_respose_body)
         part.byte_size = kExtractChildValueAsULong(part_node, "Size");
 
         if (const auto maybe_last_modified_ts_str = ExtractChildValue(part_node, "LastModified")) {
-            // See S3 client aws-sdk-cpp implementaton references:
+            // See S3 client aws-sdk-cpp implementation references:
             // https://github.com/aws/aws-sdk-cpp/blob/6762e8220ae37a35c7a8f762f9b97c5d2eda7455/generated/src/aws-cpp-sdk-s3/source/model/MultipartUpload.cpp#L49
             part.last_modified_ts =
                 USERVER_NAMESPACE::utils::datetime::GuessStringtime(std::string{*maybe_last_modified_ts_str}, "UTC");

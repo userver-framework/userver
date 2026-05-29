@@ -7,6 +7,8 @@
 #include <unordered_set>
 #include <vector>
 
+#include "overloaded_address_operator_test.hpp"
+
 #include <gtest/gtest.h>
 
 USERVER_NAMESPACE_BEGIN
@@ -44,6 +46,18 @@ TEST(UtilsAlgo, FindOrNullptrSets) {
 
     EXPECT_EQ(*utils::FindOrNullptr(s, "1"), "1");
     EXPECT_EQ(*utils::FindOrNullptr(us, "1"), "1");
+}
+
+TEST(UtilsAlgo, FindOrNullptrMapAddressof) {
+    const std::map<std::string, utils::OverloadedAddressOperator> m{{"1", {.payload = 1}}};
+    const auto ptr = utils::FindOrNullptr(m, "1");
+    ASSERT_TRUE(ptr);
+}
+
+TEST(UtilsAlgo, FindOrNullptrSetAddressof) {
+    const std::set<utils::OverloadedAddressOperator> s{{.payload = 1}};
+    const auto ptr = utils::FindOrNullptr(s, utils::OverloadedAddressOperator{.payload = 1});
+    ASSERT_TRUE(ptr);
 }
 
 TEST(UtilsAlgo, FindOrDefaultMaps) {
@@ -100,7 +114,7 @@ TEST(UtilsAlgo, Erase) {
     std::unordered_map<std::string, int> um = {{"1", 2}, {"2", 1}};
     std::unordered_multiset<int> ums = {1, 1, 1, 2, 3, 4};
     std::vector<int> v = {1, 1, 1, 2, 3, 4};
-    const auto one_count = std::count(cbegin(v), cend(v), 1);
+    const auto one_count = std::ranges::count(v, 1);
 
     ASSERT_EQ(utils::Erase(m, "1"), 1);
     EXPECT_EQ(m, (std::map<std::string, int>{{"2", 1}}));

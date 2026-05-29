@@ -14,6 +14,23 @@ components_manager:
                     level: info
                     overflow_behavior: discard
 
+        dynamic-config:
+            updates-enabled: true
+            fs-cache-path: $dynamic-config-cache
+            fs-task-processor: fs-task-processor
+
+        dynamic-config-client:
+            config-url: $config-server-url
+            http-retries: 5
+            http-timeout: 20s
+            service-name: testsuite-support
+
+        dynamic-config-client-updater:
+            config-settings: false
+            first-update-fail-ok: true
+            full-update-interval: 1m
+            update-interval: 5s
+
         # gRPC server and service
         grpc-server:
             port: 8091
@@ -33,7 +50,7 @@ components_manager:
 
             # /// [Sample grpc server deadline propagation middleware component config]
         grpc-server-deadline-propagation:
-        # Nothing
+            prefer-absolute-deadline: true
         # /// [Sample grpc server deadline propagation middleware component config]
 
         # /// [Sample grpc server baggage middleware component config]
@@ -55,7 +72,7 @@ components_manager:
                 grpc-server-headers-propagator:
                     enabled: false
                 grpc-server-deadline-propagation:
-                    enabled: false
+                    enabled: true
 
         greeter-service:
             greeting-prefix: Hello
@@ -66,7 +83,7 @@ components_manager:
         grpc-client-factory:
             middlewares:
                 grpc-client-deadline-propagation:
-                    enabled: false
+                    enabled: true
             channel-args: {}
         greeter-client:
             endpoint: '[::]:8081'

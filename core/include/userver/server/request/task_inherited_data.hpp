@@ -4,10 +4,13 @@
 /// @brief @copybrief server::request::TaskInheritedData
 
 #include <atomic>
-#include <string>
+#include <chrono>
+#include <optional>
+#include <string_view>
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/task/inherited_variable.hpp>
+#include <userver/server/request/impl/absolute_deadline.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -44,6 +47,10 @@ struct TaskInheritedData final {
 
     /// Signals when an operation has detected deadline expiration
     mutable DeadlineSignal deadline_signal{};
+
+    /// Original absolute deadline from `X-Request-Deadline` (Unix epoch microseconds).
+    /// Intended solely for propagation to downstream services; use @ref deadline for the task deadline.
+    std::optional<TaskInheritedOriginalDeadline> original_deadline = std::nullopt;
 };
 
 /// @see TaskInheritedData for details on the contents.
@@ -51,7 +58,13 @@ extern engine::TaskInheritedVariable<TaskInheritedData> kTaskInheritedData;
 
 /// @brief Returns TaskInheritedData::deadline, or an unreachable
 /// engine::Deadline if none was set.
+/// @note Use this method to set the deadline for tasks.
 engine::Deadline GetTaskInheritedDeadline() noexcept;
+
+/// @brief Returns TaskInheritedData::original_deadline, or std::nullopt if the header was absent or invalid.
+/// @warning Do not use this method to set the deadline for tasks. It is intended for deadline propagation only.
+/// Use @ref GetTaskInheritedDeadline() to set the deadline for tasks.
+std::optional<TaskInheritedOriginalDeadline> GetTaskInheritedOriginalDeadline() noexcept;
 
 /// @brief Marks that the current TaskInheritedData::deadline has expired.
 void MarkTaskInheritedDeadlineExpired() noexcept;

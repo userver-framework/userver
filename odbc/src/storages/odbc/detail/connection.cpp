@@ -1,13 +1,22 @@
 #include <storages/odbc/detail/connection.hpp>
 
-#include <storages/odbc/detail/diag_wrapper.hpp>
-#include <userver/storages/odbc/exception.hpp>
-
+#include <chrono>
+#include <cstdint>
 #include <vector>
 
 #include <fmt/format.h>
 #include <sql.h>
 #include <sqlext.h>
+
+#include <userver/tracing/span.hpp>
+#include <userver/tracing/tags.hpp>
+
+#include <storages/odbc/detail/broken_guard.hpp>
+#include <storages/odbc/detail/deadline.hpp>
+#include <storages/odbc/detail/diag_wrapper.hpp>
+#include <storages/odbc/detail/result_wrapper.hpp>
+#include <storages/odbc/detail/tracing.hpp>
+#include <userver/storages/odbc/exception.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -98,22 +107,65 @@ Connection::Connection(const std::string& dsn)
 }
 
 ResultSet Connection::Query(std::string_view query) {
-    auto stmt = detail::MakeResultHandle(handle_.get());
-
-    std::vector<SQLCHAR> query_buffer(query.begin(), query.end());
-    query_buffer.push_back('\0');
-    SQLRETURN ret = SQLExecDirect(stmt.get(), query_buffer.data(), SQL_NTS);
-    if (!SQL_SUCCEEDED(ret)) {
-        throw StatementError("Failed to execute query:" + detail::GetSQLDiagString(stmt.get(), SQL_HANDLE_STMT));
-    }
-
-    auto wrapper = std::make_shared<detail::ResultWrapper>(std::move(stmt));
-    wrapper->Fetch();
-
-    return ResultSet(std::move(wrapper));
+    return Query(query, detail::GetExecuteDeadline(detail::kDefaultStatementTimeout));
 }
 
-bool Connection::IsBroken() const {
+ResultSet Connection::Query(std::string_view query, engine::Deadline deadline) {
+    detail::CheckDeadlineNotExpired(deadline);
+
+    auto guard = GetBrokenGuard();
+    return guard.Execute([&] {
+        tracing::Span span{detail::tracing::MakeQuerySpanName(query)};
+        span.AddTag(tracing::kDatabaseType, "odbc");
+        span.AddTag(tracing::kDatabaseStatement, std::string{query});
+
+        auto stmt = detail::MakeResultHandle(handle_.get());
+
+        if (deadline.IsReachable()) {
+            const auto left = deadline.TimeLeft();
+            if (left > std::chrono::milliseconds::zero()) {
+                const auto seconds = std::chrono::ceil<std::chrono::seconds>(left);
+                const auto timeout_sec = static_cast<SQLULEN>(seconds.count());
+                if (timeout_sec > 0) {
+                    /* ODBC SQL_ATTR_QUERY_TIMEOUT is in whole seconds; deadline checks still use full TimeLeft()
+                     * resolution. */
+                    SQLSetStmtAttr(
+                        stmt.get(),
+                        SQL_ATTR_QUERY_TIMEOUT,
+                        reinterpret_cast<SQLPOINTER>(static_cast<std::uintptr_t>(timeout_sec)),
+                        0
+                    );
+                }
+            }
+        }
+
+        std::vector<SQLCHAR> query_buffer(query.begin(), query.end());
+        query_buffer.push_back('\0');
+        SQLRETURN ret = SQLExecDirect(stmt.get(), query_buffer.data(), SQL_NTS);
+        if (!SQL_SUCCEEDED(ret) && ret != SQL_NO_DATA) {
+            const auto diag = detail::GetSQLDiagString(stmt.get(), SQL_HANDLE_STMT);
+            span.AddTag(tracing::kErrorFlag, true);
+            span.AddTag(tracing::kErrorMessage, diag);
+            throw StatementError("Failed to execute query:" + diag);
+        }
+
+        auto wrapper = std::make_shared<detail::ResultWrapper>(std::move(stmt));
+        // Only call Fetch for SELECT-like statements that produce a result set.
+        // DML statements (INSERT/UPDATE/DELETE) have 0 result columns; calling
+        // SQLFetch on them returns SQL_NO_DATA or an error depending on the driver.
+        if (ret != SQL_NO_DATA) {
+            SQLSMALLINT col_count = 0;
+            SQLNumResultCols(stmt.get(), &col_count);
+            if (col_count > 0) {
+                wrapper->Fetch();
+            }
+        }
+
+        return ResultSet(std::move(wrapper));
+    });
+}
+
+bool Connection::DriverReportsDead() const {
     SQLUINTEGER state = 0;
     SQLRETURN ret = SQLGetConnectAttr(handle_.get(), SQL_ATTR_CONNECTION_DEAD, &state, sizeof(state), nullptr);
     if (!SQL_SUCCEEDED(ret) || state == SQL_CD_TRUE) {
@@ -123,7 +175,94 @@ bool Connection::IsBroken() const {
     return false;
 }
 
-void Connection::NotifyBroken() {}
+bool Connection::IsBroken() const { return broken_.load() || DriverReportsDead(); }
+
+void Connection::NotifyBroken() { broken_.store(true); }
+
+detail::BrokenGuard Connection::GetBrokenGuard() { return detail::BrokenGuard{*this}; }
+
+bool Connection::IsInsideTransaction() const {
+    SQLUINTEGER state = 0;
+    SQLRETURN ret = SQLGetConnectAttr(handle_.get(), SQL_ATTR_AUTOCOMMIT, &state, sizeof(state), nullptr);
+    if (!SQL_SUCCEEDED(ret) || state == SQL_AUTOCOMMIT_OFF) {
+        return true;
+    }
+    return false;
+}
+
+void Connection::Begin(engine::Deadline deadline) {
+    auto guard = GetBrokenGuard();
+    guard.Execute([this, deadline] {
+        detail::CheckDeadlineNotExpired(deadline);
+        SQLRETURN ret = SQLSetConnectAttr(
+            handle_.get(),
+            SQL_ATTR_AUTOCOMMIT,
+            reinterpret_cast<SQLPOINTER>(SQL_AUTOCOMMIT_OFF),
+            SQL_IS_UINTEGER
+        );
+
+        if (!SQL_SUCCEEDED(ret)) {
+            throw ConnectionError(
+                "Failed to set connection autocommit attribute:" +
+                detail::GetSQLDiagString(handle_.get(), SQL_HANDLE_DBC)
+            );
+        }
+    });
+}
+
+void Connection::Commit(engine::Deadline deadline) {
+    auto guard = GetBrokenGuard();
+    guard.Execute([this, deadline] {
+        detail::CheckDeadlineNotExpired(deadline);
+        if (!IsInsideTransaction()) {
+            throw ConnectionError(
+                "User try to commit autocommit connection:" + detail::GetSQLDiagString(handle_.get(), SQL_HANDLE_DBC)
+            );
+        }
+        SQLRETURN ret = SQLEndTran(SQL_HANDLE_DBC, handle_.get(), SQL_COMMIT);
+        if (!SQL_SUCCEEDED(ret)) {
+            throw ConnectionError(
+                "Failed to commit transaction inside connection:" +
+                detail::GetSQLDiagString(handle_.get(), SQL_HANDLE_DBC)
+            );
+        }
+        RestoreAutocommit();
+    });
+}
+
+void Connection::Rollback(engine::Deadline deadline) {
+    auto guard = GetBrokenGuard();
+    guard.Execute([this, deadline] {
+        detail::CheckDeadlineNotExpired(deadline);
+        if (!IsInsideTransaction()) {
+            throw ConnectionError(
+                "User try to rollback autocommit connection:" + detail::GetSQLDiagString(handle_.get(), SQL_HANDLE_DBC)
+            );
+        }
+        SQLRETURN ret = SQLEndTran(SQL_HANDLE_DBC, handle_.get(), SQL_ROLLBACK);
+        if (!SQL_SUCCEEDED(ret)) {
+            throw ConnectionError(
+                "Failed to rollback transaction inside connection:" +
+                detail::GetSQLDiagString(handle_.get(), SQL_HANDLE_DBC)
+            );
+        }
+        RestoreAutocommit();
+    });
+}
+
+void Connection::RestoreAutocommit() {
+    SQLRETURN ret = SQLSetConnectAttr(
+        handle_.get(),
+        SQL_ATTR_AUTOCOMMIT,
+        reinterpret_cast<SQLPOINTER>(SQL_AUTOCOMMIT_ON),
+        SQL_IS_UINTEGER
+    );
+    if (!SQL_SUCCEEDED(ret)) {
+        throw ConnectionError(
+            "Failed to restore autocommit after transaction:" + detail::GetSQLDiagString(handle_.get(), SQL_HANDLE_DBC)
+        );
+    }
+}
 
 }  // namespace storages::odbc
 

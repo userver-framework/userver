@@ -73,7 +73,7 @@ UTEST_MT(IntrusiveStack, TortureTest, 12) {
     tasks.reserve(GetThreadCount() - 1);
 
     for (std::size_t i = 0; i < GetThreadCount() - 1; ++i) {
-        tasks.push_back(engine::AsyncNoSpan([&] {
+        tasks.push_back(engine::AsyncNoTracing([&] {
             std::vector<CheckedInt*> our_nodes;
             our_nodes.reserve(nodes.size());
 

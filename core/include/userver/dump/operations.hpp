@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/dump/operations.hpp
+/// @brief Binary dump Reader and Writer interfaces
+
 #include <stdexcept>
 #include <string>
 #include <string_view>

@@ -1,0 +1,20 @@
+#pragma once
+
+/// @file userver/version.hpp
+/// @brief Version macro
+
+/// @brief Version in form of `10000*major + 100*minor - (is_rc ? 1 : 0)`
+///
+/// Examples:
+/// @code
+/// 3.0-rc  -> 29999
+/// 3.0     -> 30000
+/// 3.1-rc  -> 30099
+/// 3.1     -> 30100
+/// 3.21    -> 32100
+/// 4.0-rc  -> 39999
+/// 4.0     -> 40000
+/// @endcode
+// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
+#define USERVER_VERSION_FULL @USERVER_VERSION_FULL@
+

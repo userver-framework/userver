@@ -33,13 +33,13 @@ TEST(Buffer, Smoke) {
     const size_t initial_size = buffer.AvailableWriteBytes();
     ASSERT_GE(initial_size, 2 * kSmallString.size());
     EXPECT_EQ(0, buffer.AvailableReadBytes());
-    std::copy(kSmallString.begin(), kSmallString.end(), buffer.WritePtr());
+    std::ranges::copy(kSmallString, buffer.WritePtr());
     buffer.ReportWritten(kSmallString.size());
     EXPECT_EQ(kSmallString.size(), buffer.AvailableReadBytes());
     EXPECT_EQ(initial_size - kSmallString.size(), buffer.AvailableWriteBytes());
     EXPECT_STREQ(buffer.ReadPtr(), kSmallString.c_str());
 
-    std::copy(kSmallString.begin(), kSmallString.end(), buffer.WritePtr());
+    std::ranges::copy(kSmallString, buffer.WritePtr());
     buffer.ReportWritten(kSmallString.size());
     EXPECT_EQ(2 * kSmallString.size(), buffer.AvailableReadBytes());
     EXPECT_EQ(initial_size - 2 * kSmallString.size(), buffer.AvailableWriteBytes());
@@ -52,7 +52,7 @@ TEST(Buffer, Smoke) {
     EXPECT_LT(buffer.AvailableWriteBytes(), kLargeString.size());
     buffer.Reserve(kLargeString.size());
     ASSERT_GE(buffer.AvailableWriteBytes(), kLargeString.size());
-    std::copy(kLargeString.begin(), kLargeString.end(), buffer.WritePtr());
+    std::ranges::copy(kLargeString, buffer.WritePtr());
     buffer.ReportWritten(kLargeString.size());
     EXPECT_EQ(kSmallString.size() + kLargeString.size(), buffer.AvailableReadBytes());
     EXPECT_TRUE(boost::starts_with(buffer.ReadPtr(), kSmallString));

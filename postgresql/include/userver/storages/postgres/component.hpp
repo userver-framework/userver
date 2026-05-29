@@ -9,10 +9,9 @@
 #include <userver/concurrent/async_event_source.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/engine/mutex.hpp>
-#include <userver/storages/secdist/secdist.hpp>
-#include <userver/utils/statistics/entry.hpp>
-
 #include <userver/storages/postgres/database.hpp>
+#include <userver/storages/secdist/secdist.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -167,7 +166,6 @@ private:
     // from callbacks.
     concurrent::AsyncEventSubscriberScope config_subscription_;
     concurrent::AsyncEventSubscriberScope secdist_subscription_;
-    utils::statistics::Entry statistics_holder_;
     dynamic_config::Source config_source_;
 };
 

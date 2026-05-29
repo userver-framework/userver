@@ -135,24 +135,24 @@ public:
     using ReplyElem = typename ScanReplyElem<TScanTag>::type;
 
     template <ScanTag ScanTagParam = TScanTag>
+    requires(ScanTagParam == ScanTag::kScan)
     RequestScanData(
         std::shared_ptr<ClientImpl> client,
         size_t shard,
         ScanOptionsGeneric options,
-        const CommandControl& command_control,
-        std::enable_if_t<ScanTagParam == ScanTag::kScan>* = nullptr
+        const CommandControl& command_control
     )
         : RequestScanData(std::move(client), {}, shard, std::move(options), command_control, TScanTag)
     {}
 
     template <ScanTag ScanTagParam = TScanTag>
+    requires(ScanTagParam != ScanTag::kScan)
     RequestScanData(
         std::shared_ptr<ClientImpl> client,
         std::string key,
         size_t shard,
         ScanOptionsGeneric options,
-        const CommandControl& command_control,
-        std::enable_if_t<ScanTagParam != ScanTag::kScan>* = nullptr
+        const CommandControl& command_control
     )
         : RequestScanData(std::move(client), std::move(key), shard, std::move(options), command_control, TScanTag)
     {}

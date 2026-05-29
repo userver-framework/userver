@@ -13,6 +13,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
+/// @brief Strict HTTP request / URL argument parsing helpers.
 namespace http::parser {
 
 /// Strict URL decoder that throws std::runtime_error on bad input

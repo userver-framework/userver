@@ -26,25 +26,25 @@ INSTANTIATE_TEST_SUITE_P(
     /*no prefix*/,
     StringToDuration,
     ::testing::ValuesIn(TestData{
-        {"milliseconds", "103ms", std::chrono::milliseconds(103)},
-        {"milliseconds_huge", "938493ms", std::chrono::milliseconds(938493)},
-        {"milliseconds_zero", "0ms", std::chrono::milliseconds(0)},
+        {.name = "milliseconds", .data = "103ms", .ethalon = std::chrono::milliseconds(103)},
+        {.name = "milliseconds_huge", .data = "938493ms", .ethalon = std::chrono::milliseconds(938493)},
+        {.name = "milliseconds_zero", .data = "0ms", .ethalon = std::chrono::milliseconds(0)},
 
-        {"seconds", "13s", std::chrono::seconds(13)},
-        {"seconds_huge", "12093843s", std::chrono::seconds(12093843)},
-        {"seconds_zero", "0s", std::chrono::seconds(0)},
+        {.name = "seconds", .data = "13s", .ethalon = std::chrono::seconds(13)},
+        {.name = "seconds_huge", .data = "12093843s", .ethalon = std::chrono::seconds(12093843)},
+        {.name = "seconds_zero", .data = "0s", .ethalon = std::chrono::seconds(0)},
 
-        {"minutes", "13m", std::chrono::minutes(13)},
-        {"minutes_huge", "12093843m", std::chrono::minutes(12093843)},
-        {"minutes_zero", "0m", std::chrono::minutes(0)},
+        {.name = "minutes", .data = "13m", .ethalon = std::chrono::minutes(13)},
+        {.name = "minutes_huge", .data = "12093843m", .ethalon = std::chrono::minutes(12093843)},
+        {.name = "minutes_zero", .data = "0m", .ethalon = std::chrono::minutes(0)},
 
-        {"hours", "3h", std::chrono::hours(3)},
-        {"hours_huge", "120938439h", std::chrono::hours(120938439)},
-        {"hours_zero", "0h", std::chrono::hours(0)},
+        {.name = "hours", .data = "3h", .ethalon = std::chrono::hours(3)},
+        {.name = "hours_huge", .data = "120938439h", .ethalon = std::chrono::hours(120938439)},
+        {.name = "hours_zero", .data = "0h", .ethalon = std::chrono::hours(0)},
 
-        {"days", "3d", std::chrono::hours(3 * 24)},
-        {"days_huge", "938439d", std::chrono::hours(938439 * 24)},
-        {"days_zero", "0d", std::chrono::hours(0)},
+        {.name = "days", .data = "3d", .ethalon = std::chrono::hours(3 * 24)},
+        {.name = "days_huge", .data = "938439d", .ethalon = std::chrono::hours(938439 * 24)},
+        {.name = "days_zero", .data = "0d", .ethalon = std::chrono::hours(0)},
     }),
     ::testing::PrintToStringParamName()
 );

@@ -11,6 +11,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
+/// @brief Encoders/decoders: TSKV, hex, and related parsers.
 namespace utils::encoding {
 
 /// @brief Converts number to hex character; number must be within range [0,16)

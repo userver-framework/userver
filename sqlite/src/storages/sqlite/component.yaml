@@ -37,7 +37,7 @@ properties:
           - persist
           - memory
           - wal
-          - false
+          - off
     busy_timeout:
         type: integer
         description: timeout duration (in milliseconds) to wait when the database is busy
@@ -54,7 +54,7 @@ properties:
           - extra
           - full
           - normal
-          - false
+          - off
     cache_size:
         type: integer
         description: maximum cache size, specified in number of pages or in kibibytes (negative value)

@@ -35,7 +35,7 @@ public:
     friend void DumpMetric(utils::statistics::Writer& writer, const ThreadPool& self) { self.WriteStats(writer); }
 
 private:
-    ThreadPool(ThreadPoolConfig config, bool use_ev_default_loop);
+    ThreadPool(ThreadPoolConfig&& config, bool use_ev_default_loop);
 
     void WriteStats(utils::statistics::Writer& writer) const;
 

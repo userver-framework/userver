@@ -10,8 +10,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::impl::cdriver {
 
-/// @brief MongoDB collection implementation that operates within a transaction
-class CDriverTransactionCollectionImpl : public CollectionImpl {
+/// @brief MongoDB collection implementation that operates within a transaction.
+class CDriverTransactionCollectionImpl : public CDriverCollectionImpl {
 public:
     CDriverTransactionCollectionImpl(
         PoolImplPtr pool_impl,
@@ -35,6 +35,9 @@ public:
     Cursor Execute(const operations::Aggregate&) override;
     void Execute(const operations::Drop&) override;
 
+protected:
+    CDriverPoolImpl::BoundClientPtr GetClient(stats::OperationStatisticsItem& stats) const override;
+
 private:
     template <typename Operation>
     auto DoExecute(Operation&& op);
@@ -42,12 +45,8 @@ private:
     template <typename Operation>
     auto DoExecute(Operation&& op) const;
 
-    template <typename Operation>
-    RequestContext MakeTransactionRequestContext(std::string&& span_name, const Operation& operation) const;
-
     FindAndModifyOptsPtr CopyFAMOptsAndSetSession(const FindAndModifyOptsPtr& old_options) const;
 
-    CDriverCollectionImpl collection_;
     std::shared_ptr<TransactionData> data_;
 };
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 /// @file userver/ugrpc/tests/service_fixtures.hpp
 /// @brief gtest fixtures for testing ugrpc service implementations.  Requires
 /// linking to `userver::grpc-utest`.
@@ -47,8 +49,15 @@ class ServiceWithClientFixture : public ServiceFixture<GrpcService> {
 public:
     /// Passes @a args to the service fixture.
     template <typename... Args>
-    explicit ServiceWithClientFixture(Args&&... args)
-        : ServiceFixture<GrpcService>(std::forward<Args>(args)...),
+    explicit ServiceWithClientFixture(std::in_place_t = std::in_place, Args&&... args)
+        : ServiceFixture<GrpcService>(std::in_place, std::forward<Args>(args)...),
+          client_(this->ServiceFixture<GrpcService>::template MakeClient<ClientType>())
+    {}
+
+    /// Passes @a args to the service fixture, sets up the server and client according to @a configs.
+    template <typename... Args>
+    explicit ServiceWithClientFixture(ServiceConfigs&& configs, std::in_place_t = std::in_place, Args&&... args)
+        : ServiceFixture<GrpcService>(std::move(configs), std::in_place, std::forward<Args>(args)...),
           client_(this->ServiceFixture<GrpcService>::template MakeClient<ClientType>())
     {}
 

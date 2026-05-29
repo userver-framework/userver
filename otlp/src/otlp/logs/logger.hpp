@@ -89,9 +89,6 @@ public:
 
     std::string_view MapAttribute(std::string_view attr) const;
 
-protected:
-    bool DoShouldLog(logging::Level level) const noexcept override;
-
 private:
     using Action = std::variant<::opentelemetry::proto::logs::v1::LogRecord, ::opentelemetry::proto::trace::v1::Span>;
     using Queue = concurrent::NonFifoMpscQueue<Action>;

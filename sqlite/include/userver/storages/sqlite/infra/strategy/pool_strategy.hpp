@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/sqlite/infra/strategy/pool_strategy.hpp
+/// @brief @copybrief storages::sqlite::infra::strategy::PoolStrategyBase
+
 #include <memory>
 
 #include <userver/engine/async.hpp>
@@ -14,6 +17,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::infra::strategy {
 
+/// @brief Selects read-only vs read-write SQLite pool for an operation
 class PoolStrategyBase {
 public:
     virtual ~PoolStrategyBase();

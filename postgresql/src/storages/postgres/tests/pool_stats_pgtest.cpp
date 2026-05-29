@@ -188,7 +188,7 @@ UTEST_F(PostgrePoolStats, RunTransactions) {
     std::vector<engine::TaskWithResult<void>> tasks;
     tasks.reserve(trx_count);
     for (auto i = 0; i < trx_count; ++i) {
-        tasks.push_back(engine::AsyncNoSpan([&pool] {
+        tasks.push_back(engine::AsyncNoTracing([&pool] {
             pg::detail::ConnectionPtr conn(nullptr);
 
             UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline())) << "Obtained connection from pool";

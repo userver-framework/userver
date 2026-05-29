@@ -6,7 +6,6 @@
 #include <memory>
 
 #include <userver/components/component_base.hpp>
-#include <userver/utils/statistics/entry.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -65,7 +64,6 @@ private:
     clients::dns::Component& dns_;
 
     const std::shared_ptr<storages::mysql::Cluster> cluster_;
-    utils::statistics::Entry statistics_holder_;
 };
 
 }  // namespace storages::mysql

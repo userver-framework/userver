@@ -25,9 +25,16 @@ schema:
             properties:
                 enabled:
                     type: boolean
+                    description: |
+                        whether the profiler is enabled for the given TaskProcessor
                 execution-slice-threshold-us:
                     type: integer
+                    description: |
+                        Execution time threshold for a single coroutine on a system thread without yielding.
+                        If the threshold is exceeded, a log entry is written.
+                        If execution time is below the threshold, nothing is logged.
                     minimum: 1
                     x-taxi-cpp-type: std::chrono::microseconds
                 profiler-force-stacktrace:
                     type: boolean
+                    description: whether to log a stack trace for slow tasks

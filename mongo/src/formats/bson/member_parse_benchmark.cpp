@@ -163,7 +163,7 @@ Parse(const formats::bson::Value& bson, formats::parse::To<models::Requirements:
             seat.push_back(chair_class.As<short>());
         }
 
-        std::sort(seat.begin(), seat.end());
+        std::ranges::sort(seat);
         seats.push_back(std::move(seat));
     }
 

@@ -1,6 +1,6 @@
-#include <algorithm>
 #include <string_view>
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <userver/server/handlers/auth/digest/directives.hpp>
@@ -101,16 +101,13 @@ opaque="5ccc069c403ebaf9f0171e9517f40e41",
 auth-param="fictional parameter"
 )";
     Parser parser;
-    try {
-        parser.ParseAuthInfo(directives_str);
-    } catch (const MissingDirectivesException& ex) {
-        const auto& missing_directives = ex.GetMissingDirectives();
-        EXPECT_EQ(missing_directives.size(), 1);
-
-        // NOLINTNEXTLINE(readability-qualified-auto)
-        auto it = std::find(missing_directives.begin(), missing_directives.end(), directives::kRealm);
-        EXPECT_TRUE(it != missing_directives.end());
-    }
+    EXPECT_THAT(
+        [&] { parser.ParseAuthInfo(directives_str); },
+        testing::Throws<MissingDirectivesException>(testing::Property(
+            &MissingDirectivesException::GetMissingDirectives,
+            testing::UnorderedElementsAre(directives::kRealm)
+        ))
+    );
 }
 
 TEST(DirectivesParser, MultipleMandatoryDirectivesMissing) {
@@ -124,25 +121,18 @@ opaque="5ccc069c403ebaf9f0171e9517f40e41",
 auth-param="fictional parameter"
 )";
     Parser parser;
-    try {
-        parser.ParseAuthInfo(directives_str);
-    } catch (const MissingDirectivesException& ex) {
-        const auto& missing_directives = ex.GetMissingDirectives();
-        EXPECT_EQ(missing_directives.size(), 4);
-
-        // NOLINTNEXTLINE(readability-qualified-auto)
-        auto it = std::find(missing_directives.begin(), missing_directives.end(), directives::kRealm);
-        EXPECT_TRUE(it != missing_directives.end());
-
-        it = std::find(missing_directives.begin(), missing_directives.end(), directives::kRealm);
-        EXPECT_TRUE(it != missing_directives.end());
-
-        it = std::find(missing_directives.begin(), missing_directives.end(), directives::kNonce);
-        EXPECT_TRUE(it != missing_directives.end());
-
-        it = std::find(missing_directives.begin(), missing_directives.end(), directives::kUri);
-        EXPECT_TRUE(it != missing_directives.end());
-    }
+    EXPECT_THAT(
+        [&] { parser.ParseAuthInfo(directives_str); },
+        Throws<MissingDirectivesException>(testing::Property(
+            &MissingDirectivesException::GetMissingDirectives,
+            testing::UnorderedElementsAre(
+                directives::kRealm,
+                directives::kNonce,
+                directives::kUri,
+                directives::kUsername
+            )
+        ))
+    );
 }
 
 TEST(DirectivesParser, InvalidHeader) {

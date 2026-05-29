@@ -546,6 +546,12 @@ def userver_config_http_client(
         if mockserver_ssl_info:
             allowed_urls.append(mockserver_ssl_info.base_url)
         allowed_urls += allowed_url_prefixes_extra
+
+        # Add WebSocket prefixes (ws:// and wss://) alongside HTTP prefixes
+        allowed_urls.append(mockserver_info.ws_url('/'))
+        if mockserver_ssl_info:
+            allowed_urls.append(mockserver_ssl_info.ws_url('/'))
+
         http_client_core['testsuite-allowed-url-prefixes'] = allowed_urls
 
     return patch_config
@@ -658,6 +664,8 @@ def userver_config_testsuite(pytestconfig, mockserver_info) -> ServiceConfigPatc
     def patch_config(config, config_vars) -> None:
         # Don't delay tests teardown unnecessarily.
         config['components_manager'].pop('graceful_shutdown_interval', None)
+        config['components_manager'].pop('graceful_shutdown_continue_accepting_requests_interval', None)
+        config['components_manager'].pop('graceful_shutdown_pending_requests_completion_interval', None)
         components: dict = config['components_manager']['components']
         if 'testsuite-support' not in components:
             return

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/congestion_control/controllers/v2.hpp
+/// @brief Congestion control controller base class and statistics (v2)
+
 #include <atomic>
 #include <optional>
 

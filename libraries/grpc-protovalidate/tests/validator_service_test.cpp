@@ -48,11 +48,9 @@ class GrpcServerValidatorTest
       public testing::WithParamInterface<grpc_protovalidate::server::Settings> {
 public:
     GrpcServerValidatorTest()
-        : ugrpc::tests::ServiceWithClientFixture<UnitTestServiceValidator, types::UnitTestServiceClient>(
-              ugrpc::server::ServerConfig{},
-              ugrpc::server::Middlewares{std::make_shared<grpc_protovalidate::server::Middleware>(GetParam())},
-              ugrpc::client::Middlewares{}
-          )
+        : ugrpc::tests::ServiceWithClientFixture<UnitTestServiceValidator, types::UnitTestServiceClient>({
+              .server_middlewares = {std::make_shared<grpc_protovalidate::server::Middleware>(GetParam())},
+          })
     {}
 };
 
@@ -109,7 +107,7 @@ UTEST_P_MT(GrpcServerValidatorTest, AllValid, 2) {
 
     // check streaming method
     auto stream = GetClient().CheckConstraintsStreaming();
-    auto write_task = engine::AsyncNoSpan([&stream, &requests] {
+    auto write_task = engine::AsyncNoTracing([&stream, &requests] {
         for (const auto& request : requests) {
             const bool success = stream.Write(request);
             if (!success) {
@@ -165,7 +163,7 @@ UTEST_P_MT(GrpcServerValidatorTest, AllInvalid, 2) {
 
     // check streaming method
     auto stream = GetClient().CheckConstraintsStreaming();
-    auto write_task = engine::AsyncNoSpan([&stream, &requests] {
+    auto write_task = engine::AsyncNoTracing([&stream, &requests] {
         for (const auto& request : requests) {
             const bool success = stream.Write(request);
             if (!success) {

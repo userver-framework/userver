@@ -9,6 +9,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
+/// @brief JSON document model (`formats::json::Value`) and helpers.
 namespace formats::json {
 
 class ValueBuilder;

@@ -1,5 +1,9 @@
 #pragma once
 
+/// @file userver/yaml_config/map_to_array.hpp
+/// @brief @copybrief yaml_config::ParseMapToArray
+/// @ingroup userver_universal
+
 #include <utility>
 #include <vector>
 
@@ -7,6 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace yaml_config {
 
+/// @brief Parses YAML object maps into vectors of named elements.
 template <typename T, typename Value>
 std::vector<T> ParseMapToArray(const Value& value) {
     value.CheckObjectOrNull();

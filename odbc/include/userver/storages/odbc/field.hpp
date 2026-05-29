@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/odbc/field.hpp
+/// @brief @copybrief storages::odbc::Field
+
 #include <cstdint>
 
 #include <userver/storages/odbc/odbc_fwd.hpp>
@@ -8,6 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::odbc {
 
+/// @brief Single cell in an ODBC result set row
 class Field {
 public:
     using size_type = std::size_t;

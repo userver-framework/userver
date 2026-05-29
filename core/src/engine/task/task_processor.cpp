@@ -2,6 +2,7 @@
 
 #include <sys/types.h>
 #include <csignal>
+#include <latch>
 
 #if __has_include(<util/system/progname.h>)
 #define ARCADIA
@@ -11,7 +12,6 @@
 
 #include <fmt/format.h>
 
-#include <concurrent/impl/latch.hpp>
 #include <userver/compiler/impl/tsan.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
@@ -44,24 +44,24 @@ constexpr OverloadActionAndValue<OverloadBitAndValue> GetOverloadActionAndValue(
 ) {
     const auto value = x.load();
     if (value < OverloadBitAndValue{0}) {
-        return {TaskProcessorSettingsOverloadAction::kIgnore, -value};
+        return {.action = TaskProcessorSettingsOverloadAction::kIgnore, .value = -value};
     } else {
-        return {TaskProcessorSettingsOverloadAction::kCancel, value};
+        return {.action = TaskProcessorSettingsOverloadAction::kCancel, .value = value};
     }
 }
 
-void SetTaskQueueWaitTimepoint(impl::TaskContext* context) {
+void SetTaskQueueWaitTimepoint(impl::TaskContext& context) {
     static constexpr std::size_t kTaskTimestampInterval = 4;
     thread_local std::size_t task_count = 0;
     if (task_count++ == kTaskTimestampInterval) {
         task_count = 0;
-        context->SetQueueWaitTimepoint(std::chrono::steady_clock::now());
+        context.SetQueueWaitTimepoint(std::chrono::steady_clock::now());
     } else {
         /* Don't call clock_gettime() too often.
          * This leads to killing some innocent tasks on overload, up to
          * +(kTaskTimestampInterval-1), we may sacrifice them.
          */
-        context->SetQueueWaitTimepoint(std::chrono::steady_clock::time_point());
+        context.SetQueueWaitTimepoint(std::chrono::steady_clock::time_point());
     }
 }
 
@@ -77,7 +77,7 @@ void EmitMagicNanosleep() {
     // that all startup stuff of the current thread is done.
     // Before this timepoint we could do blocking syscalls.
     // From now on, every blocking syscall is a bug.
-    const struct timespec ts = {0, 42};
+    const struct timespec ts = {.tv_sec = 0, .tv_nsec = 42};
     nanosleep(&ts, nullptr);
 }
 
@@ -143,7 +143,7 @@ TaskProcessor::TaskProcessor(TaskProcessorConfig config, std::shared_ptr<impl::T
         LOG_INFO()
             << "creating task_processor " << Name() << " "
             << "worker_threads=" << config_.worker_threads << " thread_name=" << config_.thread_name;
-        concurrent::impl::Latch workers_left{static_cast<std::ptrdiff_t>(config_.worker_threads)};
+        std::latch workers_left{static_cast<std::ptrdiff_t>(config_.worker_threads)};
         workers_.reserve(config_.worker_threads);
         for (std::size_t i = 0; i < config_.worker_threads; ++i) {
             workers_.emplace_back([this, i, &workers_left] {
@@ -191,7 +191,7 @@ void TaskProcessor::InitiateShutdown() {
     detached_contexts_->RequestCancellation(TaskCancellationReason::kShutdown);
 }
 
-void TaskProcessor::Schedule(impl::TaskContext* context) {
+void TaskProcessor::Schedule(boost::intrusive_ptr<impl::TaskContext>&& context) {
     UASSERT(context);
     UASSERT(&context->GetTaskProcessor() == this);
     const auto [action, max_queue_length] = GetOverloadActionAndValue(action_bit_and_max_task_queue_wait_length_);
@@ -213,9 +213,9 @@ void TaskProcessor::Schedule(impl::TaskContext* context) {
         context->RequestCancel(TaskCancellationReason::kShutdown);
     }
 
-    SetTaskQueueWaitTimepoint(context);
+    SetTaskQueueWaitTimepoint(*context);
 
-    std::visit([&context](auto&& arg) { return arg.Push(context); }, task_queue_);
+    std::visit([&context](auto&& arg) { return arg.Push(std::move(context)); }, task_queue_);
 }
 
 void TaskProcessor::Adopt(impl::TaskContext& context) { detached_contexts_->Add(context); }
@@ -396,20 +396,14 @@ void TaskProcessor::ProcessTasks() noexcept {
 
         CheckWaitTime(*context);
 
-        bool has_failed = false;
         try {
             const impl::TaskCounter::RunningToken token{GetTaskCounter()};
             context->DoStep();
         } catch (const std::exception& ex) {
             LOG_ERROR() << "uncaught exception from DoStep: " << ex;
-            has_failed = true;
         }
 
         pools_->GetCoroPool().AccountStackUsage();
-
-        if (has_failed || context->IsFinished()) {
-            context->FinishDetached();
-        }
     }
 }
 
@@ -425,8 +419,6 @@ void TaskProcessor::CheckWaitTime(impl::TaskContext& context) {
     const auto wait_timepoint = context.GetQueueWaitTimepoint();
     if (wait_timepoint != std::chrono::steady_clock::time_point()) {
         const auto wait_time = std::chrono::steady_clock::now() - wait_timepoint;
-        const auto wait_time_us = std::chrono::duration_cast<std::chrono::microseconds>(wait_time);
-        LOG_TRACE() << "queue wait time = " << wait_time_us.count() << "us";
 
         SetTaskQueueWaitTimeOverloaded(max_wait_time.count() && wait_time >= max_wait_time);
 

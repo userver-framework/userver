@@ -1,5 +1,7 @@
 #include <gtest/gtest.h>
 
+#include <unordered_map>
+
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/object.hpp>
 #include <userver/formats/json/serialize.hpp>

@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <cstdlib>
 #include <deque>
 #include <string>
@@ -26,7 +27,7 @@ public:
         }
 
         auto chars_to_copy = utils::RandRange(std::min(len, buffer_.size())) + 1;
-        std::copy(buffer_.begin(), buffer_.begin() + chars_to_copy, reinterpret_cast<char*>(buf));
+        std::copy(buffer_.begin(), buffer_.begin() + chars_to_copy, static_cast<char*>(buf));
         buffer_.erase(buffer_.begin(), buffer_.begin() + chars_to_copy);
         return chars_to_copy;
     }

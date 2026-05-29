@@ -7,6 +7,7 @@
 #include <string_view>
 #include <type_traits>
 
+#include <userver/compiler/impl/nodebug.hpp>
 #include <userver/formats/common/meta.hpp>
 #include <userver/formats/common/transfer_tag.hpp>
 #include <userver/formats/json/impl/mutable_value_wrapper.hpp>
@@ -16,8 +17,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace formats::json {
-
-// clang-format off
 
 /// @ingroup userver_universal userver_containers userver_formats
 ///
@@ -35,9 +34,6 @@ namespace formats::json {
 /// @snippet formats/json/value_builder_test.cpp  Sample Customization formats::json::ValueBuilder usage
 ///
 /// @see @ref scripts/docs/en/userver/formats.md
-
-// clang-format on
-
 class ValueBuilder final {
 public:
     struct IterTraits {
@@ -88,13 +84,9 @@ public:
     /// @}
 
     /// Universal constructor using Serialize
-    template <
-        typename T,
-        typename = std::enable_if_t<
-            !std::is_same_v<std::decay_t<T>, ValueBuilder> && !std::is_same_v<std::decay_t<T>, Value> &&
-            !std::is_same_v<std::decay_t<T>, std::string>>>
-    ValueBuilder(T&& t)
-        : ValueBuilder(DoSerialize(std::forward<T>(t)))
+    template <typename T>
+    ValueBuilder(const T& t)
+        : ValueBuilder(DoSerialize(t))
     {}
 
     /// @brief Access member by key for modification.
@@ -106,11 +98,11 @@ public:
     ValueBuilder operator[](std::size_t index);
     /// @brief Access member by key for modification.
     /// @throw `TypeMismatchException` if not object or null value.
-    template <
-        typename Tag,
-        utils::StrongTypedefOps Ops,
-        typename Enable = std::enable_if_t<utils::IsStrongTypedefLoggable(Ops)>>
-    ValueBuilder operator[](utils::StrongTypedef<Tag, std::string, Ops> key);
+    template <typename Tag, utils::StrongTypedefOps Ops>
+    requires(utils::IsStrongTypedefLoggable(Ops))
+    ValueBuilder operator[](utils::StrongTypedef<Tag, std::string, Ops> key) {
+        return (*this)[std::move(key.GetUnderlying())];
+    }
 
     /// @brief Emplaces new member w/o a check whether the key already exists.
     /// @warning May create invalid JSON with duplicate key.
@@ -200,7 +192,19 @@ private:
     impl::Value& AddMember(std::string_view key, CheckMemberExists);
 
     template <typename T>
-    static Value DoSerialize(T&& t);
+    USERVER_IMPL_NODEBUG_INLINE_FUNC static Value DoSerialize(const T& t) {
+        static_assert(
+            formats::common::impl::HasSerialize<Value, T>,
+            "There is no `Serialize(const T&, formats::serialize::To<json::Value>)` "
+            "in namespace of `T` or `formats::serialize`. "
+            ""
+            "Probably you forgot to include the <userver/formats/serialize/common_containers.hpp> header "
+            "or one of the <formats/json/serialize_*.hpp> headers or you have not provided a `Serialize` function "
+            "overload."
+        );
+
+        return Serialize(t, formats::serialize::To<Value>());
+    }
 
     impl::MutableValueWrapper value_;
 
@@ -209,39 +213,18 @@ private:
 };
 
 template <typename T>
-Value ValueBuilder::DoSerialize(T&& t) {
-    static_assert(
-        formats::common::impl::kHasSerialize<Value, std::remove_reference_t<T>>,
-        "There is no `Serialize(const T&, formats::serialize::To<json::Value>)` "
-        "in namespace of `T` or `formats::serialize`. "
-        ""
-        "Probably you forgot to include the "
-        "<userver/formats/serialize/common_containers.hpp> header "
-        "or one of the <formats/json/serialize_*.hpp> headers or you "
-        "have not provided a `Serialize` function overload."
-    );
-
-    return Serialize(std::forward<T>(t), formats::serialize::To<Value>());
-}
-
-template <typename T>
-std::enable_if_t<std::is_integral<T>::value && sizeof(T) <= sizeof(int64_t), Value>
-Serialize(T value, formats::serialize::To<Value>) {
+requires(std::is_integral<T>::value && sizeof(T) <= sizeof(int64_t))
+Value Serialize(T value, formats::serialize::To<Value>) {
     using Type = std::conditional_t<std::is_signed<T>::value, int64_t, uint64_t>;
     return json::ValueBuilder(static_cast<Type>(value)).ExtractValue();
 }
 
 json::Value Serialize(std::chrono::system_clock::time_point tp, formats::serialize::To<Value>);
 
-template <typename Tag, utils::StrongTypedefOps Ops, typename Enable>
-ValueBuilder ValueBuilder::operator[](utils::StrongTypedef<Tag, std::string, Ops> key) {
-    return (*this)[std::move(key.GetUnderlying())];
-}
-
 /// Optimized maps of StrongTypedefs serialization for JSON
 template <typename T>
-std::enable_if_t<meta::kIsUniqueMap<T> && utils::IsStrongTypedefLoggable(T::key_type::kOps), Value>
-Serialize(const T& value, formats::serialize::To<Value>) {
+requires(meta::IsUniqueMap<T> && utils::IsStrongTypedefLoggable(T::key_type::kOps))
+Value Serialize(const T& value, formats::serialize::To<Value>) {
     json::ValueBuilder builder(formats::common::Type::kObject);
     for (const auto& [key, value] : value) {
         builder.EmplaceNocheck(key.GetUnderlying(), value);
@@ -251,8 +234,8 @@ Serialize(const T& value, formats::serialize::To<Value>) {
 
 /// Optimized maps serialization for JSON
 template <typename T>
-std::enable_if_t<meta::kIsUniqueMap<T> && std::is_convertible_v<typename T::key_type, std::string>, Value>
-Serialize(const T& value, formats::serialize::To<Value>) {
+requires meta::IsUniqueMap<T> && std::is_convertible_v<typename T::key_type, std::string>
+Value Serialize(const T& value, formats::serialize::To<Value>) {
     json::ValueBuilder builder(formats::common::Type::kObject);
     for (const auto& [key, value] : value) {
         builder.EmplaceNocheck(key, value);

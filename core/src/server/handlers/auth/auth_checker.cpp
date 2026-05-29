@@ -1,6 +1,7 @@
 #include "auth_checker.hpp"
 
 #include <userver/server/handlers/auth/auth_checker_factory.hpp>
+#include <userver/utils/algo.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -43,7 +44,7 @@ std::vector<AuthCheckerBasePtr> CreateAuthCheckers(const AuthCheckerFactories& f
     std::vector<AuthCheckerBasePtr> auth_checkers;
 
     for (const auto& auth_type : config.auth->GetTypes()) {
-        const auto factory = utils::impl::FindTransparentOrNullptr(factories, auth_type);
+        const auto factory = utils::FindOrNullptr(factories, auth_type);
         if (factory == nullptr) {
             throw std::runtime_error(fmt::format("Invalid auth type '{}'", auth_type));
         }

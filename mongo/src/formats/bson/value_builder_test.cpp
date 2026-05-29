@@ -472,6 +472,18 @@ TEST(BsonValueBuilder, EmplaceNocheckTest) {
     EXPECT_EQ(91, value["ffffqwe3"].As<int>());
 }
 
+TEST(BsonValueBuilder, GetPathTest) {
+    static const auto
+        kDoc = fb::MakeDoc("field_1", fb::MakeDoc("field_2", fb::MakeDoc("field_3", 12)), "field_1_1", 42);
+
+    formats::bson::ValueBuilder builder{kDoc};
+    EXPECT_EQ("/", builder.GetPath());
+    EXPECT_EQ("field_1", builder["field_1"].GetPath());
+    EXPECT_EQ("field_1.field_2", builder["field_1"]["field_2"].GetPath());
+    EXPECT_EQ("field_1.field_2.field_3", builder["field_1"]["field_2"]["field_3"].GetPath());
+    EXPECT_EQ("field_1_1", builder["field_1_1"].GetPath());
+}
+
 }  // namespace my_namespace
 
 /// [Sample Customization formats::bson::ValueBuilder usage]

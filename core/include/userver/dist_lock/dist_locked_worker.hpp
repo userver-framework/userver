@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/dist_lock/dist_locked_worker.hpp
+/// @brief @copybrief dist_lock::DistLockedWorker
+
 #include <chrono>
 #include <functional>
 #include <memory>
@@ -22,7 +25,7 @@ class Locker;
 
 }  // namespace impl
 
-/// A high-level primitive that perpetually tries to acquire a distributed lock
+/// @brief Perpetually acquires a distributed lock and runs a callback while it is held
 /// and runs user callback in a separate task while the lock is held.
 /// Cancels the task when the lock is lost.
 class DistLockedWorker final {

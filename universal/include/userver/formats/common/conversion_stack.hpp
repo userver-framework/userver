@@ -19,6 +19,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
+/// @brief Shared types and helpers for JSON/YAML format layers.
 namespace formats::common {
 
 /// @brief Used in the implementation of functions that convert between

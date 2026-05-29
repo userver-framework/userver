@@ -10,6 +10,7 @@
 
 #include <userver/ugrpc/client/impl/completion_queue_pool.hpp>
 #include <userver/ugrpc/client/proxy_settings.hpp>
+#include <userver/ugrpc/client/retry_limiter.hpp>
 #include <userver/ugrpc/impl/completion_queue_pool_base.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
 
@@ -49,6 +50,7 @@ private:
     ugrpc::impl::CompletionQueuePoolBase& completion_queues_;
     ugrpc::impl::StatisticsStorage client_statistics_storage_;
     ProxySettings proxy_settings_;
+    RetryLimiterFactory* retry_limiter_factory_;
 };
 
 }  // namespace ugrpc::client

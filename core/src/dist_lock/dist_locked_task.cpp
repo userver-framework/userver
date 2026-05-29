@@ -17,12 +17,19 @@ DistLockedTask::DistLockedTask(
     std::shared_ptr<DistLockStrategyBase> strategy,
     const DistLockSettings& settings,
     DistLockWaitingMode mode,
-    DistLockRetryMode retry_mode
+    DistLockRetryMode retry_mode,
+    logging::Level base_log_level
 )
     : DistLockedTask(
           engine::current_task::GetTaskProcessor(),
-          std::make_shared<
-              impl::Locker>(std::move(name), std::move(strategy), settings, std::move(worker_func), retry_mode),
+          std::make_shared<impl::Locker>(
+              std::move(name),
+              std::move(strategy),
+              settings,
+              std::move(worker_func),
+              retry_mode,
+              base_log_level
+          ),
           mode
       )
 {}
@@ -34,12 +41,19 @@ DistLockedTask::DistLockedTask(
     std::shared_ptr<DistLockStrategyBase> strategy,
     const DistLockSettings& settings,
     DistLockWaitingMode mode,
-    DistLockRetryMode retry_mode
+    DistLockRetryMode retry_mode,
+    logging::Level base_log_level
 )
     : DistLockedTask(
           task_processor,
-          std::make_shared<
-              impl::Locker>(std::move(name), std::move(strategy), settings, std::move(worker_func), retry_mode),
+          std::make_shared<impl::Locker>(
+              std::move(name),
+              std::move(strategy),
+              settings,
+              std::move(worker_func),
+              retry_mode,
+              base_log_level
+          ),
           mode
       )
 {}

@@ -25,15 +25,11 @@ class TaskAlreadyRunning final : public std::runtime_error {
     using std::runtime_error::runtime_error;
 };
 
-// clang-format off
-
 /// @brief Testsuite tasks support
 ///
 /// A testsuite task is a function that can be called from testsuite by its name.
 /// Only one task with the same name can be run simultaneously.
 ///
-
-// clang-format on
 class TestsuiteTasks final {
 public:
     /// Task function type

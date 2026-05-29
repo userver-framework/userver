@@ -18,8 +18,7 @@ SubscriptionToken SubscribeClientImpl::Subscribe(
     SubscriptionToken::OnMessageCb on_message_cb,
     const CommandControl& command_control
 ) {
-    return {std::make_unique<
-        SubscriptionTokenImpl>(*redis_client_, std::move(channel), std::move(on_message_cb), command_control)};
+    return Subscribe(std::vector{std::move(channel)}, std::move(on_message_cb), command_control);
 }
 
 SubscriptionToken SubscribeClientImpl::Psubscribe(
@@ -27,8 +26,7 @@ SubscriptionToken SubscribeClientImpl::Psubscribe(
     SubscriptionToken::OnPmessageCb on_pmessage_cb,
     const CommandControl& command_control
 ) {
-    return {std::make_unique<
-        PsubscriptionTokenImpl>(*redis_client_, std::move(pattern), std::move(on_pmessage_cb), command_control)};
+    return Psubscribe(std::vector<std::string>{std::move(pattern)}, std::move(on_pmessage_cb), command_control);
 }
 
 SubscriptionToken SubscribeClientImpl::Ssubscribe(
@@ -36,8 +34,34 @@ SubscriptionToken SubscribeClientImpl::Ssubscribe(
     SubscriptionToken::OnMessageCb on_message_cb,
     const CommandControl& command_control
 ) {
+    return Ssubscribe(std::vector{std::move(channel)}, std::move(on_message_cb), command_control);
+}
+
+SubscriptionToken SubscribeClientImpl::Subscribe(
+    std::vector<std::string> channels,
+    SubscriptionToken::OnMessageCb on_message_cb,
+    const CommandControl& command_control
+) {
     return {std::make_unique<
-        SsubscriptionTokenImpl>(*redis_client_, std::move(channel), std::move(on_message_cb), command_control)};
+        SubscriptionTokenImpl>(*redis_client_, std::move(channels), std::move(on_message_cb), command_control)};
+}
+
+SubscriptionToken SubscribeClientImpl::Psubscribe(
+    std::vector<std::string> patterns,
+    SubscriptionToken::OnPmessageCb on_pmessage_cb,
+    const CommandControl& command_control
+) {
+    return {std::make_unique<
+        PsubscriptionTokenImpl>(*redis_client_, std::move(patterns), std::move(on_pmessage_cb), command_control)};
+}
+
+SubscriptionToken SubscribeClientImpl::Ssubscribe(
+    std::vector<std::string> channels,
+    SubscriptionToken::OnMessageCb on_message_cb,
+    const CommandControl& command_control
+) {
+    return {std::make_unique<
+        SsubscriptionTokenImpl>(*redis_client_, std::move(channels), std::move(on_message_cb), command_control)};
 }
 
 void SubscribeClientImpl::WaitConnectedOnce(RedisWaitConnected wait_connected) {

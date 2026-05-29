@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package equals;
+
+option go_package = "a.yandex-team.ru/taxi/uservices/userver/libraries/proto-structs/codegen-tests/proto/equals;equals";
+
+message Recursive {
+    optional TestEqualOperator recursive = 1;
+}
+
+message TestEqualOperator {
+    int32 some_integer = 1;
+    string str = 2;
+    repeated string arr = 3;
+
+    oneof something {
+        int64 foo = 4;
+        string bar = 5;
+    };
+
+    Recursive recursive = 6;
+}
+

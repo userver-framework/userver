@@ -8,6 +8,8 @@
 #include <string_view>
 #include <vector>
 
+#include <algorithm>
+
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/storages/postgres/io/buffer_io.hpp>
 #include <userver/storages/postgres/io/buffer_io_base.hpp>
@@ -32,10 +34,7 @@ template <typename... VectorArgs>
 struct IsByteaCompatible<std::vector<unsigned char, VectorArgs...>> : std::true_type {};
 
 template <typename T>
-inline constexpr bool kIsByteaCompatible = IsByteaCompatible<T>::value;
-
-template <typename T>
-using EnableIfByteaCompatible = std::enable_if_t<IsByteaCompatible<T>{}>;
+concept kIsByteaCompatible = IsByteaCompatible<T>::value;  // NOLINT(readability-identifier-naming)
 
 }  // namespace io::traits
 
@@ -56,29 +55,23 @@ struct ByteaRefWrapper {
 
 }  // namespace detail
 
-// clang-format off
 /// Helper function for reading binary data
 ///
 /// Example usage:
 /// @snippet postgresql/src/storages/postgres/tests/bytea_pgtest.cpp bytea_simple
 /// @snippet postgresql/src/storages/postgres/tests/bytea_pgtest.cpp bytea_string
 /// @snippet postgresql/src/storages/postgres/tests/bytea_pgtest.cpp bytea_vector
-// clang-format on
-
 template <typename ByteContainer>
 detail::ByteaRefWrapper<const ByteContainer&> Bytea(const ByteContainer& bytes) {
     return {bytes};
 }
 
-// clang-format off
 /// Helper function for reading binary data
 ///
 /// Example usage:
 /// @snippet postgresql/src/storages/postgres/tests/bytea_pgtest.cpp bytea_simple
 /// @snippet postgresql/src/storages/postgres/tests/bytea_pgtest.cpp bytea_string
 /// @snippet postgresql/src/storages/postgres/tests/bytea_pgtest.cpp bytea_vector
-// clang-format on
-
 template <typename ByteContainer>
 detail::ByteaRefWrapper<ByteContainer&> Bytea(ByteContainer& bytes) {
     return {bytes};
@@ -102,9 +95,8 @@ struct ByteaWrapper {
 namespace io {
 
 template <typename ByteContainer>
-struct BufferParser<
-    postgres::detail::ByteaRefWrapper<ByteContainer>,
-    traits::EnableIfByteaCompatible<std::decay_t<ByteContainer>>>
+requires traits::kIsByteaCompatible<std::decay_t<ByteContainer>>
+struct BufferParser<postgres::detail::ByteaRefWrapper<ByteContainer>>
     : detail::BufferParserBase<postgres::detail::ByteaRefWrapper<ByteContainer>&&> {
     using BaseType = detail::BufferParserBase<postgres::detail::ByteaRefWrapper<ByteContainer>&&>;
     using BaseType::BaseType;
@@ -121,7 +113,8 @@ struct BufferParser<
 };
 
 template <typename ByteContainer>
-struct BufferParser<postgres::ByteaWrapper<ByteContainer>, traits::EnableIfByteaCompatible<std::decay_t<ByteContainer>>>
+requires traits::kIsByteaCompatible<std::decay_t<ByteContainer>>
+struct BufferParser<postgres::ByteaWrapper<ByteContainer>>
     : detail::BufferParserBase<postgres::ByteaWrapper<ByteContainer>> {
     using BaseType = detail::BufferParserBase<postgres::ByteaWrapper<ByteContainer>>;
     using BaseType::BaseType;
@@ -130,9 +123,8 @@ struct BufferParser<postgres::ByteaWrapper<ByteContainer>, traits::EnableIfBytea
 };
 
 template <typename ByteContainer>
-struct BufferFormatter<
-    postgres::detail::ByteaRefWrapper<ByteContainer>,
-    traits::EnableIfByteaCompatible<std::decay_t<ByteContainer>>>
+requires traits::kIsByteaCompatible<std::decay_t<ByteContainer>>
+struct BufferFormatter<postgres::detail::ByteaRefWrapper<ByteContainer>>
     : detail::BufferFormatterBase<postgres::detail::ByteaRefWrapper<ByteContainer>> {
     using BaseType = detail::BufferFormatterBase<postgres::detail::ByteaRefWrapper<ByteContainer>>;
     using BaseType::BaseType;
@@ -145,8 +137,8 @@ struct BufferFormatter<
 };
 
 template <typename ByteContainer>
-struct
-    BufferFormatter<postgres::ByteaWrapper<ByteContainer>, traits::EnableIfByteaCompatible<std::decay_t<ByteContainer>>>
+requires traits::kIsByteaCompatible<std::decay_t<ByteContainer>>
+struct BufferFormatter<postgres::ByteaWrapper<ByteContainer>>
     : detail::BufferFormatterBase<postgres::ByteaWrapper<ByteContainer>> {
     using BaseType = detail::BufferFormatterBase<postgres::ByteaWrapper<ByteContainer>>;
     using BaseType::BaseType;

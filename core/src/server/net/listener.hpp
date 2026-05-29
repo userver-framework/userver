@@ -27,6 +27,8 @@ public:
     Listener& operator=(Listener&&) = default;
 
     void Start();
+    void StopListening();
+    bool WaitForNoConnections(engine::Deadline deadline) const;
 
     StatsAggregation GetStats() const;
 

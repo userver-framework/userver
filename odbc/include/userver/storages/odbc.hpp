@@ -5,6 +5,7 @@
 /// that are required for working with ODBC µserver component.
 
 #include <userver/storages/odbc/cluster.hpp>
+#include <userver/storages/odbc/component.hpp>
 #include <userver/storages/odbc/exception.hpp>
 
 USERVER_NAMESPACE_BEGIN

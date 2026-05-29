@@ -7,6 +7,7 @@
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
+#include <userver/utils/algo.hpp>
 #include <userver/utils/impl/transparent_hash.hpp>
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/statistics/fmt.hpp>
@@ -100,7 +101,7 @@ private:
     }
 
     void DumpMetricNameAndType(std::string_view name, const MetricValue& value) {
-        if (const auto* const converted = utils::impl::FindTransparentOrNullptr(metrics_, name)) {
+        if (const auto* const converted = utils::FindOrNullptr(metrics_, name)) {
             buf_.append(*converted);
             return;
         }

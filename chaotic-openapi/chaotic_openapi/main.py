@@ -1,22 +1,29 @@
 import argparse
 import os
 import sys
+from typing import NoReturn
 
 import yaml
 
 from chaotic import error as chaotic_error
-from chaotic_openapi.back.cpp_client import renderer
-from chaotic_openapi.back.cpp_client import translator
+from chaotic_openapi.back.cpp.client import renderer as client_renderer
+from chaotic_openapi.back.cpp.client import translator as client_translator
+from chaotic_openapi.back.cpp.handler import renderer as handler_renderer
+from chaotic_openapi.back.cpp.handler import translator as handler_translator
 from chaotic_openapi.front import parser as front_parser
 from chaotic_openapi.front import ref_resolver
+
+
+def die(msg: str) -> NoReturn:
+    print(msg, file=sys.stderr)
+    sys.exit(1)
 
 
 def main():
     try:
         do_main()
     except chaotic_error.BaseError as exc:
-        print(exc, file=sys.stderr)
-        sys.exit(1)
+        die(str(exc))
 
 
 def do_main():
@@ -35,30 +42,75 @@ def do_main():
     for file, content in sorted_contents:
         parser.parse_schema(content, file, os.path.basename(file))
 
-    # translate
-    spec = translator.Translator(
-        parser.service(),
-        dynamic_config=args.dynamic_config,
-        cpp_namespace=(args.namespace or f'clients::{args.name}'),
-        include_dirs=args.include_dirs or [],
-        middleware_plugins=[],
-    ).spec()
-
-    # render
-    ctx = renderer.Context(
+    ctx = client_renderer.Context(
         generate_path='',
         clang_format_bin=args.clang_format,
         uservices_library_tvm_guard_hack=False,
     )
-    outputs = renderer.render(spec, ctx)
-    renderer.CppOutput.save(outputs, args.output_dir)
+
+    if args.gen == 'client':
+        if not args.output_dir:
+            die('-o is required for --gen client')
+        spec = client_translator.Translator(
+            parser.service(),
+            dynamic_config=args.dynamic_config,
+            cpp_namespace=(args.namespace or f'clients::{args.name}'),
+            include_dirs=args.include_dirs or [],
+            middleware_plugins=[],
+        ).spec()
+        outputs = client_renderer.render(spec, ctx)
+        client_renderer.CppOutput.save(outputs, args.output_dir)
+
+    elif args.gen in ('handlers', 'handlers+views', 'views'):
+        if args.gen != 'views' and not args.output_dir:
+            die(f'-o is required for --gen {args.gen}')
+        if args.gen in ('handlers+views', 'views') and not args.src_dir:
+            die(f'--src-dir is required for --gen {args.gen}')
+
+        spec = handler_translator.HandlerTranslator(
+            parser.service(),
+            cpp_namespace=(args.namespace or f'handlers::{args.name}'),
+            include_dirs=args.include_dirs or [],
+        ).spec()
+
+        if args.gen in ('handlers', 'handlers+views'):
+            # handlers
+            outputs = handler_renderer.render(spec, ctx, args.userver)
+            client_renderer.CppOutput.save(outputs, args.output_dir)
+
+            # config.yaml
+            config_content = handler_renderer.render_config_yaml(spec)
+            handler_renderer.save_config_yaml(config_content, args.output_dir)
+        if args.gen in ('handlers+views', 'views'):
+            view_outputs = handler_renderer.render_views(spec, ctx, args.userver)
+            handler_renderer.save_views(view_outputs, args.src_dir)
+
+    else:
+        die(f'Unknown --gen value: {args.gen!r}')
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument('--name', required=True, help='Client name')
-    parser.add_argument('-o', '--output-dir', required=True)
+    parser.add_argument('--name', required=True, help='Client/Service name')
+    parser.add_argument('-o', '--output-dir', required=False, default=None)
     parser.add_argument('--namespace', required=False)
+    parser.add_argument(
+        '-u',
+        '--userver',
+        default='USERVER_NAMESPACE',
+        help='userver namespace macro name',
+    )
+    parser.add_argument(
+        '--src-dir',
+        required=False,
+        default=None,
+        help='Source root for generated view stubs (--gen views or handlers+views)',
+    )
+    parser.add_argument(
+        '--gen',
+        choices=['client', 'handlers', 'views', 'handlers+views'],
+        help=('What to generate: client code, handler base classes, view stubs, or both handlers and view stubs'),
+    )
     parser.add_argument('--dynamic-config', default='')
     parser.add_argument(
         '--clang-format',

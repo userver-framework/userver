@@ -10,7 +10,7 @@ namespace my {
 template <typename T>
 struct CustomArray final {
     template <typename U>
-    CustomArray(const U& value)
+    explicit CustomArray(const U& value)
         : s(value.begin(), value.end())
     {}
     std::vector<T> s;

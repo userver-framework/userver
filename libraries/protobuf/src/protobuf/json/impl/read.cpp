@@ -337,7 +337,7 @@ public:
             return ReadBytesValueMessage;
     }
 
-    UINVARIANT(false, "Protobuf message classifed to unknown type");
+    UINVARIANT(false, "Protobuf message classified to unknown type");
 }
 
 [[nodiscard]] bool StartsWith(const std::string_view& str, const std::string_view& prefix) {

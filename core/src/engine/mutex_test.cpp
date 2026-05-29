@@ -35,7 +35,7 @@ TYPED_UTEST_P(Mutex, LockUnlockDouble) {
 TYPED_UTEST_P(Mutex, WaitAndCancel) {
     TypeParam mutex;
     std::unique_lock lock(mutex);
-    auto task = engine::AsyncNoSpan([&mutex]() { const std::lock_guard lock(mutex); });
+    auto task = engine::AsyncNoTracing([&mutex]() { const std::lock_guard lock(mutex); });
 
     task.WaitFor(std::chrono::milliseconds(50));
     EXPECT_FALSE(task.IsFinished());
@@ -58,17 +58,17 @@ TYPED_UTEST_P(Mutex, TryLock) {
     EXPECT_TRUE(!!std::unique_lock<TypeParam>(mutex, std::chrono::system_clock::now()));
 
     std::unique_lock lock(mutex);
-    EXPECT_FALSE(engine::AsyncNoSpan([&mutex] { return !!std::unique_lock<TypeParam>(mutex, std::try_to_lock); }).Get()
-    );
+    EXPECT_FALSE(engine::AsyncNoTracing([&mutex] { return !!std::unique_lock<TypeParam>(mutex, std::try_to_lock); }
+    ).Get());
 
-    EXPECT_FALSE(engine::AsyncNoSpan([&mutex] {
+    EXPECT_FALSE(engine::AsyncNoTracing([&mutex] {
                      return !!std::unique_lock<TypeParam>(mutex, std::chrono::milliseconds(10));
                  }).Get());
-    EXPECT_FALSE(engine::AsyncNoSpan([&mutex] {
+    EXPECT_FALSE(engine::AsyncNoTracing([&mutex] {
                      return !!std::unique_lock<TypeParam>(mutex, std::chrono::system_clock::now());
                  }).Get());
 
-    auto long_waiter = engine::AsyncNoSpan([&mutex] {
+    auto long_waiter = engine::AsyncNoTracing([&mutex] {
         return !!std::unique_lock<TypeParam>(mutex, utest::kMaxTestWaitTime);
     });
     engine::Yield();
@@ -98,7 +98,7 @@ TYPED_UTEST_P_MT(Mutex, LockPassing, kThreads) {
         std::vector<engine::TaskWithResult<void>> tasks;
         tasks.reserve(worker_count);
         for (size_t i = 0; i < worker_count; ++i) {
-            tasks.push_back(engine::AsyncNoSpan(work));
+            tasks.push_back(engine::AsyncNoTracing(work));
         }
 
         for (auto& task : tasks) {
@@ -120,14 +120,14 @@ TYPED_UTEST_P_MT(Mutex, NotifyAndDeadlineRace, 2) {
 
         engine::SingleConsumerEvent lock_acquired;
 
-        auto deadline_task = engine::AsyncNoSpan([&] {
+        auto deadline_task = engine::AsyncNoTracing([&] {
             if (mutex.try_lock_for(kSmallWaitTime)) {
                 mutex.unlock();
                 lock_acquired.Send();
             }
         });
 
-        auto no_deadline_task = engine::AsyncNoSpan([&] {
+        auto no_deadline_task = engine::AsyncNoTracing([&] {
             if (mutex.try_lock_until(engine::Deadline{})) {
                 mutex.unlock();
                 lock_acquired.Send();

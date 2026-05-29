@@ -63,7 +63,7 @@ public:
         values_.push_back(std::move(value));
         UASSERT(ptr == values_.data());
         ng_headers_.push_back(UnsafeHeaderToNGHeader(key, values_.back(), false));
-        bytes_ += (key.size() + value.size());
+        bytes_ += (key.size() + values_.back().size());
     }
 
     void AddKeyValue(std::string_view key, std::string_view value) {

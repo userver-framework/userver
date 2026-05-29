@@ -14,11 +14,12 @@
 
 #include <fmt/format.h>
 
+#include <userver/compiler/impl/lifetime.hpp>
 #include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-/// IP address and utilities
+/// @brief IP address parsing, formatting, and related utilities.
 namespace utils::ip {
 
 /// @ingroup userver_containers
@@ -38,7 +39,7 @@ public:
     {}
 
     /// @brief Get the address in bytes, in network byte order.
-    const BytesType& GetBytes() const noexcept { return address_; }
+    const BytesType& GetBytes() const noexcept USERVER_IMPL_LIFETIME_BOUND { return address_; }
 
     friend bool operator==(const AddressBase<N>& a1, const AddressBase<N>& a2) noexcept {
         return a1.address_ == a2.address_;
@@ -63,7 +64,7 @@ using AddressV4 = AddressBase<4>;
 using AddressV6 = AddressBase<16>;
 
 template <typename T>
-inline constexpr bool kIsAddressType = std::is_same_v<T, AddressV4> || std::is_same_v<T, AddressV6>;
+concept IsAddressType = std::is_same_v<T, AddressV4> || std::is_same_v<T, AddressV6>;
 
 /// @brief Create an IPv4 address from an IP address string in dotted decimal form.
 /// @throw AddressSystemError
@@ -81,7 +82,7 @@ std::string AddressV6ToString(const AddressV6& address);
 /// @ingroup userver_containers
 ///
 /// @brief Base class for IPv4/IPv6 network
-template <typename Address, typename = std::enable_if_t<kIsAddressType<Address>>>
+template <IsAddressType Address>
 class NetworkBase final {
 public:
     using AddressType = Address;
@@ -130,8 +131,6 @@ public:
     friend bool operator==(const NetworkBase<Address>& a, const NetworkBase<Address>& b) noexcept {
         return a.address_ == b.address_ && a.prefix_length_ == b.prefix_length_;
     }
-
-    friend bool operator!=(const NetworkBase<Address>& a, const NetworkBase<Address>& b) noexcept { return !(a == b); }
 
 private:
     AddressType address_;
@@ -184,7 +183,7 @@ public:
     InetNetwork(std::vector<unsigned char>&& bytes, unsigned char prefix_length, AddressFamily address_family);
 
     /// @brief Get the address in bytes
-    const std::vector<unsigned char>& GetBytes() const noexcept { return bytes_; }
+    const std::vector<unsigned char>& GetBytes() const noexcept USERVER_IMPL_LIFETIME_BOUND { return bytes_; }
 
     /// @brief Get the prefix length of network
     unsigned char GetPrefixLength() const noexcept { return prefix_length_; }

@@ -1,5 +1,9 @@
 #pragma once
 
+/// @file userver/formats/json/parser/validator.hpp
+/// @brief Lightweight validators for parsed JSON values.
+/// @ingroup userver_universal
+
 #include <utility>
 
 USERVER_NAMESPACE_BEGIN

@@ -1,7 +1,5 @@
 #include <userver/ugrpc/client/generic_client.hpp>
 
-#include <cstdint>
-
 #include <ugrpc/client/middlewares/log/middleware.hpp>
 #include <userver/ugrpc/byte_buffer_utils.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
@@ -104,13 +102,10 @@ class WithClientLogMiddleware : public ugrpc::tests::ServiceFixture<ServiceType>
 public:
     WithClientLogMiddleware()
         : ugrpc::tests::ServiceFixture<ServiceType>(
-              {},
-              {},
-              {
-                  std::make_shared<
-                      ugrpc::client::middlewares::log::Middleware>(ugrpc::client::middlewares::log::Settings{}),
-              }
-          ) {}
+              {.client_middlewares = {std::make_shared<
+                   ugrpc::client::middlewares::log::Middleware>(ugrpc::client::middlewares::log::Settings{})}}
+          )
+    {}
 };
 
 using GenericClientLoggingTest = utest::LogCaptureFixture<WithClientLogMiddleware<UnitTestService>>;

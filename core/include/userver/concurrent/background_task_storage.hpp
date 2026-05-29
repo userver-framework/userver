@@ -38,6 +38,8 @@ public:
     /// @brief Detaches task, allowing it to continue execution out of scope. It
     /// will be cancelled and waited for on BTS destruction.
     /// @note After detach, Task becomes invalid
+    ///
+    /// Can be called from a coroutine or a non-coroutine thread.
     void Detach(engine::Task&& task);
 
     /// Approximate number of currently active tasks
@@ -57,7 +59,11 @@ private:
 /// limited lifetime. You must guarantee that the resources are available while
 /// the BackgroundTaskStorage is alive.
 ///
-/// @note The implementation is optimized for spawning tasks. Waiting for remaining tasks may be slow CPU-wise.
+/// ## Performance considerations
+///
+/// Tasks remove themselves from the BackgroundTaskStorage on completion, so there is no memory leak.
+///
+/// @warning The implementation is optimized for spawning tasks. Waiting for remaining tasks may be slow CPU-wise.
 /// As a guideline, do not create `BackgroundTaskStorage` instances for each request, use `std::vector<Task>`
 /// for storing per-request child tasks instead.
 ///
@@ -73,51 +79,18 @@ private:
 /// launched inside it (or moved inside it, for BackgroundTaskStorageCore)
 /// can safely access fields declared before it, but not after it:
 ///
-/// @code
-/// class Frobnicator {
-///   // ...
-///
-///  private:
-///   void Launch(const Dependencies& stuff);
-///
-///   // ...
-///   Foo foo_;
-///   concurrent::BackgroundTaskStorage bts_;
-///   Bar bar_;
-///   // ...
-/// };
-///
-/// void Frobnicator::Launch(const Dependencies& stuff) {
-///   int x{};
-///   bts_.AsyncDetach([this, &stuff, &x] {
-///     // BUG! All local variables will be gone.
-///     // They should be captured by move or by copy.
-///     Use(x);
-///
-///     // OK, because foo_ will be destroyed after bts_.
-///     Use(foo_);
-///
-///     // BUG, because bar_ will be destroyed before bts_.
-///     Use(bar_);
-///
-///     // Most likely a BUG! Unless `stuff` is contained within other fields,
-///     // there is probably no guarantee that it outlives `bts_`.
-///     // It should have been captured by move or by copy instead.
-///     Use(stuff);
-///   });
-/// }
-/// @endcode
+/// @snippet concurrent/background_task_storage_test.cpp  BtsLifetimeCapturesPitfalls
 ///
 /// Generally, it's a good idea to declare `bts_` after most other fields
 /// to avoid lifetime bugs. An example of fool-proof code:
 ///
 /// @code
-///  private:
-///   Foo foo_;
-///   Bar bar_;
+/// private:
+///     Foo foo_;
+///     Bar bar_;
 ///
-///   // bts_ must be the last field for lifetime reasons.
-///   concurrent::BackgroundTaskStorage bts_;
+///     // bts_ must be the last field for lifetime reasons.
+///     concurrent::BackgroundTaskStorage bts_;
 /// };
 /// @endcode
 ///
@@ -140,12 +113,20 @@ public:
     BackgroundTaskStorage(const BackgroundTaskStorage&) = delete;
     BackgroundTaskStorage& operator=(const BackgroundTaskStorage&) = delete;
 
-    /// Explicitly cancel and wait for the tasks. New tasks must not be launched
+    /// @brief Explicitly cancel and wait for the tasks. New tasks must not be launched
     /// after this call returns. Should be called no more than once.
+    ///
+    /// More precisely, new tasks must not be launched once this call is completed, but can be launched in the process
+    /// of waiting for the remaining tasks. This means that one detached task is allowed to spawn another detached
+    /// task into the same BTS, which will immediately be cancelled and for which `CancelAndWait` will wait as well.
+    ///
+    /// Can only be called from a coroutine.
     void CancelAndWait() noexcept;
 
-    /// Explicitly stop accepting new tasks and wait for execution tasks in the
+    /// @brief Explicitly stop accepting new tasks and wait for execution tasks in the
     /// store. Should be called no more than once.
+    ///
+    /// Can only be called from a coroutine.
     void CloseAndWaitDebug() noexcept;
 
     /// @brief Launch a task that will be cancelled and waited for in the BTS
@@ -155,6 +136,8 @@ public:
     /// `TaskProcessor` overload. engine::TaskInheritedVariable instances are not
     /// inherited from the caller except baggage::Baggage. See
     /// utils::AsyncBackground for details.
+    ///
+    /// Can be called from a coroutine or a non-coroutine thread.
     template <typename... Args>
     void AsyncDetach(std::string name, Args&&... args) {
         core_.Detach(utils::AsyncBackground(std::move(name), task_processor_, std::forward<Args>(args)...));
@@ -168,6 +151,8 @@ public:
     /// engine::TaskInheritedVariable instances are not
     /// inherited from the caller except baggage::Baggage. See
     /// utils::CriticalAsyncBackground for details.
+    ///
+    /// Can be called from a coroutine or a non-coroutine thread.
     template <typename... Args>
     void CriticalAsyncDetach(std::string name, Args&&... args) {
         core_.Detach(utils::CriticalAsyncBackground(std::move(name), task_processor_, std::forward<Args>(args)...));

@@ -63,11 +63,17 @@ paths:
               - in: query
                 name: password
                 required: true
+                description: >-
+                    Warning: should be used for legacy API / test only,
+                    as the query might still be logged on proxies/other HTTP agents.
                 schema:
                     type: string
               - in: query
                 name: secret
                 required: false
+                description: >-
+                    Warning: should be used for legacy API / test only,
+                    as the query might still be logged on proxies/other HTTP agents.
                 schema:
                     type: string
             responses:
@@ -80,6 +86,9 @@ paths:
               - in: query
                 name: password
                 required: true
+                description: >-
+                    Warning: should be used for legacy API / test only,
+                    as the query might still be logged on proxies/other HTTP agents.
                 x-taxi-query-log-mode: hide
                 schema:
                     type: string

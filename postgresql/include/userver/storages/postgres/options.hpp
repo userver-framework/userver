@@ -33,7 +33,7 @@ enum class IsolationLevel : std::uint16_t {
 };
 /*! [Isolation levels] */
 
-std::ostream& operator<<(std::ostream&, IsolationLevel);
+std::string_view ToStringView(IsolationLevel lvl);
 
 /// @brief PostgreSQL transaction options
 ///
@@ -142,8 +142,6 @@ struct CommandControl {
         return network_timeout_ms == rhs.network_timeout_ms && statement_timeout_ms == rhs.statement_timeout_ms &&
                prepared_statements_enabled == rhs.prepared_statements_enabled;
     }
-
-    bool operator!=(const CommandControl& rhs) const { return !(*this == rhs); }
 };
 
 /// @brief storages::postgres::CommandControl that may not be set
@@ -177,6 +175,9 @@ inline constexpr std::size_t kDefaultPoolMaxQueueSize = 200;
 /// Default limit for concurrent establishing connections number
 inline constexpr std::size_t kDefaultConnectingLimit = 0;
 
+/// Default minimum time between starting new connections per host in milliseconds
+inline constexpr std::size_t kDefaultConnectingIntervalMs = 0;
+
 /// @brief PostgreSQL topology options
 ///
 /// Dynamic option @ref POSTGRES_TOPOLOGY_SETTINGS
@@ -205,9 +206,12 @@ struct PoolSettings final {
     /// Limits number of concurrent establishing connections (0 - unlimited)
     std::size_t connecting_limit{kDefaultConnectingLimit};
 
+    /// Minimum time in milliseconds between starting new connections to each host (0 - unlimited)
+    std::size_t connecting_interval_ms{kDefaultConnectingIntervalMs};
+
     bool operator==(const PoolSettings& rhs) const {
         return min_size == rhs.min_size && max_size == rhs.max_size && max_queue_size == rhs.max_queue_size &&
-               connecting_limit == rhs.connecting_limit;
+               connecting_limit == rhs.connecting_limit && connecting_interval_ms == rhs.connecting_interval_ms;
     }
 };
 
@@ -218,6 +222,7 @@ struct PoolSettingsDynamic final {
     std::optional<std::size_t> max_size;
     std::optional<std::size_t> max_queue_size;
     std::optional<std::size_t> connecting_limit;
+    std::optional<std::size_t> connecting_interval_ms;
 };
 
 /// Default size limit for prepared statements cache
@@ -296,11 +301,11 @@ struct ConnectionSettings {
     /// Helps keep track of the changes in settings
     SettingsVersion version{0U};
 
+    std::optional<std::string> application_name{};
+
     bool operator==(const ConnectionSettings& rhs) const {
         return !RequiresConnectionReset(rhs) && recent_errors_threshold == rhs.recent_errors_threshold;
     }
-
-    bool operator!=(const ConnectionSettings& rhs) const { return !(*this == rhs); }
 
     bool RequiresConnectionReset(const ConnectionSettings& rhs) const {
         // TODO: max_prepared_cache_size check could be relaxed
@@ -308,7 +313,7 @@ struct ConnectionSettings {
                ignore_unused_query_params != rhs.ignore_unused_query_params ||
                max_prepared_cache_size != rhs.max_prepared_cache_size || pipeline_mode != rhs.pipeline_mode ||
                max_ttl != rhs.max_ttl || discard_on_connect != rhs.discard_on_connect ||
-               omit_describe_mode != rhs.omit_describe_mode;
+               omit_describe_mode != rhs.omit_describe_mode || application_name != rhs.application_name;
     }
 };
 

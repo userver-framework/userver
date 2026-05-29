@@ -3,6 +3,7 @@
 #include <string>
 #include <variant>
 
+#include <userver/formats/json/string_builder.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/parse/to.hpp>
 #include <userver/formats/serialize/to.hpp>
@@ -18,7 +19,7 @@ template <typename BuilderFunc>
 struct OneOfStringSettings {
     using KeyType = std::string;
 
-    std::string_view property_name;
+    utils::StringLiteral property_name;
     utils::TrivialSet<BuilderFunc> mapping;
 
     static std::string_view FieldToString(const KeyType& key) { return key; }
@@ -31,7 +32,7 @@ template <typename BuilderFunc>
 struct OneOfIntegerSettings {
     using KeyType = int64_t;
 
-    std::string_view property_name;
+    utils::StringLiteral property_name;
     utils::TrivialSet<BuilderFunc> mapping;
 
     static std::string FieldToString(KeyType key) { return std::to_string(key); }
@@ -68,9 +69,38 @@ Parse(Value value, formats::parse::To<OneOfWithDiscriminator<Settings, T...>>) {
 
 template <const auto* Settings, typename... T, typename Value>
 Value Serialize(const OneOfWithDiscriminator<Settings, T...>& var, formats::serialize::To<Value>) {
-    return std::visit(
+    auto result = std::visit(
         USERVER_NAMESPACE::utils::Overloaded{[](const formats::common::ParseType<Value, T>& item) {
-            return typename Value::Builder(T{item}).ExtractValue();
+            return typename Value::Builder(T{item});
+        }...},
+        var.value
+    );
+
+    // overwriting
+    result[std::string{Settings->property_name}] = Settings->mapping.GetKeyByIndex(var.value.index());
+
+    return result.ExtractValue();
+}
+
+template <const auto* Settings, typename... T>
+void WriteToStream(
+    const OneOfWithDiscriminator<Settings, T...>& var,
+    formats::json::StringBuilder& sw,
+    bool hide_brackets,
+    std::string_view hide_field_name = {}
+) {
+    std::optional<formats::json::StringBuilder::ObjectGuard> guard;
+    if (!hide_brackets) {
+        guard.emplace(sw);
+    }
+    UASSERT(hide_field_name.empty());
+
+    sw.Key(Settings->property_name);
+    WriteToStream(Settings->mapping.GetKeyByIndex(var.value.index()), sw);
+
+    std::visit(
+        utils::Overloaded{[&sw](const formats::common::ParseType<formats::json::Value, T>& item) {
+            WriteToStream(T{item}, sw, true, Settings->property_name);
         }...},
         var.value
     );

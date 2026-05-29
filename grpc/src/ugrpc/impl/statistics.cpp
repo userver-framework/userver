@@ -229,8 +229,8 @@ void ServiceStatistics::DumpAndCountTotal(
     }
 }
 
-static_assert(utils::statistics::kHasWriterSupport<MethodStatisticsSnapshot>);
-static_assert(utils::statistics::kHasWriterSupport<MethodStatistics>);
+static_assert(utils::statistics::HasWriterSupport<MethodStatisticsSnapshot>);
+static_assert(utils::statistics::HasWriterSupport<MethodStatistics>);
 
 }  // namespace ugrpc::impl
 

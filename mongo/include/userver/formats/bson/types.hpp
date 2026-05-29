@@ -81,7 +81,6 @@ public:
     /// @endcond
 
     bool operator==(const Oid&) const;
-    bool operator!=(const Oid&) const;
     bool operator<(const Oid&) const;
     bool operator>(const Oid&) const;
     bool operator<=(const Oid&) const;

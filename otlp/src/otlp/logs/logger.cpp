@@ -216,7 +216,7 @@ Logger::Logger(
     SetLevel(config_.log_level);
     std::fputs("OTLP logger has started\n", stderr);
 
-    sender_task_ = engine::CriticalAsyncNoSpan(
+    sender_task_ = engine::CriticalAsyncNoTracing(
         [this,
          consumer = queue_->GetConsumer(),
          log_client = std::move(client),
@@ -236,8 +236,6 @@ const logging::impl::LogStatistics& Logger::GetStatistics() const { return stats
 void Logger::PrependCommonTags(logging::impl::TagWriter writer) const {
     logging::impl::PrependCommonTags(writer, GetLevel());
 }
-
-bool Logger::DoShouldLog(logging::Level level) const noexcept { return logging::impl::DoShouldLog(level); }
 
 void Logger::Log(logging::Level level, logging::impl::formatters::LoggerItemRef item) {
     UASSERT(dynamic_cast<Item*>(&item));

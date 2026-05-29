@@ -46,8 +46,6 @@ LoggerPtr MakeFileLogger(const std::string& name, const std::string& path, Forma
 
 namespace impl {
 
-bool DoShouldLog(Level) noexcept;
-
 void PrependCommonTags(TagWriter writer, Level logger_level);
 
 }  // namespace impl

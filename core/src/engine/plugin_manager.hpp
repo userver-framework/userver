@@ -1,8 +1,7 @@
 #pragma once
 
 #include <atomic>
-
-#include <boost/range/adaptor/reversed.hpp>
+#include <ranges>
 
 #include <userver/concurrent/variable.hpp>
 
@@ -38,7 +37,7 @@ public:
         {
             auto lock = mutex_set_.WriteLock();
 
-            auto it = std::find(plugins_.begin(), plugins_.end(), &plugin);
+            auto it = std::ranges::find(plugins_, &plugin);
             if (it != plugins_.end()) {
                 plugins_.erase(it);
             }
@@ -100,14 +99,14 @@ public:
         }
 
         auto lock = mutex_set_.ReadLockFromCoroutine();
-        for (auto* const plugin : plugins_ | boost::adaptors::reversed) {
+        for (auto* const plugin : plugins_ | std::views::reverse) {
             plugin->HookAfterWakeup(task);
         }
     }
 
 private:
     void DoHookTaskDestroy(const impl::TaskContext& task) {
-        for (auto* const plugin : plugins_ | boost::adaptors::reversed) {
+        for (auto* const plugin : plugins_ | std::views::reverse) {
             plugin->HookTaskDestroy(task);
         }
     }

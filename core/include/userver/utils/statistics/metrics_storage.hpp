@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/utils/statistics/metrics_storage.hpp
+/// @brief @copybrief utils::statistics::MetricsStorage
+
 #include <vector>
 
 #include <userver/utils/statistics/fwd.hpp>

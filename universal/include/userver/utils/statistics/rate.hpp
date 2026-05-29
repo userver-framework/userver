@@ -21,7 +21,7 @@ struct Rate {
 
     ValueType value{0};
 
-    inline Rate& operator+=(Rate other) noexcept {
+    Rate& operator+=(Rate other) noexcept {
         value += other.value;
         return *this;
     }

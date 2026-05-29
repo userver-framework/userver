@@ -1,10 +1,23 @@
 import asyncio
+import datetime
 
 import pytest
+import pytest_userver.client
 
 DP_TIMEOUT_MS = 'X-YaTaxi-Client-TimeoutMs'
 DP_DEADLINE_EXPIRED = 'X-YaTaxi-Deadline-Expired'
+DP_ABSOLUTE_DEADLINE = 'X-Request-Deadline'
 VERSION = {'version': '2'}
+
+
+def _make_deadline_epoch_us(offset_seconds: float) -> str:
+    deadline_utc = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(
+        seconds=offset_seconds,
+    )
+    unix_epoch_utc = datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
+    one_microsecond = datetime.timedelta(microseconds=1)
+    microseconds_since_epoch = (deadline_utc - unix_epoch_utc) // one_microsecond
+    return str(microseconds_since_epoch)
 
 
 @pytest.fixture(name='call')
@@ -68,6 +81,23 @@ def get_handler_exception_logs(capture):
     return [log for log in capture.select() if log['text'].startswith("exception in 'handler-chaos-httpclient'")]
 
 
+async def _wait_for_timeout_error_metrics(
+    client_metrics: pytest_userver.client.MetricsDiffer,
+    expected_count: int,
+    *,
+    max_wait: float = 2.0,
+) -> None:
+    """httpclient timeout counters are written asynchronously."""
+    poll_interval = 0.05
+    attempts = int(max_wait / poll_interval)
+    for _ in range(attempts):
+        client_metrics.current = await client_metrics.fetch()
+        count = client_metrics.value_at('errors', {'http_error': 'timeout', **VERSION}, default=0)
+        if count == expected_count:
+            return
+        await asyncio.sleep(poll_interval)
+
+
 @pytest.mark.parametrize(
     'timeout,deadline,attempts',
     [(100, 2000, 1), (100, 2000, 1), (200, 2000, 2)],
@@ -90,6 +120,8 @@ async def test_timeout_expired(
             )
             assert response.status == 500
             assert response.text == ''
+
+            await _wait_for_timeout_error_metrics(client_metrics, attempts)
 
     assert client_metrics.value_at('cancelled-by-deadline', VERSION) == 0
     assert client_metrics.value_at('errors', {'http_error': 'ok', **VERSION}) == 0
@@ -133,6 +165,8 @@ async def test_timeout_expired_with_reuse(
             )
             assert response.status == 500
             assert response.text == ''
+
+            await _wait_for_timeout_error_metrics(client_metrics, reuse_attempts)
 
     assert client_metrics.value_at('cancelled-by-deadline', VERSION) == 0
     assert client_metrics.value_at('errors', {'http_error': 'ok', **VERSION}) == 0
@@ -247,13 +281,13 @@ async def test_deadline_expired_with_reuse(
             assert response.status == 504
             assert response.text == 'Deadline expired'
 
-            # With the given test parameters all subsequent "reuse" requests are immidiately exprired.
+            # With the given test parameters all subsequent "reuse" requests are immediately exprired.
             # So, we do not need to wait for the last "reuse" request completion
 
     assert client_metrics.value_at('cancelled-by-deadline', VERSION) == reuse_attempts
     assert client_metrics.value_at('errors', {'http_error': 'ok', **VERSION}) == 0
     # With the given test parameters timeout happens only on the first request.
-    # All subsequent "reuse" requests are immidiately exprired
+    # All subsequent "reuse" requests are immediately exprired
     assert client_metrics.value_at('errors', {'http_error': 'timeout', **VERSION}) == 1
 
     logs = capture.select(stopwatch_name='GET localhost')
@@ -265,7 +299,7 @@ async def test_deadline_expired_with_reuse(
         assert log['cancelled_by_deadline'] == '1'
         if i == 0:
             # With the given test parameters timeout happens only on the first request.
-            # All subsequent requests are immidiately exprired
+            # All subsequent requests are immediately exprired
             assert log['error_msg'] == 'Timeout was reached'
         else:
             assert log.get('error_msg') is None
@@ -385,3 +419,41 @@ async def test_dp_timeout_not_retried(
     assert response.text == ''
 
     assert fake_deadline_expired_mock.times_called == retries_performed
+
+
+async def test_absolute_deadline_propagated_as_is(call, mockserver):
+    epoch_us_deadline = _make_deadline_epoch_us(10.0)
+    captured_headers = None
+
+    @mockserver.handler('/test')
+    async def mock(request):
+        nonlocal captured_headers
+        captured_headers = dict(request.headers)
+        return mockserver.make_response('OK!')
+
+    response = await call(
+        headers={
+            DP_TIMEOUT_MS: '500',
+            DP_ABSOLUTE_DEADLINE: epoch_us_deadline,
+        },
+    )
+    assert response.status == 200
+    assert captured_headers is not None
+    assert captured_headers.get(DP_ABSOLUTE_DEADLINE) == epoch_us_deadline
+
+
+async def test_absolute_deadline_synthesized_when_only_duration_propagated(call, mockserver):
+    captured_headers = None
+
+    @mockserver.handler('/test')
+    async def mock(request):
+        nonlocal captured_headers
+        captured_headers = dict(request.headers)
+        return mockserver.make_response('OK!')
+
+    response = await call(
+        headers={DP_TIMEOUT_MS: '500'},
+    )
+    assert captured_headers is not None
+    assert response.status == 200
+    assert DP_ABSOLUTE_DEADLINE in captured_headers

@@ -17,7 +17,9 @@ public:
     {}
 
     impl::EarlyNotify SetupWakeups() override {
-        return impl::EarlyNotify{event_.waiters_->GetSignalOrAppend(&current_, current_.GetAwaiterContext())};
+        boost::intrusive_ptr<impl::Awaiter> awaiter_ptr{&current_};
+        event_.waiters_->GetSignalOrAppend(awaiter_ptr, current_.GetAwaiterContext());
+        return impl::EarlyNotify{awaiter_ptr != nullptr};
     }
 
     void DisableWakeups() noexcept override { event_.waiters_->Remove(current_, current_.GetAwaiterContext()); }
@@ -43,20 +45,15 @@ bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) {
     }
 
     impl::TaskContext& current = current_task::GetCurrentTaskContext();
-    LOG_TRACE() << "WaitForEventUntil()";
     EventWaitStrategy wait_manager{*this, current};
 
     while (true) {
         if (GetIsSignaled()) {
-            LOG_TRACE() << "success";
             return true;
         }
 
-        LOG_TRACE() << "iteration()";
-
         const auto wakeup_source = current.Sleep(wait_manager, deadline);
         if (!impl::HasWaitSucceeded(wakeup_source)) {
-            LOG_TRACE() << "failure";
             return false;
         }
     }

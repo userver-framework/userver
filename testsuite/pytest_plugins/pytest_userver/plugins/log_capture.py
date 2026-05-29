@@ -18,7 +18,7 @@ DEFAULT_PORT = 2211
 logger = logging.getLogger(__name__)
 
 
-def pytest_addoption(parser):
+def pytest_addoption(parser) -> None:
     group = parser.getgroup('logs-capture')
     group.addoption(
         '--logs-capture-port',
@@ -34,7 +34,27 @@ def pytest_addoption(parser):
 
 
 @pytest.fixture(scope='session')
-async def userver_log_capture(pytestconfig, userver_log_level):
+async def userver_log_capture(pytestconfig, userver_log_level) -> logcapture.CaptureServer:
+    """
+    Session-scoped TCP server that receives service logs in TSKV format.
+
+    The server is started once per testsuite session. Static config is patched
+    so that the service can send logs when log capture is enabled for a test.
+
+    In most tests use
+    @ref pytest_userver.plugins.service_client.service_client "service_client".capture_logs()
+    instead of this fixture directly. See @ref testsuite_logs_capture.
+
+    Example — filter captured logs after a request:
+
+    @snippet samples/testsuite-support/tests/test_logcapture.py select
+
+    Example — subscribe to log events as they arrive:
+
+    @snippet samples/testsuite-support/tests/test_logcapture.py subscribe
+
+    @ingroup userver_testsuite_fixtures
+    """
     host = pytestconfig.option.logs_capture_host
     port = pytestconfig.option.logs_capture_port
     if pytestconfig.option.service_wait or pytestconfig.option.service_disable:
@@ -54,7 +74,7 @@ def _userver_config_logs_capture(userver_log_capture):
     assert socknames
     sockname = socknames[0]
 
-    def patch_config(config, _config_vars) -> None:
+    def patch_config(config: dict, _config_vars: dict) -> None:
         logging_config = config['components_manager']['components']['logging']
         default_logger = logging_config['loggers']['default']
         # Other formats are not yet supported by log-capture.
@@ -67,6 +87,6 @@ def _userver_config_logs_capture(userver_log_capture):
     return patch_config
 
 
-def _tskv_parse_line(rawline: bytes):
+def _tskv_parse_line(rawline: bytes) -> tskv.TskvRow:
     line = rawline.decode(encoding='utf-8', errors='replace')
     return tskv.parse_line(line)

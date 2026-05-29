@@ -93,7 +93,8 @@ VariantType ReadVariant(Reader& reader, std::size_t index) {
 
 /// @brief Container serialization support
 template <typename T>
-std::enable_if_t<kIsContainer<T> && kIsWritable<meta::RangeValueType<T>>> Write(Writer& writer, const T& value) {
+requires(IsContainer<T> && kIsWritable<meta::RangeValueType<T>>)
+void Write(Writer& writer, const T& value) {
     writer.Write(std::size(value));
     for (const auto& item : value) {
         // explicit cast for vector<bool> shenanigans
@@ -103,7 +104,8 @@ std::enable_if_t<kIsContainer<T> && kIsWritable<meta::RangeValueType<T>>> Write(
 
 /// @brief Container deserialization support
 template <typename T>
-std::enable_if_t<kIsContainer<T> && kIsReadable<meta::RangeValueType<T>>, T> Read(Reader& reader, To<T>) {
+requires(IsContainer<T> && kIsReadable<meta::RangeValueType<T>>)
+T Read(Reader& reader, To<T>) {
     const auto size = reader.Read<std::size_t>();
     T result{};
     if constexpr (meta::kIsReservable<T>) {
@@ -117,20 +119,23 @@ std::enable_if_t<kIsContainer<T> && kIsReadable<meta::RangeValueType<T>>, T> Rea
 
 /// @brief Pair serialization support (for maps)
 template <typename T, typename U>
-std::enable_if_t<kIsWritable<T> && kIsWritable<U>, void> Write(Writer& writer, const std::pair<T, U>& value) {
+requires(kIsWritable<T> && kIsWritable<U>)
+void Write(Writer& writer, const std::pair<T, U>& value) {
     writer.Write(value.first);
     writer.Write(value.second);
 }
 
 /// @brief Pair deserialization support (for maps)
 template <typename T, typename U>
-std::enable_if_t<kIsReadable<T> && kIsReadable<U>, std::pair<T, U>> Read(Reader& reader, To<std::pair<T, U>>) {
+requires(kIsReadable<T> && kIsReadable<U>)
+std::pair<T, U> Read(Reader& reader, To<std::pair<T, U>>) {
     return {reader.Read<T>(), reader.Read<U>()};
 }
 
 /// @brief `std::optional` serialization support
 template <typename T>
-std::enable_if_t<kIsWritable<T>> Write(Writer& writer, const std::optional<T>& value) {
+requires kIsWritable<T>
+void Write(Writer& writer, const std::optional<T>& value) {
     writer.Write(value.has_value());
     if (value) {
         writer.Write(*value);
@@ -139,7 +144,8 @@ std::enable_if_t<kIsWritable<T>> Write(Writer& writer, const std::optional<T>& v
 
 /// @brief `std::optional` deserialization support
 template <typename T>
-std::enable_if_t<kIsReadable<T>, std::optional<T>> Read(Reader& reader, To<std::optional<T>>) {
+requires kIsReadable<T>
+std::optional<T> Read(Reader& reader, To<std::optional<T>>) {
     if (!reader.Read<bool>()) {
         return std::nullopt;
     }
@@ -148,15 +154,16 @@ std::enable_if_t<kIsReadable<T>, std::optional<T>> Read(Reader& reader, To<std::
 
 /// @brief `std::variant` serialization support
 template <typename... Args>
-std::enable_if_t<(true && ... && kIsWritable<Args>)> Write(Writer& writer, const std::variant<Args...>& value) {
+requires(true && ... && kIsWritable<Args>)
+void Write(Writer& writer, const std::variant<Args...>& value) {
     writer.Write(value.index());
     std::visit([&writer](const auto& inner) { writer.Write(inner); }, value);
 }
 
 /// @brief `std::variant` deserialization support
 template <typename... Args>
-std::enable_if_t<(true && ... && (std::is_move_constructible_v<Args> && kIsReadable<Args>)), std::variant<Args...>>
-Read(Reader& reader, To<std::variant<Args...>>) {
+requires(true && ... && (std::is_move_constructible_v<Args> && kIsReadable<Args>))
+std::variant<Args...> Read(Reader& reader, To<std::variant<Args...>>) {
     const auto index = reader.Read<std::size_t>();
     if (index >= sizeof...(Args)) {
         impl::ThrowInvalidVariantIndex(typeid(std::variant<Args...>), index);
@@ -167,26 +174,29 @@ Read(Reader& reader, To<std::variant<Args...>>) {
 /// Allows reading `const T`, which is usually encountered as a member of some
 /// container
 template <typename T>
-std::enable_if_t<kIsReadable<T>, T> Read(Reader& reader, To<const T>) {
+requires kIsReadable<T>
+T Read(Reader& reader, To<const T>) {
     return Read(reader, To<T>{});
 }
 
 /// @brief utils::StrongTypedef serialization support
 template <typename Tag, typename T, utils::StrongTypedefOps Ops>
-std::enable_if_t<kIsWritable<T>> Write(Writer& writer, const utils::StrongTypedef<Tag, T, Ops>& object) {
+requires kIsWritable<T>
+void Write(Writer& writer, const utils::StrongTypedef<Tag, T, Ops>& object) {
     writer.Write(object.GetUnderlying());
 }
 
 /// @brief utils::StrongTypedef deserialization support
 template <typename Tag, typename T, utils::StrongTypedefOps Ops>
-std::enable_if_t<kIsReadable<T>, utils::StrongTypedef<Tag, T, Ops>>
-Read(Reader& reader, To<utils::StrongTypedef<Tag, T, Ops>>) {
+requires kIsReadable<T>
+utils::StrongTypedef<Tag, T, Ops> Read(Reader& reader, To<utils::StrongTypedef<Tag, T, Ops>>) {
     return utils::StrongTypedef<Tag, T, Ops>{reader.Read<T>()};
 }
 
 /// @brief `std::unique_ptr` serialization support
 template <typename T>
-std::enable_if_t<kIsWritable<T>> Write(Writer& writer, const std::unique_ptr<T>& ptr) {
+requires kIsWritable<T>
+void Write(Writer& writer, const std::unique_ptr<T>& ptr) {
     writer.Write(static_cast<bool>(ptr));
     if (ptr) {
         writer.Write(*ptr);
@@ -195,7 +205,8 @@ std::enable_if_t<kIsWritable<T>> Write(Writer& writer, const std::unique_ptr<T>&
 
 /// @brief `std::unique_ptr` deserialization support
 template <typename T>
-std::enable_if_t<kIsReadable<T>, std::unique_ptr<T>> Read(Reader& reader, To<std::unique_ptr<T>>) {
+requires kIsReadable<T>
+std::unique_ptr<T> Read(Reader& reader, To<std::unique_ptr<T>>) {
     if (!reader.Read<bool>()) {
         return {};
     }
@@ -206,7 +217,8 @@ std::enable_if_t<kIsReadable<T>, std::unique_ptr<T>> Read(Reader& reader, To<std
 /// @warning If two or more `shared_ptr` within a single dumped entity point to
 /// the same object, they will point to its distinct copies after loading a dump
 template <typename T>
-std::enable_if_t<kIsWritable<T>> Write(Writer& writer, const std::shared_ptr<T>& ptr) {
+requires kIsWritable<T>
+void Write(Writer& writer, const std::shared_ptr<T>& ptr) {
     writer.Write(static_cast<bool>(ptr));
     if (ptr) {
         writer.Write(*ptr);
@@ -217,7 +229,8 @@ std::enable_if_t<kIsWritable<T>> Write(Writer& writer, const std::shared_ptr<T>&
 /// @warning If two or more `shared_ptr` within a single dumped entity point to
 /// the same object, they will point to its distinct copies after loading a dump
 template <typename T>
-std::enable_if_t<kIsReadable<T>, std::shared_ptr<T>> Read(Reader& reader, To<std::shared_ptr<T>>) {
+requires kIsReadable<T>
+std::shared_ptr<T> Read(Reader& reader, To<std::shared_ptr<T>>) {
     if (!reader.Read<bool>()) {
         return {};
     }
@@ -226,9 +239,8 @@ std::enable_if_t<kIsReadable<T>, std::shared_ptr<T>> Read(Reader& reader, To<std
 
 /// @brief `boost::bimap` serialization support
 template <typename L, typename R, typename... Args>
-std::enable_if_t<
-    kIsWritable<impl::BoostBimapLeftKey<L, R, Args...>> && kIsWritable<impl::BoostBimapRightKey<L, R, Args...>>>
-Write(Writer& writer, const boost::bimap<L, R, Args...>& map) {
+requires(kIsWritable<impl::BoostBimapLeftKey<L, R, Args...>> && kIsWritable<impl::BoostBimapRightKey<L, R, Args...>>)
+void Write(Writer& writer, const boost::bimap<L, R, Args...>& map) {
     writer.Write(map.size());
 
     for (const auto& [left, right] : map) {
@@ -239,10 +251,8 @@ Write(Writer& writer, const boost::bimap<L, R, Args...>& map) {
 
 /// @brief `boost::bimap` deserialization support
 template <typename L, typename R, typename... Args>
-std::enable_if_t<
-    kIsReadable<impl::BoostBimapLeftKey<L, R, Args...>> && kIsReadable<impl::BoostBimapRightKey<L, R, Args...>>,
-    boost::bimap<L, R, Args...>>
-Read(Reader& reader, To<boost::bimap<L, R, Args...>>) {
+requires(kIsReadable<impl::BoostBimapLeftKey<L, R, Args...>> && kIsReadable<impl::BoostBimapRightKey<L, R, Args...>>)
+boost::bimap<L, R, Args...> Read(Reader& reader, To<boost::bimap<L, R, Args...>>) {
     using BoostBimap = impl::BoostBimap<L, R, Args...>;
 
     using BoostBimapLeftKey = impl::BoostBimapLeftKey<L, R, Args...>;
@@ -267,7 +277,8 @@ Read(Reader& reader, To<boost::bimap<L, R, Args...>>) {
 
 /// @brief `boost::multi_index_container` serialization support
 template <typename T, typename Index, typename Alloc>
-std::enable_if_t<kIsWritable<T>> Write(Writer& writer, const boost::multi_index_container<T, Index, Alloc>& container) {
+requires kIsWritable<T>
+void Write(Writer& writer, const boost::multi_index_container<T, Index, Alloc>& container) {
     writer.Write(container.template get<0>().size());
     for (auto& item : container.template get<0>()) {
         writer.Write(item);
@@ -276,8 +287,8 @@ std::enable_if_t<kIsWritable<T>> Write(Writer& writer, const boost::multi_index_
 
 /// @brief `boost::multi_index_container` deserialization support
 template <typename T, typename Index, typename Alloc>
-std::enable_if_t<kIsReadable<T>, boost::multi_index_container<T, Index, Alloc>>
-Read(Reader& reader, To<boost::multi_index_container<T, Index, Alloc>>) {
+requires kIsReadable<T>
+boost::multi_index_container<T, Index, Alloc> Read(Reader& reader, To<boost::multi_index_container<T, Index, Alloc>>) {
     const auto size = reader.Read<std::size_t>();
     boost::multi_index_container<T, Index, Alloc> container;
 

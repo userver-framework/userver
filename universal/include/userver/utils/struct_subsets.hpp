@@ -10,6 +10,7 @@
 #include <boost/preprocessor/empty.hpp>
 #include <boost/preprocessor/seq/for_each.hpp>
 
+#include <userver/utils/forward_like.hpp>
 #include <userver/utils/impl/boost_variadic_to_seq.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 
@@ -33,6 +34,20 @@ constexpr auto IsDefinedAndAggregate(Args...) -> bool {
     return false;
 }
 
+template <typename TOwner, typename TMember>
+USERVER_IMPL_NODEBUG_INLINE_FUNC decltype(auto) ForwardLikeExplicit(TMember& member) noexcept {
+    if constexpr (std::is_lvalue_reference_v<TOwner> || std::is_lvalue_reference_v<TMember>) {
+        return member;
+    } else {
+        return std::move(member);
+    }
+}
+
+template <typename TOwner, typename TMember>
+USERVER_IMPL_NODEBUG_INLINE_FUNC decltype(auto) ForwardLikeExplicit(const TMember& member) noexcept {
+    return member;
+}
+
 }  // namespace utils::impl
 
 USERVER_NAMESPACE_END
@@ -40,7 +55,8 @@ USERVER_NAMESPACE_END
 /// @cond
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_STRUCT_MAP(r, data, elem) std::forward<OtherDeps>(other).elem,
+#define USERVER_IMPL_STRUCT_MAP(r, data, elem) \
+    USERVER_NAMESPACE::utils::impl::ForwardLikeExplicit<OtherDeps, decltype(other.elem)>(other.elem),
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define USERVER_IMPL_MAKE_FROM_SUPERSET(Self, ...)                                                     \
@@ -71,21 +87,17 @@ USERVER_NAMESPACE_END
 ///
 /// @hideinitializer
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_ALLOW_CONVERSIONS_TO_SUBSET()                                                                \
-    template <                                                                                               \
-        typename Other,                                                                                      \
-        std::enable_if_t<USERVER_NAMESPACE::utils::impl::IsDefinedAndAggregate<Other>(), int> Enable = 0>    \
-    /*implicit*/ operator Other() const& {                                                                   \
-        return Other::MakeFromSupersetImpl(*this, USERVER_NAMESPACE::utils::impl::InternalTag{});            \
-    }                                                                                                        \
-                                                                                                             \
-    template <                                                                                               \
-        typename Other,                                                                                      \
-        std::enable_if_t<USERVER_NAMESPACE::utils::impl::IsDefinedAndAggregate<Other>(), int> Enable = 0>    \
-    /*implicit*/ operator Other()&& {                                                                        \
-        return Other::MakeFromSupersetImpl(std::move(*this), USERVER_NAMESPACE::utils::impl::InternalTag{}); \
-    }                                                                                                        \
-                                                                                                             \
+#define USERVER_ALLOW_CONVERSIONS_TO_SUBSET()                                                                       \
+    template <typename Other>                                                                                       \
+    requires(USERVER_NAMESPACE::utils::impl::IsDefinedAndAggregate<Other>()) /*implicit*/ operator Other() const& { \
+        return Other::MakeFromSupersetImpl(*this, USERVER_NAMESPACE::utils::impl::InternalTag{});                   \
+    }                                                                                                               \
+                                                                                                                    \
+    template <typename Other>                                                                                       \
+    requires(USERVER_NAMESPACE::utils::impl::IsDefinedAndAggregate<Other>()) /*implicit*/ operator Other()&& {      \
+        return Other::MakeFromSupersetImpl(std::move(*this), USERVER_NAMESPACE::utils::impl::InternalTag{});        \
+    }                                                                                                               \
+                                                                                                                    \
     friend struct USERVER_NAMESPACE::utils::impl::RequireSemicolon
 
 /// @brief Defines a struct containing a subset of data members

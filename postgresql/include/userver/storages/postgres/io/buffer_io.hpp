@@ -12,19 +12,14 @@ namespace storages::postgres::io {
 
 namespace detail {
 
-template <typename T, typename Enable = USERVER_NAMESPACE::utils::void_t<>>
-struct ParserRequiresTypeCategories : std::false_type {};
+template <typename Parser>
+concept ParserCallableWithCategories = requires(Parser& p, const FieldBuffer& fb, const TypeBufferCategory& cats) {
+    p(fb, cats);
+};
 
-template <typename T>
-struct ParserRequiresTypeCategories<
-    T,
-    USERVER_NAMESPACE::utils::void_t<
-        decltype(std::declval<T&>()(std::declval<const FieldBuffer&>(), std::declval<const TypeBufferCategory&>()))>>
-    : std::true_type {};
-
-template <typename T>
-inline constexpr bool
-    kParserRequiresTypeCategories = ParserRequiresTypeCategories<typename traits::IO<T>::ParserType>::value;
+template <typename ValueType>
+// NOLINTNEXTLINE(readability-identifier-naming)
+concept kParserRequiresTypeCategories = ParserCallableWithCategories<typename traits::IO<ValueType>::ParserType>;
 
 #ifndef NDEBUG
 
@@ -68,11 +63,11 @@ struct CheckForBufferWriterODR final {
 /// @brief Read a value from input buffer
 template <typename T>
 void ReadBuffer(const FieldBuffer& buffer, T&& value) {
-    using ValueType = std::decay_t<T>;
+    using ValueType = std::remove_cvref_t<T>;
     traits::CheckParser<ValueType>();
     using BufferReader = typename traits::IO<ValueType>::ParserType;
     static_assert(
-        !detail::ParserRequiresTypeCategories<BufferReader>::value,
+        !detail::ParserCallableWithCategories<BufferReader>,
         "Type parser requires knowledge about type categories"
     );
     if (traits::kParserBufferCategory<BufferReader> != buffer.category) {
@@ -91,7 +86,7 @@ void ReadBuffer(const FieldBuffer& buffer, T&& value) {
 
 template <typename T>
 void ReadBuffer(const FieldBuffer& buffer, T&& value, const TypeBufferCategory& categories) {
-    using ValueType = std::decay_t<T>;
+    using ValueType = std::remove_cvref_t<T>;
     traits::CheckParser<ValueType>();
     using BufferReader = typename traits::IO<ValueType>::ParserType;
     if (traits::kParserBufferCategory<BufferReader> != buffer.category) {
@@ -106,7 +101,7 @@ void ReadBuffer(const FieldBuffer& buffer, T&& value, const TypeBufferCategory& 
     detail::CheckForBufferReaderODR<T, BufferReader>::content.RequireInstance();
 #endif
 
-    if constexpr (detail::ParserRequiresTypeCategories<BufferReader>::value) {
+    if constexpr (detail::ParserCallableWithCategories<BufferReader>) {
         BufferReader{std::forward<T>(value)}(buffer, categories);
     } else {
         BufferReader{std::forward<T>(value)}(buffer);

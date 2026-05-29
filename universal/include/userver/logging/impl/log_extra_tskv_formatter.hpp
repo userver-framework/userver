@@ -18,6 +18,7 @@ class Tskv;
 
 using TskvPtr = utils::Box<formatters::Tskv>;
 
+/// @brief Formats LogExtra fields as TSKV log lines.
 class LogExtraTskvFormatter final {
 public:
     explicit LogExtraTskvFormatter(logging::Format format);

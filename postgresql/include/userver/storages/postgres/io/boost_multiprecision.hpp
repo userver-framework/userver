@@ -34,7 +34,7 @@ struct BufferFormatter<MultiPrecision<Precision>> {
         auto str_rep = value.str(std::numeric_limits<Value>::max_digits10, std::ios_base::fixed);
         auto bin_str = detail::StringToNumericBuffer(str_rep);
         buf.reserve(buf.size() + bin_str.size());
-        std::copy(bin_str.begin(), bin_str.end(), std::back_inserter(buf));
+        std::ranges::copy(bin_str, std::back_inserter(buf));
     }
 };
 

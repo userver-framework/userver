@@ -126,14 +126,14 @@ void ManagerControllerComponent::OnConfigUpdate(const dynamic_config::Snapshot& 
     auto config = cfg[::dynamic_config::USERVER_TASK_PROCESSOR_QOS];
     const auto& profiler_config = cfg[::dynamic_config::USERVER_TASK_PROCESSOR_PROFILER_DEBUG];
 
+    const auto default_profiler_cfg = utils::FindOrDefault(profiler_config.extra, "default-task-processor");
+
     for (const auto& [name, task_processor] : components_manager_.GetTaskProcessorsMap()) {
-        auto profiler_cfg = utils::FindOrDefault(
-            profiler_config.extra,
-            name,
-            utils::FindOrDefault(profiler_config.extra, "default-task-processor")
-        );
-        // NOTE: find task processor by name, someday
-        task_processor->SetSettings(config.default_service.default_task_processor, profiler_cfg);
+        const auto cfg =
+            utils::FindOrDefault(config.default_service.extra, name, config.default_service.default_task_processor);
+        const auto profiler_cfg = utils::FindOrDefault(profiler_config.extra, name, default_profiler_cfg);
+
+        task_processor->SetSettings(cfg, profiler_cfg);
     }
 }
 

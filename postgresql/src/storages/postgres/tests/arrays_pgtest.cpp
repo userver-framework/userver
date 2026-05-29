@@ -133,7 +133,7 @@ static_assert(tt::kIsMappedToPg<three_dim_array>);
 
 static_assert(tt::kIsMappedToPg<vector_of_arrays>);
 
-static_assert(tt::kHasParser<one_dim_vector>);
+static_assert(tt::HasParser<one_dim_vector>);
 
 static_assert(tt::kIsMappedToPg<unordered_set>);
 static_assert(tt::kIsMappedToPg<vector_of_unordered_sets>);
@@ -949,7 +949,7 @@ UTEST_P(PostgreConnection, TransactionDecomposedChunkedContainer) {
 
     std::vector<IdAndValue> rows_to_insert(1001);
     int index = 0;
-    std::generate(rows_to_insert.begin(), rows_to_insert.end(), [&index] {
+    std::ranges::generate(rows_to_insert, [&index] {
         const auto x = index++;
         return IdAndValue{x, std::to_string(x)};
     });
@@ -981,7 +981,7 @@ UTEST_P(PostgreConnection, TransactionDecomposedContainer) {
 
     std::vector<IdAndValue> rows_to_insert(1001);
     int index = 0;
-    std::generate(rows_to_insert.begin(), rows_to_insert.end(), [&index] {
+    std::ranges::generate(rows_to_insert, [&index] {
         const auto x = index++;
         return IdAndValue{x, std::to_string(x)};
     });

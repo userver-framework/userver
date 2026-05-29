@@ -25,12 +25,13 @@ jobs:
             CMAKE_FLAGS: >-
                 -GNinja
                 -DCMAKE_BUILD_TYPE=Debug
-                -DCMAKE_CXX_STANDARD=17
+                -DCMAKE_CXX_STANDARD=20
                 -DUSERVER_NO_WERROR=1
                 -DUSERVER_BUILD_ALL_COMPONENTS=1
                 -DUSERVER_BUILD_SAMPLES=1
                 -DUSERVER_BUILD_TESTS=1
                 -DUSERVER_FEATURE_CRYPTOPP_BLAKE2=0
+                -DUSERVER_FEATURE_YDB=0
                 -DUSERVER_USE_LD=lld
                 -DUSERVER_FORCE_DOWNLOAD_RE2=1
                 -DUSERVER_FORCE_DOWNLOAD_ABSEIL=1
@@ -75,12 +76,13 @@ jobs:
             run: |
                 brew tap mongodb/brew
                 brew install clickhouse redis kafka mongodb-community rabbitmq
+                mkdir -p "$(brew --prefix)/etc/rabbitmq/conf.d"
+                echo 'deprecated_features.permit.transient_nonexcl_queues = true' > "$(brew --prefix)/etc/rabbitmq/conf.d/10-userver-ci.conf"
 
           - name: Setup ccache
             run: |
                 ccache -M 2.0GB
                 ccache -s -v
-
 
           - name: Run cmake
             run: |
@@ -174,6 +176,6 @@ jobs:
                 ulimit -n 4096 && GTEST_FILTER="-PostgreCluster.TransactionTimeouts" ctest -V -E testsuite-userver-postgresql-tests-basic-chaos
 
           - name: Run tests (sqlite)
-            run: |
+            run: |-
                 cd build_debug/sqlite
                 ctest -V -E "userver-sqlite-unittest" # unittests failed with fs access

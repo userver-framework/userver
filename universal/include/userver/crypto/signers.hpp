@@ -145,6 +145,7 @@ private:
     PrivateKey pkey_;
 };
 
+/// @brief Non-cryptographic signature helpers.
 namespace weak {
 
 /// Outputs RSASSA signature using SHA-1 and PKCS1 padding.

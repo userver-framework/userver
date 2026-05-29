@@ -33,7 +33,7 @@ TEST(TaskQueueTSan, TheSameThreadAfterYield) {
         std::vector<engine::Task> tasks;
         tasks.reserve(kAsyncTasksTourtureCount);
         for (std::size_t i = 0; i < kAsyncTasksTourtureCount; ++i) {
-            tasks.emplace_back(engine::AsyncNoSpan(payload));
+            tasks.emplace_back(engine::AsyncNoTracing(payload));
         }
     });
 }
@@ -48,7 +48,7 @@ TEST(TaskQueueTSan, RoundRobin) {
         const auto payload = [&ids]() { ids.insert(test::GetThreadIdSafe()); };
 
         for (std::size_t i = 0; i < kWorkerThreads; ++i) {
-            engine::AsyncNoSpan(payload).Get();
+            engine::AsyncNoTracing(payload).Get();
         }
 
         EXPECT_EQ(ids.size(), kWorkerThreads);

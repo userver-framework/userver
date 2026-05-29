@@ -16,7 +16,7 @@ USERVER_NAMESPACE_BEGIN
 constexpr size_t kStressNumThreads = 2;
 constexpr auto kStressTestDuration = std::chrono::milliseconds{500};
 
-static_assert(utils::statistics::kHasWriterSupport<utils::statistics::MinMaxAvg<int>>);
+static_assert(utils::statistics::HasWriterSupport<utils::statistics::MinMaxAvg<int>>);
 
 template <int... Values>
 auto GetFilledMma() {

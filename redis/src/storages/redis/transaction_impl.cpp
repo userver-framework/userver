@@ -2,6 +2,7 @@
 
 #include <sstream>
 
+#include <userver/formats/json/serialize.hpp>
 #include <userver/storages/redis/impl/transaction_subrequest_data.hpp>
 
 #include "client_impl.hpp"
@@ -486,6 +487,15 @@ RequestSetex TransactionImpl::Setex(std::string key, std::chrono::seconds second
     return AddCmd<RequestSetex>("setex", true, std::move(key), seconds.count(), std::move(value));
 }
 
+RequestSetAndGetPrevious TransactionImpl::SetAndGetPrevious(
+    std::string key,
+    std::string value,
+    std::chrono::milliseconds ttl
+) {
+    UpdateShard(key);
+    return AddCmd<RequestSetAndGetPrevious>("set", true, std::move(key), std::move(value), "PX", ttl.count(), "GET");
+}
+
 RequestSismember TransactionImpl::Sismember(std::string key, std::string member) {
     UpdateShard(key);
     return AddCmd<RequestSismember>("sismember", false, std::move(key), std::move(member));
@@ -704,6 +714,62 @@ RequestZremrangebyscore TransactionImpl::Zremrangebyscore(std::string key, std::
 RequestZscore TransactionImpl::Zscore(std::string key, std::string member) {
     UpdateShard(key);
     return AddCmd<RequestZscore>("zscore", false, std::move(key), std::move(member));
+}
+
+RequestJsonSet TransactionImpl::JsonSet(std::string key, std::string path, formats::json::Value value) {
+    UpdateShard(key);
+    auto json_string = formats::json::ToString(value);
+    return AddCmd<RequestJsonSet>("json.set", true, std::move(key), std::move(path), std::move(json_string));
+}
+
+RequestJsonSetIfNotExist TransactionImpl::JsonSetIfNotExist(
+    std::string key,
+    std::string path,
+    formats::json::Value value
+) {
+    UpdateShard(key);
+    auto json_string = formats::json::ToString(value);
+    return AddCmd<
+        RequestJsonSetIfNotExist>("json.set", true, std::move(key), std::move(path), std::move(json_string), "NX");
+}
+
+RequestJsonSetIfExist TransactionImpl::JsonSetIfExist(std::string key, std::string path, formats::json::Value value) {
+    UpdateShard(key);
+    auto json_string = formats::json::ToString(value);
+    return AddCmd<
+        RequestJsonSetIfExist>("json.set", true, std::move(key), std::move(path), std::move(json_string), "XX");
+}
+
+RequestJsonGet TransactionImpl::JsonGet(std::string key) {
+    UpdateShard(key);
+    return AddCmd<RequestJsonGet>("json.get", false, std::move(key));
+}
+
+RequestJsonGet TransactionImpl::JsonGet(std::string key, std::string path) {
+    UpdateShard(key);
+    return AddCmd<RequestJsonGet>("json.get", false, std::move(key), std::move(path));
+}
+
+RequestJsonGet TransactionImpl::JsonGet(std::string key, std::vector<std::string> paths) {
+    UpdateShard(key);
+    return AddCmd<RequestJsonGet>("json.get", false, std::move(key), std::move(paths));
+}
+
+RequestJsonMget TransactionImpl::JsonMget(std::vector<std::string> keys, std::string path) {
+    UpdateShard(keys);
+    return AddCmd<RequestJsonMget>("json.mget", false, std::move(keys), std::move(path));
+}
+
+RequestJsonMset TransactionImpl::JsonMset(std::vector<JsonKeyPathValue> key_path_values) {
+    // Flatten key-path-value triplets into a single args list
+    std::vector<std::string> args;
+    args.reserve(key_path_values.size() * 3);
+    for (auto&& [key, path, value] : key_path_values) {
+        args.push_back(std::move(key));
+        args.push_back(std::move(path));
+        args.push_back(formats::json::ToString(std::move(value)));
+    }
+    return AddCmd<RequestJsonMset>("json.mset", true, std::move(args));
 }
 
 // end of redis commands

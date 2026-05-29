@@ -17,13 +17,13 @@ userver is split into multiple CMake libraries.
 | `userver::grpc`            | `USERVER_FEATURE_GRPC`                            | `grpc`                | @ref scripts/docs/en/userver/grpc/grpc.md                 |
 | `userver::grpc-utest`      | `USERVER_FEATURE_GRPC` + `USERVER_FEATURE_UTEST`  | `grpc`                | @ref scripts/docs/en/userver/grpc/grpc.md                 |
 | `userver::mongo`           | `USERVER_FEATURE_MONGODB`                         | `mongo`               | @ref scripts/docs/en/userver/mongodb.md                   |
-| `userver::postgresql`      | `USERVER_FEATURE_POSTGRESQL`                      | `postgresql`          | @ref pg_driver                                            |
+| `userver::postgresql`      | `USERVER_FEATURE_POSTGRESQL`                      | `postgresql`          | @ref scripts/docs/en/userver/pg/driver.md                 |
 | `userver::redis`           | `USERVER_FEATURE_REDIS`                           | `redis`               | @ref scripts/docs/en/userver/redis.md                     |
 | `userver::redis-utest`     | `USERVER_FEATURE_REDIS` + `USERVER_FEATURE_UTEST` | `redis`               | @ref scripts/docs/en/userver/redis.md                     |
-| `userver::clickhouse`      | `USERVER_FEATURE_CLICKHOUSE`                      | `clickhouse`          | @ref clickhouse_driver                                    |
+| `userver::clickhouse`      | `USERVER_FEATURE_CLICKHOUSE`                      | `clickhouse`          | @ref scripts/docs/en/userver/clickhouse/driver.md         |
 | `userver::kafka`           | `USERVER_FEATURE_KAFKA`                           | `kafka`               | @ref scripts/docs/en/userver/kafka.md                     |
 | `userver::kafka-utest`     | `USERVER_FEATURE_KAFKA` + `USERVER_FEATURE_UTEST` | `kafka`               | @ref scripts/docs/en/userver/kafka.md                     |
-| `userver::rabbitmq`        | `USERVER_FEATURE_RABBITMQ`                        | `rabbitmq`            | @ref rabbitmq_driver                                      |
+| `userver::rabbitmq`        | `USERVER_FEATURE_RABBITMQ`                        | `rabbitmq`            | @ref scripts/docs/en/userver/rabbitmq_driver.md           |
 | `userver::mysql`           | `USERVER_FEATURE_MYSQL`                           | `mysql`               | @ref scripts/docs/en/userver/mysql/mysql_driver.md        |
 | `userver::rocks`           | `USERVER_FEATURE_ROCKS`                           | `rocks`               | TODO                                                      |
 | `userver::sqlite`          | `USERVER_FEATURE_SQLITE`                          | `sqlite`              | @ref scripts/docs/en/userver/sqlite/sqlite_driver.md      |
@@ -203,18 +203,18 @@ The exact format of setting cmake options varies depending on the method of buil
 
 It is possible to build userver based services with libraries statically linked in.
 
-@warning The support is platform dependant, as a result some libraries on some platforms may linked dynamically. Feel free to provide a PR to support your favourite platform.
+@warning The support is platform-dependent; as a result, some libraries on some platforms may be linked dynamically. Feel free to provide a PR to support your favourite platform.
 
 Userver does not build dynamic libraries itself, but most of its dependencies do. CMake (by default) prefers dynamic libraries on Unix-like operating systems.
 
 - Use `USERVER_USE_STATIC_LIBS=ON` CMake option to prefer static libraries for all userver dependencies (ON by default for "sufficiently new" `Clang` versions).
 With the option, CMake tries to find all dependencies as static libraries (and dependencies of dependencies), fallbacks to dynamic libraries when no static found.
 - To link statically with `libstdc++` or `libc++`, use `CMAKE_EXE_LINKER_FLAGS="-static-libstdc++ -static-libgcc"`.
-- To force fully static binary (with statically linked `libc`), use `CMAKE_EXE_LINKER_FLAGS="-static"`. In such case, all dependencies must be provided as static libraries. Also `userver` must be build with `USERVER_DISABLE_PHDR_CACHE=ON` (without this flag, it can lead to endless memory allocation).
+- To force fully static binary (with statically linked `libc`), use `CMAKE_EXE_LINKER_FLAGS="-static"`. In such case, all dependencies must be provided as static libraries. Also `userver` must be built with `USERVER_DISABLE_PHDR_CACHE=ON` (without this flag, it can lead to endless memory allocation).
 
-Some dependencies usually should be build from source for statically linked executable:
+Some dependencies usually should be built from source for statically linked executable:
 1. `Curl`. Use `USERVER_FORCE_DOWNLOAD_CURL=ON` to download and build Curl from source.
-2. `cctz`, `yaml-cpp`, `fmt` often have no static libraries in their packages, so they should be build from source and installed in your host system (for instance, in `/usr/local`).
+2. `cctz`, `yaml-cpp`, `fmt` often have no static libraries in their packages, so they should be built from source and installed in your host system (for instance, in `/usr/local`).
 
 ## PGO (clang)
 

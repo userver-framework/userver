@@ -36,15 +36,14 @@ RabbitMQ::RabbitMQ(const ComponentConfig& config, const ComponentContext& contex
     const urabbitmq::ClientSettings settings{config, endpoints};
     client_ = urabbitmq::Client::Create(dns_.GetResolver(), settings);
 
-    auto& statistics_storage = context.FindComponent<components::StatisticsStorage>();
-    statistics_holder_ =
-        statistics_storage.GetStorage()
-            .RegisterWriter("rabbitmq." + config.Name(), [this](utils::statistics::Writer& writer) {
-                return client_->WriteStatistics(writer);
-            });
+    utils::statistics::RegisterWriterScope(
+        context,
+        "rabbitmq." + config.Name(),
+        [this](utils::statistics::Writer& writer) { return client_->WriteStatistics(writer); }
+    );
 }
 
-RabbitMQ::~RabbitMQ() { statistics_holder_.Unregister(); }
+RabbitMQ::~RabbitMQ() = default;
 
 std::shared_ptr<urabbitmq::Client> RabbitMQ::GetClient() const { return client_; }
 

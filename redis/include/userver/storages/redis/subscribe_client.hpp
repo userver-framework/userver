@@ -68,8 +68,38 @@ public:
         const CommandControl& command_control
     ) = 0;
 
+    /// Retrieves a single subscription token for multiple channels.
+    /// Uses a single coroutine to handle messages from all channels.
+    virtual SubscriptionToken Subscribe(
+        std::vector<std::string> channels,
+        SubscriptionToken::OnMessageCb on_message_cb,
+        const CommandControl& command_control
+    ) = 0;
+    /// Retrieves a single subscription token for multiple channels.
+    /// Uses a single coroutine to handle messages from all channels.
+    virtual SubscriptionToken Psubscribe(
+        std::vector<std::string> patterns,
+        SubscriptionToken::OnPmessageCb on_message_cb,
+        const CommandControl& command_control
+    ) = 0;
+    /// Retrieves a single subscription token for multiple channels.
+    /// Uses a single coroutine to handle messages from all channels.
+    virtual SubscriptionToken Ssubscribe(
+        std::vector<std::string> channels,
+        SubscriptionToken::OnMessageCb on_message_cb,
+        const CommandControl& command_control
+    ) = 0;
+
     SubscriptionToken Ssubscribe(std::string channel, SubscriptionToken::OnMessageCb on_message_cb) {
         return Ssubscribe(std::move(channel), std::move(on_message_cb), {});
+    }
+
+    SubscriptionToken Ssubscribe(std::vector<std::string> channels, SubscriptionToken::OnMessageCb on_message_cb) {
+        return Ssubscribe(std::move(channels), std::move(on_message_cb), {});
+    }
+
+    SubscriptionToken Psubscribe(std::vector<std::string> patterns, SubscriptionToken::OnPmessageCb on_message_cb) {
+        return Psubscribe(std::move(patterns), std::move(on_message_cb), {});
     }
 };
 

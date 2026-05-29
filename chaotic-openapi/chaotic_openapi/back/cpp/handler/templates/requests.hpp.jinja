@@ -1,0 +1,91 @@
+#pragma once
+
+#include <optional>
+#include <string>
+{% if op.has_any_hidden_query_parameters() %}
+#include <userver/utils/trivial_map.hpp>
+{% endif %}
+{% if op.request_bodies | length > 1 %}
+#include <variant>
+{% endif %}
+#include <userver/chaotic/openapi/parameters_read.hpp>
+#include <userver/server/http/http_request.hpp>
+{% for include in op.requests_declaration_includes() %}
+#include <{{ include }}>
+{% endfor %}
+
+{% for include in spec.cpp_type_includes() %}
+#include <{{ include }}>
+{% endfor %}
+
+namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }} {
+
+
+{% set operation = op %}
+
+{% for body in operation.request_bodies %}
+{% if body.content_type == 'application/octet-stream' %}
+struct {{ body.cpp_name() }} {
+    std::string data;
+};
+{% endif %}
+{% endfor %}
+
+{% for param in operation.parameters %}
+    static constexpr {{ userver }}::chaotic::openapi::Name k{{ param.cpp_name }} = "{{ param.raw_name }}";
+{% endfor %}
+
+{% if op.has_any_hidden_query_parameters() %}
+struct HiddenQueryArguments {
+    static constexpr {{ userver }}::utils::TrivialSet kSet{[](auto selector) {
+        return selector()
+        {% for param in operation.parameters %}
+            {% if param.query_log_mode_hide %}
+            .Case(k{{ param.cpp_name }})
+            {% endif %}
+        {% endfor %}
+        ;
+    }};
+
+    static constexpr bool Contains(std::string_view name) noexcept {
+        return kSet.Contains(name);
+    }
+};
+{% endif %}
+
+/// Request parsed from HttpRequest for this operation.
+struct Request final {
+    {% for param in operation.parameters %}
+        {% if param.cpp_type.nullable %}
+            std::optional<{{ param.cpp_type.cpp_user_name() }}> {{ param.cpp_name }};
+        {% else %}
+            {{ param.cpp_type.cpp_user_name() }} {{ param.cpp_name }};
+        {% endif %}
+    {% endfor %}
+
+    {% if operation.request_bodies | length == 1 %}
+        {% set body = operation.request_bodies[0] %}
+        {% if body.schema %}
+            {{ body.cpp_type() }} body;
+        {% endif %}
+    {% elif operation.request_bodies | length > 1 %}
+        std::variant<
+        {% for body in operation.request_bodies %}
+            {{ body.cpp_type() }}{% if not loop.last %},{% endif %}
+        {% endfor %}
+        > body;
+    {% endif %}
+};
+
+Request ParseRequest(
+    const {{ userver }}::server::http::HttpRequest& http_request,
+    const {{ userver }}::chaotic::openapi::To<Request>&);
+
+{% if operation.request_bodies | length > 1 %}
+{% for body in operation.request_bodies %}
+{{ body.cpp_type() }} Parse{{ body.cpp_name() }}(
+    const {{ userver }}::server::http::HttpRequest& http_request);
+{% endfor %}
+{% endif %}
+
+}  // namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }}

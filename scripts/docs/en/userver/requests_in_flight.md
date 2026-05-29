@@ -2,7 +2,7 @@
 
 If your service has a server::handlers::InspectRequests configured, then you may
 inspect the active requests. The feature is useful for investigating a broken
-production service to find request parameters that lead to handle malfunction. 
+production service to find request parameters that lead to handle malfunction.
 
 ## Commands
 server::handlers::InspectRequests provides the following REST API:
@@ -47,7 +47,7 @@ $ curl http://localhost:8085/internal/inspect-requests | jq
 ]
 ```
 
-### Get the bodies of the in-flight requests 
+### Get the bodies of the in-flight requests
 In this example there are multiple in-flight request that actually have no body.
 ```
 bash

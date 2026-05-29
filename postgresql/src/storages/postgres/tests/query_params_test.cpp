@@ -14,11 +14,9 @@ namespace static_test {
 namespace tt = io::traits;
 
 struct NoOutputOperator {};
-static_assert(!tt::kHasOutputOperator<NoOutputOperator>, "Test output metafunction");
-static_assert(tt::kHasOutputOperator<int>, "Test output metafunction");
-static_assert(!tt::kHasFormatter<NoOutputOperator>, "Test has formatter metafunction");
+static_assert(!tt::HasFormatter<NoOutputOperator>, "Test has formatter metafunction");
 
-static_assert(tt::kHasFormatter<std::optional<int>>, "Test has formatter metafunction");
+static_assert(tt::HasFormatter<std::optional<int>>, "Test has formatter metafunction");
 
 }  // namespace static_test
 

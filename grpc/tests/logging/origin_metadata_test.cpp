@@ -9,6 +9,7 @@
 #include <userver/ugrpc/tests/service_fixtures.hpp>
 #include <userver/utest/log_capture_fixture.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/algo.hpp>
 
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
@@ -24,11 +25,7 @@ using ClientType = sample::ugrpc::UnitTestServiceClient;
 class OriginMetadataServerTestClientServer : public ugrpc::tests::ServiceWithClientFixture<ServiceType, ClientType> {
 public:
     OriginMetadataServerTestClientServer()
-        : ugrpc::tests::ServiceWithClientFixture<ServiceType, ClientType>(
-              ugrpc::server::ServerConfig{},
-              ugrpc::server::Middlewares{MakeMiddleware()},
-              ugrpc::client::Middlewares{}
-          )
+        : ugrpc::tests::ServiceWithClientFixture<ServiceType, ClientType>({.server_middlewares = {MakeMiddleware()}})
     {}
 
 private:
@@ -49,11 +46,7 @@ constexpr std::string_view kSampleUserAgent = "test-service/0.0.42";
 class OriginMetadataClientTest : public ugrpc::tests::ServiceWithClientFixture<ServiceType, ClientType> {
 public:
     OriginMetadataClientTest()
-        : ugrpc::tests::ServiceWithClientFixture<ServiceType, ClientType>(
-              ugrpc::server::ServerConfig{},
-              ugrpc::server::Middlewares{},
-              ugrpc::client::Middlewares{MakeMiddleware()}
-          )
+        : ugrpc::tests::ServiceWithClientFixture<ServiceType, ClientType>({.client_middlewares = {MakeMiddleware()}})
     {}
 
 private:
@@ -73,7 +66,8 @@ UTEST_F(OriginMetadataClientTest, UnaryCall) {
     EXPECT_CALL(GetService(), SayHello)
         .WillOnce([](const ugrpc::server::CallContext& context, sample::ugrpc::GreetingRequest&&) {
             EXPECT_THAT(
-                ugrpc::server::GetRepeatedMetadata(context, "x-origin"),
+                utils::AsContainer<
+                    std::vector<std::string_view>>(ugrpc::server::GetRepeatedMetadata(context, "x-origin")),
                 testing::ElementsAre(kSampleUserAgent)
             );
             return sample::ugrpc::GreetingResponse{};

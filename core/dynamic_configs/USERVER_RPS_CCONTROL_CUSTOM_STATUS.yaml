@@ -1,5 +1,6 @@
 default: {}
-description: ''
+description: |
+    HTTP status code settings in congestion control for the HTTP server.
 schema:
     type: object
     additionalProperties: false
@@ -9,8 +10,16 @@ schema:
             default: 429
             minimum: 300
             maximum: 599
+            description: |
+                HTTP status code for the first 'max-time-ms' after congestion
+                control is triggered.
+
         max-time-ms:
             type: integer
             default: 10000
             x-usrv-cpp-type: std::chrono::milliseconds
             minimum: 1
+            description: |-
+                How long (in ms) a custom status code may be sent.
+                After this time, congestion control responds with status 429.
+

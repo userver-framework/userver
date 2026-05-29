@@ -12,6 +12,7 @@ void DumpMetric(USERVER_NAMESPACE::utils::statistics::Writer& writer, const Inst
         conn["busy"] = stats.connection.used;
         conn["max"] = stats.connection.maximum;
         conn["waiting"] = stats.connection.waiting;
+        conn["rate-limit-throttled"] = stats.connection.rate_limit_throttled;
         conn["max-queue-size"] = stats.connection.max_queue_size;
     }
     if (auto trx = writer["transactions"]) {

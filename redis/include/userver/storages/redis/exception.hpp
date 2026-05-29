@@ -62,6 +62,12 @@ public:
     using Exception::Exception;
 };
 
+/// Redis JSON module error (e.g., WRONGTYPE, SYNTAXERR, NONEXISTENT)
+class JsonModuleException : public RequestFailedException {
+public:
+    using RequestFailedException::RequestFailedException;
+};
+
 }  // namespace storages::redis
 
 USERVER_NAMESPACE_END

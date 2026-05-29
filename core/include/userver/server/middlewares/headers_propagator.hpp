@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/middlewares/headers_propagator.hpp
+/// @brief HTTP middleware that propagates request headers
+
 #include <userver/server/middlewares/http_middleware_base.hpp>
 
 USERVER_NAMESPACE_BEGIN

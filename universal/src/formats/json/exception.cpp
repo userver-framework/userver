@@ -1,4 +1,6 @@
 #include <userver/formats/json/exception.hpp>
+
+#include <userver/compiler/impl/nodebug.hpp>
 #include <userver/utils/algo.hpp>
 
 #include <istream>
@@ -46,6 +48,10 @@ constexpr std::string_view kErrorAtPath2 = "': ";
 }  // namespace
 
 namespace formats::json {
+
+// vtable anchor functions
+USERVER_IMPL_NODEBUG const char* Exception::what() const noexcept { return msg_.c_str(); }
+USERVER_IMPL_NODEBUG ParseException::~ParseException() = default;
 
 ExceptionWithPath::ExceptionWithPath(std::string_view msg, std::string_view path)
     : Exception(utils::StrCat(kErrorAtPath1, path, kErrorAtPath2, msg)),

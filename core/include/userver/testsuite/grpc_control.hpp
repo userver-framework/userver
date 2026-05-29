@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/testsuite/grpc_control.hpp
+/// @brief @copybrief testsuite::GrpcControl
+
 #include <chrono>
 
 #include <userver/engine/deadline.hpp>
@@ -8,6 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace testsuite {
 
+/// @brief Testsuite overrides for gRPC client timeouts and TLS
 class GrpcControl {
 public:
     GrpcControl() = default;

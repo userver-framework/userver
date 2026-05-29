@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/testsuite/http_allowed_urls_extra.hpp
+/// @brief @copybrief testsuite::HttpAllowedUrlsExtra
+
 #include <memory>
 #include <string>
 
@@ -14,6 +17,7 @@ class ClientCore;
 
 namespace testsuite {
 
+/// @brief Testsuite extra allowed HTTP client URLs
 class HttpAllowedUrlsExtra final {
 public:
     void RegisterHttpClient(clients::http::ClientCore& http_client);

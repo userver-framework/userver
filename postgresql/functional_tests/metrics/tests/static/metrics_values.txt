@@ -77,6 +77,9 @@ postgresql.connections.opened: postgresql_cluster_host_type=master, postgresql_d
 # The number of statements waiting for a connection to execute
 postgresql.connections.waiting: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
 
+# Number of statements rejected by PostgreSQL connection rate limiter
+postgresql.connections.rate-limit-throttled: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+
 # Whether connlimit mode: auto is enabled
 postgresql.connlimit-mode-auto-enabled: postgresql_database=pg_key_value, postgresql_database_shard=shard_0	GAUGE	0
 

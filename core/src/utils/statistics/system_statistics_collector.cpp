@@ -29,7 +29,7 @@ SystemStatisticsCollector::SystemStatisticsCollector(const ComponentConfig& conf
 }
 
 void SystemStatisticsCollector::ProcessTimer() {
-    engine::CriticalAsyncNoSpan(fs_task_processor_, [&] {
+    engine::CriticalAsyncNoTracing(fs_task_processor_, [&] {
         auto self = utils::statistics::impl::GetSelfSystemStatistics();
         utils::statistics::impl::SystemStats nginx;
         if (with_nginx_) {

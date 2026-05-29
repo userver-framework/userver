@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/cache/cache_config.hpp
+/// @brief Cache component configuration, update modes and dynamic config patches
+
 #include <chrono>
 #include <optional>
 #include <stdexcept>

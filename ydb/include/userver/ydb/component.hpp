@@ -97,7 +97,6 @@ private:
 
     // These fields must be the last ones
     concurrent::AsyncEventSubscriberScope config_subscription_;
-    utils::statistics::Entry statistic_holder_;
 };
 
 }  // namespace ydb

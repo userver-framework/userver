@@ -1,6 +1,7 @@
 #include <userver/utest/assert_macros.hpp>
 
 #include <userver/chaotic/sax_parser.hpp>
+#include <userver/chaotic/validators_pattern.hpp>
 #include <userver/formats/json/inline.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -57,6 +58,19 @@ TEST(SaxParser, String)
     EXPECT_EQ(result, "foo bar baz");
 }
 
+TEST(SaxParser, StringPattern) {
+    static constexpr std::string_view kPatternFooStar = "foo.*";
+
+    using Parser = sax::Parser<chaotic::Primitive<std::string, chaotic::Pattern<kPatternFooStar>>>;
+    auto input = "\"not matching\"";
+
+    UEXPECT_THROW_MSG(
+        (formats::json::parser::ParseToType<std::string, Parser>(input)),
+        formats::json::parser::ParseError,
+        "doesn't match regex"
+    );
+}
+
 TEST(SaxParser, PrimitiveValidator)
 {
     static constexpr auto kMinimum = 10;
@@ -75,7 +89,7 @@ enum class EnumInt {
     kTwo,
 };
 
-EnumInt FromInt(int i, formats::parse::To<EnumInt>) {
+EnumInt Convert(std::int64_t i, chaotic::convert::To<EnumInt>) {
     switch (i) {
         case 1:
             return EnumInt::kOne;
@@ -100,7 +114,7 @@ enum class EnumString {
     kTwo,
 };
 
-EnumString FromString(std::string_view str, formats::parse::To<EnumString>) {
+EnumString Convert(std::string_view str, chaotic::convert::To<EnumString>) {
     if (str == "one") {
         return EnumString::kOne;
     } else if (str == "two") {
@@ -256,10 +270,7 @@ using SelfRefDescriptor = chaotic::Object<
 
 using SelfRefParser = sax::Parser<SelfRefDescriptor>;
 
-auto ParserOf(SelfRef&)
-{
-    return SelfRefParser{};
-}
+[[maybe_unused]] auto ParserOf(chaotic::sax::Type<SelfRef>) -> SelfRefParser;
 
 TEST(SaxParser, ObjectSelfRef)
 {

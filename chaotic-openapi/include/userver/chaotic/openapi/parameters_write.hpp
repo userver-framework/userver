@@ -1,5 +1,7 @@
 #pragma once
 
+#include <concepts>
+
 #include <fmt/args.h>
 #include <fmt/ranges.h>
 
@@ -91,13 +93,14 @@ void SetParameter(Name& name, StrType&& str_value, ParameterSinkBase& dest) {
     }
 }
 
-template <typename T>
-std::enable_if_t<std::is_integral_v<T>, std::string> ToStrParameter(T s) noexcept {
+template <std::integral T>
+std::string ToStrParameter(T s) noexcept {
     return std::to_string(s);
 }
 
 template <typename T>
-std::enable_if_t<std::is_enum_v<T>, std::string> ToStrParameter(T s) noexcept {
+requires std::is_enum_v<T>
+std::string ToStrParameter(T s) noexcept {
     return ToString(s);
 }
 
@@ -110,9 +113,8 @@ std::string ToStrParameter(std::string&& s) noexcept;
 std::vector<std::string> ToStrParameter(std::vector<std::string>&& s) noexcept;
 
 template <typename T>
-std::enable_if_t<std::is_same_v<meta::RangeValueType<T>, std::string>, std::vector<std::string>> ToStrParameter(
-    T&& collection
-) noexcept {
+requires std::is_same_v<meta::RangeValueType<T>, std::string>
+std::vector<std::string> ToStrParameter(T&& collection) noexcept {
     std::vector<std::string> result;
     result.reserve(collection.size());
     for (auto&& item : collection) {

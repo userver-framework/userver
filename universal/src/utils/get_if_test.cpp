@@ -10,22 +10,22 @@
 USERVER_NAMESPACE_BEGIN
 
 TEST(GetIf, IsPointerLike) {
-    static_assert(!utils::impl::kIsPointerLike<int>);
-    static_assert(!utils::impl::kIsPointerLike<int&>);
-    static_assert(!utils::impl::kIsPointerLike<std::optional<int>>);
-    static_assert(!utils::impl::kIsPointerLike<std::nullptr_t>);
+    static_assert(!utils::impl::IsPointerLike<int>);
+    static_assert(!utils::impl::IsPointerLike<int&>);
+    static_assert(!utils::impl::IsPointerLike<std::optional<int>>);
+    static_assert(!utils::impl::IsPointerLike<std::nullptr_t>);
 
-    static_assert(utils::impl::kIsPointerLike<std::optional<int>&>);
+    static_assert(utils::impl::IsPointerLike<std::optional<int>&>);
 
-    static_assert(utils::impl::kIsPointerLike<std::shared_ptr<int>>);
-    static_assert(utils::impl::kIsPointerLike<std::shared_ptr<int>&>);
+    static_assert(utils::impl::IsPointerLike<std::shared_ptr<int>>);
+    static_assert(utils::impl::IsPointerLike<std::shared_ptr<int>&>);
 
-    static_assert(utils::impl::kIsPointerLike<std::unique_ptr<int>>);
-    static_assert(utils::impl::kIsPointerLike<std::unique_ptr<int>&>);
+    static_assert(utils::impl::IsPointerLike<std::unique_ptr<int>>);
+    static_assert(utils::impl::IsPointerLike<std::unique_ptr<int>&>);
 
-    static_assert(utils::impl::kIsPointerLike<int*>);
-    static_assert(utils::impl::kIsPointerLike<int**>);
-    static_assert(utils::impl::kIsPointerLike<int*&>);
+    static_assert(utils::impl::IsPointerLike<int*>);
+    static_assert(utils::impl::IsPointerLike<int**>);
+    static_assert(utils::impl::IsPointerLike<int*&>);
 }
 
 TEST(GetIf, Basic) {

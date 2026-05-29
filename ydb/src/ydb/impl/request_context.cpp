@@ -12,15 +12,35 @@
 #include <dynamic_config/variables/YDB_DEADLINE_PROPAGATION_VERSION.hpp>
 #include <dynamic_config/variables/YDB_QUERIES_COMMAND_CONTROL.hpp>
 
+using namespace std::chrono_literals;
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ydb::impl {
 
 namespace {
 
+void AddSpecificTags(tracing::Span& span, OperationSettings& settings) {
+    UASSERT(settings.retries.has_value());
+    span.AddTag("max_retries", settings.retries.value());
+    span.AddTag("get_session_timeout_ms", settings.get_session_timeout_ms.count());
+    span.AddTag("client_timeout_ms", settings.client_timeout_ms.count());
+    span.AddTag("is_idempotent", settings.is_idempotent);
+    settings.trace_id = span.GetTraceId();
+}
+
+void AddSpecificTags(tracing::Span& span, RequestSettings& settings) {
+    if (settings.client_timeout_ms.has_value() && settings.client_timeout_ms.value() != 0ms) {
+        span.AddTag("client_timeout_ms", settings.client_timeout_ms.value().count());
+    } else {
+        span.AddTag("client_timeout_ms", "unlimited");
+    }
+}
+
+template <typename Settings>
 tracing::Span MakeSpan(
     const Query& query,
-    OperationSettings& settings,
+    Settings& settings,
     tracing::Span* custom_parent_span,
     utils::impl::SourceLocation location
 ) {
@@ -28,8 +48,6 @@ tracing::Span MakeSpan(
         custom_parent_span
             ? custom_parent_span->CreateChild("ydb_query", location)
             : tracing::Span("ydb_query", location);
-
-    settings.trace_id = span.GetTraceId();
 
     const auto optional_name_view = query.GetOptionalNameView();
     switch (query.GetLogMode()) {
@@ -47,12 +65,7 @@ tracing::Span MakeSpan(
             break;
     }
 
-    UASSERT(settings.retries.has_value());
-    span.AddTag("max_retries", *settings.retries);
-    span.AddTag("get_session_timeout_ms", settings.get_session_timeout_ms.count());
-    span.AddTag("operation_timeout_ms", settings.operation_timeout_ms.count());
-    span.AddTag("cancel_after_ms", settings.cancel_after_ms.count());
-    span.AddTag("client_timeout_ms", settings.client_timeout_ms.count());
+    AddSpecificTags(span, settings);
 
     if (optional_name_view) {
         try {
@@ -65,28 +78,28 @@ tracing::Span MakeSpan(
     return span;
 }
 
+template <typename Settings>
+bool IsTimeoutSet(const Settings& settings) {
+    if constexpr (std::is_same_v<Settings, OperationSettings>) {
+        return settings.client_timeout_ms != std::chrono::milliseconds::zero();
+    } else {
+        return settings.client_timeout_ms.has_value();
+    }
+}
+
+// Priority of the Settings choosing. From low to high:
+// 0. Driver's defaults
+// 1. Static config
+// 2. Settings passed in code
+// 3. Dynamic config
+template <typename Settings>
 void PrepareSettings(
     const Query& query,
     const dynamic_config::Snapshot& config_snapshot,
-    OperationSettings& os,
+    Settings& os,
     impl::IsStreaming is_streaming,
     const OperationSettings& default_settings
 ) {
-    // Priority of the OperationSettings choosing. From low to high:
-    // 0. Driver's defaults
-    // 1. Static config
-    // 2. OperationSettings passed in code
-    // 3. Dynamic config
-
-    if (!os.retries.has_value()) {
-        os.retries = default_settings.retries.value();
-    }
-    if (os.operation_timeout_ms == std::chrono::milliseconds::zero()) {
-        os.operation_timeout_ms = default_settings.operation_timeout_ms;
-    }
-    if (os.cancel_after_ms == std::chrono::milliseconds::zero()) {
-        os.cancel_after_ms = default_settings.cancel_after_ms;
-    }
     // For streaming operations, client timeout is applied to the entire
     // streaming RPC. Meanwhile, streaming RPCs can be expected to take
     // an unbounded amount of time. YDB gRPC machinery automatically checks
@@ -95,15 +108,23 @@ void PrepareSettings(
     // Timeouts specified in code, as well as in dynamic config, still apply.
     // NOLINTNEXTLINE(bugprone-non-zero-enum-to-bool-conversion)
     if (!static_cast<bool>(is_streaming)) {
-        if (os.client_timeout_ms == std::chrono::milliseconds::zero()) {
+        if (!IsTimeoutSet(os)) {
             os.client_timeout_ms = default_settings.client_timeout_ms;
         }
     }
-    if (os.get_session_timeout_ms == std::chrono::milliseconds::zero()) {
-        os.get_session_timeout_ms = default_settings.get_session_timeout_ms;
-    }
-    if (!os.tx_mode) {
-        os.tx_mode = default_settings.tx_mode.value();
+
+    if constexpr (std::is_same_v<Settings, OperationSettings>) {
+        if (!os.tx_mode.has_value()) {
+            os.tx_mode = default_settings.tx_mode;
+        }
+
+        if (!os.retries.has_value()) {
+            os.retries = default_settings.retries;
+        }
+
+        if (os.get_session_timeout_ms == std::chrono::milliseconds::zero()) {
+            os.get_session_timeout_ms = default_settings.get_session_timeout_ms;
+        }
     }
 
     const auto& cc_map = config_snapshot[::dynamic_config::YDB_QUERIES_COMMAND_CONTROL];
@@ -118,21 +139,34 @@ void PrepareSettings(
 
     auto& cc = it->second;
 
-    if (cc.attempts.has_value()) {
-        UASSERT(*cc.attempts > 0);
-        os.retries = *cc.attempts - 1;
-    }
-    if (cc.operation_timeout_ms) {
-        os.operation_timeout_ms = cc.operation_timeout_ms.value();
-    }
-    if (cc.cancel_after_ms) {
-        os.cancel_after_ms = cc.cancel_after_ms.value();
-    }
-    if (cc.client_timeout_ms) {
+    if (cc.client_timeout_ms.has_value()) {
         os.client_timeout_ms = cc.client_timeout_ms.value();
     }
-    if (cc.get_session_timeout_ms) {
-        os.get_session_timeout_ms = cc.get_session_timeout_ms.value();
+
+    if constexpr (std::is_same_v<Settings, OperationSettings>) {
+        if (cc.attempts.has_value()) {
+            UASSERT(*cc.attempts > 0);
+            os.retries = *cc.attempts - 1;
+        }
+        if (cc.get_session_timeout_ms.has_value()) {
+            os.get_session_timeout_ms = cc.get_session_timeout_ms.value();
+        }
+    }
+}
+
+}  // namespace
+
+/// Priority of the RetryTxSettings choosing. From low to high:
+/// 0. Driver's defaults
+/// 1. Static config
+/// 2. RetryTxSettings passed in code
+void PrepareSettings(RetryTxSettings& rs, const OperationSettings& default_settings) {
+    if (!rs.retries.has_value()) {
+        rs.retries = default_settings.retries;
+    }
+
+    if (!rs.tx_mode.has_value()) {
+        rs.tx_mode = default_settings.tx_mode;
     }
 }
 
@@ -163,14 +197,14 @@ engine::Deadline GetDeadline(tracing::Span& span, const dynamic_config::Snapshot
     return inherited_deadline;
 }
 
-}  // namespace
-
-RequestContext::RequestContext(
+template <typename Settings>
+RequestContext<Settings>::RequestContext(
     TableClient& l_table_client,
     const Query& query,
-    OperationSettings&& settings,
+    Settings&& settings,
     IsStreaming is_streaming,
     tracing::Span* custom_parent_span,
+    engine::Deadline parent_deadline,
     const utils::impl::SourceLocation& location
 )
     : table_client(l_table_client),
@@ -180,13 +214,15 @@ RequestContext::RequestContext(
       config_snapshot(table_client.config_source_.GetSnapshot()),
       // Note: comma operator is used to insert code between initializations.
       span((
-          PrepareSettings(query, config_snapshot, this->settings, is_streaming, table_client.default_settings_),
-          MakeSpan(query, this->settings, custom_parent_span, location)
+          PrepareSettings<
+              Settings>(query, config_snapshot, this->settings, is_streaming, table_client.default_settings_),
+          MakeSpan<Settings>(query, this->settings, custom_parent_span, location)
       )),
-      deadline(GetDeadline(span, config_snapshot))
+      deadline(std::min(GetDeadline(span, config_snapshot), parent_deadline))
 {}
 
-void RequestContext::HandleError(const NYdb::TStatus& status) {
+template <typename Settings>
+void RequestContext<Settings>::HandleError(const NYdb::TStatus& status) {
     if (engine::current_task::ShouldCancel()) {
         return;
     }
@@ -202,12 +238,16 @@ void RequestContext::HandleError(const NYdb::TStatus& status) {
     }
 }
 
-RequestContext::~RequestContext() {
+template <typename Settings>
+RequestContext<Settings>::~RequestContext() {
     if (engine::current_task::ShouldCancel() && !is_error) {
         stats_scope.OnCancelled();
         span.AddTag("cancelled", true);
     }
 }
+
+template class RequestContext<OperationSettings>;
+template class RequestContext<RequestSettings>;
 
 }  // namespace ydb::impl
 

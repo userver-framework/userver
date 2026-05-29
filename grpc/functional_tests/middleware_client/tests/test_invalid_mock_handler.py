@@ -48,7 +48,18 @@ class UnimplementedServicer(greeter_services.GreeterServiceServicer):
 
 
 @pytest.mark.parametrize('with_install_servicer', [False, True])
-async def test_missing(service_client, grpc_mockserver, asyncexc_check, with_install_servicer):
+async def test_missing(
+    service_client,
+    grpc_mockserver,
+    grpc_mockserver_session,
+    asyncexc_check,
+    with_install_servicer,
+):
+    # Equivalent to having a previous test with the mock installed.
+    # If the mock for the service has never been installed, then grpc-io server will return UNIMPLEMENTED,
+    # but will not register an asyncexc background exception.
+    grpc_mockserver_session._get_auto_service_mock(greeter_services.GreeterServiceServicer)
+
     if with_install_servicer:
         grpc_mockserver.install_servicer(UnimplementedServicer())
 

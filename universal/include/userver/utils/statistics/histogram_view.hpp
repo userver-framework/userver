@@ -70,9 +70,6 @@ private:
 /// Compares equal if bounds are close and values are equal.
 bool operator==(HistogramView lhs, HistogramView rhs) noexcept;
 
-/// @overload
-bool operator!=(HistogramView lhs, HistogramView rhs) noexcept;
-
 }  // namespace utils::statistics
 
 USERVER_NAMESPACE_END

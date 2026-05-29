@@ -1,14 +1,13 @@
 #include <components/manager.hpp>
 
 #include <chrono>
+#include <ranges>
 #include <set>
 #include <stdexcept>
 #include <thread>
 
 #include <fmt/core.h>
 #include <fmt/ranges.h>
-#include <boost/range/adaptor/map.hpp>
-#include <boost/range/adaptor/transformed.hpp>
 
 #include <components/component_context_impl.hpp>
 #include <components/manager_config.hpp>
@@ -37,21 +36,21 @@ constexpr std::size_t kDefaultHwThreadsEstimate = 512;
 template <typename Func>
 auto RunInCoro(engine::TaskProcessor& task_processor, Func&& func) {
     UASSERT(!engine::current_task::IsTaskProcessorThread());
-    auto task = engine::CriticalAsyncNoSpan(task_processor, std::forward<Func>(func));
+    auto task = engine::CriticalAsyncNoTracing(task_processor, std::forward<Func>(func));
     task.BlockingWait();
     return task.Get();
 }
 
 std::optional<size_t> GuessCpuLimit(const std::string& tp_name) {
-    auto cpu_f = hostinfo::CpuLimit();
-    if (!cpu_f) {
+    auto cpu_opt = hostinfo::CpuLimit();
+    if (!cpu_opt) {
         return {};
     }
 
     const auto hw_concurrency = std::thread::hardware_concurrency();
     const auto hw_threads_estimate = hw_concurrency ? hw_concurrency : kDefaultHwThreadsEstimate;
 
-    auto cpu = std::lround(*cpu_f);
+    auto cpu = std::lround(*cpu_opt);
     if (cpu > 0 && static_cast<unsigned int>(cpu) < hw_threads_estimate * 2) {
         // TODO: hack for https://st.yandex-team.ru/TAXICOMMON-2132
         if (cpu < 3) {
@@ -65,7 +64,7 @@ std::optional<size_t> GuessCpuLimit(const std::string& tp_name) {
     }
 
     LOG_WARNING()
-        << "CPU limit from env CPU_LIMIT (" << cpu_f
+        << "CPU limit from env CPU_LIMIT (" << cpu
         << ") looks very different from the estimated number of "
            "hardware threads ("
         << hw_threads_estimate << "), worker_threads from the static config will be used";
@@ -143,8 +142,8 @@ void Manager::TaskProcessorsStorage::Add(std::string name, std::unique_ptr<engin
 
 void Manager::TaskProcessorsStorage::WaitForAllTasksBlocking() const noexcept {
     const auto indicators =
-        task_processors_map_ | boost::adaptors::map_values |
-        boost::adaptors::transformed([](const auto& task_processor_ptr) -> const auto& {
+        task_processors_map_ | std::views::values |
+        std::views::transform([](const auto& task_processor_ptr) -> const auto& {
             const engine::TaskProcessor& task_processor = *task_processor_ptr;
             return task_processor.GetTaskCounter();
         });
@@ -219,7 +218,7 @@ Manager::Manager(std::unique_ptr<ManagerConfig>&& config, std::chrono::steady_cl
 }
 
 engine::TaskWithResult<void> Manager::StartComponentSystem(const ComponentList& component_list, bool signal_on_stop) {
-    return engine::CriticalAsyncNoSpan(*default_task_processor_, [this, &component_list, signal_on_stop]() {
+    return engine::CriticalAsyncNoTracing(*default_task_processor_, [this, &component_list, signal_on_stop]() {
         try {
             CreateComponentContext(component_list);
             if (!config_->disable_phdr_cache) {
@@ -243,10 +242,12 @@ engine::TaskWithResult<void> Manager::StartComponentSystem(const ComponentList& 
 Manager::~Manager() {
     LOG_INFO() << "Stopping components manager";
 
-    try {
-        RunInCoro(*default_task_processor_, [this] { component_context_->OnGracefulShutdownStarted(); });
-    } catch (const std::exception& exc) {
-        LOG_ERROR() << "Graceful shutdown failed: " << exc;
+    if (component_context_) {
+        try {
+            RunInCoro(*default_task_processor_, [this] { component_context_->OnGracefulShutdownStarted(); });
+        } catch (const std::exception& exc) {
+            LOG_ERROR() << "Graceful shutdown failed: " << exc;
+        }
     }
     engine::impl::TeardownPhdrCacheAndEnableDynamicLoading();
 
@@ -273,7 +274,7 @@ const TaskProcessorsMap& Manager::GetTaskProcessorsMap() const { return task_pro
 
 engine::TaskProcessor& Manager::GetTaskProcessor(std::string_view name) const {
     const auto& map = task_processors_storage_.GetMap();
-    if (const auto* const task_processor = utils::impl::FindTransparentOrNullptr(map, name)) {
+    if (const auto* const task_processor = utils::FindOrNullptr(map, name)) {
         return **task_processor;
     }
     throw std::runtime_error(fmt::format("Failed to find task processor with name: {}", name));
@@ -468,6 +469,9 @@ void Manager::ClearComponents() noexcept {
     {
         const std::lock_guard<std::shared_timed_mutex> lock(context_mutex_);
         components_cleared_ = true;
+    }
+    if (!component_context_) {
+        return;
     }
     try {
         component_context_->ClearComponents();

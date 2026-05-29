@@ -34,7 +34,7 @@ public:
                 expected.emplace_back(key);
             }
         }
-        std::sort(expected.begin(), expected.end());
+        std::ranges::sort(expected);
         return expected;
     }
 
@@ -69,7 +69,7 @@ template <>
 std::vector<std::string> RedisClientScanTest<ScanType<ScanTag::kScan>>::GetActual() {
     auto client = GetClient();
     std::vector<std::string> actual(client->Scan(0, GetScanOptions(), {}).GetAll());
-    std::sort(actual.begin(), actual.end());
+    std::ranges::sort(actual);
     return actual;
 }
 
@@ -87,13 +87,10 @@ std::vector<std::string> RedisClientScanTest<ScanType<ScanTag::kHscan>>::GetActu
     auto client = GetClient();
     auto raw = client->Hscan("key", GetScanOptions(), {}).GetAll();
     std::vector<std::string> actual;
-    std::transform(
-        raw.begin(),
-        raw.end(),
-        std::back_inserter(actual),
-        [](const std::pair<std::string, std::string>& p) { return p.first; }
-    );
-    std::sort(actual.begin(), actual.end());
+    std::ranges::transform(raw, std::back_inserter(actual), [](const std::pair<std::string, std::string>& p) {
+        return p.first;
+    });
+    std::ranges::sort(actual);
     return actual;
 }
 
@@ -110,7 +107,7 @@ template <>
 std::vector<std::string> RedisClientScanTest<ScanType<ScanTag::kSscan>>::GetActual() {
     auto client = GetClient();
     std::vector<std::string> actual(client->Sscan("key", GetScanOptions(), {}).GetAll());
-    std::sort(actual.begin(), actual.end());
+    std::ranges::sort(actual);
     return actual;
 }
 
@@ -128,8 +125,8 @@ std::vector<std::string> RedisClientScanTest<ScanType<ScanTag::kZscan>>::GetActu
     auto client = GetClient();
     auto raw = client->Zscan("key", GetScanOptions(), {}).GetAll();
     std::vector<std::string> actual;
-    std::transform(raw.begin(), raw.end(), std::back_inserter(actual), [](const auto& p) { return p.member; });
-    std::sort(actual.begin(), actual.end());
+    std::ranges::transform(raw, std::back_inserter(actual), [](const auto& p) { return p.member; });
+    std::ranges::sort(actual);
     return actual;
 }
 

@@ -4,11 +4,13 @@
 /// @brief @copybrief crypto::SslCtx
 
 #include <memory>
+#include <span>
 #include <string_view>
 #include <vector>
 
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
+#include <userver/http/http_version.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -43,6 +45,9 @@ public:
 
     void* GetRawSslCtx() const noexcept;
 
+    void SetHttpVersion(http::HttpVersion);
+    [[nodiscard]] std::span<const unsigned char> GetAlpn() const noexcept;
+
 private:
     void AddCertAuthorities(const std::vector<Certificate>& cert_authorities);
     void EnableVerifyClientCertificate();
@@ -55,6 +60,7 @@ private:
     std::unique_ptr<Impl> impl_{};
 
     explicit SslCtx(std::unique_ptr<Impl>&& impl);
+    std::span<const unsigned char> alpn_;
 };
 
 }  // namespace crypto

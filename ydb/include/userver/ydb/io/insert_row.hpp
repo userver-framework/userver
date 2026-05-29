@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/ydb/io/insert_row.hpp
+/// @brief @copybrief ydb::ValueTraits<ydb::InsertRow>
+
 #include <userver/ydb/io/traits.hpp>
 #include <userver/ydb/types.hpp>
 
@@ -7,6 +10,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ydb {
 
+/// @brief YDB I/O traits for insert row type
 template <>
 struct ValueTraits<InsertRow> {
     // We don't have enough type information to parse Null.

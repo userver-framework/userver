@@ -53,8 +53,8 @@ void SendFrame(
 
 Config Parse(const yaml_config::YamlConfig& config, formats::parse::To<Config>) {
     return {
-        config["max-remote-payload"].As<unsigned>(65536),
-        config["fragment-size"].As<unsigned>(65536),
+        .max_remote_payload = config["max-remote-payload"].As<unsigned>(65536),
+        .fragment_size = config["fragment-size"].As<unsigned>(65536),
     };
 }
 
@@ -117,6 +117,10 @@ public:
             const auto frame = impl::frames::MakeControlFrame(impl::WSOpcodes::kPong, message.data, need_data_masking_);
 
             SendFrame(*io_, frame, message.data, need_data_masking_);
+        } else if (message.close_status == CloseStatus::kNone) {
+            const auto frame = impl::frames::MakeControlFrame(impl::WSOpcodes::kClose, {}, need_data_masking_);
+
+            SendFrame(*io_, frame, {}, need_data_masking_);
         } else if (message.close_status.has_value()) {
             // Prepare payload (status code in big endian)
             auto status_be = boost::endian::native_to_big(static_cast<CloseStatusInt>(message.close_status.value()));
@@ -140,7 +144,7 @@ public:
                     need_data_masking_
                 );
 
-                SendFrame(*io_, frame, fragment, need_data_masking_);
+                SendFrame(*io_, {frame.data(), frame.size()}, fragment, need_data_masking_);
                 continuation = impl::frames::Continuation::kYes;
                 data_to_send = data_to_send.last(data_to_send.size() - config_.fragment_size);
             }
@@ -153,7 +157,7 @@ public:
                 impl::frames::Final::kYes,
                 need_data_masking_
             );
-            SendFrame(*io_, frame, data_to_send, need_data_masking_);
+            SendFrame(*io_, {frame.data(), frame.size()}, data_to_send, need_data_masking_);
         }
     }
 
@@ -278,6 +282,10 @@ public:
         stats.bytes_sent += stats_.bytes_sent;
         stats.bytes_recv += stats_.bytes_recv;
     }
+
+    engine::io::ReadAwaiter& ReadAwaiter() override { return io_->GetReadableBase(); }
+
+    engine::io::WriteAwaiter& WriteAwaiter() override { return io_->GetWritableBase(); }
 };
 
 WebSocketConnection::WebSocketConnection() = default;

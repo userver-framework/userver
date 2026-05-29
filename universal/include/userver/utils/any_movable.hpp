@@ -9,6 +9,8 @@
 #include <type_traits>
 #include <utility>
 
+#include <userver/compiler/impl/lifetime.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 /// Utilities
@@ -32,7 +34,8 @@ public:
 
     /// Copies or moves the provided object inside the `AnyMovable`. `const`,
     /// reference, arrays and function pointers are decayed.
-    template <typename ValueType, typename = std::enable_if_t<!std::is_same_v<AnyMovable, std::decay_t<ValueType>>>>
+    template <typename ValueType>
+    requires(!std::is_same_v<AnyMovable, std::decay_t<ValueType>>)
     /*implicit*/ AnyMovable(ValueType&& value);
 
     /// In-place constructs an object of the specified type
@@ -56,11 +59,11 @@ public:
 
     /// In-place constructs an object of the specified type
     template <typename ValueType, typename... Args>
-    ValueType& Emplace(Args&&... args);
+    ValueType& Emplace(Args&&... args) USERVER_IMPL_LIFETIME_BOUND;
 
     /// In-place constructs an object of the specified type
     template <typename ValueType, typename Item, typename... Args>
-    ValueType& Emplace(std::initializer_list<Item> list, Args&&... args);
+    ValueType& Emplace(std::initializer_list<Item> list, Args&&... args) USERVER_IMPL_LIFETIME_BOUND;
 
 private:
     struct HolderBase;
@@ -149,7 +152,8 @@ struct AnyMovable::Holder final : public HolderBase {
     }
 };
 
-template <typename ValueType, typename>
+template <typename ValueType>
+requires(!std::is_same_v<AnyMovable, std::decay_t<ValueType>>)
 AnyMovable::AnyMovable(ValueType&& value)
     : content_(Holder<std::decay_t<ValueType>>::Make(std::forward<ValueType>(value)))
 {
@@ -178,13 +182,13 @@ AnyMovable& AnyMovable::operator=(ValueType&& rhs) {
 }
 
 template <typename ValueType, typename... Args>
-ValueType& AnyMovable::Emplace(Args&&... args) {
+ValueType& AnyMovable::Emplace(Args&&... args) USERVER_IMPL_LIFETIME_BOUND {
     content_ = Holder<ValueType>::Make(std::forward<Args>(args)...);
     return static_cast<Holder<ValueType>&>(*content_).held;
 }
 
 template <typename ValueType, typename Item, typename... Args>
-ValueType& AnyMovable::Emplace(std::initializer_list<Item> list, Args&&... args) {
+ValueType& AnyMovable::Emplace(std::initializer_list<Item> list, Args&&... args) USERVER_IMPL_LIFETIME_BOUND {
     content_ = Holder<ValueType>::Make(list, std::forward<Args>(args)...);
     return static_cast<Holder<ValueType>&>(*content_).held;
 }

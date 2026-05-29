@@ -18,11 +18,17 @@ schema:
     additionalProperties: false
     properties:
         buffering_enabled:
+            description: enable buffering
             type: boolean
         commands_buffering_threshold:
+            description: Threshold for the number of requests in the buffer. When this number of commands is reached, requests
+                are sent to the server immediately. Absence of this field disables the threshold (only the timeout limit remains
+                active).
             type: integer
             minimum: 1
         watch_command_timer_interval_us:
+            description: Maximum wait time for a request in the buffer before sending to the server, in microseconds. 0 - disables
+                buffering.
             type: integer
             minimum: 0
     required:

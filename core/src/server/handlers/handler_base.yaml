@@ -125,6 +125,13 @@ properties:
             Deadline propagation is disabled if disabled statically OR
             dynamically.
         default: true
+    deadline_propagation_prefer_timestamp:
+        type: boolean
+        description: |
+            When `true`, use X-Request-Deadline as this handler's request/task deadline when allowed
+            by dynamic config. The value is still captured for propagation to downstream services when
+            the header is present.
+        default: false
     deadline_expired_status_code:
         type: integer
         description: the HTTP status code to return if the request deadline expires

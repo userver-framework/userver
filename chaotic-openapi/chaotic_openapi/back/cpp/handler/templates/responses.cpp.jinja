@@ -1,0 +1,69 @@
+#include <handlers/{{ spec.service_name }}/{{ make_op_relpath(op) }}/responses.hpp>
+
+#include <userver/formats/json/serialize.hpp>
+#include <userver/formats/json/value_builder.hpp>
+#include <userver/server/http/http_response.hpp>
+{% for include in op.response_body_definition_includes() %}
+#include <{{ include }}>
+{% endfor %}
+
+namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }} {
+
+{% set operation = op %}
+namespace {
+
+{% for response in operation.responses %}
+std::string SerializeSpecificResponse(const Response{{ response.status }}& r,
+                                      {{ userver }}::server::http::HttpRequest& http_request) {
+    http_request.GetHttpResponse().SetStatus(
+        static_cast<{{ userver }}::server::http::HttpStatus>({{ response.status }})
+    );
+    {% if response.body | length == 1 %}
+        {% set content_type = response.body.keys() | list | first %}
+        {% if content_type == 'application/json' %}
+            return {{ userver }}::formats::json::ToString(
+                {{ userver }}::formats::json::ValueBuilder(r.body).ExtractValue()
+            );
+        {% else %}
+            http_request.GetHttpResponse().SetContentType("{{ content_type }}");
+            return r.body;
+        {% endif %}
+    {% elif response.body | length == 0 %}
+        (void)r;
+        return {};
+    {% else %}
+        {{ NOT_IMPLEMENTED(response.body) }}
+    {% endif %}
+}
+
+{% endfor %}
+
+}  // namespace
+
+std::string SerializeResponse(const Response& response, {{ userver }}::server::http::HttpRequest& http_request) {
+    {% if operation.responses | length == 1 %}
+        return SerializeSpecificResponse(response, http_request);
+    {% else %}
+        return std::visit(
+            [&http_request](const auto& r) -> std::string {
+              return SerializeSpecificResponse(r, http_request);
+            },
+            response
+        );
+    {% endif %}
+}
+
+{% if operation.iter_error_responses() | list %}
+std::string SerializeResponse(ErrorResponseBase&& response, {{ userver }}::server::http::HttpRequest& http_request) {
+    {% for response in operation.iter_error_responses() %}
+        {% if not loop.first %}else {% endif %}
+        if (response.GetStatus() == {{ response.status }}) {
+            return SerializeSpecificResponse(static_cast<Response{{ response.status }}&&>(response), http_request);
+        }
+    {% endfor %}
+
+    return {};
+}
+{% endif %}
+
+}  // namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }}

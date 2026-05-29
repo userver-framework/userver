@@ -22,7 +22,7 @@ public:
             if (message.close_status) {
                 break;  // explicit close if any
             }
-            chat.Send(std::move(message));  // throws on closed/dropped connection
+            chat.Send(message);  // throws on closed/dropped connection
         }
         if (message.close_status) {
             chat.Close(*message.close_status);

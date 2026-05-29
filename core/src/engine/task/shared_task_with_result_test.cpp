@@ -176,7 +176,7 @@ UTEST(SharedTaskWithResult, AutoCancelOnAssignInvalid) {
         auto other = task;
         task = std::move(other);  // self move assignment should not invalidate
         engine::Yield();
-        // NOLINTNEXTLINE(clang-analyzer-cplusplus.Move)
+        // NOLINTNEXTLINE(clang-analyzer-cplusplus.Move, bugprone-use-after-move)
         EXPECT_FALSE(other.IsFinished());
         EXPECT_FALSE(task.IsFinished());
         EXPECT_FALSE(initial_task_was_canceled);

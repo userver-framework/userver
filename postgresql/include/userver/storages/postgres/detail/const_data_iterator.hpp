@@ -81,7 +81,6 @@ public:
     //@{
     /** @name Iterator comparison */
     bool operator==(const Iter& rhs) const { return DoCompare(rhs) == 0; }
-    bool operator!=(const Iter& rhs) const { return !(*this == rhs); }
 
     bool operator<(const Iter& rhs) const { return DoCompare(rhs) < 0; }
     bool operator<=(const Iter& rhs) const { return DoCompare(rhs) <= 0; }

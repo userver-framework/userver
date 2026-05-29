@@ -11,6 +11,7 @@
 #include <userver/storages/redis/base.hpp>
 #include <userver/storages/redis/exception.hpp>
 #include <userver/storages/redis/reply.hpp>
+#include <userver/storages/redis/topology_update_method.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
@@ -65,20 +66,18 @@ Sentinel::Sentinel(
     const std::vector<std::string>& shards,
     const std::vector<ConnectionInfo>& conns,
     std::string shard_group_name,
-    const std::string& client_name,
-    const Password& password,
+    const Credentials& credentials,
     ConnectionSecurity connection_security,
     dynamic_config::Source dynamic_config_source,
-    KeyShardFactory key_shard_factory,
-    CommandControl command_control,
+    SentinelStaticConfig creation_config,
     const testsuite::RedisControl& testsuite_redis_control,
     std::size_t database_index
 )
     : shard_group_name_(shard_group_name),
       thread_pools_(thread_pools),
-      secdist_default_command_control_(command_control),
+      secdist_default_command_control_(creation_config.command_control),
       testsuite_redis_control_(testsuite_redis_control),
-      is_in_cluster_mode_(key_shard_factory.IsClusterStrategy())
+      is_in_cluster_mode_(creation_config.key_shard_factory.IsClusterStrategy())
 {
     config_default_command_control_.Set(std::make_shared<CommandControl>(secdist_default_command_control_));
 
@@ -89,7 +88,7 @@ Sentinel::Sentinel(
         engine::ev::ThreadControl>(thread_pools_->GetSentinelThreadPool().NextThread());
 
     UINVARIANT(
-        !key_shard_factory.IsClusterStrategy() || database_index == 0,
+        !creation_config.key_shard_factory.IsClusterStrategy() || database_index == 0,
         "Database index other than 0 now supported in cluster and standalone modes"
     );
     sentinel_thread_control_->RunInEvLoopBlocking([&]() {
@@ -100,10 +99,9 @@ Sentinel::Sentinel(
             shards,
             conns,
             std::move(shard_group_name),
-            client_name,
-            password,
+            credentials,
             connection_security,
-            std::move(key_shard_factory),
+            std::move(creation_config),
             dynamic_config_source,
             database_index
         );
@@ -129,12 +127,12 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
     const secdist::RedisSettings& settings,
     std::string shard_group_name,
     dynamic_config::Source dynamic_config_source,
-    const std::string& client_name,
-    KeyShardFactory key_shard_factory,
-    const CommandControl& command_control,
+    const SentinelStaticConfig& creation_config,
     const testsuite::RedisControl& testsuite_redis_control
 ) {
+    const auto& username = settings.username;
     const auto& password = settings.password;
+    const auto& sentinel_username = settings.sentinel_username;
     const auto& sentinel_password = settings.sentinel_password;
 
     const std::vector<std::string>& shards = settings.shards;
@@ -153,13 +151,15 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
         conns.emplace_back(
             sentinel.host,
             sentinel.port,
-            (key_shard_factory.IsClusterStrategy() ? password : sentinel_password),
+            (creation_config.key_shard_factory.IsClusterStrategy()
+                 ? Credentials{username, password}
+                 : Credentials{sentinel_username, sentinel_password}),
             false,
             settings.secure_connection
         );
     }
 
-    LOG_DEBUG() << "redis command_control:" << command_control.ToString();
+    LOG_DEBUG() << "redis command_control:" << creation_config.command_control.ToString();
     std::shared_ptr<storages::redis::impl::Sentinel> client;
     if (!shards.empty() && !conns.empty()) {
         client = std::make_shared<storages::redis::impl::Sentinel>(
@@ -167,12 +167,10 @@ std::shared_ptr<Sentinel> Sentinel::CreateSentinel(
             shards,
             conns,
             std::move(shard_group_name),
-            client_name,
-            password,
+            Credentials{username, password},
             settings.secure_connection,
             dynamic_config_source,
-            std::move(key_shard_factory),
-            command_control,
+            creation_config,
             testsuite_redis_control,
             settings.database_index
         );
@@ -391,7 +389,7 @@ void Sentinel::SetConfigDefaultCommandControl(const std::shared_ptr<CommandContr
 
 const std::string& Sentinel::ShardGroupName() const { return shard_group_name_; }
 
-void Sentinel::UpdatePassword(const Password& password) { impl_->UpdatePassword(password); }
+void Sentinel::UpdateCredentials(const Credentials& credentials) { impl_->UpdateCredentials(credentials); }
 
 void Sentinel::SetConnectionInfo(std::vector<ConnectionInfo> info_array) {
     std::vector<ConnectionInfoInt> cii;

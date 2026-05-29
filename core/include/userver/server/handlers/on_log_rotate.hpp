@@ -12,7 +12,6 @@ class Logging;
 }  // namespace components
 
 namespace server::handlers {
-// clang-format off
 
 /// @ingroup userver_components userver_http_handlers
 ///
@@ -30,8 +29,6 @@ namespace server::handlers {
 /// Returns 200 status code after successful operation.
 /// If at least one of files was not successfully reopened returns 500 status
 /// code and error messages separated by comma in response body.
-
-// clang-format on
 class OnLogRotate final : public HttpHandlerBase {
 public:
     OnLogRotate(const components::ComponentConfig& config, const components::ComponentContext& component_context);

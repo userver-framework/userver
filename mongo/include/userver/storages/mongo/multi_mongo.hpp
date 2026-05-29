@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/mongo/multi_mongo.hpp
+/// @brief @copybrief storages::mongo::MultiMongo
+
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -16,6 +19,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo {
 
+/// @brief Dynamic set of named MongoDB connection pools (secdist + dynamic config)
 class MultiMongo {
     using PoolMap = std::unordered_map<std::string, storages::mongo::PoolPtr>;
 

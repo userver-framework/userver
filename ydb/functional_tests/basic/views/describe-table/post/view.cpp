@@ -1,6 +1,6 @@
 #include "view.hpp"
 
-#include <boost/range/adaptor/transformed.hpp>
+#include <ranges>
 
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
@@ -19,8 +19,8 @@ formats::json::
     const auto& key_columns = response.GetTableDescription().GetPrimaryKeyColumns();
 
     formats::json::ValueBuilder response_builder(formats::json::Type::kObject);
-    response_builder["key_columns"] =
-        key_columns | boost::adaptors::transformed([](const auto& string) { return std::string{string}; });
+    response_builder
+        ["key_columns"] = key_columns | std::views::transform([](const auto& string) { return std::string{string}; });
     return response_builder.ExtractValue();
 }
 

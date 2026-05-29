@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/dynamic_config/value.hpp
+/// @brief @copybrief dynamic_config::DocsMap
+
 #include <optional>
 #include <string>
 #include <unordered_set>
@@ -15,6 +18,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace dynamic_config {
 
+/// @brief In-memory map of dynamic configuration documents
 class DocsMap final {
 public:
     /* Returns config item or throws an exception if key is missing */

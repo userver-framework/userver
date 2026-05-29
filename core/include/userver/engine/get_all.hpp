@@ -83,7 +83,7 @@ auto GetAllResultsFromTasks(Tasks&... tasks) {
 template <typename... Tasks>
 auto GetAll(Tasks&... tasks) {
     engine::WaitAllChecked(tasks...);
-    if constexpr (meta::impl::IsSingleRange<Tasks...>()) {
+    if constexpr (meta::impl::IsSingleRange<Tasks...>) {
         return impl::GetAllResultsFromContainer(tasks...);
     } else {
         return impl::GetAllResultsFromTasks(tasks...);

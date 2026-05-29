@@ -37,11 +37,11 @@ struct Settings final {
     /// Local log level of the server span
     /// It applies to logs in user-provided handler
     /// @ref tracing::Span::SetLocalLogLevel
-    logging::Level local_log_level{logging::Level::kDebug};
+    std::optional<logging::Level> local_log_level{};
 
     /// map of "status_code": log_level items to override span log level for specific status codes
     /// see @ref ugrpc::kStatusCodesMap for available statuses
-    boost::container::flat_map<grpc::StatusCode, logging::Level> status_codes_log_level;
+    boost::container::flat_map<grpc::StatusCode, logging::Level> status_codes_log_level{};
 };
 
 class Middleware final : public MiddlewareBase {

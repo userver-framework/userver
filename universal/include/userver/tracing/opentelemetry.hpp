@@ -1,5 +1,9 @@
 #pragma once
 
+/// @file userver/tracing/opentelemetry.hpp
+/// @brief OpenTelemetry traceparent header parsing and building.
+/// @ingroup userver_universal
+
 #include <string>
 
 #include <userver/utils/expected.hpp>
@@ -8,6 +12,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
+/// @brief OpenTelemetry traceparent parsing and header building.
 namespace tracing::opentelemetry {
 
 inline constexpr std::size_t kTraceIdSize = 32;

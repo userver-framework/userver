@@ -42,10 +42,8 @@ enum class PrintErrorCode {
 
 /// @brief JSON/protobuf conversion error information.
 /// @tparam TErrorCode error code type
-template <
-    typename TErrorCode,
-    typename = std::enable_if_t<
-        std::is_same_v<TErrorCode, ParseErrorCode> || std::is_same_v<TErrorCode, PrintErrorCode>>>
+template <typename TErrorCode>
+requires(std::is_same_v<TErrorCode, ParseErrorCode> || std::is_same_v<TErrorCode, PrintErrorCode>)
 class ConversionErrorInfo {
 public:
     using ErrorCodeType = TErrorCode;

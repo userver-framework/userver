@@ -7,6 +7,7 @@
 #include <string>
 #include <type_traits>
 
+#include <userver/compiler/impl/lifetime.hpp>
 #include <userver/dynamic_config/impl/snapshot.hpp>
 #include <userver/dynamic_config/impl/to_json.hpp>
 #include <userver/formats/json_fwd.hpp>
@@ -107,8 +108,6 @@ private:
     const impl::ConfigId id_;
 };
 
-// clang-format off
-
 /// @brief The shared snapshot of
 /// @ref scripts/docs/en/userver/dynamic_config.md "dynamic configs". Cheap to
 /// copy, even cheaper to move. Thread safe, not updated with new dynamic
@@ -123,8 +122,6 @@ private:
 ///
 /// ## Usage example:
 /// @snippet components/component_sample_test.cpp  Sample user component runtime config source
-
-// clang-format on
 class Snapshot final {
 public:
     Snapshot(const Snapshot&);
@@ -137,7 +134,7 @@ public:
 
     /// Used to access individual configs in the type-safe config map
     template <typename VariableType>
-    const VariableType& operator[](const Key<VariableType>& key) const&;
+    const VariableType& operator[](const Key<VariableType>& key) const& USERVER_IMPL_LIFETIME_BOUND;
 
     /// Used to access individual configs in the type-safe config map
     template <typename VariableType>
@@ -146,7 +143,7 @@ public:
     /// @cond
     // No longer supported, use `config[key]` instead
     template <typename T>
-    const T& Get() const&;
+    const T& Get() const& USERVER_IMPL_LIFETIME_BOUND;
 
     // No longer supported, use `config[key]` instead
     template <typename T>
@@ -157,6 +154,7 @@ private:
     // for the constructor
     friend class Source;
     friend class impl::StorageData;
+    friend struct Diff;
 
     explicit Snapshot(const impl::StorageData& storage);
 
@@ -257,7 +255,7 @@ VariableType Key<VariableType>::Parse(const DocsMap& docs_map) const {
 }
 
 template <typename VariableType>
-const VariableType& Snapshot::operator[](const Key<VariableType>& key) const& {
+const VariableType& Snapshot::operator[](const Key<VariableType>& key) const& USERVER_IMPL_LIFETIME_BOUND {
     return GetData().Get<VariableType>(impl::ConfigIdGetter::Get(key));
 }
 
@@ -267,7 +265,7 @@ const VariableType& Snapshot::operator[](const Key<VariableType>&) && {
 }
 
 template <typename T>
-const T& Snapshot::Get() const& {
+const T& Snapshot::Get() const& USERVER_IMPL_LIFETIME_BOUND {
     return (*this)[T::kDeprecatedKey];
 }
 

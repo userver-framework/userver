@@ -43,7 +43,7 @@ TcpListener::TcpListener(IpVersion ipv)
 }
 
 std::pair<engine::io::Socket, engine::io::Socket> TcpListener::MakeSocketPair(engine::Deadline deadline) {
-    auto connect_task = engine::AsyncNoSpan([this, deadline] {
+    auto connect_task = engine::AsyncNoTracing([this, deadline] {
         engine::io::Socket peer_socket{addr.Domain(), kType};
         peer_socket.Connect(addr, deadline);
         return peer_socket;

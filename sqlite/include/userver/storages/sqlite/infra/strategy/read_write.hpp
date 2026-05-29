@@ -1,11 +1,15 @@
 #pragma once
 
+/// @file userver/storages/sqlite/infra/strategy/read_write.hpp
+/// @brief @copybrief storages::sqlite::infra::strategy::ReadWriteStrategy
+
 #include <userver/storages/sqlite/infra/strategy/pool_strategy.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::infra::strategy {
 
+/// @brief SQLite pool strategy: separate read and read-write connection pools
 class ReadWriteStrategy final : public PoolStrategyBase {
 public:
     ReadWriteStrategy(const settings::SQLiteSettings& settings, engine::TaskProcessor& blocking_task_processor);

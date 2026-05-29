@@ -49,8 +49,6 @@ libsqlite3-dev
 librdkafka-dev
 libre2-dev
 librocksdb-dev
-libsasl2-dev
-libsnappy-dev
 libssh2-1-dev
 libssl-dev
 libxxhash-dev

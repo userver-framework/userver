@@ -1,9 +1,23 @@
+
 #include <userver/chaotic/type_bundle_cpp.hpp>
 
 #include "enum.hpp"
 #include "enum_parsers.ipp"
+#include "enum_sax_parsers.hpp"
 
 namespace ns {
+
+Enum FromJsonString(std::string_view json, USERVER_NAMESPACE::formats::parse::To<Enum>) {
+  return USERVER_NAMESPACE::formats::json::parser::ParseToType<
+      Enum, USERVER_NAMESPACE::chaotic::sax::impl::RemoveUserTypeParser<USERVER_NAMESPACE::chaotic::sax::Parser<Enum>>>(
+      json);
+}
+
+std::string ToJsonString(const Enum& value) {
+  USERVER_NAMESPACE::formats::json::StringBuilder builder;
+  WriteToStream(value, builder);
+  return builder.GetString();
+}
 
 bool operator==(const Enum& lhs, const Enum& rhs) { return lhs.foo == rhs.foo && true; }
 
@@ -39,7 +53,7 @@ Enum Parse(USERVER_NAMESPACE::yaml_config::Value json, USERVER_NAMESPACE::format
   return Parse<USERVER_NAMESPACE::yaml_config::Value>(json, to);
 }
 
-Enum::Foo FromString(std::string_view value, USERVER_NAMESPACE::formats::parse::To<Enum::Foo>) {
+Enum::Foo Convert(std::string_view value, USERVER_NAMESPACE::chaotic::convert::To<Enum::Foo>) {
   const auto result = k__ns__Enum__Foo_Mapping.TryFindBySecond(value);
   if (result.has_value()) {
     return *result;
@@ -47,8 +61,13 @@ Enum::Foo FromString(std::string_view value, USERVER_NAMESPACE::formats::parse::
   throw std::runtime_error(fmt::format("Invalid enum value ({}) for type ::ns::Enum::Foo", value));
 }
 
-Enum::Foo Parse(std::string_view value, USERVER_NAMESPACE::formats::parse::To<Enum::Foo> to) {
-  return FromString(value, to);
+std::optional<Enum::Foo> TryConvert(std::string_view value,
+                                    USERVER_NAMESPACE::chaotic::convert::To<Enum::Foo>) noexcept {
+  return k__ns__Enum__Foo_Mapping.TryFindBySecond(value);
+}
+
+Enum::Foo Parse(std::string_view value, USERVER_NAMESPACE::formats::parse::To<Enum::Foo>) {
+  return Convert(value, USERVER_NAMESPACE::chaotic::convert::To<Enum::Foo>{});
 }
 
 USERVER_NAMESPACE::formats::json::Value Serialize(
@@ -66,6 +85,26 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
   }
 
   return vb.ExtractValue();
+}
+
+void WriteToStream([[maybe_unused]] const ::ns::Enum::Foo& value, USERVER_NAMESPACE::formats::json::StringBuilder& sw) {
+  const auto result = k__ns__Enum__Foo_Mapping.TryFindByFirst(value);
+  if (result.has_value()) {
+    WriteToStream(*result, sw);
+  } else {
+    throw std::runtime_error("Bad enum value");
+  }
+}
+
+void WriteToStream([[maybe_unused]] const ::ns::Enum& value, USERVER_NAMESPACE::formats::json::StringBuilder& sw,
+                   [[maybe_unused]] bool hide_brackets, [[maybe_unused]] std::string_view hide_field_name) {
+  std::optional<USERVER_NAMESPACE::formats::json::StringBuilder::ObjectGuard> guard;
+  if (!hide_brackets) guard.emplace(sw);
+
+  if (value.foo && hide_field_name != "foo") {
+    sw.Key("foo");
+    WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<::ns::Enum::Foo>{*value.foo}, sw);
+  }
 }
 
 std::string ToString(Enum::Foo value) {

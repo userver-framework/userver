@@ -76,7 +76,8 @@ CallState::CallState(CallParams&& params)
       queue_(params.queue),
       config_values_(params.config),
       middleware_pipeline_(params.middlewares),
-      testsuite_grpc_(params.testsuite_grpc)
+      testsuite_grpc_(params.testsuite_grpc),
+      retry_limiter_(params.retry_limiter)
 {
     UINVARIANT(!client_name_.empty(), "client name should not be empty");
 
@@ -119,6 +120,8 @@ const MiddlewarePipeline& CallState::GetMiddlewarePipeline() const noexcept { re
 
 const testsuite::GrpcControl& CallState::GetTestsuiteControl() const noexcept { return testsuite_grpc_; }
 
+RetryLimiter* CallState::GetRetryLimiter() const noexcept { return retry_limiter_; }
+
 ugrpc::impl::RpcStatisticsScope& CallState::GetStatsScope() noexcept { return stats_scope_; }
 
 bool CallState::IsDeadlinePropagated() const noexcept { return is_deadline_propagated_; }
@@ -128,12 +131,10 @@ void CallState::SetDeadlinePropagated() noexcept {
     is_deadline_propagated_ = true;
 }
 
-grpc::Status& CallState::GetStatus() noexcept { return status_; }
-
 void CallState::Commit() noexcept { committed_.store(true, std::memory_order_release); }
 
 grpc::ClientContext& CallState::GetClientContextCommitted() {
-    UINVARIANT(committed_, "Call state should be committed");
+    UINVARIANT(committed_.load(std::memory_order_acquire), "Call state should be committed");
     UINVARIANT(client_context_, "GetClientContext should not be called on cancelled RPC");
     return *client_context_;
 }
@@ -146,7 +147,9 @@ void CallState::ResetSpan() noexcept {
 StreamingCallState::StreamingCallState(CallParams&& params)
     : CallState(std::move(params))
 {
-    SetupClientContext(*this, params.call_options);
+    // CallState constructor does not consume call_options.
+    // NOLINTNEXTLINE(bugprone-use-after-move)
+    SetupClientContext(*this, params.call_options, /*attempt*/ 1);
     Commit();
 }
 
@@ -213,22 +216,17 @@ bool IsWriteAndCheckAvailable(const StreamingCallState& state) noexcept {
     return !state.AreWritesFinished() && !state.IsFinished();
 }
 
-void SetupClientContext(CallState& state, const CallOptions& call_options) {
+void SetupClientContext(CallState& state, const CallOptions& call_options, int attempt) {
     auto client_context = CallOptionsAccessor::CreateClientContext(call_options);
+
+    if (1 < attempt) {
+        const auto prev_attempts = ugrpc::impl::ToGrpcString(std::to_string(attempt - 1));
+        client_context->AddMetadata(ugrpc::impl::kXPrevAttempts, prev_attempts);
+    }
 
     AddTracingMetadata(*client_context, state.GetSpan());
 
     state.SetClientContext(std::move(client_context));
-}
-
-void HandleCallStatistics(CallState& state, const grpc::Status& status) noexcept {
-    auto& stats = state.GetStatsScope();
-    if (grpc::StatusCode::DEADLINE_EXCEEDED == status.error_code() && state.IsDeadlinePropagated()) {
-        stats.OnCancelledByDeadlinePropagation();
-    } else {
-        stats.OnExplicitFinish(status.error_code());
-    }
-    stats.Flush();
 }
 
 void RunMiddlewarePipeline(CallState& state, const MiddlewareHooks& hooks) {

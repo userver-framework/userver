@@ -8,6 +8,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
+/// @brief Unit testing helpers, fixtures, and assertion utilities.
 namespace utest {
 
 /// @brief returns files opened by current process

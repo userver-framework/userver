@@ -12,10 +12,12 @@ TempFile::TempFile(engine::TaskProcessor& fs_task_processor, fs::blocking::TempF
       temp_file_(std::move(temp_file))
 {}
 
+TempFile TempFile::Create() { return Create(engine::current_task::GetBlockingTaskProcessor()); }
+
 TempFile TempFile::Create(engine::TaskProcessor& fs_task_processor) {
     return {
         fs_task_processor,
-        engine::AsyncNoSpan(fs_task_processor, [] { return blocking::TempFile::Create(); }).Get(),
+        engine::AsyncNoTracing(fs_task_processor, [] { return blocking::TempFile::Create(); }).Get(),
     };
 }
 
@@ -26,7 +28,7 @@ TempFile TempFile::Create(
 ) {
     return {
         fs_task_processor,
-        engine::AsyncNoSpan(
+        engine::AsyncNoTracing(
             fs_task_processor,
             [&parent_path, &name_prefix] { return blocking::TempFile::Create(parent_path, name_prefix); }
         ).Get(),
@@ -52,7 +54,7 @@ void TempFile::Remove() && {
         return;
     }
 
-    engine::AsyncNoSpan(*fs_task_processor_, [this] { std::move(temp_file_).Remove(); }).Get();
+    engine::AsyncNoTracing(*fs_task_processor_, [this] { std::move(temp_file_).Remove(); }).Get();
 }
 
 }  // namespace fs

@@ -149,7 +149,8 @@ private:
     void PutArg(const ExpireOptions& arg);
 
     template <typename Arg>
-    typename std::enable_if<std::is_arithmetic<Arg>::value, void>::type PutArg(const Arg& arg) {
+    requires std::is_arithmetic_v<Arg>
+    void PutArg(const Arg& arg) {
         args_.emplace_back(std::to_string(arg));
     }
 

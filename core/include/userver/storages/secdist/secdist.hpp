@@ -49,8 +49,6 @@ enum class SecdistFormat {
     kYamlConfig,
 };
 
-// clang-format off
-
 /// @ingroup userver_clients
 ///
 /// @brief Client to retrieve credentials from the components::Secdist.
@@ -74,8 +72,6 @@ enum class SecdistFormat {
 /// It has the same format as data from file.
 /// If both sources are presented, data from environment variable will be merged with data from file
 /// (json objects will be merged, duplicate fields of other types will be overridden by data from environment variable).
-
-// clang-format on
 class SecdistConfig final {
 public:
     struct Settings {

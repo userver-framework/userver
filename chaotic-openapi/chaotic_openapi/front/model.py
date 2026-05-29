@@ -141,6 +141,7 @@ class Operation:
 
     x_client_codegen: bool
     x_middlewares: base_model.XMiddlewares
+    x_handler_codegen: bool = True
 
 
 @dataclasses.dataclass

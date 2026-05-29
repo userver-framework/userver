@@ -218,7 +218,7 @@ UTEST(ConnectionPoolBase, HonorsMaxSimultaneouslyConnectingClients) {
     // And we try to connect in parallel, with higher degree of parallelism
     // than what pool allows
     for (std::size_t i = 0; i < max_connecting + 1; ++i) {
-        acquire_tasks.push_back(engine::AsyncNoSpan([&pool] {
+        acquire_tasks.push_back(engine::AsyncNoTracing([&pool] {
             pool->Acquire(
                 // this deadline is ignored in DummyConnection creation, and it only
                 // affects semaphores in the pool

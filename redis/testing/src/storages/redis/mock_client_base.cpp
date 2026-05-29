@@ -97,6 +97,24 @@ RequestEvalShaCommon MockClientBase::EvalShaCommon(
     AbortWithStacktrace(kNotMocked);
 }
 
+RequestEvalCommon MockClientBase::EvalReadOnlyCommon(
+    std::string /*script*/,
+    std::vector<std::string> /*keys*/,
+    std::vector<std::string> /*args*/,
+    const CommandControl& /*command_control*/
+) {
+    AbortWithStacktrace(kNotMocked);
+}
+
+RequestEvalShaCommon MockClientBase::EvalShaReadOnlyCommon(
+    std::string /*script*/,
+    std::vector<std::string> /*keys*/,
+    std::vector<std::string> /*args*/,
+    const CommandControl& /*command_control*/
+) {
+    AbortWithStacktrace(kNotMocked);
+}
+
 RequestGenericCommon MockClientBase::GenericCommon(
     std::string /*command*/,
     std::vector<std::string> /*args*/,
@@ -606,6 +624,15 @@ RequestSetex MockClientBase::Setex(
     AbortWithStacktrace(kNotMocked);
 }
 
+RequestSetAndGetPrevious MockClientBase::SetAndGetPrevious(
+    std::string /*key*/,
+    std::string /*value*/,
+    std::chrono::milliseconds /*ttl*/,
+    const CommandControl& /*command_control*/
+) {
+    AbortWithStacktrace(kNotMocked);
+}
+
 RequestSismember MockClientBase::Sismember(
     std::string /*key*/,
     std::string /*member*/,
@@ -885,6 +912,71 @@ ScanRequest<ScanTag::kZscan> MockClientBase::Zscan(
 RequestZscore MockClientBase::Zscore(
     std::string /*key*/,
     std::string /*member*/,
+    const CommandControl& /*command_control*/
+) {
+    AbortWithStacktrace(kNotMocked);
+}
+
+RequestJsonSet MockClientBase::JsonSet(
+    std::string /*key*/,
+    std::string /*path*/,
+    formats::json::Value /*value*/,
+    const CommandControl& /*command_control*/
+) {
+    AbortWithStacktrace(kNotMocked);
+}
+
+RequestJsonSetIfNotExist MockClientBase::JsonSetIfNotExist(
+    std::string /*key*/,
+    std::string /*path*/,
+    formats::json::Value /*value*/,
+    const CommandControl& /*command_control*/
+) {
+    AbortWithStacktrace(kNotMocked);
+}
+
+RequestJsonSetIfExist MockClientBase::JsonSetIfExist(
+    std::string /*key*/,
+    std::string /*path*/,
+    formats::json::Value /*value*/,
+    const CommandControl& /*command_control*/
+) {
+    AbortWithStacktrace(kNotMocked);
+}
+
+RequestJsonGet MockClientBase::JsonGet(
+    std::string /*key*/,
+    const CommandControl& /*command_control*/
+) {
+    AbortWithStacktrace(kNotMocked);
+}
+
+RequestJsonGet MockClientBase::JsonGet(
+    std::string /*key*/,
+    std::string /*path*/,
+    const CommandControl& /*command_control*/
+) {
+    AbortWithStacktrace(kNotMocked);
+}
+
+RequestJsonGet MockClientBase::JsonGet(
+    std::string /*key*/,
+    std::vector<std::string> /*paths*/,
+    const CommandControl& /*command_control*/
+) {
+    AbortWithStacktrace(kNotMocked);
+}
+
+RequestJsonMget MockClientBase::JsonMget(
+    std::vector<std::string> /*keys*/,
+    std::string /*path*/,
+    const CommandControl& /*command_control*/
+) {
+    AbortWithStacktrace(kNotMocked);
+}
+
+RequestJsonMset MockClientBase::JsonMset(
+    std::vector<JsonKeyPathValue> /*key_path_values*/,
     const CommandControl& /*command_control*/
 ) {
     AbortWithStacktrace(kNotMocked);

@@ -2,10 +2,15 @@
 
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/utils/datetime.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 
+#include <ugrpc/impl/rpc_metadata.hpp>
 #include <userver/ugrpc/client/impl/call_state.hpp>
+#include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/time_utils.hpp>
+
+#include <chrono>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -29,8 +34,20 @@ void UpdateDeadline(MiddlewareCallContext& context) {
 
     auto& client_context = context.GetClientContext();
 
-    const auto context_time_left = ugrpc::TimespecToDuration(client_context.raw_deadline());
     const engine::Deadline task_deadline = USERVER_NAMESPACE::server::request::GetTaskInheritedDeadline();
+    const auto original_absolute_deadline = USERVER_NAMESPACE::server::request::GetTaskInheritedOriginalDeadline();
+
+    if (original_absolute_deadline.has_value()) {
+        const auto deadline_header = std::to_string(original_absolute_deadline->time_since_epoch().count());
+        client_context.AddMetadata(ugrpc::impl::kXRequestDeadline, ugrpc::impl::ToGrpcString(deadline_header));
+    } else if (task_deadline.IsReachable()) {
+        const auto absolute_deadline = std::chrono::ceil<
+            std::chrono::microseconds>(std::chrono::system_clock::now() + task_deadline.TimeLeft());
+        const auto deadline_header = std::to_string(absolute_deadline.time_since_epoch().count());
+        client_context.AddMetadata(ugrpc::impl::kXRequestDeadline, ugrpc::impl::ToGrpcString(deadline_header));
+    }
+
+    const auto context_time_left = ugrpc::TimespecToDuration(client_context.raw_deadline());
 
     const auto client_deadline_reachable = (context_time_left != engine::Deadline::Duration::max());
     if (!task_deadline.IsReachable() && !client_deadline_reachable) {

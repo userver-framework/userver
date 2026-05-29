@@ -153,10 +153,9 @@ void ClusterShard::GetNearestServersPing(
         /// We want to leave all instances
         return;
     }
-    std::partial_sort(
-        instances.begin(),
+    std::ranges::partial_sort(
+        instances,
         instances.begin() + num_instances,
-        instances.end(),
         [](const RedisConnectionPtr& l, const RedisConnectionPtr& r) {
             UASSERT(r->Get() && l->Get());
             return l->Get()->GetPingLatency() < r->Get()->GetPingLatency();
@@ -259,7 +258,7 @@ ClusterShard::RedisPtr ClusterShard::GetInstance(
 bool ClusterShard::IsMasterReady() const { return master_ && master_->GetState() == Redis::State::kConnected; }
 
 bool ClusterShard::IsReplicaReady() const {
-    return std::any_of(replicas_.begin(), replicas_.end(), [](const auto& replica) {
+    return std::ranges::any_of(replicas_, [](const auto& replica) {
         return replica && replica->GetState() == Redis::State::kConnected;
     });
 }

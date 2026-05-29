@@ -115,7 +115,7 @@ UTEST_F(RedisClientTransactionTest, Unlink) {
 
 UTEST_F(RedisClientTransactionTest, Geosearch) {
     const Version since{6, 2, 0};
-    if (!CheckVersion(since)) {
+    if (!CheckRedisVersion(since)) {
         GTEST_SKIP() << SkipMsgByVersion("Geosearch", since);
     }
 
@@ -246,7 +246,7 @@ class RedisExpireOptionsTransactionTest
 
 UTEST_P(RedisExpireOptionsTransactionTest, ExpireOptionsTest) {
     const Version since{7, 0, 0};
-    if (!CheckVersion(since)) {
+    if (!CheckRedisVersion(since)) {
         GTEST_SKIP() << SkipMsgByVersion("Expire options", since);
     }
 

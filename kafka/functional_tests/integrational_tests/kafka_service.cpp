@@ -169,7 +169,7 @@ bool IsCorrectRequest(const formats::json::Value& request_json) {
         return check_message(request_json);
     }
 
-    return std::all_of(request_json.begin(), request_json.end(), check_message);
+    return std::ranges::all_of(request_json, check_message);
 }
 
 }  // namespace

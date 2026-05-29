@@ -82,7 +82,6 @@ max-age: null
     std::set<std::string> expected_files;
     InsertAll(expected_files, InitialFileNames());
     InsertAll(expected_files, UnrelatedFileNames());
-    ASSERT_TRUE(expected_files.erase("2015-03-22T090000.000000Z-v0"));
 
     utils::datetime::MockNowSet(BaseTime());
 
@@ -146,6 +145,7 @@ max-age: null
     InsertAll(expected_files, UnrelatedFileNames());
     ASSERT_TRUE(expected_files.erase("2015-03-22T090000.000000Z-v0"));
     ASSERT_TRUE(expected_files.erase("2015-03-22T090000.000000Z-v5"));
+    ASSERT_TRUE(expected_files.erase("2015-03-22T090000.000000Z-v42"));
     ASSERT_TRUE(expected_files.erase("2015-03-22T090001.000000Z-v5"));
     ASSERT_TRUE(expected_files.erase("2015-03-22T090002.000000Z-v5"));
 

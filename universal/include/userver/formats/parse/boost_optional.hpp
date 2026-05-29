@@ -10,6 +10,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
+/// @brief Generic parsing helpers (`formats::parse::To` and friends).
 namespace formats::parse {
 
 template <class Value, typename T>

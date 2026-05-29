@@ -53,8 +53,8 @@ void FutureStateBase::WaitForResult() {
     }
 }
 
-EarlyNotify FutureStateBase::TryAppendAwaiter(Awaiter& awaiter, std::uintptr_t context) {
-    return EarlyNotify{finish_awaiters_->GetSignalOrAppend(&awaiter, context)};
+void FutureStateBase::TryAppendAwaiter(boost::intrusive_ptr<Awaiter>& awaiter, std::uintptr_t context) {
+    finish_awaiters_->GetSignalOrAppend(awaiter, context);
 }
 
 void FutureStateBase::RemoveAwaiter(Awaiter& awaiter, std::uintptr_t context) noexcept {

@@ -47,7 +47,7 @@ UTEST(TcpSocketSink, SinkReadOnceV4) {
     engine::io::tests::TcpListener listener(engine::io::tests::IpVersion::kV4);
     auto socket_sink = logging::impl::TcpSocketSink({listener.addr});
 
-    auto listen_task = engine::AsyncNoSpan([&listener, &deadline] {
+    auto listen_task = engine::AsyncNoTracing([&listener, &deadline] {
         auto sock = listener.socket.Accept(deadline);
         const auto data = test::ReadFromSocket(std::move(sock));
         ASSERT_EQ(data.size(), 1);
@@ -66,7 +66,7 @@ UTEST(TcpSocketSink, SinkReadMoreV4) {
     engine::io::tests::TcpListener listener(engine::io::tests::IpVersion::kV4);
     auto socket_sink = logging::impl::TcpSocketSink({listener.addr});
 
-    auto listen_task = engine::AsyncNoSpan([&listener, &deadline] {
+    auto listen_task = engine::AsyncNoTracing([&listener, &deadline] {
         auto sock = listener.socket.Accept(deadline);
         const auto logs = test::ReadFromSocket(std::move(sock));
         ASSERT_EQ(logs.size(), 3);
@@ -86,11 +86,11 @@ UTEST_MT(TcpSocketSink, ConcurrentClose, 4) {
     const engine::io::tests::TcpListener listener(engine::io::tests::IpVersion::kV4);
     auto socket_sink = logging::impl::TcpSocketSink({listener.addr});
 
-    auto log_task_1 = engine::AsyncNoSpan([&socket_sink] { EXPECT_NO_THROW(socket_sink.Close()); });
+    auto log_task_1 = engine::AsyncNoTracing([&socket_sink] { EXPECT_NO_THROW(socket_sink.Close()); });
 
-    auto log_task_2 = engine::AsyncNoSpan([&socket_sink] { EXPECT_NO_THROW(socket_sink.Close()); });
+    auto log_task_2 = engine::AsyncNoTracing([&socket_sink] { EXPECT_NO_THROW(socket_sink.Close()); });
 
-    auto log_task_3 = engine::AsyncNoSpan([&socket_sink] { EXPECT_NO_THROW(socket_sink.Close()); });
+    auto log_task_3 = engine::AsyncNoTracing([&socket_sink] { EXPECT_NO_THROW(socket_sink.Close()); });
 
     log_task_1.Get();
     log_task_2.Get();

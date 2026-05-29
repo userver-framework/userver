@@ -1,6 +1,6 @@
 #include <clients/http/middlewares/pipeline.hpp>
 
-#include <boost/range/adaptor/reversed.hpp>
+#include <ranges>
 
 #include <clients/http/request_state.hpp>
 #include <userver/clients/http/request.hpp>
@@ -26,7 +26,7 @@ void MiddlewaresPipeline::HookOnCompleted(RequestState& request_state, Response&
     MiddlewareRequest req(request_state);
 
     // NOLINTNEXTLINE(modernize-loop-convert)
-    for (const auto& middleware : middlewares_ | boost::adaptors::reversed) {
+    for (const auto& middleware : middlewares_ | std::views::reverse) {
         middleware->HookOnCompleted(req, response);
     }
 }
@@ -35,7 +35,7 @@ void MiddlewaresPipeline::HookOnError(RequestState& request_state, std::error_co
     MiddlewareRequest req(request_state);
 
     // NOLINTNEXTLINE(modernize-loop-convert)
-    for (const auto& middleware : middlewares_ | boost::adaptors::reversed) {
+    for (const auto& middleware : middlewares_ | std::views::reverse) {
         middleware->HookOnError(req, ec);
     }
 }

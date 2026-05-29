@@ -108,6 +108,8 @@ CallParams CreateCallParams(const ClientData& client_data, std::size_t method_id
 
     const auto& stubs = impl::GetMethodStubs(*stub_state, method_id);
 
+    auto* retry_limiter = client_data.GetRetryLimiter(method_id);
+
     return CallParams{
         client_data.GetClientName(),
         client_data.NextQueue(),
@@ -122,6 +124,7 @@ CallParams CreateCallParams(const ClientData& client_data, std::size_t method_id
         client_data.GetMiddlewares(),
         client_data.GetStatistics(method_id),
         client_data.GetTestsuiteControl(),
+        retry_limiter
     };
 }
 
@@ -172,6 +175,7 @@ CallParams CreateGenericCallParams(
         client_data.GetMiddlewares(),
         client_data.GetGenericStatistics(generic_options.metrics_call_name.value_or(call_name)),
         client_data.GetTestsuiteControl(),
+        nullptr,
     };
 }
 

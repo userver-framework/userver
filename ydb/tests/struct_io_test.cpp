@@ -50,9 +50,9 @@ UTEST_F(YdbStructIO, StructWrite) {
         kInsertQuery,
         "$items",
         std::vector{tests::RowValue{
-            /*key=*/"key1",
-            /*value_str=*/"value1",
-            /*value_int=*/1,
+            .key = "key1",
+            .value_str = "value1",
+            .value_int = 1,
         }}
     );
     ASSERT_EQ(response.GetCursorCount(), 0);
@@ -86,9 +86,9 @@ UTEST_F(YdbStructIO, StructWriteExternalSpecialization) {
         kInsertQuery,
         "$items",
         std::vector{struct_test::MyStructExternalSpecialization{
-            /*key=*/"key1",
-            /*value_str=*/"value1",
-            /*value_int=*/1,
+            .key = "key1",
+            .value_str = "value1",
+            .value_int = 1,
         }}
     );
     ASSERT_EQ(response.GetCursorCount(), 0);
@@ -122,9 +122,9 @@ UTEST_F(YdbStructIO, StructWriteCustomNames) {
         kInsertQuery,
         "$items",
         std::vector{struct_test::MyStructCustomNames{
-            /*custom_key=*/"key1",
-            /*custom_value_str=*/"value1",
-            /*value_int=*/1,
+            .custom_key = "key1",
+            .custom_value_str = "value1",
+            .value_int = 1,
         }}
     );
     ASSERT_EQ(response.GetCursorCount(), 0);

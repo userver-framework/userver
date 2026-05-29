@@ -1197,7 +1197,7 @@ formats::json::Value Serialize(const InnerObject& value, formats::serialize::To<
 }
 
 InnerObject Parse(const formats::json::Value& value, formats::parse::To<InnerObject>) {
-    return {value["value"].As<decltype(InnerObject::value)>()};
+    return {.value = value["value"].As<decltype(InnerObject::value)>()};
 }
 
 struct OuterObject final {
@@ -1211,7 +1211,7 @@ formats::json::Value Serialize(const OuterObject& value, formats::serialize::To<
 }
 
 OuterObject Parse(const formats::json::Value& value, formats::parse::To<OuterObject>) {
-    return {value["obj"].As<InnerObject>()};
+    return {.obj = value["obj"].As<InnerObject>()};
 }
 
 struct PairOfArrays final {
@@ -1229,7 +1229,10 @@ formats::json::Value Serialize(const PairOfArrays& value, formats::serialize::To
 }
 
 PairOfArrays Parse(const formats::json::Value& value, formats::parse::To<PairOfArrays>) {
-    return {value["first"].As<PairOfArrays::Array>(), value["second"].As<PairOfArrays::Array>()};
+    return {
+        .first = value["first"].As<PairOfArrays::Array>(),
+        .second = value["second"].As<PairOfArrays::Array>(),
+    };
 }
 
 }  // namespace
@@ -1242,7 +1245,7 @@ void JsonArrayToVariantParseBenchmark(benchmark::State& state) {
     for (std::size_t i = 0; i < data_size; ++i) {
         array.push_back(OuterObject{InnerObject{"some_string"}});
     }
-    const PairOfArrays data{array, array};
+    const PairOfArrays data{.first = array, .second = array};
     const auto json_data = formats::json::ValueBuilder{data}.ExtractValue();
 
     for ([[maybe_unused]] auto _ : state) {

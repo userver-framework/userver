@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/clients/http/local_stats.hpp
+/// @brief @copybrief clients::http::LocalStats
+
 #include <chrono>
 #include <cstddef>
 
@@ -7,7 +10,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {
 
-/// Represents all the local timings and statistics
+/// @brief Local HTTP client timings and connection statistics
 struct LocalStats final {
     using duration = std::chrono::steady_clock::time_point::duration;
 

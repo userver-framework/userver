@@ -12,6 +12,7 @@
 #include <clients/test/component.hpp>
 #include <clients/test/qos.hpp>
 
+#include <handlers/insecure/chaotic_handlers_list.hpp>
 #include <hello_handler.hpp>
 
 int main(int argc, char* argv[]) {
@@ -23,9 +24,16 @@ int main(int argc, char* argv[]) {
             .Append<USERVER_NAMESPACE::server::handlers::TestsControl>()
             .AppendComponentList(USERVER_NAMESPACE::clients::http::ComponentList())
             .Append<USERVER_NAMESPACE::clients::dns::Component>()
+            /// [register-qos]
             .Append<USERVER_NAMESPACE::chaotic::openapi::QosMiddlewareFactory<
                 ::clients::test::kQosConfig>>("chaotic-client-middleware-qos-test")
-            .Append<::clients::test::Component>();
+            /// [register-qos]
+            /// [register-client]
+            .Append<::clients::test::Component>()
+            /// [register-client]
+            /// [register-handlers]
+            .AppendComponentList(::handlers::insecure::ChaoticHandlersList());
+    /// [register-handlers]
 
     USERVER_NAMESPACE::chaotic::openapi::middlewares::AppendDefaultMiddlewares(component_list);
 

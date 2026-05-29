@@ -22,7 +22,7 @@ UTEST(TaskProcessor, Overload) {
     tasks.reserve(kCreatedTasksCount);
 
     for (size_t i = 0; i < kCreatedTasksCount; ++i) {
-        tasks.push_back(engine::AsyncNoSpan([]() {}));
+        tasks.push_back(engine::AsyncNoTracing([]() {}));
     }
 
     std::size_t canceled_tasks_count{0};
@@ -42,7 +42,7 @@ UTEST(TaskProcessor, Overload) {
     // Once the queue size goes down, new tasks should stop being cancelled.
     // This is achieved by updating queue size on every Schedule while overloaded.
     for (std::size_t i = 0; i < 10; ++i) {
-        auto task = engine::AsyncNoSpan([]() {});
+        auto task = engine::AsyncNoTracing([]() {});
         task.Wait();
         EXPECT_EQ(task.GetState(), engine::Task::State::kCompleted);
     }
@@ -54,7 +54,7 @@ UTEST_MT(TaskProcessor, MetricsAliveAndRunning, 2) {
     EXPECT_EQ(task_counter.GetRunningTasks(), 1);
 
     std::atomic<bool> ready{false};
-    auto task = engine::AsyncNoSpan([&ready] {
+    auto task = engine::AsyncNoTracing([&ready] {
         ready = true;
         // wait until end of test
         while (ready) {

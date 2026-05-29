@@ -12,7 +12,6 @@ namespace server {
 class RequestsView;
 
 namespace handlers {
-// clang-format off
 
 /// @ingroup userver_components userver_http_handlers
 ///
@@ -28,8 +27,6 @@ namespace handlers {
 /// ## Scheme
 /// Provide an optional query parameter `body` to get the bodies of all the
 /// in-flight requests.
-
-// clang-format on
 class InspectRequests final : public HttpHandlerJsonBase {
 public:
     InspectRequests(const components::ComponentConfig& config, const components::ComponentContext& component_context);

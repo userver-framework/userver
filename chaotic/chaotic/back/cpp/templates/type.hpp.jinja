@@ -11,6 +11,8 @@
 
 #include <userver/chaotic/type_bundle_hpp.hpp>
 
+{% import 'templates/stream_writer.jinja' as sw %}
+
 {% macro generate_type(type) %}
     {% if type.get_py_type() == 'CppStruct' %}
         {{ type.cpp_comment() }}
@@ -215,6 +217,19 @@
     {% endif %}
 {% endmacro %}
 
+{% macro generate_from_json_string_declaration(type) %}
+    {% if type.get_py_type() == 'CppStruct' %}
+        {{ type.cpp_local_name() }} FromJsonString(std::string_view json,
+            {{ userver }}::formats::parse::To<{{ shortest_cpp_name(type) }}>);
+    {% endif %}
+{% endmacro %}
+
+{% macro generate_to_json_string_declaration(type) %}
+    {% if type.get_py_type() == 'CppStruct' %}
+         std::string ToJsonString(const {{ type.cpp_local_name() }}& value);
+    {% endif %}
+{% endmacro %}
+
 {% macro _generate_parser_declaration(type, format) %}
     {# handle subtypes #}
     {%- for schema in type.subtypes() -%}
@@ -235,10 +250,16 @@
 
     {% if type.need_dom_parser() %}
         {% if type.get_py_type() == 'CppIntEnum' %}
-            {{ shortest_cpp_name(type) }} FromInt(std::int64_t value, {{ userver }}::formats::parse::To<{{ shortest_cpp_name(type) }}>);
+            {{ shortest_cpp_name(type) }} Convert(std::int64_t value, {{ userver }}::chaotic::convert::To<{{ shortest_cpp_name(type) }}>);
+
+            std::optional<{{ shortest_cpp_name(type) }}> TryConvert(std::int64_t value,
+                                                         {{ userver }}::chaotic::convert::To<{{ shortest_cpp_name(type) }}>) noexcept;
         {% elif type.get_py_type() == 'CppStringEnum' %}
-            {{ type.raw_cpp_type.in_scope(get_current_namespace()) }} FromString(std::string_view value,
-                            {{ userver }}::formats::parse::To<{{ shortest_cpp_name(type) }}>);
+            {{ type.raw_cpp_type.in_scope(get_current_namespace()) }} Convert(std::string_view value,
+                            {{ userver }}::chaotic::convert::To<{{ shortest_cpp_name(type) }}>);
+
+            std::optional<{{ shortest_cpp_name(type) }}> TryConvert(std::string_view value,
+                            {{ userver }}::chaotic::convert::To<{{ shortest_cpp_name(type) }}>) noexcept;
 
             {# backward compatibility #}
             {{shortest_cpp_name(type)}} Parse(std::string_view value,
@@ -310,10 +331,20 @@
         {{ generate_parser_declaration(type, userver + parse_format) }}
     {% endfor %}
 
+    {% if has_json_parse(parse_formats) %}
+        {{ generate_from_json_string_declaration(type) }}
+        {% if generate_serializer %}
+            {{ generate_to_json_string_declaration(type) }}
+        {% endif %}
+    {% endif %}
+
     {{ generate_string_parser_declaration(type) }}
 
     {% if generate_serializer %}
         {{ generate_serializer_declaration(type) }}
+        {% if generate_stream_writer %}
+            {{ sw.generate_stream_writer_declaration(userver, name, type) }}
+        {% endif %}
     {% endif %}
 
     {{ generate_tostring_declaration(type) }}

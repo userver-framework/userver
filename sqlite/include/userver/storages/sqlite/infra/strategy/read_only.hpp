@@ -1,11 +1,15 @@
 #pragma once
 
+/// @file userver/storages/sqlite/infra/strategy/read_only.hpp
+/// @brief @copybrief storages::sqlite::infra::strategy::ReadOnlyStrategy
+
 #include <userver/storages/sqlite/infra/strategy/pool_strategy.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::infra::strategy {
 
+/// @brief SQLite pool strategy: read-only connections only
 class ReadOnlyStrategy final : public PoolStrategyBase {
 public:
     ReadOnlyStrategy(const settings::SQLiteSettings& settings, engine::TaskProcessor& blocking_task_processor);

@@ -16,14 +16,16 @@ schema:
                 "min_pool_size": 8,
                 "max_pool_size": 50,
                 "max_queue_size": 200,
-                "connecting_limit": 10
+                "connecting_limit": 10,
+                "connecting_interval_ms": 200
             },
             // All other components.
             "__default__": {
                 "min_pool_size": 4,
                 "max_pool_size": 15,
                 "max_queue_size": 200,
-                "connecting_limit": 8
+                "connecting_limit": 8,
+                "connecting_interval_ms": 500
             }
         }
     properties:
@@ -65,6 +67,13 @@ schema:
                     default: 0
                     description: |
                         Limit for concurrent establishing connections number per PostgreSQL host (0 - unlimited).
+                connecting_interval_ms:
+                    type: integer
+                    minimum: 0
+                    default: 0
+                    x-usrv-cpp-type: std::size_t
+                    description: |
+                        Minimum time in milliseconds between starting new connections to each PostgreSQL host (0 - unlimited).
             required:
               - min_pool_size
               - max_pool_size

@@ -11,6 +11,7 @@
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/http/http_error.hpp>
 #include <userver/tracing/scope_time.hpp>
+#include <userver/utils/algo.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -52,7 +53,7 @@ AuthFactory::AuthFactory(const components::ComponentConfig& config, const compon
 {}
 
 const handlers::auth::AuthCheckerFactoryBase& AuthFactory::GetAuthCheckerFactory(std::string_view auth_type) const {
-    if (const auto* checker_factory = utils::impl::FindTransparentOrNullptr(factories_, auth_type)) {
+    if (const auto* checker_factory = utils::FindOrNullptr(factories_, auth_type)) {
         return **checker_factory;
     }
     throw std::runtime_error(fmt::format("Unknown auth type '{}'", auth_type));

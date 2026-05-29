@@ -5,7 +5,7 @@ description: |
     Token bucket throttling options for new connections (socket(3)).
     * `*-limit` - token bucket size, set to `0` to disable the limit
     * `*-per-second` - token bucket size refill speed
-    0 as any value disables the throttling.
+    Setting any parameter to 0 disables throttling.
     First, the http-*/https-* limit is processed, after that per-host-* limit is processed.
     All three token buckets work independently on all cluster hosts.
 schema:
@@ -14,33 +14,46 @@ schema:
         http-limit:
             type: integer
             minimum: 0
+            description: Token bucket size for opening HTTP connections
         http-per-second:
             type: integer
             minimum: 0
+            description: Token bucket refill rate for opening HTTP connections
         https-limit:
             type: integer
             minimum: 0
+            description: Token bucket size for opening HTTPS connections
         https-per-second:
             type: integer
             minimum: 0
+            description: Token bucket refill rate for opening HTTPS connections
         per-host-limit:
             type: integer
             minimum: 0
+            description: Size of the second token bucket per destination hostname for opening connections. Used after the http(s)-{limit,per-second}
+                token bucket.
         per-host-per-second:
             type: integer
             minimum: 0
+            description: Refill rate of the second token bucket per destination hostname for opening connections. Used after the
+                http(s)-{limit,per-second} token bucket.
+        # obsolete options
         max-size:
             type: integer
             minimum: 1
+            description: not used, obsolete
         token-update-interval-ms:
             type: integer
             minimum: 0
+            description: not used, obsolete
         http-max-size:
             type: integer
             minimum: 1
             default: 100
+            description: not used, obsolete
         http-token-update-interval-ms:
             type: integer
             minimum: 0
             default: 100
+            description: not used, obsolete
     additionalProperties: false

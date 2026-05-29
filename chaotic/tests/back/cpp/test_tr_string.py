@@ -34,6 +34,40 @@ def test_enum(simple_gen):
     }
 
 
+def test_enum_emoji(simple_gen):
+    types = simple_gen({'type': 'string', 'enum': ['🙂', '🔥'], 'default': '🔥'})
+    assert types == {
+        '::type': cpp_types.CppStringEnum(
+            raw_cpp_type=type_name.TypeName('::type'),
+            user_cpp_type=None,
+            json_schema=front_types.Schema(),
+            nullable=False,
+            name='::type',
+            default='::type::kU1f525',
+            enums=[
+                cpp_types.CppStringEnumItem(raw_name='🙂', cpp_name='kU1f642'),
+                cpp_types.CppStringEnumItem(raw_name='🔥', cpp_name='kU1f525'),
+            ],
+        ),
+    }
+
+    types = simple_gen({'type': 'string', 'enum': ['❗️ok🜈🙂', '❌ok🜈🔥']})
+    assert types == {
+        '::type': cpp_types.CppStringEnum(
+            raw_cpp_type=type_name.TypeName('::type'),
+            user_cpp_type=None,
+            json_schema=front_types.Schema(),
+            nullable=False,
+            name='::type',
+            default=None,
+            enums=[
+                cpp_types.CppStringEnumItem(raw_name='❗️ok🜈🙂', cpp_name='kU2757OkU1f708U1f642'),
+                cpp_types.CppStringEnumItem(raw_name='❌ok🜈🔥', cpp_name='kU274cokU1f708U1f525'),
+            ],
+        ),
+    }
+
+
 def test_datetime(simple_gen):
     types = simple_gen({'type': 'string', 'format': 'date-time'})
     assert types == {

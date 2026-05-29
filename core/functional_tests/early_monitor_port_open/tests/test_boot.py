@@ -7,7 +7,6 @@ import pytest_userver.utils.sync as sync
 async def test_monitor_port_is_open_before_all_components_are_ready(
     ensure_daemon_started,
     service_daemon_scope,
-    service_baseurl,
     monitor_baseurl,
 ):
     daemon_task = asyncio.create_task(ensure_daemon_started(service_daemon_scope))

@@ -324,6 +324,7 @@ TEST(Decimal64Exponent, Zero) {
 }
 
 namespace {
+
 std::optional<decimal64::impl::ParseErrorCode> ParseError(
     std::string input,
     std::initializer_list<decimal64::impl::ParseOptions> options
@@ -332,7 +333,7 @@ std::optional<decimal64::impl::ParseErrorCode> ParseError(
                4,
                decimal64::DefRoundPolicy>(decimal64::impl::StringCharSequence(std::string_view{input}), options)
         .error;
-};
+}
 
 const std::initializer_list<decimal64::impl::ParseOptions> kOptions = {
     decimal64::impl::ParseOptions::kAllowSpaces,
@@ -340,6 +341,7 @@ const std::initializer_list<decimal64::impl::ParseOptions> kOptions = {
     decimal64::impl::ParseOptions::kAllowExponent,
     decimal64::impl::ParseOptions::kAllowRounding,
 };
+
 }  // namespace
 
 TEST(Decimal64Exponent, Errors) {

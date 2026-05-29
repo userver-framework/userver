@@ -4,13 +4,11 @@
 /// @brief @copybrief utils::StringLiteral
 /// @ingroup userver_universal
 
-#include <string>
+#include <concepts>
 #include <string_view>
-#include <type_traits>
 
 #include <fmt/core.h>
 
-#include <userver/compiler/impl/constexpr.hpp>
 #include <userver/formats/serialize/to.hpp>
 #include <userver/utils/zstring_view.hpp>
 
@@ -31,7 +29,7 @@ public:
     // clang-16 and below lose (optimize out) the pointer to `literal` with consteval. Clang-18 is know to work
     constexpr
 #else
-    USERVER_IMPL_CONSTEVAL
+    consteval
 #endif
         StringLiteral(const char* literal) noexcept
         : zstring_view{literal} {
@@ -45,6 +43,18 @@ public:
     /// @warning `str[len]` should be '\0' and `str` should point to compile time literal.
     static constexpr StringLiteral UnsafeMake(const char* str, std::size_t len) noexcept {
         return StringLiteral(str, len);
+    }
+
+    friend constexpr auto operator<=>(StringLiteral lhs, StringLiteral rhs) noexcept = default;
+
+    friend constexpr auto operator<=>(StringLiteral lhs, const std::convertible_to<std::string_view> auto& rhs)
+        noexcept {
+        return std::string_view{lhs} <=> std::string_view{rhs};
+    }
+
+    friend constexpr bool operator==(StringLiteral lhs, const std::convertible_to<std::string_view> auto& rhs)
+        noexcept {
+        return std::string_view{lhs} == std::string_view{rhs};
     }
 
 private:

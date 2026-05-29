@@ -146,7 +146,7 @@ private:
 /// If destroyed early, the RPC is cancelled. The server gets @ref ugrpc::client::RpcInterruptedError
 /// and the `abandoned-error` metric is incremented. The connection stays open for reuse.
 /// gRPC provides no way to early-close a server-streaming RPC gracefully.
-// See @ref ugrpc::client::ReadRemainingAndFinish and @ref ugrpc::client::PingPongFinish for graceful completion.
+// See @ref ugrpc::client::ReadRemainingAndFinish for graceful completion.
 ///
 /// `Read` and `AsyncRead` can throw if error status is received from server.
 /// User MUST NOT call `Read` or `AsyncRead` again after failure of any of these

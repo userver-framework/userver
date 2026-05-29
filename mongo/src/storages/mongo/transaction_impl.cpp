@@ -34,6 +34,11 @@ void TransactionData::EnsureActive() const {
     }
 }
 
+void TransactionData::ReleaseClient() {
+    session.reset();
+    client.reset();
+}
+
 TransactionImpl::TransactionImpl(std::shared_ptr<PoolImpl> pool_impl)
     : pool_impl_(std::move(pool_impl)),
       data_{std::make_shared<TransactionData>(Transaction::State::kNone, nullptr)}
@@ -62,11 +67,12 @@ Collection TransactionImpl::GetCollection(std::string name) {
 
     auto collection_impl = std::make_shared<
         cdriver::CDriverTransactionCollectionImpl>(pool_impl_, database_name_, std::move(name), data_);
-    return Collection{std::move(collection_impl)};
+    return Collection{std::move(collection_impl), /*transactional=*/true};
 }
 
 void TransactionImpl::Commit() {
     data_->EnsureActive();
+    utils::FastScopeGuard release([&]() noexcept { data_->ReleaseClient(); });
 
     MongoError error;
     formats::bson::impl::UninitializedBson reply;
@@ -95,6 +101,7 @@ void TransactionImpl::Abort() noexcept {
     if (!IsActive()) {
         return;
     }
+    utils::FastScopeGuard release([&]() noexcept { data_->ReleaseClient(); });
 
     data_->state = Transaction::State::kAborted;
 
@@ -120,13 +127,16 @@ void TransactionImpl::EnsureTransactionStarted() {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
     auto* cdriver_pool = static_cast<cdriver::CDriverPoolImpl*>(pool_impl_.get());
 
-    // Get a client from the pool
-    auto client = cdriver_pool->Acquire();
+    // Acquire a client and keep it alive for the entire transaction: the
+    // mongoc_client_session_t created below stores an internal raw pointer to
+    // this client, so it must not be returned to the pool until the session is
+    // destroyed.
+    data_->client.emplace(cdriver_pool->Acquire());
 
     // Create session
     MongoError error;
     data_->session = cdriver::SessionPtr(
-        mongoc_client_start_session(client.get(), nullptr, error.GetNative()),
+        mongoc_client_start_session(data_->client->get(), nullptr, error.GetNative()),
         cdriver::SessionDeleter()
     );
     if (!data_->session) {

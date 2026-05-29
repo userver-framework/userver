@@ -10,64 +10,41 @@
 #include <userver/storages/postgres/io/nullable_traits.hpp>
 
 #include <userver/utils/strong_typedef.hpp>
-#include <userver/utils/void_t.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::io {
 
-/// @page pg_strong_typedef uPg: support for C++ 'strong typedef' idiom
-///
-/// Within userver a strong typedef can be expressed as an enum class for
-/// integral types and as an instance of
-/// `USERVER_NAMESPACE::utils::StrongTypedef` template for all types. Both of
-/// them are supported transparently by the PostgresSQL driver with minor
-/// limitations. No additional code required.
-///
-/// @warning The underlying integral type for a strong typedef MUST be
-/// signed as PostgreSQL doesn't have unsigned types
-///
-/// The underlying type for a strong typedef must be mapped to a system or a
-/// user PostgreSQL data type. Strong typedef type derives nullability from
-/// underlying type.
-///
-/// Using `USERVER_NAMESPACE::utils::StrongTypedef` example:
-/// @snippet storages/postgres/tests/strong_typedef_pgtest.cpp Strong typedef
-///
-/// Using `enum class` example:
-/// @snippet storages/postgres/tests/strong_typedef_pgtest.cpp Enum typedef
-
 namespace traits {
 
-// Helper to detect if the strong typedef mapping is explicitly defined,
-// e.g. TimePointTz
-template <typename Tag, typename T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops, typename Enable>
-inline constexpr bool kIsStrongTypedefDirectlyMapped =
-    // NOLINTNEXTLINE(google-readability-casting)
-    kIsMappedToUserType<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>> ||
-    // NOLINTNEXTLINE(google-readability-casting)
-    kIsMappedToSystemType<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>> ||
-    // NOLINTNEXTLINE(google-readability-casting)
-    kIsMappedToArray<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>>;
+namespace impl {
 
-template <typename Tag, typename T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops, typename Enable>
-struct IsMappedToPg<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>>
+template <typename Tag, typename T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops>
+concept IsStrongTypedefDirectlyMapped =
+    IsMappedToUserType<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>> ||
+    IsMappedToSystemType<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>> ||
+    IsMappedToArray<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>>;
+
+}  // namespace impl
+
+template <typename Tag, typename T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops>
+struct IsMappedToPg<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>>
     // NOLINTNEXTLINE(google-readability-casting)
-    : BoolConstant<kIsStrongTypedefDirectlyMapped<Tag, T, Ops, Enable> || kIsMappedToPg<T>> {};
+    : BoolConstant<impl::IsStrongTypedefDirectlyMapped<Tag, T, Ops> || kIsMappedToPg<T>> {};
 
 // Mark that strong typedef mapping is a special case for disambiguating
 // specialization of CppToPg
-template <typename Tag, typename T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops, typename Enable>
-struct IsSpecialMapping<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>>
+template <typename Tag, typename T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops>
+struct IsSpecialMapping<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>>
     // NOLINTNEXTLINE(google-readability-casting)
-    : BoolConstant<!kIsStrongTypedefDirectlyMapped<Tag, T, Ops, Enable> && kIsMappedToPg<T>> {};
+    : BoolConstant<!impl::IsStrongTypedefDirectlyMapped<Tag, T, Ops> && kIsMappedToPg<T>> {};
 
-template <typename Tag, typename T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops, typename Enable>
-struct IsNullable<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>> : IsNullable<T> {};
+template <typename Tag, typename T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops>
+struct IsNullable<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>> : IsNullable<T> {};
 
-template <typename Tag, typename T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops, typename Enable>
-struct GetSetNull<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>> {
-    using ValueType = USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>;
+template <typename Tag, typename T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops>
+struct GetSetNull<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>> {
+    using ValueType = USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>;
     using UnderlyingGetSet = GetSetNull<T>;
     inline static bool IsNull(const ValueType& v) { return UnderlyingGetSet::IsNull(v.GetUnderlying()); }
     inline static void SetNull(ValueType& v) { UnderlyingGetSet::SetNull(v.GetUnderlying()); }
@@ -76,7 +53,7 @@ struct GetSetNull<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>> 
 
 /// A metafunction that enables an enum type serialization to its
 /// underlying type. Can be specialized.
-template <typename T, typename = USERVER_NAMESPACE::utils::void_t<>>
+template <typename T>
 struct CanUseEnumAsStrongTypedef : std::false_type {};
 
 namespace impl {
@@ -104,14 +81,14 @@ constexpr bool CheckCanUseEnumAsStrongTypedef() {
 }  // namespace impl
 
 template <typename T>
-using EnableIfCanUseEnumAsStrongTypedef = std::enable_if_t<impl::CheckCanUseEnumAsStrongTypedef<T>()>;
+concept RequiresCanUseEnumAsStrongTypedef = impl::CheckCanUseEnumAsStrongTypedef<T>();
 
 }  // namespace traits
 
-template <typename Tag, typename T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops, typename Enable>
-struct BufferFormatter<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>>
-    : detail::BufferFormatterBase<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>> {
-    using BaseType = detail::BufferFormatterBase<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>>;
+template <typename Tag, typename T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops>
+struct BufferFormatter<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>>
+    : detail::BufferFormatterBase<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>> {
+    using BaseType = detail::BufferFormatterBase<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>>;
     using BaseType::BaseType;
 
     template <typename Buffer>
@@ -149,28 +126,26 @@ struct StrongTypedefParser<StrongTypedef, true> : BufferParserBase<StrongTypedef
 
 }  // namespace detail
 
-template <typename Tag, typename T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops, typename Enable>
-struct BufferParser<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>>
+template <typename Tag, typename T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops>
+struct BufferParser<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>>
     : detail::StrongTypedefParser<
-          USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>,
+          USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>,
           detail::kParserRequiresTypeCategories<T>> {
     using BaseType = detail::StrongTypedefParser<
-        USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>,
+        USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>,
         detail::kParserRequiresTypeCategories<T>>;
     using BaseType::BaseType;
 };
 
 // StrongTypedef template mapping specialization
-template <typename Tag, typename T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops, typename Enable>
-struct CppToPg<
-    USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>,
-    std::enable_if_t<!traits::kIsStrongTypedefDirectlyMapped<Tag, T, Ops, Enable> && traits::kIsMappedToPg<T>>>
-    : CppToPg<T> {};
+template <typename Tag, typename T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops>
+requires(!traits::impl::IsStrongTypedefDirectlyMapped<Tag, T, Ops> && traits::kIsMappedToPg<T>)
+struct CppToPg<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>> : CppToPg<T> {};
 
 namespace traits {
 
-template <typename Tag, typename T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops, typename Enable>
-struct ParserBufferCategory<BufferParser<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops, Enable>>>
+template <typename Tag, typename T, USERVER_NAMESPACE::utils::StrongTypedefOps Ops>
+struct ParserBufferCategory<BufferParser<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>>>
     : ParserBufferCategory<typename traits::IO<T>::ParserType> {};
 
 }  // namespace traits
@@ -207,27 +182,27 @@ struct EnumStrongTypedefParser : BufferParserBase<T> {
 
 namespace traits {
 
-template <typename T>
-struct Output<T, EnableIfCanUseEnumAsStrongTypedef<T>> {
+template <RequiresCanUseEnumAsStrongTypedef T>
+struct Output<T> {
     using type = io::detail::EnumStrongTypedefFormatter<T>;
 };
 
-template <typename T>
-struct Input<T, EnableIfCanUseEnumAsStrongTypedef<T>> {
+template <RequiresCanUseEnumAsStrongTypedef T>
+struct Input<T> {
     using type = io::detail::EnumStrongTypedefParser<T>;
 };
 
-template <typename T>
-struct IsMappedToPg<T, EnableIfCanUseEnumAsStrongTypedef<T>> : std::true_type {};
+template <RequiresCanUseEnumAsStrongTypedef T>
+struct IsMappedToPg<T> : std::true_type {};
 
-template <typename T>
-struct IsSpecialMapping<T, EnableIfCanUseEnumAsStrongTypedef<T>> : std::true_type {};
+template <RequiresCanUseEnumAsStrongTypedef T>
+struct IsSpecialMapping<T> : std::true_type {};
 
 }  // namespace traits
 
 // enum class strong typedef mapping specialization
-template <typename T>
-struct CppToPg<T, traits::EnableIfCanUseEnumAsStrongTypedef<T>> : CppToPg<std::underlying_type_t<T>> {};
+template <traits::RequiresCanUseEnumAsStrongTypedef T>
+struct CppToPg<T> : CppToPg<std::underlying_type_t<T>> {};
 
 }  // namespace storages::postgres::io
 

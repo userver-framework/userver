@@ -78,7 +78,7 @@ public:
         auto messages = *storage;
         // We sort messages here because `Process` might run in parallel
         // and ordering is not guaranteed.
-        std::sort(messages.begin(), messages.end());
+        std::ranges::sort(messages);
 
         return messages;
     }

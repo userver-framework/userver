@@ -40,8 +40,6 @@ void DoNothing(const formats::json::Value&) noexcept;
 
 USERVER_NAMESPACE_END
 
-// clang-format off
-
 /// @brief Send testpoint notification and receive data. Works only if
 /// testpoint support is enabled (e.g. in components::TestsControl),
 /// otherwise does nothing.
@@ -54,8 +52,6 @@ USERVER_NAMESPACE_END
 /// loaded or it is disabled in static config via `load-enabled: false`.
 ///
 /// @hideinitializer
-
-// clang-format on
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TESTPOINT_CALLBACK(name, json, callback)                                                        \
     do {                                                                                                \
@@ -68,8 +64,6 @@ USERVER_NAMESPACE_END
         USERVER_NAMESPACE::testsuite::impl::ExecuteTestpointCoro(userver_impl_tp_name, json, callback); \
     } while (false)
 
-// clang-format off
-
 /// @brief Send testpoint notification. Works only if testpoint support is
 /// enabled (e.g. in components::TestsControl), otherwise does nothing.
 ///
@@ -81,8 +75,6 @@ USERVER_NAMESPACE_END
 /// loaded or it is disabled in static config via `load-enabled: false`.
 ///
 /// @hideinitializer
-
-// clang-format on
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define TESTPOINT(name, json) TESTPOINT_CALLBACK(name, json, USERVER_NAMESPACE::testsuite::impl::DoNothing)
 

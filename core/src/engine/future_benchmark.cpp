@@ -84,7 +84,7 @@ struct FutureCoroSetGet {
     FutureCoroSetGet()
         : future(promise.get_future())
     {
-        producer = engine::AsyncNoSpan([&] {
+        producer = engine::AsyncNoTracing([&] {
             producer_ready.Send();
             const bool status = consumer_ready.WaitForEvent();
             UASSERT(status);

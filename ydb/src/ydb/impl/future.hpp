@@ -9,7 +9,6 @@
 
 #include <userver/ydb/exceptions.hpp>
 #include <ydb/impl/request_context.hpp>
-#include <ydb/impl/retry.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -41,11 +40,11 @@ T GetFutureValueUnchecked(NThreading::TFuture<T>&& future) {
     return future.ExtractValue();
 }
 
-template <typename T>
+template <typename T, typename Settings>
 T GetFutureValueChecked(
     NThreading::TFuture<T>&& future,
     std::string_view operation_name,
-    RequestContext& request_context
+    RequestContext<Settings>& request_context
 ) {
     auto status = impl::GetFutureValueUnchecked(std::move(future));
     if (!status.IsSuccess()) {
@@ -64,12 +63,12 @@ T GetFutureValueChecked(NThreading::TFuture<T>&& future, std::string_view operat
     return status;
 }
 
-template <typename T>
+template <typename T, typename Settings>
 T GetFutureValueChecked(
     NThreading::TFuture<T>&& future,
     std::string_view operation_name,
     utils::RetryBudget& retry_budget,
-    RequestContext& request_context
+    RequestContext<Settings>& request_context
 ) {
     auto status = GetFutureValueUnchecked(std::move(future));
     HandleOnceRetry(retry_budget, status.GetStatus());

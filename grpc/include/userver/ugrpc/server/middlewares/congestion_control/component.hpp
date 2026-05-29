@@ -3,6 +3,9 @@
 /// @file userver/ugrpc/server/middlewares/congestion_control/component.hpp
 /// @brief @copybrief ugrpc::server::middlewares::congestion_control::Component
 
+#include <atomic>
+#include <cstddef>
+
 #include <userver/server/congestion_control/limiter.hpp>
 #include <userver/ugrpc/server/middlewares/base.hpp>
 #include <userver/utils/token_bucket.hpp>
@@ -51,10 +54,13 @@ public:
 
     void SetLimit(std::optional<size_t> new_limit) override;
 
+    std::size_t GetLimitableHandlersCount() const override;
+
 private:
     std::shared_ptr<utils::TokenBucket> rate_limit_{
         std::make_shared<utils::TokenBucket>(utils::TokenBucket::MakeUnbounded())
     };
+    mutable std::atomic<std::size_t> limitable_handlers_count_{0};
 };
 
 }  // namespace ugrpc::server::middlewares::congestion_control

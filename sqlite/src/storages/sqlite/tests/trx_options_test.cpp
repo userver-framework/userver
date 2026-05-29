@@ -51,7 +51,7 @@ UTEST_P_MT(SQLiteTransactionsConcurrentTest, IsolationLevels, 3) {
     bool writer_inserted = false;
     bool reader_selected = false;
 
-    auto writer = engine::AsyncNoSpan([&]() {
+    auto writer = engine::AsyncNoTracing([&]() {
         settings::TransactionOptions
             writer_options{trx_isolation_lvl, settings::TransactionOptions::LockingMode::kImmediate};
         Transaction trx{nullptr, {}};
@@ -65,7 +65,7 @@ UTEST_P_MT(SQLiteTransactionsConcurrentTest, IsolationLevels, 3) {
         UEXPECT_NO_THROW(trx.Rollback());
     });
 
-    auto reader = engine::AsyncNoSpan([&]() {
+    auto reader = engine::AsyncNoTracing([&]() {
         settings::TransactionOptions reader_options{trx_isolation_lvl};
         Transaction trx{nullptr, {}};
 

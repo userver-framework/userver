@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import Callable
+from collections.abc import Iterator
 import contextlib
 import inspect
 import types
@@ -28,6 +29,7 @@ from ._mocked_errors import NetworkError  # noqa: F401
 from ._mocked_errors import TimeoutError  # noqa: F401
 from ._servicer_mock import _check_is_servicer_class
 from ._servicer_mock import _create_servicer_mock
+from ._servicer_mock import _MockHandlerRemovalToken
 from ._servicer_mock import _ServiceMock
 
 Handler: TypeAlias = Callable[[Any, grpc.aio.ServicerContext], Any]
@@ -91,7 +93,7 @@ class MockserverSession:
             mock.reset_handlers()
 
     @contextlib.contextmanager
-    def asyncexc_append_scope(self, asyncexc_append: AsyncExcAppend | None, /):
+    def asyncexc_append_scope(self, asyncexc_append: AsyncExcAppend | None, /) -> Iterator[None]:
         """
         Sets testsuite's `asyncexc_append` for use in the returned scope.
         """
@@ -133,6 +135,8 @@ class Mockserver:
     """
     Allows to install mocks that are reset between tests, see
     @ref pytest_userver.plugins.grpc.mockserver.grpc_mockserver "grpc_mockserver".
+
+    Acts as a scope for the installed mocks. Mocks are removed on `__exit__` or @ref reset_mocks call.
     """
 
     def __init__(self, *, mockserver_session: MockserverSession, experimental: bool = False) -> None:
@@ -140,13 +144,18 @@ class Mockserver:
         @warning This initializer is an **experimental API**, likely to break in the future. Consider using
         @ref pytest_userver.plugins.grpc.mockserver.grpc_mockserver "grpc_mockserver" instead.
 
-        Initializes Mockserver.
+        Initializes Mockserver. Should be used together with context manager syntax (`with` block).
 
         @note `Mockserver` is usually obtained from
         @ref pytest_userver.plugins.grpc.mockserver.grpc_mockserver "grpc_mockserver".
+
+        An example on creating a custom scope for gRPC mocks:
+        @snippet grpc/functional_tests/middleware_client/tests/test_custom_mockserver_session_scope.py  global mock
         """
         assert experimental
         self._mockserver_session = mockserver_session
+        self._token = _MockHandlerRemovalToken()
+        self._installed_service_mocks: set[_ServiceMock] = set()
 
     def __call__(self, servicer_method, /) -> MockDecorator:
         """
@@ -158,8 +167,8 @@ class Mockserver:
         @snippet samples/grpc_service/testsuite/test_grpc.py  grpc client test
         """
         servicer_class = _get_class_from_method(servicer_method)
-        mock = self._mockserver_session._get_auto_service_mock(servicer_class)  # pylint: disable=protected-access
-        return mock.install_handler(servicer_method.__name__)
+        mock = self._get_service_mock(servicer_class)
+        return mock.install_handler(servicer_method.__name__, self._token)
 
     def mock_factory(self, servicer_class, /) -> Callable[[str], MockDecorator]:
         """
@@ -204,14 +213,32 @@ class Mockserver:
             raise ValueError(f"Given object's type ({type(servicer)}) is not inherited from any grpc *Servicer class")
         proxy = _MockProxy(servicer)
         for servicer_class in base_servicer_classes:
-            # pylint: disable=protected-access
-            mock = self._mockserver_session._get_auto_service_mock(servicer_class)
+            mock = self._get_service_mock(servicer_class)
             for python_method_name in mock.known_methods:
                 if _get_class_that_defined_method(type(servicer), python_method_name) not in base_servicer_classes:
                     handler_func: types.MethodType = getattr(servicer, python_method_name)
-                    callqueue = mock.install_handler(python_method_name)(handler_func)
+                    callqueue = mock.install_handler(python_method_name, token=self._token)(handler_func)
                     object.__setattr__(proxy, python_method_name, callqueue)
         return typing.cast(Servicer, proxy)
+
+    def reset_mocks(self) -> None:
+        """
+        Removes all mocks installed using this `Mockserver` instance.
+        """
+        for mock in self._installed_service_mocks:
+            mock.pop_handlers_for_token(self._token)
+        self._installed_service_mocks.clear()
+
+    def __enter__(self) -> MockserverSession:
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        self.reset_mocks()
+
+    def _get_service_mock(self, servicer_class: type, /) -> _ServiceMock:
+        mock = self._mockserver_session._get_auto_service_mock(servicer_class)  # pylint: disable=protected-access
+        self._installed_service_mocks.add(mock)
+        return mock
 
 
 # @cond

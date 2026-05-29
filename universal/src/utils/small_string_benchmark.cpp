@@ -1,5 +1,6 @@
 #include <userver/utils/small_string.hpp>
 
+#include <algorithm>
 #include <array>
 
 #include <utils/gbench_auxiliary.hpp>
@@ -121,7 +122,7 @@ static void SmallStringResizeAndOverwrite(benchmark::State& state) {
     for ([[maybe_unused]] auto _ : state) {
         for (size_t i = 0; i < str.size(); i++) {
             str2[i].resize_and_overwrite(str[i].size(), [&](char* data, size_t size) {
-                std::copy(str[i].data(), str[i].data() + str[i].size(), data);
+                std::ranges::copy(str[i], data);
                 return size;
             });
         }
@@ -142,7 +143,7 @@ static void SmallStringResizeThenOverwrite(benchmark::State& state) {
     for ([[maybe_unused]] auto _ : state) {
         for (size_t i = 0; i < str.size(); i++) {
             str2[i].resize(str[i].size(), '\0');
-            std::copy(str[i].data(), str[i].data() + str[i].size(), str2[i].data());
+            std::ranges::copy(str[i], str2[i].data());
         }
         state.PauseTiming();
         str2.fill({});

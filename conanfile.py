@@ -4,6 +4,7 @@ import platform
 
 from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
+from conan.tools.build import check_min_cppstd
 from conan.tools.cmake import CMake
 from conan.tools.cmake import cmake_layout
 from conan.tools.cmake import CMakeDeps
@@ -59,7 +60,7 @@ class UserverConan(ConanFile):
         'with_redis': True,
         'with_redis_tls': True,
         'with_grpc': True,
-        'with_clickhouse': True,
+        'with_clickhouse': False,  # TODO: set to True after clickhouse-cpp >= 2.6 appears in Conan Center
         'with_rabbitmq': True,
         'with_utest': True,
         'with_kafka': True,
@@ -106,8 +107,7 @@ class UserverConan(ConanFile):
         self.requires('c-ares/[^1.33]')
         self.requires('cctz/[^2.4]', transitive_headers=True)
 
-        # 1.0.4 does not work due to https://github.com/cameron314/concurrentqueue/issues/439
-        self.requires('concurrentqueue/1.0.3', transitive_headers=True)
+        self.requires('concurrentqueue/[^1.0.5]', transitive_headers=True)
 
         self.requires('cryptopp/[^8.9]')
         self.requires('fmt/[>=8.1.1 <13]', transitive_headers=True)
@@ -117,19 +117,19 @@ class UserverConan(ConanFile):
         self.requires('libev/[^4.33]')
         self.requires('openssl/[>=1.1 <4]')
         self.requires('rapidjson/[>=cci.20230929 <cci.20230930]', transitive_headers=True)
-        self.requires('yaml-cpp/[^0.8.0]')
+        self.requires('yaml-cpp/[>=0.8.0 <=0.9.0]')
         self.requires('zlib/[^1.3]')
         self.requires('zstd/[^1.5]')
         self.requires('icu/[>=74.1 <77]', force=True)
-        self.requires('re2/20230301')
+        self.requires('re2/[>=20230301]')
 
         if self.options.with_jemalloc:
             self.requires('jemalloc/[^5.3]')
         if self.options.with_grpc or self.options.with_clickhouse:
-            self.requires('abseil/20240116.2', force=True)
+            self.requires('abseil/20240722.1', force=True)
         if self.options.with_grpc:
             self.requires(
-                'grpc/[^1.65.0]',
+                'grpc/[^1.69.0]',
                 transitive_headers=True,
                 transitive_libs=True,
             )
@@ -143,7 +143,9 @@ class UserverConan(ConanFile):
         if self.options.with_postgresql:
             # `run=True` required to find `pg_config` binary during `psycopg2` python module build
             # without system package. We use system package.
-            self.requires('libpq/[>=14.9 <20]')
+            #
+            # `<16` is due to link errors `undefined reference to `gss_release_buffer'`
+            self.requires('libpq/[>=14.9 <16]')
         if self.options.with_postgresql_extra:
             self.requires('openldap/[^2.6]')
             self.requires('krb5/[^1.21]')
@@ -160,6 +162,9 @@ class UserverConan(ConanFile):
         if self.options.with_rabbitmq:
             self.requires('amqp-cpp/[^4.3]')
         if self.options.with_clickhouse:
+            # Some C++ Standard libraries require the following fix
+            # https://github.com/ClickHouse/clickhouse-cpp/commit/2ac94d0d5d425cd70a0a8f4f91c4ed57369b72b9
+            # self.requires('clickhouse-cpp/[>=2.6.0 <3]')
             self.requires('clickhouse-cpp/[>=2.5.1 <3]')
         if self.options.with_utest:
             self.requires(
@@ -182,9 +187,11 @@ class UserverConan(ConanFile):
             self.requires('opentelemetry-proto/[^1.3]')
 
     def build_requirements(self):
-        self.tool_requires('protobuf/[^5.27]')
+        self.tool_requires('protobuf/<host_version>')
 
     def validate(self):
+        check_min_cppstd(self, 20)
+
         if self.settings.os == 'Windows':
             raise ConanInvalidConfiguration(
                 'userver cannot be built on Windows',

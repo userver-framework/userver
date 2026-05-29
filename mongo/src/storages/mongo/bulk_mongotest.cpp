@@ -88,6 +88,10 @@ UTEST_F(Bulk, DISABLED_InsertOne) {  // TODO: TAXICOMMON-8662
         EXPECT_EQ(0, result.DeletedCount());
         EXPECT_TRUE(result.UpsertedIds().empty());
         EXPECT_TRUE(result.WriteConcernErrors().empty());
+        const auto& operation_error = result.OperationError();
+
+        EXPECT_TRUE(operation_error);
+        EXPECT_EQ(operation_error.Code(), 11000);
 
         auto errors = result.ServerErrors();
         ASSERT_EQ(1, errors.size());
@@ -111,6 +115,11 @@ UTEST_F(Bulk, DISABLED_InsertOne) {  // TODO: TAXICOMMON-8662
         EXPECT_EQ(0, result.DeletedCount());
         EXPECT_TRUE(result.UpsertedIds().empty());
         EXPECT_TRUE(result.WriteConcernErrors().empty());
+
+        const auto& operation_error = result.OperationError();
+
+        EXPECT_TRUE(operation_error);
+        EXPECT_EQ(operation_error.Code(), 11000);
 
         auto errors = result.ServerErrors();
         ASSERT_EQ(2, errors.size());
@@ -154,6 +163,10 @@ UTEST_F(Bulk, ReplaceOne) {
         EXPECT_TRUE(result.UpsertedIds().empty());
         EXPECT_TRUE(result.WriteConcernErrors().empty());
 
+        const auto& operation_error = result.OperationError();
+
+        EXPECT_TRUE(operation_error);
+        EXPECT_EQ(operation_error.Code(), 11000);
         auto errors = result.ServerErrors();
         ASSERT_EQ(1, errors.size());
         EXPECT_EQ(11000, errors[0].Code());
@@ -192,6 +205,10 @@ UTEST_F(Bulk, Update) {
         bulk.UpdateMany({}, bson::MakeDoc("$inc", bson::MakeDoc("x", 1)));
         EXPECT_FALSE(bulk.IsEmpty());
         auto result = coll.Execute(std::move(bulk));
+        const auto& operation_error = result.OperationError();
+
+        EXPECT_TRUE(operation_error);
+        EXPECT_EQ(operation_error.Code(), 11000);
 
         EXPECT_EQ(0, result.InsertedCount());
         EXPECT_EQ(2, result.MatchedCount());

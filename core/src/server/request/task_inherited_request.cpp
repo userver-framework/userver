@@ -16,7 +16,7 @@ const std::string kEmptyString{};
 const HeadersToPropagate kEmptyHeaders;
 
 const std::string* FindValueOrNullptr(const HeadersToPropagate& headers, std::string_view header_name) {
-    const auto it = std::find_if(headers.begin(), headers.end(), [&header_name](const Header& header) {
+    const auto it = std::ranges::find_if(headers, [&header_name](const Header& header) {
         return header.name == header_name;
     });
     if (it == headers.end()) {
@@ -59,7 +59,7 @@ bool HasPropagatedHeader(const USERVER_NAMESPACE::http::headers::PredefinedHeade
     return DoHasPropagatedHeader(header_name);
 }
 
-boost::iterator_range<HeadersToPropagate::const_iterator> GetPropagatedHeaders() {
+std::ranges::subrange<HeadersToPropagate::const_iterator> GetPropagatedHeaders() {
     const auto* headers = kPropagatedHeaders.GetOptional();
     if (headers == nullptr) {
         return kEmptyHeaders;

@@ -6,6 +6,7 @@
 
 #include <boost/endian/conversion.hpp>
 
+#include <algorithm>
 #include <type_traits>
 
 #include <userver/storages/postgres/exceptions.hpp>

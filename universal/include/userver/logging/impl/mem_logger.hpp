@@ -12,6 +12,7 @@ namespace formatters {
 struct LogItem;
 }
 
+/// @brief In-memory logger that captures formatted log items.
 class MemLogger final : public LoggerBase {
 public:
     MemLogger() noexcept;
@@ -32,9 +33,6 @@ public:
     void DropLogs();
 
     size_t GetPendingLogsCount();
-
-protected:
-    bool DoShouldLog(Level) const noexcept override;
 
 private:
     void DispatchItem(formatters::LogItem& msg, formatters::Base& formatter);

@@ -18,9 +18,13 @@ class PostgreStats : public PostgreConnection {};
 INSTANTIATE_UTEST_SUITE_P(
     StatsSettings,
     PostgreStats,
-    ::testing::Values(kCachePreparedStatements, kPipelineEnabled),
+    ::testing::Combine(
+        ::testing::Values(kCachePreparedStatements, kPipelineEnabled),
+        ::testing::Values(ConnectionMode::kDirect)
+    ),
     [](const testing::TestParamInfo<PostgreStats::ParamType>& info) {
-        if (info.param.pipeline_mode == pg::PipelineMode::kEnabled) {
+        const auto& param = std::get<0>(info.param);
+        if (param.pipeline_mode == pg::PipelineMode::kEnabled) {
             return "PipelineEnabled";
         } else {
             return "PipelineDisabled";

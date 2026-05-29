@@ -1,12 +1,12 @@
 #include <userver/server/handlers/auth/auth_checker_factory.hpp>
 
 #include <memory>
+#include <ranges>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
 
 #include <fmt/format.h>
-#include <boost/range/adaptor/map.hpp>
 
 #include <userver/utils/algo.hpp>
 #include <userver/utils/impl/transparent_hash.hpp>
@@ -26,14 +26,14 @@ public:
     }
 
     impl::AuthCheckerFactoryFactory GetFactory(std::string_view auth_type) const {
-        if (auto* const factory = utils::impl::FindTransparentOrNullptr(factories_, auth_type)) {
+        if (auto* const factory = utils::FindOrNullptr(factories_, auth_type)) {
             return *factory;
         }
         throw std::runtime_error(fmt::format("unknown type of auth checker: {}", auth_type));
     }
 
     std::vector<std::string> GetAllAuthTypes() const {
-        return utils::AsContainer<std::vector<std::string>>(factories_ | boost::adaptors::map_keys);
+        return utils::AsContainer<std::vector<std::string>>(factories_ | std::views::keys);
     }
 
 private:

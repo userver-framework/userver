@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/engine/task/single_threaded_task_processors_pool.hpp
+/// @brief @copybrief engine::SingleThreadedTaskProcessorsPool
+
 #include <memory>
 #include <vector>
 
@@ -11,6 +14,7 @@ namespace engine {
 
 struct TaskProcessorConfig;
 
+/// @brief Pool of single-threaded TaskProcessors
 class SingleThreadedTaskProcessorsPool final {
 public:
     // Do NOT use directly! Use components::SingleThreadedTaskProcessors or for

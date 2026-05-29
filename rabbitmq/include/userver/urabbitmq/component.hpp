@@ -6,7 +6,6 @@
 #include <memory>
 
 #include <userver/components/component_base.hpp>
-#include <userver/utils/statistics/entry.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -61,9 +60,6 @@ public:
 private:
     clients::dns::Component& dns_;
     std::shared_ptr<urabbitmq::Client> client_;
-
-    // Must be the last field
-    utils::statistics::Entry statistics_holder_;
 };
 
 template <>

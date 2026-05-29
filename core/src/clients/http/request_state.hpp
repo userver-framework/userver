@@ -22,6 +22,7 @@
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/http/url.hpp>
+#include <userver/server/request/task_inherited_data.hpp>
 #include <userver/tracing/in_place_span.hpp>
 #include <userver/tracing/manager.hpp>
 #include <userver/tracing/span.hpp>
@@ -51,7 +52,7 @@ public:
     RequestState(
         impl::EasyWrapper&&,
         RequestStats&& req_stats,
-        const std::shared_ptr<DestinationStatistics>& dest_stats,
+        DestinationStatistics& dest_stats,
         clients::dns::Resolver* resolver,
         const tracing::TracingManagerBase& tracing_manager
     );
@@ -144,6 +145,7 @@ public:
     std::shared_ptr<Response> response_move() { return std::move(response_); }
 
     void SetMiddlewaresList(const std::vector<utils::NotNull<MiddlewareBase*>>& middlewares);
+    void SetIncompleteTlsConnectionCloseExpected(bool expect);
     void SetLoggedUrl(std::string url);
     void SetUrlTemplate(std::string url_template);
     void SetMethod(clients::http::HttpMethod method);
@@ -213,10 +215,10 @@ private:
     /// curl handler wrapper
     impl::EasyWrapper easy_;
     RequestStats stats_;
-    std::shared_ptr<RequestStats> dest_req_stats_;
+    std::optional<RequestStats> dest_req_stats_;
     CancellationPolicy cancellation_policy_{CancellationPolicy::kCancel};
 
-    std::shared_ptr<DestinationStatistics> dest_stats_;
+    DestinationStatistics& dest_stats_;
     std::string destination_metric_name_;
 
     std::shared_ptr<const TestsuiteConfig> testsuite_config_;
@@ -235,6 +237,8 @@ private:
     std::chrono::milliseconds remote_timeout_;
 
     DeadlinePropagationConfig deadline_propagation_config_;
+    /// original absolute deadline from task inherited data
+    std::optional<server::request::TaskInheritedOriginalDeadline> inherited_original_deadline_;
     /// deadline from current task
     engine::Deadline deadline_;
     bool timeout_updated_by_deadline_{false};
@@ -260,6 +264,7 @@ private:
     HttpMethod method_{HttpMethod::kGet};
 
     std::atomic<bool> is_cancelled_{false};
+    std::atomic<bool> is_incomplete_tls_connection_close_expected_{false};
     std::array<char, CURL_ERROR_SIZE> errorbuffer_{};
 
     clients::dns::Resolver* resolver_{nullptr};

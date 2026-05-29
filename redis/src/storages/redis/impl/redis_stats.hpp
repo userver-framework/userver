@@ -26,7 +26,7 @@ constexpr size_t kReplySizeBucketCount = 15;
 constexpr size_t kRequestSizeBucketCount = 15;
 constexpr size_t kTimingBucketCount = 15;
 
-/// This statistics is shared between instaces of cluster
+/// This statistics is shared between instances of cluster
 class Statistics {
 public:
     Statistics();

@@ -25,6 +25,7 @@ struct ClientConfig {
     bool append_path_to_url{true};
     std::string stage_name;
     bool is_prestable{false};
+    std::string circuit;
 };
 
 /// @ingroup userver_clients

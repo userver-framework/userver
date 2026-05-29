@@ -6,6 +6,8 @@
 
 #include <librdkafka/rdkafka.h>
 
+#include <userver/engine/deadline.hpp>
+#include <userver/kafka/impl/messages.hpp>
 #include <userver/kafka/impl/stats.hpp>
 #include <userver/logging/level.hpp>
 #include <userver/utils/periodic_task.hpp>
@@ -40,6 +42,16 @@ public:
         HeadersHolder headers
     ) const;
 
+    /// @brief Send messages and waits for its delivery.
+    /// While waiting handles other messages delivery reports, errors and logs.
+    [[nodiscard]] std::vector<DeliveryResult> Send(
+        utils::zstring_view topic_name,
+        std::string_view key,
+        const Messages& messages,
+        std::optional<std::uint32_t> partition,
+        std::vector<HeadersHolder> headers
+    ) const;
+
     /// @brief Waits until scheduled messages are delivered for
     /// at most 2 x `delivery_timeout`.
     ///
@@ -58,7 +70,8 @@ private:
         std::string_view key,
         std::string_view message,
         std::optional<std::uint32_t> partition,
-        HeadersHolder headers
+        HeadersHolder headers,
+        engine::Deadline deadline
     ) const;
 
     /// @brief Poll a delivery or error event from producer's queue.

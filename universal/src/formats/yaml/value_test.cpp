@@ -1,10 +1,12 @@
+#include <ranges>
+
+#include <gmock/gmock-matchers.h>
+
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/formats/yaml/serialize_container.hpp>
 #include <userver/formats/yaml/value.hpp>
 #include <userver/formats/yaml/value_builder.hpp>
 #include <userver/utest/literals.hpp>
-
-#include <gmock/gmock-matchers.h>
 
 #include <formats/common/value_test.hpp>
 
@@ -17,6 +19,11 @@ struct Parsing<formats::yaml::Value> : public ::testing::Test {
 };
 
 INSTANTIATE_TYPED_TEST_SUITE_P(FormatsYaml, Parsing, formats::yaml::Value);
+
+TEST(FormatsYaml, ValueIsForwardRange) {
+    static_assert(std::ranges::forward_range<formats::yaml::Value>);
+    static_assert(std::ranges::forward_range<const formats::yaml::Value>);
+}
 
 TEST(FormatsYaml, NullAsDefaulted) {
     using formats::yaml::FromString;
@@ -59,8 +66,8 @@ struct MyKeyValue {
 //  The function must be declared in the namespace of your type
 MyKeyValue Parse(const formats::yaml::Value& yaml, formats::parse::To<MyKeyValue>) {
     return MyKeyValue{
-        yaml["field1"].As<std::string>(""),
-        yaml["field2"].As<int>(1),  // return `1` if "field2" is missing
+        .field1 = yaml["field1"].As<std::string>(""),
+        .field2 = yaml["field2"].As<int>(1),  // return `1` if "field2" is missing
     };
 }
 
@@ -144,6 +151,25 @@ TEST(FormatsYaml, NodesTags) {
     EXPECT_EQ(yaml["field_custom_tag_string"].GetTag(), "!my_tag");
     EXPECT_EQ(yaml["field_internal_tag"].GetTag(), "tag:yaml.org,2002:str");
     EXPECT_EQ(yaml["field_tag_prefix"].GetTag(), "tag:example,2024:foo");
+}
+
+TEST(FormatsYaml, IsBoolFromParsedScalar) {
+    auto f = formats::yaml::FromString("false");
+    auto t = formats::yaml::FromString("true");
+
+    EXPECT_TRUE(f.IsBool());
+    EXPECT_TRUE(t.IsBool());
+    EXPECT_FALSE(f.As<bool>());
+    EXPECT_TRUE(t.As<bool>());
+
+    EXPECT_FALSE(formats::yaml::FromString("\"false\"").IsBool());
+    EXPECT_FALSE(formats::yaml::FromString("hello").IsBool());
+}
+
+TEST(FormatsYaml, IsIntFromParsedScalar) {
+    auto v = formats::yaml::FromString("42");
+    EXPECT_TRUE(v.IsInt());
+    EXPECT_EQ(v.As<int>(), 42);
 }
 
 USERVER_NAMESPACE_END

@@ -1,5 +1,8 @@
 #pragma once
 
+#include <optional>
+
+#include <userver/chaotic/convert.hpp>
 #include <userver/formats/json_fwd.hpp>
 #include <userver/formats/parse/to.hpp>
 #include <userver/formats/yaml_fwd.hpp>

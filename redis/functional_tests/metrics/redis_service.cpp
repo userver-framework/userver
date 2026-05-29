@@ -43,7 +43,9 @@ private:
 
     storages::redis::ClientPtr redis_client_;
     storages::redis::SubscribeClientPtr subscribe_client_;
+    storages::redis::SubscribeClientPtr subscribe_client2_;
     storages::redis::SubscriptionToken subscription_token_;
+    storages::redis::SubscriptionToken subscription_token2_;
     storages::redis::CommandControl redis_cc_{};
     std::atomic_int values_posted_{0};
 };
@@ -53,11 +55,19 @@ KeyValue::KeyValue(const components::ComponentConfig& config, const components::
       redis_client_{context.FindComponent<components::Redis>("key-value-database").GetClient("metrics_test")},
       subscribe_client_{
           context.FindComponent<components::Redis>("key-value-database").GetSubscribeClient("metrics_test")
+      },
+      subscribe_client2_{
+          context.FindComponent<components::Redis>("key-value-database").GetSubscribeClient("metrics_test2")
       }
 {
     redis_cc_.force_request_to_master = true;
     subscription_token_ =
         subscribe_client_->Subscribe(kPostChannel, [&](const std::string& channel, const std::string& message) {
+            LOG_INFO() << channel << ": " << message;
+            ++values_posted_;
+        });
+    subscription_token2_ =
+        subscribe_client2_->Subscribe(kPostChannel, [&](const std::string& channel, const std::string& message) {
             LOG_INFO() << channel << ": " << message;
             ++values_posted_;
         });

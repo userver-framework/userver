@@ -45,10 +45,8 @@ public:
 
     /// Stream-like interface for message extension
     template <typename Exception, typename T>
-    friend typename std::enable_if<
-        std::is_base_of<TracefulExceptionBase, typename std::remove_reference<Exception>::type>::value,
-        Exception&&>::type
-    operator<<(Exception&& ex, const T& data) {
+    requires std::is_base_of_v<TracefulExceptionBase, std::remove_reference_t<Exception>>
+    friend Exception&& operator<<(Exception&& ex, const T& data) {
         fmt::format_to(std::back_inserter(ex.GetMessageBuffer()), "{}", data);
         ex.EnsureNullTerminated();
         return std::forward<Exception>(ex);
@@ -89,9 +87,9 @@ public:
 };
 
 template <typename Exception>
-std::enable_if_t<std::is_base_of<std::exception, Exception>::value, ExceptionWithAttachedTrace<Exception>>
-AttachTraceToException(const Exception& ex) {
-    static_assert(!std::is_base_of<TracefulExceptionBase, Exception>::value, "This exception already contains trace");
+requires std::is_base_of_v<std::exception, Exception>
+ExceptionWithAttachedTrace<Exception> AttachTraceToException(const Exception& ex) {
+    static_assert(!std::is_base_of_v<TracefulExceptionBase, Exception>, "This exception already contains trace");
     return ExceptionWithAttachedTrace<Exception>(ex);
 }
 

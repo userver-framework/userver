@@ -23,6 +23,12 @@ class TransactionImpl;
 /// and provide ACID guarantees. All operations in a transaction either
 /// succeed completely or fail completely.
 ///
+/// A transaction pins exactly one connection from the pool starting from the
+/// first call to storages::mongo::Transaction::GetCollection and holds it
+/// until storages::mongo::Transaction::Commit or
+/// storages::mongo::Transaction::Abort is called (or the transaction is
+/// destroyed).
+///
 /// ## Usage example:
 ///
 /// @snippet mongo/src/storages/mongo/transaction_mongotest.cpp transaction

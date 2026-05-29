@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/auth/user_auth_info.hpp
+/// @brief @copybrief server::auth::UserAuthInfo
+
 #include <optional>
 #include <string>
 
@@ -19,6 +22,7 @@ class AuthCheckerBase;
 
 namespace server::auth {
 
+/// @brief Authenticated user data attached to a request
 class UserAuthInfo final {
 public:
     using Ticket = utils::NonLoggable<class TicketTag, std::string>;

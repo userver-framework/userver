@@ -68,8 +68,6 @@ bool HeadersIterator::operator==(const HeadersIterator& other) const {
     return std::tie(headers_, index_) == std::tie(other.headers_, other.index_);
 }
 
-bool HeadersIterator::operator!=(const HeadersIterator& other) const { return !(*this == other); }
-
 HeadersReader::HeadersReader(const rd_kafka_headers_t* headers)
     : headers_{headers},
       size_{size()}

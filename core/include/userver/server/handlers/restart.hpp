@@ -11,8 +11,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
-// clang-format off
-
 /// @ingroup userver_components userver_http_handlers
 ///
 /// @brief Handler that stops the service. It is expected that an external system
@@ -22,9 +20,6 @@ namespace server::handlers {
 ///
 /// The component has no service configuration except the
 /// @ref userver_http_handlers "common handler options".
-
-// clang-format on
-
 class Restart final : public HttpHandlerBase {
 public:
     Restart(const components::ComponentConfig&, const components::ComponentContext&);

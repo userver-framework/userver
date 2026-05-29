@@ -3,6 +3,7 @@
 /// @file userver/formats/yaml/value_builder.hpp
 /// @brief @copybrief formats::yaml::ValueBuilder
 
+#include <userver/compiler/impl/nodebug.hpp>
 #include <userver/formats/common/transfer_tag.hpp>
 #include <userver/formats/serialize/to.hpp>
 #include <userver/formats/yaml/value.hpp>
@@ -11,8 +12,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace formats::yaml {
-
-// clang-format off
 
 /// @ingroup userver_universal userver_containers userver_formats
 ///
@@ -30,9 +29,6 @@ namespace formats::yaml {
 /// @snippet formats/json/value_builder_test.cpp  Sample Customization formats::json::ValueBuilder usage
 ///
 /// @see @ref scripts/docs/en/userver/formats.md
-
-// clang-format on
-
 class ValueBuilder final {
 public:
     struct IterTraits {
@@ -99,11 +95,11 @@ public:
     ValueBuilder operator[](std::size_t index);
     /// @brief Access member by key for modification.
     /// @throw `TypeMismatchException` if not object or null value.
-    template <
-        typename Tag,
-        utils::StrongTypedefOps Ops,
-        typename Enable = std::enable_if_t<utils::IsStrongTypedefLoggable(Ops)>>
-    ValueBuilder operator[](const utils::StrongTypedef<Tag, std::string, Ops>& key);
+    template <typename Tag, utils::StrongTypedefOps Ops>
+    requires(utils::IsStrongTypedefLoggable(Ops))
+    ValueBuilder operator[](const utils::StrongTypedef<Tag, std::string, Ops>& key) {
+        return (*this)[key.GetUnderlying()];
+    }
 
     /// @brief Remove key from object. If key is missing nothing happens.
     /// @throw `TypeMismatchException` if value is not an object.
@@ -187,36 +183,27 @@ private:
     void NodeDataAssign(const formats::yaml::Value& from);
 
     template <typename T>
-    static Value DoSerialize(const T& t);
+    USERVER_IMPL_NODEBUG_INLINE_FUNC static Value DoSerialize(const T& t) {
+        static_assert(
+            formats::common::impl::HasSerialize<Value, T>,
+            "There is no `Serialize(const T&, formats::serialize::To<yaml::Value>)` "
+            "in namespace of `T` or `formats::serialize`. "
+            ""
+            "Probably you forgot to include the <userver/formats/serialize/common_containers.hpp> or you "
+            "have not provided a `Serialize` function overload."
+        );
+
+        return Serialize(t, formats::serialize::To<Value>());
+    }
 
     formats::yaml::Value value_;
 
     friend class Iterator<IterTraits>;
 };
 
-template <typename Tag, utils::StrongTypedefOps Ops, typename Enable>
-ValueBuilder ValueBuilder::operator[](const utils::StrongTypedef<Tag, std::string, Ops>& key) {
-    return (*this)[key.GetUnderlying()];
-}
-
 template <typename T>
-Value ValueBuilder::DoSerialize(const T& t) {
-    static_assert(
-        formats::common::impl::kHasSerialize<Value, T>,
-        "There is no `Serialize(const T&, formats::serialize::To<yaml::Value>)` "
-        "in namespace of `T` or `formats::serialize`. "
-        ""
-        "Probably you forgot to include the "
-        "<userver/formats/serialize/common_containers.hpp> or you "
-        "have not provided a `Serialize` function overload."
-    );
-
-    return Serialize(t, formats::serialize::To<Value>());
-}
-
-template <typename T>
-std::enable_if_t<std::is_integral<T>::value && sizeof(T) <= sizeof(long long), Value>
-Serialize(T value, formats::serialize::To<Value>) {
+requires(std::is_integral<T>::value && sizeof(T) <= sizeof(long long))
+Value Serialize(T value, formats::serialize::To<Value>) {
     using Type = std::conditional_t<std::is_signed<T>::value, long long, unsigned long long>;
     return yaml::ValueBuilder(static_cast<Type>(value)).ExtractValue();
 }

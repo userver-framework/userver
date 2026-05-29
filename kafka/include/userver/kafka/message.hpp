@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/kafka/message.hpp
+/// @brief @copybrief kafka::Message
+
 #include <chrono>
 #include <optional>
 

@@ -1,5 +1,7 @@
 #include <userver/storages/redis/parse_reply.hpp>
 
+#include <userver/formats/json/serialize.hpp>
+#include <userver/formats/json/value.hpp>
 #include <userver/storages/redis/reply.hpp>
 #include <userver/utils/from_string.hpp>
 
@@ -375,6 +377,49 @@ Point Parse(ReplyData&& reply_data, const std::string& request_description, To<P
 }
 
 ReplyData Parse(ReplyData&& reply_data, const std::string&, To<ReplyData>) { return std::move(reply_data); }
+
+formats::json::Value Parse(ReplyData&& reply_data, const std::string& request_description, To<formats::json::Value>) {
+    reply_data.ExpectString(request_description);
+    try {
+        return formats::json::FromString(reply_data.GetString());
+    } catch (const std::exception& ex) {
+        throw ParseReplyException(
+            "Can't parse JSON value from reply to '" + request_description + "' request (" +
+            reply_data.ToDebugString() + "): " + ex.what()
+        );
+    }
+}
+
+std::vector<std::optional<formats::json::Value>>
+ParseReplyDataArray(ReplyData&& array_data, const std::string& request_description, To<std::vector<std::optional<formats::json::Value>>>) {
+    const auto& array = array_data.GetArray();
+    std::vector<std::optional<formats::json::Value>> result;
+    result.reserve(array.size());
+
+    for (size_t elem_idx = 0; elem_idx < array.size(); ++elem_idx) {
+        auto& elem = array_data.GetArray()[elem_idx];
+        if (elem.IsNil()) {
+            result.emplace_back(std::nullopt);
+            continue;
+        }
+        if (!elem.IsString()) {
+            throw ParseReplyException(
+                "Unexpected redis reply type to '" + request_description + "' request: " + "array[" +
+                std::to_string(elem_idx) + "]: expected " + ReplyData::TypeToString(ReplyData::Type::kString) +
+                ", got type=" + elem.GetTypeString() + " elem=" + elem.ToDebugString()
+            );
+        }
+        try {
+            result.emplace_back(formats::json::FromString(elem.GetString()));
+        } catch (const std::exception& ex) {
+            throw ParseReplyException(
+                "Can't parse JSON value from reply to '" + request_description + "' request, array[" +
+                std::to_string(elem_idx) + "] (" + elem.ToDebugString() + "): " + ex.what()
+            );
+        }
+    }
+    return result;
+}
 
 }  // namespace storages::redis
 

@@ -2,6 +2,8 @@
 
 #include <yaml-cpp/yaml.h>
 
+#include <userver/utils/assert.hpp>
+
 #include <userver/formats/yaml/exception.hpp>
 #include <userver/formats/yaml/value.hpp>
 #include <userver/formats/yaml/value_builder.hpp>
@@ -9,6 +11,13 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace formats::yaml {
+
+template <typename IterTraits>
+Iterator<IterTraits>::Iterator()
+    : iter_pimpl_(typename IterTraits::native_iter{}),
+      path_(),
+      index_(0)
+{}
 
 template <typename IterTraits>
 Iterator<IterTraits>::Iterator(const typename IterTraits::native_iter& iter, int index, const formats::yaml::Path& path)
@@ -55,6 +64,8 @@ Iterator<IterTraits>::~Iterator() = default;
 
 template <typename IterTraits>
 Iterator<IterTraits> Iterator<IterTraits>::operator++(int) {
+    UASSERT(*iter_pimpl_ != typename IterTraits::native_iter{});
+
     current_.reset();
     const auto index_copy = index_;
     if (index_ != -1) {
@@ -65,6 +76,8 @@ Iterator<IterTraits> Iterator<IterTraits>::operator++(int) {
 
 template <typename IterTraits>
 Iterator<IterTraits>& Iterator<IterTraits>::operator++() {
+    UASSERT(*iter_pimpl_ != typename IterTraits::native_iter{});
+
     current_.reset();
     ++(*iter_pimpl_);
     if (index_ != -1) {
@@ -75,12 +88,16 @@ Iterator<IterTraits>& Iterator<IterTraits>::operator++() {
 
 template <typename IterTraits>
 typename Iterator<IterTraits>::reference Iterator<IterTraits>::operator*() const {
+    UASSERT(*iter_pimpl_ != typename IterTraits::native_iter{});
+
     UpdateValue();
     return *current_;
 }
 
 template <typename IterTraits>
 typename Iterator<IterTraits>::pointer Iterator<IterTraits>::operator->() const {
+    UASSERT(*iter_pimpl_ != typename IterTraits::native_iter{});
+
     UpdateValue();
     return &**this;
 }
@@ -97,6 +114,8 @@ bool Iterator<IterTraits>::operator!=(const Iterator<IterTraits>& other) const {
 
 template <typename IterTraits>
 std::string Iterator<IterTraits>::GetName() const {
+    UASSERT(*iter_pimpl_ != typename IterTraits::native_iter{});
+
     if (index_ != -1) {
         throw TypeMismatchException(Type::kArray, Type::kObject, path_.ToStringView());
     }
@@ -105,6 +124,8 @@ std::string Iterator<IterTraits>::GetName() const {
 
 template <typename IterTraits>
 uint32_t Iterator<IterTraits>::GetIndex() const {
+    UASSERT(*iter_pimpl_ != typename IterTraits::native_iter{});
+
     if (index_ == -1) {
         throw TypeMismatchException(Type::kObject, Type::kArray, path_.ToStringView());
     }
@@ -113,6 +134,8 @@ uint32_t Iterator<IterTraits>::GetIndex() const {
 
 template <typename IterTraits>
 Type Iterator<IterTraits>::GetIteratorType() const {
+    UASSERT(*iter_pimpl_ != typename IterTraits::native_iter{});
+
     if (index_ == -1) {
         return Type::kObject;
     } else {
@@ -122,6 +145,8 @@ Type Iterator<IterTraits>::GetIteratorType() const {
 
 template <typename IterTraits>
 void Iterator<IterTraits>::UpdateValue() const {
+    UASSERT(*iter_pimpl_ != typename IterTraits::native_iter{});
+
     if (current_) {
         return;
     }

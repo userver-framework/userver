@@ -118,7 +118,7 @@ bool AreNotEqualObjects(const Value* lhs, const Value* rhs, ParallelTraverseQueu
     for (std::size_t i = 0; i < size; ++i) {
         lhs_object_kvs.emplace_back(AsStringView(l_members[i].name), &l_members[i].value);
     }
-    std::sort(lhs_object_kvs.begin(), lhs_object_kvs.end(), [](const auto& l, const auto& r) {
+    std::ranges::sort(lhs_object_kvs, [](const auto& l, const auto& r) {
         return PartiallyOrderedStringCmp(l.first, r.first);
     });
 

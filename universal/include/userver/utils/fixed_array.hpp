@@ -4,10 +4,12 @@
 /// @brief @copybrief utils::FixedArray
 
 #include <cstddef>
+#include <iterator>
 #include <memory>  // std::allocator
 #include <type_traits>
 #include <utility>
 
+#include <userver/compiler/impl/lifetime.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 
@@ -22,7 +24,7 @@ namespace utils {
 /// The array allows initializing each of the array elements with the same parameters:
 /// @snippet src/utils/fixed_array_test.cpp  Sample FixedArray
 ///
-/// The array also allows initializing each of the array elements with the output of a generator funtion:
+/// The array also allows initializing each of the array elements with the output of a generator function:
 /// @snippet src/utils/fixed_array_test.cpp  Sample GenerateFixedArray
 template <class T>
 class FixedArray final {
@@ -37,6 +39,10 @@ public:
     template <class... Args>
     explicit FixedArray(std::size_t size, Args&&... args);
 
+    /// Make an array by copying elements from a forward iterator range [first, last).
+    template <std::forward_iterator ForwardIterator>
+    FixedArray(ForwardIterator first, ForwardIterator last);
+
     FixedArray(FixedArray&& other) noexcept;
     FixedArray& operator=(FixedArray&& other) noexcept;
 
@@ -48,31 +54,31 @@ public:
     std::size_t size() const noexcept { return size_; }
     bool empty() const noexcept { return size_ == 0; }
 
-    const T& operator[](std::size_t i) const noexcept {
+    const T& operator[](std::size_t i) const noexcept USERVER_IMPL_LIFETIME_BOUND {
         UASSERT(i < size_);
         return data()[i];
     }
 
-    T& operator[](std::size_t i) noexcept {
+    T& operator[](std::size_t i) noexcept USERVER_IMPL_LIFETIME_BOUND {
         UASSERT(i < size_);
         return data()[i];
     }
 
-    T& front() noexcept { return *NonEmptyData(); }
-    const T& front() const noexcept { return *NonEmptyData(); }
+    T& front() noexcept USERVER_IMPL_LIFETIME_BOUND { return *NonEmptyData(); }
+    const T& front() const noexcept USERVER_IMPL_LIFETIME_BOUND { return *NonEmptyData(); }
 
-    T& back() noexcept { return *(NonEmptyData() + size_ - 1); }
-    const T& back() const noexcept { return *(NonEmptyData() + size_ - 1); }
+    T& back() noexcept USERVER_IMPL_LIFETIME_BOUND { return *(NonEmptyData() + size_ - 1); }
+    const T& back() const noexcept USERVER_IMPL_LIFETIME_BOUND { return *(NonEmptyData() + size_ - 1); }
 
-    T* data() noexcept { return storage_; }
-    const T* data() const noexcept { return storage_; }
+    T* data() noexcept USERVER_IMPL_LIFETIME_BOUND { return storage_; }
+    const T* data() const noexcept USERVER_IMPL_LIFETIME_BOUND { return storage_; }
 
-    T* begin() noexcept { return data(); }
-    T* end() noexcept { return data() + size_; }
-    const T* begin() const noexcept { return data(); }
-    const T* end() const noexcept { return data() + size_; }
-    const T* cbegin() const noexcept { return data(); }
-    const T* cend() const noexcept { return data() + size_; }
+    T* begin() noexcept USERVER_IMPL_LIFETIME_BOUND { return data(); }
+    T* end() noexcept USERVER_IMPL_LIFETIME_BOUND { return data() + size_; }
+    const T* begin() const noexcept USERVER_IMPL_LIFETIME_BOUND { return data(); }
+    const T* end() const noexcept USERVER_IMPL_LIFETIME_BOUND { return data() + size_; }
+    const T* cbegin() const noexcept USERVER_IMPL_LIFETIME_BOUND { return data(); }
+    const T* cend() const noexcept USERVER_IMPL_LIFETIME_BOUND { return data() + size_; }
 
     /// @cond
     template <class GeneratorFunc>
@@ -131,7 +137,19 @@ FixedArray<T>::FixedArray(std::size_t size, Args&&... args)
 }
 
 template <class T>
+template <std::forward_iterator ForwardIterator>
+FixedArray<T>::FixedArray(ForwardIterator first, ForwardIterator last)
+    : FixedArray(
+          impl::InternalTag{},
+          static_cast<std::size_t>(std::distance(first, last)),
+          [it = first](std::size_t) mutable -> decltype(*first) { return *it++; }
+      )
+{}
+
+template <class T>
 template <class GeneratorFunc>
+// Accepting `generator` by forwarding reference to be able to be called with both prvalue and non-const references.
+// NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
 FixedArray<T>::FixedArray(impl::InternalTag /*tag*/, std::size_t size, GeneratorFunc&& generator)
     : size_(size)
 {
@@ -175,7 +193,7 @@ FixedArray<T>::~FixedArray() {
 
 template <class GeneratorFunc>
 auto GenerateFixedArray(std::size_t size, GeneratorFunc&& generator) {
-    using ResultType = std::remove_reference_t<std::invoke_result_t<GeneratorFunc&, std::size_t>>;
+    using ResultType = std::remove_cvref_t<std::invoke_result_t<GeneratorFunc&, std::size_t>>;
     return FixedArray<ResultType>(impl::InternalTag{}, size, std::forward<GeneratorFunc>(generator));
 }
 

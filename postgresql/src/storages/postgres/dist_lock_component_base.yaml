@@ -36,7 +36,7 @@ properties:
     testsuite-support:
         type: boolean
         description: Enable testsuite support
-        default: false
+        default: true if autostart_at_base_component parameter passed to the .ctor is kYes, false otherwise
     locker-log-level:
         type: string
         description: Base logging level for locker logs (default is info)

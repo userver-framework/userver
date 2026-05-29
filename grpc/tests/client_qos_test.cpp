@@ -85,6 +85,8 @@ public:
         EXPECT_FALSE(long_deadline_.IsReached());
     }
 
+    engine::Deadline GetClientDeadline() const { return client_deadline_; }
+
 private:
     engine::Deadline client_deadline_;
     engine::Deadline long_deadline_;
@@ -165,10 +167,10 @@ UTEST_F(GrpcClientQosConfigExceeded, DeadlinePropagationWorks) {
     auto client = GetClientFactory().MakeClient<sample::ugrpc::UnitTestServiceClient>(MakeClientSettingsWithQos());
 
     ExtendDynamicConfig(MakeQosConfig(utest::kMaxTestWaitTime));
-    tests::InitTaskInheritedDeadline(engine::Deadline::FromDuration(tests::kShortTimeout));
+    tests::InitTaskInheritedDeadline(GetClientDeadline());
 
     sample::ugrpc::GreetingResponse response;
-    UEXPECT_THROW(response = client.SayHello(kRequest), ugrpc::client::DeadlineExceededError);
+    UEXPECT_THROW(response = client.SayHello(kRequest), ugrpc::client::RpcCancelledError);
 }
 
 UTEST_F(GrpcClientQosConfigExceeded, ContextDeadlineOverrides) {
@@ -200,10 +202,10 @@ UTEST_F(GrpcClientQosConfigExceeded, EmptyConfigMeansInfinity) {
 
     // Note: __default__ is not defined.
     ExtendDynamicConfig({{tests::kUnitTestClientQos, {}}});
-    tests::InitTaskInheritedDeadline(engine::Deadline::FromDuration(tests::kShortTimeout));
+    tests::InitTaskInheritedDeadline(GetClientDeadline());
 
     sample::ugrpc::GreetingResponse response;
-    UEXPECT_THROW(response = client.SayHello(kRequest), ugrpc::client::DeadlineExceededError);
+    UEXPECT_THROW(response = client.SayHello(kRequest), ugrpc::client::RpcCancelledError);
 }
 
 using ClientQosValidationTest = utest::LogCaptureFixture<GrpcClientQosConfigOk>;

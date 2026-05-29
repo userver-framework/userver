@@ -301,7 +301,7 @@ public:
             return WriteBytesValueMessage;
     }
 
-    UINVARIANT(false, "Protobuf message classifed to unknown type");
+    UINVARIANT(false, "Protobuf message classified to unknown type");
 }
 
 [[nodiscard]] std::int32_t GetFieldSize(

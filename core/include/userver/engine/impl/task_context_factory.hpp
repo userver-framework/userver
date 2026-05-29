@@ -20,10 +20,11 @@ std::size_t GetTaskContextSize() noexcept;
 inline constexpr std::size_t kTaskContextAlignment = 16;
 
 struct TaskConfig final {
-    engine::TaskProcessor& task_processor;
+    // nullptr means "use current task processor"
+    engine::TaskProcessor* task_processor{nullptr};
     Task::Importance importance{Task::Importance::kNormal};
     Task::WaitMode wait_mode{Task::WaitMode::kSingleAwaiter};
-    engine::Deadline deadline;
+    engine::Deadline deadline{};
 };
 
 [[nodiscard]] TaskContext& PlacementNewTaskContext(
@@ -46,7 +47,7 @@ void DeleteFusedTaskContext(std::byte* storage) noexcept;
 // managed by boost::intrusive_ptr<TaskContext> through intrusive_ptr_add_ref
 // and intrusive_ptr_release hooks.
 template <typename Function, typename... Args>
-TaskContextHolder MakeTask(TaskConfig config, Function&& f, Args&&... args) {
+[[nodiscard]] TaskContextHolder MakeTask(TaskConfig&& config, Function&& f, Args&&... args) {
     using WrappedCallType = utils::impl::WrappedCallImplType<Function, Args...>;
 
     constexpr auto kPayloadSize = sizeof(WrappedCallType);
@@ -73,6 +74,15 @@ TaskContextHolder MakeTask(TaskConfig config, Function&& f, Args&&... args) {
     destroy_payload_guard.Release();
     delete_guard.Release();
     return TaskContextHolder::Adopt(context);
+}
+
+template <template <typename> typename TaskType, typename Function, typename... Args>
+[[nodiscard]] auto MakeTaskWithResult(TaskConfig&& config, Function&& f, Args&&... args) {
+    using ResultType = typename utils::impl::WrappedCallImplType<Function, Args...>::ResultType;
+    constexpr auto kWaitMode = TaskType<ResultType>::kWaitMode;
+    config.wait_mode = kWaitMode;
+
+    return TaskType<ResultType>{MakeTask(std::move(config), std::forward<Function>(f), std::forward<Args>(args)...)};
 }
 
 }  // namespace engine::impl

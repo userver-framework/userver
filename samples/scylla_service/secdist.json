@@ -1,0 +1,7 @@
+{
+    "scylla_settings": {
+        "scylla_example": {
+            "hosts": "scylla"
+        }
+    }
+}

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/cache/lru_cache_statistics.hpp
+/// @brief Expirable LRU cache statistics types and metric helpers
+
 #include <userver/utils/statistics/fwd.hpp>
 #include <userver/utils/statistics/rate.hpp>
 #include <userver/utils/statistics/rate_counter.hpp>

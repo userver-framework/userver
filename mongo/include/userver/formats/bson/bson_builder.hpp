@@ -62,12 +62,12 @@ public:
     BsonBuilder& Append(std::string_view key, const bson_t*);
 
     template <typename T>
-    std::enable_if_t<
-        !std::is_integral_v<T> &&                           //
-            !std::is_convertible_v<T, std::string_view> &&  //
-            !std::is_convertible_v<T, Value>,               // Excludes Document that inherits Value
-        BsonBuilder&>
-    Append(std::string_view key, const T& val) {
+    requires(
+        !std::is_integral_v<T> &&                       //
+        !std::is_convertible_v<T, std::string_view> &&  //
+        !std::is_convertible_v<T, Value>                // Excludes Document that inherits Value
+    )
+    BsonBuilder& Append(std::string_view key, const T& val) {
         return Append(key, ValueBuilder(val).ExtractValue());
     }
 

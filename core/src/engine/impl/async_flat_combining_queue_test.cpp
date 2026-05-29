@@ -90,7 +90,7 @@ UTEST(AsyncFlatCombiningQueue, SimpleAsync) {
     EmptyNode node3;
 
     // This task will run after the parent starts waiting (single-threaded TP).
-    auto task = engine::AsyncNoSpan([&] {
+    auto task = engine::AsyncNoTracing([&] {
         engine::Yield();
         ASSERT_FALSE(queue.PushAndTryStartConsuming(node1).IsValid());
         ASSERT_FALSE(queue.PushAndTryStartConsuming(node2).IsValid());
@@ -159,7 +159,7 @@ UTEST_MT(AsyncFlatCombiningQueue, StressAsync, 3) {
     engine::impl::AsyncFlatCombiningQueue queue;
 
     auto tasks = utils::GenerateFixedArray(producers_count, [&](std::size_t) {
-        return engine::AsyncNoSpan([&] {
+        return engine::AsyncNoTracing([&] {
             BackOff back_off;
 
             // NOLINTBEGIN(clang-analyzer-cplusplus.NewDeleteLeaks)

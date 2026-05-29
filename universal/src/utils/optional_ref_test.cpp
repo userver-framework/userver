@@ -2,6 +2,10 @@
 
 #include <gtest/gtest.h>
 
+#include <optional>
+
+#include "overloaded_address_operator_test.hpp"
+
 USERVER_NAMESPACE_BEGIN
 
 namespace {
@@ -27,6 +31,25 @@ TEST(OptionalRef, Constructions) {
     static_assert(!std::is_constructible_v<OptionalRef<float>, int&>);
     static_assert(!std::is_constructible_v<OptionalRef<int>, short&>);
     static_assert(!std::is_constructible_v<OptionalRef<short>, int&>);
+}
+
+TEST(OptionalRef, ConstructionsAddressof) {
+    {
+        utils::OverloadedAddressOperator over;
+        utils::OptionalRef<utils::OverloadedAddressOperator> ref(over);
+    }
+    {
+        utils::OverloadedAddressOperator over{};
+        utils::OptionalRef<utils::OverloadedAddressOperator> ref{over};
+    }
+    {
+        std::optional<utils::OverloadedAddressOperator> over(std::in_place);
+        utils::OptionalRef<utils::OverloadedAddressOperator> ref(over);
+    }
+    {
+        std::optional<utils::OverloadedAddressOperator> over{std::in_place};
+        utils::OptionalRef<utils::OverloadedAddressOperator> ref{over};
+    }
 }
 
 TEST(OptionalRef, Values) {

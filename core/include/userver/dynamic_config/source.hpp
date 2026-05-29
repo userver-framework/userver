@@ -7,6 +7,7 @@
 #include <string_view>
 #include <utility>
 
+#include <userver/compiler/impl/lifetime.hpp>
 #include <userver/concurrent/async_event_source.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/utils/assert.hpp>
@@ -23,10 +24,10 @@ public:
     VariableSnapshotPtr(VariableSnapshotPtr&&) = delete;
     VariableSnapshotPtr& operator=(VariableSnapshotPtr&&) = delete;
 
-    const VariableType& operator*() const& { return *variable_; }
+    const VariableType& operator*() const& USERVER_IMPL_LIFETIME_BOUND { return *variable_; }
     const VariableType& operator*() && { ReportMisuse(); }
 
-    const VariableType* operator->() const& { return variable_; }
+    const VariableType* operator->() const& USERVER_IMPL_LIFETIME_BOUND { return variable_; }
     const VariableType* operator->() && { ReportMisuse(); }
 
 private:
@@ -56,9 +57,20 @@ private:
 struct Diff final {
     std::optional<Snapshot> previous;
     Snapshot current;
-};
 
-// clang-format off
+    template <typename... Keys>
+    bool HasConfigsChanged(const Keys&... keys) const {
+        if (!previous) {
+            return true;
+        }
+
+        UASSERT(!current.GetData().IsEmpty());
+        UASSERT(!previous->GetData().IsEmpty());
+
+        const bool is_equal = (true && ... && ((*previous)[keys] == current[keys]));
+        return !is_equal;
+    }
+};
 
 /// @ingroup userver_clients
 ///
@@ -71,8 +83,6 @@ struct Diff final {
 ///
 /// Typical usage:
 /// @snippet components/component_sample_test.cpp  Sample user component runtime config source
-
-// clang-format on
 class Source final {
 public:
     using SnapshotEventSource = concurrent::AsyncEventSource<const Snapshot&>;
@@ -130,39 +140,35 @@ public:
         );
     }
 
-    // clang-format off
-
-  /// @brief Subscribes to dynamic-config updates with information about the
-  /// current and previous states.
-  ///
-  /// Subscribes to dynamic-config updates using a member function, named
-  /// `OnConfigUpdate` by convention. Also constructs `dynamic_config::Diff`
-  /// object using `std::nullopt` and current config snapshot, then immediately
-  /// invokes the function with it (this invocation will be executed
-  /// synchronously).
-  ///
-  /// @note Callbacks occur in full accordance with
-  /// `components::DynamicConfigClientUpdater` options.
-  ///
-  /// @warning In debug mode the last notification for any subscriber will be
-  /// called with `std::nullopt` and current config snapshot.
-  ///
-  /// Example usage:
-  /// @snippet dynamic_config/config_test.cpp Custom subscription for dynamic config update
-  ///
-  /// @param obj the subscriber, which is the owner of the listener method, and
-  /// is also used as the unique identifier of the subscription
-  /// @param name the name of the subscriber, for diagnostic purposes
-  /// @param func the listener method, named `OnConfigUpdate` by convention.
-  /// @returns a `concurrent::AsyncEventSubscriberScope` controlling the
-  /// subscription, which should be stored as a member in the subscriber;
-  /// `Unsubscribe` should be called explicitly
-  ///
-  /// @see based on concurrent::AsyncEventSource engine
-  ///
-  /// @see dynamic_config::Diff
-
-    // clang-format on
+    /// @brief Subscribes to dynamic-config updates with information about the
+    /// current and previous states.
+    ///
+    /// Subscribes to dynamic-config updates using a member function, named
+    /// `OnConfigUpdate` by convention. Also constructs `dynamic_config::Diff`
+    /// object using `std::nullopt` and current config snapshot, then immediately
+    /// invokes the function with it (this invocation will be executed
+    /// synchronously).
+    ///
+    /// @note Callbacks occur in full accordance with
+    /// `components::DynamicConfigClientUpdater` options.
+    ///
+    /// @warning In debug mode the last notification for any subscriber will be
+    /// called with `std::nullopt` and current config snapshot.
+    ///
+    /// Example usage:
+    /// @snippet dynamic_config/config_test.cpp Custom subscription for dynamic config update
+    ///
+    /// @param obj the subscriber, which is the owner of the listener method, and
+    /// is also used as the unique identifier of the subscription
+    /// @param name the name of the subscriber, for diagnostic purposes
+    /// @param func the listener method, named `OnConfigUpdate` by convention.
+    /// @returns a `concurrent::AsyncEventSubscriberScope` controlling the
+    /// subscription, which should be stored as a member in the subscriber;
+    /// `Unsubscribe` should be called explicitly
+    ///
+    /// @see based on concurrent::AsyncEventSource engine
+    ///
+    /// @see dynamic_config::Diff
     template <typename Class>
     concurrent::AsyncEventSubscriberScope UpdateAndListen(
         Class* obj,
@@ -205,7 +211,7 @@ public:
         const Keys&... keys
     ) {
         auto wrapper = [obj, func, &keys...](const Diff& diff) {
-            if (!HasChanged(diff, keys...)) {
+            if (!diff.HasConfigsChanged(keys...)) {
                 return;
             }
             (obj->*func)(diff.current);
@@ -216,22 +222,6 @@ public:
     SnapshotEventSource& GetEventChannel();
 
 private:
-    template <typename... Keys>
-    static bool HasChanged(const Diff& diff, const Keys&... keys) {
-        if (!diff.previous) {
-            return true;
-        }
-
-        const auto& previous = *diff.previous;
-        const auto& current = diff.current;
-
-        UASSERT(!current.GetData().IsEmpty());
-        UASSERT(!previous.GetData().IsEmpty());
-
-        const bool is_equal = (true && ... && (previous[keys] == current[keys]));
-        return !is_equal;
-    }
-
     concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
         concurrent::FunctionId id,
         std::string_view name,

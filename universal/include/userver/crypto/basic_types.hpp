@@ -14,6 +14,7 @@ struct x509_st;
 
 USERVER_NAMESPACE_BEGIN
 
+/// @brief Cryptographic primitives: hashing, signatures, certificates, and randomness.
 namespace crypto {
 
 /// @cond

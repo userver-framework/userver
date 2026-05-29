@@ -1,5 +1,9 @@
 #pragma once
 
+/// @file userver/formats/json/parser/typed_parser.hpp
+/// @brief @copybrief formats::json::parser::TypedParser
+/// @ingroup userver_universal
+
 #include <optional>
 
 #include <userver/formats/json/parser/base_parser.hpp>

@@ -1,6 +1,8 @@
 type: object
 description: Caching component for PostgreSQL derived from components::CachingComponentBase.
 additionalProperties: false
+required:
+  - pgcomponent
 properties:
     full-update-op-timeout:
         type: string
@@ -12,8 +14,7 @@ properties:
         default: 1s
     update-correction:
         type: string
-        description: incremental update window adjustment
-        default: 0 for caches with defined GetLastKnownUpdated
+        description: incremental update window adjustment (defaults to 0 for caches with defined GetLastKnownUpdated)
     chunk-size:
         type: integer
         description: number of rows to request from PostgreSQL, 0 to fetch all rows in one request

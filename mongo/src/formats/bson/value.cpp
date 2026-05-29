@@ -89,7 +89,6 @@ uint32_t Value::GetSize() const { return impl_->GetSize(); }
 std::string Value::GetPath() const { return impl_->GetPath(); }
 
 bool Value::operator==(const Value& rhs) const { return *impl_ == *rhs.impl_; }
-bool Value::operator!=(const Value& rhs) const { return *impl_ != *rhs.impl_; }
 
 bool Value::IsMissing() const { return impl_->IsMissing(); }
 bool Value::IsArray() const { return impl_->IsArray(); }
@@ -97,8 +96,10 @@ bool Value::IsDocument() const { return impl_->IsDocument(); }
 bool Value::IsNull() const { return impl_->IsNull(); }
 bool Value::IsBool() const { return impl_->Type() == BSON_TYPE_BOOL; }
 bool Value::IsInt32() const { return impl_->Type() == BSON_TYPE_INT32; }
+bool Value::IsInt() const { return IsInt32(); }
 
 bool Value::IsInt64() const { return impl_->Type() == BSON_TYPE_INT64 || IsInt32(); }
+bool Value::IsUInt64() const { return IsInt64(); }
 
 bool Value::IsDouble() const { return impl_->Type() == BSON_TYPE_DOUBLE || IsInt64(); }
 

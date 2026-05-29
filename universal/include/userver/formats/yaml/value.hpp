@@ -110,7 +110,6 @@ public:
     /// @brief Compares values.
     /// @throw MemberMissingException if `*this` or `other` is missing.
     bool operator==(const Value& other) const;
-    bool operator!=(const Value& other) const;
 
     /// @brief Returns true if *this holds nothing. When `IsMissing()` returns
     /// `true` any attempt to get the actual value or iterate over *this will
@@ -144,20 +143,15 @@ public:
     /// @brief Returns true if *this is a map (Type::kObject).
     bool IsObject() const noexcept;
 
-    // clang-format off
-
-  /// @brief Returns value of *this converted to the result type of
-  ///        Parse(const Value&, parse::To<T>). Almost always it is T.
-  /// @throw Anything derived from std::exception.
-  ///
-  /// ## Example usage:
-  ///
-  /// @snippet formats/yaml/value_test.cpp  Sample formats::yaml::Value::As<T>() usage
-  ///
-  /// @see @ref scripts/docs/en/userver/formats.md
-
-    // clang-format on
-
+    /// @brief Returns value of *this converted to the result type of
+    ///        Parse(const Value&, parse::To<T>). Almost always it is T.
+    /// @throw Anything derived from std::exception.
+    ///
+    /// ## Example usage:
+    ///
+    /// @snippet formats/yaml/value_test.cpp  Sample formats::yaml::Value::As<T>() usage
+    ///
+    /// @see @ref scripts/docs/en/userver/formats.md
     template <typename T>
     auto As() const;
 
@@ -301,11 +295,9 @@ private:
 template <typename T>
 auto Value::As() const {
     static_assert(
-        formats::common::impl::kHasParse<Value, T>,
-        "There is no `Parse(const Value&, formats::parse::To<T>)` in "
-        "namespace of `T` or `formats::parse`. "
-        "Probably you forgot to include the "
-        "<userver/formats/parse/common_containers.hpp> or you "
+        formats::common::impl::HasParse<Value, T>,
+        "There is no `Parse(const Value&, formats::parse::To<T>)` in namespace of `T` or `formats::parse`. "
+        "Probably you forgot to include the <userver/formats/parse/common_containers.hpp> or you "
         "have not provided a `Parse` function overload."
     );
 

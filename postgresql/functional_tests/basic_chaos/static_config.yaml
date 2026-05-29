@@ -6,6 +6,11 @@ components_manager:
             task_processor: main-task-processor
             method: GET,DELETE,POST
 
+        handler-server-monitor:
+            path: /service/monitor
+            method: GET
+            task_processor: main-task-processor
+
         key-value-database:
             dbconnection: 'postgresql://testsuite@localhost:11433/pg_key_value'
             blocking_task_processor: fs-task-processor
@@ -36,6 +41,9 @@ components_manager:
         server:
             listener:
                 port: 8187
+                task_processor: main-task-processor
+            listener-monitor:
+                port: 8188
                 task_processor: main-task-processor
         logging:
             fs-task-processor: fs-task-processor

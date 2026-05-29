@@ -8,33 +8,10 @@
 #include <userver/engine/task/shared_task_with_result.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/engine/task/task_with_result.hpp>
-#include <userver/utils/impl/wrapped_call.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
-
-namespace impl {
-
-template <template <typename> typename TaskType, typename Function, typename... Args>
-[[nodiscard]] auto MakeTaskWithResult(
-    TaskProcessor& task_processor,
-    Task::Importance importance,
-    Deadline deadline,
-    Function&& f,
-    Args&&... args
-) {
-    using ResultType = typename utils::impl::WrappedCallImplType<Function, Args...>::ResultType;
-    constexpr auto kWaitMode = TaskType<ResultType>::kWaitMode;
-
-    return TaskType<ResultType>{MakeTask(
-        {task_processor, importance, kWaitMode, deadline},
-        std::forward<Function>(f),
-        std::forward<Args>(args)...
-    )};
-}
-
-}  // namespace impl
 
 /// @brief Runs an asynchronous function call using the specified task processor.
 ///
@@ -43,26 +20,25 @@ template <template <typename> typename TaskType, typename Function, typename... 
 /// If you create a span there manually, it will be disconnected from the outside trace.
 /// **Prefer utils::Async by default instead.**
 ///
-/// @warning To hide a spammy span from traces, use @ref tracing::Span::CurrentSpan plus
-/// @ref tracing::Span::SetLogLevel instead.
+/// @warning To hide a spammy span from traces, use @ref utils::AsyncHideSpan instead.
 /// Logs will then be linked to the nearest span that is written out.
+/// For complex cases, use @ref engine::TaskBuilder with @ref engine::TaskBuilder::HideSpan.
 ///
 /// @warning Some clients may call tracing::Span::CurrentSpan unconditionally, so don't be too surprised
 /// if they won't work without a span scope. Do write tests.
 ///
-/// `AsyncNoSpan` is useful for:
+/// `AsyncNoTracing` is useful for:
 /// * implementing periodic tasks (like utils::PeriodicTask);
 /// * worker tasks that typically run until service shutdown, and it makes no sense to have a span for the task itself;
 /// * some low-level (e.g. driver or filesystem-IO) code where logs are definitely not written;
 /// * breaking traces e.g. this is (rarely) wanted for some background tasks.
 ///
-/// @see utils::Async for main documentation on `Async` function family.
+/// @see @ref utils::Async for main documentation on `Async` function family.
+/// @see @ref engine::TaskBuilder for more `Async` variants.
 template <typename Function, typename... Args>
-[[nodiscard]] auto AsyncNoSpan(TaskProcessor& task_processor, Function&& f, Args&&... args) {
+[[nodiscard]] auto AsyncNoTracing(TaskProcessor& task_processor, Function&& f, Args&&... args) {
     return impl::MakeTaskWithResult<TaskWithResult>(
-        task_processor,
-        Task::Importance::kNormal,
-        {},
+        impl::TaskConfig{.task_processor = &task_processor},
         std::forward<Function>(f),
         std::forward<Args>(args)...
     );
@@ -70,69 +46,20 @@ template <typename Function, typename... Args>
 
 /// @overload
 template <typename Function, typename... Args>
-[[nodiscard]] auto SharedAsyncNoSpan(TaskProcessor& task_processor, Function&& f, Args&&... args) {
-    return impl::MakeTaskWithResult<SharedTaskWithResult>(
-        task_processor,
-        Task::Importance::kNormal,
-        {},
-        std::forward<Function>(f),
-        std::forward<Args>(args)...
-    );
+[[nodiscard]] auto AsyncNoTracing(Function&& f, Args&&... args) {
+    return impl::MakeTaskWithResult<
+        TaskWithResult>(impl::TaskConfig{}, std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
 /// @overload
+/// @see Task::Importance::Critical
 template <typename Function, typename... Args>
-[[nodiscard]] auto AsyncNoSpan(TaskProcessor& task_processor, Deadline deadline, Function&& f, Args&&... args) {
+[[nodiscard]] auto CriticalAsyncNoTracing(TaskProcessor& task_processor, Function&& f, Args&&... args) {
     return impl::MakeTaskWithResult<TaskWithResult>(
-        task_processor,
-        Task::Importance::kNormal,
-        deadline,
-        std::forward<Function>(f),
-        std::forward<Args>(args)...
-    );
-}
-
-/// @overload
-template <typename Function, typename... Args>
-[[nodiscard]] auto SharedAsyncNoSpan(TaskProcessor& task_processor, Deadline deadline, Function&& f, Args&&... args) {
-    return impl::MakeTaskWithResult<SharedTaskWithResult>(
-        task_processor,
-        Task::Importance::kNormal,
-        deadline,
-        std::forward<Function>(f),
-        std::forward<Args>(args)...
-    );
-}
-
-/// @overload
-template <typename Function, typename... Args>
-[[nodiscard]] auto AsyncNoSpan(Function&& f, Args&&... args) {
-    return AsyncNoSpan(current_task::GetTaskProcessor(), std::forward<Function>(f), std::forward<Args>(args)...);
-}
-
-/// @overload
-template <typename Function, typename... Args>
-[[nodiscard]] auto SharedAsyncNoSpan(Function&& f, Args&&... args) {
-    return SharedAsyncNoSpan(current_task::GetTaskProcessor(), std::forward<Function>(f), std::forward<Args>(args)...);
-}
-
-/// @overload
-template <typename Function, typename... Args>
-[[nodiscard]] auto AsyncNoSpan(Deadline deadline, Function&& f, Args&&... args) {
-    return AsyncNoSpan(
-        current_task::GetTaskProcessor(),
-        deadline,
-        std::forward<Function>(f),
-        std::forward<Args>(args)...
-    );
-}
-
-/// @overload
-template <typename Function, typename... Args>
-[[nodiscard]] auto SharedAsyncNoSpan(Deadline deadline, Function&& f, Args&&... args) {
-    return SharedAsyncNoSpan(
-        current_task::GetTaskProcessor(),
-        deadline,
+        impl::TaskConfig{
+            .task_processor = &task_processor,
+            .importance = Task::Importance::kCritical,
+        },
         std::forward<Function>(f),
         std::forward<Args>(args)...
     );
@@ -141,63 +68,33 @@ template <typename Function, typename... Args>
 /// @overload
 /// @see Task::Importance::Critical
 template <typename Function, typename... Args>
-[[nodiscard]] auto CriticalAsyncNoSpan(TaskProcessor& task_processor, Function&& f, Args&&... args) {
+[[nodiscard]] auto CriticalAsyncNoTracing(Function&& f, Args&&... args) {
     return impl::MakeTaskWithResult<TaskWithResult>(
-        task_processor,
-        Task::Importance::kCritical,
-        {},
+        impl::TaskConfig{.importance = Task::Importance::kCritical},
         std::forward<Function>(f),
         std::forward<Args>(args)...
     );
 }
 
-/// @overload
-/// @see Task::Importance::Critical
+#ifndef ARCADIA_ROOT
+
+/// @deprecated Use @ref engine::AsyncNoTracing instead.
 template <typename Function, typename... Args>
-[[nodiscard]] auto SharedCriticalAsyncNoSpan(TaskProcessor& task_processor, Function&& f, Args&&... args) {
-    return impl::MakeTaskWithResult<SharedTaskWithResult>(
-        task_processor,
-        Task::Importance::kCritical,
-        {},
-        std::forward<Function>(f),
-        std::forward<Args>(args)...
-    );
+[[nodiscard, deprecated("Use AsyncNoTracing instead")]] auto AsyncNoSpan(
+    TaskProcessor& task_processor,
+    Function&& f,
+    Args&&... args
+) {
+    return AsyncNoTracing(task_processor, std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
-/// @overload
-/// @see Task::Importance::Critical
+/// @deprecated Use @ref engine::AsyncNoTracing instead.
 template <typename Function, typename... Args>
-[[nodiscard]] auto CriticalAsyncNoSpan(Function&& f, Args&&... args) {
-    return CriticalAsyncNoSpan(
-        current_task::GetTaskProcessor(),
-        std::forward<Function>(f),
-        std::forward<Args>(args)...
-    );
+[[nodiscard, deprecated("Use AsyncNoTracing instead")]] auto AsyncNoSpan(Function&& f, Args&&... args) {
+    return AsyncNoTracing(std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
-/// @overload
-/// @see Task::Importance::Critical
-template <typename Function, typename... Args>
-[[nodiscard]] auto SharedCriticalAsyncNoSpan(Function&& f, Args&&... args) {
-    return SharedCriticalAsyncNoSpan(
-        current_task::GetTaskProcessor(),
-        std::forward<Function>(f),
-        std::forward<Args>(args)...
-    );
-}
-
-/// @overload
-/// @see Task::Importance::Critical
-template <typename Function, typename... Args>
-[[nodiscard]] auto CriticalAsyncNoSpan(Deadline deadline, Function&& f, Args&&... args) {
-    return impl::MakeTaskWithResult<TaskWithResult>(
-        current_task::GetTaskProcessor(),
-        Task::Importance::kCritical,
-        deadline,
-        std::forward<Function>(f),
-        std::forward<Args>(args)...
-    );
-}
+#endif
 
 }  // namespace engine
 

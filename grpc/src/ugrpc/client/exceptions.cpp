@@ -29,7 +29,14 @@ ErrorWithStatus::ErrorWithStatus(std::string_view call_name, grpc::Status&& stat
 {}
 
 RpcInterruptedError::RpcInterruptedError(std::string_view call_name, std::string_view stage)
-    : RpcError(call_name, fmt::format("interrupted at {}", stage))
+    : RpcError(
+          call_name,
+          fmt::format(
+              "interrupted at {} (probably HTTP2-level reconnect) and will be retried if retry attempts are not "
+              "exhausted",
+              stage
+          )
+      )
 {}
 
 RpcCancelledError::RpcCancelledError(std::string_view call_name, std::string_view stage)

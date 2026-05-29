@@ -1,6 +1,6 @@
 #include <userver/tracing/manager.hpp>
 
-#include <boost/range/adaptor/reversed.hpp>
+#include <ranges>
 
 #include <userver/engine/task/inherited_variable.hpp>
 #include <userver/http/common_headers.hpp>
@@ -271,7 +271,7 @@ bool GenericTracingManager::TryFillSpanBuilderFromRequest(
 ) const {
     bool success = false;
 
-    for (const auto& format : boost::adaptors::reverse(kAllFormatsOrdered)) {
+    for (const auto& format : std::views::reverse(kAllFormatsOrdered)) {
         if (in_request_response_ & format) {
             success |= tracing::TryFillSpanBuilderFromRequest(format, request, span_builder);
         }

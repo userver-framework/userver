@@ -88,12 +88,12 @@ if(USERVER_FEATURE_CORE
 endif()
 
 set(USERVER_YDB_DEFAULT OFF)
-if(USERVER_FEATURE_CORE
-   AND USERVER_BUILD_ALL_COMPONENTS
-   AND DEFINED CMAKE_CXX_STANDARD
-   AND CMAKE_CXX_STANDARD GREATER_EQUAL 20
-)
+if(USERVER_FEATURE_CORE AND USERVER_BUILD_ALL_COMPONENTS)
     set(USERVER_YDB_DEFAULT ON)
+    if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU" AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS "13.1")
+        # ydb-cpp-sdk requires <format> header support, and GCC only implemented it in 13.1.
+        set(USERVER_YDB_DEFAULT OFF)
+    endif()
 endif()
 
 option(USERVER_CONAN "Build with Conan packages" "${CONAN_EXPORTED}")
@@ -290,6 +290,13 @@ if(USERVER_FEATURE_GRPC)
     add_subdirectory(grpc)
     list(APPEND USERVER_AVAILABLE_COMPONENTS grpc)
 endif()
+
+if(USERVER_FEATURE_SCYLLADB)
+    _require_userver_core("USERVER_FEATURE_SCYLLADB")
+    add_subdirectory(scylla)
+    list(APPEND USERVER_AVAILABLE_COMPONENTS scylla)
+endif()
+
 
 if(USERVER_FEATURE_OTLP)
     if(NOT USERVER_FEATURE_GRPC)

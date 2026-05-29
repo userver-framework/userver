@@ -17,8 +17,9 @@ const std::string kFamStatusAffectedCount = "n";
 
 }  // namespace
 
-WriteResult::WriteResult(formats::bson::Document value)
-    : value_(std::move(value))
+WriteResult::WriteResult(formats::bson::Document value, MongoError error)
+    : value_(std::move(value)),
+      error_(std::move(error))
 {}
 
 size_t WriteResult::InsertedCount() const {
@@ -140,6 +141,8 @@ std::vector<MongoError> WriteResult::WriteConcernErrors() const {
     }
     return wc_errors;
 }
+
+const MongoError& WriteResult::OperationError() const { return error_; }
 
 }  // namespace storages::mongo
 

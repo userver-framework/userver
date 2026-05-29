@@ -1,10 +1,10 @@
 #include <userver/yaml_config/schema.hpp>
 
-#include <boost/range/adaptor/transformed.hpp>
-#include <boost/range/algorithm/count.hpp>
+#include <algorithm>
 
 #include <fmt/ranges.h>
 
+#include <userver/compiler/impl/nodebug.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
 #include <userver/formats/yaml/serialize.hpp>
@@ -33,7 +33,8 @@ void CheckFieldsNames(const formats::yaml::Value& yaml_schema) {
             .Case("minimum")
             .Case("maximum")
             .Case("minItems")
-            .Case("maxItems");
+            .Case("maxItems")
+            .Case("required");
     };
 
     for (const auto& [name, value] : Items(yaml_schema)) {
@@ -41,8 +42,7 @@ void CheckFieldsNames(const formats::yaml::Value& yaml_schema) {
 
         if (!found) {
             throw std::runtime_error(fmt::format(
-                "Schema field name must be one of [{}], but '{}' was "
-                "given. Schema path: '{}'",
+                "Schema field name must be one of [{}], but '{}' was given. Schema path: '{}'",
                 kFieldNames.Describe(),
                 name,
                 yaml_schema.GetPath()
@@ -58,17 +58,21 @@ void CheckTypeSupportsField(
     const std::optional<Field>& optional_field,
     std::initializer_list<FieldType> allowed_types
 ) {
-    if (optional_field.has_value() && boost::count(allowed_types, schema.type) == 0) {
-        const auto allowed_type_strings = boost::adaptors::transform(allowed_types, [](FieldType type) {
-            return fmt::format("'{}'", ToString(type));
-        });
+    if (optional_field.has_value() && std::ranges::count(allowed_types, schema.type) == 0) {
+        std::string allowed_types_str;
+        for (auto type : allowed_types) {
+            if (!allowed_types_str.empty()) {
+                allowed_types_str += "' or '";
+            }
+            allowed_types_str += ToString(type);
+        }
+
         throw std::runtime_error(fmt::format(
-            "Schema field '{}' of type '{}' can not have field '{}', "
-            "because its type is not {}",
+            "Schema field '{}' of type '{}' can not have field '{}', because its type is not '{}'",
             schema.path,
             ToString(schema.type),
             field_name,
-            fmt::join(allowed_type_strings, " or ")
+            allowed_types_str
         ));
     }
 }
@@ -82,21 +86,30 @@ void CheckSchemaStructure(const Schema& schema) {
     CheckTypeSupportsField(schema, "maximum", schema.maximum, {FieldType::kInteger, FieldType::kNumber});
     CheckTypeSupportsField(schema, "minItems", schema.min_items, {FieldType::kArray});
     CheckTypeSupportsField(schema, "maxItems", schema.max_items, {FieldType::kArray});
+    CheckTypeSupportsField(schema, "required", schema.required, {FieldType::kObject});
 
     if (schema.type == FieldType::kObject) {
         if (!schema.properties.has_value()) {
-            throw std::runtime_error(fmt::format(
-                "Schema field '{}' of type 'object' "
-                "must have field 'properties'",
-                schema.path
-            ));
+            throw std::runtime_error(
+                fmt::format("Schema field '{}' of type 'object' must have field 'properties'", schema.path)
+            );
         }
         if (!schema.additional_properties.has_value()) {
-            throw std::runtime_error(fmt::format(
-                "Schema field '{}' of type 'object' must have field "
-                "'additionalProperties'",
-                schema.path
-            ));
+            throw std::runtime_error(
+                fmt::format("Schema field '{}' of type 'object' must have field 'additionalProperties'", schema.path)
+            );
+        }
+        if (schema.required.has_value()) {
+            const auto& properties = schema.properties.value();
+            for (const auto& name : *schema.required) {
+                if (properties.find(name) == properties.end()) {
+                    throw std::runtime_error(fmt::format(
+                        "Schema field '{}': 'required' contains '{}' which is not declared in 'properties'",
+                        schema.path,
+                        name
+                    ));
+                }
+            }
         }
     } else if (schema.type == FieldType::kArray) {
         if (!schema.items.has_value()) {
@@ -116,23 +129,6 @@ constexpr utils::TrivialBiMap kFieldTypes = [](auto selector) {
         .Case("object", FieldType::kObject)
         .Case("array", FieldType::kArray);
 };
-
-auto TieSchema(const Schema& schema) {
-    return std::tie(
-        // `path` is ignored, because it serves a purely diagnostic purpose.
-        schema.type,
-        schema.description,
-        schema.default_description,
-        schema.additional_properties,
-        schema.properties,
-        schema.items,
-        schema.enum_values,
-        schema.minimum,
-        schema.maximum,
-        schema.min_items,
-        schema.max_items
-    );
-}
 
 }  // namespace
 
@@ -215,6 +211,7 @@ Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>) {
 
     result.min_items = schema["minItems"].As<std::optional<std::size_t>>();
     result.max_items = schema["maxItems"].As<std::optional<std::size_t>>();
+    result.required = schema["required"].As<std::optional<std::unordered_set<std::string>>>();
 
     CheckFieldsNames(schema);
 
@@ -258,6 +255,9 @@ formats::yaml::Value Serialize(const Schema& schema, formats::serialize::To<form
     if (schema.max_items) {
         builder["maxItems"] = *schema.max_items;
     }
+    if (schema.required) {
+        builder["required"] = *schema.required;
+    }
     return builder.ExtractValue();
 }
 
@@ -272,7 +272,12 @@ Schema Schema::EmptyObject() {
 )");
 }
 
-bool Schema::operator==(const Schema& other) const { return TieSchema(*this) == TieSchema(other); }
+bool PathSupplementary::operator==(const PathSupplementary&) const noexcept {
+    // `path` is ignored, because it serves a purely diagnostic purpose.
+    return true;
+}
+
+bool Schema::operator==(const Schema&) const noexcept = default;
 
 Schema impl::SchemaFromString(const std::string& yaml_string) {
     return formats::yaml::FromString(yaml_string).As<Schema>();

@@ -52,7 +52,7 @@ LegacyJsonErrorBuilder::LegacyJsonErrorBuilder(
     json_error_body_ = formats::json::ToString(response_json.ExtractValue());
 }
 
-static_assert(impl::kHasInternalMessage<LegacyJsonErrorBuilder>);
+static_assert(impl::HasInternalMessage<LegacyJsonErrorBuilder>);
 
 }  // namespace server::handlers
 

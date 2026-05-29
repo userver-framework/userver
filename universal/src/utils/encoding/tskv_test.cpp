@@ -30,9 +30,9 @@ TEST(Tskv, TAXICOMMON1362) {
 
     EXPECT_TRUE(result.find(tskv_test::ascii_part) != std::string::npos) << "Result: " << result;
 
-    EXPECT_EQ(0, std::count(result.begin(), result.end(), '\n')) << "Result: " << result;
-    EXPECT_EQ(0, std::count(result.begin(), result.end(), '\t')) << "Result: " << result;
-    EXPECT_EQ(0, std::count(result.begin(), result.end(), '\0')) << "Result: " << result;
+    EXPECT_EQ(0, std::ranges::count(result, '\n')) << "Result: " << result;
+    EXPECT_EQ(0, std::ranges::count(result, '\t')) << "Result: " << result;
+    EXPECT_EQ(0, std::ranges::count(result, '\0')) << "Result: " << result;
 }
 
 namespace {

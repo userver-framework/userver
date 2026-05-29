@@ -1,0 +1,18 @@
+syntax = "proto2";
+
+package sample.ugrpc;
+
+service Proto2TestService {
+  rpc SayHello(Proto2Request) returns (Proto2Response) {}
+  rpc ReadMany(Proto2Request) returns (stream Proto2Response) {}
+  rpc WriteMany(stream Proto2Request) returns (Proto2Response) {}
+  rpc Chat(stream Proto2Request) returns (stream Proto2Response) {}
+}
+
+message Proto2Request {
+  required string name = 1;
+}
+
+message Proto2Response {
+  required string greeting = 1;
+}

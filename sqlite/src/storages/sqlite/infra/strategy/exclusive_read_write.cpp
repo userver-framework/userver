@@ -31,7 +31,7 @@ PoolPtr ExclusiveReadWriteStrategy::InitializeReadWritePoolReference(
 
     PoolPtr write_connection_pool;
     engine::TaskWithResult<void>
-        init_task = engine::AsyncNoSpan([&write_connection_pool, &blocking_task_processor, &settings]() {
+        init_task = engine::AsyncNoTracing([&write_connection_pool, &blocking_task_processor, &settings]() {
             write_connection_pool = Pool::Create(settings, blocking_task_processor);
         });
     init_task.Get();

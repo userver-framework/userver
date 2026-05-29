@@ -15,7 +15,7 @@ jobs:
             matrix:
                 include:
                   - cmake-flags: >-
-                        -DCMAKE_CXX_STANDARD=17
+                        -DCMAKE_CXX_STANDARD=20
                         -DCPM_SOURCE_CACHE=/userver/.cpm
                         -DUSERVER_USE_LD=gold
                         -DUSERVER_NO_WERROR=0
@@ -25,12 +25,12 @@ jobs:
                         -DCMAKE_BUILD_TYPE=Release
                     gtest-filter: '*'
                     image: ubuntu-22.04-userver-base
-                    info: ubuntu + gcc + cxx17 + core
-                    id: ubuntu_gcc_cxx17_core
+                    info: ubuntu + gcc + cxx20 + core
+                    id: ubuntu_gcc_cxx20_core
                   - cmake-flags: >-
                         -DCMAKE_C_COMPILER=clang-16
                         -DCMAKE_CXX_COMPILER=clang++-16
-                        -DCMAKE_CXX_STANDARD=17
+                        -DCMAKE_CXX_STANDARD=20
                         -DCPM_SOURCE_CACHE=/userver/.cpm
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
@@ -38,14 +38,14 @@ jobs:
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
                         -DCMAKE_BUILD_TYPE=Release
-                    gtest-filter: '*'
+                    gtest-filter: '-LoggingTest.Format:LoggingTest.CallFormat'
                     image: ubuntu-22.04-userver-base-ci
-                    info: ubuntu + clang-16 + cxx17
-                    id: ubuntu_clang16_cxx17
+                    info: ubuntu + clang-16 + cxx20
+                    id: ubuntu_clang16_cxx20
                   - cmake-flags: >-
                         -DCMAKE_C_COMPILER=gcc-11
                         -DCMAKE_CXX_COMPILER=g++-11
-                        -DCMAKE_CXX_STANDARD=17
+                        -DCMAKE_CXX_STANDARD=20
                         -DCPM_SOURCE_CACHE=/userver/.cpm
                         -DUSERVER_USE_LD=gold
                         -DUSERVER_NO_WERROR=0
@@ -56,22 +56,8 @@ jobs:
                         -DCMAKE_BUILD_TYPE=Release
                     gtest-filter: '*'
                     image: ubuntu-22.04-userver-base-ci
-                    info: ubuntu + gcc-11 + cxx17
-                    id: ubuntu_gcc11_cxx17
-                  - cmake-flags: >-
-                        -DCMAKE_C_COMPILER=clang-16
-                        -DCMAKE_CXX_COMPILER=clang++-16
-                        -DCMAKE_CXX_STANDARD=20
-                        -DCPM_SOURCE_CACHE=/userver/.cpm
-                        -DUSERVER_BUILD_ALL_COMPONENTS=1
-                        -DUSERVER_FEATURE_ROCKS=0
-                        -DUSERVER_BUILD_SAMPLES=1
-                        -DUSERVER_BUILD_TESTS=1
-                        -DCMAKE_BUILD_TYPE=Release
-                    gtest-filter: -YdbExecuteTpl/1.SimpleWriteReadBinary:LoggingTest.Format:LoggingTest.CallFormat
-                    image: ubuntu-22.04-userver-base-ci
-                    info: ubuntu + clang-16 + cxx20
-                    id: ubuntu_clang16_cxx20
+                    info: ubuntu + gcc-11 + cxx20
+                    id: ubuntu_gcc11_cxx20
                   - cmake-flags: >-
                         -DCMAKE_C_COMPILER=gcc-13
                         -DCMAKE_CXX_COMPILER=g++-13
@@ -114,8 +100,8 @@ jobs:
             run: ./scripts/githubci_free_space.sh
 
           - name: Setup ccache
-            run: docker-compose -f .github/docker-compose.yml run --rm ${{ matrix.image
-                }} bash -c 'ccache -M 2.0GB && ccache -s -v'
+            run: docker-compose -f .github/docker-compose.yml run --rm ${{ matrix.image }} bash -c 'ccache -M 2.0GB && ccache
+                -s -v'
 
           - name: Run cmake
             run: >-

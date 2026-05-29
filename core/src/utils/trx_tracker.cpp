@@ -102,8 +102,6 @@ bool TaskId::operator==(const TaskId& other) const {
     return created_thread_id_ == other.created_thread_id_ && thread_local_counter_ == other.thread_local_counter_;
 }
 
-bool TaskId::operator!=(const TaskId& other) const { return !(*this == other); }
-
 }  // namespace impl
 
 TransactionLock::~TransactionLock() { Unlock(); }

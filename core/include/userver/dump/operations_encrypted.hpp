@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/dump/operations_encrypted.hpp
+/// @brief Encrypted dump Reader and Writer implementations
+
 #include <userver/utils/boost_filesystem_file_status.hpp>
 
 #include <userver/dump/factory.hpp>

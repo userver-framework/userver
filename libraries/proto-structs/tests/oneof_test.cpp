@@ -165,6 +165,7 @@ TEST(OneofTest, GetSetEmplace) {
     CheckAlternativeSet(oneof, 4);
     EXPECT_EQ(std::move(oneof).Get<4>().f1, 11);
 
+    // NOLINTNEXTLINE(bugprone-use-after-move)
     oneof.GetMutable<0>() = 6;
 
     CheckAlternativeSet(oneof, 0);

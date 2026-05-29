@@ -1,10 +1,12 @@
 #pragma once
 
+/// @file userver/utils/statistics/percentile_format_json.hpp
+/// @brief JSON formatting helpers for percentile metrics
+
 #include <initializer_list>
 
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/meta_light.hpp>
 #include <userver/utils/statistics/metadata.hpp>
 #include <userver/utils/statistics/percentile.hpp>
 
@@ -12,19 +14,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
-namespace impl {
-
-template <typename T>
-using HasGetPercentileResult = decltype(std::declval<const T&>().GetPercentile(0.0));
-
-}  // namespace impl
-
 std::string GetPercentileFieldName(double perc);
 
 template <typename T>
 formats::json::ValueBuilder PercentileToJson(const T& perc, std::initializer_list<double> percents) {
     static_assert(
-        meta::IsDetected<impl::HasGetPercentileResult, T>,
+        requires(const T& t) { t.GetPercentile(0.0); },
         "T must specify T::GetPercentile(double) returning "
         "json-serializable value"
     );

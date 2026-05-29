@@ -22,10 +22,10 @@ bool IsHiddenFile(const boost::filesystem::path& path) {
 
 }  // namespace
 
-std::string ReadFileContents(const std::string& path) {
-    const std::ifstream ifs(path);
+std::string ReadFileContents(utils::zstring_view path) {
+    const std::ifstream ifs(path.c_str());
     if (!ifs) {
-        throw std::runtime_error("Error opening '" + path + '\'');
+        throw std::runtime_error(fmt::format("Error opening '{}'", path));
     }
 
     std::ostringstream buffer;

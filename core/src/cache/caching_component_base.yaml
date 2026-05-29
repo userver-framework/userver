@@ -51,8 +51,8 @@ properties:
         default: true
     additional-cleanup-interval:
         type: string
-        description: how often to run background RCU garbage collector
-        default: 10 seconds
+        description: how often to run background RCU garbage collector, in milliseconds
+        default: 10000
     is-strong-period:
         type: boolean
         description: whether to include Update execution time in update-interval

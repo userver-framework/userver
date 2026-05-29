@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/handlers/fallback_handlers.hpp
+/// @brief Fallback HTTP handler identifiers and string conversion
+
 #include <string>
 
 USERVER_NAMESPACE_BEGIN

@@ -1,0 +1,79 @@
+#pragma once
+
+#include <exception>
+#include <string>
+#include <variant>
+
+#include <userver/http/status_code.hpp>
+#include <userver/server/http/http_request.hpp>
+{% for include in op.responses_declaration_includes() %}
+#include <{{ include }}>
+{% endfor %}
+{% for include in spec.cpp_type_includes() %}
+#include <{{ include }}>
+{% endfor %}
+
+namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }} {
+
+{% if op.iter_error_responses() | list %}
+/// Base class for all error responses of this handler.
+/// May be caught to handle any error generically.
+struct ErrorResponseBase : public std::exception {
+    virtual {{ userver }}::http::StatusCode GetStatus() const noexcept = 0;
+};
+
+{% endif %}
+
+{% for response in op.responses %}
+
+{% if response.headers %}{{ NOT_IMPLEMENTED(response.headers) }}{% endif %}
+
+{% if response.is_error() %}
+/// Error response — may be thrown from Handle() instead of returning via variant.
+struct Response{{ response.status }} final : public ErrorResponseBase {
+    static constexpr {{ userver }}::http::StatusCode kStatus{ {{ response.status }} };
+    {{ userver }}::http::StatusCode GetStatus() const noexcept override { return kStatus; }
+    const char* what() const noexcept override { return "Response{{ response.status }}"; }
+{% else %}
+struct Response{{ response.status }} final {
+    static constexpr int kStatus = {{ response.status }};
+{% endif %}
+
+    {% if response.body | length == 0 %}
+        {# no body #}
+    {% elif response.body | length == 1 %}
+        {% set content_type = response.body.keys() | list | first %}
+        {% set body_type = response.body.values() | list | first %}
+        {% if content_type == 'application/json' %}
+            {{ body_type.cpp_user_name() }} body;
+        {% else %}
+            std::string body;
+        {% endif %}
+    
+    {% else %}
+        {{ NOT_IMPLEMENTED(response.body) }}
+    {% endif %}
+};
+
+{% endfor %}
+
+/// All possible responses for this operation.
+{% if op.iter_error_responses() | list %}
+/// Error types (4xx/5xx) may also be thrown from Handle().
+{% endif %}
+{% if op.responses | length == 1 %}
+    using Response = Response{{ op.responses[0].status }};
+{% else %}
+    using Response = std::variant<
+        {% for response in op.responses %}
+            Response{{ response.status }}{% if not loop.last %},{% endif %}
+        {% endfor %}
+    >;
+{% endif %}
+
+std::string SerializeResponse(const Response& response, {{ userver }}::server::http::HttpRequest& http_request);
+{% if op.iter_error_responses() | list %}
+std::string SerializeResponse(ErrorResponseBase&& response, {{ userver }}::server::http::HttpRequest& http_request);
+{% endif %}
+
+}  // namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }}

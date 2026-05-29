@@ -24,6 +24,7 @@ public:
     using reference = typename IterTraits::reference;
     using pointer = typename IterTraits::pointer;
 
+    Iterator();
     Iterator(const typename IterTraits::native_iter& iter, int index, const formats::yaml::Path& path);
     Iterator(const Iterator& other);
     Iterator(Iterator&& other) noexcept;

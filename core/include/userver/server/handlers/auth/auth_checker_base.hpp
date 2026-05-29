@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/handlers/auth/auth_checker_base.hpp
+/// @brief @copybrief server::handlers::auth::AuthCheckerBase
+
 #include <memory>
 #include <optional>
 #include <string>
@@ -25,6 +28,7 @@ struct AuthCheckResult {
 const std::string& GetDefaultReasonForStatus(AuthCheckResult::Status status);
 void RaiseForStatus(const AuthCheckResult& auth_check);
 
+/// @brief Base class for HTTP handler authentication checkers
 class AuthCheckerBase {
 public:
     virtual ~AuthCheckerBase();

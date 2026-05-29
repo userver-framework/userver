@@ -126,7 +126,7 @@ make userver-samples-grpc_service
 
 The sample could be started by running
 `make start-userver-samples-grpc_service`. The command would invoke
-@ref scripts/docs/en/userver/functional_testing.md "testsuite start target" 
+@ref scripts/docs/en/userver/functional_testing.md "testsuite start target"
 that sets proper paths in the configuration files and starts the service.
 
 To start the service manually run

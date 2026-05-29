@@ -96,16 +96,17 @@ void ContextTimer::Impl::Start(
 }
 
 void ContextTimer::Impl::Restart(Params params) {
+    const auto deadline = params.deadline;
     UASSERT(WasStarted());
-    UASSERT(params.deadline.IsReachable());
-    if (params.deadline.IsReached()) {
+    UASSERT(deadline.IsReachable());
+    if (deadline.IsReached()) {
         InvokeTimerFunction(params, *context_);
         return;
     }
 
     params_pipe_to_ev_.Push(std::move(params));
     if (PrepareEnqueue()) {
-        thread_control_->RunPayloadInEvLoopDeferred(GetTimerArmer(), params.deadline);
+        thread_control_->RunPayloadInEvLoopDeferred(GetTimerArmer(), deadline);
     }
 }
 
@@ -134,7 +135,6 @@ void ContextTimer::Impl::DoArmTimerInEvThread() {
     using LibEvDuration = std::chrono::duration<double>;
     const auto time_left = std::chrono::duration_cast<LibEvDuration>(params_.deadline.TimeLeft()).count();
 
-    LOG_TRACE() << "time_left=" << time_left;
     if (time_left <= 0.0) {
         // Optimization for small deadlines or high load
         DoOnTimer();
@@ -214,13 +214,19 @@ void ContextTimer::StartWakeup(
     Deadline deadline,
     Epoch sleep_epoch
 ) {
-    impl_->Start(std::move(context), thread_control, {Action::kWakeupByEpoch, sleep_epoch, deadline});
+    impl_->Start(
+        std::move(context),
+        thread_control,
+        {.action = Action::kWakeupByEpoch, .sleep_epoch = sleep_epoch, .deadline = deadline}
+    );
 }
 
-void ContextTimer::RestartCancel(Deadline deadline) { impl_->Restart({Action::kCancel, Epoch{}, deadline}); }
+void ContextTimer::RestartCancel(Deadline deadline) {
+    impl_->Restart({.action = Action::kCancel, .sleep_epoch = Epoch{}, .deadline = deadline});
+}
 
 void ContextTimer::RestartWakeup(Deadline deadline, Epoch sleep_epoch) {
-    impl_->Restart({Action::kWakeupByEpoch, sleep_epoch, deadline});
+    impl_->Restart({.action = Action::kWakeupByEpoch, .sleep_epoch = sleep_epoch, .deadline = deadline});
 }
 
 void ContextTimer::Finalize() noexcept {

@@ -150,7 +150,7 @@ Cors::Config Parse(const yaml_config::YamlConfig& value, formats::parse::To<Cors
     config.max_age = std::chrono::seconds(value["max-age-seconds"].As<int>(config.max_age.count()));
 
     config.allowed_methods = value["allowed-methods"].As<std::vector<std::string>>(config.allowed_methods);
-    std::sort(config.allowed_methods.begin(), config.allowed_methods.end());
+    std::ranges::sort(config.allowed_methods);
 
     config.allowed_headers = value["allowed-headers"].As<std::vector<std::string>>(config.allowed_headers);
     config.exposed_headers = value["exposed-headers"].As<std::vector<std::string>>({});

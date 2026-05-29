@@ -50,7 +50,6 @@ public:
     TaskId();
 
     bool operator==(const TaskId& other) const;
-    bool operator!=(const TaskId& other) const;
 
 private:
     std::thread::id created_thread_id_;

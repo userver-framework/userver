@@ -17,6 +17,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
+/// @brief Distributed tracing helpers and identifiers.
 namespace tracing {
 
 class TagScope;

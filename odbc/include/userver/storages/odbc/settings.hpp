@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/odbc/settings.hpp
+/// @brief ODBC cluster static configuration (DSN pools)
+
 #include <string>
 #include <vector>
 

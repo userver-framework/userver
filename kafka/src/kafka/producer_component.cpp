@@ -32,14 +32,12 @@ ProducerComponent::ProducerComponent(
               .GetSecretByComponentName(config.Name())
       )
 {
-    auto& storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
-
-    statistics_holder_ = storage.RegisterWriter("kafka_producer", [this](utils::statistics::Writer& writer) {
+    utils::statistics::RegisterWriterScope(context, "kafka_producer", [this](utils::statistics::Writer& writer) {
         producer_.DumpMetric(writer);
     });
 }
 
-ProducerComponent::~ProducerComponent() { statistics_holder_.Unregister(); }
+ProducerComponent::~ProducerComponent() = default;
 
 const Producer& ProducerComponent::GetProducer() { return producer_; }
 

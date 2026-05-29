@@ -133,7 +133,7 @@ HttpHandlerBase::HttpHandlerBase(
       log_level_(config["log-level"].As<std::optional<logging::Level>>()),
       log_level_for_status_codes_(ParseStatusCodesLogLevel(config["status-codes-log-level"]
                                                                .As<std::unordered_map<std::string, std::string>>({}))),
-      handler_statistics_(std::make_unique<HttpHandlerStatistics>()),
+      handler_statistics_(std::make_unique<HttpHandlerStatisticsAggregate>()),
       is_body_streamed_(config["response-body-stream"].As<bool>(false))
 {
     if (allowed_methods_.empty()) {
@@ -182,7 +182,10 @@ HttpHandlerBase::HttpHandlerBase(
         RegisterWriterScope(
             context,
             std::move(prefix),
-            [this](utils::statistics::Writer& result) { FormatStatistics(result["handler"], *handler_statistics_); },
+            [this](utils::statistics::Writer& result) {
+                FormatStatistics(result["handler"], handler_statistics_->GetOverallStatistics());
+                FormatPerLabelStatistics(result["handler"]);
+            },
             std::move(labels)
         );
     }
@@ -287,7 +290,7 @@ const std::string& HttpHandlerBase::HandlerName() const { return handler_name_; 
 
 const std::vector<http::HttpMethod>& HttpHandlerBase::GetAllowedMethods() const { return allowed_methods_; }
 
-HttpHandlerStatistics& HttpHandlerBase::GetHandlerStatistics() const { return *handler_statistics_; }
+HttpHandlerStatisticsAggregate& HttpHandlerBase::GetHandlerStatistics() const { return *handler_statistics_; }
 
 logging::Level HttpHandlerBase::GetLogLevelForResponseStatus(http::HttpStatus status) const {
     const auto status_code = static_cast<int>(status);
@@ -448,6 +451,17 @@ void HttpHandlerBase::FormatStatistics(utils::statistics::Writer result, const H
     }
 
     result = total;
+}
+
+void HttpHandlerBase::FormatPerLabelStatistics(utils::statistics::Writer result) const {
+    handler_statistics_->GetShardedStatisticsStorage()
+        .Visit([this, &result](const utils::statistics::impl::StatisticsKey& key, const HttpHandlerStatistics& stats) {
+            HttpHandlerStatisticsSnapshot total;
+            for (const auto method : GetAllowedMethods()) {
+                total.Add(HttpHandlerStatisticsSnapshot(stats.GetByMethod(method)));
+            }
+            result[key.path].ValueWithLabels(total, key.label_views);
+        });
 }
 
 void HttpHandlerBase::SetResponseServerHostname(http::HttpResponse& response) const {

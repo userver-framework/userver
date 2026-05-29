@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/congestion_control/controllers/linear_config.hpp
+/// @brief Linear congestion control controller configuration (v2)
+
 #include <chrono>
 #include <cstddef>
 

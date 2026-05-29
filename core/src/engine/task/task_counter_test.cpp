@@ -30,7 +30,7 @@ UTEST(TaskCounter, Works) {
 
     EXPECT_EQ(counter.GetTasksStartedRunning(), 2);
 
-    auto task = engine::CriticalAsyncNoSpan([] { engine::InterruptibleSleepFor(utest::kMaxTestWaitTime); });
+    auto task = engine::CriticalAsyncNoTracing([] { engine::InterruptibleSleepFor(utest::kMaxTestWaitTime); });
 
     // `task` has not had the chance to run yet. Still, it is considered as "created".
     EXPECT_EQ(counter.GetCreatedTasks(), 2);

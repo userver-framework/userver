@@ -3,16 +3,13 @@
 #include <cstddef>
 #include <exception>
 #include <optional>
-#include <string_view>
 #include <type_traits>
 #include <utility>
 
 #include <google/protobuf/message.h>
-#include <grpcpp/server_context.h>
 
 #include <userver/logging/log.hpp>
 #include <userver/server/handlers/exceptions.hpp>
-#include <userver/tracing/in_place_span.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 
@@ -27,14 +24,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::impl {
-
-void SetupSpan(
-    std::optional<tracing::InPlaceSpan>& span_storage,
-    grpc::ServerContext& context,
-    std::string_view call_name,
-    std::string_view service_name,
-    std::string_view method_name
-);
 
 grpc::Status ReportCustomError(const USERVER_NAMESPACE::server::handlers::CustomHandlerException& ex, CallState& state)
     noexcept;
@@ -66,7 +55,17 @@ void UnpackResult(StreamingResult<Response>&& result, std::optional<Response>& r
 }
 
 template <typename CallTraits>
-bool Finish(
+void ValidateResponse(std::optional<typename CallTraits::Response>& response, grpc::Status& status) {
+    if constexpr (std::is_base_of_v<google::protobuf::Message, typename CallTraits::Response>) {
+        if (status.ok() && response.has_value() && !response->IsInitialized()) {
+            status = MakeUninitializedResponseStatus(*response);
+            response.reset();
+        }
+    }
+}
+
+template <typename CallTraits>
+[[nodiscard]] bool Finish(
     impl::Responder<CallTraits>& responder,
     const std::optional<typename CallTraits::Response>& response,
     grpc::Status& status
@@ -85,6 +84,12 @@ bool Finish(
     } else {
         return responder.FinishWithError(status);
     }
+}
+
+template <typename CallTraits>
+void FinishInterrupted(impl::Responder<CallTraits>& responder) {
+    grpc::Status status{grpc::Status::CANCELLED};
+    [[maybe_unused]] const bool ok = responder.FinishWithError(status);
 }
 
 template <typename CallTraits>
@@ -132,13 +137,17 @@ public:
                 auto result = CallHandler();
                 impl::UnpackResult(std::move(result), response, status_);
             });
+            impl::ValidateResponse<CallTraits>(response, status_);
         }
 
         if (!engine::current_task::ShouldCancel() && !responder_.IsInterrupted()) {
             RunPreFinishHooks(response);
             finished = impl::Finish(responder_, response, status_);
-            scope_time.Reset("post_finish");
+        } else {
+            impl::FinishInterrupted(responder_);
         }
+
+        scope_time.Reset("post_finish");
 
         if (finished) {
             impl::ReportFinished(status_, state_);

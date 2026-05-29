@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/concurrent/conflated_event_channel.hpp
+/// @brief @copybrief concurrent::ConflatedEventChannel
+
 #include <atomic>
 #include <vector>
 

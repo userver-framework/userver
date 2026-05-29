@@ -26,7 +26,7 @@ UTEST_MT(StripedReadIndicator, LockPassingStress, kReadersCount + kCheckersCount
     tasks.reserve(kReadersCount + kCheckersCount);
 
     for (std::size_t i = 0; i < kReadersCount; ++i) {
-        tasks.push_back(engine::AsyncNoSpan([&] {
+        tasks.push_back(engine::AsyncNoTracing([&] {
             while (keep_running) {
                 const std::lock_guard ping_pong_mutex_lock{ping_pong_mutex};
                 auto lock_copy = indicator_lock;
@@ -38,7 +38,7 @@ UTEST_MT(StripedReadIndicator, LockPassingStress, kReadersCount + kCheckersCount
     }
 
     for (std::size_t i = 0; i < kCheckersCount; ++i) {
-        tasks.push_back(engine::AsyncNoSpan([&] {
+        tasks.push_back(engine::AsyncNoTracing([&] {
             while (keep_running) {
                 ASSERT_FALSE(indicator.IsFree());
             }

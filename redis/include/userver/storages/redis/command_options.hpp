@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 
+#include <userver/formats/json/value.hpp>
 #include <userver/storages/redis/base.hpp>
 #include <userver/storages/redis/command_control.hpp>
 #include <userver/storages/redis/exception.hpp>
@@ -250,6 +251,13 @@ struct ScoreOptions {
 struct RangeScoreOptions {
     ScoreOptions score_options;
     RangeOptions range_options;
+};
+
+/// @brief Data type for JSON.MSET command arguments (key + path + JSON value triplet).
+struct JsonKeyPathValue final {
+    std::string key;
+    std::string path;
+    formats::json::Value value;
 };
 
 }  // namespace storages::redis

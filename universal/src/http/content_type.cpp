@@ -9,6 +9,7 @@
 #include <fmt/ostream.h>
 #include <boost/functional/hash.hpp>
 
+#include <userver/compiler/impl/nodebug.hpp>
 #include <userver/logging/log_helper.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/str_icase.hpp>
@@ -85,6 +86,9 @@ int ParseQuality(std::string_view param_value, std::string_view full_string) {
 }
 
 }  // namespace
+
+// vtable anchor functions
+USERVER_IMPL_NODEBUG MalformedContentType::~MalformedContentType() = default;
 
 ContentType::ContentType(std::string_view unparsed)
     : quality_(kMaxQuality)
@@ -214,8 +218,6 @@ bool operator==(const ContentType& lhs, const ContentType& rhs) {
     return icase_equal(lhs.TypeToken(), rhs.TypeToken()) && icase_equal(lhs.SubtypeToken(), rhs.SubtypeToken()) &&
            icase_equal(lhs.Charset(), rhs.Charset()) && lhs.Quality() == rhs.Quality();
 }
-
-bool operator!=(const ContentType& lhs, const ContentType& rhs) { return !(lhs == rhs); }
 
 bool operator<(const ContentType& lhs, const ContentType& rhs) {
     const utils::StrIcaseCompareThreeWay icase_cmp{};

@@ -84,7 +84,8 @@ UTEST(DataPipeToEv, PopIncreasingData) {
     });
 
     for (int i = 1; i <= kUpdatesCount; ++i) {
-        pipe.Push(int{i});
+        int value = i;
+        pipe.Push(std::move(value));
     }
 
     ev_loop.join();

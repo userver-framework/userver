@@ -143,7 +143,7 @@ UTEST_F(YdbCoordinationFixture, Lock) {
         NYdb::NCoordination::TAcquireSemaphoreSettings{}.Count(kSemaphoreLimit)
     ));
 
-    auto task = engine::AsyncNoSpan([this] {
+    auto task = engine::AsyncNoTracing([this] {
         auto session2 = StartSession(kCoordinationNode);
         ASSERT_TRUE(session2.AcquireSemaphore(
             kSemaphoreName,

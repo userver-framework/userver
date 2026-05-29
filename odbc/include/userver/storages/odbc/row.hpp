@@ -1,11 +1,15 @@
 #pragma once
 
+/// @file userver/storages/odbc/row.hpp
+/// @brief @copybrief storages::odbc::Row
+
 #include <userver/storages/odbc/field.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::odbc {
 
+/// @brief Row view over an ODBC result set
 class Row {
 public:
     using size_type = std::size_t;

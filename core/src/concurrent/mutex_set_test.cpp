@@ -1,8 +1,8 @@
 #include <userver/utest/utest.hpp>
 
 #include <userver/concurrent/mutex_set.hpp>
+#include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
-#include <userver/utils/async.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -38,7 +38,7 @@ UTEST(MutexSet, TryLockFor) {
     auto m1 = ms.GetMutexForKey("123");
     ASSERT_TRUE(m1.try_lock_for(utest::kMaxTestWaitTime));
     EXPECT_FALSE(m1.try_lock_for(std::chrono::milliseconds{10}));
-    auto task = engine::AsyncNoSpan([&m1] {
+    auto task = engine::AsyncNoTracing([&m1] {
         auto result = m1.try_lock_for(utest::kMaxTestWaitTime);
         m1.unlock();
         return result;
@@ -55,7 +55,7 @@ UTEST(MutexSet, TryLockUntil) {
     auto m1 = ms.GetMutexForKey("123");
     ASSERT_TRUE(m1.try_lock_until(time_limit));
     EXPECT_FALSE(m1.try_lock_until(std::chrono::steady_clock::now() + std::chrono::milliseconds{1}));
-    auto task = engine::AsyncNoSpan([&m1, time_limit] {
+    auto task = engine::AsyncNoTracing([&m1, time_limit] {
         auto result = m1.try_lock_until(time_limit);
         m1.unlock();
         return result;
@@ -83,7 +83,7 @@ UTEST(MutexSet, Notify) {
     auto m1 = ms.GetMutexForKey("123");
     std::unique_lock lock(m1);
 
-    auto task = utils::Async("test", [&ms] {
+    auto task = engine::AsyncNoTracing([&ms] {
         auto m2 = ms.GetMutexForKey("123");
         const std::lock_guard lock(m2);
     });
@@ -125,7 +125,7 @@ UTEST_MT(MutexSet, HighContention, 4) {
     tasks.reserve(concurrent_jobs);
 
     for (std::size_t thread_no = 0; thread_no < concurrent_jobs; ++thread_no) {
-        tasks.push_back(engine::AsyncNoSpan([&, thread_no]() {
+        tasks.push_back(engine::AsyncNoTracing([&, thread_no]() {
             constexpr std::size_t kKeysCount = 128;
             constexpr std::size_t kIterations = 64;
             const auto offset = thread_no * kKeysCount;

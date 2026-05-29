@@ -20,6 +20,7 @@
 #include <userver/utils/algo.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/impl/intrusive_link_mode.hpp>
+#include <userver/utils/task_builder.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -241,18 +242,20 @@ void CacheControl::DoResetCachesConcurrently(
     {
         const std::lock_guard lock{tasks_init_mutex};
         for (std::size_t i = 0; i < async_jobs.size(); ++i) {
-            async_jobs[i].task = engine::SharedAsyncNoSpan(
-                [i, &async_jobs, &tasks_init_mutex, &force_incremental_names, update_type, state] {
-                    const std::shared_lock lock{tasks_init_mutex};
+            async_jobs[i].task =
+                utils::TaskBuilder{}
+                    .NoSpan()
+                    .Background()
+                    .BuildShared([i, &async_jobs, &tasks_init_mutex, &force_incremental_names, update_type, state] {
+                        const std::shared_lock lock{tasks_init_mutex};
 
-                    auto& job = async_jobs[i];
-                    for (auto& other_job : async_jobs) {
-                        job.WaitIfDependsOn(other_job, state);
-                    }
+                        auto& job = async_jobs[i];
+                        for (auto& other_job : async_jobs) {
+                            job.WaitIfDependsOn(other_job, state);
+                        }
 
-                    DoResetSingleCache(job.node.info, update_type, force_incremental_names);
-                }
-            );
+                        DoResetSingleCache(job.node.info, update_type, force_incremental_names);
+                    });
         }
     }
 

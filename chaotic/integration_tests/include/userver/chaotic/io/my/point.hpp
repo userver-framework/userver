@@ -11,9 +11,9 @@ struct Point {
     double lat;
 };
 
-bool operator==(const Point& a, const Point& b) { return a.lon == b.lon && a.lat == b.lat; }
+inline bool operator==(const Point& a, const Point& b) noexcept { return a.lon == b.lon && a.lat == b.lat; }
 
-inline Point Convert(const std::vector<double>& arr, USERVER_NAMESPACE::chaotic::convert::To<Point>) {
+inline Point Convert(std::vector<double>&& arr, USERVER_NAMESPACE::chaotic::convert::To<Point>) {
     return Point{arr.at(0), arr.at(1)};
 }
 
@@ -28,11 +28,10 @@ Point Convert(const T& obj, USERVER_NAMESPACE::chaotic::convert::To<Point>) {
 
 template <typename T>
 T Convert(const Point& p, USERVER_NAMESPACE::chaotic::convert::To<T>) {
-    T result;
-    // designated initializers are not available in C++17 :(
-    result.lon = p.lon;
-    result.lat = p.lat;
-    return result;
+    return T{
+        .lon = p.lon,
+        .lat = p.lat,
+    };
 }
 
 }  // namespace my

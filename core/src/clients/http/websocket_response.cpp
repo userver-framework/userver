@@ -19,8 +19,12 @@ bool WebSocketResponse::IsProtocolUpgraded() const {
 }
 
 std::shared_ptr<websocket::WebSocketConnection> WebSocketResponse::MakeWebSocketConnection() {
+    if (!IsProtocolUpgraded()) {
+        throw std::runtime_error("Protocol is not upgraded to WebSocket");
+    }
+
     if (!socket_.IsOpen()) {
-        return nullptr;
+        throw std::runtime_error("WebSocketConnection has already been extracted");
     }
 
     auto socket = std::make_unique<engine::io::Socket>(socket_.GetNative());

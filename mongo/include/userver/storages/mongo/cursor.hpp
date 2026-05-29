@@ -52,7 +52,6 @@ public:
         pointer operator->() const;
 
         bool operator==(const Iterator&) const;
-        bool operator!=(const Iterator&) const;
 
     private:
         Cursor* cursor_;

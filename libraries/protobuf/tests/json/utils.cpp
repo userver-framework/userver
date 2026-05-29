@@ -8,24 +8,20 @@
 #include <google/protobuf/util/json_util.h>
 
 #include <userver/formats/json/serialize.hpp>
-#include <userver/utils/meta.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace protobuf::json::tests {
 
 template <typename T>
-using SupportsCheckMessageEqual = decltype(CheckMessageEqual(std::declval<const T&>(), std::declval<const T&>()));
-
-template <typename T>
-inline constexpr bool kSupportsCheckMessageEqual = meta::IsDetected<SupportsCheckMessageEqual, T>;
+concept SupportsCheckMessageEqual = requires(const T& lhs, const T& rhs) { CheckMessageEqual(lhs, rhs); };
 
 template <typename T>
 void AreProtobufRepeatedEqual(const T& lhs, const T& rhs) {
     ASSERT_EQ(lhs.size(), rhs.size());
 
     for (int i = 0; i < lhs.size(); ++i) {
-        if constexpr (kSupportsCheckMessageEqual<typename T::value_type>) {
+        if constexpr (SupportsCheckMessageEqual<typename T::value_type>) {
             CheckMessageEqual(lhs[i], rhs[i]);
         } else {
             EXPECT_EQ(lhs[i], rhs[i]);
@@ -40,7 +36,7 @@ void AreProtobufMapsEqual(const T& lhs, const T& rhs) {
     for (const auto& [key, val] : lhs) {
         ASSERT_TRUE(rhs.contains(key));
 
-        if constexpr (kSupportsCheckMessageEqual<typename T::mapped_type>) {
+        if constexpr (SupportsCheckMessageEqual<typename T::mapped_type>) {
             CheckMessageEqual(val, rhs.at(key));
         } else {
             EXPECT_EQ(val, rhs.at(key));
@@ -367,8 +363,8 @@ void CheckMessageEqual(const ::google::protobuf::FieldMask& lhs, const ::google:
         mask_rhs.push_back(path);
     }
 
-    std::sort(mask_lhs.begin(), mask_lhs.end());
-    std::sort(mask_rhs.begin(), mask_rhs.end());
+    std::ranges::sort(mask_lhs);
+    std::ranges::sort(mask_rhs);
 
     EXPECT_EQ(mask_lhs, mask_rhs);
 }

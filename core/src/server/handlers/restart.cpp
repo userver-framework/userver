@@ -4,6 +4,7 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/from_string.hpp>
+#include <userver/utils/task_builder.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,7 +27,7 @@ std::string Restart::HandleRequestThrow(const http::HttpRequest& request, reques
     }
 
     health_ = components::ComponentHealth::kFatal;
-    engine::DetachUnscopedUnsafe(engine::CriticalAsyncNoSpan([delay] {
+    engine::DetachUnscopedUnsafe(utils::TaskBuilder{}.NoSpan().Background().Critical().Build([delay] {
         engine::InterruptibleSleepFor(std::chrono::seconds(delay));
         if (engine::current_task::ShouldCancel()) {
             return;

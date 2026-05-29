@@ -6,9 +6,8 @@
 
 #include <functional>
 #include <memory>
+#include <type_traits>
 #include <utility>
-
-#include <userver/utils/meta_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,16 +16,13 @@ namespace utils {
 namespace impl {
 
 template <typename T>
-using IsPointerLike = decltype(std::declval<T&>() ? std::addressof(*std::declval<T&&>()) : nullptr);
-
-template <typename T>
-inline constexpr bool kIsPointerLike = meta::IsDetected<IsPointerLike, T>;
+concept IsPointerLike = requires(T& t) { t ? std::addressof(*std::declval<T&&>()) : nullptr; };
 
 }  // namespace impl
 
 template <typename Leaf>
 constexpr auto* GetIf(Leaf&& leaf) {
-    if constexpr (impl::kIsPointerLike<Leaf>) {
+    if constexpr (impl::IsPointerLike<Leaf>) {
         return leaf ? utils::GetIf(*std::forward<Leaf>(leaf)) : nullptr;
     } else {
         return std::addressof(std::forward<Leaf>(leaf));
@@ -39,7 +35,7 @@ constexpr auto* GetIf(Leaf&& leaf) {
 /// @snippet universal/src/utils/get_if_test.cpp Sample Usage
 template <typename Root, typename Head, typename... Tail>
 constexpr auto* GetIf(Root&& root, Head&& head, Tail&&... tail) {
-    if constexpr (impl::kIsPointerLike<Root>) {
+    if constexpr (impl::IsPointerLike<Root>) {
         return root ? utils::GetIf(*std::forward<Root>(root), std::forward<Head>(head), std::forward<Tail>(tail)...)
                     : nullptr;
     } else {

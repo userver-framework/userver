@@ -4,11 +4,11 @@
 /// @brief Functions that provide access to HttpRequest stored in
 /// TaskInheritedVariable.
 
+#include <ranges>
 #include <string>
 #include <string_view>
 
 #include <boost/container/small_vector.hpp>
-#include <boost/range/iterator_range.hpp>
 
 #include <userver/http/header_map.hpp>
 
@@ -49,7 +49,7 @@ bool HasPropagatedHeader(std::string_view header_name);
 bool HasPropagatedHeader(const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name);
 
 /// @brief Get a headers that is handled by the current task hierarchy.
-boost::iterator_range<HeadersToPropagate::const_iterator> GetPropagatedHeaders();
+std::ranges::subrange<HeadersToPropagate::const_iterator> GetPropagatedHeaders();
 
 /// @brief Set a headers that is handled by the current task hierarchy.
 void SetPropagatedHeaders(HeadersToPropagate headers);

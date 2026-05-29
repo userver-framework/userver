@@ -16,9 +16,11 @@ namespace clients::http {
 
 /// @brief HTTP response for WebSocket upgrade.
 ///
-/// Call Request::PerformWebSocketHandshake()
+/// Call @ref http::client::Request::PerformWebSocketHandshake()
 /// to get one. After successful WebSocket handshake, you can use
 /// MakeWebSocketConnection() to establish a WebSocket connection.
+///
+/// @snippet samples/websocket_client/main.cpp WebSocket client sample - handler
 class WebSocketResponse final {
 public:
     /// @cond

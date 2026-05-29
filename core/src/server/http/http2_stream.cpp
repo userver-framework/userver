@@ -106,7 +106,7 @@ ssize_t Stream::GetMaxSize(std::size_t max_len, std::uint32_t* flags) {
     return res;
 }
 
-void Stream::Send(engine::io::Socket& socket, std::string_view data_frame_header, std::size_t max_len) {
+void Stream::Send(engine::io::RwBase& socket, std::string_view data_frame_header, std::size_t max_len) {
     boost::container::small_vector<engine::io::IoData, 16> parts{};
     parts.push_back({data_frame_header.data(), data_frame_header.size()});
     auto budget = max_len;
@@ -126,7 +126,8 @@ void Stream::Send(engine::io::Socket& socket, std::string_view data_frame_header
         budget -= part.size();
     }
     UASSERT(!parts.empty());
-    [[maybe_unused]] const auto res = socket.SendAll(parts.data(), parts.size(), {});
+    [[maybe_unused]] const auto
+        res = socket.WriteAll(std::span<const engine::io::IoData>{parts.data(), parts.size()}, {});
     const auto send_parts_count = pos_in_first_chunk_ == 0 ? parts.size() - 1 : parts.size() - 2;  // data_frame_header
                                                                                                    // doesn't matter
     chunks_.erase(chunks_.begin(), chunks_.begin() + send_parts_count);

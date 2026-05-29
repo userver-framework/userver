@@ -73,6 +73,22 @@ bool IsServerError(grpc::StatusCode code) noexcept {
     }
 }
 
+/// [retryable]
+bool IsRetryable(grpc::StatusCode code) noexcept {
+    switch (code) {
+        case grpc::StatusCode::CANCELLED:
+        case grpc::StatusCode::UNKNOWN:
+        case grpc::StatusCode::DEADLINE_EXCEEDED:
+        case grpc::StatusCode::INTERNAL:
+        case grpc::StatusCode::UNAVAILABLE:
+            return true;
+
+        default:
+            return false;
+    }
+}
+/// [retryable]
+
 }  // namespace ugrpc
 
 namespace formats::parse {

@@ -26,7 +26,7 @@ namespace {
 template <class ContainerLeft, class ContainerRight>
 bool LeftContainsRight(const ContainerLeft& left, const ContainerRight& right) {
     for (const auto& value : right) {
-        if (std::find(left.begin(), left.end(), value) == left.end()) {
+        if (std::ranges::find(left, value) == left.end()) {
             return false;
         }
     }

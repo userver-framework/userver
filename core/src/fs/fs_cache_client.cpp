@@ -118,7 +118,7 @@ void FsCacheClient::HandleCreate(const std::string& path) {
 }
 
 void FsCacheClient::HandleCreateDirectory(engine::io::sys_linux::Inotify& inotify, const std::string& path) {
-    engine::AsyncNoSpan(tp_, [&] { HandleCreateDirectoryBlocking(inotify, path); }).Get();
+    engine::AsyncNoTracing(tp_, [&] { HandleCreateDirectoryBlocking(inotify, path); }).Get();
 }
 
 void FsCacheClient::HandleCreateDirectoryBlocking(engine::io::sys_linux::Inotify& inotify, const std::string& path) {

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/kafka/headers.hpp
+/// @brief Kafka message header views and readers
+
 #include <cstddef>
 #include <iterator>
 #include <string_view>
@@ -65,16 +68,13 @@ public:
     reference operator*() const;
 
     bool operator==(const HeadersIterator&) const;
-    bool operator!=(const HeadersIterator&) const;
 
 private:
     const rd_kafka_headers_s* headers_{nullptr};
     std::size_t index_{0};
 };
 
-#if defined(__cpp_concepts)
 static_assert(std::forward_iterator<HeadersIterator>);
-#endif
 
 /// @brief Class to read all message's headers.
 class HeadersReader {

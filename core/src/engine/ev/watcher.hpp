@@ -37,16 +37,19 @@ public:
     void Init(RawCallback<ev_timer> cb, LibEvDuration after, LibEvDuration repeat) noexcept;
 
     template <typename T = EvType>
-    std::enable_if_t<std::is_same_v<T, ev_io>> Set(int fd, int events) noexcept;
+    requires std::is_same_v<T, ev_io>
+    void Set(int fd, int events) noexcept;
 
     // Returns -1 if fd was not set
     template <typename T = EvType>
-    std::enable_if_t<std::is_same_v<T, ev_io>, int> GetFd() const noexcept;
+    requires std::is_same_v<T, ev_io>
+    int GetFd() const noexcept;
 
     int GetEvents() const noexcept { return w_.events; }
 
     template <typename T = EvType>
-    std::enable_if_t<std::is_same_v<T, ev_timer>> Set(LibEvDuration after, LibEvDuration repeat) noexcept;
+    requires std::is_same_v<T, ev_timer>
+    void Set(LibEvDuration after, LibEvDuration repeat) noexcept;
 
     // Synchronously stop ev_xxx. Can be used from coroutines only.
     void Stop() noexcept;
@@ -83,10 +86,12 @@ public:
     WatcherEpoch GetEpochWithinEvCallback() const noexcept;
 
     template <typename T = EvType>
-    std::enable_if_t<std::is_same_v<T, ev_timer>> Again();
+    requires std::is_same_v<T, ev_timer>
+    void Again();
 
     template <typename T = EvType>
-    std::enable_if_t<std::is_same_v<T, ev_async>> Send() noexcept;
+    requires std::is_same_v<T, ev_async>
+    void Send() noexcept;
 
     // Schedule an arbitrary function on the bound ev thread.
     // The Watcher won't be destroyed until the operation is complete.
@@ -117,7 +122,8 @@ private:
     void StopImpl() noexcept;
 
     template <typename T = EvType>
-    std::enable_if_t<std::is_same_v<T, ev_timer>> AgainImpl() noexcept;
+    requires std::is_same_v<T, ev_timer>
+    void AgainImpl() noexcept;
 
     EvType w_;
     ThreadControl thread_control_;
@@ -179,7 +185,7 @@ void Watcher<EvType>::StopAsync() noexcept {
     if (!IsActive()) {
         return;
     }
-    PushAsyncOp({AsyncOpType::kStop, /*epoch=*/0});
+    PushAsyncOp({.type = AsyncOpType::kStop, .epoch = 0});
 }
 
 template <typename EvType>
@@ -190,13 +196,15 @@ WatcherEpoch Watcher<EvType>::GetEpochWithinEvCallback() const noexcept {
 
 template <typename EvType>
 template <typename T>
-std::enable_if_t<std::is_same_v<T, ev_timer>> Watcher<EvType>::Again() {
+requires std::is_same_v<T, ev_timer>
+void Watcher<EvType>::Again() {
     RunInBoundEvLoopSync([this]() noexcept { AgainImpl(); });
 }
 
 template <typename EvType>
 template <typename T>
-std::enable_if_t<std::is_same_v<T, ev_async>> Watcher<EvType>::Send() noexcept {
+requires std::is_same_v<T, ev_async>
+void Watcher<EvType>::Send() noexcept {
     thread_control_.Send(w_);
 }
 

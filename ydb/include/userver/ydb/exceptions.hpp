@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/ydb/exceptions.hpp
+/// @brief YDB client exceptions
+
 #include <ydb-cpp-sdk/client/types/status/status.h>
 
 #include <stdexcept>

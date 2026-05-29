@@ -75,21 +75,13 @@ struct Codegen {};
 
 namespace detail {
 
-template <typename Enum, typename Enable = USERVER_NAMESPACE::utils::void_t<>>
-struct AreEnumeratorsDefined : std::false_type {};
-
-template <typename Enum>
-struct AreEnumeratorsDefined<Enum, USERVER_NAMESPACE::utils::void_t<decltype(CppToUserPg<Enum>::enumerators)*>>
-    : std::true_type {};
-
 template <typename Enum>
 struct Enumerators {
     static_assert(std::is_enum<Enum>(), "Type must be an enumeration");
     static_assert(
-        AreEnumeratorsDefined<Enum>(),
-        "CppToUserPg for an enumeration must contain a static "
-        "`enumerators` member of `utils::TrivialBiMap` type or "
-        "`storages::postgres::io::detail::Enumerator[]`"
+        requires { CppToUserPg<Enum>::enumerators; },
+        "CppToUserPg for an enumeration must contain a static `enumerators` member of `utils::TrivialBiMap` type or "
+        "`storages::postgres::io::detail::Enumerator[]`."
     );
     using Type = decltype(CppToUserPg<Enum>::enumerators);
 };
@@ -223,31 +215,19 @@ struct EnumConverter {
     PostgresType operator()(const Enum& user_data) const { return ToString(user_data); }
 };
 
-template <typename>
-auto HasParseImpl(...) -> std::false_type;
+template <typename Enum>
+concept HasParse = requires(std::string_view sw) { Parse(sw, formats::parse::To<Enum>{}); };
 
 template <typename Enum>
-auto HasParseImpl(int
-) -> decltype(Parse(std::declval<std::string_view>(), std::declval<formats::parse::To<Enum>>()), std::true_type{});
-
-template <typename Enum>
-struct HasParse : decltype(storages::postgres::io::detail::HasParseImpl<Enum>(0)) {};
-
-template <typename>
-auto HasToStringImpl(...) -> std::false_type;
-
-template <typename Enum>
-auto HasToStringImpl(int) -> decltype(ToString(std::declval<Enum>()), std::true_type{});
-
-template <typename Enum>
-struct HasToString : decltype(storages::postgres::io::detail::HasToStringImpl<Enum>(0)) {};
+concept HasToString = requires(Enum e) { ToString(e); };
 
 }  // namespace detail
 
 namespace traits {
 
 template <typename T>
-struct Input<T, std::enable_if_t<std::is_enum<T>() && !detail::kCustomParserDefined<T> && IsMappedToUserType<T>()>> {
+requires(std::is_enum_v<T> && !detail::CustomParserDefined<T> && IsMappedToUserType<T>)
+struct Input<T> {
     using type = io::detail::EnumParser<T>;
 };
 
@@ -256,8 +236,8 @@ struct ParserBufferCategory<io::detail::EnumParser<T>>
     : std::integral_constant<BufferCategory, BufferCategory::kPlainBuffer> {};
 
 template <typename T>
-struct
-    Output<T, std::enable_if_t<std::is_enum<T>() && !detail::kCustomFormatterDefined<T> && IsMappedToUserType<T>()>> {
+requires(std::is_enum_v<T> && !detail::CustomFormatterDefined<T> && IsMappedToUserType<T>)
+struct Output<T> {
     using type = io::detail::EnumFormatter<T>;
 };
 
@@ -265,11 +245,8 @@ struct
 // Allows C++ enums to be stored as PostgreSQL text when they have ToString support
 // but are not mapped to a specific PostgreSQL enum type via CppToUserPg
 template <typename Enum>
-struct Input<
-    Enum,
-    std::enable_if_t<
-        std::is_enum<Enum>() && !detail::kCustomParserDefined<Enum> && !IsMappedToUserType<Enum>() &&
-        storages::postgres::io::detail::HasToString<Enum>::value>> {
+requires(std::is_enum_v<Enum> && !detail::CustomParserDefined<Enum> && !IsMappedToUserType<Enum> && storages::postgres::io::detail::HasToString<Enum>)
+struct Input<Enum> {
     using type = TransformParser<Enum, std::string, storages::postgres::io::detail::EnumConverter<Enum>>;
 };
 
@@ -277,11 +254,8 @@ struct Input<
 // Allows C++ enums to be converted from PostgreSQL text when they have Parse support
 // but are not mapped to a specific PostgreSQL enum type via CppToUserPg
 template <typename Enum>
-struct Output<
-    Enum,
-    std::enable_if_t<
-        std::is_enum<Enum>() && !detail::kCustomFormatterDefined<Enum> && !IsMappedToUserType<Enum>() &&
-        storages::postgres::io::detail::HasParse<Enum>::value>> {
+requires(std::is_enum_v<Enum> && !detail::CustomFormatterDefined<Enum> && !IsMappedToUserType<Enum> && storages::postgres::io::detail::HasParse<Enum>)
+struct Output<Enum> {
     using type = TransformFormatter<Enum, std::string, storages::postgres::io::detail::EnumConverter<Enum>>;
 };
 

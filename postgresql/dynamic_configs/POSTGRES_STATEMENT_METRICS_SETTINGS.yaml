@@ -27,3 +27,7 @@ schema:
                 max_statement_metrics:
                     type: integer
                     minimum: 0
+                    description: |-
+                        Upper limit on the number of exported metrics. Essentially the size of the LRU cache
+                        where metrics are stored. A value of 0 disables metrics export.
+

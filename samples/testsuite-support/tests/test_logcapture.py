@@ -17,6 +17,7 @@ async def test_select(service_client: pytest_userver.client.Client):
     # /// [select]
 
 
+# /// [subscribe]
 async def test_subscribe(service_client, mockserver):
     async with service_client.capture_logs() as capture:
 
@@ -35,3 +36,4 @@ async def test_subscribe(service_client, mockserver):
 
         call = await log_event.wait_call()
         assert call['link'] == response.headers['x-yarequestid']
+    # /// [subscribe]

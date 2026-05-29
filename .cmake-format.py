@@ -8,7 +8,11 @@ with section('parse'):  # noqa: F821
     # kwargs - keyword arguments
     additional_commands = {
         'cpmaddpackage': {
-            'flags': ['EXCLUDE_FROM_ALL', 'DOWNLOAD_ONLY', 'SYSTEM'],
+            'flags': [
+                'EXCLUDE_FROM_ALL',
+                'DOWNLOAD_ONLY',
+                'SYSTEM',
+            ],
             'kwargs': {
                 'NAME': '*',
                 'VERSION': '*',
@@ -47,7 +51,11 @@ with section('parse'):  # noqa: F821
                 'DEPENDS': '*',
                 'EMBED_FILES': '*',
             },
-            'flags': ['NO_INSTALL', 'NO_CORE_LINK', 'GENERATE_DYNAMIC_CONFIGS'],
+            'flags': [
+                'NO_INSTALL',
+                'NO_CORE_LINK',
+                'GENERATE_DYNAMIC_CONFIGS',
+            ],
         },
         '_userver_directory_install': {
             'kwargs': {
@@ -73,14 +81,25 @@ with section('parse'):  # noqa: F821
             'kwargs': {
                 'ARGS': '*',
                 'FORMAT': '*',
+                'INCLUDE_DIRS': '*',
+                'INSTALL_INCLUDES_COMPONENT': '*',
+                'LAYOUT': '*',
                 'OUTPUT_DIR': '*',
-                'SCHEMAS': '*',
+                'OUTPUT_PREFIX': '*',
                 'RELATIVE_TO': '*',
+                'SCHEMAS': '*',
             },
-            'flags': ['UNIQUE'],
+            'flags': [
+                'GENERATE_SERIALIZERS',
+                'PARSE_EXTRA_FORMATS',
+                'NO_SAX_PARSE',
+                'NO_STREAM_WRITER',
+            ],
         },
         'userver_testsuite_requirements': {
-            'flags': ['TESTSUITE_ONLY'],
+            'flags': [
+                'TESTSUITE_ONLY',
+            ],
             'kwargs': {
                 'REQUIREMENTS_FILES_VAR': '*',
             },
@@ -119,7 +138,9 @@ with section('parse'):  # noqa: F821
             },
         },
         'userver_add_utest': {
-            'flags': ['DISABLE_GTEST_XML_OUTPUT'],
+            'flags': [
+                'DISABLE_GTEST_XML_OUTPUT',
+            ],
             'kwargs': {
                 'NAME': '*',
                 'DATABASES': '*',
@@ -140,7 +161,9 @@ with section('parse'):  # noqa: F821
                 'PYTHON_OUTPUT_VAR': '*',
                 'REQUIREMENTS': '*',
             },
-            'flags': ['UNIQUE'],
+            'flags': [
+                'UNIQUE',
+            ],
         },
         'userver_add_grpc_library': {
             'pargs': 1,
@@ -155,7 +178,9 @@ with section('parse'):  # noqa: F821
             },
         },
         '_userver_module_begin': {
-            'flags': ['CPM_DOWNLOAD_ONLY'],
+            'flags': [
+                'CPM_DOWNLOAD_ONLY',
+            ],
             'kwargs': {
                 'NAME': '*',
                 'DEBIAN_NAMES': '*',
@@ -181,14 +206,18 @@ with section('parse'):  # noqa: F821
             },
         },
         '_userver_module_find_library': {
-            'flags': ['OPTIONAL'],
+            'flags': [
+                'OPTIONAL',
+            ],
             'kwargs': {
                 'NAMES': '*',
                 'PATHS': '*',
             },
         },
         '_userver_module_find_part': {
-            'flags': ['OPTIONAL'],
+            'flags': [
+                'OPTIONAL',
+            ],
             'kwargs': {
                 'PART_TYPE': '*',
                 'NAMES': '*',

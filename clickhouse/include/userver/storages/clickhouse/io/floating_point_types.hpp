@@ -3,6 +3,8 @@
 /// @file userver/storages/clickhouse/io/floating_point_types.hpp
 /// @brief @copybrief storages::clickhouse::io::FloatingWithPrecision
 
+#include <concepts>
+
 #include <fmt/format.h>
 
 USERVER_NAMESPACE_BEGIN
@@ -14,10 +16,7 @@ namespace storages::clickhouse::io {
 /// FloatingWithPrecision<float, 6> respectively. These constants were derived from the accuracity the numbers from
 /// ranges [0.0-100000.0] (doubles) and [0.0-100.0] (floats) can be represented by these type. Clickhouse also supports
 /// inf, -inf and nan, see clickhouse docs.
-template <
-    typename FloatingPointT,
-    std::uint32_t Precision = std::is_same_v<FloatingPointT, float> ? 6 : 12,
-    typename = std::enable_if_t<std::is_floating_point_v<FloatingPointT>>>
+template <std::floating_point FloatingPointT, std::uint32_t Precision = std::is_same_v<FloatingPointT, float> ? 6 : 12>
 class FloatingWithPrecision {
 public:
     template <typename U>
@@ -55,7 +54,7 @@ public:
 private:
     FloatingPointT value_;
 
-    template <typename U, std::uint32_t AnotherPrecision, typename>
+    template <std::floating_point U, std::uint32_t AnotherPrecision>
     friend class FloatingWithPrecision;
 };
 

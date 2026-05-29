@@ -7,6 +7,7 @@
 
 #include <urabbitmq/impl/amqp_connection.hpp>
 #include <urabbitmq/impl/deferred_wrapper.hpp>
+#include <urabbitmq/impl/header_value.hpp>
 #include <urabbitmq/statistics/connection_statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -94,11 +95,18 @@ AMQP::Table CreateHeaders() {
     return headers;
 }
 
+AMQP::Table CreateHeadersForPublish(const Envelope& envelope) {
+    auto headers = CreateHeaders();
+    if (envelope.headers.has_value()) {
+        AddHeadersToTable(headers, *envelope.headers);
+    }
+
+    return headers;
+}
+
 }  // namespace
 
-AmqpChannel::AmqpChannel(AmqpConnection& conn)
-    : conn_{conn}
-{}
+AmqpChannel::AmqpChannel(AmqpConnection& conn) : conn_{conn} {}
 
 AmqpChannel::~AmqpChannel() = default;
 
@@ -196,7 +204,7 @@ void AmqpChannel::Publish(
 ) {
     AMQP::Envelope native_envelope{envelope.message.data(), envelope.message.size()};
     native_envelope.setPersistent(envelope.type == MessageType::kPersistent);
-    native_envelope.setHeaders(CreateHeaders());
+    native_envelope.setHeaders(CreateHeadersForPublish(envelope));
     if (envelope.reply_to.has_value()) {
         native_envelope.setReplyTo(envelope.reply_to.value().c_str());
     }
@@ -262,9 +270,7 @@ void AmqpChannel::CancelConsumer(const std::optional<std::string>& consumer_tag)
 
 void AmqpChannel::AccountMessageConsumed() { conn_.GetStatistics().AccountMessageConsumed(); }
 
-AmqpReliableChannel::AmqpReliableChannel(AmqpConnection& conn)
-    : conn_{conn}
-{}
+AmqpReliableChannel::AmqpReliableChannel(AmqpConnection& conn) : conn_{conn} {}
 
 AmqpReliableChannel::~AmqpReliableChannel() = default;
 
@@ -285,7 +291,7 @@ ResponseAwaiter AmqpReliableChannel::Publish(
     if (envelope.expiration.has_value()) {
         native_envelope.setExpiration(std::to_string(envelope.expiration.value().count()));
     }
-    native_envelope.setHeaders(CreateHeaders());
+    native_envelope.setHeaders(CreateHeadersForPublish(envelope));
 
     auto awaiter = conn_.GetAwaiter(deadline);
 

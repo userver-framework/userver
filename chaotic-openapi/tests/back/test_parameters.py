@@ -1,4 +1,4 @@
-from chaotic_openapi.back.cpp_client import types
+from chaotic_openapi.back.cpp.client import types
 import pytest
 
 from chaotic.back.cpp import type_name

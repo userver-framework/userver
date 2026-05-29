@@ -1,12 +1,14 @@
 #pragma once
 
+/// @file userver/kafka/consumer_component.hpp
+/// @brief @copybrief kafka::ConsumerComponent
+
 #include <string_view>
 
 #include <userver/kafka/consumer_scope.hpp>
 
 #include <userver/components/component_base.hpp>
 #include <userver/utils/fast_pimpl.hpp>
-#include <userver/utils/statistics/entry.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -57,10 +59,6 @@ private:
     static constexpr std::size_t kImplSize = 2480;
     static constexpr std::size_t kImplAlign = 16;
     utils::FastPimpl<impl::Consumer, kImplSize, kImplAlign> consumer_;
-
-    /// @note Subscriptions must be the last fields! Add new fields above this
-    /// comment.
-    utils::statistics::Entry statistics_holder_;
 };
 
 }  // namespace kafka

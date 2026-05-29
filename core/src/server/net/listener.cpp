@@ -29,6 +29,20 @@ Listener::~Listener() {
 
 void Listener::Start() { impl_ = std::make_unique<ListenerImpl>(*task_processor_, endpoint_info_, *data_accounter_); }
 
+void Listener::StopListening() {
+    if (!impl_) {
+        return;
+    }
+    impl_->StopListening();
+}
+
+bool Listener::WaitForNoConnections(engine::Deadline deadline) const {
+    if (!impl_) {
+        return true;
+    }
+    return impl_->WaitForNoConnections(deadline);
+}
+
 StatsAggregation Listener::GetStats() const {
     if (impl_) {
         return impl_->GetStats();

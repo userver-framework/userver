@@ -20,7 +20,11 @@ class FutureWaitStrategy final : public impl::WaitStrategy {
 public:
     FutureWaitStrategy(T& target, impl::TaskContext& current) noexcept : target_(target), current_(current) {}
 
-    EarlyNotify SetupWakeups() override { return target_.TryAppendAwaiter(current_, current_.GetAwaiterContext()); }
+    EarlyNotify SetupWakeups() override {
+        boost::intrusive_ptr<impl::Awaiter> awaiter_ptr{&current_};
+        target_.TryAppendAwaiter(awaiter_ptr, current_.GetAwaiterContext());
+        return EarlyNotify{awaiter_ptr != nullptr};
+    }
 
     void DisableWakeups() noexcept override { target_.RemoveAwaiter(current_, current_.GetAwaiterContext()); }
 

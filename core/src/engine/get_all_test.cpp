@@ -16,21 +16,21 @@ UTEST(GetAll, Empty) {
 }
 
 UTEST(GetAll, SingleVoid) {
-    auto task = engine::AsyncNoSpan([] {});
+    auto task = engine::AsyncNoTracing([] {});
     static_assert(std::is_void_v<decltype(engine::GetAll(task))>);
     UEXPECT_NO_THROW(engine::GetAll(task));
     EXPECT_FALSE(task.IsValid());
 }
 
 UTEST(GetAll, SingleResult) {
-    auto task = engine::AsyncNoSpan([] { return 42; });
+    auto task = engine::AsyncNoTracing([] { return 42; });
     EXPECT_EQ(engine::GetAll(task), std::vector{42});
     EXPECT_FALSE(task.IsValid());
 }
 
 UTEST(GetAll, MultipleVoid) {
-    auto task1 = engine::AsyncNoSpan([] {});
-    auto task2 = engine::AsyncNoSpan([] {});
+    auto task1 = engine::AsyncNoTracing([] {});
+    auto task2 = engine::AsyncNoTracing([] {});
     static_assert(std::is_void_v<decltype(engine::GetAll(task1, task2))>);
     UEXPECT_NO_THROW(engine::GetAll(task1, task2));
     EXPECT_FALSE(task1.IsValid());
@@ -38,8 +38,8 @@ UTEST(GetAll, MultipleVoid) {
 }
 
 UTEST(GetAll, MultipleResult) {
-    auto task1 = engine::AsyncNoSpan([] { return 1; });
-    auto task2 = engine::AsyncNoSpan([] { return 2; });
+    auto task1 = engine::AsyncNoTracing([] { return 1; });
+    auto task2 = engine::AsyncNoTracing([] { return 2; });
     EXPECT_EQ(engine::GetAll(task1, task2), (std::vector{1, 2}));
     EXPECT_FALSE(task1.IsValid());
     EXPECT_FALSE(task2.IsValid());
@@ -50,7 +50,7 @@ UTEST(GetAll, ContainerVoid) {
         std::vector<engine::TaskWithResult<void>> tasks;
         tasks.reserve(task_count);
         for (std::size_t i = 0; i < task_count; ++i) {
-            tasks.push_back(engine::AsyncNoSpan([] {}));
+            tasks.push_back(engine::AsyncNoTracing([] {}));
         }
 
         static_assert(std::is_void_v<decltype(engine::GetAll(tasks))>);
@@ -66,7 +66,7 @@ UTEST(GetAll, ContainerResult) {
         std::vector<engine::TaskWithResult<std::size_t>> tasks;
         std::vector<std::size_t> expected_result;
         for (std::size_t i = 0; i < task_count; ++i) {
-            tasks.push_back(engine::AsyncNoSpan([i] { return i; }));
+            tasks.push_back(engine::AsyncNoTracing([i] { return i; }));
             expected_result.push_back(i);
         }
         EXPECT_EQ(engine::GetAll(tasks), expected_result);

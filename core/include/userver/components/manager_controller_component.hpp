@@ -49,7 +49,8 @@ class Manager;
 /// static_config_validation.validate_all_components | whether to validate static config according to schema; should be `true` for all new services | true
 /// preheat_stacktrace_collector | whether to collect a dummy stacktrace at server start up (usable to avoid loading debug info at random point at runtime) | true
 /// userver_experiments.*NAME* | whether to enable certain userver experiments; these are gradually enabled by userver team, for internal use only | false
-/// graceful_shutdown_interval | at shutdown, first hang for this duration with /ping 5xx to give the balancer a chance to redirect new requests to other hosts | 0s
+/// graceful_shutdown_continue_accepting_requests_interval | at shutdown, first hang for this duration with /ping 5xx to give the balancer a chance to redirect new requests to other hosts and to give the service a chance to finish handling old requests | 0s
+/// graceful_shutdown_pending_requests_completion_interval | at shutdown, when the graceful_shutdown_continue_accepting_requests_interval has expired, all listeners are closed, but already accepted requests continue to be processed until this interval ends | graceful_shutdown_continue_accepting_requests_interval
 /// enable_trx_tracker | Enable checking of heavy operations (like http calls) while having active database transactions. | true
 /// enable_component_load_tracing | whether trace all components coroutines during boot, and dump alive coroutines stacktraces on slow boot. Can slow down service startup. | false
 /// component_load_print_interval | how often to print "still loading components: ..." log message during startup | 10s

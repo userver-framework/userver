@@ -12,20 +12,17 @@ Awaiter::Awaiter(StaticType type, InitialRefCounter initial_ref_counter)
       type_(type)
 {}
 
-void Awaiter::Notify(std::uintptr_t context) noexcept {
-    if (type_ == StaticType::kTaskContext) {
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-        static_cast<TaskContext*>(this)->Wakeup(TaskContext::WakeupSource::kNotify, static_cast<Epoch>(context));
-        return;
-    }
-
-    CastToPolymorphic().DoNotify(context);
-}
-
 std::size_t Awaiter::UseCount() const noexcept {
     // memory order could potentially be less restrictive, but it gets very
     // complicated to reason about
     return intrusive_refcount_.load(std::memory_order_seq_cst);
+}
+
+void Awaiter::NotifyTaskContext(boost::intrusive_ptr<Awaiter> self, std::uintptr_t context) noexcept {
+    UASSERT(self);
+    // TODO move `self` into `Wakeup` to propagate intrusive_ptr to the task queue.
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+    static_cast<TaskContext&>(*self).Wakeup(TaskContext::WakeupSource::kNotify, static_cast<Epoch>(context));
 }
 
 PolymorphicAwaiter& Awaiter::CastToPolymorphic() noexcept {

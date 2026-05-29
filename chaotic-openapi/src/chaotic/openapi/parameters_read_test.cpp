@@ -95,4 +95,116 @@ UTEST(OpenapiParametersRead, TypeStringExplode) {
     EXPECT_EQ(foo, (std::vector{1, 2, 3}));
 }
 
+// --- IsParameterPresent ---
+
+UTEST(OpenapiParametersRead, IsParameterPresentQueryPresent) {
+    auto request = server::http::HttpRequestBuilder().AddRequestArg("foo", "val").Build();
+    EXPECT_TRUE(co::IsParameterPresent<co::In::kQuery>("foo", *request));
+    EXPECT_FALSE(co::IsParameterPresent<co::In::kQuery>("bar", *request));
+}
+
+UTEST(OpenapiParametersRead, IsParameterPresentQueryExplodePresent) {
+    auto request = server::http::HttpRequestBuilder().AddRequestArg("foo", "v").Build();
+    EXPECT_TRUE(co::IsParameterPresent<co::In::kQueryExplode>("foo", *request));
+    EXPECT_FALSE(co::IsParameterPresent<co::In::kQueryExplode>("bar", *request));
+}
+
+UTEST(OpenapiParametersRead, IsParameterPresentHeaderPresent) {
+    auto request = server::http::HttpRequestBuilder().AddHeader("foo", "val").Build();
+    EXPECT_TRUE(co::IsParameterPresent<co::In::kHeader>("foo", *request));
+    EXPECT_FALSE(co::IsParameterPresent<co::In::kHeader>("bar", *request));
+}
+
+UTEST(OpenapiParametersRead, IsParameterPresentCookiePresent) {
+    auto request = server::http::HttpRequestBuilder().AddHeader("Cookie", "foo=val").Build();
+    EXPECT_TRUE(co::IsParameterPresent<co::In::kCookie>("foo", *request));
+    EXPECT_FALSE(co::IsParameterPresent<co::In::kCookie>("bar", *request));
+}
+
+UTEST(OpenapiParametersRead, IsParameterPresentPathAlwaysTrue) {
+    auto request = server::http::HttpRequestBuilder().Build();
+    EXPECT_TRUE(co::IsParameterPresent<co::In::kPath>("anything", *request));
+}
+
+// --- ReadParameter: missing required → ClientError ---
+
+UTEST(OpenapiParametersRead, RequiredQueryMissingThrows) {
+    auto request = server::http::HttpRequestBuilder().Build();
+    UEXPECT_THROW(
+        (co::ReadParameter<co::TrivialParameter<co::In::kQuery, kName, std::string>>(*request)),
+        server::handlers::ClientError
+    );
+}
+
+UTEST(OpenapiParametersRead, RequiredHeaderMissingThrows) {
+    auto request = server::http::HttpRequestBuilder().Build();
+    UEXPECT_THROW(
+        (co::ReadParameter<co::TrivialParameter<co::In::kHeader, kName, std::string>>(*request)),
+        server::handlers::ClientError
+    );
+}
+
+UTEST(OpenapiParametersRead, RequiredCookieMissingThrows) {
+    auto request = server::http::HttpRequestBuilder().Build();
+    UEXPECT_THROW(
+        (co::ReadParameter<co::TrivialParameter<co::In::kCookie, kName, std::string>>(*request)),
+        server::handlers::ClientError
+    );
+}
+
+// --- ReadParameterOptional: absent → nullopt, present → value ---
+
+UTEST(OpenapiParametersRead, OptionalQueryAbsentReturnsNullopt) {
+    auto request = server::http::HttpRequestBuilder().Build();
+    auto val = co::ReadParameterOptional<co::TrivialParameter<co::In::kQuery, kName, std::string>>(*request);
+    EXPECT_FALSE(val.has_value());
+}
+
+UTEST(OpenapiParametersRead, OptionalQueryPresentReturnsValue) {
+    auto request = server::http::HttpRequestBuilder().AddRequestArg("foo", "bar").Build();
+    auto val = co::ReadParameterOptional<co::TrivialParameter<co::In::kQuery, kName, std::string>>(*request);
+    ASSERT_TRUE(val.has_value());
+    EXPECT_EQ(*val, "bar");
+}
+
+UTEST(OpenapiParametersRead, OptionalQueryExplicitlyEmptyReturnsEmpty) {
+    // An explicitly provided empty query arg is distinct from absent.
+    auto request = server::http::HttpRequestBuilder().AddRequestArg("foo", "").Build();
+    auto val = co::ReadParameterOptional<co::TrivialParameter<co::In::kQuery, kName, std::string>>(*request);
+    ASSERT_TRUE(val.has_value());
+    EXPECT_EQ(*val, "");
+}
+
+UTEST(OpenapiParametersRead, OptionalHeaderAbsentReturnsNullopt) {
+    auto request = server::http::HttpRequestBuilder().Build();
+    auto val = co::ReadParameterOptional<co::TrivialParameter<co::In::kHeader, kName, std::string>>(*request);
+    EXPECT_FALSE(val.has_value());
+}
+
+UTEST(OpenapiParametersRead, OptionalHeaderPresentReturnsValue) {
+    auto request = server::http::HttpRequestBuilder().AddHeader("foo", "hval").Build();
+    auto val = co::ReadParameterOptional<co::TrivialParameter<co::In::kHeader, kName, std::string>>(*request);
+    ASSERT_TRUE(val.has_value());
+    EXPECT_EQ(*val, "hval");
+}
+
+UTEST(OpenapiParametersRead, OptionalCookieAbsentReturnsNullopt) {
+    auto request = server::http::HttpRequestBuilder().Build();
+    auto val = co::ReadParameterOptional<co::TrivialParameter<co::In::kCookie, kName, std::string>>(*request);
+    EXPECT_FALSE(val.has_value());
+}
+
+UTEST(OpenapiParametersRead, OptionalExplodeAbsentReturnsNullopt) {
+    auto request = server::http::HttpRequestBuilder().Build();
+    auto val = co::ReadParameterOptional<co::ArrayParameter<co::In::kQueryExplode, kName, ',', std::string>>(*request);
+    EXPECT_FALSE(val.has_value());
+}
+
+UTEST(OpenapiParametersRead, OptionalExplodePresentReturnsVector) {
+    auto request = server::http::HttpRequestBuilder().AddRequestArg("foo", "a").AddRequestArg("foo", "b").Build();
+    auto val = co::ReadParameterOptional<co::ArrayParameter<co::In::kQueryExplode, kName, ',', std::string>>(*request);
+    ASSERT_TRUE(val.has_value());
+    EXPECT_EQ(*val, (std::vector<std::string>{"a", "b"}));
+}
+
 USERVER_NAMESPACE_END

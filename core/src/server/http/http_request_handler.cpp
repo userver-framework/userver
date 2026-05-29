@@ -3,6 +3,8 @@
 #include <chrono>
 #include <stdexcept>
 
+#include <fmt/ranges.h>
+
 #include <server/handlers/http_handler_base_statistics.hpp>
 #include <server/handlers/http_server_settings.hpp>
 #include <server/request/task_inherited_request_impl.hpp>
@@ -55,7 +57,7 @@ engine::TaskWithResult<void> HttpRequestHandler::StartFailsafeTask(std::shared_p
 ) const {
     const auto* handler = http_request->GetHttpHandler();
 
-    return engine::AsyncNoSpan([request = std::move(http_request), handler]() {
+    return engine::AsyncNoTracing([request = std::move(http_request), handler]() {
         request->SetTaskStartTime();
         if (handler) {
             handler->ReportMalformedRequest(*request);
@@ -146,7 +148,8 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(std::shared_pt
         return StartFailsafeTask(std::move(http_request));
     }
 
-    if (handler->GetConfig().response_body_stream) {
+    request::RequestContext context;
+    if (handler->IsStreamed(*std::move(http_request), context)) {
         http_response.SetStreamBody();
     }
 
@@ -164,9 +167,9 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(std::shared_pt
     };
 
     if (!is_monitor_ && throttling_enabled) {
-        return engine::AsyncNoSpan(*task_processor, std::move(payload));
+        return engine::AsyncNoTracing(*task_processor, std::move(payload));
     } else {
-        return engine::CriticalAsyncNoSpan(*task_processor, std::move(payload));
+        return engine::CriticalAsyncNoTracing(*task_processor, std::move(payload));
     }
 }  // namespace http
 

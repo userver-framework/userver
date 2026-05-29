@@ -38,9 +38,9 @@ public:
 
         switch (behavior_) {
             case Behaviors::kNoop:
-                return engine::AsyncNoSpan([this]() { ++asyncs_finished; });
+                return engine::AsyncNoTracing([this]() { ++asyncs_finished; });
             case Behaviors::kHang:
-                return engine::AsyncNoSpan([this]() {
+                return engine::AsyncNoTracing([this]() {
                     engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
                     ASSERT_TRUE(engine::current_task::IsCancelRequested());
                     ++asyncs_finished;
@@ -97,7 +97,10 @@ net::ListenerConfig CreateConfig(
     net::ListenerConfig config;
     config.handler_defaults = server::request::HttpRequestConfig{};
     config.connection_config.http_version = http_ver;
-    config.ports.emplace_back(net::PortConfig{});
+
+    net::PortConfig port_config;
+    port_config.port = 32000;
+    config.ports.emplace_back(std::move(port_config));
     return config;
 }
 
@@ -134,7 +137,7 @@ TYPED_UTEST(ServerNetConnection, EarlyCancel) {
     server::request::ResponseDataAccounter data_accounter;
     TestHttprequestHandler handler;
 
-    auto task = engine::AsyncNoSpan([&] {
+    auto task = engine::AsyncNoTracing([&] {
         ConnectionType connection(
             config.connection_config,
             config.handler_defaults,
@@ -176,7 +179,7 @@ TYPED_UTEST(ServerNetConnection, EarlyTimeout) {
 
     UEXPECT_THROW(res.Get(), clients::http::TimeoutException);
 
-    auto task = engine::AsyncNoSpan([&] {
+    auto task = engine::AsyncNoTracing([&] {
         ConnectionType connection(
             config.connection_config,
             config.handler_defaults,
@@ -208,7 +211,7 @@ TYPED_UTEST(ServerNetConnection, TimeoutWithTaskCancellation) {
     server::request::ResponseDataAccounter data_accounter;
     TestHttprequestHandler handler{TestHttprequestHandler::Behaviors::kHang};
 
-    auto task = engine::AsyncNoSpan([&] {
+    auto task = engine::AsyncNoTracing([&] {
         ConnectionType connection(
             config.connection_config,
             config.handler_defaults,
@@ -262,7 +265,7 @@ TYPED_UTEST(ServerNetConnection, RemoteClosed) {
     server::request::ResponseDataAccounter data_accounter;
     TestHttprequestHandler handler;
 
-    auto task = engine::AsyncNoSpan([&] {
+    auto task = engine::AsyncNoTracing([&] {
         ConnectionType connection(
             config.connection_config,
             config.handler_defaults,
@@ -299,7 +302,7 @@ TYPED_UTEST(ServerNetConnection, KeepAlive) {
     server::request::ResponseDataAccounter data_accounter;
     TestHttprequestHandler handler;
 
-    auto task = engine::AsyncNoSpan([&] {
+    auto task = engine::AsyncNoTracing([&] {
         ConnectionType connection(
             config.connection_config,
             config.handler_defaults,
@@ -340,7 +343,7 @@ TYPED_UTEST(ServerNetConnection, CancelMultipleInFlight) {
         server::request::ResponseDataAccounter data_accounter;
         TestHttprequestHandler handler;
 
-        auto task = engine::AsyncNoSpan([&] {
+        auto task = engine::AsyncNoTracing([&] {
             ConnectionType connection(
                 config.connection_config,
                 config.handler_defaults,
@@ -398,7 +401,7 @@ UTEST(HTTP2Connection, ThrowHttp1IsNotSupported) {
     server::request::ResponseDataAccounter data_accounter;
     TestHttprequestHandler handler;
 
-    auto task = engine::AsyncNoSpan([&] {
+    auto task = engine::AsyncNoTracing([&] {
         ConnectionType connection(
             config.connection_config,
             config.handler_defaults,

@@ -3,6 +3,7 @@
 #include <memory>
 
 #include <userver/concurrent/background_task_storage.hpp>
+#include <userver/engine/deadline.hpp>
 #include <userver/engine/io/socket.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/engine/task/task_with_result.hpp>
@@ -25,6 +26,10 @@ public:
     ~ListenerImpl();
 
     StatsAggregation GetStats() const;
+
+    void StopListening();
+
+    bool WaitForNoConnections(engine::Deadline deadline) const;
 
 private:
     void AcceptConnection(engine::io::Socket& request_socket, const PortConfig& port_config);

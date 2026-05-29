@@ -9,6 +9,7 @@
 #include <optional>
 #include <utility>
 
+#include <userver/compiler/impl/lifetime.hpp>
 #include <userver/concurrent/impl/asymmetric_fence.hpp>
 #include <userver/concurrent/impl/intrusive_hooks.hpp>
 #include <userver/concurrent/impl/intrusive_stack.hpp>
@@ -159,7 +160,7 @@ public:
             SyncDeleter{}.Delete(std::move(handle));
         } else {
             try {
-                engine::DetachUnscopedUnsafe(engine::CriticalAsyncNoSpan(
+                engine::DetachUnscopedUnsafe(engine::CriticalAsyncNoTracing(
                     // The order of captures is important, 'handle' must be destroyed before 'token'.
                     [token = wait_token_storage_.GetToken(), handle = std::move(handle)]() mutable {}
                 ));
@@ -281,17 +282,17 @@ public:
     ReadablePtr& operator=(const ReadablePtr& other) = default;
     ~ReadablePtr() = default;
 
-    const T* Get() const& {
+    const T* Get() const& USERVER_IMPL_LIFETIME_BOUND {
         UASSERT(ptr_);
         return ptr_;
     }
 
     const T* Get() && { return GetOnRvalue(); }
 
-    const T* operator->() const& { return Get(); }
+    const T* operator->() const& USERVER_IMPL_LIFETIME_BOUND { return Get(); }
     const T* operator->() && { return GetOnRvalue(); }
 
-    const T& operator*() const& { return *Get(); }
+    const T& operator*() const& USERVER_IMPL_LIFETIME_BOUND { return *Get(); }
     const T& operator*() && { return *GetOnRvalue(); }
 
 private:
@@ -352,17 +353,17 @@ public:
         lock_.unlock();
     }
 
-    T* Get() & {
+    T* Get() & USERVER_IMPL_LIFETIME_BOUND {
         UASSERT(record_ != nullptr);
         return &*record_->data;
     }
 
     T* Get() && { return GetOnRvalue(); }
 
-    T* operator->() & { return Get(); }
+    T* operator->() & USERVER_IMPL_LIFETIME_BOUND { return Get(); }
     T* operator->() && { return GetOnRvalue(); }
 
-    T& operator*() & { return *Get(); }
+    T& operator*() & USERVER_IMPL_LIFETIME_BOUND { return *Get(); }
     T& operator*() && { return *GetOnRvalue(); }
 
 private:

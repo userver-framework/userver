@@ -217,10 +217,8 @@ TEST(ManagerConfig, Basic) {
 
     ASSERT_EQ(mc.components.size(), 28);
 
-    EXPECT_TRUE(std::any_of(mc.components.begin(), mc.components.end(), [](const auto& conf) {
-        return conf.Name() == "api-firebase";
-    }));
-    EXPECT_TRUE(std::any_of(mc.components.begin(), mc.components.end(), [](const auto& conf) {
+    EXPECT_TRUE(std::ranges::any_of(mc.components, [](const auto& conf) { return conf.Name() == "api-firebase"; }));
+    EXPECT_TRUE(std::ranges::any_of(mc.components, [](const auto& conf) {
         return conf.Name() == "logging-configurator";
     }));
 }
@@ -229,9 +227,7 @@ TEST(ManagerConfig, HandlerConfig) {
     const auto mc = MakeManagerConfig();
 
     // NOLINTNEXTLINE(readability-qualified-auto)
-    const auto it = std::find_if(mc.components.cbegin(), mc.components.cend(), [](const auto& v) {
-        return v.Name() == "tests-control";
-    });
+    const auto it = std::ranges::find_if(mc.components, [](const auto& v) { return v.Name() == "tests-control"; });
     ASSERT_NE(it, mc.components.cend()) << "failed to find 'tests-control'";
 
     EXPECT_EQ(it->GetPath(), "components_manager.components.tests-control");

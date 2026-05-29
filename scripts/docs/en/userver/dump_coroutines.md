@@ -1,8 +1,8 @@
 # Dump coroutines in runtime
 
 Sometimes your service may experience some bugs (wow!).
-It may result in subtle behaviour including deadlocks and coroutines freeze.
-If you faced similar issue in production, you might want to carefully study some/all running coroutines properties to locate and fix the bug.
+It may result in subtle behaviour including deadlocks and frozen coroutines.
+If you face a similar issue in production, you might want to carefully study some/all running coroutines properties to locate and fix the bug.
 
 ## Setup
 

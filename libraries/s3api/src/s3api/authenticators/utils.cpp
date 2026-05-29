@@ -5,11 +5,14 @@
 #include <set>
 #include <sstream>
 
+#include <algorithm>
+
 #include <boost/algorithm/string.hpp>
 
 #include <userver/clients/http/request.hpp>
 #include <userver/crypto/hash.hpp>
 #include <userver/utils/datetime_light.hpp>
+#include <userver/utils/str_icase.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -45,10 +48,10 @@ std::string HttpMethodToString(const clients::http::HttpMethod http_method) {
 }
 
 std::string RemoveExcessiveSpaces(std::string value) {
-    std::string result;
-    std::replace(value.begin(), value.end(), '\n', ' ');
-    unique_copy(value.begin(), value.end(), back_inserter(result), [](char a, char b) { return a == ' ' && b == ' '; });
-    return result;
+    std::ranges::replace(value, '\n', ' ');
+    const auto garbage = std::ranges::unique(value, [](char a, char b) { return a == ' ' && b == ' '; });
+    value.erase(garbage.begin(), garbage.end());
+    return value;
 }
 
 std::string MakeHeaderDate() { return utils::datetime::UtcTimestring(utils::datetime::Now(), "%a, %d %b %Y %T %z"); }
@@ -96,21 +99,13 @@ std::string MakeStringToSign(
         std::vector<std::pair<std::string, std::string>> canonical_headers;
         canonical_headers.reserve(request.headers.size());
 
-        std::copy_if(
-            request.headers.begin(),
-            request.headers.end(),
-            std::back_inserter(canonical_headers),
-            [](const auto& header) {
-                static const std::string kAmzHeader = "x-amz-";
-                auto header_start = header.first.substr(0, kAmzHeader.size());
-                boost::to_lower(header_start);
-                return header_start == kAmzHeader;
-            }
-        );
-        std::for_each(canonical_headers.begin(), canonical_headers.end(), [](auto& header) {
-            boost::to_lower(header.first);
+        std::ranges::copy_if(request.headers, std::back_inserter(canonical_headers), [](const auto& header) {
+            static constexpr std::string_view kAmzHeader = "x-amz-";
+            auto header_start = std::string_view{header.first}.substr(0, kAmzHeader.size());
+            return utils::StrIcaseEqual{}(header_start, kAmzHeader);
         });
-        std::sort(canonical_headers.begin(), canonical_headers.end(), [](const auto& header1, const auto& header2) {
+        std::ranges::for_each(canonical_headers, [](auto& header) { boost::to_lower(header.first); });
+        std::ranges::sort(canonical_headers, [](const auto& header1, const auto& header2) {
             return header1.first < header2.first;
         });
 

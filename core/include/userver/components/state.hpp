@@ -27,7 +27,7 @@ class ComponentContextImpl;
 /// kLoading [label="{kLoading | <f0> * Components are constructed }"];
 /// kOnAllComponentsLoadedIsRunning [label="{kOnAllComponentsLoadedIsRunning | <f1> * OnAllComponentsLoaded is called }"];
 /// kRunning [label="{kRunning | <f2> * All components loaded successfully \n * Service is fully operational }"];
-/// kGracefulShutdown [label="{kGracefulShutdown | <f3> * Waits graceful_shutdown_interval }"];
+/// kGracefulShutdown [label="{kGracefulShutdown | <f3> * First, waits graceful_shutdown_continue_accepting_requests_interval. Then OnGracefulShutdown is called * }"];
 /// kOnAllComponentsAreStoppingIsRunning [label="{kOnAllComponentsAreStoppingIsRunning | <f4> * OnAllComponentsAreStopping is called \n * Reverse-dependency order }"];
 /// kStopping [label="{kStopping | <f5> * Components are destroyed \n * Reverse-dependency order }"];
 ///
@@ -35,7 +35,8 @@ class ComponentContextImpl;
 /// kLoading -> kOnAllComponentsAreStoppingIsRunning [label=" Exception during construction "];
 /// kOnAllComponentsLoadedIsRunning -> kRunning;
 /// kOnAllComponentsLoadedIsRunning -> kOnAllComponentsAreStoppingIsRunning [label=" OnAllComponentsLoaded throws "];
-/// kRunning -> kGracefulShutdown [label=" Received SIGINT or SIGTERM "];
+/// kRunning -> kOnAllComponentsAreStoppingIsRunning [label=" Received SIGINT or SIGTERM when graceful shutdown is disabled "];
+/// kRunning -> kGracefulShutdown [label=" Received SIGINT or SIGTERM when graceful shutdown is enabled "];
 /// kGracefulShutdown -> kOnAllComponentsAreStoppingIsRunning;
 /// kOnAllComponentsAreStoppingIsRunning -> kStopping;
 /// }
@@ -63,13 +64,18 @@ enum class ServiceLifetimeStage {
     /// This stage ends once the service receives a shutdown signal (`SIGINT` or `SIGTERM`).
     kRunning,
 
-    /// The service waits for `graceful_shutdown_interval` (0 by default) before continuing with the actual service
-    /// shutdown in @ref ServiceLifetimeStage::kOnAllComponentsAreStoppingIsRunning.
+    /// The service performs a graceful shutdown if either `graceful_shutdown_continue_accepting_requests_interval`
+    /// or `graceful_shutdown_pending_requests_completion_interval` is non-zero.
+    /// First, it waits for `graceful_shutdown_pending_requests_completion_interval` unless the interval is zero.
+    /// Second, it stops accepting new requests and continues processing of already running requests for
+    /// `graceful_shutdown_pending_requests_completion_interval` unless the interval is zero.
+    /// Then the normal shutdown procedure continues in @ref ServiceLifetimeStage::kOnAllComponentsAreStoppingIsRunning.
     ///
+    /// @see @ref scripts/docs/en/userver/graceful_shutdown.md
     /// @see @ref components::ManagerControllerComponent
     ///
     /// Example:
-    /// @snippet core/functional_tests/graceful_shutdown/static_config.yaml graceful_shutdown_interval
+    /// @snippet core/functional_tests/graceful_shutdown/static_config.yaml graceful_shutdown_settings
     kGracefulShutdown,
 
     /// @ref components::ComponentBase::OnAllComponentsAreStopping (noop by default) is running for all components.
@@ -114,6 +120,9 @@ public:
     /// @returns the current service lifetime stage.
     /// @see @ref components::ServiceLifetimeStage
     ServiceLifetimeStage GetServiceLifetimeStage() const;
+
+    /// @returns true if the service is being shut down gracefully.
+    bool IsInGracefulShutdown() const;
 
     /// @returns true if component with name `component_name` depends
     /// (directly or transitively) on a component with name `dependency`.

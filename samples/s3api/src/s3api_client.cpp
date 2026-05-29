@@ -2,6 +2,8 @@
 
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
+#include <userver/testsuite/tasks.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 /// [includes]
 
@@ -18,10 +20,17 @@ S3ApiSampleComponent::S3ApiSampleComponent(
     const components::ComponentContext& context
 )
     : LoggableComponentBase(config, context),
+      url_(config["url"].As<std::string>()),
       http_client_(context.FindComponent<::components::HttpClient>().GetHttpClient())
 {
-    auto my_client = GetClient();
-    DoVeryImportantThingsInS3(std::move(my_client));
+    auto& testsuite_tasks = testsuite::GetTestsuiteTasks(context);
+    // Only register task for testsuite environment
+    if (testsuite_tasks.IsEnabled()) {
+        testsuite_tasks.RegisterTask("some-s3-fill-task", [this] {
+            auto my_client = GetClient();
+            DoVeryImportantThingsInS3(std::move(my_client));
+        });
+    }
 }
 
 /// [create_client]
@@ -35,12 +44,7 @@ s3api::ClientPtr S3ApiSampleComponent::GetClient() {
     );
 
     // Create connection object
-    auto s3_connection = s3api::MakeS3Connection(
-        http_client_,
-        s3api::S3ConnectionType::kHttps,
-        "s3-some-site.awsornot.com",
-        connection_cfg
-    );
+    auto s3_connection = s3api::MakeS3Connection(http_client_, s3api::S3ConnectionType::kHttps, url_, connection_cfg);
 
     // Create authorizer.
     auto auth = std::make_shared<s3api::authenticators::AccessKey>("my-access-key", s3api::Secret("my-secret-key"));
@@ -51,11 +55,23 @@ s3api::ClientPtr S3ApiSampleComponent::GetClient() {
 
 /// [create_client]
 
+yaml_config::Schema S3ApiSampleComponent::GetStaticConfigSchema() {
+    return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+type: object
+description: S3 API sample component
+additionalProperties: false
+properties:
+    url:
+        type: string
+        description: URL to S3 API
+)");
+}
+
 /// [using_client]
 
 void DoVeryImportantThingsInS3(s3api::ClientPtr client) {
     std::string path = "path/to/object";
-    std::string data{"some string data"};
+    std::string data{"some string data from S3ApiSampleComponent start"};
 
     client->PutObject(path, std::move(data));
     client->GetObject(path);

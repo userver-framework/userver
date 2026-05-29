@@ -17,14 +17,14 @@ constexpr std::string_view kProcessRedisSubscriptionMessage = "process redis sub
 
 SubscriptionTokenImpl::SubscriptionTokenImpl(
     impl::SubscribeSentinel& subscribe_sentinel,
-    std::string channel,
+    std::vector<std::string> channels,
     OnMessageCb on_message_cb,
     const CommandControl& command_control
 )
-    : channel_(std::move(channel)),
-      queue_(subscribe_sentinel, channel_, command_control),
+    : queue_(subscribe_sentinel, channels, command_control),
       on_message_cb_(std::move(on_message_cb)),
-      subscriber_task_(utils::CriticalAsync("redis-channel-subscriber-" + channel_, [this] { ProcessMessages(); }))
+      subscriber_task_(utils::CriticalAsync("redis-channel-subscriber-" + channels.at(0), [this] { ProcessMessages(); })
+      )
 {}
 
 SubscriptionTokenImpl::~SubscriptionTokenImpl() { Unsubscribe(); }
@@ -41,21 +41,21 @@ void SubscriptionTokenImpl::ProcessMessages() {
     while (queue_.PopMessage(msg)) {
         const tracing::Span span(std::string{kProcessRedisSubscriptionMessage});
         if (on_message_cb_) {
-            on_message_cb_(channel_, msg.message);
+            on_message_cb_(msg.channel, msg.message);
         }
     }
 }
 
 PsubscriptionTokenImpl::PsubscriptionTokenImpl(
     impl::SubscribeSentinel& subscribe_sentinel,
-    std::string pattern,
+    std::vector<std::string> patterns,
     OnPmessageCb on_pmessage_cb,
     const CommandControl& command_control
 )
-    : pattern_(std::move(pattern)),
-      queue_(subscribe_sentinel, pattern_, command_control),
+    : queue_(subscribe_sentinel, patterns, command_control),
       on_pmessage_cb_(std::move(on_pmessage_cb)),
-      subscriber_task_(utils::CriticalAsync("redis-pattern-subscriber-" + pattern_, [this] { ProcessMessages(); }))
+      subscriber_task_(utils::CriticalAsync("redis-pattern-subscriber-" + patterns.at(0), [this] { ProcessMessages(); })
+      )
 {}
 
 PsubscriptionTokenImpl::~PsubscriptionTokenImpl() { Unsubscribe(); }
@@ -72,21 +72,21 @@ void PsubscriptionTokenImpl::ProcessMessages() {
     while (queue_.PopMessage(msg)) {
         const tracing::Span span(std::string{kProcessRedisSubscriptionMessage});
         if (on_pmessage_cb_) {
-            on_pmessage_cb_(pattern_, msg.channel, msg.message);
+            on_pmessage_cb_(msg.pattern, msg.channel, msg.message);
         }
     }
 }
 
 SsubscriptionTokenImpl::SsubscriptionTokenImpl(
     impl::SubscribeSentinel& subscribe_sentinel,
-    std::string channel,
+    std::vector<std::string> channels,
     OnMessageCb on_message_cb,
     const CommandControl& command_control
 )
-    : channel_(std::move(channel)),
-      queue_(subscribe_sentinel, channel_, command_control),
+    : queue_(subscribe_sentinel, channels, command_control),
       on_message_cb_(std::move(on_message_cb)),
-      subscriber_task_(utils::CriticalAsync("redis-channel-subscriber-" + channel_, [this] { ProcessMessages(); }))
+      subscriber_task_(utils::CriticalAsync("redis-channel-subscriber-" + channels.at(0), [this] { ProcessMessages(); })
+      )
 {}
 
 SsubscriptionTokenImpl::~SsubscriptionTokenImpl() { Unsubscribe(); }
@@ -103,7 +103,7 @@ void SsubscriptionTokenImpl::ProcessMessages() {
     while (queue_.PopMessage(msg)) {
         const tracing::Span span(std::string{kProcessRedisSubscriptionMessage});
         if (on_message_cb_) {
-            on_message_cb_(channel_, msg.message);
+            on_message_cb_(msg.channel, msg.message);
         }
     }
 }

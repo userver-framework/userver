@@ -18,8 +18,8 @@ namespace utils::impl {
 // A wrapper that obtains a Span from args, attaches it to current coroutine,
 // and applies a function to the rest of arguments.
 struct SpanWrapCall {
-    enum class InheritVariables { kYes, kNo };
-    enum class HideSpan { kYes, kNo };
+    enum class InheritVariables : bool { kNo = false, kYes = true };
+    enum class HideSpan : bool { kNo = false, kYes = true };
 
     explicit SpanWrapCall(
         std::string&& name,
@@ -35,6 +35,7 @@ struct SpanWrapCall {
     ~SpanWrapCall();
 
     template <typename Function, typename... Args>
+    requires std::invocable<Function&&, Args&&...>
     auto operator()(Function&& f, Args&&... args) {
         DoBeforeInvoke();
         return std::invoke(std::forward<Function>(f), std::forward<Args>(args)...);
@@ -50,6 +51,15 @@ private:
     utils::FastPimpl<Impl, kImplSize, kImplAlign> pimpl_;
 };
 
+struct SpanWrapCallFactory {
+    std::string&& name;
+    SpanWrapCall::InheritVariables inherit_variables = SpanWrapCall::InheritVariables::kYes;
+    SpanWrapCall::HideSpan hide_span = SpanWrapCall::HideSpan::kNo;
+    const SourceLocation& location = SourceLocation::Current();
+
+    SpanWrapCall operator()() && { return SpanWrapCall(std::move(name), inherit_variables, location, hide_span); }
+};
+
 // Note: 'name' and 'location' must outlive the result of this function
 inline auto SpanLazyPrvalue(
     std::string&& name,
@@ -57,8 +67,11 @@ inline auto SpanLazyPrvalue(
     SpanWrapCall::HideSpan hide_span = SpanWrapCall::HideSpan::kNo,
     const SourceLocation& location = SourceLocation::Current()
 ) {
-    return utils::LazyPrvalue([&name, inherit_variables, &location, hide_span] {
-        return SpanWrapCall(std::move(name), inherit_variables, location, hide_span);
+    return utils::LazyPrvalue(SpanWrapCallFactory{
+        .name = std::move(name),
+        .inherit_variables = inherit_variables,
+        .hide_span = hide_span,
+        .location = location,
     });
 }
 

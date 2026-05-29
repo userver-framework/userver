@@ -1,11 +1,11 @@
 #include <userver/utils/text.hpp>
 
 #include <algorithm>
+#include <ranges>
 #include <unordered_map>
 
 #include <boost/algorithm/string.hpp>
 #include <boost/locale.hpp>
-#include <boost/range/adaptor/transformed.hpp>
 
 #include <userver/engine/shared_mutex.hpp>
 #include <userver/utils/assert.hpp>

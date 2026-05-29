@@ -409,17 +409,17 @@ UTEST(MetricsWriter, ComplexPathsStored) {
 }
 
 UTEST(MetricsWriter, CustomizationPointChecks) {
-    EXPECT_TRUE(utils::statistics::kHasWriterSupport<std::atomic<int>>);
-    EXPECT_TRUE(utils::statistics::kHasWriterSupport<int>);
-    EXPECT_TRUE(utils::statistics::kHasWriterSupport<long double>);
+    EXPECT_TRUE(utils::statistics::HasWriterSupport<std::atomic<int>>);
+    EXPECT_TRUE(utils::statistics::HasWriterSupport<int>);
+    EXPECT_TRUE(utils::statistics::HasWriterSupport<long double>);
 
-    EXPECT_FALSE(utils::statistics::kHasWriterSupport<NotDumpable>);
-    EXPECT_FALSE(utils::statistics::kHasWriterSupport<std::string>);
-    EXPECT_FALSE(utils::statistics::kHasWriterSupport<std::string_view>);
+    EXPECT_FALSE(utils::statistics::HasWriterSupport<NotDumpable>);
+    EXPECT_FALSE(utils::statistics::HasWriterSupport<std::string>);
+    EXPECT_FALSE(utils::statistics::HasWriterSupport<std::string_view>);
 
-    EXPECT_TRUE(utils::statistics::kHasWriterSupport<some::Dumpable1>);
-    EXPECT_TRUE(utils::statistics::kHasWriterSupport<some::Dumpable2>);
-    EXPECT_TRUE(utils::statistics::kHasWriterSupport<some::Dumpable3>);
+    EXPECT_TRUE(utils::statistics::HasWriterSupport<some::Dumpable1>);
+    EXPECT_TRUE(utils::statistics::HasWriterSupport<some::Dumpable2>);
+    EXPECT_TRUE(utils::statistics::HasWriterSupport<some::Dumpable3>);
 }
 
 UTEST(MetricsWriter, AutomaticUnsubscribingCheckWriterData) {

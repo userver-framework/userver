@@ -1,10 +1,16 @@
 default: {"allowed_keys": []}
-description: ''
+description: |
+    Baggage header settings.
+    Whether it is enabled is controlled by the BAGGAGE_ENABLED config.
 schema:
     type: object
     additionalProperties: false
     properties:
         allowed_keys:
+            description: |
+                Allowed keys that may appear in the header.
+                Do not pass personal data in this header.
+                The header may be visible outside Yandex services.
             type: array
             items:
                 type: string

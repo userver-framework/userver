@@ -20,7 +20,7 @@ namespace boost { namespace pfr { namespace detail {
 template <class T, std::size_t I>
 constexpr auto get_name() noexcept {
     static_assert(
-        !sizeof(T),
+        sizeof(T) && false,
         "====================> Boost.PFR: Field's names extracting functionality requires C++20."
     );
 
@@ -30,7 +30,7 @@ constexpr auto get_name() noexcept {
 template <class T>
 constexpr auto tie_as_names_tuple() noexcept {
     static_assert(
-        !sizeof(T),
+        sizeof(T) && false,
         "====================> Boost.PFR: Field's names extracting functionality requires C++20."
     );
 
@@ -41,7 +41,7 @@ constexpr auto tie_as_names_tuple() noexcept {
 template <class T, class F>
 constexpr void for_each_field_with_name(T&& /* value */, F&& /* func */) {
     static_assert(
-        !sizeof(T),
+        sizeof(T) && false,
         "====================> Boost.PFR: Field's names extracting functionality requires C++20."
     );
 }

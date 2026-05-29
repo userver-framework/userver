@@ -17,21 +17,6 @@ namespace formats::yaml {
 
 namespace {
 
-// Helper structure for YAML conversions. YAML has built in conversion logic and
-// an `T Node::as<T>(U default_value)` function that uses it. We provide
-// `IsConvertibleChecker<T>{}` as a `default_value`, and if the
-// `IsConvertibleChecker` was converted to T (an implicit conversion operator
-// was called), then the conversion failed.
-template <class T>
-struct IsConvertibleChecker {
-    bool& convertible;
-
-    operator T() const {
-        convertible = false;
-        return {};
-    }
-};
-
 auto MakeMissingNode() { return YAML::Node{}[0]; }
 
 // yaml-cpp allows to parse quoted and typed strings into bool and numeric
@@ -141,8 +126,6 @@ std::size_t Value::GetSize() const {
 
 bool Value::operator==(const Value& other) const { return GetNative().Scalar() == other.GetNative().Scalar(); }
 
-bool Value::operator!=(const Value& other) const { return !(*this == other); }
-
 bool Value::IsMissing() const { return !*value_pimpl_; }
 
 template <class T>
@@ -151,21 +134,19 @@ bool Value::IsConvertibleToArithmetic() const {
         return false;
     }
 
-    bool ok = true;
-    value_pimpl_->as<T>(IsConvertibleChecker<T>{ok});
-    return ok && !IsExplicitlyTypedString(*value_pimpl_);
+    T t{};
+    return YAML::convert<T>::decode(*value_pimpl_, t) && !IsExplicitlyTypedString(*value_pimpl_);
 }
 
 template <class T>
 T Value::ValueAsArithmetic() const {
     CheckNotMissing();
 
-    bool ok = true;
-    auto res = value_pimpl_->as<T>(IsConvertibleChecker<T>{ok});
-    if (!ok || IsExplicitlyTypedString(*value_pimpl_)) {
+    T t{};
+    if (!YAML::convert<T>::decode(*value_pimpl_, t) || IsExplicitlyTypedString(*value_pimpl_)) {
         throw TypeMismatchException(*value_pimpl_, compiler::GetTypeName<T>(), path_.ToStringView());
     }
-    return res;
+    return t;
 }
 
 bool Value::IsNull() const noexcept {

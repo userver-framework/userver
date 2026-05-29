@@ -678,5 +678,5 @@ going from the lowest to the highest priority:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref rabbitmq_driver | @ref scripts/docs/en/dynamic_configs/dynamic_configs.md ⇨
+⇦ @ref scripts/docs/en/userver/rabbitmq_driver.md | @ref scripts/docs/en/dynamic_configs/dynamic_configs.md ⇨
 @htmlonly </div> @endhtmlonly

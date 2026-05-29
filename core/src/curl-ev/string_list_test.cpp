@@ -85,6 +85,7 @@ TEST(CurlStringList, ReplaceFirstIfOnlyConsumesOnReplacement) {
         const auto replaced = list.ReplaceFirstIf([](const std::string&) { return false; }, std::move(value));
         EXPECT_FALSE(replaced);
         // value is not moved out
+        // NOLINTNEXTLINE(bugprone-use-after-move)
         EXPECT_FALSE(value.empty());
     }
 
@@ -93,6 +94,7 @@ TEST(CurlStringList, ReplaceFirstIfOnlyConsumesOnReplacement) {
         const auto replaced = list.ReplaceFirstIf([](const std::string&) { return true; }, std::move(value));
         EXPECT_TRUE(replaced);
         // now value is moved out
+        // NOLINTNEXTLINE(bugprone-use-after-move)
         EXPECT_TRUE(value.empty());
     }
 }

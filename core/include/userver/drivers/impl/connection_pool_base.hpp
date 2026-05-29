@@ -154,7 +154,7 @@ void ConnectionPoolBase<
     init_tasks.reserve(initial_size);
 
     for (std::size_t i = 0; i < initial_size; ++i) {
-        init_tasks.push_back(engine::AsyncNoSpan([this, connection_setup_timeout] {
+        init_tasks.push_back(engine::AsyncNoTracing([this, connection_setup_timeout] {
             PushConnection(engine::Deadline::FromDuration(connection_setup_timeout));
         }));
     }

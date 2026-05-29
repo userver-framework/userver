@@ -1,5 +1,7 @@
 default: 5
-description: ''
+description: |
+    Factor multiplied by RPS when comparing to the RPS limit to determine whether CC
+    is activated (for metrics).
 schema:
     type: integer
     minimum: 1

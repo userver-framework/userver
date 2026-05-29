@@ -1,5 +1,6 @@
 #include <userver/components/raw_component_base.hpp>
 
+#include <userver/engine/deadline.hpp>
 #include <userver/utils/resources.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 #include <userver/yaml_config/schema.hpp>
@@ -14,6 +15,8 @@ namespace components {
 
 // Putting destructor into a cpp file to force vtable instantiation in only 1 translation unit
 RawComponentBase::~RawComponentBase() = default;
+
+void RawComponentBase::OnGracefulShutdown(engine::Deadline) {}
 
 yaml_config::Schema RawComponentBase::GetStaticConfigSchema() {
     return yaml_config::impl::SchemaFromString(utils::FindResource("src/components/impl/component_base.yaml"));

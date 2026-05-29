@@ -97,7 +97,7 @@ TEST(StrIcases, CompareLessMany) {
     for (size_t i = 1; i < v.size(); i++) {
         std::swap(v[i], v[i * 311 % (i + 1)]);
     }
-    std::sort(std::begin(v), std::end(v), utils::StrIcaseLess());
+    std::ranges::sort(v, utils::StrIcaseLess());
     std::string result;
     for (const auto& s : v) {
         result += s;
@@ -134,7 +134,7 @@ TEST(StrIcases, CompareLessNonAlpha) {
     for (size_t i = 1; i < v.size(); i++) {
         std::swap(v[i], v[i * 311 % (i + 1)]);
     }
-    std::sort(std::begin(v), std::end(v), utils::StrIcaseLess());
+    std::ranges::sort(v, utils::StrIcaseLess());
     std::string result;
     for (const auto& s : v) {
         result += s;

@@ -232,7 +232,7 @@ DnsServerMock::DnsServerMock(DnsHandler handler)
     // NOLINTNEXTLINE(cppcoreguidelines-slicing)
     : listener_(std::make_shared<engine::io::tests::UdpListener>()),
       handler_{std::move(handler)},
-      receiver_task_{engine::AsyncNoSpan([this] { ProcessRequests(); })}
+      receiver_task_{engine::AsyncNoTracing([this] { ProcessRequests(); })}
 {}
 
 std::string DnsServerMock::GetServerAddress() const { return fmt::to_string(listener_->addr); }

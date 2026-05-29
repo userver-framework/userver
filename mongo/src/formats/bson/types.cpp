@@ -71,8 +71,6 @@ const bson_oid_t* Oid::GetNative() const { return &oid_; }
 
 bool Oid::operator==(const Oid& rhs) const { return bson_oid_equal(&oid_, &rhs.oid_); }
 
-bool Oid::operator!=(const Oid& rhs) const { return !(*this == rhs); }
-
 bool Oid::operator<(const Oid& rhs) const { return bson_oid_compare(&oid_, &rhs.oid_) < 0; }
 
 bool Oid::operator>(const Oid& rhs) const { return bson_oid_compare(&oid_, &rhs.oid_) > 0; }

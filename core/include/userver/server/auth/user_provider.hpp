@@ -1,12 +1,15 @@
 #pragma once
 
+/// @file userver/server/auth/user_provider.hpp
+/// @brief @copybrief server::auth::UserProvider
+
 #include <string>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::auth {
 
-// Possible values of 'X-Ya-User-Ticket-Provider' header.
+/// @brief Source of the user ticket
 enum class UserProvider : int {
     kYandex,
     kYandexTeam,

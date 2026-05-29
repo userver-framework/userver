@@ -19,8 +19,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
-// clang-format off
-
 /// @brief Asynchronous task with result that has a shared ownership of payload
 ///
 /// ## Example usage:
@@ -28,9 +26,6 @@ namespace engine {
 /// @snippet engine/task/shared_task_with_result_test.cpp Sample SharedTaskWithResult usage
 ///
 /// @see @ref scripts/docs/en/userver/synchronization.md
-
-// clang-format on
-
 template <typename T>
 class [[nodiscard]] SharedTaskWithResult : public SharedTask {
 public:

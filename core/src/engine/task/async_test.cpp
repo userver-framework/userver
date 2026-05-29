@@ -1,14 +1,21 @@
 #include <userver/utest/utest.hpp>
 
 #include <atomic>
+#include <concepts>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
+#include <userver/engine/task/current_task.hpp>
+#include <userver/engine/task/inherited_variable.hpp>
+#include <userver/engine/task/task_with_result.hpp>
+#include <userver/tracing/span.hpp>
 #include <userver/utils/lazy_prvalue.hpp>
+#include <userver/utils/task_builder.hpp>
 
 #include <compiler/relax_cpu.hpp>
 #include <engine/task/task_context.hpp>
+#include <engine/tests/task_processor_utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -89,7 +96,7 @@ UTEST(Task, ArgumentsLifetime) {
     std::atomic<int> count = 0;
 
     EXPECT_EQ(0, count.load());
-    auto task = engine::AsyncNoSpan([](CountGuard) {}, CountGuard(count));
+    auto task = engine::AsyncNoTracing([](CountGuard) {}, CountGuard(count));
     EXPECT_EQ(1, count.load());
 
     engine::Yield();
@@ -103,7 +110,7 @@ UTEST(Task, ArgumentsLifetimeThrow) {
     std::atomic<int> count = 0;
 
     EXPECT_EQ(0, count.load());
-    auto task = engine::AsyncNoSpan([](CountGuard) { throw std::runtime_error("123"); }, CountGuard(count));
+    auto task = engine::AsyncNoTracing([](CountGuard) { throw std::runtime_error("123"); }, CountGuard(count));
     EXPECT_EQ(1, count.load());
 
     engine::Yield();
@@ -117,7 +124,7 @@ UTEST(Task, FunctionLifetime) {
     std::atomic<int> count = 0;
 
     EXPECT_EQ(0, count.load());
-    auto task = engine::AsyncNoSpan([guard = CountGuard(count)] {});
+    auto task = engine::AsyncNoTracing([guard = CountGuard(count)] {});
     EXPECT_EQ(1, count.load());
 
     engine::Yield();
@@ -131,7 +138,7 @@ UTEST(Task, FunctionLifetimeThrow) {
     std::atomic<int> count = 0;
 
     EXPECT_EQ(0, count.load());
-    auto task = engine::AsyncNoSpan([guard = CountGuard(count)] { throw std::runtime_error("123"); });
+    auto task = engine::AsyncNoTracing([guard = CountGuard(count)] { throw std::runtime_error("123"); });
     EXPECT_EQ(1, count.load());
 
     engine::Yield();
@@ -146,40 +153,40 @@ UTEST(Async, OverloadSelection) {
     OverloadedFunc tst{counters};
     std::string arg;
 
-    engine::AsyncNoSpan(std::ref(tst)).Wait();
+    engine::AsyncNoTracing(std::ref(tst)).Wait();
     EXPECT_EQ(counters.ref_func, 1);
 
-    engine::AsyncNoSpan(std::cref(tst)).Wait();
+    engine::AsyncNoTracing(std::cref(tst)).Wait();
     EXPECT_EQ(counters.cref_func, 1);
 
-    engine::AsyncNoSpan(tst).Wait();
-    engine::AsyncNoSpan(std::as_const(tst)).Wait();
-    engine::AsyncNoSpan(std::move(tst)).Wait();
+    engine::AsyncNoTracing(tst).Wait();
+    engine::AsyncNoTracing(std::as_const(tst)).Wait();
+    engine::AsyncNoTracing(std::move(tst)).Wait();
     EXPECT_EQ(counters.move_func, 3);
 
-    engine::AsyncNoSpan(tst, std::ref(arg)).Wait();
+    engine::AsyncNoTracing(tst, std::ref(arg)).Wait();
     EXPECT_EQ(counters.ref_arg, 1);
 
-    engine::AsyncNoSpan(tst, std::cref(arg)).Wait();
+    engine::AsyncNoTracing(tst, std::cref(arg)).Wait();
     EXPECT_EQ(counters.cref_arg, 1);
 
-    engine::AsyncNoSpan(tst, arg).Wait();
-    engine::AsyncNoSpan(tst, std::as_const(arg)).Wait();
-    engine::AsyncNoSpan(tst, std::move(arg)).Wait();
+    engine::AsyncNoTracing(tst, arg).Wait();
+    engine::AsyncNoTracing(tst, std::as_const(arg)).Wait();
+    engine::AsyncNoTracing(tst, std::move(arg)).Wait();
     EXPECT_EQ(counters.move_arg, 3);
 
-    UEXPECT_NO_THROW(engine::AsyncNoSpan(&ByPtrFunction).Wait());
-    UEXPECT_NO_THROW(engine::AsyncNoSpan(ByRefFunction).Wait());
+    UEXPECT_NO_THROW(engine::AsyncNoTracing(&ByPtrFunction).Wait());
+    UEXPECT_NO_THROW(engine::AsyncNoTracing(ByRefFunction).Wait());
 }
 
 UTEST(Async, ResourceDeallocation) {
-    engine::AsyncNoSpan(CountingConstructions{}).Wait();
+    engine::AsyncNoTracing(CountingConstructions{}).Wait();
     EXPECT_EQ(CountingConstructions::constructions, CountingConstructions::destructions);
 }
 
 UTEST(Task, CurrentTaskSetDeadline) {
     auto start = std::chrono::steady_clock::now();
-    auto task = engine::AsyncNoSpan([] {
+    auto task = engine::AsyncNoTracing([] {
         engine::current_task::SetDeadline(engine::Deadline::FromDuration(utest::kMaxTestWaitTime));
         engine::InterruptibleSleepFor(std::chrono::milliseconds(2));
         EXPECT_FALSE(engine::current_task::IsCancelRequested());
@@ -199,7 +206,8 @@ UTEST(Task, CurrentTaskSetDeadline) {
 UTEST(Async, WithDeadline) {
     auto start = std::chrono::steady_clock::now();
     std::atomic<bool> started{false};
-    auto task = engine::AsyncNoSpan(engine::Deadline::FromDuration(kDeadlineTestsTimeout), [&started] {
+    const auto deadline = engine::Deadline::FromDuration(kDeadlineTestsTimeout);
+    auto task = utils::TaskBuilder{}.NoSpan().Background().Deadline(deadline).Build([&started] {
         started = true;
         EXPECT_FALSE(engine::current_task::IsCancelRequested());
         engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
@@ -217,11 +225,11 @@ UTEST(Async, WithDeadline) {
 UTEST(Async, WithDeadlineDetach) {
     std::atomic<bool> started{false};
     std::atomic<bool> finished{false};
-    auto task = engine::AsyncNoSpan([&started, &finished] {
+    auto task = engine::AsyncNoTracing([&started, &finished] {
         auto start = std::chrono::steady_clock::now();
-        engine::DetachUnscopedUnsafe(engine::AsyncNoSpan(
-            engine::Deadline::FromDuration(kDeadlineTestsTimeout),
-            [start, &started, &finished] {
+        const auto deadline = engine::Deadline::FromDuration(kDeadlineTestsTimeout);
+        engine::DetachUnscopedUnsafe(
+            utils::TaskBuilder{}.NoSpan().Background().Deadline(deadline).Build([start, &started, &finished] {
                 started = true;
                 EXPECT_FALSE(engine::current_task::IsCancelRequested());
                 engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
@@ -232,8 +240,8 @@ UTEST(Async, WithDeadlineDetach) {
                 EXPECT_GE(duration, kDeadlineTestsTimeout);
                 EXPECT_LT(duration, kMaxTestDuration);
                 finished = true;
-            }
-        ));
+            })
+        );
     });
     UEXPECT_NO_THROW(task.Get());
     EXPECT_TRUE(started.load());
@@ -243,7 +251,7 @@ UTEST(Async, WithDeadlineDetach) {
 }
 
 UTEST(Async, Critical) {
-    auto task = engine::CriticalAsyncNoSpan([] { return true; });
+    auto task = engine::CriticalAsyncNoTracing([] { return true; });
     task.RequestCancel();
     task.WaitFor(std::chrono::milliseconds(100));
     EXPECT_TRUE(task.Get());
@@ -271,7 +279,7 @@ UTEST(Async, Emplace) {
         return "x"s;
     };
 
-    auto task = engine::CriticalAsyncNoSpan(utils::LazyPrvalue(append_y_factory), utils::LazyPrvalue(x_factory));
+    auto task = engine::CriticalAsyncNoTracing(utils::LazyPrvalue(append_y_factory), utils::LazyPrvalue(x_factory));
 
     EXPECT_EQ(task.Get(), "xy"s);
 }
@@ -283,7 +291,7 @@ UTEST(Async, FromNonWorkerThread) {
     auto& task_processor = engine::current_task::GetTaskProcessor();
     engine::TaskWithResult<void> task;
 
-    ev_thread.RunInEvLoopSync([&task_processor, &task] { task = engine::AsyncNoSpan(task_processor, [] {}); });
+    ev_thread.RunInEvLoopSync([&task_processor, &task] { task = engine::AsyncNoTracing(task_processor, [] {}); });
 
     task.Wait();
 }
@@ -303,9 +311,9 @@ UTEST_MT(Async, CancelNotifyRace, 4) {
     };
 
     while (!test_deadline.IsReached()) {
-        auto task1 = engine::AsyncNoSpan([] { delay(); });
+        auto task1 = engine::AsyncNoTracing([] { delay(); });
 
-        auto task2 = engine::CriticalAsyncNoSpan([&task1] {
+        auto task2 = engine::CriticalAsyncNoTracing([&task1] {
             try {
                 task1.Wait();
             } catch (const engine::WaitInterruptedException&) {
@@ -326,6 +334,80 @@ UTEST_MT(Async, CancelNotifyRace, 4) {
         // `task2`. It will be detected by Asan.
         UEXPECT_NO_THROW(task1.Get());
     }
+}
+
+namespace {
+
+engine::TaskInheritedVariable<int> kInheritedVariable;
+
+}  // namespace
+
+UTEST(Async, AsyncNoTracingCapturesExpectedContext) {
+    kInheritedVariable.Set(42);
+
+    auto task = engine::AsyncNoTracing([inherited = kInheritedVariable.Get()] {
+        EXPECT_FALSE(tracing::Span::CurrentSpanUnchecked());
+        EXPECT_EQ(inherited, 42);
+        EXPECT_FALSE(engine::current_task::impl::IsCritical());
+        EXPECT_EQ(engine::current_task::impl::GetDeadline(), engine::Deadline{});
+        return true;
+    });
+    static_assert(std::same_as<decltype(task), engine::TaskWithResult<bool>>);
+
+    EXPECT_TRUE(task.Get());
+}
+
+TEST(Async, AsyncNoTracingWithTaskProcessorCapturesExpectedContext) {
+    engine::tests::TwoStandaloneTaskProcessors tp;
+    tp.RunBlocking([&] {
+        kInheritedVariable.Set(42);
+
+        auto task = engine::AsyncNoTracing(tp.GetSecondary(), [&, inherited = kInheritedVariable.Get()] {
+            EXPECT_FALSE(tracing::Span::CurrentSpanUnchecked());
+            EXPECT_EQ(inherited, 42);
+            EXPECT_FALSE(engine::current_task::impl::IsCritical());
+            EXPECT_EQ(engine::current_task::impl::GetDeadline(), engine::Deadline{});
+            EXPECT_EQ(&engine::current_task::GetTaskProcessor(), &tp.GetSecondary());
+            return true;
+        });
+        static_assert(std::same_as<decltype(task), engine::TaskWithResult<bool>>);
+
+        EXPECT_TRUE(task.Get());
+    });
+}
+
+UTEST(Async, CriticalAsyncNoTracingCapturesExpectedContext) {
+    kInheritedVariable.Set(42);
+
+    auto task = engine::CriticalAsyncNoTracing([inherited = kInheritedVariable.Get()] {
+        EXPECT_FALSE(tracing::Span::CurrentSpanUnchecked());
+        EXPECT_EQ(inherited, 42);
+        EXPECT_TRUE(engine::current_task::impl::IsCritical());
+        EXPECT_EQ(engine::current_task::impl::GetDeadline(), engine::Deadline{});
+        return true;
+    });
+    static_assert(std::same_as<decltype(task), engine::TaskWithResult<bool>>);
+
+    EXPECT_TRUE(task.Get());
+}
+
+TEST(Async, CriticalAsyncNoTracingWithTaskProcessorCapturesExpectedContext) {
+    engine::tests::TwoStandaloneTaskProcessors tp;
+    tp.RunBlocking([&] {
+        kInheritedVariable.Set(42);
+
+        auto task = engine::CriticalAsyncNoTracing(tp.GetSecondary(), [&, inherited = kInheritedVariable.Get()] {
+            EXPECT_FALSE(tracing::Span::CurrentSpanUnchecked());
+            EXPECT_EQ(inherited, 42);
+            EXPECT_TRUE(engine::current_task::impl::IsCritical());
+            EXPECT_EQ(engine::current_task::impl::GetDeadline(), engine::Deadline{});
+            EXPECT_EQ(&engine::current_task::GetTaskProcessor(), &tp.GetSecondary());
+            return true;
+        });
+        static_assert(std::same_as<decltype(task), engine::TaskWithResult<bool>>);
+
+        EXPECT_TRUE(task.Get());
+    });
 }
 
 USERVER_NAMESPACE_END

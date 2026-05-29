@@ -82,8 +82,8 @@ void WriteToStreamDict(const T& value, StringBuilder& sw) {
 /// The signature of this WriteToStream must remain the less specialized one, so
 /// that it is not preferred over other functions.
 template <typename T, typename StringBuilder>
-std::enable_if_t<!std::is_arithmetic_v<T> && !std::is_convertible_v<T&, utils::impl::strong_typedef::StrongTypedefTag&>>
-WriteToStream(const T& value, StringBuilder& sw) {
+requires(!std::is_arithmetic_v<T> && !std::is_convertible_v<T&, utils::impl::strong_typedef::StrongTypedefTag&>)
+void WriteToStream(const T& value, StringBuilder& sw) {
     using Value = typename StringBuilder::Value;
 
     if constexpr (meta::kIsMap<T>) {
@@ -94,13 +94,12 @@ WriteToStream(const T& value, StringBuilder& sw) {
             "Include <userver/formats/serialize/boost_uuid.hpp> to serialize 'boost::uuids::uuid"
         );
         static_assert(
-            !meta::kIsRecursiveRange<T>,
+            !meta::IsRecursiveRange<T>,
             "Trying to log a recursive range, which can be dangerous. "
-            "(boost::filesystem::path?) Please implement WriteToStream "
-            "for your type"
+            "(boost::filesystem::path?) Please implement WriteToStream for your type"
         );
         impl::WriteToStreamArray(value, sw);
-    } else if constexpr (common::impl::kHasSerialize<Value, T>) {
+    } else if constexpr (common::impl::HasSerialize<Value, T>) {
         static_assert(
             !sizeof(T) || impl::kIsSerializeAllowedInWriteToStream<T, StringBuilder>,
             "SAX serialization falls back to Serialize call, which is not "

@@ -182,7 +182,7 @@ Becomes:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref clickhouse_driver | @ref scripts/docs/en/userver/libraries/s3api.md ⇨
+⇦ @ref scripts/docs/en/userver/clickhouse/driver.md | @ref scripts/docs/en/userver/libraries/s3api.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example libraries/easy/samples/4_custom_dependency/main.cpp

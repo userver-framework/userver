@@ -12,7 +12,7 @@ properties:
             set to avoid writing access logs
     max_response_size_in_flight:
         type: integer
-        description: drop incomming requests if the handler allows throttling and the size of waiting for send responses in bytes
+        description: drop incoming requests if the handler allows throttling and the size of waiting for send responses in bytes
             is greater than this value
     server-name:
         type: string
@@ -31,6 +31,9 @@ properties:
                 type: integer
                 description: port to listen on
                 default: 0
+            listen-socket-fd:
+                type: integer
+                description: listen socket file descriptor opened, bind, and passed by the parent process
             unix-socket: &ports-unix-socket
                 type: string
                 description: unix socket to listen on instead of listening on a port
@@ -128,6 +131,15 @@ properties:
                             When `false`, disables deadline propagation by default in all HTTP handlers.
                             Can be overridden by the corresponding option in server::handlers::HandlerBase.
                         default: true
+                    deadline_propagation_prefer_timestamp:
+                        type: boolean
+                        description: |
+                            When `true`, the handler uses a valid X-Request-Deadline (ISO 8601 UTC with
+                            microsecond fraction) as the local request deadline when dynamic config
+                            USERVER_DEADLINE_PROPAGATION_ABSOLUTE_TIMESTAMP_ENABLED allows it. The header
+                            is still parsed for downstream forwarding whenever deadline propagation is
+                            enabled.
+                        default: false
                     deadline_expired_status_code:
                         type: integer
                         description: the HTTP status code to return if the request deadline expires

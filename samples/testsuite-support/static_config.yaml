@@ -121,5 +121,4 @@ components_manager:
             testpoint-timeout: 10s
             testpoint-url: mockserver/testpoint
             throttling_enabled: false
-        testsuite-support:
-        # /// [testsuite - config.yaml]
+        testsuite-support:  # /// [testsuite - config.yaml]

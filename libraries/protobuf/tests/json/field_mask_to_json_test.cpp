@@ -170,9 +170,9 @@ TEST_P(FieldMaskToJsonSuccessTest, Test) {
     auto expected_json_paths = ParseFieldMaskStr(expected_json["field1"].As<std::string>());
     auto sample_json_paths = ParseFieldMaskStr(sample_json["field1"].As<std::string>());
 
-    std::sort(json_paths.begin(), json_paths.end());
-    std::sort(expected_json_paths.begin(), expected_json_paths.end());
-    std::sort(sample_json_paths.begin(), sample_json_paths.end());
+    std::ranges::sort(json_paths);
+    std::ranges::sort(expected_json_paths);
+    std::ranges::sort(sample_json_paths);
 
     EXPECT_EQ(json_paths, expected_json_paths);
     EXPECT_EQ(expected_json_paths, sample_json_paths);
@@ -199,8 +199,8 @@ TEST(FieldMaskToJsonAdditionalTest, InlinedNonNull) {
     auto paths = ParseFieldMaskStr(json.As<std::string>());
     auto sample_paths = ParseFieldMaskStr(sample.As<std::string>());
 
-    std::sort(paths.begin(), paths.end());
-    std::sort(sample_paths.begin(), sample_paths.end());
+    std::ranges::sort(paths);
+    std::ranges::sort(sample_paths);
 
     EXPECT_EQ(paths, sample_paths);
     EXPECT_EQ(paths, std::vector<std::string>{"someField.nestedField"});
@@ -238,7 +238,7 @@ TEST(FieldMaskToJsonAdditionalTest, DynamicMessage) {
         ASSERT_TRUE(json.IsString());
 
         auto paths = ParseFieldMaskStr(json.As<std::string>());
-        std::sort(paths.begin(), paths.end());
+        std::ranges::sort(paths);
 
         ASSERT_EQ(paths.size(), std::size_t{2});
         EXPECT_EQ(paths[0], "oneMore");

@@ -1,5 +1,9 @@
 #pragma once
 
+/// @file userver/utils/swappingsmart.hpp
+/// @brief @copybrief utils::SwappingSmart
+/// @ingroup userver_universal
+
 #include <atomic>
 #include <memory>
 
@@ -7,14 +11,16 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-// Use a faster and more reliable rcu::Variable instead of this class!
-//
-// This class helps to store pointer. Pointer stored as shared_ptr.
-// Whet you call Get, you will get copy of this shared pointer under read lock.
-// When you call Set pointer, it will be stored under writelock.
-//
-// It works slower than SwappingPtr in 5 times, but readers will always have
-// shared_ptr that they obtained, so it is impossible that data will be free'd.
+/// @brief Deprecated RCU-like shared_ptr cell with swap-based updates for readers.
+///
+/// Use a faster and more reliable rcu::Variable instead of this class!
+///
+/// This class helps to store pointer. Pointer stored as shared_ptr.
+/// Whet you call Get, you will get copy of this shared pointer under read lock.
+/// When you call Set pointer, it will be stored under writelock.
+///
+/// It works slower than SwappingPtr in 5 times, but readers will always have
+/// shared_ptr that they obtained, so it is impossible that data will be free'd.
 template <typename T>
 class SwappingSmart {
 public:

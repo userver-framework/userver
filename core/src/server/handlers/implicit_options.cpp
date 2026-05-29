@@ -94,7 +94,7 @@ std::string ImplicitOptions::ExtractAllowedMethods(const std::string& path) cons
         }
     }
 
-    std::sort(allowed_methods.begin(), allowed_methods.end());
+    std::ranges::sort(allowed_methods);
     return fmt::to_string(fmt::join(allowed_methods, ", "));
 }
 

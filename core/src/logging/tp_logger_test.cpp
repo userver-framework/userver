@@ -110,7 +110,7 @@ public:
             if (thread_index == 0 && (mode & kTestLogStdThread)) {
                 std_thread = std::thread{lambda};
             } else {
-                tasks.push_back(engine::AsyncNoSpan(lambda));
+                tasks.push_back(engine::AsyncNoTracing(lambda));
             }
         }
 

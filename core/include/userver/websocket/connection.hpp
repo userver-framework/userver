@@ -43,6 +43,7 @@ public:
     WebSocketConnection& operator=(WebSocketConnection&&) = delete;
     WebSocketConnection& operator=(const WebSocketConnection&) = delete;
 
+    /// Closes the connection by closing the underlying OS socket.
     virtual ~WebSocketConnection();
 
     /// @brief Read a message from websocket, handling pings under the hood.
@@ -66,6 +67,8 @@ public:
     /// multiple coroutines at once). It is **not** safe to call Recv() and Send() from different coroutines
     /// at once if TLS is used. Consider using Send()+TryRecv() from the same coroutine instead.
     virtual void Send(const Message& message) = 0;
+
+    /// @copydoc Send
     virtual void SendText(std::string_view message) = 0;
 
     /// @brief Send a ping message to websocket.
@@ -78,6 +81,7 @@ public:
     /// @returns the number of not answered sequential pings
     virtual std::size_t NotAnsweredSequentialPingsCount() = 0;
 
+    /// @brief Sends binary data from container @b message.
     template <typename ContiguousContainer>
     void SendBinary(const ContiguousContainer& message) {
         static_assert(
@@ -90,12 +94,16 @@ public:
         ));
     }
 
+    /// @brief Closes the connection with specified @b status_code.
     virtual void Close(CloseStatus status_code) = 0;
 
     virtual const engine::io::Sockaddr& RemoteAddr() const = 0;
 
     virtual void AddFinalTags(tracing::Span& span) const = 0;
     virtual void AddStatistics(Statistics& stats) const = 0;
+
+    virtual engine::io::ReadAwaiter& ReadAwaiter() = 0;
+    virtual engine::io::WriteAwaiter& WriteAwaiter() = 0;
 
 protected:
     virtual void DoSendBinary(utils::span<const std::byte> message) = 0;

@@ -24,7 +24,7 @@ protected:
     using Error::Error;
 };
 
-/// @brief Error reading proto struct from protobuf message.
+/// @brief Error reading proto struct from protobuf message or binary data.
 class ReadError final : public ConversionError {
 public:
     /// @brief Creates error with information what protobuf message field was considered invalid.
@@ -34,7 +34,7 @@ public:
     ReadError(std::string_view path, std::string_view reason);
 };
 
-/// @brief Error writing proto struct to protobuf message.
+/// @brief Error writing proto struct to protobuf message or binary data.
 class WriteError final : public ConversionError {
 public:
     /// @brief Creates error with information what protobuf message field was not correctly initialized.

@@ -12,47 +12,34 @@ USERVER_NAMESPACE_BEGIN
 
 namespace chaotic::sax {
 
-inline auto ParserOf(std::int32_t&)
-{
-    return formats::json::parser::Int32Parser{};
-}
+/// ADL helper for specialization via ParserOf(Type<X>)
+template <typename T>
+struct Type {};
 
-inline auto ParserOf(std::int64_t&)
-{
-    return formats::json::parser::Int64Parser{};
-}
+formats::json::parser::Int32Parser ParserOf(Type<std::int32_t>);
 
-inline auto ParserOf(bool&)
-{
-    return formats::json::parser::BoolParser{};
-}
+formats::json::parser::Int64Parser ParserOf(Type<std::int64_t>);
 
-inline auto ParserOf(float&)
-{
-    return formats::json::parser::FloatParser{};
-}
+formats::json::parser::BoolParser ParserOf(Type<bool>);
 
-inline auto ParserOf(double&)
-{
-    return formats::json::parser::DoubleParser{};
-}
+formats::json::parser::FloatParser ParserOf(Type<float>);
 
-inline auto ParserOf(std::string&)
-{
-    return formats::json::parser::StringParser{};
-}
+formats::json::parser::DoubleParser ParserOf(Type<double>);
 
-template <typename Array, typename = std::enable_if_t<meta::kIsRange<Array> && !meta::kIsMap<Array>>>
-auto ParserOf(Array&)
+formats::json::parser::StringParser ParserOf(Type<std::string>);
+
+template <typename Array>
+requires(meta::kIsRange<Array> && !meta::kIsMap<Array>)
+auto ParserOf(Type<Array>)
 {
     using Value = typename Array::value_type;
-    using ItemParser = decltype(ParserOf(std::declval<Value&>()));
+    using ItemParser = decltype(ParserOf(Type<Value>{}));
     using Parser = formats::json::parser::ArrayParser<Value, ItemParser, Array>;
     return JoinedParser<Parser, ItemParser>{};
 }
 
-template <typename T, typename Value = decltype(ParserOf(std::declval<T&>()))>
-using Parser = Value;
+template <typename T>
+using Parser = decltype(ParserOf(Type<T>{}));
 
 }  // namespace chaotic::sax
 

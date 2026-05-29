@@ -6,6 +6,8 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/str_icase.hpp>
 
+#include <algorithm>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
@@ -17,16 +19,13 @@ constexpr std::string_view kWebsocketUpgradeHeaderValue = "websocket\r\n";
 
 // find the header by ignoring spaces. Also case insensitive comparison
 bool IsWebSocketUpgradeRequest(std::string_view req) {
-    auto it = std::search(
-        req.begin(),
-        req.end(),
-        kWebsocketUpgradeHeaderName.begin(),
-        kWebsocketUpgradeHeaderName.end(),
-        [](char l, char r) { return std::tolower(l) == std::tolower(r); }
-    );
-    if (it == req.end()) {
+    const auto match = std::ranges::search(req, kWebsocketUpgradeHeaderName, [](char l, char r) {
+        return std::tolower(l) == std::tolower(r);
+    });
+    if (match.empty()) {
         return false;
     }
+    auto it = match.begin();
     it += kWebsocketUpgradeHeaderName.size();
     if (it == req.end()) {
         return false;

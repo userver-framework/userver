@@ -100,7 +100,7 @@ formats::json::Value KeyValue::GetValues() const {
     auto rows =
         mysql_->Execute(storages::mysql::ClusterHostType::kPrimary, "SELECT `key`, value FROM key_value_table")
             .AsVector<Row>();
-    std::sort(rows.begin(), rows.end(), [](const auto& lhs, const auto& rhs) { return lhs.key < rhs.key; });
+    std::ranges::sort(rows, [](const auto& lhs, const auto& rhs) { return lhs.key < rhs.key; });
 
     formats::json::ValueBuilder builder{};
     builder["values"] = rows;

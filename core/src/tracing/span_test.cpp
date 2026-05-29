@@ -263,13 +263,12 @@ UTEST_F(Span, LowerLocalLogLevel) {
 
 UTEST_F(Span, LocalLogLevelLowerThanGlobal) {
     tracing::Span span("parent_span");
-    // This currently cannot overcome global log level, which is "info" for this test.
     span.SetLocalLogLevel(logging::Level::kDebug);
 
-    LOG_DEBUG() << "message";
+    LOG_DEBUG() << "debug_message";
     logging::LogFlush();
 
-    EXPECT_THAT(GetStreamString(), Not(HasSubstr("message")));
+    EXPECT_THAT(GetStreamString(), HasSubstr("debug_message"));
 }
 
 UTEST_F(Span, SpanLogLevelLowerThanGlobal) {

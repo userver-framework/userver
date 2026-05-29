@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/http/http_response_body_stream.hpp
+/// @brief @copybrief server::http::ResponseBodyStream
+
 #include <string>
 
 #include <userver/server/http/http_response.hpp>
@@ -13,6 +16,7 @@ class HttpHandlerBase;
 
 namespace server::http {
 
+/// @brief Streaming HTTP response body writer
 class ResponseBodyStream final {
 public:
     ResponseBodyStream(ResponseBodyStream&&) = default;

@@ -273,4 +273,139 @@ UTEST_F(MongoTransaction, ParallelTrancactions) {
     EXPECT_THAT(found_docs, ::testing::ElementsAre(bson::MakeDoc("name", "test_user", "age", 30)));
 }
 
+UTEST_F(MongoTransaction, Isolation) {
+    static const std::string kCollectionName = "test_isolation";
+
+    auto regular_collection = GetDefaultPool().GetCollection(kCollectionName);
+
+    auto txn1 = GetDefaultPool().BeginTransaction();
+    auto txn2 = GetDefaultPool().BeginTransaction();
+    auto txn_collection1 = txn1.GetCollection(kCollectionName);
+    auto txn_collection2 = txn2.GetCollection(kCollectionName);
+
+    txn_collection1.InsertOne(bson::MakeDoc("name", "test_user", "age", 15));
+
+    EXPECT_TRUE(txn_collection1.FindOne({}));
+    EXPECT_FALSE(txn_collection2.FindOne({}));
+    EXPECT_FALSE(regular_collection.FindOne({}));
+    EXPECT_FALSE(regular_collection.Find({}).HasMore());
+
+    txn1.Commit();
+
+    // Collection changed in other transaction
+    UEXPECT_THROW(txn_collection2.FindOne({}), MongoException);
+
+    EXPECT_TRUE(regular_collection.FindOne({}));
+    EXPECT_TRUE(regular_collection.Find({}).HasMore());
+}
+
+UTEST_F(MongoTransaction, InvalidSessionIdReproducer) {
+    static const std::string kCollectionName = "test_invalid_session_id";
+
+    auto config = MakeTestPoolConfig();
+    config.pool_settings.initial_size = 1;
+    config.pool_settings.max_size = 3;
+    config.pool_settings.idle_limit = 2;
+
+    auto pool = MakePool("userver_mongotest_invalid_session_id", config);
+
+    auto coll = pool.GetCollection(kCollectionName);
+
+    {
+        std::vector<formats::bson::Document> docs;
+        docs.reserve(10);
+        for (int i = 0; i < 10; ++i) {
+            docs.push_back(bson::MakeDoc("foo", "bar", "value", i));
+        }
+        coll.InsertMany(std::move(docs));
+    }
+
+    auto txn = pool.BeginTransaction();
+    // GetCollection starts a transaction pinned to a dedicated client.
+    auto coll_txn = txn.GetCollection(kCollectionName);
+
+    // A non-transactional cursor on the same pool used to pick up the
+    // transactional client and cause "Invalid sessionId" errors on subsequent
+    // transactional ops. After the fix the transaction owns its client and
+    // this interleaving is safe.
+    auto cursor = coll.Find(bson::MakeDoc("foo", "bar"));
+
+    coll_txn.InsertOne(bson::MakeDoc("foo", "bar", "value", 11));
+
+    for (const auto& doc : cursor) {
+        EXPECT_NE(doc["value"].As<int>(), 11);
+    }
+
+    txn.Commit();
+}
+
+UTEST_F(MongoTransaction, TransactionOwnsItsClient) {
+    static const std::string kCollectionName = "test_txn_owns_client";
+
+    auto config = MakeTestPoolConfig();
+    config.pool_settings.initial_size = 1;
+    config.pool_settings.max_size = 1;
+    config.pool_settings.idle_limit = 1;
+
+    auto pool = MakePool("userver_mongotest_txn_owns_client", config);
+
+    auto regular_collection = pool.GetCollection(kCollectionName);
+    regular_collection.InsertOne(bson::MakeDoc("foo", "bar"));
+
+    auto txn = pool.BeginTransaction();
+    auto coll_txn = txn.GetCollection(kCollectionName);
+
+    UEXPECT_THROW(regular_collection.InsertOne(bson::MakeDoc("foo", "baz")), PoolOverloadException);
+
+    txn.Commit();
+
+    UEXPECT_NO_THROW(regular_collection.InsertOne(bson::MakeDoc("foo", "baz")));
+}
+
+UTEST_F(MongoTransaction, OperationAfterEndThrows) {
+    {
+        static const std::string kCollectionName = "test_ops_after_commit";
+
+        auto regular_collection = GetDefaultPool().GetCollection(kCollectionName);
+
+        auto txn = GetDefaultPool().BeginTransaction();
+        auto coll_txn = txn.GetCollection(kCollectionName);
+        coll_txn.InsertOne(bson::MakeDoc("foo", "bar"));
+        txn.Commit();
+
+        UEXPECT_THROW(coll_txn.InsertOne(bson::MakeDoc("foo", "bar")), MongoException);
+        UEXPECT_THROW(txn.GetCollection(kCollectionName), MongoException);
+        UEXPECT_THROW(txn.Commit(), MongoException);
+    }
+    {
+        static const std::string kCollectionName = "test_ops_after_abort";
+
+        auto regular_collection = GetDefaultPool().GetCollection(kCollectionName);
+
+        auto txn = GetDefaultPool().BeginTransaction();
+        auto coll_txn = txn.GetCollection(kCollectionName);
+        coll_txn.InsertOne(bson::MakeDoc("foo", "bar"));
+
+        txn.Abort();
+
+        UEXPECT_THROW(coll_txn.InsertOne(bson::MakeDoc("foo", "bar")), MongoException);
+        UEXPECT_THROW(txn.GetCollection(kCollectionName), MongoException);
+        UEXPECT_THROW(coll_txn.FindOne({}), MongoException);
+    }
+}
+
+#ifdef NDEBUG
+UTEST_F(MongoTransaction, CursorOpsForbidden) {
+    {
+        static const std::string kCollectionName = "test_cursor_ops_forbidden";
+
+        auto txn = GetDefaultPool().BeginTransaction();
+        auto coll_txn = txn.GetCollection(kCollectionName);
+
+        UEXPECT_THROW(coll_txn.Find(bson::MakeDoc("foo", "bar")), utils::InvariantError);
+        UEXPECT_THROW(coll_txn.Aggregate(bson::MakeDoc("foo", "bar")), utils::InvariantError);
+    }
+}
+#endif
+
 USERVER_NAMESPACE_END

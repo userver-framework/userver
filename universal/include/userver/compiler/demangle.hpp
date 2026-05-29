@@ -10,7 +10,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-/// Compiler and C++ language related tweaks
+/// @brief Compiler-specific utilities, attributes, and feature detection.
 namespace compiler {
 
 /// Returns a human-readable representation of provided type name.

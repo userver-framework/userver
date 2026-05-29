@@ -21,7 +21,7 @@ def format_md(name, content, content_raw):
 **Schema:**
 ```
 # yaml
-{content_raw}
+{content_raw.replace('```', '---')}
 ```
 
 {example}

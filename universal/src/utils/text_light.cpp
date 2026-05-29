@@ -5,8 +5,10 @@
 #include <sstream>
 #include <unordered_map>
 
-#include <boost/algorithm/string.hpp>
-#include <boost/range/adaptor/transformed.hpp>
+#include <boost/algorithm/string/constants.hpp>
+#include <boost/algorithm/string/join.hpp>
+#include <boost/algorithm/string/split.hpp>
+#include <boost/algorithm/string/trim.hpp>
 
 #include <userver/utils/assert.hpp>
 
@@ -21,6 +23,17 @@ std::string Trim(const std::string& str) { return boost::algorithm::trim_copy(st
 std::string Trim(std::string&& str) {
     boost::algorithm::trim(str);
     return std::move(str);
+}
+
+std::string_view TrimView(std::string_view str)
+{
+    // boost::algorithm::trim*() doesn't support std::string_view in some versions :(
+    auto start = std::find_if_not(str.begin(), str.end(), ::isspace);
+    auto end = std::find_if_not(str.rbegin(), str.rend(), ::isspace).base();
+    if (start >= end) {
+        return {};
+    }
+    return str.substr(start - str.begin(), end - start);
 }
 
 std::vector<std::string> Split(std::string_view str, std::string_view sep, SplitFlags split_flags) {
@@ -94,7 +107,7 @@ bool IsAsciiSpace(char ch) noexcept {
 }
 
 bool IsAscii(std::string_view text) noexcept {
-    return std::all_of(text.cbegin(), text.cend(), [](auto ch) { return IsAscii(ch); });
+    return std::ranges::all_of(text, [](auto ch) { return IsAscii(ch); });
 }
 
 namespace utf8 {
@@ -110,24 +123,24 @@ struct InclusiveRange {
 };
 
 constexpr InclusiveRange kWellFormed1Bytes[][1] = {
-    {{0x00, 0x7f}},
+    {{.from = 0x00, .to = 0x7f}},
 };
 
 constexpr InclusiveRange kWellFormed2Bytes[][2] = {
-    {{0xc2, 0xdf}, {0x80, 0xbf}},
+    {{.from = 0xc2, .to = 0xdf}, {.from = 0x80, .to = 0xbf}},
 };
 
 constexpr InclusiveRange kWellFormed3Bytes[][3] = {
-    {{0xe0, 0xe0}, {0xa0, 0xbf}, {0x80, 0xbf}},
-    {{0xe1, 0xec}, {0x80, 0xbf}, {0x80, 0xbf}},
-    {{0xed, 0xed}, {0x80, 0x9f}, {0x80, 0xbf}},
-    {{0xee, 0xef}, {0x80, 0xbf}, {0x80, 0xbf}},
+    {{.from = 0xe0, .to = 0xe0}, {.from = 0xa0, .to = 0xbf}, {.from = 0x80, .to = 0xbf}},
+    {{.from = 0xe1, .to = 0xec}, {.from = 0x80, .to = 0xbf}, {.from = 0x80, .to = 0xbf}},
+    {{.from = 0xed, .to = 0xed}, {.from = 0x80, .to = 0x9f}, {.from = 0x80, .to = 0xbf}},
+    {{.from = 0xee, .to = 0xef}, {.from = 0x80, .to = 0xbf}, {.from = 0x80, .to = 0xbf}},
 };
 
 constexpr InclusiveRange kWellFormed4Bytes[][4] = {
-    {{0xf0, 0xf0}, {0x90, 0xbf}, {0x80, 0xbf}, {0x80, 0xbf}},
-    {{0xf1, 0xf3}, {0x80, 0xbf}, {0x80, 0xbf}, {0x80, 0xbf}},
-    {{0xf4, 0xf4}, {0x80, 0x8f}, {0x80, 0xbf}, {0x80, 0xbf}},
+    {{.from = 0xf0, .to = 0xf0}, {.from = 0x90, .to = 0xbf}, {.from = 0x80, .to = 0xbf}, {.from = 0x80, .to = 0xbf}},
+    {{.from = 0xf1, .to = 0xf3}, {.from = 0x80, .to = 0xbf}, {.from = 0x80, .to = 0xbf}, {.from = 0x80, .to = 0xbf}},
+    {{.from = 0xf4, .to = 0xf4}, {.from = 0x80, .to = 0x8f}, {.from = 0x80, .to = 0xbf}, {.from = 0x80, .to = 0xbf}},
 };
 
 constexpr unsigned char kMinFirstByteValueFor2ByteCodePoint = kWellFormed2Bytes[0][0].from;
@@ -316,11 +329,10 @@ bool IsUtf8(std::string_view text) noexcept {
 
 bool IsPrintable(std::string_view text, bool ascii_only) noexcept {
     if (ascii_only) {
-        return std::all_of(text.cbegin(), text.cend(), [](int c) { return (c >= 32 && c <= 126); });
+        return std::ranges::all_of(text, [](int c) { return (c >= 32 && c <= 126); });
     }
 
-    return IsUtf8(text) &&
-           !std::any_of(text.cbegin(), text.cend(), [](int c) { return ((c >= 0 && c <= 31) || c == 127); });
+    return IsUtf8(text) && !std::ranges::any_of(text, [](int c) { return ((c >= 0 && c <= 31) || c == 127); });
 }
 
 bool IsCString(std::string_view text) noexcept { return text.find('\0') == std::string::npos; }

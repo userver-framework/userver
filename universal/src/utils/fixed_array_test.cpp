@@ -2,6 +2,8 @@
 
 #include <atomic>
 #include <cstdint>
+#include <type_traits>
+#include <vector>
 
 #include <gtest/gtest.h>
 
@@ -96,6 +98,25 @@ TEST(FixedArray, GenerateNonMovable) {
     }
     EXPECT_EQ(index, kObjectCount);
     /// [Sample GenerateFixedArray]
+}
+
+TEST(FixedArray, GenerateRefs) {
+    constexpr std::size_t kObjectCount = 10;
+    constexpr std::array<int, kObjectCount> kZeroes{};
+
+    auto nums = kZeroes;
+
+    const auto ref_generator = [&nums](std::size_t index) -> int& { return nums[index]; };
+    auto array = utils::GenerateFixedArray(kObjectCount, ref_generator);
+    for (auto& v : array) {
+        ++v;
+    }
+
+    EXPECT_EQ(nums, kZeroes);
+
+    const auto const_ref_generator = [&nums](std::size_t index) -> const int& { return nums[index]; };
+    array = utils::GenerateFixedArray(kObjectCount, const_ref_generator);
+    static_assert(std::is_same_v<decltype(array), utils::FixedArray<int>>);
 }
 
 USERVER_NAMESPACE_END

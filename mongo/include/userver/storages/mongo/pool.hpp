@@ -56,7 +56,8 @@ public:
     /// @throws storages::mongo::MongoException if failed to connect to the mongo server.
     void Ping();
 
-    /// @brief Begin a new transaction
+    /// @brief Begin a new transaction.
+    ///
     /// @return Transaction handle for executing operations within transaction context
     /// @throws MongoException if transaction cannot be started
     Transaction BeginTransaction() const;

@@ -80,9 +80,20 @@ public:
     void SetDsnList(const DsnList&);
 
 private:
+    struct ExtendedClusterSettings : public ClusterSettings {
+        explicit ExtendedClusterSettings(const ClusterSettings& settings);
+        // It keeps the original pool_settings.min_size from the ClusterSettings passed to the ClusterImpl instance.
+        // While pool_settings.min_size could be automatically capped in OnConnlimitChanged
+        std::size_t original_min_pool_size{kDefaultPoolMinSize};
+    };
+
     void OnConnlimitChanged();
 
     bool IsConnlimitModeAuto(const ClusterSettings& settings);
+
+    void AdjustPoolSettings(ExtendedClusterSettings& cluster, std::size_t max_size);
+
+    void PropagateSettingsToPools();
 
     using ConnectionPoolPtr = std::shared_ptr<ConnectionPool>;
 
@@ -95,7 +106,7 @@ private:
 
     void CreateTopology(const DsnList& dsns);
 
-    rcu::Variable<ClusterSettings> cluster_settings_;
+    rcu::Variable<ExtendedClusterSettings> cluster_settings_;
     concurrent::Variable<TopologyData, engine::SharedMutex> topology_data_;
     clients::dns::Resolver* resolver_{};
     engine::TaskProcessor& bg_task_processor_;

@@ -31,19 +31,45 @@ std::string ReadStageName(const std::string& filepath) {
 }
 
 #ifdef ARCADIA_ROOT
-bool IsClownductorPrestable() {
-    constexpr std::string_view filepath = "/etc/clownductor_group";
+std::optional<std::string> ReadFile(std::string_view filepath) {
     auto& tp = engine::current_task::GetBlockingTaskProcessor();
+    const std::string filepath_str{filepath};
+    if (!fs::FileExists(tp, filepath_str)) {
+        return std::nullopt;
+    }
 
-    if (!fs::FileExists(tp, std::string{filepath})) {
+    return fs::ReadFileContents(tp, filepath_str);
+}
+
+bool IsClownductorPrestable() {
+    auto content = ReadFile("/etc/clownductor_group");
+    if (!content) {
         return false;
     }
-    auto content = fs::ReadFileContents(tp, std::string{filepath});
-    utils::text::Trim(content);
-    return utils::text::EndsWith(content, "_pre_stable") || utils::text::EndsWith(content, "_prestable");
+
+    const auto trimmed = utils::text::TrimView(*content);
+    return utils::text::EndsWith(trimmed, "_pre_stable") || utils::text::EndsWith(trimmed, "_prestable");
+}
+
+std::string ReadCircuit() {
+    constexpr std::string_view kCircuitPrefix = "UPLATFORM_CIRCUIT=";
+
+    const auto content = ReadFile("/etc/uplatform_environment");
+    if (!content) {
+        return {};
+    }
+
+    for (const auto line : utils::text::SplitIntoStringViewVector(*content, "\n")) {
+        const auto trimmed_line = utils::text::TrimView(line);
+        if (utils::text::StartsWith(trimmed_line, kCircuitPrefix)) {
+            return std::string{trimmed_line.substr(kCircuitPrefix.size())};
+        }
+    }
+    return {};
 }
 #else
 bool IsClownductorPrestable() { return false; }
+std::string ReadCircuit() { return {}; }
 #endif
 
 }  // namespace
@@ -67,6 +93,7 @@ DynamicConfigClient::DynamicConfigClient(const ComponentConfig& config, const Co
         }
     }
     client_config.is_prestable = IsClownductorPrestable();
+    client_config.circuit = ReadCircuit();
     client_config.config_url = config["config-url"].As<std::string>();
 
     if (!client_config.stage_name.empty() && client_config.get_configs_overrides_for_service) {
@@ -74,7 +101,7 @@ DynamicConfigClient::DynamicConfigClient(const ComponentConfig& config, const Co
     }
 
     config_client_ = std::make_unique<dynamic_config::Client>(
-        context.FindComponent<HttpClient>(config["http-client"].As<std::string>("dynamic-config-http-client"))
+        context.FindComponent<HttpClient>(config["http-client"].As<std::string>(HttpClient::kDynamicConfigClientName))
             .GetHttpClient(),
         client_config
     );

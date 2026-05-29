@@ -31,72 +31,60 @@ public:
 
     ~ResultSet();
 
-    // clang-format off
-  /// @brief Parse statement result set as std::vector<T>.
-  /// T is expected to be an aggregate of supported types.
-  ///
-  /// Throw exceptions on columns count mismatch or types mismatch.
-  ///
-    // clang-format on
+    /// @brief Parse statement result set as std::vector<T>.
+    /// T is expected to be an aggregate of supported types.
+    ///
+    /// Throw exceptions on columns count mismatch or types mismatch.
+    ///
     template <typename T>
     std::vector<T> AsVector() &&;
 
-    // clang-format off
-  /// @brief Parse statement result set as std::vector<T>.
-  /// Result set is expected to have a single column, `T` is expected to be one
-  /// of supported types.
-  ///
-  /// Throw exceptions on columns count not being equal to 1 or type mismatch.
-  ///
-    // clang-format on
+    /// @brief Parse statement result set as std::vector<T>.
+    /// Result set is expected to have a single column, `T` is expected to be one
+    /// of supported types.
+    ///
+    /// Throw exceptions on columns count not being equal to 1 or type mismatch.
+    ///
     template <typename T>
     std::vector<T> AsVector(FieldTag) &&;
 
-    // clang-format off
-  /// @brief Parse statement result as T.
-  /// Result set is expected to have a single row, `T` is expected to be an
-  /// aggregate of supported types.
-  ///
-  /// Throw exceptions on columns count mismatch or types mismatch.
-  /// throws if result set is empty or contains more than one row.
-  ///
-    // clang-format on
+    /// @brief Parse statement result as T.
+    /// Result set is expected to have a single row, `T` is expected to be an
+    /// aggregate of supported types.
+    ///
+    /// Throw exceptions on columns count mismatch or types mismatch.
+    /// throws if result set is empty or contains more than one row.
+    ///
     template <typename T>
     T AsSingleRow() &&;
 
-    // clang-format off
-  /// @brief Parse statement result as T.
-  /// Result set is expected to have a single row and a single column,
-  /// `T` is expected to be one of supported types.
-  ///
-  /// Throw exceptions on columns count not being equal to 1 or type mismatch.
-  /// throws if result set is empty of contains more than one row.
-  ///
-    // clang-format on
+    /// @brief Parse statement result as T.
+    /// Result set is expected to have a single row and a single column,
+    /// `T` is expected to be one of supported types.
+    ///
+    /// Throw exceptions on columns count not being equal to 1 or type mismatch.
+    /// throws if result set is empty of contains more than one row.
+    ///
     template <typename T>
     T AsSingleField() &&;
 
-    // clang-format off
-  /// @brief Parse statement result as std::optional<T>.
-  /// Result set is expected to have not more than one row,
-  /// `T` is expected to be an aggregate of supported types.
-  ///
-  /// Throw exceptions on columns count mismatch or types mismatch.
-  /// throws if result set contains more than one row.
-  ///
-    // clang-format on
+    /// @brief Parse statement result as std::optional<T>.
+    /// Result set is expected to have not more than one row,
+    /// `T` is expected to be an aggregate of supported types.
+    ///
+    /// Throw exceptions on columns count mismatch or types mismatch.
+    /// throws if result set contains more than one row.
+    ///
     template <typename T>
     std::optional<T> AsOptionalSingleRow() &&;
 
-    // clang-format off
-  /// @brief Parse statement result as T.
-  /// Result set is expected to have not more than one row,
-  /// `T` is expected to be one of supported types.
-  ///
-  /// Throw exceptions on columns count not being equal to 1 or type mismatch.
-  /// throws if result set contains more than one row.
-  ///
-    // clang-format on
+    /// @brief Parse statement result as T.
+    /// Result set is expected to have not more than one row,
+    /// `T` is expected to be one of supported types.
+    ///
+    /// Throw exceptions on columns count not being equal to 1 or type mismatch.
+    /// throws if result set contains more than one row.
+    ///
     template <typename T>
     std::optional<T> AsOptionalSingleField() &&;
 

@@ -1,11 +1,15 @@
 #pragma once
 
+/// @file userver/clients/http/cancellation_policy.hpp
+/// @brief HTTP client request cancellation policy
+
 #include <userver/yaml_config/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {
 
+/// @brief Policy for cancelling in-flight HTTP requests
 enum class CancellationPolicy {
     kIgnore,
     kCancel,

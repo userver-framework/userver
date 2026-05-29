@@ -4,6 +4,7 @@ import logging
 import pytest
 import pytest_userver.utils.sync as sync
 import websockets
+import websockets.frames
 
 # Disabling redundant logs from third party library
 logger = logging.getLogger('websockets.client')
@@ -19,15 +20,31 @@ async def test_echo(websocket_client):
 
 async def test_echo_with_continuation(websocket_client):
     async with websocket_client.get('chat') as chat:
-        # Send first fragment (not final, text frame)
-        await chat.write_frame(fin=False, opcode=0x1, data=b'First')
-        # Send intermediate fragment (not final, continuation frame)
-        await chat.write_frame(fin=False, opcode=0x0, data=b' second')
-        # Send last fragment (final, continuation frame)
-        await chat.write_frame(fin=True, opcode=0x0, data=b' third')
+        await chat.send(['First', ' second', ' third'])
 
         response = await chat.recv()
         assert response == 'First second third'
+
+
+async def test_echo_bin(websocket_client):
+    async with websocket_client.get('chat') as chat:
+        await chat.send(b'\x00\x01\x02\xff')
+        response = await chat.recv()
+        assert response == b'\x00\x01\x02\xff'
+
+
+async def test_echo_bin_with_text(websocket_client):
+    async with websocket_client.get('chat') as chat:
+        await chat.send('msg1')
+        await chat.send(b'\x00\x01\x02\xff')
+        await chat.send('msg2')
+
+        response = await chat.recv()
+        assert response == 'msg1'
+        response = await chat.recv()
+        assert response == b'\x00\x01\x02\xff'
+        response = await chat.recv()
+        assert response == 'msg2'
 
 
 async def test_close_by_server(websocket_client):
@@ -79,13 +96,16 @@ async def test_too_big(websocket_client):
         with pytest.raises(websockets.exceptions.ConnectionClosed) as exc:
             await chat.send(msg)
             await chat.recv()
-        assert exc.value.rcvd.code == 1009
+        # userver should close the connection for an oversized message with code 1009.
+        # However, the Python websockets client may raise ConnectionClosed before
+        # exposing the received close frame in `rcvd`, so accept that variant too.
+        assert exc.value.rcvd is None or exc.value.rcvd.code == 1009
 
 
 async def test_origin(service_client, service_port):
     async with websockets.connect(
         f'ws://localhost:{service_port}/chat',
-        extra_headers={'Origin': 'localhost'},
+        origin='localhost',
     ) as chat:
         response = await chat.recv()
         assert response == 'localhost'
@@ -180,3 +200,23 @@ async def test_upgrade_header_with_tab_then_reconnect(service_port):
         await chat.send('ping')
         resp = await chat.recv()
         assert resp == 'ping'
+
+
+async def test_non_websocket_request(service_client):
+    response = await service_client.get(
+        '/chat',
+    )
+
+    assert response.status == 400
+    assert response.text == 'Not a websocket request'
+
+
+async def test_close_no_status(service_port):
+    async with websockets.connect(f'ws://localhost:{service_port}/chat') as ws:
+        try:
+            async with ws.send_context():
+                ws.protocol.send_close(code=None)
+        except websockets.exceptions.ConnectionClosed:
+            pass
+
+    assert ws.close_code == websockets.frames.CloseCode.NO_STATUS_RCVD

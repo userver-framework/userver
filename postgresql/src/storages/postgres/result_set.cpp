@@ -40,7 +40,11 @@ ResultSet::reference ResultSet::operator[](size_type index) const& {
 
 void ResultSet::FillBufferCategories(const UserTypes& types) { pimpl_->FillBufferCategories(types); }
 
-void ResultSet::SetBufferCategoriesFrom(const ResultSet& dsc) { pimpl_->SetTypeBufferCategories(*dsc.pimpl_); }
+void ResultSet::SetBufferCategoriesFrom(const ResultSet& dsc) {
+    if (dsc.pimpl_ != nullptr) {
+        pimpl_->SetTypeBufferCategories(*dsc.pimpl_);
+    }
+}
 
 }  // namespace storages::postgres
 

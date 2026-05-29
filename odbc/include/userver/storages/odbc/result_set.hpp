@@ -1,9 +1,12 @@
 #pragma once
 
+/// @file userver/storages/odbc/result_set.hpp
+/// @brief @copybrief storages::odbc::ResultSet
+
 #include <limits>
 #include <memory>
 
-#include <storages/odbc/detail/result_wrapper.hpp>
+#include <userver/storages/odbc/odbc_fwd.hpp>
 #include <userver/storages/odbc/row.hpp>
 
 USERVER_NAMESPACE_BEGIN

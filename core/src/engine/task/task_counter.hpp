@@ -2,8 +2,7 @@
 
 #include <array>
 #include <cstddef>
-
-#include <boost/range/adaptor/transformed.hpp>
+#include <ranges>
 
 #include <userver/concurrent/impl/asymmetric_fence.hpp>
 #include <userver/concurrent/impl/interference_shield.hpp>
@@ -40,8 +39,7 @@ public:
     static bool AnyMayHaveTasksAlive(TaskCounterRange&& counters) {
         concurrent::impl::AsymmetricThreadFenceHeavy();
         return !concurrent::impl::StripedReadIndicator::AreAllFree(
-            counters |
-            boost::adaptors::transformed([](const TaskCounter& counter) -> auto& { return counter.tasks_alive_; })
+            counters | std::views::transform([](const TaskCounter& counter) -> auto& { return counter.tasks_alive_; })
         );
     }
 

@@ -2,6 +2,7 @@
 
 #include <http/header_map/map.hpp>
 
+#include <userver/compiler/impl/nodebug.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 
@@ -32,6 +33,9 @@ const std::string& DoAt(HeaderMap::ConstIterator it, HeaderMap::ConstIterator en
 }
 
 }  // namespace
+
+// vtable anchor functions
+USERVER_IMPL_NODEBUG HeaderMap::TooManyHeadersException::~TooManyHeadersException() = default;
 
 HeaderMap::HeaderMap() = default;
 
@@ -226,13 +230,9 @@ HeaderMap::Iterator HeaderMap::Iterator::operator++(int) {
     return copy;
 }
 
-HeaderMap::Iterator::reference HeaderMap::Iterator::operator*() { return it_->Get(); }
+HeaderMap::Iterator::reference HeaderMap::Iterator::operator*() const { return it_->Get(); }
 
-HeaderMap::Iterator::const_reference HeaderMap::Iterator::operator*() const { return it_->Get(); }
-
-HeaderMap::Iterator::pointer HeaderMap::Iterator::operator->() { return &it_->Get(); }
-
-HeaderMap::Iterator::const_pointer HeaderMap::Iterator::operator->() const { return &it_->Get(); }
+HeaderMap::Iterator::pointer HeaderMap::Iterator::operator->() const { return &it_->Get(); }
 
 bool HeaderMap::Iterator::operator==(const HeaderMap::Iterator& other) const { return it_ == other.it_; }
 
@@ -271,11 +271,7 @@ HeaderMap::ConstIterator HeaderMap::ConstIterator::operator++(int) {
     return copy;
 }
 
-HeaderMap::ConstIterator::reference HeaderMap::ConstIterator::operator*() { return it_->Get(); }
-
 HeaderMap::ConstIterator::const_reference HeaderMap::ConstIterator::operator*() const { return it_->Get(); }
-
-HeaderMap::ConstIterator::pointer HeaderMap::ConstIterator::operator->() { return &it_->Get(); }
 
 HeaderMap::ConstIterator::const_pointer HeaderMap::ConstIterator::operator->() const { return &it_->Get(); }
 

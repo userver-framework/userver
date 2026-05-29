@@ -1,0 +1,97 @@
+definitions:
+    EnumEmoji:
+        oneOf:
+          - $ref: '#/definitions/EnumEmojiThe'
+          - $ref: '#/definitions/EnumEmojiQuick'
+          - $ref: '#/definitions/EnumEmojiBrown'
+          - $ref: '#/definitions/EnumEmojiFox'
+          - $ref: '#/definitions/EnumEmojiJumps'
+          - $ref: '#/definitions/EnumEmojiOver'
+          - $ref: '#/definitions/EnumEmojiLazyDog'
+        discriminator:
+            propertyName: emoji
+    EnumEmojiThe:
+        type: object
+        required:
+          - emoji
+        properties:
+            emoji:
+                type: string
+                enum: ["👉"]
+            text:
+                type: string
+                default: "the "
+        additionalProperties: false
+    EnumEmojiQuick:
+        type: object
+        required:
+          - emoji
+        properties:
+            emoji:
+                type: string
+                enum: ["⚡"]
+            text:
+                type: string
+                default: "quick "
+        additionalProperties: false
+    EnumEmojiBrown:
+        type: object
+        required:
+          - emoji
+        properties:
+            emoji:
+                type: string
+                enum: ["🟤"]
+            text:
+                type: string
+                default: "brown "
+        additionalProperties: false
+    EnumEmojiFox:
+        type: object
+        required:
+          - emoji
+        properties:
+            emoji:
+                type: string
+                enum: ["🦊"]
+            text:
+                type: string
+                default: "fox "
+        additionalProperties: false
+    EnumEmojiJumps:
+        type: object
+        required:
+          - emoji
+        properties:
+            emoji:
+                type: string
+                enum: ["🦘"]
+            text:
+                type: string
+                default: "jumps "
+        additionalProperties: false
+    EnumEmojiOver:
+        type: object
+        required:
+          - emoji
+        properties:
+            emoji:
+                type: string
+                enum: ["over"]
+            text:
+                type: string
+                default: "over "
+        additionalProperties: false
+    EnumEmojiLazyDog:
+        type: object
+        required:
+          - emoji
+        properties:
+            emoji:
+                type: string
+                enum: ["lazy🐶"]
+            text:
+                type: string
+                default: "lazy dog"
+        additionalProperties: false
+

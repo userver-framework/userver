@@ -4,7 +4,6 @@
 /// @brief Forward declarations of the internal YAML types.
 
 #include <type_traits>
-#include <userver/utils/void_t.hpp>
 
 #include <userver/formats/common/path.hpp>
 #include <userver/formats/common/type.hpp>

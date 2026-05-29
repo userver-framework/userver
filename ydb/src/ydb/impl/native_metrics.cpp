@@ -123,7 +123,7 @@ public:
         for (std::size_t i = 0; i < count - 1; ++i) {
             bounds_storage_[i] = snapshot->UpperBound(i);
         }
-        histogram_storage_.emplace(bounds_storage_);
+        histogram_storage_.emplace(utils::span(bounds_storage_.data(), bounds_storage_.size()));
         for (std::size_t i = 0; i < count - 1; ++i) {
             histogram_storage_->AccountAt(i, snapshot->Value(i));
         }

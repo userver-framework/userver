@@ -3,7 +3,7 @@ default:
     force-disabled: []
 description: |
     Logging per line and file overrides.
-    Location of file may be followed by `:[line number]` to specify 1 exact log in that file.
+    A file location may be followed by `:[line number]` to target a single log line in that file.
 
     Locations are easy to retrieve from the logs: tracing::Span writes the "component" tag with the
     location. For example: 'component: "DoParse ( taxi/uservices/services/my_service/src/parser.cpp:128 )"'.

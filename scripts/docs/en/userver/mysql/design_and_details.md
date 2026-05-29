@@ -1,4 +1,4 @@
-## MySQL driver design and implementation details 
+## MySQL driver design and implementation details
 
 ### Driver Architecture
 Like most drivers in 🐙 **userver** the uMySQL driver consists of three logically
@@ -43,7 +43,7 @@ execution results are fetched from the server mariadbclient populates
 These processes are different, and we'll talk about input/output parts
 separately.
 
-For input parameters binding `MYSQL_BIND` resembles to this:
+For input parameters binding `MYSQL_BIND` resembles this:
 ```
 struct MYSQL_BIND {
     enum_field_types buffer_type;
@@ -130,10 +130,10 @@ The part responsible for that `.AsVector<T>` API. Uses the same machinery
 with `boost::pfr`, but binding is done differently: you see, for input
 params we already know all the things necessary - whether an `std::optional`
 contains a value, what is the length of `std::string` we are binding etc. -
-but for output we don't before the data is actually fetched; luckily
+but for output we don't know before the data is actually fetched; luckily
 `MYSQL_BIND` has us covered.
 
-For output fields `MYSQL_BIND` resembles to this:
+For output fields `MYSQL_BIND` resembles this:
 ```
 struct MYSQL_BIND {
     enum_field_types buffer_type;

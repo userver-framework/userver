@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/sqlite/infra/pool.hpp
+/// @brief @copybrief storages::sqlite::infra::Pool
+
 #include <memory>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
@@ -18,6 +21,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::infra {
 
+/// @brief SQLite connection pool
 class Pool final : public drivers::impl::ConnectionPoolBase<impl::Connection, Pool> {
 public:
     static std::shared_ptr<Pool> Create(

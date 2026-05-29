@@ -4,7 +4,7 @@
 
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
-#include <userver/utils/fast_pimpl.hpp>
+#include <concurrent/impl/fast_atomic.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -36,13 +36,22 @@ public:
     /// @note Must not be used together with `SetSignalAndNotifyOne`.
     void Append(boost::intrusive_ptr<impl::Awaiter>&& awaiter, std::uintptr_t context) noexcept;
 
-    /// @brief Get the signal if one was set by SetSignalAndNotifyOne, else
-    /// Append.
+    /// @brief Get the signal if one was set by SetSignalAndNotifyOne, else Append.
+    ///
+    /// Atomically:
+    ///
+    /// 1. If not `IsSignaled`, then
+    ///    * move from `awaiter`;
+    ///    * store `awaiter` and `context` to notify when `IsSignaled() == true` is reached.
+    /// 2. If `IsSignaled`, then
+    ///    * do not move from `awaiter`;
+    ///    * do not notify `awaiter`.
+    ///
     /// @returns `true` if already signaled
     /// @see Append
-    [[nodiscard]] bool GetSignalOrAppend(boost::intrusive_ptr<impl::Awaiter> awaiter, std::uintptr_t context) noexcept;
+    void GetSignalOrAppend(boost::intrusive_ptr<impl::Awaiter>& awaiter, std::uintptr_t context) noexcept;
 
-    /// @brief Remove the task from the `WaitListLight` without notofocation.
+    /// @brief Remove the task from the `WaitListLight` without notification.
     void Remove(impl::Awaiter& awaiter, std::uintptr_t context) noexcept;
 
     /// @brief Notifies the waiting task; the next awaiter may not `Append` until
@@ -66,8 +75,7 @@ public:
 private:
     bool IsEmptyRelaxed() noexcept;
 
-    struct Impl;
-    utils::FastPimpl<Impl, 16, 16> impl_;
+    concurrent::impl::FastAtomic<AwaiterWithContext> state_{AwaiterWithContext{}};
 };
 
 }  // namespace engine::impl

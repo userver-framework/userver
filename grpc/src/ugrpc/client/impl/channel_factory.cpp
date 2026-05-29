@@ -24,7 +24,7 @@ std::shared_ptr<grpc::Channel> ChannelFactory::CreateChannel(
     std::string_view target,
     const grpc::ChannelArguments& channel_args
 ) const {
-    return engine::AsyncNoSpan(
+    return engine::AsyncNoTracing(
                blocking_task_processor_,
                grpc::CreateCustomChannel,
                ugrpc::impl::ToGrpcString(target),

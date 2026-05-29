@@ -38,7 +38,7 @@ void KafkaLogCallback(const rd_kafka_t*, int level, const char* facility, const 
 
 template <class SupportedList>
 bool IsSupportedOption(const SupportedList& supported_options, const std::string& configured_option) {
-    return std::find(std::begin(supported_options), std::end(supported_options), configured_option);
+    return std::ranges::find(supported_options, configured_option) != std::ranges::end(supported_options);
 }
 
 template <class SupportedList>
@@ -153,7 +153,7 @@ SecurityConfiguration Parse(const yaml_config::YamlConfig& config, formats::pars
 
     if (protocol == kSSLProtocol) {
         security.security_protocol.emplace<SecurityConfiguration::Ssl>(SecurityConfiguration::Ssl{
-            /*ssl_ca_location=*/config["ssl_ca_location"].As<std::string>(),
+            .ssl_ca_location = config["ssl_ca_location"].As<std::string>(),
         });
         return security;
     }
@@ -165,12 +165,12 @@ SecurityConfiguration Parse(const yaml_config::YamlConfig& config, formats::pars
 
     if (protocol == kSaslPlainTextProtocol) {
         security.security_protocol.emplace<SecurityConfiguration::SaslPlaintext>(SecurityConfiguration::SaslPlaintext{
-            /*security_mechanism=*/mechanism,
+            .security_mechanism = mechanism,
         });
     } else if (protocol == kSaslSSLProtocol) {
         security.security_protocol.emplace<SecurityConfiguration::SaslSsl>(SecurityConfiguration::SaslSsl{
-            /*security_mechanism=*/mechanism,
-            /*ssl_ca_location=*/config["ssl_ca_location"].As<std::string>(),
+            .security_mechanism = mechanism,
+            .ssl_ca_location = config["ssl_ca_location"].As<std::string>(),
         });
     }
 

@@ -57,6 +57,12 @@ TEST(Text, EndsWith) {
     EXPECT_TRUE(utils::text::EndsWith("", ""));
 }
 
+TEST(Text, TrimView) {
+    EXPECT_EQ(utils::text::TrimView("foo"), "foo");
+    EXPECT_EQ(utils::text::TrimView(" 1 "), "1");
+    EXPECT_EQ(utils::text::TrimView("  "), "");
+}
+
 TEST(Text, ICaseStartsWith) {
     EXPECT_TRUE(utils::text::ICaseStartsWith("aBcDeF", "AbC"));
     EXPECT_TRUE(utils::text::ICaseStartsWith("abcdef", ""));

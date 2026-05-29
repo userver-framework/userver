@@ -1,5 +1,7 @@
 #include <userver/ugrpc/tests/standalone_client.hpp>
 
+#include <utility>
+
 #include <fmt/format.h>
 
 #include <userver/engine/io/socket.hpp>
@@ -17,7 +19,7 @@ StandaloneClientFactory::StandaloneClientFactory(client::ClientFactorySettings&&
           engine::current_task::GetTaskProcessor(),
           simple_client_middleware_pipeline_,
           completion_queues_,
-          client_statistics_storage_,
+          *client_statistics_storage_,
           metrics_storage_,
           testsuite_control_,
           config_storage_.GetSource(),

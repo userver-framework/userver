@@ -7,6 +7,8 @@
 #include <userver/components/component_context.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/concurrent/variable.hpp>
+#include <userver/formats/json.hpp>
+#include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/handlers/tests_control.hpp>
@@ -98,9 +100,7 @@ public:
             return *storage;
         }();
 
-        std::sort(messages.begin(), messages.end(), [](const auto& lhs, const auto& rhs) {
-            return lhs.message < rhs.message;
-        });
+        std::ranges::sort(messages, [](const auto& lhs, const auto& rhs) { return lhs.message < rhs.message; });
         return messages;
     }
 
@@ -178,6 +178,13 @@ private:
             throw server::handlers::ClientError{server::handlers::ExternalBody{"No 'message' query argument"}};
         }
         urabbitmq::Envelope envelope{message, urabbitmq::MessageType::kTransient, {}, {}, {}};
+        if (!request.RequestBody().empty()) {
+            const auto request_json = formats::json::FromString(request.RequestBody());
+            if (request_json.HasMember("headers")) {
+                envelope
+                    .headers = request_json["headers"].As<std::unordered_map<std::string, urabbitmq::HeaderValue>>();
+            }
+        }
         const auto& correlation_id = request.GetArg("correlation_id");
         if (!correlation_id.empty()) {
             envelope.correlation_id = correlation_id;
@@ -219,9 +226,9 @@ private:
     }
 
     std::string HandleGet() const {
-        formats::json::ValueBuilder messages_builder;
+        urabbitmq::HeaderValue::Builder messages_builder;
         for (const auto& item : consumer_.GetMessages()) {
-            formats::json::ValueBuilder item_builder;
+            urabbitmq::HeaderValue::Builder item_builder;
             item_builder["message"] = item.message;
             if (item.correlation_id.has_value()) {
                 item_builder["correlation_id"] = item.correlation_id;
@@ -229,6 +236,7 @@ private:
             if (item.reply_to.has_value()) {
                 item_builder["reply_to"] = item.reply_to;
             }
+            item_builder["headers"] = item.headers;
             messages_builder.PushBack(std::move(item_builder));
         }
         return formats::json::ToString(messages_builder.ExtractValue());

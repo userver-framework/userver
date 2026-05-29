@@ -7,37 +7,14 @@ USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {
 
-std::shared_ptr<RequestStats> DestinationStatistics::GetStatisticsForDestination(const std::string& destination) {
-    auto ptr = GetExistingStatisticsForDestination(destination);
-    if (ptr) {
-        return ptr;
-    }
-
-    return CreateStatisticsForDestination(destination);
+RequestStats DestinationStatistics::GetStatisticsForDestination(std::string_view destination) {
+    return RequestStats{metrics_[{.http_destination = destination}]};
 }
 
-std::shared_ptr<RequestStats> DestinationStatistics::CreateStatisticsForDestination(const std::string& destination) {
-    return std::make_shared<RequestStats>(*rcu_map_[destination]);
-}
-
-std::shared_ptr<RequestStats> DestinationStatistics::GetExistingStatisticsForDestination(const std::string& destination
-) {
-    /*
-     * It's safe to return RequestStats holding a reference to Statistics as
-     * RequestStats lifetime is less than clients::http::ClientCore's one.
-     */
-    auto stats = rcu_map_.Get(destination);
+std::optional<RequestStats> DestinationStatistics::GetStatisticsForDestinationAuto(std::string_view destination) {
+    auto* const stats = metrics_.GetIfExists({.http_destination = destination});
     if (stats) {
-        return std::make_shared<RequestStats>(*stats);
-    } else {
-        return {};
-    }
-}
-
-std::shared_ptr<RequestStats> DestinationStatistics::GetStatisticsForDestinationAuto(const std::string& destination) {
-    auto ptr = GetExistingStatisticsForDestination(destination);
-    if (ptr) {
-        return ptr;
+        return std::optional<RequestStats>{std::in_place, *stats};
     }
 
     // atomic [current++ iff current < max]
@@ -57,22 +34,26 @@ std::shared_ptr<RequestStats> DestinationStatistics::GetStatisticsForDestination
     } while (!current_auto_destinations_
                   .compare_exchange_strong(current_auto_destinations, current_auto_destinations + 1));
 
-    return CreateStatisticsForDestination(destination);
+    return GetStatisticsForDestination(destination);
 }
 
 void DestinationStatistics::SetAutoMaxSize(size_t max_auto_destinations) {
     max_auto_destinations_ = max_auto_destinations;
 }
 
-DestinationStatistics::DestinationsMap::ConstIterator DestinationStatistics::begin() const { return rcu_map_.begin(); }
-
-DestinationStatistics::DestinationsMap::ConstIterator DestinationStatistics::end() const { return rcu_map_.end(); }
+void DestinationStatistics::VisitAllDebug(utils::function_ref<void(const DestinationLabels&, const Statistics&)> func
+) const {
+    metrics_.VisitAll(func);
+}
 
 void DumpMetric(utils::statistics::Writer& writer, const DestinationStatistics& stats) {
-    for (const auto& [url, stat_ptr] : stats) {
-        const InstanceStatistics instance_stat{*stat_ptr};
-        writer.ValueWithLabels(DestinationStatisticsView{instance_stat}, {{"http_destination", url}, {"version", "2"}});
-    }
+    stats.metrics_.VisitAll([&writer](const DestinationLabels& labels, const Statistics& destination_stats) {
+        const InstanceStatistics instance_stat{destination_stats};
+        writer.ValueWithLabels(
+            DestinationStatisticsView{instance_stat},
+            {{"http_destination", labels.http_destination}, {"version", "2"}}
+        );
+    });
 }
 
 }  // namespace clients::http

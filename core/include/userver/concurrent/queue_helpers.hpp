@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/concurrent/queue_helpers.hpp
+/// @brief Producer and consumer helpers for concurrent queues
+
 #include <memory>
 
 #include <userver/engine/deadline.hpp>

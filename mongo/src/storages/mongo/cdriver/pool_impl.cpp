@@ -306,7 +306,7 @@ void CreateGlobalInitializer() {
     const std::lock_guard lock(mutex);
 
     static std::optional<GlobalInitializer> init_mongoc;
-    engine::CriticalAsyncNoSpan(engine::current_task::GetBlockingTaskProcessor(), [] {
+    engine::CriticalAsyncNoTracing(engine::current_task::GetBlockingTaskProcessor(), [] {
         if (!init_mongoc) {
             init_mongoc.emplace();
         }
@@ -495,6 +495,7 @@ CDriverPoolImpl::ConnPtr CDriverPoolImpl::Pop() {
                   << "' has too many establishing connections. " << MakeQueueDeadlineMessage(inherited_timeout);
             }
             conn = Create();
+            TESTPOINT("mongo-connection-created", {});
         }
     }
 

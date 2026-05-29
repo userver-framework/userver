@@ -132,7 +132,7 @@ public:
     ///  * stream: 0, 1 or more times
     virtual void PostRecvMessage(MiddlewareCallContext& context, google::protobuf::Message& request) const;
 
-    /// @brief The function is invoked before each sended message.
+    /// @brief The function is invoked before each sent message.
     ///
     /// PreSendMessage is called:
     ///  * unary: 0 or 1 per Call (RPC), depending on whether the RPC returns a response or a failed status

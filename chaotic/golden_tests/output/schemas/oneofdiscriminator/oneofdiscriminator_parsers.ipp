@@ -1,6 +1,6 @@
 #pragma once
 
-#include <userver/chaotic/object.hpp>
+#include <userver/chaotic/additional_properties.hpp>
 #include <userver/chaotic/primitive.hpp>
 #include <userver/chaotic/validators.hpp>
 #include <userver/chaotic/with_type.hpp>
@@ -17,7 +17,7 @@ static constexpr USERVER_NAMESPACE::utils::TrivialSet k__ns__A_PropertiesNames =
   return selector().template Type<std::string_view>().Case("type").Case("a_prop");
 };
 
-template <typename Value, typename = std::enable_if_t<USERVER_NAMESPACE::formats::common::kIsFormatValue<Value>>>
+template <USERVER_NAMESPACE::formats::common::IsFormatValue Value>
 A Parse(Value value, USERVER_NAMESPACE::formats::parse::To<A>) {
   value.CheckNotMissing();
   value.CheckObjectOrNull();
@@ -27,7 +27,9 @@ A Parse(Value value, USERVER_NAMESPACE::formats::parse::To<A>) {
   res.type = value["type"].template As<std::optional<USERVER_NAMESPACE::chaotic::Primitive<std::string>>>();
   res.a_prop = value["a_prop"].template As<std::optional<USERVER_NAMESPACE::chaotic::Primitive<int>>>();
 
-  res.extra = USERVER_NAMESPACE::chaotic::ExtractAdditionalPropertiesTrue(value, k__ns__A_PropertiesNames);
+  res.extra = USERVER_NAMESPACE::chaotic::ExtractAdditionalPropertiesTrue(
+      Parse(std::move(value), USERVER_NAMESPACE::formats::parse::To<USERVER_NAMESPACE::formats::json::Value>()),
+      k__ns__A_PropertiesNames);
 
   return res;
 }
@@ -36,7 +38,7 @@ static constexpr USERVER_NAMESPACE::utils::TrivialSet k__ns__B_PropertiesNames =
   return selector().template Type<std::string_view>().Case("type").Case("b_prop");
 };
 
-template <typename Value, typename = std::enable_if_t<USERVER_NAMESPACE::formats::common::kIsFormatValue<Value>>>
+template <USERVER_NAMESPACE::formats::common::IsFormatValue Value>
 B Parse(Value value, USERVER_NAMESPACE::formats::parse::To<B>) {
   value.CheckNotMissing();
   value.CheckObjectOrNull();
@@ -46,7 +48,9 @@ B Parse(Value value, USERVER_NAMESPACE::formats::parse::To<B>) {
   res.type = value["type"].template As<std::optional<USERVER_NAMESPACE::chaotic::Primitive<std::string>>>();
   res.b_prop = value["b_prop"].template As<std::optional<USERVER_NAMESPACE::chaotic::Primitive<int>>>();
 
-  res.extra = USERVER_NAMESPACE::chaotic::ExtractAdditionalPropertiesTrue(value, k__ns__B_PropertiesNames);
+  res.extra = USERVER_NAMESPACE::chaotic::ExtractAdditionalPropertiesTrue(
+      Parse(std::move(value), USERVER_NAMESPACE::formats::parse::To<USERVER_NAMESPACE::formats::json::Value>()),
+      k__ns__B_PropertiesNames);
 
   return res;
 }
@@ -55,7 +59,7 @@ static constexpr USERVER_NAMESPACE::utils::TrivialSet k__ns__C_PropertiesNames =
   return selector().template Type<std::string_view>().Case("version");
 };
 
-template <typename Value, typename = std::enable_if_t<USERVER_NAMESPACE::formats::common::kIsFormatValue<Value>>>
+template <USERVER_NAMESPACE::formats::common::IsFormatValue Value>
 C Parse(Value value, USERVER_NAMESPACE::formats::parse::To<C>) {
   value.CheckNotMissing();
   value.CheckObjectOrNull();
@@ -73,7 +77,7 @@ static constexpr USERVER_NAMESPACE::utils::TrivialSet k__ns__D_PropertiesNames =
   return selector().template Type<std::string_view>().Case("version");
 };
 
-template <typename Value, typename = std::enable_if_t<USERVER_NAMESPACE::formats::common::kIsFormatValue<Value>>>
+template <USERVER_NAMESPACE::formats::common::IsFormatValue Value>
 D Parse(Value value, USERVER_NAMESPACE::formats::parse::To<D>) {
   value.CheckNotMissing();
   value.CheckObjectOrNull();
@@ -90,7 +94,7 @@ D Parse(Value value, USERVER_NAMESPACE::formats::parse::To<D>) {
 static constexpr USERVER_NAMESPACE::utils::TrivialSet k__ns__IntegerOneOfDiscriminator_PropertiesNames =
     [](auto selector) { return selector().template Type<std::string_view>().Case("foo"); };
 
-template <typename Value, typename = std::enable_if_t<USERVER_NAMESPACE::formats::common::kIsFormatValue<Value>>>
+template <USERVER_NAMESPACE::formats::common::IsFormatValue Value>
 IntegerOneOfDiscriminator Parse(Value value, USERVER_NAMESPACE::formats::parse::To<IntegerOneOfDiscriminator>) {
   value.CheckNotMissing();
   value.CheckObjectOrNull();
@@ -111,7 +115,7 @@ static constexpr USERVER_NAMESPACE::utils::TrivialSet k__ns__OneOfDiscriminator_
   return selector().template Type<std::string_view>().Case("foo");
 };
 
-template <typename Value, typename = std::enable_if_t<USERVER_NAMESPACE::formats::common::kIsFormatValue<Value>>>
+template <USERVER_NAMESPACE::formats::common::IsFormatValue Value>
 OneOfDiscriminator Parse(Value value, USERVER_NAMESPACE::formats::parse::To<OneOfDiscriminator>) {
   value.CheckNotMissing();
   value.CheckObjectOrNull();

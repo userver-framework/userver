@@ -1,12 +1,12 @@
 #pragma once
 
-/// @file
+/// @file userver/utils/zstring_view.hpp
 /// @brief @copybrief utils::zstring_view
 /// @ingroup userver_universal
 
+#include <concepts>
 #include <string>
 #include <string_view>
-#include <type_traits>
 
 #include <fmt/format.h>
 
@@ -46,6 +46,17 @@ public:
     /// @warning `str[len]` should be '\0'.
     static constexpr zstring_view UnsafeMake(const char* str, std::size_t len) noexcept {
         return zstring_view{str, len};
+    }
+
+    friend constexpr auto operator<=>(zstring_view lhs, zstring_view rhs) noexcept = default;
+
+    friend constexpr auto operator<=>(zstring_view lhs, const std::convertible_to<std::string_view> auto& rhs)
+        noexcept {
+        return std::string_view{lhs} <=> std::string_view{rhs};
+    }
+
+    friend constexpr bool operator==(zstring_view lhs, const std::convertible_to<std::string_view> auto& rhs) noexcept {
+        return std::string_view{lhs} == std::string_view{rhs};
     }
 
 private:

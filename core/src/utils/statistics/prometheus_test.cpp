@@ -17,7 +17,7 @@ namespace {
 
 std::string Sorted(const std::string_view raw) {
     auto lines = utils::text::Split(raw, "\n");
-    std::sort(lines.begin(), lines.end());
+    std::ranges::sort(lines);
     return utils::text::Join(lines, "\n");
 }
 

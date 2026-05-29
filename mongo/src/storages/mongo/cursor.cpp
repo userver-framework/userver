@@ -54,8 +54,6 @@ const formats::bson::Document* Cursor::Iterator::operator->() const { return &cu
 
 bool Cursor::Iterator::operator==(const Iterator& rhs) const { return cursor_ == rhs.cursor_; }
 
-bool Cursor::Iterator::operator!=(const Iterator& rhs) const { return !(*this == rhs); }
-
 }  // namespace storages::mongo
 
 USERVER_NAMESPACE_END

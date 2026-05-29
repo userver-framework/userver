@@ -35,7 +35,7 @@ TEST(CurrentProcessOpenFiles, Basic) {
 
     const auto opened_files = utest::CurrentProcessOpenFiles();
     // NOLINTNEXTLINE(readability-qualified-auto)
-    const auto it = std::find_if(opened_files.begin(), opened_files.end(), [](const auto& file) {
+    const auto it = std::ranges::find_if(opened_files, [](const auto& file) {
         return file.find(kTestFilePart) != std::string::npos;
     });
     EXPECT_NE(it, opened_files.end())

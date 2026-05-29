@@ -15,6 +15,7 @@
 
 #include <fmt/core.h>
 
+#include <userver/compiler/impl/nodebug.hpp>
 #include <userver/formats/common/meta.hpp>
 #include <userver/logging/fwd.hpp>
 #include <userver/logging/level.hpp>
@@ -35,7 +36,8 @@ struct Noop {};
 struct HexBase {
     std::uint64_t value;
 
-    template <typename Unsigned, typename = std::enable_if_t<std::is_unsigned_v<Unsigned>>>
+    template <typename Unsigned>
+        requires std::is_unsigned_v<Unsigned>
     explicit constexpr HexBase(Unsigned value) noexcept : value(value) {
         static_assert(sizeof(Unsigned) <= sizeof(value));
     }
@@ -112,7 +114,7 @@ public:
 
     /// @cond
     template <typename... Args>
-    LogHelper& AsLvalue(fmt::format_string<Args...> fmt, Args&&... args) noexcept {
+    USERVER_IMPL_NODEBUG_INLINE_FUNC LogHelper& AsLvalue(fmt::format_string<Args...> fmt, Args&&... args) noexcept {
         VFormat(fmt::string_view(fmt), fmt::make_format_args(args...));
         return *this;
     }
@@ -121,7 +123,7 @@ public:
     bool IsLimitReached() const noexcept;
 
     template <typename T>
-    LogHelper& operator<<(const T& value) {
+    USERVER_IMPL_NODEBUG_INLINE_FUNC LogHelper& operator<<(const T& value) {
         if constexpr (std::is_constructible_v<std::string_view, T>) {
             // noexcept if the conversion is noexcept
             *this << std::string_view{value};
@@ -133,11 +135,11 @@ public:
             *this << UnsignedLongLong{value};
         } else if constexpr (std::is_base_of_v<std::exception, T>) {
             *this << static_cast<const std::exception&>(value);
-        } else if constexpr (meta::kIsOstreamWritable<T>) {
+        } else if constexpr (meta::IsOstreamWritable<T>) {
             // may throw a non std::exception based exception
             Stream() << value;
             FlushStream();
-        } else if constexpr (meta::kIsRange<T> && !formats::common::kIsFormatValue<T>) {
+        } else if constexpr (meta::kIsRange<T> && !formats::common::IsFormatValue<T>) {
             // may throw a non std::exception based exception
             PutRange(value);
         } else {
@@ -177,7 +179,10 @@ public:
     /// @param args Arguments to be formatted into the log message.
     /// @return A reference to the LogHelper object for chaining.
     template <typename... Args>
-    LogHelper& Format(fmt::format_string<Args...> fmt, Args&&... args) noexcept;
+    USERVER_IMPL_NODEBUG_INLINE_FUNC LogHelper& Format(fmt::format_string<Args...> fmt, Args&&... args) noexcept {
+        VFormat(fmt::string_view(fmt), fmt::make_format_args(args...));
+        return *this;
+    }
 
     /// @cond
     // For internal use only!
@@ -269,7 +274,8 @@ LogHelper& operator<<(LogHelper& lh, const std::optional<T>& value) {
     return lh;
 }
 
-template <typename Fun, typename = std::enable_if_t<std::is_invocable_r_v<void, Fun, LogHelper&>>>
+template <typename Fun>
+requires std::is_invocable_r_v<void, Fun, LogHelper&>
 LogHelper& operator<<(LogHelper& lh, Fun&& value) {
     std::forward<Fun>(value)(lh);
     return lh;
@@ -354,12 +360,6 @@ void LogHelper::PutRange(const T& range) {
     }
 
     *this << ']';
-}
-
-template <typename... Args>
-LogHelper& LogHelper::Format(fmt::format_string<Args...> fmt, Args&&... args) noexcept {
-    VFormat(fmt::string_view(fmt), fmt::make_format_args(args...));
-    return *this;
 }
 
 }  // namespace logging

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include <userver/formats/json/parser/typed_parser.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -13,9 +15,8 @@ class JoinedParser final {
 public:
     using ResultType = typename ParserA::ResultType;
 
-    JoinedParser()
-        : main_parser_(subparser_)
-    {}
+    JoinedParser();
+    ~JoinedParser();
 
     void Reset() { main_parser_.Reset(); }
 
@@ -23,17 +24,23 @@ public:
         main_parser_.Subscribe(subscriber);
     }
 
-    auto& GetParser() { return main_parser_; }
-
-    operator formats::json::parser::BaseParser&()
-    {
-        return main_parser_;
-    }
+    formats::json::parser::BaseParser& GetParser() { return main_parser_; }
 
 private:
-    ParserB subparser_;
+    // We use std::unique_ptr here to break the circular dependency for recursive types in the same way as it is
+    // implicitly done in DOM.
+    std::unique_ptr<ParserB> subparser_;
     ParserA main_parser_;
 };
+
+template <typename ParserA, typename ParserB>
+JoinedParser<ParserA, ParserB>::JoinedParser()
+    : subparser_(std::make_unique<ParserB>()),
+      main_parser_(*subparser_)
+{}
+
+template <typename ParserA, typename ParserB>
+JoinedParser<ParserA, ParserB>::~JoinedParser() = default;
 
 }  // namespace chaotic::sax
 

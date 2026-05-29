@@ -355,7 +355,7 @@ class Parser:
 
         return model_flows
 
-    def _convert_openapi_securuty(
+    def _convert_openapi_security(
         self,
         security_scheme: openapi.SecurityScheme | openapi.Ref,
         flows_scopes: list[str] | None = None,
@@ -454,7 +454,7 @@ class Parser:
             security_schemas = parsed.components.securitySchemes
             for name, sec_scheme in security_schemas.items():
                 infile_path = f'/components/securitySchemes/{name}'
-                security_scheme = self._convert_openapi_securuty(sec_scheme)
+                security_scheme = self._convert_openapi_security(sec_scheme)
                 self._state.service.security[self._state.full_filepath + '#' + infile_path] = security_scheme
 
             def _convert_op_security(security: openapi.Security | None) -> list[model.Security]:
@@ -463,7 +463,7 @@ class Parser:
 
                 securities: list[model.Security] = []
                 for name, scopes in security.items():
-                    securities.append(self._convert_openapi_securuty(security_schemas[name], scopes))
+                    securities.append(self._convert_openapi_security(security_schemas[name], scopes))
 
                 return securities
 
@@ -734,6 +734,7 @@ class Parser:
                 security=security_converter(operation.security),
                 x_middlewares=operation.x_taxi_middlewares or base_model.XMiddlewares(tvm=True),
                 x_client_codegen=operation.x_client_codegen,
+                x_handler_codegen=operation.x_taxi_handler_codegen,
             ),
         )
 
@@ -774,6 +775,7 @@ class Parser:
                 security=security_converter(operation.security),
                 x_middlewares=operation.x_taxi_middlewares or base_model.XMiddlewares(tvm=True),
                 x_client_codegen=operation.x_client_codegen,
+                x_handler_codegen=operation.x_taxi_handler_codegen,
             ),
         )
 

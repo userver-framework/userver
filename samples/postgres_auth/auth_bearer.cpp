@@ -71,7 +71,7 @@ AuthCheckerBearer::AuthCheckResult AuthCheckerBearer::CheckAuth(
     /// [auth checker definition 4]
     const UserDbInfo& info = it->second;
     for (const auto& scope : required_scopes_) {
-        if (std::find(info.scopes.begin(), info.scopes.end(), scope.GetValue()) == info.scopes.end()) {
+        if (std::ranges::find(info.scopes, scope.GetValue()) == info.scopes.end()) {
             return AuthCheckResult{AuthCheckResult::Status::kForbidden, {}, "No '" + scope.GetValue() + "' permission"};
         }
     }

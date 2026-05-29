@@ -84,7 +84,7 @@ UTEST_MT(IntrusiveWalkablePool, TortureTest, 4) {
     tasks.reserve(GetThreadCount() - 1);
 
     for (std::size_t i = 0; i < GetThreadCount() - 2; ++i) {
-        tasks.push_back(engine::AsyncNoSpan([&] {
+        tasks.push_back(engine::AsyncNoTracing([&] {
             CheckedInt* nodes[kNodesPerTask]{};
 
             while (keep_running) {
@@ -100,7 +100,7 @@ UTEST_MT(IntrusiveWalkablePool, TortureTest, 4) {
         }));
     }
 
-    tasks.push_back(engine::AsyncNoSpan([&] {
+    tasks.push_back(engine::AsyncNoTracing([&] {
         while (keep_running) {
             std::size_t node_count = 0;
             pool.Walk([&](CheckedInt& node) {

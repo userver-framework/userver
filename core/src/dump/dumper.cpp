@@ -205,7 +205,7 @@ Dumper::Impl::Impl(
         });
     config_subscription_ = config_source.UpdateAndListen(this, "dump." + Name(), &Impl::OnConfigUpdate);
     if (dump_control.GetPeriodicsMode() == testsuite::DumpControl::PeriodicsMode::kEnabled) {
-        periodic_task_ = engine::CriticalAsyncNoSpan(fs_task_processor_, [this] { PeriodicWriteTask(); });
+        periodic_task_ = engine::CriticalAsyncNoTracing(fs_task_processor_, [this] { PeriodicWriteTask(); });
     }
 }
 

@@ -53,6 +53,8 @@ jobs:
                 brew update
                 brew tap mongodb/brew
                 brew install clang-format postgresql redis kafka rabbitmq mongodb-community
+                mkdir -p "$(brew --prefix)/etc/rabbitmq/conf.d"
+                echo 'deprecated_features.permit.transient_nonexcl_queues = true' > "$(brew --prefix)/etc/rabbitmq/conf.d/10-userver-ci.conf"
                 brew install python@3.11
 
           - name: Checkout
@@ -74,7 +76,7 @@ jobs:
           - name: Run conan
             run: |
                 ${{ matrix.container && 'sudo -u test-user' }} git config --global --add safe.directory `pwd`
-                ${{ matrix.container && 'sudo -u test-user' }} conan create . --update --build=missing --version=`cat version.txt` -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}}
+                ${{ matrix.container && 'sudo -u test-user' }} conan create . --update --build=missing --version=`cat version.txt` -s:a compiler.cppstd=20 -pr:b=default ${{matrix.conanflags}}
 
           - name: Install test dependencies
             if: matrix.os == 'ubuntu-22.04'
@@ -120,7 +122,7 @@ jobs:
                     s3api \
                 ; do
                     mv conanfile.py $SAMPLE/
-                    echo "Run: ${{ matrix.container && 'sudo -u test-user' }} ${{matrix.tests-env}} conan test --build=never -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} $SAMPLE/ ${USERVER_VERSION}"
-                    ${{ matrix.container && 'sudo -u test-user' }} ${{matrix.tests-env}} conan test --build=never -s:a compiler.cppstd=17 -pr:b=default ${{matrix.conanflags}} $SAMPLE/ ${USERVER_VERSION}
+                    echo "Run: ${{ matrix.container && 'sudo -u test-user' }} ${{matrix.tests-env}} conan test --build=never -s:a compiler.cppstd=20 -pr:b=default ${{matrix.conanflags}} $SAMPLE/ ${USERVER_VERSION}"
+                    ${{ matrix.container && 'sudo -u test-user' }} ${{matrix.tests-env}} conan test --build=never -s:a compiler.cppstd=20 -pr:b=default ${{matrix.conanflags}} $SAMPLE/ ${USERVER_VERSION}
                     mv $SAMPLE/conanfile.py ./
                 done

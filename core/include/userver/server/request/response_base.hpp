@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/request/response_base.hpp
+/// @brief @copybrief server::request::ResponseBase
+
 #include <atomic>
 #include <chrono>
 #include <functional>

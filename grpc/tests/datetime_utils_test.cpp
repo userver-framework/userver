@@ -152,7 +152,12 @@ TEST(DatetimeUtilsDateIsValid, DayDoesNotMatchMonth) { EXPECT_FALSE(ugrpc::IsVal
 
 #if __cpp_lib_chrono >= 201907L
 
-TEST(DatetimeUtils, ToProtoDateFromYearMonthDay) { EXPECT_TRUE(GrpcCompare(kDate, ugrpc::ToProtoDate(kYearMonthDay))); }
+TEST(DatetimeUtils, ToProtoDateFromYearMonthDay) {
+    EXPECT_TRUE(kGrpcCompare(kDate, ugrpc::ToProtoDate(kYearMonthDay)));
+}
+
+// TODO reenable when formats:: supports serialization for std::year_month_day.
+#if 0
 
 TEST(DatetimeUtils, ToProtoDateFromInvalidYearMonthDay) {
     constexpr std::chrono::year_month_day
@@ -163,6 +168,8 @@ TEST(DatetimeUtils, ToProtoDateFromInvalidYearMonthDay) {
         "system_date is invalid"
     );
 }
+
+#endif
 
 TEST(DatetimeUtils, ToYearMonthDay) { EXPECT_EQ(kYearMonthDay, ugrpc::ToYearMonthDay(kDate)); }
 

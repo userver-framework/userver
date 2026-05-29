@@ -1,5 +1,9 @@
 #pragma once
 
+/// @file userver/formats/json/parser/parser.hpp
+/// @brief Convenience umbrella header for JSON SAX parser components.
+/// @ingroup userver_universal
+
 #include <userver/formats/json/parser/array_parser.hpp>
 #include <userver/formats/json/parser/bool_parser.hpp>
 #include <userver/formats/json/parser/int_parser.hpp>

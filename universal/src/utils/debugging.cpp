@@ -72,9 +72,7 @@ bool IsDebuggerPresentLinux() {
 
         // Filter known debuggers to avoid false positives from other tracers
         // (for example `strace` could be there)
-        return std::any_of(kDebuggers.begin(), kDebuggers.end(), [&](const auto& dbg) {
-            return line.find(dbg) != std::string::npos;
-        });
+        return std::ranges::any_of(kDebuggers, [&](const auto& dbg) { return line.find(dbg) != std::string::npos; });
     }
 
     return false;

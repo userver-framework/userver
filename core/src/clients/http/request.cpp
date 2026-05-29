@@ -204,7 +204,7 @@ ProxyAuthType ProxyAuthTypeFromString(std::string_view auth_name) {
 Request::Request(
     impl::EasyWrapper&& wrapper,
     RequestStats&& req_stats,
-    const std::shared_ptr<DestinationStatistics>& dest_stats,
+    DestinationStatistics& dest_stats,
     clients::dns::Resolver* resolver,
     const tracing::TracingManagerBase& tracing_manager
 )
@@ -253,6 +253,7 @@ Request& Request::url(std::string url) & {
 
     /// `curl::easy::set_url(std::string&&, std::error_code&)` doesn't consume the string if fails.
     if (ec) {
+        // NOLINTNEXTLINE(bugprone-use-after-move)
         throw BadArgumentException(ec, "Bad URL", url, {});
     }
 
@@ -522,6 +523,15 @@ Request Request::delete_method(std::string url, std::string data) && {
 Request& Request::SetMiddlewaresList(const std::vector<utils::NotNull<MiddlewareBase*>>& middlewares) & {
     pimpl_->SetMiddlewaresList(middlewares);
     return *this;
+}
+
+Request& Request::SetIncompleteTlsConnectionCloseExpected(bool expect) & {
+    pimpl_->SetIncompleteTlsConnectionCloseExpected(expect);
+    return *this;
+}
+
+Request Request::SetIncompleteTlsConnectionCloseExpected(bool expect) && {
+    return std::move(this->SetIncompleteTlsConnectionCloseExpected(expect));
 }
 
 Request& Request::SetLoggedUrl(std::string url) & {

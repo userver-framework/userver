@@ -2,6 +2,7 @@
 
 // Utilitary header for chaotic for a custom type serialization/parsing support
 
+#include <concepts>
 #include <cstddef>
 
 #include <userver/chaotic/convert/to.hpp>
@@ -13,13 +14,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace chaotic::convert {
 
-template <typename T>
-std::enable_if_t<std::is_integral_v<T>, T> Convert(const std::int32_t& value, To<T>) {
+template <std::integral T>
+T Convert(const std::int32_t& value, To<T>) {
     return utils::numeric_cast<T>(value);
 }
 
-template <typename T>
-std::enable_if_t<std::is_integral_v<T>, std::int32_t> Convert(const T& value, To<std::int32_t>) {
+template <std::integral T>
+std::int32_t Convert(const T& value, To<std::int32_t>) {
     return utils::numeric_cast<std::int32_t>(value);
 }
 

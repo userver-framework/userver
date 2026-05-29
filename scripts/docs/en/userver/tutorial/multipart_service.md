@@ -20,7 +20,7 @@ for such form could look like:
 ```
 # yaml
 requestBody:
-  content: 
+  content:
     multipart/form-data: # Media type
       schema:            # Request payload
         type: object
@@ -132,7 +132,7 @@ $ curl -v -F address='{"street": "3, Garden St", "city": "Hillsbery, UT"}' \
 > Accept: */*
 > Content-Length: 10651
 > Content-Type: multipart/form-data; boundary=------------------------048363632fdb9acc
-> 
+>
 * We are completely uploaded and fine
 * Mark bundle as not supporting multiuse
 < HTTP/1.1 200 OK
@@ -145,7 +145,7 @@ $ curl -v -F address='{"street": "3, Garden St", "city": "Hillsbery, UT"}' \
 < Accept-Encoding: gzip, identity
 < Connection: keep-alive
 < Content-Length: 76
-< 
+<
 * Connection #0 to host localhost left intact
 city=Hillsbery, UT image_size=10173
 ```

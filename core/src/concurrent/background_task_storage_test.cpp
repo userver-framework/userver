@@ -5,6 +5,7 @@
 #include <engine/tests/task_processor_utils.hpp>
 #include <userver/concurrent/background_task_storage.hpp>
 #include <userver/concurrent/background_task_storage_fwd.hpp>
+#include <userver/engine/async.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
@@ -94,6 +95,56 @@ UTEST(BackgroundTaskStorage, Sample) {
     EXPECT_EQ(x, "");
     EXPECT_EQ(y, kString);
 }
+
+namespace {
+
+// Placeholders for the Doxygen snippet below; do not call Frobnicator::Launch() - UB if executed.
+struct Dependencies {};
+struct Foo {};
+struct Bar {};
+
+template <typename T>
+void Use(T&) {}
+
+/// [BtsLifetimeCapturesPitfalls]
+class Frobnicator {
+public:
+    // ...
+
+    void Launch(const Dependencies& stuff);
+
+private:
+    // ...
+    Foo foo_;
+    concurrent::BackgroundTaskStorage bts_;
+    Bar bar_;
+    // ...
+};
+
+void Frobnicator::Launch(const Dependencies& stuff) {
+    int x{};
+    bts_.AsyncDetach("task", [this, &stuff, &x] {
+        // BUG! All local variables will be gone.
+        // They should be captured by move or by copy.
+        Use(x);
+
+        // OK, because foo_ will be destroyed after bts_.
+        Use(foo_);
+
+        // BUG, because bar_ will be destroyed before bts_.
+        Use(bar_);
+
+        // Most likely a BUG! Unless `stuff` is contained within other fields,
+        // there is probably no guarantee that it outlives `bts_`.
+        // It should have been captured by move or by copy instead.
+        Use(stuff);
+    });
+}
+/// [BtsLifetimeCapturesPitfalls]
+
+[[maybe_unused]] void UseFrobnicator(Frobnicator& frobnicator) { frobnicator.Launch({}); }
+
+}  // namespace
 
 UTEST(BackgroundTaskStorage, NoDeadlockWithUnstartedTasks) {
     concurrent::BackgroundTaskStorage bts;
@@ -242,7 +293,7 @@ TEST(BackgroundTaskStorage, StrongTaskProcessorBinding) {
         engine::SingleConsumerEvent finished;
         concurrent::BackgroundTaskStorage bts;
 
-        engine::AsyncNoSpan(tp.GetSecondary(), [&] {
+        engine::AsyncNoTracing(tp.GetSecondary(), [&] {
             bts.AsyncDetach("", [&] {
                 EXPECT_EQ(&engine::current_task::GetTaskProcessor(), &tp.GetMain());
                 finished.Send();

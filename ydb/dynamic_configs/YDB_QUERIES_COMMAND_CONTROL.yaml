@@ -1,5 +1,6 @@
 default: {}
-description: ''
+description: |
+    Default YDB client settings by query name.
 schema:
     type: object
     additionalProperties:
@@ -12,14 +13,6 @@ schema:
                 attempts:
                     type: integer
                     minimum: 1
-                operation-timeout-ms:
-                    type: integer
-                    minimum: 1
-                    x-usrv-cpp-type: std::chrono::milliseconds
-                cancel-after-ms:
-                    type: integer
-                    minimum: 1
-                    x-usrv-cpp-type: std::chrono::milliseconds
                 client-timeout-ms:
                     type: integer
                     minimum: 1

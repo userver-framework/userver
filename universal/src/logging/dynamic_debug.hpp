@@ -28,12 +28,12 @@ static_assert(std::atomic<EntryState>::is_always_lock_free);
 using LogEntryContentHook = bi::set_base_hook<bi::optimize_size<true>, bi::link_mode<bi::normal_link>>;
 
 struct LogEntryContent {
-    LogEntryContent(const char* path, int line) noexcept : line(line), path(path) {}
+    LogEntryContent(const char* path, int line) noexcept : line(line), path(path), hook{} {}
 
     std::atomic<EntryState> state{EntryState{}};
     const int line;
     const char* const path;
-    LogEntryContentHook hook;
+    LogEntryContentHook hook{};
 };
 
 bool operator<(const LogEntryContent& x, const LogEntryContent& y) noexcept;

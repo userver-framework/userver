@@ -21,7 +21,7 @@ char* Append(char* output, const Args&... args) {
     };
     (append_impl(args), ...);
     return output;
-};
+}
 
 }  // namespace
 

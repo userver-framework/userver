@@ -21,7 +21,7 @@ ClientImpl::ClientImpl(clients::dns::Resolver& resolver, const ClientSettings& s
     std::vector<engine::TaskWithResult<void>> init_tasks;
     init_tasks.reserve(endpoints_count);
     for (size_t i = 0; i < endpoints_count; ++i) {
-        init_tasks.emplace_back(engine::AsyncNoSpan([this, &resolver, i] {
+        init_tasks.emplace_back(engine::AsyncNoTracing([this, &resolver, i] {
             pools_[i].pool = ConnectionPool::Create(
                 resolver,
                 settings_.endpoints.endpoints[i],

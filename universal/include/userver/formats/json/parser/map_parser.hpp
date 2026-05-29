@@ -1,11 +1,16 @@
 #pragma once
 
+/// @file userver/formats/json/parser/map_parser.hpp
+/// @brief @copybrief formats::json::parser::MapParser
+/// @ingroup userver_universal
+
 #include <userver/formats/json/parser/typed_parser.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace formats::json::parser {
 
+/// @brief SAX parser that fills maps from JSON objects.
 template <typename Map, typename ValueParser>
 class MapParser final : public TypedParser<Map>, public Subscriber<typename Map::mapped_type> {
 public:

@@ -55,9 +55,11 @@ void ReportReopeningErrorAndThrow(
 ) {
     std::fputs(
         fmt::format(
-            "[{:%Y-%m-%d %H:%M:%S %Z}] loggers [{}] failed to reopen the log file: logs are getting lost now",
+            "[{:%Y-%m-%d %H:%M:%S %Z}] loggers [{}] failed to reopen the log file: logs are getting lost "
+            "now.\r\nErrors:\r\n{}\r\n",
             std::chrono::system_clock::now(),
-            fmt::join(failed_loggers, ", ")
+            fmt::join(failed_loggers, ", "),
+            fmt::join(result_messages, ",\r\n")
         )
             .c_str(),
         stderr
@@ -245,7 +247,7 @@ void Logging::TryReopenFiles() {
     std::unordered_map<std::string_view, engine::TaskWithResult<void>> tasks;
     tasks.reserve(loggers_.size() + 1);
     for (const auto& [name, logger] : loggers_) {
-        tasks.emplace(name, engine::CriticalAsyncNoSpan(fs_task_processor_, ReopenLoggerFile, logger));
+        tasks.emplace(name, engine::CriticalAsyncNoTracing(fs_task_processor_, ReopenLoggerFile, logger));
     }
 
     std::string result_messages;
@@ -260,12 +262,12 @@ void Logging::TryReopenFiles() {
             failed_loggers.push_back(name);
         }
     }
-    LOG_INFO() << "Log rotated";
+    LOG_INFO() << "Log reopening finished";
 
     const bool error_happened = !result_messages.empty();
     /// [alert_usage]
     if (error_happened) {
-        kLogReopeningAlert.FireAlert(*metrics_storage_);
+        kLogReopeningAlert.FireAlert(*metrics_storage_, alerts::Source::kInfiniteDuration);
         ReportReopeningErrorAndThrow(failed_loggers, result_messages);
     } else {
         kLogReopeningAlert.StopAlertNow(*metrics_storage_);

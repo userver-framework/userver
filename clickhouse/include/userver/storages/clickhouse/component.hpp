@@ -60,7 +60,6 @@ private:
     clients::dns::Component& dns_;
 
     std::shared_ptr<storages::clickhouse::Cluster> cluster_;
-    utils::statistics::Entry statistics_holder_;
 };
 
 template <>

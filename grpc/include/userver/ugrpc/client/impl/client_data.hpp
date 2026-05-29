@@ -53,6 +53,9 @@ public:
               internals_.default_service_config,
               internals_.retry_config,
               metadata
+          ),
+          method_retry_limiters_(
+              CreateRetryLimiters(internals_.retry_limiter_factory, metadata, internals_.destination_prefix_in_metrics)
           )
     {
         if (internals_.qos) {
@@ -102,10 +105,16 @@ public:
 
     const RetryConfig& GetRetryConfig() const { return internals_.retry_config; }
 
+    RetryLimiterFactory* GetRetryLimiterFactory() const noexcept { return internals_.retry_limiter_factory; }
+
+    RetryLimiter* GetRetryLimiter(std::size_t method_id) const noexcept;
+
     rcu::ReadablePtr<StubState> GetStubState() const;
 
     /// @returns Target endpoint address string from the channel factory
     std::string_view GetEndpoint() const { return internals_.endpoint; }
+
+    std::string_view GetDestinationPrefixInMetrics() const { return internals_.destination_prefix_in_metrics; }
 
 private:
     template <typename Service>
@@ -138,6 +147,12 @@ private:
             return MakeStubs<Service>(method_channel_count, channel_factory, target, channel_args);
         });
     }
+
+    static utils::FixedArray<std::unique_ptr<RetryLimiter>> CreateRetryLimiters(
+        RetryLimiterFactory* factory,
+        const ugrpc::impl::StaticServiceMetadata& metadata,
+        std::string_view destination_prefix_in_metrics
+    );
 
     ugrpc::impl::ServiceStatistics& GetServiceStatistics();
 
@@ -196,6 +211,9 @@ private:
     std::optional<compat::ChannelArgumentsBuilder> channel_arguments_builder_;
 
     rcu::Variable<StubState> stub_state_;
+
+    // RetryLimiter instances per method
+    utils::FixedArray<std::unique_ptr<RetryLimiter>> method_retry_limiters_;
 
     // These fields must be the last ones
     concurrent::AsyncEventSubscriberScope config_subscription_;

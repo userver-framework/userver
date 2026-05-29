@@ -4,7 +4,6 @@
 #include <boost/container/small_vector.hpp>
 
 #include <userver/utils/algo.hpp>
-#include <userver/utils/meta_light.hpp>
 #include <userver/utils/numeric_cast.hpp>
 
 #include <userver/ugrpc/status_codes.hpp>
@@ -62,14 +61,11 @@ private:
 };
 
 template <typename T>
-using SetRedactDebugStringConstraint = decltype(std::declval<T&>().SetRedactDebugString(true));
-
-template <typename T>
-constexpr bool kHasSetRedactDebugString = meta::IsDetected<SetRedactDebugStringConstraint, T>;
+concept HasSetRedactDebugString = requires(T& t) { t.SetRedactDebugString(true); };
 
 template <typename Printer = google::protobuf::TextFormat::Printer>
 void Print(const google::protobuf::Message& message, google::protobuf::io::ZeroCopyOutputStream& output_stream) {
-    if constexpr (kHasSetRedactDebugString<Printer>) {
+    if constexpr (HasSetRedactDebugString<Printer>) {
         Printer printer;
         printer.SetUseUtf8StringEscaping(true);
         printer.SetExpandAny(true);

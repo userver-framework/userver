@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/error_injection/settings.hpp
+/// @brief Artificial error injection settings and verdict types
+
 #include <memory>
 #include <string>
 #include <vector>

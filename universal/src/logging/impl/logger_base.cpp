@@ -16,15 +16,15 @@ void LoggerBase::SetLevel(Level level) { level_ = level; }
 
 Level LoggerBase::GetLevel() const noexcept { return level_; }
 
-bool LoggerBase::ShouldLog(Level level) const noexcept { return ShouldLogNoSpan(*this, level) && DoShouldLog(level); }
+bool LoggerBase::ShouldLog(Level level) const noexcept {
+    return level != Level::kNone && ShouldLogWithSpanCheck(*this, level);
+}
 
 void LoggerBase::SetFlushOn(Level level) { flush_level_ = level; }
 
 bool LoggerBase::ShouldFlush(Level level) const { return flush_level_ <= level; }
 
 void LoggerBase::ForwardTo(LoggerBase*) {}
-
-bool LoggerBase::DoShouldLog(Level /*level*/) const noexcept { return true; }
 
 formatters::BasePtr TextLogger::MakeFormatter(Level level, LogClass, const utils::impl::SourceLocation& location) {
     auto format = GetFormat();
@@ -44,8 +44,8 @@ formatters::BasePtr TextLogger::MakeFormatter(Level level, LogClass, const utils
 
 Format TextLogger::GetFormat() const noexcept { return format_; }
 
-bool ShouldLogNoSpan(const LoggerBase& logger, Level level) noexcept {
-    return logger.GetLevel() <= level && level != Level::kNone;
+__attribute__((weak)) bool ShouldLogWithSpanCheck(const LoggerBase& logger, Level level) noexcept {
+    return ShouldLogNoSpan(logger, level);
 }
 
 }  // namespace logging::impl

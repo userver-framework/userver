@@ -80,34 +80,27 @@ public:
     }
 };
 
-template <typename GrpcService, bool Logging>
-class TestService : public tests::ServiceBase {
+using GrpcClientTest = tests::Service<UnitTestService>;
+
+class GrpcClientTestWithLogging final : public tests::Service<UnitTestService> {
 public:
-    template <typename... Args>
-    TestService(Args&&... args) : tests::ServiceBase(std::forward<Args>(args)...) {
-        if constexpr (Logging) {
-            server::middlewares::log::Settings server_log_settings;
-            server_log_settings.msg_log_level = logging::Level::kInfo;
-            SetServerMiddlewares({std::make_shared<server::middlewares::log::Middleware>(server_log_settings)});
-
-            client::middlewares::log::Settings client_log_settings;
-            client_log_settings.msg_log_level = logging::Level::kInfo;
-            SetClientMiddlewares({std::make_shared<client::middlewares::log::Middleware>(client_log_settings)});
-        }
-        RegisterService(service_);
-        StartServer();
-    }
-
-    ~TestService() override { StopServer(); }
-
-    GrpcService& GetService() { return service_; }
-
-private:
-    GrpcService service_{};
+    GrpcClientTestWithLogging()
+        : tests::Service<UnitTestService>({
+              .server_middlewares =
+                  {
+                      std::make_shared<server::middlewares::log::Middleware>(server::middlewares::log::Settings{
+                          .msg_log_level = logging::Level::kInfo
+                      }),
+                  },
+              .client_middlewares =
+                  {
+                      std::make_shared<client::middlewares::log::Middleware>(client::middlewares::log::Settings{
+                          .msg_log_level = logging::Level::kInfo
+                      }),
+                  },
+          })
+    {}
 };
-
-using GrpcClientTest = TestService<UnitTestService, false>;
-using GrpcClientTestWithLogging = TestService<UnitTestService, true>;
 
 ugrpc::client::CallOptions PrepareCallOptions() {
     ugrpc::client::CallOptions call_options;
@@ -196,7 +189,7 @@ void BatchOfUnaryRPC(benchmark::State& state) {
 
             for (auto _ : state) {
                 auto tasks = utils::GenerateFixedArray(kBatchSize, [&clients](auto i) {
-                    return engine::AsyncNoSpan(UnaryRPCPayloadRepeated, std::ref(clients[i]));
+                    return engine::AsyncNoTracing(UnaryRPCPayloadRepeated, std::ref(clients[i]));
                 });
                 engine::GetAll(tasks);
             }
@@ -221,7 +214,7 @@ void BatchOfUnaryRPCNewClient(benchmark::State& state) {
 
             for (auto _ : state) {
                 auto tasks = utils::GenerateFixedArray(kBatchSize, [&client_factory](auto) {
-                    return engine::AsyncNoSpan([&client_factory] {
+                    return engine::AsyncNoTracing([&client_factory] {
                         auto client = client_factory.MakeClient<sample::ugrpc::UnitTestServiceClient>();
                         UnaryRPCPayloadRepeated(client);
                     });
@@ -248,7 +241,7 @@ void BatchOfNewClient(benchmark::State& state) {
 
             for (auto _ : state) {
                 auto tasks = utils::GenerateFixedArray(kBatchSize, [&client_factory](auto) {
-                    return engine::AsyncNoSpan(NewClientRepeated, std::ref(client_factory));
+                    return engine::AsyncNoTracing(NewClientRepeated, std::ref(client_factory));
                 });
                 engine::GetAll(tasks);
             }

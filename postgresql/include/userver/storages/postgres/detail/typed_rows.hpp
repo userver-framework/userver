@@ -75,7 +75,7 @@ public:
     }
 
     ConstTypedRowIterator operator[](difference_type index) const {
-        return *this + index * static_cast<int>(Direction);
+        return *this + (index * static_cast<int>(Direction));
     }
 
     ConstTypedRowIterator& operator+=(difference_type distance) { return DoAdvance(distance); }
@@ -85,8 +85,6 @@ public:
     //@{
     /** @name Iterator comparison */
     bool operator==(const ConstTypedRowIterator& rhs) const { return this->Compare(rhs) == 0; }
-
-    bool operator!=(const ConstTypedRowIterator& rhs) const { return !(*this == rhs); }
 
     bool operator<(const ConstTypedRowIterator& rhs) const { return this->Compare(rhs) < 0; }
     bool operator<=(const ConstTypedRowIterator& rhs) const { return this->Compare(rhs) <= 0; }

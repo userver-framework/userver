@@ -47,7 +47,7 @@ std::vector<std::shared_ptr<http::HttpRequest>> RequestsView::GetAllRequests() {
 }
 
 void RequestsView::StartBackgroundWorker() {
-    job_task_ = engine::CriticalAsyncNoSpan([this]() { DoJob(); });
+    job_task_ = engine::CriticalAsyncNoTracing([this]() { DoJob(); });
 }
 
 void RequestsView::StopBackgroundWorker() { job_task_.SyncCancel(); }

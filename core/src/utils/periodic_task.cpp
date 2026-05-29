@@ -14,6 +14,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/testsuite/periodic_task_control.hpp>
+#include <userver/testsuite/tasks.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tracer.hpp>
 #include <userver/utils/rand.hpp>
@@ -71,10 +72,6 @@ bool PeriodicTask::Settings::operator==(const Settings& other) const noexcept {
     return TieSettings(*this) == TieSettings(other);
 }
 
-bool PeriodicTask::Settings::operator!=(const Settings& other) const noexcept {
-    return TieSettings(*this) != TieSettings(other);
-}
-
 PeriodicTask::PeriodicTask()
     : impl_()
 {}
@@ -120,7 +117,7 @@ void PeriodicTask::Impl::DoStart() {
     auto settings_ptr = settings.Read();
     auto& task_processor =
         settings_ptr->task_processor ? *settings_ptr->task_processor : engine::current_task::GetTaskProcessor();
-    task = engine::CriticalAsyncNoSpan(task_processor, &PeriodicTask::Impl::Run, this);
+    task = engine::CriticalAsyncNoTracing(task_processor, &PeriodicTask::Impl::Run, this);
 }
 
 void PeriodicTask::Stop() noexcept {
@@ -311,6 +308,21 @@ void PeriodicTask::RegisterInTestsuite(testsuite::PeriodicTaskControl& periodic_
 PeriodicTask::Settings PeriodicTask::GetCurrentSettings() const {
     auto settings_ptr = impl_->settings.Read();
     return *settings_ptr;
+}
+
+void StartPeriodicTask(
+    PeriodicTask& periodic_task,
+    std::string name,
+    const PeriodicTask::Settings& settings,
+    PeriodicTask::Callback callback,
+    testsuite::TestsuiteTasks& testsuite_tasks
+)
+{
+    if (testsuite_tasks.IsEnabled()) {
+        testsuite_tasks.RegisterTask("periodic/" + name, std::move(callback));
+    } else {
+        periodic_task.Start(std::move(name), settings, std::move(callback));
+    }
 }
 
 }  // namespace utils

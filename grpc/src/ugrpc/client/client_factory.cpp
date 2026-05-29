@@ -50,8 +50,8 @@ impl::ClientInternals ClientFactory::MakeClientInternals(
         << ", dedicated-channel-counts: " << client_settings.dedicated_methods_config;
 
     ClientInfo info{
-        /*client_name=*/client_settings.client_name,
-        /*service_full_name=*/std::nullopt,
+        .client_name = client_settings.client_name,
+        .service_full_name = std::nullopt,
     };
     if (meta.has_value()) {
         info.service_full_name.emplace(meta.value().service_full_name);
@@ -86,6 +86,7 @@ impl::ClientInternals ClientFactory::MakeClientInternals(
         std::move(client_settings.dedicated_methods_config),
         std::move(channel_factory),
         client_factory_settings_.retry_config,
+        client_factory_settings_.retry_limiter_factory,
         client_factory_settings_.channel_args,
         client_factory_settings_.default_service_config,
         client_factory_settings_.proxy_settings

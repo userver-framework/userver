@@ -3,6 +3,7 @@
 /// @file userver/utils/impl/wrapped_call.hpp
 /// @brief @copybrief utils::impl::WrappedCall
 
+#include <concepts>
 #include <cstddef>
 #include <functional>
 #include <new>
@@ -11,6 +12,7 @@
 #include <type_traits>
 #include <utility>
 
+#include <userver/compiler/impl/nodebug.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/wrapped_call_base.hpp>
 #include <userver/utils/lazy_prvalue.hpp>
@@ -30,7 +32,7 @@ public:
     /// Returns (or rethrows) the result of wrapped call invocation
     decltype(auto) Get() const& { return result_.Get(); }
 
-    void RethrowErrorResult() const final { (void)result_.Get(); }
+    std::exception_ptr GetException() const noexcept final { return result_.GetException(); }
 
 protected:
     WrappedCall() noexcept = default;
@@ -77,16 +79,29 @@ struct UnrefImpl<utils::LazyPrvalue<Func>> final {
 template <typename T>
 using DecayUnref = typename UnrefImpl<std::decay_t<T>>::type;
 
+// Like std::apply, but avoids generating extra template instantiations and unnecessary debug information.
+template <typename Function, typename... Args, std::size_t... Indices>
+USERVER_IMPL_NODEBUG_INLINE_FUNC inline decltype(auto)
+TransparentApply(Function&& func, std::tuple<Args...>&& args, std::index_sequence<Indices...>) {
+    if constexpr (std::is_member_pointer_v<std::remove_cvref_t<Function>>) {
+        // Not utils::ForwardLike because it would move arguments stored by reference.
+        return std::invoke(std::forward<Function>(func), static_cast<Args&&>(std::get<Indices>(args))...);
+    } else {
+        return std::forward<Function>(func)(static_cast<Args&&>(std::get<Indices>(args))...);
+    }
+}
+
 // Stores passed arguments and function. Invokes function later with argument
 // types exactly matching the initial types of arguments passed to WrapCall.
 template <typename Function, typename... Args>
+requires std::invocable<Function&&, Args&&...>
 class WrappedCallImpl final : public WrappedCall<std::invoke_result_t<Function&&, Args&&...>> {
 public:
     using ResultType = std::invoke_result_t<Function&&, Args&&...>;
 
-    template <typename RawFunction, typename RawArgsTuple>
-    explicit WrappedCallImpl(RawFunction&& func, RawArgsTuple&& args)
-        : data_(std::in_place, std::forward<RawFunction>(func), std::forward<RawArgsTuple>(args))
+    template <typename RawFunction, typename... RawArgs>
+    explicit WrappedCallImpl(RawFunction&& func, RawArgs&&... args)
+        : data_(std::in_place, std::forward<RawFunction>(func), std::forward<RawArgs>(args)...)
     {}
 
     void Perform() override {
@@ -102,10 +117,18 @@ public:
         // see 'logging/stacktrace_cache.cpp'.
         try {
             if constexpr (std::is_void_v<ResultType>) {
-                std::apply(std::forward<Function>(data_->func), std::move(data_->args));
+                impl::TransparentApply(
+                    std::forward<Function>(data_->func),
+                    std::move(data_->args),
+                    std::index_sequence_for<Args...>{}
+                );
                 result.SetValue();
             } else {
-                result.SetValue(std::apply(std::forward<Function>(data_->func), std::move(data_->args)));
+                result.SetValue(impl::TransparentApply(
+                    std::forward<Function>(data_->func),
+                    std::move(data_->args),
+                    std::index_sequence_for<Args...>{}
+                ));
             }
         } catch (const std::exception&) {
             result.SetException(std::current_exception());
@@ -114,12 +137,11 @@ public:
 
 private:
     struct Data final {
-        // TODO remove after paren-init for aggregates in C++20
-        template <typename RawFunction, typename RawArgsTuple>
-        explicit Data(RawFunction&& func, RawArgsTuple&& args)
+        template <typename RawFunction, typename... RawArgs>
+        explicit Data(RawFunction&& func, RawArgs&&... args)
             // NOLINTNEXTLINE(clang-analyzer-cplusplus.Move)
             : func(std::forward<RawFunction>(func)),
-              args(std::forward<RawArgsTuple>(args))
+              args(std::forward<RawArgs>(args)...)
         {}
 
         Function func;
@@ -141,10 +163,8 @@ template <typename Function, typename... Args>
         (!std::is_array_v<std::remove_reference_t<Args>> && ...),
         "Passing C arrays to Async is forbidden. Use std::array instead"
     );
-
-    return *new (storage) WrappedCallImplType<
-        Function,
-        Args...>(std::forward<Function>(f), std::forward_as_tuple(std::forward<Args>(args)...));
+    return *new (storage
+    ) WrappedCallImplType<Function, Args...>(std::forward<Function>(f), std::forward<Args>(args)...);
 }
 
 }  // namespace utils::impl

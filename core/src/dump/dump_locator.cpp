@@ -125,18 +125,18 @@ void DumpLocator::Cleanup() {
                 continue;
             }
 
-            if (dump->format_version < config_.dump_format_version || dump->update_time < min_update_time) {
+            // Do not cleanup dumps with previous versions to have a change to rollback to a previous service version
+            // without losing dumps.
+            if (dump->update_time < min_update_time) {
                 LOG_DEBUG() << config_.name << ": removing an expired dump, path=\"" << file.path().string() << "\"";
                 boost::filesystem::remove(file);
                 continue;
             }
 
-            if (dump->format_version == config_.dump_format_version) {
-                dumps.push_back(std::move(*dump));
-            }
+            dumps.push_back(std::move(*dump));
         }
 
-        std::sort(dumps.begin(), dumps.end(), [](const DumpFileStats& a, const DumpFileStats& b) {
+        std::ranges::sort(dumps, [](const DumpFileStats& a, const DumpFileStats& b) {
             return a.update_time > b.update_time;
         });
 

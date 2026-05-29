@@ -13,7 +13,7 @@ RedisConnectionHolder::RedisConnectionHolder(
     const std::string& shard_group_name,
     const std::string& host,
     uint16_t port,
-    Password password,
+    Credentials credentials,
     std::size_t database_index,
     CommandsBufferingSettings buffering_settings,
     ReplicationMonitoringSettings replication_monitoring_settings,
@@ -29,7 +29,7 @@ RedisConnectionHolder::RedisConnectionHolder(
       shard_group_name_(shard_group_name),
       host_(host),
       port_(port),
-      password_(std::move(password)),
+      credentials_(std::move(credentials)),
       database_index_(database_index),
       statistics_(stats),
       connection_check_timer_(ev_thread_, [this] { EnsureConnected(); }, kCheckRedisConnectedInterval),
@@ -46,7 +46,7 @@ std::shared_ptr<RedisConnectionHolder> RedisConnectionHolder::Create(
     const std::string& shard_group_name,
     const std::string& host,
     uint16_t port,
-    Password password,
+    Credentials credentials,
     std::size_t database_index,
     CommandsBufferingSettings buffering_settings,
     ReplicationMonitoringSettings replication_monitoring_settings,
@@ -61,7 +61,7 @@ std::shared_ptr<RedisConnectionHolder> RedisConnectionHolder::Create(
         shard_group_name,
         host,
         port,
-        std::move(password),
+        std::move(credentials),
         database_index,
         std::move(buffering_settings),
         std::move(replication_monitoring_settings),
@@ -118,7 +118,7 @@ void RedisConnectionHolder::CreateConnection() {
         instance->SetRetryBudgetSettings(*settings_ptr);
     }
 
-    instance->Connect({host_}, port_, password_, database_index_);
+    instance->Connect({host_}, port_, credentials_, database_index_);
     redis_.Assign(std::move(instance));
 }
 

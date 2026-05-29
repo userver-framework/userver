@@ -110,6 +110,42 @@ public:
         };
     }
 
+    /// @brief This is a read-only variant of the Eval() command that cannot execute commands that modify data.
+    ///
+    /// For huge scripts consider EvalShaReadOnly() to save network bandwidth.
+    ///
+    /// Sample usage:
+    /// @snippet redis/src/storages/redis/client_cluster_redistest.cpp  Sample eval_ro usage
+    template <typename ScriptResult, typename ReplyType = ScriptResult>
+    RequestEval<ScriptResult, ReplyType> EvalReadOnly(
+        std::string script,
+        std::vector<std::string> keys,
+        std::vector<std::string> args,
+        const CommandControl& command_control
+    ) {
+        return RequestEval<ScriptResult, ReplyType>{
+            EvalReadOnlyCommon(std::move(script), std::move(keys), std::move(args), command_control)
+        };
+    }
+
+    /// @brief This is a read-only variant of the EvalSha() command that cannot execute commands that modify data.
+    ///
+    /// For small scripts consider using a simpler EvalReadOnly() member function.
+    ///
+    /// Sample usage:
+    /// @snippet redis/src/storages/redis/client_cluster_redistest.cpp  Sample evalsha_ro usage
+    template <typename ScriptResult, typename ReplyType = ScriptResult>
+    RequestEvalSha<ScriptResult, ReplyType> EvalShaReadOnly(
+        std::string script_hash,
+        std::vector<std::string> keys,
+        std::vector<std::string> args,
+        const CommandControl& command_control
+    ) {
+        return RequestEvalSha<ScriptResult, ReplyType>{
+            EvalShaReadOnlyCommon(std::move(script_hash), std::move(keys), std::move(args), command_control)
+        };
+    }
+
     /// @brief Execute a custom Redis command.
     /// @param key_index Index of the key in the args vector used to determine the shard
     ///
@@ -448,6 +484,13 @@ public:
         const CommandControl& command_control
     ) = 0;
 
+    virtual RequestSetAndGetPrevious SetAndGetPrevious(
+        std::string key,
+        std::string value,
+        std::chrono::milliseconds ttl,
+        const CommandControl& command_control
+    ) = 0;
+
     virtual RequestSismember Sismember(std::string key, std::string member, const CommandControl& command_control) = 0;
 
     // use Sscan in case of a big set
@@ -636,6 +679,58 @@ public:
 
     virtual RequestZscore Zscore(std::string key, std::string member, const CommandControl& command_control) = 0;
 
+    // JSON module commands:
+
+    /// @brief Set a JSON value at the given key and path.
+    virtual RequestJsonSet JsonSet(
+        std::string key,
+        std::string path,
+        formats::json::Value value,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Set a JSON value only if the path does not already exist (NX).
+    virtual RequestJsonSetIfNotExist JsonSetIfNotExist(
+        std::string key,
+        std::string path,
+        formats::json::Value value,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Set a JSON value only if the path already exists (XX).
+    virtual RequestJsonSetIfExist JsonSetIfExist(
+        std::string key,
+        std::string path,
+        formats::json::Value value,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Get the JSON value at the root path of the given key.
+    virtual RequestJsonGet JsonGet(std::string key, const CommandControl& command_control) = 0;
+
+    /// @brief Get the JSON value at the given path of the given key.
+    virtual RequestJsonGet JsonGet(std::string key, std::string path, const CommandControl& command_control) = 0;
+
+    /// @brief Get the JSON value at multiple paths of the given key.
+    virtual RequestJsonGet JsonGet(
+        std::string key,
+        std::vector<std::string> paths,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Get JSON values from multiple keys at the given path.
+    virtual RequestJsonMget JsonMget(
+        std::vector<std::string> keys,
+        std::string path,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Set JSON values for multiple key-path-value triplets.
+    virtual RequestJsonMset JsonMset(
+        std::vector<JsonKeyPathValue> key_path_values,
+        const CommandControl& command_control
+    ) = 0;
+
     // end of redis commands
 
     RequestGet Get(std::string key, RetryNilFromMaster, const CommandControl& command_control);
@@ -667,6 +762,18 @@ protected:
         const CommandControl& command_control
     ) = 0;
     virtual RequestEvalShaCommon EvalShaCommon(
+        std::string script_hash,
+        std::vector<std::string> keys,
+        std::vector<std::string> args,
+        const CommandControl& command_control
+    ) = 0;
+    virtual RequestEvalCommon EvalReadOnlyCommon(
+        std::string script,
+        std::vector<std::string> keys,
+        std::vector<std::string> args,
+        const CommandControl& command_control
+    ) = 0;
+    virtual RequestEvalShaCommon EvalShaReadOnlyCommon(
         std::string script_hash,
         std::vector<std::string> keys,
         std::vector<std::string> args,

@@ -8,8 +8,8 @@
 |--|-----------------------------|
 | **OS** | Ubuntu, Debian, Fedora, Arch, Gentoo, macOS |
 | **Architectures** | x86, x86_64, AArch64, Arm |
-| **Compilers** | GCC-10.1 and newer, Clang-14 and newer |
-| **C++ Standards** | C++17, C++20, C++23 |
+| **Compilers** | GCC-11.2 and newer, Clang-16 and newer |
+| **C++ Standards** | C++20, C++23 |
 | **C++ Standard Libraries** | libstdc++, libc++ |
 
 x86_64 on Ubuntu with clang is additionally tested on multiple

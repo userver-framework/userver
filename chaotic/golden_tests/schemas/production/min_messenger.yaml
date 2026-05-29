@@ -1,0 +1,396 @@
+######################################################################################################################
+#
+# API of a naiive minimalistic messenger.
+#
+# Each `V*Request` has a matching `V*Response`
+#
+######################################################################################################################
+components:
+    schemas:
+        V1Login:
+            description: Unique user ID in the system
+            type: string
+            minLength: 3
+
+        V1ChannelId:
+            description: |
+                Channel ID in the system. There is no need to explicitly create channel, all the IDs already exist.
+            type: integer
+            format: int64
+
+        V1MessageId:
+            description: Unique message ID for a specific channel
+            type: integer
+            format: int64
+
+        V1CurrentUser:
+            description: Current user information, including authorization token if authorized (empty otherwise)
+            type: object
+            additionalProperties: false
+            required:
+              - login
+              - name
+            properties:
+                token:
+                    type: string
+                    minLength: 128
+                    maxLength: 128
+                login:
+                    $ref: '#/components/schemas/V1Login'
+                name:
+                    description: Human readable name, if any
+                    type: string
+
+        V1Error:
+            description: |
+                Structure to report any error.
+
+                The simplest way to report error in userver is via throwing some exception derived from
+                server::handlers::CustomHandlerException. For example:
+
+                throw server::handlers::ClientError(                            // writes 'client_error' to V1Error.code
+                    server::handlers::ExternalBody{"We do not accept key 42"},  // goes to V1Error.message
+                    server::handlers::InternalMessage{"User sent a 42 key"}     // goes to server logs
+                );
+            type: object
+            additionalProperties: false
+            required:
+              - code
+              - message
+            properties:
+                code:
+                    description: machine_readable_error_code
+                    type: string
+                message:
+                    description: Human readable message
+                    type: string
+                details:
+                    description: Any additional info
+                    type: object
+                    additionalProperties: true
+                    properties: {}
+
+        ############## registration + authorization ##############
+
+        # POST /v1/user/registration
+        V1UserRegistrationRequest:
+            description: |
+                Registration scenario:
+
+                User sends `POST /v1/user/registration` request with this object in body. If the registration is
+                successful, then the HTTP 200 is returned with V1UserRegistrationResponse object in response body.
+            type: object
+            additionalProperties: false
+            required:
+              - login
+              - password
+              - name
+              - email
+              - phone
+            properties:
+                login:
+                    $ref: '#/components/schemas/V1Login'
+                name:
+                    type: string
+                    minLength: 1
+                email:
+                    type: string
+                    minLength: 3
+                phone:
+                    type: string
+                    minLength: 3
+                password:
+                    type: string
+                    minLength: 6
+
+        V1UserRegistrationResponse:
+            $ref: '#/components/schemas/V1UserAuthorizationResponse'
+
+        # POST /v1/user/authorization
+        V1UserAuthorizationRequest:
+            description: |
+                Authorization scenario:
+
+                User sends `POST /v1/user/authorization` request with this object in body. If the authorization is
+                successful (the user previously registered), then the HTTP 200 is returned with
+                V1UserAuthorizationResponse object in response body.
+            type: object
+            additionalProperties: false
+            required:
+              - login
+              - password
+            properties:
+                login:
+                    $ref: '#/components/schemas/V1Login'
+                password:
+                    type: string
+                    minLength: 6
+
+        V1UserAuthorizationResponse:
+            type: object
+            additionalProperties: false
+            required:
+              - current_user
+            properties:
+                current_user:
+                    $ref: '#/components/schemas/V1CurrentUser'
+
+        ############## chats and messages ##############
+
+        V1ChannelMessage:
+            type: object
+            additionalProperties: false
+            required:
+              - current_user
+              - id
+              - timestamp
+              - message
+            properties:
+                current_user:
+                    $ref: '#/components/schemas/V1CurrentUser'
+                id:
+                    type: integer
+                    format: int64
+                timestamp:
+                    type: string
+                message:
+                    type: string
+                    minLength: 1
+
+        # POST /v1/channel/message/by-timestamp
+        V1ChannelMessageByTimestampRequest:
+            type: object
+            additionalProperties: false
+            required:
+              - channel_id
+              - from
+            properties:
+                channel_id:
+                    $ref: '#/components/schemas/V1ChannelId'
+                from:
+                    type: string
+                to:
+                    type: string
+
+        V1ChannelMessageByTimestampResponse:
+            type: object
+            additionalProperties: false
+            required:
+              - messages
+            properties:
+                messages:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/V1ChannelMessage'
+
+        # POST /v1/channel/message/new
+        V1ChannelMessageNewRequest:
+            type: object
+            additionalProperties: false
+            required:
+              - current_user
+              - channel_id
+              - message
+            properties:
+                current_user:
+                    $ref: '#/components/schemas/V1CurrentUser'
+                channel_id:
+                    $ref: '#/components/schemas/V1ChannelId'
+                message:
+                    type: string
+                    minLength: 1
+
+        V1ChannelMessageNewResponse:
+            type: object
+            additionalProperties: false
+            required:
+              - message_id
+            properties:
+                message_id:
+                    $ref: '#/components/schemas/V1MessageId'
+
+        ############## notifications ##############
+
+        # POST /v1/channel/notification/list
+        V1ChannelNotificationListRequest:
+            type: object
+            additionalProperties: false
+            required:
+              - current_user
+              - channel_id
+            properties:
+                current_user:
+                    $ref: '#/components/schemas/V1CurrentUser'
+                channel_id:
+                    $ref: '#/components/schemas/V1ChannelId'
+
+        V1ChannelNotificationListResponse:
+            type: object
+            additionalProperties: false
+            required:
+              - notifications
+            properties:
+                notifications:
+                    description: Array of message IDs where current_user was notified
+                    type: array
+                    items:
+                        type: integer
+                        format: int64
+
+        # POST /v1/channel/notification/new
+        V1ChannelNotificationNewRequest:
+            description: Notify other user that message requires his attention.
+            type: object
+            additionalProperties: false
+            required:
+              - current_user
+              - channel_id
+              - message_id
+            properties:
+                current_user:
+                    $ref: '#/components/schemas/V1CurrentUser'
+                channel_id:
+                    $ref: '#/components/schemas/V1ChannelId'
+                message_id:
+                    $ref: '#/components/schemas/V1MessageId'
+                other_user_login:
+                    $ref: '#/components/schemas/V1Login'
+
+        V1ChannelNotificationNewResponse:
+            type: object
+            additionalProperties: false
+            properties: {}
+
+        ############## files transfers ##############
+
+        # POST /v1/file/new
+        V1FileNewRequest:
+            $ref: '#/components/schemas/V1File'
+
+        V1File:
+            type: object
+            additionalProperties: false
+            required:
+              - login
+              - filename
+              - content
+            properties:
+                login:
+                    $ref: '#/components/schemas/V1Login'
+                filename:
+                    type: string
+                    minLength: 3
+                    maxLength: 256
+                content:
+                    type: string
+
+        V1FileNewResponse:
+            type: object
+            additionalProperties: false
+            required:
+              - current_user
+              - uri
+            properties:
+                current_user:
+                    $ref: '#/components/schemas/V1CurrentUser'
+                uri:
+                    type: string
+                    minLength: 3
+
+        # POST /v1/file/by-uri
+        V1FileByUriRequest:
+            type: object
+            additionalProperties: false
+            required:
+              - current_user
+              - uri
+            properties:
+                current_user:
+                    $ref: '#/components/schemas/V1CurrentUser'
+                uri:
+                    type: string
+                    minLength: 3
+
+        V1FileByUriResponse:
+            $ref: '#/components/schemas/V1File'
+
+        ############## likes/dislikes ##############
+
+        # POST /v1/like/trigger
+        V1LikeTriggerRequest:
+            description: Adds/removes a specified animation on a message
+            type: object
+            additionalProperties: false
+            required:
+              - current_user
+              - idempotency_token
+              - channel_id
+              - message_id
+              - animation
+            properties:
+                current_user:
+                    $ref: '#/components/schemas/V1CurrentUser'
+                idempotency_token:
+                    type: string
+                    minLength: 16
+                    maxLength: 256
+                channel_id:
+                    $ref: '#/components/schemas/V1ChannelId'
+                message_id:
+                    $ref: '#/components/schemas/V1MessageId'
+                animation:
+                    type: string
+                    enum:
+                      - like
+                      - dislike
+                      - heart
+                      - shit
+                      - okay
+                      - LOL
+                      - smile
+
+        ############## statuses ##############
+
+        V1UserStatus:
+            description: Key-values of arbitrary types (in other words, just JSON without a schema)
+            type: object
+            additionalProperties: true
+
+        # POST /v1/user/status/update
+        V1UserStatusUpdateRequest:
+            type: object
+            additionalProperties: false
+            required:
+              - current_user
+              - status
+            properties:
+                current_user:
+                    $ref: '#/components/schemas/V1CurrentUser'
+                status:
+                    $ref: '#/components/schemas/V1UserStatus'
+        V1UserStatusUpdateResponse:
+            type: object
+            additionalProperties: false
+            properties: {}
+
+        # POST /v1/user/status/by-login
+        V1UserStatusByLoginRequest:
+            type: object
+            additionalProperties: false
+            required:
+              - current_user
+              - login
+            properties:
+                current_user:
+                    $ref: '#/components/schemas/V1CurrentUser'
+                login:
+                    $ref: '#/components/schemas/V1Login'
+
+        V1UserStatusByLoginResponse:
+            type: object
+            additionalProperties: false
+            required:
+              - status
+            properties:
+                status:
+                    $ref: '#/components/schemas/V1UserStatus'

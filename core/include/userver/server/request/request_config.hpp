@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/request/request_config.hpp
+/// @brief @copybrief server::request::HttpRequestConfig
+
 #include <cstdint>
 
 #include <userver/http/http_version.hpp>
@@ -10,6 +13,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::request {
 
+/// @brief HTTP request parsing and handling limits
 struct HttpRequestConfig {
     std::size_t max_url_size = 8192;
     std::size_t max_request_size = 1024 * 1024;
@@ -22,6 +26,7 @@ struct HttpRequestConfig {
     bool decompress_request = false;
     bool set_tracing_headers = true;
     bool deadline_propagation_enabled = true;
+    bool deadline_propagation_prefer_timestamp = false;
     http::HttpStatus deadline_expired_status_code = http::HttpStatus{498};
 };
 

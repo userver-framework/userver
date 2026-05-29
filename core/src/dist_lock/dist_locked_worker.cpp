@@ -59,8 +59,9 @@ void DistLockedWorker::RunOnce() {
     LOG_INFO() << "Running DistLockedWorker once " << Name();
 
     const std::lock_guard<engine::Mutex> lock(locker_task_mutex_);
-    locker_task_ = locker_ptr_->RunAsync(GetTaskProcessor(), impl::LockerMode::kOneshot, DistLockWaitingMode::kWait);
-    locker_task_.Get();
+    auto one_shot_locker_task =
+        locker_ptr_->RunAsync(GetTaskProcessor(), impl::LockerMode::kOneshot, DistLockWaitingMode::kWait);
+    one_shot_locker_task.Get();
 
     LOG_INFO() << "Running DistLockedWorker once done" << Name();
 }

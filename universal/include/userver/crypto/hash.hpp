@@ -8,7 +8,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-/// Cryptographic hashing
+/// @brief Cryptographic hashing
 namespace crypto::hash {
 
 enum class OutputEncoding { kBinary, kBase16, kHex = kBase16, kBase64 };
@@ -131,7 +131,7 @@ std::string HmacSha512(
     OutputEncoding encoding = OutputEncoding::kHex
 );
 
-/// Broken cryptographic hashes, must not be used except for compatibility
+/// @brief Non-cryptographic hash helpers (Broken cryptographic hashes, must not be used except for compatibility).
 namespace weak {
 
 /// @brief Calculates MD5, output format depends on encoding param

@@ -40,7 +40,6 @@ struct Interval {
     constexpr bool operator==(const Interval& rhs) const {
         return months == rhs.months && days == rhs.days && microseconds == rhs.microseconds;
     }
-    constexpr bool operator!=(const Interval& rhs) const { return !(*this == rhs); }
 
     constexpr DurationType GetDuration() const {
         if (months != 0) {

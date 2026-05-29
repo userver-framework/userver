@@ -111,7 +111,7 @@ struct sqlite3* NativeHandler::OpenDatabase(const settings::SQLiteSettings& sett
     if (settings.shared_cache) {
         flags |= SQLITE_OPEN_SHAREDCACHE;
     }
-    return engine::AsyncNoSpan(
+    return engine::AsyncNoTracing(
                blocking_task_processor_,
                [&settings, flags] {
                    struct sqlite3* handler = nullptr;
@@ -141,13 +141,13 @@ NativeHandler::~NativeHandler() {
         sqlite3_finalize(stmt);
     }
     // Close connection (blocking I/O)
-    engine::AsyncNoSpan(blocking_task_processor_, [this] { sqlite3_close(db_handler_); }).Get();
+    engine::AsyncNoTracing(blocking_task_processor_, [this] { sqlite3_close(db_handler_); }).Get();
 }
 
 struct sqlite3* NativeHandler::GetHandle() const noexcept { return db_handler_; }
 
 void NativeHandler::Exec(utils::zstring_view query) const {
-    engine::AsyncNoSpan(blocking_task_processor_, [this, query] {
+    engine::AsyncNoTracing(blocking_task_processor_, [this, query] {
         if (const int ret_code = sqlite3_exec(db_handler_, query.c_str(), nullptr, nullptr, nullptr);
             ret_code != SQLITE_OK)
         {

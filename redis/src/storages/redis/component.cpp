@@ -1,5 +1,6 @@
 #include <userver/storages/redis/component.hpp>
 
+#include <ranges>
 #include <stdexcept>
 #include <vector>
 
@@ -26,7 +27,7 @@
 #include <userver/storages/redis/redis_config.hpp>
 #include <userver/storages/redis/subscribe_client.hpp>
 
-#include <storages/redis/impl/keyshard_impl.hpp>
+#include <storages/redis/impl/redis_group.hpp>
 #include <storages/redis/impl/sentinel.hpp>
 #include <storages/redis/impl/subscribe_sentinel.hpp>
 
@@ -35,8 +36,6 @@
 #include "subscribe_client_impl.hpp"
 #include "userver/storages/redis/base.hpp"
 #include "userver/storages/redis/wait_connected_mode.hpp"
-
-#include <boost/range/adaptor/map.hpp>
 
 #ifndef ARCADIA_ROOT
 #include "generated/src/storages/redis/component.yaml.hpp"  // Y_IGNORE
@@ -68,39 +67,8 @@ USERVER_NAMESPACE::secdist::RedisSettings GetSecdistSettings(
 
 namespace components {
 
-struct RedisGroup {
-    std::string db;
-    std::string config_name;
-    storages::redis::ShardingStrategy sharding_strategy{storages::redis::ShardingStrategy::kKeyShardTaximeterCrc32};
-    bool allow_reads_from_master{false};
-};
-
-RedisGroup Parse(const yaml_config::YamlConfig& value, formats::parse::To<RedisGroup>) {
-    RedisGroup config;
-    config.db = value["db"].As<std::string>();
-    config.config_name = value["config_name"].As<std::string>();
-    config.sharding_strategy =
-        storages::redis::ToShardingStrategy(value["sharding_strategy"].As<std::string>("KeyShardTaximeterCrc32"));
-    config.allow_reads_from_master = value["allow_reads_from_master"].As<bool>(false);
-    return config;
-}
-
-struct SubscribeRedisGroup {
-    std::string db;
-    std::string config_name;
-    storages::redis::ShardingStrategy sharding_strategy{storages::redis::ShardingStrategy::kKeyShardTaximeterCrc32};
-    bool allow_reads_from_master{false};
-};
-
-SubscribeRedisGroup Parse(const yaml_config::YamlConfig& value, formats::parse::To<SubscribeRedisGroup>) {
-    SubscribeRedisGroup config;
-    config.db = value["db"].As<std::string>();
-    config.config_name = value["config_name"].As<std::string>();
-    config.sharding_strategy =
-        storages::redis::ToShardingStrategy(value["sharding_strategy"].As<std::string>("KeyShardTaximeterCrc32"));
-    config.allow_reads_from_master = value["allow_reads_from_master"].As<bool>(false);
-    return config;
-}
+using storages::redis::impl::RedisGroup;
+using storages::redis::impl::SubscribeRedisGroup;
 
 struct RedisPools {
     int sentinel_thread_pool_size;
@@ -127,16 +95,17 @@ Redis::Redis(const ComponentConfig& config, const ComponentContext& component_co
     auto& secdist = component_context.FindComponent<Secdist>();
     secdist_subscription_ = secdist.GetStorage().UpdateAndListen(this, "redis", &Redis::OnSecdistUpdate);
 
-    auto& statistics_storage = component_context.FindComponent<components::StatisticsStorage>().GetStorage();
+    utils::statistics::RegisterWriterScope(
+        component_context,
+        kStatisticsName,
+        [this](utils::statistics::Writer& writer) { WriteStatistics(writer); }
+    );
 
-    statistics_holder_ = statistics_storage.RegisterWriter(kStatisticsName, [this](utils::statistics::Writer& writer) {
-        WriteStatistics(writer);
-    });
-
-    subscribe_statistics_holder_ =
-        statistics_storage.RegisterWriter(kSubscribeStatisticsName, [this](utils::statistics::Writer& writer) {
-            WriteStatisticsPubsub(writer);
-        });
+    utils::statistics::RegisterWriterScope(
+        component_context,
+        kSubscribeStatisticsName,
+        [this](utils::statistics::Writer& writer) { WriteStatisticsPubsub(writer); }
+    );
 }
 
 std::shared_ptr<storages::redis::Client> Redis::GetClient(
@@ -148,7 +117,7 @@ std::shared_ptr<storages::redis::Client> Redis::GetClient(
         throw std::runtime_error(fmt::format(
             "{} redis client not found. Available clients: [{}]",
             name,
-            fmt::join(clients_ | boost::adaptors::map_keys, ", ")
+            fmt::join(clients_ | std::views::keys, ", ")
         ));
     }
     it->second->WaitConnectedOnce(wait_connected);
@@ -161,7 +130,7 @@ std::shared_ptr<storages::redis::impl::Sentinel> Redis::Client(const std::string
         throw std::runtime_error(fmt::format(
             "{} redis client not found. Available clients: [{}]",
             name,
-            fmt::join(clients_ | boost::adaptors::map_keys, ", ")
+            fmt::join(clients_ | std::views::keys, ", ")
         ));
     }
     return it->second;
@@ -177,7 +146,7 @@ std::shared_ptr<storages::redis::SubscribeClient> Redis::GetSubscribeClient(
             "{} redis subscribe-client not found. Available subscribe-clients: "
             "[{}]",
             name,
-            fmt::join(subscribe_clients_ | boost::adaptors::map_keys, ", ")
+            fmt::join(subscribe_clients_ | std::views::keys, ", ")
         ));
     }
     it->second->WaitConnectedOnce(wait_connected);
@@ -203,17 +172,12 @@ void Redis::Connect(
     for (const RedisGroup& redis_group : redis_groups) {
         auto settings = GetSecdistSettings(secdist_component, redis_group);
 
-        storages::redis::CommandControl cc{};
-        cc.allow_reads_from_master = redis_group.allow_reads_from_master;
-
         auto sentinel = storages::redis::impl::Sentinel::CreateSentinel(
             thread_pools_,
             settings,
             redis_group.config_name,
             config_source,
-            redis_group.db,
-            redis_group.sharding_strategy,
-            cc,
+            storages::redis::impl::MakeSentinelStaticConfig(redis_group),
             testsuite_redis_control
         );
         if (sentinel) {
@@ -236,17 +200,12 @@ void Redis::Connect(
     for (const auto& redis_group : subscribe_redis_groups) {
         auto settings = GetSecdistSettings(secdist_component, redis_group);
 
-        storages::redis::CommandControl cc{};
-        cc.allow_reads_from_master = redis_group.allow_reads_from_master;
-
         auto sentinel = storages::redis::impl::SubscribeSentinel::Create(
             thread_pools_,
             settings,
             redis_group.config_name,
             config_source,
-            redis_group.db,
-            redis_group.sharding_strategy,
-            cc,
+            storages::redis::impl::MakeSubscribeSentinelStaticConfig(redis_group),
             testsuite_redis_control
         );
         if (sentinel) {
@@ -266,11 +225,7 @@ void Redis::Connect(
     }
 }
 
-Redis::~Redis() {
-    statistics_holder_.Unregister();
-    subscribe_statistics_holder_.Unregister();
-    config_subscription_.Unsubscribe();
-}
+Redis::~Redis() { config_subscription_.Unsubscribe(); }
 
 void Redis::WriteStatistics(utils::statistics::Writer& writer) {
     auto settings = metrics_settings_.Read();
@@ -329,14 +284,16 @@ void Redis::OnSecdistUpdate(const storages::secdist::SecdistConfig& cfg) {
         const auto& config_name = sentinel->ShardGroupName();
         const auto& settings = cfg.Get<storages::secdist::RedisMapSettings>().GetSettings(config_name);
 
+        // TODO: move ConnectionInfo creation to Sentinel (must me same as in SubscribeSentinel::Create)
         std::vector<storages::redis::ConnectionInfo> cii;
         for (const auto& host_port : settings.sentinels) {
-            const storages::redis::ConnectionInfo ci(host_port.host, host_port.port, settings.password);
+            const storages::redis::ConnectionInfo
+                ci(host_port.host, host_port.port, storages::redis::Credentials{settings.username, settings.password});
             cii.push_back(ci);
         }
 
         sentinel->SetConnectionInfo(cii);
-        sentinel->UpdatePassword(settings.password);
+        sentinel->UpdateCredentials(storages::redis::Credentials{settings.username, settings.password});
     }
 }
 

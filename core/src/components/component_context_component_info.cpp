@@ -1,12 +1,15 @@
 #include "component_context_component_info.hpp"
 
+#include <ranges>
+
 #include <fmt/format.h>
 #include <fmt/ranges.h>
-#include <boost/range/adaptor/transformed.hpp>
 
 #include <userver/components/component_context.hpp>
+#include <userver/engine/deadline.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/string_literal.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -17,14 +20,14 @@ namespace {
 
 constexpr utils::StringLiteral kComponentName = "component_name";
 constexpr utils::StringLiteral kStopComponentRootName = "component_stop";
+constexpr utils::StringLiteral kOnGracefulShutdown = "on_graceful_shutdown";
 constexpr utils::StringLiteral kOnAllComponentsAreStopping = "on_all_components_are_stopping";
 
 template <typename Range>
 std::string JoinNamesFromInfoImpl(const Range& component_info_refs, std::string_view separator) {
-    return fmt::to_string(fmt::join(
-        component_info_refs | boost::adaptors::transformed([](auto info) { return info->GetName(); }),
-        separator
-    ));
+    return fmt::to_string(
+        fmt::join(component_info_refs | std::views::transform([](auto info) { return info->GetName(); }), separator)
+    );
 }
 
 }  // namespace
@@ -160,6 +163,18 @@ void ComponentInfo::OnAllComponentsLoaded() {
     }
 }
 
+void ComponentInfo::OnGracefulShutdown(engine::Deadline serving_shutdown_deadline) {
+    if (!HasComponent()) {
+        return;
+    }
+    try {
+        const tracing::Span span(std::string{kOnGracefulShutdown});
+        component_->OnGracefulShutdown(serving_shutdown_deadline);
+    } catch (const std::exception& ex) {
+        LOG_ERROR() << "OnGracefulShutdown() failed for component " << name_ << ": " << ex;
+    }
+}
+
 void ComponentInfo::OnAllComponentsAreStopping() {
     if (!HasComponent()) {
         return;
@@ -222,8 +237,8 @@ std::unique_ptr<RawComponentBase> ComponentInfo::ExtractComponent() {
 }
 
 std::unordered_set<std::string> ExtractNamesFromInfo(const std::vector<ConstComponentInfoRef>& container) {
-    auto v = container | boost::adaptors::transformed([](auto info) { return std::string{info->GetName()}; });
-    return boost::copy_range<std::unordered_set<std::string>>(v);
+    auto v = container | std::views::transform([](auto info) { return std::string{info->GetName()}; });
+    return utils::AsContainer<std::unordered_set<std::string>>(v);
 }
 
 std::string JoinNamesFromInfo(const std::vector<ConstComponentInfoRef>& container, std::string_view separator) {

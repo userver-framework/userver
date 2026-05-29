@@ -1,5 +1,9 @@
 #pragma once
 
+/// @file userver/formats/json/parser/base_parser.hpp
+/// @brief @copybrief formats::json::parser::BaseParser
+/// @ingroup userver_universal
+
 #include <userver/formats/json/parser/exception.hpp>
 #include <userver/formats/json/parser/parser_state.hpp>
 
@@ -11,7 +15,7 @@ namespace formats::json::parser {
 ///
 class BaseParser {
 public:
-    virtual ~BaseParser() = default;
+    virtual ~BaseParser();
 
     BaseParser() = default;
     BaseParser(BaseParser&&) = delete;
@@ -19,17 +23,17 @@ public:
     BaseParser& operator=(const BaseParser&) = delete;
     BaseParser& operator=(BaseParser&&) = delete;
 
-    virtual void Null() { Throw("null"); }
-    virtual void Bool(bool) { Throw("bool"); }
-    virtual void Int64(int64_t) { Throw("integer"); }
-    virtual void Uint64(uint64_t) { Throw("integer"); }
-    virtual void Double(double) { Throw("double"); }
-    virtual void String(std::string_view) { Throw("string"); }
-    virtual void StartObject() { Throw("object"); }
-    virtual void Key(std::string_view key) { Throw("field '" + std::string(key) + "'"); }
-    virtual void EndObject() { Throw("'}'"); }
-    virtual void StartArray() { Throw("array"); }
-    virtual void EndArray() { Throw("']'"); }
+    virtual void Null();
+    virtual void Bool(bool);
+    virtual void Int64(int64_t);
+    virtual void Uint64(uint64_t);
+    virtual void Double(double);
+    virtual void String(std::string_view);
+    virtual void StartObject();
+    virtual void Key(std::string_view key);
+    virtual void EndObject();
+    virtual void StartArray();
+    virtual void EndArray();
 
     // Low-level variants of EndObject/EndArray
     virtual void EndObject(size_t /* members */) { EndObject(); }
@@ -42,9 +46,7 @@ public:
     std::string GetCurrentPath() const { return parser_state_->GetCurrentPath(); }
 
 protected:
-    [[noreturn]] void Throw(const std::string& found) {
-        throw InternalParseError(Expected() + " was expected, but " + found + " found");
-    }
+    [[noreturn]] void Throw(const std::string& found);
 
     virtual std::string Expected() const = 0;
 

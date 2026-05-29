@@ -17,17 +17,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-#ifdef USERVER_IMPL_UNEVALUATED_LAMBDAS
 /// [sample definition]
 // NOTE: the thread-local itself should be:
 // * NEVER `thread_local`
 // * `static` where appropriate
 // * `inline` where appropriate
-compiler::ThreadLocal<std::string> local_buffer;
-/// [sample definition]
-#else
 compiler::ThreadLocal local_buffer = [] { return std::string{}; };
-#endif
+/// [sample definition]
 
 /// [sample]
 void WriteAll(fs::blocking::FileDescriptor& fd, utils::span<const std::string_view> data) {

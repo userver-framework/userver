@@ -53,19 +53,26 @@ private:
 
 formats::yaml::Value Serialize(const SchemaPtr& schema, formats::serialize::To<formats::yaml::Value>);
 
+/// Helper class for Schema that hides `path` from operator== in Schema.
+/// `path` is ignored, because it serves a purely diagnostic purpose.
+struct PathSupplementary {
+    bool operator==(const PathSupplementary&) const noexcept;
+
+    std::string path;
+};
+
 /// @ingroup userver_universal
 ///
 /// @brief JSON Schema-like type definition
 ///
+/// @see https://json-schema.org/specification
 /// @see @ref static-configs-validation "Static configs validation"
-struct Schema final {
+struct Schema final : public PathSupplementary {
     void UpdateDescription(std::string new_description);
 
     static Schema EmptyObject();
 
-    bool operator==(const Schema&) const;
-
-    std::string path;
+    bool operator==(const Schema&) const noexcept;
 
     FieldType type{};
     std::string description;
@@ -78,6 +85,7 @@ struct Schema final {
     std::optional<double> maximum;
     std::optional<std::size_t> min_items;
     std::optional<std::size_t> max_items;
+    std::optional<std::unordered_set<std::string>> required;
 };
 
 Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>);

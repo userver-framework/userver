@@ -292,6 +292,40 @@ MockRedisServer::HandlerPtr MockRedisServer::RegisterClusterNodes(
         });
     }
     RegisterHandlerWithConstReply("CLUSTER", {"SLOTS"}, {std::move(slots_reply_data)});
+
+    std::vector<storages::redis::ReplyData> shards_reply_data;
+    shards_reply_data.reserve(masters.size());
+    for (std::size_t i = 0; i < masters.size(); ++i) {
+        // Build slot interval for this shard (same as in CLUSTER SLOTS)
+        const int slot_min = utils::numeric_cast<int>(i * slots_chunk_size);
+        const int
+            slot_max = utils::numeric_cast<int>(i + 1 == masters.size() ? kSlotsCount - 1 : (i + 1) * slots_chunk_size);
+        // Master node description
+        storages::redis::ReplyData master_node = storages::redis::ReplyData::Array{
+            {"ip"},
+            {masters[i].ip},
+            {"port"},
+            {masters[i].port},
+            {"role"},
+            {"master"},
+            {"replication-offset"},
+            {0},
+            {"health"},
+            {"online"},
+        };
+        // Slave node description
+        storages::redis::ReplyData slave_node =
+            storages::redis::ReplyData::Array{{"ip"}, {slaves[i].ip}, {"port"}, {slaves[i].port}, {"role"}, {"slave"}};
+        // Assemble the shard entry: a map with "slots" and "nodes"
+        storages::redis::ReplyData shard = storages::redis::ReplyData::Array{
+            {"slots"},
+            storages::redis::ReplyData::Array{slot_min, slot_max},
+            {"nodes"},
+            storages::redis::ReplyData::Array{std::move(master_node), std::move(slave_node)}
+        };
+        shards_reply_data.emplace_back(std::move(shard));
+    }
+    RegisterHandlerWithConstReply("CLUSTER", {"SHARDS"}, {std::move(shards_reply_data)});
     return handler;
 }
 

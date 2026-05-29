@@ -47,6 +47,7 @@ list(
     src/ugrpc/client/simple_client_component.yaml
     src/ugrpc/server/middlewares/access_log/component.yaml
     src/ugrpc/server/middlewares/congestion_control/component.yaml
+    src/ugrpc/server/middlewares/deadline_propagation/component.yaml
     src/ugrpc/server/middlewares/headers_propagator/component.yaml
     src/ugrpc/server/middlewares/log/component.yaml
     src/ugrpc/server/server_component.yaml
@@ -162,6 +163,7 @@ if(USERVER_BUILD_TESTS)
                ${CMAKE_CURRENT_SOURCE_DIR}/proto/tests/unit_test.proto
                # As well as paths relative to CMAKE_CURRENT_SOURCE_DIR
                tests/messages.proto
+               tests/proto2_service.proto
                tests/protobuf.proto
                tests/same_service_and_method_name.proto
                tests/global_package.proto

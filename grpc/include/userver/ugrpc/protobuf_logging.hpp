@@ -78,7 +78,8 @@ namespace fmt {
 
 /// @brief `fmt::format` support for protobuf messages
 template <typename T>
-struct formatter<T, typename std::enable_if_t<std::is_base_of_v<google::protobuf::Message, std::decay_t<T>>, char>> {
+requires std::is_base_of_v<google::protobuf::Message, std::decay_t<T>>
+struct formatter<T> {
     constexpr auto parse(format_parse_context& ctx) { return ctx.begin(); }
 
     template <typename FormatContext>

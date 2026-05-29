@@ -11,7 +11,7 @@ and authentication, ratelimiting, logging, tracing, audit, etc.
 
 ## Default middlewares
 
-There is an @ref ugrpc::server::MiddlewarePipelineComponent component for configuring the middlewares pipeline. 
+There is an @ref ugrpc::server::MiddlewarePipelineComponent component for configuring the middlewares pipeline.
 There are default middlewares:
  - @ref ugrpc::server::middlewares::access_log::Component (not included in default lists)
  - @ref ugrpc::server::middlewares::log::Component
@@ -19,8 +19,9 @@ There are default middlewares:
  - @ref ugrpc::server::middlewares::deadline_propagation::Component
  - @ref ugrpc::server::middlewares::baggage::Component
  - @ref ugrpc::server::middlewares::headers_propagator::Component
+ - @ref ugrpc::server::middlewares::graceful_shutdown_headers::Component
 
-If you add these middlewares to the @ref components::ComponentList, these middlewares will be enabled by default. 
+If you add these middlewares to the @ref components::ComponentList, these middlewares will be enabled by default.
 To register core gRPC server components and a set of builtin middlewares use @ref ugrpc::server::DefaultComponentList or @ref ugrpc::server::MinimalComponentList.
 As will be shown below, custom middlewares require additional actions to work: registering in `grpc-server-middleware-pipeline` and writing a required static config entry.
 

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/clients/http/config.hpp
+/// @brief HTTP client static and dynamic configuration types
+
 #include <chrono>
 #include <optional>
 #include <string>

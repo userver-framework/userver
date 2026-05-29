@@ -35,8 +35,8 @@ public:
 
     virtual boost::signals2::signal<void(HostPort, Redis::State)>& GetSignalNodeStateChanged() = 0;
     virtual boost::signals2::signal<void(size_t)>& GetSignalTopologyChanged() = 0;
-    virtual void UpdatePassword(const Password& password) = 0;
-    virtual Password GetPassword() = 0;
+    virtual void UpdateCredentials(const Credentials& credentials) = 0;
+    virtual Credentials GetCredentials() = 0;
 
     virtual std::string GetReadinessInfo() const = 0;
     virtual ~TopologyHolderBase() = default;

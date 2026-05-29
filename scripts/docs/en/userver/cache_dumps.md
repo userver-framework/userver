@@ -119,7 +119,7 @@ if the encryption is enabled. To enable encryption, do the following:
    json
    {
      "CACHE_DUMP_SECRET_KEYS": {
-       "you-cache-component-name": "your-base64encoded-secret-key" 
+       "you-cache-component-name": "your-base64encoded-secret-key"
      }
    }
    ```
@@ -175,7 +175,7 @@ Example:
 
 
 ## Implementation details
-### IO 
+### IO
 
 - Disk operations are performed asynchronously with `Update` in a separate
  `fs-task-processor`. `Write` and `Read` are also called in that task processor.
@@ -227,6 +227,6 @@ Example:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/caches.md | @ref pg_cache ⇨
+⇦ @ref scripts/docs/en/userver/caches.md | @ref scripts/docs/en/userver/pg/cache.md ⇨
 @htmlonly </div> @endhtmlonly
 

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/ydb/fwd.hpp
+/// @brief Forward declarations of YDB clients and component
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ydb {

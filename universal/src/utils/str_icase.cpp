@@ -28,7 +28,7 @@ compiler::ThreadLocal local_rng = [] {
 HashSeed GenerateHashSeed() {
     auto rng = local_rng.Use();
     std::uniform_int_distribution<std::uint64_t> distribution{};
-    return HashSeed{distribution(*rng), distribution(*rng)};
+    return HashSeed{.k0 = distribution(*rng), .k1 = distribution(*rng)};
 }
 
 }  // namespace

@@ -46,7 +46,7 @@ UTEST_MT(StripedCounter, Stress, kThreads + 1) {
     StripedCounter counter{};
 
     auto tasks = utils::GenerateFixedArray(kThreads, [&](std::size_t) {
-        return engine::AsyncNoSpan([&] {
+        return engine::AsyncNoTracing([&] {
             std::uint64_t local_counter = 0;
             while (keep_running.load(std::memory_order_acquire)) {
                 counter.Add(1);

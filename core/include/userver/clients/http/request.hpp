@@ -85,7 +85,7 @@ enum class ProxyAuthType {
 
 ProxyAuthType ProxyAuthTypeFromString(std::string_view auth_name);
 
-/// @brief Class for creating and performing new http requests, usually retieved from @ref clients::http::Client.
+/// @brief Class for creating and performing new http requests, usually retrieved from @ref clients::http::Client.
 class Request final {
 public:
     /// Request cookies container type
@@ -96,7 +96,7 @@ public:
     explicit Request(
         impl::EasyWrapper&&,
         RequestStats&& req_stats,
-        const std::shared_ptr<DestinationStatistics>& dest_stats,
+        DestinationStatistics& dest_stats,
         clients::dns::Resolver* resolver,
         const tracing::TracingManagerBase& tracing_manager
     );
@@ -329,13 +329,26 @@ public:
 
     /// @overload
     template <typename T>
-    std::enable_if_t<std::is_same_v<ConnectTo, T>, Request&> connect_to(T&&) {
+    requires std::is_same_v<ConnectTo, T>
+    Request& connect_to(T&&) {
         static_assert(!sizeof(T), "ConnectTo argument must not be temporary, it must outlive Request");
         return *this;
     }
 
     /// Override list of middlewares from @ref components::HttpClient for specific request
     Request& SetMiddlewaresList(const std::vector<utils::NotNull<MiddlewareBase*>>& middlewares) &;
+
+    /// Set flag to ignore tls receive error for responses
+    /// with `Connection: close` header.
+    ///
+    /// The behaviour of handling TLS errors has been changed
+    /// in libcurl>=8.15.0 and reproducible for connections
+    /// with incomplete TLS close procedure.
+    ///
+    /// @see https://github.com/curl/curl/pull/17531/changes
+    Request& SetIncompleteTlsConnectionCloseExpected(bool expect) &;
+    /// @overload
+    Request SetIncompleteTlsConnectionCloseExpected(bool expect) &&;
 
     /// Override log URL. Useful for "there's a secret in the query".
     /// @warning The query might be logged by other intermediate HTTP agents (nginx, L7 balancer, etc.).
@@ -414,6 +427,9 @@ public:
         utils::impl::SourceLocation location = utils::impl::SourceLocation::Current()
     );
 
+    /// @brief Starts the Websocket handshake.
+    ///
+    /// @snippet samples/websocket_client/main.cpp WebSocket client sample - handler
     [[nodiscard]] WebSocketResponse PerformWebSocketHandshake(
         utils::impl::SourceLocation location = utils::impl::SourceLocation::Current()
     );

@@ -1,5 +1,9 @@
 #pragma once
 
+/// @file userver/formats/json/parser/parser_state.hpp
+/// @brief @copybrief formats::json::parser::ParserState
+/// @ingroup userver_universal
+
 #include <string>
 
 #include <userver/utils/fast_pimpl.hpp>
@@ -11,6 +15,7 @@ namespace formats::json::parser {
 class BaseParser;
 class ParserHandler;
 
+/// @brief Parser stack and streaming driver for JSON SAX parsing.
 class ParserState final {
 public:
     ParserState();

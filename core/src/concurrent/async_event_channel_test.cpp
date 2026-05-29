@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include <userver/concurrent/async_event_channel.hpp>
+#include <userver/engine/async.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 
@@ -253,14 +254,14 @@ UTEST(AsyncEventChannel, SendEventConcurrent) {
     // This callback invocation may result in deadlock
     auto sub2 = channel.AddListener(concurrent::FunctionId(&may_exit), "test2", [] {});
 
-    auto first_task = engine::AsyncNoSpan([&] { channel.SendEvent(); });
+    auto first_task = engine::AsyncNoTracing([&] { channel.SendEvent(); });
 
     EXPECT_TRUE(inside_callback.WaitForEvent());
 
     skip = true;
 
-    auto task1 = engine::AsyncNoSpan([&] { channel.SendEvent(); });
-    auto task2 = engine::AsyncNoSpan([&] { channel.SendEvent(); });
+    auto task1 = engine::AsyncNoTracing([&] { channel.SendEvent(); });
+    auto task2 = engine::AsyncNoTracing([&] { channel.SendEvent(); });
 
     // Make sure task1 & task2 are waiting on SharedMutex::lock()
     engine::SleepFor(std::chrono::milliseconds(100));
@@ -285,15 +286,15 @@ UTEST(AsyncEventChannel, SendEventConcurrent2) {
     std::atomic<std::size_t> calls{0};
     auto sub2 = channel.AddListener(concurrent::FunctionId(&may_exit), "test2", [&calls] { ++calls; });
 
-    auto first_task = engine::AsyncNoSpan([&] { channel.SendEvent(); });
+    auto first_task = engine::AsyncNoTracing([&] { channel.SendEvent(); });
 
     EXPECT_TRUE(inside_callback.WaitForEvent());
 
-    auto may_exit_task = engine::AsyncNoSpan([&] { may_exit.Send(); });
+    auto may_exit_task = engine::AsyncNoTracing([&] { may_exit.Send(); });
     sub.Unsubscribe();
 
-    auto task1 = engine::AsyncNoSpan([&] { channel.SendEvent(); });
-    auto task2 = engine::AsyncNoSpan([&] { channel.SendEvent(); });
+    auto task1 = engine::AsyncNoTracing([&] { channel.SendEvent(); });
+    auto task2 = engine::AsyncNoTracing([&] { channel.SendEvent(); });
 
     first_task.Get();
     task1.Get();
@@ -312,7 +313,7 @@ UTEST(AsyncEventChannel, UnsibscribeWhileHandling) {
         EXPECT_FALSE(unsubscribe_has_finished);
     });
 
-    auto send_task = engine::AsyncNoSpan([&] { channel.SendEvent(); });
+    auto send_task = engine::AsyncNoTracing([&] { channel.SendEvent(); });
     (void)started.WaitForEvent();
 
     sub.Unsubscribe();

@@ -67,16 +67,16 @@ LoggerPtr MakeFileLogger(const std::string& name, const std::string& path, Forma
 
 namespace impl {
 
-bool DoShouldLog(Level level) noexcept {
+bool ShouldLogWithSpanCheck(const LoggerBase& logger, Level level) noexcept {
     const auto* const span = tracing::Span::CurrentSpanUnchecked();
     if (span) {
         const auto local_log_level = span->GetLocalLogLevel();
-        if (local_log_level && *local_log_level > level) {
-            return false;
+        if (local_log_level.has_value()) {
+            return local_log_level.value() <= level;
         }
     }
 
-    return true;
+    return ShouldLogNoSpan(logger, level);
 }
 
 void PrependCommonTags(TagWriter writer, Level logger_level) {

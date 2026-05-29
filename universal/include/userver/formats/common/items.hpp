@@ -4,6 +4,7 @@
 /// @brief @copybrief formats::common::Items()
 /// @ingroup userver_universal
 
+#include <concepts>
 #include <cstddef>
 #include <iterator>
 #include <string>
@@ -41,6 +42,8 @@ public:
         using pointer = void;
 
         /// @cond
+        Iterator() = default;
+
         explicit Iterator(RawIterator it)
             : it_(std::move(it))
         {}
@@ -66,8 +69,6 @@ public:
         }
 
         bool operator==(const Iterator& other) const { return it_ == other.it_; }
-
-        bool operator!=(const Iterator& other) const { return !(*this == other); }
 
     private:
         RawIterator it_;

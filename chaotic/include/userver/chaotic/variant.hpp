@@ -2,6 +2,7 @@
 
 #include <variant>
 
+#include <userver/formats/json/string_builder_fwd.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/parse/to.hpp>
 #include <userver/formats/serialize/to.hpp>
@@ -42,6 +43,16 @@ Value Serialize(const Variant<T...>& var, formats::serialize::To<Value>) {
     return std::visit(
         utils::Overloaded{[](const formats::common::ParseType<Value, T>& item) {
             return typename Value::Builder(T{item}).ExtractValue();
+        }...},
+        var.value
+    );
+}
+
+template <typename... T>
+void WriteToStream(const Variant<T...>& var, formats::json::StringBuilder& sw) {
+    return std::visit(
+        utils::Overloaded{[&sw](const formats::common::ParseType<formats::json::Value, T>& item) {
+            WriteToStream(T{item}, sw);
         }...},
         var.value
     );

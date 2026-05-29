@@ -40,6 +40,14 @@ RequestStats::~RequestStats() {
 
 RequestStats::RequestStats(RequestStats&& other) noexcept : stats_{std::exchange(other.stats_, nullptr)} {}
 
+RequestStats& RequestStats::operator=(RequestStats&& other) noexcept {
+    if (this != &other) {
+        stats_ = std::exchange(other.stats_, nullptr);
+        start_time_ = other.start_time_;
+    }
+    return *this;
+}
+
 void RequestStats::Start() { start_time_ = std::chrono::steady_clock::now(); }
 
 void RequestStats::FinishOk(int code, unsigned int attempts) noexcept {

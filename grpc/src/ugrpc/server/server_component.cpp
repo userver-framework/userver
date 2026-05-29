@@ -19,6 +19,7 @@ namespace ugrpc::server {
 ServerComponent::ServerComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
     : ComponentBase(config, context),
       server_(
+          context.Scopes(),
           impl::ParseServerConfig(config),
           context.FindComponent<components::StatisticsStorage>().GetStorage(),
           context.FindComponent<components::DynamicConfig>().GetSource()
@@ -39,6 +40,10 @@ ServiceConfig ServerComponent::ParseServiceConfig(
 }
 
 void ServerComponent::OnAllComponentsLoaded() { server_.Start(); }
+
+void ServerComponent::OnGracefulShutdown(engine::Deadline serving_shutdown_deadline) {
+    server_.StopServing(serving_shutdown_deadline);
+}
 
 void ServerComponent::OnAllComponentsAreStopping() { server_.StopServing(); }
 

@@ -1,10 +1,11 @@
 #include <userver/engine/impl/task_local_storage.hpp>
 
+#include <ranges>
+
 #include <fmt/format.h>
 #include <boost/intrusive/list.hpp>
 #include <boost/intrusive/list_hook.hpp>
 #include <boost/intrusive/slist.hpp>
-#include <boost/range/adaptor/reversed.hpp>
 
 #include <engine/task/task_context.hpp>
 #include <userver/compiler/demangle.hpp>
@@ -106,7 +107,7 @@ void Storage::InheritFrom(Storage& other) {
         impl_->data = std::make_unique<DataPtr[]>(variable_count);
     }
 
-    for (const DataPtr& their_ptr : other.impl_->inherited_data_storage | boost::adaptors::reversed) {
+    for (const DataPtr& their_ptr : other.impl_->inherited_data_storage | std::views::reverse) {
         UASSERT(their_ptr.ptr);
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
         auto& node = static_cast<InheritedDataBase&>(*their_ptr.ptr);

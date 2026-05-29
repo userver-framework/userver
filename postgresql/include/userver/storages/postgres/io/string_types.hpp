@@ -8,6 +8,8 @@
 #include <string>
 #include <string_view>
 
+#include <algorithm>
+
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/storages/postgres/io/buffer_io_base.hpp>
 #include <userver/storages/postgres/io/traits.hpp>

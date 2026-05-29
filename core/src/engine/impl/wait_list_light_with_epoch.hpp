@@ -38,7 +38,8 @@ public:
     std::uint32_t GetEpoch() const noexcept;
 
     /// Atomically get signal or append with context, using the current epoch.
-    [[nodiscard]] bool GetSignalOrAppend(boost::intrusive_ptr<Awaiter> awaiter, std::uintptr_t context);
+    /// Only moves from `awaiter` if the awaiter has been appended.
+    void GetSignalOrAppend(boost::intrusive_ptr<Awaiter>& awaiter, std::uintptr_t context);
 
     /// Remove awaiter while preserving the epoch.
     void Remove(Awaiter& awaiter, std::uintptr_t context) noexcept;

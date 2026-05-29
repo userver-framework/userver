@@ -1,8 +1,7 @@
 #pragma once
 
 /// @file userver/storages/redis/hedged_request.hpp
-/// @brief
-/// Classes and functions for performing hedged requests.
+/// @brief Classes and functions for performing hedged requests.
 ///
 /// Use MakeHedgedRedisRequest method to perform hedged redis request.
 ///
@@ -24,6 +23,7 @@
 ///
 
 #include <optional>
+#include <tuple>
 
 #include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/command_control.hpp>
@@ -78,16 +78,12 @@ HedgedRedisRequest<RedisRequestType> MakeHedgedRedisRequestAsync(
     utils::hedging::HedgingSettings hedging_settings,
     Args... args
 ) {
-    auto gen_request =
-        [redis, method, cc{std::move(cc)}, args_tuple{std::tuple(std::move(args)...)}](int try_count
-        ) mutable -> std::optional<RedisRequestType> {
+    auto gen_request = [redis, method, cc{std::move(cc)}, ... args = std::move(args)](int try_count) mutable
+        -> std::optional<RedisRequestType> {
         cc.retry_counter = try_count;
         cc.max_retries = 1;  ///< We do retries ourselves
 
-        return std::apply(
-            [redis, method, cc](auto&&... args) { return (redis.get()->*method)(args..., cc); },
-            args_tuple
-        );
+        return (redis.get()->*method)(args..., cc);
     };
     return utils::hedging::HedgeRequestAsync(
         impl::RedisRequestStrategy<RedisRequestType>(std::move(gen_request)),
@@ -109,16 +105,12 @@ std::optional<typename RedisRequestType::Reply> MakeHedgedRedisRequest(
     utils::hedging::HedgingSettings hedging_settings,
     Args... args
 ) {
-    auto gen_request =
-        [redis, method, cc{std::move(cc)}, args_tuple{std::tuple(std::move(args)...)}](int try_count
-        ) mutable -> std::optional<RedisRequestType> {
+    auto gen_request = [redis, method, cc{std::move(cc)}, ... args = std::move(args)](int try_count) mutable
+        -> std::optional<RedisRequestType> {
         cc.retry_counter = try_count;
         cc.max_retries = 1;  ///< We do retries ourselves
 
-        return std::apply(
-            [redis, method, cc](auto&&... args) { return (redis.get()->*method)(args..., cc); },
-            args_tuple
-        );
+        return (redis.get()->*method)(args..., cc);
     };
     return utils::hedging::HedgeRequest(
         impl::RedisRequestStrategy<RedisRequestType>(std::move(gen_request)),
@@ -144,7 +136,7 @@ std::vector<std::optional<typename RedisRequestType::Reply>> MakeBulkHedgedRedis
     strategies.reserve(args.size());
 
     for (auto&& arg : args) {
-        auto gen_request = [redis, method, cc{std::move(cc)}, args_tuple{std::move(arg)}](int try_count) mutable
+        auto gen_request = [redis, method, cc{cc}, args_tuple{std::move(arg)}](int try_count) mutable
             -> std::optional<RedisRequestType> {
             cc.retry_counter = try_count;
             cc.max_retries = 1;  ///< We do retries ourselves
@@ -180,7 +172,7 @@ MakeBulkHedgedRedisRequestAsync(
     strategies.reserve(args.size());
 
     for (auto&& arg : args) {
-        auto gen_request = [redis, method, cc{std::move(cc)}, args_tuple{std::move(arg)}](int try_count) mutable
+        auto gen_request = [redis, method, cc{cc}, args_tuple{std::move(arg)}](int try_count) mutable
             -> std::optional<RedisRequestType> {
             cc.retry_counter = try_count;
             cc.max_retries = 1;  ///< We do retries ourselves

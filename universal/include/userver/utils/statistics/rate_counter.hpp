@@ -15,7 +15,7 @@ class Writer;
 
 /// @ingroup userver_universal
 ///
-/// @brief Atomic counter of type Rate with relaxed memory ordering
+/// @brief Atomic counter of type Rate with relaxed memory ordering by default
 ///
 /// This class is represented as Rate metric when serializing to statistics.
 /// Otherwise it is the same class as @ref utils::statistics::RelaxedCounter.
@@ -58,6 +58,8 @@ public:
     void AddAsSingleProducer(Rate arg) noexcept {
         val_.store(val_.load(std::memory_order_relaxed) + arg.value, std::memory_order_relaxed);
     }
+
+    void Increment() noexcept { val_.fetch_add(1, std::memory_order_relaxed); }
 
     Rate operator++() noexcept { return Rate{val_.fetch_add(1, std::memory_order_relaxed) + 1}; }
 

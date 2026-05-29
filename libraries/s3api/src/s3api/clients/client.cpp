@@ -96,7 +96,12 @@ std::string GeneratePresignedUrl(
     return generated_url.str();
 }
 
-std::vector<ObjectMeta> ParseS3ListResponse(utils::zstring_view s3_response) {
+bool IsS3ResponseTruncated(const pugi::xml_node& list_bucket_result) {
+    const auto is_truncated = list_bucket_result.child("IsTruncated").child_value();
+    return std::string_view{is_truncated} == "true";
+}
+
+std::vector<ObjectMeta> ParseS3ListResponse(utils::zstring_view s3_response, bool& is_truncated) {
     std::vector<ObjectMeta> result;
     pugi::xml_document xml;
     const pugi::xml_parse_result parse_result = xml.load_string(s3_response.c_str());
@@ -108,7 +113,10 @@ std::vector<ObjectMeta> ParseS3ListResponse(utils::zstring_view s3_response) {
         ));
     }
     try {
-        const auto items = xml.child("ListBucketResult").children("Contents");
+        const auto list_bucket_result = xml.child("ListBucketResult");
+        is_truncated = IsS3ResponseTruncated(list_bucket_result);
+
+        const auto items = list_bucket_result.children("Contents");
         for (const auto& item : items) {
             const auto key = item.child("Key").child_value();
             const auto size = std::stoull(item.child("Size").child_value());
@@ -123,7 +131,7 @@ std::vector<ObjectMeta> ParseS3ListResponse(utils::zstring_view s3_response) {
     return result;
 }
 
-std::vector<std::string> ParseS3DirectoriesListResponse(utils::zstring_view s3_response) {
+std::vector<std::string> ParseS3DirectoriesListResponse(utils::zstring_view s3_response, bool& is_truncated) {
     std::vector<std::string> result;
     pugi::xml_document xml;
     const pugi::xml_parse_result parse_result = xml.load_string(s3_response.c_str());
@@ -136,7 +144,10 @@ std::vector<std::string> ParseS3DirectoriesListResponse(utils::zstring_view s3_r
         ));
     }
     try {
-        const auto items = xml.child("ListBucketResult").children("CommonPrefixes");
+        const auto list_bucket_result = xml.child("ListBucketResult");
+        is_truncated = IsS3ResponseTruncated(list_bucket_result);
+
+        const auto items = list_bucket_result.children("CommonPrefixes");
         for (const auto& item : items) {
             result.push_back(item.child("Prefix").child_value());
         }
@@ -342,13 +353,9 @@ void ClientImpl::Auth(Request& request) const {
     auto auth_headers = authenticator_->Auth(request);
 
     {
-        auto it = std::find_if(
-            auth_headers.cbegin(),
-            auth_headers.cend(),
-            [&request](const decltype(auth_headers)::value_type& header) {
-                return request.headers.count(std::get<0>(header));
-            }
-        );
+        auto it = std::ranges::find_if(auth_headers, [&request](const auto& header) {
+            return request.headers.contains(header.first);
+        });
 
         if (it != auth_headers.cend()) {
             throw AuthHeaderConflictError{std::string{"Conflict with auth header: "} + it->first};
@@ -412,11 +419,13 @@ std::vector<ObjectMeta> ClientImpl::ListBucketContentsParsed(std::string_view pa
             LOG_WARNING() << "Empty S3 bucket listing response for path prefix " << path_prefix;
             break;
         }
-        auto response_result = ParseS3ListResponse(*response);
+
+        bool is_truncated = false;
+        auto response_result = ParseS3ListResponse(*response, is_truncated);
         if (response_result.empty()) {
             break;
         }
-        if (response_result.size() < kMaxS3Keys) {
+        if (!is_truncated) {
             is_finished = true;
         }
         result.insert(
@@ -437,17 +446,16 @@ std::vector<std::string> ClientImpl::ListBucketDirectories(std::string_view path
     while (!is_finished) {
         auto response = ListBucketContents(path_prefix, kMaxS3Keys, marker, "/");
         if (!response) {
-            LOG_WARNING()
-                << "Empty S3 directory bucket listing response "
-                   "for path prefix "
-                << path_prefix;
+            LOG_WARNING() << "Empty S3 directory bucket listing response for path prefix " << path_prefix;
             break;
         }
-        auto response_result = ParseS3DirectoriesListResponse(*response);
+
+        bool is_truncated = false;
+        auto response_result = ParseS3DirectoriesListResponse(*response, is_truncated);
         if (response_result.empty()) {
             break;
         }
-        if (response_result.size() < kMaxS3Keys) {
+        if (!is_truncated) {
             is_finished = true;
         }
         result.insert(

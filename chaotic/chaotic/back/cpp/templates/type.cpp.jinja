@@ -1,9 +1,13 @@
+{% import 'templates/stream_writer.jinja' as sw %}
 #include "{{ pair_header }}.hpp"
 
 #include <userver/chaotic/type_bundle_cpp.hpp>
 
 #include "{{ pair_header }}_parsers.ipp"
 
+{% if generate_sax_parser %}
+#include "{{ pair_header }}_sax_parsers.hpp"
+{% endif %}
 
 {% macro generate_parser_definition_call(type, format) %}
     {% if not type.may_generate_for_format(format) %}
@@ -30,6 +34,41 @@
 {% endmacro %}
 
 
+{% macro generate_from_json_string_definition(type) %}
+    {% if type.get_py_type() == 'CppStruct' %}
+        {{ shortest_cpp_name(type) }} FromJsonString(std::string_view json,
+            {{ userver }}::formats::parse::To<{{ shortest_cpp_name(type) }}>)
+        {
+          {% if generate_sax_parser %}
+              return {{ userver }}::formats::json::parser::ParseToType<
+                   {{ shortest_cpp_name(type) }},
+                   {{ userver }}::chaotic::sax::impl::RemoveUserTypeParser<
+                       {{ userver }}::chaotic::sax::Parser<{{ shortest_cpp_name(type) }}>
+                   >
+              >(json);
+          {% else %}
+              return {{ userver }}::formats::json::FromString(json).As<{{ shortest_cpp_name(type) }}>();
+          {% endif %}
+        }
+    {% endif %}
+{% endmacro %}
+
+
+{% macro generate_to_json_string_definition(type) %}
+    {% if type.get_py_type() == 'CppStruct' %}
+        std::string ToJsonString(const {{ shortest_cpp_name(type) }}& value) {
+          {% if generate_stream_writer %}
+              {{ userver }}::formats::json::StringBuilder builder;
+              WriteToStream(value, builder);
+              return builder.GetString();
+          {% else %}
+              return ToString({{ userver }}::formats::json::ValueBuilder(value).ExtractValue());
+          {% endif %}
+        }
+    {% endif %}
+{% endmacro %}
+
+
 {% macro generate_string_parser_definition(type) %}
     {# handle subtypes #}
     {%- for schema in type.subtypes() -%}
@@ -39,16 +78,20 @@
     {% if type.need_dom_parser() %}
         {% set local_name = shortest_cpp_name(type) %}
         {% if type.get_py_type() == 'CppIntEnum' %}
-            {{ local_name }} FromInt(std::int64_t value, {{ userver }}::formats::parse::To<{{ local_name }}>) {
+            {{ local_name }} Convert(std::int64_t value, {{ userver }}::chaotic::convert::To<{{ local_name }}>) {
                 const auto result = k{{ type.cpp_global_struct_field_name() }}_Mapping.TryFindBySecond(value);
                 if (result.has_value()) {
                     return *result;
                 }
                 throw std::runtime_error(fmt::format("Invalid enum value ({}) for type {{ type.cpp_global_name() }}", value));
             }
+
+            std::optional<{{ local_name }}> TryConvert(std::int64_t value, {{ userver }}::chaotic::convert::To<{{ local_name }}>) noexcept {
+                return k{{ type.cpp_global_struct_field_name() }}_Mapping.TryFindBySecond(value);
+            }
         {% elif type.get_py_type() == 'CppStringEnum' %}
-            {{ local_name }} FromString(std::string_view value,
-                            {{userver}}::formats::parse::To<{{ local_name }}>)
+            {{ local_name }} Convert(std::string_view value,
+                            {{userver}}::chaotic::convert::To<{{ local_name }}>)
             {
                 const auto result = k{{ type.cpp_global_struct_field_name() }}_Mapping.TryFindBySecond(value);
                 if (result.has_value()) {
@@ -57,10 +100,14 @@
                 throw std::runtime_error(fmt::format("Invalid enum value ({}) for type {{ type.cpp_global_name() }}", value));
             }
 
-            {{ local_name }} Parse(std::string_view value,
-                            {{userver}}::formats::parse::To<{{ local_name }}> to)
+            std::optional<{{ local_name }}> TryConvert(std::string_view value, {{userver}}::chaotic::convert::To<{{ local_name }}>) noexcept
             {
-                return FromString(value, to);
+                return k{{ type.cpp_global_struct_field_name() }}_Mapping.TryFindBySecond(value);
+            }
+
+            {{ local_name }} Parse(std::string_view value, {{userver}}::formats::parse::To<{{ local_name }}>)
+            {
+                return Convert(value, {{userver}}::chaotic::convert::To<{{ local_name }}>{});
             }
         {% endif %}
     {% endif %}
@@ -105,13 +152,13 @@
             {%- for fname, field in type.fields.items() -%}
                 {% if field.is_optional() %}
                     if (value.{{ field.cpp_field_name() }}) {
-                        vb["{{ fname }}"] = 
+                        vb["{{ fname }}"] =
                             {{ field.schema.parser_type('', '') }}{
                                 *value.{{ field.cpp_field_name() }}
                             };
                     }
                 {% else %}
-                    vb["{{ fname }}"] = 
+                    vb["{{ fname }}"] =
                         {{ field.schema.parser_type('', '') }}{
                             value.{{ field.cpp_field_name() }}
                         };
@@ -272,6 +319,13 @@
 {% for name, type in types.items() %}
     {{ common.switch_namespace(cpp_namespace(name)) }}
 
+    {% if has_json_parse(parse_formats) %}
+        {{ generate_from_json_string_definition(type) }}
+        {% if generate_serializer %}
+            {{ generate_to_json_string_definition(type)  }}
+        {% endif %}
+    {% endif %}
+
     {{ generate_operator_eq_definition(type) }}
 
     {{ generate_operator_lshift_definition(type) }}
@@ -284,6 +338,9 @@
 
     {% if generate_serializer %}
         {{ generate_serializer_definition(type) }}
+        {% if generate_stream_writer %}
+            {{ sw.generate_stream_writer_definition(userver, name, type) }}
+        {% endif %}
     {% endif %}
 
     {{ generate_tostring_definition(type) }}

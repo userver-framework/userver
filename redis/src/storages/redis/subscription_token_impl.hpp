@@ -17,7 +17,7 @@ public:
 
     SubscriptionTokenImpl(
         impl::SubscribeSentinel& subscribe_sentinel,
-        std::string channel,
+        std::vector<std::string> channels,
         OnMessageCb on_message_cb,
         const CommandControl& command_control
     );
@@ -31,7 +31,6 @@ public:
 private:
     void ProcessMessages();
 
-    std::string channel_;
     SubscriptionQueue<ChannelSubscriptionQueueItem> queue_;
     OnMessageCb on_message_cb_;
     engine::TaskWithResult<void> subscriber_task_;
@@ -43,7 +42,7 @@ public:
 
     PsubscriptionTokenImpl(
         impl::SubscribeSentinel& subscribe_sentinel,
-        std::string pattern,
+        std::vector<std::string> patterns,
         OnPmessageCb on_pmessage_cb,
         const CommandControl& command_control
     );
@@ -57,7 +56,6 @@ public:
 private:
     void ProcessMessages();
 
-    std::string pattern_;
     SubscriptionQueue<PatternSubscriptionQueueItem> queue_;
     OnPmessageCb on_pmessage_cb_;
     engine::TaskWithResult<void> subscriber_task_;
@@ -69,7 +67,7 @@ public:
 
     SsubscriptionTokenImpl(
         impl::SubscribeSentinel& subscribe_sentinel,
-        std::string channel,
+        std::vector<std::string> channels,
         OnMessageCb on_message_cb,
         const CommandControl& command_control
     );
@@ -83,7 +81,6 @@ public:
 private:
     void ProcessMessages();
 
-    std::string channel_;
     SubscriptionQueue<ShardedSubscriptionQueueItem> queue_;
     OnMessageCb on_message_cb_;
     engine::TaskWithResult<void> subscriber_task_;

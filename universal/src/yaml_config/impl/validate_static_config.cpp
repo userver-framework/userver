@@ -1,8 +1,10 @@
 #include <userver/yaml_config/impl/validate_static_config.hpp>
 
+#include <algorithm>
+#include <ranges>
+
 #include <fmt/format.h>
 #include <fmt/ranges.h>
-#include <boost/range/adaptors.hpp>
 
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/logging/log.hpp>
@@ -53,7 +55,7 @@ void ValidateEnum(const YamlConfig& enum_value, const Schema& schema) {
     if (schema.enum_values->find(enum_value.As<std::string>()) == schema.enum_values->end()) {
         std::vector<std::string>
             ordered_enum_values(schema.enum_values.value().begin(), schema.enum_values.value().end());
-        std::sort(ordered_enum_values.begin(), ordered_enum_values.end());
+        std::ranges::sort(ordered_enum_values);
 
         throw std::runtime_error(fmt::format(
             "Error while validating static config against schema. "
@@ -71,7 +73,7 @@ void ValidateIfPresent(const YamlConfig& static_config, const Schema& schema) {
 }
 
 std::string KeysAsString(const std::unordered_map<std::string, SchemaPtr>& object) {
-    return fmt::format("{}", fmt::join(object | boost::adaptors::map_keys, ", "));
+    return fmt::format("{}", fmt::join(object | std::views::keys, ", "));
 }
 
 void ValidateObject(const YamlConfig& object, const Schema& schema) {
@@ -101,8 +103,21 @@ void ValidateObject(const YamlConfig& object, const Schema& schema) {
             value.GetPath(),
             schema.path,
             KeysAsString(properties),
-            utils::SuggestNearestName(properties | boost::adaptors::map_keys, name)
+            utils::SuggestNearestName(properties | std::views::keys, name)
         ));
+    }
+
+    if (schema.required.has_value()) {
+        for (const auto& name : *schema.required) {
+            const auto field = object[name];
+            if (field.IsMissing()) {
+                throw std::runtime_error(fmt::format(
+                    "Error while validating static config against schema. "
+                    "Required field '{}' is missing",
+                    field.GetPath()
+                ));
+            }
+        }
     }
 }
 

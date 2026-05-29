@@ -60,7 +60,7 @@ TYPED_UTEST(Future, Empty) {
 UTEST(Future, ValueVoid) {
     engine::Promise<void> p;
     auto f = p.get_future();
-    auto task = engine::AsyncNoSpan([&p] { p.set_value(); });
+    auto task = engine::AsyncNoTracing([&p] { p.set_value(); });
     UEXPECT_NO_THROW(f.is_ready());
     UEXPECT_NO_THROW(f.get());
     UEXPECT_THROW(f.is_ready(), std::future_error);
@@ -71,7 +71,7 @@ UTEST(Future, ValueVoid) {
 UTEST(Future, ValueInt) {
     engine::Promise<int> p;
     auto f = p.get_future();
-    auto task = engine::AsyncNoSpan([&p] { p.set_value(42); });
+    auto task = engine::AsyncNoTracing([&p] { p.set_value(42); });
     UEXPECT_NO_THROW(f.is_ready());
     EXPECT_EQ(42, f.get());
     UEXPECT_THROW(f.is_ready(), std::future_error);
@@ -82,7 +82,7 @@ UTEST(Future, ValueInt) {
 UTEST(Future, ValueString) {
     engine::Promise<std::string> p;
     auto f = p.get_future();
-    auto task = engine::AsyncNoSpan([&p] { p.set_value("test"); });
+    auto task = engine::AsyncNoTracing([&p] { p.set_value("test"); });
     EXPECT_EQ("test", f.get());
     UEXPECT_THROW(f.get(), std::future_error);
     task.Get();
@@ -91,7 +91,7 @@ UTEST(Future, ValueString) {
 TYPED_UTEST(Future, Exception) {
     engine::Promise<TypeParam> p;
     auto f = p.get_future();
-    auto task = engine::AsyncNoSpan([&p] { p.set_exception(MyException::Create()); });
+    auto task = engine::AsyncNoTracing([&p] { p.set_exception(MyException::Create()); });
     UEXPECT_THROW(f.get(), MyException);
     UEXPECT_THROW(f.get(), std::future_error);
     UEXPECT_THROW(f.is_ready(), std::future_error);
@@ -104,7 +104,7 @@ UTEST(Future, IsReady) {
 
     engine::SingleConsumerEvent not_ready_event;
     engine::SingleConsumerEvent ready_event;
-    auto task = engine::AsyncNoSpan([&p, &not_ready_event, &ready_event] {
+    auto task = engine::AsyncNoTracing([&p, &not_ready_event, &ready_event] {
         EXPECT_TRUE(not_ready_event.WaitForEvent());
         p.set_value();
         ready_event.Send();
@@ -122,7 +122,7 @@ UTEST(Future, IsReadyCanceled) {
     bool is_ready_before_set{false};
     bool is_ready_after_set{false};
     engine::SingleConsumerEvent task_started_event;
-    auto task = engine::AsyncNoSpan([&] {
+    auto task = engine::AsyncNoTracing([&] {
         task_started_event.Send();
         is_ready_before_set = f.is_ready();
         p.set_value();
@@ -221,7 +221,7 @@ TYPED_UTEST(Future, BrokenPromise) {
 UTEST(Future, WaitVoid) {
     engine::Promise<void> p;
     auto f = p.get_future();
-    auto task = engine::AsyncNoSpan([&p] { p.set_value(); });
+    auto task = engine::AsyncNoTracing([&p] { p.set_value(); });
     EXPECT_EQ(engine::FutureStatus::kReady, f.wait());
     EXPECT_TRUE(f.is_ready());
     EXPECT_EQ(engine::FutureStatus::kReady, f.wait());
@@ -231,7 +231,7 @@ UTEST(Future, WaitVoid) {
 UTEST(Future, WaitInt) {
     engine::Promise<int> p;
     auto f = p.get_future();
-    auto task = engine::AsyncNoSpan([&p] { p.set_value(42); });
+    auto task = engine::AsyncNoTracing([&p] { p.set_value(42); });
     EXPECT_EQ(engine::FutureStatus::kReady, f.wait());
     EXPECT_TRUE(f.is_ready());
     EXPECT_EQ(engine::FutureStatus::kReady, f.wait());
@@ -241,7 +241,7 @@ UTEST(Future, WaitInt) {
 UTEST(Future, WaitString) {
     engine::Promise<std::string> p;
     auto f = p.get_future();
-    auto task = engine::AsyncNoSpan([&p] { p.set_value("test"); });
+    auto task = engine::AsyncNoTracing([&p] { p.set_value("test"); });
     EXPECT_EQ(engine::FutureStatus::kReady, f.wait());
     EXPECT_EQ(engine::FutureStatus::kReady, f.wait());
     task.Get();
@@ -259,7 +259,7 @@ TYPED_UTEST(Future, Cancel) {
     engine::SingleConsumerEvent started_event;
     engine::SingleConsumerEvent cancelled_event;
     engine::Promise<TypeParam> p;
-    auto task = engine::AsyncNoSpan(
+    auto task = engine::AsyncNoTracing(
         [&](engine::Future<TypeParam> f) {
             started_event.Send();
             ASSERT_FALSE(cancelled_event.WaitForEventFor(utest::kMaxTestWaitTime));
@@ -293,7 +293,7 @@ UTEST_MT(Future, ThreadedGetSet, 2) {
             futures.push_back(promise.get_future());
         }
 
-        auto task = engine::AsyncNoSpan([&promises] {
+        auto task = engine::AsyncNoTracing([&promises] {
             for (auto& promise : promises) {
                 promise.set_value(42);
             }

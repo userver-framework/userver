@@ -123,9 +123,9 @@ struct PostgresExamplePolicy2 {
     static constexpr auto kClusterHostType = storages::postgres::ClusterHostType::kSlave;
 };
 
-static_assert(pg_cache::detail::kHasName<PostgresExamplePolicy>);
-static_assert(pg_cache::detail::kHasQuery<PostgresExamplePolicy>);
-static_assert(pg_cache::detail::kHasKeyMember<PostgresExamplePolicy>);
+static_assert(pg_cache::detail::HasName<PostgresExamplePolicy>);
+static_assert(pg_cache::detail::HasQuery<PostgresExamplePolicy>);
+static_assert(pg_cache::detail::HasKeyMember<PostgresExamplePolicy>);
 
 static_assert((std::is_same<pg_cache::detail::KeyMemberType<PostgresExamplePolicy>, int>{}));
 static_assert((std::is_same<pg_cache::detail::KeyMemberType<PostgresExamplePolicy2>, int>{}));
@@ -179,7 +179,7 @@ struct PostgresExamplePolicy3 {
 };
 /*! [Pg Cache Policy Custom Updated Example] */
 
-static_assert(pg_cache::detail::kHasCustomUpdated<PostgresExamplePolicy3>);
+static_assert(pg_cache::detail::HasCustomUpdated<PostgresExamplePolicy3>);
 
 /*! [Pg Cache Policy GetQuery Example] */
 struct PostgresExamplePolicy4 {
@@ -197,7 +197,7 @@ struct PostgresExamplePolicy4 {
 };
 /*! [Pg Cache Policy GetQuery Example] */
 
-static_assert(pg_cache::detail::kHasGetQuery<PostgresExamplePolicy4>);
+static_assert(pg_cache::detail::HasGetQuery<PostgresExamplePolicy4>);
 
 /*! [Pg Cache Policy Trivial] */
 struct PostgresTrivialPolicy {
@@ -251,7 +251,7 @@ struct PostgresExamplePolicy5 {
 };
 /*! [Pg Cache Policy Compound Primary Key Example] */
 
-static_assert(pg_cache::detail::kHasGetQuery<PostgresExamplePolicy5>);
+static_assert(pg_cache::detail::HasGetQuery<PostgresExamplePolicy5>);
 
 /*! [Pg Cache Policy Custom Container With Write Notification Example] */
 class UserSpecificCacheWithWriteNotification {

@@ -21,10 +21,10 @@ struct Portal::Impl {
         const PortalName& name,
         const Query& query,
         const detail::QueryParameters& params,
-        OptionalCommandControl cmd_ctl
+        OptionalCommandControl cmd_ctl_in
     )
         : conn{conn},
-          cmd_ctl{std::move(cmd_ctl)},
+          cmd_ctl{std::move(cmd_ctl_in)},
           name{name}
     {
         if (conn) {

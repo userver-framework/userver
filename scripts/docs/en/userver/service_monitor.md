@@ -1,4 +1,4 @@
-# Retrieveing Service Statistics and Metrics (Prometheus/Graphite/...) and Default Metrics Description
+# Retrieving Service Statistics and Metrics (Prometheus/Graphite/...) and Default Metrics Description
 
 If your service has a @ref server::handlers::ServerMonitor configured, then you may
 get the service statistics and metrics.

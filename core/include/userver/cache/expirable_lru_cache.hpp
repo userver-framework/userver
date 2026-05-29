@@ -42,114 +42,191 @@ template <typename Value>
 impl::ExpirableValue<Value> Read(dump::Reader& reader, dump::To<impl::ExpirableValue<Value>>) {
     const auto [now, steady_now] = utils::impl::GetGlobalTime();
     // Evaluation order of arguments is guaranteed in brace-initialization.
-    return impl::ExpirableValue<
-        Value>{reader.Read<Value>(), reader.Read<std::chrono::system_clock::time_point>() - now + steady_now};
+    return impl::ExpirableValue<Value>{
+        .value = reader.Read<Value>(),
+        .update_time = reader.Read<std::chrono::system_clock::time_point>() - now + steady_now,
+    };
 }
 
 }  // namespace impl
 
 /// @ingroup userver_containers
-/// @brief Class for expirable LRU cache. Use cache::LruMap for not expirable
-/// LRU Cache.
+/// @brief Class for expirable LRU cache.
 ///
-/// Example usage:
+/// Use @ref cache::LruMap for non-expirable LRU cache.
 ///
-/// @snippet cache/expirable_lru_cache_test.cpp Sample ExpirableLruCache
+/// @snippet core/src/cache/expirable_lru_cache_test.cpp Sample ExpirableLruCache
 template <typename Key, typename Value, typename Hash = std::hash<Key>, typename Equal = std::equal_to<Key>>
 class ExpirableLruCache final {
 public:
+    /// @brief Type of function used to compute or refresh a value for a key
     using UpdateValueFunc = std::function<Value(const Key&)>;
 
-    /// Cache read mode
+    /// @brief Cache read mode for @ref Get.
     enum class ReadMode {
         kSkipCache,  ///< Do not cache value got from update function
         kUseCache,   ///< Cache value got from update function
     };
 
-    /// For the description of `ways` and `way_size`,
-    /// see the cache::NWayLRU::NWayLRU constructor.
+    /// @brief Constructs the cache.
+    ///
+    /// @param ways Number of ways (shards). See @ref cache::NWayLRU.
+    /// @param way_size Maximum size per way. See @ref cache::NWayLRU.
+    /// @param hash Hash functor for keys.
+    /// @param equal Equality functor for keys.
     ExpirableLruCache(size_t ways, size_t way_size, const Hash& hash = Hash(), const Equal& equal = Equal());
 
+    /// @brief Destroys the cache and waits for all background update tasks to
+    /// complete
     ~ExpirableLruCache();
 
-    /// For the description of `way_size`,
-    /// see the cache::NWayLRU::NWayLRU constructor.
+    /// @brief Sets maximum size per way.
+    ///
+    /// @param way_size Maximum size per way. See @ref cache::NWayLRU.
     void SetWaySize(size_t way_size);
 
+    /// @brief Returns the maximum lifetime of a cached value before it is
+    /// considered expired.
+    ///
+    /// @return Current max lifetime, or zero if expiration is disabled.
     std::chrono::milliseconds GetMaxLifetime() const noexcept;
 
+    /// @brief Sets the maximum lifetime of a cached value before it is
+    /// considered expired.
+    ///
+    /// @param max_lifetime Max lifetime; zero disables expiration.
     void SetMaxLifetime(std::chrono::milliseconds max_lifetime);
 
-    /**
-     * Sets background update mode. If "background_update" mode is kDisabled,
-     * expiring values are not updated in background (asynchronously) or are
-     * updated if "background_update" is kEnabled.
-     */
+    /// @brief Sets background update mode.
+    ///
+    /// If \p background_update is kDisabled, expiring values are not updated
+    /// in background; if kEnabled, they are updated asynchronously when
+    /// lifetime is near end.
+    ///
+    /// @param background_update Either kDisabled or kEnabled.
     void SetBackgroundUpdate(BackgroundUpdateMode background_update);
 
-    /**
-     * @returns GetOptional("key", update_func) if it is not std::nullopt.
-     * Otherwise the result of update_func(key) is returned, and additionally
-     * stored in cache if "read_mode" is kUseCache.
-     */
+    /// @brief Returns value by key, or computes and optionally caches it.
+    ///
+    /// Equivalent to @ref GetOptional(\p key, \p update_func); if that is
+    /// std::nullopt, returns update_func(\p key) and stores it in cache when
+    /// \p read_mode is ReadMode::kUseCache.
+    ///
+    /// @param key Cache key.
+    /// @param update_func Function to compute value when key is missing or
+    /// expired.
+    /// @param read_mode If kUseCache, caches the result of \p update_func.
+    /// @return Cached or freshly computed value.
     Value Get(const Key& key, const UpdateValueFunc& update_func, ReadMode read_mode = ReadMode::kUseCache);
 
-    /**
-     * Update value in cache by "update_func" if background update mode is
-     * kEnabled and "key" is in cache and not expired but its lifetime ends soon.
-     * @returns value by key if key is in cache and not expired, or std::nullopt
-     * otherwise
-     */
+    /// @brief Returns value by key if present and not expired; may trigger
+    /// background update.
+    ///
+    /// If background update is kEnabled and the entry is near expiry, schedules
+    /// an async update via \p update_func. Does not block on that update.
+    ///
+    /// @param key Cache key.
+    /// @param update_func Function used for background refresh when entry is
+    /// near expiry.
+    /// @return Value if key is in cache and not expired, otherwise std::nullopt.
     std::optional<Value> GetOptional(const Key& key, const UpdateValueFunc& update_func);
 
-    /**
-     * GetOptional, but without expiry checks and value updates.
-     *
-     * Used during fallback in FallbackELruCache.
-     */
+    /// @brief @ref GetOptional without expiry checks and without value updates.
+    ///
+    /// @param key Cache key.
+    /// @return Value if key is in cache, otherwise std::nullopt.
+    /// @note Used during fallback in FallbackELruCache.
     std::optional<Value> GetOptionalUnexpirable(const Key& key);
 
-    /**
-     * GetOptional, but without expiry check.
-     *
-     * Used during fallback in FallbackELruCache.
-     */
+    /// @brief @ref GetOptional without expiry check; may trigger background update.
+    ///
+    /// @param key Cache key.
+    /// @param update_func Function used for background refresh when entry is
+    /// near expiry.
+    /// @return Value if key is in cache, otherwise std::nullopt.
+    /// @note Used during fallback in FallbackELruCache.
     std::optional<Value> GetOptionalUnexpirableWithUpdate(const Key& key, const UpdateValueFunc& update_func);
 
-    /**
-     * GetOptional, but without value updates.
-     */
+    /// @brief @ref GetOptional without triggering value updates (no background
+    /// refresh).
+    ///
+    /// @param key Cache key.
+    /// @return Value if key is in cache and not expired, otherwise std::nullopt.
     std::optional<Value> GetOptionalNoUpdate(const Key& key);
 
+    /// @brief @ref GetOptionalNoUpdate, but returns the value together with its
+    /// last update time.
+    ///
+    /// @param key Cache key.
+    /// @return Value and update time if key is in cache and not expired,
+    /// otherwise std::nullopt.
     std::optional<impl::ExpirableValue<Value>> GetOptionalNoUpdateWithLastUpdateTime(const Key& key);
 
+    /// @brief Inserts or updates the value for the given key with current
+    /// timestamp.
+    ///
+    /// @param key Cache key.
+    /// @param value Value to store.
     void Put(const Key& key, const Value& value);
 
+    /// @brief Inserts or updates the value for the given key with current
+    /// timestamp (\p value is moved).
+    ///
+    /// @param key Cache key.
+    /// @param value Value to store (moved).
     void Put(const Key& key, Value&& value);
 
+    /// @brief Returns cache statistics (hits, misses, background updates, etc.).
+    ///
+    /// @return Reference to impl::ExpirableLruCacheStatistics.
     const impl::ExpirableLruCacheStatistics& GetStatistics() const;
 
+    /// @brief Returns approximate number of entries in the cache.
+    ///
+    /// @return Approximate size (sum of all ways).
     size_t GetSizeApproximate() const;
 
-    /// Clear cache
+    /// @brief Clears the cache (removes all entries).
     void Invalidate();
 
-    /// Erase key from cache
+    /// @brief Erases the entry for the given key.
+    ///
+    /// @param key Cache key to erase.
     void InvalidateByKey(const Key& key);
 
-    /// Erase key from cache conditionally
+    /// @brief Erases the key from cache if \p pred returns true for the
+    /// current value.
+    ///
+    /// @param key Cache key.
+    /// @param pred Predicate invoked with current value; entry is erased only
+    /// if it returns true and value is not expired.
     template <typename Predicate>
     void InvalidateByKeyIf(const Key& key, Predicate pred);
 
-    /// Add async task for updating value by update_func(key)
+    /// @brief Schedules an async task to update the value by update_func(\p key).
+    ///
+    /// @param key Cache key to update.
+    /// @param update_func Function to compute the new value.
     void UpdateInBackground(const Key& key, UpdateValueFunc update_func);
 
+    /// @brief Serializes cache state to the dump writer.
+    ///
+    /// Used for @ref dump::Dumper integration.
+    ///
+    /// @param writer Dump writer to write to.
     void Write(dump::Writer& writer) const;
 
+    /// @brief Restores cache state from the dump reader.
+    ///
+    /// Used for @ref dump::Dumper integration.
+    ///
+    /// @param reader Dump reader to read from.
     void Read(dump::Reader& reader);
 
-    /// The dump::Dumper will be notified of any cache updates. This method is not
-    /// thread-safe.
+    /// @brief Sets the dumper that will be notified of cache updates.
+    ///
+    /// @param dumper Shared pointer to @ref dump::Dumper.
+    /// @note This method is not thread-safe.
     void SetDumper(std::shared_ptr<dump::Dumper> dumper);
 
 private:
@@ -224,7 +301,7 @@ Value ExpirableLruCache<
 
     auto value = update_func(key);
     if (read_mode == ReadMode::kUseCache) {
-        lru_.Put(key, {value, now});
+        lru_.Put(key, {.value = value, .update_time = now});
     }
     return value;
 }
@@ -323,12 +400,12 @@ std::optional<Value> ExpirableLruCache<Key, Value, Hash, Equal>::GetOptionalNoUp
 
 template <typename Key, typename Value, typename Hash, typename Equal>
 void ExpirableLruCache<Key, Value, Hash, Equal>::Put(const Key& key, const Value& value) {
-    lru_.Put(key, {value, utils::datetime::SteadyNow()});
+    lru_.Put(key, {.value = value, .update_time = utils::datetime::SteadyNow()});
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
 void ExpirableLruCache<Key, Value, Hash, Equal>::Put(const Key& key, Value&& value) {
-    lru_.Put(key, {std::move(value), utils::datetime::SteadyNow()});
+    lru_.Put(key, {.value = std::move(value), .update_time = utils::datetime::SteadyNow()});
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
@@ -370,8 +447,8 @@ void ExpirableLruCache<Key, Value, Hash, Equal>::UpdateInBackground(const Key& k
     impl::CacheBackgroundUpdate(stats_);
 
     // cache will wait for all detached tasks in ~ExpirableLruCache()
-    engine::DetachUnscopedUnsafe(
-        engine::AsyncNoSpan([token = wait_token_storage_.GetToken(), this, key, update_func = std::move(update_func)] {
+    engine::DetachUnscopedUnsafe(engine::AsyncNoTracing(
+        [token = wait_token_storage_.GetToken(), this, key, update_func = std::move(update_func)] {
             auto mutex = mutex_set_.GetMutexForKey(key);
             const std::unique_lock lock(mutex, std::try_to_lock);
             if (!lock) {
@@ -381,9 +458,9 @@ void ExpirableLruCache<Key, Value, Hash, Equal>::UpdateInBackground(const Key& k
 
             auto now = utils::datetime::SteadyNow();
             auto value = update_func(key);
-            lru_.Put(key, {value, now});
-        })
-    );
+            lru_.Put(key, {.value = value, .update_time = now});
+        }
+    ));
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
@@ -409,36 +486,70 @@ bool ExpirableLruCache<
            update_time + max_lifetime / 2 < now;
 }
 
+/// @brief Wrapper around @ref ExpirableLruCache that binds an update function
+/// for convenience.
+///
+/// @snippet core/src/cache/expirable_lru_cache_test.cpp Sample LruCacheWrapper
 template <typename Key, typename Value, typename Hash = std::hash<Key>, typename Equal = std::equal_to<Key>>
 class LruCacheWrapper final {
 public:
+    /// @brief The underlying cache type
     using Cache = ExpirableLruCache<Key, Value, Hash, Equal>;
+    /// @brief Read mode for @ref Get (same as Cache::ReadMode)
     using ReadMode = typename Cache::ReadMode;
 
+    /// @brief Constructs wrapper with shared cache and update function.
+    ///
+    /// The same \p update_func is used for all @ref Get and @ref GetOptional
+    /// calls.
+    ///
+    /// @param cache Shared pointer to @ref ExpirableLruCache.
+    /// @param update_func Function to compute value when key is missing or
+    /// expired.
     LruCacheWrapper(std::shared_ptr<Cache> cache, typename Cache::UpdateValueFunc update_func)
         : cache_(std::move(cache)),
           update_func_(std::move(update_func))
     {}
 
-    /// Get cached value or evaluates if "key" is missing in cache
+    /// @brief Returns cached value or computes it if key is missing in cache.
+    ///
+    /// @param key Cache key.
+    /// @param read_mode If kUseCache, caches the computed value.
+    /// @return Cached or freshly computed value.
     Value Get(const Key& key, ReadMode read_mode = ReadMode::kUseCache) {
         return cache_->Get(key, update_func_, read_mode);
     }
 
-    /// Get cached value or "nullopt" if "key" is missing in cache
+    /// @brief Returns cached value or std::nullopt if key is missing in cache.
+    ///
+    /// @param key Cache key.
+    /// @return Value if key is in cache and not expired, otherwise std::nullopt.
     std::optional<Value> GetOptional(const Key& key) { return cache_->GetOptional(key, update_func_); }
 
+    /// @brief Erases key from cache.
+    ///
+    /// @param key Cache key to erase.
     void InvalidateByKey(const Key& key) { cache_->InvalidateByKey(key); }
 
+    /// @brief Erases key from cache if \p pred returns true for the current
+    /// value.
+    ///
+    /// @param key Cache key.
+    /// @param pred Predicate invoked with current value.
     template <typename Predicate>
     void InvalidateByKeyIf(const Key& key, Predicate pred) {
         cache_->InvalidateByKeyIf(key, pred);
     }
 
-    /// Update cached value in background
+    /// @brief Schedules background update of cached value for the key.
+    ///
+    /// @param key Cache key to update.
     void UpdateInBackground(const Key& key) { cache_->UpdateInBackground(key, update_func_); }
 
-    /// Get raw cache. For internal use.
+    /// @brief Returns raw cache pointer.
+    ///
+    /// @return Shared pointer to the underlying @ref ExpirableLruCache.
+    /// @note For internal use.
     std::shared_ptr<Cache> GetCache() { return cache_; }
 
 private:

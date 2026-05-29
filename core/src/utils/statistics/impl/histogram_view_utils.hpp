@@ -2,13 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
-
-#include <boost/range/adaptor/transformed.hpp>
-#include <boost/range/algorithm/copy.hpp>
-#include <boost/range/algorithm/equal.hpp>
-#include <boost/range/algorithm/set_algorithm.hpp>
-#include <boost/range/algorithm/upper_bound.hpp>
-#include <boost/range/combine.hpp>
+#include <ranges>
 
 #include <userver/utils/assert.hpp>
 #include <userver/utils/span.hpp>
@@ -34,14 +28,13 @@ struct Access final {
     template <typename AnyHistogramView>
     static auto Bounds(AnyHistogramView view) noexcept {
         const auto bound_ref_getter = [](auto&& bucket) -> auto& { return bucket.upper_bound.bound; };
-        return Buckets(view) | boost::adaptors::transformed(bound_ref_getter);
+        return Buckets(view) | std::views::transform(bound_ref_getter);
     }
 
     template <typename AnyHistogramView>
     static auto Values(AnyHistogramView view) noexcept {
-        return Buckets(view) | boost::adaptors::transformed([&](auto&& bucket) {
-                   return bucket.counter.load(std::memory_order_relaxed);
-               });
+        return Buckets(view) |
+               std::views::transform([&](auto&& bucket) { return bucket.counter.load(std::memory_order_relaxed); });
     }
 };
 
@@ -54,7 +47,7 @@ inline void AddNonAtomic(std::atomic<double>& to, std::uint64_t x) {
 }
 
 inline void AddAtomic(std::atomic<double>& to, double x) {
-#if __cplusplus >= 202002L && (!defined(_LIBCPP_VERSION) || _LIBCPP_VERSION >= 180000)
+#if !defined(_LIBCPP_VERSION) || _LIBCPP_VERSION >= 180000
     to += x;
 #else
     double expected = to.load();
@@ -76,12 +69,12 @@ inline bool AreBoundsClose(double x, double y) noexcept {
 
 inline bool HasSameBounds(HistogramView lhs, HistogramView rhs) {
     return lhs.GetBucketCount() == rhs.GetBucketCount() &&
-           boost::range::equal(Access::Bounds(lhs), Access::Bounds(rhs), AreBoundsClose);
+           std::ranges::equal(Access::Bounds(lhs), Access::Bounds(rhs), AreBoundsClose);
 }
 
 inline bool HasSameBoundsAndValues(HistogramView lhs, HistogramView rhs) {
     return HasSameBounds(lhs, rhs) && lhs.GetValueAtInf() == rhs.GetValueAtInf() &&
-           boost::range::equal(Access::Values(lhs), Access::Values(rhs));
+           std::ranges::equal(Access::Values(lhs), Access::Values(rhs));
 }
 
 class MutableView final {
@@ -94,20 +87,17 @@ public:
 
     template <typename InputRange>
     void SetBounds(const InputRange& upper_bounds) const {
+        UINVARIANT(std::ranges::all_of(upper_bounds, IsBoundPositive), "Histogram bounds must be positive");
+        UINVARIANT(std::ranges::is_sorted(upper_bounds), "Histogram bounds must be sorted");
         UINVARIANT(
-            std::all_of(upper_bounds.begin(), upper_bounds.end(), IsBoundPositive),
-            "Histogram bounds must be positive"
-        );
-        UINVARIANT(std::is_sorted(upper_bounds.begin(), upper_bounds.end()), "Histogram bounds must be sorted");
-        UINVARIANT(
-            std::adjacent_find(upper_bounds.begin(), upper_bounds.end()) == upper_bounds.end(),
+            std::ranges::adjacent_find(upper_bounds) == std::ranges::end(upper_bounds),
             "Histogram bounds must not contain duplicates"
         );
         if (std::size(upper_bounds) != 0) {
             UINVARIANT(*upper_bounds.begin(), "Histogram bounds must be positive");
         }
         buckets_[0].upper_bound.size = std::size(upper_bounds);
-        boost::copy(upper_bounds, Access::Bounds(*this).begin());
+        std::ranges::copy(upper_bounds, Access::Bounds(*this).begin());
     }
 
     // Atomic for 'other', non-atomic for 'this'
@@ -115,13 +105,13 @@ public:
         buckets_[0].upper_bound.size = other.GetBucketCount();
         buckets_[0].counter.store(other.GetValueAtInf(), std::memory_order_relaxed);
         buckets_[0].sum.store(other.GetSumAtInf(), std::memory_order_relaxed);
-        boost::copy(Access::Buckets(other), Access::Buckets(*this).begin());
+        std::ranges::copy(Access::Buckets(other), Access::Buckets(*this).begin());
     }
 
     // Atomic
     void Account(double value, std::uint64_t count) const noexcept {
         const auto bounds_view = Access::Bounds(*this);
-        const auto iter = boost::upper_bound(bounds_view, value, std::less_equal<>{});
+        const auto iter = std::ranges::upper_bound(bounds_view, value, std::less_equal<>{});
         auto& bucket = (iter == bounds_view.end()) ? buckets_[0] : *iter.base();
         bucket.counter.fetch_add(count, std::memory_order_relaxed);
         AddAtomic(bucket.sum, value * count);
@@ -140,7 +130,7 @@ public:
     // Non-atomic
     void Add(HistogramView other) const {
         UINVARIANT(
-            boost::range::includes(Access::Bounds(other), Access::Bounds(*this)),
+            std::ranges::includes(Access::Bounds(other), Access::Bounds(*this)),
             "Buckets can be merged, but not added during Histogram conversion."
         );
         AddNonAtomic(buckets_[0].counter, other.GetValueAtInf());

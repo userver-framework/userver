@@ -1,7 +1,6 @@
 #pragma once
 
 #include "{{ pair_header }}.hpp"
-#include "{{ pair_header }}_parsers.ipp"
 {% for file in definition_includes(types.values()) %}
     #include <{{ file }}>
 {%- endfor %}
@@ -24,12 +23,11 @@
     {% endfor %}
 
     {% if type.get_py_type() == 'CppStruct' %}
-        auto ParserOf({{ name }}&)
-        {
-            return USERVER_NAMESPACE::chaotic::sax::Parser<
-              {{ type.descriptor_type() }}
-            >{};
-        }
+        [[maybe_unused]] USERVER_NAMESPACE::chaotic::sax::Parser<{{ type.descriptor_type() }}>
+            ParserOf(USERVER_NAMESPACE::chaotic::sax::Type<{{ name }}>);
+    {% elif type.get_py_type() == 'CppStructAllOf' %}
+        [[maybe_unused]] USERVER_NAMESPACE::chaotic::sax::impl::JsonDomParser<{{ name }}>
+            ParserOf(USERVER_NAMESPACE::chaotic::sax::Type<{{ name }}>);
     {% endif %}
 {% endmacro %}
 

@@ -23,7 +23,7 @@ Settings Parse(const yaml_config::YamlConfig& config, formats::parse::To<Setting
     settings.log_level = config["log-level"].As<logging::Level>(settings.log_level);
     settings.msg_log_level = config["msg-log-level"].As<logging::Level>(settings.msg_log_level);
     settings.max_msg_size = config["msg-size-log-limit"].As<std::size_t>(settings.max_msg_size);
-    settings.local_log_level = config["local-log-level"].As<logging::Level>(settings.local_log_level);
+    settings.local_log_level = config["local-log-level"].As<std::optional<logging::Level>>({});
     settings.status_codes_log_level =
         config["status-codes-log-level"].As<boost::container::flat_map<grpc::StatusCode, logging::Level>>({});
     return settings;

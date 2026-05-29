@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <optional>
 #include <string_view>
 
@@ -12,6 +13,7 @@
 #include <userver/ugrpc/client/generic_options.hpp>
 #include <userver/ugrpc/client/impl/method_stubs.hpp>
 #include <userver/ugrpc/client/middlewares/fwd.hpp>
+#include <userver/ugrpc/client/retry_limiter.hpp>
 #include <userver/ugrpc/impl/maybe_owned_string.hpp>
 #include <userver/ugrpc/impl/statistics.hpp>
 #include <userver/ugrpc/rpc_type.hpp>
@@ -36,6 +38,7 @@ struct CallParams {
     const Middlewares& middlewares;
     ugrpc::impl::MethodStatistics& statistics;
     const testsuite::GrpcControl& testsuite_grpc;
+    RetryLimiter* retry_limiter;
 };
 
 CallParams CreateCallParams(const ClientData& client_data, std::size_t method_id, CallOptions&& call_options);

@@ -30,8 +30,8 @@ extern const dynamic_config::Key<SampleStructConfig> kSampleStructConfig;
 // it in hpp is not strictly necessary.
 SampleStructConfig Parse(const formats::json::Value& value, formats::parse::To<SampleStructConfig>) {
     return SampleStructConfig{
-        /*is_foo_enabled=*/value["is_foo_enabled"].As<bool>(),
-        /*bar_period=*/value["bar_period_ms"].As<std::chrono::milliseconds>(),
+        .is_foo_enabled = value["is_foo_enabled"].As<bool>(),
+        .bar_period = value["bar_period_ms"].As<std::chrono::milliseconds>(),
     };
 }
 
@@ -60,10 +60,10 @@ struct DummyConfig final {
 };
 
 DummyConfig Parse(const formats::json::Value& value, formats::parse::To<DummyConfig>) {
-    return {value["foo"].As<int>(), value["bar"].As<std::string>()};
+    return {.foo = value["foo"].As<int>(), .bar = value["bar"].As<std::string>()};
 }
 
-const dynamic_config::Key kDummyConfig{dynamic_config::ConstantConfig{}, DummyConfig{42, "what"}};
+const dynamic_config::Key kDummyConfig{dynamic_config::ConstantConfig{}, DummyConfig{.foo = 42, .bar = "what"}};
 
 const dynamic_config::Key kIntConfig{dynamic_config::ConstantConfig{}, 0};
 

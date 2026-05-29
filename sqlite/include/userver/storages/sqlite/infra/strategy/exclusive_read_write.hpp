@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/sqlite/infra/strategy/exclusive_read_write.hpp
+/// @brief @copybrief storages::sqlite::infra::strategy::ExclusiveReadWriteStrategy
+
 #include <userver/engine/condition_variable.hpp>
 #include <userver/engine/mutex.hpp>
 
@@ -9,6 +12,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::infra::strategy {
 
+/// @brief SQLite pool strategy: single shared read-write pool
 class ExclusiveReadWriteStrategy final : public PoolStrategyBase {
 public:
     ExclusiveReadWriteStrategy(

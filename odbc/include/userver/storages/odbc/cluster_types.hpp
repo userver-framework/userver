@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/odbc/cluster_types.hpp
+/// @brief ODBC cluster host roles, flags and string conversion helpers
+
 #include <string>
 
 #include <userver/utils/flags.hpp>

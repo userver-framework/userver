@@ -21,3 +21,8 @@ add_executable(${PROJECT_NAME}-unittest unittests/client_test.cpp)
 target_link_libraries(${PROJECT_NAME}-unittest ${PROJECT_NAME}_objs userver::utest userver::s3api-utest)
 add_google_tests(${PROJECT_NAME}-unittest)
 # /// [gtest]
+
+# /// [testsuite] cmake
+# Sets up a virtualenv, registers pytest tests from `testsuite/` in CTest.
+userver_testsuite_add_simple()
+# /// [testsuite] cmake

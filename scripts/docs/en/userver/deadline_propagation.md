@@ -62,7 +62,9 @@ In practice, it won't work that way:
 
 ### How it works in userver
 
-In HTTP, we use custom headers, as described below.
+In HTTP, we use custom headers, as described below: `X-YaTaxi-Client-TimeoutMs` for the remaining time until the
+deadline (duration), and optionally `X-Request-Deadline` for the absolute deadline of the whole call chain, encoded as a
+Unix timestamp.
 
 In gRPC, we use the built-in deadline mechanism based on the `grpc-timeout` header.
 
@@ -100,6 +102,12 @@ The decision to transmit the `duration` was made based on the fact that the cloc
 enough between hosts. In case of an unfortunate combination of circumstances, the service may reject the request
 prematurely. This problem especially affects requests with small timeouts.
 
+For HTTP, an optional `X-Request-Deadline` header can still carry an absolute timepoint; using it as the local
+request/task deadline is opt-in per handler (`deadline_propagation_prefer_timestamp` in static config) and can be
+disabled globally via the @ref USERVER_DEADLINE_PROPAGATION_ABSOLUTE_TIMESTAMP_ENABLED dynamic config. When
+`X-YaTaxi-Client-TimeoutMs` is also present, userver may compare the two representations and fall back to duration-only
+propagation if clock skew exceeds @ref USERVER_DEADLINE_PROPAGATION_CLOCK_SKEW_THRESHOLD_MS.
+
 ### Deadline Propagation HTTP headers
 
 The deadline propagation mechanism in userver uses custom headers.
@@ -135,6 +143,18 @@ support deadline propagation.
             - Interpret the response like a typical timeout (regardless of the received HTTP status code and body)
             - Apply the rules for retrying a timeout
 
+3. `X-Request-Deadline`
+
+    - Optional. The client may send an absolute deadline as a Unix timestamp: microseconds since the Unix epoch, as a
+      numeric string.
+
+    - When `deadline_propagation_prefer_timestamp` is `true` on the handler and absolute timestamps are allowed in
+      dynamic config, userver uses this timepoint for the local request/task deadline when parsing succeeds and
+      clock-skew checks pass (see the note in the previous section).
+
+    - The value may still be stored for propagation to downstream services when the header is present, even if the
+      handler does not prefer the timestamp for the local deadline.
+
 ## API
 
 ### Blocking the deadline propagation
@@ -149,7 +169,7 @@ mechanisms:
 
 - @ref concurrent::BackgroundTaskStorage::AsyncDetach()
 - @ref utils::AsyncBackground
-- @ref engine::AsyncNoSpan (don't use it if you are not sure that you need it!)
+- @ref engine::AsyncNoTracing (don't use it if you are not sure that you need it!)
 
 @warning when creating background tasks via `utils::Async` (instead of `utils::AsyncBackground`), requests performed
 in them will be interrupted along with the parent task**
@@ -351,13 +371,13 @@ If the request is sent with deadline propagation enabled, then:
 1. If the deadline has expired before the start of `Execute`, the exception `stores::postgres::ConnectionInterrupted` is
    thrown.
 2. There are two timeouts in Postgres. See @ref storages::postgres::CommandControl.
-  `statement_timeout` is adjusted and `network_timeout` isn't adjusted by deadline propagation. 
+  `statement_timeout` is adjusted and `network_timeout` isn't adjusted by deadline propagation.
 
   For example:
 
   For a query in some handler `statement_timeout=500ms` and `network_timeout=600ms`. But a client calls that handler with
   timeout `300ms`.
-  `statement_timeout` is adjusted to 300ms and `network_timeout` **is not** adjusted. 
+  `statement_timeout` is adjusted to 300ms and `network_timeout` **is not** adjusted.
 
   `network_timeout` isn't adjusted, because we want to give Postgres the opportunity to cancel the request, and not
   immediately break the connection. Otherwise, this would lead to failure of a connection pool during DP timeouts.

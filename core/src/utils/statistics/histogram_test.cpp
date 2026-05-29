@@ -1,8 +1,7 @@
 #include <userver/utils/statistics/histogram.hpp>
 
 #include <limits>
-
-#include <boost/range/irange.hpp>
+#include <ranges>
 
 #include <userver/formats/json/serialize.hpp>
 #include <userver/utest/utest.hpp>
@@ -63,8 +62,8 @@ UTEST(StatisticsHistogram, AccountForEachBucketCount) {
     constexpr std::uint64_t kInfCount = 42;
 
     for (std::size_t i = 1; i < 100; ++i) {
-        const auto bounds = boost::irange(std::size_t{1}, i + 1);
-        utils::statistics::Histogram histogram{utils::AsContainer<std::vector<double>>(bounds)};
+        const auto bounds = std::views::iota(std::size_t{1}, i + 1);
+        utils::statistics::Histogram histogram{utils::impl::AsContainerViaInsert<std::vector<double>>(bounds)};
 
         ASSERT_EQ(histogram.GetView().GetBucketCount(), i);
         for (const auto bound : bounds) {

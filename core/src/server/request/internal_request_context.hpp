@@ -2,11 +2,20 @@
 
 #include <optional>
 
+#include <server/middlewares/handler_metrics.hpp>
 #include <userver/logging/level.hpp>
 
 #include <userver/dynamic_config/snapshot.hpp>
+#include <userver/utils/optional_ref.hpp>
+#include <userver/utils/statistics/labels.hpp>
+#include <utils/statistics/impl/statistics_key.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace server::handlers {
+class HttpHandlerStatistics;
+class HttpHandlerStatisticsScope;
+}  // namespace server::handlers
 
 namespace server::request::impl {
 
@@ -33,10 +42,15 @@ public:
     const dynamic_config::Snapshot& GetConfigSnapshot() const;
     void ResetConfigSnapshot();
 
+    void SetHandlerMetricsShard(std::string_view sensor_path_part, utils::statistics::LabelsSpan labels);
+    void SaveHttpHandlerStatisticsScope(handlers::HttpHandlerStatisticsScope& statistics_scope);
+    void RemoveHttpHandlerStatisticsScope();
+
     DeadlinePropagationContext& GetDPContext();
 
 private:
     std::optional<dynamic_config::Snapshot> config_snapshot_;
+    handlers::HttpHandlerStatisticsScope* statistics_scope_{nullptr};
     DeadlinePropagationContext dp_context_{};
 };
 

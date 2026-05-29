@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/ydb/query.hpp
+/// @brief YDB SQL query type alias
+
 #include <userver/storages/query.hpp>
 
 USERVER_NAMESPACE_BEGIN

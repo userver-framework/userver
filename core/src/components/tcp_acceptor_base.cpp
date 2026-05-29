@@ -63,7 +63,7 @@ void TcpAcceptorBase::KeepAccepting(engine::io::Socket& listen_sock) {
     while (!engine::current_task::ShouldCancel()) {
         engine::io::Socket sock = listen_sock.Accept({});
 
-        tasks_.Detach(engine::AsyncNoSpan(
+        tasks_.Detach(engine::AsyncNoTracing(
             sockets_task_processor_,
             [this](engine::io::Socket&& sock) {
                 if (no_delay_) {
@@ -81,7 +81,7 @@ void TcpAcceptorBase::Start() {
 
     for (auto& socket_data : sockets_) {
         socket_data.acceptor =
-            engine::AsyncNoSpan(
+            engine::AsyncNoTracing(
                 acceptor_task_processor_,
                 &TcpAcceptorBase::KeepAccepting,
                 this,

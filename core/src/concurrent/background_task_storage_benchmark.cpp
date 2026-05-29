@@ -15,7 +15,7 @@ void BackgroundTaskStorage(benchmark::State& state) {
         RunParallelBenchmark(state, [&](auto& range) {
             for ([[maybe_unused]] auto _ : range) {
                 engine::SingleUseEvent event;
-                bts.Detach(engine::AsyncNoSpan([&] { event.Send(); }));
+                bts.Detach(engine::AsyncNoTracing([&] { event.Send(); }));
                 event.WaitNonCancellable();
             }
         });

@@ -1,10 +1,5 @@
 #pragma once
 
-/// @file userver/compiler/impl/tsan.hpp
-/// @brief Defines USERVER_IMPL_HAS_TSAN to 1 and includes
-/// <sanitizer/tsan_interface.h> if Thread Sanitizer is enabled; otherwise
-/// defines USERVER_IMPL_HAS_TSAN to 0.
-
 #if defined(__has_feature)
 
 #if __has_feature(thread_sanitizer)

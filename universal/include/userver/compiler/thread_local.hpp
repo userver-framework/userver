@@ -5,14 +5,8 @@
 
 #include <type_traits>
 
-#include <userver/compiler/impl/constexpr.hpp>
 #include <userver/compiler/impl/lifetime.hpp>
 #include <userver/compiler/impl/tls.hpp>
-
-#if __cplusplus >= 202002L && (__clang_major__ >= 13 || !defined(__clang__) && __GNUC__ >= 9)
-// NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_IMPL_UNEVALUATED_LAMBDAS
-#endif
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,32 +20,32 @@ void IncrementLocalCoroutineSwitchBans() noexcept;
 
 void DecrementLocalCoroutineSwitchBans() noexcept;
 
-#ifdef USERVER_IMPL_UNEVALUATED_LAMBDAS
-template <typename T, typename Factory = decltype([] { return T{}; })>
-using UniqueDefaultFactory = Factory;
-#else
-template <typename T>
-struct UniqueDefaultFactory final {
-    static_assert(
-        !sizeof(T),
-        "Defaulted syntax for compiler::ThreadLocal is unavailable on "
-        "your compiler. Please use the lambda-factory syntax, see the "
-        "documentation for compiler::ThreadLocal."
-    );
-};
-#endif
-
 }  // namespace impl
+
+/// @brief A scope that crashes if coroutine context switches are attempted.
+///
+/// This is useful to prevent accidental waiting operations in places where they would be disastrous,
+/// e.g. while holding a thread-local resource.
+///
+/// The check only happens in debug builds.
+class CoroutineSwitchBanScope {
+public:
+    CoroutineSwitchBanScope() noexcept;
+
+    CoroutineSwitchBanScope(CoroutineSwitchBanScope&&) = delete;
+    CoroutineSwitchBanScope& operator=(CoroutineSwitchBanScope&&) = delete;
+    ~CoroutineSwitchBanScope();
+};
 
 /// @brief The scope that grants access to a thread-local variable.
 ///
 /// @see compiler::ThreadLocal
 template <typename VariableType>
-class ThreadLocalScope final {
+class ThreadLocalScope final : private CoroutineSwitchBanScope {
 public:
     ThreadLocalScope(ThreadLocalScope&&) = delete;
     ThreadLocalScope& operator=(ThreadLocalScope&&) = delete;
-    ~ThreadLocalScope();
+    ~ThreadLocalScope() = default;
 
     /// Access the thread-local variable.
     VariableType& operator*() & noexcept USERVER_IMPL_LIFETIME_BOUND;
@@ -88,16 +82,12 @@ private:
 /// Thread-local variables created through this class are protected against
 /// these issues.
 ///
-/// Example usage:
+/// `ThreadLocal` should be passed a factory function that constructs the variable. Example usage:
 ///
 /// @snippet compiler/thread_local_test.cpp  sample definition
 /// @snippet compiler/thread_local_test.cpp  sample
 ///
-/// The thread-local variable is value-initialized.
-///
-/// In C++17 mode, or if you need to initialize the variable with some
-/// arguments, the ThreadLocal should be passed a capture-less lambda that
-/// constructs the variable. Example:
+/// An example with slightly more complex initialization for the variable:
 ///
 /// @snippet compiler/thread_local_test.cpp  sample factory
 ///
@@ -106,7 +96,7 @@ private:
 /// of the ThreadLocalScope object. An example of buggy code:
 ///
 /// @code
-/// compiler::ThreadLocal<std::string> local_buffer;
+/// compiler::ThreadLocal local_buffer = [] { return std::string{}; };
 ///
 /// std::string_view PrepareBuffer(std::string_view x, std::string_view y) {
 ///   const auto buffer = local_buffer.Use();
@@ -120,7 +110,7 @@ private:
 /// Do not store a reference to the thread-local object in a separate variable:
 ///
 /// @code
-/// compiler::ThreadLocal<std::string> local_buffer;
+/// compiler::ThreadLocal local_buffer = [] { return std::string{}; };
 ///
 /// void WriteMessage(std::string_view x, std::string_view y) {
 ///   auto buffer_scope = local_buffer.Use();
@@ -134,17 +124,17 @@ private:
 ///
 /// Until the variable name goes out of scope, userver engine synchronization
 /// primitives and clients (web or db) should not be used.
-template <typename VariableType, typename Factory = impl::UniqueDefaultFactory<VariableType>>
+template <typename VariableType, typename Factory>
 class ThreadLocal final {
     static_assert(std::is_empty_v<Factory>);
     static_assert(std::is_same_v<VariableType, std::invoke_result_t<const Factory&>>);
 
 public:
-    USERVER_IMPL_CONSTEVAL ThreadLocal()
+    consteval ThreadLocal()
         : factory_(Factory{})
     {}
 
-    USERVER_IMPL_CONSTEVAL /*implicit*/ ThreadLocal(Factory factory)
+    consteval /*implicit*/ ThreadLocal(Factory factory)
         : factory_(factory)
     {}
 
@@ -155,35 +145,34 @@ private:
     // user defines it as a local variable or even a thread_local variable, it
     // should be harmless in practice, because ThreadLocal is an empty type,
     // mainly used to store the `FactoryFunc` template parameter.
-    Factory factory_;
+    [[no_unique_address]] Factory factory_;
 };
 
 template <typename Factory>
 ThreadLocal(Factory factory) -> ThreadLocal<std::invoke_result_t<const Factory&>, Factory>;
 
-template <typename VariableType>
-ThreadLocalScope<VariableType>::ThreadLocalScope(VariableType& variable) noexcept : variable_(variable) {
+inline CoroutineSwitchBanScope::CoroutineSwitchBanScope() noexcept {
 #ifndef NDEBUG
     impl::IncrementLocalCoroutineSwitchBans();
 #endif
 }
 
-template <typename VariableType>
-ThreadLocalScope<VariableType>::~ThreadLocalScope() {
+inline CoroutineSwitchBanScope::~CoroutineSwitchBanScope() {
 #ifndef NDEBUG
     impl::DecrementLocalCoroutineSwitchBans();
 #endif
 }
 
 template <typename VariableType>
-VariableType& ThreadLocalScope<VariableType>::operator*() & noexcept  //
-USERVER_IMPL_LIFETIME_BOUND {
+ThreadLocalScope<VariableType>::ThreadLocalScope(VariableType& variable) noexcept : variable_(variable) {}
+
+template <typename VariableType>
+VariableType& ThreadLocalScope<VariableType>::operator*() & noexcept USERVER_IMPL_LIFETIME_BOUND {
     return variable_;
 }
 
 template <typename VariableType>
-VariableType* ThreadLocalScope<VariableType>::operator->() & noexcept  //
-USERVER_IMPL_LIFETIME_BOUND {
+VariableType* ThreadLocalScope<VariableType>::operator->() & noexcept USERVER_IMPL_LIFETIME_BOUND {
     return &**this;
 }
 

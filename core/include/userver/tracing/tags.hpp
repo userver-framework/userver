@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/tracing/tags.hpp
+/// @brief Standard OpenTracing semantic tag name constants
+
 #include <string>
 
 USERVER_NAMESPACE_BEGIN

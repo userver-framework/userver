@@ -4,7 +4,6 @@
 
 #include <memory>  // for std::uninitialized_fill_n
 
-#include <userver/compiler/impl/constexpr.hpp>
 #include <userver/compiler/impl/lsan.hpp>
 #include <userver/concurrent/impl/intrusive_stack.hpp>
 
@@ -26,7 +25,7 @@ namespace {
 // IntrusiveStack degrades performance under contention.
 // Suppose that StripedArray's are not created-destroyed very often.
 using StripedArrayStorage = IntrusiveStack<StripedArrayNode, MemberHook<&StripedArrayNode::hook>>;
-USERVER_IMPL_CONSTINIT StripedArrayStorage striped_array_storage;
+constinit StripedArrayStorage striped_array_storage;
 
 // To avoid static destruction order fiasco.
 static_assert(std::is_trivially_destructible_v<StripedArrayStorage>);
@@ -83,7 +82,7 @@ StripedArray::StripedArray()
     const auto elements_view = Elements();
     // This will induce some cache line flushing for neighbor StripedArray's.
     // Suppose that StripedArray's are not created very often.
-    std::uninitialized_fill(elements_view.begin(), elements_view.end(), 0);
+    std::ranges::uninitialized_fill(elements_view, 0);
 }
 
 StripedArray::~StripedArray() { ReleaseStripedArrayNode(node_); }

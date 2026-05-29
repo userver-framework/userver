@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/dynamic_config/exception.hpp
+/// @brief Dynamic configuration exception types
+
 #include <stdexcept>
 
 USERVER_NAMESPACE_BEGIN

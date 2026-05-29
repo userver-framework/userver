@@ -25,7 +25,7 @@ struct BufferFormatter<decimal64::Decimal<Prec, RoundPolicy>>
     void operator()(const UserTypes&, Buffer& buffer) const {
         auto bin_str = detail::Int64ToNumericBuffer({this->value.AsUnbiased(), Prec});
         buffer.reserve(buffer.size() + bin_str.size());
-        std::copy(bin_str.begin(), bin_str.end(), std::back_inserter(buffer));
+        std::ranges::copy(bin_str, std::back_inserter(buffer));
     }
 };
 

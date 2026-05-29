@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/dump/meta_containers.hpp
+/// @brief Dump serialization customization points for STL containers
+
 #include <iterator>
 #include <map>
 #include <set>
@@ -44,18 +47,11 @@ void Insert(std::unordered_set<T, Hash, Eq, Alloc>& cont, T&& elem) {
 }
 /// @}
 
-namespace impl {
-
-template <typename T>
-using InsertResult = decltype(dump::Insert(std::declval<T&>(), std::declval<meta::RangeValueType<T>&&>()));
-
-}  // namespace impl
-
 /// Check if a range is a container
 template <typename T>
-inline constexpr bool kIsContainer =
+concept IsContainer =
     meta::kIsRange<T> && std::is_default_constructible_v<T> && meta::kIsSizable<T> &&
-    meta::IsDetected<impl::InsertResult, T>;
+    requires(T& t, meta::RangeValueType<T>&& v) { dump::Insert(t, std::move(v)); };
 
 }  // namespace dump
 

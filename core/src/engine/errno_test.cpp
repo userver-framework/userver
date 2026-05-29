@@ -34,7 +34,7 @@ UTEST_MT(Errno, IsCoroLocal, kNumThreads) {
     tasks.reserve(kNumThreads);
 
     for (size_t i = 0; i < kNumThreads; ++i) {
-        tasks.push_back(engine::AsyncNoSpan([&] {
+        tasks.push_back(engine::AsyncNoTracing([&] {
             {
                 // ensure every task gets its own thread
                 std::unique_lock lock(mutex);

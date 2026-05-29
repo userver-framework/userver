@@ -22,7 +22,7 @@ TopologyBase::TopologyBase(
     init_tasks.reserve(hosts_count);
     for (size_t i = 0; i < hosts_count; ++i) {
         auto& pool = pools_[i];
-        init_tasks.emplace_back(engine::AsyncNoSpan([&pool, &resolver, &settings = pools_settings[i]]() {
+        init_tasks.emplace_back(engine::AsyncNoTracing([&pool, &resolver, &settings = pools_settings[i]]() {
             pool = Pool::Create(resolver, settings);
         }));
     }

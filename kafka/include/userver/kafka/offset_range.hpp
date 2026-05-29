@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/kafka/offset_range.hpp
+/// @brief @copybrief kafka::OffsetRange
+
 #include <cstdint>
 
 USERVER_NAMESPACE_BEGIN

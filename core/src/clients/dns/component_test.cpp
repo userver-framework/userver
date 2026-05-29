@@ -54,7 +54,8 @@ TEST_F(DnsClient, InvalidComponentConfig) {
     UEXPECT_THROW_MSG(
         components::RunOnce(components::InMemoryConfig{kStaticConfig}, component_list),
         std::runtime_error,
-        "Cannot start component dns-client: Unknown property 'unknown-field'"
+        "Cannot start component dns-client: Error at path 'components_manager.components.dns-client.unknown-field': "
+        "Unknown property 'unknown-field'"
     );
 }
 

@@ -427,7 +427,7 @@ TEST(HeaderMap, IteratorConversion) {
     std::vector<std::pair<std::string, std::string>> vec{};
     vec.reserve(map.size());
 
-    std::copy(map.begin(), map.end(), std::back_inserter(vec));
+    std::ranges::copy(map, std::back_inserter(vec));
 
     EXPECT_EQ(vec.size(), 2);
     if (vec[0].first > vec[1].first) {
@@ -623,7 +623,7 @@ TEST(HeaderMap, EraseWithCollisions) {
     validate_erase(original_map, collisions);
     {
         auto reserved = collisions;
-        std::reverse(reserved.begin(), reserved.end());
+        std::ranges::reverse(reserved);
         validate_erase(original_map, collisions);
     }
     {

@@ -14,3 +14,44 @@ definitions:
             properties:
                 bar:
                     type: integer
+
+    OneOfA:
+        type: object
+        additionalProperties: false
+        required:
+          - type
+        properties:
+            type:
+                type: string
+
+    OneOfB:
+        type: object
+        additionalProperties: false
+        required:
+          - type
+        properties:
+            type:
+                type: string
+            integer:
+                type: integer
+
+    OneOfDiscriminatorForAllOf:
+        oneOf:
+          - $ref: '#/definitions/OneOfA'
+          - $ref: '#/definitions/OneOfB'
+        discriminator:
+            propertyName: type
+            mapping:
+                'A': '#/definitions/OneOfA'
+                'B': '#/definitions/OneOfB'
+                # TODO:
+                # AllOfOneOf:
+                #     type: object
+                #     additionalProperties: false
+                #     required:
+                #       - value
+                #     properties:
+                #         value:
+                #           allOf:
+                #             - $ref: '#/definitions/Object1'
+                #             - $ref: '#/definitions/OneOfDiscriminatorForAllOf'

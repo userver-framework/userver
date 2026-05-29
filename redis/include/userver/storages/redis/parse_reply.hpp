@@ -3,14 +3,15 @@
 /// @file
 /// @brief Customizations for Redis response parsings
 
+#include <concepts>
 #include <optional>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
+#include <userver/formats/json/value.hpp>
 #include <userver/storages/redis/fwd.hpp>
-#include <userver/utils/void_t.hpp>
 
 #include <userver/storages/redis/reply_types.hpp>
 
@@ -21,19 +22,11 @@ namespace impl {
 
 ReplyData&& ExtractData(ReplyPtr& reply);
 
-template <typename Result, typename ReplyType, typename = utils::void_t<>>
-struct HasParseFunctionFromRedisReply {
-    static constexpr bool value = false;
-};
-
-template <typename Result, typename ReplyType>
-struct HasParseFunctionFromRedisReply<
-    Result,
-    ReplyType,
-    utils::void_t<decltype(Result::Parse(std::declval<ReplyData>(), std::declval<const std::string&>()))>> {
-    static constexpr bool value = std::is_same<
-        decltype(Result::Parse(std::declval<ReplyData>(), std::declval<const std::string&>())),
-        ReplyType>::value;
+template <typename Result, typename ReplyType = Result>
+concept HasParseFunctionFromRedisReply = requires {
+    {
+        Result::Parse(std::declval<ReplyData>(), std::declval<const std::string&>())
+    } -> std::same_as<ReplyType>;
 };
 
 bool IsNil(const ReplyData& reply_data);
@@ -108,9 +101,14 @@ Parse(ReplyData&& reply_data, const std::string& request_description, To<std::un
 
 ReplyData Parse(ReplyData&& reply_data, const std::string& request_description, To<ReplyData>);
 
+formats::json::Value Parse(ReplyData&& reply_data, const std::string& request_description, To<formats::json::Value>);
+
+std::vector<std::optional<formats::json::Value>>
+ParseReplyDataArray(ReplyData&& array_data, const std::string& request_description, To<std::vector<std::optional<formats::json::Value>>>);
+
 template <typename Result, typename ReplyType = Result>
-std::enable_if_t<impl::HasParseFunctionFromRedisReply<Result, ReplyType>::value, ReplyType>
-Parse(ReplyData&& reply_data, const std::string& request_description, To<Result, ReplyType>) {
+requires impl::HasParseFunctionFromRedisReply<Result, ReplyType>
+ReplyType Parse(ReplyData&& reply_data, const std::string& request_description, To<Result, ReplyType>) {
     return Result::Parse(std::move(reply_data), request_description);
 }
 

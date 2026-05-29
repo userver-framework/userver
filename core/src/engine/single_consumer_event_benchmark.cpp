@@ -41,7 +41,7 @@ void SingleConsumerEvent(benchmark::State& state, Waiter waiter) {
         producers.reserve(producer_count);
 
         for (std::size_t i = 0; i < producer_count; ++i) {
-            producers.push_back(engine::AsyncNoSpan([&] {
+            producers.push_back(engine::AsyncNoTracing([&] {
                 std::uint64_t events_sent = 0;
 
                 while (keep_running) {
@@ -82,7 +82,7 @@ void SingleConsumerEventPingPong(benchmark::State& state) {
         concurrent::impl::InterferenceShield<engine::SingleConsumerEvent> ping;
         concurrent::impl::InterferenceShield<engine::SingleConsumerEvent> pong;
 
-        auto companion = engine::AsyncNoSpan([&] {
+        auto companion = engine::AsyncNoTracing([&] {
             while (true) {
                 ping->Send();
                 if (!pong->WaitForEvent()) {

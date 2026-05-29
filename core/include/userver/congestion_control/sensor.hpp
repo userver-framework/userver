@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/congestion_control/sensor.hpp
+/// @brief Congestion control sensor interfaces
+
 #include <chrono>
 #include <cstdint>
 #include <string>

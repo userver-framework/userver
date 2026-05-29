@@ -40,13 +40,13 @@ yaml_config::Schema GetLruCacheComponentBaseSchema();
 
 /// @ingroup userver_components userver_base_classes
 ///
-/// @brief Base class for LRU-cache components
+/// @brief Base class for @ref scripts/docs/en/userver/lru_cache.md "LRU and Expirable LRU cache" components.
 ///
-/// Provides facilities for creating LRU caches.
+/// Provides facilities for creating @ref scripts/docs/en/userver/lru_cache.md "LRU and Expirable LRU caches".
 /// You need to override LruCacheComponent::DoGetByKey to handle cache misses.
 ///
 /// Caching components must be configured in service config (see options below)
-/// and may be reconfigured dynamically via components::DynamicConfig.
+/// and may be reconfigured dynamically via @ref components::DynamicConfig.
 ///
 /// ## LruCacheComponent Dynamic config
 /// * @ref USERVER_LRU_CACHES

@@ -125,7 +125,7 @@ async def complete_multipart_upload(mockserver, bucket_name, key, upload_id, par
     return {'ETag': xml_bucket_node.text, 'Bucket': xml_bucket_node.text, 'Key': xml_key_node.text}
 
 
-async def test_successfull_upload(s3_mock, s3_mock_storage, mockserver):
+async def test_successful_upload(s3_mock, s3_mock_storage, mockserver):
     data = 'the first data part; the second data part; the third data part'
     bucket_name = 'some-bucket'
     key = 'some/key'

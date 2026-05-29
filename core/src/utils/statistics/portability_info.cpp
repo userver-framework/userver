@@ -104,7 +104,7 @@ public:
 
             labels_store.emplace_back(label.Name());
         }
-        std::sort(labels_store.begin(), labels_store.end());
+        std::ranges::sort(labels_store);
 
         static constexpr size_t kMaxPathLen = impl::solomon::kMaxLabelValueLen;
         if (path.size() > kMaxPathLen) {

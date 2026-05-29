@@ -16,6 +16,8 @@ class ThreadControl;
 
 namespace engine {
 
+class Deadline;
+
 /// @brief Namespace with functions to work with current task from within it
 namespace current_task {
 
@@ -44,6 +46,10 @@ void* GetRawCurrentTaskContext() noexcept;
 
 // For internal use only.
 bool IsCritical();
+
+// Note: an actually useful deadline should be acquired from server::request::GetTaskInheritedDeadline.
+// For internal use only.
+Deadline GetDeadline() noexcept;
 
 }  // namespace impl
 

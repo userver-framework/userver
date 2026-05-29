@@ -1,7 +1,8 @@
 #include <userver/utils/default_dict.hpp>
 
+#include <ranges>
+
 #include <gtest/gtest.h>
-#include <boost/range/adaptor/map.hpp>
 
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/yaml/value.hpp>
@@ -23,11 +24,11 @@ TEST(DefaultDict, UseAsRange) {
     // DefaultDict has no mutable iterator: iterator == const_iterator.
     EXPECT_TRUE((std::is_same_v<decltype(m_dict.begin()), decltype(c_dict.begin())>));
 
-    for (const auto& each : (m_dict | boost::adaptors::map_keys)) {
+    for (const auto& each : (m_dict | std::views::keys)) {
         EXPECT_TRUE(m_dict.HasValue(each));
     }
 
-    for (const auto& each : (c_dict | boost::adaptors::map_keys)) {
+    for (const auto& each : (c_dict | std::views::keys)) {
         EXPECT_TRUE(c_dict.HasValue(each));
     }
 }

@@ -49,8 +49,6 @@ public:
 
     bool operator==(const Counter& other) const { return value_ == other.value_; }
 
-    bool operator!=(const Counter& other) const { return !(*this == other); }
-
     Counter& operator++() {
         value_++;
         return *this;
@@ -419,6 +417,27 @@ UTEST(ExpirableLruCache, Example) {
     utils::datetime::MockSleep(std::chrono::seconds(2));
     EXPECT_EQ(std::nullopt, cache.GetOptionalNoUpdate(key2));
     /// [Sample ExpirableLruCache]
+}
+
+UTEST(LruCacheWrapper, Sample) {
+    /// [Sample LruCacheWrapper]
+    auto cache_ptr = std::make_shared<cache::ExpirableLruCache<std::string, int>>(1, 1);
+    cache::LruCacheWrapper wrapper(cache_ptr, [](const std::string& /*key*/) {
+        static std::atomic<int> counter{0};
+        return ++counter;
+    });
+
+    const std::string key = "my-key";
+
+    EXPECT_EQ(std::nullopt, wrapper.GetOptional(key));
+
+    EXPECT_EQ(1, wrapper.Get(key));
+    EXPECT_EQ(std::make_optional(1), wrapper.GetOptional(key));
+
+    wrapper.InvalidateByKey(key);
+    EXPECT_EQ(2, wrapper.Get(key));
+    EXPECT_EQ(std::make_optional(2), wrapper.GetOptional(key));
+    /// [Sample LruCacheWrapper]
 }
 
 UTEST(LruCacheWrapper, HitWrapper) {

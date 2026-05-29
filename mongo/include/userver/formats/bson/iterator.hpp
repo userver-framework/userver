@@ -34,6 +34,7 @@ public:
         impl::ParsedArray::const_reverse_iterator,
         impl::ParsedDocument::const_iterator>;
 
+    Iterator();
     Iterator(impl::ValueImpl&, NativeIter);
     /// @endcond
 

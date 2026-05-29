@@ -48,8 +48,8 @@ UTEST_MT(SingleThreadedTaskprocessor, ConstructionWithoutComponentSystem, 2) {
     {
         // Checking for unique IDs
         auto ids = ethalon_ids;
-        std::sort(ids.begin(), ids.end());
-        ASSERT_TRUE(std::unique(ids.begin(), ids.end()) == ids.end())
+        std::ranges::sort(ids);
+        ASSERT_TRUE(std::ranges::adjacent_find(ids) == ids.end())
             << "Thread IDs returned from Pool have same values " << ethalon_ids
             << ". Logic error, IDs should be different!";
     }

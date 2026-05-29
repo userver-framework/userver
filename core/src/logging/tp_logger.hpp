@@ -87,9 +87,6 @@ public:
 
     impl::LogStatistics& GetStatistics() noexcept;
 
-protected:
-    bool DoShouldLog(Level level) const noexcept override;
-
 private:
     struct ActionVisitor;
 

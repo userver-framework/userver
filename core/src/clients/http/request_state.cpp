@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <ranges>
 #include <string_view>
 
 #include <cryptopp/osrng.h>
@@ -10,14 +11,13 @@
 #include <fmt/ranges.h>
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
-#include <boost/range/adaptor/map.hpp>
-#include <boost/range/adaptor/transformed.hpp>
 
 #include <curl-ev/error_code.hpp>
 #include <userver/baggage/baggage.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/clients/http/connect_to.hpp>
 #include <userver/clients/http/websocket_response.hpp>
+#include <userver/engine/async.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/http/url.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
@@ -138,7 +138,7 @@ std::exception_ptr PrepareDeadlinePassedException(std::string_view url, LocalSta
 }
 
 bool IsPrefix(const std::string& url, const std::vector<std::string>& prefixes) {
-    return !(std::find_if(prefixes.begin(), prefixes.end(), [&url](const std::string& prefix) {
+    return !(std::ranges::find_if(prefixes, [&url](const std::string& prefix) {
                  return utils::text::StartsWith(url, prefix);
              }) == prefixes.end());
 }
@@ -230,8 +230,9 @@ bool IsHttp11WithCompleteBody(const std::shared_ptr<Response> response) {
         return false;
     }
 
-    const auto content_length = utils::FindOrDefault(headers, USERVER_NAMESPACE::http::headers::kContentLength, "-1");
-    return utils::FromString<ssize_t>(content_length) == static_cast<ssize_t>(response->body_view().size());
+    const auto* content_length = utils::FindOrNullptr(headers, USERVER_NAMESPACE::http::headers::kContentLength);
+    // complete body check needs only in case of receiving `Content-Length` in a pair of `Connection: close`
+    return !content_length || utils::FromString<size_t>(*content_length) == response->body_view().size();
 }
 
 }  // namespace
@@ -239,7 +240,7 @@ bool IsHttp11WithCompleteBody(const std::shared_ptr<Response> response) {
 RequestState::RequestState(
     impl::EasyWrapper&& wrapper,
     RequestStats&& req_stats,
-    const std::shared_ptr<DestinationStatistics>& dest_stats,
+    DestinationStatistics& dest_stats,
     clients::dns::Resolver* resolver,
     const tracing::TracingManagerBase& tracing_manager
 )
@@ -419,7 +420,7 @@ void RequestState::SetDestinationMetricNameAuto(std::string destination) {
 }
 
 void RequestState::SetDestinationMetricName(const std::string& destination) {
-    dest_req_stats_ = dest_stats_->GetStatisticsForDestination(destination);
+    dest_req_stats_ = dest_stats_.GetStatisticsForDestination(destination);
 }
 
 void RequestState::SetTestsuiteConfig(const std::shared_ptr<const TestsuiteConfig>& config) {
@@ -512,12 +513,22 @@ void RequestState::OnCompleted(std::shared_ptr<RequestState> holder, std::error_
 
     holder->CheckResponseDeadline(err, status_code);
 
+    if (err && std::get_if<WebSocketHandshakeData>(&holder->data_) &&
+        err == std::error_code(curl::errc::EasyErrorCode::kHttpReturnedError) && status_code != Status::kInvalid)
+    {
+        // curl expects 101 for WebSocket, treats other statuses as error.
+        // Ignore error if got complete HTTP response (e.g. 401, 403).
+        err = {};
+    }
+
     if (holder->testsuite_config_ && !err) {
         const auto& headers = holder->response()->headers();
         err = TestsuiteResponseHook(status_code, headers, span);
     }
 
-    if (!stream_data && IsHttp11WithCompleteBody(holder->response())) {
+    if (holder->is_incomplete_tls_connection_close_expected_.load(std::memory_order_acquire) && !stream_data &&
+        IsHttp11WithCompleteBody(holder->response()))
+    {
         // The response says "HTTP/1.1", the full body is read.
         // It's a transport error, but not a HTTP request/respose error.
         err = {};
@@ -692,15 +703,18 @@ void RequestState::ParseHeader(char* ptr, size_t size) try
     }
     *end = '\0';
 
-    const char* col_pos = static_cast<const char*>(memchr(ptr, ':', size));
-    if (col_pos == nullptr) {
-        if (IsHttpStatusLineStart(ptr, size)) {
-            if (!response()->headers().empty()) {
-                LOG_INFO() << "Drop headers: " << (response_->headers() | boost::adaptors::map_keys);
-            }
+    if (IsHttpStatusLineStart(ptr, size)) {
+        if (!response()->headers().empty()) {
+            LOG_INFO() << "Drop headers: " << (response_->headers() | std::views::keys);
             // In case of redirect drop 1st response headers
             response_->headers().clear();
         }
+        return;
+    }
+
+    const char* col_pos = static_cast<const char*>(memchr(ptr, ':', size));
+    if (col_pos == nullptr) {
+        LOG_WARNING() << "Incorrect header line: " << ptr;
         return;
     }
 
@@ -729,6 +743,10 @@ void RequestState::ParseHeader(char* ptr, size_t size) try
 
 void RequestState::SetMiddlewaresList(const std::vector<utils::NotNull<MiddlewareBase*>>& middlewares) {
     middlewares_pipeline_ = MiddlewaresPipeline(middlewares);
+}
+
+void RequestState::SetIncompleteTlsConnectionCloseExpected(bool expect) {
+    is_incomplete_tls_connection_close_expected_.store(expect, std::memory_order_release);
 }
 
 void RequestState::SetLoggedUrl(std::string url) { log_url_ = std::move(url); }
@@ -874,7 +892,7 @@ void RequestState::PerformRequest(curl::easy::handler_type handler) {
 
     if (resolver_ && retry_.current == 1) {
         engine::DetachUnscopedUnsafe(
-            engine::AsyncNoSpan([this, holder = shared_from_this(), handler = std::move(handler)]() mutable {
+            engine::AsyncNoTracing([this, holder = shared_from_this(), handler = std::move(handler)]() mutable {
                 auto exception_handler = utils::Overloaded{
                     [](FullBufferedData& data) { data.promise.set_exception(std::current_exception()); },
                     [](WebSocketHandshakeData& data) { data.promise.set_exception(std::current_exception()); },
@@ -952,6 +970,25 @@ void RequestState::UpdateTimeoutHeader() {
         fmt::to_string(remote_timeout_.count()),
         curl::easy::DuplicateHeaderAction::kReplace
     );
+
+    if (inherited_original_deadline_.has_value()) {
+        const auto deadline_header = std::to_string(inherited_original_deadline_->time_since_epoch().count());
+        easy().add_header(
+            USERVER_NAMESPACE::http::headers::kXRequestDeadline,
+            deadline_header,
+            curl::easy::DuplicateHeaderAction::kReplace
+        );
+    } else if (deadline_.IsReachable()) {
+        const auto absolute_deadline =
+            std::chrono::time_point_cast<std::chrono::microseconds>(std::chrono::system_clock::now()) +
+            std::chrono::duration_cast<std::chrono::microseconds>(deadline_.TimeLeft());
+        const auto deadline_header = std::to_string(absolute_deadline.time_since_epoch().count());
+        easy().add_header(
+            USERVER_NAMESPACE::http::headers::kXRequestDeadline,
+            deadline_header,
+            curl::easy::DuplicateHeaderAction::kReplace
+        );
+    }
 }
 
 void RequestState::HandleDeadlineAlreadyPassed() {
@@ -1078,6 +1115,7 @@ void RequestState::ResetDataForNewRequest() {
     retry_.current = 1;
     remote_timeout_ = original_timeout_;
     deadline_ = server::request::GetTaskInheritedDeadline();
+    inherited_original_deadline_ = server::request::GetTaskInheritedOriginalDeadline();
     deadline_expired_ = false;
     timeout_updated_by_deadline_ = false;
 
@@ -1197,7 +1235,7 @@ void RequestState::StartNewSpan(utils::impl::SourceLocation location) {
 
 void RequestState::StartStats() {
     if (!dest_req_stats_) {
-        dest_req_stats_ = dest_stats_->GetStatisticsForDestinationAuto(destination_metric_name_);
+        dest_req_stats_ = dest_stats_.GetStatisticsForDestinationAuto(destination_metric_name_);
     }
 
     WithRequestStats([](RequestStats& stats) { stats.Start(); });
@@ -1227,8 +1265,7 @@ void RequestState::ResolveTargetAddress(clients::dns::Resolver& resolver) {
     }
 
     const auto addrs = resolver.Resolve(hostname, deadline);
-    auto addr_strings =
-        addrs | boost::adaptors::transformed([](const auto& addr) { return addr.PrimaryAddressString(); });
+    auto addr_strings = addrs | std::views::transform([](const auto& addr) { return addr.PrimaryAddressString(); });
 
     easy().add_resolve(hostname, target.Get().GetPortPtr().get(), fmt::to_string(fmt::join(addr_strings, ",")));
 }

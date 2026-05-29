@@ -9,6 +9,7 @@
 #include <userver/dynamic_config/updater/component_list.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
+#include <userver/server/handlers/server_monitor.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/utils/daemon_run.hpp>
@@ -133,6 +134,7 @@ int main(int argc, char* argv[]) {
         components::MinimalServerComponentList()
             .AppendComponentList(USERVER_NAMESPACE::dynamic_config::updater::ComponentList())
             .Append<chaos::PostgresHandler>()
+            .Append<server::handlers::ServerMonitor>()
             .AppendComponentList(clients::http::ComponentList())
             .Append<components::Postgres>("key-value-database")
             .Append<components::TestsuiteSupport>()

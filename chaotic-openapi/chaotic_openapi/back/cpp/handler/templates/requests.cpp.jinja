@@ -1,0 +1,145 @@
+#include <handlers/{{ spec.service_name }}/{{ make_op_relpath(op) }}/requests.hpp>
+
+#include <userver/chaotic/openapi/parameters_read.hpp>
+{% if op.request_bodies %}
+#include <userver/formats/json/value.hpp>
+{% if op.request_bodies | length > 1 %}
+#include <userver/http/common_headers.hpp>
+#include <userver/http/content_type.hpp>
+{% endif %}
+{% for include in op.request_body_definition_includes() %}
+#include <{{ include }}>
+{% endfor %}
+{% endif %}
+
+namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }} {
+
+{% macro parse_json(body, result_expr) %}
+    auto json = {{ userver }}::formats::json::FromString(http_request.RequestBody());
+    {{ result_expr }} = json.As<{{ body.schema.cpp_user_name() }}>();
+{% endmacro %}
+
+{% macro parse_octet_stream(prefix) %}
+    {{ prefix }}.data = http_request.RequestBody();
+{% endmacro %}
+
+{% macro parse_urlencoded(body, prefix) %}
+    {% for field_name, field in body.schema.fields.items() %}
+        {% if field.required %}
+            if (!http_request.HasArg("{{ field_name }}")) {
+                throw {{ userver }}::server::handlers::ClientError(
+                    {{ userver }}::server::handlers::ExternalBody{
+                        fmt::format("Required field '{}' is missing", "{{ field_name }}")
+                    }
+                );
+            }
+            {{ prefix }}.{{ field.cpp_field_name() }} = openapi::ParseParameter(
+                std::string{http_request.GetArg("{{ field_name }}")},
+                openapi::parse::To<{{ field.schema.cpp_user_name() }}>{}
+            );
+        {% else %}
+            if (http_request.HasArg("{{ field_name }}")) {
+                {{ prefix }}.{{ field.cpp_field_name() }} = openapi::ParseParameter(
+                    std::string{http_request.GetArg("{{ field_name }}")},
+                    openapi::parse::To<{{ field.schema.cpp_user_name() }}>{}
+                );
+            }
+        {% endif %}
+    {% endfor %}
+{% endmacro %}
+
+{% macro parse_multipart(body, prefix) %}
+    {% for field_name, field in body.schema.fields.items() %}
+        {% if field.required %}
+            if (!http_request.HasFormDataArg("{{ field_name }}")) {
+                throw {{ userver }}::server::handlers::ClientError(
+                    {{ userver }}::server::handlers::ExternalBody{
+                        fmt::format("Required field '{}' is missing", "{{ field_name }}")
+                    }
+                );
+            }
+            {{ prefix }}.{{ field.cpp_field_name() }} = openapi::ParseParameter(
+                std::string{http_request.GetFormDataArg("{{ field_name }}").value},
+                openapi::parse::To<{{ field.schema.cpp_user_name() }}>{}
+            );
+        {% else %}
+            if (http_request.HasFormDataArg("{{ field_name }}")) {
+                {{ prefix }}.{{ field.cpp_field_name() }} = openapi::ParseParameter(
+                    std::string{http_request.GetFormDataArg("{{ field_name }}").value},
+                    openapi::parse::To<{{ field.schema.cpp_user_name() }}>{}
+                );
+            }
+        {% endif %}
+    {% endfor %}
+{% endmacro %}
+
+{% macro parse_body(body, prefix) %}
+    {% if body.content_type == 'application/json' %}
+        {{ parse_json(body, prefix) }}
+    {% elif body.content_type == 'application/octet-stream' %}
+        {{ parse_octet_stream(prefix) }}
+    {% elif body.content_type == 'application/x-www-form-urlencoded' %}
+        {{ parse_urlencoded(body, prefix) }}
+    {% elif body.content_type == 'multipart/form-data' %}
+        {{ parse_multipart(body, prefix) }}
+    {% else %}
+        {{ NOT_IMPLEMENTED(body) }}
+    {% endif %}
+{% endmacro %}
+
+{% if op.request_bodies | length > 1 %}
+    {% for body in op.request_bodies %}
+        {{ body.cpp_type() }} Parse{{ body.cpp_name() }}(
+            const {{ userver }}::server::http::HttpRequest& http_request) {
+            namespace openapi = {{ userver }}::chaotic::openapi;
+
+            {{ body.cpp_type() }} result{};
+            {{ parse_body(body, 'result') }}
+            return result;
+        }
+    {% endfor %}
+{% endif %}
+
+Request ParseRequest(
+    const {{ userver }}::server::http::HttpRequest& http_request,
+    const {{ userver }}::chaotic::openapi::To<Request>& /*tag*/) {
+    namespace openapi = {{ userver }}::chaotic::openapi;
+
+    Request r{};
+    {% for param in op.parameters %}
+        {% if param.required %}
+            r.{{ param.cpp_name }} = openapi::ReadParameter<{{ param.parser }}>(http_request);
+        {% else %}
+            r.{{ param.cpp_name }} = openapi::ReadParameterOptional<{{ param.parser }}>(http_request);
+        {% endif %}
+    {% endfor %}
+
+    {% if op.request_bodies | length == 1 %}
+        {% set body = op.request_bodies[0] %}
+        {% if body.schema %}
+            {{ parse_body(body, 'r.body') }}
+        {% endif %}
+    {% elif op.request_bodies | length > 1 %}
+        {
+            const {{ userver }}::http::ContentType content_type{
+                http_request.GetHeader({{ userver }}::http::headers::kContentType)};
+
+            {% for body in op.request_bodies %}
+                {% if loop.first %}if{% else %}else if{% endif %} (content_type.MediaType() == "{{ body.content_type }}") {
+                    r.body.emplace<{{ body.cpp_type() }}>(Parse{{ body.cpp_name() }}(http_request));
+                }
+            {% endfor %}
+            else {
+                throw {{ userver }}::server::handlers::ClientError(
+                    {{ userver }}::server::handlers::ExternalBody{
+                        fmt::format("Unsupported Content-Type: {}", content_type)
+                    }
+                );
+            }
+        }
+    {% endif %}
+
+    return r;
+}
+
+}  // namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }}

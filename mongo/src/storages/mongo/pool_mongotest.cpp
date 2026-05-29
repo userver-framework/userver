@@ -89,7 +89,7 @@ UTEST_F(Pool, Limits) {
 
     auto cursor = limited_pool.GetCollection("test").Find({});
 
-    auto second_find = engine::AsyncNoSpan([&limited_pool] { limited_pool.GetCollection("test").Find({}); });
+    auto second_find = engine::AsyncNoTracing([&limited_pool] { limited_pool.GetCollection("test").Find({}); });
     UEXPECT_THROW(second_find.Get(), mongo::MongoException);
 }
 
@@ -113,7 +113,7 @@ UTEST_F(Pool, ListCollectionNames) {
         UEXPECT_NO_THROW(coll.InsertOne(formats::bson::MakeDoc("_id", 42)));
 
         auto list_collections = pool.ListCollectionNames();
-        std::sort(list_collections.begin(), list_collections.end());
+        std::ranges::sort(list_collections);
         EXPECT_EQ(2, list_collections.size());
         EXPECT_EQ(kCollAName, list_collections[0]);
         EXPECT_EQ(kCollBName, list_collections[1]);

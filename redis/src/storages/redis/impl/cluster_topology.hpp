@@ -11,7 +11,7 @@
 #include <userver/storages/redis/base.hpp>
 
 #include <storages/redis/impl/cluster_shard.hpp>
-#include <storages/redis/impl/sentinel_query.hpp>
+#include <storages/redis/impl/cluster_slots_query.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

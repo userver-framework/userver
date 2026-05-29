@@ -19,12 +19,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace protobuf::json {
 
-/// @brief Converts protobuf @a message to JSON `ValueBuider`.
+/// @brief Converts protobuf @a message to JSON `ValueBuilder`.
 /// @throws PrintError if conversion has failed
-/// The conversion is perfomed according to [ProtoJSON](https://protobuf.dev/programming-guides/json/) specification.
+/// The conversion is performed according to [ProtoJSON](https://protobuf.dev/programming-guides/json/) specification.
 /// @note If protobuf enum value has multiple aliases (`allow_alias` enum option is on) then the first alias in the
 ///       definition order is outputted.
-/// @warning Most of the legacy ProtoJSON behavior introduced for compatability with non-conformant implementations
+/// @warning Most of the legacy ProtoJSON behavior introduced for compatibility with non-conformant implementations
 ///          is not supported. This behavior may be disabled in the future versions of the protobuf library thus
 ///          should not be relied upon.
 /// @warning The `proto2` syntax is not fully supported and tested (at least extension fields are not supported).
@@ -35,10 +35,10 @@ namespace protobuf::json {
 
 /// @brief Converts protobuf @a message to JSON `Value`.
 /// @throws PrintError if conversion has failed
-/// The conversion is perfomed according to [ProtoJSON](https://protobuf.dev/programming-guides/json/) specification.
+/// The conversion is performed according to [ProtoJSON](https://protobuf.dev/programming-guides/json/) specification.
 /// @note If protobuf enum value has multiple aliases (`allow_alias` enum option is on) then the first alias in the
 ///       definition order is outputted.
-/// @warning Most of the legacy ProtoJSON behavior introduced for compatability with non-conformant implementations
+/// @warning Most of the legacy ProtoJSON behavior introduced for compatibility with non-conformant implementations
 ///          is not supported. This behavior may be disabled in the future versions of the protobuf library thus
 ///          should not be relied upon.
 /// @warning The `proto2` syntax is not fully supported and tested (at least extension fields are not supported).
@@ -52,9 +52,9 @@ namespace protobuf::json {
 /// @brief Converts @a json to protobuf @a message .
 /// @throws ParseError if conversion has failed
 /// @throws MemberMissingException is @a json holds nothing
-/// The conversion is perfomed according to [ProtoJSON](https://protobuf.dev/programming-guides/json/) specification.
+/// The conversion is performed according to [ProtoJSON](https://protobuf.dev/programming-guides/json/) specification.
 /// @note If conversion fails, @a message is left in a valid but unspecified state.
-/// @warning Most of the legacy ProtoJSON behavior introduced for compatability with non-conformant implementations
+/// @warning Most of the legacy ProtoJSON behavior introduced for compatibility with non-conformant implementations
 ///          is not supported. This behavior may be disabled in the future versions of the protobuf library thus
 ///          should not be relied upon.
 /// @warning The `proto2` syntax is not fully supported and tested (at least extension fields are not supported).
@@ -68,15 +68,13 @@ void JsonToMessage(
 /// @tparam T protobuf message type
 /// @throws ParseError if conversion has failed
 /// @throws MemberMissingException is @a json holds nothing
-/// The conversion is perfomed according to [ProtoJSON](https://protobuf.dev/programming-guides/json/) specification.
-/// @warning Most of the legacy ProtoJSON behavior introduced for compatability with non-conformant implementations
+/// The conversion is performed according to [ProtoJSON](https://protobuf.dev/programming-guides/json/) specification.
+/// @warning Most of the legacy ProtoJSON behavior introduced for compatibility with non-conformant implementations
 ///          is not supported. This behavior may be disabled in the future versions of the protobuf library thus
 ///          should not be relied upon.
 /// @warning The `proto2` syntax is not fully supported and tested (at least extension fields are not supported).
-template <
-    typename T,
-    typename = std::enable_if_t<
-        std::is_base_of_v<::google::protobuf::Message, T> || !std::is_same_v<::google::protobuf::Message, T>>>
+template <typename T>
+requires(std::is_base_of_v<::google::protobuf::Message, T> || !std::is_same_v<::google::protobuf::Message, T>)
 [[nodiscard]] T JsonToMessage(const formats::json::Value& json, const ParseOptions& options = {}) {
     T message;
     protobuf::json::JsonToMessage(json, message, options);

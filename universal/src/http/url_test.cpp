@@ -7,7 +7,9 @@
 
 USERVER_NAMESPACE_BEGIN
 
+using http::EncodeS3Key;
 using http::UrlEncode;
+using http::UrlEncodePathSegment;
 
 namespace {
 
@@ -20,6 +22,98 @@ TEST(UrlEncode, Empty) { EXPECT_EQ("", UrlEncode("")); }
 TEST(UrlEncode, Latin) {
     constexpr std::string_view str = "SomeText1234567890";
     EXPECT_EQ(str, UrlEncode(str));
+}
+
+TEST(UrlEncodePathSegment, Empty) { EXPECT_EQ("", UrlEncodePathSegment("")); }
+
+TEST(UrlEncodePathSegment, Latin) {
+    constexpr std::string_view str = "SomeText1234567890";
+    EXPECT_EQ(str, UrlEncodePathSegment(str));
+}
+
+TEST(UrlEncodePathSegment, UnreservedChars) {
+    // RFC 3986 unreserved: - _ . ~
+    constexpr std::string_view str = "file-name_test.txt~backup";
+    EXPECT_EQ(str, UrlEncodePathSegment(str));
+}
+
+TEST(UrlEncodePathSegment, PathSafeSpecialChars) {
+    // Additional path-safe: $ & , : = @
+    constexpr std::string_view str = "price$100&tax:50=total@rate";
+    EXPECT_EQ(str, UrlEncodePathSegment(str));
+}
+
+TEST(UrlEncodePathSegment, SpacesAndSpecial) {
+    constexpr std::string_view str = "file with spaces.txt";
+    EXPECT_EQ("file%20with%20spaces.txt", UrlEncodePathSegment(str));
+}
+
+TEST(UrlEncodePathSegment, SlashShouldNotBeEncoded) {
+    // Slash should be encoded in path segment context
+    constexpr std::string_view str = "folder/file";
+    EXPECT_EQ("folder%2Ffile", UrlEncodePathSegment(str));
+}
+
+TEST(UrlEncodePathSegment, QueryChars) {
+    // ? and # should be encoded
+    constexpr std::string_view str = "file?query#fragment";
+    EXPECT_EQ("file%3Fquery%23fragment", UrlEncodePathSegment(str));
+}
+
+TEST(EncodeS3Key, Empty) { EXPECT_EQ("", EncodeS3Key("")); }
+
+TEST(EncodeS3Key, SimpleKey) {
+    constexpr std::string_view key = "simple-key.txt";
+    EXPECT_EQ(key, EncodeS3Key(key));
+}
+
+TEST(EncodeS3Key, WithSpaces) {
+    constexpr std::string_view key = "file with spaces.txt";
+    EXPECT_EQ("file%20with%20spaces.txt", EncodeS3Key(key));
+}
+
+TEST(EncodeS3Key, WithSlashes) {
+    constexpr std::string_view key = "folder/subfolder/file.txt";
+    EXPECT_EQ("folder/subfolder/file.txt", EncodeS3Key(key));
+}
+
+TEST(EncodeS3Key, WithSlashesAndSpaces) {
+    constexpr std::string_view key = "folder/file with spaces.txt";
+    EXPECT_EQ("folder/file%20with%20spaces.txt", EncodeS3Key(key));
+}
+
+TEST(EncodeS3Key, ComplexKey) {
+    constexpr std::string_view key = "path/to/my file (copy).txt";
+    // Parentheses are encoded as they're not in our path-safe set (RFC 3986 unreserved + S3-safe)
+    EXPECT_EQ("path/to/my%20file%20%28copy%29.txt", EncodeS3Key(key));
+}
+
+TEST(EncodeS3Key, SpecialCharsInSegments) {
+    // Path-safe chars should be preserved, others encoded
+    constexpr std::string_view key = "folder/file-name_with.dots~and$symbols&commas,colons:equals=at@sign";
+    EXPECT_EQ("folder/file-name_with.dots~and$symbols&commas,colons:equals=at@sign", EncodeS3Key(key));
+}
+
+TEST(EncodeS3Key, LeadingSlash) {
+    // Leading slash should be preserved as S3 path separator
+    constexpr std::string_view key = "/leading/slash.txt";
+    EXPECT_EQ("/leading/slash.txt", EncodeS3Key(key));
+}
+
+TEST(EncodeS3Key, MultipleSpacesInPath) {
+    constexpr std::string_view key = "folder with spaces/file with spaces.txt";
+    EXPECT_EQ("folder%20with%20spaces/file%20with%20spaces.txt", EncodeS3Key(key));
+}
+
+TEST(EncodeS3Key, UnicodeCharacters) {
+    // Unicode characters should be percent-encoded
+    // UTF-8 encoding of Cyrillic 'ф' (U+0444) is D1 84, 'а' (U+0430) is D0 B0, 'й' (U+0439) is D0 B9
+    constexpr std::string_view key = "folder/файл.txt";
+    auto result = EncodeS3Key(key);
+    // Check that Cyrillic characters are percent-encoded
+    EXPECT_EQ(result, "folder/%D1%84%D0%B0%D0%B9%D0%BB.txt");
+    EXPECT_TRUE(result.find("folder/") != std::string::npos);
+    EXPECT_TRUE(result.find(".txt") != std::string::npos);
 }
 
 TEST(UrlEncode, Special) {

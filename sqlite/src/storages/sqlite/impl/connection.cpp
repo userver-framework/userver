@@ -55,7 +55,7 @@ StatementPtr Connection::PrepareStatement(const Query& query) {
 }
 
 void Connection::ExecutionStep(StatementBasePtr prepare_statement) const {
-    engine::AsyncNoSpan(blocking_task_processor_, [prepare_statement] { prepare_statement->Next(); }).Get();
+    engine::AsyncNoTracing(blocking_task_processor_, [prepare_statement] { prepare_statement->Next(); }).Get();
     prepare_statement->CheckStepStatus();
 }
 

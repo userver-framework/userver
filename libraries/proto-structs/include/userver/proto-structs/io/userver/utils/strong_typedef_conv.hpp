@@ -11,31 +11,31 @@ USERVER_NAMESPACE_BEGIN
 
 namespace proto_structs::io {
 
-template <typename TTag, typename TStructField, utils::StrongTypedefOps Ops, typename TEnable, typename TMessageField>
-utils::StrongTypedef<TTag, TStructField, Ops, TEnable> ReadProtoField(
+template <typename TTag, typename TStructField, utils::StrongTypedefOps Ops, typename TMessageField>
+utils::StrongTypedef<TTag, TStructField, Ops> ReadProtoField(
     ReadContext& ctx,
-    To<utils::StrongTypedef<TTag, TStructField, Ops, TEnable>>,
+    To<utils::StrongTypedef<TTag, TStructField, Ops>>,
     int field_number,
     const TMessageField& message_field
 ) {
-    using Type = utils::StrongTypedef<TTag, TStructField, Ops, TEnable>;
+    using Type = utils::StrongTypedef<TTag, TStructField, Ops>;
     return Type{ctx.ReadField<TStructField>(field_number, message_field)};
 }
 
-template <typename TTag, typename TStructField, utils::StrongTypedefOps Ops, typename TEnable, typename TMessageField>
+template <typename TTag, typename TStructField, utils::StrongTypedefOps Ops, typename TMessageField>
 void WriteProtoField(
     WriteContext& ctx,
-    const utils::StrongTypedef<TTag, TStructField, Ops, TEnable>& struct_field,
+    const utils::StrongTypedef<TTag, TStructField, Ops>& struct_field,
     int field_number,
     TMessageField& message_field
 ) {
     ctx.WriteField(struct_field.GetUnderlying(), field_number, message_field);
 }
 
-template <typename TTag, typename TStructField, utils::StrongTypedefOps Ops, typename TEnable, typename TMessageField>
+template <typename TTag, typename TStructField, utils::StrongTypedefOps Ops, typename TMessageField>
 void WriteProtoField(
     WriteContext& ctx,
-    utils::StrongTypedef<TTag, TStructField, Ops, TEnable>&& struct_field,
+    utils::StrongTypedef<TTag, TStructField, Ops>&& struct_field,
     int field_number,
     TMessageField& message_field
 ) {

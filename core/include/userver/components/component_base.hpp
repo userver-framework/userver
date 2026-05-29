@@ -50,6 +50,18 @@ public:
     /// derived object constructor is called. Don't use it otherwise.
     void OnAllComponentsLoaded() override {}
 
+    /// Serving components like HTTP and gRPC servers may use this function to stop accepting new requests
+    /// and shutdown serving in the given time interval.
+    /// Application components likely do not need to override it.
+    ///
+    /// @param[in] serving_shutdown_deadline The deadline until already running requests should be allowed
+    /// to complete.
+    /// The component is supposed to stop accepting new requests and continue processing of already
+    /// active requests until this deadline (unless those requests finish earlier).
+    /// And it might completely shutdown requests processing when the deadline is reached
+    /// (or when no active requests left).
+    void OnGracefulShutdown(engine::Deadline /*serving_shutdown_deadline*/) override;
+
     /// Component may use this function to stop doing work before the stop of the
     /// components that depend on it.
     ///

@@ -88,19 +88,17 @@ public:
     template <typename T>
     StatementResultSet ExecuteDecompose(ClusterHostType host_type, const Query& query, const T& row) const;
 
-    // clang-format off
-  /// @brief Executes a statement on a host of host_type with provided
-  /// CommandControl.
-  ///
-  /// Basically an alias for Execute(command_control, host_type, query,
-  /// AsArgs<T>(row)), where AsArgs is an imaginary function which passes
-  /// fields of T as variadic params. Handy for one-liner inserts.
-  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of `T` requirements.
-  ///
-  /// UINVARIANTs on params count mismatch, doesn't validate types.
-  ///
-  /// @snippet mysql/tests/cluster.cpp uMySQL usage sample - Cluster ExecuteDecompose
-    // clang-format on
+    /// @brief Executes a statement on a host of host_type with provided
+    /// CommandControl.
+    ///
+    /// Basically an alias for Execute(command_control, host_type, query,
+    /// AsArgs<T>(row)), where AsArgs is an imaginary function which passes
+    /// fields of T as variadic params. Handy for one-liner inserts.
+    /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of `T` requirements.
+    ///
+    /// UINVARIANTs on params count mismatch, doesn't validate types.
+    ///
+    /// @snippet mysql/tests/cluster.cpp uMySQL usage sample - Cluster ExecuteDecompose
     template <typename T>
     StatementResultSet ExecuteDecompose(
         OptionalCommandControl command_control,
@@ -124,22 +122,20 @@ public:
     template <typename Container>
     StatementResultSet ExecuteBulk(ClusterHostType host_type, const Query& query, const Container& params) const;
 
-    // clang-format off
-  /// @brief Executes a statement on a host of host_type with provided
-  /// CommandControl.
-  /// Fills placeholders of the statements with
-  /// Container::value_type in a bulk-manner.
-  /// Container is expected to be a std::Container, Container::value_type is
-  /// expected to be an aggregate of supported types.
-  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of
-  /// `Container::value_type` requirements.
-  ///
-  /// @note Requires MariaDB 10.2.6+ as a server
-  ///
-  /// UINVARIANTs on params count mismatch, doesn't validate types.
-  /// UINVARIANTs on empty params container.
-  /// @snippet mysql/tests/cluster.cpp uMySQL usage sample - Cluster ExecuteBulk
-    // clang-format on
+    /// @brief Executes a statement on a host of host_type with provided
+    /// CommandControl.
+    /// Fills placeholders of the statements with
+    /// Container::value_type in a bulk-manner.
+    /// Container is expected to be a std::Container, Container::value_type is
+    /// expected to be an aggregate of supported types.
+    /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of
+    /// `Container::value_type` requirements.
+    ///
+    /// @note Requires MariaDB 10.2.6+ as a server
+    ///
+    /// UINVARIANTs on params count mismatch, doesn't validate types.
+    /// UINVARIANTs on empty params container.
+    /// @snippet mysql/tests/cluster.cpp uMySQL usage sample - Cluster ExecuteBulk
     template <typename Container>
     StatementResultSet ExecuteBulk(
         OptionalCommandControl command_control,
@@ -170,24 +166,22 @@ public:
     // clang-format on
 
     // TODO : don't require Container to be const, so Convert can move
-    // clang-format off
-  /// @brief Executes a statement on a host of host_type with provided
-  /// CommandControl, on the flight remapping from `Container::value_type`
-  /// to `MapTo`.
-  /// `Container` is expected to be a std::Container of whatever type pleases
-  /// you, `MapTo` is expected to be an aggregate of supported types.
-  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of `MapTo` requirements.
-  /// You are expected to provide a converter function
-  /// `MapTo Convert(const Container::value_type&, storages::mysql::convert::To<MapTo>)`
-  /// in namespace of `MapTo` or storages::mysql::convert.
-  ///
-  /// @note Requires MariaDB 10.2.6+ as a server
-  ///
-  /// UINVARIANTs on params count mismatch, doesn't validate types.
-  /// UINVARIANTs on empty params container.
-  ///
-  /// @snippet mysql/tests/cluster.cpp uMySQL usage sample - Cluster ExecuteBulkMapped
-    // clang-format on
+    /// @brief Executes a statement on a host of host_type with provided
+    /// CommandControl, on the flight remapping from `Container::value_type`
+    /// to `MapTo`.
+    /// `Container` is expected to be a std::Container of whatever type pleases
+    /// you, `MapTo` is expected to be an aggregate of supported types.
+    /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of `MapTo` requirements.
+    /// You are expected to provide a converter function
+    /// `MapTo Convert(const Container::value_type&, storages::mysql::convert::To<MapTo>)`
+    /// in namespace of `MapTo` or storages::mysql::convert.
+    ///
+    /// @note Requires MariaDB 10.2.6+ as a server
+    ///
+    /// UINVARIANTs on params count mismatch, doesn't validate types.
+    /// UINVARIANTs on empty params container.
+    ///
+    /// @snippet mysql/tests/cluster.cpp uMySQL usage sample - Cluster ExecuteBulkMapped
     template <typename MapTo, typename Container>
     StatementResultSet ExecuteBulkMapped(
         OptionalCommandControl command_control,
@@ -219,16 +213,14 @@ public:
     /// use is neither recommended nor optimized for.
     CommandResultSet ExecuteCommand(ClusterHostType host_type, const Query& command) const;
 
-    // clang-format off
-  /// @brief Executes a command on host of type host_type over plan-text
-  /// protocol, with provided CommandControl.
-  ///
-  /// This method is intended to be used for statements that cannot be prepared
-  /// or as an escape hatch from typed parsing if you really need to, but such
-  /// use is neither recommended nor optimized for.
-  ///
-  /// @snippet mysql/tests/cluster.cpp uMySQL usage sample - Cluster ExecuteCommand
-    // clang-format on
+    /// @brief Executes a command on host of type host_type over plan-text
+    /// protocol, with provided CommandControl.
+    ///
+    /// This method is intended to be used for statements that cannot be prepared
+    /// or as an escape hatch from typed parsing if you really need to, but such
+    /// use is neither recommended nor optimized for.
+    ///
+    /// @snippet mysql/tests/cluster.cpp uMySQL usage sample - Cluster ExecuteCommand
     CommandResultSet ExecuteCommand(
         OptionalCommandControl command_control,
         ClusterHostType host_type,
@@ -252,20 +244,18 @@ public:
         const Args&... args
     ) const;
 
-    // clang-format off
-  /// @brief Executes a statement with provided CommandControl on
-  /// a host of host_type, filling statements placeholders with `args...`, and
-  /// returns a read-only cursor which fetches `batch_count` rows in each next
-  /// fetch request.
-  /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of `Args`
-  /// requirements.
-  ///
-  /// @note Deadline is processing-wide, not just for initial cursor creation.
-  ///
-  /// UINVARIANTs on params count mismatch, doesn't validate types.
-  ///
-  /// @snippet mysql/tests/cluster.cpp uMySQL usage sample - Cluster GetCursor
-    // clang-format on
+    /// @brief Executes a statement with provided CommandControl on
+    /// a host of host_type, filling statements placeholders with `args...`, and
+    /// returns a read-only cursor which fetches `batch_count` rows in each next
+    /// fetch request.
+    /// See @ref scripts/docs/en/userver/mysql/supported_types.md for better understanding of `Args`
+    /// requirements.
+    ///
+    /// @note Deadline is processing-wide, not just for initial cursor creation.
+    ///
+    /// UINVARIANTs on params count mismatch, doesn't validate types.
+    ///
+    /// @snippet mysql/tests/cluster.cpp uMySQL usage sample - Cluster GetCursor
     template <typename T, typename... Args>
     CursorResultSet<T> GetCursor(
         OptionalCommandControl command_control,

@@ -9,6 +9,7 @@
 
 #include <userver/utils/any_movable.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/statistics/labels.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -104,6 +105,13 @@ public:
     /// @brief Erase data with specified name.
     void EraseData(std::string_view name);
 
+    /// @brief Set the metrics shard (path + labels) for this request.
+    /// When set, handler metrics will be accumulated on a new subpath "http.handler.path.*"
+    /// and the provided labels would be set to each metric
+    /// @note If something (e.g. middleware) interrupts the request before this method is called
+    /// then the sharded metrics won't be written
+    void SetHandlerMetricsShard(std::string_view path, utils::statistics::LabelsSpan labels);
+
     // TODO : TAXICOMMON-8252
     impl::InternalRequestContext& GetInternalContext();
 
@@ -119,7 +127,7 @@ private:
     void EraseAnyData(std::string_view name);
 
     class Impl;
-    static constexpr std::size_t kPimplSize = 112;
+    static constexpr std::size_t kPimplSize = 120;
     utils::FastPimpl<Impl, kPimplSize, alignof(void*)> impl_;
 };
 

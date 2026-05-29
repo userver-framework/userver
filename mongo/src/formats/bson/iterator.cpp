@@ -16,6 +16,12 @@ using IteratorDirection = common::IteratorDirection;
 }  // namespace
 
 template <typename ValueType, IteratorDirection Direction>
+Iterator<ValueType, Direction>::Iterator()
+    : iterable_(nullptr),
+      it_(impl::ParsedDocument::const_iterator{})
+{}
+
+template <typename ValueType, IteratorDirection Direction>
 Iterator<ValueType, Direction>::Iterator(impl::ValueImpl& iterable, NativeIter it)
     : iterable_(&iterable),
       it_(std::move(it))
@@ -53,6 +59,7 @@ Iterator<ValueType, Direction>& Iterator<ValueType, Direction>::operator=(Iterat
 
 template <typename ValueType, IteratorDirection Direction>
 Iterator<ValueType, Direction> Iterator<ValueType, Direction>::operator++(int) {
+    UASSERT(iterable_ != nullptr);
     Iterator<ValueType, Direction> tmp(*this);
     ++*this;
     return tmp;
@@ -60,6 +67,7 @@ Iterator<ValueType, Direction> Iterator<ValueType, Direction>::operator++(int) {
 
 template <typename ValueType, IteratorDirection Direction>
 Iterator<ValueType, Direction>& Iterator<ValueType, Direction>::operator++() {
+    UASSERT(iterable_ != nullptr);
     current_.reset();
     std::visit([](auto& it) { ++it; }, it_);
     return *this;
@@ -67,27 +75,34 @@ Iterator<ValueType, Direction>& Iterator<ValueType, Direction>::operator++() {
 
 template <typename ValueType, IteratorDirection Direction>
 typename Iterator<ValueType, Direction>::reference Iterator<ValueType, Direction>::operator*() const {
+    UASSERT(iterable_ != nullptr);
     UpdateValue();
     return *current_;
 }
 
 template <typename ValueType, IteratorDirection Direction>
 typename Iterator<ValueType, Direction>::pointer Iterator<ValueType, Direction>::operator->() const {
+    UASSERT(iterable_ != nullptr);
     return &**this;
 }
 
 template <typename ValueType, IteratorDirection Direction>
 bool Iterator<ValueType, Direction>::operator==(const Iterator& rhs) const {
+    UASSERT(iterable_ != nullptr);
+    UASSERT(rhs.iterable_ != nullptr);
     return it_ == rhs.it_;
 }
 
 template <typename ValueType, IteratorDirection Direction>
 bool Iterator<ValueType, Direction>::operator!=(const Iterator& rhs) const {
+    UASSERT(iterable_ != nullptr);
+    UASSERT(rhs.iterable_ != nullptr);
     return it_ != rhs.it_;
 }
 
 template <typename ValueType, IteratorDirection Direction>
 std::string Iterator<ValueType, Direction>::GetNameImpl() const {
+    UASSERT(iterable_ != nullptr);
     class Visitor {
     public:
         Visitor(const impl::ValueImpl& iterable)
@@ -112,6 +127,7 @@ std::string Iterator<ValueType, Direction>::GetNameImpl() const {
 
 template <typename ValueType, IteratorDirection Direction>
 uint32_t Iterator<ValueType, Direction>::GetIndex() const {
+    UASSERT(iterable_ != nullptr);
     class Visitor {
     public:
         Visitor(impl::ValueImpl& iterable)
@@ -138,6 +154,7 @@ uint32_t Iterator<ValueType, Direction>::GetIndex() const {
 
 template <typename ValueType, IteratorDirection Direction>
 void Iterator<ValueType, Direction>::UpdateValue() const {
+    UASSERT(iterable_ != nullptr);
     if (current_) {
         return;
     }

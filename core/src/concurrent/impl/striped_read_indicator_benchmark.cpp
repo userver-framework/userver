@@ -49,7 +49,7 @@ void ReadIndicatorLockUnlock(benchmark::State& state) {
     engine::RunStandalone(state.range(0) + 1, [&] {
         ReadIndicator indicator;
 
-        auto checker_task = engine::CriticalAsyncNoSpan([&] {
+        auto checker_task = engine::CriticalAsyncNoTracing([&] {
             while (!engine::current_task::ShouldCancel()) {
                 benchmark::DoNotOptimize(indicator.IsFree());
                 engine::InterruptibleSleepFor(std::chrono::milliseconds{10});
@@ -78,7 +78,7 @@ void ReadIndicatorIsFree(benchmark::State& state) {
         std::atomic<bool> keep_running{true};
 
         auto tasks = utils::GenerateFixedArray(state.range(0), [&](std::size_t) {
-            return engine::CriticalAsyncNoSpan([&] {
+            return engine::CriticalAsyncNoTracing([&] {
                 while (keep_running) {
                     const auto lock = indicator.GetLock();
                     benchmark::DoNotOptimize(keep_running.load());

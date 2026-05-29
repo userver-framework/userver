@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <userver/compiler/demangle.hpp>
+#include <userver/components/container.hpp>
 #include <userver/utils/any_storage.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/move_only_function.hpp>
@@ -192,7 +193,7 @@ T ForHandler<ForHandlerTag>::operator[](FactoryTag<T, Tag>&&)
     static_assert(
         !sizeof(T),
         "Seems you're trying to call 'handler[FactoryTag<T>()]' with a temporary value of 'FactoryTag'. Define a "
-        "global variable of type 'FactoryTag<T>' (or 'FactoryTag<T, Tag>') and use it insead."
+        "global variable of type 'FactoryTag<T>' (or 'FactoryTag<T, Tag>') and use it instead."
     );
 }
 
@@ -259,6 +260,10 @@ T Factories::MakeData()
 
     return builder->data();
 }
+
+/// @brief Declares `Factories` as a `components::Container`-managed component
+/// with the fixed name `"chaotic-openapi-factories"`.
+constexpr std::string_view ContainerName(components::Of<Factories>) { return "chaotic-openapi-factories"; }
 
 }  // namespace chaotic::openapi::server::dependencies
 

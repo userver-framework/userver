@@ -1,10 +1,6 @@
 #include <storages/mongo/cdriver/async_stream.hpp>
 
-#include <netdb.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
 #include <poll.h>
-#include <sys/socket.h>
 
 #include <array>
 #include <atomic>
@@ -28,6 +24,8 @@
 #include <userver/engine/task/local_variable.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/net/blocking/connect_tcp_by_name.hpp>
+#include <userver/net/connect_tcp_by_name.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/assert.hpp>
@@ -152,35 +150,6 @@ engine::io::Socket ConnectUnix(const mongoc_host_list_t& host, int32_t timeout_m
     return {};
 }
 
-struct AddrinfoDeleter {
-    void operator()(struct addrinfo* p) const noexcept { freeaddrinfo(p); }
-};
-using AddrinfoPtr = std::unique_ptr<struct addrinfo, AddrinfoDeleter>;
-
-clients::dns::AddrVector GetaddrInfo(const mongoc_host_list_t& host, bson_error_t*) {
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-    struct addrinfo hints;
-    std::memset(&hints, 0, sizeof(hints));
-    hints.ai_family = host.family;
-    hints.ai_socktype = SOCK_STREAM;
-
-    struct addrinfo* ai_result_raw = nullptr;
-    LOG_DEBUG() << "Trying to resolve " << host.host_and_port;
-    const auto port_string = std::to_string(host.port);
-    if (getaddrinfo(host.host, port_string.c_str(), &hints, &ai_result_raw)) {
-        ReportTcpConnectError(host.host_and_port);
-        return {};
-    }
-
-    clients::dns::AddrVector result;
-    const AddrinfoPtr ai_result(ai_result_raw);
-    for (auto* res = ai_result.get(); res; res = res->ai_next) {
-        const engine::io::Sockaddr current_addr(res->ai_addr);
-        result.push_back(current_addr);
-    }
-    return result;
-}
-
 engine::io::Socket DoConnectTcpByName(
     const mongoc_host_list_t& host,
     int32_t timeout_ms,
@@ -189,24 +158,15 @@ engine::io::Socket DoConnectTcpByName(
 ) {
     const auto deadline = DeadlineFromTimeoutMs(timeout_ms);
     try {
-        auto addrs = dns_resolver ? dns_resolver->Resolve(host.host, deadline) : GetaddrInfo(host, error);
-        for (auto&& current_addr : addrs) {
-            try {
-                const engine::TaskCancellationBlocker block_cancel;
-                current_addr.SetPort(host.port);
-                engine::io::Socket socket{current_addr.Domain(), engine::io::SocketType::kStream};
-                socket.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
-                socket.Connect(current_addr, deadline);
-                ReportTcpConnectSuccess(host.host_and_port);
-                return socket;
-            } catch (const engine::io::IoCancelled& ex) {
-                ReportTcpConnectError(host.host_and_port);
-                bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_CONNECT, "%s", ex.what());
-                return {};
-            } catch (const engine::io::IoException& ex) {
-                LOG_DEBUG() << "Cannot connect to " << host.host << " at " << current_addr << ": " << ex;
-            }
+        const engine::TaskCancellationBlocker block_cancel;
+        engine::io::Socket socket;
+        if (dns_resolver) {
+            socket = net::ConnectTcpByName(host.host, host.port, *dns_resolver, deadline);
+        } else {
+            socket = net::blocking::ConnectTcpByName(host.host, host.port, deadline);
         }
+        ReportTcpConnectSuccess(host.host_and_port);
+        return socket;
     } catch (const clients::dns::ResolverException& ex) {
         LOG_LIMITED_ERROR() << "Cannot resolve " << host.host << ": " << ex;
         bson_set_error(
@@ -217,6 +177,8 @@ engine::io::Socket DoConnectTcpByName(
             host.host_and_port
         );
         return {};
+    } catch (const engine::io::IoException& ex) {
+        LOG_DEBUG() << "Cannot connect to " << host.host << ": " << ex;
     } catch (const std::exception& ex) {
         LOG_LIMITED_ERROR() << "Cannot connect to " << host.host << ": " << ex;
     }

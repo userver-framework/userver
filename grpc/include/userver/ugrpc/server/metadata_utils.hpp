@@ -4,12 +4,11 @@
 /// @brief Utilities to work with the request metadata
 
 #include <map>
+#include <ranges>
 #include <string_view>
 #include <utility>
 
 #include <grpcpp/support/string_ref.h>
-#include <boost/range/adaptor/map.hpp>
-#include <boost/range/adaptor/transformed.hpp>
 
 #include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/server/call_context.hpp>
@@ -28,9 +27,8 @@ inline auto GetRepeatedMetadata(const CallContextBase& context, std::string_view
     const auto& metadata = context.GetServerContext().client_metadata();
     auto [it_begin, it_end] = metadata.equal_range(ugrpc::impl::ToGrpcStringRef(field_name));
 
-    using Metadata = std::multimap<grpc::string_ref, grpc::string_ref>;
-    return boost::iterator_range<Metadata::const_iterator>(it_begin, it_end) |
-           boost::adaptors::transformed([](const std::pair<const grpc::string_ref, grpc::string_ref>& entry) {
+    return std::ranges::subrange(it_begin, it_end) |
+           std::views::transform([](const std::pair<const grpc::string_ref, grpc::string_ref>& entry) {
                return ugrpc::impl::ToStringView(entry.second);
            });
 }

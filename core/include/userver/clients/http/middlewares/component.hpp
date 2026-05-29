@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/clients/http/middlewares/component.hpp
+/// @brief @copybrief clients::http::middlewares::ComponentBase
+
 #include <cstdint>
 
 #include <userver/clients/http/middlewares/base.hpp>
@@ -13,6 +16,7 @@ namespace clients::http::middlewares {
 
 using MiddlewareIndex = utils::StrongTypedef<class MiddlewareIndexTag, std::uint32_t>;
 
+/// @brief Base component for HTTP client middleware plugins
 class ComponentBase : public components::ComponentBase {
 public:
     virtual MiddlewareBase& GetMiddleware() = 0;

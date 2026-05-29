@@ -1,11 +1,13 @@
 #pragma once
 
+/// @file userver/kafka/producer_component.hpp
+/// @brief @copybrief kafka::ProducerComponent
+
 #include <string_view>
 
 #include <userver/kafka/producer.hpp>
 
 #include <userver/components/component_base.hpp>
-#include <userver/utils/statistics/entry.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -48,10 +50,6 @@ public:
 
 private:
     Producer producer_;
-
-    /// @note Subscriptions must be the last fields! Add new fields above this
-    /// comment.
-    utils::statistics::Entry statistics_holder_;
 };
 
 }  // namespace kafka

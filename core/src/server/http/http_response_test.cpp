@@ -25,7 +25,7 @@ UTEST(HttpResponse, Smoke) {
     response.SetStatus(server::http::HttpStatus::kOk);
 
     auto [server, client] = engine::io::tests::TcpListener{}.MakeSocketPair(test_deadline);
-    auto send_task = engine::AsyncNoSpan(
+    auto send_task = engine::AsyncNoTracing(
         [](auto&& response, auto&& socket) { response.SendResponse(socket); },
         std::ref(response),
         std::move(server)
@@ -63,7 +63,7 @@ UTEST(HttpResponse, AccounterLifetimeIfSent) {
     response.SetStatus(server::http::HttpStatus::kOk);
 
     auto [server, client] = engine::io::tests::TcpListener{}.MakeSocketPair(test_deadline);
-    auto send_task = engine::AsyncNoSpan(
+    auto send_task = engine::AsyncNoTracing(
         [](auto&& response, auto&& socket) { response.SendResponse(socket); },
         std::ref(response),
         std::move(server)
@@ -92,7 +92,7 @@ UTEST_P(HttpResponseBody, ForbiddenBody) {
     response.SetStatus(static_cast<server::http::HttpStatus>(GetParam()));
 
     auto [server, client] = engine::io::tests::TcpListener{}.MakeSocketPair(test_deadline);
-    auto send_task = engine::AsyncNoSpan(
+    auto send_task = engine::AsyncNoTracing(
         [](auto&& response, auto&& socket) { response.SendResponse(socket); },
         std::ref(response),
         std::move(server)

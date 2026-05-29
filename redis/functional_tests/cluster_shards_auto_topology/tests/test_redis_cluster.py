@@ -1,0 +1,91 @@
+import asyncio
+
+import pytest
+import pytest_userver.utils.sync as sync
+
+KEYS_SEQ_LEN = 20  # enough sequential keys to test all slots
+REDIS_PORT = 6379
+FAILOVER_DEADLINE_SEC = 30  # maximum time allowed to finish failover
+
+
+async def test_happy_path(service_client, redis_cluster_topology):
+    post_reqs = [
+        service_client.post(
+            '/redis-cluster',
+            params={'key': f'key{i}', 'value': 'abc'},
+        )
+        for i in range(KEYS_SEQ_LEN)
+    ]
+    assert all(res.status == 201 for res in await asyncio.gather(*post_reqs))
+
+    get_reqs = [service_client.get('/redis-cluster', params={'key': f'key{i}'}) for i in range(KEYS_SEQ_LEN)]
+    assert all(res.status == 200 and res.text == 'abc' for res in await asyncio.gather(*get_reqs))
+
+
+async def _check_write_all_slots(service_client, key_prefix, value):
+    post_reqs = [
+        service_client.post(
+            '/redis-cluster',
+            params={'key': f'{key_prefix}{i}', 'value': value},
+        )
+        for i in range(KEYS_SEQ_LEN)
+    ]
+    return all(res.status != 500 for res in await asyncio.gather(*post_reqs))
+
+
+async def _assert_read_all_slots(service_client, key_prefix, value):
+    get_reqs = [
+        service_client.get(
+            '/redis-cluster',
+            params={'key': f'{key_prefix}{i}'},
+        )
+        for i in range(KEYS_SEQ_LEN)
+    ]
+    assert all(res.status == 200 and res.text == value for res in await asyncio.gather(*get_reqs))
+
+
+async def test_hard_failover(service_client, redis_cluster_topology):
+    # Write enough different keys to have something in every slot
+    assert await _check_write_all_slots(service_client, 'hf_key1', 'abc')
+
+    # Start the failover
+    redis_cluster_topology.get_masters()[0].stop()
+
+    # wait until service detect that shard 0 is broken
+    # Failover starts in ~10 seconds
+    async def is_ready():
+        return await _check_write_all_slots(
+            service_client,
+            'hf_key2',
+            'cde',
+        )
+
+    await sync.wait(is_ready)
+
+    # Now that one of the replicas has become the master,
+    # check reading from the remaining replica
+    await _assert_read_all_slots(service_client, 'hf_key1', 'abc')
+    await _assert_read_all_slots(service_client, 'hf_key2', 'cde')
+
+
+@pytest.mark.skip(reason='Flaky TAXICOMMON-11677')
+async def test_add_shard(service_client, redis_cluster_topology):
+    # Write enough different keys to have something in every slot
+    assert await _check_write_all_slots(service_client, 'hf_key1', 'abc')
+
+    await redis_cluster_topology.add_shard()
+
+    # Failover starts in ~10 seconds
+    async def is_ready():
+        return await _check_write_all_slots(
+            service_client,
+            'hf_key2',
+            'cde',
+        )
+
+    await sync.wait(is_ready)
+
+    # Now that one of the replicas has become the master,
+    # check reading from the remaining replica
+    await _assert_read_all_slots(service_client, 'hf_key1', 'abc')
+    await _assert_read_all_slots(service_client, 'hf_key2', 'cde')

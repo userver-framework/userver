@@ -46,7 +46,7 @@ public:
     /// @brief A human-readable description of the error.
     const std::string& GetDescription() const;
 
-    /// @brief A list of found contraint violations.
+    /// @brief A list of found constraint violations.
     ///
     /// The list is empty if this is a @c Type::kInternal error.
     const std::vector<buf::validate::RuleViolation>& GetViolations() const;

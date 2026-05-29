@@ -38,10 +38,8 @@ JsonString::JsonString(std::string json) noexcept : json_{std::move(json)} {
     // Remove extra new lines from user provided json string for two reasons:
     // 1. To avoid additional escaping in TSKV format
     // 2. To ensure a single line log in JSON format
-    json_.erase(
-        std::remove_if(json_.begin(), json_.end(), [](auto ch) { return ch == '\n' || ch == '\r'; }),
-        json_.end()
-    );
+    const auto garbage = std::ranges::remove_if(json_, [](auto ch) { return ch == '\n' || ch == '\r'; });
+    json_.erase(garbage.begin(), garbage.end());
 }
 
 std::string_view JsonString::GetView() const noexcept {

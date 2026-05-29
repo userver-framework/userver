@@ -1,8 +1,7 @@
 # yaml
-# [graceful_shutdown_interval]
 components_manager:
-    graceful_shutdown_interval: 10s
-    # [graceful_shutdown_interval]
+    graceful_shutdown_continue_accepting_requests_interval: 10s
+    graceful_shutdown_pending_requests_completion_interval: 10s
 
     task_processors:
         main-task-processor:

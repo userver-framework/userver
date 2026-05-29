@@ -3,6 +3,8 @@
 #include <set>
 
 #include <fmt/format.h>
+#include <gmock/gmock.h>
+
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
@@ -252,6 +254,18 @@ struct AuthCallback {
         return {
             "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Type: "
             "text/html\r\nContent-Length: 7\r\n\r\nSuccess",
+            HttpResponse::kWriteAndClose
+        };
+    }
+};
+
+struct ComplexStatusValidateCallback {
+    HttpResponse operator()(const HttpRequest& request) const {
+        LOG_INFO() << "HTTP Server receive: " << request;
+
+        return {
+            "HTTP/1.1 200 This is complex status: success\r\nConnection: close\r\nContent-Length: "
+            "0\r\n\r\n",
             HttpResponse::kWriteAndClose
         };
     }
@@ -1751,6 +1765,23 @@ UTEST(HttpClient, TruncatedBody) {
         (void)http_client_ptr->CreateRequest().post(url, data).timeout(kTimeout).perform(),
         clients::http::TechnicalError
     );
+}
+
+UTEST(HttpClient, CorrectComplexStatusLineParsing) {
+    const utest::SimpleServer http_server{ComplexStatusValidateCallback{}};
+    auto http_client_ptr = utest::CreateHttpClient();
+
+    auto request =
+        http_client_ptr->CreateRequest()
+            .post(http_server.GetBaseUrl(), "anything")
+            .retry(1)
+            .verify(true)
+            .http_version(USERVER_NAMESPACE::http::HttpVersion::k11)
+            .timeout(kTimeout);
+    auto response = request.perform();
+    const http::headers::HeaderMap expected{{"Connection", "close"}, {"Content-Length", "0"}};
+    // Status line should not be interpreted as a header
+    EXPECT_THAT(response->headers(), testing::ContainerEq(expected));
 }
 
 USERVER_NAMESPACE_END

@@ -1,5 +1,8 @@
 #include <userver/urabbitmq/client_settings.hpp>
 
+#include <cstdint>
+#include <limits>
+#include <ranges>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -12,8 +15,6 @@
 #include <userver/fs/blocking/read.hpp>
 #include <userver/storages/secdist/helpers.hpp>
 #include <userver/utils/assert.hpp>
-
-#include <boost/range/adaptor/map.hpp>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
@@ -100,9 +101,16 @@ PoolSettings Parse(const yaml_config::YamlConfig& config, formats::parse::To<Poo
     result.min_pool_size = config["min_pool_size"].As<size_t>(result.min_pool_size);
     result.max_pool_size = config["max_pool_size"].As<size_t>(result.max_pool_size);
     result.max_in_flight_requests = config["max_in_flight_requests"].As<size_t>(result.max_in_flight_requests);
+    result
+        .heartbeat_interval_seconds = config["heartbeat_interval_seconds"].As<size_t>(result.heartbeat_interval_seconds
+    );
 
     UINVARIANT(result.min_pool_size <= result.max_pool_size, "max_pool_size is less than min_pool_size");
     UINVARIANT(result.max_pool_size > 0, "max_pool_size is set to zero");
+    UINVARIANT(
+        result.heartbeat_interval_seconds <= std::numeric_limits<std::uint16_t>::max(),
+        "heartbeat_interval_seconds is too large"
+    );
 
     return result;
 }
@@ -128,7 +136,7 @@ const RabbitEndpoints& RabbitEndpointsMulti::Get(const std::string& name) const 
         throw std::runtime_error{fmt::format(
             "RMQ broken '{}' is not found in secdist. Available endpoints: [{}]",
             name,
-            fmt::join(endpoints_ | boost::adaptors::map_keys, ", ")
+            fmt::join(endpoints_ | std::views::keys, ", ")
         )};
     }
 

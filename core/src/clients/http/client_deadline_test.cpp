@@ -1,6 +1,6 @@
 #include <userver/utest/utest.hpp>
 
-#include <boost/range/irange.hpp>
+#include <ranges>
 
 #include <userver/clients/http/client.hpp>
 #include <userver/concurrent/queue.hpp>
@@ -48,7 +48,7 @@ private:
 class HttpClientDeadline : public ::testing::Test {
 protected:
     void PushResponseCode(int code) {
-        const bool success = producer_.Push(int{code});
+        const bool success = producer_.Push(std::move(code));
         ASSERT_TRUE(success);
     }
 
@@ -99,7 +99,7 @@ UTEST_F(HttpClientDeadline, DeadlineIsUsedByClientOldConnection) {
 }
 
 UTEST_F(HttpClientDeadline, ConnectionIsReused) {
-    for ([[maybe_unused]] const auto _ : boost::irange(3)) {
+    for ([[maybe_unused]] const auto _ : std::views::iota(0, 3)) {
         PushResponseCode(200);
 
         const auto response =
@@ -111,7 +111,7 @@ UTEST_F(HttpClientDeadline, ConnectionIsReused) {
 }
 
 UTEST_F(HttpClientDeadline, ConnectionIsBrokenAfterTimeout) {
-    for ([[maybe_unused]] const auto _ : boost::irange(3)) {
+    for ([[maybe_unused]] const auto _ : std::views::iota(0, 3)) {
         auto request = GetClient().CreateRequest().get().url(GetServer().GetBaseUrl()).timeout(10ms);
         UEXPECT_THROW((void)request.perform(), clients::http::TimeoutException);
         engine::SleepFor(50ms);
@@ -123,7 +123,7 @@ UTEST_F(HttpClientDeadline, ConnectionIsBrokenAfterTimeout) {
 UTEST_F(HttpClientDeadline, ConnectionIsKeptAfterDeadlineExpires) {
     constexpr auto kTimeToCleanUpConnection = 100ms;
 
-    for ([[maybe_unused]] const auto _ : boost::irange(3)) {
+    for ([[maybe_unused]] const auto _ : std::views::iota(0, 3)) {
         SetTaskInheritedDeadline(100ms);
 
         auto request = GetClient().CreateRequest().get().url(GetServer().GetBaseUrl()).timeout(utest::kMaxTestWaitTime);
@@ -141,7 +141,7 @@ UTEST_F(HttpClientDeadline, ConnectionIsKeptAfterDeadlineExpires) {
 
 UTEST_F(HttpClientDeadline, NoCrashOnUnfinishedRequestReuse) {
     auto request = GetClient().CreateRequest().get().url(GetServer().GetBaseUrl()).timeout(utest::kMaxTestWaitTime);
-    for ([[maybe_unused]] const auto _ : boost::irange(3)) {
+    for ([[maybe_unused]] const auto _ : std::views::iota(0, 3)) {
         SetTaskInheritedDeadline(100ms);
 
         UEXPECT_THROW((void)request.perform(), clients::http::CancelException);
@@ -151,7 +151,7 @@ UTEST_F(HttpClientDeadline, NoCrashOnUnfinishedRequestReuse) {
 
 UTEST_F(HttpClientDeadline, NoCrashOnAlreadyTimedOutRequestReuse) {
     auto request = GetClient().CreateRequest().get().url(GetServer().GetBaseUrl()).timeout(utest::kMaxTestWaitTime);
-    for ([[maybe_unused]] const auto _ : boost::irange(3)) {
+    for ([[maybe_unused]] const auto _ : std::views::iota(0, 3)) {
         SetTaskInheritedDeadline(-100ms);
 
         UEXPECT_THROW((void)request.perform(), clients::http::CancelException);

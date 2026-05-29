@@ -470,6 +470,67 @@ UTEST_F(YdbExecute, TransactionIsQueryFromCache) {
     }
 }
 
+UTEST_F(YdbExecute, RetryTxCommit) {
+    CreateTable("retry_tx_commit", false);
+
+    GetTableClient().RetryTx(
+        "test_retry_tx",
+        ydb::RetryTxSettings{
+            .tx_mode = ydb::TransactionMode::kSerializableRW,
+            .retries = 3,
+        },
+        [](ydb::TxActor& tx) {
+            tx.Execute(ydb::Query{R"(
+            UPSERT INTO retry_tx_commit (key, value_str, value_int)
+            VALUES ("key1", "value1", 1), ("key2", "value2", 2);
+        )"});
+            return ydb::TxAction::kCommit;
+        }
+    );
+
+    auto response = GetTableClient().ExecuteQuery(ydb::Query{R"(
+        SELECT key, value_str, value_int
+        FROM retry_tx_commit
+        ORDER BY key;
+    )"});
+    auto cursor = response.GetSingleCursor();
+    ASSERT_EQ(cursor.size(), 2);
+    auto it = cursor.begin();
+    auto row1 = *it;
+    AssertNullableColumn(row1, "key", "key1");
+    AssertNullableColumn(row1, "value_str", "value1");
+    ++it;
+    auto row2 = *it;
+    AssertNullableColumn(row2, "key", "key2");
+    AssertNullableColumn(row2, "value_str", "value2");
+}
+
+UTEST_F(YdbExecute, RetryTxRollback) {
+    CreateTable("retry_tx_rollback", false);
+
+    GetTableClient().RetryTx(
+        "test_retry_tx_rollback",
+        ydb::RetryTxSettings{
+            .tx_mode = ydb::TransactionMode::kSerializableRW,
+            .retries = 3,
+        },
+        [](ydb::TxActor& tx) {
+            tx.Execute(ydb::Query{R"(
+            UPSERT INTO retry_tx_rollback (key, value_str, value_int)
+            VALUES ("key1", "value1", 1);
+        )"});
+            return ydb::TxAction::kRollback;
+        }
+    );
+
+    auto response = GetTableClient().ExecuteQuery(ydb::Query{R"(
+        SELECT key FROM retry_tx_rollback;
+    )"});
+    ASSERT_EQ(response.GetCursorCount(), 1);
+    auto cursor = response.GetSingleCursor();
+    ASSERT_EQ(cursor.size(), 0);
+}
+
 TYPED_UTEST(YdbExecuteTpl, PrepareQueryError) {
     this->CreateTable("prepare_error", true);
 

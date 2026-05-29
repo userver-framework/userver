@@ -53,15 +53,18 @@ public:
     Range(UnboundedType, UnboundedType) noexcept : data_{RangeData{}} {}
 
     /// Bounded range
-    template <typename U, typename = std::enable_if_t<std::is_convertible_v<std::decay_t<U>, T>>>
+    template <typename U>
+    requires std::is_convertible_v<std::decay_t<U>, T>
     Range(U&& lower, U&& upper, RangeBounds bounds = RangeBound::kLower);
 
     /// Range with a lower bound
-    template <typename U, typename = std::enable_if_t<std::is_convertible_v<std::decay_t<U>, T>>>
+    template <typename U>
+    requires std::is_convertible_v<std::decay_t<U>, T>
     Range(U&& lower, UnboundedType ub, RangeBounds bounds = RangeBound::kLower) noexcept(kNothrowValueCopy);
 
     /// Range with an upper bound
-    template <typename U, typename = std::enable_if_t<std::is_convertible_v<std::decay_t<U>, T>>>
+    template <typename U>
+    requires std::is_convertible_v<std::decay_t<U>, T>
     Range(UnboundedType ub, U&& upper, RangeBounds bounds = RangeBound::kNone) noexcept(kNothrowValueCopy);
 
     Range(const OptionalValue& lower, const OptionalValue& upper, RangeBounds bounds);
@@ -69,12 +72,11 @@ public:
     /// Convert from a range of different type.
     ///
     /// Intentionally implicit
-    template <typename U, typename = std::enable_if_t<std::is_convertible_v<U, T>>>
+    template <typename U>
+    requires std::is_convertible_v<U, T>
     Range(const Range<U>& rhs);
 
     bool operator==(const Range& rhs) const;
-
-    bool operator!=(const Range& rhs) const { return !(*this == rhs); }
 
     bool Empty() const { return !data_; }
 
@@ -139,8 +141,6 @@ private:
         bool operator==(const RangeData& rhs) const {
             return BoundEqual(rhs, RangeBound::kLower) && BoundEqual(rhs, RangeBound::kUpper);
         }
-
-        bool operator!=(const RangeData& rhs) const { return !(*this == rhs); }
 
         bool HasBound(RangeBounds side) const;
 
@@ -221,14 +221,14 @@ public:
 
     BoundedRange() noexcept(kNothrowValueCtor);
 
-    template <typename U, typename = std::enable_if_t<std::is_convertible_v<std::decay_t<U>, T>>>
+    template <typename U>
+    requires std::is_convertible_v<std::decay_t<U>, T>
     BoundedRange(U&& lower, U&& upper, RangeBounds bounds = RangeBound::kLower);
 
     template <typename U>
     explicit BoundedRange(Range<U>&&);
 
     bool operator==(const BoundedRange& rhs) const;
-    bool operator!=(const BoundedRange& rhs) const { return !(*this == rhs); }
 
     const ValueType& GetLowerBound() const { return *value_.GetLowerBound(); }
     bool IsLowerBoundIncluded() const { return value_.IsLowerBoundIncluded(); }
@@ -386,8 +386,8 @@ struct BoundedRangeBinaryFormatter : BufferFormatterBase<BoundedRange<T>> {
 
 namespace traits {
 
-template <typename T>
-struct Input<Range<T>, std::enable_if_t<kHasParser<T>>> {
+template <HasParser T>
+struct Input<Range<T>> {
     using type = io::detail::RangeBinaryParser<T>;
 };
 
@@ -395,13 +395,13 @@ template <typename T>
 struct ParserBufferCategory<io::detail::RangeBinaryParser<T>>
     : std::integral_constant<BufferCategory, BufferCategory::kRangeBuffer> {};
 
-template <typename T>
-struct Output<Range<T>, std::enable_if_t<kHasFormatter<T>>> {
+template <HasFormatter T>
+struct Output<Range<T>> {
     using type = io::detail::RangeBinaryFormatter<T>;
 };
 
-template <typename T>
-struct Input<BoundedRange<T>, std::enable_if_t<kHasParser<T>>> {
+template <HasParser T>
+struct Input<BoundedRange<T>> {
     using type = io::detail::BoundedRangeBinaryParser<T>;
 };
 
@@ -409,8 +409,8 @@ template <typename T>
 struct ParserBufferCategory<io::detail::BoundedRangeBinaryParser<T>>
     : std::integral_constant<BufferCategory, BufferCategory::kRangeBuffer> {};
 
-template <typename T>
-struct Output<BoundedRange<T>, std::enable_if_t<kHasFormatter<T>>> {
+template <HasFormatter T>
+struct Output<BoundedRange<T>> {
     using type = io::detail::BoundedRangeBinaryFormatter<T>;
 };
 
@@ -430,24 +430,27 @@ struct CppToSystemPg<BoundedBigintRange> : PredefinedOid<PredefinedOids::kInt8Ra
 namespace storages::postgres {
 
 template <typename T>
-template <typename U, typename>
+template <typename U>
+requires std::is_convertible_v<std::decay_t<U>, T>
 Range<T>::Range(U&& lower, U&& upper, RangeBounds bounds)
     : data_{RangeData{std::forward<U>(lower), std::forward<U>(upper), bounds}}
 {
-    if (lower == upper && bounds != RangeBound::kBoth) {
+    if (data_->lower == data_->upper && bounds != RangeBound::kBoth) {
         // this will make an empty range
         data_.reset();
     }
 }
 
 template <typename T>
-template <typename U, typename>
+template <typename U>
+requires std::is_convertible_v<std::decay_t<U>, T>
 Range<T>::Range(U&& lower, UnboundedType ub, RangeBounds bounds) noexcept(kNothrowValueCopy)
     : data_{RangeData{std::forward<U>(lower), ub, bounds}}
 {}
 
 template <typename T>
-template <typename U, typename>
+template <typename U>
+requires std::is_convertible_v<std::decay_t<U>, T>
 Range<T>::Range(UnboundedType ub, U&& upper, RangeBounds bounds) noexcept(kNothrowValueCopy)
     : data_{RangeData{ub, std::forward<U>(upper), bounds}}
 {}
@@ -458,7 +461,8 @@ Range<T>::Range(const OptionalValue& lower, const OptionalValue& upper, RangeBou
 {}
 
 template <typename T>
-template <typename U, typename>
+template <typename U>
+requires std::is_convertible_v<U, T>
 Range<T>::Range(const Range<U>& rhs)
     : data_{ConvertData(rhs)}
 {}
@@ -540,7 +544,8 @@ BoundedRange<T>::BoundedRange() noexcept(kNothrowValueCtor)
 {}
 
 template <typename T>
-template <typename U, typename>
+template <typename U>
+requires std::is_convertible_v<std::decay_t<U>, T>
 BoundedRange<T>::BoundedRange(U&& lower, U&& upper, RangeBounds bounds)
     : value_{std::forward<U>(lower), std::forward<U>(upper), bounds}
 {}

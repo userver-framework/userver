@@ -28,12 +28,13 @@ jobs:
                         -DCMAKE_CXX_COMPILER=clang++-18
                         -DCMAKE_C_COMPILER=clang-18
                         -DCMAKE_BUILD_TYPE=Debug
-                        -DCMAKE_CXX_STANDARD=17
+                        -DCMAKE_CXX_STANDARD=20
                         -DUSERVER_SANITIZE="ub addr"
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
+                        -DUSERVER_FEATURE_YDB=0
                         -DUSERVER_NAMESPACE=userver_ns
                         -DUSERVER_NAMESPACE_BEGIN="namespace userver_ns { inline namespace
                         v1 {"
@@ -41,8 +42,8 @@ jobs:
                     os: ubuntu-24.04
                     info: clang-18 + debug + sanitize addr+ub
                     id: ubuntu24_clang18_debug_sanitize-addr-ub
-                      # Sanitizer consumes too much virtual memory and Subprocess tests fail with:
-                      # "Error while fork: Cannot allocate memory" (std::system_error)
+                    # Sanitizer consumes too much virtual memory and Subprocess tests fail with:
+                    # "Error while fork: Cannot allocate memory" (std::system_error)
                     tests-flags: '--gtest_filter=-Subprocess.*'
                     tests-env: ''
 
@@ -51,7 +52,7 @@ jobs:
                         -DCMAKE_CXX_COMPILER=g++-13
                         -DCMAKE_C_COMPILER=gcc-13
                         -DCMAKE_BUILD_TYPE=Release
-                        -DCMAKE_CXX_STANDARD=17
+                        -DCMAKE_CXX_STANDARD=20
                         -DUSERVER_SANITIZE=""
                         -DUSERVER_NO_WERROR=1
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
@@ -60,45 +61,6 @@ jobs:
                     os: ubuntu-24.04
                     info: gcc-13 + release
                     id: ubuntu24_gcc13_release
-                    tests-flags: '--gtest_filter=-StackUsageMonitorTest.BacktraceLogging'
-                    tests-env: ''
-
-                  - cmake-flags: >-
-                        -GNinja
-                        -DCMAKE_CXX_COMPILER=clang++-14
-                        -DCMAKE_C_COMPILER=clang-14
-                        -DCMAKE_BUILD_TYPE=Debug
-                        -DCMAKE_CXX_STANDARD=17
-                        -DUSERVER_SANITIZE="ub addr"
-                        -DUSERVER_NO_WERROR=0
-                        -DUSERVER_BUILD_ALL_COMPONENTS=1
-                        -DUSERVER_BUILD_SAMPLES=1
-                        -DUSERVER_BUILD_TESTS=1
-                        -DUSERVER_NAMESPACE=userver_ns
-                        -DUSERVER_NAMESPACE_BEGIN="namespace userver_ns { inline namespace
-                        v1 {"
-                        -DUSERVER_NAMESPACE_END="}}"
-                    os: ubuntu-22.04
-                    info: clang-14 + debug + sanitize addr+ub
-                    id: ubuntu22_clang14_debug_sanitize-addr-ub
-                    tests-flags: ''
-                    tests-env: ''
-
-                  # GCC-10 - testing minimal required compiler
-                  - cmake-flags: >-
-                        -GNinja
-                        -DCMAKE_CXX_COMPILER=g++-10
-                        -DCMAKE_C_COMPILER=gcc-10
-                        -DCMAKE_BUILD_TYPE=Release
-                        -DCMAKE_CXX_STANDARD=17
-                        -DUSERVER_USE_LD=gold
-                        -DUSERVER_BUILD_ALL_COMPONENTS=1
-                        -DUSERVER_BUILD_SAMPLES=1
-                        -DUSERVER_BUILD_TESTS=1
-                        -DUSERVER_NO_WERROR=1
-                    os: ubuntu-22.04
-                    info: g++-10 + release
-                    id: ubuntu22_gcc10_release
                     tests-flags: '--gtest_filter=-StackUsageMonitorTest.BacktraceLogging'
                     tests-env: ''
 
@@ -198,23 +160,6 @@ jobs:
             run: |
                 cmake -S . -B build_debug ${{matrix.cmake-flags}}
 
-          - name: Run clang-tidy
-            if: matrix.info == 'clang-14 + debug + sanitize addr+ub'
-            run: |
-                [[ -z "${GITHUB_BASE_REF}" ]] && BRANCH_VAR=HEAD~1 || BRANCH_VAR=origin/${GITHUB_BASE_REF}
-                echo "${BRANCH_VAR}"
-                echo "$(git diff --name-only ${BRANCH_VAR})"
-                EXCLUDE_PATTERNS="-e '.pb.cc' -e '.pb.cpp' -e 'benchmark.cpp' -e '/pq-extra/' -e '/tools/' -e 'third_party' "
-                LIST_CHECK_FILES=$(git diff --name-only ${BRANCH_VAR} | grep --color=never '.cpp' | grep -v ${EXCLUDE_PATTERNS} | tr '\n' ' ')
-                if [[ -n ${LIST_CHECK_FILES} ]]
-                then
-                  sudo apt install -y clang-tidy-14
-                  curl -o tools/run-clang-tidy https://raw.githubusercontent.com/llvm-mirror/clang-tools-extra/release_90/clang-tidy/tool/run-clang-tidy.py
-                  python3 ./tools/run-clang-tidy -clang-tidy-binary clang-tidy-14 -p build_debug -q -j$(nproc) ${LIST_CHECK_FILES}
-                else
-                  echo "Nothing check in clang-tidy"
-                fi
-
           - name: Compile
             run: |
                 pwd
@@ -234,7 +179,6 @@ jobs:
                 du -h -d 1 ${{env.CCACHE_DIR}}
                 du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
                 ccache -s -v
-
 
           - name: Run tests (universal)
             run: |
@@ -297,7 +241,6 @@ jobs:
                 # Mongo is not available on Ubuntu 22.04 from default repos
                 if [ "${{matrix.os}}" != "ubuntu-22.04" ]; then ctest -V -R userver-mongo-mongotest ; fi
 
-
           - name: Run tests (gRPC)
             if: matrix.os != 'ubuntu-24.04'
             run: |
@@ -322,6 +265,6 @@ jobs:
                 ctest -V
 
           - name: Run tests (sqlite)
-            run: |
+            run: |-
                 cd build_debug/sqlite
                 ctest -V

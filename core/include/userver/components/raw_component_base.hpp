@@ -4,7 +4,6 @@
 /// @brief @copybrief components::RawComponentBase
 
 #include <type_traits>
-#include <userver/utils/void_t.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -13,6 +12,12 @@ namespace yaml_config {
 struct Schema;
 
 }  // namespace yaml_config
+
+namespace engine {
+
+class Deadline;
+
+}  // namespace engine
 
 namespace components {
 
@@ -55,6 +60,8 @@ public:
 
     virtual void OnAllComponentsLoaded() {}
 
+    virtual void OnGracefulShutdown(engine::Deadline /*serving_shutdown_deadline*/);
+
     virtual void OnAllComponentsAreStopping() {}
 
     static yaml_config::Schema GetStaticConfigSchema();
@@ -76,12 +83,12 @@ inline constexpr bool kForceNoValidation = false;
 
 namespace impl {
 
-template <typename Component, typename = void>
+template <typename Component>
 inline constexpr auto kDefaultConfigFileMode = ConfigFileMode::kRequired;
 
 template <typename Component>
-inline constexpr auto
-    kDefaultConfigFileMode<Component, utils::void_t<decltype(Component::kConfigFileMode)>> = Component::kConfigFileMode;
+requires requires { Component::kConfigFileMode; }
+inline constexpr auto kDefaultConfigFileMode<Component> = Component::kConfigFileMode;
 }  // namespace impl
 
 /// Specialize this to customize the loading of component settings

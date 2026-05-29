@@ -6,6 +6,7 @@ Service main and monitor clients.
 from collections.abc import AsyncGenerator
 from collections.abc import Callable
 import contextlib
+import warnings
 
 import aiohttp.client_exceptions
 import pytest
@@ -14,6 +15,7 @@ import websockets
 from testsuite.daemons import service_client as base_service_client
 
 from pytest_userver import client
+from pytest_userver import userver_warnings
 
 
 @pytest.fixture
@@ -65,6 +67,7 @@ async def userver_client_cleanup(
     """
     marker = request.node.get_closest_marker('suspend_periodic_tasks')
     if marker:
+        warnings.warn(userver_warnings.WARN_PERIODIC_DEPRECATION, DeprecationWarning)
         tasks_to_suspend = marker.args
     else:
         tasks_to_suspend = ()

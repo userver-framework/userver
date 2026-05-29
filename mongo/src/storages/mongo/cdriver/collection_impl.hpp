@@ -42,9 +42,10 @@ public:
     Cursor Execute(const operations::Aggregate&) override;
     void Execute(const operations::Drop&) override;
 
-private:
-    cdriver::CDriverPoolImpl::BoundClientPtr GetClient(stats::OperationStatisticsItem& stats) const;
+protected:
+    virtual cdriver::CDriverPoolImpl::BoundClientPtr GetClient(stats::OperationStatisticsItem& stats) const;
 
+private:
     RequestContext MakeRequestContext(std::string&& span_name, const stats::OperationKey& stats_key) const;
 
     template <typename Operation>

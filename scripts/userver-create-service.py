@@ -7,7 +7,6 @@ import re
 import subprocess
 import sys
 
-
 BINDIR = pathlib.Path(__file__).parent
 FEATURES = [
     'mongo',
@@ -57,8 +56,7 @@ def patch_devcontainer_version(service_path: pathlib.Path) -> None:
 
 
 def parse_args():
-    parser = argparse.ArgumentParser(
-        description='Create new C++ userver-based service')
+    parser = argparse.ArgumentParser(description='Create new C++ userver-based service')
     for feature in FEATURES:
         parser.add_argument(f'--{feature}', action='store_true')
     parser.add_argument('service_path', type=pathlib.Path)

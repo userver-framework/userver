@@ -4,6 +4,7 @@
 #include <stdexcept>
 
 #include <server/request/internal_request_context.hpp>
+#include <userver/utils/algo.hpp>
 #include <userver/utils/impl/transparent_hash.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -71,11 +72,11 @@ utils::AnyMovable& RequestContext::Impl::GetAnyData(std::string_view name) {
 }
 
 utils::AnyMovable* RequestContext::Impl::GetAnyDataOptional(std::string_view name) {
-    return utils::impl::FindTransparentOrNullptr(named_datum_, name);
+    return utils::FindOrNullptr(named_datum_, name);
 }
 
 void RequestContext::Impl::EraseAnyData(std::string_view name) {
-    auto it = utils::impl::FindTransparent(named_datum_, name);
+    auto it = named_datum_.find(name);
     if (it == named_datum_.end()) {
         return;
     }
@@ -109,6 +110,10 @@ utils::AnyMovable& RequestContext::GetAnyData(std::string_view name) { return im
 utils::AnyMovable* RequestContext::GetAnyDataOptional(std::string_view name) { return impl_->GetAnyDataOptional(name); }
 
 void RequestContext::EraseAnyData(std::string_view name) { impl_->EraseAnyData(name); }
+
+void RequestContext::SetHandlerMetricsShard(std::string_view path, utils::statistics::LabelsSpan labels) {
+    impl_->GetInternalContext().SetHandlerMetricsShard(path, labels);
+}
 
 impl::InternalRequestContext& RequestContext::GetInternalContext() { return impl_->GetInternalContext(); }
 

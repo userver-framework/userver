@@ -5,15 +5,14 @@
 #include <unordered_map>
 
 #include <userver/clients/http/error_kind.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace chaotic::openapi::client {
 
 /// Base exception for all the client exceptions
-class Exception : public std::exception {
-    virtual std::string_view HandleInfo() const noexcept = 0;
-};
+class Exception : public std::exception {};
 
 /// Base exception class for response with code
 ///

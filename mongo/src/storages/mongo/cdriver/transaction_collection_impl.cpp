@@ -12,27 +12,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::impl::cdriver {
 
-CDriverTransactionCollectionImpl::CDriverTransactionCollectionImpl(
-    PoolImplPtr pool_impl,
-    std::string database_name,
-    std::string collection_name,
-    std::shared_ptr<TransactionData> data
-)
-    : CollectionImpl(database_name, collection_name),
-      collection_(std::move(pool_impl), std::move(database_name), std::move(collection_name)),
-      data_(std::move(data))
-{
-    UASSERT(data_);
-    UASSERT(data_->session);
-}
-
-template <typename Operation>
-RequestContext CDriverTransactionCollectionImpl::MakeTransactionRequestContext(
-    std::string&& span_name,
-    const Operation& operation
-) const {
-    return MakeRequestContext(std::move(span_name), operation);
-}
+namespace {
 
 void AppendSessionId(const TransactionData& data, bson_t* opts) {
     data.EnsureActive();
@@ -43,12 +23,34 @@ void AppendSessionId(const TransactionData& data, bson_t* opts) {
     }
 }
 
+}  // namespace
+
+CDriverTransactionCollectionImpl::CDriverTransactionCollectionImpl(
+    PoolImplPtr pool_impl,
+    std::string database_name,
+    std::string collection_name,
+    std::shared_ptr<TransactionData> data
+)
+    : CDriverCollectionImpl(std::move(pool_impl), std::move(database_name), std::move(collection_name)),
+      data_(std::move(data))
+{
+    UASSERT(data_);
+    UASSERT(data_->session);
+    UASSERT(data_->client);
+}
+
+CDriverPoolImpl::BoundClientPtr CDriverTransactionCollectionImpl::GetClient(stats::OperationStatisticsItem& /*stats*/
+) const {
+    UASSERT(data_->client);
+    return CDriverPoolImpl::BoundClientPtr::Borrowed(data_->client.value());
+}
+
 template <typename Operation>
 auto CDriverTransactionCollectionImpl::DoExecute(Operation&& op) {
     auto operation = std::forward<Operation>(op);
     AppendSessionId(*data_, EnsureBuilder(operation.impl_->options).Get());
 
-    return collection_.Execute(operation);
+    return CDriverCollectionImpl::Execute(operation);
 }
 
 FindAndModifyOptsPtr CDriverTransactionCollectionImpl::CopyFAMOptsAndSetSession(const FindAndModifyOptsPtr& old_options
@@ -68,14 +70,15 @@ auto CDriverTransactionCollectionImpl::DoExecute(const operations::FindAndModify
     auto options = CopyFAMOptsAndSetSession(op.impl_->options);
     operations::FindAndModify operation(op.impl_->CloneWithOptions(std::move(options)));
 
-    return collection_.Execute(operation);
+    return CDriverCollectionImpl::Execute(operation);
 }
 
 template <>
 auto CDriverTransactionCollectionImpl::DoExecute(operations::Bulk&& op)
 {
+    data_->EnsureActive();
     mongoc_bulk_operation_set_client_session(op.impl_->bulk.get(), data_->session.get());
-    return collection_.Execute(std::move(op));
+    return CDriverCollectionImpl::Execute(std::move(op));
 }
 
 template <>
@@ -84,7 +87,7 @@ auto CDriverTransactionCollectionImpl::DoExecute(const operations::FindAndRemove
     auto options = CopyFAMOptsAndSetSession(op.impl_->options);
     operations::FindAndRemove operation(op.impl_->CloneWithOptions(std::move(options)));
 
-    return collection_.Execute(operation);
+    return CDriverCollectionImpl::Execute(operation);
 }
 
 template <typename Operation>
@@ -92,7 +95,7 @@ auto CDriverTransactionCollectionImpl::DoExecute(Operation&& op) const {
     auto operation = std::forward<Operation>(op);
     AppendSessionId(*data_, EnsureBuilder(operation.impl_->options).Get());
 
-    return collection_.Execute(operation);
+    return CDriverCollectionImpl::Execute(operation);
 }
 
 size_t CDriverTransactionCollectionImpl::Execute(const operations::Count& count_op) const {

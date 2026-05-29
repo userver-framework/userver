@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/cache/lru_cache_config.hpp
+/// @brief LRU cache configuration types and dynamic config integration
+
 #include <chrono>
 #include <cstddef>
 #include <optional>

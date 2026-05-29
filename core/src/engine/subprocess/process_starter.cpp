@@ -7,10 +7,10 @@
 #include <csignal>
 #include <cstdio>
 #include <cstring>
+#include <ranges>
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
-#include <boost/range/adaptor/transformed.hpp>
 
 #include <engine/ev/child_process_map.hpp>
 #include <engine/ev/thread_control.hpp>
@@ -131,9 +131,7 @@ ChildProcess ProcessStarter::Exec(
         executable_path,
         fmt::join(args, "' '"),
         fmt::join(
-            env | boost::adaptors::transformed([](const auto& key_value) {
-                return key_value.first + '=' + key_value.second;
-            }),
+            env | std::views::transform([](const auto& key_value) { return key_value.first + '=' + key_value.second; }),
             ", "
         )
     );

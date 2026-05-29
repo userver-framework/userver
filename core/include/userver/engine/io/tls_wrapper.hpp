@@ -3,6 +3,7 @@
 /// @file userver/engine/io/tls_wrapper.hpp
 /// @brief TLS socket wrappers
 
+#include <span>
 #include <string>
 #include <vector>
 
@@ -115,7 +116,11 @@ public:
         return SendAll(buf, len, deadline);
     }
 
-    [[nodiscard]] size_t WriteAll(std::initializer_list<IoData> list, Deadline deadline) override;
+    [[nodiscard]] size_t WriteAll(std::span<const IoData> list, Deadline deadline) override;
+
+    [[nodiscard]] size_t WriteAll(std::initializer_list<IoData> list, Deadline deadline) override {
+        return WriteAll(std::span<const IoData>{list.begin(), list.size()}, deadline);
+    }
 
     int GetRawFd();
 

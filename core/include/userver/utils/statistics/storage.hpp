@@ -53,7 +53,7 @@ inline constexpr bool kCheckSubscriptionUB = utils::impl::kEnableAssert;
 ///
 /// Storage of metrics, usually retrieved from components::StatisticsStorage.
 ///
-/// See utils::statistics::Writer for an information on how to write metrics.
+/// See @ref utils::statistics::Writer for an information on how to write metrics.
 ///
 /// For introduction to metrics see @ref scripts/docs/en/userver/metrics.md
 class Storage final {
@@ -62,8 +62,7 @@ public:
 
     Storage(const Storage&) = delete;
 
-    /// Creates new Json::Value and calls every deprecated registered extender
-    /// func over it.
+    /// Creates new Json::Value and calls every deprecated registered extender function over it.
     ///
     /// @deprecated Use VisitMetrics instead.
     formats::json::Value GetAsJson() const;
@@ -72,13 +71,16 @@ public:
     void VisitMetrics(BaseFormatBuilder& out, const Request& request = {}) const;
 
     /// @cond
-    /// Must be called from StatisticsStorage only. Don't call it from user
-    /// components.
+    /// Must be called from StatisticsStorage only. Don't call it from user components.
     void StopRegisteringExtenders();
     /// @endcond
 
-    /// @brief Add a writer function. Note that `func` is called concurrently with
+    /// @brief Add a writer function @b func. Note that `func` is called concurrently with
     /// other code, so it should be thread-safe.
+    ///
+    /// @param common_prefix prefix for the metric, for example "my.metric_name"
+    /// @param func function that writes metrics to @ref utils::statistics::Writer
+    /// @param add_labels common labels for the metric, for example {"database", "dbname"}
     ///
     /// @note Prefer using @ref RegisterWriterScope instead.
     Entry RegisterWriter(std::string common_prefix, WriterFunc func, std::vector<Label> add_labels = {});

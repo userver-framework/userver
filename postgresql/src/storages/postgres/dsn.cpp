@@ -196,14 +196,10 @@ std::string MakeDsnNick(const Dsn& dsn, bool escape) {
     }
 
     if (escape) {
-        dsn_str.erase(
-            std::remove_if(
-                dsn_str.begin(),
-                dsn_str.end(),
-                [](char c) { return !std::isalpha(c) && !std::isdigit(c) && c != '_'; }
-            ),
-            dsn_str.end()
-        );
+        const auto garbage = std::ranges::remove_if(dsn_str, [](char c) {
+            return !std::isalpha(c) && !std::isdigit(c) && c != '_';
+        });
+        dsn_str.erase(garbage.begin(), garbage.end());
     }
     return dsn_str;
 }

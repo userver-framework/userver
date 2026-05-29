@@ -21,38 +21,28 @@ jobs:
             fail-fast: false
             matrix:
                 include:
-                  # TODO: debian-11 fails to compile core
-                  #
-                  # - cmake-flags: >-
-                  #     -DUSERVER_FORCE_DOWNLOAD_GTEST=ON
-                  #     -DCMAKE_CC_COMPILER=clang-11
-                  #     -DCMAKE_CXX_COMPILER=clang++-11
-                  #   image: debian:11
-                  #   info: Debian 11
-                  #   deps-file: debian-11.md
-
                   - cmake-flags: >-
-                        -DCMAKE_CC_COMPILER=clang-14
-                        -DCMAKE_CXX_COMPILER=clang++-14
+                        -DCMAKE_C_COMPILER=gcc-12
+                        -DCMAKE_CXX_COMPILER=g++-12
                     image: debian:12
-                    info: Debian 12
+                    info: Debian 12 + gcc-12
                     deps-file: debian-12.md
 
-                  # TODO: fails with:
-                  # 1)  ld.lld: error: undefined symbol: icudt76_dat
-                  #      >>> referenced by udata.ao:(openCommonData(char const*, int, UErrorCode*)) in archive /usr/lib/x86_64-linux-gnu/libicuuc.a
-                  # 2) userver/userver/universal/src/decimal64/decimal64_test.cpp:29:47: error: passing no argument for the '...' parameter of a variadic macro is a C++20 extension [-Werror,-Wc++20-extensions]
-                  #    TYPED_TEST_SUITE(Decimal64Round, RoundPolicies);
-                  # - cmake-flags: >-
-                  #     -DCMAKE_CC_COMPILER=clang-19
-                  #     -DCMAKE_CXX_COMPILER=clang++-19
-                  #     -DUSERVER_FEATURE_GRPC=OFF
-                  #     -DUSERVER_FEATURE_OTLP=OFF
-                  #     -DUSERVER_FEATURE_GRPC_REFLECTION=OFF
-                  #     -DUSERVER_FORCE_DOWNLOAD_RE2=ON
-                  #   image: debian:13
-                  #   info: Debian 13
-                  #   deps-file: debian-13.md
+                # TODO: fails with:
+                # 1)  ld.lld: error: undefined symbol: icudt76_dat
+                #      >>> referenced by udata.ao:(openCommonData(char const*, int, UErrorCode*)) in archive /usr/lib/x86_64-linux-gnu/libicuuc.a
+                # 2) userver/userver/universal/src/decimal64/decimal64_test.cpp:29:47: error: passing no argument for the '...' parameter of a variadic macro is a C++20 extension [-Werror,-Wc++20-extensions]
+                #    TYPED_TEST_SUITE(Decimal64Round, RoundPolicies);
+                # - cmake-flags: >-
+                #     -DCMAKE_CC_COMPILER=clang-19
+                #     -DCMAKE_CXX_COMPILER=clang++-19
+                #     -DUSERVER_FEATURE_GRPC=OFF
+                #     -DUSERVER_FEATURE_OTLP=OFF
+                #     -DUSERVER_FEATURE_GRPC_REFLECTION=OFF
+                #     -DUSERVER_FORCE_DOWNLOAD_RE2=ON
+                #   image: debian:13
+                #   info: Debian 13
+                #   deps-file: debian-13.md
 
         name: '${{ matrix.info }}'
         runs-on: ubuntu-latest
@@ -61,9 +51,8 @@ jobs:
         env:
             CMAKE_FLAGS: >-
                 -DCMAKE_BUILD_TYPE=Debug
-                -DCMAKE_CXX_STANDARD=17
-                -DUSERVER_USE_LD=lld
-                -DUSERVER_NO_WERROR=OFF
+                -DCMAKE_CXX_STANDARD=20
+                -DUSERVER_NO_WERROR=ON
                 -DUSERVER_BUILD_ALL_COMPONENTS=1
                 -DUSERVER_BUILD_SAMPLES=1
                 -DUSERVER_BUILD_TESTS=1
@@ -72,6 +61,7 @@ jobs:
                 -DUSERVER_FEATURE_CLICKHOUSE=OFF
                 -DUSERVER_FEATURE_STACKTRACE=OFF
                 -DUSERVER_FEATURE_PATCH_LIBPQ=OFF
+                -DUSERVER_FEATURE_YDB=OFF
                 -DUSERVER_DISABLE_RSEQ_ACCELERATION=YES
                 -DUSERVER_CHAOTIC_FORMAT=OFF
                 -DUSERVER_CHAOTIC_GOLDEN_TESTS=OFF
@@ -101,13 +91,8 @@ jobs:
           - name: Install dependencies
             run: |
                 apt-get update
-                apt-get install -y lsb-release wget gnupg
-
-                # Install clang and lld
-                apt-get install -y clang lld
-
                 # Install project dependencies
-                apt-get install -y $(cat scripts/docs/en/deps/${{ matrix.deps-file }})
+                apt-get install -y build-essential $(cat scripts/docs/en/deps/${{ matrix.deps-file }})
 
           - name: Install test dependencies
             if: ${{ false }}
@@ -156,6 +141,6 @@ jobs:
 
           - name: Run tests
             if: ${{ false }}
-            run: |
+            run: |-
                 cd build_debug
                 ctest -V

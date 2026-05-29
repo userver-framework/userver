@@ -54,7 +54,7 @@ UTEST(TaskLocalVariable, SetGet) {
 UTEST(TaskLocalVariable, TwoTask) {
     *kIntVariable = 1;
 
-    auto task = engine::AsyncNoSpan([] {
+    auto task = engine::AsyncNoTracing([] {
         *kIntVariable = 2;
         EXPECT_EQ(2, *kIntVariable);
 
@@ -81,7 +81,7 @@ UTEST(TaskLocalVariable, TwoTask) {
 UTEST(TaskLocalVariable, MultipleThreads) {
     *kIntVariable = 1;
 
-    auto task = engine::AsyncNoSpan([] {
+    auto task = engine::AsyncNoTracing([] {
         *kIntVariable = 2;
         EXPECT_EQ(2, *kIntVariable);
 
@@ -112,7 +112,7 @@ UTEST(TaskLocalVariable, Destructor) {
         kGuardX->emplace(destruction_order, "1");
         EXPECT_EQ(destruction_order, "");
 
-        engine::AsyncNoSpan([&] { kGuardX->emplace(destruction_order, "2"); }).Get();
+        engine::AsyncNoTracing([&] { kGuardX->emplace(destruction_order, "2"); }).Get();
 
         EXPECT_EQ(destruction_order, "2");
     }).Get();
@@ -124,7 +124,7 @@ UTEST(TaskLocalVariable, DestructionOrder) {
     {
         std::string destruction_order;
 
-        engine::AsyncNoSpan([&] {
+        engine::AsyncNoTracing([&] {
             kGuardY->emplace(destruction_order, "y");
             kGuardX->emplace(destruction_order, "x");
             kGuardZ->emplace(destruction_order, "z");
@@ -137,7 +137,7 @@ UTEST(TaskLocalVariable, DestructionOrder) {
     {
         std::string destruction_order;
 
-        engine::AsyncNoSpan([&] {
+        engine::AsyncNoTracing([&] {
             kGuardX->emplace(destruction_order, "x");
             kGuardY->emplace(destruction_order, "y");
         }).Get();
@@ -168,7 +168,7 @@ engine::TaskLocalVariable<std::optional<WaitingInDestructorVariable>> kWaitingIn
 
 UTEST(TaskLocalVariable, WaitInDestructor) {
     engine::SingleUseEvent event;
-    auto task = engine::AsyncNoSpan([&] { kWaitingInDestructorVariable->emplace(event); });
+    auto task = engine::AsyncNoTracing([&] { kWaitingInDestructorVariable->emplace(event); });
 
     engine::SleepFor(std::chrono::milliseconds{100});
     EXPECT_FALSE(task.IsFinished());
@@ -182,7 +182,7 @@ UTEST(TaskLocalVariable, WaitInDestructor) {
 
 UTEST(TaskLocalVariable, WaitInDestructorCancelled) {
     engine::SingleUseEvent event;
-    auto task = engine::AsyncNoSpan([&] {
+    auto task = engine::AsyncNoTracing([&] {
         kWaitingInDestructorVariable->emplace(event);
         engine::current_task::RequestCancel();
         engine::current_task::CancellationPoint();

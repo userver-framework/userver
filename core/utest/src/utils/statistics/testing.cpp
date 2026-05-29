@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <ostream>
+#include <ranges>
 #include <sstream>
 #include <unordered_map>
 #include <utility>
@@ -10,7 +11,6 @@
 #include <fmt/ranges.h>
 #include <boost/algorithm/cxx11/all_of.hpp>
 #include <boost/container/flat_set.hpp>
-#include <boost/range/iterator_range.hpp>
 
 #include <userver/utils/assert.hpp>
 #include <userver/utils/statistics/fmt.hpp>
@@ -91,7 +91,7 @@ std::optional<Metric> GetSingleOptional(
     std::optional<Metric> found_metric;
     const auto iterator_pair = data.metrics.equal_range(path);
 
-    for (const auto& [_, entry] : boost::make_iterator_range(iterator_pair)) {
+    for (const auto& [_, entry] : std::ranges::subrange(iterator_pair.first, iterator_pair.second)) {
         const bool matches = boost::algorithm::all_of(required_labels, [&entry = entry](const auto& needle) {
             return entry.labels.count(needle) != 0;
         });

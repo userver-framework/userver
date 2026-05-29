@@ -40,11 +40,9 @@ public:
 
     /// @brief If any code is required for handshake validation,
     /// it goes here.
-    virtual bool
-    HandleHandshake(const server::http::HttpRequest&, server::http::HttpResponse&, server::request::RequestContext&)
-        const {
-        return true;
-    }
+    /// @return \a true to accept the WebSocket connection, \a false to reject
+    /// it (handshake will be aborted and connection will not be established).
+    virtual bool HandleHandshake(server::http::HttpRequest&, server::request::RequestContext&) const { return true; }
 
     /// @cond
     void WriteMetrics(utils::statistics::Writer& writer) const;
@@ -52,20 +50,24 @@ public:
     static yaml_config::Schema GetStaticConfigSchema();
     /// @endcond
 
+    bool IsWebsocketRequest(const server::http::HttpRequest& request) const;
+
     /// @brief If \a request isn't a websocket request the function handles a
     /// request.
-    virtual void HandleNonWebsocketRequest(
-        [[maybe_unused]] const server::http::HttpRequest& request,
-        [[maybe_unused]] server::request::RequestContext& context
-    ) const {
-        LOG_WARNING() << "Not a GET 'Upgrade: websocket' and 'Connection: Upgrade' request";
-        throw server::handlers::ClientError();
-    }
+    virtual std::string HandleNonWebsocketRequest(
+        server::http::HttpRequest& request,
+        server::request::RequestContext& context
+    ) const;
 
-private:
-    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext& context)
+    /// @brief If \a request is a websocket request, performs handshake and upgrade.
+    virtual void HandleWebsocketRequest(server::http::HttpRequest& request, server::request::RequestContext& context)
+        const;
+
+protected:
+    std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext& context)
         const override;
 
+private:
     websocket::Config config_;
     mutable websocket::Statistics stats_;
 };

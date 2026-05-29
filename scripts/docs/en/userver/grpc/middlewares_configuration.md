@@ -75,7 +75,7 @@ Example.
 
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/grpc/middlewares_toggle.md | @ref rabbitmq_driver ⇨
+⇦ @ref scripts/docs/en/userver/grpc/middlewares_toggle.md | @ref scripts/docs/en/userver/rabbitmq_driver.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example samples/grpc_middleware_service/src/middlewares/server/meta_filter.hpp

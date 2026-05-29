@@ -13,7 +13,7 @@ UTEST_MT(EngineYield, DISABLED_IsBroken, 2) {
     // so we have 2 threads here
 
     // alright, let's make the second thread just yield
-    auto yield_task = engine::AsyncNoSpan([] {
+    auto yield_task = engine::AsyncNoTracing([] {
         while (!engine::current_task::ShouldCancel()) {
             std::this_thread::sleep_for(std::chrono::milliseconds{20});
             engine::Yield();
@@ -26,9 +26,9 @@ UTEST_MT(EngineYield, DISABLED_IsBroken, 2) {
     // 1. one really slow blocking task (imagine it's doing some CPU-heavy stuff,
     // massive [de]allocation for example)
     // 2. one reasonably fast task
-    auto slow_task = engine::AsyncNoSpan([] { std::this_thread::sleep_for(std::chrono::milliseconds{500}); });
+    auto slow_task = engine::AsyncNoTracing([] { std::this_thread::sleep_for(std::chrono::milliseconds{500}); });
     const auto fast_task_duration =
-        engine::AsyncNoSpan([start = std::chrono::steady_clock::now()] {
+        engine::AsyncNoTracing([start = std::chrono::steady_clock::now()] {
             std::this_thread::sleep_for(std::chrono::milliseconds{2});
             const auto finish = std::chrono::steady_clock::now();
             return std::chrono::duration_cast<std::chrono::milliseconds>(finish - start);

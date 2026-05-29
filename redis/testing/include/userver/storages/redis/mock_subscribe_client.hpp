@@ -38,6 +38,30 @@ public:
         (std::string pattern, SubscriptionToken::OnPmessageCb on_pmessage_cb, const CommandControl& command_control),
         (override)
     );
+    MOCK_METHOD(
+        SubscriptionToken,
+        Subscribe,
+        (std::vector<std::string> channel,
+         SubscriptionToken::OnMessageCb on_message_cb,
+         const CommandControl& command_control),
+        (override)
+    );
+    MOCK_METHOD(
+        SubscriptionToken,
+        Ssubscribe,
+        (std::vector<std::string> channel,
+         SubscriptionToken::OnMessageCb on_message_cb,
+         const CommandControl& command_control),
+        (override)
+    );
+    MOCK_METHOD(
+        SubscriptionToken,
+        Psubscribe,
+        (std::vector<std::string> patterns,
+         SubscriptionToken::OnPmessageCb on_pmessage_cb,
+         const CommandControl& command_control),
+        (override)
+    );
     MOCK_METHOD(size_t, ShardsCount, (), (const, override));
     MOCK_METHOD(bool, IsInClusterMode, (), (const, override));
 };

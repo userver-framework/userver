@@ -10,7 +10,7 @@ namespace dynamic_config::updater {
 
 components::ComponentList ComponentList() {
     return components::ComponentList()
-        .Append<components::HttpClient>("dynamic-config-http-client")
+        .Append<components::HttpClient>(components::HttpClient::kDynamicConfigClientName)
         .Append<components::DynamicConfigClient>()
         .Append<components::DynamicConfigClientUpdater>();
 }

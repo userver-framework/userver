@@ -2,16 +2,15 @@
 
 #include <gtest/gtest.h>
 
+#include <userver/utils/algo.hpp>
 #include <userver/utils/meta.hpp>
 #include <userver/utils/str_icase.hpp>
+
+#include "utils/overloaded_address_operator_test.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
-
-using utils::impl::FindTransparent;
-using utils::impl::FindTransparentOrNullptr;
-using utils::impl::TransparentInsertOrAssign;
 
 struct StringViewable final {
     std::string_view value;
@@ -28,113 +27,98 @@ bool operator==(std::string_view lhs, StringViewable rhs) { return lhs == rhs.va
 
 }  // namespace
 
-TEST(TransparentSet, FindTransparent) {
+TEST(TransparentSet, Find) {
     utils::impl::TransparentSet<std::string> set;
     set.insert("foo");
 
     constexpr std::string_view expected = "foo";
-    EXPECT_EQ(*FindTransparent(set, "foo"), expected);
-    EXPECT_EQ(*FindTransparent(set, std::string{"foo"}), expected);
-    EXPECT_EQ(*FindTransparent(set, std::string_view{"foo"}), expected);
-    EXPECT_EQ(*FindTransparent(set, StringViewable{"foo"}), expected);
+    EXPECT_EQ(*set.find("foo"), expected);
+    EXPECT_EQ(*set.find(std::string{"foo"}), expected);
+    EXPECT_EQ(*set.find(std::string_view{"foo"}), expected);
+    EXPECT_EQ(*set.find(StringViewable{"foo"}), expected);
 
-    EXPECT_EQ(FindTransparent(set, "bar"), set.end());
-    EXPECT_EQ(FindTransparent(set, "Foo"), set.end());
+    EXPECT_EQ(set.find("bar"), set.end());
+    EXPECT_EQ(set.find("Foo"), set.end());
 
     const auto const_set = std::move(set);
-    EXPECT_EQ(*FindTransparent(const_set, "foo"), expected);
-    EXPECT_EQ(FindTransparent(const_set, "bar"), const_set.end());
+    EXPECT_EQ(*const_set.find("foo"), expected);
+    EXPECT_EQ(const_set.find("bar"), const_set.end());
 }
 
-TEST(TransparentMap, FindTransparent) {
+TEST(TransparentMap, Find) {
     using Map = utils::impl::TransparentMap<std::string, int>;
     using Entry = std::pair<const std::string, int>;
-    static_assert(meta::kIsUniqueMap<Map>);
+    static_assert(meta::IsUniqueMap<Map>);
 
     Map map;
     map.emplace("foo", 4);
 
     const Entry expected{"foo", 4};
-    EXPECT_EQ(*FindTransparent(map, "foo"), expected);
-    EXPECT_EQ(*FindTransparent(map, std::string{"foo"}), expected);
-    EXPECT_EQ(*FindTransparent(map, std::string_view{"foo"}), expected);
-    EXPECT_EQ(*FindTransparent(map, StringViewable{"foo"}), expected);
+    EXPECT_EQ(*map.find("foo"), expected);
+    EXPECT_EQ(*map.find(std::string{"foo"}), expected);
+    EXPECT_EQ(*map.find(std::string_view{"foo"}), expected);
+    EXPECT_EQ(*map.find(StringViewable{"foo"}), expected);
 
-    EXPECT_EQ(FindTransparent(map, "bar"), map.end());
-    EXPECT_EQ(FindTransparent(map, "Foo"), map.end());
+    EXPECT_EQ(map.find("bar"), map.end());
+    EXPECT_EQ(map.find("Foo"), map.end());
 
     const auto const_map = std::move(map);
-    EXPECT_EQ(*FindTransparent(const_map, "foo"), expected);
-    EXPECT_EQ(FindTransparent(const_map, "bar"), const_map.end());
+    EXPECT_EQ(*const_map.find("foo"), expected);
+    EXPECT_EQ(const_map.find("bar"), const_map.end());
 }
 
-TEST(TransparentMap, FindTransparentOrNullptr) {
+TEST(TransparentMap, FindOrNullptr) {
     utils::impl::TransparentMap<std::string, int> map;
     map.emplace("foo", 4);
 
     constexpr int expected = 4;
-    EXPECT_EQ(*FindTransparentOrNullptr(map, "foo"), expected);
-    EXPECT_EQ(*FindTransparentOrNullptr(map, std::string{"foo"}), expected);
-    EXPECT_EQ(*FindTransparentOrNullptr(map, std::string_view{"foo"}), expected);
-    EXPECT_EQ(*FindTransparentOrNullptr(map, StringViewable{"foo"}), expected);
+    EXPECT_EQ(*utils::FindOrNullptr(map, "foo"), expected);
+    EXPECT_EQ(*utils::FindOrNullptr(map, std::string{"foo"}), expected);
+    EXPECT_EQ(*utils::FindOrNullptr(map, std::string_view{"foo"}), expected);
+    EXPECT_EQ(*utils::FindOrNullptr(map, StringViewable{"foo"}), expected);
 
-    EXPECT_EQ(FindTransparentOrNullptr(map, "bar"), nullptr);
-    EXPECT_EQ(FindTransparentOrNullptr(map, "Foo"), nullptr);
+    EXPECT_EQ(utils::FindOrNullptr(map, "bar"), nullptr);
+    EXPECT_EQ(utils::FindOrNullptr(map, "Foo"), nullptr);
 
     const auto const_map = std::move(map);
-    EXPECT_EQ(*FindTransparentOrNullptr(const_map, "foo"), expected);
-    EXPECT_EQ(FindTransparentOrNullptr(const_map, "bar"), nullptr);
+    EXPECT_EQ(*utils::FindOrNullptr(const_map, "foo"), expected);
+    EXPECT_EQ(utils::FindOrNullptr(const_map, "bar"), nullptr);
+}
+
+TEST(TransparentMap, FindTransparentOrNullptrAddressof) {
+    utils::impl::TransparentMap<std::string, utils::OverloadedAddressOperator> m{{{"1"}, {}}};
+    const auto* ptr = utils::FindOrNullptr(m, "1");
+    ASSERT_TRUE(ptr);
 }
 
 TEST(TransparentMap, CustomValue) {
     using Map = utils::impl::TransparentMap<StringViewable, int>;
-    static_assert(meta::kIsUniqueMap<Map>);
+    static_assert(meta::IsUniqueMap<Map>);
 
     Map map;
     map.emplace(StringViewable{"foo"}, 4);
 
     constexpr int expected = 4;
-    EXPECT_EQ(*FindTransparentOrNullptr(map, "foo"), expected);
-    EXPECT_EQ(*FindTransparentOrNullptr(map, std::string{"foo"}), expected);
-    EXPECT_EQ(*FindTransparentOrNullptr(map, std::string_view{"foo"}), expected);
-    EXPECT_EQ(*FindTransparentOrNullptr(map, StringViewable{"foo"}), expected);
+    EXPECT_EQ(*utils::FindOrNullptr(map, "foo"), expected);
+    EXPECT_EQ(*utils::FindOrNullptr(map, std::string{"foo"}), expected);
+    EXPECT_EQ(*utils::FindOrNullptr(map, std::string_view{"foo"}), expected);
+    EXPECT_EQ(*utils::FindOrNullptr(map, StringViewable{"foo"}), expected);
 }
 
 TEST(TransparentMap, CustomTransparentHash) {
     using Map = utils::impl::TransparentMap<std::string, int, utils::StrIcaseHash, utils::StrIcaseEqual>;
-    static_assert(meta::kIsUniqueMap<Map>);
+    static_assert(meta::IsUniqueMap<Map>);
 
     Map map;
     map.emplace("foo", 4);
 
     constexpr int expected = 4;
-    EXPECT_EQ(*FindTransparentOrNullptr(map, "foo"), expected);
-    EXPECT_EQ(*FindTransparentOrNullptr(map, StringViewable{"foo"}), expected);
+    EXPECT_EQ(*utils::FindOrNullptr(map, "foo"), expected);
+    EXPECT_EQ(*utils::FindOrNullptr(map, StringViewable{"foo"}), expected);
 
-    EXPECT_EQ(*FindTransparentOrNullptr(map, "Foo"), expected);
-    EXPECT_EQ(*FindTransparentOrNullptr(map, "FOO"), expected);
-    EXPECT_EQ(FindTransparentOrNullptr(map, "bar"), nullptr);
-}
-
-TEST(TransparentMap, TransparentInsertOrAssign) {
-    utils::impl::TransparentMap<std::string, std::unique_ptr<int>> map;
-    TransparentInsertOrAssign(map, std::string_view{"foo"}, std::make_unique<int>(4));
-    EXPECT_EQ(**FindTransparentOrNullptr(map, "foo"), 4);
-
-    TransparentInsertOrAssign(map, std::string_view{"foo"}, std::make_unique<int>(5));
-    EXPECT_EQ(**FindTransparentOrNullptr(map, "foo"), 5);
-
-    TransparentInsertOrAssign(map, std::string{"bar"}, std::make_unique<int>(4));
-    EXPECT_EQ(**FindTransparentOrNullptr(map, "bar"), 4);
-
-    TransparentInsertOrAssign(map, std::string{"bar"}, std::make_unique<int>(5));
-    EXPECT_EQ(**FindTransparentOrNullptr(map, "bar"), 5);
-
-    constexpr std::string_view kLongString = "a string that does not fit in SSO";
-    std::string not_moved_key{kLongString};
-    TransparentInsertOrAssign(map, not_moved_key, std::make_unique<int>(4));
-    EXPECT_EQ(**FindTransparentOrNullptr(map, not_moved_key), 4);
-    EXPECT_EQ(not_moved_key, kLongString);
+    EXPECT_EQ(*utils::FindOrNullptr(map, "Foo"), expected);
+    EXPECT_EQ(*utils::FindOrNullptr(map, "FOO"), expected);
+    EXPECT_EQ(utils::FindOrNullptr(map, "bar"), nullptr);
 }
 
 USERVER_NAMESPACE_END

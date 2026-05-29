@@ -29,7 +29,7 @@ directly.
 
 Transitive includes could not be relied on. Even a change in patch
 version could remove some `#include` from header and break code that
-relies on transitive includes. However, we provide script 
+relies on transitive includes. However, we provide script
 `./scripts/add-missing-include.sh` that helps to add missing includes
 in big code bases.
 

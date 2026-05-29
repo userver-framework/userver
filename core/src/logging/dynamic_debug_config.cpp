@@ -1,5 +1,7 @@
 #include "dynamic_debug_config.hpp"
 
+#include <vector>
+
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/logging/level_serialization.hpp>

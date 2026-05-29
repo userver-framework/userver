@@ -22,7 +22,7 @@ SocketReader::~SocketReader() { Stop(); }
 void SocketReader::Start(AmqpConnection* connection) {
     conn_ = connection;
 
-    reader_task_ = engine::CriticalAsyncNoSpan([this] {
+    reader_task_ = engine::CriticalAsyncNoTracing([this] {
         while (!engine::current_task::IsCancelRequested()) {
             if (!buffer_.Read(socket_, conn_, parent_)) {
                 break;

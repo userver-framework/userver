@@ -37,7 +37,7 @@ void AsyncComparisonsCoro(benchmark::State& state) {
     engine::RunStandalone(state.range(0), config, [&] {
         std::uint64_t constructed_joined_count = 0;
         for ([[maybe_unused]] auto _ : state) {
-            engine::AsyncNoSpan([] {}).Wait();
+            engine::AsyncNoTracing([] {}).Wait();
             ++constructed_joined_count;
         }
         benchmark::DoNotOptimize(constructed_joined_count);

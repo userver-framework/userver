@@ -48,6 +48,7 @@ constexpr std::string_view kAlertOnFailingToUpdateTimes = "alert-on-failing-to-u
 constexpr std::string_view kSafeDataLifetime = "safe-data-lifetime";
 
 constexpr auto kDefaultCleanupInterval = std::chrono::seconds{10};
+constexpr std::uint64_t kDefaultAlertOnFailingToUpdateTimes = 5;
 
 std::chrono::milliseconds GetDefaultJitter(std::chrono::milliseconds interval) { return interval / 10; }
 
@@ -186,6 +187,10 @@ Config::Config(const yaml_config::YamlConfig& config, const std::optional<dump::
             }
             full_update_interval = update_interval;
             break;
+    }
+
+    if (!allow_first_update_failure && alert_on_failing_to_update_times == 0) {
+        alert_on_failing_to_update_times = kDefaultAlertOnFailingToUpdateTimes;
     }
 
     if (config.HasMember(dump::kDump)) {

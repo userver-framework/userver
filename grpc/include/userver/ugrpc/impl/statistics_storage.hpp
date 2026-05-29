@@ -8,19 +8,27 @@
 #include <userver/concurrent/variable.hpp>
 #include <userver/engine/shared_mutex.hpp>
 #include <userver/utils/impl/transparent_hash.hpp>
-#include <userver/utils/statistics/entry.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 #include <userver/utils/statistics/striped_rate_counter.hpp>
 
 #include <userver/ugrpc/impl/statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
+namespace utils {
+class ResourceScopeStorage;
+}  // namespace utils
+
 namespace ugrpc::impl {
 
 /// Allows to create ServiceStatistics and generic MethodStatistics on the fly.
 class StatisticsStorage final {
 public:
-    explicit StatisticsStorage(utils::statistics::Storage& statistics_storage, StatisticsDomain domain);
+    explicit StatisticsStorage(
+        utils::ResourceScopeStorage& scope_storage,
+        utils::statistics::Storage& statistics_storage,
+        StatisticsDomain domain
+    );
 
     StatisticsStorage(const StatisticsStorage&) = delete;
     StatisticsStorage& operator=(const StatisticsStorage&) = delete;
@@ -94,8 +102,6 @@ private:
         utils::impl::TransparentMap<GenericKey, MethodStatistics, GenericKeyHasher, GenericKeyComparer>,
         engine::SharedMutex>
         generic_statistics_map_;
-    // statistics_holder_ must be the last field.
-    utils::statistics::Entry statistics_holder_;
 };
 
 }  // namespace ugrpc::impl

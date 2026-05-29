@@ -8,6 +8,7 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/storages/postgres/options.hpp>
+#include <userver/storages/postgres/query.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -32,8 +33,8 @@ public:
 private:
     ClusterPtr cluster_;
     rcu::Variable<CommandControl> cc_;
-    const std::string acquire_query_;
-    const std::string release_query_;
+    const Query acquire_query_;
+    const Query release_query_;
     const std::string lock_name_;
     const std::string owner_prefix_;
 };

@@ -3,7 +3,6 @@
 #include <chrono>
 #include <cstdint>
 
-#include <date/date.h>
 #include <fmt/chrono.h>
 #include <fmt/format.h>
 
@@ -39,7 +38,7 @@ bool IsValid(const google::type::Date& grpc_date) {
     return (grpc_date.year() >= 1 && grpc_date.year() < 10'000) &&
            (grpc_date.month() >= 1 && grpc_date.month() <= 12) &&
            (grpc_date.day() >= 1 &&
-            date::day(grpc_date.day()) <= utils::datetime::DaysInMonth(grpc_date.month(), grpc_date.year()));
+            std::chrono::day(grpc_date.day()) <= utils::datetime::DaysInMonth(grpc_date.month(), grpc_date.year()));
 }
 
 #if __cpp_lib_chrono >= 201907L
@@ -69,7 +68,7 @@ std::chrono::year_month_day ToYearMonthDay(const google::type::Date& grpc_date) 
 #endif
 
 google::type::Date ToProtoDate(const utils::datetime::Date& utils_date) {
-    const date::year_month_day ymd(utils_date.GetSysDays());
+    const std::chrono::year_month_day ymd(utils_date.GetSysDays());
 
     google::type::Date date;
     date.set_year(static_cast<int>(ymd.year()));

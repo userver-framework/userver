@@ -113,10 +113,8 @@ Baggage::Baggage(std::string header, std::unordered_set<std::string> allowed_key
     : header_value_(std::move(header)),
       allowed_keys_(std::move(allowed_keys))
 {
-    header_value_.erase(
-        std::remove_if(header_value_.begin(), header_value_.end(), [](unsigned char x) { return std::isspace(x); }),
-        header_value_.end()
-    );
+    const auto garbage = std::ranges::remove_if(header_value_, [](unsigned char x) { return std::isspace(x); });
+    header_value_.erase(garbage.begin(), garbage.end());
 
     FillEntries();
 
@@ -250,7 +248,7 @@ std::optional<BaggageEntry> Baggage::TryMakeBaggageEntry(std::string_view entry)
         LOG_LIMITED_WARNING() << "Entry contains invalid symbol: ','";
         return std::nullopt;
     }
-    if (std::find_if(entry.begin(), entry.end(), [](unsigned char x) { return std::isspace(x); }) != entry.end()) {
+    if (std::ranges::find_if(entry, [](unsigned char x) { return std::isspace(x); }) != entry.end()) {
         LOG_LIMITED_WARNING() << "Entry contains spaces";
         return std::nullopt;
     }
@@ -320,9 +318,7 @@ std::optional<BaggageEntryProperty> Baggage::TryMakeBaggageEntryProperty(std::st
         return std::nullopt;
     }
 
-    if (std::find_if(property.begin(), property.end(), [](unsigned char x) { return std::isspace(x); }) !=
-        property.end())
-    {
+    if (std::ranges::find_if(property, [](unsigned char x) { return std::isspace(x); }) != property.end()) {
         LOG_LIMITED_WARNING() << "Property contains spaces";
         return std::nullopt;
     }

@@ -22,11 +22,7 @@ public:
 
     using WebsocketHandlerBase::WebsocketHandlerBase;
 
-    bool HandleHandshake(
-        const server::http::HttpRequest& request,
-        server::http::HttpResponse&,
-        server::request::RequestContext& context
-    ) const override {
+    bool HandleHandshake(server::http::HttpRequest& request, server::request::RequestContext& context) const override {
         context.SetUserData(HandshakeData{request.GetHeader("Origin")});
         return true;
     }
@@ -50,11 +46,17 @@ public:
                 break;
             }
 
-            chat.Send(std::move(message));
+            chat.Send(message);
         }
         if (message.close_status) {
             chat.Close(*message.close_status);
         }
+    }
+
+    std::string HandleNonWebsocketRequest(server::http::HttpRequest& request, server::request::RequestContext&)
+        const override {
+        request.GetHttpResponse().SetStatus(server::http::HttpStatus::kBadRequest);
+        return "Not a websocket request";
     }
 };
 
@@ -72,7 +74,7 @@ public:
                 if (message.close_status) {
                     break;
                 }
-                chat.Send(std::move(message));
+                chat.Send(message);
             } else {
                 // we could've sent yet another server::websocket::Message
                 // e.g. chat.SendBinary(server::websocket::Message{ "blah", {}, true });

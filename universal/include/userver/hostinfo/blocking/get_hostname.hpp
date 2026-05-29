@@ -8,6 +8,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
+/// @brief Blocking host information queries (hostname, cgroups, etc.).
 namespace hostinfo::blocking {
 
 /// @brief Returns host name.

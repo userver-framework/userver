@@ -9,6 +9,7 @@
 #include <userver/utils/text.hpp>
 
 #include <storages/redis/impl/keyshard_impl.hpp>
+#include <storages/redis/impl/redis_group.hpp>
 #include <storages/redis/impl/secdist_redis.hpp>
 #include <storages/redis/redis_secdist.hpp>
 
@@ -154,8 +155,7 @@ RedisConnectionState::RedisConnectionState() {
         GetRedisSettings(),
         "none",
         configs_source,
-        "pub",
-        KeyShardFactory{sharding_strategy}
+        storages::redis::impl::SentinelStaticConfig{"pub", KeyShardFactory{sharding_strategy}, {}, {}}
     );
     sentinel_->WaitConnectedDebug();
     client_ = std::make_shared<ClientImpl>(sentinel_);
@@ -165,10 +165,7 @@ RedisConnectionState::RedisConnectionState() {
         GetRedisSettings(),
         "none",
         configs_source,
-        "pub",
-        sharding_strategy,
-        {},
-        {}
+        storages::redis::impl::SubscribeSentinelStaticConfig{"pub", KeyShardFactory{sharding_strategy}, {}, {}}
     );
     subscribe_sentinel_->WaitConnectedDebug();
     subscribe_client_ = std::make_shared<SubscribeClientImpl>(subscribe_sentinel_);
@@ -187,8 +184,12 @@ RedisConnectionState::RedisConnectionState(InClusterMode) {
         GetRedisClusterSettings(),
         "none",
         configs_source,
-        "pub",
-        KeyShardFactory{storages::redis::ShardingStrategy::kRedisCluster}
+        storages::redis::impl::SentinelStaticConfig{
+            "pub",
+            KeyShardFactory{storages::redis::ShardingStrategy::kRedisCluster},
+            {},
+            {},
+        }
     );
     sentinel_->WaitConnectedDebug();
     UASSERT(sentinel_->ShardsCount() != 0);
@@ -200,10 +201,12 @@ RedisConnectionState::RedisConnectionState(InClusterMode) {
         GetRedisClusterSettings(),
         "none",
         configs_source,
-        "pub",
-        storages::redis::ShardingStrategy::kRedisCluster,
-        {},
-        {}
+        storages::redis::impl::SubscribeSentinelStaticConfig{
+            "pub",
+            KeyShardFactory{storages::redis::ShardingStrategy::kRedisCluster},
+            {},
+            {},
+        }
     );
     subscribe_sentinel_->WaitConnectedDebug();
     subscribe_client_ = std::make_shared<storages::redis::SubscribeClientImpl>(subscribe_sentinel_);

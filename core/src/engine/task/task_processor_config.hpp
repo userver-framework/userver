@@ -45,7 +45,7 @@ struct TaskProcessorConfig {
 
 TaskProcessorConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<TaskProcessorConfig>);
 
-using TaskProcessorSettings = ::dynamic_config::userver_task_processor_qos::DefaultTaskProcessor;
+using TaskProcessorSettings = ::dynamic_config::userver_task_processor_qos::TaskProcessor;
 
 using TaskProcessorProfilerSettings = ::dynamic_config::userver_task_processor_profiler_debug::TaskProcessorSettings;
 

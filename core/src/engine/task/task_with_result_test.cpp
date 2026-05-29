@@ -43,7 +43,7 @@ UTEST(TaskWithResult, Wait) {
 
 UTEST_DEATH(TaskWithResultDeathTest, NonStdException) {
     // NOLINTNEXTLINE(hicpp-exception-baseclass)
-    auto task = engine::AsyncNoSpan([] { throw 42; });
+    auto task = engine::AsyncNoTracing([] { throw 42; });
     UEXPECT_DEATH(task.Get(), "not derived from std::exception");
 }
 
@@ -51,7 +51,7 @@ UTEST(TaskWithResult, LifetimeIfTaskCancelledBeforeStart) {
     bool is_func_destroyed = false;
 
     auto on_destruction = std::make_unique<utils::ScopeGuard>([&] { is_func_destroyed = true; });
-    auto task = engine::AsyncNoSpan([on_destruction = std::move(on_destruction)] { (void)on_destruction; });
+    auto task = engine::AsyncNoTracing([on_destruction = std::move(on_destruction)] { (void)on_destruction; });
 
     task.SyncCancel();
     EXPECT_TRUE(is_func_destroyed);

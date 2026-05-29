@@ -26,11 +26,9 @@ class CongestionControlTest
     : public ugrpc::tests::ServiceWithClientFixture<UnitTestService, sample::ugrpc::UnitTestServiceClient> {
 public:
     CongestionControlTest()
-        : ugrpc::tests::ServiceWithClientFixture<UnitTestService, sample::ugrpc::UnitTestServiceClient>(
-              ugrpc::server::ServerConfig{},
-              ugrpc::server::Middlewares{MakeMiddleware()},
-              ugrpc::client::Middlewares{}
-          )
+        : ugrpc::tests::ServiceWithClientFixture<
+              UnitTestService,
+              sample::ugrpc::UnitTestServiceClient>({.server_middlewares = {MakeMiddleware()}})
     {}
 
 private:
@@ -49,11 +47,9 @@ class CongestionControlCustomCodeTest
     : public ugrpc::tests::ServiceWithClientFixture<UnitTestService, sample::ugrpc::UnitTestServiceClient> {
 public:
     CongestionControlCustomCodeTest()
-        : ugrpc::tests::ServiceWithClientFixture<UnitTestService, sample::ugrpc::UnitTestServiceClient>(
-              ugrpc::server::ServerConfig{},
-              ugrpc::server::Middlewares{MakeMiddleware()},
-              ugrpc::client::Middlewares{}
-          )
+        : ugrpc::tests::ServiceWithClientFixture<
+              UnitTestService,
+              sample::ugrpc::UnitTestServiceClient>({.server_middlewares = {MakeMiddleware()}})
     {}
 
 private:
@@ -77,7 +73,7 @@ UTEST_F(CongestionControlTest, Basic) {
 
     UEXPECT_THROW(future.Get(), ugrpc::client::ResourceExhaustedError);
 
-    const auto& metadata = future.GetContext().GetClientContext().GetServerInitialMetadata();
+    const auto& metadata = future.GetContext().GetClientContext().GetServerTrailingMetadata();
     ASSERT_EQ(
         ugrpc::impl::kCongestionControlRatelimitReason,
         utils::FindOrDefault(metadata, ugrpc::impl::kXYaTaxiRatelimitReason)
@@ -91,7 +87,7 @@ UTEST_F(CongestionControlCustomCodeTest, CustomCode) {
 
     UEXPECT_THROW(future.Get(), ugrpc::client::InternalError);
 
-    const auto& metadata = future.GetContext().GetClientContext().GetServerInitialMetadata();
+    const auto& metadata = future.GetContext().GetClientContext().GetServerTrailingMetadata();
     ASSERT_EQ(
         ugrpc::impl::kCongestionControlRatelimitReason,
         utils::FindOrDefault(metadata, ugrpc::impl::kXYaTaxiRatelimitReason)

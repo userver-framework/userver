@@ -14,12 +14,14 @@ namespace {
 const std::string kDateFormat = "%Y-%m-%d";
 const auto kUtcTz = cctz::utc_time_zone();
 
-// TODO: replace with C++20 std::chrono::days
-constexpr date::days ToDays(int year, int month, int day) noexcept {
-    const date::year_month_day
-        ymd{date::year{year}, date::month{static_cast<unsigned>(month)}, date::day{static_cast<unsigned>(day)}};
+constexpr std::chrono::days ToDays(int year, int month, int day) noexcept {
+    const std::chrono::year_month_day ymd{
+        std::chrono::year{year},
+        std::chrono::month{static_cast<unsigned>(month)},
+        std::chrono::day{static_cast<unsigned>(day)}
+    };
 
-    return date::sys_days{ymd}.time_since_epoch();
+    return std::chrono::sys_days{ymd}.time_since_epoch();
 }
 
 }  // namespace

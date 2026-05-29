@@ -28,7 +28,7 @@ UTEST(FdSink, UnownedSinkLog) {
 UTEST(FdSink, PipeSinkLog) {
     engine::io::Pipe fd_pipe{};
 
-    auto read_task = engine::AsyncNoSpan([&fd_pipe] {
+    auto read_task = engine::AsyncNoTracing([&fd_pipe] {
         const auto result = test::ReadFromFd(fs::blocking::FileDescriptor::AdoptFd(fd_pipe.reader.Release()));
         EXPECT_EQ(result, test::Messages("message"));
     });
@@ -42,7 +42,7 @@ UTEST(FdSink, PipeSinkLog) {
 UTEST(FdSink, PipeSinkLogStringView) {
     engine::io::Pipe fd_pipe{};
 
-    auto read_task = engine::AsyncNoSpan([&fd_pipe] {
+    auto read_task = engine::AsyncNoTracing([&fd_pipe] {
         const auto result = test::ReadFromFd(fs::blocking::FileDescriptor::AdoptFd(fd_pipe.reader.Release()));
         EXPECT_EQ(result, test::Messages("big message"));
     });
@@ -59,7 +59,7 @@ UTEST(FdSink, PipeSinkLogStringView) {
 UTEST(FdSink, PipeSinkLogMulti) {
     engine::io::Pipe fd_pipe{};
 
-    auto read_task = engine::AsyncNoSpan([&fd_pipe] {
+    auto read_task = engine::AsyncNoTracing([&fd_pipe] {
         const auto result = test::ReadFromFd(fs::blocking::FileDescriptor::AdoptFd(fd_pipe.reader.Release()));
         EXPECT_EQ(result, test::Messages("message", "message 2", "message 3"));
     });

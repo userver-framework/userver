@@ -729,7 +729,7 @@ UTEST(ExpirableCacheUpdateTrait, TwoFailed) {
     cache::MockEnvironment environment(testsuite::impl::PeriodicUpdatesMode::kEnabled);
     const ExpirableCache cache(config, environment, [](auto i) -> bool {
         std::vector<int> failed{1, 3, 4, 5, 7, 9, 10, 11};
-        return std::count(failed.begin(), failed.end(), i);
+        return std::ranges::count(failed, i);
     });
 
     const std::vector expected{false, false, false, false, true, true, false, false, false, false, true, true, false};
@@ -1036,60 +1036,66 @@ INSTANTIATE_UTEST_SUITE_P(
     TestInvalidateAsyncAtStartup,
     Values(
         CacheInvalidateAsyncParams{
-            testsuite::impl::PeriodicUpdatesMode::kEnabled,
-            {
-                InvalidateBeforeStartPeriodicUpdates{true},
-                InvalidateAtFirstUpdate{true},
-                FirstSyncUpdate{true},
-            },
-            {1, 2, 3},
+            .periodic_updates_mode = testsuite::impl::PeriodicUpdatesMode::kEnabled,
+            .settings =
+                {
+                    .invalidate_before_start_periodic_updates = InvalidateBeforeStartPeriodicUpdates{true},
+                    .invalidate_at_first_update = InvalidateAtFirstUpdate{true},
+                    .first_sync_update = FirstSyncUpdate{true},
+                },
+            .expected_updates_counts = {.initial_sync = 1, .initial_async = 2, .after_full_invalidation = 3},
         },
         CacheInvalidateAsyncParams{
-            testsuite::impl::PeriodicUpdatesMode::kEnabled,
-            {
-                InvalidateBeforeStartPeriodicUpdates{false},
-                InvalidateAtFirstUpdate{true},
-                FirstSyncUpdate{true},
-            },
-            {1, 2, 3},
+            .periodic_updates_mode = testsuite::impl::PeriodicUpdatesMode::kEnabled,
+            .settings =
+                {
+                    .invalidate_before_start_periodic_updates = InvalidateBeforeStartPeriodicUpdates{false},
+                    .invalidate_at_first_update = InvalidateAtFirstUpdate{true},
+                    .first_sync_update = FirstSyncUpdate{true},
+                },
+            .expected_updates_counts = {.initial_sync = 1, .initial_async = 2, .after_full_invalidation = 3},
         },
         CacheInvalidateAsyncParams{
-            testsuite::impl::PeriodicUpdatesMode::kEnabled,
-            {
-                InvalidateBeforeStartPeriodicUpdates{true},
-                InvalidateAtFirstUpdate{false},
-                FirstSyncUpdate{true},
-            },
-            {1, 1, 2},
+            .periodic_updates_mode = testsuite::impl::PeriodicUpdatesMode::kEnabled,
+            .settings =
+                {
+                    .invalidate_before_start_periodic_updates = InvalidateBeforeStartPeriodicUpdates{true},
+                    .invalidate_at_first_update = InvalidateAtFirstUpdate{false},
+                    .first_sync_update = FirstSyncUpdate{true},
+                },
+            .expected_updates_counts = {.initial_sync = 1, .initial_async = 1, .after_full_invalidation = 2},
         },
         // With periodic updates disabled, InvalidateAsync is actually performed
         // synchronously, hence initial_sync == initial_async.
         CacheInvalidateAsyncParams{
-            testsuite::impl::PeriodicUpdatesMode::kDisabled,
-            {
-                InvalidateBeforeStartPeriodicUpdates{true},
-                InvalidateAtFirstUpdate{true},
-                FirstSyncUpdate{true},
-            },
-            {2, 2, 3},
+            .periodic_updates_mode = testsuite::impl::PeriodicUpdatesMode::kDisabled,
+            .settings =
+                {
+                    .invalidate_before_start_periodic_updates = InvalidateBeforeStartPeriodicUpdates{true},
+                    .invalidate_at_first_update = InvalidateAtFirstUpdate{true},
+                    .first_sync_update = FirstSyncUpdate{true},
+                },
+            .expected_updates_counts = {.initial_sync = 2, .initial_async = 2, .after_full_invalidation = 3},
         },
         CacheInvalidateAsyncParams{
-            testsuite::impl::PeriodicUpdatesMode::kDisabled,
-            {
-                InvalidateBeforeStartPeriodicUpdates{false},
-                InvalidateAtFirstUpdate{true},
-                FirstSyncUpdate{true},
-            },
-            {2, 2, 3},
+            .periodic_updates_mode = testsuite::impl::PeriodicUpdatesMode::kDisabled,
+            .settings =
+                {
+                    .invalidate_before_start_periodic_updates = InvalidateBeforeStartPeriodicUpdates{false},
+                    .invalidate_at_first_update = InvalidateAtFirstUpdate{true},
+                    .first_sync_update = FirstSyncUpdate{true},
+                },
+            .expected_updates_counts = {.initial_sync = 2, .initial_async = 2, .after_full_invalidation = 3},
         },
         CacheInvalidateAsyncParams{
-            testsuite::impl::PeriodicUpdatesMode::kDisabled,
-            {
-                InvalidateBeforeStartPeriodicUpdates{true},
-                InvalidateAtFirstUpdate{false},
-                FirstSyncUpdate{true},
-            },
-            {1, 1, 2},
+            .periodic_updates_mode = testsuite::impl::PeriodicUpdatesMode::kDisabled,
+            .settings =
+                {
+                    .invalidate_before_start_periodic_updates = InvalidateBeforeStartPeriodicUpdates{true},
+                    .invalidate_at_first_update = InvalidateAtFirstUpdate{false},
+                    .first_sync_update = FirstSyncUpdate{true},
+                },
+            .expected_updates_counts = {.initial_sync = 1, .initial_async = 1, .after_full_invalidation = 2},
         }
     )
 );

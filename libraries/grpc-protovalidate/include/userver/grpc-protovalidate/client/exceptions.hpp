@@ -19,7 +19,11 @@ public:
 /// @brief Base grpc_protovalidate error with @ref buf::validate::ValidationResult.
 class MessageError : public BaseError {
 public:
-    MessageError(std::string_view call_name, std::string_view additional_info, buf::validate::ValidationResult result);
+    MessageError(
+        std::string_view call_name,
+        std::string_view additional_info,
+        buf::validate::ValidationResult&& result
+    );
 
     const buf::validate::ValidationResult& GetErrorInfo() const;
 
@@ -40,14 +44,14 @@ public:
 ///        [protovalidate](https://github.com/bufbuild/protovalidate) constraints.
 class ResponseError final : public MessageError {
 public:
-    ResponseError(std::string_view call_name, buf::validate::ValidationResult result);
+    ResponseError(std::string_view call_name, buf::validate::ValidationResult&& result);
 };
 
 /// @brief RPC failed due to violations in the request
 ///        [protovalidate](https://github.com/bufbuild/protovalidate) constraints.
 class RequestError final : public MessageError {
 public:
-    RequestError(std::string_view call_name, buf::validate::ValidationResult result);
+    RequestError(std::string_view call_name, buf::validate::ValidationResult&& result);
 };
 
 }  // namespace grpc_protovalidate::client

@@ -74,8 +74,6 @@ bool DynamicConfig::operator==(const DynamicConfig& other) const noexcept {
     return dumps_enabled == other.dumps_enabled && min_dump_interval == other.min_dump_interval;
 }
 
-bool DynamicConfig::operator!=(const DynamicConfig& other) const noexcept { return !(*this == other); }
-
 }  // namespace dump
 
 USERVER_NAMESPACE_END

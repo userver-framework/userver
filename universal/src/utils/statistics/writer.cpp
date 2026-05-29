@@ -21,7 +21,7 @@ constexpr std::string_view kFixitHint = "Destroy the last Writer object before u
 template <class ContainerRight>
 bool LeftContainsRight(LabelsSpan left, const ContainerRight& right) {
     for (const auto& value : right) {
-        if (std::find(left.begin(), left.end(), LabelView{value}) == left.end()) {
+        if (std::ranges::find(left, LabelView{value}) == left.end()) {
             return false;
         }
     }

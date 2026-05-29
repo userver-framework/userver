@@ -5,9 +5,11 @@
 #include <cstdint>
 
 #include <boost/intrusive/list_hook.hpp>
+#include <boost/smart_ptr/intrusive_ptr.hpp>
 #include <boost/smart_ptr/intrusive_ref_counter.hpp>
 
 #include <userver/engine/impl/epoch.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,8 +25,6 @@ public:
     Awaiter(Awaiter&&) = delete;
     Awaiter& operator=(const Awaiter&) = delete;
     Awaiter& operator=(Awaiter&&) = delete;
-
-    void Notify(std::uintptr_t context) noexcept;
 
     std::size_t UseCount() const noexcept;
 
@@ -43,11 +43,14 @@ private:
 
     struct WaitListData : public WaitListHook {
         // WaitList can't store context. But, we can store it here because an awaiter
-        // can't be simultaneouly linked to multiple wait lists.
+        // can't be simultaneously linked to multiple wait lists.
         std::uintptr_t context{0};
     };
 
     friend class WaitList;
+    friend void Notify(boost::intrusive_ptr<Awaiter>&& awaiter, std::uintptr_t context) noexcept;
+
+    static void NotifyTaskContext(boost::intrusive_ptr<Awaiter> self, std::uintptr_t context) noexcept;
 
     PolymorphicAwaiter& CastToPolymorphic() noexcept;
 
@@ -61,7 +64,7 @@ private:
 
 class PolymorphicAwaiter : public Awaiter {
 public:
-    virtual void DoNotify(std::uintptr_t context) noexcept = 0;
+    virtual void DoNotify(boost::intrusive_ptr<PolymorphicAwaiter> self, std::uintptr_t context) noexcept = 0;
 
 protected:
     PolymorphicAwaiter();
@@ -75,6 +78,17 @@ protected:
 private:
     friend void intrusive_ptr_release(Awaiter* awaiter) noexcept;  // NOLINT(readability-identifier-naming)
 };
+
+inline void Notify(boost::intrusive_ptr<Awaiter>&& awaiter, std::uintptr_t context) noexcept {
+    UASSERT(awaiter);
+
+    if (awaiter->type_ == Awaiter::StaticType::kTaskContext) {
+        Awaiter::NotifyTaskContext(std::move(awaiter), context);
+    } else {
+        auto polymorphic_awaiter = boost::static_pointer_cast<PolymorphicAwaiter>(std::move(awaiter));
+        polymorphic_awaiter->DoNotify(std::move(polymorphic_awaiter), context);
+    }
+}
 
 }  // namespace engine::impl
 

@@ -1,11 +1,16 @@
 #pragma once
 
+/// @file userver/formats/json/parser/bool_parser.hpp
+/// @brief @copybrief formats::json::parser::BoolParser
+/// @ingroup userver_universal
+
 #include <userver/formats/json/parser/typed_parser.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace formats::json::parser {
 
+/// @brief SAX parser for JSON boolean values.
 class BoolParser final : public formats::json::parser::TypedParser<bool> {
 public:
     using formats::json::parser::TypedParser<bool>::TypedParser;

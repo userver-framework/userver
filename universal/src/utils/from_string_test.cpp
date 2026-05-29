@@ -1,5 +1,6 @@
 #include <userver/utils/from_string.hpp>
 
+#include <algorithm>
 #include <limits>
 #include <random>
 #include <type_traits>
@@ -269,7 +270,7 @@ TEST(FromString, StringViewToFloatingPointSmall) {
 
 TEST(FromString, StringViewToFloatingPointBig) {
     char buffer[33];
-    std::fill(buffer, buffer + 33, '0');
+    std::ranges::fill_n(buffer, 33, '0');
 
     buffer[1] = '.';
     buffer[32] = '9';

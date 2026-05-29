@@ -4,7 +4,12 @@
 /// @brief Convenient typedefs for RabbitMQ entities.
 
 #include <chrono>
+#include <cstdint>
+#include <optional>
+#include <string>
+#include <unordered_map>
 
+#include <userver/formats/json/value.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -63,6 +68,10 @@ enum class MessageType {
     kTransient,
 };
 
+/// JSON-like representation of an AMQP header value.
+/// This is not JSON, but a convenient tree representation for AMQP field values.
+using HeaderValue = formats::json::Value;
+
 /// @brief Structure holding an AMQP message body along with some of its
 /// metadata fields. This struct is used to pass messages to the end user,
 /// hiding the actual AMQP message object implementation.
@@ -75,6 +84,7 @@ struct ConsumedMessage {
     Metadata metadata;
     std::optional<std::string> reply_to{};
     std::optional<std::string> correlation_id{};
+    std::unordered_map<std::string, HeaderValue> headers{};
 };
 
 /// @brief Structure holding an AMQP message body along with some of its
@@ -86,6 +96,7 @@ struct Envelope {
     std::optional<std::string> reply_to{};
     std::optional<std::string> correlation_id{};
     std::optional<std::chrono::milliseconds> expiration{};
+    std::optional<std::unordered_map<std::string, HeaderValue>> headers{};
 };
 
 }  // namespace urabbitmq

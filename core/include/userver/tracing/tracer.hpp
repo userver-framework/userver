@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/tracing/tracer.hpp
+/// @brief Tracing configuration for span logging suppression
+
 #include <string>
 
 #include <dynamic_config/variables/USERVER_NO_LOG_SPANS.hpp>

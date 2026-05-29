@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/engine/io/fd_control_holder.hpp
+/// @brief File descriptor control holder type aliases
+
 #include <memory>
 
 USERVER_NAMESPACE_BEGIN

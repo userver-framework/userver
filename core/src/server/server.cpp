@@ -16,6 +16,8 @@
 #include <server/net/stats.hpp>
 #include <server/requests_view.hpp>
 #include <server/server_config.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/sleep.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/middlewares/configuration.hpp>
@@ -36,6 +38,10 @@ struct PortInfo final {
     );
 
     void Start();
+
+    void StopListening();
+
+    void StopServing(engine::Deadline serving_shutdown_deadline);
 
     void Stop();
 
@@ -81,10 +87,30 @@ void PortInfo::Start() {
     }
 }
 
-void PortInfo::Stop() {
-    LOG_TRACE() << "Stopping listeners";
+void PortInfo::StopListening() {
+    LOG_TRACE() << "Stopping listening for new connections";
+    for (auto& listener : listeners) {
+        listener.StopListening();
+    }
+    LOG_TRACE() << "Stopped listening for new connections";
+}
+
+void PortInfo::StopServing(engine::Deadline serving_shutdown_deadline) {
+    LOG_TRACE() << "Stopping listeners and active connections processing in " << serving_shutdown_deadline.TimeLeft();
+    for (const auto& listener : listeners) {
+        if (serving_shutdown_deadline.IsReached()) {
+            break;
+        }
+        listener.WaitForNoConnections(serving_shutdown_deadline);
+    }
     listeners.clear();
-    LOG_TRACE() << "Stopped listeners";
+    LOG_TRACE() << "Stopped listeners and active connections processing";
+}
+
+void PortInfo::Stop() {
+    if (!listeners.empty()) {
+        StopServing(engine::Deadline::Passed());
+    }
 
     if (endpoint_info) {
         UASSERT_MSG(endpoint_info->connection_count == 0, "Not all the connections were closed");
@@ -115,6 +141,7 @@ public:
 
     void StartPortInfo();
     void StartMonitorPortInfo();
+    void StopServing(engine::Deadline serving_shutdown_deadline);
     void Stop();
 
     void AddHandler(const handlers::HttpHandlerBase& handler, engine::TaskProcessor& task_processor);
@@ -134,13 +161,15 @@ public:
     std::uint64_t GetTotalRequests() const;
 
 private:
+    enum State : std::uint8_t { kRunning, kStoppingServing, kStoppedServing, kStopping };
+
     PortInfo main_port_info_;
     PortInfo monitor_port_info_;
 
     std::atomic<size_t> throttlable_handlers_count_{0};
 
-    mutable std::shared_mutex on_stop_mutex_{};
-    bool is_stopping_{false};
+    mutable std::shared_mutex state_mutex_;
+    std::atomic<State> state_{State::kRunning};
 
     std::atomic<bool> has_requests_view_watchers_{false};
     RequestsView requests_view_{};
@@ -161,8 +190,11 @@ ServerImpl::ServerImpl(
     for (auto& port : config_.listener.ports) {
         port.ReadTlsSettings(secdist);
         port.InitSslCtx();
-    }
 
+        if (port.ssl_ctx) {
+            port.ssl_ctx->SetHttpVersion(config_.listener.connection_config.http_version);
+        }
+    }
     main_port_info_.Init(config_, config_.listener, component_context, false);
     if (config_.max_response_size_in_flight) {
         main_port_info_.data_accounter.SetMaxPendingResponsesSizeInBytes(*config_.max_response_size_in_flight);
@@ -206,13 +238,41 @@ void ServerImpl::StartMonitorPortInfo() {
     }
 }
 
+void ServerImpl::StopServing(engine::Deadline serving_shutdown_deadline) {
+    if (state_.exchange(State::kStoppingServing) != State::kRunning) {
+        utils::AbortWithStacktrace("StopServing() should be called at most once and only in the Running state");
+    }
+
+    LOG_INFO() << "Stopping listening";
+    main_port_info_.StopListening();
+    monitor_port_info_.StopListening();
+    LOG_INFO() << "Stopped listening";
+
+    LOG_INFO() << "Stopping servering";
+    main_port_info_.StopServing(serving_shutdown_deadline);
+    monitor_port_info_.StopServing(serving_shutdown_deadline);
+
+    if (state_.exchange(State::kStoppedServing) != State::kStoppingServing) {
+        utils::AbortWithStacktrace("No state transitions (like Stop()) should happen during StopServing() execution");
+    }
+    LOG_INFO() << "Stopped serving";
+}
+
 void ServerImpl::Stop() {
-    {
-        const std::lock_guard lock{on_stop_mutex_};
-        if (is_stopping_) {
+    const auto previous_state = state_.exchange(State::kStopping);
+    switch (previous_state) {
+        case State::kStopping:
             return;
-        }
-        is_stopping_ = true;
+        case State::kRunning:
+        case State::kStoppedServing:
+            break;
+        case State::kStoppingServing:
+            utils::AbortWithStacktrace("Stop() should not be called during StopServing() execution");
+    }
+
+    {
+        // This lock ensures that all other protected code blocks will correctly see the kStopping state.
+        std::unique_lock lock(state_mutex_);
     }
 
     LOG_INFO() << "Stopping server";
@@ -272,8 +332,8 @@ const http::HttpRequestHandler& ServerImpl::GetHttpRequestHandler(bool is_monito
 net::StatsAggregation ServerImpl::GetServerStats() const {
     net::StatsAggregation summary;
 
-    const std::shared_lock lock{on_stop_mutex_};
-    if (is_stopping_) {
+    const std::shared_lock lock{state_mutex_};
+    if (state_ == State::kStopping) {
         return summary;
     }
     for (const auto& listener : main_port_info_.listeners) {
@@ -292,15 +352,13 @@ RequestsView& ServerImpl::GetRequestsView() {
     return requests_view_;
 }
 
-void Server::SetLimit(std::optional<size_t> new_limit) { SetRpsRatelimit(new_limit); }
-
 void ServerImpl::WriteTotalHandlerStatistics(utils::statistics::Writer& writer) const {
     handlers::HttpHandlerStatisticsSnapshot total;
 
     {
         // Protect against main_port_info_.request_handler_.reset() in Stop()
-        const std::shared_lock lock{on_stop_mutex_};
-        if (is_stopping_) {
+        const std::shared_lock lock{state_mutex_};
+        if (state_ == State::kStopping) {
             return;
         }
 
@@ -309,8 +367,9 @@ void ServerImpl::WriteTotalHandlerStatistics(utils::statistics::Writer& writer) 
 
         for (const auto& handler_ptr : *handlers) {
             for (const auto method : handler_ptr->GetAllowedMethods()) {
-                total.Add(handlers::HttpHandlerStatisticsSnapshot{handler_ptr->GetHandlerStatistics().GetByMethod(method
-                )});
+                total.Add(handlers::HttpHandlerStatisticsSnapshot{
+                    handler_ptr->GetHandlerStatistics().GetOverallStatistics().GetByMethod(method)
+                });
             }
         }
     }
@@ -381,8 +440,6 @@ void Server::AddHandler(const handlers::HttpHandlerBase& handler, engine::TaskPr
     pimpl_->AddHandler(handler, task_processor);
 }
 
-size_t Server::GetThrottlableHandlersCount() const { return pimpl_->GetThrottlableHandlersCount(); }
-
 const http::HttpRequestHandler& Server::GetHttpRequestHandler(bool is_monitor) const {
     return pimpl_->GetHttpRequestHandler(is_monitor);
 }
@@ -400,9 +457,15 @@ void Server::Start() {
     LOG_INFO() << "Server port is started";
 }
 
+void Server::StopServing(engine::Deadline serving_shutdown_deadline) { pimpl_->StopServing(serving_shutdown_deadline); }
+
 void Server::Stop() { pimpl_->Stop(); }
 
 RequestsView& Server::GetRequestsView() { return pimpl_->GetRequestsView(); }
+
+void Server::SetLimit(std::optional<size_t> new_limit) { SetRpsRatelimit(new_limit); }
+
+size_t Server::GetLimitableHandlersCount() const { return pimpl_->GetThrottlableHandlersCount(); }
 
 void Server::SetRpsRatelimit(std::optional<size_t> rps) { pimpl_->SetRpsRatelimit(rps); }
 

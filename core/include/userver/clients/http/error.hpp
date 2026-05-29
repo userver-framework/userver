@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/clients/http/error.hpp
+/// @brief HTTP client exception types
+
 #include <exception>
 #include <string>
 #include <string_view>

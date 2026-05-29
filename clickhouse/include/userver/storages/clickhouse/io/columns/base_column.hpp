@@ -10,7 +10,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::clickhouse::io::columns {
 
-// clang-format off
 /// @brief Base class for every typed ClickHouse column.
 /// To add new columns one should derive from this class,
 /// define types aliases:
@@ -23,7 +22,6 @@ namespace storages::clickhouse::io::columns {
 /// - `cpp_type ColumnIterator<YourColumnType>::DataHolder::Get()`
 ///
 /// see implementation of any of the existing columns for better understanding.
-// clang-format on
 template <typename ColumnType>
 class ClickhouseColumn {
 public:

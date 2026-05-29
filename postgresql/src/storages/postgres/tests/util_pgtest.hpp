@@ -4,16 +4,18 @@
 
 #include <cctype>
 #include <cstdlib>
+#include <string>
+#include <tuple>
 
 #include <userver/concurrent/background_task_storage_fwd.hpp>
 #include <userver/engine/async.hpp>
-#include <userver/engine/task/task.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
 
 #include <storages/postgres/default_command_controls.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/experiments.hpp>
+#include <storages/postgres/tests/postgres_chaos_proxy.hpp>
 #include <userver/storages/postgres/detail/connection_ptr.hpp>
 #include <userver/storages/postgres/dsn.hpp>
 
@@ -38,6 +40,8 @@ public:
 private:
     storages::postgres::CommandControl old_cmd_ctl_;
 };
+
+enum class ConnectionMode : std::uint8_t { kChaosProxy, kDirect };
 
 inline const storages::postgres::ConnectionSettings kCachePreparedStatements{
     storages::postgres::ConnectionSettings::kCachePreparedStatements
@@ -102,7 +106,7 @@ protected:
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class PostgreConnection
     : public PostgreConnectionBaseFixture,
-      public ::testing::WithParamInterface<storages::postgres::ConnectionSettings> {
+      public ::testing::WithParamInterface<std::tuple<storages::postgres::ConnectionSettings, ConnectionMode>> {
 protected:
     PostgreConnection();
     ~PostgreConnection() override;
@@ -110,6 +114,7 @@ protected:
     storages::postgres::detail::ConnectionPtr& GetConn();
 
 private:
+    std::unique_ptr<PostgresChaosProxy> chaos_proxy_;
     storages::postgres::detail::ConnectionPtr conn_;
 };
 

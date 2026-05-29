@@ -1,6 +1,6 @@
 #include <userver/ugrpc/server/middlewares/headers_propagator/component.hpp>
 
-#include <boost/range/adaptor/transformed.hpp>
+#include <ranges>
 
 #include <userver/components/component_config.hpp>
 #include <userver/utils/algo.hpp>
@@ -28,7 +28,7 @@ std::shared_ptr<const MiddlewareBase> Component::CreateMiddleware(
     const auto headers = middleware_config["headers"].As<std::vector<std::string>>({});
     return std::make_shared<
         Middleware>(utils::AsContainer<decltype(headers
-                    )>(headers | boost::adaptors::transformed([](const auto& h) { return utils::text::ToLower(h); })));
+                    )>(headers | std::views::transform([](const auto& h) { return utils::text::ToLower(h); })));
 }
 
 yaml_config::Schema Component::GetMiddlewareConfigSchema() const { return GetStaticConfigSchema(); }

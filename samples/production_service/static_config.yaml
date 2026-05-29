@@ -182,11 +182,11 @@ components_manager:
     # /// [Production service sample - static config task processors]
     # yaml
     task_processors:
-        fs-task-processor:       # for blocking operations
+        fs-task-processor:  # for blocking operations
             thread_name: fs-worker
             worker_threads: $fs_worker_threads
             worker_threads#fallback: 2
-        main-task-processor:     # for nonblocking operations
+        main-task-processor:  # for nonblocking operations
             thread_name: main-worker
             worker_threads: $main_worker_threads
             worker_threads#fallback: 6
@@ -194,7 +194,7 @@ components_manager:
             thread_name: mon-worker
             worker_threads: $monitor_worker_threads
             worker_threads#fallback: 1
-    event_thread_pool:           # ev pools to deal with OS events
+    event_thread_pool:  # ev pools to deal with OS events
         threads: $event_threads
         threads#fallback: 2
-    # /// [Production service sample - static config task processors]
+        # /// [Production service sample - static config task processors]

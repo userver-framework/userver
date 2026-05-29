@@ -8,7 +8,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-/// Miscellaneous cryptographic routines
+/// @brief Miscellaneous cryptographic routines
 namespace crypto::algorithm {
 
 /// Performs constant-time string comparison if the strings are of equal size

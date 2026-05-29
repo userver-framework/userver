@@ -17,7 +17,7 @@ std::string_view ToStringView(grpc::string_ref str) { return {str.data(), str.si
 
 grpc::string ToGrpcString(grpc::string_ref str) { return {str.data(), str.size()}; }
 
-void ProxyRequestMetadata(const grpc::ServerContext& server_context, ugrpc::client::CallOptions& call_options) {
+void ProxyRequestMetadata(const grpc::ServerContextBase& server_context, ugrpc::client::CallOptions& call_options) {
     // Proxy all client (request) metadata,
     // add some custom metadata as well.
     for (const auto& [key, value] : server_context.client_metadata()) {
@@ -26,7 +26,7 @@ void ProxyRequestMetadata(const grpc::ServerContext& server_context, ugrpc::clie
     call_options.AddMetadata("proxy-name", "grpc-generic-proxy");
 }
 
-void ProxyTrailingResponseMetadata(const grpc::ClientContext& client_context, grpc::ServerContext& server_context) {
+void ProxyTrailingResponseMetadata(const grpc::ClientContext& client_context, grpc::ServerContextBase& server_context) {
     // Proxy all server (response) trailing metadata,
     // add some custom metadata as well.
     for (const auto& [key, value] : client_context.GetServerTrailingMetadata()) {

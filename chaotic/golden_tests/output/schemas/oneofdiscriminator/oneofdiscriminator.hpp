@@ -28,12 +28,19 @@ USERVER_NAMESPACE::logging::LogHelper& operator<<(USERVER_NAMESPACE::logging::Lo
 
 A Parse(USERVER_NAMESPACE::formats::json::Value json, USERVER_NAMESPACE::formats::parse::To<A>);
 
-/* Parse(USERVER_NAMESPACE::formats::yaml::Value, To<A>) was not generated: ::ns::A has JSON-specific field "extra" */
+A Parse(USERVER_NAMESPACE::formats::yaml::Value json, USERVER_NAMESPACE::formats::parse::To<A>);
 
-/* Parse(USERVER_NAMESPACE::yaml_config::Value, To<A>) was not generated: ::ns::A has JSON-specific field "extra" */
+A Parse(USERVER_NAMESPACE::yaml_config::Value json, USERVER_NAMESPACE::formats::parse::To<A>);
+
+A FromJsonString(std::string_view json, USERVER_NAMESPACE::formats::parse::To<A>);
+
+std::string ToJsonString(const A& value);
 
 USERVER_NAMESPACE::formats::json::Value Serialize(
     const A& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
+
+void WriteToStream(const ::ns::A& value, USERVER_NAMESPACE::formats::json::StringBuilder& sw,
+                   bool hide_brackets = false, std::string_view hide_field_name = {});
 
 struct B {
   static constexpr USERVER_NAMESPACE::utils::StringLiteral kFieldNametype = "type";
@@ -50,12 +57,19 @@ USERVER_NAMESPACE::logging::LogHelper& operator<<(USERVER_NAMESPACE::logging::Lo
 
 B Parse(USERVER_NAMESPACE::formats::json::Value json, USERVER_NAMESPACE::formats::parse::To<B>);
 
-/* Parse(USERVER_NAMESPACE::formats::yaml::Value, To<B>) was not generated: ::ns::B has JSON-specific field "extra" */
+B Parse(USERVER_NAMESPACE::formats::yaml::Value json, USERVER_NAMESPACE::formats::parse::To<B>);
 
-/* Parse(USERVER_NAMESPACE::yaml_config::Value, To<B>) was not generated: ::ns::B has JSON-specific field "extra" */
+B Parse(USERVER_NAMESPACE::yaml_config::Value json, USERVER_NAMESPACE::formats::parse::To<B>);
+
+B FromJsonString(std::string_view json, USERVER_NAMESPACE::formats::parse::To<B>);
+
+std::string ToJsonString(const B& value);
 
 USERVER_NAMESPACE::formats::json::Value Serialize(
     const B& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
+
+void WriteToStream(const ::ns::B& value, USERVER_NAMESPACE::formats::json::StringBuilder& sw,
+                   bool hide_brackets = false, std::string_view hide_field_name = {});
 
 struct C {
   static constexpr USERVER_NAMESPACE::utils::StringLiteral kFieldNameversion = "version";
@@ -72,8 +86,15 @@ C Parse(USERVER_NAMESPACE::formats::yaml::Value json, USERVER_NAMESPACE::formats
 
 C Parse(USERVER_NAMESPACE::yaml_config::Value json, USERVER_NAMESPACE::formats::parse::To<C>);
 
+C FromJsonString(std::string_view json, USERVER_NAMESPACE::formats::parse::To<C>);
+
+std::string ToJsonString(const C& value);
+
 USERVER_NAMESPACE::formats::json::Value Serialize(
     const C& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
+
+void WriteToStream(const ::ns::C& value, USERVER_NAMESPACE::formats::json::StringBuilder& sw,
+                   bool hide_brackets = false, std::string_view hide_field_name = {});
 
 struct D {
   static constexpr USERVER_NAMESPACE::utils::StringLiteral kFieldNameversion = "version";
@@ -90,8 +111,15 @@ D Parse(USERVER_NAMESPACE::formats::yaml::Value json, USERVER_NAMESPACE::formats
 
 D Parse(USERVER_NAMESPACE::yaml_config::Value json, USERVER_NAMESPACE::formats::parse::To<D>);
 
+D FromJsonString(std::string_view json, USERVER_NAMESPACE::formats::parse::To<D>);
+
+std::string ToJsonString(const D& value);
+
 USERVER_NAMESPACE::formats::json::Value Serialize(
     const D& value, USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
+
+void WriteToStream(const ::ns::D& value, USERVER_NAMESPACE::formats::json::StringBuilder& sw,
+                   bool hide_brackets = false, std::string_view hide_field_name = {});
 
 struct IntegerOneOfDiscriminator {
   [[maybe_unused]] static constexpr USERVER_NAMESPACE::chaotic::OneOfIntegerSettings kFoo_Settings = {
@@ -118,9 +146,17 @@ IntegerOneOfDiscriminator Parse(USERVER_NAMESPACE::formats::json::Value json,
 /* Parse(USERVER_NAMESPACE::yaml_config::Value, To<IntegerOneOfDiscriminator>) was not generated:
  * ::ns::IntegerOneOfDiscriminator::Foo has JSON-specific field "extra" */
 
+IntegerOneOfDiscriminator FromJsonString(std::string_view json,
+                                         USERVER_NAMESPACE::formats::parse::To<IntegerOneOfDiscriminator>);
+
+std::string ToJsonString(const IntegerOneOfDiscriminator& value);
+
 USERVER_NAMESPACE::formats::json::Value Serialize(
     const IntegerOneOfDiscriminator& value,
     USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
+
+void WriteToStream(const ::ns::IntegerOneOfDiscriminator& value, USERVER_NAMESPACE::formats::json::StringBuilder& sw,
+                   bool hide_brackets = false, std::string_view hide_field_name = {});
 
 struct OneOfDiscriminator {
   [[maybe_unused]] static constexpr USERVER_NAMESPACE::chaotic::OneOfStringSettings kFoo_Settings = {
@@ -147,9 +183,16 @@ OneOfDiscriminator Parse(USERVER_NAMESPACE::formats::json::Value json,
 /* Parse(USERVER_NAMESPACE::yaml_config::Value, To<OneOfDiscriminator>) was not generated: ::ns::OneOfDiscriminator::Foo
  * has JSON-specific field "extra" */
 
+OneOfDiscriminator FromJsonString(std::string_view json, USERVER_NAMESPACE::formats::parse::To<OneOfDiscriminator>);
+
+std::string ToJsonString(const OneOfDiscriminator& value);
+
 USERVER_NAMESPACE::formats::json::Value Serialize(
     const OneOfDiscriminator& value,
     USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
+
+void WriteToStream(const ::ns::OneOfDiscriminator& value, USERVER_NAMESPACE::formats::json::StringBuilder& sw,
+                   bool hide_brackets = false, std::string_view hide_field_name = {});
 
 }  // namespace ns
 

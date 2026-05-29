@@ -2,6 +2,7 @@
 
 #include <csignal>  // for SIGUSR1, SIGUSR2
 
+#include <userver/engine/async.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/strerror.hpp>
@@ -18,7 +19,7 @@ static_assert(SIGUSR2 == kSigUsr2);
 }  // namespace
 
 Processor::Processor(engine::TaskProcessor& task_processor)
-    : channel_(kOsSignalProcessorChannelName.data()),
+    : channel_(kOsSignalProcessorChannelName),
       task_processor_(task_processor)
 {}
 
@@ -32,7 +33,7 @@ void Processor::Notify(int signum, utils::impl::InternalTag) {
     if (engine::current_task::IsTaskProcessorThread()) {
         channel_.SendEvent(signum);
     } else {
-        engine::AsyncNoSpan(task_processor_, [this, signum] { channel_.SendEvent(signum); }).BlockingWait();
+        engine::AsyncNoTracing(task_processor_, [this, signum] { channel_.SendEvent(signum); }).BlockingWait();
     }
 }
 

@@ -17,17 +17,6 @@ properties:
                 type: integer
                 description: default retries count for an operation
                 default: 3
-            operation-timeout:
-                type: string
-                description: |
-                    default operation timeout in utils::StringToDuration() format
-                default: 1s
-            cancel-after:
-                type: string
-                description: |
-                    cancel operation after specified string in
-                    utils::StringToDuration() format
-                default: 1s
             client-timeout:
                 type: string
                 description: default client timeout in utils::StringToDuration format
@@ -75,6 +64,52 @@ properties:
                     type: boolean
                     default: true
                     description: whether to use query cache
+                network-threads-num:
+                    type: integer
+                    minimum: 1
+                    description: |
+                        NYdb::TDriverConfig::SetNetworkThreadsNum. If omitted, not set (SDK default).
+                client-threads-num:
+                    type: integer
+                    minimum: 0
+                    description: |
+                        NYdb::TDriverConfig::SetClientThreadsNum. If omitted, not set (SDK default).
+                tcp-keepalive:
+                    type: object
+                    additionalProperties: false
+                    description: |
+                        NYdb::TDriverConfig::SetTcpKeepAliveSettings. If the whole block is omitted, not set (SDK default).
+                        Use 0 for idle/count/interval on Linux to mean OS default.
+                    properties:
+                        enabled:
+                            type: boolean
+                            description: enable TCP keepalive on gRPC sockets (Linux; if omitted in a partial block, parser default
+                                applies)
+                        idle-sec:
+                            type: integer
+                            minimum: 0
+                            description: seconds idle before first keepalive probe (0 = OS default on Linux)
+                        probe-count:
+                            type: integer
+                            minimum: 0
+                            description: unacknowledged probes before drop (0 = OS default on Linux)
+                        interval-sec:
+                            type: integer
+                            minimum: 0
+                            description: seconds between probes (0 = OS default on Linux)
+                    required:
+                      - enabled
+                      - idle-sec
+                      - probe-count
+                      - interval-sec
+                grpc-keepalive-timeout:
+                    type: string
+                    description: |
+                        Duration string, e.g. 10s. NYdb::TDriverConfig::SetGRpcKeepAliveTimeout. If omitted, not set (SDK default).
+                grpc-keepalive-permit-without-calls:
+                    type: boolean
+                    description: |
+                        NYdb::TDriverConfig::SetGRpcKeepAlivePermitWithoutCalls. If omitted, not set (SDK default).
                 prefer_local_dc:
                     type: boolean
                     default: true
@@ -83,6 +118,10 @@ properties:
                     type: boolean
                     default: true
                     description: fail to boot if YDB is not available
+                use-query-client:
+                    type: boolean
+                    default: true
+                    description: whether to use query client for table client methods (ExecuteDataQuery, Transaction methods)
                 aliases:
                     description: list of aliases for this database
                     type: array

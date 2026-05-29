@@ -25,6 +25,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace utils {
+class ResourceScopeStorage;
+}  // namespace utils
+
 namespace ugrpc::impl {
 class CompletionQueuePoolBase;
 }  // namespace ugrpc::impl
@@ -84,6 +88,7 @@ public:
 
     /// @brief Start building the server
     explicit Server(
+        utils::ResourceScopeStorage& scope_storage,
         ServerConfig&& config,
         utils::statistics::Storage& statistics_storage,
         dynamic_config::Source config_source
@@ -125,7 +130,7 @@ public:
     /// - does not destroy server statistics
     /// - does not close the associated CompletionQueue
     /// Stop must still be called. StopServing is also useful for testing.
-    void StopServing() noexcept;
+    void StopServing(std::optional<engine::Deadline> serving_shutdown_deadline = std::nullopt) noexcept;
 
     /// @cond
     // For internal use only.

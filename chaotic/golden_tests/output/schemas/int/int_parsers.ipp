@@ -1,11 +1,12 @@
 #pragma once
 
-#include <userver/chaotic/object.hpp>
+#include <userver/chaotic/additional_properties.hpp>
 #include <userver/chaotic/primitive.hpp>
 #include <userver/chaotic/validators.hpp>
 #include <userver/chaotic/with_type.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 #include "int.hpp"
 
@@ -15,7 +16,7 @@ static constexpr USERVER_NAMESPACE::utils::TrivialSet k__ns__Int_PropertiesNames
   return selector().template Type<std::string_view>().Case("foo");
 };
 
-template <typename Value, typename = std::enable_if_t<USERVER_NAMESPACE::formats::common::kIsFormatValue<Value>>>
+template <USERVER_NAMESPACE::formats::common::IsFormatValue Value>
 Int Parse(Value value, USERVER_NAMESPACE::formats::parse::To<Int>) {
   value.CheckNotMissing();
   value.CheckObjectOrNull();

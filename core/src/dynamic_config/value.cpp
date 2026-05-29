@@ -12,12 +12,12 @@ USERVER_NAMESPACE_BEGIN
 namespace dynamic_config {
 
 formats::json::Value DocsMap::Get(std::string_view name) const {
-    const auto it = utils::impl::FindTransparent(docs_, name);
+    const auto it = docs_.find(name);
     if (it == docs_.end()) {
         throw std::runtime_error(fmt::format("Can't find doc for '{}'", name));
     }
 
-    const auto used_it = utils::impl::FindTransparent(configs_to_be_used_, name);
+    const auto used_it = configs_to_be_used_.find(name);
 
     if (used_it != configs_to_be_used_.end()) {
         configs_to_be_used_.erase(used_it);
@@ -26,10 +26,10 @@ formats::json::Value DocsMap::Get(std::string_view name) const {
     return it->second;
 }
 
-bool DocsMap::Has(std::string_view name) const { return utils::impl::FindTransparent(docs_, name) != docs_.end(); }
+bool DocsMap::Has(std::string_view name) const { return docs_.find(name) != docs_.end(); }
 
 void DocsMap::Set(std::string name, formats::json::Value obj) {
-    utils::impl::TransparentInsertOrAssign(docs_, std::move(name), std::move(obj));
+    docs_.insert_or_assign(std::move(name), std::move(obj));
 }
 
 void DocsMap::Remove(const std::string& name) { docs_.erase(name); }

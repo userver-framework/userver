@@ -4,6 +4,9 @@ Mocks for the gRPC servers.
 @sa @ref scripts/docs/en/userver/tutorial/grpc_service.md
 """
 
+from collections.abc import AsyncIterator
+from collections.abc import Iterator
+
 import grpc
 import pytest
 
@@ -42,7 +45,7 @@ def grpc_mockserver_endpoint(pytestconfig, get_free_port) -> str:
 
 
 @pytest.fixture(scope='session')
-async def grpc_mockserver_session(grpc_mockserver_endpoint) -> pytest_userver.grpc.MockserverSession:
+async def grpc_mockserver_session(grpc_mockserver_endpoint) -> AsyncIterator[pytest_userver.grpc.MockserverSession]:
     """
     Returns the gRPC mocking server.
 
@@ -59,11 +62,7 @@ async def grpc_mockserver_session(grpc_mockserver_endpoint) -> pytest_userver.gr
 
 
 @pytest.fixture
-def grpc_mockserver(
-    grpc_mockserver_session,
-    asyncexc_append,
-    _grpc_mockserver_ignore_errors,
-) -> pytest_userver.grpc.Mockserver:
+def grpc_mockserver(grpc_mockserver_session, asyncexc_append) -> Iterator[pytest_userver.grpc.Mockserver]:
     """
     Returns the gRPC mocking server.
     In order for gRPC clients in your service to work, mock handlers need to be installed for them using this fixture.
@@ -96,15 +95,16 @@ def grpc_mockserver(
 
     @ingroup userver_testsuite_fixtures
     """
-    with grpc_mockserver_session.asyncexc_append_scope(None if _grpc_mockserver_ignore_errors else asyncexc_append):
-        try:
-            yield pytest_userver.grpc.Mockserver(mockserver_session=grpc_mockserver_session, experimental=True)
-        finally:
-            grpc_mockserver_session.reset_mocks()
+    with grpc_mockserver_session.asyncexc_append_scope(asyncexc_append):
+        with pytest_userver.grpc.Mockserver(
+            mockserver_session=grpc_mockserver_session,
+            experimental=True,
+        ) as mockserver:
+            yield mockserver
 
 
 @pytest.fixture(scope='session')
-def userver_config_grpc_mockserver(grpc_mockserver_endpoint):
+def userver_config_grpc_mockserver():
     """
     Returns a function that adjusts the static config for testsuite.
     Finds `grpc-client-middleware-pipeline` in config_yaml and
@@ -146,11 +146,6 @@ def pytest_addoption(parser):
         default=0,
         help='gRPC mockserver port, by default random port is used',
     )
-
-
-@pytest.fixture(scope='session')
-def _grpc_mockserver_ignore_errors() -> bool:
-    return False
 
 
 # @endcond

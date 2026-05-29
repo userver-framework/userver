@@ -1,8 +1,8 @@
 #include <userver/ugrpc/client/impl/client_qos_errors_reporter.hpp>
 
-#include <boost/algorithm/string.hpp>
-#include <boost/range/adaptor/transformed.hpp>
-#include <boost/range/irange.hpp>
+#include <ranges>
+
+#include <fmt/ranges.h>
 
 #include <ugrpc/client/impl/client_qos_validation.hpp>
 #include <userver/alerts/source.hpp>
@@ -51,11 +51,9 @@ void ClientQosErrorsReporter::ValidateAndReportClientQosErrors(
                 method_path,
                 config_name,
                 metadata.service_full_name,
-                boost::algorithm::join(
-                    boost::copy_range<std::vector<std::string>>(
-                        boost::irange(static_cast<std::size_t>(0), GetMethodsCount(metadata)) |
-                        boost::adaptors::transformed([&](std::size_t i) { return GetMethodFullName(metadata, i); })
-                    ),
+                fmt::join(
+                    std::views::iota(std::size_t{0}, GetMethodsCount(metadata)) |
+                        std::views::transform([&](std::size_t i) { return GetMethodFullName(metadata, i); }),
                     ", "
                 )
             );

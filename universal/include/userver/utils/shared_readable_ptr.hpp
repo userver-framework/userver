@@ -6,6 +6,8 @@
 #include <memory>
 #include <type_traits>
 
+#include <userver/compiler/impl/lifetime.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
@@ -90,29 +92,27 @@ public:
         return *this;
     }
 
-    const T* Get() const& noexcept { return base_.get(); }
+    const T* Get() const& noexcept USERVER_IMPL_LIFETIME_BOUND { return base_.get(); }
 
-    const T& operator*() const& noexcept { return *base_; }
+    const T& operator*() const& noexcept USERVER_IMPL_LIFETIME_BOUND { return *base_; }
 
     const T& operator*() && { ReportMisuse(); }
 
-    const T* operator->() const& noexcept { return base_.get(); }
+    const T* operator->() const& noexcept USERVER_IMPL_LIFETIME_BOUND { return base_.get(); }
 
     const T* operator->() && { ReportMisuse(); }
 
-    operator const Base&() const& noexcept { return base_; }
+    operator const Base&() const& noexcept USERVER_IMPL_LIFETIME_BOUND { return base_; }
 
     operator const Base&() && { ReportMisuse(); }
 
-    operator Weak() const& noexcept { return base_; }
+    operator Weak() const& noexcept USERVER_IMPL_LIFETIME_BOUND { return base_; }
 
     operator Weak() && { ReportMisuse(); }
 
     explicit operator bool() const noexcept { return !!base_; }
 
     bool operator==(const SharedReadablePtr<T>& other) const { return base_ == other.base_; }
-
-    bool operator!=(const SharedReadablePtr<T>& other) const { return !(*this == other); }
 
     void Reset() noexcept { base_.reset(); }
 

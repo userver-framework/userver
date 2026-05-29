@@ -35,6 +35,31 @@ ugrpc::impl::ServiceStatistics& ClientData::GetServiceStatistics() {
     return internals_.statistics_storage.GetServiceStatistics(GetMetadata(), internals_.destination_prefix_in_metrics);
 }
 
+RetryLimiter* ClientData::GetRetryLimiter(std::size_t method_id) const noexcept {
+    if (method_retry_limiters_.empty()) {
+        return nullptr;
+    }
+    UASSERT(method_id < method_retry_limiters_.size());
+    return method_retry_limiters_[method_id].get();
+}
+
+utils::FixedArray<std::unique_ptr<RetryLimiter>> ClientData::CreateRetryLimiters(
+    RetryLimiterFactory* factory,
+    const ugrpc::impl::StaticServiceMetadata& metadata,
+    std::string_view destination_prefix_in_metrics
+) {
+    if (!factory) {
+        return utils::FixedArray<std::unique_ptr<RetryLimiter>>{};
+    }
+
+    return utils::GenerateFixedArray(GetMethodsCount(metadata), [&](std::size_t method_id) {
+        return factory->CreateRetryLimiter(RetryLimiterSettings{
+            GetMethodFullName(metadata, method_id),
+            std::string(destination_prefix_in_metrics)
+        });
+    });
+}
+
 }  // namespace ugrpc::client::impl
 
 USERVER_NAMESPACE_END

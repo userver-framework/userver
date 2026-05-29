@@ -1,5 +1,9 @@
 #pragma once
 
+/// @file userver/formats/json/parser/parser_handler.hpp
+/// @brief @copybrief formats::json::parser::ParserHandler
+/// @ingroup userver_universal
+
 #include <userver/formats/json/parser/base_parser.hpp>
 #include <userver/formats/json/parser/parser_state.hpp>
 
@@ -7,6 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace formats::json::parser {
 
+/// @brief Dispatches JSON SAX events to a parser stack.
 class ParserHandler final {
 public:
     ParserHandler(BaseParser& parser);

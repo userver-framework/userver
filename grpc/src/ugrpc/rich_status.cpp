@@ -5,6 +5,7 @@
 
 #include <userver/ugrpc/datetime_utils.hpp>
 #include <userver/ugrpc/status_utils.hpp>
+#include <userver/utils/forward_like.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -24,24 +25,14 @@ google::rpc::Status GrpcStatusToGoogleRpcStatus(const grpc::Status& grpc_status)
     }
 }
 
-// analogue of std::forward_like from c++23
-template <typename TOwner, typename TMember>
-decltype(auto) ForwardLike(TMember& member) {
-    if constexpr (std::is_lvalue_reference_v<TOwner>) {
-        return member;
-    } else {
-        return std::move(member);
-    }
-}
-
 template <typename TErrorInfo>
 google::rpc::ErrorInfo ErrorInfoToGoogleErrorDetailImpl(TErrorInfo&& error_info) {
     google::rpc::ErrorInfo pb_error_info;
-    pb_error_info.set_reason(std::forward<TErrorInfo>(error_info).reason);
-    pb_error_info.set_domain(std::forward<TErrorInfo>(error_info).domain);
+    pb_error_info.set_reason(utils::ForwardLike<TErrorInfo>(error_info.reason));
+    pb_error_info.set_domain(utils::ForwardLike<TErrorInfo>(error_info.domain));
     auto* pb_metadata = pb_error_info.mutable_metadata();
     for (auto&& [key, value] : error_info.metadata) {
-        (*pb_metadata)[ForwardLike<TErrorInfo>(key)] = ForwardLike<TErrorInfo>(value);
+        (*pb_metadata)[utils::ForwardLike<TErrorInfo>(key)] = utils::ForwardLike<TErrorInfo>(value);
     }
     return pb_error_info;
 }
@@ -51,7 +42,7 @@ google::rpc::DebugInfo DebugInfoToGoogleErrorDetailImpl(TDebugInfo&& debug_info)
     google::rpc::DebugInfo pb_debug_info;
     pb_debug_info.mutable_stack_entries()->Reserve(debug_info.stack_entries.size());
     for (auto&& entry : debug_info.stack_entries) {
-        pb_debug_info.add_stack_entries(ForwardLike<TDebugInfo>(entry));
+        pb_debug_info.add_stack_entries(utils::ForwardLike<TDebugInfo>(entry));
     }
     pb_debug_info.set_detail(std::forward<TDebugInfo>(debug_info).detail);
     return pb_debug_info;
@@ -63,8 +54,8 @@ google::rpc::QuotaFailure QuotaFailureToGoogleErrorDetailImpl(TQuotaFailure&& qu
     pb_quota_failure.mutable_violations()->Reserve(quota_failure.violations.size());
     for (auto&& violation : quota_failure.violations) {
         auto* pb_violation = pb_quota_failure.add_violations();
-        pb_violation->set_subject(ForwardLike<TQuotaFailure>(violation.subject));
-        pb_violation->set_description(ForwardLike<TQuotaFailure>(violation.description));
+        pb_violation->set_subject(utils::ForwardLike<TQuotaFailure>(violation.subject));
+        pb_violation->set_description(utils::ForwardLike<TQuotaFailure>(violation.description));
     }
     return pb_quota_failure;
 }
@@ -76,9 +67,9 @@ google::rpc::PreconditionFailure PreconditionFailureToGoogleErrorDetailImpl(TPre
     pb_precondition_failure.mutable_violations()->Reserve(precondition_failure.violations.size());
     for (auto&& violation : precondition_failure.violations) {
         auto* pb_violation = pb_precondition_failure.add_violations();
-        pb_violation->set_type(ForwardLike<TPreconditionFailure>(violation.type));
-        pb_violation->set_subject(ForwardLike<TPreconditionFailure>(violation.subject));
-        pb_violation->set_description(ForwardLike<TPreconditionFailure>(violation.description));
+        pb_violation->set_type(utils::ForwardLike<TPreconditionFailure>(violation.type));
+        pb_violation->set_subject(utils::ForwardLike<TPreconditionFailure>(violation.subject));
+        pb_violation->set_description(utils::ForwardLike<TPreconditionFailure>(violation.description));
     }
     return pb_precondition_failure;
 }
@@ -89,8 +80,8 @@ google::rpc::BadRequest BadRequestToGoogleErrorDetailImpl(TBadRequest&& bad_requ
     pb_bad_request.mutable_field_violations()->Reserve(bad_request.field_violations.size());
     for (auto&& violation : bad_request.field_violations) {
         auto* pb_violation = pb_bad_request.add_field_violations();
-        pb_violation->set_field(ForwardLike<TBadRequest>(violation.field));
-        pb_violation->set_description(ForwardLike<TBadRequest>(violation.description));
+        pb_violation->set_field(utils::ForwardLike<TBadRequest>(violation.field));
+        pb_violation->set_description(utils::ForwardLike<TBadRequest>(violation.description));
     }
     return pb_bad_request;
 }
@@ -98,18 +89,18 @@ google::rpc::BadRequest BadRequestToGoogleErrorDetailImpl(TBadRequest&& bad_requ
 template <typename TRequestInfo>
 google::rpc::RequestInfo RequestInfoToGoogleErrorDetailImpl(TRequestInfo&& request_info) {
     google::rpc::RequestInfo pb_request_info;
-    pb_request_info.set_request_id(std::forward<TRequestInfo>(request_info).request_id);
-    pb_request_info.set_serving_data(std::forward<TRequestInfo>(request_info).serving_data);
+    pb_request_info.set_request_id(utils::ForwardLike<TRequestInfo>(request_info.request_id));
+    pb_request_info.set_serving_data(utils::ForwardLike<TRequestInfo>(request_info.serving_data));
     return pb_request_info;
 }
 
 template <typename TResourceInfo>
 google::rpc::ResourceInfo ResourceInfoToGoogleErrorDetailImpl(TResourceInfo&& resource_info) {
     google::rpc::ResourceInfo pb_resource_info;
-    pb_resource_info.set_resource_type(std::forward<TResourceInfo>(resource_info).resource_type);
-    pb_resource_info.set_resource_name(std::forward<TResourceInfo>(resource_info).resource_name);
-    pb_resource_info.set_owner(std::forward<TResourceInfo>(resource_info).owner);
-    pb_resource_info.set_description(std::forward<TResourceInfo>(resource_info).description);
+    pb_resource_info.set_resource_type(utils::ForwardLike<TResourceInfo>(resource_info.resource_type));
+    pb_resource_info.set_resource_name(utils::ForwardLike<TResourceInfo>(resource_info.resource_name));
+    pb_resource_info.set_owner(utils::ForwardLike<TResourceInfo>(resource_info.owner));
+    pb_resource_info.set_description(utils::ForwardLike<TResourceInfo>(resource_info.description));
     return pb_resource_info;
 }
 
@@ -119,8 +110,8 @@ google::rpc::Help HelpToGoogleErrorDetailImpl(THelp&& help) {
     pb_help.mutable_links()->Reserve(help.links.size());
     for (auto&& link : help.links) {
         auto* pb_link = pb_help.add_links();
-        pb_link->set_description(ForwardLike<THelp>(link.description));
-        pb_link->set_url(ForwardLike<THelp>(link.url));
+        pb_link->set_description(utils::ForwardLike<THelp>(link.description));
+        pb_link->set_url(utils::ForwardLike<THelp>(link.url));
     }
     return pb_help;
 }
@@ -128,8 +119,8 @@ google::rpc::Help HelpToGoogleErrorDetailImpl(THelp&& help) {
 template <typename TLocalizedMessage>
 google::rpc::LocalizedMessage LocalizedMessageToGoogleErrorDetailImpl(TLocalizedMessage&& localized_message) {
     google::rpc::LocalizedMessage pb_localized_message;
-    pb_localized_message.set_locale(std::forward<TLocalizedMessage>(localized_message).locale);
-    pb_localized_message.set_message(std::forward<TLocalizedMessage>(localized_message).message);
+    pb_localized_message.set_locale(utils::ForwardLike<TLocalizedMessage>(localized_message.locale));
+    pb_localized_message.set_message(utils::ForwardLike<TLocalizedMessage>(localized_message.message));
     return pb_localized_message;
 }
 
@@ -163,9 +154,9 @@ std::optional<ErrorInfo> ErrorInfo::TryUnpack(const ::google::protobuf::Any& any
     }
 
     return ErrorInfo{
-        pb_error_info_opt->reason(),
-        pb_error_info_opt->domain(),
-        {pb_error_info_opt->metadata().begin(), pb_error_info_opt->metadata().end()},
+        .reason = pb_error_info_opt->reason(),
+        .domain = pb_error_info_opt->domain(),
+        .metadata = {pb_error_info_opt->metadata().begin(), pb_error_info_opt->metadata().end()},
     };
 }
 
@@ -197,8 +188,8 @@ std::optional<DebugInfo> DebugInfo::TryUnpack(const ::google::protobuf::Any& any
     }
 
     return DebugInfo{
-        {pb_debug_info_opt->stack_entries().begin(), pb_debug_info_opt->stack_entries().end()},
-        pb_debug_info_opt->detail(),
+        .stack_entries = {pb_debug_info_opt->stack_entries().begin(), pb_debug_info_opt->stack_entries().end()},
+        .detail = pb_debug_info_opt->detail(),
     };
 }
 
@@ -221,7 +212,8 @@ std::optional<QuotaFailure> QuotaFailure::TryUnpack(const ::google::protobuf::An
     QuotaFailure result;
     result.violations.reserve(pb_violations.size());
     for (const auto& pb_violation : pb_violations) {
-        result.violations.push_back(QuotaViolation{pb_violation.subject(), pb_violation.description()});
+        result.violations
+            .push_back(QuotaViolation{.subject = pb_violation.subject(), .description = pb_violation.description()});
     }
     return result;
 }
@@ -245,8 +237,11 @@ std::optional<PreconditionFailure> PreconditionFailure::TryUnpack(const ::google
     PreconditionFailure result;
     result.violations.reserve(pb_violations.size());
     for (const auto& pb_violation : pb_violations) {
-        result.violations
-            .push_back(PreconditionViolation{pb_violation.type(), pb_violation.subject(), pb_violation.description()});
+        result.violations.push_back(PreconditionViolation{
+            .type = pb_violation.type(),
+            .subject = pb_violation.subject(),
+            .description = pb_violation.description(),
+        });
     }
     return result;
 }
@@ -268,7 +263,8 @@ std::optional<BadRequest> BadRequest::TryUnpack(const ::google::protobuf::Any& a
     BadRequest result;
     result.field_violations.reserve(pb_field_violations.size());
     for (const auto& pb_violation : pb_field_violations) {
-        result.field_violations.push_back(FieldViolation{pb_violation.field(), pb_violation.description()});
+        result.field_violations
+            .push_back(FieldViolation{.field = pb_violation.field(), .description = pb_violation.description()});
     }
     return result;
 }
@@ -286,8 +282,8 @@ std::optional<RequestInfo> RequestInfo::TryUnpack(const ::google::protobuf::Any&
     }
 
     return RequestInfo{
-        pb_request_info_opt->request_id(),
-        pb_request_info_opt->serving_data(),
+        .request_id = pb_request_info_opt->request_id(),
+        .serving_data = pb_request_info_opt->serving_data(),
     };
 }
 
@@ -306,10 +302,10 @@ std::optional<ResourceInfo> ResourceInfo::TryUnpack(const ::google::protobuf::An
     }
 
     return ResourceInfo{
-        pb_resource_info_opt->resource_type(),
-        pb_resource_info_opt->resource_name(),
-        pb_resource_info_opt->owner(),
-        pb_resource_info_opt->description(),
+        .resource_type = pb_resource_info_opt->resource_type(),
+        .resource_name = pb_resource_info_opt->resource_name(),
+        .owner = pb_resource_info_opt->owner(),
+        .description = pb_resource_info_opt->description(),
     };
 }
 
@@ -328,7 +324,7 @@ std::optional<Help> Help::TryUnpack(const ::google::protobuf::Any& any) {
     Help result;
     result.links.reserve(pb_links.size());
     for (const auto& pb_link : pb_links) {
-        result.links.push_back(HelpLink{pb_link.description(), pb_link.url()});
+        result.links.push_back(HelpLink{.description = pb_link.description(), .url = pb_link.url()});
     }
     return result;
 }

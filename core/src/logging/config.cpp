@@ -21,10 +21,10 @@ Format Parse(const yaml_config::YamlConfig& value, formats::parse::To<Format>) {
 }
 
 TestsuiteCaptureConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<TestsuiteCaptureConfig>) {
-    TestsuiteCaptureConfig config;
-    config.host = value["host"].As<std::string>();
-    config.port = value["port"].As<int>();
-    return config;
+    return {
+        .host = value["host"].As<std::string>(),
+        .port = value["port"].As<int>(),
+    };
 }
 
 void LoggerConfig::SetName(std::string name) { logger_name = std::move(name); }

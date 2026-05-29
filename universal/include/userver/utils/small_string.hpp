@@ -10,6 +10,7 @@
 
 #include <boost/container/small_vector.hpp>
 
+#include <userver/compiler/impl/lifetime.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -61,40 +62,40 @@ public:
     }
 
     /// @brief Convert string to a std::string_view.
-    operator std::string_view() const;
+    operator std::string_view() const USERVER_IMPL_LIFETIME_BOUND;
 
     /// @brief Read-only subscript access to the data contained in the string.
-    const char& operator[](std::size_t pos) const;
+    const char& operator[](std::size_t pos) const USERVER_IMPL_LIFETIME_BOUND;
 
     /// @brief Subscript access to the data contained in the string.
-    char& operator[](std::size_t pos);
+    char& operator[](std::size_t pos) USERVER_IMPL_LIFETIME_BOUND;
 
     /// @brief Provides access to the data contained in the string.
-    const char& at(std::size_t pos) const;
+    const char& at(std::size_t pos) const USERVER_IMPL_LIFETIME_BOUND;
 
     /// @brief Provides access to the data contained in the string.
-    char& at(std::size_t pos);
+    char& at(std::size_t pos) USERVER_IMPL_LIFETIME_BOUND;
 
     using iterator = typename Container::iterator;
 
     using const_iterator = typename Container::const_iterator;
 
-    iterator begin() noexcept;
-    const_iterator begin() const noexcept;
+    iterator begin() noexcept USERVER_IMPL_LIFETIME_BOUND;
+    const_iterator begin() const noexcept USERVER_IMPL_LIFETIME_BOUND;
 
-    iterator end() noexcept;
-    const_iterator end() const noexcept;
+    iterator end() noexcept USERVER_IMPL_LIFETIME_BOUND;
+    const_iterator end() const noexcept USERVER_IMPL_LIFETIME_BOUND;
 
     /// @brief Get string size.
     std::size_t size() const noexcept;
 
     /// @brief Get pointer to data.
     /// @warning The buffer is not null-terminated.
-    const char* data() const noexcept;
+    const char* data() const noexcept USERVER_IMPL_LIFETIME_BOUND;
 
     /// @brief Get pointer to data.
     /// @warning The buffer is not null-terminated.
-    char* data() noexcept;
+    char* data() noexcept USERVER_IMPL_LIFETIME_BOUND;
 
     /// @brief Resize the string. If its length is increased,
     /// fill new chars with %c.
@@ -125,16 +126,16 @@ public:
     bool empty() const noexcept;
 
     /// @brief Get a reference to the first character.
-    char& front();
+    char& front() USERVER_IMPL_LIFETIME_BOUND;
 
     /// @brief Get a reference to the first character.
-    const char& front() const;
+    const char& front() const USERVER_IMPL_LIFETIME_BOUND;
 
     /// @brief Get a reference to the last character.
-    char& back();
+    char& back() USERVER_IMPL_LIFETIME_BOUND;
 
     /// @brief Get a reference to the last character.
-    const char& back() const;
+    const char& back() const USERVER_IMPL_LIFETIME_BOUND;
 
     /// @brief Append a character to the string.
     void push_back(char c);
@@ -162,7 +163,7 @@ SmallString<N>::SmallString(std::string_view sv)
 {}
 
 template <std::size_t N>
-SmallString<N>::operator std::string_view() const {
+SmallString<N>::operator std::string_view() const USERVER_IMPL_LIFETIME_BOUND {
     return std::string_view{data_.data(), data_.size()};
 }
 
@@ -193,17 +194,17 @@ bool operator!=(const SmallString<N>& str1, const SmallString<N>& str2) {
 }
 
 template <std::size_t N>
-const char& SmallString<N>::operator[](std::size_t pos) const {
+const char& SmallString<N>::operator[](std::size_t pos) const USERVER_IMPL_LIFETIME_BOUND {
     return data_[pos];
 }
 
 template <std::size_t N>
-char& SmallString<N>::operator[](std::size_t pos) {
+char& SmallString<N>::operator[](std::size_t pos) USERVER_IMPL_LIFETIME_BOUND {
     return data_[pos];
 }
 
 template <std::size_t N>
-const char& SmallString<N>::at(std::size_t pos) const {
+const char& SmallString<N>::at(std::size_t pos) const USERVER_IMPL_LIFETIME_BOUND {
     if (size() <= pos) {
         throw std::out_of_range("at");
     }
@@ -211,7 +212,7 @@ const char& SmallString<N>::at(std::size_t pos) const {
 }
 
 template <std::size_t N>
-char& SmallString<N>::at(std::size_t pos) {
+char& SmallString<N>::at(std::size_t pos) USERVER_IMPL_LIFETIME_BOUND {
     if (size() <= pos) {
         throw std::out_of_range("at");
     }
@@ -219,22 +220,22 @@ char& SmallString<N>::at(std::size_t pos) {
 }
 
 template <std::size_t N>
-typename SmallString<N>::iterator SmallString<N>::begin() noexcept {
+typename SmallString<N>::iterator SmallString<N>::begin() noexcept USERVER_IMPL_LIFETIME_BOUND {
     return {data_.begin()};
 }
 
 template <std::size_t N>
-typename SmallString<N>::const_iterator SmallString<N>::begin() const noexcept {
+typename SmallString<N>::const_iterator SmallString<N>::begin() const noexcept USERVER_IMPL_LIFETIME_BOUND {
     return {data_.begin()};
 }
 
 template <std::size_t N>
-typename SmallString<N>::iterator SmallString<N>::end() noexcept {
+typename SmallString<N>::iterator SmallString<N>::end() noexcept USERVER_IMPL_LIFETIME_BOUND {
     return {data_.end()};
 }
 
 template <std::size_t N>
-typename SmallString<N>::const_iterator SmallString<N>::end() const noexcept {
+typename SmallString<N>::const_iterator SmallString<N>::end() const noexcept USERVER_IMPL_LIFETIME_BOUND {
     return {data_.end()};
 }
 
@@ -244,12 +245,12 @@ std::size_t SmallString<N>::size() const noexcept {
 }
 
 template <std::size_t N>
-const char* SmallString<N>::data() const noexcept {
+const char* SmallString<N>::data() const noexcept USERVER_IMPL_LIFETIME_BOUND {
     return data_.data();
 }
 
 template <std::size_t N>
-char* SmallString<N>::data() noexcept {
+char* SmallString<N>::data() noexcept USERVER_IMPL_LIFETIME_BOUND {
     return data_.data();
 }
 
@@ -259,22 +260,22 @@ bool SmallString<N>::empty() const noexcept {
 }
 
 template <std::size_t N>
-char& SmallString<N>::front() {
+char& SmallString<N>::front() USERVER_IMPL_LIFETIME_BOUND {
     return data_.front();
 }
 
 template <std::size_t N>
-const char& SmallString<N>::front() const {
+const char& SmallString<N>::front() const USERVER_IMPL_LIFETIME_BOUND {
     return data_.front();
 }
 
 template <std::size_t N>
-char& SmallString<N>::back() {
+char& SmallString<N>::back() USERVER_IMPL_LIFETIME_BOUND {
     return data_.back();
 }
 
 template <std::size_t N>
-const char& SmallString<N>::back() const {
+const char& SmallString<N>::back() const USERVER_IMPL_LIFETIME_BOUND {
     return data_.back();
 }
 

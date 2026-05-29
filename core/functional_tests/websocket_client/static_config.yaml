@@ -29,6 +29,13 @@ components_manager:
             max-remote-payload: 100000
             fragment-size: 65536
 
+        websocket-unauth-handler:
+            path: /unauth
+            method: GET
+            task_processor: main-task-processor
+            max-remote-payload: 100000
+            fragment-size: 65536
+
         # HTTP handler for C++ client tests
         test-client:
             path: /test-client

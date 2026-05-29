@@ -5,6 +5,7 @@
 
 #include <optional>
 #include <string>
+#include <type_traits>
 
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/parse/common_containers.hpp>
@@ -74,14 +75,12 @@ public:
     bool HasDefaultValue() const noexcept { return HasValue(kDefaultDictDefaultName); }
 
     /// Returns true if *this has `key`, otherwise returns false.
-    bool HasValue(std::string_view key) const noexcept {
-        return utils::impl::FindTransparent(dict_, key) != dict_.end();
-    }
+    bool HasValue(std::string_view key) const noexcept { return dict_.find(key) != dict_.end(); }
 
     /// Returns value by utils::kDefaultDictDefaultName key,
     /// throws a std::runtime_error exception.
     const ValueType& GetDefaultValue() const {
-        const auto it = utils::impl::FindTransparent(dict_, kDefaultDictDefaultName);
+        const auto it = dict_.find(kDefaultDictDefaultName);
         if (it == dict_.end()) {
             impl::ThrowNoValueException(name_, kDefaultDictDefaultName);
         }
@@ -92,9 +91,9 @@ public:
     /// by @ref utils::kDefaultDictDefaultName if it is in `*this`,
     /// otherwise throws a `std::runtime_error` exception.
     const ValueType& operator[](std::string_view key) const {
-        auto it = utils::impl::FindTransparent(dict_, key);
+        auto it = dict_.find(key);
         if (it == dict_.end()) {
-            it = utils::impl::FindTransparent(dict_, kDefaultDictDefaultName);
+            it = dict_.find(kDefaultDictDefaultName);
             if (it == dict_.end()) {
                 impl::ThrowNoValueException(name_, key);
             }
@@ -123,9 +122,9 @@ public:
     /// by utils::kDefaultDictDefaultName if it is in *this,
     /// otherwise returns an empty optional.
     std::optional<ValueType> GetOptional(std::string_view key) const {
-        auto it = utils::impl::FindTransparent(dict_, key);
+        auto it = dict_.find(key);
         if (it == dict_.end()) {
-            it = utils::impl::FindTransparent(dict_, kDefaultDictDefaultName);
+            it = dict_.find(kDefaultDictDefaultName);
             if (it == dict_.end()) {
                 return std::nullopt;
             }
@@ -146,7 +145,9 @@ public:
     /// normally obtained by parsing the config.
     template <typename StringType>
     void Set(StringType&& key, ValueType value) {
-        utils::impl::TransparentInsertOrAssign(dict_, std::forward<StringType>(key), std::move(value));
+        using ForwardedKey =
+            std::conditional_t<std::is_same_v<std::decay_t<StringType>, std::string>, StringType&&, std::string>;
+        dict_.insert_or_assign(static_cast<ForwardedKey>(key), std::move(value));
     }
 
     auto begin() const noexcept { return dict_.begin(); }
@@ -157,16 +158,13 @@ public:
 
     bool operator==(const DefaultDict& r) const noexcept { return dict_ == r.dict_; }
 
-    bool operator!=(const DefaultDict& r) const noexcept { return !(*this == r); }
-
 private:
     std::string name_;
     DictType dict_;
 };
 
-template <typename Value, typename T>
-std::enable_if_t<formats::common::kIsFormatValue<Value>, DefaultDict<T>>
-Parse(const Value& value, formats::parse::To<DefaultDict<T>>) {
+template <formats::common::IsFormatValue Value, typename T>
+DefaultDict<T> Parse(const Value& value, formats::parse::To<DefaultDict<T>>) {
     return DefaultDict<T>{value.GetPath(), value.template As<typename DefaultDict<T>::DictType>()};
 }
 

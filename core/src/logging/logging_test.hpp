@@ -106,7 +106,7 @@ protected:
 
     std::size_t GetRecordsCount() const {
         auto str = GetStreamString();
-        return std::count(str.begin(), str.end(), '\n');
+        return std::ranges::count(str, '\n');
     }
 
     std::shared_ptr<logging::impl::TpLogger> GetStreamLogger() const { return stream_logger_.logger; }

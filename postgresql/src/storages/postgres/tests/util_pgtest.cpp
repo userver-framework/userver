@@ -3,14 +3,16 @@
 #include <boost/algorithm/string.hpp>
 
 #include <userver/concurrent/background_task_storage.hpp>
-#include <userver/engine/task/task.hpp>
 #include <userver/utils/statistics/metrics_storage.hpp>
 
 #include <storages/postgres/default_command_controls.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
+#include <fmt/format.h>
+
 #include <iomanip>
+#include <string_view>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -18,6 +20,45 @@ namespace pg = storages::postgres;
 
 namespace {
 constexpr const char* kPostgresDsn = "POSTGRES_TEST_DSN";
+
+std::string GetFirstValue(std::string_view values) {
+    const auto pos = values.find(',');
+    return std::string{values.substr(0, pos)};
+}
+
+std::uint16_t GetPostgresPort(const pg::Dsn& dsn) {
+    const auto options = pg::OptionsFromDsn(dsn);
+    if (options.port.empty()) {
+        return 5432;
+    }
+
+    return static_cast<std::uint16_t>(std::stoi(GetFirstValue(options.port)));
+}
+
+std::string GetPostgresHost(const pg::Dsn& dsn) {
+    const auto options = pg::OptionsFromDsn(dsn);
+    if (options.host.empty()) {
+        return "127.0.0.1";
+    }
+
+    return GetFirstValue(options.host);
+}
+
+pg::Dsn MakeProxiedDsn(const pg::Dsn& dsn, std::uint16_t proxy_port) {
+    const auto& dsn_str = dsn.GetUnderlying();
+    const auto at_pos = dsn_str.find('@');
+    const auto colon_pos = dsn_str.find(':', at_pos + 1);
+    const auto slash_pos = dsn_str.find('/', colon_pos + 1);
+
+    UASSERT_MSG(
+        at_pos != std::string::npos && colon_pos != std::string::npos && slash_pos != std::string::npos,
+        "PG connection string is expected in format ...@<hostname>:<port>/..."
+    );
+
+    return pg::Dsn{fmt::format("{}127.0.0.1:{}{}", dsn_str.substr(0, at_pos + 1), proxy_port, dsn_str.substr(slash_pos))
+    };
+}
+
 }  // namespace
 
 pg::DefaultCommandControls GetTestCmdCtls() {
@@ -34,33 +75,6 @@ DefaultCommandControlScope::DefaultCommandControlScope(storages::postgres::Comma
 DefaultCommandControlScope::~DefaultCommandControlScope() { GetTestCmdCtls().UpdateDefaultCmdCtl(old_cmd_ctl_); }
 
 engine::Deadline MakeDeadline() { return engine::Deadline::FromDuration(kTestCmdCtl.network_timeout_ms); }
-
-void PrintBuffer(std::ostream& os, const std::uint8_t* buffer, std::size_t size) {
-    os << "Buffer size " << size << '\n';
-    std::size_t b_no{0};
-    std::ostringstream printable;
-    for (const std::uint8_t* c = buffer; c != buffer + size; ++c) {
-        const unsigned char byte = *c;
-        os << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(byte);
-        printable << (std::isprint(*c) ? *c : '.');
-        ++b_no;
-        if (b_no % 16 == 0) {
-            os << '\t' << printable.str() << '\n';
-            printable.str(std::string{});
-        } else if (b_no % 8 == 0) {
-            os << "   ";
-            printable << " ";
-        } else {
-            os << " ";
-        }
-    }
-    auto remain = 16 - b_no % 16;
-    os << std::dec << std::setw(remain * 3 - 1) << std::setfill(' ') << ' ' << '\t' << printable.str() << '\n';
-}
-
-void PrintBuffer(std::ostream& os, const std::string& buffer) {
-    PrintBuffer(os, reinterpret_cast<const std::uint8_t*>(buffer.data()), buffer.size());
-}
 
 PostgreSQLBase::PostgreSQLBase() = default;
 
@@ -157,7 +171,7 @@ PostgreConnectionBaseFixture::PostgreConnectionBaseFixture() = default;
 
 PostgreConnectionBaseFixture::~PostgreConnectionBaseFixture() {
     // force connection cleanup to avoid leaving detached tasks behind
-    engine::AsyncNoSpan(GetTaskProcessor(), [] {}).Wait();
+    engine::AsyncNoTracing(GetTaskProcessor(), [] {}).Wait();
 }
 
 storages::postgres::detail::ConnectionPtr PostgreConnectionBaseFixture::MakeConn(
@@ -167,8 +181,22 @@ storages::postgres::detail::ConnectionPtr PostgreConnectionBaseFixture::MakeConn
 }
 
 PostgreConnection::PostgreConnection()
-    : conn_(MakeConnection(GetDsnFromEnv(), GetTaskProcessor(), GetParam()))
-{}
+    : conn_(std::unique_ptr<storages::postgres::detail::Connection>{})
+{
+    const auto& [connection_settings, connection_mode] = GetParam();
+
+    if (connection_mode == ConnectionMode::kChaosProxy) {
+        chaos_proxy_ = std::make_unique<
+            PostgresChaosProxy>(GetTaskProcessor(), GetPostgresHost(GetDsnFromEnv()), GetPostgresPort(GetDsnFromEnv()));
+        conn_ = MakeConnection(
+            MakeProxiedDsn(GetDsnFromEnv(), chaos_proxy_->GetPort()),
+            GetTaskProcessor(),
+            connection_settings
+        );
+    } else {
+        conn_ = MakeConnection(GetDsnFromEnv(), GetTaskProcessor(), connection_settings);
+    }
+}
 
 PostgreConnection::~PostgreConnection() = default;
 
@@ -177,19 +205,30 @@ storages::postgres::detail::ConnectionPtr& PostgreConnection::GetConn() { return
 INSTANTIATE_UTEST_SUITE_P(
     ConnectionSettings,
     PostgreConnection,
-    ::testing::Values(kCachePreparedStatements, kPipelineEnabled, kOmitDescribeAndPipelineEnabled),
+    ::testing::Combine(
+        ::testing::Values(kCachePreparedStatements, kPipelineEnabled, kOmitDescribeAndPipelineEnabled),
+        ::testing::Values(ConnectionMode::kDirect, ConnectionMode::kChaosProxy)
+    ),
     [](const testing::TestParamInfo<PostgreConnection::ParamType>& info) {
         std::string name{};
-        if (info.param.pipeline_mode == pg::PipelineMode::kEnabled) {
+
+        const auto& connection_params = std::get<0>(info.param);
+        const auto connection_mode = std::get<1>(info.param);
+
+        if (connection_params.pipeline_mode == pg::PipelineMode::kEnabled) {
             name = "PipelineEnabled";
         } else {
             name = "PipelineDisabled";
         }
 
-        if (info.param.omit_describe_mode == pg::OmitDescribeInExecuteMode::kEnabled) {
+        if (connection_params.omit_describe_mode == pg::OmitDescribeInExecuteMode::kEnabled) {
             name.append("_DontSendDescribe");
         } else {
             name.append("_SendDescribe");
+        }
+
+        if (connection_mode == ConnectionMode::kChaosProxy) {
+            name.append("_ViaChaosProxy");
         }
 
         return name;

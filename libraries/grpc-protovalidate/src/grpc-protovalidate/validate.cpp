@@ -5,6 +5,8 @@
 #include <utility>
 #include <vector>
 
+#include <algorithm>
+
 #include <fmt/core.h>
 #include <google/protobuf/arena.h>
 #include <google/protobuf/message.h>
@@ -80,9 +82,8 @@ grpc::Status ValidationError::GetGrpcStatus(bool include_violations, grpc::Statu
 
 buf::validate::Violations ValidationError::MakeViolationsProto() const {
     buf::validate::Violations proto;
-    std::transform(
-        GetViolations().begin(),
-        GetViolations().end(),
+    std::ranges::transform(
+        GetViolations(),
         RepeatedPtrFieldBackInserter(proto.mutable_violations()),
         [](const buf::validate::RuleViolation& violation) { return violation.proto(); }
     );

@@ -1,0 +1,54 @@
+default: {}
+description: |
+    Dynamic config that controls connection pool settings of ODBC driver.
+
+    Dictionary keys can be either the component name or `__default__`.
+    The latter configuration is applied for every non-matching
+    ODBC component of the service.
+
+    Note: Pool size changes require component restart to take effect,
+    as the underlying connection pool does not support dynamic resizing.
+schema:
+    type: object
+    example: |
+        {
+            // Settings for a specific component.
+            "odbc-orders": {
+                "min_pool_size": 4,
+                "max_pool_size": 20
+            },
+            // All other components.
+            "__default__": {
+                "min_pool_size": 1,
+                "max_pool_size": 10
+            }
+        }
+    properties:
+        __default__:
+            $ref: "#/definitions/PoolSettings"
+    additionalProperties:
+        $ref: "#/definitions/PoolSettings"
+    definitions:
+        PoolSettings:
+            type: object
+            additionalProperties: false
+            properties:
+                min_pool_size:
+                    type: integer
+                    minimum: 0
+                    default: 1
+                    x-usrv-cpp-type: std::size_t
+                    description: |
+                        Number of connections created initially by ODBC component instance.
+                        Connections are kept even without requests.
+                max_pool_size:
+                    type: integer
+                    minimum: 1
+                    default: 10
+                    x-usrv-cpp-type: std::size_t
+                    description: |
+                        Maximum number of connections that can be created by ODBC component instance.
+                        Should not be less than `min_pool_size`.
+            required:
+              - min_pool_size
+              - max_pool_size

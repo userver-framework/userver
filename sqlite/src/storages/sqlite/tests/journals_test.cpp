@@ -51,21 +51,21 @@ UTEST_P_MT(SQLiteJournalModesTest, ReadWrite, 10) {
     tasks.reserve(kTotalTasksCount);
 
     for (size_t i = 0; i < kWriteTaskCount; ++i) {
-        tasks.push_back(engine::AsyncNoSpan([&client, i]() {
+        tasks.push_back(engine::AsyncNoTracing([&client, i]() {
             UEXPECT_NO_THROW(
                 client->Execute(storages::sqlite::OperationType::kReadWrite, "INSERT INTO test VALUES (NULL, 'data')")
             ) << fmt::format("Try to insert: ({0}, data_{0})", i);
         }));
     }
     for (size_t i = 0; i < kReadTaskCount; ++i) {
-        tasks.push_back(engine::AsyncNoSpan([&client]() {
+        tasks.push_back(engine::AsyncNoTracing([&client]() {
             UEXPECT_NO_THROW((client->Execute(storages::sqlite::OperationType::kReadOnly, "SELECT * FROM test")
                                   .AsVector<RowTuple>())
             ) << "Try to select all";
         }));
     }
     for (size_t i = kWriteTaskCount; i < kWriteTaskCount + kReadWriteTaskCount; ++i) {
-        tasks.push_back(engine::AsyncNoSpan([&client, i]() {
+        tasks.push_back(engine::AsyncNoTracing([&client, i]() {
             UEXPECT_NO_THROW((
                 client
                     ->Execute(

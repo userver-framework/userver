@@ -15,9 +15,11 @@
 #include <userver/storages/redis/base.hpp>
 #include <userver/storages/redis/command_options.hpp>
 #include <userver/storages/redis/fwd.hpp>
+#include <userver/storages/redis/topology_update_method.hpp>
 #include <userver/storages/redis/wait_connected_mode.hpp>
 
 #include <storages/redis/impl/keyshard.hpp>
+#include <storages/redis/impl/redis_group.hpp>
 #include <storages/redis/impl/redis_stats.hpp>
 #include <storages/redis/impl/secdist_redis.hpp>
 
@@ -62,12 +64,10 @@ public:
         const std::vector<std::string>& shards,
         const std::vector<ConnectionInfo>& conns,
         std::string shard_group_name,
-        const std::string& client_name,
-        const Password& password,
+        const Credentials& credentials,
         ConnectionSecurity connection_security,
         dynamic_config::Source dynamic_config_source,
-        KeyShardFactory key_shard_factory,
-        CommandControl command_control,
+        SentinelStaticConfig creation_config,
         const testsuite::RedisControl& testsuite_redis_control,
         std::size_t database_index
     );
@@ -96,9 +96,7 @@ public:
         const USERVER_NAMESPACE::secdist::RedisSettings& settings,
         std::string shard_group_name,
         dynamic_config::Source dynamic_config_source,
-        const std::string& client_name,
-        KeyShardFactory key_shard_factory,
-        const CommandControl& command_control = {},
+        const SentinelStaticConfig& creation_config,
         const testsuite::RedisControl& testsuite_redis_control = {}
     );
 
@@ -153,7 +151,7 @@ public:
     void SetConnectionInfo(std::vector<ConnectionInfo> info_array);
     const std::string& ShardGroupName() const;
 
-    void UpdatePassword(const Password& password);
+    void UpdateCredentials(const Credentials& credentials);
 
     using UserMessageCallback = std::function<Outcome(const std::string& channel, const std::string& message)>;
     using UserPmessageCallback = std::function<

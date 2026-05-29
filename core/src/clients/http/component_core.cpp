@@ -78,9 +78,9 @@ HttpClientCore::HttpClientCore(const ComponentConfig& component_config, const Co
     auto user_agent = component_config["user-agent"].As<std::optional<std::string>>();
     if (user_agent) {
         if (!user_agent->empty()) {
-            http_client_->ResetUserAgent(std::move(*user_agent));
+            http_client_->ResetUserAgent(std::move(user_agent));
         } else {
-            http_client_->ResetUserAgent({});  // no user agent
+            http_client_->ResetUserAgent(std::nullopt);  // no user agent
         }
     } else {
         // Leaving the default one
@@ -96,15 +96,10 @@ HttpClientCore::HttpClientCore(const ComponentConfig& component_config, const Co
         testsuite.GetHttpAllowedUrlsExtra().RegisterHttpClient(*http_client_);
     }
 
-    clients::http::impl::Config bootstrap_config;
-    http_client_->SetConfig(bootstrap_config);
-
     auto& config_component = context.FindComponent<components::DynamicConfig>();
     subscriber_scope_ =
         components::DynamicConfig::NoblockSubscriber{config_component}
-            .GetEventSource()
-            .AddListener(this, kName, &HttpClientCore::OnConfigUpdate);
-
+            .UpdateIfHasConfigAndListen(this, kName, &HttpClientCore::OnConfigUpdate);
     const auto thread_name_prefix = component_config["thread-name-prefix"].As<std::string>("");
     auto stats_name = "httpclient" + (thread_name_prefix.empty() ? "" : ("-" + thread_name_prefix));
     utils::statistics::RegisterWriterScope(context, std::move(stats_name), [this](utils::statistics::Writer& writer) {
@@ -114,15 +109,35 @@ HttpClientCore::HttpClientCore(const ComponentConfig& component_config, const Co
 
 HttpClientCore::~HttpClientCore() { subscriber_scope_.Unsubscribe(); }
 
+void HttpClientCore::OnLoadingCancelled() {
+    is_loading_cancelled_.store(true);
+    config_updated_event_.Send();
+}
+
+void HttpClientCore::WaitUntilConfigSet() const {
+    config_updated_event_.Wait();
+    if (is_loading_cancelled_.load()) {
+        throw ComponentsLoadCancelledException("http core client loading cancelled");
+    }
+}
+
 std::shared_ptr<clients::http::ClientCore> HttpClientCore::GetHttpClientCore(utils::impl::InternalTag) {
     return http_client_;
 }
 
-void HttpClientCore::OnConfigUpdate(const dynamic_config::Snapshot& config) {
-    http_client_->SetConfig(clients::http::impl::Config{
-        config[::dynamic_config::HTTP_CLIENT_CONNECTION_POOL_SIZE],
-        clients::http::impl::Parse(config[::dynamic_config::HTTP_CLIENT_CONNECT_THROTTLE]),
-    });
+void HttpClientCore::OnConfigUpdate(const dynamic_config::Diff& diff) {
+    if (diff.HasConfigsChanged(
+            ::dynamic_config::HTTP_CLIENT_CONNECTION_POOL_SIZE,
+            ::dynamic_config::HTTP_CLIENT_CONNECT_THROTTLE
+        ))
+    {
+        const auto& config = diff.current;
+        http_client_->SetConfig(clients::http::impl::Config{
+            config[::dynamic_config::HTTP_CLIENT_CONNECTION_POOL_SIZE],
+            clients::http::impl::Parse(config[::dynamic_config::HTTP_CLIENT_CONNECT_THROTTLE]),
+        });
+        config_updated_event_.Send();
+    }
 }
 
 void HttpClientCore::WriteStatistics(utils::statistics::Writer& writer) {

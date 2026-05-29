@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/error_injection/hook.hpp
+/// @brief @copybrief error_injection::Hook
+
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/error_injection/settings.hpp>
@@ -11,8 +14,7 @@ USERVER_NAMESPACE_BEGIN
 /// Artificial errors injection framework
 namespace error_injection {
 
-/// Single operation error injection process. Create on the stack,
-/// call PreHook(), do operation, call PostHook().
+/// @brief Single-operation error injection: call PreHook(), run work, then PostHook()
 class Hook final {
 public:
     explicit Hook(const Settings& settings, engine::Deadline deadline);

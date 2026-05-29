@@ -6,8 +6,8 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/impl/tag_writer.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
-#include <userver/tracing/span.hpp>
 #include <userver/utils/enumerate.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 
@@ -77,7 +77,7 @@ void TpLogger::StartConsumerTask(
         queue_consumer_ = {};
     });
 
-    consuming_task_ = engine::CriticalAsyncNoSpan(task_processor, [this, guard = std::move(exit_async_guard)] {
+    consuming_task_ = engine::CriticalAsyncNoTracing(task_processor, [this, guard = std::move(exit_async_guard)] {
         ProcessingLoop();
     });
 }
@@ -158,8 +158,6 @@ void TpLogger::Log(Level level, impl::formatters::LoggerItemRef item) {
 }
 
 void TpLogger::PrependCommonTags(TagWriter writer) const { impl::PrependCommonTags(writer, GetLevel()); }
-
-bool TpLogger::DoShouldLog(Level level) const noexcept { return impl::DoShouldLog(level); }
 
 void TpLogger::AddSink(impl::SinkPtr&& sink) {
     UASSERT(sink);

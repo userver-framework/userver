@@ -144,7 +144,7 @@ std::string GreeterClient::SayHelloStreams(const std::vector<std::string>& names
 std::string GreeterClient::SayHelloIndependentStreams(const std::vector<std::string>& names, bool is_small_timeout) {
     std::string result{};
     auto stream = client_.SayHelloIndependentStreams(CreateCallOptions(is_small_timeout));
-    auto write_task = engine::AsyncNoSpan([&stream, &names] {
+    auto write_task = engine::AsyncNoTracing([&stream, &names] {
         for (const auto& name : names) {
             api::GreetingRequest request;
             request.set_name(grpc::string(name));
@@ -156,7 +156,7 @@ std::string GreeterClient::SayHelloIndependentStreams(const std::vector<std::str
         LOG_DEBUG() << "Write task finish: " << is_success;
     });
 
-    auto read_task = engine::AsyncNoSpan([&stream, &result] {
+    auto read_task = engine::AsyncNoTracing([&stream, &result] {
         api::GreetingResponse response;
         while (stream.Read(response)) {
             result.append(std::move(*response.mutable_greeting()));

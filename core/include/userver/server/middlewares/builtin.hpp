@@ -20,6 +20,7 @@ inline constexpr std::string_view kBaggage = "userver-baggage-middleware";
 inline constexpr std::string_view kAuth = "userver-auth-middleware";
 inline constexpr std::string_view kDecompression = "userver-decompression-middleware";
 inline constexpr std::string_view kExceptionsHandling = "userver-exceptions-handling-middleware";
+inline constexpr std::string_view kGracefulShutdownHeaders = "userver-graceful-shutdown-headers";
 
 }  // namespace server::middlewares::builtin
 

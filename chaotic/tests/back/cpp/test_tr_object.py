@@ -125,6 +125,37 @@ def test_field_with_default(simple_gen, cpp_primitive_type):
     }
 
 
+def test_field_escaping(simple_gen, cpp_primitive_type):
+    schemas = simple_gen({
+        'type': 'object',
+        'properties': {'🙂🔥': {'type': 'integer', 'default': 1}},
+        'additionalProperties': False,
+    })
+    assert schemas == {
+        '::type': cpp_types.CppStruct(
+            raw_cpp_type=type_name.TypeName('::type'),
+            json_schema=front_types.Schema(),
+            nullable=False,
+            user_cpp_type=None,
+            # name='vfull#/definitions/type',
+            fields={
+                '🙂🔥': cpp_types.CppStructField(
+                    name='u1F642_u1F525',
+                    required=False,
+                    schema=cpp_primitive_type(
+                        validators=cpp_types.CppPrimitiveValidator(
+                            namespace='::type',
+                            prefix='u1F642_u1F525_',
+                        ),
+                        raw_cpp_type_str='int',
+                        default=1,
+                    ),
+                ),
+            },
+        ),
+    }
+
+
 def test_field_inplace(simple_gen, cpp_primitive_type):
     schemas = simple_gen({
         'type': 'object',

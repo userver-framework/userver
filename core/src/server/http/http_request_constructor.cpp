@@ -35,7 +35,7 @@ void StripDuplicateStartingSlashes(std::string& s) {
         return;
     }
 
-    s = s.substr(non_slash_pos - 1);
+    s.erase(0, non_slash_pos - 1);
 }
 
 }  // namespace

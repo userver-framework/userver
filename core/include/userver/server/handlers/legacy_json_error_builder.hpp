@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/handlers/legacy_json_error_builder.hpp
+/// @brief @copybrief server::handlers::LegacyJsonErrorBuilder
+
 #include <userver/formats/json/value.hpp>
 #include <userver/http/content_type.hpp>
 

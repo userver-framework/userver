@@ -76,16 +76,12 @@ void SingleUseEvent::Send() noexcept {
 
 bool SingleUseEvent::IsReady() const noexcept { return awaiters_->IsSignaled(); }
 
-impl::EarlyNotify SingleUseEvent::TryAppendAwaiter(impl::Awaiter& awaiter, std::uintptr_t context) {
-    return impl::EarlyNotify{awaiters_->GetSignalOrAppend(&awaiter, context)};
+void SingleUseEvent::TryAppendAwaiter(boost::intrusive_ptr<impl::Awaiter>& awaiter, std::uintptr_t context) {
+    awaiters_->GetSignalOrAppend(awaiter, context);
 }
 
 void SingleUseEvent::RemoveAwaiter(impl::Awaiter& awaiter, std::uintptr_t context) noexcept {
     awaiters_->Remove(awaiter, context);
-}
-
-void SingleUseEvent::RethrowErrorResult() const {
-    // TODO support failure states in SingleUseEvent, for WaitAllChecked?
 }
 
 }  // namespace engine

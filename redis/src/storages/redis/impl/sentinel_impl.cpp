@@ -1,5 +1,6 @@
 #include "sentinel_impl.hpp"
 
+#include <algorithm>
 #include <atomic>
 
 #include <fmt/format.h>
@@ -220,10 +221,9 @@ SentinelImpl::SentinelImpl(
     const std::vector<std::string>& shards,
     const std::vector<ConnectionInfo>& conns,
     std::string shard_group_name,
-    const std::string& client_name,
-    const Password& password,
+    const Credentials& credentials,
     ConnectionSecurity connection_security,
-    KeyShardFactory&& key_shard_factory,
+    SentinelStaticConfig creation_config,
     dynamic_config::Source dynamic_config_source,
     std::size_t database_index
 )
@@ -234,17 +234,18 @@ SentinelImpl::SentinelImpl(
           [this] { ProcessWaitingCommands(); },
           kSentinelGetHostsCheckInterval
       )),
-      key_shard_factory_(std::move(key_shard_factory)),
+      key_shard_factory_(std::move(creation_config.key_shard_factory)),
       key_shard_(key_shard_factory_(shards.size())),
       shard_group_name_(std::move(shard_group_name)),
       conns_(conns),
       redis_thread_pool_(redis_thread_pool),
-      client_name_(client_name),
+      client_name_(std::move(creation_config.client_name)),
       dynamic_config_source_(std::move(dynamic_config_source)),
       database_index_(database_index)
 {
     log_extra_.Extend("shard_group_name", shard_group_name_);
 
+    const auto topology_update_method = creation_config.topology_update_method;
     const auto& key_shard_type = key_shard_factory_.GetShardingStrategy();
     topology_holder_ = [&]() -> std::unique_ptr<TopologyHolderBase> {
         if (key_shard_type == ShardingStrategy::kRedisCluster) {
@@ -252,10 +253,11 @@ SentinelImpl::SentinelImpl(
                 ev_thread_,
                 redis_thread_pool,
                 shard_group_name_,
-                password,
+                credentials,
                 shards,
                 conns,
-                connection_security
+                connection_security,
+                topology_update_method
             );
         } else if (key_shard_type == ShardingStrategy::kRedisStandalone) {
             LOG_DEBUG() << log_extra_ << "Construct Standalone topology holder";
@@ -264,8 +266,8 @@ SentinelImpl::SentinelImpl(
             return std::make_unique<StandaloneTopologyHolder>(
                 ev_thread_,
                 redis_thread_pool,
-                shard_group_name,
-                password,
+                shard_group_name_,
+                credentials,
                 database_index_,
                 conns.front()
             );
@@ -275,7 +277,7 @@ SentinelImpl::SentinelImpl(
             ev_thread_,
             redis_thread_pool,
             shard_group_name_,
-            password,
+            credentials,
             database_index_,
             shards,
             conns,
@@ -303,7 +305,10 @@ std::unordered_map<ServerId, size_t, ServerIdHasher> SentinelImpl::GetAvailableS
 
 void SentinelImpl::WaitConnectedDebug(bool allow_empty_slaves) {
     const auto mode = allow_empty_slaves ? WaitConnectedMode::kMaster : WaitConnectedMode::kMasterAndSlave;
-    const RedisWaitConnected wait_connected{mode, true, kRedisWaitConnectedDefaultTimeout};
+
+    const auto config = dynamic_config_source_.GetSnapshot();
+    const auto& wait_settings = config[storages::redis::kConfig].redis_wait_connected;
+    const RedisWaitConnected wait_connected{mode, /*throw_on_fail=*/true, wait_settings.timeout};
     WaitConnectedOnce(wait_connected);
 }
 
@@ -559,7 +564,9 @@ void SentinelImpl::SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_
     topology_holder_->SetConnectionInfo(info_array);
 }
 
-void SentinelImpl::UpdatePassword(const Password& password) { topology_holder_->UpdatePassword(password); }
+void SentinelImpl::UpdateCredentials(const Credentials& credentials) {
+    topology_holder_->UpdateCredentials(credentials);
+}
 
 PublishSettings SentinelImpl::GetPublishSettings() {
     if (key_shard_factory_.IsClusterStrategy()) {

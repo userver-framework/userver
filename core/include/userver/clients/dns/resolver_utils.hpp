@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/clients/dns/resolver_utils.hpp
+/// @brief DNS resolver type and component lookup helpers
+
 #include <userver/clients/dns/exception.hpp>
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/components/component_fwd.hpp>

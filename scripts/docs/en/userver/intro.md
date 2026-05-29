@@ -13,7 +13,7 @@ synchronization often uses mutexes, other synchronization primitives and event
 waiting mechanisms that block the current thread. When using userver, this
 results in the current thread not being able to be used to execute other
 coroutines. As a result, the number of threads executing coroutines decreases.
-This can lead to a huge performance drops and increased latencies.
+This can lead to huge performance drops and increased latencies.
 
 For the reasons described above, the use of synchronization primitives or IO
 operations of the C++ standard library and libc in the
@@ -49,7 +49,7 @@ low-latency, then it may be fine to run all the code on the same task processor.
 ______
 ⚠️🐙❗ If you want to run code that uses standard synchronization primitives
 (for example, code from a third-party library), then this code should be run in
-a separate `engine::TaskProcessor` to avoid starvation of main task processors.
+a separate @ref engine::TaskProcessor to avoid starvation of main task processors.
 See @ref scripts/docs/en/userver/task_processors_guide.md for more info.
 ______
 
@@ -58,8 +58,8 @@ ______
 ## Tasks
 
 The asynchronous **task** (@ref engine::Task, @ref engine::TaskWithResult) can return
-a result (possibly in form of an exception) or return nothing. In any case, the
-task has the semantics of future, i.e. you can wait for it and get the result
+a result (possibly in the form of an exception) or return nothing. In any case, the
+task has the semantics of a future, i.e. you can wait for it and get the result
 from it.
 
 To create a task call the @ref utils::Async function. It accepts the name of a
@@ -95,21 +95,22 @@ By engine::TaskProcessor:
 
 By shared-ness:
 
-* By default, functions return engine::TaskWithResult, which can be awaited
+* By default, functions return @ref engine::TaskWithResult, which can be awaited
   from 1 task at once. This is a reasonable choice for most cases.
-* Functions from `utils::Shared*Async*` and `engine::Shared*AsyncNoSpan`
-  families return engine::SharedTaskWithResult, which can be awaited
-  from multiple tasks at the same time, at the cost of some overhead.
+* Functions from `utils::Shared*Async*` family return @ref engine::SharedTaskWithResult,
+  which can be awaited from multiple tasks at the same time, at the cost of some overhead.
+  For tasks without tracing, the same shared-ness is available via
+  `engine::TaskBuilder::NoSpan().BuildShared(...)`.
 
-By engine::TaskBase::Importance ("critical-ness"):
+By @ref engine::TaskBase::Importance ("critical-ness"):
 
-* By default, functions can be cancelled due to engine::TaskProcessor
+* By default, functions can be cancelled due to @ref engine::TaskProcessor
   overload. Also, if the task is cancelled before being started, it will not
   run at all.
 * If the whole service's health (not just one request) depends on the task
   being run, then functions from `utils::*CriticalAsync*` and
-  `engine::*CriticalAsyncNoSpan*` families can be used. There, execution of
-  the function is guaranteed to start regardless of engine::TaskProcessor
+  `engine::*CriticalAsyncNoTracing*` families can be used. There, execution of
+  the function is guaranteed to start regardless of @ref engine::TaskProcessor
   load limits
 
 By tracing::Span:
@@ -118,7 +119,7 @@ By tracing::Span:
   create tracing::Span with inherited `trace_id` and `link`, a new `span_id`
   and the specified `stopwatch_name`, which ensures that logs from the task
   are categorized correctly and will not get lost.
-* Functions from `engine::*AsyncNoSpan*` family create span-less tasks:
+* Functions from `engine::*AsyncNoTracing*` family create tasks without tracing:
     * A possible usage scenario is to create a task that will mostly wait
       in the background and do various unrelated work every now and then.
       In this case it might make sense to trace execution of work items,
@@ -128,11 +129,11 @@ By tracing::Span:
       But beware! Using tracing::Span::CurrentSpan() will trigger asserts
       and lead to UB in production.
 
-By the propagation of engine::TaskInheritedVariable instances:
+By the propagation of @ref engine::TaskInheritedVariable instances:
 
 * Functions from `utils::*Async*` family (which you should use by default)
   inherit all task-inherited variables from the parent task.
-* Functions from `engine::*AsyncNoSpan*` family do not inherit any
+* Functions from `engine::*AsyncNoTracing*` family do not inherit any
   task-inherited variables.
 
 By deadline: some `utils::*Async*` functions accept an @ref engine::Deadline
@@ -270,16 +271,20 @@ Cancellation can occur:
 
   * by an explicit request;
   * due to the end of the task object lifetime;
-  * at coroutine engine shutdown (affects tasks launched via `engine::Task::Detach`);
+  * at coroutine engine shutdown (affects tasks launched via @ref engine::DetachUnscopedUnsafe);
   * due to the lack of resources.
 
-To cancel a task explicitly, call the `engine::TaskBase::RequestCancel()` or `engine::TaskBase::SyncCancel()` method. It cancels only a single task and does not directly affect the subtasks that were created by the canceled task.
+To cancel a task explicitly, call the @ref engine::TaskBase::RequestCancel or @ref engine::TaskBase::SyncCancel method.
+For details on what happens with subtasks when a task is cancelled, see @ref task_cancellation_outside_world.
 
-Another way to cancel a task it to drop the `engine::TaskWithResult` without awaiting it, e.g. by returning from the function that stored it in a local variable or by letting an exception fly out.
+Another way to cancel a task it to drop the @ref engine::TaskWithResult without awaiting it, e.g. by returning from the function that stored it in a local variable or by letting an exception fly out.
 
 @snippet core/src/engine/task/cancel_test.cpp stack unwinding destroys task
 
-Tasks can be cancelled due to `engine::TaskProcessor` overload, if configured. This is a last-ditch effort to avoid OOM due to a spam of tasks. Read more in `utils::Async` and `engine::TaskBase::Importance`. Tasks started with `engine::CriticalAsync` are excepted from cancellations due to `TaskProcessor` overload.
+In the example above, `child_task` is cancelled and awaited due to stack unwinding. In any case, the child task's
+execution is guaranteed to be finished once its @ref engine::TaskWithResult handle is destroyed.
+
+Tasks can be cancelled due to @ref engine::TaskProcessor overload, if configured. This is a last-ditch effort to avoid OOM due to a spam of tasks. Read more in @ref utils::Async and @ref engine::TaskBase::Importance. Tasks started with @ref engine::CriticalAsync are excepted from cancellations due to `TaskProcessor` overload.
 
 ### How the task sees its cancellation
 
@@ -287,59 +292,66 @@ Unlike C++20 coroutines, userver does not have a magical way to kill a task. The
 
 How some synchronization primitives react to cancellations:
 
-  * `engine::TaskWithResult::Get` and `engine::TaskBase::Wait` throw `engine::WaitIterruptedException`, which typically leads to the destruction of the child task during stack unwinding, cancelling and awaiting it;
-  * `engine::ConditionVariable::Wait` and `engine::Future::wait` return a status code;
-  * `engine::SingleConsumerEvent::WaitForEvent` returns `false`;
-  * `engine::SingleConsumerEvent::WaitForEventFor` returns `false` and needs an additional `engine::current_task::ShouldCancel()` check;
-  * `engine::InterruptibleSleepFor` needs an additional `engine::current_task::ShouldCancel()` check;
-  * `engine::CancellableSemaphore` returns `false` or throws `engine::SemaphoreLockCancelledError`.
+  * @ref engine::TaskWithResult::Get and @ref engine::TaskBase::Wait throw @ref engine::WaitInterruptedException, which typically leads to the destruction of the child task during stack unwinding, cancelling and awaiting it;
+  * @ref engine::ConditionVariable::Wait and @ref engine::Future::wait return a status code;
+  * @ref engine::SingleConsumerEvent::WaitForEvent returns `false`;
+  * @ref engine::SingleConsumerEvent::WaitForEventFor returns `false` and needs an additional @ref engine::current_task::ShouldCancel check;
+  * @ref engine::InterruptibleSleepFor needs an additional @ref engine::current_task::ShouldCancel check;
+  * @ref engine::CancellableSemaphore returns `false` or throws engine::SemaphoreLockCancelledError.
 
 Some synchronization primitives deliberately ignore cancellations, notably:
 
-  * `engine::Mutex`;
-  * `engine::Semaphore` (use `engine::CancellableSemaphore` to support cancellations);
-  * `engine::SleepFor` (use `engine::InterruptibleSleepFor` to support cancellations).
+  * @ref engine::Mutex;
+  * @ref engine::Semaphore (use @ref engine::CancellableSemaphore to support cancellations);
+  * @ref engine::SleepFor (use @ref engine::InterruptibleSleepFor to support cancellations).
 
-Most clients throw a client-specific exception on cancellation. Please explore the docs of the client you are using to find out how it reacts to cancellations. Typically, there is a special exception type thrown in case of cancellations, e.g. `clients::http::CancelException`.
+Most clients throw a client-specific exception on cancellation. Please explore the docs of the client you are using to find out how it reacts to cancellations. Typically, there is a special exception type thrown in case of cancellations, e.g. @ref clients::http::CancelException.
 
+@anchor task_cancellation_outside_world
 ### How the outside world sees the task's cancellation
 
-The general theme is that a task's completion upon cancellation is still a completion. The task's function will ultimately return or throw something, and that is what the parent task will receive in `engine::TaskWithResult::Get` or `engine::TaskBase::Wait`.
+The general theme is that a task's completion upon cancellation is still a completion. The task's function will ultimately return or throw something, and that is what the parent task will receive in @ref engine::TaskWithResult::Get or @ref engine::TaskBase::Wait.
 
-If the cancellation is due to the parent task being cancelled, then its `engine::TaskWithResult::Get` or `engine::TaskBase::Wait` will throw an `engine::WaitInterruptedException`, leaving the child task running (for now), so the parent task will likely not have a chance to observe the child task's completion status. Usually the stack unwinding in the parent task then destroys the `engine::Task` handle, which causes it to be cancelled and awaited.
+If the cancellation is due to the parent task being cancelled, then its @ref engine::TaskWithResult::Get or @ref engine::TaskBase::Wait will throw an @ref engine::WaitInterruptedException, leaving the child task running (for now), so the parent task will likely not have a chance to observe the child task's completion status. Usually the stack unwinding in the parent task then destroys the @ref engine::TaskWithResult handle, which causes it to be cancelled and awaited.
 
 @snippet core/src/engine/task/cancel_test.cpp parent cancelled
 
+In the example above, `child_task` is cancelled and awaited due to stack unwinding. In any case, the child task's
+execution is guaranteed to be finished once its @ref engine::TaskWithResult handle is destroyed.
+
 If the child task got cancelled without the parent being cancelled, then:
 
-  * `engine::TaskWithResult::Get` will return or throw whatever the child task has returned or thrown, which is practically meaningless (because why else would someone cancel a task?);
-  * `engine::TaskBase::Wait` will return upon completion;
-  * `engine::TaskBase::IsFinished` will return `true` upon completion;
-  * `engine::TaskBase::GetStatus` will return `engine::TaskBase::Status::kCancelled` upon completion.
+  * @ref engine::TaskWithResult::Get will return or throw whatever the child task has returned or thrown, which is practically meaningless (because why else would someone cancel a task?);
+  * @ref engine::TaskBase::Wait will return upon completion;
+  * @ref engine::TaskBase::IsFinished will return `true` upon completion;
+  * @ref engine::TaskBase::GetStatus will return @ref engine::TaskBase::Status::kCancelled upon completion.
 
-There is one extra quirk: if the task is cancelled before being started, then only the functor's destructor will be run by default. See details in `utils::Async`. In this case `engine::TaskWithResult::Get` will throw `engine::TaskCancelledException`.
+@anchor task_cancellation_before_start
+### What happens to tasks that are cancelled before they start running
 
-Tasks launched via `utils::CriticalAsync` are always started, even if cancelled before entering the function. The cancellation will take effect immediately after the function starts:
+There is one extra quirk: if the task is cancelled before being started, then only the functor's destructor will be run by default. See details in @ref utils::Async. In this case @ref engine::TaskWithResult::Get will throw @ref engine::TaskCancelledException.
+
+Tasks launched via @ref utils::CriticalAsync are always started, even if cancelled before entering the function. The cancellation will take effect immediately after the function starts:
 
 @snippet core/src/engine/task/cancel_test.cpp critical cancel
 
 ### Lifetime of a cancelled task
 
-Note that the destructor of `engine::Task` cancels and waits for task to finish if the task has not finished yet. Use `concurrent::BackgroundTaskStorage` to continue task execution out of scope.
+Note that the destructor of @ref engine::Task cancels and waits for task to finish if the task has not finished yet. Use @ref concurrent::BackgroundTaskStorage to continue task execution out of scope.
 
-The invariant that the task only runs within the lifetime of the `engine::Task` handle or `concurrent::BackgroundTaskStorage` is the backbone of structured concurrency in userver, see `utils::Async` and `concurrent::BackgroundTaskStorage` for details.
+The invariant that the task only runs within the lifetime of the @ref engine::Task handle or @ref concurrent::BackgroundTaskStorage is the backbone of structured concurrency in userver, see @ref utils::Async and @ref concurrent::BackgroundTaskStorage for details.
 
 ### Utilities that interact with cancellations
 
 The user is provided with several mechanisms to control the behavior of the application in case of cancellation:
 
-  * `engine::current_task::CancellationPoint()` -- if the task is canceled, calling this function throws an exception that is not caught during normal exception handling (not inherited from `std::exception`). This will result in stack unwinding with normal destructor calls for all local objects. The parent task will receive `engine::TaskCancelledException` from `engine::TaskWithResult::Get`.
+  * @ref engine::current_task::CancellationPoint -- if the task is canceled, calling this function throws an exception that is not caught during normal exception handling (not inherited from `std::exception`). This will result in stack unwinding with normal destructor calls for all local objects. The parent task will receive @ref engine::TaskCancelledException from @ref engine::TaskWithResult::Get.
   **⚠️🐙❗ Catching this exception results in UB, your code should not have `catch (...)` without `throw;` in the handler body**!
-  * `engine::current_task::ShouldCancel()` and `engine::current_task::IsCancelRequested()` -- predicates that return `true` if the task is canceled:
-    * by default, use `engine::current_task::ShouldCancel()`. It reports that a cancellation was requested for the task and the cancellation was not blocked (see below);
-    * `engine::current_task::IsCancelRequested()` notifies that the task was canceled even if cancellation was blocked; effectively ignoring caller's requests to complete the task regardless of cancellation.
-  * `engine::TaskCancellationBlocker` -- scope guard, preventing cancellation in the current task. As long as it is alive all the blocking calls are not interrupted, `engine::current_task::CancellationPoint` throws no exceptions, `engine::current_task::ShouldCancel` returns `false`.
-    **⚠️🐙❗ Disabling cancellation does not affect the return value of `engine::current_task::IsCancelRequested()`.**
+  * @ref engine::current_task::ShouldCancel and @ref engine::current_task::IsCancelRequested -- predicates that return `true` if the task is canceled:
+    * by default, use @ref engine::current_task::ShouldCancel. It reports that a cancellation was requested for the task and the cancellation was not blocked (see below);
+    * @ref engine::current_task::IsCancelRequested notifies that the task was canceled even if cancellation was blocked; effectively ignoring caller's requests to complete the task regardless of cancellation.
+  * @ref engine::TaskCancellationBlocker -- scope guard, preventing cancellation in the current task. As long as it is alive all the blocking calls are not interrupted, @ref engine::current_task::CancellationPoint throws no exceptions, @ref engine::current_task::ShouldCancel returns `false`.
+    **⚠️🐙❗ Disabling cancellation does not affect the return value of @ref engine::current_task::IsCancelRequested.**
 
 
 ----------

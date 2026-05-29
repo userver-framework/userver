@@ -39,29 +39,31 @@ SubscribeSentinel::SubscribeSentinel(
     const std::vector<ConnectionInfo>& conns,
     std::string shard_group_name,
     dynamic_config::Source dynamic_config_source,
-    const std::string& client_name,
-    const Password& password,
+    const Credentials& credentials,
     ConnectionSecurity connection_security,
-    KeyShardFactory key_shard_factory,
-    bool is_cluster_mode,
-    CommandControl command_control,
-    const testsuite::RedisControl& testsuite_redis_control
+    const testsuite::RedisControl& testsuite_redis_control,
+    std::size_t database_index,
+    SubscribeSentinelStaticConfig creation_config
 )
     : Sentinel(
           thread_pools,
           shards,
           conns,
           std::move(shard_group_name),
-          client_name,
-          password,
+          credentials,
           connection_security,
           dynamic_config_source,
-          std::move(key_shard_factory),
-          command_control,
+          SentinelStaticConfig{
+              std::move(creation_config.client_name),
+              std::move(creation_config.key_shard_factory),
+              std::move(creation_config.command_control),
+              creation_config.topology_update_method,
+          },
           testsuite_redis_control,
-          kSubscriptionDatabaseIndex
+          database_index
       ),
-      storage_(CreateSubscriptionStorage(thread_pools, shards, is_cluster_mode))
+      storage_(CreateSubscriptionStorage(thread_pools, shards, IsInClusterMode())),
+      per_channel_stats_enabled_(creation_config.per_channel_stats_enabled)
 {
     InitStorage();
 }
@@ -76,12 +78,12 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
     const secdist::RedisSettings& settings,
     std::string shard_group_name,
     dynamic_config::Source dynamic_config_source,
-    const std::string& client_name,
-    storages::redis::ShardingStrategy sharding_strategy,
-    const CommandControl& command_control,
+    const SubscribeSentinelStaticConfig& creation_config,
     const testsuite::RedisControl& testsuite_redis_control
 ) {
+    const auto& username = settings.username;
     const auto& password = settings.password;
+    const auto& sentinel_username = settings.sentinel_username;
     const auto& sentinel_password = settings.sentinel_password;
 
     const std::vector<std::string>& shards = settings.shards;
@@ -90,8 +92,7 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
         LOG_DEBUG() << "shard:  name = " << shard;
     }
 
-    KeyShardFactory keys_shard_factory{sharding_strategy};
-    auto is_cluster_mode = keys_shard_factory.IsClusterStrategy();
+    const auto is_cluster_mode = creation_config.key_shard_factory.IsClusterStrategy();
     std::vector<ConnectionInfo> conns;
     conns.reserve(settings.sentinels.size());
     LOG_DEBUG() << "sentinels.size() = " << settings.sentinels.size();
@@ -102,12 +103,12 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
         conns.emplace_back(
             sentinel.host,
             sentinel.port,
-            (is_cluster_mode ? password : sentinel_password),
+            (is_cluster_mode ? Credentials{username, password} : Credentials{sentinel_username, sentinel_password}),
             false,
             settings.secure_connection
         );
     }
-    LOG_DEBUG() << "redis command_control: " << command_control.ToString();
+    LOG_DEBUG() << "redis command_control: " << creation_config.command_control.ToString();
 
     if (settings.database_index != kSubscriptionDatabaseIndex) {
         LOG_WARNING()
@@ -121,13 +122,11 @@ std::shared_ptr<SubscribeSentinel> SubscribeSentinel::Create(
         conns,
         std::move(shard_group_name),
         dynamic_config_source,
-        client_name,
-        password,
+        Credentials{username, password},
         settings.secure_connection,
-        std::move(keys_shard_factory),
-        is_cluster_mode,
-        command_control,
-        testsuite_redis_control
+        testsuite_redis_control,
+        kSubscriptionDatabaseIndex,
+        creation_config
     );
     subscribe_sentinel->Start();
     return subscribe_sentinel;
@@ -162,7 +161,7 @@ SubscriptionToken SubscribeSentinel::Ssubscribe(
 PubsubClusterStatistics SubscribeSentinel::GetSubscriberStatistics(const PubsubMetricsSettings& settings) const {
     auto raw = storage_->GetStatistics();
 
-    PubsubClusterStatistics result(settings);
+    PubsubClusterStatistics result(settings, per_channel_stats_enabled_);
     for (auto& shard : raw.by_shard) {
         result.by_shard.emplace(shard.shard_name, std::move(shard));
     }

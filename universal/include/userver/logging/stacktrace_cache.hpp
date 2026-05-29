@@ -1,12 +1,16 @@
 #pragma once
 
+/// @file userver/logging/stacktrace_cache.hpp
+/// @brief Cached stringification for Boost stack traces.
+/// @ingroup userver_universal
+
 #include <string>
 
 #include <boost/stacktrace/stacktrace_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-/// Contains functions that cache stacktrace results
+/// @brief Cached stringification for stack traces.
 namespace logging::stacktrace_cache {
 
 /// Get cached stacktrace

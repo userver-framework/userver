@@ -247,6 +247,7 @@ class Array(Schema):
     nullable: bool = False
     minItems: int | None = None
     maxItems: int | None = None
+    uniqueItems: bool = False
     deprecated: bool = False
 
     @classmethod

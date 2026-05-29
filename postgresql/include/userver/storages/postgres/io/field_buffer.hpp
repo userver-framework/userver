@@ -44,21 +44,21 @@ std::size_t FieldBuffer::Read(T&& value, const TypeBufferCategory& categories, s
 
 template <typename T>
 std::size_t FieldBuffer::ReadRaw(T&& value, const TypeBufferCategory& categories, BufferCategory cat) {
-    using ValueType = std::decay_t<T>;
+    using ValueType = std::remove_cvref_t<T>;
     Integer field_length{0};
     auto consumed = Read(field_length, BufferCategory::kPlainBuffer);
     if (field_length == kPgNullBufferSize) {
         // NULL value
-        traits::GetSetNull<ValueType>::SetNull(std::forward<T>(value));
+        traits::GetSetNull<ValueType>::SetNull(value);
         return consumed;
     } else if (field_length < 0) {
         // invalid length value
         throw InvalidInputBufferSize(fmt::format("Negative buffer size value {}", field_length));
     } else if (field_length == 0) {
-        traits::GetSetNull<ValueType>::SetDefault(std::forward<T>(value));
+        traits::GetSetNull<ValueType>::SetDefault(value);
         return consumed;
     } else {
-        return consumed + Read(value, categories, field_length, cat);
+        return consumed + Read(std::forward<T>(value), categories, field_length, cat);
     }
 }
 
@@ -69,16 +69,10 @@ std::size_t ReadRawBinary(FieldBuffer buffer, T& value, const TypeBufferCategory
 
 namespace detail {
 
-template <typename T, typename Buffer, typename Enable = USERVER_NAMESPACE::utils::void_t<>>
-struct FormatterAcceptsReplacementOid : std::false_type {};
-
 template <typename T, typename Buffer>
-struct FormatterAcceptsReplacementOid<
-    T,
-    Buffer,
-    USERVER_NAMESPACE::utils::void_t<
-        decltype(std::declval<T&>()(std::declval<const UserTypes&>(), std::declval<Buffer&>(), std::declval<Oid>()))>>
-    : std::true_type {};
+inline constexpr bool kFormatterAcceptsReplacementOid = requires(T& f, const UserTypes& types, Buffer& buf, Oid oid) {
+    f(types, buf, oid);
+};
 
 }  // namespace detail
 
@@ -95,11 +89,10 @@ void WriteRawBinary(
         io::WriteBuffer(types, buffer, kPgNullBufferSize);
     } else {
         using BufferFormatter = typename traits::IO<T>::FormatterType;
-        using AcceptsReplacementOid = detail::FormatterAcceptsReplacementOid<BufferFormatter, Buffer>;
         auto len_start = buffer.size();
         buffer.resize(buffer.size() + size_len);
         auto size_before = buffer.size();
-        if constexpr (AcceptsReplacementOid{}) {
+        if constexpr (detail::kFormatterAcceptsReplacementOid<BufferFormatter, Buffer>) {
             BufferFormatter{value}(types, buffer, replace_oid);
         } else {
             io::WriteBuffer(types, buffer, value);

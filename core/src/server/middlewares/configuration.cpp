@@ -11,6 +11,7 @@
 #include <server/middlewares/deadline_propagation.hpp>
 #include <server/middlewares/decompression.hpp>
 #include <server/middlewares/exceptions_handling.hpp>
+#include <server/middlewares/graceful_shutdown_headers.hpp>
 #include <server/middlewares/handler_adapter.hpp>
 #include <server/middlewares/handler_metrics.hpp>
 #include <server/middlewares/rate_limit.hpp>
@@ -37,6 +38,7 @@ MiddlewaresList DefaultPipeline() {
 
         // Setting headers middlewares should be before terminating middlewares to set headers for errors
         std::string{builtin::kTracing},
+        std::string{builtin::kGracefulShutdownHeaders},
         std::string{builtin::kSetAcceptEncoding},
 
         // Should be self-explanatory
@@ -73,6 +75,7 @@ components::ComponentList DefaultMiddlewareComponents() {
         .Append<SetAcceptEncodingFactory>()
         .Append<ExceptionsHandlingFactory>()
         .Append<UnknownExceptionsHandlingFactory>()
+        .Append<GracefulShutdownHeadersFactory>()
         .Append<testsuite::ExceptionsHandlingMiddlewareFactory>();
 }
 

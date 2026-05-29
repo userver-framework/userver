@@ -7,6 +7,7 @@
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/text.hpp>
+#include "cluster_shards_query.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -94,12 +95,12 @@ ClusterNodesResponseStatus ParseClusterNodesResponse(const ReplyPtr& reply, Node
     const auto& host_lines = utils::text::SplitIntoStringViewVector(reply->data.GetString(), "\n");
 
     for (const auto& host_line : host_lines) {
-        const auto& splitted = utils::text::SplitIntoStringViewVector(host_line, " ");
-        if (splitted.size() < 2) {
+        const auto& split = utils::text::SplitIntoStringViewVector(host_line, " ");
+        if (split.size() < 2) {
             continue;
         }
 
-        const auto& host_port_communication_port = splitted[1];
+        const auto& host_port_communication_port = split[1];
         if (host_port_communication_port == ":0@0" || host_port_communication_port == ":0") {
             continue;
         }
@@ -128,17 +129,19 @@ ClusterTopologyHolder::ClusterTopologyHolder(
     const engine::ev::ThreadControl& sentinel_thread_control,
     const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool,
     std::string shard_group_name,
-    Password password,
+    Credentials credentials,
     const std::vector<std::string>& /*shards*/,
     const std::vector<ConnectionInfo>& conns,
-    ConnectionSecurity connection_security
+    ConnectionSecurity connection_security,
+    TopologyUpdateMethod topology_update_method
 )
     : ev_thread_(sentinel_thread_control),
       redis_thread_pool_(redis_thread_pool),
       shard_group_name_(std::move(shard_group_name)),
-      password_(std::move(password)),
+      credentials_(std::move(credentials)),
       shards_names_(MakeShardNames()),
       conns_(conns),
+      topology_update_method_(topology_update_method),
       statistics_holder_(),
       update_topology_timer_(ev_thread_, [this] { UpdateClusterTopology(); }, kSentinelGetHostsCheckInterval),
       update_topology_watch_(
@@ -339,13 +342,13 @@ boost::signals2::signal<void(size_t)>& ClusterTopologyHolder::GetSignalTopologyC
     return signal_topology_changed_;
 }
 
-void ClusterTopologyHolder::UpdatePassword(const Password& password) {
-    auto lock = password_.UniqueLock();
-    *lock = password;
+void ClusterTopologyHolder::UpdateCredentials(const Credentials& credentials) {
+    auto lock = credentials_.UniqueLock();
+    *lock = credentials;
 }
 
-Password ClusterTopologyHolder::GetPassword() {
-    const auto lock = password_.Lock();
+Credentials ClusterTopologyHolder::GetCredentials() {
+    const auto lock = credentials_.Lock();
     return *lock;
 }
 
@@ -471,7 +474,7 @@ std::shared_ptr<RedisConnectionHolder> ClusterTopologyHolder::CreateRedisInstanc
         shard_group_name_,
         host,
         port,
-        GetPassword(),
+        GetCredentials(),
         kClusterDatabaseIndex,
         buffering_settings_ptr->value_or(CommandsBufferingSettings{}),
         *replication_monitoring_settings_ptr,
@@ -493,17 +496,13 @@ void ClusterTopologyHolder::UpdateClusterTopology() {
     /// Update sentinel
     sentinels_->ProcessCreation(redis_thread_pool_);
 
-    /// Update controlled topology. Go to CLUSTER SLOTS
-    /// ...
-    ProcessGetClusterHostsRequest(
-        shards_names_,
-        GetClusterHostsRequest(*sentinels_, GetPassword(), shard_group_name_),
+    auto callback =
         [this,
          reset{std::move(reset_update_cluster_slots)
          }](ClusterShardHostInfos shard_infos, size_t requests_sent, size_t responses_parsed, bool is_non_cluster_error
         ) {
             LOG_DEBUG()
-                << log_extra_ << "Parsing response from cluster slots: shard_infos.size(): " << shard_infos.size()
+                << log_extra_ << "Parsing response from cluster shards: shard_infos.size(): " << shard_infos.size()
                 << ", requests_sent=" << requests_sent << ", responses_parsed=" << responses_parsed;
             const auto deferred = utils::FastScopeGuard([&]() noexcept { ++cluster_slots_call_counter; });
             if (is_non_cluster_error) {
@@ -590,8 +589,24 @@ void ClusterTopologyHolder::UpdateClusterTopology() {
 
                 LOG_DEBUG() << log_extra_ << "Cluster topology updated to version" << current_topology_version_.load();
             });
-        }
-    );
+        };
+
+    switch (topology_update_method_) {
+        case TopologyUpdateMethod::kClusterShards:
+            GetClusterShardsContext::ProcessRequest(
+                shards_names_,
+                GetClusterShardsRequest(*sentinels_, GetCredentials(), shard_group_name_),
+                std::move(callback)
+            );
+            break;
+        case TopologyUpdateMethod::kClusterSlots:
+            GetClusterSlotsContext::ProcessRequest(
+                shards_names_,
+                GetClusterSlotsRequest(*sentinels_, GetCredentials(), shard_group_name_),
+                std::move(callback)
+            );
+            break;
+    }
 }
 
 void ClusterTopologyHolder::GetStatistics(SentinelStatistics& stats, const MetricsSettings& settings) const {

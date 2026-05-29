@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/ydb/builder.hpp
+/// @brief @copybrief ydb::PreparedArgsBuilder
+
 #include <ydb-cpp-sdk/client/params/params.h>
 
 #include <string>
@@ -16,10 +19,17 @@ namespace ydb {
 class TableClient;
 class Transaction;
 
+/// @brief Builder for prepared query parameters
 class PreparedArgsBuilder final {
 public:
+    PreparedArgsBuilder() = default;
+
     PreparedArgsBuilder(PreparedArgsBuilder&&) noexcept = default;
     PreparedArgsBuilder& operator=(PreparedArgsBuilder&&) = delete;
+
+    explicit PreparedArgsBuilder(NYdb::TParamsBuilder&& builder)
+        : builder_(std::move(builder))
+    {}
 
     /// Supported types and required includes are documented in:
     /// <userver/ydb/io/supported_types.hpp>
@@ -28,11 +38,6 @@ public:
 
     /// @cond
     // For internal use only.
-    explicit PreparedArgsBuilder(NYdb::TParamsBuilder&& builder)
-        : builder_(std::move(builder))
-    {}
-
-    // For internal use only.
     template <typename... NamesValues>
     void AddParams(NamesValues&&... names_values);
     /// @endcond
@@ -40,6 +45,7 @@ public:
 private:
     friend class Transaction;
     friend class TableClient;
+    friend class TxActor;
     struct PreparedArgsWithKey;
 
     NYdb::TParams Build() && { return std::move(builder_).Build(); }

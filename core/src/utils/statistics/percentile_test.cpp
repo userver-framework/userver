@@ -5,7 +5,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-static_assert(utils::statistics::kHasWriterSupport<utils::statistics::Percentile<100>>);
+static_assert(utils::statistics::HasWriterSupport<utils::statistics::Percentile<100>>);
 
 TEST(Percentile, Zero) {
     const utils::statistics::Percentile<100> p;

@@ -96,7 +96,7 @@ class _S3BucketUploadStorage:
         self._storage[upload_id] = _S3Upload(parts={}, meta=upload_meta)
         return upload_meta
 
-    def abort_multipart_uplod(self, key: str, upload_id: str):
+    def abort_multipart_upload(self, key: str, upload_id: str):
         key_path = pathlib.Path(key)
         upload = self._storage.get(upload_id)
         if not upload or upload.meta['Key'] != str(key_path):
@@ -152,8 +152,8 @@ class _S3BucketUploadStorage:
         merged_data = bytearray()
         for part in parts_to_complete:
             part_number = part['PartNumber']
-            uploded_part = upload.parts[part_number]
-            merged_data += uploded_part.data
+            uploaded_part = upload.parts[part_number]
+            merged_data += uploaded_part.data
 
         if not merged_data:
             raise _S3EntityTooSmallError()
@@ -453,7 +453,7 @@ class S3HandleMock:
         upload_id = request.query['uploadId']
         bucket_uploads = self._uploads[self._get_bucket_name(request)]
         try:
-            bucket_uploads.abort_multipart_uplod(key, upload_id)
+            bucket_uploads.abort_multipart_upload(key, upload_id)
         except _S3NoSuchUploadError as exc:
             # https://docs.aws.amazon.com/AmazonS3/latest/API/API_AbortMultipartUpload.html
             # #API_AbortMultipartUpload_Errors

@@ -81,7 +81,7 @@ public:
     {}
 
     std::optional<RequestType> Create(size_t attempt) {
-        event_log.push_back({Event::kStartRequest, attempt});
+        event_log.push_back({.event = Event::kStartRequest, .attempt = attempt});
         auto delay = kDefaultDelay;
         if (attempt_program.size() > attempt) {
             delay = attempt_program[attempt].delay;
@@ -90,19 +90,20 @@ public:
     }
 
     std::optional<std::chrono::milliseconds> ProcessReply(RequestType&& request) {
+        const size_t attempt = request.attempt;
         reply = std::move(request).Get();
-        event_log.push_back({Event::kProcessReply, request.attempt});
-        if (attempt_program.size() <= request.attempt) {
+        event_log.push_back({.event = Event::kProcessReply, .attempt = attempt});
+        if (attempt_program.size() <= attempt) {
             return std::nullopt;
         }
-        return attempt_program[request.attempt].process_reply_result;
+        return attempt_program[attempt].process_reply_result;
     }
 
     // NOLINTNEXTLINE(readability-make-member-function-const)
     std::optional<ReplyType> ExtractReply() { return reply; }
 
     void Finish(RequestType&& request) {
-        event_log.push_back({Event::kFinish, request.attempt});
+        event_log.push_back({.event = Event::kFinish, .attempt = request.attempt});
         if (request.task.IsValid()) {
             request.task.SyncCancel();
         }
@@ -120,13 +121,13 @@ UTEST(HedgedRequest, Base) {
     /// make 3 consecutive requests with 10 ms delay. Get reply from first attempt
     /// and cancel all requests
     const EventLog expected_event_log = {
-        {Event::kStartRequest, 0},
-        {Event::kStartRequest, 1},
-        {Event::kStartRequest, 2},
-        {Event::kProcessReply, 0},
-        {Event::kFinish, 0},
-        {Event::kFinish, 1},
-        {Event::kFinish, 2},
+        {.event = Event::kStartRequest, .attempt = 0},
+        {.event = Event::kStartRequest, .attempt = 1},
+        {.event = Event::kStartRequest, .attempt = 2},
+        {.event = Event::kProcessReply, .attempt = 0},
+        {.event = Event::kFinish, .attempt = 0},
+        {.event = Event::kFinish, .attempt = 1},
+        {.event = Event::kFinish, .attempt = 2},
     };
     const utils::hedging::HedgingSettings settings{3, 10ms, 1000ms};
     EventLog event_log;
@@ -140,13 +141,13 @@ UTEST(HedgedRequest, DontStartIfGotResult) {
     /// Test we do not start additional requests if we got reply before
     /// hedging_delay elapsed
     const EventLog expected_event_log = {
-        {Event::kStartRequest, 0},
-        {Event::kProcessReply, 0},
-        {Event::kFinish, 0},
+        {.event = Event::kStartRequest, .attempt = 0},
+        {.event = Event::kProcessReply, .attempt = 0},
+        {.event = Event::kFinish, .attempt = 0},
     };
     const utils::hedging::HedgingSettings settings{3, 200ms, 1000ms};
     auto program = AttemptProgram{
-        {1ms, std::nullopt},
+        {.delay = 1ms, .process_reply_result = std::nullopt},
     };
 
     EventLog event_log;
@@ -159,16 +160,16 @@ UTEST(HedgedRequest, DontStartIfGotResult) {
 UTEST(HedgedRequest, SuccessfulHedging) {
     /// Test case when second attempt finish first
     const EventLog expected_event_log = {
-        {Event::kStartRequest, 0},
-        {Event::kStartRequest, 1},
-        {Event::kProcessReply, 1},
-        {Event::kFinish, 0},
-        {Event::kFinish, 1},
+        {.event = Event::kStartRequest, .attempt = 0},
+        {.event = Event::kStartRequest, .attempt = 1},
+        {.event = Event::kProcessReply, .attempt = 1},
+        {.event = Event::kFinish, .attempt = 0},
+        {.event = Event::kFinish, .attempt = 1},
     };
     const utils::hedging::HedgingSettings settings{2, 10ms, 1000ms};
     auto program = AttemptProgram{
-        {200ms, std::nullopt},  ///< slow attempt
-        {1ms, std::nullopt},    ///< hedged request
+        {.delay = 200ms, .process_reply_result = std::nullopt},  ///< slow attempt
+        {.delay = 1ms, .process_reply_result = std::nullopt},    ///< hedged request
     };
 
     EventLog event_log;
@@ -184,18 +185,18 @@ UTEST(HedgedRequest, Timeout) {
     /// every request has 100ms timing.
     /// No ProcessReply
     const EventLog expected_event_log = {
-        {Event::kStartRequest, 0},
-        {Event::kStartRequest, 1},
-        {Event::kStartRequest, 2},
-        {Event::kFinish, 0},
-        {Event::kFinish, 1},
-        {Event::kFinish, 2},
+        {.event = Event::kStartRequest, .attempt = 0},
+        {.event = Event::kStartRequest, .attempt = 1},
+        {.event = Event::kStartRequest, .attempt = 2},
+        {.event = Event::kFinish, .attempt = 0},
+        {.event = Event::kFinish, .attempt = 1},
+        {.event = Event::kFinish, .attempt = 2},
     };
     const utils::hedging::HedgingSettings settings{3, 10ms, 50ms};
     auto program = AttemptProgram{
-        {100ms, std::nullopt},
-        {100ms, std::nullopt},
-        {100ms, std::nullopt},
+        {.delay = 100ms, .process_reply_result = std::nullopt},
+        {.delay = 100ms, .process_reply_result = std::nullopt},
+        {.delay = 100ms, .process_reply_result = std::nullopt},
     };
 
     EventLog event_log;
@@ -209,17 +210,17 @@ UTEST(HedgedRequest, Refuse) {
     /// Test case when first attempt return fast but strategy refuted to accept,
     /// so another request was made
     const EventLog expected_event_log = {
-        {Event::kStartRequest, 0},
-        {Event::kProcessReply, 0},
-        {Event::kStartRequest, 1},
-        {Event::kProcessReply, 1},
-        {Event::kFinish, 0},
-        {Event::kFinish, 1},
+        {.event = Event::kStartRequest, .attempt = 0},
+        {.event = Event::kProcessReply, .attempt = 0},
+        {.event = Event::kStartRequest, .attempt = 1},
+        {.event = Event::kProcessReply, .attempt = 1},
+        {.event = Event::kFinish, .attempt = 0},
+        {.event = Event::kFinish, .attempt = 1},
     };
     const utils::hedging::HedgingSettings settings{2, 200ms, 1000ms};
     auto program = AttemptProgram{
-        {1ms, 10ms},
-        {1ms, std::nullopt},
+        {.delay = 1ms, .process_reply_result = 10ms},
+        {.delay = 1ms, .process_reply_result = std::nullopt},
     };
 
     // Try 10 times in case of too long sleep

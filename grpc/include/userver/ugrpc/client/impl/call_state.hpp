@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <optional>
 #include <string_view>
 
@@ -14,6 +15,7 @@
 #include <userver/ugrpc/client/fwd.hpp>
 #include <userver/ugrpc/client/impl/method_stubs.hpp>
 #include <userver/ugrpc/client/impl/middleware_pipeline.hpp>
+#include <userver/ugrpc/client/retry_limiter.hpp>
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/impl/maybe_owned_string.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
@@ -68,13 +70,14 @@ public:
 
     const testsuite::GrpcControl& GetTestsuiteControl() const noexcept;
 
+    RetryLimiter* GetRetryLimiter() const noexcept;
+
     ugrpc::impl::RpcStatisticsScope& GetStatsScope() noexcept;
 
+    /// Returns true if the Deadline Propagation deadline was used as the deadline for the attempt
     bool IsDeadlinePropagated() const noexcept;
 
     void SetDeadlinePropagated() noexcept;
-
-    grpc::Status& GetStatus() noexcept;
 
     void Commit() noexcept;
 
@@ -107,7 +110,7 @@ private:
 
     const testsuite::GrpcControl& testsuite_grpc_;
 
-    grpc::Status status_;
+    RetryLimiter* retry_limiter_;
 
     std::atomic<bool> committed_{false};
 };
@@ -178,9 +181,7 @@ bool IsWriteAvailable(const StreamingCallState&) noexcept;
 
 bool IsWriteAndCheckAvailable(const StreamingCallState&) noexcept;
 
-void SetupClientContext(CallState& state, const CallOptions& call_options);
-
-void HandleCallStatistics(CallState& state, const grpc::Status& status) noexcept;
+void SetupClientContext(CallState& state, const CallOptions& call_options, int attempt);
 
 void RunMiddlewarePipeline(CallState& state, const MiddlewareHooks& hooks);
 

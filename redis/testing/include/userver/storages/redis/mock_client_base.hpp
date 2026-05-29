@@ -87,6 +87,18 @@ public:
         std::vector<std::string> args,
         const CommandControl& command_control
     ) override;
+    RequestEvalCommon EvalReadOnlyCommon(
+        std::string script,
+        std::vector<std::string> keys,
+        std::vector<std::string> args,
+        const CommandControl& command_control
+    ) override;
+    RequestEvalShaCommon EvalShaReadOnlyCommon(
+        std::string script,
+        std::vector<std::string> keys,
+        std::vector<std::string> args,
+        const CommandControl& command_control
+    ) override;
     RequestGenericCommon GenericCommon(
         std::string command,
         std::vector<std::string> args,
@@ -320,6 +332,13 @@ public:
         const CommandControl& command_control
     ) override;
 
+    RequestSetAndGetPrevious SetAndGetPrevious(
+        std::string key,
+        std::string value,
+        std::chrono::milliseconds ttl,
+        const CommandControl& command_control
+    ) override;
+
     RequestSismember Sismember(std::string key, std::string member, const CommandControl& command_control) override;
 
     RequestSmembers Smembers(std::string key, const CommandControl& command_control) override;
@@ -474,6 +493,40 @@ public:
         override;
 
     RequestZscore Zscore(std::string key, std::string member, const CommandControl& command_control) override;
+
+    RequestJsonSet JsonSet(
+        std::string key,
+        std::string path,
+        formats::json::Value value,
+        const CommandControl& command_control
+    ) override;
+
+    RequestJsonSetIfNotExist JsonSetIfNotExist(
+        std::string key,
+        std::string path,
+        formats::json::Value value,
+        const CommandControl& command_control
+    ) override;
+
+    RequestJsonSetIfExist JsonSetIfExist(
+        std::string key,
+        std::string path,
+        formats::json::Value value,
+        const CommandControl& command_control
+    ) override;
+
+    RequestJsonGet JsonGet(std::string key, const CommandControl& command_control) override;
+
+    RequestJsonGet JsonGet(std::string key, std::string path, const CommandControl& command_control) override;
+
+    RequestJsonGet JsonGet(std::string key, std::vector<std::string> paths, const CommandControl& command_control)
+        override;
+
+    RequestJsonMget JsonMget(std::vector<std::string> keys, std::string path, const CommandControl& command_control)
+        override;
+
+    RequestJsonMset JsonMset(std::vector<JsonKeyPathValue> key_path_values, const CommandControl& command_control)
+        override;
 
     // end of redis commands
 

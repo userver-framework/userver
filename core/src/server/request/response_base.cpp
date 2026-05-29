@@ -17,7 +17,9 @@ void Http2StreamEventProducer::PushEvent(Http2StreamEvent event, engine::Deadlin
     event_.Send();
 }
 
-void Http2StreamEventProducer::CloseStream(std::int32_t id) { PushEvent({id, "", /*is_end=*/true}); }
+void Http2StreamEventProducer::CloseStream(std::int32_t id) {
+    PushEvent({.stream_id = id, .body_part = "", .is_end = true});
+}
 
 }  // namespace server::http::impl
 
@@ -76,6 +78,7 @@ ResponseBase::~ResponseBase() noexcept {
 }
 
 void ResponseBase::SetData(std::string data) {
+    UASSERT(!is_sent_);
     create_time_ = std::chrono::steady_clock::now();
     data_ = std::move(data);
     guard_.emplace(accounter_, create_time_, data_.size());

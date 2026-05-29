@@ -20,29 +20,17 @@ class Writer;
 class MetricValue;
 
 namespace impl {
-
 struct WriterState;
-
-template <class Metric>
-constexpr auto HasDumpMetricWriter()
-    noexcept -> decltype(DumpMetric(std::declval<Writer&>(), std::declval<const Metric&>()), std::true_type{}) {
-    return {};
-}
-
-template <class Metric, class... Args>
-constexpr auto HasDumpMetricWriter(Args...) noexcept {
-    return std::is_arithmetic_v<Metric>;
-}
-
 }  // namespace impl
 
-/// @brief Returns true, if the `Metric` could be written by
-/// utils::statistics::Writer.
+/// @brief Returns true, if the `Metric` could be written by @ref utils::statistics::Writer.
 ///
-/// In other words, checks that the DumpMetric for the `Metric` is provided or
+/// In other words, checks that the `DumpMetric` for the `Metric` is provided or
 /// that the metric could be written without providing one.
 template <class Metric>
-inline constexpr bool kHasWriterSupport = impl::HasDumpMetricWriter<Metric>();
+concept HasWriterSupport = std::is_arithmetic_v<Metric> || requires(Writer& writer, const Metric& metric) {
+    DumpMetric(writer, metric);
+};
 
 /// @ingroup userver_universal
 ///
@@ -91,7 +79,7 @@ inline constexpr bool kHasWriterSupport = impl::HasDumpMetricWriter<Metric>();
 class Writer final {
 public:
     /// Path parts delimiter. In other words, writer["a"]["b"] becomes "a.b"
-    static inline constexpr char kDelimiter = '.';
+    static constexpr char kDelimiter = '.';
 
     Writer() = delete;
     Writer(Writer&& other) = delete;
@@ -118,7 +106,7 @@ public:
         } else {
             if (state_) {
                 static_assert(
-                    kHasWriterSupport<T>,
+                    HasWriterSupport<T>,
                     "Cast the metric to an arithmetic type or provide a "
                     "`void DumpMetric(utils::statistics::Writer& writer, "
                     "const Metric& value)` function for the `Metric` type"

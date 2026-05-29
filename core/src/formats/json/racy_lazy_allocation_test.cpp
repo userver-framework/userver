@@ -17,7 +17,7 @@ UTEST_MT(RacyLazyAllocation, DoesntHappen, 3) {
 
         const formats::json::Value value{};
 
-        auto is_null_task = engine::AsyncNoSpan([&m, &cv, &value, &ok] {
+        auto is_null_task = engine::AsyncNoTracing([&m, &cv, &value, &ok] {
             {
                 std::unique_lock lock{m};
                 EXPECT_TRUE(cv.Wait(lock, [&ok] { return ok; }));
@@ -26,7 +26,7 @@ UTEST_MT(RacyLazyAllocation, DoesntHappen, 3) {
             EXPECT_TRUE(value.IsNull());
         });
 
-        auto is_object_task = engine::AsyncNoSpan([&m, &cv, &value, &ok] {
+        auto is_object_task = engine::AsyncNoTracing([&m, &cv, &value, &ok] {
             {
                 std::unique_lock lock{m};
                 EXPECT_TRUE(cv.Wait(lock, [&ok] { return ok; }));

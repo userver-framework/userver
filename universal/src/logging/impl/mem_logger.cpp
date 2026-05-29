@@ -98,8 +98,6 @@ void MemLogger::DispatchItem(formatters::LogItem& msg, formatters::Base& formatt
     }
 }
 
-bool MemLogger::DoShouldLog(Level) const noexcept { return true; }
-
 }  // namespace logging::impl
 
 USERVER_NAMESPACE_END

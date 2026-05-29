@@ -41,6 +41,16 @@ properties:
                     type: boolean
                     description: allows read requests from master instance
                     default: false
+                topology_update_method:
+                    type: string
+                    description: |
+                        Topology update method for cluster databases.
+                        cluster_slots - use CLUSTER SLOTS command (default).
+                        cluster_shards - use CLUSTER SHARDS command.
+                    default: cluster_slots
+                    enum:
+                      - cluster_slots
+                      - cluster_shards
     metrics_level:
         type: string
         description: set metrics detail level
@@ -75,3 +85,17 @@ properties:
                     type: boolean
                     description: allows subscriptions to master instance to distribute load
                     default: false
+                topology_update_method:
+                    type: string
+                    description: |
+                        Topology update method for cluster databases.
+                        cluster_slots - use CLUSTER SLOTS command (default).
+                        cluster_shards - use CLUSTER SHARDS command.
+                    default: cluster_slots
+                    enum:
+                      - cluster_slots
+                      - cluster_shards
+                per_channel_statistics:
+                    type: boolean
+                    description: enables statistics for each redis pub/sub channel
+                    default: true

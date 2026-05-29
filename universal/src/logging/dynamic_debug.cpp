@@ -78,7 +78,7 @@ void SetDynamicDebugLog(const std::string& location_relative, int line, EntrySta
 }
 
 void AddDynamicDebugLog(const std::string& location_relative, int line) {
-    SetDynamicDebugLog(location_relative, line, EntryState{/*force_enabled_level=*/Level::kTrace});
+    SetDynamicDebugLog(location_relative, line, EntryState{.force_enabled_level = Level::kTrace});
 }
 
 void RemoveDynamicDebugLog(const std::string& location_relative, int line) {

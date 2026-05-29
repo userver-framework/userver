@@ -77,6 +77,7 @@ void MergePoolSettings(
         MergeField(static_settings.min_size, dynamic_settings.min_size);
         MergeField(static_settings.max_queue_size, dynamic_settings.max_queue_size);
         MergeField(static_settings.connecting_limit, dynamic_settings.connecting_limit);
+        MergeField(static_settings.connecting_interval_ms, dynamic_settings.connecting_interval_ms);
     }
 }
 
@@ -179,8 +180,7 @@ Postgres::Postgres(const ComponentConfig& config, const ComponentContext& contex
         ei_settings = *ei_settings_opt;
     }
 
-    auto& statistics_storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
-    statistics_holder_ = statistics_storage.RegisterWriter(kStatisticsName, [this](utils::statistics::Writer& writer) {
+    utils::statistics::RegisterWriterScope(context, kStatisticsName, [this](utils::statistics::Writer& writer) {
         ExtendStatistics(writer);
     });
 
@@ -225,7 +225,6 @@ Postgres::Postgres(const ComponentConfig& config, const ComponentContext& contex
 }
 
 Postgres::~Postgres() {
-    statistics_holder_.Unregister();
     config_subscription_.Unsubscribe();
     secdist_subscription_.Unsubscribe();
 }

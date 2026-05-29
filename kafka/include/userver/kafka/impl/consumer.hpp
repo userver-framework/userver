@@ -91,7 +91,7 @@ public:
     /// @param timeout Timeout for the operation.
     void MultiSeek(utils::span<const SeekParams> params, std::chrono::milliseconds timeout) const;
 
-    /// @brief Seeks the \b partition_id for the specified \b topic to the begginning offset .
+    /// @brief Seeks the \b partition_id for the specified \b topic to the beginning offset.
     /// @see ConsumerScope::SeekToBeginning for better commitment process
     void SeekToBeginning(utils::zstring_view topic, std::uint32_t partition_id, std::chrono::milliseconds timeout)
         const;

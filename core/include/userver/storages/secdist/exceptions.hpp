@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/secdist/exceptions.hpp
+/// @brief Secdist configuration exception types
+
 #include <stdexcept>
 
 USERVER_NAMESPACE_BEGIN

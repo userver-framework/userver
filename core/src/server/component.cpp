@@ -51,6 +51,10 @@ void Server::OnAllComponentsLoaded() {
     server_->Start();
 }
 
+void Server::OnGracefulShutdown(engine::Deadline serving_shutdown_deadline) {
+    server_->StopServing(serving_shutdown_deadline);
+}
+
 void Server::OnAllComponentsAreStopping() {
     /* components::Server has to stop all Listeners before unloading components
      * as handlers have no ability to call smth like RemoveHandler() from

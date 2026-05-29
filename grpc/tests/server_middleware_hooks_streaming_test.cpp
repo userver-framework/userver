@@ -477,7 +477,7 @@ UTEST_F(ServerMiddlewareHooksStreamingTest, ThrowInHandler) {
 INSTANTIATE_UTEST_SUITE_P(
     /*no prefix*/,
     ServerMiddlewareHooksStreamingWithParamTest,
-    testing::Values(Flags{/*set_error=*/true}, Flags{/*set_error*/ false})
+    testing::Values(Flags{.set_error = true}, Flags{.set_error = false})
 );
 
 USERVER_NAMESPACE_END

@@ -31,16 +31,12 @@ protected:
         ASSERT_THAT(logger.Filter(kStatement), ::testing::SizeIs(0));
 
         const std::vector<utest::LogRecord> logs_with_query_tags = logger.Filter([&](const utest::LogRecord& log) {
-            return log.GetTagOptional(tracing::kDatabaseStatementName) &&
+            return log.GetTagOptional(tracing::kDatabaseStatementName) == kQueryName.GetUnderlying() &&
                    log.GetTagOptional(tracing::kDatabaseStatement);
         });
         ASSERT_THAT(logs_with_query_tags, ::testing::SizeIs(::testing::Gt(0)));
 
         const utest::LogRecord& log = logs_with_query_tags.front();
-        ASSERT_THAT(
-            log.GetTagOptional(tracing::kDatabaseStatementName),
-            ::testing::Optional(kQueryName.GetUnderlying())
-        );
         ASSERT_THAT(log.GetTagOptional(tracing::kDatabaseStatement), ::testing::Optional(kStatement));
     }
 };

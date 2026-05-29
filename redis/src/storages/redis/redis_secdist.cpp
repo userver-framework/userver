@@ -34,7 +34,9 @@ RedisMapSettings::RedisMapSettings(const formats::json::Value& doc) {
         CheckIsObject(client_settings, "client_settings");
 
         USERVER_NAMESPACE::secdist::RedisSettings settings;
+        settings.username = client_settings["username"].As<std::string>("");
         settings.password = storages::redis::Password(GetString(client_settings, "password"));
+        settings.sentinel_username = client_settings["sentinel_username"].As<std::string>("");
         settings.sentinel_password = storages::redis::Password(client_settings["sentinel_password"].As<std::string>("")
         );
         settings.secure_connection =

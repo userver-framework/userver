@@ -84,11 +84,11 @@ function(_userver_codegen_register_files FILES_LIST)
         cmake_language(DEFER DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" CALL _userver_codegen_make_directory_target)
 
         get_property(
-            has_userver_codegen_targets GLOBAL
-            PROPERTY userver_codegen_targets
+            has_userver_codegen_main_target GLOBAL
+            PROPERTY has_userver_codegen_main_target
             SET
         )
-        if(NOT has_userver_codegen_targets)
+        if(NOT has_userver_codegen_main_target)
             # On first codegen invocation, schedule userver-codegen target creation.
             cmake_language(
                 DEFER
@@ -99,6 +99,7 @@ function(_userver_codegen_register_files FILES_LIST)
                 CALL
                 _userver_codegen_make_main_target
             )
+            set_property(GLOBAL PROPERTY has_userver_codegen_main_target TRUE)
         endif()
     endif()
 

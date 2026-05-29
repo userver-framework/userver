@@ -14,7 +14,6 @@ USERVER_NAMESPACE_BEGIN
 
 using HttpResponse = utest::SimpleServer::Response;
 using HttpRequest = utest::SimpleServer::Request;
-using HttpCallback = utest::SimpleServer::OnRequest;
 
 static HttpResponse Callback(int code, const HttpRequest& request) {
     LOG_INFO() << "HTTP Server receive: " << request;
@@ -30,7 +29,10 @@ static HttpResponse Callback(int code, const HttpRequest& request) {
 UTEST(DestinationStatistics, Empty) {
     auto client = utest::impl::CreateHttpClientCore();
 
-    EXPECT_EQ(client->GetDestinationStatistics().begin(), client->GetDestinationStatistics().end());
+    client->GetDestinationStatistics()
+        .VisitAllDebug([](const clients::http::DestinationLabels&, const clients::http::Statistics&) {
+            ADD_FAILURE() << "Should be empty";
+        });
 }
 
 UTEST(DestinationStatistics, Ok) {
@@ -41,15 +43,14 @@ UTEST(DestinationStatistics, Ok) {
 
     auto response = client->CreateRequest().post(url).retry(1).timeout(std::chrono::milliseconds(100)).perform();
 
-    const auto& dest_stats = client->GetDestinationStatistics();
     size_t size = 0;
-    for (const auto& [stat_url, stat_ptr] : dest_stats) {
+
+    const auto visitor = [&](const clients::http::DestinationLabels& labels, const clients::http::Statistics& stat) {
         ASSERT_EQ(1, ++size);
 
-        EXPECT_EQ(url, stat_url);
-        ASSERT_NE(nullptr, stat_ptr);
+        EXPECT_EQ(url, *labels.http_destination);
 
-        auto stats = clients::http::InstanceStatistics(*stat_ptr);
+        auto stats = clients::http::InstanceStatistics(stat);
         auto ok = static_cast<size_t>(clients::http::Statistics::ErrorGroup::kOk);
         EXPECT_EQ(utils::statistics::Rate{1}, stats.error_count[ok]);
         for (size_t i = 0; i < clients::http::Statistics::kErrorGroupCount; i++) {
@@ -57,7 +58,8 @@ UTEST(DestinationStatistics, Ok) {
                 EXPECT_EQ(utils::statistics::Rate{0}, stats.error_count[i]);
             }
         }
-    }
+    };
+    client->GetDestinationStatistics().VisitAllDebug(visitor);
 }
 
 UTEST(DestinationStatistics, CancelledFuture) {
@@ -99,17 +101,14 @@ UTEST(DestinationStatistics, Multiple) {
     auto response = client->CreateRequest().post(url).retry(1).timeout(std::chrono::milliseconds(100)).perform();
     response = client->CreateRequest().post(url2).retry(1).timeout(std::chrono::milliseconds(100)).perform();
 
-    const auto& dest_stats = client->GetDestinationStatistics();
     size_t size = 0;
     std::unordered_set<std::string> expected_urls{url, url2};
-    for (const auto& [stat_url, stat_ptr] : dest_stats) {
+    const auto visitor = [&](const clients::http::DestinationLabels& labels, const clients::http::Statistics& stat) {
         ASSERT_LE(++size, 2);
 
-        EXPECT_EQ(1, expected_urls.erase(stat_url));
+        EXPECT_EQ(1, expected_urls.erase(std::string{labels.http_destination}));
 
-        ASSERT_NE(nullptr, stat_ptr);
-
-        auto stats = clients::http::InstanceStatistics(*stat_ptr);
+        auto stats = clients::http::InstanceStatistics(stat);
         auto ok = static_cast<size_t>(clients::http::Statistics::ErrorGroup::kOk);
         EXPECT_EQ(utils::statistics::Rate{1}, stats.error_count[ok]);
         for (size_t i = 0; i < clients::http::Statistics::kErrorGroupCount; i++) {
@@ -117,7 +116,8 @@ UTEST(DestinationStatistics, Multiple) {
                 EXPECT_EQ(utils::statistics::Rate{0}, stats.error_count[i]) << i << " errors must be zero";
             }
         }
-    }
+    };
+    client->GetDestinationStatistics().VisitAllDebug(visitor);
 }
 
 USERVER_NAMESPACE_END

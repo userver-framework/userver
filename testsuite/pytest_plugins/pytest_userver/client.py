@@ -30,6 +30,7 @@ from testsuite.daemons import service_client
 from testsuite.utils import approx
 from testsuite.utils import http
 
+from pytest_userver import userver_warnings
 import pytest_userver.metrics  # pylint: disable=import-error
 from pytest_userver.plugins import caches
 
@@ -795,7 +796,11 @@ class AiohttpClient(service_client.AiohttpClient):
         self._allow_all_caches_invalidation = allow_all_caches_invalidation
         self._asyncexc_check = asyncexc_check
 
+    async def run_periodic(self, name) -> None:
+        await self.run_task(f'periodic/{name}')
+
     async def run_periodic_task(self, name):
+        warnings.warn(userver_warnings.WARN_PERIODIC_DEPRECATION, DeprecationWarning)
         response = await self._testsuite_action('run_periodic_task', name=name)
         if not response['status']:
             raise self.PeriodicTaskFailed(f'Periodic task {name} failed')
@@ -807,6 +812,7 @@ class AiohttpClient(service_client.AiohttpClient):
         await self._suspend_periodic_tasks()
 
     async def resume_periodic_tasks(self, names: list[str]) -> None:
+        warnings.warn(userver_warnings.WARN_PERIODIC_DEPRECATION, DeprecationWarning)
         if not self._periodic_tasks:
             raise ConfigurationError('No periodic_tasks_state given')
         self._periodic_tasks.tasks_to_suspend.difference_update(names)
@@ -1142,7 +1148,12 @@ class Client(ClientWrapper):
         )
 
     @_wrap_client_error
+    async def run_periodic(self, name) -> None:
+        await self._client.run_periodic(name)
+
+    @_wrap_client_error
     async def run_periodic_task(self, name):
+        warnings.warn(userver_warnings.WARN_PERIODIC_DEPRECATION, DeprecationWarning)
         await self._client.run_periodic_task(name)
 
     @_wrap_client_error
@@ -1151,6 +1162,7 @@ class Client(ClientWrapper):
 
     @_wrap_client_error
     async def resume_periodic_tasks(self, names: list[str]) -> None:
+        warnings.warn(userver_warnings.WARN_PERIODIC_DEPRECATION, DeprecationWarning)
         await self._client.resume_periodic_tasks(names)
 
     @_wrap_client_error
@@ -1228,6 +1240,14 @@ class Client(ClientWrapper):
 
         @param log_level Do not capture logs below this level.
         @param testsuite_skip_prepare An advanced parameter to skip auto-`update_server_state`.
+
+        Example — filter captured logs after a request:
+
+        @snippet samples/testsuite-support/tests/test_logcapture.py select
+
+        Example — subscribe to log events as they arrive:
+
+        @snippet samples/testsuite-support/tests/test_logcapture.py subscribe
 
         @see @ref testsuite_logs_capture
         """

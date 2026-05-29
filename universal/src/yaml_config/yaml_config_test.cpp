@@ -1,5 +1,6 @@
 #include <userver/yaml_config/yaml_config.hpp>
 
+#include <ranges>
 #include <utility>
 
 #include <gmock/gmock.h>
@@ -325,6 +326,7 @@ TEST(YamlConfig, Basic) {
     duration2: 10ms
     duration3: 1
     int: 42
+    null_val: null
   )");
 
     const yaml_config::YamlConfig conf(std::move(node), {});
@@ -333,6 +335,7 @@ TEST(YamlConfig, Basic) {
     EXPECT_EQ(conf["duration2"].As<std::chrono::milliseconds>(), std::chrono::milliseconds(10));
     EXPECT_EQ(conf["duration3"].As<std::chrono::milliseconds>(), std::chrono::seconds(1));
     EXPECT_EQ(conf["int"].As<int>(), 42);
+    EXPECT_EQ(conf["null_val"].As<std::string>("dflt"), "dflt");
 }
 
 TEST(YamlConfig, VariableMap) {
@@ -710,6 +713,11 @@ TEST(YamlConfig, SubconfigNotObject) {
     auto subconf = conf["member"];
     // It must throw an exception
     UEXPECT_THROW(subconf["another"], yaml_config::Exception);
+}
+
+TEST(YamlConfig, ValueIsForwardRange) {
+    static_assert(std::ranges::forward_range<yaml_config::YamlConfig>);
+    static_assert(std::ranges::forward_range<const yaml_config::YamlConfig>);
 }
 
 TEST(YamlConfig, IteratorArray) {

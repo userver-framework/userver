@@ -194,6 +194,9 @@ public:
 
     RequestSetex Setex(std::string key, std::chrono::seconds seconds, std::string value) override;
 
+    RequestSetAndGetPrevious SetAndGetPrevious(std::string key, std::string value, std::chrono::milliseconds ttl)
+        override;
+
     RequestSismember Sismember(std::string key, std::string member) override;
 
     RequestSmembers Smembers(std::string key) override;
@@ -281,6 +284,22 @@ public:
     RequestZremrangebyscore Zremrangebyscore(std::string key, std::string min, std::string max) override;
 
     RequestZscore Zscore(std::string key, std::string member) override;
+
+    RequestJsonSet JsonSet(std::string key, std::string path, formats::json::Value value) override;
+
+    RequestJsonSetIfNotExist JsonSetIfNotExist(std::string key, std::string path, formats::json::Value value) override;
+
+    RequestJsonSetIfExist JsonSetIfExist(std::string key, std::string path, formats::json::Value value) override;
+
+    RequestJsonGet JsonGet(std::string key) override;
+
+    RequestJsonGet JsonGet(std::string key, std::string path) override;
+
+    RequestJsonGet JsonGet(std::string key, std::vector<std::string> paths) override;
+
+    RequestJsonMget JsonMget(std::vector<std::string> keys, std::string path) override;
+
+    RequestJsonMset JsonMset(std::vector<JsonKeyPathValue> key_path_values) override;
 
     // end of redis commands
 

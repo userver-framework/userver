@@ -1,11 +1,15 @@
 #pragma once
 
+#include <array>
+#include <unordered_map>
+
 #include <userver/chaotic/object.hpp>
 #include <userver/chaotic/primitive.hpp>
 #include <userver/chaotic/sax_parser/primitive.hpp>
 #include <userver/formats/json/parser/array_parser.hpp>
 #include <userver/formats/json/parser/dummy_parser.hpp>
 #include <userver/formats/json/parser/parser_json.hpp>
+#include <userver/formats/json/value_builder.hpp>
 #include <userver/utils/constexpr_indices.hpp>
 #include <userver/utils/meta.hpp>
 #include <userver/utils/overloaded.hpp>
@@ -127,22 +131,34 @@ public:
         parser_.Subscribe(*this);
     }
 
-    void Key(std::string_view key, std::string_view) { key_ = key; }
+    void Key(std::string_view key, std::string_view) {
+        key_ = key;
+        parser_.Reset();
+    }
 
-    formats::json::parser::BaseParser& GetParser() { return parser_; }
+    formats::json::parser::BaseParser& GetParser() { return parser_.GetParser(); }
 
     void Reset() { parser_.Reset(); }
 
     template <typename U>
     void SetExtra(U& s)
     {
-        s.extra = std::move(map_);
+        using TargetType = decltype(s.extra);
+        if constexpr (std::is_same_v<TargetType, MapType>) {
+            s.extra = std::move(map_);
+        } else if constexpr (meta::kIsMap<TargetType>) {
+            s.extra.clear();
+            s.extra.insert(std::move_iterator(map_.begin()), std::move_iterator(map_.end()));
+        } else {
+            s.extra = chaotic::ConvertTo<TargetType>(std::move(map_));
+        }
     }
 
 private:
     void OnSend(ResultType&& value) override { map_.emplace(std::move(key_), std::move(value)); }
 
-    std::unordered_map<std::string, ResultType> map_;
+    using MapType = std::unordered_map<std::string, ResultType>;
+    MapType map_;
     Parser<T> parser_;
     std::string key_;
 };
@@ -205,7 +221,15 @@ public:
                 );
             }
         } else if constexpr (IsDefaulted<ModeDescriptorType>::value) {
-            object_.*FieldType::kField = ModeDescriptorType::DefaultValue;
+            using TargetType = std::decay_t<decltype(object_.*FieldType::kField)>;
+            using DefaultType = std::decay_t<decltype(ModeDescriptorType::DefaultValue)>;
+            if constexpr (std::is_same_v<TargetType, DefaultType>) {
+                object_.*FieldType::kField = ModeDescriptorType::DefaultValue;
+            } else if constexpr (std::is_arithmetic_v<TargetType> && std::is_arithmetic_v<DefaultType>) {
+                object_.*FieldType::kField = TargetType{ModeDescriptorType::DefaultValue};
+            } else {
+                object_.*FieldType::kField = chaotic::ConvertTo<TargetType>(ModeDescriptorType::DefaultValue);
+            }
         }
     }
 

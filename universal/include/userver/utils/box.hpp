@@ -3,6 +3,7 @@
 /// @file userver/utils/box.hpp
 /// @brief @copybrief utils::Box
 
+#include <concepts>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -16,19 +17,16 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
+template <typename T>
+class Box;
+
 namespace impl {
 
-template <typename Self, typename... Args>
-inline constexpr bool kArgsAreNotSelf = ((sizeof...(Args) > 1) || ... || !std::is_same_v<std::decay_t<Args>, Self>);
+template <typename T>
+struct IsBox : std::false_type {};
 
-template <bool Condition, template <typename...> typename Trait, typename... Args>
-constexpr bool ConjunctionWithTrait() noexcept {
-    if constexpr (Condition) {
-        return Trait<Args...>::value;
-    } else {
-        return false;
-    }
-}
+template <typename... Args>
+struct IsBox<Box<Args...>> : std::true_type {};
 
 }  // namespace impl
 
@@ -61,37 +59,22 @@ public:
     {}
 
     /// Allocate a `T`, copying or moving @a arg.
-    template <
-        typename U = T,
-        std::enable_if_t<
-            impl::ConjunctionWithTrait<
-                // Protection against hiding special
-                // constructors.
-                impl::kArgsAreNotSelf<Box, U>,
-                // Only allow the implicit conversion to Box<T>
-                // if U is implicitly convertible to T. Also,
-                // support SFINAE.
-                std::is_convertible,
-                U&&,
-                T>(),
-            int> = 0>
-    /*implicit*/ Box(U&& arg)
+    template <typename U = T>
+    // Protect against hiding special constructors.
+    requires(!std::same_as<std::remove_cvref_t<U>, Box>) &&
+            // Prevent infinite recursion from constructible_from in the next check.
+            (!impl::IsBox<std::remove_cvref_t<U>>::value) &&
+            // Prevent infinite recursion.
+            (std::same_as<std::remove_cvref_t<U>, T> || !std::is_constructible_v<T, Box>) &&
+            // Normal requirement.
+            std::is_constructible_v<T, U>
+    explicit(!std::convertible_to<U, T>) Box(U&& arg)
         : data_(std::make_unique<T>(std::forward<U>(arg)))
     {}
 
     /// Allocate the value, emplacing it with the given @a args.
-    template <
-        typename... Args,
-        std::enable_if_t<
-            impl::ConjunctionWithTrait<
-                // Protection against hiding special
-                // constructors.
-                impl::kArgsAreNotSelf<Box, Args...>,
-                // Support SFINAE.
-                std::is_constructible,
-                T,
-                Args&&...>(),
-            int> = 0>
+    template <typename... Args>
+    requires(sizeof...(Args) >= 2) && std::is_constructible_v<T, Args...>
     explicit Box(Args&&... args)
         : data_(std::make_unique<T>(std::forward<Args>(args)...))
     {}
@@ -116,22 +99,8 @@ public:
     }
 
     /// Assigns-through to the contained value.
-    template <
-        typename U = T,
-        std::enable_if_t<
-            impl::ConjunctionWithTrait<  //
-                impl::ConjunctionWithTrait<
-                    // Protection against hiding
-                    // special constructors.
-                    impl::kArgsAreNotSelf<Box, U>,
-                    // Support SFINAE.
-                    std::is_constructible,
-                    T,
-                    U>(),
-                std::is_assignable,
-                T&,
-                U>(),
-            int> = 0>
+    template <typename U = T>
+    requires(!std::same_as<std::remove_cvref_t<U>, Box>) && std::is_assignable_v<T&, U>
     Box& operator=(U&& other) {
         if (data_) {
             *data_ = std::forward<U>(other);

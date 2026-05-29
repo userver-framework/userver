@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/secdist/helpers.hpp
+/// @brief Secdist JSON parsing helper functions
+
 #include <string>
 
 #include <userver/compiler/demangle.hpp>

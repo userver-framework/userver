@@ -6,6 +6,7 @@
 
 #include <userver/utils/algo.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
+#include <userver/utils/resource_scopes.hpp>
 #include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/statistics/writer.hpp>
 #include <userver/utils/trivial_map.hpp>
@@ -21,17 +22,22 @@ std::string_view ToString(StatisticsDomain domain) {
     return utils::impl::EnumToStringView(domain, kMap);
 }
 
-StatisticsStorage::StatisticsStorage(utils::statistics::Storage& statistics_storage, StatisticsDomain domain)
+StatisticsStorage::StatisticsStorage(
+    utils::ResourceScopeStorage& scope_storage,
+    utils::statistics::Storage& statistics_storage,
+    StatisticsDomain domain
+)
     : domain_(domain)
 {
-    statistics_holder_ =
-        statistics_storage
-            .RegisterWriter(fmt::format("grpc.{}", ToString(domain)), [this](utils::statistics::Writer& writer) {
-                ExtendStatistics(writer);
-            });
+    utils::statistics::RegisterWriterScope(
+        scope_storage,
+        statistics_storage,
+        fmt::format("grpc.{}", ToString(domain)),
+        [this](utils::statistics::Writer& writer) { ExtendStatistics(writer); }
+    );
 }
 
-StatisticsStorage::~StatisticsStorage() { statistics_holder_.Unregister(); }
+StatisticsStorage::~StatisticsStorage() = default;
 
 ServiceStatistics& StatisticsStorage::GetServiceStatistics(
     const StaticServiceMetadata& metadata,
@@ -74,7 +80,7 @@ MethodStatistics& StatisticsStorage::GetGenericStatistics(
 
     {
         auto generic_statistics = generic_statistics_map_.SharedMutableLockUnsafe();
-        if (auto* stats = utils::impl::FindTransparentOrNullptr(*generic_statistics, generic_key)) {
+        if (auto* stats = utils::FindOrNullptr(*generic_statistics, generic_key)) {
             return *stats;
         }
     }

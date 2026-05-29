@@ -19,20 +19,19 @@ auto GenericWaitList::CreateWaitList(Task::WaitMode wait_mode) noexcept {
 
 GenericWaitList::GenericWaitList(Task::WaitMode wait_mode) noexcept : awaiters_(CreateWaitList(wait_mode)) {}
 
-bool GenericWaitList::GetSignalOrAppend(boost::intrusive_ptr<Awaiter>&& awaiter, std::uintptr_t context) noexcept {
-    return utils::Visit(
+void GenericWaitList::GetSignalOrAppend(boost::intrusive_ptr<Awaiter>& awaiter, std::uintptr_t context) noexcept {
+    utils::Visit(
         awaiters_,  //
-        [&awaiter, context](WaitListLight& ws) { return ws.GetSignalOrAppend(std::move(awaiter), context); },
+        [&awaiter, context](WaitListLight& ws) { ws.GetSignalOrAppend(awaiter, context); },
         [&awaiter, context](WaitListAndSignal& ws) {
             if (ws.signal.load()) {
-                return true;
+                return;
             }
             WaitList::Lock lock{ws.wl};
             if (ws.signal.load()) {
-                return true;
+                return;
             }
             ws.wl.Append(lock, std::move(awaiter), context);
-            return false;
         }
     );
 }

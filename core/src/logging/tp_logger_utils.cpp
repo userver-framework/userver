@@ -1,12 +1,12 @@
 #include <logging/tp_logger_utils.hpp>
 
+#include <algorithm>
 #include <exception>
 #include <stdexcept>
 #include <string>
 #include <utility>
 
 #include <boost/filesystem/operations.hpp>
-#include <boost/range/algorithm/find_if.hpp>
 
 #include <logging/impl/buffered_file_sink.hpp>
 #include <logging/impl/tcp_socket_sink.hpp>
@@ -136,7 +136,9 @@ std::optional<LoggerConfig> ExtractDefaultLoggerConfig(const components::Manager
     // from the engine, from the component system, and from the core components.
 
     // NOLINTNEXTLINE(readability-qualified-auto)
-    const auto iter = boost::find_if(config.components, [](const auto& config) { return config.Name() == "logging"; });
+    const auto iter = std::ranges::find_if(config.components, [](const auto& config) {
+        return config.Name() == "logging";
+    });
     if (iter == config.components.end()) {
         throw NoLoggerComponent(
             "No component config found for 'logging', which is a required "

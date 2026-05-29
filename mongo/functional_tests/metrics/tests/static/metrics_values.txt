@@ -106,7 +106,7 @@ mongo.pool.max-size: mongo_database=key-value-database	GAUGE	4
 # Number of overloads since the service start
 mongo.pool.overloads: mongo_database=key-value-database	RATE	0
 
-# Percentiles on waiting for a connection to pop from the pool of conncetions
+# Percentiles on waiting for a connection to pop from the pool of connections
 mongo.pool.queue-wait-timings-1min: mongo_database=key-value-database, percentile=p0	GAUGE	0
 mongo.pool.queue-wait-timings-1min: mongo_database=key-value-database, percentile=p100	GAUGE	0
 mongo.pool.queue-wait-timings-1min: mongo_database=key-value-database, percentile=p50	GAUGE	0

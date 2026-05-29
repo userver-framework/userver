@@ -7,7 +7,6 @@
 #include <userver/storages/mongo/multi_mongo.hpp>
 #include <userver/storages/mongo/pool.hpp>
 #include <userver/storages/secdist/component.hpp>
-#include <userver/utils/statistics/entry.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -103,7 +102,6 @@ private:
 
     // Subscriptions must be the last fields.
     concurrent::AsyncEventSubscriberScope secdist_subscriber_;
-    utils::statistics::Entry statistics_holder_;
 };
 
 template <>
@@ -188,9 +186,6 @@ public:
 
 private:
     storages::mongo::MultiMongo multi_mongo_;
-
-    // Subscriptions must be the last fields.
-    utils::statistics::Entry statistics_holder_;
 };
 
 template <>

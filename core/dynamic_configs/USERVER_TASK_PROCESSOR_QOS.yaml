@@ -17,14 +17,15 @@ schema:
     definitions:
         DefaultService:
             type: object
-            additionalProperties: false
+            additionalProperties:
+                $ref: '#/definitions/TaskProcessor'
             required:
               - default-task-processor
             properties:
                 default-task-processor:
-                    $ref: '#/definitions/DefaultTaskProcessor'
+                    $ref: '#/definitions/TaskProcessor'
 
-        DefaultTaskProcessor:
+        TaskProcessor:
             type: object
             additionalProperties: false
             required:
@@ -45,17 +46,24 @@ schema:
                     type: integer
                     x-usrv-cpp-type: std::chrono::microseconds
                     minimum: 0
+                    description: maximum queue wait time before applying action (in microseconds)
                 length_limit:
                     x-usrv-cpp-type: unsigned
                     type: integer
                     minimum: 0
+                    description: maximum queue length before applying action
                 action:
                     type: string
                     enum:
                       - ignore
                       - cancel
+                    description: what to do with tasks on queue overload; 'cancel' cancels tasks
                 sensor_time_limit_us:
                     type: integer
                     x-usrv-cpp-type: std::chrono::microseconds
                     default: 3000
                     minimum: 0
+                    description: |-
+                        maximum queue wait time before generating overload
+                        events (in microseconds); RPS congestion control only
+

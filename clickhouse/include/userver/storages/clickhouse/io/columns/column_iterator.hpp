@@ -69,13 +69,14 @@ private:
         std::optional<value_type> current_value_ = std::nullopt;
     };
 
-    template <typename T, typename = void>
+    template <typename T>
     struct IteratorDataHolder final {
         using type = DataHolder;
     };
 
     template <typename T>
-    struct IteratorDataHolder<T, std::void_t<typename T::iterator_data>> final {
+    requires requires { typename T::iterator_data; }
+    struct IteratorDataHolder<T> final {
         using type = typename T::iterator_data;
     };
 

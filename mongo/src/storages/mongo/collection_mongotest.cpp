@@ -615,7 +615,7 @@ UTEST_F(Collection, ExecuteOps) {
 }
 
 std::vector<formats::bson::Value> SortBsonValues(std::vector<formats::bson::Value> values) {
-    std::sort(values.begin(), values.end(), [](const auto& a, const auto& b) {
+    std::ranges::sort(values, [](const auto& a, const auto& b) {
         if (a.IsString() && b.IsString()) {
             return a.template As<std::string>() < b.template As<std::string>();
         }

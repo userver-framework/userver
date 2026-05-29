@@ -1,0 +1,108 @@
+{% macro generate_stream_writer_declaration(userver, name, type) %}
+    {# handle subtypes #}
+    {%- for schema in type.subtypes() -%}
+        {{ generate_stream_writer_declaration(
+                userver,
+                schema.cpp_global_name(),
+                schema
+           )
+        }}
+    {% endfor %}
+
+    {% if type.need_stream_writer() %}
+        void WriteToStream(const {{ name }}& value, {{ userver }}::formats::json::StringBuilder& sw
+        {%- if type.need_add_hiding_args() -%}
+            , bool hide_brackets = false
+            , std::string_view hide_field_name = {}
+        {%- endif -%}
+        );
+    {% endif %}
+{% endmacro %}
+
+{% macro generate_stream_writer_definition(userver, name, type) %}
+    {# handle subtypes #}
+    {%- for schema in type.subtypes() -%}
+        {{ generate_stream_writer_definition(
+                userver,
+                schema.cpp_global_name(),
+                schema
+           )
+        }}
+    {% endfor %}
+
+    {% if type.need_stream_writer() %}
+        {% if type.need_add_hiding_args() %}
+            {% set extra_args = ', [[maybe_unused]] bool hide_brackets'
+                                ', [[maybe_unused]] std::string_view hide_field_name' %}
+            {% set start_object = 'std::optional<' ~ userver ~ '::formats::json::StringBuilder::ObjectGuard> guard;'
+                                'if (!hide_brackets) guard.emplace(sw);' %}
+        {% else %}
+            {% set extra_args = '' %}
+            {% set start_object = userver ~ '::formats::json::StringBuilder::ObjectGuard guard(sw);' %}
+        {% endif %}
+
+        void WriteToStream([[maybe_unused]] const {{ name }}& value, {{ userver }}::formats::json::StringBuilder& sw {{ extra_args }})
+        {
+            {% if type.get_py_type() == 'CppStruct' %}
+                {{ start_object }}
+
+                {# properties #}
+                {%- for fname, field in type.fields.items() -%}
+                    {% if field.is_optional() %}
+                        if (value.{{ field.cpp_field_name() }} && hide_field_name != "{{ fname }}") {
+                            sw.Key("{{ fname }}");
+                            WriteToStream({{ field.schema.parser_type('', '') }}{
+                                *value.{{ field.cpp_field_name() }}
+                            }, sw);
+                        }
+                    {% else %}
+                        if (hide_field_name != "{{ fname }}") {
+                            sw.Key("{{ fname }}");
+                            WriteToStream({{ field.schema.parser_type('', '') }}{
+                                value.{{ field.cpp_field_name() }}
+                            }, sw);
+                        }
+                    {% endif %}
+                {%- endfor %}
+
+                {# `discriminator` property can not apear in additionalProperties => no `hide_field_name` checks #}
+                {%- if type.extra_type == True -%}
+                    {# additionalProperties: true #}
+                    for (const auto& [field_key, field_value]: {{ userver }}::formats::common::Items(value.extra)) {
+                        sw.Key(field_key);
+                        WriteToStream(field_value, sw);
+                    }
+                {%- elif type.extra_type -%}
+                    {# additionalProperties: ... #}
+                    for (const auto& [field_key, field_value]: value.extra) {
+                        sw.Key(field_key);
+                        WriteToStream({{ type.extra_type.parser_type('', '') }}{ field_value }, sw);
+                    }
+                {%- else -%}
+                    {# additionalProperties: false #}
+                {%- endif %}
+            {% elif type.get_py_type() in ('CppPrimitiveType', 'CppStringWithFormat', 'CppArray', 'CppRef', 'CppVariant', 'CppVariantWithDiscriminator') %}
+                {# No new type #}
+            {% elif type.get_py_type() in ('CppIntEnum', 'CppStringEnum') %}
+                const auto result = k{{ type.cpp_global_struct_field_name() }}_Mapping.TryFindByFirst(value);
+                if (result.has_value()) {
+                    WriteToStream(*result, sw);
+                } else {
+                    throw std::runtime_error("Bad enum value");
+                }
+            {% elif type.get_py_type() == 'CppStructAllOf' -%}
+                {{ start_object }}
+
+                constexpr auto kAllOfHideBrackets = true;
+                {% for parent in type.parents %}
+                {
+                    const {{ parent.cpp_global_name() }}& obj = value;
+                    WriteToStream({{ parent.parser_type('', '') }}{obj}, sw, kAllOfHideBrackets, hide_field_name);
+                }
+                {% endfor %}
+            {% else %}
+                {{ NOT_IMPLEMENTED() }}
+            {% endif %}
+        }
+    {% endif %}
+{% endmacro %}

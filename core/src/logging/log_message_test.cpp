@@ -1,5 +1,6 @@
 #include <logging/log_message_test.hpp>
 
+#include <algorithm>
 #include <map>
 #include <numeric>
 #include <set>

@@ -12,8 +12,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
 /// @brief Component that loads auth configuration settings from a
@@ -21,9 +19,6 @@ namespace components {
 /// components::ComponentList.
 ///
 /// The component does **not** have any options for service config.
-
-// clang-format on
-
 class AuthCheckerSettings final : public ComponentBase {
 public:
     AuthCheckerSettings(const ComponentConfig&, const ComponentContext&);

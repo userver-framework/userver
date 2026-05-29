@@ -20,7 +20,10 @@ formats::json::Value Serialize(const GlobalQos&, formats::serialize::To<formats:
 bool operator==(const ClientQos& lhs, const ClientQos& rhs) noexcept { return boost::pfr::eq_fields(lhs, rhs); }
 
 ClientQos Parse(const formats::json::Value& value, formats::parse::To<ClientQos>) {
-    return ClientQos{value["methods"].As<utils::DefaultDict<Qos>>(), value["global"].As<std::optional<GlobalQos>>()};
+    return ClientQos{
+        .methods = value["methods"].As<utils::DefaultDict<Qos>>(),
+        .global = value["global"].As<std::optional<GlobalQos>>(),
+    };
 }
 
 formats::json::Value Serialize(const ClientQos& client_qos, formats::serialize::To<formats::json::Value>) {

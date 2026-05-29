@@ -1,7 +1,8 @@
 #include <userver/utils/statistics/histogram.hpp>
 
+#include <ranges>
+
 #include <benchmark/benchmark.h>
-#include <boost/range/irange.hpp>
 
 #include <userver/utils/algo.hpp>
 #include <userver/utils/rand.hpp>
@@ -9,9 +10,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
-void HistogramAccount(benchmark::State& state) {
+static void HistogramAccount(benchmark::State& state) {
     const auto size = state.range(0);
-    const auto iota = utils::AsContainer<std::vector<double>>(boost::irange(std::int64_t{1}, size + 1));
+    const auto iota = utils::impl::AsContainerViaInsert<std::vector<double>>(std::views::iota(std::int64_t{1}, size + 1)
+    );
 
     const auto bounds = Launder(iota);
     auto values_raw = std::vector<double>(1024);

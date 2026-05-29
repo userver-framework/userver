@@ -1,5 +1,9 @@
 #pragma once
 
+/// @file userver/utils/small_string_serialization.hpp
+/// @brief Parse, serialize, and fmt formatting for SmallString.
+/// @ingroup userver_universal
+
 #include <string>
 
 #include <fmt/core.h>

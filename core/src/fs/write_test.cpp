@@ -39,7 +39,7 @@ UTEST_MT(AsyncFs, RewriteFileContentsAtomicallyConcurrent, 4) {
     std::vector<engine::TaskWithResult<void>> tasks;
     tasks.reserve(kTasksCount);
     for (std::size_t i = 0; i < kTasksCount; ++i) {
-        tasks.push_back(engine::AsyncNoSpan(async_tp, [&]() {
+        tasks.push_back(engine::AsyncNoTracing(async_tp, [&]() {
             UEXPECT_NO_THROW(fs::RewriteFileContentsAtomically(
                 async_tp,
                 file.GetPath(),

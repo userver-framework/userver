@@ -7,7 +7,9 @@
 #include <algorithm>
 #include <cstddef>
 #include <iterator>
+#include <memory>
 #include <optional>
+#include <ranges>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -17,6 +19,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
+/// @brief General-purpose utilities used across userver libraries.
 namespace utils {
 
 /// @brief Concatenates multiple `std::string_view`-convertible items
@@ -34,14 +37,10 @@ ResultString StrCat(const Strings&... strings) {
 }
 
 namespace impl {
-template <typename Container, typename = void>
-struct HasMappedType : std::false_type {};
 
 template <typename Container>
-struct HasMappedType<Container, std::void_t<typename Container::mapped_type>> : std::true_type {};
+concept HasMappedType = requires { typename Container::mapped_type; };
 
-template <typename Container>
-inline constexpr bool kHasMappedType = HasMappedType<Container>::value;
 }  // namespace impl
 
 /// @brief Returns nullptr if no key in associative container, otherwise
@@ -49,10 +48,10 @@ inline constexpr bool kHasMappedType = HasMappedType<Container>::value;
 template <typename Container, typename Key>
 auto* FindOrNullptr(Container& container, const Key& key) {
     const auto it = container.find(key);
-    if constexpr (impl::kHasMappedType<Container>) {
-        return (it != container.end() ? &(it->second) : nullptr);
+    if constexpr (impl::HasMappedType<Container>) {
+        return (it != std::ranges::end(container) ? std::addressof(it->second) : nullptr);
     } else {
-        return (it != container.end() ? &(*it) : nullptr);
+        return (it != std::ranges::end(container) ? std::addressof(*it) : nullptr);
     }
 }
 
@@ -88,75 +87,98 @@ auto CheckedFind(Container& container, const Key& key) {
 }
 
 /// @brief Converts one container type to another
+///
+/// @warning This function moves from elements if the range is an rvalue. This is not correct for rvalue ranges that
+/// do not own their elements, such as typical views. For example:
+/// @code
+/// std::vector<std::string> v = {"hello", "world"};
+/// auto result = utils::AsContainer<std::vector<std::string>>(
+///     v | std::views::filter([](const auto& item) { return true; })
+/// );
+/// @endcode
+/// This will move the items from `v` to `result`, which is not what you want if you want to keep the original vector.
+///
+/// Use C++23 `std::ranges::to` instead if possible, optionally paired with `std::ranges::as_rvalue`.
 template <typename ToContainer, typename FromContainer>
+// NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
 ToContainer AsContainer(FromContainer&& container) {
     if constexpr (std::is_rvalue_reference_v<decltype(container)>) {
         return ToContainer(
-            std::make_move_iterator(std::begin(container)),
-            std::make_move_iterator(std::end(container))
+            std::make_move_iterator(std::ranges::begin(container)),
+            std::make_move_iterator(std::ranges::end(container))
         );
     } else {
-        return ToContainer(std::begin(container), std::end(container));
+        return ToContainer(std::ranges::begin(container), std::ranges::end(container));
     }
 }
 
 namespace impl {
-template <typename Container, typename = void>
-struct HasKeyType : std::false_type {};
+
+template <typename ToContainer, typename Range>
+// NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
+ToContainer AsContainerViaInsert(Range&& range) {
+    ToContainer result;
+    if constexpr (requires { result.reserve(std::ranges::size(range)); }) {
+        result.reserve(std::ranges::size(range));
+    }
+    for (auto&& ref : range) {
+        result.insert(std::ranges::end(result), std::forward<decltype(ref)>(ref));
+    }
+    return result;
+}
 
 template <typename Container>
-struct HasKeyType<Container, std::void_t<typename Container::key_type>> : std::true_type {};
+concept HasKeyType = requires { typename Container::key_type; };
 
-template <typename Container>
-inline constexpr bool kHasKeyType = HasKeyType<Container>::value;
 }  // namespace impl
 
 /// @brief Erased elements and returns number of deleted elements
 template <typename Container, typename Pred>
-auto EraseIf(Container& container, Pred pred) {
-    if constexpr (impl::kHasKeyType<Container>) {
-        auto old_size = container.size();
-        for (auto it = std::begin(container), last = std::end(container); it != last;) {
+std::integral auto EraseIf(Container& container, Pred pred) {
+    if constexpr (impl::HasKeyType<Container>) {
+        auto old_size = std::ranges::size(container);
+        for (auto it = std::ranges::begin(container), last = std::ranges::end(container); it != last;) {
             if (pred(*it)) {
                 it = container.erase(it);
             } else {
                 ++it;
             }
         }
-        return old_size - container.size();
+        return old_size - std::ranges::size(container);
     } else {
-        auto it = std::remove_if(std::begin(container), std::end(container), pred);
-        const auto removed = std::distance(it, std::end(container));
-        container.erase(it, std::end(container));
-        return removed;
+        auto garbage = std::ranges::remove_if(container, pred);
+        container.erase(garbage.begin(), garbage.end());
+        return std::ranges::size(garbage);
     }
 }
 
 /// @brief Erased elements and returns number of deleted elements
 template <typename Container, typename T>
-size_t Erase(Container& container, const T& elem) {
-    if constexpr (impl::kHasKeyType<Container>) {
+std::integral auto Erase(Container& container, const T& elem) {
+    if constexpr (impl::HasKeyType<Container>) {
         return container.erase(elem);
     } else {
         // NOLINTNEXTLINE(readability-qualified-auto)
-        auto it = std::remove(std::begin(container), std::end(container), elem);
-        const auto removed = std::distance(it, std::end(container));
-        container.erase(it, std::end(container));
-        return removed;
+        auto garbage = std::ranges::remove(container, elem);
+        container.erase(garbage.begin(), garbage.end());
+        return std::ranges::size(garbage);
     }
 }
 
-/// @brief returns true if there is an element in the container which satisfies
-/// the predicate
+/// @brief returns true if there is an element in the container which satisfies the predicate.
+///
+/// @deprecated Use `std::ranges::any_of` instead.
 template <typename Container, typename Pred>
 bool ContainsIf(const Container& container, Pred pred) {
-    return std::find_if(std::begin(container), std::end(container), pred) != std::end(container);
+    return std::ranges::any_of(container, pred);
 }
 
 /// @brief returns true if there is a specified element in the container
-template <typename Container>
-bool Contains(const Container& container, const typename Container::value_type& item) {
-    return std::find(std::begin(container), std::end(container), item) != std::end(container);
+///
+/// In C++23, use `std::ranges::contains` instead.
+template <typename Container, typename Item>
+bool Contains(const Container& container, const Item& item) {
+    return std::ranges::find(container, item) != std::ranges::end(container);
 }
 
 }  // namespace utils

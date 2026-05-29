@@ -1,10 +1,13 @@
 #pragma once
 
+/// @file userver/storages/redis/redis_state.hpp
+/// @brief @copybrief storages::redis::RedisState
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
-/// Represents the state of redis instance connection
+/// @brief Connection lifecycle state of a Redis client instance
 enum class RedisState {
     /// Initializing context and establishing connection
     kInit = 0,

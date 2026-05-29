@@ -507,7 +507,10 @@ private:
 
         UASSERT(monitor_fd_.Get() != -1);
         UASSERT(stop_fd_.Get() != -1);
-        std::array<::pollfd, 2> poll_fds{::pollfd{monitor_fd_.Get(), POLLIN, 0}, ::pollfd{stop_fd_.Get(), POLLIN, 0}};
+        std::array<::pollfd, 2> poll_fds{
+            ::pollfd{.fd = monitor_fd_.Get(), .events = POLLIN, .revents = 0},
+            ::pollfd{.fd = stop_fd_.Get(), .events = POLLIN, .revents = 0},
+        };
 
         while (true) {
             poll_fds[0].revents = poll_fds[1].revents = 0;

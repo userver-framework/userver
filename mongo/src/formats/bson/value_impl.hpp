@@ -84,7 +84,6 @@ public:
     bool IsString() const;
 
     bool operator==(ValueImpl&);
-    bool operator!=(ValueImpl&);
 
     void EnsureParsed();
     void SyncBsonValue();

@@ -28,7 +28,7 @@ struct InitiateMultipartUploadResult {
     std::string key;
     std::string upload_id;
 
-    static InitiateMultipartUploadResult Parse(utils::zstring_view http_s3_respose_body);
+    static InitiateMultipartUploadResult Parse(utils::zstring_view http_s3_response_body);
 };
 
 /// The response body content of CompleteMultipartUpload action request
@@ -41,7 +41,7 @@ struct CompleteMultipartUploadResult {
     std::string key;
     std::string location;
 
-    static CompleteMultipartUploadResult Parse(utils::zstring_view http_s3_respose_body);
+    static CompleteMultipartUploadResult Parse(utils::zstring_view http_s3_response_body);
 };
 
 /// The response body content of CompleteMultipartUpload action request
@@ -70,7 +70,7 @@ struct ListMultipartUploadsResult {
     std::vector<MultipartUpload> uploads;
     std::vector<std::string> common_prefixes;
 
-    static ListMultipartUploadsResult Parse(utils::zstring_view http_s3_respose_body);
+    static ListMultipartUploadsResult Parse(utils::zstring_view http_s3_response_body);
 };
 
 /// The response body content of ListParts action request
@@ -94,7 +94,7 @@ struct ListPartsResult {
     bool is_truncated{false};
     std::vector<Part> parts;
 
-    static ListPartsResult Parse(utils::zstring_view http_s3_respose_body);
+    static ListPartsResult Parse(utils::zstring_view http_s3_response_body);
 };
 
 /// The response struct containing response header values for UploadPart action request

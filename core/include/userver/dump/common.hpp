@@ -7,6 +7,7 @@
 /// @ingroup userver_dump_read_write
 
 #include <chrono>
+#include <concepts>
 #include <cstdint>
 #include <stdexcept>
 #include <string>
@@ -63,8 +64,8 @@ void WriteInteger(Writer& writer, std::uint64_t value);
 std::uint64_t ReadInteger(Reader& reader);
 
 template <typename Duration>
-inline constexpr bool kIsDumpedAsNanoseconds =
-    std::is_integral_v<typename Duration::rep> && (Duration::period::num == 1) &&
+concept IsDumpedAsNanoseconds =
+    std::integral<typename Duration::rep> && (Duration::period::num == 1) &&
     (Duration{1} <= std::chrono::milliseconds{1}) && (1'000'000'000 % Duration::period::den == 0);
 
 }  // namespace impl
@@ -83,8 +84,8 @@ std::string Read(Reader& reader, To<std::string>);
 void Write(Writer& writer, const char* value);
 
 /// @brief Integral types serialization support
-template <typename T>
-std::enable_if_t<meta::kIsInteger<T>> Write(Writer& writer, T value) {
+template <meta::kIsInteger T>
+void Write(Writer& writer, T value) {
     if constexpr (sizeof(T) == 1) {
         impl::WriteTrivial(writer, value);
     } else {
@@ -93,8 +94,8 @@ std::enable_if_t<meta::kIsInteger<T>> Write(Writer& writer, T value) {
 }
 
 /// @brief Integral types deserialization support
-template <typename T>
-std::enable_if_t<meta::kIsInteger<T>, T> Read(Reader& reader, To<T>) {
+template <meta::kIsInteger T>
+T Read(Reader& reader, To<T>) {
     if constexpr (sizeof(T) == 1) {
         return impl::ReadTrivial<T>(reader);
     }
@@ -109,14 +110,14 @@ std::enable_if_t<meta::kIsInteger<T>, T> Read(Reader& reader, To<T>) {
 }
 
 /// @brief Floating-point serialization support
-template <typename T>
-std::enable_if_t<std::is_floating_point_v<T>> Write(Writer& writer, T value) {
+template <std::floating_point T>
+void Write(Writer& writer, T value) {
     impl::WriteTrivial(writer, value);
 }
 
 /// @brief Floating-point deserialization support
-template <typename T>
-std::enable_if_t<std::is_floating_point_v<T>, T> Read(Reader& reader, To<T>) {
+template <std::floating_point T>
+T Read(Reader& reader, To<T>) {
     return impl::ReadTrivial<T>(reader);
 }
 
@@ -128,13 +129,15 @@ bool Read(Reader& reader, To<bool>);
 
 /// @brief enum serialization support
 template <typename T>
-std::enable_if_t<std::is_enum_v<T>> Write(Writer& writer, T value) {
+requires std::is_enum_v<T>
+void Write(Writer& writer, T value) {
     writer.Write(static_cast<std::underlying_type_t<T>>(value));
 }
 
 /// @brief enum deserialization support
 template <typename T>
-std::enable_if_t<std::is_enum_v<T>, T> Read(Reader& reader, To<T>) {
+requires std::is_enum_v<T>
+T Read(Reader& reader, To<T>) {
     return static_cast<T>(reader.Read<std::underlying_type_t<T>>());
 }
 
@@ -146,7 +149,7 @@ void Write(Writer& writer, std::chrono::duration<Rep, Period> value) {
     // Durations, which on some systems represent
     // `std::chrono::*_clock::duration`, are serialized as `std::nanoseconds`
     // to avoid system dependency
-    if constexpr (impl::kIsDumpedAsNanoseconds<duration<Rep, Period>>) {
+    if constexpr (impl::IsDumpedAsNanoseconds<duration<Rep, Period>>) {
         const auto count = std::chrono::duration_cast<nanoseconds>(value).count();
 
         if (nanoseconds{count} != value) {
@@ -166,7 +169,7 @@ template <typename Rep, typename Period>
 std::chrono::duration<Rep, Period> Read(Reader& reader, To<std::chrono::duration<Rep, Period>>) {
     using std::chrono::duration, std::chrono::nanoseconds;
 
-    if constexpr (impl::kIsDumpedAsNanoseconds<duration<Rep, Period>>) {
+    if constexpr (impl::IsDumpedAsNanoseconds<duration<Rep, Period>>) {
         const auto count = impl::ReadTrivial<nanoseconds::rep>(reader);
         return std::chrono::duration_cast<duration<Rep, Period>>(nanoseconds{count});
     } else {

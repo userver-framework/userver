@@ -77,10 +77,9 @@ ClusterTopology::ClusterTopology(
 ClusterTopology::~ClusterTopology() = default;
 
 bool ClusterTopology::IsReady(WaitConnectedMode mode) const {
-    return !cluster_shards_.empty() &&
-           std::all_of(cluster_shards_.begin(), cluster_shards_.end(), [mode](const ClusterShard& shard) {
-               return shard.IsReady(mode);
-           });
+    return !cluster_shards_.empty() && std::ranges::all_of(cluster_shards_, [mode](const ClusterShard& shard) {
+        return shard.IsReady(mode);
+    });
 }
 
 std::string ClusterTopology::GetReadinessInfo() const {

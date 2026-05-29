@@ -499,6 +499,15 @@ RequestSetex MockTransaction::Setex(std::string key, std::chrono::seconds second
     return AddSubrequest(impl_->Setex(std::move(key), seconds, std::move(value)));
 }
 
+RequestSetAndGetPrevious MockTransaction::SetAndGetPrevious(
+    std::string key,
+    std::string value,
+    std::chrono::milliseconds ttl
+) {
+    UpdateShard(key);
+    return AddSubrequest(impl_->SetAndGetPrevious(std::move(key), std::move(value), ttl));
+}
+
 RequestSismember MockTransaction::Sismember(std::string key, std::string member) {
     UpdateShard(key);
     return AddSubrequest(impl_->Sismember(std::move(key), std::move(member)));
@@ -695,6 +704,52 @@ RequestZremrangebyscore MockTransaction::Zremrangebyscore(std::string key, std::
 RequestZscore MockTransaction::Zscore(std::string key, std::string member) {
     UpdateShard(key);
     return AddSubrequest(impl_->Zscore(std::move(key), std::move(member)));
+}
+
+RequestJsonSet MockTransaction::JsonSet(std::string key, std::string path, formats::json::Value value) {
+    UpdateShard(key);
+    return AddSubrequest(impl_->JsonSet(std::move(key), std::move(path), std::move(value)));
+}
+
+RequestJsonSetIfNotExist MockTransaction::JsonSetIfNotExist(
+    std::string key,
+    std::string path,
+    formats::json::Value value
+) {
+    UpdateShard(key);
+    return AddSubrequest(impl_->JsonSetIfNotExist(std::move(key), std::move(path), std::move(value)));
+}
+
+RequestJsonSetIfExist MockTransaction::JsonSetIfExist(std::string key, std::string path, formats::json::Value value) {
+    UpdateShard(key);
+    return AddSubrequest(impl_->JsonSetIfExist(std::move(key), std::move(path), std::move(value)));
+}
+
+RequestJsonGet MockTransaction::JsonGet(std::string key) {
+    UpdateShard(key);
+    return AddSubrequest(impl_->JsonGet(std::move(key)));
+}
+
+RequestJsonGet MockTransaction::JsonGet(std::string key, std::string path) {
+    UpdateShard(key);
+    return AddSubrequest(impl_->JsonGet(std::move(key), std::move(path)));
+}
+
+RequestJsonGet MockTransaction::JsonGet(std::string key, std::vector<std::string> paths) {
+    UpdateShard(key);
+    return AddSubrequest(impl_->JsonGet(std::move(key), std::move(paths)));
+}
+
+RequestJsonMget MockTransaction::JsonMget(std::vector<std::string> keys, std::string path) {
+    UpdateShard(keys);
+    return AddSubrequest(impl_->JsonMget(std::move(keys), std::move(path)));
+}
+
+RequestJsonMset MockTransaction::JsonMset(std::vector<JsonKeyPathValue> key_path_values) {
+    for (const auto& kpv : key_path_values) {
+        UpdateShard(kpv.key);
+    }
+    return AddSubrequest(impl_->JsonMset(std::move(key_path_values)));
 }
 
 // end of redis commands

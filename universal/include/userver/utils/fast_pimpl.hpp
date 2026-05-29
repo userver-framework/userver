@@ -9,6 +9,9 @@
 #include <type_traits>
 #include <utility>
 
+#include <userver/compiler/impl/lifetime.hpp>
+#include <userver/compiler/impl/nodebug.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
@@ -47,22 +50,23 @@ template <class T, std::size_t Size, std::size_t Alignment, bool Strict = false>
 class FastPimpl final {
 public:
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init,performance-noexcept-move-constructor)
-    FastPimpl(FastPimpl&& v) noexcept(noexcept(T(std::declval<T>())))
+    USERVER_IMPL_NODEBUG_INLINE_FUNC FastPimpl(FastPimpl&& v) noexcept(noexcept(T(std::declval<T>())))
         : FastPimpl(std::move(*v))
     {}
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-    FastPimpl(const FastPimpl& v) noexcept(noexcept(T(std::declval<const T&>())))
+    USERVER_IMPL_NODEBUG_INLINE_FUNC FastPimpl(const FastPimpl& v) noexcept(noexcept(T(std::declval<const T&>())))
         : FastPimpl(*v)
     {}
 
     // NOLINTNEXTLINE(bugprone-unhandled-self-assignment,cert-oop54-cpp)
-    FastPimpl& operator=(const FastPimpl& rhs) noexcept(noexcept(std::declval<T&>() = std::declval<const T&>())) {
+    USERVER_IMPL_NODEBUG_INLINE_FUNC FastPimpl& operator=(const FastPimpl& rhs
+    ) noexcept(noexcept(std::declval<T&>() = std::declval<const T&>())) {
         *AsHeld() = *rhs;
         return *this;
     }
 
-    FastPimpl& operator=(FastPimpl&& rhs) noexcept(
+    USERVER_IMPL_NODEBUG_INLINE_FUNC FastPimpl& operator=(FastPimpl&& rhs) noexcept(
         // NOLINTNEXTLINE(performance-noexcept-move-constructor)
         noexcept(std::declval<T&>() = std::declval<T>())
     ) {
@@ -72,19 +76,23 @@ public:
 
     template <typename... Args>
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-    explicit FastPimpl(Args&&... args) noexcept(noexcept(T(std::declval<Args>()...))) {
+    USERVER_IMPL_NODEBUG_INLINE_FUNC explicit FastPimpl(Args&&... args) noexcept(noexcept(T(std::declval<Args>()...))) {
         ::new (AsHeld()) T(std::forward<Args>(args)...);
     }
 
-    T* operator->() noexcept { return AsHeld(); }
+    USERVER_IMPL_NODEBUG_INLINE_FUNC T* operator->() noexcept USERVER_IMPL_LIFETIME_BOUND { return AsHeld(); }
 
-    const T* operator->() const noexcept { return AsHeld(); }
+    USERVER_IMPL_NODEBUG_INLINE_FUNC const T* operator->() const noexcept USERVER_IMPL_LIFETIME_BOUND {
+        return AsHeld();
+    }
 
-    T& operator*() noexcept { return *AsHeld(); }
+    USERVER_IMPL_NODEBUG_INLINE_FUNC T& operator*() noexcept USERVER_IMPL_LIFETIME_BOUND { return *AsHeld(); }
 
-    const T& operator*() const noexcept { return *AsHeld(); }
+    USERVER_IMPL_NODEBUG_INLINE_FUNC const T& operator*() const noexcept USERVER_IMPL_LIFETIME_BOUND {
+        return *AsHeld();
+    }
 
-    ~FastPimpl() noexcept {
+    USERVER_IMPL_NODEBUG_INLINE_FUNC ~FastPimpl() noexcept {
         Validate<sizeof(T), alignof(T), noexcept(std::declval<T*>()->~T())>();
         std::destroy_at(AsHeld());
     }
@@ -92,7 +100,7 @@ public:
 private:
     // Use a template to make actual sizes visible in the compiler error message.
     template <std::size_t ActualSize, std::size_t ActualAlignment, bool ActualNoexcept>
-    static void Validate() noexcept {
+    USERVER_IMPL_NODEBUG_INLINE_FUNC static void Validate() noexcept {
         static_assert(Size >= ActualSize, "invalid Size: Size >= sizeof(T) failed");
         static_assert(!Strict || Size == ActualSize, "invalid Size: Size == sizeof(T) failed");
 
@@ -104,9 +112,9 @@ private:
 
     alignas(Alignment) std::byte storage_[Size];
 
-    T* AsHeld() noexcept { return reinterpret_cast<T*>(&storage_); }
+    USERVER_IMPL_NODEBUG_INLINE_FUNC T* AsHeld() noexcept { return reinterpret_cast<T*>(&storage_); }
 
-    const T* AsHeld() const noexcept { return reinterpret_cast<const T*>(&storage_); }
+    USERVER_IMPL_NODEBUG_INLINE_FUNC const T* AsHeld() const noexcept { return reinterpret_cast<const T*>(&storage_); }
 };
 
 }  // namespace utils

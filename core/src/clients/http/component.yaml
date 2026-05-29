@@ -2,6 +2,11 @@ type: object
 description: Component that manages clients::http::ClientWithMiddlewares.
 additionalProperties: false
 properties:
+    wait-for-dynamic-configs:
+        type: boolean
+        description: |
+            Whether to wait for dynamic configs to be loaded.
+            Defaults to true for all clients except for dynamic-config-http-client.
     core-component:
         type: string
         description: name of components::HttpClientCore component to use

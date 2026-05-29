@@ -17,51 +17,78 @@ schema:
             type: integer
             minimum: 1
             default: 2
+            description: |
+                Minimum RPS limit set by the controller.
+
         up-rate-percent:
             type: number
             minimum: 0
             maximum: 100
             default: 2
             exclusiveMinimum: true
+            description: |
+                How many percent per second to raise the limit when not overloaded.
+
         down-rate-percent:
             type: number
             minimum: 0
             maximum: 100
             default: 5
             exclusiveMinimum: true
+            description: |
+                How many percent per second to lower the limit when overloaded.
+
         overload-on-seconds:
             type: integer
             x-usrv-cpp-type: std::size_t
             minimum: 1
             default: 10
+            description: How many consecutive seconds overload must stay above up-level before the controller enters the overloaded
+                state and starts enforcing the limit.
+
         overload-off-seconds:
             type: integer
             x-usrv-cpp-type: std::size_t
             minimum: 1
             default: 3
+            description: How many consecutive seconds overload must stay below down-level before the controller leaves the overloaded
+                state and the limit starts increasing.
+
         up-level:
             type: integer
             minimum: 1
             default: 3
+            description: Overload level that must persist for 'overload-on-seconds' before the limit starts being enforced.
+
         down-level:
             type: integer
             minimum: 1
             default: 3
+            description: Overload level that must persist for 'overload-off-seconds' before the limit starts increasing.
+
         load-limit-percent:
             type: integer
             minimum: 0
             maximum: 100
             default: 0
+            description: If the percentage of context switches with overloads is below this value, the controller does not enter
+                the overloaded state.
+
         load-limit-crit-percent:
             type: integer
             minimum: 0
             maximum: 100
             default: 0
+            description: If the percentage of context switches with overloads is above this value, the controller immediately
+                enters the overloaded state without waiting for 'overload-on-seconds'.
+
         no-limit-seconds:
             type: integer
             minimum: 1
             default: 1000
             x-usrv-cpp-type: std::size_t
+            description: Number of seconds without overload required for the limit to be removed completely.
+
         start-limit-factor:
             type: number
             default: 0.75

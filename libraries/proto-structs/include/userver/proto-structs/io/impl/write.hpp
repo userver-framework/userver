@@ -63,6 +63,8 @@ void WriteOneof(
     std::index_sequence<Index...>,
     const TSetters&... setters
 ) {
+    // Since only one value may be filled at a time, 'oneof' will be consumed only once despite multiple forwardings.
+    // NOLINTNEXTLINE(bugprone-use-after-move)
     (impl::WriteOneofFieldWithSetter<Index>(ctx, std::forward<TOneof>(oneof), setters) || ...);
 }
 

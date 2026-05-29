@@ -104,7 +104,7 @@ See also @ref scripts/docs/en/userver/tutorial/tcp_full.md for a complete exampl
 **Method 2**: Via @ref utils::statistics::Writer
 
 Retrieve the @ref utils::statistics::Storage component and register a writer for your component via
-@ref utils::statistics::Storage::RegisterWriter:
+@ref utils::statistics::Storage::RegisterWriter :
 
 @snippet core/src/utils/statistics/pretty_format_test.cpp  Writer basic sample
 
@@ -120,8 +120,8 @@ A metric type is any class for which `DumpMetric` is defined. Such types can be 
 #### Basic Primitives for Metrics
 - @ref utils::statistics::RateCounter - For `RATE` metrics that calculate RPS (a monotonic counter whose derivative is
   automatically computed).
-  - @ref utils::statistics::RateCounter: An atomic counter (similar to `std::atomic<Rate>`).
-  - @ref utils::statistics::Rate: A non-atomic metric value. Used to aggregate multiple
+  - @ref utils::statistics::RateCounter : An atomic counter (similar to `std::atomic<Rate>`).
+  - @ref utils::statistics::Rate : A non-atomic metric value. Used to aggregate multiple
     @ref utils::statistics::RateCounter instances.
   - Dashboard tip: Do **not** apply `non_negative_derivative` to these. Use integral to calculate totals over a period.
 
@@ -136,8 +136,8 @@ A metric type is any class for which `DumpMetric` is defined. Such types can be 
 
 - @ref utils::statistics::Histogram and @ref utils::statistics::HistogramAggregator
   For `HIST_RATE` metrics (statistics for events, e.g., timings).
-  - @ref utils::statistics::Histogram: an atomic counter.
-  - @ref utils::statistics::HistogramAggregator: Non-atomic metric value. Aggregates multiple
+  - @ref utils::statistics::Histogram : an atomic counter.
+  - @ref utils::statistics::HistogramAggregator : Non-atomic metric value. Aggregates multiple
     @ref utils::statistics::Histograms.
   - Bucket configuration required (max 50 buckets, per monitoring docs). Exponential buckets can achieve ~10% error
     for timings.
@@ -149,7 +149,7 @@ A metric type is any class for which `DumpMetric` is defined. Such types can be 
   - Works with `GAUGE` counters. Incompatible with @ref utils::statistics::RateCounter and
     @ref utils::statistics::Histogram.
   - Drawback: Not aggregatable across hosts (summing host values yields meaningless results for timings).
-    Avoid in new code; use @utils::statistics::Histogram or @utils::statistics::MinMaxAvg
+    Avoid in new code; use @ref utils::statistics::Histogram or @ref utils::statistics::MinMaxAvg
 
 - @ref utils::statistics::Percentile - Computes response timings for the k-th percentile, should be used with
   @ref utils::statistics::RecentPeriod.
@@ -204,7 +204,7 @@ Key scenarios where such metrics are useful:
 @snippet core/src/utils/statistics/metrics_storage_test.cpp unit testing metrics
 
 If you need to unit test (gtest) classes that use
-@ref utils::statistics::Storage, you can use @ref utils::statistics::Snapshot:
+@ref utils::statistics::Storage, you can use @ref utils::statistics::Snapshot :
 
 @snippet core/src/utils/statistics/histogram_test.cpp  sample
 

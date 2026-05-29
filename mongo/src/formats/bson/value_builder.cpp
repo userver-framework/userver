@@ -201,6 +201,8 @@ uint32_t ValueBuilder::GetSize() const { return impl_->GetSize(); }
 
 bool ValueBuilder::HasMember(const std::string& name) const { return impl_->HasMember(name); }
 
+std::string ValueBuilder::GetPath() const { return impl_->GetPath(); }
+
 void ValueBuilder::Resize(uint32_t size) { impl_->Resize(size); }
 
 void ValueBuilder::PushBack(ValueBuilder&& elem) { impl_->PushBack(std::move(elem.impl_)); }

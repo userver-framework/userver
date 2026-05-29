@@ -1,6 +1,6 @@
  ## Apache Kafka
 
-**Quality:** @ref QUALITY_TIERS "Golden Tier".
+**Quality:** @ref QUALITY_TIERS "Platinum Tier".
 
 🐙 **userver** provides access to Apache Kafka Brokers via
 two independent interfaces: @ref kafka::ProducerComponent and

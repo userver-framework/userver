@@ -1,6 +1,6 @@
 #include <userver/dynamic_config/impl/to_json.hpp>
 
-#include <boost/range/counting_range.hpp>
+#include <ranges>
 
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/formats/json/string_builder.hpp>
@@ -39,7 +39,7 @@ std::string MultipleToDocsMapString(const ConfigDefault* data, std::size_t size)
     formats::json::StringBuilder builder;
     {
         const formats::json::StringBuilder::ObjectGuard guard{builder};
-        for (const auto& config : boost::make_iterator_range_n(data, size)) {
+        for (const auto& config : std::ranges::subrange(data, data + size)) {
             builder.Key(config.name);
             builder.WriteRawString(config.default_json);
         }

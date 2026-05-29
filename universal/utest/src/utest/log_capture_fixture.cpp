@@ -82,7 +82,7 @@ std::optional<std::string> LogRecord::GetTagOptional(std::string_view key) const
 }
 
 const std::string* LogRecord::GetTagOrNullptr(std::string_view key) const {
-    const auto iter = std::find_if(tags_.begin(), tags_.end(), [&](const std::pair<std::string, std::string>& tag) {
+    const auto iter = std::ranges::find_if(tags_, [&](const std::pair<std::string, std::string>& tag) {
         return tag.first == key;
     });
 

@@ -21,13 +21,13 @@ namespace tt = io::traits;
 
 using Numeric = pg::MultiPrecision<50>;
 
-static_assert(pg::detail::kIsInBoostNamespace<Numeric>);
+static_assert(pg::detail::IsInBoostNamespace<Numeric>);
 static_assert(sizeof(Numeric));
 static_assert(sizeof(io::BufferParser<Numeric>));
 static_assert(sizeof(io::BufferFormatter<Numeric>));
 
-static_assert(tt::kHasFormatter<Numeric>);
-static_assert(tt::kHasParser<Numeric>);
+static_assert(tt::HasFormatter<Numeric>);
+static_assert(tt::HasParser<Numeric>);
 static_assert(tt::kIsMappedToPg<Numeric>);
 static_assert(tt::kTypeBufferCategory<Numeric> == io::BufferCategory::kPlainBuffer);
 

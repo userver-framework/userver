@@ -22,10 +22,7 @@ constexpr std::size_t kIterationsCount = 1024 * 16;
 
 boost::intrusive_ptr<TaskContext> MakeContext() {
     return engine::impl::MakeTask(
-               {engine::current_task::GetTaskProcessor(),
-                engine::Task::Importance::kNormal,
-                engine::Task::WaitMode::kSingleAwaiter,
-                {}},
+               {nullptr, engine::Task::Importance::kNormal, engine::Task::WaitMode::kSingleAwaiter, {}},
                [] {}
     ).Extract();
 }
@@ -114,7 +111,7 @@ void WaitListAddRemoveContention(benchmark::State& state) {
         std::vector<engine::TaskWithResult<void>> tasks;
         tasks.reserve(state.range(0) - 1);
         for (int i = 0; i < state.range(0) - 1; i++) {
-            tasks.push_back(engine::AsyncNoSpan([&]() {
+            tasks.push_back(engine::AsyncNoTracing([&]() {
                 const boost::intrusive_ptr<TaskContext> ctx = MakeContext();
                 while (run) {
                     {
@@ -150,7 +147,7 @@ void WaitListAddRemoveContentionUnbalanced(benchmark::State& state) {
         std::vector<engine::TaskWithResult<void>> tasks;
         tasks.reserve(state.range(0) - 1);
         for (int i = 0; i < state.range(0) - 1; i++) {
-            tasks.push_back(engine::AsyncNoSpan([&]() {
+            tasks.push_back(engine::AsyncNoTracing([&]() {
                 auto contexts = MakeContexts();
                 while (run) {
                     for (auto& ctx : contexts) {

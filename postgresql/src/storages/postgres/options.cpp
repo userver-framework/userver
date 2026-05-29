@@ -1,6 +1,8 @@
 #include <userver/storages/postgres/options.hpp>
 
+#include <userver/utils/algo.hpp>
 #include <userver/utils/trivial_map.hpp>
+#include <userver/utils/underlying_value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -50,6 +52,14 @@ constexpr utils::TrivialBiMap kStatements = [](auto selector) {
 
 constexpr utils::StringLiteral kDefaultBeginStatement = "begin";
 
+constexpr utils::TrivialBiMap kIsolationLevels = [](auto selector) {
+    return selector()
+        .Case(IsolationLevel::kReadCommitted, "read committed")
+        .Case(IsolationLevel::kRepeatableRead, "repeatable read")
+        .Case(IsolationLevel::kSerializable, "serializable")
+        .Case(IsolationLevel::kReadUncommitted, "read uncommitted");
+};
+
 }  // namespace
 
 USERVER_NAMESPACE::utils::StringLiteral BeginStatement(TransactionOptions opts) noexcept {
@@ -61,11 +71,11 @@ OptionalCommandControl GetHandlerOptionalCommandControl(
     std::string_view path,
     std::string_view method
 ) {
-    const auto* const by_method_map = utils::impl::FindTransparentOrNullptr(map, path);
+    const auto* const by_method_map = utils::FindOrNullptr(map, path);
     if (!by_method_map) {
         return std::nullopt;
     }
-    const auto* const value = utils::impl::FindTransparentOrNullptr(*by_method_map, method);
+    const auto* const value = utils::FindOrNullptr(*by_method_map, method);
     if (!value) {
         return std::nullopt;
     }
@@ -76,12 +86,14 @@ OptionalCommandControl GetQueryOptionalCommandControl(
     const CommandControlByQueryMap& map,
     std::string_view query_name
 ) {
-    const auto* value = utils::impl::FindTransparentOrNullptr(map, query_name);
+    const auto* value = utils::FindOrNullptr(map, query_name);
     if (!value) {
         return std::nullopt;
     }
     return *value;
 }
+
+std::string_view ToStringView(IsolationLevel lvl) { return utils::impl::EnumToStringView(lvl, kIsolationLevels); }
 
 }  // namespace storages::postgres
 

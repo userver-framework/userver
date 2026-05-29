@@ -1,5 +1,7 @@
 #include <userver/formats/common/items.hpp>
 
+#include <ranges>
+
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <boost/range/adaptor/transformed.hpp>
@@ -112,6 +114,16 @@ TEST(FormatsItems, Iterations) {
 
     ++it;
     ASSERT_EQ(it, items.end());
+}
+
+TEST(FormatsItems, IsForwardRange) {
+    auto value = formats::json::FromString(R"({"key1": "v1", "key2": "v2"})");
+
+    using MutableItems = decltype(Items(value));
+    using ConstItems = decltype(Items(std::as_const(value)));
+
+    static_assert(std::ranges::forward_range<MutableItems>);
+    static_assert(std::ranges::forward_range<ConstItems>);
 }
 
 TEST(FormatsItems, BoostRanges) {

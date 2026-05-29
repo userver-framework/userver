@@ -8,6 +8,7 @@
 #include <string>
 #include <utility>
 
+#include <userver/compiler/impl/lifetime.hpp>
 #include <userver/utils/encoding/hex.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -29,13 +30,11 @@ public:
     explicit MacaddrBase(const OctetsType& macaddr) noexcept : macaddr_(macaddr) {}
 
     /// @brief Get octets of MAC-address
-    const OctetsType& GetOctets() const noexcept { return macaddr_; }
+    const OctetsType& GetOctets() const noexcept USERVER_IMPL_LIFETIME_BOUND { return macaddr_; }
 
     friend bool operator==(const MacaddrBase<N>& a, const MacaddrBase<N>& b) noexcept {
         return a.GetOctets() == b.GetOctets();
     }
-
-    friend bool operator!=(const MacaddrBase<N>& a, const MacaddrBase<N>& b) noexcept { return !(a == b); }
 
 private:
     OctetsType macaddr_ = {0};

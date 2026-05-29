@@ -206,7 +206,7 @@ concept SizeTypeCompatibleWith =
 
 namespace proto_structs::io {
 
-/// @brief Determines compatability between protobuf/std scalar types.
+/// @brief Determines compatibility between protobuf/std scalar types.
 template <typename TStdType, typename TProtobufType>
 concept ScalarCompatibleWith =
     traits::ProtoScalar<TStdType> &&

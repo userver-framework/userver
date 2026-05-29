@@ -51,8 +51,34 @@ public:
         kQueued,     ///< awaits execution
         kRunning,    ///< executing user code
         kSuspended,  ///< suspended, e.g. waiting for blocking call to complete
-        kCancelled,  ///< exited user code because of external request
-        kCompleted,  ///< exited user code with return or throw
+
+        /// The task is cancelled and was finished without returning a value or throwing a user-provided exception.
+        ///
+        /// This can happen for two reasons:
+        ///
+        /// 1. When a non-critical task (see @ref Importance::kCritical, see @ref flavors_of_async) is cancelled before
+        ///    it starts running, the task functor is skipped, only destructor is executed. This can be interpreted
+        ///    as every non-critical task having an implicit cancellation point at its start.
+        ///    See more details and examples in @ref task_cancellation_before_start.
+        ///
+        /// 2. When a task is cancelled because of a call to @ref engine::current_task::CancellationPoint.
+        ///    This cancellation is implemented using a non-`std::exception`-based exception.
+        ///
+        /// In both cases, @ref engine::TaskWithResult::Get throws @ref engine::TaskCancelledException.
+        ///
+        /// Unintuitively, this status is not set when the task was cancelled after it started running,
+        /// which caused the user code to exit early.
+        ///
+        /// Use @ref TaskBase::CancellationReason instead to check whether the task was cancelled.
+        kCancelled,
+
+        /// Exited user code with return or throw.
+        ///
+        /// This includes cases where the task was cancelled after it started running,
+        /// which caused the user code to exit early.
+        ///
+        /// Use @ref TaskBase::IsFinished instead to check whether the task finished execution.
+        kCompleted,
     };
 
     /// Task wait mode
@@ -63,15 +89,19 @@ public:
         kMultipleAwaiters
     };
 
-    /// @brief Checks whether this object owns
-    /// an actual task (not `State::kInvalid`)
+    /// @brief Checks whether this object owns an actual task (not @ref State::kInvalid)
     ///
-    /// An invalid task cannot be used. The task becomes invalid
-    /// after each of the following calls:
+    /// An invalid task cannot be used. The task becomes invalid after each of the following calls:
     ///
     /// 1. the default constructor
-    /// 2. `Detach()`
-    /// 3. `Get()` (see `engine::TaskWithResult`)
+    /// 2. moving from this task object
+    /// 3. @ref engine::TaskWithResult::Get
+    /// 4. @ref concurrent::BackgroundTaskStorageCore::Detach
+    /// 5. @ref engine::DetachUnscopedUnsafe
+    ///
+    /// Notably, the task does *not* become invalid immediately after it finishes execution.
+    /// (That would always cause race conditions when trying to await a task.)
+    /// It means that some of the task's resources are held onto until the task object is invalidated or destroyed.
     bool IsValid() const;
 
     /// Gets the task State

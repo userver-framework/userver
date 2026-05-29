@@ -260,10 +260,8 @@ public:
     explicit ArrayFilters(std::initializer_list<formats::bson::Document>);
 
     /// Specifies list of filters by container iterators
-    template <
-        typename Iterator,
-        typename = std::enable_if_t<
-            std::is_convertible_v<typename std::iterator_traits<Iterator>::value_type, formats::bson::Document>>>
+    template <typename Iterator>
+    requires std::is_convertible_v<typename std::iterator_traits<Iterator>::value_type, formats::bson::Document>
     ArrayFilters(Iterator first, Iterator last) {
         formats::bson::ValueBuilder builder{formats::common::Type::kArray};
         for (auto it = first; it != last; ++it) {
@@ -286,6 +284,8 @@ class AllowPartialResults {};
 
 /// @brief Disables exception throw on server errors, should be checked manually
 /// in WriteResult
+/// @note Always check the OperationError method in WriteResult. If the error is not empty,
+/// then there is a possibility that the bulk was not fully executed.
 class SuppressServerExceptions {};
 
 /// @brief Enables tailable cursor, which block at the end of capped collections

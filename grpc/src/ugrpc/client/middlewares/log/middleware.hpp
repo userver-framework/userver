@@ -44,7 +44,7 @@ public:
 
     void PostRecvMessage(MiddlewareCallContext& context, const google::protobuf::Message& message) const override;
 
-    void PostFinish(MiddlewareCallContext& context, const grpc::Status& status) const override;
+    void PostFinish(MiddlewareCallContext& context, const CompletionStatus& result) const override;
 
 private:
     Settings settings_;

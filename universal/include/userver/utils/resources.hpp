@@ -9,7 +9,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-/// Registeres a resource; used by `userver_embed_file` CMake function
+/// Registers a resource; used by `userver_embed_file` CMake function
 void RegisterResource(std::string_view name, std::string_view value);
 
 /// Returns a resource by name, registered by `userver_embed_file` CMake function (or RESOURCE() macro in some

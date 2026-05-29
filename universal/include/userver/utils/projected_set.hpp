@@ -62,18 +62,18 @@ struct Compare : public ResultCompare {
 
 template <typename Set, typename Value>
 void DoInsert(Set& set, Value&& value) {
-    const auto [iter, success] = set.insert(std::forward<Value>(value));
-    if (!success) {
-        using SetValue = std::decay_t<decltype(*iter)>;
-        // 'const_cast' is safe here, because the new key compares equal to the
-        // old one and should have the same ordering (or hash) as the old one.
-        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-        const_cast<SetValue&>(*iter) = std::forward<Value>(value);
+    const auto iter = set.find(value);
+    if (iter == set.end()) {
+        set.insert(set.end(), std::forward<Value>(value));
+        return;
     }
-}
 
-template <typename T>
-using HasHasher = typename T::hasher;
+    using SetValue = std::decay_t<decltype(*iter)>;
+    // 'const_cast' is safe here, because the new key compares equal to the
+    // old one and should have the same ordering (or hash) as the old one.
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+    const_cast<SetValue&>(*iter) = std::forward<Value>(value);
+}
 
 }  // namespace impl::projected_set
 
@@ -120,11 +120,7 @@ void ProjectedInsertOrAssign(Container& set, Value&& value) {
 /// @note Always returns const iterator, even for a non-const `set` parameter.
 template <typename Container, typename Key>
 auto ProjectedFind(Container& set, const Key& key) {
-    if constexpr (meta::IsDetected<impl::projected_set::HasHasher, std::decay_t<Container>>) {
-        return utils::impl::FindTransparent(set, key);
-    } else {
-        return set.find(key);
-    }
+    return set.find(key);
 }
 
 namespace impl {

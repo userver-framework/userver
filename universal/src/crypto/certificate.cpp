@@ -49,7 +49,7 @@ Certificate Certificate::LoadFromString(std::string_view certificate) {
     Openssl::Init();
 
     if (!utils::text::StartsWith(certificate, kBeginMarker)) {
-        throw KeyParseError(FormatSslError("Not a certificate"));
+        throw KeyParseError("Not a certificate");
     }
 
     auto certbio = MakeBioString(certificate);
@@ -64,7 +64,7 @@ Certificate Certificate::LoadFromString(std::string_view certificate) {
 Certificate Certificate::LoadFromStringSkippingAttributes(std::string_view certificate) {
     const auto start = certificate.find(kBeginMarker);
     if (start == std::string::npos) {
-        throw KeyParseError(FormatSslError("Not a certificate"));
+        throw KeyParseError("Not a certificate");
     }
     return LoadFromString(certificate.substr(start));
 }
@@ -75,14 +75,16 @@ CertificatesChain LoadCertificatesChainFromString(std::string_view chain) {
     std::size_t start = 0;
     while ((start = chain.find(kBeginMarker, start)) != std::string::npos) {
         auto end = chain.find(kEndMarker, start);
-        UINVARIANT(end != std::string::npos, "No matching end marker found for certificate");
+        if (end == std::string::npos) {
+            throw KeyParseError("No matching end marker found for certificate");
+        }
 
         end += kEndMarker.length();
         certificates.push_back(Certificate::LoadFromString(chain.substr(start, end - start)));
         start = end;  // Move past the current certificate
     }
     if (certificates.empty()) {
-        throw KeyParseError(FormatSslError("There are no certificates in chain"));
+        throw KeyParseError("There are no certificates in chain");
     }
 
     return certificates;
@@ -91,7 +93,7 @@ CertificatesChain LoadCertificatesChainFromString(std::string_view chain) {
 std::string Certificate::GetSubject() const {
     X509* x509 = GetNative();
     if (!x509) {
-        throw KeyParseError(FormatSslError("Invalid certificate"));
+        throw KeyParseError("Invalid certificate");
     }
 
     X509_NAME* subject_name = X509_get_subject_name(x509);

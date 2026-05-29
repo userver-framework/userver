@@ -2,6 +2,7 @@
 
 #include <gmock/gmock.h>
 
+#include <userver/engine/async.hpp>
 #include <userver/engine/exception.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
@@ -10,6 +11,7 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/fixed_array.hpp>
+#include <userver/utils/task_builder.hpp>
 
 #include "mp_queue_test.hpp"
 
@@ -99,9 +101,10 @@ public:
     {
         // There is no use for a Span in a task that lives until the service stops.
         // The task should be Critical, because the whole service (not just a single request) depends on it.
-        consumer_task_ = engine::CriticalAsyncNoSpan([&, consumer = queue_->GetConsumer()] {
-            ConsumerTaskLoop(consumer);
-        });
+        consumer_task_ =
+            utils::TaskBuilder{}.NoSpan().Background().Critical().Build([&, consumer = queue_->GetConsumer()] {
+                ConsumerTaskLoop(consumer);
+            });
     }
 
     ~FooProcessor() {
@@ -294,7 +297,7 @@ UTEST_MT(MpscQueue, FifoTest, kProducersCount + 1) {
 
     consumer_task.Get();
 
-    ASSERT_TRUE(std::all_of(consumed_messages.begin(), consumed_messages.end(), [](int item) { return (item == 1); }));
+    ASSERT_TRUE(std::ranges::all_of(consumed_messages, [](int item) { return (item == 1); }));
 }
 
 UTEST_MT(MpscQueue, ProducerRace, kProducersCount + 1) {
@@ -305,7 +308,7 @@ UTEST_MT(MpscQueue, ProducerRace, kProducersCount + 1) {
     auto producers = utils::GenerateFixedArray(kProducersCount, [&](std::size_t) { return queue->GetProducer(); });
 
     while (!test_deadline.IsReached()) {
-        auto consumer_task = engine::AsyncNoSpan([&consumer] {
+        auto consumer_task = engine::AsyncNoTracing([&consumer] {
             for (std::size_t i = 0; i < kProducersCount; ++i) {
                 std::size_t item{};
                 // If there queue is buggy (loses wakeups), then we'll eventually hang here until the deadline.
@@ -316,7 +319,7 @@ UTEST_MT(MpscQueue, ProducerRace, kProducersCount + 1) {
         std::atomic<bool> go{false};
 
         auto producer_tasks = utils::GenerateFixedArray(kProducersCount, [&](std::size_t i) {
-            return engine::AsyncNoSpan([&producers, &go, i] {
+            return engine::AsyncNoTracing([&producers, &go, i] {
                 while (!go.load()) {
                     // Busy loop
                 }

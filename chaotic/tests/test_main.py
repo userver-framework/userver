@@ -52,3 +52,14 @@ def test_extract_schemas_to_scan_configs():
             'properties': {'x': {'$ref': '#/definitions/Z'}},
         },
     }
+
+
+def test_extract_schemas_to_scan_no_duplicate_deletion():
+    items = [main.NameMapItem('/.*=SomeType')]
+    data = {
+        'schema': {
+            'field': {'type': 'integer'},
+        },
+    }
+    result = main.extract_schemas_to_scan(data, items)
+    assert result['/schema/field/'] == {'type': 'integer'}

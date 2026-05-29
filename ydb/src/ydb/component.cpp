@@ -1,9 +1,9 @@
 #include <userver/ydb/component.hpp>
 
+#include <ranges>
 #include <unordered_set>
 
-#include <boost/range/adaptor/map.hpp>
-#include <boost/range/adaptor/transformed.hpp>
+#include <fmt/ranges.h>
 
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
@@ -44,7 +44,7 @@ std::unordered_set<std::string> GetDbNames(const components::ComponentConfig& co
     return utils::AsContainer<std::unordered_set<std::string>>(
         Items(config["databases"]) |
         // Caution: returning a reference to temporary here results in UB.
-        boost::adaptors::transformed([](auto kv) { return std::move(kv.key); })
+        std::views::transform([](auto kv) { return std::move(kv.key); })
     );
 }
 
@@ -109,7 +109,7 @@ YdbComponent::YdbComponent(const components::ComponentConfig& config, const comp
         }
 
         databases_
-            .emplace(dbname, engine::CriticalAsyncNoSpan(engine::current_task::GetBlockingTaskProcessor(), [&] {
+            .emplace(dbname, engine::CriticalAsyncNoTracing(engine::current_task::GetBlockingTaskProcessor(), [&] {
                                  return DatabaseUtils::Make(
                                      dbname,
                                      dbconfig,
@@ -138,15 +138,14 @@ YdbComponent::YdbComponent(const components::ComponentConfig& config, const comp
         }
     }
 
-    auto& stats_storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
-    statistic_holder_ = stats_storage.RegisterWriter("ydb", [this](utils::statistics::Writer& writer) {
+    utils::statistics::RegisterWriterScope(context, "ydb", [this](utils::statistics::Writer& writer) {
         WriteStatistics(writer);
     });
 
     config_subscription_ = config_.UpdateAndListen(this, "ydb", &YdbComponent::OnConfigUpdate);
 }
 
-YdbComponent::~YdbComponent() { statistic_holder_.Unregister(); }
+YdbComponent::~YdbComponent() = default;
 
 const YdbComponent::Database& YdbComponent::FindDatabase(const std::string& dbname) const {
     auto it = databases_.find(dbname);
@@ -154,7 +153,7 @@ const YdbComponent::Database& YdbComponent::FindDatabase(const std::string& dbna
         throw UndefinedDatabaseError(fmt::format(
             "Undefined ydb database name: {}. Available databases: [{}]",
             dbname,
-            fmt::join(databases_ | boost::adaptors::map_keys, ", ")
+            fmt::join(databases_ | std::views::keys, ", ")
         ));
     }
     return it->second;

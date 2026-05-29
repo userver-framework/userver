@@ -200,8 +200,6 @@ std::size_t Value::GetSize() const {
 
 bool Value::operator==(const Value& other) const { return impl::AreEqual(&GetNative(), &other.GetNative()); }
 
-bool Value::operator!=(const Value& other) const { return !(*this == other); }
-
 bool Value::IsMissing() const noexcept { return holder_ && !value_ptr_; }
 
 bool Value::IsNull() const noexcept { return !IsMissing() && (!holder_ || GetNative().IsNull()); }

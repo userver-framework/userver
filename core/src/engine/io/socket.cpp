@@ -287,8 +287,12 @@ std::optional<size_t> Socket::RecvNoblock(void* buf, size_t len) {
     throw IoException("Attempt to RecvNoblock from closed socket");
 }
 
+size_t Socket::SendAll(std::span<const IoData> list, Deadline deadline) {
+    return SendAll(list.data(), list.size(), deadline);
+}
+
 size_t Socket::SendAll(std::initializer_list<IoData> list, Deadline deadline) {
-    return SendAll(list.begin(), list.size(), deadline);
+    return SendAll(std::span<const IoData>{list.begin(), list.size()}, deadline);
 }
 
 size_t Socket::SendAll(const IoData* list, std::size_t list_size, Deadline deadline) {
@@ -497,6 +501,18 @@ void Socket::SetOption(int layer, int optname, int optval) {
         layer,
         optname,
         optval,
+        Fd()
+    );
+}
+
+// NOLINTNEXTLINE(readability-make-member-function-const)
+void Socket::SetOption(int layer, int optname, const void* optval, socklen_t optlen) {
+    UASSERT(IsValid());
+    utils::CheckSyscallCustomException<IoSystemError>(
+        ::setsockopt(Fd(), layer, optname, optval, optlen),
+        "setting socket option {},{} on fd {}",
+        layer,
+        optname,
         Fd()
     );
 }

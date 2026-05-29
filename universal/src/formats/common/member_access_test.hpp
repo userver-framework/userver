@@ -168,7 +168,7 @@ TYPED_TEST_P(MemberAccess, IterateMembersAndCheckKey4IndexPostincrement) {
 }
 
 TYPED_TEST_P(MemberAccess, Algorithms) {
-    auto it = std::find_if(this->doc.begin(), this->doc.end(), [](const auto& v) {
+    auto it = std::ranges::find_if(this->doc, [](const auto& v) {
         return v.IsString() && v.template As<std::string>() == "val";
     });
     ASSERT_NE(it, this->doc.end()) << "failed to find array";

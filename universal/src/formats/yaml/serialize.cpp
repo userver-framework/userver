@@ -13,13 +13,29 @@
 #include <yaml-cpp/yaml.h>
 #include <boost/container/small_vector.hpp>
 
+#include <userver/formats/common/conversion_stack.hpp>
 #include <userver/formats/common/path.hpp>
+#include <userver/formats/json/value.hpp>
+#include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/yaml/exception.hpp>
 #include <userver/formats/yaml/value.hpp>
+#include <userver/formats/yaml/value_builder.hpp>
 #include <userver/utils/enumerate.hpp>
 #include <userver/utils/not_null.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace formats::parse {
+
+formats::json::Value Parse(const formats::yaml::Value& yaml, parse::To<json::Value>) {
+    return formats::common::PerformMinimalFormatConversion<json::Value>(yaml);
+}
+
+formats::yaml::Value Parse(const formats::json::Value& json, formats::parse::To<formats::yaml::Value>) {
+    return formats::common::PerformMinimalFormatConversion<yaml::Value>(json);
+}
+
+}  // namespace formats::parse
 
 namespace formats::yaml {
 
@@ -48,7 +64,8 @@ public:
         : root_(root)
     {}
 
-    template <typename Visitor, typename = std::enable_if_t<std::is_invocable_v<Visitor&, YAML::Node&>>>
+    template <typename Visitor>
+    requires std::is_invocable_v<Visitor&, YAML::Node&>
     void VisitPreOrder(Visitor visitor) {
         if (!root_.IsSequence() && !root_.IsMap()) {
             return;
@@ -157,10 +174,8 @@ private:
             }
         }
 
-        std::sort(sorted_keys_.begin(), sorted_keys_.end());
-        if (const auto duplicate = std::adjacent_find(sorted_keys_.begin(), sorted_keys_.end());
-            duplicate != sorted_keys_.end())
-        {
+        std::ranges::sort(sorted_keys_);
+        if (const auto duplicate = std::ranges::adjacent_find(sorted_keys_); duplicate != sorted_keys_.end()) {
             throw ParseException(
                 fmt::format("Duplicate mapping key '{}' at path '{}'", *duplicate, visitor_.ComputeCurrentPath())
             );

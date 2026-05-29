@@ -8,6 +8,7 @@
 #include <vector>
 
 #include <userver/proto-structs/impl/oneof_codegen.hpp>
+#include <userver/proto-structs/impl/struct_codegen.hpp>
 #include <userver/proto-structs/io/fwd.hpp>
 
 #include <userver/proto-structs/io/std/optional.hpp>

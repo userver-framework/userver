@@ -23,6 +23,14 @@ def test_full_array(simple_parse):
     })
 
 
+def test_array_unique_items(simple_parse):
+    simple_parse({
+        'type': 'array',
+        'uniqueItems': True,
+        'items': {'type': 'integer'},
+    })
+
+
 def test_int_array_array_array(simple_parse):
     simple_parse({
         'type': 'array',

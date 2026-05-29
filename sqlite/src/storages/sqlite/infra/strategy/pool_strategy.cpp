@@ -27,7 +27,7 @@ std::unique_ptr<PoolStrategyBase> PoolStrategyBase::Create(
         return std::make_unique<ReadWriteStrategy>(settings, blocking_task_processor);
     } else {
         // in case of rollback journal it need more advanced pool strategy with
-        // waiting on pools iternal state or sqlite lock state
+        // waiting on pools internal state or sqlite lock state
         // many readers or one writer in one time
         return std::make_unique<ExclusiveReadWriteStrategy>(settings, blocking_task_processor);
     }

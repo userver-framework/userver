@@ -7,7 +7,6 @@
 
 #include <userver/storages/postgres/detail/is_decl_complete.hpp>
 #include <userver/storages/postgres/io/pg_types.hpp>
-#include <userver/utils/void_t.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -87,24 +86,24 @@ struct FieldBuffer {
 
 /// @brief Primary template for Postgre buffer parser.
 /// Specialisations should provide call operators that parse FieldBuffer.
-template <typename T, typename Enable = USERVER_NAMESPACE::utils::void_t<>>
+template <typename T>
 struct BufferParser;
 
 /// @brief Primary template for Postgre buffer formatter
 /// Specialisations should provide call operators that write to a buffer.
-template <typename T, typename Enable = USERVER_NAMESPACE::utils::void_t<>>
+template <typename T>
 struct BufferFormatter;
 
 namespace traits {
 
 /// Customisation point for parsers
-template <typename T, typename Enable = USERVER_NAMESPACE::utils::void_t<>>
+template <typename T>
 struct Input {
     using type = BufferParser<T>;
 };
 
 /// Customisation point for formatters
-template <typename T, typename Enable = USERVER_NAMESPACE::utils::void_t<>>
+template <typename T>
 struct Output {
     using type = BufferFormatter<T>;
 };
@@ -118,33 +117,25 @@ struct IO {
     using FormatterType = typename Output<T>::type;
 };
 
-/// @brief Metafunction to detect if a type has a parser.
+/// @brief Concept to detect if a type has a parser.
 template <typename T>
-struct HasParser : utils::IsDeclComplete<typename IO<T>::ParserType> {};
+concept HasParser = utils::IsDeclComplete<typename IO<T>::ParserType>::value;
 
-/// @brief Metafunction to detect if a type has a formatter.
+/// @brief Concept to detect if a type has a formatter.
 template <typename T>
-struct HasFormatter : utils::IsDeclComplete<typename IO<T>::FormatterType> {};
-
-//@{
-/** @name Shortcut metafunction result values */
-template <typename T>
-inline constexpr bool kHasParser = HasParser<T>::value;
-template <typename T>
-inline constexpr bool kHasFormatter = HasFormatter<T>::value;
-//@}
+concept HasFormatter = utils::IsDeclComplete<typename IO<T>::FormatterType>::value;
 
 template <typename T>
 constexpr bool CheckParser() {
     static_assert(
-        kHasParser<T> || std::is_enum_v<T>,
+        HasParser<T> || std::is_enum_v<T>,
         "Type doesn't have a parser. Probably you forgot to include "
         "file with parser or to define your own. Please see page "
         "`uPg: Supported data types` for more information"
     );
 
     static_assert(
-        kHasParser<T> || !std::is_enum_v<T>,
+        HasParser<T> || !std::is_enum_v<T>,
         "Type doesn't have a parser. Probably you forgot to include "
         "file with parser, to define your own or to specialize "
         "`storages::postgres::io::traits::CanUseEnumAsStrongTypedef`. "
@@ -157,14 +148,14 @@ constexpr bool CheckParser() {
 template <typename T>
 constexpr void CheckFormatter() {
     static_assert(
-        kHasFormatter<T> || std::is_enum_v<T>,
+        HasFormatter<T> || std::is_enum_v<T>,
         "Type doesn't have a formatter. Probably you forgot to include "
         "file with formatter or to define your own.  Please see page "
         "`uPg: Supported data types` for more information"
     );
 
     static_assert(
-        kHasFormatter<T> || !std::is_enum_v<T>,
+        HasFormatter<T> || !std::is_enum_v<T>,
         "Type doesn't have a formatter. Probably you forgot to include "
         "file with formatter, to define your own or to specialize "
         "`storages::postgres::io::traits::CanUseEnumAsStrongTypedef`. "
@@ -185,7 +176,7 @@ inline constexpr BufferCategory kParserBufferCategory = ParserBufferCategory<T>:
 namespace detail {
 template <typename T>
 constexpr auto DetectBufferCategory() {
-    if constexpr (kHasParser<T>) {
+    if constexpr (HasParser<T>) {
         return ParserBufferCategoryType<typename IO<T>::ParserType>{};
     } else {
         return BufferCategoryConstant<BufferCategory::kNoParser>{};
@@ -201,14 +192,10 @@ inline constexpr BufferCategory kTypeBufferCategory = TypeBufferCategory<T>::val
 namespace detail {
 
 template <typename T>
-struct CustomParserDefined : utils::IsDeclComplete<BufferParser<T>> {};
-template <typename T>
-inline constexpr bool kCustomParserDefined = CustomParserDefined<T>::value;
+concept CustomParserDefined = utils::IsDeclComplete<BufferParser<T>>::value;
 
 template <typename T>
-struct CustomFormatterDefined : utils::IsDeclComplete<BufferFormatter<T>> {};
-template <typename T>
-inline constexpr bool kCustomFormatterDefined = CustomFormatterDefined<T>::value;
+concept CustomFormatterDefined = utils::IsDeclComplete<BufferFormatter<T>>::value;
 
 }  // namespace detail
 

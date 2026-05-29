@@ -28,11 +28,11 @@ use ❌ and ❓ respectively.
 | Async HTTP server                      | ✔️ @ref components::Server "[↗]"                            | ✔️                     | ✔️                                        | ✔️                             | ✔️                               | ✔️ [[↗]][poco-net]      |
 | Async gRPC client                      | ✔️ @ref scripts/docs/en/userver/grpc/grpc.md "[↗]"               | ✔️                     | ✔️                                        | ± third-party libs             | ❌                                | ❌                       |
 | Async gRPC server                      | ✔️ @ref scripts/docs/en/userver/grpc/grpc.md "[↗]"               | ✔️                     | ✔️                                        | ± third-party libs             | ❌                                | ❌                       |
-| Async PostgreSQL                       | ✔️ @ref pg_driver "[↗]"                                     | ± third-party driver   | ✔️ [[↗]][dapr-postgre]                    | ❌ [manual offloading][acti-db] | ✔️ [[↗]][drog-db]                | ✔️ [[↗]][poco-db]       |
-| PostgreSQL pipelining, binary protocol | ✔️ @ref pg_driver "[↗]"                                     | ❌                      | ❌                                         | ± third-party libs             | ❌                                | ❓                       |
+| Async PostgreSQL                       | ✔️ @ref scripts/docs/en/userver/pg/driver.md "[↗]"               | ± third-party driver   | ✔️ [[↗]][dapr-postgre]                    | ❌ [manual offloading][acti-db] | ✔️ [[↗]][drog-db]                | ✔️ [[↗]][poco-db]       |
+| PostgreSQL pipelining, binary protocol | ✔️ @ref scripts/docs/en/userver/pg/driver.md "[↗]"               | ❌                      | ❌                                         | ± third-party libs             | ❌                                | ❓                       |
 | Async Redis                            | ✔️ @ref scripts/docs/en/userver/redis.md "[↗]"              | ± third-party driver   | ✔️ [[↗]][dapr-redis]                      | ± third-party libs             | ✔️ [[↗]][drog-redis]             | ❓                       |
 | Async Mongo                            | ✔️ @ref scripts/docs/en/userver/mongodb.md "[↗]"            | ± third-party driver   | ✔️ [[↗]][dapr-mongo]                      | ❌ [manual offloading][acti-db] | ❌ [[↗]][drog-db]                 | ❓                       |
-| Async ClickHouse                       | ✔️ @ref clickhouse_driver "[↗]"                             | ± third-party driver   | ❌                                         | ± third-party libs             | ❌ [[↗]][drog-db]                 | ❓                       |
+| Async ClickHouse                       | ✔️ @ref scripts/docs/en/userver/clickhouse/driver.md "[↗]"  | ± third-party driver   | ❌                                         | ± third-party libs             | ❌ [[↗]][drog-db]                 | ❓                       |
 | Async MySQL                            | ✔️ @ref scripts/docs/en/userver/mysql/mysql_driver.md       | ± third-party driver   | ✔️ [[↗]][dapr-mysql]                      | ❌ [[↗]][acti-db]               | ✔️ [[↗]][drog-db]                | ✔️ [[↗]][poco-db]       |
 | Async ODBC                             | ❌                                                           | ❓                      | ❓                                         | ❓                              | ❓                                | ✔️ [[↗]][poco-db]       |
 | Metrics                                | ✔️ @ref scripts/docs/en/userver/service_monitor.md "[↗]"    | ± third-party driver   | ✔️ [[↗]][dapr-configs]                    | ❌                              | ❌                                | ❓                       |
@@ -87,7 +87,7 @@ The table above shows the well-developed functionality of userver. Additionally 
 [techempower-run]: https://www.techempower.com/benchmarks/#section=test&runid=3c2e9871-9c2a-4ff3-bc31-620f65da4e74&hw=ph&test=composite
 
 @anchor fcmp1 [1]: "Dynamic Configs" stands for any out-of-the-box functionality
-that allows to change behavior of the service without downtime and restart.
+that allows you to change behavior of the service without downtime and restart.
 
 @anchor fcmp2 [2]: Functional Testing includes DB startup and initialization; mocks for other
 microservices; testpoints functionality.

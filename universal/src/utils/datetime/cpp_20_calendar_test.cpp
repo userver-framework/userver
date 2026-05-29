@@ -6,6 +6,8 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace date = std::chrono;
+
 TEST(DaysBetweenYears, LeapYear) { EXPECT_EQ(utils::datetime::DaysBetweenYears(2019, 2021).count(), 365 + 366); }
 TEST(DaysBetweenYears, YearOne) { EXPECT_EQ(utils::datetime::DaysBetweenYears(1, 1970).count(), 719162); }
 TEST(DaysBetweenYears, MaxYear) { EXPECT_EQ(utils::datetime::DaysBetweenYears(1970, 10000).count(), 2932897); }

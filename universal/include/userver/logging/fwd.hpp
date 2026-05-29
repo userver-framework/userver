@@ -8,6 +8,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
+/// @brief Logging levels, helpers, default logger, and related utilities.
 namespace logging {
 
 namespace impl {

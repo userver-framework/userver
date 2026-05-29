@@ -9,11 +9,20 @@ Connection::Connection(
     const EndpointInfo& endpoint,
     const AuthSettings& auth_settings,
     size_t max_in_flight_requests,
+    size_t heartbeat_interval_seconds,
     bool secure,
     statistics::ConnectionStatistics& stats,
     engine::Deadline deadline
 )
-    : handler_{resolver, endpoint, auth_settings, secure, stats, deadline},
+    : handler_{
+          resolver,
+          endpoint,
+          auth_settings,
+          heartbeat_interval_seconds,
+          secure,
+          stats,
+          deadline,
+      },
       connection_{handler_, max_in_flight_requests, deadline},
       channel_{connection_},
       reliable_channel_{connection_}

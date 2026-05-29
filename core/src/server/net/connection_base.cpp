@@ -10,6 +10,20 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::net {
 
+namespace {
+
+int ResolveFd(engine::io::RwBase& socket) noexcept {
+    if (auto* raw_socket = dynamic_cast<engine::io::Socket*>(&socket)) {
+        return raw_socket->Fd();
+    }
+    if (auto* tls_socket = dynamic_cast<engine::io::TlsWrapper*>(&socket)) {
+        return tls_socket->GetRawFd();
+    }
+    return -2;
+}
+
+}  // namespace
+
 ConnectionBase::ConnectionBase(
     std::unique_ptr<engine::io::RwBase> socket,
     std::string peer_name,
@@ -20,6 +34,7 @@ ConnectionBase::ConnectionBase(
     : stats_(stats),
       reader_(config, std::move(peer_name)),
       socket_(std::move(socket)),
+      fd_(socket_ ? ResolveFd(*socket_) : -2),
       config_(config),
       request_handler_(request_handler)
 {
@@ -73,19 +88,7 @@ void ConnectionBase::StopAcceptingRequests() noexcept { is_accepting_requests_ =
 
 bool ConnectionBase::IsResponseChainValid() const noexcept { return is_response_chain_valid_; }
 
-int ConnectionBase::GetFd() const {
-    auto* socket = dynamic_cast<engine::io::Socket*>(socket_.get());
-    if (socket) {
-        return socket->Fd();
-    }
-
-    auto* tls_socket = dynamic_cast<engine::io::TlsWrapper*>(socket_.get());
-    if (tls_socket) {
-        return tls_socket->GetRawFd();
-    }
-
-    return -2;
-}
+int ConnectionBase::GetFd() const { return fd_; }
 
 bool ConnectionBase::IsValid() const noexcept { return !!socket_; }
 
@@ -110,7 +113,7 @@ void ConnectionBase::Shutdown() noexcept {
     ++stats_.connections_closed;
 }
 
-std::string ConnectionBase::GetPeerName() const noexcept { return reader_.GetPeerName(); }
+const std::string& ConnectionBase::GetPeerName() const noexcept { return reader_.GetPeerName(); }
 
 bool ConnectionBase::ReadSome() noexcept {
     if (reader_.IsFull()) {
@@ -188,6 +191,7 @@ engine::TaskWithResult<void> ConnectionBase::HandleQueueItem(const std::shared_p
         }
     } catch (const engine::WaitInterruptedException&) {
         LOG_DEBUG() << "Request processing interrupted";
+        request_task.SyncCancel();
         is_response_chain_valid_ = false;
     } catch (const std::exception& e) {
         LOG_WARNING() << "Request failed with unhandled exception: " << e;

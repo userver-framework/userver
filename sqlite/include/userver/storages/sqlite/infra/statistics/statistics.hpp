@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/sqlite/infra/statistics/statistics.hpp
+/// @brief SQLite pool statistics structs and metric dump helpers
+
 #include <cstdint>
 
 #include <userver/utils/statistics/histogram.hpp>

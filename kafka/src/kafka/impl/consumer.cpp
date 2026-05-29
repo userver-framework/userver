@@ -157,7 +157,7 @@ void Consumer::RunConsuming(ConsumerScope::Callback callback) {
             }
             constexpr auto kSeekAfterFailureTimeout = std::chrono::seconds(20);
             MultiSeek(seek_params, kSeekAfterFailureTimeout);
-            LOG_WARNING("Seeked back to reprocess failed batch");
+            LOG_WARNING("Sought back to reprocess failed batch");
             CallErrorTestpoint(fmt::format("tp_error_{}", name_), e.what());
         }
     }

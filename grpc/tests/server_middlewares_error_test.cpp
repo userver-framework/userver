@@ -1,5 +1,7 @@
 #include <userver/utest/utest.hpp>
 
+#include <cstdint>
+
 #include <grpcpp/support/status.h>
 
 #include <userver/ugrpc/server/middlewares/base.hpp>
@@ -21,7 +23,7 @@ public:
     }
 };
 
-enum class MiddlewareFlag { kNone = 0, kErrorInRequestHook = 1 << 0, kErrorInResponseHook = 1 << 1 };
+enum class MiddlewareFlag : std::uint8_t { kNone = 0, kErrorInRequestHook = 1 << 0, kErrorInResponseHook = 1 << 1 };
 
 using MiddlewareFlags = utils::Flags<MiddlewareFlag>;
 
@@ -56,10 +58,7 @@ class MockMessengerServiceFixture
 protected:
     MockMessengerServiceFixture()
         : ugrpc::tests::ServiceWithClientFixture<Messenger, sample::ugrpc::UnitTestServiceClient>(
-              ugrpc::server::ServerConfig{},
-              ugrpc::server::Middlewares{std::make_shared<Middleware>(static_cast<MiddlewareFlag>(GetParam().GetValue())
-              )},
-              ugrpc::client::Middlewares{}
+              {.server_middlewares = {std::make_shared<Middleware>(static_cast<MiddlewareFlag>(GetParam().GetValue()))}}
           )
     {}
 };

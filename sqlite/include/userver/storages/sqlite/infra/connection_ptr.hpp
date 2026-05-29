@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/sqlite/infra/connection_ptr.hpp
+/// @brief @copybrief storages::sqlite::infra::ConnectionPtr
+
 #include <memory>
 
 #include <userver/storages/sqlite/sqlite_fwd.hpp>
@@ -8,8 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::sqlite::infra {
 
-/// Pointer-like class that controls lifetime of a parent pool by keeping smart
-/// pointer to it.
+/// @brief Owns a SQLite connection and keeps its parent pool alive
 class ConnectionPtr {
 public:
     ConnectionPtr(std::shared_ptr<Pool>&& pool, std::unique_ptr<impl::Connection>&& connection);

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/congestion_control/controllers/linear.hpp
+/// @brief @copybrief congestion_control::v2::LinearController
+
 #include <optional>
 
 #include <userver/congestion_control/controllers/linear_config.hpp>
@@ -17,6 +20,7 @@ namespace congestion_control::v2 {
 constexpr std::size_t kShortTimingsEpochs = 3;
 constexpr std::size_t kLongTimingsEpochs = 30;
 
+/// @brief Linear congestion control controller (v2)
 class LinearController final : public Controller {
 public:
     using StaticConfig = Controller::Config;

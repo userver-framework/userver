@@ -44,9 +44,10 @@ For unary RPCs, clients automatically retry calls that fail with an error.
 
 Conditions for a retry to occur:
 1. The error code is one of the retryable status codes:
-   @snippet grpc/src/ugrpc/client/impl/retry_policy.cpp  retryable
+   @snippet grpc/src/ugrpc/status_codes.cpp  retryable
 2. The number of previous attempts is less than `MaxAttempts`;
-3. The overall Deadline (including from @ref scripts/docs/en/userver/deadline_propagation.md) has not been exceeded.
+3. The overall Deadline (including from @ref scripts/docs/en/userver/deadline_propagation.md) has not been exceeded;
+4. The @ref ugrpc::client::RetryLimiter "retry limiter" (if configured) allows the retry.
 
 ### Configuring Retries
 
@@ -60,6 +61,38 @@ The maximum number of attempts can be configured as follows, in order of increas
   @snippet grpc/tests/retry_test.cpp  SetAttempts
 
 Retries can be disabled by specifying 1 attempt.
+
+### Retry Limiting
+
+A @ref ugrpc::client::RetryLimiter "RetryLimiter" can be used to dynamically suppress retries based on
+observed success/failure rates. This is useful for implementing circuit-breaker or retry-budget patterns
+to avoid overloading a degraded downstream service with retry storms.
+
+After each attempt, `RetryLimiter::AccountCompletion` is called with the @ref ugrpc::client::CompletionStatus
+of that attempt. The completion status is one of:
+
+* A normal `grpc::Status` (including `OK`, `DEADLINE_EXCEEDED`, or any other gRPC status code);
+* A @ref ugrpc::client::SpecialCaseCompletionType "special case": `kNetworkError`, `kTimeoutDeadlinePropagated`,
+  `kCancelled`, or `kAbandoned`.
+
+Before each retry, `RetryLimiter::CanRetry` is checked. If it returns `false`, the retry is suppressed and
+the last completion status is returned to the caller immediately, even if `MaxAttempts` has not been reached.
+
+To use retry limiting:
+
+1. Implement @ref ugrpc::client::RetryLimiter and @ref ugrpc::client::RetryLimiterFactory;
+2. Register the factory as a component;
+3. Reference it via the `retry-limiter` option in the static config of @ref ugrpc::client::CommonComponent
+   (applies to all clients by default) or @ref ugrpc::client::ClientFactoryComponent (per-client override).
+
+The `retry-limiter` option in @ref ugrpc::client::ClientFactoryComponent can be set to `null` or left with
+an empty value (`retry-limiter: `) to explicitly disable retry limiting for a specific client, even if a
+default is configured in @ref ugrpc::client::CommonComponent.
+
+@note @ref ugrpc::client::RetryLimiter instances are created once per method during client initialization
+and reused for all requests to that method. Implementations must be thread-safe.
+
+@warning Retry limiters are not supported for @ref ugrpc::client::GenericClient.
 
 ### Retry Observability
 

@@ -2,10 +2,11 @@
 
 BINDIR=`dirname "$0"`
 USERVER_PYTHON="${USERVER_PYTHON:-python3}"
+CHAOTIC_INSTALL_DIR="$BINDIR/../@CMAKE_INSTALL_LIBDIR@/userver"
 
 CHAOTIC_DIR="$BINDIR/.."
 if ! [ -e "$CHAOTIC_DIR/chaotic/main.py" ]; then
-    CHAOTIC_DIR="$BINDIR/../lib/userver/"
+    CHAOTIC_DIR="$CHAOTIC_INSTALL_DIR"
 fi
 
 export PYTHONPATH="$CHAOTIC_DIR"

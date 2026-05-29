@@ -180,8 +180,8 @@ UTEST_F(SQLiteSavepointsTest, MultipleSavepoints) {
         UEXPECT_NO_THROW(savepoint2.Execute("INSERT INTO test VALUES (NULL, 'second')")
         ) << "Insert second row in savepoint";
 
-        UEXPECT_NO_THROW(savepoint2.RollbackTo()) << "Rollback iternal transaction ";
-        UEXPECT_NO_THROW(savepoint1.Release()) << "Commit iternal transaction ";
+        UEXPECT_NO_THROW(savepoint2.RollbackTo()) << "Rollback internal transaction ";
+        UEXPECT_NO_THROW(savepoint1.Release()) << "Commit internal transaction ";
     }
 
     std::vector<std::string> res;

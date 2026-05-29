@@ -109,9 +109,7 @@ T RandRange(T to_exclusive) {
 /// cryptographically secure
 template <typename Container>
 void Shuffle(Container& container) {
-    utils::WithDefaultRandom([&container](RandomBase& rng) {
-        std::shuffle(std::begin(container), std::end(container), rng);
-    });
+    utils::WithDefaultRandom([&container](RandomBase& rng) { std::ranges::shuffle(container, rng); });
 }
 
 /// @brief Generate a random number in the whole `uint32_t` range

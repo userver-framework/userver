@@ -33,6 +33,15 @@ void Merge(Schema& destination, Schema&& source) {
         }
         properties.emplace(name, std::move(source_item));
     }
+
+    if (source.required.has_value()) {
+        if (!destination.required.has_value()) {
+            destination.required.emplace();
+        }
+        for (auto&& name : *source.required) {
+            destination.required->insert(std::move(name));
+        }
+    }
 }
 
 }  // namespace yaml_config::impl

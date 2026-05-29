@@ -49,9 +49,7 @@ class GrpcServerTestBaggage
 public:
     GrpcServerTestBaggage()
         : ugrpc::tests::ServiceWithClientFixture<ServerBaggageTestService, sample::ugrpc::UnitTestServiceClient>(
-              ugrpc::server::ServerConfig{},
-              ugrpc::server::Middlewares{std::make_shared<ugrpc::server::middlewares::baggage::Middleware>()},
-              ugrpc::client::Middlewares{}
+              {.server_middlewares = {std::make_shared<ugrpc::server::middlewares::baggage::Middleware>()}}
           )
     {
         ExtendDynamicConfig({
@@ -131,9 +129,7 @@ class GrpcClientTestBaggage
 public:
     GrpcClientTestBaggage()
         : ugrpc::tests::ServiceWithClientFixture<ClientBaggageTestService, sample::ugrpc::UnitTestServiceClient>(
-              ugrpc::server::ServerConfig{},
-              ugrpc::server::Middlewares{},
-              ugrpc::client::Middlewares{std::make_shared<ugrpc::client::middlewares::baggage::Middleware>()}
+              {.client_middlewares = {std::make_shared<ugrpc::client::middlewares::baggage::Middleware>()}}
           )
     {
         ExtendDynamicConfig({

@@ -212,7 +212,7 @@ UTEST_F_MT(GrpcServerEcho, DestroyServerDuringRequest, 2) {
     sample::ugrpc::StreamGreetingResponse response;
     EXPECT_TRUE(call.Read(response));
 
-    auto complete_rpc = engine::AsyncNoSpan([&] {
+    auto complete_rpc = engine::AsyncNoTracing([&] {
         // Make sure that 'server.StopServing()' call starts
         engine::SleepFor(50ms);
 
@@ -223,7 +223,7 @@ UTEST_F_MT(GrpcServerEcho, DestroyServerDuringRequest, 2) {
         UEXPECT_NO_THROW(EXPECT_FALSE(call.Read(response)));
     });
 
-    GetServer().StopServing();
+    GetServer().StopServing(engine::Deadline::FromDuration(std::chrono::seconds(1)));
     complete_rpc.Get();
 }
 
@@ -313,6 +313,7 @@ public:
 
 }  // namespace
 
+/// [Sample of LogCaptureFixture]
 using GrpcCancelSleep = utest::LogCaptureFixture<
     ugrpc::tests::ServiceWithClientFixture<UnitTestServiceCancelSleep, sample::ugrpc::UnitTestServiceClient>>;
 
@@ -324,9 +325,11 @@ UTEST_F(GrpcCancelSleep, CancelByTimeoutLogging) {
     // Make sure server logs are written.
     GetServer().StopServing();
 
-    EXPECT_THAT(GetLogCapture().Filter("", {{"error_msg", "RPC interrupted"}}), testing::SizeIs(1))
+    // Check logs via utest::LogCaptureFixture :
+    EXPECT_THAT(GetLogCapture().Filter("", {{"error_msg", "Call is interrupted"}}), testing::SizeIs(1))
         << GetLogCapture().GetAll();
 }
+/// [Sample of LogCaptureFixture]
 
 namespace {
 
@@ -389,7 +392,7 @@ UTEST_F(GrpcCancelError, CancelByError) {
         testing::SizeIs(1)
     ) << GetLogCapture().GetAll();
 
-    ASSERT_THAT(GetLogCapture().Filter("", {{"error_msg", "RPC interrupted"}}), testing::SizeIs(1))
+    ASSERT_THAT(GetLogCapture().Filter("", {{"error_msg", "Call is interrupted"}}), testing::SizeIs(1))
         << GetLogCapture().GetAll();
 }
 

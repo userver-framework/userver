@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/sqlite/infra/statistics/statistics_counter.hpp
+/// @brief RAII helpers to account SQLite pool query and transaction statistics
+
 #include <userver/storages/sqlite/infra/statistics/statistics.hpp>
 #include <userver/utils/datetime.hpp>
 

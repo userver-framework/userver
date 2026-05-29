@@ -23,9 +23,9 @@ void SplitByDelimiter(std::string_view str, char delimiter, utils::function_ref<
 
 }  // namespace impl
 
-std::string FromStr(std::string&& str_value, parse::To<std::string>) { return std::move(str_value); }
+std::string ParseParameter(std::string&& str_value, parse::To<std::string>) { return std::move(str_value); }
 
-bool FromStr(std::string&& str_value, parse::To<bool>) {
+bool ParseParameter(std::string&& str_value, parse::To<bool>) {
     if (str_value == "true") {
         return true;
     }
@@ -35,7 +35,7 @@ bool FromStr(std::string&& str_value, parse::To<bool>) {
     throw std::runtime_error("Unknown bool value: " + str_value);
 }
 
-double FromStr(std::string&& str_value, parse::To<double>) { return utils::FromString<double>(str_value); }
+double ParseParameter(std::string&& str_value, parse::To<double>) { return utils::FromString<double>(str_value); }
 
 }  // namespace chaotic::openapi
 

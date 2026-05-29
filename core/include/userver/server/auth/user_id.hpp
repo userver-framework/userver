@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/auth/user_id.hpp
+/// @brief @copybrief server::auth::UserId
+
 #include <cstdint>
 #include <iosfwd>
 #include <string>
@@ -15,6 +18,8 @@ class LogHelper;
 
 namespace server::auth {
 
+/// @brief Strongly typed user identifier (uid)
+///
 /// Type that represents a yandex uid and has all the comparison and hashing
 /// operators. It is not implicitly convertible to/from integers and provides
 /// better type safety.

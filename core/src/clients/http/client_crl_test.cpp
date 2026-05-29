@@ -4,13 +4,18 @@
 
 #include <fmt/format.h>
 
+#include <userver/concurrent/queue.hpp>
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/io/tls_wrapper.hpp>
+#include <userver/engine/sleep.hpp>
 #include <userver/fs/blocking/temp_file.hpp>
 #include <userver/fs/blocking/write.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/cpu_relax.hpp>
+#include <userver/utils/from_string.hpp>
 
 #include <engine/io/tests/net_listener.hpp>
 #include <userver/utest/http_client.hpp>
@@ -309,41 +314,227 @@ HH308s3RDANtD/ytHcnLjZZD4rJEgz9uaP1/8eEzNTeopH72mX3W8MbtcD+ntv+/
 EmOKfeOntrWGKRoDws82ckOkpBkZ0/9gsl8g18u+jFCcSUfmXH7FtGg=
 -----END X509 CRL-----)";
 
+using HttpResponse = utest::SimpleServer::Response;
+using HttpRequest = utest::SimpleServer::Request;
+using HttpCallback = utest::SimpleServer::OnRequest;
+
 struct TlsServer {
     TlsServer()
         : port(tcp_listener.socket.Getsockname().Port())
+    {
+        LOG_TRACE() << "HTTPS Server Listening [::1]:" << port;
+    }
+
+    TlsServer(HttpCallback&& callback)
+        : response_callback{std::move(callback)},
+          port(tcp_listener.socket.Getsockname().Port())
     {}
+
+    std::string GetBaseUrl() const { return fmt::format("https://[::1]:{}", port); }
+
+    std::optional<engine::io::TlsWrapper> tls_server;
 
     void ReceiveAndShutdown(std::initializer_list<crypto::Certificate> cas = {}) {
         auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
-        auto socket = tcp_listener.socket.Accept(deadline);
+        client_socket = tcp_listener.socket.Accept(deadline);
 
         crypto::SslCtx ssl_ctx = crypto::SslCtx::CreateServerTlsContext(
             crypto::LoadCertificatesChainFromString(kServerCertificate),
             crypto::PrivateKey::LoadFromString(kRevokedServerPrivateKey),
             cas
         );
-        auto tls_server = engine::io::TlsWrapper::StartTlsServer(std::move(socket), ssl_ctx, deadline);
+        tls_server.emplace(engine::io::TlsWrapper::StartTlsServer(std::move(client_socket), ssl_ctx, deadline));
 
         std::array<char, 2048> data{};
-        const auto size = tls_server.RecvSome(data.data(), data.size(), deadline);
+        const auto size = tls_server->RecvSome(data.data(), data.size(), deadline);
         EXPECT_GT(size, 0);
 
         LOG_INFO() << "HTTPS Server receive: " << data.data();
 
-        constexpr std::string_view kResp =
-            "HTTP/1.1 200 OK\r\n"
-            "Connection: close\r\n"
-            "Content-Length: 2\r\n"
-            "\r\n"
-            "OK";
-        EXPECT_GT(tls_server.SendAll(kResp.data(), kResp.size(), deadline), 0);
-        socket = tls_server.StopTls(deadline);
-        EXPECT_TRUE(socket.IsValid());
+        if (response_callback) {
+            const HttpResponse response = response_callback({data.data(), size});
+            const auto response_size = response.data_to_send.size();
+            EXPECT_EQ(tls_server->SendAll(response.data_to_send.data(), response_size, deadline), response_size);
+            if (response.command == HttpResponse::kWriteAndClose) {
+                LOG_TRACE() << "HTTPS Server shutdown start";
+                client_socket = tls_server->StopTls(deadline);
+                LOG_TRACE() << "HTTPS Server shutdown finished";
+                EXPECT_TRUE(client_socket.IsValid());
+            }
+        } else {
+            constexpr std::string_view kResp =
+                "HTTP/1.1 200 OK\r\n"
+                "Connection: close\r\n"
+                "Content-Length: 2\r\n"
+                "\r\n"
+                "OK";
+            EXPECT_EQ(tls_server->SendAll(kResp.data(), kResp.size(), deadline), kResp.size());
+
+            LOG_TRACE() << "HTTPS Server shutdown start";
+            client_socket = tls_server->StopTls(engine::Deadline::FromDuration(std::chrono::seconds(2)));
+            LOG_TRACE() << "HTTPS Server shutdown finished";
+            EXPECT_TRUE(client_socket.IsValid());
+        }
     }
 
+    HttpCallback response_callback = nullptr;
+    engine::io::Socket client_socket;
     engine::io::tests::TcpListener tcp_listener;
     int port;
+};
+
+struct HttpProxyServer {
+    static constexpr std::string_view kMethodConnect = "CONNECT ";
+
+    std::atomic<bool> drop_endpoint_response{false};
+    engine::io::Sockaddr endpoint_addr;
+    engine::io::Socket proxy_client_socket;
+    engine::io::Socket endpoint_socket;
+    engine::io::tests::TcpListener tcp_listener;
+    int proxy_port;
+
+    // Transferring using rx/tx queues requires to prevent locks while run with sanitizers
+    struct TransferData {
+        std::array<char, 2048> data;
+        size_t size;
+    };
+    using TransferQueue = concurrent::SpscQueue<TransferData>;
+
+    std::shared_ptr<TransferQueue> tx_queue;
+    std::shared_ptr<TransferQueue> rx_queue;
+    engine::TaskWithResult<void> tx_task;
+    engine::TaskWithResult<void> rx_task;
+
+    HttpProxyServer()
+        : proxy_port(tcp_listener.socket.Getsockname().Port()),
+          tx_queue{TransferQueue::Create()},
+          rx_queue{TransferQueue::Create()}
+    {
+        LOG_TRACE() << "Proxy server listening [::1]:" << proxy_port;
+    }
+
+    std::string GetBaseUrl() const { return fmt::format("http://[::1]:{}", proxy_port); }
+
+    void ReceiveConnectionString(engine::Deadline deadline) {
+        proxy_client_socket = tcp_listener.socket.Accept(deadline);
+        EXPECT_TRUE(proxy_client_socket.IsValid());
+
+        std::array<char, 2048> data{};
+        const auto size = proxy_client_socket.RecvSome(data.data(), data.size(), deadline);
+        EXPECT_GT(size, 0);
+
+        // "CONNECT [::1]:37605 HTTP/1.1\r\n"
+        // "Host: [::1]:37605\r\n"
+        // "User-Agent: userver/1.0.0 (20201109134848;rv:e20945c83fd)\r\n"
+        // "Proxy-Connection: Keep-Alive\r\n"
+        // "\r\n"
+        LOG_INFO() << "Proxy Server received: " << data.data();
+        std::string_view data_view{data.data(), size};
+        EXPECT_EQ(data_view.substr(data_view.size() - 4), "\r\n\r\n");
+        EXPECT_EQ(data_view.substr(0, kMethodConnect.size()), kMethodConnect);
+
+        rx_task = engine::AsyncNoTracing([this, producer = rx_queue->GetProducer(), deadline]() mutable {
+            while (!engine::current_task::IsCancelRequested()) {
+                TransferData item{};
+                try {
+                    item.size = proxy_client_socket.RecvSome(item.data.data(), item.data.size(), deadline);
+                } catch (const clients::http::NetworkProblemException& exc) {
+                    LOG_INFO() << "Breaking of proxying endpoint receive, network problem. " << exc;
+                    break;
+                }
+                if (engine::current_task::IsCancelRequested()) {
+                    LOG_INFO() << "Breaking of proxying client receive, task cancelled";
+                    break;
+                }
+                if (item.size == 0) {
+                    engine::Yield();
+                    break;
+                }
+                LOG_TRACE() << "Proxying client received: " << item.data.data();
+                EXPECT_TRUE(producer.Push(std::move(item)));
+            }
+        });
+
+        constexpr std::string_view kResp =
+            "HTTP/1.1 200 OK\r\n"
+            "Connection: keep-alive\r\n"
+            "Content-Length: 0\r\n"
+            "\r\n";
+        EXPECT_EQ(proxy_client_socket.SendAll(kResp.data(), kResp.size(), deadline), kResp.size());
+
+        const auto pos = data_view.find(' ', kMethodConnect.size());
+        ASSERT_NE(pos, std::string_view::npos);
+
+        std::string_view connection_string{data_view.data() + kMethodConnect.size(), pos - kMethodConnect.size()};
+        LOG_TRACE() << "Proxy Server connecting to: " << connection_string;
+        EXPECT_EQ(connection_string.substr(0, 6), "[::1]:");
+
+        endpoint_addr = engine::io::Sockaddr::MakeLoopbackAddress();
+        const auto endpoint_port = utils::FromString<uint16_t>(connection_string.substr(6));
+        LOG_TRACE() << "Proxy Server connection port: " << endpoint_port;
+        endpoint_addr.SetPort(endpoint_port);
+    }
+
+    void ConnectToEndpoint(engine::Deadline deadline) {
+        endpoint_socket = engine::io::Socket{engine::io::AddrDomain::kInet6, engine::io::SocketType::kStream};
+        endpoint_socket.Connect(endpoint_addr, deadline);
+
+        EXPECT_TRUE(endpoint_socket.IsValid());
+        LOG_DEBUG() << "Proxy Server connected to " << endpoint_addr;
+
+        tx_task = engine::AsyncNoTracing([this, producer = tx_queue->GetProducer(), deadline]() mutable {
+            while (!engine::current_task::IsCancelRequested()) {
+                TransferData item{};
+                try {
+                    item.size = endpoint_socket.RecvSome(item.data.data(), item.data.size(), deadline);
+                } catch (const clients::http::NetworkProblemException& exc) {
+                    LOG_INFO() << "Breaking of proxying endpoint receive, network problem. " << exc;
+                    break;
+                }
+                if (engine::current_task::IsCancelRequested()) {
+                    LOG_INFO() << "Breaking of proxying endpoint receive, task cancelled";
+                    break;
+                }
+                if (item.size == 0) {
+                    engine::Yield();
+                    break;
+                }
+                LOG_TRACE() << "Proxying endpoint received: " << item.data.data();
+                EXPECT_TRUE(producer.Push(std::move(item)));
+            }
+        });
+    }
+
+    void RunTransferring(engine::Deadline deadline) {
+        auto client_to_endpoint_transfer = engine::AsyncNoTracing([this, consumer = rx_queue->GetConsumer(), deadline] {
+            TransferData item{};
+            while (consumer.Pop(item, deadline)) {
+                LOG_TRACE() << "Proxying client request: " << item.data.data();
+                EXPECT_EQ(endpoint_socket.SendAll(item.data.data(), item.size, deadline), item.size);
+            }
+        });
+        auto endpoint_to_client_transfer = engine::AsyncNoTracing([this, consumer = tx_queue->GetConsumer(), deadline] {
+            TransferData item{};
+            while (consumer.Pop(item, deadline) && endpoint_socket.IsValid()) {
+                if (!drop_endpoint_response) {
+                    LOG_TRACE() << "Proxying endpoint response: " << item.data.data();
+                    EXPECT_EQ(proxy_client_socket.SendAll(item.data.data(), item.size, deadline), item.size);
+                } else {
+                    LOG_TRACE() << "Proxying endpoint response ommit: " << item.data.data();
+                }
+            }
+        });
+
+        client_to_endpoint_transfer.Wait();
+        endpoint_to_client_transfer.Wait();
+
+        LOG_TRACE() << "Proxy server finished transferring";
+
+        endpoint_socket.Close();
+        proxy_client_socket.Close();
+
+        LOG_INFO() << "Proxy server closed tunnel";
+    }
 };
 
 auto InterceptCrlDistribution() {
@@ -352,7 +543,7 @@ auto InterceptCrlDistribution() {
     addr.SetPort(kCrlDistributionPort);
     listener.Bind(addr);
 
-    return engine::AsyncNoSpan([listener = std::move(listener)]() mutable {
+    return engine::AsyncNoTracing([listener = std::move(listener)]() mutable {
         while (!engine::current_task::IsCancelRequested()) {
             auto socket = listener.Accept({});
 
@@ -498,6 +689,204 @@ UTEST(HttpClient, HttpsWithNoClientCa) {
     UEXPECT_THROW(tls_server.ReceiveAndShutdown({ca}), engine::io::TlsException);
     response_future.Wait();
     UEXPECT_THROW(response_future.Get(), clients::http::SSLException);
+}
+
+// === Proxying https over http ===
+
+UTEST(HttpClientProxy, HttpsNoContentLengthNoBody) {
+    auto http_client_ptr = utest::CreateHttpClient();
+    auto pkey = crypto::PrivateKey::LoadFromString(kRevokedClientPrivateKey, "");
+    auto cert = crypto::Certificate::LoadFromString(kClientCertificate);
+    auto ca = crypto::Certificate::LoadFromString(kCaCertPem);
+
+    TlsServer http_server{[](const HttpRequest&) {
+        // No "Content-Length" header, a cunning HTTP 1.0 server!
+        return HttpResponse{
+            "HTTP/1.1 222 OK\r\nConnection: close\r\n\r\n",
+            HttpResponse::kWriteAndClose,
+        };
+    }};
+    HttpProxyServer proxy_server;
+    const auto url = http_server.GetBaseUrl();
+    const std::string data{};
+
+    auto response_future =
+        http_client_ptr->CreateRequest()
+            .post(url)
+            .proxy(proxy_server.GetBaseUrl())
+            .timeout(utest::kMaxTestWaitTime)
+            .ca(ca)
+            .client_key_cert(pkey, cert)
+            .verify(true)
+            .async_perform();
+
+    auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+    UEXPECT_NO_THROW(proxy_server.ReceiveConnectionString(deadline));
+    proxy_server.ConnectToEndpoint(deadline);
+    auto endpoint_task = engine::AsyncNoTracing([&proxy_server, &deadline] { proxy_server.RunTransferring(deadline); });
+    UEXPECT_NO_THROW(http_server.ReceiveAndShutdown({ca}));
+
+    const auto response = response_future.Get();
+    EXPECT_EQ(response->status_code(), 222);
+}
+
+UTEST(HttpClientProxy, HttpsNoContentLengthWithBody) {
+    auto http_client_ptr = utest::CreateHttpClient();
+    auto pkey = crypto::PrivateKey::LoadFromString(kRevokedClientPrivateKey, "");
+    auto cert = crypto::Certificate::LoadFromString(kClientCertificate);
+    auto ca = crypto::Certificate::LoadFromString(kCaCertPem);
+
+    TlsServer http_server{[](const HttpRequest&) {
+        // No "Content-Length" header, a cunning HTTP 1.0 server!
+        return HttpResponse{
+            "HTTP/1.1 222 OK\r\nConnection: close\r\n\r\nBody length controlled by server side",
+            HttpResponse::kWriteAndClose,
+        };
+    }};
+    HttpProxyServer proxy_server;
+    const auto url = http_server.GetBaseUrl();
+    const std::string data{};
+
+    auto response_future =
+        http_client_ptr->CreateRequest()
+            .post(url)
+            .proxy(proxy_server.GetBaseUrl())
+            .timeout(utest::kMaxTestWaitTime)
+            .ca(ca)
+            .client_key_cert(pkey, cert)
+            .verify(true)
+            .async_perform();
+
+    auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+    UEXPECT_NO_THROW(proxy_server.ReceiveConnectionString(deadline));
+    proxy_server.ConnectToEndpoint(deadline);
+    auto endpoint_task = engine::AsyncNoTracing([&proxy_server, &deadline] { proxy_server.RunTransferring(deadline); });
+    UEXPECT_NO_THROW(http_server.ReceiveAndShutdown({ca}));
+
+    const auto response = response_future.Get();
+    EXPECT_EQ(response->status_code(), 222);
+    EXPECT_EQ(response->body(), "Body length controlled by server side");
+    endpoint_task.SyncCancel();
+}
+
+UTEST(HttpClientProxy, HttpsTruncatedHeaders) {
+    auto http_client_ptr = utest::CreateHttpClient();
+    auto pkey = crypto::PrivateKey::LoadFromString(kRevokedClientPrivateKey, "");
+    auto cert = crypto::Certificate::LoadFromString(kClientCertificate);
+    auto ca = crypto::Certificate::LoadFromString(kCaCertPem);
+
+    TlsServer http_server{[](const HttpRequest&) {
+        // No "Content-Length" header, but headers are not over
+        return HttpResponse{
+            //"HTTP/1.1 222 OK\r\nConnection: close\r\n",
+            "HTTP/1.1 222 OK\r\nConnection: ",
+            HttpResponse::kWriteAndClose,
+        };
+    }};
+    HttpProxyServer proxy_server;
+    const auto url = http_server.GetBaseUrl();
+    const std::string data{};
+
+    auto response_future =
+        http_client_ptr->CreateRequest()
+            .post(url)
+            .proxy(proxy_server.GetBaseUrl())
+            .timeout(utest::kMaxTestWaitTime)
+            .ca(ca)
+            .client_key_cert(pkey, cert)
+            .verify(true)
+            .async_perform();
+
+    auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+    UEXPECT_NO_THROW(proxy_server.ReceiveConnectionString(deadline));
+    proxy_server.ConnectToEndpoint(deadline);
+    auto endpoint_task = engine::AsyncNoTracing([&proxy_server, &deadline] { proxy_server.RunTransferring(deadline); });
+    UEXPECT_NO_THROW(http_server.ReceiveAndShutdown({ca}));
+    UEXPECT_THROW(response_future.Get(), clients::http::NetworkProblemException);
+}
+
+UTEST(HttpClientProxy, HttpsEmptyResponse) {
+    auto http_client_ptr = utest::CreateHttpClient();
+    auto pkey = crypto::PrivateKey::LoadFromString(kRevokedClientPrivateKey, "");
+    auto cert = crypto::Certificate::LoadFromString(kClientCertificate);
+    auto ca = crypto::Certificate::LoadFromString(kCaCertPem);
+
+    TlsServer http_server{[](const HttpRequest&) {
+        // No "Content-Length" header, but headers are not over
+        return HttpResponse{
+            "",
+            HttpResponse::kWriteAndClose,
+        };
+    }};
+    HttpProxyServer proxy_server;
+    const auto url = http_server.GetBaseUrl();
+    const std::string data{};
+
+    auto response_future =
+        http_client_ptr->CreateRequest()
+            .post(url)
+            .proxy(proxy_server.GetBaseUrl())
+            .timeout(utest::kMaxTestWaitTime)
+            .ca(ca)
+            .client_key_cert(pkey, cert)
+            .verify(true)
+            .async_perform();
+
+    auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+    UEXPECT_NO_THROW(proxy_server.ReceiveConnectionString(deadline));
+    proxy_server.ConnectToEndpoint(deadline);
+    auto endpoint_task = engine::AsyncNoTracing([&proxy_server, &deadline] { proxy_server.RunTransferring(deadline); });
+    UEXPECT_NO_THROW(http_server.ReceiveAndShutdown({ca}));
+    UEXPECT_THROW(response_future.Get(), clients::http::TechnicalError);
+}
+
+UTEST(HttpClientProxy, HttpsTruncatedBody) {
+    auto http_client_ptr = utest::CreateHttpClient();
+    auto pkey = crypto::PrivateKey::LoadFromString(kRevokedClientPrivateKey, "");
+    auto cert = crypto::Certificate::LoadFromString(kClientCertificate);
+    auto ca = crypto::Certificate::LoadFromString(kCaCertPem);
+
+    // In this case need to manually terminate a connection by passing kWriteAndContinue
+    // to TlsServer response to keep tls_server alive all of this scope time.
+    // If pass kWriteAndClose unittest hangs on calling StopTls within ReceiveAndShutdown
+    // and will raise Timeout exception.
+    TlsServer http_server{[](const HttpRequest&) {
+        // No "Content-Length" header, but headers are not over
+        return HttpResponse{
+            //"HTTP/1.1 222 OK\r\nConnection: close\r\n",
+            "HTTP/1.1 222 OK\r\nContent-Length: 1000\r\n\r\nTruncated body",
+            HttpResponse::kWriteAndContinue,
+        };
+    }};
+    HttpProxyServer proxy_server;
+    const auto url = http_server.GetBaseUrl();
+    const std::string data{};
+
+    auto response_future =
+        http_client_ptr->CreateRequest()
+            .post(url)
+            .proxy(proxy_server.GetBaseUrl())
+            .timeout(utest::kMaxTestWaitTime)
+            .ca(ca)
+            .client_key_cert(pkey, cert)
+            .verify(true)
+            .SetIncompleteTlsConnectionCloseExpected(true)
+            .async_perform();
+
+    auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+    UEXPECT_NO_THROW(proxy_server.ReceiveConnectionString(deadline));
+    proxy_server.ConnectToEndpoint(deadline);
+    auto endpoint_task = engine::AsyncNoTracing([&proxy_server, &deadline] { proxy_server.RunTransferring(deadline); });
+    UEXPECT_NO_THROW(http_server.ReceiveAndShutdown({ca}));
+
+    endpoint_task.SyncCancel();
+    proxy_server.rx_task.SyncCancel();
+    proxy_server.tx_task.SyncCancel();
+    proxy_server.proxy_client_socket.Close();
+    proxy_server.endpoint_socket.Close();
+
+    // Throws clients::http::NetworkProblemException or clients::http::TechnicalError
+    UEXPECT_THROW(response_future.Get(), clients::http::BaseCodeException);
 }
 
 USERVER_NAMESPACE_END

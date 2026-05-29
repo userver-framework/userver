@@ -4,6 +4,7 @@
 /// @brief @copybrief tracing::TagScope
 
 #include <string>
+#include <vector>
 
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/span.hpp>

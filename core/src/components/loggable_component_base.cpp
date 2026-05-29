@@ -1,6 +1,7 @@
 #include <userver/components/component_base.hpp>
 
 #include <userver/components/component.hpp>
+#include <userver/engine/deadline.hpp>
 #include <userver/logging/component.hpp>
 #include <userver/yaml_config/schema.hpp>
 
@@ -11,6 +12,8 @@ namespace components {
 ComponentBase::ComponentBase(const ComponentConfig&, const ComponentContext& component_context) {
     component_context.FindComponent<Logging>();
 }
+
+void ComponentBase::OnGracefulShutdown(engine::Deadline) {}
 
 yaml_config::Schema ComponentBase::GetStaticConfigSchema() {
     auto schema = RawComponentBase::GetStaticConfigSchema();

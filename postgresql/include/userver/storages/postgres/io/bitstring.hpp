@@ -33,7 +33,7 @@ template <std::size_t N>
 struct IsBitStringCompatible<std::array<bool, N>> : std::true_type {};
 
 template <typename T>
-inline constexpr bool kIsBitStringCompatible = IsBitStringCompatible<T>::value;
+concept kIsBitStringCompatible = IsBitStringCompatible<T>::value;  // NOLINT(readability-identifier-naming)
 
 template <typename BitContainer, typename Enable = void>
 struct BitContainerTraits;
@@ -78,7 +78,7 @@ template <typename BitContainerRef, BitContainerInterface, BitStringType>
 struct BitStringRefWrapper {
     static_assert(std::is_reference<BitContainerRef>::value, "The container must be passed by reference");
 
-    using BitContainer = std::decay_t<BitContainerRef>;
+    using BitContainer = std::remove_cvref_t<BitContainerRef>;
     static_assert(
         io::traits::kIsBitStringCompatible<BitContainer>,
         "This C++ type cannot be used with PostgreSQL 'bit' and 'bit "
@@ -155,7 +155,7 @@ struct BufferParser<postgres::detail::BitStringRefWrapper<
           BitContainerRef,
           postgres::detail::BitContainerInterface::kCommon,
           kBitStringType>&&> {
-    using BitContainer = std::decay_t<BitContainerRef>;
+    using BitContainer = std::remove_cvref_t<BitContainerRef>;
     using BaseType = detail::BufferParserBase<postgres::detail::BitStringRefWrapper<
         BitContainerRef,
         postgres::detail::BitContainerInterface::kCommon,
@@ -196,7 +196,7 @@ struct BufferParser<postgres::detail::BitStringRefWrapper<
           BitContainerRef,
           postgres::detail::BitContainerInterface::kFlags,
           kBitStringType>&&> {
-    using BitContainer = std::decay_t<BitContainerRef>;
+    using BitContainer = std::remove_cvref_t<BitContainerRef>;
     using BaseType = detail::BufferParserBase<postgres::detail::BitStringRefWrapper<
         BitContainerRef,
         postgres::detail::BitContainerInterface::kFlags,
@@ -236,7 +236,7 @@ struct BufferFormatter<postgres::detail::BitStringRefWrapper<
           BitContainerRef,
           postgres::detail::BitContainerInterface::kCommon,
           kBitStringType>> {
-    using BitContainer = std::decay_t<BitContainerRef>;
+    using BitContainer = std::remove_cvref_t<BitContainerRef>;
     using BaseType = detail::BufferFormatterBase<postgres::detail::BitStringRefWrapper<
         BitContainerRef,
         postgres::detail::BitContainerInterface::kCommon,
@@ -273,7 +273,7 @@ struct BufferFormatter<postgres::detail::BitStringRefWrapper<
           BitContainerRef,
           postgres::detail::BitContainerInterface::kFlags,
           kBitStringType>> {
-    using BitContainer = std::decay_t<BitContainerRef>;
+    using BitContainer = std::remove_cvref_t<BitContainerRef>;
     using BaseType = detail::BufferFormatterBase<postgres::detail::BitStringRefWrapper<
         BitContainerRef,
         postgres::detail::BitContainerInterface::kFlags,

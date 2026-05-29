@@ -2,6 +2,7 @@
 
 /// @file userver/utest/parameter_names.hpp
 /// @brief @copybrief utest::PrintTestName
+/// @ingroup userver_universal
 
 #include <string>
 #include <tuple>
@@ -17,21 +18,15 @@ namespace utest {
 
 namespace impl {
 
-template <typename T>
-using HasTestName = decltype(T::test_name);
-
 template <typename ParamType>
 std::string TestParamToString(const ParamType& param) {
-    if constexpr (meta::IsDetected<HasTestName, ParamType>) {
+    if constexpr (requires { ParamType::test_name; }) {
         static_assert(std::is_same_v<std::string, decltype(param.test_name)>, "Test name should be a string");
         return param.test_name;
     } else {
         return ::testing::PrintToString(param);
     }
 }
-
-template <typename T>
-using HasTupleSize = decltype(std::tuple_size<T>::value);
 
 template <typename... Args>
 std::string TestTupleParamToString(const std::tuple<Args...>& params_tuple) {
@@ -100,7 +95,7 @@ std::string TestTupleParamToString(const std::tuple<Args...>& params_tuple) {
 struct PrintTestName final {
     template <typename ParamType>
     std::string operator()(const testing::TestParamInfo<ParamType>& info) const {
-        if constexpr (meta::IsDetected<impl::HasTupleSize, ParamType>) {
+        if constexpr (requires { std::tuple_size<ParamType>::value; }) {
             return impl::TestTupleParamToString(info.param);
         } else {
             return impl::TestParamToString(info.param);

@@ -3,6 +3,7 @@
 #include <userver/ugrpc/server/middlewares/baggage/component.hpp>
 #include <userver/ugrpc/server/middlewares/congestion_control/component.hpp>
 #include <userver/ugrpc/server/middlewares/deadline_propagation/component.hpp>
+#include <userver/ugrpc/server/middlewares/graceful_shutdown_headers/component.hpp>
 #include <userver/ugrpc/server/middlewares/headers_propagator/component.hpp>
 #include <userver/ugrpc/server/middlewares/log/component.hpp>
 #include <userver/ugrpc/server/middlewares/pipeline.hpp>
@@ -18,6 +19,7 @@ components::ComponentList MinimalComponentList() {
         .Append<ugrpc::server::MiddlewarePipelineComponent>()
         .Append<middlewares::congestion_control::Component>()
         .Append<middlewares::deadline_propagation::Component>()
+        .Append<middlewares::graceful_shutdown_headers::Component>()
         .Append<middlewares::log::Component>();
 }
 

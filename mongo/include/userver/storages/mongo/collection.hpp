@@ -15,6 +15,7 @@
 #include <userver/storages/mongo/cursor.hpp>
 #include <userver/storages/mongo/operations.hpp>
 #include <userver/storages/mongo/write_result.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -35,7 +36,7 @@ class Collection {
 public:
     /// @cond
     // For internal use only.
-    explicit Collection(std::shared_ptr<impl::CollectionImpl>);
+    explicit Collection(std::shared_ptr<impl::CollectionImpl>, bool transactional = false);
     /// @endcond
 
     /// @brief Returns the number of documents matching the query
@@ -156,6 +157,7 @@ public:
     /// @}
 private:
     std::shared_ptr<impl::CollectionImpl> impl_;
+    bool transactional_{false};
 };
 
 template <typename... Options>
@@ -184,6 +186,7 @@ static constexpr bool kHasOption = HasOptionHelper<Option, Options...>::value;
 
 template <typename... Options>
 Cursor Collection::Find(formats::bson::Document filter, Options&&... options) const {
+    UINVARIANT(!transactional_, "Find is not supported for transaction collections");
     operations::Find find_op(std::move(filter));
     (find_op.SetOption(std::forward<Options>(options)), ...);
     return Execute(find_op);
@@ -195,7 +198,10 @@ std::optional<formats::bson::Document> Collection::FindOne(formats::bson::Docume
         !(std::is_same<std::decay_t<Options>, options::Limit>::value || ...),
         "Limit option cannot be used in FindOne"
     );
-    auto cursor = Find(std::move(filter), options::Limit{1}, std::forward<Options>(options)...);
+    operations::Find find_op(std::move(filter));
+    find_op.SetOption(options::Limit{1});
+    (find_op.SetOption(std::forward<Options>(options)), ...);
+    auto cursor = Execute(find_op);
     if (cursor.begin() == cursor.end()) {
         return {};
     }
@@ -304,6 +310,7 @@ operations::Bulk Collection::MakeUnorderedBulk(Options&&... options) {
 
 template <typename... Options>
 Cursor Collection::Aggregate(formats::bson::Value pipeline, Options&&... options) {
+    UINVARIANT(!transactional_, "Aggregate is not supported for transaction collections");
     operations::Aggregate aggregate(std::move(pipeline));
     (aggregate.SetOption(std::forward<Options>(options)), ...);
     return Execute(aggregate);

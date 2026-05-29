@@ -122,7 +122,7 @@ UTEST_F(RedisClientTest, Unlink) {
 
 UTEST_F(RedisClientTest, Geosearch) {
     const Version since{6, 2, 0};
-    if (!CheckVersion(since)) {
+    if (!CheckRedisVersion(since)) {
         GTEST_SKIP() << SkipMsgByVersion("Geosearch", since);
     }
 
@@ -297,7 +297,7 @@ class RedisExpireOptionsTest
 
 UTEST_P(RedisExpireOptionsTest, ExpireOptionsTest) {
     const Version since{7, 0, 0};
-    if (!CheckVersion(since)) {
+    if (!CheckRedisVersion(since)) {
         GTEST_SKIP() << SkipMsgByVersion("Expire options", since);
     }
 
@@ -778,6 +778,26 @@ UTEST_F(RedisClientTest, Set) {
     EXPECT_TRUE(client->SetIfNotExist("new key", "value", {}).Get());
 }
 
+UTEST_F(RedisClientTest, SetAndGetPrevious) {
+    const Version since{6, 2, 0};
+    if (!CheckRedisVersion(since)) {
+        GTEST_SKIP() << SkipMsgByVersion("SetAndGetPrevious", since);
+    }
+
+    auto client = GetClient();
+
+    auto key = "not_existing_key";
+    auto value = "value";
+    auto previous_value = client->SetAndGetPrevious(key, value, std::chrono::milliseconds{1999}, {}).Get();
+    EXPECT_FALSE(previous_value.has_value());
+    EXPECT_TRUE(client->Ttl(key, {}).Get().KeyHasExpiration());
+
+    previous_value = client->SetAndGetPrevious(key, "new value", std::chrono::milliseconds{1999}, {}).Get();
+    EXPECT_TRUE(previous_value.has_value());
+    EXPECT_TRUE(client->Ttl(key, {}).Get().KeyHasExpiration());
+    EXPECT_EQ(previous_value.value(), value);
+}
+
 UTEST_F(RedisClientTest, Setex) {
     auto client = GetClient();
 
@@ -871,7 +891,7 @@ UTEST_F(RedisClientTest, Zadd) {
 
 UTEST_F(RedisClientTest, ZaddGtLt) {
     const Version since{6, 2, 0};
-    if (!CheckVersion(since)) {
+    if (!CheckRedisVersion(since)) {
         GTEST_SKIP() << SkipMsgByVersion("Zadd gt/lt", since);
     }
 

@@ -54,7 +54,14 @@ SQLRETURN ResultWrapper::GetStatus() const {
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const)
-void ResultWrapper::Fetch() { CheckStatus(SQLFetch(handle.get()), handle.get(), SQL_HANDLE_STMT); }
+void ResultWrapper::Fetch() {
+    SQLRETURN ret = SQLFetch(handle.get());
+    // SQL_NO_DATA means no rows — not an error (e.g. SELECT with empty result set)
+    if (ret == SQL_NO_DATA) {
+        return;
+    }
+    CheckStatus(ret, handle.get(), SQL_HANDLE_STMT);
+}
 
 std::size_t ResultWrapper::RowCount() const {
     // TODO: drivers may return -1 or 0 if rows are not fetched yet, overall implementation for select is

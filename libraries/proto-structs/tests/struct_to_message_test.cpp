@@ -273,27 +273,30 @@ TEST(StructToMessage, WellKnownJson) {
             .f2 = formats::json::Array{create_array(10, "hello", true)},
             .f3 = formats::json::Object{create_object(20, "world", false)}
         };
+        const auto expected = obj;
         auto msg = StructToMessage(std::move(obj));
 
-        CheckWellKnownJsonEqual(obj, msg);
+        CheckWellKnownJsonEqual(expected, msg);
     }
 
     {
         formats::json::ValueBuilder builder{formats::common::Type::kArray};
         builder.PushBack(create_array(5, "hola", true));
         structs::WellKnownJson obj = {.f1 = builder.ExtractValue()};
+        const auto expected = obj;
         auto msg = StructToMessage(std::move(obj));
 
-        CheckWellKnownJsonEqual(obj, msg);
+        CheckWellKnownJsonEqual(expected, msg);
     }
 
     {
         formats::json::ValueBuilder builder{formats::common::Type::kObject};
         builder["top"] = create_object(6, "bonjour", false);
         structs::WellKnownJson obj = {.f1 = builder.ExtractValue()};
+        const auto expected = obj;
         auto msg = StructToMessage(std::move(obj));
 
-        CheckWellKnownJsonEqual(obj, msg);
+        CheckWellKnownJsonEqual(expected, msg);
     }
 }
 

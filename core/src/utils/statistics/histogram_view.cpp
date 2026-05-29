@@ -67,13 +67,9 @@ double HistogramView::GetTotalSum() const noexcept {
     return total;
 }
 
-void DumpMetric(Writer& writer, HistogramView histogram) { writer = histogram; }
-
 bool operator==(HistogramView lhs, HistogramView rhs) noexcept {
     return impl::histogram::HasSameBoundsAndValues(lhs, rhs);
 }
-
-bool operator!=(HistogramView lhs, HistogramView rhs) noexcept { return !(lhs == rhs); }
 
 }  // namespace utils::statistics
 

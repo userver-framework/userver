@@ -1,9 +1,6 @@
 #include <userver/utils/zstring_view.hpp>
 
-#ifdef __cpp_concepts
 #include <concepts>
-#endif
-
 #include <type_traits>
 
 #include <gtest/gtest.h>
@@ -19,14 +16,12 @@ static_assert(!std::is_assignable_v<utils::zstring_view, std::string_view>);
 
 static_assert(std::is_assignable_v<std::string_view, utils::zstring_view>);
 
-#ifdef __cpp_concepts
 template <typename T>
 concept SuffixRemovable = requires(T t) { t.remove_suffix(10); };
 
 static_assert(std::swappable<utils::zstring_view>);
 static_assert(!std::swappable_with<utils::zstring_view, std::string_view>);
 static_assert(!SuffixRemovable<utils::zstring_view>);
-#endif
 
 TEST(ZstringView, UnsafeMake) {
     static constexpr utils::zstring_view kShortString = "short";
@@ -64,4 +59,7 @@ TEST(ZstringView, Swap) {
     EXPECT_EQ(v1, kLongString);
     EXPECT_EQ(v2, kShortString);
 }
+
+// For comparison-operator tests (shared typed suite for StringLiteral and zstring_view), see string_literal_test.cpp.
+
 USERVER_NAMESPACE_END

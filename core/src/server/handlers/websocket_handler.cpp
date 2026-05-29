@@ -33,23 +33,18 @@ WebsocketHandlerBase::WebsocketHandlerBase(
     });
 }
 
-std::string WebsocketHandlerBase::HandleRequestThrow(
-    const server::http::HttpRequest& request,
+bool WebsocketHandlerBase::IsWebsocketRequest(const server::http::HttpRequest& request) const {
+    constexpr auto kIcaseEq = utils::StrIcaseEqual();
+
+    return request.GetMethod() == server::http::HttpMethod::kGet &&
+           kIcaseEq(request.GetHeader(USERVER_NAMESPACE::http::headers::kUpgrade), "websocket") &&
+           kIcaseEq(request.GetHeader(USERVER_NAMESPACE::http::headers::kConnection), "upgrade");
+}
+
+void WebsocketHandlerBase::HandleWebsocketRequest(
+    server::http::HttpRequest& request,
     server::request::RequestContext& context
 ) const {
-    if (request.GetMethod() != server::http::HttpMethod::kGet ||
-        !utils::StrIcaseEqual()(
-            request.GetHeader(USERVER_NAMESPACE::http::headers::kUpgrade),
-            std::string_view("websocket")
-        ) ||
-        !utils::StrIcaseEqual()(
-            request.GetHeader(USERVER_NAMESPACE::http::headers::kConnection),
-            std::string_view("upgrade")
-        ))
-    {
-        HandleNonWebsocketRequest(request, context);
-    }
-
     const std::string& sec_websocket_key = request.GetHeader(USERVER_NAMESPACE::http::headers::kWebsocketKey);
 
     // We are fine if `secWebsocketKey` is not properly base64-ecoded
@@ -66,11 +61,11 @@ std::string WebsocketHandlerBase::HandleRequestThrow(
         LOG_WARNING() << "Wrong websocket version: " << version;
         response.SetHeader(USERVER_NAMESPACE::http::headers::kWebsocketVersion, "13");
         response.SetStatus(server::http::HttpStatus::kUpgradeRequired);
-        return "";
+        return;
     }
 
-    if (!HandleHandshake(request, response, context)) {
-        return "";
+    if (!HandleHandshake(request, context)) {
+        return;
     }
 
     response.SetStatus(server::http::HttpStatus::kSwitchingProtocols);
@@ -94,6 +89,23 @@ std::string WebsocketHandlerBase::HandleRequestThrow(
         ws->AddFinalTags(span);
         ws->AddStatistics(stats_);
     });
+}
+
+std::string
+WebsocketHandlerBase::HandleNonWebsocketRequest(server::http::HttpRequest&, server::request::RequestContext&) const {
+    LOG_WARNING() << "Not a GET 'Upgrade: websocket' and 'Connection: Upgrade' request";
+    throw server::handlers::ClientError();
+}
+
+std::string WebsocketHandlerBase::HandleRequest(
+    server::http::HttpRequest& request,
+    server::request::RequestContext& context
+) const {
+    if (!IsWebsocketRequest(request)) {
+        return HandleNonWebsocketRequest(request, context);
+    }
+
+    HandleWebsocketRequest(request, context);
     return "";
 }
 

@@ -235,7 +235,7 @@ UTEST_MT(FdControl, WholeTransfer, 2) {
         ++read_attempts;
         return ::read(fd, buf, count);
     };
-    auto sender = engine::AsyncNoSpan([fd = pipe.Out(), &read_attempts] {
+    auto sender = engine::AsyncNoTracing([fd = pipe.Out(), &read_attempts] {
         const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
         engine::SleepFor(kReadTimeout);
         CheckedWrite(fd, "test", 4);

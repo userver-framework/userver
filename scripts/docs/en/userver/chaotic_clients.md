@@ -1,29 +1,36 @@
 # Chaotic clients
 
-Chaotic is able to generate a http client from OpenAPI schema.
-You declare API of the endpoint in [OpenAPI format](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.1.md)
+Chaotic is able to generate a HTTP client from an OpenAPI schema.
+You declare the API of the endpoint in [OpenAPI 3.x format](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.1.md)
+(Swagger 2.0 is also accepted)
 and chaotic generates parsers, serializers and a client for you.
+
+For generating server-side handlers instead, see @ref scripts/docs/en/userver/chaotic_handlers.md.
 
 
 # Quickstart
 
-First, define OpenAPI schema in one or multiple yaml files.
+First, define OpenAPI schema in one or multiple yaml files:
 
-```
-# yaml
-openapi: 3.0.0
-...
-```
+@include samples/chaotic_openapi_service/clients/test.yaml
+
 Second, declare the client in `CMakeLists.txt`:
+
 @snippet samples/chaotic_openapi_service/CMakeLists.txt chaotic
+
+`userver_target_generate_openapi_client()` parameters:
+
+| Parameter | Kind | Default | Description |
+|---|---|---|---|
+| First positional (`TARGET`) | — | **required** | CMake library target name to create. |
+| `NAME` | one-value | **required** | Client name; used in generated include paths (`clients/NAME/…`) and as the default C++ namespace base. |
+| `SCHEMAS` | multi-value | **required** | OpenAPI YAML/JSON source files. |
+| `OUTPUT_DIR` | one-value | `${CMAKE_CURRENT_BINARY_DIR}/NAME` | Where generated `include/` and `src/` trees are placed. |
+| `ARGS` | multi-value | — | Extra arguments forwarded verbatim to `chaotic-openapi-gen` (e.g. `--dynamic-config CONFIG_KEY`). |
 
 Third, register the client component in the component system:
 
-```cpp
-int main(int argc, char* argv[]) {
-    ...
-      .Append<::clients::test::Component>();
-```
+@snippet samples/chaotic_openapi_service/main.cpp register-client
 
 Fourth, get a reference to the client...
 
@@ -69,22 +76,18 @@ If you want to log every in/out client body, use `logging` middleware in static 
 ## Dynamic Quality-of-service configs (QOS)
 
 Clients may fetch attempts and retries from dynamic config.
-Use `qos-{client_name}` middleware in static config (change "test-client" to your client name):
+First, pass the config key name to the generator via `ARGS "--dynamic-config" "MY_CLIENT_QOS"`
+in `CMakeLists.txt`. This causes chaotic to emit a `kQosConfig` constant in the generated
+`clients::my_client` namespace.
 
-```
-# yaml
-    test-client:
-      middlewares:
-        qos-test-client: {}
-```
+Use `qos-{client_name}` middleware in static config (change `test-client` to your client name,
+and `qos-test` to `qos-{client_name}`):
 
-And register it in `main.cpp`:
+@snippet samples/chaotic_openapi_service/static_config.user.yaml qos-config
 
-```cpp
-auto component_list =
-  userver::components::ComponentList()
-  .Append<userver::chaotic::openapi::QosMiddleware<clients::test_client::kQosConfig>>("chaotic-client-middleware-qos-test-client")
-```
+Register `QosMiddlewareFactory` in `main.cpp` before the client component:
+
+@snippet samples/chaotic_openapi_service/main.cpp register-qos
 
 ## Proxy
 
@@ -111,3 +114,26 @@ If you want to follow redirects, use `follow-redirects` middleware:
 ```
 
 
+# Direct CLI reference
+
+`chaotic-openapi-gen` is the underlying executable invoked by `userver_target_generate_openapi_client()`.
+
+| Flag | Required | Description |
+|---|---|---|
+| `files …` | yes | One or more OpenAPI/Swagger YAML/JSON files. |
+| `--name` | yes | Client or service name (sets include-path prefix and default namespace). |
+| `--gen` | yes | What to generate: `client`, `handlers`, `views`, or `handlers+views`. |
+| `-o` / `--output-dir` | for `client`/`handlers`/`handlers+views` | Destination for generated `include/` and `src/` trees. |
+| `--src-dir` | for `views`/`handlers+views` | Directory where view stub files are written. |
+| `--namespace` | no | Override the C++ namespace (default: `clients::NAME` for client, `handlers::NAME` for handlers). |
+| `--dynamic-config` | no | Dynamic config key name for QOS; emits a `kQosConfig` constant. |
+| `-I` / `--include-dir` | no (repeatable) | Extra include path for `x-usrv-cpp-type` header lookup. |
+| `--clang-format` | no | clang-format binary; set to empty string to disable. |
+| `-u` / `--userver` | no | userver namespace macro name (default: `USERVER_NAMESPACE`). |
+
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref scripts/docs/en/userver/chaotic_dynamic_configs.md | @ref scripts/docs/en/userver/chaotic_handlers.md ⇨
+@htmlonly </div> @endhtmlonly

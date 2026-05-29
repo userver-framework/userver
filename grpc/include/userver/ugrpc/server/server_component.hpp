@@ -54,6 +54,8 @@ public:
 private:
     void OnAllComponentsLoaded() override;
 
+    void OnGracefulShutdown(engine::Deadline serving_shutdown_deadline) override;
+
     void OnAllComponentsAreStopping() override;
 
     Server server_;

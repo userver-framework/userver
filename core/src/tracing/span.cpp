@@ -197,7 +197,7 @@ void Span::Impl::PutIntoLogger(logging::impl::TagWriter writer) && {
 }
 
 void Span::Impl::LogTo(logging::impl::TagWriter writer) const {
-    writer.ExtendLogExtra(log_extra_inheritable_);
+    writer.PutLogExtra(log_extra_inheritable_);
 
     if (const auto span_id = GetSpanIdForChildLogs()) {
         writer.PutTag(kTraceIdTag, GetTraceId());
@@ -223,9 +223,20 @@ std::string_view Span::Impl::GetParentIdForLogging(const Span::Impl* parent) {
 bool Span::Impl::ShouldLog() const {
     /* We must honour default log level, but use span's level from ourselves,
      * not the previous spans.
+     * If local_log_level is set, it overrides the global level in both
+     * directions (can enable logging below global level).
      */
-    return logging::impl::ShouldLogNoSpan(logging::GetDefaultLogger(), log_level_) &&
-           local_log_level_.value_or(logging::Level::kTrace) <= log_level_;
+    if (log_level_ == logging::Level::kNone) {
+        return false;
+    }
+    const auto effective_local = local_log_level_.value_or(logging::Level::kTrace);
+    if (effective_local > log_level_) {
+        return false;
+    }
+    if (local_log_level_.has_value()) {
+        return true;
+    }
+    return logging::impl::ShouldLogNoSpan(logging::GetDefaultLogger(), log_level_);
 }
 
 std::optional<std::string_view> Span::Impl::GetSpanIdForChildLogs() const {
@@ -433,6 +444,8 @@ void Span::DetachFromCoroStack() {
 void Span::AttachToCoroStack() { pimpl_->AttachToCoroStack(); }
 
 std::chrono::system_clock::time_point Span::GetStartSystemTime() const { return pimpl_->start_system_time_; }
+
+std::chrono::steady_clock::time_point Span::GetStartSteadyTime() const { return pimpl_->start_steady_time_; }
 
 std::string_view Span::GetTraceId() const { return pimpl_->GetTraceId(); }
 

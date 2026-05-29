@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/redis/ttl_reply.hpp
+/// @brief Redis TTL reply value and exception for invalid TTL queries
+
 #include <chrono>
 #include <cstdint>
 #include <string>
@@ -11,6 +14,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
+/// @brief Parsed TTL/PTTL reply (expiration or missing/persistent key)
 class TtlReply final {
 public:
     enum class TtlReplyValue { kKeyDoesNotExist = -2, kKeyHasNoExpiration = -1 };
@@ -32,7 +36,7 @@ private:
     int64_t value_;
 };
 
-/// Trying to get expiration from a nonexistent or a persistent key
+/// @brief Thrown when reading TTL for a missing or persistent key
 class KeyHasNoExpirationException : public Exception {
 public:
     using Exception::Exception;

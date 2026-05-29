@@ -28,10 +28,39 @@ _ERROR_CODE_KEY = 'x-testsuite-error-code'
 _MethodDescriptor: TypeAlias = google.protobuf.descriptor.MethodDescriptor
 
 
+class _MockHandlerRemovalToken:
+    pass
+
+
+@dataclasses.dataclass
+class _MockHandler:
+    handler: Handler
+    token: _MockHandlerRemovalToken
+
+
 @dataclasses.dataclass
 class _ServiceMockState:
-    mocked_methods: dict[str, Handler] = dataclasses.field(default_factory=dict)
+    mocked_methods: dict[str, list[_MockHandler]] = dataclasses.field(default_factory=dict)
     asyncexc_append: AsyncExcAppend | None = None
+
+    def get_mock_handler(self, method_name: str, /) -> _MockHandler | None:
+        handler_stack = self.mocked_methods.get(method_name, None)
+        if not handler_stack:
+            return None
+        return handler_stack[-1]
+
+    def set_mock_handler(self, method_name: str, /, *, handler: Handler, token: _MockHandlerRemovalToken) -> None:
+        handler_stack = self.mocked_methods.setdefault(method_name, [])
+        for index, mock_handler in enumerate(handler_stack):
+            if mock_handler.token is token:
+                del handler_stack[index]
+                break
+        handler_stack.append(_MockHandler(handler=handler, token=token))
+
+    def pop_handlers_for_token(self, token: _MockHandlerRemovalToken, /) -> None:
+        for handler_stack in self.mocked_methods.values():
+            if handler_stack:
+                handler_stack[:] = [handler for handler in handler_stack if handler.token is not token]
 
 
 class _ServiceMock:
@@ -68,7 +97,10 @@ class _ServiceMock:
     def reset_handlers(self) -> None:
         self._state.mocked_methods.clear()
 
-    def install_handler(self, method_name: str, /) -> MockDecorator:
+    def pop_handlers_for_token(self, token: _MockHandlerRemovalToken, /) -> None:
+        self._state.pop_handlers_for_token(token)
+
+    def install_handler(self, method_name: str, /, token: _MockHandlerRemovalToken) -> MockDecorator:
         def decorator(func):
             if method_name not in self._known_methods:
                 raise RuntimeError(
@@ -77,7 +109,7 @@ class _ServiceMock:
                 )
 
             wrapped = testsuite.utils.callinfo.acallqueue(func)
-            self._state.mocked_methods[method_name] = wrapped
+            self._state.set_mock_handler(method_name, handler=wrapped, token=token)
             return wrapped
 
         return decorator
@@ -160,12 +192,12 @@ def _wrap_grpc_method(
 
         @functools.wraps(default_unimplemented_method)
         async def run_stream_response_method(self, request_or_stream, context: grpc.aio.ServicerContext):
-            method = state.mocked_methods.get(python_method_name)
+            method = state.get_mock_handler(python_method_name)
             if method is None:
                 await _raise_unimplemented_error(context, method_descriptor, state)
 
             async with _handle_exceptions(context, state):
-                response_iterator = method(request_or_stream, _patched_servicer_context(context))
+                response_iterator = method.handler(request_or_stream, _patched_servicer_context(context))
                 if inspect.isawaitable(response_iterator):
                     response_iterator = await response_iterator
                 _check_response_is_asyncgen(response_iterator, method_descriptor)
@@ -177,12 +209,12 @@ def _wrap_grpc_method(
 
         @functools.wraps(default_unimplemented_method)
         async def run_unary_response_method(self, request_or_stream, context: grpc.aio.ServicerContext):
-            method = state.mocked_methods.get(python_method_name)
+            method = state.get_mock_handler(python_method_name)
             if method is None:
                 await _raise_unimplemented_error(context, method_descriptor, state)
 
             async with _handle_exceptions(context, state):
-                response = method(request_or_stream, _patched_servicer_context(context))
+                response = method.handler(request_or_stream, _patched_servicer_context(context))
                 if inspect.isawaitable(response):
                     response = await response
                 return _check_is_valid_response(response, method_descriptor)

@@ -1,9 +1,24 @@
+
 #include <userver/chaotic/type_bundle_cpp.hpp>
 
 #include "string.hpp"
 #include "string_parsers.ipp"
+#include "string_sax_parsers.hpp"
 
 namespace ns {
+
+String FromJsonString(std::string_view json, USERVER_NAMESPACE::formats::parse::To<String>) {
+  return USERVER_NAMESPACE::formats::json::parser::ParseToType<
+      String,
+      USERVER_NAMESPACE::chaotic::sax::impl::RemoveUserTypeParser<USERVER_NAMESPACE::chaotic::sax::Parser<String> > >(
+      json);
+}
+
+std::string ToJsonString(const String& value) {
+  USERVER_NAMESPACE::formats::json::StringBuilder builder;
+  WriteToStream(value, builder);
+  return builder.GetString();
+}
 
 bool operator==(const String& lhs, const String& rhs) { return lhs.foo == rhs.foo && true; }
 
@@ -33,6 +48,17 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
   }
 
   return vb.ExtractValue();
+}
+
+void WriteToStream([[maybe_unused]] const ::ns::String& value, USERVER_NAMESPACE::formats::json::StringBuilder& sw,
+                   [[maybe_unused]] bool hide_brackets, [[maybe_unused]] std::string_view hide_field_name) {
+  std::optional<USERVER_NAMESPACE::formats::json::StringBuilder::ObjectGuard> guard;
+  if (!hide_brackets) guard.emplace(sw);
+
+  if (value.foo && hide_field_name != "foo") {
+    sw.Key("foo");
+    WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<std::string>{*value.foo}, sw);
+  }
 }
 
 }  // namespace ns

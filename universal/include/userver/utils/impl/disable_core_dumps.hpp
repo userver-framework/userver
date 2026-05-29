@@ -6,6 +6,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::impl {
 
+/// @brief RAII helper to disable core dumps for the current process.
 class DisableCoreDumps final {
 public:
     DisableCoreDumps();

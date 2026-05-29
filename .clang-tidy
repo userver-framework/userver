@@ -21,7 +21,6 @@ Checks:
   ,-bugprone-implicit-widening-of-multiplication-result\
   ,-bugprone-lambda-function-name\
   ,-bugprone-narrowing-conversions\
-  ,-bugprone-use-after-move\
   ,-cert-dcl21-cpp\
   ,-cert-err09-cpp\
   ,-cert-err33-c\
@@ -84,6 +83,7 @@ Checks:
   ,-modernize-return-braced-init-list\
   ,-modernize-use-designated-initializers\
   ,-modernize-use-nodiscard\
+  ,-modernize-use-starts-ends-with\
   ,-modernize-use-trailing-return-type\
   ,-performance-move-const-arg\
   ,-performance-no-int-to-ptr\

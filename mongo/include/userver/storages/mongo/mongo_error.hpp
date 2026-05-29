@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/mongo/mongo_error.hpp
+/// @brief @copybrief storages::mongo::MongoError
+
 #include <string>
 
 #include <bson/bson.h>
@@ -8,7 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo {
 
-/// MongoDB error
+/// @brief MongoDB driver error (wrapper around bson_error_t)
 class MongoError {
 public:
     /// Error kinds

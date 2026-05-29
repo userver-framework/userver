@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/ydb/io/structs.hpp
+/// @brief YDB struct serialization traits and customization
+
 #include <ydb-cpp-sdk/client/result/result.h>
 #include <ydb-cpp-sdk/client/value/value.h>
 
@@ -10,12 +13,14 @@
 #include <tuple>
 #include <type_traits>
 
+#include <fmt/ranges.h>
 #include <boost/pfr/core.hpp>
 #include <boost/pfr/core_name.hpp>
 
 #include <userver/utils/assert.hpp>
 #include <userver/utils/constexpr_indices.hpp>
 #include <userver/utils/enumerate.hpp>
+#include <userver/utils/forward_like.hpp>
 #include <userver/utils/trivial_map.hpp>
 
 #include <userver/ydb/exceptions.hpp>
@@ -41,6 +46,14 @@ constexpr NotStruct DetectStructMemberNames(Args&&...) noexcept {
     return NotStruct{};
 }
 
+// To avoid including heavy <array> header for std::array<T, 0>.
+template <typename T>
+class EmptyRange final {
+public:
+    constexpr T* begin() const noexcept { return nullptr; }
+    constexpr T* end() const noexcept { return nullptr; }
+};
+
 }  // namespace impl
 
 /// @see ydb::CustomMemberNames
@@ -56,6 +69,13 @@ template <std::size_t N>
 struct StructMemberNames final {
     CustomMemberName custom_names[N];
 };
+
+/// @cond
+template <>
+struct StructMemberNames<0> final {
+    impl::EmptyRange<CustomMemberName> custom_names;
+};
+/// @endcond
 
 // clang-format off
 StructMemberNames() -> StructMemberNames<0>;
@@ -119,13 +139,17 @@ constexpr auto MakeTupleOfOptionals(std::index_sequence<Indices...>) {
 
 template <typename T, typename Tuple, std::size_t... Indices>
 constexpr auto MakeFromTupleOfOptionals(Tuple&& tuple, std::index_sequence<Indices...>) {
-    return T{*std::get<Indices>(std::forward<Tuple>(tuple))...};
+    return T{*utils::ForwardLike<Tuple>(std::get<Indices>(tuple))...};
 }
+
+template <typename T>
+concept IsStruct = !std::is_same_v<decltype(kStructMemberNames<T>), const impl::NotStruct>;
 
 }  // namespace impl
 
 template <typename T>
-struct ValueTraits<T, std::enable_if_t<!std::is_same_v<decltype(kStructMemberNames<T>), const impl::NotStruct>>> {
+requires impl::IsStruct<T>
+struct ValueTraits<T> {
     static_assert(std::is_aggregate_v<T>);
     static constexpr auto kFieldNames = impl::WithDeducedNames<T>(kStructMemberNames<T>);
     static constexpr auto kFieldNamesSet = utils::MakeTrivialSet<kFieldNames>();
@@ -200,10 +224,8 @@ struct ValueTraits<T, std::enable_if_t<!std::is_same_v<decltype(kStructMemberNam
 };
 
 template <typename T>
-struct ValueTraits<
-    std::optional<T>,
-    std::enable_if_t<!std::is_same_v<decltype(kStructMemberNames<T>), const impl::NotStruct>>>
-    : impl::GenericOptionalValueTraits<T> {};
+requires impl::IsStruct<T>
+struct ValueTraits<std::optional<T>> : impl::GenericOptionalValueTraits<T> {};
 
 namespace impl {
 
@@ -246,7 +268,7 @@ struct StructRowParser final {
         return T{
             Parse<boost::pfr::tuple_element_t<Indices, T>>(
                 parser.ColumnParser(cpp_to_ydb_mapping[Indices]),
-                ParseContext{/*column_name=*/kFieldNames[Indices]}
+                ParseContext{.column_name = kFieldNames[Indices]}
             )...,
         };
     }

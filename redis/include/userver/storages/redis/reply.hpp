@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/storages/redis/reply.hpp
+/// @brief Redis reply payload (ReplyData) and per-command reply wrapper (Reply)
+
 #include <string>
 #include <variant>
 #include <vector>
@@ -17,6 +20,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
+/// @brief Typed view of a hiredis `redisReply` value
 class ReplyData final {
 public:
     using Array = std::vector<ReplyData>;
@@ -181,6 +185,7 @@ private:
     std::variant<NoReply, String, Array, Integer, Nil, Status, Error> data_{};
 };
 
+/// @brief Redis command reply with metadata (server, status, timing)
 class Reply final {
 public:
     Reply(std::string command, ReplyData&& reply_data, ReplyStatus reply_status = ReplyStatus::kOk);

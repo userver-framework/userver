@@ -7,6 +7,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace yaml_config::impl {
 
+/// @brief Validates static YAML configuration against a schema.
 void Validate(const yaml_config::YamlConfig& static_config, const Schema& schema);
 
 }  // namespace yaml_config::impl

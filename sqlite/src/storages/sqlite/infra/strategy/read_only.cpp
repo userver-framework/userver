@@ -31,7 +31,7 @@ PoolPtr ReadOnlyStrategy::InitializeReadOnlyPoolReference(
                                                                          // only mode
     PoolPtr read_connection_pool;
     engine::TaskWithResult<void>
-        init_task = engine::AsyncNoSpan([&read_connection_pool, &blocking_task_processor, &settings]() {
+        init_task = engine::AsyncNoTracing([&read_connection_pool, &blocking_task_processor, &settings]() {
             read_connection_pool = Pool::Create(settings, blocking_task_processor);
         });
     init_task.Wait();

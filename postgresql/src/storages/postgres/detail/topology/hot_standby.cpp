@@ -194,7 +194,7 @@ void HotStandby::RunDiscovery() {
     std::vector<engine::TaskWithResult<void>> tasks;
     tasks.reserve(GetDsnList().size());
     for (DsnIndex i = 0; i < GetDsnList().size(); ++i) {
-        tasks.emplace_back(engine::AsyncNoSpan([this, i] { RunCheck(i); }));
+        tasks.emplace_back(engine::AsyncNoTracing([this, i] { RunCheck(i); }));
     }
     for (auto& task : tasks) {
         task.Get();
@@ -296,7 +296,7 @@ void HotStandby::RunDiscovery() {
 
     // sort indices by hostname to keep round robbin policy consistent
     UASSERT(alive_dsn_indices.indices.size() <= host_states_.size());
-    std::sort(alive_dsn_indices.indices.begin(), alive_dsn_indices.indices.end(), [this](DsnIndex lhs, DsnIndex rhs) {
+    std::ranges::sort(alive_dsn_indices.indices, [this](DsnIndex lhs, DsnIndex rhs) {
         return host_states_[lhs].host_name < host_states_[rhs].host_name;
     });
 
@@ -402,7 +402,7 @@ std::vector<std::string> ParseSyncStandbyNames(std::string_view value) {
 
 void HotStandby::FillNearestDsnIndex(DsnIndices& dsn_indices) {
     const auto& indices = dsn_indices.indices;
-    auto it = std::min_element(indices.begin(), indices.end(), [this](DsnIndex lhs, DsnIndex rhs) {
+    auto it = std::ranges::min_element(indices, [this](DsnIndex lhs, DsnIndex rhs) {
         return host_states_[lhs].roundtrip_time < host_states_[rhs].roundtrip_time;
     });
     if (it != indices.end()) {

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/handlers/json_error_builder.hpp
+/// @brief @copybrief server::handlers::JsonErrorBuilder
+
 #include <userver/formats/json/value.hpp>
 #include <userver/http/content_type.hpp>
 

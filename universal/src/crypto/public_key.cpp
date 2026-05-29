@@ -1,6 +1,7 @@
 #include <userver/crypto/public_key.hpp>
 
 #include <userver/crypto/certificate.hpp>
+#include <userver/crypto/private_key.hpp>
 
 #include <openssl/bn.h>
 #include <openssl/pem.h>
@@ -68,7 +69,7 @@ constexpr utils::TrivialBiMap kCurveToNid = [](auto selector) {
 int CurveStringToNid(const std::string_view& curve_str) {
     auto opt_value = kCurveToNid.TryFindICaseByFirst(curve_str);
     if (!opt_value) {
-        throw KeyParseError{FormatSslError(fmt::format("Unsupported curve type {}", curve_str))};
+        throw KeyParseError{fmt::format("Unsupported curve type {}", curve_str)};
     }
     return *opt_value;
 }
@@ -114,6 +115,27 @@ PublicKey PublicKey::LoadFromCertificate(const Certificate& cert) {
     return PublicKey{std::move(pubkey)};
 }
 
+PublicKey PublicKey::LoadFromPrivateKey(const PrivateKey& private_key) {
+    Openssl::Init();
+
+    if (!private_key) {
+        throw KeyParseError("Failed to load public key from private key: private key is empty");
+    }
+
+    auto pubkey_bio = MakeBioMemoryBuffer();
+    if (1 != ::PEM_write_bio_PUBKEY(pubkey_bio.get(), private_key.GetNative())) {
+        throw KeyParseError(FormatSslError("Failed to write public key from private key"));
+    }
+
+    std::shared_ptr<EVP_PKEY>
+        pubkey(::PEM_read_bio_PUBKEY(pubkey_bio.get(), nullptr, &NoPasswordCb, nullptr), ::EVP_PKEY_free);
+    if (!pubkey) {
+        throw KeyParseError(FormatSslError("Failed to load public key from private key"));
+    }
+
+    return PublicKey{std::move(pubkey)};
+}
+
 PublicKey PublicKey::LoadRSAFromComponents(ModulusView modulus, ExponentView exponent) {
     auto n = LoadBignumFromBigEnd(modulus.GetUnderlying());
     auto e = LoadBignumFromBigEnd(exponent.GetUnderlying());
@@ -144,7 +166,7 @@ PublicKey PublicKey::LoadECFromComponents(CurveTypeView curve_view, CoordinateVi
     }
 
     if (!EVP_PKEY_set1_EC_KEY(pubkey.get(), ec.get())) {
-        throw KeyParseError{FormatSslError("Cannot set RSA key to EVP_PKEY")};
+        throw KeyParseError{FormatSslError("Cannot set EC key to EVP_PKEY")};
     }
 
     return PublicKey{std::move(pubkey)};

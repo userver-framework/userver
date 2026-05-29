@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/dump/unsafe.hpp
+/// @brief Low-level unsafe dump read/write helpers
+
 #include <string_view>
 
 #include <userver/dump/operations.hpp>

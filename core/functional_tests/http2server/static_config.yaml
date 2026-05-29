@@ -74,7 +74,7 @@ components_manager:
 
         handler-http2:
             path: /http2server
-            method: GET,POST,PUT,DELETE
+            method: GET,POST,PUT,DELETE,HEAD
             task_processor: main-task-processor
             throttling_enabled: false
             max_request_size: 2097152  #  2Mib

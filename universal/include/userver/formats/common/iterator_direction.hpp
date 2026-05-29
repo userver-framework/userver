@@ -1,5 +1,9 @@
 #pragma once
 
+/// @file userver/formats/common/iterator_direction.hpp
+/// @brief @copybrief formats::common::IteratorDirection
+/// @ingroup userver_universal
+
 USERVER_NAMESPACE_BEGIN
 
 namespace formats::common {

@@ -1,6 +1,6 @@
-## SQLite driver design and implementation details 
+## SQLite driver design and implementation details
 
-This document offers a guided tour through **`userver-sqlite`**.  
+This document offers a guided tour through **`userver-sqlite`**.
 It describes the main design decisions, shows how the pieces fit together, and highlights the trade-offs we made to keep SQLite usable inside a coroutine-based, non-blocking service.
 
 ### Motivation and scope
@@ -76,11 +76,11 @@ All retrieval methods internally utilize a unified template-based extraction mec
 
 #### Async Model
 
-Given SQLite's synchronous nature, blocking operations (`sqlite3_open`, `sqlite3_close`, `sqlite3_step`) are executed in a dedicated task processor (blocking_task_processor) using built-in `engine::AsyncNoSpan`. This approach isolates potentially blocking calls from userver's main task processor, ensuring application responsiveness and performance.
+Given SQLite's synchronous nature, blocking operations (`sqlite3_open`, `sqlite3_close`, `sqlite3_step`) are executed in a dedicated task processor (blocking_task_processor) using built-in `engine::AsyncNoTracing`. This approach isolates potentially blocking calls from userver's main task processor, ensuring application responsiveness and performance.
 
 ```cpp
 struct sqlite3* NativeHandler::OpenDatabase(const settings::SQLiteSettings& settings) {
-    return engine::AsyncNoSpan(blocking_task_processor_, [&settings] {
+    return engine::AsyncNoTracing(blocking_task_processor_, [&settings] {
         sqlite3* handler = nullptr;
         int ret_code = sqlite3_open_v2(settings.db_path.c_str(), &handler, settings.flags, nullptr);
         if (ret_code != SQLITE_OK) {

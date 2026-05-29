@@ -56,7 +56,7 @@ public:
     }
 
 private:
-    static void SetMetadata(grpc::ServerContext& context) {
+    static void SetMetadata(grpc::ServerContextBase& context) {
         const auto& span = tracing::Span::CurrentSpan();
         const auto& client_meta = context.client_metadata();
 

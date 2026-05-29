@@ -100,7 +100,9 @@ private:
     // in some edge cases.
     static constexpr std::size_t kMaxSize = 16;
 
-    using Storage = std::aligned_storage_t<sizeof(T), alignof(T)>;
+    struct Storage {
+        alignas(T) std::byte data[sizeof(T)];
+    };
     using StoragePool = StaticVector<std::unique_ptr<Storage>, kMaxSize>;
 
     static inline compiler::ThreadLocal local_storage_pool = [] { return StoragePool{}; };

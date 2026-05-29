@@ -1,10 +1,10 @@
 #include "topology_sort.hpp"
 
 #include <algorithm>
+#include <ranges>
 #include <unordered_set>
 
 #include <fmt/ranges.h>
-#include <boost/range/adaptor/map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -25,21 +25,17 @@ std::vector<std::string> BuildTopologySortOfMiddlewares(
         }
         if (without_connections.empty()) {
             throw std::runtime_error{
-                fmt::format("There is a cycle in the graph. Nodes with a cycle: {}.", graph | boost::adaptors::map_keys)
+                fmt::format("There is a cycle in the graph. Nodes with a cycle: {}.", graph | std::views::keys)
             };
         }
         for (const auto& node_name : without_connections) {
             graph.erase(node_name);
         }
         for (auto& [node, list] : graph) {
-            list.erase(
-                std::remove_if(
-                    list.begin(),
-                    list.end(),
-                    [&without_connections](const auto& name) { return without_connections.count(name) != 0; }
-                ),
-                list.end()
-            );
+            auto garbage = std::ranges::remove_if(list, [&without_connections](const auto& name) {
+                return without_connections.count(name) != 0;
+            });
+            list.erase(garbage.begin(), garbage.end());
         }
 
         const auto prev_size = topology_order.size();
