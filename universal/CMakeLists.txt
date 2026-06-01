@@ -73,6 +73,9 @@ userver_target_cxx_compile_options_if_supported(
     "-Wlogical-op"
     "-Wformat=2"
     "-Wno-error=deprecated-declarations"
+    # protobuf 6 generated code uses absl_nullable/absl_nonnull (-> _Nullable/_Nonnull),
+    # which are clang extensions and trip -Wpedantic -Werror in Debug builds.
+    "-Wno-nullability-extension"
     # This warning is unavoidable in generic code with templates
     "-Wno-useless-cast"
     # gcc complains: the ABI of passing union with ‘long double’ has changed in GCC 4.4
