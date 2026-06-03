@@ -69,15 +69,18 @@ private:
 namespace impl {
 
 template <typename T>
-concept IsFromCharsConvertible =
-    requires(T& v) { std::from_chars(std::declval<const char*>(), std::declval<const char*>(), v); } &&
+concept IsFromCharsCorrectlySupported =
 #if defined(_GLIBCXX_RELEASE) && _GLIBCXX_RELEASE < 13
     // libstdc++ before 13.1 parse long double incorrectly
-    !std::same_as<T, long double>
+    !std::same_as<T, long double>;
 #else
-    true
+    true;
 #endif
-    ;
+
+template <typename T>
+concept IsFromCharsConvertible =
+    requires(T& v) { std::from_chars(std::declval<const char*>(), std::declval<const char*>(), v); } &&
+    IsFromCharsCorrectlySupported<T>;
 
 [[noreturn]] void ThrowFromStringException(
     FromStringErrorCode code,

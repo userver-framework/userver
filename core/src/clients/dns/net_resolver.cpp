@@ -236,11 +236,14 @@ public:
     }
 
     void InitChannel() {
-        constexpr int kOptmask =
-            ARES_OPT_FLAGS | ARES_OPT_TIMEOUTMS | ARES_OPT_TRIES | ARES_OPT_DOMAINS |
+        constexpr int kSockStateCbOptmask =
 #if ARES_VERSION < 0x011400
-            ARES_OPT_SOCK_STATE_CB |
+            ARES_OPT_SOCK_STATE_CB;
+#else
+            0;
 #endif
+        constexpr int kOptmask =
+            ARES_OPT_FLAGS | ARES_OPT_TIMEOUTMS | ARES_OPT_TRIES | ARES_OPT_DOMAINS | kSockStateCbOptmask |
             ARES_OPT_LOOKUPS;
         struct ares_options options {};
         options.flags =

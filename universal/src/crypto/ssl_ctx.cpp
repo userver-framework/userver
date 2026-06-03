@@ -45,12 +45,15 @@ std::unique_ptr<SslCtx::Impl> SslCtx::Impl::MakeSslCtx() {
     }
 #endif
 
-    constexpr auto options =
-        SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION
+    constexpr auto kSslOpNoRenegotiation =
 #if OPENSSL_VERSION_NUMBER >= 0x010100000L
-        | SSL_OP_NO_RENEGOTIATION
+        SSL_OP_NO_RENEGOTIATION;
+#else
+        0;
 #endif
-        ;
+
+    constexpr auto options =
+        SSL_OP_ALL | SSL_OP_NO_SSLv2 | SSL_OP_NO_SSLv3 | SSL_OP_NO_COMPRESSION | kSslOpNoRenegotiation;
     SSL_CTX_set_options(ssl_ctx, options);
     SSL_CTX_set_mode(ssl_ctx, SSL_MODE_ENABLE_PARTIAL_WRITE);
     SSL_CTX_clear_mode(ssl_ctx, SSL_MODE_AUTO_RETRY);

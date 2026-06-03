@@ -120,6 +120,30 @@ static int getParameterStatus(PGconn* conn) {
   return 0;
 }
 
+static int PqxShouldReturnOnIdlePipeline(PGconn* conn) {
+#if PG_VERSION_NUM >= 140000 && PG_VERSION_NUM < 140005
+  return conn->pipelineStatus != PQ_PIPELINE_OFF &&
+         conn->cmd_queue_head != NULL;
+#else
+  (void)conn;
+  return 0;
+#endif
+}
+
+static void PqxMaybeHandleBindComplete(PGconn* conn) {
+  if (conn->cmd_queue_head &&
+      conn->cmd_queue_head->queryclass == PGXQUERY_BIND) {
+    pqCommandQueueAdvanceGlue(conn, false, false);
+    if (conn->pipelineStatus != PQ_PIPELINE_OFF) {
+#if PG_VERSION_NUM >= 140005
+      conn->asyncStatus = PGASYNC_PIPELINE_IDLE;
+#else
+      conn->asyncStatus = PGASYNC_IDLE;
+#endif
+    }
+  }
+}
+
 /*
  * This is copy-paste of pqParseInput3 from fe-protocol3.c, with added
  * handling of `portal suspended` server message
@@ -210,7 +234,6 @@ static void pqxParseInput3(PGconn* conn, const PGresult* description) {
       /* If not IDLE state, just wait ... */
       if (conn->asyncStatus != PGASYNC_IDLE) return;
 
-#if PG_VERSION_NUM >= 140000 && PG_VERSION_NUM < 140005
       /*
        * We're also notionally not-IDLE when in pipeline mode the state
        * says "idle" (so we have completed receiving the results of one
@@ -219,10 +242,8 @@ static void pqxParseInput3(PGconn* conn, const PGresult* description) {
        * that they can initiate processing of the next query in the
        * queue.
        */
-      if (conn->pipelineStatus != PQ_PIPELINE_OFF &&
-          conn->cmd_queue_head != NULL)
+      if (PqxShouldReturnOnIdlePipeline(conn))
         return;
-#endif
 
       /*
        * Unexpected message in IDLE state; need to recover somehow.
@@ -323,20 +344,7 @@ static void pqxParseInput3(PGconn* conn, const PGresult* description) {
           }
           break;
         case '2': /* Bind Complete */
-          if (conn->cmd_queue_head &&
-              conn->cmd_queue_head->queryclass == PGXQUERY_BIND) {
-            pqCommandQueueAdvanceGlue(conn, false, false);
-            /*
-              In case of portal bind, only in pipeline mode
-              the query ends here without a result
-            */
-            if (conn->pipelineStatus != PQ_PIPELINE_OFF)
-#if PG_VERSION_NUM >= 140005
-              conn->asyncStatus = PGASYNC_PIPELINE_IDLE;
-#else
-              conn->asyncStatus = PGASYNC_IDLE;
-#endif
-          }
+          PqxMaybeHandleBindComplete(conn);
           break;
         case '3': /* Close Complete */
 #if PG_VERSION_NUM >= 140005
@@ -1694,4 +1702,3 @@ sendFailed:
   /* error message should be set up already */
   return 0;
 }
-

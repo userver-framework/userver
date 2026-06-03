@@ -22,6 +22,7 @@
 #include <grpc-reflection/proto_server_reflection.hpp>
 
 #include <stdexcept>
+#include <string>
 #include <unordered_set>
 #include <vector>
 
@@ -35,6 +36,18 @@ namespace proto_reflection = grpc::reflection::v1alpha;
 USERVER_NAMESPACE_BEGIN
 
 namespace grpc_reflection {
+
+namespace {
+
+auto ToDescriptorLookupName(std::string_view name) {
+#if GOOGLE_PROTOBUF_VERSION >= 4022000
+    return name;
+#else
+    return std::string{name};
+#endif
+}
+
+}  // namespace
 
 ProtoServerReflection::ProtoServerReflection() : descriptor_pool_(grpc::protobuf::DescriptorPool::generated_pool()) {}
 
@@ -115,12 +128,9 @@ ProtoServerReflection::GetFileByName(std::string_view file_name, proto_reflectio
         return ::grpc::Status::CANCELLED;
     }
 
-    const grpc::protobuf::FileDescriptor* file_desc =
-#if GOOGLE_PROTOBUF_VERSION >= 4022000
-        descriptor_pool_->FindFileByName(file_name);
-#else
-        descriptor_pool_->FindFileByName(std::string{file_name});
-#endif
+    const grpc::protobuf::FileDescriptor* file_desc = descriptor_pool_->FindFileByName(
+        ToDescriptorLookupName(file_name)
+    );
     if (file_desc == nullptr) {
         return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, "File not found.");
     }
@@ -137,11 +147,9 @@ ProtoServerReflection::GetFileByName(std::string_view file_name, proto_reflectio
         return ::grpc::Status::CANCELLED;
     }
 
-#if GOOGLE_PROTOBUF_VERSION >= 4022000
-    const grpc::protobuf::FileDescriptor* file_desc = descriptor_pool_->FindFileContainingSymbol(symbol);
-#else
-    const grpc::protobuf::FileDescriptor* file_desc = descriptor_pool_->FindFileContainingSymbol(std::string{symbol});
-#endif
+    const grpc::protobuf::FileDescriptor* file_desc = descriptor_pool_->FindFileContainingSymbol(
+        ToDescriptorLookupName(symbol)
+    );
     if (file_desc == nullptr) {
         return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, "Symbol not found.");
     }
@@ -181,11 +189,7 @@ ProtoServerReflection::GetFileByName(std::string_view file_name, proto_reflectio
         return ::grpc::Status::CANCELLED;
     }
 
-#if GOOGLE_PROTOBUF_VERSION >= 4022000
-    const grpc::protobuf::Descriptor* desc = descriptor_pool_->FindMessageTypeByName(type);
-#else
-    const grpc::protobuf::Descriptor* desc = descriptor_pool_->FindMessageTypeByName(std::string{type});
-#endif
+    const grpc::protobuf::Descriptor* desc = descriptor_pool_->FindMessageTypeByName(ToDescriptorLookupName(type));
     if (desc == nullptr) {
         return ::grpc::Status(::grpc::StatusCode::NOT_FOUND, "Type not found.");
     }

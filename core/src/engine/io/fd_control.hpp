@@ -45,6 +45,14 @@ enum class ErrorMode {
     kFatal,      ///< break execute operation
 };
 
+constexpr bool IsRetryableIoError(int error_code) noexcept {
+#if EWOULDBLOCK != EAGAIN
+    return error_code == EWOULDBLOCK || error_code == EAGAIN;
+#else
+    return error_code == EWOULDBLOCK;
+#endif
+}
+
 class FdControl;
 
 class Direction final {
@@ -323,12 +331,7 @@ ErrorMode Direction::TryHandleError(
 ) {
     if (error_code == EINTR) {
         return ErrorMode::kProcessed;
-    } else if (error_code == EWOULDBLOCK
-#if EWOULDBLOCK != EAGAIN
-               || error_code == EAGAIN
-#endif
-    )
-    {
+    } else if (IsRetryableIoError(error_code)) {
         if (processed_bytes != 0 && mode != TransferMode::kWhole) {
             return ErrorMode::kFatal;
         }

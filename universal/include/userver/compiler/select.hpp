@@ -65,11 +65,10 @@ private:
         constexpr auto kBits = (sizeof(void*) == 8 ? Bits::k64 : Bits::k32);
         constexpr auto kLib =
 #if defined(_LIBCPP_VERSION)
-            StdLibs::kCpp
+            StdLibs::kCpp;
 #else
-            StdLibs::kStdCpp
+            StdLibs::kStdCpp;
 #endif
-            ;
 
         if (bits == kBits) {
             if (lib == kLib) {
