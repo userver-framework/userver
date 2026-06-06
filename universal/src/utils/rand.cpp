@@ -8,11 +8,6 @@ namespace utils {
 
 namespace {
 
-template <typename T>
-auto& AsLvalue(T&& rvalue) noexcept {
-    return rvalue;
-}
-
 compiler::ThreadLocal local_random_impl = [] { return impl::RandomImpl{}; };
 
 }  // namespace
@@ -34,8 +29,10 @@ std::seed_seq MakeSeedSeq() {
 }
 
 RandomImpl::RandomImpl()
-    : gen_(AsLvalue(impl::MakeSeedSeq()))
-{}
+    : gen_([] {
+          auto seed_seq = MakeSeedSeq();
+          return decltype(gen_){seed_seq};
+      }()) {}
 
 compiler::ThreadLocalScope<RandomImpl> UseLocalRandomImpl() { return local_random_impl.Use(); }
 
