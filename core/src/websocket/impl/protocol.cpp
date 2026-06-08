@@ -204,7 +204,9 @@ CloseStatus ReadWSFrameImpl(
         return CloseStatus::kProtocolError;
     }
 
-    if (payload_len + frame.payload->size() > max_payload_size) {
+    // payload_len comes straight from the 64-bit extended length, so check it
+    // separately to avoid size_t wraparound in the sum below.
+    if (payload_len > max_payload_size || frame.payload->size() > max_payload_size - payload_len) {
         return CloseStatus::kTooBigData;
     }
 
