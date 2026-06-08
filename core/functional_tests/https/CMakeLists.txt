@@ -4,3 +4,5 @@ add_executable(${PROJECT_NAME} "service.cpp")
 target_link_libraries(${PROJECT_NAME} userver::core)
 
 userver_chaos_testsuite_add(TESTS_DIRECTORY tests-deadline)
+userver_chaos_testsuite_add(TESTS_DIRECTORY tests-http-https-listener)
+userver_chaos_testsuite_add(TESTS_DIRECTORY tests-secdist-inline)

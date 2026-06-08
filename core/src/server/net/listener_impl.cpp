@@ -36,13 +36,13 @@ ListenerImpl::ListenerImpl(
       stats_(std::make_shared<Stats>()),
       data_accounter_(data_accounter)
 {
-    for (const auto& port : endpoint_info_->listener_config.ports) {
+    for (size_t i = 0; i < endpoint_info_->listener_config.ports.size(); ++i) {
         socket_listener_tasks_.push_back(engine::CriticalAsyncNoTracing(
             task_processor_,
-            [this](engine::io::Socket&& request_socket) {
+            [this, i](engine::io::Socket&& request_socket) {
                 while (!engine::current_task::ShouldCancel()) {
                     try {
-                        AcceptConnection(request_socket, endpoint_info_->listener_config.ports[0]);
+                        AcceptConnection(request_socket, endpoint_info_->listener_config.ports[i]);
                     } catch (const engine::io::IoCancelled&) {
                         break;
                     } catch (const std::exception& ex) {
@@ -54,7 +54,7 @@ ListenerImpl::ListenerImpl(
                     }
                 }
             },
-            CreateSocket(endpoint_info_->listener_config, port)
+            CreateSocket(endpoint_info_->listener_config, endpoint_info_->listener_config.ports[i])
         ));
     }
 }
