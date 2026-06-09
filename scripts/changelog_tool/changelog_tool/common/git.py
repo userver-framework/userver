@@ -149,3 +149,9 @@ def _fetch_commit(sha: str, cwd: Path) -> Commit:
         total_removed=sum(c.removed_lines for c in changes),
         score_size=sum(c.added_lines + c.removed_lines for c in changes),
     )
+
+def get_commit_diff(commit: Commit, repo_path: str | Path | None = None) -> str:
+    return get_diff_by_sha(commit.sha, repo_path)
+
+def get_diff_by_sha(sha: str, repo_path: str | Path | None = None) -> str:
+    return _run_git(["diff-tree", "--root", "-p", "-r", "-M", sha], _repo(repo_path))

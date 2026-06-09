@@ -7,10 +7,14 @@ import changelog_tool.collect.command as collect_cmd
 
 @click.group()
 @click.option('--config', default='changelog.yaml')
+@click.option('--output-dir', type=pathlib.Path, default=None)
 @click.pass_context
-def cli(ctx: click.Context, config: str):
+def cli(ctx: click.Context, config: str, output_dir: pathlib.Path | None):
     ctx.ensure_object(dict)
-    ctx.obj["CONFIG"] = cfg.parse_config(pathlib.Path(config))
+    parsed_config = cfg.parse_config(pathlib.Path(config))
+    if output_dir:
+        parsed_config.collect.output_dir = output_dir
+    ctx.obj["CONFIG"] = parsed_config
 
 @cli.command()
 @click.option('--from-sha')

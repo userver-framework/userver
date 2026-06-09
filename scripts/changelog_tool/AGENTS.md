@@ -27,3 +27,12 @@ source .vent/bin/activate
 # Run the tool
 ./changelog-tool [command] [options]
 ```
+
+## Output Directory
+
+By default, the tool outputs classified commits to `.changelog/preclassified.json`. You can customize this with the `--output-dir` global option:
+
+```bash
+# Run with custom output directory
+./changelog-tool --output-dir ./my-output-dir collect
+```

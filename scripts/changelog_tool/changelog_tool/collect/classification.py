@@ -1,8 +1,6 @@
 from enum import Enum
-from typing import TYPE_CHECKING
 
-if TYPE_CHECKING:
-    from changelog_tool.common.git import Commit
+from changelog_tool.common.git import Commit
 
 
 class Classification(str, Enum):
