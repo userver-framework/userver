@@ -1,8 +1,10 @@
 import pathlib
 import re
+from typing import List
 
 import changelog_tool.common.git as git
 from changelog_tool.collect.config import CollectConfig
+from changelog_tool.collect.classification import classify_commit, ClassifiedCommit
 
 def collect(config: CollectConfig) -> None:
     print(f"Collecting commits from {config.from_sha} to {config.to_sha}...")
@@ -10,8 +12,13 @@ def collect(config: CollectConfig) -> None:
     
     core_team_regexes = [re.compile(pattern) for pattern in config.core_team_patterns]
     
+    classified_commits: List[ClassifiedCommit] = []
     for commit in commits:
         is_core_team = any(regex.match(commit.author) for regex in core_team_regexes)
-        commit.is_external = not is_core_team
-    
-    print(f"Found {len(commits)} commits")
+        classified_commits.append(ClassifiedCommit(
+            **commit.model_dump(),
+            classification=classify_commit(commit),
+            is_external=not is_core_team,
+        ))
+        
+    print(f"Found {len(classified_commits)} commits")
