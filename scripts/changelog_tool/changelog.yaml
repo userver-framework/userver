@@ -5,3 +5,7 @@ collect:
   core_team_patterns:
     - ".*@userver\\.tech"
     - ".*@yandex-team\\.com"
+
+llm-config:
+  target_rps: 5.0
+  retries: 3
