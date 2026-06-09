@@ -15,7 +15,7 @@ namespace {
 constexpr std::string_view kBuildInfoName = "ydb-userver";
 
 bool IsNonEmptyAlnum(std::string_view s) {
-    return !s.empty() && std::ranges::all_of(s, [](char c) { return isdigit(c) || isalpha(c) && islower(c); });
+    return !s.empty() && std::ranges::all_of(s, [](char c) { return isdigit(c) || (isalpha(c) && islower(c)); });
 }
 
 }  // namespace
