@@ -18,11 +18,16 @@ def cli(ctx: click.Context, config: str):
 @click.option('--repo-path', type=pathlib.Path)
 @click.pass_context
 def collect(ctx: click.Context, from_sha: str | None, to_sha: str | None, repo_path: pathlib.Path | None):
-    from_sha = from_sha or ctx.obj["CONFIG"].collect.from_sha
-    to_sha = to_sha or ctx.obj["CONFIG"].collect.to_sha
-    repo_path = repo_path or ctx.obj["CONFIG"].collect.repo_path
-
-    collect_cmd.collect(from_sha, to_sha, repo_path)
+    # Get the config and override with CLI options if provided
+    config = ctx.obj["CONFIG"].collect
+    if from_sha:
+        config.from_sha = from_sha
+    if to_sha:
+        config.to_sha = to_sha
+    if repo_path:
+        config.repo_path = repo_path
+    
+    collect_cmd.collect(config)
 
 if __name__ == '__main__':
     cli()

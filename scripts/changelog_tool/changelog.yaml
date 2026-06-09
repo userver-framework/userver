@@ -2,3 +2,6 @@ collect:
   from_sha: c580979b522f43ea1ab9cd55033cd353d52844f6
   to_sha: HEAD
   repo_path: ../..
+  core_team_patterns:
+    - ".*@userver\\.tech"
+    - ".*@yandex-team\\.com"

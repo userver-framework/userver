@@ -26,6 +26,7 @@ class Commit(pydantic.BaseModel):
     changed_files: list[FileChange]
     total_added: int = 0
     total_removed: int = 0
+    is_external: bool = False                             # whether the author is external contributor
 
 
 def get_commits(
