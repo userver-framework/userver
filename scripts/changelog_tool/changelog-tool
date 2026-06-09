@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+import pathlib
+import click
+
+import changelog_tool.config as cfg
+import changelog_tool.collect.command as collect_cmd
+
+@click.group()
+@click.option('--config', default='changelog.yaml')
+@click.pass_context
+def cli(ctx: click.Context, config: str):
+    ctx.ensure_object(dict)
+    ctx.obj["CONFIG"] = cfg.parse_config(pathlib.Path(config))
+
+@cli.command()
+@click.option('--from-sha')
+@click.option('--to-sha')
+@click.option('--repo-path', type=pathlib.Path)
+@click.pass_context
+def collect(ctx: click.Context, from_sha: str | None, to_sha: str | None, repo_path: pathlib.Path | None):
+    from_sha = from_sha or ctx.obj["CONFIG"].collect.from_sha
+    to_sha = to_sha or ctx.obj["CONFIG"].collect.to_sha
+    repo_path = repo_path or ctx.obj["CONFIG"].collect.repo_path
+
+    collect_cmd.collect(from_sha, to_sha, repo_path)
+
+if __name__ == '__main__':
+    cli()
