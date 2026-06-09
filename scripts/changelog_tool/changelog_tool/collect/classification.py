@@ -20,6 +20,8 @@ class ClassifiedCommit(Commit):
     classification: Classification = Classification.UNCLEAR
     is_external: bool = False
     to_changelog: bool | None = None
+    changelog_line: str | None = None
+    commit_analysis: str | None = None
 
 def classify_commit(commit: Commit) -> Classification:
     has_docs_in_files = any(

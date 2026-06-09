@@ -20,11 +20,13 @@ def collect(config: CollectConfig) -> None:
             **commit.model_dump(),
             classification=classification,
             is_external=not is_core_team,
-            to_changelog=None
+            to_changelog=None,
+            changelog_line=None,
+            commit_analysis=None
         )
         
         if classification in [Classification.FEATURE, Classification.BUG, Classification.BREAKING_CHANGE]:
-            classified_commit.to_changelog = True
+            raise RuntimeError("Unexpected positive changelog preclassification")
         elif classification == Classification.UNCLEAR:
             classified_commit.to_changelog = None
         else:
