@@ -26,6 +26,7 @@ class Commit(pydantic.BaseModel):
     changed_files: list[FileChange]
     total_added: int = 0
     total_removed: int = 0
+    score_size: int = 0
 
 
 def get_commits(
@@ -146,4 +147,5 @@ def _fetch_commit(sha: str, cwd: Path) -> Commit:
         changed_files=changes,
         total_added=sum(c.added_lines for c in changes),
         total_removed=sum(c.removed_lines for c in changes),
+        score_size=sum(c.added_lines + c.removed_lines for c in changes),
     )
