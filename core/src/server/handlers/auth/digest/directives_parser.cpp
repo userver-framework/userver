@@ -79,7 +79,10 @@ ContextFromClient Parser::ParseAuthInfo(std::string_view auth_header_value) {
         fmt::format("Result is: '{}'", auth_header_value.substr(0, kDigestWord.size()))
     );
     auto directives_str = auth_header_value.substr(kDigestWord.size() + 1);
-    for (const char delimiter : directives_str) {
+    // delimiter must be unsigned: std::isalnum/std::isspace have undefined
+    // behavior when passed a negative value, and directives_str is attacker
+    // controlled, so a byte >= 0x80 would otherwise reach them as a negative int.
+    for (const unsigned char delimiter : directives_str) {
         switch (state) {
             case State::kStateSpace:
                 if (std::isalnum(delimiter) || delimiter == '_' || delimiter == '-') {

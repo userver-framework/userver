@@ -11,10 +11,10 @@ namespace server::http {
 namespace {
 
 inline void Strip(const char*& begin, const char*& end) {
-    while (begin < end && isspace(*begin)) {
+    while (begin < end && isspace(static_cast<unsigned char>(*begin))) {
         ++begin;
     }
-    while (begin < end && isspace(end[-1])) {
+    while (begin < end && isspace(static_cast<unsigned char>(end[-1]))) {
         --end;
     }
 }

@@ -147,6 +147,15 @@ response="6629fae49393a05397450978507c4ef1"
     EXPECT_THROW(parser.ParseAuthInfo(directives_str), ParseException);
 }
 
+TEST(DirectivesParser, HighBitByteInToken) {
+    // A byte >= 0x80 is negative when char is signed. It reaches std::isalnum
+    // as a negative int (undefined behavior) unless treated as unsigned char.
+    // Such a byte is not a valid token character, so parsing must be rejected.
+    std::string directives_str = "Digest \xC3username=\"Mufasa\"";
+    Parser parser;
+    EXPECT_THROW(parser.ParseAuthInfo(directives_str), ParseException);
+}
+
 TEST(DirectivesParser, UnknownDirective) {
     const std::string_view directives_str = R"(Digest
 username="Mufasa",
