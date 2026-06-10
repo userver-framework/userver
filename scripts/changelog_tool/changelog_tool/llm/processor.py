@@ -1,0 +1,196 @@
+import asyncio
+import json
+from typing import List, Dict, Any
+from pathlib import Path
+
+from changelog_tool.common.git import Commit, get_commit_diff
+from changelog_tool.llm.client import BaseLLMClient
+from changelog_tool.llm.config import LLMConfig
+from changelog_tool.llm.state import LLMState
+from changelog_tool.llm.exceptions import LLMError, LLMTransientError
+
+class LLMProcessor:
+    def __init__(self, config: LLMConfig, llm_client: BaseLLMClient, output_dir: Path):
+        self.config = config
+        self.llm_client = llm_client
+        self.output_dir = output_dir
+        self.state = LLMState(output_dir / "llm_state.json")
+        
+    async def process_commits(self, commits: List[Commit]) -> Dict[str, Dict[str, Any]]:
+        """
+        Асинхронно обрабатывает список коммитов через LLM.
+        Возвращает словарь SHA -> dict с результатами (classification, changelog_line, detailed_commit_analysis).
+        """
+        # Загружаем и очищаем стейт
+        await self.state.load()
+        valid_shas = {commit.sha for commit in commits}
+        await self.state.cleanup(valid_shas)
+        
+        # Фильтруем коммиты для обработки
+        commits_to_process = []
+        results = {}
+        
+        for commit in commits:
+            # Проверяем стейт
+            result = await self.state.get_result(commit.sha)
+            if result:
+                results[commit.sha] = result
+            else:
+                commits_to_process.append(commit)
+                
+        print(f"Found {len(commits)} commits, {len(results)} already processed, {len(commits_to_process)} to process via LLM")
+        
+        if not commits_to_process:
+            return results
+            
+        # Разбиваем на батчи
+        batches = [
+            commits_to_process[i:i + self.config.max_commits_per_batch]
+            for i in range(0, len(commits_to_process), self.config.max_commits_per_batch)
+        ]
+        
+        # Обрабатываем батчи параллельно
+        batch_results = await asyncio.gather(
+            *[self._process_batch(batch) for batch in batches],
+            return_exceptions=True
+        )
+        
+        # Собираем результаты
+        for batch_result in batch_results:
+            if isinstance(batch_result, Exception):
+                print(f"Warning: Batch processing failed with exception: {batch_result}")
+                # Ошибки в батчах уже записаны в стейт, просто продолжаем
+                continue
+            results.update(batch_result)
+            
+        return results
+        
+    async def _process_batch(self, batch: List[Commit]) -> Dict[str, Dict[str, Any]]:
+        """Обрабатывает один батч коммитов."""
+        try:
+            prompt = self._build_prompt(batch)
+            
+            # Проверяем длину промпта
+            if len(prompt) > self.config.max_user_prompt_length:
+                if self.config.truncate_diff:
+                    prompt = self._truncate_prompt(prompt)
+                else:
+                    # Помечаем все коммиты батча как ошибочные
+                    error_msg = f"Prompt too long ({len(prompt)} > {self.config.max_user_prompt_length})"
+                    for commit in batch:
+                        await self.state.set_error(commit.sha, error_msg)
+                    return {
+                        commit.sha: {
+                            "classification": "unclear",
+                            "changelog_line": "",
+                            "detailed_commit_analysis": ""
+                        } for commit in batch
+                    }
+                    
+            # Отправляем в LLM
+            response_text = await self.llm_client.generate(prompt)
+            
+            # Парсим ответ
+            try:
+                response_data = json.loads(response_text)
+            except json.JSONDecodeError as e:
+                raise LLMError(f"LLM returned invalid JSON: {e}")
+                
+            # Проверяем формат ответа
+            if not isinstance(response_data, dict):
+                raise LLMError("LLM returned invalid response format (not a dict)")
+                
+            # Сохраняем результаты и возвращаем
+            results = {}
+            for commit in batch:
+                commit_data = response_data.get(commit.sha, {})
+                if isinstance(commit_data, str):
+                    # Fallback if LLM returned just a string
+                    classification = commit_data
+                    changelog_line = ""
+                    detailed_commit_analysis = ""
+                else:
+                    classification = commit_data.get("classification", "unclear")
+                    changelog_line = commit_data.get("changelog_line", "")
+                    detailed_commit_analysis = commit_data.get("detailed_commit_analysis", "")
+                    
+                await self.state.set_result(commit.sha, classification, changelog_line, detailed_commit_analysis)
+                results[commit.sha] = {
+                    "classification": classification,
+                    "changelog_line": changelog_line,
+                    "detailed_commit_analysis": detailed_commit_analysis
+                }
+                
+            return results
+            
+        except LLMError:
+            # Критическая ошибка - пробрасываем дальше
+            raise
+        except Exception as e:
+            # Временная ошибка или другая проблема - помечаем коммиты как ошибочные
+            error_msg = str(e)
+            for commit in batch:
+                await self.state.set_error(commit.sha, error_msg)
+            return {
+                commit.sha: {
+                    "classification": "unclear",
+                    "changelog_line": "",
+                    "detailed_commit_analysis": ""
+                } for commit in batch
+            }
+            
+    def _build_prompt(self, commits: List[Commit]) -> str:
+        """Формирует промпт для батча коммитов."""
+        system_prompt = """You are an expert software engineer analyzing git commits for a changelog.
+Your task is to analyze commits since the last release and highlight important and interesting changes.
+Ignore simple bugfixes, typos, and minor refactoring.
+
+For each commit, you MUST provide a JSON object with the following fields:
+1. "classification": One of ["feature", "breaking-change", "refactor", "minor", "unclear"].
+   - Use "breaking-change" if the commit introduces backward-incompatible changes.
+   - Use "feature" for new functionality.
+   - Use "refactor" for significant architectural changes.
+   - Use "minor" for small improvements.
+   - Use "unclear" if you cannot determine the classification.
+2. "changelog_line": A concise, user-friendly description of the change suitable for a changelog.
+   - IMPORTANT: If the classification is "breaking-change", you MUST include migration or fix instructions in this line if they are present in the commit message.
+3. "detailed_commit_analysis": A detailed analysis of what was added, why it was added, and what impact or benefit it brings to the project.
+
+You MUST return a valid JSON object where keys are commit SHAs and values are the analysis objects.
+Example output format:
+{
+  "commit_sha_1": {
+    "classification": "feature",
+    "changelog_line": "Added support for async LLM processing",
+    "detailed_commit_analysis": "Added a new LLMProcessor class to handle batching and async requests. This improves performance by allowing parallel processing of commits."
+  },
+  "commit_sha_2": {
+    "classification": "breaking-change",
+    "changelog_line": "Changed config format. Migration: rename 'llm_config' to 'llm-config' in your yaml file.",
+    "detailed_commit_analysis": "Updated the configuration schema to use hyphens instead of underscores for consistency. This breaks existing configs but aligns with the project's naming conventions."
+  }
+}
+"""
+        
+        user_parts = []
+        for commit in commits:
+            part = f"Commit SHA: {commit.sha}\n"
+            part += f"Title: {commit.title}\n"
+            part += f"Message: {commit.message}\n"
+            part += f"Changed Files: {', '.join(f.path for f in commit.changed_files)}\n"
+            
+            if self.config.include_diff:
+                diff = get_commit_diff(commit)
+                part += f"Diff:\n{diff}\n"
+                
+            user_parts.append(part)
+            
+        user_prompt = "Please analyze the following commits:\n\n" + "\n---\n".join(user_parts)
+        return f"{system_prompt}\n\n{user_prompt}"
+        
+    def _truncate_prompt(self, prompt: str) -> str:
+        """Обрезает промпт до допустимой длины."""
+        # Простая обрезка - в реальности может потребоваться более умная логика
+        if len(prompt) <= self.config.max_user_prompt_length:
+            return prompt
+        return prompt[:self.config.max_user_prompt_length]

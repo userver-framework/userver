@@ -9,3 +9,7 @@ collect:
 llm-config:
   target_rps: 5.0
   retries: 3
+  max_commits_per_batch: 10
+  max_user_prompt_length: 8000
+  include_diff: true
+  truncate_diff: true
