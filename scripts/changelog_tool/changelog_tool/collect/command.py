@@ -95,7 +95,7 @@ def collect(config: Config) -> None:
             try:
                 commit.classification = Classification(result.get("classification", "unclear"))
             except ValueError:
-                # Если LLM вернула неизвестную классификацию, оставляем UNCLEAR
+                # If LLM returned an unknown classification, keep UNCLEAR
                 pass
             
             commit.to_changelog = result.get("to_changelog")

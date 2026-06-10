@@ -7,22 +7,22 @@ from pathlib import Path
 
 
 class GitError(Exception):
-    """Любая ошибка при работе с git."""
+    """Any error when working with git."""
 
 
 class FileChange(pydantic.BaseModel):
     path: str
-    old_path: str | None = None   # None если файл не переименован
+    old_path: str | None = None   # None if file is not renamed
     added_lines: int = 0
     removed_lines: int = 0
 
 
 class Commit(pydantic.BaseModel):
     sha: str
-    title: str                                            # первая строка message
-    message: str                                          # полный message
+    title: str                                            # first line of message
+    message: str                                          # full message
     author: str                                           # "Name <email>"
-    co_authors: list[str]                                 # из "Co-authored-by:"
+    co_authors: list[str]                                 # from "Co-authored-by:"
     changed_files: list[FileChange]
     total_added: int = 0
     total_removed: int = 0

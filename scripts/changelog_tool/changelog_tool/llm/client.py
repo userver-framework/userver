@@ -14,14 +14,14 @@ class BaseLLMClient(ABC):
     @abstractmethod
     async def generate(self, prompt: str) -> str:
         """
-        Асинхронно отправляет текстовый промпт в LLM и возвращает текстовый ответ.
-        Может выбрасывать LLMError или LLMTransientError.
+        Asynchronously sends a text prompt to the LLM and returns a text response.
+        May throw LLMError or LLMTransientError.
         """
         pass
 
     @abstractmethod
     async def close(self):
-        """Закрывает ресурсы клиента."""
+        """Closes client resources."""
         pass
 
 

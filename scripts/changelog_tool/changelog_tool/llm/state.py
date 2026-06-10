@@ -10,13 +10,13 @@ class LLMState:
         self.lock = asyncio.Lock()
         
     async def load(self) -> None:
-        """Асинхронно загружает состояние из файла."""
+        """Asynchronously loads state from file."""
         async with self.lock:
             if self.state_file_path.exists():
                 try:
                     with open(self.state_file_path, 'r', encoding='utf-8') as f:
                         loaded_state = json.load(f)
-                        # Убедимся, что состояние имеет правильный формат
+                        # Ensure the state has the correct format
                         if isinstance(loaded_state, dict):
                             self.state = loaded_state
                         else:
@@ -28,11 +28,11 @@ class LLMState:
                 self.state = {}
                 
     async def save(self) -> None:
-        """Асинхронно сохраняет состояние в файл."""
-        # Создаем директорию если её нет
+        """Asynchronously saves state to file."""
+        # Create directory if it doesn't exist
         self.state_file_path.parent.mkdir(parents=True, exist_ok=True)
         
-        # Атомарная запись через временный файл
+        # Atomic write through temporary file
         temp_file = self.state_file_path.with_suffix('.tmp')
         try:
             with open(temp_file, 'w', encoding='utf-8') as f:
@@ -44,7 +44,7 @@ class LLMState:
                 temp_file.unlink()
                     
     async def cleanup(self, valid_shas: Set[str]) -> None:
-        """Удаляет из стейта коммиты, не попавшие в текущую выборку."""
+        """Removes from state commits that are not in the current selection."""
         async with self.lock:
             keys_to_remove = set(self.state.keys()) - valid_shas
             for key in keys_to_remove:
@@ -53,7 +53,7 @@ class LLMState:
                 await self.save()
                 
     async def get_result(self, sha: str) -> Optional[Dict[str, Any]]:
-        """Возвращает результат анализа коммита, если он есть и не содержит ошибки."""
+        """Returns the commit analysis result if it exists and contains no errors."""
         async with self.lock:
             commit_data = self.state.get(sha)
             if commit_data and commit_data.get("error") is None:
@@ -61,7 +61,7 @@ class LLMState:
             return None
             
     async def set_result(self, sha: str, classification: str, changelog_line: str, detailed_commit_analysis: str, to_changelog: bool = False) -> int:
-        """Сохраняет успешный результат классификации. Возвращает количество готовых коммитов."""
+        """Saves successful classification result. Returns the number of completed commits."""
         async with self.lock:
             self.state[sha] = {
                 "classification": classification,
@@ -75,7 +75,7 @@ class LLMState:
             return completed
             
     async def set_error(self, sha: str, error_message: str) -> None:
-        """Сохраняет ошибку классификации."""
+        """Saves classification error."""
         async with self.lock:
             self.state[sha] = {
                 "classification": "unclear",

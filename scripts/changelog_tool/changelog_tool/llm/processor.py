@@ -18,20 +18,20 @@ class LLMProcessor:
         
     async def process_commits(self, commits: List[Commit]) -> Dict[str, Dict[str, Any]]:
         """
-        Асинхронно обрабатывает список коммитов через LLM.
-        Возвращает словарь SHA -> dict с результатами (classification, changelog_line, detailed_commit_analysis).
+        Asynchronously processes a list of commits through the LLM.
+        Returns a dictionary SHA -> dict with results (classification, changelog_line, detailed_commit_analysis).
         """
-        # Загружаем и очищаем стейт
+        # Load and clean state
         await self.state.load()
         valid_shas = {commit.sha for commit in commits}
         await self.state.cleanup(valid_shas)
         
-        # Фильтруем коммиты для обработки
+        # Filter commits for processing
         commits_to_process = []
         results = {}
         
         for commit in commits:
-            # Проверяем стейт
+            # Check state
             result = await self.state.get_result(commit.sha)
             if result:
                 results[commit.sha] = result
@@ -43,23 +43,23 @@ class LLMProcessor:
         if not commits_to_process:
             return results
             
-        # Разбиваем на батчи с учетом размера промпта
+        # Split into batches considering prompt size
         batches = self._create_smart_batches(commits_to_process)
         
         total_commits = sum(len(batch) for batch in batches)
         print(f"Processing {total_commits} commits in {len(batches)} batches...")
         
-        # Обрабатываем батчи параллельно
+        # Process batches in parallel
         batch_results = await asyncio.gather(
             *[self._process_batch(batch, i, len(batches), total_commits) for i, batch in enumerate(batches)],
             return_exceptions=True
         )
         
-        # Собираем результаты
+        # Collect results
         completed_batches = 0
         for batch_idx, batch_result in enumerate(batch_results):
             if isinstance(batch_result, Exception):
-                # Ошибки в батчах уже записаны в стейт, просто продолжаем
+                # Batch errors are already written to state, just continue
                 continue
             completed_batches += 1
             results.update(batch_result)
@@ -69,17 +69,17 @@ class LLMProcessor:
         return results
         
     async def _process_batch(self, batch: List[Commit], batch_idx: int = 0, total_batches: int = 0, total_commits: int = 0) -> Dict[str, Dict[str, Any]]:
-        """Обрабатывает один батч коммитов."""
+        """Processes one batch of commits."""
         try:
             print(f"[{batch_idx + 1}/{total_batches}] Processing {len(batch)} commits...")
             prompt = self._build_prompt(batch)
             
-            # Проверяем длину промпта
+            # Check prompt length
             if len(prompt) > self.config.max_user_prompt_length:
                 if self.config.truncate_diff:
                     prompt = self._truncate_prompt(prompt)
                 else:
-                    # Помечаем все коммиты батча как ошибочные
+                    # Mark all batch commits as erroneous
                     error_msg = f"Prompt too long ({len(prompt)} > {self.config.max_user_prompt_length})"
                     for commit in batch:
                         await self.state.set_error(commit.sha, error_msg)
@@ -92,7 +92,7 @@ class LLMProcessor:
                         } for commit in batch
                     }
                     
-            # Отправляем в LLM
+            # Send to LLM
             response_text = await self.llm_client.generate(prompt)
             
             # Remove markdown code blocks if present
@@ -104,17 +104,17 @@ class LLMProcessor:
                 response_text = response_text.strip()[:-3]  # Remove trailing ```
             response_text = response_text.strip()
             
-            # Парсим ответ
+            # Parse response
             try:
                 response_data = json.loads(response_text)
             except json.JSONDecodeError as e:
                 raise LLMError(f"LLM returned invalid JSON: {e}")
                 
-            # Проверяем формат ответа
+            # Check response format
             if not isinstance(response_data, dict):
                 raise LLMError("LLM returned invalid response format (not a dict)")
                 
-            # Сохраняем результаты и возвращаем
+            # Save results and return
             results = {}
             for commit in batch:
                 commit_data = response_data.get(commit.sha, {})
@@ -146,10 +146,10 @@ class LLMProcessor:
             return results
             
         except LLMError:
-            # Критическая ошибка - пробрасываем дальше
+            # Critical error - re-raise
             raise
         except Exception as e:
-            # Временная ошибка или другая проблема - помечаем коммиты как ошибочные
+            # Temporary error or other problem - mark commits as erroneous
             error_msg = f"{type(e).__name__}: {str(e)}"
             print(f"✗ Batch {batch_idx + 1}/{total_batches} failed: {error_msg}")
             for commit in batch:
@@ -197,7 +197,7 @@ class LLMProcessor:
         return batches
     
     def _estimate_commit_size(self, commit: Commit) -> int:
-        """Оценивает размер промпта для одного коммита."""
+        """Estimates the prompt size for one commit."""
         size = len(commit.sha) + len(commit.title) + len(commit.message)
         size += len(', '.join(f.path for f in commit.changed_files))
         
@@ -205,10 +205,10 @@ class LLMProcessor:
             diff = get_commit_diff(commit)
             size += len(diff)
         
-        return size + 200  # запас на JSON форматирование и разделители
+        return size + 200  # reserve for JSON formatting and separators
     
     def _build_prompt(self, commits: List[Commit]) -> str:
-        """Формирует промпт для батча коммитов."""
+        """Forms a prompt for a batch of commits."""
         system_prompt = """You are an expert software engineer analyzing git commits for a changelog.
 Your task is to analyze commits since the last release and highlight important and interesting changes.
 Ignore simple bugfixes, typos, and minor refactoring.
@@ -273,8 +273,8 @@ Example output format:
         return f"{system_prompt}\n\n{user_prompt}"
         
     def _truncate_prompt(self, prompt: str) -> str:
-        """Обрезает промпт до допустимой длины."""
-        # Простая обрезка - в реальности может потребоваться более умная логика
+        """Truncates the prompt to the allowed length."""
+        # Simple truncation - in reality, smarter logic may be needed
         if len(prompt) <= self.config.max_user_prompt_length:
             return prompt
         return prompt[:self.config.max_user_prompt_length]
