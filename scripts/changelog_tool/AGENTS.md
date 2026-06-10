@@ -28,6 +28,45 @@ source .vent/bin/activate
 ./changelog-tool [command] [options]
 ```
 
+## Commands
+
+### collect
+
+Collects commits from the specified range and classifies them using heuristics and LLM analysis.
+
+```bash
+./changelog-tool collect [options]
+```
+
+Options:
+- `--from-sha`: Starting commit SHA (overrides config)
+- `--to-sha`: Ending commit SHA (overrides config)
+- `--repo-path`: Path to the repository (overrides config)
+
+### review
+
+Generates a markdown report and an override YAML file for reviewing classified commits.
+
+```bash
+./changelog-tool review
+```
+
+The review command generates two files in the output directory:
+- `review_report.md`: A markdown report showing all commits, sorted by size, with their classification status, changelog lines, and analysis
+- `override.yaml`: A commented YAML file containing all commits that can be uncommented and modified to override classifications
+
+The report is divided into two sections:
+1. **Not in Changelog**: Commits that are not included in the changelog (either filtered by heuristics or marked as unclear)
+2. **In Changelog**: Commits that are included in the changelog
+
+Each commit in the report shows:
+- Commit hash with link to GitHub
+- Commit title
+- Status (✅ In Changelog, ❌ Not in Changelog, or ❓ Unclear)
+- Size (number of lines changed)
+- Changelog line (if available)
+- Analysis (if available)
+
 ## Output Directory
 
 By default, the tool outputs classified commits to `.changelog/preclassified.json`. You can customize this with the `--output-dir` global option:
@@ -35,4 +74,5 @@ By default, the tool outputs classified commits to `.changelog/preclassified.jso
 ```bash
 # Run with custom output directory
 ./changelog-tool --output-dir ./my-output-dir collect
+./changelog-tool --output-dir ./my-output-dir review
 ```
