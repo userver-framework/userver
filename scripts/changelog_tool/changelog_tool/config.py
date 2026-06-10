@@ -1,6 +1,7 @@
 from changelog_tool.collect.config import CollectConfig
 from changelog_tool.llm.config import LLMConfig
 from changelog_tool.review.config import ReviewConfig
+from changelog_tool.report.config import ReportConfig
 
 import pydantic
 import yaml
@@ -10,6 +11,7 @@ class Config(pydantic.BaseModel):
     collect: CollectConfig
     llm_config: LLMConfig = pydantic.Field(alias="llm-config")
     review: ReviewConfig
+    report: ReportConfig
 
 def parse_config(config_path: pathlib.Path) -> Config:
     with open(config_path, 'r') as f:

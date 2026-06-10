@@ -12,6 +12,7 @@ class Classification(str, Enum):
     DOCS = "docs"
     UNCLEAR = "unclear"
     MINOR="minor"
+    OPTIMIZATION = "optimization"
 
 MINOR_BUG_SIZE_THRESHOLD = 200
 MINOR_SIZE_THRESHOLD = 50

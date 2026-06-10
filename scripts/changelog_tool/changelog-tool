@@ -5,6 +5,7 @@ import click
 import changelog_tool.config as cfg
 import changelog_tool.collect.command as collect_cmd
 import changelog_tool.review.command as review_cmd
+import changelog_tool.report.command as report_cmd
 
 @click.group()
 @click.option('--config', default='changelog.yaml')
@@ -16,6 +17,7 @@ def cli(ctx: click.Context, config: str, output_dir: pathlib.Path | None):
     if output_dir:
         parsed_config.collect.output_dir = output_dir
         parsed_config.review.output_dir = output_dir
+        parsed_config.report.output_dir = output_dir
     ctx.obj["CONFIG"] = parsed_config
 
 @cli.command()
@@ -40,6 +42,12 @@ def collect(ctx: click.Context, from_sha: str | None, to_sha: str | None, repo_p
 def review(ctx: click.Context):
     config = ctx.obj["CONFIG"]
     review_cmd.review(config)
+
+@cli.command()
+@click.pass_context
+def report(ctx: click.Context):
+    config = ctx.obj["CONFIG"]
+    report_cmd.report(config)
 
 if __name__ == '__main__':
     cli()

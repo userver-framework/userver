@@ -216,11 +216,12 @@ Ignore simple bugfixes, typos, and minor refactoring.
 IMPORTANT: This is for the USERVER project - a C++ asynchronous framework. Focus on changes that are significant for users of this framework.
 
 For each commit, you MUST provide a JSON object with the following fields:
-1. "classification": One of ["feature", "breaking-change", "refactor", "minor", "unclear"].
+1. "classification": One of ["feature", "breaking-change", "refactor", "minor", "optimization", "unclear"].
    - Use "breaking-change" if the commit introduces backward-incompatible changes.
    - Use "feature" for new functionality that is important for USERVER users.
    - Use "refactor" for significant architectural changes.
    - Use "minor" for small improvements.
+   - Use "optimization" for performance improvements, optimizations, and efficiency gains.
    - Use "unclear" if you cannot determine the classification.
 2. "to_changelog": Boolean - MUST be true for:
    - ALL breaking-change commits (these are critical for users)

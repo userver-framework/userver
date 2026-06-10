@@ -1,5 +1,5 @@
 collect:
-  from_sha: c580979b522f43ea1ab9cd55033cd353d52844f6
+  from_sha: da8642900398c33333e29e2bd3e91ca4e181f602
   to_sha: HEAD
   repo_path: ../..
   core_team_patterns:
@@ -9,10 +9,13 @@ collect:
 llm-config:
   target_rps: 1
   retries: 3
-  max_commits_per_batch: 10
+  max_commits_per_batch: 4
   max_user_prompt_length: 100000
   include_diff: true
   truncate_diff: false
 
 review:
+  github_url: "https://github.com/userver-framework/userver"
+
+report:
   github_url: "https://github.com/userver-framework/userver"

@@ -67,6 +67,31 @@ Each commit in the report shows:
 - Changelog line (if available)
 - Analysis (if available)
 
+### report
+
+Generates a formatted Markdown changelog based on the review output and applies user overrides.
+
+```bash
+./changelog-tool report
+```
+
+The report command performs the following steps:
+1. Loads classified commits from `classified.json`
+2. Applies overrides from `override.yaml` (if present)
+3. Identifies commits marked for the changelog that lack changelog lines or analysis
+4. Runs these commits through the LLM with 1.5x increased prompt size and diff truncation enabled
+5. Generates a formatted Markdown changelog grouped by classification:
+   - Breaking Changes
+   - Features
+   - Optimizations
+   - Bug Fixes
+   - Refactoring
+   - Minor Changes
+   - Documentation
+6. Appends "Many thanks to [Name] for the PR!" for external contributors in the changelog
+7. Appends a section at the end for external contributors not included in the changelog
+8. Saves the generated changelog to `changelog.md` in the output directory
+
 ## Output Directory
 
 By default, the tool outputs classified commits to `.changelog/preclassified.json`. You can customize this with the `--output-dir` global option:
