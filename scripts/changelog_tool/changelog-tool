@@ -23,13 +23,13 @@ def cli(ctx: click.Context, config: str, output_dir: pathlib.Path | None):
 @click.pass_context
 def collect(ctx: click.Context, from_sha: str | None, to_sha: str | None, repo_path: pathlib.Path | None):
     # Get the config and override with CLI options if provided
-    config = ctx.obj["CONFIG"].collect
+    config = ctx.obj["CONFIG"]
     if from_sha:
-        config.from_sha = from_sha
+        config.collect.from_sha = from_sha
     if to_sha:
-        config.to_sha = to_sha
+        config.collect.to_sha = to_sha
     if repo_path:
-        config.repo_path = repo_path
+        config.collect.repo_path = repo_path
     
     collect_cmd.collect(config)
 

@@ -29,20 +29,19 @@ class LLMState:
                 
     async def save(self) -> None:
         """Асинхронно сохраняет состояние в файл."""
-        async with self.lock:
-            # Создаем директорию если её нет
-            self.state_file_path.parent.mkdir(parents=True, exist_ok=True)
-            
-            # Атомарная запись через временный файл
-            temp_file = self.state_file_path.with_suffix('.tmp')
-            try:
-                with open(temp_file, 'w', encoding='utf-8') as f:
-                    json.dump(self.state, f, ensure_ascii=False, indent=2)
-                temp_file.replace(self.state_file_path)
-            except IOError as e:
-                print(f"Error: Could not save state file {self.state_file_path}: {e}")
-                if temp_file.exists():
-                    temp_file.unlink()
+        # Создаем директорию если её нет
+        self.state_file_path.parent.mkdir(parents=True, exist_ok=True)
+        
+        # Атомарная запись через временный файл
+        temp_file = self.state_file_path.with_suffix('.tmp')
+        try:
+            with open(temp_file, 'w', encoding='utf-8') as f:
+                json.dump(self.state, f, ensure_ascii=False, indent=2)
+            temp_file.replace(self.state_file_path)
+        except IOError as e:
+            print(f"Error: Could not save state file {self.state_file_path}: {e}")
+            if temp_file.exists():
+                temp_file.unlink()
                     
     async def cleanup(self, valid_shas: Set[str]) -> None:
         """Удаляет из стейта коммиты, не попавшие в текущую выборку."""
@@ -61,16 +60,19 @@ class LLMState:
                 return commit_data
             return None
             
-    async def set_result(self, sha: str, classification: str, changelog_line: str, detailed_commit_analysis: str) -> None:
-        """Сохраняет успешный результат классификации."""
+    async def set_result(self, sha: str, classification: str, changelog_line: str, detailed_commit_analysis: str, to_changelog: bool = False) -> int:
+        """Сохраняет успешный результат классификации. Возвращает количество готовых коммитов."""
         async with self.lock:
             self.state[sha] = {
                 "classification": classification,
+                "to_changelog": to_changelog,
                 "changelog_line": changelog_line,
                 "detailed_commit_analysis": detailed_commit_analysis,
                 "error": None
             }
+            completed = len([k for k, v in self.state.items() if v.get("error") is None])
             await self.save()
+            return completed
             
     async def set_error(self, sha: str, error_message: str) -> None:
         """Сохраняет ошибку классификации."""

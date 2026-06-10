@@ -5,17 +5,17 @@ from typing import List
 
 import changelog_tool.common.git as git
 import changelog_tool.common.io as io
-from changelog_tool.collect.config import CollectConfig
+from changelog_tool.config import Config
 from changelog_tool.collect.classification import Classification, classify_commit, ClassifiedCommit
 from changelog_tool.llm.client import HttpLLMClient
 from changelog_tool.llm.processor import LLMProcessor
 from changelog_tool.llm.exceptions import LLMError
 
-def collect(config: CollectConfig) -> None:
-    print(f"Collecting commits from {config.from_sha} to {config.to_sha}...")
-    commits: list[git.Commit] = git.get_commits(config.from_sha, config.to_sha, config.repo_path)
+def collect(config: Config) -> None:
+    print(f"Collecting commits from {config.collect.from_sha} to {config.collect.to_sha}...")
+    commits: list[git.Commit] = git.get_commits(config.collect.from_sha, config.collect.to_sha, config.collect.repo_path)
     
-    core_team_regexes = [re.compile(pattern) for pattern in config.core_team_patterns]
+    core_team_regexes = [re.compile(pattern) for pattern in config.collect.core_team_patterns]
     
     classified_commits: List[ClassifiedCommit] = []
     for commit in commits:
@@ -41,10 +41,10 @@ def collect(config: CollectConfig) -> None:
         
     print(f"Found {len(classified_commits)} commits")
 
-    io.dump_classified_commits(classified_commits, config.output_dir, 'preclassified.json')
+    io.dump_classified_commits(classified_commits, config.collect.output_dir, 'preclassified.json')
     
-    llm_client = HttpLLMClient(config.root.llm_config)
-    llm_processor = LLMProcessor(config.root.llm_config, llm_client, config.output_dir)
+    llm_client = HttpLLMClient(config.llm_config)
+    llm_processor = LLMProcessor(config.llm_config, llm_client, config.collect.output_dir)
             
     unclear_commits = [
         commit for commit in classified_commits
@@ -61,8 +61,10 @@ def collect(config: CollectConfig) -> None:
             except ValueError:
                 # Если LLM вернула неизвестную классификацию, оставляем UNCLEAR
                 pass
+            
+            commit.to_changelog = result.get("to_changelog")
             commit.changelog_line = result.get("changelog_line")
             commit.commit_analysis = result.get("detailed_commit_analysis")
                         
 
-    io.dump_classified_commits(classified_commits, config.output_dir, 'classified.json')
+    io.dump_classified_commits(classified_commits, config.collect.output_dir, 'classified.json')
