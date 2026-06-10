@@ -44,6 +44,7 @@ class HttpLLMClient(BaseLLMClient):
             raise RuntimeError("Missing required environment variable: either CHANGELOG_LLM_API_KEY or CHANGELOG_LLM_OAUTH_KEY must be set")
             
         self.limiter = AsyncLimiter(config.target_rps, 1)
+        self.semaphore = asyncio.Semaphore(config.max_concurrent_requests)
         
         http_client = httpx.AsyncClient(verify=False)
         
@@ -58,16 +59,17 @@ class HttpLLMClient(BaseLLMClient):
     async def generate(self, prompt: str) -> str:
         last_error = None
         
-        for attempt in range(self.retries + 1):
-            try:
-                async with self.limiter:
-                    if attempt > 0:
-                        print(f"  Retrying ({attempt}/{self.retries})...")
-                    
-                    response = await self.client.chat.completions.create(
-                        model=self.model,
-                        messages=[{"role": "user", "content": prompt}],
-                    )
+        async with self.semaphore:
+            for attempt in range(self.retries + 1):
+                try:
+                    async with self.limiter:
+                        if attempt > 0:
+                            print(f"  Retrying ({attempt}/{self.retries})...")
+                        
+                        response = await self.client.chat.completions.create(
+                            model=self.model,
+                            messages=[{"role": "user", "content": prompt}],
+                        )
                     
                     # Handle non-standard API response format
                     # Some APIs return the actual data in a 'response' dict attribute
@@ -102,30 +104,30 @@ class HttpLLMClient(BaseLLMClient):
                     content = message.content
                     return content or ""
                     
-            except openai.RateLimitError as e:
-                last_error = f"Rate limit: {e}"
-                print(f"  Rate limit hit, waiting...")
-                await asyncio.sleep(2 ** attempt)
-                continue
-            except openai.APIStatusError as e:
-                if e.status_code in (400, 401, 403, 404):
-                    raise LLMError(f"Critical LLM error: {e.status_code} - {e.message}")
-                if e.status_code >= 500:
-                    last_error = f"Server error {e.status_code}"
-                    print(f"  Server error, retrying...")
+                except openai.RateLimitError as e:
+                    last_error = f"Rate limit: {e}"
+                    print(f"  Rate limit hit, waiting...")
                     await asyncio.sleep(2 ** attempt)
                     continue
-                raise LLMError(f"Unexpected status {e.status_code}: {e.message}")
-            except openai.APIError as e:
-                last_error = f"API error: {e}"
-                print(f"  API error, retrying...")
-                await asyncio.sleep(2 ** attempt)
-                continue
-            except Exception as e:
-                last_error = f"Client error: {e}"
-                print(f"  Error, retrying...")
-                await asyncio.sleep(2 ** attempt)
-                continue
+                except openai.APIStatusError as e:
+                    if e.status_code in (400, 401, 403, 404):
+                        raise LLMError(f"Critical LLM error: {e.status_code} - {e.message}")
+                    if e.status_code >= 500:
+                        last_error = f"Server error {e.status_code}"
+                        print(f"  Server error, retrying...")
+                        await asyncio.sleep(2 ** attempt)
+                        continue
+                    raise LLMError(f"Unexpected status {e.status_code}: {e.message}")
+                except openai.APIError as e:
+                    last_error = f"API error: {e}"
+                    print(f"  API error, retrying...")
+                    await asyncio.sleep(2 ** attempt)
+                    continue
+                except Exception as e:
+                    last_error = f"Client error: {e}"
+                    print(f"  Error, retrying...")
+                    await asyncio.sleep(2 ** attempt)
+                    continue
                 
         raise LLMTransientError(f"Max retries ({self.retries}) exceeded. Last error: {last_error}")
 

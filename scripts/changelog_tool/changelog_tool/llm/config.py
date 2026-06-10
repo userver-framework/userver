@@ -7,3 +7,4 @@ class LLMConfig(pydantic.BaseModel):
     max_user_prompt_length: int = 8000
     include_diff: bool = True
     truncate_diff: bool = True
+    max_concurrent_requests: int = 5

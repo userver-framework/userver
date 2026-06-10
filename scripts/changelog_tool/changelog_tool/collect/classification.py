@@ -23,6 +23,7 @@ class ClassifiedCommit(Commit):
     to_changelog: bool | None = None
     changelog_line: str | None = None
     commit_analysis: str | None = None
+    component: str | None = None
 
 def classify_commit(commit: Commit) -> Classification:
     doc_keywords = ["doc", "docs", "documentation", "readme"]

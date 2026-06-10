@@ -11,6 +11,38 @@ from changelog_tool.llm.client import HttpLLMClient
 from changelog_tool.llm.processor import LLMProcessor
 from changelog_tool.llm.exceptions import LLMError
 
+
+def _extract_component_from_title(title: str) -> str | None:
+    """Extract component name from commit title.
+    
+    Examples:
+    - "feat odbc: improve driver" -> "odbc"
+    - "fix(redis): connection leak" -> "redis"
+    - "feat chaotic: deal with..." -> "chaotic"
+    - "docs: update README" -> None
+    """
+    # Pattern: type(component): or type component: or type component description
+    match = re.match(r'^(\w+)(?:\(([^)]+)\))?:?\s*(.+)', title)
+    if match:
+        commit_type = match.group(1)
+        component = match.group(2)
+        description = match.group(3)
+        
+        # If component in parentheses, use it
+        if component:
+            return component.lower()
+        
+        # If no component in parentheses, check description
+        words = description.split()
+        if words:
+            # Check if first word ends with colon (e.g., "odbc: improve driver")
+            if words[0].endswith(':'):
+                return words[0][:-1].lower()
+            # Check if first word is followed by a colon (e.g., "chaotic: deal with...")
+            if len(words) > 1 and words[1].startswith(':'):
+                return words[0].lower()
+    return None
+
 def collect(config: Config) -> None:
     print(f"Collecting commits from {config.collect.from_sha} to {config.collect.to_sha}...")
     commits: list[git.Commit] = git.get_commits(config.collect.from_sha, config.collect.to_sha, config.collect.repo_path)
@@ -21,13 +53,17 @@ def collect(config: Config) -> None:
     for commit in commits:
         is_core_team = any(regex.match(commit.author) for regex in core_team_regexes)
         classification = classify_commit(commit)
+        # Extract component from title (e.g., "feat odbc: improve driver" -> "odbc")
+        component = _extract_component_from_title(commit.title)
+        
         classified_commit = ClassifiedCommit(
             **commit.model_dump(),
             classification=classification,
             is_external=not is_core_team,
             to_changelog=None,
             changelog_line=None,
-            commit_analysis=None
+            commit_analysis=None,
+            component=component
         )
         
         if classification in [Classification.FEATURE, Classification.BUG, Classification.BREAKING_CHANGE]:

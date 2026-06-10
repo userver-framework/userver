@@ -97,6 +97,11 @@ def _apply_overrides(commits: List[ClassifiedCommit], override_file: pathlib.Pat
                 commit.to_changelog = override['to_changelog']
             if 'changelog_line' in override:
                 commit.changelog_line = override['changelog_line']
+            if 'classification' in override:
+                try:
+                    commit.classification = Classification(override['classification'])
+                except ValueError:
+                    pass
 
 
 def _generate_changelog(commits: List[ClassifiedCommit], github_url: str) -> str:
@@ -138,30 +143,72 @@ def _generate_changelog(commits: List[ClassifiedCommit], github_url: str) -> str
         lines.append(f"* {section_title}")
         lines.append("")
         
-        # Commit entries
-        for commit in section_commits:
-            line = f"  * {commit.changelog_line}"
-            
-            # Add external contributor thanks
-            if commit.is_external:
-                author_name = _extract_author_name(commit.author)
-                line += f" Many thanks to {author_name} for the PR!"
-            
-            lines.append(line)
+        # Group commits by component within each classification
+        component_groups: Dict[str, List[ClassifiedCommit]] = {}
+        commits_without_component = []
         
-        lines.append("")
+        for commit in section_commits:
+            if commit.component:
+                if commit.component not in component_groups:
+                    component_groups[commit.component] = []
+                component_groups[commit.component].append(commit)
+            else:
+                commits_without_component.append(commit)
+        
+        # Generate entries for each component
+        for component in sorted(component_groups.keys()):
+            component_commits = component_groups[component]
+            lines.append(f"  * {component}")
+            lines.append("")
+            
+            for commit in component_commits:
+                short_sha = commit.sha[:8]
+                line = f"    * {commit.changelog_line} <!-- {short_sha} -->"
+                
+                # Add external contributor thanks
+                if commit.is_external:
+                    author_name = _extract_author_name(commit.author)
+                    line += f" Many thanks to {author_name} for the PR!"
+                
+                lines.append(line)
+            
+            lines.append("")
+        
+        # Generate entries for commits without component
+        if commits_without_component:
+            for commit in commits_without_component:
+                short_sha = commit.sha[:8]
+                line = f"  * {commit.changelog_line} <!-- {short_sha} -->"
+                
+                # Add external contributor thanks
+                if commit.is_external:
+                    author_name = _extract_author_name(commit.author)
+                    line += f" Many thanks to {author_name} for the PR!"
+                
+                lines.append(line)
+            
+            lines.append("")
     
     # Collect external contributors not in changelog
-    external_contributors_not_in_changelog = set()
+    # Group by author and collect their commit titles
+    external_contributors_not_in_changelog: Dict[str, List[str]] = {}
     for commit in commits:
         if commit.is_external and (commit.to_changelog is False or commit.to_changelog is None):
             author_name = _extract_author_name(commit.author)
-            external_contributors_not_in_changelog.add(author_name)
+            if author_name not in external_contributors_not_in_changelog:
+                external_contributors_not_in_changelog[author_name] = []
+            external_contributors_not_in_changelog[author_name].append(commit.title)
     
     if external_contributors_not_in_changelog:
         lines.append("* Many thanks to:")
-        for contributor in sorted(external_contributors_not_in_changelog):
-            lines.append(f"  * {contributor} for the contribution!")
+        for contributor in sorted(external_contributors_not_in_changelog.keys()):
+            titles = external_contributors_not_in_changelog[contributor]
+            if len(titles) == 1:
+                lines.append(f"  * {contributor} for {titles[0]}!")
+            else:
+                lines.append(f"  * {contributor} for:")
+                for title in titles:
+                    lines.append(f"    * {title}")
         lines.append("")
     
     return "\n".join(lines)
