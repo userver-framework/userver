@@ -1,2 +1,3 @@
 #!/bin/sh
-./userver-create-service.py "$@"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+"$SCRIPT_DIR/userver-create-service.py" "$@"
