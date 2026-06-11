@@ -11,8 +11,8 @@ name: Alpine
 env:
     UBSAN_OPTIONS: print_stacktrace=1
     ASAN_OPTIONS: detect_odr_violation=2
-    CXX: clang++-18
-    CC: clang-18
+    CXX: clang++-22
+    CC: clang-22
     CCACHE_DIR: /home/runner/.cache/ccache
     CCACHE_NOHASHDIR: true
     CPM_SOURCE_CACHE: /home/runner/.cache/CPM
@@ -26,7 +26,7 @@ jobs:
         runs-on: ubuntu-24.04
 
         env:
-            CMAKE_PROGRAM_PATH: /usr/lib/llvm19/bin
+            CMAKE_PROGRAM_PATH: /usr/lib/llvm22/bin
             CMAKE_FLAGS: >-
                 -DCMAKE_BUILD_TYPE=Debug
                 -DCMAKE_CXX_STANDARD=20
@@ -80,7 +80,7 @@ jobs:
             run: |
                 pwd
                 cat /etc/alpine-release
-                apk add lld ccache git gdb
+                apk add ccache git gdb
                 apk add $(cat scripts/docs/en/deps/alpine.md)
 
           - name: Install test dependencies
