@@ -19,7 +19,6 @@ krb5-dev
 libbson-dev
 libbson-static
 libev-dev
-lld22
 lz4-dev
 lz4-static
 make

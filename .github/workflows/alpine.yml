@@ -80,8 +80,10 @@ jobs:
             run: |
                 pwd
                 cat /etc/alpine-release
-                apk add ccache git gdb
+                apk add lld22 compiler-rt ccache git gdb
                 apk add $(cat scripts/docs/en/deps/alpine.md)
+                # Tell clang22 to use lld and compiler-rt by default
+                echo '--rtlib=compiler-rt -fuse-ld=lld' >> /etc/clang22/$(clang++-22 -dumpmachine).cfg
 
           - name: Install test dependencies
             shell: alpine.sh --root {0}
