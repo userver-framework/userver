@@ -46,6 +46,30 @@ KeyType GetKeyType(std::string_view type) {
     return kMap.TryFindICase(type).value_or(KeyType::kUnknown);
 }
 
+// Domain, Path and SameSite are written verbatim into the Set-Cookie header by
+// AppendToString. Unlike the cookie name and value they were not validated, so
+// a CR/LF let an attribute inject response headers and a ';' let it inject an
+// extra cookie-av. Reject control characters and ';' here, the same way the
+// name and value are checked.
+void ValidateCookieAttribute(std::string_view value, std::string_view attribute_name) {
+    static constexpr auto kBadAttributeChars = []() {
+        std::array<bool, 256> res{};  // Zero initializes
+        for (int i = 0; i < 32; i++) {
+            res[i] = true;
+        }
+        res[127] = true;
+        res[static_cast<unsigned char>(';')] = true;
+        return res;
+    }();
+
+    for (const char c : value) {
+        const auto code = static_cast<uint8_t>(c);
+        if (kBadAttributeChars[code]) {
+            throw std::runtime_error(fmt::format("Invalid character in cookie {}: '{}' (#{})", attribute_name, c, code));
+        }
+    }
+}
+
 std::optional<std::chrono::system_clock::time_point> ParseTime(const std::string& timestring) {
     if (timestring.size() < 3) {
         return std::nullopt;
@@ -260,11 +284,17 @@ void Cookie::CookieData::SetHttpOnly() { http_only_ = true; }
 
 const std::string& Cookie::CookieData::Path() const { return path_; }
 
-void Cookie::CookieData::SetPath(std::string&& value) { path_ = std::move(value); }
+void Cookie::CookieData::SetPath(std::string&& value) {
+    ValidateCookieAttribute(value, "path");
+    path_ = std::move(value);
+}
 
 const std::string& Cookie::CookieData::Domain() const { return domain_; }
 
-void Cookie::CookieData::SetDomain(std::string&& value) { domain_ = std::move(value); }
+void Cookie::CookieData::SetDomain(std::string&& value) {
+    ValidateCookieAttribute(value, "domain");
+    domain_ = std::move(value);
+}
 
 std::chrono::seconds Cookie::CookieData::MaxAge() const { return max_age_.value_or(std::chrono::seconds{0}); }
 
@@ -272,7 +302,10 @@ void Cookie::CookieData::SetMaxAge(std::chrono::seconds value) { max_age_ = valu
 
 std::string Cookie::CookieData::SameSite() const { return same_site_; }
 
-void Cookie::CookieData::SetSameSite(std::string value) { same_site_ = std::move(value); }
+void Cookie::CookieData::SetSameSite(std::string value) {
+    ValidateCookieAttribute(value, "SameSite");
+    same_site_ = std::move(value);
+}
 
 void Cookie::CookieData::AppendToString(USERVER_NAMESPACE::http::headers::HeadersString& os) const {
     constexpr std::string_view kEquals = "=";

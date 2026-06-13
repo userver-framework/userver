@@ -125,6 +125,34 @@ TEST(HttpCookie, Validation) {
     }
 }
 
+TEST(HttpCookie, AttributeValidation) {
+    // Path, Domain and SameSite are serialized verbatim into the Set-Cookie
+    // header, so a control character (most importantly CR/LF) or ';' must be
+    // rejected just like in the name and value, otherwise it injects into the
+    // response.
+    const std::vector<std::string> bad_attributes = {
+        "/\r\nSet-Cookie: injected=1",  //
+        "do\rmain",                     //
+        "pa\nth",                       //
+        "a\tb",                         //
+        std::string("a\0b", 3),         //
+        "value\x7f",                    //
+        "/path; Domain=evil.test",      //
+    };
+    for (const auto& bad : bad_attributes) {
+        server::http::Cookie cookie{"name", "value"};
+        UEXPECT_THROW(cookie.SetPath(bad), std::runtime_error);
+        UEXPECT_THROW(cookie.SetDomain(bad), std::runtime_error);
+        UEXPECT_THROW(cookie.SetSameSite(bad), std::runtime_error);
+    }
+
+    server::http::Cookie cookie{"name", "value"};
+    UEXPECT_NO_THROW(cookie.SetPath("/some/path"));
+    UEXPECT_NO_THROW(cookie.SetDomain("sub.domain.test"));
+    UEXPECT_NO_THROW(cookie.SetSameSite("None"));
+    EXPECT_EQ(cookie.ToString().find("\r\n"), std::string::npos);
+}
+
 TEST(HttpCookie, FromString) {
     const std::vector<std::string> good_cookies_as_str = {
         // NOLINTNEXTLINE(bugprone-suspicious-missing-comma)
