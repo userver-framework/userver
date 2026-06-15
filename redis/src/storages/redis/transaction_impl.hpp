@@ -47,7 +47,8 @@ public:
         template <typename Result, typename ReplyType>
         class ResultPromiseImpl : public ResultPromiseImplBase {
         public:
-            ResultPromiseImpl(engine::Promise<ReplyType>&& promise) : promise_(std::move(promise))
+            ResultPromiseImpl(engine::Promise<ReplyType>&& promise)
+                : promise_(std::move(promise))
             {}
 
             void ProcessReply(ReplyData&& reply_data, const std::string& request_description) override {
