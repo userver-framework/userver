@@ -15,8 +15,7 @@ class MockTransaction::ResultPromise {
 public:
     template <typename Result, typename ReplyType>
     ResultPromise(engine::Promise<ReplyType>&& promise, Request<Result, ReplyType>&& subrequest)
-        : impl_(std::make_unique<ResultPromiseImpl<Result, ReplyType>>(std::move(promise), std::move(subrequest)))
-    {}
+        : impl_(std::make_unique<ResultPromiseImpl<Result, ReplyType>>(std::move(promise), std::move(subrequest))) {}
 
     ResultPromise(ResultPromise&& other) = default;
 
@@ -34,9 +33,7 @@ private:
     class ResultPromiseImpl : public ResultPromiseImplBase {
     public:
         ResultPromiseImpl(engine::Promise<ReplyType>&& promise, Request<Result, ReplyType>&& subrequest)
-            : promise_(std::move(promise)),
-              subrequest_(std::move(subrequest))
-        {}
+            : promise_(std::move(promise)), subrequest_(std::move(subrequest)) {}
 
         void ProcessReply(const std::string& request_description) override {
             try {
@@ -64,8 +61,7 @@ private:
 class MockTransaction::MockRequestExecDataImpl final : public RequestDataBase<void> {
 public:
     MockRequestExecDataImpl(std::vector<std::unique_ptr<ResultPromise>>&& result_promises)
-        : result_promises_(std::move(result_promises))
-    {}
+        : result_promises_(std::move(result_promises)) {}
 
     void Wait() override {}
 
@@ -94,10 +90,7 @@ MockTransaction::MockTransaction(
     std::unique_ptr<MockTransactionImplBase> impl,
     CheckShards check_shards
 )
-    : client_(std::move(client)),
-      check_shards_(check_shards),
-      impl_(std::move(impl))
-{}
+    : client_(std::move(client)), check_shards_(check_shards), impl_(std::move(impl)) {}
 
 MockTransaction::~MockTransaction() = default;
 
@@ -871,6 +864,15 @@ RequestJsonMset MockTransaction::JsonMset(std::vector<JsonKeyPathValue> key_path
         UpdateShard(kpv.key);
     }
     return AddSubrequest(impl_->JsonMset(std::move(key_path_values)));
+}
+
+RequestGenericCommon MockTransaction::GenericCommon(
+    std::string command,
+    std::vector<std::string> args,
+    size_t key_index
+) {
+    UpdateShard(args.at(key_index));
+    return AddSubrequest(impl_->GenericCommon(std::move(command), std::move(args), key_index));
 }
 
 // end of redis commands

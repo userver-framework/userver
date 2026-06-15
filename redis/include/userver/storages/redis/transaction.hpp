@@ -9,6 +9,7 @@
 #include <userver/storages/redis/bit_operation.hpp>
 #include <userver/storages/redis/command_options.hpp>
 #include <userver/storages/redis/request.hpp>
+#include <userver/storages/redis/request_generic.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -413,7 +414,21 @@ public:
 
     virtual RequestJsonMset JsonMset(std::vector<JsonKeyPathValue> key_path_values) = 0;
 
+    /// @brief Execute a custom Redis command.
+    /// @param key_index Index of the key in the args vector used to determine the shard
+    template <typename ReplyType>
+    RequestGeneric<ReplyType> GenericCommand(std::string command, std::vector<std::string> args, size_t key_index) {
+        return RequestGeneric<ReplyType>{GenericCommon(std::move(command), std::move(args), key_index)};
+    }
+
     // end of redis commands
+
+protected:
+    virtual RequestGenericCommon GenericCommon(
+        std::string command,
+        std::vector<std::string> args,
+        size_t key_index
+    ) = 0;
 };
 
 using TransactionPtr = std::unique_ptr<Transaction>;

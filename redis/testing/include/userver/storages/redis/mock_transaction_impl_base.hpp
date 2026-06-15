@@ -363,6 +363,8 @@ public:
 
     virtual RequestJsonMset JsonMset(std::vector<JsonKeyPathValue> key_path_values);
 
+    virtual RequestGenericCommon GenericCommon(std::string command, std::vector<std::string> args, size_t key_index);
+
     // end of redis commands
 };
 

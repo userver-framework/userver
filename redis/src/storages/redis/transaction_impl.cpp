@@ -20,10 +20,7 @@ RequestExec CreateExecRequest(impl::Request&& request, std::vector<TransactionIm
 }  // namespace
 
 TransactionImpl::TransactionImpl(std::shared_ptr<ClientImpl> client, CheckShards check_shards)
-    : client_(std::move(client)),
-      check_shards_(check_shards),
-      cmd_args_({"MULTI"})
-{}
+    : client_(std::move(client)), check_shards_(check_shards), cmd_args_({"MULTI"}) {}
 
 RequestExec TransactionImpl::Exec(const CommandControl& command_control) {
     if (!shard_) {
@@ -1039,6 +1036,15 @@ RequestJsonMset TransactionImpl::JsonMset(std::vector<JsonKeyPathValue> key_path
         args.push_back(formats::json::ToString(std::move(value)));
     }
     return AddCmd<RequestJsonMset>("json.mset", true, std::move(args));
+}
+
+RequestGenericCommon TransactionImpl::GenericCommon(
+    std::string command,
+    std::vector<std::string> args,
+    size_t key_index
+) {
+    UpdateShard(args.at(key_index));
+    return AddCmd<RequestGenericCommon>(std::move(command), true, std::move(args));
 }
 
 // end of redis commands
