@@ -170,7 +170,7 @@ function(userver_venv_setup)
         endif()
 
         execute_process(
-            COMMAND "${venv_bin_dir}/python3" -m pip install --disable-pip-version-check --no-build-isolation -U ${pip_requirements}
+            COMMAND "${venv_bin_dir}/python3" -m pip install --disable-pip-version-check -U ${pip_requirements}
                     ${ARG_PIP_ARGS} RESULT_VARIABLE status
         )
         if(status)
