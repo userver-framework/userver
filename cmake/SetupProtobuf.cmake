@@ -80,7 +80,7 @@ include(SetupAbseil)
 
 cpmaddpackage(
     NAME Protobuf
-    VERSION 4.24.4
+    VERSION 5.26.0
     GITHUB_REPOSITORY protocolbuffers/protobuf
     GIT_SHALLOW TRUE
     SYSTEM
