@@ -20,7 +20,10 @@ RequestExec CreateExecRequest(impl::Request&& request, std::vector<TransactionIm
 }  // namespace
 
 TransactionImpl::TransactionImpl(std::shared_ptr<ClientImpl> client, CheckShards check_shards)
-    : client_(std::move(client)), check_shards_(check_shards), cmd_args_({"MULTI"}) {}
+    : client_(std::move(client)),
+      check_shards_(check_shards),
+      cmd_args_({"MULTI"})
+{}
 
 RequestExec TransactionImpl::Exec(const CommandControl& command_control) {
     if (!shard_) {

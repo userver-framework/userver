@@ -28,7 +28,8 @@ public:
     public:
         template <typename Result, typename ReplyType>
         ResultPromise(engine::Promise<ReplyType>&& promise, To<Request<Result, ReplyType>>)
-            : impl_(std::make_unique<ResultPromiseImpl<Result, ReplyType>>(std::move(promise))) {}
+            : impl_(std::make_unique<ResultPromiseImpl<Result, ReplyType>>(std::move(promise)))
+        {}
         ResultPromise(ResultPromise&& other) = default;
 
         void ProcessReply(ReplyData&& reply_data, const std::string& request_description) {
@@ -46,7 +47,8 @@ public:
         template <typename Result, typename ReplyType>
         class ResultPromiseImpl : public ResultPromiseImplBase {
         public:
-            ResultPromiseImpl(engine::Promise<ReplyType>&& promise) : promise_(std::move(promise)) {}
+            ResultPromiseImpl(engine::Promise<ReplyType>&& promise) : promise_(std::move(promise))
+            {}
 
             void ProcessReply(ReplyData&& reply_data, const std::string& request_description) override {
                 try {
@@ -236,19 +238,13 @@ public:
 
     RequestSetIfNotExistOrGet SetIfNotExistOrGet(std::string key, std::string value) override;
 
-    RequestSetIfNotExistOrGet SetIfNotExistOrGet(
-        std::string key,
-        std::string value,
-        std::chrono::milliseconds ttl
-    ) override;
+    RequestSetIfNotExistOrGet SetIfNotExistOrGet(std::string key, std::string value, std::chrono::milliseconds ttl)
+        override;
 
     RequestSetex Setex(std::string key, std::chrono::seconds seconds, std::string value) override;
 
-    RequestSetAndGetPrevious SetAndGetPrevious(
-        std::string key,
-        std::string value,
-        std::chrono::milliseconds ttl
-    ) override;
+    RequestSetAndGetPrevious SetAndGetPrevious(std::string key, std::string value, std::chrono::milliseconds ttl)
+        override;
 
     RequestSismember Sismember(std::string key, std::string member) override;
 
@@ -298,12 +294,8 @@ public:
 
     RequestZrangebyscore Zrangebyscore(std::string key, std::string min, std::string max) override;
 
-    RequestZrangebyscore Zrangebyscore(
-        std::string key,
-        double min,
-        double max,
-        const RangeOptions& range_options
-    ) override;
+    RequestZrangebyscore Zrangebyscore(std::string key, double min, double max, const RangeOptions& range_options)
+        override;
 
     RequestZrangebyscore Zrangebyscore(
         std::string key,

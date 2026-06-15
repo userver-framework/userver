@@ -158,8 +158,7 @@ public:
         size_t key_index,
         const CommandControl& command_control
     ) {
-        return RequestGeneric<ReplyType>{
-            GenericCommon(std::move(command), std::move(args), key_index, command_control)
+        return RequestGeneric<ReplyType>{GenericCommon(std::move(command), std::move(args), key_index, command_control)
         };
     }
 
