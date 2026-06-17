@@ -52,6 +52,8 @@ jobs:
             run: |
                 brew update
                 brew trust --formula mongodb/brew/mongodb-community
+                brew trust --formula azure/bicep/bicep
+                brew trust --formula hashicorp/tap/packer
                 brew tap mongodb/brew
                 brew install clang-format postgresql redis kafka rabbitmq mongodb-community
                 mkdir -p "$(brew --prefix)/etc/rabbitmq/conf.d"
