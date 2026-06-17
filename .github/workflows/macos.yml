@@ -74,10 +74,9 @@ jobs:
 
           - name: Install test dependencies
             run: |
-                brew trust --formula mongodb/brew/mongodb-community
-                brew trust --formula mongodb/brew/mongodb-database-tools
                 brew trust --formula azure/bicep/bicep
                 brew trust --formula hashicorp/tap/packer
+                brew trust mongodb/brew                
                 brew trust aws/tap
                 brew tap mongodb/brew
                 brew install clickhouse redis kafka mongodb-community rabbitmq
