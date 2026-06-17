@@ -74,6 +74,7 @@ jobs:
 
           - name: Install test dependencies
             run: |
+                brew trust --formula mongodb/brew/mongodb-community
                 brew tap mongodb/brew
                 brew install clickhouse redis kafka mongodb-community rabbitmq
                 mkdir -p "$(brew --prefix)/etc/rabbitmq/conf.d"
