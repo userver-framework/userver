@@ -16,7 +16,7 @@ namespace impl {
 
 const google::protobuf::util::JsonPrintOptions kDefaultJsonPrintOptions = [] {
     google::protobuf::util::JsonPrintOptions options;
-#if GOOGLE_PROTOBUF_VERSION >= 5026001
+#if GOOGLE_PROTOBUF_VERSION >= 5026000
     options.always_print_fields_with_no_presence = true;
 #else
     options.always_print_primitive_fields = true;

@@ -51,7 +51,7 @@ formats::json::Value CreateSampleJson(const ::google::protobuf::Message& message
 
     StringType result;
     ::google::protobuf::util::JsonPrintOptions native_options;
-#if GOOGLE_PROTOBUF_VERSION >= 5026001
+#if GOOGLE_PROTOBUF_VERSION >= 5026000
     native_options.always_print_fields_with_no_presence = options.always_print_fields_with_no_presence;
 #else
     native_options.always_print_primitive_fields = options.always_print_fields_with_no_presence;
