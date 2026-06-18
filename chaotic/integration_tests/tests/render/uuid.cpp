@@ -1,6 +1,7 @@
 #include <userver/formats/json/inline.hpp>
 #include <userver/utest/assert_macros.hpp>
 
+#include <boost/version.hpp>
 #include <boost/uuid/string_generator.hpp>
 
 #include <userver/formats/json/serialize.hpp>
@@ -45,11 +46,19 @@ TEST(Simple, UuidSax) {
 
 TEST(Simple, UuidInvalid) {
     auto json = formats::json::MakeObject("uuid", "not-a-valid-uuid");
+#if BOOST_VERSION >= 109100
+    UEXPECT_THROW_MSG(
+        json.As<ns::ObjectUuid>(),
+        chaotic::Error<formats::json::Value>,
+        "Error at path 'uuid': Invalid UUID string at position 0: hex digit expected"
+    );
+#else
     UEXPECT_THROW_MSG(
         json.As<ns::ObjectUuid>(),
         chaotic::Error<formats::json::Value>,
         "Error at path 'uuid': invalid uuid string"
     );
+#endif
 }
 
 USERVER_NAMESPACE_END
