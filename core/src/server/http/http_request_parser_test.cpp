@@ -1,5 +1,8 @@
 #include <server/http/http_request_parser.hpp>
 
+#include <string_view>
+#include <vector>
+
 #include <server/http/create_parser_test.hpp>
 #include <userver/utest/utest.hpp>
 
@@ -253,6 +256,22 @@ UTEST(HttpRequestParserParser, BodyContentLengthTooLong) {
 
     parser->Parse(kHttpRequestBodyContentLengthTooLong);
     EXPECT_EQ(parsed, false);
+}
+
+UTEST(HttpRequestParserParser, UpgradeProbeTrailingSpaces) {
+    bool parsed = false;
+    auto parser = server::CreateTestParser([&parsed](std::shared_ptr<server::http::HttpRequest>&&) { parsed = true; });
+
+    // CONNECT carries no Upgrade header, so the only "Upgrade:" token while
+    // probing for a WebSocket upgrade is the trailing bytes, and those end with
+    // spaces that run to the exact end of the buffer. Backed by a sized vector
+    // (no terminating '\0') so a read past the end is observable under
+    // sanitizers.
+    constexpr std::string_view request =
+        "CONNECT example.org:443 HTTP/1.1\r\nHost: example.org\r\n\r\nUpgrade:    ";
+    const std::vector<char> buffer{request.begin(), request.end()};
+    EXPECT_NO_THROW(parser->Parse(std::string_view{buffer.data(), buffer.size()}));
+    EXPECT_EQ(parsed, true);
 }
 
 USERVER_NAMESPACE_END

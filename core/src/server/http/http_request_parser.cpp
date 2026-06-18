@@ -30,11 +30,10 @@ bool IsWebSocketUpgradeRequest(std::string_view req) {
     if (it == req.end()) {
         return false;
     }
-    while (*it == ' ' && it != req.end()) {
+    while (it != req.end() && *it == ' ') {
         ++it;
     }
-    const auto end = it + kWebsocketUpgradeHeaderValue.size();
-    if (end >= req.end()) {
+    if (static_cast<size_t>(req.end() - it) <= kWebsocketUpgradeHeaderValue.size()) {
         return false;
     }
     return utils::StrIcaseEqual{
