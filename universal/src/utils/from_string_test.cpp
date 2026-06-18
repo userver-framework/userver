@@ -5,7 +5,6 @@
 #include <random>
 #include <type_traits>
 
-#include <fmt/core.h>
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 

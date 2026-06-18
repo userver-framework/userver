@@ -1,6 +1,6 @@
 #include <userver/clients/http/response.hpp>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 
 #include <userver/clients/http/response_future.hpp>
 #include <userver/utils/assert.hpp>

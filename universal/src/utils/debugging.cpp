@@ -18,7 +18,7 @@
 #include <fstream>
 #include <string>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #endif
 
 #ifdef USERVER_DEBUGGING_USE_APPLE

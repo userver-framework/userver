@@ -1,6 +1,6 @@
 #include <userver/server/handlers/http_handler_base.hpp>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/container/small_vector.hpp>
 

@@ -3,8 +3,6 @@
 /// @file userver/server/http/http_status.hpp
 /// @brief @copybrief server::http::HttpStatus
 
-#include <fmt/core.h>
-
 #include <userver/http/status_code.hpp>
 
 USERVER_NAMESPACE_BEGIN

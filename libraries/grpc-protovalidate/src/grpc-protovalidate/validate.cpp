@@ -7,7 +7,7 @@
 
 #include <algorithm>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <google/protobuf/arena.h>
 #include <google/protobuf/message.h>
 #include <google/protobuf/repeated_ptr_field.h>

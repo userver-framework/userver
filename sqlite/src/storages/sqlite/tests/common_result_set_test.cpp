@@ -1,6 +1,5 @@
 #include <userver/utest/utest.hpp>
 
-#include <fmt/core.h>
 #include <gtest/gtest.h>
 
 #include <userver/utest/assert_macros.hpp>

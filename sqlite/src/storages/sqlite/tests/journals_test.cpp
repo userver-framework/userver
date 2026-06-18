@@ -1,6 +1,6 @@
 #include <userver/utest/utest.hpp>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <gtest/gtest.h>
 
 #include <userver/engine/async.hpp>

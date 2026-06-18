@@ -2,7 +2,7 @@
 
 #include <atomic>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 
 #include <userver/components/component_context.hpp>
 #include <userver/engine/task/task_with_result.hpp>

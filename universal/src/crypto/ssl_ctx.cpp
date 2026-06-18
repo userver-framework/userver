@@ -1,6 +1,5 @@
 #include <userver/crypto/ssl_ctx.hpp>
 
-#include <fmt/core.h>
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 

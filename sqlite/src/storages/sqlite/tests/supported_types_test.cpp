@@ -2,7 +2,6 @@
 
 #include <vector>
 
-#include <fmt/core.h>
 #include <gtest/gtest.h>
 #include <boost/uuid/uuid.hpp>
 

@@ -6,7 +6,7 @@
 #include <stdexcept>
 #include <thread>
 
-#include <fmt/core.h>
+#include <fmt/format.h>
 #include <fmt/ranges.h>
 
 #include <components/component_context_impl.hpp>
