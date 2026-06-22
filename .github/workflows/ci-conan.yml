@@ -62,7 +62,7 @@ jobs:
                 brew install python@3.11
 
           - name: Checkout
-            uses: actions/checkout@v6
+            uses: actions/checkout@v7
 
           - name: Change permissions
             if: matrix.container == 'ubuntu:22.04'

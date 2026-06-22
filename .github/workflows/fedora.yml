@@ -54,7 +54,7 @@ jobs:
                 -DUSERVER_FEATURE_STACKTRACE=OFF
 
         steps:
-          - uses: actions/checkout@v6
+          - uses: actions/checkout@v7
             with:
                 fetch-depth: 0
 
