@@ -140,6 +140,14 @@ protected:
 
     template <typename Bytes>
     IpParserInfo<Bytes> Parse(FieldBuffer buffer) {
+        static constexpr std::size_t kHeaderSize = 4;
+        // The buffer comes straight from the server, so validate its length
+        // before reading the fixed header and the address bytes below.
+        if (buffer.length < kHeaderSize) {
+            throw storages::postgres::InvalidInputBufferSize(
+                fmt::format("Buffer size {} is too small to parse an IP address", buffer.length)
+            );
+        }
         IpParserInfo<Bytes> result;
         const uint8_t* byte_cptr = buffer.buffer;
         result.family = *byte_cptr;
@@ -150,6 +158,11 @@ protected:
         ++byte_cptr;
         result.bytes_number = *byte_cptr;
         ++byte_cptr;
+        if (buffer.length - kHeaderSize < result.bytes_number) {
+            throw storages::postgres::InvalidInputBufferSize(fmt::format(
+                "Buffer size {} is too small for an IP address of {} bytes", buffer.length, result.bytes_number
+            ));
+        }
         this->ParseIpBytes(byte_cptr, result.bytes, result.bytes_number, result.family);
         return result;
     }

@@ -4,6 +4,7 @@
 /// @brief utils::Macaddr and utils::Macaddr8 I/O support
 /// @ingroup userver_postgres_parse_and_format
 
+#include <userver/storages/postgres/exceptions.hpp>
 #include <userver/storages/postgres/io/buffer_io.hpp>
 #include <userver/storages/postgres/io/buffer_io_base.hpp>
 #include <userver/utils/macaddr.hpp>
@@ -38,6 +39,13 @@ struct MacaddrBufferParser : BufferParserBase<T> {
     using BaseType::BaseType;
     void operator()(FieldBuffer buffer) {
         typename T::OctetsType octets;
+        // The buffer is server-supplied; reject a short one before reading the
+        // fixed number of octets straight from it.
+        if (buffer.length < octets.size()) {
+            throw storages::postgres::InvalidInputBufferSize(fmt::format(
+                "Buffer size {} is too small for a MAC address of {} bytes", buffer.length, octets.size()
+            ));
+        }
         const uint8_t* byte_cptr = buffer.buffer;
         for (auto& val : octets) {
             val = *byte_cptr;
