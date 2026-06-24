@@ -975,7 +975,19 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::DoPrepareStatement(
     if (prepared_.GetSize() >= settings_.max_prepared_cache_size) {
         auto statement_info = prepared_.GetLeastUsed();
         UASSERT(statement_info);
-        DiscardPreparedStatement(*statement_info, deadline);
+        try {
+            DiscardPreparedStatement(*statement_info, deadline);
+        } catch (const InvalidSqlStatementName&) {
+            // The server has already forgotten this prepared statement (the local
+            // cache has drifted out of sync with the server, e.g. after a cancel,
+            // timeout or rollback). Evicting a stale cache entry must not fail the
+            // user's unrelated query, so swallow the error here. WaitResult() has
+            // already scheduled a full prepared-statements resync via
+            // is_discard_prepared_pending_.
+            LOG_LIMITED_WARNING()
+                << "Prepared statement " << statement_info->meta_statement_name
+                << " is already absent on the server during eviction, ignoring";
+        }
         prepared_.Erase(statement_info->id);
 
         kPreparedQueriesOverflowAlert.FireAlert(*metrics_);
