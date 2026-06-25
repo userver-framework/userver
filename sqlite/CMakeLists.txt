@@ -28,7 +28,7 @@ set(SQLITE_THREADSAFE
 userver_module(
     sqlite
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
-    LINK_LIBRARIES_PRIVATE SQLite3::SQLite3
+    LINK_LIBRARIES_PRIVATE SQLite::SQLite3
     UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
     DEPENDS core
     EMBED_FILES src/storages/sqlite/component.yaml
