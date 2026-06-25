@@ -54,7 +54,7 @@ inline const /*deliberately non-constexpr*/ bool
 
 template <>
 struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::PrintOptions> {
-    auto parse(fmt::format_parse_context& ctx) {
+    constexpr auto parse(fmt::format_parse_context& ctx) {
         auto it = ctx.begin();
         if (it != ctx.end() && *it != '}') {
             throw fmt::format_error("invalid format");
@@ -77,7 +77,7 @@ struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::PrintOptions> {
 
 template <>
 struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::ParseOptions> {
-    auto parse(fmt::format_parse_context& ctx) {
+    constexpr auto parse(fmt::format_parse_context& ctx) {
         auto it = ctx.begin();
         if (it != ctx.end() && *it != '}') {
             throw fmt::format_error("invalid format");
@@ -94,7 +94,7 @@ struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::ParseOptions> {
 
 template <>
 struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::PrintErrorCode> {
-    auto parse(fmt::format_parse_context& ctx) {
+    constexpr auto parse(fmt::format_parse_context& ctx) {
         auto it = ctx.begin();
         if (it != ctx.end() && *it != '}') {
             throw fmt::format_error("invalid format");
@@ -116,7 +116,7 @@ struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::PrintErrorCode> {
 
 template <>
 struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::ParseErrorCode> {
-    auto parse(fmt::format_parse_context& ctx) {
+    constexpr auto parse(fmt::format_parse_context& ctx) {
         auto it = ctx.begin();
         if (it != ctx.end() && *it != '}') {
             throw fmt::format_error("invalid format");
