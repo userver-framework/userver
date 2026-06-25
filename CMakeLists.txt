@@ -27,8 +27,6 @@ if(CMAKE_VERSION GREATER_EQUAL 3.31)
     cmake_policy(SET CMP0177 NEW)
 endif()
 
-set(USERVER_AVAILABLE_COMPONENTS universal)
-
 # @ingroup libraries
 option(USERVER_FEATURE_CORE "Provide a core library with coroutines, otherwise build only userver-universal" ON)
 # @ingroup libraries
@@ -250,12 +248,10 @@ add_subdirectory(universal)
 
 if(USERVER_FEATURE_CHAOTIC)
     add_subdirectory(chaotic)
-    list(APPEND USERVER_AVAILABLE_COMPONENTS chaotic)
 
     if(USERVER_FEATURE_CHAOTIC_EXPERIMENTAL)
         _require_userver_core(USERVER_FEATURE_CHAOTIC_EXPERIMENTAL)
         add_subdirectory(chaotic-openapi)
-        list(APPEND USERVER_AVAILABLE_COMPONENTS chaotic-openapi)
     endif()
 endif()
 
@@ -264,38 +260,32 @@ if(USERVER_FEATURE_CORE)
         message(FATAL_ERROR "'USERVER_FEATURE_CORE' requires 'USERVER_FEATURE_CHAOTIC=ON'")
     endif()
     add_subdirectory(core)
-    list(APPEND USERVER_AVAILABLE_COMPONENTS core)
 endif()
 
 if(USERVER_FEATURE_MONGODB)
     _require_userver_core("USERVER_FEATURE_MONGODB")
     add_subdirectory(mongo)
-    list(APPEND USERVER_AVAILABLE_COMPONENTS mongo)
 endif()
 
 if(USERVER_FEATURE_POSTGRESQL)
     _require_userver_core("USERVER_FEATURE_POSTGRESQL")
     add_subdirectory(postgresql)
-    list(APPEND USERVER_AVAILABLE_COMPONENTS postgresql)
 endif()
 
 if(USERVER_FEATURE_REDIS)
     _require_userver_core("USERVER_FEATURE_REDIS")
     add_subdirectory(redis)
-    list(APPEND USERVER_AVAILABLE_COMPONENTS redis)
 endif()
 
 if(USERVER_FEATURE_GRPC)
     _require_userver_core("USERVER_FEATURE_GRPC")
     add_subdirectory(libraries/protobuf)
     add_subdirectory(grpc)
-    list(APPEND USERVER_AVAILABLE_COMPONENTS grpc)
 endif()
 
 if(USERVER_FEATURE_SCYLLADB)
     _require_userver_core("USERVER_FEATURE_SCYLLADB")
     add_subdirectory(scylla)
-    list(APPEND USERVER_AVAILABLE_COMPONENTS scylla)
 endif()
 
 
@@ -305,31 +295,26 @@ if(USERVER_FEATURE_OTLP)
     endif()
     _require_userver_core("USERVER_FEATURE_OTLP")
     add_subdirectory(otlp)
-    list(APPEND USERVER_AVAILABLE_COMPONENTS otlp)
 endif()
 
 if(USERVER_FEATURE_CLICKHOUSE)
     _require_userver_core("USERVER_FEATURE_CLICKHOUSE")
     add_subdirectory(clickhouse)
-    list(APPEND USERVER_AVAILABLE_COMPONENTS clickhouse)
 endif()
 
 if(USERVER_FEATURE_KAFKA)
     _require_userver_core("USERVER_FEATURE_KAFKA")
     add_subdirectory(kafka)
-    list(APPEND USERVER_AVAILABLE_COMPONENTS kafka)
 endif()
 
 if(USERVER_FEATURE_RABBITMQ)
     _require_userver_core("USERVER_FEATURE_RABBITMQ")
     add_subdirectory(rabbitmq)
-    list(APPEND USERVER_AVAILABLE_COMPONENTS rabbitmq)
 endif()
 
 if(USERVER_FEATURE_MYSQL)
     _require_userver_core("USERVER_FEATURE_MYSQL")
     add_subdirectory(mysql)
-    list(APPEND USERVER_AVAILABLE_COMPONENTS mysql)
 endif()
 
 if(USERVER_FEATURE_ROCKS)
@@ -340,19 +325,16 @@ endif()
 if(USERVER_FEATURE_YDB)
     _require_userver_core("USERVER_FEATURE_YDB")
     add_subdirectory(ydb)
-    list(APPEND USERVER_AVAILABLE_COMPONENTS ydb)
 endif()
 
 if(USERVER_FEATURE_SQLITE)
     _require_userver_core("USERVER_FEATURE_SQLITE")
     add_subdirectory(sqlite)
-    list(APPEND USERVER_AVAILABLE_COMPONENTS sqlite)
 endif()
 
 if(USERVER_FEATURE_ODBC)
     _require_userver_core("USERVER_FEATURE_ODBC")
     add_subdirectory(odbc)
-    list(APPEND USERVER_AVAILABLE_COMPONENTS odbc)
 endif()
 
 add_subdirectory(libraries)

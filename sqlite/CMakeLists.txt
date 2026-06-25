@@ -30,7 +30,7 @@ userver_module(
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
     LINK_LIBRARIES_PRIVATE SQLite::SQLite3
     UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
-    DEPENDS core
+    COMPONENT_DEPENDS core
     EMBED_FILES src/storages/sqlite/component.yaml
 )
 

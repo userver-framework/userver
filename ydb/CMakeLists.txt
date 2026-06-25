@@ -25,7 +25,7 @@ userver_module(
     UTEST_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/tests"
     UTEST_LINK_LIBRARIES userver-ydb-utest
     GENERATE_DYNAMIC_CONFIGS
-    DEPENDS core
+    COMPONENT_DEPENDS core
     EMBED_FILES src/ydb/component.yaml src/ydb/dist_lock/component_base.yaml src/ydb/topic_writer_component.yaml
 )
 

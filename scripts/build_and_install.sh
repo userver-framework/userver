@@ -57,7 +57,7 @@ if [ -n "${PACKAGE_INSTALL_DIR:-}" ]; then
   done
 else
   DEBIAN_FRONTEND=noninteractive apt update -y
-  DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends ./libuserver-all-dev*.deb
+  DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends ./libuserver-*.deb
 fi
 
 rm -rf ./build_debug/ ./build_release/

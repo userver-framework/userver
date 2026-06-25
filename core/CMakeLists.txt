@@ -345,4 +345,4 @@ _userver_directory_install(
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/testsuite/pytest_plugins/
 )
 
-_userver_install_component(MODULE core DEPENDS chaotic)
+_userver_install_component(COMPONENT core DEPENDS chaotic)

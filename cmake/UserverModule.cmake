@@ -31,7 +31,8 @@ include_guard(GLOBAL)
 # @multiparam UBENCH_LINK_LIBRARIES ???
 # @multiparam UBENCH_DATABASES Databases to start for benchmarks
 # @multiparam UBENCH_ENV Environment variables to set for benchmarks
-# @multiparam DEPENDS Userver module name(s) that the current module depends on
+# @multiparam COMPONENT_DEPENDS userver component name(s) that the current component depends on.
+#   Only valid for the main module of a component (i.e. when INSTALL_COMPONENT is not set).
 # @multiparam EMBED_FILES Files to embed
 function(userver_module MODULE)
     unset(ARG_UNPARSED_ARGUMENTS)
@@ -56,7 +57,7 @@ function(userver_module MODULE)
         UBENCH_LINK_LIBRARIES
         UBENCH_DATABASES
         UBENCH_ENV
-        DEPENDS
+        COMPONENT_DEPENDS
         EMBED_FILES
     )
     cmake_parse_arguments(ARG "${OPTIONS}" "${ONE_VALUE_ARGS}" "${MULTI_VALUE_ARGS}" ${ARGN})
@@ -102,6 +103,13 @@ function(userver_module MODULE)
 
     if(NOT ARG_NO_INSTALL)
         if(ARG_INSTALL_COMPONENT)
+            if(ARG_COMPONENT_DEPENDS)
+                message(
+                    FATAL_ERROR
+                        "userver_module(${MODULE}): COMPONENT_DEPENDS is meaningless together with INSTALL_COMPONENT. "
+                        "Specify the dependencies on the main module of the '${ARG_INSTALL_COMPONENT}' component instead."
+                )
+            endif()
             set(INSTALL_COMPONENT ${ARG_INSTALL_COMPONENT})
         else()
             set(INSTALL_COMPONENT ${MODULE})
@@ -113,19 +121,20 @@ function(userver_module MODULE)
         )
         _userver_install_targets(COMPONENT ${INSTALL_COMPONENT} TARGETS userver-${MODULE})
         if(NOT ARG_INSTALL_COMPONENT)
-            set(install_config_file "${USERVER_ROOT_DIR}/cmake/install/userver-${MODULE}-config.cmake")
+            # Main module of the component.
+            set(install_config_file "${USERVER_ROOT_DIR}/cmake/install/userver-${INSTALL_COMPONENT}-config.cmake")
             if(NOT EXISTS ${install_config_file})
-                message(FATAL_ERROR "Can not install ${MODULE}, no installation config in ${install_config_file}")
+                message(FATAL_ERROR "Can not install ${INSTALL_COMPONENT}, no installation config in ${install_config_file}")
             endif()
 
             _userver_directory_install(
-                COMPONENT ${MODULE}
+                COMPONENT ${INSTALL_COMPONENT}
                 FILES "${install_config_file}"
                 DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
             )
-        endif()
 
-        _userver_install_component(MODULE ${MODULE} DEPENDS ${ARG_DEPENDS})
+            _userver_install_component(COMPONENT ${INSTALL_COMPONENT} DEPENDS ${ARG_COMPONENT_DEPENDS})
+        endif()
     endif()
 
     # 1. userver-${MODULE}-unittest
@@ -179,12 +188,15 @@ function(userver_module MODULE)
     if(ARG_GENERATE_DYNAMIC_CONFIGS)
         userver_target_generate_chaotic_dynamic_configs(userver-${MODULE}-dynamic-configs dynamic_configs/*.yaml)
         target_link_libraries(userver-${MODULE} PUBLIC userver-${MODULE}-dynamic-configs)
-        _userver_install_targets(COMPONENT ${MODULE} TARGETS userver-${MODULE}-dynamic-configs)
-        _userver_directory_install(
-            COMPONENT ${MODULE}
-            DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/dynamic_configs/include
-            DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/.."
-        )
+
+        if(NOT ARG_NO_INSTALL)
+            _userver_install_targets(COMPONENT ${INSTALL_COMPONENT} TARGETS userver-${MODULE}-dynamic-configs)
+            _userver_directory_install(
+                COMPONENT ${INSTALL_COMPONENT}
+                DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/dynamic_configs/include
+                DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/.."
+            )
+        endif()
     endif()
 
     foreach(FILE ${ARG_EMBED_FILES})

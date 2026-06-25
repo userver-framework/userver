@@ -12,7 +12,7 @@ userver_module(
     LINK_LIBRARIES_PRIVATE amqpcpp
     DBTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_rmqtest.cpp"
     DBTEST_DATABASES rabbitmq
-    DEPENDS core
+    COMPONENT_DEPENDS core
     EMBED_FILES src/urabbitmq/component.yaml src/urabbitmq/consumer_component_base.yaml
 )
 

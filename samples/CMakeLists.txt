@@ -172,12 +172,18 @@ if(USERVER_FEATURE_S3API)
     add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-s3api)
 endif()
 
+# Install the whole samples tree, but drop this master CMakeLists.txt: it writes a
+# fake userverConfig.cmake stub (above) and would shadow the real installed userver.
+# The leaf samples' own CMakeLists.txt files live in subdirectories and are kept, so
+# the anchored "samples/CMakeLists.txt" pattern only matches this top-level file.
 _userver_directory_install(
     COMPONENT examples
     DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     DESTINATION share/userver
+    EXCLUDE_PATTERNS "samples/CMakeLists.txt"
 )
-_userver_install_component(MODULE examples DEPENDS "")
+# NON_FINDABLE: the 'examples' install/CPack component only ships sample sources.
+_userver_install_component(COMPONENT examples NON_FINDABLE)
 # libuserver-samples, not libuserver-samples-dev
 set(CPACK_DEBIAN_SAMPLES_PACKAGE_NAME libuserver-examples)
 

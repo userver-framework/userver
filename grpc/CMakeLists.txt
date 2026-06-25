@@ -229,4 +229,4 @@ _userver_directory_install(
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules
 )
 
-_userver_install_component(MODULE grpc DEPENDS core)
+_userver_install_component(COMPONENT grpc DEPENDS core)

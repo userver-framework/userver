@@ -403,6 +403,6 @@ _userver_directory_install(
     DESTINATION ${CMAKE_INSTALL_DATADIR}/userver
 )
 
-_userver_install_component(MODULE universal)
+_userver_install_component(COMPONENT universal)
 
 include(UserverEmbedFile)

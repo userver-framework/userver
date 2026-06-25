@@ -14,7 +14,7 @@ userver_module(
     UBENCH_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/benchmarks"
     UBENCH_LINK_LIBRARIES libmariadb
     UBENCH_DATABASES mysql
-    DEPENDS core
+    COMPONENT_DEPENDS core
     EMBED_FILES src/storages/mysql/component.yaml
 )
 

@@ -13,7 +13,7 @@ userver_module(
     DBTEST_ENV REDIS_SLEEP_WORKAROUND_SECONDS=120
     UBENCH_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/benchmark"
     UBENCH_DATABASES redis
-    DEPENDS core
+    COMPONENT_DEPENDS core
     GENERATE_DYNAMIC_CONFIGS
     EMBED_FILES src/storages/redis/component.yaml
     EMBED_FILES src/storages/redis/dynamic_component.yaml

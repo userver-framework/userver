@@ -8,8 +8,8 @@ target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURR
 target_include_directories(${PROJECT_NAME} PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/../src")
 
 _userver_directory_install(
-    COMPONENT postgres
+    COMPONENT postgresql
     DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/include"
     DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/.."
 )
-_userver_install_targets(COMPONENT postgres TARGETS ${PROJECT_NAME})
+_userver_install_targets(COMPONENT postgresql TARGETS ${PROJECT_NAME})

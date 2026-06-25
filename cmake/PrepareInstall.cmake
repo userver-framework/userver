@@ -3,9 +3,10 @@ include_guard(GLOBAL)
 set_property(GLOBAL PROPERTY userver_cmake_dir "${CMAKE_CURRENT_LIST_DIR}")
 
 function(_userver_install_targets)
+    set(options)
     set(oneValueArgs COMPONENT)
     set(multiValueArgs TARGETS)
-    cmake_parse_arguments(ARG "${option}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
+    cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
     if(NOT ARG_COMPONENT)
         message(FATAL_ERROR "No COMPONENT for install")
     endif()
@@ -78,7 +79,7 @@ function(_userver_directory_install)
     endif()
     set(option)
     set(oneValueArgs COMPONENT DESTINATION PATTERN RENAME)
-    set(multiValueArgs FILES DIRECTORY PROGRAMS)
+    set(multiValueArgs FILES DIRECTORY PROGRAMS EXCLUDE_PATTERNS)
     cmake_parse_arguments(ARG "${option}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
     if(NOT ARG_COMPONENT)
         message(FATAL_ERROR "No COMPONENT for install")
@@ -109,22 +110,20 @@ function(_userver_directory_install)
         )
     endif()
     if(ARG_DIRECTORY)
+        set(install_args)
         if(ARG_PATTERN)
-            install(
-                DIRECTORY ${ARG_DIRECTORY}
-                DESTINATION ${ARG_DESTINATION}
-                COMPONENT ${ARG_COMPONENT}
-                USE_SOURCE_PERMISSIONS FILES_MATCHING
-                PATTERN ${ARG_PATTERN}
-            )
-        else()
-            install(
-                DIRECTORY ${ARG_DIRECTORY}
-                DESTINATION ${ARG_DESTINATION}
-                COMPONENT ${ARG_COMPONENT}
-                USE_SOURCE_PERMISSIONS
-            )
+            list(APPEND install_args FILES_MATCHING PATTERN ${ARG_PATTERN})
         endif()
+        foreach(pattern IN LISTS ARG_EXCLUDE_PATTERNS)
+            list(APPEND install_args PATTERN "${pattern}" EXCLUDE)
+        endforeach()
+        install(
+            DIRECTORY ${ARG_DIRECTORY}
+            DESTINATION ${ARG_DESTINATION}
+            COMPONENT ${ARG_COMPONENT}
+            USE_SOURCE_PERMISSIONS
+            ${install_args}
+        )
     endif()
 endfunction()
 
@@ -132,6 +131,12 @@ function(_userver_make_install_config)
     if(NOT USERVER_INSTALL)
         return()
     endif()
+
+    # USERVER_AVAILABLE_COMPONENTS is collected automatically from
+    # _userver_install_component() calls (see the global property of the same
+    # name). It is substituted into Config.cmake.in as the default list of
+    # find_package(userver) components.
+    get_property(USERVER_AVAILABLE_COMPONENTS GLOBAL PROPERTY USERVER_AVAILABLE_COMPONENTS)
 
     configure_package_config_file(
         "${USERVER_ROOT_DIR}/cmake/install/Config.cmake.in" "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
@@ -156,41 +161,46 @@ function(_userver_install_component)
         return()
     endif()
 
-    set(oneValueArgs MODULE)
+    set(options NON_FINDABLE)
+    set(oneValueArgs COMPONENT)
     set(multiValueArgs DEPENDS)
-    cmake_parse_arguments(ARG "${option}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
+    cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
 
-    string(TOUPPER "${ARG_MODULE}" MODULE_UPPER)
+    if(NOT ARG_NON_FINDABLE)
+        set_property(GLOBAL APPEND PROPERTY USERVER_AVAILABLE_COMPONENTS ${ARG_COMPONENT})
+    endif()
+
+    string(TOUPPER "${ARG_COMPONENT}" COMPONENT_UPPER)
     if(CPACK_COMPONENTS_GROUPING STREQUAL ONE_PER_GROUP)
-        if(NOT CPACK_DEBIAN_${MODULE_UPPER}_PACKAGE_DEPENDS)
+        if(NOT CPACK_DEBIAN_${COMPONENT_UPPER}_PACKAGE_DEPENDS)
             message(
                 FATAL_ERROR
-                    "File with per-component dependencies is missing (component ${ARG_MODULE}). Either use CPACK_COMPONENTS_GROUPING=ALL_COMPONENTS_IN_ONE to build a single all-in-one package, or create dependency file ${USERVER_ROOT_DIR}/scripts/docs/en/deps/${DEPENDENCIES_FILESTEM}/${ARG_MODULE}."
+                    "File with per-component dependencies is missing (component ${ARG_COMPONENT}). Either use CPACK_COMPONENTS_GROUPING=ALL_COMPONENTS_IN_ONE to build a single all-in-one package, or create dependency file ${USERVER_ROOT_DIR}/scripts/docs/en/deps/${DEPENDENCIES_FILESTEM}/${ARG_COMPONENT}."
             )
         endif()
     endif()
 
     execute_process(
-        COMMAND cat "${USERVER_ROOT_DIR}/scripts/docs/en/deps/${DEPENDENCIES_FILESTEM}/${ARG_MODULE}"
+        COMMAND cat "${USERVER_ROOT_DIR}/scripts/docs/en/deps/${DEPENDENCIES_FILESTEM}/${ARG_COMPONENT}"
         COMMAND tr "\n" " "
         COMMAND sed "s/ \\(.\\)/, \\1/g"
-        OUTPUT_VARIABLE MODULE_DEPENDS
+        OUTPUT_VARIABLE COMPONENT_DEPENDS
     )
     file(
         APPEND "${CMAKE_BINARY_DIR}/cpack.variables.inc"
         "
-        set(CPACK_DEBIAN_${MODULE_UPPER}_PACKAGE_NAME libuserver-${ARG_MODULE}-dev)
-        set(CPACK_DEBIAN_${MODULE_UPPER}_PACKAGE_CONFLICTS libuserver-all-dev)
-        set(CPACK_COMPONENT_${MODULE_UPPER}_DEPENDS ${ARG_DEPENDS})
-        set(CPACK_DEBIAN_${MODULE_UPPER}_PACKAGE_DEPENDS \"${MODULE_DEPENDS}\")
+        set(CPACK_DEBIAN_${COMPONENT_UPPER}_PACKAGE_NAME libuserver-${ARG_COMPONENT}-dev)
+        set(CPACK_DEBIAN_${COMPONENT_UPPER}_PACKAGE_CONFLICTS libuserver-all-dev)
+        set(CPACK_COMPONENT_${COMPONENT_UPPER}_DEPENDS ${ARG_DEPENDS})
+        set(CPACK_DEBIAN_${COMPONENT_UPPER}_PACKAGE_DEPENDS \"${COMPONENT_DEPENDS}\")
     "
     )
 
     file(
         APPEND "${CMAKE_BINARY_DIR}/cpack.inc"
         "
-        cpack_add_component_group(${ARG_MODULE} EXPANDED)
-        cpack_add_component(${ARG_MODULE} GROUP ${ARG_MODULE} INSTALL_TYPES Full)
+        cpack_add_component_group(${ARG_COMPONENT} EXPANDED)
+        cpack_add_component(${ARG_COMPONENT} GROUP ${ARG_COMPONENT} INSTALL_TYPES Full)
     "
     )
 endfunction()

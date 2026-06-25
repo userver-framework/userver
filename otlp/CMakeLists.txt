@@ -9,7 +9,7 @@ userver_module(
     LINK_LIBRARIES userver-otlp-proto
     UTEST_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/tests"
     UTEST_LINK_LIBRARIES userver-grpc-utest
-    DEPENDS grpc
+    COMPONENT_DEPENDS grpc
     EMBED_FILES src/otlp/logs/component.yaml
 )
 

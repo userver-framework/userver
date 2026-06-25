@@ -16,7 +16,7 @@ userver_module(
         # HACK: common source between unittest and dbtest targets.
         "${CMAKE_CURRENT_SOURCE_DIR}/src/storages/tests/utils_test.cpp"
     DBTEST_DATABASES clickhouse
-    DEPENDS core
+    COMPONENT_DEPENDS core
     EMBED_FILES src/storages/clickhouse/component.yaml
 )
 

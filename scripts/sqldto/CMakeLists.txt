@@ -19,7 +19,7 @@ if(USERVER_BUILD_TESTS)
 endif()
 
 _userver_directory_install(
-    COMPONENT sqldto
+    COMPONENT postgresql
     DIRECTORY "${USERVER_ROOT_DIR}/scripts/sqldto"
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver/scripts"
 )

@@ -9,7 +9,6 @@ userver_module(
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/datetime_test.cpp"
         "${CMAKE_CURRENT_SOURCE_DIR}/tests/json/*.cpp"
     UTEST_LINK_LIBRARIES userver-protobuf-unittest-proto
-    DEPENDS universal
 )
 
 if(USERVER_BUILD_TESTS)

@@ -7,7 +7,7 @@ userver_module(
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
     UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
     UBENCH_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_benchmark.cpp"
-    DEPENDS core
+    COMPONENT_DEPENDS core
 )
 
 target_include_directories(
