@@ -97,3 +97,7 @@ write_package_stub(Protobuf)
 mark_targets_as_system("${Protobuf_SOURCE_DIR}")
 _userver_set_protobuf_version_category()
 set(PROTOBUF_PROTOC $<TARGET_FILE:protoc>)
+
+# protobuf_generate() is defined in protobuf's own cmake module.
+# When using CPM, FindProtobuf.cmake is not loaded, so we include it manually.
+include("${Protobuf_SOURCE_DIR}/cmake/protobuf-generate.cmake")
