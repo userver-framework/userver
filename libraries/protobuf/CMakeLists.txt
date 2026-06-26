@@ -34,4 +34,8 @@ if(USERVER_BUILD_TESTS)
         $<BUILD_INTERFACE:${_PROTO_GEN}>
     )
     target_link_libraries(userver-protobuf-unittest-proto PUBLIC protobuf::libprotobuf)
+    
+    if(TARGET userver-protobuf-unittest)
+        add_dependencies(userver-protobuf-unittest userver-protobuf-unittest-proto)
+    endif()
 endif()
