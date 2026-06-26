@@ -250,17 +250,41 @@ UTEST(Converter, SolomonChildrenLabelEscaping) {
 
     constexpr std::string_view expected = R"(
 # TYPE base_key_some_key_a_________g_test gauge
-base_key_some_key_a_________g_test{application="processing",child_label____________name="label.value.#$/\ _{}''1"} 76
+base_key_some_key_a_________g_test{application="processing",child_label____________name="label.value.#$/\\ _{}''1"} 76
 # TYPE base_key_some_key_a_________g_test1 gauge
-base_key_some_key_a_________g_test1{application="processing",child_label____________name="label.value.#$/\ _{}''1"} 90
+base_key_some_key_a_________g_test1{application="processing",child_label____________name="label.value.#$/\\ _{}''1"} 90
 # TYPE base_key_some_key_field1 gauge
-base_key_some_key_field1{application="processing",child_label____________name="label.value.#$/\ _{}2"} 3
+base_key_some_key_field1{application="processing",child_label____________name="label.value.#$/\\ _{}2"} 3
 # TYPE base_key_some_key_field2 gauge
-base_key_some_key_field2{application="processing",child_label____________name="label.value.#$/\ _{}2"} 6.67
+base_key_some_key_field2{application="processing",child_label____________name="label.value.#$/\\ _{}2"} 6.67
 # TYPE base_key_some_key_field3 gauge
-base_key_some_key_field3{application="processing",overridden_label____________name="overridden.label.#$/\ _{}''value"} 9999
+base_key_some_key_field3{application="processing",overridden_label____________name="overridden.label.#$/\\ _{}''value"} 9999
 )";
     TestToMetricsPrometheus(statistics_storage, expected.substr(1), true);
+}
+
+UTEST(MetricsPrometheus, LabelValueBackslashAndNewlineEscaped) {
+    auto producer = [](const utils::statistics::StatisticsRequest&) {
+        formats::json::ValueBuilder result;
+        utils::statistics::SolomonChildrenAreLabelValues(result, "label_name");
+        // A label value with an embedded line feed and a trailing backslash.
+        result["a\nb\\"]["value"] = 1;
+        return result;
+    };
+
+    utils::statistics::Storage statistics_storage;
+    auto statistics_holder = statistics_storage.RegisterExtender("root", producer);
+
+    const auto request = utils::statistics::Request::MakeWithPrefix({}, {{"application", "processing"}});
+    const auto result = ToPrometheusFormat(statistics_storage, request);
+
+    // The line feed must be written as `\n` and the trailing backslash doubled.
+    // Otherwise the raw backslash escapes the closing quote and the raw line
+    // feed starts a new sample line.
+    EXPECT_NE(result.find(R"(label_name="a\nb\\")"), std::string::npos) << result;
+    // A single gauge metric: only the `# TYPE` line and the sample line, so the
+    // escaped value must not add a third line feed.
+    EXPECT_EQ(std::ranges::count(result, '\n'), 2) << result;
 }
 
 UTEST(MetricsPrometheus, SimpleStatistics) {
