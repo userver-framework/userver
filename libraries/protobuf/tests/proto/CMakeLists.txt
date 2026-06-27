@@ -18,6 +18,7 @@ protobuf_generate(
     PROTOC_OUT_DIR "${_PROTO_GEN}"
 )
 
+target_link_libraries(userver-protobuf-unittest-proto PUBLIC protobuf::libprotobuf)
 target_compile_options(userver-protobuf-unittest-proto PUBLIC -Wno-unused-parameter)
 target_include_directories(
     userver-protobuf-unittest-proto SYSTEM PUBLIC $<BUILD_INTERFACE:${_PROTO_GEN}>
