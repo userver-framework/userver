@@ -51,6 +51,28 @@ public:
     void Handle(websocket::WebSocketConnection&, server::request::RequestContext&) const override {}
 };
 
+class WebSocketLargeMessage final : public server::handlers::WebsocketHandlerBase {
+public:
+    static constexpr std::string_view kName = "websocket-large-message-handler";
+
+    using WebsocketHandlerBase::WebsocketHandlerBase;
+
+    void Handle(websocket::WebSocketConnection& ws, server::request::RequestContext&) const override {
+        constexpr std::size_t kMessageSize = 70000;
+
+        ws.SendText(std::string(kMessageSize, 'X'));
+
+        websocket::Message message;
+        while (!engine::current_task::ShouldCancel()) {
+            ws.Recv(message);
+            if (message.close_status) {
+                ws.Close(*message.close_status);
+                break;
+            }
+        }
+    }
+};
+
 // HTTP handler for testing C++ WebSocket client
 class TestClientHandler final : public server::handlers::HttpHandlerBase {
 public:
@@ -84,6 +106,10 @@ public:
                 return TestUnauth(request);
             } else if (test_name == "connection_already_extracted") {
                 return TestConnectionAlreadyExtracted(request);
+            } else if (test_name == "large_server_message_default_limit") {
+                return TestLargeServerMessageDefaultLimit(request);
+            } else if (test_name == "large_server_message_custom_limit") {
+                return TestLargeServerMessageCustomLimit(request);
             }
             return "Unknown test";
         } catch (const std::exception& e) {
@@ -247,6 +273,35 @@ private:
         return "OK";
     }
 
+    std::string TestLargeServerMessageDefaultLimit(const server::http::HttpRequest& request) const {
+        auto conn = PerformWebSocket(request, "/large-message").MakeWebSocketConnection();
+
+        websocket::Message msg;
+        conn->Recv(msg);
+
+        if (!msg.close_status || *msg.close_status != websocket::CloseStatus::kTooBigData) {
+            return fmt::format(
+                "FAIL: close status is {}",
+                msg.close_status ? static_cast<int>(*msg.close_status) : -1
+            );
+        }
+
+        return "OK";
+    }
+
+    std::string TestLargeServerMessageCustomLimit(const server::http::HttpRequest& request) const {
+        auto ws_response = PerformWebSocket(request, "/large-message");
+        websocket::Config config;
+        config.max_remote_payload = 80000;
+        auto conn = ws_response.MakeWebSocketConnectionWithConfig(config);
+
+        websocket::Message msg;
+        conn->Recv(msg);
+        conn->Close(websocket::CloseStatus::kNormal);
+
+        return (msg.is_text && msg.data == std::string(70000, 'X')) ? "OK" : "FAIL";
+    }
+
     clients::http::Client& client_;
 };
 
@@ -257,6 +312,7 @@ int main(int argc, char* argv[]) {
             .Append<clients::dns::Component>()
             .Append<WebSocketEcho>()
             .Append<WebSocketUnauth>()
+            .Append<WebSocketLargeMessage>()
             .Append<TestClientHandler>()
             .Append<components::TestsuiteSupport>();
     return utils::DaemonMain(argc, argv, component_list);
