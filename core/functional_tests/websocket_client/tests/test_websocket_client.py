@@ -13,6 +13,7 @@ import pytest
         'nonblocking_write',
         'unauth',
         'connection_already_extracted',
+        'remote_addr',
     ],
 )
 async def test_client(service_client, service_port, test_name):

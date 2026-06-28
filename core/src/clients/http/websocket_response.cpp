@@ -28,7 +28,7 @@ std::shared_ptr<websocket::WebSocketConnection> WebSocketResponse::MakeWebSocket
     }
 
     auto socket = std::make_unique<engine::io::Socket>(socket_.GetNative());
-    auto addr = socket->Getsockname();
+    auto addr = socket->Getpeername();
     auto config = websocket::Config{};
 
     std::move(socket_).Release();

@@ -84,6 +84,8 @@ public:
                 return TestUnauth(request);
             } else if (test_name == "connection_already_extracted") {
                 return TestConnectionAlreadyExtracted(request);
+            } else if (test_name == "remote_addr") {
+                return TestRemoteAddr(request);
             }
             return "Unknown test";
         } catch (const std::exception& e) {
@@ -97,6 +99,16 @@ private:
         const auto port = std::stoi(request.GetArg("port"));
 
         return client_.CreateRequest().url(fmt::format("ws://localhost:{}{}", port, uri)).PerformWebSocketHandshake();
+    }
+
+    std::string TestRemoteAddr(const server::http::HttpRequest& request) const {
+        const auto port = std::stoi(request.GetArg("port"));
+        auto conn = PerformWebSocket(request, "/echo").MakeWebSocketConnection();
+
+        const auto remote_port = conn->RemoteAddr().Port();
+        conn->Close(websocket::CloseStatus::kNormal);
+
+        return remote_port == port ? "OK" : fmt::format("FAIL: remote port is {}", remote_port);
     }
 
     std::string TestEcho(const server::http::HttpRequest& request) const {
