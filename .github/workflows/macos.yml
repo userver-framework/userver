@@ -120,5 +120,5 @@ jobs:
                 cd build_debug
                 ulimit -n 4096
                 GTEST_FILTER="-UUID.ParseFail:Transaction.*:TransactionDeathTest.*:PostgreCluster.TransactionTimeouts" \
-                  ctest -j2 --output-on-failure \
+                  ctest --output-on-failure \
                   -E "testsuite-userver-core-tests-basic-chaos-tests-deadline|testsuite-userver-core-tests-websocket|testsuite-userver-core-tests-basic-chaos|userver-mongo-dbtest|testsuite-userver-mongo|testsuite-userver-redis-tests-basic-chaos|testsuite-userver-postgresql-tests-basic-chaos|userver-sqlite-unittest"
