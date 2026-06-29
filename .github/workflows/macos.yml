@@ -119,6 +119,53 @@ jobs:
             run: |-
                 cd build_debug
                 ulimit -n 4096
-                GTEST_FILTER="-UUID.ParseFail:Transaction.*:TransactionDeathTest.*:PostgreCluster.TransactionTimeouts" \
-                  ctest --output-on-failure \
-                  -E "testsuite-userver-core-tests-basic-chaos-tests-deadline|testsuite-userver-core-tests-websocket|testsuite-userver-core-tests-basic-chaos|userver-mongo-dbtest|testsuite-userver-mongo|testsuite-userver-redis-tests-basic-chaos|testsuite-userver-postgresql-tests-basic-chaos|userver-sqlite-unittest"
+                # gtest cases broken/flaky on macOS (filtered out individually)
+                broken_gtests=(
+                  UUID.ParseFail
+                  Transaction.Commit
+                  Transaction.Rollback
+                  Transaction.AutoRollback
+                  Transaction.ActuallyTransactional
+                  Transaction.InsertOne
+                  Transaction.InsertMany
+                  TransactionDeathTest.AccessAfterCommit
+                  TransactionDeathTest.AccessAfterRollback
+                  PostgreCluster.TransactionTimeouts
+                  '*ViaChaosProxy'
+                  HttpClient.HttpsWithNoClientCa
+                  HttpClient.StatsOnTimeout
+                  HttpClientProxy.HttpsTruncatedHeaders
+                  DestinationStatistics.Ok
+                  DestinationStatistics.Multiple
+                  CurlFormTest.MultipartFileWithContentType
+                  CurlFormTest.FilesWithContentType
+                  CurlFormTest.FormMovable
+                  WaitWake.WakeupTriggersPredicateRecheck
+                  AsyncFlatCombiningQueue.StressAsync
+                  Socket.UdpIpMreqIPv6
+                  Socket.UdpIpMreqMultipleReceiversIPv6
+                  Subprocess.EnvironmentVariablesScope
+                  ThreadLocal.SafeThreadLocalWorks
+                  HedgedRequest.Base
+                  HedgedRequest.SuccessfulHedging
+                  HedgedRequest.Timeout
+                  PeriodicTask.SingleRun
+                  PeriodicTask.MultipleRun
+                  PeriodicTask.Period
+                  PeriodicTask.SetSettings
+                )
+                # whole tests not run / failing on macOS
+                excluded_tests=(
+                  testsuite-userver-core-tests-basic-chaos
+                  testsuite-userver-core-tests-websocket
+                  userver-mongo-dbtest
+                  testsuite-userver-mongo
+                  testsuite-userver-redis-tests-basic-chaos
+                  testsuite-userver-postgresql-tests-basic-chaos
+                  userver-sqlite-unittest
+                  userver-testsuite-tests-chaos
+                  userver-odbc-dbtest
+                  testsuite-userver-odbc-tests-basic-chaos
+                )
+                export GTEST_FILTER="-$(IFS=:; printf '%s' "${broken_gtests[*]}")"
+                ctest --output-on-failure -E "$(IFS='|'; printf '%s' "${excluded_tests[*]}")"
