@@ -432,6 +432,45 @@ TEST(YamlConfig, NoVariableMap) {
     );
 }
 
+
+TEST(YamlConfig, NestedVarsEnv) {
+    auto vmap = formats::yaml::FromString(R"(
+    root:
+        value1#env: VALUE_1
+        value2: value-2
+        nested:
+            value3#env: VALUE_3
+            value4: value-4
+            nested:
+                value5#env: VALUE_5
+                value6: value-6
+  )");
+
+    auto node = formats::yaml::FromString(R"(
+    root: $root
+  )");
+
+    yaml_config::YamlConfig conf(std::move(node), std::move(vmap), yaml_config::YamlConfig::Mode::kEnvAllowed);
+
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ::setenv("VALUE_1", "value-1", 1);
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ::setenv("VALUE_3", "value-3", 1);
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ::setenv("VALUE_5", "value-5", 1);
+
+    EXPECT_EQ(conf["root"]["value1"].As<std::string>(), "value-1");
+    EXPECT_EQ(conf["root"]["nested"]["value3"].As<std::string>(), "value-3");
+    EXPECT_EQ(conf["root"]["nested"]["nested"]["value5"].As<std::string>(), "value-5");
+
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ::unsetenv("VALUE_5");
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ::unsetenv("VALUE_3");
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ::unsetenv("VALUE_1");
+}
+
 /// Common test base to make consistent tests between iterators and operator[]
 template <typename Accessor>
 class YamlConfigAccessor : public ::testing::Test {};

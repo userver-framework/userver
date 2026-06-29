@@ -100,7 +100,7 @@ std::optional<YamlConfig> GetSharpCommandValue(
     if (env_value) {
         env_value = env_value->CloneWithReplacedPath(yaml[key].GetPath());
         // Strip substitutions off to disallow nested substitutions
-        return YamlConfig{std::move(*env_value), {}, YamlConfig::Mode::kSecure};
+        return YamlConfig{std::move(*env_value), {}, mode};
     }
 
     const auto file_name = yaml[GetFileName(key)];
@@ -108,7 +108,7 @@ std::optional<YamlConfig> GetSharpCommandValue(
     if (file_value) {
         file_value = file_value->CloneWithReplacedPath(yaml[key].GetPath());
         // Strip substitutions off to disallow nested substitutions
-        return YamlConfig{std::move(*file_value), {}, YamlConfig::Mode::kSecure};
+        return YamlConfig{std::move(*file_value), {}, mode};
     }
 
     if (met_substitution || !env_name.IsMissing() || !file_name.IsMissing()) {
@@ -119,7 +119,7 @@ std::optional<YamlConfig> GetSharpCommandValue(
             return YamlConfig{
                 yaml[fallback_name].CloneWithReplacedPath(yaml[key].GetPath()),
                 {},
-                YamlConfig::Mode::kSecure
+                mode
             };
         }
     }
@@ -142,7 +142,7 @@ std::optional<YamlConfig> GetYamlConfig(
         if (!var_data.IsMissing()) {
             var_data = var_data.CloneWithReplacedPath(value.GetPath());
             // Strip substitutions off to disallow nested substitutions
-            return YamlConfig{std::move(var_data), {}, YamlConfig::Mode::kSecure};
+            return YamlConfig{std::move(var_data), {}, mode};
         }
 
         auto res = GetSharpCommandValue(
@@ -155,7 +155,7 @@ std::optional<YamlConfig> GetYamlConfig(
             return YamlConfig{
                 res->GetRawYamlWithoutConfigVars().CloneWithReplacedPath(value.GetPath()),
                 {},
-                YamlConfig::Mode::kSecure,
+                mode,
             };
         }
     }
@@ -206,7 +206,7 @@ YamlConfig YamlConfig::operator[](size_t index) const {
         if (!var_data.IsMissing()) {
             var_data = var_data.CloneWithReplacedPath(value.GetPath());
             // Strip substitutions off to disallow nested substitutions
-            return YamlConfig{std::move(var_data), {}, Mode::kSecure};
+            return YamlConfig{std::move(var_data), {}, mode_};
         }
 
         auto res = GetSharpCommandValue(
@@ -219,7 +219,7 @@ YamlConfig YamlConfig::operator[](size_t index) const {
             return YamlConfig{
                 res->GetRawYamlWithoutConfigVars().CloneWithReplacedPath(value.GetPath()),
                 {},
-                YamlConfig::Mode::kSecure,
+                mode_,
             };
         }
 
