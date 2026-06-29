@@ -133,7 +133,7 @@ jobs:
             run: |
                 sudo apt update
                 sudo apt purge -y libpq5 libpq-dev postgresql-*
-                sudo apt install --allow-downgrades -y clickhouse-common-static redis-server postgresql $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
+                sudo apt install --allow-downgrades -y clickhouse-common-static redis-server postgresql mongodb-mongosh $(cat scripts/docs/en/deps/${{matrix.os}}.md | tr '\n' ' ')
 
           - name: Setup ccache
             run: |
@@ -180,91 +180,13 @@ jobs:
                 du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
                 ccache -s -v
 
-          - name: Run tests (universal)
-            run: |
+          - name: Run tests
+            run: |-
                 echo "UBSAN_OPTIONS=${UBSAN_OPTIONS} ASAN_OPTIONS=${ASAN_OPTIONS}"
                 cd build_debug
-                ./universal/userver-universal-unittest ${{matrix.tests-flags}}
-
-          - name: Run tests (libraries)
-            run: |
-                cd build_debug
-                mkdir libraries || :
-                cd libraries
-                ctest -V
-
-          - name: Run tests (core)
-            run: |
-                cd build_debug
-                ./core/userver-core-unittest ${{matrix.tests-flags}}
-
-          - name: Run tests (kafka)
-            run: |
-                cd build_debug
-                mkdir kafka || :
-                cd kafka
-                ctest -V
-
-          - name: Run tests (clickhouse)
-            run: |
-                cd build_debug
-                mkdir clickhouse || :
-                cd clickhouse
-                ctest -V
-
-          - name: Run tests (rabbitmq)
-            run: |
-                cd build_debug
-                mkdir rabbitmq || :
-                cd rabbitmq
-                ctest -V
-
-          - name: Run tests (postgresql)
-            run: |
-                cd build_debug
-                mkdir postgresql || :
-                cd postgresql
-                ${{matrix.tests-env}} ctest -V
-
-          - name: Run tests (redis)
-            run: |
-                cd build_debug/redis/
-                ctest -V
-
-          - name: Run tests (mongo)
-            run: |
-                sudo apt install -y mongodb-mongosh
-                cd build_debug
-                mkdir mongo || :
-                cd mongo
-                if [ -f ./userver-mongo-unittest ]; then ./userver-mongo-unittest ; fi
-                # Mongo is not available on Ubuntu 22.04 from default repos
-                if [ "${{matrix.os}}" != "ubuntu-22.04" ]; then ctest -V -R userver-mongo-mongotest ; fi
-
-          - name: Run tests (gRPC)
-            if: matrix.os != 'ubuntu-24.04'
-            run: |
-                cd build_debug
-                mkdir grpc || :
-                cd grpc
-                ulimit -n 4096 && ctest -V
-
-          - name: Run tests (mysql)
-            # MySQL benchmarks do not work on new Ubuntu
-            if: matrix.os != 'ubuntu-24.04'
-            run: |
-                sudo apt install -y mariadb-server
-                cd build_debug
-                mkdir mysql || :
-                cd mysql
-                ctest -V
-
-          - name: Run tests (gdb)
-            run: |
-                cd build_debug/scripts/gdb/tests
-                ctest -V
-
-          - name: Run tests (sqlite)
-            run: |-
-                cd build_debug/sqlite
-                ctest -V
+                ulimit -n 4096
+                GTEST_FILTER="${{matrix.tests-flags}}"
+                export GTEST_FILTER="${GTEST_FILTER#--gtest_filter=}"
+                # grpc and mysql tests are skipped on Ubuntu 24.04 (the only matrix OS).
+                ${{matrix.tests-env}} ctest -j2 --output-on-failure \
+                  -E "userver-grpc-unittest|userver-grpc-benchmark|userver-grpc-tests|userver-grpc-handlers|userver-mysql"
