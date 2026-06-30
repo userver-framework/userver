@@ -187,6 +187,24 @@ jobs:
                 ulimit -n 4096
                 GTEST_FILTER="${{matrix.tests-flags}}"
                 export GTEST_FILTER="${GTEST_FILTER#--gtest_filter=}"
-                # grpc and mysql tests are skipped on Ubuntu 24.04 (the only matrix OS).
+                # Tests not runnable on the GitHub Ubuntu runner:
+                #  * grpc/mysql: skipped on Ubuntu 24.04 (the only matrix OS)
+                #  * mongo (real DB): mongod replica set does not start on the runner
+                #  * samples-mysql_service: needs mariadb-server (not installed)
+                #  * websocket_client: runner curl lacks ws:// support
+                #  * compile-err-msg: compile-fail test unstable under clang-18
+                excluded_tests=(
+                  userver-grpc-unittest
+                  userver-grpc-benchmark
+                  userver-grpc-tests
+                  userver-grpc-handlers
+                  userver-mysql
+                  userver-mongo-dbtest
+                  testsuite-userver-mongo
+                  userver-samples-mongo
+                  samples-mysql_service
+                  testsuite-userver-core-tests-websocket_client
+                  userver-universal-compile-err-msg-test
+                )
                 ${{matrix.tests-env}} ctest -j2 --output-on-failure \
-                  -E "userver-grpc-unittest|userver-grpc-benchmark|userver-grpc-tests|userver-grpc-handlers|userver-mysql"
+                  -E "$(IFS='|'; printf '%s' "${excluded_tests[*]}")"
