@@ -131,7 +131,11 @@ public:
     SubarrayBson(bson_t* parent, const char* key, size_t key_len)
         : parent_(parent)
     {
-        bson_append_array_begin(parent_, key, key_len, &bson_);
+#if BSON_CHECK_VERSION(2, 3, 0)
+        bson_append_array_unsafe_begin(parent_, key, static_cast<int>(key_len), &bson_);
+#else
+        bson_append_array_begin(parent_, key, static_cast<int>(key_len), &bson_);
+#endif
     }
 
     ~SubarrayBson() {
