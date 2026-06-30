@@ -20,8 +20,7 @@ TEST(HysteresisTest, DefaultDoesNotChangeState) {
 }
 
 TEST(HysteresisTest, FailureThresholdTriggersFailedState) {
-    Hysteresis::Config cfg;
-    cfg.consecutive_failures = 2;
+    Hysteresis::Config cfg{.consecutive_failures = 2};
     Hysteresis h(cfg);
 
     // First failure – not enough to trigger
@@ -38,9 +37,7 @@ TEST(HysteresisTest, FailureThresholdTriggersFailedState) {
 }
 
 TEST(HysteresisTest, SuccessThresholdClearsFailedState) {
-    Hysteresis::Config cfg;
-    cfg.consecutive_failures = 2;
-    cfg.consecutive_ok = 3;
+    Hysteresis::Config cfg{.consecutive_failures = 2, .consecutive_ok = 3};
     Hysteresis h(cfg);
 
     // Trigger failed state

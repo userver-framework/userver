@@ -284,7 +284,7 @@ SentinelImpl::SentinelImpl(
                 topology_update_method,
                 creation_config.required_mode == storages::redis::WaitConnectedMode::kNoWait
                     ? Hysteresis::Config()
-                    : Hysteresis::Config(3, 5),
+                    : Hysteresis::Config{.consecutive_failures = 3, .consecutive_ok = 5},
                 creation_config.max_disconnect_time
             );
         } else if (key_shard_type == ShardingStrategy::kRedisStandalone) {
