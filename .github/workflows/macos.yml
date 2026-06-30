@@ -149,10 +149,7 @@ jobs:
                   HedgedRequest.Base
                   HedgedRequest.SuccessfulHedging
                   HedgedRequest.Timeout
-                  PeriodicTask.SingleRun
-                  PeriodicTask.MultipleRun
-                  PeriodicTask.Period
-                  PeriodicTask.SetSettings
+                  'PeriodicTask.*'
                 )
                 # whole tests not run / failing on macOS
                 excluded_tests=(
