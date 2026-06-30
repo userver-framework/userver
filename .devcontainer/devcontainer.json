@@ -1,7 +1,10 @@
 {
   "build": {
     "dockerfile": "Dockerfile",
-    "context": ".."
+    "context": "..",
+    "options": [
+      "--platform=linux/amd64"
+    ]
   },
   "containerEnv": {
     "CCACHE_DIR": "/home/user/userver/.ccache",
@@ -18,6 +21,9 @@
         "ms-azuretools.vscode-docker"
       ],
       "settings": {
+        "github.copilot.enable": {
+          "*": false
+        },
         "clangd.arguments": [
           "--background-index",
           "--compile-commands-dir=.vscode",
@@ -43,6 +49,7 @@
   "onCreateCommand": "git config --global --add safe.directory /home/user/userver",
   "remoteUser": "user",
   "runArgs": [
+    "--platform=linux/amd64",
     "--cap-add=SYS_PTRACE",
     "--security-opt",
     "seccomp=unconfined"
