@@ -132,6 +132,7 @@ jobs:
                   TransactionDeathTest.AccessAfterRollback
                   PostgreCluster.TransactionTimeouts
                   '*ViaChaosProxy'
+                  HttpClient.HttpsWithCrl
                   HttpClient.HttpsWithNoClientCa
                   HttpClient.StatsOnTimeout
                   HttpClientProxy.HttpsTruncatedHeaders
