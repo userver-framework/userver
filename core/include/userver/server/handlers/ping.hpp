@@ -45,7 +45,7 @@ private:
 /// @brief Ping handler implementation with warmup
 ///
 /// ## Static options of server::handlers::Ping:
-/// @include{doc} scripts/docs/en/components_schema/ccore/src/server/handlers/ping.md
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/ping.md
 ///
 /// Options inherited from @ref server::handlers::HandlerBase :
 /// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/handler_base.md

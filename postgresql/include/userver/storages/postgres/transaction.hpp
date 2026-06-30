@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/storages/postgres/transaction.hpp
-/// @brief @copybrief storages::postgres::Transactions
+/// @brief @copybrief storages::postgres::Transaction
 
 #include <memory>
 #include <string>

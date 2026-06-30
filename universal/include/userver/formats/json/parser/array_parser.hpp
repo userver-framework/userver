@@ -4,6 +4,8 @@
 /// @brief @copybrief formats::json::parser::ArrayParser
 /// @ingroup userver_universal
 
+#include <vector>
+
 #include <userver/formats/common/path.hpp>
 #include <userver/formats/json/parser/typed_parser.hpp>
 #include <userver/utils/meta.hpp>
