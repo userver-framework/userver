@@ -193,6 +193,7 @@ jobs:
                 #  * samples-mysql_service: needs mariadb-server (not installed)
                 #  * websocket_client: runner curl lacks ws:// support
                 #  * compile-err-msg: compile-fail test unstable under clang-18
+                #  * ydb (gcc-13 only, YDB enabled there): no ydb server on the runner
                 excluded_tests=(
                   userver-grpc-unittest
                   userver-grpc-benchmark
@@ -205,6 +206,8 @@ jobs:
                   samples-mysql_service
                   testsuite-userver-core-tests-websocket_client
                   userver-universal-compile-err-msg-test
+                  userver-ydb
+                  userver-samples-ydb
                 )
                 ${{matrix.tests-env}} ctest -j2 --output-on-failure \
                   -E "$(IFS='|'; printf '%s' "${excluded_tests[*]}")"
