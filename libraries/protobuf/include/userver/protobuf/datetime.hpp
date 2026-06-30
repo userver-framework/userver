@@ -2,7 +2,7 @@
 
 #include <cstdint>
 
-/// @file userver/protobuf/utils.hpp
+/// @file userver/protobuf/datetime.hpp
 /// @brief Date and time protobuf utilities.
 
 USERVER_NAMESPACE_BEGIN

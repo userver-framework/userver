@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/storages/redis/client.hpp
-/// @brief @copybrief storages::redis::Client
+/// @brief Valkey or Redis client
 
 #include <chrono>
 #include <memory>

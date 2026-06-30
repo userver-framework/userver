@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/protobuf/error.hpp
+/// @file userver/protobuf/json/exceptions.hpp
 /// @brief Exceptions thrown by the JSON utilities.
 
 #include <string>

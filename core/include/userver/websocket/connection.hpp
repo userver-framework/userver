@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/server/websocket/server.hpp
+/// @file userver/websocket/connection.hpp
 /// @brief @copybrief server::websocket::WebSocketConnection
 
 #include <memory>

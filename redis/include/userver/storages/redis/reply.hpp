@@ -200,6 +200,7 @@ public:
     logging::LogExtra log_extra;
     /// @cond For internal use only
     DeadlinePropagationMeta deadline_propagation_meta;
+    /// @endcond
 
     operator bool() const { return IsOk(); }
 

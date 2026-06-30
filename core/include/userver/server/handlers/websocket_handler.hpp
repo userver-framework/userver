@@ -17,7 +17,7 @@ namespace server::handlers {
 /// @brief Base class for WebSocket handler
 ///
 /// ## Static options of server::websocket::WebsocketHandlerBase :
-/// @include{doc} scripts/docs/en/components_schema/core/src/server/websocket/websocket_handler.md
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/websocket_handler.md
 ///
 /// Options inherited from @ref server::handlers::HttpHandlerBase :
 /// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/http_handler_base.md
