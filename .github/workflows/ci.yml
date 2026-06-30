@@ -72,7 +72,7 @@ jobs:
 
           - name: Restore cached directories
             id: restore-cache
-            uses: actions/cache/restore@v5
+            uses: actions/cache/restore@v6
             with:
                 path: |
                     ${{env.CCACHE_DIR}}
@@ -167,7 +167,7 @@ jobs:
                 cmake --build . -j $(nproc)
 
           - name: Save cached directories
-            uses: actions/cache/save@v5
+            uses: actions/cache/save@v6
             with:
                 path: |
                     ${{env.CCACHE_DIR}}
