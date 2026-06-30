@@ -5,6 +5,7 @@
 
 namespace sample {
 
+/// [YDB service sample - upsert rows struct]
 struct UpsertRowsRequest {
     static constexpr ydb::StructMemberNames kYdbMemberNames{};
 
@@ -24,7 +25,9 @@ UpsertRowsRequest Parse(const formats::json::Value& json, formats::parse::To<Ups
 
     return request;
 }
+/// [YDB service sample - upsert rows struct]
 
+/// [YDB service sample - upsert rows]
 formats::json::Value UpsertRowsHandler::
     HandleRequestJsonThrow(const server::http::HttpRequest& request, const formats::json::Value& request_json, server::request::RequestContext&)
         const {
@@ -51,5 +54,6 @@ SELECT id, name, service, channel, CurrentUtcTimestamp() FROM AS_TABLE($items);
 
     return formats::json::MakeObject();
 }
+/// [YDB service sample - upsert rows]
 
 }  // namespace sample

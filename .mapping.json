@@ -5023,6 +5023,8 @@
   "scripts/docs/en/userver/tutorial/tcp_service.md":"taxi/uservices/userver/scripts/docs/en/userver/tutorial/tcp_service.md",
   "scripts/docs/en/userver/tutorial/websocket_client.md":"taxi/uservices/userver/scripts/docs/en/userver/tutorial/websocket_client.md",
   "scripts/docs/en/userver/tutorial/websocket_service.md":"taxi/uservices/userver/scripts/docs/en/userver/tutorial/websocket_service.md",
+  "scripts/docs/en/userver/tutorial/ydb_service.md":"taxi/uservices/userver/scripts/docs/en/userver/tutorial/ydb_service.md",
+  "scripts/docs/en/userver/tutorial/ydb_topic_writer_service.md":"taxi/uservices/userver/scripts/docs/en/userver/tutorial/ydb_topic_writer_service.md",
   "scripts/docs/en/userver/ydb.md":"taxi/uservices/userver/scripts/docs/en/userver/ydb.md",
   "scripts/docs/examples/service-template/CMakeUserPresets.json.example":"taxi/uservices/userver/scripts/docs/examples/service-template/CMakeUserPresets.json.example",
   "scripts/docs/examples/service-template/userver-create-service.bat":"taxi/uservices/userver/scripts/docs/examples/service-template/userver-create-service.bat",

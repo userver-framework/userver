@@ -66,6 +66,8 @@ and make sure that it builds and passes tests.
 * @ref scripts/docs/en/userver/tutorial/scylla_service.md
 * @ref scripts/docs/en/userver/tutorial/redis_service.md
 * @ref scripts/docs/en/userver/tutorial/kafka_service.md
+* @ref scripts/docs/en/userver/tutorial/ydb_service.md
+* @ref scripts/docs/en/userver/tutorial/ydb_topic_writer_service.md
 * @ref scripts/docs/en/userver/tutorial/auth_postgres.md
 * @ref scripts/docs/en/userver/tutorial/digest_auth_postgres.md
 * @ref scripts/docs/en/userver/tutorial/websocket_service.md

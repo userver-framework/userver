@@ -288,7 +288,7 @@ See the full example at:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/tutorial/redis_service.md | @ref scripts/docs/en/userver/tutorial/auth_postgres.md ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/redis_service.md | @ref scripts/docs/en/userver/tutorial/ydb_service.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example samples/kafka_service/main.cpp

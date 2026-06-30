@@ -1,6 +1,7 @@
 import pytest
 
 
+# /// [YDB service sample - select functional test]
 @pytest.mark.ydb(files=['fill_events.sql'])
 async def test_select_rows(service_client):
     response = await service_client.post(
@@ -24,6 +25,7 @@ async def test_select_rows(service_client):
             },
         ],
     }
+    # /// [YDB service sample - select functional test]
 
 
 async def test_select_rows_empty(service_client):

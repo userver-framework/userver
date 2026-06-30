@@ -23,6 +23,7 @@
 #include <components/federated_topic_reader.hpp>
 #include <components/topic_reader.hpp>
 
+/// [YDB service sample - main]
 int main(int argc, char* argv[]) {
     auto component_list =
         ::components::MinimalServerComponentList()
@@ -45,3 +46,4 @@ int main(int argc, char* argv[]) {
 
     return ::utils::DaemonMain(argc, argv, component_list);
 }
+/// [YDB service sample - main]

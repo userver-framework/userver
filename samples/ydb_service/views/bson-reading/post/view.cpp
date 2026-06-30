@@ -7,6 +7,7 @@
 
 namespace sample {
 
+/// [YDB service sample - bson reading]
 std::string BsonReadingHandler::HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&)
     const {
     static const std::string kSelectQuery = R"(
@@ -33,5 +34,6 @@ SELECT doc FROM orders WHERE id = $id;
     request.SetResponseStatus(server::http::HttpStatus::kNotFound);
     return {};
 }
+/// [YDB service sample - bson reading]
 
 }  // namespace sample

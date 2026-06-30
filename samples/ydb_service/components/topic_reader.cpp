@@ -180,6 +180,7 @@ private:
 
 }  // namespace
 
+/// [YDB service sample - topic reader component]
 TopicReaderComponent::TopicReaderComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
@@ -199,6 +200,7 @@ TopicReaderComponent::TopicReaderComponent(
         topic_reader->Run();
     });
 }
+/// [YDB service sample - topic reader component]
 
 yaml_config::Schema TopicReaderComponent::GetStaticConfigSchema() {
     return yaml_config::MergeSchemas<components::ComponentBase>(R"(

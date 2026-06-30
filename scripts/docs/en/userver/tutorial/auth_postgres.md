@@ -191,7 +191,7 @@ See the full example:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/tutorial/kafka_service.md | @ref scripts/docs/en/userver/tutorial/json_to_yaml.md ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/ydb_topic_writer_service.md | @ref scripts/docs/en/userver/tutorial/json_to_yaml.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example samples/postgres_auth/user_info_cache.hpp

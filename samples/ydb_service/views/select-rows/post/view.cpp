@@ -11,6 +11,7 @@
 
 namespace sample {
 
+/// [YDB service sample - select rows]
 formats::json::Value SelectRowsHandler::
     HandleRequestJsonThrow(const server::http::HttpRequest& request, const formats::json::Value& request_json, server::request::RequestContext&)
         const {
@@ -67,5 +68,6 @@ formats::json::Value SelectRowsHandler::
 
     return formats::json::MakeObject("items", items_builder.ExtractValue());
 }
+/// [YDB service sample - select rows]
 
 }  // namespace sample

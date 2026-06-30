@@ -3,6 +3,7 @@ import base64
 import pytest
 
 
+# /// [YDB service sample - topic functional test]
 @pytest.mark.parametrize(
     'testpoint_name',
     [
@@ -43,3 +44,4 @@ async def test_topic(testpoint_name, service_client, ydb, testpoint):
     delete_record_message = delete_record_args['data']
     assert delete_record_message['key'] == ['test-topic-id', 'test-topic-name']
     assert 'newImage' not in delete_record_message
+    # /// [YDB service sample - topic functional test]

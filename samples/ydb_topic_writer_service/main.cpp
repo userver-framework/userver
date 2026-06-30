@@ -13,6 +13,7 @@
 
 #include <write_handler.hpp>
 
+/// [YDB topic writer service sample - main]
 int main(int argc, char* argv[]) {
     const auto component_list =
         components::MinimalServerComponentList()
@@ -29,3 +30,4 @@ int main(int argc, char* argv[]) {
 
     return utils::DaemonMain(argc, argv, component_list);
 }
+/// [YDB topic writer service sample - main]
