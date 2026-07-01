@@ -188,6 +188,22 @@ UTEST_P(PostgreConnection, QueryErrors) {
     UEXPECT_THROW(GetConn()->Execute("delete from pgtest where id = 1"), pg::ForeignKeyViolation);
 }
 
+UTEST_P(PostgreConnection, DuplicatePreparedStatement) {
+    CheckConnection(GetConn());
+
+    UEXPECT_NO_THROW(GetConn()->Execute("prepare pgtest_stmt as select 1"));
+    UEXPECT_THROW(GetConn()->Execute("prepare pgtest_stmt as select 1"), pg::DuplicatePreparedStatement);
+    EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState()) << "Connection is not broken";
+    UEXPECT_NO_THROW(GetConn()->Execute("select 1")) << "Connection is still usable";
+
+    UEXPECT_NO_THROW(GetConn()->Begin({}, {}));
+    UEXPECT_NO_THROW(GetConn()->Execute("prepare pgtest_stmt_trx as select 1"));
+    UEXPECT_THROW(GetConn()->Execute("prepare pgtest_stmt_trx as select 1"), pg::DuplicatePreparedStatement);
+    EXPECT_EQ(pg::ConnectionState::kTranError, GetConn()->GetState());
+    UEXPECT_NO_THROW(GetConn()->Rollback());
+    EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
+}
+
 UTEST_P(PostgreConnection, InvalidParameter) {
     CheckConnection(GetConn());
     UEXPECT_THROW(

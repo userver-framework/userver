@@ -743,12 +743,18 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
         }
         case PGRES_FATAL_ERROR: {
             const Message msg{wrapper};
-            if (!IsWhitelistedState(msg.GetSqlState())) {
-                PGCW_LOG_LIMITED_ERROR() << "Fatal error occurred: " << msg.GetMessage() << msg.GetLogExtra();
-            } else {
-                PGCW_LOG_LIMITED_WARNING() << "Fatal error occurred: " << msg.GetMessage() << msg.GetLogExtra();
+            const auto sql_state = msg.GetSqlState();
+            const bool suppress_dup_prepared_statement_log =
+                sql_state == SqlState::kDuplicatePreparedStatement &&
+                GetConnectionState() != ConnectionState::kTranError;
+            if (!suppress_dup_prepared_statement_log) {
+                if (!IsWhitelistedState(sql_state)) {
+                    PGCW_LOG_LIMITED_ERROR() << "Fatal error occurred: " << msg.GetMessage() << msg.GetLogExtra();
+                } else {
+                    PGCW_LOG_LIMITED_WARNING() << "Fatal error occurred: " << msg.GetMessage() << msg.GetLogExtra();
+                }
+                LOG_DEBUG() << "Ready to throw";
             }
-            LOG_DEBUG() << "Ready to throw";
             msg.ThrowException();
             break;
         }
