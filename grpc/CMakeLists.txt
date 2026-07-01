@@ -94,7 +94,7 @@ target_link_libraries(${PROJECT_NAME}-proto PUBLIC ${PROJECT_NAME}-deps)
 target_include_directories(${PROJECT_NAME}-proto SYSTEM PUBLIC $<BUILD_INTERFACE:${proto_include_paths}>)
 _userver_install_targets(COMPONENT grpc TARGETS ${PROJECT_NAME}-proto)
 
-target_link_libraries(${PROJECT_NAME}-internal PUBLIC userver-core ${PROJECT_NAME}-proto)
+target_link_libraries(${PROJECT_NAME}-internal PUBLIC userver-core userver-protobuf ${PROJECT_NAME}-proto)
 
 set(CHANNELZ_MIN_VERSION "1.17.0")
 if(${gRPC_VERSION} VERSION_GREATER_EQUAL ${CHANNELZ_MIN_VERSION} AND NOT GRPC_USE_SYSTEM_PACKAGE)
