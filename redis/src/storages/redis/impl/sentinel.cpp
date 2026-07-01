@@ -355,7 +355,7 @@ void Sentinel::OnPsubscribeReply(
         return;
     }
     const auto& reply_array = reply->data.GetArray();
-    if (!reply_array[0].IsString()) {
+    if (reply_array.empty() || !reply_array[0].IsString()) {
         return;
     }
     if (!strcasecmp(reply_array[0].GetString().c_str(), "PSUBSCRIBE")) {
