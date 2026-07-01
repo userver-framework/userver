@@ -750,10 +750,10 @@ def userver_config_testsuite_middleware(userver_testsuite_middleware_enabled: bo
         if 'server' not in components:
             return
 
-        pipeline_builder = components.setdefault(
-            'default-server-middleware-pipeline-builder',
-            {},
+        pipeline_builder_name = components['server'].get(
+            'middleware-pipeline-builder', 'default-server-middleware-pipeline-builder'
         )
+        pipeline_builder = components.setdefault(pipeline_builder_name, {})
         middlewares = pipeline_builder.setdefault('append', [])
         middlewares.append('testsuite-exceptions-handling-middleware')
 
