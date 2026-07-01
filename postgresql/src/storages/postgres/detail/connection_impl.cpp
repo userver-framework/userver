@@ -319,12 +319,6 @@ ConnectionImpl::ConnectionImpl(
         ttl -= RandRange(ttl / 2);
         expires_at_ = SteadyNow() + std::chrono::seconds{ttl};
     }
-#if !LIBPQ_HAS_PIPELINING
-    if (settings_.pipeline_mode == PipelineMode::kEnabled) {
-        LOG_LIMITED_WARNING() << "Pipeline mode is not supported, falling back";
-        settings_.pipeline_mode = PipelineMode::kDisabled;
-    }
-#endif
 
     if (IsOmitDescribeInExecuteEnabled()) {
         LOG_DEBUG() << "Userver experiment pg-omit-describe-in-execute is enabled";
@@ -1245,24 +1239,16 @@ void ConnectionImpl::LoadUserTypes(engine::Deadline deadline) {
         UserTypes::CompositeFieldDefs attribs{};
         {
             const tracing::ScopeTime scope_time{"pg_load_user_types"};
-#if LIBPQ_HAS_PIPELINING
             conn_wrapper_.EnterPipelineMode();
             SendCommandNoPrepare("BEGIN", deadline);
             // kSetLocalWorkMem help users with many user types to avoid
             // ConnectionInterrupted because there are `LEFT JOIN`s in queries
             SendCommandNoPrepare(kSetLocalWorkMem, deadline);
-#else
-            ExecuteCommandNoPrepare("BEGIN", deadline);
-            ExecuteCommandNoPrepare(kSetLocalWorkMem, deadline);
-#endif
             types.emplace(ExecuteCommand(kGetUserTypesQuery, deadline).AsSetOf<DBTypeDescription>(kRowTag));
             attribs =
                 ExecuteCommand(kGetCompositeAttribsQuery, deadline).AsContainer<UserTypes::CompositeFieldDefs>(kRowTag);
             ExecuteCommandNoPrepare("COMMIT", deadline);
-#if LIBPQ_HAS_PIPELINING
             conn_wrapper_.ExitPipelineMode();
-#else
-#endif
         }
 
         // End of definitions marker, to simplify processing

@@ -34,19 +34,10 @@
 
 #include <libpq-int.h>
 
-/* Glue to simplify working with differing interfaces between versions */
-#if PG_VERSION_NUM >= 140000
 #define updatePQXExpBufferStr appendPQExpBufferStr
 #define pqxPutMsgStart3 pqPutMsgStart
 
 #include "pq_pipeline_funcs.i"
-#else
-#define updatePQXExpBufferStr printfPQExpBuffer
-
-static int pqxPutMsgStart3(char msg_type, PGconn* conn) {
-  return pqPutMsgStart(msg_type, false, conn);
-}
-#endif
 
 /*
  * Common startup code for PQsendQuery and sibling routines
@@ -76,18 +67,14 @@ static bool PQXsendQueryStart(PGconn* conn) {
   }
 
   /* Can't send while already busy, either, unless enqueuing for later */
-  if (conn->asyncStatus != PGASYNC_IDLE
-#if PG_VERSION_NUM >= 140000
-      && conn->pipelineStatus == PQ_PIPELINE_OFF
-#endif
-  ) {
+  if (conn->asyncStatus != PGASYNC_IDLE &&
+      conn->pipelineStatus == PQ_PIPELINE_OFF) {
     updatePQXExpBufferStr(
         &conn->errorMessage,
         libpq_gettext("another command is already in progress\n"));
     return false;
   }
 
-#if PG_VERSION_NUM >= 140000
   if (conn->pipelineStatus != PQ_PIPELINE_OFF) {
     /*
      * When enqueuing commands we don't change much of the connection
@@ -119,9 +106,6 @@ static bool PQXsendQueryStart(PGconn* conn) {
         return false;
     }
   } else {
-#else
-  {
-#endif
     /*
      * This command's results will come in immediately. Initialize async
      * result-accumulation state
@@ -169,23 +153,18 @@ int PQXSendPortalBind(PGconn* conn, const char* stmt_name,
    * used in transaction blocks. If that is not the case, the portal will not be
    * created and the exception will be thrown on an attempt to fetch data.
    */
-  if (conn->xactStatus != PQTRANS_INTRANS
-#if PG_VERSION_NUM >= 140000
-      && (conn->pipelineStatus == PQ_PIPELINE_OFF ||
-          conn->asyncStatus == PGASYNC_IDLE)
-#endif
-  ) {
+  if (conn->xactStatus != PQTRANS_INTRANS &&
+      (conn->pipelineStatus == PQ_PIPELINE_OFF ||
+       conn->asyncStatus == PGASYNC_IDLE)) {
     updatePQXExpBufferStr(&conn->errorMessage,
                           "a transaction is needed for a portal to work\n");
     return 0;
   }
 
-#if PG_VERSION_NUM >= 140000
   PGcmdQueueEntry* entry;
 
   entry = pqAllocCmdQueueEntry(conn);
   if (entry == NULL) return 0; /* error msg already set */
-#endif
 
   /* Construct the Bind message */
   if (pqxPutMsgStart3('B', conn) < 0 || pqPuts(portal_name, conn) < 0 ||
@@ -236,50 +215,28 @@ int PQXSendPortalBind(PGconn* conn, const char* stmt_name,
     goto sendFailed;
   if (pqPutMsgEnd(conn) < 0) goto sendFailed;
 
-    /* construct the Sync message if not in pipeline mode */
-#if PG_VERSION_NUM >= 140000
-  if (conn->pipelineStatus == PQ_PIPELINE_OFF)
-#endif
-  {
+  /* construct the Sync message if not in pipeline mode */
+  if (conn->pipelineStatus == PQ_PIPELINE_OFF) {
     if (pqxPutMsgStart3('S', conn) < 0 || pqPutMsgEnd(conn) < 0)
       goto sendFailed;
   }
 
-#if PG_VERSION_NUM >= 140000
   /* this query has non-standard flow, using custom class */
   entry->queryclass = PGXQUERY_BIND;
-#else
-  /* this query has non-standard flow, using custom class */
-  conn->queryclass = PGXQUERY_BIND;
-  /* we don't have a statement, so we just need to clear it */
-  if (conn->last_query) free(conn->last_query);
-  conn->last_query = NULL;
-#endif
 
   /*
    * Give the data a push (in pipeline mode, only if we're past the size
    * threshold).  In nonblock mode, don't complain if we're unable to send
    * it all; PQgetResult() will do any additional flushing needed.
    */
-#if PG_VERSION_NUM >= 140000
-  if (pqPipelineFlush(conn) < 0)
-#else
-  if (pqFlush(conn) < 0)
-#endif
-    goto sendFailed;
+  if (pqPipelineFlush(conn) < 0) goto sendFailed;
 
-    /* OK, it's launched! */
-#if PG_VERSION_NUM >= 140000
+  /* OK, it's launched! */
   pqAppendCmdQueueEntry(conn, entry);
-#else
-  conn->asyncStatus = PGASYNC_BUSY;
-#endif
   return 1;
 
 sendFailed:
-#if PG_VERSION_NUM >= 140000
   pqRecycleCmdQueueEntry(conn, entry);
-#endif
   /* error message should be set up already */
   return 0;
 }
@@ -303,12 +260,10 @@ int PQXSendPortalExecute(PGconn* conn, const char* portal_name, int n_rows) {
     return 0;
   }
 
-#if PG_VERSION_NUM >= 140000
   PGcmdQueueEntry* entry;
 
   entry = pqAllocCmdQueueEntry(conn);
   if (entry == NULL) return 0; /* error msg already set */
-#endif
 
   /* construct the Describe Portal message */
   if (pqxPutMsgStart3('D', conn) < 0 || pqPutc('P', conn) < 0 ||
@@ -320,50 +275,28 @@ int PQXSendPortalExecute(PGconn* conn, const char* portal_name, int n_rows) {
       pqPutInt(n_rows, 4, conn) < 0 || pqPutMsgEnd(conn) < 0)
     goto sendFailed;
 
-    /* construct the Sync message if not in pipeline mode */
-#if PG_VERSION_NUM >= 140000
-  if (conn->pipelineStatus == PQ_PIPELINE_OFF)
-#endif
-  {
+  /* construct the Sync message if not in pipeline mode */
+  if (conn->pipelineStatus == PQ_PIPELINE_OFF) {
     if (pqxPutMsgStart3('S', conn) < 0 || pqPutMsgEnd(conn) < 0)
       goto sendFailed;
   }
 
-#if PG_VERSION_NUM >= 140000
   /* remember we are using extended query protocol */
   entry->queryclass = PGQUERY_EXTENDED;
-#else
-  /* remember we are using extended query protocol */
-  conn->queryclass = PGQUERY_EXTENDED;
-  /* we don't have a statement, so we just need to clear it */
-  if (conn->last_query) free(conn->last_query);
-  conn->last_query = NULL;
-#endif
 
   /*
    * Give the data a push (in pipeline mode, only if we're past the size
    * threshold).  In nonblock mode, don't complain if we're unable to send
    * it all; PQgetResult() will do any additional flushing needed.
    */
-#if PG_VERSION_NUM >= 140000
-  if (pqPipelineFlush(conn) < 0)
-#else
-  if (pqFlush(conn) < 0)
-#endif
-    goto sendFailed;
+  if (pqPipelineFlush(conn) < 0) goto sendFailed;
 
-    /* OK, it's launched! */
-#if PG_VERSION_NUM >= 140000
+  /* OK, it's launched! */
   pqAppendCmdQueueEntry(conn, entry);
-#else
-  conn->asyncStatus = PGASYNC_BUSY;
-#endif
   return 1;
 
 sendFailed:
-#if PG_VERSION_NUM >= 140000
   pqRecycleCmdQueueEntry(conn, entry);
-#endif
   /* error message should be set up already */
   return 0;
 }
