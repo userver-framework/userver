@@ -54,7 +54,7 @@ inline const /*deliberately non-constexpr*/ bool
 
 template <>
 struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::PrintOptions> {
-    constexpr auto parse(fmt::format_parse_context& ctx) {
+    auto parse(fmt::format_parse_context& ctx) {
         auto it = ctx.begin();
         if (it != ctx.end() && *it != '}') {
             throw fmt::format_error("invalid format");
@@ -67,17 +67,19 @@ struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::PrintOptions> {
         -> decltype(ctx.out()) {
         return fmt::format_to(
             ctx.out(),
-            "{{always_print_fields_with_no_presence={}, always_print_enums_as_ints={}, preserve_proto_field_names={}}}",
+            "{{always_print_fields_with_no_presence={}, always_print_enums_as_ints={}, preserve_proto_field_names={}, "
+            "nonportable_raw_any={}}}",
             options.always_print_fields_with_no_presence,
             options.always_print_enums_as_ints,
-            options.preserve_proto_field_names
+            options.preserve_proto_field_names,
+            options.nonportable_raw_any
         );
     }
 };
 
 template <>
 struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::ParseOptions> {
-    constexpr auto parse(fmt::format_parse_context& ctx) {
+    auto parse(fmt::format_parse_context& ctx) {
         auto it = ctx.begin();
         if (it != ctx.end() && *it != '}') {
             throw fmt::format_error("invalid format");
@@ -88,13 +90,18 @@ struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::ParseOptions> {
     template <typename FormatContext>
     auto format(const USERVER_NAMESPACE::protobuf::json::ParseOptions& options, FormatContext& ctx) const
         -> decltype(ctx.out()) {
-        return fmt::format_to(ctx.out(), "{{ignore_unknown_fields={}}}", options.ignore_unknown_fields);
+        return fmt::format_to(
+            ctx.out(),
+            "{{ignore_unknown_fields={}, nonportable_raw_any={}}}",
+            options.ignore_unknown_fields,
+            options.nonportable_raw_any
+        );
     }
 };
 
 template <>
 struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::PrintErrorCode> {
-    constexpr auto parse(fmt::format_parse_context& ctx) {
+    auto parse(fmt::format_parse_context& ctx) {
         auto it = ctx.begin();
         if (it != ctx.end() && *it != '}') {
             throw fmt::format_error("invalid format");
@@ -116,7 +123,7 @@ struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::PrintErrorCode> {
 
 template <>
 struct fmt::formatter<USERVER_NAMESPACE::protobuf::json::ParseErrorCode> {
-    constexpr auto parse(fmt::format_parse_context& ctx) {
+    auto parse(fmt::format_parse_context& ctx) {
         auto it = ctx.begin();
         if (it != ctx.end() && *it != '}') {
             throw fmt::format_error("invalid format");

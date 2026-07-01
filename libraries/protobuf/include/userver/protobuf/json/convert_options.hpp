@@ -13,6 +13,15 @@ struct ParseOptions {
     /// If not set, conversion of a JSON object containing unknown field (i.e. field that is not mapped to any protobuf
     /// message field) or unknown enum value name will fail.
     bool ignore_unknown_fields = false;
+
+    /// @brief Deserialize `google.protobuf.Any` from a raw `{"type_url": "...", "value": "<base64>"}`
+    /// or `{"typeUrl": "...", "value": "<base64>"}` JSON object
+    /// without looking up the payload descriptor in the descriptor pool.
+    /// When set, `value` must be a base64-encoded protobuf wire-format string.
+    ///
+    /// @warning This is a userver-only extension that is not supported in other frameworks.
+    /// Only userver can correctly parse this format.
+    bool nonportable_raw_any = false;
 };
 
 /// @brief Options which affect how protobuf message is converted to a JSON `ValueBuilder`/`Value`.
@@ -35,6 +44,15 @@ struct PrintOptions {
     ///          encoded in `lowerCamelCase` no matter whether `preserve_proto_field_names` is on or off. Moreover,
     ///          `json_name` option is also not taken into account for `FieldMask` paths.
     bool preserve_proto_field_names = false;
+
+    /// @brief Serialize `google.protobuf.Any` as a raw `{"typeUrl": "...", "value": "<base64>"}` JSON object
+    /// without looking up the payload descriptor in the descriptor pool.
+    /// When set, `value` is base64-encoded protobuf wire bytes of the payload.
+    /// If `preserve_proto_field_names` is true, `type_url` is used instead of `typeUrl`.
+    ///
+    /// @warning This is a userver-only extension that is not supported in other frameworks.
+    /// Only userver can correctly parse this format.
+    bool nonportable_raw_any = false;
 };
 
 }  // namespace protobuf::json

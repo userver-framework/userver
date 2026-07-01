@@ -7,8 +7,8 @@
 #include <fmt/format.h>
 #include <google/protobuf/descriptor.h>
 #include <google/protobuf/dynamic_message.h>
+#include <google/protobuf/message.h>
 #include <google/protobuf/reflection.h>
-#include "google/protobuf/message.h"
 
 #include <protobuf/json/impl/convert_utils.hpp>
 #include <protobuf/json/impl/field_error.hpp>
@@ -638,6 +638,12 @@ formats::json::ValueBuilder WriteAnyMessage(const ::google::protobuf::Message& m
     const auto& value = reflection.GetStringReference(message, &value_desc, &scratch2);
 
     formats::json::ValueBuilder object{formats::common::Type::kObject};
+
+    if (options.nonportable_raw_any) {
+        object[options.preserve_proto_field_names ? "type_url" : "typeUrl"] = std::string_view{type_url};
+        object["value"] = crypto::base64::Base64Encode(value);
+        return object;
+    }
 
     if (type_url.empty() && value.empty()) {
         return object;
