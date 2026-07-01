@@ -134,4 +134,4 @@ jobs:
             if: ${{ false }}  # Not working yet
             run: |-
                 cd build_debug
-                ctest -V
+                ctest -j2 --output-on-failure
