@@ -14,9 +14,6 @@ html {
   --secondary-color-1: #f5f5f5;
   --secondary-color-2: #f0f0f0;
 
-  /* Header */
-  --header-text-color: #f7f7f7;
-
   /* Table of contents */
   --toc-active-color: #352e48;
 }
@@ -45,6 +42,7 @@ html {
     url('fontello.svg?53870425#fontello') format('svg');
   font-weight: normal;
   font-style: normal;
+  unicode-range: U+1F419;
 }
 
 /* Change color of iframe polygon scheme in dark-mode */
@@ -61,6 +59,15 @@ html.dark-mode {
   --secondary-color-2: #94919c;
 
   --toc-active-color: #ffffff;
+
+  /* font-families. will affect all text on the website
+     * font-family: the normal font for text, headlines, menus
+     * font-family-monospace: used for preformatted text in memtitle, code, fragments
+     */
+  --font-family: "fontello", Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans,
+    Helvetica Neue, sans-serif;
+  --font-family-monospace: "fontello", "Roboto Mono", ui-monospace, SFMono-Regular, SF Mono,
+    Menlo, Consolas, Liberation Mono, monospace;
 }
 
 /* Doxygen Awesome override */
@@ -92,7 +99,7 @@ html {
     Menlo, Consolas, Liberation Mono, monospace;
 
   /* The content is centered and constraint in it's width. To make the content fill the whole page, set the variable to auto.*/
-  --content-maxwidth: 1440px;
+  --content-maxwidth: 1140px;
 
   /* table colors */
   --tablehead-background: var(--primary-color-1);
@@ -128,7 +135,7 @@ html {
   }
 }
 
-/* dark mode variables are defined twice, to support both the dark-mode without and with doxygen-awesome-darkmode-toggle.js */
+/* dark mode variables are defined twice, to support both system preference and explicit toggle */
 html.dark-mode {
   color-scheme: dark;
 
@@ -148,7 +155,7 @@ html.dark-mode {
   --side-nav-background: var(--black-color-1);
 }
 
-/* We do not need it displayed, but we use it to make our own TOC */
+/* Treeview is hidden; navigation uses the top menu and PAGE_OUTLINE_PANEL */
 #side-nav {
   display: none;
 }
@@ -156,6 +163,13 @@ html.dark-mode {
 #doc-content {
   /* Disable standard Doxygen content margin */
   margin-left: 0 !important;
+}
+
+#MSearchCloseImg.close-icon {
+  margin: 2px;
+  width: 19px;
+  height: 19px;
+  box-sizing: content-box;
 }
 
 /* Highlight.js overrides */
@@ -198,10 +212,6 @@ html.dark-mode {
   color: #eb6bbb;
 }
 
-.hljs-literal {
-  color: #eb6bbb;
-}
-
 .hljs-addition,
 .hljs-built_in {
   color: #8D41DA;
@@ -223,7 +233,8 @@ html.dark-mode {
 }
 
 .hljs-code,
-.hljs-regexpб .hljs-selector-id,
+.hljs-regexp,
+.hljs-selector-id,
 .hljs-template-variable {
   color: #FF5C5C;
 }
@@ -320,9 +331,10 @@ html.dark-mode .gh-logo {
   align-items: center;
 }
 
-#navbar-main-menu>li>a {
+#main-menu.navbar-main-menu>li>a {
   color: rgb(255, 255, 255) !important;
   font-size: 18px;
+  margin: 6px;
 }
 
 .sm.sm-dox a {
@@ -434,6 +446,24 @@ div.header .title {
   padding-bottom: 0;
 }
 
+div.headertitle {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  max-width: var(--content-maxwidth);
+  margin: calc(var(--spacing-medium) + .2em) auto var(--spacing-medium) auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+div.headertitle .title {
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+  padding: 0;
+}
+
 .sm-dox ul a:hover,
 .sm-dox ul a:active,
 .sm-dox ul a:focus {
@@ -465,8 +495,7 @@ html.dark-mode .sm-dox a span.sub-arrow {
 }
 
 .sm-dox a:hover,
-.sm-dox a:active,
-.tablist li a:hover {
+.sm-dox a:active {
   background: transparent;
   color: var(--primary-color) !important;
 }
@@ -520,7 +549,8 @@ a.titlelink:hover {
   border-radius: var(--border-radius-large);
 }
 
-#MSearchSelect {
+#MSearchSelect,
+.search-icon-dropdown {
   display: none;
 }
 
@@ -584,8 +614,40 @@ a.titlelink:hover {
   background-color: none;
 }
 
-doxygen-awesome-dark-mode-toggle {
+dark-mode-toggle {
+  display: inline-flex;
+  margin: 0 0 0 var(--spacing-small);
+  padding: 0;
+  width: var(--searchbar-height);
+  height: var(--searchbar-height);
+  background: none;
+  border: none;
+  border-radius: var(--searchbar-border-radius);
+  vertical-align: middle;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  cursor: pointer;
   order: 1;
+}
+
+dark-mode-toggle > svg {
+  transition: transform var(--animation-duration) ease-in-out;
+  height: 1.5em;
+  width: 1.5em;
+}
+
+dark-mode-toggle:hover {
+  background-color: rgba(0, 0, 0, .03);
+}
+
+html.dark-mode dark-mode-toggle:hover {
+  background-color: rgba(0, 0, 0, .18);
+}
+
+#toggle-dark-mode {
+  list-style: none;
+  background: none;
 }
 
 #MSearchBox {
@@ -654,7 +716,7 @@ doxygen-awesome-dark-mode-toggle {
     order: 3;
   }
 
-  #navbar-main-menu {
+  #main-menu.navbar-main-menu {
     display: none;
     position: absolute;
     top: 65px;
@@ -666,26 +728,26 @@ doxygen-awesome-dark-mode-toggle {
     border: 1px solid #d3d1d1;
   }
 
-  html.dark-mode #navbar-main-menu {
+  html.dark-mode #main-menu.navbar-main-menu {
     background-color: #2e273f;
     border: 1px solid #796da0;
   }
 
-  #navbar-main-menu>li>a {
+  #main-menu.navbar-main-menu>li>a {
     color: black !important;
     font-size: 18px;
   }
 
-  html.dark-mode #navbar-main-menu>li>a {
+  html.dark-mode #main-menu.navbar-main-menu>li>a {
     color: white !important;
   }
 
-  #navbar-main-menu li:hover {
+  #main-menu.navbar-main-menu li:hover {
     cursor: pointer;
     background-color: var(--primary-color-2) !important;
   }
 
-  html.dark-mode #navbar-main-menu li:hover {
+  html.dark-mode #main-menu.navbar-main-menu li:hover {
     background-color: #7a6da0 !important;
   }
 
@@ -817,7 +879,7 @@ doxygen-awesome-dark-mode-toggle {
     z-index: 1000;
   }
 
-  #navbar-main-menu {
+  #main-menu.navbar-main-menu {
     display: none;
     position: absolute;
     flex-direction: column;
@@ -827,7 +889,7 @@ doxygen-awesome-dark-mode-toggle {
     border: 1px solid #d3d1d1;
   }
 
-  #navbar-main-menu li:hover {
+  #main-menu.navbar-main-menu li:hover {
     cursor: pointer;
     background-color: var(--primary-color-2) !important;
   }
@@ -839,14 +901,6 @@ doxygen-awesome-dark-mode-toggle {
   #MSearchCloseImg {
     width: 16px;
   }
-}
-
-html:not(.black-mode) .landing-intro-center {
-  color: #304053;
-}
-
-html:not(.light-mode) .landing-intro-center {
-  color: #dedede;
 }
 
 /* Next/prev page buttons */
@@ -917,12 +971,6 @@ html.dark-mode .btn-title {
   color: #716690;
 }
 
-/* Bigger font for menu */
-
-#main-nav>ul>li>a:hover {
-  color: var(--primary-color) !important;
-}
-
 .sm-dox a span.sub-arrow {
   border-color: #d2dbde transparent transparent transparent;
 }
@@ -931,98 +979,78 @@ html.dark-mode .btn-title {
   border-color: transparent transparent transparent var(--primary-color);
 }
 
-/* Table of contents */
+/* Page outline (Doxygen 1.17 PAGE_OUTLINE_PANEL) */
 
-div.toc li.level1 {
-  margin-left: 0px;
-}
-
-div.toc li.level2 {
-  margin-left: 15px;
-}
-
-div.toc li.level3 {
-  margin-left: 30px;
-}
-
-div.toc li.level4 {
-  margin-left: 45px;
-}
-
-div.toc li.level5 {
-  margin-left: 60px;
-}
-
-div.toc li.level6 {
-  margin-left: 75px;
-}
-
-div.contents .toc {
-  border: 1px solid var(--separator-color);
-  border-radius: var(--border-radius-large);
-  box-sizing: border-box;
+#page-nav {
+  background: var(--page-background-color);
+  border-left: 1px solid var(--separator-color);
   min-width: 300px;
-  padding: 16px 16px;
+  box-sizing: border-box;
+}
+
+#page-nav #page-nav-contents {
+  padding: 16px;
   top: 77px;
-  max-height: calc(100vh - 255px);
 }
 
-div.toc li.level1:first-child {
-  margin-top: 16px;
+#page-nav-contents:has(ul.page-outline)::before {
+  content: "Table of Contents";
+  display: block;
+  font-family: var(--font-family);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--page-foreground-color);
+  margin-bottom: 16px;
 }
 
-div.toc li.level1,
-div.toc li.level2,
-div.toc li.level3,
-div.toc li.level4 {
-  margin-top: 12px;
+#page-nav ul.page-outline {
+  margin: 0;
+  padding: 0;
 }
 
-.toc ul li {
+#page-nav ul.page-outline div.item {
+  font-family: var(--font-family);
   line-height: 18px;
 }
 
-div.toc li {
-  font-family: "Roboto", sans-serif;
-}
-
-div.toc li a {
+#page-nav ul.page-outline li a {
+  font-family: var(--font-family);
   font-size: 14px;
   color: var(--primary-color) !important;
 }
 
-div.toc li a.active {
+#page-nav ul.page-outline li.vis:not(.vis ~ .vis) a {
   color: var(--toc-active-color) !important;
   font-weight: bold;
 }
 
 @media (max-width: 999px) {
-  div.contents .toc {
-    padding: 0px;
-    padding-left: 10px;
+  #page-nav #page-nav-contents {
+    padding: 0 10px;
   }
 
-  div.toc h3 {
-    padding-top: 14px !important;
+  #page-nav-contents:has(ul.page-outline)::before {
+    padding-top: 14px;
   }
 }
 
-@media (max-width: 768px) {
-  div.contents .toc {
-    padding-top: 0;
-  }
-
-  .bottom-nav .button {
-    font-size: 14px;
-  }
+/* Disable dark backround on the left side of outline, added by doxygen-awesome.css */
+#page-nav ul.page-outline li.vis ~ * a {
+    color: var(--primary-color) !important;
+}
+#page-nav ul.page-outline .vis::after {
+    background: none;
 }
 
 /* Page feedback */
 
 page-feedback {
-  position: absolute;
-  top: 136px;
-  right: 30px;
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-self: center;
+  padding-right: var(--spacing-xlarge);
 }
 
 page-feedback>input {
@@ -1142,29 +1170,27 @@ html.dark-mode page-feedback-popup {
 }
 
 @media screen and (max-width: 1439px) {
-  page-feedback {
-    top: 135px;
+  page-feedback-popup {
+    left: unset !important;
+    right: 0px;
   }
 }
 
 @media screen and (max-width: 999px) {
-  div.contents .toc {
-    top: unset;
-    margin-top: 15px;
-  }
-
   page-feedback {
-    position: relative;
-    right: 0px !important;
-    top: 0px;
-    display: flex;
-    justify-content: flex-end;
+    padding-right: var(--spacing-large);
   }
 
   /* in the mobile version, the popup is always on the right side */
   page-feedback-popup {
     left: unset !important;
     right: 0px;
+  }
+}
+
+@media (max-width: 768px) {
+  .bottom-nav .button {
+    font-size: 14px;
   }
 }
 
@@ -1180,22 +1206,14 @@ pre {
   font-family: var(--font-family-monospace);
 }
 
-.memItemLeft,
-.memTemplItemLeft {
+.memItemLeft {
   white-space: normal;
   font-size: 14px;
 }
 
 /* style block code */
-.textblock li>.fragment,
-.textblock li>.doxygen-awesome-fragment-wrapper>.fragment {
+.textblock li>.fragment {
   margin: var(--spacing-medium) calc(15px - var(--spacing-large));
-}
-
-@media screen and (max-width: 767px) {
-  doxygen-awesome-fragment-copy-button {
-    right: (var(--spacing-small));
-  }
 }
 
 @media screen and (max-width: 767px) {
@@ -1209,17 +1227,8 @@ pre {
     border-radius: var(--border-radius-large);
     margin: var(--spacing-medium) calc(15px - var(--spacing-large));
   }
-}
 
-
-/* position copy btn */
-@media screen and (max-width: 767px) {
-
-  .textblock>.doxygen-awesome-fragment-wrapper>doxygen-awesome-fragment-copy-button,
-  .textblock li>.doxygen-awesome-fragment-wrapper>doxygen-awesome-fragment-copy-button,
-  .memdoc li>.doxygen-awesome-fragment-wrapper>doxygen-awesome-fragment-copy-button,
-  .memdoc>.doxygen-awesome-fragment-wrapper>doxygen-awesome-fragment-copy-button,
-  dl dd>.doxygen-awesome-fragment-wrapper>doxygen-awesome-fragment-copy-button {
+  .fragment .clipboard {
     right: 7px;
   }
 }
@@ -1227,3 +1236,4 @@ pre {
 #nav-sync {
   display: none;
 }
+

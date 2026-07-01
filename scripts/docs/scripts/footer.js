@@ -1,4 +1,3 @@
-import { draw_toc } from "./toc.js";
 import { changeTelegramChannelLanguageForRussianSpeakingUser } from "./telegramLanguage.js";
 import { init_header } from "./header.js";
 import { init_all_results_button, init_search_hotkey, init_search_observer } from "./search.js";
@@ -44,13 +43,15 @@ function waitForElm(selector) {
     });
 }
 
-waitForElm('#MSearchField').then((elm) => {
+waitForElm('#MSearchField').then(() => {
     init_all_results_button();
     init_search_hotkey();
     init_search_observer();
 
-    /* Following actions require '#MSearchField' AND 'doxygen-awesome-dark-mode-toggle' */
-    waitForElm('doxygen-awesome-dark-mode-toggle').then((elm) => {
+    /* init_header() must run after initMenu() fills #main-menu; waiting for
+     * dark-mode-toggle is too early because DarkModeToggle runs before initMenu
+     * on DOMContentLoaded and would move an empty menu out of #main-nav. */
+    waitForElm('#main-menu > li > a').then(() => {
         init_header();
 
         addLinks();
@@ -58,13 +59,25 @@ waitForElm('#MSearchField').then((elm) => {
     });
 });
 
+function hideEmptyPageNav() {
+    const pageNav = document.getElementById('page-nav');
+    if (!pageNav?.querySelector('ul.page-outline li')) {
+        pageNav.style.display = 'none';
+        const container = document.getElementById('container');
+        if (container) {
+            container.style.gridTemplateColumns = 'auto';
+        }
+    }
+}
+
 const isLanding = document.getElementById('landing_logo_id') !== null;
 if (isLanding) {
     LandingFeedback.init();
 } else {
-    draw_toc();
     highlight_code();
     styleNavButtons();
-    DoxygenAwesomeInteractiveToc.init();
-    PageFeedback.init();
+    waitForElm('#page-nav-contents ul.page-outline').then(() => {
+        hideEmptyPageNav();
+        PageFeedback.init();
+    });
 }

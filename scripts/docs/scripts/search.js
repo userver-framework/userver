@@ -44,22 +44,23 @@ export function init_all_results_button() {
 
   const allResultsLink = document.createElement("a");
   allResultsLink.classList.add("all-results-link");
-
-  allResultsLink.text = "All results";
+  allResultsLink.textContent = "All results";
   allResultsLink.target = "_blank";
 
-  const searchURL = new URL("https://yandex.ru/search/");
+  const updateHref = () => {
+    const searchURL = new URL("https://yandex.ru/search/");
+    const query = searchInput.value.trim();
+    if (query) {
+      searchURL.searchParams.set("text", `site:userver.tech ${query}`);
+    } else {
+      searchURL.searchParams.set("text", "site:userver.tech");
+    }
+    allResultsLink.href = searchURL.href;
+  };
 
   searchBox.appendChild(allResultsLink);
-
-  searchInput.addEventListener("change", (event) => {
-    searchURL.searchParams.set(
-      "text",
-      `site:userver.tech ${event.target.value}`
-    );
-
-    allResultsLink.href = searchURL;
-  });
+  updateHref();
+  searchInput.addEventListener("input", updateHref);
 }
 
 export function init_search_hotkey() {

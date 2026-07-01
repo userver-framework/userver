@@ -5,12 +5,7 @@
 }
 
 html {
-  --pagination-active-color: #ec700e;
-
   --input-text-color: #352e48;
-  --input-border-color: #e3e5ea;
-  --input-focus-border-color: #7a6da0;
-  --input-focus-stroke-color: #e2e1e6;
 
   --feedback-star-inactive-color: #94919c;
   --feedback-star-hover-color: #433d53;
@@ -104,10 +99,7 @@ label {
 }
 
 input,
-textarea,
-input::placeholder,
-textarea::placeholder,
-.paragraph_small {
+input::placeholder {
   font-size: 16px;
   line-height: 22px;
 }
@@ -120,8 +112,7 @@ button {
   line-height: 1;
 }
 
-input,
-textarea {
+input {
   width: 100%;
   display: block;
   border: 0;
@@ -129,17 +120,12 @@ textarea {
   color: var(--input-text-color);
 }
 
-textarea {
-  resize: none;
-}
-
-input:focus,
-textarea:focus {
+input:focus {
   outline: 0;
 }
 
 .userver__title {
-  font-family: "fontello", Tahoma, Geneva, Verdana, sans-serif;
+  font-family: var(--font-family);
   font-size: 66px;
   font-weight: 400;
   /* 🐙 usever is always written with a small letter */
@@ -258,39 +244,6 @@ a.button.button_outline {
     background-color: transparent;
     color: var(--primary-dark-color);
   }
-}
-
-.input {
-  padding: 3px;
-  margin-left: -3px;
-}
-
-.input:has(input:focus),
-.input:has(textarea:focus) {
-  border-radius: var(--border-radius-large);
-  background-color: var(--input-focus-stroke-color);
-  transition: background-color 0.3s;
-}
-
-.input>input,
-.input>textarea {
-  padding: 7px 10px;
-  border: 2px solid var(--input-border-color);
-  border-radius: var(--border-radius-large);
-  background-color: var(--page-background-color);
-  position: relative;
-  transition: border 0.3s;
-}
-
-.input>input:focus,
-.input>textarea:focus,
-.input>input:hover,
-.input>textarea:hover {
-  border-color: var(--input-focus-border-color);
-}
-
-.input+label {
-  margin-top: 12px;
 }
 
 @media (max-width: 767px) {
