@@ -119,11 +119,13 @@ public:
     static constexpr std::string_view kName = "component-distlock-metrics";
 
     DistlockMetrics(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : storages::postgres::DistLockComponentBase(config, context) {
-        AutostartDistLock();
-    }
+        : storages::postgres::DistLockComponentBase(
+              config,
+              context,
+              storages::postgres::DistLockComponentBase::AutostartDistlock::kYes
+          ) {}
 
-    ~DistlockMetrics() override { StopDistLock(); }
+    ~DistlockMetrics() override = default;
 
     void DoWork() override {
         // noop
