@@ -75,7 +75,6 @@ UTEST(SingleUseEvent, Sample) {
     sender.Get();
 }
 
-#if !USERVER_IMPL_HAS_TSAN
 UTEST_MT(SingleUseEvent, SimpleTaskQueue, 5) {
     struct SimpleTask final {
         std::uint64_t request;
@@ -85,9 +84,11 @@ UTEST_MT(SingleUseEvent, SimpleTaskQueue, 5) {
 
     boost::lockfree::queue<SimpleTask*> task_queue{1};
 
-    std::atomic<bool> keep_running_clients{true};
     std::atomic<bool> keep_running_server{true};
 
+    // Clients must not rely on the main test task resuming to flip a stop flag:
+    // pinning queues can keep the main task behind a busy worker-local queue.
+    const auto test_deadline = engine::Deadline::FromDuration(50ms);
     std::vector<engine::TaskWithResult<void>> client_tasks;
     client_tasks.reserve(GetThreadCount() - 1);
 
@@ -95,7 +96,7 @@ UTEST_MT(SingleUseEvent, SimpleTaskQueue, 5) {
         client_tasks.push_back(utils::Async("client", [&, i] {
             std::uint64_t request = i;
 
-            while (keep_running_clients) {
+            while (!test_deadline.IsReached()) {
                 SimpleTask task{request, {}, {}};
                 task_queue.push(&task);
                 task.completion.WaitNonCancellable();
@@ -110,6 +111,9 @@ UTEST_MT(SingleUseEvent, SimpleTaskQueue, 5) {
         while (keep_running_server) {
             SimpleTask* task{};
             if (!task_queue.pop(task)) {
+                // Avoid burning the worker forever while pinned client tasks are
+                // waiting for their own worker-local queues to make progress.
+                engine::Yield();
                 continue;
             }
 
@@ -118,16 +122,12 @@ UTEST_MT(SingleUseEvent, SimpleTaskQueue, 5) {
         }
     });
 
-    engine::SleepFor(50ms);
-
-    keep_running_clients = false;
     for (auto& task : client_tasks) {
         task.Get();
     }
     keep_running_server = false;
     server_task.Get();
 }
-#endif
 
 UTEST(SingleUseEvent, Cancellation) {
     engine::SingleUseEvent event;
