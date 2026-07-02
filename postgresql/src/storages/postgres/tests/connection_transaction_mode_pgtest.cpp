@@ -252,6 +252,30 @@ UTEST_F(PostgreTransactionModeConnection, DuplicatePreparedStatementDirtyConnect
     EXPECT_FALSE(conn->IsBroken());
 }
 
+UTEST_F(PostgreTransactionModeConnection, OmitStatementTimeoutForAutocommitSkipsAutoTransactionAndStatementTimeout) {
+    pg::detail::ConnectionPtr conn{nullptr};
+    auto settings = MakeTransactionPoolerSettings();
+    settings.omit_statement_timeout_for_autocommit = true;
+    UEXPECT_NO_THROW(conn = MakeConnection(GetDsnFromEnv(), GetTaskProcessor(), settings));
+    ASSERT_TRUE(conn);
+
+    const DefaultCommandControlScope scope{kTransactionPoolerCmdCtl};
+
+    UEXPECT_NO_THROW(ZeroBackendStatementTimeout(conn));
+    GetLogCapture().Clear();
+
+    UEXPECT_NO_THROW(conn->Execute("SELECT pg_sleep(0.3)"));
+
+    const auto set_config_logs = GetLogCapture().Filter([&](const utest::LogRecord& log) {
+        return log.GetTagOptional(tracing::kDatabaseStatementName) == kSetConfigStatementName;
+    });
+    EXPECT_THAT(set_config_logs, ::testing::IsEmpty());
+    UEXPECT_NO_THROW(ExpectBackendStatementTimeout(conn, "0"));
+
+    UEXPECT_NO_THROW(conn->CancelAndCleanup(utest::kMaxTestWaitTime));
+    EXPECT_FALSE(conn->IsBroken());
+}
+
 }  // namespace
 
 USERVER_NAMESPACE_END

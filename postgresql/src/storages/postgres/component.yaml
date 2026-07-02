@@ -86,6 +86,14 @@ properties:
         type: boolean
         description: whether statement timeout is affected by deadline propagation
         default: true
+    omit-statement-timeout-for-autocommit:
+        type: boolean
+        description: |
+            DANGEROUS. Has effect only in `transaction` pooler mode. When enabled,
+            no SET statement_timeout is sent before autocommit statements, saving a round
+            trip at the cost of losing statement_timeout enforcement for such queries.
+            Keep it false
+        default: false
     monitoring-dbalias:
         type: string
         description: |

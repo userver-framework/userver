@@ -453,7 +453,8 @@ Connection::Statistics ConnectionImpl::GetStatsAndReset() {
 }
 
 bool ConnectionImpl::ShouldWrapInAutoTransaction(const std::string_view statement) const noexcept {
-    return IsTransactionPooler() && !IsInTransaction() && !ICaseStartsWith(statement, kStatementVacuum);
+    return IsTransactionPooler() && !settings_.omit_statement_timeout_for_autocommit && !IsInTransaction() &&
+           !ICaseStartsWith(statement, kStatementVacuum);
 }
 
 ResultSet ConnectionImpl::ExecuteCommandInAutoTransaction(
@@ -513,7 +514,11 @@ ResultSet ConnectionImpl::ExecuteCommand(
         return ExecuteCommandInAutoTransaction(query, params, statement_cmd_ctl, deadline);
     }
 
-    SetStatementTimeout(statement_cmd_ctl);
+    // In transaction pooler mode with omit_statement_timeout_for_autocommit enabled we deliberately skip
+    // SET statement_timeout for autocommit statements to save a round trip (see @ref POSTGRES_CONNECTION_SETTINGS)
+    if (!(IsTransactionPooler() && settings_.omit_statement_timeout_for_autocommit && !IsInTransaction())) {
+        SetStatementTimeout(statement_cmd_ctl);
+    }
 
     return PreparedStatementsEnabled(statement_cmd_ctl)
                ? ExecuteCommand(query, params, deadline, logging::Level::kInfo, true)
