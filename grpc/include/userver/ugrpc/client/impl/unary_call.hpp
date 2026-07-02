@@ -105,12 +105,14 @@ private:
 
         while (!engine::current_task::ShouldCancel()) {
             ++attempt;
-            auto scope_time = state_.GetSpan().CreateScopeTime(fmt::format("attempt.{}.finish", attempt));
+            auto scope_time = state_.GetSpan().CreateScopeTime(fmt::format("attempt.{}.pre_call", attempt));
 
             state_.GetSpan().AddTag(tracing::kAttempts, attempt);
             impl::SetupClientContext(state_, call_options_, attempt);
 
             RunStartCallHooks();
+
+            scope_time.Reset(fmt::format("attempt.{}.call", attempt));
 
             auto completion_status = PerformAttempt();
 
