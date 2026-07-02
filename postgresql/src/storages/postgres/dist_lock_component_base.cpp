@@ -112,6 +112,12 @@ DistLockComponentBase::DistLockComponentBase(
     const components::ComponentContext& component_context,
     AutostartDistlock
 )
+    : storages::postgres::DistLockComponentBase(component_config, component_context) {}
+
+DistLockComponentBase::DistLockComponentBase(
+    const components::ComponentConfig& component_config,
+    const components::ComponentContext& component_context
+)
     : storages::postgres::DistLockComponentBase(component_config, component_context, AutostartDistlockInternal::kYes) {}
 
 DistLockComponentBase::DistLockComponentBase(

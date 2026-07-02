@@ -19,7 +19,11 @@ namespace storages::postgres {
 ///
 /// A component that implements a distlock with lock in Postgres. Inherit from
 /// DistLockComponentBase and implement DoWork(). Lock options are configured
-/// in static config.
+/// in static config. To customize a distlock for testsuite override DoWorkTestsuite().
+///
+/// By default the distlock is started and stopped automatically by the framework
+/// in all environments except testsuite. If manual control over the distlock startup
+/// and shutdown is needed pass DisableAutostartAtBase{} to the DistLockComponentBase .ctor.
 ///
 /// The class must be used for infinite loop jobs. If you want a distributed
 /// periodic, you should look at locked_periodiccomponents::PgLockedPeriodic.
@@ -68,12 +72,21 @@ public:
 
     struct DisableAutostartAtBase {};
 
+    // This .ctor is going to be completely removed.
     DistLockComponentBase(
         const components::ComponentConfig& component_config,
         const components::ComponentContext& component_context,
         AutostartDistlock autostart_at_base_component
     );
 
+    /// @brief Constructs the distlock base and enables automatic startup and shutdown of the distlock.
+    DistLockComponentBase(
+        const components::ComponentConfig& component_config,
+        const components::ComponentContext& component_context
+    );
+
+    /// @brief Constructs the distlock base and disables automatic startup and shutdown of the distlock.
+    /// The dislock should be started and stopped manually via AutostartDistlock() and StopDistLock() calls.
     DistLockComponentBase(
         const components::ComponentConfig& component_config,
         const components::ComponentContext& component_context,
@@ -128,10 +141,12 @@ protected:
     /// Override this function to provide custom testsuite handler.
     virtual void DoWorkTestsuite() { DoWork(); }
 
-    /// Should be called in .ctor of a derived class if autostart at base .ctor is disabled.
+    /// Should be called in a .ctor of a derived class iff DisableAutostartAtBase{}
+    /// has been passed to the DistLockComponentBase .ctor.
     void AutostartDistLock();
 
-    /// Should be called in .dtor of a derived class if autostart at base .ctor is disabled.
+    /// Should be called in a .dtor of a derived class iff DisableAutostartAtBase{}
+    /// has been passed to the DistLockComponentBase .ctor.
     void StopDistLock();
 
     /// Check this method when going for the next independent processing
