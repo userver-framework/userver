@@ -70,7 +70,7 @@ The Congestion Control logic is implemented as sensors (`overloads_ps`, `rps`) a
 - `rps` – Number of requests received in the last second.
 
 **State Machine Variables:**
-- `is_overloaded – Whether the server is stably under unsustainable load.
+- `is_overloaded` – Whether the server is stably under unsustainable load.
 - `is_overloaded_now` – Whether the server is currently under unsustainable load.
 - `current_limit` – Current RPS limit.
 

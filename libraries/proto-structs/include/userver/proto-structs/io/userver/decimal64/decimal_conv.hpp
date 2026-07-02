@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/proto-structs/io/userver/decimal64/decimal64_conv.hpp
+/// @file userver/proto-structs/io/userver/decimal64/decimal_conv.hpp
 /// @brief Provides read/write context class with the ability to handle `userver::decimal64::Decimal` conversion.
 
 #include <userver/proto-structs/io/userver/decimal64/decimal.hpp>

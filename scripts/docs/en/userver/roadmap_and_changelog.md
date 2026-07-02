@@ -219,7 +219,7 @@ Documentation:
 Big new features since the v2.0:
 
 * @ref scripts/docs/en/userver/chaotic.md "chaotic" - codegen parsers and serializers by JSON schema
-* @ref @ref scripts/docs/en/userver/libraries/easy.md
+* @ref scripts/docs/en/userver/libraries/easy.md
 * Improved Kafka driver is now widely used and has @ref QUALITY_TIERS "Platinum Tier".
 * @ref opentelemetry "OpenTelemetry Protocol (OTLP) support".
 * Logging format customization, including JSON logging.

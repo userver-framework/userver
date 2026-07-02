@@ -14,7 +14,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
 
-/// @ingroup userver_ugrpc
+/// @ingroup userver_clients
 ///
 /// @brief Special completion types for gRPC client calls that don't result in a normal `grpc::Status`.
 ///
@@ -56,7 +56,7 @@ std::string_view ToString(SpecialCaseCompletionType type);
 /// @brief Convert SpecialCaseCompletionType to human-readable description.
 std::string_view GetSpecialCaseCompletionTypeDescription(SpecialCaseCompletionType type);
 
-/// @ingroup userver_ugrpc
+/// @ingroup userver_clients
 ///
 /// @brief Result type for gRPC client call completion.
 ///

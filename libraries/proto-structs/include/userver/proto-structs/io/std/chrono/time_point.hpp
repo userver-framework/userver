@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/proto-structs/io/std/chrono/time_point_fwd.hpp
+/// @file userver/proto-structs/io/std/chrono/time_point.hpp
 /// @brief Provides `std::chrono::time_point` proto struct field support.
 
 #include <chrono>

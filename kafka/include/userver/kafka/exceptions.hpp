@@ -165,7 +165,6 @@ public:
 };
 
 /// @brief Fatal librdkafka consumer error; polling stops and consumer is recreated.
-/// @ref ConsumerImpl::ThrowIfRestartRequired
 class ConsumerRestartRequiredException final : public std::runtime_error {
 public:
     explicit ConsumerRestartRequiredException(const std::string& message);

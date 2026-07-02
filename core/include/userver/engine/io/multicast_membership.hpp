@@ -48,7 +48,6 @@ public:
     int GetLeaveSocketOption() const noexcept { return (family_ == AF_INET ? IP_DROP_MEMBERSHIP : IPV6_LEAVE_GROUP); }
 
     /// Returns appropriate size for setsockopt based on address family.
-    /// @param domain Socket domain (AF_INET or AF_INET6)
     size_t Size() const noexcept { return (family_ == AF_INET ? sizeof(struct ip_mreqn) : sizeof(struct ipv6_mreq)); }
 
 private:
