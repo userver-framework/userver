@@ -7,7 +7,7 @@ namespace utils {
 template class TaskBuilder<impl::TaskBuilderWithoutSelectedSpanOptions>;
 template class TaskBuilder<impl::TaskBuilderWithSpanOptions>;
 template class TaskBuilder<impl::TaskBuilderHideSpanOptions>;
-template class TaskBuilder<impl::TaskBuilderNoSpanOptions>;
+template class TaskBuilder<impl::TaskBuilderNoTracingOptions>;
 
 }  // namespace utils
 

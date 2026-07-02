@@ -122,7 +122,7 @@ void CheckUserCancelled(engine::TaskWithResult<int>& task) {
 UTEST(Cancel, DeadlineBeforeTaskStarted) {
     const auto passed_deadline = engine::Deadline::FromDuration(-1s);
 
-    auto task = utils::TaskBuilder{}.NoSpan().Background().Deadline(passed_deadline).Build([] {
+    auto task = utils::TaskBuilder{}.NoTracing().Background().Deadline(passed_deadline).Build([] {
         FAIL() << "This task's body should not run";
     });
 
@@ -133,7 +133,7 @@ UTEST(Cancel, DeadlineBeforeTaskStartedCritical) {
     const auto passed_deadline = engine::Deadline::FromDuration(-1s);
     const engine::SingleConsumerEvent infinity;
 
-    auto task = utils::TaskBuilder{}.NoSpan().Background().Critical().Deadline(passed_deadline).Build([&] {
+    auto task = utils::TaskBuilder{}.NoTracing().Background().Critical().Deadline(passed_deadline).Build([&] {
         // Critical should ensure that the task is started, but should still allow
         // the cancellations to work within the task body.
         EXPECT_TRUE(engine::current_task::ShouldCancel());
@@ -146,7 +146,7 @@ UTEST(Cancel, DeadlineBeforeTaskStartedCritical) {
 UTEST(Cancel, DeadlineShouldCancel) {
     const auto deadline = engine::Deadline::FromDuration(kSmallDuration);
 
-    auto task = utils::TaskBuilder{}.NoSpan().Background().Critical().Deadline(deadline).Build([] {
+    auto task = utils::TaskBuilder{}.NoTracing().Background().Critical().Deadline(deadline).Build([] {
         while (!engine::current_task::ShouldCancel()) {
             // Normally, some CPU-bound work should go here
         }
@@ -159,7 +159,7 @@ UTEST(Cancel, DeadlineShouldCancel) {
 UTEST(Cancel, DeadlineCancellationPoint) {
     const auto deadline = engine::Deadline::FromDuration(kSmallDuration);
 
-    auto task = utils::TaskBuilder{}.NoSpan().Background().Critical().Deadline(deadline).Build([] {
+    auto task = utils::TaskBuilder{}.NoTracing().Background().Critical().Deadline(deadline).Build([] {
         while (true) {
             engine::current_task::CancellationPoint();
             // Normally, some CPU-bound work should go here
@@ -175,7 +175,7 @@ UTEST(Cancel, DeadlineNotReached) {
     engine::SingleConsumerEvent delayed_event;
     engine::SingleConsumerEvent infinity;
 
-    auto task = utils::TaskBuilder{}.NoSpan().Background().Deadline(deadline).Build([&] {
+    auto task = utils::TaskBuilder{}.NoTracing().Background().Deadline(deadline).Build([&] {
         EXPECT_FALSE(infinity.WaitForEventFor(kSmallDuration));
         EXPECT_FALSE(engine::current_task::IsCancelRequested());
 
@@ -244,7 +244,7 @@ UTEST(Cancel, DeadlinePropagationParentToChild) {
     bool wait_interrupted_exception_thrown = false;
     bool child_finished_ok = false;
 
-    auto parent_task = utils::TaskBuilder{}.NoSpan().Background().Critical().Deadline(deadline).Build([&] {
+    auto parent_task = utils::TaskBuilder{}.NoTracing().Background().Critical().Deadline(deadline).Build([&] {
         try {
             auto child_task = engine::CriticalAsyncNoTracing([&] {
                 engine::InterruptibleSleepUntil(engine::Deadline::FromDuration(utest::kMaxTestWaitTime));
@@ -273,7 +273,7 @@ UTEST(Cancel, DeadlinePropagationNotChildToParent) {
 
     auto child_task =
         utils::TaskBuilder{}
-            .NoSpan()
+            .NoTracing()
             .Background()
             .Critical()
             .Deadline(deadline)

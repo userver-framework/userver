@@ -27,7 +27,7 @@ std::string Restart::HandleRequestThrow(const http::HttpRequest& request, reques
     }
 
     health_ = components::ComponentHealth::kFatal;
-    engine::DetachUnscopedUnsafe(utils::TaskBuilder{}.NoSpan().Background().Critical().Build([delay] {
+    engine::DetachUnscopedUnsafe(utils::TaskBuilder{}.NoTracing().Background().Critical().Build([delay] {
         engine::InterruptibleSleepFor(std::chrono::seconds(delay));
         if (engine::current_task::ShouldCancel()) {
             return;

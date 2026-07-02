@@ -100,7 +100,7 @@ By shared-ness:
 * Functions from `utils::Shared*Async*` family return @ref engine::SharedTaskWithResult,
   which can be awaited from multiple tasks at the same time, at the cost of some overhead.
   For tasks without tracing, the same shared-ness is available via
-  `engine::TaskBuilder::NoSpan().BuildShared(...)`.
+  `engine::TaskBuilder::NoTracing().BuildShared(...)`.
 
 By @ref engine::TaskBase::Importance ("critical-ness"):
 

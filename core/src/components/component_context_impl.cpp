@@ -466,7 +466,7 @@ void ComponentContextImpl::ProcessAllComponentLifetimeStageSwitchings(ComponentL
     std::vector<std::pair<ComponentInfoRef, engine::TaskWithResult<void>>> tasks;
     tasks.reserve(components_.size());
     for (auto& component_info : components_) {
-        tasks.emplace_back(*component_info, utils::TaskBuilder{}.NoSpan().Background().Critical().Build([&] {
+        tasks.emplace_back(*component_info, utils::TaskBuilder{}.NoTracing().Background().Critical().Build([&] {
             ProcessSingleComponentLifetimeStageSwitching(*component_info, params);
         }));
     }
@@ -613,7 +613,7 @@ void ComponentContextImpl::CancelComponentLifetimeStageSwitching() {
 }
 
 void ComponentContextImpl::StartPrintAddingComponentsTask() {
-    print_adding_components_task_ = utils::TaskBuilder{}.NoSpan().Background().Critical().Build([this]() {
+    print_adding_components_task_ = utils::TaskBuilder{}.NoTracing().Background().Critical().Build([this]() {
         for (;;) {
             {
                 auto data = shared_data_.UniqueLock();

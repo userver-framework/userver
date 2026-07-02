@@ -102,7 +102,7 @@ public:
         // There is no use for a Span in a task that lives until the service stops.
         // The task should be Critical, because the whole service (not just a single request) depends on it.
         consumer_task_ =
-            utils::TaskBuilder{}.NoSpan().Background().Critical().Build([&, consumer = queue_->GetConsumer()] {
+            utils::TaskBuilder{}.NoTracing().Background().Critical().Build([&, consumer = queue_->GetConsumer()] {
                 ConsumerTaskLoop(consumer);
             });
     }

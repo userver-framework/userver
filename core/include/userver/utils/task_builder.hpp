@@ -30,7 +30,7 @@ struct TaskBuilderWithSpanOptions final {
 
 struct TaskBuilderHideSpanOptions final {};
 
-struct TaskBuilderNoSpanOptions final {};
+struct TaskBuilderNoTracingOptions final {};
 
 template <typename Task>
 engine::impl::TaskConfig MakeTaskConfig(const TaskBuilderOptions& options) {
@@ -47,7 +47,7 @@ Task BuildTask(
 ) {
     static_assert(
         !sizeof(Task),
-        "Exactly one of the following methods of TaskBuilder must be called: SpanName(), NoSpan(), HideSpan()"
+        "Exactly one of the following methods of TaskBuilder must be called: SpanName(), NoTracing(), HideSpan()"
     );
 }
 
@@ -96,12 +96,12 @@ Task BuildTask(
 template <typename Task, typename Function, typename... Args>
 Task BuildTask(
     const TaskBuilderOptions& options,
-    const TaskBuilderNoSpanOptions&,
+    const TaskBuilderNoTracingOptions&,
     const utils::impl::SourceLocation&,
     Function&& f,
     Args&&... args
 ) {
-    // TODO support NoSpan + inherited variables.
+    // TODO support NoTracing + inherited variables.
     UINVARIANT(!options.inherit_variables, "Task-inherited variables without span are not supported at the moment");
 
     return Task{engine::impl::MakeTask(
@@ -122,8 +122,8 @@ using TaskBuilderWithSpan = TaskBuilder<impl::TaskBuilderWithSpanOptions>;
 /// @brief A @ref TaskBuilder with a hidden span, see @ref TaskBuilder::HideSpan.
 using TaskBuilderHideSpan = TaskBuilder<impl::TaskBuilderHideSpanOptions>;
 
-/// @brief A @ref TaskBuilder without a span, see @ref TaskBuilder::NoSpan.
-using TaskBuilderNoSpan = TaskBuilder<impl::TaskBuilderNoSpanOptions>;
+/// @brief A @ref TaskBuilder without a span, see @ref TaskBuilder::NoTracing.
+using TaskBuilderNoTracing = TaskBuilder<impl::TaskBuilderNoTracingOptions>;
 
 /// @brief A @ref TaskBuilder for which span options have not been selected yet.
 using TaskBuilderBase = TaskBuilder<impl::TaskBuilderWithoutSelectedSpanOptions>;
@@ -138,7 +138,7 @@ using TaskBuilderBase = TaskBuilder<impl::TaskBuilderWithoutSelectedSpanOptions>
 /// Then select span mode using one of:
 /// * @ref TaskBuilder::SpanName
 /// * @ref TaskBuilder::HideSpan
-/// * @ref TaskBuilder::NoSpan
+/// * @ref TaskBuilder::NoTracing
 ///
 /// Then spawn a task using one of:
 /// * @ref TaskBuilder::Build
@@ -181,10 +181,10 @@ public:
     /// The following call to @ref Build will spawn a task without
     /// any @ref tracing::Span.
     /// @see @ref engine::AsyncNoTracing()
-    [[nodiscard]] TaskBuilderNoSpan NoSpan()
+    [[nodiscard]] TaskBuilderNoTracing NoTracing()
     requires std::same_as<TaskBuilder, TaskBuilderBase>
     {
-        return TaskBuilderNoSpan{*this, impl::TaskBuilderNoSpanOptions{}};
+        return TaskBuilderNoTracing{*this, impl::TaskBuilderNoTracingOptions{}};
     }
 
     /// Set "critical" flag for the new task.
@@ -284,7 +284,7 @@ template <typename Function, typename... Args>
 extern template class TaskBuilder<impl::TaskBuilderWithoutSelectedSpanOptions>;
 extern template class TaskBuilder<impl::TaskBuilderWithSpanOptions>;
 extern template class TaskBuilder<impl::TaskBuilderHideSpanOptions>;
-extern template class TaskBuilder<impl::TaskBuilderNoSpanOptions>;
+extern template class TaskBuilder<impl::TaskBuilderNoTracingOptions>;
 
 }  // namespace utils
 

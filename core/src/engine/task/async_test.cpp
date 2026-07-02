@@ -207,7 +207,7 @@ UTEST(Async, WithDeadline) {
     auto start = std::chrono::steady_clock::now();
     std::atomic<bool> started{false};
     const auto deadline = engine::Deadline::FromDuration(kDeadlineTestsTimeout);
-    auto task = utils::TaskBuilder{}.NoSpan().Background().Deadline(deadline).Build([&started] {
+    auto task = utils::TaskBuilder{}.NoTracing().Background().Deadline(deadline).Build([&started] {
         started = true;
         EXPECT_FALSE(engine::current_task::IsCancelRequested());
         engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
@@ -229,7 +229,7 @@ UTEST(Async, WithDeadlineDetach) {
         auto start = std::chrono::steady_clock::now();
         const auto deadline = engine::Deadline::FromDuration(kDeadlineTestsTimeout);
         engine::DetachUnscopedUnsafe(
-            utils::TaskBuilder{}.NoSpan().Background().Deadline(deadline).Build([start, &started, &finished] {
+            utils::TaskBuilder{}.NoTracing().Background().Deadline(deadline).Build([start, &started, &finished] {
                 started = true;
                 EXPECT_FALSE(engine::current_task::IsCancelRequested());
                 engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
