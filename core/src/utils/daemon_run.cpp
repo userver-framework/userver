@@ -91,8 +91,8 @@ int DaemonMain(const boost::program_options::variables_map& vm, const components
     try {
         components::Run(
             vm["config"].as<std::string>(),
-            ToOptional(vm["config_vars"]),
-            ToOptional(vm["config_vars_override"]),
+            ToOptional(vm["config-vars"]),
+            ToOptional(vm["config-vars-override"]),
             components_list
         );
         return 0;
