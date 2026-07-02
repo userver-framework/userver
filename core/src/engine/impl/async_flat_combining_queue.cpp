@@ -21,9 +21,9 @@ public:
 
     void TryAppendAwaiter(boost::intrusive_ptr<Awaiter>& awaiter, [[maybe_unused]] std::uintptr_t context) override {
         if (std::invoke(TryStartWaiting, queue_)) {
-            // We will be woken up if and only if our notifier_node_ is seen by
-            // another thread or task. No deadlines or cancellations are allowed,
-            // otherwise another consumer may see notifier_node_ later and wake up
+            // We committed to sleeping and will be woken up only via
+            // NotifyAsyncConsumer. No deadlines or cancellations are allowed,
+            // otherwise another thread or task may notify us later and wake up
             // a dead task.
             awaiter = nullptr;
         }
@@ -83,16 +83,17 @@ AsyncFlatCombiningQueue::~AsyncFlatCombiningQueue() {
 
 auto AsyncFlatCombiningQueue::WaitAndStartConsuming() -> Consumer {
     Wait<&AsyncFlatCombiningQueue::TryStartWaitingForConsumer>();
+    // The async consumer role is acquired; it is now working.
+    notification_state_->store(NotificationState::kWorking);
     return Consumer{*this};
 }
 
 void AsyncFlatCombiningQueue::WaitWhileEmpty(Consumer& consumer) noexcept {
     UASSERT(consumer.queue_ == this);
     Wait<&AsyncFlatCombiningQueue::TryStartWaitingWhileEmpty>();
-    if (std::exchange(should_pop_notifier_node_, false)) {
-        [[maybe_unused]] const auto* const node = queue_.TryPopBlocking();
-        UASSERT(node == &while_empty_notifier_node_);
-    }
+    // Either we were woken up after sleeping, or we were already notified and did
+    // not sleep. In both cases we are working again.
+    notification_state_->store(NotificationState::kWorking);
 }
 
 AsyncFlatCombiningQueue::NodeBase* AsyncFlatCombiningQueue::DoTryPop() noexcept {
@@ -122,9 +123,12 @@ bool AsyncFlatCombiningQueue::DoTryStopConsuming() noexcept {
     UASSERT(has_consumer_.exchange(false));
     if (std::exchange(should_pass_consumer_to_waiter_, false)) {
         // The waiter will consume the remaining nodes.
+        notification_state_->store(NotificationState::kWorkingNotified);
         NotifyAsyncConsumer();
         return true;
     } else if (queue_.PushIfEmpty(consumer_node_)) {
+        // There is no async consumer anymore.
+        notification_state_->store(NotificationState::kWorkingNotified);
         return true;
     } else {
         UASSERT(!has_consumer_.exchange(true));
@@ -139,6 +143,15 @@ void AsyncFlatCombiningQueue::NotifyAsyncConsumer() noexcept {
         TaskContext::WakeupSource::kNotify,
         NoEpoch{}
     );
+}
+
+void AsyncFlatCombiningQueue::NotifyAsyncConsumerIfSleeping() noexcept {
+    // If the consumer is sleeping, this wins the race against its CAS to
+    // kSleeping and we wake it up. If it is (already) working, it will re-check
+    // the queue before sleeping again, so no wakeup is needed.
+    if (notification_state_->exchange(NotificationState::kWorkingNotified) == NotificationState::kSleeping) {
+        NotifyAsyncConsumer();
+    }
 }
 
 template <auto TryStartWaiting>
@@ -162,15 +175,15 @@ void AsyncFlatCombiningQueue::Wait() noexcept {
 }
 
 bool AsyncFlatCombiningQueue::TryStartWaitingWhileEmpty() {
-    UASSERT_MSG(!should_pop_notifier_node_, "Multiple consumers detected");
-    const bool pushed = queue_.PushIfEmpty(while_empty_notifier_node_);
-    should_pop_notifier_node_ = pushed;
-    return pushed;
+    // Returns whether we are going to sleep. If a notification arrived while we
+    // were working (state is kWorkingNotified), the CAS fails and we keep
+    // working, re-checking the queue without sleeping.
+    auto expected = NotificationState::kWorking;
+    return notification_state_->compare_exchange_strong(expected, NotificationState::kSleeping);
 }
 
 bool AsyncFlatCombiningQueue::TryStartWaitingForConsumer() {
     const auto* const prev = queue_.GetBackAndPush(start_consuming_notifier_node_);
-    UASSERT(prev != &while_empty_notifier_node_);
     UASSERT(prev != &start_consuming_notifier_node_);
 
     if (prev == &consumer_node_) {

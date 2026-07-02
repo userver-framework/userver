@@ -19,6 +19,7 @@ namespace {
 
 using NodeBase = concurrent::impl::SinglyLinkedBaseHook;
 using EmptyNode = concurrent::impl::SinglyLinkedBaseHook;
+using NotificationMode = engine::impl::AsyncFlatCombiningQueue::NotificationMode;
 
 // If producers are consistently faster than the consumer
 // (happens especially often in Debug and sanitizers builds),
@@ -50,7 +51,7 @@ void PushAndWork(
     ConsumerFunc consumer_func
 ) {
     back_off();
-    auto consumer = queue.PushAndTryStartConsuming(node);
+    auto consumer = queue.PushAndTryStartConsuming(node, NotificationMode::kNotify);
     if (consumer.IsValid()) {
         std::move(consumer).ConsumeAndStop(consumer_func);
     }
@@ -64,7 +65,7 @@ TEST(AsyncFlatCombiningQueueNoCoro, SimpleSync) {
     EmptyNode node2;
 
     {
-        auto consumer = queue.PushAndTryStartConsuming(node1);
+        auto consumer = queue.PushAndTryStartConsuming(node1, NotificationMode::kNotify);
         ASSERT_TRUE(consumer.IsValid());
         ASSERT_EQ(consumer.TryPop(), &node1);
         ASSERT_EQ(consumer.TryPop(), nullptr);
@@ -72,9 +73,9 @@ TEST(AsyncFlatCombiningQueueNoCoro, SimpleSync) {
     }
 
     {
-        auto consumer = queue.PushAndTryStartConsuming(node1);
+        auto consumer = queue.PushAndTryStartConsuming(node1, NotificationMode::kNotify);
         ASSERT_TRUE(consumer.IsValid());
-        ASSERT_FALSE(queue.PushAndTryStartConsuming(node2).IsValid());
+        ASSERT_FALSE(queue.PushAndTryStartConsuming(node2, NotificationMode::kNotify).IsValid());
         ASSERT_EQ(consumer.TryPop(), &node1);
         ASSERT_FALSE(consumer.TryStopConsuming());
         ASSERT_EQ(consumer.TryPop(), &node2);
@@ -92,9 +93,9 @@ UTEST(AsyncFlatCombiningQueue, SimpleAsync) {
     // This task will run after the parent starts waiting (single-threaded TP).
     auto task = engine::AsyncNoTracing([&] {
         engine::Yield();
-        ASSERT_FALSE(queue.PushAndTryStartConsuming(node1).IsValid());
-        ASSERT_FALSE(queue.PushAndTryStartConsuming(node2).IsValid());
-        ASSERT_FALSE(queue.PushAndTryStartConsuming(node3).IsValid());
+        ASSERT_FALSE(queue.PushAndTryStartConsuming(node1, NotificationMode::kNotify).IsValid());
+        ASSERT_FALSE(queue.PushAndTryStartConsuming(node2, NotificationMode::kNotify).IsValid());
+        ASSERT_FALSE(queue.PushAndTryStartConsuming(node3, NotificationMode::kNotify).IsValid());
     });
 
     // No cancellation support in AsyncFlatCombiningQueue.
@@ -104,12 +105,12 @@ UTEST(AsyncFlatCombiningQueue, SimpleAsync) {
     ASSERT_TRUE(consumer.IsValid());
     ASSERT_EQ(consumer.TryPop(), nullptr);
 
-    // Here we sleep, and 'task' runs until the end
+    // Here we sleep, and 'task' runs until the end. A single notification may
+    // cover multiple queued nodes, so after waking we must fully drain the queue
+    // before waiting again.
     queue.WaitWhileEmpty(consumer);
     ASSERT_EQ(consumer.TryPop(), &node1);
     ASSERT_EQ(consumer.TryPop(), &node2);
-    // Should return immediately.
-    queue.WaitWhileEmpty(consumer);
     ASSERT_EQ(consumer.TryPop(), &node3);
     ASSERT_EQ(consumer.TryPop(), nullptr);
     ASSERT_TRUE(consumer.TryStopConsuming());

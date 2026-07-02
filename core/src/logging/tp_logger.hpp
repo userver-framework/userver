@@ -83,6 +83,11 @@ public:
     const std::vector<impl::SinkPtr>& GetSinks() const;
     void Reopen(ReopenMode reopen_mode);
 
+    // When notification batching is enabled, the consumer is not notified between flushes
+    // while the queue stays less than half of its capacity (the periodic flush drains it);
+    // otherwise every log notifies the consumer immediately.
+    void SetNotificationBatching(bool enabled) noexcept;
+
     std::string_view GetLoggerName() const noexcept;
 
     impl::LogStatistics& GetStatistics() noexcept;
@@ -102,8 +107,8 @@ private:
     void ProcessingLoop();
     bool HasFreeQueueCapacity() noexcept;
     bool TryWaitFreeQueueCapacity();
-    void Push(impl::async::Action&& action);
-    void DoPush(concurrent::impl::SinglyLinkedBaseHook& node) noexcept;
+    void Push(impl::async::Action&& action, Queue::NotificationMode notify);
+    void DoPush(concurrent::impl::SinglyLinkedBaseHook& node, Queue::NotificationMode notify) noexcept;
     void ConsumeNode(concurrent::impl::SinglyLinkedBaseHook& node) noexcept;
     void ConsumeQueueOnce(Queue::Consumer& consumer) noexcept;
     void CleanUpQueue(Queue::Consumer&& consumer) noexcept;
@@ -122,6 +127,7 @@ private:
     engine::Task consuming_task_;
     std::atomic<QueueSize> max_queue_size_{std::numeric_limits<QueueSize>::max()};
     std::atomic<QueueOverflowBehavior> overflow_policy_{QueueOverflowBehavior::kDiscard};
+    std::atomic<bool> notification_batching_{true};
     // State changes rarely, no need for an InterferenceShield.
     std::atomic<State> state_{State::kSync};
     Queue::Consumer queue_consumer_;

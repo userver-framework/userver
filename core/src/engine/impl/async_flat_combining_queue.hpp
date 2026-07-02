@@ -3,6 +3,7 @@
 #include <atomic>
 #include <functional>
 
+#include <userver/concurrent/impl/interference_shield.hpp>
 #include <userver/concurrent/impl/intrusive_hooks.hpp>
 #include <userver/concurrent/impl/intrusive_mpsc_queue.hpp>
 
@@ -17,6 +18,11 @@ class TaskContext;
 // become a permanent producer, until it decides to leave.
 class AsyncFlatCombiningQueue final {
 public:
+    enum class NotificationMode {
+        kNotify,
+        kDeferred,
+    };
+
     class Consumer;
     using NodeBase = concurrent::impl::SinglyLinkedBaseHook;
 
@@ -24,7 +30,10 @@ public:
     ~AsyncFlatCombiningQueue();
 
     // The queue takes the ownership of the node.
-    Consumer PushAndTryStartConsuming(NodeBase& node) noexcept;
+    // If `kNotify` and an async consumer is sleeping, it is woken up.
+    // If `kDeferred`, the push is "deferred": a sleeping async consumer is not woken up
+    // and is expected to be notified later by some other means.
+    Consumer PushAndTryStartConsuming(NodeBase& node, NotificationMode notify) noexcept;
 
     // Note: only 1 task may wait at a time.
     Consumer WaitAndStartConsuming();
@@ -35,6 +44,18 @@ public:
 private:
     template <auto TryStartWaiting>
     class Awaitable;
+
+    enum class NotificationState {
+        kWorking,
+        kWorkingNotified,
+        kSleeping,
+    };
+
+    static_assert(std::atomic<NotificationState>::is_always_lock_free);
+
+    // Wakes up the async consumer if it is currently sleeping. Safe to call from
+    // any thread, including non-coroutine ones.
+    void NotifyAsyncConsumerIfSleeping() noexcept;
 
     NodeBase* DoTryPop() noexcept;
 
@@ -49,19 +70,23 @@ private:
 
     bool TryStartWaitingForConsumer();
 
+    // Tracks whether the async consumer is working or sleeping, decoupling the
+    // wakeup decision from the queue contents (see NotifyConsumer / WaitWhileEmpty).
+    // While there is no async consumer, the state is permanently kWorkingNotified.
+    // Kept first to avoid excessive class padding (it is cache-line aligned).
+    concurrent::impl::InterferenceShield<std::atomic<NotificationState>> notification_state_{
+        NotificationState::kWorkingNotified
+    };
+
     concurrent::impl::IntrusiveMpscQueueImpl queue_;
 
     // Whoever detects this node in the back, becomes the consumer.
     concurrent::impl::SinglyLinkedBaseHook consumer_node_;
-    // Whoever detects this node in the back, must notify the async task that the
-    // queue is no longer empty.
-    concurrent::impl::SinglyLinkedBaseHook while_empty_notifier_node_;
     // Signals to the current consumer that it should hand over to the async task.
     concurrent::impl::SinglyLinkedBaseHook start_consuming_notifier_node_;
 
     TaskContext* consuming_task_context_{nullptr};
     bool should_pass_consumer_to_waiter_{false};
-    bool should_pop_notifier_node_{false};
     // For diagnosing a multiple-consumers situation.
     std::atomic<bool> has_consumer_{false};
     // For diagnosing a multiple-waiters situation.
@@ -94,16 +119,19 @@ private:
     AsyncFlatCombiningQueue* queue_{nullptr};
 };
 
-inline auto AsyncFlatCombiningQueue::PushAndTryStartConsuming(NodeBase& node) noexcept -> Consumer {
+inline auto AsyncFlatCombiningQueue::PushAndTryStartConsuming(NodeBase& node, NotificationMode notify)
+    noexcept -> Consumer {
     // Moving this function definition to cpp degrades performance.
 
     const auto* const prev = queue_.GetBackAndPush(node);
 
-    if (prev == &while_empty_notifier_node_) {
-        NotifyAsyncConsumer();
-        return Consumer{};
-    } else if (prev == &consumer_node_) {
+    if (prev == &consumer_node_) {
+        // There is no async consumer; the caller becomes the consumer itself.
         return Consumer{*this};
+    }
+
+    if (NotificationMode::kNotify == notify) {
+        NotifyAsyncConsumerIfSleeping();
     }
 
     return Consumer{};

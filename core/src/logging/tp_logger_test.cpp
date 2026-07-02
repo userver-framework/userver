@@ -3,6 +3,7 @@
 #include <gmock/gmock.h>
 
 #include <userver/engine/async.hpp>
+#include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/statistics/storage.hpp>
@@ -567,6 +568,56 @@ UTEST_F(LoggingTestCoro, TpLoggerFlush) {
     EXPECT_THAT(GetStreamString(), testing::HasSubstr("text=4"));
 
     EXPECT_EQ(GetRecordsCount(), 4);
+}
+
+UTEST_F(LoggingTestCoro, TpLoggerDeferredWakeup) {
+    // The wakeup threshold is half the queue size, so logging far fewer messages
+    // never wakes the sleeping consumer eagerly.
+    constexpr std::size_t kCount = 5;
+    auto logger = StartAsyncLogger(1024, QueueOverflowBehavior::kDiscard);
+
+    // Let the consumer drain and go to sleep before we log anything.
+    engine::Yield();
+
+    for (std::size_t i = 0; i < kCount; ++i) {
+        LOG_INFO_TO(logger) << "deferred " << i;
+    }
+
+    // The consumer was not woken: even after yielding, nothing is drained.
+    engine::Yield();
+    EXPECT_EQ(GetRecordsCount(), 0) << "Logs below the threshold should not wake the consumer";
+
+    // Flush always wakes the consumer and must drain everything that was deferred.
+    logger->Flush();
+    const auto logs = GetStreamString();
+    for (std::size_t i = 0; i < kCount; ++i) {
+        EXPECT_THAT(logs, testing::HasSubstr(fmt::format("deferred {}", i)));
+    }
+
+    logger->StopConsumerTask();
+    EXPECT_EQ(GetRecordsCount(), kCount);
+    EXPECT_EQ(GetMetric("dropped"), 0);
+}
+
+UTEST_F(LoggingTestCoro, TpLoggerThresholdWakeup) {
+    // The wakeup threshold is half the queue size.
+    constexpr std::size_t kThreshold = 4;
+    auto logger = StartAsyncLogger(kThreshold * 2, QueueOverflowBehavior::kDiscard);
+
+    // Let the consumer drain and go to sleep before we log anything.
+    engine::Yield();
+
+    // Crossing the threshold must wake the consumer without an explicit Flush.
+    for (std::size_t i = 0; i < kThreshold; ++i) {
+        LOG_INFO_TO(logger) << "eager " << i;
+    }
+
+    engine::Yield();
+    EXPECT_GE(GetRecordsCount(), kThreshold) << "Reaching the threshold should wake the consumer";
+
+    logger->StopConsumerTask();
+    EXPECT_EQ(GetRecordsCount(), kThreshold);
+    EXPECT_EQ(GetMetric("dropped"), 0);
 }
 
 UTEST_F(LoggingTestCoro, TpLoggerFlushMultiple) {

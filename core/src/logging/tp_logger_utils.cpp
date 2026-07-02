@@ -101,6 +101,8 @@ std::shared_ptr<TpLogger> MakeTpLogger(const LoggerConfig& config) {
         logger->AddSink(std::move(socket_sink_holder));
         // Overwriting the level of TpLogger.
         socket_sink->SetLevel(logging::Level::kNone);
+        // Deliver captured logs immediately: disable notification batching so every log notifies consumer.
+        logger->SetNotificationBatching(false);
     }
 
     return logger;
