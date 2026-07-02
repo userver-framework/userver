@@ -25,6 +25,8 @@ std::optional<std::string> ToOptional(const Value& val) {
     }
 }
 
+constexpr std::string_view kUsage = "USAGE: service --config PATH_TO_CONFIG [--config_vars PATH_TO_CONFIG_VARS]";
+
 }  // namespace
 
 boost::program_options::options_description BaseRunOptions() {
@@ -35,8 +37,8 @@ boost::program_options::options_description BaseRunOptions() {
         ("help,h", "produce this help message")
         ("print-config-schema", "print config.yaml YAML Schema")
         ("print-dynamic-config-defaults", "print JSON object with dynamic config defaults")
-        ("config_vars", po::value<std::string>(), "path to config_vars.yaml; if set, config_vars in config.yaml are ignored")
-        ("config_vars_override", po::value<std::string>(), "path to an additional config_vars.yaml, which overrides vars of config_vars.yaml")
+        ("config-vars,config_vars", po::value<std::string>(), "path to config_vars.yaml; if set, config_vars in config.yaml are ignored")
+        ("config-vars-override,config_vars_override", po::value<std::string>(), "path to an additional config_vars.yaml, which overrides vars of config_vars.yaml")
     ;
     // clang-format on
     return desc;
@@ -52,15 +54,21 @@ int DaemonMain(const int argc, const char* const argv[], const components::Compo
         po::store(po::parse_command_line(argc, argv, desc), vm);
         po::notify(vm);
     } catch (const std::exception& ex) {
-        const auto msg = fmt::format("{}\n", ex.what());
+        if (vm.count("help")) {
+            std::ostringstream oss;
+            oss << kUsage << "\n\n" << desc << '\n';
+            std::fputs(oss.str().c_str(), stdout);
+            return 0;
+        }
+        const auto msg = fmt::format("{}\n\n{}\nPass -h for full options description\n", ex.what(), kUsage);
         std::fputs(msg.c_str(), stderr);
         return 1;
     }
 
     if (vm.count("help")) {
         std::ostringstream oss;
-        oss << desc << '\n';
-        std::fputs(oss.str().c_str(), stderr);
+        oss << kUsage << "\n\n" << desc << '\n';
+        std::fputs(oss.str().c_str(), stdout);
         return 0;
     }
 
