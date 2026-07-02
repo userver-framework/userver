@@ -24,13 +24,13 @@ namespace storages::postgres {
 DistLockComponentBase::DistLockComponentBase(
     const components::ComponentConfig& component_config,
     const components::ComponentContext& component_context,
-    AutostartDistlock autostart_at_base_component
+    AutostartDistlockInternal enable_autostart_at_base
 )
     : components::ComponentBase(component_config, component_context),
       config_(component_context.FindComponent<components::DynamicConfig>().GetSource()),
       name_(component_config.Name()),
       real_host_name_(hostinfo::blocking::GetRealHostName()),
-      autostart_at_base_component_(autostart_at_base_component)
+      enable_autostart_at_base_(enable_autostart_at_base)
 {
     auto shard_number = component_config["shard-number"].As<size_t>(components::Postgres::kDefaultShardNumber);
     auto cluster =
@@ -86,7 +86,7 @@ DistLockComponentBase::DistLockComponentBase(
         {{"distlock_name", component_config.Name()}}
     );
 
-    const bool autostart_enabled = autostart_at_base_component_ == AutostartDistlock::kYes;
+    const bool autostart_enabled = enable_autostart_at_base_ == AutostartDistlockInternal::kYes;
     if (component_config["testsuite-support"].As<bool>(autostart_enabled)) {
         auto& testsuite_tasks = testsuite::GetTestsuiteTasks(component_context);
 
@@ -107,6 +107,20 @@ DistLockComponentBase::DistLockComponentBase(
     }
 }
 
+DistLockComponentBase::DistLockComponentBase(
+    const components::ComponentConfig& component_config,
+    const components::ComponentContext& component_context,
+    AutostartDistlock
+)
+    : storages::postgres::DistLockComponentBase(component_config, component_context, AutostartDistlockInternal::kYes) {}
+
+DistLockComponentBase::DistLockComponentBase(
+    const components::ComponentConfig& component_config,
+    const components::ComponentContext& component_context,
+    DisableAutostartAtBase
+)
+    : storages::postgres::DistLockComponentBase(component_config, component_context, AutostartDistlockInternal::kNo) {}
+
 DistLockComponentBase::~DistLockComponentBase() { subscription_token_.Unsubscribe(); }
 
 dist_lock::DistLockedWorker& DistLockComponentBase::GetWorker() { return *worker_; }
@@ -114,7 +128,7 @@ dist_lock::DistLockedWorker& DistLockComponentBase::GetWorker() { return *worker
 bool DistLockComponentBase::OwnsLock() const noexcept { return worker_->OwnsLock() || testsuite_enabled_; }
 
 void DistLockComponentBase::AutostartDistLock() {
-    UASSERT(autostart_at_base_component_ == AutostartDistlock::kNo);
+    UASSERT(enable_autostart_at_base_ == AutostartDistlockInternal::kNo);
 
     if (testsuite_enabled_) {
         return;

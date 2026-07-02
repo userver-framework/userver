@@ -63,12 +63,21 @@ namespace storages::postgres {
 /// @see @ref scripts/docs/en/userver/periodics.md
 class DistLockComponentBase : public components::ComponentBase {
 public:
-    enum class AutostartDistlock : bool { kNo = false, kYes = true };
+    // This enum is going to be completely removed.
+    enum class AutostartDistlock : bool { kYes = true };
+
+    struct DisableAutostartAtBase {};
 
     DistLockComponentBase(
-        const components::ComponentConfig&,
-        const components::ComponentContext&,
-        AutostartDistlock autostart_at_base_component = AutostartDistlock::kNo
+        const components::ComponentConfig& component_config,
+        const components::ComponentContext& component_context,
+        AutostartDistlock autostart_at_base_component
+    );
+
+    DistLockComponentBase(
+        const components::ComponentConfig& component_config,
+        const components::ComponentContext& component_context,
+        DisableAutostartAtBase
     );
 
     ~DistLockComponentBase() override;
@@ -119,10 +128,10 @@ protected:
     /// Override this function to provide custom testsuite handler.
     virtual void DoWorkTestsuite() { DoWork(); }
 
-    /// Must be called in ctr
+    /// Should be called in .ctor of a derived class if autostart at base .ctor is disabled.
     void AutostartDistLock();
 
-    /// Must be called in dtr
+    /// Should be called in .dtor of a derived class if autostart at base .ctor is disabled.
     void StopDistLock();
 
     /// Check this method when going for the next independent processing
@@ -131,6 +140,14 @@ protected:
     bool IsCancelAdvised() const;
 
 private:
+    enum class AutostartDistlockInternal : bool { kNo = false, kYes = true };
+
+    DistLockComponentBase(
+        const components::ComponentConfig& component_config,
+        const components::ComponentContext& component_context,
+        AutostartDistlockInternal enable_autostart_at_base
+    );
+
     bool ShouldRunOnHost(const dynamic_config::Snapshot& config) const;
     void OnConfigUpdate(const dynamic_config::Diff& diff);
 
@@ -140,8 +157,7 @@ private:
     std::unique_ptr<dist_lock::DistLockedWorker> worker_;
     bool autostart_;
     bool testsuite_enabled_{false};
-    // temporary parameter, will be removed when all AutostartDistlock calls will be removed from the ctors
-    AutostartDistlock autostart_at_base_component_{AutostartDistlock::kNo};
+    AutostartDistlockInternal enable_autostart_at_base_;
     dist_lock::DistLockSettings default_settings_;
 
     concurrent::AsyncEventSubscriberScope subscription_token_;
