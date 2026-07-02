@@ -221,9 +221,9 @@ void DynamicConfig::Impl::DoSetConfig(const dynamic_config::DocsMap& value) {
 
 void DynamicConfig::Impl::SetConfig(std::string_view updater, dynamic_config::DocsMap&& value) {
     LOG_DEBUG() << "Setting new dynamic config value from '" << updater << "'";
+    WriteFsCache(value);
     value.MergeMissing(fallback_config_);
     DoSetConfig(value);
-    WriteFsCache(value);
 }
 
 ComponentHealth DynamicConfig::Impl::GetComponentHealth() const {
@@ -327,7 +327,7 @@ void DynamicConfig::Impl::WriteFsCache(const dynamic_config::DocsMap& docs_map) 
         fs::CreateDirectories(fs_task_processor_, boost::filesystem::path(fs_cache_path_).parent_path().string());
         fs::RewriteFileContentsAtomically(fs_task_processor_, fs_cache_path_, contents, mode);
 
-        LOG_INFO() << "Successfully wrote dynamic_config from FS cache";
+        LOG_INFO() << "Successfully wrote dynamic_config to FS cache";
     } catch (const std::exception& e) {
         LOG_ERROR() << "Failed to save config to FS cache '" << fs_cache_path_ << "': " << e;
     }
