@@ -25,7 +25,14 @@ struct CustomNameFromJsonTestParam {
 };
 
 void PrintTo(const CustomNameToJsonTestParam& param, std::ostream* os) {
-    *os << fmt::format("{{ options = {} }}", param.options);
+    *os << fmt::format(
+        "{{ options = {{ always_print_fields_with_no_presence = {}, always_print_enums_as_ints = {}, "
+        "preserve_proto_field_names = {}, nonportable_raw_any = {} }} }}",
+        param.options.always_print_fields_with_no_presence,
+        param.options.always_print_enums_as_ints,
+        param.options.preserve_proto_field_names,
+        param.options.nonportable_raw_any
+    );
 }
 
 void PrintTo(const CustomNameFromJsonTestParam& param, std::ostream* os) {
