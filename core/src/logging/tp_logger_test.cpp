@@ -5,6 +5,7 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/statistics/testing.hpp>
@@ -644,157 +645,162 @@ UTEST_F(LoggingTestCoro, TpLoggerFlushMultiple) {
 }
 
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleMT, 4) {
-    const std::size_t message_count = kLoggingTestIterations * (GetThreadCount() - 1);
+    const std::size_t message_count = kLoggingTestIterations * (engine::current_task::GetWorkerCount() - 1);
     auto logger = StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kDiscard);
-    LogTestMT(logger, GetThreadCount(), kTestLogging);
+    LogTestMT(logger, engine::current_task::GetWorkerCount(), kTestLogging);
     EXPECT_EQ(GetRecordsCount(), message_count);
 }
 
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleDefaultMT, 4) {
-    const std::size_t message_count = kLoggingTestIterations * (GetThreadCount() - 1);
+    const std::size_t message_count = kLoggingTestIterations * (engine::current_task::GetWorkerCount() - 1);
     auto logger = StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kDiscard);
 
     // Make sure that tracing does not break the default TpLogger
     SetDefaultLogger(logger);
     ASSERT_EQ(logger->GetLevel(), logging::Level::kTrace);
 
-    LogTestMT(logger, GetThreadCount(), kTestLogging);
+    LogTestMT(logger, engine::current_task::GetWorkerCount(), kTestLogging);
     EXPECT_GE(GetRecordsCount(), message_count);
 }
 
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleBlockingMT, 4) {
-    const std::size_t message_count = kLoggingTestIterations * (GetThreadCount() - 1);
+    const std::size_t message_count = kLoggingTestIterations * (engine::current_task::GetWorkerCount() - 1);
     auto logger = StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kBlock);
-    LogTestMT(logger, GetThreadCount(), kTestLogging);
+    LogTestMT(logger, engine::current_task::GetWorkerCount(), kTestLogging);
     EXPECT_EQ(GetRecordsCount(), message_count);
 }
 
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleFlushMT, 4) {
-    const std::size_t message_count = kLoggingTestIterations * GetThreadCount();
-    auto logger = StartAsyncLogger(GetThreadCount() * 2 /* log + flush */, QueueOverflowBehavior::kDiscard);
-    LogTestMT(logger, GetThreadCount(), kTestLogFlush);
+    const std::size_t message_count = kLoggingTestIterations * engine::current_task::GetWorkerCount();
+    auto logger =
+        StartAsyncLogger(engine::current_task::GetWorkerCount() * 2 /* log + flush */, QueueOverflowBehavior::kDiscard);
+    LogTestMT(logger, engine::current_task::GetWorkerCount(), kTestLogFlush);
     EXPECT_EQ(GetRecordsCount(), message_count);
 }
 
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleSyncMT, 4) {
-    const std::size_t message_count = kLoggingTestIterations * (GetThreadCount() - 1);
+    const std::size_t message_count = kLoggingTestIterations * (engine::current_task::GetWorkerCount() - 1);
     auto logger = StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kDiscard);
-    LogTestMT(logger, GetThreadCount(), kTestLogSync);
+    LogTestMT(logger, engine::current_task::GetWorkerCount(), kTestLogSync);
     EXPECT_EQ(GetRecordsCount(), message_count);
 }
 
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleFlushSyncMT, 4) {
-    const std::size_t message_count = kLoggingTestIterations * GetThreadCount();
+    const std::size_t message_count = kLoggingTestIterations * engine::current_task::GetWorkerCount();
     auto logger = StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kDiscard);
-    LogTestMT(logger, GetThreadCount(), kTestLogFlushSync);
+    LogTestMT(logger, engine::current_task::GetWorkerCount(), kTestLogFlushSync);
     EXPECT_EQ(GetRecordsCount(), message_count);
 }
 
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleCancelMT, 4) {
-    const std::size_t message_count = kLoggingTestIterations * (GetThreadCount() - 1);
+    const std::size_t message_count = kLoggingTestIterations * (engine::current_task::GetWorkerCount() - 1);
     auto logger = StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kDiscard);
-    LogTestMT(logger, GetThreadCount(), kTestLogCancel);
+    LogTestMT(logger, engine::current_task::GetWorkerCount(), kTestLogCancel);
     EXPECT_EQ(GetRecordsCount(), message_count);
 }
 
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleFlushCancelMT, 4) {
-    const std::size_t message_count = kLoggingTestIterations * GetThreadCount();
+    const std::size_t message_count = kLoggingTestIterations * engine::current_task::GetWorkerCount();
     auto logger = StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kDiscard);
-    LogTestMT(logger, GetThreadCount(), kTestLogFlushCancel);
+    LogTestMT(logger, engine::current_task::GetWorkerCount(), kTestLogFlushCancel);
     EXPECT_EQ(GetRecordsCount(), message_count);
 }
 
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleFlushSyncCancelMT, 4) {
-    const std::size_t message_count = kLoggingTestIterations * GetThreadCount();
+    const std::size_t message_count = kLoggingTestIterations * engine::current_task::GetWorkerCount();
     auto logger = StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kDiscard);
-    LogTestMT(logger, GetThreadCount(), kTestLogFlushSyncCancel);
+    LogTestMT(logger, engine::current_task::GetWorkerCount(), kTestLogFlushSyncCancel);
     EXPECT_EQ(GetRecordsCount(), message_count);
 }
 
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleDefaultFlushMT, 4) {
-    const std::size_t message_count = kLoggingTestIterations * GetThreadCount();
+    const std::size_t message_count = kLoggingTestIterations * engine::current_task::GetWorkerCount();
     auto logger = StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kDiscard);
 
     // Make sure that tracing does not break the default TpLogger
     SetDefaultLogger(logger);
     ASSERT_EQ(logger->GetLevel(), logging::Level::kTrace);
 
-    LogTestMT(logger, GetThreadCount(), kTestLogFlush);
+    LogTestMT(logger, engine::current_task::GetWorkerCount(), kTestLogFlush);
     EXPECT_GE(GetRecordsCount(), message_count);
 }
 
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleDefaultFlushSyncMT, 4) {
-    const std::size_t message_count = kLoggingTestIterations * GetThreadCount();
+    const std::size_t message_count = kLoggingTestIterations * engine::current_task::GetWorkerCount();
     auto logger = StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kDiscard);
 
     // Make sure that tracing does not break the default TpLogger
     SetDefaultLogger(logger);
     ASSERT_EQ(logger->GetLevel(), logging::Level::kTrace);
 
-    LogTestMT(logger, GetThreadCount(), kTestLogFlushSync);
+    LogTestMT(logger, engine::current_task::GetWorkerCount(), kTestLogFlushSync);
     EXPECT_GE(GetRecordsCount(), message_count);
 }
 
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleBlockingFlushMT, 4) {
-    const std::size_t message_count = kLoggingTestIterations * GetThreadCount();
-    auto logger = StartAsyncLogger(GetThreadCount() * 2 /* log + flush */, QueueOverflowBehavior::kBlock);
-    LogTestMT(logger, GetThreadCount(), kTestLogFlush);
+    const std::size_t message_count = kLoggingTestIterations * engine::current_task::GetWorkerCount();
+    auto logger =
+        StartAsyncLogger(engine::current_task::GetWorkerCount() * 2 /* log + flush */, QueueOverflowBehavior::kBlock);
+    LogTestMT(logger, engine::current_task::GetWorkerCount(), kTestLogFlush);
     EXPECT_EQ(GetRecordsCount(), message_count);
 }
 
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleBlockingFlushSyncMT, 4) {
-    const std::size_t message_count = kLoggingTestIterations * GetThreadCount();
-    auto logger = StartAsyncLogger(GetThreadCount() * 2 /* log + flush */, QueueOverflowBehavior::kBlock);
-    LogTestMT(logger, GetThreadCount(), kTestLogFlushSync);
+    const std::size_t message_count = kLoggingTestIterations * engine::current_task::GetWorkerCount();
+    auto logger =
+        StartAsyncLogger(engine::current_task::GetWorkerCount() * 2 /* log + flush */, QueueOverflowBehavior::kBlock);
+    LogTestMT(logger, engine::current_task::GetWorkerCount(), kTestLogFlushSync);
     EXPECT_EQ(GetRecordsCount(), message_count);
 }
 
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleBlockingSyncMT, 4) {
-    const std::size_t message_count = kLoggingTestIterations * (GetThreadCount() - 1);
+    const std::size_t message_count = kLoggingTestIterations * (engine::current_task::GetWorkerCount() - 1);
     auto logger = StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kBlock);
-    LogTestMT(logger, GetThreadCount(), kTestLogSync);
+    LogTestMT(logger, engine::current_task::GetWorkerCount(), kTestLogSync);
     EXPECT_EQ(GetRecordsCount(), message_count);
 }
 
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleBlockingCancelMT, 4) {
-    const std::size_t message_count = kLoggingTestIterations * (GetThreadCount() - 1);
+    const std::size_t message_count = kLoggingTestIterations * (engine::current_task::GetWorkerCount() - 1);
     auto logger = StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kBlock);
-    LogTestMT(logger, GetThreadCount(), kTestLogCancel);
+    LogTestMT(logger, engine::current_task::GetWorkerCount(), kTestLogCancel);
     EXPECT_EQ(GetRecordsCount(), message_count);
 }
 
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleBlockingSyncCancelMT, 4) {
-    const std::size_t message_count = kLoggingTestIterations * (GetThreadCount() - 1);
+    const std::size_t message_count = kLoggingTestIterations * (engine::current_task::GetWorkerCount() - 1);
     auto logger = StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kBlock);
-    LogTestMT(logger, GetThreadCount(), kTestLogSyncCancel);
+    LogTestMT(logger, engine::current_task::GetWorkerCount(), kTestLogSyncCancel);
     EXPECT_EQ(GetRecordsCount(), message_count);
 }
 
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleBlockingFlushSyncCancelMT, 4) {
-    const std::size_t message_count = kLoggingTestIterations * GetThreadCount();
-    auto logger = StartAsyncLogger(GetThreadCount() * 2 /* log + flush */, QueueOverflowBehavior::kBlock);
-    LogTestMT(logger, GetThreadCount(), kTestLogFlushSyncCancel);
+    const std::size_t message_count = kLoggingTestIterations * engine::current_task::GetWorkerCount();
+    auto logger =
+        StartAsyncLogger(engine::current_task::GetWorkerCount() * 2 /* log + flush */, QueueOverflowBehavior::kBlock);
+    LogTestMT(logger, engine::current_task::GetWorkerCount(), kTestLogFlushSyncCancel);
     EXPECT_EQ(GetRecordsCount(), message_count);
 }
 
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleStdThreadMT, 4) {
-    const std::size_t message_count = kLoggingTestIterations * (GetThreadCount() - 1);
+    const std::size_t message_count = kLoggingTestIterations * (engine::current_task::GetWorkerCount() - 1);
     auto logger = StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kDiscard);
-    LogTestMT(logger, GetThreadCount(), kTestLogStdThread);
+    LogTestMT(logger, engine::current_task::GetWorkerCount(), kTestLogStdThread);
     EXPECT_EQ(GetRecordsCount(), message_count);
 }
 
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleStdThreadFlushMT, 4) {
-    const std::size_t message_count = kLoggingTestIterations * GetThreadCount();
-    auto logger = StartAsyncLogger(GetThreadCount() * 2 /* log + flush */, QueueOverflowBehavior::kDiscard);
-    LogTestMT(logger, GetThreadCount(), kTestLogStdThreadFlush);
+    const std::size_t message_count = kLoggingTestIterations * engine::current_task::GetWorkerCount();
+    auto logger =
+        StartAsyncLogger(engine::current_task::GetWorkerCount() * 2 /* log + flush */, QueueOverflowBehavior::kDiscard);
+    LogTestMT(logger, engine::current_task::GetWorkerCount(), kTestLogStdThreadFlush);
     EXPECT_EQ(GetRecordsCount(), message_count);
 }
 
 UTEST_F_MT(LoggingTestCoro, TpLoggerLogMultipleStdThreadFlushSyncCancelMT, 4) {
-    const std::size_t message_count = kLoggingTestIterations * GetThreadCount();
+    const std::size_t message_count = kLoggingTestIterations * engine::current_task::GetWorkerCount();
     auto logger = StartAsyncLogger(message_count * 10, QueueOverflowBehavior::kDiscard);
-    LogTestMT(logger, GetThreadCount(), kTestLogStdThreadFlushSyncCancel);
+    LogTestMT(logger, engine::current_task::GetWorkerCount(), kTestLogStdThreadFlushSyncCancel);
     EXPECT_EQ(GetRecordsCount(), message_count);
 }
 

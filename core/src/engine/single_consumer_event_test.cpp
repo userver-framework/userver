@@ -6,6 +6,7 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/engine/wait_any.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utest/utest.hpp>
@@ -214,7 +215,10 @@ UTEST(SingleConsumerEvent, AwaitableTokenHasSpuriousWakeups) {
     // In this example, we actually want to wait on the predicate `count >= 3`, using SCE like a condition variable.
     // This test shows how it can be done without race conditions.
 
-    ASSERT_EQ(GetThreadCount(), 1) << "This test relies on Yield passing execution to the other task";
+    ASSERT_EQ(engine::current_task::GetWorkerCount(), 1)
+        << "This test relies on Yield "
+           "passing execution to the other "
+           "task";
 
     std::atomic<int> count{0};
     int wait_iterations{0};
@@ -296,7 +300,7 @@ UTEST_MT(SingleConsumerEvent, AsConditionVariable, 4) {
     engine::SingleConsumerEvent event;
     /// [CV init]
 
-    auto incrementors = utils::GenerateFixedArray(GetThreadCount() - 1, [&](std::size_t) {
+    auto incrementors = utils::GenerateFixedArray(engine::current_task::GetWorkerCount() - 1, [&](std::size_t) {
         return engine::CriticalAsyncNoTracing([&count, &event] {
             while (!engine::current_task::ShouldCancel()) {
                 /// [CV notifier]

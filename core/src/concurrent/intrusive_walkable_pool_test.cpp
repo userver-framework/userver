@@ -6,6 +6,7 @@
 #include <vector>
 
 #include <userver/engine/async.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/assert.hpp>
@@ -81,9 +82,9 @@ UTEST_MT(IntrusiveWalkablePool, TortureTest, 4) {
     // main test task may not resume promptly enough to flip a shared stop flag.
     const auto test_deadline = engine::Deadline::FromDuration(50ms);
     std::vector<engine::TaskWithResult<void>> tasks;
-    tasks.reserve(GetThreadCount() - 1);
+    tasks.reserve(engine::current_task::GetWorkerCount() - 1);
 
-    for (std::size_t i = 0; i < GetThreadCount() - 2; ++i) {
+    for (std::size_t i = 0; i < engine::current_task::GetWorkerCount() - 2; ++i) {
         tasks.push_back(engine::AsyncNoTracing([&] {
             CheckedInt* nodes[kNodesPerTask]{};
 

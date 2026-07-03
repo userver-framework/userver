@@ -157,6 +157,8 @@ bool IsTaskProcessorThread() noexcept { return GetCurrentTaskContextUnchecked() 
 
 TaskProcessor& GetTaskProcessor() { return GetCurrentTaskContext().GetTaskProcessor(); }
 
+std::size_t GetWorkerCount() { return GetTaskProcessor().GetWorkerCount(); }
+
 TaskProcessor& GetBlockingTaskProcessor() { return GetTaskProcessor().GetBlockingTaskProcessor(); }
 
 std::size_t GetStackSize() { return GetTaskProcessor().GetTaskProcessorPools()->GetCoroPool().GetStackSize(); }

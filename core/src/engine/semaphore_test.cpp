@@ -4,6 +4,7 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
@@ -207,8 +208,8 @@ UTEST_MT(Semaphore, LockPassing, 4) {
 
     while (!test_deadline.IsReached()) {
         std::vector<engine::TaskWithResult<void>> tasks;
-        tasks.reserve(GetThreadCount());
-        for (size_t i = 0; i < GetThreadCount(); ++i) {
+        tasks.reserve(engine::current_task::GetWorkerCount());
+        for (size_t i = 0; i < engine::current_task::GetWorkerCount(); ++i) {
             tasks.push_back(engine::AsyncNoTracing(work));
         }
 
@@ -222,9 +223,9 @@ UTEST_MT(Semaphore, LockFastPathRace, 5) {
     const auto test_deadline = engine::Deadline::FromDuration(100ms);
     engine::Semaphore sem{-1UL};
     std::vector<engine::TaskWithResult<void>> tasks;
-    tasks.reserve(GetThreadCount());
+    tasks.reserve(engine::current_task::GetWorkerCount());
 
-    for (std::size_t i = 0; i < GetThreadCount(); ++i) {
+    for (std::size_t i = 0; i < engine::current_task::GetWorkerCount(); ++i) {
         tasks.push_back(engine::AsyncNoTracing([&] {
             std::size_t locks_taken = 0;
             const utils::FastScopeGuard unlock([&]() noexcept { sem.unlock_shared_count(locks_taken); });

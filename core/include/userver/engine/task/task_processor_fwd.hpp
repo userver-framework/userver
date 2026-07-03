@@ -21,6 +21,11 @@ class TaskProcessor;
 std::size_t GetQueueSize(const TaskProcessor& task_processor) noexcept;
 
 /// @brief Get the number of worker threads in `task_processor`.
+///
+/// The value is configured with the `task_processors.*NAME*.worker_threads`
+/// static option of @ref components::ManagerControllerComponent.
+///
+/// @see @ref engine::current_task::GetWorkerCount
 std::size_t GetWorkerCount(const TaskProcessor& task_processor) noexcept;
 
 /// @brief Register a function that runs on all threads on task processor

@@ -9,6 +9,7 @@
 
 #include <userver/concurrent/variable.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/engine/wait_all_checked.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/async.hpp>
@@ -454,8 +455,8 @@ UTEST_F_MT(ProducerTest, OneProducerManySendSyncMt, 1 + 4) {
     const std::vector<std::string> topics = GenerateTopics(kTopicCount);
 
     std::vector<engine::TaskWithResult<void>> results;
-    results.reserve(GetThreadCount());
-    for (std::size_t group{0}; group + 1 < GetThreadCount(); ++group) {
+    results.reserve(engine::current_task::GetWorkerCount());
+    for (std::size_t group{0}; group + 1 < engine::current_task::GetWorkerCount(); ++group) {
         results.emplace_back(utils::Async(fmt::format("producer_test_send_sync_{}", group), [&producer, &topics] {
             for (std::size_t send{0}; send < kSendPerTask; ++send) {
                 producer.Send(
@@ -479,8 +480,8 @@ UTEST_F_MT(ProducerTest, OneProducerManyBulkSendSyncMt, 1 + 4) {
     const std::vector<std::string> topics = GenerateTopics(kTopicCount);
 
     std::vector<engine::TaskWithResult<void>> results;
-    results.reserve(GetThreadCount());
-    for (std::size_t group{0}; group + 1 < GetThreadCount(); ++group) {
+    results.reserve(engine::current_task::GetWorkerCount());
+    for (std::size_t group{0}; group + 1 < engine::current_task::GetWorkerCount(); ++group) {
         results.emplace_back(utils::Async(fmt::format("producer_test_send_sync_{}", group), [&producer, &topics] {
             for (std::size_t send{0}; send < kSendPerTask; ++send) {
                 auto messages = std::vector{fmt::format("test-msg1-{}", send), fmt::format("test-msg2-{}", send)};
@@ -501,9 +502,9 @@ UTEST_F_MT(ProducerTest, OneProducerManySendAsyncMt, 1 + 4) {
     const std::vector<std::string> topics = GenerateTopics(kTopicCount);
 
     std::vector<engine::TaskWithResult<void>> parallel_tasks;
-    parallel_tasks.reserve(GetThreadCount());
+    parallel_tasks.reserve(engine::current_task::GetWorkerCount());
     concurrent::Variable<std::vector<engine::TaskWithResult<void>>> results;
-    for (std::size_t group{0}; group + 1 < GetThreadCount(); ++group) {
+    for (std::size_t group{0}; group + 1 < engine::current_task::GetWorkerCount(); ++group) {
         parallel_tasks.emplace_back(utils::Async(
             fmt::format("producer_test_send_async_{}", group),
             [&producer, &results, &topics] {

@@ -81,7 +81,8 @@ USERVER_NAMESPACE_END
 ///    as the 3rd parameter at the test definition. It specifies the number of
 ///    worker threads that should be created for the test. By default,
 ///    there is only 1 worker thread, which should be enough for most tests;
-/// 2. `GetThreadCount()` method is available in the test scope.
+/// 2. The current thread count is available via
+///    `engine::current_task::GetWorkerCount()`.
 ///
 /// ## Usage examples:
 /// @snippet core/src/engine/semaphore_test.cpp  UTEST macro example 1

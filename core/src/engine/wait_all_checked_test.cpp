@@ -4,6 +4,7 @@
 #include <userver/engine/future.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/engine/wait_all_checked.hpp>
 #include <userver/utest/stress.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
@@ -81,9 +82,9 @@ UTEST(WaitAllChecked, JustWorksVariadicTasks) {
 
 UTEST_MT(WaitAllChecked, EarlyThrow, 4) {
     std::vector<engine::TaskWithResult<void>> tasks;
-    tasks.reserve(GetThreadCount() + 1);
+    tasks.reserve(engine::current_task::GetWorkerCount() + 1);
 
-    for (std::size_t i = 0; i < GetThreadCount(); ++i) {
+    for (std::size_t i = 0; i < engine::current_task::GetWorkerCount(); ++i) {
         tasks.push_back(SlowSuccessfulTask());
     }
     tasks.push_back(FastFailingTask());

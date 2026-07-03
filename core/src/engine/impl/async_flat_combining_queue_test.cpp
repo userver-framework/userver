@@ -8,6 +8,7 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/fixed_array.hpp>
 
@@ -150,7 +151,7 @@ TEST(AsyncFlatCombiningQueueNoCoro, StressSync) {
 }
 
 UTEST_MT(AsyncFlatCombiningQueue, StressAsync, 3) {
-    const auto producers_count = GetThreadCount() - 1;
+    const auto producers_count = engine::current_task::GetWorkerCount() - 1;
     const auto test_deadline = engine::Deadline::FromDuration(100ms);
     constexpr auto kTimeForModeChange = 1ms;
 

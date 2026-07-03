@@ -3,6 +3,7 @@
 #include <userver/concurrent/mutex_set.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/task/current_task.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -118,7 +119,7 @@ UTEST(MutexSet, Sample) {
 }
 
 UTEST_MT(MutexSet, HighContention, 4) {
-    const auto concurrent_jobs = GetThreadCount();
+    const auto concurrent_jobs = engine::current_task::GetWorkerCount();
     concurrent::MutexSet<int> ms;
 
     std::vector<engine::Task> tasks;

@@ -9,6 +9,7 @@
 #include <userver/compiler/impl/tsan.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/engine/wait_any.hpp>
 #include <userver/utest/utest.hpp>
@@ -90,9 +91,9 @@ UTEST_MT(SingleUseEvent, SimpleTaskQueue, 5) {
     // pinning queues can keep the main task behind a busy worker-local queue.
     const auto test_deadline = engine::Deadline::FromDuration(50ms);
     std::vector<engine::TaskWithResult<void>> client_tasks;
-    client_tasks.reserve(GetThreadCount() - 1);
+    client_tasks.reserve(engine::current_task::GetWorkerCount() - 1);
 
-    for (std::size_t i = 0; i < GetThreadCount() - 1; ++i) {
+    for (std::size_t i = 0; i < engine::current_task::GetWorkerCount() - 1; ++i) {
         client_tasks.push_back(utils::Async("client", [&, i] {
             std::uint64_t request = i;
 
@@ -101,7 +102,7 @@ UTEST_MT(SingleUseEvent, SimpleTaskQueue, 5) {
                 task_queue.push(&task);
                 task.completion.WaitNonCancellable();
                 EXPECT_EQ(task.response, task.request * 2);
-                request += GetThreadCount();
+                request += engine::current_task::GetWorkerCount();
                 // `task` is destroyed here, with SingleConsumerEvent UB would occur
             }
         }));

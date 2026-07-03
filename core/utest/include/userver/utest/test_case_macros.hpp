@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <functional>
 #include <memory>
-#include <optional>
 #include <string>
 
 #include <gtest/gtest.h>
@@ -18,12 +17,6 @@ public:
     virtual void SetUp() = 0;
     virtual void TearDown() = 0;
     virtual void TestBody() = 0;
-
-    std::size_t GetThreadCount() const { return utest_thread_count_; }
-    void SetThreadCount(std::size_t count) { utest_thread_count_ = count; }
-
-private:
-    std::size_t utest_thread_count_ = 1;
 };
 
 enum class DeathTestsEnabled : bool {};
@@ -36,9 +29,8 @@ void DoRunTest(std::size_t thread_count, DeathTestsEnabled, std::function<std::u
 void RunSetUpTestSuite(void (*set_up_test_suite)());
 void RunTearDownTestSuite(void (*tear_down_test_suite)());
 
-// Inherits from the user's fixture (or '::testing::Test') and provides some
-// niceties to the test body ('GetThreadCount') while making the test methods
-// public ('SetUp', 'TearDown'). The fixture is further inherited from
+// Inherits from the user's fixture (or '::testing::Test') and makes the test
+// methods public ('SetUp', 'TearDown'). The fixture is further inherited from
 // (and "enriched") in inline-created test classes
 // (IMPL_UTEST_HIDE_ENRICHED_FROM_IDE).
 template <typename UserFixture>
@@ -49,7 +41,6 @@ protected:
     void TearDown() override { return UserFixture::TearDown(); }
 
 private:
-    using EnrichedTestBase::SetThreadCount;
     using EnrichedTestBase::TestBody;
 };
 
@@ -210,7 +201,6 @@ USERVER_NAMESPACE_END
             : public USERVER_NAMESPACE::utest::impl::EnrichedFixture<UtestUserFixture<UtestTypeParamImpl>> { \
             using TypeParam = UtestTypeParamImpl;                                                            \
             using TestFixture = IMPL_UTEST_NON_PARENTHESIZED(test_suite_name)<TypeParam>;                    \
-            using USERVER_NAMESPACE::utest::impl::EnrichedTestBase::GetThreadCount;                          \
             void TestBody() override;                                                                        \
         };                                                                                                   \
     };                                                                                                       \

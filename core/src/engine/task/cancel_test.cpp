@@ -11,6 +11,7 @@
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/single_use_event.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/async.hpp>
@@ -447,7 +448,7 @@ UTEST(Cancel, ParentCancelledSample) {
 UTEST(Async, CancellationBeforeStartNormal) {
     // The test relies on there only being a single TaskProcessor thread, otherwise there could be a race
     // between `RequestCancel()` and the concurrent execution of the child task.
-    ASSERT_EQ(GetThreadCount(), 1);
+    ASSERT_EQ(engine::current_task::GetWorkerCount(), 1);
 
     bool captures_destroyed = false;
     utils::FastScopeGuard guard([&captures_destroyed]() noexcept {
@@ -476,7 +477,7 @@ UTEST(Async, CancellationBeforeStartNormal) {
 UTEST(Async, CancellationBeforeStartCritical) {
     // The test relies on there only being a single TaskProcessor thread, otherwise there could be a race
     // between `RequestCancel()` and the concurrent execution of the child task.
-    ASSERT_EQ(GetThreadCount(), 1);
+    ASSERT_EQ(engine::current_task::GetWorkerCount(), 1);
 
     engine::SingleUseEvent event;
     auto task = engine::CriticalAsyncNoTracing([&event] {

@@ -3,33 +3,19 @@
 #include <type_traits>
 
 #include <userver/engine/mutex.hpp>
-#include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/utils/async.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 UTEST(TestCaseMacros, UTESTEngine) {
-    EXPECT_EQ(GetThreadCount(), 1);
+    EXPECT_EQ(engine::current_task::GetWorkerCount(), 1);
 
     engine::Mutex mutex;
     const std::lock_guard lock(mutex);
 }
 
-namespace {
-
-void ExpectCurrentWorkerCount(std::size_t expected_worker_count) {
-    // Busy-loop based checks can deadlock on a pinning queue if both helper
-    // tasks get assigned to the same worker. The invariant we need here is only
-    // that UTEST_MT configured the TaskProcessor with the requested size.
-    EXPECT_EQ(engine::GetWorkerCount(engine::current_task::GetTaskProcessor()), expected_worker_count);
-}
-
-}  // namespace
-
-UTEST_MT(TestCaseMacros, MultiThreaded, 2) {
-    EXPECT_EQ(GetThreadCount(), 2);
-    ExpectCurrentWorkerCount(2);
-}
+UTEST_MT(TestCaseMacros, MultiThreaded, 2) { EXPECT_EQ(engine::current_task::GetWorkerCount(), 2); }
 
 TEST(TestCaseMacros, UtestAndTestWithSameTestSuite) { SUCCEED(); }
 
@@ -66,10 +52,7 @@ private:
 
 UTEST_F(TestCaseMacrosFixture, UtestFEngine) { CheckEngine(); }
 
-UTEST_F_MT(TestCaseMacrosFixture, UtestFEngine2, 2) {
-    EXPECT_EQ(GetThreadCount(), 2);
-    ExpectCurrentWorkerCount(2);
-}
+UTEST_F_MT(TestCaseMacrosFixture, UtestFEngine2, 2) { EXPECT_EQ(engine::current_task::GetWorkerCount(), 2); }
 
 // Using the same test fixture with both U-macros and vanilla macros leads to
 // gtest crashing or failing to start a coroutine environment.
@@ -102,8 +85,7 @@ UTEST_P(TestCaseMacrosParametric, UtestPEngine) { CheckEngineAndParam(); }
 
 UTEST_P_MT(TestCaseMacrosParametric, UtestPEngine2, 2) {
     CheckEngineAndParam();
-    EXPECT_EQ(GetThreadCount(), 2);
-    ExpectCurrentWorkerCount(2);
+    EXPECT_EQ(engine::current_task::GetWorkerCount(), 2);
 }
 
 INSTANTIATE_UTEST_SUITE_P(FooBar, TestCaseMacrosParametric, testing::Values("foo", "bar"));
@@ -132,8 +114,7 @@ TYPED_UTEST(TestCaseMacrosTyped, TypedUtestEngine) {
 
 TYPED_UTEST_MT(TestCaseMacrosTyped, TypedUtestEngine2, 2) {
     this->CheckEngine();
-    EXPECT_EQ(GetThreadCount(), 2);
-    ExpectCurrentWorkerCount(2);
+    EXPECT_EQ(engine::current_task::GetWorkerCount(), 2);
 }
 
 template <typename T>
@@ -152,8 +133,7 @@ TYPED_UTEST_P(TestCaseMacrosTypedP, TypedUtestPEngine) {
 
 TYPED_UTEST_P_MT(TestCaseMacrosTypedP, TypedUtestPEngine2, 2) {
     this->CheckEngine();
-    EXPECT_EQ(GetThreadCount(), 2);
-    ExpectCurrentWorkerCount(2);
+    EXPECT_EQ(engine::current_task::GetWorkerCount(), 2);
 }
 
 REGISTER_TYPED_UTEST_SUITE_P(TestCaseMacrosTypedP, TypedUtestPEngine, TypedUtestPEngine2);
