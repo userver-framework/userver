@@ -69,10 +69,11 @@ TEST(CFile, Writing) {
 
     fs::blocking::CFile file(path, {fs::blocking::OpenFlag::kWrite, fs::blocking::OpenFlag::kCreateIfNotExists});
     file.Write("bar");
+    file.Write("<p>🐙 <b>userver</b></p>");
     file.Write("baz");
     file.Flush();
 
-    EXPECT_EQ(fs::blocking::ReadFileContents(path), "barbaz");
+    EXPECT_EQ(fs::blocking::ReadFileContents(path), "bar<p>🐙 <b>userver</b></p>baz");
 }
 
 TEST(CFile, WriteEmpty) {

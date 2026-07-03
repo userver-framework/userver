@@ -5,7 +5,7 @@ export function styleNavButtons() {
     if (!(navButtonsContainer && navButtons.length)) return;
     
     for (const button of navButtons) {
-        const isBackButton = button.previousSibling.textContent.includes('⇦') || button.previousSibling.textContent.includes('â‡¦');
+        const isBackButton = button.previousSibling.textContent.includes('⇦');
         button.className = `button ${isBackButton ? 'prev' : 'next'}`;
         button.innerHTML = `<span class="btn-sub">${isBackButton ? 'Go back' : 'Up next'}</span><span class="btn-title">${button.innerHTML}</span>`;
     }

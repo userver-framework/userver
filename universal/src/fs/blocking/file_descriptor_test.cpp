@@ -87,6 +87,9 @@ TEST(FileDescriptor, WriteNonTruncating) {
     fd.Seek(1);
     fd.Write("dd");
     EXPECT_EQ(fs::blocking::ReadFileContents(path), "bddc");
+
+    fd.Write("<p>🐙 <b>userver</b></p>");
+    EXPECT_EQ(fs::blocking::ReadFileContents(path), "bdd<p>🐙 <b>userver</b></p>");
 }
 
 TEST(FileDescriptor, WriteTruncating) {
