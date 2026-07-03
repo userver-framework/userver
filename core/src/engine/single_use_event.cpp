@@ -75,12 +75,11 @@ void SingleUseEvent::Send() noexcept {
 
 bool SingleUseEvent::IsReady() const noexcept { return awaiters_->IsSignaled(); }
 
-void SingleUseEvent::TryAppendAwaiter(boost::intrusive_ptr<impl::Awaiter>& awaiter, std::uintptr_t context) {
+void SingleUseEvent::TryAppendAwaiter(impl::AwaiterPtr& awaiter, std::uintptr_t context) {
     awaiters_->GetSignalOrAppend(awaiter, context);
 }
 
-boost::intrusive_ptr<impl::Awaiter> SingleUseEvent::RemoveAwaiter(impl::Awaiter& awaiter, std::uintptr_t context)
-    noexcept {
+impl::AwaiterPtr SingleUseEvent::RemoveAwaiter(impl::Awaiter& awaiter, std::uintptr_t context) noexcept {
     return awaiters_->Remove(awaiter, context);
 }
 

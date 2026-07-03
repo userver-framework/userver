@@ -30,13 +30,9 @@ USERVER_NAMESPACE_BEGIN
 namespace engine::impl {
 namespace {
 
-constexpr bool kAdopt = false;
-
 Awaiter* const kSignaled = reinterpret_cast<Awaiter*>(1);
 
-void DoNotify(AwaiterWithContext awaiter) {
-    impl::Notify(boost::intrusive_ptr<Awaiter>{awaiter.awaiter, /*add_ref=*/false}, awaiter.context);
-}
+void DoNotify(AwaiterWithContext awaiter) { impl::NotifyAndDispose(AwaiterPtr{awaiter.awaiter}, awaiter.context); }
 
 }  // namespace
 
@@ -46,12 +42,12 @@ WaitListLight::~WaitListLight() {
     UASSERT_MSG(IsEmptyRelaxed(), "Someone is awaiting on WaitListLight while it's being destroyed");
 }
 
-void WaitListLight::Append(boost::intrusive_ptr<impl::Awaiter>&& awaiter, std::uintptr_t context) noexcept {
+void WaitListLight::Append(AwaiterPtr&& awaiter, std::uintptr_t context) noexcept {
     GetSignalOrAppend(awaiter, context);
     UASSERT_MSG(!awaiter, "Signals cannot be used with plain Append");
 }
 
-void WaitListLight::GetSignalOrAppend(boost::intrusive_ptr<Awaiter>& awaiter, std::uintptr_t context) noexcept {
+void WaitListLight::GetSignalOrAppend(AwaiterPtr& awaiter, std::uintptr_t context) noexcept {
     UASSERT(awaiter);
 
     const AwaiterWithContext new_awaiter{awaiter.get(), context};
@@ -76,7 +72,7 @@ void WaitListLight::GetSignalOrAppend(boost::intrusive_ptr<Awaiter>& awaiter, st
     // Keep a reference logically stored in the WaitListLight to ensure that
     // WakeupOne can complete safely in parallel with the awaiting task being
     // cancelled, Remove-d and stopped.
-    awaiter.detach();
+    [[maybe_unused]] auto* _ = awaiter.release();
 }
 
 void WaitListLight::NotifyOne() {
@@ -101,7 +97,7 @@ void WaitListLight::SetSignalAndNotifyOne() {
     DoNotify(old_awaiter);
 }
 
-boost::intrusive_ptr<Awaiter> WaitListLight::Remove(Awaiter& awaiter, std::uintptr_t context) noexcept {
+AwaiterPtr WaitListLight::Remove(Awaiter& awaiter, std::uintptr_t context) noexcept {
     const AwaiterWithContext expected{&awaiter, context};
 
     // Non-locked fast path if the awaiting side is calling Remove after it has been notified by this WaitListLight.
@@ -134,7 +130,7 @@ boost::intrusive_ptr<Awaiter> WaitListLight::Remove(Awaiter& awaiter, std::uintp
         return {};
     }
 
-    return boost::intrusive_ptr<Awaiter>{&awaiter, kAdopt};
+    return AwaiterPtr{&awaiter};
 }
 
 bool WaitListLight::GetAndResetSignal() noexcept {

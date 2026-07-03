@@ -38,8 +38,8 @@ protected:
     void WaitForResult();
 
 private:
-    void TryAppendAwaiter(boost::intrusive_ptr<Awaiter>& awaiter, std::uintptr_t context) final;
-    boost::intrusive_ptr<Awaiter> RemoveAwaiter(Awaiter& awaiter, std::uintptr_t context) noexcept final;
+    void TryAppendAwaiter(AwaiterPtr& awaiter, std::uintptr_t context) final;
+    AwaiterPtr RemoveAwaiter(Awaiter& awaiter, std::uintptr_t context) noexcept final;
 
     FastPimplWaitListLight finish_awaiters_;
     std::atomic<bool> is_result_store_locked_;

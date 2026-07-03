@@ -17,20 +17,16 @@ public:
     static_assert(std::is_nothrow_invocable_v<CallbackType&&>);
 
     explicit NonCancellableAwaiter(CallbackType&& callback)
-        : PolymorphicAwaiter(Awaiter::InitialRefCounter::kOne),
-          callback_(std::move(callback))
+        : callback_(std::move(callback))
     {}
 
-    void DoNotify(boost::intrusive_ptr<PolymorphicAwaiter> self, std::uintptr_t context) noexcept override {
+    void NotifyAndDispose(std::uintptr_t context) noexcept override {
         UASSERT(context == 0);
         std::move(callback_)();
-
-        UASSERT(self->UseCount() == 1);
-        // Avoid an extra atomic refcount decrement.
-        delete static_cast<NonCancellableAwaiter*>(self.detach());
+        delete this;
     }
 
-    void Destroy() noexcept override { delete this; }
+    void DisposeWithoutNotification() noexcept override { delete this; }
 
 private:
     [[no_unique_address]] CallbackType callback_;
@@ -41,10 +37,11 @@ private:
 template <typename CallbackType>
 void AppendNonCancellableAwaiter(AwaitableBase& awaitable, CallbackType&& callback) {
     using AwaiterType = NonCancellableAwaiter<std::remove_const_t<std::remove_reference_t<CallbackType>>>;
-    boost::intrusive_ptr<Awaiter> awaiter{new AwaiterType(std::forward<CallbackType>(callback)), /*add_ref=*/false};
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
+    AwaiterPtr awaiter(new AwaiterType(std::forward<CallbackType>(callback)));
     awaitable.TryAppendAwaiter(awaiter, 0);
     if (awaiter != nullptr) {  // awaitable is ready.
-        impl::Notify(std::move(awaiter), 0);
+        impl::NotifyAndDispose(std::move(awaiter), 0);
     }
 }
 

@@ -19,7 +19,7 @@ auto GenericWaitList::CreateWaitList(Task::WaitMode wait_mode) noexcept {
 
 GenericWaitList::GenericWaitList(Task::WaitMode wait_mode) noexcept : awaiters_(CreateWaitList(wait_mode)) {}
 
-void GenericWaitList::GetSignalOrAppend(boost::intrusive_ptr<Awaiter>& awaiter, std::uintptr_t context) noexcept {
+void GenericWaitList::GetSignalOrAppend(AwaiterPtr& awaiter, std::uintptr_t context) noexcept {
     utils::Visit(
         awaiters_,  //
         [&awaiter, context](WaitListLight& ws) { ws.GetSignalOrAppend(awaiter, context); },
@@ -37,7 +37,7 @@ void GenericWaitList::GetSignalOrAppend(boost::intrusive_ptr<Awaiter>& awaiter, 
 }
 
 // noexcept: awaiters_ are never valueless_by_exception
-boost::intrusive_ptr<Awaiter> GenericWaitList::Remove(Awaiter& awaiter, std::uintptr_t context) noexcept {
+AwaiterPtr GenericWaitList::Remove(Awaiter& awaiter, std::uintptr_t context) noexcept {
     return utils::Visit(
         awaiters_,  //
         [&awaiter, context](WaitListLight& ws) { return ws.Remove(awaiter, context); },

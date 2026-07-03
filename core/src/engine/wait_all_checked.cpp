@@ -2,13 +2,15 @@
 
 #include <limits>
 
+#include <boost/smart_ptr/intrusive_ptr.hpp>
+
 #include <engine/impl/wait_any_utils.hpp>
 #include <engine/task/task_context.hpp>
 #include <userver/engine/exception.hpp>
 #include <userver/engine/impl/awaiter.hpp>
 #include <userver/engine/single_consumer_event.hpp>
+#include <userver/utils/impl/intrusive_ref_counter_one.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
-#include <userver/utils/make_intrusive_ptr.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -29,27 +31,30 @@ void RethrowError(AwaitableToken target) {
 
 class WaitAllCheckedContext final {
 public:
-    WaitAllCheckedContext(std::vector<AwaitableToken>&& targets)
-        : impl_(new Impl(std::move(targets)), /*add_ref=*/false)
+    explicit WaitAllCheckedContext(std::vector<AwaitableToken>&& targets)
+        : impl_(utils::impl::MakeIntrusiveOne<Impl>(std::move(targets)))
     {}
-    ~WaitAllCheckedContext() noexcept { impl_->Unsubscribe(); }
+
     WaitAllCheckedContext(const WaitAllCheckedContext&) = delete;
     WaitAllCheckedContext(WaitAllCheckedContext&&) = delete;
     WaitAllCheckedContext& operator=(WaitAllCheckedContext&&) = delete;
     WaitAllCheckedContext& operator=(const WaitAllCheckedContext&) = delete;
 
+    ~WaitAllCheckedContext() noexcept { impl_->Unsubscribe(); }
+
     FutureStatus WaitUntil(Deadline deadline) { return impl_->WaitUntil(deadline); }
 
 private:
-    class Impl final : public impl::PolymorphicAwaiter {
+    // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
+    class Impl final : public impl::PolymorphicAwaiter, public utils::impl::IntrusiveRefCounterOne<Impl> {
     public:
-        Impl(std::vector<AwaitableToken>&& targets);
-        ~Impl() noexcept = default;
+        explicit Impl(std::vector<AwaitableToken>&& targets);
 
         Impl(Impl&&) = delete;
         Impl& operator=(Impl&&) = delete;
         Impl(const Impl&) = delete;
         Impl& operator=(const Impl&) = delete;
+        ~Impl() noexcept = default;
 
         FutureStatus WaitUntil(Deadline deadline);
 
@@ -58,9 +63,11 @@ private:
     private:
         static constexpr std::size_t kNoExceptionSource = std::numeric_limits<std::size_t>::max();
 
-        void DoNotify(boost::intrusive_ptr<impl::PolymorphicAwaiter> self, std::uintptr_t context) noexcept override;
+        AwaiterPtr AsAwaiterPtr() noexcept;
 
-        void Destroy() noexcept override { delete this; }
+        void NotifyAndDispose(std::uintptr_t context) noexcept override;
+
+        void DisposeWithoutNotification() noexcept override { intrusive_ptr_release(this); }
 
         std::vector<AwaitableToken> targets_;
         std::size_t next_subscription_index_{0};
@@ -73,8 +80,7 @@ private:
 };
 
 WaitAllCheckedContext::Impl::Impl(std::vector<AwaitableToken>&& targets)
-    : PolymorphicAwaiter(Awaiter::InitialRefCounter::kOne),
-      targets_(std::move(targets))
+    : targets_(std::move(targets))
 {}
 
 FutureStatus WaitAllCheckedContext::Impl::WaitUntil(Deadline deadline) {
@@ -87,7 +93,7 @@ FutureStatus WaitAllCheckedContext::Impl::WaitUntil(Deadline deadline) {
         auto& awaitable = target.GetAwaitable(utils::impl::InternalTag{});
 
         pending_notifications_.fetch_add(1, std::memory_order_relaxed);
-        boost::intrusive_ptr<impl::Awaiter> awaiter_ptr{this};
+        auto awaiter_ptr = AsAwaiterPtr();
         awaitable.TryAppendAwaiter(awaiter_ptr, next_subscription_index_++);
         if (awaiter_ptr != nullptr) {  // target is already ready.
             pending_notifications_.fetch_sub(1, std::memory_order_relaxed);
@@ -121,10 +127,12 @@ void WaitAllCheckedContext::Impl::Unsubscribe() noexcept {
     }
 }
 
-void WaitAllCheckedContext::Impl::DoNotify(
-    boost::intrusive_ptr<impl::PolymorphicAwaiter> /*self*/,
-    std::uintptr_t context
-) noexcept {
+AwaiterPtr WaitAllCheckedContext::Impl::AsAwaiterPtr() noexcept {
+    intrusive_ptr_add_ref(this);
+    return AwaiterPtr{this};
+}
+
+void WaitAllCheckedContext::Impl::NotifyAndDispose(std::uintptr_t context) noexcept {
     UASSERT(context <= std::numeric_limits<std::size_t>::max());
     const auto index = static_cast<std::size_t>(context);
     const auto target = targets_[index];
@@ -145,6 +153,8 @@ void WaitAllCheckedContext::Impl::DoNotify(
     if (ready) {
         result_ready_.Send();
     }
+
+    intrusive_ptr_release(this);
 }
 
 FutureStatus DoWaitAllChecked(std::vector<AwaitableToken>&& targets, Deadline deadline) {

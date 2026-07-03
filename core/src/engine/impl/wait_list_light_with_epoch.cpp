@@ -15,8 +15,6 @@ namespace engine::impl {
 
 namespace {
 
-constexpr bool kAdopt = false;
-
 AwaiterWithContext* const kSignaled = reinterpret_cast<AwaiterWithContext*>(1);
 
 }  // namespace
@@ -43,7 +41,7 @@ bool WaitListLightWithEpoch::SetEpochThenGetAndResetSignal(std::uint32_t epoch) 
 
 std::uint32_t WaitListLightWithEpoch::GetEpoch() const noexcept { return state_.LoadWithTearing().epoch; }
 
-void WaitListLightWithEpoch::GetSignalOrAppend(boost::intrusive_ptr<Awaiter>& awaiter, std::uintptr_t context) {
+void WaitListLightWithEpoch::GetSignalOrAppend(AwaiterPtr& awaiter, std::uintptr_t context) {
     UASSERT(awaiter);
 
     const auto epoch = state_.LoadWithTearing().epoch;
@@ -75,10 +73,10 @@ void WaitListLightWithEpoch::GetSignalOrAppend(boost::intrusive_ptr<Awaiter>& aw
     [[maybe_unused]] auto* const released_ptr = new_awaiter_with_context.release();
 
     // Keep a reference logically stored in the WaitListLightWithEpoch.
-    awaiter.detach();
+    [[maybe_unused]] auto* const released_awaiter = awaiter.release();
 }
 
-boost::intrusive_ptr<Awaiter> WaitListLightWithEpoch::Remove(Awaiter& awaiter, std::uintptr_t context) noexcept {
+AwaiterPtr WaitListLightWithEpoch::Remove(Awaiter& awaiter, std::uintptr_t context) noexcept {
     const auto current = state_.LoadWithTearing();
     AwaiterWithContextPtrAndEpoch expected = current;
 
@@ -110,7 +108,7 @@ boost::intrusive_ptr<Awaiter> WaitListLightWithEpoch::Remove(Awaiter& awaiter, s
     if (current.awaiter_with_context != nullptr && current.awaiter_with_context != kSignaled) {
         std::default_delete<AwaiterWithContext>{}(current.awaiter_with_context);
     }
-    return boost::intrusive_ptr<Awaiter>{&awaiter, kAdopt};
+    return AwaiterPtr{&awaiter};
 }
 
 bool WaitListLightWithEpoch::GetAndResetSignal() noexcept {
@@ -149,10 +147,10 @@ void WaitListLightWithEpoch::SetSignalAndNotifyOneIfEpochMatches(std::uint32_t e
 
         if (success) {
             if (current.awaiter_with_context != nullptr && current.awaiter_with_context != kSignaled) {
-                boost::intrusive_ptr<Awaiter> awaiter{current.awaiter_with_context->awaiter, kAdopt};
+                AwaiterPtr awaiter{current.awaiter_with_context->awaiter};
                 const auto context = current.awaiter_with_context->context;
                 std::default_delete<AwaiterWithContext>{}(current.awaiter_with_context);
-                impl::Notify(std::move(awaiter), context);
+                impl::NotifyAndDispose(std::move(awaiter), context);
             }
             return;
         }

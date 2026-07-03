@@ -4,7 +4,6 @@
 #include <mutex>
 
 #include <boost/intrusive/list.hpp>
-#include <boost/smart_ptr/intrusive_ptr.hpp>
 
 #include <userver/engine/impl/awaiter.hpp>
 
@@ -58,10 +57,10 @@ public:
     bool IsEmpty(Lock&) const noexcept;
 
     /// @brief Append the task to the `WaitList`
-    void Append(Lock& lock, boost::intrusive_ptr<impl::Awaiter> awaiter, std::uintptr_t context) noexcept;
+    void Append(Lock& lock, AwaiterPtr awaiter, std::uintptr_t context) noexcept;
 
     /// @brief Remove the task from the `WaitList` without notifying
-    boost::intrusive_ptr<impl::Awaiter> Remove(Lock& lock, impl::Awaiter& awaiter, std::uintptr_t context) noexcept;
+    AwaiterPtr Remove(Lock& lock, Awaiter& awaiter, std::uintptr_t context) noexcept;
 
     void NotifyOne(Lock&);
     void NotifyAll(Lock&);

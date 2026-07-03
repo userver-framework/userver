@@ -19,19 +19,19 @@ public:
 
     bool IsReady() const noexcept override { return false; }
 
-    void TryAppendAwaiter(boost::intrusive_ptr<Awaiter>& awaiter, std::uintptr_t context) override {
+    void TryAppendAwaiter(impl::AwaiterPtr& awaiter, std::uintptr_t context) override {
         awaiter_ = std::move(awaiter);
         UASSERT(std::exchange(context_, context) == 0);
     }
 
-    boost::intrusive_ptr<Awaiter> RemoveAwaiter(Awaiter& awaiter, std::uintptr_t context) noexcept override {
-        UASSERT(awaiter_ == &awaiter);
+    impl::AwaiterPtr RemoveAwaiter(impl::Awaiter& awaiter, std::uintptr_t context) noexcept override {
+        UASSERT(awaiter_.get() == &awaiter);
         UASSERT(std::exchange(context_, 0) == context);
         return std::move(awaiter_);
     }
 
 private:
-    boost::intrusive_ptr<Awaiter> awaiter_;
+    impl::AwaiterPtr awaiter_;
     std::uintptr_t context_{0};
 };
 }  // namespace

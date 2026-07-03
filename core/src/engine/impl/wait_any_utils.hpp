@@ -26,7 +26,7 @@ public:
         });
     }
 
-    void TryAppendAwaiter(boost::intrusive_ptr<Awaiter>& awaiter, std::uintptr_t context) override {
+    void TryAppendAwaiter(AwaiterPtr& awaiter, std::uintptr_t context) override {
         for (auto& target : targets_) {
             if (target.IsEmpty()) {
                 continue;
@@ -38,7 +38,7 @@ public:
             });
 
             // TryAppendAwaiter might throw.
-            auto awaiter_copy = awaiter;
+            auto awaiter_copy = awaiter->CastToTaskContext().AsAwaiterPtr();
             awaitable.TryAppendAwaiter(awaiter_copy, context);
             if (awaiter_copy != nullptr) {  // target is ready.
                 return;
@@ -52,17 +52,14 @@ public:
         awaiter = nullptr;
     }
 
-    boost::intrusive_ptr<Awaiter> RemoveAwaiter(Awaiter& awaiter, std::uintptr_t context) noexcept override {
+    AwaiterPtr RemoveAwaiter(Awaiter& awaiter, std::uintptr_t context) noexcept override {
         return DoDisableWakeups(targets_, awaiter, context);
     }
 
 private:
-    boost::intrusive_ptr<Awaiter> DoDisableWakeups(
-        utils::span<AwaitableToken> targets,
-        Awaiter& awaiter,
-        std::uintptr_t context
-    ) const noexcept {
-        boost::intrusive_ptr<Awaiter> compound_removal_result;
+    AwaiterPtr DoDisableWakeups(utils::span<AwaitableToken> targets, Awaiter& awaiter, std::uintptr_t context) const
+        noexcept {
+        AwaiterPtr compound_removal_result;
         bool removed_before_notification = true;
 
         for (const auto& target : targets) {

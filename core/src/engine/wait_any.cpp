@@ -3,6 +3,7 @@
 #include <deque>
 
 #include <boost/intrusive/slist.hpp>
+#include <boost/smart_ptr/intrusive_ptr.hpp>
 
 #include <engine/impl/wait_any_utils.hpp>
 #include <engine/task/task_context.hpp>
@@ -11,7 +12,7 @@
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/utils/enumerate.hpp>
 #include <userver/utils/impl/intrusive_link_mode.hpp>
-#include <userver/utils/make_intrusive_ptr.hpp>
+#include <userver/utils/impl/intrusive_ref_counter_one.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -56,9 +57,10 @@ std::optional<std::size_t> DoWaitAny(utils::span<AwaitableToken> target_tokens, 
 
 }  // namespace impl
 
-class WaitAnyContext::Impl final : public impl::PolymorphicAwaiter {
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
+class WaitAnyContext::Impl final : public impl::PolymorphicAwaiter, public utils::impl::IntrusiveRefCounterOne<Impl> {
 public:
-    Impl();
+    Impl() = default;
     ~Impl() noexcept = default;
 
     Impl(Impl&&) = delete;
@@ -95,9 +97,11 @@ private:
 
     using Queue = concurrent::impl::IntrusiveMpscQueue<QueueItem>;
 
-    void DoNotify(boost::intrusive_ptr<impl::PolymorphicAwaiter> self, std::uintptr_t context) noexcept override;
+    impl::AwaiterPtr AsAwaiterPtr() noexcept;
 
-    void Destroy() noexcept override { delete this; }
+    void NotifyAndDispose(std::uintptr_t context) noexcept override;
+
+    void DisposeWithoutNotification() noexcept override { intrusive_ptr_release(this); }
 
     std::optional<std::uint64_t> TryProcessQueue() noexcept;
 
@@ -113,10 +117,6 @@ private:
     Queue notified_;
     engine::SingleConsumerEvent queue_non_empty_{engine::SingleConsumerEvent::NoAutoReset{}};
 };
-
-WaitAnyContext::Impl::Impl()
-    : PolymorphicAwaiter(Awaiter::InitialRefCounter::kOne)
-{}
 
 void WaitAnyContext::Impl::Append(AwaitableToken awaitable) {
     Append(next_id_, awaitable);
@@ -183,10 +183,15 @@ void WaitAnyContext::Impl::Unsubscribe() noexcept {
     }
 }
 
-void WaitAnyContext::Impl::DoNotify(boost::intrusive_ptr<impl::PolymorphicAwaiter> /*self*/, std::uintptr_t context)
-    noexcept {
+impl::AwaiterPtr WaitAnyContext::Impl::AsAwaiterPtr() noexcept {
+    intrusive_ptr_add_ref(this);
+    return impl::AwaiterPtr{this};
+}
+
+void WaitAnyContext::Impl::NotifyAndDispose(std::uintptr_t context) noexcept {
     notified_.Push(*reinterpret_cast<QueueItem*>(context));
     queue_non_empty_.Send();
+    intrusive_ptr_release(this);
 }
 
 std::optional<std::uint64_t> WaitAnyContext::Impl::TryProcessQueue() noexcept {
@@ -209,7 +214,7 @@ std::optional<std::uint64_t> WaitAnyContext::Impl::TrySubscribe() {
 
         auto& awaitable = item.awaitable.GetAwaitable(utils::impl::InternalTag{});
 
-        boost::intrusive_ptr<impl::Awaiter> awaiter_ptr{this};
+        auto awaiter_ptr = AsAwaiterPtr();
         awaitable.TryAppendAwaiter(awaiter_ptr, reinterpret_cast<std::uintptr_t>(&item));
         if (awaiter_ptr != nullptr) {  // awaitable is already ready.
             unused_.push_front(item);
@@ -235,7 +240,7 @@ bool WaitAnyContext::Impl::ProcessNotified(QueueItem& item) noexcept {
 }
 
 WaitAnyContext::WaitAnyContext()
-    : impl_(new WaitAnyContext::Impl(), /*add_ref=*/false)
+    : impl_(utils::impl::MakeIntrusiveOne<WaitAnyContext::Impl>())
 {}
 
 WaitAnyContext::~WaitAnyContext() noexcept {

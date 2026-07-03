@@ -59,7 +59,7 @@ public:
 
     bool IsReady() const noexcept override { return false; }
 
-    void TryAppendAwaiter(boost::intrusive_ptr<Awaiter>& awaiter, std::uintptr_t context) override {
+    void TryAppendAwaiter(AwaiterPtr& awaiter, std::uintptr_t context) override {
         WaitList::Lock lock(mutex_.lock_awaiters_);
         if (mutex_.LockFastPath(*awaiter)) {
             return;
@@ -69,7 +69,7 @@ public:
         mutex_.lock_awaiters_.Append(lock, std::move(awaiter), context);
     }
 
-    boost::intrusive_ptr<Awaiter> RemoveAwaiter(Awaiter& awaiter, std::uintptr_t context) noexcept override {
+    AwaiterPtr RemoveAwaiter(Awaiter& awaiter, std::uintptr_t context) noexcept override {
         WaitList::Lock lock(mutex_.lock_awaiters_);
         return mutex_.lock_awaiters_.Remove(lock, awaiter, context);
     }
@@ -88,7 +88,7 @@ public:
 
     bool IsReady() const noexcept override { return false; }
 
-    void TryAppendAwaiter(boost::intrusive_ptr<Awaiter>& awaiter, std::uintptr_t context) override {
+    void TryAppendAwaiter(AwaiterPtr& awaiter, std::uintptr_t context) override {
         auto& awaiter_ref = *awaiter;
         if (TryLock(awaiter_ref)) {
             return;
@@ -99,7 +99,7 @@ public:
         }
     }
 
-    boost::intrusive_ptr<Awaiter> RemoveAwaiter(Awaiter& awaiter, std::uintptr_t context) noexcept override {
+    AwaiterPtr RemoveAwaiter(Awaiter& awaiter, std::uintptr_t context) noexcept override {
         return mutex_.lock_awaiters_.Remove(awaiter, context);
     }
 

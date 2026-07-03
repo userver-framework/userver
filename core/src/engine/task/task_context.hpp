@@ -25,6 +25,7 @@
 #include <userver/engine/task/task.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/flags.hpp>
+#include <userver/utils/impl/intrusive_ref_counter_one.hpp>
 #include <userver/utils/impl/wrapped_call_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -51,8 +52,16 @@ struct TraceStateTransitionData final {
     std::chrono::steady_clock::time_point last_state_change_timepoint{};
 };
 
+struct TaskContextDeleter {
+    void operator()(TaskContext* task_context) noexcept;
+};
+
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class TaskContext final : public AwaitableBase, public Awaiter, public deadlock_detector::Actor {
+class TaskContext final
+    : public utils::impl::IntrusiveRefCounterOne<TaskContext, TaskContextDeleter>,
+      public AwaitableBase,
+      public Awaiter,
+      public deadlock_detector::Actor {
 public:
     using TaskPipe = coro::Pool::TaskPipe;
     using TaskId = uint64_t;
@@ -150,6 +159,8 @@ public:
     static void Wakeup(boost::intrusive_ptr<TaskContext>&& self, WakeupSource, Epoch epoch) noexcept;
     static void Wakeup(boost::intrusive_ptr<TaskContext>&& self, WakeupSource, NoEpoch) noexcept;
 
+    AwaiterPtr AsAwaiterPtr() noexcept;
+
     static void CoroFunc(TaskPipe& task_pipe);
 
     // C++ ABI support, not to be used by anyone
@@ -169,8 +180,8 @@ public:
 
     // Awaitable implementation
     bool IsReady() const noexcept override;
-    void TryAppendAwaiter(boost::intrusive_ptr<Awaiter>& awaiter, std::uintptr_t context) override;
-    boost::intrusive_ptr<Awaiter> RemoveAwaiter(Awaiter& awaiter, std::uintptr_t context) noexcept override;
+    void TryAppendAwaiter(AwaiterPtr& awaiter, std::uintptr_t context) override;
+    AwaiterPtr RemoveAwaiter(Awaiter& awaiter, std::uintptr_t context) noexcept override;
     std::exception_ptr GetErrorResult() const noexcept override;
 
     std::size_t DecrementFetchSharedTaskUsages() noexcept;
@@ -207,11 +218,6 @@ private:
 
     static void Schedule(boost::intrusive_ptr<TaskContext>&& self) noexcept;
     static bool ShouldSchedule(SleepState::Flags flags, WakeupSource source) noexcept;
-
-    friend void intrusive_ptr_release(Awaiter* awaiter) noexcept;  // NOLINT(readability-identifier-naming)
-
-    // Called from intrusive_ptr_release. Should delete the instance
-    void Destroy() noexcept;
 
     const uint64_t magic_{kMagic};
     TaskProcessor& task_processor_;

@@ -33,7 +33,7 @@ struct WaitListRaceSimulator final : public engine::impl::WeakAwaitable {
 
     bool IsReady() const noexcept override { return false; }
 
-    void TryAppendAwaiter(boost::intrusive_ptr<engine::impl::Awaiter>& awaiter, std::uintptr_t context) override {
+    void TryAppendAwaiter(engine::impl::AwaiterPtr& awaiter, std::uintptr_t context) override {
         awaiter_ = std::move(awaiter);
         context_ = context;
 
@@ -47,18 +47,17 @@ struct WaitListRaceSimulator final : public engine::impl::WeakAwaitable {
         );
     }
 
-    boost::intrusive_ptr<engine::impl::Awaiter> RemoveAwaiter(engine::impl::Awaiter& awaiter, std::uintptr_t context)
-        noexcept override {
+    engine::impl::AwaiterPtr RemoveAwaiter(engine::impl::Awaiter& awaiter, std::uintptr_t context) noexcept override {
         UASSERT(awaiter_.get() == &awaiter);
         UASSERT(context_ == context);
 
         // simulate wait list notification before cleanup
-        engine::impl::Notify(std::move(awaiter_), context_);
+        engine::impl::NotifyAndDispose(std::move(awaiter_), context_);
         return nullptr;
     }
 
 private:
-    boost::intrusive_ptr<engine::impl::Awaiter> awaiter_;
+    engine::impl::AwaiterPtr awaiter_;
     std::uintptr_t context_{0};
 };
 

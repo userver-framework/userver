@@ -102,6 +102,13 @@ constexpr SleepState MakeNextEpochSleepState(SleepState current) {
 
 }  // namespace
 
+void TaskContextDeleter::operator()(TaskContext* task_context) noexcept {
+    UASSERT(task_context);
+    task_context->ResetPayload();
+    std::destroy_at(task_context);
+    DeleteFusedTaskContext(reinterpret_cast<std::byte*>(task_context));
+}
+
 TaskContext::TaskContext(
     TaskProcessor& task_processor,
     Task::Importance importance,
@@ -109,7 +116,7 @@ TaskContext::TaskContext(
     Deadline deadline,
     utils::impl::WrappedCallBase& payload
 )
-    : Awaiter(Awaiter::StaticType::kTaskContext, Awaiter::InitialRefCounter::kOne),
+    : Awaiter(Awaiter::StaticType::kTaskContext),
       task_processor_(task_processor),
       task_counter_token_(task_processor_.GetTaskCounter()),
       is_critical_(importance == Task::Importance::kCritical),
@@ -322,7 +329,7 @@ TaskContext::WakeupSource TaskContext::Sleep(WeakAwaitable& awaitable, Deadline 
     const auto sleep_epoch = new_sleep_state.epoch;
     const auto awaiter_context = static_cast<std::uintptr_t>(sleep_epoch);
 
-    boost::intrusive_ptr<Awaiter> self{this};
+    auto self = AsAwaiterPtr();
     awaitable.TryAppendAwaiter(self, awaiter_context);
     if (self != nullptr) {
         return WakeupSource::kNotify;
@@ -487,6 +494,11 @@ void TaskContext::Wakeup(boost::intrusive_ptr<TaskContext>&& self, WakeupSource 
     }
 }
 
+AwaiterPtr TaskContext::AsAwaiterPtr() noexcept {
+    intrusive_ptr_add_ref(this);
+    return AwaiterPtr{this};
+}
+
 class TaskContext::YieldReasonGuard {
 public:
     explicit YieldReasonGuard(TaskContext& context) noexcept : context_(context) {}
@@ -591,14 +603,14 @@ task_local::Storage& TaskContext::GetLocalStorage() noexcept {
 
 bool TaskContext::IsReady() const noexcept { return IsFinished(); }
 
-void TaskContext::TryAppendAwaiter(boost::intrusive_ptr<Awaiter>& awaiter, std::uintptr_t context) {
+void TaskContext::TryAppendAwaiter(AwaiterPtr& awaiter, std::uintptr_t context) {
     if (awaiter.get() == static_cast<Awaiter*>(this)) {
         ReportDeadlock();
     }
     finish_awaiters_->GetSignalOrAppend(awaiter, context);
 }
 
-boost::intrusive_ptr<Awaiter> TaskContext::RemoveAwaiter(Awaiter& awaiter, std::uintptr_t context) noexcept {
+AwaiterPtr TaskContext::RemoveAwaiter(Awaiter& awaiter, std::uintptr_t context) noexcept {
     return finish_awaiters_->Remove(awaiter, context);
 }
 
@@ -671,14 +683,6 @@ void TaskContext::ResetPayload() noexcept {
 CountedCoroutinePtr& TaskContext::GetCoroutinePtr() noexcept { return coro_; }
 
 utils::StringLiteral TaskContext::GetActorType() const { return "Task"; }
-
-void TaskContext::Destroy() noexcept {
-    ResetPayload();
-
-    std::destroy_at(this);
-
-    DeleteFusedTaskContext(reinterpret_cast<std::byte*>(this));
-}
 
 bool HasWaitSucceeded(TaskContext::WakeupSource wakeup_source) noexcept {
     // Typical synchronization primitives sleep in a WaitList until woken up

@@ -20,12 +20,11 @@ struct SingleConsumerEvent::Impl final : public impl::AwaitableBase {
 
     bool IsReady() const noexcept override { return awaiters.IsSignaled(); }
 
-    void TryAppendAwaiter(boost::intrusive_ptr<impl::Awaiter>& awaiter, std::uintptr_t context) override {
+    void TryAppendAwaiter(impl::AwaiterPtr& awaiter, std::uintptr_t context) override {
         awaiters.GetSignalOrAppend(awaiter, context);
     }
 
-    boost::intrusive_ptr<impl::Awaiter> RemoveAwaiter(impl::Awaiter& awaiter, std::uintptr_t context)
-        noexcept override {
+    impl::AwaiterPtr RemoveAwaiter(impl::Awaiter& awaiter, std::uintptr_t context) noexcept override {
         return awaiters.Remove(awaiter, context);
     }
 

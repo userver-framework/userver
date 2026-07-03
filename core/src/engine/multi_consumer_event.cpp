@@ -63,7 +63,7 @@ void MultiConsumerEvent::Send() noexcept {
 
 bool MultiConsumerEvent::IsReady() const noexcept { return is_ready_.load(); }
 
-void MultiConsumerEvent::TryAppendAwaiter(boost::intrusive_ptr<impl::Awaiter>& awaiter, std::uintptr_t context) {
+void MultiConsumerEvent::TryAppendAwaiter(impl::AwaiterPtr& awaiter, std::uintptr_t context) {
     if (is_ready_.load()) {
         return;
     }
@@ -74,8 +74,7 @@ void MultiConsumerEvent::TryAppendAwaiter(boost::intrusive_ptr<impl::Awaiter>& a
     awaiters_->Append(lock, std::move(awaiter), context);
 }
 
-boost::intrusive_ptr<impl::Awaiter> MultiConsumerEvent::RemoveAwaiter(impl::Awaiter& awaiter, std::uintptr_t context)
-    noexcept {
+impl::AwaiterPtr MultiConsumerEvent::RemoveAwaiter(impl::Awaiter& awaiter, std::uintptr_t context) noexcept {
     impl::WaitList::Lock lock(*awaiters_);
     return awaiters_->Remove(lock, awaiter, context);
 }
