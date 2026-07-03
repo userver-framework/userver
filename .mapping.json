@@ -895,6 +895,7 @@
   "core/functional_tests/http2server/tests/test_high_level.py":"taxi/uservices/userver/core/functional_tests/http2server/tests/test_high_level.py",
   "core/functional_tests/http2server/tests/test_http2_streaming.py":"taxi/uservices/userver/core/functional_tests/http2server/tests/test_http2_streaming.py",
   "core/functional_tests/http2server/tests/test_low_level.py":"taxi/uservices/userver/core/functional_tests/http2server/tests/test_low_level.py",
+  "core/functional_tests/http2server/tests/utils.py":"taxi/uservices/userver/core/functional_tests/http2server/tests/utils.py",
   "core/functional_tests/http_client_middlewares/CMakeLists.txt":"taxi/uservices/userver/core/functional_tests/http_client_middlewares/CMakeLists.txt",
   "core/functional_tests/http_client_middlewares/config_vars.yaml":"taxi/uservices/userver/core/functional_tests/http_client_middlewares/config_vars.yaml",
   "core/functional_tests/http_client_middlewares/main.cpp":"taxi/uservices/userver/core/functional_tests/http_client_middlewares/main.cpp",
