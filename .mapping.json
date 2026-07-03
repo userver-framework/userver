@@ -37,6 +37,7 @@
   "README.md":"taxi/uservices/userver/README.md",
   "SECURITY.md":"taxi/uservices/userver/SECURITY.md",
   "THIRD_PARTY.md":"taxi/uservices/userver/THIRD_PARTY.md",
+  "aisuite.yaml":"taxi/uservices/userver/aisuite.yaml",
   "chaotic-openapi/AGENTS.jinja.md":"taxi/uservices/userver/chaotic-openapi/AGENTS.jinja.md",
   "chaotic-openapi/AGENTS.md":"taxi/uservices/userver/chaotic-openapi/AGENTS.md",
   "chaotic-openapi/CMakeLists.txt":"taxi/uservices/userver/chaotic-openapi/CMakeLists.txt",
