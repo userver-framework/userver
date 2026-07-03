@@ -286,8 +286,11 @@ TEST_F(CommonServerComponentList, Smoke) {
     );
 }
 
-#if !USERVER_IMPL_HAS_TSAN
 TEST_F(CommonServerComponentList, Logger) {
+#if USERVER_IMPL_HAS_TSAN
+    GTEST_SKIP() << "MemLogger default logger replacement is unstable under TSan";
+#endif
+
     auto& old_logger = logging::GetDefaultLogger();
     logging::impl::SetDefaultLoggerRef(logging::impl::MemLogger::GetMemLogger());
 
@@ -321,7 +324,6 @@ TEST_F(CommonServerComponentList, Logger) {
     logging::impl::MemLogger::GetMemLogger().ForwardTo(&old_logger);
     logging::impl::MemLogger::GetMemLogger().ForwardTo(nullptr);
 }
-#endif
 
 TEST_F(CommonServerComponentList, TraceLogging) {
     fs::blocking::RewriteFileContents(

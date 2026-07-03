@@ -3,6 +3,7 @@
 #include <thread>
 
 #include <userver/compiler/impl/tsan.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/engine/task/task_base.hpp>
 #include <userver/formats/json/inline.hpp>
 #include <userver/formats/json/value_builder.hpp>
@@ -20,6 +21,7 @@ public:
     ~EchoTestpointClient() override { Unregister(); }
 
     void Execute(std::string_view name, const formats::json::Value& json, Callback callback) const override {
+        EXPECT_TRUE(engine::current_task::IsTaskProcessorThread());
         callback(formats::json::MakeObject("name", name, "body", json));
     }
 };
@@ -87,23 +89,25 @@ UTEST(Testpoint, MultipleTestpointsInSameScope) {
     EXPECT_EQ(times_called, 4);
 }
 
-#if !USERVER_IMPL_HAS_TSAN
 UTEST(Testpoint, Exceptions) {
     testsuite::TestpointControl testpoint_control;
     EchoTestpointClient testpoint_client;
     testpoint_control.SetClient(testpoint_client);
     testpoint_control.SetAllEnabled();
 
-    try {
-        TESTPOINT_CALLBACK("name-throws", {}, [](const auto&) {
-            // Callbacks may throw. It is fine and used in SQL drivers of userver for
-            // error injection.
-            throw Exception();
-            return formats::json::Value{};
-        });
-        FAIL() << "Exception was swallowed";
-    } catch (const Exception&) {
-    }
+    UEXPECT_THROW(
+        TESTPOINT_CALLBACK(
+            "name-throws",
+            {},
+            [](const auto&) {
+                // Callbacks may throw. It is fine and used in SQL drivers of userver for
+                // error injection.
+                throw Exception();
+                return formats::json::Value{};
+            }
+        ),
+        Exception
+    );
 }
 
 UTEST_MT(Testpoint, ExceptionsNoncoro, 2) {
@@ -115,20 +119,23 @@ UTEST_MT(Testpoint, ExceptionsNoncoro, 2) {
     auto& tp = engine::current_task::GetTaskProcessor();
 
     std::thread([&] {
-        try {
-            TESTPOINT_CALLBACK_NONCORO("name-throws-noncoro", {}, tp, [](const auto&) {
-                // Callbacks may throw. It is fine and used
-                // in SQL drivers of userver for error
-                // injection.
-                throw Exception();
-                return formats::json::Value{};
-            });
-            FAIL() << "Exception was swallowed";
-        } catch (const Exception&) {
-        }
+        UEXPECT_THROW(
+            TESTPOINT_CALLBACK_NONCORO(
+                "name-throws-noncoro",
+                {},
+                tp,
+                [](const auto&) {
+                    // Callbacks may throw. It is fine and used
+                    // in SQL drivers of userver for error
+                    // injection.
+                    throw Exception();
+                    return formats::json::Value{};
+                }
+            ),
+            Exception
+        );
     }).join();
 }
-#endif
 
 UTEST(Testpoint, Inactive) {
     testsuite::TestpointControl testpoint_control;

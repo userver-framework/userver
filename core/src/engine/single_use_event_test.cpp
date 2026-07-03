@@ -172,8 +172,11 @@ UTEST_MT(SingleUseEvent, SendWaitRace, 2) {
     }
 }
 
-#if !USERVER_IMPL_HAS_TSAN
 UTEST_MT(SingleUseEvent, SendCancelRace, 3) {
+#if USERVER_IMPL_HAS_TSAN
+    GTEST_SKIP() << "The race relies on scheduler behavior that is not stable under TSan";
+#endif
+
     const auto test_deadline = engine::Deadline::FromDuration(100ms);
 
     bool is_ready_status_achieved = false;
@@ -210,7 +213,6 @@ UTEST_MT(SingleUseEvent, SendCancelRace, 3) {
         }
     }
 }
-#endif
 
 namespace {
 
@@ -262,8 +264,11 @@ UTEST_P_MT(SingleUseEventWaitAny, WaitSendRace, 2) {
     }
 }
 
-#if !USERVER_IMPL_HAS_TSAN
 UTEST_P_MT(SingleUseEventWaitAny, SendCancelRace, 3) {
+#if USERVER_IMPL_HAS_TSAN
+    GTEST_SKIP() << "The race relies on scheduler behavior that is not stable under TSan";
+#endif
+
     const auto event_to_notify = GetParam();
     const auto test_deadline = engine::Deadline::FromDuration(50ms);
 
@@ -298,6 +303,5 @@ UTEST_P_MT(SingleUseEventWaitAny, SendCancelRace, 3) {
         }
     }
 }
-#endif
 
 USERVER_NAMESPACE_END
