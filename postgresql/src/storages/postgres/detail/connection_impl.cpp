@@ -976,8 +976,9 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::DoPrepareStatement(
     if (prepared_.GetSize() >= settings_.max_prepared_cache_size) {
         auto statement_info = prepared_.GetLeastUsed();
         UASSERT(statement_info);
-        DiscardPreparedStatement(*statement_info, deadline);
+        auto meta_statement_name = std::move(statement_info->meta_statement_name);
         prepared_.Erase(statement_info->id);
+        DiscardPreparedStatement(meta_statement_name, deadline);
 
         kPreparedQueriesOverflowAlert.FireAlert(*metrics_);
     }
@@ -1049,9 +1050,9 @@ void ConnectionImpl::DiscardOldPreparedStatements(engine::Deadline deadline) {
     }
 }
 
-void ConnectionImpl::DiscardPreparedStatement(const PreparedStatementInfo& info, engine::Deadline deadline) {
-    LOG_DEBUG() << "Discarding prepared statement " << info.meta_statement_name;
-    ExecuteCommandNoPrepare("DEALLOCATE " + conn_wrapper_.EscapeIdentifier(info.meta_statement_name), deadline);
+void ConnectionImpl::DiscardPreparedStatement(std::string_view meta_statement_name, engine::Deadline deadline) {
+    LOG_DEBUG() << "Discarding prepared statement " << meta_statement_name;
+    ExecuteCommandNoPrepare("DEALLOCATE " + conn_wrapper_.EscapeIdentifier(meta_statement_name), deadline);
 }
 
 ResultSet ConnectionImpl::ExecuteCommand(const Query& query, engine::Deadline deadline, logging::Level span_log_level) {
