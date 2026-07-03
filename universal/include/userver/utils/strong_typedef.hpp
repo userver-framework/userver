@@ -10,16 +10,15 @@
 #include <type_traits>
 #include <utility>
 
-#include <fmt/format.h>
-#include <userver/utils/fmt_compat.hpp>
-
-#include <boost/functional/hash_fwd.hpp>
-
 #include <userver/compiler/impl/lifetime.hpp>
 #include <userver/formats/common/meta.hpp>
+#include <userver/utils/fmt_compat.hpp>
 #include <userver/utils/meta.hpp>
 #include <userver/utils/strong_typedef_fwd.hpp>
 #include <userver/utils/underlying_value.hpp>
+
+#include <fmt/format.h>
+#include <boost/functional/hash_fwd.hpp>
 
 /// @brief GoogleTest-related helpers used from headers in test-only paths.
 namespace testing {
