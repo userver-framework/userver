@@ -549,6 +549,14 @@ async def test_client_goaway_metric(create_connection, monitor_client, service_c
         async with create_connection() as (sock, conn):
             conn.close_connection(error_code=0)
             await sock.sendall(conn.data_to_send())
+            # Keep the socket open until the server reads GOAWAY (and optionally
+            # responds). Closing immediately races with metrics collection.
+            with contextlib.suppress(asyncio.TimeoutError):
+                while True:
+                    receive = await sock.recv(RECEIVE_SIZE, timeout=1.0)
+                    if not receive:
+                        break
+                    conn.receive_data(receive)
 
     assert differ.value_at('goaway') == 1
 
