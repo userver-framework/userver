@@ -1,17 +1,15 @@
 #pragma once
 
 #include <atomic>
-#include <functional>
 
 #include <userver/concurrent/impl/interference_shield.hpp>
 #include <userver/concurrent/impl/intrusive_hooks.hpp>
 #include <userver/concurrent/impl/intrusive_mpsc_queue.hpp>
+#include <userver/engine/single_consumer_event.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
-
-class TaskContext;
 
 // An MPSC queue where the consumer is spontaneously chosen among producers.
 // Also, there is an option to provide a dedicated worker task, which will
@@ -42,17 +40,6 @@ public:
     void WaitWhileEmpty(Consumer& consumer) noexcept;
 
 private:
-    template <auto TryStartWaiting>
-    class Awaitable;
-
-    enum class NotificationState {
-        kWorking,
-        kWorkingNotified,
-        kSleeping,
-    };
-
-    static_assert(std::atomic<NotificationState>::is_always_lock_free);
-
     // Wakes up the async consumer if it is currently sleeping. Safe to call from
     // any thread, including non-coroutine ones.
     void NotifyAsyncConsumerIfSleeping() noexcept;
@@ -61,22 +48,15 @@ private:
 
     bool DoTryStopConsuming() noexcept;
 
-    void NotifyAsyncConsumer() noexcept;
-
-    template <auto TryStartWaiting>
-    void Wait() noexcept;
-
-    bool TryStartWaitingWhileEmpty();
-
     bool TryStartWaitingForConsumer();
 
-    // Tracks whether the async consumer is working or sleeping, decoupling the
-    // wakeup decision from the queue contents (see NotifyConsumer / WaitWhileEmpty).
-    // While there is no async consumer, the state is permanently kWorkingNotified.
-    // Kept first to avoid excessive class padding (it is cache-line aligned).
-    concurrent::impl::InterferenceShield<std::atomic<NotificationState>> notification_state_{
-        NotificationState::kWorkingNotified
-    };
+    // Signaled whenever a new node is pushed while an async consumer exists (see
+    // NotifyAsyncConsumerIfSleeping / WaitWhileEmpty), decoupling the wakeup
+    // decision from the queue contents. Not used while there is no async
+    // consumer at all (in that case, ad-hoc producer-consumers are used instead).
+    // Wrapped in InterferenceShield and kept first to avoid excessive class
+    // padding, since it is written on the hot path of every push.
+    concurrent::impl::InterferenceShield<engine::SingleConsumerEvent> empty_queue_event_;
 
     concurrent::impl::IntrusiveMpscQueueImpl queue_;
 
@@ -85,12 +65,13 @@ private:
     // Signals to the current consumer that it should hand over to the async task.
     concurrent::impl::SinglyLinkedBaseHook start_consuming_notifier_node_;
 
-    TaskContext* consuming_task_context_{nullptr};
+    // Signaled by the current consumer to pass the consumer role to whoever is
+    // waiting in WaitAndStartConsuming (see should_pass_consumer_to_waiter_).
+    engine::SingleConsumerEvent start_consuming_event_;
+
     bool should_pass_consumer_to_waiter_{false};
     // For diagnosing a multiple-consumers situation.
     std::atomic<bool> has_consumer_{false};
-    // For diagnosing a multiple-waiters situation.
-    std::atomic<bool> has_waiter_{false};
 };
 
 class AsyncFlatCombiningQueue::Consumer final {

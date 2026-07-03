@@ -1,46 +1,11 @@
 #include <engine/impl/async_flat_combining_queue.hpp>
 
-#include <functional>
-
 #include <engine/task/task_context.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
-
-// The consumer is not allowed to leave before being notified, thus this is only a WeakAwaitable.
-template <auto TryStartWaiting>
-class AsyncFlatCombiningQueue::Awaitable final : public impl::WeakAwaitable {
-public:
-    explicit Awaitable(AsyncFlatCombiningQueue& queue)
-        : queue_(queue)
-    {}
-
-    bool IsReady() const noexcept override { return false; }
-
-    void TryAppendAwaiter(boost::intrusive_ptr<Awaiter>& awaiter, [[maybe_unused]] std::uintptr_t context) override {
-        if (std::invoke(TryStartWaiting, queue_)) {
-            // We committed to sleeping and will be woken up only via
-            // NotifyAsyncConsumer. No deadlines or cancellations are allowed,
-            // otherwise another thread or task may notify us later and wake up
-            // a dead task.
-            awaiter = nullptr;
-        }
-    }
-
-    boost::intrusive_ptr<Awaiter> RemoveAwaiter(
-        [[maybe_unused]] Awaiter& awaiter,
-        [[maybe_unused]] std::uintptr_t context
-    ) noexcept override {
-        // The notification happened through consuming_task_context_, but we'll pretend that the awaitable did it.
-        // We won't be notified anymore, since we are the sole consumer now.
-        return nullptr;
-    }
-
-private:
-    AsyncFlatCombiningQueue& queue_;
-};
 
 AsyncFlatCombiningQueue::Consumer::Consumer(AsyncFlatCombiningQueue& queue)
     : queue_(&queue)
@@ -78,22 +43,30 @@ AsyncFlatCombiningQueue::AsyncFlatCombiningQueue() { queue_.Push(consumer_node_)
 AsyncFlatCombiningQueue::~AsyncFlatCombiningQueue() {
     UASSERT(!DoTryPop());
     UASSERT(!has_consumer_);
-    UASSERT(!has_waiter_);
 }
 
 auto AsyncFlatCombiningQueue::WaitAndStartConsuming() -> Consumer {
-    Wait<&AsyncFlatCombiningQueue::TryStartWaitingForConsumer>();
-    // The async consumer role is acquired; it is now working.
-    notification_state_->store(NotificationState::kWorking);
+    if (TryStartWaitingForConsumer()) {
+        // No deadlines or cancellations are allowed here, otherwise this task may
+        // walk away, and DoTryStopConsuming will try to hand over the consumer
+        // role to nobody.
+        UASSERT(!engine::current_task::GetCurrentTaskContext().IsCancellable());
+        [[maybe_unused]] const bool success = start_consuming_event_.WaitForEvent();
+        UASSERT(success);
+    }
+    // The async consumer role is acquired.
     return Consumer{*this};
 }
 
 void AsyncFlatCombiningQueue::WaitWhileEmpty(Consumer& consumer) noexcept {
     UASSERT(consumer.queue_ == this);
-    Wait<&AsyncFlatCombiningQueue::TryStartWaitingWhileEmpty>();
-    // Either we were woken up after sleeping, or we were already notified and did
-    // not sleep. In both cases we are working again.
-    notification_state_->store(NotificationState::kWorking);
+    // No deadlines or cancellations are allowed here, otherwise this task may
+    // walk away while still being registered as the queue's consumer.
+    UASSERT(!engine::current_task::GetCurrentTaskContext().IsCancellable());
+    // Auto-resets on success, guaranteeing an 'acquire' on the signal, so that
+    // the newly pushed nodes are visible to the subsequent DoTryPop calls.
+    [[maybe_unused]] const bool success = empty_queue_event_->WaitForEvent();
+    UASSERT(success);
 }
 
 AsyncFlatCombiningQueue::NodeBase* AsyncFlatCombiningQueue::DoTryPop() noexcept {
@@ -123,12 +96,10 @@ bool AsyncFlatCombiningQueue::DoTryStopConsuming() noexcept {
     UASSERT(has_consumer_.exchange(false));
     if (std::exchange(should_pass_consumer_to_waiter_, false)) {
         // The waiter will consume the remaining nodes.
-        notification_state_->store(NotificationState::kWorkingNotified);
-        NotifyAsyncConsumer();
+        start_consuming_event_.Send();
         return true;
     } else if (queue_.PushIfEmpty(consumer_node_)) {
         // There is no async consumer anymore.
-        notification_state_->store(NotificationState::kWorkingNotified);
         return true;
     } else {
         UASSERT(!has_consumer_.exchange(true));
@@ -136,50 +107,11 @@ bool AsyncFlatCombiningQueue::DoTryStopConsuming() noexcept {
     }
 }
 
-void AsyncFlatCombiningQueue::NotifyAsyncConsumer() noexcept {
-    UASSERT(consuming_task_context_);
-    TaskContext::Wakeup(
-        boost::intrusive_ptr<TaskContext>{consuming_task_context_},
-        TaskContext::WakeupSource::kNotify,
-        NoEpoch{}
-    );
-}
-
 void AsyncFlatCombiningQueue::NotifyAsyncConsumerIfSleeping() noexcept {
-    // If the consumer is sleeping, this wins the race against its CAS to
-    // kSleeping and we wake it up. If it is (already) working, it will re-check
-    // the queue before sleeping again, so no wakeup is needed.
-    if (notification_state_->exchange(NotificationState::kWorkingNotified) == NotificationState::kSleeping) {
-        NotifyAsyncConsumer();
-    }
-}
-
-template <auto TryStartWaiting>
-void AsyncFlatCombiningQueue::Wait() noexcept {
-    UASSERT(!has_waiter_.exchange(true));
-    auto& current = engine::current_task::GetCurrentTaskContext();
-    // Check before writing to avoid excessive CPU cache invalidation.
-    if (consuming_task_context_ != &current) {
-        consuming_task_context_ = &current;
-    }
-    // No deadlines or cancellations are allowed, otherwise this task may walk away and be destroyed,
-    // and the notification will be sent to a dead task.
-    UASSERT(!current.IsCancellable());
-
-    Awaitable<TryStartWaiting> awaitable{*this};
-    [[maybe_unused]] const auto wakeup_source = current.Sleep(awaitable, Deadline{});
-    UASSERT(wakeup_source == TaskContext::WakeupSource::kNotify);
-
-    UASSERT(consuming_task_context_ == &current);
-    UASSERT(has_waiter_.exchange(false));
-}
-
-bool AsyncFlatCombiningQueue::TryStartWaitingWhileEmpty() {
-    // Returns whether we are going to sleep. If a notification arrived while we
-    // were working (state is kWorkingNotified), the CAS fails and we keep
-    // working, re-checking the queue without sleeping.
-    auto expected = NotificationState::kWorking;
-    return notification_state_->compare_exchange_strong(expected, NotificationState::kSleeping);
+    // If the consumer is sleeping, this wakes it up. If it is (already)
+    // working, it will re-check the queue before sleeping again, so no wakeup
+    // is needed; Send() only sets the signal flag in that case.
+    empty_queue_event_->Send();
 }
 
 bool AsyncFlatCombiningQueue::TryStartWaitingForConsumer() {
