@@ -1088,20 +1088,36 @@ ResultSet ConnectionImpl::ExecuteCommand(
     }
 
     auto scope = span.CreateScopeTime();
-    CountExecute count_execute(stats_);
 
-    const auto& prepared_info = DoPrepareStatement(query, params, deadline, span, scope);
+    const auto do_execute = [&] {
+        CountExecute count_execute(stats_);
 
-    const ResultSet* description_ptr_to_read = nullptr;
-    PGresult* description_ptr_to_send = nullptr;
-    if (IsOmitDescribeInExecuteEnabled()) {
-        description_ptr_to_read = &prepared_info.description;
-        description_ptr_to_send = description_ptr_to_read->pimpl_->handle.get();
+        const auto& prepared_info = DoPrepareStatement(query, params, deadline, span, scope);
+
+        const ResultSet* description_ptr_to_read = nullptr;
+        PGresult* description_ptr_to_send = nullptr;
+        if (IsOmitDescribeInExecuteEnabled()) {
+            description_ptr_to_read = &prepared_info.description;
+            description_ptr_to_send = description_ptr_to_read->pimpl_->handle.get();
+        }
+
+        scope.Reset(scopes::kExec);
+        conn_wrapper_.SendPreparedQuery(prepared_info.meta_statement_name, params, scope, description_ptr_to_send);
+        return WaitResult(deadline, network_timeout, count_execute, span, scope, description_ptr_to_read);
+    };
+
+    try {
+        return do_execute();
+    } catch (const FeatureNotSupported& e) {
+        if (e.GetServerMessage().GetPrimary() != kBadCachedPlanErrorMessage || IsInTransaction()) {
+            throw;
+        }
+
+        LOG_LIMITED_WARNING() << "Retrying query after invalidating prepared statements due to cached plan change";
+        DiscardOldPreparedStatements(deadline);
+        CheckDeadlineReached(deadline);
+        return do_execute();
     }
-
-    scope.Reset(scopes::kExec);
-    conn_wrapper_.SendPreparedQuery(prepared_info.meta_statement_name, params, scope, description_ptr_to_send);
-    return WaitResult(deadline, network_timeout, count_execute, span, scope, description_ptr_to_read);
 }
 
 const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::PrepareStatement(

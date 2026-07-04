@@ -380,9 +380,27 @@ UTEST_P(PostgreConnection, CachedPlanChange) {
     GetConn()->Execute("CREATE TEMPORARY TABLE plan_change_test ( a integer )");
     UEXPECT_NO_THROW(GetConn()->Execute("SELECT * FROM plan_change_test"));
     GetConn()->Execute("ALTER TABLE plan_change_test ALTER a TYPE bigint");
-    UEXPECT_THROW(GetConn()->Execute("SELECT * FROM plan_change_test"), pg::FeatureNotSupported);
-    // broken plan should not be reused anymore
+
     UEXPECT_NO_THROW(GetConn()->Execute("SELECT * FROM plan_change_test"));
+}
+
+UTEST_P(PostgreConnection, CachedPlanChangeInTransactionThrows) {
+    GetConn()->Execute("SET lc_messages = 'en_US.UTF-8'");
+    GetConn()->Execute("CREATE TEMPORARY TABLE plan_change_trx_test ( a integer )");
+    UEXPECT_NO_THROW(GetConn()->Execute("SELECT * FROM plan_change_trx_test"));
+    GetConn()->Execute("ALTER TABLE plan_change_trx_test ALTER a TYPE bigint");
+
+    UEXPECT_NO_THROW(GetConn()->Begin({}, {}));
+    UEXPECT_THROW_MSG(
+        GetConn()->Execute("SELECT * FROM plan_change_trx_test"),
+        pg::FeatureNotSupported,
+        "cached plan must not change result type"
+    );
+    EXPECT_EQ(pg::ConnectionState::kTranError, GetConn()->GetState());
+    UEXPECT_NO_THROW(GetConn()->Rollback());
+    EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
+
+    UEXPECT_NO_THROW(GetConn()->Execute("SELECT * FROM plan_change_trx_test"));
 }
 
 }  // namespace
