@@ -1126,6 +1126,7 @@
   "core/include/userver/dynamic_config/fwd.hpp":"taxi/uservices/userver/core/include/userver/dynamic_config/fwd.hpp",
   "core/include/userver/dynamic_config/impl/snapshot.hpp":"taxi/uservices/userver/core/include/userver/dynamic_config/impl/snapshot.hpp",
   "core/include/userver/dynamic_config/impl/to_json.hpp":"taxi/uservices/userver/core/include/userver/dynamic_config/impl/to_json.hpp",
+  "core/include/userver/dynamic_config/registered_config_meta.hpp":"taxi/uservices/userver/core/include/userver/dynamic_config/registered_config_meta.hpp",
   "core/include/userver/dynamic_config/snapshot.hpp":"taxi/uservices/userver/core/include/userver/dynamic_config/snapshot.hpp",
   "core/include/userver/dynamic_config/source.hpp":"taxi/uservices/userver/core/include/userver/dynamic_config/source.hpp",
   "core/include/userver/dynamic_config/storage/component.hpp":"taxi/uservices/userver/core/include/userver/dynamic_config/storage/component.hpp",

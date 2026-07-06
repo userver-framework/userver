@@ -48,6 +48,7 @@ const USERVER_NAMESPACE::dynamic_config::Key<
     USERVER_NAMESPACE::dynamic_config::DefaultAsJsonString{R"~(
         {}
     )~"},
+    "1b31f8984adb341bee5b51b53e44117a8fda141ee6fc89bc4eb910392a3bed37",
 };
 
 }  // namespace dynamic_config

@@ -378,6 +378,10 @@ dynamic_config::Source DynamicConfig::GetSource() { return impl_->GetSource(); }
 
 const dynamic_config::DocsMap& DynamicConfig::GetDefaultDocsMap() const { return impl_->GetDefaultDocsMap(); }
 
+std::vector<dynamic_config::RegisteredConfigMeta> DynamicConfig::GetRegisteredConfigsMeta() const {
+    return dynamic_config::impl::GetRegisteredConfigsMeta();
+}
+
 ComponentHealth DynamicConfig::GetComponentHealth() const { return impl_->GetComponentHealth(); }
 
 void DynamicConfig::OnLoadingCancelled() { impl_->OnLoadingCancelled(); }

@@ -25,6 +25,7 @@ namespace {{ namespace }} {
         USERVER_NAMESPACE::dynamic_config::DefaultAsJsonString{R"~(
             {{ default_value }}
         )~"},
+        "{{ schema_hash }}",
     };
 {% endfilter %}
 
