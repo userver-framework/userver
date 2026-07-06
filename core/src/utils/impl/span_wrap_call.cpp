@@ -48,7 +48,11 @@ void SpanWrapCall::DoBeforeInvoke() {
     pimpl_->span.Get().AttachToCoroStack();
 }
 
-SpanWrapCall::~SpanWrapCall() = default;
+SpanWrapCall::~SpanWrapCall() {
+    // Non-empty if the task was never started (e.g. cancelled before Perform):
+    // drop the references to the inherited variables.
+    pimpl_->storage.DestroyVariables();
+}
 
 }  // namespace utils::impl
 

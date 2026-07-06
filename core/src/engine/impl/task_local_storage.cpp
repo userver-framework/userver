@@ -1,6 +1,7 @@
 #include <userver/engine/impl/task_local_storage.hpp>
 
 #include <ranges>
+#include <utility>
 
 #include <fmt/format.h>
 #include <boost/intrusive/list.hpp>
@@ -82,20 +83,42 @@ struct Storage::Impl final {
 Storage::Storage() { utils::impl::AssertStaticRegistrationFinished(); }
 
 Storage::~Storage() {
+    UASSERT_MSG(
+        impl_->normal_data_storage.empty() && impl_->inherited_data_storage.empty(),
+        "Storage::DestroyVariables must be called before the Storage destructor. The destructors of task-local "
+        "variables may sleep and access the storage, so they must not run while the Storage (typically stored in "
+        "a std::optional) is being destroyed"
+    );
+}
+
+void Storage::DestroyVariables() noexcept {
     const auto disposer = [](DataPtr* node_ptr) noexcept {
         UASSERT(node_ptr->ptr);
-        node_ptr->ptr->DeleteSelf();
+        // Unset the variable before running its destructor (POSIX
+        // pthread_getspecific-style). This way GetOptional, when called from a
+        // destructor of another task-local variable (they may sleep, letting
+        // arbitrary engine code run), returns nullptr instead of a pointer to
+        // a destroyed or currently-being-destroyed object.
+        auto* const data = std::exchange(node_ptr->ptr, nullptr);
+        data->DeleteSelf();
     };
 
     // By default, boost::intrusive containers don't own their elements (nodes),
     // so we need to destroy them explicitly. The variables are destroyed
     // front-to-back, in reverse-initialization order.
-    while (!impl_->normal_data_storage.empty()) {
-        impl_->normal_data_storage.pop_front_and_dispose(disposer);
-    }
-
-    while (!impl_->inherited_data_storage.empty()) {
-        impl_->inherited_data_storage.pop_front_and_dispose(disposer);
+    //
+    // A destructor may initialize other task-local variables. Same as for
+    // `thread_local` ([basic.stc.thread]/2): a variable initialized after
+    // a destructor has started executing is destroyed after that destructor
+    // completes. Freshly initialized variables are pushed to the list front,
+    // so the inner loops pick them up; the outer loop handles a destructor of
+    // a variable of one kind initializing a variable of the other kind.
+    while (!impl_->normal_data_storage.empty() || !impl_->inherited_data_storage.empty()) {
+        if (!impl_->normal_data_storage.empty()) {
+            impl_->normal_data_storage.pop_front_and_dispose(disposer);
+        } else {
+            impl_->inherited_data_storage.pop_front_and_dispose(disposer);
+        }
     }
 }
 

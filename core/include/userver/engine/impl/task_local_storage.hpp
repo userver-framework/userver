@@ -88,7 +88,16 @@ public:
 
     Storage(Storage&&) = delete;
     Storage& operator=(Storage&&) = delete;
+
+    // Requires that the variables have already been destroyed using
+    // DestroyVariables, or that there are none.
     ~Storage();
+
+    // Destroys the variables in reverse-initialization order.
+    // Must be called before the destructor. Must be called in the coroutine
+    // owning `this`: the destructors may want to sleep, and the storage must
+    // still be usable (e.g. via GetCurrentStorage) while they run.
+    void DestroyVariables() noexcept;
 
     // Copies pointers to inherited variables from 'other'
     // 'this' must not contain any variables
@@ -99,8 +108,11 @@ public:
     // does nothing if there is nothing to copy
     void InheritNodeIfExists(Storage& other, Key key);
 
-    // Moves other's variables into 'this', leaving 'other' in an empty state
-    // 'this' must not contain any variables
+    // Moves other's variables into 'this', leaving 'other' with no variables.
+    // 'this' must not contain inherited variables. It may contain normal
+    // variables (e.g. task-locals initialized by engine plugin hooks before
+    // the task payload starts); those are kept. In that case 'other' must not
+    // contain normal variables.
     void InitializeFrom(Storage&& other) noexcept;
 
     // Variable accessors must be called with the same T, Kind, key.

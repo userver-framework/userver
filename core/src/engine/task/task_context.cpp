@@ -518,7 +518,15 @@ public:
         context_.local_storage_.emplace();
     }
 
-    ~LocalStorageGuard() { context_.local_storage_.reset(); }
+    ~LocalStorageGuard() {
+        // Destroy the variables while the storage is still alive and reachable
+        // through GetCurrentStorage: the destructors may sleep, letting
+        // arbitrary engine code (e.g. plugin hooks) access task-locals.
+        // Calling this from ~Storage during optional::reset would make that
+        // access UB.
+        context_.local_storage_->DestroyVariables();
+        context_.local_storage_.reset();
+    }
 
 private:
     TaskContext& context_;

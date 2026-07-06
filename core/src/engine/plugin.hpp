@@ -37,6 +37,9 @@ public:
     /// Callback that is called in coroutine when the task finishes executing its
     /// payload (once per task, after completion or cancellation). The terminal
     /// state is available via task.GetPendingFinalState().
+    /// Task-local variables are destroyed after this callback is called.
+    /// Note: the task may sleep during the destruction of task-local variables
+    /// after this callback is called.
     virtual void HookTaskStop(impl::TaskContext& /*task*/) noexcept {}
 };
 

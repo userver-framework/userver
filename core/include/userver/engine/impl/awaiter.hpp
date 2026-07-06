@@ -6,7 +6,6 @@
 #include <boost/intrusive/list_hook.hpp>
 
 #include <userver/engine/impl/awaiter_fwd.hpp>
-#include <userver/engine/impl/epoch.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN

@@ -35,7 +35,11 @@ public:
     T* operator->();
 
     /// @brief Get the variable instance for the current task.
-    /// @returns the variable or `nullptr` if variable was not initialized.
+    /// @returns the variable or `nullptr` if the variable was not initialized,
+    /// was already destroyed, or is being destroyed right now. That is,
+    /// a non-null result is guaranteed to point to a variable whose
+    /// destruction has not started (the variable is unset before its
+    /// destructor is invoked, as in POSIX `pthread_getspecific`).
     T* GetOptional() noexcept {
         return impl::task_local::GetCurrentStorage().GetOptional<T, kVariableKind>(impl_.GetKey());
     }

@@ -1,13 +1,18 @@
 #include <userver/utest/utest.hpp>
 
+#include <functional>
 #include <optional>
 #include <utility>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/single_use_event.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/task/current_task.hpp>
+#include <userver/engine/task/inherited_variable.hpp>
 #include <userver/engine/task/local_variable.hpp>
 #include <userver/utils/async.hpp>
+
+#include <engine/task/task_processor.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -196,6 +201,205 @@ UTEST(TaskLocalVariable, WaitInDestructorCancelled) {
     task.Wait();
     EXPECT_EQ(task.GetState(), engine::TaskBase::State::kCancelled);
     UEXPECT_THROW(task.Get(), engine::TaskCancelledException);
+}
+
+namespace {
+
+struct DtorCallback final {
+    std::function<void()> on_destroy;
+
+    DtorCallback() = default;
+    DtorCallback(const DtorCallback&) = delete;
+    DtorCallback& operator=(const DtorCallback&) = delete;
+
+    ~DtorCallback() {
+        if (on_destroy) {
+            on_destroy();
+        }
+    }
+};
+
+engine::TaskLocalVariable<DtorCallback> kDtorCallback;
+engine::TaskLocalVariable<int> kObservedInt;
+
+}  // namespace
+
+// Situation 1a: GetOptional on a live (not yet destroyed) variable.
+UTEST(TaskLocalVariable, GetOptionalAlive) {
+    EXPECT_EQ(kObservedInt.GetOptional(), nullptr);
+
+    *kObservedInt = 42;
+    ASSERT_NE(kObservedInt.GetOptional(), nullptr);
+    EXPECT_EQ(*kObservedInt.GetOptional(), 42);
+}
+
+// Situation 1b: a variable that is initialized earlier (thus destroyed later)
+// is still observable from the destructor of another task-local variable.
+UTEST(TaskLocalVariable, GetOptionalAliveFromOtherVariableDestructor) {
+    bool checked = false;
+
+    engine::AsyncNoTracing([&] {
+        // kObservedInt is initialized first => destroyed after kDtorCallback.
+        *kObservedInt = 42;
+        kDtorCallback->on_destroy = [&] {
+            auto* const observed = kObservedInt.GetOptional();
+            ASSERT_NE(observed, nullptr);
+            EXPECT_EQ(*observed, 42);
+            checked = true;
+        };
+    }).Get();
+
+    EXPECT_TRUE(checked);
+}
+
+// Situation 2: GetOptional on an already-destroyed variable must return
+// nullptr, not a dangling pointer.
+UTEST(TaskLocalVariable, GetOptionalAfterVariableDestroyed) {
+    bool checked = false;
+
+    engine::AsyncNoTracing([&] {
+        kDtorCallback->on_destroy = [&] {
+            EXPECT_EQ(kObservedInt.GetOptional(), nullptr);
+            checked = true;
+        };
+        // kObservedInt is initialized after kDtorCallback => destroyed before
+        // it, so ~DtorCallback observes an already-destroyed variable.
+        *kObservedInt = 42;
+    }).Get();
+
+    EXPECT_TRUE(checked);
+}
+
+// Situation 3: GetOptional on a variable whose destructor is currently
+// running must return nullptr (POSIX pthread_getspecific-style: the variable
+// is unset before its destructor is invoked). The destructor itself can use
+// `this` if needed; other code must not observe a half-destroyed object.
+UTEST(TaskLocalVariable, GetOptionalDuringOwnDestruction) {
+    bool checked = false;
+
+    engine::AsyncNoTracing([&] {
+        kDtorCallback->on_destroy = [&] {
+            EXPECT_EQ(kDtorCallback.GetOptional(), nullptr);
+            checked = true;
+        };
+    }).Get();
+
+    EXPECT_TRUE(checked);
+}
+
+namespace {
+
+struct CallbackHolder final {
+    std::function<void()> on_destroy;
+
+    explicit CallbackHolder(std::function<void()> cb)
+        : on_destroy(std::move(cb))
+    {}
+
+    CallbackHolder(const CallbackHolder&) = delete;
+    CallbackHolder& operator=(const CallbackHolder&) = delete;
+
+    ~CallbackHolder() {
+        if (on_destroy) {
+            on_destroy();
+        }
+    }
+};
+
+engine::TaskInheritedVariable<CallbackHolder> kInheritedCallback;
+
+}  // namespace
+
+// A task-local variable initialized from a destructor of another task-local
+// variable is destroyed after that destructor completes. Same as for
+// `thread_local`, [basic.stc.thread]/2: "If a variable with thread storage
+// duration is initialized after a thread-local destructor has started
+// executing, its destructor is scheduled to run after that destructor
+// completes".
+UTEST(TaskLocalVariable, DtorInitializesLocalVariable) {
+    std::string order;
+
+    engine::AsyncNoTracing([&] {
+        kDtorCallback->on_destroy = [&] {
+            kGuardX->emplace(order, "x");
+            order += "a";
+        };
+    }).Get();
+
+    // "a" (the initializing destructor completes) strictly before "x"
+    EXPECT_EQ(order, "ax");
+}
+
+// A task-inherited variable initialized from a destructor of a task-local
+// variable is destroyed after that destructor completes.
+UTEST(TaskLocalVariable, LocalDtorInitializesInheritedVariable) {
+    std::string order;
+
+    engine::AsyncNoTracing([&] {
+        kDtorCallback->on_destroy = [&] {
+            kInheritedCallback.Emplace([&order] { order += "i"; });
+            order += "a";
+        };
+    }).Get();
+
+    EXPECT_EQ(order, "ai");
+}
+
+// A task-local variable initialized from a destructor of a task-inherited
+// variable is destroyed after that destructor completes.
+UTEST(TaskLocalVariable, InheritedDtorInitializesLocalVariable) {
+    std::string order;
+
+    engine::AsyncNoTracing([&] {
+        kInheritedCallback.Emplace([&] {
+            kGuardX->emplace(order, "x");
+            order += "a";
+        });
+    }).Get();
+
+    EXPECT_EQ(order, "ax");
+}
+
+// A task-inherited variable initialized from a destructor of another
+// task-inherited variable is destroyed after that destructor completes.
+UTEST(TaskLocalVariable, InheritedDtorInitializesInheritedVariable) {
+    std::string order;
+
+    engine::AsyncNoTracing([&] {
+        kInheritedCallback.Emplace([&] {
+            kInheritedCallback.Emplace([&order] { order += "i"; });
+            order += "a";
+        });
+    }).Get();
+
+    EXPECT_EQ(order, "ai");
+}
+
+// A child task inherits a variable on construction and keeps it alive even if:
+// - the parent erases the variable before the child starts,
+// - the child is cancelled before start (finishes as State::kCancelled).
+// The variable is destroyed only after the child task finishes.
+UTEST(TaskInheritedVariable, ErasedInParentWhileChildCancelledBeforeStart) {
+    // With more than 1 worker thread the child task would start running
+    // concurrently, racing with RequestCancel and Erase below.
+    ASSERT_EQ(engine::current_task::GetTaskProcessor().GetWorkerCount(), 1);
+
+    bool destroyed = false;
+    kInheritedCallback.Emplace([&destroyed] { destroyed = true; });
+
+    // The child inherits the variable on construction...
+    auto task = utils::Async("child", [] { FAIL() << "the task must not start"; });
+    // ...and is cancelled before it gets a chance to start.
+    task.RequestCancel();
+
+    // Hide the variable from the parent. The child still holds a reference.
+    kInheritedCallback.Erase();
+    EXPECT_FALSE(destroyed);
+
+    task.Wait();
+    EXPECT_EQ(task.GetState(), engine::TaskBase::State::kCancelled);
+    // The child dropped the last reference when it finished.
+    EXPECT_TRUE(destroyed);
 }
 
 USERVER_NAMESPACE_END
