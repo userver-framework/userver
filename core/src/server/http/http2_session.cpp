@@ -112,9 +112,8 @@ int Http2Session::OnFrameRecv(nghttp2_session* session, const nghttp2_frame* fra
         case NGHTTP2_RST_STREAM: {
             IncStat(parser.stats_.http2_stats.reset_streams);
         } break;
-        case NGHTTP2_PING: {
-            nghttp2_submit_ping(parser.session_.get(), NGHTTP2_FLAG_NONE, nullptr);
-        } break;
+        case NGHTTP2_PING:
+            break;
         case NGHTTP2_GOAWAY: {
             IncStat(parser.stats_.http2_stats.goaway);
         } break;

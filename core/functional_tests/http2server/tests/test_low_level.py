@@ -61,12 +61,10 @@ async def test_settings_and_ping(service_client, create_socket):
         conn.ping(ping_data)
 
         events = []
-        while len(events) != 2:
+        while len(events) != 1:
             events += await utils.send_and_receive(sock, conn)
         assert isinstance(events[0], h2.events.PingAckReceived)
         assert ping_data == events[0].ping_data
-        assert isinstance(events[1], h2.events.PingReceived)
-        assert b'\x00\x00\x00\x00\x00\x00\x00\x00' == events[1].ping_data
 
 
 async def test_invalid_stream(create_connection, service_client):

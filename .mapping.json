@@ -891,6 +891,7 @@
   "core/functional_tests/http2server/service.cpp":"taxi/uservices/userver/core/functional_tests/http2server/service.cpp",
   "core/functional_tests/http2server/static_config.yaml":"taxi/uservices/userver/core/functional_tests/http2server/static_config.yaml",
   "core/functional_tests/http2server/tests/conftest.py":"taxi/uservices/userver/core/functional_tests/http2server/tests/conftest.py",
+  "core/functional_tests/http2server/tests/test_h2spec.py":"taxi/uservices/userver/core/functional_tests/http2server/tests/test_h2spec.py",
   "core/functional_tests/http2server/tests/test_high_level.py":"taxi/uservices/userver/core/functional_tests/http2server/tests/test_high_level.py",
   "core/functional_tests/http2server/tests/test_http2_streaming.py":"taxi/uservices/userver/core/functional_tests/http2server/tests/test_http2_streaming.py",
   "core/functional_tests/http2server/tests/test_low_level.py":"taxi/uservices/userver/core/functional_tests/http2server/tests/test_low_level.py",
