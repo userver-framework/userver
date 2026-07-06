@@ -163,7 +163,7 @@ struct MockSentinelServers {
 
 }  // namespace
 
-TEST(Redis, NoPassword) {
+UTEST(Redis, NoPassword) {
     MockRedisServer server{kDbName};
     auto ping_handler = server.RegisterPingHandler();
 
@@ -182,7 +182,7 @@ TEST(Redis, NoPassword) {
     EXPECT_TRUE(ping_handler->WaitForFirstReply(kSuccessTimeout));
 }
 
-TEST(Redis, Auth) {
+UTEST(Redis, Auth) {
     MockRedisServer server{"redis_db"};
     auto ping_handler = server.RegisterPingHandler();
     auto auth_handler = server.RegisterStatusReplyHandler("AUTH", {"password"}, "OK");
@@ -203,7 +203,7 @@ TEST(Redis, Auth) {
     EXPECT_TRUE(ping_handler->WaitForFirstReply(kSuccessTimeout));
 }
 
-TEST(Redis, AuthWithUsername) {
+UTEST(Redis, AuthWithUsername) {
     MockRedisServer server{"redis_db"};
     auto ping_handler = server.RegisterPingHandler();
     auto auth_handler = server.RegisterStatusReplyHandler("AUTH", {"username", "password"}, "OK");
@@ -224,7 +224,7 @@ TEST(Redis, AuthWithUsername) {
     EXPECT_TRUE(ping_handler->WaitForFirstReply(kSuccessTimeout));
 }
 
-TEST(Redis, AuthFail) {
+UTEST(Redis, AuthFail) {
     MockRedisServer server{"redis_db"};
     auto ping_handler = server.RegisterPingHandler();
     auto auth_error_handler = server.RegisterErrorReplyHandler("AUTH", "NO PASARAN");
@@ -245,7 +245,7 @@ TEST(Redis, AuthFail) {
     PeriodicCheck([&] { return !IsConnected(*redis); });
 }
 
-TEST(Redis, AuthTimeout) {
+UTEST(Redis, AuthTimeout) {
     MockRedisServer server{"redis_db"};
     auto ping_handler = server.RegisterPingHandler();
     auto sleep_period = storages::redis::kDefaultTimeoutSingle + std::chrono::milliseconds(30);
@@ -620,7 +620,7 @@ UTEST(Redis, SentinelNoAuthSubscribe) {
     }
 }
 
-TEST(Redis, Select) {
+UTEST(Redis, Select) {
     MockRedisServer server{"redis_db"};
     auto ping_handler = server.RegisterPingHandler();
     auto select_handler = server.RegisterStatusReplyHandler("SELECT", "OK");
@@ -636,7 +636,7 @@ TEST(Redis, Select) {
     EXPECT_TRUE(ping_handler->WaitForFirstReply(kSuccessTimeout));
 }
 
-TEST(Redis, SelectFail) {
+UTEST(Redis, SelectFail) {
     MockRedisServer server{"redis_db"};
     auto ping_handler = server.RegisterPingHandler();
     auto select_error_handler = server.RegisterErrorReplyHandler("SELECT", "NO PASARAN");
@@ -652,7 +652,7 @@ TEST(Redis, SelectFail) {
     PeriodicCheck([&] { return !IsConnected(*redis); });
 }
 
-TEST(Redis, SelectTimeout) {
+UTEST(Redis, SelectTimeout) {
     MockRedisServer server{"redis_db"};
     auto ping_handler = server.RegisterPingHandler();
     auto sleep_period = storages::redis::kDefaultTimeoutSingle + std::chrono::milliseconds(30);
@@ -669,7 +669,7 @@ TEST(Redis, SelectTimeout) {
     PeriodicCheck([&] { return !IsConnected(*redis); });
 }
 
-TEST(Redis, SlaveREADONLY) {
+UTEST_MT(Redis, SlaveREADONLY, 2) {
     MockRedisServer server{"redis_db"};
     auto ping_handler = server.RegisterPingHandler();
     auto readonly_handler = server.RegisterStatusReplyHandler("READONLY", "OK");
@@ -686,7 +686,7 @@ TEST(Redis, SlaveREADONLY) {
     PeriodicWait([&] { return IsConnected(*redis); });
 }
 
-TEST(Redis, SlaveREADONLYFail) {
+UTEST(Redis, SlaveREADONLYFail) {
     MockRedisServer server{"redis_db"};
     auto ping_handler = server.RegisterPingHandler();
     auto readonly_handler = server.RegisterErrorReplyHandler("READONLY", "FAIL");
@@ -703,7 +703,7 @@ TEST(Redis, SlaveREADONLYFail) {
     PeriodicWait([&] { return !IsConnected(*redis); });
 }
 
-TEST(Redis, PingFail) {
+UTEST(Redis, PingFail) {
     MockRedisServer server{"redis_db"};
     auto ping_error_handler = server.RegisterErrorReplyHandler("PING", "PONG");
 
@@ -725,7 +725,7 @@ TEST(Redis, PingFail) {
 
 class RedisDisconnectingReplies : public ::testing::TestWithParam<const char*> {};
 
-INSTANTIATE_TEST_SUITE_P(
+INSTANTIATE_UTEST_SUITE_P(
     /**/,
     RedisDisconnectingReplies,
     ::testing::Values(
@@ -736,7 +736,7 @@ INSTANTIATE_TEST_SUITE_P(
     )
 );
 
-TEST_P(RedisDisconnectingReplies, X) {
+UTEST_P(RedisDisconnectingReplies, X) {
     MockRedisServer server{"redis_db"};
     auto ping_handler = server.RegisterPingHandler();
     auto get_handler = server.RegisterErrorReplyHandler("GET", GetParam());

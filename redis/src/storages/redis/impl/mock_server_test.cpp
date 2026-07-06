@@ -7,6 +7,7 @@
 #include <fmt/ranges.h>
 #include <boost/algorithm/string.hpp>
 
+#include <userver/engine/task/cancel.hpp>
 #include <userver/utest/assert_macros.hpp>
 #include <userver/utils/numeric_cast.hpp>
 #include <userver/utils/text.hpp>
@@ -20,15 +21,16 @@ const std::string kCrlf = "\r\n";
 }  // namespace
 
 MockRedisServerBase::MockRedisServerBase(int port)
-    : acceptor_(io_service_)
+    : client_tasks_()
 {
-    acceptor_.open(io::ip::tcp::v4());
-    const boost::asio::ip::tcp::acceptor::reuse_address option(true);
-    acceptor_.set_option(option);
-    acceptor_.bind(io::ip::tcp::endpoint(io::ip::tcp::v4(), port));
-    acceptor_.listen();
+    auto addr = engine::io::Sockaddr::MakeIPv4LoopbackAddress();
+    addr.SetPort(port);
+    listener_ = engine::io::Socket{engine::io::AddrDomain::kInet, engine::io::SocketType::kStream};
+    listener_.Bind(addr);
+    port_ = listener_.Getsockname().Port();
+    listener_.Listen();
 
-    thread_ = std::thread(&MockRedisServerBase::Work, this);
+    listener_task_ = engine::AsyncNoTracing([this] { AcceptLoop(); });
 }
 
 MockRedisServerBase::~MockRedisServerBase() { Stop(); }
@@ -45,19 +47,14 @@ void MockRedisServerBase::SendReplyData(ConnectionPtr connection, const storages
     SendReply(connection, ReplyDataToRedisProto(reply_data));
 }
 
-int MockRedisServerBase::GetPort() const { return acceptor_.local_endpoint().port(); }
+int MockRedisServerBase::GetPort() const { return port_; }
 
-void MockRedisServerBase::Stop() {
-    io_service_.stop();
-    if (thread_.joinable()) {
-        thread_.join();
-    }
-}
+void MockRedisServerBase::Stop() { listener_task_.SyncCancel(); }
 
 void MockRedisServerBase::SendReply(ConnectionPtr connection, const std::string& reply) {
     LOG_DEBUG() << "reply: " << reply;
-    // TODO: async?
-    io::write(connection->socket, io::buffer(reply.c_str(), reply.size()));
+    const auto size = connection->socket.SendAll(reply.data(), reply.size(), {});
+    UASSERT(size == reply.size());
 }
 
 std::string MockRedisServerBase::ReplyDataToRedisProto(const storages::redis::ReplyData& reply_data) {
@@ -84,62 +81,48 @@ std::string MockRedisServerBase::ReplyDataToRedisProto(const storages::redis::Re
     }
 }
 
-void MockRedisServerBase::Accept() {
-    auto connection = std::make_shared<Connection>(io_service_);
-    connection
-        ->reader = std::unique_ptr<redisReader, decltype(&redisReaderFree)>(redisReaderCreate(), &redisReaderFree);
-    acceptor_.async_accept(connection->socket, [connection, this](auto item) {
-        OnAccept(connection, std::move(item));
-        Accept();
-    });
-}
-
-void MockRedisServerBase::Work() {
-    Accept();
-    UEXPECT_NO_THROW(io_service_.run());
-}
-
-void MockRedisServerBase::OnAccept(ConnectionPtr connection, boost::system::error_code ec) {
-    LOG_DEBUG() << "accept(2): " << ec;
-    OnConnected(connection);
-    DoRead(connection);
-}
-
-void MockRedisServerBase::OnRead(ConnectionPtr connection, boost::system::error_code ec, size_t count) {
-    LOG_DEBUG() << "read " << ec << " count=" << count;
-    if (ec) {
-        LOG_DEBUG() << "read(2) error: " << ec;
-        OnDisconnected(connection);
-        connection->socket.close();
-        return;
-    }
-
-    auto ret = redisReaderFeed(connection->reader.get(), connection->data.data(), count);
-    if (ret != REDIS_OK) {
-        throw std::runtime_error("redisReaderFeed() returned error: " + std::string(connection->reader->errstr));
-    }
-
-    void* hiredis_reply = nullptr;
-    while (redisReaderGetReply(connection->reader.get(), &hiredis_reply) == REDIS_OK && hiredis_reply) {
-        auto reply = std::make_shared<
-            storages::redis::Reply>("", static_cast<redisReply*>(hiredis_reply), storages::redis::ReplyStatus::kOk);
-        LOG_DEBUG() << "command: " << reply->data.ToDebugString();
-
-        OnCommand(connection, reply);
-        freeReplyObject(hiredis_reply);
-        hiredis_reply = nullptr;
-    }
-
-    DoRead(connection);
-}
-
-void MockRedisServerBase::DoRead(ConnectionPtr connection) {
-    connection->socket.async_read_some(
-        io::buffer(connection->data),
-        [connection, this](boost::system::error_code error_code, size_t count) {
-            OnRead(connection, error_code, count);
+void MockRedisServerBase::AcceptLoop() {
+    while (!engine::current_task::ShouldCancel()) {
+        engine::io::Socket client_socket = listener_.Accept({});
+        if (engine::current_task::ShouldCancel()) {
+            return;
         }
-    );
+
+        auto connection = std::make_shared<Connection>(std::move(client_socket));
+        connection
+            ->reader = std::unique_ptr<redisReader, decltype(&redisReaderFree)>(redisReaderCreate(), &redisReaderFree);
+        OnConnected(connection);
+        client_tasks_.AsyncDetach("mock-redis-client", [this, connection] { HandleConnection(connection); });
+    }
+}
+
+void MockRedisServerBase::HandleConnection(ConnectionPtr connection) {
+    while (!engine::current_task::ShouldCancel()) {
+        const auto count = connection->socket.RecvSome(connection->data.data(), connection->data.size(), {});
+        LOG_DEBUG() << "read count=" << count;
+        if (count == 0) {
+            LOG_DEBUG() << "read: connection closed";
+            OnDisconnected(connection);
+            connection->socket.Close();
+            return;
+        }
+
+        auto ret = redisReaderFeed(connection->reader.get(), connection->data.data(), count);
+        if (ret != REDIS_OK) {
+            throw std::runtime_error("redisReaderFeed() returned error: " + std::string(connection->reader->errstr));
+        }
+
+        void* hiredis_reply = nullptr;
+        while (redisReaderGetReply(connection->reader.get(), &hiredis_reply) == REDIS_OK && hiredis_reply) {
+            auto reply = std::make_shared<
+                storages::redis::Reply>("", static_cast<redisReply*>(hiredis_reply), storages::redis::ReplyStatus::kOk);
+            LOG_DEBUG() << "command: " << reply->data.ToDebugString();
+
+            OnCommand(connection, reply);
+            freeReplyObject(hiredis_reply);
+            hiredis_reply = nullptr;
+        }
+    }
 }
 
 MockRedisServer::~MockRedisServer() { Stop(); }
@@ -361,7 +344,7 @@ void MockRedisServer::RegisterHandlerFunc(
     const std::vector<std::string>& args_prefix,
     HandlerFunc handler
 ) {
-    const std::lock_guard<std::mutex> lock(mutex_);
+    const std::lock_guard lock{mutex_};
     AddHandlerFunc(handlers_[boost::algorithm::to_lower_copy(cmd)], args_prefix, std::move(handler));
 }
 
@@ -410,16 +393,16 @@ MockRedisServer::HandlerPtr MockRedisServer::DoRegisterTimeoutHandler(
 }
 
 size_t MockRedisServer::Handler::GetReplyCount() const {
-    const std::lock_guard<std::mutex> lock(mutex_);
+    const std::lock_guard lock{mutex_};
     return reply_count_;
 }
 
 void MockRedisServer::Handler::AccountReply() {
     {
-        const std::lock_guard<std::mutex> lock(mutex_);
+        const std::lock_guard lock{mutex_};
         ++reply_count_;
     }
-    cv_.notify_one();
+    cv_.NotifyOne();
 }
 
 MockRedisServer::CommonMasterSlaveInfo::CommonMasterSlaveInfo(

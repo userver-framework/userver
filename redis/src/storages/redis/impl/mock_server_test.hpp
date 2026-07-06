@@ -1,8 +1,8 @@
 #pragma once
 #include <gtest/gtest.h>
 
+#include <atomic>
 #include <chrono>
-#include <condition_variable>
 #include <memory>
 #include <mutex>
 #include <stdexcept>
@@ -10,36 +10,29 @@
 
 #include <hiredis/hiredis.h>
 
+#include <userver/concurrent/background_task_storage.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/engine/condition_variable.hpp>
+#include <userver/engine/io/sockaddr.hpp>
+#include <userver/engine/io/socket.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/engine/task/task.hpp>
 #include <userver/logging/log.hpp>
 
 #include <storages/redis/impl/redis.hpp>
 #include <userver/storages/redis/base.hpp>
 #include <userver/storages/redis/reply.hpp>
 
-#ifdef __clang__
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wimplicit-fallthrough"
-#endif
-#include <boost/asio.hpp>
-#ifdef __clang__
-#pragma clang diagnostic pop
-#endif
-
-#include <boost/version.hpp>
-
 USERVER_NAMESPACE_BEGIN
-
-namespace io = boost::asio;
 
 class MockRedisServerBase {
 public:
     struct Connection {
-        template <class IoService>
-        Connection(IoService& ios)
-            : socket(ios)
+        explicit Connection(engine::io::Socket socket)
+            : socket(std::move(socket))
         {}
 
-        io::ip::tcp::socket socket;
+        engine::io::Socket socket;
         std::array<char, 1024> data{};
         std::unique_ptr<redisReader, decltype(&redisReaderFree)> reader{nullptr, &redisReaderFree};
     };
@@ -63,25 +56,18 @@ protected:
     virtual void OnCommand(ConnectionPtr /*connection*/, std::shared_ptr<storages::redis::Reply> cmd) {
         LOG_DEBUG() << "Got command: " << cmd->data.ToDebugString();
     }
-    void Accept();
 
 private:
     static std::string ReplyDataToRedisProto(const storages::redis::ReplyData& reply_data);
-    void Work();
-
-    void OnAccept(ConnectionPtr connection, boost::system::error_code ec);
-    void OnRead(ConnectionPtr connection, boost::system::error_code ec, size_t count);
-    void DoRead(ConnectionPtr connection);
+    void AcceptLoop();
+    void HandleConnection(ConnectionPtr connection);
 
     void SendReply(ConnectionPtr connection, const std::string& reply);
 
-#if BOOST_VERSION >= 107400
-    io::io_context io_service_;
-#else
-    io::io_service io_service_;
-#endif
-    io::ip::tcp::acceptor acceptor_;
-    std::thread thread_;
+    std::uint16_t port_{};
+    engine::io::Socket listener_;
+    concurrent::BackgroundTaskStorage client_tasks_;
+    engine::Task listener_task_;
 };
 
 class MockRedisServer : public MockRedisServerBase {
@@ -168,7 +154,7 @@ private:
     );
 
     const std::string description_;
-    std::mutex mutex_;
+    engine::Mutex mutex_;
     std::unordered_map<std::string, HandlerNode> handlers_;
     HandlerPtr ping_handler_;
 };
@@ -206,8 +192,8 @@ public:
 private:
     void AccountReply();
 
-    mutable std::mutex mutex_;
-    std::condition_variable cv_;
+    mutable engine::Mutex mutex_;
+    engine::ConditionVariable cv_;
     size_t reply_count_{0};
 };
 
@@ -238,8 +224,8 @@ struct MockRedisServer::SlaveInfo : public MockRedisServer::CommonMasterSlaveInf
 
 template <typename Rep, typename Period>
 bool MockRedisServer::Handler::WaitForFirstReply(const std::chrono::duration<Rep, Period>& duration) {
-    std::unique_lock<std::mutex> lock(mutex_);
-    return cv_.wait_for(lock, duration, [&] { return reply_count_; });
+    std::unique_lock lock{mutex_};
+    return cv_.WaitFor(lock, duration, [&] { return reply_count_; });
 }
 
 template <typename Rep, typename Period>
