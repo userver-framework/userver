@@ -17,8 +17,10 @@
 #include <userver/utils/strong_typedef_fwd.hpp>
 #include <userver/utils/underlying_value.hpp>
 
+// clang-format off
 #include <fmt/format.h>
 #include <boost/functional/hash_fwd.hpp>
+// clang-format on
 
 /// @brief GoogleTest-related helpers used from headers in test-only paths.
 namespace testing {
