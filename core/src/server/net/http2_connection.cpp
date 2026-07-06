@@ -98,7 +98,7 @@ void Http2Connection::ListenForRequests() {
 
         const auto ready_id = wait_any.Wait();
         if (!ready_id) {
-            UASSERT(engine::current_task::ShouldCancel());
+            UASSERT(ready_id == utils::unexpected(engine::WaitAnyError::kCancelled));
             return;
         }
 

@@ -1,5 +1,6 @@
 #include <userver/engine/single_consumer_event.hpp>
 
+#include <engine/impl/future_utils.hpp>
 #include <engine/impl/wait_list_light.hpp>
 #include <engine/task/task_context.hpp>
 #include <userver/engine/awaitable.hpp>
@@ -42,26 +43,29 @@ bool SingleConsumerEvent::IsAutoReset() const noexcept { return impl_->is_auto_r
 
 bool SingleConsumerEvent::WaitForEvent() { return WaitForEventUntil(Deadline{}); }
 
-bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) {
+bool SingleConsumerEvent::WaitForEventUntil(Deadline deadline) { return WaitUntil(deadline) == FutureStatus::kReady; }
+
+FutureStatus SingleConsumerEvent::WaitUntil(Deadline deadline) {
     // optimistic path
     if (IsReady()) {
         if (IsAutoReset()) {
             Reset();
         }
-        return true;
+        return FutureStatus::kReady;
     }
 
     auto& awaiter = current_task::GetCurrentTaskContext();
     const auto wakeup_source = awaiter.Sleep(*impl_, deadline);
-    if (!impl::HasWaitSucceeded(wakeup_source)) {
-        return false;
+    const auto status = impl::ToFutureStatus(wakeup_source);
+    if (status != FutureStatus::kReady) {
+        return status;
     }
 
     UASSERT(IsReady());
     if (IsAutoReset()) {
         Reset();
     }
-    return true;
+    return FutureStatus::kReady;
 }
 
 void SingleConsumerEvent::Reset() noexcept {

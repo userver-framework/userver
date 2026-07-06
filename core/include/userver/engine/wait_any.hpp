@@ -13,6 +13,7 @@
 
 #include <userver/engine/awaitable.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/utils/expected.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/meta.hpp>
 #include <userver/utils/span.hpp>
@@ -115,6 +116,15 @@ std::optional<std::size_t> WaitAnyUntil(Deadline deadline, Tasks&... tasks) {
 
 /// @ingroup userver_concurrency
 ///
+/// @brief The reason why @ref WaitAnyContext::Wait and friends did not return the index of a completed awaitable.
+enum class WaitAnyError : std::uint8_t {
+    kEmpty,      ///< there were no awaitables to wait for
+    kCancelled,  ///< the wait operation was interrupted by task cancellation
+    kTimeout,    ///< the wait operation timed out (see also @ref FutureStatus)
+};
+
+/// @ingroup userver_concurrency
+///
 /// @brief Stores a set of awaitables and allows waiting for completion of any of the stored awaitables.
 ///
 /// Works with different types of awaitables:
@@ -154,30 +164,32 @@ public:
     /// @brief Waits either for the completion of any of the awaitables stored in the context
     /// or for the cancellation of the caller.
     ///
-    /// @returns the index of the completed awaitable, or `std::nullopt` if there are no
-    /// completed awaitables (possible if current task was cancelled).
-    std::optional<std::uint64_t> Wait();
+    /// @returns the index of the completed awaitable, or a @ref WaitAnyError if there are no
+    /// completed awaitables (possible if current task was cancelled or the context is empty).
+    utils::expected<std::uint64_t, WaitAnyError> Wait();
 
     /// @brief Waits for the completion of any of the awaitables stored in the context
     /// or cancellation of the caller or deadline expiration.
     ///
-    /// @returns the index of the completed awaitable, or `std::nullopt` if there are no
-    /// completed awaitables (possible if current task was cancelled or the deadline was reached).
-    std::optional<std::uint64_t> WaitUntil(Deadline deadline);
+    /// @returns the index of the completed awaitable, or a @ref WaitAnyError if there are no
+    /// completed awaitables (possible if current task was cancelled, the deadline was reached,
+    /// or the context is empty).
+    utils::expected<std::uint64_t, WaitAnyError> WaitUntil(Deadline deadline);
 
     /// @brief Waits for the completion of any of the awaitables stored in the context
     /// or cancellation of the caller or expiration of the given duration.
     ///
-    /// @returns the index of the completed awaitable, or `std::nullopt` if there are no
-    /// completed awaitables (possible if current task was cancelled or the given duration has passed).
+    /// @returns the index of the completed awaitable, or a @ref WaitAnyError if there are no
+    /// completed awaitables (possible if current task was cancelled, the given duration has passed,
+    /// or the context is empty).
     template <typename Rep, typename Period>
-    std::optional<std::uint64_t> WaitFor(const std::chrono::duration<Rep, Period>& duration) {
+    utils::expected<std::uint64_t, WaitAnyError> WaitFor(const std::chrono::duration<Rep, Period>& duration) {
         return WaitUntil(Deadline::FromDuration(duration));
     }
 
-    /// @overload std::optional<std::size_t> Wait()
+    /// @overload utils::expected<std::uint64_t, WaitAnyError> Wait()
     template <typename Clock, typename Duration>
-    std::optional<std::uint64_t> WaitUntil(const std::chrono::time_point<Clock, Duration>& until) {
+    utils::expected<std::uint64_t, WaitAnyError> WaitUntil(const std::chrono::time_point<Clock, Duration>& until) {
         return WaitUntil(Deadline::FromTimePoint(until));
     }
 

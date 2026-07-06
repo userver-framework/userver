@@ -7,6 +7,7 @@
 
 #include <userver/engine/awaitable.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/future_status.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -56,6 +57,16 @@ public:
 
     /// @overload bool WaitForEvent()
     [[nodiscard]] bool WaitForEventUntil(Deadline);
+
+    /// @brief Waits until the event is in a signaled state, same as @ref WaitForEventUntil, but gives the precise
+    /// reason of a failure instead of just `false`.
+    ///
+    /// If the event is auto-resetting, clears the signal flag upon waking up. If already in a signaled state,
+    /// does the same without sleeping.
+    ///
+    /// @return `FutureStatus::kReady` if the event signaled, `FutureStatus::kCancelled` if the current task was
+    /// cancelled, `FutureStatus::kTimeout` if the deadline was reached.
+    [[nodiscard]] FutureStatus WaitUntil(Deadline deadline);
 
     /// @brief Works like `std::condition_variable::wait_until`. Waits until
     /// @a stop_waiting becomes `true`, and we are notified via `Send`.

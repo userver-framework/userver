@@ -92,6 +92,24 @@ UTEST(SingleConsumerEvent, WaitFailed) {
     EXPECT_FALSE(event.WaitForEventUntil(engine::Deadline::Passed()));
 }
 
+UTEST(SingleConsumerEvent, WaitUntilAllStatuses) {
+    engine::SingleConsumerEvent event;
+
+    // kReady: the event is already signaled.
+    event.Send();
+    EXPECT_EQ(event.WaitUntil(engine::Deadline{}), engine::FutureStatus::kReady);
+
+    // kTimeout: the event is not signaled and the deadline is reached.
+    EXPECT_EQ(event.WaitUntil(engine::Deadline::Passed()), engine::FutureStatus::kTimeout);
+
+    // kCancelled: the waiting task is cancelled before the event is signaled.
+    auto waiter = engine::CriticalAsyncNoTracing([&event] {
+        return event.WaitUntil(engine::Deadline::FromDuration(utest::kMaxTestWaitTime));
+    });
+    waiter.SyncCancel();
+    UEXPECT_NO_THROW(EXPECT_EQ(waiter.Get(), engine::FutureStatus::kCancelled));
+}
+
 UTEST(SingleConsumerEvent, SendAndWait2) {
     engine::SingleConsumerEvent event;
     auto task = engine::AsyncNoTracing([&event]() {

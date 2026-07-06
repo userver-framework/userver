@@ -76,7 +76,7 @@ public:
 
     void Append(std::uint64_t id, engine::AwaitableToken awaitable);
 
-    std::optional<std::uint64_t> WaitUntil(Deadline deadline);
+    utils::expected<std::uint64_t, WaitAnyError> WaitUntil(Deadline deadline);
 
     std::size_t GetSize() const noexcept { return subscribed_count_ + pending_subscription_.size(); }
 
@@ -170,27 +170,32 @@ void WaitAnyContext::Impl::Append(std::uint64_t id, engine::AwaitableToken await
     pending_subscription_.push_front(item);
 }
 
-std::optional<std::uint64_t> WaitAnyContext::Impl::WaitUntil(Deadline deadline) {
+utils::expected<std::uint64_t, WaitAnyError> WaitAnyContext::Impl::WaitUntil(Deadline deadline) {
     for (;;) {
         queue_non_empty_.Reset();
         if (subscribed_count_ != 0) {
             auto result = TryProcessQueue();
             if (result.has_value()) {
-                return result;
+                return *result;
             }
         }
 
         auto result = TrySubscribe();
         if (result.has_value()) {
-            return result;
+            return *result;
         }
 
         if (subscribed_count_ == 0) {
-            return std::nullopt;
+            return utils::unexpected(WaitAnyError::kEmpty);
         }
 
-        if (!queue_non_empty_.WaitForEventUntil(deadline)) {
-            return std::nullopt;
+        switch (queue_non_empty_.WaitUntil(deadline)) {
+            case FutureStatus::kReady:
+                break;
+            case FutureStatus::kTimeout:
+                return utils::unexpected(WaitAnyError::kTimeout);
+            case FutureStatus::kCancelled:
+                return utils::unexpected(WaitAnyError::kCancelled);
         }
     }
 }
@@ -302,9 +307,9 @@ WaitAnyContext& WaitAnyContext::operator=(WaitAnyContext&& other) noexcept {
     return *this;
 }
 
-std::optional<std::uint64_t> WaitAnyContext::Wait() { return WaitUntil(Deadline{}); }
+utils::expected<std::uint64_t, WaitAnyError> WaitAnyContext::Wait() { return WaitUntil(Deadline{}); }
 
-std::optional<std::uint64_t> WaitAnyContext::WaitUntil(Deadline deadline) {
+utils::expected<std::uint64_t, WaitAnyError> WaitAnyContext::WaitUntil(Deadline deadline) {
     UASSERT(impl_ != nullptr);
     return impl_->WaitUntil(deadline);
 }
