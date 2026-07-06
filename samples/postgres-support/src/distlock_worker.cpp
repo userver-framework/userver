@@ -8,11 +8,7 @@ PgWorkerComponent::PgWorkerComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
 )
-    : storages::postgres::DistLockComponentBase(
-          config,
-          context,
-          storages::postgres::DistLockComponentBase::AutostartDistlock::kYes
-      ) {}
+    : storages::postgres::DistLockComponentBase(config, context) {}
 
 PgWorkerComponent::~PgWorkerComponent() = default;
 
