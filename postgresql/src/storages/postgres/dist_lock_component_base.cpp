@@ -24,7 +24,7 @@ namespace storages::postgres {
 DistLockComponentBase::DistLockComponentBase(
     const components::ComponentConfig& component_config,
     const components::ComponentContext& component_context,
-    AutostartDistlockInternal enable_autostart_at_base
+    AutostartDistlock enable_autostart_at_base
 )
     : components::ComponentBase(component_config, component_context),
       config_(component_context.FindComponent<components::DynamicConfig>().GetSource()),
@@ -86,7 +86,7 @@ DistLockComponentBase::DistLockComponentBase(
         {{"distlock_name", component_config.Name()}}
     );
 
-    const bool autostart_enabled = enable_autostart_at_base_ == AutostartDistlockInternal::kYes;
+    const bool autostart_enabled = enable_autostart_at_base_ == AutostartDistlock::kYes;
     if (component_config["testsuite-support"].As<bool>(autostart_enabled)) {
         auto& testsuite_tasks = testsuite::GetTestsuiteTasks(component_context);
 
@@ -109,23 +109,16 @@ DistLockComponentBase::DistLockComponentBase(
 
 DistLockComponentBase::DistLockComponentBase(
     const components::ComponentConfig& component_config,
-    const components::ComponentContext& component_context,
-    AutostartDistlock
-)
-    : storages::postgres::DistLockComponentBase(component_config, component_context) {}
-
-DistLockComponentBase::DistLockComponentBase(
-    const components::ComponentConfig& component_config,
     const components::ComponentContext& component_context
 )
-    : storages::postgres::DistLockComponentBase(component_config, component_context, AutostartDistlockInternal::kYes) {}
+    : storages::postgres::DistLockComponentBase(component_config, component_context, AutostartDistlock::kYes) {}
 
 DistLockComponentBase::DistLockComponentBase(
     const components::ComponentConfig& component_config,
     const components::ComponentContext& component_context,
     DisableAutostartAtBase
 )
-    : storages::postgres::DistLockComponentBase(component_config, component_context, AutostartDistlockInternal::kNo) {}
+    : storages::postgres::DistLockComponentBase(component_config, component_context, AutostartDistlock::kNo) {}
 
 DistLockComponentBase::~DistLockComponentBase() { subscription_token_.Unsubscribe(); }
 
@@ -134,7 +127,7 @@ dist_lock::DistLockedWorker& DistLockComponentBase::GetWorker() { return *worker
 bool DistLockComponentBase::OwnsLock() const noexcept { return worker_->OwnsLock() || testsuite_enabled_; }
 
 void DistLockComponentBase::AutostartDistLock() {
-    UASSERT(enable_autostart_at_base_ == AutostartDistlockInternal::kNo);
+    UASSERT(enable_autostart_at_base_ == AutostartDistlock::kNo);
 
     if (testsuite_enabled_) {
         return;

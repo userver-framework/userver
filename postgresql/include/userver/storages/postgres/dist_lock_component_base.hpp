@@ -67,17 +67,7 @@ namespace storages::postgres {
 /// @see @ref scripts/docs/en/userver/periodics.md
 class DistLockComponentBase : public components::ComponentBase {
 public:
-    // This enum is going to be completely removed.
-    enum class AutostartDistlock : bool { kYes = true };
-
     struct DisableAutostartAtBase {};
-
-    // This .ctor is going to be completely removed.
-    DistLockComponentBase(
-        const components::ComponentConfig& component_config,
-        const components::ComponentContext& component_context,
-        AutostartDistlock autostart_at_base_component
-    );
 
     /// @brief Constructs the distlock base and enables automatic startup and shutdown of the distlock.
     DistLockComponentBase(
@@ -155,12 +145,12 @@ protected:
     bool IsCancelAdvised() const;
 
 private:
-    enum class AutostartDistlockInternal : bool { kNo = false, kYes = true };
+    enum class AutostartDistlock : bool { kNo = false, kYes = true };
 
     DistLockComponentBase(
         const components::ComponentConfig& component_config,
         const components::ComponentContext& component_context,
-        AutostartDistlockInternal enable_autostart_at_base
+        AutostartDistlock enable_autostart_at_base
     );
 
     bool ShouldRunOnHost(const dynamic_config::Snapshot& config) const;
@@ -172,7 +162,7 @@ private:
     std::unique_ptr<dist_lock::DistLockedWorker> worker_;
     bool autostart_;
     bool testsuite_enabled_{false};
-    AutostartDistlockInternal enable_autostart_at_base_;
+    AutostartDistlock enable_autostart_at_base_;
     dist_lock::DistLockSettings default_settings_;
 
     concurrent::AsyncEventSubscriberScope subscription_token_;
