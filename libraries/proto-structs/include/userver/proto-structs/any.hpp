@@ -71,7 +71,7 @@ public:
     /// @throws AnyUnpackError if underlying `google.protobuf.Any` does not contain message compatible to `TStruct`.
     /// @throws ReadError if conversion of unpacked protobuf message to proto struct has failed.
     template <traits::ProtoStruct TStruct>
-    [[nodiscard]] TStruct Unpack() {
+    [[nodiscard]] TStruct Unpack() const {
         using Message = traits::CompatibleMessageType<TStruct>;
         return MessageToStruct<TStruct>(Unpack<Message>());
     }
@@ -80,7 +80,7 @@ public:
     /// @tparam TMessage protobuf message type
     /// @throws AnyUnpackError if underlying `google.protobuf.Any` does not contain `TMessage` type message.
     template <traits::ProtoMessage TMessage>
-    [[nodiscard]] TMessage Unpack() {
+    [[nodiscard]] TMessage Unpack() const {
         TMessage msg;
 
         if (!storage_.UnpackTo(&msg)) {
