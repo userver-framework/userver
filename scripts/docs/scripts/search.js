@@ -22,15 +22,22 @@ export function init_search_observer() {
         .toLowerCase()
         .indexOf(searchValue.trim().toLowerCase());
 
-      searchResultSymbolNode.innerHTML =
-        searchResultValue.slice(0, searchValueIndex) +
-        '<span class="highlight">' +
-        searchResultValue.slice(
-          searchValueIndex,
-          searchValueIndex + searchValue.length
-        ) +
-        "</span>" +
-        searchResultValue.slice(searchValueIndex + searchValue.length);
+      const before = searchResultValue.slice(0, searchValueIndex);
+      const match = searchResultValue.slice(
+        searchValueIndex,
+        searchValueIndex + searchValue.length
+      );
+      const after = searchResultValue.slice(
+        searchValueIndex + searchValue.length
+      );
+
+      searchResultSymbolNode.replaceChildren();
+      searchResultSymbolNode.appendChild(document.createTextNode(before));
+      const highlight = document.createElement('span');
+      highlight.className = 'highlight';
+      highlight.textContent = match;
+      searchResultSymbolNode.appendChild(highlight);
+      searchResultSymbolNode.appendChild(document.createTextNode(after));
     }
   };
 

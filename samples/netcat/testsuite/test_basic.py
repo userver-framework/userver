@@ -4,7 +4,7 @@ import socket
 
 async def test_send(service_binary):
     with socket.socket(socket.AF_INET6, socket.SOCK_STREAM) as server:
-        server.bind(('::', 0))
+        server.bind(('::1', 0))
         server.listen()
         server.setblocking(False)
 
@@ -27,14 +27,8 @@ async def test_send(service_binary):
         client.close()
 
 
-def _get_free_port() -> int:
-    with socket.socket(socket.AF_INET6, socket.SOCK_STREAM) as sock:
-        sock.bind(('::', 0))
-        return sock.getsockname()[1]
-
-
-async def test_listen(service_binary):
-    port = _get_free_port()
+async def test_listen(service_binary, get_free_port):
+    port = get_free_port()
 
     subprocess = await asyncio.create_subprocess_exec(
         service_binary,
