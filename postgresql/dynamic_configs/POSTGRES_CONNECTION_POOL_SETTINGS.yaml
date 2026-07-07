@@ -70,7 +70,6 @@ schema:
                 connecting_interval_ms:
                     type: integer
                     minimum: 0
-                    default: 0
                     x-usrv-cpp-type: std::size_t
                     description: |
                         Minimum time in milliseconds between starting new connections to each PostgreSQL host (0 - unlimited).

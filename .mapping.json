@@ -3732,6 +3732,7 @@
   "postgresql/functional_tests/basic_chaos/static_config.yaml":"taxi/uservices/userver/postgresql/functional_tests/basic_chaos/static_config.yaml",
   "postgresql/functional_tests/basic_chaos/tests-deadline/test_deadline_propagation.py":"taxi/uservices/userver/postgresql/functional_tests/basic_chaos/tests-deadline/test_deadline_propagation.py",
   "postgresql/functional_tests/basic_chaos/tests-portals/test_portals.py":"taxi/uservices/userver/postgresql/functional_tests/basic_chaos/tests-portals/test_portals.py",
+  "postgresql/functional_tests/basic_chaos/tests-storm/conftest.py":"taxi/uservices/userver/postgresql/functional_tests/basic_chaos/tests-storm/conftest.py",
   "postgresql/functional_tests/basic_chaos/tests-storm/test_storm_connect.py":"taxi/uservices/userver/postgresql/functional_tests/basic_chaos/tests-storm/test_storm_connect.py",
   "postgresql/functional_tests/basic_chaos/tests-transactions/test_transactions.py":"taxi/uservices/userver/postgresql/functional_tests/basic_chaos/tests-transactions/test_transactions.py",
   "postgresql/functional_tests/basic_chaos/tests/test_postgres.py":"taxi/uservices/userver/postgresql/functional_tests/basic_chaos/tests/test_postgres.py",

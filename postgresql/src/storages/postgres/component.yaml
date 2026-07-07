@@ -153,7 +153,6 @@ properties:
         minimum: 0
         description: |
             minimum time in milliseconds between starting new connections to each PostgreSQL host (0 - unlimited)
-        default: 0
     connlimit_mode:
         type: string
         enum:

@@ -14,6 +14,7 @@
 #include <userver/storages/postgres/dsn.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/storages/postgres/query_queue.hpp>
+#include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/statistics/metrics_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -796,6 +797,9 @@ UTEST_P(PostgrePool, ForQueryQueueBeingNonTransactional) {
 UTEST_P(PostgrePool, ConnectionRateLimitSkipsHealthyPool) {
     constexpr std::size_t kHugeConnectingIntervalMs = 60'000;
 
+    utils::impl::UserverExperimentsScope experiments_scope;
+    experiments_scope.Set(utils::impl::kPgConnectingRateLimitExperiment, true);
+
     auto pool = pg::detail::ConnectionPool::Create(
         GetDsnFromEnv(),
         nullptr,
@@ -837,6 +841,9 @@ UTEST_P(PostgrePool, ConnectionRateLimitSkipsHealthyPool) {
 
 UTEST_P(PostgrePool, ConnectionRateLimitThrottlesAfterFailedCleanup) {
     constexpr std::size_t kHugeConnectingIntervalMs = 60'000;
+
+    utils::impl::UserverExperimentsScope experiments_scope;
+    experiments_scope.Set(utils::impl::kPgConnectingRateLimitExperiment, true);
 
     // A short per-statement network timeout is what turns the statements below
     // into dirty connections (they abort with ConnectionTimeoutError while
@@ -908,6 +915,9 @@ UTEST_P(PostgrePool, ConnectionRateLimitThrottlesAfterFailedCleanup) {
 
 UTEST_P(PostgrePool, ConnectionRateLimitThrottlesUnderStress) {
     constexpr std::size_t kHugeConnectingIntervalMs = 60'000;
+
+    utils::impl::UserverExperimentsScope experiments_scope;
+    experiments_scope.Set(utils::impl::kPgConnectingRateLimitExperiment, true);
 
     auto pool = pg::detail::ConnectionPool::Create(
         GetDsnFromEnv(),

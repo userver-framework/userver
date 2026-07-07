@@ -503,7 +503,9 @@ void ConnectionPool::TryCreateConnectionAsync() {
     // check it only if we can start a new connection.
     const auto recent_errors = recent_conn_errors_.GetStatsForPeriod(kRecentErrorPeriod, true);
     if (recent_errors < conn_settings.recent_errors_threshold) {
-        if (recent_errors > 0 && !connecting_rate_limiter_.Obtain()) {
+        if (recent_errors > 0 && !connecting_rate_limiter_.Obtain() &&
+            USERVER_NAMESPACE::utils::impl::kPgConnectingRateLimitExperiment.IsEnabled())
+        {
             ++stats_.connection.rate_limit_throttled;
             LOG_LIMITED_WARNING()
                 << "Connection rate limit exceeded, skipping new connection attempt"
