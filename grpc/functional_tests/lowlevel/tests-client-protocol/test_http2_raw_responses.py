@@ -60,6 +60,11 @@ RETRYABLE_HTTP_STATUSES = sorted(
 # Length-Prefixed-Message: Compressed-Flag (1 byte) Message-Length (4 bytes) Message
 EMPTY_PROTO_MESSAGE = b'\x00' + b'\x00\x00\x00\x00'
 
+# Valid gRPC framing (Compressed-Flag + Message-Length) wrapping a body that is NOT a
+# parseable GreetingResponse: field 1 is length-delimited (tag 0x0a) and claims 5 bytes,
+# but none follow, so protobuf deserialization of the response fails.
+UNPARSEABLE_PROTO_MESSAGE = b'\x00' + b'\x00\x00\x00\x02' + b'\x0a\x05'
+
 
 async def test_success_response(service_client, grpc_server: http2.GrpcServer) -> None:
     def _response_factory() -> list[http2.Frame]:
@@ -302,6 +307,39 @@ async def test_grpc_client_converts_invalid_status_to_unknown(
         'Expected grpc-status code to be UNKNOWN. userver must clamp out-of-range codes to UNKNOWN'
     )
     assert actual_grpc_status_details == expected_grpc_status_details
+
+
+async def test_grpc_client_treats_undeserializable_message_as_network_error(
+    service_client,
+    grpc_server: http2.GrpcServer,
+) -> None:
+    # A response with an OK trailing status but a body that cannot be deserialized makes grpcpp
+    # complete the client-side Finish with ok=false (see grpc/grpc#4972). userver classifies this
+    # as a (retryable) network error, i.e. RpcInterruptedError, not as a gRPC status. grpc-core does
+    # not retry it because it already observed an OK status on the wire. The client-runner handler
+    # reports a gRPC status only for ErrorWithStatus, so for a network error no 'grpc-status' is
+    # returned to the caller.
+    def _response_factory() -> list[http2.Frame]:
+        response_headers = http2.HeadersFrame([
+            (':status', '200'),
+            ('content-type', 'application/grpc'),
+        ])
+        message = http2.DataFrame(UNPARSEABLE_PROTO_MESSAGE)
+        trailers = http2.HeadersFrame(
+            [('grpc-status', utils.status_to_str(grpc.StatusCode.OK))],
+            end_stream=True,
+        )
+        return [response_headers, message, trailers]
+
+    grpc_server.response_factory = _response_factory
+
+    resp = await service_client.post('/client')
+    assert resp.status == 200
+
+    # No gRPC status is surfaced: the undeserializable response is a network error, not a status
+    # (in particular it must not leak as OK with a garbage/empty response).
+    body = resp.json()
+    assert not body or 'grpc-status' not in body
 
 
 async def run_client(service_client) -> grpc.StatusCode:

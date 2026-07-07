@@ -31,7 +31,9 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::client::impl {
 
 inline bool IsRetryable(const CompletionStatus& completion_status) noexcept {
-    return completion_status.has_value() && ugrpc::IsRetryable(completion_status.value().error_code());
+    return completion_status.has_value()
+               ? ugrpc::IsRetryable(completion_status.value().error_code())
+               : ugrpc::client::SpecialCaseCompletionType::kNetworkError == completion_status.error();
 }
 
 // Returns true if it's okay to send a retry
@@ -179,8 +181,9 @@ private:
                 return std::move(status_);
 
             case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kError:
-                // CompletionQueue returned ok=false. For Client-side Finish ok should always be true.
+                // CompletionQueue returned ok=false.
                 // RPC has finished in abnormal manner.
+                // This could mean the response message was not received or could not be deserialized.
                 return utils::unexpected{SpecialCaseCompletionType::kNetworkError};
 
             case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kCancelled:
