@@ -109,10 +109,10 @@ void WaitTokenStorage::WaitForAllTokens() noexcept {
     }
 
     const engine::TaskCancellationBlocker cancel_blocker;
-    const bool wait_success = impl_.tokens_is_free_event.WaitUntil(engine::Deadline{}, [this] {
+    const auto wait_status = impl_.tokens_is_free_event.WaitUntil(engine::Deadline{}, [this] {
         return impl_.tokens.IsFree();
     });
-    UASSERT(wait_success);
+    UASSERT(wait_status == engine::FutureStatus::kReady);
 }
 
 void WaitTokenStorage::DoLock() {

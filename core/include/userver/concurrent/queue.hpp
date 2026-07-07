@@ -418,7 +418,7 @@ public:
     template <typename Token>
     [[nodiscard]] bool Push(Token& token, T&& value, engine::Deadline deadline, std::size_t value_size) {
         bool no_more_consumers = false;
-        const bool success = non_full_event_.WaitUntil(deadline, [&] {
+        const auto wait_status = non_full_event_.WaitUntil(deadline, [&] {
             if (queue_.NoMoreConsumers()) {
                 no_more_consumers = true;
                 return true;
@@ -428,7 +428,7 @@ public:
             }
             return false;
         });
-        return success && !no_more_consumers;
+        return (wait_status == engine::FutureStatus::kReady) && !no_more_consumers;
     }
 
     template <typename Token>
@@ -579,7 +579,7 @@ public:
     template <typename Token>
     [[nodiscard]] bool Pop(Token& token, T& value, engine::Deadline deadline) {
         bool no_more_producers = false;
-        const bool success = nonempty_event_.WaitUntil(deadline, [&] {
+        const auto wait_status = nonempty_event_.WaitUntil(deadline, [&] {
             if (DoPop(token, value)) {
                 return true;
             }
@@ -594,7 +594,7 @@ public:
             }
             return false;
         });
-        return success && !no_more_producers;
+        return (wait_status == engine::FutureStatus::kReady) && !no_more_producers;
     }
 
     template <typename Token>

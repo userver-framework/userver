@@ -160,12 +160,12 @@ FutureStatus WaitAllCheckedContext::Impl::WaitUntil(Deadline deadline) {
         }
     }
 
-    if (!result_ready_.WaitUntil(deadline, [this]() {
-            return exception_source_index_.load(std::memory_order_relaxed) != kNoExceptionSource ||
-                   pending_notifications_.load(std::memory_order_relaxed) == 0;
-        }))
-    {
-        return current_task::ShouldCancel() ? FutureStatus::kCancelled : FutureStatus::kTimeout;
+    const auto wait_status = result_ready_.WaitUntil(deadline, [this] {
+        return exception_source_index_.load(std::memory_order_relaxed) != kNoExceptionSource ||
+               pending_notifications_.load(std::memory_order_relaxed) == 0;
+    });
+    if (wait_status != FutureStatus::kReady) {
+        return wait_status;
     }
     auto exception_source_index = exception_source_index_.exchange(kNoExceptionSource, std::memory_order_relaxed);
     if (exception_source_index != kNoExceptionSource) {

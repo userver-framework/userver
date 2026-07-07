@@ -337,14 +337,14 @@ UTEST_MT(SingleConsumerEvent, AsConditionVariable, 4) {
 
     /// [CV waiter]
     std::uint64_t count_acquired{};
-    const bool success = event.WaitUntil({}, [&] {
+    const auto wait_status = event.WaitUntil({}, [&] {
         // Operations must be atomic, can be std::memory_order_relaxed.
         count_acquired = count.load(std::memory_order_relaxed);
         return count_acquired % 2 == 0 && count.compare_exchange_strong(count_acquired, 0, std::memory_order_relaxed);
     });
     /// [CV waiter]
 
-    EXPECT_TRUE(success);
+    EXPECT_EQ(wait_status, engine::FutureStatus::kReady);
     EXPECT_TRUE(count_acquired != 0);
     EXPECT_TRUE(count_acquired % 2 == 0);
 
