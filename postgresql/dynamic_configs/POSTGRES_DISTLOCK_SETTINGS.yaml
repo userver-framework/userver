@@ -51,7 +51,6 @@ schema:
                     x-usrv-cpp-type: std::chrono::milliseconds
                 worker_func_restart_delay:
                     description: |
-                        Delay before attempting to restart a
-                        crashed component.
+                        Delay before `DoWork` is restarted after exiting with or without an exception.
                     type: integer
                     x-usrv-cpp-type: std::chrono::milliseconds

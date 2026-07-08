@@ -25,7 +25,7 @@ struct DistLockSettings {
     /// the lock.
     std::chrono::milliseconds forced_stop_margin{50};
 
-    /// Delay before failed worker_func restart
+    /// Delay before `DoWork` is restarted after exiting with or without an exception.
     std::chrono::milliseconds worker_func_restart_delay{100};
 
     /// Defaults to `true` and is updated from dynamic config.
