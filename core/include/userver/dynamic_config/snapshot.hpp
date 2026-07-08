@@ -151,16 +151,6 @@ public:
     template <typename VariableType>
     const VariableType& operator[](const Key<VariableType>&) &&;
 
-    /// @cond
-    // No longer supported, use `config[key]` instead
-    template <typename T>
-    const T& Get() const& USERVER_IMPL_LIFETIME_BOUND;
-
-    // No longer supported, use `config[key]` instead
-    template <typename T>
-    const T& Get() &&;
-    /// @endcond
-
 private:
     // for the constructor
     friend class Source;
@@ -290,16 +280,6 @@ const VariableType& Snapshot::operator[](const Key<VariableType>& key) const& US
 template <typename VariableType>
 const VariableType& Snapshot::operator[](const Key<VariableType>&) && {
     static_assert(!sizeof(VariableType), "keep the Snapshot before using, please");
-}
-
-template <typename T>
-const T& Snapshot::Get() const& USERVER_IMPL_LIFETIME_BOUND {
-    return (*this)[T::kDeprecatedKey];
-}
-
-template <typename T>
-const T& Snapshot::Get() && {
-    static_assert(!sizeof(T), "keep the Snapshot before using, please");
 }
 
 }  // namespace dynamic_config

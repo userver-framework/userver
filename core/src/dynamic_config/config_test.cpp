@@ -120,21 +120,6 @@ UTEST_F(DynamicConfigTest, VariableSnapshotPtr) {
 
 UTEST_F(DynamicConfigTest, Copy) { EXPECT_EQ(source_.GetCopy(kIntConfig), 5); }
 
-struct OldConfig final {
-    static const dynamic_config::Key<OldConfig> kDeprecatedKey;
-
-    int foo{42};
-};
-
-const dynamic_config::Key<OldConfig> OldConfig::kDeprecatedKey{dynamic_config::ConstantConfig{}, OldConfig{}};
-
-UTEST(DynamicConfig, TheOldWay) {
-    const dynamic_config::StorageMock storage{{OldConfig::kDeprecatedKey, {}}};
-
-    const auto config = storage.GetSource().GetSnapshot();
-    EXPECT_EQ(config.Get<OldConfig>().foo, 42);
-}
-
 class DummyClient final {
 public:
     explicit DummyClient(dynamic_config::Source config)
