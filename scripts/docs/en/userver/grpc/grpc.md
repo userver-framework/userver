@@ -429,7 +429,10 @@ These are the metrics provided for each gRPC method:
    * `network-error` — other RPCs that finished abruptly without a status,
      see ugrpc::client::RpcInterruptedError and
      ugrpc::server::RpcInterruptedError.
-     Such a unary network error is retryable, see
+     Client-side, a unary call is counted here only when it was interrupted at the
+     transport level and no concrete gRPC status is available; when a status is
+     available (for example `UNAVAILABLE` or `CANCELLED`), it is reported under that
+     status instead. Such a unary network error is retryable, see
      @ref scripts/docs/en/userver/grpc/timeouts_retries.md.
 * `abandoned-error` — RPCs that we forgot to `Finish`
   A client code drops an RPC object and don't wait of a response from a server OR is a bug in `ugrpc` usage.

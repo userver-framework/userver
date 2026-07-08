@@ -49,12 +49,11 @@ Conditions for a retry to occur:
 3. The overall Deadline (including from @ref scripts/docs/en/userver/deadline_propagation.md) has not been exceeded;
 4. The @ref ugrpc::client::RetryLimiter "retry limiter" (if configured) allows the retry.
 
-@note In addition to the retryable status codes above, a unary network error
+@note A unary call interrupted at the transport level is retried like any other error: when a
+concrete gRPC status is available (for example `UNAVAILABLE` or `CANCELLED`) it is retried by that
+status code; otherwise it is reported as a network error
 (@ref ugrpc::client::SpecialCaseCompletionType "kNetworkError", surfaced as
-ugrpc::client::RpcInterruptedError) is also retryable. This includes the case when the completion
-queue reports `ok=false` on `Finish`, e.g. a response that was received but could not be
-deserialized. Note that grpc-core does not retry the latter on its own, because it had already
-observed a successful status on the wire; it is the userver retry loop that retries it.
+ugrpc::client::RpcInterruptedError), which is also retryable.
 
 ### Configuring Retries
 
