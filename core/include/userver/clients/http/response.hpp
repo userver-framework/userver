@@ -24,7 +24,7 @@ using Headers = USERVER_NAMESPACE::http::headers::HeaderMap;
 /// Class that will be returned for successful request
 class Response final {
 public:
-    using CookiesMap = server::http::Cookie::CookiesMap;
+    using Cookies = std::vector<server::http::Cookie>;
 
     Response() = default;
 
@@ -41,8 +41,8 @@ public:
     /// return reference to headers
     const Headers& headers() const { return headers_; }
     Headers& headers() { return headers_; }
-    const CookiesMap& cookies() const { return cookies_; }
-    CookiesMap& cookies() { return cookies_; }
+    const Cookies& cookies() const { return cookies_; }
+    Cookies& cookies() { return cookies_; }
 
     /// status_code
     Status status_code() const;
@@ -71,7 +71,7 @@ public:
 
 private:
     Headers headers_;
-    CookiesMap cookies_;
+    Cookies cookies_;
     std::string response_;
     Status status_code_{Status::kInvalid};
     LocalStats stats_;

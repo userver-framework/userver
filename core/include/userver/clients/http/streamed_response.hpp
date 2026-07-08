@@ -41,7 +41,7 @@ public:
     /// Get all HTTP headers as a case-insensitive unordered map
     /// @note may suspend the coroutine if headers are not obtained yet.
     const Headers& GetHeaders();
-    const Response::CookiesMap& GetCookies();
+    const Response::Cookies& GetCookies();
 
     using Queue = concurrent::StringStreamQueue;
 

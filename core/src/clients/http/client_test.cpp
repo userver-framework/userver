@@ -442,6 +442,26 @@ struct CheckCookie {
     }
 };
 
+struct ReturnCookies {
+    const std::vector<std::string> cookies;
+
+    HttpResponse operator()(const HttpRequest&) {
+        constexpr std::string_view prefix = "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 0";
+        std::string builder;
+        builder.reserve(prefix.size() * 2 + cookies.size() * 20); // magic constant to average size of cookie string
+        builder.append(prefix);
+        for (const auto& cookie : cookies) {
+            builder.append("\r\nSet-Cookie: ");
+            builder.append(cookie);
+        }
+        builder.append("\r\n\r\n");
+        return HttpResponse{
+            std::move(builder),
+            HttpResponse::kWriteAndClose
+        };
+    }
+};
+
 constexpr auto kTestHosts = R"(
 127.0.0.2 localhost
 ::1 localhost
@@ -1124,6 +1144,32 @@ UTEST(HttpClient, Cookies) {
     test({{"a", "b"}}, {"a=b"});
     test({{"A", "B"}}, {"A=B"});
     test({{"a", "B"}, {"A", "b"}}, {"a=B", "A=b"});
+}
+
+UTEST(HttpClient, CookiesFromServer) {
+    // Without compliant CookieJar with rfc 6265, we will just check raw cookies without deduplication etc
+    const auto test = [](std::vector<std::string> expected) {
+        const utest::SimpleServer http_server{ReturnCookies{expected}};
+        auto http_client_ptr = utest::CreateHttpClient();
+        for (unsigned i = 0; i < kRepetitions; ++i) {
+            const auto response =
+                http_client_ptr->CreateRequest()
+                    .get(http_server.GetBaseUrl())
+                    .retry(1)
+                    .verify(true)
+                    .http_version(USERVER_NAMESPACE::http::HttpVersion::k11)
+                    .timeout(kTimeout)
+                    .perform();
+            EXPECT_TRUE(response->IsOk());
+            const auto& cookies = response->cookies();
+            EXPECT_TRUE(cookies.size() == expected.size());
+            for (size_t i = 0; i < expected.size(); ++i) {
+                EXPECT_TRUE(expected.at(i) == cookies.at(i).ToString());
+            }
+        }
+    };
+    test({"token=xyz789"});
+    test({"A=B", "A=B", "FOO=BAR", "BAR=FOOBAR"});
 }
 
 UTEST(HttpClient, HeadersAndWhitespaces) {

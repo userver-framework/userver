@@ -39,7 +39,8 @@ public:
     bool IsSecure() const noexcept;
     Cookie& SetSecure() noexcept;
 
-    std::chrono::system_clock::time_point Expires() const noexcept;
+    // Missed Expires has special semantics
+    std::optional<std::chrono::system_clock::time_point> Expires() const noexcept;
     Cookie& SetExpires(std::chrono::system_clock::time_point value) noexcept;
 
     bool IsPermanent() const noexcept;
@@ -54,7 +55,8 @@ public:
     const std::string& Domain() const noexcept;
     Cookie& SetDomain(std::string value);
 
-    std::chrono::seconds MaxAge() const noexcept;
+    // Missed MaxAge has special semantics
+    std::optional<std::chrono::seconds> MaxAge() const noexcept;
     Cookie& SetMaxAge(std::chrono::seconds value) noexcept;
 
     std::string SameSite() const;

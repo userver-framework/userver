@@ -56,17 +56,17 @@ TEST(HttpCookie, Simple) {
     EXPECT_FALSE(cookie.IsPermanent());
     EXPECT_EQ(cookie.Path(), "/");
     EXPECT_EQ(cookie.Domain(), "domain.com");
-    EXPECT_EQ(cookie.MaxAge().count(), 3600);
+    EXPECT_EQ(cookie.MaxAge().value().count(), 3600);
     EXPECT_EQ(cookie.SameSite(), "None");
     EXPECT_EQ(
-        cookie.Expires().time_since_epoch().count() * std::chrono::system_clock::period::num /
+        cookie.Expires().value().time_since_epoch().count() * std::chrono::system_clock::period::num /
             std::chrono::system_clock::period::den,
         1560358305L
     );
     cookie.SetPermanent();
     EXPECT_TRUE(cookie.IsPermanent());
     EXPECT_GT(
-        cookie.Expires().time_since_epoch().count() * std::chrono::system_clock::period::num /
+        cookie.Expires().value().time_since_epoch().count() * std::chrono::system_clock::period::num /
             std::chrono::system_clock::period::den,
         1560358305L
     );
@@ -229,6 +229,16 @@ TEST(HttpCookie, FromString) {
     for (const auto& cookie_as_str : bad_cookies_as_str) {
         auto cookie = server::http::Cookie::FromString(cookie_as_str);
         EXPECT_FALSE(equal(cookie.value().ToString(), cookie_as_str));
+    }
+
+    {
+        // Missed Max-Age/Expires properties have special semantics (like session cookies, we should preserve them as optionals)
+        auto cookie = server::http::Cookie::FromString("Name=Value");
+        EXPECT_TRUE(cookie.has_value());
+        EXPECT_TRUE(cookie.value().Name() == "Name");
+        EXPECT_TRUE(cookie.value().Value() == "Value");
+        EXPECT_FALSE(cookie.value().MaxAge().has_value());
+        EXPECT_FALSE(cookie.value().Expires().has_value());
     }
 }
 

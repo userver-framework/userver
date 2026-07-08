@@ -205,7 +205,7 @@ public:
     [[nodiscard]] bool IsSecure() const noexcept;
     void SetSecure() noexcept;
 
-    [[nodiscard]] std::chrono::system_clock::time_point Expires() const;
+    [[nodiscard]] std::optional<std::chrono::system_clock::time_point> Expires() const;
     void SetExpires(std::chrono::system_clock::time_point value) noexcept;
 
     [[nodiscard]] bool IsPermanent() const;
@@ -220,7 +220,7 @@ public:
     [[nodiscard]] const std::string& Domain() const noexcept;
     void SetDomain(std::string&& value);
 
-    [[nodiscard]] std::chrono::seconds MaxAge() const noexcept;
+    [[nodiscard]] std::optional<std::chrono::seconds> MaxAge() const noexcept;
     void SetMaxAge(std::chrono::seconds value) noexcept;
 
     [[nodiscard]] std::string SameSite() const;
@@ -260,8 +260,8 @@ bool Cookie::CookieData::IsSecure() const noexcept { return secure_; }
 
 void Cookie::CookieData::SetSecure() noexcept { secure_ = true; }
 
-std::chrono::system_clock::time_point Cookie::CookieData::Expires() const {
-    return expires_.value_or(std::chrono::system_clock::time_point{});
+std::optional<std::chrono::system_clock::time_point> Cookie::CookieData::Expires() const {
+    return expires_;
 }
 
 void Cookie::CookieData::SetExpires(std::chrono::system_clock::time_point value) noexcept { expires_ = value; }
@@ -288,7 +288,7 @@ void Cookie::CookieData::SetDomain(std::string&& value) {
     domain_ = std::move(value);
 }
 
-std::chrono::seconds Cookie::CookieData::MaxAge() const noexcept { return max_age_.value_or(std::chrono::seconds{0}); }
+std::optional<std::chrono::seconds> Cookie::CookieData::MaxAge() const noexcept { return max_age_; }
 
 void Cookie::CookieData::SetMaxAge(std::chrono::seconds value) noexcept { max_age_ = value; }
 
@@ -457,7 +457,7 @@ Cookie& Cookie::SetSecure() noexcept {
     return *this;
 }
 
-std::chrono::system_clock::time_point Cookie::Expires() const noexcept { return data_->Expires(); }
+std::optional<std::chrono::system_clock::time_point> Cookie::Expires() const noexcept { return data_->Expires(); }
 
 Cookie& Cookie::SetExpires(std::chrono::system_clock::time_point value) noexcept {
     data_->SetExpires(value);
@@ -492,7 +492,7 @@ Cookie& Cookie::SetDomain(std::string value) {
     return *this;
 }
 
-std::chrono::seconds Cookie::MaxAge() const noexcept { return data_->MaxAge(); }
+std::optional<std::chrono::seconds> Cookie::MaxAge() const noexcept { return data_->MaxAge(); }
 
 Cookie& Cookie::SetMaxAge(std::chrono::seconds value) noexcept {
     data_->SetMaxAge(value);
