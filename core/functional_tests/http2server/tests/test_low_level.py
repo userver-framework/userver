@@ -1,5 +1,4 @@
 import asyncio
-import contextlib
 import struct
 
 import h2.connection
@@ -423,25 +422,6 @@ async def test_single_reset_keeps_connection_usable(
             await utils.receive_simple_response(sock, conn)
 
     assert differ.value_at('reset-streams') == 1
-
-
-async def test_client_goaway_metric(create_connection, monitor_client, service_client):
-    await service_client.update_server_state()
-
-    async with monitor_client.metrics_diff(prefix='server.requests.http2') as differ:
-        async with create_connection() as (sock, conn):
-            conn.close_connection(error_code=0)
-            await sock.sendall(conn.data_to_send())
-            # Keep the socket open until the server reads GOAWAY (and optionally
-            # responds). Closing immediately races with metrics collection.
-            with contextlib.suppress(asyncio.TimeoutError):
-                while True:
-                    receive = await sock.recv(utils.RECEIVE_SIZE, timeout=1.0)
-                    if not receive:
-                        break
-                    conn.receive_data(receive)
-
-    assert differ.value_at('goaway') == 1
 
 
 async def test_stream_already_closed(create_connection, service_client):

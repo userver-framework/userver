@@ -96,6 +96,10 @@ void Http2Connection::ListenForRequests() {
     while (!engine::current_task::ShouldCancel()) {
         StartAllRequestTasks(wait_any);
 
+        if (ShouldCloseConnection()) {
+            return;
+        }
+
         const auto ready_id = wait_any.Wait();
         if (!ready_id) {
             UASSERT(ready_id == utils::unexpected(engine::WaitAnyError::kCancelled));
@@ -176,6 +180,12 @@ void Http2Connection::SendResponse(http::HttpRequest& request) noexcept {
     ++stats_.requests_processed_count;
 
     request.WriteAccessLogs(request_handler_.LoggerAccess(), request_handler_.LoggerAccessTskv(), GetPeerName());
+}
+
+bool Http2Connection::ShouldCloseConnection() const noexcept {
+    UASSERT(parser_);
+    // Check handler_tasks_ to do graceful shutdown.
+    return !parser_->ConnectionIsOk() && handler_tasks_.empty();
 }
 
 std::unique_ptr<http::Http2Session> Http2Connection::MakeParser() {

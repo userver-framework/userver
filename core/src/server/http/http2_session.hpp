@@ -64,6 +64,8 @@ public:
     void WriteWhileWant();
     void HandleStreamingEvents();
 
+    bool ConnectionIsOk() const;
+
 private:
     friend class Http2ResponseWriter;
 
@@ -113,7 +115,6 @@ private:
     void SubmitRstStream(Stream::Id stream_id);
 
     void FinalizeRequest(Stream& stream);
-    bool ConnectionIsOk();
 
     const net::Http2SessionConfig& config_;
 

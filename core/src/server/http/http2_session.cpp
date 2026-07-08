@@ -353,7 +353,7 @@ void Http2Session::FinalizeRequest(Stream& stream) {
     }
 }
 
-bool Http2Session::ConnectionIsOk() {
+bool Http2Session::ConnectionIsOk() const {
     return nghttp2_session_want_read(session_.get()) != 0 || nghttp2_session_want_write(session_.get()) != 0;
 }
 

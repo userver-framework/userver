@@ -68,6 +68,8 @@ private:
     std::unique_ptr<http::Http2Session> MakeParser();
     void EnsureHttp2();
 
+    bool ShouldCloseConnection() const noexcept;
+
     const ConnectionConfig& config_;
     const request::HttpRequestConfig& handler_defaults_config_;
     const http::RequestHandlerBase& request_handler_;
