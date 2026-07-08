@@ -5,7 +5,6 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/text_light.hpp>
 #include <userver/utils/trivial_map.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
@@ -17,7 +16,7 @@ namespace {
 
 std::string GenerateWorkerThreadName(std::string_view tp_name) {
     static constexpr std::string_view kExpectedSuffix = "-task-processor";
-    if (utils::text::EndsWith(tp_name, kExpectedSuffix)) {
+    if (tp_name.ends_with(kExpectedSuffix)) {
         std::string_view short_name{tp_name};
         short_name.remove_suffix(kExpectedSuffix.size());
         if (!short_name.empty() && short_name.size() <= 5) {

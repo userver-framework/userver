@@ -3,7 +3,6 @@
 #include <fmt/format.h>
 
 #include <userver/utils/assert.hpp>
-#include <userver/utils/text_light.hpp>
 
 #include <userver/ugrpc/impl/to_string.hpp>
 
@@ -48,7 +47,7 @@ bool IsValidMetadataAsciiValue(std::string_view meta_key) {
 
 void CheckCustomMetadata(std::string_view meta_key, std::string_view meta_value) {
     UINVARIANT(IsValidMetadataHeaderName(meta_key), fmt::format("Invalid Custom Metadata Key: {}", meta_key));
-    if (!utils::text::EndsWith(meta_key, "-bin")) {
+    if (!meta_key.ends_with("-bin")) {
         UINVARIANT(
             IsValidMetadataAsciiValue(meta_value),
             fmt::format("Invalid Custom Metadata Value, Key: {}", meta_key)

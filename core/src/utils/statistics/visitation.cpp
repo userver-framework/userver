@@ -15,7 +15,6 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/statistics/storage.hpp>
-#include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -201,7 +200,7 @@ void ProcessLeaf(
     }
 
     // The whole internal JSON metrics code is to be deprecated
-    if (metric_value && utils::text::StartsWith(path.Get(), request.prefix)) {
+    if (metric_value && path.Get().starts_with(request.prefix)) {
         if (LeftContainsRight(labels.Labels(), request.require_labels)) {
             if (request.prefix_match_type != Request::PrefixMatch::kExact || path.Get() == request.prefix) {
                 boost::container::small_vector<LabelView, 16> labels_vector;

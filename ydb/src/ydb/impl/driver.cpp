@@ -6,7 +6,6 @@
 #include <ydb-cpp-sdk/client/types/credentials/credentials.h>
 
 #include <userver/utils/algo.hpp>
-#include <userver/utils/text_light.hpp>
 
 #include <ydb/impl/build_info.hpp>
 #include <ydb/impl/config.hpp>
@@ -90,8 +89,8 @@ utils::RetryBudget& Driver::GetRetryBudget() { return retry_budget_; }
 void DumpMetric(utils::statistics::Writer& writer, const Driver& driver) { writer["native"] = *driver.native_metrics_; }
 
 std::string JoinPath(std::string_view database_path, std::string_view path) {
-    UASSERT(!utils::text::EndsWith(database_path, "/"));
-    return utils::StrCat(database_path, (utils::text::StartsWith(path, "/") ? "" : "/"), path);
+    UASSERT(!database_path.ends_with("/"));
+    return utils::StrCat(database_path, (path.starts_with("/") ? "" : "/"), path);
 }
 
 }  // namespace ydb::impl

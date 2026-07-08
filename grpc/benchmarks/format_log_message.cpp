@@ -2,7 +2,6 @@
 
 #include <userver/logging/log_extra.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/text_light.hpp>
 
 #include <benchmark/benchmark.h>
 
@@ -30,7 +29,7 @@ void FormatLogMessage(benchmark::State& state) {
 
     const std::string_view log_line_view{result.ExtractTextLogItem().log_line};  // Convert SmallString to string_view
 
-    UINVARIANT(utils::text::StartsWith(log_line_view, "tskv\ttimestamp=1971-05-"), "Fail");
+    UINVARIANT(log_line_view.starts_with("tskv\ttimestamp=1971-05-"), "Fail");
     UINVARIANT(log_line_view.find("\ttimezone=") != std::string::npos, "Fail 1");
     UINVARIANT(
         log_line_view

@@ -14,7 +14,6 @@
 #include <userver/logging/format.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/net/blocking/get_addr_info.hpp>
-#include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -49,7 +48,7 @@ void RemoveOldFile(const std::string& logger_name, const std::string& file_path)
 }
 
 SinkPtr GetSinkFromFilename(const std::string& file_path) {
-    if (utils::text::StartsWith(file_path, kUnixSocketPrefix)) {
+    if (file_path.starts_with(kUnixSocketPrefix)) {
         // Use Unix-socket sink
         return std::make_unique<UnixSocketSink>(file_path.substr(kUnixSocketPrefix.size()));
     } else {
@@ -67,7 +66,7 @@ SinkPtr MakeOptionalSink(const LoggerConfig& config) {
     } else {
         CreateLogDirectory(config.logger_name, config.file_path);
         if (config.truncate_on_start) {
-            if (utils::text::StartsWith(config.file_path, kUnixSocketPrefix)) {
+            if (config.file_path.starts_with(kUnixSocketPrefix)) {
                 LogAndThrow(
                     "truncate-on-start cannot be combined with unix socket path for logger '" + config.logger_name +
                     "': "

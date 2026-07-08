@@ -10,7 +10,6 @@
 #include <userver/engine/task/task.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
-#include <userver/utils/text.hpp>
 
 #include <userver/storages/mongo/pool_config.hpp>
 
@@ -86,7 +85,7 @@ MongoPoolFixture::~MongoPoolFixture() {
     used_db_names_.erase(kTestDatabaseDefaultName);
 
     for (const auto& db_name : used_db_names_) {
-        if (utils::text::StartsWith(db_name, kTestDatabaseNamePrefix)) {
+        if (db_name.starts_with(kTestDatabaseNamePrefix)) {
             auto pool = MakePool(db_name, {});
             DropDatabase(pool, db_name);
         }

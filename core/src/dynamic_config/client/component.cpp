@@ -48,7 +48,7 @@ bool IsClownductorPrestable() {
     }
 
     const auto trimmed = utils::text::TrimView(*content);
-    return utils::text::EndsWith(trimmed, "_pre_stable") || utils::text::EndsWith(trimmed, "_prestable");
+    return trimmed.ends_with("_pre_stable") || trimmed.ends_with("_prestable");
 }
 
 std::string ReadCircuit() {
@@ -61,7 +61,7 @@ std::string ReadCircuit() {
 
     for (const auto line : utils::text::SplitIntoStringViewVector(*content, "\n")) {
         const auto trimmed_line = utils::text::TrimView(line);
-        if (utils::text::StartsWith(trimmed_line, kCircuitPrefix)) {
+        if (trimmed_line.starts_with(kCircuitPrefix)) {
             return std::string{trimmed_line.substr(kCircuitPrefix.size())};
         }
     }

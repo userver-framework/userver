@@ -53,14 +53,12 @@ std::string Join(const std::vector<std::string>& strs, std::string_view sep);
 std::string Format(double value, int ndigits);
 
 /// Return true if `hay` starts with `needle`, false otherwise.
-constexpr bool StartsWith(std::string_view hay, std::string_view needle) noexcept {
-    return hay.substr(0, needle.size()) == needle;
-}
+/// @deprecated Use std::string_view::starts_with() instead.
+constexpr bool StartsWith(std::string_view hay, std::string_view needle) noexcept { return hay.starts_with(needle); }
 
 /// Return true if `hay` ends with `needle`, false otherwise.
-constexpr bool EndsWith(std::string_view hay, std::string_view needle) noexcept {
-    return hay.size() >= needle.size() && hay.substr(hay.size() - needle.size()) == needle;
-}
+/// @deprecated Use std::string_view::ends_with() instead.
+constexpr bool EndsWith(std::string_view hay, std::string_view needle) noexcept { return hay.ends_with(needle); }
 
 /// Case insensitive (ASCII only) variant of StartsWith()
 bool ICaseStartsWith(std::string_view hay, std::string_view needle) noexcept;

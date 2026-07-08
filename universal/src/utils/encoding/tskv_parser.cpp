@@ -3,7 +3,6 @@
 #include <optional>
 
 #include <userver/utils/assert.hpp>
-#include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -52,7 +51,7 @@ const char* TskvParser::SkipToRecordBegin() noexcept {
     // TODO support empty records of the form "tskv\n"?
 
     while (true) {
-        if (text::StartsWith(in_, kTskv)) {
+        if (in_.starts_with(kTskv)) {
             // Happy case.
             const char* const result = in_.data();
             in_.remove_prefix(kTskv.size());

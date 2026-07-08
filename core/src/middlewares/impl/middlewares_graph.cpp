@@ -7,7 +7,6 @@
 #include <userver/logging/log.hpp>
 #include <userver/middlewares/groups.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -15,9 +14,7 @@ namespace middlewares::impl {
 
 namespace {
 
-bool IsGroupBoundary(const std::string& group) {
-    return utils::text::EndsWith(group, "#end") || utils::text::EndsWith(group, "#begin");
-}
+bool IsGroupBoundary(const std::string& group) { return group.ends_with("#end") || group.ends_with("#begin"); }
 
 void ValidateConnects(
     const MiddlewareDependency& dep,

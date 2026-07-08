@@ -6,7 +6,6 @@
 
 #include <userver/utils/assert.hpp>
 #include <userver/utils/numeric_cast.hpp>
-#include <userver/utils/text_light.hpp>
 
 #include <utils/statistics/writer_state.hpp>
 
@@ -46,7 +45,7 @@ bool CanSubPathSucceedExactMatch(
 
     UASSERT(current_path.size() < required.size());
     return required[current_path.size()] == Writer::kDelimiter &&
-           utils::text::StartsWith(required.substr(initial_path_size), current_path.substr(initial_path_size));
+           required.substr(initial_path_size).starts_with(current_path.substr(initial_path_size));
 }
 
 bool CanSubPathSucceedStartsWith(
@@ -61,12 +60,12 @@ bool CanSubPathSucceedStartsWith(
     }
 
     if (current_path.size() >= required.size()) {
-        return utils::text::StartsWith(current_path.substr(initial_path_size), required.substr(initial_path_size));
+        return current_path.substr(initial_path_size).starts_with(required.substr(initial_path_size));
     }
 
     UASSERT(current_path.size() < required.size());
     return required[current_path.size()] == Writer::kDelimiter &&
-           utils::text::StartsWith(required.substr(initial_path_size), current_path.substr(initial_path_size));
+           required.substr(initial_path_size).starts_with(current_path.substr(initial_path_size));
 }
 
 void CheckAndWrite(impl::WriterState& state, MetricValue value) {

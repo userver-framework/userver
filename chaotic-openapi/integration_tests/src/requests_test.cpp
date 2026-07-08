@@ -10,7 +10,6 @@
 #include <userver/utest/log_capture_fixture.hpp>
 #include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/statistics/testing.hpp>
-#include <userver/utils/text_light.hpp>
 
 #include <clients/multiple_content_types/requests.hpp>
 #include <clients/operation/client_impl.hpp>
@@ -157,7 +156,7 @@ UTEST_F(RequestsQueryLogMode, HideOperation) {
     EXPECT_EQ(response->status_code(), 200);
 
     auto text = GetLogCapture().GetAll().back().GetTag("url.full");
-    EXPECT_TRUE(utils::text::EndsWith(text, "test1/query-log-mode?password=***&secret=***"));
+    EXPECT_TRUE(text.ends_with("test1/query-log-mode?password=***&secret=***"));
 }
 
 UTEST_F(RequestsQueryLogMode, HideParameter) {
@@ -174,7 +173,7 @@ UTEST_F(RequestsQueryLogMode, HideParameter) {
     EXPECT_EQ(response->status_code(), 200);
 
     auto text = GetLogCapture().GetAll().back().GetTag("url.full");
-    EXPECT_TRUE(utils::text::EndsWith(text, "test1/query-log-mode/parameter?password=***&secret=bar"));
+    EXPECT_TRUE(text.ends_with("test1/query-log-mode/parameter?password=***&secret=bar"));
 }
 
 }  // namespace

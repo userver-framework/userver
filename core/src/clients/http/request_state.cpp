@@ -28,7 +28,6 @@
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/rand.hpp>
-#include <userver/utils/text_light.hpp>
 #include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -139,7 +138,7 @@ std::exception_ptr PrepareDeadlinePassedException(std::string_view url, LocalSta
 
 bool IsPrefix(const std::string& url, const std::vector<std::string>& prefixes) {
     return !(std::ranges::find_if(prefixes, [&url](const std::string& prefix) {
-                 return utils::text::StartsWith(url, prefix);
+                 return url.starts_with(prefix);
              }) == prefixes.end());
 }
 
