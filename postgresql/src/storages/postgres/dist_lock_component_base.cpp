@@ -77,7 +77,7 @@ DistLockComponentBase::DistLockComponentBase(
         locker_log_level
     );
     subscription_token_ = config_.UpdateAndListen(this, name_, &DistLockComponentBase::OnConfigUpdate);
-    autostart_ = component_config["autostart"].As<bool>(false);
+    autostart_ = component_config["autostart"].As<bool>(true);
 
     utils::statistics::RegisterWriterScope(
         component_context,
