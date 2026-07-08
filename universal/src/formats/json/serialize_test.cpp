@@ -1,3 +1,4 @@
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <map>
@@ -42,7 +43,7 @@ void TestExceptionMessage(std::string_view data, std::string_view expected_msg) 
         FromString(data);
         FAIL() << "Exception was not thrown on json: " << data;
     } catch (const ParseException& e) {
-        EXPECT_TRUE(std::string_view{e.what()}.find(expected_msg) != std::string_view::npos)
+        EXPECT_THAT(std::string_view{e.what()}, testing::HasSubstr(expected_msg))
             << "JSON " << data << " has incorrect line/column error message: " << e.what();
     }
 }
@@ -79,7 +80,7 @@ TEST(FormatsJson, ParseFromBadFile) {
         FromFile(filename);
         FAIL() << "Exception was not thrown for non existing file";
     } catch (const ParseException& e) {
-        EXPECT_TRUE(std::string_view{e.what()}.find(filename) != std::string_view::npos)
+        EXPECT_THAT(std::string_view{e.what()}, testing::HasSubstr(filename))
             << "No filename in error message: " << e.what();
     }
 }

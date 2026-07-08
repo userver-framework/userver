@@ -1,3 +1,4 @@
+#include <gmock/gmock.h>
 #include <gtest/gtest-typed-test.h>
 
 #include <cstring>
@@ -16,9 +17,9 @@ TYPED_TEST_P(Serialization, StringToString) {
     auto str = ToString(doc);
     EXPECT_EQ(str.size(), std::strlen(this->kDoc));
     EXPECT_EQ(str, ToString(doc));
-    EXPECT_TRUE(str.find("key1") != std::string::npos);
-    EXPECT_TRUE(str.find("key2") != std::string::npos);
-    EXPECT_TRUE(str.find("val") != std::string::npos);
+    EXPECT_THAT(str, testing::HasSubstr("key1"));
+    EXPECT_THAT(str, testing::HasSubstr("key2"));
+    EXPECT_THAT(str, testing::HasSubstr("val"));
 }
 
 TYPED_TEST_P(Serialization, StreamToString) {
@@ -28,9 +29,9 @@ TYPED_TEST_P(Serialization, StreamToString) {
     auto str = ToString(doc);
     EXPECT_EQ(str.size(), std::strlen(this->kDoc));
     EXPECT_EQ(str, ToString(doc));
-    EXPECT_TRUE(str.find("key1") != std::string::npos);
-    EXPECT_TRUE(str.find("key2") != std::string::npos);
-    EXPECT_TRUE(str.find("val") != std::string::npos);
+    EXPECT_THAT(str, testing::HasSubstr("key1"));
+    EXPECT_THAT(str, testing::HasSubstr("key2"));
+    EXPECT_THAT(str, testing::HasSubstr("val"));
 }
 
 TYPED_TEST_P(Serialization, StringToStream) {
@@ -38,9 +39,9 @@ TYPED_TEST_P(Serialization, StringToStream) {
     std::ostringstream os;
     Serialize(doc, os);
     const auto str = os.str();
-    EXPECT_TRUE(str.find("key1") != std::string::npos);
-    EXPECT_TRUE(str.find("key2") != std::string::npos);
-    EXPECT_TRUE(str.find("val") != std::string::npos);
+    EXPECT_THAT(str, testing::HasSubstr("key1"));
+    EXPECT_THAT(str, testing::HasSubstr("key2"));
+    EXPECT_THAT(str, testing::HasSubstr("val"));
 }
 
 TYPED_TEST_P(Serialization, StreamReadException) {

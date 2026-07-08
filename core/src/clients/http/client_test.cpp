@@ -274,7 +274,7 @@ struct ComplexStatusValidateCallback {
 HttpResponse PutValidateCallback(const HttpRequest& request) {
     LOG_INFO() << "HTTP Server receive: " << request;
 
-    EXPECT_NE(request.find("PUT"), std::string::npos) << "PUT request has no PUT in headers: " << request;
+    EXPECT_THAT(request, testing::HasSubstr("PUT")) << "PUT request has no PUT in headers: " << request;
 
     return {
         "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: "
@@ -322,8 +322,7 @@ std::string TryGetHeader(const HttpRequest& request, std::string_view header) {
     if (first_pos == std::string::npos) {
         return {};
     }
-    const auto second_pos = request.find(header, first_pos + header.length());
-    EXPECT_EQ(second_pos, std::string::npos)
+    EXPECT_EQ(request.find(header, first_pos + header.length()), std::string::npos)
         << "Header `" << header << "` exists more than once in request: " << request;
 
     auto values_begin_pos = request.find(':', first_pos + header.length()) + 1;
@@ -335,8 +334,8 @@ std::string TryGetHeader(const HttpRequest& request, std::string_view header) {
 }
 
 std::string AssertHeader(const HttpRequest& request, std::string_view header) {
-    const auto first_pos = request.find(header);
-    EXPECT_NE(first_pos, std::string::npos) << "Failed to find header `" << header << "` in request: " << request;
+    EXPECT_THAT(request, testing::HasSubstr(header))
+        << "Failed to find header `" << header << "` in request: " << request;
 
     return TryGetHeader(request, header);
 }
@@ -403,16 +402,30 @@ struct CheckCookie {
     const std::set<std::string> expected_cookies;
 
     HttpResponse operator()(const HttpRequest& request) {
+        static const HttpResponse kOkResponse{
+            "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 0\r\n\r\n",
+            HttpResponse::kWriteAndClose
+        };
+
         const auto header_pos = request.find("Cookie:");
-        EXPECT_NE(header_pos, std::string::npos) << "Failed to find 'Cookie' header in request: " << request;
+        if (header_pos == std::string::npos) {
+            ADD_FAILURE() << "Failed to find 'Cookie' header in request: " << request;
+            return kOkResponse;
+        }
 
         EXPECT_EQ(request.find("Cookie:", header_pos + 1), std::string::npos)
             << "Duplicate 'Cookie' header in request: " << request;
 
         const auto value_start = request.find_first_not_of(' ', header_pos + 7);
-        EXPECT_NE(value_start, std::string::npos) << "Malformed request: " << request;
+        if (value_start == std::string::npos) {
+            ADD_FAILURE() << "Malformed request: " << request;
+            return kOkResponse;
+        }
         const auto value_end = request.find("\r\n", value_start);
-        EXPECT_NE(value_end, std::string::npos) << "Malformed request: " << request;
+        if (value_end == std::string::npos) {
+            ADD_FAILURE() << "Malformed request: " << request;
+            return kOkResponse;
+        }
 
         auto value = request.substr(value_start, value_end - value_start);
         std::vector<std::string> received_cookies;
@@ -425,7 +438,7 @@ struct CheckCookie {
         }
         EXPECT_TRUE(unseen_cookies.empty()) << "Not all cookies received";
 
-        return {"HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 0\r\n\r\n", HttpResponse::kWriteAndClose};
+        return kOkResponse;
     }
 };
 
@@ -1203,7 +1216,7 @@ UTEST(HttpClient, GetWithBody) {
     auto http_client_ptr = utest::CreateHttpClient();
 
     const utest::SimpleServer http_server_final{[](const HttpRequest& request) -> HttpResponse {
-        EXPECT_NE(request.find("get_body_data"), std::string::npos);
+        EXPECT_THAT(request, testing::HasSubstr("get_body_data"));
         return {
             fmt::format(clients::http::kResponse200WithHeaderPattern, "xxx: good"),
             HttpResponse::kWriteAndClose,

@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <optional>
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <userver/utils/enumerate.hpp>
@@ -26,9 +27,9 @@ TEST(Tskv, TAXICOMMON1362) {
     const std::string_view str(reinterpret_cast<const char*>(tskv_test::data_bin), sizeof(tskv_test::data_bin));
     std::string result;
     utils::encoding::EncodeTskv(result, str, utils::encoding::EncodeTskvMode::kValue);
-    EXPECT_TRUE(result.find("PNG") != std::string::npos) << "Result: " << result;
+    EXPECT_THAT(result, testing::HasSubstr("PNG")) << "Result: " << result;
 
-    EXPECT_TRUE(result.find(tskv_test::ascii_part) != std::string::npos) << "Result: " << result;
+    EXPECT_THAT(result, testing::HasSubstr(tskv_test::ascii_part)) << "Result: " << result;
 
     EXPECT_EQ(0, std::ranges::count(result, '\n')) << "Result: " << result;
     EXPECT_EQ(0, std::ranges::count(result, '\t')) << "Result: " << result;

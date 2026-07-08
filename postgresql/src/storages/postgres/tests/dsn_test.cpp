@@ -1,3 +1,4 @@
+#include <gmock/gmock.h>
 #include <userver/utest/utest.hpp>
 
 #include <userver/logging/log.hpp>
@@ -139,8 +140,8 @@ TEST(PostgreDSN, DsnCutPassword) {
         "host=127.0.0.1 port=6432 dbname=mydb connect_timeout=10 user=myuser "
         "password=mypass"
     });
-    EXPECT_EQ(dsn_cut.find("password"), dsn_cut.npos);
-    EXPECT_EQ(dsn_cut.find("mypass"), dsn_cut.npos);
+    EXPECT_THAT(dsn_cut, testing::Not(testing::HasSubstr("password")));
+    EXPECT_THAT(dsn_cut, testing::Not(testing::HasSubstr("mypass")));
 
     pg::DsnOptions options;
     UEXPECT_NO_THROW(options = pg::OptionsFromDsn(pg::Dsn{std::move(dsn_cut)}));

@@ -1,5 +1,6 @@
 #include <userver/utest/http_server_mock.hpp>
 
+#include <gmock/gmock.h>
 #include <llhttp.h>
 #include <boost/algorithm/string/split.hpp>
 
@@ -144,7 +145,7 @@ int HttpConnection::DoOnMessageComplete() {
             boost::split(query_values, query, [](char c) { return c == '&'; });
             for (const auto& value : query_values) {
                 auto eq_pos = value.find('=');
-                EXPECT_NE(std::string::npos, eq_pos) << "Bad query: " << query;
+                EXPECT_THAT(value, testing::HasSubstr("=")) << "Bad query: " << query;
                 if (eq_pos != std::string::npos) {
                     http_request_.query.emplace(value.substr(0, eq_pos), value.substr(eq_pos + 1));
                 }

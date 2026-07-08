@@ -1,3 +1,5 @@
+#include <gmock/gmock.h>
+
 #include <userver/utest/utest.hpp>
 
 #include <storages/odbc/dsn.hpp>
@@ -89,31 +91,31 @@ UTEST(GetHostPort, NoServer) {
 UTEST(DsnCutPassword, RemovesPassword) {
     const Dsn dsn{"SERVER=host;PWD=secret;DATABASE=db"};
     auto result = DsnCutPassword(dsn);
-    EXPECT_EQ(result.find("secret"), std::string::npos);
-    EXPECT_EQ(result.find("PWD"), std::string::npos);
-    EXPECT_NE(result.find("SERVER"), std::string::npos);
-    EXPECT_NE(result.find("DATABASE"), std::string::npos);
+    EXPECT_THAT(result, testing::Not(testing::HasSubstr("secret")));
+    EXPECT_THAT(result, testing::Not(testing::HasSubstr("PWD")));
+    EXPECT_THAT(result, testing::HasSubstr("SERVER"));
+    EXPECT_THAT(result, testing::HasSubstr("DATABASE"));
 }
 
 UTEST(DsnCutPassword, NoPassword) {
     const Dsn dsn{"SERVER=host;DATABASE=db"};
     auto result = DsnCutPassword(dsn);
-    EXPECT_NE(result.find("SERVER"), std::string::npos);
-    EXPECT_NE(result.find("DATABASE"), std::string::npos);
+    EXPECT_THAT(result, testing::HasSubstr("SERVER"));
+    EXPECT_THAT(result, testing::HasSubstr("DATABASE"));
 }
 
 UTEST(DsnMaskPassword, MasksPassword) {
     const Dsn dsn{"SERVER=host;PWD=secret;DATABASE=db"};
     auto result = DsnMaskPassword(dsn);
-    EXPECT_EQ(result.find("secret"), std::string::npos);
-    EXPECT_NE(result.find("***"), std::string::npos);
-    EXPECT_NE(result.find("SERVER"), std::string::npos);
+    EXPECT_THAT(result, testing::Not(testing::HasSubstr("secret")));
+    EXPECT_THAT(result, testing::HasSubstr("***"));
+    EXPECT_THAT(result, testing::HasSubstr("SERVER"));
 }
 
 UTEST(DsnMaskPassword, NoPassword) {
     const Dsn dsn{"SERVER=host;DATABASE=db"};
     auto result = DsnMaskPassword(dsn);
-    EXPECT_EQ(result.find("***"), std::string::npos);
+    EXPECT_THAT(result, testing::Not(testing::HasSubstr("***")));
 }
 
 UTEST(IsIpAddress, IPv4) {

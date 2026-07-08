@@ -1,6 +1,7 @@
 #include <userver/utest/utest.hpp>
 
 #include <arpa/inet.h>
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -346,7 +347,7 @@ UTEST(Socket, ErrorPeername) {
             error_value == std::errc::wrong_protocol_type || error_value == std::errc::broken_pipe ||
             error_value == std::errc::connection_reset || error_value == std::errc::connection_aborted
         );
-        EXPECT_NE(std::string_view{ex.what()}.find(fmt::to_string(listener.addr)), std::string_view::npos);
+        EXPECT_THAT(std::string_view{ex.what()}, testing::HasSubstr(fmt::to_string(listener.addr)));
     }
 }
 
@@ -523,7 +524,7 @@ UTEST(Socket, UdpIpMreqIPv4) {
 
         EXPECT_FALSE(result);  // not expecting any input
     } catch (const std::exception& e) {
-        EXPECT_NE(std::string_view{e.what()}.find("No such device"), std::string_view::npos)
+        EXPECT_THAT(std::string_view{e.what()}, testing::HasSubstr("No such device"))
             << "Error not related to host support of IPv4: " << e.what();
     }
 }
