@@ -457,6 +457,14 @@ bool ConnectionImpl::ShouldWrapInAutoTransaction(const std::string_view statemen
            !ICaseStartsWith(statement, kStatementVacuum);
 }
 
+void ConnectionImpl::TryRollbackAutoTransaction(const engine::Deadline deadline) {
+    try {
+        ExecuteCommandNoPrepare("ROLLBACK", deadline);
+    } catch (const std::exception& rollback_ex) {
+        LOG_LIMITED_WARNING() << "Failed to rollback auto-transaction: " << rollback_ex.what();
+    }
+}
+
 ResultSet ConnectionImpl::ExecuteCommandInAutoTransaction(
     const Query& query,
     const QueryParameters& params,
@@ -472,24 +480,27 @@ ResultSet ConnectionImpl::ExecuteCommandInAutoTransaction(
         ExecuteCommandNoPrepare("BEGIN", deadline);
     }
 
+    const bool prepared_statements_enabled = PreparedStatementsEnabled(statement_cmd_ctl);
+
     try {
         SetStatementTimeout(effective_timeout, deadline);
         const ResetTransactionCommandControl transaction_guard{*this};
 
         auto result =
-            PreparedStatementsEnabled(statement_cmd_ctl)
+            prepared_statements_enabled
                 ? ExecuteCommand(query, params, deadline, logging::Level::kInfo, true)
                 : ExecuteCommandNoPrepare(query, params, deadline);
         ExecuteCommandNoPrepare("COMMIT", deadline);
         return result;
-    } catch (const std::exception& ex) {
-        LOG_LIMITED_WARNING() << "Auto-transaction query failed: " << ex.what();
-
-        try {
-            ExecuteCommandNoPrepare("ROLLBACK", deadline);
-        } catch (const std::exception& rollback_ex) {
-            LOG_LIMITED_WARNING() << "Failed to rollback auto-transaction: " << rollback_ex.what();
+    } catch (const DuplicatePreparedStatement&) {
+        TryRollbackAutoTransaction(deadline);
+        if (!prepared_statements_enabled) {
+            throw;
         }
+
+        return ExecuteCommandInAutoTransaction(query, params, statement_cmd_ctl, deadline);
+    } catch (const std::exception&) {
+        TryRollbackAutoTransaction(deadline);
 
         throw;
     }
@@ -1007,7 +1018,7 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::DoPrepareStatement(
             // Mark query as already sent
             prepared_.Put(query_id, {query_id, query, meta_statement_name, ResultSet{nullptr}});
 
-            if (IsInTransaction()) {
+            if (GetConnectionState() == ConnectionState::kTranError) {
                 // Transaction failed, need to throw
                 throw;
             }
@@ -1051,6 +1062,11 @@ void ConnectionImpl::DiscardOldPreparedStatements(engine::Deadline deadline) {
 }
 
 void ConnectionImpl::DiscardPreparedStatement(std::string_view meta_statement_name, engine::Deadline deadline) {
+    // not supported for odyssey
+    // https://github.com/yandex/odyssey/blob/b32651842002b87e8b1ce1e400fb43e0f97fc1da/sources/xplan.c#L755
+    if (IsTransactionPooler()) {
+        return;
+    }
     LOG_DEBUG() << "Discarding prepared statement " << meta_statement_name;
     ExecuteCommandNoPrepare("DEALLOCATE " + conn_wrapper_.EscapeIdentifier(meta_statement_name), deadline);
 }
@@ -1326,9 +1342,16 @@ ResultSet ConnectionImpl::WaitResult(
         counter.AccountResult(res);
         return res;
     } catch (const InvalidSqlStatementName& e) {
-        LOG_LIMITED_ERROR()
-            << "Looks like your pg_bouncer is not in 'session' mode. "
-               "Please switch pg_bouncers's pooling mode to 'session'.";
+        if (IsTransactionPooler()) {
+            LOG_LIMITED_WARNING()
+                << "Prepared statement is missing on the bound backend under a "
+                   "transaction pooler; scheduling prepared statements "
+                   "invalidation.";
+        } else {
+            LOG_LIMITED_ERROR()
+                << "Looks like your pg_bouncer is not in 'session' mode. "
+                   "Please switch pg_bouncers's pooling mode to 'session'.";
+        }
         // reset prepared cache in case they just magically vanished
         is_discard_prepared_pending_ = true;
         span.AddTag(tracing::kErrorFlag, true);

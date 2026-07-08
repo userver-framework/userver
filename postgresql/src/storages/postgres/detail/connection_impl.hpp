@@ -239,6 +239,8 @@ private:
 
     bool ShouldWrapInAutoTransaction(std::string_view statement) const noexcept;
 
+    void TryRollbackAutoTransaction(engine::Deadline deadline);
+
     ResultSet ExecuteCommandInAutoTransaction(
         const Query& query,
         const QueryParameters& params,

@@ -3,6 +3,7 @@
 #include <storages/postgres/tests/util_pgtest.hpp>
 
 #include <storages/postgres/detail/connection.hpp>
+#include <userver/storages/postgres/detail/query_parameters.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utest/log_capture_fixture.hpp>
@@ -30,8 +31,7 @@ constexpr pg::CommandControl kTransactionPoolerNoPrepareCmdCtl{
     pg::CommandControl::PreparedStatementsOptionOverride::kDisabled,
 };
 
-pg::ConnectionSettings MakeTransactionPoolerSettings(const pg::ConnectionSettings& base = kCachePreparedStatements) {
-    auto settings = base;
+pg::ConnectionSettings MakeTransactionPoolerSettings(pg::ConnectionSettings settings = kCachePreparedStatements) {
     settings.pooler_mode = pg::PoolerMode::kTransaction;
     settings.statement_log_mode = pg::ConnectionSettings::StatementLogMode::kLog;
     return settings;
@@ -51,10 +51,12 @@ void ExpectBackendStatementTimeout(const pg::detail::ConnectionPtr& conn, std::s
 
 class PostgreTransactionModeConnection : public utest::LogCaptureFixture<PostgreSQLBase> {
 protected:
-    pg::detail::ConnectionPtr MakeConn() {
+    pg::detail::ConnectionPtr MakeConn(const pg::ConnectionSettings& settings = kCachePreparedStatements) {
         pg::detail::ConnectionPtr conn{nullptr};
 
-        UEXPECT_NO_THROW(conn = MakeConnection(GetDsnFromEnv(), GetTaskProcessor(), MakeTransactionPoolerSettings()));
+        UEXPECT_NO_THROW(
+            conn = MakeConnection(GetDsnFromEnv(), GetTaskProcessor(), MakeTransactionPoolerSettings(settings))
+        );
         EXPECT_TRUE(conn);
         return conn;
     }
@@ -274,6 +276,107 @@ UTEST_F(PostgreTransactionModeConnection, OmitStatementTimeoutForAutocommitSkips
 
     UEXPECT_NO_THROW(conn->CancelAndCleanup(utest::kMaxTestWaitTime));
     EXPECT_FALSE(conn->IsBroken());
+}
+
+UTEST_F(PostgreTransactionModeConnection, TransactionPoolerAutocommitRetriesDuplicatePreparedStatement) {
+    const pg::Query query{"SELECT 42"};
+
+    std::string statement_name;
+    {
+        const auto conn = MakeConn();
+        UEXPECT_NO_THROW(
+            statement_name = conn->PrepareStatement(query, {}, utest::kMaxTestWaitTime).meta_statement_name
+        );
+    }
+    ASSERT_FALSE(statement_name.empty());
+
+    const DefaultCommandControlScope scope{kTransactionPoolerDefaultCmdCtl};
+
+    const auto conn = MakeConn();
+
+    UEXPECT_NO_THROW(conn->Execute("PREPARE " + statement_name + " AS SELECT 42", {}, kTransactionPoolerNoPrepareCmdCtl)
+    );
+
+    conn->GetStatsAndReset();
+
+    pg::ResultSet res{nullptr};
+    UEXPECT_NO_THROW(res = conn->Execute(query));
+    EXPECT_EQ(42, res.AsSingleRow<int>());
+
+    const auto stats = conn->GetStatsAndReset();
+    EXPECT_EQ(1, stats.duplicate_prepared_statements);
+
+    EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+    EXPECT_FALSE(conn->IsBroken());
+}
+
+UTEST_F(PostgreTransactionModeConnection, DuplicatePreparedStatementInUserTransactionThrows) {
+    const pg::Query query{"SELECT 42"};
+
+    std::string statement_name;
+    {
+        const auto conn = MakeConn();
+        UEXPECT_NO_THROW(
+            statement_name = conn->PrepareStatement(query, {}, utest::kMaxTestWaitTime).meta_statement_name
+        );
+    }
+    ASSERT_FALSE(statement_name.empty());
+
+    const DefaultCommandControlScope scope{kTransactionPoolerDefaultCmdCtl};
+
+    const auto conn = MakeConn();
+
+    UEXPECT_NO_THROW(conn->Execute("PREPARE " + statement_name + " AS SELECT 42", {}, kTransactionPoolerNoPrepareCmdCtl)
+    );
+
+    conn->GetStatsAndReset();
+
+    UEXPECT_NO_THROW(conn->Begin({}, {}));
+    UEXPECT_THROW(conn->Execute(query), pg::DuplicatePreparedStatement);
+    EXPECT_EQ(pg::ConnectionState::kTranError, conn->GetState());
+
+    UEXPECT_NO_THROW(conn->Rollback());
+    EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+    EXPECT_FALSE(conn->IsBroken());
+
+    const auto stats = conn->GetStatsAndReset();
+    EXPECT_EQ(1, stats.duplicate_prepared_statements);
+}
+
+UTEST_F(PostgreTransactionModeConnection, DuplicatePreparedStatementInUserTransactionWithPipeliningThrows) {
+    const pg::Query query{"SELECT 42"};
+
+    std::string statement_name;
+    {
+        const auto conn = MakeConn();
+        UEXPECT_NO_THROW(
+            statement_name = conn->PrepareStatement(query, {}, utest::kMaxTestWaitTime).meta_statement_name
+        );
+    }
+    ASSERT_FALSE(statement_name.empty());
+
+    const DefaultCommandControlScope scope{kTransactionPoolerDefaultCmdCtl};
+
+    const auto conn = MakeConn(kPipelineEnabled);
+    if (!conn->IsPipelineActive()) {
+        return;
+    }
+
+    UEXPECT_NO_THROW(conn->Execute("PREPARE " + statement_name + " AS SELECT 42", {}, kTransactionPoolerNoPrepareCmdCtl)
+    );
+
+    conn->GetStatsAndReset();
+
+    UEXPECT_NO_THROW(conn->Begin({}, {}));
+    UEXPECT_THROW(conn->Execute(query), pg::DuplicatePreparedStatement);
+    EXPECT_EQ(pg::ConnectionState::kTranError, conn->GetState());
+
+    UEXPECT_NO_THROW(conn->Rollback());
+    EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+    EXPECT_FALSE(conn->IsBroken());
+
+    const auto stats = conn->GetStatsAndReset();
+    EXPECT_EQ(1, stats.duplicate_prepared_statements);
 }
 
 }  // namespace
