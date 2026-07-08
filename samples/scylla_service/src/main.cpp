@@ -20,8 +20,8 @@
 #include <userver/storages/scylla/session.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/storages/secdist/provider_component.hpp>
-#include <userver/utils/daemon_run.hpp>
 #include <userver/utest/using_namespace_userver.hpp>
+#include <userver/utils/daemon_run.hpp>
 
 #include "helpers.hpp"
 
@@ -58,7 +58,8 @@ public:
 
     KeyValueHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
-          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession()) {}
+          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession())
+    {}
 
     std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override {
         request.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
@@ -136,7 +137,8 @@ public:
 
     ListHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
-          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession()) {}
+          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession())
+    {}
 
     std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override {
         request.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
@@ -162,7 +164,8 @@ public:
 
     CountHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
-          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession()) {}
+          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession())
+    {}
 
     std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override {
         request.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
@@ -184,7 +187,8 @@ public:
 
     BulkInsertHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
-          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession()) {}
+          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession())
+    {}
 
     std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override {
         request.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
@@ -203,8 +207,7 @@ public:
             BindBasicFields(op, row);
         }
         session_->GetTable(std::string{kBasicTable}).Execute(op);
-        return formats::json::ToString(
-            formats::json::MakeObject("inserted", static_cast<std::int64_t>(body.GetSize()))
+        return formats::json::ToString(formats::json::MakeObject("inserted", static_cast<std::int64_t>(body.GetSize()))
         );
     }
 
@@ -218,7 +221,8 @@ public:
 
     PaginatedHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
-          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession()) {}
+          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession())
+    {}
 
     std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override {
         request.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
@@ -259,7 +263,8 @@ public:
 
     CreateIfAbsentHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
-          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession()) {}
+          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession())
+    {}
 
     std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override {
         request.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
@@ -291,7 +296,8 @@ public:
 
     CompareAndSetHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
-          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession()) {}
+          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession())
+    {}
 
     std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override {
         request.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
@@ -305,26 +311,22 @@ public:
         operations::UpdateOne op;
         for (const auto [name, value] : Items(set)) {
             if (!IsKnownOptionalField(name)) {
-                BadRequest(
-                    fmt::format(
-                        "field '{}' is not allowed in 'set' (allowed: bln, "
-                        "i32, i64, flt, dbl)",
-                        name
-                    )
-                );
+                BadRequest(fmt::format(
+                    "field '{}' is not allowed in 'set' (allowed: bln, "
+                    "i32, i64, flt, dbl)",
+                    name
+                ));
             }
             op.Set(std::string{name}, JsonToBasicValue(name, value));
         }
         op.WhereString("key", RequireArg(request, "key"));
         for (const auto [name, value] : Items(expect)) {
             if (!IsKnownOptionalField(name)) {
-                BadRequest(
-                    fmt::format(
-                        "field '{}' is not allowed in 'expect' (allowed: bln, "
-                        "i32, i64, flt, dbl)",
-                        name
-                    )
-                );
+                BadRequest(fmt::format(
+                    "field '{}' is not allowed in 'expect' (allowed: bln, "
+                    "i32, i64, flt, dbl)",
+                    name
+                ));
             }
             op.If(std::string{name}, JsonToBasicValue(name, value));
         }
@@ -348,7 +350,8 @@ public:
 
     DeleteIfExistsHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
-          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession()) {}
+          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession())
+    {}
 
     std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override {
         request.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
@@ -374,7 +377,8 @@ public:
 
     TruncateHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
-          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession()) {}
+          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession())
+    {}
 
     std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override {
         request.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
@@ -392,7 +396,8 @@ public:
 
     SchemaInitHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
-          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession()) {}
+          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession())
+    {}
 
     std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override {
         request.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
@@ -431,7 +436,8 @@ public:
 
     RawQueryHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
-          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession()) {}
+          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession())
+    {}
 
     std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override {
         request.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
@@ -479,7 +485,8 @@ public:
 
     EventHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
-          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession()) {}
+          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession())
+    {}
 
     std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override {
         request.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
@@ -578,7 +585,8 @@ public:
 
     EventListHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
         : HttpHandlerBase(config, context),
-          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession()) {}
+          session_(context.FindComponent<components::Scylla>(kComponentName).GetSession())
+    {}
 
     std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const override {
         request.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);

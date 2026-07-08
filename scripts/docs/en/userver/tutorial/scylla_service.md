@@ -45,7 +45,7 @@ private:
 
 The component holds a storages::scylla::SessionPtr, a client to the
 ScyllaDB cluster. That client is thread safe, you can use it concurrently from
-different threads and tasks. 
+different threads and tasks.
 
 
 ### KeyValueHandler::Post
@@ -157,7 +157,7 @@ if (!result.applied) {
 ### Paging
 
 For large result sets, storages::scylla::operations::SelectMany together with
-ExecutePaged gives you one page plus an opaque cursor. 
+ExecutePaged gives you one page plus an opaque cursor.
 
 ```cpp
 storages::scylla::operations::SelectMany op;
@@ -185,7 +185,7 @@ while (!cursor.Done()) {
 
 ### Rich CQL types
 
-Examples of the non-scalar CQL types. 
+Examples of the non-scalar CQL types.
 
 ```cpp
 storages::scylla::operations::InsertOne op;
@@ -252,7 +252,7 @@ cqlsh.
 
 Static configuration of service is quite close to the configuration from
 @ref scripts/docs/en/userver/tutorial/hello_service.md except for the handlers
-and DB. Secdist carries the  cluster contact points so 
+and DB. Secdist carries the  cluster contact points so
 they are not checked into the config file.
 
 ```yaml
