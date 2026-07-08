@@ -111,7 +111,11 @@ void Locker::Run(LockerMode mode, dist_lock::DistLockWaitingMode waiting_mode, t
 
         try {
             if (settings.is_enabled || is_locked_) {
-                strategy_->Acquire(settings.lock_ttl, Id());
+                if (is_locked_) {
+                    strategy_->Prolong(settings.lock_ttl, Id());
+                } else {
+                    strategy_->Acquire(settings.lock_ttl, Id());
+                }
                 stats_.lock_successes++;
                 if (!ExchangeLockState(true, attempt_start)) {
                     LOG_DEBUG() << "Starting watchdog task";

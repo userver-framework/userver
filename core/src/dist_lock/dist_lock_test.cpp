@@ -48,6 +48,11 @@ public:
         *locked_by = locker_id;
     }
 
+    void Prolong(std::chrono::milliseconds lock_ttl, const std::string& locker_id) override {
+        Acquire(lock_ttl, locker_id);
+        prolongs_++;
+    }
+
     void Release(const std::string& locker_id) override {
         auto locked_by = locked_by_var_.Lock();
         if (*locked_by == locker_id) {
@@ -69,14 +74,50 @@ public:
 
     size_t GetAttemptsCount() const { return attempts_; }
 
+    size_t GetProlongsCount() const { return prolongs_; }
+
 private:
     concurrent::Variable<std::string> locked_by_var_;
     std::atomic<bool> allowed_{false};
     std::atomic<size_t> attempts_{0};
+    std::atomic<size_t> prolongs_{0};
 };
 /// [Sample distlock strategy]
 
 auto MakeMockStrategy() { return std::make_shared<MockDistLockStrategy>(); }
+
+// A strategy that intentionally does NOT override Prolong(), so refreshes fall
+// back to the default DistLockStrategyBase::Prolong() (which calls Acquire()).
+class DefaultProlongStrategy final : public dist_lock::DistLockStrategyBase {
+public:
+    ~DefaultProlongStrategy() override {
+        auto locked_by = locked_by_var_.Lock();
+        EXPECT_TRUE(locked_by->empty());
+    }
+
+    void Acquire(std::chrono::milliseconds, const std::string& locker_id) override {
+        UASSERT(!locker_id.empty());
+        acquires_++;
+        auto locked_by = locked_by_var_.Lock();
+        if (!locked_by->empty() && *locked_by != locker_id) {
+            throw dist_lock::LockIsAcquiredByAnotherHostException();
+        }
+        *locked_by = locker_id;
+    }
+
+    void Release(const std::string& locker_id) override {
+        auto locked_by = locked_by_var_.Lock();
+        if (*locked_by == locker_id) {
+            locked_by->clear();
+        }
+    }
+
+    size_t GetAcquiresCount() const { return acquires_; }
+
+private:
+    concurrent::Variable<std::string> locked_by_var_;
+    std::atomic<size_t> acquires_{0};
+};
 
 class DistLockWorkload {
 public:
@@ -468,6 +509,42 @@ UTEST_MT(LockedTask, SingleAttemptExample, 3) {
     }
     EXPECT_EQ(counter, 1);
     /// [Sample distributed locked task SingleAttempt]
+}
+
+UTEST_MT(LockedWorker, ProlongUsedForRefresh, 3) {
+    auto strategy = MakeMockStrategy();
+    DistLockWorkload work;
+    dist_lock::DistLockedWorker locked_worker(kWorkerName, [&] { work.Work(); }, strategy, MakeSettings());
+
+    locked_worker.Start();
+    strategy->Allow(true);
+    EXPECT_TRUE(work.WaitForLocked(true, utest::kMaxTestWaitTime));
+
+    for (int i = 0; i < 100 && strategy->GetProlongsCount() < 2; ++i) {
+        engine::InterruptibleSleepFor(kAttemptInterval);
+    }
+
+    EXPECT_LE(2U, strategy->GetProlongsCount());
+    EXPECT_LT(strategy->GetProlongsCount(), strategy->GetAttemptsCount());
+
+    locked_worker.Stop();
+}
+
+UTEST_MT(LockedWorker, DefaultProlongRoutesThroughAcquire, 3) {
+    auto strategy = std::make_shared<DefaultProlongStrategy>();
+    DistLockWorkload work;
+    dist_lock::DistLockedWorker locked_worker(kWorkerName, [&] { work.Work(); }, strategy, MakeSettings());
+
+    locked_worker.Start();
+    EXPECT_TRUE(work.WaitForLocked(true, utest::kMaxTestWaitTime));
+
+    const auto acquires_after_take = strategy->GetAcquiresCount();
+    for (int i = 0; i < 100 && strategy->GetAcquiresCount() <= acquires_after_take; ++i) {
+        engine::InterruptibleSleepFor(kAttemptInterval);
+    }
+    EXPECT_LT(acquires_after_take, strategy->GetAcquiresCount());
+
+    locked_worker.Stop();
 }
 
 USERVER_NAMESPACE_END
