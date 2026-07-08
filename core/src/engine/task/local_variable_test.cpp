@@ -1,5 +1,6 @@
 #include <userver/utest/utest.hpp>
 
+#include <atomic>
 #include <functional>
 #include <optional>
 #include <utility>
@@ -11,7 +12,9 @@
 #include <userver/engine/task/inherited_variable.hpp>
 #include <userver/engine/task/local_variable.hpp>
 #include <userver/utils/async.hpp>
+#include <userver/utils/move_only_function.hpp>
 
+#include <engine/plugin.hpp>
 #include <engine/task/task_processor.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -205,19 +208,7 @@ UTEST(TaskLocalVariable, WaitInDestructorCancelled) {
 
 namespace {
 
-struct DtorCallback final {
-    std::function<void()> on_destroy;
-
-    DtorCallback() = default;
-    DtorCallback(const DtorCallback&) = delete;
-    DtorCallback& operator=(const DtorCallback&) = delete;
-
-    ~DtorCallback() {
-        if (on_destroy) {
-            on_destroy();
-        }
-    }
-};
+using DtorCallback = utils::FastScopeGuard<utils::move_only_function<void() noexcept>>;
 
 engine::TaskLocalVariable<DtorCallback> kDtorCallback;
 engine::TaskLocalVariable<int> kObservedInt;
@@ -241,12 +232,12 @@ UTEST(TaskLocalVariable, GetOptionalAliveFromOtherVariableDestructor) {
     engine::AsyncNoTracing([&] {
         // kObservedInt is initialized first => destroyed after kDtorCallback.
         *kObservedInt = 42;
-        kDtorCallback->on_destroy = [&] {
+        kDtorCallback.GetOrEmplace([&]() noexcept {
             auto* const observed = kObservedInt.GetOptional();
             ASSERT_NE(observed, nullptr);
             EXPECT_EQ(*observed, 42);
             checked = true;
-        };
+        });
     }).Get();
 
     EXPECT_TRUE(checked);
@@ -258,10 +249,10 @@ UTEST(TaskLocalVariable, GetOptionalAfterVariableDestroyed) {
     bool checked = false;
 
     engine::AsyncNoTracing([&] {
-        kDtorCallback->on_destroy = [&] {
+        kDtorCallback.GetOrEmplace([&]() noexcept {
             EXPECT_EQ(kObservedInt.GetOptional(), nullptr);
             checked = true;
-        };
+        });
         // kObservedInt is initialized after kDtorCallback => destroyed before
         // it, so ~DtorCallback observes an already-destroyed variable.
         *kObservedInt = 42;
@@ -278,10 +269,10 @@ UTEST(TaskLocalVariable, GetOptionalDuringOwnDestruction) {
     bool checked = false;
 
     engine::AsyncNoTracing([&] {
-        kDtorCallback->on_destroy = [&] {
+        kDtorCallback.GetOrEmplace([&]() noexcept {
             EXPECT_EQ(kDtorCallback.GetOptional(), nullptr);
             checked = true;
-        };
+        });
     }).Get();
 
     EXPECT_TRUE(checked);
@@ -289,24 +280,7 @@ UTEST(TaskLocalVariable, GetOptionalDuringOwnDestruction) {
 
 namespace {
 
-struct CallbackHolder final {
-    std::function<void()> on_destroy;
-
-    explicit CallbackHolder(std::function<void()> cb)
-        : on_destroy(std::move(cb))
-    {}
-
-    CallbackHolder(const CallbackHolder&) = delete;
-    CallbackHolder& operator=(const CallbackHolder&) = delete;
-
-    ~CallbackHolder() {
-        if (on_destroy) {
-            on_destroy();
-        }
-    }
-};
-
-engine::TaskInheritedVariable<CallbackHolder> kInheritedCallback;
+engine::TaskInheritedVariable<DtorCallback> kInheritedCallback;
 
 }  // namespace
 
@@ -320,10 +294,10 @@ UTEST(TaskLocalVariable, DtorInitializesLocalVariable) {
     std::string order;
 
     engine::AsyncNoTracing([&] {
-        kDtorCallback->on_destroy = [&] {
+        kDtorCallback.GetOrEmplace([&]() noexcept {
             kGuardX->emplace(order, "x");
             order += "a";
-        };
+        });
     }).Get();
 
     // "a" (the initializing destructor completes) strictly before "x"
@@ -336,10 +310,10 @@ UTEST(TaskLocalVariable, LocalDtorInitializesInheritedVariable) {
     std::string order;
 
     engine::AsyncNoTracing([&] {
-        kDtorCallback->on_destroy = [&] {
-            kInheritedCallback.Emplace([&order] { order += "i"; });
+        kDtorCallback.GetOrEmplace([&]() noexcept {
+            kInheritedCallback.Emplace([&order]() noexcept { order += "i"; });
             order += "a";
-        };
+        });
     }).Get();
 
     EXPECT_EQ(order, "ai");
@@ -351,7 +325,7 @@ UTEST(TaskLocalVariable, InheritedDtorInitializesLocalVariable) {
     std::string order;
 
     engine::AsyncNoTracing([&] {
-        kInheritedCallback.Emplace([&] {
+        kInheritedCallback.Emplace([&]() noexcept {
             kGuardX->emplace(order, "x");
             order += "a";
         });
@@ -366,8 +340,8 @@ UTEST(TaskLocalVariable, InheritedDtorInitializesInheritedVariable) {
     std::string order;
 
     engine::AsyncNoTracing([&] {
-        kInheritedCallback.Emplace([&] {
-            kInheritedCallback.Emplace([&order] { order += "i"; });
+        kInheritedCallback.Emplace([&]() noexcept {
+            kInheritedCallback.Emplace([&order]() noexcept { order += "i"; });
             order += "a";
         });
     }).Get();
@@ -385,7 +359,7 @@ UTEST(TaskInheritedVariable, ErasedInParentWhileChildCancelledBeforeStart) {
     ASSERT_EQ(engine::current_task::GetTaskProcessor().GetWorkerCount(), 1);
 
     bool destroyed = false;
-    kInheritedCallback.Emplace([&destroyed] { destroyed = true; });
+    kInheritedCallback.Emplace([&destroyed]() noexcept { destroyed = true; });
 
     // The child inherits the variable on construction...
     auto task = utils::Async("child", [] { FAIL() << "the task must not start"; });
@@ -400,6 +374,104 @@ UTEST(TaskInheritedVariable, ErasedInParentWhileChildCancelledBeforeStart) {
     EXPECT_EQ(task.GetState(), engine::TaskBase::State::kCancelled);
     // The child dropped the last reference when it finished.
     EXPECT_TRUE(destroyed);
+}
+
+namespace {
+
+engine::TaskInheritedVariable<int> kRegularInherited;
+engine::TaskInheritedVariable<int> kForceInherited{engine::TaskInheritedVariablePriority::kBackground};
+engine::TaskInheritedVariable<DtorCallback> kForcedCallback{engine::TaskInheritedVariablePriority::kBackground};
+
+}  // namespace
+
+// A regular (non-background) task inherits both normal and force-inherited
+// task-inherited variables.
+UTEST(TaskInheritedVariable, RegularAsyncInheritsAll) {
+    kRegularInherited.Emplace(1);
+    kForceInherited.Emplace(2);
+
+    utils::Async("child", [] {
+        ASSERT_NE(kRegularInherited.GetOptional(), nullptr);
+        ASSERT_NE(kForceInherited.GetOptional(), nullptr);
+        EXPECT_EQ(kRegularInherited.Get(), 1);
+        EXPECT_EQ(kForceInherited.Get(), 2);
+    }).Get();
+}
+
+// A background task inherits only force-inherited task-inherited variables.
+UTEST(TaskInheritedVariable, AsyncBackgroundInheritsForcedOnly) {
+    kRegularInherited.Emplace(1);
+    kForceInherited.Emplace(2);
+
+    utils::AsyncBackground("child", engine::current_task::GetTaskProcessor(), [] {
+        EXPECT_EQ(kRegularInherited.GetOptional(), nullptr);
+        ASSERT_NE(kForceInherited.GetOptional(), nullptr);
+        EXPECT_EQ(kForceInherited.Get(), 2);
+    }).Get();
+}
+
+// A background task inherits a force-inherited variable on construction and
+// keeps it alive even if the parent erases it before the child (cancelled
+// before start) finishes.
+UTEST(TaskInheritedVariable, DestroyedInChildWithCancelledState) {
+    // With more than 1 worker thread the child task would start running
+    // concurrently, racing with RequestCancel and Erase below.
+    ASSERT_EQ(engine::current_task::GetTaskProcessor().GetWorkerCount(), 1);
+
+    bool destroyed = false;
+    kForcedCallback.Emplace([&destroyed]() noexcept { destroyed = true; });
+
+    // The child inherits the force-inherited variable on construction...
+    auto task = utils::AsyncBackground("child", engine::current_task::GetTaskProcessor(), [] {
+        FAIL() << "the task must not start";
+    });
+    // ...and is cancelled before it gets a chance to start.
+    task.RequestCancel();
+
+    // Hide the variable from the parent. The child still holds a reference.
+    kForcedCallback.Erase();
+    EXPECT_FALSE(destroyed);
+
+    task.Wait();
+    EXPECT_EQ(task.GetState(), engine::TaskBase::State::kCancelled);
+    // The child dropped the last reference when it finished.
+    EXPECT_TRUE(destroyed);
+}
+
+namespace {
+
+engine::TaskLocalVariable<int> kPluginLocal;
+
+class TaskLocalProbePlugin final : public engine::PluginBase {
+public:
+    static constexpr int kValue = 42;
+
+    void HookTaskStart(engine::impl::TaskContext& /*task*/) noexcept override { *kPluginLocal = kValue; }
+
+    void HookTaskStop(engine::impl::TaskContext& /*task*/) noexcept override {
+        const int* const value = kPluginLocal.GetOptional();
+        last_observed_ = value ? *value : -1;
+    }
+
+    int GetLastObserved() const noexcept { return last_observed_; }
+
+private:
+    std::atomic<int> last_observed_{0};
+};
+
+}  // namespace
+
+UTEST(TaskLocalVariable, AvailableInPlugins) {
+    auto& task_processor = engine::current_task::GetTaskProcessor();
+
+    TaskLocalProbePlugin plugin;
+    task_processor.RegisterPlugin(plugin);
+
+    utils::Async("child", [] {}).Get();
+
+    task_processor.UnregisterPlugin(plugin);
+
+    EXPECT_EQ(plugin.GetLastObserved(), TaskLocalProbePlugin::kValue);
 }
 
 USERVER_NAMESPACE_END

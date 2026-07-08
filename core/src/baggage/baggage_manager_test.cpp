@@ -4,6 +4,8 @@
 #include <userver/formats/json.hpp>
 
 #include <userver/baggage/baggage_manager.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/utils/async.hpp>
 
 #include <dynamic_config/variables/BAGGAGE_SETTINGS.hpp>
 #include <dynamic_config/variables/USERVER_BAGGAGE_ENABLED.hpp>
@@ -95,6 +97,24 @@ UTEST_F(BaggageManagerTest, ResetBaggage) {
     baggage::BaggageManager::ResetBaggage();
     const auto& baggage = baggage::BaggageManager::TryGetBaggage();
     ASSERT_EQ(baggage, nullptr);
+}
+
+// Baggage is force-inherited, so a regular Async task inherits it, but
+// AsyncNoTracing is a non-inheriting spawn path and must NOT propagate baggage.
+UTEST_F(BaggageManagerTest, AsyncNoTracingDoesNotInheritBaggage) {
+    SetBaggageForTests(baggage_manager_);
+    ASSERT_NE(baggage::BaggageManager::TryGetBaggage(), nullptr);
+
+    // A regular Async task inherits the force-inherited baggage.
+    utils::Async("with-baggage", [] { EXPECT_NE(baggage::BaggageManager::TryGetBaggage(), nullptr); }).Get();
+
+    // AsyncBackground inherits force-inherited variables only, and baggage is one of them.
+    utils::AsyncBackground("bg-with-baggage", engine::current_task::GetTaskProcessor(), [] {
+        EXPECT_NE(baggage::BaggageManager::TryGetBaggage(), nullptr);
+    }).Get();
+
+    // AsyncNoTracing does not inherit any task-inherited variables, baggage included.
+    engine::AsyncNoTracing([] { EXPECT_EQ(baggage::BaggageManager::TryGetBaggage(), nullptr); }).Get();
 }
 
 USERVER_NAMESPACE_END

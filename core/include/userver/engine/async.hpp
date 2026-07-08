@@ -38,7 +38,10 @@ namespace engine {
 template <typename Function, typename... Args>
 [[nodiscard]] auto AsyncNoTracing(TaskProcessor& task_processor, Function&& f, Args&&... args) {
     return impl::MakeTaskWithResult<TaskWithResult>(
-        impl::TaskConfig{.task_processor = &task_processor},
+        impl::TaskConfig{
+            .task_processor = &task_processor,
+            .inherited_variables_priority = TaskInheritedVariablePriority::kNone,
+        },
         std::forward<Function>(f),
         std::forward<Args>(args)...
     );
@@ -47,8 +50,11 @@ template <typename Function, typename... Args>
 /// @overload
 template <typename Function, typename... Args>
 [[nodiscard]] auto AsyncNoTracing(Function&& f, Args&&... args) {
-    return impl::MakeTaskWithResult<
-        TaskWithResult>(impl::TaskConfig{}, std::forward<Function>(f), std::forward<Args>(args)...);
+    return impl::MakeTaskWithResult<TaskWithResult>(
+        impl::TaskConfig{.inherited_variables_priority = TaskInheritedVariablePriority::kNone},
+        std::forward<Function>(f),
+        std::forward<Args>(args)...
+    );
 }
 
 /// @overload
@@ -59,6 +65,7 @@ template <typename Function, typename... Args>
         impl::TaskConfig{
             .task_processor = &task_processor,
             .importance = Task::Importance::kCritical,
+            .inherited_variables_priority = TaskInheritedVariablePriority::kNone,
         },
         std::forward<Function>(f),
         std::forward<Args>(args)...
@@ -70,7 +77,10 @@ template <typename Function, typename... Args>
 template <typename Function, typename... Args>
 [[nodiscard]] auto CriticalAsyncNoTracing(Function&& f, Args&&... args) {
     return impl::MakeTaskWithResult<TaskWithResult>(
-        impl::TaskConfig{.importance = Task::Importance::kCritical},
+        impl::TaskConfig{
+            .importance = Task::Importance::kCritical,
+            .inherited_variables_priority = TaskInheritedVariablePriority::kNone,
+        },
         std::forward<Function>(f),
         std::forward<Args>(args)...
     );

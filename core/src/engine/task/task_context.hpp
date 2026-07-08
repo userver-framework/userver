@@ -22,6 +22,7 @@
 #include <userver/engine/impl/task_local_storage.hpp>
 #include <userver/engine/impl/wait_list_fwd.hpp>
 #include <userver/engine/task/cancel.hpp>
+#include <userver/engine/task/inherited_variable_options.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/flags.hpp>
@@ -77,7 +78,14 @@ public:
         kBootstrap = static_cast<uint32_t>(SleepFlags::kWakeupByBootstrap),
     };
 
-    TaskContext(TaskProcessor&, Task::Importance, Task::WaitMode, Deadline, utils::impl::WrappedCallBase& payload);
+    TaskContext(
+        TaskProcessor&,
+        Task::Importance,
+        Task::WaitMode,
+        Deadline,
+        TaskInheritedVariablePriority,
+        utils::impl::WrappedCallBase& payload
+    );
 
     ~TaskContext() noexcept;
 

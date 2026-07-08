@@ -2,6 +2,7 @@
 
 #include <ranges>
 #include <utility>
+#include <vector>
 
 #include <fmt/format.h>
 #include <boost/intrusive/list.hpp>
@@ -20,11 +21,30 @@ namespace engine::impl::task_local {
 
 namespace {
 
-Key variable_count{0};
+constinit Key variable_count{0};
 
-Key RegisterVariable() {
+#ifdef __clang__
+constinit std::vector<TaskInheritedVariablePriority> inherited_variable_priorities;
+std::vector<TaskInheritedVariablePriority>& InheritedVariablePriorities() noexcept {
+    return inherited_variable_priorities;
+}
+#else
+// GCC only implemented enough constexpr for std::vector in 12.1.
+std::vector<TaskInheritedVariablePriority>& InheritedVariablePriorities() noexcept {
+    static std::vector<TaskInheritedVariablePriority> inherited_variable_priorities;
+    return inherited_variable_priorities;
+}
+#endif
+
+Key RegisterVariable(TaskInheritedVariablePriority priority) {
     utils::impl::AssertStaticRegistrationAllowed("TaskLocalVariable registration");
-    return variable_count++;
+    UINVARIANT(
+        priority < TaskInheritedVariablePriority::kNone,
+        "Invalid TaskInheritedVariablePriority for a TaskInheritedVariable"
+    );
+    const Key key = variable_count++;
+    InheritedVariablePriorities().push_back(priority);
+    return key;
 }
 
 struct DataPtr;
@@ -84,11 +104,14 @@ Storage::Storage() { utils::impl::AssertStaticRegistrationFinished(); }
 
 Storage::~Storage() {
     UASSERT_MSG(
-        impl_->normal_data_storage.empty() && impl_->inherited_data_storage.empty(),
-        "Storage::DestroyVariables must be called before the Storage destructor. The destructors of task-local "
-        "variables may sleep and access the storage, so they must not run while the Storage (typically stored in "
-        "a std::optional) is being destroyed"
+        impl_->normal_data_storage.empty(),
+        "Storage::DestroyVariables must be called (inside the coroutine) before the Storage destructor if the "
+        "task has any normal task-local variables. The destructors of task-local variables may sleep and access "
+        "the storage, so they must not run while the Storage is being destroyed"
     );
+
+    // Inherited variables may still be here if the task never finished normally.
+    DestroyVariables();
 }
 
 void Storage::DestroyVariables() noexcept {
@@ -122,7 +145,7 @@ void Storage::DestroyVariables() noexcept {
     }
 }
 
-void Storage::InheritFrom(Storage& other) {
+void Storage::InheritFrom(Storage& other, TaskInheritedVariablePriority priority) {
     UASSERT(impl_->normal_data_storage.empty());
     UASSERT(impl_->inherited_data_storage.empty());
 
@@ -135,29 +158,12 @@ void Storage::InheritFrom(Storage& other) {
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
         auto& node = static_cast<InheritedDataBase&>(*their_ptr.ptr);
 
+        if (InheritedVariablePriorities()[node.GetKey()] < priority) {
+            continue;
+        }
+
         InheritNode(node);
     }
-}
-
-void Storage::InheritNodeIfExists(Storage& other, Key key) {
-    UASSERT(key < variable_count);
-
-    // we want to stop asap if there is nothing to copy
-    if (!other.impl_->data) {
-        return;
-    }
-    auto& their_ptr = other.impl_->data[key];
-    if (!their_ptr.ptr) {
-        return;
-    }
-
-    if (!impl_->data) {
-        impl_->data = std::make_unique<DataPtr[]>(variable_count);
-    }
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-    auto& node = static_cast<InheritedDataBase&>(*their_ptr.ptr);
-
-    InheritNode(node);
 }
 
 void Storage::InheritNode(InheritedDataBase& node) {
@@ -168,12 +174,6 @@ void Storage::InheritNode(InheritedDataBase& node) {
     our_ptr.ptr = &node;
     impl_->inherited_data_storage.push_front(our_ptr);
     node.AddRef();
-}
-
-void Storage::InitializeFrom(Storage&& other) noexcept {
-    UASSERT(impl_->normal_data_storage.empty());
-    UASSERT(impl_->inherited_data_storage.empty());
-    impl_ = std::move(other.impl_);
 }
 
 DataBase* Storage::GetGeneric(Key key) noexcept {
@@ -223,8 +223,8 @@ void Storage::EraseInherited(Key key) noexcept {
     data->DeleteSelf();
 }
 
-Variable::Variable()
-    : key_(RegisterVariable())
+Variable::Variable(TaskInheritedVariablePriority priority)
+    : key_(RegisterVariable(priority))
 {}
 
 Key Variable::GetKey() const noexcept { return key_; }

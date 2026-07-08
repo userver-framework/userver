@@ -6,6 +6,7 @@
 #include <type_traits>
 #include <typeinfo>
 
+#include <userver/engine/task/inherited_variable_options.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -14,7 +15,7 @@ namespace engine::impl::task_local {
 
 using Key = std::size_t;
 
-enum class VariableKind { kNormal, kInherited };
+enum class VariableKind : std::uint8_t { kNormal, kInherited };
 
 class DataBase {
 public:
@@ -89,40 +90,29 @@ public:
     Storage(Storage&&) = delete;
     Storage& operator=(Storage&&) = delete;
 
-    // Requires that the variables have already been destroyed using
-    // DestroyVariables, or that there are none.
+    // Requires that the normal (local) variables have already been destroyed
+    // using DestroyVariables. Any remaining inherited variables (which can be
+    // left over if the task never finished normally) are destroyed here.
     ~Storage();
 
     // Destroys the variables in reverse-initialization order.
-    // Must be called before the destructor. Must be called in the coroutine
-    // owning `this`: the destructors may want to sleep, and the storage must
-    // still be usable (e.g. via GetCurrentStorage) while they run.
+    // Must be called for normal (local) variables before the destructor, in the
+    // coroutine owning `this`: their destructors may want to sleep, and the
+    // storage must still be usable (e.g. via GetCurrentStorage) while they run.
     void DestroyVariables() noexcept;
 
-    // Copies pointers to inherited variables from 'other'
-    // 'this' must not contain any variables
-    void InheritFrom(Storage& other);
+    // Copies pointers to inherited variables from 'other'.
+    // 'this' must not contain any variables.
+    // A variable is copied when its priority is not less than 'priority'.
+    void InheritFrom(Storage& other, TaskInheritedVariablePriority priority);
 
-    // Copies pointers to specific inherited variables from 'other'
-    // 'this' must not contain the variable being copied
-    // does nothing if there is nothing to copy
-    void InheritNodeIfExists(Storage& other, Key key);
-
-    // Moves other's variables into 'this', leaving 'other' with no variables.
-    // 'this' must not contain inherited variables. It may contain normal
-    // variables (e.g. task-locals initialized by engine plugin hooks before
-    // the task payload starts); those are kept. In that case 'other' must not
-    // contain normal variables.
-    void InitializeFrom(Storage&& other) noexcept;
-
-    // Variable accessors must be called with the same T, Kind, key.
-    // Otherwise it is UB.
-    template <typename T, VariableKind Kind>
-    T& GetOrEmplace(Key key) {
+    // Multiple calls with the same key should have the same T and Kind, otherwise it is UB.
+    template <typename T, VariableKind Kind, typename... Args>
+    T& GetOrEmplace(Key key, Args&&... args) {
         DataBase* const old_data = GetGeneric(key);
         if (!old_data) {
             const bool has_existing_variable = false;
-            return DoEmplace<T, Kind>(key, has_existing_variable);
+            return DoEmplace<T, Kind>(key, has_existing_variable, std::forward<Args>(args)...);
         }
         return static_cast<DataImpl<T, Kind>&>(*old_data).Get();
     }
@@ -188,7 +178,7 @@ private:
 
 class Variable final {
 public:
-    Variable();
+    explicit Variable(TaskInheritedVariablePriority priority = TaskInheritedVariablePriority::kNormal);
 
     Variable(const Variable&) = delete;
     Variable(Variable&&) = delete;
@@ -202,10 +192,6 @@ private:
 };
 
 Storage& GetCurrentStorage() noexcept;
-
-struct InternalTag final {
-    explicit InternalTag() = default;
-};
 
 }  // namespace engine::impl::task_local
 

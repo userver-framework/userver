@@ -107,12 +107,6 @@ void WrapCallAndPerform(benchmark::State& state) {
     engine::RunStandalone(1, config, [&] {
         for ([[maybe_unused]] auto _ : state) {
             WrappedSpanCall wrapped_call{utils::impl::SpanLazyPrvalue(""), []() {}};
-            {
-                // Perform requires that task-local storage is empty, then fills it
-                engine::impl::task_local::Storage discarded_storage;
-                discarded_storage.InitializeFrom(std::move(engine::impl::task_local::GetCurrentStorage()));
-                discarded_storage.DestroyVariables();
-            }
             wrapped_call.Perform();
         }
     });

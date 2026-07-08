@@ -34,7 +34,16 @@ struct TaskBuilderNoTracingOptions final {};
 
 template <typename Task>
 engine::impl::TaskConfig MakeTaskConfig(const TaskBuilderOptions& options) {
-    return {options.task_processor, options.importance, Task::kWaitMode, options.deadline};
+    return {
+        .task_processor = options.task_processor,
+        .importance = options.importance,
+        .wait_mode = Task::kWaitMode,
+        .deadline = options.deadline,
+        .inherited_variables_priority =
+            options.inherit_variables
+                ? engine::TaskInheritedVariablePriority::kNormal
+                : engine::TaskInheritedVariablePriority::kBackground,
+    };
 }
 
 template <typename Task, typename Function, typename... Args>
@@ -63,7 +72,6 @@ Task BuildTask(
         impl::MakeTaskConfig<Task>(options),
         utils::impl::SpanLazyPrvalue(
             std::string{options_ext.span_name},
-            utils::impl::SpanWrapCall::InheritVariables{options.inherit_variables},
             utils::impl::SpanWrapCall::HideSpan::kNo,
             source_location
         ),
@@ -82,12 +90,7 @@ Task BuildTask(
 ) {
     return Task{engine::impl::MakeTask(
         impl::MakeTaskConfig<Task>(options),
-        utils::impl::SpanLazyPrvalue(
-            std::string{},
-            utils::impl::SpanWrapCall::InheritVariables{options.inherit_variables},
-            utils::impl::SpanWrapCall::HideSpan::kYes,
-            source_location
-        ),
+        utils::impl::SpanLazyPrvalue(std::string{}, utils::impl::SpanWrapCall::HideSpan::kYes, source_location),
         std::forward<Function>(f),
         std::forward<Args>(args)...
     )};
@@ -104,11 +107,10 @@ Task BuildTask(
     // TODO support NoTracing + inherited variables.
     UINVARIANT(!options.inherit_variables, "Task-inherited variables without span are not supported at the moment");
 
-    return Task{engine::impl::MakeTask(
-        impl::MakeTaskConfig<Task>(options),
-        std::forward<Function>(f),
-        std::forward<Args>(args)...
-    )};
+    auto config = impl::MakeTaskConfig<Task>(options);
+    config.inherited_variables_priority = engine::TaskInheritedVariablePriority::kNoTracing;
+
+    return Task{engine::impl::MakeTask(std::move(config), std::forward<Function>(f), std::forward<Args>(args)...)};
 }
 
 }  // namespace impl

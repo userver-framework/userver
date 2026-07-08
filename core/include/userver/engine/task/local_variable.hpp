@@ -34,6 +34,15 @@ public:
     /// @overload
     T* operator->();
 
+    /// @brief Get the variable instance for the current task, or emplace a new
+    /// one with the given arguments.
+    /// @note Must be called from a coroutine, otherwise it is UB.
+    template <typename... Args>
+    T& GetOrEmplace(Args&&... args) {
+        return impl::task_local::GetCurrentStorage()
+            .GetOrEmplace<T, kVariableKind>(impl_.GetKey(), std::forward<Args>(args)...);
+    }
+
     /// @brief Get the variable instance for the current task.
     /// @returns the variable or `nullptr` if the variable was not initialized,
     /// was already destroyed, or is being destroyed right now. That is,

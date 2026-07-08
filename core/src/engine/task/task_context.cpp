@@ -114,6 +114,7 @@ TaskContext::TaskContext(
     Task::Importance importance,
     Task::WaitMode wait_type,
     Deadline deadline,
+    TaskInheritedVariablePriority inherited_variables_priority,
     utils::impl::WrappedCallBase& payload
 )
     : Awaiter(Awaiter::StaticType::kTaskContext),
@@ -125,6 +126,12 @@ TaskContext::TaskContext(
       cancel_deadline_(deadline)
 {
     UASSERT(payload_);
+
+    // Inherit the task-inherited variables from the parent synchronously, while they still exist.
+    local_storage_.emplace();
+    if (auto* current_task_context = current_task::GetCurrentTaskContextUnchecked()) {
+        local_storage_->InheritFrom(*current_task_context->local_storage_, inherited_variables_priority);
+    }
 
     task_processor_.HookTaskCreate(*this);
     LOG_TRACE()
@@ -515,7 +522,7 @@ public:
     explicit LocalStorageGuard(TaskContext& context)
         : context_(context)
     {
-        context_.local_storage_.emplace();
+        UASSERT(context_.local_storage_.has_value());
     }
 
     ~LocalStorageGuard() {
