@@ -166,11 +166,12 @@ public:
     static yaml_config::Schema GetStaticConfigSchema();
 
 protected:
-    /// Sets the new value of cache. As a result the `Get()` member function starts
-    /// returning the value passed into this function after the `Update()` finishes.
+    /// @brief Sets the new value of cache. As a result, @ref Get member function starts returning the new value.
     ///
-    /// @warning Do not forget to update @ref cache::UpdateStatisticsScope, otherwise
-    /// the behavior is undefined.
+    /// Notifies subscribers after setting the new value, see @ref UpdateAndListen.
+    /// Should only be called from @ref Update normally.
+    ///
+    /// @warning Do not forget to update @ref cache::UpdateStatisticsScope, otherwise the behavior is undefined.
     void Set(std::unique_ptr<const T> value_ptr);
 
     /// @overload
