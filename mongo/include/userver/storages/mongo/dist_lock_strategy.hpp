@@ -23,6 +23,8 @@ public:
 
     void Acquire(std::chrono::milliseconds lock_ttl, const std::string& locker_id) override;
 
+    void Prolong(std::chrono::milliseconds lock_ttl, const std::string& locker_id) override;
+
     void Release(const std::string& locker_id) override;
 
 private:

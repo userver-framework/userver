@@ -31,13 +31,34 @@ UTEST_F(DistLockTest, DISABLED_AcquireAndRelease) {  // TODO: TAXICOMMON-8662
     UEXPECT_NO_THROW(strategy.Release({}));
 }
 
-UTEST_F(DistLockTest, DISABLED_Prolong) {  // TODO: TAXICOMMON-8662
+UTEST_F(DistLockTest, Prolong) {
     utils::datetime::MockNowSet(kMockTime);
 
     auto collection = GetDefaultPool().GetCollection("test_prolong");
-    mongo::DistLockStrategy strategy(collection, "key_prolong", "owner");
-    UEXPECT_NO_THROW(strategy.Acquire(1s, {}));
-    UEXPECT_NO_THROW(strategy.Acquire(1s, {}));
+    const std::string key = "key_prolong";
+    mongo::DistLockStrategy strategy1(collection, key, "owner1");
+    mongo::DistLockStrategy strategy2(collection, key, "owner2");
+
+    UEXPECT_NO_THROW(strategy1.Acquire(1s, {}));
+    utils::datetime::MockSleep(500ms);
+    UEXPECT_NO_THROW(strategy1.Prolong(1s, {}));
+
+    UEXPECT_THROW(strategy2.Prolong(1s, {}), dist_lock::LockIsAcquiredByAnotherHostException);
+
+    utils::datetime::MockSleep(700ms);  // now t0+1.2s: past acquire ttl, before prolonged ttl (t0+1.5s)
+    UEXPECT_THROW(strategy2.Acquire(1s, {}), dist_lock::LockIsAcquiredByAnotherHostException);
+
+    UEXPECT_NO_THROW(strategy1.Prolong(1s, {}));
+    UEXPECT_NO_THROW(strategy1.Release({}));
+}
+
+UTEST_F(DistLockTest, ProlongWithoutAcquire) {
+    utils::datetime::MockNowSet(kMockTime);
+
+    auto collection = GetDefaultPool().GetCollection("test_prolong_without_acquire");
+    mongo::DistLockStrategy strategy(collection, "key_prolong_no_acquire", "owner");
+
+    UEXPECT_THROW(strategy.Prolong(1s, {}), dist_lock::LockIsAcquiredByAnotherHostException);
 }
 
 UTEST_F(DistLockTest, TestOwner) {
