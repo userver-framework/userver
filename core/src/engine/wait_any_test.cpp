@@ -746,12 +746,11 @@ UTEST(WaitAnyContext, AppendWithExplicitIndexSlotMap) {
     // Collect results as tasks finish, in completion order.
     int sum = 0;
     while (!tasks.empty()) {
-        const auto index_opt = wait_any.Wait();
-        ASSERT_TRUE(index_opt.has_value());
+        const auto index = wait_any.Wait();
+        ASSERT_TRUE(index.has_value());
 
-        const std::size_t index = *index_opt;
-        sum += tasks[index].Get();
-        tasks.erase(index);
+        sum += tasks[*index].Get();
+        tasks.erase(*index);
     }
 
     EXPECT_EQ(sum, 1 + 2 + 3 + 4);
