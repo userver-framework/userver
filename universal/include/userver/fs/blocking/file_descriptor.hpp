@@ -3,12 +3,17 @@
 /// @file userver/fs/blocking/file_descriptor.hpp
 /// @brief @copybrief fs::blocking::FileDescriptor
 
+#include <span>
 #include <string_view>
 
 #include <userver/utils/boost_filesystem_file_status.hpp>
 #include <userver/utils/zstring_view.hpp>
 
 #include <userver/fs/blocking/open_mode.hpp>
+
+extern "C" {
+struct iovec;
+}
 
 USERVER_NAMESPACE_BEGIN
 
@@ -63,14 +68,17 @@ public:
     int Release() &&;
 
     /// @brief Writes data to the file
-    /// @warning Unless `FSync` is called, there is no guarantee the data
-    /// is stored on disk safely.
+    /// @warning Unless `FSync` is called, there is no guarantee the data is stored on disk safely.
     /// @throws std::runtime_error
     void Write(std::string_view contents);
 
+    /// @brief Writes data to the file, has no IOV_MAX limits on contents.size()
+    /// @warning Unless `FSync` is called, there is no guarantee the data is stored on disk safely.
+    /// @throws std::runtime_error
+    void Write(std::span<const struct iovec> contents);
+
     /// @brief Reads data from the file at current offset
-    /// @returns The amount of bytes actually acquired, which can be equal
-    /// to `max_size`, or less on end-of-file
+    /// @returns The amount of bytes actually acquired, which can be equal to `max_size`, or less on end-of-file
     /// @throws std::runtime_error
     std::size_t Read(char* buffer, std::size_t max_size);
 
