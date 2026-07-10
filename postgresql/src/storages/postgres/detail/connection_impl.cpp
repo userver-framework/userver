@@ -453,8 +453,7 @@ Connection::Statistics ConnectionImpl::GetStatsAndReset() {
 }
 
 bool ConnectionImpl::ShouldWrapInAutoTransaction(const std::string_view statement) const noexcept {
-    return IsTransactionPooler() && !settings_.omit_statement_timeout_for_autocommit && !IsInTransaction() &&
-           !ICaseStartsWith(statement, kStatementVacuum);
+    return IsTransactionPooler() && !IsInTransaction() && !ICaseStartsWith(statement, kStatementVacuum);
 }
 
 void ConnectionImpl::TryRollbackAutoTransaction(const engine::Deadline deadline) {
@@ -471,14 +470,15 @@ ResultSet ConnectionImpl::ExecuteCommandInAutoTransaction(
     const OptionalCommandControl statement_cmd_ctl,
     const engine::Deadline deadline
 ) {
+    UASSERT_MSG(
+        !IsPipelineActive(),
+        "In pipeline mode we can send the timeout and the query in one go, and it works as if in a transaction"
+    );
+
     const auto effective_timeout =
         statement_cmd_ctl ? statement_cmd_ctl->statement_timeout_ms : GetDefaultCommandControl().statement_timeout_ms;
 
-    if (IsPipelineActive()) {
-        SendCommandNoPrepare("BEGIN", deadline);
-    } else {
-        ExecuteCommandNoPrepare("BEGIN", deadline);
-    }
+    ExecuteCommandNoPrepare("BEGIN", deadline);
 
     const bool prepared_statements_enabled = PreparedStatementsEnabled(statement_cmd_ctl);
 
@@ -522,14 +522,30 @@ ResultSet ConnectionImpl::ExecuteCommand(
     const auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(NetworkTimeout(statement_cmd_ctl));
 
     if (ShouldWrapInAutoTransaction(query.GetStatementView())) {
+        if (IsPipelineActive()) {
+            const bool prepared_statements_enabled = PreparedStatementsEnabled(statement_cmd_ctl);
+            if (prepared_statements_enabled) {
+                DiscardOldPreparedStatements(deadline);
+                PrepareStatement(query, params, std::chrono::duration_cast<TimeoutDuration>(deadline.TimeLeft()));
+            }
+
+            const auto effective_timeout =
+                statement_cmd_ctl
+                    ? statement_cmd_ctl->statement_timeout_ms
+                    : GetDefaultCommandControl().statement_timeout_ms;
+            SetStatementTimeout(effective_timeout, deadline);
+            const ResetTransactionCommandControl transaction_guard{*this};
+
+            return prepared_statements_enabled
+                       ? ExecuteCommand(query, params, deadline, logging::Level::kInfo, true)
+                       : ExecuteCommandNoPrepare(query, params, deadline);
+        }
+
         return ExecuteCommandInAutoTransaction(query, params, statement_cmd_ctl, deadline);
     }
 
-    // In transaction pooler mode with omit_statement_timeout_for_autocommit enabled we deliberately skip
-    // SET statement_timeout for autocommit statements to save a round trip (see @ref POSTGRES_CONNECTION_SETTINGS)
-    if (!(IsTransactionPooler() && settings_.omit_statement_timeout_for_autocommit && !IsInTransaction())) {
-        SetStatementTimeout(statement_cmd_ctl);
-    }
+    UASSERT(IsSessionPooler() || IsInTransaction());
+    SetStatementTimeout(statement_cmd_ctl);
 
     return PreparedStatementsEnabled(statement_cmd_ctl)
                ? ExecuteCommand(query, params, deadline, logging::Level::kInfo, true)

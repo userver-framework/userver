@@ -60,6 +60,13 @@ protected:
         EXPECT_TRUE(conn);
         return conn;
     }
+
+    std::vector<utest::LogRecord> GetTransactionControlLogs() {
+        return GetLogCapture().Filter([](const utest::LogRecord& log) {
+            const auto statement = log.GetTagOptional(tracing::kDatabaseStatement);
+            return statement == "BEGIN" || statement == "COMMIT" || statement == "ROLLBACK";
+        });
+    }
 };
 
 UTEST_F(PostgreTransactionModeConnection, TransactionPoolerSkipsStatementTimeoutOnConnect) {
@@ -254,27 +261,57 @@ UTEST_F(PostgreTransactionModeConnection, DuplicatePreparedStatementDirtyConnect
     EXPECT_FALSE(conn->IsBroken());
 }
 
-UTEST_F(PostgreTransactionModeConnection, OmitStatementTimeoutForAutocommitSkipsAutoTransactionAndStatementTimeout) {
-    pg::detail::ConnectionPtr conn{nullptr};
-    auto settings = MakeTransactionPoolerSettings();
-    settings.omit_statement_timeout_for_autocommit = true;
-    UEXPECT_NO_THROW(conn = MakeConnection(GetDsnFromEnv(), GetTaskProcessor(), settings));
-    ASSERT_TRUE(conn);
+UTEST_F(PostgreTransactionModeConnection, PipelineTransactionPoolerAutocommitAppliesTimeoutWithoutTransaction) {
+    const auto conn = MakeConn(kPipelineEnabled);
 
     const DefaultCommandControlScope scope{kTransactionPoolerCmdCtl};
 
     UEXPECT_NO_THROW(ZeroBackendStatementTimeout(conn));
     GetLogCapture().Clear();
 
-    UEXPECT_NO_THROW(conn->Execute("SELECT pg_sleep(0.3)"));
+    pg::ResultSet res{nullptr};
+    UEXPECT_NO_THROW(res = conn->Execute("SELECT current_setting('statement_timeout')"));
+    EXPECT_EQ("200ms", res.AsSingleRow<std::string>());
 
     const auto set_config_logs = GetLogCapture().Filter([&](const utest::LogRecord& log) {
         return log.GetTagOptional(tracing::kDatabaseStatementName) == kSetConfigStatementName;
     });
-    EXPECT_THAT(set_config_logs, ::testing::IsEmpty());
-    UEXPECT_NO_THROW(ExpectBackendStatementTimeout(conn, "0"));
+    EXPECT_THAT(set_config_logs, ::testing::SizeIs(1));
+    EXPECT_THAT(GetTransactionControlLogs(), ::testing::IsEmpty());
+
+    GetLogCapture().Clear();
+
+    const auto user_cmd_ctl = kTransactionPoolerCmdCtl.WithStatementTimeout(std::chrono::milliseconds{250});
+    UEXPECT_NO_THROW(
+        res =
+            conn->Execute(user_cmd_ctl, pg::Query{"SELECT current_setting('statement_timeout')"}, pg::ParameterStore{})
+    );
+    EXPECT_EQ("250ms", res.AsSingleRow<std::string>());
+
+    const auto set_config_logs_user = GetLogCapture().Filter([&](const utest::LogRecord& log) {
+        return log.GetTagOptional(tracing::kDatabaseStatementName) == kSetConfigStatementName;
+    });
+    EXPECT_THAT(set_config_logs_user, ::testing::SizeIs(1));
+    EXPECT_THAT(GetTransactionControlLogs(), ::testing::IsEmpty());
 
     UEXPECT_NO_THROW(conn->CancelAndCleanup(utest::kMaxTestWaitTime));
+    EXPECT_FALSE(conn->IsBroken());
+}
+
+UTEST_F(PostgreTransactionModeConnection, PipelineTransactionPoolerCancelledAutocommitLeavesConnectionUsable) {
+    const auto conn = MakeConn(kPipelineEnabled);
+
+    const DefaultCommandControlScope scope{kTransactionPoolerCmdCtl};
+
+    UEXPECT_NO_THROW(ZeroBackendStatementTimeout(conn));
+    GetLogCapture().Clear();
+
+    UEXPECT_THROW(conn->Execute("SELECT pg_sleep(1.5)"), pg::QueryCancelled);
+
+    EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+    EXPECT_THAT(GetTransactionControlLogs(), ::testing::IsEmpty());
+
+    UEXPECT_NO_THROW(conn->Execute("SELECT 1"));
     EXPECT_FALSE(conn->IsBroken());
 }
 
