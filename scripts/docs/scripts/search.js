@@ -45,6 +45,14 @@ export function init_search_observer() {
   observer.observe(searchResultsContainer, observerOptions);
 };
 
+export function init_search_results_anchor() {
+  const searchBox = document.getElementById("MSearchBox");
+  const resultsWindow = document.getElementById("MSearchResultsWindow");
+  if (searchBox && resultsWindow && resultsWindow.parentElement !== searchBox) {
+    searchBox.appendChild(resultsWindow);
+  }
+}
+
 export function init_all_results_button() {
   const searchBox = document.getElementById("MSearchResultsWindow");
   const searchInput = document.getElementById("MSearchField");
