@@ -35,12 +35,13 @@ struct QueriesUsersV0 {
     std::optional<USERVER_NAMESPACE::storages::postgres::TimePointTz> updated_at;
     std::optional<std::vector<std::string>> tags;
 };
-
 using QueriesUsers = QueriesUsersV0;
 
 }  // namespace pg_queries
 
-namespace USERVER_NAMESPACE::storages::postgres::io {
+USERVER_NAMESPACE_BEGIN
+
+namespace storages::postgres::io {
 
 template <>
 struct CppToUserPg<pg_queries::QueriesUserStatus> : EnumMappingBase<pg_queries::QueriesUserStatus> {
@@ -62,4 +63,6 @@ struct CppToUserPg<pg_queries::QueriesUsersV0> {
     static constexpr DBTypeName postgres_name = "queries.users_v0";
 };
 
-}  // namespace USERVER_NAMESPACE::storages::postgres::io
+}  // namespace storages::postgres::io
+
+USERVER_NAMESPACE_END

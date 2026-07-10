@@ -5,9 +5,7 @@
 
 namespace pg_queries {
 
-ClusterPgClient::ClusterPgClient(USERVER_NAMESPACE::storages::postgres::ClusterPtr cluster)
-    : cluster_(cluster)
-{}
+ClusterPgClient::ClusterPgClient(USERVER_NAMESPACE::storages::postgres::ClusterPtr cluster) : cluster_(cluster) {}
 
 std::vector<CountUsersByStatusRow> ClusterPgClient::CountUsersByStatus(HostType host_type) const {
     return cluster_->Execute(host_type, sql::kCountUsersByStatus)
@@ -35,13 +33,18 @@ std::vector<CreateUserRow> ClusterPgClient::CreateUser(
         .AsContainer<std::vector<CreateUserRow>>(USERVER_NAMESPACE::storages::postgres::kRowTag);
 }
 
-std::vector<DeleteUserRow> ClusterPgClient::DeleteUser(HostType host_type, const std::optional<std::int64_t>& arg1)
-    const {
+std::vector<DeleteUserRow> ClusterPgClient::DeleteUser(
+    HostType host_type,
+    const std::optional<std::int64_t>& arg1
+) const {
     return cluster_->Execute(host_type, sql::kDeleteUser, arg1)
         .AsContainer<std::vector<DeleteUserRow>>(USERVER_NAMESPACE::storages::postgres::kRowTag);
 }
 
-void ClusterPgClient::DeleteUserSimple(HostType host_type, const std::optional<std::int64_t>& arg1) const {
+void ClusterPgClient::DeleteUserSimple(
+    HostType host_type,
+    const std::optional<std::int64_t>& arg1
+) const {
     cluster_->Execute(host_type, sql::kDeleteUserSimple, arg1);
 }
 
@@ -63,8 +66,10 @@ std::vector<std::optional<QueriesUserProfile>> ClusterPgClient::GetUserAsComposi
         .AsContainer<std::vector<std::optional<QueriesUserProfile>>>();
 }
 
-std::vector<GetUserByIdRow> ClusterPgClient::GetUserById(HostType host_type, const std::optional<std::int64_t>& arg1)
-    const {
+std::vector<GetUserByIdRow> ClusterPgClient::GetUserById(
+    HostType host_type,
+    const std::optional<std::int64_t>& arg1
+) const {
     return cluster_->Execute(host_type, sql::kGetUserById, arg1)
         .AsContainer<std::vector<GetUserByIdRow>>(USERVER_NAMESPACE::storages::postgres::kRowTag);
 }

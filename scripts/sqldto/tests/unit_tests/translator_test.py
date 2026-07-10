@@ -1,6 +1,7 @@
 import pytest
-from sqldto.common import models
-from sqldto.postgres import translator
+
+from sqldto.generator.postgres import translator
+from sqldto.shared.types import models
 
 
 @pytest.fixture

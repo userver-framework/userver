@@ -13,8 +13,6 @@
 
 #include <input/pg_cluster.hpp>
 
-#include <generated/input_schema.sql.hpp>
-
 namespace sqldto_tests {
 
 namespace pg = USERVER_NAMESPACE::storages::postgres;

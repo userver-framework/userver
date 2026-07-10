@@ -60,7 +60,9 @@ struct NestedOrganization {
 
 }  // namespace pg_arrays
 
-namespace USERVER_NAMESPACE::storages::postgres::io {
+USERVER_NAMESPACE_BEGIN
+
+namespace storages::postgres::io {
 
 template <>
 struct CppToUserPg<pg_arrays::NestedCategory> : EnumMappingBase<pg_arrays::NestedCategory> {
@@ -101,4 +103,6 @@ struct CppToUserPg<pg_arrays::NestedOrganization> {
     static constexpr DBTypeName postgres_name = "nested.organization";
 };
 
-}  // namespace USERVER_NAMESPACE::storages::postgres::io
+}  // namespace storages::postgres::io
+
+USERVER_NAMESPACE_END

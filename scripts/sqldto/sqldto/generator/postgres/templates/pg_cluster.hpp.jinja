@@ -1,0 +1,35 @@
+{%- from "helpers.inc" import codegen_alert, simple_cpp_type, query_return_type -%}
+{{ codegen_alert() }}
+
+#pragma once
+
+{% for include in includes %}
+#include <{{ include }}>
+{% endfor %}
+
+namespace {{ namespace }} {
+
+class ClusterPgClient : public PgClient {
+public:
+    ClusterPgClient(USERVER_NAMESPACE::storages::postgres::ClusterPtr);
+    {% for query in queries %}
+
+    {% if query.args %}
+    {{ query_return_type(query) }} {{ query.cpp_name }}(
+        HostType host_type,
+        {% for arg in query.args %}
+        const {{ simple_cpp_type(arg.cpp_type) }}& arg{{ loop.index }}{{ ',' if not loop.last }}
+        {% endfor %}
+    ) const override;
+    {% else %}
+    {{ query_return_type(query) }} {{ query.cpp_name }}(HostType host_type) const override;
+    {% endif %}
+    {% endfor %}
+
+    ~ClusterPgClient() override = default;
+
+private:
+    USERVER_NAMESPACE::storages::postgres::ClusterPtr cluster_;
+};
+
+}  // namespace {{ namespace }}

@@ -10,7 +10,7 @@
 #include <userver/storages/postgres/io/integral_types.hpp>
 #include <userver/storages/postgres/io/json_types.hpp>
 #include <userver/storages/postgres/io/optional.hpp>
-#include <userver/storages/postgres/io/ranges.hpp>
+#include <userver/storages/postgres/io/range_types.hpp>
 #include <userver/storages/postgres/io/string_types.hpp>
 #include <userver/storages/postgres/io/uuid.hpp>
 
@@ -50,7 +50,9 @@ struct TestUserData {
 
 }  // namespace pg_models
 
-namespace USERVER_NAMESPACE::storages::postgres::io {
+USERVER_NAMESPACE_BEGIN
+
+namespace storages::postgres::io {
 
 template <>
 struct CppToUserPg<pg_models::TestStatusType> : EnumMappingBase<pg_models::TestStatusType> {
@@ -67,4 +69,6 @@ struct CppToUserPg<pg_models::TestUserData> {
     static constexpr DBTypeName postgres_name = "test.user_data";
 };
 
-}  // namespace USERVER_NAMESPACE::storages::postgres::io
+}  // namespace storages::postgres::io
+
+USERVER_NAMESPACE_END

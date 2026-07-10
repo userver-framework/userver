@@ -3,8 +3,16 @@ project(userver-sqldto)
 if(USERVER_BUILD_TESTS)
     userver_venv_setup(
         NAME userver-sqldto-tests
-        PYTHON_OUTPUT_VAR USERVER_SQLDTO_PYTEST_PYTHON_BINARY
-        REQUIREMENTS "${USERVER_ROOT_DIR}/scripts/sqldto/requirements.txt"
+        PYTHON_OUTPUT_VAR USERVER_SQLDTO_TESTS_PYTHON_BINARY
+        REQUIREMENTS "${USERVER_ROOT_DIR}/scripts/sqldto/sqldto/generator/requirements.txt"
+                     "${USERVER_ROOT_DIR}/testsuite/requirements.txt"
+        UNIQUE
+    )
+
+    userver_venv_setup(
+        NAME userver-sqldto-canonize-tests
+        PYTHON_OUTPUT_VAR USERVER_SQLDTO_CANONIZE_TESTS_PYTHON_BINARY
+        REQUIREMENTS "${USERVER_ROOT_DIR}/scripts/sqldto/sqldto/dumper/requirements.txt"
                      "${USERVER_ROOT_DIR}/testsuite/requirements.txt"
         UNIQUE
     )

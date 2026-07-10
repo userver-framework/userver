@@ -106,6 +106,7 @@ known-first-party = [
     "requests_client",
     "chaotic",
     "samples",
+    "sqldto",
     "utils",
 ]
 

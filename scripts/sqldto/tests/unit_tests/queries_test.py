@@ -1,9 +1,10 @@
 import pathlib
 
 import pytest
-from sqldto.common import errors
-from sqldto.common import models
-from sqldto.common import queries
+
+from sqldto.shared.loaders import queries
+from sqldto.shared.types import errors
+from sqldto.shared.types import models
 
 
 def make_query(sql: str) -> models.Query:

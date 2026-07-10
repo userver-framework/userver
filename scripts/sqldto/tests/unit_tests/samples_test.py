@@ -1,6 +1,7 @@
 import pytest
-from sqldto.common import models
-from sqldto.postgres import samples
+
+from sqldto.dumper.postgres import samples
+from sqldto.shared.types import models
 
 
 def param(pg_type: str | None, nullable: bool = False) -> models.QueryParam:
