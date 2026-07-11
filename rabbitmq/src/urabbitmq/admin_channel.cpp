@@ -24,8 +24,9 @@ void AdminChannel::DeclareExchange(
     ConnectionHelper::DeclareExchange(*impl_, exchange, type, flags, deadline).Wait(deadline);
 }
 
-void AdminChannel::DeclareQueue(const Queue& queue, utils::Flags<Queue::Flags> flags, engine::Deadline deadline) {
-    ConnectionHelper::DeclareQueue(*impl_, queue, flags, deadline).Wait(deadline);
+void AdminChannel::DeclareQueue(const Queue& queue, utils::Flags<Queue::Flags> flags, 
+    const std::unordered_map<std::string, HeaderValue>& headers, engine::Deadline deadline) {
+    ConnectionHelper::DeclareQueue(*impl_, queue, flags, headers, deadline).Wait(deadline);
 }
 
 void AdminChannel::BindQueue(
