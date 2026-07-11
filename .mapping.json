@@ -3963,6 +3963,7 @@
   "postgresql/src/storages/postgres/tests/connection_transaction_mode_pgtest.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/connection_transaction_mode_pgtest.cpp",
   "postgresql/src/storages/postgres/tests/connlimit_watchdog_pgtest.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/connlimit_watchdog_pgtest.cpp",
   "postgresql/src/storages/postgres/tests/date_pgtest.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/date_pgtest.cpp",
+  "postgresql/src/storages/postgres/tests/dist_lock_strategy_pgtest.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/dist_lock_strategy_pgtest.cpp",
   "postgresql/src/storages/postgres/tests/dsn_test.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/dsn_test.cpp",
   "postgresql/src/storages/postgres/tests/enums_pgtest.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/enums_pgtest.cpp",
   "postgresql/src/storages/postgres/tests/error_test.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/error_test.cpp",
