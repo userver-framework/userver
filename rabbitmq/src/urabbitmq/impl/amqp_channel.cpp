@@ -133,6 +133,7 @@ ResponseAwaiter AmqpChannel::DeclareQueue(
     const Queue& queue,
     utils::Flags<Queue::Flags> flags,
     const std::unordered_map<std::string, HeaderValue>& headers,
+    QueueDeclareResponse& response,
     engine::Deadline deadline
 ) {
     auto awaiter = conn_.GetAwaiter(deadline);
@@ -141,7 +142,9 @@ ResponseAwaiter AmqpChannel::DeclareQueue(
         auto channel = conn_.GetChannel(deadline);
         AMQP::Table table;
         AddHeadersToTable(table, headers);
-        awaiter.GetWrapper()->Wrap(channel->declareQueue(queue.GetUnderlying(), Convert(flags), table));
+        awaiter.GetWrapper()->WrapDeclareQueue(
+            channel->declareQueue(queue.GetUnderlying(), Convert(flags), table), response
+        );
     }
 
     return awaiter;

@@ -33,6 +33,7 @@ public:
         const Queue& queue,
         utils::Flags<Queue::Flags> flags,
         const std::unordered_map<std::string, HeaderValue>& headers,
+        QueueDeclareResponse& response,
         engine::Deadline deadline
     );
 
