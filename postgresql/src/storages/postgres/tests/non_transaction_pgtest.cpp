@@ -16,6 +16,16 @@ UTEST_P(PostgreConnection, NonTransactionSelectOne) {
     EXPECT_EQ(1, res.AsSingleRow<int>());
 }
 
+UTEST_P(PostgreConnection, NonTransactionExecuteTimeout) {
+    CheckConnection(GetConn());
+    pg::detail::NonTransaction ntrx(std::move(GetConn()));
+
+    pg::CommandControl cc{std::chrono::milliseconds{50}, std::chrono::milliseconds{300}};
+    UEXPECT_THROW(ntrx.Execute(cc, "SELECT pg_sleep(1)"), pg::ConnectionTimeoutError);
+    // NOTE: connection is now in bad state and will be discarded
+    EXPECT_ANY_THROW(ntrx.Execute("SELECT 1"));
+}
+
 UTEST_P(PostgreConnection, NonTransactionStatementTimeout) {
     CheckConnection(GetConn());
     pg::detail::NonTransaction ntrx(std::move(GetConn()));

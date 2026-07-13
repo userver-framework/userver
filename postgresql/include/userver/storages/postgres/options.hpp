@@ -111,11 +111,6 @@ USERVER_NAMESPACE::utils::StringLiteral BeginStatement(TransactionOptions opts) 
 /// @see https://www.postgresql.org/docs/12/runtime-config-client.html
 ///
 /// `execute` timeout should always be greater than the `statement` timeout!
-/// If the `statement` timeout happens to be greater than (or too close to) the
-/// `execute` timeout, the driver caps the effective `statement` timeout to be
-/// below the `execute` timeout (by a small margin when the `execute` timeout is
-/// large enough to spare it), so that the database gets a chance to cancel the
-/// statement on its own before the driver gives up waiting on the network.
 ///
 /// In case of a timeout, either back-end or overall, the client gets an
 /// exception and the driver tries to clean up the connection for further reuse.
