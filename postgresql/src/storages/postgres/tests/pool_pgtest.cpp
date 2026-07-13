@@ -83,7 +83,7 @@ std::size_t TriggerCleanupWithExpiredInheritedDeadline(const std::shared_ptr<pg:
     {
         pg::Transaction trx{pg::detail::ConnectionPtr(nullptr)};
         UEXPECT_NO_THROW(trx = pool->Begin({})) << "Start transaction in a pool";
-        UEXPECT_THROW(trx.Execute("select pg_sleep(1)"), pg::ConnectionTimeoutError) << "Fail statement on timeout";
+        UEXPECT_THROW(trx.Execute("select pg_sleep(1)"), pg::QueryCancelled) << "Fail statement on timeout";
 
         // Set the deadline for the current task.
         // It is important to do this right before commit (returning the connection to the pool),
@@ -426,7 +426,7 @@ UTEST_P(PostgrePool, ConnectionCleanup) {
         kCachePreparedStatements,
         {},
         storages::postgres::DefaultCommandControls(
-            pg::CommandControl{std::chrono::milliseconds{100}, std::chrono::seconds{1}},
+            pg::CommandControl{std::chrono::milliseconds{100}, std::chrono::seconds{0}},
             {},
             {}
         ),
@@ -857,7 +857,7 @@ UTEST_P(PostgrePool, ConnectionRateLimitThrottlesAfterFailedCleanup) {
     // cascading into the rest of the test failing. So we keep a generous default
     // network timeout for acquisition and pass the short timeout only to the
     // statements that must time out.
-    constexpr pg::CommandControl kDirtyStatementCc{std::chrono::milliseconds{100}, std::chrono::seconds{30}};
+    constexpr pg::CommandControl kDirtyStatementCc{std::chrono::milliseconds{100}, std::chrono::seconds{0}};
 
     auto pool = CreateCleanupPool(
         GetDsnFromEnv(),

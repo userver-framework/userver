@@ -39,6 +39,8 @@ namespace storages::postgres::detail {
 namespace {
 
 constexpr std::string_view kStatementTimeoutParameter = "statement_timeout";
+
+constexpr TimeoutDuration kStatementTimeoutNetworkMargin{std::chrono::milliseconds{5}};
 constexpr std::string_view kStatementVacuum = "vacuum";
 constexpr std::string_view kStatementListen = "listen {}";
 constexpr std::string_view kStatementUnlisten = "unlisten {}";
@@ -359,7 +361,11 @@ void ConnectionImpl::AsyncConnect(const Dsn& dsn, engine::Deadline deadline) {
         }
     }
     RefreshReplicaState(deadline);
-    SetConnectionStatementTimeout(GetDefaultCommandControl().statement_timeout_ms, deadline);
+    SetConnectionStatementTimeout(
+        GetDefaultCommandControl().statement_timeout_ms,
+        GetDefaultCommandControl().network_timeout_ms,
+        deadline
+    );
     if (settings_.user_types != ConnectionSettings::kPredefinedTypesOnly) {
         LoadUserTypes(deadline);
     }
@@ -477,13 +483,15 @@ ResultSet ConnectionImpl::ExecuteCommandInAutoTransaction(
 
     const auto effective_timeout =
         statement_cmd_ctl ? statement_cmd_ctl->statement_timeout_ms : GetDefaultCommandControl().statement_timeout_ms;
+    const auto effective_network_timeout =
+        statement_cmd_ctl ? statement_cmd_ctl->network_timeout_ms : GetDefaultCommandControl().network_timeout_ms;
 
     ExecuteCommandNoPrepare("BEGIN", deadline);
 
     const bool prepared_statements_enabled = PreparedStatementsEnabled(statement_cmd_ctl);
 
     try {
-        SetStatementTimeout(effective_timeout, deadline);
+        SetStatementTimeout(effective_timeout, effective_network_timeout, deadline);
         const ResetTransactionCommandControl transaction_guard{*this};
 
         auto result =
@@ -578,7 +586,11 @@ void ConnectionImpl::Begin(
     if (trx_cmd_ctl) {
         SetTransactionCommandControl(*trx_cmd_ctl);
     } else if (IsTransactionPooler()) {
-        SetStatementTimeout(GetDefaultCommandControl().statement_timeout_ms, deadline);
+        SetStatementTimeout(
+            GetDefaultCommandControl().statement_timeout_ms,
+            GetDefaultCommandControl().network_timeout_ms,
+            deadline
+        );
     }
 }
 
@@ -796,7 +808,11 @@ bool ConnectionImpl::Cleanup(TimeoutDuration timeout) {
     // We are no more bound with SLA, user has his exception.
     // We need to try and save the connection without canceling current query
     // not to kill the pgbouncer
-    SetConnectionStatementTimeout(GetDefaultCommandControl().statement_timeout_ms, deadline);
+    SetConnectionStatementTimeout(
+        GetDefaultCommandControl().statement_timeout_ms,
+        GetDefaultCommandControl().network_timeout_ms,
+        deadline
+    );
     if (IsPipelineActive()) {
         // In pipeline mode SetConnectionStatementTimeout writes a query into
         // connection query queue without waiting for its result.
@@ -880,6 +896,7 @@ void ConnectionImpl::SetTransactionCommandControl(CommandControl cmd_ctl) {
     transaction_cmd_ctl_ = cmd_ctl;
     SetStatementTimeout(
         cmd_ctl.statement_timeout_ms,
+        cmd_ctl.network_timeout_ms,
         testsuite_pg_ctl_.MakeExecuteDeadline(cmd_ctl.network_timeout_ms)
     );
 }
@@ -913,10 +930,25 @@ bool ConnectionImpl::PreparedStatementsEnabled(OptionalCommandControl cmd_ctl) c
     return ArePreparedStatementsEnabled();
 }
 
-TimeoutDuration ConnectionImpl::NormalizeStatementTimeout(TimeoutDuration timeout) {
+TimeoutDuration ConnectionImpl::NormalizeStatementTimeout(TimeoutDuration timeout, TimeoutDuration network_timeout) {
     timeout = testsuite_pg_ctl_.MakeStatementTimeout(timeout);
     if (IsPipelineActive() && settings_.deadline_propagation_enabled) {
         timeout = AdjustTimeout(timeout, deadline_propagation_is_active_);
+    }
+
+    if (network_timeout.count() > 0 && timeout.count() > 0) {
+        const auto max_statement_timeout =
+            network_timeout > kStatementTimeoutNetworkMargin
+                ? network_timeout - kStatementTimeoutNetworkMargin
+                : network_timeout;
+        if (timeout > max_statement_timeout) {
+            LOG_LIMITED_DEBUG()
+                << "PostgreSQL statement timeout (" << timeout.count() << "ms) is not less than the network timeout ("
+                << network_timeout.count() << "ms), capping the statement timeout to " << max_statement_timeout.count()
+                << "ms. Consider fixing the command control so that the network timeout is greater than the statement "
+                   "timeout.";
+            timeout = max_statement_timeout;
+        }
     }
     return timeout;
 }
@@ -934,8 +966,12 @@ void ConnectionImpl::ApplyStatementTimeoutIfItChanged(
     current_statement_timeout_ = timeout;
 }
 
-void ConnectionImpl::SetConnectionStatementTimeout(TimeoutDuration timeout, engine::Deadline deadline) {
-    timeout = NormalizeStatementTimeout(timeout);
+void ConnectionImpl::SetConnectionStatementTimeout(
+    TimeoutDuration timeout,
+    TimeoutDuration network_timeout,
+    engine::Deadline deadline
+) {
+    timeout = NormalizeStatementTimeout(timeout, network_timeout);
 
     if (IsTransactionPooler()) {
         if (IsInTransaction()) {
@@ -946,9 +982,13 @@ void ConnectionImpl::SetConnectionStatementTimeout(TimeoutDuration timeout, engi
     }
 }
 
-void ConnectionImpl::SetStatementTimeout(TimeoutDuration timeout, engine::Deadline deadline) {
+void ConnectionImpl::SetStatementTimeout(
+    TimeoutDuration timeout,
+    TimeoutDuration network_timeout,
+    engine::Deadline deadline
+) {
     ApplyStatementTimeoutIfItChanged(
-        NormalizeStatementTimeout(timeout),
+        NormalizeStatementTimeout(timeout, network_timeout),
         Connection::ParameterScope::kTransaction,
         deadline
     );
@@ -960,17 +1000,20 @@ void ConnectionImpl::SetStatementTimeout(OptionalCommandControl cmd_ctl) {
     if (!!cmd_ctl) {
         SetConnectionStatementTimeout(
             cmd_ctl->statement_timeout_ms,
+            cmd_ctl->network_timeout_ms,
             testsuite_pg_ctl_.MakeExecuteDeadline(cmd_ctl->network_timeout_ms)
         );
     } else if (!!transaction_cmd_ctl_) {
         SetStatementTimeout(
             transaction_cmd_ctl_->statement_timeout_ms,
+            transaction_cmd_ctl_->network_timeout_ms,
             testsuite_pg_ctl_.MakeExecuteDeadline(transaction_cmd_ctl_->network_timeout_ms)
         );
     } else {
         auto cmd_ctl = GetDefaultCommandControl();
         SetConnectionStatementTimeout(
             cmd_ctl.statement_timeout_ms,
+            cmd_ctl.network_timeout_ms,
             testsuite_pg_ctl_.MakeExecuteDeadline(cmd_ctl.network_timeout_ms)
         );
     }

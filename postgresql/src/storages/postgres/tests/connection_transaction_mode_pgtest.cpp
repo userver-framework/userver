@@ -211,7 +211,7 @@ UTEST_F(PostgreTransactionModeConnection, TransactionPoolerResendsSetConfigWhenC
     });
     EXPECT_THAT(set_config_logs, ::testing::SizeIs(2));
 
-    EXPECT_EQ(kTransactionPoolerDefaultCmdCtl.statement_timeout_ms, conn->GetStatementTimeout());
+    EXPECT_EQ(std::chrono::milliseconds{9995}, conn->GetStatementTimeout());
 
     pg::ResultSet backend_timeout{nullptr};
     UEXPECT_NO_THROW(
@@ -221,7 +221,7 @@ UTEST_F(PostgreTransactionModeConnection, TransactionPoolerResendsSetConfigWhenC
             pg::ParameterStore{}
         )
     );
-    EXPECT_EQ("10s", backend_timeout.AsSingleRow<std::string>());
+    EXPECT_EQ("9995ms", backend_timeout.AsSingleRow<std::string>());
 
     UEXPECT_NO_THROW(conn->Rollback());
     UEXPECT_NO_THROW(conn->CancelAndCleanup(utest::kMaxTestWaitTime));
