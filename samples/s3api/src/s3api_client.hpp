@@ -11,7 +11,7 @@ namespace samples {
 /// [s3_sample_component]
 
 // This component is not required to create S3 api client. It is used for demonstration purposes only.
-class S3ApiSampleComponent : public components::LoggableComponentBase {
+class S3ApiSampleComponent : public components::ComponentBase {
 public:
     // `kName` is used as the component name in static config
     static constexpr std::string_view kName = "s3-sample-component";

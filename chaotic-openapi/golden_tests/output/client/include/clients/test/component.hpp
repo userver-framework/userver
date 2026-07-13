@@ -7,7 +7,7 @@
 
 namespace clients::test {
 
-class Component final : public USERVER_NAMESPACE::components::LoggableComponentBase {
+class Component final : public USERVER_NAMESPACE::components::ComponentBase {
 public:
     static constexpr std::string_view kName = "test-client";
 
