@@ -100,7 +100,7 @@ public:
 
                     if (thread_index != 0) {
                         if (mode & kTestLogCancel && i == kLoggingTestIterations / 4 * 3) {
-                            engine::current_task::GetCancellationToken().RequestCancel();
+                            engine::current_task::RequestCancel();
                         }
                         if (mode & kTestLogSync && i == kLoggingTestIterations / 4 * 3) {
                             logger->StopConsumerTask();
@@ -494,7 +494,7 @@ UTEST_F(LoggingTestCoro, TpLoggerBasicAsyncOverflowCancelled) {
         LOG_INFO_TO(logger) << i;
 
         if (i == kLoggingTestIterations / 2) {
-            engine::current_task::GetCancellationToken().RequestCancel();
+            engine::current_task::RequestCancel();
         }
     }
     logger->StopConsumerTask();
@@ -519,7 +519,7 @@ UTEST_F(LoggingTestCoro, TpLoggerBasicAsyncOverflowFlushCancelled) {
         LOG_INFO_TO(logger) << i;
 
         if (i == kLoggingTestIterations / 2) {
-            engine::current_task::GetCancellationToken().RequestCancel();
+            engine::current_task::RequestCancel();
         }
 
         if (i % 10 == 0) {

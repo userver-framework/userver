@@ -691,7 +691,7 @@ UTEST(HttpClient, CancelPre) {
         const utest::SimpleServer http_server{EchoCallback{}};
         auto http_client_ptr = utest::CreateHttpClient();
 
-        engine::current_task::GetCancellationToken().RequestCancel();
+        engine::current_task::RequestCancel();
 
         UEXPECT_THROW(http_client_ptr->CreateRequest(), clients::http::CancelException);
     });
@@ -706,7 +706,7 @@ UTEST(HttpClient, CancelPost) {
 
         auto request = http_client_ptr->CreateRequest().post(http_server.GetBaseUrl(), kTestData).timeout(kTimeout);
 
-        engine::current_task::GetCancellationToken().RequestCancel();
+        engine::current_task::RequestCancel();
 
         auto future = request.async_perform();
         UEXPECT_THROW(future.Wait(), clients::http::CancelException);
@@ -751,7 +751,7 @@ UTEST(HttpClient, CancelRetries) {
     ASSERT_TRUE(enough_retries_event.WaitForEventFor(utest::kMaxTestWaitTime));
 
     const auto cancellation_start_time = std::chrono::steady_clock::now();
-    engine::current_task::GetCancellationToken().RequestCancel();
+    engine::current_task::RequestCancel();
 
     const auto request_creation_duration = cancellation_start_time - start_create_request_time;
 

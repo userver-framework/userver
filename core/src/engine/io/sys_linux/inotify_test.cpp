@@ -129,7 +129,7 @@ UTEST(Inotify, TaskCancel) {
          sys_linux::EventType::kModify}
     );
 
-    engine::current_task::GetCancellationToken().RequestCancel();
+    engine::current_task::RequestCancel();
 
     auto event = inotify.Poll({});
     ASSERT_FALSE(event);

@@ -32,7 +32,7 @@ void RedisClientSampleUsage(storages::redis::Client& client) {
 std::optional<std::string> RedisClientCancelRequest(storages::redis::Client& client) {
     auto result = client.Get("foo", {});
 
-    engine::current_task::GetCancellationToken().RequestCancel();
+    engine::current_task::RequestCancel();
 
     // Throws redis::RequestCancelledException if Redis was not
     // fast enough to answer

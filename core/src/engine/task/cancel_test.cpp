@@ -73,7 +73,7 @@ UTEST(Cancel, CancelDuringInterruptibleSleep) {
 }
 
 UTEST(Cancel, CancelBeforeInterruptibleSleep) {
-    engine::current_task::GetCancellationToken().RequestCancel();
+    engine::current_task::RequestCancel();
 
     // The task should wake up from this sleep immediately, because it is
     // already cancelled

@@ -268,7 +268,7 @@ TYPED_UTEST_P(TypedQueueFixture, NotMovedValueOnFalse) {
     // NOLINTNEXTLINE(bugprone-use-after-move)
     EXPECT_TRUE(this->CheckWasNotMovedOut(value));
 
-    engine::current_task::GetCancellationToken().RequestCancel();
+    engine::current_task::RequestCancel();
     EXPECT_FALSE(producer.Push(std::move(value)));
     // NOLINTNEXTLINE(bugprone-use-after-move)
     EXPECT_TRUE(this->CheckWasNotMovedOut(value));

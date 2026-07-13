@@ -83,7 +83,7 @@ UTEST_F(DeadlinePropagation, CancelledByDeadline) {
 UTEST_F(DeadlinePropagation, AlreadyCancelled) {
     auto coll = GetDefaultPool().GetCollection("dp");
 
-    engine::current_task::GetCancellationToken().RequestCancel();
+    engine::current_task::RequestCancel();
 
     UEXPECT_THROW(coll.InsertOne(bson::MakeDoc("_id", 2)), mongo::CancelledException);
 }
