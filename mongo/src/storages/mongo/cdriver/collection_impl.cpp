@@ -295,6 +295,9 @@ std::vector<formats::bson::Value> CDriverCollectionImpl::Execute(const operation
 WriteResult CDriverCollectionImpl::Execute(const operations::InsertOne& operation) {
     auto context = MakeRequestContext("mongo_insert_one", operation);
 
+    auto options = operation.impl_->options;
+    SetMaxServerTime(options, operation.impl_->max_server_time, context);
+
     WriteResultHelper write_result;
     MongoError& error = write_result.GetError();
     stats::OperationStopwatch stopwatch(std::move(context.stats));
@@ -302,7 +305,7 @@ WriteResult CDriverCollectionImpl::Execute(const operations::InsertOne& operatio
     if (mongoc_collection_insert_one(
             context.collection.get(),
             native_bson_ptr,
-            impl::GetNative(operation.impl_->options),
+            impl::GetNative(options),
             write_result.GetNative(),
             error.GetNative()
         ))
@@ -324,6 +327,9 @@ WriteResult CDriverCollectionImpl::Execute(const operations::InsertMany& operati
 
     auto context = MakeRequestContext("mongo_insert_many", operation);
 
+    auto options = operation.impl_->options;
+    SetMaxServerTime(options, operation.impl_->max_server_time, context);
+
     // https://jira.mongodb.org/browse/CDRIVER-3378
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wignored-attributes"
@@ -341,7 +347,7 @@ WriteResult CDriverCollectionImpl::Execute(const operations::InsertMany& operati
             context.collection.get(),
             bsons.data(),
             bsons.size(),
-            impl::GetNative(operation.impl_->options),
+            impl::GetNative(options),
             write_result.GetNative(),
             error.GetNative()
         ))

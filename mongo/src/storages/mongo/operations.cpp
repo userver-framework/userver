@@ -313,6 +313,10 @@ void InsertOne::SetOption(const options::WriteConcern& write_concern) {
 
 void InsertOne::SetOption(options::SuppressServerExceptions) { impl_->should_throw = false; }
 
+void InsertOne::SetOption(const options::MaxServerTime& max_server_time) {
+    AppendMaxServerTime(impl_->max_server_time, max_server_time);
+}
+
 InsertMany::InsertMany() = default;
 
 InsertMany::InsertMany(std::vector<formats::bson::Document> documents)
@@ -342,6 +346,10 @@ void InsertMany::SetOption(const options::WriteConcern& write_concern) {
 }
 
 void InsertMany::SetOption(options::SuppressServerExceptions) { impl_->should_throw = false; }
+
+void InsertMany::SetOption(const options::MaxServerTime& max_server_time) {
+    AppendMaxServerTime(impl_->max_server_time, max_server_time);
+}
 
 ReplaceOne::ReplaceOne(formats::bson::Document selector, formats::bson::Document replacement)
     : impl_(std::move(selector), std::move(replacement))
