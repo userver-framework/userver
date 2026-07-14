@@ -444,6 +444,9 @@ WriteResult CDriverCollectionImpl::Execute(const operations::Update& operation) 
 WriteResult CDriverCollectionImpl::Execute(const operations::Delete& operation) {
     auto context = MakeRequestContext("mongo_delete", operation);
 
+    auto options = operation.impl_->options;
+    SetMaxServerTime(options, operation.impl_->max_server_time, context);
+
     WriteResultHelper write_result;
     MongoError& error = write_result.GetError();
     stats::OperationStopwatch stopwatch(std::move(context.stats));
@@ -454,7 +457,7 @@ WriteResult CDriverCollectionImpl::Execute(const operations::Delete& operation) 
             has_succeeded = mongoc_collection_delete_one(
                 context.collection.get(),
                 native_selector_bson_ptr,
-                impl::GetNative(operation.impl_->options),
+                impl::GetNative(options),
                 write_result.GetNative(),
                 error.GetNative()
             );
@@ -464,7 +467,7 @@ WriteResult CDriverCollectionImpl::Execute(const operations::Delete& operation) 
             has_succeeded = mongoc_collection_delete_many(
                 context.collection.get(),
                 native_selector_bson_ptr,
-                impl::GetNative(operation.impl_->options),
+                impl::GetNative(options),
                 write_result.GetNative(),
                 error.GetNative()
             );

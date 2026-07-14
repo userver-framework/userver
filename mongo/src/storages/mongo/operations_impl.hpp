@@ -130,6 +130,7 @@ public:
     formats::bson::Document selector;
     stats::OperationKey op_key{ToStatsOpType(mode)};
     std::optional<formats::bson::impl::BsonBuilder> options;
+    std::chrono::milliseconds max_server_time{kNoMaxServerTime};
 };
 
 class FindAndModify::Impl {

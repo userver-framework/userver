@@ -433,6 +433,10 @@ void Delete::SetOption(options::SuppressServerExceptions) { impl_->should_throw 
 
 void Delete::SetOption(const options::Hint& hint) { AppendHint(impl::EnsureBuilder(impl_->options), hint); }
 
+void Delete::SetOption(const options::MaxServerTime& max_server_time) {
+    AppendMaxServerTime(impl_->max_server_time, max_server_time);
+}
+
 ATTRIBUTE_NO_SANITIZE_UNDEFINED
 FindAndModify::FindAndModify(formats::bson::Document query, const formats::bson::Document& update)
     : impl_(std::move(query))

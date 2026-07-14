@@ -694,6 +694,24 @@ UTEST_F(Options, MaxServerTime) {
             storages::mongo::ServerException
         );
     }
+
+    coll.InsertOne(bson::MakeDoc("y", 1));
+    coll.InsertOne(bson::MakeDoc("y", 2));
+
+    UEXPECT_THROW(
+        coll.DeleteMany(
+            bson::MakeDoc("$where", "sleep(100) || true"),
+            mongo::options::MaxServerTime{std::chrono::milliseconds{50}}
+        ),
+        storages::mongo::ServerException
+    );
+
+    UEXPECT_NO_THROW(coll.DeleteMany(
+        bson::MakeDoc("$where", "sleep(100) || true"),
+        mongo::options::MaxServerTime{utest::kMaxTestWaitTime}
+    ));
+
+    UEXPECT_NO_THROW(coll.DeleteOne({}, mongo::options::MaxServerTime{utest::kMaxTestWaitTime}));
 }
 
 UTEST_F(Options, DefaultMaxServerTime) {
