@@ -2,7 +2,8 @@
 
 #include <cstddef>
 
-#include <userver/utils/statistics/relaxed_counter.hpp>
+#include <userver/utils/statistics/rate.hpp>
+#include <userver/utils/statistics/rate_counter.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -23,26 +24,26 @@ public:
     struct Frozen final {
         Frozen& operator+=(const Frozen& other);
 
-        size_t connections_created{0};
-        size_t connections_closed{0};
+        utils::statistics::Rate connections_created;
+        utils::statistics::Rate connections_closed;
 
-        size_t bytes_sent{0};
-        size_t bytes_read{0};
+        utils::statistics::Rate bytes_sent;
+        utils::statistics::Rate bytes_read;
 
-        size_t messages_published{0};
-        size_t messages_consumed{0};
+        utils::statistics::Rate messages_published;
+        utils::statistics::Rate messages_consumed;
     };
     Frozen Get() const;
 
 private:
-    utils::statistics::RelaxedCounter<size_t> connections_created_{0};
-    utils::statistics::RelaxedCounter<size_t> connections_closed_{0};
+    utils::statistics::RateCounter connections_created_{};
+    utils::statistics::RateCounter connections_closed_{};
 
-    utils::statistics::RelaxedCounter<size_t> bytes_sent_{0};
-    utils::statistics::RelaxedCounter<size_t> bytes_read_{0};
+    utils::statistics::RateCounter bytes_sent_{};
+    utils::statistics::RateCounter bytes_read_{};
 
-    utils::statistics::RelaxedCounter<size_t> messages_published_{0};
-    utils::statistics::RelaxedCounter<size_t> messages_consumed_{0};
+    utils::statistics::RateCounter messages_published_{};
+    utils::statistics::RateCounter messages_consumed_{};
 };
 
 void DumpMetric(utils::statistics::Writer& writer, const ConnectionStatistics::Frozen& value);

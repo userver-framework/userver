@@ -16,9 +16,9 @@ namespace storages::redis::impl {
 
 struct PubsubChannelStatistics {
     std::chrono::steady_clock::time_point subscription_timestamp;
-    size_t messages_count{0};
-    size_t messages_size{0};
-    size_t messages_alien_count{0};
+    USERVER_NAMESPACE::utils::statistics::Rate messages_count;
+    USERVER_NAMESPACE::utils::statistics::Rate messages_size;
+    USERVER_NAMESPACE::utils::statistics::Rate messages_alien_count;
     // messages that were discarded by subscription queue because it
     // overflowed
     USERVER_NAMESPACE::utils::statistics::Rate messages_discarded;
@@ -26,11 +26,11 @@ struct PubsubChannelStatistics {
     std::optional<ServerId> server_id;
 
     void AccountMessage(size_t message_size) {
-        messages_count++;
-        messages_size += message_size;
+        messages_count += USERVER_NAMESPACE::utils::statistics::Rate{1};
+        messages_size += USERVER_NAMESPACE::utils::statistics::Rate{message_size};
     }
 
-    void AccountAlienMessage() { messages_alien_count++; }
+    void AccountAlienMessage() { messages_alien_count += USERVER_NAMESPACE::utils::statistics::Rate{1}; }
 
     PubsubChannelStatistics& operator+=(const PubsubChannelStatistics& other) {
         subscription_timestamp = std::chrono::steady_clock::time_point();

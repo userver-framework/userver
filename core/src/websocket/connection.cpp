@@ -104,7 +104,7 @@ public:
 
     void SendExtended(MessageExtended& message) {
         stats_.msg_sent++;
-        stats_.bytes_sent += message.data.size();
+        stats_.bytes_sent += utils::statistics::Rate{message.data.size()};
 
         const std::lock_guard lock(write_mutex_);
 
@@ -250,7 +250,7 @@ public:
 
             msg.is_text = frame_.is_text;
             stats_.msg_recv++;
-            stats_.bytes_recv += msg.data.size();
+            stats_.bytes_recv += utils::statistics::Rate{msg.data.size()};
             return true;
         }
     }
@@ -270,10 +270,10 @@ public:
 
     void AddFinalTags(tracing::Span& span) const override {
         span.AddTag("peer", remote_addr_.PrimaryAddressString());
-        span.AddTag("msg_sent", stats_.msg_sent.load());
-        span.AddTag("msg_recv", stats_.msg_recv.load());
-        span.AddTag("bytes_sent", stats_.bytes_sent.load());
-        span.AddTag("bytes_recv", stats_.bytes_recv.load());
+        span.AddTag("msg_sent", stats_.msg_sent.Load().value);
+        span.AddTag("msg_recv", stats_.msg_recv.Load().value);
+        span.AddTag("bytes_sent", stats_.bytes_sent.Load().value);
+        span.AddTag("bytes_recv", stats_.bytes_recv.Load().value);
     }
 
     void AddStatistics(Statistics& stats) const override {

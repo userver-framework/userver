@@ -110,11 +110,11 @@ std::string WebsocketHandlerBase::HandleRequest(
 }
 
 void WebsocketHandlerBase::WriteMetrics(utils::statistics::Writer& writer) const {
-    writer["msg"]["sent"] = stats_.msg_sent.load();
-    writer["msg"]["recv"] = stats_.msg_recv.load();
+    writer["msg"]["sent"] = stats_.msg_sent;
+    writer["msg"]["recv"] = stats_.msg_recv;
 
-    writer["bytes"]["sent"] = stats_.bytes_sent.load();
-    writer["bytes"]["recv"] = stats_.bytes_recv.load();
+    writer["bytes"]["sent"] = stats_.bytes_sent;
+    writer["bytes"]["recv"] = stats_.bytes_recv;
 }
 
 yaml_config::Schema WebsocketHandlerBase::GetStaticConfigSchema() {

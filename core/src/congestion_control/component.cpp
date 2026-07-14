@@ -45,8 +45,14 @@ void FormatStats(const Controller& c, size_t activated_factor, utils::statistics
         builder_states["no-limit"] = stats.no_limit;
         builder_states["not-overloaded-no-pressure"] = stats.not_overload_no_pressure;
         builder_states["not-overloaded-under-pressure"] = stats.not_overload_pressure;
-        builder_states["overloaded-no-pressure"] = stats.overload_no_pressure;
-        builder_states["overloaded-under-pressure"] = stats.overload_pressure;
+
+        // "overloaded-*" states are used in production alerts that rely on the
+        // legacy GAUGE + non_negative_derivative pattern, so keep the legacy value alongside
+        // the new RATE ".v2" metric until the alerts are migrated.
+        builder_states["overloaded-no-pressure"] = stats.overload_no_pressure.Load().value;
+        builder_states["overloaded-no-pressure"]["v2"] = stats.overload_no_pressure;
+        builder_states["overloaded-under-pressure"] = stats.overload_pressure.Load().value;
+        builder_states["overloaded-under-pressure"]["v2"] = stats.overload_pressure;
     }
 
     auto diff = std::chrono::steady_clock::now().time_since_epoch() - stats.last_overload_pressure.load();

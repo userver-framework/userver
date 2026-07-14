@@ -12,6 +12,7 @@
 #include <userver/congestion_control/controllers/linear.hpp>
 #include <userver/utils/statistics/min_max_avg.hpp>
 #include <userver/utils/statistics/percentile.hpp>
+#include <userver/utils/statistics/rate.hpp>
 #include <userver/utils/statistics/rate_counter.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
 #include <userver/utils/statistics/relaxed_counter.hpp>
@@ -22,33 +23,33 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::postgres {
 
 /// @brief Template transaction statistics storage
-template <typename Counter, typename PercentileAccumulator>
+template <typename GaugeCounter, typename RateCounter, typename PercentileAccumulator>
 struct TransactionStatistics {
     /// Number of transactions started
-    Counter total = 0;
+    RateCounter total{};
     /// Number of transactions committed
-    Counter commit_total = 0;
+    RateCounter commit_total{};
     /// Number of transactions rolled back
-    Counter rollback_total = 0;
+    RateCounter rollback_total{};
     /// Number of out-of-transaction executions
-    Counter out_of_trx_total = 0;
+    RateCounter out_of_trx_total{};
     /// Number of parsed queries
-    Counter parse_total = 0;
+    RateCounter parse_total{};
     /// Number of query executions
-    Counter execute_total = 0;
+    RateCounter execute_total{};
     /// Total number of replies
-    Counter reply_total = 0;
+    RateCounter reply_total{};
     /// Number of portal bind operations
-    Counter portal_bind_total{0};
+    RateCounter portal_bind_total{};
     /// Error during query execution
-    Counter error_execute_total = 0;
+    RateCounter error_execute_total{};
     /// Timeout while executing query
-    Counter execute_timeout = 0;
+    RateCounter execute_timeout{};
     /// Duplicate prepared statements
     /// This is not a hard error, the prepared statements are quite reusable due
     /// to pretty uniqueness of names. Nevertheless we would like to see them to
     /// diagnose certain kinds of problems
-    Counter duplicate_prepared_statements = 0;
+    RateCounter duplicate_prepared_statements{};
 
     // TODO pick reasonable resolution for transaction
     // execution times
@@ -68,28 +69,28 @@ struct TransactionStatistics {
 };
 
 /// @brief Template connection statistics storage
-template <typename Counter, typename MmaAccumulator>
+template <typename GaugeCounter, typename RateCounter, typename MmaAccumulator>
 struct ConnectionStatistics {
     /// Number of connections opened
-    Counter open_total = 0;
+    RateCounter open_total{};
     /// Number of connections dropped
-    Counter drop_total = 0;
+    RateCounter drop_total{};
     /// Number of active connections
-    Counter active = 0;
+    GaugeCounter active = 0;
     /// Number of connections in use
-    Counter used = 0;
+    GaugeCounter used = 0;
     /// Number of maximum allowed connections
-    Counter maximum = 0;
+    GaugeCounter maximum = 0;
     /// Number of waiting requests
-    Counter waiting = 0;
+    GaugeCounter waiting = 0;
     /// Error during connection
-    Counter error_total = 0;
+    RateCounter error_total{};
     /// Connection timeouts (timeouts while connecting)
-    Counter error_timeout = 0;
+    RateCounter error_timeout{};
     /// Number of rejected connection attempts due to rate limiting
-    Counter rate_limit_throttled = 0;
+    RateCounter rate_limit_throttled{};
     /// Number of maximum allowed waiting requests
-    Counter max_queue_size = 0;
+    GaugeCounter max_queue_size = 0;
 
     /// Prepared statements count min-max-avg
     MmaAccumulator prepared_statements;
@@ -105,32 +106,34 @@ struct InstanceTopologyStatistics {
 };
 
 /// @brief Template instance statistics storage
-template <typename Counter, typename PercentileAccumulator, typename MmaAccumulator>
+template <typename GaugeCounter, typename RateCounter, typename PercentileAccumulator, typename MmaAccumulator>
 struct InstanceStatisticsTemplate {
     /// Connection statistics
-    ConnectionStatistics<Counter, MmaAccumulator> connection;
+    ConnectionStatistics<GaugeCounter, RateCounter, MmaAccumulator> connection;
     /// Transaction statistics
-    TransactionStatistics<Counter, PercentileAccumulator> transaction;
+    TransactionStatistics<GaugeCounter, RateCounter, PercentileAccumulator> transaction;
     /// Topology statistics
     InstanceTopologyStatistics<MmaAccumulator> topology;
     /// Error caused by pool exhaustion
-    Counter pool_exhaust_errors = 0;
+    RateCounter pool_exhaust_errors{};
     /// Error caused by queue size overflow
-    Counter queue_size_errors = 0;
+    RateCounter queue_size_errors{};
     /// Connect time percentile
     PercentileAccumulator connection_percentile;
     /// Acquire connection percentile
     PercentileAccumulator acquire_percentile;
     /// Congestion control statistics
-    std::conditional_t<std::is_same_v<Counter, uint32_t>, std::byte /* NOOP */, congestion_control::v2::Stats>
+    std::conditional_t<std::is_same_v<GaugeCounter, uint32_t>, std::byte /* NOOP */, congestion_control::v2::Stats>
         congestion_control{};
 };
 
 using RateCounter = USERVER_NAMESPACE::utils::statistics::RateCounter;
+using Rate = USERVER_NAMESPACE::utils::statistics::Rate;
 using Percentile = USERVER_NAMESPACE::utils::statistics::Percentile<2048>;
 using MinMaxAvg = USERVER_NAMESPACE::utils::statistics::MinMaxAvg<uint32_t>;
 using InstanceStatistics = InstanceStatisticsTemplate<
     USERVER_NAMESPACE::utils::statistics::RelaxedCounter<uint32_t>,
+    RateCounter,
     USERVER_NAMESPACE::utils::statistics::RecentPeriod<Percentile, Percentile, detail::SteadyCoarseClock>,
     USERVER_NAMESPACE::utils::statistics::RecentPeriod<MinMaxAvg, MinMaxAvg, detail::SteadyCoarseClock>>;
 
@@ -146,7 +149,7 @@ struct StatementStatistics final {
     }
 };
 
-using InstanceStatisticsNonatomicBase = InstanceStatisticsTemplate<uint32_t, Percentile, MinMaxAvg>;
+using InstanceStatisticsNonatomicBase = InstanceStatisticsTemplate<uint32_t, Rate, Percentile, MinMaxAvg>;
 
 struct InstanceStatisticsNonatomic : InstanceStatisticsNonatomicBase {
     InstanceStatisticsNonatomic() = default;
@@ -162,29 +165,29 @@ struct InstanceStatisticsNonatomic : InstanceStatisticsNonatomicBase {
         const InstanceStatistics& stats,
         const decltype(InstanceStatistics::topology)& topology_stats
     ) {
-        connection.open_total = stats.connection.open_total;
-        connection.drop_total = stats.connection.drop_total;
+        connection.open_total = stats.connection.open_total.Load();
+        connection.drop_total = stats.connection.drop_total.Load();
         connection.active = stats.connection.active;
         connection.used = stats.connection.used;
         connection.maximum = stats.connection.maximum;
         connection.waiting = stats.connection.waiting;
-        connection.error_total = stats.connection.error_total;
-        connection.error_timeout = stats.connection.error_timeout;
-        connection.rate_limit_throttled = stats.connection.rate_limit_throttled;
+        connection.error_total = stats.connection.error_total.Load();
+        connection.error_timeout = stats.connection.error_timeout.Load();
+        connection.rate_limit_throttled = stats.connection.rate_limit_throttled.Load();
         connection.prepared_statements = stats.connection.prepared_statements.GetStatsForPeriod();
         connection.max_queue_size = stats.connection.max_queue_size;
 
-        transaction.total = stats.transaction.total;
-        transaction.commit_total = stats.transaction.commit_total;
-        transaction.rollback_total = stats.transaction.rollback_total;
-        transaction.out_of_trx_total = stats.transaction.out_of_trx_total;
-        transaction.parse_total = stats.transaction.parse_total;
-        transaction.execute_total = stats.transaction.execute_total;
-        transaction.reply_total = stats.transaction.reply_total;
-        transaction.portal_bind_total = stats.transaction.portal_bind_total;
-        transaction.error_execute_total = stats.transaction.error_execute_total;
-        transaction.execute_timeout = stats.transaction.execute_timeout;
-        transaction.duplicate_prepared_statements = stats.transaction.duplicate_prepared_statements;
+        transaction.total = stats.transaction.total.Load();
+        transaction.commit_total = stats.transaction.commit_total.Load();
+        transaction.rollback_total = stats.transaction.rollback_total.Load();
+        transaction.out_of_trx_total = stats.transaction.out_of_trx_total.Load();
+        transaction.parse_total = stats.transaction.parse_total.Load();
+        transaction.execute_total = stats.transaction.execute_total.Load();
+        transaction.reply_total = stats.transaction.reply_total.Load();
+        transaction.portal_bind_total = stats.transaction.portal_bind_total.Load();
+        transaction.error_execute_total = stats.transaction.error_execute_total.Load();
+        transaction.execute_timeout = stats.transaction.execute_timeout.Load();
+        transaction.duplicate_prepared_statements = stats.transaction.duplicate_prepared_statements.Load();
         transaction.total_percentile = stats.transaction.total_percentile.GetStatsForPeriod();
         transaction.busy_percentile = stats.transaction.busy_percentile.GetStatsForPeriod();
         transaction.wait_start_percentile = stats.transaction.wait_start_percentile.GetStatsForPeriod();
@@ -194,8 +197,8 @@ struct InstanceStatisticsNonatomic : InstanceStatisticsNonatomicBase {
         topology.roundtrip_time = topology_stats.roundtrip_time.GetStatsForPeriod();
         topology.replication_lag = topology_stats.replication_lag.GetStatsForPeriod();
 
-        pool_exhaust_errors = stats.pool_exhaust_errors;
-        queue_size_errors = stats.queue_size_errors;
+        pool_exhaust_errors = stats.pool_exhaust_errors.Load();
+        queue_size_errors = stats.queue_size_errors.Load();
         connection_percentile = stats.connection_percentile.GetStatsForPeriod();
         acquire_percentile = stats.acquire_percentile.GetStatsForPeriod();
 

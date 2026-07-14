@@ -1,5 +1,6 @@
 #include <userver/utest/utest.hpp>
 #include <userver/utils/statistics/labels.hpp>
+#include <userver/utils/statistics/rate.hpp>
 #include <userver/utils/statistics/testing.hpp>
 
 #include <storages/clickhouse/impl/connection_ptr.hpp>
@@ -48,13 +49,13 @@ UTEST(Metrics, Basic) {
 
     const auto insert_stats = cluster.GetStatistics("clickhouse.inserts");
 
-    EXPECT_EQ(connection_stats.SingleMetric("closed").AsInt(), 2);
+    EXPECT_EQ(connection_stats.SingleMetric("closed"), utils::statistics::Rate{2});
 
-    EXPECT_EQ(queries_stats.SingleMetric("total").AsInt(), 2);
-    EXPECT_EQ(queries_stats.SingleMetric("error").AsInt(), 1);
+    EXPECT_EQ(queries_stats.SingleMetric("total"), utils::statistics::Rate{2});
+    EXPECT_EQ(queries_stats.SingleMetric("error"), utils::statistics::Rate{1});
 
-    EXPECT_EQ(insert_stats.SingleMetric("total").AsInt(), 2);
-    EXPECT_EQ(insert_stats.SingleMetric("error").AsInt(), 1);
+    EXPECT_EQ(insert_stats.SingleMetric("total"), utils::statistics::Rate{2});
+    EXPECT_EQ(insert_stats.SingleMetric("error"), utils::statistics::Rate{1});
 }
 
 UTEST(Metrics, ActiveConnections) {

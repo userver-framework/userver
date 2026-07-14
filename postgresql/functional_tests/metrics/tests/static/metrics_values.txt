@@ -44,14 +44,16 @@ cache.incremental.update.no_changes_count.v2: cache_name=key-value-pg-cache	RATE
 
 ### PostgreSQL distlock related metrics
 
-distlock.brain-splits: distlock_name=component-distlock-metrics	GAUGE	0
-distlock.failures: distlock_name=component-distlock-metrics	GAUGE	0
+distlock.brain-splits: distlock_name=component-distlock-metrics	RATE	0
+distlock.failures: distlock_name=component-distlock-metrics	RATE	0
 distlock.locked-for-ms: distlock_name=component-distlock-metrics	GAUGE	0
 distlock.locked: distlock_name=component-distlock-metrics	GAUGE	0
 distlock.running: distlock_name=component-distlock-metrics	GAUGE	0
 distlock.successes: distlock_name=component-distlock-metrics	GAUGE	0
+distlock.successes.v2: distlock_name=component-distlock-metrics	RATE	0
 distlock.task-failures: distlock_name=component-distlock-metrics	GAUGE	0
-distlock.watchdog-triggers: distlock_name=component-distlock-metrics	GAUGE	0
+distlock.task-failures.v2: distlock_name=component-distlock-metrics	RATE	0
+distlock.watchdog-triggers: distlock_name=component-distlock-metrics	RATE	0
 
 
 ### PostgreSQL database related metrics
@@ -63,7 +65,7 @@ postgresql.connections.active: postgresql_cluster_host_type=master, postgresql_d
 postgresql.connections.busy: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
 
 # Total closed connection
-postgresql.connections.closed: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.connections.closed: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	RATE	0
 
 # The maximum number of statements waiting for execution since service start
 postgresql.connections.max-queue-size: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
@@ -72,13 +74,13 @@ postgresql.connections.max-queue-size: postgresql_cluster_host_type=master, post
 postgresql.connections.max: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
 
 # Total opened connections (many of which may be already closed) since service start
-postgresql.connections.opened: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.connections.opened: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	RATE	0
 
 # The number of statements waiting for a connection to execute
 postgresql.connections.waiting: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
 
 # Number of statements rejected by PostgreSQL connection rate limiter
-postgresql.connections.rate-limit-throttled: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.connections.rate-limit-throttled: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	RATE	0
 
 # Whether connlimit mode: auto is enabled
 postgresql.connlimit-mode-auto-enabled: postgresql_database=pg_key_value, postgresql_database_shard=shard_0	GAUGE	0
@@ -91,6 +93,13 @@ postgresql.errors: postgresql_cluster_host_type=master, postgresql_database=pg_k
 postgresql.errors: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=query-exec, postgresql_instance=localhost:00000	GAUGE	0
 postgresql.errors: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=query-timeout, postgresql_instance=localhost:00000	GAUGE	0
 postgresql.errors: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=queue, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.errors.v2: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=connection, postgresql_instance=localhost:00000	RATE	0
+postgresql.errors.v2: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=connection-timeout, postgresql_instance=localhost:00000	RATE	0
+postgresql.errors.v2: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=duplicate-prepared-statement, postgresql_instance=localhost:00000	RATE	0
+postgresql.errors.v2: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=pool, postgresql_instance=localhost:00000	RATE	0
+postgresql.errors.v2: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=query-exec, postgresql_instance=localhost:00000	RATE	0
+postgresql.errors.v2: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=query-timeout, postgresql_instance=localhost:00000	RATE	0
+postgresql.errors.v2: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=queue, postgresql_instance=localhost:00000	RATE	0
 
 
 # The average number of prepared statements per connection since service start
@@ -105,15 +114,16 @@ postgresql.prepared-per-connection.min: postgresql_cluster_host_type=master, pos
 
 # The total number of executed queries since service start
 postgresql.queries.executed: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.queries.executed.v2: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	RATE	0
 
 # The total number of parsed queries since service start
-postgresql.queries.parsed: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.queries.parsed: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	RATE	0
 
 # The total number of portals created (many of which may be already closed) since service start
-postgresql.queries.portals-bound: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.queries.portals-bound: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	RATE	0
 
 # The total number of results returned since service start
-postgresql.queries.replies: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.queries.replies: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	RATE	0
 
 
 postgresql.replication-lag.avg: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
@@ -136,16 +146,18 @@ postgresql.statement_timings: percentile=p99_9, postgresql_cluster_host_type=mas
 
 
 # The total number of executed transactions, including ping statements since service start
-postgresql.transactions.total: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.total: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	RATE	0
 
 # The total number of committed transactions since service start
 postgresql.transactions.committed: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.committed.v2: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	RATE	0
 
 # The total number of executed statements executed without a transaction (ping statements) since service start
-postgresql.transactions.no-tran: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.no-tran: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	RATE	0
 
 # The total number of rolled-back transactions since service start
 postgresql.transactions.rolled-back: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
+postgresql.transactions.rolled-back.v2: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	RATE	0
 
 
 # Time to acquire connection for query execution; high timing means that the query spends a lot of time waiting in queue

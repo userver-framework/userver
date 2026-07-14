@@ -13,6 +13,7 @@
 #include <userver/congestion_control/sensor.hpp>
 #include <userver/dynamic_config/source.hpp>
 #include <userver/formats/json_fwd.hpp>
+#include <userver/utils/statistics/rate_counter.hpp>
 
 #include <dynamic_config/variables/USERVER_RPS_CCONTROL.hpp>
 
@@ -32,11 +33,11 @@ struct PolicyState {
 };
 
 struct Stats final {
-    std::atomic<size_t> no_limit{0};
-    std::atomic<size_t> not_overload_no_pressure{0};
-    std::atomic<size_t> not_overload_pressure{0};
-    std::atomic<size_t> overload_no_pressure{0};
-    std::atomic<size_t> overload_pressure{0};
+    utils::statistics::RateCounter no_limit{};
+    utils::statistics::RateCounter not_overload_no_pressure{};
+    utils::statistics::RateCounter not_overload_pressure{};
+    utils::statistics::RateCounter overload_no_pressure{};
+    utils::statistics::RateCounter overload_pressure{};
 
     std::atomic<size_t> current_state{0};
     std::atomic<std::chrono::seconds> last_overload_pressure{
