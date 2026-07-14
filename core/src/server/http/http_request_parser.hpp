@@ -4,6 +4,7 @@
 #include <functional>
 #include <memory>
 #include <optional>
+#include <string_view>
 
 #include <llhttp.h>
 
@@ -47,11 +48,11 @@ private:
     static int OnMessageComplete(llhttp_t* p);
 
     int OnMessageBeginImpl(llhttp_t* p);
-    int OnUrlImpl(llhttp_t* p, const char* data, size_t size);
-    int OnHeaderFieldImpl(llhttp_t* p, const char* data, size_t size);
-    int OnHeaderValueImpl(llhttp_t* p, const char* data, size_t size);
+    int OnUrlImpl(llhttp_t* p, std::string_view data);
+    int OnHeaderFieldImpl(llhttp_t* p, std::string_view data);
+    int OnHeaderValueImpl(llhttp_t* p, std::string_view data);
     int OnHeadersCompleteImpl(llhttp_t* p);
-    int OnBodyImpl(llhttp_t* p, const char* data, size_t size);
+    int OnBodyImpl(llhttp_t* p, std::string_view data);
     int OnMessageCompleteImpl(llhttp_t* p);
 
     void CreateRequestConstructor();

@@ -1156,6 +1156,34 @@ UTEST(HttpClient, HeadersAndWhitespaces) {
     }
 }
 
+// Boundary cases for the header line trimming logic: a value that becomes
+// empty after trimming (nothing follows the colon but whitespace/CRLF), and a
+// single-character value with no whitespace at all (no room to hide an
+// off-by-one error in the trimming code without dropping that one character).
+UTEST(HttpClient, HeadersWithBoundaryValues) {
+    auto http_client_ptr = utest::CreateHttpClient();
+
+    const std::pair<std::string, std::string> header_value_and_expected[] = {
+        {"", ""},
+        {"\t  ", ""},
+        {"a", "a"},
+        {"\ta", "a"},
+    };
+
+    for (const auto& [header_value, expected] : header_value_and_expected) {
+        const utest::SimpleServer http_server{
+            clients::http::Response200WithHeader{std::string(kTestHeader) + ':' + header_value}
+        };
+
+        const auto
+            response = http_client_ptr->CreateRequest().post(http_server.GetBaseUrl()).timeout(kTimeout).perform();
+
+        EXPECT_TRUE(response->IsOk()) << "Header value is '" << header_value << "'";
+        ASSERT_TRUE(response->headers().count(kTestHeader)) << "Header value is '" << header_value << "'";
+        EXPECT_EQ(response->headers()[kTestHeader], expected) << "Header value is '" << header_value << "'";
+    }
+}
+
 // Make sure that certs are set up and reset on the end of a request.
 //
 // Smoke test. Fails on MacOS with Segmentation fault while calling

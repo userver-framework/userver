@@ -201,9 +201,9 @@ void FileDescriptor::Write(std::span<const struct iovec> contents) {
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const)
-std::size_t FileDescriptor::Read(char* buffer, std::size_t max_size) {
+std::size_t FileDescriptor::Read(std::span<char> buffer) {
     while (true) {
-        const ::ssize_t s = ::read(fd_, buffer, max_size);
+        const ::ssize_t s = ::read(fd_, buffer.data(), buffer.size());
         if (s < 0) {
             if (errno == EAGAIN || errno == EINTR) {
                 continue;

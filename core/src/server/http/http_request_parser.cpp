@@ -135,25 +135,25 @@ int HttpRequestParser::OnMessageComplete(llhttp_t* p) {
 int HttpRequestParser::OnUrl(llhttp_t* p, const char* data, size_t size) {
     auto* http_request_parser = static_cast<HttpRequestParser*>(p->data);
     UASSERT(http_request_parser != nullptr);
-    return http_request_parser->OnUrlImpl(p, data, size);
+    return http_request_parser->OnUrlImpl(p, std::string_view{data, size});
 }
 
 int HttpRequestParser::OnHeaderField(llhttp_t* p, const char* data, size_t size) {
     auto* http_request_parser = static_cast<HttpRequestParser*>(p->data);
     UASSERT(http_request_parser != nullptr);
-    return http_request_parser->OnHeaderFieldImpl(p, data, size);
+    return http_request_parser->OnHeaderFieldImpl(p, std::string_view{data, size});
 }
 
 int HttpRequestParser::OnHeaderValue(llhttp_t* p, const char* data, size_t size) {
     auto* http_request_parser = static_cast<HttpRequestParser*>(p->data);
     UASSERT(http_request_parser != nullptr);
-    return http_request_parser->OnHeaderValueImpl(p, data, size);
+    return http_request_parser->OnHeaderValueImpl(p, std::string_view{data, size});
 }
 
 int HttpRequestParser::OnBody(llhttp_t* p, const char* data, size_t size) {
     auto* http_request_parser = static_cast<HttpRequestParser*>(p->data);
     UASSERT(http_request_parser != nullptr);
-    return http_request_parser->OnBodyImpl(p, data, size);
+    return http_request_parser->OnBodyImpl(p, std::string_view{data, size});
 }
 
 int HttpRequestParser::OnMessageBeginImpl(llhttp_t*) {
@@ -162,12 +162,12 @@ int HttpRequestParser::OnMessageBeginImpl(llhttp_t*) {
     return 0;
 }
 
-int HttpRequestParser::OnUrlImpl(llhttp_t* p, const char* data, size_t size) {
+int HttpRequestParser::OnUrlImpl(llhttp_t* p, std::string_view data) {
     UASSERT(request_constructor_);
-    LOG_TRACE() << "url: '" << std::string_view(data, size) << '\'';
+    LOG_TRACE() << "url: '" << data << '\'';
     request_constructor_->SetMethod(ConvertHttpMethod(static_cast<llhttp_method>(p->method)));
     try {
-        request_constructor_->AppendUrl(data, size);
+        request_constructor_->AppendUrl(data);
     } catch (const std::exception& ex) {
         LOG_WARNING() << "can't append url: " << ex;
         return -1;
@@ -175,14 +175,14 @@ int HttpRequestParser::OnUrlImpl(llhttp_t* p, const char* data, size_t size) {
     return 0;
 }
 
-int HttpRequestParser::OnHeaderFieldImpl(llhttp_t* p, const char* data, size_t size) {
+int HttpRequestParser::OnHeaderFieldImpl(llhttp_t* p, std::string_view data) {
     UASSERT(request_constructor_);
-    LOG_TRACE() << "header field: '" << std::string_view(data, size) << "'";
+    LOG_TRACE() << "header field: '" << data << "'";
     if (!CheckUrlComplete(p)) {
         return -1;
     }
     try {
-        request_constructor_->AppendHeaderField(data, size);
+        request_constructor_->AppendHeaderField(data);
     } catch (const std::exception& ex) {
         LOG_WARNING() << "can't append header field: " << ex;
         return -1;
@@ -190,14 +190,14 @@ int HttpRequestParser::OnHeaderFieldImpl(llhttp_t* p, const char* data, size_t s
     return 0;
 }
 
-int HttpRequestParser::OnHeaderValueImpl(llhttp_t* p, const char* data, size_t size) {
+int HttpRequestParser::OnHeaderValueImpl(llhttp_t* p, std::string_view data) {
     UASSERT(request_constructor_);
     if (!CheckUrlComplete(p)) {
         return -1;
     }
-    LOG_TRACE() << "header value: '" << std::string_view(data, size) << '\'';
+    LOG_TRACE() << "header value: '" << data << '\'';
     try {
-        request_constructor_->AppendHeaderValue(data, size);
+        request_constructor_->AppendHeaderValue(data);
     } catch (const std::exception& ex) {
         LOG_WARNING() << "can't append header value: " << ex;
         return -1;
@@ -211,7 +211,7 @@ int HttpRequestParser::OnHeadersCompleteImpl(llhttp_t* p) {
         return -1;
     }
     try {
-        request_constructor_->AppendHeaderField("", 0);
+        request_constructor_->AppendHeaderField(std::string_view{});
     } catch (const std::exception& ex) {
         LOG_WARNING() << "can't append header value: " << ex;
         return -1;
@@ -220,14 +220,14 @@ int HttpRequestParser::OnHeadersCompleteImpl(llhttp_t* p) {
     return 0;
 }
 
-int HttpRequestParser::OnBodyImpl(llhttp_t* p, const char* data, size_t size) {
+int HttpRequestParser::OnBodyImpl(llhttp_t* p, std::string_view data) {
     UASSERT(request_constructor_);
     if (!CheckUrlComplete(p)) {
         return -1;
     }
-    LOG_TRACE() << "body: '" << std::string_view(data, size) << "'";
+    LOG_TRACE() << "body: '" << data << "'";
     try {
-        request_constructor_->AppendBody(data, size);
+        request_constructor_->AppendBody(data);
     } catch (const std::exception& ex) {
         LOG_WARNING() << "can't append body: " << ex;
         return -1;

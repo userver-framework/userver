@@ -28,6 +28,7 @@
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/rand.hpp>
+#include <userver/utils/text_light.hpp>
 #include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -93,25 +94,21 @@ std::error_code TestsuiteResponseHook(Status status_code, const Headers& headers
     return {};
 }
 
-bool IsSetCookie(std::string_view key) {
+bool IsSetCookie(std::string_view key) noexcept {
     const utils::StrIcaseEqual equal;
     return equal(key, USERVER_NAMESPACE::http::headers::kSetCookie);
 }
 
 // Not a strict check, but OK for non-header line check
-bool IsHttpStatusLineStart(const char* ptr, size_t size) { return (size > 5 && memcmp(ptr, "HTTP/", 5) == 0); }
+bool IsHttpStatusLineStart(std::string_view str) noexcept { return str.starts_with("HTTP/"); }
 
 std::string ToString(HttpMethod method) { return std::string{ToStringView(method)}; }
 
-char* RfindNotSpace(char* ptr, size_t size) {
-    for (char* p = ptr + size - 1; p >= ptr; --p) {
-        const char c = *p;
-        if (c == '\n' || c == '\r' || c == ' ' || c == '\t') {
-            continue;
-        }
-        return p + 1;
-    }
-    return ptr;
+std::size_t RfindNotSpace(std::string_view str) noexcept { return str.find_last_not_of(" \t\r\n"); }
+
+std::string_view SkipSpaceTab(std::string_view str) noexcept {
+    const auto pos = str.find_first_not_of(" \t");
+    return str.substr(pos == std::string_view::npos ? str.size() : pos);
 }
 
 // TODO: very low-level, do it in another place
@@ -136,10 +133,8 @@ std::exception_ptr PrepareDeadlinePassedException(std::string_view url, LocalSta
     ));
 }
 
-bool IsPrefix(const std::string& url, const std::vector<std::string>& prefixes) {
-    return !(std::ranges::find_if(prefixes, [&url](const std::string& prefix) {
-                 return url.starts_with(prefix);
-             }) == prefixes.end());
+bool IsPrefix(std::string_view url, const std::vector<std::string>& prefixes) {
+    return std::ranges::any_of(prefixes, [&url](const std::string& prefix) { return url.starts_with(prefix); });
 }
 
 class MaybeOwnedUrl final {
@@ -440,11 +435,12 @@ void RequestState::SetDeadlinePropagationConfig(const DeadlinePropagationConfig&
 
 size_t RequestState::OnHeader(void* ptr, size_t size, size_t nmemb, void* userdata) {
     auto* self = static_cast<RequestState*>(userdata);
-    const std::size_t data_size = size * nmemb;
+    UASSERT(self);
+    const std::string_view header{static_cast<char*>(ptr), size * nmemb};
     if (self) {
-        self->ParseHeader(static_cast<char*>(ptr), data_size);
+        self->ParseHeader(header);
     }
-    return data_size;
+    return header.size();
 }
 
 curl::native::CURLcode RequestState::OnCertificateRequest(void* /*curl*/, void* sslctx, void* userdata) noexcept {
@@ -680,29 +676,29 @@ void RequestState::OnRetryTimer(std::error_code err) {
     }
 }
 
-void RequestState::ParseSingleCookie(const char* ptr, size_t size) {
-    if (auto cookie = server::http::Cookie::FromString(std::string_view(ptr, size))) {
-        [[maybe_unused]] auto [it, ok] = response_->cookies().emplace(cookie->Name(), std::move(*cookie));
+void RequestState::ParseSingleCookie(std::string_view cookie) {
+    if (auto parsed_cookie = server::http::Cookie::FromString(cookie)) {
+        [[maybe_unused]] auto [it, ok] = response_->cookies().emplace(parsed_cookie->Name(), std::move(*parsed_cookie));
         if (!ok) {
             LOG_WARNING() << "Failed to add cookie '" + it->first + "', already added";
         }
     }
 }
 
-void RequestState::ParseHeader(char* ptr, size_t size) try
+void RequestState::ParseHeader(std::string_view header) try
 {
     /* It is a fast path in curl's thread (io thread).  Creation of tmp
      * std::string, boost::trim_right_if(), etc. is too expensive. */
 
-    auto* end = RfindNotSpace(ptr, size);
-    if (ptr == end) {
+    const auto last_non_space_pos = RfindNotSpace(header);
+    if (last_non_space_pos == std::string_view::npos) {
         const auto status_code = static_cast<Status>(easy().get_response_code());
         response()->SetStatusCode(status_code);
         return;
     }
-    *end = '\0';
+    header = header.substr(0, last_non_space_pos + 1);
 
-    if (IsHttpStatusLineStart(ptr, size)) {
+    if (IsHttpStatusLineStart(header)) {
         if (!response()->headers().empty()) {
             LOG_INFO() << "Drop headers: " << (response_->headers() | std::views::keys);
             // In case of redirect drop 1st response headers
@@ -711,18 +707,17 @@ void RequestState::ParseHeader(char* ptr, size_t size) try
         return;
     }
 
-    const char* col_pos = static_cast<const char*>(memchr(ptr, ':', size));
-    if (col_pos == nullptr) {
-        LOG_WARNING() << "Incorrect header line: " << ptr;
+    const auto col_pos = header.find(':');
+    if (col_pos == std::string_view::npos) {
+        LOG_WARNING() << "Incorrect header line: " << header;
         return;
     }
 
-    std::string key(ptr, col_pos - ptr);
-
-    ++col_pos;
+    const auto key = header.substr(0, col_pos);
+    auto value = header.substr(col_pos + 1);
 
     if (IsSetCookie(key)) {
-        ParseSingleCookie(col_pos, end - col_pos);
+        ParseSingleCookie(value);
         return;
     }
 
@@ -730,12 +725,8 @@ void RequestState::ParseHeader(char* ptr, size_t size) try
     //
     // header-field   = field-name ":" OWS field-value OWS
     // OWS            = *( SP / HTAB )
-    while (end != col_pos && (*col_pos == ' ' || *col_pos == '\t')) {
-        ++col_pos;
-    }
-
-    std::string value(col_pos, end - col_pos);
-    response_->headers().emplace(std::move(key), std::move(value));
+    value = SkipSpaceTab(value);
+    response_->headers().emplace(key, value);
 } catch (const std::exception& e) {
     LOG_ERROR() << "Failed to parse header: " << e.what();
 }
@@ -1137,6 +1128,7 @@ void RequestState::ResetDataForNewRequest() {
 
 size_t RequestState::StreamWriteFunction(char* ptr, size_t size, size_t nmemb, void* userdata) {
     const size_t actual_size = size * nmemb;
+    const std::string_view chunk{ptr, actual_size};
     RequestState& rs = *static_cast<RequestState*>(userdata);
     auto* stream_data = std::get_if<StreamData>(&rs.data_);
     UASSERT(stream_data);
@@ -1145,7 +1137,7 @@ size_t RequestState::StreamWriteFunction(char* ptr, size_t size, size_t nmemb, v
         << fmt::format("Got bytes in stream API chunk, chunk of ({} bytes)", actual_size)
         << tracing::impl::LogSpanAsLastNoCurrent{rs.span_storage_->Get()};
 
-    std::string buffer(ptr, actual_size);
+    std::string buffer(chunk);
     auto& queue_producer = stream_data->queue_producer;
 
     if (!stream_data->headers_promise_set.exchange(true)) {

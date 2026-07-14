@@ -37,7 +37,7 @@ UTEST(Inotify, File) {
         fd.Write("1");
         fd.Seek(0);
         char buffer[1];
-        fd.Read(buffer, sizeof(buffer));
+        fd.Read(buffer);
     }
 
     auto event = inotify.Poll({});

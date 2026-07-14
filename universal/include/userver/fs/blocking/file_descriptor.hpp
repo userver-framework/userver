@@ -80,7 +80,7 @@ public:
     /// @brief Reads data from the file at current offset
     /// @returns The amount of bytes actually acquired, which can be equal to `max_size`, or less on end-of-file
     /// @throws std::runtime_error
-    std::size_t Read(char* buffer, std::size_t max_size);
+    std::size_t Read(std::span<char> buffer);
 
     /// @brief Sets the file read/write offset from the beginning of the file
     /// @throws std::runtime_error

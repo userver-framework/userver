@@ -148,12 +148,12 @@ constexpr unsigned char kMinFirstByteValueFor3ByteCodePoint = kWellFormed3Bytes[
 constexpr unsigned char kMinFirstByteValueFor4ByteCodePoint = kWellFormed4Bytes[0][0].from;
 
 template <std::size_t Rows, std::size_t Columns>
-bool IsValidBytes(const unsigned char* bytes, const InclusiveRange (&range)[Rows][Columns]) noexcept {
+bool IsValidBytes(std::string_view bytes, const InclusiveRange (&range)[Rows][Columns]) noexcept {
     for (std::size_t row = 0; row < Rows; ++row) {
         bool valid = true;
         for (std::size_t column = 0; column < Columns; ++column) {
             const InclusiveRange table_value = range[row][column];
-            const auto byte = bytes[column];
+            const auto byte = static_cast<unsigned char>(bytes[column]);
 
             if (table_value.from > byte || table_value.to < byte) {
                 valid = false;
@@ -205,38 +205,20 @@ size_t FindTruncatedEndingCorrectSize(std::string_view str) {
     return str.size();
 }
 
-}  // namespace
-
-unsigned CodePointLengthByFirstByte(unsigned char c) noexcept {
-    if (c < kMinFirstByteValueFor2ByteCodePoint) {
-        return 1;
-    } else if (c < kMinFirstByteValueFor3ByteCodePoint) {
-        return 2;
-    } else if (c < kMinFirstByteValueFor4ByteCodePoint) {
-        return 3;
-    }
-
-    return 4;
-}
-
-bool IsWellFormedCodePoint(const unsigned char* bytes, std::size_t length) noexcept {
-    UASSERT(bytes);
-    UASSERT(length != 0);
-
-    const auto code_point_length = CodePointLengthByFirstByte(bytes[0]);
-    if (length < code_point_length) {
+bool IsWellFormedCodePoint(std::string_view text, std::size_t code_point_length) noexcept {
+    if (text.size() < code_point_length) {
         return false;
     }
 
     switch (code_point_length) {
         case 1:
-            return IsValidBytes(bytes, utf8::kWellFormed1Bytes);
+            return IsValidBytes(text, utf8::kWellFormed1Bytes);
         case 2:
-            return IsValidBytes(bytes, utf8::kWellFormed2Bytes);
+            return IsValidBytes(text, utf8::kWellFormed2Bytes);
         case 3:
-            return IsValidBytes(bytes, utf8::kWellFormed3Bytes);
+            return IsValidBytes(text, utf8::kWellFormed3Bytes);
         case 4:
-            return IsValidBytes(bytes, utf8::kWellFormed4Bytes);
+            return IsValidBytes(text, utf8::kWellFormed4Bytes);
         default:
             UASSERT_MSG(false, "Invalid UTF-8 code point length");
     }
@@ -244,24 +226,46 @@ bool IsWellFormedCodePoint(const unsigned char* bytes, std::size_t length) noexc
     return false;
 }
 
-bool IsValid(const unsigned char* bytes, std::size_t length) noexcept {
-    for (size_t i = 0; i < length; ++i) {
-        if (!IsWellFormedCodePoint(bytes + i, length - i)) {
+}  // namespace
+
+std::size_t CodePointLengthByFirstByte(char c) noexcept {
+    const auto uc = static_cast<unsigned char>(c);
+
+    if (uc < kMinFirstByteValueFor2ByteCodePoint) {
+        return 1;
+    } else if (uc < kMinFirstByteValueFor3ByteCodePoint) {
+        return 2;
+    } else if (uc < kMinFirstByteValueFor4ByteCodePoint) {
+        return 3;
+    }
+
+    return 4;
+}
+
+bool IsWellFormedCodePoint(std::string_view text) noexcept {
+    UASSERT(!text.empty());
+
+    const auto code_point_length = CodePointLengthByFirstByte(text[0]);
+    return IsWellFormedCodePoint(text, code_point_length);
+}
+
+bool IsValid(std::string_view text) noexcept {
+    while (!text.empty()) {
+        const auto code_point_length = CodePointLengthByFirstByte(text[0]);
+        if (!IsWellFormedCodePoint(text.substr(0, code_point_length))) {
             return false;
-        } else {
-            i += CodePointLengthByFirstByte(bytes[i]) - 1;
         }
+        text.remove_prefix(code_point_length);
     }
 
     return true;
 }
 
 std::size_t GetCodePointsCount(std::string_view text) {
-    const auto* const bytes = reinterpret_cast<const unsigned char*>(text.data());
     const auto size = text.size();
     std::size_t count = 0;
-    for (std::size_t i = 0; i < size; i += CodePointLengthByFirstByte(bytes[i])) {
-        if (!IsWellFormedCodePoint(bytes + i, size - i)) {
+    for (std::size_t i = 0; i < size; i += CodePointLengthByFirstByte(text[i])) {
+        if (!IsWellFormedCodePoint(text.substr(i))) {
             throw std::runtime_error("GetCodePointsCount: text is not in utf-8");
         }
         count++;
@@ -320,12 +324,7 @@ void TakeViewPrefix(std::string_view& text, std::size_t count) noexcept {
 
 }  // namespace utf8
 
-bool IsUtf8(std::string_view text) noexcept {
-    const auto* const bytes = reinterpret_cast<const unsigned char*>(text.data());
-    const auto size = text.size();
-
-    return utf8::IsValid(bytes, size);
-}
+bool IsUtf8(std::string_view text) noexcept { return utf8::IsValid(text); }
 
 bool IsPrintable(std::string_view text, bool ascii_only) noexcept {
     if (ascii_only) {

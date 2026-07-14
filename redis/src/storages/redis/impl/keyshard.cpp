@@ -92,7 +92,8 @@ size_t KeyShardTaximeterCrc32::ShardByKey(const std::string& key) const {
     GetRedisKey(key, &start, &len);
 
     std::vector<char> converted;
-    if (NeedConvertEncoding(key, start, len) && converter_.Convert(key.data() + start, len, converted)) {
+    if (NeedConvertEncoding(key, start, len) && converter_.Convert(std::string_view(key).substr(start, len), converted))
+    {
         return std::for_each(converted.begin(), converted.end(), boost::crc_32_type())() % shard_count_;
     } else {
         return std::for_each(key.data() + start, key.data() + start + len, boost::crc_32_type())() % shard_count_;

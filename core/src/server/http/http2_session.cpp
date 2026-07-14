@@ -101,7 +101,7 @@ int Http2Session::OnFrameRecv(nghttp2_session* session, const nghttp2_frame* fra
             if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
                 auto& stream = parser.GetStreamChecked(Stream::Id{frame->hd.stream_id});
                 try {
-                    stream.RequestConstructor().AppendHeaderField("", 0);
+                    stream.RequestConstructor().AppendHeaderField(std::string_view{});
                 } catch (const std::exception& e) {
                     IncStat(parser.stats_.http2_stats.streams_parse_error);
                     LOG_LIMITED_WARNING() << "can't append header field: " << e;
@@ -149,7 +149,7 @@ int Http2Session::OnHeader(
         ctor.SetMethod(HttpMethodFromString(hvalue));
     } else if (hname == USERVER_NAMESPACE::http::headers::k2::kPath) {
         try {
-            ctor.AppendUrl(hvalue.data(), hvalue.size());
+            ctor.AppendUrl(hvalue);
             stream.CheckUrlComplete();
         } catch (const std::exception& e) {
             LOG_LIMITED_WARNING() << "can't append url: " << e;
@@ -157,8 +157,8 @@ int Http2Session::OnHeader(
         }
     } else {
         try {
-            ctor.AppendHeaderField(hname.data(), hname.size());
-            ctor.AppendHeaderValue(hvalue.data(), hvalue.size());
+            ctor.AppendHeaderField(hname);
+            ctor.AppendHeaderValue(hvalue);
         } catch (const std::exception& e) {
             LOG_LIMITED_WARNING() << "can't append header field: " << e;
             IncStat(parser.stats_.http2_stats.streams_parse_error);
@@ -200,7 +200,7 @@ int Http2Session::OnDataChunkRecv(
     auto& parser = GetParser(user_data);
     auto& stream = parser.GetStreamChecked(Stream::Id{id});
     try {
-        stream.RequestConstructor().AppendBody(reinterpret_cast<const char*>(data), len);
+        stream.RequestConstructor().AppendBody(std::string_view{reinterpret_cast<const char*>(data), len});
     } catch (const std::exception& e) {
         LOG_LIMITED_WARNING() << "can't append body: " << e;
     }

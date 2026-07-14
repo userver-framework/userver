@@ -108,7 +108,7 @@ BsonBuilder& BsonBuilder::Append(std::string_view key, const char* value) {
 }
 
 BsonBuilder& BsonBuilder::Append(std::string_view key, std::string_view value) {
-    if (!utils::text::utf8::IsValid(reinterpret_cast<const unsigned char*>(value.data()), value.size())) {
+    if (!utils::text::utf8::IsValid(value)) {
         throw BsonException("BSON strings must be valid UTF-8");
     }
     bson_append_utf8(bson_->Get(), key.data(), key.size(), value.data(), value.size());

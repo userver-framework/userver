@@ -90,13 +90,13 @@ bool IsAscii(std::string_view text) noexcept;
 namespace utf8 {
 
 /// Returns the length in bytes of the UTF-8 code point by the first byte.
-unsigned CodePointLengthByFirstByte(unsigned char c) noexcept;
+std::size_t CodePointLengthByFirstByte(char c) noexcept;
 
-/// `bytes` must not be a nullptr, `length` must not be 0.
-bool IsWellFormedCodePoint(const unsigned char* bytes, std::size_t length) noexcept;
+/// `text` must not be empty.
+bool IsWellFormedCodePoint(std::string_view text) noexcept;
 
-/// `bytes` must not be a nullptr, `length` must not be 0.
-bool IsValid(const unsigned char* bytes, std::size_t length) noexcept;
+/// `text` must not be empty.
+bool IsValid(std::string_view text) noexcept;
 
 /// returns number of utf-8 code points, text must be in utf-8 encoding
 /// @throws std::runtime_error if not a valid UTF8 text

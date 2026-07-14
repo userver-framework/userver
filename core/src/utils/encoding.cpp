@@ -73,19 +73,19 @@ Converter::Converter(std::string enc_from, std::string enc_to)
 
 Converter::~Converter() = default;
 
-bool Converter::Convert(const char* data, size_t size, std::vector<char>& out) const {
+bool Converter::Convert(std::string_view in, std::vector<char>& out) const {
     static constexpr size_t kCoef = 2;
     static constexpr size_t kCoefLimit = 16;
 
     auto iconv_handle = impl_.Pop();
-    for (size_t out_buf_size = size; out_buf_size <= size * kCoefLimit; out_buf_size *= kCoef) {
+    for (size_t out_buf_size = in.size(); out_buf_size <= in.size() * kCoefLimit; out_buf_size *= kCoef) {
         if (!Reset(iconv_handle)) {
             return false;
         }
 
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
-        char* pin = const_cast<char*>(data);  // it really will not change
-        size_t in_size = size;
+        char* pin = const_cast<char*>(in.data());  // it really will not change
+        size_t in_size = in.size();
 
         out.resize(out_buf_size);
         char* pout = out.data();
@@ -106,7 +106,7 @@ bool Converter::Convert(const char* data, size_t size, std::vector<char>& out) c
         }
     }
 
-    LOG_ERROR() << "an output buffer size is too big: " << (size * kCoefLimit);
+    LOG_ERROR() << "an output buffer size is too big: " << (in.size() * kCoefLimit);
     impl_.Push(std::move(iconv_handle));
     return false;
 }

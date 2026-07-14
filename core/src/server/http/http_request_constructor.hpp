@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <string_view>
 
 #include <userver/http/parser/http_request_parse_args.hpp>
 #include <userver/server/http/http_method.hpp>
@@ -48,11 +49,11 @@ public:
     void SetHttpMajor(unsigned short http_major);
     void SetHttpMinor(unsigned short http_minor);
 
-    void AppendUrl(const char* data, size_t size);
+    void AppendUrl(std::string_view data);
     void ParseUrl();
-    void AppendHeaderField(const char* data, size_t size);
-    void AppendHeaderValue(const char* data, size_t size);
-    void AppendBody(const char* data, size_t size);
+    void AppendHeaderField(std::string_view data);
+    void AppendHeaderValue(std::string_view data);
+    void AppendBody(std::string_view data);
 
     void SetIsFinal(bool is_final);
 
@@ -68,7 +69,7 @@ private:
     void FinalizeImpl();
 
     void ParseArgs(const HttpParserUrl& url);
-    void ParseArgs(const char* data, size_t size);
+    void ParseArgs(std::string_view data);
     void AddHeader();
 
     void SetStatus(Status status);

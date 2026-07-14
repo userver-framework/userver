@@ -5,6 +5,7 @@
 
 #include <cstdint>
 #include <cstdio>
+#include <span>
 #include <string_view>
 
 #include <userver/utils/boost_filesystem_file_status.hpp>
@@ -59,7 +60,7 @@ public:
     /// @returns The amount of bytes actually acquired, which can be equal
     /// to `max_size`, or less on end-of-file
     /// @throws std::runtime_error
-    std::size_t Read(char* buffer, std::size_t max_size);
+    std::size_t Read(std::span<char> buffer);
 
     /// @brief Writes data to the file
     /// @warning Unless `Flush` is called, there is no guarantee the file on disk
