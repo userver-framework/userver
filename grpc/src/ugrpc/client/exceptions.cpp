@@ -23,7 +23,7 @@ RpcError::RpcError(std::string_view call_name, std::string_view additional_info)
 ErrorWithStatus::ErrorWithStatus(std::string_view call_name, grpc::Status&& status)
     : RpcError(
           call_name,
-          fmt::format("code={}, message='{}'", ugrpc::ToString(status.error_code()), status.error_message())
+          fmt::format("code={}, message='{}'", ugrpc::ToStringView(status.error_code()), status.error_message())
       ),
       status_(std::move(status))
 {}

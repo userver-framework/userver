@@ -117,7 +117,7 @@ void Middleware::OnCallFinish(MiddlewareCallContext& context, const std::optiona
         } else {
             auto error_details = ugrpc::ToLimitedDebugString(*status, settings_.max_msg_size);
             extra.Extend({
-                {ugrpc::impl::kCodeTag, ugrpc::ToString(status->error_code())},
+                {ugrpc::impl::kCodeTag, std::string(ugrpc::ToStringView(status->error_code()))},
                 {ugrpc::impl::kTypeTag, "error_status"},
                 {ugrpc::impl::kBodyTag, std::move(error_details)},
             });

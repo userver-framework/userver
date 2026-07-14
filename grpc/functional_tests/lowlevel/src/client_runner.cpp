@@ -42,7 +42,7 @@ formats::json::Value HandlePost(const ::samples::api::GreeterServiceClient& clie
 
     return formats::json::MakeObject(
         "grpc-status",
-        ugrpc::ToString(grpc_status->error_code()),
+        ugrpc::ToStringView(grpc_status->error_code()),
         "grpc-message",
         grpc_status->error_message()
     );

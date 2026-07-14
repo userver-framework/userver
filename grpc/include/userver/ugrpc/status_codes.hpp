@@ -16,8 +16,11 @@ namespace ugrpc {
 /// @throws std::runtime_error
 grpc::StatusCode StatusCodeFromString(std::string_view str);
 
-/// @brief Convert grpc::StatusCode to string
-std::string ToString(grpc::StatusCode code) noexcept;
+/// @brief Convert `grpc::StatusCode` to `std::string_view`.
+std::string_view ToStringView(grpc::StatusCode code) noexcept;
+
+/// @brief Convert `grpc::StatusCode` to `std::string`.
+std::string ToString(grpc::StatusCode code);
 
 /// @brief Whether a given status code is definitely a server-side error
 ///

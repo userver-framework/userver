@@ -110,7 +110,7 @@ void Middleware::PostFinish(MiddlewareCallContext& context, const CompletionStat
             auto error_details = ugrpc::ToUnlimitedDebugString(status);
             logging::LogExtra extra{
                 {ugrpc::impl::kTypeTag, "error_status"},
-                {ugrpc::impl::kCodeTag, ugrpc::ToString(status.error_code())},
+                {ugrpc::impl::kCodeTag, ugrpc::ToStringView(status.error_code())},
                 {tracing::kErrorMessage, std::move(error_details)}
             };
             logger.Log(logging::Level::kWarning, "gRPC error", std::move(extra));

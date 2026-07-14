@@ -59,7 +59,7 @@ void ReportFinished(const grpc::Status& status, CallState& state) noexcept {
     try {
         state.statistics_scope.OnExplicitFinish(status.error_code());
         auto& span = state.GetSpan();
-        span.AddNonInheritableTag(tracing::kGrpcCode, ugrpc::ToString(status.error_code()));
+        span.AddNonInheritableTag(tracing::kGrpcCode, std::string(ugrpc::ToStringView(status.error_code())));
         if (!status.ok()) {
             span.AddNonInheritableTag(tracing::kErrorFlag, true);
             span.AddNonInheritableTag(tracing::kErrorMessage, status.error_message());

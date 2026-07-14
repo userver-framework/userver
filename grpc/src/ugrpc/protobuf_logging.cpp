@@ -120,12 +120,16 @@ std::string ToLimitedDebugString(const grpc::Status& status, std::size_t max_siz
         const std::string details_string = ugrpc::ToLimitedDebugString(*gstatus, max_size);
         return fmt::format(
             "code: {}, error message: {}\nerror details:\n{}",
-            ugrpc::ToString(status.error_code()),
+            ugrpc::ToStringView(status.error_code()),
             status.error_message(),
             details_string
         );
     } else {
-        return fmt::format("code: {}, error message: {}", ugrpc::ToString(status.error_code()), status.error_message());
+        return fmt::format(
+            "code: {}, error message: {}",
+            ugrpc::ToStringView(status.error_code()),
+            status.error_message()
+        );
     }
 }
 
@@ -139,12 +143,16 @@ std::string ToUnlimitedDebugString(const grpc::Status& status) {
         const std::string details_string = ugrpc::ToUnlimitedDebugString(*gstatus);
         return fmt::format(
             "code: {}, error message: {}\nerror details:\n{}",
-            ugrpc::ToString(status.error_code()),
+            ugrpc::ToStringView(status.error_code()),
             status.error_message(),
             details_string
         );
     } else {
-        return fmt::format("code: {}, error message: {}", ugrpc::ToString(status.error_code()), status.error_message());
+        return fmt::format(
+            "code: {}, error message: {}",
+            ugrpc::ToStringView(status.error_code()),
+            status.error_message()
+        );
     }
 }
 

@@ -49,14 +49,15 @@ grpc::StatusCode StatusCodeFromString(std::string_view str) {
     throw std::runtime_error(fmt::format("Invalid grpc status code: {}", str));
 }
 
-std::string ToString(grpc::StatusCode code) noexcept {
+std::string_view ToStringView(grpc::StatusCode code) noexcept {
     const auto str = kStatusCodesMap.TryFindByFirst(code);
     if (str) {
-        return std::string{*str};
+        return *str;
     }
-
-    return fmt::format("CODE({})", utils::UnderlyingValue(code));
+    return "<Invalid gRPC status code>";
 }
+
+std::string ToString(grpc::StatusCode code) { return std::string(ToStringView(code)); }
 
 // See https://opentelemetry.io/docs/specs/semconv/rpc/grpc/
 // Except that we don't mark DEADLINE_EXCEEDED as a server error.
@@ -114,7 +115,7 @@ grpc::StatusCode Parse(std::string_view value, To<grpc::StatusCode>) {
 namespace formats::serialize {
 
 formats::json::Value Serialize(const grpc::StatusCode& value, formats::serialize::To<formats::json::Value>) {
-    return formats::json::ValueBuilder(ugrpc::ToString(value)).ExtractValue();
+    return formats::json::ValueBuilder(ugrpc::ToStringView(value)).ExtractValue();
 }
 
 }  // namespace formats::serialize

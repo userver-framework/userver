@@ -155,7 +155,7 @@ void Middleware::PreSendStatus(MiddlewareCallContext& context, grpc::Status& sta
             "replaced "
             "with DEADLINE_EXCEEDED by `grpc-server-deadline-propagation` middleware. Original status: {}, msg: '{}'",
             std::chrono::duration_cast<std::chrono::milliseconds>(deadline).count(),
-            ugrpc::ToString(status.error_code()),
+            ugrpc::ToStringView(status.error_code()),
             status.error_message()
         );
         context.SetError(grpc::Status{
