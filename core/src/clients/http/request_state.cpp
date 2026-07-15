@@ -678,9 +678,11 @@ void RequestState::OnRetryTimer(std::error_code err) {
 
 void RequestState::ParseSingleCookie(std::string_view cookie) {
     if (auto parsed_cookie = server::http::Cookie::FromString(cookie)) {
-        [[maybe_unused]] auto [it, ok] = response_->cookies().emplace(parsed_cookie->Name(), std::move(*parsed_cookie));
+        [[maybe_unused]] auto
+            [it, ok] = response_->cookies().try_emplace(parsed_cookie->Name(), std::move(*parsed_cookie));
         if (!ok) {
-            LOG_WARNING() << "Failed to add cookie '" + it->first + "', already added";
+            it->second = std::move(*parsed_cookie);
+            LOG_DEBUG() << "Overwriting cookie '" + it->first + "', duplicate found";
         }
     }
 }
