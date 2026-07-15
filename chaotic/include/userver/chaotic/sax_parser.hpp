@@ -104,8 +104,10 @@ private:
 template <typename T, typename ResultType = TypeOfDescriptor<T>>
 class RefParser final : private formats::json::parser::Subscriber<ResultType> {
 public:
+    using Subparser = chaotic::sax::Parser<T>;
+
     RefParser()
-        : parser_(std::make_unique<chaotic::sax::Parser<T>>())
+        : parser_(std::make_unique<Subparser>())
     {
         parser_->Subscribe(*this);
     }
@@ -114,12 +116,12 @@ public:
 
     void Subscribe(formats::json::parser::Subscriber<utils::Box<ResultType>>& subscriber) { subscriber_ = &subscriber; }
 
-    formats::json::parser::BaseParser& GetParser() { return *parser_; }
+    formats::json::parser::BaseParser& GetParser() { return parser_->GetParser(); }
 
+    void OnSend(ResultType&& value) override { subscriber_->OnSend(utils::Box<ResultType>(std::move(value))); }
 private:
-    void OnSend(ResultType&& value) { subscriber_->OnSend(utils::Box<ResultType>(std::move(value))); }
 
-    std::unique_ptr<formats::json::parser::TypedParser<ResultType>> parser_;
+    std::unique_ptr<Subparser> parser_;
     formats::json::parser::Subscriber<utils::Box<ResultType>>* subscriber_{nullptr};
 };
 
