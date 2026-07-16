@@ -244,6 +244,18 @@ std::string MakeStatementName(const Connection::StatementId& query_id, const Que
     return statement_name;
 }
 
+void AddStatementSpanTags(tracing::Span& span, const Query& query, ConnectionSettings::StatementLogMode log_mode) {
+    if (log_mode != ConnectionSettings::kLog) {
+        return;
+    }
+
+    if (const auto name = query.GetOptionalNameView(); name) {
+        span.AddTag(tracing::kDatabaseStatementName, std::string{*name});
+    } else if (query.GetLogMode() == Query::LogMode::kFull) {
+        span.AddTag(tracing::kDatabaseStatement, std::string{query.GetStatementView()});
+    }
+}
+
 }  // namespace
 
 std::string_view FindCommandName(std::string_view str) {
@@ -657,17 +669,7 @@ Connection::StatementId ConnectionImpl::PortalBind(
     SetStatementTimeout(std::move(statement_cmd_ctl));
     tracing::Span span{FindQueryShortInfo(scopes::kBind, statement)};
     conn_wrapper_.FillSpanTags(span, {network_timeout, GetStatementTimeout()});
-    if (settings_.statement_log_mode == ConnectionSettings::kLog) {
-        switch (query.GetLogMode()) {
-            case Query::LogMode::kFull:
-                span.AddTag(tracing::kDatabaseStatement, std::string{query.GetStatementView()});
-                [[fallthrough]];
-            case Query::LogMode::kNameOnly:
-                if (const auto name = query.GetOptionalNameView(); name) {
-                    span.AddTag(tracing::kDatabaseStatementName, std::string{*name});
-                }
-        }
-    }
+    AddStatementSpanTags(span, query, settings_.statement_log_mode);
     CheckDeadlineReached(deadline);
     auto scope = span.CreateScopeTime();
     CountPortalBind count_bind(stats_);
@@ -704,17 +706,7 @@ ResultSet ConnectionImpl::PortalExecute(
 
     tracing::Span span{FindQueryShortInfo(scopes::kExec, query.GetStatementView())};
     conn_wrapper_.FillSpanTags(span, {network_timeout, GetStatementTimeout()});
-    if (settings_.statement_log_mode == ConnectionSettings::kLog) {
-        switch (query.GetLogMode()) {
-            case Query::LogMode::kFull:
-                span.AddTag(tracing::kDatabaseStatement, std::string{query.GetStatementView()});
-                [[fallthrough]];
-            case Query::LogMode::kNameOnly:
-                if (const auto name = query.GetOptionalNameView(); name) {
-                    span.AddTag(tracing::kDatabaseStatementName, std::string{*name});
-                }
-        }
-    }
+    AddStatementSpanTags(span, query, settings_.statement_log_mode);
     if (deadline.IsReached()) {
         ++stats_.execute_timeout;
         // TODO Portal name function, logging 'unnamed portal' for an empty name
@@ -855,17 +847,7 @@ void ConnectionImpl::CheckDeadlineReached(const engine::Deadline& deadline) {
 tracing::Span ConnectionImpl::MakeQuerySpan(const Query& query, const CommandControl& cc) const {
     tracing::Span span{FindQueryShortInfo(scopes::kQuery, query.GetStatementView())};
     conn_wrapper_.FillSpanTags(span, cc, "left_network_timeout_ms");
-    if (settings_.statement_log_mode == ConnectionSettings::kLog) {
-        switch (query.GetLogMode()) {
-            case Query::LogMode::kFull:
-                span.AddTag(tracing::kDatabaseStatement, std::string{query.GetStatementView()});
-                [[fallthrough]];
-            case Query::LogMode::kNameOnly:
-                if (const auto name = query.GetOptionalNameView(); name) {
-                    span.AddTag(tracing::kDatabaseStatementName, std::string{*name});
-                }
-        }
-    }
+    AddStatementSpanTags(span, query, settings_.statement_log_mode);
     return span;
 }
 
@@ -1162,17 +1144,7 @@ const ConnectionImpl::PreparedStatementInfo& ConnectionImpl::PrepareStatement(
 
     tracing::Span span{FindQueryShortInfo(scopes::kPrepare, query.GetStatementView())};
     conn_wrapper_.FillSpanTags(span, {timeout, GetStatementTimeout()});
-    if (settings_.statement_log_mode == ConnectionSettings::kLog) {
-        switch (query.GetLogMode()) {
-            case Query::LogMode::kFull:
-                span.AddTag(tracing::kDatabaseStatement, std::string{query.GetStatementView()});
-                [[fallthrough]];
-            case Query::LogMode::kNameOnly:
-                if (const auto name = query.GetOptionalNameView(); name) {
-                    span.AddTag(tracing::kDatabaseStatementName, std::string{*name});
-                }
-        }
-    }
+    AddStatementSpanTags(span, query, settings_.statement_log_mode);
 
     auto scope = span.CreateScopeTime();
     return DoPrepareStatement(query, params, deadline, span, scope);
