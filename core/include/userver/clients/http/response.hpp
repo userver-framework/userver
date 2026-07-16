@@ -5,6 +5,7 @@
 
 #include <string>
 
+#include <userver/clients/http/cookie_jar.hpp>
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/local_stats.hpp>
 #include <userver/http/header_map.hpp>
@@ -43,6 +44,8 @@ public:
     Headers& headers() { return headers_; }
     const CookiesMap& cookies() const { return cookies_; }
     CookiesMap& cookies() { return cookies_; }
+    const CookieJar& cookie_jar() const { return cookie_jar_; }
+    CookieJar& cookie_jar() { return cookie_jar_; }
 
     /// status_code
     Status status_code() const;
@@ -72,6 +75,7 @@ public:
 private:
     Headers headers_;
     CookiesMap cookies_;
+    CookieJar cookie_jar_;
     std::string response_;
     Status status_code_{Status::kInvalid};
     LocalStats stats_;

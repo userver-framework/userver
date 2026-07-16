@@ -234,6 +234,13 @@ bool IsHttp11WithCompleteBody(const std::shared_ptr<Response> response) {
     return !content_length || utils::FromString<size_t>(*content_length) == response->body_view().size();
 }
 
+USERVER_NAMESPACE::http::DecomposedUrlView RequestCookieTarget(curl::easy& easy) {
+    std::error_code ec;
+    const auto effective_url = easy.get_effective_url(ec);
+    if (ec) return {};
+    return USERVER_NAMESPACE::http::DecomposeUrlIntoViews(effective_url);
+}
+
 }  // namespace
 
 RequestState::RequestState(
@@ -682,6 +689,18 @@ void RequestState::OnRetryTimer(std::error_code err) {
 
 void RequestState::ParseSingleCookie(const char* ptr, size_t size) {
     if (auto cookie = server::http::Cookie::FromString(std::string_view(ptr, size))) {
+        // New cookie storage API
+        // TODO: optimize it, quite dirty, some cache needed for host/path extraction
+        const auto target = RequestCookieTarget(easy());
+        if (!target.host.empty()) {
+            response_->cookie_jar().AddCookie(
+                std::string{target.host}, std::string{target.path}, server::http::Cookie{*cookie}
+            );
+        } else {
+            LOG_WARNING() << "Failed to get host from url '" << easy().get_effective_url() << "'";
+        }
+
+        //  Old API stays untouched
         [[maybe_unused]] auto [it, ok] = response_->cookies().emplace(cookie->Name(), std::move(*cookie));
         if (!ok) {
             LOG_WARNING() << "Failed to add cookie '" + it->first + "', already added";
