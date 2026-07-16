@@ -1,0 +1,125 @@
+#!/usr/bin/env python3
+"""Changelog Tool CLI entry point."""
+
+import os
+import pathlib
+import subprocess
+import sys
+
+_SCRIPT_PATH = pathlib.Path(__file__).resolve()
+_SCRIPT_DIR = _SCRIPT_PATH.parent
+_VENV_DIR = _SCRIPT_DIR / '.venv'
+_VENV_PYTHON = _VENV_DIR / ('Scripts/python.exe' if os.name == 'nt' else 'bin/python3')
+
+
+def _ensure_venv() -> None:
+    """Create the virtual environment and install dependencies if it does not exist yet."""
+    if _VENV_PYTHON.exists():
+        return
+    print(f'[changelog-tool] Creating virtual environment in {_VENV_DIR}...', file=sys.stderr)
+    subprocess.run([sys.executable, '-m', 'venv', str(_VENV_DIR)], check=True)
+    print('[changelog-tool] Installing dependencies...', file=sys.stderr)
+    subprocess.run(
+        [str(_VENV_PYTHON), '-m', 'pip', 'install', '-q', '-r', str(_SCRIPT_DIR / 'requirements.txt')],
+        check=True,
+    )
+
+
+def _running_in_target_venv() -> bool:
+    """Whether the current interpreter is already the tool's own venv interpreter.
+
+    Comparing `sys.executable` directly is unreliable because a venv's
+    `bin/python3` may just be a symlink to the system interpreter (so
+    `realpath` would match even when the venv is *not* activated). Instead we
+    check `sys.prefix`, which points at the venv directory whenever it is
+    active, regardless of symlinks.
+    """
+    return pathlib.Path(sys.prefix).resolve() == _VENV_DIR.resolve()
+
+
+def _reexec_in_venv() -> None:
+    """Re-launch this script using the venv's Python interpreter unless already running in it."""
+    if _running_in_target_venv():
+        return
+    _ensure_venv()
+    os.execv(str(_VENV_PYTHON), [str(_VENV_PYTHON), str(_SCRIPT_PATH), *sys.argv[1:]])
+
+
+# Must run before importing any third-party dependency (click, pydantic, etc.),
+# since those are only guaranteed to be installed inside the tool's own venv.
+_reexec_in_venv()
+
+import logging  # noqa: E402
+
+import click  # noqa: E402
+
+import changelog_tool.config as cfg  # noqa: E402
+import changelog_tool.generate.command as generate_cmd  # noqa: E402
+import changelog_tool.refine.command as refine_cmd  # noqa: E402
+
+logger = logging.getLogger(__name__)
+
+
+def _setup_logging(verbose: bool) -> None:
+    level = logging.DEBUG if verbose else logging.INFO
+    logging.basicConfig(
+        level=level,
+        format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S',
+    )
+
+
+@click.group()
+@click.option('--config', default='changelog.yaml', help='Path to the YAML configuration file.')
+@click.option('--output-dir', type=pathlib.Path, default=None, help='Override the output directory.')
+@click.option('--verbose', '-v', is_flag=True, default=False, help='Enable verbose (debug) logging.')
+@click.pass_context
+def cli(ctx: click.Context, config: str, output_dir: pathlib.Path | None, verbose: bool) -> None:
+    """Changelog Tool: generate changelogs from git commits using LLM analysis."""
+    _setup_logging(verbose)
+    ctx.ensure_object(dict)
+
+    try:
+        parsed_config = cfg.parse_config(pathlib.Path(config))
+    except FileNotFoundError as e:
+        click.echo(f'Error: {e}', err=True)
+        sys.exit(1)
+    except Exception as e:
+        click.echo(f'Error parsing config: {e}', err=True)
+        sys.exit(1)
+
+    if output_dir:
+        parsed_config.generate.output_dir = output_dir
+        parsed_config.render.output_dir = output_dir
+
+    ctx.obj['CONFIG'] = parsed_config
+
+
+@cli.command()
+@click.option('--from-sha', default=None, help='Starting commit SHA (exclusive).')
+@click.option('--to-sha', default=None, help='Ending commit SHA (inclusive).')
+@click.option('--repo-path', type=pathlib.Path, default=None, help='Path to the git repository.')
+@click.pass_context
+def generate(ctx: click.Context, from_sha: str | None, to_sha: str | None, repo_path: pathlib.Path | None) -> None:
+    """Fetch commits, classify via LLM, and render changelog.md + excluded.md."""
+    config = ctx.obj['CONFIG']
+    if from_sha:
+        config.generate.from_sha = from_sha
+    if to_sha:
+        config.generate.to_sha = to_sha
+    if repo_path:
+        config.generate.repo_path = repo_path
+
+    sys.exit(generate_cmd.generate(config))
+
+
+@cli.command()
+@click.pass_context
+def refine(ctx: click.Context) -> None:
+    """Act on reviewer decisions recorded in excluded.md and re-render both artifacts."""
+    config = ctx.obj['CONFIG']
+    sys.exit(refine_cmd.refine(config))
+
+
+if __name__ == '__main__':
+    cli()
