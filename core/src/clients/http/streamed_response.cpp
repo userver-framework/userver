@@ -70,7 +70,7 @@ const Headers& StreamedResponse::GetHeaders() {
     return headers;
 }
 
-const Response::Cookies& StreamedResponse::GetCookies() {
+const Response::CookiesMap& StreamedResponse::GetCookies() {
     WaitForHeadersOrThrow(deadline_);
     const auto& cookies = response_->cookies();
     return cookies;

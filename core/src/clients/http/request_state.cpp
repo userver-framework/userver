@@ -682,12 +682,10 @@ void RequestState::OnRetryTimer(std::error_code err) {
 
 void RequestState::ParseSingleCookie(const char* ptr, size_t size) {
     if (auto cookie = server::http::Cookie::FromString(std::string_view(ptr, size))) {
-        /*
-            Until we have storage for cookies compliant with RFC 6265, it's best strategy to keep raw cookies.
-            They can be duplicated, expired, but processing is simple, you don't need to think about processing paths, domains, ages and other stuff.
-            This processing can be performed later.
-        */
-        response_->cookies().push_back(std::move(*cookie));
+        [[maybe_unused]] auto [it, ok] = response_->cookies().emplace(cookie->Name(), std::move(*cookie));
+        if (!ok) {
+            LOG_WARNING() << "Failed to add cookie '" + it->first + "', already added";
+        }
     }
 }
 
