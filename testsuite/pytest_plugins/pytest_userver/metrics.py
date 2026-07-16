@@ -161,9 +161,17 @@ class MetricsSnapshot:
 
     def __eq__(self, other: object) -> bool:
         """
-        Compares the snapshot with a dict of metrics or with another snapshot
+        Compares the snapshot with a dict of metrics or with another
+        snapshot. A path mapped to an empty set of metrics is treated the
+        same as an absent path.
         """
-        return self._values == other
+        if isinstance(other, MetricsSnapshot):
+            other_values: Mapping[str, Set[Metric]] = other._values
+        elif isinstance(other, Mapping):
+            other_values = other
+        else:
+            return NotImplemented
+        return _drop_empty_paths(self._values) == _drop_empty_paths(other_values)
 
     def __repr__(self) -> str:
         return self._values.__repr__()
@@ -287,6 +295,21 @@ class MetricsSnapshot:
         rhs = _flatten_snapshot(other, ignore_zeros=ignore_zeros)
         assert lhs == rhs, _diff_metric_snapshots(lhs, rhs, ignore_zeros)
 
+    def without_zero_rates(self) -> MetricsSnapshot:
+        """
+        Returns a new snapshot with "empty" RATE and HIST_RATE metrics
+        removed: a RATE metric is removed if its value is zero, a HIST_RATE
+        metric is removed if its histogram has zero count in every bucket
+        and in `inf`. GAUGE (and untyped) metrics are kept as-is, because a
+        zero GAUGE value can be meaningful.
+        """
+        return MetricsSnapshot(
+            _drop_empty_paths({
+                path: {metric for metric in metric_set if not _is_zero_rate_or_histogram(metric)}
+                for path, metric_set in self._values.items()
+            }),
+        )
+
     def pretty_print(self) -> str:
         """
         Multiline linear print:
@@ -302,15 +325,7 @@ class MetricsSnapshot:
             """print (pretty) one metrics set - for given path"""
             result = []
             for metric in sorted(mset, key=lambda x: _get_labels_tuple(x)):
-                result.append(
-                    '{}: {} {} {}'.format(
-                        path,
-                        # labels in form (key=value)
-                        ','.join(['({}={})'.format(k, v) for k, v in _get_labels_tuple(metric)]),
-                        metric._type.value,
-                        metric.value,
-                    ),
-                )
+                result.append(_format_metric_line(path, metric))
             return result
 
         # list of lists [ [ string1, string2, string3],
@@ -322,9 +337,9 @@ class MetricsSnapshot:
         return '\n'.join(itertools.chain(*data_for_every_path))
 
     @staticmethod
-    def from_json(json_str: str) -> MetricsSnapshot:
+    def from_dict(data: dict) -> MetricsSnapshot:
         """
-        Construct MetricsSnapshot from a JSON string
+        Construct MetricsSnapshot from a JSON dict in the `json` userver metrics format.
         """
         json_data = {
             str(path): {
@@ -335,9 +350,16 @@ class MetricsSnapshot:
                 )
                 for element in metrics_list
             }
-            for path, metrics_list in json.loads(json_str).items()
+            for path, metrics_list in data.items()
         }
         return MetricsSnapshot(json_data)
+
+    @staticmethod
+    def from_json(json_str: str) -> MetricsSnapshot:
+        """
+        Construct MetricsSnapshot from a JSON string in the `json` userver metrics format.
+        """
+        return MetricsSnapshot.from_dict(json.loads(json_str))
 
     def to_json(self) -> str:
         """
@@ -350,6 +372,16 @@ class MetricsSnapshot:
         )
 
 
+def _drop_empty_paths(values: Mapping[str, Set[Metric]]) -> dict[str, Set[Metric]]:
+    return {path: metric_set for path, metric_set in values.items() if metric_set}
+
+
+def _is_zero_rate_or_histogram(metric: Metric) -> bool:
+    if isinstance(metric.value, Histogram):
+        return metric.value.count() == 0
+    return metric.type() == MetricType.RATE and metric.value == 0
+
+
 def _type_eq(lhs: MetricType, rhs: MetricType) -> bool:
     return lhs == rhs or lhs == MetricType.UNSPECIFIED or rhs == MetricType.UNSPECIFIED  # noqa: PLR1714
 
@@ -357,6 +389,48 @@ def _type_eq(lhs: MetricType, rhs: MetricType) -> bool:
 def _get_labels_tuple(metric: Metric) -> tuple[tuple[str, str], ...]:
     """Returns labels as a tuple of sorted items"""
     return tuple(sorted(metric.labels.items()))
+
+
+def _format_metric_line(path: str, metric: Metric, *, forced_type: MetricType | None = None) -> str:
+    """Formats a single metric line as "path: (labels) TYPE VALUE", skipping the labels part (and the extra
+    space) entirely if there are no labels. `forced_type` overrides `metric`'s own type, if given"""
+    labels_str = ','.join(f'({key}={label_value})' for key, label_value in _get_labels_tuple(metric))
+    metric_type = forced_type if forced_type is not None else metric.type()
+    parts = [f'{path}:', labels_str, metric_type.value, str(metric.value)]
+    return ' '.join(part for part in parts if part)
+
+
+def stringify_snapshot_for_diff(
+    values: Mapping[str, Set[Metric]],
+    /,
+    *,
+    other: Mapping[str, Set[Metric]],
+) -> set[str]:
+    """
+    Renders a snapshot as a set of "path: (labels) TYPE VALUE" strings
+    (the same format as `MetricsSnapshot.pretty_print`), suitable for use
+    with a generic set-based diff (e.g. testsuite's `CompareVisitor`
+    machinery).
+
+    A metric with an UNSPECIFIED type has its type resolved from the
+    matching (by path and labels) metric in `other`, if any, mirroring the
+    wildcard-matching behavior of `Metric.__eq__`.
+    """
+    other_snapshot = other if isinstance(other, MetricsSnapshot) else MetricsSnapshot(other)
+    return {
+        _format_metric_line(path, metric, forced_type=_resolve_type(path, metric, other_snapshot))
+        for path, metric_set in values.items()
+        for metric in metric_set
+    }
+
+
+def _resolve_type(path: str, metric: Metric, other_snapshot: MetricsSnapshot) -> MetricType:
+    if metric.type() != MetricType.UNSPECIFIED:
+        return metric.type()
+    for other_metric in other_snapshot.metrics_at(path, require_labels=metric.labels):
+        if other_metric.labels == metric.labels and other_metric.type() != MetricType.UNSPECIFIED:
+            return other_metric.type()
+    return metric.type()
 
 
 def _do_compute_percentile(hist: Histogram, percent: float) -> float:
