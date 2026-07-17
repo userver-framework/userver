@@ -31,6 +31,13 @@ PostgresControl::PostgresControl(
     return engine::Deadline::FromDuration(duration);
 }
 
+[[nodiscard]] std::chrono::milliseconds PostgresControl::MakeNetworkTimeout(std::chrono::milliseconds duration) const {
+    if (network_timeout_ != std::chrono::milliseconds::zero()) {
+        return std::max(duration, network_timeout_);
+    }
+    return duration;
+}
+
 [[nodiscard]] std::chrono::milliseconds PostgresControl::MakeStatementTimeout(std::chrono::milliseconds duration
 ) const {
     if (statement_timeout_ != std::chrono::milliseconds::zero()) {

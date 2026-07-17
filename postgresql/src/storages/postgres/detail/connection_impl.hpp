@@ -161,13 +161,17 @@ private:
 
     bool PreparedStatementsEnabled(OptionalCommandControl cmd_ctl) const;
 
-    void SetConnectionStatementTimeout(TimeoutDuration timeout, engine::Deadline deadline);
+    void SetConnectionStatementTimeout(
+        TimeoutDuration timeout,
+        TimeoutDuration network_timeout,
+        engine::Deadline deadline
+    );
 
-    void SetStatementTimeout(TimeoutDuration timeout, engine::Deadline deadline);
+    void SetStatementTimeout(TimeoutDuration timeout, TimeoutDuration network_timeout, engine::Deadline deadline);
 
     void SetStatementTimeout(OptionalCommandControl cmd_ctl);
 
-    TimeoutDuration NormalizeStatementTimeout(TimeoutDuration timeout);
+    TimeoutDuration NormalizeStatementTimeout(TimeoutDuration timeout, TimeoutDuration network_timeout);
 
     void ApplyStatementTimeoutIfItChanged(
         TimeoutDuration timeout,
