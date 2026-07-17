@@ -1,5 +1,6 @@
 #include <userver/kafka/producer.hpp>
 
+#include <userver/engine/task/cancel.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
 #include <userver/kafka/impl/configuration.hpp>
@@ -106,6 +107,17 @@ void HandleDeliveryErrors(const std::vector<impl::DeliveryResult>& delivery_resu
     }
 }
 
+void RunAsyncTask(auto name, auto& task_processor, auto code_block) {
+    engine::current_task::CancellationPoint();
+
+    {
+        const engine::TaskCancellationBlocker cancellation_blocker;
+        utils::Async(task_processor, name, code_block).Get();
+    }
+
+    engine::current_task::CancellationPoint();
+}
+
 }  // namespace
 
 Producer::Producer(
@@ -136,9 +148,9 @@ void Producer::Send(
     std::optional<std::uint32_t> partition,
     HeaderViews headers
 ) const {
-    utils::Async(producer_task_processor_, "producer_send", [this, topic_name, key, message, partition, &headers] {
+    RunAsyncTask("producer_send", producer_task_processor_, [this, topic_name, key, message, partition, &headers] {
         SendImpl(topic_name, key, message, partition, impl::HeadersHolder{headers});
-    }).Get();
+    });
 }
 
 void Producer::SendWrapper(
@@ -148,13 +160,13 @@ void Producer::SendWrapper(
     std::optional<std::uint32_t> partition,
     HeaderViews headers
 ) const {
-    utils::Async(
-        producer_task_processor_,
+    RunAsyncTask(
         "producer_send_bulk",
+        producer_task_processor_,
         [this, topic_name, key, &messages, partition, &headers] {
             SendImpl(topic_name, key, messages, partition, BuildHeaderHolders(headers, messages.Size()));
         }
-    ).Get();
+    );
 }
 
 engine::TaskWithResult<void> Producer::SendAsync(

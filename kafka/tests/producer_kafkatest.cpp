@@ -135,7 +135,7 @@ UTEST_F(ProducerTest, LargeMessages) {
 
     const kafka::impl::ProducerConfiguration producer_configuration{};
 
-    auto producer = MakeProducer("kafka-producer");
+    auto producer = MakeProducer("kafka-producer", producer_configuration);
     const std::string topic = GenerateTopic();
 
     const std::string big_message(producer_configuration.message_max_bytes / 2, 'm');
@@ -524,6 +524,126 @@ UTEST_F_MT(ProducerTest, OneProducerManySendAsyncMt, 1 + 4) {
 
     auto results_lock = results.Lock();
     UEXPECT_NO_THROW(engine::WaitAllChecked(*results_lock));
+}
+
+UTEST_F(ProducerTest, NoUseAfterFreeOnTaskCancellationBeforeSendCall) {
+    kafka::impl::ProducerConfiguration producer_configuration{};
+    producer_configuration.delivery_timeout = std::chrono::seconds{2};
+    producer_configuration.queue_buffering_max = std::chrono::seconds{1};
+    producer_configuration.queue_buffering_max_messages = 100;
+
+    auto producer = MakeProducer("kafka-producer", producer_configuration);
+    const std::string topic = GenerateTopic();
+
+    bool sendThrowsTaskCancelledException = false;
+
+    auto send_task = utils::Async("send_task", [&] {
+        const std::string key = "test-key";
+        const std::string message = "test-msg";
+
+        engine::current_task::RequestCancel();
+
+        try {
+            producer.Send(topic, key, message);
+        } catch (...) {
+            sendThrowsTaskCancelledException = true;
+            throw;
+        }
+    });
+
+    UEXPECT_THROW(send_task.Get(), engine::TaskCancelledException);
+    EXPECT_TRUE(sendThrowsTaskCancelledException);
+}
+
+UTEST_F(ProducerTest, NoUseAfterFreeOnTaskCancellationAfterSendCall) {
+    kafka::impl::ProducerConfiguration producer_configuration{};
+    producer_configuration.delivery_timeout = std::chrono::seconds{2};
+    producer_configuration.queue_buffering_max = std::chrono::seconds{1};
+    producer_configuration.queue_buffering_max_messages = 100;
+
+    auto producer = MakeProducer("kafka-producer", producer_configuration);
+    const std::string topic = GenerateTopic();
+
+    bool sendThrowsTaskCancelledException = false;
+
+    auto send_task = utils::Async("send_task", [&] {
+        const std::string key = "test-key";
+        const std::string message = "test-msg";
+
+        try {
+            producer.Send(topic, key, message);
+        } catch (...) {
+            sendThrowsTaskCancelledException = true;
+            throw;
+        }
+    });
+
+    engine::SleepFor(std::chrono::milliseconds(10));
+
+    send_task.RequestCancel();
+
+    UEXPECT_THROW(send_task.Get(), engine::TaskCancelledException);
+    EXPECT_TRUE(sendThrowsTaskCancelledException);
+}
+
+UTEST_F(ProducerTest, NoUseAfterFreeOnTaskCancellationBeforeBulkSendCall) {
+    kafka::impl::ProducerConfiguration producer_configuration{};
+    producer_configuration.delivery_timeout = std::chrono::seconds{2};
+    producer_configuration.queue_buffering_max = std::chrono::seconds{1};
+    producer_configuration.queue_buffering_max_messages = 100;
+
+    auto producer = MakeProducer("kafka-producer", producer_configuration);
+    const std::string topic = GenerateTopic();
+
+    bool sendThrowsTaskCancelledException = false;
+
+    auto send_task = utils::Async("send_task", [&] {
+        const std::string key = "test-key";
+        const std::vector<std::string> messages{"test-msg-1", "test-msg-2", "test-msg-3"};
+
+        engine::current_task::RequestCancel();
+
+        try {
+            producer.Send(topic, key, messages);
+        } catch (...) {
+            sendThrowsTaskCancelledException = true;
+            throw;
+        }
+    });
+
+    UEXPECT_THROW(send_task.Get(), engine::TaskCancelledException);
+    EXPECT_TRUE(sendThrowsTaskCancelledException);
+}
+
+UTEST_F(ProducerTest, NoUseAfterFreeOnTaskCancellationAfterBulkSendCall) {
+    kafka::impl::ProducerConfiguration producer_configuration{};
+    producer_configuration.delivery_timeout = std::chrono::seconds{2};
+    producer_configuration.queue_buffering_max = std::chrono::seconds{1};
+    producer_configuration.queue_buffering_max_messages = 100;
+
+    auto producer = MakeProducer("kafka-producer", producer_configuration);
+    const std::string topic = GenerateTopic();
+
+    bool sendThrowsTaskCancelledException = false;
+
+    auto send_task = utils::Async("send_task", [&] {
+        const std::string key = "test-key";
+        const std::vector<std::string> messages{"test-msg-1", "test-msg-2", "test-msg-3"};
+
+        try {
+            producer.Send(topic, key, messages);
+        } catch (...) {
+            sendThrowsTaskCancelledException = true;
+            throw;
+        }
+    });
+
+    engine::SleepFor(std::chrono::milliseconds(10));
+
+    send_task.RequestCancel();
+
+    UEXPECT_THROW(send_task.Get(), engine::TaskCancelledException);
+    EXPECT_TRUE(sendThrowsTaskCancelledException);
 }
 
 USERVER_NAMESPACE_END
