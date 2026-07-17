@@ -73,17 +73,4 @@ schema:
                     type: boolean
                     default: true
                     description: Whether statement timeout is affected by deadline propagation
-                omit-statement-timeout-for-autocommit:
-                    type: boolean
-                    default: false
-                    description: |-
-                        DANGEROUS, DO NOT ENABLE unless you fully understand the consequences.
-
-                        Has effect only in `transaction` pooler mode. When enabled, no `SET statement_timeout` is sent
-                        before autocommit statements. This saves one network round trip per query.
-
-                        The catch: without `statement_timeout` a stuck or slow query is no longer aborted by the framework, so it
-                        can hold the connection indefinitely. Deadline propagation implemented on top of `statement_timeout`
-                        stops working for such queries as well. A single misbehaving query can therefore exhaust the whole
-                        connection pool and take the service down
 
