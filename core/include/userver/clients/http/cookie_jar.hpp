@@ -23,8 +23,8 @@ public:
     CookieJar();
     ~CookieJar();
 
-    CookieJar(const CookieJar&);
-    CookieJar(CookieJar&&) noexcept;
+    CookieJar(const CookieJar&) = delete;
+    CookieJar(CookieJar&&) = delete;
 
     void AddCookie(const std::string& domain, const std::string& path, Cookie&& cookie);
 

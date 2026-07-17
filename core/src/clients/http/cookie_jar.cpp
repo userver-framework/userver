@@ -6,8 +6,11 @@
 #include <string_view>
 #include <utility>
 #include <vector>
+#include <list>
 
 #include <userver/utils/datetime.hpp>
+#include <userver/utils/str_icase.hpp>
+#include <userver/logging/log.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -31,31 +34,7 @@ std::vector<std::string> DomainCandidates(std::string_view host) {
     return out;
 }
 
-// Every stored cookie-path that path-matches the request path, per RFC 6265                                                                                                                      
-// §5.1.4 (Paths and Path-Match): the path itself plus each of its prefix                                                                                                                         
-// directories down to "/". A request path that is empty or not absolute                                                                                                                          
-// defaults to "/" (RFC 6265 §5.1.4, the default-path rule). Emitted                                                                                                                              
-// longest-first so callers get the more specific matches earlier. 
-std::vector<std::string> PathCandidates(std::string_view path) {
-    std::vector<std::string> out;
-    if (path.empty() || path.front() != '/') {
-        out.emplace_back("/");
-        return out;
-    }
-    std::string_view cur = path;
-    while (true) {
-        out.emplace_back(cur);
-        const auto slash = cur.rfind('/');
-        if (slash == 0) {
-            if (cur.size() > 1) out.emplace_back("/");
-            break;
-        }
-        cur = cur.substr(0, slash);
-    }
-    return out;
-}
-
-bool IsSecureScheme(std::string_view scheme) { return utils::StrIcaseEqual{}(scheme, "https"); }
+//bool IsSecureScheme(std::string_view scheme) { return utils::StrIcaseEqual{}(scheme, "https"); }
 
 // RFC 6265 §5.3: a Set-Cookie is a deletion request when its Max-Age is <= 0
 // or, in the absence of Max-Age, its Expires lies in the past. Max-Age takes
@@ -73,33 +52,88 @@ bool IsExpiredCookie(const server::http::Cookie& cookie) {
 
 }  // namespace
 
-struct CookieJar::Impl {
-    using CookieKey = std::pair<std::string, std::string>;
-
-    struct CookieKeyHash {
-        std::size_t operator()(const CookieKey& key) const noexcept {
-            const std::size_t h1 = domain_hash(key.first);
-            const std::size_t h2 = path_hash(key.second);
-            // boost::hash_combine mixing
-            return h1 ^ (h2 + 0x9e3779b97f4a7c15ULL + (h1 << 6) + (h1 >> 2));
+class CookieJar::Impl {
+public:
+    void AddCookie(const std::string& domain, const std::string& path, server::http::Cookie&& cookie) {
+        if (!ValidateCookie(domain, path, cookie)) {
+            LOG_WARNING() << "Could not validate cookie: '" << cookie.Name() << "' rejecting it";
+            return;
         }
-
-        // Held as members so the (randomly seeded) hash seed stays stable
-        // across every lookup in a given table.
-        utils::StrIcaseHash domain_hash;
-        utils::StrCaseHash path_hash;
-    };
-
-    struct CookieKeyEqual {
-        bool operator()(const CookieKey& lhs, const CookieKey& rhs) const noexcept {
-            return domain_equal(lhs.first, rhs.first) && lhs.second == rhs.second;
+        if (IsExpiredCookie(cookie)) {
+            DeleteCookie(cookie);
+            return;
         }
+        auto location = storage.try_emplace(cookie.Domain(), CookieNamesMap{});
+        InsertOrAssignCookieToMap(location.first->second, cookie);
+        return;
+    }
 
-        utils::StrIcaseEqual domain_equal;
-    };
+    void DeleteCookie(const server::http::Cookie& cookie) {
+        const auto location = storage.find(cookie.Domain());
+        if (location == storage.end()){
+            return;
+        }
+        DeleteCookieFromMap(location->second, cookie);
+    }
 
-    using CookieNameMap = std::unordered_map<std::string, server::http::Cookie, utils::StrCaseHash>;
-    using Storage = std::unordered_map<CookieKey, CookieNameMap, CookieKeyHash, CookieKeyEqual>;
+    std::vector<server::http::Cookie> GetCookies(const std::string&, const std::string&) {
+        return {};
+    }
+
+private:
+// List of cookies, which differents only in path property
+//  TODO: replace by intrusive list?
+    using CookiesList = std::list<server::http::Cookie>;
+// Map from cookie name to list of cookies 
+    using CookieNamesMap = std::unordered_map<std::string, CookiesList, utils::StrCaseHash>;
+// Hashtable from domain to map of cookies
+    using Storage = std::unordered_map<std::string, CookieNamesMap, utils::StrIcaseHash>;
+
+    static bool ValidateCookie(const std::string& domain, const std::string& path, server::http::Cookie& cookie) {
+        if (cookie.Domain().empty()) {
+            cookie.SetDomain(domain);
+        }
+        if (cookie.Path().empty()) {
+            cookie.SetPath(path);
+        }
+        return true;
+    }
+
+    static CookiesList::iterator FindDuplicate(CookiesList& list, const server::http::Cookie& cookie){
+        return std::find_if(list.begin(), list.end(), 
+            [&cookie](const server::http::Cookie& source_cookie) {
+                return cookie.Path() == source_cookie.Path();
+            });
+    }
+
+    static void InsertOrAssignCookieToMap(CookieNamesMap& map, const server::http::Cookie& cookie) {
+        auto location = map.try_emplace(cookie.Name(), CookiesList{});
+        auto& list = location.first->second;
+        auto cookie_location = FindDuplicate(list, cookie);
+        if (cookie_location != list.end()) {
+            *cookie_location = cookie;
+            return;
+            
+        }
+        list.push_back(cookie);
+    }
+
+    static void DeleteCookieFromMap(CookieNamesMap& map, const server::http::Cookie& cookie) {
+        const auto list_location = map.find(cookie.Name());
+        if (list_location == map.end()){
+            return;
+        }
+        // Removing cookie from list with the same path
+        auto& list = list_location->second;
+        auto cookie_location = FindDuplicate(list, cookie);
+        if (cookie_location != list.end()) {
+            list.erase(cookie_location);
+        }
+        // Cleaning empty list
+        if (list.empty()) {
+            map.erase(list_location);
+        }
+    }
 
     Storage storage;
 };
@@ -107,52 +141,17 @@ struct CookieJar::Impl {
 CookieJar::CookieJar() = default;
 CookieJar::~CookieJar() = default;
 
-CookieJar::CookieJar(const CookieJar&) = default;
-
-CookieJar::CookieJar(CookieJar&&) noexcept = default;
-
-
 void CookieJar::AddCookie(const std::string& domain, const std::string& path, Cookie&& cookie) {
-    if (cookie.Domain().empty()) {
-        cookie.SetDomain(domain);
-    }
-    if (cookie.Path().empty()) {
-        cookie.SetPath(path);
-    }
-
-    Impl::CookieKey key{cookie.Domain(), cookie.Path()};
-
-    // An expired cookie is a deletion request: drop any stored cookie sharing
-    // this name+domain+path and store nothing.
-    if (IsExpiredCookie(cookie)) {
-        const auto it = impl_->storage.find(key);
-        if (it != impl_->storage.end()) {
-            it->second.erase(cookie.Name());
-            if (it->second.empty()) {
-                impl_->storage.erase(it);
-            }
-        }
-        return;
-    }
-
-    // Re-setting an existing name+domain+path overwrites the previous value.
-    std::string name = cookie.Name();
-    impl_->storage[std::move(key)].insert_or_assign(std::move(name), std::move(cookie));
+    impl_->AddCookie(domain, path, Cookie{cookie});
 }
 
 CookieJar::Cookies CookieJar::GetCookies(const std::string& domain, const std::string& path) {
     Cookies result;
     const auto domains = DomainCandidates(domain);
-    const auto paths = PathCandidates(path);
 
-    for (const auto& p : paths) {
-        for (const auto& d : domains) {
-            const auto it = impl_->storage.find(Impl::CookieKey{d, p});
-            if (it == impl_->storage.end()) continue;
-            for (const auto& [name, cookie] : it->second) {
-                result.push_back(cookie);
-            }
-        }
+    for (const auto& d : domains) {
+        auto domain_cookies = impl_->GetCookies(d, path);
+        result.insert(result.end(), domain_cookies.begin(), domain_cookies.end());
     }
 
     return result;
