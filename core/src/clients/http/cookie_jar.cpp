@@ -4,9 +4,10 @@
 #include <cstddef>
 #include <string>
 #include <string_view>
+#include <set>
 #include <utility>
 #include <vector>
-#include <list>
+#include <boost/container/small_vector.hpp>
 
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/str_icase.hpp>
@@ -17,6 +18,26 @@ USERVER_NAMESPACE_BEGIN
 namespace clients::http {
 
 namespace {
+
+// TODO: not good, for full coverage see libpsl (used by curl), or something else
+static const std::set<std::string> kPublicSuffixes = {
+    // simple TLD
+    "com", "org", "net", "edu", "gov", "mil", "int",
+    
+    //  TLD
+    "us", "uk", "de", "jp", "cn", "ru", "br", "au", "ca", "fr",
+    "it", "nl", "eu", "ch", "se", "pl", "in", "kr", "za", "mx",
+    
+    // eTLD
+    "co.uk", "org.uk", "ac.uk", "gov.uk", 
+    "com.au", "net.au", "org.au", "edu.au", "gov.au",
+    "co.jp", "ne.jp", "or.jp", "ac.jp", "go.jp",
+    "co.in", "net.in", "org.in", "ac.in", "res.in",
+    "com.br", "net.br", "org.br", "edu.br", "gov.br",
+    "com.ru", "net.ru", "org.ru", "pp.ru", 
+    
+    "appspot.com", "blogspot.com", "github.io", "githubpages.com"
+};
 
 // Every stored cookie-domain that domain-matches the request host, per                                                                                                                           
 // RFC 6265 §5.1.3 (Domain Matching): the host itself plus each of its parent                                                                                                                     
@@ -34,42 +55,56 @@ std::vector<std::string> DomainCandidates(std::string_view host) {
     return out;
 }
 
+bool IsPublicSuffix(const std::string& domain) {
+    return kPublicSuffixes.find(domain) != kPublicSuffixes.end();
+}
+
 //bool IsSecureScheme(std::string_view scheme) { return utils::StrIcaseEqual{}(scheme, "https"); }
 
-// RFC 6265 §5.3: a Set-Cookie is a deletion request when its Max-Age is <= 0
-// or, in the absence of Max-Age, its Expires lies in the past. Max-Age takes
-// precedence over Expires; a permanent cookie (Expires == time_point::max())
-// never expires.
-bool IsExpiredCookie(const server::http::Cookie& cookie) {
-    if (const auto max_age = cookie.MaxAge()) {
-        return *max_age <= std::chrono::seconds::zero();
+struct CookieInfo {
+    server::http::Cookie cookie;
+    std::chrono::system_clock::time_point creation_time;
+
+    
+    bool IsExpired() const {
+        // RFC 6265 §5.3: a Set-Cookie is a deletion request when its Max-Age is <= 0
+        // or, in the absence of Max-Age, its Expires lies in the past. Max-Age takes
+        // precedence over Expires; a permanent cookie (Expires == time_point::max())
+        // never expires.
+        const auto& now = utils::datetime::Now();
+        if (const auto max_age = cookie.MaxAge()) {
+            if (*max_age > std::chrono::seconds::zero()) {
+                return creation_time + *max_age <= now;
+            }
+            return true;
+        }
+        if (const auto expires = cookie.Expires()) {
+            return *expires <= now;
+        }
+        return false;
     }
-    if (const auto expires = cookie.Expires()) {
-        return *expires <= utils::datetime::Now();
-    }
-    return false;
-}
+};
 
 }  // namespace
 
 class CookieJar::Impl {
 public:
     void AddCookie(const std::string& domain, const std::string& path, server::http::Cookie&& cookie) {
-        if (!ValidateCookie(domain, path, cookie)) {
-            LOG_WARNING() << "Could not validate cookie: '" << cookie.Name() << "' rejecting it";
+        auto preprocessed_cookie = PreprocessCookie(domain, path, cookie);
+        if (!preprocessed_cookie.has_value()) {
             return;
         }
-        if (IsExpiredCookie(cookie)) {
-            DeleteCookie(cookie);
+        if (preprocessed_cookie->IsExpired()) {
+            DeleteCookie(*preprocessed_cookie);
             return;
         }
         auto location = storage.try_emplace(cookie.Domain(), CookieNamesMap{});
-        InsertOrAssignCookieToMap(location.first->second, cookie);
+        InsertOrAssignCookieToMap(location.first->second, *preprocessed_cookie);
         return;
     }
 
-    void DeleteCookie(const server::http::Cookie& cookie) {
-        const auto location = storage.find(cookie.Domain());
+    void DeleteCookie(const CookieInfo& cookie) {
+        const auto location = storage.find(cookie.cookie.Domain());
         if (location == storage.end()){
             return;
         }
@@ -81,45 +116,52 @@ public:
     }
 
 private:
-// List of cookies, which differents only in path property
-//  TODO: replace by intrusive list?
-    using CookiesList = std::list<server::http::Cookie>;
+// Vector optimized to store small count of elements
+    template <typename Value>
+    using SmallVectorStorage = boost::container::small_vector<Value, 3>;
+// Cookies, which differs only in path property
+    using CookiesList = SmallVectorStorage<CookieInfo>;
 // Map from cookie name to list of cookies 
     using CookieNamesMap = std::unordered_map<std::string, CookiesList, utils::StrCaseHash>;
 // Hashtable from domain to map of cookies
     using Storage = std::unordered_map<std::string, CookieNamesMap, utils::StrIcaseHash>;
 
-    static bool ValidateCookie(const std::string& domain, const std::string& path, server::http::Cookie& cookie) {
+    static std::optional<CookieInfo> PreprocessCookie(const std::string& domain, const std::string& path, server::http::Cookie& cookie) {
         if (cookie.Domain().empty()) {
             cookie.SetDomain(domain);
         }
         if (cookie.Path().empty()) {
             cookie.SetPath(path);
         }
-        return true;
+        if (IsPublicSuffix(domain)) {
+            LOG_WARNING() << "Attempt to set supercookie: '" << cookie.Name() << "' with domain '" << domain << "'";
+            return std::nullopt;
+        }
+        CookieInfo cookie_info{.cookie = cookie, .creation_time = utils::datetime::Now()};
+        return cookie_info;
     }
 
-    static CookiesList::iterator FindDuplicate(CookiesList& list, const server::http::Cookie& cookie){
+    static CookiesList::iterator FindDuplicate(CookiesList& list, const CookieInfo& cookie_info){
         return std::find_if(list.begin(), list.end(), 
-            [&cookie](const server::http::Cookie& source_cookie) {
-                return cookie.Path() == source_cookie.Path();
+            [&cookie_info](const CookieInfo& source_cookie) {
+                return cookie_info.cookie.Path() == source_cookie.cookie.Path();
             });
     }
 
-    static void InsertOrAssignCookieToMap(CookieNamesMap& map, const server::http::Cookie& cookie) {
-        auto location = map.try_emplace(cookie.Name(), CookiesList{});
+    static void InsertOrAssignCookieToMap(CookieNamesMap& map, const CookieInfo& cookie_info) {
+        auto location = map.try_emplace(cookie_info.cookie.Name(), CookiesList{});
         auto& list = location.first->second;
-        auto cookie_location = FindDuplicate(list, cookie);
+        auto cookie_location = FindDuplicate(list, cookie_info);
         if (cookie_location != list.end()) {
-            *cookie_location = cookie;
+            *cookie_location = cookie_info;
             return;
             
         }
-        list.push_back(cookie);
+        list.push_back(cookie_info);
     }
 
-    static void DeleteCookieFromMap(CookieNamesMap& map, const server::http::Cookie& cookie) {
-        const auto list_location = map.find(cookie.Name());
+    static void DeleteCookieFromMap(CookieNamesMap& map, const CookieInfo& cookie) {
+        const auto list_location = map.find(cookie.cookie.Name());
         if (list_location == map.end()){
             return;
         }
@@ -127,7 +169,8 @@ private:
         auto& list = list_location->second;
         auto cookie_location = FindDuplicate(list, cookie);
         if (cookie_location != list.end()) {
-            list.erase(cookie_location);
+            std::iter_swap(cookie_location, list.end() - 1);
+            list.pop_back();
         }
         // Cleaning empty list
         if (list.empty()) {
