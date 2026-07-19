@@ -17,17 +17,16 @@ namespace clients::http {
 /// @brief Cookies storage
 class CookieJar final {
 public:
-    using Cookie = server::http::Cookie;
+    using Cookie = std::pair<std::string, std::string>;
     using Cookies = std::vector<Cookie>;
-
     CookieJar();
     ~CookieJar();
 
     CookieJar(const CookieJar&) = delete;
     CookieJar(CookieJar&&) = delete;
 
-    void AddCookie(const std::string& domain, const std::string& path, Cookie&& cookie);
-
+    void AddCookie(const std::string& domain, const std::string& path, server::http::Cookie&& cookie);
+    std::optional<std::string> GetAnyCookieValue(const std::string& name);
     Cookies GetCookies(const std::string& domain, const std::string& path);
 
 private:

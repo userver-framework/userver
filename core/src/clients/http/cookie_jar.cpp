@@ -72,12 +72,38 @@ struct ValidatedCookie {
     //  Preprocessed attributes
     std::string domain = {}; 
     std::string path = {};
-    bool tailmatch = false;
+    bool host_only = false;
     bool prefix_secure = false;
     bool prefix_host = false;
     std::chrono::system_clock::time_point creation_time = {};
     std::chrono::system_clock::time_point expire_time = {};
 };
+
+static bool CookieTailMatch(std::string_view cookie_domain, std::string_view hostname) {
+    if (hostname.length() < cookie_domain.length()) {
+        return false;
+    }
+
+    auto hostname_suffix = hostname.substr(hostname.length() - cookie_domain.length());
+    if (hostname_suffix != cookie_domain) {
+        return false;
+    }
+
+   /*
+   * A lead char of cookie_domain is not '.'.
+   * RFC6265 4.1.2.3. The Domain Attribute says:
+   * For example, if the value of the Domain attribute is
+   * "example.com", the user agent will include the cookie in the Cookie
+   * header when making HTTP requests to example.com, www.example.com, and
+   * www.corp.example.com.
+   */
+    if (hostname.length() == cookie_domain.length()) {
+        return true;
+    }
+    
+    char char_before_suffix = hostname[hostname.length() - cookie_domain.length() - 1];
+    return char_before_suffix == '.';
+}
 
 bool PathMatch(const ValidatedCookie& cookie, const std::string& uri_path) {
     
@@ -141,21 +167,46 @@ public:
             DeleteCookie(*preprocessed_cookie);
             return;
         }
-        auto location = storage.try_emplace(cookie.Domain(), CookieNamesMap{});
+        auto location = storage_.try_emplace(cookie.Domain(), CookieNamesMap{});
         InsertOrAssignCookieToMap(location.first->second, *preprocessed_cookie);
         return;
     }
 
-    void DeleteCookie(const ValidatedCookie& cookie) {
-        const auto location = storage.find(cookie.domain);
-        if (location == storage.end()){
-            return;
+    std::optional<std::string> GetAnyCookieValue(const std::string& name) {
+        for (const auto& item : storage_) {
+            const auto& location = item.second.find(name);
+            if (!location->second.empty()) {
+                return location->second.front().value;
+            }
         }
-        DeleteCookieFromMap(location->second, cookie);
+        return std::nullopt;
     }
 
-    std::vector<server::http::Cookie> GetCookies(const std::string&, const std::string&) {
-        return {};
+    std::vector<std::pair<std::string, std::string>> GetCookies(const std::string& domain, const std::string& path) {
+        std::vector<std::pair<std::string, std::string>> result;
+        const auto& location = storage_.find(domain);
+        if (location == storage_.end()) {
+            return result;
+        }
+        for (const auto& cookies : location->second) {
+            for (const auto& cookie : cookies.second) {
+                // Temporary hack, think abou proper way to pass uri
+                if (!PathMatch(cookie, domain + path)) {
+                    continue;
+                }
+                if (cookie.host_only) {
+                    if (domain != cookie.domain) {
+                        continue;
+                    }
+                } else {
+                    if (!CookieTailMatch(cookie.domain, domain)) {
+                        continue;
+                    }
+                }
+                result.emplace_back(cookie.name, cookie.value);
+            }
+        }
+        return result;
     }
 
 private:
@@ -169,6 +220,14 @@ private:
 // Hashtable from domain to map of cookies
     using Storage = std::unordered_map<std::string, CookieNamesMap, utils::StrIcaseHash>;
 
+    void DeleteCookie(const ValidatedCookie& cookie) {
+        const auto location = storage_.find(cookie.domain);
+        if (location == storage_.end()){
+            return;
+        }
+        DeleteCookieFromMap(location->second, cookie);
+    }
+
     static std::optional<ValidatedCookie> ValidateCookie(const std::string& domain, const std::string& path, server::http::Cookie& raw_cookie) {
         ValidatedCookie result{
             .name = raw_cookie.Name(), 
@@ -178,6 +237,7 @@ private:
         {
             //  Preprocessing domain attribute
             std::string_view cookie_domain = domain;
+            const bool host_only = raw_cookie.Domain().empty();
             if (!raw_cookie.Domain().empty()) {
                 cookie_domain = raw_cookie.Domain();
             }
@@ -196,6 +256,11 @@ private:
                 LOG_WARNING() << "Attempt to set supercookie: '" << raw_cookie.Name() << "' with domain '" << lowered_domain << "'";
                 return std::nullopt;
             }
+            if (!CookieTailMatch(lowered_domain, domain)) {
+                LOG_WARNING() << "Attempt to set cookie with not matched domain: '" << raw_cookie.Name() << "' with domain '" << lowered_domain << "'";
+                return std::nullopt;
+            }
+            result.host_only = host_only;
             result.domain = std::move(lowered_domain);
         }
         {
@@ -241,7 +306,7 @@ private:
             if (result.prefix_host) {
                 //The __Host- prefix requires the cookie to be secure, have a "/" path
                 //and not have a domain set.
-                if (!(result.secure && result.path == "/" && !result.tailmatch)) {
+                if (!(result.secure && result.path == "/" && result.host_only)) {
                     LOG_WARNING() << "Failed host check on cookie: '" << raw_cookie.Name() << "'";
                     return std::nullopt;
                 }
@@ -287,14 +352,18 @@ private:
         }
     }
 
-    Storage storage;
+    Storage storage_;
 };
 
 CookieJar::CookieJar() = default;
 CookieJar::~CookieJar() = default;
 
-void CookieJar::AddCookie(const std::string& domain, const std::string& path, Cookie&& cookie) {
-    impl_->AddCookie(domain, path, Cookie{cookie});
+void CookieJar::AddCookie(const std::string& domain, const std::string& path, server::http::Cookie&& cookie) {
+    impl_->AddCookie(domain, path, std::move(cookie));
+}
+
+std::optional<std::string> CookieJar::GetAnyCookieValue(const std::string& name) {
+    return impl_->GetAnyCookieValue(name);
 }
 
 CookieJar::Cookies CookieJar::GetCookies(const std::string& domain, const std::string& path) {
