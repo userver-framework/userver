@@ -167,7 +167,7 @@ public:
             DeleteCookie(*preprocessed_cookie);
             return;
         }
-        auto location = storage_.try_emplace(cookie.Domain(), CookieNamesMap{});
+        auto location = storage_.try_emplace(preprocessed_cookie->domain, CookieNamesMap{});
         InsertOrAssignCookieToMap(location.first->second, *preprocessed_cookie);
         return;
     }
@@ -368,7 +368,7 @@ std::optional<std::string> CookieJar::GetAnyCookieValue(const std::string& name)
 
 CookieJar::Cookies CookieJar::GetCookies(const std::string& domain, const std::string& path) {
     Cookies result;
-    const auto domains = DomainCandidates(domain);
+    const auto domains = DomainCandidates(utils::text::ToLower(domain));
 
     for (const auto& d : domains) {
         auto domain_cookies = impl_->GetCookies(d, path);

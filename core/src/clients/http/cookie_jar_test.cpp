@@ -6,11 +6,11 @@
 #include <vector>
 
 #include <gmock/gmock.h>
-#include <gtest/gtest.h>
 
 #include <userver/server/http/http_response_cookie.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/mock_now.hpp>
+#include <userver/utest/utest.hpp>
 
 namespace {
 
@@ -52,7 +52,7 @@ std::vector<std::string> Pairs(const CookieJar::Cookies& cookies) {
 // The motivating scenario: two same-named cookies differing only by Path.
 // Both domain- and path-match, so both are sent, most-specific (longest path)
 // first per RFC 6265 §5.4.
-TEST(HttpCookieJar, SameNameDifferentPathBothSentLongestFirst) {
+UTEST(HttpCookieJar, SameNameDifferentPathBothSentLongestFirst) {
     CookieJar jar;
     Store(jar, "localhost", "/", "A=1; Domain=localhost; Path=/");
     Store(jar, "localhost", "/foo", "A=2; Domain=localhost; Path=/foo");
@@ -62,7 +62,7 @@ TEST(HttpCookieJar, SameNameDifferentPathBothSentLongestFirst) {
 
 // RFC 6265 §5.3 (step 11): a new cookie with the same (name, domain, path)
 // replaces the old stored cookie.
-TEST(HttpCookieJar, SameKeyOverwrites) {
+UTEST(HttpCookieJar, SameKeyOverwrites) {
     CookieJar jar;
     Store(jar, "localhost", "/", "sid=old; Domain=localhost; Path=/");
     Store(jar, "localhost", "/", "sid=new; Domain=localhost; Path=/");
@@ -71,7 +71,7 @@ TEST(HttpCookieJar, SameKeyOverwrites) {
 }
 
 // RFC 6265 §5.4: with no stored cookies the Cookie header is empty.
-TEST(HttpCookieJar, EmptyJarReturnsNothing) {
+UTEST(HttpCookieJar, EmptyJarReturnsNothing) {
     CookieJar jar;
     EXPECT_THAT(jar.GetCookies("localhost", "/foo"), IsEmpty());
 }
@@ -79,7 +79,7 @@ TEST(HttpCookieJar, EmptyJarReturnsNothing) {
 // RFC 6265 §5.1.4 (path-match): a cookie-path matches only on directory
 // boundaries, so "/foo" must not leak to "/foobar", and a request path shorter
 // than the cookie-path must not match.
-TEST(HttpCookieJar, PathPrefixBoundary) {
+UTEST(HttpCookieJar, PathPrefixBoundary) {
     CookieJar jar;
     Store(jar, "localhost", "/foo", "a=1; Domain=localhost; Path=/foo");
 
@@ -93,7 +93,7 @@ TEST(HttpCookieJar, PathPrefixBoundary) {
 // RFC 6265 §5.1.4: cookie-path "/" is a prefix of every request path, so a root
 // cookie matches everywhere; an empty or non-absolute request path takes the
 // default-path "/".
-TEST(HttpCookieJar, RootPathMatchesEverything) {
+UTEST(HttpCookieJar, RootPathMatchesEverything) {
     CookieJar jar;
     Store(jar, "localhost", "/", "a=1; Domain=localhost; Path=/");
 
@@ -105,7 +105,7 @@ TEST(HttpCookieJar, RootPathMatchesEverything) {
 
 // RFC 6265 §5.4 (rule 2): cookies with longer paths sort before shorter ones,
 // regardless of insertion order.
-TEST(HttpCookieJar, DeepPathSpecificityOrdering) {
+UTEST(HttpCookieJar, DeepPathSpecificityOrdering) {
     CookieJar jar;
     Store(jar, "localhost", "/a/b", "lvl2=2; Domain=localhost; Path=/a/b");
     Store(jar, "localhost", "/", "root=r; Domain=localhost; Path=/");
@@ -118,7 +118,7 @@ TEST(HttpCookieJar, DeepPathSpecificityOrdering) {
 }
 
 // RFC 6265 §5.1.3 (domain-match): host names compare case-insensitively.
-TEST(HttpCookieJar, DomainIsCaseInsensitive) {
+UTEST(HttpCookieJar, DomainIsCaseInsensitive) {
     CookieJar jar;
     Store(jar, "localhost", "/", "a=1; Domain=LoCaLhOsT; Path=/");
 
@@ -128,7 +128,7 @@ TEST(HttpCookieJar, DomainIsCaseInsensitive) {
 
 // RFC 6265 §5.1.4 (path-match): paths, by contrast, compare as case-sensitive
 // octet sequences.
-TEST(HttpCookieJar, PathIsCaseSensitive) {
+UTEST(HttpCookieJar, PathIsCaseSensitive) {
     CookieJar jar;
     Store(jar, "localhost", "/Foo", "a=1; Domain=localhost; Path=/Foo");
 
@@ -138,7 +138,7 @@ TEST(HttpCookieJar, PathIsCaseSensitive) {
 
 // RFC 6265 §5.3: the cookie-name is part of a cookie's identity and is
 // case-sensitive, so "A" and "a" coexist at the same (domain, path).
-TEST(HttpCookieJar, CookieNameIsCaseSensitive) {
+UTEST(HttpCookieJar, CookieNameIsCaseSensitive) {
     CookieJar jar;
     Store(jar, "localhost", "/", "A=upper; Domain=localhost; Path=/");
     Store(jar, "localhost", "/", "a=lower; Domain=localhost; Path=/");
@@ -149,7 +149,7 @@ TEST(HttpCookieJar, CookieNameIsCaseSensitive) {
 // RFC 6265 §5.1.3 (domain-match): a cookie set for a parent domain is sent to
 // its subdomains, but not to unrelated hosts that merely share a suffix
 // substring (the match must fall on a "." boundary).
-TEST(HttpCookieJar, SuperdomainMatch) {
+UTEST(HttpCookieJar, SuperdomainMatch) {
     CookieJar jar;
     Store(jar, "example.com", "/", "a=1; Domain=example.com; Path=/");
 
@@ -163,7 +163,7 @@ TEST(HttpCookieJar, SuperdomainMatch) {
 
 // RFC 6265 §5.1.3: a cookie scoped to a subdomain must never travel up to the
 // parent domain (the parent is not a domain-match for the subdomain).
-TEST(HttpCookieJar, SubdomainDoesNotLeakToParent) {
+UTEST(HttpCookieJar, SubdomainDoesNotLeakToParent) {
     CookieJar jar;
     Store(jar, "www.example.com", "/", "a=1; Domain=www.example.com; Path=/");
 
@@ -175,7 +175,7 @@ TEST(HttpCookieJar, SubdomainDoesNotLeakToParent) {
 // RFC 6265 §5.3 (identity is name+domain+path) with §5.4 (order): same-named
 // cookies scoped to a sub- and a super-domain are distinct entries, so a
 // request to the subdomain receives both (host-specific one first).
-TEST(HttpCookieJar, SameNameAcrossSubAndSuperDomain) {
+UTEST(HttpCookieJar, SameNameAcrossSubAndSuperDomain) {
     CookieJar jar;
     Store(jar, "example.com", "/", "sid=parent; Domain=example.com; Path=/");
     Store(jar, "www.example.com", "/", "sid=child; Domain=www.example.com; Path=/");
@@ -187,7 +187,7 @@ TEST(HttpCookieJar, SameNameAcrossSubAndSuperDomain) {
 // RFC 6265 §5.3: a missing Domain defaults to the request host, and a missing
 // Path defaults to the request-uri path (§5.1.4 default-path); an explicit
 // attribute on the cookie takes precedence over these defaults.
-TEST(HttpCookieJar, DefaultsFilledFromRequestTarget) {
+UTEST(HttpCookieJar, DefaultsFilledFromRequestTarget) {
     CookieJar jar;
     Store(jar, "localhost", "/base/dir", "a=1");
 
@@ -202,7 +202,7 @@ TEST(HttpCookieJar, DefaultsFilledFromRequestTarget) {
 
 // RFC 6265 §5.3: the stored cookie retains its resolved Domain/Path, which
 // GetCookies exposes on the returned Cookie objects.
-TEST(HttpCookieJar, ReturnedCookieRetainsAttributes) {
+UTEST(HttpCookieJar, ReturnedCookieRetainsAttributes) {
     CookieJar jar;
     Store(jar, "localhost", "/base/dir", "a=1");
 
@@ -219,7 +219,7 @@ TEST(HttpCookieJar, ReturnedCookieRetainsAttributes) {
 // only directory-boundary prefixes of the request path, so "/foo/" is not a
 // candidate for request "/foo/bar" and the cookie is withheld - whereas
 // RFC 6265 §5.1.4 path-match would accept it.
-TEST(HttpCookieJar, TrailingSlashCookiePathQuirk) {
+UTEST(HttpCookieJar, TrailingSlashCookiePathQuirk) {
     CookieJar jar;
     Store(jar, "localhost", "/foo/", "a=1; Domain=localhost; Path=/foo/");
 
@@ -230,7 +230,7 @@ TEST(HttpCookieJar, TrailingSlashCookiePathQuirk) {
 // RFC 6265 §5.2.3 says a leading dot in a Domain attribute is ignored, so
 // Domain=.example.com should behave like example.com. The jar keys on the
 // literal domain string, so a leading-dot domain matches nothing here.
-TEST(HttpCookieJar, LeadingDotDomainQuirk) {
+UTEST(HttpCookieJar, LeadingDotDomainQuirk) {
     CookieJar jar;
     Store(jar, "example.com", "/", "a=1; Domain=.example.com; Path=/");
 
@@ -244,7 +244,7 @@ TEST(HttpCookieJar, LeadingDotDomainQuirk) {
 
 // RFC 6265 §5.2.2: Max-Age <= 0 makes the cookie expire immediately, so
 // §5.3 removes the stored cookie with the same name+domain+path.
-TEST(HttpCookieJar, MaxAgeZeroDeletesExistingCookie) {
+UTEST(HttpCookieJar, MaxAgeZeroDeletesExistingCookie) {
     CookieJar jar;
     Store(jar, "localhost", "/", "sid=v; Domain=localhost; Path=/");
     ASSERT_THAT(Pairs(jar.GetCookies("localhost", "/")), ElementsAre("sid=v"));
@@ -255,7 +255,7 @@ TEST(HttpCookieJar, MaxAgeZeroDeletesExistingCookie) {
 }
 
 // RFC 6265 §5.2.2: a negative Max-Age is also a non-positive value and deletes.
-TEST(HttpCookieJar, NegativeMaxAgeDeletesExistingCookie) {
+UTEST(HttpCookieJar, NegativeMaxAgeDeletesExistingCookie) {
     CookieJar jar;
     Store(jar, "localhost", "/", "sid=v; Domain=localhost; Path=/");
 
@@ -265,7 +265,7 @@ TEST(HttpCookieJar, NegativeMaxAgeDeletesExistingCookie) {
 }
 
 // RFC 6265 §5.3 (step 11): if no matching cookie exists, deletion does nothing.
-TEST(HttpCookieJar, DeletionOfMissingCookieIsNoOp) {
+UTEST(HttpCookieJar, DeletionOfMissingCookieIsNoOp) {
     CookieJar jar;
 
     Store(jar, "localhost", "/", "sid=; Domain=localhost; Path=/; Max-Age=0");
@@ -275,7 +275,7 @@ TEST(HttpCookieJar, DeletionOfMissingCookieIsNoOp) {
 
 // RFC 6265 §5.3: deletion targets the exact name+domain+path identity, so
 // same-named cookies at other paths are untouched.
-TEST(HttpCookieJar, DeletionIsScopedToExactPath) {
+UTEST(HttpCookieJar, DeletionIsScopedToExactPath) {
     CookieJar jar;
     Store(jar, "localhost", "/", "a=root; Domain=localhost; Path=/");
     Store(jar, "localhost", "/foo", "a=foo; Domain=localhost; Path=/foo");
@@ -289,7 +289,7 @@ TEST(HttpCookieJar, DeletionIsScopedToExactPath) {
 
 // RFC 6265 §5.3 (step 11): replacing one name at a (domain, path) leaves the
 // other cookies stored at that same key in place.
-TEST(HttpCookieJar, OverwriteAtSamePathKeepsSiblings) {
+UTEST(HttpCookieJar, OverwriteAtSamePathKeepsSiblings) {
     CookieJar jar;
     Store(jar, "localhost", "/", "a=1; Domain=localhost; Path=/");
     Store(jar, "localhost", "/", "b=1; Domain=localhost; Path=/");
@@ -300,7 +300,7 @@ TEST(HttpCookieJar, OverwriteAtSamePathKeepsSiblings) {
 
 // RFC 6265 §5.2.1: an Expires in the past sets expiry-time in the past, so
 // §5.3 deletes the cookie.
-TEST(HttpCookieJar, ExpiresInPastDeletesExistingCookie) {
+UTEST(HttpCookieJar, ExpiresInPastDeletesExistingCookie) {
     datetime::MockNowSet(kNow);
 
     CookieJar jar;
@@ -315,7 +315,7 @@ TEST(HttpCookieJar, ExpiresInPastDeletesExistingCookie) {
 
 // RFC 6265 §5.2.1: an Expires in the future keeps the cookie live, so it is
 // stored normally.
-TEST(HttpCookieJar, ExpiresInFutureIsStored) {
+UTEST(HttpCookieJar, ExpiresInFutureIsStored) {
     datetime::MockNowSet(kNow);
 
     CookieJar jar;
@@ -328,7 +328,7 @@ TEST(HttpCookieJar, ExpiresInFutureIsStored) {
 
 // RFC 6265 §5.3 (step 3): when both are present Max-Age wins over Expires, in
 // both directions.
-TEST(HttpCookieJar, MaxAgeTakesPrecedenceOverExpires) {
+UTEST(HttpCookieJar, MaxAgeTakesPrecedenceOverExpires) {
     datetime::MockNowSet(kNow);
 
     CookieJar jar;
