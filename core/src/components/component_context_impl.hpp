@@ -58,6 +58,8 @@ public:
 
     bool IsAnyComponentInFatalState() const;
 
+    std::vector<State::ComponentWithHealth> GetUnhealthyComponents() const;
+
     ServiceLifetimeStage GetServiceLifetimeStage() const;
 
     bool IsInGracefulShutdown() const;

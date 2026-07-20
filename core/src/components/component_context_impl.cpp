@@ -291,6 +291,34 @@ bool ComponentContextImpl::IsAnyComponentInFatalState() const {
     return false;
 }
 
+std::vector<State::ComponentWithHealth> ComponentContextImpl::GetUnhealthyComponents() const {
+#ifndef NDEBUG
+    {
+        const auto data = shared_data_.Lock();
+        UASSERT_MSG(
+            data->print_adding_components_stopped,
+            "GetUnhealthyComponents() should be called only after all "
+            "the components has been loaded."
+        );
+    }
+#endif
+
+    std::vector<State::ComponentWithHealth> result;
+    for (const auto& comp : components_) {
+        const auto health = comp->GetComponent()->GetComponentHealth();
+        switch (health) {
+            case ComponentHealth::kFatal:
+            case ComponentHealth::kFallback:
+                result.push_back({comp->GetName(), health});
+                break;
+            case ComponentHealth::kOk:
+                break;
+        }
+    }
+
+    return result;
+}
+
 ServiceLifetimeStage ComponentContextImpl::GetServiceLifetimeStage() const { return service_lifetime_stage_.load(); }
 
 bool ComponentContextImpl::IsInGracefulShutdown() const { return in_graceful_shutdown_.test(); }
