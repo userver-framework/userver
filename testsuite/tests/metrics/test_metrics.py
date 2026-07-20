@@ -335,6 +335,146 @@ def test_handmade_metrics_to_json():
     assert values == metrics.MetricsSnapshot.from_json(json)
 
 
+def test_layered_dict_no_labels():
+    values = metrics.MetricsSnapshot.from_layered_dict({
+        'tcp-echo.bytes.read': 334,
+    })
+    assert values == metrics.MetricsSnapshot({
+        'tcp-echo.bytes.read': {metrics.Metric({}, 334)},
+    })
+
+
+def test_layered_dict_single_label():
+    values = metrics.MetricsSnapshot.from_layered_dict({
+        'a': {'x = foo': 1, 'x = bar': 2},
+    })
+    assert values == metrics.MetricsSnapshot({
+        'a': {metrics.Metric({'x': 'foo'}, 1), metrics.Metric({'x': 'bar'}, 2)},
+    })
+
+
+def test_layered_dict_multiple_labels():
+    # Same shape as a "versus"/"entity_type" match-statistic metric: one
+    # level of nesting per label, plus a leaf ('versus = total') that skips
+    # the inner label entirely.
+    values = metrics.MetricsSnapshot.from_layered_dict({
+        'match-statistic': {
+            'versus = found': {'entity_type = udid': 4, 'entity_type = park': 2},
+            'versus = not_found_percent': {'entity_type = udid': 0.0, 'entity_type = park': 50.0},
+            'versus = total': 4,
+        },
+    })
+    assert values == metrics.MetricsSnapshot({
+        'match-statistic': {
+            metrics.Metric({'versus': 'found', 'entity_type': 'udid'}, 4),
+            metrics.Metric({'versus': 'found', 'entity_type': 'park'}, 2),
+            metrics.Metric({'versus': 'not_found_percent', 'entity_type': 'udid'}, 0.0),
+            metrics.Metric({'versus': 'not_found_percent', 'entity_type': 'park'}, 50.0),
+            metrics.Metric({'versus': 'total'}, 4),
+        },
+    })
+
+
+def test_layered_dict_label_key_without_equals_fails():
+    # Below the top level (paths), every key must be a 'name = value' label.
+    with pytest.raises(AssertionError):
+        metrics.MetricsSnapshot.from_layered_dict({'a': {'b': 1}})
+
+
+@pytest.mark.parametrize(
+    'key',
+    [
+        'x=foo',
+        'x =foo',
+        'x= foo',
+        'x  = foo',
+        'x =  foo',
+    ],
+)
+def test_layered_dict_label_key_with_wrong_spacing_fails(key):
+    # Exactly one space is required on each side of '='.
+    with pytest.raises(AssertionError):
+        metrics.MetricsSnapshot.from_layered_dict({'a': {key: 1}})
+
+
+def test_layered_dict_histogram_leaf():
+    # A dict with 'bounds' and 'buckets' keys is parsed as a Histogram, same as `from_dict`.
+    values = metrics.MetricsSnapshot.from_layered_dict({
+        'a': {'x = foo': {'bounds': [10, 20], 'buckets': [1, 2], 'inf': 3}},
+    })
+    assert values == metrics.MetricsSnapshot({
+        'a': {metrics.Metric({'x': 'foo'}, metrics.Histogram(bounds=[10, 20], buckets=[1, 2], inf=3))},
+    })
+
+
+def test_layered_dict_matches_from_dict():
+    nested = metrics.MetricsSnapshot.from_layered_dict({
+        'a': {'x = foo': 1, 'x = bar': 2},
+        'b': 3,
+    })
+    flat = metrics.MetricsSnapshot.from_dict({
+        'a': [
+            {'labels': {'x': 'foo'}, 'value': 1},
+            {'labels': {'x': 'bar'}, 'value': 2},
+        ],
+        'b': [{'labels': {}, 'value': 3}],
+    })
+    assert nested == flat
+
+
+def test_layered_dict_common_prefix():
+    values = metrics.MetricsSnapshot.from_layered_dict(
+        {'bytes.read': 334, 'sockets.closed': 2},
+        common_prefix='tcp-echo',
+    )
+    assert values == metrics.MetricsSnapshot({
+        'tcp-echo.bytes.read': {metrics.Metric({}, 334)},
+        'tcp-echo.sockets.closed': {metrics.Metric({}, 2)},
+    })
+
+
+def test_layered_dict_common_prefix_with_labels():
+    values = metrics.MetricsSnapshot.from_layered_dict(
+        {'a': {'x = foo': 1, 'x = bar': 2}},
+        common_prefix='root',
+    )
+    assert values == metrics.MetricsSnapshot({
+        'root.a': {metrics.Metric({'x': 'foo'}, 1), metrics.Metric({'x': 'bar'}, 2)},
+    })
+
+
+def test_layered_dict_common_labels():
+    values = metrics.MetricsSnapshot.from_layered_dict(
+        {'a': 1, 'b': 2},
+        common_labels={'zone': 'paris'},
+    )
+    assert values == metrics.MetricsSnapshot({
+        'a': {metrics.Metric({'zone': 'paris'}, 1)},
+        'b': {metrics.Metric({'zone': 'paris'}, 2)},
+    })
+
+
+def test_layered_dict_common_labels_with_nested_labels():
+    values = metrics.MetricsSnapshot.from_layered_dict(
+        {'a': {'x = foo': 1}},
+        common_labels={'zone': 'paris'},
+    )
+    assert values == metrics.MetricsSnapshot({
+        'a': {metrics.Metric({'zone': 'paris', 'x': 'foo'}, 1)},
+    })
+
+
+def test_layered_dict_common_prefix_and_labels():
+    values = metrics.MetricsSnapshot.from_layered_dict(
+        {'a': {'x = foo': 1}},
+        common_prefix='root',
+        common_labels={'zone': 'paris'},
+    )
+    assert values == metrics.MetricsSnapshot({
+        'root.a': {metrics.Metric({'zone': 'paris', 'x': 'foo'}, 1)},
+    })
+
+
 def _make_differ(
     path: str | None = None,
     prefix: str | None = None,

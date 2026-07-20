@@ -19,7 +19,9 @@ import json
 import logging
 import typing
 from typing import Any
+from typing import overload
 from typing import TypeAlias
+from typing import TypeVar
 import warnings
 
 import aiohttp
@@ -40,6 +42,9 @@ logger = logging.getLogger(__name__)
 
 JsonAny: TypeAlias = int | float | str | list | dict
 JsonAnyOptional: TypeAlias = JsonAny | None
+
+T = TypeVar('T')
+_MISSING: Any = object()
 
 _UNKNOWN_STATE = '__UNKNOWN__'
 
@@ -617,22 +622,41 @@ class MetricsDiffer:
         assert self._diff is not None, 'Set self.current first'
         return self._diff
 
+    @overload
+    def value_at(
+        self,
+        subpath: str | None = None,
+        add_labels: dict[str, str] | None = None,
+    ) -> pytest_userver.metrics.MetricValue: ...
+
+    @overload
+    def value_at(
+        self,
+        subpath: str | None,
+        add_labels: dict[str, str] | None,
+        *,
+        default: T,
+    ) -> pytest_userver.metrics.MetricValue | T: ...
+
     def value_at(
         self,
         subpath: str | None = None,
         add_labels: dict[str, str] | None = None,
         *,
-        default: float | None = None,
-    ) -> pytest_userver.metrics.MetricValue:
+        default: Any = _MISSING,
+    ) -> pytest_userver.metrics.MetricValue | Any:
         """
         Returns a single metric value at the specified path, prepending
         the path provided at construction. If a dict of labels is provided,
         does en exact match of labels, prepending the labels provided at construction.
 
+        If `default` is provided, it is returned instead of asserting when
+        the metric is not found.
+
         @param subpath Suffix of the metric path; the path provided at construction is prepended
         @param add_labels Labels that the metric must have in addition to the labels provided at construction
         @param default An optional default value in case the metric is missing
-        @throws AssertionError if not one metric by path
+        @throws AssertionError if not one metric by path and no `default` is given
         """
         base_path = self._path or self._prefix
         if base_path and subpath:
@@ -643,6 +667,8 @@ class MetricsDiffer:
         labels: dict | None = None
         if self._labels is not None or add_labels is not None:
             labels = {**(self._labels or {}), **(add_labels or {})}
+        if default is _MISSING:
+            return self.diff.value_at(path, labels)
         return self.diff.value_at(path, labels, default=default)
 
     async def fetch(self) -> pytest_userver.metrics.MetricsSnapshot:
