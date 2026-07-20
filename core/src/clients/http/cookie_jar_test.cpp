@@ -232,12 +232,17 @@ UTEST(HttpCookieJar, TrailingSlashCookiePathQuirk) {
 // literal domain string, so a leading-dot domain matches nothing here.
 UTEST(HttpCookieJar, LeadingDotDomainQuirk) {
     CookieJar jar;
-    Store(jar, "example.com", "/", "a=1; Domain=.example.com; Path=/");
+    Store(jar, "v1.myapi.com", "/", "a=1; Domain=.v1.myapi.com; Path=/");
 
-    EXPECT_THAT(jar.GetCookies("example.com", "/"), IsEmpty());
-    EXPECT_THAT(jar.GetCookies("www.example.com", "/"), IsEmpty());
-    // It only matches a request whose host equals the literal ".example.com".
-    EXPECT_THAT(Pairs(jar.GetCookies(".example.com", "/")), ElementsAre("a=1"));
+    EXPECT_THAT(Pairs(jar.GetCookies("v1.myapi.com", "/")), ElementsAre("a=1"));
+    EXPECT_THAT(Pairs(jar.GetCookies(".v1.myapi.com", "/")), ElementsAre("a=1"));
+    EXPECT_THAT(Pairs(jar.GetCookies("api.v1.myapi.com", "/")), ElementsAre("a=1"));
+    EXPECT_THAT(Pairs(jar.GetCookies("test.api.v1.myapi.com", "/")), ElementsAre("a=1"));
+    
+    EXPECT_THAT(jar.GetCookies("api.v2.myapi.com", "/"), IsEmpty());
+    EXPECT_THAT(jar.GetCookies("myapi.com", "/"), IsEmpty());
+    EXPECT_THAT(jar.GetCookies(".myapi.com", "/"), IsEmpty());
+    EXPECT_THAT(jar.GetCookies("amyapi.com", "/"), IsEmpty());
 }
 
 // --- Deletion (RFC 6265 §5.3) and overwrite semantics ---

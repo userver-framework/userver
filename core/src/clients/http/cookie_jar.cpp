@@ -131,13 +131,13 @@ bool PathMatch(const ValidatedCookie& cookie, const std::string& uri_path) {
     *  Ignore this algorithm because /hoge is uri path for this case
     *  (uri path is not /).
     */
-    if (uri_path.size() < cookie.path.size()) {
+    if (uri_view.size() < cookie.path.size()) {
         return false;
     }
 
     /* not using checkprefix() because matching should be case-sensitive */
     
-    if(cookie.path.starts_with(uri_view)) {
+    if (!cookie.path.starts_with(uri_view)) {
         return false;
     }
 
@@ -147,11 +147,19 @@ bool PathMatch(const ValidatedCookie& cookie, const std::string& uri_path) {
     }
 
     /* here, cookie_path_len < uri_path_len */
-    if(uri_path[cookie.path.size()] == '/') {
+    if(uri_view[cookie.path.size()] == '/') {
         return true;
     }
 
     return false;
+}
+
+static std::string LowerDomainWithoutLeadingDot(std::string_view domain) {
+    if (!domain.empty() && domain[0] == '.') {
+        // RFC 6265 5.2.3. Let cookie-domain be the attribute-value without the leading %x2E (".") character.
+        domain = domain.substr(1);
+    }
+    return utils::text::ToLower(domain);
 }
 
 }  // namespace
@@ -167,8 +175,7 @@ public:
             DeleteCookie(*preprocessed_cookie);
             return;
         }
-        auto location = storage_.try_emplace(preprocessed_cookie->domain, CookieNamesMap{});
-        InsertOrAssignCookieToMap(location.first->second, *preprocessed_cookie);
+        InsertOrAssignCookieToMap(std::move(preprocessed_cookie).value());
         return;
     }
 
@@ -190,8 +197,7 @@ public:
         }
         for (const auto& cookies : location->second) {
             for (const auto& cookie : cookies.second) {
-                // Temporary hack, think abou proper way to pass uri
-                if (!PathMatch(cookie, domain + path)) {
+                if (!PathMatch(cookie, path)) {
                     continue;
                 }
                 if (cookie.host_only) {
@@ -238,20 +244,13 @@ private:
             //  Preprocessing domain attribute
             std::string_view cookie_domain = domain;
             const bool host_only = raw_cookie.Domain().empty();
-            if (!raw_cookie.Domain().empty()) {
-                cookie_domain = raw_cookie.Domain();
-            }
-            if (!cookie_domain.empty() && cookie_domain[0] == '.') {
-                // RFC 6265 5.2.3. Let cookie-domain be the attribute-value without the leading %x2E (".") character.
-                cookie_domain = cookie_domain.substr(1);
-            }
-            if (cookie_domain.empty()) {
+            auto lowered_domain = LowerDomainWithoutLeadingDot(host_only ? domain : raw_cookie.Domain());
+            if (lowered_domain.empty()) {
                 // RFC 6265 5.2.3.If the attribute-value is empty, the behavior is undefined.  
                 // However, the user agent SHOULD ignore the cookie-av entirely.
                 LOG_WARNING() << "Ignoring cookie without domain attribute: '" << raw_cookie.Name() << "'";
                 return std::nullopt;
             }
-            auto lowered_domain = utils::text::ToLower(cookie_domain);
             if (IsPublicSuffix(lowered_domain)) {
                 LOG_WARNING() << "Attempt to set supercookie: '" << raw_cookie.Name() << "' with domain '" << lowered_domain << "'";
                 return std::nullopt;
@@ -322,16 +321,19 @@ private:
             });
     }
 
-    static void InsertOrAssignCookieToMap(CookieNamesMap& map, const ValidatedCookie& cookie) {
-        auto location = map.try_emplace(cookie.name, CookiesList{});
+    void InsertOrAssignCookieToMap(ValidatedCookie&& cookie) {
+        const auto& map_location = storage_.try_emplace(cookie.domain, CookieNamesMap{});
+        auto location = map_location.first->second.try_emplace(cookie.name, CookiesList{});
         auto& list = location.first->second;
         auto cookie_location = FindDuplicate(list, cookie);
         if (cookie_location != list.end()) {
-            *cookie_location = cookie;
+            //  Preserving old creation time, needed for sorting output cookies
+            cookie.creation_time = cookie_location->creation_time;
+            *cookie_location = std::move(cookie);
             return;
             
         }
-        list.push_back(cookie);
+        list.push_back(std::move(cookie));
     }
 
     static void DeleteCookieFromMap(CookieNamesMap& map, const ValidatedCookie& cookie) {
@@ -368,7 +370,7 @@ std::optional<std::string> CookieJar::GetAnyCookieValue(const std::string& name)
 
 CookieJar::Cookies CookieJar::GetCookies(const std::string& domain, const std::string& path) {
     Cookies result;
-    const auto domains = DomainCandidates(utils::text::ToLower(domain));
+    const auto domains = DomainCandidates(LowerDomainWithoutLeadingDot(domain));
 
     for (const auto& d : domains) {
         auto domain_cookies = impl_->GetCookies(d, path);
