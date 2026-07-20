@@ -11,6 +11,7 @@
 #include <userver/concurrent/queue.hpp>
 #include <userver/engine/io/socket.hpp>
 #include <userver/http/common_headers.hpp>
+#include <userver/server/http/http_request_builder.hpp>
 
 #include <userver/utest/http_client.hpp>
 #include <userver/utest/simple_server.hpp>
@@ -380,6 +381,83 @@ UTEST_F(Http2SessionTest, ForCurl) {
     EXPECT_TRUE(consumer.Pop(request));
     EXPECT_EQ(request->GetHeader("heavy_header"), heavy_header);
     EXPECT_EQ(request->GetMethod(), HttpMethod::kPost);
+}
+
+UTEST(Http2SessionStreaming, EventQueueIsFifoPerStreamAndSignals) {
+    const auto queue = impl::Http2StreamEventQueue::Create();
+    engine::SingleConsumerEvent event{engine::SingleConsumerEvent::NoAutoReset()};
+    impl::Http2StreamEventProducer producer{*queue, event};
+    auto consumer = queue->GetConsumer();
+
+    producer.PushEvent({1, "first"});
+    producer.PushEvent({1, "second"});
+    producer.CloseStream(1);
+    EXPECT_TRUE(event.IsReady());
+
+    impl::Http2StreamEvent popped;
+    ASSERT_TRUE(consumer.PopNoblock(popped));
+    EXPECT_EQ(popped.stream_id, 1);
+    EXPECT_EQ(popped.body_part, "first");
+    EXPECT_FALSE(popped.is_end);
+    ASSERT_TRUE(consumer.PopNoblock(popped));
+    EXPECT_EQ(popped.body_part, "second");
+    ASSERT_TRUE(consumer.PopNoblock(popped));
+    EXPECT_TRUE(popped.is_end);
+    EXPECT_FALSE(consumer.PopNoblock(popped));
+}
+
+UTEST(Http2SessionStreaming, StreamingEventIsWaitAnyCompatible) {
+    auto parser = CreateTestParser([](std::shared_ptr<http::HttpRequest>&&) {}, USERVER_NAMESPACE::http::HttpVersion::k2);
+    auto& session = dynamic_cast<Http2Session&>(*parser);
+
+    auto& event = session.GetStreamingEvent();
+    EXPECT_FALSE(event.IsAutoReset());
+    // Auto-reset events UINVARIANT-abort here; the connection loop appends
+    // this token to its WaitAnyContext.
+    EXPECT_FALSE(event.GetAwaitableToken().IsEmpty());
+}
+
+UTEST(Http2SessionStreaming, EventForUnknownStreamIsDropped) {
+    auto parser = CreateTestParser([](std::shared_ptr<http::HttpRequest>&&) {}, USERVER_NAMESPACE::http::HttpVersion::k2);
+    auto& session = dynamic_cast<Http2Session&>(*parser);
+
+    impl::Http2StreamEvent event;
+    EXPECT_FALSE(session.PopStreamingEventNoblock(event));
+
+    // A handler may still be producing body parts after the client reset the
+    // stream; such events must be dropped, not tear down the connection.
+    impl::Http2StreamEvent late{42, "late chunk", true};
+    EXPECT_NO_THROW(session.ApplyStreamingEvent(std::move(late)));
+}
+
+UTEST(Http2SessionStreaming, SetStreamBodyPicksHttp2Producer) {
+    const auto queue = impl::Http2StreamEventQueue::Create();
+    engine::SingleConsumerEvent event{engine::SingleConsumerEvent::NoAutoReset()};
+
+    request::ResponseDataAccounter accounter;
+    const auto request = HttpRequestBuilder{accounter}
+                             .SetMethod(HttpMethod::kGet)
+                             .SetHttpMajor(2)
+                             .SetHttpMinor(0)
+                             .SetUrl("/")
+                             .SetResponseStreamId(1)
+                             .SetStreamProducer(impl::Http2StreamEventProducer{*queue, event})
+                             .Build();
+    auto& response = request->GetHttpResponse();
+
+    // Used to UINVARIANT-abort the whole process for HTTP/2 responses.
+    response.SetStreamBody();
+    EXPECT_TRUE(response.IsBodyStreamed());
+
+    auto producer = response.GetBodyProducer();
+    ASSERT_TRUE(std::holds_alternative<impl::Http2StreamEventProducer>(producer));
+
+    auto consumer = queue->GetConsumer();
+    std::get<impl::Http2StreamEventProducer>(producer).PushEvent({1, "chunk"});
+    impl::Http2StreamEvent popped;
+    ASSERT_TRUE(consumer.PopNoblock(popped));
+    EXPECT_EQ(popped.body_part, "chunk");
+    EXPECT_TRUE(event.IsReady());
 }
 
 }  // namespace server::http

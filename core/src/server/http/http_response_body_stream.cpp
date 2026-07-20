@@ -24,7 +24,14 @@ ResponseBodyStream::~ResponseBodyStream() {
 
 void ResponseBodyStream::PushBodyChunk(std::string&& chunk, engine::Deadline deadline) {
     UASSERT_MSG(headers_ended_, "SetEndOfHeaders() was not called before PushBodyChunk()");
-    UASSERT_MSG(http_response_.GetData().empty(), "PushBodyChunk() was called after SetBody()");
+    // Only check before the first chunk is announced: after that the
+    // connection coroutine may be sending the response concurrently and reads
+    // of the response data would race with it. SetBody() after the first
+    // chunk is already asserted in SetBody() itself.
+    UASSERT_MSG(
+        headers_end_sent_ || http_response_.GetData().empty(),
+        "PushBodyChunk() was called after SetBody()"
+    );
 
     if (headers_ended_ && !headers_end_sent_) {
         http_response_.SetHeadersEnd();
