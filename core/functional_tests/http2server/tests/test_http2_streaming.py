@@ -1,11 +1,8 @@
 import asyncio
 
-import pytest
-
 DEFAULT_PATH = '/http2server-stream'
 
 
-@pytest.mark.skip(reason='TAXICOMMON-10258')
 async def test_body_stream(http2_client, service_client, dynamic_config):
     part = 'part'
     count = 100
@@ -25,7 +22,6 @@ async def _stream_request(client, req_per_client):
         assert data == r.text
 
 
-@pytest.mark.skip(reason='TAXICOMMON-10258')
 async def test_body_stream_small_pieces(
     http2_client,
     service_client,
@@ -34,7 +30,6 @@ async def test_body_stream_small_pieces(
     await _stream_request(http2_client, 1)
 
 
-@pytest.mark.skip(reason='TAXICOMMON-10258')
 async def test_body_stream_concurrent(
     http2_client,
     service_client,
@@ -44,3 +39,44 @@ async def test_body_stream_concurrent(
     req_per_client = 10
     tasks = [_stream_request(http2_client, req_per_client) for _ in range(clients_count)]
     await asyncio.gather(*tasks)
+
+
+async def test_body_stream_no_head_of_line_blocking(
+    http2_client,
+    service_client,
+    dynamic_config,
+):
+    # A slow streamed response (~5s) on one stream must not delay other
+    # requests multiplexed on the same connection. If it did, each "fast"
+    # request below would complete only after the slow stream finishes and
+    # trip its timeout.
+    part = 'x'
+    count = 50
+    slow = asyncio.create_task(
+        http2_client.get(
+            DEFAULT_PATH,
+            params={
+                'type': 'eq',
+                'body_part': part,
+                'count': count,
+                'delay_ms': 100,
+            },
+            timeout=30.0,
+        ),
+    )
+    try:
+        for _ in range(5):
+            r = await asyncio.wait_for(
+                http2_client.get(
+                    '/http2server',
+                    params={'type': 'echo-body'},
+                    data='ping',
+                ),
+                timeout=2.0,
+            )
+            assert 200 == r.status_code
+            assert 'ping' == r.text
+    finally:
+        r = await slow
+    assert 200 == r.status_code
+    assert part * count == r.text

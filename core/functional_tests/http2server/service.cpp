@@ -53,13 +53,15 @@ public:
             const auto& count_str = req.GetArg("count");
             const std::size_t count = std::stoi(count_str);
             UASSERT(count != 0);
+            const auto& delay_str = req.GetArg("delay_ms");
+            const std::chrono::milliseconds delay{delay_str.empty() ? 2 : std::stoi(delay_str)};
             stream.SetStatusCode(200);
             stream.SetEndOfHeaders();
             for (std::size_t i = 0; i < count - 1; i++) {
                 std::string part{body_part};
                 stream.PushBodyChunk(std::move(part), {});
                 // Some pause...
-                engine::SleepFor(std::chrono::milliseconds{2});
+                engine::SleepFor(delay);
             }
             std::string part{body_part};
             stream.PushBodyChunk(std::move(part), {});

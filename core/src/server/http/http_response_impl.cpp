@@ -317,7 +317,6 @@ void HttpResponseImpl::SetSystemHeadersEnd() { system_headers_ended_ = true; }
 void HttpResponseImpl::SetStreamBody() {
     UASSERT(body_stream_producer_.index() == 0);
     if (stream_id_.has_value()) {
-        UINVARIANT(false, "Streaming in HTTP/2.0 is not supported currently.");
         body_stream_producer_.emplace<impl::Http2StreamEventProducer>(std::move(producer_.value()));
     } else {
         UASSERT(!body_stream_);
@@ -326,6 +325,20 @@ void HttpResponseImpl::SetStreamBody() {
         body_stream_producer_.emplace<Queue::Producer>(body_queue->GetProducer());
     }
     is_stream_body_ = true;
+}
+
+bool HttpResponseImpl::BufferHttp1StreamedBody() {
+    if (!IsBodyStreamed() || !body_stream_.has_value()) {
+        return false;
+    }
+    std::string body{GetData()};
+    std::string body_part;
+    while (body_stream_->Pop(body_part)) {
+        body += body_part;
+    }
+    body_stream_.reset();
+    SetData(std::move(body));
+    return true;
 }
 
 HttpResponseImpl::Producer HttpResponseImpl::GetBodyProducer() {
