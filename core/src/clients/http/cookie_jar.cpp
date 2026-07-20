@@ -296,9 +296,17 @@ private:
         }
         {
             // Preprocessing cookie path RFC 5.2.4
-            std::string_view cookie_path = path;
-            if (!raw_cookie.Path().empty() && raw_cookie.Path()[0] == '/') {
-                cookie_path = raw_cookie.Path();
+            std::string_view cookie_path = raw_cookie.Path();
+            if (cookie_path.empty() || cookie_path[0] != '/') {
+                //  Computing default-path
+                cookie_path = path;
+                if (cookie_path.empty() || cookie_path[0] != '/') {
+                    cookie_path = "/";
+                }
+                const auto last_index = cookie_path.rfind('/');
+                if (last_index != 0) {
+                    cookie_path = cookie_path.substr(0, last_index);
+                }
             }
             result.path = cookie_path;
         }

@@ -76,6 +76,15 @@ UTEST(HttpCookieJar, EmptyJarReturnsNothing) {
     EXPECT_THAT(jar.GetCookies("localhost", "/foo"), IsEmpty());
 }
 
+// Security issue, don't allow supercookie
+UTEST(HttpCookieJar, EmptyJarForSuperCookies) {
+    CookieJar jar;
+    Store(jar, "a.com", "/", "session=cracked; Domain=.com;");
+    EXPECT_THAT(jar.GetCookies("a.com", "/"), IsEmpty());
+    EXPECT_THAT(jar.GetCookies("hacked.com", "/"), IsEmpty());
+    EXPECT_THAT(jar.GetCookies("hacked.a.com", "/"), IsEmpty());
+}
+
 // RFC 6265 §5.1.4 (path-match): a cookie-path matches only on directory
 // boundaries, so "/foo" must not leak to "/foobar", and a request path shorter
 // than the cookie-path must not match.
@@ -185,7 +194,7 @@ UTEST(HttpCookieJar, SameNameAcrossSubAndSuperDomain) {
 }
 
 // RFC 6265 §5.3: a missing Domain defaults to the request host, and a missing
-// Path defaults to the request-uri path (§5.1.4 default-path); an explicit
+// Path defaults to the default-path (§5.1.4); an explicit
 // attribute on the cookie takes precedence over these defaults.
 UTEST(HttpCookieJar, DefaultsFilledFromRequestTarget) {
     CookieJar jar;
@@ -193,7 +202,7 @@ UTEST(HttpCookieJar, DefaultsFilledFromRequestTarget) {
 
     EXPECT_THAT(Pairs(jar.GetCookies("localhost", "/base/dir")), ElementsAre("a=1"));
     EXPECT_THAT(Pairs(jar.GetCookies("localhost", "/base/dir/deeper")), ElementsAre("a=1"));
-    EXPECT_THAT(jar.GetCookies("localhost", "/base"), IsEmpty());
+    EXPECT_THAT(Pairs(jar.GetCookies("localhost", "/base")), ElementsAre("a=1"));
 
     // Explicit Path "/" on the cookie wins over the "/ignored" request path.
     Store(jar, "localhost", "/ignored", "b=2; Domain=localhost; Path=/");
