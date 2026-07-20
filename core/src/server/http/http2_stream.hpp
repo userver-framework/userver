@@ -41,6 +41,12 @@ public:
     void SetStreaming(bool streaming);
 
     bool CheckUrlComplete();
+    // RFC 9113 fixes no order among the pseudo-header fields, so :method and
+    // :path may arrive in any relative order; the request target is complete
+    // only when both were decoded.
+    void SetMethodParsed() { method_parsed_ = true; }
+    void SetPathParsed() { path_parsed_ = true; }
+    bool IsRequestTargetComplete() const { return method_parsed_ && path_parsed_; }
     void PushChunk(std::string&& chunk);
     ssize_t GetMaxSize(std::size_t max_len, std::uint32_t* flags);
     void Send(engine::io::RwBase& socket, std::string_view data_frame_header, std::size_t max_len);
@@ -48,6 +54,8 @@ public:
 
 private:
     bool url_complete_{false};
+    bool method_parsed_{false};
+    bool path_parsed_{false};
     HttpRequestConstructor constructor_;
     const Id id_;
     // Body sending

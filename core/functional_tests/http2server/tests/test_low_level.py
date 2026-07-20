@@ -470,3 +470,69 @@ async def test_streams_with_the_same_id(create_connection, service_client):
         assert 'unexpected non-CONTINUATION frame or stream_id is invalid' in str(
             receive,
         )
+
+
+# RFC 9113 8.3 does not fix an order among the pseudo-header fields, so a
+# request must be routed identically regardless of it. h2load, for example,
+# serializes :path first and :method after :scheme and :authority.
+PSEUDO_HEADER_ORDERS = [
+    pytest.param(order, id=order_id)
+    for order_id, order in [
+        ('method-first', [':method', ':path', ':scheme', ':authority']),
+        ('h2load', [':path', ':scheme', ':authority', ':method']),
+        ('method-last', [':path', ':authority', ':scheme', ':method']),
+        ('path-last', [':authority', ':scheme', ':method', ':path']),
+    ]
+]
+
+
+def _make_headers(order, query, extra):
+    values = {
+        ':method': 'GET',
+        ':path': f'{DEFAULT_PATH}?{query}',
+        ':scheme': 'http',
+        ':authority': 'localhost',
+    }
+    return [(name, values[name]) for name in order] + extra
+
+
+@pytest.mark.parametrize('order', PSEUDO_HEADER_ORDERS)
+async def test_pseudo_header_order_is_irrelevant(
+    create_connection,
+    service_client,
+    order,
+):
+    headers = _make_headers(order, 'type=echo-header', [('echo-header', 'reordered')])
+    async with create_connection() as (sock, conn):
+        stream_id = conn.get_next_available_stream_id()
+        conn.send_headers(stream_id, headers, end_stream=True)
+        await sock.sendall(conn.data_to_send())
+
+        events = await utils.receive_until_stream_ended(sock, conn)
+        response = next(event for event in events if isinstance(event, h2.events.ResponseReceived))
+        assert b'200' == dict(response.headers)[b':status']
+        assert b'reordered' == utils.response_data(events)
+
+
+@pytest.mark.parametrize('order', PSEUDO_HEADER_ORDERS)
+async def test_pseudo_header_order_with_request_body(
+    create_connection,
+    service_client,
+    order,
+):
+    # Handler matching installs the per-handler request limits, which must be
+    # in place before the DATA frames arrive - so it must happen at the end
+    # of the header block whatever the pseudo-header order was.
+    body = b'0123456789abcdef' * 64
+    headers = _make_headers(order, 'type=echo-body', [])
+    headers = [(':method', 'POST') if name == ':method' else (name, value) for name, value in headers]
+    async with create_connection() as (sock, conn):
+        stream_id = conn.get_next_available_stream_id()
+        conn.send_headers(stream_id, headers, end_stream=False)
+        conn.send_data(stream_id, body, end_stream=True)
+        await sock.sendall(conn.data_to_send())
+
+        events = await utils.receive_until_stream_ended(sock, conn)
+        response = next(event for event in events if isinstance(event, h2.events.ResponseReceived))
+        assert b'200' == dict(response.headers)[b':status']
+        assert body == utils.response_data(events)

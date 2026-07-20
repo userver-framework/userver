@@ -98,6 +98,21 @@ int Http2Session::OnFrameRecv(nghttp2_session* session, const nghttp2_frame* fra
     switch (frame->hd.type) {
         case NGHTTP2_DATA:
         case NGHTTP2_HEADERS: {
+            if (frame->hd.type == NGHTTP2_HEADERS && frame->headers.cat == NGHTTP2_HCAT_REQUEST) {
+                // Safety net for requests that did not reach the handler
+                // matching in OnHeader (normally it fires as soon as both
+                // :method and :path are decoded). The whole header block,
+                // CONTINUATION frames included, is decoded at this point.
+                // Matching cannot happen later, in FinalizeRequest: it
+                // installs the per-handler request limits, which must be in
+                // place before the DATA frames of the request body arrive.
+                // Parse errors are handled in FinalizeRequest.
+                auto* stream =
+                    static_cast<Stream*>(nghttp2_session_get_stream_user_data(session, frame->hd.stream_id));
+                if (stream != nullptr) {
+                    [[maybe_unused]] const bool url_ok = stream->CheckUrlComplete();
+                }
+            }
             if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
                 auto& stream = parser.GetStreamChecked(Stream::Id{frame->hd.stream_id});
                 try {
@@ -145,12 +160,15 @@ int Http2Session::OnHeader(
     auto& parser = GetParser(user_data);
     auto& stream = parser.GetStreamChecked(Stream::Id{frame->hd.stream_id});
     auto& ctor = stream.RequestConstructor();
-    if (hname == USERVER_NAMESPACE::http::headers::k2::kMethod) {
+    const bool is_method = hname == USERVER_NAMESPACE::http::headers::k2::kMethod;
+    const bool is_path = hname == USERVER_NAMESPACE::http::headers::k2::kPath;
+    if (is_method) {
         ctor.SetMethod(HttpMethodFromString(hvalue));
-    } else if (hname == USERVER_NAMESPACE::http::headers::k2::kPath) {
+        stream.SetMethodParsed();
+    } else if (is_path) {
         try {
             ctor.AppendUrl(hvalue);
-            stream.CheckUrlComplete();
+            stream.SetPathParsed();
         } catch (const std::exception& e) {
             LOG_LIMITED_WARNING() << "can't append url: " << e;
             IncStat(parser.stats_.http2_stats.streams_parse_error);
@@ -163,6 +181,22 @@ int Http2Session::OnHeader(
             LOG_LIMITED_WARNING() << "can't append header field: " << e;
             IncStat(parser.stats_.http2_stats.streams_parse_error);
         }
+    }
+
+    if ((is_method || is_path) && stream.IsRequestTargetComplete()) {
+        // Match the handler at the earliest correct moment: when both
+        // :method and :path are decoded. Neither field alone is enough —
+        // RFC 9113 fixes no order among the pseudo-header fields (h2load,
+        // for example, serializes :path before :method), and matching with
+        // a yet-unknown method used to produce a cached 405 for the whole
+        // request. Since all pseudo-header fields precede the regular ones,
+        // matching here means the per-handler request limits cover the
+        // remaining header fields, and a doomed request (405/404) is known
+        // as early as possible. The rest of the header block still has to
+        // be decoded either way: HPACK is stateful, so a block cannot be
+        // abandoned midway without desyncing the whole connection; the
+        // accumulated data is bounded by max_headers_size.
+        [[maybe_unused]] const bool url_ok = stream.CheckUrlComplete();
     }
     return 0;
 }
