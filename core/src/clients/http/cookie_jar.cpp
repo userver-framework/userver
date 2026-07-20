@@ -12,6 +12,7 @@
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/str_icase.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/http/url.hpp>
 #include <userver/utils/text.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -105,7 +106,7 @@ static bool CookieTailMatch(std::string_view cookie_domain, std::string_view hos
     return char_before_suffix == '.';
 }
 
-bool PathMatch(const ValidatedCookie& cookie, const std::string& uri_path) {
+bool PathMatch(const ValidatedCookie& cookie, std::string_view uri_path) {
     
     //  Matching cookie path and URL path
     //  RFC6265 5.1.4 Paths and Path-Match
@@ -187,8 +188,9 @@ public:
             }
         }
     }
-    void AddCookie(const std::string& domain, const std::string& path, server::http::Cookie&& cookie) {
-        auto preprocessed_cookie = ValidateCookie(domain, path, cookie);
+    void AddCookie(std::string_view url, server::http::Cookie&& cookie) {
+        const auto& parsed_url = userver::http::DecomposeUrlIntoViews(url);
+        auto preprocessed_cookie = ValidateCookie(parsed_url.scheme, parsed_url.host, parsed_url.path, cookie);
         if (!preprocessed_cookie.has_value()) {
             return;
         }
@@ -210,7 +212,7 @@ public:
         return std::nullopt;
     }
 
-    CookieJar::Cookies GetCookies(const std::string& domain, const std::string& path) {
+    CookieJar::Cookies GetCookies(const std::string& domain, std::string_view path) {
         CookieJar::Cookies result;
         const auto& location = storage_.find(domain);
         if (location == storage_.end()) {
@@ -233,18 +235,6 @@ public:
                 result.emplace_back(cookie.name, cookie.value, cookie.creation_time, cookie.path.size());
             }
         }
-        // In fact this optional but recommended step. Maybe add flag?
-        // RFC 6265 5.4.1 - specifies order with remark:
-        //   `Not all user agents sort the cookie-list in this order, but
-        //   this order reflects common practice when this document was
-        //   written, and, historically, there have been servers that
-        //   (erroneously) depended on this order.`
-        std::sort(result.begin(), result.end(), [](const CookieJar::Cookie& lhs, const CookieJar::Cookie& rhs) {
-            if (lhs.path_length_ != rhs.path_length_) {
-                return lhs.path_length_ > rhs.path_length_;
-            }
-            return lhs.creation_time_ < rhs.creation_time_;
-        });
         return result;
     }
 
@@ -267,7 +257,8 @@ private:
         DeleteCookieFromMap(location->second, cookie);
     }
 
-    static std::optional<ValidatedCookie> ValidateCookie(const std::string& domain, const std::string& path, server::http::Cookie& raw_cookie) {
+    static std::optional<ValidatedCookie> ValidateCookie(std::string_view scheme, std::string_view domain, 
+            std::string_view path, server::http::Cookie& raw_cookie) {
         ValidatedCookie result{
             .name = raw_cookie.Name(), 
             .value = raw_cookie.Value(),
@@ -331,13 +322,15 @@ private:
             result.expire_time = expire_time;
         }
         {
-            //  Preprocessing prefixes
+            //  Preprocessing 
+            const auto& lowered_scheme = utils::text::ToLower(scheme);
+            const bool secure_scheme = lowered_scheme == "https";
             if (result.name.starts_with("__Secure-")) {
                 result.prefix_secure = true;
             } else if (result.name.starts_with("__Host-")) {
                 result.prefix_host = true;
             }
-            if (result.prefix_secure && !result.secure) {
+            if ((secure_scheme || result.prefix_secure) && !result.secure) {
                 // The __Secure- prefix only requires that the cookie be set secure
                 LOG_WARNING() << "Failed security check on cookie: '" << raw_cookie.Name() << "'";
                 return std::nullopt;
@@ -345,10 +338,14 @@ private:
             if (result.prefix_host) {
                 //The __Host- prefix requires the cookie to be secure, have a "/" path
                 //and not have a domain set.
-                if (!(result.secure && result.path == "/" && result.host_only)) {
+                if (!(secure_scheme && result.secure && result.path == "/" && result.host_only)) {
                     LOG_WARNING() << "Failed host check on cookie: '" << raw_cookie.Name() << "'";
                     return std::nullopt;
                 }
+            }
+            if (raw_cookie.IsHttpOnly() && !lowered_scheme.empty() && !lowered_scheme.starts_with("http")) {
+                LOG_WARNING() << "Cookie was received not from http: '" << raw_cookie.Name() << "'";
+                return std::nullopt;
             }
         }
         return result;
@@ -404,23 +401,38 @@ void CookieJar::Merge(CookieJar&& cookie_jar) {
     impl_->Merge(*cookie_jar.impl_);
 }
 
-void CookieJar::AddCookie(const std::string& domain, const std::string& path, server::http::Cookie&& cookie) {
-    impl_->AddCookie(domain, path, std::move(cookie));
+void CookieJar::AddCookie(std::string_view url, server::http::Cookie&& cookie) {
+    impl_->AddCookie(url, std::move(cookie));
 }
 
 std::optional<std::string> CookieJar::GetAnyCookieValue(const std::string& name) {
     return impl_->GetAnyCookieValue(name);
 }
 
-CookieJar::Cookies CookieJar::GetCookies(const std::string& domain, const std::string& path) {
+CookieJar::Cookies CookieJar::GetCookies(std::string_view url) {
     Cookies result;
-    const auto domains = DomainCandidates(LowerDomainWithoutLeadingDot(domain));
+    const auto& parsed_url = userver::http::DecomposeUrlIntoViews(url);
+    const auto domains = DomainCandidates(LowerDomainWithoutLeadingDot(parsed_url.host));
 
     for (const auto& d : domains) {
-        auto domain_cookies = impl_->GetCookies(d, path);
+        auto domain_cookies = impl_->GetCookies(d, parsed_url.path);
+        if (domain_cookies.empty()) {
+            continue;
+        }
         result.insert(result.end(), domain_cookies.begin(), domain_cookies.end());
     }
-
+    // In fact this optional but recommended step. Maybe add flag?
+    // RFC 6265 5.4.1 - specifies order with remark:
+    //   `Not all user agents sort the cookie-list in this order, but
+    //   this order reflects common practice when this document was
+    //   written, and, historically, there have been servers that
+    //   (erroneously) depended on this order.`
+    std::sort(result.begin(), result.end(), [](const CookieJar::Cookie& lhs, const CookieJar::Cookie& rhs) {
+        if (lhs.path_length_ != rhs.path_length_) {
+            return lhs.path_length_ > rhs.path_length_;
+        }
+        return lhs.creation_time_ < rhs.creation_time_;
+    });
     return result;
 }
 

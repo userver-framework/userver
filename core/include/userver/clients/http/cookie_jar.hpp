@@ -14,10 +14,11 @@ USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {
 
-/// @brief Cookies storage
+/// @brief Storage for cookies, compliable with RFC 6265. Can be used for sending and receiving cookies on agent side.
 class CookieJar final {
     struct Impl;
 public:
+    /// @brief Extracted cookie from storage, holds auxiliary internal values like creation time/path length
     class Cookie {
     public:
         Cookie(const std::string& name, const std::string& value, const std::chrono::system_clock::time_point& creation_time, const size_t path_length);
@@ -31,8 +32,7 @@ public:
         }
 
     private:
-        friend class CookieJar::Impl;
-        
+        friend class CookieJar;
 
         std::string name_;
         std::string value_;
@@ -47,10 +47,26 @@ public:
     CookieJar(const CookieJar&) = delete;
     CookieJar(CookieJar&&) = delete;
 
+    /// @brief Merges cookie jar into current one. Can be useful for merging cookies from other requests/domains
+    /// @param cookie_jar Cookie jar to merge
     void Merge(CookieJar&& cookie_jar);
-    void AddCookie(const std::string& domain, const std::string& path, server::http::Cookie&& cookie);
+
+    /// @brief Adds cookie with associated url to storage. In general case, url is needed to compute missing fields
+    /// @param url Request URI cookie came from
+    /// @param cookie Cookie to store
+    //  TODO: not effective due url parsing, but simple api to use, optimize?
+    void AddCookie(std::string_view url, server::http::Cookie&& cookie);
+
+    /// @brief Gets ANY cookie value, associated with name. In general case, multiple cookies can be stored with the same name, order is not specified
+    /// @param name Name of cookie
+    /// @return Cookie's value
     std::optional<std::string> GetAnyCookieValue(const std::string& name);
-    Cookies GetCookies(const std::string& domain, const std::string& path);
+
+
+    /// @brief Gets cookies, associated with current url. In general case, domain/path properties is taken into account
+    /// @param url Url to be matched with cookies
+    /// @return Ordered list of cookies
+    Cookies GetCookies(std::string_view url);
 
 private:
     utils::FastPimpl<Impl, 96, 8> impl_;
