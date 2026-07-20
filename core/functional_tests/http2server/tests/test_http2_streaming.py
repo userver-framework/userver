@@ -56,6 +56,24 @@ async def test_body_stream_concurrent(
     await asyncio.gather(*tasks)
 
 
+async def test_body_stream_concurrent_unique_bodies(
+    http2_client,
+    service_client,
+    dynamic_config,
+):
+    # Each stream echoes a payload whose every 8-byte block encodes the
+    # stream number and the block position. Unlike identical payloads, this
+    # detects bytes leaking between concurrently multiplexed streams as well
+    # as chunk reordering within one stream.
+    async def echo_stream(i):
+        data = ''.join(f'{i:02d}:{j:04d};' for j in range(128))  # 1 KiB
+        r = await http2_client.get(DEFAULT_PATH, params={'type': 'ne'}, data=data)
+        assert 200 == r.status_code
+        assert data == r.text
+
+    await asyncio.gather(*[echo_stream(i) for i in range(20)])
+
+
 async def test_body_stream_no_head_of_line_blocking(
     http2_client,
     service_client,
