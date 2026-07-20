@@ -171,6 +171,22 @@ CookieJar::Cookie::Cookie(const std::string& name, const std::string& value,
 
 class CookieJar::Impl {
 public:
+
+    void Merge(Impl& other) { 
+        //  TODO: not so optimal way to merge in the case of many paths
+        for (auto& item : other.storage_) {
+            auto location = storage_.find(item.first);
+            if (location == storage_.end()) {
+                storage_.emplace(location->first, std::move(location->second));
+                continue;
+            }
+            for (auto& cookie_map : location->second) {
+                for (auto& validated_cookie : cookie_map.second) {
+                    InsertOrAssignCookieToMap(std::move(validated_cookie));
+                }
+            }
+        }
+    }
     void AddCookie(const std::string& domain, const std::string& path, server::http::Cookie&& cookie) {
         auto preprocessed_cookie = ValidateCookie(domain, path, cookie);
         if (!preprocessed_cookie.has_value()) {
@@ -375,6 +391,10 @@ private:
 
 CookieJar::CookieJar() = default;
 CookieJar::~CookieJar() = default;
+
+void CookieJar::Merge(CookieJar&& cookie_jar) {
+    impl_->Merge(*cookie_jar.impl_);
+}
 
 void CookieJar::AddCookie(const std::string& domain, const std::string& path, server::http::Cookie&& cookie) {
     impl_->AddCookie(domain, path, std::move(cookie));

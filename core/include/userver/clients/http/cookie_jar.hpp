@@ -21,7 +21,7 @@ public:
     class Cookie {
     public:
         Cookie(const std::string& name, const std::string& value, const std::chrono::system_clock::time_point& creation_time, const size_t path_length);
-        
+
         inline const std::string& Name() const { 
             return name_; 
         }
@@ -47,6 +47,7 @@ public:
     CookieJar(const CookieJar&) = delete;
     CookieJar(CookieJar&&) = delete;
 
+    void Merge(CookieJar&& cookie_jar);
     void AddCookie(const std::string& domain, const std::string& path, server::http::Cookie&& cookie);
     std::optional<std::string> GetAnyCookieValue(const std::string& name);
     Cookies GetCookies(const std::string& domain, const std::string& path);
