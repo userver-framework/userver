@@ -16,8 +16,30 @@ namespace clients::http {
 
 /// @brief Cookies storage
 class CookieJar final {
+    struct Impl;
 public:
-    using Cookie = std::pair<std::string, std::string>;
+    class Cookie {
+    public:
+        Cookie(const std::string& name, const std::string& value, const std::chrono::system_clock::time_point& creation_time, const size_t path_length);
+        
+        inline const std::string& Name() const { 
+            return name_; 
+        }
+
+        inline const std::string& Value() const { 
+            return value_; 
+        }
+
+    private:
+        friend class CookieJar::Impl;
+        
+
+        std::string name_;
+        std::string value_;
+        std::chrono::system_clock::time_point creation_time_;
+        size_t path_length_;
+    };
+
     using Cookies = std::vector<Cookie>;
     CookieJar();
     ~CookieJar();
@@ -30,7 +52,6 @@ public:
     Cookies GetCookies(const std::string& domain, const std::string& path);
 
 private:
-    struct Impl;
     utils::FastPimpl<Impl, 96, 8> impl_;
 };
 

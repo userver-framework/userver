@@ -137,7 +137,7 @@ bool PathMatch(const ValidatedCookie& cookie, const std::string& uri_path) {
 
     /* not using checkprefix() because matching should be case-sensitive */
     
-    if (!cookie.path.starts_with(uri_view)) {
+    if (!uri_view.starts_with(cookie.path)) {
         return false;
     }
 
@@ -164,6 +164,11 @@ static std::string LowerDomainWithoutLeadingDot(std::string_view domain) {
 
 }  // namespace
 
+CookieJar::Cookie::Cookie(const std::string& name, const std::string& value, 
+    const std::chrono::system_clock::time_point& creation_time, const size_t path_length) : 
+    name_(name), value_(value), creation_time_(creation_time), path_length_(path_length){
+}
+
 class CookieJar::Impl {
 public:
     void AddCookie(const std::string& domain, const std::string& path, server::http::Cookie&& cookie) {
@@ -189,8 +194,8 @@ public:
         return std::nullopt;
     }
 
-    std::vector<std::pair<std::string, std::string>> GetCookies(const std::string& domain, const std::string& path) {
-        std::vector<std::pair<std::string, std::string>> result;
+    CookieJar::Cookies GetCookies(const std::string& domain, const std::string& path) {
+        CookieJar::Cookies result;
         const auto& location = storage_.find(domain);
         if (location == storage_.end()) {
             return result;
@@ -209,9 +214,21 @@ public:
                         continue;
                     }
                 }
-                result.emplace_back(cookie.name, cookie.value);
+                result.emplace_back(cookie.name, cookie.value, cookie.creation_time, cookie.path.size());
             }
         }
+        // In fact this optional but recommended step. Maybe add flag?
+        // RFC 6265 5.4.1 - specifies order with remark:
+        //   `Not all user agents sort the cookie-list in this order, but
+        //   this order reflects common practice when this document was
+        //   written, and, historically, there have been servers that
+        //   (erroneously) depended on this order.`
+        std::sort(result.begin(), result.end(), [](const CookieJar::Cookie& lhs, const CookieJar::Cookie& rhs) {
+            if (lhs.path_length_ != rhs.path_length_) {
+                return lhs.path_length_ > rhs.path_length_;
+            }
+            return lhs.creation_time_ < rhs.creation_time_;
+        });
         return result;
     }
 
@@ -242,7 +259,6 @@ private:
         };
         {
             //  Preprocessing domain attribute
-            std::string_view cookie_domain = domain;
             const bool host_only = raw_cookie.Domain().empty();
             auto lowered_domain = LowerDomainWithoutLeadingDot(host_only ? domain : raw_cookie.Domain());
             if (lowered_domain.empty()) {

@@ -42,7 +42,7 @@ std::vector<std::string> Pairs(const CookieJar::Cookies& cookies) {
     std::vector<std::string> out;
     out.reserve(cookies.size());
     for (const auto& cookie : cookies) {
-        out.push_back(cookie.first + '=' + cookie.second);
+        out.push_back(cookie.Name() + '=' + cookie.Value());
     }
     return out;
 }
@@ -208,8 +208,8 @@ UTEST(HttpCookieJar, ReturnedCookieRetainsAttributes) {
 
     const auto cookies = jar.GetCookies("localhost", "/base/dir");
     ASSERT_EQ(cookies.size(), 1);
-    EXPECT_EQ(cookies.front().first, "a");
-    EXPECT_EQ(cookies.front().second, "1");
+    EXPECT_EQ(cookies.front().Name(), "a");
+    EXPECT_EQ(cookies.front().Value(), "1");
 }
 
 // --- Current-behavior quirks that deviate from a strict RFC 6265 reading ---
