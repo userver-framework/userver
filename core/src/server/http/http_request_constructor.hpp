@@ -50,6 +50,7 @@ public:
     void SetHttpMinor(unsigned short http_minor);
 
     void AppendUrl(std::string_view data);
+    bool IsUrlReadyToParse() const;
     void ParseUrl();
     void AppendHeaderField(std::string_view data);
     void AppendHeaderValue(std::string_view data);

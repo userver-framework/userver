@@ -1,4 +1,5 @@
 import asyncio
+import itertools
 import struct
 
 import h2.connection
@@ -10,13 +11,18 @@ import utils
 
 DEFAULT_PATH = '/http2server'
 
-DEFAULT_HEADERS = [
+PSEUDO_HEADERS = [
     (':method', 'GET'),
     (':path', f'{DEFAULT_PATH}?type=echo-header'),
     (':scheme', 'http'),
     (':authority', 'localhost'),
+]
+
+NON_PSEUDO_HEADERS = [
     ('echo-header', 'echo'),
 ]
+
+DEFAULT_HEADERS = PSEUDO_HEADERS + NON_PSEUDO_HEADERS
 
 
 async def _get_metric(monitor_client, metric_name):
@@ -64,6 +70,22 @@ async def test_settings_and_ping(service_client, create_socket):
             events += await utils.send_and_receive(sock, conn)
         assert isinstance(events[0], h2.events.PingAckReceived)
         assert ping_data == events[0].ping_data
+
+
+def _header_orderings():
+    for ordering in itertools.permutations(PSEUDO_HEADERS):
+        yield list(ordering) + NON_PSEUDO_HEADERS
+
+
+async def test_shuffle_pseudo_headers(create_connection, service_client):
+    await service_client.update_server_state()
+
+    async with create_connection() as (sock, conn):
+        for headers in _header_orderings():
+            stream_id = conn.get_next_available_stream_id()
+            conn.send_headers(stream_id, headers, end_stream=True)
+            await sock.sendall(conn.data_to_send())
+            await utils.receive_simple_response(sock, conn)
 
 
 async def test_invalid_stream(create_connection, service_client):
@@ -429,8 +451,7 @@ async def test_stream_already_closed(create_connection, service_client):
 
         async def open_and_close_simple_stream():
             stream_id = conn.get_next_available_stream_id()
-            conn.send_headers(stream_id, DEFAULT_HEADERS)
-            conn.end_stream(stream_id)
+            conn.send_headers(stream_id, DEFAULT_HEADERS, end_stream=True)
             await utils.receive_simple_response(sock, conn)
             return stream_id
 

@@ -73,6 +73,10 @@ void HttpRequestConstructor::AppendUrl(std::string_view data) {
     url_.append(data);
 }
 
+bool HttpRequestConstructor::IsUrlReadyToParse() const {
+    return !url_.empty() && builder_.GetRef().GetMethod() != HttpMethod::kUnknown;
+}
+
 void HttpRequestConstructor::ParseUrl() {
     LOG_TRACE() << "parse path from '" << url_ << '\'';
     if (http_parser_parse_url(

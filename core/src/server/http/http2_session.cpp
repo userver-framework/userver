@@ -147,6 +147,7 @@ int Http2Session::OnHeader(
     auto& ctor = stream.RequestConstructor();
     if (hname == USERVER_NAMESPACE::http::headers::k2::kMethod) {
         ctor.SetMethod(HttpMethodFromString(hvalue));
+        stream.CheckUrlComplete();
     } else if (hname == USERVER_NAMESPACE::http::headers::k2::kPath) {
         try {
             ctor.AppendUrl(hvalue);
