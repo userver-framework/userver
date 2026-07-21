@@ -1,5 +1,7 @@
+import contextlib
 import os
 import tempfile
+import uuid
 
 import psycopg2
 
@@ -17,8 +19,37 @@ class PgRunner:
     def __init__(self, dsn: str) -> None:
         self._dsn = dsn
 
-    def connect(self):
+    def connect(self, dbname: str | None = None):
+        if dbname is not None:
+            return psycopg2.connect(self._dsn, dbname=dbname)
         return psycopg2.connect(self._dsn)
+
+    @contextlib.contextmanager
+    def connection(self, isolated: bool = True):
+        if not isolated:
+            connect = self.connect()
+            try:
+                yield connect
+            finally:
+                connect.close()
+            return
+
+        db_name = f'_{uuid.uuid4().hex}'
+        maintenance = self.connect()
+        maintenance.autocommit = True
+        try:
+            with maintenance.cursor() as cursor:
+                cursor.execute(f'CREATE DATABASE {db_name}')
+
+            connect = self.connect(dbname=db_name)
+            try:
+                yield connect
+            finally:
+                connect.close()
+        finally:
+            with maintenance.cursor() as cursor:
+                cursor.execute(f'DROP DATABASE IF EXISTS {db_name}')
+            maintenance.close()
 
     def start(self, verbose=0) -> None:
         pass

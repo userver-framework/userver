@@ -12,12 +12,12 @@ from sqldto.shared.utils import rendering
 
 
 def fetch(context: rendering.Context) -> models.Schema:
-    with runner.create_pg_runner() as pg, pg.connect() as conn, conn.cursor() as cursor:
+    with runner.create_pg_runner() as pg, pg.connection() as connect, connect.cursor() as cursor:
         pg_catalog_analyzer = catalog_analyzer.PgCatalogAnalyzer()
         pg_catalog_analyzer.apply_migrations(cursor, context.fetcher.migrations)
         catalog = pg_catalog_analyzer.catalog
 
-        conn.commit()
+        connect.commit()
 
         pg_query_analyzer = queries_analyzer.PgQueryAnalyzer(catalog)
         queries = pg_query_analyzer.read_schemas(cursor, context.fetcher.queries)
@@ -39,8 +39,8 @@ def plan(context: rendering.Context) -> list[rendering.ToGenerate]:
     for pg_migration in migrations:
         new_migration = models.Migration(
             path=pg_migration.output_file,
-            version=context.schemas.migrations[-1].next_version(),
-            sql=pg_migration.content,
+            version=context.fetcher.migrations[-1].next_version(),
+            sql=pg_migration.render(),
         )
         context.fetcher.migrations.append(new_migration)
         context.schemas = fetch(context)
@@ -51,7 +51,7 @@ def plan(context: rendering.Context) -> list[rendering.ToGenerate]:
 
 def dump(context: rendering.Context) -> None:
     for to_generate in plan(context):
-        to_generate.render()
+        to_generate.write()
 
 
 def main() -> int:

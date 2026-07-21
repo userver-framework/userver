@@ -82,3 +82,26 @@ def make_context(
         clang_format=args.clang_format,
         dump_command=dump_command,
     )
+
+
+def make_args(context: rendering.Context) -> list[str]:
+    args = [
+        '--namespace',
+        context.namespace,
+        '--dialect',
+        str(context.dialect.value),
+        '--output-dir',
+        str(context.output_dir),
+        '--dump-dir',
+        str(context.dump_dir),
+        '--migrations-dir',
+        str(context.migrations_dir),
+    ]
+    if context.migrations_output_dir is not None:
+        args += ['--migrations-output-dir', str(context.migrations_output_dir)]
+    if context.queries_dir is not None:
+        args += ['--queries-dir', str(context.queries_dir)]
+    if context.clang_format:
+        args += ['--clang-format', context.clang_format]
+    args += [str(query) for query in context.query_files]
+    return args

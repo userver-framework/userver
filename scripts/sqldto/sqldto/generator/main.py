@@ -31,7 +31,7 @@ def plan(context: rendering.Context) -> list[rendering.ToGenerate]:
 
 def generate(context: rendering.Context) -> None:
     for to_generate in plan(context):
-        to_generate.render()
+        to_generate.write()
 
 
 def main() -> int:

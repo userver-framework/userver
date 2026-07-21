@@ -22,7 +22,7 @@ class ToGenerate:
     clang_format: str | None = None
     includes: list[str] = field(default_factory=list)
 
-    def render(self) -> None:
+    def render(self) -> str:
         if self.content is not None:
             content = self.content
         else:
@@ -43,8 +43,11 @@ class ToGenerate:
                 output_file=self.output_file,
             )
 
+        return content
+
+    def write(self) -> None:
         self.output_file.parent.mkdir(parents=True, exist_ok=True)
-        self.output_file.write_text(content, encoding='utf-8')
+        self.output_file.write_text(self.render(), encoding='utf-8')
 
 
 @dataclass
