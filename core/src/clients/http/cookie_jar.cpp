@@ -396,6 +396,10 @@ private:
 
 CookieJar::CookieJar() = default;
 CookieJar::~CookieJar() = default;
+CookieJar::CookieJar(const CookieJar&) = default;
+CookieJar::CookieJar(CookieJar&&) = default;
+CookieJar& CookieJar::operator=(const CookieJar&) = default;
+CookieJar& CookieJar::operator=(CookieJar&&) = default;
 
 void CookieJar::Merge(CookieJar&& cookie_jar) {
     impl_->Merge(*cookie_jar.impl_);

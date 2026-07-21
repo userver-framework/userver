@@ -108,6 +108,8 @@ public:
         utils::zstring_view user,
         utils::zstring_view password
     );
+    /// sets cookijar engine for sending/receiving cookies
+    void set_cookie_jar(CookieJar&& cookie_jar);
 
     /// get timeout value in milliseconds
     long timeout() const { return original_timeout_.count(); }

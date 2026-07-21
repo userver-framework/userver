@@ -250,6 +250,11 @@ public:
     /// Cookies for request as map
     Request cookies(const std::unordered_map<std::string, std::string>& cookies) &&;
 
+    /// Sets cookie jar
+    Request& cookies(CookieJar&& cookie_jar) &;
+    /// Sets cookie jar
+    Request cookies(CookieJar&& cookie_jar) &&;
+
     /// Follow redirects or not. Default: follow
     Request& follow_redirects(bool follow = true) &;
     /// @overload

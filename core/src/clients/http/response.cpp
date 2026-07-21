@@ -9,6 +9,30 @@ USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {
 
+const Response::CookiesMap& Response::cookies() const { 
+    return std::get<CookiesMap>(cookies_engine_); 
+}
+
+Response::CookiesMap& Response::cookies() { 
+    return std::get<CookiesMap>(cookies_engine_); 
+}
+
+const CookieJar& Response::cookie_jar() const { 
+    return std::get<CookieJar>(cookies_engine_); 
+}
+
+CookieJar& Response::cookie_jar() { 
+    return std::get<CookieJar>(cookies_engine_); 
+}
+
+bool Response::is_cookie_jar() const {
+    return cookies_engine_.index() == 1;
+}
+
+void Response::set_cookie_jar(CookieJar&& cookie_jar) {
+    cookies_engine_.emplace<CookieJar>(std::move(cookie_jar));
+}
+
 Status Response::status_code() const { return status_code_; }
 
 void Response::RaiseForStatus(int code, const LocalStats& stats) {

@@ -42,10 +42,33 @@ public:
     /// return reference to headers
     const Headers& headers() const { return headers_; }
     Headers& headers() { return headers_; }
-    const CookiesMap& cookies() const { return cookies_; }
-    CookiesMap& cookies() { return cookies_; }
-    const CookieJar& cookie_jar() const { return cookie_jar_; }
-    CookieJar& cookie_jar() { return cookie_jar_; }
+
+    /// @brief Gets received cookies
+    /// @return Reference to map of cookies
+    /// @warning The cookie map is accessible by default, if cookie jar was enabled exception will be thrown
+    const CookiesMap& cookies() const;
+
+    /// @brief Gets received cookies
+    /// @return Reference to map of cookies
+    /// @warning The cookie map is accessible by default, if cookie jar was enabled exception will be thrown
+    CookiesMap& cookies();
+
+    /// @brief Gets cookie jar
+    /// @return Reference to cookie jar
+    /// @warning It works only when cookie jar was enabled, otherwise exception will be thrown
+    const CookieJar& cookie_jar() const;
+
+    /// @brief Gets cookie jar
+    /// @return Reference to cookie jar
+    /// @warning It works only when cookie jar was enabled, otherwise exception will be thrown
+    CookieJar& cookie_jar();
+
+    /// @brief  Checks, whether cookie jar was enabled
+    /// @return Check result
+    bool is_cookie_jar() const;
+
+    /// @brief Sets cookie jar to store cookie
+    void set_cookie_jar(CookieJar&& cookie_jar);
 
     /// status_code
     Status status_code() const;
@@ -74,8 +97,7 @@ public:
 
 private:
     Headers headers_;
-    CookiesMap cookies_;
-    CookieJar cookie_jar_;
+    std::variant<CookiesMap, CookieJar> cookies_engine_;
     std::string response_;
     Status status_code_{Status::kInvalid};
     LocalStats stats_;

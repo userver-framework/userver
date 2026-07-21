@@ -40,12 +40,16 @@ public:
         size_t path_length_;
     };
 
+    /// @brief List of cookies
+    /// @warning Be aware that list can contain cookies with the same name
     using Cookies = std::vector<Cookie>;
+
     CookieJar();
     ~CookieJar();
-
-    CookieJar(const CookieJar&) = delete;
-    CookieJar(CookieJar&&) = delete;
+    CookieJar(const CookieJar&);
+    CookieJar(CookieJar&&);
+    CookieJar& operator=(const CookieJar&);
+    CookieJar& operator=(CookieJar&&);
 
     /// @brief Merges cookie jar into current one. Can be useful for merging cookies from other requests/domains
     /// @param cookie_jar Cookie jar to merge

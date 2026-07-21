@@ -408,6 +408,10 @@ void RequestState::http_auth_type(
     easy().set_password(password.c_str());
 }
 
+void RequestState::set_cookie_jar(CookieJar&& cookie_jar) {
+    response_->set_cookie_jar(std::move(cookie_jar));
+}
+
 void RequestState::Cancel() {
     // We can not call `retry_.timer.reset();` here because of data race
     is_cancelled_ = true;
@@ -682,20 +686,16 @@ void RequestState::OnRetryTimer(std::error_code err) {
 
 void RequestState::ParseSingleCookie(const char* ptr, size_t size) {
     if (auto cookie = server::http::Cookie::FromString(std::string_view(ptr, size))) {
-        // New cookie storage API
-        // TODO: optimize it, quite dirty, some cache needed for host/path extraction
-        std::error_code ec;
-        const auto effective_url = easy().get_effective_url(ec);
-        if (!ec && !effective_url.empty()) {
-            response_->cookie_jar().AddCookie(effective_url, server::http::Cookie{*cookie});
+        if (response_->is_cookie_jar()) {
+            // CookieJar storage was enabled
+            // TODO: optimize it, quite dirty, some cache needed for url parsing
+            response_->cookie_jar().AddCookie(easy().get_effective_url(), server::http::Cookie{*cookie});
         } else {
-            LOG_WARNING() << "Failed to get host from url '" << easy().get_effective_url() << "'";
-        }
-
-        //  Old API stays untouched
-        [[maybe_unused]] auto [it, ok] = response_->cookies().emplace(cookie->Name(), std::move(*cookie));
-        if (!ok) {
-            LOG_WARNING() << "Failed to add cookie '" + it->first + "', already added";
+            //  For API compatibiliy we preserve old API
+            [[maybe_unused]] auto [it, ok] = response_->cookies().emplace(cookie->Name(), std::move(*cookie));
+            if (!ok) {
+                LOG_WARNING() << "Failed to add cookie '" + it->first + "', already added";
+            }
         }
     }
 }

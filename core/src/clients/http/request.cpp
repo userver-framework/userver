@@ -4,6 +4,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <ranges>
 
 #include <userver/clients/http/connect_to.hpp>
 #include <userver/clients/http/error.hpp>
@@ -439,6 +440,20 @@ Request& Request::cookies(const std::unordered_map<std::string, std::string>& co
 }
 Request Request::cookies(const std::unordered_map<std::string, std::string>& cookies) && {
     return std::move(this->cookies(cookies));
+}
+
+Request& Request::cookies(CookieJar&& cookie_jar) & {
+    const auto& cookies_list = cookie_jar.GetCookies(pimpl_->easy().get_effective_url());
+    SetCookies(pimpl_->easy(), 
+        cookies_list | std::views::transform([](const CookieJar::Cookie& s) {
+            return std::pair<const std::string&, const std::string&>(s.Name(), s.Value());
+        }));
+    pimpl_->set_cookie_jar(std::move(cookie_jar));
+    return *this;
+}
+
+Request Request::cookies(CookieJar&& cookie_jar) && {
+    return std::move(this->cookies(std::move(cookie_jar)));
 }
 
 Request& Request::method(HttpMethod method) & {
