@@ -6635,6 +6635,7 @@
   "ydb/tests/struct_from_row_test.cpp":"taxi/uservices/userver/ydb/tests/struct_from_row_test.cpp",
   "ydb/tests/struct_io_test.cpp":"taxi/uservices/userver/ydb/tests/struct_io_test.cpp",
   "ydb/tests/test_utils.hpp":"taxi/uservices/userver/ydb/tests/test_utils.hpp",
+  "ydb/tests/topic_simple_write_session_test.cpp":"taxi/uservices/userver/ydb/tests/topic_simple_write_session_test.cpp",
   "ydb/tests/topic_test.cpp":"taxi/uservices/userver/ydb/tests/topic_test.cpp",
   "ydb/tests/topic_writer_impl_types_test.cpp":"taxi/uservices/userver/ydb/tests/topic_writer_impl_types_test.cpp",
   "ydb/tests/topic_writer_mock_test.cpp":"taxi/uservices/userver/ydb/tests/topic_writer_mock_test.cpp",
