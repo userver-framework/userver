@@ -491,3 +491,19 @@ async def test_streams_with_the_same_id(create_connection, service_client):
         assert 'unexpected non-CONTINUATION frame or stream_id is invalid' in str(
             receive,
         )
+
+
+async def test_decreasing_stream_id(create_connection, service_client):
+    await service_client.update_server_state()
+
+    async with create_connection() as (sock, conn):
+        payload = b''.join(utils.encode_header(k, v) for k, v in DEFAULT_HEADERS)
+        # Client stream ids must increase; a smaller id → GOAWAY PROTOCOL_ERROR.
+        await sock.sendall(
+            utils.create_frame(utils.HEADERS_FRAME, utils.END_HEADER_AND_STREAM, 5, payload)
+            + utils.create_frame(utils.HEADERS_FRAME, utils.END_HEADER_AND_STREAM, 3, payload)
+        )
+        events = conn.receive_data(await sock.recv(utils.RECEIVE_SIZE))
+        terminated = [e for e in events if isinstance(e, h2.events.ConnectionTerminated)]
+        assert terminated
+        assert terminated[0].error_code == utils.PROTOCOL_ERROR_CODE
