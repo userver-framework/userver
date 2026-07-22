@@ -340,6 +340,47 @@ TYPED_UTEST(ServerNetConnection, KeepAlive) {
     EXPECT_EQ(handler.asyncs_finished, 2);
 }
 
+// After a completed keep-alive request the connection goes idle. The server
+// must close it on `keepalive_timeout` by itself (no cancellation) for both
+// HTTP/1.1 and HTTP/2; otherwise an idle HTTP/2 connection would live forever.
+TYPED_UTEST(ServerNetConnection, IdleKeepAliveTimeout) {
+    using ConnectionType = TypeParam;
+    const auto http_ver = HttpVersion<ConnectionType>();
+    net::ListenerConfig config = CreateConfig(http_ver);
+    config.connection_config.keepalive_timeout = std::chrono::seconds{1};
+    auto request_socket = net::CreateSocket(config, config.ports[0]);
+
+    auto http_client_ptr = utest::CreateHttpClient();
+    auto request =
+        CreateRequest(*http_client_ptr, request_socket, kSuccessRequestTimeout, http_ver, ConnectionHeader::kKeepAlive);
+
+    auto peer = request_socket.Accept(Deadline::FromDuration(kAcceptTimeout));
+    ASSERT_TRUE(peer.IsValid());
+    net::Stats stats{};
+    server::request::ResponseDataAccounter data_accounter;
+    TestHttprequestHandler handler;
+
+    auto task = engine::AsyncNoTracing([&] {
+        ConnectionType connection(
+            config.connection_config,
+            config.handler_defaults,
+            std::make_unique<engine::io::Socket>(std::move(peer)),
+            {},
+            handler,
+            stats,
+            data_accounter
+        );
+
+        connection.Process();
+    });
+    EXPECT_EQ(request.Get()->status_code(), 404);
+
+    // The connection is idle now; it must terminate on the keepalive timeout
+    // with nobody cancelling the task.
+    task.WaitFor(utest::kMaxTestWaitTime);
+    EXPECT_TRUE(task.IsFinished());
+}
+
 TYPED_UTEST(ServerNetConnection, CancelMultipleInFlight) {
     using ConnectionType = TypeParam;
     constexpr std::size_t kInFlightRequests = 10;
