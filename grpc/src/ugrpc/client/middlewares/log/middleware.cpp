@@ -21,7 +21,7 @@ std::string GetMessageForLogging(const google::protobuf::Message& message, const
     if (settings.msg_log_level < settings.log_level || !logging::ShouldLog(settings.msg_log_level)) {
         return "";
     }
-    return ugrpc::ToLimitedDebugString(message, settings.max_msg_size);
+    return ugrpc::ToLimitedLoggingString(message, settings.max_msg_size);
 }
 
 class SpanLogger {
@@ -107,7 +107,7 @@ void Middleware::PostFinish(MiddlewareCallContext& context, const CompletionStat
                 logger.Log(settings_.msg_log_level, "gRPC response stream finished", logging::LogExtra{});
             }
         } else {
-            auto error_details = ugrpc::ToUnlimitedDebugString(status);
+            auto error_details = ugrpc::ToUnlimitedLoggingString(status);
             logging::LogExtra extra{
                 {ugrpc::impl::kTypeTag, "error_status"},
                 {ugrpc::impl::kCodeTag, ugrpc::ToStringView(status.error_code())},

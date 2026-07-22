@@ -1,6 +1,8 @@
 #include <google/protobuf/stubs/common.h>
 #if defined(ARCADIA_ROOT) || GOOGLE_PROTOBUF_VERSION >= 4022000
 
+#include <gmock/gmock.h>
+
 #include <userver/ugrpc/protobuf_logging.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
 #include <userver/utest/log_capture_fixture.hpp>
@@ -28,7 +30,7 @@ constexpr std::string_view kRequestText = "request-text-value";
 constexpr std::string_view kResponseText = "response-text-value";
 constexpr std::string_view kToken = "token-value";
 
-const std::string kNewLineTruncatedMarker = "\n...(truncated)";
+constexpr std::string_view kTruncateMarker = "...(truncated)";
 
 class Messenger final : public sample::ugrpc::MessengerBase {
 public:
@@ -133,7 +135,7 @@ INSTANTIATE_UTEST_SUITE_P(
     )
 );
 
-UTEST(ToLimitedDebugStringWithSecrets, Basic) {
+UTEST(ToLimitedLoggingStringWithSecrets, Basic) {
     constexpr std::size_t kLimit = 2000;
     sample::ugrpc::LoggedMessageWithSecrets message;
 
@@ -141,21 +143,16 @@ UTEST(ToLimitedDebugStringWithSecrets, Basic) {
     message.set_password("qwerty12345678");
     message.set_name("test-name");
     message.set_count(7);
-    auto out = ugrpc::ToLimitedDebugString(message, kLimit);
-    const std::string expected_full_str =
-        "id: \"swag\"\nname: \"test-name\"\npassword: [REDACTED]\ncount: "
-        "[REDACTED]\n";
-    EXPECT_EQ(out, expected_full_str);
+    const auto out = ugrpc::ToLimitedLoggingString(message, kLimit);
+    const std::string expected = R"({"id":"swag","name":"test-name","password":"[REDACTED]","count":"[REDACTED]"})";
+    EXPECT_EQ(out, expected);
 
-    out = ugrpc::ToLimitedDebugString(message, 44);
-    EXPECT_EQ(out.size(), 44);
-    EXPECT_EQ(
-        out.substr(0, 44),
-        expected_full_str.substr(0, 44 - kNewLineTruncatedMarker.size()) + kNewLineTruncatedMarker
-    );
+    const auto truncated = ugrpc::ToLimitedLoggingString(message, 44);
+    EXPECT_THAT(truncated, testing::EndsWith(kTruncateMarker));
+    EXPECT_THAT(truncated, testing::HasSubstr(R"("id":"swag")"));
 }
 
-UTEST(ToLimitedDebugStringWithSecrets, InnerSecrets) {
+UTEST(ToLimitedLoggingStringWithSecrets, InnerSecrets) {
     constexpr std::size_t kLimit = 2000;
     sample::ugrpc::LoggedMessageWithSecrets message;
 
@@ -164,14 +161,14 @@ UTEST(ToLimitedDebugStringWithSecrets, InnerSecrets) {
     auto* item = message.add_items();
     item->set_index(7);
     item->set_value("secret");
-    const std::string_view expected = "id: \"swag\"\nitems {\n  index: 7\n  value: [REDACTED]\n}\n";
+    const std::string expected = R"({"id":"swag","items":[{"index":7,"value":"[REDACTED]"}]})";
 
-    const auto out = ugrpc::ToLimitedDebugString(message, kLimit);
+    const auto out = ugrpc::ToLimitedLoggingString(message, kLimit);
     EXPECT_EQ(out, expected);
 }
 
-UTEST(ToLimitedDebugStringWithSecrets, SecretsAndFit) {
-    constexpr std::size_t kLimit = 52;
+UTEST(ToLimitedLoggingStringWithSecrets, SecretsAndFit) {
+    constexpr std::size_t kLimit = 200;
     sample::ugrpc::LoggedMessageWithSecrets message;
 
     message.set_id("swag");
@@ -179,13 +176,13 @@ UTEST(ToLimitedDebugStringWithSecrets, SecretsAndFit) {
     auto* item = message.add_items();
     item->set_index(7);
     item->set_value("long long long long long long long secret");
-    const std::string_view expected = "id: \"swag\"\nitems {\n  index: 7\n  value: [REDACTED]\n}\n";
+    const std::string_view expected = R"({"id":"swag","items":[{"index":7,"value":"[REDACTED]"}]})";
 
-    const auto out = ugrpc::ToLimitedDebugString(message, kLimit);
+    const auto out = ugrpc::ToLimitedLoggingString(message, kLimit);
     EXPECT_EQ(out, expected);
 }
 
-UTEST(ToLimitedDebugStringWithSecrets, SecretsAndTruncated) {
+UTEST(ToLimitedLoggingStringWithSecrets, SecretsAndTruncated) {
     constexpr std::size_t kLimit = 50;
     sample::ugrpc::LoggedMessageWithSecrets message;
 
@@ -194,13 +191,14 @@ UTEST(ToLimitedDebugStringWithSecrets, SecretsAndTruncated) {
     auto* item = message.add_items();
     item->set_index(7);
     item->set_value("long long long long long long long secret");
-    const std::string_view expected = "id: \"swag\"\nitems {\n  index: 7\n  val\n...(truncated)";
 
-    const auto out = ugrpc::ToLimitedDebugString(message, kLimit);
-    EXPECT_EQ(out, expected);
+    const auto out = ugrpc::ToLimitedLoggingString(message, kLimit);
+    EXPECT_THAT(out, testing::EndsWith(kTruncateMarker));
+    EXPECT_THAT(out, testing::HasSubstr(R"("id":"swag")"));
+    EXPECT_THAT(out, testing::HasSubstr(R"("items")"));
 }
 
-UTEST(ToLimitedDebugStringWithSecrets, TruncatedSecrets) {
+UTEST(ToLimitedLoggingStringWithSecrets, TruncatedSecrets) {
     constexpr std::size_t kLimit = 62;
     sample::ugrpc::LoggedMessageWithSecrets message;
 
@@ -208,14 +206,15 @@ UTEST(ToLimitedDebugStringWithSecrets, TruncatedSecrets) {
     message.set_password("qwerty12345678");
     message.set_name("test-name");
     message.set_count(7);
-    const std::string expected = "id: \"swag\"\nname: \"test-name\"\npassword: [REDACTE\n...(truncated)";
 
-    const auto out = ugrpc::ToLimitedDebugString(message, kLimit);
-    EXPECT_EQ(out, expected);
+    const auto out = ugrpc::ToLimitedLoggingString(message, kLimit);
+    EXPECT_THAT(out, testing::EndsWith(kTruncateMarker));
+    EXPECT_THAT(out, testing::HasSubstr(R"("id":"swag")"));
+    EXPECT_THAT(out, testing::HasSubstr("[REDACTED]"));
 }
 
-UTEST(ToLimitedDebugStringWithSecrets, TheSameName) {
-    constexpr std::size_t kLimit = 100;
+UTEST(ToLimitedLoggingStringWithSecrets, TheSameName) {
+    constexpr std::size_t kLimit = 200;
     sample::ugrpc::LoggedMessageWithSecrets message;
 
     message.set_name("name1");
@@ -223,14 +222,14 @@ UTEST(ToLimitedDebugStringWithSecrets, TheSameName) {
     auto* item = message.add_items();
     item->set_name("name2");
 
-    const auto expected = message.DebugString();
+    const std::string expected = R"({"name":"name1","items":[{"name":"name2"}]})";
 
-    const auto out = ugrpc::ToLimitedDebugString(message, kLimit);
+    const auto out = ugrpc::ToLimitedLoggingString(message, kLimit);
     EXPECT_EQ(out, expected);
 }
 
-UTEST(ToLimitedDebugStringWithSecrets, StructSecret) {
-    constexpr std::size_t kLimit = 100;
+UTEST(ToLimitedLoggingStringWithSecrets, StructSecret) {
+    constexpr std::size_t kLimit = 200;
     sample::ugrpc::StructSecret message;
     message.set_name1("name1");
     message.set_name2("name2");
@@ -239,9 +238,9 @@ UTEST(ToLimitedDebugStringWithSecrets, StructSecret) {
     auto& fields = *current_state.mutable_fields();
     fields["key"].set_string_value("value");
 
-    const auto expected = "name1: \"name1\"\ncurrent_state: [REDACTED]\nname2: \"name2\"\n";
+    const std::string expected = R"({"name1":"name1","currentState":"[REDACTED]","name2":"name2"})";
 
-    const auto out = ugrpc::ToLimitedDebugString(message, kLimit);
+    const auto out = ugrpc::ToLimitedLoggingString(message, kLimit);
     EXPECT_EQ(out, expected);
 }
 

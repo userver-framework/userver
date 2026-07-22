@@ -1,18 +1,16 @@
 #include <userver/utest/utest.hpp>
 
-#include <userver/ugrpc/impl/to_string.hpp>
+#include <gmock/gmock.h>
+
 #include <userver/ugrpc/protobuf_logging.hpp>
 
 #include <tests/logging.pb.h>
 #include <tests/messages.pb.h>
 
-using namespace std::chrono_literals;
-
 USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-const std::string kNewLineTruncatedMarker = "\n...(truncated)";
 constexpr std::string_view kTruncateMarker = "...(truncated)";
 
 sample::ugrpc::LoggingMessage ConstructComplexMessage() {
@@ -40,100 +38,101 @@ sample::ugrpc::LoggingMessage ConstructComplexMessage() {
 
 }  // namespace
 
-UTEST(ToLimitedDebugString, Basic) {
+UTEST(ToLimitedLoggingString, Basic) {
     constexpr std::size_t kLimit = 200;
     sample::ugrpc::LoggingMessage message;
 
     message.set_id("swag");
     *message.add_names() = "test-name-1";
     *message.add_names() = "test-name-2";
-    auto out = ugrpc::ToLimitedDebugString(message, kLimit);
-    const auto expected = message.DebugString();
-    EXPECT_EQ(out, expected);
+    auto out = ugrpc::ToLimitedLoggingString(message, kLimit);
+    EXPECT_EQ(out, R"({"id":"swag","names":["test-name-1","test-name-2"]})");
 
-    out = ugrpc::ToLimitedDebugString(message, 20);
-    EXPECT_EQ(out, expected.substr(0, 5) + kNewLineTruncatedMarker);
+    out = ugrpc::ToLimitedLoggingString(message, 20);
+    EXPECT_THAT(out, testing::HasSubstr(R"("id":"swag")"));
+    EXPECT_THAT(out, testing::EndsWith(kTruncateMarker));
 }
 
-UTEST(ToLimitedDebugString, Fit) {
-    constexpr std::size_t kLimit = 20;
+UTEST(ToLimitedLoggingString, Fit) {
     sample::ugrpc::GreetingResponse message;
     message.set_name("1234567890");
-    const auto out = ugrpc::ToLimitedDebugString(message, kLimit);
-    EXPECT_EQ(out, "name: \"1234567890\"\n");
+    const auto out = ugrpc::ToLimitedLoggingString(message, 25);
+    EXPECT_EQ(out, R"({"name":"1234567890"})");
 }
 
-UTEST(ToLimitedDebugString, Limited) {
+UTEST(ToLimitedLoggingString, Limited) {
     constexpr std::size_t kLimit = 30;
     sample::ugrpc::GreetingResponse message;
     message.set_name("123456789012345678901234567890");
-    const auto out = ugrpc::ToLimitedDebugString(message, kLimit);
-    EXPECT_EQ(out, "name: \"12345678\n...(truncated)");
+    const auto out = ugrpc::ToLimitedLoggingString(message, kLimit);
+    EXPECT_THAT(out, testing::HasSubstr(R"("name")"));
+    EXPECT_THAT(out, testing::EndsWith(kTruncateMarker));
 }
 
-UTEST(ToLimitedDebugString, EdgeCaseTruncateToMarker) {
+UTEST(ToLimitedLoggingString, EdgeCaseTruncateToMarker) {
     constexpr std::size_t kLimit = kTruncateMarker.size();
     sample::ugrpc::GreetingResponse message;
     message.set_name("12345678901234567890");
     {
-        const auto out = ugrpc::ToLimitedDebugString(message, kLimit);
-        EXPECT_EQ(out, kTruncateMarker);
+        const auto out = ugrpc::ToLimitedLoggingString(message, kLimit);
+        EXPECT_THAT(out, testing::EndsWith(kTruncateMarker));
     }
     {
-        const auto out = ugrpc::ToLimitedDebugString(message, kLimit + 1);
-        EXPECT_EQ(out, kTruncateMarker);
+        const auto out = ugrpc::ToLimitedLoggingString(message, kLimit + 1);
+        EXPECT_THAT(out, testing::EndsWith(kTruncateMarker));
     }
 }
 
-UTEST(ToLimitedDebugString, EdgeCaseTruncateUpToMarker) {
+UTEST(ToLimitedLoggingString, EdgeCaseTruncateUpToMarker) {
     constexpr std::size_t kLimit = kTruncateMarker.size();
     sample::ugrpc::GreetingResponse message;
     message.set_name("1");
 
-    const auto expected = "name: \"1\"\n";
+    const auto expected = R"({"name":"1"})";
     {
-        const auto out = ugrpc::ToLimitedDebugString(message, kLimit);
+        const auto out = ugrpc::ToLimitedLoggingString(message, kLimit);
         EXPECT_EQ(out, expected);
     }
     {
-        const auto out = ugrpc::ToLimitedDebugString(message, kLimit + 1);
+        const auto out = ugrpc::ToLimitedLoggingString(message, kLimit + 1);
         EXPECT_EQ(out, expected);
     }
 }
 
-UTEST(ToLimitedDebugString, EdgeCaseFullyTruncated) {
+UTEST(ToLimitedLoggingString, EdgeCaseFullyTruncated) {
     constexpr std::size_t kLimit = 0;
     sample::ugrpc::GreetingResponse message;
     message.set_name("12345678901234567890");
-    const auto out = ugrpc::ToLimitedDebugString(message, kLimit);
+    const auto out = ugrpc::ToLimitedLoggingString(message, kLimit);
     EXPECT_EQ(out, kTruncateMarker);
 }
 
-UTEST(ToLimitedDebugString, EdgeCaseLimitOne) {
+UTEST(ToLimitedLoggingString, EdgeCaseLimitOne) {
     constexpr std::size_t kLimit = 1;
     sample::ugrpc::GreetingResponse message;
     message.set_name("12345678901234567890");
-    const auto out = ugrpc::ToLimitedDebugString(message, kLimit);
-    EXPECT_EQ(out, kTruncateMarker);
+    const auto out = ugrpc::ToLimitedLoggingString(message, kLimit);
+    EXPECT_THAT(out, testing::EndsWith(kTruncateMarker));
 }
 
-UTEST(ToLimitedDebugString, EdgeCaseSeven) {
-    // <EMPTY> will fit, but there should be "...", because string is not truncated to empty
+UTEST(ToLimitedLoggingString, EdgeCaseSeven) {
+    // With limit 7 the JSON cannot be completed, so the truncation marker is appended.
     constexpr std::size_t kLimit = 7;
 
     sample::ugrpc::GreetingResponse message;
     message.set_name("12345678901234567890");
-    const auto out = ugrpc::ToLimitedDebugString(message, kLimit);
-    EXPECT_EQ(out, kTruncateMarker);
+    const auto out = ugrpc::ToLimitedLoggingString(message, kLimit);
+    EXPECT_THAT(out, testing::EndsWith(kTruncateMarker));
 }
 
-UTEST(ToLimitedDebugString, Complex) {
+UTEST(ToLimitedLoggingString, Complex) {
     constexpr std::size_t kLimit = 512;
     const auto message = ConstructComplexMessage();
-    const auto expected =
-        ugrpc::impl::ToString(message.Utf8DebugString().substr(0, kLimit - kNewLineTruncatedMarker.size())) +
-        kNewLineTruncatedMarker;
-    ASSERT_EQ(expected, ugrpc::ToLimitedDebugString(message, kLimit));
+    const auto out = ugrpc::ToLimitedLoggingString(message, kLimit);
+    EXPECT_THAT(out, testing::EndsWith(kTruncateMarker));
+    EXPECT_THAT(out, testing::HasSubstr(R"("id":"test-id")"));
+    EXPECT_THAT(out, testing::HasSubstr("test-name-0"));
+    EXPECT_THAT(out, testing::HasSubstr("test-value-0"));
 }
 
 USERVER_NAMESPACE_END

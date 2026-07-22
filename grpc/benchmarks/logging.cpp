@@ -35,6 +35,15 @@ sample::ugrpc::LoggingMessage ConstructMessage() {
 }
 const auto kMessage = ConstructMessage();
 
+sample::ugrpc::LoggingMessage ConstructMessage100k() {
+    sample::ugrpc::LoggingMessage message;
+
+    message.set_id(std::string(100000, 'a'));
+
+    return message;
+}
+const auto kMessage100k = ConstructMessage100k();
+
 }  // namespace
 
 void BenchDebugStringAndLimit(benchmark::State& state) {
@@ -52,12 +61,23 @@ void BenchCustomLimit(benchmark::State& state) {
     // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
     for (auto _ : state) {
         {
-            auto log = ugrpc::ToLimitedDebugString(kMessage, 1024);
+            auto log = ugrpc::ToLimitedLoggingString(kMessage, 1024);
             benchmark::DoNotOptimize(log);
         }
     }
 }
 BENCHMARK(BenchCustomLimit);
+
+void BenchCustomLimitMessage100k(benchmark::State& state) {
+    // NOLINTNEXTLINE(clang-analyzer-deadcode.DeadStores)
+    for (auto _ : state) {
+        {
+            auto log = ugrpc::ToLimitedLoggingString(kMessage100k, 1024);
+            benchmark::DoNotOptimize(log);
+        }
+    }
+}
+BENCHMARK(BenchCustomLimitMessage100k);
 
 }  // namespace ugrpc
 
