@@ -3331,6 +3331,7 @@
   "libraries/s3api/src/s3api/models/secret.cpp":"taxi/uservices/userver/libraries/s3api/src/s3api/models/secret.cpp",
   "libraries/s3api/src/s3api/s3_connection.cpp":"taxi/uservices/userver/libraries/s3api/src/s3api/s3_connection.cpp",
   "libraries/s3api/src/s3api/s3_connection.hpp":"taxi/uservices/userver/libraries/s3api/src/s3api/s3_connection.hpp",
+  "libraries/s3api/src/s3api/s3_connection_test.cpp":"taxi/uservices/userver/libraries/s3api/src/s3api/s3_connection_test.cpp",
   "libraries/s3api/src/s3api/s3api_methods.cpp":"taxi/uservices/userver/libraries/s3api/src/s3api/s3api_methods.cpp",
   "libraries/s3api/src/s3api/s3api_methods.hpp":"taxi/uservices/userver/libraries/s3api/src/s3api/s3api_methods.hpp",
   "libraries/s3api/src/s3api/s3api_methods_test.cpp":"taxi/uservices/userver/libraries/s3api/src/s3api/s3api_methods_test.cpp",
