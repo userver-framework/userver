@@ -69,7 +69,9 @@ bool IsPublicSuffix(const std::string& domain) {
     return kPublicSuffixes.find(domain) != kPublicSuffixes.end();
 }
 
-//bool IsSecureScheme(std::string_view scheme) { return utils::StrIcaseEqual{}(scheme, "https"); }
+bool IsSecureScheme(std::string_view scheme) { 
+    return utils::StrIcaseEqual{}(scheme, "https"); 
+}
 
 //  Some kind of validated/preprocessed cookie from original one
 //  After preprocessing original cookie is not needed anymore, that's why ValidatedCookie contains only subset of attributes
@@ -220,14 +222,18 @@ public:
         return std::nullopt;
     }
 
-    CookieJar::Cookies GetCookies(const std::string& domain, std::string_view path) {
+    CookieJar::Cookies GetCookies(std::string_view scheme, const std::string& domain, std::string_view path) {
         CookieJar::Cookies result;
         const auto& location = storage_.find(domain);
         if (location == storage_.end()) {
             return result;
         }
+        const bool secure_scheme = IsSecureScheme(scheme);
         for (const auto& cookies : location->second) {
             for (const auto& cookie : cookies.second) {
+                if (cookie.secure && !secure_scheme) {
+                    continue;
+                }
                 if (!PathMatch(cookie, path)) {
                     continue;
                 }
@@ -305,6 +311,8 @@ private:
                 const auto last_index = cookie_path.rfind('/');
                 if (last_index != 0) {
                     cookie_path = cookie_path.substr(0, last_index);
+                } else {
+                    cookie_path = "/";
                 }
             }
             result.path = cookie_path;
@@ -332,13 +340,13 @@ private:
         {
             //  Preprocessing 
             const auto& lowered_scheme = ToLower(scheme);
-            const bool secure_scheme = lowered_scheme == "https";
+            const bool secure_scheme = IsSecureScheme(lowered_scheme);
             if (result.name.starts_with("__Secure-")) {
                 result.prefix_secure = true;
             } else if (result.name.starts_with("__Host-")) {
                 result.prefix_host = true;
             }
-            if ((secure_scheme || result.prefix_secure) && !result.secure) {
+            if ((result.prefix_secure && !result.secure) || (!secure_scheme && result.secure)) {
                 // The __Secure- prefix only requires that the cookie be set secure
                 LOG_WARNING() << "Failed security check on cookie: '" << raw_cookie.Name() << "'";
                 return std::nullopt;
@@ -427,7 +435,7 @@ CookieJar::Cookies CookieJar::GetCookies(std::string_view url) {
     const auto domains = DomainCandidates(LowerDomainWithoutLeadingDot(parsed_url.host));
 
     for (const auto& d : domains) {
-        auto domain_cookies = impl_->GetCookies(d, parsed_url.path);
+        auto domain_cookies = impl_->GetCookies(parsed_url.scheme, d, parsed_url.path);
         if (domain_cookies.empty()) {
             continue;
         }

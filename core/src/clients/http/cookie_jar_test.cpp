@@ -95,14 +95,21 @@ UTEST(HttpCookieJar, NonHttpCookie) {
     EXPECT_THAT(Pairs(jar.GetCookies("mytest.com")), ElementsAre("a=ok"));
 }
 
+//  Checking combination implicit/explicit security attributes
 UTEST(HttpCookieJar, SecurityCookies) {
     CookieJar jar;
-    Store(jar, "http://mytest.com", "a=test; Secure");
-    Store(jar, "http://mytest.com", "__Secure-b=test");
-    Store(jar, "https://mytest.com", "a=ok; Secure");
-    Store(jar, "https://mytest.com", "__Secure-b=ok; Secure");
-    Store(jar, "https://mytest.com", "__Secure-b=test");
-    EXPECT_THAT(Pairs(jar.GetCookies("mytest.com")), ElementsAre("a=ok", "__Secure-b=ok"));
+    Store(jar, "http://mytest.com", "foo=test");
+    Store(jar, "http://mytest.com", "secureFoo=test; Secure");
+    Store(jar, "http://mytest.com", "__Secure-foo=test");
+    Store(jar, "http://mytest.com", "__Host-foo=test");
+    Store(jar, "https://mytest.com", "bar=ok; Secure");
+    Store(jar, "https://mytest.com", "__Secure-bar=ok; Secure");
+    Store(jar, "https://mytest.com", "__Secure-bar=test");
+    Store(jar, "https://mytest.com", "__Host-bar=test; Path=/; Secure; ");
+    Store(jar, "https://mytest.com", "__Host-barbar=test; Domain=mytest.com; Path=/; Secure; ");
+    EXPECT_THAT(Pairs(jar.GetCookies("mytest.com")), ElementsAre("foo=test"));
+    EXPECT_THAT(Pairs(jar.GetCookies("http://mytest.com")), ElementsAre("foo=test"));
+    EXPECT_THAT(Pairs(jar.GetCookies("https://mytest.com")), ElementsAre("foo=test", "bar=ok", "__Secure-bar=ok", "__Host-bar=test"));
 }
 
 // RFC 6265 §5.1.4 (path-match): a cookie-path matches only on directory
@@ -117,6 +124,13 @@ UTEST(HttpCookieJar, PathPrefixBoundary) {
     EXPECT_THAT(jar.GetCookies("localhost/foobar"), IsEmpty());
     EXPECT_THAT(jar.GetCookies("localhost/fo"), IsEmpty());
     EXPECT_THAT(jar.GetCookies("localhost/"), IsEmpty());
+}
+
+UTEST(HttpCookieJar, UnicodeUrls) {
+    CookieJar jar;
+    Store(jar, "тест.рф/test", "a=1");
+
+    EXPECT_THAT(Pairs(jar.GetCookies("тест.рф")), ElementsAre("a=1"));
 }
 
 // RFC 6265 §5.1.4: cookie-path "/" is a prefix of every request path, so a root
