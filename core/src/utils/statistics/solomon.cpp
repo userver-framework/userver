@@ -61,7 +61,14 @@ public:
                 builder_.Key("type");
                 builder_.WriteString("RATE");
             },
-            [this](const auto& x) {
+            [this](std::int64_t x) {
+                builder_.Key("value");
+                WriteToStream(x, builder_);
+                builder_.Key("type");
+                builder_.WriteString("IGAUGE");
+            },
+            [this](double x) {
+                // No explicit "type": Solomon defaults an untyped metric to DGAUGE.
                 builder_.Key("value");
                 WriteToStream(x, builder_);
             },
