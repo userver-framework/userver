@@ -56,6 +56,13 @@ def parse_frame_header(frame: bytes) -> tuple[int, int, int, int, bytes]:
     return payload_size, frame[3], frame[4], stream_id, payload
 
 
+def is_ping_ack(frame: bytes, opaque_data: bytes) -> bool:
+    if len(frame) < 9:
+        return False
+    _, frame_type, flags, stream_id, payload = parse_frame_header(frame)
+    return frame_type == PING_FRAME and flags & ACK_FLAG and stream_id == 0 and payload == opaque_data
+
+
 async def send_and_receive(
     sock: testsuite.asyncio_socket.AsyncioSocket,
     conn: h2.connection.H2Connection,

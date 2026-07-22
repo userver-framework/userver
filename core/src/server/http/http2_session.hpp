@@ -135,8 +135,8 @@ private:
     std::shared_ptr<impl::Http2StreamEventQueue> streaming_queue_{nullptr};
     engine::SingleConsumerEvent streaming_event_;
     impl::Http2StreamEventQueue::Consumer streaming_consumer_;
-
     std::int32_t max_client_stream_id_{0};
+    bool peer_goaway_received_{false};
 };
 
 }  // namespace server::http

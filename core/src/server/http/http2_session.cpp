@@ -113,9 +113,18 @@ int Http2Session::OnFrameRecv(nghttp2_session* session, const nghttp2_frame* fra
         case NGHTTP2_RST_STREAM: {
             IncStat(parser.stats_.http2_stats.reset_streams);
         } break;
-        case NGHTTP2_PING:
-            break;
+        case NGHTTP2_PING: {
+            // nghttp2 clears want_read after peer GOAWAY when there are no streams, but a
+            // trailing PING must still be ACKed and the TCP close must stay graceful.
+            if (parser.peer_goaway_received_ && (frame->hd.flags & NGHTTP2_FLAG_ACK) == 0) {
+                const auto rv = nghttp2_submit_ping(session, NGHTTP2_FLAG_ACK, frame->ping.opaque_data);
+                if (rv != 0) {
+                    return NGHTTP2_ERR_CALLBACK_FAILURE;
+                }
+            }
+        } break;
         case NGHTTP2_GOAWAY: {
+            parser.peer_goaway_received_ = true;
             IncStat(parser.stats_.http2_stats.goaway);
         } break;
     }

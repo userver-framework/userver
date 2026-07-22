@@ -507,3 +507,20 @@ async def test_decreasing_stream_id(create_connection, service_client):
         terminated = [e for e in events if isinstance(e, h2.events.ConnectionTerminated)]
         assert terminated
         assert terminated[0].error_code == utils.PROTOCOL_ERROR_CODE
+
+
+async def test_client_goaway_ping_ack(create_connection, monitor_client, service_client):
+    # After client GOAWAY (incl. unknown error_code) a follow-up PING must still be ACKed.
+    await service_client.update_server_state()
+
+    async with monitor_client.metrics_diff(prefix='server.requests.http2') as differ:
+        async with create_connection() as (sock, conn):
+            ping_data = b'h2spec\x00\x00'
+            await sock.sendall(
+                utils.create_frame(utils.GOAWAY_FRAME, utils.EMPTY_FLAGS, 0, struct.pack('>II', 0, 0xFF))
+                + utils.create_frame(utils.PING_FRAME, utils.EMPTY_FLAGS, 0, ping_data)
+            )
+            receive = await sock.recv(utils.RECEIVE_SIZE, timeout=2.0)
+            assert utils.is_ping_ack(receive, ping_data)
+
+    assert differ.value_at('goaway') == 1
