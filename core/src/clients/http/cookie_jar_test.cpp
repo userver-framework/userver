@@ -332,6 +332,17 @@ UTEST(HttpCookieJar, OverwriteAtSamePathKeepsSiblings) {
     EXPECT_THAT(Pairs(jar.GetCookies("localhost")), UnorderedElementsAre("a=2", "b=1"));
 }
 
+UTEST(HttpCookieJar, CookiesWithIpAndPort) {
+    CookieJar jar;
+    Store(jar, "127.0.0.1", "ip=true");
+    Store(jar, "localhost:8081", "port=true");
+    Store(jar, "127.0.0.2:8081", "ip_with_port=true");
+
+    EXPECT_THAT(Pairs(jar.GetCookies("127.0.0.1")), ElementsAre("ip=true"));
+    EXPECT_THAT(Pairs(jar.GetCookies("localhost:8081")), ElementsAre("port=true"));
+    EXPECT_THAT(Pairs(jar.GetCookies("127.0.0.2:8081")), ElementsAre("ip_with_port=true"));
+}
+
 // RFC 6265 §5.2.1: an Expires in the past sets expiry-time in the past, so
 // §5.3 deletes the cookie.
 UTEST(HttpCookieJar, ExpiresInPastDeletesExistingCookie) {

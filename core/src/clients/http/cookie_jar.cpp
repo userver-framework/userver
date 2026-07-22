@@ -7,13 +7,13 @@
 #include <set>
 #include <utility>
 #include <vector>
+#include <algorithm>
 #include <boost/container/small_vector.hpp>
 
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/str_icase.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/http/url.hpp>
-#include <userver/utils/text.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -55,6 +55,14 @@ std::vector<std::string> DomainCandidates(std::string_view host) {
         cur = cur.substr(dot + 1);
     }
     return out;
+}
+
+//  There is issue with calling userver's version from non coroutines. We temporary using this one
+std::string ToLower(std::string_view str) {
+    std::string result;
+    result.resize(str.size());
+    std::ranges::transform(str, result.begin(), [](unsigned char c) { return std::tolower(c); });
+    return result;
 }
 
 bool IsPublicSuffix(const std::string& domain) {
@@ -160,7 +168,7 @@ static std::string LowerDomainWithoutLeadingDot(std::string_view domain) {
         // RFC 6265 5.2.3. Let cookie-domain be the attribute-value without the leading %x2E (".") character.
         domain = domain.substr(1);
     }
-    return utils::text::ToLower(domain);
+    return ToLower(domain);
 }
 
 }  // namespace
@@ -323,7 +331,7 @@ private:
         }
         {
             //  Preprocessing 
-            const auto& lowered_scheme = utils::text::ToLower(scheme);
+            const auto& lowered_scheme = ToLower(scheme);
             const bool secure_scheme = lowered_scheme == "https";
             if (result.name.starts_with("__Secure-")) {
                 result.prefix_secure = true;

@@ -280,6 +280,8 @@ RequestState::RequestState(
     // for CURL disables the use of *_proxy env variables.
     easy().set_proxy("");
 
+    cookies_engine_ = std::make_shared<Response::CookiesEngine>();
+
     RequestCompleted();
 }
 
@@ -408,8 +410,8 @@ void RequestState::http_auth_type(
     easy().set_password(password.c_str());
 }
 
-void RequestState::set_cookie_jar(CookieJar&& cookie_jar) {
-    response_->set_cookie_jar(std::move(cookie_jar));
+void RequestState::set_cookie_engine(Response::CookiesEngine&& engine) {
+    *cookies_engine_ = std::move(engine);
 }
 
 void RequestState::Cancel() {
@@ -686,17 +688,21 @@ void RequestState::OnRetryTimer(std::error_code err) {
 
 void RequestState::ParseSingleCookie(const char* ptr, size_t size) {
     if (auto cookie = server::http::Cookie::FromString(std::string_view(ptr, size))) {
-        if (response_->is_cookie_jar()) {
+        if (response_->is_cookie_storage<CookieJar>()) {
             // CookieJar storage was enabled
             // TODO: optimize it, quite dirty, some cache needed for url parsing
-            response_->cookie_jar().AddCookie(easy().get_effective_url(), server::http::Cookie{*cookie});
-        } else {
+            response_->cookie_jar().AddCookie(easy().get_effective_url(), std::move(*cookie));
+            return;
+        } 
+        if (response_->is_cookie_storage<Response::CookiesMap>()) {
             //  For API compatibiliy we preserve old API
             [[maybe_unused]] auto [it, ok] = response_->cookies().emplace(cookie->Name(), std::move(*cookie));
             if (!ok) {
                 LOG_WARNING() << "Failed to add cookie '" + it->first + "', already added";
             }
+            return;
         }
+        LOG_WARNING() << "Cookies engine was disabled. Ignoring cookie '" + cookie->Name() + "'";
     }
 }
 
@@ -1119,6 +1125,7 @@ void RequestState::ResetDataForNewRequest() {
     SetBaggageHeader(easy());
 
     response_ = std::make_shared<Response>();
+    response_->set_cookie_engine(cookies_engine_);
     response_->SetStatusCode(Status::kInvalid);
 
     is_cancelled_ = false;

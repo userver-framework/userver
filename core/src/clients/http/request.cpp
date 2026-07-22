@@ -430,12 +430,14 @@ Request Request::proxy_auth_type(ProxyAuthType value) && { return std::move(this
 
 Request& Request::cookies(const Cookies& cookies) & {
     SetCookies(pimpl_->easy(), cookies);
+    pimpl_->set_cookie_engine(Response::CookiesMap());
     return *this;
 }
 Request Request::cookies(const Cookies& cookies) && { return std::move(this->cookies(cookies)); }
 
 Request& Request::cookies(const std::unordered_map<std::string, std::string>& cookies) & {
     SetCookies(pimpl_->easy(), cookies);
+    pimpl_->set_cookie_engine(Response::CookiesMap());
     return *this;
 }
 Request Request::cookies(const std::unordered_map<std::string, std::string>& cookies) && {
@@ -448,7 +450,7 @@ Request& Request::cookies(CookieJar&& cookie_jar) & {
         cookies_list | std::views::transform([](const CookieJar::Cookie& s) {
             return std::pair<const std::string&, const std::string&>(s.Name(), s.Value());
         }));
-    pimpl_->set_cookie_jar(std::move(cookie_jar));
+    pimpl_->set_cookie_engine(std::move(cookie_jar));
     return *this;
 }
 

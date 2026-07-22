@@ -26,6 +26,7 @@ using Headers = USERVER_NAMESPACE::http::headers::HeaderMap;
 class Response final {
 public:
     using CookiesMap = server::http::Cookie::CookiesMap;
+    using CookiesEngine = std::variant<CookiesMap, CookieJar>;
 
     Response() = default;
 
@@ -63,12 +64,15 @@ public:
     /// @warning It works only when cookie jar was enabled, otherwise exception will be thrown
     CookieJar& cookie_jar();
 
-    /// @brief  Checks, whether cookie jar was enabled
+    /// @brief  Checks, whether response holds specified storage
     /// @return Check result
-    bool is_cookie_jar() const;
+    template <typename Value>
+    bool is_cookie_storage() const {
+        return cookies_engine_ && std::get_if<Value>(cookies_engine_.get()) != nullptr;
+    }
 
-    /// @brief Sets cookie jar to store cookie
-    void set_cookie_jar(CookieJar&& cookie_jar);
+    /// @brief Sets cookie engine
+    void set_cookie_engine(const std::shared_ptr<CookiesEngine>& cookies_engine);
 
     /// status_code
     Status status_code() const;
@@ -97,7 +101,7 @@ public:
 
 private:
     Headers headers_;
-    std::variant<CookiesMap, CookieJar> cookies_engine_;
+    std::shared_ptr<CookiesEngine> cookies_engine_;
     std::string response_;
     Status status_code_{Status::kInvalid};
     LocalStats stats_;

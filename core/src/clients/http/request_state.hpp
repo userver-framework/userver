@@ -108,8 +108,8 @@ public:
         utils::zstring_view user,
         utils::zstring_view password
     );
-    /// sets cookijar engine for sending/receiving cookies
-    void set_cookie_jar(CookieJar&& cookie_jar);
+    /// sets cookie engine
+    void set_cookie_engine(Response::CookiesEngine&& engine);
 
     /// get timeout value in milliseconds
     long timeout() const { return original_timeout_.count(); }
@@ -230,6 +230,8 @@ private:
     crypto::Certificate cert_;
     crypto::Certificate ca_;
 
+    /// cookies engine
+    std::shared_ptr<Response::CookiesEngine> cookies_engine_;
     /// response
     std::shared_ptr<Response> response_;
 
