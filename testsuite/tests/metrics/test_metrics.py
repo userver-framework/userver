@@ -335,6 +335,59 @@ def test_handmade_metrics_to_json():
     assert values == metrics.MetricsSnapshot.from_json(json)
 
 
+def test_init_common_prefix():
+    values = metrics.MetricsSnapshot(
+        {'bytes.read': {metrics.Metric({}, 334)}, 'sockets.closed': {metrics.Metric({}, 2)}},
+        common_prefix='tcp-echo',
+    )
+    assert values == metrics.MetricsSnapshot({
+        'tcp-echo.bytes.read': {metrics.Metric({}, 334)},
+        'tcp-echo.sockets.closed': {metrics.Metric({}, 2)},
+    })
+
+
+def test_init_common_labels():
+    values = metrics.MetricsSnapshot(
+        {'a': {metrics.Metric({}, 1)}, 'b': {metrics.Metric({}, 2)}},
+        common_labels={'zone': 'paris'},
+    )
+    assert values == metrics.MetricsSnapshot({
+        'a': {metrics.Metric({'zone': 'paris'}, 1)},
+        'b': {metrics.Metric({'zone': 'paris'}, 2)},
+    })
+
+
+def test_init_common_labels_merged_with_own_labels():
+    values = metrics.MetricsSnapshot(
+        {'a': {metrics.Metric({'x': 'foo'}, 1)}},
+        common_labels={'zone': 'paris'},
+    )
+    assert values == metrics.MetricsSnapshot({
+        'a': {metrics.Metric({'zone': 'paris', 'x': 'foo'}, 1)},
+    })
+
+
+def test_init_common_labels_overridden_by_own_labels():
+    values = metrics.MetricsSnapshot(
+        {'a': {metrics.Metric({'zone': 'london'}, 1)}},
+        common_labels={'zone': 'paris'},
+    )
+    assert values == metrics.MetricsSnapshot({
+        'a': {metrics.Metric({'zone': 'london'}, 1)},
+    })
+
+
+def test_init_common_prefix_and_labels():
+    values = metrics.MetricsSnapshot(
+        {'a': {metrics.Metric({'x': 'foo'}, 1)}},
+        common_prefix='root',
+        common_labels={'zone': 'paris'},
+    )
+    assert values == metrics.MetricsSnapshot({
+        'root.a': {metrics.Metric({'zone': 'paris', 'x': 'foo'}, 1)},
+    })
+
+
 def test_layered_dict_no_labels():
     values = metrics.MetricsSnapshot.from_layered_dict({
         'tcp-echo.bytes.read': 334,

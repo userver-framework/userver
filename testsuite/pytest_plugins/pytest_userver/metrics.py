@@ -140,11 +140,49 @@ class MetricsSnapshot:
     Example with @ref pytest_userver.client.ClientMonitor.metrics "await monitor_client.metrics(path_prefix, labels)":
     @snippet samples/testsuite-support/tests/test_metrics.py metrics metrics
 
+    There are 3 ways to construct a `MetricsSnapshot`:
+
+    1. The constructor itself, taking a ready `dict[str(path), Set[Metric]]`.
+       Useful when dealing with just a few simple metrics, or when generating metrics programmatically,
+       or when combining or transforming snapshots. This format is also well-suited for individual metrics
+       with a large number of labels.
+    2. `from_dict` / `from_json`, taking the flat `json` userver metrics format
+       (a list of `{"labels": ..., "value": ...}` per path).
+       This is an alternative to the constructor for loading from a JSON file.
+       Note that `from_layered_dict` is often more terse and more readable.
+    3. `from_layered_dict`, taking a layered dict format that avoids repeating labels for every metric.
+       Recommended in tests that have many metrics sharing a label structure.
+       Can be written out in code or loaded from a JSON file using `load_json` fixture.
+
     @ingroup userver_testsuite
     """
 
-    def __init__(self, values: Mapping[str, Set[Metric]]):
-        self._values = values
+    def __init__(
+        self,
+        values: Mapping[str, Set[Metric]],
+        *,
+        common_prefix: str = '',
+        common_labels: Mapping[str, str] | None = None,
+    ):
+        """
+        @param values Metrics keyed by path, as a `dict[str(path), Set[Metric]]`
+            (the same format `MetricsSnapshot` itself exposes via `items()`).
+        @param common_prefix If provided, prepended to each path (separated by a dot).
+        @param common_labels If provided, these labels are added to every metric,
+            merged with (and overridden by) that metric's own labels.
+        """
+        if common_labels:
+            prefix = f'{common_prefix}.' if common_prefix else ''
+            self._values = {
+                f'{prefix}{path}': {
+                    dataclasses.replace(metric, labels={**common_labels, **metric.labels}) for metric in metric_set
+                }
+                for path, metric_set in values.items()
+            }
+        elif common_prefix:
+            self._values = {f'{common_prefix}.{path}': metric_set for path, metric_set in values.items()}
+        else:
+            self._values = values
 
     def __getitem__(self, path: str) -> Set[Metric]:
         """Returns a list of metrics by specified path"""
@@ -418,10 +456,10 @@ class MetricsSnapshot:
         Example: `{'a': {'x = foo': 1, 'x = bar': 2}}` is equivalent to
         `MetricsSnapshot({'a': {Metric({'x': 'foo'}, 1), Metric({'x': 'bar'}, 2)}})`.
         """
-        prefix = f'{common_prefix}.' if common_prefix else ''
-        base_labels = dict(common_labels) if common_labels else {}
         return MetricsSnapshot(
-            {f'{prefix}{path}': _collect_layered_metrics(node, dict(base_labels)) for path, node in data.items()},
+            {path: _collect_layered_metrics(node, {}) for path, node in data.items()},
+            common_prefix=common_prefix,
+            common_labels=common_labels,
         )
 
     def to_json(self) -> str:
