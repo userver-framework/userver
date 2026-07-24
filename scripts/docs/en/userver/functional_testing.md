@@ -445,6 +445,11 @@ For metrics with labels, they could be retrieved in the following way:
 
 @snippet samples/testsuite-support/tests/test_metrics.py metrics labels
 
+@note To avoid repeating a common path prefix and common labels in every subsequent call, pass
+`sliced=True` to @ref pytest_userver.client.ClientMonitor.metrics "monitor_client.metrics()".
+See @ref pytest_userver.client.ClientMonitor.metrics "metrics()" and
+@ref pytest_userver.metrics.MetricsSnapshot.sliced "MetricsSnapshot.sliced()" for details.
+
 The @ref pytest_userver.metrics.Metric "Metric" python type is hashable and
 comparable:
 

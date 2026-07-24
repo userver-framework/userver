@@ -366,6 +366,7 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
         path: str = None,
         prefix: str = None,
         labels: dict[str, str] | None = None,
+        sliced: bool = False,
     ) -> pytest_userver.metrics.MetricsSnapshot:
         response = await self.metrics_raw(
             output_format='json',
@@ -373,7 +374,10 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
             prefix=prefix,
             labels=labels,
         )
-        return pytest_userver.metrics.MetricsSnapshot.from_json(str(response))
+        snapshot = pytest_userver.metrics.MetricsSnapshot.from_json(str(response))
+        if sliced:
+            snapshot = snapshot.sliced(path or prefix, labels)
+        return snapshot
 
     async def single_metric_optional(
         self,
@@ -454,6 +458,7 @@ class ClientMonitor(ClientWrapper):
         path: str | None = None,
         prefix: str | None = None,
         labels: dict[str, str] | None = None,
+        sliced: bool = False,
     ) -> pytest_userver.metrics.MetricsSnapshot:
         """
         Returns a dict of metric names to Metric.
@@ -461,13 +466,20 @@ class ClientMonitor(ClientWrapper):
         @param path Optional full metric path
         @param prefix Optional prefix on which the metric paths should start
         @param labels Optional dictionary of labels that must be in the metric
+        @param sliced If True, the returned snapshot is additionally passed through
+            @ref pytest_userver.metrics.MetricsSnapshot.sliced using `path` or `prefix` (one of which must be set)
+            and `labels` (if set), stripping them from the result paths and labels
 
         @snippet samples/testsuite-support/tests/test_metrics.py metrics metrics
+
+        Example of `sliced=True` avoiding repetition of a common prefix and label:
+        @snippet core/functional_tests/metrics/tests/test_sliced.py sliced functional test
         """
         return await self._client.metrics(
             path=path,
             prefix=prefix,
             labels=labels,
+            sliced=sliced,
         )
 
     @_wrap_client_error
@@ -673,7 +685,7 @@ class MetricsDiffer:
 
     async def fetch(self) -> pytest_userver.metrics.MetricsSnapshot:
         """
-        Fetches metric values from the service.
+        Returns metric values from the service without mutating the differ.
         """
         return await self._client.metrics(
             path=self._path,
@@ -681,13 +693,31 @@ class MetricsDiffer:
             labels=self._labels,
         )
 
+    async def fetch_baseline(self) -> None:
+        """
+        Fetches metric values from the service and stores them as `self.baseline`.
+
+        Useful as an alternative to `async with monitor_client.metrics_diff(...)`
+        when the diffing scope doesn't map cleanly onto a single `with` block.
+        """
+        self.baseline = await self.fetch()
+
+    async def fetch_current(self) -> None:
+        """
+        Fetches metric values from the service and stores them as `self.current`,
+        updating `self.diff` accordingly.
+
+        @throws AssertionError if `self.baseline` was not set first
+        """
+        self.current = await self.fetch()
+
     async def __aenter__(self) -> MetricsDiffer:
-        self._baseline = await self.fetch()
         self._current = None
+        await self.fetch_baseline()
         return self
 
     async def __aexit__(self, exc_type, exc, exc_tb) -> None:
-        self.current = await self.fetch()
+        await self.fetch_current()
 
 
 # @cond
