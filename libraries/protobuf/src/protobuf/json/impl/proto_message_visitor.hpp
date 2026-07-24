@@ -36,7 +36,9 @@
 
 #include <cmath>
 #include <cstdint>
+#include <iterator>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -79,23 +81,27 @@ namespace protobuf::json::impl {
     }
 }
 
-[[nodiscard]] inline bool IsClearedMessage(const ::google::protobuf::Message& message) {
+[[nodiscard]] inline bool IsEmpty(const ::google::protobuf::Message& message) {
     const auto& desc = *message.GetDescriptor();
     const auto& reflection = *message.GetReflection();
-
     for (int i = 0; i < desc.field_count(); ++i) {
-        if (HasField(message, reflection, *desc.field(i))) {
+        if (impl::HasField(message, reflection, *desc.field(i))) {
             return false;
         }
     }
-
     return true;
 }
 
-[[nodiscard]] inline std::string MapKeyToString(
+// 'scratch' is provided by the caller and reused across map entries: numeric keys are formatted into it (its
+// capacity stabilizes after the first few entries, so no further allocation happens), while string keys are
+// returned as a reference to the underlying field storage without copying at all (see
+// Reflection::GetStringReference). The caller must consume the returned reference before reusing 'scratch' for
+// anything else.
+[[nodiscard]] inline const ProtoStringType& GetMapKeyString(
     const ::google::protobuf::Reflection& reflection,
     const ::google::protobuf::Message& entry,
-    const ::google::protobuf::FieldDescriptor& key_desc
+    const ::google::protobuf::FieldDescriptor& key_desc,
+    ProtoStringType& scratch
 ) {
     using ::google::protobuf::FieldDescriptor;
 
@@ -103,26 +109,35 @@ namespace protobuf::json::impl {
         case FieldDescriptor::TYPE_INT64:
         case FieldDescriptor::TYPE_SFIXED64:
         case FieldDescriptor::TYPE_SINT64:
-            return std::to_string(reflection.GetInt64(entry, &key_desc));
+            scratch.clear();
+            fmt::format_to(std::back_inserter(scratch), "{}", reflection.GetInt64(entry, &key_desc));
+            return scratch;
 
         case FieldDescriptor::TYPE_UINT64:
         case FieldDescriptor::TYPE_FIXED64:
-            return std::to_string(reflection.GetUInt64(entry, &key_desc));
+            scratch.clear();
+            fmt::format_to(std::back_inserter(scratch), "{}", reflection.GetUInt64(entry, &key_desc));
+            return scratch;
 
         case FieldDescriptor::TYPE_INT32:
         case FieldDescriptor::TYPE_SFIXED32:
         case FieldDescriptor::TYPE_SINT32:
-            return std::to_string(reflection.GetInt32(entry, &key_desc));
+            scratch.clear();
+            fmt::format_to(std::back_inserter(scratch), "{}", reflection.GetInt32(entry, &key_desc));
+            return scratch;
 
         case FieldDescriptor::TYPE_UINT32:
         case FieldDescriptor::TYPE_FIXED32:
-            return std::to_string(reflection.GetUInt32(entry, &key_desc));
+            scratch.clear();
+            fmt::format_to(std::back_inserter(scratch), "{}", reflection.GetUInt32(entry, &key_desc));
+            return scratch;
 
         case FieldDescriptor::TYPE_BOOL:
-            return reflection.GetBool(entry, &key_desc) ? "true" : "false";
+            scratch = reflection.GetBool(entry, &key_desc) ? "true" : "false";
+            return scratch;
 
         case FieldDescriptor::TYPE_STRING:
-            return reflection.GetString(entry, &key_desc);
+            return reflection.GetStringReference(entry, &key_desc, &scratch);
 
         default:
             UINVARIANT(false, "Unexpected protobuf map key descriptor type");
@@ -334,12 +349,8 @@ public:
     void operator()(const ::google::protobuf::Message& message) { VisitMessage(message); }
 
 private:
-    void VisitMessage(const ::google::protobuf::Message& message) {
-        VisitMessage(ClassifyMessage(message.GetDescriptor()->full_name()), message);
-    }
-
-    void VisitMessage(MessageType type, const ::google::protobuf::Message& message) {
-        switch (type) {
+    void VisitMessage(const ::google::protobuf::Message& message, std::optional<MessageType> message_type = {}) {
+        switch (message_type.has_value() ? *message_type : ClassifyMessage(message.GetDescriptor()->full_name())) {
             case MessageType::kGeneral:
                 VisitGeneral(message);
                 return;
@@ -464,14 +475,12 @@ private:
                 return;
 
             case FieldDescriptor::TYPE_STRING: {
-                ProtoStringType scratch;
-                handler_.String(std::string_view(field_getter.GetString(message, field_desc, scratch)));
+                handler_.String(field_getter.GetString(message, field_desc, scratch_buf_));
                 return;
             }
 
             case FieldDescriptor::TYPE_BYTES: {
-                ProtoStringType scratch;
-                handler_.Bytes(std::string_view(field_getter.GetString(message, field_desc, scratch)));
+                handler_.Bytes(field_getter.GetString(message, field_desc, scratch_buf_));
                 return;
             }
 
@@ -481,7 +490,7 @@ private:
                     if (always_print_enums_as_ints_) {
                         handler_.Int32(enum_value_desc.number());
                     } else {
-                        handler_.String(std::string_view{enum_value_desc.name()});
+                        handler_.String(enum_value_desc.name());
                     }
                 } else {
                     // 'google.protobuf.NullValue' enum represents null in JSON (also on its own, not only in Value).
@@ -514,7 +523,7 @@ private:
             if (handler_.LimitReached()) {
                 break;
             }
-            if (is_value_field && IsClearedMessage(reflection.GetRepeatedMessage(message, &field_desc, i))) {
+            if (is_value_field && impl::IsEmpty(reflection.GetRepeatedMessage(message, &field_desc, i))) {
                 // skipping google.protobuf.Value which has no alternatives set (native ProtoJSON does not treat it as
                 // an error during conversion)
                 continue;
@@ -553,11 +562,15 @@ private:
             }
             const auto& entry = reflection.GetRepeatedMessage(message, &field_desc, i);
             const auto& entry_reflection = *entry.GetReflection();
-            if (is_value_field && IsClearedMessage(entry_reflection.GetMessage(entry, &value_desc))) {
+            if (is_value_field && impl::IsEmpty(entry_reflection.GetMessage(entry, &value_desc))) {
                 continue;
             }
 
-            std::string key = MapKeyToString(entry_reflection, entry, key_desc);
+            // 'key' must stay valid across VisitFieldValue below, which may reuse 'scratch_buf_' for the value's own
+            // string/bytes fields (directly, or via a nested Visit* call) — so it gets its own buffer instead of
+            // sharing 'scratch_buf_'.
+            ProtoStringType key_scratch;
+            const std::string_view key = impl::GetMapKeyString(entry_reflection, entry, key_desc, key_scratch);
             handler_.Key(key);
             try {
                 VisitFieldValue(entry, entry_reflection, value_desc);
@@ -580,7 +593,7 @@ private:
             }
 
             const auto& field_desc = *desc.field(i);
-            const bool has_field = HasField(message, reflection, field_desc);
+            const bool has_field = impl::HasField(message, reflection, field_desc);
             // Print set fields, and optionally implicit-presence fields left at their default value (ProtoJSON's
             // 'always_print_fields_with_no_presence'). Message fields have presence, so they are not forced to '{}'.
             if (!has_field && !(always_print_fields_with_no_presence_ && !field_desc.has_presence())) {
@@ -603,7 +616,7 @@ private:
                     field_desc.type() == FieldDescriptor::TYPE_GROUP)
                 {
                     if (ClassifyMessage(field_desc.message_type()->full_name()) == MessageType::kValue &&
-                        IsClearedMessage(reflection.GetMessage(message, &field_desc)))
+                        impl::IsEmpty(reflection.GetMessage(message, &field_desc)))
                     {
                         // skipping google.protobuf.Value which has no alternatives set
                         continue;
@@ -635,15 +648,18 @@ private:
         const auto& value_desc = GetMessageFieldDesc(desc, AnyTraits::kValueFieldNumber, AnyTraits::kValueFieldType);
         const auto& reflection = *message.GetReflection();
 
-        ProtoStringType scratch1;
-        ProtoStringType scratch2;
-        const auto& type_url = reflection.GetStringReference(message, &type_url_desc, &scratch1);
-        const auto& value = reflection.GetStringReference(message, &value_desc, &scratch2);
+        // 'type_url' must stay valid while '*payload_message' is traversed below, and that traversal reuses
+        // 'scratch_buf_' for the payload's own string/bytes fields — so 'type_url' gets its own buffer instead of
+        // sharing 'scratch_buf_' with 'value'. 'value' itself is only read up to 'ParsePartialFromString' below,
+        // before any such reuse can happen.
+        ProtoStringType type_url_scratch;
+        const std::string_view type_url = reflection.GetStringReference(message, &type_url_desc, &type_url_scratch);
+        const auto& value = reflection.GetStringReference(message, &value_desc, &scratch_buf_);
 
         const typename Handler::ObjectGuard guard{handler_};
 
         if (!expand_any_) {
-            VisitAnyRaw(std::string_view{type_url}, std::string_view{value});
+            VisitAnyRaw(type_url, value);
             return;
         }
 
@@ -654,7 +670,7 @@ private:
         const auto payload_desc = FindMessageDescByTypeUrl(*message.GetDescriptor()->file()->pool(), type_url);
         if (!payload_desc) {
             if (expand_any_fallback_to_raw_) {
-                VisitAnyRaw(std::string_view{type_url}, std::string_view{value});
+                VisitAnyRaw(type_url, value);
                 return;
             }
             throw FieldError(PrintErrorCode::kInvalidValue, "can't find 'google.protobuf.Any' payload descriptor");
@@ -667,7 +683,7 @@ private:
 
             if (!payload_message->ParsePartialFromString(value)) {
                 if (expand_any_fallback_to_raw_) {
-                    VisitAnyRaw(std::string_view{type_url}, std::string_view{value});
+                    VisitAnyRaw(type_url, value);
                     return;
                 }
                 throw FieldError(PrintErrorCode::kInvalidValue, "failed to parse 'google.protobuf.Any' payload");
@@ -679,14 +695,14 @@ private:
             // documented above and used in the golden test data. The DOM handler is order-insensitive, so this is safe
             // for both handlers.
             handler_.Key("@type");
-            handler_.String(std::string_view{type_url});
+            handler_.String(type_url);
 
             const MessageType payload_type = ClassifyMessage(payload_desc->full_name());
             if (payload_type == MessageType::kGeneral) {
                 VisitGeneralFields(*payload_message);
             } else {
                 handler_.Key("value");
-                VisitMessage(payload_type, *payload_message);
+                VisitMessage(*payload_message, payload_type);
             }
         }
     }
@@ -817,8 +833,7 @@ private:
         const int size = reflection.FieldSize(message, &field_desc);
 
         for (int i = 0; i < size; ++i) {
-            ProtoStringType scratch;
-            std::string_view path = reflection.GetRepeatedStringReference(message, &field_desc, i, &scratch);
+            const std::string_view path = reflection.GetRepeatedStringReference(message, &field_desc, i, &scratch_buf_);
 
             std::string json_path;
             json_path.reserve(path.size());
@@ -886,8 +901,7 @@ private:
             const auto&
                 field = GetMessageFieldDesc(desc, ValueTraits::kStringFieldNumber, ValueTraits::kStringFieldType);
             if (reflection.HasField(message, &field)) {
-                ProtoStringType scratch;
-                handler_.String(std::string_view(reflection.GetStringReference(message, &field, &scratch)));
+                handler_.String(reflection.GetStringReference(message, &field, &scratch_buf_));
                 return;
             }
         }
@@ -1023,8 +1037,7 @@ private:
             StringValueTraits::kValueFieldNumber,
             StringValueTraits::kValueFieldType
         );
-        ProtoStringType scratch;
-        handler_.String(std::string_view(message.GetReflection()->GetStringReference(message, &field_desc, &scratch)));
+        handler_.String(message.GetReflection()->GetStringReference(message, &field_desc, &scratch_buf_));
     }
 
     void VisitBytesValue(const ::google::protobuf::Message& message) {
@@ -1033,8 +1046,7 @@ private:
             BytesValueTraits::kValueFieldNumber,
             BytesValueTraits::kValueFieldType
         );
-        ProtoStringType scratch;
-        handler_.Bytes(std::string_view(message.GetReflection()->GetStringReference(message, &field_desc, &scratch)));
+        handler_.Bytes(message.GetReflection()->GetStringReference(message, &field_desc, &scratch_buf_));
     }
 
 private:
@@ -1046,6 +1058,13 @@ private:
     bool expand_any_{false};
     bool expand_any_fallback_to_raw_{false};
     bool redact_debug_string_{false};
+
+    // Reusable buffer for extracting string/bytes field values, avoiding a fresh allocation per field. It is shared
+    // for the whole traversal, so any string_view obtained through it is only valid until the next call that writes
+    // into it — including indirectly, through a nested Visit* call — so it must be consumed (copied out or handed
+    // off to 'handler_') before that happens. Values that must outlive such a nested call (e.g. a map key spanning
+    // the visitation of its value, or 'type_url' in VisitAny) use their own dedicated buffer instead.
+    ProtoStringType scratch_buf_;
 };
 
 }  // namespace protobuf::json::impl
