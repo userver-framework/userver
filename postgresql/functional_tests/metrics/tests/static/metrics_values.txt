@@ -86,13 +86,6 @@ postgresql.connections.rate-limit-throttled: postgresql_cluster_host_type=master
 postgresql.connlimit-mode-auto-enabled: postgresql_database=pg_key_value, postgresql_database_shard=shard_0	GAUGE	0
 
 # Errors
-postgresql.errors: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=connection, postgresql_instance=localhost:00000	GAUGE	0
-postgresql.errors: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=connection-timeout, postgresql_instance=localhost:00000	GAUGE	0
-postgresql.errors: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=duplicate-prepared-statement, postgresql_instance=localhost:00000	GAUGE	0
-postgresql.errors: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=pool, postgresql_instance=localhost:00000	GAUGE	0
-postgresql.errors: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=query-exec, postgresql_instance=localhost:00000	GAUGE	0
-postgresql.errors: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=query-timeout, postgresql_instance=localhost:00000	GAUGE	0
-postgresql.errors: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=queue, postgresql_instance=localhost:00000	GAUGE	0
 postgresql.errors.v2: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=connection, postgresql_instance=localhost:00000	RATE	0
 postgresql.errors.v2: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=connection-timeout, postgresql_instance=localhost:00000	RATE	0
 postgresql.errors.v2: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_error=duplicate-prepared-statement, postgresql_instance=localhost:00000	RATE	0
@@ -113,7 +106,6 @@ postgresql.prepared-per-connection.min: postgresql_cluster_host_type=master, pos
 
 
 # The total number of executed queries since service start
-postgresql.queries.executed: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
 postgresql.queries.executed.v2: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	RATE	0
 
 # The total number of parsed queries since service start
@@ -149,14 +141,12 @@ postgresql.statement_timings: percentile=p99_9, postgresql_cluster_host_type=mas
 postgresql.transactions.total: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	RATE	0
 
 # The total number of committed transactions since service start
-postgresql.transactions.committed: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
 postgresql.transactions.committed.v2: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	RATE	0
 
 # The total number of executed statements executed without a transaction (ping statements) since service start
 postgresql.transactions.no-tran: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	RATE	0
 
 # The total number of rolled-back transactions since service start
-postgresql.transactions.rolled-back: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	GAUGE	0
 postgresql.transactions.rolled-back.v2: postgresql_cluster_host_type=master, postgresql_database=pg_key_value, postgresql_database_shard=shard_0, postgresql_instance=localhost:00000	RATE	0
 
 
