@@ -22,7 +22,7 @@ namespace clients::http {
 namespace {
 
 // TODO: not good, for full coverage see libpsl (used by curl), or something else
-static const std::set<std::string> kPublicSuffixes = {
+static const std::set<std::string, std::less<>> kPublicSuffixes = {
     // simple TLD
     "com", "org", "net", "edu", "gov", "mil", "int",
     
@@ -41,22 +41,6 @@ static const std::set<std::string> kPublicSuffixes = {
     "appspot.com", "blogspot.com", "github.io", "githubpages.com"
 };
 
-// Every stored cookie-domain that domain-matches the request host, per                                                                                                                           
-// RFC 6265 §5.1.3 (Domain Matching): the host itself plus each of its parent                                                                                                                     
-// domains. A stored cookie domain-matches iff it equals one of these (a cookie                                                                                                                   
-// set for "example.com" is thus returned for "www.example.com" too).  
-std::vector<std::string> DomainCandidates(std::string_view host) {
-    std::vector<std::string> out;
-    std::string_view cur = host;
-    while (true) {
-        out.emplace_back(cur);
-        const auto dot = cur.find('.');
-        if (dot == std::string_view::npos) break;
-        cur = cur.substr(dot + 1);
-    }
-    return out;
-}
-
 //  There is issue with calling userver's version from non coroutines. We temporary using this one
 std::string ToLower(std::string_view str) {
     std::string result;
@@ -65,7 +49,7 @@ std::string ToLower(std::string_view str) {
     return result;
 }
 
-bool IsPublicSuffix(const std::string& domain) {
+bool IsPublicSuffix(std::string_view domain) {
     return kPublicSuffixes.find(domain) != kPublicSuffixes.end();
 }
 
@@ -175,7 +159,7 @@ static std::string LowerDomainWithoutLeadingDot(std::string_view domain) {
 
 }  // namespace
 
-CookieJar::Cookie::Cookie(const std::string& name, const std::string& value, 
+CookieJar::Cookie::Cookie(std::string_view name, std::string_view value, 
     const std::chrono::system_clock::time_point& creation_time, const size_t path_length) : 
     name_(name), value_(value), creation_time_(creation_time), path_length_(path_length){
 }
@@ -212,7 +196,7 @@ public:
         return;
     }
 
-    std::optional<std::string> GetAnyCookieValue(const std::string& name) {
+    std::optional<std::string> GetAnyCookieValue(std::string_view name) {
         for (const auto& item : storage_) {
             const auto& location = item.second.find(name);
             if (!location->second.empty()) {
@@ -222,11 +206,10 @@ public:
         return std::nullopt;
     }
 
-    CookieJar::Cookies GetCookies(std::string_view scheme, const std::string& domain, std::string_view path) {
-        CookieJar::Cookies result;
+    void GetCookies(CookieJar::Cookies& out, std::string_view scheme, std::string_view domain, std::string_view path) {
         const auto& location = storage_.find(domain);
         if (location == storage_.end()) {
-            return result;
+            return;
         }
         const bool secure_scheme = IsSecureScheme(scheme);
         for (const auto& cookies : location->second) {
@@ -246,10 +229,9 @@ public:
                         continue;
                     }
                 }
-                result.emplace_back(cookie.name, cookie.value, cookie.creation_time, cookie.path.size());
+                out.emplace_back(cookie.name, cookie.value, cookie.creation_time, cookie.path.size());
             }
         }
-        return result;
     }
 
 private:
@@ -259,9 +241,9 @@ private:
 // Cookies, which differs only in path property
     using CookiesList = SmallVectorStorage<ValidatedCookie>;
 // Map from cookie name to list of cookies 
-    using CookieNamesMap = std::unordered_map<std::string, CookiesList, utils::StrCaseHash>;
+    using CookieNamesMap = std::unordered_map<std::string, CookiesList, utils::StrCaseHash, std::equal_to<>>;
 // Hashtable from domain to map of cookies
-    using Storage = std::unordered_map<std::string, CookieNamesMap, utils::StrIcaseHash>;
+    using Storage = std::unordered_map<std::string, CookieNamesMap, utils::StrIcaseHash, std::equal_to<>>;
 
     void DeleteCookie(const ValidatedCookie& cookie) {
         const auto location = storage_.find(cookie.domain);
@@ -375,10 +357,22 @@ private:
     }
 
     void InsertOrAssignCookieToMap(ValidatedCookie&& cookie) {
-        const auto& map_location = storage_.try_emplace(cookie.domain, CookieNamesMap{});
-        auto location = map_location.first->second.try_emplace(cookie.name, CookiesList{});
-        auto& list = location.first->second;
-        auto cookie_location = FindDuplicate(list, cookie);
+        //  A little optimization to exclude extra allocation instead of try_emplace way
+        const auto& map_location = storage_.find(cookie.domain);
+        if (map_location == storage_.end()) {
+            std::string domain = cookie.domain;
+            std::string cookie_name = cookie.name;
+            storage_.emplace(std::move(domain), CookieNamesMap{{std::move(cookie_name), CookiesList{std::move(cookie)}}});
+            return;
+        }
+        const auto& cookie_list_location = map_location->second.find(cookie.name);
+        if (cookie_list_location == map_location->second.end()) {
+            std::string cookie_name = cookie.name;
+            map_location->second.emplace(std::move(cookie_name), CookiesList{std::move(cookie)});
+            return;
+        }
+        auto& list = cookie_list_location->second;
+        const auto& cookie_location = FindDuplicate(list, cookie);
         if (cookie_location != list.end()) {
             //  Preserving old creation time, needed for sorting output cookies
             cookie.creation_time = cookie_location->creation_time;
@@ -425,34 +419,42 @@ void CookieJar::AddCookie(std::string_view url, server::http::Cookie&& cookie) {
     impl_->AddCookie(url, std::move(cookie));
 }
 
-std::optional<std::string> CookieJar::GetAnyCookieValue(const std::string& name) {
+std::optional<std::string> CookieJar::GetAnyCookieValue(std::string_view name) {
     return impl_->GetAnyCookieValue(name);
 }
 
 CookieJar::Cookies CookieJar::GetCookies(std::string_view url) {
     Cookies result;
     const auto& parsed_url = userver::http::DecomposeUrlIntoViews(url);
-    const auto domains = DomainCandidates(LowerDomainWithoutLeadingDot(parsed_url.host));
-
-    for (const auto& d : domains) {
-        auto domain_cookies = impl_->GetCookies(parsed_url.scheme, d, parsed_url.path);
-        if (domain_cookies.empty()) {
-            continue;
+    const auto& lowered_domain = LowerDomainWithoutLeadingDot(parsed_url.host);
+    //  Iteration without additional allocations
+    std::string_view domain = lowered_domain;
+    auto iterations =  std::ranges::count(domain, '.');
+    for (;;) {
+        if (domain.empty()) {
+            break;
         }
-        result.insert(result.end(), domain_cookies.begin(), domain_cookies.end());
+        impl_->GetCookies(result, parsed_url.scheme, domain, parsed_url.path);
+        if (iterations <= 1) {
+            break;
+        }
+        --iterations;
+        domain = domain.substr(domain.find('.') + 1);
     }
-    // In fact this optional but recommended step. Maybe add flag?
-    // RFC 6265 5.4.1 - specifies order with remark:
-    //   `Not all user agents sort the cookie-list in this order, but
-    //   this order reflects common practice when this document was
-    //   written, and, historically, there have been servers that
-    //   (erroneously) depended on this order.`
-    std::sort(result.begin(), result.end(), [](const CookieJar::Cookie& lhs, const CookieJar::Cookie& rhs) {
-        if (lhs.path_length_ != rhs.path_length_) {
-            return lhs.path_length_ > rhs.path_length_;
-        }
-        return lhs.creation_time_ < rhs.creation_time_;
-    });
+    if (result.size() > 1) {
+        // In fact this optional but recommended step. Maybe add flag?
+        // RFC 6265 5.4.1 - specifies order with remark:
+        //   `Not all user agents sort the cookie-list in this order, but
+        //   this order reflects common practice when this document was
+        //   written, and, historically, there have been servers that
+        //   (erroneously) depended on this order.`
+        std::sort(result.begin(), result.end(), [](const CookieJar::Cookie& lhs, const CookieJar::Cookie& rhs) {
+            if (lhs.path_length_ != rhs.path_length_) {
+                return lhs.path_length_ > rhs.path_length_;
+            }
+            return lhs.creation_time_ < rhs.creation_time_;
+        });
+    }
     return result;
 }
 

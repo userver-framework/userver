@@ -15,13 +15,14 @@ USERVER_NAMESPACE_BEGIN
 namespace clients::http {
 
 /// @brief Storage for cookies, compliable with RFC 6265. Can be used for sending and receiving cookies on agent side.
+/// @warning Current implementation is not safe for concurrent use by multiple coroutines
 class CookieJar final {
     struct Impl;
 public:
     /// @brief Extracted cookie from storage, holds auxiliary internal values like creation time/path length
     class Cookie {
     public:
-        Cookie(const std::string& name, const std::string& value, const std::chrono::system_clock::time_point& creation_time, const size_t path_length);
+        Cookie(std::string_view name, std::string_view value, const std::chrono::system_clock::time_point& creation_time, const size_t path_length);
 
         inline const std::string& Name() const { 
             return name_; 
@@ -64,7 +65,7 @@ public:
     /// @brief Gets ANY cookie value, associated with name. In general case, multiple cookies can be stored with the same name, order is not specified
     /// @param name Name of cookie
     /// @return Cookie's value
-    std::optional<std::string> GetAnyCookieValue(const std::string& name);
+    std::optional<std::string> GetAnyCookieValue(std::string_view name);
 
 
     /// @brief Gets cookies, associated with current url. In general case, domain/path properties is taken into account
