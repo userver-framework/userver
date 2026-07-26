@@ -18,34 +18,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace s3api::authenticators {
 
-std::string HttpMethodToString(const clients::http::HttpMethod http_method) {
-    std::string http_method_string;
-
-    switch (http_method) {
-        case clients::http::HttpMethod::kDelete:
-            http_method_string = "DELETE";
-            break;
-        case clients::http::HttpMethod::kGet:
-            http_method_string = "GET";
-            break;
-        case clients::http::HttpMethod::kHead:
-            http_method_string = "HEAD";
-            break;
-        case clients::http::HttpMethod::kPost:
-            http_method_string = "POST";
-            break;
-        case clients::http::HttpMethod::kPut:
-            http_method_string = "PUT";
-            break;
-        case clients::http::HttpMethod::kPatch:
-            http_method_string = "PATCH";
-            break;
-        default:
-            throw std::runtime_error("Unknown http method");
-    }
-
-    return http_method_string;
-}
+namespace {
 
 std::string RemoveExcessiveSpaces(std::string value) {
     std::ranges::replace(value, '\n', ' ');
@@ -53,6 +26,8 @@ std::string RemoveExcessiveSpaces(std::string value) {
     value.erase(garbage.begin(), garbage.end());
     return value;
 }
+
+}  // namespace
 
 std::string MakeHeaderDate() { return utils::datetime::UtcTimestring(utils::datetime::Now(), "%a, %d %b %Y %T %z"); }
 
@@ -67,7 +42,7 @@ std::string MakeStringToSign(
 ) {
     std::ostringstream signature;
 
-    signature << HttpMethodToString(request.method) << '\n';
+    signature << ToStringView(request.method) << '\n';
 
     // md5
     {
