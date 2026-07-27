@@ -214,7 +214,7 @@ This component must be disabled for production.
 ### Features
 
 The essential parts of the testsuite are
-@ref service_client "pytest_userver.plugins.service_client.service_client" and
+@ref pytest_userver.plugins.service_client.service_client "service_client" and
 pytest_userver.plugins.service_client.monitor_client fixtures that give you
 access to the pytest_userver.client.Client and
 pytest_userver.client.ClientMonitor respectively. Those types allow you to interact
@@ -240,7 +240,7 @@ Example usage:
 
 #### Service client
 
-Fixture @ref "service_client"
+Fixture @ref pytest_userver.plugins.service_client.service_client "service_client"
 is used to access the service being tested:
 
 @snippet samples/testsuite-support/tests/test_ping.py service_client
@@ -352,7 +352,7 @@ Then you can use testpoint from testcase:
 
 In order to eliminate unnecessary testpoint requests userver keeps track of testpoints
 that have testsuite handlers installed. Usually testpoint handlers are declared before
-first call to @ref service_client which implicitly updates userver's list of testpoint.
+first call to @ref pytest_userver.plugins.service_client.service_client "service_client" which implicitly updates userver's list of testpoint.
 Sometimes it might be required to manually update server state.
 This can be achieved using `service_client.update_server_state()` method e.g.:
 

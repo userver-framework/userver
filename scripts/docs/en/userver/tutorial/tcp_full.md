@@ -140,7 +140,12 @@ test test test
 
 ### Functional testing
 @ref scripts/docs/en/userver/functional_testing.md "Functional tests" for the service and
-its metrics could be implemented using the testsuite in the following way:
+its metrics could be implemented using the @ref pytest_userver.plugins.service_client.service_client "service_client" fixture,
+the @ref pytest_userver.plugins.service_client.monitor_client "monitor_client" fixture,
+the @ref pytest_userver.plugins.asyncio_socket._asyncio_socket "asyncio_socket" fixture,
+the @ref pytest_userver.plugins.base.service_port "service_port" fixture and the
+`tcp_service_port` fixture from @ref samples/tcp_full_duplex_service/tests/conftest.py
+in the following way:
 
 @snippet samples/tcp_full_duplex_service/tests/test_echo.py  Functional test
 

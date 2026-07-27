@@ -258,7 +258,9 @@ Add functional tests using:
 @snippet samples/kafka_service/CMakeLists.txt  Kafka service sample - kafka functional test cmake
 
 Basic test that send 10 messages to 2 topics
-and waits until each message is delivered:
+and waits until each message is delivered using the
+@ref pytest_userver.plugins.service_client.service_client "service_client" fixture and the
+@ref testsuite.plugins.testpoint.testpoint "testpoint" fixture:
 
 @snippet samples/kafka_service/testsuite/test_kafka.py  Kafka service sample - kafka functional test example
 

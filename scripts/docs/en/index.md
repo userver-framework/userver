@@ -15,7 +15,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 [Russian-speaking](https://t.me/userver_ru) | [News channel](https://t.me/userver_news).
 
 
-## Source codes and service templates at github
+## Source code
 
 Samples and the source codes of the framework itself are available at the
 [userver-framework at github](https://github.com/userver-framework/).

@@ -89,7 +89,8 @@ $ echo "100000000c00180000000800100004000c00000014000000140000000000000016000000
 
 ### Functional testing
 Naive @ref scripts/docs/en/userver/functional_testing.md "functional tests" for the service
-could be implemented using the testsuite in the following way:
+could be implemented using the @ref pytest_userver.plugins.service_client.service_client "service_client" fixture in the
+following way:
 
 @snippet samples/flatbuf_service/tests/test_flatbuf.py  Functional test
 

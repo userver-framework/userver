@@ -168,7 +168,8 @@ implemented using the testsuite. To do that you have to:
 * Tell the testsuite to start the PostgreSQL database by adjusting the
   @ref samples/postgres_auth/tests/conftest.py
 * Prepare the DB test data @ref samples/postgres_auth/tests/static/test_data.sql
-* Write the test:
+* Write the test using the @ref pytest_userver.plugins.service_client.service_client "service_client" fixture and the
+  @ref testsuite.databases.pgsql.pytest_plugin.pgsql "pgsql" fixture:
   @snippet samples/postgres_auth/tests/test_postgres.py  Functional test
 
 

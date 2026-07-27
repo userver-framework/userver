@@ -126,7 +126,8 @@ And in static_config.yaml:
 
 @snippet samples/grpc_middleware_service/configs/static_config.yaml gRPC middleware sample - static config greeter-client
 
-Write the mocking fixtures using @ref pytest_userver.plugins.grpc.mockserver.grpc_mockserver "grpc_mockserver":
+Write the mocking fixtures using @ref pytest_userver.plugins.grpc.mockserver.grpc_mockserver "grpc_mockserver"
+and the @ref pytest_userver.plugins.service_client.service_client "service_client" fixture:
 
 @snippet samples/grpc_middleware_service/tests/test_middlewares.py  gRPC mockserver
 

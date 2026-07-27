@@ -169,13 +169,15 @@ implemented using the testsuite. To do that you have to:
 * Add the Redis Secdist settings info to the service environment variable:
   @snippet samples/redis_service/testsuite/conftest.py service_env
   The @ref pytest_userver.plugins.service.auto_client_deps "auto_client_deps"
-  fixture already knows about the redis_store fixture, so there's no need to override
+  fixture already knows about the @ref testsuite.databases.redis.pytest_plugin.redis_store "redis_store"
+  fixture, so there's no need to override
   the @ref pytest_userver.plugins.service.extra_client_deps "extra_client_deps"
   fixture.
 
   For details on Redis Secdist format, see @ref components::Redis.
 
-* Write the test:
+* Write the test using the @ref pytest_userver.plugins.service_client.service_client "service_client" fixture and the
+  @ref testsuite.databases.redis.pytest_plugin.redis_store "redis_store" fixture:
   @snippet samples/redis_service/testsuite/test_redis.py  Functional test
 
 

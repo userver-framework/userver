@@ -70,7 +70,9 @@ Hello
 ### Functional testing
 
 @ref scripts/docs/en/userver/functional_testing.md "Functional tests" for the service
-can be implemented using testsuite. The mockserver can emulate a WebSocket server
+can be implemented using the @ref pytest_userver.plugins.service_client.service_client "service_client" fixture and the
+@ref testsuite.mockserver.pytest_plugin.mockserver "mockserver" fixture.
+The mockserver can emulate a WebSocket server
 by returning `aiohttp.web.WebSocketResponse`:
 
 @include samples/websocket_client/tests/test_websocket_client.py
