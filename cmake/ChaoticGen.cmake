@@ -241,18 +241,32 @@ function(userver_target_generate_openapi_client TARGET)
     endforeach()
 
     _userver_initialize_codegen_flag()
+
+    add_library("${TARGET}" ${SCHEMAS})
+    target_link_libraries("${TARGET}" userver::chaotic-openapi userver::chaotic)
+
+    set(CHAOTIC_OPENAPI_INCLUDE_ARGS)
+    get_target_property(TARGET_LIBRARIES "${TARGET}" LINK_LIBRARIES)
+    foreach(LIBRARY ${TARGET_LIBRARIES})
+        get_target_property(DIRS "${LIBRARY}" INTERFACE_INCLUDE_DIRECTORIES)
+        if(DIRS)
+            foreach(DIRECTORY ${DIRS})
+                list(APPEND CHAOTIC_OPENAPI_INCLUDE_ARGS -I "${DIRECTORY}")
+            endforeach()
+        endif()
+    endforeach()
+
     add_custom_command(
         OUTPUT ${SCHEMAS}
         COMMAND ${CMAKE_COMMAND} -E env "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}" "${CHAOTIC_OPENAPI_BIN}" ${CHAOTIC_EXTRA_ARGS}
-                --gen client ${PARSE_ARGS} --name "${PARSE_NAME}" -o "${PARSE_OUTPUT_DIR}" ${PARSE_SCHEMAS}
+                --gen client ${PARSE_ARGS} --name "${PARSE_NAME}" -o "${PARSE_OUTPUT_DIR}"
+                ${CHAOTIC_OPENAPI_INCLUDE_ARGS} ${PARSE_SCHEMAS}
         COMMENT "Generating OpenAPI client ${PARSE_NAME}"
         DEPENDS ${PARSE_SCHEMAS}
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
         VERBATIM ${CODEGEN}
     )
     _userver_codegen_register_files("${SCHEMAS}")
-    add_library("${TARGET}" ${SCHEMAS})
-    target_link_libraries("${TARGET}" userver::chaotic-openapi)
     # target_include_directories("${TARGET}" PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include/")
     target_include_directories("${TARGET}" PUBLIC "${PARSE_OUTPUT_DIR}/include")
 endfunction()
@@ -366,11 +380,27 @@ function(userver_target_generate_openapi_handlers TARGET)
     endif()
 
     _userver_initialize_codegen_flag()
+
+    add_library("${TARGET}" ${_HANDLER_FILES} ${_SCHEMA_TYPE_FILES} ${_ALL_VIEW_SRCS})
+    target_link_libraries("${TARGET}" userver::chaotic-openapi userver::chaotic)
+
+    set(_CHAOTIC_OPENAPI_INCLUDE_ARGS)
+    get_target_property(_TARGET_LIBRARIES "${TARGET}" LINK_LIBRARIES)
+    foreach(_LIBRARY ${_TARGET_LIBRARIES})
+        get_target_property(_DIRS "${_LIBRARY}" INTERFACE_INCLUDE_DIRECTORIES)
+        if(_DIRS)
+            foreach(_DIRECTORY ${_DIRS})
+                list(APPEND _CHAOTIC_OPENAPI_INCLUDE_ARGS -I "${_DIRECTORY}")
+            endforeach()
+        endif()
+    endforeach()
+
     add_custom_command(
         OUTPUT ${_ALL_OUTPUTS}
         COMMAND
             ${CMAKE_COMMAND} -E env "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}"
-            "${CHAOTIC_OPENAPI_BIN}" ${CHAOTIC_EXTRA_ARGS} ${_GEN_ARGS} ${PARSE_SCHEMAS}
+            "${CHAOTIC_OPENAPI_BIN}" ${CHAOTIC_EXTRA_ARGS} ${_GEN_ARGS}
+            ${_CHAOTIC_OPENAPI_INCLUDE_ARGS} ${PARSE_SCHEMAS}
         COMMENT "Generating OpenAPI handlers ${PARSE_NAME}"
         DEPENDS ${PARSE_SCHEMAS}
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -378,8 +408,6 @@ function(userver_target_generate_openapi_handlers TARGET)
     )
     _userver_codegen_register_files("${_ALL_OUTPUTS}")
 
-    add_library("${TARGET}" ${_HANDLER_FILES} ${_SCHEMA_TYPE_FILES} ${_ALL_VIEW_SRCS})
-    target_link_libraries("${TARGET}" userver::chaotic-openapi)
     target_include_directories("${TARGET}" PUBLIC "${PARSE_OUTPUT_DIR}/include")
     if(PARSE_SRC_DIR)
         target_include_directories("${TARGET}" PUBLIC "${PARSE_SRC_DIR}")

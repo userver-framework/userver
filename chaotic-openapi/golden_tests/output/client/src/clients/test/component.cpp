@@ -49,27 +49,27 @@ Client& Component::GetClient() { return client_; }
 
 USERVER_NAMESPACE::yaml_config::Schema Component::GetStaticConfigSchema() {
     std::string base_schema = R"(
-type: object
-description: OpenAPI HTTP client with middlewares
-additionalProperties: false
-properties:
-    base-url:
-        type: string
-        description: Base URL for the API
-    timeout-ms:
-        type: integer
-        description: Request timeout in milliseconds
-        minimum: 1
-    attempts:
-        type: integer
-        description: Maximum number of retry attempts
-        minimum: 1
-    middlewares:
         type: object
-        description: Middlewares configuration
-        additionalProperties: true
-        properties: {}
-)";
+        description: OpenAPI HTTP client with middlewares
+        additionalProperties: false
+        properties:
+            base-url:
+                type: string
+                description: Base URL for the API
+            timeout-ms:
+                type: integer
+                description: Request timeout in milliseconds
+                minimum: 1
+            attempts:
+                type: integer
+                description: Maximum number of retry attempts
+                minimum: 1
+            middlewares:
+                type: object
+                description: Middlewares configuration
+                additionalProperties: true
+                properties: {}
+        )";
 
     return USERVER_NAMESPACE::yaml_config::MergeSchemas<USERVER_NAMESPACE::components::ComponentBase>(base_schema);
 }

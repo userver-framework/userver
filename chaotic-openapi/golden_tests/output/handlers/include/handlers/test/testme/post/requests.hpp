@@ -11,13 +11,11 @@
 namespace handlers::test::testme::post {
 
 static constexpr USERVER_NAMESPACE::chaotic::openapi::Name knumber = "number";
-
 static constexpr USERVER_NAMESPACE::chaotic::openapi::Name karray = "array";
 
 /// Request parsed from HttpRequest for this operation.
 struct Request final {
     std::string number;
-
     std::vector<std::string> array;
 
     int body;

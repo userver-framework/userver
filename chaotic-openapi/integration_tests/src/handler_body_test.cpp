@@ -8,6 +8,9 @@
 #include <handlers/simple/formpost/handler.hpp>
 #include <handlers/simple/formpost/requests.hpp>
 #include <handlers/simple/formpost/responses.hpp>
+#include <handlers/simple/headersget/handler.hpp>
+#include <handlers/simple/headersget/requests.hpp>
+#include <handlers/simple/headersget/responses.hpp>
 #include <handlers/simple/multipartpost/handler.hpp>
 #include <handlers/simple/multipartpost/requests.hpp>
 #include <handlers/simple/multipartpost/responses.hpp>
@@ -19,6 +22,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
+namespace headersget = ::handlers::simple::headersget;
 namespace octetget = ::handlers::simple::octetget;
 namespace formpost = ::handlers::simple::formpost;
 namespace multipartpost = ::handlers::simple::multipartpost;
@@ -113,6 +117,46 @@ UTEST(HandlerBodyMultipartFormData, ThrowsOnMissingRequiredField) {
         multipartpost::ParseRequest(*request, chaotic::openapi::To<multipartpost::Request>{}),
         server::handlers::ClientError
     );
+}
+
+// --- response headers ---
+
+UTEST(HandlerResponseHeaders, RequiredHeaderIsSet) {
+    auto builder = server::http::HttpRequestBuilder{};
+    auto request = builder.Build();
+
+    headersget::Response200 r{};
+    r.body = "hello";
+    r.X_String = "value";
+    headersget::SerializeResponse(r, *request);
+
+    EXPECT_EQ(builder.GetHttpResponse().GetHeader("X-String"), "value");
+}
+
+UTEST(HandlerResponseHeaders, OptionalHeaderPresentWhenSet) {
+    auto builder = server::http::HttpRequestBuilder{};
+    auto request = builder.Build();
+
+    headersget::Response200 r{};
+    r.body = "hello";
+    r.X_String = "v";
+    r.X_Count = 42;
+    headersget::SerializeResponse(r, *request);
+
+    EXPECT_EQ(builder.GetHttpResponse().GetHeader("X-Count"), "42");
+}
+
+UTEST(HandlerResponseHeaders, OptionalHeaderAbsentWhenNotSet) {
+    auto builder = server::http::HttpRequestBuilder{};
+    auto request = builder.Build();
+
+    headersget::Response200 r{};
+    r.body = "hello";
+    r.X_String = "v";
+    // X_Count not set
+    headersget::SerializeResponse(r, *request);
+
+    EXPECT_EQ(builder.GetHttpResponse().GetHeader("X-Count"), "");
 }
 
 }  // namespace

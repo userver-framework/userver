@@ -15,7 +15,6 @@ namespace openapi = USERVER_NAMESPACE::chaotic::openapi;
 
 namespace testme::post {
 static constexpr openapi::Name knumber = "number";
-
 static constexpr openapi::Name karray = "array";
 
 void SerializeRequest(
@@ -27,7 +26,6 @@ void SerializeRequest(
 
     openapi::WriteParameter<
         openapi::TrivialParameter<openapi::In::kQuery, knumber, std::string, std::string>>(request.number, sink);
-
     openapi::WriteParameter<
         openapi::ArrayParameter<openapi::In::kQuery, karray, ',', std::string, std::string>>(request.array, sink);
 

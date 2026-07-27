@@ -106,6 +106,9 @@ Request ParseRequest(
     namespace openapi = {{ userver }}::chaotic::openapi;
 
     Request r{};
+    {% if op.empty_request() %}
+        (void)http_request;
+    {% endif %}
     {% for param in op.parameters %}
         {% if param.required %}
             r.{{ param.cpp_name }} = openapi::ReadParameter<{{ param.parser }}>(http_request);

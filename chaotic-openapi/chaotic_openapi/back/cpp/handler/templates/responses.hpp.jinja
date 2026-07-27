@@ -26,8 +26,6 @@ struct ErrorResponseBase : public std::exception {
 
 {% for response in op.responses %}
 
-{% if response.headers %}{{ NOT_IMPLEMENTED(response.headers) }}{% endif %}
-
 {% if response.is_error() %}
 /// Error response — may be thrown from Handle() instead of returning via variant.
 struct Response{{ response.status }} final : public ErrorResponseBase {
@@ -53,6 +51,18 @@ struct Response{{ response.status }} final {
     {% else %}
         {{ NOT_IMPLEMENTED(response.body) }}
     {% endif %}
+
+    {% for header in response.headers %}
+        {% if header.is_array() %}
+            {{ NOT_IMPLEMENTED(header) }}
+        {% endif %}
+
+        {% if header.cpp_type.nullable %}
+            std::optional<{{ header.cpp_type.cpp_global_name() }}> {{ header.cpp_name }};
+        {% else %}
+            {{ header.cpp_type.cpp_global_name() }} {{ header.cpp_name }};
+        {% endif %}
+    {% endfor %}
 };
 
 {% endfor %}

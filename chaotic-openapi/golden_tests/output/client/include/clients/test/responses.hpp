@@ -3,6 +3,7 @@
 
 #include <clients/test/exceptions.hpp>
 #include <clients/test/openapi.hpp>
+#include <optional>
 #include <userver/chaotic/openapi/client/exceptions.hpp>
 #include <variant>
 
@@ -16,7 +17,9 @@ namespace clients::test {
 
 namespace testme::post {
 
-struct Response200 {};
+struct Response200 {
+    std::optional<std::string> X_Header;
+};
 
 using Response = Response200;
 

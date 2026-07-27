@@ -14,10 +14,8 @@ Request ParseRequest(
     namespace openapi = USERVER_NAMESPACE::chaotic::openapi;
 
     Request r{};
-
     r.number = openapi::ReadParameter<
         openapi::TrivialParameter<openapi::In::kQuery, knumber, std::string, std::string>>(http_request);
-
     r.array = openapi::ReadParameter<
         openapi::ArrayParameter<openapi::In::kQuery, karray, ',', std::string, std::string>>(http_request);
 

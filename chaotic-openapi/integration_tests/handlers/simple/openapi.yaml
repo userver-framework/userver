@@ -134,4 +134,23 @@ paths:
                 200:
                     description: OK
 
+    /headers:
+        get:
+            operationId: headersGet
+            responses:
+                200:
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                type: string
+                    headers:
+                        X-String:
+                            required: true
+                            schema:
+                                type: string
+                        X-Count:
+                            schema:
+                                type: integer
+
 components: {}

@@ -3,6 +3,10 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/server/http/http_response.hpp>
+{% if op.responses | selectattr('headers') | list %}
+#include <userver/chaotic/openapi/parameters_write.hpp>
+#include <userver/chaotic/openapi/server/parameters_write.hpp>
+{% endif %}
 {% for include in op.response_body_definition_includes() %}
 #include <{{ include }}>
 {% endfor %}
@@ -18,6 +22,22 @@ std::string SerializeSpecificResponse(const Response{{ response.status }}& r,
     http_request.GetHttpResponse().SetStatus(
         static_cast<{{ userver }}::server::http::HttpStatus>({{ response.status }})
     );
+    {% if response.headers %}
+        namespace openapi = {{ userver }}::chaotic::openapi;
+        {% for header in response.headers %}
+            static constexpr openapi::Name k{{ header.cpp_name }} = "{{ header.raw_name }}";
+        {% endfor %}
+        openapi::server::ParameterSinkHttpResponse header_sink(http_request.GetHttpResponse());
+        {% for header in response.headers %}
+            {% if header.required %}
+                openapi::WriteParameter<{{ header.parser }}>(r.{{ header.cpp_name }}, header_sink);
+            {% else %}
+                if (r.{{ header.cpp_name }}) {
+                    openapi::WriteParameter<{{ header.parser }}>(*r.{{ header.cpp_name }}, header_sink);
+                }
+            {% endif %}
+        {% endfor %}
+    {% endif %}
     {% if response.body | length == 1 %}
         {% set content_type = response.body.keys() | list | first %}
         {% if content_type == 'application/json' %}
@@ -29,7 +49,9 @@ std::string SerializeSpecificResponse(const Response{{ response.status }}& r,
             return r.body;
         {% endif %}
     {% elif response.body | length == 0 %}
-        (void)r;
+        {% if not response.headers %}
+            (void)r;
+        {% endif %}
         return {};
     {% else %}
         {{ NOT_IMPLEMENTED(response.body) }}

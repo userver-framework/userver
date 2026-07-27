@@ -120,8 +120,8 @@ def test_header_ref(translate_single_schema):
                         headers=[
                             types.Parameter(
                                 description='header description',
-                                raw_name='XHeader',
-                                cpp_name='XHeader',
+                                raw_name='X-Header',
+                                cpp_name='X_Header',
                                 cpp_type=cpp_types.CppPrimitiveType(
                                     raw_cpp_type=type_name.TypeName('bool'),
                                     user_cpp_type=None,
@@ -131,7 +131,7 @@ def test_header_ref(translate_single_schema):
                                     ),
                                     validators=cpp_types.CppPrimitiveValidator(prefix=''),
                                 ),
-                                parser='openapi::TrivialParameter<openapi::In::kHeader, kXHeader, bool, bool>',
+                                parser='openapi::TrivialParameter<openapi::In::kHeader, kX_Header, bool, bool>',
                                 required=False,
                                 query_log_mode_hide=False,
                             ),

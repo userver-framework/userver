@@ -9,13 +9,23 @@
 #include <userver/logging/log.hpp>
 
 namespace clients::test {
-
 namespace testme::post {
 Response ParseResponse(USERVER_NAMESPACE::clients::http::Response& http_response) {
     auto status_code = static_cast<int>(http_response.status_code());
     switch (status_code) {
         case 200: {
             Response200 r{};
+
+            {
+                static const USERVER_NAMESPACE::http::headers::PredefinedHeader kHeader("X-Header");
+                auto it = http_response.headers().find(kHeader);
+                if (it != http_response.headers().end()) {
+                    namespace openapi = USERVER_NAMESPACE::chaotic::openapi;
+                    static constexpr openapi::Name kX_Header = "X-Header";
+                    using Header = openapi::TrivialParameter<openapi::In::kHeader, kX_Header, std::string, std::string>;
+                    r.X_Header = openapi::ParameterParser<Header::Base>::Parse(std::string{it->second});
+                }
+            }
 
             return r;
         }
@@ -25,5 +35,4 @@ Response ParseResponse(USERVER_NAMESPACE::clients::http::Response& http_response
     }
 }
 }  // namespace testme::post
-
 }  // namespace clients::test

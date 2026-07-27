@@ -8,8 +8,6 @@ Response View::Handle(Request&& /*request*/, Deps&& /*deps*/) {
 }
 
 /*
-
-
 std::string View::GetRequestBodyForLogging(
     const USERVER_NAMESPACE::formats::json::Value& body) {
     (void)body;
@@ -21,8 +19,6 @@ std::string View::GetInvalidRequestBodyForLogging(
     (void)request;
     return {};
 }
-
-
 
 std::string View::GetResponseForLogging(
     const Response& response,

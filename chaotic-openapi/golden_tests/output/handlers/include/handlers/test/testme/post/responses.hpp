@@ -3,6 +3,7 @@
 
 #include <exception>
 #include <handlers/test/openapi.hpp>
+#include <optional>
 #include <string>
 #include <userver/http/status_code.hpp>
 #include <userver/server/http/http_request.hpp>
@@ -12,10 +13,11 @@ namespace handlers::test::testme::post {
 
 struct Response200 final {
     static constexpr int kStatus = 200;
+
+    std::optional<std::string> X_Header;
 };
 
 /// All possible responses for this operation.
-
 using Response = Response200;
 
 std::string SerializeResponse(const Response& response, USERVER_NAMESPACE::server::http::HttpRequest& http_request);
