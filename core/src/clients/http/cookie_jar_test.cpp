@@ -236,18 +236,14 @@ UTEST_F(HttpCookieJar, ReturnedCookieRetainsAttributes) {
     EXPECT_COOKIES("localhost/base/dir", ElementsAre("a=1"));
 }
 
-// --- Current-behavior quirks that deviate from a strict RFC 6265 reading ---
-// These lock in today's behavior; revisit if the matching is made RFC-strict.
-
-// A trailing slash in the cookie Path is stored literally. GetCookies matches
-// only directory-boundary prefixes of the request path, so "/foo/" is not a
-// candidate for request "/foo/bar" and the cookie is withheld - whereas
-// RFC 6265 §5.1.4 path-match would accept it.
-UTEST_F(HttpCookieJar, TrailingSlashCookiePathQuirk) {
+// A trailing slash in the cookie Path is stored literally. 
+UTEST_F(HttpCookieJar, TrailingSlashCookiePath) {
     Store("localhost/foo/", "a=1; Domain=localhost; Path=/foo/");
+    Store("localhost/foo/", "b=1; Path=/foo");
+    Store("localhost/foo/", "b=2");
 
-    EXPECT_COOKIES("localhost/foo/bar", IsEmpty());
-    EXPECT_COOKIES("localhost/foo/", ElementsAre("a=1"));
+    EXPECT_COOKIES("localhost/foo/bar", ElementsAre("a=1", "b=2"));
+    EXPECT_COOKIES("localhost/foo/", ElementsAre("a=1", "b=2"));
 }
 
 // RFC 6265 §5.2.3 says a leading dot in a Domain attribute is ignored, so

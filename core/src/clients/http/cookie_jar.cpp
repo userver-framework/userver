@@ -100,53 +100,26 @@ static bool CookieTailMatch(std::string_view cookie_domain, std::string_view hos
     return char_before_suffix == '.';
 }
 
-bool PathMatch(const ValidatedCookie& cookie, std::string_view uri_path) {
-    
-    //  Matching cookie path and URL path
-    //  RFC6265 5.1.4 Paths and Path-Match
-    //  Note: implementation is based partially on libcurl's source code
-
-    /* cookie_path must not have last '/' separator. ex: /sample */
-    if(cookie.path.size() == 1) {
-        /* cookie_path must be '/' */
-        return true;
+bool PathMatch(const ValidatedCookie& cookie, std::string_view url_path) {
+    if (cookie.path.size() <= 1) {
+        return !cookie.path.empty();
     }
 
-    std::string_view uri_view = uri_path;
-    /* #-fragments are already cut off! */
-    if(uri_view.empty() || uri_view[0] != '/')
-        uri_view = "/";
+    if (url_path.empty() || url_path[0] != '/') {
+        url_path = "/";
+    }
 
-    /*
-    * here, RFC6265 5.1.4 says
-    *  4. Output the characters of the uri-path from the first character up
-    *     to, but not including, the right-most %x2F ("/").
-    *  but URL path /hoge?fuga=xxx means /hoge/index.cgi?fuga=xxx in some site
-    *  without redirect.
-    *  Ignore this algorithm because /hoge is uri path for this case
-    *  (uri path is not /).
-    */
-    if (uri_view.size() < cookie.path.size()) {
+    // Make sure the cookie path is a prefix of the url path.
+    if (!url_path.starts_with(cookie.path)) return false;
+
+    // In order to avoid in correctly matching a cookie path of /blah
+    // with a request path of '/blahblah/', we need to make sure that either
+    // the cookie path ends in a trailing '/', or that we prefix up to a '/'
+    // in the url path.
+    if (cookie.path.length() != url_path.length() && cookie.path.back() != '/' && url_path[cookie.path.length()] != '/') {
         return false;
     }
-
-    /* not using checkprefix() because matching should be case-sensitive */
-    
-    if (!uri_view.starts_with(cookie.path)) {
-        return false;
-    }
-
-    /* The cookie-path and the uri-path are identical. */
-    if(cookie.path.size() == uri_view.size()) {
-        return true;
-    }
-
-    /* here, cookie_path_len < uri_path_len */
-    if(uri_view[cookie.path.size()] == '/') {
-        return true;
-    }
-
-    return false;
+    return true;
 }
 
 static std::string LowerDomainWithoutLeadingDot(std::string_view domain) {
