@@ -224,6 +224,7 @@
   "chaotic-openapi/tests/back/test_handler_translator.py":"taxi/uservices/userver/chaotic-openapi/tests/back/test_handler_translator.py",
   "chaotic-openapi/tests/back/test_headers.py":"taxi/uservices/userver/chaotic-openapi/tests/back/test_headers.py",
   "chaotic-openapi/tests/back/test_parameters.py":"taxi/uservices/userver/chaotic-openapi/tests/back/test_parameters.py",
+  "chaotic-openapi/tests/back/test_renderer.py":"taxi/uservices/userver/chaotic-openapi/tests/back/test_renderer.py",
   "chaotic-openapi/tests/back/test_request_body.py":"taxi/uservices/userver/chaotic-openapi/tests/back/test_request_body.py",
   "chaotic-openapi/tests/back/test_responses.py":"taxi/uservices/userver/chaotic-openapi/tests/back/test_responses.py",
   "chaotic-openapi/tests/front/__init__.py":"taxi/uservices/userver/chaotic-openapi/tests/front/__init__.py",

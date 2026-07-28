@@ -5,4 +5,4 @@ namespace clients::test {
 
 class Client;
 
-}  // namespace clients::test
+} // namespace clients::test

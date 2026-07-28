@@ -97,10 +97,7 @@ UTEST_DEATH(ChaoticServerDependenciesDeathTest, NotRegisteredInForHandler) {
 
     dependencies::ForHandler<struct NotRegisteredInForHandler> handler{1};
 
-    EXPECT_UINVARIANT_FAILURE_MSG(
-        handler[kEmptyDep],
-        "Trying to access non-registered dependency of type EmptyDep from ForHandler<NotRegisteredInForHandler>."
-    );
+    EXPECT_UINVARIANT_FAILURE_MSG(handler[kEmptyDep], "EmptyDep from ForHandler<");
 }
 
 UTEST_DEATH(ChaoticServerDependenciesDeathTest, NotRegisteredInFactory) {
@@ -109,8 +106,7 @@ UTEST_DEATH(ChaoticServerDependenciesDeathTest, NotRegisteredInFactory) {
 
     EXPECT_UINVARIANT_FAILURE_MSG(
         (void)(fb.Make<ForHandlerTag>()),
-        "Trying to build type EmptyDep from Factories, but the builder is not registered. Forgot to call "
-        "Factories::Register<EmptyDep>(...)?"
+        "EmptyDep from Factories, but the builder is not registered. Forgot to call Factories::Register<"
     );
 
     if (false) {

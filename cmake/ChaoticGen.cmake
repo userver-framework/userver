@@ -195,16 +195,24 @@ function(userver_target_generate_chaotic TARGET)
     endif()
 endfunction()
 
-# TODO
+# Generates ${TARGET} cmake target for a C++ HTTP client from OpenAPI/Swagger YAML file(s).
+#
+# @arg TARGET target name
+# @param NAME - client name; used in include/src paths under clients/NAME/
+# @param OUTPUT_DIR - where to put generated include/ and src/ trees
+# @param FORMAT - can be ON/OFF, enable to format generated files, defaults to USERVER_CHAOTIC_FORMAT
+# @multiparam SCHEMAS - OpenAPI/Swagger YAML source files
+# @multiparam ARGS - extra arguments passed to chaotic-openapi-gen
 function(userver_target_generate_openapi_client TARGET)
     set(OPTIONS)
-    set(ONE_VALUE_ARGS OUTPUT_DIR NAME)
+    set(ONE_VALUE_ARGS OUTPUT_DIR NAME FORMAT)
     set(MULTI_VALUE_ARGS SCHEMAS ARGS)
     cmake_parse_arguments(PARSE "${OPTIONS}" "${ONE_VALUE_ARGS}" "${MULTI_VALUE_ARGS}" ${ARGN})
 
     get_property(CHAOTIC_OPENAPI_BIN GLOBAL PROPERTY userver_chaotic_openapi_bin)
     get_property(CHAOTIC_EXTRA_ARGS GLOBAL PROPERTY userver_chaotic_extra_args)
     get_property(USERVER_CHAOTIC_PYTHON_BINARY GLOBAL PROPERTY userver_chaotic_python_binary)
+    get_property(CLANG_FORMAT_BIN GLOBAL PROPERTY userver_clang_format_bin)
 
     if(NOT DEFINED PARSE_OUTPUT_DIR)
         set(PARSE_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${PARSE_NAME}")
@@ -217,6 +225,15 @@ function(userver_target_generate_openapi_client TARGET)
 
     if(NOT PARSE_NAME)
         message(FATAL_ERROR "NAME is required")
+    endif()
+
+    if(PARSE_FORMAT OR (NOT DEFINED PARSE_FORMAT AND USERVER_CHAOTIC_FORMAT))
+        if(NOT CLANG_FORMAT_BIN)
+            message(FATAL_ERROR "clang-format is not found and FORMAT option is set. Please install clang-format.")
+        endif()
+        set(CLANG_FORMAT "${CLANG_FORMAT_BIN}")
+    else()
+        set(CLANG_FORMAT "")
     endif()
 
     set(SCHEMAS
@@ -235,8 +252,12 @@ function(userver_target_generate_openapi_client TARGET)
     )
     foreach(SCHEMA ${PARSE_SCHEMAS})
         string(REGEX REPLACE "^.*/([^/]*)\\.([^.]*)\$" "\\1" SCHEMA "${SCHEMA}")
-        set(SCHEMAS ${SCHEMAS} "${PARSE_OUTPUT_DIR}/include/clients/${PARSE_NAME}/${SCHEMA}.hpp"
-                    "${PARSE_OUTPUT_DIR}/src/clients/${PARSE_NAME}/${SCHEMA}.cpp"
+        set(SCHEMAS ${SCHEMAS}
+            "${PARSE_OUTPUT_DIR}/include/clients/${PARSE_NAME}/${SCHEMA}_fwd.hpp"
+            "${PARSE_OUTPUT_DIR}/include/clients/${PARSE_NAME}/${SCHEMA}.hpp"
+            "${PARSE_OUTPUT_DIR}/include/clients/${PARSE_NAME}/${SCHEMA}_parsers.ipp"
+            "${PARSE_OUTPUT_DIR}/include/clients/${PARSE_NAME}/${SCHEMA}_sax_parsers.hpp"
+            "${PARSE_OUTPUT_DIR}/src/clients/${PARSE_NAME}/${SCHEMA}.cpp"
         )
     endforeach()
 
@@ -260,6 +281,7 @@ function(userver_target_generate_openapi_client TARGET)
         OUTPUT ${SCHEMAS}
         COMMAND ${CMAKE_COMMAND} -E env "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}" "${CHAOTIC_OPENAPI_BIN}" ${CHAOTIC_EXTRA_ARGS}
                 --gen client ${PARSE_ARGS} --name "${PARSE_NAME}" -o "${PARSE_OUTPUT_DIR}"
+                "--clang-format=${CLANG_FORMAT}"
                 ${CHAOTIC_OPENAPI_INCLUDE_ARGS} ${PARSE_SCHEMAS}
         COMMENT "Generating OpenAPI client ${PARSE_NAME}"
         DEPENDS ${PARSE_SCHEMAS}
@@ -277,11 +299,12 @@ endfunction()
 # @param NAME - service name (--name); also used in include/src paths under handlers/NAME/
 # @param OUTPUT_DIR - where to put generated include/ and src/ trees
 # @param SRC_DIR - parent directory of handlers/NAME/; view stubs are written here (skipped if already present)
+# @param FORMAT - can be ON/OFF, enable to format generated files, defaults to USERVER_CHAOTIC_FORMAT
 # @multiparam SCHEMAS - OpenAPI YAML source files
 # @multiparam ARGS - extra arguments passed to chaotic-openapi-gen
 function(userver_target_generate_openapi_handlers TARGET)
     set(OPTIONS)
-    set(ONE_VALUE_ARGS NAME OUTPUT_DIR SRC_DIR)
+    set(ONE_VALUE_ARGS NAME OUTPUT_DIR SRC_DIR FORMAT)
     set(MULTI_VALUE_ARGS SCHEMAS ARGS)
     cmake_parse_arguments(PARSE "${OPTIONS}" "${ONE_VALUE_ARGS}" "${MULTI_VALUE_ARGS}" ${ARGN})
 
@@ -289,6 +312,7 @@ function(userver_target_generate_openapi_handlers TARGET)
     get_property(CHAOTIC_EXTRA_ARGS GLOBAL PROPERTY userver_chaotic_extra_args)
     get_property(USERVER_CHAOTIC_PYTHON_BINARY GLOBAL PROPERTY userver_chaotic_python_binary)
     get_property(USERVER_CHAOTIC_SCRIPTS_PATH GLOBAL PROPERTY userver_chaotic_scripts_path)
+    get_property(CLANG_FORMAT_BIN GLOBAL PROPERTY userver_clang_format_bin)
 
     if(NOT PARSE_NAME)
         message(FATAL_ERROR "NAME is required")
@@ -369,10 +393,20 @@ function(userver_target_generate_openapi_handlers TARGET)
     set(_CONFIG_YAML_PATH "${PARSE_OUTPUT_DIR}/config.chaotic.yaml")
     set(_ALL_OUTPUTS ${_HANDLER_FILES} ${_SCHEMA_TYPE_FILES} ${_NEW_VIEW_FILES} "${_CONFIG_YAML_PATH}")
 
+    if(PARSE_FORMAT OR (NOT DEFINED PARSE_FORMAT AND USERVER_CHAOTIC_FORMAT))
+        if(NOT CLANG_FORMAT_BIN)
+            message(FATAL_ERROR "clang-format is not found and FORMAT option is set. Please install clang-format.")
+        endif()
+        set(CLANG_FORMAT "${CLANG_FORMAT_BIN}")
+    else()
+        set(CLANG_FORMAT "")
+    endif()
+
     set(_GEN_ARGS
         --name "${PARSE_NAME}"
         --gen "${_GEN_MODE}"
         -o "${PARSE_OUTPUT_DIR}"
+        "--clang-format=${CLANG_FORMAT}"
         ${PARSE_ARGS}
     )
     if(PARSE_SRC_DIR)

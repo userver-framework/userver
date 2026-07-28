@@ -58,7 +58,7 @@ def do_main():
             include_dirs=args.include_dirs or [],
             middleware_plugins=[],
         ).spec()
-        outputs = client_renderer.render(spec, ctx)
+        outputs = client_renderer.render(spec, ctx, schema_files=[os.path.basename(f) for f in args.files])
         client_renderer.CppOutput.save(outputs, args.output_dir)
 
     elif args.gen in ('handlers', 'handlers+views', 'views'):
