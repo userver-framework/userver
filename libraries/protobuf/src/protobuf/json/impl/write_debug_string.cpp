@@ -15,6 +15,7 @@ std::string WriteMessageToDebugString(const ::google::protobuf::Message& message
     StringWriter string_writer{limit};
 
     ProtoMessageVisitor visitor{string_writer};
+    visitor.SetPreserveProtoFieldNames(true);
     visitor.SetExpandAny(true);
     visitor.SetExpandAnyFallbackToRaw(true);
     visitor.SetRedactDebugString(true);
