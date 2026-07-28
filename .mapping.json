@@ -4339,6 +4339,7 @@
   "redis/src/storages/redis/json_cluster_redistest.cpp":"taxi/uservices/userver/redis/src/storages/redis/json_cluster_redistest.cpp",
   "redis/src/storages/redis/key_type.cpp":"taxi/uservices/userver/redis/src/storages/redis/key_type.cpp",
   "redis/src/storages/redis/parse_reply.cpp":"taxi/uservices/userver/redis/src/storages/redis/parse_reply.cpp",
+  "redis/src/storages/redis/parse_reply_test.cpp":"taxi/uservices/userver/redis/src/storages/redis/parse_reply_test.cpp",
   "redis/src/storages/redis/pttl_reply.cpp":"taxi/uservices/userver/redis/src/storages/redis/pttl_reply.cpp",
   "redis/src/storages/redis/pubsub_redistest.cpp":"taxi/uservices/userver/redis/src/storages/redis/pubsub_redistest.cpp",
   "redis/src/storages/redis/pubsub_redistest.hpp":"taxi/uservices/userver/redis/src/storages/redis/pubsub_redistest.hpp",

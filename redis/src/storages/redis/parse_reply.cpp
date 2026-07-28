@@ -263,7 +263,7 @@ std::string Parse(ReplyData&& reply_data, const std::string& request_description
 double Parse(ReplyData&& reply_data, const std::string& request_description, To<double>) {
     reply_data.ExpectString(request_description);
     try {
-        return std::stod(reply_data.GetString());
+        return utils::FromString<double>(reply_data.GetString());
     } catch (const std::exception& ex) {
         throw ParseReplyException(
             "Can't parse value from reply to '" + request_description + "' request (" + reply_data.ToDebugString() +
