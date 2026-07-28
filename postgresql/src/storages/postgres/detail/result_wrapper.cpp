@@ -305,7 +305,7 @@ Message::Severity ResultWrapper::GetMessageSeverity() const {
     return Message::SeverityFromString(GetMachineReadableSeverity(handle.get()));
 }
 
-std::string ResultWrapper::GetSqlCode() const { return GetMessageField(PG_DIAG_SQLSTATE).value(); }
+std::string ResultWrapper::GetSqlCode() const { return GetMessageField(PG_DIAG_SQLSTATE).value_or(Message::kUnknown); }
 
 SqlState ResultWrapper::GetSqlState() const { return SqlStateFromString(GetSqlCode()); }
 
