@@ -5630,6 +5630,7 @@
   "testsuite/tests/config/test_config_substitutions.py":"taxi/uservices/userver/testsuite/tests/config/test_config_substitutions.py",
   "testsuite/tests/metrics/CMakeLists.txt":"taxi/uservices/userver/testsuite/tests/metrics/CMakeLists.txt",
   "testsuite/tests/metrics/conftest.py":"taxi/uservices/userver/testsuite/tests/metrics/conftest.py",
+  "testsuite/tests/metrics/test_differ.py":"taxi/uservices/userver/testsuite/tests/metrics/test_differ.py",
   "testsuite/tests/metrics/test_metrics.py":"taxi/uservices/userver/testsuite/tests/metrics/test_metrics.py",
   "testsuite/tests/metrics/test_sliced.py":"taxi/uservices/userver/testsuite/tests/metrics/test_sliced.py",
   "testsuite/tests/s3api/CMakeLists.txt":"taxi/uservices/userver/testsuite/tests/s3api/CMakeLists.txt",

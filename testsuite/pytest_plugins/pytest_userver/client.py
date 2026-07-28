@@ -33,7 +33,7 @@ from testsuite.utils import approx
 from testsuite.utils import http
 
 from pytest_userver import userver_warnings
-import pytest_userver.metrics  # pylint: disable=import-error
+import pytest_userver.metrics
 from pytest_userver.plugins import caches
 
 # @cond
@@ -333,8 +333,8 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
         self,
         output_format,
         *,
-        path: str = None,
-        prefix: str = None,
+        path: str | None = None,
+        prefix: str | None = None,
         labels: dict[str, str] | None = None,
     ) -> str:
         if not self._config.server_monitor_path:
@@ -363,11 +363,12 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
     async def metrics(
         self,
         *,
-        path: str = None,
-        prefix: str = None,
+        path: str | None = None,
+        prefix: str | None = None,
         labels: dict[str, str] | None = None,
         sliced: bool = False,
     ) -> pytest_userver.metrics.MetricsSnapshot:
+        assert (path is not None) + (prefix is not None) <= 1, 'path and prefix are mutually exclusive'
         response = await self.metrics_raw(
             output_format='json',
             path=path,
@@ -376,7 +377,9 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
         )
         snapshot = pytest_userver.metrics.MetricsSnapshot.from_json(str(response))
         if sliced:
-            snapshot = snapshot.sliced(path or prefix, labels)
+            sliced_prefix = prefix or path
+            sliced_prefix = sliced_prefix.rstrip('.') if sliced_prefix is not None else None
+            snapshot = snapshot.sliced(sliced_prefix, labels)
         return snapshot
 
     async def single_metric_optional(
@@ -425,6 +428,7 @@ class ClientMonitor(ClientWrapper):
         path: str | None = None,
         prefix: str | None = None,
         labels: dict[str, str] | None = None,
+        sliced: bool = True,
         diff_gauge: bool = False,
     ) -> MetricsDiffer:
         """
@@ -439,6 +443,9 @@ class ClientMonitor(ClientWrapper):
         @param path Optional full metric path
         @param prefix Optional prefix on which the metric paths should start
         @param labels Optional dictionary of labels that must be in the metric
+        @param sliced If `True` (the default), then `differ.value_at`, `differ.baseline`, `differ.current` and
+            `differ.diff` have `path`/`prefix` (and `labels`, if given) stripped via
+            @ref pytest_userver.metrics.MetricsSnapshot.sliced, same as `metrics(sliced=True)`.
         @param diff_gauge Whether to differentiate GAUGE metrics
 
         @snippet samples/testsuite-support/tests/test_metrics.py metrics diff
@@ -448,6 +455,7 @@ class ClientMonitor(ClientWrapper):
             _path=path,
             _prefix=prefix,
             _labels=labels,
+            _sliced=sliced,
             _diff_gauge=diff_gauge,
         )
 
@@ -586,12 +594,14 @@ class MetricsDiffer:
         _path: str | None,
         _prefix: str | None,
         _labels: dict[str, str] | None,
+        _sliced: bool,
         _diff_gauge: bool,
     ):
         self._client = _client
         self._path = _path
         self._prefix = _prefix
         self._labels = _labels
+        self._sliced = _sliced
         self._diff_gauge = _diff_gauge
         self._baseline: pytest_userver.metrics.MetricsSnapshot | None = None
         self._current: pytest_userver.metrics.MetricsSnapshot | None = None
@@ -660,7 +670,7 @@ class MetricsDiffer:
         """
         Returns a single metric value at the specified path, prepending
         the path provided at construction. If a dict of labels is provided,
-        does en exact match of labels, prepending the labels provided at construction.
+        does an exact match of labels, prepending the labels provided at construction.
 
         If `default` is provided, it is returned instead of asserting when
         the metric is not found.
@@ -670,18 +680,10 @@ class MetricsDiffer:
         @param default An optional default value in case the metric is missing
         @throws AssertionError if not one metric by path and no `default` is given
         """
-        base_path = self._path or self._prefix
-        if base_path and subpath:
-            path = f'{base_path}.{subpath}'
-        else:
-            assert base_path or subpath, 'No path provided'
-            path = base_path or subpath or ''
-        labels: dict | None = None
-        if self._labels is not None or add_labels is not None:
-            labels = {**(self._labels or {}), **(add_labels or {})}
+        path = subpath or ''
         if default is _MISSING:
-            return self.diff.value_at(path, labels)
-        return self.diff.value_at(path, labels, default=default)
+            return self.diff.value_at(path, add_labels)
+        return self.diff.value_at(path, add_labels, default=default)
 
     async def fetch(self) -> pytest_userver.metrics.MetricsSnapshot:
         """
@@ -691,6 +693,7 @@ class MetricsDiffer:
             path=self._path,
             prefix=self._prefix,
             labels=self._labels,
+            sliced=self._sliced,
         )
 
     async def fetch_baseline(self) -> None:
@@ -728,10 +731,15 @@ def _subtract_metrics_snapshots(
     initial: pytest_userver.metrics.MetricsSnapshot,
     diff_gauge: bool,
 ) -> pytest_userver.metrics.MetricsSnapshot:
-    return pytest_userver.metrics.MetricsSnapshot({
+    assert current._sliced_prefix == initial._sliced_prefix
+    assert current._sliced_labels == initial._sliced_labels
+    diff = pytest_userver.metrics.MetricsSnapshot({
         path: {_subtract_metrics(path, current_metric, initial, diff_gauge) for current_metric in current_group}
         for path, current_group in current.items()
     })
+    diff._sliced_prefix = current._sliced_prefix
+    diff._sliced_labels = current._sliced_labels
+    return diff
 
 
 def _subtract_metrics(

@@ -39,6 +39,63 @@ def test_exact_match():
     assert sliced.value_at('') == 5
 
 
+def test_none_prefix_is_identity():
+    # `None` matches every path unconditionally and strips nothing: this is what
+    # `metrics_diff()`/`metrics(sliced=True)` fall back to when there is no `path`/`prefix`
+    # to slice by.
+    values = pytest_userver.metrics.MetricsSnapshot({
+        'a.b': {pytest_userver.metrics.Metric({}, 5)},
+    })
+    sliced = values.sliced(None)
+    assert list(sliced.keys()) == ['a.b']
+    assert sliced.value_at('a.b') == 5
+
+
+def test_none_prefix_still_filters_by_labels():
+    values = pytest_userver.metrics.MetricsSnapshot({
+        'a': {
+            pytest_userver.metrics.Metric({'rsp': 'x'}, 1),
+            pytest_userver.metrics.Metric({'rsp': 'y'}, 2),
+        },
+    })
+    sliced = values.sliced(None, {'rsp': 'x'})
+    assert sliced.value_at('a') == 1
+
+
+def test_none_prefix_composes_with_nonempty_prefix():
+    values = pytest_userver.metrics.MetricsSnapshot({
+        'a.b.c': {pytest_userver.metrics.Metric({}, 5)},
+    })
+    sliced = values.sliced('a').sliced(None)
+    assert list(sliced.keys()) == ['b.c']
+    assert sliced.value_at('b.c') == 5
+
+    unsliced = sliced.unsliced()
+    assert list(unsliced.keys()) == ['a.b.c']
+    assert unsliced.value_at('a.b.c') == 5
+
+
+def test_empty_string_prefix_strips_leading_dot():
+    # Unlike `None`, an empty string `prefix` is a real (if unusual) prefix: it only matches
+    # paths that are themselves empty, or that start with a literal leading '.'; that leading
+    # '.' is stripped. This matters only for the rare metric path that starts with a dot.
+    values = pytest_userver.metrics.MetricsSnapshot({
+        '.a.b': {pytest_userver.metrics.Metric({}, 5)},
+        'c.d': {pytest_userver.metrics.Metric({}, 1)},
+    })
+    sliced = values.sliced('')
+    assert list(sliced.keys()) == ['a.b']
+    assert sliced.value_at('a.b') == 5
+
+
+def test_empty_string_prefix_drops_paths_without_leading_dot():
+    values = pytest_userver.metrics.MetricsSnapshot({
+        'a.b': {pytest_userver.metrics.Metric({}, 5)},
+    })
+    sliced = values.sliced('')
+    assert list(sliced.keys()) == []
+
+
 def test_strips_prefix_and_dot():
     values = pytest_userver.metrics.MetricsSnapshot({
         'a.b.c': {pytest_userver.metrics.Metric({}, 5)},
@@ -157,10 +214,18 @@ def test_ambiguous_trailing_dot_fails():
         values.sliced('a.b')
 
 
-def test_ambiguous_double_dot_fails():
-    values = pytest_userver.metrics.MetricsSnapshot({'a.b..c': {pytest_userver.metrics.Metric({}, 1)}})
-    with pytest.raises(AssertionError):
-        values.sliced('a.b')
+def test_double_dot_is_allowed_and_distinguishable():
+    # An empty '.'-segment right after `prefix` is fine as long as the remainder is non-empty:
+    # 'a.b..c' sliced by 'a.b' yields '.c' (remainder starts with '.'), which stays
+    # distinguishable from 'a.b.c' sliced by 'a.b', which yields 'c'.
+    values = pytest_userver.metrics.MetricsSnapshot({
+        'a.b..c': {pytest_userver.metrics.Metric({}, 1)},
+        'a.b.c': {pytest_userver.metrics.Metric({}, 2)},
+    })
+    sliced = values.sliced('a.b')
+    assert sorted(sliced.keys()) == ['.c', 'c']
+    assert sliced.value_at('.c') == 1
+    assert sliced.value_at('c') == 2
 
 
 def test_unsliced_on_never_sliced_snapshot_is_equivalent():
