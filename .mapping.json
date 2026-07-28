@@ -3805,6 +3805,7 @@
   "postgresql/include/userver/storages/postgres/dsn.hpp":"taxi/uservices/userver/postgresql/include/userver/storages/postgres/dsn.hpp",
   "postgresql/include/userver/storages/postgres/exceptions.hpp":"taxi/uservices/userver/postgresql/include/userver/storages/postgres/exceptions.hpp",
   "postgresql/include/userver/storages/postgres/field.hpp":"taxi/uservices/userver/postgresql/include/userver/storages/postgres/field.hpp",
+  "postgresql/include/userver/storages/postgres/impl/sqldto/bundles/all_declarations.hpp":"taxi/uservices/userver/postgresql/include/userver/storages/postgres/impl/sqldto/bundles/all_declarations.hpp",
   "postgresql/include/userver/storages/postgres/io/array_types.hpp":"taxi/uservices/userver/postgresql/include/userver/storages/postgres/io/array_types.hpp",
   "postgresql/include/userver/storages/postgres/io/bitstring.hpp":"taxi/uservices/userver/postgresql/include/userver/storages/postgres/io/bitstring.hpp",
   "postgresql/include/userver/storages/postgres/io/boost_multiprecision.hpp":"taxi/uservices/userver/postgresql/include/userver/storages/postgres/io/boost_multiprecision.hpp",
