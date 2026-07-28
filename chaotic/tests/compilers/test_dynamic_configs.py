@@ -93,6 +93,26 @@ def test_strong_typedef_dependencies():
         )
 
 
+def test_include_dirs_none_skips_check():
+    # `include_dirs=None` disables the "does the header exist" check
+    # entirely, which build systems (e.g. ya.make) rely on when
+    # they cannot cheaply provide the real include search path at codegen
+    # time. Unlike the default `[]`, it must not raise even for a header
+    # that does not exist anywhere.
+    compiler = dynamic_config.CompilerBase(strict_parsing_default=False)
+    with tempfile.NamedTemporaryFile(mode='w+', encoding='utf-8') as ofile:
+        json.dump(
+            {
+                'schema': {'type': 'string', 'x-usrv-cpp-typedef-tag': 'xxx'},
+                'default': '',
+            },
+            ofile,
+        )
+        ofile.flush()
+
+        compiler.parse_variable(ofile.name, 'var', namespace='taxi_config', include_dirs=None)
+
+
 def test_default_isomorphic():
     var = parse_variable_content({
         'schema': {

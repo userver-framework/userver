@@ -23,6 +23,10 @@ class GeneratorConfig:
     namespaces: dict[str, str]
     # infile_path -> cpp type
     infile_to_name_func: Callable
+    # Where to look for `x-usrv-cpp-type` headers to check that they exist
+    # (used only to produce a nicer error message, does not affect codegen).
+    # `None` disables the check entirely; `[]` fails on the very first usage
+    # of `x-usrv-cpp-type`, since there is nowhere to look.
     # type: ignore
     include_dirs: list[str] | None = dataclasses.field(
         # type: ignore
