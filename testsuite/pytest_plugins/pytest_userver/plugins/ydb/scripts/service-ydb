@@ -30,6 +30,12 @@ fi
 if [ "x$YDB_DOCKER_IMAGE" = "x" ]; then
     die "YDB_DOCKER_IMAGE must be set"
 fi
+if [ "x$YDB_WAIT_TIME"  = "x" ]; then
+    die "YDB_WAIT_TIME must be set"
+fi
+if [ "$YDB_WAIT_TIME" -lt 0 ] 2>/dev/null; then
+    die "YDB_WAIT_TIME must be >= 0, but got $YDB_WAIT_TIME"
+fi
 
 YDB_DATA_DIR=$YDB_TMPDIR/data
 
@@ -48,6 +54,21 @@ start_ydb() {
             -e GRPC_PORT=$YDB_GRPC_PORT \
             -e MON_PORT=$YDB_MON_PORT \
             ${YDB_DOCKER_IMAGE}
+
+    if [ "$YDB_WAIT_TIME" -gt 0 ]; then
+        echo "Waiting ${YDB_WAIT_TIME} seconds..."
+        for i in $(seq 1 "$YDB_WAIT_TIME"); do
+            if $DOCKER_BINPATH exec ${YDB_CONTAINER_NAME} test -f /ydb_database.txt 2>/dev/null; then
+                break
+            fi
+            
+            if [ "$i" -eq "$YDB_WAIT_TIME" ]; then
+                die "Timed out waiting for /ydb_database.txt in container ${YDB_CONTAINER_NAME}"
+            fi
+
+            sleep 1
+        done
+    fi
 }
 
 start() {

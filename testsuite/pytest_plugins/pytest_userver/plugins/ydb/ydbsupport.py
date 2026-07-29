@@ -88,6 +88,7 @@ def ydb_service_settings(pytestconfig) -> service.ServiceSettings:
             mon_port=None,
             ic_port=None,
             database=database,
+            wait_time=0,
         )
 
     if pytestconfig.option.ydb_host:
@@ -97,6 +98,7 @@ def ydb_service_settings(pytestconfig) -> service.ServiceSettings:
             mon_port=pytestconfig.option.ydb_mon_port,
             ic_port=pytestconfig.option.ydb_ic_port,
             database=database,
+            wait_time=pytestconfig.option.ydb_wait_time,
         )
     return service.get_service_settings()
 
