@@ -1,6 +1,7 @@
 # pylint: disable=redefined-outer-name
 import concurrent.futures
 import contextlib
+import dataclasses
 import os
 import pathlib
 import subprocess
@@ -100,7 +101,8 @@ def ydb_service_settings(pytestconfig) -> service.ServiceSettings:
             database=database,
             wait_time=pytestconfig.option.ydb_wait_time,
         )
-    return service.get_service_settings()
+    settings = service.get_service_settings()
+    return dataclasses.replace(settings, wait_time=pytestconfig.option.ydb_wait_time)
 
 
 @pytest.fixture(scope='session')
