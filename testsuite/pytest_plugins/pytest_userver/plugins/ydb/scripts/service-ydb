@@ -62,11 +62,11 @@ start_ydb() {
                 break
             fi
             
+            sleep 1
+
             if [ "$i" -eq "$YDB_WAIT_TIME" ]; then
                 die "Timed out waiting for /ydb_database.txt in container ${YDB_CONTAINER_NAME}"
             fi
-
-            sleep 1
         done
     fi
 }
