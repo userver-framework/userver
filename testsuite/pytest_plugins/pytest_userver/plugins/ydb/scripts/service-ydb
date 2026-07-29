@@ -61,13 +61,12 @@ start_ydb() {
             if $DOCKER_BINPATH exec ${YDB_CONTAINER_NAME} test -f /ydb_database.txt 2>/dev/null; then
                 break
             fi
-            
             sleep 1
-
-            if [ "$i" -eq "$YDB_WAIT_TIME" ]; then
-                die "Timed out waiting for /ydb_database.txt in container ${YDB_CONTAINER_NAME}"
-            fi
         done
+
+        if ! $DOCKER_BINPATH exec ${YDB_CONTAINER_NAME} test -f /ydb_database.txt 2>/dev/null; then
+            die "Timed out waiting for /ydb_database.txt in container ${YDB_CONTAINER_NAME}"
+        fi
     fi
 }
 
