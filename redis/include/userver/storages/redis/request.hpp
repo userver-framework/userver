@@ -3,6 +3,7 @@
 /// @file
 /// @brief Valkey/Redis futures for storages::redis::Client and storages::redis::Transaction.
 
+#include <iterator>
 #include <memory>
 #include <optional>
 #include <string>
@@ -149,9 +150,9 @@ public:
             return *this;
         }
 
-        reference operator*() { return stream_->Current(); }
+        reference operator*() const { return stream_->Current(); }
 
-        pointer operator->() { return &**this; }
+        pointer operator->() const { return &**this; }
 
         bool operator==(const Iterator& rhs) const { return stream_ == rhs.stream_; }
 

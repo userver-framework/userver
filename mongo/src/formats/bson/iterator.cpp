@@ -1,5 +1,7 @@
 #include <userver/formats/bson/iterator.hpp>
 
+#include <iterator>
+
 #include <formats/bson/value_impl.hpp>
 #include <userver/formats/bson/exception.hpp>
 #include <userver/formats/bson/value.hpp>
@@ -175,6 +177,10 @@ template class Iterator<const Value, IteratorDirection::kForward>;
 template class Iterator<const Value, IteratorDirection::kReverse>;
 template class Iterator<ValueBuilder, IteratorDirection::kForward>;
 template class Iterator<ValueBuilder, IteratorDirection::kReverse>;
+
+static_assert(std::forward_iterator<Iterator<const Value, IteratorDirection::kForward>>);
+static_assert(std::forward_iterator<Iterator<const Value, IteratorDirection::kReverse>>);
+static_assert(std::forward_iterator<Iterator<ValueBuilder, IteratorDirection::kForward>>);
 
 }  // namespace formats::bson
 

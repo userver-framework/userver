@@ -1,5 +1,7 @@
 #include <userver/ydb/response.hpp>
 
+#include <iterator>
+
 #include <ydb-cpp-sdk/client/proto/accessor.h>
 #include <ydb-cpp-sdk/client/result/result.h>
 #include <ydb-cpp-sdk/client/table/table.h>
@@ -221,6 +223,8 @@ std::optional<Cursor> ScanQueryResults::GetNextCursor() {
     }
     return std::nullopt;
 }
+
+static_assert(std::input_iterator<CursorIterator>);
 
 }  // namespace ydb
 

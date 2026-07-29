@@ -5,6 +5,7 @@
 #include <chrono>
 #include <cstdint>
 #include <future>
+#include <iterator>
 #include <mutex>
 #include <thread>
 
@@ -25,6 +26,9 @@ struct RcuTraitsStdMutex : rcu::DefaultRcuMapTraits<Key> {
 };
 
 using StdMutexRcuMap = rcu::RcuMap<std::string, int, RcuTraitsStdMutex<std::string>>;
+
+static_assert(std::input_iterator<StdMutexRcuMap::Iterator>);
+static_assert(std::input_iterator<StdMutexRcuMap::ConstIterator>);
 
 }  // namespace
 

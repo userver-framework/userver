@@ -1,5 +1,7 @@
 #include <userver/utils/trivial_map.hpp>
 
+#include <iterator>
+
 #include <gtest/gtest.h>
 
 USERVER_NAMESPACE_BEGIN
@@ -17,6 +19,8 @@ struct EmptyFunctor {
             .Case("fifty five", 55);
     }
 };
+
+static_assert(std::input_iterator<utils::TrivialBiMap<EmptyFunctor>::Iterator>);
 
 struct NoUniqueAddressCheck {
     int i;
@@ -404,6 +408,31 @@ TEST(TrivialBiMap, ConstexprIteration) {
     }();
 
     EXPECT_EQ(sum, 6);
+}
+
+TEST(TrivialBiMap, IteratorPostfixIncrementAndAssign) {
+    constexpr utils::TrivialBiMap kMap = [](auto selector) { return selector().Case(10, 0).Case(11, 1).Case(12, 2); };
+
+    auto it = kMap.begin();
+    EXPECT_EQ((*it).first, 10);
+    EXPECT_EQ((*it).second, 0);
+
+    auto prev = it++;
+    EXPECT_EQ((*prev).first, 10);
+    EXPECT_EQ((*it).first, 11);
+
+    auto copy = it;
+    EXPECT_EQ(copy, it);
+    ++copy;
+    EXPECT_NE(copy, it);
+    EXPECT_EQ((*copy).first, 12);
+
+    it = copy;
+    EXPECT_EQ(it, copy);
+    EXPECT_EQ((*it).second, 2);
+
+    it++;
+    EXPECT_EQ(it, kMap.end());
 }
 
 TEST(TrivialBiMap, Empty) {

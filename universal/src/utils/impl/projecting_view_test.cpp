@@ -1,10 +1,16 @@
 #include <userver/utils/impl/projecting_view.hpp>
 
+#include <iterator>
 #include <map>
 
 #include <gtest/gtest.h>
 
 USERVER_NAMESPACE_BEGIN
+
+static_assert(std::forward_iterator<
+              utils::impl::ProjectingIterator<std::map<int, char>::const_iterator, utils::impl::First>>);
+static_assert(std::forward_iterator<
+              utils::impl::ProjectingIterator<std::map<int, char>::iterator, utils::impl::Second>>);
 
 TEST(ProjectingView, Keys) {
     const std::map<int, char> cont{
