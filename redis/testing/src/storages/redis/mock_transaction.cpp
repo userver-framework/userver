@@ -249,6 +249,11 @@ RequestGet MockTransaction::Get(std::string key) {
     return AddSubrequest(impl_->Get(std::move(key)));
 }
 
+RequestGetdel MockTransaction::Getdel(std::string key) {
+    UpdateShard(key);
+    return AddSubrequest(impl_->Getdel(std::move(key)));
+}
+
 RequestGetset MockTransaction::Getset(std::string key, std::string value) {
     UpdateShard(key);
     return AddSubrequest(impl_->Getset(std::move(key), std::move(value)));

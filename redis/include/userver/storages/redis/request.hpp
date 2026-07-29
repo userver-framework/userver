@@ -199,6 +199,7 @@ using RequestGeopos = Request<std::vector<std::optional<Point>>>;
 using RequestGeoradius = Request<std::vector<GeoPoint>>;
 using RequestGeosearch = Request<std::vector<GeoPoint>>;
 using RequestGet = Request<std::optional<std::string>>;
+using RequestGetdel = Request<std::optional<std::string>>;
 using RequestGetset = Request<std::optional<std::string>>;
 using RequestHdel = Request<size_t>;
 using RequestHexists = Request<size_t>;

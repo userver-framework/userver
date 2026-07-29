@@ -236,6 +236,11 @@ RequestGet TransactionImpl::Get(std::string key) {
     return AddCmd<RequestGet>("get", false, std::move(key));
 }
 
+RequestGetdel TransactionImpl::Getdel(std::string key) {
+    UpdateShard(key);
+    return AddCmd<RequestGetdel>("getdel", true, std::move(key));
+}
+
 RequestGetset TransactionImpl::Getset(std::string key, std::string value) {
     UpdateShard(key);
     return AddCmd<RequestGetset>("getset", true, std::move(key), std::move(value));
