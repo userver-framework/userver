@@ -4,7 +4,7 @@ import pytest
 
 # /// [YDB service sample - bson reading functional test]
 @pytest.mark.ydb(files=['fill_orders.sql'])
-async def test_bson_reading(service_client):
+async def test_bson_reading(service_client, ydb):
     response = await service_client.post(
         'ydb/bson-reading',
         params={'id': 'id1'},
