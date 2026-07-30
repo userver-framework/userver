@@ -23,6 +23,8 @@ public:
 
     const NYdb::TStatus& GetStatus() const noexcept;
 
+    bool IsConstraintViolation() const noexcept;
+
 private:
     NYdb::TStatus status_;
 };
