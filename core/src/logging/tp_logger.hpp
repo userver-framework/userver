@@ -127,7 +127,7 @@ private:
     engine::ConditionVariable capacity_waiters_cv_;
     engine::Task consuming_task_;
     std::atomic<QueueSize> max_queue_size_{std::numeric_limits<QueueSize>::max()};
-    std::atomic<QueueSize> flush_queue_size_{32};
+    std::atomic<QueueSize> flush_queue_size_{LoggerConfig::kDefaultFlushQueueSize};
     std::atomic<QueueOverflowBehavior> overflow_policy_{QueueOverflowBehavior::kDiscard};
     std::atomic<bool> notification_batching_{true};
     // State changes rarely, no need for an InterferenceShield.

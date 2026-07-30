@@ -606,7 +606,7 @@ UTEST_F(LoggingTestCoro, TpLoggerDeferredWakeup) {
 }
 
 UTEST_F(LoggingTestCoro, TpLoggerDefaultThresholdWakeup) {
-    constexpr std::size_t kThreshold = 32;
+    constexpr std::size_t kThreshold = logging::LoggerConfig::kDefaultFlushQueueSize;
     auto logger = StartAsyncLogger(kThreshold * 4);
 
     // Let the consumer drain and go to sleep before we log anything.
