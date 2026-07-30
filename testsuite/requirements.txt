@@ -13,4 +13,5 @@ websockets >= 16.0, < 17.0
 # pytest 8.4 contains fix required for uservice_oneshot:
 # https://github.com/pytest-dev/pytest/issues/13248
 pytest >= 8.4
+typing-extensions >= 4.4.0
 zstd >= 1.5.5.0
