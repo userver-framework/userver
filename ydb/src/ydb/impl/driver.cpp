@@ -70,6 +70,13 @@ Driver::Driver(std::string dbname, impl::DriverSettings settings)
         driver_config.SetGRpcKeepAlivePermitWithoutCalls(*settings.grpc_keepalive_permit_without_calls);
     }
 
+    if (settings.grpc_compression_algorithm.has_value()) {
+        driver_config.SetGRpcCompressionAlgorithm(*settings.grpc_compression_algorithm);
+    }
+    if (settings.grpc_load_balancing_policy.has_value()) {
+        driver_config.SetGRpcLoadBalancingPolicy(*settings.grpc_load_balancing_policy);
+    }
+
     AppendUserverYdbBuildInfo(driver_config);
 
     driver_ = std::make_unique<NYdb::TDriver>(driver_config);

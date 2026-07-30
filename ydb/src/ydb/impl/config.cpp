@@ -56,6 +56,19 @@ TableSettings ParseTableSettings(const yaml_config::YamlConfig& dbconfig, const 
     return result;
 }
 
+NYdb::EGrpcCompressionAlgorithm ToCompressionAlgorithm(std::string_view alg) {
+    if (alg == "gzip") {
+        return NYdb::EGrpcCompressionAlgorithm::Gzip;
+    } else if (alg == "deflate") {
+        return NYdb::EGrpcCompressionAlgorithm::Deflate;
+    } else if (alg == "none") {
+        return NYdb::EGrpcCompressionAlgorithm::None;
+    } else {
+        throw yaml_config::Exception(fmt::format("Unknown grpc-compression-algorithm: {}", alg));
+    }
+
+}
+
 DriverSettings ParseDriverSettings(
     const yaml_config::YamlConfig& dbconfig,
     const secdist::DatabaseSettings& dbsecdist,
@@ -82,6 +95,11 @@ DriverSettings ParseDriverSettings(
     result.grpc_keepalive_timeout = dbconfig["grpc-keepalive-timeout"].As<std::optional<std::chrono::milliseconds>>();
     result.grpc_keepalive_permit_without_calls =
         dbconfig["grpc-keepalive-permit-without-calls"].As<std::optional<bool>>();
+
+    if (auto alg = dbconfig["grpc-compression-algorithm"].As<std::optional<std::string>>()) {                                                                                                                                       
+        result.grpc_compression_algorithm = ToCompressionAlgorithm(*alg);                                                                                                                                                           
+    }
+    result.grpc_load_balancing_policy = dbconfig["grpc-load-balancing-policy"].As<std::optional<std::string>>();
 
     result.endpoint = MergeWithSecdist(dbsecdist.endpoint, std::move(config_endpoint), dbconfig, "endpoint");
     result.database = MergeWithSecdist(dbsecdist.database, std::move(config_database), dbconfig, "database");
