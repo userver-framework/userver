@@ -10,6 +10,7 @@
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/response.hpp>
+#include <userver/clients/http/cookie_jar.hpp>
 #include <userver/clients/http/response_future.hpp>
 #include <userver/concurrent/queue.hpp>
 #include <userver/crypto/certificate.hpp>
@@ -251,9 +252,9 @@ public:
     Request cookies(const std::unordered_map<std::string, std::string>& cookies) &&;
 
     /// Sets cookie jar
-    Request& cookies(CookieJar&& cookie_jar) &;
+    Request& cookies(const CookieJar& cookie_jar) &;
     /// Sets cookie jar
-    Request cookies(CookieJar&& cookie_jar) &&;
+    Request cookies(const CookieJar& cookie_jar) &&;
 
     /// Follow redirects or not. Default: follow
     Request& follow_redirects(bool follow = true) &;
@@ -451,6 +452,8 @@ public:
 
     /// Returns HTTP body of a request, leaving it empty
     std::string ExtractData();
+
+    CookieJar GetCookieJar();
 
 private:
     std::shared_ptr<RequestState> pimpl_;

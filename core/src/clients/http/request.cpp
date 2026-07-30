@@ -429,32 +429,27 @@ Request& Request::proxy_auth_type(ProxyAuthType value) & {
 Request Request::proxy_auth_type(ProxyAuthType value) && { return std::move(this->proxy_auth_type(value)); }
 
 Request& Request::cookies(const Cookies& cookies) & {
+    pimpl_->EnableCookieEngine(false);
     SetCookies(pimpl_->easy(), cookies);
-    pimpl_->set_cookie_engine(Response::CookiesMap());
     return *this;
 }
 Request Request::cookies(const Cookies& cookies) && { return std::move(this->cookies(cookies)); }
 
 Request& Request::cookies(const std::unordered_map<std::string, std::string>& cookies) & {
+    pimpl_->EnableCookieEngine(false);
     SetCookies(pimpl_->easy(), cookies);
-    pimpl_->set_cookie_engine(Response::CookiesMap());
     return *this;
 }
 Request Request::cookies(const std::unordered_map<std::string, std::string>& cookies) && {
     return std::move(this->cookies(cookies));
 }
 
-Request& Request::cookies(CookieJar&& cookie_jar) & {
-    const auto& cookies_list = cookie_jar.GetCookies(pimpl_->easy().get_effective_url());
-    SetCookies(pimpl_->easy(), 
-        cookies_list | std::views::transform([](const CookieJar::Cookie& s) {
-            return std::pair<const std::string&, const std::string&>(s.Name(), s.Value());
-        }));
-    pimpl_->set_cookie_engine(std::move(cookie_jar));
+Request& Request::cookies(const CookieJar& cookie_jar) & {
+    pimpl_->set_cookie_engine(cookie_jar.cookies_);
     return *this;
 }
 
-Request Request::cookies(CookieJar&& cookie_jar) && {
+Request Request::cookies(const CookieJar& cookie_jar) && {
     return std::move(this->cookies(std::move(cookie_jar)));
 }
 
@@ -605,6 +600,10 @@ const std::string& Request::GetUrl() const& { return pimpl_->easy().get_original
 const std::string& Request::GetData() const& { return pimpl_->easy().get_post_data(); }
 
 std::string Request::ExtractData() { return pimpl_->easy().extract_post_data(); }
+
+CookieJar Request::GetCookieJar() {
+    return pimpl_->easy().get_cookielist();
+}
 
 void Request::SetWaitToken(utils::impl::InternalTag, utils::impl::WaitTokenStorageLock&& wait_token) {
     pimpl_->SetWaitToken(std::move(wait_token));

@@ -109,7 +109,7 @@ public:
         utils::zstring_view password
     );
     /// sets cookie engine
-    void set_cookie_engine(Response::CookiesEngine&& engine);
+    void set_cookie_engine(const std::vector<std::string>& cookies);
 
     /// get timeout value in milliseconds
     long timeout() const { return original_timeout_.count(); }
@@ -160,6 +160,9 @@ public:
 
     /// true if proxy was set using proxy method
     bool IsProxySet() const;
+
+    void EnableCookieEngine(bool enable);
+    bool IsCookieEngineEnabled(void) const;
 
     MiddlewareRequest GetEditableRequestInstance();
 
@@ -230,9 +233,8 @@ private:
     crypto::Certificate cert_;
     crypto::Certificate ca_;
 
-    /// cookies engine
-    std::shared_ptr<Response::CookiesEngine> cookies_engine_;
     /// response
+    bool cookie_engine_enabled_;
     std::shared_ptr<Response> response_;
 
     /// the timeout value provided by user (or the default)

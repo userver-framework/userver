@@ -5,7 +5,6 @@
 
 #include <string>
 
-#include <userver/clients/http/cookie_jar.hpp>
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/local_stats.hpp>
 #include <userver/http/header_map.hpp>
@@ -26,7 +25,6 @@ using Headers = USERVER_NAMESPACE::http::headers::HeaderMap;
 class Response final {
 public:
     using CookiesMap = server::http::Cookie::CookiesMap;
-    using CookiesEngine = std::variant<CookiesMap, CookieJar>;
 
     Response() = default;
 
@@ -43,36 +41,8 @@ public:
     /// return reference to headers
     const Headers& headers() const { return headers_; }
     Headers& headers() { return headers_; }
-
-    /// @brief Gets received cookies
-    /// @return Reference to map of cookies
-    /// @warning The cookie map is accessible by default, if cookie jar was enabled exception will be thrown
-    const CookiesMap& cookies() const;
-
-    /// @brief Gets received cookies
-    /// @return Reference to map of cookies
-    /// @warning The cookie map is accessible by default, if cookie jar was enabled exception will be thrown
-    CookiesMap& cookies();
-
-    /// @brief Gets cookie jar
-    /// @return Reference to cookie jar
-    /// @warning It works only when cookie jar was enabled, otherwise exception will be thrown
-    const CookieJar& cookie_jar() const;
-
-    /// @brief Gets cookie jar
-    /// @return Reference to cookie jar
-    /// @warning It works only when cookie jar was enabled, otherwise exception will be thrown
-    CookieJar& cookie_jar();
-
-    /// @brief  Checks, whether response holds specified storage
-    /// @return Check result
-    template <typename Value>
-    bool is_cookie_storage() const {
-        return cookies_engine_ && std::get_if<Value>(cookies_engine_.get()) != nullptr;
-    }
-
-    /// @brief Sets cookie engine
-    void set_cookie_engine(const std::shared_ptr<CookiesEngine>& cookies_engine);
+    const CookiesMap& cookies() const { return cookies_; }
+    CookiesMap& cookies() { return cookies_; }
 
     /// status_code
     Status status_code() const;
@@ -101,7 +71,7 @@ public:
 
 private:
     Headers headers_;
-    std::shared_ptr<CookiesEngine> cookies_engine_;
+    CookiesMap cookies_;
     std::string response_;
     Status status_code_{Status::kInvalid};
     LocalStats stats_;

@@ -279,8 +279,8 @@ RequestState::RequestState(
     // Even if proxy is an empty string we should set it, because empty proxy
     // for CURL disables the use of *_proxy env variables.
     easy().set_proxy("");
-
-    cookies_engine_ = std::make_shared<Response::CookiesEngine>();
+    // Disabling cookie engine by default
+    EnableCookieEngine(false);
 
     RequestCompleted();
 }
@@ -397,6 +397,15 @@ void RequestState::proxy(utils::zstring_view value) {
 
 bool RequestState::IsProxySet() const { return proxy_url_.has_value(); }
 
+void RequestState::EnableCookieEngine(bool enable) {
+    cookie_engine_enabled_ = enable;
+    easy().set_cookie_file(enable ? "" : nullptr);
+}
+
+bool RequestState::IsCookieEngineEnabled(void) const {
+    return cookie_engine_enabled_;
+}
+
 void RequestState::proxy_auth_type(curl::easy::proxyauth_t value) { easy().set_proxy_auth(value); }
 
 void RequestState::http_auth_type(
@@ -410,8 +419,11 @@ void RequestState::http_auth_type(
     easy().set_password(password.c_str());
 }
 
-void RequestState::set_cookie_engine(Response::CookiesEngine&& engine) {
-    *cookies_engine_ = std::move(engine);
+void RequestState::set_cookie_engine(const std::vector<std::string>& cookies) {
+    EnableCookieEngine(true);
+    for (const auto& item : cookies) {
+        easy().set_cookie_list(item);
+    }
 }
 
 void RequestState::Cancel() {
@@ -687,22 +699,16 @@ void RequestState::OnRetryTimer(std::error_code err) {
 }
 
 void RequestState::ParseSingleCookie(const char* ptr, size_t size) {
+    if (IsCookieEngineEnabled()) {
+        LOG_WARNING() << "Cookies engine was enabled. Ignoring parsing cookie '" << std::string_view(ptr, size) << "'";
+        return;
+    }
     if (auto cookie = server::http::Cookie::FromString(std::string_view(ptr, size))) {
-        if (response_->is_cookie_storage<CookieJar>()) {
-            // CookieJar storage was enabled
-            // TODO: optimize it, quite dirty, some cache needed for url parsing
-            response_->cookie_jar().AddCookie(easy().get_effective_url(), std::move(*cookie));
-            return;
-        } 
-        if (response_->is_cookie_storage<Response::CookiesMap>()) {
-            //  For API compatibiliy we preserve old API
-            [[maybe_unused]] auto [it, ok] = response_->cookies().emplace(cookie->Name(), std::move(*cookie));
-            if (!ok) {
-                LOG_WARNING() << "Failed to add cookie '" + it->first + "', already added";
-            }
-            return;
+        //  For API compatibiliy we preserve old API
+        [[maybe_unused]] auto [it, ok] = response_->cookies().emplace(cookie->Name(), std::move(*cookie));
+        if (!ok) {
+            LOG_WARNING() << "Failed to add cookie '" + it->first + "', already added";
         }
-        LOG_WARNING() << "Cookies engine was disabled. Ignoring cookie '" + cookie->Name() + "'";
     }
 }
 
@@ -1125,7 +1131,6 @@ void RequestState::ResetDataForNewRequest() {
     SetBaggageHeader(easy());
 
     response_ = std::make_shared<Response>();
-    response_->set_cookie_engine(cookies_engine_);
     response_->SetStatusCode(Status::kInvalid);
 
     is_cancelled_ = false;

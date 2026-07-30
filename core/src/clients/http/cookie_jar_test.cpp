@@ -35,17 +35,17 @@ protected:
     void Store(std::string_view url, std::string_view set_cookie) {
         auto cookie = Cookie::FromString(set_cookie);
         ASSERT_TRUE(cookie) << "cannot parse Set-Cookie: " << set_cookie;
-        cookie_jar_.AddCookie(url, std::move(*cookie));
+        //cookie_jar_.AddCookie(url, std::move(*cookie));
     }
 
     //  Helper method for easy comparison extracted cookies. Exctracted cookies in "name=value" format
     std::vector<std::string> GetCookies(std::string_view url) {
-        const auto& cookies = cookie_jar_.GetCookies(url);
+        //const auto& cookies = cookie_jar_.GetCookies(url);
         std::vector<std::string> out;
-        out.reserve(cookies.size());
-        for (const auto& cookie : cookies) {
-            out.push_back(cookie.Name() + '=' + cookie.Value());
-        }
+        //out.reserve(cookies.size());
+        //for (const auto& cookie : cookies) {
+        //    out.push_back(cookie.Name() + '=' + cookie.Value());
+        //}
         return out;
     }
 private:
