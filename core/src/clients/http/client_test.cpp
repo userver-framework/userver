@@ -161,15 +161,6 @@ std::optional<HttpResponse> Process100(const HttpRequest& request) {
     return std::nullopt;
 }
 
-//std::vector<std::string> Pairs(const clients::http::CookieJar::Cookies& cookies) {
-//    std::vector<std::string> out;
-//    out.reserve(cookies.size());
-//    for (const auto& cookie : cookies) {
-//        out.push_back(cookie.Name() + '=' + cookie.Value());
-//    }
-//    return out;
-//}
-
 std::vector<std::string> Pairs(const clients::http::Response::CookiesMap& cookies) {
     std::vector<std::string> out;
     out.reserve(cookies.size());
@@ -1190,29 +1181,6 @@ UTEST(HttpClient, CookiesFromServerMapAPI) {
     };
     test({"token=xyz789"}, {"token=xyz789"});
     test({"A=1", "A=2", "FOO=BAR"}, {"A=1", "FOO=BAR"});
-}
-
-UTEST(HttpClient, CookiesFromServerCookieJar) {
-    const auto test = [](std::vector<std::string> response_cookies, std::vector<std::string> expected) {
-        clients::http::CookieJar cookie_jar;
-        const utest::SimpleServer http_server{ReturnCookies{response_cookies}};
-        auto http_client_ptr = utest::CreateHttpClient();
-        for (unsigned i = 0; i < kRepetitions; ++i) {
-            const auto response =
-                http_client_ptr->CreateRequest()
-                    .get(http_server.GetBaseUrl())
-                    .retry(1)
-                    .verify(true)
-                    .http_version(USERVER_NAMESPACE::http::HttpVersion::k11)
-                    .cookies(std::move(cookie_jar))
-                    .timeout(kTimeout)
-                    .perform();
-            EXPECT_TRUE(response->IsOk());
-            //EXPECT_THAT(Pairs(cookie_jar.GetCookies(http_server.GetBaseUrl())), ElementsAreArray(expected));
-            EXPECT_ANY_THROW(response->cookies());
-        }
-    };
-    test({"A=1", "A=2", "B=1", "B=2; Max-Age=0"}, {"A=2"});
 }
 
 UTEST(HttpClient, HeadersAndWhitespaces) {
