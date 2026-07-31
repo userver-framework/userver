@@ -5353,6 +5353,7 @@
   "scripts/uctl/uctl.py":"taxi/uservices/userver/scripts/uctl/uctl.py",
   "scripts/userver-create-service":"taxi/uservices/userver/scripts/userver-create-service",
   "scripts/userver-create-service.py":"taxi/uservices/userver/scripts/userver-create-service.py",
+  "scripts/ydb/install-ydb-cpp-sdk-debs.sh":"taxi/uservices/userver/scripts/ydb/install-ydb-cpp-sdk-debs.sh",
   "scylla/CMakeLists.txt":"taxi/uservices/userver/scylla/CMakeLists.txt",
   "scylla/README.md":"taxi/uservices/userver/scylla/README.md",
   "scylla/dynamic_configs/SCYLLA_DEFAULT_COMMAND_CONTROL.yaml":"taxi/uservices/userver/scylla/dynamic_configs/SCYLLA_DEFAULT_COMMAND_CONTROL.yaml",

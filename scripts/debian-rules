@@ -5,14 +5,14 @@ export DEB_BUILD_MAINT_OPTIONS = hardening=+all optimize=-lto
 BUILD_DIR_RELEASE = $(CURDIR)/debian/obj-$(DEB_HOST_GNU_TYPE)-release
 BUILD_DIR_DEBUG = $(CURDIR)/debian/obj-$(DEB_HOST_GNU_TYPE)-debug
 
-# YDB has no official .deb package, so skip it
 # TODO: pg patch
 # TODO: clickhouse
 CMAKE_OPTS = \
 	     -DUSERVER_INSTALL=ON \
 	     -DUSERVER_BUILD_SAMPLES=ON \
 	     -DUSERVER_BUILD_ALL_COMPONENTS=1 \
-	     -DUSERVER_FEATURE_YDB=OFF \
+	     -DUSERVER_DOWNLOAD_PACKAGE_YDBCPPSDK=OFF \
+	     -DUSERVER_FEATURE_YDB=ON \
 	     -DUSERVER_FEATURE_CLICKHOUSE=OFF \
 	     -DUSERVER_FEATURE_PATCH_LIBPQ=OFF \
 	     -DUSERVER_FEATURE_UTEST=ON

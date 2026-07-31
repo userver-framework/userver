@@ -58,6 +58,7 @@ jobs:
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
+                        -DUSERVER_DOWNLOAD_PACKAGE_YDBCPPSDK=OFF
                     os: ubuntu-24.04
                     info: gcc-13 + release
                     id: ubuntu24_gcc13_release
@@ -128,6 +129,10 @@ jobs:
                 echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" \
                       | sudo tee -a /etc/apt/sources.list.d/mongodb-org-7.0.list
                 # Mongo is not officially supported on Ubuntu 24.04, so install it from jammy
+
+          - name: Install YDB C++ SDK
+            run: |
+                sudo ./scripts/ydb/install-ydb-cpp-sdk-debs.sh
 
           - name: Install common deps
             run: |
