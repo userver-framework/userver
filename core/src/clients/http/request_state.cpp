@@ -694,12 +694,12 @@ void RequestState::OnRetryTimer(std::error_code err) {
     }
 }
 
-void RequestState::ParseSingleCookie(const char* ptr, size_t size) {
+void RequestState::ParseSingleCookie(std::string_view cookie) {
     if (IsCookieEngineEnabled()) {
-        LOG_WARNING() << "Cookies engine was enabled. Ignoring parsing cookie '" << std::string_view(ptr, size) << "'";
+        LOG_WARNING() << "Cookies engine was enabled. Ignoring parsing cookie '" << cookie << "'";
         return;
     }
-    if (auto parsed_cookie = server::http::Cookie::FromString(std::string_view(ptr, size))) {
+    if (auto parsed_cookie = server::http::Cookie::FromString(cookie)) {
         //  For API compatibiliy we preserve old API
         [[maybe_unused]] auto
             [it, ok] = response_->cookies().try_emplace(parsed_cookie->Name(), std::move(*parsed_cookie));
