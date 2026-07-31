@@ -390,7 +390,7 @@ UTEST(SingleConsumerEvent, WaitAndDestroySuccess) {
 }
 
 UTEST(SingleConsumerEvent, WaitAndDestroyCancellation) {
-    engine::current_task::GetCancellationToken().RequestCancel();
+    engine::current_task::RequestCancel();
 
     auto sender = WaitAndDestroySample();
 

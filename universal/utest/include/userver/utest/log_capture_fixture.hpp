@@ -87,6 +87,10 @@ LogRecord GetSingleLog(
     const utils::impl::SourceLocation& source_location = utils::impl::SourceLocation::Current()
 );
 
+/// @returns log records parsed from TSKV file contents.
+/// Each line must be a complete TSKV record ending with `\n`.
+std::vector<LogRecord> ParseTskvLogRecords(std::string_view tskv_log_contents);
+
 /// @ingroup userver_utest
 ///
 /// @brief A mocked logger that stores the log records in memory.

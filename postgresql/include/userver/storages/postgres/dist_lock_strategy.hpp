@@ -28,14 +28,19 @@ public:
 
     void Acquire(std::chrono::milliseconds lock_ttl, const std::string& locker_id) override;
 
+    void Prolong(std::chrono::milliseconds lock_ttl, const std::string& locker_id) override;
+
     void Release(const std::string& locker_id) override;
 
     void UpdateCommandControl(CommandControl cc);
 
 private:
+    void RunLockQuery(const Query& query, std::chrono::milliseconds lock_ttl, std::string_view locker_id);
+
     ClusterPtr cluster_;
     rcu::Variable<CommandControl> cc_;
     const Query acquire_query_;
+    const Query prolong_query_;
     const Query release_query_;
     const std::string lock_name_;
     const std::string owner_prefix_;

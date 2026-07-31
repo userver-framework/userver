@@ -17,8 +17,10 @@ void DumpMetric(USERVER_NAMESPACE::utils::statistics::Writer& writer, const Inst
     }
     if (auto trx = writer["transactions"]) {
         trx["total"] = stats.transaction.total;
-        trx["committed"] = stats.transaction.commit_total;
-        trx["rolled-back"] = stats.transaction.rollback_total;
+
+        trx["committed"]["v2"] = stats.transaction.commit_total;
+        trx["rolled-back"]["v2"] = stats.transaction.rollback_total;
+
         trx["no-tran"] = stats.transaction.out_of_trx_total;
 
         auto timing = trx["timings"];
@@ -33,22 +35,31 @@ void DumpMetric(USERVER_NAMESPACE::utils::statistics::Writer& writer, const Inst
     if (auto query = writer["queries"]) {
         query["parsed"] = stats.transaction.parse_total;
         query["portals-bound"] = stats.transaction.portal_bind_total;
-        query["executed"] = stats.transaction.execute_total;
+
+        query["executed"]["v2"] = stats.transaction.execute_total;
+
         query["replies"] = stats.transaction.reply_total;
     }
 
     if (auto errors = writer["errors"]) {
         constexpr std::string_view kPostgresqlError = "postgresql_error";
-        errors.ValueWithLabels(stats.transaction.error_execute_total, {kPostgresqlError, "query-exec"});
-        errors.ValueWithLabels(stats.transaction.execute_timeout, {kPostgresqlError, "query-timeout"});
-        errors.ValueWithLabels(
+
+        errors["v2"].ValueWithLabels(stats.transaction.error_execute_total, {kPostgresqlError, "query-exec"});
+
+        errors["v2"].ValueWithLabels(stats.transaction.execute_timeout, {kPostgresqlError, "query-timeout"});
+
+        errors["v2"].ValueWithLabels(
             stats.transaction.duplicate_prepared_statements,
             {kPostgresqlError, "duplicate-prepared-statement"}
         );
-        errors.ValueWithLabels(stats.connection.error_total, {kPostgresqlError, "connection"});
-        errors.ValueWithLabels(stats.pool_exhaust_errors, {kPostgresqlError, "pool"});
-        errors.ValueWithLabels(stats.queue_size_errors, {kPostgresqlError, "queue"});
-        errors.ValueWithLabels(stats.connection.error_timeout, {kPostgresqlError, "connection-timeout"});
+
+        errors["v2"].ValueWithLabels(stats.connection.error_total, {kPostgresqlError, "connection"});
+
+        errors["v2"].ValueWithLabels(stats.pool_exhaust_errors, {kPostgresqlError, "pool"});
+
+        errors["v2"].ValueWithLabels(stats.queue_size_errors, {kPostgresqlError, "queue"});
+
+        errors["v2"].ValueWithLabels(stats.connection.error_timeout, {kPostgresqlError, "connection-timeout"});
     }
     writer["prepared-per-connection"] = stats.connection.prepared_statements;
     writer["roundtrip-time"] = stats.topology.roundtrip_time;

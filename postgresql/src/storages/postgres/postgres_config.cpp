@@ -101,9 +101,6 @@ ConnectionSettings ParseConnectionSettings(const ConfigType& config) {
             ? ConnectionSettings::kDiscardAll
             : ConnectionSettings::kDiscardNone;
     settings.deadline_propagation_enabled = config["deadline-propagation-enabled"].template As<bool>(true);
-    settings
-        .omit_statement_timeout_for_autocommit = config["omit-statement-timeout-for-autocommit"].template As<bool>(false
-    );
     settings.application_name =
         config["application_name"].template As<std::string>(USERVER_NAMESPACE::utils::GetUserverIdentifier());
 
@@ -155,12 +152,6 @@ ConnectionSettingsDynamic Parse(const formats::json::Value& config, formats::par
     }
     if (const auto dp_enabled = config["deadline-propagation-enabled"].As<std::optional<bool>>(); dp_enabled) {
         settings.deadline_propagation_enabled = *dp_enabled;
-    }
-    if (const auto omit_statement_timeout_for_autocommit =
-            config["omit-statement-timeout-for-autocommit"].As<std::optional<bool>>();
-        omit_statement_timeout_for_autocommit)
-    {
-        settings.omit_statement_timeout_for_autocommit = *omit_statement_timeout_for_autocommit;
     }
 
     return settings;

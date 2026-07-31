@@ -68,7 +68,7 @@ private:
 auto MakeLogExtraFromConnectionStats(const InstanceStatistics& stats) {
     return logging::LogExtra{
         {{"pg_conn_active", stats.connection.active},
-         {"pg_conn_open", stats.connection.open_total},
+         {"pg_conn_open", stats.connection.open_total.Load().value},
          {"pg_conn_max", stats.connection.maximum}}
     };
 }
@@ -270,17 +270,17 @@ void ConnectionPool::AccountConnectionStats(Connection::Statistics conn_stats) {
 
     stats_.connection.prepared_statements.GetCurrentCounter().Account(conn_stats.prepared_statements_current);
 
-    stats_.transaction.total += conn_stats.trx_total;
-    stats_.transaction.commit_total += conn_stats.commit_total;
-    stats_.transaction.rollback_total += conn_stats.rollback_total;
-    stats_.transaction.out_of_trx_total += conn_stats.out_of_trx;
-    stats_.transaction.parse_total += conn_stats.parse_total;
-    stats_.transaction.execute_total += conn_stats.execute_total;
-    stats_.transaction.reply_total += conn_stats.reply_total;
-    stats_.transaction.portal_bind_total += conn_stats.portal_bind_total;
-    stats_.transaction.error_execute_total += conn_stats.error_execute_total;
-    stats_.transaction.execute_timeout += conn_stats.execute_timeout;
-    stats_.transaction.duplicate_prepared_statements += conn_stats.duplicate_prepared_statements;
+    stats_.transaction.total += Rate{conn_stats.trx_total};
+    stats_.transaction.commit_total += Rate{conn_stats.commit_total};
+    stats_.transaction.rollback_total += Rate{conn_stats.rollback_total};
+    stats_.transaction.out_of_trx_total += Rate{conn_stats.out_of_trx};
+    stats_.transaction.parse_total += Rate{conn_stats.parse_total};
+    stats_.transaction.execute_total += Rate{conn_stats.execute_total};
+    stats_.transaction.reply_total += Rate{conn_stats.reply_total};
+    stats_.transaction.portal_bind_total += Rate{conn_stats.portal_bind_total};
+    stats_.transaction.error_execute_total += Rate{conn_stats.error_execute_total};
+    stats_.transaction.execute_timeout += Rate{conn_stats.execute_timeout};
+    stats_.transaction.duplicate_prepared_statements += Rate{conn_stats.duplicate_prepared_statements};
 
     stats_.transaction.total_percentile.GetCurrentCounter()
         .Account(std::chrono::duration_cast<
@@ -452,7 +452,7 @@ bool ConnectionPool::DoConnect(engine::SemaphoreLock size_lock, ConnectionSettin
         LOG_WARNING() << "Pool has too many establishing connections";
         return false;
     }
-    const uint32_t conn_id = ++stats_.connection.open_total;
+    const uint32_t conn_id = static_cast<uint32_t>((++stats_.connection.open_total).value);
     std::unique_ptr<Connection> connection;
     const Stopwatch st{stats_.connection_percentile};
     try {

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include <iconv.h>
@@ -21,7 +22,7 @@ public:
     Converter& operator=(const Converter&) = delete;
     Converter& operator=(Converter&& other) = delete;
 
-    bool Convert(const char* data, size_t size, std::vector<char>& out) const;
+    bool Convert(std::string_view in, std::vector<char>& out) const;
 
 private:
     class Impl {

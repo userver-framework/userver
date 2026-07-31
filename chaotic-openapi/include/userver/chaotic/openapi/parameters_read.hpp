@@ -37,7 +37,7 @@ struct To {};
  */
 
 template <In kIn>
-auto GetParameter(std::string_view name, const server::http::HttpRequest& source) {
+auto GetParameter(std::string_view name, const USERVER_NAMESPACE::server::http::HttpRequest& source) {
     if constexpr (kIn == In::kPath) {
         return source.GetPathArg(name);
     } else if constexpr (kIn == In::kCookie) {
@@ -57,7 +57,7 @@ auto GetParameter(std::string_view name, const server::http::HttpRequest& source
 /// NOTE: for headers and cookies, an explicitly-provided empty value ("") is
 /// indistinguishable from an absent one and is treated as absent.
 template <In kIn>
-bool IsParameterPresent(std::string_view name, const server::http::HttpRequest& source) {
+bool IsParameterPresent(std::string_view name, const USERVER_NAMESPACE::server::http::HttpRequest& source) {
     if constexpr (kIn == In::kPath) {
         return true;  // routing guarantees path parameters are always present
     } else if constexpr (kIn == In::kQuery) {
@@ -137,12 +137,12 @@ struct ParameterParser<ArrayParameterBase<In::kQueryExplode, Delimiter, RawType,
     }
 };
 
-/// Reads a required parameter. Throws server::handlers::ClientError if the
+/// Reads a required parameter. Throws USERVER_NAMESPACE::server::handlers::ClientError if the
 /// parameter is absent from the request.
 template <typename Parameter>
-typename Parameter::Base::UserType ReadParameter(const server::http::HttpRequest& source) {
+typename Parameter::Base::UserType ReadParameter(const USERVER_NAMESPACE::server::http::HttpRequest& source) {
     if (!openapi::IsParameterPresent<Parameter::kIn>(Parameter::kName, source)) {
-        throw server::handlers::ClientError(server::handlers::ExternalBody{
+        throw USERVER_NAMESPACE::server::handlers::ClientError(USERVER_NAMESPACE::server::handlers::ExternalBody{
             fmt::format("Required parameter '{}' is missing", Parameter::kName)
         });
     }
@@ -154,7 +154,9 @@ typename Parameter::Base::UserType ReadParameter(const server::http::HttpRequest
 /// absent; returns the parsed value (even if the raw string is empty) if
 /// present.
 template <typename Parameter>
-std::optional<typename Parameter::Base::UserType> ReadParameterOptional(const server::http::HttpRequest& source) {
+std::optional<typename Parameter::Base::UserType> ReadParameterOptional(
+    const USERVER_NAMESPACE::server::http::HttpRequest& source
+) {
     if (!openapi::IsParameterPresent<Parameter::kIn>(Parameter::kName, source)) {
         return std::nullopt;
     }

@@ -4,6 +4,8 @@
 /// @brief Utilities for converting protobuf messages to/from JSON `ValueBuilder`/`Value` according to
 ///        [ProtoJSON](https://protobuf.dev/programming-guides/json) format.
 
+#include <cstddef>
+#include <string>
 #include <type_traits>
 
 #include <google/protobuf/message.h>
@@ -80,6 +82,47 @@ requires(std::is_base_of_v<::google::protobuf::Message, T> || !std::is_same_v<::
     protobuf::json::JsonToMessage(json, message, options);
     return message;
 }
+
+/// @brief Serializes protobuf @a message to a JSON string.
+///
+/// Honors @ref PrintOptions in exactly the same way as @ref MessageToJson / @ref MessageToJsonBuilder do (including
+/// `nonportable_raw_any`, which controls whether `google.protobuf.Any` is expanded or emitted raw). In particular,
+/// `[debug_redact = true]` fields are **not** redacted here either, same as in @ref MessageToJson /
+/// @ref MessageToJsonBuilder.
+///
+/// @param message The protobuf message to convert.
+/// @param options Same conversion options as for @ref MessageToJson / @ref MessageToJsonBuilder.
+/// @returns ProtoJSON representation of @a message.
+/// @throws PrintError if conversion has failed
+std::string MessageToJsonString(const ::google::protobuf::Message& message, const PrintOptions& options);
+
+/// @brief Serializes protobuf @a message to a JSON string for debugging/logging, stopping early once @a limit bytes
+/// have been produced.
+///
+/// Unlike @ref MessageToJson / @ref MessageToJsonBuilder / @ref MessageToJsonString, this is a **debug** serializer:
+/// - Field names are always the proto field names (`preserve_proto_field_names`), not `json_name`, to match the
+///   `.proto` definition.
+/// - Fields marked with the `[debug_redact = true]` option are hidden: their value is replaced with a `"[REDACTED]"`
+///   marker.
+/// - `google.protobuf.Any` is expanded (like @ref MessageToJsonString with default options), but falls back to the
+///   raw representation instead of failing when the payload type can't be resolved in the descriptor pool or parsed.
+/// - Serialization stops early once `limit` bytes have been produced instead of serializing the whole message and
+///   only then truncating, which saves CPU on large messages. The already-open JSON containers are closed, so the
+///   truncated part before the marker stays a well-formed JSON document.
+///
+/// @param message The protobuf message to convert.
+/// @param limit Maximum size of the resulting string. The output may exceed it by at most one scalar value, since
+/// the traversal is interrupted at container-element granularity. This function does not append any truncation
+/// marker itself; callers that need one (e.g. for logging) should detect truncation by checking whether the result
+/// size exceeds `limit`.
+/// @returns JSON representation of @a message, truncated to (approximately) @a limit bytes if necessary.
+/// @throws PrintError if conversion has failed
+///
+/// @warning This is a debug representation of protobuf that is unstable and should only be used for diagnostics.
+/// The order of keys in maps is unstable; the format itself can change even within a single run.
+/// You CANNOT parse back from this (possibly truncated) representation.
+/// You CANNOT use it for equality match with reference values in gtest.
+std::string MessageToDebugString(const ::google::protobuf::Message& message, std::size_t limit);
 
 }  // namespace protobuf::json
 

@@ -1,5 +1,7 @@
 #include <userver/formats/yaml/iterator.hpp>
 
+#include <iterator>
+
 #include <yaml-cpp/yaml.h>
 
 #include <userver/utils/assert.hpp>
@@ -161,6 +163,9 @@ void Iterator<IterTraits>::UpdateValue() const {
 // Explicit instantiation
 template class Iterator<Value::IterTraits>;
 template class Iterator<ValueBuilder::IterTraits>;
+
+static_assert(std::forward_iterator<Iterator<Value::IterTraits>>);
+static_assert(std::forward_iterator<Iterator<ValueBuilder::IterTraits>>);
 
 }  // namespace formats::yaml
 

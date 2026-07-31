@@ -239,3 +239,53 @@ def test_multiple_content_type_body():
     assert len(op.request_bodies) == 2
     assert op.request_bodies[0].content_type == 'application/json'
     assert op.request_bodies[1].content_type == 'application/octet-stream'
+
+
+def test_response_headers_translated():
+    schema = {
+        'openapi': '3.0.0',
+        'info': {'title': '', 'version': '1.0'},
+        'paths': {
+            '/testme': {
+                'get': {
+                    'responses': {
+                        200: {
+                            'description': 'OK',
+                            'headers': {
+                                'X-String': {
+                                    'description': 'a required string header',
+                                    'required': True,
+                                    'schema': {'type': 'string'},
+                                },
+                                'X-Count': {
+                                    'description': 'an optional integer header',
+                                    'schema': {'type': 'integer'},
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    }
+    spec = _translate(schema)
+    op = spec.operations[0]
+    assert len(op.responses) == 1
+    response = op.responses[0]
+    assert response.status == 200
+
+    assert len(response.headers) == 2
+
+    x_string = response.headers[0]
+    assert x_string.raw_name == 'X-String'
+    assert x_string.cpp_name == 'X_String'
+    assert x_string.required is True
+    assert not x_string.cpp_type.nullable
+    assert not x_string.is_array()
+
+    x_count = response.headers[1]
+    assert x_count.raw_name == 'X-Count'
+    assert x_count.cpp_name == 'X_Count'
+    assert x_count.required is False
+    assert x_count.cpp_type.nullable
+    assert not x_count.is_array()

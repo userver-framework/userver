@@ -27,9 +27,15 @@ public:
         const std::optional<QueriesUserStatus>& arg3
     ) const override;
 
-    std::vector<DeleteUserRow> DeleteUser(HostType host_type, const std::optional<std::int64_t>& arg1) const override;
+    std::vector<DeleteUserRow> DeleteUser(
+        HostType host_type,
+        const std::optional<std::int64_t>& arg1
+    ) const override;
 
-    void DeleteUserSimple(HostType host_type, const std::optional<std::int64_t>& arg1) const override;
+    void DeleteUserSimple(
+        HostType host_type,
+        const std::optional<std::int64_t>& arg1
+    ) const override;
 
     std::vector<GetActiveUsersRow> GetActiveUsers(HostType host_type) const override;
 
@@ -40,7 +46,10 @@ public:
         const std::optional<std::int64_t>& arg1
     ) const override;
 
-    std::vector<GetUserByIdRow> GetUserById(HostType host_type, const std::optional<std::int64_t>& arg1) const override;
+    std::vector<GetUserByIdRow> GetUserById(
+        HostType host_type,
+        const std::optional<std::int64_t>& arg1
+    ) const override;
 
     std::vector<GetUserProfileCompositeRow> GetUserProfileComposite(
         HostType host_type,

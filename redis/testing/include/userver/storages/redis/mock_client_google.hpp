@@ -71,6 +71,8 @@ public:
 
     MOCK_METHOD(RequestGet, Get, (std::string key, const CommandControl& command_control), (override));
 
+    MOCK_METHOD(RequestGetdel, Getdel, (std::string key, const CommandControl& command_control), (override));
+
     MOCK_METHOD(
         RequestGetset,
         Getset,

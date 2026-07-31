@@ -164,6 +164,8 @@ public:
     /// @brief Waits either for the completion of any of the awaitables stored in the context
     /// or for the cancellation of the caller.
     ///
+    /// The completed awaitable is dropped out of the context.
+    ///
     /// @returns the index of the completed awaitable, or a @ref WaitAnyError if there are no
     /// completed awaitables (possible if current task was cancelled or the context is empty).
     utils::expected<std::uint64_t, WaitAnyError> Wait();
@@ -171,32 +173,29 @@ public:
     /// @brief Waits for the completion of any of the awaitables stored in the context
     /// or cancellation of the caller or deadline expiration.
     ///
+    /// The completed awaitable is dropped from the context.
+    ///
     /// @returns the index of the completed awaitable, or a @ref WaitAnyError if there are no
     /// completed awaitables (possible if current task was cancelled, the deadline was reached,
     /// or the context is empty).
     utils::expected<std::uint64_t, WaitAnyError> WaitUntil(Deadline deadline);
 
-    /// @brief Waits for the completion of any of the awaitables stored in the context
-    /// or cancellation of the caller or expiration of the given duration.
-    ///
-    /// @returns the index of the completed awaitable, or a @ref WaitAnyError if there are no
-    /// completed awaitables (possible if current task was cancelled, the given duration has passed,
-    /// or the context is empty).
+    /// @overload
     template <typename Rep, typename Period>
     utils::expected<std::uint64_t, WaitAnyError> WaitFor(const std::chrono::duration<Rep, Period>& duration) {
         return WaitUntil(Deadline::FromDuration(duration));
     }
 
-    /// @overload utils::expected<std::uint64_t, WaitAnyError> Wait()
+    /// @overload
     template <typename Clock, typename Duration>
     utils::expected<std::uint64_t, WaitAnyError> WaitUntil(const std::chrono::time_point<Clock, Duration>& until) {
         return WaitUntil(Deadline::FromTimePoint(until));
     }
 
-    /// @brief Returns the number of awaitables actually stored in the context.
+    /// @brief Returns the number of awaitables stored in the context.
     ///
-    /// It consists of actively awaited and pending subscription awaitables.
-    /// Already notified awaitables are dropped out.
+    /// These are awaitables which have been `Append`ed, but not yet retrieved by `Wait` or `WaitUntil`.
+    /// The awaitables that have already been reported using `Wait*` are dropped out.
     std::size_t GetSize() const noexcept;
 
     /// @brief Returns the next id that will be assigned by the next @ref Append call.

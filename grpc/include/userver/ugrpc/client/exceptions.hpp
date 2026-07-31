@@ -34,8 +34,10 @@ public:
     RpcError(std::string_view call_name, std::string_view additional_info);
 };
 
-/// @brief RPC failed without a status. This means that either the call got
-/// cancelled using `TryCancel` or the channel is broken.
+/// @brief RPC failed without a gRPC status because it was interrupted at the transport level
+/// (cancelled via `TryCancel`, or the connection was lost/reset). For a unary call it is thrown
+/// only when no concrete gRPC status is available; when a status is available it is instead
+/// surfaced as the corresponding @ref ugrpc::client::ErrorWithStatus. Retryable.
 /// Note: Deadline expiration throws  @ref ugrpc::client::DeadlineExceededError
 class RpcInterruptedError final : public RpcError {
 public:

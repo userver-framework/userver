@@ -28,19 +28,23 @@ UTEST(TestMiddleware, FollowRedirectsMiddleware) {
 
     const utest::HttpServerMock http_server([&redirect_visited](const utest::HttpServerMock::HttpRequest& request) {
         if (request.path == "/test") {
-            auto response = utest::HttpServerMock::HttpResponse{302};
+            utest::HttpServerMock::HttpResponse response{};
+            response.response_status = 302;
             response.headers[kLocation] = "/redirected";
             return response;
         }
 
         if (request.path == "/redirected") {
             redirect_visited = true;
-            auto response = utest::HttpServerMock::HttpResponse{200};
+            utest::HttpServerMock::HttpResponse response{};
+            response.response_status = 200;
             response.body = R"({"status":"ok"})";
             return response;
         }
 
-        return utest::HttpServerMock::HttpResponse{404};
+        utest::HttpServerMock::HttpResponse response{};
+        response.response_status = 404;
+        return response;
     });
 
     auto http_client_ptr = utest::CreateHttpClient();
@@ -62,7 +66,8 @@ UTEST(TestMiddleware, ProxyMiddleware) {
     const utest::HttpServerMock destination_server([](const utest::HttpServerMock::HttpRequest& request) {
         EXPECT_EQ(request.path, "/test");
 
-        auto response = utest::HttpServerMock::HttpResponse{200};
+        utest::HttpServerMock::HttpResponse response{};
+        response.response_status = 200;
         response.body = R"({"status":"ok","server":"destination"})";
         return response;
     });
@@ -71,7 +76,8 @@ UTEST(TestMiddleware, ProxyMiddleware) {
     const utest::HttpServerMock proxy_server([&proxy_called](const utest::HttpServerMock::HttpRequest& /*request*/) {
         proxy_called = true;
 
-        auto response = utest::HttpServerMock::HttpResponse{200};
+        utest::HttpServerMock::HttpResponse response{};
+        response.response_status = 200;
         response.body = R"({"status":"ok","server":"proxy"})";
         return response;
     });
@@ -116,7 +122,8 @@ iW5OwYvGErHvYQaO0LtwjzO8LamystYgUIXVV+fFL3w6
     const utest::HttpServerMock http_server([](const utest::HttpServerMock::HttpRequest& request) {
         EXPECT_EQ(request.path, "/test");
 
-        auto response = utest::HttpServerMock::HttpResponse{200};
+        utest::HttpServerMock::HttpResponse response{};
+        response.response_status = 200;
         response.body = R"({"status":"ok"})";
         return response;
     });

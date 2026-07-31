@@ -84,7 +84,8 @@ Python with `pytest`:
   with `pytest` installed. Pass the path to the CMake built binary to venv:
   @snippet samples/json2yaml/CMakeLists.txt  add_test
 
-* Add a fixture to `conftest.py` to get the path to the CMake built binary:
+* Add a fixture to `conftest.py` to get the path to the CMake built binary using the
+  @ref pytest_userver.plugins.base.service_binary "service_binary" fixture:
   @snippet samples/json2yaml/testsuite/conftest.py  pytest
 
 * Write the test:

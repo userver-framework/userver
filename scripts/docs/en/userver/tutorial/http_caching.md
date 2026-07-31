@@ -224,10 +224,11 @@ provides all the required functionality via simpler to use Python functions.
 @ref scripts/docs/en/userver/functional_testing.md "Functional tests" for the service could be
 implemented using the testsuite. To do that you have to:
 
-* Mock the translations service data:
+* Mock the translations service data using the local `translations` fixture:
   @snippet samples/http_caching/tests/conftest.py translations
 
-* Mock the translations service API:
+* Mock the translations service API using the
+  @ref testsuite.mockserver.pytest_plugin.mockserver "mockserver" fixture:
   @snippet samples/http_caching/tests/conftest.py mockserver
 
 * Import the pytest_userver.plugins.core plugin and teach testsuite how to
@@ -242,7 +243,8 @@ implemented using the testsuite. To do that you have to:
   translations-url: $mockserver/v1/translations
   @endcode
 
-* Write the test:
+* Write the test using the @ref pytest_userver.plugins.service_client.service_client "service_client" fixture and the
+  @ref testsuite.plugins.mocked_time.mocked_time "mocked_time" fixture:
   @snippet samples/http_caching/tests/test_http_caching.py  Functional test
 
 

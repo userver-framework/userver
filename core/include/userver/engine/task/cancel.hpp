@@ -64,11 +64,12 @@ void CancellationPoint();
 /// The task will be cancelled when the deadline is reached.
 void SetDeadline(Deadline deadline);
 
-/// Return cancellation token for current coroutine.
-TaskCancellationToken GetCancellationToken();
-
 /// @see engine::Task::RequestCancel
 void RequestCancel();
+
+/// @brief Return cancellation token for current coroutine.
+/// @note Prefer engine::current_task::RequestCancel in most cases.
+TaskCancellationToken GetCancellationToken();
 
 }  // namespace current_task
 

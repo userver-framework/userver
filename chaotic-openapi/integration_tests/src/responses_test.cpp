@@ -192,6 +192,7 @@ UTEST(ResponsesMultipleContentType, HeaderParse) {
         r.headers[std::string{"X-Header"}] = "string";
         r.headers[std::string{"X-Integer"}] = "42";
         r.headers[std::string{"X-Seconds"}] = "100";
+        r.headers[std::string{"X-Ref-Header"}] = "ref-value";
         return r;
     });
     auto http_client = utest::CreateHttpClient();
@@ -202,6 +203,7 @@ UTEST(ResponsesMultipleContentType, HeaderParse) {
     EXPECT_EQ(response.X_Header, "string");
     EXPECT_EQ(response.X_Integer, 42);
     EXPECT_EQ(response.X_Seconds, 100);
+    EXPECT_EQ(response.X_Ref_Header, "ref-value");
 }
 
 }  // namespace

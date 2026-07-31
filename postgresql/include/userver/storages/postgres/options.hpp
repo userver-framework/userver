@@ -111,6 +111,11 @@ USERVER_NAMESPACE::utils::StringLiteral BeginStatement(TransactionOptions opts) 
 /// @see https://www.postgresql.org/docs/12/runtime-config-client.html
 ///
 /// `execute` timeout should always be greater than the `statement` timeout!
+/// If the `statement` timeout happens to be greater than (or too close to) the
+/// `execute` timeout, the driver caps the effective `statement` timeout to be
+/// below the `execute` timeout (by a small margin when the `execute` timeout is
+/// large enough to spare it), so that the database gets a chance to cancel the
+/// statement on its own before the driver gives up waiting on the network.
 ///
 /// In case of a timeout, either back-end or overall, the client gets an
 /// exception and the driver tries to clean up the connection for further reuse.
@@ -315,11 +320,6 @@ struct ConnectionSettings {
 
     PoolerMode pooler_mode{PoolerMode::kSession};
 
-    /// DANGEROUS. Has effect only in @ref PoolerMode::kTransaction. When set, no `SET statement_timeout` is sent
-    /// before autocommit statements, saving a round trip at the cost of losing statement_timeout enforcement (and
-    /// deadline propagation built on top of it) for such queries
-    bool omit_statement_timeout_for_autocommit = false;
-
     bool operator==(const ConnectionSettings& rhs) const {
         return !RequiresConnectionReset(rhs) && recent_errors_threshold == rhs.recent_errors_threshold;
     }
@@ -331,8 +331,7 @@ struct ConnectionSettings {
                max_prepared_cache_size != rhs.max_prepared_cache_size || pipeline_mode != rhs.pipeline_mode ||
                max_ttl != rhs.max_ttl || discard_on_connect != rhs.discard_on_connect ||
                omit_describe_mode != rhs.omit_describe_mode || application_name != rhs.application_name ||
-               pooler_mode != rhs.pooler_mode ||
-               omit_statement_timeout_for_autocommit != rhs.omit_statement_timeout_for_autocommit;
+               pooler_mode != rhs.pooler_mode;
     }
 };
 
@@ -345,7 +344,6 @@ struct ConnectionSettingsDynamic final {
     std::optional<std::chrono::seconds> max_ttl{};
     std::optional<ConnectionSettings::DiscardOnConnectOptions> discard_on_connect{};
     std::optional<bool> deadline_propagation_enabled{};
-    std::optional<bool> omit_statement_timeout_for_autocommit{};
 };
 
 /// @brief PostgreSQL statements metrics options

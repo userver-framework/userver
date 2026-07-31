@@ -6,9 +6,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::utils {
 
-std::size_t StrHash(const char* str, std::size_t len) noexcept {
-    auto seed = len;
-    boost::hash_range(seed, str, str + len);
+std::size_t StrHash(std::string_view str) noexcept {
+    auto seed = str.size();
+    boost::hash_range(seed, str.data(), str.data() + str.size());
     return seed;
 }
 

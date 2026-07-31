@@ -136,7 +136,7 @@ LogHelper& operator<<(LogHelper& lh, const RateLimiter& rl) noexcept {
 }
 
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-StaticLogEntry::StaticLogEntry(const char* path, int line) noexcept {
+StaticLogEntry::StaticLogEntry(std::string_view path, int line) noexcept {
     static_assert(sizeof(LogEntryContent) == sizeof(content_));
     // static_assert(std::is_trivially_destructible_v<LogEntryContent>);
     auto* item = new (&content_) LogEntryContent(path, line);

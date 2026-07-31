@@ -1,11 +1,13 @@
-distlock.brain-splits: distlock_name=component-distlock-metrics	GAUGE	0
-distlock.failures: distlock_name=component-distlock-metrics	GAUGE	0
+distlock.brain-splits: distlock_name=component-distlock-metrics	RATE	0
+distlock.failures: distlock_name=component-distlock-metrics	RATE	0
 distlock.locked-for-ms: distlock_name=component-distlock-metrics	GAUGE	0
 distlock.locked: distlock_name=component-distlock-metrics	GAUGE	0
 distlock.running: distlock_name=component-distlock-metrics	GAUGE	0
 distlock.successes: distlock_name=component-distlock-metrics	GAUGE	0
+distlock.successes.v2: distlock_name=component-distlock-metrics	RATE	0
 distlock.task-failures: distlock_name=component-distlock-metrics	GAUGE	0
-distlock.watchdog-triggers: distlock_name=component-distlock-metrics	GAUGE	0
+distlock.task-failures.v2: distlock_name=component-distlock-metrics	RATE	0
+distlock.watchdog-triggers: distlock_name=component-distlock-metrics	RATE	0
 mongo.by-collection.errors-total: mongo_collection=distlocks, mongo_database=key-value-database, mongo_direction=read, mongo_error=total	RATE	0
 mongo.by-collection.errors-total: mongo_collection=distlocks, mongo_database=key-value-database, mongo_direction=write, mongo_error=total	RATE	0
 mongo.by-collection.errors-total: mongo_collection=test, mongo_database=key-value-database, mongo_direction=read, mongo_error=total	RATE	0
@@ -55,6 +57,7 @@ mongo.by-operation.timings-1min: mongo_collection=test, mongo_database=key-value
 mongo.by-operation.timings-1min: mongo_collection=test, mongo_database=key-value-database, mongo_direction=write, mongo_operation=insert-one, percentile=p98	GAUGE	17
 mongo.by-operation.timings-1min: mongo_collection=test, mongo_database=key-value-database, mongo_direction=write, mongo_operation=insert-one, percentile=p99	GAUGE	17
 mongo.congestion-control.enabled-seconds: mongo_database=key-value-database	GAUGE	0
+mongo.congestion-control.enabled-seconds.v2: mongo_database=key-value-database	RATE	0
 mongo.congestion-control.is-enabled: mongo_database=key-value-database	GAUGE	0
 mongo.congestion-control.is-fake-mode: mongo_database=key-value-database	GAUGE	0
 mongo.pool.apm.heartbeats-failed: mongo_database=key-value-database	RATE	0

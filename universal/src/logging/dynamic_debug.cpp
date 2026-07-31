@@ -1,7 +1,5 @@
 #include "dynamic_debug.hpp"
 
-#include <cstring>
-
 #include <fmt/format.h>
 
 #include <userver/utils/assert.hpp>
@@ -37,19 +35,19 @@ Level GetForceDisabledLevelPlusOne(Level level) {
 }
 
 bool operator<(const LogEntryContent& x, const LogEntryContent& y) noexcept {
-    const auto cmp = std::strcmp(x.path, y.path);
+    const auto cmp = x.path.compare(y.path);
     return cmp < 0 || (cmp == 0 && x.line < y.line);
 }
 
 bool operator==(const LogEntryContent& x, const LogEntryContent& y) noexcept {
-    return x.line == y.line && std::strcmp(x.path, y.path) == 0;
+    return x.line == y.line && x.path == y.path;
 }
 
 void SetDynamicDebugLog(const std::string& location_relative, int line, EntryState state) {
     utils::impl::AssertStaticRegistrationFinished();
 
     auto& all_locations = GetAllLocations();
-    auto it_lower = all_locations.lower_bound({location_relative.c_str(), line});
+    auto it_lower = all_locations.lower_bound({location_relative, line});
 
     bool found_match = false;
     if (line != kAnyLine) {
@@ -64,7 +62,7 @@ void SetDynamicDebugLog(const std::string& location_relative, int line, EntrySta
     } else {
         for (; it_lower != all_locations.end(); ++it_lower) {
             // compare prefixes
-            if (std::strncmp(it_lower->path, location_relative.c_str(), location_relative.size()) != 0) {
+            if (!it_lower->path.starts_with(location_relative)) {
                 break;
             }
             it_lower->state.store(state);
@@ -100,7 +98,7 @@ const LogEntryContentSet& GetDynamicDebugLocations() {
 
 void RegisterLogLocation(LogEntryContent& location) {
     utils::impl::AssertStaticRegistrationAllowed("Dynamic debug logging location");
-    UASSERT(location.path);
+    UASSERT(!location.path.empty());
     UASSERT(location.line);
     GetAllLocations().insert(location);
 }

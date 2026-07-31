@@ -33,7 +33,7 @@ async def test_timeout(service_client, dynamic_config):
     async with service_client.capture_logs() as capture:
         response = await service_client.post(
             '/chaos/postgres?type=sleep',
-            headers={'X-YaTaxi-Client-TimeoutMs': '100'},
+            headers={'X-YaTaxi-Client-TimeoutMs': '150'},
         )
         assert response.status == 498
         assert response.text == 'Deadline expired'

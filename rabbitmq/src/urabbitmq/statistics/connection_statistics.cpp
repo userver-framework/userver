@@ -10,9 +10,9 @@ void ConnectionStatistics::AccountConnectionCreated() { ++connections_created_; 
 
 void ConnectionStatistics::AccountConnectionClosed() noexcept { ++connections_closed_; }
 
-void ConnectionStatistics::AccountWrite(size_t bytes_written) { bytes_sent_ += bytes_written; }
+void ConnectionStatistics::AccountWrite(size_t bytes_written) { bytes_sent_ += utils::statistics::Rate{bytes_written}; }
 
-void ConnectionStatistics::AccountRead(size_t bytes_read) { bytes_read_ += bytes_read; }
+void ConnectionStatistics::AccountRead(size_t bytes_read) { bytes_read_ += utils::statistics::Rate{bytes_read}; }
 
 void ConnectionStatistics::AccountMessagePublished() { ++messages_published_; }
 

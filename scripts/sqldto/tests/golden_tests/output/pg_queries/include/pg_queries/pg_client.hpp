@@ -100,10 +100,15 @@ public:
         const std::optional<QueriesUserStatus>& arg3
     ) const = 0;
 
-    virtual std::vector<DeleteUserRow> DeleteUser(HostType host_type, const std::optional<std::int64_t>& arg1)
-        const = 0;
+    virtual std::vector<DeleteUserRow> DeleteUser(
+        HostType host_type,
+        const std::optional<std::int64_t>& arg1
+    ) const = 0;
 
-    virtual void DeleteUserSimple(HostType host_type, const std::optional<std::int64_t>& arg1) const = 0;
+    virtual void DeleteUserSimple(
+        HostType host_type,
+        const std::optional<std::int64_t>& arg1
+    ) const = 0;
 
     virtual std::vector<GetActiveUsersRow> GetActiveUsers(HostType host_type) const = 0;
 
@@ -114,8 +119,10 @@ public:
         const std::optional<std::int64_t>& arg1
     ) const = 0;
 
-    virtual std::vector<GetUserByIdRow> GetUserById(HostType host_type, const std::optional<std::int64_t>& arg1)
-        const = 0;
+    virtual std::vector<GetUserByIdRow> GetUserById(
+        HostType host_type,
+        const std::optional<std::int64_t>& arg1
+    ) const = 0;
 
     virtual std::vector<GetUserProfileCompositeRow> GetUserProfileComposite(
         HostType host_type,

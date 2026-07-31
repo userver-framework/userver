@@ -24,6 +24,7 @@ QueueOverflowBehavior Parse(const yaml_config::YamlConfig& value, formats::parse
 
 struct LoggerConfig final {
     static constexpr size_t kDefaultMessageQueueSize = 1 << 16;
+    static constexpr size_t kDefaultFlushQueueSize = 32;
 
     void SetName(std::string name);
 
@@ -37,6 +38,7 @@ struct LoggerConfig final {
 
     // must be a power of 2
     size_t message_queue_size = kDefaultMessageQueueSize;
+    size_t flush_queue_size = kDefaultFlushQueueSize;
     QueueOverflowBehavior queue_overflow_behavior = QueueOverflowBehavior::kDiscard;
 
     std::optional<std::string> fs_task_processor;

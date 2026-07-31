@@ -101,7 +101,9 @@ implemented using the testsuite. To do that you have to:
   @ref samples/digest_auth_service/tests/conftest.py
 * Prepare the DB test data
   @ref samples/digest_auth_service/postgresql/data/test_data.sql
-* Write the test:
+* Write the test using the @ref pytest_userver.plugins.service_client.service_client "service_client" fixture, the
+  @ref testsuite.databases.pgsql.pytest_plugin.pgsql "pgsql" fixture and the
+  @ref testsuite.plugins.mocked_time.mocked_time "mocked_time" fixture:
   @snippet samples/digest_auth_service/tests/test_digest.py  Functional test
 
 

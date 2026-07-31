@@ -1,0 +1,43 @@
+definitions:
+    Tree:
+        type: object
+        additionalProperties: false
+        required:
+          - root
+        properties:
+            root:
+                $ref: '#/definitions/Node'
+                x-usrv-cpp-indirect: true
+
+    Node:
+        oneOf:
+          - $ref: '#/definitions/TypeA'
+            x-usrv-cpp-indirect: true
+          - $ref: '#/definitions/TypeB'
+            x-usrv-cpp-indirect: true
+        discriminator:
+            propertyName: kind
+            mapping:
+                1: '#/definitions/TypeA'
+                2: '#/definitions/TypeB'
+
+    TypeA:
+        type: object
+        required:
+          - kind
+        properties:
+            kind:
+                type: integer
+            value:
+                type: integer
+
+    TypeB:
+        type: object
+        required:
+          - kind
+        properties:
+            kind:
+                type: integer
+            nested:
+                $ref: '#/definitions/Node'
+                x-usrv-cpp-indirect: true

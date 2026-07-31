@@ -193,7 +193,9 @@ implemented using the testsuite. To do that you have to:
 * Turn on the `pytest_userver.plugins.ydb` plugin:
   @snippet samples/ydb_service/tests/conftest.py  YDB service sample - testsuite conftest
 
-* Write the tests:
+* Write the tests using the @ref pytest_userver.plugins.service_client.service_client "service_client" fixture, the
+  @ref pytest_userver.plugins.ydb.ydbsupport.ydb "ydb" fixture and the
+  @ref testsuite.plugins.testpoint.testpoint "testpoint" fixture:
   @snippet samples/ydb_service/tests/test_upsert.py  YDB service sample - upsert functional test
   @snippet samples/ydb_service/tests/test_select.py  YDB service sample - select functional test
   @snippet samples/ydb_service/tests/test_bson_reading.py  YDB service sample - bson reading functional test

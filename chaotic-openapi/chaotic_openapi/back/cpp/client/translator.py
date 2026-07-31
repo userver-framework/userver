@@ -13,7 +13,7 @@ class Translator(BaseTranslator):
         *,
         cpp_namespace: str,
         dynamic_config: str,
-        include_dirs: list[str],
+        include_dirs: list[str] | None,
         middleware_plugins: list[middleware.MiddlewarePlugin],
     ) -> None:
         self._middleware_plugins = middleware_plugins

@@ -6,10 +6,8 @@
 #include <fmt/format.h>
 #include <boost/algorithm/cxx11/all_of.hpp>
 
-#include <userver/utils/algo.hpp>
 #include <userver/utils/encoding/tskv_parser.hpp>
 #include <userver/utils/encoding/tskv_parser_read.hpp>
-#include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -148,6 +146,28 @@ LogRecord GetSingleLog(utils::span<const LogRecord> log, const utils::impl::Sour
     }
     auto single_record = log[0];
     return single_record;
+}
+
+std::vector<LogRecord> ParseTskvLogRecords(std::string_view tskv_log_contents) {
+    std::vector<LogRecord> result;
+    while (true) {
+        const auto newline_pos = tskv_log_contents.find('\n');
+        if (newline_pos == std::string_view::npos) {
+            break;
+        }
+        result.emplace_back(
+            utils::impl::InternalTag{},
+            logging::Level::kInfo,
+            std::string(tskv_log_contents.substr(0, newline_pos + 1))
+        );
+        tskv_log_contents.remove_prefix(newline_pos + 1);
+    }
+    if (!tskv_log_contents.empty()) {
+        throw std::runtime_error(
+            fmt::format(R"(TSKV log contents must end with '\n', leftover: "{}")", tskv_log_contents)
+        );
+    }
+    return result;
 }
 
 LogCaptureLogger::LogCaptureLogger(logging::Format format)

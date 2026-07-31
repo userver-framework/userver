@@ -1,0 +1,40 @@
+{%- from "helpers.inc" import codegen_alert, simple_cpp_type, query_return_type, is_struct -%}
+{{ codegen_alert() }}
+
+#pragma once
+
+{% for include in includes %}
+#include <{{ include }}>
+{% endfor %}
+
+namespace {{ namespace }} {
+{% for query in queries if is_struct(query) %}
+
+struct {{ query.returns.cpp_name }} {
+    {% for field in query.returns.fields %}
+    {{ simple_cpp_type(field.cpp_type) }} {{ field.cpp_name }}{{ '{}' if field.cpp_type.explicit_default else '' }};
+    {% endfor %}
+};
+{% endfor %}
+
+class PgClient {
+public:
+    using HostType = USERVER_NAMESPACE::storages::postgres::ClusterHostTypeFlags;
+    {% for query in queries %}
+
+    {% if query.args %}
+    virtual {{ query_return_type(query) }} {{ query.cpp_name }}(
+        HostType host_type,
+        {% for arg in query.args %}
+        const {{ simple_cpp_type(arg.cpp_type) }}& arg{{ loop.index }}{{ ',' if not loop.last }}
+        {% endfor %}
+    ) const = 0;
+    {% else %}
+    virtual {{ query_return_type(query) }} {{ query.cpp_name }}(HostType host_type) const = 0;
+    {% endif %}
+    {% endfor %}
+
+    virtual ~PgClient() = default;
+};
+
+}  // namespace {{ namespace }}

@@ -1,0 +1,35 @@
+{%- from "helpers.inc" import codegen_alert, simple_cpp_type, query_return_type -%}
+{{ codegen_alert() }}
+
+#pragma once
+
+{% for include in includes %}
+#include <{{ include }}>
+{% endfor %}
+
+namespace {{ namespace }} {
+
+class MockPgClient : public PgClient {
+public:
+    {% for query in queries %}
+    {% if query.args %}
+    MOCK_METHOD(
+        ({{ query_return_type(query) }}),
+        {{ query.cpp_name }},
+        (
+            HostType host_type,
+            {% for arg in query.args %}
+            const {{ simple_cpp_type(arg.cpp_type) }}& arg{{ loop.index }}{{ ',' if not loop.last }}
+            {% endfor %}
+        ),
+        (const, override)
+    );
+    {% else %}
+    MOCK_METHOD(({{ query_return_type(query) }}), {{ query.cpp_name }}, (HostType host_type), (const, override));
+    {% endif %}
+
+    {% endfor %}
+    ~MockPgClient() override = default;
+};
+
+}  // namespace {{ namespace }}

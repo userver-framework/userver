@@ -2,6 +2,8 @@
 
 #include <protobuf/json/impl/read.hpp>
 #include <protobuf/json/impl/write.hpp>
+#include <protobuf/json/impl/write_debug_string.hpp>
+#include <protobuf/json/impl/write_json_string.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,6 +22,14 @@ void JsonToMessage(
     const ParseOptions& options
 ) {
     impl::ReadMessage(json, message, options);
+}
+
+std::string MessageToJsonString(const ::google::protobuf::Message& message, const PrintOptions& options) {
+    return impl::WriteMessageToJsonString(message, options);
+}
+
+std::string MessageToDebugString(const ::google::protobuf::Message& message, std::size_t limit) {
+    return impl::WriteMessageToDebugString(message, limit);
 }
 
 }  // namespace protobuf::json

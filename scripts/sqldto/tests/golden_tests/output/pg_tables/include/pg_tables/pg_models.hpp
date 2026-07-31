@@ -12,7 +12,7 @@
 #include <userver/storages/postgres/io/io_fwd.hpp>
 #include <userver/storages/postgres/io/json_types.hpp>
 #include <userver/storages/postgres/io/optional.hpp>
-#include <userver/storages/postgres/io/ranges.hpp>
+#include <userver/storages/postgres/io/range_types.hpp>
 #include <userver/storages/postgres/io/string_types.hpp>
 #include <userver/storages/postgres/io/uuid.hpp>
 
@@ -66,13 +66,14 @@ struct TablesUsersV0 {
     std::optional<std::chrono::microseconds> session_duration;
     std::optional<USERVER_NAMESPACE::storages::postgres::IntegerRange> valid_age_range;
 };
-
 using TablesPosts = TablesPostsV0;
 using TablesUsers = TablesUsersV0;
 
 }  // namespace pg_tables
 
-namespace USERVER_NAMESPACE::storages::postgres::io {
+USERVER_NAMESPACE_BEGIN
+
+namespace storages::postgres::io {
 
 template <>
 struct CppToUserPg<pg_tables::TablesUserRole> : EnumMappingBase<pg_tables::TablesUserRole> {
@@ -99,4 +100,6 @@ struct CppToUserPg<pg_tables::TablesUsersV0> {
     static constexpr DBTypeName postgres_name = "tables.users_v0";
 };
 
-}  // namespace USERVER_NAMESPACE::storages::postgres::io
+}  // namespace storages::postgres::io
+
+USERVER_NAMESPACE_END

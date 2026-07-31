@@ -31,8 +31,7 @@ namespace server::handlers::auth::digest {
 class AuthCheckerSettingsComponent : public components::ComponentBase {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of
-    /// server::handlers::auth::digest::AuthCheckerSettingsComponent
+    /// @brief The default name of @ref server::handlers::auth::digest::AuthCheckerSettingsComponent
     static constexpr std::string_view kName = "auth-digest-checker-settings";
 
     AuthCheckerSettingsComponent(

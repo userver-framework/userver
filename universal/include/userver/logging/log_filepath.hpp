@@ -3,8 +3,14 @@
 /// @file userver/logging/log_filepath.hpp
 /// @brief Short source path calculator
 
-#include <userver/utils/string_literal.hpp>
-#include <userver/utils/zstring_view.hpp>
+#include <cstddef>
+#include <string_view>
+
+// TODO remove extra includes.
+#include <fmt/format.h>
+#include <concepts>
+#include <string>
+#include <userver/formats/serialize/to.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -13,12 +19,11 @@ USERVER_NAMESPACE_BEGIN
 
 /// @ingroup userver_universal
 ///
-/// @brief Short @ref utils::zstring_view with source path for logging.
+/// @brief Short `std::string_view` with source path for logging.
 /// @hideinitializer
 // We need user's filename here, not ours
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
-#define USERVER_FILEPATH \
-    USERVER_NAMESPACE::utils::zstring_view { __builtin_FILE() }
+#define USERVER_FILEPATH std::string_view(__builtin_FILE())
 
 #else
 
@@ -31,8 +36,8 @@ namespace logging::impl {
 #define USERVER_LOG_FILEPATH_STRINGIZE(X) USERVER_LOG_FILEPATH_STRINGIZE_AUX(X)
 
 // May have different macro values for different translation units, hence static
-static constexpr std::size_t PathBaseSize(utils::zstring_view path) noexcept {
-    constexpr utils::StringLiteral kSourcePathPrefixes[] = {
+static constexpr std::size_t PathBaseSize(std::string_view path) noexcept {
+    constexpr std::string_view kSourcePathPrefixes[] = {
 #ifdef USERVER_LOG_PREFIX_PATH_BASE
         USERVER_LOG_FILEPATH_STRINGIZE(USERVER_LOG_PREFIX_PATH_BASE),
 #endif
@@ -44,8 +49,8 @@ static constexpr std::size_t PathBaseSize(utils::zstring_view path) noexcept {
 #endif
     };
 
-    for (const utils::StringLiteral base : kSourcePathPrefixes) {
-        if (path.substr(0, base.size()) == base) {
+    for (const std::string_view base : kSourcePathPrefixes) {
+        if (path.starts_with(base)) {
             std::size_t base_size = path.find_first_not_of('/', base.size());
             if (base_size == std::string_view::npos) {
                 base_size = path.size();
@@ -59,7 +64,7 @@ static constexpr std::size_t PathBaseSize(utils::zstring_view path) noexcept {
 
 // May have different macro values for different translation units, hence static. `consteval` breaks the behavior of
 // utils::SourceLocation.
-static constexpr utils::zstring_view CutFilePath(utils::zstring_view path_view) noexcept {
+static constexpr std::string_view CutFilePath(std::string_view path_view) noexcept {
     path_view.remove_prefix(impl::PathBaseSize(path_view));
     return path_view;
 }

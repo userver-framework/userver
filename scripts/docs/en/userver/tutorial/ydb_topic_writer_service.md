@@ -120,8 +120,9 @@ implemented using the testsuite. To do that you have to:
   before each test:
   @snippet samples/ydb_topic_writer_service/testsuite/conftest.py  YDB topic writer service sample - testsuite conftest
 
-* Write the test that sends a message via HTTP and reads it back from the
-  topic using the YDB topic client:
+* Write the test that sends a message via the @ref pytest_userver.plugins.service_client.service_client "service_client"
+  fixture and reads it back from the topic using the
+  @ref pytest_userver.plugins.ydb.ydbsupport.ydb "ydb" fixture:
   @snippet samples/ydb_topic_writer_service/testsuite/test_topic_writer.py  YDB topic writer service sample - functional test
 
 

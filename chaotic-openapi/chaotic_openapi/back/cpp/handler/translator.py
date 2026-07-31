@@ -10,7 +10,7 @@ class HandlerTranslator(BaseTranslator):
         service: model.Service,
         *,
         cpp_namespace: str,
-        include_dirs: list[str],
+        include_dirs: list[str] | None,
     ) -> None:
         super().__init__(
             service,

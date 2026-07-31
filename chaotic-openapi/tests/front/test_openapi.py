@@ -1,9 +1,9 @@
-from chaotic_openapi.front import base_model
-from chaotic_openapi.front import model
 import pytest
 
 from chaotic import error
 from chaotic.front import types
+from chaotic_openapi.front import base_model
+from chaotic_openapi.front import model
 
 
 def test_empty_openapi(simple_parser):

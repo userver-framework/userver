@@ -313,6 +313,10 @@ void InsertOne::SetOption(const options::WriteConcern& write_concern) {
 
 void InsertOne::SetOption(options::SuppressServerExceptions) { impl_->should_throw = false; }
 
+void InsertOne::SetOption(const options::MaxServerTime& max_server_time) {
+    AppendMaxServerTime(impl_->max_server_time, max_server_time);
+}
+
 InsertMany::InsertMany() = default;
 
 InsertMany::InsertMany(std::vector<formats::bson::Document> documents)
@@ -342,6 +346,10 @@ void InsertMany::SetOption(const options::WriteConcern& write_concern) {
 }
 
 void InsertMany::SetOption(options::SuppressServerExceptions) { impl_->should_throw = false; }
+
+void InsertMany::SetOption(const options::MaxServerTime& max_server_time) {
+    AppendMaxServerTime(impl_->max_server_time, max_server_time);
+}
 
 ReplaceOne::ReplaceOne(formats::bson::Document selector, formats::bson::Document replacement)
     : impl_(std::move(selector), std::move(replacement))
@@ -424,6 +432,10 @@ void Delete::SetOption(const options::WriteConcern& write_concern) {
 void Delete::SetOption(options::SuppressServerExceptions) { impl_->should_throw = false; }
 
 void Delete::SetOption(const options::Hint& hint) { AppendHint(impl::EnsureBuilder(impl_->options), hint); }
+
+void Delete::SetOption(const options::MaxServerTime& max_server_time) {
+    AppendMaxServerTime(impl_->max_server_time, max_server_time);
+}
 
 ATTRIBUTE_NO_SANITIZE_UNDEFINED
 FindAndModify::FindAndModify(formats::bson::Document query, const formats::bson::Document& update)

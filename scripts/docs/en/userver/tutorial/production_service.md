@@ -246,7 +246,10 @@ python3 ../samples/tests/prepare_production_configs.py
 ### Functional testing
 @ref scripts/docs/en/userver/functional_testing.md "Functional tests" are used to make sure
 that the service is working fine and
-implements the required functionality. A recommended practice is to build the
+implements the required functionality. Tests use the
+@ref pytest_userver.plugins.service_client.service_client "service_client" fixture and the
+@ref pytest_userver.plugins.service_client.monitor_client "monitor_client" fixture.
+A recommended practice is to build the
 service in Debug and Release modes and test both of them, then deploy the
 Release build to the production, disabling all the tests-related handlers.
 

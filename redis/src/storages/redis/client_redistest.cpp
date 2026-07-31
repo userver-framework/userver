@@ -32,7 +32,7 @@ void RedisClientSampleUsage(storages::redis::Client& client) {
 std::optional<std::string> RedisClientCancelRequest(storages::redis::Client& client) {
     auto result = client.Get("foo", {});
 
-    engine::current_task::GetCancellationToken().RequestCancel();
+    engine::current_task::RequestCancel();
 
     // Throws redis::RequestCancelledException if Redis was not
     // fast enough to answer
@@ -451,6 +451,18 @@ UTEST_F(RedisClientTest, Geopos) {
     EXPECT_NEAR(result[0].value().lat, 38.2, geo_tolerance);
     EXPECT_NEAR(result[1].value().lon, 15.3, geo_tolerance);
     EXPECT_NEAR(result[1].value().lat, 37.4, geo_tolerance);
+}
+
+UTEST_F(RedisClientTest, Getdel) {
+    const Version since{6, 2, 0};
+    if (!CheckRedisVersion(since)) {
+        GTEST_SKIP() << SkipMsgByVersion("Getdel", since);
+    }
+
+    auto client = GetClient();
+    EXPECT_EQ(client->Incr("key", {}).Get(), 1);
+    EXPECT_EQ(client->Getdel("key", {}).Get(), "1");
+    EXPECT_EQ(client->Exists("key", kMasterCC).Get(), false);
 }
 
 UTEST_F(RedisClientTest, Getset) {

@@ -374,6 +374,18 @@ UTEST_P(PostgreConnection, StatementTimeout) {
     EXPECT_FALSE(GetConn()->IsBroken());
 }
 
+UTEST_P(PostgreConnection, StatementTimeoutCappedToNetworkTimeout) {
+    CheckConnection(GetConn());
+
+    EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
+
+    const DefaultCommandControlScope scope(pg::CommandControl{std::chrono::milliseconds{500}, std::chrono::seconds{2}});
+    UEXPECT_NO_THROW(GetConn()->Execute("SELECT 1"));
+    EXPECT_EQ(std::chrono::milliseconds{495}, GetConn()->GetStatementTimeout());
+    EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
+    EXPECT_FALSE(GetConn()->IsBroken());
+}
+
 UTEST_P(PostgreConnection, CachedPlanChange) {
     // this only works with english messages, better than nothing
     GetConn()->Execute("SET lc_messages = 'en_US.UTF-8'");

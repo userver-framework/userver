@@ -1,0 +1,40 @@
+{%- from "helpers.inc" import codegen_alert, simple_cpp_type, query_return_type, is_void, is_struct, row_type -%}
+{{ codegen_alert() }}
+
+{% for include in includes %}
+#include <{{ include }}>
+{% endfor %}
+
+namespace {{ namespace }} {
+
+ClusterPgClient::ClusterPgClient(USERVER_NAMESPACE::storages::postgres::ClusterPtr cluster) : cluster_(cluster) {}
+{% for query in queries %}
+
+{% if query.args %}
+{{ query_return_type(query) }} ClusterPgClient::{{ query.cpp_name }}(
+    HostType host_type,
+    {% for arg in query.args %}
+    const {{ simple_cpp_type(arg.cpp_type) }}& arg{{ loop.index }}{{ ',' if not loop.last }}
+    {% endfor %}
+) const {
+{% else %}
+{{ query_return_type(query) }} ClusterPgClient::{{ query.cpp_name }}(HostType host_type) const {
+{% endif %}
+    {% set tag = 'USERVER_NAMESPACE::storages::postgres::kRowTag' if is_struct(query) else '' %}
+    {% set exec = 'cluster_->Execute(host_type, sql::' ~ query.sql_name %}
+    {% if is_void(query) %}
+    {{ exec }}{% for arg in query.args %}, arg{{ loop.index }}{% endfor %});
+    {% elif query.cardinality == 'one' %}
+    return {{ exec }}{% for arg in query.args %}, arg{{ loop.index }}{% endfor %})
+        .AsSingleRow<{{ row_type(query) }}>({{ tag }});
+    {% elif query.cardinality == 'optional' %}
+    return {{ exec }}{% for arg in query.args %}, arg{{ loop.index }}{% endfor %})
+        .AsOptionalSingleRow<{{ row_type(query) }}>({{ tag }});
+    {% else %}
+    return {{ exec }}{% for arg in query.args %}, arg{{ loop.index }}{% endfor %})
+        .AsContainer<std::vector<{{ row_type(query) }}>>({{ tag }});
+    {% endif %}
+}
+{% endfor %}
+
+}  // namespace {{ namespace }}

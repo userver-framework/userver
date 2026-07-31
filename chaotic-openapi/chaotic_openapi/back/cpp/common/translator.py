@@ -37,7 +37,7 @@ class BaseTranslator(abc.ABC):
         service: model.Service,
         *,
         spec,
-        include_dirs: list[str],
+        include_dirs: list[str] | None,
         extra_reraise: tuple[type[BaseException], ...] = (),
     ) -> None:
         self._spec = spec

@@ -6,6 +6,7 @@
 #include <utility>
 
 #include <concurrent/impl/owning_intrusive_pool.hpp>
+#include <userver/compiler/impl/lsan.hpp>
 #include <userver/concurrent/impl/asymmetric_fence.hpp>
 #include <userver/concurrent/impl/intrusive_hooks.hpp>
 #include <userver/concurrent/impl/intrusive_stack.hpp>
@@ -35,13 +36,31 @@ using WaitTokenStorageImplPool = concurrent::impl::OwningIntrusivePool<concurren
     WaitTokenStorageImpl,
     concurrent::impl::MemberHook<&WaitTokenStorageImpl::pool_hook>>>;
 
-constinit WaitTokenStorageImplPool wait_token_storage_impl_pool;
+// The pool must never be destroyed:
+// 1) static WaitTokenStorage instances (e.g. inside a static rcu::Variable)
+//    may Release into it during static destruction, after the pool's own
+//    destructor would have run;
+// 2) destroying the pool deletes pooled impls that a racing DoUnlock may
+//    still access.
+// The union keeps the pool constant-initialized, but its destructor is never run.
+union ImmortalWaitTokenStorageImplPool {
+    constexpr ImmortalWaitTokenStorageImplPool()
+        : pool()
+    {}
+    ~ImmortalWaitTokenStorageImplPool() { /* `pool` is intentionally never destroyed */ }
+
+    WaitTokenStorageImplPool pool;
+};
+
+constinit ImmortalWaitTokenStorageImplPool wait_token_storage_impl_pool;
 
 }  // namespace
 
 WaitTokenStorage::WaitTokenStorage()
-    : impl_(wait_token_storage_impl_pool.Acquire())
+    : impl_(wait_token_storage_impl_pool.pool.Acquire())
 {
+    compiler::impl::LsanIgnoreObject(&impl_);
+
     // Reinitialize impl_.
     UASSERT(impl_.tokens.IsFree());
     impl_.shutdown_started.store(false, std::memory_order_relaxed);
@@ -63,7 +82,7 @@ WaitTokenStorage::~WaitTokenStorage() {
         AbortWithStacktrace("Some tokens are still alive while the WaitTokenStorage is being destroyed");
     }
 
-    wait_token_storage_impl_pool.Release(impl_);
+    wait_token_storage_impl_pool.pool.Release(impl_);
 }
 
 WaitTokenStorageLock WaitTokenStorage::GetToken() { return WaitTokenStorageLock{*this}; }

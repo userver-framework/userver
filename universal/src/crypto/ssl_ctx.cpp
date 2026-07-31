@@ -93,7 +93,7 @@ static int AlpnSelectCallback(
         return SSL_TLSEXT_ERR_ALERT_FATAL;
     }
 
-    LOG_INFO() << "successfully negotiated ALPN";
+    LOG_DEBUG() << "successfully negotiated ALPN";
 
     return SSL_TLSEXT_ERR_OK;
 }

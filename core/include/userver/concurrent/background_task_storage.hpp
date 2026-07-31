@@ -27,22 +27,42 @@ public:
     BackgroundTaskStorageCore& operator=(BackgroundTaskStorageCore&&) = delete;
     ~BackgroundTaskStorageCore();
 
-    /// Explicitly cancel and wait for the tasks. New tasks must not be launched
-    /// after this call returns. Should be called no more than once.
+    /// @brief Explicitly cancel and wait for the tasks.
+    /// New tasks must not be launched after this call returns.
+    ///
+    /// More precisely, new tasks must not be launched once this call is completed, but can be launched in the process
+    /// of waiting for the remaining tasks. This means that one detached task is allowed to spawn another detached
+    /// task into the same BTS, which will immediately be cancelled and for which this call will wait as well.
+    ///
+    /// Can only be called from a coroutine.
     void CancelAndWait() noexcept;
 
-    /// Explicitly wait for execution tasks in the store.
-    /// Should be called no more than once.
-    void CloseAndWaitDebug() noexcept;
+    /// @brief Wait for the remaining tasks to complete without cancelling them.
+    /// New tasks must not be launched after this call returns.
+    ///
+    /// More precisely, new tasks must not be launched once this call is completed, but can be launched in the process
+    /// of waiting for the remaining tasks. This means that one detached task is allowed to spawn another detached
+    /// task into the same BTS, for which this call will wait as well.
+    ///
+    /// @note Running this method burns some CPU time (a few microseconds). Awaiting the tasks once on service
+    /// shutdown, or even periodically, is okay, but don't use `BackgroundTaskStorage` as a substitute
+    /// for `std::vector<Task>` in handlers, because it is less efficient.
+    ///
+    /// Can only be called from a coroutine.
+    void WaitAndDisposeSlow() noexcept;
 
     /// @brief Detaches task, allowing it to continue execution out of scope. It
     /// will be cancelled and waited for on BTS destruction.
     /// @note After detach, Task becomes invalid
     ///
     /// Can be called from a coroutine or a non-coroutine thread.
+    /// Cannot be called after @ref CancelAndWait or @ref WaitAndDisposeSlow has been called.
     void Detach(engine::Task&& task);
 
-    /// Approximate number of currently active tasks
+    /// @returns Approximate number of currently active tasks.
+    ///
+    /// Can be called from a coroutine or a non-coroutine thread.
+    /// Cannot be called after @ref CancelAndWait or @ref WaitAndDisposeSlow has been called.
     std::int64_t ActiveTasksApprox() const noexcept;
 
 private:
@@ -105,21 +125,29 @@ public:
     BackgroundTaskStorage(const BackgroundTaskStorage&) = delete;
     BackgroundTaskStorage& operator=(const BackgroundTaskStorage&) = delete;
 
-    /// @brief Explicitly cancel and wait for the tasks. New tasks must not be launched
-    /// after this call returns. Should be called no more than once.
+    /// @brief Explicitly cancel and wait for the tasks.
+    /// New tasks must not be launched after this call returns.
     ///
     /// More precisely, new tasks must not be launched once this call is completed, but can be launched in the process
     /// of waiting for the remaining tasks. This means that one detached task is allowed to spawn another detached
-    /// task into the same BTS, which will immediately be cancelled and for which `CancelAndWait` will wait as well.
+    /// task into the same BTS, which will immediately be cancelled and for which this call will wait as well.
     ///
     /// Can only be called from a coroutine.
     void CancelAndWait() noexcept;
 
-    /// @brief Explicitly stop accepting new tasks and wait for execution tasks in the
-    /// store. Should be called no more than once.
+    /// @brief Wait for the remaining tasks to complete without cancelling them.
+    /// New tasks must not be launched after this call returns.
+    ///
+    /// More precisely, new tasks must not be launched once this call is completed, but can be launched in the process
+    /// of waiting for the remaining tasks. This means that one detached task is allowed to spawn another detached
+    /// task into the same BTS, for which this call will wait as well.
+    ///
+    /// @note Running this method burns some CPU time (a few microseconds). Awaiting the tasks once on service
+    /// shutdown, or even periodically, is okay, but don't use `BackgroundTaskStorage` as a substitute
+    /// for `std::vector<Task>` in handlers, because it is less efficient.
     ///
     /// Can only be called from a coroutine.
-    void CloseAndWaitDebug() noexcept;
+    void WaitAndDisposeSlow() noexcept;
 
     /// @brief Launch a task that will be cancelled and waited for in the BTS
     /// destructor.
@@ -150,7 +178,10 @@ public:
         core_.Detach(utils::CriticalAsyncBackground(std::move(name), task_processor_, std::forward<Args>(args)...));
     }
 
-    /// Approximate number of currently active tasks
+    /// @returns Approximate number of currently active tasks.
+    ///
+    /// Can be called from a coroutine or a non-coroutine thread.
+    /// Cannot be called after @ref CancelAndWait or @ref WaitAndDisposeSlow has been called.
     std::int64_t ActiveTasksApprox() const noexcept;
 
 private:

@@ -27,7 +27,7 @@ namespace openapi = USERVER_NAMESPACE::chaotic::openapi;
 {% endfor %}
 
 {% if op.has_any_hidden_query_parameters() %}
-    constexpr utils::TrivialSet kHiddenQueries = [](auto selector) {
+    constexpr USERVER_NAMESPACE::utils::TrivialSet kHiddenQueries = [](auto selector) {
         return selector()
             {% for parameter in op.parameters %}
                 {% if parameter.query_log_mode_hide %}

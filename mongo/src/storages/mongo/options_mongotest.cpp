@@ -670,10 +670,52 @@ UTEST_F(Options, MaxServerTime) {
 
     UEXPECT_NO_THROW(coll.FindOne({}, mongo::options::MaxServerTime{utest::kMaxTestWaitTime}));
     UEXPECT_NO_THROW(coll.FindAndRemove({}, mongo::options::MaxServerTime{utest::kMaxTestWaitTime}));
+
+    UEXPECT_NO_THROW(coll.InsertOne(bson::MakeDoc("x", 2), mongo::options::MaxServerTime{utest::kMaxTestWaitTime}));
+    UEXPECT_NO_THROW(coll.InsertMany(
+        {bson::MakeDoc("x", 3), bson::MakeDoc("x", 4)},
+        mongo::options::MaxServerTime{utest::kMaxTestWaitTime}
+    ));
+
+    UEXPECT_THROW(
+        coll.InsertOne(bson::MakeDoc("x", 5), mongo::options::MaxServerTime{std::chrono::milliseconds{-1}}),
+        mongo::InvalidQueryArgumentException
+    );
+    UEXPECT_THROW(
+        coll.InsertMany({bson::MakeDoc("x", 6)}, mongo::options::MaxServerTime{std::chrono::milliseconds{-1}}),
+        mongo::InvalidQueryArgumentException
+    );
+
+    {
+        constexpr std::size_t kDocsCount = 50000;
+        std::vector<bson::Document> docs(kDocsCount, bson::MakeDoc("x", 1));
+        UEXPECT_THROW(
+            coll.InsertMany(std::move(docs), mongo::options::MaxServerTime{std::chrono::milliseconds{1}}),
+            storages::mongo::ServerException
+        );
+    }
+
+    coll.InsertOne(bson::MakeDoc("y", 1));
+    coll.InsertOne(bson::MakeDoc("y", 2));
+
+    UEXPECT_THROW(
+        coll.DeleteMany(
+            bson::MakeDoc("$where", "sleep(100) || true"),
+            mongo::options::MaxServerTime{std::chrono::milliseconds{50}}
+        ),
+        storages::mongo::ServerException
+    );
+
+    UEXPECT_NO_THROW(coll.DeleteMany(
+        bson::MakeDoc("$where", "sleep(100) || true"),
+        mongo::options::MaxServerTime{utest::kMaxTestWaitTime}
+    ));
+
+    UEXPECT_NO_THROW(coll.DeleteOne({}, mongo::options::MaxServerTime{utest::kMaxTestWaitTime}));
 }
 
 UTEST_F(Options, DefaultMaxServerTime) {
-    SetDynamicConfig({{::dynamic_config::MONGO_DEFAULT_MAX_TIME_MS, std::chrono::milliseconds{123}}});
+    SetDynamicConfig({{::dynamic_config::MONGO_DEFAULT_MAX_TIME_MS, std::chrono::milliseconds{200}}});
     auto coll = GetDefaultPool().GetCollection("max_server_time");
 
     coll.InsertOne(bson::MakeDoc("x", 1));
@@ -681,7 +723,7 @@ UTEST_F(Options, DefaultMaxServerTime) {
 
     coll.InsertOne(bson::MakeDoc("x", 2));
     coll.InsertOne(bson::MakeDoc("x", 3));
-    UEXPECT_THROW(coll.Find(bson::MakeDoc("$where", "sleep(50) || true")), storages::mongo::ServerException);
+    UEXPECT_THROW(coll.Find(bson::MakeDoc("$where", "sleep(180) || true")), storages::mongo::ServerException);
     UEXPECT_NO_THROW(
         coll.Find(bson::MakeDoc("$where", "sleep(50) || true"), mongo::options::MaxServerTime{utest::kMaxTestWaitTime})
     );

@@ -1,5 +1,7 @@
 #include "tp_logger.hpp"
 
+#include <algorithm>
+
 #include <fmt/format.h>
 
 #include <engine/task/task_context.hpp>
@@ -55,10 +57,12 @@ TpLogger::TpLogger(Format format, std::string logger_name)
 void TpLogger::StartConsumerTask(
     engine::TaskProcessor& task_processor,
     std::size_t max_queue_size,
-    QueueOverflowBehavior overflow_policy
+    QueueOverflowBehavior overflow_policy,
+    std::size_t flush_queue_size
 ) {
     UINVARIANT(max_queue_size != 0 && max_queue_size <= (std::size_t{1} << 31), "Invalid max queue size");
     max_queue_size_.store(max_queue_size);
+    flush_queue_size_.store(std::min(flush_queue_size, max_queue_size / 2));
     overflow_policy_.store(overflow_policy);
 
     auto expected = State::kSync;
@@ -146,11 +150,11 @@ void TpLogger::Log(Level level, impl::formatters::LoggerItemRef item) {
         const auto produced = produced_->fetch_add(1) + 1;
 
         // Wake the consumer for logs that must be flushed immediately (level at or above the flush level),
-        // or once the queue has filled up to half its capacity;
+        // or once the queue reaches the configured flush size;
         // otherwise leave the draining to the periodic flush.
         const bool should_notify =
             ShouldFlush(level) || !notification_batching_.load() ||
-            (produced - consumed_->load()) >= max_queue_size_.load() / 2;
+            (produced - consumed_->load()) >= flush_queue_size_.load();
 
         try {
             Push(

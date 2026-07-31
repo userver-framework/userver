@@ -161,13 +161,17 @@ private:
 
     bool PreparedStatementsEnabled(OptionalCommandControl cmd_ctl) const;
 
-    void SetConnectionStatementTimeout(TimeoutDuration timeout, engine::Deadline deadline);
+    void SetConnectionStatementTimeout(
+        TimeoutDuration timeout,
+        TimeoutDuration network_timeout,
+        engine::Deadline deadline
+    );
 
-    void SetStatementTimeout(TimeoutDuration timeout, engine::Deadline deadline);
+    void SetStatementTimeout(TimeoutDuration timeout, TimeoutDuration network_timeout, engine::Deadline deadline);
 
     void SetStatementTimeout(OptionalCommandControl cmd_ctl);
 
-    TimeoutDuration NormalizeStatementTimeout(TimeoutDuration timeout);
+    TimeoutDuration NormalizeStatementTimeout(TimeoutDuration timeout, TimeoutDuration network_timeout);
 
     void ApplyStatementTimeoutIfItChanged(
         TimeoutDuration timeout,
@@ -238,6 +242,8 @@ private:
     void ReportStatement(std::string_view name);
 
     bool ShouldWrapInAutoTransaction(std::string_view statement) const noexcept;
+
+    void TryRollbackAutoTransaction(engine::Deadline deadline);
 
     ResultSet ExecuteCommandInAutoTransaction(
         const Query& query,

@@ -46,7 +46,8 @@ public:
 
     std::shared_ptr<logging::impl::TpLogger> StartAsyncLogger(
         std::size_t queue_size_max = 10,
-        QueueOverflowBehavior on_overflow = QueueOverflowBehavior::kDiscard
+        QueueOverflowBehavior on_overflow = QueueOverflowBehavior::kDiscard,
+        std::size_t flush_queue_size = logging::LoggerConfig::kDefaultFlushQueueSize
     ) {
         UASSERT_MSG(
             engine::current_task::IsTaskProcessorThread(),
@@ -59,7 +60,12 @@ public:
             writer = logger->GetStatistics();
         });
 
-        logger->StartConsumerTask(engine::current_task::GetTaskProcessor(), queue_size_max, on_overflow);
+        logger->StartConsumerTask(
+            engine::current_task::GetTaskProcessor(),
+            queue_size_max,
+            on_overflow,
+            flush_queue_size
+        );
 
         // Tracing should not break the TpLogger
         logger->SetLevel(logging::Level::kTrace);
@@ -100,7 +106,7 @@ public:
 
                     if (thread_index != 0) {
                         if (mode & kTestLogCancel && i == kLoggingTestIterations / 4 * 3) {
-                            engine::current_task::GetCancellationToken().RequestCancel();
+                            engine::current_task::RequestCancel();
                         }
                         if (mode & kTestLogSync && i == kLoggingTestIterations / 4 * 3) {
                             logger->StopConsumerTask();
@@ -494,7 +500,7 @@ UTEST_F(LoggingTestCoro, TpLoggerBasicAsyncOverflowCancelled) {
         LOG_INFO_TO(logger) << i;
 
         if (i == kLoggingTestIterations / 2) {
-            engine::current_task::GetCancellationToken().RequestCancel();
+            engine::current_task::RequestCancel();
         }
     }
     logger->StopConsumerTask();
@@ -519,7 +525,7 @@ UTEST_F(LoggingTestCoro, TpLoggerBasicAsyncOverflowFlushCancelled) {
         LOG_INFO_TO(logger) << i;
 
         if (i == kLoggingTestIterations / 2) {
-            engine::current_task::GetCancellationToken().RequestCancel();
+            engine::current_task::RequestCancel();
         }
 
         if (i % 10 == 0) {
@@ -572,8 +578,7 @@ UTEST_F(LoggingTestCoro, TpLoggerFlush) {
 }
 
 UTEST_F(LoggingTestCoro, TpLoggerDeferredWakeup) {
-    // The wakeup threshold is half the queue size, so logging far fewer messages
-    // never wakes the sleeping consumer eagerly.
+    // Logging fewer than the default flush queue size never wakes the sleeping consumer eagerly.
     constexpr std::size_t kCount = 5;
     auto logger = StartAsyncLogger(1024, QueueOverflowBehavior::kDiscard);
 
@@ -600,24 +605,81 @@ UTEST_F(LoggingTestCoro, TpLoggerDeferredWakeup) {
     EXPECT_EQ(GetMetric("dropped"), 0);
 }
 
-UTEST_F(LoggingTestCoro, TpLoggerThresholdWakeup) {
-    // The wakeup threshold is half the queue size.
-    constexpr std::size_t kThreshold = 4;
-    auto logger = StartAsyncLogger(kThreshold * 2, QueueOverflowBehavior::kDiscard);
+UTEST_F(LoggingTestCoro, TpLoggerDefaultThresholdWakeup) {
+    constexpr std::size_t kThreshold = logging::LoggerConfig::kDefaultFlushQueueSize;
+    auto logger = StartAsyncLogger(kThreshold * 4);
 
     // Let the consumer drain and go to sleep before we log anything.
     engine::Yield();
 
-    // Crossing the threshold must wake the consumer without an explicit Flush.
+    // Reaching the default threshold must wake the consumer without an explicit Flush.
     for (std::size_t i = 0; i < kThreshold; ++i) {
         LOG_INFO_TO(logger) << "eager " << i;
     }
 
     engine::Yield();
-    EXPECT_GE(GetRecordsCount(), kThreshold) << "Reaching the threshold should wake the consumer";
+    EXPECT_GE(GetRecordsCount(), kThreshold) << "Reaching the default threshold should wake the consumer";
 
     logger->StopConsumerTask();
     EXPECT_EQ(GetRecordsCount(), kThreshold);
+    EXPECT_EQ(GetMetric("dropped"), 0);
+}
+
+UTEST_F(LoggingTestCoro, TpLoggerConfiguredThresholdWakeup) {
+    constexpr std::size_t kThreshold = 3;
+    auto logger = StartAsyncLogger(16, QueueOverflowBehavior::kDiscard, kThreshold);
+
+    engine::Yield();
+
+    for (std::size_t i = 0; i < kThreshold; ++i) {
+        LOG_INFO_TO(logger) << "configured " << i;
+    }
+
+    engine::Yield();
+    EXPECT_GE(GetRecordsCount(), kThreshold) << "Reaching the configured threshold should wake the consumer";
+
+    logger->StopConsumerTask();
+    EXPECT_EQ(GetRecordsCount(), kThreshold);
+    EXPECT_EQ(GetMetric("dropped"), 0);
+}
+
+UTEST_F(LoggingTestCoro, TpLoggerConfiguredThresholdIsCappedAtHalfQueueSize) {
+    constexpr std::size_t kMaxQueueSize = 8;
+    constexpr std::size_t kCappedThreshold = kMaxQueueSize / 2;
+    auto logger = StartAsyncLogger(kMaxQueueSize, QueueOverflowBehavior::kDiscard, kMaxQueueSize);
+
+    engine::Yield();
+
+    for (std::size_t i = 0; i < kCappedThreshold; ++i) {
+        LOG_INFO_TO(logger) << "configured capped " << i;
+    }
+
+    engine::Yield();
+    EXPECT_GE(GetRecordsCount(), kCappedThreshold)
+        << "The configured threshold should be capped at half the queue "
+           "size";
+
+    logger->StopConsumerTask();
+    EXPECT_EQ(GetRecordsCount(), kCappedThreshold);
+    EXPECT_EQ(GetMetric("dropped"), 0);
+}
+
+UTEST_F(LoggingTestCoro, TpLoggerDefaultThresholdIsCappedAtHalfQueueSize) {
+    constexpr std::size_t kMaxQueueSize = 8;
+    constexpr std::size_t kCappedThreshold = kMaxQueueSize / 2;
+    auto logger = StartAsyncLogger(kMaxQueueSize);
+
+    engine::Yield();
+
+    for (std::size_t i = 0; i < kCappedThreshold; ++i) {
+        LOG_INFO_TO(logger) << "default capped " << i;
+    }
+
+    engine::Yield();
+    EXPECT_GE(GetRecordsCount(), kCappedThreshold) << "The default threshold should be capped at half the queue size";
+
+    logger->StopConsumerTask();
+    EXPECT_EQ(GetRecordsCount(), kCappedThreshold);
     EXPECT_EQ(GetMetric("dropped"), 0);
 }
 

@@ -1,8 +1,8 @@
-from chaotic_openapi.front import errors
 import pydantic
 import pytest
 
 import chaotic.error
+from chaotic_openapi.front import errors
 
 
 class Model(pydantic.BaseModel):

@@ -25,7 +25,7 @@ Component::Component(
     const USERVER_NAMESPACE::components::ComponentConfig& config,
     const USERVER_NAMESPACE::components::ComponentContext& context
 )
-    : USERVER_NAMESPACE::components::LoggableComponentBase(config, context),
+    : USERVER_NAMESPACE::components::ComponentBase(config, context),
       client_(
           USERVER_NAMESPACE::chaotic::openapi::client::ParseConfig(config, ClientImpl::kDefaultBaseUrl),
           context.FindComponent<USERVER_NAMESPACE::components::HttpClient>().GetHttpClient()

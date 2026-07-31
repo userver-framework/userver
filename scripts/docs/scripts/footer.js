@@ -1,6 +1,6 @@
 import { changeTelegramChannelLanguageForRussianSpeakingUser } from "./telegramLanguage.js";
 import { init_header } from "./header.js";
-import { init_all_results_button, init_search_hotkey, init_search_observer } from "./search.js";
+import { init_all_results_button, init_search_hotkey, init_search_observer, init_search_results_anchor } from "./search.js";
 import { highlight_code } from "./codeHighlight.js";
 import { styleNavButtons } from "./styledBtn.js";
 import { LandingFeedback, PageFeedback } from "./feedback.js";
@@ -68,6 +68,7 @@ function waitForElm(selector) {
 }
 
 waitForElm('#MSearchField').then(() => {
+    init_search_results_anchor();
     init_all_results_button();
     init_search_hotkey();
     init_search_observer();
@@ -87,10 +88,9 @@ function hideEmptyPageNav() {
     const pageNav = document.getElementById('page-nav');
     if (!pageNav?.querySelector('ul.page-outline li')) {
         pageNav.style.display = 'none';
+
         const container = document.getElementById('container');
-        if (container) {
-            container.style.gridTemplateColumns = 'auto';
-        }
+        container?.classList.add('page-nav-hidden');
     }
 }
 

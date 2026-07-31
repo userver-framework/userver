@@ -1,4 +1,5 @@
 #include <array>
+#include <iterator>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -8,6 +9,8 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace {
+
+static_assert(std::input_iterator<utils::impl::IteratorWrapper<int*>>);
 
 constexpr int ConstexprTest(std::array<int, 2> data) {
     int result = 0;
@@ -73,6 +76,27 @@ TEST(Enumerate, Vector) {
 
         current_pos++;
     }
+}
+
+TEST(Enumerate, PostfixIncrement) {
+    std::vector<int> data{10, 20, 30};
+    auto range = utils::enumerate(data);
+    auto it = range.begin();
+
+    const auto [pos0, elem0] = *it;
+    EXPECT_EQ(pos0, 0);
+    EXPECT_EQ(elem0, 10);
+
+    auto prev = it++;
+    EXPECT_EQ(std::get<0>(*prev), 0);
+    EXPECT_EQ(std::get<1>(*prev), 10);
+    EXPECT_EQ(std::get<0>(*it), 1);
+    EXPECT_EQ(std::get<1>(*it), 20);
+
+    it++;
+    EXPECT_EQ(std::get<0>(*it), 2);
+    it++;
+    EXPECT_EQ(it, range.end());
 }
 
 TEST(Enumerate, EmptyVector) {

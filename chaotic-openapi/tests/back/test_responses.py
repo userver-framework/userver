@@ -1,8 +1,7 @@
-from chaotic_openapi.back.cpp.client import types
-
 from chaotic.back.cpp import type_name
 from chaotic.back.cpp import types as cpp_types
 from chaotic.front import types as front_types
+from chaotic_openapi.back.cpp.client import types
 
 
 def test_response(translate_single_schema):

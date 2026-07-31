@@ -49,8 +49,8 @@
  * than a couple of kilobytes).
  */
 #define VALID_LONG_MESSAGE_TYPE(id)                                           \
-  ((id) == 'T' || (id) == 'D' || (id) == 'd' || (id) == 'V' || (id) == 'E' || \
-   (id) == 'N' || (id) == 'A')
+  ((id) == 'T' || (id) == 't' || (id) == 'D' || (id) == 'd' || (id) == 'V' || \
+   (id) == 'E' || (id) == 'N' || (id) == 'A')
 
 static void handleSyncLoss(PGconn* conn, char id, int msgLength);
 static int getRowDescriptions(PGconn* conn, int msgLength);

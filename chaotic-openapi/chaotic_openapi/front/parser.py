@@ -59,7 +59,10 @@ class Parser:
         infile_path: str,
     ) -> model.Parameter:
         if isinstance(header, openapi.Ref):
-            return self._state.service.headers[self._locate_ref(header.ref)]
+            resolved = self._state.service.headers[self._locate_ref(header.ref)]
+            # components/headers/* doesn't know the HTTP header name,
+            # but the actual $ref does.
+            return dataclasses.replace(resolved, name=name)
 
         # Header is a Parameter w/o name and in
         # We're lazy, convert it using model_dump()

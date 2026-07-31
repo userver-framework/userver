@@ -76,6 +76,30 @@ void DistLockStrategy::Acquire(std::chrono::milliseconds lock_ttl, const std::st
     }
 }
 
+void DistLockStrategy::Prolong(std::chrono::milliseconds lock_ttl, const std::string& locker_id) {
+    namespace bson = formats::bson;
+
+    const auto now = utils::datetime::Now();
+    const auto expiration_time = now + lock_ttl;
+
+    const auto owner = MakeOwnerId(owner_prefix_, locker_id);
+
+    auto query = bson::MakeDoc(fields::kId, lock_name_, fields::kOwner, owner);
+    auto update = bson::MakeDoc("$set", bson::MakeDoc(fields::kLockedTill, expiration_time, fields::kOwner, owner));
+
+    try {
+        LOG_DEBUG() << "Owner " << owner << " try to prolong lock " << lock_name_;
+        auto lock = collection_.FindAndModify(std::move(query), update, options::ReturnNew{}).FoundDocument();
+        if (!lock) {
+            throw dist_lock::LockIsAcquiredByAnotherHostException();
+        }
+    } catch (const MongoException& exc) {
+        LOG_WARNING()
+            << "owner " << owner << " could not prolong a lock " << lock_name_ << " because of mongo error: " << exc;
+        throw;
+    }
+}
+
 void DistLockStrategy::Release(const std::string& locker_id) {
     namespace bson = formats::bson;
 

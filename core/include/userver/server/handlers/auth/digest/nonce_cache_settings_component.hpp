@@ -41,8 +41,7 @@ struct NonceCacheSettings {
 class NonceCacheSettingsComponent final : public AuthCheckerSettingsComponent {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of
-    /// server::handlers::auth::NonceCacheSettingsComponent
+    /// @brief The default name of @ref server::handlers::auth::NonceCacheSettingsComponent
     static constexpr std::string_view kName = "nonce-cache-settings";
 
     NonceCacheSettingsComponent(const components::ComponentConfig& config, const components::ComponentContext& context);

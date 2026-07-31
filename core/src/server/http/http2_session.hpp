@@ -108,11 +108,13 @@ private:
 
     static int OnStreamClose(nghttp2_session* session, int32_t stream_id, uint32_t error_code, void* user_data);
 
+    static int OnBeginFrame(nghttp2_session* session, const nghttp2_frame_hd* hd, void* user_data);
+
     void RegisterStream(Stream::Id id);
     void RemoveStream(Stream& stream);
     Stream& GetStreamChecked(Stream::Id id);
 
-    void SubmitRstStream(Stream::Id stream_id);
+    void SubmitRstStream(Stream::Id stream_id, std::uint32_t error_code = NGHTTP2_INTERNAL_ERROR);
 
     void FinalizeRequest(Stream& stream);
 
@@ -133,6 +135,8 @@ private:
     std::shared_ptr<impl::Http2StreamEventQueue> streaming_queue_{nullptr};
     engine::SingleConsumerEvent streaming_event_;
     impl::Http2StreamEventQueue::Consumer streaming_consumer_;
+    std::int32_t max_client_stream_id_{0};
+    bool peer_goaway_received_{false};
 };
 
 }  // namespace server::http

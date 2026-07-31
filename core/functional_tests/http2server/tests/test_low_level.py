@@ -1,4 +1,5 @@
 import asyncio
+import itertools
 import struct
 
 import h2.connection
@@ -10,13 +11,18 @@ import utils
 
 DEFAULT_PATH = '/http2server'
 
-DEFAULT_HEADERS = [
+PSEUDO_HEADERS = [
     (':method', 'GET'),
     (':path', f'{DEFAULT_PATH}?type=echo-header'),
     (':scheme', 'http'),
     (':authority', 'localhost'),
+]
+
+NON_PSEUDO_HEADERS = [
     ('echo-header', 'echo'),
 ]
+
+DEFAULT_HEADERS = PSEUDO_HEADERS + NON_PSEUDO_HEADERS
 
 
 async def _get_metric(monitor_client, metric_name):
@@ -64,6 +70,22 @@ async def test_settings_and_ping(service_client, create_socket):
             events += await utils.send_and_receive(sock, conn)
         assert isinstance(events[0], h2.events.PingAckReceived)
         assert ping_data == events[0].ping_data
+
+
+def _header_orderings():
+    for ordering in itertools.permutations(PSEUDO_HEADERS):
+        yield list(ordering) + NON_PSEUDO_HEADERS
+
+
+async def test_shuffle_pseudo_headers(create_connection, service_client):
+    await service_client.update_server_state()
+
+    async with create_connection() as (sock, conn):
+        for headers in _header_orderings():
+            stream_id = conn.get_next_available_stream_id()
+            conn.send_headers(stream_id, headers, end_stream=True)
+            await sock.sendall(conn.data_to_send())
+            await utils.receive_simple_response(sock, conn)
 
 
 async def test_invalid_stream(create_connection, service_client):
@@ -429,8 +451,7 @@ async def test_stream_already_closed(create_connection, service_client):
 
         async def open_and_close_simple_stream():
             stream_id = conn.get_next_available_stream_id()
-            conn.send_headers(stream_id, DEFAULT_HEADERS)
-            conn.end_stream(stream_id)
+            conn.send_headers(stream_id, DEFAULT_HEADERS, end_stream=True)
             await utils.receive_simple_response(sock, conn)
             return stream_id
 
@@ -470,3 +491,36 @@ async def test_streams_with_the_same_id(create_connection, service_client):
         assert 'unexpected non-CONTINUATION frame or stream_id is invalid' in str(
             receive,
         )
+
+
+async def test_decreasing_stream_id(create_connection, service_client):
+    await service_client.update_server_state()
+
+    async with create_connection() as (sock, conn):
+        payload = b''.join(utils.encode_header(k, v) for k, v in DEFAULT_HEADERS)
+        # Client stream ids must increase; a smaller id → GOAWAY PROTOCOL_ERROR.
+        await sock.sendall(
+            utils.create_frame(utils.HEADERS_FRAME, utils.END_HEADER_AND_STREAM, 5, payload)
+            + utils.create_frame(utils.HEADERS_FRAME, utils.END_HEADER_AND_STREAM, 3, payload)
+        )
+        events = conn.receive_data(await sock.recv(utils.RECEIVE_SIZE))
+        terminated = [e for e in events if isinstance(e, h2.events.ConnectionTerminated)]
+        assert terminated
+        assert terminated[0].error_code == utils.PROTOCOL_ERROR_CODE
+
+
+async def test_client_goaway_ping_ack(create_connection, monitor_client, service_client):
+    # After client GOAWAY (incl. unknown error_code) a follow-up PING must still be ACKed.
+    await service_client.update_server_state()
+
+    async with monitor_client.metrics_diff(prefix='server.requests.http2') as differ:
+        async with create_connection() as (sock, conn):
+            ping_data = b'h2spec\x00\x00'
+            await sock.sendall(
+                utils.create_frame(utils.GOAWAY_FRAME, utils.EMPTY_FLAGS, 0, struct.pack('>II', 0, 0xFF))
+                + utils.create_frame(utils.PING_FRAME, utils.EMPTY_FLAGS, 0, ping_data)
+            )
+            receive = await sock.recv(utils.RECEIVE_SIZE, timeout=2.0)
+            assert utils.is_ping_ack(receive, ping_data)
+
+    assert differ.value_at('goaway') == 1

@@ -1,5 +1,6 @@
 #include <userver/kafka/producer.hpp>
 
+#include <userver/engine/task/cancel.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
 #include <userver/kafka/impl/configuration.hpp>
@@ -124,9 +125,13 @@ Producer::Producer(
 {}
 
 Producer::~Producer() {
-    utils::Async(producer_task_processor_, "producer_shutdown", [this] {
-        std::move(*producer_).WaitUntilAllMessagesDelivered();
-    }).Get();
+    try {
+        utils::CriticalAsync(producer_task_processor_, "producer_shutdown", [this] {
+            std::move(*producer_).WaitUntilAllMessagesDelivered();
+        }).Get();
+    } catch (const std::exception& e) {
+        LOG_ERROR() << "While destroying the producer an error occured: " << e;
+    }
 }
 
 void Producer::Send(

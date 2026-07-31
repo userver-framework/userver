@@ -1,5 +1,0 @@
-jinja2 >= 2.10
-pydantic >= 2
-sqlparse
-psycopg2-binary >= 2.8.0
-yandex-taxi-testsuite[postgresql]

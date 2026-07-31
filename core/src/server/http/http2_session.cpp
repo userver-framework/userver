@@ -71,6 +71,7 @@ Http2Session::Http2Session(
     nghttp2_session_callbacks_set_on_stream_close_callback(callbacks, OnStreamClose);
     nghttp2_session_callbacks_set_on_header_callback(callbacks, OnHeader);
     nghttp2_session_callbacks_set_on_begin_headers_callback(callbacks, OnBeginHeaders);
+    nghttp2_session_callbacks_set_on_begin_frame_callback(callbacks, OnBeginFrame);
     nghttp2_session_callbacks_set_on_data_chunk_recv_callback(callbacks, OnDataChunkRecv);
 
     nghttp2_session* session{nullptr};
@@ -101,7 +102,7 @@ int Http2Session::OnFrameRecv(nghttp2_session* session, const nghttp2_frame* fra
             if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
                 auto& stream = parser.GetStreamChecked(Stream::Id{frame->hd.stream_id});
                 try {
-                    stream.RequestConstructor().AppendHeaderField("", 0);
+                    stream.RequestConstructor().AppendHeaderField(std::string_view{});
                 } catch (const std::exception& e) {
                     IncStat(parser.stats_.http2_stats.streams_parse_error);
                     LOG_LIMITED_WARNING() << "can't append header field: " << e;
@@ -112,11 +113,35 @@ int Http2Session::OnFrameRecv(nghttp2_session* session, const nghttp2_frame* fra
         case NGHTTP2_RST_STREAM: {
             IncStat(parser.stats_.http2_stats.reset_streams);
         } break;
-        case NGHTTP2_PING:
-            break;
+        case NGHTTP2_PING: {
+            // nghttp2 clears want_read after peer GOAWAY when there are no streams, but a
+            // trailing PING must still be ACKed and the TCP close must stay graceful.
+            if (parser.peer_goaway_received_ && (frame->hd.flags & NGHTTP2_FLAG_ACK) == 0) {
+                const auto rv = nghttp2_submit_ping(session, NGHTTP2_FLAG_ACK, frame->ping.opaque_data);
+                if (rv != 0) {
+                    return NGHTTP2_ERR_CALLBACK_FAILURE;
+                }
+            }
+        } break;
         case NGHTTP2_GOAWAY: {
+            parser.peer_goaway_received_ = true;
             IncStat(parser.stats_.http2_stats.goaway);
         } break;
+    }
+    return 0;
+}
+
+int Http2Session::OnBeginFrame(nghttp2_session* session, const nghttp2_frame_hd* hd, void* user_data) {
+    UASSERT(session);
+    UASSERT(hd);
+    auto& parser = GetParser(user_data);
+
+    if (hd->type == NGHTTP2_HEADERS && hd->stream_id <= parser.max_client_stream_id_) {
+        const auto
+            rv = nghttp2_submit_goaway(session, NGHTTP2_FLAG_NONE, hd->stream_id, NGHTTP2_PROTOCOL_ERROR, nullptr, 0);
+        if (rv != 0) {
+            return NGHTTP2_ERR_CALLBACK_FAILURE;
+        }
     }
     return 0;
 }
@@ -147,9 +172,10 @@ int Http2Session::OnHeader(
     auto& ctor = stream.RequestConstructor();
     if (hname == USERVER_NAMESPACE::http::headers::k2::kMethod) {
         ctor.SetMethod(HttpMethodFromString(hvalue));
+        stream.CheckUrlComplete();
     } else if (hname == USERVER_NAMESPACE::http::headers::k2::kPath) {
         try {
-            ctor.AppendUrl(hvalue.data(), hvalue.size());
+            ctor.AppendUrl(hvalue);
             stream.CheckUrlComplete();
         } catch (const std::exception& e) {
             LOG_LIMITED_WARNING() << "can't append url: " << e;
@@ -157,8 +183,8 @@ int Http2Session::OnHeader(
         }
     } else {
         try {
-            ctor.AppendHeaderField(hname.data(), hname.size());
-            ctor.AppendHeaderValue(hvalue.data(), hvalue.size());
+            ctor.AppendHeaderField(hname);
+            ctor.AppendHeaderValue(hvalue);
         } catch (const std::exception& e) {
             LOG_LIMITED_WARNING() << "can't append header field: " << e;
             IncStat(parser.stats_.http2_stats.streams_parse_error);
@@ -184,6 +210,7 @@ int Http2Session::OnBeginHeaders(nghttp2_session*, const nghttp2_frame* frame, v
     }
 
     auto& parser = GetParser(user_data);
+    parser.max_client_stream_id_ = std::max(parser.max_client_stream_id_, frame->hd.stream_id);
     parser.RegisterStream(Stream::Id{frame->hd.stream_id});
 
     return 0;
@@ -200,7 +227,7 @@ int Http2Session::OnDataChunkRecv(
     auto& parser = GetParser(user_data);
     auto& stream = parser.GetStreamChecked(Stream::Id{id});
     try {
-        stream.RequestConstructor().AppendBody(reinterpret_cast<const char*>(data), len);
+        stream.RequestConstructor().AppendBody(std::string_view{reinterpret_cast<const char*>(data), len});
     } catch (const std::exception& e) {
         LOG_LIMITED_WARNING() << "can't append body: " << e;
     }
@@ -293,15 +320,11 @@ Stream& Http2Session::GetStreamChecked(Stream::Id id) {
     return *stream;
 }
 
-void Http2Session::SubmitRstStream(Stream::Id id) {
+void Http2Session::SubmitRstStream(Stream::Id id, std::uint32_t error_code) {
     IncStat(stats_.http2_stats.reset_streams);
     UASSERT(id != Stream::Id{0});
-    const auto res = nghttp2_submit_rst_stream(
-        session_.get(),
-        NGHTTP2_FLAG_NONE,
-        static_cast<std::int32_t>(id),
-        NGHTTP2_INTERNAL_ERROR
-    );
+    const auto
+        res = nghttp2_submit_rst_stream(session_.get(), NGHTTP2_FLAG_NONE, static_cast<std::int32_t>(id), error_code);
     UASSERT(res == 0);
 }
 

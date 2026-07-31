@@ -197,11 +197,13 @@ implemented using the testsuite. To do that you have to:
   schema to start the database:
   @snippet samples/postgres_service/tests/conftest.py psql prepare
   The @ref pytest_userver.plugins.service.auto_client_deps "auto_client_deps"
-  fixture already knows about the pgsql fixture, so there's no need to override
+  fixture already knows about the @ref testsuite.databases.pgsql.pytest_plugin.pgsql "pgsql"
+  fixture, so there's no need to override
   the @ref pytest_userver.plugins.service.extra_client_deps "extra_client_deps"
   fixture.
 
-* Write the test:
+* Write the test using the @ref pytest_userver.plugins.service_client.service_client "service_client" fixture and the
+  @ref testsuite.databases.pgsql.pytest_plugin.pgsql "pgsql" fixture:
   @snippet samples/postgres_service/tests/test_postgres.py  Functional test
 
 

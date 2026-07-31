@@ -5,12 +5,15 @@
 
 #include <string_view>
 #include <unordered_set>
+#include <vector>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
 class ComponentContext;
+
+enum class ComponentHealth;
 
 namespace impl {
 class ComponentContextImpl;
@@ -109,6 +112,12 @@ std::string_view ToString(ServiceLifetimeStage);
 /// @see components::ComponentContext
 class State final {
 public:
+    /// Component name together with its current health.
+    struct ComponentWithHealth {
+        std::string_view name;
+        ComponentHealth health;
+    };
+
     explicit State(const ComponentContext& cc) noexcept;
 
     /// @returns true if one of the components is in fatal state and can not
@@ -116,6 +125,13 @@ public:
     /// components::ComponentHealth::kFatal value is returned from the overridden
     /// components::ComponentBase::GetComponentHealth().
     bool IsAnyComponentInFatalState() const;
+
+    /// @returns all components that are not in
+    /// components::ComponentHealth::kOk state.
+    ///
+    /// Components construction should finish before any call to this function
+    /// is made. The result should not outlive the components destruction.
+    std::vector<ComponentWithHealth> GetUnhealthyComponents() const;
 
     /// @returns the current service lifetime stage.
     /// @see @ref components::ServiceLifetimeStage

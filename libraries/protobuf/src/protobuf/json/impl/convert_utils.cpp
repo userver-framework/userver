@@ -8,16 +8,16 @@ USERVER_NAMESPACE_BEGIN
 
 namespace protobuf::json::impl {
 
-MessageType ClassifyMessage(const std::string_view full_name) noexcept {
+MessageType ClassifyMessage(std::string_view name) noexcept {
     // can't use simple dynamic_cast to determiine message types with special
     // handing because this will break support for dynamic messages
     constexpr std::string_view kProtobufPackage = "google.protobuf.";
 
-    if (full_name.find(kProtobufPackage) != std::size_t{0}) {
+    if (!name.starts_with(kProtobufPackage)) {
         return MessageType::kGeneral;
     }
 
-    auto name = full_name.substr(kProtobufPackage.size());
+    name = name.substr(kProtobufPackage.size());
 
     switch (name[0]) {
         case 'A': {
@@ -127,16 +127,16 @@ const ::google::protobuf::Descriptor* FindMessageDescByTypeUrl(
     const ::google::protobuf::DescriptorPool& pool,
     const std::string_view type_url
 ) noexcept {
-    const auto pos = type_url.rfind('/');
+    const auto slash_pos = type_url.rfind('/');
 
-    if (pos == std::string_view::npos || pos == 0) {
+    if (slash_pos == std::string_view::npos || slash_pos == 0) {
         return nullptr;
     }
 
 #if GOOGLE_PROTOBUF_VERSION >= 4022000
-    return pool.FindMessageTypeByName(type_url.substr(pos + 1));
+    return pool.FindMessageTypeByName(type_url.substr(slash_pos + 1));
 #else
-    return pool.FindMessageTypeByName(std::string(type_url.substr(pos + 1)));
+    return pool.FindMessageTypeByName(std::string(type_url.substr(slash_pos + 1)));
 #endif
 }
 

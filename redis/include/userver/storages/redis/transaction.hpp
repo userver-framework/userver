@@ -115,6 +115,8 @@ public:
 
     virtual RequestGet Get(std::string key) = 0;
 
+    virtual RequestGetdel Getdel(std::string key) = 0;
+
     virtual RequestGetset Getset(std::string key, std::string value) = 0;
 
     virtual RequestHdel Hdel(std::string key, std::string field) = 0;

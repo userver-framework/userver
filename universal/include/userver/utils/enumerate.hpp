@@ -36,6 +36,12 @@ struct IteratorWrapper {
         return *this;
     }
 
+    constexpr IteratorWrapper operator++(int) {
+        IteratorWrapper copy{*this};
+        ++*this;
+        return copy;
+    }
+
     constexpr value_type operator*() const { return {pos, *iterator}; }
 
     template <typename OtherIter>

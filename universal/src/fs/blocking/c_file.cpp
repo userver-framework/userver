@@ -90,11 +90,11 @@ void CFile::Close() && {
     utils::CheckSyscall(std::fclose(impl_->handle.release()), "calling fclose");
 }
 
-std::size_t CFile::Read(char* buffer, std::size_t size) {
+std::size_t CFile::Read(std::span<char> buffer) {
     UASSERT(IsOpen());
 
-    const auto bytes_read = std::fread(buffer, 1, size, impl_->handle.get());
-    if (bytes_read != size && !std::feof(impl_->handle.get())) {
+    const auto bytes_read = std::fread(buffer.data(), 1, buffer.size(), impl_->handle.get());
+    if (bytes_read != buffer.size() && !std::feof(impl_->handle.get())) {
         throw std::system_error(std::ferror(impl_->handle.get()), std::generic_category(), "calling fread");
     }
 

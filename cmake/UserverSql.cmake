@@ -11,7 +11,7 @@ function(_userver_prepare_sql)
         NAME userver-sql
         PYTHON_OUTPUT_VAR USERVER_SQL_PYTHON_BINARY
         REQUIREMENTS "${USERVER_SQL_SCRIPTS_PATH}/requirements.txt"
-                     "${USERVER_SQL_DTO_SCRIPTS_PATH}/requirements.txt"
+                     "${USERVER_SQL_DTO_SCRIPTS_PATH}/sqldto/generator/requirements.txt"
         UNIQUE
     )
     set_property(GLOBAL PROPERTY userver_sql_python_binary "${USERVER_SQL_PYTHON_BINARY}")
@@ -115,7 +115,7 @@ function(userver_add_sql_library TARGET)
         add_custom_command(
             OUTPUT ${output_files}
             COMMAND ${USERVER_SQL_PYTHON_BINARY}
-                    main.py
+                    -m sqldto.generator.main
                     --namespace "${ARG_NAMESPACE}"
                     --output-dir "${ARG_OUTPUT_DIR}"
                     --dialect "${ARG_DTO_DIALECT}"

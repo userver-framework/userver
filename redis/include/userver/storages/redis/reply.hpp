@@ -3,6 +3,7 @@
 /// @file userver/storages/redis/reply.hpp
 /// @brief Redis reply payload (ReplyData) and per-command reply wrapper (Reply)
 
+#include <iterator>
 #include <string>
 #include <variant>
 #include <vector>
@@ -52,16 +53,32 @@ public:
 
         class Iterator final {
         public:
-            constexpr Iterator(Array& array, std::size_t index) noexcept : array_(array), index_(index) {}
+            using iterator_category = std::input_iterator_tag;
+            using difference_type = std::ptrdiff_t;
+            using value_type = View;
+            using reference = View;
+            using pointer = void;
+
+            constexpr Iterator(Array& array, std::size_t index) noexcept : array_(&array), index_(index) {}
+
             Iterator& operator++() noexcept {
                 ++index_;
                 return *this;
             }
+
+            Iterator operator++(int) noexcept {
+                Iterator copy{*this};
+                ++*this;
+                return copy;
+            }
+
+            bool operator==(const Iterator& r) const noexcept { return index_ == r.index_; }
             bool operator!=(const Iterator& r) const noexcept { return index_ != r.index_; }
-            View operator*() noexcept { return {array_[index_ * 2], array_[index_ * 2 + 1]}; }
+
+            View operator*() const noexcept { return {(*array_)[index_ * 2], (*array_)[index_ * 2 + 1]}; }
 
         private:
-            Array& array_;
+            Array* array_;
             std::size_t index_;
         };
 

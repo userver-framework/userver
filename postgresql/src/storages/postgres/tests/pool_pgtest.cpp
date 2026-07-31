@@ -78,12 +78,12 @@ void WaitCleanupFinished(const std::shared_ptr<pg::detail::ConnectionPool>& pool
     FAIL() << "Timed out waiting for cleanup task completion";
 }
 
-std::size_t TriggerCleanupWithExpiredInheritedDeadline(const std::shared_ptr<pg::detail::ConnectionPool>& pool) {
+pg::Rate TriggerCleanupWithExpiredInheritedDeadline(const std::shared_ptr<pg::detail::ConnectionPool>& pool) {
     // Start a transaction and leave it in an "invalid" state
     {
         pg::Transaction trx{pg::detail::ConnectionPtr(nullptr)};
         UEXPECT_NO_THROW(trx = pool->Begin({})) << "Start transaction in a pool";
-        UEXPECT_THROW(trx.Execute("select pg_sleep(1)"), pg::ConnectionTimeoutError) << "Fail statement on timeout";
+        UEXPECT_THROW(trx.Execute("select pg_sleep(1)"), pg::QueryCancelled) << "Fail statement on timeout";
 
         // Set the deadline for the current task.
         // It is important to do this right before commit (returning the connection to the pool),
@@ -99,7 +99,7 @@ std::size_t TriggerCleanupWithExpiredInheritedDeadline(const std::shared_ptr<pg:
 
     // Reset the task deadline just in case
     server::request::kTaskInheritedData.Erase();
-    return pool->GetStatistics().connection.error_total;
+    return pool->GetStatistics().connection.error_total.Load();
 }
 
 }  // namespace
@@ -309,9 +309,9 @@ UTEST_P(PostgrePool, PoolServerUnavailable) {
     );
     UEXPECT_THROW(const pg::detail::ConnectionPtr conn = pool->Acquire(MakeDeadline()), pg::PoolError) << "Empty pool";
     const auto& stats = pool->GetStatistics();
-    EXPECT_EQ(2, stats.connection.open_total);
+    EXPECT_EQ(stats.connection.open_total.Load(), 2);
     EXPECT_EQ(0, stats.connection.active);
-    EXPECT_EQ(2, stats.connection.error_total);
+    EXPECT_EQ(stats.connection.error_total.Load(), 2);
 }
 
 UTEST_P(PostgrePool, PoolTransaction) {
@@ -410,9 +410,9 @@ UTEST_P(PostgrePool, MinPool) {
         std::make_shared<utils::statistics::MetricsStorage>()
     );
     const auto& stats = pool->GetStatistics();
-    EXPECT_EQ(GetParam() == pg::InitMode::kAsync ? 0 : 1, stats.connection.open_total);
+    EXPECT_EQ(stats.connection.open_total.Load(), GetParam() == pg::InitMode::kAsync ? 0 : 1);
     EXPECT_EQ(1, stats.connection.active);
-    EXPECT_EQ(0, stats.connection.error_total);
+    EXPECT_EQ(stats.connection.error_total.Load(), 0);
 }
 
 UTEST_P(PostgrePool, ConnectionCleanup) {
@@ -426,7 +426,7 @@ UTEST_P(PostgrePool, ConnectionCleanup) {
         kCachePreparedStatements,
         {},
         storages::postgres::DefaultCommandControls(
-            pg::CommandControl{std::chrono::milliseconds{100}, std::chrono::seconds{1}},
+            pg::CommandControl{std::chrono::milliseconds{100}, std::chrono::seconds{0}},
             {},
             {}
         ),
@@ -439,16 +439,16 @@ UTEST_P(PostgrePool, ConnectionCleanup) {
 
     {
         const auto& stats = pool->GetStatistics();
-        EXPECT_EQ(GetParam() == pg::InitMode::kAsync ? 0 : 1, stats.connection.open_total);
+        EXPECT_EQ(stats.connection.open_total.Load(), GetParam() == pg::InitMode::kAsync ? 0 : 1);
         EXPECT_EQ(1, stats.connection.active);
-        EXPECT_EQ(0, stats.connection.error_total);
+        EXPECT_EQ(stats.connection.error_total.Load(), 0);
     }
     {
         pg::Transaction trx{pg::detail::ConnectionPtr(nullptr)};
         UEXPECT_NO_THROW(trx = pool->Begin({})) << "Start transaction in a pool";
 
         const auto& stats = pool->GetStatistics();
-        EXPECT_EQ(1, stats.connection.open_total);
+        EXPECT_EQ(stats.connection.open_total.Load(), 1);
         EXPECT_EQ(1, stats.connection.active);
         EXPECT_EQ(1, stats.connection.used);
         UEXPECT_THROW(trx.Execute("select pg_sleep(1)"), pg::ConnectionTimeoutError) << "Fail statement on timeout";
@@ -456,11 +456,11 @@ UTEST_P(PostgrePool, ConnectionCleanup) {
     }
     {
         const auto& stats = pool->GetStatistics();
-        EXPECT_EQ(1, stats.connection.open_total);
+        EXPECT_EQ(stats.connection.open_total.Load(), 1);
         EXPECT_EQ(1, stats.connection.active);
         EXPECT_EQ(1, stats.connection.used);
-        EXPECT_EQ(0, stats.connection.drop_total);
-        EXPECT_EQ(0, stats.connection.error_total);
+        EXPECT_EQ(stats.connection.drop_total.Load(), 0);
+        EXPECT_EQ(stats.connection.error_total.Load(), 0);
     }
 }
 
@@ -504,11 +504,11 @@ UTEST_P(PostgrePool, QueryCancel) {
     }
     {
         const auto& stats = pool->GetStatistics();
-        EXPECT_EQ(1, stats.connection.open_total);
+        EXPECT_EQ(stats.connection.open_total.Load(), 1);
         EXPECT_EQ(1, stats.connection.active);
         EXPECT_EQ(0, stats.connection.used);
-        EXPECT_EQ(0, stats.connection.drop_total);
-        EXPECT_EQ(0, stats.connection.error_total);
+        EXPECT_EQ(stats.connection.drop_total.Load(), 0);
+        EXPECT_EQ(stats.connection.error_total.Load(), 0);
     }
 }
 
@@ -830,7 +830,7 @@ UTEST_P(PostgrePool, ConnectionRateLimitSkipsHealthyPool) {
         << "Third acquire also grows the healthy pool: the rate limiter is "
            "bypassed because there are no recent connection errors";
 
-    EXPECT_EQ(pool->GetStatistics().connection.rate_limit_throttled, 0)
+    EXPECT_EQ(pool->GetStatistics().connection.rate_limit_throttled.Load(), 0)
         << "A healthy pool must never be throttled by "
            "the connecting rate limiter";
 
@@ -857,7 +857,7 @@ UTEST_P(PostgrePool, ConnectionRateLimitThrottlesAfterFailedCleanup) {
     // cascading into the rest of the test failing. So we keep a generous default
     // network timeout for acquisition and pass the short timeout only to the
     // statements that must time out.
-    constexpr pg::CommandControl kDirtyStatementCc{std::chrono::milliseconds{100}, std::chrono::seconds{30}};
+    constexpr pg::CommandControl kDirtyStatementCc{std::chrono::milliseconds{100}, std::chrono::seconds{0}};
 
     auto pool = CreateCleanupPool(
         GetDsnFromEnv(),
@@ -867,7 +867,7 @@ UTEST_P(PostgrePool, ConnectionRateLimitThrottlesAfterFailedCleanup) {
         pg::CommandControl{std::chrono::seconds{5}, std::chrono::seconds{30}}
     );
 
-    const auto errors_before = pool->GetStatistics().connection.error_total;
+    const auto errors_before = pool->GetStatistics().connection.error_total.Load();
     {
         pg::Transaction dirty_transaction1{pg::detail::ConnectionPtr(nullptr)};
         pg::Transaction dirty_transaction2{pg::detail::ConnectionPtr(nullptr)};
@@ -882,7 +882,7 @@ UTEST_P(PostgrePool, ConnectionRateLimitThrottlesAfterFailedCleanup) {
     }
     WaitCleanupFinished(pool);
 
-    ASSERT_EQ(pool->GetStatistics().connection.error_total, errors_before + 1)
+    ASSERT_EQ(pool->GetStatistics().connection.error_total.Load(), errors_before + pg::Rate{1})
         << "Failed dirty connection cleanup "
            "must increment error_total";
 
@@ -894,7 +894,7 @@ UTEST_P(PostgrePool, ConnectionRateLimitThrottlesAfterFailedCleanup) {
         << "First connection after failed cleanup is created while "
            "a token is available";
 
-    const auto throttled_before = pool->GetStatistics().connection.rate_limit_throttled;
+    const auto throttled_before = pool->GetStatistics().connection.rate_limit_throttled.Load();
 
     constexpr auto kShortDeadline = std::chrono::milliseconds{200};
     UEXPECT_THROW(
@@ -902,7 +902,7 @@ UTEST_P(PostgrePool, ConnectionRateLimitThrottlesAfterFailedCleanup) {
         pg::PoolError
     ) << "Second connection after failed cleanup must be throttled by the rate limiter";
 
-    EXPECT_EQ(pool->GetStatistics().connection.rate_limit_throttled, throttled_before + 1)
+    EXPECT_EQ(pool->GetStatistics().connection.rate_limit_throttled.Load(), throttled_before + pg::Rate{1})
         << "rate_limit_throttled "
            "must increment after "
            "failed cleanup "
@@ -936,13 +936,13 @@ UTEST_P(PostgrePool, ConnectionRateLimitThrottlesUnderStress) {
         std::make_shared<utils::statistics::MetricsStorage>()
     );
 
-    const auto errors_before = pool->GetStatistics().connection.error_total;
+    const auto errors_before = pool->GetStatistics().connection.error_total.Load();
     {
         pg::detail::ConnectionPtr broken(nullptr);
         UASSERT_NO_THROW(broken = pool->Acquire(MakeDeadline())) << "Acquire connection to break it";
         broken->Close();
     }
-    ASSERT_EQ(pool->GetStatistics().connection.error_total, errors_before + 1)
+    ASSERT_EQ(pool->GetStatistics().connection.error_total.Load(), errors_before + pg::Rate{1})
         << "Releasing a closed connection must "
            "increment error_total";
 
@@ -951,7 +951,7 @@ UTEST_P(PostgrePool, ConnectionRateLimitThrottlesUnderStress) {
         << "First connection after stress is created while a token "
            "is available";
 
-    const auto throttled_before = pool->GetStatistics().connection.rate_limit_throttled;
+    const auto throttled_before = pool->GetStatistics().connection.rate_limit_throttled.Load();
 
     constexpr auto kShortDeadline = std::chrono::milliseconds{200};
     UEXPECT_THROW(
@@ -959,7 +959,7 @@ UTEST_P(PostgrePool, ConnectionRateLimitThrottlesUnderStress) {
         pg::PoolError
     ) << "Second acquire must be throttled by the rate limiter under stress";
 
-    EXPECT_EQ(pool->GetStatistics().connection.rate_limit_throttled, throttled_before + 1)
+    EXPECT_EQ(pool->GetStatistics().connection.rate_limit_throttled.Load(), throttled_before + pg::Rate{1})
         << "rate_limit_throttled "
            "must increment when "
            "throttling under stress";

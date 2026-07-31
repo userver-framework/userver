@@ -35,12 +35,27 @@ clients::http::Request& GetMethod(
 }
 }  // namespace
 
-std::shared_ptr<clients::http::Response> S3Connection::RequestApi(Request& r, std::string_view method_name) {
-    if (!r.bucket.empty()) {
-        r.headers[USERVER_NAMESPACE::http::headers::kHost] = r.bucket + "." + api_url_;
-    } else {
-        r.headers[USERVER_NAMESPACE::http::headers::kHost] = api_url_;
+// api_url_ может содержать схему и путь (в тестах endpoint указывает на
+// mockserver, например "http://localhost:PORT/s3mds"). Заголовок Host должен
+// нести только authority (host[:port]), поэтому схему и путь отбрасываем.
+// Префикс "bucket." сохраняем всегда: при обращении к localhost GetUrl не
+// кладёт bucket в путь, и mock определяет bucket именно по Host. Внешнее
+// связывание — используется в unit-тесте.
+std::string MakeHostHeader(std::string_view api_url, std::string_view bucket) {
+    const auto schema_pos = api_url.find("://");
+    std::string_view authority = schema_pos == std::string_view::npos ? api_url : api_url.substr(schema_pos + 3);
+    const auto path_pos = authority.find('/');
+    if (path_pos != std::string_view::npos) {
+        authority = authority.substr(0, path_pos);
     }
+    if (!bucket.empty()) {
+        return fmt::format("{}.{}", bucket, authority);
+    }
+    return std::string{authority};
+}
+
+std::shared_ptr<clients::http::Response> S3Connection::RequestApi(Request& r, std::string_view method_name) {
+    r.headers[USERVER_NAMESPACE::http::headers::kHost] = MakeHostHeader(api_url_, r.bucket);
     LOG_DEBUG() << "S3 Host: " << r.headers[USERVER_NAMESPACE::http::headers::kHost];
 
     const std::string full_url = GetUrl(r, connection_type_);
@@ -71,11 +86,7 @@ std::shared_ptr<clients::http::Response> S3Connection::RequestApi(Request& r, st
 
 std::shared_ptr<clients::http::Response> S3Connection::DoStartApiRequest(const Request& r) const {
     auto headers = r.headers;
-    if (!r.bucket.empty()) {
-        headers[USERVER_NAMESPACE::http::headers::kHost] = r.bucket + "." + api_url_;
-    } else {
-        headers[USERVER_NAMESPACE::http::headers::kHost] = api_url_;
-    }
+    headers[USERVER_NAMESPACE::http::headers::kHost] = MakeHostHeader(api_url_, r.bucket);
 
     const std::string full_url = GetUrl(r, connection_type_);
 

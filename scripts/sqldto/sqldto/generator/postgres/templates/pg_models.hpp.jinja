@@ -1,0 +1,59 @@
+{%- from "helpers.inc" import codegen_alert, simple_cpp_type -%}
+{{ codegen_alert() }}
+
+#pragma once
+
+{% for include in includes %}
+#include <{{ include }}>
+{% endfor %}
+
+namespace {{ namespace }} {
+{% for enum in enums %}
+
+enum class {{ enum.cpp_name }} {
+    {% set comment_col = (enum.entries | map(attribute='cpp_name') | map('length') | max) + 1 %}
+    {% for entry in enum.entries %}
+    {{ '%-*s' | format(comment_col, entry.cpp_name ~ ',') }}  // {{ entry.name }}
+    {% endfor %}
+};
+{% endfor %}
+{% for struct in structs %}
+
+struct {{ struct.cpp_name }} {
+    {% for field in struct.fields %}
+    {{ simple_cpp_type(field.cpp_type) }} {{ field.cpp_name }}{{ '{}' if field.cpp_type.explicit_default else '' }};
+    {% endfor %}
+};
+{% endfor %}
+{% for alias in aliases %}
+using {{ alias.cpp_name_from }} = {{ alias.cpp_name_to }};
+{% endfor %}
+
+}  // namespace {{ namespace }}
+
+USERVER_NAMESPACE_BEGIN
+
+namespace storages::postgres::io {
+{% for enum in enums %}
+
+template <>
+struct CppToUserPg<{{ namespace }}::{{ enum.cpp_name }}> : EnumMappingBase<{{ namespace }}::{{ enum.cpp_name }}> {
+    static constexpr DBTypeName postgres_name = "{{ enum.db_name }}";
+    static constexpr Enumerator enumerators[] = {
+        {% for entry in enum.entries %}
+        {EnumType::{{ entry.cpp_name }}, "{{ entry.name }}"},
+        {% endfor %}
+    };
+};
+{% endfor %}
+{% for struct in structs %}
+
+template <>
+struct CppToUserPg<{{ namespace }}::{{ struct.cpp_name }}> {
+    static constexpr DBTypeName postgres_name = "{{ struct.db_name }}";
+};
+{% endfor %}
+
+}  // namespace storages::postgres::io
+
+USERVER_NAMESPACE_END

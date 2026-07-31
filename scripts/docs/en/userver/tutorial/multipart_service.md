@@ -153,7 +153,8 @@ city=Hillsbery, UT image_size=10173
 ### Functional testing
 
 @ref scripts/docs/en/userver/functional_testing.md "Functional tests" for the service could be
-implemented using the @ref service_client "service_client" fixture from
+implemented using the @ref pytest_userver.plugins.service_client.service_client "service_client" fixture and the
+@ref testsuite.plugins.common.load_binary "load_binary" fixture from
 pytest_userver.plugins.core in the
 following way:
 

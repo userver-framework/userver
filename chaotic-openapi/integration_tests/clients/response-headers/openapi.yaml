@@ -26,7 +26,14 @@ paths:
                             schema:
                                 type: integer
                                 x-taxi-cpp-type: std::chrono::seconds
+                        X-Ref-Header:
+                            $ref: '#/components/headers/RefHeaderComponent'
 components:
+    headers:
+        RefHeaderComponent:
+            description: header defined in components but referenced under a different name
+            schema:
+                type: string
     responses:
         ResponseX:
             description: OK

@@ -4,6 +4,8 @@ cmake
 gdb
 git
 libbenchmark-dev
+libboost-context1.83-dev
+libboost-coroutine1.83-dev 
 libboost1.83-dev
 libboost-filesystem1.83-dev
 libboost-iostreams1.83-dev

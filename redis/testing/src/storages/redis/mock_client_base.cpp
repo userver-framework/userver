@@ -242,6 +242,10 @@ RequestGet MockClientBase::Get(std::string /*key*/, const CommandControl& /*comm
     AbortWithStacktrace(kNotMocked);
 }
 
+RequestGetdel MockClientBase::Getdel(std::string /*key*/, const CommandControl& /*command_control*/) {
+    AbortWithStacktrace(kNotMocked);
+}
+
 RequestGetset MockClientBase::Getset(
     std::string /*key*/,
     std::string /*value*/,

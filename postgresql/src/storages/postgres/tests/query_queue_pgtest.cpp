@@ -85,7 +85,7 @@ UTEST_P(PostgreConnection, QueryQueueTimeout) {
     UEXPECT_NO_THROW(query_queue.Push(kDefaultCC, "SELECT pg_sleep(5)"));
 
     QueryQueueResult result{};
-    UEXPECT_THROW(result = query_queue.Collect(std::chrono::milliseconds{100}), pg::ConnectionTimeoutError);
+    UEXPECT_THROW(result = query_queue.Collect(std::chrono::milliseconds{100}), pg::QueryCancelled);
 }
 
 UTEST_P(PostgreConnection, QueryQueueEmpty) {

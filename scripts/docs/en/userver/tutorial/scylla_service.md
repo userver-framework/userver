@@ -364,13 +364,15 @@ implemented using the testsuite. To do that you have to:
 * Turn on the `pytest_userver.plugins.scylla` plugin and provide ScyllaDB
   connection info for the testsuite:
   @snippet samples/scylla_service/testsuite/conftest.py scylla setup
-  The `pytest_userver.plugins.service.auto_client_deps()` fixture already knows
-  about the scylla fixture, so there's no need to override the
-  `extra_client_deps()` fixture. The sample's `conftest.py` additionally calls
+  The @ref pytest_userver.plugins.service.auto_client_deps "auto_client_deps" fixture
+  already knows about the @ref pytest_userver.plugins.scylla.scylla "scylla" fixture,
+  so there's no need to override the
+  @ref pytest_userver.plugins.service.extra_client_deps "extra_client_deps" fixture.
+  The sample's `conftest.py` additionally calls
   `/v1/schema/init` and truncates both tables before every test so each case
   starts from a clean slate.
 
-* Write the test:
+* Write the test using the @ref pytest_userver.plugins.service_client.service_client "service_client" fixture:
   @snippet samples/scylla_service/testsuite/test_scylla.py  Functional test
 
 ## Full sources
