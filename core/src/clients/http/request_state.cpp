@@ -703,11 +703,13 @@ void RequestState::ParseSingleCookie(const char* ptr, size_t size) {
         LOG_WARNING() << "Cookies engine was enabled. Ignoring parsing cookie '" << std::string_view(ptr, size) << "'";
         return;
     }
-    if (auto cookie = server::http::Cookie::FromString(std::string_view(ptr, size))) {
+    if (auto parsed_cookie = server::http::Cookie::FromString(std::string_view(ptr, size))) {
         //  For API compatibiliy we preserve old API
-        [[maybe_unused]] auto [it, ok] = response_->cookies().emplace(cookie->Name(), std::move(*cookie));
+        [[maybe_unused]] auto
+            [it, ok] = response_->cookies().try_emplace(parsed_cookie->Name(), std::move(*parsed_cookie));
         if (!ok) {
-            LOG_WARNING() << "Failed to add cookie '" + it->first + "', already added";
+            it->second = std::move(*parsed_cookie);
+            LOG_DEBUG() << "Overwriting cookie '" + it->first + "', duplicate found";
         }
     }
 }

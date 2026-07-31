@@ -1183,6 +1183,40 @@ UTEST(HttpClient, CookiesFromServerMapAPI) {
     test({"A=1", "A=2", "FOO=BAR"}, {"A=1", "FOO=BAR"});
 }
 
+UTEST(HttpClient, DuplicateSetCookieOverwrites) {
+    const utest::SimpleServer http_server{[](const utest::SimpleServer::Request&) {
+        static const utest::SimpleServer::Response kResponse{
+            "HTTP/1.1 200 OK\r\n"
+            "Connection: close\r\n"
+            "Content-Length: 0\r\n"
+            "Set-Cookie: test=first\r\n"
+            "Set-Cookie: test=second\r\n"
+            "Set-Cookie: test=third\r\n"
+            "\r\n",
+            utest::SimpleServer::Response::kWriteAndClose,
+        };
+        return kResponse;
+    }};
+
+    auto http_client_ptr = utest::CreateHttpClient();
+    const auto response =
+        http_client_ptr->CreateRequest()
+            .get(http_server.GetBaseUrl())
+            .retry(1)
+            .verify(true)
+            .http_version(USERVER_NAMESPACE::http::HttpVersion::k11)
+            .timeout(kTimeout)
+            .perform();
+
+    EXPECT_TRUE(response->IsOk());
+
+    const auto& cookies = response->cookies();
+    ASSERT_EQ(cookies.size(), 1u);
+    const auto it = cookies.find("test");
+    ASSERT_NE(it, cookies.end());
+    EXPECT_EQ(it->second.Value(), "third");
+}
+
 UTEST(HttpClient, HeadersAndWhitespaces) {
     auto http_client_ptr = utest::CreateHttpClient();
 
