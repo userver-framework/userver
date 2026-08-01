@@ -16,6 +16,8 @@ class Request;
 class CookieJar final {
 public:
     CookieJar();
+    /// @brief Constructs cookie jar by raw list of cookies
+    /// @warning The Netscape cookie file format should be used for cookies
     CookieJar(std::vector<std::string>&& cookies);
     ~CookieJar();
     CookieJar(const CookieJar&);

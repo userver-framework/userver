@@ -394,6 +394,8 @@ bool RequestState::IsProxySet() const { return proxy_url_.has_value(); }
 
 void RequestState::EnableCookieEngine(bool enable) {
     cookie_engine_enabled_ = enable;
+    // "" for enabling cookie engine withour reading any files
+    // null for disabling and clearing in memory jar
     easy().set_cookie_file(enable ? "" : nullptr);
 }
 
@@ -416,6 +418,7 @@ void RequestState::http_auth_type(
 
 void RequestState::set_cookie_engine(const std::vector<std::string>& cookies) {
     EnableCookieEngine(true);
+    //  cookies should be presented by netscape file format, otherwise (Set-Cookie format) can lead for unexpected results for domains. see libcurl docs
     for (const auto& item : cookies) {
         easy().set_cookie_list(item);
     }

@@ -1180,7 +1180,7 @@ UTEST(HttpClient, CookiesFromServerMapAPI) {
         }
     };
     test({"token=xyz789"}, {"token=xyz789"});
-    test({"A=1", "A=2", "FOO=BAR"}, {"A=1", "FOO=BAR"});
+    test({"A=1", "A=2", "FOO=BAR"}, {"A=2", "FOO=BAR"});
 }
 
 UTEST(HttpClient, DuplicateSetCookieOverwrites) {
