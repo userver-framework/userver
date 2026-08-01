@@ -131,6 +131,9 @@ std::array<char, sizeof(WSHeader)> MakeControlFrame(
     hdr->bytes = 0;
     hdr->bits.fin = 1;
     hdr->bits.opcode = opcode;
+    // the field is 7 bits wide and a control frame never carries an extended
+    // length, so anything above 125 would go out truncated
+    UASSERT(data.size() <= 125);
     hdr->bits.payload_len = data.size();
     hdr->bits.mask = is_masked == Masked::kYes ? 1 : 0;
 
@@ -182,7 +185,8 @@ CloseStatus ReadWSFrameImpl(
         return CloseStatus::kGoingAway;
     }
 
-    const bool is_data_frame = (hdr.bits.opcode & (kText | kBinary)) || hdr.bits.opcode == kContinuation;
+    const bool is_data_frame =
+        hdr.bits.opcode == kText || hdr.bits.opcode == kBinary || hdr.bits.opcode == kContinuation;
     if (hdr.bits.payload_len <= 125) {
         payload_len = hdr.bits.payload_len;
     } else if (hdr.bits.payload_len == 126) {

@@ -233,7 +233,10 @@ public:
             }
 
             if (frame_.ping_received) {
-                MessageExtended pong_msg{MakeBinarySpan(*frame_.payload), impl::WSOpcodes::kPong, {}};
+                // the ping payload is the tail of the buffer, the rest belongs to a
+                // data message that is still being assembled
+                const auto ping_payload = MakeBinarySpan(*frame_.payload).last(payload_len);
+                MessageExtended pong_msg{ping_payload, impl::WSOpcodes::kPong, {}};
                 SendExtended(pong_msg);
                 frame_.payload->resize(frame_.payload->size() - payload_len);
                 frame_.ping_received = false;
