@@ -31,7 +31,12 @@ class Pool;
 /// storages::odbc::Cluster
 class Transaction final {
 public:
-    explicit Transaction(detail::ConnectionPtr&& connection, detail::Pool& pool, engine::Deadline deadline);
+    explicit Transaction(
+        detail::ConnectionPtr&& connection,
+        detail::Pool& pool,
+        std::chrono::milliseconds network_timeout,
+        std::chrono::milliseconds statement_timeout
+    );
     ~Transaction();
     Transaction(const Transaction& other) = delete;
     Transaction(Transaction&& other) noexcept;
@@ -65,7 +70,8 @@ private:
     // shared_ptr<Pool>(16) + unique_ptr<Connection>(8) = 24 bytes, align 8
     utils::FastPimpl<detail::ConnectionPtr, 24, 8> connection_;
     detail::Pool* pool_;
-    engine::Deadline deadline_;
+    std::chrono::milliseconds network_timeout_;
+    std::chrono::milliseconds statement_timeout_;
     utils::datetime::SteadyCoarseClock::time_point start_time_;
     std::chrono::microseconds busy_time_{0};
     tracing::Span span_;

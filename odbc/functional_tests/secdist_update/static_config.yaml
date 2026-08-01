@@ -6,6 +6,7 @@ components_manager:
             method: GET
 
         odbc-database:
+            blocking_task_processor: fs-task-processor
             secdist_alias: odbc-test
             min_pool_size: 0
             max_pool_size: 1

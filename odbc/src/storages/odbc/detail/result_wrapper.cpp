@@ -1,182 +1,103 @@
-#include <fmt/format.h>
-#include <sqlext.h>
-#include <storages/odbc/detail/diag_wrapper.hpp>
 #include <storages/odbc/detail/result_wrapper.hpp>
+
+#include <fmt/format.h>
+
 #include <userver/storages/odbc/exception.hpp>
+#include <userver/utils/from_string.hpp>
+#include <userver/utils/str_icase.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::odbc::detail {
-namespace {
 
-void CheckStatus(SQLRETURN ret, SQLHANDLE handle, SQLSMALLINT type) {
-    if (ret == SQL_SUCCESS) {
-        return;
-    }
-    auto exception_message = fmt::format("SQLFunctionFailed failed: {} {}", ret, GetSQLDiagString(handle, type));
-    throw ResultSetError(std::move(exception_message));
-}
-
-void DestroyResultHandle(SQLHSTMT handle) {
-    if (handle != SQL_NULL_HSTMT) {
-        SQLFreeHandle(SQL_HANDLE_STMT, handle);
-    }
-}
-}  // namespace
-
-ResultWrapper::ResultHandle MakeResultHandle(SQLHDBC handle) {
-    SQLHSTMT stmt = nullptr;
-    SQLRETURN ret = SQLAllocHandle(SQL_HANDLE_STMT, handle, &stmt);
-    if (!SQL_SUCCEEDED(ret)) {
-        throw ResultSetError("Failed to allocate statement handle");
-    }
-    auto result_handle = ResultWrapper::ResultHandle{stmt, &DestroyResultHandle};
-
-    ret =
-        SQLSetStmtAttr(result_handle.get(), SQL_ATTR_CURSOR_TYPE, reinterpret_cast<SQLPOINTER>(SQL_CURSOR_DYNAMIC), 0);
-    if (!SQL_SUCCEEDED(ret)) {
-        throw ResultSetError("Failed to set cursor type");
-    }
-
-    return result_handle;
-}
-
-ResultWrapper::ResultWrapper(ResultHandle&& res)
-    : handle{std::move(res)}
+ResultWrapper::ResultWrapper(std::vector<Column> columns, std::vector<Row> rows, std::size_t rows_affected)
+    : columns_{std::move(columns)},
+      rows_{std::move(rows)},
+      rows_affected_{rows_affected}
 {}
-ResultWrapper::~ResultWrapper() = default;
 
-ResultWrapper::ResultWrapper(ResultWrapper&& other) noexcept = default;
+std::size_t ResultWrapper::RowCount() const noexcept { return rows_.size(); }
 
-SQLRETURN ResultWrapper::GetStatus() const {
-    SQLRETURN ret = SQLMoreResults(handle.get());
-    return ret;
-}
+std::size_t ResultWrapper::FieldCount() const noexcept { return columns_.size(); }
 
-// NOLINTNEXTLINE(readability-make-member-function-const)
-void ResultWrapper::Fetch() {
-    SQLRETURN ret = SQLFetch(handle.get());
-    // SQL_NO_DATA means no rows — not an error (e.g. SELECT with empty result set)
-    if (ret == SQL_NO_DATA) {
-        return;
+std::size_t ResultWrapper::RowsAffected() const noexcept { return rows_affected_; }
+
+const std::string& ResultWrapper::GetFieldName(std::size_t col) const {
+    if (col >= columns_.size()) {
+        throw FieldIndexOutOfBounds{col};
     }
-    CheckStatus(ret, handle.get(), SQL_HANDLE_STMT);
-}
-
-std::size_t ResultWrapper::RowCount() const {
-    // TODO: drivers may return -1 or 0 if rows are not fetched yet, overall implementation for select is
-    // driver-dependent, needs checking
-    SQLLEN row_count = 0;
-    CheckStatus(SQLRowCount(handle.get(), &row_count), handle.get(), SQL_HANDLE_STMT);
-    return static_cast<std::size_t>(row_count);
-}
-
-std::size_t ResultWrapper::FieldCount() const {
-    SQLSMALLINT field_count = 0;
-    CheckStatus(SQLNumResultCols(handle.get(), &field_count), handle.get(), SQL_HANDLE_STMT);
-    return static_cast<std::size_t>(field_count);
-}
-
-std::size_t ResultWrapper::RowsAffected() const { return RowCount(); }
-
-std::string ResultWrapper::GetFieldName(std::size_t col) const {
-    SQLCHAR name[1024];
-    SQLLEN name_len = sizeof(name);
-    CheckStatus(
-        SQLDescribeCol(handle.get(), col + 1, name, sizeof(name), nullptr, nullptr, nullptr, nullptr, nullptr),
-        handle.get(),
-        SQL_HANDLE_STMT
-    );
-    return std::string(reinterpret_cast<char*>(name), name_len);
+    return columns_[col].name;
 }
 
 SQLSMALLINT ResultWrapper::GetColumnType(std::size_t col) const {
-    SQLSMALLINT type = 0;
-    CheckStatus(
-        SQLDescribeCol(handle.get(), col + 1, nullptr, 0, nullptr, &type, nullptr, nullptr, nullptr),
-        handle.get(),
-        SQL_HANDLE_STMT
-    );
-    return type;
+    if (col >= columns_.size()) {
+        throw FieldIndexOutOfBounds{col};
+    }
+    return columns_[col].type;
 }
 
-std::string ResultWrapper::GetString(std::size_t row, std::size_t col) const {
-    SQLSMALLINT type = GetColumnType(col);
-    if (type != SQL_CHAR && type != SQL_VARCHAR && type != SQL_LONGVARCHAR && type != SQL_WCHAR &&
-        type != SQL_WVARCHAR && type != SQL_WLONGVARCHAR)
-    {
-        throw ResultSetError(fmt::format("Type mismatch: column {} is not a string type (SQL type: {})", col + 1, type)
-        );
+const ResultWrapper::Cell& ResultWrapper::GetCell(std::size_t row, std::size_t col) const {
+    if (row >= rows_.size()) {
+        throw RowIndexOutOfBounds{row};
     }
-    CheckStatus(SQLFetchScroll(handle.get(), SQL_FETCH_ABSOLUTE, row + 1), handle.get(), SQL_HANDLE_STMT);
-    SQLCHAR value[1024];
-    SQLLEN value_len = sizeof(value);
-    CheckStatus(
-        SQLGetData(handle.get(), col + 1, SQL_C_CHAR, value, sizeof(value), &value_len),
-        handle.get(),
-        SQL_HANDLE_STMT
-    );
-    return std::string(reinterpret_cast<char*>(value), value_len);
+    if (col >= columns_.size()) {
+        throw FieldIndexOutOfBounds{col};
+    }
+    return rows_[row][col];
+}
+
+const std::string& ResultWrapper::GetValue(std::size_t row, std::size_t col) const {
+    const auto& cell = GetCell(row, col);
+    if (!cell.value) {
+        throw ResultSetError(fmt::format("Field at row {}, column {} is NULL", row, col));
+    }
+    return *cell.value;
+}
+
+std::string ResultWrapper::GetString(std::size_t row, std::size_t col) const { return GetValue(row, col); }
+
+template <typename T>
+T ParseNumber(const std::string& value, std::size_t row, std::size_t col) {
+    try {
+        return utils::FromString<T>(value);
+    } catch (const utils::FromStringException& ex) {
+        throw ResultSetError(fmt::format(
+            "Cannot convert field at row {}, column {} with value '{}' to the requested type: {}",
+            row,
+            col,
+            value,
+            ex.what()
+        ));
+    }
 }
 
 std::int32_t ResultWrapper::GetInt32(std::size_t row, std::size_t col) const {
-    SQLSMALLINT type = GetColumnType(col);
-    if (type != SQL_INTEGER && type != SQL_SMALLINT && type != SQL_TINYINT) {
-        throw ResultSetError(fmt::format("Type mismatch: column {} is not an int32 type (SQL type: {})", col, type));
-    }
-    CheckStatus(SQLFetchScroll(handle.get(), SQL_FETCH_ABSOLUTE, row + 1), handle.get(), SQL_HANDLE_STMT);
-    SQLINTEGER value = 0;
-    CheckStatus(SQLGetData(handle.get(), col + 1, SQL_C_SLONG, &value, 0, nullptr), handle.get(), SQL_HANDLE_STMT);
-    return static_cast<std::int32_t>(value);
+    return ParseNumber<std::int32_t>(GetValue(row, col), row, col);
 }
 
 std::int64_t ResultWrapper::GetInt64(std::size_t row, std::size_t col) const {
-    SQLSMALLINT type = GetColumnType(col);
-    if (type != SQL_BIGINT) {
-        throw ResultSetError(fmt::format("Type mismatch: column {} is not an int64 type (SQL type: {})", col, type));
-    }
-    CheckStatus(SQLFetchScroll(handle.get(), SQL_FETCH_ABSOLUTE, row + 1), handle.get(), SQL_HANDLE_STMT);
-    SQLBIGINT value = 0;
-    CheckStatus(SQLGetData(handle.get(), col + 1, SQL_C_SBIGINT, &value, 0, nullptr), handle.get(), SQL_HANDLE_STMT);
-    return static_cast<std::int64_t>(value);
+    return ParseNumber<std::int64_t>(GetValue(row, col), row, col);
 }
 
 double ResultWrapper::GetDouble(std::size_t row, std::size_t col) const {
-    SQLSMALLINT type = GetColumnType(col);
-    if (type != SQL_DOUBLE && type != SQL_FLOAT && type != SQL_REAL && type != SQL_DECIMAL && type != SQL_NUMERIC) {
-        throw ResultSetError(
-            fmt::format("Type mismatch: column {} is not a floating-point type (SQL type: {})", col, type)
-        );
-    }
-    CheckStatus(SQLFetchScroll(handle.get(), SQL_FETCH_ABSOLUTE, row + 1), handle.get(), SQL_HANDLE_STMT);
-    SQLDOUBLE value = 0;
-    CheckStatus(SQLGetData(handle.get(), col + 1, SQL_C_DOUBLE, &value, 0, nullptr), handle.get(), SQL_HANDLE_STMT);
-    return static_cast<double>(value);
+    return ParseNumber<double>(GetValue(row, col), row, col);
 }
 
 bool ResultWrapper::GetBool(std::size_t row, std::size_t col) const {
-    // NOTE: typecheck for bools omitted, since drivers may handle bools differently, but always support SQL_C_BIT
-    CheckStatus(SQLFetchScroll(handle.get(), SQL_FETCH_ABSOLUTE, row + 1), handle.get(), SQL_HANDLE_STMT);
-    bool value = false;
-    CheckStatus(
-        SQLGetData(handle.get(), col + 1, SQL_C_BIT, &value, sizeof(value), nullptr),
-        handle.get(),
-        SQL_HANDLE_STMT
+    const auto& value = GetValue(row, col);
+    const auto ieq = utils::StrIcaseEqual{};
+    if (value == "1" || ieq(value, "true") || ieq(value, "t") || ieq(value, "yes") || ieq(value, "on")) {
+        return true;
+    }
+    if (value == "0" || ieq(value, "false") || ieq(value, "f") || ieq(value, "no") || ieq(value, "off")) {
+        return false;
+    }
+    throw ResultSetError(
+        fmt::format("Cannot convert field at row {}, column {} with value '{}' to bool", row, col, value)
     );
-    return value;
 }
 
-bool ResultWrapper::IsFieldNull(std::size_t row, std::size_t col) const {
-    CheckStatus(SQLFetchScroll(handle.get(), SQL_FETCH_ABSOLUTE, row + 1), handle.get(), SQL_HANDLE_STMT);
-    SQLLEN marker = 0;
-    bool dummy = false;  // NOTE: odbc requires a buffer for SQL_C_DEFAULT
-    CheckStatus(
-        SQLGetData(handle.get(), col + 1, SQL_C_DEFAULT, &dummy, sizeof(dummy), &marker),
-        handle.get(),
-        SQL_HANDLE_STMT
-    );
-    return marker == SQL_NULL_DATA;
-}
+bool ResultWrapper::IsFieldNull(std::size_t row, std::size_t col) const { return !GetCell(row, col).value; }
 
 }  // namespace storages::odbc::detail
 

@@ -11,7 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::odbc::detail {
 
-// A reduced set of buckets for by-query metrics.
+// A reduced set of millisecond buckets for timing metrics.
 // We try to spare the service's metrics quota by default.
 constexpr inline double kDefaultHistogramBoundsArray[] =
     {5, 10, 20, 35, 60, 100, 173, 300, 520, 1000, 3200, 10000, 32000, 100000};

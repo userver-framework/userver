@@ -10,6 +10,7 @@
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/storages/odbc/cluster.hpp>
 #include <userver/storages/odbc/settings.hpp>
 #include <userver/storages/secdist/component.hpp>
@@ -45,6 +46,14 @@ void ValidateNonEmpty(std::string_view value, std::string_view option) {
     if (value.empty()) {
         throw std::runtime_error("ODBC component option '" + std::string{option} + "' must not be empty");
     }
+}
+
+engine::TaskProcessor& GetBlockingTaskProcessor(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context
+) {
+    const auto name = config["blocking_task_processor"].As<std::optional<std::string>>();
+    return name ? context.GetTaskProcessor(*name) : engine::current_task::GetBlockingTaskProcessor();
 }
 
 storages::odbc::settings::ODBCClusterSettings MakeClusterSettingsFromConfig(const components::ComponentConfig& config) {
@@ -144,9 +153,11 @@ Odbc::Odbc(const ComponentConfig& config, const ComponentContext& context)
     : ComponentBase{config, context},
       name_{config.Name()},
       secdist_alias_{config["secdist_alias"].As<std::optional<std::string>>()},
-      cluster_{std::make_shared<
-          storages::odbc::Cluster>(MakeClusterSettings(config, context), clients::dns::GetResolverPtr(config, context))
-      },
+      cluster_{std::make_shared<storages::odbc::Cluster>(
+          MakeClusterSettings(config, context),
+          clients::dns::GetResolverPtr(config, context),
+          GetBlockingTaskProcessor(config, context)
+      )},
       config_source_{context.FindComponent<components::DynamicConfig>().GetSource()}
 {
     utils::statistics::RegisterWriterScope(

@@ -8,7 +8,11 @@ namespace storages::odbc::detail::topology {
 
 class Standalone final : public TopologyBase {
 public:
-    Standalone(const settings::ODBCClusterSettings& settings, clients::dns::Resolver* resolver);
+    Standalone(
+        const settings::ODBCClusterSettings& settings,
+        clients::dns::Resolver* resolver,
+        engine::TaskProcessor& blocking_task_processor
+    );
     ~Standalone() final;
 
 private:

@@ -9,6 +9,8 @@
 #include <string>
 #include <userver/drivers/impl/connection_pool_base.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/utils/periodic_task.hpp>
 #include <vector>
 
 USERVER_NAMESPACE_BEGIN
@@ -17,8 +19,18 @@ namespace storages::odbc::detail {
 
 class Pool final : public drivers::impl::ConnectionPoolBase<Connection, Pool> {
 public:
-    Pool(const std::string& dsn, std::size_t min_pool_size, std::size_t max_pool_size);
-    Pool(std::vector<std::string> dsns, std::size_t min_pool_size, std::size_t max_pool_size);
+    Pool(
+        const std::string& dsn,
+        std::size_t min_pool_size,
+        std::size_t max_pool_size,
+        engine::TaskProcessor& blocking_task_processor
+    );
+    Pool(
+        std::vector<std::string> dsns,
+        std::size_t min_pool_size,
+        std::size_t max_pool_size,
+        engine::TaskProcessor& blocking_task_processor
+    );
 
     ~Pool();
 
@@ -42,6 +54,7 @@ private:
     friend class drivers::impl::ConnectionPoolBase<Connection, Pool>;
 
     ConnectionUniquePtr DoCreateConnection(engine::Deadline deadline);
+    void RunSizeMonitor();
 
     void AccountConnectionCreated() noexcept;
     void AccountConnectionAcquired() noexcept;
@@ -50,8 +63,11 @@ private:
     void AccountOverload() noexcept;
 
     const std::vector<std::string> dsns_;
+    const std::size_t min_pool_size_;
     const std::size_t max_pool_size_;
+    engine::TaskProcessor& blocking_task_processor_;
     mutable std::atomic<std::size_t> dsn_index_{0};
+    utils::PeriodicTask size_monitor_;
 
     InstanceStatistics stats_{};
 };

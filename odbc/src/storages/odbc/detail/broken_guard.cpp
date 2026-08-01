@@ -10,7 +10,7 @@ BrokenGuard::BrokenGuard(Connection& connection)
     : connection_{connection},
       exceptions_on_enter_{std::uncaught_exceptions()}
 {
-    if (connection_.IsBroken()) {
+    if (connection_.IsMarkedBroken()) {
         throw ConnectionError("Connection is broken.");
     }
 }

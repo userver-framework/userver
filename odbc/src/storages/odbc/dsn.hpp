@@ -33,6 +33,13 @@ bool IsIpAddress(std::string_view host);
 
 Dsn ResolveDsnHost(const Dsn& dsn, clients::dns::Resolver& resolver, engine::Deadline deadline);
 
+namespace detail {
+
+/// Replaces only the effective host value while preserving all other DSN text.
+Dsn ReplaceDsnHost(const Dsn& dsn, std::string_view resolved_host);
+
+}  // namespace detail
+
 }  // namespace storages::odbc
 
 USERVER_NAMESPACE_END

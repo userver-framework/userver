@@ -16,15 +16,22 @@ literals internally.
 
 @snippet odbc/tests/odbc_postgresql_test.cpp ODBC parameter binding
 
-The variadic API supports booleans, signed and unsigned integers, floating
-point values, strings and string views. Use `std::optional<T>` for a typed
-nullable value, or `nullptr` when the ODBC driver can infer the parameter type
-from the statement. The number of C++ arguments must match the number of `?`
+The variadic API supports booleans, signed integers, unsigned integers up to
+`INT64_MAX`, floating point values, strings and string views. Larger unsigned
+values are rejected instead of relying on driver-specific conversion outside
+the portable SQL `BIGINT` range. Use `std::optional<T>` for a typed nullable
+value, or `nullptr` when the ODBC driver can infer the parameter type from the
+statement. The number of C++ arguments must match the number of `?`
 placeholders.
 
 `storages::odbc::Cluster::Execute` returns a storages::odbc::ResultSet. Its rows
 contain storages::odbc::Field values that provide typed getters such as
 `GetInt32`, `GetInt64`, `GetDouble`, `GetBool`, and `GetString`.
+The result is fully materialized as an in-memory snapshot before the connection
+returns to the pool, so it remains readable after another query, transaction
+completion, or topology reload. Consequently, large or unbounded `SELECT`s use
+memory proportional to the complete result. `ResultSet::Size()` is the number
+of materialized rows; use `ResultSet::RowsAffected()` for DML row counts.
 
 ### Transactions
 
@@ -39,9 +46,11 @@ Parameters are bound in transaction queries in exactly the same way:
 storages::odbc::CommandControl configures the connection-acquisition/network
 timeout and statement timeout for an operation. Pass an
 storages::odbc::OptionalCommandControl to `Cluster::Execute`, `Cluster::Begin`,
-or `Transaction::Execute` to override the defaults. The effective deadline is
-the earliest of the network operation budget, statement timeout, transaction
-deadline, and task-inherited request deadline.
+or `Transaction::Execute` to override the defaults. `Begin`, every transaction
+`Execute`, and `Commit` get a fresh operation deadline: the earliest of the
+network budget, statement timeout, and task-inherited request deadline.
+Explicit and automatic rollback use an independent cleanup budget so an
+expired operation budget cannot return a dirty connection to the pool.
 
 ODBC `SQL_ATTR_QUERY_TIMEOUT` has whole-second resolution. The driver rounds a
 positive sub-second value up when passing it to ODBC while retaining the exact
@@ -63,6 +72,16 @@ tested configuration obtains its DSN from secdist:
 The complete generated static-config schema, including the mutually exclusive
 `dsn`, `pools`, and `secdist_alias` connection sources, is available on
 components::Odbc.
+
+All ODBC driver-manager and driver calls are synchronous and run on the task
+processor selected by `blocking_task_processor`; if omitted, the global
+blocking task processor is used. Production services may dedicate and size a
+task processor for ODBC so slow driver calls do not contend with unrelated
+blocking work. Exact sub-second cancellation is observed after a synchronous
+driver call returns unless that driver implements its own timeout sooner.
+At most five connection attempts per pool run concurrently. A temporary
+startup outage does not discard successfully initialized connections or abort
+the component; a background monitor retries until `min_pool_size` is restored.
 
 For secdist, `odbc_settings.databases.<alias>` accepts either a `dsn` string or
 a `hosts` array. A host can be a DSN string or an object with a `dsn` member.

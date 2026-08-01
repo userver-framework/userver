@@ -1,6 +1,5 @@
 #pragma once
 
-#include <atomic>
 #include <chrono>
 #include <memory>
 #include <optional>
@@ -10,6 +9,7 @@
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/mutex.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
@@ -30,7 +30,11 @@ namespace storages::odbc::detail {
 
 class ClusterImpl {
 public:
-    ClusterImpl(const settings::ODBCClusterSettings& settings, clients::dns::Resolver* resolver);
+    ClusterImpl(
+        const settings::ODBCClusterSettings& settings,
+        clients::dns::Resolver* resolver,
+        engine::TaskProcessor& blocking_task_processor
+    );
 
     ~ClusterImpl() = default;
 
@@ -62,29 +66,26 @@ private:
 
     ResultSet ExecuteImpl(
         engine::Deadline acquire_deadline,
-        engine::Deadline statement_deadline,
+        std::chrono::milliseconds statement_timeout,
         ClusterHostTypeFlags flags,
         const Query& query,
         const impl::ParameterList& parameters
     );
 
-    std::chrono::milliseconds ResolveNetworkTimeout(OptionalCommandControl command_control) const;
-    std::chrono::milliseconds ResolveStatementTimeout(OptionalCommandControl command_control) const;
+    CommandControl ResolveCommandControl(OptionalCommandControl command_control) const;
     bool UpdateSettingsLocked(const settings::ODBCClusterSettings& settings);
     settings::ODBCClusterSettings MakeEffectiveSettingsLocked() const;
 
     clients::dns::Resolver* resolver_;
+    engine::TaskProcessor& blocking_task_processor_;
     std::shared_ptr<topology::TopologyBase> topology_;
     mutable engine::Mutex settings_mutex_;
     std::shared_ptr<const settings::ODBCClusterSettings> settings_;
     std::shared_ptr<const settings::ODBCClusterSettings> baseline_settings_;
     std::optional<settings::PoolSettings> pool_settings_override_;
 
-    // Dynamic config: command control (timeouts)
-    std::atomic<std::chrono::milliseconds> default_network_timeout_ms_{std::chrono::milliseconds::zero()};
-    std::atomic<std::chrono::milliseconds> default_statement_timeout_ms_{std::chrono::milliseconds::zero()};
-    std::atomic<bool> has_network_timeout_{false};
-    std::atomic<bool> has_statement_timeout_{false};
+    // One RCU value prevents readers from observing a torn dynamic-config update.
+    rcu::Variable<CommandControl> default_command_control_;
 };
 
 }  // namespace storages::odbc::detail

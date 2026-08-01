@@ -1,6 +1,8 @@
 #include <gtest/gtest.h>
 #include <cstdint>
+#include <limits>
 #include <optional>
+#include <storages/odbc/detail/tracing.hpp>
 #include <string_view>
 #include <userver/storages/odbc.hpp>
 #include <userver/utest/utest.hpp>
@@ -63,6 +65,54 @@ UTEST(Query, BindsParametersWithoutInterpolation) {
     EXPECT_DOUBLE_EQ(result[0][4].GetDouble(), 1.25);
     EXPECT_TRUE(result[0][5].GetBool());
     EXPECT_FALSE(result[0][6].GetBool());
+}
+
+UTEST(Query, RejectsUnsignedValuesOutsidePortableBigintRange) {
+    auto cluster = MakeCluster();
+
+    const auto supported = cluster.Execute(
+        storages::odbc::ClusterHostType::kMaster,
+        "SELECT ?::bigint",
+        static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max())
+    );
+    ASSERT_EQ(supported.Size(), 1);
+    EXPECT_EQ(supported[0][0].GetInt64(), std::numeric_limits<std::int64_t>::max());
+
+    UEXPECT_THROW(
+        cluster.Execute(
+            storages::odbc::ClusterHostType::kMaster,
+            "SELECT ?::numeric",
+            std::numeric_limits<std::uint64_t>::max()
+        ),
+        storages::odbc::StatementError
+    );
+}
+
+UTEST(Query, HonorsQueryLogModeAndName) {
+    const Query named{
+        "SELECT 'must not leak'",
+        Query::Name{"safe_query_name"},
+        Query::LogMode::kNameOnly,
+    };
+    const auto named_tags = detail::tracing::MakeQuerySpanTags(named);
+    ASSERT_TRUE(named_tags.statement_name);
+    EXPECT_EQ(*named_tags.statement_name, "safe_query_name");
+    EXPECT_FALSE(named_tags.statement);
+
+    const Query unnamed_name_only{
+        "SELECT 'must not leak either'",
+        std::nullopt,
+        Query::LogMode::kNameOnly,
+    };
+    const auto hidden_tags = detail::tracing::MakeQuerySpanTags(unnamed_name_only);
+    EXPECT_FALSE(hidden_tags.statement_name);
+    EXPECT_FALSE(hidden_tags.statement);
+
+    const Query unnamed_full{"SELECT 1"};
+    const auto full_tags = detail::tracing::MakeQuerySpanTags(unnamed_full);
+    EXPECT_FALSE(full_tags.statement_name);
+    ASSERT_TRUE(full_tags.statement);
+    EXPECT_EQ(*full_tags.statement, "SELECT 1");
 }
 
 UTEST(Query, BindsTypedNull) {
@@ -153,6 +203,108 @@ UTEST(Query, GetStringFromNumber) {
     auto cluster = MakeCluster();
     auto result = cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT '42'");
     EXPECT_EQ(result[0][0].GetString(), "42");
+}
+
+UTEST(Query, MaterializedResultOutlivesConnectionAndSubsequentQuery) {
+    const auto host_settings = storages::odbc::settings::HostSettings{kDSN, {1, 1}};
+    std::optional<ResultSet> saved_result;
+    {
+        storages::odbc::Cluster cluster(storages::odbc::settings::ODBCClusterSettings{{host_settings}}, nullptr);
+        saved_result
+            .emplace(cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT ?::text AS saved_value", "first")
+            );
+
+        const auto second = cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT ?::integer", 2);
+        ASSERT_EQ(second.Size(), 1);
+        EXPECT_EQ(second[0][0].GetInt32(), 2);
+    }
+
+    ASSERT_TRUE(saved_result);
+    ASSERT_EQ(saved_result->Size(), 1);
+    EXPECT_EQ(saved_result->GetFieldName(0), "saved_value");
+    EXPECT_EQ((*saved_result)[0][0].GetString(), "first");
+}
+
+UTEST(Query, MaterializesLongEmptyAndNullValues) {
+    auto cluster = MakeCluster();
+    const std::string long_value(70'000, 'x');
+
+    const auto result = cluster.Execute(
+        storages::odbc::ClusterHostType::kMaster,
+        "SELECT ?::text AS long_value, ?::text AS empty_value, NULL::text AS null_value",
+        long_value,
+        std::string{}
+    );
+
+    ASSERT_EQ(result.Size(), 1);
+    EXPECT_EQ(result[0][0].GetString(), long_value);
+    EXPECT_EQ(result[0][1].GetString(), "");
+    EXPECT_TRUE(result[0][2].IsNull());
+    UEXPECT_THROW(result[0][2].GetString(), storages::odbc::ResultSetError);
+}
+
+UTEST(Query, MaterializesChunkBoundariesAndTypedNulls) {
+    auto cluster = MakeCluster();
+    const std::string value_4095(4095, 'a');
+    const std::string value_4096(4096, 'b');
+    const std::string value_4097(4097, 'c');
+    const std::string value_65537(65'537, 'd');
+
+    const auto result = cluster.Execute(
+        storages::odbc::ClusterHostType::kMaster,
+        "SELECT ?::text, ?::text, ?::text, ?::text, NULL::integer, NULL::boolean, NULL::double precision",
+        value_4095,
+        value_4096,
+        value_4097,
+        value_65537
+    );
+
+    ASSERT_EQ(result.Size(), 1);
+    EXPECT_EQ(result[0][0].GetString(), value_4095);
+    EXPECT_EQ(result[0][1].GetString(), value_4096);
+    EXPECT_EQ(result[0][2].GetString(), value_4097);
+    EXPECT_EQ(result[0][3].GetString(), value_65537);
+    for (std::size_t index = 4; index < 7; ++index) {
+        EXPECT_TRUE(result[0][index].IsNull());
+    }
+    UEXPECT_THROW(result[0][4].GetInt32(), storages::odbc::ResultSetError);
+    UEXPECT_THROW(result[0][5].GetBool(), storages::odbc::ResultSetError);
+    UEXPECT_THROW(result[0][6].GetDouble(), storages::odbc::ResultSetError);
+}
+
+UTEST(Query, MaterializedResultSurvivesTopologyReload) {
+    const auto host_settings = storages::odbc::settings::HostSettings{kDSN, {1, 1}};
+    storages::odbc::Cluster cluster(storages::odbc::settings::ODBCClusterSettings{{host_settings}}, nullptr);
+    const auto result = cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT ?::text", "before reload");
+
+    const std::string reloaded_dsn = std::string{kDSN} + "ApplicationName=odbc-materialized-result;";
+    cluster.UpdateSettings(storages::odbc::settings::ODBCClusterSettings{{
+        storages::odbc::settings::HostSettings{reloaded_dsn, {1, 1}},
+    }});
+
+    ASSERT_EQ(result.Size(), 1);
+    EXPECT_EQ(result[0][0].GetString(), "before reload");
+}
+
+UTEST(Query, SeparatesRowsFromRowsAffected) {
+    const auto host_settings = storages::odbc::settings::HostSettings{kDSN, {1, 1}};
+    storages::odbc::Cluster cluster(storages::odbc::settings::ODBCClusterSettings{{host_settings}}, nullptr);
+    cluster.Execute(storages::odbc::ClusterHostType::kMaster, "CREATE TEMP TABLE odbc_rows_affected(value INTEGER)");
+
+    const auto insert = cluster.Execute(
+        storages::odbc::ClusterHostType::kMaster,
+        "INSERT INTO odbc_rows_affected(value) VALUES (?), (?)",
+        1,
+        2
+    );
+    EXPECT_EQ(insert.Size(), 0);
+    EXPECT_EQ(insert.RowsAffected(), 2);
+
+    const auto select =
+        cluster
+            .Execute(storages::odbc::ClusterHostType::kMaster, "SELECT value FROM odbc_rows_affected ORDER BY value");
+    EXPECT_EQ(select.Size(), 2);
+    EXPECT_EQ(select.RowsAffected(), 0);
 }
 
 UTEST(Pool, LessQueriesThanConnections) {

@@ -26,13 +26,18 @@ std::string ResolveDsn(const std::string& dsn_str, clients::dns::Resolver* resol
 
 }  // namespace
 
-TopologyBase::TopologyBase(const settings::ODBCClusterSettings& settings, clients::dns::Resolver* resolver) {
+TopologyBase::TopologyBase(
+    const settings::ODBCClusterSettings& settings,
+    clients::dns::Resolver* resolver,
+    engine::TaskProcessor& blocking_task_processor
+) {
     UASSERT(!settings.pools.empty());
 
     pools_.reserve(settings.pools.size());
     for (const auto& host : settings.pools) {
         auto resolved_dsn = ResolveDsn(host.dsn, resolver);
-        pools_.push_back(std::make_shared<Pool>(resolved_dsn, host.pool.min_size, host.pool.max_size));
+        pools_.push_back(std::make_shared<
+                         Pool>(resolved_dsn, host.pool.min_size, host.pool.max_size, blocking_task_processor));
     }
 }
 
@@ -40,15 +45,16 @@ TopologyBase::~TopologyBase() = default;
 
 std::shared_ptr<TopologyBase> TopologyBase::Create(
     const settings::ODBCClusterSettings& settings,
-    clients::dns::Resolver* resolver
+    clients::dns::Resolver* resolver,
+    engine::TaskProcessor& blocking_task_processor
 ) {
     UASSERT(!settings.pools.empty());
 
     if (settings.pools.size() == 1) {
-        return std::make_shared<Standalone>(settings, resolver);
+        return std::make_shared<Standalone>(settings, resolver, blocking_task_processor);
     }
 
-    return std::make_shared<FixedPrimary>(settings, resolver);
+    return std::make_shared<FixedPrimary>(settings, resolver, blocking_task_processor);
 }
 
 Pool& TopologyBase::SelectPool(ClusterHostType host_type) const {

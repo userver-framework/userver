@@ -8,6 +8,7 @@
 #include <userver/storages/odbc/exception.hpp>
 #include <userver/storages/odbc/impl/tracing_tags.hpp>
 
+#include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/datetime/steady_coarse_clock.hpp>
@@ -17,16 +18,24 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::odbc {
 
-Transaction::Transaction(detail::ConnectionPtr&& connection, detail::Pool& pool, engine::Deadline deadline)
+Transaction::Transaction(
+    detail::ConnectionPtr&& connection,
+    detail::Pool& pool,
+    std::chrono::milliseconds network_timeout,
+    std::chrono::milliseconds statement_timeout
+)
     : connection_{std::move(connection)},
       pool_{&pool},
-      deadline_{deadline},
+      network_timeout_{network_timeout},
+      statement_timeout_{statement_timeout},
       start_time_{utils::datetime::SteadyCoarseClock::now()},
       busy_time_{0},
       span_{storages::odbc::impl::tracing::kTransactionSpan}
 {
-    detail::CheckDeadlineNotExpired(deadline_);
-    (*connection_)->Begin(deadline_);
+    const auto deadline =
+        std::min(detail::GetExecuteDeadline(network_timeout_), detail::GetExecuteDeadline(statement_timeout_));
+    detail::CheckDeadlineNotExpired(deadline);
+    (*connection_)->Begin(deadline);
     trx_lock_.Lock();
     pool_->AccountTransactionStarted();
 }
@@ -35,11 +44,16 @@ Transaction::Transaction(Transaction&& other) noexcept = default;
 
 Transaction::~Transaction() {
     if (connection_->IsValid()) {
+        const engine::TaskCancellationBlocker cancellation_blocker;
         try {
-            (*connection_)->Rollback(deadline_);
+            (*connection_)->Rollback(engine::Deadline::FromDuration(detail::kDefaultCleanupTimeout));
             pool_->AccountTransactionRollback();
         } catch (const std::exception& ex) {
+            (*connection_)->NotifyBroken();
             LOG_ERROR() << "Failed to auto rollback a transaction: " << ex.what();
+        } catch (...) {
+            (*connection_)->NotifyBroken();
+            LOG_ERROR() << "Failed to auto rollback a transaction with an unknown exception";
         }
         trx_lock_.Unlock();
     }
@@ -48,9 +62,11 @@ Transaction::~Transaction() {
 void Transaction::Commit() {
     const utils::FastScopeGuard unlock_guard([this]() noexcept { trx_lock_.Unlock(); });
     AssertValid();
-    detail::CheckDeadlineNotExpired(deadline_);
+    const auto deadline =
+        std::min(detail::GetExecuteDeadline(network_timeout_), detail::GetExecuteDeadline(statement_timeout_));
+    detail::CheckDeadlineNotExpired(deadline);
     auto connection = std::move(*connection_);
-    connection->Commit(deadline_);
+    connection->Commit(deadline);
 
     const auto total_duration = std::chrono::duration_cast<
         std::chrono::microseconds>(utils::datetime::SteadyCoarseClock::now() - start_time_);
@@ -60,9 +76,9 @@ void Transaction::Commit() {
 void Transaction::Rollback() {
     const utils::FastScopeGuard unlock_guard([this]() noexcept { trx_lock_.Unlock(); });
     AssertValid();
-    detail::CheckDeadlineNotExpired(deadline_);
+    const auto deadline = engine::Deadline::FromDuration(detail::kDefaultCleanupTimeout);
     auto connection = std::move(*connection_);
-    connection->Rollback(deadline_);
+    connection->Rollback(deadline);
     pool_->AccountTransactionRollback();
 }
 
@@ -72,25 +88,25 @@ ResultSet Transaction::DoExecute(
     const impl::ParameterList& parameters
 ) {
     AssertValid();
-    detail::CheckDeadlineNotExpired(deadline_);
     tracing::Span span{storages::odbc::impl::tracing::kExecuteSpan};
 
-    auto statement_deadline = deadline_;
+    auto network_timeout = network_timeout_;
+    auto statement_timeout = statement_timeout_;
     if (command_control) {
         if (command_control->network_timeout) {
-            statement_deadline =
-                std::min(statement_deadline, detail::GetExecuteDeadline(*command_control->network_timeout));
+            network_timeout = *command_control->network_timeout;
         }
         if (command_control->statement_timeout) {
-            statement_deadline =
-                std::min(statement_deadline, detail::GetExecuteDeadline(*command_control->statement_timeout));
+            statement_timeout = *command_control->statement_timeout;
         }
     }
+    const auto statement_deadline =
+        std::min(detail::GetExecuteDeadline(network_timeout), detail::GetExecuteDeadline(statement_timeout));
     detail::CheckDeadlineNotExpired(statement_deadline);
 
     const auto start = utils::datetime::SteadyCoarseClock::now();
     try {
-        auto result = (*connection_)->Query(query.GetStatementView(), parameters, statement_deadline);
+        auto result = (*connection_)->Query(query, parameters, statement_deadline);
         const auto elapsed = std::chrono::duration_cast<
             std::chrono::microseconds>(utils::datetime::SteadyCoarseClock::now() - start);
         busy_time_ += elapsed;

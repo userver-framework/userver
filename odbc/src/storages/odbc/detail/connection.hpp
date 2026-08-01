@@ -1,16 +1,19 @@
 #pragma once
 
 #include <atomic>
+#include <mutex>
 #include <string>
 #include <string_view>
 
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
 
 #include <sql.h>
 #include <sqlext.h>
 #include <sqltypes.h>
 
 #include <userver/storages/odbc/impl/parameter.hpp>
+#include <userver/storages/odbc/query.hpp>
 #include <userver/storages/odbc/result_set.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -29,8 +32,9 @@ public:
 
     explicit Connection(const std::string& dsn);
     Connection(const std::string& dsn, engine::Deadline deadline);
+    Connection(const std::string& dsn, engine::TaskProcessor& blocking_task_processor, engine::Deadline deadline);
 
-    ~Connection() = default;
+    ~Connection();
 
     Connection(const Connection&) = delete;
     Connection& operator=(const Connection&) = delete;
@@ -48,8 +52,15 @@ public:
 
     ResultSet Query(std::string_view query, const impl::ParameterList& parameters, engine::Deadline deadline);
 
+    ResultSet Query(
+        const storages::odbc::Query& query,
+        const impl::ParameterList& parameters,
+        engine::Deadline deadline
+    );
+
     // required by ConnectionPool
     bool IsBroken() const;
+    bool IsMarkedBroken() const noexcept;
     void NotifyBroken();
 
     detail::BrokenGuard GetBrokenGuard();
@@ -59,14 +70,16 @@ private:
     void Begin(engine::Deadline deadline);
     void Commit(engine::Deadline deadline);
     void Rollback(engine::Deadline deadline);
-    bool IsInsideTransaction() const;  // check if connection has autocommit_off transaction mode
+    bool IsInsideTransaction() const noexcept;
 
     void RestoreAutocommit();
-    bool DriverReportsDead() const;
-
+    void UpdateBrokenFromDriver() noexcept;
+    engine::TaskProcessor& blocking_task_processor_;
+    mutable std::mutex handle_mutex_;
     EnvironmentHandle env_;
     DatabaseHandle handle_;
     std::atomic<bool> broken_{false};
+    std::atomic<bool> in_transaction_{false};
 };
 
 }  // namespace storages::odbc

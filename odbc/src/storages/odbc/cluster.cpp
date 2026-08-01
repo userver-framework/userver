@@ -3,6 +3,7 @@
 #include <storages/odbc/detail/cluster_impl.hpp>
 #include <userver/storages/odbc/command_control.hpp>
 
+#include <userver/engine/task/current_task.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -10,7 +11,15 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::odbc {
 
 Cluster::Cluster(const settings::ODBCClusterSettings& settings, clients::dns::Resolver* resolver)
-    : impl_(std::make_unique<detail::ClusterImpl>(settings, resolver))
+    : Cluster{settings, resolver, engine::current_task::GetBlockingTaskProcessor()}
+{}
+
+Cluster::Cluster(
+    const settings::ODBCClusterSettings& settings,
+    clients::dns::Resolver* resolver,
+    engine::TaskProcessor& blocking_task_processor
+)
+    : impl_(std::make_unique<detail::ClusterImpl>(settings, resolver, blocking_task_processor))
 {
     UASSERT(!settings.pools.empty());
 }

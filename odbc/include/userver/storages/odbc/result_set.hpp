@@ -5,6 +5,7 @@
 
 #include <limits>
 #include <memory>
+#include <string_view>
 
 #include <userver/storages/odbc/odbc_fwd.hpp>
 #include <userver/storages/odbc/row.hpp>
@@ -35,6 +36,13 @@ public:
     size_type FieldCount() const;
 
     size_type Size() const;
+
+    /// @brief Number of rows affected by a data-modifying statement.
+    /// Returns zero when the driver reports an unknown count.
+    size_type RowsAffected() const;
+
+    /// @brief Get a result column name by zero-based index.
+    std::string_view GetFieldName(size_type index) const;
 
     /// @brief Check if the result set is empty
     bool IsEmpty() const;

@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 #include <userver/storages/odbc/cluster_types.hpp>
@@ -24,7 +25,8 @@ public:
 
     static std::shared_ptr<TopologyBase> Create(
         const settings::ODBCClusterSettings& settings,
-        clients::dns::Resolver* resolver
+        clients::dns::Resolver* resolver,
+        engine::TaskProcessor& blocking_task_processor
     );
 
     Pool& SelectPool(ClusterHostType host_type) const;
@@ -32,7 +34,11 @@ public:
     void WriteStatistics(utils::statistics::Writer& writer) const;
 
 protected:
-    TopologyBase(const settings::ODBCClusterSettings& settings, clients::dns::Resolver* resolver);
+    TopologyBase(
+        const settings::ODBCClusterSettings& settings,
+        clients::dns::Resolver* resolver,
+        engine::TaskProcessor& blocking_task_processor
+    );
 
     virtual Pool& GetPrimary() const = 0;
     virtual Pool& GetSecondary() const = 0;

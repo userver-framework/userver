@@ -2,6 +2,11 @@ type: object
 description: ODBC client component
 additionalProperties: false
 properties:
+    blocking_task_processor:
+        type: string
+        description: |
+            Task processor used for synchronous ODBC driver-manager and driver calls.
+            Defaults to the global blocking task processor.
     secdist_alias:
         type: string
         description: |

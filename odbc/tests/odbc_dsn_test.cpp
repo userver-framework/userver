@@ -118,6 +118,37 @@ UTEST(DsnMaskPassword, NoPassword) {
     EXPECT_THAT(result, testing::Not(testing::HasSubstr("***")));
 }
 
+UTEST(DsnTransform, PreservesUnrelatedAttributesExactly) {
+    const Dsn dsn{
+        "DrIvEr={Driver;With}}Brace};UID=user;PWD={se;cr}}et};"
+        "ApplicationIntent=ReadOnly;SERVER=db.local;Extra={x}};y};"
+    };
+
+    EXPECT_EQ(
+        detail::ReplaceDsnHost(dsn, "127.0.0.42").GetUnderlying(),
+        "DrIvEr={Driver;With}}Brace};UID=user;PWD={se;cr}}et};"
+        "ApplicationIntent=ReadOnly;SERVER=127.0.0.42;Extra={x}};y};"
+    );
+    EXPECT_EQ(
+        DsnMaskPassword(dsn),
+        "DrIvEr={Driver;With}}Brace};UID=user;PWD=***;"
+        "ApplicationIntent=ReadOnly;SERVER=db.local;Extra={x}};y};"
+    );
+    EXPECT_EQ(
+        DsnCutPassword(dsn),
+        "DrIvEr={Driver;With}}Brace};UID=user;"
+        "ApplicationIntent=ReadOnly;SERVER=db.local;Extra={x}};y};"
+    );
+}
+
+UTEST(DsnTransform, ReplacesOnlyEffectiveServerAlias) {
+    const Dsn dsn{"SERVER=old-first;Unknown=a;server=old-effective;HOST=fallback"};
+    EXPECT_EQ(
+        detail::ReplaceDsnHost(dsn, "10.0.0.1").GetUnderlying(),
+        "SERVER=old-first;Unknown=a;server=10.0.0.1;HOST=fallback"
+    );
+}
+
 UTEST(IsIpAddress, IPv4) {
     EXPECT_TRUE(IsIpAddress("192.168.1.1"));
     EXPECT_TRUE(IsIpAddress("10.0.0.1"));
