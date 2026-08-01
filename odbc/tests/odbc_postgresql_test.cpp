@@ -1,4 +1,7 @@
 #include <gtest/gtest.h>
+#include <cstdint>
+#include <optional>
+#include <string_view>
 #include <userver/storages/odbc.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/async.hpp>
@@ -32,6 +35,58 @@ UTEST(Query, Works) {
         EXPECT_FALSE(row[0].IsNull());
         EXPECT_EQ(row[0].GetInt32(), i + 1);
     }
+}
+
+UTEST(Query, BindsParametersWithoutInterpolation) {
+    auto cluster = MakeCluster();
+
+    /// [ODBC parameter binding]
+    const std::string untrusted_value = "Robert'); DROP TABLE users;--";
+    const auto result = cluster.Execute(
+        storages::odbc::ClusterHostType::kMaster,
+        "SELECT ?::text, ?::text, ?::bigint, ?::bigint, ?::double precision, ?::boolean, ?::boolean",
+        untrusted_value,
+        std::string_view{""},
+        std::int16_t{-42},
+        std::uint32_t{42},
+        1.25F,
+        true,
+        false
+    );
+    /// [ODBC parameter binding]
+
+    ASSERT_EQ(result.Size(), 1);
+    EXPECT_EQ(result[0][0].GetString(), untrusted_value);
+    EXPECT_EQ(result[0][1].GetString(), "");
+    EXPECT_EQ(result[0][2].GetInt64(), -42);
+    EXPECT_EQ(result[0][3].GetInt64(), 42);
+    EXPECT_DOUBLE_EQ(result[0][4].GetDouble(), 1.25);
+    EXPECT_TRUE(result[0][5].GetBool());
+    EXPECT_FALSE(result[0][6].GetBool());
+}
+
+UTEST(Query, BindsTypedNull) {
+    auto cluster = MakeCluster();
+
+    const std::optional<std::string> value;
+    const auto result = cluster.Execute(
+        storages::odbc::ClusterHostType::kMaster,
+        "SELECT ?::text IS NULL, ?::text IS NULL",
+        value,
+        nullptr
+    );
+
+    ASSERT_EQ(result.Size(), 1);
+    EXPECT_TRUE(result[0][0].GetBool());
+    EXPECT_TRUE(result[0][1].GetBool());
+}
+
+UTEST(Query, ParameterCountMismatchIsStatementError) {
+    auto cluster = MakeCluster();
+    UEXPECT_THROW(
+        cluster.Execute(storages::odbc::ClusterHostType::kMaster, "SELECT ?::integer", 1, 2),
+        storages::odbc::StatementError
+    );
 }
 
 UTEST(Query, VariousTypes) {

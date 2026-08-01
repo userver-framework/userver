@@ -10,6 +10,7 @@
 #include <sqlext.h>
 #include <sqltypes.h>
 
+#include <userver/storages/odbc/impl/parameter.hpp>
 #include <userver/storages/odbc/result_set.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -27,6 +28,7 @@ public:
     using DatabaseHandle = std::unique_ptr<std::remove_pointer_t<SQLHDBC>, void (*)(SQLHDBC)>;
 
     explicit Connection(const std::string& dsn);
+    Connection(const std::string& dsn, engine::Deadline deadline);
 
     ~Connection() = default;
 
@@ -38,8 +40,13 @@ public:
     /// @return ResultSet containing the query results
     ResultSet Query(std::string_view query);
 
+    /// @brief Executes a prepared SQL query with separately bound parameters.
+    ResultSet Query(std::string_view query, const impl::ParameterList& parameters);
+
     /// @brief Same as Query(std::string_view), but honours \a deadline for wait / driver timeout.
     ResultSet Query(std::string_view query, engine::Deadline deadline);
+
+    ResultSet Query(std::string_view query, const impl::ParameterList& parameters, engine::Deadline deadline);
 
     // required by ConnectionPool
     bool IsBroken() const;

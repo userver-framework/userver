@@ -10,10 +10,12 @@ components_manager:
             task_processor: main-task-processor
             method: GET,POST,DELETE
 
+        # [ODBC component config]
         key-value-db:
             secdist_alias: key-value-db
             min_pool_size: 1
             max_pool_size: 1
+        # [ODBC component config]
 
         secdist: {}
         default-secdist-provider:
@@ -25,6 +27,30 @@ components_manager:
             listener:
                 port: 8097
                 task_processor: main-task-processor
+            listener-monitor:
+                port: $monitor-server-port
+                port#fallback: 8098
+                task_processor: main-task-processor
+
+        handler-server-monitor:
+            path: /service/monitor
+            method: GET
+            task_processor: main-task-processor
+
+        testsuite-support:
+
+        http-client: {}
+        http-client-core:
+            fs-task-processor: fs-task-processor
+
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            task_processor: main-task-processor
+            testpoint-url: $mockserver/testpoint
+            testpoint-timeout: 10s
+            skip-unregistered-testpoints: true
+            throttling_enabled: false
         logging:
             fs-task-processor: fs-task-processor
             loggers:

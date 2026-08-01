@@ -1,8 +1,10 @@
 #include <storages/odbc/detail/pool.hpp>
 
+#include <storages/odbc/detail/deadline.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/storages/odbc/exception.hpp>
 #include <userver/utils/datetime/steady_coarse_clock.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,11 +24,12 @@ Pool::Pool(const std::string& dsn, std::size_t min_pool_size, std::size_t max_po
     stats_.connection.maximum = max_pool_size;
     try {
         Init(min_pool_size, kInitTimeout);
-    } catch (const Error& odbc_err) {
-        Reset();
-        throw;
     } catch (const std::exception& ex) {
         LOG_ERROR() << "Error while initializing ODBC connection pool: " << ex;
+        Reset();
+        throw;
+    } catch (...) {
+        Reset();
         throw;
     }
 }
@@ -39,11 +42,12 @@ Pool::Pool(std::vector<std::string> dsns, std::size_t min_pool_size, std::size_t
     stats_.connection.maximum = max_pool_size;
     try {
         Init(min_pool_size, kInitTimeout);
-    } catch (const Error& odbc_err) {
-        Reset();
-        throw;
     } catch (const std::exception& ex) {
         LOG_ERROR() << "Error while initializing ODBC connection pool: " << ex;
+        Reset();
+        throw;
+    } catch (...) {
+        Reset();
         throw;
     }
 }
@@ -53,10 +57,10 @@ Pool::~Pool() { Reset(); }
 ConnectionPtr Pool::Acquire(engine::Deadline deadline) {
     const auto start = utils::datetime::SteadyCoarseClock::now();
     ++stats_.connection.waiting;
+    const utils::FastScopeGuard waiting_guard([this]() noexcept { --stats_.connection.waiting; });
 
     auto conn_wrapper = AcquireConnection(deadline);
 
-    --stats_.connection.waiting;
     ++stats_.connection.used;
 
     const auto elapsed = std::chrono::duration_cast<
@@ -72,15 +76,11 @@ void Pool::Release(ConnectionUniquePtr connection) {
 }
 
 Pool::ConnectionUniquePtr Pool::DoCreateConnection(engine::Deadline deadline) {
-    if (deadline.IsReached()) {
-        ++stats_.connection.error_timeout;
-        throw std::runtime_error("Connection creation deadline reached");
-    }
-
     const auto start = utils::datetime::SteadyCoarseClock::now();
     try {
+        CheckDeadlineNotExpired(deadline);
         const auto idx = dsn_index_.fetch_add(1);
-        auto conn = std::make_unique<Connection>(dsns_[idx % dsns_.size()]);
+        auto conn = std::make_unique<Connection>(dsns_[idx % dsns_.size()], deadline);
         ++stats_.connection.open_total;
 
         const auto elapsed = std::chrono::duration_cast<
@@ -88,6 +88,10 @@ Pool::ConnectionUniquePtr Pool::DoCreateConnection(engine::Deadline deadline) {
         stats_.connection_percentile.Account(elapsed.count());
 
         return conn;
+    } catch (const OperationInterrupted& ex) {
+        ++stats_.connection.error_timeout;
+        LOG_ERROR() << "Timed out while creating ODBC connection: " << ex;
+        throw;
     } catch (const std::exception& ex) {
         ++stats_.connection.error_total;
         LOG_ERROR() << "Failed to create ODBC connection: " << ex;

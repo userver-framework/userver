@@ -1,7 +1,7 @@
 #include <userver/storages/odbc/cluster.hpp>
 
 #include <storages/odbc/detail/cluster_impl.hpp>
-#include <storages/odbc/odbc_config.hpp>
+#include <userver/storages/odbc/command_control.hpp>
 
 #include <userver/utils/assert.hpp>
 
@@ -17,21 +17,32 @@ Cluster::Cluster(const settings::ODBCClusterSettings& settings, clients::dns::Re
 
 Cluster::~Cluster() = default;
 
-ResultSet Cluster::Execute(ClusterHostTypeFlags flags, const Query& query) { return impl_->Execute(flags, query); }
-
-ResultSet Cluster::Execute(engine::Deadline deadline, ClusterHostTypeFlags flags, const Query& query) {
-    return impl_->Execute(deadline, flags, query);
+ResultSet Cluster::DoExecute(
+    OptionalCommandControl command_control,
+    ClusterHostTypeFlags flags,
+    const Query& query,
+    const impl::ParameterList& parameters
+) {
+    return impl_->Execute(flags, command_control, query, parameters);
 }
 
 Transaction Cluster::Begin(ClusterHostTypeFlags flags) { return impl_->Begin(flags); }
 
-Transaction Cluster::Begin(engine::Deadline deadline, ClusterHostTypeFlags flags) {
-    return impl_->Begin(deadline, flags);
+Transaction Cluster::Begin(ClusterHostTypeFlags flags, OptionalCommandControl command_control) {
+    return impl_->Begin(flags, command_control);
 }
 
 void Cluster::WriteStatistics(utils::statistics::Writer& writer) const { impl_->WriteStatistics(writer); }
 
 void Cluster::SetDefaultCommandControl(const CommandControl& cc) { impl_->SetDefaultCommandControl(cc); }
+
+void Cluster::UpdateSettings(const settings::ODBCClusterSettings& settings) { impl_->UpdateSettings(settings); }
+
+void Cluster::UpdateDsns(const std::vector<std::string>& dsns) { impl_->UpdateDsns(dsns); }
+
+void Cluster::SetPoolSettingsOverride(std::optional<settings::PoolSettings> settings) {
+    impl_->SetPoolSettingsOverride(settings);
+}
 
 std::optional<std::chrono::milliseconds> Cluster::GetDefaultNetworkTimeout() const {
     return impl_->GetDefaultNetworkTimeout();

@@ -10,6 +10,8 @@
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/trx_tracker.hpp>
 
+#include <userver/storages/odbc/command_control.hpp>
+#include <userver/storages/odbc/impl/parameter.hpp>
 #include <userver/storages/odbc/query.hpp>
 #include <userver/storages/odbc/result_set.hpp>
 
@@ -34,7 +36,17 @@ public:
     Transaction(const Transaction& other) = delete;
     Transaction(Transaction&& other) noexcept;
 
-    ResultSet Execute(const Query& query);
+    /// @brief Execute a statement, binding every argument to an ODBC `?` placeholder.
+    template <typename... Args>
+    ResultSet Execute(const Query& query, const Args&... args) {
+        return Execute(std::nullopt, query, args...);
+    }
+
+    /// @brief Execute a statement with per-statement timeout overrides.
+    template <typename... Args>
+    ResultSet Execute(OptionalCommandControl command_control, const Query& query, const Args&... args) {
+        return DoExecute(command_control, query, impl::MakeParameterList(args...));
+    }
 
     /// @brief Commit the transaction
     void Commit();
@@ -43,6 +55,11 @@ public:
     void Rollback();
 
 private:
+    ResultSet DoExecute(
+        OptionalCommandControl command_control,
+        const Query& query,
+        const impl::ParameterList& parameters
+    );
     void AssertValid() const;
 
     // shared_ptr<Pool>(16) + unique_ptr<Connection>(8) = 24 bytes, align 8

@@ -1,8 +1,94 @@
 ## ODBC Driver
 
-🐙 **userver** provides generic asynchronous driver for SQL-like databases via ODBC. The driver is in early
-development stage and can only execute simple queries.
+🐙 **userver** provides an asynchronous client for SQL databases that expose an
+ODBC interface. The driver integrates connection pools, transactions,
+deadlines, tracing, metrics, dynamic configuration, secdist and DNS resolution
+with the userver component system.
 
+### Executing queries safely
+
+Use `?` placeholders and pass values separately. The driver prepares the SQL
+statement and passes every value separately to the ODBC binding API with
+`SQLBindParameter`. userver does not interpolate values into SQL: the selected
+ODBC driver handles their escaping and typing, so an untrusted value cannot
+alter the query structure. A driver may still serialize bound values as SQL
+literals internally.
+
+@snippet odbc/tests/odbc_postgresql_test.cpp ODBC parameter binding
+
+The variadic API supports booleans, signed and unsigned integers, floating
+point values, strings and string views. Use `std::optional<T>` for a typed
+nullable value, or `nullptr` when the ODBC driver can infer the parameter type
+from the statement. The number of C++ arguments must match the number of `?`
+placeholders.
+
+`storages::odbc::Cluster::Execute` returns a storages::odbc::ResultSet. Its rows
+contain storages::odbc::Field values that provide typed getters such as
+`GetInt32`, `GetInt64`, `GetDouble`, `GetBool`, and `GetString`.
+
+### Transactions
+
+Transactions are created with storages::odbc::Cluster::Begin. They commit or
+roll back explicitly and automatically roll back on destruction if left open.
+Parameters are bound in transaction queries in exactly the same way:
+
+@snippet odbc/tests/odbc_transaction_test.cpp ODBC transaction parameter binding
+
+### Command control and deadlines
+
+storages::odbc::CommandControl configures the connection-acquisition/network
+timeout and statement timeout for an operation. Pass an
+storages::odbc::OptionalCommandControl to `Cluster::Execute`, `Cluster::Begin`,
+or `Transaction::Execute` to override the defaults. The effective deadline is
+the earliest of the network operation budget, statement timeout, transaction
+deadline, and task-inherited request deadline.
+
+ODBC `SQL_ATTR_QUERY_TIMEOUT` has whole-second resolution. The driver rounds a
+positive sub-second value up when passing it to ODBC while retaining the exact
+userver deadline for pool waits and pre-operation checks. Cancellation of a
+blocking ODBC call itself depends on timeout support in the selected driver.
+
+Deadline expiry is reported as storages::odbc::OperationInterrupted.
+Connection and driver failures use storages::odbc::ConnectionError, and
+statement preparation, binding, and execution failures use
+storages::odbc::StatementError.
+
+### Component configuration
+
+Add components::Odbc under `components_manager.components`. The following
+tested configuration obtains its DSN from secdist:
+
+@snippet odbc/functional_tests/basic_chaos/static_config.yaml ODBC component config
+
+The complete generated static-config schema, including the mutually exclusive
+`dsn`, `pools`, and `secdist_alias` connection sources, is available on
+components::Odbc.
+
+For secdist, `odbc_settings.databases.<alias>` accepts either a `dsn` string or
+a `hosts` array. A host can be a DSN string or an object with a `dsn` member.
+Using secdist keeps credentials out of the static configuration and supports
+live credential/endpoint updates.
+
+The `dns_resolver` static option selects `async` (the default, userver DNS
+resolver) or `getaddrinfo` (resolution in the ODBC driver).
+
+### Dynamic configuration and metrics
+
+@ref USERVER_ODBC_DEFAULT_COMMAND_CONTROL controls default network and
+statement timeouts. @ref USERVER_ODBC_CONNECTION_POOL_SETTINGS describes pool
+settings by component name and the `__default__` fallback. Their schemas and
+defaults are generated from the dynamic-config YAML sources and included in
+the dynamic-config reference.
+
+The component exports pool, query, error, timeout, and transaction statistics
+under the `odbc` metric prefix, labelled with the component and pool.
+
+@section odbc_info More information
+
+- For component options and the generated schema, see components::Odbc.
+- For query execution, see storages::odbc::Cluster.
+- For result traversal, see storages::odbc::ResultSet.
+- For transaction semantics, see storages::odbc::Transaction.
 
 ----------
 

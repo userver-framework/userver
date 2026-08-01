@@ -38,17 +38,17 @@ TopologyBase::TopologyBase(const settings::ODBCClusterSettings& settings, client
 
 TopologyBase::~TopologyBase() = default;
 
-std::unique_ptr<TopologyBase> TopologyBase::Create(
+std::shared_ptr<TopologyBase> TopologyBase::Create(
     const settings::ODBCClusterSettings& settings,
     clients::dns::Resolver* resolver
 ) {
     UASSERT(!settings.pools.empty());
 
     if (settings.pools.size() == 1) {
-        return std::make_unique<Standalone>(settings, resolver);
+        return std::make_shared<Standalone>(settings, resolver);
     }
 
-    return std::make_unique<FixedPrimary>(settings, resolver);
+    return std::make_shared<FixedPrimary>(settings, resolver);
 }
 
 Pool& TopologyBase::SelectPool(ClusterHostType host_type) const {

@@ -1,5 +1,6 @@
 #include <userver/storages/odbc/transaction.hpp>
 
+#include <algorithm>
 #include <storages/odbc/detail/conn_ptr.hpp>
 #include <storages/odbc/detail/connection.hpp>
 #include <storages/odbc/detail/deadline.hpp>
@@ -65,14 +66,31 @@ void Transaction::Rollback() {
     pool_->AccountTransactionRollback();
 }
 
-ResultSet Transaction::Execute(const Query& query) {
+ResultSet Transaction::DoExecute(
+    OptionalCommandControl command_control,
+    const Query& query,
+    const impl::ParameterList& parameters
+) {
     AssertValid();
     detail::CheckDeadlineNotExpired(deadline_);
     tracing::Span span{storages::odbc::impl::tracing::kExecuteSpan};
 
+    auto statement_deadline = deadline_;
+    if (command_control) {
+        if (command_control->network_timeout) {
+            statement_deadline =
+                std::min(statement_deadline, detail::GetExecuteDeadline(*command_control->network_timeout));
+        }
+        if (command_control->statement_timeout) {
+            statement_deadline =
+                std::min(statement_deadline, detail::GetExecuteDeadline(*command_control->statement_timeout));
+        }
+    }
+    detail::CheckDeadlineNotExpired(statement_deadline);
+
     const auto start = utils::datetime::SteadyCoarseClock::now();
     try {
-        auto result = (*connection_)->Query(query.GetStatementView(), deadline_);
+        auto result = (*connection_)->Query(query.GetStatementView(), parameters, statement_deadline);
         const auto elapsed = std::chrono::duration_cast<
             std::chrono::microseconds>(utils::datetime::SteadyCoarseClock::now() - start);
         busy_time_ += elapsed;

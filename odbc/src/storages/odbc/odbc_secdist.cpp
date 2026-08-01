@@ -70,6 +70,13 @@ OdbcSettings::OdbcSettings(const formats::json::Value& doc) {
         if (connections.empty()) {
             throw storages::secdist::SecdistError(fmt::format("Database '{}' has no connection info", dbalias));
         }
+        for (std::size_t index = 0; index < connections.size(); ++index) {
+            if (connections[index].dsn.empty()) {
+                throw storages::secdist::SecdistError(
+                    fmt::format("Database '{}' has an empty DSN at connection {}", dbalias, index)
+                );
+            }
+        }
 
         databases_[dbalias] = std::move(connections);
     }

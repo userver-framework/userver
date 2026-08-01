@@ -1,0 +1,57 @@
+components_manager:
+    components:
+        handler-odbc:
+            path: /odbc
+            task_processor: main-task-processor
+            method: GET
+
+        odbc-database:
+            secdist_alias: odbc-test
+            min_pool_size: 0
+            max_pool_size: 1
+            dns_resolver: getaddrinfo
+
+        testsuite-support:
+
+        http-client: {}
+        http-client-core:
+            fs-task-processor: fs-task-processor
+
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            task_processor: main-task-processor
+            testpoint-url: $mockserver/testpoint
+            testpoint-timeout: 10s
+            skip-unregistered-testpoints: true
+            throttling_enabled: false
+
+        secdist:
+            load-enabled: true
+            update-period: 1s
+        default-secdist-provider:
+            config: /etc/odbc_service/secdist.json
+
+        server:
+            listener:
+                port: 8099
+                task_processor: main-task-processor
+
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: info
+                    overflow_behavior: discard
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+        fs-task-processor:
+            worker_threads: 2
+
+    default_task_processor: main-task-processor

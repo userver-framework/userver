@@ -22,7 +22,7 @@ class TopologyBase {
 public:
     virtual ~TopologyBase();
 
-    static std::unique_ptr<TopologyBase> Create(
+    static std::shared_ptr<TopologyBase> Create(
         const settings::ODBCClusterSettings& settings,
         clients::dns::Resolver* resolver
     );

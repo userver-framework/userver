@@ -1,12 +1,16 @@
 #include <userver/utest/using_namespace_userver.hpp>
 
 #include <userver/clients/dns/component.hpp>
+#include <userver/clients/http/component_list.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
+#include <userver/server/handlers/server_monitor.hpp>
+#include <userver/server/handlers/tests_control.hpp>
 #include <userver/storages/odbc.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/storages/secdist/provider_component.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/daemon_run.hpp>
 
 namespace chaos {
@@ -43,10 +47,8 @@ public:
 
 private:
     std::string GetValue(std::string_view key, const server::http::HttpRequest& request) const {
-        auto result = odbc_->Execute(
-            storages::odbc::ClusterHostType::kMaster,
-            fmt::format("SELECT value FROM kv WHERE key = '{}'", key)
-        );
+        auto result =
+            odbc_->Execute(storages::odbc::ClusterHostType::kMaster, "SELECT value FROM kv WHERE key = ?", key);
 
         if (result.IsEmpty()) {
             request.SetResponseStatus(server::http::HttpStatus::kNotFound);
@@ -64,12 +66,10 @@ private:
 
         odbc_->Execute(
             storages::odbc::ClusterHostType::kMaster,
-            fmt::format(
-                "INSERT INTO kv(key, value) VALUES ('{}', '{}') "
-                "ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
-                key,
-                value
-            )
+            "INSERT INTO kv(key, value) VALUES (?, ?) "
+            "ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+            key,
+            value
         );
 
         request.SetResponseStatus(server::http::HttpStatus::kCreated);
@@ -77,7 +77,7 @@ private:
     }
 
     std::string DeleteValue(std::string_view key) const {
-        odbc_->Execute(storages::odbc::ClusterHostType::kMaster, fmt::format("DELETE FROM kv WHERE key = '{}'", key));
+        odbc_->Execute(storages::odbc::ClusterHostType::kMaster, "DELETE FROM kv WHERE key = ?", key);
 
         return {};
     }
@@ -118,7 +118,7 @@ public:
 private:
     std::string GetValue(std::string_view key, const server::http::HttpRequest& request) const {
         auto trx = odbc_->Begin(storages::odbc::ClusterHostType::kMaster);
-        auto result = trx.Execute(fmt::format("SELECT value FROM kv WHERE key = '{}'", key));
+        auto result = trx.Execute("SELECT value FROM kv WHERE key = ?", key);
         trx.Commit();
 
         if (result.IsEmpty()) {
@@ -136,12 +136,12 @@ private:
         }
 
         auto trx = odbc_->Begin(storages::odbc::ClusterHostType::kMaster);
-        trx.Execute(fmt::format(
-            "INSERT INTO kv(key, value) VALUES ('{}', '{}') "
+        trx.Execute(
+            "INSERT INTO kv(key, value) VALUES (?, ?) "
             "ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
             key,
             value
-        ));
+        );
         trx.Commit();
 
         request.SetResponseStatus(server::http::HttpStatus::kCreated);
@@ -150,7 +150,7 @@ private:
 
     std::string DeleteValue(std::string_view key) const {
         auto trx = odbc_->Begin(storages::odbc::ClusterHostType::kMaster);
-        trx.Execute(fmt::format("DELETE FROM kv WHERE key = '{}'", key));
+        trx.Execute("DELETE FROM kv WHERE key = ?", key);
         trx.Commit();
 
         return {};
@@ -164,8 +164,12 @@ private:
 int main(int argc, char* argv[]) {
     const auto component_list =
         components::MinimalServerComponentList()
+            .AppendComponentList(clients::http::ComponentList())
             .Append<chaos::KeyValue>()
             .Append<chaos::KeyValueTrx>()
+            .Append<server::handlers::ServerMonitor>()
+            .Append<server::handlers::TestsControl>()
+            .Append<components::TestsuiteSupport>()
             .Append<components::Secdist>()
             .Append<components::DefaultSecdistProvider>()
             .Append<clients::dns::Component>()

@@ -40,6 +40,20 @@ UTEST(Transaction, QueryInTransaction) {
     trx.Commit();
 }
 
+UTEST(Transaction, BindsParameters) {
+    auto cluster = MakeCluster();
+    auto trx = cluster.Begin(storages::odbc::ClusterHostType::kMaster);
+
+    /// [ODBC transaction parameter binding]
+    const auto result = trx.Execute("SELECT ?::text, ?::integer", "quoted ' value", 42);
+    /// [ODBC transaction parameter binding]
+
+    ASSERT_EQ(result.Size(), 1);
+    EXPECT_EQ(result[0][0].GetString(), "quoted ' value");
+    EXPECT_EQ(result[0][1].GetInt32(), 42);
+    trx.Commit();
+}
+
 UTEST(Transaction, DoubleCommitThrows) {
     auto cluster = MakeCluster();
     auto trx = cluster.Begin(storages::odbc::ClusterHostType::kMaster);

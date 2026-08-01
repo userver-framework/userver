@@ -38,7 +38,11 @@ UTEST(OdbcDeadline, InheritedExpiredOverridesLongExplicitExecute) {
     server::request::kTaskInheritedData.Set(MakeRequestData(engine::Deadline::Passed()));
 
     UEXPECT_THROW(
-        cluster.Execute(engine::Deadline::FromDuration(1h), storages::odbc::ClusterHostType::kMaster, "SELECT 1"),
+        cluster.Execute(
+            storages::odbc::ClusterHostType::kMaster,
+            storages::odbc::CommandControl{.statement_timeout = 1h},
+            "SELECT 1"
+        ),
         storages::odbc::OperationInterrupted
     );
 }
@@ -47,7 +51,25 @@ UTEST(OdbcDeadline, ExplicitExpiredExecute) {
     auto cluster = MakeCluster();
 
     UEXPECT_THROW(
-        cluster.Execute(engine::Deadline::Passed(), storages::odbc::ClusterHostType::kMaster, "SELECT 1"),
+        cluster.Execute(
+            storages::odbc::ClusterHostType::kMaster,
+            storages::odbc::CommandControl{.statement_timeout = 0ms},
+            "SELECT 1"
+        ),
+        storages::odbc::OperationInterrupted
+    );
+}
+
+UTEST(OdbcDeadline, ExpiresDuringBlockingExecute) {
+    auto cluster = MakeCluster();
+
+    UEXPECT_THROW(
+        cluster.Execute(
+            storages::odbc::ClusterHostType::kMaster,
+            storages::odbc::CommandControl{.statement_timeout = 1ms},
+            "SELECT pg_sleep(CAST(? AS double precision))",
+            0.05
+        ),
         storages::odbc::OperationInterrupted
     );
 }
