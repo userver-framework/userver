@@ -19,6 +19,7 @@ using http::ExtractScheme;
 using http::MakeQuery;
 using http::MakeUrl;
 using http::MakeUrlWithPathArgs;
+using http::ToPunycodeAscii;
 using http::UrlEncode;
 using http::UrlEncodePathSegment;
 
@@ -653,6 +654,70 @@ TEST(UrlDocs, ExtractFragmentExample) {
     auto fragment4 = ExtractFragment("ftp://[::1]:8080/?q=12&w=23#123");
     EXPECT_EQ(fragment4, "123");
     /// [ExtractFragment example]
+}
+
+TEST(ToPunycodeAscii, Empty) { EXPECT_EQ("", ToPunycodeAscii("")); }
+
+TEST(ToPunycodeAscii, AsciiIsUnchanged) {
+    EXPECT_EQ("example.com", ToPunycodeAscii("example.com"));
+    EXPECT_EQ("my-site.example.com", ToPunycodeAscii("my-site.example.com"));
+    // An already encoded domain is pure ASCII, so it is not encoded twice
+    EXPECT_EQ("xn--bcher-kva.example.com", ToPunycodeAscii("xn--bcher-kva.example.com"));
+}
+
+TEST(ToPunycodeAscii, SingleLabel) {
+    EXPECT_EQ("xn--bcher-kva", ToPunycodeAscii("bücher"));
+    EXPECT_EQ("xn--mnchen-3ya", ToPunycodeAscii("münchen"));
+    EXPECT_EQ("xn--tda", ToPunycodeAscii("ü"));
+    EXPECT_EQ("xn--n3h", ToPunycodeAscii("☃"));
+}
+
+TEST(ToPunycodeAscii, NoBasicCodePoints) {
+    // The whole label is non-ASCII, so there is no Punycode delimiter
+    EXPECT_EQ("xn--p1ai", ToPunycodeAscii("рф"));
+    EXPECT_EQ("xn--h1ahn", ToPunycodeAscii("мир"));
+    EXPECT_EQ("xn--wgv71a119e", ToPunycodeAscii("日本語"));
+    EXPECT_EQ("xn--hxajbheg2az3al", ToPunycodeAscii("παράδειγμα"));
+}
+
+TEST(ToPunycodeAscii, HyphensInBasicPart) {
+    // The basic part may contain hyphens itself, only the last one is the delimiter
+    EXPECT_EQ("xn--my-caf-gva", ToPunycodeAscii("my-café"));
+    EXPECT_EQ("xn--a--yka", ToPunycodeAscii("a-ü"));
+    EXPECT_EQ("xn---a-wka", ToPunycodeAscii("ü-a"));
+}
+
+TEST(ToPunycodeAscii, PerLabelEncoding) {
+    EXPECT_EQ("xn--e1afmkfd.xn--p1ai", ToPunycodeAscii("пример.рф"));
+    EXPECT_EQ("www.xn--e1afmkfd.xn--p1ai", ToPunycodeAscii("www.пример.рф"));
+    // ASCII labels of a mixed domain are left as is
+    EXPECT_EQ("shop.xn--80arbjktj.com", ToPunycodeAscii("shop.мойсайт.com"));
+    EXPECT_EQ("xn--bcher-kva.example.com", ToPunycodeAscii("bücher.example.com"));
+}
+
+TEST(ToPunycodeAscii, EmptyLabels) {
+    EXPECT_EQ("xn--p1ai.", ToPunycodeAscii("рф."));
+    EXPECT_EQ(".xn--p1ai", ToPunycodeAscii(".рф"));
+    EXPECT_EQ("xn--p1ai..com", ToPunycodeAscii("рф..com"));
+}
+
+TEST(ToPunycodeAscii, SupplementaryPlane) {
+    // Code points above the BMP take 4 bytes in UTF-8
+    EXPECT_EQ("xn--p61hqader3aj", ToPunycodeAscii("𝔘𝔫𝔦𝔠𝔬𝔡𝔢"));
+}
+
+TEST(ToPunycodeAscii, InvalidUtf8) {
+    EXPECT_EQ(std::nullopt, ToPunycodeAscii("\xff\xfe"));
+    // Truncated two byte sequence
+    EXPECT_EQ(std::nullopt, ToPunycodeAscii("\xd1"));
+    // Lone continuation byte
+    EXPECT_EQ(std::nullopt, ToPunycodeAscii("a\x80z"));
+    // Overlong encoding of '/'
+    EXPECT_EQ(std::nullopt, ToPunycodeAscii("\xc0\xaf"));
+    // Surrogate half
+    EXPECT_EQ(std::nullopt, ToPunycodeAscii("\xed\xa0\x80"));
+    // A single broken label invalidates the whole domain
+    EXPECT_EQ(std::nullopt, ToPunycodeAscii("example.\xff.com"));
 }
 
 USERVER_NAMESPACE_END

@@ -1,8 +1,12 @@
 #include <userver/http/url.hpp>
 
 #include <array>
+#include <cstdint>
+#include <limits>
 
 #include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/text_light.hpp>
 #include <utils/impl/internal_tag.hpp>
 
 #include <fmt/args.h>
@@ -89,6 +93,190 @@ void UrlEncodePathSegmentTo(std::string_view input_string, std::string& result) 
 }
 
 }  // namespace
+
+namespace {
+
+//  Punycode related functions. This code is based on go's one
+// Copyright 2012 The Go Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Punycode parameters, RFC 3492 section 5. All the computations are done on std::uint32_t with
+// explicit overflow checks, just like in the reference implementation from the RFC appendix.
+constexpr std::uint32_t kPunycodeBase = 36;
+constexpr std::uint32_t kPunycodeTMin = 1;
+constexpr std::uint32_t kPunycodeTMax = 26;
+constexpr std::uint32_t kPunycodeSkew = 38;
+constexpr std::uint32_t kPunycodeDamp = 700;
+constexpr std::uint32_t kPunycodeInitialBias = 72;
+// The first non-basic code point: everything below it is copied to the output as is
+constexpr std::uint32_t kPunycodeInitialN = 128;
+constexpr std::uint32_t kPunycodeMaxInt = std::numeric_limits<std::uint32_t>::max();
+
+// ASCII Compatible Encoding prefix, RFC 5890 section 2.3.2.5
+constexpr std::string_view kAcePrefix = "xn--";
+
+// Digit values 0..25 are 'a'..'z', 26..35 are '0'..'9'
+char EncodePunycodeDigit(std::uint32_t digit) {
+    UASSERT(digit < kPunycodeBase);
+    return static_cast<char>(digit < 26 ? digit + 'a' : digit - 26 + '0');
+}
+
+// Bias adaptation, RFC 3492 section 6.1
+std::uint32_t AdaptPunycodeBias(std::uint32_t delta, std::uint32_t num_points, bool first_time) {
+    delta = first_time ? delta / kPunycodeDamp : delta / 2;
+    delta += delta / num_points;
+
+    std::uint32_t k = 0;
+    while (delta > ((kPunycodeBase - kPunycodeTMin) * kPunycodeTMax) / 2) {
+        delta /= kPunycodeBase - kPunycodeTMin;
+        k += kPunycodeBase;
+    }
+
+    return k + (kPunycodeBase - kPunycodeTMin + 1) * delta / (delta + kPunycodeSkew);
+}
+
+// Punycode operates on code points rather than on bytes, so the whole label has to be decoded
+// upfront. Returns std::nullopt if `text` is not valid UTF-8.
+std::optional<std::vector<char32_t>> SplitIntoCodePoints(std::string_view text) {
+    std::vector<char32_t> code_points;
+    code_points.reserve(text.size());
+
+    for (std::size_t pos = 0; pos < text.size();) {
+        const auto length = utils::text::utf8::CodePointLengthByFirstByte(text[pos]);
+        const auto sequence = text.substr(pos, length);
+        // Rejects truncated sequences, overlong encodings, surrogates and out of range values
+        if (!utils::text::utf8::IsWellFormedCodePoint(sequence)) {
+            return std::nullopt;
+        }
+
+        // The leading byte carries 7, 5, 4 or 3 payload bits, every continuation byte carries 6
+        const int leading_mask = (length == 1) ? 0x7F : (0x7F >> length);
+        auto code_point = static_cast<char32_t>(static_cast<unsigned char>(sequence[0]) & leading_mask);
+        for (std::size_t i = 1; i < length; ++i) {
+            code_point = (code_point << 6) | (static_cast<unsigned char>(sequence[i]) & 0x3F);
+        }
+
+        code_points.push_back(code_point);
+        pos += length;
+    }
+
+    return code_points;
+}
+
+// Punycode encoding of a single label, RFC 3492 section 6.3
+std::optional<std::string> EncodePunycodeLabel(std::string_view label) {
+    const auto code_points = SplitIntoCodePoints(label);
+    if (!code_points) {
+        return std::nullopt;
+    }
+
+    std::string result{kAcePrefix};
+
+    // Basic code points are copied verbatim and are followed by the delimiter
+    std::uint32_t basic_count = 0;
+    for (const char32_t code_point : *code_points) {
+        if (code_point < kPunycodeInitialN) {
+            result.push_back(static_cast<char>(code_point));
+            ++basic_count;
+        }
+    }
+    if (basic_count > 0) {
+        result.push_back('-');
+    }
+
+    std::uint32_t n = kPunycodeInitialN;
+    std::uint32_t delta = 0;
+    std::uint32_t bias = kPunycodeInitialBias;
+    std::uint32_t handled = basic_count;
+
+    while (handled < code_points->size()) {
+        // The smallest code point that has not been handled yet
+        std::uint32_t next_n = kPunycodeMaxInt;
+        for (const char32_t code_point : *code_points) {
+            if (code_point >= n && code_point < next_n) {
+                next_n = code_point;
+            }
+        }
+
+        if (next_n - n > (kPunycodeMaxInt - delta) / (handled + 1)) {
+            return std::nullopt;
+        }
+        delta += (next_n - n) * (handled + 1);
+        n = next_n;
+
+        for (const char32_t code_point : *code_points) {
+            if (code_point < n) {
+                if (++delta == 0) {
+                    return std::nullopt;
+                }
+                continue;
+            }
+            if (code_point > n) {
+                continue;
+            }
+
+            // Represent delta as a generalized variable-length integer
+            std::uint32_t q = delta;
+            for (std::uint32_t k = kPunycodeBase;; k += kPunycodeBase) {
+                const std::uint32_t t = (k <= bias + kPunycodeTMin)   ? kPunycodeTMin
+                                        : (k >= bias + kPunycodeTMax) ? kPunycodeTMax
+                                                                      : k - bias;
+                if (q < t) {
+                    break;
+                }
+                result.push_back(EncodePunycodeDigit(t + (q - t) % (kPunycodeBase - t)));
+                q = (q - t) / (kPunycodeBase - t);
+            }
+            result.push_back(EncodePunycodeDigit(q));
+
+            bias = AdaptPunycodeBias(delta, handled + 1, handled == basic_count);
+            delta = 0;
+            ++handled;
+        }
+
+        ++delta;
+        ++n;
+    }
+
+    return result;
+}
+
+}  // namespace
+
+std::optional<std::string> ToPunycodeAscii(std::string_view domain) {
+    if (utils::text::IsAscii(domain)) {
+        return std::string{domain};
+    }
+
+    std::string result;
+    result.reserve(domain.size() + kAcePrefix.size());
+
+    // Every label is encoded on its own, the ACE prefix is per label as well
+    std::size_t label_begin = 0;
+    while (true) {
+        const auto dot_pos = domain.find('.', label_begin);
+        const auto label = domain.substr(label_begin, dot_pos - label_begin);
+
+        if (utils::text::IsAscii(label)) {
+            result.append(label);
+        } else {
+            const auto encoded_label = EncodePunycodeLabel(label);
+            if (!encoded_label) {
+                return std::nullopt;
+            }
+            result.append(*encoded_label);
+        }
+
+        if (dot_pos == std::string_view::npos) {
+            break;
+        }
+        result.push_back('.');
+        label_begin = dot_pos + 1;
+    }
+
+    return result;
+}
 
 std::string UrlEncode(std::string_view input_string) {
     std::string result;
