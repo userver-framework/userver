@@ -152,7 +152,7 @@ protected:
         hosts.insert("localhost");
         std::string hosts_content;
         for (const auto& host : hosts) {
-            hosts_content.append(fmt::format("127.0.0.1 {}\r\n", host));
+            hosts_content.append(fmt::format("127.0.0.1 {}\r\n", http::ToPunycodeAscii(host).value()));
         }
         state_ = std::make_unique<State>(hosts_content, hosts);
     }
@@ -294,12 +294,21 @@ UTEST_F(HttpCookieJar, PathPrefixBoundary) {
     EXPECT_COOKIES("http://localhost/", IsEmpty());
 }
 
-//  TODO: Fix hosts for unicode in fixture
-UTEST_F(HttpCookieJar, DISABLED_UnicodeUrls) {
-    MockDomains({"тест.рф"});
-    Store("http://тест.рф/test", "a=1");
-
-    EXPECT_COOKIES("http://тест.рф", ElementsAre("a=1"));
+//  Testing canonical urls
+UTEST_F(HttpCookieJar, UnicodeUrls) {
+    //  TODO: percularities with resolver, fix them to remove usage punification here
+    const auto test_domain = http::ToPunycodeAscii("тест.рф");
+    const auto example_domain = http::ToPunycodeAscii("example.com");
+    const auto example2_domain = http::ToPunycodeAscii("еχамрⅼе.сом");
+    
+    MockDomains({*test_domain, *example_domain, *example2_domain});
+    Store(fmt::format("http://{}/test", *test_domain), "a=1");
+    Store(fmt::format("http://{}/test", *example_domain), "a=2");
+    Store(fmt::format("http://{}/test", *example2_domain), "a=3");
+    
+    EXPECT_COOKIES(fmt::format("http://{}", *example2_domain), ElementsAre("a=3"));
+    EXPECT_COOKIES(fmt::format("http://{}", *example_domain), ElementsAre("a=2"));
+    EXPECT_COOKIES(fmt::format("http://{}", *test_domain), ElementsAre("a=1"));
 }
 
 // RFC 6265 §5.1.4: cookie-path "/" is a prefix of every request path, so a root
