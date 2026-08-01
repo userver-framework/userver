@@ -71,6 +71,8 @@ struct DriverSettings {
     std::shared_ptr<NYdb::ICredentialsProviderFactory> credentials_provider_factory;
 };
 
+std::string_view ToString(NYdb::EGrpcCompressionAlgorithm algorithm);
+
 TableSettings ParseTableSettings(const yaml_config::YamlConfig& dbconfig, const secdist::DatabaseSettings& dbsecdist);
 
 DriverSettings ParseDriverSettings(

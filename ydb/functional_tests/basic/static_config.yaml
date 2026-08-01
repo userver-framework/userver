@@ -78,6 +78,8 @@ components_manager:
                     max_pool_size: 10
                     min_pool_size: 5
                     get_session_retry_limit: 1
+                    grpc-compression-algorithm: gzip
+                    grpc-load-balancing-policy: round_robin
                 # Second logical database used by the YDB_DATABASE_ROUTING test.
                 # The testsuite ydb recipe points every database to the same
                 # physical instance, so routing here is observed via per-database

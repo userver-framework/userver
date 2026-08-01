@@ -3,6 +3,7 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/parse/common_containers.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/retry_budget.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
@@ -67,6 +68,18 @@ NYdb::EGrpcCompressionAlgorithm ToCompressionAlgorithm(std::string_view alg) {
         throw yaml_config::Exception(fmt::format("Unknown grpc-compression-algorithm: {}", alg));
     }
 
+}
+
+std::string_view ToString(NYdb::EGrpcCompressionAlgorithm algorithm) {
+    switch (algorithm) {
+        case NYdb::EGrpcCompressionAlgorithm::None:
+            return "none";
+        case NYdb::EGrpcCompressionAlgorithm::Deflate:
+            return "deflate";
+        case NYdb::EGrpcCompressionAlgorithm::Gzip:
+            return "gzip";
+    }
+    UINVARIANT(false, "Unhandled EGrpcCompressionAlgorithm value");
 }
 
 DriverSettings ParseDriverSettings(

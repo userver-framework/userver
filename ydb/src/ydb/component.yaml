@@ -113,8 +113,8 @@ properties:
                         NYdb::TDriverConfig::SetGRpcKeepAlivePermitWithoutCalls. If omitted, not set (SDK default).
                 grpc-compression-algorithm:
                     type: string
-                    enum: [none, gzip, deflate]                                                                                                                                                                                    
-                    default: gzip
+                    enum: [none, gzip, deflate]
+                    default: none
                     description: |
                         NYdb::TDriverConfig::SetGRpcCompressionAlgorithm. If omitted, not set (SDK default).
                         Valid values: "gzip", "deflate", "none".
