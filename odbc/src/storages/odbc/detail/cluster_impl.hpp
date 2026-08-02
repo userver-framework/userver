@@ -63,6 +63,7 @@ public:
     void SetDefaultCommandControl(const CommandControl& cc);
     void SetHandlersCommandControl(CommandControlByHandlerMap command_control);
     void SetQueriesCommandControl(CommandControlByQueryMap command_control);
+    void SetStatementMetricsSettings(const settings::StatementMetricsSettings& settings);
     void ApplyDynamicCommandControls(
         CommandControl default_command_control,
         CommandControlByHandlerMap handlers_command_control,
@@ -102,6 +103,7 @@ private:
     std::shared_ptr<const settings::ODBCClusterSettings> settings_;
     std::shared_ptr<const settings::ODBCClusterSettings> baseline_settings_;
     std::optional<settings::PoolSettings> pool_settings_override_;
+    settings::StatementMetricsSettings statement_metrics_settings_{};
 
     CommandControlStorePtr command_control_store_;
 };

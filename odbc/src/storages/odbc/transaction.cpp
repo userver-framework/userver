@@ -5,6 +5,7 @@
 #include <storages/odbc/detail/connection.hpp>
 #include <storages/odbc/detail/deadline.hpp>
 #include <storages/odbc/detail/pool.hpp>
+#include <storages/odbc/detail/statement_stats.hpp>
 #include <userver/storages/odbc/exception.hpp>
 #include <userver/storages/odbc/impl/tracing_tags.hpp>
 
@@ -128,21 +129,28 @@ ResultSet Transaction::DoExecute(
     const auto statement_timeout = resolved.statement_timeout.value_or(statement_timeout_);
     const auto statement_deadline =
         std::min(detail::GetExecuteDeadline(network_timeout), detail::GetExecuteDeadline(statement_timeout));
-    detail::CheckDeadlineNotExpired(statement_deadline);
 
     const auto start = utils::datetime::SteadyCoarseClock::now();
+    detail::StatementStats statement_stats{query, pool_->GetStatementStatsStorage()};
     try {
+        detail::CheckDeadlineNotExpired(statement_deadline);
         auto result = (*connection_)->Query(query, parameters, statement_deadline);
         const auto elapsed = std::chrono::duration_cast<
             std::chrono::microseconds>(utils::datetime::SteadyCoarseClock::now() - start);
         busy_time_ += elapsed;
         pool_->AccountQueryExecuted(elapsed);
+        statement_stats.AccountSuccess();
         return result;
     } catch (const OperationInterrupted&) {
+        statement_stats.AccountError();
         pool_->AccountQueryTimeout();
         throw;
     } catch (const Error&) {
+        statement_stats.AccountError();
         pool_->AccountQueryError();
+        throw;
+    } catch (const std::exception&) {
+        statement_stats.AccountError();
         throw;
     }
 }

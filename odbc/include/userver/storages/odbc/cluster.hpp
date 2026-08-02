@@ -105,6 +105,13 @@ public:
     /// Unnamed queries skip this layer. Passing an empty map clears it.
     void SetQueriesCommandControl(CommandControlByQueryMap command_control);
 
+    /// @brief Set the per-pool bound for named query latency and error metrics.
+    ///
+    /// A zero bound disables accounting and clears all retained named query
+    /// names. Shrinking the bound evicts the least recently used names. Each
+    /// retained name exports three metric series.
+    void SetStatementMetricsSettings(const settings::StatementMetricsSettings& settings);
+
     /// @brief Atomically replace cluster pools for future operations.
     /// Existing queries and transactions keep their old pools alive.
     void UpdateSettings(const settings::ODBCClusterSettings& settings);

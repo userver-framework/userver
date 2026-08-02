@@ -5,6 +5,7 @@
 #include <cstddef>
 #include <storages/odbc/detail/conn_ptr.hpp>
 #include <storages/odbc/detail/connection.hpp>
+#include <storages/odbc/detail/statement_stats_storage.hpp>
 #include <storages/odbc/detail/statistics.hpp>
 #include <string>
 #include <userver/drivers/impl/connection_pool_base.hpp>
@@ -23,13 +24,15 @@ public:
         const std::string& dsn,
         std::size_t min_pool_size,
         std::size_t max_pool_size,
-        engine::TaskProcessor& blocking_task_processor
+        engine::TaskProcessor& blocking_task_processor,
+        const settings::StatementMetricsSettings& statement_metrics_settings = {}
     );
     Pool(
         std::vector<std::string> dsns,
         std::size_t min_pool_size,
         std::size_t max_pool_size,
-        engine::TaskProcessor& blocking_task_processor
+        engine::TaskProcessor& blocking_task_processor,
+        const settings::StatementMetricsSettings& statement_metrics_settings = {}
     );
 
     ~Pool();
@@ -39,6 +42,9 @@ public:
     void Release(ConnectionUniquePtr connection);
 
     const InstanceStatistics& GetStatistics() const noexcept { return stats_; }
+    StatementStatisticsSnapshot GetStatementStatistics() const;
+    StatementStatsStorage& GetStatementStatsStorage() noexcept { return statement_stats_; }
+    void SetStatementMetricsSettings(const settings::StatementMetricsSettings& settings);
 
     void AccountQueryExecuted(std::chrono::microseconds duration) noexcept;
     void AccountQueryError() noexcept;
@@ -70,6 +76,7 @@ private:
     utils::PeriodicTask size_monitor_;
 
     InstanceStatistics stats_{};
+    StatementStatsStorage statement_stats_;
 };
 
 }  // namespace storages::odbc::detail

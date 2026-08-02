@@ -25,6 +25,7 @@ public:
 
     static std::shared_ptr<TopologyBase> Create(
         const settings::ODBCClusterSettings& settings,
+        const settings::StatementMetricsSettings& statement_metrics_settings,
         clients::dns::Resolver* resolver,
         engine::TaskProcessor& blocking_task_processor
     );
@@ -32,10 +33,12 @@ public:
     Pool& SelectPool(ClusterHostType host_type) const;
 
     void WriteStatistics(utils::statistics::Writer& writer) const;
+    void SetStatementMetricsSettings(const settings::StatementMetricsSettings& settings);
 
 protected:
     TopologyBase(
         const settings::ODBCClusterSettings& settings,
+        const settings::StatementMetricsSettings& statement_metrics_settings,
         clients::dns::Resolver* resolver,
         engine::TaskProcessor& blocking_task_processor
     );

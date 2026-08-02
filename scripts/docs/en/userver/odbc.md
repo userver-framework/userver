@@ -181,7 +181,22 @@ from the dynamic-config YAML sources and included in the dynamic-config
 reference.
 
 The component exports pool, query, error, timeout, and transaction statistics
-under the `odbc` metric prefix, labelled with the component and pool.
+under the `odbc` metric prefix, labelled with the component and pool. Named
+query latency and error metrics are opt-in:
+
+@snippet odbc/tests/odbc_metrics_test.cpp ODBC named query metrics
+
+`max_statement_metrics` and @ref
+USERVER_ODBC_STATEMENT_METRICS_SETTINGS bound the number of retained named-query
+names independently in every `odbc_pool`. Each name exports three metric series,
+so a pool can export up to `3 * max_statement_metrics` series. The dynamic
+dictionary resolves an exact component name before `__default__`, then falls
+back to the static value. Zero disables accounting and clears retained names.
+Only storages::odbc::Query with an explicit name contributes; SQL text and
+unnamed statements never become labels. Events are delivered asynchronously
+through a bounded queue, so export is eventual and metrics events may be dropped
+under telemetry overload. The exported siblings are `statement_timings`,
+`statement_executed`, and `statement_errors`, each labelled by `odbc_query`.
 
 @section odbc_info More information
 

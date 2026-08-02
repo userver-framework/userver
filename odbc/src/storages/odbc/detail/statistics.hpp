@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
+#include <unordered_map>
 
 #include <userver/utils/statistics/histogram.hpp>
 #include <userver/utils/statistics/rate_counter.hpp>
@@ -51,7 +53,18 @@ struct InstanceStatistics final {
     utils::statistics::Histogram acquire_percentile{kDefaultHistogramBoundsArray};
 };
 
+struct StatementStatistics final {
+    utils::statistics::Histogram timings{kDefaultHistogramBoundsArray};
+    utils::statistics::RateCounter executed{};
+    utils::statistics::RateCounter errors{};
+};
+
+struct StatementStatisticsSnapshot final {
+    std::unordered_map<std::string, StatementStatistics> statements;
+};
+
 void DumpMetric(utils::statistics::Writer& writer, const InstanceStatistics& stats);
+void DumpMetric(utils::statistics::Writer& writer, const StatementStatisticsSnapshot& stats);
 
 }  // namespace storages::odbc::detail
 

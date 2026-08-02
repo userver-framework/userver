@@ -34,6 +34,13 @@ properties:
             maximum number of connections that can be created by this component instance.
             Should not be less than `min_pool_size`
         default: 10
+    max_statement_metrics:
+        type: integer
+        minimum: 0
+        description: |
+            maximum number of named query-name entries retained per ODBC pool.
+            Each entry exports three metric series. Zero disables named query metrics
+        default: 0
     dns_resolver:
         type: string
         description: server hostname resolver type (getaddrinfo or async)

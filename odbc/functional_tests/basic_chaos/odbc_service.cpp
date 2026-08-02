@@ -182,6 +182,28 @@ private:
     const std::shared_ptr<storages::odbc::Cluster> odbc_;
 };
 
+class StatementMetrics final : public server::handlers::HttpHandlerBase {
+public:
+    static constexpr std::string_view kName{"handler-statement-metrics"};
+
+    StatementMetrics(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : server::handlers::HttpHandlerBase{config, context},
+          odbc_{context.FindComponent<components::Odbc>("key-value-db").GetCluster()}
+    {}
+
+    std::string HandleRequestThrow(const server::http::HttpRequest&, server::request::RequestContext&) const override {
+        const storages::odbc::Query query{
+            "SELECT 1",
+            storages::odbc::Query::Name{"odbc-functional-statement-metrics"},
+        };
+        odbc_->Execute(storages::odbc::ClusterHostType::kMaster, query);
+        return "ok";
+    }
+
+private:
+    const std::shared_ptr<storages::odbc::Cluster> odbc_;
+};
+
 }  // namespace chaos
 
 int main(int argc, char* argv[]) {
@@ -192,6 +214,7 @@ int main(int argc, char* argv[]) {
             .Append<chaos::KeyValue>()
             .Append<chaos::KeyValueTrx>()
             .Append<chaos::CommandControl>()
+            .Append<chaos::StatementMetrics>()
             .Append<server::handlers::ServerMonitor>()
             .Append<server::handlers::TestsControl>()
             .Append<components::TestsuiteSupport>()

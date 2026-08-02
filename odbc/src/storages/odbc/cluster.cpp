@@ -78,6 +78,10 @@ void Cluster::SetQueriesCommandControl(CommandControlByQueryMap command_control)
     impl_->SetQueriesCommandControl(std::move(command_control));
 }
 
+void Cluster::SetStatementMetricsSettings(const settings::StatementMetricsSettings& settings) {
+    impl_->SetStatementMetricsSettings(settings);
+}
+
 void Cluster::UpdateSettings(const settings::ODBCClusterSettings& settings) { impl_->UpdateSettings(settings); }
 
 void Cluster::UpdateDsns(const std::vector<std::string>& dsns) { impl_->UpdateDsns(dsns); }

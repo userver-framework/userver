@@ -24,13 +24,15 @@ Pool::Pool(
     const std::string& dsn,
     std::size_t min_pool_size,
     std::size_t max_pool_size,
-    engine::TaskProcessor& blocking_task_processor
+    engine::TaskProcessor& blocking_task_processor,
+    const settings::StatementMetricsSettings& statement_metrics_settings
 )
     : ConnectionPoolBase<Connection, Pool>(max_pool_size, kMaxSimultaneouslyConnectingClients),
       dsns_({dsn}),
       min_pool_size_(min_pool_size),
       max_pool_size_(max_pool_size),
-      blocking_task_processor_{blocking_task_processor}
+      blocking_task_processor_{blocking_task_processor},
+      statement_stats_{statement_metrics_settings}
 {
     stats_.connection.maximum = max_pool_size;
     try {
@@ -49,13 +51,15 @@ Pool::Pool(
     std::vector<std::string> dsns,
     std::size_t min_pool_size,
     std::size_t max_pool_size,
-    engine::TaskProcessor& blocking_task_processor
+    engine::TaskProcessor& blocking_task_processor,
+    const settings::StatementMetricsSettings& statement_metrics_settings
 )
     : ConnectionPoolBase<Connection, Pool>(max_pool_size, kMaxSimultaneouslyConnectingClients),
       dsns_(std::move(dsns)),
       min_pool_size_(min_pool_size),
       max_pool_size_(max_pool_size),
-      blocking_task_processor_{blocking_task_processor}
+      blocking_task_processor_{blocking_task_processor},
+      statement_stats_{statement_metrics_settings}
 {
     stats_.connection.maximum = max_pool_size;
     try {
@@ -71,6 +75,12 @@ Pool::Pool(
 Pool::~Pool() {
     size_monitor_.Stop();
     Reset();
+}
+
+StatementStatisticsSnapshot Pool::GetStatementStatistics() const { return statement_stats_.GetStatementsStats(); }
+
+void Pool::SetStatementMetricsSettings(const settings::StatementMetricsSettings& settings) {
+    statement_stats_.SetSettings(settings);
 }
 
 ConnectionPtr Pool::Acquire(engine::Deadline deadline) {

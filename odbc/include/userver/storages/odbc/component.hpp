@@ -30,6 +30,7 @@ namespace components {
 /// * @ref USERVER_ODBC_HANDLERS_COMMAND_CONTROL
 /// * @ref USERVER_ODBC_QUERIES_COMMAND_CONTROL
 /// * @ref USERVER_ODBC_CONNECTION_POOL_SETTINGS
+/// * @ref USERVER_ODBC_STATEMENT_METRICS_SETTINGS
 ///
 /// ## Static configuration example:
 ///
@@ -60,6 +61,7 @@ private:
     void OnSecdistUpdate(const storages::secdist::SecdistConfig& secdist);
 
     std::string name_;
+    storages::odbc::settings::StatementMetricsSettings statement_metrics_settings_fallback_;
     std::optional<std::string> secdist_alias_;
     std::shared_ptr<storages::odbc::Cluster> cluster_;
 

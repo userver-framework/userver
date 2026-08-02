@@ -13,6 +13,7 @@ class FixedPrimary final : public TopologyBase {
 public:
     FixedPrimary(
         const settings::ODBCClusterSettings& settings,
+        const settings::StatementMetricsSettings& statement_metrics_settings,
         clients::dns::Resolver* resolver,
         engine::TaskProcessor& blocking_task_processor
     );

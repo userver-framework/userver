@@ -15,12 +15,18 @@ components_manager:
             task_processor: main-task-processor
             method: GET
 
+        handler-statement-metrics:
+            path: /statement-metrics
+            task_processor: main-task-processor
+            method: GET
+
         # [ODBC component config]
         key-value-db:
             blocking_task_processor: fs-task-processor
             secdist_alias: key-value-db
             min_pool_size: 1
             max_pool_size: 1
+            max_statement_metrics: 2
         # [ODBC component config]
 
         secdist: {}

@@ -43,6 +43,14 @@ void DumpMetric(utils::statistics::Writer& writer, const InstanceStatistics& sta
     }
 }
 
+void DumpMetric(utils::statistics::Writer& writer, const StatementStatisticsSnapshot& stats) {
+    for (const auto& [name, statement] : stats.statements) {
+        writer["statement_timings"].ValueWithLabels(statement.timings, {"odbc_query", name});
+        writer["statement_executed"].ValueWithLabels(statement.executed, {"odbc_query", name});
+        writer["statement_errors"].ValueWithLabels(statement.errors, {"odbc_query", name});
+    }
+}
+
 }  // namespace storages::odbc::detail
 
 USERVER_NAMESPACE_END

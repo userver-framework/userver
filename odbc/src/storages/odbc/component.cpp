@@ -28,6 +28,7 @@
 #include <dynamic_config/variables/USERVER_ODBC_DEFAULT_COMMAND_CONTROL.hpp>
 #include <dynamic_config/variables/USERVER_ODBC_HANDLERS_COMMAND_CONTROL.hpp>
 #include <dynamic_config/variables/USERVER_ODBC_QUERIES_COMMAND_CONTROL.hpp>
+#include <dynamic_config/variables/USERVER_ODBC_STATEMENT_METRICS_SETTINGS.hpp>
 
 #ifndef ARCADIA_ROOT
 #include "generated/src/storages/odbc/component.yaml.hpp"  // Y_IGNORE
@@ -187,6 +188,9 @@ storages::odbc::CommandControlByHandlerMap ConvertHandlersCommandControl(const C
 Odbc::Odbc(const ComponentConfig& config, const ComponentContext& context)
     : ComponentBase{config, context},
       name_{config.Name()},
+      statement_metrics_settings_fallback_{
+          .max_statements = config["max_statement_metrics"].As<std::size_t>(0),
+      },
       secdist_alias_{config["secdist_alias"].As<std::optional<std::string>>()},
       cluster_{std::make_shared<storages::odbc::Cluster>(
           MakeClusterSettings(config, context),
@@ -195,6 +199,8 @@ Odbc::Odbc(const ComponentConfig& config, const ComponentContext& context)
       )},
       config_source_{context.FindComponent<components::DynamicConfig>().GetSource()}
 {
+    cluster_->SetStatementMetricsSettings(statement_metrics_settings_fallback_);
+
     utils::statistics::RegisterWriterScope(
         context,
         "odbc",
@@ -210,7 +216,8 @@ Odbc::Odbc(const ComponentConfig& config, const ComponentContext& context)
         ::dynamic_config::USERVER_ODBC_CONNECTION_POOL_SETTINGS,
         ::dynamic_config::USERVER_ODBC_DEFAULT_COMMAND_CONTROL,
         ::dynamic_config::USERVER_ODBC_HANDLERS_COMMAND_CONTROL,
-        ::dynamic_config::USERVER_ODBC_QUERIES_COMMAND_CONTROL
+        ::dynamic_config::USERVER_ODBC_QUERIES_COMMAND_CONTROL,
+        ::dynamic_config::USERVER_ODBC_STATEMENT_METRICS_SETTINGS
     );
 
     if (secdist_alias_) {
@@ -238,6 +245,13 @@ void Odbc::OnConfigUpdate(const dynamic_config::Snapshot& config) {
         ValidatePoolSettings(*updated);
     }
     cluster_->SetPoolSettingsOverride(updated);
+
+    const auto& statement_metrics = config[::dynamic_config::USERVER_ODBC_STATEMENT_METRICS_SETTINGS];
+    auto statement_metrics_settings = statement_metrics_settings_fallback_;
+    if (const auto dynamic_settings = statement_metrics.GetOptional(name_)) {
+        statement_metrics_settings.max_statements = dynamic_settings->max_statement_metrics;
+    }
+    cluster_->SetStatementMetricsSettings(statement_metrics_settings);
 
     const auto& default_command_control = config[::dynamic_config::USERVER_ODBC_DEFAULT_COMMAND_CONTROL];
     const auto& handlers_command_control = config[::dynamic_config::USERVER_ODBC_HANDLERS_COMMAND_CONTROL];

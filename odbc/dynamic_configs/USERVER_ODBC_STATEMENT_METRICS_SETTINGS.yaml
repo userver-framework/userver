@@ -1,0 +1,43 @@
+default: {}
+description: |
+    Dynamic config that controls named query metrics for ODBC components.
+
+    Dictionary keys can be either an ODBC component name or `__default__`.
+    An exact component entry takes precedence over `__default__`, which takes
+    precedence over the component's static `max_statement_metrics` value.
+
+    The bound is applied independently to every pool labelled by `odbc_pool`.
+    A value of 0 disables accounting and clears retained named query-name entries.
+    Each retained entry exports three metric series.
+schema:
+    type: object
+    example: |
+        {
+            "odbc-orders": {
+                "max_statement_metrics": 50
+            },
+            "__default__": {
+                "max_statement_metrics": 10
+            }
+        }
+    properties:
+        __default__:
+            $ref: "#/definitions/StatementMetricsSettings"
+    additionalProperties:
+        $ref: "#/definitions/StatementMetricsSettings"
+    definitions:
+        StatementMetricsSettings:
+            type: object
+            additionalProperties: false
+            properties:
+                max_statement_metrics:
+                    type: integer
+                    minimum: 0
+                    default: 0
+                    x-usrv-cpp-type: std::size_t
+                    description: |
+                        Maximum number of named query-name entries retained per pool.
+                        Each entry exports three metric series. Zero disables named
+                        query metrics.
+            required:
+              - max_statement_metrics

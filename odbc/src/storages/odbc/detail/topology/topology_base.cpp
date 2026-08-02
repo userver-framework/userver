@@ -28,6 +28,7 @@ std::string ResolveDsn(const std::string& dsn_str, clients::dns::Resolver* resol
 
 TopologyBase::TopologyBase(
     const settings::ODBCClusterSettings& settings,
+    const settings::StatementMetricsSettings& statement_metrics_settings,
     clients::dns::Resolver* resolver,
     engine::TaskProcessor& blocking_task_processor
 ) {
@@ -36,8 +37,13 @@ TopologyBase::TopologyBase(
     pools_.reserve(settings.pools.size());
     for (const auto& host : settings.pools) {
         auto resolved_dsn = ResolveDsn(host.dsn, resolver);
-        pools_.push_back(std::make_shared<
-                         Pool>(resolved_dsn, host.pool.min_size, host.pool.max_size, blocking_task_processor));
+        pools_.push_back(std::make_shared<Pool>(
+            resolved_dsn,
+            host.pool.min_size,
+            host.pool.max_size,
+            blocking_task_processor,
+            statement_metrics_settings
+        ));
     }
 }
 
@@ -45,16 +51,17 @@ TopologyBase::~TopologyBase() = default;
 
 std::shared_ptr<TopologyBase> TopologyBase::Create(
     const settings::ODBCClusterSettings& settings,
+    const settings::StatementMetricsSettings& statement_metrics_settings,
     clients::dns::Resolver* resolver,
     engine::TaskProcessor& blocking_task_processor
 ) {
     UASSERT(!settings.pools.empty());
 
     if (settings.pools.size() == 1) {
-        return std::make_shared<Standalone>(settings, resolver, blocking_task_processor);
+        return std::make_shared<Standalone>(settings, statement_metrics_settings, resolver, blocking_task_processor);
     }
 
-    return std::make_shared<FixedPrimary>(settings, resolver, blocking_task_processor);
+    return std::make_shared<FixedPrimary>(settings, statement_metrics_settings, resolver, blocking_task_processor);
 }
 
 Pool& TopologyBase::SelectPool(ClusterHostType host_type) const {
@@ -70,8 +77,22 @@ Pool& TopologyBase::SelectPool(ClusterHostType host_type) const {
 }
 
 void TopologyBase::WriteStatistics(utils::statistics::Writer& writer) const {
+    std::vector<StatementStatisticsSnapshot> statement_snapshots;
+    statement_snapshots.reserve(pools_.size());
+    for (const auto& pool : pools_) {
+        statement_snapshots.push_back(pool->GetStatementStatistics());
+    }
+
     for (std::size_t i = 0; i < pools_.size(); ++i) {
-        writer.ValueWithLabels(pools_[i]->GetStatistics(), {{"odbc_pool", std::to_string(i)}});
+        const auto pool_label = std::to_string(i);
+        writer.ValueWithLabels(pools_[i]->GetStatistics(), {{"odbc_pool", pool_label}});
+        writer.ValueWithLabels(statement_snapshots[i], {{"odbc_pool", pool_label}});
+    }
+}
+
+void TopologyBase::SetStatementMetricsSettings(const settings::StatementMetricsSettings& settings) {
+    for (const auto& pool : pools_) {
+        pool->SetStatementMetricsSettings(settings);
     }
 }
 

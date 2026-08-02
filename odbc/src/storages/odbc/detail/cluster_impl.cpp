@@ -5,6 +5,7 @@
 
 #include <storages/odbc/detail/deadline.hpp>
 #include <storages/odbc/detail/pool.hpp>
+#include <storages/odbc/detail/statement_stats.hpp>
 #include <storages/odbc/detail/topology/topology_base.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/storages/odbc/cluster_types.hpp>
@@ -33,7 +34,10 @@ ClusterImpl::ClusterImpl(
       command_control_store_{std::make_shared<CommandControlStore>()}
 {
     UINVARIANT(!settings.pools.empty(), "Pools count should be positive");
-    std::atomic_store(&topology_, topology::TopologyBase::Create(settings, resolver_, blocking_task_processor_));
+    std::atomic_store(
+        &topology_,
+        topology::TopologyBase::Create(settings, statement_metrics_settings_, resolver_, blocking_task_processor_)
+    );
 }
 
 ResultSet ClusterImpl::Execute(
@@ -68,20 +72,27 @@ ResultSet ClusterImpl::ExecuteImpl(
 
     pool.AccountOutOfTransaction();
     const auto statement_deadline = GetExecuteDeadline(statement_timeout);
-    CheckDeadlineNotExpired(statement_deadline);
 
     const auto start = utils::datetime::SteadyCoarseClock::now();
+    StatementStats statement_stats{query, pool.GetStatementStatsStorage()};
     try {
+        CheckDeadlineNotExpired(statement_deadline);
         auto result = conn->Query(query, parameters, std::min(acquire_deadline, statement_deadline));
         const auto elapsed = std::chrono::duration_cast<
             std::chrono::microseconds>(utils::datetime::SteadyCoarseClock::now() - start);
         pool.AccountQueryExecuted(elapsed);
+        statement_stats.AccountSuccess();
         return result;
     } catch (const OperationInterrupted&) {
+        statement_stats.AccountError();
         pool.AccountQueryTimeout();
         throw;
     } catch (const Error&) {
+        statement_stats.AccountError();
         pool.AccountQueryError();
+        throw;
+    } catch (const std::exception&) {
+        statement_stats.AccountError();
         throw;
     }
 }
@@ -161,7 +172,8 @@ bool ClusterImpl::UpdateSettingsLocked(const settings::ODBCClusterSettings& sett
 
     // Construct and initialize all new pools before publishing. If this throws,
     // the currently working topology remains untouched.
-    auto new_topology = topology::TopologyBase::Create(settings, resolver_, blocking_task_processor_);
+    auto new_topology =
+        topology::TopologyBase::Create(settings, statement_metrics_settings_, resolver_, blocking_task_processor_);
     auto new_settings = std::make_shared<const settings::ODBCClusterSettings>(settings);
     settings_ = std::move(new_settings);
     std::atomic_store(&topology_, std::move(new_topology));
@@ -231,6 +243,17 @@ void ClusterImpl::SetHandlersCommandControl(CommandControlByHandlerMap command_c
 
 void ClusterImpl::SetQueriesCommandControl(CommandControlByQueryMap command_control) {
     command_control_store_->SetQueries(std::move(command_control));
+}
+
+void ClusterImpl::SetStatementMetricsSettings(const settings::StatementMetricsSettings& settings) {
+    const std::lock_guard lock{settings_mutex_};
+    if (statement_metrics_settings_ == settings) {
+        return;
+    }
+    statement_metrics_settings_ = settings;
+    const auto topology = std::atomic_load(&topology_);
+    UASSERT(topology);
+    topology->SetStatementMetricsSettings(settings);
 }
 
 void ClusterImpl::ApplyDynamicCommandControls(
