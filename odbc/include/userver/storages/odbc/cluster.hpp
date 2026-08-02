@@ -10,6 +10,7 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
+#include <userver/storages/odbc/bulk.hpp>
 #include <userver/storages/odbc/cluster_types.hpp>
 #include <userver/storages/odbc/command_control.hpp>
 #include <userver/storages/odbc/impl/parameter.hpp>
@@ -26,6 +27,7 @@ namespace storages::odbc {
 namespace detail {
 
 class ClusterImpl;
+struct BulkLayout;
 using ClusterImplPtr = std::unique_ptr<ClusterImpl>;
 
 }  // namespace detail
@@ -71,6 +73,25 @@ public:
         OptionalCommandControl command_control,
         const Query& query,
         const ParameterStore& store
+    );
+
+    /// Execute rows as bounded chunks of DML that must not return result sets.
+    /// Earlier chunks may remain committed if a later row fails; no executed
+    /// chunk is retried. Use a Transaction when rollback atomicity is needed.
+    BulkResult ExecuteBulk(
+        ClusterHostTypeFlags flags,
+        const Query& query,
+        const BulkParameterStore& rows,
+        std::size_t chunk_rows = kDefaultBulkRows
+    );
+
+    /// Execute bulk DML with per-operation timeout overrides.
+    BulkResult ExecuteBulk(
+        ClusterHostTypeFlags flags,
+        OptionalCommandControl command_control,
+        const Query& query,
+        const BulkParameterStore& rows,
+        std::size_t chunk_rows = kDefaultBulkRows
     );
 
     Transaction Begin(ClusterHostTypeFlags flags);
@@ -146,6 +167,14 @@ private:
         ClusterHostTypeFlags flags,
         const Query& query,
         const impl::ParameterList& parameters
+    );
+    BulkResult DoExecuteBulk(
+        OptionalCommandControl command_control,
+        ClusterHostTypeFlags flags,
+        const Query& query,
+        const impl::ParameterRows& rows,
+        const detail::BulkLayout& layout,
+        std::size_t chunk_rows
     );
 
     detail::ClusterImplPtr impl_;

@@ -166,6 +166,7 @@ private:
 };
 
 using ParameterList = std::vector<Parameter>;
+using ParameterRows = std::vector<ParameterList>;
 
 template <typename... Args>
 ParameterList MakeParameterList(const Args&... args) {

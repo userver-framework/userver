@@ -13,6 +13,7 @@
 #include <userver/rcu/rcu.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
+#include <userver/storages/odbc/bulk.hpp>
 #include <userver/storages/odbc/cluster_types.hpp>
 #include <userver/storages/odbc/command_control.hpp>
 #include <userver/storages/odbc/impl/parameter.hpp>
@@ -21,6 +22,7 @@
 #include <userver/storages/odbc/settings.hpp>
 #include <userver/storages/odbc/transaction.hpp>
 
+#include <storages/odbc/detail/bulk.hpp>
 #include <storages/odbc/detail/command_control_store.hpp>
 #include <storages/odbc/detail/pool.hpp>
 #include <storages/odbc/detail/topology/topology_base.hpp>
@@ -44,6 +46,15 @@ public:
         OptionalCommandControl command_control,
         const Query& query,
         const impl::ParameterList& parameters
+    );
+
+    BulkResult ExecuteBulk(
+        ClusterHostTypeFlags flags,
+        OptionalCommandControl command_control,
+        const Query& query,
+        const impl::ParameterRows& rows,
+        const BulkLayout& layout,
+        std::size_t chunk_rows
     );
 
     Transaction Begin(ClusterHostTypeFlags flags);
@@ -89,6 +100,16 @@ private:
         ClusterHostTypeFlags flags,
         const Query& query,
         const impl::ParameterList& parameters
+    );
+
+    BulkResult ExecuteBulkImpl(
+        engine::Deadline acquire_deadline,
+        std::chrono::milliseconds statement_timeout,
+        ClusterHostTypeFlags flags,
+        const Query& query,
+        const impl::ParameterRows& rows,
+        const BulkLayout& layout,
+        std::size_t chunk_rows
     );
 
     CommandControl ResolveCommandControl(

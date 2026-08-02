@@ -1,5 +1,6 @@
 #include <userver/storages/odbc/cluster.hpp>
 
+#include <storages/odbc/detail/bulk.hpp>
 #include <storages/odbc/detail/cluster_impl.hpp>
 #include <userver/storages/odbc/command_control.hpp>
 
@@ -46,6 +47,43 @@ ResultSet Cluster::Execute(
     const ParameterStore& store
 ) {
     return DoExecute(command_control, flags, query, store.GetParameters());
+}
+
+BulkResult Cluster::ExecuteBulk(
+    ClusterHostTypeFlags flags,
+    const Query& query,
+    const BulkParameterStore& rows,
+    std::size_t chunk_rows
+) {
+    return ExecuteBulk(flags, std::nullopt, query, rows, chunk_rows);
+}
+
+BulkResult Cluster::ExecuteBulk(
+    ClusterHostTypeFlags flags,
+    OptionalCommandControl command_control,
+    const Query& query,
+    const BulkParameterStore& rows,
+    std::size_t chunk_rows
+) {
+    if (chunk_rows == 0) {
+        throw LogicError("ODBC bulk chunk size must be greater than zero");
+    }
+    if (rows.IsEmpty()) {
+        return {};
+    }
+    const auto layout = detail::ValidateBulkRows(rows.GetRows());
+    return DoExecuteBulk(command_control, flags, query, rows.GetRows(), layout, chunk_rows);
+}
+
+BulkResult Cluster::DoExecuteBulk(
+    OptionalCommandControl command_control,
+    ClusterHostTypeFlags flags,
+    const Query& query,
+    const impl::ParameterRows& rows,
+    const detail::BulkLayout& layout,
+    std::size_t chunk_rows
+) {
+    return impl_->ExecuteBulk(flags, command_control, query, rows, layout, chunk_rows);
 }
 
 Transaction Cluster::Begin(ClusterHostTypeFlags flags) { return impl_->Begin(flags); }

@@ -15,12 +15,14 @@
 #include <sqlext.h>
 #include <sqltypes.h>
 
+#include <userver/storages/odbc/bulk.hpp>
 #include <userver/storages/odbc/command_control.hpp>
 #include <userver/storages/odbc/impl/parameter.hpp>
 #include <userver/storages/odbc/query.hpp>
 #include <userver/storages/odbc/result_set.hpp>
 #include <userver/storages/odbc/transaction_options.hpp>
 
+#include <storages/odbc/detail/bulk.hpp>
 #include <storages/odbc/detail/driver_capabilities.hpp>
 #include <storages/odbc/detail/prepared_statement_cache.hpp>
 
@@ -72,6 +74,14 @@ public:
         engine::Deadline deadline
     );
 
+    BulkResult QueryBulk(
+        const storages::odbc::Query& query,
+        const impl::ParameterRows& rows,
+        const detail::BulkLayout& layout,
+        std::size_t chunk_rows,
+        engine::Deadline deadline
+    );
+
     // required by ConnectionPool
     bool IsBroken() const;
     bool IsMarkedBroken() const noexcept;
@@ -97,12 +107,13 @@ private:
     using StatementHandle = std::unique_ptr<std::remove_pointer_t<SQLHSTMT>, StatementHandleDeleter>;
 
     struct CachedStatement final {
-        CachedStatement(std::string key, StatementHandle handle);
+        CachedStatement(std::string key, StatementHandle handle, bool bulk_dml_validated);
         CachedStatement(CachedStatement&&) noexcept = default;
         CachedStatement& operator=(CachedStatement&&) noexcept = default;
 
         std::string key;
         StatementHandle handle;
+        bool bulk_dml_validated{false};
     };
 
     using PreparedStatements = cache::LruMap<std::string, CachedStatement>;
@@ -120,12 +131,13 @@ private:
     bool IsInsideTransaction() const noexcept;
 
     StatementHandle MakeStatementHandle();
-    StatementHandle TakePreparedStatement(std::string_view query);
+    StatementHandle TakePreparedStatement(std::string_view query, bool* bulk_dml_validated = nullptr);
     void StorePreparedStatement(
         std::string query,
         StatementHandle handle,
         bool was_cached,
-        std::size_t operation_reset_generation
+        std::size_t operation_reset_generation,
+        bool bulk_dml_validated = false
     );
     void ApplyPreparedStatementCacheSettings();
     void ClearPreparedStatements(bool account_evictions) noexcept;

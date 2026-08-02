@@ -56,6 +56,30 @@ type. Raw `nullptr` and `std::nullopt` remain untyped and require driver type
 inference; a null value whose static type is `const char*` is instead bound as
 a typed string NULL.
 
+For repeated DML with one SQL shape, storages::odbc::BulkParameterStore owns a
+rectangular set of parameter rows. `ExecuteBulk` validates every row before
+acquiring a connection, then executes bounded chunks using ODBC column-wise
+parameter arrays where the driver supports the required statement attributes.
+It safely falls back to scalar prepared executions when parameter arrays are
+unsupported. Both paths use the same placeholders and portable value types:
+`ExecuteBulk` accepts DML only and rejects statements that produce a result
+set, including a result set revealed only after execution.
+
+@snippet odbc/tests/odbc_bulk_test.cpp ODBC bulk DML
+
+storages::odbc::BulkResult contains exactly one storages::odbc::BulkRowStatus
+per requested row, an optional driver-reported processed count, the number of
+rows whose status is trusted successful, and an optional aggregate affected-row
+count. A failure after execution begins throws
+storages::odbc::BulkExecutionError with this snapshot. Direct autocommit bulk
+execution is intentionally not atomic: an earlier chunk or scalar fallback row
+may already be committed. Use `Transaction::ExecuteBulk` and roll back the
+transaction when all rows must succeed together. Each chunk shares one overall
+operation deadline, trace, and metrics event; the default chunk size is
+storages::odbc::kDefaultBulkRows. Drivers without trustworthy batch row-status
+support may return kUnknown statuses even when the overall DML call succeeds;
+the API never upgrades those rows into `Succeeded()` without reliable evidence.
+
 `storages::odbc::Cluster::Execute` returns a storages::odbc::ResultSet. Its rows
 contain storages::odbc::Field values. The compatibility getters `GetInt32`,
 `GetInt64`, `GetDouble`, `GetBool`, and `GetString` remain available.

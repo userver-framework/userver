@@ -1,6 +1,7 @@
 #include <userver/storages/odbc/transaction.hpp>
 
 #include <algorithm>
+#include <storages/odbc/detail/bulk.hpp>
 #include <storages/odbc/detail/conn_ptr.hpp>
 #include <storages/odbc/detail/connection.hpp>
 #include <storages/odbc/detail/deadline.hpp>
@@ -87,6 +88,27 @@ ResultSet Transaction::Execute(
     return DoExecute(command_control, query, store.GetParameters());
 }
 
+BulkResult Transaction::ExecuteBulk(const Query& query, const BulkParameterStore& rows, std::size_t chunk_rows) {
+    return ExecuteBulk(std::nullopt, query, rows, chunk_rows);
+}
+
+BulkResult Transaction::ExecuteBulk(
+    OptionalCommandControl command_control,
+    const Query& query,
+    const BulkParameterStore& rows,
+    std::size_t chunk_rows
+) {
+    AssertValid();
+    if (chunk_rows == 0) {
+        throw LogicError("ODBC bulk chunk size must be greater than zero");
+    }
+    if (rows.IsEmpty()) {
+        return {};
+    }
+    const auto layout = detail::ValidateBulkRows(rows.GetRows());
+    return DoExecuteBulk(command_control, query, rows.GetRows(), layout, chunk_rows);
+}
+
 void Transaction::Commit() {
     const utils::FastScopeGuard unlock_guard([this]() noexcept { trx_lock_.Unlock(); });
     AssertValid();
@@ -135,6 +157,53 @@ ResultSet Transaction::DoExecute(
     try {
         detail::CheckDeadlineNotExpired(statement_deadline);
         auto result = (*connection_)->Query(query, parameters, statement_deadline);
+        const auto elapsed = std::chrono::duration_cast<
+            std::chrono::microseconds>(utils::datetime::SteadyCoarseClock::now() - start);
+        busy_time_ += elapsed;
+        pool_->AccountQueryExecuted(elapsed);
+        statement_stats.AccountSuccess();
+        return result;
+    } catch (const OperationInterrupted&) {
+        statement_stats.AccountError();
+        pool_->AccountQueryTimeout();
+        throw;
+    } catch (const Error&) {
+        statement_stats.AccountError();
+        pool_->AccountQueryError();
+        throw;
+    } catch (const std::exception&) {
+        statement_stats.AccountError();
+        throw;
+    }
+}
+
+BulkResult Transaction::DoExecuteBulk(
+    OptionalCommandControl command_control,
+    const Query& query,
+    const impl::ParameterRows& rows,
+    const detail::BulkLayout& layout,
+    std::size_t chunk_rows
+) {
+    AssertValid();
+    tracing::Span span{storages::odbc::impl::tracing::kExecuteSpan};
+
+    const auto resolved =
+        (*connection_)
+            ->ResolveTransactionCommandControl(
+                CommandControl{.network_timeout = network_timeout_, .statement_timeout = statement_timeout_},
+                query,
+                command_control
+            );
+    const auto network_timeout = resolved.network_timeout.value_or(network_timeout_);
+    const auto statement_timeout = resolved.statement_timeout.value_or(statement_timeout_);
+    const auto statement_deadline =
+        std::min(detail::GetExecuteDeadline(network_timeout), detail::GetExecuteDeadline(statement_timeout));
+
+    const auto start = utils::datetime::SteadyCoarseClock::now();
+    detail::StatementStats statement_stats{query, pool_->GetStatementStatsStorage()};
+    try {
+        detail::CheckDeadlineNotExpired(statement_deadline);
+        auto result = (*connection_)->QueryBulk(query, rows, layout, chunk_rows, statement_deadline);
         const auto elapsed = std::chrono::duration_cast<
             std::chrono::microseconds>(utils::datetime::SteadyCoarseClock::now() - start);
         busy_time_ += elapsed;

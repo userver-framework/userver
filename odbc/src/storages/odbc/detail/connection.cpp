@@ -28,6 +28,7 @@
 #include <userver/logging/log.hpp>
 
 #include <storages/odbc/detail/broken_guard.hpp>
+#include <storages/odbc/detail/bulk.hpp>
 #include <storages/odbc/detail/command_control_store.hpp>
 #include <storages/odbc/detail/deadline.hpp>
 #include <storages/odbc/detail/diag_wrapper.hpp>
@@ -1261,6 +1262,572 @@ SQLRETURN ExecuteDirectStatement(SQLHSTMT statement, std::string_view query, eng
     return execute_result;
 }
 
+bool HasOnlyWarningClassDiagnostics(const std::vector<DiagnosticRecord>& diagnostics) {
+    return std::all_of(diagnostics.begin(), diagnostics.end(), [](const DiagnosticRecord& diagnostic) {
+        return diagnostic.sql_state.size() >= 2 && diagnostic.sql_state.compare(0, 2, "01") == 0;
+    });
+}
+
+void CheckBulkStatementCall(SQLRETURN result, SQLHSTMT statement, std::string_view operation) {
+    auto diagnostics =
+        result == SQL_SUCCESS ? std::vector<DiagnosticRecord>{} : detail::GetSQLDiagnostics(statement, SQL_HANDLE_STMT);
+    if (!SQL_SUCCEEDED(result)) {
+        throw MakeDriverError<
+            StatementError>(fmt::format("Failed to {}", operation), result, statement, SQL_HANDLE_STMT);
+    }
+    if (result == SQL_SUCCESS_WITH_INFO) {
+        if (!HasOnlyWarningClassDiagnostics(diagnostics)) {
+            throw MakeDiagnosticError<StatementError>(
+                fmt::format("ODBC driver returned error-class diagnostics while {}", operation),
+                diagnostics
+            );
+        }
+        LogOdbcWarnings(operation, diagnostics);
+    }
+}
+
+bool IsUnsupportedBulkAttribute(const std::vector<DiagnosticRecord>& diagnostics) {
+    const auto is_explicit = [](const DiagnosticRecord& diagnostic) {
+        return diagnostic.sql_state == "HYC00" || diagnostic.sql_state == "HY092" || diagnostic.sql_state == "IM001" ||
+               diagnostic.sql_state == "01S02";
+    };
+    const auto is_allowed = [&](const DiagnosticRecord& diagnostic) {
+        return is_explicit(diagnostic) ||
+               (diagnostic.sql_state.size() >= 2 && diagnostic.sql_state.compare(0, 2, "01") == 0);
+    };
+    return std::any_of(diagnostics.begin(), diagnostics.end(), is_explicit) &&
+           std::all_of(diagnostics.begin(), diagnostics.end(), is_allowed);
+}
+
+void ConfigureDecimalDescriptor(
+    SQLHSTMT statement,
+    SQLUSMALLINT parameter,
+    SQLULEN precision,
+    SQLSMALLINT scale,
+    SQLPOINTER data,
+    engine::Deadline deadline
+) {
+    SQLHDESC descriptor = SQL_NULL_HDESC;
+    detail::CheckDeadlineNotExpired(deadline);
+    const auto descriptor_result =
+        SQLGetStmtAttr(statement, SQL_ATTR_APP_PARAM_DESC, &descriptor, sizeof(descriptor), nullptr);
+    detail::CheckDeadlineNotExpired(deadline);
+    if (!SQL_SUCCEEDED(descriptor_result)) {
+        throw MakeDriverError<StatementError>(
+            fmt::format("Failed to obtain the descriptor for ODBC Decimal parameter {}", parameter),
+            descriptor_result,
+            statement,
+            SQL_HANDLE_STMT
+        );
+    }
+    if (descriptor_result == SQL_SUCCESS_WITH_INFO) {
+        LogOdbcWarnings(
+            fmt::format("Obtaining the descriptor for ODBC Decimal parameter {}", parameter),
+            statement,
+            SQL_HANDLE_STMT
+        );
+    }
+
+    const auto record = static_cast<SQLSMALLINT>(parameter);
+    const auto numeric_field = [](SQLLEN value) {
+        return reinterpret_cast<SQLPOINTER>(static_cast<std::uintptr_t>(value));
+    };
+    const auto set_field = [&](SQLSMALLINT field, SQLPOINTER value, std::string_view name) {
+        detail::CheckDeadlineNotExpired(deadline);
+        const auto result = SQLSetDescField(descriptor, record, field, value, 0);
+        const auto warnings = GetWarnings(result, descriptor, SQL_HANDLE_DESC);
+        detail::CheckDeadlineNotExpired(deadline);
+        if (!SQL_SUCCEEDED(result)) {
+            throw MakeDriverError<StatementError>(
+                fmt::format("Failed to set {} for ODBC Decimal parameter {}", name, parameter),
+                result,
+                descriptor,
+                SQL_HANDLE_DESC
+            );
+        }
+        if (result == SQL_SUCCESS_WITH_INFO) {
+            LogOdbcWarnings(fmt::format("Setting {} for ODBC Decimal parameter {}", name, parameter), warnings);
+        }
+    };
+
+    // Changing non-deferred APD fields clears SQL_DESC_DATA_PTR.
+    set_field(SQL_DESC_TYPE, numeric_field(SQL_C_NUMERIC), "C type");
+    set_field(SQL_DESC_PRECISION, numeric_field(static_cast<SQLLEN>(precision)), "precision");
+    set_field(SQL_DESC_SCALE, numeric_field(scale), "scale");
+    set_field(SQL_DESC_DATA_PTR, data, "data pointer");
+}
+
+void ValidateBulkDmlStatement(
+    SQLHSTMT statement,
+    std::size_t expected_parameters,
+    bool validate_result_columns,
+    engine::Deadline deadline
+) {
+    SQLSMALLINT actual_parameters = 0;
+    detail::CheckDeadlineNotExpired(deadline);
+    const auto count_result = SQLNumParams(statement, &actual_parameters);
+    detail::CheckDeadlineNotExpired(deadline);
+    CheckBulkStatementCall(count_result, statement, "determine bulk parameter count");
+    if (actual_parameters < 0 || static_cast<std::size_t>(actual_parameters) != expected_parameters) {
+        throw StatementError(fmt::format(
+            "ODBC parameter count mismatch: query expects {}, bulk rows contain {}",
+            actual_parameters,
+            expected_parameters
+        ));
+    }
+
+    if (!validate_result_columns) {
+        return;
+    }
+
+    SQLSMALLINT result_columns = 0;
+    detail::CheckDeadlineNotExpired(deadline);
+    const auto columns_result = SQLNumResultCols(statement, &result_columns);
+    detail::CheckDeadlineNotExpired(deadline);
+    CheckBulkStatementCall(columns_result, statement, "check bulk DML result columns");
+    if (result_columns != 0) {
+        throw StatementError("ODBC ExecuteBulk accepts DML without result sets only");
+    }
+}
+
+struct BulkDmlResult final {
+    std::optional<std::size_t> rows_affected{0};
+};
+
+BulkDmlResult DrainBulkDml(SQLHSTMT statement, engine::Deadline deadline) {
+    BulkDmlResult result;
+    while (true) {
+        SQLSMALLINT result_columns = 0;
+        detail::CheckDeadlineNotExpired(deadline);
+        const auto columns_result = SQLNumResultCols(statement, &result_columns);
+        detail::CheckDeadlineNotExpired(deadline);
+        CheckBulkStatementCall(columns_result, statement, "check a bulk DML result");
+        if (result_columns != 0) {
+            throw StatementError("ODBC bulk DML produced a result set after execution");
+        }
+
+        SQLLEN row_count = -1;
+        detail::CheckDeadlineNotExpired(deadline);
+        const auto row_count_result = SQLRowCount(statement, &row_count);
+        detail::CheckDeadlineNotExpired(deadline);
+        CheckBulkStatementCall(row_count_result, statement, "read bulk DML row count");
+        if (row_count < 0) {
+            result.rows_affected.reset();
+        } else if (result.rows_affected) {
+            const auto count = static_cast<std::size_t>(row_count);
+            if (count > std::numeric_limits<std::size_t>::max() - *result.rows_affected) {
+                throw StatementError("ODBC bulk aggregate row count overflows size_t");
+            }
+            *result.rows_affected += count;
+        }
+
+        detail::CheckDeadlineNotExpired(deadline);
+        const auto more_result = SQLMoreResults(statement);
+        const auto more_diagnostics =
+            more_result == SQL_SUCCESS
+                ? std::vector<DiagnosticRecord>{}
+                : detail::GetSQLDiagnostics(statement, SQL_HANDLE_STMT);
+        detail::CheckDeadlineNotExpired(deadline);
+        if (more_result == SQL_NO_DATA) {
+            break;
+        }
+        if (!SQL_SUCCEEDED(more_result)) {
+            throw MakeDiagnosticError<StatementError>("Failed to drain ODBC bulk DML results", more_diagnostics);
+        }
+        if (more_result == SQL_SUCCESS_WITH_INFO) {
+            if (!HasOnlyWarningClassDiagnostics(more_diagnostics)) {
+                throw MakeDiagnosticError<StatementError>(
+                    "ODBC driver returned error-class diagnostics while draining bulk DML results",
+                    more_diagnostics
+                );
+            }
+            LogOdbcWarnings("Draining ODBC bulk DML results", more_diagnostics);
+        }
+    }
+    return result;
+}
+
+void CleanupBulkStatement(SQLHSTMT statement) {
+    std::exception_ptr first_error;
+    const auto attempt = [&](auto&& operation) {
+        try {
+            operation();
+        } catch (...) {
+            if (!first_error) {
+                first_error = std::current_exception();
+            }
+        }
+    };
+    const auto free_statement = [&](SQLUSMALLINT option, std::string_view operation) {
+        const auto result = SQLFreeStmt(statement, option);
+        HandleStatementWarnings(result, statement, operation, false);
+        CheckStatementResult(result, statement, operation);
+    };
+    const auto reset_attribute = [&](SQLINTEGER attribute, SQLPOINTER value, std::string_view operation) {
+        const auto result = SQLSetStmtAttr(statement, attribute, value, 0);
+        auto diagnostics =
+            result == SQL_SUCCESS
+                ? std::vector<DiagnosticRecord>{}
+                : detail::GetSQLDiagnostics(statement, SQL_HANDLE_STMT);
+        if (!SQL_SUCCEEDED(result)) {
+            throw MakeDiagnosticError<StatementError>(fmt::format("Failed to {}", operation), diagnostics);
+        }
+        if (result == SQL_SUCCESS_WITH_INFO) {
+            if (std::any_of(
+                    diagnostics.begin(),
+                    diagnostics.end(),
+                    [](const DiagnosticRecord& diagnostic) { return diagnostic.sql_state == "01S02"; }
+                ) ||
+                !HasOnlyWarningClassDiagnostics(diagnostics))
+            {
+                throw MakeDiagnosticError<
+                    StatementError>(fmt::format("ODBC driver did not exactly {}", operation), diagnostics);
+            }
+            LogOdbcWarnings(operation, diagnostics);
+        }
+    };
+    const auto verify_integer_attribute = [&](SQLINTEGER attribute, SQLULEN expected, std::string_view operation) {
+        SQLULEN actual = 0;
+        const auto result = SQLGetStmtAttr(statement, attribute, &actual, sizeof(actual), nullptr);
+        auto diagnostics =
+            result == SQL_SUCCESS
+                ? std::vector<DiagnosticRecord>{}
+                : detail::GetSQLDiagnostics(statement, SQL_HANDLE_STMT);
+        if (!SQL_SUCCEEDED(result) || actual != expected) {
+            throw MakeDiagnosticError<StatementError>(fmt::format("Failed to {}", operation), diagnostics);
+        }
+        if (result == SQL_SUCCESS_WITH_INFO) {
+            if (!HasOnlyWarningClassDiagnostics(diagnostics)) {
+                throw MakeDiagnosticError<StatementError>(fmt::format("Failed to {}", operation), diagnostics);
+            }
+            LogOdbcWarnings(operation, diagnostics);
+        }
+    };
+    const auto verify_pointer_attribute = [&](SQLINTEGER attribute, std::string_view operation) {
+        SQLPOINTER actual = reinterpret_cast<SQLPOINTER>(static_cast<std::uintptr_t>(1));
+        const auto result = SQLGetStmtAttr(statement, attribute, &actual, sizeof(actual), nullptr);
+        auto diagnostics =
+            result == SQL_SUCCESS
+                ? std::vector<DiagnosticRecord>{}
+                : detail::GetSQLDiagnostics(statement, SQL_HANDLE_STMT);
+        if ((!SQL_SUCCEEDED(result) && !IsUnsupportedBulkAttribute(diagnostics)) ||
+            (SQL_SUCCEEDED(result) && actual != nullptr))
+        {
+            throw MakeDiagnosticError<StatementError>(fmt::format("Failed to {}", operation), diagnostics);
+        }
+        if (result == SQL_SUCCESS_WITH_INFO && !IsUnsupportedBulkAttribute(diagnostics)) {
+            if (!HasOnlyWarningClassDiagnostics(diagnostics)) {
+                throw MakeDiagnosticError<StatementError>(fmt::format("Failed to {}", operation), diagnostics);
+            }
+            LogOdbcWarnings(operation, diagnostics);
+        }
+    };
+
+    attempt([&] { free_statement(SQL_CLOSE, "close a bulk DML cursor and discard pending results"); });
+    attempt([&] { free_statement(SQL_RESET_PARAMS, "reset bulk DML parameter bindings"); });
+    attempt([&] { reset_attribute(SQL_ATTR_PARAM_STATUS_PTR, nullptr, "reset bulk DML status pointer"); });
+    attempt([&] { reset_attribute(SQL_ATTR_PARAMS_PROCESSED_PTR, nullptr, "reset bulk DML processed pointer"); });
+    attempt([&] {
+        reset_attribute(
+            SQL_ATTR_PARAMSET_SIZE,
+            reinterpret_cast<SQLPOINTER>(static_cast<std::uintptr_t>(1)),
+            "reset bulk DML parameter-set size"
+        );
+    });
+    attempt([&] { verify_integer_attribute(SQL_ATTR_PARAMSET_SIZE, 1, "verify bulk DML parameter-set reset"); });
+    attempt([&] {
+        verify_integer_attribute(SQL_ATTR_PARAM_BIND_TYPE, SQL_PARAM_BIND_BY_COLUMN, "verify bulk DML bind-type reset");
+    });
+    attempt([&] { verify_pointer_attribute(SQL_ATTR_PARAM_STATUS_PTR, "verify bulk DML status-pointer reset"); });
+    attempt([&] { verify_pointer_attribute(SQL_ATTR_PARAMS_PROCESSED_PTR, "verify bulk DML processed-pointer reset"); }
+    );
+    attempt([&] {
+        reset_attribute(
+            SQL_ATTR_PARAM_BIND_TYPE,
+            reinterpret_cast<SQLPOINTER>(static_cast<std::uintptr_t>(SQL_PARAM_BIND_BY_COLUMN)),
+            "reset bulk DML bind type"
+        );
+    });
+    if (first_error) {
+        std::rethrow_exception(first_error);
+    }
+}
+
+enum class BulkAttributeSetup { kNative, kFallback };
+
+BulkAttributeSetup SetBulkAttribute(
+    SQLHSTMT statement,
+    SQLINTEGER attribute,
+    SQLPOINTER value,
+    std::string_view name,
+    engine::Deadline deadline
+) {
+    detail::CheckDeadlineNotExpired(deadline);
+    const auto result = SQLSetStmtAttr(statement, attribute, value, 0);
+    auto diagnostics =
+        result == SQL_SUCCESS ? std::vector<DiagnosticRecord>{} : detail::GetSQLDiagnostics(statement, SQL_HANDLE_STMT);
+    detail::CheckDeadlineNotExpired(deadline);
+    if ((!SQL_SUCCEEDED(result) || result == SQL_SUCCESS_WITH_INFO) && IsUnsupportedBulkAttribute(diagnostics)) {
+        return BulkAttributeSetup::kFallback;
+    }
+    if (!SQL_SUCCEEDED(result)) {
+        throw MakeDiagnosticError<
+            StatementError>(fmt::format("Failed to set ODBC bulk attribute {}", name), diagnostics);
+    }
+    if (result == SQL_SUCCESS_WITH_INFO) {
+        LogOdbcWarnings(fmt::format("Setting ODBC bulk attribute {}", name), diagnostics);
+    }
+    return BulkAttributeSetup::kNative;
+}
+
+BulkAttributeSetup ConfigureNativeBulkAttributes(
+    SQLHSTMT statement,
+    detail::BulkBindings& bindings,
+    engine::Deadline deadline
+) {
+    const auto set = [&](SQLINTEGER attribute, SQLPOINTER value, std::string_view name) {
+        return SetBulkAttribute(statement, attribute, value, name, deadline);
+    };
+    if (set(SQL_ATTR_PARAM_BIND_TYPE,
+            reinterpret_cast<SQLPOINTER>(static_cast<std::uintptr_t>(SQL_PARAM_BIND_BY_COLUMN)),
+            "SQL_ATTR_PARAM_BIND_TYPE") == BulkAttributeSetup::kFallback ||
+        set(SQL_ATTR_PARAMSET_SIZE,
+            reinterpret_cast<SQLPOINTER>(static_cast<std::uintptr_t>(bindings.rows_count)),
+            "SQL_ATTR_PARAMSET_SIZE") == BulkAttributeSetup::kFallback ||
+        set(SQL_ATTR_PARAM_STATUS_PTR, bindings.statuses.data(), "SQL_ATTR_PARAM_STATUS_PTR"
+        ) == BulkAttributeSetup::kFallback ||
+        set(SQL_ATTR_PARAMS_PROCESSED_PTR, &bindings.processed, "SQL_ATTR_PARAMS_PROCESSED_PTR"
+        ) == BulkAttributeSetup::kFallback)
+    {
+        return BulkAttributeSetup::kFallback;
+    }
+
+    SQLULEN actual_size = 0;
+    detail::CheckDeadlineNotExpired(deadline);
+    const auto
+        get_result = SQLGetStmtAttr(statement, SQL_ATTR_PARAMSET_SIZE, &actual_size, sizeof(actual_size), nullptr);
+    auto diagnostics =
+        get_result == SQL_SUCCESS
+            ? std::vector<DiagnosticRecord>{}
+            : detail::GetSQLDiagnostics(statement, SQL_HANDLE_STMT);
+    detail::CheckDeadlineNotExpired(deadline);
+    if ((!SQL_SUCCEEDED(get_result) || get_result == SQL_SUCCESS_WITH_INFO) && IsUnsupportedBulkAttribute(diagnostics))
+    {
+        return BulkAttributeSetup::kFallback;
+    }
+    if (!SQL_SUCCEEDED(get_result)) {
+        throw MakeDiagnosticError<StatementError>("Failed to read back ODBC bulk parameter-set size", diagnostics);
+    }
+    if (get_result == SQL_SUCCESS_WITH_INFO) {
+        LogOdbcWarnings("Reading back ODBC bulk parameter-set size", diagnostics);
+    }
+    if (actual_size != bindings.rows_count) {
+        return BulkAttributeSetup::kFallback;
+    }
+
+    SQLULEN actual_bind_type = 0;
+    detail::CheckDeadlineNotExpired(deadline);
+    const auto bind_type_result =
+        SQLGetStmtAttr(statement, SQL_ATTR_PARAM_BIND_TYPE, &actual_bind_type, sizeof(actual_bind_type), nullptr);
+    diagnostics =
+        bind_type_result == SQL_SUCCESS
+            ? std::vector<DiagnosticRecord>{}
+            : detail::GetSQLDiagnostics(statement, SQL_HANDLE_STMT);
+    detail::CheckDeadlineNotExpired(deadline);
+    if ((!SQL_SUCCEEDED(bind_type_result) || bind_type_result == SQL_SUCCESS_WITH_INFO) &&
+        IsUnsupportedBulkAttribute(diagnostics))
+    {
+        return BulkAttributeSetup::kFallback;
+    }
+    if (!SQL_SUCCEEDED(bind_type_result)) {
+        throw MakeDiagnosticError<StatementError>("Failed to read back ODBC bulk parameter bind type", diagnostics);
+    }
+    if (bind_type_result == SQL_SUCCESS_WITH_INFO) {
+        LogOdbcWarnings("Reading back ODBC bulk parameter bind type", diagnostics);
+    }
+    return actual_bind_type == SQL_PARAM_BIND_BY_COLUMN ? BulkAttributeSetup::kNative : BulkAttributeSetup::kFallback;
+}
+
+void BindNativeBulkParameters(SQLHSTMT statement, detail::BulkBindings& bindings, engine::Deadline deadline) {
+    for (std::size_t column = 0; column < bindings.columns.size(); ++column) {
+        auto& binding = bindings.columns[column];
+        const auto parameter = static_cast<SQLUSMALLINT>(column + 1);
+        detail::CheckDeadlineNotExpired(deadline);
+        const auto bind_result = SQLBindParameter(
+            statement,
+            parameter,
+            SQL_PARAM_INPUT,
+            binding.c_type,
+            binding.sql_type,
+            binding.column_size,
+            binding.decimal_digits,
+            binding.Data(),
+            binding.sql_type == SQL_DECIMAL ? SQLLEN{0} : binding.buffer_size,
+            binding.indicators.data()
+        );
+        HandleStatementWarnings(bind_result, statement, "binding a bulk DML parameter", false);
+        detail::CheckDeadlineNotExpired(deadline);
+        if (!SQL_SUCCEEDED(bind_result)) {
+            throw MakeDriverError<StatementError>(
+                fmt::format("Failed to bind ODBC bulk parameter {}", parameter),
+                bind_result,
+                statement,
+                SQL_HANDLE_STMT
+            );
+        }
+        if (binding.sql_type == SQL_DECIMAL) {
+            ConfigureDecimalDescriptor(
+                statement,
+                parameter,
+                binding.column_size,
+                binding.decimal_digits,
+                binding.Data(),
+                deadline
+            );
+        }
+    }
+}
+
+struct ScalarBulkExecution final {
+    BulkRowStatus status{BulkRowStatus::kSuccess};
+    std::optional<std::size_t> rows_affected{0};
+};
+
+void SetBulkStatementTimeout(SQLHSTMT statement, engine::Deadline deadline) {
+    SQLULEN timeout_seconds = 0;
+    if (deadline.IsReachable()) {
+        const auto left = deadline.TimeLeft();
+        if (left <= engine::Deadline::Duration::zero()) {
+            throw OperationInterrupted("Cancelled by deadline");
+        }
+        timeout_seconds = static_cast<SQLULEN>(std::chrono::ceil<std::chrono::seconds>(left).count());
+    }
+    const auto result = SQLSetStmtAttr(
+        statement,
+        SQL_ATTR_QUERY_TIMEOUT,
+        reinterpret_cast<SQLPOINTER>(static_cast<std::uintptr_t>(timeout_seconds)),
+        0
+    );
+    if (!SQL_SUCCEEDED(result)) {
+        throw MakeDriverError<
+            StatementError>("Failed to set ODBC bulk query timeout", result, statement, SQL_HANDLE_STMT);
+    }
+}
+
+ScalarBulkExecution ExecuteScalarBulkDml(
+    SQLHSTMT statement,
+    const impl::ParameterList& parameters,
+    engine::Deadline deadline,
+    bool& execution_started,
+    const std::function<void()>& discard_statement
+) {
+    std::vector<BoundParameter> bound_parameters;
+    bound_parameters.reserve(parameters.size());
+    for (const auto& parameter : parameters) {
+        bound_parameters.emplace_back(parameter);
+    }
+    std::vector<SQLLEN> indicators(bound_parameters.size());
+    try {
+        for (std::size_t index = 0; index < bound_parameters.size(); ++index) {
+            auto& parameter = bound_parameters[index];
+            auto binding = GetParameterBinding(parameter);
+            indicators[index] = parameter.is_null ? SQL_NULL_DATA : binding.buffer_size;
+            const auto
+                bind_buffer_size = parameter.type == impl::ParameterType::kDecimal ? SQLLEN{0} : binding.buffer_size;
+            const auto parameter_number = static_cast<SQLUSMALLINT>(index + 1);
+            detail::CheckDeadlineNotExpired(deadline);
+            const auto bind_result = SQLBindParameter(
+                statement,
+                parameter_number,
+                SQL_PARAM_INPUT,
+                binding.c_type,
+                binding.sql_type,
+                binding.column_size,
+                binding.decimal_digits,
+                binding.data,
+                bind_buffer_size,
+                &indicators[index]
+            );
+            HandleStatementWarnings(bind_result, statement, "binding a scalar bulk fallback parameter", false);
+            detail::CheckDeadlineNotExpired(deadline);
+            if (!SQL_SUCCEEDED(bind_result)) {
+                throw MakeDriverError<StatementError>(
+                    fmt::format("Failed to bind ODBC scalar bulk fallback parameter {}", parameter_number),
+                    bind_result,
+                    statement,
+                    SQL_HANDLE_STMT
+                );
+            }
+            if (parameter.type == impl::ParameterType::kDecimal) {
+                ConfigureDecimalDescriptor(
+                    statement,
+                    parameter_number,
+                    binding.column_size,
+                    binding.decimal_digits,
+                    binding.data,
+                    deadline
+                );
+            }
+        }
+
+        SetBulkStatementTimeout(statement, deadline);
+        detail::CheckDeadlineNotExpired(deadline);
+        execution_started = true;
+        const auto execute_result = SQLExecute(statement);
+        auto diagnostics =
+            execute_result == SQL_SUCCESS
+                ? std::vector<DiagnosticRecord>{}
+                : detail::GetSQLDiagnostics(statement, SQL_HANDLE_STMT);
+        detail::CheckDeadlineNotExpired(deadline);
+        if (!SQL_SUCCEEDED(execute_result) && execute_result != SQL_NO_DATA) {
+            throw MakeDriverError<StatementError>(
+                "Failed to execute ODBC scalar bulk fallback",
+                execute_result,
+                statement,
+                SQL_HANDLE_STMT
+            );
+        }
+        if (execute_result == SQL_SUCCESS_WITH_INFO && !HasOnlyWarningClassDiagnostics(diagnostics)) {
+            throw MakeDiagnosticError<
+                StatementError>("ODBC scalar bulk fallback returned error-class diagnostics", diagnostics);
+        }
+        if (execute_result == SQL_SUCCESS_WITH_INFO) {
+            LogOdbcWarnings("Executing ODBC scalar bulk fallback", diagnostics);
+        }
+        auto drained = DrainBulkDml(statement, deadline);
+        CleanupPreparedStatement(statement);
+        return ScalarBulkExecution{
+            .status =
+                execute_result == SQL_SUCCESS_WITH_INFO ? BulkRowStatus::kSuccessWithInfo : BulkRowStatus::kSuccess,
+            .rows_affected = drained.rows_affected,
+        };
+    } catch (...) {
+        const auto original_error = std::current_exception();
+        bool cleanup_succeeded = false;
+        try {
+            CleanupPreparedStatement(statement);
+            cleanup_succeeded = true;
+        } catch (const std::exception& cleanup_error) {
+            LOG_WARNING() << "Failed to clean up an erroneous scalar ODBC bulk statement: " << cleanup_error;
+        } catch (...) {
+            LOG_WARNING() << "Failed to clean up an erroneous scalar ODBC bulk statement";
+        }
+        if (!cleanup_succeeded) {
+            discard_statement();
+        }
+        std::rethrow_exception(original_error);
+    }
+}
+
+std::string FormatBulkErrorMessage(std::string message, const std::vector<DiagnosticRecord>& diagnostics) {
+    const auto formatted = detail::FormatSQLDiagnostics(diagnostics);
+    if (!formatted.empty()) {
+        message += ": ";
+        message += formatted;
+    }
+    return message;
+}
+
 }  // namespace
 
 Connection::Connection(const std::string& dsn)
@@ -1390,9 +1957,10 @@ Connection::~Connection() {
     }
 }
 
-Connection::CachedStatement::CachedStatement(std::string key, StatementHandle handle)
+Connection::CachedStatement::CachedStatement(std::string key, StatementHandle handle, bool bulk_dml_validated)
     : key{std::move(key)},
-      handle{std::move(handle)}
+      handle{std::move(handle)},
+      bulk_dml_validated{bulk_dml_validated}
 {}
 
 void Connection::StatementHandleDeleter::operator()(std::remove_pointer_t<SQLHSTMT>* handle) const noexcept {
@@ -1428,7 +1996,7 @@ void Connection::DestroyStatementHandle(SQLHSTMT statement) noexcept {
     }
 }
 
-Connection::StatementHandle Connection::TakePreparedStatement(std::string_view query) {
+Connection::StatementHandle Connection::TakePreparedStatement(std::string_view query, bool* bulk_dml_validated) {
     auto& statistics = prepared_statement_cache_state_->GetStatistics();
     auto* cached = prepared_statements_.GetTransparent(query);
     if (!cached) {
@@ -1437,6 +2005,9 @@ Connection::StatementHandle Connection::TakePreparedStatement(std::string_view q
     }
 
     ++statistics.hits;
+    if (bulk_dml_validated) {
+        *bulk_dml_validated = cached->bulk_dml_validated;
+    }
     auto handle = std::move(cached->handle);
     prepared_statements_.Erase(cached->key);
     return handle;
@@ -1446,7 +2017,8 @@ void Connection::StorePreparedStatement(
     std::string query,
     StatementHandle handle,
     bool was_cached,
-    std::size_t operation_reset_generation
+    std::size_t operation_reset_generation,
+    bool bulk_dml_validated
 ) {
     const auto current_settings = prepared_statement_cache_state_->GetSettings();
     if (applied_prepared_cache_size_ == 0 || current_settings.reset_generation != operation_reset_generation) {
@@ -1459,7 +2031,7 @@ void Connection::StorePreparedStatement(
     if (prepared_statements_.GetSize() >= applied_prepared_cache_size_) {
         EvictLeastRecentlyUsedPreparedStatement();
     }
-    prepared_statements_.Put(query, CachedStatement{query, std::move(handle)});
+    prepared_statements_.Put(query, CachedStatement{query, std::move(handle), bulk_dml_validated});
     if (!was_cached) {
         ++prepared_statement_cache_state_->GetStatistics().current;
     }
@@ -1650,9 +2222,10 @@ ResultSet Connection::Query(
                         }
 
                         const bool cache_enabled = applied_prepared_cache_size_ != 0;
+                        bool cached_bulk_dml_validated = false;
                         auto statement_handle =
                             cache_enabled
-                                ? TakePreparedStatement(query)
+                                ? TakePreparedStatement(query, &cached_bulk_dml_validated)
                                 : StatementHandle{nullptr, StatementHandleDeleter{this}};
                         const bool was_cached = statement_handle != nullptr;
                         if (!statement_handle) {
@@ -1699,7 +2272,8 @@ ResultSet Connection::Query(
                                     query,
                                     std::move(statement_handle),
                                     was_cached,
-                                    operation_cache_reset_generation
+                                    operation_cache_reset_generation,
+                                    cached_bulk_dml_validated
                                 );
                             }
                             return result;
@@ -1728,6 +2302,440 @@ ResultSet Connection::Query(
         // The state after a synchronous call that crossed a deadline or was
         // cancelled is uncertain. Never return this HDBC to the pool.
         NotifyBroken();
+        throw;
+    } catch (const Error& ex) {
+        span.AddTag(tracing::kErrorFlag, true);
+        span.AddTag(tracing::kErrorMessage, ex.what());
+        throw;
+    }
+}
+
+BulkResult Connection::QueryBulk(
+    const storages::odbc::Query& query,
+    const impl::ParameterRows& rows,
+    const detail::BulkLayout& layout,
+    std::size_t chunk_rows,
+    engine::Deadline deadline
+) {
+    CheckOperationInterrupted(deadline);
+
+    const auto statement = query.GetStatementView();
+    tracing::Span span{detail::tracing::MakeQuerySpanName(statement)};
+    span.AddTag(tracing::kDatabaseType, "odbc");
+    const auto span_tags = detail::tracing::MakeQuerySpanTags(query);
+    if (span_tags.statement_name) {
+        span.AddTag(tracing::kDatabaseStatementName, std::string{*span_tags.statement_name});
+    }
+    if (span_tags.statement) {
+        span.AddTag(tracing::kDatabaseStatement, std::string{*span_tags.statement});
+    }
+
+    auto guard = GetBrokenGuard();
+    try {
+        return guard.Execute([&] {
+            return RunBlockingChecked(blocking_task_processor_, deadline, [&, query_text = std::string{statement}] {
+                const std::lock_guard lock{handle_mutex_};
+                ApplyPreparedStatementCacheSettings();
+                const auto operation_cache_reset_generation = applied_prepared_cache_reset_generation_;
+                const bool cache_enabled = applied_prepared_cache_size_ != 0;
+                bool handle_bulk_dml_validated = false;
+                auto statement_handle =
+                    cache_enabled
+                        ? TakePreparedStatement(query_text, &handle_bulk_dml_validated)
+                        : StatementHandle{nullptr, StatementHandleDeleter{this}};
+                bool handle_was_cached = statement_handle != nullptr;
+                bool any_execution_started = false;
+                std::size_t completed_rows = 0;
+                bool processed_is_known = true;
+                std::optional<std::size_t> aggregate_rows_affected{0};
+                std::vector<BulkRowStatus> statuses(rows.size(), BulkRowStatus::kUnused);
+
+                const auto make_bulk_error =
+                    [&](std::string message,
+                        std::vector<DiagnosticRecord> diagnostics,
+                        std::optional<std::size_t> processed,
+                        bool invalid_handle = false) {
+                        return BulkExecutionError{
+                            FormatBulkErrorMessage(std::move(message), diagnostics),
+                            std::move(diagnostics),
+                            BulkResult{rows.size(), processed, aggregate_rows_affected, statuses},
+                            invalid_handle,
+                        };
+                    };
+                const auto account_rows_affected = [&](std::optional<std::size_t> count) {
+                    if (!count || !aggregate_rows_affected) {
+                        aggregate_rows_affected.reset();
+                        return;
+                    }
+                    if (*count > std::numeric_limits<std::size_t>::max() - *aggregate_rows_affected) {
+                        throw StatementError("ODBC bulk aggregate row count overflows size_t");
+                    }
+                    *aggregate_rows_affected += *count;
+                };
+                const auto discard_current_statement = [&] {
+                    AccountPreparedStatementFailure(handle_was_cached);
+                    handle_was_cached = false;
+                    handle_bulk_dml_validated = false;
+                    statement_handle.reset();
+                };
+                const auto ensure_connection_remains_usable = [&] {
+                    if (IsMarkedBroken()) {
+                        throw ConnectionError("ODBC statement cleanup left the connection unusable");
+                    }
+                };
+                const auto prepare_current_statement = [&](bool must_prepare) {
+                    if (!statement_handle) {
+                        statement_handle = MakeStatementHandle();
+                        must_prepare = true;
+                        handle_bulk_dml_validated = false;
+                    }
+
+                    SetBulkStatementTimeout(statement_handle.get(), deadline);
+
+                    if (must_prepare) {
+                        handle_bulk_dml_validated = false;
+                        std::vector<SQLCHAR> query_buffer(query_text.begin(), query_text.end());
+                        query_buffer.push_back('\0');
+                        detail::CheckDeadlineNotExpired(deadline);
+                        const auto prepare_result = SQLPrepare(statement_handle.get(), query_buffer.data(), SQL_NTS);
+                        HandleStatementWarnings(
+                            prepare_result,
+                            statement_handle.get(),
+                            "preparing a bulk DML query",
+                            false
+                        );
+                        detail::CheckDeadlineNotExpired(deadline);
+                        if (!SQL_SUCCEEDED(prepare_result)) {
+                            throw MakeDriverError<StatementError>(
+                                "Failed to prepare ODBC bulk DML query",
+                                prepare_result,
+                                statement_handle.get(),
+                                SQL_HANDLE_STMT
+                            );
+                        }
+                    }
+                    if (!handle_bulk_dml_validated) {
+                        ValidateBulkDmlStatement(statement_handle.get(), rows.front().size(), true, deadline);
+                        handle_bulk_dml_validated = true;
+                    } else {
+                        ValidateBulkDmlStatement(statement_handle.get(), rows.front().size(), false, deadline);
+                    }
+                };
+                const auto rotate_after_autocommit = [&](bool has_more_rows) {
+                    if (IsInsideTransaction() || !InvalidatesPreparedStatements(SQL_COMMIT)) {
+                        return;
+                    }
+                    discard_current_statement();
+                    ClearPreparedStatements(true);
+                    ensure_connection_remains_usable();
+                    if (has_more_rows) {
+                        prepare_current_statement(true);
+                    }
+                };
+                const auto evict_after_failure = [&] {
+                    discard_current_statement();
+                    if (any_execution_started && !IsInsideTransaction() &&
+                        (InvalidatesPreparedStatements(SQL_COMMIT) || InvalidatesPreparedStatements(SQL_ROLLBACK)))
+                    {
+                        ClearPreparedStatements(true);
+                    }
+                };
+
+                try {
+                    prepare_current_statement(!handle_was_cached || !handle_bulk_dml_validated);
+                    bool native_attributes_supported = layout.native_binding_allowed;
+                    const auto statuses_are_trusted =
+                        driver_capabilities_.GetParameterArrayRowCounts() == detail::ParameterArrayRowCounts::kBatch;
+
+                    while (completed_rows < rows.size()) {
+                        detail::CheckDeadlineNotExpired(deadline);
+                        auto count = std::min({
+                            chunk_rows,
+                            detail::kMaxNativeBulkRows,
+                            rows.size() - completed_rows,
+                        });
+                        std::optional<detail::BulkBindings> bindings;
+                        if (native_attributes_supported && count > 1) {
+                            while (count > 1) {
+                                bindings = detail::TryBuildBulkBindings(rows, layout, completed_rows, count);
+                                if (bindings) {
+                                    break;
+                                }
+                                count = std::max<std::size_t>(1, count / 2);
+                            }
+                        }
+
+                        bool use_scalar = !native_attributes_supported || count == 1 || !bindings;
+                        if (!use_scalar) {
+                            auto& native = *bindings;
+                            bool cleanup_done = false;
+                            try {
+                                const auto attribute_setup =
+                                    ConfigureNativeBulkAttributes(statement_handle.get(), native, deadline);
+                                if (attribute_setup == BulkAttributeSetup::kFallback) {
+                                    try {
+                                        CleanupBulkStatement(statement_handle.get());
+                                    } catch (const std::exception& cleanup_error) {
+                                        LOG_WARNING()
+                                            << "Discarding an ODBC statement after unsupported bulk attributes and "
+                                               "uncertain reset: "
+                                            << cleanup_error;
+                                    }
+                                    cleanup_done = true;
+                                    discard_current_statement();
+                                    ensure_connection_remains_usable();
+                                    native_attributes_supported = false;
+                                    prepare_current_statement(true);
+                                    use_scalar = true;
+                                } else {
+                                    BindNativeBulkParameters(statement_handle.get(), native, deadline);
+                                    std::fill_n(
+                                        statuses.begin() + static_cast<std::ptrdiff_t>(completed_rows),
+                                        count,
+                                        BulkRowStatus::kUnknown
+                                    );
+                                    SetBulkStatementTimeout(statement_handle.get(), deadline);
+                                    detail::CheckDeadlineNotExpired(deadline);
+                                    any_execution_started = true;
+                                    const auto execute_result = SQLExecute(statement_handle.get());
+                                    auto diagnostics =
+                                        execute_result == SQL_SUCCESS
+                                            ? std::vector<DiagnosticRecord>{}
+                                            : detail::GetSQLDiagnostics(statement_handle.get(), SQL_HANDLE_STMT);
+                                    detail::CheckDeadlineNotExpired(deadline);
+
+                                    std::optional<std::size_t> chunk_processed;
+                                    bool processed_protocol_error = false;
+                                    if (native.processed != detail::kBulkProcessedUntouched) {
+                                        if (native.processed > count) {
+                                            processed_protocol_error = true;
+                                        } else {
+                                            chunk_processed = static_cast<std::size_t>(native.processed);
+                                        }
+                                    }
+                                    const auto status_decision = detail::EvaluateBulkChunkStatuses(
+                                        native.statuses,
+                                        count,
+                                        chunk_processed,
+                                        statuses_are_trusted,
+                                        execute_result
+                                    );
+                                    std::copy(
+                                        status_decision.statuses.begin(),
+                                        status_decision.statuses.end(),
+                                        statuses.begin() + static_cast<std::ptrdiff_t>(completed_rows)
+                                    );
+
+                                    if (!SQL_SUCCEEDED(execute_result) && execute_result != SQL_NO_DATA) {
+                                        aggregate_rows_affected.reset();
+                                        cleanup_done = true;
+                                        auto error = make_bulk_error(
+                                            "Failed to execute ODBC native bulk DML",
+                                            std::move(diagnostics),
+                                            std::nullopt,
+                                            execute_result == SQL_INVALID_HANDLE
+                                        );
+                                        try {
+                                            CleanupBulkStatement(statement_handle.get());
+                                        } catch (const std::exception& cleanup_error) {
+                                            LOG_WARNING()
+                                                << "Failed to reset an ODBC statement after native bulk execution "
+                                                   "failed: "
+                                                << cleanup_error;
+                                            discard_current_statement();
+                                        } catch (...) {
+                                            LOG_WARNING()
+                                                << "Failed to reset an ODBC statement after native bulk execution "
+                                                   "failed";
+                                            discard_current_statement();
+                                        }
+                                        throw error;
+                                    }
+
+                                    const bool
+                                        row_status_failure = processed_protocol_error || status_decision.is_failure;
+                                    const bool diagnostic_failure =
+                                        execute_result == SQL_SUCCESS_WITH_INFO &&
+                                        !HasOnlyWarningClassDiagnostics(diagnostics);
+                                    if (row_status_failure || diagnostic_failure) {
+                                        const auto processed =
+                                            processed_is_known && chunk_processed
+                                                ? std::optional<std::size_t>{completed_rows + *chunk_processed}
+                                                : std::nullopt;
+                                        const auto error_message =
+                                            row_status_failure
+                                                ? "ODBC driver reported a failed or indeterminate native bulk row"
+                                                : "ODBC native bulk DML returned error-class diagnostics";
+
+                                        // The execution failure is primary. Drain and reset are
+                                        // still mandatory while the bound buffers are alive, but
+                                        // their errors must not replace row-status/diagnostic truth.
+                                        try {
+                                            const auto drained = DrainBulkDml(statement_handle.get(), deadline);
+                                            account_rows_affected(drained.rows_affected);
+                                        } catch (const OperationInterrupted& drain_error) {
+                                            NotifyBroken();
+                                            aggregate_rows_affected.reset();
+                                            LOG_WARNING()
+                                                << "Timed out while draining ODBC bulk DML after a primary row "
+                                                   "failure: "
+                                                << drain_error;
+                                        } catch (const std::exception& drain_error) {
+                                            aggregate_rows_affected.reset();
+                                            LOG_WARNING()
+                                                << "Failed to drain ODBC bulk DML after a primary row failure: "
+                                                << drain_error;
+                                        } catch (...) {
+                                            aggregate_rows_affected.reset();
+                                            LOG_WARNING()
+                                                << "Failed to drain ODBC bulk DML after a primary row "
+                                                   "failure";
+                                        }
+
+                                        cleanup_done = true;
+                                        try {
+                                            CleanupBulkStatement(statement_handle.get());
+                                        } catch (const std::exception& cleanup_error) {
+                                            LOG_WARNING()
+                                                << "Failed to reset ODBC bulk DML after a primary row failure: "
+                                                << cleanup_error;
+                                            discard_current_statement();
+                                        } catch (...) {
+                                            LOG_WARNING()
+                                                << "Failed to reset ODBC bulk DML after a primary row "
+                                                   "failure";
+                                            discard_current_statement();
+                                        }
+                                        throw make_bulk_error(error_message, std::move(diagnostics), processed);
+                                    }
+
+                                    auto drained = DrainBulkDml(statement_handle.get(), deadline);
+                                    account_rows_affected(drained.rows_affected);
+                                    CleanupBulkStatement(statement_handle.get());
+                                    cleanup_done = true;
+
+                                    if (execute_result == SQL_SUCCESS_WITH_INFO) {
+                                        LogOdbcWarnings("Executing ODBC native bulk DML", diagnostics);
+                                    }
+                                    if (!chunk_processed) {
+                                        processed_is_known = false;
+                                    }
+                                    completed_rows += count;
+                                    rotate_after_autocommit(completed_rows < rows.size());
+                                }
+                            } catch (...) {
+                                const auto original_error = std::current_exception();
+                                if (!cleanup_done) {
+                                    bool cleanup_succeeded = false;
+                                    try {
+                                        CleanupBulkStatement(statement_handle.get());
+                                        cleanup_succeeded = true;
+                                    } catch (const std::exception& cleanup_error) {
+                                        LOG_WARNING()
+                                            << "Failed to clean up an erroneous native ODBC bulk statement: "
+                                            << cleanup_error;
+                                    } catch (...) {
+                                        LOG_WARNING() << "Failed to clean up an erroneous native ODBC bulk statement";
+                                    }
+                                    if (!cleanup_succeeded) {
+                                        discard_current_statement();
+                                    }
+                                }
+                                std::rethrow_exception(original_error);
+                            }
+                        }
+
+                        if (use_scalar) {
+                            bool scalar_execution_started = false;
+                            statuses[completed_rows] = BulkRowStatus::kUnknown;
+                            try {
+                                const auto scalar = ExecuteScalarBulkDml(
+                                    statement_handle.get(),
+                                    rows[completed_rows],
+                                    deadline,
+                                    scalar_execution_started,
+                                    discard_current_statement
+                                );
+                                any_execution_started = any_execution_started || scalar_execution_started;
+                                statuses[completed_rows] = scalar.status;
+                                account_rows_affected(scalar.rows_affected);
+                            } catch (const StatementError& error) {
+                                any_execution_started = any_execution_started || scalar_execution_started;
+                                if (scalar_execution_started) {
+                                    statuses[completed_rows] = BulkRowStatus::kError;
+                                    aggregate_rows_affected.reset();
+                                    throw make_bulk_error(
+                                        "Failed to execute an ODBC scalar bulk fallback row",
+                                        error.GetDiagnostics(),
+                                        processed_is_known
+                                            ? std::optional<std::size_t>{completed_rows + 1}
+                                            : std::nullopt,
+                                        error.IsInvalidHandle()
+                                    );
+                                }
+                                if (completed_rows != 0) {
+                                    statuses[completed_rows] = BulkRowStatus::kError;
+                                    throw make_bulk_error(
+                                        "Failed to bind an ODBC scalar bulk fallback row",
+                                        error.GetDiagnostics(),
+                                        processed_is_known ? std::optional<std::size_t>{completed_rows} : std::nullopt,
+                                        error.IsInvalidHandle()
+                                    );
+                                }
+                                throw;
+                            }
+                            ++completed_rows;
+                            rotate_after_autocommit(completed_rows < rows.size());
+                        }
+                    }
+
+                    if (cache_enabled && statement_handle) {
+                        StorePreparedStatement(
+                            query_text,
+                            std::move(statement_handle),
+                            handle_was_cached,
+                            operation_cache_reset_generation,
+                            handle_bulk_dml_validated
+                        );
+                    }
+                    return BulkResult{
+                        rows.size(),
+                        processed_is_known ? std::optional<std::size_t>{rows.size()} : std::nullopt,
+                        aggregate_rows_affected,
+                        std::move(statuses),
+                    };
+                } catch (const BulkExecutionError&) {
+                    evict_after_failure();
+                    throw;
+                } catch (const StatementError& error) {
+                    evict_after_failure();
+                    if (any_execution_started) {
+                        aggregate_rows_affected.reset();
+                        throw make_bulk_error(
+                            "ODBC bulk DML failed after execution started",
+                            error.GetDiagnostics(),
+                            std::nullopt,
+                            error.IsInvalidHandle()
+                        );
+                    }
+                    throw;
+                } catch (...) {
+                    evict_after_failure();
+                    throw;
+                }
+            });
+        });
+    } catch (const OperationInterrupted&) {
+        NotifyBroken();
+        throw;
+    } catch (const StatementError& ex) {
+        if (ex.IsInvalidHandle() || detail::HasConnectionError(ex.GetDiagnostics())) {
+            NotifyBroken();
+        } else {
+            UpdateBrokenFromDriver();
+        }
+        span.AddTag(tracing::kErrorFlag, true);
+        span.AddTag(tracing::kErrorMessage, ex.what());
         throw;
     } catch (const Error& ex) {
         span.AddTag(tracing::kErrorFlag, true);

@@ -18,6 +18,7 @@ namespace storages::odbc {
 
 class Cluster;
 class Transaction;
+class BulkParameterStore;
 
 /// @cond
 namespace impl {
@@ -88,6 +89,7 @@ public:
 private:
     friend class Cluster;
     friend class Transaction;
+    friend class BulkParameterStore;
 
     const impl::ParameterList& GetParameters() const noexcept { return parameters_; }
 

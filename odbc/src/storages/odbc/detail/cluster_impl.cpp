@@ -62,6 +62,26 @@ ResultSet ClusterImpl::Execute(
     );
 }
 
+BulkResult ClusterImpl::ExecuteBulk(
+    ClusterHostTypeFlags flags,
+    OptionalCommandControl command_control,
+    const Query& query,
+    const impl::ParameterRows& rows,
+    const BulkLayout& layout,
+    std::size_t chunk_rows
+) {
+    const auto resolved = ResolveCommandControl(command_control, query.GetOptionalNameView());
+    return ExecuteBulkImpl(
+        GetExecuteDeadline(resolved.network_timeout.value_or(kDefaultStatementTimeout)),
+        resolved.statement_timeout.value_or(kDefaultStatementTimeout),
+        flags,
+        query,
+        rows,
+        layout,
+        chunk_rows
+    );
+}
+
 ResultSet ClusterImpl::ExecuteImpl(
     engine::Deadline acquire_deadline,
     std::chrono::milliseconds statement_timeout,
@@ -84,6 +104,49 @@ ResultSet ClusterImpl::ExecuteImpl(
     try {
         CheckDeadlineNotExpired(statement_deadline);
         auto result = conn->Query(query, parameters, std::min(acquire_deadline, statement_deadline));
+        const auto elapsed = std::chrono::duration_cast<
+            std::chrono::microseconds>(utils::datetime::SteadyCoarseClock::now() - start);
+        pool.AccountQueryExecuted(elapsed);
+        statement_stats.AccountSuccess();
+        return result;
+    } catch (const OperationInterrupted&) {
+        statement_stats.AccountError();
+        pool.AccountQueryTimeout();
+        throw;
+    } catch (const Error&) {
+        statement_stats.AccountError();
+        pool.AccountQueryError();
+        throw;
+    } catch (const std::exception&) {
+        statement_stats.AccountError();
+        throw;
+    }
+}
+
+BulkResult ClusterImpl::ExecuteBulkImpl(
+    engine::Deadline acquire_deadline,
+    std::chrono::milliseconds statement_timeout,
+    ClusterHostTypeFlags flags,
+    const Query& query,
+    const impl::ParameterRows& rows,
+    const BulkLayout& layout,
+    std::size_t chunk_rows
+) {
+    CheckDeadlineNotExpired(acquire_deadline);
+
+    tracing::Span span{storages::odbc::impl::tracing::kExecuteSpan};
+    const auto topology = std::atomic_load(&topology_);
+    auto& pool = SelectPool(*topology, flags);
+    auto conn = pool.Acquire(acquire_deadline);
+
+    pool.AccountOutOfTransaction();
+    const auto statement_deadline = GetExecuteDeadline(statement_timeout);
+
+    const auto start = utils::datetime::SteadyCoarseClock::now();
+    StatementStats statement_stats{query, pool.GetStatementStatsStorage()};
+    try {
+        CheckDeadlineNotExpired(statement_deadline);
+        auto result = conn->QueryBulk(query, rows, layout, chunk_rows, std::min(acquire_deadline, statement_deadline));
         const auto elapsed = std::chrono::duration_cast<
             std::chrono::microseconds>(utils::datetime::SteadyCoarseClock::now() - start);
         pool.AccountQueryExecuted(elapsed);
