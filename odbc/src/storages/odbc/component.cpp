@@ -27,6 +27,7 @@
 #include <dynamic_config/variables/USERVER_ODBC_CONNECTION_POOL_SETTINGS.hpp>
 #include <dynamic_config/variables/USERVER_ODBC_DEFAULT_COMMAND_CONTROL.hpp>
 #include <dynamic_config/variables/USERVER_ODBC_HANDLERS_COMMAND_CONTROL.hpp>
+#include <dynamic_config/variables/USERVER_ODBC_PREPARED_STATEMENT_CACHE_SETTINGS.hpp>
 #include <dynamic_config/variables/USERVER_ODBC_QUERIES_COMMAND_CONTROL.hpp>
 #include <dynamic_config/variables/USERVER_ODBC_STATEMENT_METRICS_SETTINGS.hpp>
 
@@ -200,6 +201,9 @@ Odbc::Odbc(const ComponentConfig& config, const ComponentContext& context)
       config_source_{context.FindComponent<components::DynamicConfig>().GetSource()}
 {
     cluster_->SetStatementMetricsSettings(statement_metrics_settings_fallback_);
+    cluster_->SetPreparedStatementCacheSettings({
+        .max_size = config["max_prepared_cache_size"].As<std::size_t>(0),
+    });
 
     utils::statistics::RegisterWriterScope(
         context,
@@ -217,6 +221,7 @@ Odbc::Odbc(const ComponentConfig& config, const ComponentContext& context)
         ::dynamic_config::USERVER_ODBC_DEFAULT_COMMAND_CONTROL,
         ::dynamic_config::USERVER_ODBC_HANDLERS_COMMAND_CONTROL,
         ::dynamic_config::USERVER_ODBC_QUERIES_COMMAND_CONTROL,
+        ::dynamic_config::USERVER_ODBC_PREPARED_STATEMENT_CACHE_SETTINGS,
         ::dynamic_config::USERVER_ODBC_STATEMENT_METRICS_SETTINGS
     );
 
@@ -252,6 +257,15 @@ void Odbc::OnConfigUpdate(const dynamic_config::Snapshot& config) {
         statement_metrics_settings.max_statements = dynamic_settings->max_statement_metrics;
     }
     cluster_->SetStatementMetricsSettings(statement_metrics_settings);
+
+    const auto& prepared_statement_cache = config[::dynamic_config::USERVER_ODBC_PREPARED_STATEMENT_CACHE_SETTINGS];
+    std::optional<storages::odbc::settings::PreparedStatementCacheSettings> prepared_statement_cache_override;
+    if (const auto dynamic_settings = prepared_statement_cache.GetOptional(name_)) {
+        prepared_statement_cache_override = {
+            .max_size = dynamic_settings->max_prepared_cache_size,
+        };
+    }
+    cluster_->SetPreparedStatementCacheSettingsOverride(prepared_statement_cache_override);
 
     const auto& default_command_control = config[::dynamic_config::USERVER_ODBC_DEFAULT_COMMAND_CONTROL];
     const auto& handlers_command_control = config[::dynamic_config::USERVER_ODBC_HANDLERS_COMMAND_CONTROL];

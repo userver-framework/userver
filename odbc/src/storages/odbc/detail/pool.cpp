@@ -25,14 +25,16 @@ Pool::Pool(
     std::size_t min_pool_size,
     std::size_t max_pool_size,
     engine::TaskProcessor& blocking_task_processor,
-    const settings::StatementMetricsSettings& statement_metrics_settings
+    const settings::StatementMetricsSettings& statement_metrics_settings,
+    const settings::PreparedStatementCacheSettings& prepared_statement_cache_settings
 )
     : ConnectionPoolBase<Connection, Pool>(max_pool_size, kMaxSimultaneouslyConnectingClients),
       dsns_({dsn}),
       min_pool_size_(min_pool_size),
       max_pool_size_(max_pool_size),
       blocking_task_processor_{blocking_task_processor},
-      statement_stats_{statement_metrics_settings}
+      statement_stats_{statement_metrics_settings},
+      prepared_statement_cache_state_{std::make_shared<PreparedStatementCacheState>(prepared_statement_cache_settings)}
 {
     stats_.connection.maximum = max_pool_size;
     try {
@@ -52,14 +54,16 @@ Pool::Pool(
     std::size_t min_pool_size,
     std::size_t max_pool_size,
     engine::TaskProcessor& blocking_task_processor,
-    const settings::StatementMetricsSettings& statement_metrics_settings
+    const settings::StatementMetricsSettings& statement_metrics_settings,
+    const settings::PreparedStatementCacheSettings& prepared_statement_cache_settings
 )
     : ConnectionPoolBase<Connection, Pool>(max_pool_size, kMaxSimultaneouslyConnectingClients),
       dsns_(std::move(dsns)),
       min_pool_size_(min_pool_size),
       max_pool_size_(max_pool_size),
       blocking_task_processor_{blocking_task_processor},
-      statement_stats_{statement_metrics_settings}
+      statement_stats_{statement_metrics_settings},
+      prepared_statement_cache_state_{std::make_shared<PreparedStatementCacheState>(prepared_statement_cache_settings)}
 {
     stats_.connection.maximum = max_pool_size;
     try {
@@ -81,6 +85,14 @@ StatementStatisticsSnapshot Pool::GetStatementStatistics() const { return statem
 
 void Pool::SetStatementMetricsSettings(const settings::StatementMetricsSettings& settings) {
     statement_stats_.SetSettings(settings);
+}
+
+const PreparedStatementCacheStatistics& Pool::GetPreparedStatementCacheStatistics() const noexcept {
+    return prepared_statement_cache_state_->GetStatistics();
+}
+
+void Pool::SetPreparedStatementCacheSettings(const settings::PreparedStatementCacheSettings& settings) {
+    prepared_statement_cache_state_->SetSettings(settings);
 }
 
 ConnectionPtr Pool::Acquire(engine::Deadline deadline) {
@@ -118,7 +130,8 @@ Pool::ConnectionUniquePtr Pool::DoCreateConnection(engine::Deadline deadline) {
     try {
         CheckDeadlineNotExpired(deadline);
         const auto idx = dsn_index_.fetch_add(1);
-        auto conn = std::make_unique<Connection>(dsns_[idx % dsns_.size()], blocking_task_processor_, deadline);
+        auto conn = std::make_unique<
+            Connection>(dsns_[idx % dsns_.size()], blocking_task_processor_, deadline, prepared_statement_cache_state_);
         ++stats_.connection.open_total;
 
         const auto elapsed = std::chrono::duration_cast<

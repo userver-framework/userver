@@ -29,6 +29,7 @@ std::string ResolveDsn(const std::string& dsn_str, clients::dns::Resolver* resol
 TopologyBase::TopologyBase(
     const settings::ODBCClusterSettings& settings,
     const settings::StatementMetricsSettings& statement_metrics_settings,
+    const settings::PreparedStatementCacheSettings& prepared_statement_cache_settings,
     clients::dns::Resolver* resolver,
     engine::TaskProcessor& blocking_task_processor
 ) {
@@ -42,7 +43,8 @@ TopologyBase::TopologyBase(
             host.pool.min_size,
             host.pool.max_size,
             blocking_task_processor,
-            statement_metrics_settings
+            statement_metrics_settings,
+            prepared_statement_cache_settings
         ));
     }
 }
@@ -52,16 +54,29 @@ TopologyBase::~TopologyBase() = default;
 std::shared_ptr<TopologyBase> TopologyBase::Create(
     const settings::ODBCClusterSettings& settings,
     const settings::StatementMetricsSettings& statement_metrics_settings,
+    const settings::PreparedStatementCacheSettings& prepared_statement_cache_settings,
     clients::dns::Resolver* resolver,
     engine::TaskProcessor& blocking_task_processor
 ) {
     UASSERT(!settings.pools.empty());
 
     if (settings.pools.size() == 1) {
-        return std::make_shared<Standalone>(settings, statement_metrics_settings, resolver, blocking_task_processor);
+        return std::make_shared<Standalone>(
+            settings,
+            statement_metrics_settings,
+            prepared_statement_cache_settings,
+            resolver,
+            blocking_task_processor
+        );
     }
 
-    return std::make_shared<FixedPrimary>(settings, statement_metrics_settings, resolver, blocking_task_processor);
+    return std::make_shared<FixedPrimary>(
+        settings,
+        statement_metrics_settings,
+        prepared_statement_cache_settings,
+        resolver,
+        blocking_task_processor
+    );
 }
 
 Pool& TopologyBase::SelectPool(ClusterHostType host_type) const {
@@ -87,6 +102,13 @@ void TopologyBase::WriteStatistics(utils::statistics::Writer& writer) const {
         const auto pool_label = std::to_string(i);
         writer.ValueWithLabels(pools_[i]->GetStatistics(), {{"odbc_pool", pool_label}});
         writer.ValueWithLabels(statement_snapshots[i], {{"odbc_pool", pool_label}});
+        writer.ValueWithLabels(pools_[i]->GetPreparedStatementCacheStatistics(), {{"odbc_pool", pool_label}});
+    }
+}
+
+void TopologyBase::SetPreparedStatementCacheSettings(const settings::PreparedStatementCacheSettings& settings) {
+    for (const auto& pool : pools_) {
+        pool->SetPreparedStatementCacheSettings(settings);
     }
 }
 

@@ -64,6 +64,8 @@ public:
     void SetHandlersCommandControl(CommandControlByHandlerMap command_control);
     void SetQueriesCommandControl(CommandControlByQueryMap command_control);
     void SetStatementMetricsSettings(const settings::StatementMetricsSettings& settings);
+    void SetPreparedStatementCacheSettings(const settings::PreparedStatementCacheSettings& settings);
+    void SetPreparedStatementCacheSettingsOverride(std::optional<settings::PreparedStatementCacheSettings> settings);
     void ApplyDynamicCommandControls(
         CommandControl default_command_control,
         CommandControlByHandlerMap handlers_command_control,
@@ -95,6 +97,7 @@ private:
     ) const;
     bool UpdateSettingsLocked(const settings::ODBCClusterSettings& settings);
     settings::ODBCClusterSettings MakeEffectiveSettingsLocked() const;
+    void ApplyPreparedStatementCacheSettingsLocked();
 
     clients::dns::Resolver* resolver_;
     engine::TaskProcessor& blocking_task_processor_;
@@ -104,6 +107,9 @@ private:
     std::shared_ptr<const settings::ODBCClusterSettings> baseline_settings_;
     std::optional<settings::PoolSettings> pool_settings_override_;
     settings::StatementMetricsSettings statement_metrics_settings_{};
+    settings::PreparedStatementCacheSettings prepared_statement_cache_settings_baseline_{};
+    std::optional<settings::PreparedStatementCacheSettings> prepared_statement_cache_settings_override_;
+    settings::PreparedStatementCacheSettings prepared_statement_cache_settings_effective_{};
 
     CommandControlStorePtr command_control_store_;
 };

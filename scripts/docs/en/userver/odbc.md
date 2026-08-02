@@ -198,6 +198,32 @@ through a bounded queue, so export is eventual and metrics events may be dropped
 under telemetry overload. The exported siblings are `statement_timings`,
 `statement_executed`, and `statement_errors`, each labelled by `odbc_query`.
 
+Prepared statement caching is separately opt-in and bounded per physical ODBC
+connection:
+
+@snippet odbc/tests/odbc_metrics_test.cpp ODBC prepared statement cache
+
+The static `max_prepared_cache_size` option and @ref
+USERVER_ODBC_PREPARED_STATEMENT_CACHE_SETTINGS select the maximum number of
+retained statements on each connection. Dynamic configuration resolves an
+exact component name before `__default__`, then falls back to the static value.
+Zero disables and clears the cache; growing preserves entries and shrinking
+evicts least-recently-used entries before the connection's next operation.
+
+Only parameterized queries use the cache. Parameterless SQL continues through
+`SQLExecDirect`. Cache keys are the exact case-sensitive SQL bytes; Query names
+and parameter values are not keys. Results remain fully materialized, so they do
+not retain cached statement handles. Drivers may invalidate prepared statements
+at commit or rollback; the cache follows the ODBC cursor-behavior capabilities
+and conservatively clears when a capability is unknown.
+
+The pool-level metrics `queries.prepared-cache-hits`,
+`queries.prepared-cache-misses`, `queries.prepared-cache-evictions`, and
+`connections.prepared-statements` inherit only `component` and `odbc_pool`
+labels. Misses count enabled parameterized lookups, including prepare failures.
+Evictions count capacity, resize, error, and transaction-boundary invalidation;
+disable and connection destruction clears are excluded.
+
 @section odbc_info More information
 
 - For component options and the generated schema, see components::Odbc.

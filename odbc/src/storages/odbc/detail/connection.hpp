@@ -7,6 +7,7 @@
 #include <string>
 #include <string_view>
 
+#include <userver/cache/lru_map.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 
@@ -21,6 +22,7 @@
 #include <userver/storages/odbc/transaction_options.hpp>
 
 #include <storages/odbc/detail/driver_capabilities.hpp>
+#include <storages/odbc/detail/prepared_statement_cache.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -39,7 +41,12 @@ public:
 
     explicit Connection(const std::string& dsn);
     Connection(const std::string& dsn, engine::Deadline deadline);
-    Connection(const std::string& dsn, engine::TaskProcessor& blocking_task_processor, engine::Deadline deadline);
+    Connection(
+        const std::string& dsn,
+        engine::TaskProcessor& blocking_task_processor,
+        engine::Deadline deadline,
+        std::shared_ptr<detail::PreparedStatementCacheState> prepared_statement_cache_state = nullptr
+    );
 
     ~Connection();
 
@@ -83,6 +90,23 @@ public:
     ) const;
 
 private:
+    struct StatementHandleDeleter final {
+        Connection* connection{nullptr};
+        void operator()(std::remove_pointer_t<SQLHSTMT>* handle) const noexcept;
+    };
+    using StatementHandle = std::unique_ptr<std::remove_pointer_t<SQLHSTMT>, StatementHandleDeleter>;
+
+    struct CachedStatement final {
+        CachedStatement(std::string key, StatementHandle handle);
+        CachedStatement(CachedStatement&&) noexcept = default;
+        CachedStatement& operator=(CachedStatement&&) noexcept = default;
+
+        std::string key;
+        StatementHandle handle;
+    };
+
+    using PreparedStatements = cache::LruMap<std::string, CachedStatement>;
+
     struct TransactionAttributes final {
         std::optional<SQLUINTEGER> isolation;
         std::optional<SQLUINTEGER> access_mode;
@@ -95,6 +119,21 @@ private:
     void Rollback(engine::Deadline deadline);
     bool IsInsideTransaction() const noexcept;
 
+    StatementHandle MakeStatementHandle();
+    StatementHandle TakePreparedStatement(std::string_view query);
+    void StorePreparedStatement(
+        std::string query,
+        StatementHandle handle,
+        bool was_cached,
+        std::size_t operation_reset_generation
+    );
+    void ApplyPreparedStatementCacheSettings();
+    void ClearPreparedStatements(bool account_evictions) noexcept;
+    void EvictLeastRecentlyUsedPreparedStatement() noexcept;
+    void AccountPreparedStatementFailure(bool was_cached) noexcept;
+    bool InvalidatesPreparedStatements(SQLSMALLINT completion_type) const noexcept;
+    void DestroyStatementHandle(SQLHSTMT handle) noexcept;
+
     void EndTransaction(SQLSMALLINT completion_type, std::string_view operation, engine::Deadline deadline);
     void RestoreTransactionAttributes(const TransactionAttributes& attributes, engine::Deadline deadline);
     void CleanupInterruptedBegin() noexcept;
@@ -104,6 +143,10 @@ private:
     EnvironmentHandle env_;
     DatabaseHandle handle_;
     detail::DriverCapabilities driver_capabilities_;
+    std::shared_ptr<detail::PreparedStatementCacheState> prepared_statement_cache_state_;
+    PreparedStatements prepared_statements_{1};
+    std::size_t applied_prepared_cache_size_{0};
+    std::size_t applied_prepared_cache_reset_generation_{0};
     std::shared_ptr<detail::CommandControlStore> command_control_store_;
     std::optional<TransactionAttributes> transaction_attributes_snapshot_;
     std::atomic<bool> broken_{false};

@@ -51,6 +51,15 @@ void DumpMetric(utils::statistics::Writer& writer, const StatementStatisticsSnap
     }
 }
 
+void DumpMetric(utils::statistics::Writer& writer, const PreparedStatementCacheStatistics& stats) {
+    if (auto queries = writer["queries"]) {
+        queries["prepared-cache-hits"] = stats.hits;
+        queries["prepared-cache-misses"] = stats.misses;
+        queries["prepared-cache-evictions"] = stats.evictions;
+    }
+    writer["connections"]["prepared-statements"] = stats.current;
+}
+
 }  // namespace storages::odbc::detail
 
 USERVER_NAMESPACE_END

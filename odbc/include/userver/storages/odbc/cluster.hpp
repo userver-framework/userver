@@ -112,6 +112,13 @@ public:
     /// retained name exports three metric series.
     void SetStatementMetricsSettings(const settings::StatementMetricsSettings& settings);
 
+    /// @brief Set the per-connection prepared statement cache bound.
+    ///
+    /// A zero bound disables and clears the cache. Shrinking evicts the least
+    /// recently used statements; growing preserves existing entries. Existing
+    /// physical connections apply changes before their next operation.
+    void SetPreparedStatementCacheSettings(const settings::PreparedStatementCacheSettings& settings);
+
     /// @brief Atomically replace cluster pools for future operations.
     /// Existing queries and transactions keep their old pools alive.
     void UpdateSettings(const settings::ODBCClusterSettings& settings);
@@ -119,6 +126,7 @@ public:
     /// @cond
     void UpdateDsns(const std::vector<std::string>& dsns);
     void SetPoolSettingsOverride(std::optional<settings::PoolSettings> settings);
+    void SetPreparedStatementCacheSettingsOverride(std::optional<settings::PreparedStatementCacheSettings> settings);
     void ApplyDynamicCommandControls(
         CommandControl default_command_control,
         CommandControlByHandlerMap handlers_command_control,

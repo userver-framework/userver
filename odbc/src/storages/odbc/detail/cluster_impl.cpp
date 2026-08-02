@@ -36,7 +36,13 @@ ClusterImpl::ClusterImpl(
     UINVARIANT(!settings.pools.empty(), "Pools count should be positive");
     std::atomic_store(
         &topology_,
-        topology::TopologyBase::Create(settings, statement_metrics_settings_, resolver_, blocking_task_processor_)
+        topology::TopologyBase::Create(
+            settings,
+            statement_metrics_settings_,
+            prepared_statement_cache_settings_effective_,
+            resolver_,
+            blocking_task_processor_
+        )
     );
 }
 
@@ -172,8 +178,13 @@ bool ClusterImpl::UpdateSettingsLocked(const settings::ODBCClusterSettings& sett
 
     // Construct and initialize all new pools before publishing. If this throws,
     // the currently working topology remains untouched.
-    auto new_topology =
-        topology::TopologyBase::Create(settings, statement_metrics_settings_, resolver_, blocking_task_processor_);
+    auto new_topology = topology::TopologyBase::Create(
+        settings,
+        statement_metrics_settings_,
+        prepared_statement_cache_settings_effective_,
+        resolver_,
+        blocking_task_processor_
+    );
     auto new_settings = std::make_shared<const settings::ODBCClusterSettings>(settings);
     settings_ = std::move(new_settings);
     std::atomic_store(&topology_, std::move(new_topology));
@@ -254,6 +265,32 @@ void ClusterImpl::SetStatementMetricsSettings(const settings::StatementMetricsSe
     const auto topology = std::atomic_load(&topology_);
     UASSERT(topology);
     topology->SetStatementMetricsSettings(settings);
+}
+
+void ClusterImpl::SetPreparedStatementCacheSettings(const settings::PreparedStatementCacheSettings& settings) {
+    const std::lock_guard lock{settings_mutex_};
+    prepared_statement_cache_settings_baseline_ = settings;
+    ApplyPreparedStatementCacheSettingsLocked();
+}
+
+void ClusterImpl::SetPreparedStatementCacheSettingsOverride(
+    std::optional<settings::PreparedStatementCacheSettings> settings
+) {
+    const std::lock_guard lock{settings_mutex_};
+    prepared_statement_cache_settings_override_ = settings;
+    ApplyPreparedStatementCacheSettingsLocked();
+}
+
+void ClusterImpl::ApplyPreparedStatementCacheSettingsLocked() {
+    const auto
+        effective = prepared_statement_cache_settings_override_.value_or(prepared_statement_cache_settings_baseline_);
+    if (effective == prepared_statement_cache_settings_effective_) {
+        return;
+    }
+    prepared_statement_cache_settings_effective_ = effective;
+    const auto topology = std::atomic_load(&topology_);
+    UASSERT(topology);
+    topology->SetPreparedStatementCacheSettings(effective);
 }
 
 void ClusterImpl::ApplyDynamicCommandControls(

@@ -43,8 +43,6 @@ namespace storages::odbc {
 
 namespace {
 
-using StatementHandle = std::unique_ptr<std::remove_pointer_t<SQLHSTMT>, void (*)(SQLHSTMT)>;
-
 struct ConnectedHandles final {
     Connection::EnvironmentHandle environment;
     Connection::DatabaseHandle database;
@@ -270,12 +268,6 @@ void DestroyDatabaseHandle(SQLHDBC handle) {
     }
 }
 
-void DestroyStatementHandle(SQLHSTMT handle) {
-    if (handle != SQL_NULL_HSTMT) {
-        SQLFreeHandle(SQL_HANDLE_STMT, handle);
-    }
-}
-
 void DestroyConnectionHandlesOnBlockingTaskProcessor(
     engine::TaskProcessor& task_processor,
     Connection::EnvironmentHandle& environment,
@@ -318,16 +310,6 @@ Connection::DatabaseHandle MakeDatabaseHandle(SQLHENV env) {
     }
 
     return Connection::DatabaseHandle(dbc, &DestroyDatabaseHandle);
-}
-
-StatementHandle MakeStatementHandle(SQLHDBC connection) {
-    SQLHSTMT statement = SQL_NULL_HSTMT;
-    const auto result = SQLAllocHandle(SQL_HANDLE_STMT, connection, &statement);
-    if (!SQL_SUCCEEDED(result)) {
-        throw MakeDriverError<
-            StatementError>("Failed to allocate ODBC statement handle", result, connection, SQL_HANDLE_DBC);
-    }
-    return StatementHandle{statement, &DestroyStatementHandle};
 }
 
 void CheckStatementResult(SQLRETURN result, SQLHSTMT statement, std::string_view operation) {
@@ -1073,7 +1055,32 @@ ParameterBinding GetParameterBinding(BoundParameter& parameter) {
     UINVARIANT(false, "Unknown ODBC parameter type");
 }
 
-void BindParameters(SQLHSTMT statement, const impl::ParameterList& parameters, engine::Deadline deadline) {
+void CleanupPreparedStatement(SQLHSTMT statement) {
+    std::exception_ptr first_error;
+    const auto cleanup = [&](SQLUSMALLINT option, std::string_view operation) {
+        try {
+            const auto result = SQLFreeStmt(statement, option);
+            HandleStatementWarnings(result, statement, operation, false);
+            CheckStatementResult(result, statement, operation);
+        } catch (...) {
+            if (!first_error) {
+                first_error = std::current_exception();
+            }
+        }
+    };
+    cleanup(SQL_CLOSE, "close a prepared query cursor and discard pending results");
+    cleanup(SQL_RESET_PARAMS, "reset prepared query parameter bindings");
+    if (first_error) {
+        std::rethrow_exception(first_error);
+    }
+}
+
+ResultSet ExecutePreparedStatement(
+    SQLHSTMT statement,
+    const impl::ParameterList& parameters,
+    engine::Deadline deadline,
+    bool& execution_started
+) {
     SQLSMALLINT expected_count = 0;
     detail::CheckDeadlineNotExpired(deadline);
     const auto count_result = SQLNumParams(statement, &expected_count);
@@ -1096,155 +1103,162 @@ void BindParameters(SQLHSTMT statement, const impl::ParameterList& parameters, e
     }
 
     std::vector<SQLLEN> indicators(bound_parameters.size());
-    for (std::size_t index = 0; index < bound_parameters.size(); ++index) {
-        auto& parameter = bound_parameters[index];
-        auto binding = GetParameterBinding(parameter);
+    bool cleanup_attempted = false;
+    try {
+        for (std::size_t index = 0; index < bound_parameters.size(); ++index) {
+            auto& parameter = bound_parameters[index];
+            auto binding = GetParameterBinding(parameter);
 
-        if (parameter.type == impl::ParameterType::kUnknown) {
-            SQLSMALLINT decimal_digits = 0;
-            SQLSMALLINT nullable = SQL_NULLABLE_UNKNOWN;
-            detail::CheckDeadlineNotExpired(deadline);
-            const auto describe_result = SQLDescribeParam(
-                statement,
-                static_cast<SQLUSMALLINT>(index + 1),
-                &binding.sql_type,
-                &binding.column_size,
-                &decimal_digits,
-                &nullable
-            );
-            HandleStatementWarnings(describe_result, statement, "describing an untyped NULL parameter", false);
-            detail::CheckDeadlineNotExpired(deadline);
-            if (!SQL_SUCCEEDED(describe_result)) {
-                throw MakeDriverError<StatementError>(
-                    "Cannot infer the type of a NULL ODBC parameter; add an explicit SQL cast or use a typed "
-                    "std::optional where supported by the driver",
-                    describe_result,
-                    statement,
-                    SQL_HANDLE_STMT
-                );
-            }
-        }
-
-        indicators[index] = parameter.is_null ? SQL_NULL_DATA : binding.buffer_size;
-        const auto bind_buffer_size = parameter.type == impl::ParameterType::kDecimal ? SQLLEN{0} : binding.buffer_size;
-        detail::CheckDeadlineNotExpired(deadline);
-        const auto bind_result = SQLBindParameter(
-            statement,
-            static_cast<SQLUSMALLINT>(index + 1),
-            SQL_PARAM_INPUT,
-            binding.c_type,
-            binding.sql_type,
-            binding.column_size,
-            binding.decimal_digits,
-            binding.data,
-            bind_buffer_size,
-            &indicators[index]
-        );
-        HandleStatementWarnings(bind_result, statement, "binding a query parameter", false);
-        detail::CheckDeadlineNotExpired(deadline);
-        if (!SQL_SUCCEEDED(bind_result)) {
-            throw MakeDriverError<StatementError>(
-                fmt::format("Failed to bind ODBC parameter {}", index + 1),
-                bind_result,
-                statement,
-                SQL_HANDLE_STMT
-            );
-        }
-        if (parameter.type == impl::ParameterType::kDecimal) {
-            SQLHDESC descriptor = SQL_NULL_HDESC;
-            detail::CheckDeadlineNotExpired(deadline);
-            const auto descriptor_result = SQLGetStmtAttr(
-                statement,
-                SQL_ATTR_APP_PARAM_DESC,
-                &descriptor,
-                static_cast<SQLINTEGER>(sizeof(descriptor)),
-                nullptr
-            );
-            detail::CheckDeadlineNotExpired(deadline);
-            if (!SQL_SUCCEEDED(descriptor_result)) {
-                throw MakeDriverError<StatementError>(
-                    fmt::format("Failed to obtain the descriptor for ODBC Decimal parameter {}", index + 1),
-                    descriptor_result,
-                    statement,
-                    SQL_HANDLE_STMT
-                );
-            }
-            if (descriptor_result == SQL_SUCCESS_WITH_INFO) {
-                LogOdbcWarnings(
-                    fmt::format("Obtaining the descriptor for ODBC Decimal parameter {}", index + 1),
-                    statement,
-                    SQL_HANDLE_STMT
-                );
-            }
-
-            const auto record = static_cast<SQLSMALLINT>(index + 1);
-            const auto set_field = [&](SQLSMALLINT field, SQLPOINTER value, std::string_view name) {
+            if (parameter.type == impl::ParameterType::kUnknown) {
+                SQLSMALLINT decimal_digits = 0;
+                SQLSMALLINT nullable = SQL_NULLABLE_UNKNOWN;
                 detail::CheckDeadlineNotExpired(deadline);
-                const auto result = SQLSetDescField(descriptor, record, field, value, 0);
-                const auto warnings = GetWarnings(result, descriptor, SQL_HANDLE_DESC);
+                const auto describe_result = SQLDescribeParam(
+                    statement,
+                    static_cast<SQLUSMALLINT>(index + 1),
+                    &binding.sql_type,
+                    &binding.column_size,
+                    &decimal_digits,
+                    &nullable
+                );
+                HandleStatementWarnings(describe_result, statement, "describing an untyped NULL parameter", false);
                 detail::CheckDeadlineNotExpired(deadline);
-                if (!SQL_SUCCEEDED(result)) {
+                if (!SQL_SUCCEEDED(describe_result)) {
                     throw MakeDriverError<StatementError>(
-                        fmt::format("Failed to set {} for ODBC Decimal parameter {}", name, index + 1),
-                        result,
-                        descriptor,
-                        SQL_HANDLE_DESC
+                        "Cannot infer the type of a NULL ODBC parameter; add an explicit SQL cast or use a typed "
+                        "std::optional where supported by the driver",
+                        describe_result,
+                        statement,
+                        SQL_HANDLE_STMT
                     );
                 }
-                if (result == SQL_SUCCESS_WITH_INFO) {
-                    LogOdbcWarnings(fmt::format("Setting {} for ODBC Decimal parameter {}", name, index + 1), warnings);
-                }
-            };
-            const auto numeric_field = [](SQLLEN value) {
-                return reinterpret_cast<SQLPOINTER>(static_cast<std::uintptr_t>(value));
-            };
-            // Per ODBC descriptor sequencing rules, changing non-deferred APD
-            // fields clears SQL_DESC_DATA_PTR. Restore it last so SQLExecute
-            // sees the bound SQL_NUMERIC_STRUCT rather than a NULL parameter.
-            set_field(SQL_DESC_TYPE, numeric_field(SQL_C_NUMERIC), "C type");
-            set_field(SQL_DESC_PRECISION, numeric_field(binding.column_size), "precision");
-            set_field(SQL_DESC_SCALE, numeric_field(binding.decimal_digits), "scale");
-            set_field(SQL_DESC_DATA_PTR, binding.data, "data pointer");
-        }
-    }
+            }
 
-    detail::CheckDeadlineNotExpired(deadline);
-    const auto execute_result = SQLExecute(statement);
-    HandleStatementWarnings(execute_result, statement, "executing a prepared query", true);
-    detail::CheckDeadlineNotExpired(deadline);
-    if (!SQL_SUCCEEDED(execute_result) && execute_result != SQL_NO_DATA) {
-        throw MakeDriverError<
-            StatementError>("Failed to execute prepared ODBC query", execute_result, statement, SQL_HANDLE_STMT);
+            indicators[index] = parameter.is_null ? SQL_NULL_DATA : binding.buffer_size;
+            const auto
+                bind_buffer_size = parameter.type == impl::ParameterType::kDecimal ? SQLLEN{0} : binding.buffer_size;
+            detail::CheckDeadlineNotExpired(deadline);
+            const auto bind_result = SQLBindParameter(
+                statement,
+                static_cast<SQLUSMALLINT>(index + 1),
+                SQL_PARAM_INPUT,
+                binding.c_type,
+                binding.sql_type,
+                binding.column_size,
+                binding.decimal_digits,
+                binding.data,
+                bind_buffer_size,
+                &indicators[index]
+            );
+            HandleStatementWarnings(bind_result, statement, "binding a query parameter", false);
+            detail::CheckDeadlineNotExpired(deadline);
+            if (!SQL_SUCCEEDED(bind_result)) {
+                throw MakeDriverError<StatementError>(
+                    fmt::format("Failed to bind ODBC parameter {}", index + 1),
+                    bind_result,
+                    statement,
+                    SQL_HANDLE_STMT
+                );
+            }
+            if (parameter.type == impl::ParameterType::kDecimal) {
+                SQLHDESC descriptor = SQL_NULL_HDESC;
+                detail::CheckDeadlineNotExpired(deadline);
+                const auto descriptor_result = SQLGetStmtAttr(
+                    statement,
+                    SQL_ATTR_APP_PARAM_DESC,
+                    &descriptor,
+                    static_cast<SQLINTEGER>(sizeof(descriptor)),
+                    nullptr
+                );
+                detail::CheckDeadlineNotExpired(deadline);
+                if (!SQL_SUCCEEDED(descriptor_result)) {
+                    throw MakeDriverError<StatementError>(
+                        fmt::format("Failed to obtain the descriptor for ODBC Decimal parameter {}", index + 1),
+                        descriptor_result,
+                        statement,
+                        SQL_HANDLE_STMT
+                    );
+                }
+                if (descriptor_result == SQL_SUCCESS_WITH_INFO) {
+                    LogOdbcWarnings(
+                        fmt::format("Obtaining the descriptor for ODBC Decimal parameter {}", index + 1),
+                        statement,
+                        SQL_HANDLE_STMT
+                    );
+                }
+
+                const auto record = static_cast<SQLSMALLINT>(index + 1);
+                const auto set_field = [&](SQLSMALLINT field, SQLPOINTER value, std::string_view name) {
+                    detail::CheckDeadlineNotExpired(deadline);
+                    const auto result = SQLSetDescField(descriptor, record, field, value, 0);
+                    const auto warnings = GetWarnings(result, descriptor, SQL_HANDLE_DESC);
+                    detail::CheckDeadlineNotExpired(deadline);
+                    if (!SQL_SUCCEEDED(result)) {
+                        throw MakeDriverError<StatementError>(
+                            fmt::format("Failed to set {} for ODBC Decimal parameter {}", name, index + 1),
+                            result,
+                            descriptor,
+                            SQL_HANDLE_DESC
+                        );
+                    }
+                    if (result == SQL_SUCCESS_WITH_INFO) {
+                        LogOdbcWarnings(
+                            fmt::format("Setting {} for ODBC Decimal parameter {}", name, index + 1),
+                            warnings
+                        );
+                    }
+                };
+                const auto numeric_field = [](SQLLEN value) {
+                    return reinterpret_cast<SQLPOINTER>(static_cast<std::uintptr_t>(value));
+                };
+                // Per ODBC descriptor sequencing rules, changing non-deferred APD
+                // fields clears SQL_DESC_DATA_PTR. Restore it last so SQLExecute
+                // sees the bound SQL_NUMERIC_STRUCT rather than a NULL parameter.
+                set_field(SQL_DESC_TYPE, numeric_field(SQL_C_NUMERIC), "C type");
+                set_field(SQL_DESC_PRECISION, numeric_field(binding.column_size), "precision");
+                set_field(SQL_DESC_SCALE, numeric_field(binding.decimal_digits), "scale");
+                set_field(SQL_DESC_DATA_PTR, binding.data, "data pointer");
+            }
+        }
+
+        detail::CheckDeadlineNotExpired(deadline);
+        execution_started = true;
+        const auto execute_result = SQLExecute(statement);
+        HandleStatementWarnings(execute_result, statement, "executing a prepared query", true);
+        detail::CheckDeadlineNotExpired(deadline);
+        if (!SQL_SUCCEEDED(execute_result) && execute_result != SQL_NO_DATA) {
+            throw MakeDriverError<
+                StatementError>("Failed to execute prepared ODBC query", execute_result, statement, SQL_HANDLE_STMT);
+        }
+
+        auto result = ResultSet(MaterializeResult(statement, deadline));
+        cleanup_attempted = true;
+        CleanupPreparedStatement(statement);
+        return result;
+    } catch (...) {
+        const auto original_error = std::current_exception();
+        if (!cleanup_attempted) {
+            try {
+                CleanupPreparedStatement(statement);
+            } catch (const std::exception& cleanup_error) {
+                LOG_WARNING() << "Failed to clean up an erroneous ODBC prepared statement: " << cleanup_error;
+            } catch (...) {
+                LOG_WARNING() << "Failed to clean up an erroneous ODBC prepared statement";
+            }
+        }
+        std::rethrow_exception(original_error);
     }
 }
 
-SQLRETURN ExecuteStatement(
-    SQLHSTMT statement,
-    std::string_view query,
-    const impl::ParameterList& parameters,
-    engine::Deadline deadline
-) {
+SQLRETURN ExecuteDirectStatement(SQLHSTMT statement, std::string_view query, engine::Deadline deadline) {
     std::vector<SQLCHAR> query_buffer(query.begin(), query.end());
     query_buffer.push_back('\0');
 
-    if (parameters.empty()) {
-        detail::CheckDeadlineNotExpired(deadline);
-        const auto execute_result = SQLExecDirect(statement, query_buffer.data(), SQL_NTS);
-        HandleStatementWarnings(execute_result, statement, "executing a direct query", true);
-        detail::CheckDeadlineNotExpired(deadline);
-        return execute_result;
-    }
-
     detail::CheckDeadlineNotExpired(deadline);
-    const auto prepare_result = SQLPrepare(statement, query_buffer.data(), SQL_NTS);
-    HandleStatementWarnings(prepare_result, statement, "preparing a query", false);
+    const auto execute_result = SQLExecDirect(statement, query_buffer.data(), SQL_NTS);
+    HandleStatementWarnings(execute_result, statement, "executing a direct query", true);
     detail::CheckDeadlineNotExpired(deadline);
-    if (!SQL_SUCCEEDED(prepare_result)) {
-        throw MakeDriverError<
-            StatementError>("Failed to prepare ODBC query", prepare_result, statement, SQL_HANDLE_STMT);
-    }
-    BindParameters(statement, parameters, deadline);
-    return SQL_SUCCESS;
+    return execute_result;
 }
 
 }  // namespace
@@ -1260,11 +1274,17 @@ Connection::Connection(const std::string& dsn, engine::Deadline deadline)
 Connection::Connection(
     const std::string& dsn,
     engine::TaskProcessor& blocking_task_processor,
-    engine::Deadline deadline
+    engine::Deadline deadline,
+    std::shared_ptr<detail::PreparedStatementCacheState> prepared_statement_cache_state
 )
     : blocking_task_processor_{blocking_task_processor},
       env_{SQL_NULL_HENV, &DestroyEnvironmentHandle},
-      handle_{SQL_NULL_HDBC, &DestroyDatabaseHandle}
+      handle_{SQL_NULL_HDBC, &DestroyDatabaseHandle},
+      prepared_statement_cache_state_{
+          prepared_statement_cache_state
+              ? std::move(prepared_statement_cache_state)
+              : std::make_shared<detail::PreparedStatementCacheState>()
+      }
 {
     CheckOperationInterrupted(deadline);
     auto handles = RunBlocking(blocking_task_processor_, [dsn, deadline] {
@@ -1340,7 +1360,172 @@ Connection::Connection(
     handle_ = std::move(handles.database);
 }
 
-Connection::~Connection() { DestroyConnectionHandlesOnBlockingTaskProcessor(blocking_task_processor_, env_, handle_); }
+Connection::~Connection() {
+    try {
+        RunBlocking(blocking_task_processor_, [this] {
+            ClearPreparedStatements(false);
+            DestroyDatabaseHandle(handle_.release());
+            DestroyEnvironmentHandle(env_.release());
+        });
+    } catch (const std::exception& ex) {
+        const auto size = prepared_statements_.GetSize();
+        prepared_statements_.VisitAll([](const std::string&, CachedStatement& statement) {
+            [[maybe_unused]] const auto leaked_statement = statement.handle.release();
+        });
+        prepared_statement_cache_state_->GetStatistics().current -= size;
+        prepared_statements_.Clear();
+        [[maybe_unused]] const auto leaked_database = handle_.release();
+        [[maybe_unused]] const auto leaked_environment = env_.release();
+        LOG_ERROR() << "Failed to schedule ODBC connection cleanup; leaking its handles: " << ex;
+    } catch (...) {
+        const auto size = prepared_statements_.GetSize();
+        prepared_statements_.VisitAll([](const std::string&, CachedStatement& statement) {
+            [[maybe_unused]] const auto leaked_statement = statement.handle.release();
+        });
+        prepared_statement_cache_state_->GetStatistics().current -= size;
+        prepared_statements_.Clear();
+        [[maybe_unused]] const auto leaked_database = handle_.release();
+        [[maybe_unused]] const auto leaked_environment = env_.release();
+        LOG_ERROR() << "Failed to schedule ODBC connection cleanup; leaking its handles";
+    }
+}
+
+Connection::CachedStatement::CachedStatement(std::string key, StatementHandle handle)
+    : key{std::move(key)},
+      handle{std::move(handle)}
+{}
+
+void Connection::StatementHandleDeleter::operator()(std::remove_pointer_t<SQLHSTMT>* handle) const noexcept {
+    if (handle && connection) {
+        connection->DestroyStatementHandle(handle);
+    }
+}
+
+Connection::StatementHandle Connection::MakeStatementHandle() {
+    SQLHSTMT statement = SQL_NULL_HSTMT;
+    const auto result = SQLAllocHandle(SQL_HANDLE_STMT, handle_.get(), &statement);
+    if (!SQL_SUCCEEDED(result)) {
+        throw MakeDriverError<
+            StatementError>("Failed to allocate ODBC statement handle", result, handle_.get(), SQL_HANDLE_DBC);
+    }
+    return StatementHandle{statement, StatementHandleDeleter{this}};
+}
+
+void Connection::DestroyStatementHandle(SQLHSTMT statement) noexcept {
+    if (statement == SQL_NULL_HSTMT) {
+        return;
+    }
+    const auto result = SQLFreeHandle(SQL_HANDLE_STMT, statement);
+    if (!SQL_SUCCEEDED(result)) {
+        NotifyBroken();
+        try {
+            LOG_ERROR()
+                << "Failed to free an ODBC prepared statement handle: "
+                << detail::FormatSQLDiagnostics(detail::GetSQLDiagnostics(statement, SQL_HANDLE_STMT));
+        } catch (...) {
+            // Handle cleanup is noexcept and the connection is already broken.
+        }
+    }
+}
+
+Connection::StatementHandle Connection::TakePreparedStatement(std::string_view query) {
+    auto& statistics = prepared_statement_cache_state_->GetStatistics();
+    auto* cached = prepared_statements_.GetTransparent(query);
+    if (!cached) {
+        ++statistics.misses;
+        return StatementHandle{nullptr, StatementHandleDeleter{this}};
+    }
+
+    ++statistics.hits;
+    auto handle = std::move(cached->handle);
+    prepared_statements_.Erase(cached->key);
+    return handle;
+}
+
+void Connection::StorePreparedStatement(
+    std::string query,
+    StatementHandle handle,
+    bool was_cached,
+    std::size_t operation_reset_generation
+) {
+    const auto current_settings = prepared_statement_cache_state_->GetSettings();
+    if (applied_prepared_cache_size_ == 0 || current_settings.reset_generation != operation_reset_generation) {
+        if (was_cached) {
+            --prepared_statement_cache_state_->GetStatistics().current;
+        }
+        return;
+    }
+
+    if (prepared_statements_.GetSize() >= applied_prepared_cache_size_) {
+        EvictLeastRecentlyUsedPreparedStatement();
+    }
+    prepared_statements_.Put(query, CachedStatement{query, std::move(handle)});
+    if (!was_cached) {
+        ++prepared_statement_cache_state_->GetStatistics().current;
+    }
+}
+
+void Connection::ApplyPreparedStatementCacheSettings() {
+    const auto settings = prepared_statement_cache_state_->GetSettings();
+    if (settings.reset_generation != applied_prepared_cache_reset_generation_) {
+        ClearPreparedStatements(false);
+        applied_prepared_cache_reset_generation_ = settings.reset_generation;
+    }
+    if (settings.max_size == applied_prepared_cache_size_) {
+        return;
+    }
+
+    if (settings.max_size == 0) {
+        ClearPreparedStatements(false);
+    } else {
+        while (prepared_statements_.GetSize() > settings.max_size) {
+            EvictLeastRecentlyUsedPreparedStatement();
+        }
+        prepared_statements_.SetMaxSize(settings.max_size);
+    }
+    applied_prepared_cache_size_ = settings.max_size;
+}
+
+void Connection::ClearPreparedStatements(bool account_evictions) noexcept {
+    const auto size = prepared_statements_.GetSize();
+    if (size == 0) {
+        return;
+    }
+    auto& statistics = prepared_statement_cache_state_->GetStatistics();
+    statistics.current -= size;
+    if (account_evictions) {
+        statistics.evictions += utils::statistics::Rate{size};
+    }
+    prepared_statements_.Clear();
+}
+
+void Connection::EvictLeastRecentlyUsedPreparedStatement() noexcept {
+    auto* statement = prepared_statements_.GetLeastUsed();
+    if (!statement) {
+        return;
+    }
+    prepared_statements_.Erase(statement->key);
+    auto& statistics = prepared_statement_cache_state_->GetStatistics();
+    --statistics.current;
+    ++statistics.evictions;
+}
+
+void Connection::AccountPreparedStatementFailure(bool was_cached) noexcept {
+    if (!was_cached) {
+        return;
+    }
+    auto& statistics = prepared_statement_cache_state_->GetStatistics();
+    --statistics.current;
+    ++statistics.evictions;
+}
+
+bool Connection::InvalidatesPreparedStatements(SQLSMALLINT completion_type) const noexcept {
+    const auto behavior =
+        completion_type == SQL_COMMIT
+            ? driver_capabilities_.GetCursorCommitBehavior()
+            : driver_capabilities_.GetCursorRollbackBehavior();
+    return !behavior || *behavior == detail::CursorBehavior::kDelete;
+}
 
 const detail::DriverCapabilities& Connection::GetDriverCapabilities() const noexcept { return driver_capabilities_; }
 
@@ -1404,19 +1589,21 @@ ResultSet Connection::Query(
                 [this, query = std::string{statement}, parameters, deadline] {
                     const std::lock_guard lock{handle_mutex_};
                     try {
-                        auto stmt = MakeStatementHandle(handle_.get());
+                        ApplyPreparedStatementCacheSettings();
+                        const auto operation_cache_reset_generation = applied_prepared_cache_reset_generation_;
 
-                        if (deadline.IsReachable()) {
-                            const auto left = deadline.TimeLeft();
-                            if (left <= engine::Deadline::Duration::zero()) {
-                                throw OperationInterrupted("Cancelled by deadline");
+                        const auto set_query_timeout = [deadline](SQLHSTMT statement) {
+                            SQLULEN timeout_sec = 0;
+                            if (deadline.IsReachable()) {
+                                const auto left = deadline.TimeLeft();
+                                if (left <= engine::Deadline::Duration::zero()) {
+                                    throw OperationInterrupted("Cancelled by deadline");
+                                }
+                                timeout_sec = static_cast<SQLULEN>(std::chrono::ceil<std::chrono::seconds>(left).count()
+                                );
                             }
-                            const auto seconds = std::chrono::ceil<std::chrono::seconds>(left);
-                            const auto timeout_sec = static_cast<SQLULEN>(seconds.count());
-                            // SQL_ATTR_QUERY_TIMEOUT is in whole seconds; the
-                            // exact deadline is checked in the caller afterwards.
                             const auto timeout_result = SQLSetStmtAttr(
-                                stmt.get(),
+                                statement,
                                 SQL_ATTR_QUERY_TIMEOUT,
                                 reinterpret_cast<SQLPOINTER>(static_cast<std::uintptr_t>(timeout_sec)),
                                 0
@@ -1425,18 +1612,107 @@ ResultSet Connection::Query(
                                 throw MakeDriverError<StatementError>(
                                     "Failed to set ODBC query timeout",
                                     timeout_result,
-                                    stmt.get(),
+                                    statement,
                                     SQL_HANDLE_STMT
                                 );
                             }
+                        };
+
+                        if (parameters.empty()) {
+                            auto statement_handle = MakeStatementHandle();
+                            bool execution_started = false;
+                            try {
+                                set_query_timeout(statement_handle.get());
+                                execution_started = true;
+                                const auto result = ExecuteDirectStatement(statement_handle.get(), query, deadline);
+                                if (!SQL_SUCCEEDED(result) && result != SQL_NO_DATA) {
+                                    throw MakeDriverError<StatementError>(
+                                        "Failed to execute query",
+                                        result,
+                                        statement_handle.get(),
+                                        SQL_HANDLE_STMT
+                                    );
+                                }
+                                auto materialized = ResultSet(MaterializeResult(statement_handle.get(), deadline));
+                                if (!IsInsideTransaction() && InvalidatesPreparedStatements(SQL_COMMIT)) {
+                                    ClearPreparedStatements(true);
+                                }
+                                return materialized;
+                            } catch (...) {
+                                if (execution_started && !IsInsideTransaction() &&
+                                    (InvalidatesPreparedStatements(SQL_COMMIT) ||
+                                     InvalidatesPreparedStatements(SQL_ROLLBACK)))
+                                {
+                                    ClearPreparedStatements(true);
+                                }
+                                throw;
+                            }
                         }
 
-                        const auto result = ExecuteStatement(stmt.get(), query, parameters, deadline);
-                        if (!SQL_SUCCEEDED(result) && result != SQL_NO_DATA) {
-                            throw MakeDriverError<
-                                StatementError>("Failed to execute query", result, stmt.get(), SQL_HANDLE_STMT);
+                        const bool cache_enabled = applied_prepared_cache_size_ != 0;
+                        auto statement_handle =
+                            cache_enabled
+                                ? TakePreparedStatement(query)
+                                : StatementHandle{nullptr, StatementHandleDeleter{this}};
+                        const bool was_cached = statement_handle != nullptr;
+                        if (!statement_handle) {
+                            statement_handle = MakeStatementHandle();
                         }
-                        return ResultSet(MaterializeResult(stmt.get(), deadline));
+
+                        bool execution_started = false;
+                        try {
+                            set_query_timeout(statement_handle.get());
+                            if (!was_cached) {
+                                std::vector<SQLCHAR> query_buffer(query.begin(), query.end());
+                                query_buffer.push_back('\0');
+                                detail::CheckDeadlineNotExpired(deadline);
+                                const auto
+                                    prepare_result = SQLPrepare(statement_handle.get(), query_buffer.data(), SQL_NTS);
+                                HandleStatementWarnings(
+                                    prepare_result,
+                                    statement_handle.get(),
+                                    "preparing a query",
+                                    false
+                                );
+                                detail::CheckDeadlineNotExpired(deadline);
+                                if (!SQL_SUCCEEDED(prepare_result)) {
+                                    throw MakeDriverError<StatementError>(
+                                        "Failed to prepare ODBC query",
+                                        prepare_result,
+                                        statement_handle.get(),
+                                        SQL_HANDLE_STMT
+                                    );
+                                }
+                            }
+
+                            auto result = ExecutePreparedStatement(
+                                statement_handle.get(),
+                                parameters,
+                                deadline,
+                                execution_started
+                            );
+                            if (!IsInsideTransaction() && InvalidatesPreparedStatements(SQL_COMMIT)) {
+                                AccountPreparedStatementFailure(was_cached);
+                                ClearPreparedStatements(true);
+                            } else if (cache_enabled) {
+                                StorePreparedStatement(
+                                    query,
+                                    std::move(statement_handle),
+                                    was_cached,
+                                    operation_cache_reset_generation
+                                );
+                            }
+                            return result;
+                        } catch (...) {
+                            AccountPreparedStatementFailure(was_cached);
+                            if (execution_started && !IsInsideTransaction() &&
+                                (InvalidatesPreparedStatements(SQL_COMMIT) ||
+                                 InvalidatesPreparedStatements(SQL_ROLLBACK)))
+                            {
+                                ClearPreparedStatements(true);
+                            }
+                            throw;
+                        }
                     } catch (const StatementError& ex) {
                         if (ex.IsInvalidHandle() || detail::HasConnectionError(ex.GetDiagnostics())) {
                             NotifyBroken();
@@ -1499,6 +1775,7 @@ void Connection::Begin(const TransactionOptions& options, engine::Deadline deadl
     try {
         RunBlockingChecked(blocking_task_processor_, deadline, [this, options, deadline] {
             const std::lock_guard lock{handle_mutex_};
+            ApplyPreparedStatementCacheSettings();
             TransactionAttributes snapshot;
             if (options.isolation_level) {
                 snapshot.isolation =
@@ -1552,6 +1829,9 @@ void Connection::Begin(const TransactionOptions& options, engine::Deadline deadl
                             attempted_restore,
                             engine::Deadline::FromDuration(detail::kDefaultCleanupTimeout)
                         );
+                        if (attempted_restore.autocommit && InvalidatesPreparedStatements(SQL_COMMIT)) {
+                            ClearPreparedStatements(true);
+                        }
                     } catch (const std::exception& ex) {
                         NotifyBroken();
                         LOG_ERROR() << "Failed to restore ODBC attributes after transaction begin failure: " << ex;
@@ -1618,6 +1898,7 @@ void Connection::EndTransaction(SQLSMALLINT completion_type, std::string_view op
         throw ConnectionError("ODBC transaction attribute snapshot is missing");
     }
 
+    ApplyPreparedStatementCacheSettings();
     detail::CheckDeadlineNotExpired(deadline);
     const auto result = SQLEndTran(SQL_HANDLE_DBC, handle_.get(), completion_type);
     std::exception_ptr deadline_error;
@@ -1639,6 +1920,10 @@ void Connection::EndTransaction(SQLSMALLINT completion_type, std::string_view op
     }
     if (result == SQL_SUCCESS_WITH_INFO) {
         LogConnectionAttributeWarnings(fmt::format("ODBC transaction {}", operation), diagnostics);
+    }
+
+    if (InvalidatesPreparedStatements(completion_type)) {
+        ClearPreparedStatements(true);
     }
 
     RestoreTransactionAttributes(

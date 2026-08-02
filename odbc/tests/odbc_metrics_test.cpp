@@ -7,9 +7,12 @@
 #include <utility>
 #include <vector>
 
+#include <storages/odbc/detail/connection.hpp>
+#include <storages/odbc/detail/prepared_statement_cache.hpp>
 #include <storages/odbc/detail/statement_stats.hpp>
 #include <storages/odbc/detail/statement_stats_storage.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/storages/odbc.hpp>
 #include <userver/storages/odbc/tests/utils.hpp>
 
@@ -418,6 +421,274 @@ UTEST(OdbcStatementMetrics, TopologyReloadUsesCurrentSettingAndOldTransactionRem
     EXPECT_EQ(snapshot.SingleMetric("statement_executed", {{"odbc_query", "new-topology-second"}}).AsRate(), 1);
     EXPECT_FALSE(snapshot.SingleMetricOptional("statement_executed", {{"odbc_query", "old-topology-transaction"}}));
     EXPECT_FALSE(snapshot.SingleMetricOptional("statement_executed", {{"odbc_query", "new-topology-first"}}));
+
+    entry.Unregister();
+}
+
+UTEST(OdbcPreparedStatementCacheState, DisableReenableAdvancesResetGeneration) {
+    detail::PreparedStatementCacheState state{{.max_size = 2}};
+    const auto initial = state.GetSettings();
+    EXPECT_EQ(initial.max_size, 2);
+
+    state.SetSettings({.max_size = 3});
+    const auto grown = state.GetSettings();
+    EXPECT_EQ(grown.max_size, 3);
+    EXPECT_EQ(grown.reset_generation, initial.reset_generation);
+
+    state.SetSettings({.max_size = 0});
+    state.SetSettings({.max_size = 3});
+    const auto reenabled = state.GetSettings();
+    EXPECT_EQ(reenabled.max_size, 3);
+    EXPECT_EQ(reenabled.reset_generation, initial.reset_generation + 2);
+}
+
+UTEST(OdbcPreparedStatementCache, DirectTransactionParameterStoreAndExactSqlKey) {
+    const auto host = settings::HostSettings{kDSN, {.min_size = 1, .max_size = 1}};
+    Cluster cluster{settings::ODBCClusterSettings{{host}}, nullptr};
+
+    utils::statistics::Storage statistics_storage;
+    auto entry = statistics_storage.RegisterWriter("odbc", [&cluster](utils::statistics::Writer& writer) {
+        cluster.WriteStatistics(writer);
+    });
+
+    const utils::statistics::Snapshot before_zero_parameter{
+        statistics_storage,
+        "odbc",
+        {{"odbc_pool", "0"}},
+    };
+    const auto misses_before_zero = before_zero_parameter.SingleMetric("queries.prepared-cache-misses").AsRate();
+    const auto hits_before_zero = before_zero_parameter.SingleMetric("queries.prepared-cache-hits").AsRate();
+    const auto current_before_zero = before_zero_parameter.SingleMetric("connections.prepared-statements").AsInt();
+
+    cluster.Execute(ClusterHostType::kMaster, "SELECT 1");
+    cluster.Execute(ClusterHostType::kMaster, "SELECT 1");
+    {
+        const utils::statistics::Snapshot zero_parameter_snapshot{
+            statistics_storage,
+            "odbc",
+            {{"odbc_pool", "0"}},
+        };
+        EXPECT_EQ(zero_parameter_snapshot.SingleMetric("queries.prepared-cache-misses").AsRate(), misses_before_zero);
+        EXPECT_EQ(zero_parameter_snapshot.SingleMetric("queries.prepared-cache-hits").AsRate(), hits_before_zero);
+        EXPECT_EQ(zero_parameter_snapshot.SingleMetric("connections.prepared-statements").AsInt(), current_before_zero);
+    }
+
+    /// [ODBC prepared statement cache]
+    cluster.SetPreparedStatementCacheSettings({.max_size = 3});
+    const Query same_sql_first_name{"SELECT ?::text", Query::Name{"first-name"}};
+    const Query same_sql_second_name{"SELECT ?::text", Query::Name{"second-name"}};
+    EXPECT_EQ(cluster.Execute(ClusterHostType::kMaster, same_sql_first_name, "first")[0][0].GetString(), "first");
+    EXPECT_EQ(
+        cluster.Execute(ClusterHostType::kMaster, same_sql_second_name, "a much longer value")[0][0].GetString(),
+        "a much longer value"
+    );
+    /// [ODBC prepared statement cache]
+
+    ParameterStore parameters;
+    parameters.PushBack(std::string{"from-store"});
+    EXPECT_EQ(
+        cluster.Execute(ClusterHostType::kMaster, same_sql_first_name, parameters)[0][0].GetString(),
+        "from-store"
+    );
+
+    auto transaction = cluster.Begin(ClusterHostType::kMaster);
+    EXPECT_EQ(transaction.Execute(same_sql_second_name, "in-transaction")[0][0].GetString(), "in-transaction");
+    EXPECT_EQ(
+        transaction.Execute(Query{"SELECT ?::text || '-other'", Query::Name{"first-name"}}, "sql")[0][0].GetString(),
+        "sql-other"
+    );
+    transaction.Commit();
+
+    // Reuse the exact SQL across materially different compatible bindings.
+    const Query numeric_query{"SELECT ?::numeric"};
+    const Decimal<9, 4> decimal{"12.3400"};
+    EXPECT_EQ(cluster.Execute(ClusterHostType::kMaster, numeric_query, decimal)[0][0].GetString(), "12.3400");
+    EXPECT_EQ(cluster.Execute(ClusterHostType::kMaster, numeric_query, std::int64_t{42})[0][0].GetInt64(), 42);
+    EXPECT_DOUBLE_EQ(cluster.Execute(ClusterHostType::kMaster, numeric_query, 1.25)[0][0].GetDouble(), 1.25);
+
+    const utils::statistics::Snapshot snapshot{statistics_storage, "odbc", {{"odbc_pool", "0"}}};
+    EXPECT_EQ(snapshot.SingleMetric("queries.prepared-cache-misses").AsRate(), 3);
+    EXPECT_EQ(snapshot.SingleMetric("queries.prepared-cache-hits").AsRate(), 5);
+    EXPECT_EQ(snapshot.SingleMetric("queries.prepared-cache-evictions").AsRate(), 0);
+    EXPECT_EQ(snapshot.SingleMetric("connections.prepared-statements").AsInt(), 3);
+
+    entry.Unregister();
+}
+
+UTEST(OdbcPreparedStatementCache, DisabledByDefaultAndCachedTimeoutIsResetToUnlimited) {
+    {
+        Cluster disabled_cluster{kSettings, nullptr};
+        utils::statistics::Storage statistics_storage;
+        auto entry = statistics_storage.RegisterWriter("odbc", [&disabled_cluster](utils::statistics::Writer& writer) {
+            disabled_cluster.WriteStatistics(writer);
+        });
+        disabled_cluster.Execute(ClusterHostType::kMaster, "SELECT ?::integer", 1);
+        disabled_cluster.Execute(ClusterHostType::kMaster, "SELECT ?::integer", 2);
+        const utils::statistics::Snapshot snapshot{statistics_storage, "odbc", {{"odbc_pool", "0"}}};
+        EXPECT_EQ(snapshot.SingleMetric("queries.prepared-cache-misses").AsRate(), 0);
+        EXPECT_EQ(snapshot.SingleMetric("queries.prepared-cache-hits").AsRate(), 0);
+        EXPECT_EQ(snapshot.SingleMetric("connections.prepared-statements").AsInt(), 0);
+        entry.Unregister();
+    }
+
+    auto cache_state = std::make_shared<detail::PreparedStatementCacheState>(settings::PreparedStatementCacheSettings{
+        .max_size = 1
+    });
+    {
+        Connection connection{
+            kDSN,
+            engine::current_task::GetBlockingTaskProcessor(),
+            engine::Deadline::FromDuration(2s),
+            cache_state,
+        };
+        const Query query{"SELECT ?::integer FROM pg_sleep(?::double precision)"};
+        connection.Query(query, impl::MakeParameterList(1, 0.0), engine::Deadline::FromDuration(100ms));
+
+        // The first execution writes a one-second ODBC timeout. The cache hit
+        // must explicitly overwrite it with 0 for an unreachable deadline.
+        const auto result = connection.Query(query, impl::MakeParameterList(2, 1.1), engine::Deadline{});
+        ASSERT_EQ(result.Size(), 1);
+        EXPECT_EQ(result[0][0].GetInt32(), 2);
+        EXPECT_EQ(cache_state->GetStatistics().misses.Load().value, 1);
+        EXPECT_EQ(cache_state->GetStatistics().hits.Load().value, 1);
+        EXPECT_EQ(cache_state->GetStatistics().current.Load(), 1);
+    }
+    EXPECT_EQ(cache_state->GetStatistics().current.Load(), 0);
+}
+
+UTEST(OdbcPreparedStatementCache, DynamicResetIsAppliedAtTransactionOperations) {
+    const auto host = settings::HostSettings{kDSN, {.min_size = 1, .max_size = 1}};
+    Cluster cluster{settings::ODBCClusterSettings{{host}}, nullptr};
+    cluster.SetPreparedStatementCacheSettings({.max_size = 1});
+
+    utils::statistics::Storage statistics_storage;
+    auto entry = statistics_storage.RegisterWriter("odbc", [&cluster](utils::statistics::Writer& writer) {
+        cluster.WriteStatistics(writer);
+    });
+    const auto current = [&] {
+        return utils::statistics::Snapshot{statistics_storage, "odbc", {{"odbc_pool", "0"}}}
+            .SingleMetric("connections.prepared-statements")
+            .AsInt();
+    };
+    const auto evictions = [&] {
+        return utils::statistics::Snapshot{statistics_storage, "odbc", {{"odbc_pool", "0"}}}
+            .SingleMetric("queries.prepared-cache-evictions")
+            .AsRate();
+    };
+
+    auto commit_transaction = cluster.Begin(ClusterHostType::kMaster);
+    commit_transaction.Execute("SELECT ?::integer", 1);
+    ASSERT_EQ(current(), 1);
+    cluster.SetPreparedStatementCacheSettings({.max_size = 0});
+    commit_transaction.Commit();
+    EXPECT_EQ(current(), 0);
+    EXPECT_EQ(evictions(), 0);
+
+    cluster.SetPreparedStatementCacheSettings({.max_size = 1});
+    cluster.Execute(ClusterHostType::kMaster, "SELECT ?::integer", 2);
+    ASSERT_EQ(current(), 1);
+    cluster.SetPreparedStatementCacheSettings({.max_size = 0});
+    auto begin_transaction = cluster.Begin(ClusterHostType::kMaster);
+    EXPECT_EQ(current(), 0);
+    begin_transaction.Rollback();
+    EXPECT_EQ(evictions(), 0);
+
+    cluster.SetPreparedStatementCacheSettings({.max_size = 1});
+    auto rollback_transaction = cluster.Begin(ClusterHostType::kMaster);
+    rollback_transaction.Execute("SELECT ?::integer", 3);
+    ASSERT_EQ(current(), 1);
+    cluster.SetPreparedStatementCacheSettings({.max_size = 0});
+    rollback_transaction.Rollback();
+    EXPECT_EQ(current(), 0);
+    EXPECT_EQ(evictions(), 0);
+
+    entry.Unregister();
+}
+
+UTEST(OdbcPreparedStatementCache, LruResizeDisableErrorsAndReenable) {
+    const auto host = settings::HostSettings{kDSN, {.min_size = 1, .max_size = 1}};
+    Cluster cluster{settings::ODBCClusterSettings{{host}}, nullptr};
+    cluster.SetPreparedStatementCacheSettings({.max_size = 2});
+
+    utils::statistics::Storage statistics_storage;
+    auto entry = statistics_storage.RegisterWriter("odbc", [&cluster](utils::statistics::Writer& writer) {
+        cluster.WriteStatistics(writer);
+    });
+
+    cluster.Execute(ClusterHostType::kMaster, "SELECT ?::integer", 1);
+    cluster.Execute(ClusterHostType::kMaster, "SELECT ?::bigint", 2);
+    cluster.Execute(ClusterHostType::kMaster, "SELECT ?::integer", 3);  // promote
+    cluster.Execute(ClusterHostType::kMaster, "SELECT ?::text", "third");
+    cluster.Execute(ClusterHostType::kMaster, "SELECT ?::bigint", 4);  // evicted LRU => miss
+
+    // A hit that fails before SQLExecute is evicted and never retried.
+    UEXPECT_THROW(cluster.Execute(ClusterHostType::kMaster, "SELECT ?::bigint", 1, 2), StatementError);
+    cluster.Execute(ClusterHostType::kMaster, "SELECT ?::bigint", 5);
+
+    // An execution error also evicts the affected cached handle.
+    cluster.Execute(ClusterHostType::kMaster, "SELECT 100 / ?::integer", 2);
+    UEXPECT_THROW(cluster.Execute(ClusterHostType::kMaster, "SELECT 100 / ?::integer", 0), StatementError);
+    cluster.Execute(ClusterHostType::kMaster, "SELECT 100 / ?::integer", 4);
+
+    cluster.SetPreparedStatementCacheSettings({.max_size = 1});
+    cluster.Execute(ClusterHostType::kMaster, "SELECT ?::integer", 6);
+    auto snapshot = utils::statistics::Snapshot{statistics_storage, "odbc", {{"odbc_pool", "0"}}};
+    EXPECT_EQ(snapshot.SingleMetric("connections.prepared-statements").AsInt(), 1);
+    const auto evictions_before_disable = snapshot.SingleMetric("queries.prepared-cache-evictions").AsRate();
+
+    cluster.SetPreparedStatementCacheSettings({.max_size = 0});
+    cluster.Execute(ClusterHostType::kMaster, "SELECT ?::integer", 7);
+    const utils::statistics::Snapshot disabled_snapshot{statistics_storage, "odbc", {{"odbc_pool", "0"}}};
+    EXPECT_EQ(disabled_snapshot.SingleMetric("connections.prepared-statements").AsInt(), 0);
+    EXPECT_EQ(disabled_snapshot.SingleMetric("queries.prepared-cache-evictions").AsRate(), evictions_before_disable);
+
+    // Skipping the disabled generation still forces an empty cache on reenable.
+    cluster.SetPreparedStatementCacheSettings({.max_size = 1});
+    cluster.Execute(ClusterHostType::kMaster, "SELECT ?::integer", 8);
+    const utils::statistics::Snapshot reenabled_snapshot{statistics_storage, "odbc", {{"odbc_pool", "0"}}};
+    EXPECT_EQ(reenabled_snapshot.SingleMetric("connections.prepared-statements").AsInt(), 1);
+
+    entry.Unregister();
+}
+
+UTEST(OdbcPreparedStatementCache, PerPhysicalConnectionBoundAndTopologyReload) {
+    const auto host = settings::HostSettings{kDSN, {.min_size = 2, .max_size = 2}};
+    const settings::ODBCClusterSettings initial{{host}};
+    Cluster cluster{initial, nullptr};
+    cluster.SetPreparedStatementCacheSettings({.max_size = 1});
+
+    utils::statistics::Storage statistics_storage;
+    auto entry = statistics_storage.RegisterWriter("odbc", [&cluster](utils::statistics::Writer& writer) {
+        cluster.WriteStatistics(writer);
+    });
+
+    auto first = cluster.Begin(ClusterHostType::kMaster);
+    auto second = cluster.Begin(ClusterHostType::kMaster);
+    first.Execute("SELECT ?::integer", 1);
+    first.Execute("SELECT ?::bigint", 2);
+    second.Execute("SELECT ?::text", "second");
+    second.Execute("SELECT ?::boolean", true);
+
+    auto snapshot = utils::statistics::Snapshot{statistics_storage, "odbc", {{"odbc_pool", "0"}}};
+    EXPECT_EQ(snapshot.SingleMetric("connections.prepared-statements").AsInt(), 2);
+    EXPECT_LE(
+        snapshot.SingleMetric("connections.prepared-statements").AsInt(),
+        snapshot.SingleMetric("connections.active").AsInt()
+    );
+
+    auto reloaded = initial;
+    reloaded.pools.front().pool.min_size = 1;
+    reloaded.pools.front().pool.max_size = 3;
+    cluster.UpdateSettings(reloaded);
+    cluster.Execute(ClusterHostType::kMaster, "SELECT ?::integer", 10);
+    cluster.Execute(ClusterHostType::kMaster, "SELECT ?::integer", 11);
+
+    first.Commit();
+    second.Rollback();
+    const utils::statistics::Snapshot reloaded_snapshot{statistics_storage, "odbc", {{"odbc_pool", "0"}}};
+    EXPECT_EQ(reloaded_snapshot.SingleMetric("queries.prepared-cache-misses").AsRate(), 1);
+    EXPECT_EQ(reloaded_snapshot.SingleMetric("queries.prepared-cache-hits").AsRate(), 1);
+    EXPECT_EQ(reloaded_snapshot.SingleMetric("connections.prepared-statements").AsInt(), 1);
 
     entry.Unregister();
 }

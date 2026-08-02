@@ -41,6 +41,13 @@ properties:
             maximum number of named query-name entries retained per ODBC pool.
             Each entry exports three metric series. Zero disables named query metrics
         default: 0
+    max_prepared_cache_size:
+        type: integer
+        minimum: 0
+        description: |
+            maximum number of prepared parameterized SQL statements retained by each
+            physical ODBC connection. Zero disables the prepared statement cache
+        default: 0
     dns_resolver:
         type: string
         description: server hostname resolver type (getaddrinfo or async)

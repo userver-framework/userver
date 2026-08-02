@@ -26,6 +26,7 @@ public:
     static std::shared_ptr<TopologyBase> Create(
         const settings::ODBCClusterSettings& settings,
         const settings::StatementMetricsSettings& statement_metrics_settings,
+        const settings::PreparedStatementCacheSettings& prepared_statement_cache_settings,
         clients::dns::Resolver* resolver,
         engine::TaskProcessor& blocking_task_processor
     );
@@ -34,11 +35,13 @@ public:
 
     void WriteStatistics(utils::statistics::Writer& writer) const;
     void SetStatementMetricsSettings(const settings::StatementMetricsSettings& settings);
+    void SetPreparedStatementCacheSettings(const settings::PreparedStatementCacheSettings& settings);
 
 protected:
     TopologyBase(
         const settings::ODBCClusterSettings& settings,
         const settings::StatementMetricsSettings& statement_metrics_settings,
+        const settings::PreparedStatementCacheSettings& prepared_statement_cache_settings,
         clients::dns::Resolver* resolver,
         engine::TaskProcessor& blocking_task_processor
     );

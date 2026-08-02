@@ -27,6 +27,7 @@ components_manager:
             min_pool_size: 1
             max_pool_size: 1
             max_statement_metrics: 2
+            max_prepared_cache_size: 2
         # [ODBC component config]
 
         secdist: {}

@@ -63,8 +63,18 @@ struct StatementStatisticsSnapshot final {
     std::unordered_map<std::string, StatementStatistics> statements;
 };
 
+struct PreparedStatementCacheStatistics final {
+    using GaugeMetric = utils::statistics::RelaxedCounter<std::uint64_t>;
+
+    utils::statistics::RateCounter hits{};
+    utils::statistics::RateCounter misses{};
+    utils::statistics::RateCounter evictions{};
+    GaugeMetric current{};
+};
+
 void DumpMetric(utils::statistics::Writer& writer, const InstanceStatistics& stats);
 void DumpMetric(utils::statistics::Writer& writer, const StatementStatisticsSnapshot& stats);
+void DumpMetric(utils::statistics::Writer& writer, const PreparedStatementCacheStatistics& stats);
 
 }  // namespace storages::odbc::detail
 

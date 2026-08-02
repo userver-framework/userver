@@ -31,6 +31,7 @@ namespace components {
 /// * @ref USERVER_ODBC_QUERIES_COMMAND_CONTROL
 /// * @ref USERVER_ODBC_CONNECTION_POOL_SETTINGS
 /// * @ref USERVER_ODBC_STATEMENT_METRICS_SETTINGS
+/// * @ref USERVER_ODBC_PREPARED_STATEMENT_CACHE_SETTINGS
 ///
 /// ## Static configuration example:
 ///

@@ -11,6 +11,7 @@ public:
     Standalone(
         const settings::ODBCClusterSettings& settings,
         const settings::StatementMetricsSettings& statement_metrics_settings,
+        const settings::PreparedStatementCacheSettings& prepared_statement_cache_settings,
         clients::dns::Resolver* resolver,
         engine::TaskProcessor& blocking_task_processor
     );

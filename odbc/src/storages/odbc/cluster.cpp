@@ -82,6 +82,15 @@ void Cluster::SetStatementMetricsSettings(const settings::StatementMetricsSettin
     impl_->SetStatementMetricsSettings(settings);
 }
 
+void Cluster::SetPreparedStatementCacheSettings(const settings::PreparedStatementCacheSettings& settings) {
+    impl_->SetPreparedStatementCacheSettings(settings);
+}
+
+void Cluster::SetPreparedStatementCacheSettingsOverride(std::optional<settings::PreparedStatementCacheSettings> settings
+) {
+    impl_->SetPreparedStatementCacheSettingsOverride(settings);
+}
+
 void Cluster::UpdateSettings(const settings::ODBCClusterSettings& settings) { impl_->UpdateSettings(settings); }
 
 void Cluster::UpdateDsns(const std::vector<std::string>& dsns) { impl_->UpdateDsns(dsns); }

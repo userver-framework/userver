@@ -21,6 +21,15 @@ struct StatementMetricsSettings final {
     bool operator==(const StatementMetricsSettings&) const = default;
 };
 
+/// @brief Per-connection prepared statement cache options.
+struct PreparedStatementCacheSettings final {
+    /// Maximum number of parameterized SQL statements retained per physical
+    /// ODBC connection. A value of 0 disables the cache.
+    std::size_t max_size{0};
+
+    bool operator==(const PreparedStatementCacheSettings&) const = default;
+};
+
 struct PoolSettings final {
     std::size_t min_size{5};
     std::size_t max_size{10};
