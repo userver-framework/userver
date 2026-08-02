@@ -16,9 +16,6 @@ class Request;
 class CookieJar final {
 public:
     CookieJar();
-    /// @brief Constructs cookie jar by raw list of cookies
-    /// @warning The Netscape cookie file format should be used for cookies
-    CookieJar(std::vector<std::string>&& cookies);
     ~CookieJar();
     CookieJar(const CookieJar&);
     CookieJar(CookieJar&&);
@@ -28,10 +25,17 @@ public:
     /// @brief Gets ANY cookie value, associated with name. In general case, multiple cookies can be stored with the same name, order is not specified
     /// @param name Name of cookie
     /// @return Cookie's value
-    /// @warning This method has lineral complexity
-    std::optional<std::string> FindCookieValue(std::string_view name);
+    /// @warning This method has linear complexity
+    std::optional<std::string> FindCookieValue(std::string_view name) const;
 private:
+    // Constructs CookieJar by list of cookies in netscape file format
+    CookieJar(std::vector<std::string>&& cookies);
+
+    // To allow request to construct/extract cookies in netscape format
     friend class Request;
+
+    //  List of cookies in netscape file format, directly exposed for libcurl engine
+    //  Other format like Set-Cookie can have side effects, for more information see libcurl docs
     std::vector<std::string> cookies_;
 };
 

@@ -49,6 +49,7 @@ constexpr auto kTimeout = utest::kMaxTestWaitTime;
 // so the 2015/2050 Expires dates below are unambiguously past/future.
 const auto kNow = std::chrono::system_clock::from_time_t(1'600'000'000);
 
+// Helper class to allow mock domain names, useful for testing public suffices etc
 struct ResolverWrapper {
     ResolverWrapper(const std::string& hosts_content)
         : hosts_file{[&] {
@@ -88,30 +89,32 @@ struct ResolverWrapper {
 };
 
 
+// Helper fixture for major cookie jar related tests. 
+// Its idea is to create http client/server to populate cookie via http request/responses (via libcurl's engine)
+// Beside it stores cookie jar for test session
 class HttpCookieJar : public ::testing::Test {
 protected:
-    void MockDomains(std::set<std::string, std::less<>>  hosts) {
-        hosts.insert("localhost");
-        std::string hosts_content;
-        for (const auto& host : hosts) {
-            hosts_content.append(fmt::format("127.0.0.1 {}\r\n", http::ToPunycodeAscii(host).value()));
-        }
-        state_ = std::make_unique<State>(hosts_content, hosts);
+    using Domains = std::unordered_set<std::string, utils::StrIcaseHash, utils::StrIcaseEqual>;
+
+    //  Mocks domains in internal resolver's hosts file
+    void MockDomains(Domains domains) {
+        domains.insert("localhost"); // Just in case, always mock localhost
+        state_ = std::make_unique<State>(domains);
     }
 
-    //  Helper method to store cookie at libcurl's engine
+    //  Stores cookie for specified url via internal mocked http server
     void Store(std::string_view url, std::string_view set_cookie) {
         state_->set_cookie = set_cookie;
         MakeRawRequest(FormatPort(state_->http_server, url));
     }
 
-    //  Helper method for easy comparison extracted cookies. Exctracted cookies in "name=value" format
+    //  Gets sent cookies for specified url via internal mocked http server in "name=value" format
     std::vector<std::string> GetCookies(std::string_view url) {
         MakeRawRequest(FormatPort(state_->http_server, url));
         return state_->received_cookies;
     }
 
-    //  Helper method for extraction cookies from http request in "name=value" format
+    //  Get sent cookies from specified http request in "name=value" format
     static std::vector<std::string> GetCookies(const HttpRequest& request) {
         std::vector<std::string> result;
         const auto& cookie_header_loc = request.headers.find(std::string_view{"Cookie"});
@@ -121,6 +124,7 @@ protected:
         return result;
     }
 
+    //  Make default get request for specified url via internal http client
     void MakeRawRequest(std::string_view url) {
         auto request = state_->client->CreateRequest()
             .get(std::string{url})
@@ -132,14 +136,11 @@ protected:
         const auto res = request.perform();
         state_->cookie_jar = request.GetCookieJar();
     }
-private:
-    static constexpr const char* kTestHosts = R"(
-127.0.0.2 localhost
-::1 localhost
-127.0.0.1 localhost
-::2 localhost
-)";
 
+    const CookieJar& GetCookieJar() const {
+        return state_->cookie_jar;
+    }
+private:
     struct ReturnCookie {
         std::reference_wrapper<std::string> cookie;
         std::reference_wrapper<std::vector<std::string>> received_cookies;
@@ -156,12 +157,20 @@ private:
     };
 
     struct State {
-        State(const std::string& hosts_content, std::set<std::string, std::less<>>  allowed_domains) : 
-            valid_domains(allowed_domains), resolver_wrapper(hosts_content){
+        State(Domains allowed_domains) : 
+            valid_domains(allowed_domains), resolver_wrapper(MakeHostsContent(allowed_domains)){
             client =  utest::impl::CreateHttpClientCore(resolver_wrapper.fs_task_processor);
             client->SetDnsResolver(&resolver_wrapper.resolver);
         }
-        std::set<std::string, std::less<>>  valid_domains;
+
+        static std::string MakeHostsContent(Domains domains) {
+            std::string hosts_content;
+            for (const auto& domain : domains) {
+                hosts_content.append(fmt::format("127.0.0.1 {}\r\n", http::ToPunycodeAscii(domain).value()));
+            }
+            return hosts_content;
+        }
+        Domains  valid_domains;
         std::string set_cookie;
         std::vector<std::string> received_cookies;
         CookieJar cookie_jar;
@@ -179,7 +188,7 @@ private:
          return fmt::format("{}://{}:{}{}", parsed_url.scheme, host, server.GetPort(), parsed_url.path);
     }
 
-    std::unique_ptr<State> state_ = std::make_unique<State>(kTestHosts,  std::set<std::string, std::less<>>{{std::string{"localhost"}}});
+    std::unique_ptr<State> state_ = std::make_unique<State>(Domains{{std::string{"localhost"}}});
 };
 
 }  // namespace
@@ -300,8 +309,7 @@ UTEST_F(HttpCookieJar, DeepPathSpecificityOrdering) {
 }
 
 // RFC 6265 §5.1.3 (domain-match): host names compare case-insensitively.
-// TODO: adapt test to support case insensivite mocked domains
-UTEST_F(HttpCookieJar, DISABLED_DomainIsCaseInsensitive) {
+UTEST_F(HttpCookieJar, DomainIsCaseInsensitive) {
     Store("http://localhost", "a=1; Domain=LoCaLhOsT; Path=/");
 
     EXPECT_COOKIES("http://localhost", ElementsAre("a=1"));
@@ -515,6 +523,18 @@ UTEST_F(HttpCookieJar, MaxAgeTakesPrecedenceOverExpires) {
     datetime::MockNowUnset();
 }
 
+//  Testing Cookie Jar's getters
+UTEST_F(HttpCookieJar, CookieJarGetters) {   
+    Store("http://localhost", "key1=value1");
+    Store("http://localhost", "key2=value2; Domain=localhost; Path=/foo");
+    Store("http://localhost", "absentkey=value3; Domain=com;");
+    
+    EXPECT_EQ(GetCookieJar().FindCookieValue("key1").value_or(""), "value1");
+    EXPECT_EQ(GetCookieJar().FindCookieValue("key2").value_or(""), "value2");
+    EXPECT_EQ(GetCookieJar().FindCookieValue("absentkey").has_value(), false);
+}
+
+// Cookies should not leak between redirections
 UTEST_F(HttpCookieJar, CookiesWithinRedirections) {
     struct RedirectCallback {
         //  redirect_location is hack, mockserver does not provide suitable way to get its url
@@ -528,7 +548,6 @@ UTEST_F(HttpCookieJar, CookiesWithinRedirections) {
             return response;
         }
         HttpResponse operator()(const HttpRequest& request) {
-            HttpResponse response;
             ++invocation_count.get(); // dangerous
             switch (invocation_count.get())
             {
@@ -553,5 +572,48 @@ UTEST_F(HttpCookieJar, CookiesWithinRedirections) {
     MakeRawRequest(http_server.GetBaseUrl());
     EXPECT_EQ(invocation_count, 4);
 }
+
+//  Http request can be reused, cookie jar should be persisted correctly
+UTEST(HttpCookieJarRequest, CookiesForReusedRequest) {
+    int invocation_count = 0;
+    auto client = utest::impl::CreateHttpClientCore();
+    utest::HttpServerMock http_server{[&invocation_count](const HttpRequest& request) {
+            HttpResponse response;
+            ++invocation_count; // dangerous
+            switch (invocation_count) {
+                case 1:
+                    EXPECT_EQ(request.headers.contains(std::string_view{"Cookie"}), false);
+                    response.headers[std::string_view{"Set-Cookie"}] = "firstCall=ok;Path=/calls";
+                    return response;
+                case 2:
+                    EXPECT_EQ(request.headers.at(std::string_view{"Cookie"}), "firstCall=ok");
+                    response.headers[std::string_view{"Set-Cookie"}] = "secondCall=ok;Path=/calls";
+                    return response;
+            }
+            EXPECT_EQ(request.headers.contains(std::string_view{"Cookie"}), false);
+            return response;
+            
+        }}; 
+    auto request = client->CreateRequest()
+            .get(http_server.GetBaseUrl() + "/calls")
+            .retry(1)
+            .verify(true)
+            .cookies(CookieJar())
+            .http_version(USERVER_NAMESPACE::http::HttpVersion::k11)
+            .timeout(kTimeout);
+    //  First request
+    auto res = request.perform();
+    EXPECT_EQ(res->status_code(), http::StatusCode::OK);
+    //  Reused request
+    res = request.perform();
+    EXPECT_EQ(res->status_code(), http::StatusCode::OK);
+    //  Reused request with diffferent url
+    request = request.get(http_server.GetBaseUrl());
+    res = request.perform();
+    EXPECT_EQ(res->status_code(), http::StatusCode::OK);
+
+    EXPECT_EQ(invocation_count, 3);
+}
+
 
 USERVER_NAMESPACE_END
