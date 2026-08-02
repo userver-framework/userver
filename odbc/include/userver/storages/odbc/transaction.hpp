@@ -12,6 +12,7 @@
 
 #include <userver/storages/odbc/bulk.hpp>
 #include <userver/storages/odbc/command_control.hpp>
+#include <userver/storages/odbc/cursor.hpp>
 #include <userver/storages/odbc/impl/parameter.hpp>
 #include <userver/storages/odbc/parameter_store.hpp>
 #include <userver/storages/odbc/query.hpp>
@@ -70,6 +71,24 @@ public:
     /// @brief Execute a statement with a dynamic parameter list and timeout overrides.
     ResultSet Execute(OptionalCommandControl command_control, const Query& query, const ParameterStore& store);
 
+    /// @brief Execute a row-producing statement as an incremental cursor.
+    ///
+    /// No other transaction operation is allowed until the cursor observes EOF
+    /// or is destroyed.
+    template <typename... Args>
+    Cursor ExecuteCursor(const Query& query, const Args&... args) {
+        return ExecuteCursor(std::nullopt, query, args...);
+    }
+
+    template <typename... Args>
+    Cursor ExecuteCursor(OptionalCommandControl command_control, const Query& query, const Args&... args) {
+        return DoExecuteCursor(command_control, query, impl::MakeParameterList(args...));
+    }
+
+    Cursor ExecuteCursor(const Query& query, const ParameterStore& store);
+
+    Cursor ExecuteCursor(OptionalCommandControl command_control, const Query& query, const ParameterStore& store);
+
     /// Execute rows as bounded chunks of DML that must not return result sets.
     /// On failure, inspect BulkExecutionError and roll back the transaction.
     BulkResult ExecuteBulk(
@@ -94,6 +113,11 @@ public:
 
 private:
     ResultSet DoExecute(
+        OptionalCommandControl command_control,
+        const Query& query,
+        const impl::ParameterList& parameters
+    );
+    Cursor DoExecuteCursor(
         OptionalCommandControl command_control,
         const Query& query,
         const impl::ParameterList& parameters

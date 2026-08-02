@@ -390,6 +390,82 @@ UTEST(OdbcStatementMetrics, AccountsSuccessErrorsTimeoutsTransactionsAndParamete
     entry.Unregister();
 }
 
+UTEST(OdbcCursorMetrics, AccountsExactlyOnceAndExcludesConsumerThinkTime) {
+    using namespace std::chrono_literals;
+    const auto host = settings::HostSettings{kDSN, {.min_size = 1, .max_size = 1}};
+    Cluster cluster{settings::ODBCClusterSettings{{host}}, nullptr};
+    cluster.SetStatementMetricsSettings({.max_statements = 4});
+
+    utils::statistics::Storage statistics_storage;
+    auto entry = statistics_storage.RegisterWriter("odbc", [&cluster](utils::statistics::Writer& writer) {
+        cluster.WriteStatistics(writer);
+    });
+
+    auto cursor = cluster.ExecuteCursor(
+        ClusterHostType::kMaster,
+        Query{"SELECT generate_series(1, 3)", Query::Name{"cursor-complete"}}
+    );
+    EXPECT_EQ(cursor.Fetch(1).Size(), 1);
+    engine::SleepFor(650ms);
+    EXPECT_EQ(cursor.Fetch(8).Size(), 2);
+    EXPECT_TRUE(cursor.Done());
+
+    {
+        auto early = cluster.ExecuteCursor(
+            ClusterHostType::kMaster,
+            Query{"SELECT generate_series(1, 3)", Query::Name{"cursor-early-close"}}
+        );
+        EXPECT_EQ(early.Fetch(1).Size(), 1);
+    }
+
+    cluster.Execute(ClusterHostType::kMaster, "CREATE TEMP TABLE odbc_cursor_metrics(value INTEGER)");
+    UEXPECT_THROW(
+        cluster.ExecuteCursor(
+            ClusterHostType::kMaster,
+            Query{"INSERT INTO odbc_cursor_metrics VALUES (1)", Query::Name{"cursor-dml-error"}}
+        ),
+        StatementError
+    );
+    UEXPECT_THROW(
+        cluster.ExecuteCursor(
+            ClusterHostType::kMaster,
+            CommandControl{.statement_timeout = 0ms},
+            Query{"SELECT 1", Query::Name{"cursor-predeadline"}}
+        ),
+        OperationInterrupted
+    );
+
+    for (const auto name : {"cursor-complete", "cursor-early-close"}) {
+        ASSERT_TRUE(WaitForMetric(statistics_storage, "statement_executed", {{"odbc_query", name}}));
+        const utils::statistics::Snapshot snapshot{
+            statistics_storage,
+            "odbc",
+            {{"odbc_pool", "0"}},
+        };
+        EXPECT_EQ(snapshot.SingleMetric("statement_executed", {{"odbc_query", name}}).AsRate(), 1);
+        EXPECT_EQ(snapshot.SingleMetric("statement_errors", {{"odbc_query", name}}).AsRate(), 0);
+        EXPECT_EQ(snapshot.SingleMetric("statement_timings", {{"odbc_query", name}}).AsHistogram().GetTotalCount(), 1);
+    }
+
+    ASSERT_TRUE(WaitForMetric(statistics_storage, "statement_errors", {{"odbc_query", "cursor-dml-error"}}));
+    ASSERT_TRUE(WaitForMetric(statistics_storage, "statement_errors", {{"odbc_query", "cursor-predeadline"}}));
+    const utils::statistics::Snapshot snapshot{statistics_storage, "odbc", {{"odbc_pool", "0"}}};
+    EXPECT_EQ(snapshot.SingleMetric("statement_errors", {{"odbc_query", "cursor-dml-error"}}).AsRate(), 1);
+    EXPECT_EQ(snapshot.SingleMetric("statement_executed", {{"odbc_query", "cursor-dml-error"}}).AsRate(), 0);
+    EXPECT_EQ(snapshot.SingleMetric("statement_errors", {{"odbc_query", "cursor-predeadline"}}).AsRate(), 1);
+
+    const auto timings = snapshot.SingleMetric("statement_timings", {{"odbc_query", "cursor-complete"}}).AsHistogram();
+    std::uint64_t slow_samples = timings.GetValueAtInf();
+    for (std::size_t index = 0; index < timings.GetBucketCount(); ++index) {
+        if (timings.GetUpperBoundAt(index) >= 520) {
+            slow_samples += timings.GetValueAt(index);
+        }
+    }
+    EXPECT_EQ(slow_samples, 0) << "cursor metrics must exclude the 650ms consumer sleep";
+
+    entry.Unregister();
+}
+
 UTEST(OdbcStatementMetrics, TopologyReloadUsesCurrentSettingAndOldTransactionRemainsSafe) {
     storages::odbc::Cluster cluster(kSettings, nullptr);
     cluster.SetStatementMetricsSettings({.max_statements = 1});
@@ -440,6 +516,116 @@ UTEST(OdbcPreparedStatementCacheState, DisableReenableAdvancesResetGeneration) {
     const auto reenabled = state.GetSettings();
     EXPECT_EQ(reenabled.max_size, 3);
     EXPECT_EQ(reenabled.reset_generation, initial.reset_generation + 2);
+}
+
+UTEST(OdbcPreparedStatementCache, CursorEofEarlyCloseAndActiveResetGeneration) {
+    const auto host = settings::HostSettings{kDSN, {.min_size = 1, .max_size = 1}};
+    Cluster cluster{settings::ODBCClusterSettings{{host}}, nullptr};
+    cluster.SetPreparedStatementCacheSettings({.max_size = 1});
+
+    utils::statistics::Storage statistics_storage;
+    auto entry = statistics_storage.RegisterWriter("odbc", [&cluster](utils::statistics::Writer& writer) {
+        cluster.WriteStatistics(writer);
+    });
+    const Query query{"SELECT ?::integer UNION ALL SELECT ?::integer ORDER BY 1"};
+
+    auto transaction = cluster.Begin(ClusterHostType::kMaster);
+    {
+        auto eof = transaction.ExecuteCursor(query, 1, 2);
+        EXPECT_EQ(eof.Fetch(8).Size(), 2);
+        EXPECT_TRUE(eof.Done());
+    }
+    EXPECT_EQ(transaction.Execute(query, 3, 4).Size(), 2);
+    {
+        auto early = transaction.ExecuteCursor(query, 5, 6);
+        EXPECT_EQ(early.Fetch(1).Size(), 1);
+    }
+    EXPECT_EQ(transaction.Execute(query, 7, 8).Size(), 2);
+
+    {
+        auto resetting = transaction.ExecuteCursor(query, 9, 10);
+        EXPECT_EQ(resetting.Fetch(1).Size(), 1);
+        cluster.SetPreparedStatementCacheSettings({.max_size = 0});
+    }
+    EXPECT_EQ(transaction.Execute("SELECT 1")[0][0].GetInt32(), 1);
+    transaction.Commit();
+
+    const utils::statistics::Snapshot snapshot{statistics_storage, "odbc", {{"odbc_pool", "0"}}};
+    EXPECT_EQ(snapshot.SingleMetric("queries.prepared-cache-misses").AsRate(), 1);
+    EXPECT_EQ(snapshot.SingleMetric("queries.prepared-cache-hits").AsRate(), 4);
+    EXPECT_EQ(snapshot.SingleMetric("connections.prepared-statements").AsInt(), 0);
+
+    entry.Unregister();
+}
+
+UTEST(OdbcPreparedStatementCache, CursorUsesCachedRowProducingMetadataBeforeExecution) {
+    const auto host = settings::HostSettings{kDSN, {.min_size = 1, .max_size = 1}};
+    Cluster cluster{settings::ODBCClusterSettings{{host}}, nullptr};
+    cluster.SetPreparedStatementCacheSettings({.max_size = 1});
+
+    auto transaction = cluster.Begin(ClusterHostType::kMaster);
+    transaction.Execute("CREATE TEMP TABLE odbc_cursor_cached_dml(value INTEGER)");
+
+    const Query select_query{"SELECT ?::integer"};
+    EXPECT_EQ(transaction.Execute(select_query, 41)[0][0].GetInt32(), 41);
+    auto select_cursor = transaction.ExecuteCursor(select_query, 42);
+    ASSERT_EQ(select_cursor.Fetch(2).Size(), 1);
+    EXPECT_EQ(select_cursor.FetchedSoFar(), 1);
+    EXPECT_TRUE(select_cursor.Done());
+
+    const Query insert_query{"INSERT INTO odbc_cursor_cached_dml VALUES (?::integer)"};
+    transaction.Execute(insert_query, 1);
+    UEXPECT_THROW(transaction.ExecuteCursor(insert_query, 2), StatementError);
+    EXPECT_EQ(transaction.Execute("SELECT COUNT(*) FROM odbc_cursor_cached_dml")[0][0].GetInt64(), 1);
+
+    BulkParameterStore bulk_row;
+    bulk_row.PushBackRow(3);
+    transaction.ExecuteBulk(insert_query, bulk_row);
+    UEXPECT_THROW(transaction.ExecuteCursor(insert_query, 4), StatementError);
+    EXPECT_EQ(transaction.Execute("SELECT COUNT(*) FROM odbc_cursor_cached_dml")[0][0].GetInt64(), 2);
+    transaction.Rollback();
+}
+
+UTEST(OdbcPreparedStatementCache, CursorTimeoutEvictsCachedHandleAndRecoversPool) {
+    using namespace std::chrono_literals;
+    const std::string streaming_dsn = std::string{kDSN} + "UseDeclareFetch=1;Fetch=1;";
+    const auto host = settings::HostSettings{streaming_dsn, {.min_size = 1, .max_size = 1}};
+    Cluster cluster{settings::ODBCClusterSettings{{host}}, nullptr};
+    cluster.SetPreparedStatementCacheSettings({.max_size = 1});
+    cluster.SetStatementMetricsSettings({.max_statements = 1});
+
+    utils::statistics::Storage statistics_storage;
+    auto entry = statistics_storage.RegisterWriter("odbc", [&cluster](utils::statistics::Writer& writer) {
+        cluster.WriteStatistics(writer);
+    });
+    const Query query{
+        "SELECT value, pg_sleep(CASE WHEN ?::boolean OR value = 1 THEN 0 ELSE 0.2 END) "
+        "FROM generate_series(1, 2) AS value",
+        Query::Name{"cursor-timeout-cache"},
+    };
+
+    EXPECT_EQ(cluster.Execute(ClusterHostType::kMaster, query, true).Size(), 2);
+    auto cursor = cluster.ExecuteCursor(
+        ClusterHostType::kMaster,
+        CommandControl{.network_timeout = 1s, .statement_timeout = 20ms},
+        query,
+        false
+    );
+    EXPECT_EQ(cursor.Fetch(1).Size(), 1);
+    UEXPECT_THROW(cursor.Fetch(1), OperationInterrupted);
+    EXPECT_TRUE(cursor.Done());
+    EXPECT_EQ(cluster.Execute(ClusterHostType::kMaster, "SELECT 1")[0][0].GetInt32(), 1);
+
+    ASSERT_TRUE(WaitForMetric(statistics_storage, "statement_errors", {{"odbc_query", "cursor-timeout-cache"}}));
+    const utils::statistics::Snapshot snapshot{statistics_storage, "odbc", {{"odbc_pool", "0"}}};
+    EXPECT_EQ(snapshot.SingleMetric("queries.prepared-cache-misses").AsRate(), 1);
+    EXPECT_EQ(snapshot.SingleMetric("queries.prepared-cache-hits").AsRate(), 1);
+    EXPECT_EQ(snapshot.SingleMetric("queries.prepared-cache-evictions").AsRate(), 1);
+    EXPECT_EQ(snapshot.SingleMetric("connections.prepared-statements").AsInt(), 0);
+    EXPECT_EQ(snapshot.SingleMetric("statement_errors", {{"odbc_query", "cursor-timeout-cache"}}).AsRate(), 1);
+    EXPECT_EQ(snapshot.SingleMetric("statement_executed", {{"odbc_query", "cursor-timeout-cache"}}).AsRate(), 1);
+
+    entry.Unregister();
 }
 
 UTEST(OdbcPreparedStatementCache, DirectTransactionParameterStoreAndExactSqlKey) {

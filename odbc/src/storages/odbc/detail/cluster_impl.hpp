@@ -16,6 +16,7 @@
 #include <userver/storages/odbc/bulk.hpp>
 #include <userver/storages/odbc/cluster_types.hpp>
 #include <userver/storages/odbc/command_control.hpp>
+#include <userver/storages/odbc/cursor.hpp>
 #include <userver/storages/odbc/impl/parameter.hpp>
 #include <userver/storages/odbc/query.hpp>
 #include <userver/storages/odbc/result_set.hpp>
@@ -42,6 +43,13 @@ public:
     ~ClusterImpl() = default;
 
     ResultSet Execute(
+        ClusterHostTypeFlags flags,
+        OptionalCommandControl command_control,
+        const Query& query,
+        const impl::ParameterList& parameters
+    );
+
+    Cursor ExecuteCursor(
         ClusterHostTypeFlags flags,
         OptionalCommandControl command_control,
         const Query& query,

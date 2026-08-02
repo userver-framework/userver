@@ -1,4 +1,5 @@
 #include <gtest/gtest.h>
+#include <chrono>
 #include <concepts>
 #include <cstdint>
 #include <limits>
@@ -25,6 +26,13 @@ using ClusterParameterStoreExecuteWithCommandControl =
 using TransactionParameterStoreExecute = ResultSet (Transaction::*)(const Query&, const ParameterStore&);
 using TransactionParameterStoreExecuteWithCommandControl =
     ResultSet (Transaction::*)(OptionalCommandControl, const Query&, const ParameterStore&);
+using ClusterParameterStoreExecuteCursor =
+    Cursor (Cluster::*)(ClusterHostTypeFlags, const Query&, const ParameterStore&);
+using ClusterParameterStoreExecuteCursorWithCommandControl =
+    Cursor (Cluster::*)(ClusterHostTypeFlags, OptionalCommandControl, const Query&, const ParameterStore&);
+using TransactionParameterStoreExecuteCursor = Cursor (Transaction::*)(const Query&, const ParameterStore&);
+using TransactionParameterStoreExecuteCursorWithCommandControl =
+    Cursor (Transaction::*)(OptionalCommandControl, const Query&, const ParameterStore&);
 
 template <typename T>
 concept ParameterStorePushable = requires(ParameterStore& store, const T& value) { store.PushBack(value); };
@@ -35,6 +43,11 @@ static_assert(!std::is_copy_constructible_v<ParameterStore>);
 static_assert(!std::is_copy_assignable_v<ParameterStore>);
 static_assert(std::is_nothrow_move_constructible_v<ParameterStore>);
 static_assert(std::is_nothrow_move_assignable_v<ParameterStore>);
+static_assert(!std::is_copy_constructible_v<Cursor>);
+static_assert(!std::is_copy_assignable_v<Cursor>);
+static_assert(std::is_nothrow_move_constructible_v<Cursor>);
+static_assert(std::is_nothrow_move_assignable_v<Cursor>);
+static_assert(std::is_nothrow_destructible_v<Cursor>);
 static_assert(requires(ParameterStore& store, const std::optional<std::int32_t>& value) {
     {
         store.PushBack(value)
@@ -61,7 +74,232 @@ static_assert(requires {
     static_cast<ClusterParameterStoreExecuteWithCommandControl>(&Cluster::Execute);
     static_cast<TransactionParameterStoreExecute>(&Transaction::Execute);
     static_cast<TransactionParameterStoreExecuteWithCommandControl>(&Transaction::Execute);
+    static_cast<ClusterParameterStoreExecuteCursor>(&Cluster::ExecuteCursor);
+    static_cast<ClusterParameterStoreExecuteCursorWithCommandControl>(&Cluster::ExecuteCursor);
+    static_cast<TransactionParameterStoreExecuteCursor>(&Transaction::ExecuteCursor);
+    static_cast<TransactionParameterStoreExecuteCursorWithCommandControl>(&Transaction::ExecuteCursor);
 });
+
+UTEST(Cursor, FetchesOwningTypedChunksAndMoves) {
+    auto cluster = MakeCluster();
+
+    /// [ODBC cursor]
+    auto cursor = cluster.ExecuteCursor(
+        ClusterHostType::kMaster,
+        "SELECT value, 'row-' || value::text FROM generate_series(?::integer, ?::integer) AS value ORDER BY value",
+        1,
+        5
+    );
+    auto first = cursor.Fetch(2);
+    auto moved = std::move(cursor);
+    /// [ODBC cursor]
+
+    EXPECT_TRUE(cursor.Done());
+    EXPECT_EQ(cursor.FetchedSoFar(), 0);
+    UEXPECT_THROW(cursor.Fetch(1), LogicError);
+
+    struct Item final {
+        std::int32_t value;
+        std::string label;
+    };
+    const auto first_items = first.AsContainer<std::vector<Item>>();
+    ASSERT_EQ(first_items.size(), 2);
+    EXPECT_EQ(first_items[0].value, 1);
+    EXPECT_EQ(first_items[1].label, "row-2");
+
+    const auto second = moved.Fetch(2);
+    ASSERT_EQ(second.Size(), 2);
+    EXPECT_EQ(first[0][0].GetInt32(), 1);
+    const auto third = moved.Fetch(2);
+    ASSERT_EQ(third.Size(), 1);
+    EXPECT_TRUE(moved.Done());
+    EXPECT_EQ(moved.FetchedSoFar(), 5);
+    UEXPECT_THROW(moved.Fetch(1), LogicError);
+}
+
+UTEST(Cursor, ExactBoundaryRequiresAnEmptyFetchToObserveEof) {
+    auto cluster = MakeCluster();
+    auto cursor = cluster.ExecuteCursor(ClusterHostType::kMaster, "SELECT generate_series(1, 4)");
+
+    EXPECT_EQ(cursor.Fetch(2).Size(), 2);
+    EXPECT_FALSE(cursor.Done());
+    EXPECT_EQ(cursor.Fetch(2).Size(), 2);
+    EXPECT_FALSE(cursor.Done());
+    EXPECT_TRUE(cursor.Fetch(2).IsEmpty());
+    EXPECT_TRUE(cursor.Done());
+    UEXPECT_THROW(cursor.Fetch(1), LogicError);
+}
+
+UTEST(Cursor, OwnsVariadicAndParameterStoreBuffersUntilClose) {
+    auto cluster = MakeCluster();
+    {
+        auto variadic = cluster.ExecuteCursor(
+            ClusterHostType::kMaster,
+            "SELECT ?::text || value::text FROM generate_series(1, 2) AS value ORDER BY value",
+            std::string{"temporary-"}
+        );
+        EXPECT_EQ(variadic.Fetch(1)[0][0].GetString(), "temporary-1");
+    }
+
+    ParameterStore parameters;
+    std::string source = "stored-";
+    parameters.PushBack(source);
+    auto stored = cluster.ExecuteCursor(
+        ClusterHostType::kMaster,
+        "SELECT ?::text || value::text FROM generate_series(1, 2) AS value ORDER BY value",
+        parameters
+    );
+    source = "changed";
+    EXPECT_EQ(stored.Fetch(2)[0][0].GetString(), "stored-1");
+}
+
+UTEST(Cursor, PreservesTypedBindingAndInjectionSafetyParity) {
+    auto cluster = MakeCluster();
+    const std::string hostile = "Robert'); DROP TABLE users;--";
+    const std::optional<std::int32_t> null_integer;
+    const Bytes bytes{{0, 1, 0, 255}};
+    const Decimal<9, 4> decimal{"123.4500"};
+    const Date date{2024, 2, 29};
+    const Time time{23, 58, 57};
+    const Timestamp timestamp{2024, 2, 29, 23, 58, 57, 123'456'000};
+
+    auto cursor = cluster.ExecuteCursor(
+        ClusterHostType::kMaster,
+        "SELECT ?::text, ?::integer, ?::bytea, ?::numeric(9,4), ?::date, ?::time, ?::timestamp",
+        hostile,
+        null_integer,
+        bytes,
+        decimal,
+        date,
+        time,
+        timestamp
+    );
+    const auto chunk = cursor.Fetch(2);
+    ASSERT_EQ(chunk.Size(), 1);
+    EXPECT_EQ(chunk[0][0].As<std::string>(), hostile);
+    EXPECT_TRUE(chunk[0][1].IsNull());
+    EXPECT_EQ(chunk[0][2].As<Bytes>(), bytes);
+    EXPECT_EQ((chunk[0][3].As<Decimal<9, 4>>()), decimal);
+    EXPECT_EQ(chunk[0][4].As<Date>(), date);
+    EXPECT_EQ(chunk[0][5].As<Time>(), time);
+    EXPECT_EQ(chunk[0][6].As<Timestamp>(), timestamp);
+    EXPECT_TRUE(cursor.Done());
+}
+
+UTEST(Cursor, RejectsInvalidCountsAndDmlBeforeSideEffects) {
+    auto cluster = MakeCluster();
+    auto transaction = cluster.Begin(ClusterHostType::kMaster);
+    transaction.Execute("CREATE TEMP TABLE odbc_cursor_dml(value INTEGER)");
+
+    auto cursor = transaction.ExecuteCursor("SELECT 1");
+    UEXPECT_THROW(cursor.Fetch(0), LogicError);
+    EXPECT_FALSE(cursor.Done());
+    EXPECT_EQ(cursor.Fetch(1).Size(), 1);
+    EXPECT_TRUE(cursor.Fetch(1).IsEmpty());
+    EXPECT_TRUE(cursor.Done());
+
+    UEXPECT_THROW(transaction.ExecuteCursor("INSERT INTO odbc_cursor_dml VALUES (1)"), StatementError);
+    const auto count = transaction.Execute("SELECT COUNT(*) FROM odbc_cursor_dml");
+    EXPECT_EQ(count[0][0].GetInt64(), 0);
+    transaction.Rollback();
+}
+
+UTEST(Cursor, PinsAndReleasesSingleConnectionPool) {
+    using namespace std::chrono_literals;
+    const auto host = settings::HostSettings{kDSN, {.min_size = 1, .max_size = 1}};
+    Cluster cluster{settings::ODBCClusterSettings{{host}}, nullptr};
+
+    {
+        auto cursor = cluster.ExecuteCursor(ClusterHostType::kMaster, "SELECT generate_series(1, 3)");
+        EXPECT_EQ(cursor.Fetch(1).Size(), 1);
+        UEXPECT_THROW(
+            cluster.Execute(
+                ClusterHostType::kMaster,
+                CommandControl{.network_timeout = 20ms, .statement_timeout = 1s},
+                "SELECT 1"
+            ),
+            OperationInterrupted
+        );
+    }
+
+    EXPECT_EQ(cluster.Execute(ClusterHostType::kMaster, "SELECT 1")[0][0].GetInt32(), 1);
+
+    auto completed = cluster.ExecuteCursor(ClusterHostType::kMaster, "SELECT generate_series(1, 3)");
+    EXPECT_EQ(completed.Fetch(8).Size(), 3);
+    ASSERT_TRUE(completed.Done());
+    // EOF returns the connection immediately; the Cursor object may remain alive.
+    EXPECT_EQ(cluster.Execute(ClusterHostType::kMaster, "SELECT 2")[0][0].GetInt32(), 2);
+}
+
+UTEST(Cursor, TransactionGuardsOperationsAndInvalidatesOutlivingCursor) {
+    auto cluster = MakeCluster();
+
+    {
+        auto transaction = cluster.Begin(ClusterHostType::kMaster);
+        auto cursor = transaction.ExecuteCursor("SELECT generate_series(1, 2)");
+        UEXPECT_THROW(transaction.Execute("SELECT 1"), TransactionException);
+        UEXPECT_THROW(transaction.ExecuteCursor("SELECT 1"), TransactionException);
+        UEXPECT_THROW(
+            transaction.ExecuteBulk("INSERT INTO unused VALUES (?)", BulkParameterStore{}),
+            TransactionException
+        );
+        UEXPECT_THROW(transaction.Commit(), TransactionException);
+        UEXPECT_THROW(transaction.Rollback(), TransactionException);
+
+        EXPECT_EQ(cursor.Fetch(4).Size(), 2);
+        EXPECT_TRUE(cursor.Done());
+        EXPECT_EQ(transaction.Execute("SELECT 1")[0][0].GetInt32(), 1);
+        transaction.Commit();
+    }
+
+    {
+        auto transaction = cluster.Begin(ClusterHostType::kMaster);
+        {
+            auto partial = transaction.ExecuteCursor("SELECT generate_series(1, 3)");
+            EXPECT_EQ(partial.Fetch(1).Size(), 1);
+        }
+        EXPECT_EQ(transaction.Execute("SELECT 2")[0][0].GetInt32(), 2);
+        transaction.Commit();
+    }
+
+    std::optional<Cursor> outliving;
+    {
+        auto transaction = cluster.Begin(ClusterHostType::kMaster);
+        outliving.emplace(transaction.ExecuteCursor("SELECT generate_series(1, 3)"));
+        EXPECT_EQ(outliving->Fetch(1).Size(), 1);
+    }
+    EXPECT_TRUE(outliving->Done());
+    UEXPECT_THROW(outliving->Fetch(1), LogicError);
+    EXPECT_EQ(cluster.Execute(ClusterHostType::kMaster, "SELECT 1")[0][0].GetInt32(), 1);
+}
+
+UTEST(Cursor, ConversionFailureDoesNotInvalidateOwningChunks) {
+    auto cluster = MakeCluster();
+    auto cursor = cluster.ExecuteCursor(ClusterHostType::kMaster, "SELECT generate_series(1, 2)::text");
+    const auto first = cursor.Fetch(1);
+    UEXPECT_THROW(first.AsContainer<std::vector<std::int32_t>>(), ResultSetError);
+    EXPECT_EQ(first[0][0].GetString(), "1");
+    EXPECT_EQ(cursor.Fetch(2)[0][0].GetString(), "2");
+    EXPECT_TRUE(cursor.Done());
+}
+
+UTEST(Cursor, FetchTimeoutBreaksConnectionAndPoolRecovers) {
+    using namespace std::chrono_literals;
+    const std::string streaming_dsn = std::string{kDSN} + "UseDeclareFetch=1;Fetch=1;";
+    const auto host = settings::HostSettings{streaming_dsn, {.min_size = 1, .max_size = 1}};
+    Cluster cluster{settings::ODBCClusterSettings{{host}}, nullptr};
+
+    auto cursor = cluster.ExecuteCursor(
+        ClusterHostType::kMaster,
+        CommandControl{.network_timeout = 1s, .statement_timeout = 20ms},
+        "SELECT value, pg_sleep(CASE WHEN value = 1 THEN 0 ELSE 0.2 END) "
+        "FROM generate_series(1, 2) AS value"
+    );
+    EXPECT_EQ(cursor.Fetch(1).Size(), 1);
+    UEXPECT_THROW(cursor.Fetch(1), OperationInterrupted);
+    EXPECT_TRUE(cursor.Done());
+    EXPECT_EQ(cluster.Execute(ClusterHostType::kMaster, "SELECT 1")[0][0].GetInt32(), 1);
+}
 
 UTEST(CreateConnection, Works) { auto cluster = MakeCluster(); }
 

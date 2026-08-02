@@ -101,13 +101,38 @@ members are rejected. `AsSingleRow` requires exactly one row, while
 `AsOptionalSingleRow` accepts zero or one. If T itself is optional, the outer
 optional represents row presence and the inner optional represents SQL NULL.
 
-The result is fully materialized as an in-memory snapshot before the connection
+An `Execute` result is fully materialized as an in-memory snapshot before the connection
 returns to the pool, so it remains readable after another query, transaction
 completion, or topology reload. Consequently, large or unbounded `SELECT`s use
 memory proportional to the complete result. Binary values are materialized by
 reported byte lengths rather than NUL terminators, so embedded zeroes and chunk
 boundaries are preserved. `ResultSet::Size()` is the number of materialized
 rows; use `ResultSet::RowsAffected()` for DML row counts.
+
+### Incremental cursors
+
+Use storages::odbc::Cluster::ExecuteCursor or
+storages::odbc::Transaction::ExecuteCursor when a row-producing result should
+be consumed in bounded chunks:
+
+@snippet odbc/tests/odbc_postgresql_test.cpp ODBC cursor
+
+Each `Fetch(n)` returns an owning ResultSet containing at most `n` rows, so
+previous chunks remain readable. A cursor pins one pooled connection until it
+observes EOF, fails, or is destroyed; destroy partially consumed cursors
+promptly—the destructor closes and discards pending rows before returning the
+connection. Fetch calls are sequential; concurrent use of one cursor is not
+supported. `Fetch(0)` throws storages::odbc::LogicError. `Done()` becomes true
+only after `SQL_NO_DATA` is observed, so an
+exactly full final chunk may require one further empty `Fetch`. A cursor inside
+a transaction is exclusive: execute, cursor, bulk, commit, and rollback calls
+fail until the cursor becomes terminal.
+
+This API bounds rows materialized by userver itself. ODBC drivers may still
+buffer the result internally; it does not promise a server-side cursor or
+server-to-client streaming. Driver/DSN options determine that behavior.
+`ExecuteCursor` accepts only row-producing statements and rejects DML before
+execution.
 
 ### Transactions
 
@@ -234,8 +259,9 @@ exact component name before `__default__`, then falls back to the static value.
 Zero disables and clears the cache; growing preserves entries and shrinking
 evicts least-recently-used entries before the connection's next operation.
 
-Only parameterized queries use the cache. Parameterless SQL continues through
-`SQLExecDirect`. Cache keys are the exact case-sensitive SQL bytes; Query names
+Only parameterized queries use the cache. Parameterless `Execute` SQL continues
+through `SQLExecDirect`; cursor statements are prepared for a pre-execution
+row-producing check but are not cached. Cache keys are the exact case-sensitive SQL bytes; Query names
 and parameter values are not keys. Results remain fully materialized, so they do
 not retain cached statement handles. Drivers may invalidate prepared statements
 at commit or rollback; the cache follows the ODBC cursor-behavior capabilities

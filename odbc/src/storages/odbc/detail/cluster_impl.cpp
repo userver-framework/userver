@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <mutex>
 
+#include <storages/odbc/detail/cursor_impl.hpp>
 #include <storages/odbc/detail/deadline.hpp>
 #include <storages/odbc/detail/pool.hpp>
 #include <storages/odbc/detail/statement_stats.hpp>
@@ -60,6 +61,35 @@ ResultSet ClusterImpl::Execute(
         query,
         parameters
     );
+}
+
+Cursor ClusterImpl::ExecuteCursor(
+    ClusterHostTypeFlags flags,
+    OptionalCommandControl command_control,
+    const Query& query,
+    const impl::ParameterList& parameters
+) {
+    const auto resolved = ResolveCommandControl(command_control, query.GetOptionalNameView());
+    const auto network_timeout = resolved.network_timeout.value_or(kDefaultStatementTimeout);
+    const auto statement_timeout = resolved.statement_timeout.value_or(kDefaultStatementTimeout);
+    const auto acquire_deadline = GetExecuteDeadline(network_timeout);
+    CheckDeadlineNotExpired(acquire_deadline);
+
+    tracing::Span span{storages::odbc::impl::tracing::kExecuteSpan};
+    const auto topology = std::atomic_load(&topology_);
+    auto& pool = SelectPool(*topology, flags);
+    auto connection = pool.Acquire(acquire_deadline);
+    auto pool_owner = connection.GetPool();
+    pool.AccountOutOfTransaction();
+    return Cursor{CursorImpl::Create(
+        std::move(connection),
+        std::move(pool_owner),
+        query,
+        parameters,
+        network_timeout,
+        statement_timeout,
+        false
+    )};
 }
 
 BulkResult ClusterImpl::ExecuteBulk(

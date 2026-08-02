@@ -13,6 +13,7 @@
 #include <userver/storages/odbc/bulk.hpp>
 #include <userver/storages/odbc/cluster_types.hpp>
 #include <userver/storages/odbc/command_control.hpp>
+#include <userver/storages/odbc/cursor.hpp>
 #include <userver/storages/odbc/impl/parameter.hpp>
 #include <userver/storages/odbc/parameter_store.hpp>
 #include <userver/storages/odbc/query.hpp>
@@ -69,6 +70,36 @@ public:
 
     /// @brief Execute a statement with a dynamic parameter list and timeout overrides.
     ResultSet Execute(
+        ClusterHostTypeFlags flags,
+        OptionalCommandControl command_control,
+        const Query& query,
+        const ParameterStore& store
+    );
+
+    /// @brief Execute a row-producing statement as an incremental cursor.
+    ///
+    /// @warning The cursor pins a pooled connection until it becomes terminal.
+    template <typename... Args>
+    Cursor ExecuteCursor(ClusterHostTypeFlags flags, const Query& query, const Args&... args) {
+        return ExecuteCursor(flags, std::nullopt, query, args...);
+    }
+
+    /// @brief Execute an incremental cursor with per-operation timeout
+    /// overrides. The resolved durations are reused as a fresh budget for every
+    /// Fetch call.
+    template <typename... Args>
+    Cursor ExecuteCursor(
+        ClusterHostTypeFlags flags,
+        OptionalCommandControl command_control,
+        const Query& query,
+        const Args&... args
+    ) {
+        return DoExecuteCursor(command_control, flags, query, impl::MakeParameterList(args...));
+    }
+
+    Cursor ExecuteCursor(ClusterHostTypeFlags flags, const Query& query, const ParameterStore& store);
+
+    Cursor ExecuteCursor(
         ClusterHostTypeFlags flags,
         OptionalCommandControl command_control,
         const Query& query,
@@ -163,6 +194,12 @@ public:
 
 private:
     ResultSet DoExecute(
+        OptionalCommandControl command_control,
+        ClusterHostTypeFlags flags,
+        const Query& query,
+        const impl::ParameterList& parameters
+    );
+    Cursor DoExecuteCursor(
         OptionalCommandControl command_control,
         ClusterHostTypeFlags flags,
         const Query& query,

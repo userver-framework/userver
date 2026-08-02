@@ -49,6 +49,28 @@ ResultSet Cluster::Execute(
     return DoExecute(command_control, flags, query, store.GetParameters());
 }
 
+Cursor Cluster::DoExecuteCursor(
+    OptionalCommandControl command_control,
+    ClusterHostTypeFlags flags,
+    const Query& query,
+    const impl::ParameterList& parameters
+) {
+    return impl_->ExecuteCursor(flags, command_control, query, parameters);
+}
+
+Cursor Cluster::ExecuteCursor(ClusterHostTypeFlags flags, const Query& query, const ParameterStore& store) {
+    return ExecuteCursor(flags, std::nullopt, query, store);
+}
+
+Cursor Cluster::ExecuteCursor(
+    ClusterHostTypeFlags flags,
+    OptionalCommandControl command_control,
+    const Query& query,
+    const ParameterStore& store
+) {
+    return DoExecuteCursor(command_control, flags, query, store.GetParameters());
+}
+
 BulkResult Cluster::ExecuteBulk(
     ClusterHostTypeFlags flags,
     const Query& query,

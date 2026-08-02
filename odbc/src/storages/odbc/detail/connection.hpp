@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -23,6 +24,7 @@
 #include <userver/storages/odbc/transaction_options.hpp>
 
 #include <storages/odbc/detail/bulk.hpp>
+#include <storages/odbc/detail/cursor_state.hpp>
 #include <storages/odbc/detail/driver_capabilities.hpp>
 #include <storages/odbc/detail/prepared_statement_cache.hpp>
 
@@ -99,6 +101,24 @@ public:
         OptionalCommandControl explicit_command_control
     ) const;
 
+    /// @cond
+    bool HasActiveCursor() const noexcept;
+    void InvalidateActiveCursor() noexcept;
+    std::chrono::microseconds TakeCursorTransactionBusyTime() noexcept;
+    detail::CursorLease OpenCursor(
+        const storages::odbc::Query& query,
+        const impl::ParameterList& parameters,
+        engine::Deadline deadline,
+        bool in_transaction,
+        std::function<void(detail::CursorTerminalResult, std::chrono::microseconds)> on_terminal
+    );
+    static ResultSet FetchCursor(detail::CursorLease& lease, std::size_t rows, engine::Deadline deadline);
+    static void CloseCursor(
+        detail::CursorLease& lease,
+        detail::CursorTerminalResult terminal_result = detail::CursorTerminalResult::kSuccess
+    ) noexcept;
+    /// @endcond
+
 private:
     struct StatementHandleDeleter final {
         Connection* connection{nullptr};
@@ -106,14 +126,19 @@ private:
     };
     using StatementHandle = std::unique_ptr<std::remove_pointer_t<SQLHSTMT>, StatementHandleDeleter>;
 
+    struct CachedStatementMetadata final {
+        std::optional<bool> row_producing;
+        bool bulk_dml_validated{false};
+    };
+
     struct CachedStatement final {
-        CachedStatement(std::string key, StatementHandle handle, bool bulk_dml_validated);
+        CachedStatement(std::string key, StatementHandle handle, CachedStatementMetadata metadata);
         CachedStatement(CachedStatement&&) noexcept = default;
         CachedStatement& operator=(CachedStatement&&) noexcept = default;
 
         std::string key;
         StatementHandle handle;
-        bool bulk_dml_validated{false};
+        CachedStatementMetadata metadata;
     };
 
     using PreparedStatements = cache::LruMap<std::string, CachedStatement>;
@@ -131,13 +156,13 @@ private:
     bool IsInsideTransaction() const noexcept;
 
     StatementHandle MakeStatementHandle();
-    StatementHandle TakePreparedStatement(std::string_view query, bool* bulk_dml_validated = nullptr);
+    StatementHandle TakePreparedStatement(std::string_view query, CachedStatementMetadata* metadata = nullptr);
     void StorePreparedStatement(
         std::string query,
         StatementHandle handle,
         bool was_cached,
         std::size_t operation_reset_generation,
-        bool bulk_dml_validated = false
+        CachedStatementMetadata metadata
     );
     void ApplyPreparedStatementCacheSettings();
     void ClearPreparedStatements(bool account_evictions) noexcept;
@@ -160,6 +185,7 @@ private:
     std::size_t applied_prepared_cache_size_{0};
     std::size_t applied_prepared_cache_reset_generation_{0};
     std::shared_ptr<detail::CommandControlStore> command_control_store_;
+    std::shared_ptr<detail::CursorControl> cursor_control_;
     std::optional<TransactionAttributes> transaction_attributes_snapshot_;
     std::atomic<bool> broken_{false};
     std::atomic<bool> in_transaction_{false};
