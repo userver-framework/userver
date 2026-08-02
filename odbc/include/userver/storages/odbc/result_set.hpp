@@ -41,8 +41,9 @@ template <typename T>
 constexpr bool DetectResultAggregate() {
     using Value = std::remove_cv_t<T>;
     if constexpr (std::is_class_v<Value> && std::is_aggregate_v<Value> && std::is_standard_layout_v<Value> &&
-                  !std::is_union_v<Value> && boost::pfr::is_implicitly_reflectable_v<Value, OdbcResultMappingTag> &&
-                  !kIsFieldAsType<Value>)
+                  !std::is_union_v<Value> && io::traits::kAggregateHasNoBaseClass<Value> &&
+                  boost::pfr::is_implicitly_reflectable_v<Value, OdbcResultMappingTag> && !kIsFieldAsType<Value> &&
+                  !io::traits::kHasMappingDeclaration<Value>)
     {
         return AreResultMembersMappable<Value>(std::make_index_sequence<boost::pfr::tuple_size_v<Value>>{});
     } else {

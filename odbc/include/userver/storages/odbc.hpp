@@ -10,6 +10,7 @@
 #include <userver/storages/odbc/component.hpp>
 #include <userver/storages/odbc/cursor.hpp>
 #include <userver/storages/odbc/exception.hpp>
+#include <userver/storages/odbc/io/type_mapping.hpp>
 #include <userver/storages/odbc/parameter_store.hpp>
 #include <userver/storages/odbc/transaction_options.hpp>
 #include <userver/storages/odbc/types.hpp>

@@ -50,12 +50,14 @@ public:
     /// @warning Never interpolate untrusted values into @p query. Passing them as
     /// separate arguments ensures that they are sent to the ODBC driver as data.
     template <typename... Args>
+    requires((impl::kIsParameterArgument<Args> && ...))
     ResultSet Execute(ClusterHostTypeFlags flags, const Query& query, const Args&... args) {
         return Execute(flags, std::nullopt, query, args...);
     }
 
     /// @brief Execute a statement with per-operation timeout overrides.
     template <typename... Args>
+    requires((impl::kIsParameterArgument<Args> && ...))
     ResultSet Execute(
         ClusterHostTypeFlags flags,
         OptionalCommandControl command_control,
@@ -80,6 +82,7 @@ public:
     ///
     /// @warning The cursor pins a pooled connection until it becomes terminal.
     template <typename... Args>
+    requires((impl::kIsParameterArgument<Args> && ...))
     Cursor ExecuteCursor(ClusterHostTypeFlags flags, const Query& query, const Args&... args) {
         return ExecuteCursor(flags, std::nullopt, query, args...);
     }
@@ -88,6 +91,7 @@ public:
     /// overrides. The resolved durations are reused as a fresh budget for every
     /// Fetch call.
     template <typename... Args>
+    requires((impl::kIsParameterArgument<Args> && ...))
     Cursor ExecuteCursor(
         ClusterHostTypeFlags flags,
         OptionalCommandControl command_control,

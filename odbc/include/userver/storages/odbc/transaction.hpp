@@ -55,12 +55,14 @@ public:
 
     /// @brief Execute a statement, binding every argument to an ODBC `?` placeholder.
     template <typename... Args>
+    requires((impl::kIsParameterArgument<Args> && ...))
     ResultSet Execute(const Query& query, const Args&... args) {
         return Execute(std::nullopt, query, args...);
     }
 
     /// @brief Execute a statement with per-statement timeout overrides.
     template <typename... Args>
+    requires((impl::kIsParameterArgument<Args> && ...))
     ResultSet Execute(OptionalCommandControl command_control, const Query& query, const Args&... args) {
         return DoExecute(command_control, query, impl::MakeParameterList(args...));
     }
@@ -76,11 +78,13 @@ public:
     /// No other transaction operation is allowed until the cursor observes EOF
     /// or is destroyed.
     template <typename... Args>
+    requires((impl::kIsParameterArgument<Args> && ...))
     Cursor ExecuteCursor(const Query& query, const Args&... args) {
         return ExecuteCursor(std::nullopt, query, args...);
     }
 
     template <typename... Args>
+    requires((impl::kIsParameterArgument<Args> && ...))
     Cursor ExecuteCursor(OptionalCommandControl command_control, const Query& query, const Args&... args) {
         return DoExecuteCursor(command_control, query, impl::MakeParameterList(args...));
     }

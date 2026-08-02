@@ -49,9 +49,7 @@ public:
 
     /// Append a row copied from values accepted by ParameterStore.
     template <typename... Args>
-    requires(
-        (impl::kIsParameterStoreValue<Args> && ...) && (std::constructible_from<impl::Parameter, const Args&> && ...)
-    )
+    requires((impl::kIsParameterArgument<Args> && ...))
     BulkParameterStore& PushBackRow(const Args&... args) {
         AppendRow(impl::MakeParameterList(args...));
         return *this;

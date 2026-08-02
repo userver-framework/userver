@@ -13,6 +13,7 @@
 #include <utility>
 
 #include <userver/storages/odbc/exception.hpp>
+#include <userver/storages/odbc/io/type_mapping.hpp>
 #include <userver/storages/odbc/odbc_fwd.hpp>
 #include <userver/storages/odbc/types.hpp>
 
@@ -45,10 +46,15 @@ inline constexpr bool kIsFieldScalar =
     std::same_as<std::remove_cv_t<T>, Timestamp> || kIsDecimal<std::remove_cv_t<T>>;
 
 template <typename T>
-struct IsFieldAsType : std::bool_constant<kIsFieldScalar<T>> {};
+struct IsFieldAsType
+    : std::bool_constant<
+          kIsFieldScalar<T> || (!kIsFieldScalar<T> && io::traits::kHasFromOdbc<std::remove_cvref_t<T>>)> {};
 
 template <typename T>
-struct IsFieldAsType<std::optional<T>> : std::bool_constant<kIsFieldScalar<T>> {};
+struct IsFieldAsType<std::optional<T>>
+    : std::bool_constant<
+          !io::traits::kHasMappingDeclaration<std::optional<T>> &&
+          (kIsFieldScalar<T> || (!kIsFieldScalar<T> && io::traits::kHasFromOdbc<T>))> {};
 
 template <typename T>
 inline constexpr bool kIsFieldAsType = IsFieldAsType<std::remove_cv_t<T>>::value;
@@ -108,6 +114,10 @@ private:
 template <typename T>
 T Field::As() const {
     using Value = std::remove_cv_t<T>;
+    static_assert(
+        !impl::kIsOptional<Value> || !io::traits::kHasMappingDeclaration<Value>,
+        "CppToOdbc<std::optional<T>> is not supported; map T and use std::optional<T> for SQL NULL"
+    );
     static_assert(impl::kIsFieldAsType<Value>, "Unsupported ODBC Field::As<T>() type");
 
     if constexpr (impl::kIsOptional<Value>) {
@@ -116,6 +126,10 @@ T Field::As() const {
             return std::nullopt;
         }
         return Value{As<Inner>()};
+    } else if constexpr (!impl::kIsFieldScalar<Value> && io::traits::kHasFromOdbc<Value>) {
+        using Mapping = io::CppToOdbc<Value>;
+        using BoundType = typename Mapping::BoundType;
+        return Mapping::FromOdbc(As<BoundType>());
     } else if constexpr (std::same_as<Value, bool>) {
         return GetBoolForAs();
     } else if constexpr (std::signed_integral<Value>) {

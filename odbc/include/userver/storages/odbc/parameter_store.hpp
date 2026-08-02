@@ -3,11 +3,12 @@
 /// @file userver/storages/odbc/parameter_store.hpp
 /// @brief @copybrief storages::odbc::ParameterStore
 
+#include <algorithm>
 #include <concepts>
 #include <cstddef>
+#include <iterator>
 #include <optional>
-#include <string>
-#include <string_view>
+#include <stdexcept>
 #include <type_traits>
 
 #include <userver/storages/odbc/impl/parameter.hpp>
@@ -19,35 +20,6 @@ namespace storages::odbc {
 class Cluster;
 class Transaction;
 class BulkParameterStore;
-
-/// @cond
-namespace impl {
-
-template <typename T>
-struct IsParameterStoreValue {
-private:
-    using Value = std::remove_cv_t<T>;
-    using Pointee = std::remove_pointer_t<Value>;
-    using Element = std::remove_extent_t<Value>;
-
-public:
-    static constexpr bool value =
-        std::integral<Value> || std::floating_point<Value> || std::is_enum_v<Value> ||
-        std::same_as<Value, std::string> || std::same_as<Value, std::string_view> || std::same_as<Value, Bytes> ||
-        std::same_as<Value, Date> || std::same_as<Value, Time> || std::same_as<Value, Timestamp> || kIsDecimal<Value> ||
-        std::same_as<Value, std::nullptr_t> || std::same_as<Value, std::nullopt_t> ||
-        (std::is_pointer_v<Value> && (std::same_as<Pointee, char> || std::same_as<Pointee, const char>)) ||
-        (std::is_array_v<Value> && std::same_as<std::remove_cv_t<Element>, char>);
-};
-
-template <typename T>
-struct IsParameterStoreValue<std::optional<T>> final : IsParameterStoreValue<std::remove_cv_t<T>> {};
-
-template <typename T>
-inline constexpr bool kIsParameterStoreValue = IsParameterStoreValue<std::remove_cvref_t<T>>::value;
-
-}  // namespace impl
-/// @endcond
 
 /// @ingroup userver_containers
 ///
@@ -70,13 +42,19 @@ public:
     ParameterStore& operator=(const ParameterStore&) = delete;
     ParameterStore& operator=(ParameterStore&&) noexcept = default;
 
-    /// @brief Copies a parameter supported by the variadic ODBC API to the end
-    /// of the ordered list.
+    /// @brief Copies a scalar parameter or the declaration-order fields of a
+    /// supported aggregate to the end of the ordered list.
     /// @returns `*this` for chained construction.
     template <typename T>
-    requires(impl::kIsParameterStoreValue<T> && std::constructible_from<impl::Parameter, const T&>)
+    requires impl::kIsParameterArgument<T>
     ParameterStore& PushBack(const T& parameter) {
-        parameters_.emplace_back(parameter);
+        auto appended = impl::MakeParameterList(parameter);
+        static_assert(std::is_nothrow_move_constructible_v<impl::Parameter>);
+        if (appended.size() > parameters_.max_size() - parameters_.size()) {
+            throw std::length_error("ODBC ParameterStore size exceeds its maximum");
+        }
+        parameters_.reserve(parameters_.size() + appended.size());
+        std::move(appended.begin(), appended.end(), std::back_inserter(parameters_));
         return *this;
     }
 

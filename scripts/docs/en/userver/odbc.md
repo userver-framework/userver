@@ -56,6 +56,39 @@ type. Raw `nullptr` and `std::nullopt` remain untyped and require driver type
 inference; a null value whose static type is `const char*` is instead bound as
 a typed string NULL.
 
+Flat public aggregates can be passed directly to `Execute`, `ExecuteCursor`,
+`ParameterStore::PushBack`, and `BulkParameterStore::PushBackRow`. Their fields
+become `?` parameters in declaration order:
+
+@snippet odbc/tests/odbc_postgresql_test.cpp ODBC aggregate parameters and mapped results
+
+Flattening is one level only. Aggregates must be nonempty, standard-layout,
+have no base classes or reference members, and every field must be a native or
+explicitly mapped ODBC scalar, or `std::optional` of one. Nested aggregates are
+rejected unless the nested type has an explicit scalar mapping.
+
+Specialize storages::odbc::io::CppToOdbc for domain types that correspond to
+one bound ODBC scalar:
+
+@snippet odbc/tests/odbc_postgresql_test.cpp ODBC mapped domain types
+
+@snippet odbc/tests/odbc_postgresql_test.cpp ODBC custom type mapping
+
+`BoundType` must be one of the scalar types supported by both parameter binding
+and `Field::As`, without cv/ref or `std::optional`. `ToOdbc` and `FromOdbc` are
+independent: only the directions actually used need to be present, and their
+signatures must match exactly. A declared mapping always takes precedence over
+aggregate decomposition; mapped enums likewise take precedence over their
+legacy underlying-integer parameter binding. A mapped value remains a bound
+parameter—conversion never changes or interpolates SQL text.
+
+`std::optional<Mapped>` represents typed SQL NULL. A disengaged input does not
+call `ToOdbc`, and a NULL result does not call `FromOdbc`; non-optional mapped
+results reject NULL before invoking the hook. Mapping `std::optional<T>` itself
+is unsupported. On output, ODBC first performs all strict category/range checks
+as `BoundType`, then calls `FromOdbc` exactly once. User conversion exceptions
+propagate unchanged.
+
 For repeated DML with one SQL shape, storages::odbc::BulkParameterStore owns a
 rectangular set of parameter rows. `ExecuteBulk` validates every row before
 acquiring a connection, then executes bounded chunks using ODBC column-wise

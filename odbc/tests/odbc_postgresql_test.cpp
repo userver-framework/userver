@@ -1,9 +1,12 @@
 #include <gtest/gtest.h>
+#include <array>
+#include <atomic>
 #include <chrono>
 #include <concepts>
 #include <cstdint>
 #include <limits>
 #include <optional>
+#include <stdexcept>
 #include <storages/odbc/detail/connection.hpp>
 #include <storages/odbc/detail/tracing.hpp>
 #include <string>
@@ -17,6 +20,325 @@
 #include <userver/storages/odbc/tests/utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace storages::odbc::tests::mapping {
+
+/// [ODBC mapped domain types]
+struct StrongId final {
+    std::int64_t value;
+
+    bool operator==(const StrongId&) const = default;
+};
+
+enum class TextState { kReady, kPaused };
+enum class NativeState : std::uint16_t { kOne = 1, kTwo = 2 };
+
+struct Record final {
+    StrongId id;
+    std::string text;
+    std::optional<StrongId> parent;
+    TextState state;
+
+    bool operator==(const Record&) const = default;
+};
+/// [ODBC mapped domain types]
+
+struct MappedPair final {
+    std::int32_t first;
+    std::int32_t second;
+};
+
+struct ToOnlyAggregate final {
+    std::int64_t value;
+};
+
+struct FromOnlyAggregate final {
+    std::int64_t value;
+};
+
+struct InvalidBoundAggregate final {
+    std::int64_t value;
+};
+
+struct CvBoundAggregate final {
+    std::int64_t value;
+};
+
+struct ReferenceBoundAggregate final {
+    std::int64_t value;
+};
+
+struct EnumBoundAggregate final {
+    std::int64_t value;
+};
+
+struct MissingBoundAggregate final {
+    std::int64_t value;
+};
+
+struct BadToAggregate final {
+    std::int64_t value;
+};
+
+struct BadFromAggregate final {
+    std::int64_t value;
+};
+
+struct MappedChainAggregate final {
+    std::int64_t value;
+};
+
+struct OptionalMappingMarker final {
+    std::int64_t value;
+};
+
+struct CountingMapped final {
+    std::int64_t value;
+
+    bool operator==(const CountingMapped&) const = default;
+};
+
+struct NonDefaultMapped final {
+    NonDefaultMapped() = delete;
+    explicit NonDefaultMapped(std::int64_t value)
+        : value{value}
+    {}
+
+    std::int64_t value;
+};
+
+struct ThrowingInput final {};
+struct ThrowingOutput final {};
+
+struct MismatchOutput final {
+    std::int64_t value;
+};
+
+struct InvalidMappedAggregate final {
+    std::int64_t first;
+    std::int64_t second;
+};
+
+struct NativeAggregate final {
+    std::int32_t number;
+    std::string text;
+};
+
+struct ContainsNativeAggregate final {
+    NativeAggregate nested;
+    std::int32_t tail;
+};
+
+struct ContainsMappedAggregate final {
+    MappedPair nested;
+    std::int32_t tail;
+};
+
+struct EmptyAggregate final {};
+
+struct ReferenceAggregate final {
+    std::int32_t& value;
+};
+
+class PrivateAggregate final {
+    [[maybe_unused]] std::int32_t value_{0};
+};
+
+union UnionAggregate {
+    std::int32_t value;
+};
+
+struct AggregateBase {
+    std::int32_t base;
+};
+
+struct DerivedAggregate final : AggregateBase {
+    std::int32_t value;
+};
+
+struct EmptyBase {};
+
+struct DerivedEmptyBaseAggregate final : EmptyBase {
+    std::int32_t value;
+};
+
+struct CountingAggregate final {
+    CountingMapped first;
+    std::int32_t middle;
+    CountingMapped last;
+};
+
+struct StrongGuaranteeAggregate final {
+    std::int32_t first;
+    ThrowingInput second;
+};
+
+struct NonDefaultLaterAggregate final {
+    std::int32_t first;
+    NonDefaultMapped second;
+};
+
+struct LargeEmptyBaseRejectedAggregate final : EmptyBase {
+    std::array<std::int32_t, 300> payload;
+};
+
+inline std::atomic<int> g_to_calls{0};
+inline std::atomic<int> g_from_calls{0};
+inline std::atomic<int> g_mismatch_from_calls{0};
+
+}  // namespace storages::odbc::tests::mapping
+
+namespace storages::odbc::io {
+
+/// [ODBC custom type mapping]
+template <>
+struct CppToOdbc<tests::mapping::StrongId> final {
+    using BoundType = std::int64_t;
+
+    static BoundType ToOdbc(const tests::mapping::StrongId& value) { return value.value; }
+    static tests::mapping::StrongId FromOdbc(BoundType value) { return {value}; }
+};
+
+template <>
+struct CppToOdbc<tests::mapping::TextState> final {
+    using BoundType = std::string;
+
+    static BoundType ToOdbc(const tests::mapping::TextState& value) {
+        return value == tests::mapping::TextState::kReady ? "ready" : "paused";
+    }
+
+    static tests::mapping::TextState FromOdbc(BoundType value) {
+        if (value == "ready") {
+            return tests::mapping::TextState::kReady;
+        }
+        if (value == "paused") {
+            return tests::mapping::TextState::kPaused;
+        }
+        throw std::runtime_error("unknown mapped text state");
+    }
+};
+/// [ODBC custom type mapping]
+
+template <>
+struct CppToOdbc<tests::mapping::MappedPair> final {
+    using BoundType = std::string;
+
+    static BoundType ToOdbc(const tests::mapping::MappedPair& value) {
+        return std::to_string(value.first) + ":" + std::to_string(value.second);
+    }
+    static tests::mapping::MappedPair FromOdbc(BoundType) { return {1, 2}; }
+};
+
+template <>
+struct CppToOdbc<tests::mapping::ToOnlyAggregate> final {
+    using BoundType = std::int64_t;
+    static BoundType ToOdbc(const tests::mapping::ToOnlyAggregate& value) { return value.value; }
+};
+
+template <>
+struct CppToOdbc<tests::mapping::FromOnlyAggregate> final {
+    using BoundType = std::int64_t;
+    static tests::mapping::FromOnlyAggregate FromOdbc(BoundType value) { return {value}; }
+};
+
+template <>
+struct CppToOdbc<tests::mapping::InvalidBoundAggregate> final {
+    using BoundType = std::optional<std::int64_t>;
+};
+
+template <>
+struct CppToOdbc<tests::mapping::CvBoundAggregate> final {
+    using BoundType = const std::int64_t;
+};
+
+template <>
+struct CppToOdbc<tests::mapping::ReferenceBoundAggregate> final {
+    using BoundType = std::int64_t&;
+};
+
+template <>
+struct CppToOdbc<tests::mapping::EnumBoundAggregate> final {
+    using BoundType = tests::mapping::NativeState;
+};
+
+template <>
+struct CppToOdbc<tests::mapping::MissingBoundAggregate> final {};
+
+template <>
+struct CppToOdbc<tests::mapping::BadToAggregate> final {
+    using BoundType = std::int64_t;
+    static BoundType ToOdbc(tests::mapping::BadToAggregate) { return 0; }
+};
+
+template <>
+struct CppToOdbc<tests::mapping::BadFromAggregate> final {
+    using BoundType = std::int64_t;
+    static tests::mapping::BadFromAggregate FromOdbc(const BoundType&) { return {0}; }
+};
+
+template <>
+struct CppToOdbc<tests::mapping::MappedChainAggregate> final {
+    using BoundType = tests::mapping::StrongId;
+};
+
+template <>
+struct CppToOdbc<std::optional<tests::mapping::OptionalMappingMarker>> final {
+    using BoundType = std::int64_t;
+    static BoundType ToOdbc(const std::optional<tests::mapping::OptionalMappingMarker>&) { return 0; }
+    static std::optional<tests::mapping::OptionalMappingMarker> FromOdbc(BoundType value) {
+        return tests::mapping::OptionalMappingMarker{value};
+    }
+};
+
+template <>
+struct CppToOdbc<tests::mapping::CountingMapped> final {
+    using BoundType = std::int64_t;
+    static BoundType ToOdbc(const tests::mapping::CountingMapped& value) {
+        ++tests::mapping::g_to_calls;
+        return value.value;
+    }
+    static tests::mapping::CountingMapped FromOdbc(BoundType value) {
+        ++tests::mapping::g_from_calls;
+        return {value};
+    }
+};
+
+template <>
+struct CppToOdbc<tests::mapping::NonDefaultMapped> final {
+    using BoundType = std::int64_t;
+    static BoundType ToOdbc(const tests::mapping::NonDefaultMapped& value) { return value.value; }
+    static tests::mapping::NonDefaultMapped FromOdbc(BoundType value) {
+        return tests::mapping::NonDefaultMapped{value};
+    }
+};
+
+template <>
+struct CppToOdbc<tests::mapping::ThrowingInput> final {
+    using BoundType = std::int64_t;
+    static BoundType ToOdbc(const tests::mapping::ThrowingInput&) { throw std::runtime_error("input conversion"); }
+};
+
+template <>
+struct CppToOdbc<tests::mapping::ThrowingOutput> final {
+    using BoundType = std::int64_t;
+    static tests::mapping::ThrowingOutput FromOdbc(BoundType) { throw std::runtime_error("output conversion"); }
+};
+
+template <>
+struct CppToOdbc<tests::mapping::MismatchOutput> final {
+    using BoundType = std::int64_t;
+    static tests::mapping::MismatchOutput FromOdbc(BoundType value) {
+        ++tests::mapping::g_mismatch_from_calls;
+        return {value};
+    }
+};
+
+template <>
+struct CppToOdbc<tests::mapping::InvalidMappedAggregate> final {
+    using BoundType = std::string_view;
+};
+
+}  // namespace storages::odbc::io
 
 namespace storages::odbc::tests {
 
@@ -36,6 +358,17 @@ using TransactionParameterStoreExecuteCursorWithCommandControl =
 
 template <typename T>
 concept ParameterStorePushable = requires(ParameterStore& store, const T& value) { store.PushBack(value); };
+
+template <typename T>
+concept ParameterListBuildable = requires(const T& value) { impl::MakeParameterList(value); };
+
+template <typename T>
+concept BulkRowPushable = requires(BulkParameterStore& store, const T& value) { store.PushBackRow(value); };
+
+template <typename T>
+concept ClusterParameterExecutable = requires(Cluster& cluster, const Query& query, const T& value) {
+    cluster.Execute(ClusterHostType::kMaster, query, value);
+};
 
 struct UnsupportedParameter final {};
 
@@ -69,6 +402,77 @@ static_assert(ParameterStorePushable<std::optional<Decimal<9, 4>>>);
 static_assert(!ParameterStorePushable<void*>);
 static_assert(!ParameterStorePushable<UnsupportedParameter>);
 static_assert(!ParameterStorePushable<std::optional<std::vector<int>>>);
+static_assert(io::traits::kHasMappingDeclaration<mapping::StrongId>);
+static_assert(io::traits::kHasValidBoundType<const mapping::StrongId&>);
+static_assert(io::traits::kHasToOdbc<mapping::StrongId>);
+static_assert(io::traits::kHasFromOdbc<mapping::StrongId>);
+static_assert(io::traits::kHasToOdbc<mapping::ToOnlyAggregate>);
+static_assert(!io::traits::kHasFromOdbc<mapping::ToOnlyAggregate>);
+static_assert(!io::traits::kHasToOdbc<mapping::FromOnlyAggregate>);
+static_assert(io::traits::kHasFromOdbc<mapping::FromOnlyAggregate>);
+static_assert(!io::traits::kHasValidBoundType<mapping::InvalidBoundAggregate>);
+static_assert(!io::traits::kHasValidBoundType<mapping::CvBoundAggregate>);
+static_assert(!io::traits::kHasValidBoundType<mapping::ReferenceBoundAggregate>);
+static_assert(!io::traits::kHasValidBoundType<mapping::EnumBoundAggregate>);
+static_assert(!io::traits::kHasValidBoundType<mapping::MissingBoundAggregate>);
+static_assert(!io::traits::kHasValidBoundType<mapping::MappedChainAggregate>);
+static_assert(!io::traits::kHasToOdbc<mapping::BadToAggregate>);
+static_assert(!io::traits::kHasFromOdbc<mapping::BadFromAggregate>);
+static_assert(!io::traits::kHasValidBoundType<std::optional<mapping::OptionalMappingMarker>>);
+static_assert(impl::kIsParameterStoreValue<mapping::StrongId>);
+static_assert(impl::kIsFieldAsType<mapping::StrongId>);
+static_assert(impl::kIsParameterStoreValue<mapping::TextState>);
+static_assert(impl::kIsFieldAsType<mapping::TextState>);
+static_assert(impl::kIsParameterStoreValue<mapping::NativeState>);
+static_assert(!impl::kIsFieldAsType<mapping::NativeState>);
+static_assert(impl::kIsParameterAggregate<mapping::Record>);
+static_assert(impl::kIsResultAggregate<mapping::Record>);
+static_assert(impl::ParameterArgumentWidth<mapping::Record>() == 4);
+static_assert(impl::kIsParameterStoreValue<mapping::MappedPair>);
+static_assert(!impl::kIsParameterAggregate<mapping::MappedPair>);
+static_assert(impl::ParameterArgumentWidth<mapping::MappedPair>() == 1);
+static_assert(impl::kIsParameterStoreValue<mapping::ToOnlyAggregate>);
+static_assert(!impl::kIsParameterAggregate<mapping::ToOnlyAggregate>);
+static_assert(!impl::kIsResultAggregate<mapping::ToOnlyAggregate>);
+static_assert(!impl::kIsParameterAggregate<mapping::FromOnlyAggregate>);
+static_assert(impl::kIsFieldAsType<mapping::FromOnlyAggregate>);
+static_assert(!impl::kIsParameterArgument<mapping::InvalidMappedAggregate>);
+static_assert(!impl::kIsResultAggregate<mapping::InvalidMappedAggregate>);
+static_assert(impl::kIsParameterAggregate<mapping::NativeAggregate>);
+static_assert(impl::kIsResultAggregate<mapping::NativeAggregate>);
+static_assert(impl::kIsParameterAggregate<mapping::NonDefaultLaterAggregate>);
+static_assert(impl::kIsResultAggregate<mapping::NonDefaultLaterAggregate>);
+static_assert(!impl::kIsParameterArgument<mapping::LargeEmptyBaseRejectedAggregate>);
+static_assert(!impl::kIsResultValue<mapping::LargeEmptyBaseRejectedAggregate>);
+static_assert(!impl::kIsParameterArgument<mapping::ContainsNativeAggregate>);
+static_assert(!impl::kIsResultValue<mapping::ContainsNativeAggregate>);
+static_assert(impl::kIsParameterAggregate<mapping::ContainsMappedAggregate>);
+static_assert(impl::kIsResultAggregate<mapping::ContainsMappedAggregate>);
+static_assert(impl::ParameterArgumentWidth<mapping::ContainsMappedAggregate>() == 2);
+static_assert(!impl::kIsParameterArgument<mapping::EmptyAggregate>);
+static_assert(!impl::kIsResultValue<mapping::EmptyAggregate>);
+static_assert(!impl::kIsParameterArgument<mapping::ReferenceAggregate>);
+static_assert(!impl::kIsResultValue<mapping::ReferenceAggregate>);
+static_assert(!impl::kIsParameterArgument<mapping::PrivateAggregate>);
+static_assert(!impl::kIsResultValue<mapping::PrivateAggregate>);
+static_assert(!impl::kIsParameterArgument<mapping::UnionAggregate>);
+static_assert(!impl::kIsResultValue<mapping::UnionAggregate>);
+static_assert(!impl::kIsParameterArgument<mapping::DerivedAggregate>);
+static_assert(!impl::kIsResultValue<mapping::DerivedAggregate>);
+static_assert(!impl::kIsParameterArgument<mapping::DerivedEmptyBaseAggregate>);
+static_assert(!impl::kIsResultValue<mapping::DerivedEmptyBaseAggregate>);
+static_assert(!impl::kIsParameterArgument<std::optional<mapping::NativeAggregate>>);
+static_assert(!impl::kIsResultValue<std::optional<mapping::NativeAggregate>>);
+static_assert(!impl::kIsParameterArgument<std::optional<mapping::OptionalMappingMarker>>);
+static_assert(!impl::kIsResultValue<std::optional<mapping::OptionalMappingMarker>>);
+static_assert(ParameterListBuildable<mapping::Record>);
+static_assert(ParameterStorePushable<mapping::Record>);
+static_assert(BulkRowPushable<mapping::Record>);
+static_assert(ClusterParameterExecutable<mapping::Record>);
+static_assert(!ParameterListBuildable<mapping::ContainsNativeAggregate>);
+static_assert(!ParameterStorePushable<mapping::ContainsNativeAggregate>);
+static_assert(!BulkRowPushable<mapping::ContainsNativeAggregate>);
+static_assert(!ClusterParameterExecutable<mapping::ContainsNativeAggregate>);
 static_assert(requires {
     static_cast<ClusterParameterStoreExecute>(&Cluster::Execute);
     static_cast<ClusterParameterStoreExecuteWithCommandControl>(&Cluster::Execute);
@@ -79,6 +483,146 @@ static_assert(requires {
     static_cast<TransactionParameterStoreExecuteCursor>(&Transaction::ExecuteCursor);
     static_cast<TransactionParameterStoreExecuteCursorWithCommandControl>(&Transaction::ExecuteCursor);
 });
+
+UTEST(OdbcTypeMapping, FlattensInOrderCallsHooksOnceAndKeepsStoresStrong) {
+    mapping::g_to_calls = 0;
+    const auto parameters =
+        impl::MakeParameterList(std::int32_t{10}, mapping::CountingAggregate{{20}, 30, {40}}, std::string{"tail"});
+    ASSERT_EQ(parameters.size(), 5);
+    EXPECT_EQ(parameters[0].Get<std::int64_t>(), 10);
+    EXPECT_EQ(parameters[1].Get<std::int64_t>(), 20);
+    EXPECT_EQ(parameters[2].Get<std::int64_t>(), 30);
+    EXPECT_EQ(parameters[3].Get<std::int64_t>(), 40);
+    EXPECT_EQ(parameters[4].Get<std::string>(), "tail");
+    EXPECT_EQ(mapping::g_to_calls, 2);
+
+    const auto enum_parameters = impl::MakeParameterList(mapping::NativeState::kTwo, mapping::TextState::kPaused);
+    ASSERT_EQ(enum_parameters.size(), 2);
+    EXPECT_EQ(enum_parameters[0].Get<std::uint64_t>(), 2);
+    EXPECT_EQ(enum_parameters[1].Get<std::string>(), "paused");
+
+    ParameterStore store;
+    store.PushBack(std::int32_t{7});
+    EXPECT_EQ(store.Size(), 1);
+    UEXPECT_THROW(store.PushBack(mapping::StrongGuaranteeAggregate{8, {}}), std::runtime_error);
+    EXPECT_EQ(store.Size(), 1);
+
+    BulkParameterStore bulk;
+    bulk.PushBackRow(mapping::NativeAggregate{1, "one"}, mapping::StrongId{2});
+    EXPECT_EQ(bulk.RowsCount(), 1);
+    EXPECT_EQ(bulk.ColumnsCount(), 3);
+    bulk.PushBackRow(mapping::NativeAggregate{3, "three"}, mapping::StrongId{4});
+    EXPECT_EQ(bulk.RowsCount(), 2);
+    EXPECT_EQ(bulk.ColumnsCount(), 3);
+}
+
+UTEST(OdbcTypeMapping, AggregateAndMappedScalarsHaveExecutionParity) {
+    auto cluster = MakeCluster();
+    const std::string hostile = "Robert'); DROP TABLE odbc_mapping_rows;--";
+    const mapping::Record input{
+        mapping::StrongId{41},
+        hostile,
+        std::nullopt,
+        mapping::TextState::kReady,
+    };
+    const Query echo_query{"SELECT ?::bigint, ?::text, ?::bigint, ?::text"};
+
+    /// [ODBC aggregate parameters and mapped results]
+    const auto direct = cluster.Execute(ClusterHostType::kMaster, echo_query, input).AsSingleRow<mapping::Record>();
+    EXPECT_EQ(direct, input);
+
+    ParameterStore parameters;
+    parameters.PushBack(input);
+    EXPECT_EQ(parameters.Size(), 4);
+    const auto
+        stored = cluster.Execute(ClusterHostType::kMaster, echo_query, parameters).AsSingleRow<mapping::Record>();
+    EXPECT_EQ(stored, input);
+    /// [ODBC aggregate parameters and mapped results]
+
+    auto cursor = cluster.ExecuteCursor(ClusterHostType::kMaster, echo_query, input);
+    const auto cursor_chunk = cursor.Fetch(2).AsSingleRow<mapping::Record>();
+    EXPECT_EQ(cursor_chunk, input);
+    EXPECT_TRUE(cursor.Done());
+
+    EXPECT_EQ(
+        cluster.Execute(ClusterHostType::kMaster, "SELECT ?::bigint", mapping::StrongId{77})
+            .AsSingleRow<mapping::StrongId>(),
+        (mapping::StrongId{77})
+    );
+    EXPECT_EQ(
+        cluster.Execute(ClusterHostType::kMaster, "SELECT ?::text", mapping::TextState::kPaused)
+            .AsSingleRow<mapping::TextState>(),
+        mapping::TextState::kPaused
+    );
+    EXPECT_FALSE(cluster.Execute(ClusterHostType::kMaster, "SELECT NULL::bigint")
+                     .AsSingleRow<std::optional<mapping::StrongId>>()
+                     .has_value());
+
+    mapping::g_to_calls = 0;
+    mapping::g_from_calls = 0;
+    const auto mapped_null =
+        cluster.Execute(ClusterHostType::kMaster, "SELECT ?::bigint", std::optional<mapping::CountingMapped>{})
+            .AsSingleRow<std::optional<mapping::CountingMapped>>();
+    EXPECT_FALSE(mapped_null);
+    EXPECT_EQ(mapping::g_to_calls, 0);
+    EXPECT_EQ(mapping::g_from_calls, 0);
+    const auto mapped_value =
+        cluster
+            .Execute(
+                ClusterHostType::kMaster,
+                "SELECT ?::bigint",
+                std::optional<mapping::CountingMapped>{mapping::CountingMapped{88}}
+            )
+            .AsSingleRow<std::optional<mapping::CountingMapped>>();
+    EXPECT_EQ(mapped_value, std::optional<mapping::CountingMapped>{mapping::CountingMapped{88}});
+    EXPECT_EQ(mapping::g_to_calls, 1);
+    EXPECT_EQ(mapping::g_from_calls, 1);
+
+    auto transaction = cluster.Begin(ClusterHostType::kMaster);
+    transaction
+        .Execute("CREATE TEMP TABLE odbc_mapping_rows(id BIGINT, text_value TEXT, parent BIGINT NULL, state TEXT)");
+    BulkParameterStore rows;
+    rows.PushBackRow(input).PushBackRow(mapping::Record{
+        mapping::StrongId{42},
+        "second",
+        mapping::StrongId{41},
+        mapping::TextState::kPaused,
+    });
+    EXPECT_EQ(rows.ColumnsCount(), 4);
+    const auto bulk = transaction.ExecuteBulk("INSERT INTO odbc_mapping_rows VALUES (?, ?, ?, ?)", rows);
+    EXPECT_EQ(bulk.Requested(), 2);
+    const auto roundtrip =
+        transaction.Execute("SELECT id, text_value, parent, state FROM odbc_mapping_rows ORDER BY id")
+            .AsContainer<std::vector<mapping::Record>>();
+    ASSERT_EQ(roundtrip.size(), 2);
+    EXPECT_EQ(roundtrip[0], input);
+    EXPECT_EQ(roundtrip[1].parent, std::optional<mapping::StrongId>{mapping::StrongId{41}});
+    transaction.Rollback();
+
+    UEXPECT_THROW(
+        cluster.Execute(ClusterHostType::kMaster, "SELECT ?::bigint", mapping::ThrowingInput{}),
+        std::runtime_error
+    );
+    UEXPECT_THROW(
+        cluster.Execute(ClusterHostType::kMaster, "SELECT 1::bigint").AsSingleRow<mapping::ThrowingOutput>(),
+        std::runtime_error
+    );
+    mapping::g_mismatch_from_calls = 0;
+    UEXPECT_THROW(
+        cluster.Execute(ClusterHostType::kMaster, "SELECT 'not-an-integer'::text")
+            .AsSingleRow<mapping::MismatchOutput>(),
+        ResultSetError
+    );
+    EXPECT_EQ(mapping::g_mismatch_from_calls, 0);
+    UEXPECT_THROW(
+        cluster.Execute(ClusterHostType::kMaster, "SELECT ?::integer", mapping::NativeAggregate{1, "extra"}),
+        StatementError
+    );
+    UEXPECT_THROW(
+        cluster.Execute(ClusterHostType::kMaster, "SELECT 1::integer").AsSingleRow<mapping::Record>(),
+        ResultSetError
+    );
+}
 
 UTEST(Cursor, FetchesOwningTypedChunksAndMoves) {
     auto cluster = MakeCluster();
