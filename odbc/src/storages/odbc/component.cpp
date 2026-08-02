@@ -26,6 +26,8 @@
 
 #include <dynamic_config/variables/USERVER_ODBC_CONNECTION_POOL_SETTINGS.hpp>
 #include <dynamic_config/variables/USERVER_ODBC_DEFAULT_COMMAND_CONTROL.hpp>
+#include <dynamic_config/variables/USERVER_ODBC_HANDLERS_COMMAND_CONTROL.hpp>
+#include <dynamic_config/variables/USERVER_ODBC_QUERIES_COMMAND_CONTROL.hpp>
 
 #ifndef ARCADIA_ROOT
 #include "generated/src/storages/odbc/component.yaml.hpp"  // Y_IGNORE
@@ -147,6 +149,39 @@ storages::odbc::settings::ODBCClusterSettings MakeClusterSettings(
     return MakeClusterSettingsFromConfig(config);
 }
 
+template <typename ConfigCommandControl>
+storages::odbc::CommandControl ConvertCommandControl(const ConfigCommandControl& command_control) {
+    return {
+        .network_timeout = command_control.network_timeout_ms,
+        .statement_timeout = command_control.statement_timeout_ms,
+    };
+}
+
+template <typename ConfigMap>
+storages::odbc::CommandControlByQueryMap ConvertQueriesCommandControl(const ConfigMap& config) {
+    storages::odbc::CommandControlByQueryMap result;
+    result.reserve(config.extra.size());
+    for (const auto& [name, command_control] : config.extra) {
+        result.emplace(name, ConvertCommandControl(command_control));
+    }
+    return result;
+}
+
+template <typename ConfigMap>
+storages::odbc::CommandControlByHandlerMap ConvertHandlersCommandControl(const ConfigMap& config) {
+    storages::odbc::CommandControlByHandlerMap result;
+    result.reserve(config.extra.size());
+    for (const auto& [path, config_by_method] : config.extra) {
+        storages::odbc::CommandControlByMethodMap by_method;
+        by_method.reserve(config_by_method.extra.size());
+        for (const auto& [method, command_control] : config_by_method.extra) {
+            by_method.emplace(method, ConvertCommandControl(command_control));
+        }
+        result.emplace(path, std::move(by_method));
+    }
+    return result;
+}
+
 }  // namespace
 
 Odbc::Odbc(const ComponentConfig& config, const ComponentContext& context)
@@ -173,7 +208,9 @@ Odbc::Odbc(const ComponentConfig& config, const ComponentContext& context)
         "odbc",
         &Odbc::OnConfigUpdate,
         ::dynamic_config::USERVER_ODBC_CONNECTION_POOL_SETTINGS,
-        ::dynamic_config::USERVER_ODBC_DEFAULT_COMMAND_CONTROL
+        ::dynamic_config::USERVER_ODBC_DEFAULT_COMMAND_CONTROL,
+        ::dynamic_config::USERVER_ODBC_HANDLERS_COMMAND_CONTROL,
+        ::dynamic_config::USERVER_ODBC_QUERIES_COMMAND_CONTROL
     );
 
     if (secdist_alias_) {
@@ -202,12 +239,14 @@ void Odbc::OnConfigUpdate(const dynamic_config::Snapshot& config) {
     }
     cluster_->SetPoolSettingsOverride(updated);
 
-    // Apply command control (timeouts)
-    const auto cc = config[::dynamic_config::USERVER_ODBC_DEFAULT_COMMAND_CONTROL];
-    cluster_->SetDefaultCommandControl(storages::odbc::CommandControl{
-        .network_timeout = cc.network_timeout_ms,
-        .statement_timeout = cc.statement_timeout_ms,
-    });
+    const auto& default_command_control = config[::dynamic_config::USERVER_ODBC_DEFAULT_COMMAND_CONTROL];
+    const auto& handlers_command_control = config[::dynamic_config::USERVER_ODBC_HANDLERS_COMMAND_CONTROL];
+    const auto& queries_command_control = config[::dynamic_config::USERVER_ODBC_QUERIES_COMMAND_CONTROL];
+    cluster_->ApplyDynamicCommandControls(
+        ConvertCommandControl(default_command_control),
+        ConvertHandlersCommandControl(handlers_command_control),
+        ConvertQueriesCommandControl(queries_command_control)
+    );
 }
 
 void Odbc::OnSecdistUpdate(const storages::secdist::SecdistConfig& secdist) {

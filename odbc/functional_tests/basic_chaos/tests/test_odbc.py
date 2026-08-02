@@ -42,6 +42,35 @@ async def test_odbc_transaction_happy_path(service_client):
     await _check_crud(service_client, url=CHAOS_TRX_URL)
 
 
+async def test_dynamic_command_control_generated_configs_and_reset(
+    service_client,
+    dynamic_config,
+):
+    dynamic_config.set(
+        USERVER_ODBC_HANDLERS_COMMAND_CONTROL={
+            '/command-control': {
+                'GET': {'statement_timeout_ms': 100},
+            },
+        },
+    )
+    response = await service_client.get('/command-control')
+    assert response.status >= 500
+
+    dynamic_config.set(
+        USERVER_ODBC_HANDLERS_COMMAND_CONTROL={},
+        USERVER_ODBC_QUERIES_COMMAND_CONTROL={
+            'odbc-functional-sleep': {'statement_timeout_ms': 100},
+        },
+    )
+    response = await service_client.get('/command-control')
+    assert response.status >= 500
+
+    dynamic_config.set(USERVER_ODBC_QUERIES_COMMAND_CONTROL={})
+    response = await service_client.get('/command-control')
+    assert response.status == 200
+    assert response.text == 'ok'
+
+
 async def test_odbc_transaction_multi_statement(service_client):
     await _cleanup(service_client, 'multi_key1', 'multi_key2')
 

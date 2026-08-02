@@ -92,6 +92,19 @@ public:
     /// @brief Set default command control (timeouts) from dynamic config
     void SetDefaultCommandControl(const CommandControl& cc);
 
+    /// @brief Atomically replace command controls looked up by the current
+    /// task-inherited HTTP handler path and method.
+    ///
+    /// Each configured field overlays the lower-priority default independently.
+    /// Passing an empty map clears the complete handler layer.
+    void SetHandlersCommandControl(CommandControlByHandlerMap command_control);
+
+    /// @brief Atomically replace command controls looked up by Query name.
+    ///
+    /// Each configured field overlays default and handler fields independently.
+    /// Unnamed queries skip this layer. Passing an empty map clears it.
+    void SetQueriesCommandControl(CommandControlByQueryMap command_control);
+
     /// @brief Atomically replace cluster pools for future operations.
     /// Existing queries and transactions keep their old pools alive.
     void UpdateSettings(const settings::ODBCClusterSettings& settings);
@@ -99,6 +112,11 @@ public:
     /// @cond
     void UpdateDsns(const std::vector<std::string>& dsns);
     void SetPoolSettingsOverride(std::optional<settings::PoolSettings> settings);
+    void ApplyDynamicCommandControls(
+        CommandControl default_command_control,
+        CommandControlByHandlerMap handlers_command_control,
+        CommandControlByQueryMap queries_command_control
+    );
     /// @endcond
 
     /// @brief Get current default network timeout

@@ -28,6 +28,7 @@
 #include <userver/logging/log.hpp>
 
 #include <storages/odbc/detail/broken_guard.hpp>
+#include <storages/odbc/detail/command_control_store.hpp>
 #include <storages/odbc/detail/deadline.hpp>
 #include <storages/odbc/detail/diag_wrapper.hpp>
 #include <storages/odbc/detail/result_chunk.hpp>
@@ -1342,6 +1343,23 @@ Connection::Connection(
 Connection::~Connection() { DestroyConnectionHandlesOnBlockingTaskProcessor(blocking_task_processor_, env_, handle_); }
 
 const detail::DriverCapabilities& Connection::GetDriverCapabilities() const noexcept { return driver_capabilities_; }
+
+void Connection::SetCommandControlStore(std::shared_ptr<detail::CommandControlStore> store) {
+    command_control_store_ = std::move(store);
+}
+
+CommandControl Connection::ResolveTransactionCommandControl(
+    CommandControl transaction_base,
+    const storages::odbc::Query& query,
+    OptionalCommandControl explicit_command_control
+) const {
+    UINVARIANT(command_control_store_, "ODBC transaction connection has no command-control store");
+    return command_control_store_->ResolveTransactionStatement(
+        std::move(transaction_base),
+        query.GetOptionalNameView(),
+        explicit_command_control
+    );
+}
 
 ResultSet Connection::Query(std::string_view query) {
     return Query(query, impl::ParameterList{}, detail::GetExecuteDeadline(detail::kDefaultStatementTimeout));

@@ -70,12 +70,32 @@ void Cluster::WriteStatistics(utils::statistics::Writer& writer) const { impl_->
 
 void Cluster::SetDefaultCommandControl(const CommandControl& cc) { impl_->SetDefaultCommandControl(cc); }
 
+void Cluster::SetHandlersCommandControl(CommandControlByHandlerMap command_control) {
+    impl_->SetHandlersCommandControl(std::move(command_control));
+}
+
+void Cluster::SetQueriesCommandControl(CommandControlByQueryMap command_control) {
+    impl_->SetQueriesCommandControl(std::move(command_control));
+}
+
 void Cluster::UpdateSettings(const settings::ODBCClusterSettings& settings) { impl_->UpdateSettings(settings); }
 
 void Cluster::UpdateDsns(const std::vector<std::string>& dsns) { impl_->UpdateDsns(dsns); }
 
 void Cluster::SetPoolSettingsOverride(std::optional<settings::PoolSettings> settings) {
     impl_->SetPoolSettingsOverride(settings);
+}
+
+void Cluster::ApplyDynamicCommandControls(
+    CommandControl default_command_control,
+    CommandControlByHandlerMap handlers_command_control,
+    CommandControlByQueryMap queries_command_control
+) {
+    impl_->ApplyDynamicCommandControls(
+        std::move(default_command_control),
+        std::move(handlers_command_control),
+        std::move(queries_command_control)
+    );
 }
 
 std::optional<std::chrono::milliseconds> Cluster::GetDefaultNetworkTimeout() const {

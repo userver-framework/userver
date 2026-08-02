@@ -4,6 +4,7 @@
 #include <userver/clients/http/component_list.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
+#include <userver/dynamic_config/updater/component_list.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/handlers/server_monitor.hpp>
 #include <userver/server/handlers/tests_control.hpp>
@@ -159,14 +160,38 @@ private:
     const std::shared_ptr<storages::odbc::Cluster> odbc_;
 };
 
+class CommandControl final : public server::handlers::HttpHandlerBase {
+public:
+    static constexpr std::string_view kName{"handler-command-control"};
+
+    CommandControl(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : server::handlers::HttpHandlerBase{config, context},
+          odbc_{context.FindComponent<components::Odbc>("key-value-db").GetCluster()}
+    {}
+
+    std::string HandleRequestThrow(const server::http::HttpRequest&, server::request::RequestContext&) const override {
+        const storages::odbc::Query query{
+            "SELECT pg_sleep(2)",
+            storages::odbc::Query::Name{"odbc-functional-sleep"},
+        };
+        odbc_->Execute(storages::odbc::ClusterHostType::kMaster, query);
+        return "ok";
+    }
+
+private:
+    const std::shared_ptr<storages::odbc::Cluster> odbc_;
+};
+
 }  // namespace chaos
 
 int main(int argc, char* argv[]) {
     const auto component_list =
         components::MinimalServerComponentList()
+            .AppendComponentList(USERVER_NAMESPACE::dynamic_config::updater::ComponentList())
             .AppendComponentList(clients::http::ComponentList())
             .Append<chaos::KeyValue>()
             .Append<chaos::KeyValueTrx>()
+            .Append<chaos::CommandControl>()
             .Append<server::handlers::ServerMonitor>()
             .Append<server::handlers::TestsControl>()
             .Append<components::TestsuiteSupport>()

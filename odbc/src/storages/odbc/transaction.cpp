@@ -30,8 +30,7 @@ Transaction::Transaction(
           TransactionOptions{},
           network_timeout,
           statement_timeout,
-      }
-{}
+      } {}
 
 Transaction::Transaction(
     detail::ConnectionPtr&& connection,
@@ -118,16 +117,15 @@ ResultSet Transaction::DoExecute(
     AssertValid();
     tracing::Span span{storages::odbc::impl::tracing::kExecuteSpan};
 
-    auto network_timeout = network_timeout_;
-    auto statement_timeout = statement_timeout_;
-    if (command_control) {
-        if (command_control->network_timeout) {
-            network_timeout = *command_control->network_timeout;
-        }
-        if (command_control->statement_timeout) {
-            statement_timeout = *command_control->statement_timeout;
-        }
-    }
+    const auto resolved =
+        (*connection_)
+            ->ResolveTransactionCommandControl(
+                CommandControl{.network_timeout = network_timeout_, .statement_timeout = statement_timeout_},
+                query,
+                command_control
+            );
+    const auto network_timeout = resolved.network_timeout.value_or(network_timeout_);
+    const auto statement_timeout = resolved.statement_timeout.value_or(statement_timeout_);
     const auto statement_deadline =
         std::min(detail::GetExecuteDeadline(network_timeout), detail::GetExecuteDeadline(statement_timeout));
     detail::CheckDeadlineNotExpired(statement_deadline);

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <memory>
 #include <mutex>
 #include <optional>
 #include <string>
@@ -13,6 +14,7 @@
 #include <sqlext.h>
 #include <sqltypes.h>
 
+#include <userver/storages/odbc/command_control.hpp>
 #include <userver/storages/odbc/impl/parameter.hpp>
 #include <userver/storages/odbc/query.hpp>
 #include <userver/storages/odbc/result_set.hpp>
@@ -26,7 +28,8 @@ namespace storages::odbc {
 
 namespace detail {
 class BrokenGuard;
-}
+class CommandControlStore;
+}  // namespace detail
 
 /// @brief ODBC connection wrapper
 class Connection final {
@@ -72,6 +75,13 @@ public:
     /// Internal per-HDBC metadata snapshot captured during construction.
     const detail::DriverCapabilities& GetDriverCapabilities() const noexcept;
 
+    void SetCommandControlStore(std::shared_ptr<detail::CommandControlStore> store);
+    CommandControl ResolveTransactionCommandControl(
+        CommandControl transaction_base,
+        const storages::odbc::Query& query,
+        OptionalCommandControl explicit_command_control
+    ) const;
+
 private:
     struct TransactionAttributes final {
         std::optional<SQLUINTEGER> isolation;
@@ -94,6 +104,7 @@ private:
     EnvironmentHandle env_;
     DatabaseHandle handle_;
     detail::DriverCapabilities driver_capabilities_;
+    std::shared_ptr<detail::CommandControlStore> command_control_store_;
     std::optional<TransactionAttributes> transaction_attributes_snapshot_;
     std::atomic<bool> broken_{false};
     std::atomic<bool> in_transaction_{false};

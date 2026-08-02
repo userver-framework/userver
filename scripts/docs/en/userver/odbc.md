@@ -111,7 +111,19 @@ rejected by every driver/database combination.
 storages::odbc::CommandControl configures the connection-acquisition/network
 timeout and statement timeout for an operation. Pass an
 storages::odbc::OptionalCommandControl to `Cluster::Execute`, `Cluster::Begin`,
-or `Transaction::Execute` to override the defaults. `Begin`, every transaction
+or `Transaction::Execute` to override configured values. Each field is resolved
+independently in this order: built-in/default, task-inherited HTTP handler
+path and method, named query, explicit per-call command control. A higher layer
+only replaces fields that it specifies.
+
+@snippet odbc/tests/odbc_deadline_test.cpp ODBC named query command control
+
+The query layer is used only when storages::odbc::Query has a name; a plain SQL
+string creates an unnamed query and skips `USERVER_ODBC_QUERIES_COMMAND_CONTROL`.
+`Begin` resolves default, handler, and explicit layers and captures that result
+as the transaction base. Every `Transaction::Execute` reads the current named
+query config afresh, including for transactions opened before a config update,
+then overlays an explicit statement command control. `Begin`, every transaction
 `Execute`, and `Commit` get a fresh operation deadline: the earliest of the
 network budget, statement timeout, and task-inherited request deadline.
 Explicit and automatic rollback use an independent cleanup budget so an
@@ -159,10 +171,14 @@ resolver) or `getaddrinfo` (resolution in the ODBC driver).
 ### Dynamic configuration and metrics
 
 @ref USERVER_ODBC_DEFAULT_COMMAND_CONTROL controls default network and
-statement timeouts. @ref USERVER_ODBC_CONNECTION_POOL_SETTINGS describes pool
-settings by component name and the `__default__` fallback. Their schemas and
-defaults are generated from the dynamic-config YAML sources and included in
-the dynamic-config reference.
+statement timeouts. @ref USERVER_ODBC_HANDLERS_COMMAND_CONTROL maps handler
+paths and HTTP methods to partial overrides. @ref
+USERVER_ODBC_QUERIES_COMMAND_CONTROL maps `Query` names to partial overrides.
+Publishing an empty map removes all overrides from that layer. @ref
+USERVER_ODBC_CONNECTION_POOL_SETTINGS describes pool settings by component
+name and the `__default__` fallback. Their schemas and defaults are generated
+from the dynamic-config YAML sources and included in the dynamic-config
+reference.
 
 The component exports pool, query, error, timeout, and transaction statistics
 under the `odbc` metric prefix, labelled with the component and pool.

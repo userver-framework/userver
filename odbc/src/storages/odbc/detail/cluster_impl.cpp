@@ -6,6 +6,7 @@
 #include <storages/odbc/detail/deadline.hpp>
 #include <storages/odbc/detail/pool.hpp>
 #include <storages/odbc/detail/topology/topology_base.hpp>
+#include <userver/server/request/task_inherited_data.hpp>
 #include <userver/storages/odbc/cluster_types.hpp>
 #include <userver/storages/odbc/command_control.hpp>
 #include <userver/storages/odbc/exception.hpp>
@@ -28,7 +29,8 @@ ClusterImpl::ClusterImpl(
     : resolver_{resolver},
       blocking_task_processor_{blocking_task_processor},
       settings_{std::make_shared<const settings::ODBCClusterSettings>(settings)},
-      baseline_settings_{settings_}
+      baseline_settings_{settings_},
+      command_control_store_{std::make_shared<CommandControlStore>()}
 {
     UINVARIANT(!settings.pools.empty(), "Pools count should be positive");
     std::atomic_store(&topology_, topology::TopologyBase::Create(settings, resolver_, blocking_task_processor_));
@@ -40,7 +42,7 @@ ResultSet ClusterImpl::Execute(
     const Query& query,
     const impl::ParameterList& parameters
 ) {
-    const auto resolved = ResolveCommandControl(command_control);
+    const auto resolved = ResolveCommandControl(command_control, query.GetOptionalNameView());
     return ExecuteImpl(
         GetExecuteDeadline(resolved.network_timeout.value_or(kDefaultStatementTimeout)),
         resolved.statement_timeout.value_or(kDefaultStatementTimeout),
@@ -99,7 +101,7 @@ Transaction ClusterImpl::Begin(
     const TransactionOptions& options,
     OptionalCommandControl command_control
 ) {
-    const auto resolved = ResolveCommandControl(command_control);
+    const auto resolved = ResolveCommandControl(command_control, std::nullopt);
     const auto network_timeout = resolved.network_timeout.value_or(kDefaultStatementTimeout);
     const auto statement_timeout = resolved.statement_timeout.value_or(kDefaultStatementTimeout);
     const auto acquire_deadline = GetExecuteDeadline(network_timeout);
@@ -109,20 +111,19 @@ Transaction ClusterImpl::Begin(
     const auto topology = std::atomic_load(&topology_);
     auto& pool = SelectPool(*topology, flags);
     auto connection = pool.Acquire(acquire_deadline);
+    connection->SetCommandControlStore(command_control_store_);
     return Transaction{std::move(connection), pool, options, network_timeout, statement_timeout};
 }
 
-CommandControl ClusterImpl::ResolveCommandControl(OptionalCommandControl command_control) const {
-    auto resolved = default_command_control_.ReadCopy();
-    if (command_control) {
-        if (command_control->network_timeout) {
-            resolved.network_timeout = command_control->network_timeout;
-        }
-        if (command_control->statement_timeout) {
-            resolved.statement_timeout = command_control->statement_timeout;
-        }
+CommandControl ClusterImpl::ResolveCommandControl(
+    OptionalCommandControl command_control,
+    std::optional<Query::NameView> query_name
+) const {
+    const auto* task_data = server::request::kTaskInheritedData.GetOptional();
+    if (task_data) {
+        return command_control_store_->Resolve(task_data->path, task_data->method, query_name, command_control);
     }
-    return resolved;
+    return command_control_store_->Resolve(std::nullopt, std::nullopt, query_name, command_control);
 }
 
 Pool& ClusterImpl::SelectPool(const topology::TopologyBase& topology, ClusterHostTypeFlags flags) {
@@ -222,14 +223,34 @@ settings::ODBCClusterSettings ClusterImpl::MakeEffectiveSettingsLocked() const {
     return effective;
 }
 
-void ClusterImpl::SetDefaultCommandControl(const CommandControl& cc) { default_command_control_.Assign(cc); }
+void ClusterImpl::SetDefaultCommandControl(const CommandControl& cc) { command_control_store_->SetDefault(cc); }
+
+void ClusterImpl::SetHandlersCommandControl(CommandControlByHandlerMap command_control) {
+    command_control_store_->SetHandlers(std::move(command_control));
+}
+
+void ClusterImpl::SetQueriesCommandControl(CommandControlByQueryMap command_control) {
+    command_control_store_->SetQueries(std::move(command_control));
+}
+
+void ClusterImpl::ApplyDynamicCommandControls(
+    CommandControl default_command_control,
+    CommandControlByHandlerMap handlers_command_control,
+    CommandControlByQueryMap queries_command_control
+) {
+    command_control_store_->Assign(CommandControlConfig{
+        .default_command_control = std::move(default_command_control),
+        .handlers_command_control = std::move(handlers_command_control),
+        .queries_command_control = std::move(queries_command_control),
+    });
+}
 
 std::optional<std::chrono::milliseconds> ClusterImpl::GetDefaultNetworkTimeout() const {
-    return default_command_control_.ReadCopy().network_timeout;
+    return command_control_store_->GetDefault().network_timeout;
 }
 
 std::optional<std::chrono::milliseconds> ClusterImpl::GetDefaultStatementTimeout() const {
-    return default_command_control_.ReadCopy().statement_timeout;
+    return command_control_store_->GetDefault().statement_timeout;
 }
 
 }  // namespace storages::odbc::detail

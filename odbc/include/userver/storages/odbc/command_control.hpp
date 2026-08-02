@@ -5,6 +5,9 @@
 
 #include <chrono>
 #include <optional>
+#include <string>
+
+#include <userver/utils/impl/transparent_hash.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,9 +23,20 @@ struct CommandControl final {
     /// Timeout for statement execution. ODBC drivers accept this timeout in
     /// whole seconds, so the value is rounded up when passed to a driver.
     std::optional<std::chrono::milliseconds> statement_timeout;
+
+    bool operator==(const CommandControl&) const = default;
 };
 
 using OptionalCommandControl = std::optional<CommandControl>;
+
+/// Command controls keyed by an HTTP method.
+using CommandControlByMethodMap = utils::impl::TransparentMap<std::string, CommandControl>;
+
+/// Command controls keyed first by handler path, then by HTTP method.
+using CommandControlByHandlerMap = utils::impl::TransparentMap<std::string, CommandControlByMethodMap>;
+
+/// Command controls keyed by storages::odbc::Query name.
+using CommandControlByQueryMap = utils::impl::TransparentMap<std::string, CommandControl>;
 
 }  // namespace storages::odbc
 

@@ -21,6 +21,7 @@
 #include <userver/storages/odbc/settings.hpp>
 #include <userver/storages/odbc/transaction.hpp>
 
+#include <storages/odbc/detail/command_control_store.hpp>
 #include <storages/odbc/detail/pool.hpp>
 #include <storages/odbc/detail/topology/topology_base.hpp>
 
@@ -60,6 +61,13 @@ public:
     void WriteStatistics(utils::statistics::Writer& writer) const;
 
     void SetDefaultCommandControl(const CommandControl& cc);
+    void SetHandlersCommandControl(CommandControlByHandlerMap command_control);
+    void SetQueriesCommandControl(CommandControlByQueryMap command_control);
+    void ApplyDynamicCommandControls(
+        CommandControl default_command_control,
+        CommandControlByHandlerMap handlers_command_control,
+        CommandControlByQueryMap queries_command_control
+    );
 
     void UpdateSettings(const settings::ODBCClusterSettings& settings);
     void UpdateDsns(const std::vector<std::string>& dsns);
@@ -80,7 +88,10 @@ private:
         const impl::ParameterList& parameters
     );
 
-    CommandControl ResolveCommandControl(OptionalCommandControl command_control) const;
+    CommandControl ResolveCommandControl(
+        OptionalCommandControl command_control,
+        std::optional<Query::NameView> query_name
+    ) const;
     bool UpdateSettingsLocked(const settings::ODBCClusterSettings& settings);
     settings::ODBCClusterSettings MakeEffectiveSettingsLocked() const;
 
@@ -92,8 +103,7 @@ private:
     std::shared_ptr<const settings::ODBCClusterSettings> baseline_settings_;
     std::optional<settings::PoolSettings> pool_settings_override_;
 
-    // One RCU value prevents readers from observing a torn dynamic-config update.
-    rcu::Variable<CommandControl> default_command_control_;
+    CommandControlStorePtr command_control_store_;
 };
 
 }  // namespace storages::odbc::detail

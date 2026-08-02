@@ -27,6 +27,8 @@ namespace components {
 ///
 /// ## Dynamic options:
 /// * @ref USERVER_ODBC_DEFAULT_COMMAND_CONTROL
+/// * @ref USERVER_ODBC_HANDLERS_COMMAND_CONTROL
+/// * @ref USERVER_ODBC_QUERIES_COMMAND_CONTROL
 /// * @ref USERVER_ODBC_CONNECTION_POOL_SETTINGS
 ///
 /// ## Static configuration example:
