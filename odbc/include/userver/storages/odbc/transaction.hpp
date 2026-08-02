@@ -12,6 +12,7 @@
 
 #include <userver/storages/odbc/command_control.hpp>
 #include <userver/storages/odbc/impl/parameter.hpp>
+#include <userver/storages/odbc/parameter_store.hpp>
 #include <userver/storages/odbc/query.hpp>
 #include <userver/storages/odbc/result_set.hpp>
 #include <userver/storages/odbc/transaction_options.hpp>
@@ -60,6 +61,12 @@ public:
     ResultSet Execute(OptionalCommandControl command_control, const Query& query, const Args&... args) {
         return DoExecute(command_control, query, impl::MakeParameterList(args...));
     }
+
+    /// @brief Execute a statement with an owning dynamic parameter list.
+    ResultSet Execute(const Query& query, const ParameterStore& store);
+
+    /// @brief Execute a statement with a dynamic parameter list and timeout overrides.
+    ResultSet Execute(OptionalCommandControl command_control, const Query& query, const ParameterStore& store);
 
     /// @brief Commit the transaction
     void Commit();

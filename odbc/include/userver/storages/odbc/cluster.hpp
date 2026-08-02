@@ -13,6 +13,7 @@
 #include <userver/storages/odbc/cluster_types.hpp>
 #include <userver/storages/odbc/command_control.hpp>
 #include <userver/storages/odbc/impl/parameter.hpp>
+#include <userver/storages/odbc/parameter_store.hpp>
 #include <userver/storages/odbc/query.hpp>
 #include <userver/storages/odbc/result_set.hpp>
 #include <userver/storages/odbc/settings.hpp>
@@ -60,6 +61,17 @@ public:
     ) {
         return DoExecute(command_control, flags, query, impl::MakeParameterList(args...));
     }
+
+    /// @brief Execute a statement with an owning dynamic parameter list.
+    ResultSet Execute(ClusterHostTypeFlags flags, const Query& query, const ParameterStore& store);
+
+    /// @brief Execute a statement with a dynamic parameter list and timeout overrides.
+    ResultSet Execute(
+        ClusterHostTypeFlags flags,
+        OptionalCommandControl command_control,
+        const Query& query,
+        const ParameterStore& store
+    );
 
     Transaction Begin(ClusterHostTypeFlags flags);
 

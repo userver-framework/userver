@@ -35,6 +35,19 @@ ResultSet Cluster::DoExecute(
     return impl_->Execute(flags, command_control, query, parameters);
 }
 
+ResultSet Cluster::Execute(ClusterHostTypeFlags flags, const Query& query, const ParameterStore& store) {
+    return Execute(flags, std::nullopt, query, store);
+}
+
+ResultSet Cluster::Execute(
+    ClusterHostTypeFlags flags,
+    OptionalCommandControl command_control,
+    const Query& query,
+    const ParameterStore& store
+) {
+    return DoExecute(command_control, flags, query, store.GetParameters());
+}
+
 Transaction Cluster::Begin(ClusterHostTypeFlags flags) { return impl_->Begin(flags); }
 
 Transaction Cluster::Begin(ClusterHostTypeFlags flags, OptionalCommandControl command_control) {

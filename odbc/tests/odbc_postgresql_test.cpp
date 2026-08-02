@@ -1,19 +1,60 @@
 #include <gtest/gtest.h>
+#include <concepts>
 #include <cstdint>
 #include <limits>
 #include <optional>
 #include <storages/odbc/detail/connection.hpp>
 #include <storages/odbc/detail/tracing.hpp>
+#include <string>
 #include <string_view>
+#include <type_traits>
 #include <userver/storages/odbc.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/async.hpp>
+#include <vector>
 
 #include <userver/storages/odbc/tests/utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::odbc::tests {
+
+using ClusterParameterStoreExecute = ResultSet (Cluster::*)(ClusterHostTypeFlags, const Query&, const ParameterStore&);
+using ClusterParameterStoreExecuteWithCommandControl =
+    ResultSet (Cluster::*)(ClusterHostTypeFlags, OptionalCommandControl, const Query&, const ParameterStore&);
+using TransactionParameterStoreExecute = ResultSet (Transaction::*)(const Query&, const ParameterStore&);
+using TransactionParameterStoreExecuteWithCommandControl =
+    ResultSet (Transaction::*)(OptionalCommandControl, const Query&, const ParameterStore&);
+
+template <typename T>
+concept ParameterStorePushable = requires(ParameterStore& store, const T& value) { store.PushBack(value); };
+
+struct UnsupportedParameter final {};
+
+static_assert(!std::is_copy_constructible_v<ParameterStore>);
+static_assert(!std::is_copy_assignable_v<ParameterStore>);
+static_assert(std::is_nothrow_move_constructible_v<ParameterStore>);
+static_assert(std::is_nothrow_move_assignable_v<ParameterStore>);
+static_assert(requires(ParameterStore& store, const std::optional<std::int32_t>& value) {
+    {
+        store.PushBack(value)
+    } -> std::same_as<ParameterStore&>;
+    store.PushBack("string literal");
+});
+static_assert(ParameterStorePushable<std::nullptr_t>);
+static_assert(ParameterStorePushable<std::nullopt_t>);
+static_assert(ParameterStorePushable<const char*>);
+static_assert(ParameterStorePushable<std::string_view>);
+static_assert(ParameterStorePushable<std::optional<std::string>>);
+static_assert(!ParameterStorePushable<void*>);
+static_assert(!ParameterStorePushable<UnsupportedParameter>);
+static_assert(!ParameterStorePushable<std::optional<std::vector<int>>>);
+static_assert(requires {
+    static_cast<ClusterParameterStoreExecute>(&Cluster::Execute);
+    static_cast<ClusterParameterStoreExecuteWithCommandControl>(&Cluster::Execute);
+    static_cast<TransactionParameterStoreExecute>(&Transaction::Execute);
+    static_cast<TransactionParameterStoreExecuteWithCommandControl>(&Transaction::Execute);
+});
 
 UTEST(CreateConnection, Works) { auto cluster = MakeCluster(); }
 
@@ -105,6 +146,86 @@ UTEST(Query, BindsParametersWithoutInterpolation) {
     EXPECT_DOUBLE_EQ(result[0][4].GetDouble(), 1.25);
     EXPECT_TRUE(result[0][5].GetBool());
     EXPECT_FALSE(result[0][6].GetBool());
+}
+
+UTEST(ParameterStore, OwnsDynamicParametersAndIsReusable) {
+    auto cluster = MakeCluster();
+
+    ParameterStore empty;
+    EXPECT_TRUE(empty.IsEmpty());
+    EXPECT_EQ(empty.Size(), 0);
+    const auto empty_result = cluster.Execute(ClusterHostType::kMaster, "SELECT 1", empty);
+    ASSERT_EQ(empty_result.Size(), 1);
+    EXPECT_EQ(empty_result[0][0].GetInt32(), 1);
+
+    /// [ODBC dynamic parameter store]
+    const std::string injection_payload = "Robert'); DROP TABLE users;--";
+    std::string copied_source = injection_payload;
+    const std::optional<std::int32_t> null_integer;
+    const std::optional<std::string> null_string;
+
+    ParameterStore parameters;
+    parameters.PushBack(std::int64_t{42})
+        .PushBack(copied_source)
+        .PushBack("string literal")
+        .PushBack(std::string{"temporary string"})
+        .PushBack(null_integer)
+        .PushBack(null_string);
+
+    const Query query{
+        "SELECT ?::bigint, ?::text, ?::text, ?::text, ?::integer IS NULL, ?::text IS NULL",
+    };
+    const auto result = cluster.Execute(ClusterHostType::kMaster, query, parameters);
+    /// [ODBC dynamic parameter store]
+
+    copied_source.assign("changed after PushBack");
+    EXPECT_FALSE(parameters.IsEmpty());
+    EXPECT_EQ(parameters.Size(), 6);
+
+    ParameterStore moved_parameters{std::move(parameters)};
+    EXPECT_EQ(moved_parameters.Size(), 6);
+
+    const auto validate = [&injection_payload](const ResultSet& value) {
+        ASSERT_EQ(value.Size(), 1);
+        EXPECT_EQ(value[0][0].GetInt64(), 42);
+        EXPECT_EQ(value[0][1].GetString(), injection_payload);
+        EXPECT_EQ(value[0][2].GetString(), "string literal");
+        EXPECT_EQ(value[0][3].GetString(), "temporary string");
+        EXPECT_TRUE(value[0][4].GetBool());
+        EXPECT_TRUE(value[0][5].GetBool());
+    };
+    validate(result);
+
+    // Reusing a store never consumes or mutates its values.
+    validate(cluster.Execute(ClusterHostType::kMaster, CommandControl{}, query, moved_parameters));
+
+    auto transaction = cluster.Begin(ClusterHostType::kMaster);
+    validate(transaction.Execute(query, moved_parameters));
+    validate(transaction.Execute(CommandControl{}, query, moved_parameters));
+    UEXPECT_THROW(transaction.Execute("SELECT ?::integer", moved_parameters), StatementError);
+    transaction.Rollback();
+
+    // Unlike raw nullptr, a null const char* retains the string parameter type.
+    const char* null_c_string = nullptr;
+    ParameterStore null_string_parameter;
+    null_string_parameter.PushBack(null_c_string);
+    const auto null_result = cluster.Execute(ClusterHostType::kMaster, "SELECT ?::text IS NULL", null_string_parameter);
+    ASSERT_EQ(null_result.Size(), 1);
+    EXPECT_TRUE(null_result[0][0].GetBool());
+}
+
+UTEST(ParameterStore, PreservesUnsignedBigintRangeChecks) {
+    auto cluster = MakeCluster();
+
+    ParameterStore supported;
+    supported.PushBack(static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()));
+    const auto result = cluster.Execute(ClusterHostType::kMaster, "SELECT ?::bigint", supported);
+    ASSERT_EQ(result.Size(), 1);
+    EXPECT_EQ(result[0][0].GetInt64(), std::numeric_limits<std::int64_t>::max());
+
+    ParameterStore unsupported;
+    unsupported.PushBack(std::numeric_limits<std::uint64_t>::max());
+    UEXPECT_THROW(cluster.Execute(ClusterHostType::kMaster, "SELECT ?::numeric", unsupported), StatementError);
 }
 
 UTEST(Query, RejectsUnsignedValuesOutsidePortableBigintRange) {

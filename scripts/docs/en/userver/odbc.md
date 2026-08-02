@@ -24,6 +24,19 @@ value, or `nullptr` when the ODBC driver can infer the parameter type from the
 statement. The number of C++ arguments must match the number of `?`
 placeholders.
 
+For queries assembled at runtime, storages::odbc::ParameterStore provides an
+owning, ordered dynamic parameter list with the same supported value types and
+the same safe ODBC binding path:
+
+@snippet odbc/tests/odbc_postgresql_test.cpp ODBC dynamic parameter store
+
+`PushBack` copies each value, so the store can outlive source objects and can be
+reused by cluster and transaction executions without being consumed. Prefer an
+empty `std::optional<T>` for NULL because `T` preserves the concrete binding
+type. Raw `nullptr` and `std::nullopt` remain untyped and require driver type
+inference; a null value whose static type is `const char*` is instead bound as
+a typed string NULL.
+
 `storages::odbc::Cluster::Execute` returns a storages::odbc::ResultSet. Its rows
 contain storages::odbc::Field values that provide typed getters such as
 `GetInt32`, `GetInt64`, `GetDouble`, `GetBool`, and `GetString`.

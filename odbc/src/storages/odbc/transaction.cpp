@@ -75,6 +75,18 @@ Transaction::~Transaction() {
     }
 }
 
+ResultSet Transaction::Execute(const Query& query, const ParameterStore& store) {
+    return Execute(std::nullopt, query, store);
+}
+
+ResultSet Transaction::Execute(
+    OptionalCommandControl command_control,
+    const Query& query,
+    const ParameterStore& store
+) {
+    return DoExecute(command_control, query, store.GetParameters());
+}
+
 void Transaction::Commit() {
     const utils::FastScopeGuard unlock_guard([this]() noexcept { trx_lock_.Unlock(); });
     AssertValid();
