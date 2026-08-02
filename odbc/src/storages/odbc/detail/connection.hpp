@@ -16,6 +16,8 @@
 #include <userver/storages/odbc/query.hpp>
 #include <userver/storages/odbc/result_set.hpp>
 
+#include <storages/odbc/detail/driver_capabilities.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::odbc {
@@ -65,6 +67,9 @@ public:
 
     detail::BrokenGuard GetBrokenGuard();
 
+    /// Internal per-HDBC metadata snapshot captured during construction.
+    const detail::DriverCapabilities& GetDriverCapabilities() const noexcept;
+
 private:
     friend class Transaction;
     void Begin(engine::Deadline deadline);
@@ -78,6 +83,7 @@ private:
     mutable std::mutex handle_mutex_;
     EnvironmentHandle env_;
     DatabaseHandle handle_;
+    detail::DriverCapabilities driver_capabilities_;
     std::atomic<bool> broken_{false};
     std::atomic<bool> in_transaction_{false};
 };

@@ -41,6 +41,12 @@ namespace {
 
 using StatementHandle = std::unique_ptr<std::remove_pointer_t<SQLHSTMT>, void (*)(SQLHSTMT)>;
 
+struct ConnectedHandles final {
+    Connection::EnvironmentHandle environment;
+    Connection::DatabaseHandle database;
+    detail::DriverCapabilities driver_capabilities;
+};
+
 template <typename Func>
 auto RunBlocking(engine::TaskProcessor& task_processor, Func&& func) -> std::invoke_result_t<Func> {
     const engine::TaskCancellationBlocker cancellation_blocker;
@@ -572,20 +578,36 @@ Connection::Connection(
             throw MakeDriverError<
                 ConnectionError>("Failed to connect to database", result, database.get(), SQL_HANDLE_DBC);
         }
-        return std::pair{std::move(environment), std::move(database)};
+        if (deadline.IsReachable() && deadline.IsReached()) {
+            throw OperationInterrupted("Cancelled by deadline");
+        }
+
+        auto driver_capabilities = detail::DriverCapabilities::Read(database.get(), deadline);
+        return ConnectedHandles{
+            std::move(environment),
+            std::move(database),
+            std::move(driver_capabilities),
+        };
     });
 
     try {
         CheckOperationInterrupted(deadline);
     } catch (...) {
-        DestroyConnectionHandlesOnBlockingTaskProcessor(blocking_task_processor_, handles.first, handles.second);
+        DestroyConnectionHandlesOnBlockingTaskProcessor(
+            blocking_task_processor_,
+            handles.environment,
+            handles.database
+        );
         throw;
     }
-    env_ = std::move(handles.first);
-    handle_ = std::move(handles.second);
+    driver_capabilities_ = std::move(handles.driver_capabilities);
+    env_ = std::move(handles.environment);
+    handle_ = std::move(handles.database);
 }
 
 Connection::~Connection() { DestroyConnectionHandlesOnBlockingTaskProcessor(blocking_task_processor_, env_, handle_); }
+
+const detail::DriverCapabilities& Connection::GetDriverCapabilities() const noexcept { return driver_capabilities_; }
 
 ResultSet Connection::Query(std::string_view query) {
     return Query(query, impl::ParameterList{}, detail::GetExecuteDeadline(detail::kDefaultStatementTimeout));

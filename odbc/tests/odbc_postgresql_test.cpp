@@ -2,6 +2,7 @@
 #include <cstdint>
 #include <limits>
 #include <optional>
+#include <storages/odbc/detail/connection.hpp>
 #include <storages/odbc/detail/tracing.hpp>
 #include <string_view>
 #include <userver/storages/odbc.hpp>
@@ -17,6 +18,45 @@ namespace storages::odbc::tests {
 UTEST(CreateConnection, Works) { auto cluster = MakeCluster(); }
 
 UTEST(CreateConnection, MultipleDSN) { auto cluster = MakeCluster(kMultiDSNSettings); }
+
+UTEST(DriverCapabilities, CapturesPsqlOdbcSnapshot) {
+    Connection connection{kDSN};
+    const auto& capabilities = connection.GetDriverCapabilities();
+
+    EXPECT_EQ(capabilities.GetDbmsName(), "PostgreSQL");
+    EXPECT_FALSE(capabilities.GetDbmsVersion().empty());
+    EXPECT_NE(capabilities.GetDriverName().find("psqlodbc"), std::string::npos);
+    EXPECT_FALSE(capabilities.GetDriverVersion().empty());
+    EXPECT_FALSE(capabilities.GetDriverOdbcVersion().empty());
+
+    const auto transaction_capability = capabilities.GetTransactionCapability();
+    ASSERT_TRUE(transaction_capability);
+    EXPECT_NE(*transaction_capability, detail::TransactionCapability::kNone);
+
+    const auto isolation_options = capabilities.GetTransactionIsolationOptions();
+    ASSERT_TRUE(isolation_options);
+    EXPECT_NE(*isolation_options & SQL_TXN_READ_COMMITTED, 0U);
+    const auto default_isolation = capabilities.GetDefaultTransactionIsolation();
+    ASSERT_TRUE(default_isolation);
+    EXPECT_NE(*default_isolation, 0U);
+    EXPECT_EQ(*default_isolation & *isolation_options, *default_isolation);
+
+    ASSERT_TRUE(capabilities.IsDataSourceReadOnly());
+    EXPECT_FALSE(*capabilities.IsDataSourceReadOnly());
+    ASSERT_TRUE(capabilities.CanDescribeParameters());
+    EXPECT_FALSE(*capabilities.CanDescribeParameters());
+
+    EXPECT_TRUE(capabilities.GetParameterArrayRowCounts());
+    EXPECT_TRUE(capabilities.GetParameterArraySelects());
+    EXPECT_TRUE(capabilities.GetBatchRowCount());
+
+    const auto scroll_options = capabilities.GetScrollOptions();
+    ASSERT_TRUE(scroll_options);
+    EXPECT_NE(*scroll_options & SQL_SO_FORWARD_ONLY, 0U);
+    EXPECT_TRUE(capabilities.GetGetDataExtensions());
+    EXPECT_TRUE(capabilities.GetCursorCommitBehavior());
+    EXPECT_TRUE(capabilities.GetCursorRollbackBehavior());
+}
 
 UTEST(Query, Works) {
     auto cluster = MakeCluster();
