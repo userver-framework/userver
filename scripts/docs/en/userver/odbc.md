@@ -41,6 +41,19 @@ Parameters are bound in transaction queries in exactly the same way:
 
 @snippet odbc/tests/odbc_transaction_test.cpp ODBC transaction parameter binding
 
+storages::odbc::TransactionOptions can request any portable ODBC isolation
+level and `SQL_ATTR_ACCESS_MODE` read-only/read-write hints:
+
+@snippet odbc/tests/odbc_transaction_test.cpp ODBC transaction options
+
+Default-constructed options do not override either connection attribute, so
+the selected driver's current defaults are preserved. Explicit isolation is
+accepted only when the physical connection reports the requested level and
+then applies it exactly; the driver never silently substitutes a weaker level.
+ODBC defines read-only access mode as an intent/optimization hint. Applications
+must not rely on it as authorization or assume that write statements will be
+rejected by every driver/database combination.
+
 ### Command control and deadlines
 
 storages::odbc::CommandControl configures the connection-acquisition/network

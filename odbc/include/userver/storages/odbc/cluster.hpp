@@ -65,6 +65,16 @@ public:
 
     Transaction Begin(ClusterHostTypeFlags flags, OptionalCommandControl command_control);
 
+    /// Start a transaction with explicit ODBC isolation/access options.
+    Transaction Begin(ClusterHostTypeFlags flags, const TransactionOptions& options);
+
+    /// Start a transaction with explicit options and timeout overrides.
+    Transaction Begin(
+        ClusterHostTypeFlags flags,
+        const TransactionOptions& options,
+        OptionalCommandControl command_control
+    );
+
     void WriteStatistics(utils::statistics::Writer& writer) const;
 
     /// @brief Set default command control (timeouts) from dynamic config

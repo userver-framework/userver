@@ -41,6 +41,18 @@ Transaction Cluster::Begin(ClusterHostTypeFlags flags, OptionalCommandControl co
     return impl_->Begin(flags, command_control);
 }
 
+Transaction Cluster::Begin(ClusterHostTypeFlags flags, const TransactionOptions& options) {
+    return impl_->Begin(flags, options);
+}
+
+Transaction Cluster::Begin(
+    ClusterHostTypeFlags flags,
+    const TransactionOptions& options,
+    OptionalCommandControl command_control
+) {
+    return impl_->Begin(flags, options, command_control);
+}
+
 void Cluster::WriteStatistics(utils::statistics::Writer& writer) const { impl_->WriteStatistics(writer); }
 
 void Cluster::SetDefaultCommandControl(const CommandControl& cc) { impl_->SetDefaultCommandControl(cc); }

@@ -31,6 +31,7 @@
 #include <storages/odbc/detail/diag_wrapper.hpp>
 #include <storages/odbc/detail/result_wrapper.hpp>
 #include <storages/odbc/detail/tracing.hpp>
+#include <storages/odbc/detail/transaction_options.hpp>
 #include <userver/storages/odbc/exception.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -102,6 +103,130 @@ Exception MakeDriverError(std::string message, SQLRETURN result, SQLHANDLE handl
         message += formatted;
     }
     return Exception{std::move(message), std::move(diagnostics), result == SQL_INVALID_HANDLE};
+}
+
+ConnectionError MakeConnectionError(std::string message, SQLRETURN result, std::vector<DiagnosticRecord> diagnostics) {
+    const auto formatted = detail::FormatSQLDiagnostics(diagnostics);
+    if (!formatted.empty()) {
+        message += ": ";
+        message += formatted;
+    }
+    return ConnectionError{std::move(message), std::move(diagnostics), result == SQL_INVALID_HANDLE};
+}
+
+void LogConnectionAttributeWarnings(std::string_view operation, const std::vector<DiagnosticRecord>& diagnostics) {
+    constexpr std::size_t kMaxWarningLength = 1024;
+    auto formatted = detail::FormatSQLDiagnostics(diagnostics);
+    if (formatted.size() > kMaxWarningLength) {
+        formatted.resize(kMaxWarningLength);
+        formatted += "...";
+    }
+    LOG_WARNING()
+        << operation << " completed with warning: " << (formatted.empty() ? "no diagnostic records" : formatted);
+}
+
+SQLUINTEGER ReadConnectionAttribute(
+    SQLHDBC connection,
+    SQLINTEGER attribute,
+    std::string_view attribute_name,
+    engine::Deadline deadline
+) {
+    detail::CheckDeadlineNotExpired(deadline);
+    SQLUINTEGER value = 0;
+    SQLINTEGER value_size = 0;
+    const auto
+        result = SQLGetConnectAttr(connection, attribute, &value, static_cast<SQLINTEGER>(sizeof(value)), &value_size);
+    std::exception_ptr deadline_error;
+    try {
+        detail::CheckDeadlineNotExpired(deadline);
+    } catch (...) {
+        deadline_error = std::current_exception();
+    }
+
+    auto diagnostics =
+        result == SQL_SUCCESS ? std::vector<DiagnosticRecord>{} : detail::GetSQLDiagnostics(connection, SQL_HANDLE_DBC);
+    if (!SQL_SUCCEEDED(result)) {
+        throw MakeConnectionError(
+            fmt::format("Failed to read ODBC connection attribute {}", attribute_name),
+            result,
+            std::move(diagnostics)
+        );
+    }
+    if (std::any_of(diagnostics.begin(), diagnostics.end(), [](const DiagnosticRecord& diagnostic) {
+            return diagnostic.sql_state == "01004";
+        }))
+    {
+        throw MakeConnectionError(
+            fmt::format("Failed to read exact ODBC connection attribute {}", attribute_name),
+            result,
+            std::move(diagnostics)
+        );
+    }
+    if (deadline_error) {
+        std::rethrow_exception(deadline_error);
+    }
+    if (result == SQL_SUCCESS_WITH_INFO) {
+        LogConnectionAttributeWarnings(
+            fmt::format("Reading ODBC connection attribute {}", attribute_name),
+            diagnostics
+        );
+    }
+    return value;
+}
+
+void SetConnectionAttributeVerified(
+    SQLHDBC connection,
+    SQLINTEGER attribute,
+    SQLUINTEGER requested_value,
+    std::string_view attribute_name,
+    engine::Deadline deadline
+) {
+    detail::CheckDeadlineNotExpired(deadline);
+    const auto result = SQLSetConnectAttr(
+        connection,
+        attribute,
+        reinterpret_cast<SQLPOINTER>(static_cast<std::uintptr_t>(requested_value)),
+        SQL_IS_UINTEGER
+    );
+    std::exception_ptr deadline_error;
+    try {
+        detail::CheckDeadlineNotExpired(deadline);
+    } catch (...) {
+        deadline_error = std::current_exception();
+    }
+
+    auto diagnostics =
+        result == SQL_SUCCESS ? std::vector<DiagnosticRecord>{} : detail::GetSQLDiagnostics(connection, SQL_HANDLE_DBC);
+    if (!SQL_SUCCEEDED(result)) {
+        throw MakeConnectionError(
+            fmt::format("Failed to set requested ODBC connection attribute {}", attribute_name),
+            result,
+            std::move(diagnostics)
+        );
+    }
+    if (deadline_error) {
+        std::rethrow_exception(deadline_error);
+    }
+
+    const auto actual_value = ReadConnectionAttribute(connection, attribute, attribute_name, deadline);
+    if (!detail::IsExactConnectionAttributeValue(requested_value, actual_value)) {
+        throw MakeConnectionError(
+            fmt::format(
+                "ODBC driver substituted connection attribute {} value {} with {}",
+                attribute_name,
+                requested_value,
+                actual_value
+            ),
+            result,
+            std::move(diagnostics)
+        );
+    }
+    if (result == SQL_SUCCESS_WITH_INFO) {
+        LogConnectionAttributeWarnings(
+            fmt::format("Setting ODBC connection attribute {}", attribute_name),
+            diagnostics
+        );
+    }
 }
 
 void DestroyEnvironmentHandle(SQLHENV handle) {
@@ -726,35 +851,101 @@ detail::BrokenGuard Connection::GetBrokenGuard() { return detail::BrokenGuard{*t
 
 bool Connection::IsInsideTransaction() const noexcept { return in_transaction_.load(); }
 
-void Connection::Begin(engine::Deadline deadline) {
-    auto guard = GetBrokenGuard();
+void Connection::Begin(const TransactionOptions& options, engine::Deadline deadline) {
+    if (IsInsideTransaction()) {
+        throw ConnectionError("Cannot begin an ODBC transaction while another transaction is active");
+    }
+
+    const auto transaction_capability = driver_capabilities_.GetTransactionCapability();
+    if (transaction_capability && *transaction_capability == detail::TransactionCapability::kNone) {
+        throw TransactionException("ODBC driver reports that transactions are not supported");
+    }
+    if (options.isolation_level &&
+        !detail::IsIsolationSupported(driver_capabilities_.GetTransactionIsolationOptions(), *options.isolation_level))
+    {
+        throw TransactionException(fmt::format(
+            "ODBC driver does not report support for requested {} isolation",
+            detail::ToStringView(*options.isolation_level)
+        ));
+    }
+
     try {
-        guard.Execute([this, deadline] {
-            RunBlockingChecked(blocking_task_processor_, deadline, [this, deadline] {
-                const std::lock_guard lock{handle_mutex_};
-                detail::CheckDeadlineNotExpired(deadline);
-                const auto result = SQLSetConnectAttr(
-                    handle_.get(),
-                    SQL_ATTR_AUTOCOMMIT,
-                    reinterpret_cast<SQLPOINTER>(SQL_AUTOCOMMIT_OFF),
-                    SQL_IS_UINTEGER
-                );
-                if (!SQL_SUCCEEDED(result)) {
-                    throw MakeDriverError<ConnectionError>(
-                        "Failed to set connection autocommit attribute",
-                        result,
+        RunBlockingChecked(blocking_task_processor_, deadline, [this, options, deadline] {
+            const std::lock_guard lock{handle_mutex_};
+            TransactionAttributes snapshot;
+            if (options.isolation_level) {
+                snapshot.isolation =
+                    ReadConnectionAttribute(handle_.get(), SQL_ATTR_TXN_ISOLATION, "SQL_ATTR_TXN_ISOLATION", deadline);
+            }
+            if (options.access_mode) {
+                snapshot.access_mode =
+                    ReadConnectionAttribute(handle_.get(), SQL_ATTR_ACCESS_MODE, "SQL_ATTR_ACCESS_MODE", deadline);
+            }
+            snapshot.autocommit =
+                ReadConnectionAttribute(handle_.get(), SQL_ATTR_AUTOCOMMIT, "SQL_ATTR_AUTOCOMMIT", deadline);
+
+            TransactionAttributes attempted_restore;
+            try {
+                if (options.isolation_level) {
+                    attempted_restore.isolation = snapshot.isolation;
+                    SetConnectionAttributeVerified(
                         handle_.get(),
-                        SQL_HANDLE_DBC
+                        SQL_ATTR_TXN_ISOLATION,
+                        detail::ToOdbcIsolation(*options.isolation_level),
+                        "SQL_ATTR_TXN_ISOLATION",
+                        deadline
                     );
                 }
-                in_transaction_.store(true);
-            });
+                if (options.access_mode) {
+                    attempted_restore.access_mode = snapshot.access_mode;
+                    const auto access_mode =
+                        *options.access_mode == AccessMode::kReadOnly ? SQL_MODE_READ_ONLY : SQL_MODE_READ_WRITE;
+                    SetConnectionAttributeVerified(
+                        handle_.get(),
+                        SQL_ATTR_ACCESS_MODE,
+                        access_mode,
+                        "SQL_ATTR_ACCESS_MODE",
+                        deadline
+                    );
+                }
+
+                attempted_restore.autocommit = snapshot.autocommit;
+                SetConnectionAttributeVerified(
+                    handle_.get(),
+                    SQL_ATTR_AUTOCOMMIT,
+                    SQL_AUTOCOMMIT_OFF,
+                    "SQL_ATTR_AUTOCOMMIT",
+                    deadline
+                );
+            } catch (...) {
+                const auto begin_error = std::current_exception();
+                if (attempted_restore.isolation || attempted_restore.access_mode || attempted_restore.autocommit) {
+                    try {
+                        RestoreTransactionAttributes(
+                            attempted_restore,
+                            engine::Deadline::FromDuration(detail::kDefaultCleanupTimeout)
+                        );
+                    } catch (const std::exception& ex) {
+                        NotifyBroken();
+                        LOG_ERROR() << "Failed to restore ODBC attributes after transaction begin failure: " << ex;
+                    } catch (...) {
+                        NotifyBroken();
+                        LOG_ERROR() << "Failed to restore ODBC attributes after transaction begin failure";
+                    }
+                }
+                std::rethrow_exception(begin_error);
+            }
+
+            transaction_attributes_snapshot_ = snapshot;
+            in_transaction_.store(true);
         });
     } catch (const OperationInterrupted&) {
-        // SQLSetConnectAttr may have completed before the caller observed the
-        // deadline/cancellation. Do not pool a connection with uncertain
-        // autocommit state.
-        NotifyBroken();
+        CleanupInterruptedBegin();
+        throw;
+    } catch (const ConnectionError& ex) {
+        if (ex.IsInvalidHandle() || ex.HasSqlStateClass("08")) {
+            NotifyBroken();
+        }
         throw;
     }
 }
@@ -768,17 +959,7 @@ void Connection::Commit(engine::Deadline deadline) {
             }
             RunBlockingChecked(blocking_task_processor_, deadline, [this, deadline] {
                 const std::lock_guard lock{handle_mutex_};
-                detail::CheckDeadlineNotExpired(deadline);
-                const auto result = SQLEndTran(SQL_HANDLE_DBC, handle_.get(), SQL_COMMIT);
-                if (!SQL_SUCCEEDED(result)) {
-                    throw MakeDriverError<ConnectionError>(
-                        "Failed to commit transaction inside connection",
-                        result,
-                        handle_.get(),
-                        SQL_HANDLE_DBC
-                    );
-                }
-                RestoreAutocommit();
+                EndTransaction(SQL_COMMIT, "commit", deadline);
             });
         });
     } catch (const OperationInterrupted&) {
@@ -796,17 +977,7 @@ void Connection::Rollback(engine::Deadline deadline) {
             }
             RunBlockingChecked(blocking_task_processor_, deadline, [this, deadline] {
                 const std::lock_guard lock{handle_mutex_};
-                detail::CheckDeadlineNotExpired(deadline);
-                const auto result = SQLEndTran(SQL_HANDLE_DBC, handle_.get(), SQL_ROLLBACK);
-                if (!SQL_SUCCEEDED(result)) {
-                    throw MakeDriverError<ConnectionError>(
-                        "Failed to rollback transaction inside connection",
-                        result,
-                        handle_.get(),
-                        SQL_HANDLE_DBC
-                    );
-                }
-                RestoreAutocommit();
+                EndTransaction(SQL_ROLLBACK, "roll back", deadline);
             });
         });
     } catch (const OperationInterrupted&) {
@@ -815,18 +986,95 @@ void Connection::Rollback(engine::Deadline deadline) {
     }
 }
 
-void Connection::RestoreAutocommit() {
-    SQLRETURN ret = SQLSetConnectAttr(
-        handle_.get(),
-        SQL_ATTR_AUTOCOMMIT,
-        reinterpret_cast<SQLPOINTER>(SQL_AUTOCOMMIT_ON),
-        SQL_IS_UINTEGER
-    );
-    if (!SQL_SUCCEEDED(ret)) {
-        throw MakeDriverError<
-            ConnectionError>("Failed to restore autocommit after transaction", ret, handle_.get(), SQL_HANDLE_DBC);
+void Connection::EndTransaction(SQLSMALLINT completion_type, std::string_view operation, engine::Deadline deadline) {
+    if (!transaction_attributes_snapshot_) {
+        throw ConnectionError("ODBC transaction attribute snapshot is missing");
     }
+
+    detail::CheckDeadlineNotExpired(deadline);
+    const auto result = SQLEndTran(SQL_HANDLE_DBC, handle_.get(), completion_type);
+    std::exception_ptr deadline_error;
+    try {
+        detail::CheckDeadlineNotExpired(deadline);
+    } catch (...) {
+        deadline_error = std::current_exception();
+    }
+    auto diagnostics =
+        result == SQL_SUCCESS
+            ? std::vector<DiagnosticRecord>{}
+            : detail::GetSQLDiagnostics(handle_.get(), SQL_HANDLE_DBC);
+    if (!SQL_SUCCEEDED(result)) {
+        throw MakeConnectionError(
+            fmt::format("Failed to {} ODBC transaction", operation),
+            result,
+            std::move(diagnostics)
+        );
+    }
+    if (result == SQL_SUCCESS_WITH_INFO) {
+        LogConnectionAttributeWarnings(fmt::format("ODBC transaction {}", operation), diagnostics);
+    }
+
+    RestoreTransactionAttributes(
+        *transaction_attributes_snapshot_,
+        engine::Deadline::FromDuration(detail::kDefaultCleanupTimeout)
+    );
+    transaction_attributes_snapshot_.reset();
     in_transaction_.store(false);
+
+    if (deadline_error) {
+        std::rethrow_exception(deadline_error);
+    }
+}
+
+void Connection::RestoreTransactionAttributes(const TransactionAttributes& attributes, engine::Deadline deadline) {
+    std::exception_ptr first_error;
+    const auto restore = [&](SQLINTEGER attribute, const std::optional<SQLUINTEGER>& value, std::string_view name) {
+        if (!value) {
+            return;
+        }
+        try {
+            SetConnectionAttributeVerified(handle_.get(), attribute, *value, name, deadline);
+        } catch (...) {
+            if (!first_error) {
+                first_error = std::current_exception();
+            }
+        }
+    };
+
+    // SQLEndTran leaves manual-commit mode active but no transaction open, so
+    // isolation and access mode are legal to restore before autocommit.
+    restore(SQL_ATTR_TXN_ISOLATION, attributes.isolation, "SQL_ATTR_TXN_ISOLATION");
+    restore(SQL_ATTR_ACCESS_MODE, attributes.access_mode, "SQL_ATTR_ACCESS_MODE");
+    restore(SQL_ATTR_AUTOCOMMIT, attributes.autocommit, "SQL_ATTR_AUTOCOMMIT");
+
+    if (first_error) {
+        std::rethrow_exception(first_error);
+    }
+}
+
+void Connection::CleanupInterruptedBegin() noexcept {
+    if (!IsInsideTransaction()) {
+        return;
+    }
+
+    try {
+        RunBlocking(blocking_task_processor_, [this] {
+            const std::lock_guard lock{handle_mutex_};
+            if (IsInsideTransaction()) {
+                EndTransaction(
+                    SQL_ROLLBACK,
+                    "roll back interrupted begin",
+                    engine::Deadline::FromDuration(detail::kDefaultCleanupTimeout)
+                );
+            }
+        });
+    } catch (const std::exception& ex) {
+        NotifyBroken();
+        LOG_ERROR() << "Failed to clean up interrupted ODBC transaction begin: " << ex;
+    } catch (...) {
+        NotifyBroken();
+        LOG_ERROR() << "Failed to clean up interrupted ODBC transaction begin";
+    }
 }
 
 }  // namespace storages::odbc

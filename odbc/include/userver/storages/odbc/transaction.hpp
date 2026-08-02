@@ -14,6 +14,7 @@
 #include <userver/storages/odbc/impl/parameter.hpp>
 #include <userver/storages/odbc/query.hpp>
 #include <userver/storages/odbc/result_set.hpp>
+#include <userver/storages/odbc/transaction_options.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -34,6 +35,13 @@ public:
     explicit Transaction(
         detail::ConnectionPtr&& connection,
         detail::Pool& pool,
+        std::chrono::milliseconds network_timeout,
+        std::chrono::milliseconds statement_timeout
+    );
+    explicit Transaction(
+        detail::ConnectionPtr&& connection,
+        detail::Pool& pool,
+        const TransactionOptions& options,
         std::chrono::milliseconds network_timeout,
         std::chrono::milliseconds statement_timeout
     );

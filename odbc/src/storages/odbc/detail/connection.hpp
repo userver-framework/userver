@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -15,6 +16,7 @@
 #include <userver/storages/odbc/impl/parameter.hpp>
 #include <userver/storages/odbc/query.hpp>
 #include <userver/storages/odbc/result_set.hpp>
+#include <userver/storages/odbc/transaction_options.hpp>
 
 #include <storages/odbc/detail/driver_capabilities.hpp>
 
@@ -71,19 +73,28 @@ public:
     const detail::DriverCapabilities& GetDriverCapabilities() const noexcept;
 
 private:
+    struct TransactionAttributes final {
+        std::optional<SQLUINTEGER> isolation;
+        std::optional<SQLUINTEGER> access_mode;
+        std::optional<SQLUINTEGER> autocommit;
+    };
+
     friend class Transaction;
-    void Begin(engine::Deadline deadline);
+    void Begin(const TransactionOptions& options, engine::Deadline deadline);
     void Commit(engine::Deadline deadline);
     void Rollback(engine::Deadline deadline);
     bool IsInsideTransaction() const noexcept;
 
-    void RestoreAutocommit();
+    void EndTransaction(SQLSMALLINT completion_type, std::string_view operation, engine::Deadline deadline);
+    void RestoreTransactionAttributes(const TransactionAttributes& attributes, engine::Deadline deadline);
+    void CleanupInterruptedBegin() noexcept;
     void UpdateBrokenFromDriver() noexcept;
     engine::TaskProcessor& blocking_task_processor_;
     mutable std::mutex handle_mutex_;
     EnvironmentHandle env_;
     DatabaseHandle handle_;
     detail::DriverCapabilities driver_capabilities_;
+    std::optional<TransactionAttributes> transaction_attributes_snapshot_;
     std::atomic<bool> broken_{false};
     std::atomic<bool> in_transaction_{false};
 };

@@ -84,9 +84,21 @@ ResultSet ClusterImpl::ExecuteImpl(
     }
 }
 
-Transaction ClusterImpl::Begin(ClusterHostTypeFlags flags) { return Begin(flags, std::nullopt); }
+Transaction ClusterImpl::Begin(ClusterHostTypeFlags flags) { return Begin(flags, TransactionOptions{}, std::nullopt); }
 
 Transaction ClusterImpl::Begin(ClusterHostTypeFlags flags, OptionalCommandControl command_control) {
+    return Begin(flags, TransactionOptions{}, command_control);
+}
+
+Transaction ClusterImpl::Begin(ClusterHostTypeFlags flags, const TransactionOptions& options) {
+    return Begin(flags, options, std::nullopt);
+}
+
+Transaction ClusterImpl::Begin(
+    ClusterHostTypeFlags flags,
+    const TransactionOptions& options,
+    OptionalCommandControl command_control
+) {
     const auto resolved = ResolveCommandControl(command_control);
     const auto network_timeout = resolved.network_timeout.value_or(kDefaultStatementTimeout);
     const auto statement_timeout = resolved.statement_timeout.value_or(kDefaultStatementTimeout);
@@ -97,7 +109,7 @@ Transaction ClusterImpl::Begin(ClusterHostTypeFlags flags, OptionalCommandContro
     const auto topology = std::atomic_load(&topology_);
     auto& pool = SelectPool(*topology, flags);
     auto connection = pool.Acquire(acquire_deadline);
-    return Transaction{std::move(connection), pool, network_timeout, statement_timeout};
+    return Transaction{std::move(connection), pool, options, network_timeout, statement_timeout};
 }
 
 CommandControl ClusterImpl::ResolveCommandControl(OptionalCommandControl command_control) const {

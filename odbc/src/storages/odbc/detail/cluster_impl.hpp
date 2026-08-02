@@ -49,6 +49,14 @@ public:
 
     Transaction Begin(ClusterHostTypeFlags flags, OptionalCommandControl command_control);
 
+    Transaction Begin(ClusterHostTypeFlags flags, const TransactionOptions& options);
+
+    Transaction Begin(
+        ClusterHostTypeFlags flags,
+        const TransactionOptions& options,
+        OptionalCommandControl command_control
+    );
+
     void WriteStatistics(utils::statistics::Writer& writer) const;
 
     void SetDefaultCommandControl(const CommandControl& cc);

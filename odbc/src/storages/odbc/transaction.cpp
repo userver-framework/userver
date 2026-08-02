@@ -24,6 +24,22 @@ Transaction::Transaction(
     std::chrono::milliseconds network_timeout,
     std::chrono::milliseconds statement_timeout
 )
+    : Transaction{
+          std::move(connection),
+          pool,
+          TransactionOptions{},
+          network_timeout,
+          statement_timeout,
+      }
+{}
+
+Transaction::Transaction(
+    detail::ConnectionPtr&& connection,
+    detail::Pool& pool,
+    const TransactionOptions& options,
+    std::chrono::milliseconds network_timeout,
+    std::chrono::milliseconds statement_timeout
+)
     : connection_{std::move(connection)},
       pool_{&pool},
       network_timeout_{network_timeout},
@@ -35,7 +51,7 @@ Transaction::Transaction(
     const auto deadline =
         std::min(detail::GetExecuteDeadline(network_timeout_), detail::GetExecuteDeadline(statement_timeout_));
     detail::CheckDeadlineNotExpired(deadline);
-    (*connection_)->Begin(deadline);
+    (*connection_)->Begin(options, deadline);
     trx_lock_.Lock();
     pool_->AccountTransactionStarted();
 }
