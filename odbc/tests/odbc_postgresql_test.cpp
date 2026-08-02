@@ -46,6 +46,13 @@ static_assert(ParameterStorePushable<std::nullopt_t>);
 static_assert(ParameterStorePushable<const char*>);
 static_assert(ParameterStorePushable<std::string_view>);
 static_assert(ParameterStorePushable<std::optional<std::string>>);
+static_assert(ParameterStorePushable<Bytes>);
+static_assert(ParameterStorePushable<Date>);
+static_assert(ParameterStorePushable<Time>);
+static_assert(ParameterStorePushable<Timestamp>);
+static_assert(ParameterStorePushable<Decimal<9, 4>>);
+static_assert(ParameterStorePushable<std::optional<Bytes>>);
+static_assert(ParameterStorePushable<std::optional<Decimal<9, 4>>>);
 static_assert(!ParameterStorePushable<void*>);
 static_assert(!ParameterStorePushable<UnsupportedParameter>);
 static_assert(!ParameterStorePushable<std::optional<std::vector<int>>>);
@@ -290,6 +297,126 @@ UTEST(Query, BindsTypedNull) {
     ASSERT_EQ(result.Size(), 1);
     EXPECT_TRUE(result[0][0].GetBool());
     EXPECT_TRUE(result[0][1].GetBool());
+}
+
+UTEST(Query, BindsAndReadsPortableStandardTypes) {
+    /// [ODBC portable standard types]
+    auto cluster = MakeCluster();
+    const Bytes bytes{{0, 1, 2, 0, 255}};
+    const Date date{2024, 2, 29};
+    const Time time{23, 58, 57};
+    const Timestamp timestamp{2024, 2, 29, 23, 58, 57, 123'456'000};
+    const Decimal<9, 4> decimal{"+00123.4500"};
+
+    const auto bytes_result = cluster.Execute(ClusterHostType::kMaster, "SELECT ?::bytea", bytes);
+    const auto date_result = cluster.Execute(ClusterHostType::kMaster, "SELECT ?::date", date);
+    const auto time_result = cluster.Execute(ClusterHostType::kMaster, "SELECT ?::time", time);
+    const auto timestamp_result = cluster.Execute(ClusterHostType::kMaster, "SELECT ?::timestamp", timestamp);
+    const auto decimal_result = cluster.Execute(ClusterHostType::kMaster, "SELECT ?::numeric(9,4)", decimal);
+    /// [ODBC portable standard types]
+
+    ASSERT_EQ(bytes_result.Size(), 1);
+    EXPECT_EQ(bytes_result[0][0].As<Bytes>(), bytes);
+    EXPECT_EQ(bytes_result[0][0].GetString().size(), bytes.Size());
+
+    ASSERT_EQ(date_result.Size(), 1);
+    EXPECT_EQ(date_result[0][0].As<Date>(), date);
+    EXPECT_EQ(date_result[0][0].GetString(), "2024-02-29");
+
+    ASSERT_EQ(time_result.Size(), 1);
+    EXPECT_EQ(time_result[0][0].As<Time>(), time);
+    EXPECT_EQ(time_result[0][0].GetString(), "23:58:57");
+
+    ASSERT_EQ(timestamp_result.Size(), 1);
+    EXPECT_EQ(timestamp_result[0][0].As<Timestamp>(), timestamp);
+    EXPECT_EQ(timestamp_result[0][0].GetString(), "2024-02-29 23:58:57.123456000");
+
+    ASSERT_EQ(decimal_result.Size(), 1);
+    EXPECT_EQ((decimal_result[0][0].As<Decimal<9, 4>>()), decimal);
+    EXPECT_EQ(decimal_result[0][0].GetString(), "123.4500");
+}
+
+UTEST(ParameterStore, BindsPortableStandardTypesAndTypedNulls) {
+    auto cluster = MakeCluster();
+    const Bytes bytes{{7, 0, 8}};
+    const Date date{2000, 1, 2};
+    const Time time{3, 4, 5};
+    const Timestamp timestamp{2000, 1, 2, 3, 4, 5, 987'654'000};
+    const Decimal<9, 4> decimal{"-12.3400"};
+
+    ParameterStore bytes_parameters;
+    bytes_parameters.PushBack(bytes).PushBack(std::optional<Bytes>{});
+    const auto
+        bytes_result = cluster.Execute(ClusterHostType::kMaster, "SELECT ?::bytea, ?::bytea IS NULL", bytes_parameters);
+    ASSERT_EQ(bytes_result.Size(), 1);
+    EXPECT_EQ(bytes_result[0][0].As<Bytes>(), bytes);
+    EXPECT_TRUE(bytes_result[0][1].GetBool());
+
+    ParameterStore date_parameters;
+    date_parameters.PushBack(date).PushBack(std::optional<Date>{});
+    const auto
+        date_result = cluster.Execute(ClusterHostType::kMaster, "SELECT ?::date, ?::date IS NULL", date_parameters);
+    ASSERT_EQ(date_result.Size(), 1);
+    EXPECT_EQ(date_result[0][0].As<Date>(), date);
+    EXPECT_TRUE(date_result[0][1].GetBool());
+
+    ParameterStore time_parameters;
+    time_parameters.PushBack(time).PushBack(std::optional<Time>{});
+    const auto
+        time_result = cluster.Execute(ClusterHostType::kMaster, "SELECT ?::time, ?::time IS NULL", time_parameters);
+    ASSERT_EQ(time_result.Size(), 1);
+    EXPECT_EQ(time_result[0][0].As<Time>(), time);
+    EXPECT_TRUE(time_result[0][1].GetBool());
+
+    ParameterStore timestamp_parameters;
+    timestamp_parameters.PushBack(timestamp).PushBack(std::optional<Timestamp>{});
+    const auto timestamp_result =
+        cluster.Execute(ClusterHostType::kMaster, "SELECT ?::timestamp, ?::timestamp IS NULL", timestamp_parameters);
+    ASSERT_EQ(timestamp_result.Size(), 1);
+    EXPECT_EQ(timestamp_result[0][0].As<Timestamp>(), timestamp);
+    EXPECT_TRUE(timestamp_result[0][1].GetBool());
+
+    ParameterStore decimal_parameters;
+    decimal_parameters.PushBack(decimal).PushBack(std::optional<Decimal<9, 4>>{});
+    const auto decimal_result =
+        cluster
+            .Execute(ClusterHostType::kMaster, "SELECT ?::numeric(9,4), ?::numeric(9,4) IS NULL", decimal_parameters);
+    ASSERT_EQ(decimal_result.Size(), 1);
+    EXPECT_EQ((decimal_result[0][0].As<Decimal<9, 4>>()), decimal);
+    EXPECT_TRUE(decimal_result[0][1].GetBool());
+}
+
+UTEST(Query, MaterializesBinaryChunkBoundariesWithoutTerminatorHeuristics) {
+    auto cluster = MakeCluster();
+    const auto make_bytes = [](std::size_t size, std::uint8_t seed) {
+        Bytes::Container value(size);
+        for (std::size_t index = 0; index < value.size(); ++index) {
+            value[index] = static_cast<std::uint8_t>(seed + index);
+        }
+        return Bytes{std::move(value)};
+    };
+    const Bytes empty;
+    const auto bytes_4095 = make_bytes(4095, 1);
+    const auto bytes_4096 = make_bytes(4096, 2);
+    const auto bytes_4097 = make_bytes(4097, 3);
+    const auto bytes_long = make_bytes(65'537, 4);
+
+    const auto result = cluster.Execute(
+        ClusterHostType::kMaster,
+        "SELECT ?::bytea, ?::bytea, ?::bytea, ?::bytea, ?::bytea",
+        empty,
+        bytes_4095,
+        bytes_4096,
+        bytes_4097,
+        bytes_long
+    );
+
+    ASSERT_EQ(result.Size(), 1);
+    EXPECT_EQ(result[0][0].As<Bytes>(), empty);
+    EXPECT_EQ(result[0][1].As<Bytes>(), bytes_4095);
+    EXPECT_EQ(result[0][2].As<Bytes>(), bytes_4096);
+    EXPECT_EQ(result[0][3].As<Bytes>(), bytes_4097);
+    EXPECT_EQ(result[0][4].As<Bytes>(), bytes_long);
 }
 
 UTEST(Query, ParameterCountMismatchIsStatementError) {

@@ -9,6 +9,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <type_traits>
 #include <utility>
@@ -29,6 +30,7 @@
 #include <storages/odbc/detail/broken_guard.hpp>
 #include <storages/odbc/detail/deadline.hpp>
 #include <storages/odbc/detail/diag_wrapper.hpp>
+#include <storages/odbc/detail/result_chunk.hpp>
 #include <storages/odbc/detail/result_wrapper.hpp>
 #include <storages/odbc/detail/tracing.hpp>
 #include <storages/odbc/detail/transaction_options.hpp>
@@ -105,6 +107,16 @@ Exception MakeDriverError(std::string message, SQLRETURN result, SQLHANDLE handl
     return Exception{std::move(message), std::move(diagnostics), result == SQL_INVALID_HANDLE};
 }
 
+template <typename Exception>
+Exception MakeDiagnosticError(std::string message, std::vector<DiagnosticRecord> diagnostics) {
+    const auto formatted = detail::FormatSQLDiagnostics(diagnostics);
+    if (!formatted.empty()) {
+        message += ": ";
+        message += formatted;
+    }
+    return Exception{std::move(message), std::move(diagnostics)};
+}
+
 ConnectionError MakeConnectionError(std::string message, SQLRETURN result, std::vector<DiagnosticRecord> diagnostics) {
     const auto formatted = detail::FormatSQLDiagnostics(diagnostics);
     if (!formatted.empty()) {
@@ -123,6 +135,21 @@ void LogConnectionAttributeWarnings(std::string_view operation, const std::vecto
     }
     LOG_WARNING()
         << operation << " completed with warning: " << (formatted.empty() ? "no diagnostic records" : formatted);
+}
+
+void LogOdbcWarnings(std::string_view operation, const std::vector<DiagnosticRecord>& diagnostics) {
+    constexpr std::size_t kMaxWarningLength = 1024;
+    auto formatted = detail::FormatSQLDiagnostics(diagnostics);
+    if (formatted.size() > kMaxWarningLength) {
+        formatted.resize(kMaxWarningLength);
+        formatted += "...";
+    }
+    LOG_WARNING()
+        << operation << " completed with warning: " << (formatted.empty() ? "no diagnostic records" : formatted);
+}
+
+void LogOdbcWarnings(std::string_view operation, SQLHANDLE handle, SQLSMALLINT handle_type) {
+    LogOdbcWarnings(operation, detail::GetSQLDiagnostics(handle, handle_type));
 }
 
 SQLUINTEGER ReadConnectionAttribute(
@@ -309,10 +336,20 @@ void CheckStatementResult(SQLRETURN result, SQLHSTMT statement, std::string_view
     }
 }
 
-detail::ResultWrapper::Column DescribeColumn(SQLHSTMT statement, SQLUSMALLINT column) {
+bool IsTruncationWarning(const std::vector<DiagnosticRecord>& diagnostics);
+bool HasNonTruncationWarning(const std::vector<DiagnosticRecord>& diagnostics);
+bool HasDataLossWarning(const std::vector<DiagnosticRecord>& diagnostics);
+std::vector<DiagnosticRecord> GetWarnings(SQLRETURN result, SQLHANDLE handle, SQLSMALLINT handle_type);
+
+void HandleStatementWarnings(SQLRETURN result, SQLHSTMT statement, std::string_view operation, bool reject_data_loss);
+
+detail::ResultWrapper::Column DescribeColumn(SQLHSTMT statement, SQLUSMALLINT column, engine::Deadline deadline) {
     std::array<SQLCHAR, 256> buffer{};
     SQLSMALLINT name_length = 0;
     SQLSMALLINT type = SQL_UNKNOWN_TYPE;
+    SQLULEN size = 0;
+    SQLSMALLINT decimal_digits = 0;
+    detail::CheckDeadlineNotExpired(deadline);
     auto result = SQLDescribeCol(
         statement,
         column,
@@ -320,14 +357,20 @@ detail::ResultWrapper::Column DescribeColumn(SQLHSTMT statement, SQLUSMALLINT co
         static_cast<SQLSMALLINT>(buffer.size()),
         &name_length,
         &type,
-        nullptr,
-        nullptr,
+        &size,
+        &decimal_digits,
         nullptr
     );
+    auto warnings = GetWarnings(result, statement, SQL_HANDLE_STMT);
+    detail::CheckDeadlineNotExpired(deadline);
     CheckStatementResult(result, statement, "describe result column");
 
     if (name_length >= static_cast<SQLSMALLINT>(buffer.size())) {
+        if (result == SQL_SUCCESS_WITH_INFO && HasNonTruncationWarning(warnings)) {
+            LogOdbcWarnings("Describing ODBC result column", warnings);
+        }
         std::vector<SQLCHAR> long_buffer(static_cast<std::size_t>(name_length) + 1);
+        detail::CheckDeadlineNotExpired(deadline);
         result = SQLDescribeCol(
             statement,
             column,
@@ -335,33 +378,96 @@ detail::ResultWrapper::Column DescribeColumn(SQLHSTMT statement, SQLUSMALLINT co
             static_cast<SQLSMALLINT>(long_buffer.size()),
             &name_length,
             &type,
-            nullptr,
-            nullptr,
+            &size,
+            &decimal_digits,
             nullptr
         );
+        warnings = GetWarnings(result, statement, SQL_HANDLE_STMT);
+        detail::CheckDeadlineNotExpired(deadline);
         CheckStatementResult(result, statement, "describe result column");
+        if (result == SQL_SUCCESS_WITH_INFO) {
+            if (HasDataLossWarning(warnings)) {
+                throw MakeDiagnosticError<StatementError>(
+                    "ODBC driver truncated a result column description after an exact-size retry",
+                    std::move(warnings)
+                );
+            }
+            LogOdbcWarnings("Describing ODBC result column after an exact-size retry", warnings);
+        }
         return {
             std::string{reinterpret_cast<const char*>(long_buffer.data()), static_cast<std::size_t>(name_length)},
             type,
+            size,
+            decimal_digits,
         };
+    }
+
+    if (result == SQL_SUCCESS_WITH_INFO) {
+        if (HasDataLossWarning(warnings)) {
+            throw MakeDiagnosticError<StatementError>(
+                "ODBC driver truncated a result column description without reporting a larger name",
+                std::move(warnings)
+            );
+        }
+        LogOdbcWarnings("Describing ODBC result column", warnings);
     }
 
     return {
         std::string{reinterpret_cast<const char*>(buffer.data()), static_cast<std::size_t>(name_length)},
         type,
+        size,
+        decimal_digits,
     };
 }
 
-detail::ResultWrapper::Cell ReadCell(SQLHSTMT statement, SQLUSMALLINT column, engine::Deadline deadline) {
+bool IsTruncationWarning(const std::vector<DiagnosticRecord>& diagnostics) {
+    return std::any_of(diagnostics.begin(), diagnostics.end(), [](const DiagnosticRecord& diagnostic) {
+        return diagnostic.sql_state == "01004";
+    });
+}
+
+bool HasNonTruncationWarning(const std::vector<DiagnosticRecord>& diagnostics) {
+    return std::any_of(diagnostics.begin(), diagnostics.end(), [](const DiagnosticRecord& diagnostic) {
+        return diagnostic.sql_state != "01004";
+    });
+}
+
+bool HasDataLossWarning(const std::vector<DiagnosticRecord>& diagnostics) {
+    return std::any_of(diagnostics.begin(), diagnostics.end(), [](const DiagnosticRecord& diagnostic) {
+        return diagnostic.sql_state == "01004" || diagnostic.sql_state == "01S07" || diagnostic.sql_state == "22003";
+    });
+}
+
+std::vector<DiagnosticRecord> GetWarnings(SQLRETURN result, SQLHANDLE handle, SQLSMALLINT handle_type) {
+    return result == SQL_SUCCESS_WITH_INFO
+               ? detail::GetSQLDiagnostics(handle, handle_type)
+               : std::vector<DiagnosticRecord>{};
+}
+
+void HandleStatementWarnings(SQLRETURN result, SQLHSTMT statement, std::string_view operation, bool reject_data_loss) {
+    if (result != SQL_SUCCESS_WITH_INFO) {
+        return;
+    }
+    auto diagnostics = detail::GetSQLDiagnostics(statement, SQL_HANDLE_STMT);
+    if (reject_data_loss && HasDataLossWarning(diagnostics)) {
+        throw MakeDiagnosticError<
+            StatementError>(fmt::format("ODBC driver lost information while {}", operation), std::move(diagnostics));
+    }
+    LogOdbcWarnings(fmt::format("ODBC statement {}", operation), diagnostics);
+}
+
+detail::ResultWrapper::Cell ReadTextCell(SQLHSTMT statement, SQLUSMALLINT column, engine::Deadline deadline) {
     constexpr std::size_t kChunkSize = 4096;
     std::array<SQLCHAR, kChunkSize> buffer{};
     std::string value;
+    std::optional<SQLLEN> previous_remaining;
 
     while (true) {
         SQLLEN indicator = 0;
         detail::CheckDeadlineNotExpired(deadline);
         const auto result =
             SQLGetData(statement, column, SQL_C_CHAR, buffer.data(), static_cast<SQLLEN>(buffer.size()), &indicator);
+        const auto warnings = GetWarnings(result, statement, SQL_HANDLE_STMT);
         detail::CheckDeadlineNotExpired(deadline);
 
         if (result == SQL_NO_DATA) {
@@ -371,37 +477,329 @@ detail::ResultWrapper::Cell ReadCell(SQLHSTMT statement, SQLUSMALLINT column, en
         if (indicator == SQL_NULL_DATA) {
             return {std::nullopt};
         }
-
-        const auto terminator = std::find(buffer.begin(), buffer.end(), static_cast<SQLCHAR>('\0'));
-        const auto chunk_size = static_cast<std::size_t>(terminator - buffer.begin());
-        value.append(reinterpret_cast<const char*>(buffer.data()), chunk_size);
-
-        if (result == SQL_SUCCESS) {
-            break;
+        const bool truncated = IsTruncationWarning(warnings);
+        const auto
+            chunk = detail::AccountResultChunk(result, indicator, truncated, buffer.size() - 1, previous_remaining);
+        value.append(reinterpret_cast<const char*>(buffer.data()), chunk.size);
+        previous_remaining = chunk.known_remaining;
+        if (chunk.has_more) {
+            if (HasNonTruncationWarning(warnings)) {
+                LogOdbcWarnings("Reading ODBC character result", warnings);
+            }
+            continue;
         }
-        if (chunk_size == 0) {
-            throw ResultSetError("ODBC driver returned SQL_SUCCESS_WITH_INFO without result data progress");
+        if (result == SQL_SUCCESS_WITH_INFO) {
+            LogOdbcWarnings("Reading ODBC character result", warnings);
+        }
+        if (result == SQL_SUCCESS || result == SQL_SUCCESS_WITH_INFO) {
+            break;
         }
     }
 
-    return {std::move(value)};
+    return {detail::ResultWrapper::Cell::Value{std::move(value)}};
+}
+
+detail::ResultWrapper::Cell ReadBytesCell(SQLHSTMT statement, SQLUSMALLINT column, engine::Deadline deadline) {
+    constexpr std::size_t kChunkSize = 4096;
+    std::array<SQLCHAR, kChunkSize> buffer{};
+    Bytes::Container value;
+    std::optional<SQLLEN> previous_remaining;
+
+    while (true) {
+        SQLLEN indicator = 0;
+        detail::CheckDeadlineNotExpired(deadline);
+        const auto result =
+            SQLGetData(statement, column, SQL_C_BINARY, buffer.data(), static_cast<SQLLEN>(buffer.size()), &indicator);
+        const auto warnings = GetWarnings(result, statement, SQL_HANDLE_STMT);
+        detail::CheckDeadlineNotExpired(deadline);
+
+        if (result == SQL_NO_DATA) {
+            break;
+        }
+        CheckStatementResult(result, statement, "read binary result column");
+        if (indicator == SQL_NULL_DATA) {
+            return {std::nullopt};
+        }
+        const bool truncated = IsTruncationWarning(warnings);
+        const auto chunk = detail::AccountResultChunk(result, indicator, truncated, buffer.size(), previous_remaining);
+        value.insert(value.end(), buffer.begin(), buffer.begin() + static_cast<std::ptrdiff_t>(chunk.size));
+        previous_remaining = chunk.known_remaining;
+        if (chunk.has_more) {
+            if (HasNonTruncationWarning(warnings)) {
+                LogOdbcWarnings("Reading ODBC binary result", warnings);
+            }
+            continue;
+        }
+        if (result == SQL_SUCCESS_WITH_INFO) {
+            LogOdbcWarnings("Reading ODBC binary result", warnings);
+        }
+        if (result == SQL_SUCCESS || result == SQL_SUCCESS_WITH_INFO) {
+            break;
+        }
+    }
+
+    return {detail::ResultWrapper::Cell::Value{Bytes{std::move(value)}}};
+}
+
+template <typename Struct, typename ValueFactory>
+detail::ResultWrapper::Cell ReadFixedCell(
+    SQLHSTMT statement,
+    SQLUSMALLINT column,
+    SQLSMALLINT c_type,
+    std::string_view type_name,
+    engine::Deadline deadline,
+    ValueFactory&& value_factory
+) {
+    Struct value{};
+    SQLLEN indicator = 0;
+    detail::CheckDeadlineNotExpired(deadline);
+    const auto result = SQLGetData(statement, column, c_type, &value, static_cast<SQLLEN>(sizeof(value)), &indicator);
+    auto warnings = GetWarnings(result, statement, SQL_HANDLE_STMT);
+    detail::CheckDeadlineNotExpired(deadline);
+    CheckStatementResult(result, statement, fmt::format("read {} result column", type_name));
+    if (indicator == SQL_NULL_DATA) {
+        return {std::nullopt};
+    }
+    detail::ValidateFixedResultSize(indicator, sizeof(value));
+    if (result == SQL_SUCCESS_WITH_INFO) {
+        if (HasDataLossWarning(warnings)) {
+            throw MakeDiagnosticError<ResultSetError>(
+                fmt::format("ODBC driver lost information while converting a fixed-size {} result", type_name),
+                std::move(warnings)
+            );
+        }
+        LogOdbcWarnings(fmt::format("Reading ODBC {} result", type_name), warnings);
+    }
+    try {
+        return {detail::ResultWrapper::Cell::Value{std::forward<ValueFactory>(value_factory)(value)}};
+    } catch (const std::invalid_argument& ex) {
+        throw ResultSetError(fmt::format("ODBC driver returned an invalid {} value: {}", type_name, ex.what()));
+    }
+}
+
+std::string DecodeNumericMagnitude(const SQL_NUMERIC_STRUCT& value) {
+    std::vector<std::uint8_t> decimal_digits{0};
+    for (std::size_t byte_index = sizeof(value.val); byte_index > 0; --byte_index) {
+        unsigned carry = value.val[byte_index - 1];
+        for (auto& digit : decimal_digits) {
+            const auto next = static_cast<unsigned>(digit) * 256U + carry;
+            digit = static_cast<std::uint8_t>(next % 10U);
+            carry = next / 10U;
+        }
+        while (carry != 0) {
+            decimal_digits.push_back(static_cast<std::uint8_t>(carry % 10U));
+            carry /= 10U;
+        }
+    }
+    while (decimal_digits.size() > 1 && decimal_digits.back() == 0) {
+        decimal_digits.pop_back();
+    }
+    std::string result;
+    result.reserve(decimal_digits.size());
+    for (auto iterator = decimal_digits.rbegin(); iterator != decimal_digits.rend(); ++iterator) {
+        result.push_back(static_cast<char>('0' + *iterator));
+    }
+    return result;
+}
+
+detail::ResultWrapper::Cell ReadDecimalCell(
+    SQLHSTMT statement,
+    SQLUSMALLINT column,
+    const detail::ResultWrapper::Column& metadata,
+    engine::Deadline deadline
+) {
+    if (metadata.size == 0 || metadata.size > 38 || metadata.decimal_digits < 0 ||
+        static_cast<SQLULEN>(metadata.decimal_digits) > metadata.size)
+    {
+        throw ResultSetError(fmt::format(
+            "ODBC Decimal column {} has invalid or unknown precision/scale metadata: precision {}, scale {}",
+            column,
+            metadata.size,
+            metadata.decimal_digits
+        ));
+    }
+
+    SQLHDESC descriptor = SQL_NULL_HDESC;
+    detail::CheckDeadlineNotExpired(deadline);
+    const auto descriptor_result = SQLGetStmtAttr(
+        statement,
+        SQL_ATTR_APP_ROW_DESC,
+        &descriptor,
+        static_cast<SQLINTEGER>(sizeof(descriptor)),
+        nullptr
+    );
+    detail::CheckDeadlineNotExpired(deadline);
+    if (!SQL_SUCCEEDED(descriptor_result)) {
+        throw MakeDriverError<StatementError>(
+            "Failed to obtain the descriptor for an ODBC Decimal result",
+            descriptor_result,
+            statement,
+            SQL_HANDLE_STMT
+        );
+    }
+    if (descriptor_result == SQL_SUCCESS_WITH_INFO) {
+        LogOdbcWarnings("Obtaining the descriptor for an ODBC Decimal result", statement, SQL_HANDLE_STMT);
+    }
+
+    const auto set_field = [&](SQLSMALLINT field, SQLLEN value, std::string_view name) {
+        detail::CheckDeadlineNotExpired(deadline);
+        const auto result = SQLSetDescField(
+            descriptor,
+            static_cast<SQLSMALLINT>(column),
+            field,
+            reinterpret_cast<SQLPOINTER>(static_cast<std::uintptr_t>(value)),
+            SQL_IS_INTEGER
+        );
+        detail::CheckDeadlineNotExpired(deadline);
+        if (!SQL_SUCCEEDED(result)) {
+            throw MakeDriverError<StatementError>(
+                fmt::format("Failed to set {} for an ODBC Decimal result", name),
+                result,
+                descriptor,
+                SQL_HANDLE_DESC
+            );
+        }
+        if (result == SQL_SUCCESS_WITH_INFO) {
+            LogOdbcWarnings(fmt::format("Setting {} for an ODBC Decimal result", name), descriptor, SQL_HANDLE_DESC);
+        }
+    };
+    set_field(SQL_DESC_CONCISE_TYPE, SQL_C_NUMERIC, "C type");
+    set_field(SQL_DESC_PRECISION, static_cast<SQLLEN>(metadata.size), "precision");
+    set_field(SQL_DESC_SCALE, metadata.decimal_digits, "scale");
+
+    SQL_NUMERIC_STRUCT value{};
+    SQLLEN indicator = 0;
+    detail::CheckDeadlineNotExpired(deadline);
+    const auto
+        result = SQLGetData(statement, column, SQL_ARD_TYPE, &value, static_cast<SQLLEN>(sizeof(value)), &indicator);
+    auto warnings = GetWarnings(result, statement, SQL_HANDLE_STMT);
+    detail::CheckDeadlineNotExpired(deadline);
+    CheckStatementResult(result, statement, "read Decimal result column");
+    if (indicator == SQL_NULL_DATA) {
+        return {std::nullopt};
+    }
+    detail::ValidateFixedResultSize(indicator, sizeof(value));
+    if (result == SQL_SUCCESS_WITH_INFO) {
+        if (HasDataLossWarning(warnings)) {
+            throw MakeDiagnosticError<
+                ResultSetError>("ODBC driver lost information while converting a Decimal result", std::move(warnings));
+        }
+        LogOdbcWarnings("Reading ODBC Decimal result", warnings);
+    }
+    if (value.sign != 0 && value.sign != 1) {
+        throw ResultSetError("ODBC driver returned an invalid SQL_NUMERIC_STRUCT sign");
+    }
+    if (value.precision == 0 || value.precision > metadata.size || value.scale != metadata.decimal_digits) {
+        throw ResultSetError(fmt::format(
+            "ODBC driver returned invalid Decimal value precision/scale {},{} for column precision/scale {},{}",
+            value.precision,
+            value.scale,
+            metadata.size,
+            metadata.decimal_digits
+        ));
+    }
+
+    auto representation = DecodeNumericMagnitude(value);
+    const bool is_zero = representation == "0";
+    const auto scale = static_cast<std::size_t>(metadata.decimal_digits);
+    detail::ValidateNumericMagnitude(representation.size(), metadata.size, scale);
+    if (scale != 0) {
+        if (representation.size() <= scale) {
+            representation.insert(0, scale + 1 - representation.size(), '0');
+        }
+        representation.insert(representation.size() - scale, 1, '.');
+    }
+    if (value.sign == 0 && !is_zero) {
+        representation.insert(representation.begin(), '-');
+    }
+    return {detail::ResultWrapper::Cell::Value{detail::ResultWrapper::DecimalValue{
+        std::move(representation),
+        static_cast<std::uint8_t>(metadata.size),
+        static_cast<std::uint8_t>(metadata.decimal_digits),
+    }}};
+}
+
+detail::ResultWrapper::Cell ReadCell(
+    SQLHSTMT statement,
+    SQLUSMALLINT column,
+    const detail::ResultWrapper::Column& metadata,
+    engine::Deadline deadline
+) {
+    if (metadata.type == SQL_TYPE_DATE || metadata.type == SQL_DATE) {
+        return ReadFixedCell<
+            SQL_DATE_STRUCT>(statement, column, SQL_C_TYPE_DATE, "Date", deadline, [](const SQL_DATE_STRUCT& value) {
+            return Date{
+                static_cast<std::uint32_t>(value.year),
+                static_cast<std::uint32_t>(value.month),
+                static_cast<std::uint32_t>(value.day),
+            };
+        });
+    }
+    if (metadata.type == SQL_TYPE_TIME || metadata.type == SQL_TIME) {
+        return ReadFixedCell<
+            SQL_TIME_STRUCT>(statement, column, SQL_C_TYPE_TIME, "Time", deadline, [](const SQL_TIME_STRUCT& value) {
+            return Time{
+                static_cast<std::uint32_t>(value.hour),
+                static_cast<std::uint32_t>(value.minute),
+                static_cast<std::uint32_t>(value.second),
+            };
+        });
+    }
+    if (metadata.type == SQL_TYPE_TIMESTAMP || metadata.type == SQL_TIMESTAMP) {
+        return ReadFixedCell<SQL_TIMESTAMP_STRUCT>(
+            statement,
+            column,
+            SQL_C_TYPE_TIMESTAMP,
+            "Timestamp",
+            deadline,
+            [](const SQL_TIMESTAMP_STRUCT& value) {
+                return Timestamp{
+                    static_cast<std::uint32_t>(value.year),
+                    value.month,
+                    value.day,
+                    value.hour,
+                    value.minute,
+                    value.second,
+                    value.fraction,
+                };
+            }
+        );
+    }
+    switch (metadata.type) {
+        case SQL_BINARY:
+        case SQL_VARBINARY:
+        case SQL_LONGVARBINARY:
+            return ReadBytesCell(statement, column, deadline);
+        case SQL_DECIMAL:
+        case SQL_NUMERIC:
+            return ReadDecimalCell(statement, column, metadata, deadline);
+        default:
+            return ReadTextCell(statement, column, deadline);
+    }
 }
 
 std::shared_ptr<detail::ResultWrapper> MaterializeResult(SQLHSTMT statement, engine::Deadline deadline) {
     SQLSMALLINT column_count = 0;
-    CheckStatementResult(SQLNumResultCols(statement, &column_count), statement, "get result column count for");
+    detail::CheckDeadlineNotExpired(deadline);
+    const auto column_count_result = SQLNumResultCols(statement, &column_count);
+    HandleStatementWarnings(column_count_result, statement, "determining result column count", false);
+    detail::CheckDeadlineNotExpired(deadline);
+    CheckStatementResult(column_count_result, statement, "get result column count for");
 
     std::size_t rows_affected = 0;
     if (column_count == 0) {
         SQLLEN affected = 0;
+        detail::CheckDeadlineNotExpired(deadline);
         const auto row_count_result = SQLRowCount(statement, &affected);
+        HandleStatementWarnings(row_count_result, statement, "determining the affected row count", false);
+        detail::CheckDeadlineNotExpired(deadline);
         rows_affected = SQL_SUCCEEDED(row_count_result) && affected > 0 ? static_cast<std::size_t>(affected) : 0;
     }
 
     std::vector<detail::ResultWrapper::Column> columns;
     columns.reserve(static_cast<std::size_t>(column_count));
     for (SQLSMALLINT index = 0; index < column_count; ++index) {
-        columns.push_back(DescribeColumn(statement, static_cast<SQLUSMALLINT>(index + 1)));
+        columns.push_back(DescribeColumn(statement, static_cast<SQLUSMALLINT>(index + 1), deadline));
     }
 
     std::vector<detail::ResultWrapper::Row> rows;
@@ -409,6 +807,7 @@ std::shared_ptr<detail::ResultWrapper> MaterializeResult(SQLHSTMT statement, eng
         while (true) {
             detail::CheckDeadlineNotExpired(deadline);
             const auto fetch_result = SQLFetch(statement);
+            HandleStatementWarnings(fetch_result, statement, "fetching a result row", false);
             detail::CheckDeadlineNotExpired(deadline);
             if (fetch_result == SQL_NO_DATA) {
                 break;
@@ -418,7 +817,12 @@ std::shared_ptr<detail::ResultWrapper> MaterializeResult(SQLHSTMT statement, eng
             detail::ResultWrapper::Row row;
             row.reserve(static_cast<std::size_t>(column_count));
             for (SQLSMALLINT index = 0; index < column_count; ++index) {
-                row.push_back(ReadCell(statement, static_cast<SQLUSMALLINT>(index + 1), deadline));
+                row.push_back(ReadCell(
+                    statement,
+                    static_cast<SQLUSMALLINT>(index + 1),
+                    columns[static_cast<std::size_t>(index)],
+                    deadline
+                ));
             }
             rows.push_back(std::move(row));
         }
@@ -431,12 +835,56 @@ struct ParameterBinding final {
     SQLSMALLINT c_type;
     SQLSMALLINT sql_type;
     SQLULEN column_size;
+    SQLSMALLINT decimal_digits;
     SQLPOINTER data;
     SQLLEN buffer_size;
 };
 
+struct BoundBytes final {
+    explicit BoundBytes(const Bytes& value)
+        : bytes{value.GetBytes().begin(), value.GetBytes().end()}
+    {}
+
+    SQLPOINTER Data() noexcept { return bytes.empty() ? &empty_value : bytes.data(); }
+
+    std::vector<SQLCHAR> bytes;
+    SQLCHAR empty_value{0};
+};
+
+SQL_NUMERIC_STRUCT MakeNumericStruct(const impl::DecimalParameter& parameter) {
+    SQL_NUMERIC_STRUCT result{};
+    result.precision = parameter.precision;
+    result.scale = static_cast<SQLSCHAR>(parameter.scale);
+    result.sign = parameter.representation.front() == '-' ? 0 : 1;
+
+    for (const char ch : parameter.representation) {
+        if (ch == '-' || ch == '+' || ch == '.') {
+            continue;
+        }
+        unsigned carry = static_cast<unsigned>(ch - '0');
+        for (auto& byte : result.val) {
+            const auto value = static_cast<unsigned>(byte) * 10U + carry;
+            byte = static_cast<SQLCHAR>(value & 0xffU);
+            carry = value >> 8U;
+        }
+        if (carry != 0) {
+            throw StatementError("ODBC Decimal magnitude exceeds SQL_NUMERIC_STRUCT capacity");
+        }
+    }
+    return result;
+}
+
 struct BoundParameter final {
-    using Value = std::variant<SQLCHAR, SQLBIGINT, SQLDOUBLE, std::string>;
+    using Value = std::variant<
+        SQLCHAR,
+        SQLBIGINT,
+        SQLDOUBLE,
+        std::string,
+        BoundBytes,
+        SQL_DATE_STRUCT,
+        SQL_TIME_STRUCT,
+        SQL_TIMESTAMP_STRUCT,
+        SQL_NUMERIC_STRUCT>;
 
     explicit BoundParameter(const impl::Parameter& parameter)
         : type{parameter.GetType()},
@@ -463,6 +911,40 @@ struct BoundParameter final {
             case ParameterType::kString:
             case ParameterType::kUnknown:
                 return parameter.Get<std::string>();
+            case ParameterType::kBytes:
+                return BoundBytes{parameter.Get<Bytes>()};
+            case ParameterType::kDate: {
+                const auto& date = parameter.Get<Date>();
+                return SQL_DATE_STRUCT{
+                    static_cast<SQLSMALLINT>(date.GetYear()),
+                    static_cast<SQLUSMALLINT>(date.GetMonth()),
+                    static_cast<SQLUSMALLINT>(date.GetDay()),
+                };
+            }
+            case ParameterType::kTime: {
+                const auto& time = parameter.Get<Time>();
+                return SQL_TIME_STRUCT{
+                    static_cast<SQLUSMALLINT>(time.GetHour()),
+                    static_cast<SQLUSMALLINT>(time.GetMinute()),
+                    static_cast<SQLUSMALLINT>(time.GetSecond()),
+                };
+            }
+            case ParameterType::kTimestamp: {
+                const auto& timestamp = parameter.Get<Timestamp>();
+                const auto& date = timestamp.GetDate();
+                const auto& time = timestamp.GetTime();
+                return SQL_TIMESTAMP_STRUCT{
+                    static_cast<SQLSMALLINT>(date.GetYear()),
+                    static_cast<SQLUSMALLINT>(date.GetMonth()),
+                    static_cast<SQLUSMALLINT>(date.GetDay()),
+                    static_cast<SQLUSMALLINT>(time.GetHour()),
+                    static_cast<SQLUSMALLINT>(time.GetMinute()),
+                    static_cast<SQLUSMALLINT>(time.GetSecond()),
+                    static_cast<SQLUINTEGER>(timestamp.GetFractionNanoseconds()),
+                };
+            }
+            case ParameterType::kDecimal:
+                return MakeNumericStruct(parameter.Get<impl::DecimalParameter>());
         }
         UINVARIANT(false, "Unknown ODBC parameter type");
     }
@@ -481,6 +963,7 @@ ParameterBinding GetParameterBinding(BoundParameter& parameter) {
                 SQL_C_BIT,
                 SQL_BIT,
                 1,
+                0,
                 &std::get<SQLCHAR>(parameter.value),
                 static_cast<SQLLEN>(sizeof(SQLCHAR)),
             };
@@ -489,6 +972,7 @@ ParameterBinding GetParameterBinding(BoundParameter& parameter) {
                 SQL_C_SBIGINT,
                 SQL_BIGINT,
                 19,
+                0,
                 &std::get<SQLBIGINT>(parameter.value),
                 static_cast<SQLLEN>(sizeof(SQLBIGINT)),
             };
@@ -497,6 +981,7 @@ ParameterBinding GetParameterBinding(BoundParameter& parameter) {
                 SQL_C_SBIGINT,
                 SQL_BIGINT,
                 19,
+                0,
                 &std::get<SQLBIGINT>(parameter.value),
                 static_cast<SQLLEN>(sizeof(SQLBIGINT)),
             };
@@ -505,6 +990,7 @@ ParameterBinding GetParameterBinding(BoundParameter& parameter) {
                 SQL_C_DOUBLE,
                 SQL_DOUBLE,
                 15,
+                0,
                 &std::get<SQLDOUBLE>(parameter.value),
                 static_cast<SQLLEN>(sizeof(SQLDOUBLE)),
             };
@@ -514,8 +1000,61 @@ ParameterBinding GetParameterBinding(BoundParameter& parameter) {
                 SQL_C_CHAR,
                 SQL_VARCHAR,
                 std::max<SQLULEN>(1, static_cast<SQLULEN>(string.size())),
+                0,
                 string.data(),
                 static_cast<SQLLEN>(string.size()),
+            };
+        }
+        case ParameterType::kBytes: {
+            auto& bytes = std::get<BoundBytes>(parameter.value);
+            return {
+                SQL_C_BINARY,
+                SQL_LONGVARBINARY,
+                std::max<SQLULEN>(1, static_cast<SQLULEN>(bytes.bytes.size())),
+                0,
+                bytes.Data(),
+                static_cast<SQLLEN>(bytes.bytes.size()),
+            };
+        }
+        case ParameterType::kDate:
+            return {
+                SQL_C_TYPE_DATE,
+                SQL_TYPE_DATE,
+                10,
+                0,
+                &std::get<SQL_DATE_STRUCT>(parameter.value),
+                static_cast<SQLLEN>(sizeof(SQL_DATE_STRUCT)),
+            };
+        case ParameterType::kTime: {
+            return {
+                SQL_C_TYPE_TIME,
+                SQL_TYPE_TIME,
+                8,
+                0,
+                &std::get<SQL_TIME_STRUCT>(parameter.value),
+                static_cast<SQLLEN>(sizeof(SQL_TIME_STRUCT)),
+            };
+        }
+        case ParameterType::kTimestamp: {
+            auto& timestamp = std::get<SQL_TIMESTAMP_STRUCT>(parameter.value);
+            return {
+                SQL_C_TYPE_TIMESTAMP,
+                SQL_TYPE_TIMESTAMP,
+                static_cast<SQLULEN>(timestamp.fraction == 0 ? 19 : 29),
+                static_cast<SQLSMALLINT>(timestamp.fraction == 0 ? 0 : 9),
+                &timestamp,
+                static_cast<SQLLEN>(sizeof(timestamp)),
+            };
+        }
+        case ParameterType::kDecimal: {
+            auto& decimal = std::get<SQL_NUMERIC_STRUCT>(parameter.value);
+            return {
+                SQL_C_NUMERIC,
+                SQL_DECIMAL,
+                decimal.precision,
+                decimal.scale,
+                &decimal,
+                static_cast<SQLLEN>(sizeof(decimal)),
             };
         }
         case ParameterType::kUnknown:
@@ -525,6 +1064,7 @@ ParameterBinding GetParameterBinding(BoundParameter& parameter) {
                 SQL_C_CHAR,
                 SQL_VARCHAR,
                 1,
+                0,
                 std::get<std::string>(parameter.value).data(),
                 0,
             };
@@ -534,7 +1074,10 @@ ParameterBinding GetParameterBinding(BoundParameter& parameter) {
 
 void BindParameters(SQLHSTMT statement, const impl::ParameterList& parameters, engine::Deadline deadline) {
     SQLSMALLINT expected_count = 0;
+    detail::CheckDeadlineNotExpired(deadline);
     const auto count_result = SQLNumParams(statement, &expected_count);
+    HandleStatementWarnings(count_result, statement, "determining parameter count", false);
+    detail::CheckDeadlineNotExpired(deadline);
     if (!SQL_SUCCEEDED(count_result)) {
         throw MakeDriverError<
             StatementError>("Failed to determine ODBC parameter count", count_result, statement, SQL_HANDLE_STMT);
@@ -559,6 +1102,7 @@ void BindParameters(SQLHSTMT statement, const impl::ParameterList& parameters, e
         if (parameter.type == impl::ParameterType::kUnknown) {
             SQLSMALLINT decimal_digits = 0;
             SQLSMALLINT nullable = SQL_NULLABLE_UNKNOWN;
+            detail::CheckDeadlineNotExpired(deadline);
             const auto describe_result = SQLDescribeParam(
                 statement,
                 static_cast<SQLUSMALLINT>(index + 1),
@@ -567,6 +1111,8 @@ void BindParameters(SQLHSTMT statement, const impl::ParameterList& parameters, e
                 &decimal_digits,
                 &nullable
             );
+            HandleStatementWarnings(describe_result, statement, "describing an untyped NULL parameter", false);
+            detail::CheckDeadlineNotExpired(deadline);
             if (!SQL_SUCCEEDED(describe_result)) {
                 throw MakeDriverError<StatementError>(
                     "Cannot infer the type of a NULL ODBC parameter; add an explicit SQL cast or use a typed "
@@ -579,6 +1125,8 @@ void BindParameters(SQLHSTMT statement, const impl::ParameterList& parameters, e
         }
 
         indicators[index] = parameter.is_null ? SQL_NULL_DATA : binding.buffer_size;
+        const auto bind_buffer_size = parameter.type == impl::ParameterType::kDecimal ? SQLLEN{0} : binding.buffer_size;
+        detail::CheckDeadlineNotExpired(deadline);
         const auto bind_result = SQLBindParameter(
             statement,
             static_cast<SQLUSMALLINT>(index + 1),
@@ -586,11 +1134,13 @@ void BindParameters(SQLHSTMT statement, const impl::ParameterList& parameters, e
             binding.c_type,
             binding.sql_type,
             binding.column_size,
-            0,
+            binding.decimal_digits,
             binding.data,
-            binding.buffer_size,
+            bind_buffer_size,
             &indicators[index]
         );
+        HandleStatementWarnings(bind_result, statement, "binding a query parameter", false);
+        detail::CheckDeadlineNotExpired(deadline);
         if (!SQL_SUCCEEDED(bind_result)) {
             throw MakeDriverError<StatementError>(
                 fmt::format("Failed to bind ODBC parameter {}", index + 1),
@@ -599,10 +1149,67 @@ void BindParameters(SQLHSTMT statement, const impl::ParameterList& parameters, e
                 SQL_HANDLE_STMT
             );
         }
+        if (parameter.type == impl::ParameterType::kDecimal) {
+            SQLHDESC descriptor = SQL_NULL_HDESC;
+            detail::CheckDeadlineNotExpired(deadline);
+            const auto descriptor_result = SQLGetStmtAttr(
+                statement,
+                SQL_ATTR_APP_PARAM_DESC,
+                &descriptor,
+                static_cast<SQLINTEGER>(sizeof(descriptor)),
+                nullptr
+            );
+            detail::CheckDeadlineNotExpired(deadline);
+            if (!SQL_SUCCEEDED(descriptor_result)) {
+                throw MakeDriverError<StatementError>(
+                    fmt::format("Failed to obtain the descriptor for ODBC Decimal parameter {}", index + 1),
+                    descriptor_result,
+                    statement,
+                    SQL_HANDLE_STMT
+                );
+            }
+            if (descriptor_result == SQL_SUCCESS_WITH_INFO) {
+                LogOdbcWarnings(
+                    fmt::format("Obtaining the descriptor for ODBC Decimal parameter {}", index + 1),
+                    statement,
+                    SQL_HANDLE_STMT
+                );
+            }
+
+            const auto record = static_cast<SQLSMALLINT>(index + 1);
+            const auto set_field = [&](SQLSMALLINT field, SQLPOINTER value, std::string_view name) {
+                detail::CheckDeadlineNotExpired(deadline);
+                const auto result = SQLSetDescField(descriptor, record, field, value, 0);
+                const auto warnings = GetWarnings(result, descriptor, SQL_HANDLE_DESC);
+                detail::CheckDeadlineNotExpired(deadline);
+                if (!SQL_SUCCEEDED(result)) {
+                    throw MakeDriverError<StatementError>(
+                        fmt::format("Failed to set {} for ODBC Decimal parameter {}", name, index + 1),
+                        result,
+                        descriptor,
+                        SQL_HANDLE_DESC
+                    );
+                }
+                if (result == SQL_SUCCESS_WITH_INFO) {
+                    LogOdbcWarnings(fmt::format("Setting {} for ODBC Decimal parameter {}", name, index + 1), warnings);
+                }
+            };
+            const auto numeric_field = [](SQLLEN value) {
+                return reinterpret_cast<SQLPOINTER>(static_cast<std::uintptr_t>(value));
+            };
+            // Per ODBC descriptor sequencing rules, changing non-deferred APD
+            // fields clears SQL_DESC_DATA_PTR. Restore it last so SQLExecute
+            // sees the bound SQL_NUMERIC_STRUCT rather than a NULL parameter.
+            set_field(SQL_DESC_TYPE, numeric_field(SQL_C_NUMERIC), "C type");
+            set_field(SQL_DESC_PRECISION, numeric_field(binding.column_size), "precision");
+            set_field(SQL_DESC_SCALE, numeric_field(binding.decimal_digits), "scale");
+            set_field(SQL_DESC_DATA_PTR, binding.data, "data pointer");
+        }
     }
 
     detail::CheckDeadlineNotExpired(deadline);
     const auto execute_result = SQLExecute(statement);
+    HandleStatementWarnings(execute_result, statement, "executing a prepared query", true);
     detail::CheckDeadlineNotExpired(deadline);
     if (!SQL_SUCCEEDED(execute_result) && execute_result != SQL_NO_DATA) {
         throw MakeDriverError<
@@ -622,12 +1229,14 @@ SQLRETURN ExecuteStatement(
     if (parameters.empty()) {
         detail::CheckDeadlineNotExpired(deadline);
         const auto execute_result = SQLExecDirect(statement, query_buffer.data(), SQL_NTS);
+        HandleStatementWarnings(execute_result, statement, "executing a direct query", true);
         detail::CheckDeadlineNotExpired(deadline);
         return execute_result;
     }
 
     detail::CheckDeadlineNotExpired(deadline);
     const auto prepare_result = SQLPrepare(statement, query_buffer.data(), SQL_NTS);
+    HandleStatementWarnings(prepare_result, statement, "preparing a query", false);
     detail::CheckDeadlineNotExpired(deadline);
     if (!SQL_SUCCEEDED(prepare_result)) {
         throw MakeDriverError<

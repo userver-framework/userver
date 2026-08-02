@@ -17,12 +17,31 @@ literals internally.
 @snippet odbc/tests/odbc_postgresql_test.cpp ODBC parameter binding
 
 The variadic API supports booleans, signed integers, unsigned integers up to
-`INT64_MAX`, floating point values, strings and string views. Larger unsigned
-values are rejected instead of relying on driver-specific conversion outside
-the portable SQL `BIGINT` range. Use `std::optional<T>` for a typed nullable
-value, or `nullptr` when the ODBC driver can infer the parameter type from the
-statement. The number of C++ arguments must match the number of `?`
-placeholders.
+`INT64_MAX`, floating point values, strings and string views. It also provides
+portable owning types for the corresponding standard ODBC values:
+
+- storages::odbc::Bytes for `BINARY`, `VARBINARY`, and `LONGVARBINARY`;
+- storages::odbc::Date and storages::odbc::Time for timezone-independent date
+  and second-resolution time values;
+- storages::odbc::Timestamp for a timezone-independent timestamp with a
+  nanosecond fraction;
+- `storages::odbc::Decimal<Precision, Scale>` for exact fixed-scale
+  `DECIMAL`/`NUMERIC`, with portable precision from 1 to 38.
+
+`Bytes`, date/time structures, timestamp structures, and numeric structures
+are bound through their standard ODBC C and SQL types. `Decimal` requires exact
+fixed-scale input (for example, `Decimal<9, 4>{"123.4500"}`), removes a leading
+plus and redundant integer zeroes, preserves all Scale fractional digits, and
+normalizes negative zero. Date, time, and timestamp have no timezone conversion
+or implicit `system_clock` interpretation.
+
+@snippet odbc/tests/odbc_postgresql_test.cpp ODBC portable standard types
+
+Larger unsigned values are rejected instead of relying on driver-specific
+conversion outside the portable SQL `BIGINT` range. Use `std::optional<T>` for
+a typed nullable value, including every portable type above, or `nullptr` when
+the ODBC driver can infer the parameter type from the statement. The number of
+C++ arguments must match the number of `?` placeholders.
 
 For queries assembled at runtime, storages::odbc::ParameterStore provides an
 owning, ordered dynamic parameter list with the same supported value types and
@@ -38,13 +57,33 @@ inference; a null value whose static type is `const char*` is instead bound as
 a typed string NULL.
 
 `storages::odbc::Cluster::Execute` returns a storages::odbc::ResultSet. Its rows
-contain storages::odbc::Field values that provide typed getters such as
-`GetInt32`, `GetInt64`, `GetDouble`, `GetBool`, and `GetString`.
+contain storages::odbc::Field values. The compatibility getters `GetInt32`,
+`GetInt64`, `GetDouble`, `GetBool`, and `GetString` remain available.
+`Field::As<T>()` adds strict mapping for `bool`, every signed and unsigned
+integer width, `float`, `double`, `std::string`, the portable ODBC types above,
+and `std::optional<T>`. It rejects a mismatched SQL category, partial numeric
+parse, target-width overflow, and SQL NULL for non-optional T. Decimal mapping
+also requires the result column's reported precision and scale to exactly
+match its `Decimal<Precision, Scale>` type.
+
+Typed result helpers apply the same checks to complete rows:
+
+@snippet odbc/tests/odbc_types_test.cpp ODBC typed result mapping
+
+A scalar mapping requires exactly one column. A flat, public,
+standard-layout aggregate is initialized in member declaration order and
+requires exactly one column per member; nested aggregates and reference
+members are rejected. `AsSingleRow` requires exactly one row, while
+`AsOptionalSingleRow` accepts zero or one. If T itself is optional, the outer
+optional represents row presence and the inner optional represents SQL NULL.
+
 The result is fully materialized as an in-memory snapshot before the connection
 returns to the pool, so it remains readable after another query, transaction
 completion, or topology reload. Consequently, large or unbounded `SELECT`s use
-memory proportional to the complete result. `ResultSet::Size()` is the number
-of materialized rows; use `ResultSet::RowsAffected()` for DML row counts.
+memory proportional to the complete result. Binary values are materialized by
+reported byte lengths rather than NUL terminators, so embedded zeroes and chunk
+boundaries are preserved. `ResultSet::Size()` is the number of materialized
+rows; use `ResultSet::RowsAffected()` for DML row counts.
 
 ### Transactions
 

@@ -32,7 +32,8 @@ private:
 public:
     static constexpr bool value =
         std::integral<Value> || std::floating_point<Value> || std::is_enum_v<Value> ||
-        std::same_as<Value, std::string> || std::same_as<Value, std::string_view> ||
+        std::same_as<Value, std::string> || std::same_as<Value, std::string_view> || std::same_as<Value, Bytes> ||
+        std::same_as<Value, Date> || std::same_as<Value, Time> || std::same_as<Value, Timestamp> || kIsDecimal<Value> ||
         std::same_as<Value, std::nullptr_t> || std::same_as<Value, std::nullopt_t> ||
         (std::is_pointer_v<Value> && (std::same_as<Pointee, char> || std::same_as<Pointee, const char>)) ||
         (std::is_array_v<Value> && std::same_as<std::remove_cv_t<Element>, char>);

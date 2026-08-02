@@ -13,6 +13,7 @@
 #include <variant>
 #include <vector>
 
+#include <userver/storages/odbc/types.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -25,14 +26,35 @@ enum class ParameterType {
     kUnsignedInteger,
     kFloatingPoint,
     kString,
+    kBytes,
+    kDate,
+    kTime,
+    kTimestamp,
+    kDecimal,
     kUnknown,
+};
+
+struct DecimalParameter final {
+    std::string representation;
+    std::uint8_t precision;
+    std::uint8_t scale;
 };
 
 /// A type-erased, owning query parameter. Owning the value is important because
 /// an ODBC driver is allowed to read bound buffers until SQLExecute returns.
 class Parameter final {
 public:
-    using Value = std::variant<bool, std::int64_t, std::uint64_t, double, std::string>;
+    using Value = std::variant<
+        bool,
+        std::int64_t,
+        std::uint64_t,
+        double,
+        std::string,
+        Bytes,
+        Date,
+        Time,
+        Timestamp,
+        DecimalParameter>;
 
     Parameter(std::nullptr_t)
         : type_{ParameterType::kUnknown},
@@ -85,6 +107,36 @@ public:
     {}
     Parameter(std::string_view value)
         : Parameter{std::string{value}}
+    {}
+
+    Parameter(Bytes value)
+        : type_{ParameterType::kBytes},
+          value_{std::move(value)}
+    {}
+
+    Parameter(Date value)
+        : type_{ParameterType::kDate},
+          value_{value}
+    {}
+
+    Parameter(Time value)
+        : type_{ParameterType::kTime},
+          value_{value}
+    {}
+
+    Parameter(Timestamp value)
+        : type_{ParameterType::kTimestamp},
+          value_{value}
+    {}
+
+    template <std::size_t Precision, std::size_t Scale>
+    Parameter(const Decimal<Precision, Scale>& value)
+        : type_{ParameterType::kDecimal},
+          value_{DecimalParameter{
+              std::string{value.GetRepresentation()},
+              static_cast<std::uint8_t>(Precision),
+              static_cast<std::uint8_t>(Scale),
+          }}
     {}
 
     template <typename T>

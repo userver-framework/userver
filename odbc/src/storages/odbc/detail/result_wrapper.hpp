@@ -1,11 +1,15 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <variant>
 #include <vector>
 
-#include <sqltypes.h>
+#include <sqlext.h>
+
+#include <userver/storages/odbc/types.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -19,10 +23,19 @@ public:
     struct Column final {
         std::string name;
         SQLSMALLINT type{};
+        SQLULEN size{};
+        SQLSMALLINT decimal_digits{};
+    };
+
+    struct DecimalValue final {
+        std::string representation;
+        std::uint8_t precision{};
+        std::uint8_t scale{};
     };
 
     struct Cell final {
-        std::optional<std::string> value;
+        using Value = std::variant<std::string, Bytes, Date, Time, Timestamp, DecimalValue>;
+        std::optional<Value> value;
     };
 
     using Row = std::vector<Cell>;
@@ -43,9 +56,20 @@ public:
     bool GetBool(std::size_t row, std::size_t col) const;
     bool IsFieldNull(std::size_t row, std::size_t col) const;
 
+    std::int64_t GetSignedIntegerStrict(std::size_t row, std::size_t col) const;
+    std::uint64_t GetUnsignedIntegerStrict(std::size_t row, std::size_t col) const;
+    double GetFloatingPointStrict(std::size_t row, std::size_t col) const;
+    std::string GetStringStrict(std::size_t row, std::size_t col) const;
+    bool GetBoolStrict(std::size_t row, std::size_t col) const;
+    Bytes GetBytesStrict(std::size_t row, std::size_t col) const;
+    Date GetDateStrict(std::size_t row, std::size_t col) const;
+    Time GetTimeStrict(std::size_t row, std::size_t col) const;
+    Timestamp GetTimestampStrict(std::size_t row, std::size_t col) const;
+    std::string GetDecimalStrict(std::size_t row, std::size_t col, std::size_t precision, std::size_t scale) const;
+
 private:
     const Cell& GetCell(std::size_t row, std::size_t col) const;
-    const std::string& GetValue(std::size_t row, std::size_t col) const;
+    const Cell::Value& GetValue(std::size_t row, std::size_t col) const;
 
     std::vector<Column> columns_;
     std::vector<Row> rows_;
