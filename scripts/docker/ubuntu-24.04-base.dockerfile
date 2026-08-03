@@ -42,4 +42,7 @@ COPY scripts/clickhouse/ubuntu-install-clickhouse.sh /userver_tmp/
 RUN /userver_tmp/ubuntu-install-clickhouse.sh
 
 COPY scripts/rabbitmq/ubuntu_install_rabbitmq_dev.sh /userver_tmp/
-RUN /userver_tmp/ubuntu_install_rabbitmq_dev.sh 
+RUN /userver_tmp/ubuntu_install_rabbitmq_dev.sh
+
+COPY scripts/scylla/ubuntu-install-scylla.sh /userver_tmp/
+RUN /userver_tmp/ubuntu-install-scylla.sh

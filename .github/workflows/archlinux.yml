@@ -42,6 +42,7 @@ jobs:
                 -DUSERVER_FEATURE_MONGODB=0
                 -DUSERVER_FEATURE_OTLP=0
                 -DUSERVER_FEATURE_ROCKS=0
+                -DUSERVER_FEATURE_SCYLLADB=0
                 -DUSERVER_FEATURE_YDB=0
                 -DUSERVER_USE_STATIC_LIBS=0
                 -DUSERVER_FEATURE_PATCH_LIBPQ=0

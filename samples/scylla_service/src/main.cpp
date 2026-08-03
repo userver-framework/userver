@@ -403,6 +403,11 @@ public:
         request.GetHttpResponse().SetContentType(http::content_type::kApplicationJson);
 
         session_->ExecuteVoid(
+            "CREATE KEYSPACE IF NOT EXISTS examples "
+            "WITH REPLICATION = {'class': 'SimpleStrategy', 'replication_factor': 1}"
+        );
+
+        session_->ExecuteVoid(
             "CREATE TABLE IF NOT EXISTS examples.basic ("
             "key text PRIMARY KEY, "
             "bln boolean, "

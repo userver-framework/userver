@@ -5,6 +5,7 @@ COPY scripts/docker/setup-base-ubuntu-22.04-env.sh /userver_tmp/
 COPY scripts/clickhouse/ubuntu-install-clickhouse.sh /userver_tmp/
 COPY scripts/rabbitmq/ubuntu_install_rabbitmq_dev.sh /userver_tmp/
 COPY scripts/kafka/ubuntu_install_kafka.sh /userver_tmp/
+COPY scripts/scylla/ubuntu-install-scylla.sh /userver_tmp/
 COPY scripts/docker/ubuntu_install_grpc.sh /userver_tmp/
 
 COPY scripts/grpc/requirements-4.txt                    /userver_tmp/requirements/grpc-userver.txt

@@ -143,6 +143,9 @@ git clone --depth 1 -b ${ROCKSDB_VERSION} https://github.com/facebook/rocksdb
 # Installing Kafka
 ./ubuntu_install_kafka.sh
 
+# Installing ScyllaDB
+./ubuntu-install-scylla.sh
+
 # Set UTC timezone
 TZ=Etc/UTC
 ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone

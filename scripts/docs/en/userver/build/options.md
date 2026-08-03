@@ -26,6 +26,7 @@ userver is split into multiple CMake libraries.
 | `userver::rabbitmq`        | `USERVER_FEATURE_RABBITMQ`                        | `rabbitmq`            | @ref scripts/docs/en/userver/rabbitmq_driver.md           |
 | `userver::mysql`           | `USERVER_FEATURE_MYSQL`                           | `mysql`               | @ref scripts/docs/en/userver/mysql/mysql_driver.md        |
 | `userver::rocks`           | `USERVER_FEATURE_ROCKS`                           | `rocks`               | TODO                                                      |
+| `userver::scylla`          | `USERVER_FEATURE_SCYLLADB`                        | `scylla`              | @ref scripts/docs/en/userver/scylladb.md                  |
 | `userver::sqlite`          | `USERVER_FEATURE_SQLITE`                          | `sqlite`              | @ref scripts/docs/en/userver/sqlite/sqlite_driver.md      |
 | `userver::odbc`            | `USERVER_FEATURE_ODBC`                            | `odbc`                | @ref scripts/docs/en/userver/odbc.md                      |
 | `userver::ydb`             | `USERVER_FEATURE_YDB`                             | `ydb`                 | @ref scripts/docs/en/userver/ydb.md                       |
@@ -82,6 +83,7 @@ The exact format of setting cmake options varies depending on the method of buil
 | `USERVER_FEATURE_ROCKS`           | Provide asynchronous driver for RocksDB                                           | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
 | `USERVER_FEATURE_SQLITE`          | Provide asynchronous driver for SQLite                                            | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
 | `USERVER_FEATURE_ODBC`            | Provide asynchronous driver for ODBC                                              | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
+| `USERVER_FEATURE_SCYLLADB`        | Provide asynchronous driver for ScyllaDB                                          | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
 | `USERVER_FEATURE_YDB`             | Provide asynchronous driver for YDB                                               | `${USERVER_BUILD_ALL_COMPONENTS}` AND C++ standard >= 20    |
 | `USERVER_FEATURE_OTLP`            | Provide Logger for OpenTelemetry protocol                                         | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
 | `USERVER_FEATURE_GRPC_REFLECTION` | Provide reflection service for gRPC                                               | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
