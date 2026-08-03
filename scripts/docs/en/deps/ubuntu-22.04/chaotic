@@ -1,2 +1,4 @@
 python3-jinja2
+python3-yaml
+python3-transliterate
 clang-format
