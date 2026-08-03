@@ -5,6 +5,7 @@
 #include <userver/utils/async.hpp>
 #include <userver/utils/mock_now.hpp>
 
+#include <iterator>
 #include <mutex>
 #include <string>
 
@@ -45,6 +46,8 @@ protected:
             boost::multi_index::ordered_non_unique<
                 boost::multi_index::tag<NameTag>,
                 boost::multi_index::member<User, std::string, &User::name>>>>;
+
+    static_assert(std::bidirectional_iterator<decltype(std::declval<UserCacheExpirable&>().find<IdTag>(0))>);
 };
 
 UTEST_F(ExpirableUsersTest, BasicOperations) {
@@ -73,6 +76,32 @@ UTEST_F(ExpirableUsersTest, BasicOperations) {
     auto charlie_it = cache.find<NameTag>("Charlie");
     EXPECT_NE(charlie_it, cache.end<NameTag>());
     EXPECT_EQ(charlie_it->email, "charlie@test.com");
+}
+
+UTEST_F(ExpirableUsersTest, IteratorIncrementDecrement) {
+    UserCacheExpirable cache(3, std::chrono::seconds(10));
+    EXPECT_TRUE(cache.insert({.id = 1, .email = "a@test.com", .name = "A"}));
+    EXPECT_TRUE(cache.insert({.id = 2, .email = "b@test.com", .name = "B"}));
+    EXPECT_TRUE(cache.insert({.id = 3, .email = "c@test.com", .name = "C"}));
+
+    auto it = cache.find<IdTag>(1);
+    ASSERT_NE(it, cache.end<IdTag>());
+
+    auto& prefix_ref = ++it;
+    EXPECT_EQ(&prefix_ref, &it);
+    EXPECT_EQ(it->id, 2);
+
+    auto prev = it++;
+    EXPECT_EQ(prev->id, 2);
+    EXPECT_EQ(it->id, 3);
+
+    auto& prefix_dec = --it;
+    EXPECT_EQ(&prefix_dec, &it);
+    EXPECT_EQ(it->id, 2);
+
+    auto next = it--;
+    EXPECT_EQ(next->id, 2);
+    EXPECT_EQ(it->id, 1);
 }
 
 UTEST_F(ExpirableUsersTest, FindNoUpdate) {

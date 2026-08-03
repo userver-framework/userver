@@ -10,6 +10,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace websocket {
 class WebSocketConnection;
+struct Config;
 }  // namespace websocket
 
 namespace clients::http {
@@ -42,6 +43,9 @@ public:
 
     /// @brief Create a WebSocket connection from this response
     std::shared_ptr<websocket::WebSocketConnection> MakeWebSocketConnection();
+
+    /// @brief Create a WebSocket connection from this response with custom websocket config
+    std::shared_ptr<websocket::WebSocketConnection> MakeWebSocketConnectionWithConfig(const websocket::Config& config);
 
 private:
     std::shared_ptr<Response> handshake_response_;

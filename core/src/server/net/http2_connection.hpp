@@ -69,6 +69,7 @@ private:
     void EnsureHttp2();
 
     bool ShouldCloseConnection() const noexcept;
+    bool IsIdle() const noexcept;
 
     const ConnectionConfig& config_;
     const request::HttpRequestConfig& handler_defaults_config_;

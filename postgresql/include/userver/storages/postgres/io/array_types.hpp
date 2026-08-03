@@ -497,11 +497,16 @@ public:
 
     class ChunkIterator {
     public:
+        using iterator_category = std::input_iterator_tag;
+        using difference_type = std::ptrdiff_t;
+        using value_type = ContainerChunk<Container>;
+        using reference = value_type;
+        using pointer = void;
+
         using UnderlyingIterator = typename Container::const_iterator;
         ChunkIterator(const Container& container, UnderlyingIterator current, std::size_t chunk_elements)
-            : container_{container},
-              chunk_size_{chunk_elements},
-              tail_size_{static_cast<size_t>(std::distance(current, container_.end()))},
+            : chunk_size_{chunk_elements},
+              tail_size_{static_cast<size_t>(std::distance(current, container.end()))},
               current_{current}
         {}
 
@@ -527,8 +532,7 @@ public:
     private:
         std::size_t NextStep() const { return std::min(chunk_size_, tail_size_); }
 
-        const Container& container_;
-        const std::size_t chunk_size_;
+        std::size_t chunk_size_;
         std::size_t tail_size_;
         UnderlyingIterator current_;
     };

@@ -1,5 +1,7 @@
 #include <userver/utest/utest.hpp>
 
+#include <iterator>
+
 #include <userver/storages/clickhouse/query.hpp>
 
 #include "utils_test.hpp"
@@ -50,6 +52,8 @@ struct CppToClickhouse<RowData> final {
 
 }  // namespace storages::clickhouse::io
 /// [Sample CppToClickhouse specialization]
+
+static_assert(std::forward_iterator<storages::clickhouse::io::RowsMapper<RowData>::Iterator>);
 
 UTEST(Execute, MappingWorks) {
     ClusterWrapper cluster{};

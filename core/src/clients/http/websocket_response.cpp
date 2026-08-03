@@ -19,6 +19,12 @@ bool WebSocketResponse::IsProtocolUpgraded() const {
 }
 
 std::shared_ptr<websocket::WebSocketConnection> WebSocketResponse::MakeWebSocketConnection() {
+    return MakeWebSocketConnectionWithConfig(websocket::Config{});
+}
+
+std::shared_ptr<websocket::WebSocketConnection> WebSocketResponse::MakeWebSocketConnectionWithConfig(
+    const websocket::Config& config
+) {
     if (!IsProtocolUpgraded()) {
         throw std::runtime_error("Protocol is not upgraded to WebSocket");
     }
@@ -29,7 +35,6 @@ std::shared_ptr<websocket::WebSocketConnection> WebSocketResponse::MakeWebSocket
 
     auto socket = std::make_unique<engine::io::Socket>(socket_.GetNative());
     auto addr = socket->Getsockname();
-    auto config = websocket::Config{};
 
     std::move(socket_).Release();
 

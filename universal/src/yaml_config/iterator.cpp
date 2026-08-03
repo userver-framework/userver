@@ -1,5 +1,7 @@
 #include <userver/yaml_config/iterator.hpp>
 
+#include <iterator>
+
 #include <userver/utils/assert.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
@@ -135,6 +137,8 @@ void Iterator<IterTraits>::IncrementInternalIterator() {
 
 // Explicit instantiation
 template class Iterator<YamlConfig::IterTraits>;
+
+static_assert(std::forward_iterator<Iterator<YamlConfig::IterTraits>>);
 
 }  // namespace yaml_config
 

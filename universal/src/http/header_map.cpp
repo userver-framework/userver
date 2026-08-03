@@ -281,6 +281,9 @@ bool HeaderMap::ConstIterator::operator!=(const ConstIterator& other) const { re
 
 bool HeaderMap::ConstIterator::operator==(const HeaderMap::Iterator& other) const { return it_ == other.it_; }
 
+static_assert(std::forward_iterator<HeaderMap::Iterator>);
+static_assert(std::forward_iterator<HeaderMap::ConstIterator>);
+
 }  // namespace http::headers
 
 USERVER_NAMESPACE_END
