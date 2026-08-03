@@ -59,6 +59,7 @@ jobs:
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
                         -DUSERVER_DOWNLOAD_PACKAGE_YDBCPPSDK=OFF
+                        -DUSERVER_FORCE_DOWNLOAD_ABSEIL=OFF
                     os: ubuntu-24.04
                     info: gcc-13 + release
                     id: ubuntu24_gcc13_release
