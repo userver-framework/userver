@@ -21,14 +21,17 @@ PingBase::PingBase(const components::ComponentConfig& config, const components::
 
 std::string PingBase::HandleRequestThrow(const http::HttpRequest& /*request*/, request::RequestContext& /*context*/)
     const {
-    if (components_.IsAnyComponentInFatalState()) {
-        throw InternalServerError();
-    }
-
+    // Check the lifetime stage before component health: during shutdown the
+    // stage becomes non-kRunning before ClearComponents() destroys components,
+    // so this avoids racing with teardown.
     const auto lifetime_stage = components_.GetServiceLifetimeStage();
     if (lifetime_stage != components::ServiceLifetimeStage::kRunning) {
         LOG_WARNING()
             << "Service is not ready for requests (stage=" << ToString(lifetime_stage) << "), returning 500 from /ping";
+        throw InternalServerError();
+    }
+
+    if (components_.IsAnyComponentInFatalState()) {
         throw InternalServerError();
     }
 

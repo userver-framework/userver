@@ -41,6 +41,8 @@ public:
     RawComponentBase* GetComponent() const;
     RawComponentBase* WaitAndGetComponent() const;
 
+    ComponentHealth GetComponentHealth() const;
+
     void AddItDependsOn(ComponentInfo& component);
     void AddDependsOnIt(ComponentInfo& component);
 
