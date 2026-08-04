@@ -27,6 +27,7 @@
   ".github/workflows/publish-ubuntu-24.04-images.yaml":"taxi/uservices/userver/.github/workflows/publish-ubuntu-24.04-images.yaml",
   ".github/workflows/ubuntu-minimal.yml":"taxi/uservices/userver/.github/workflows/ubuntu-minimal.yml",
   ".gitignore":"taxi/uservices/userver/.gitignore",
+  "AGENTS.md":"taxi/uservices/userver/AGENTS.md",
   "AUTHORS":"taxi/uservices/userver/AUTHORS",
   "CMakeLists.txt":"taxi/uservices/userver/CMakeLists.txt",
   "CODEOWNERS":"taxi/uservices/userver/CODEOWNERS",
