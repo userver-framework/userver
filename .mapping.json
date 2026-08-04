@@ -5031,6 +5031,7 @@
   "scripts/docs/en/userver/lru_cache.md":"taxi/uservices/userver/scripts/docs/en/userver/lru_cache.md",
   "scripts/docs/en/userver/memory_profile_running_service.md":"taxi/uservices/userver/scripts/docs/en/userver/memory_profile_running_service.md",
   "scripts/docs/en/userver/metrics.md":"taxi/uservices/userver/scripts/docs/en/userver/metrics.md",
+  "scripts/docs/en/userver/metrics_migration.md":"taxi/uservices/userver/scripts/docs/en/userver/metrics_migration.md",
   "scripts/docs/en/userver/mongodb.md":"taxi/uservices/userver/scripts/docs/en/userver/mongodb.md",
   "scripts/docs/en/userver/mysql/design_and_details.md":"taxi/uservices/userver/scripts/docs/en/userver/mysql/design_and_details.md",
   "scripts/docs/en/userver/mysql/mysql_driver.md":"taxi/uservices/userver/scripts/docs/en/userver/mysql/mysql_driver.md",
