@@ -1,5 +1,18 @@
 # userver — Agent Guide
 
+## Generic rules
+
+- DRY
+- defensive programming, no implicit contracts
+- informative configuration error message, include 'how to fix' hints if possible
+- avoid no-op code, it might be misleading
+
+## Comments
+
+- code comments must describe "why" and "what", not "how"
+- avoid trivial comments
+- use comments to explicitly mark tricky/buggy/TODO code
+
 ## Language and practices
 
 - Use modern **C++20** and established best practices of the project.
@@ -25,3 +38,7 @@ Usage and testing examples: `samples/`. Documentation pages: `scripts/docs/en/`.
 ## Build systems
 
 The project is built with both **CMake** and the internal **ya.make** build system. Always update `CMakeLists.txt`. Update `ya.make` **only if it already exists** for the affected target; otherwise change only CMake.
+
+## CMake
+
+`ai/rules/cmake-guide.md` - guide for cmake. Read it before any cmake changes.
