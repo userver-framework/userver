@@ -124,7 +124,9 @@ function(userver_module MODULE)
             # Main module of the component.
             set(install_config_file "${USERVER_ROOT_DIR}/cmake/install/userver-${INSTALL_COMPONENT}-config.cmake")
             if(NOT EXISTS ${install_config_file})
-                message(FATAL_ERROR "Can not install ${INSTALL_COMPONENT}, no installation config in ${install_config_file}")
+                message(
+                    FATAL_ERROR "Can not install ${INSTALL_COMPONENT}, no installation config in ${install_config_file}"
+                )
             endif()
 
             _userver_directory_install(
@@ -201,7 +203,11 @@ function(userver_module MODULE)
 
     foreach(FILE ${ARG_EMBED_FILES})
         string(MAKE_C_IDENTIFIER "userver-${MODULE}-embed_${FILE}" EMBED_TARGET_NAME)
-        userver_embed_file(${EMBED_TARGET_NAME} FILEPATH "${FILE}" HPP_FILENAME "${FILE}")
+        userver_embed_file(
+            ${EMBED_TARGET_NAME}
+            FILEPATH "${FILE}"
+            HPP_FILENAME "${FILE}"
+        )
         target_link_libraries(userver-${MODULE} PRIVATE "$<BUILD_INTERFACE:${EMBED_TARGET_NAME}>")
     endforeach()
 endfunction()

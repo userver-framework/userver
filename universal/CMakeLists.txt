@@ -289,7 +289,8 @@ gen_gdb_printers(${PROJECT_NAME} "formats/json")
 _userver_directory_install(
     COMPONENT universal
     DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include
-    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/.. PATTERN "*pp" # ignore .gitignore in userver/third_party
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/..
+    PATTERN "*pp" # ignore .gitignore in userver/third_party
 )
 _userver_directory_install(
     COMPONENT universal
@@ -330,9 +331,7 @@ if(USERVER_BUILD_TESTS)
     target_include_directories(
         ${PROJECT_NAME}-benchmark SYSTEM PRIVATE $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
     )
-    target_link_libraries(
-        ${PROJECT_NAME}-benchmark PUBLIC ${PROJECT_NAME} ${PROJECT_NAME}-internal-ubench
-    )
+    target_link_libraries(${PROJECT_NAME}-benchmark PUBLIC ${PROJECT_NAME} ${PROJECT_NAME}-internal-ubench)
 
     option(USERVER_HEADER_MAP_AGAINST_OTHERS_BENCHMARK "build HeaderMap benchmarks against abseil and boost" OFF)
     if(USERVER_HEADER_MAP_AGAINST_OTHERS_BENCHMARK)
@@ -344,15 +343,11 @@ if(USERVER_BUILD_TESTS)
     add_google_benchmark_tests(${PROJECT_NAME}-benchmark)
 
     add_library(${PROJECT_NAME}-compile-fail EXCLUDE_FROM_ALL ${COMPILEFAIL_TEST_SOURCES})
-    target_link_libraries(
-        ${PROJECT_NAME}-compile-fail
-        PUBLIC ${PROJECT_NAME}
-    )
+    target_link_libraries(${PROJECT_NAME}-compile-fail PUBLIC ${PROJECT_NAME})
     add_test(
-	NAME ${PROJECT_NAME}-compile-err-msg-test
-	COMMAND
-	    python3 ${USERVER_ROOT_DIR}/scripts/compile_fail_test.py ${CMAKE_CURRENT_SOURCE_DIR}
-	WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+        NAME ${PROJECT_NAME}-compile-err-msg-test
+        COMMAND python3 ${USERVER_ROOT_DIR}/scripts/compile_fail_test.py ${CMAKE_CURRENT_SOURCE_DIR}
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     )
 endif()
 

@@ -56,7 +56,11 @@ list(
 
 foreach(FILE ${EMBED_FILES})
     string(MAKE_C_IDENTIFIER "${PROJECT_NAME}-internal-embed_${FILE}" EMBED_TARGET_NAME)
-    userver_embed_file(${EMBED_TARGET_NAME} FILEPATH "${FILE}" HPP_FILENAME "${FILE}")
+    userver_embed_file(
+        ${EMBED_TARGET_NAME}
+        FILEPATH "${FILE}"
+        HPP_FILENAME "${FILE}"
+    )
     target_link_libraries(${PROJECT_NAME}-internal PRIVATE "$<BUILD_INTERFACE:${EMBED_TARGET_NAME}>")
 endforeach()
 
@@ -87,7 +91,9 @@ if(DEFINED api-common-proto_LIBRARY)
 endif()
 
 userver_generate_grpc_files(
-    PROTOS userver/field_options.proto GENERATED_INCLUDES proto_include_paths CPP_FILES generated_proto_sources
+    PROTOS userver/field_options.proto
+    GENERATED_INCLUDES proto_include_paths
+    CPP_FILES generated_proto_sources
 )
 add_library(${PROJECT_NAME}-proto STATIC ${generated_proto_sources})
 target_link_libraries(${PROJECT_NAME}-proto PUBLIC ${PROJECT_NAME}-deps)

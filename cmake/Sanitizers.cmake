@@ -34,8 +34,8 @@ endfunction()
 # @arg SANITIZER_LIST_VAR smth
 # @arg COMPILE_FLAGS_VAR smth
 # @arg LINK_FLAGS_VAR smth
-# 
-# 
+#
+#
 function(_userver_get_sanitize_options SANITIZER_LIST_VAR COMPILE_FLAGS_VAR LINK_FLAGS_VAR)
     get_property(USERVER_CMAKE_DIR GLOBAL PROPERTY userver_cmake_dir)
 

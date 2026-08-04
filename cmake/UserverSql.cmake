@@ -34,7 +34,15 @@ _userver_prepare_sql()
 # @param DUMP_DIR Directory to dump schema (defaults to ".")
 function(userver_add_sql_library TARGET)
     set(OPTIONS)
-    set(ONE_VALUE_ARGS SOURCE_DIR OUTPUT_DIR NAMESPACE QUERY_LOG_MODE DTO_DIALECT MIGRATIONS_DIR DUMP_DIR)
+    set(ONE_VALUE_ARGS
+        SOURCE_DIR
+        OUTPUT_DIR
+        NAMESPACE
+        QUERY_LOG_MODE
+        DTO_DIALECT
+        MIGRATIONS_DIR
+        DUMP_DIR
+    )
     set(MULTI_VALUE_ARGS SQL_FILES)
     cmake_parse_arguments(ARG "${OPTIONS}" "${ONE_VALUE_ARGS}" "${MULTI_VALUE_ARGS}" ${ARGN})
     if(NOT ARG_NAMESPACE)
@@ -63,7 +71,6 @@ function(userver_add_sql_library TARGET)
         message(FATAL_ERROR "MIGRATIONS_DIR argument is required for DTO generation")
     endif()
 
-
     set(SQL_FILES)
     foreach(WILDCARD ${ARG_SQL_FILES})
         file(
@@ -83,11 +90,10 @@ function(userver_add_sql_library TARGET)
 
     set(library_files)
     set(output_files ${ARG_OUTPUT_DIR}/include/${ARG_NAMESPACE}/${FILENAME}.hpp
-                     ${ARG_OUTPUT_DIR}/src/${ARG_NAMESPACE}/${FILENAME}.cpp
-                     ${TESTSUITE_OUTPUT_DIR}/sql_files.py
+                     ${ARG_OUTPUT_DIR}/src/${ARG_NAMESPACE}/${FILENAME}.cpp ${TESTSUITE_OUTPUT_DIR}/sql_files.py
     )
     list(APPEND library_files ${ARG_OUTPUT_DIR}/include/${ARG_NAMESPACE}/${FILENAME}.hpp
-                              ${ARG_OUTPUT_DIR}/src/${ARG_NAMESPACE}/${FILENAME}.cpp
+         ${ARG_OUTPUT_DIR}/src/${ARG_NAMESPACE}/${FILENAME}.cpp
     )
 
     _userver_initialize_codegen_flag()
@@ -104,26 +110,21 @@ function(userver_add_sql_library TARGET)
     if(ARG_DTO_DIALECT)
         file(GLOB_RECURSE MIGRATIONS_FILES CONFIGURE_DEPENDS "${ARG_MIGRATIONS_DIR}/*.sql")
 
-        set(output_files ${ARG_OUTPUT_DIR}/include/${ARG_NAMESPACE}/pg_models.hpp
-                         ${ARG_OUTPUT_DIR}/include/${ARG_NAMESPACE}/pg_client.hpp
-                         ${ARG_OUTPUT_DIR}/include/${ARG_NAMESPACE}/pg_cluster.hpp
-                         ${ARG_OUTPUT_DIR}/include/${ARG_NAMESPACE}/pg_mock.hpp
-                         ${ARG_OUTPUT_DIR}/src/${ARG_NAMESPACE}/pg_cluster.cpp
+        set(output_files
+            ${ARG_OUTPUT_DIR}/include/${ARG_NAMESPACE}/pg_models.hpp
+            ${ARG_OUTPUT_DIR}/include/${ARG_NAMESPACE}/pg_client.hpp
+            ${ARG_OUTPUT_DIR}/include/${ARG_NAMESPACE}/pg_cluster.hpp
+            ${ARG_OUTPUT_DIR}/include/${ARG_NAMESPACE}/pg_mock.hpp
+            ${ARG_OUTPUT_DIR}/src/${ARG_NAMESPACE}/pg_cluster.cpp
         )
         list(APPEND library_files ${output_files})
         _userver_initialize_codegen_flag()
         add_custom_command(
             OUTPUT ${output_files}
-            COMMAND ${USERVER_SQL_PYTHON_BINARY}
-                    -m sqldto.generator.main
-                    --namespace "${ARG_NAMESPACE}"
-                    --output-dir "${ARG_OUTPUT_DIR}"
-                    --dialect "${ARG_DTO_DIALECT}"
-                    --migrations-dir "${ARG_MIGRATIONS_DIR}"
-                    --queries-dir "${ARG_SOURCE_DIR}"
-                    --dump-dir "${ARG_DUMP_DIR}"
-                    ${SQL_FILES}
-                    ${CODEGEN}
+            COMMAND
+                ${USERVER_SQL_PYTHON_BINARY} -m sqldto.generator.main --namespace "${ARG_NAMESPACE}" --output-dir
+                "${ARG_OUTPUT_DIR}" --dialect "${ARG_DTO_DIALECT}" --migrations-dir "${ARG_MIGRATIONS_DIR}"
+                --queries-dir "${ARG_SOURCE_DIR}" --dump-dir "${ARG_DUMP_DIR}" ${SQL_FILES} ${CODEGEN}
             WORKING_DIRECTORY ${USERVER_SQL_DTO_SCRIPTS_PATH}
             DEPENDS ${MIGRATIONS_FILES} ${SQL_FILES}
             VERBATIM

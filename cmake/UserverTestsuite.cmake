@@ -226,8 +226,8 @@ function(userver_testsuite_add)
             "${python_binary}" "${USERVER_TESTSUITE_DIR}/create_runner.py" "--output=${TESTSUITE_RUNNER}"
             "--python=${python_binary}" "--tests-path=${TESTS_PATHS}" "--working-dir=${CMAKE_CURRENT_BINARY_DIR}"
             "--python-path=${ARG_PYTHONPATH}" -- "--build-dir=${CMAKE_CURRENT_BINARY_DIR}"
-            "--service-logs-file=${testsuite_temp_dir}/service.log"
-            "--basetemp=${testsuite_temp_dir}" ${ARG_PYTEST_ARGS}
+            "--service-logs-file=${testsuite_temp_dir}/service.log" "--basetemp=${testsuite_temp_dir}"
+            ${ARG_PYTEST_ARGS}
         DEPENDS "${USERVER_TESTSUITE_DIR}/create_runner.py"
         COMMENT "Creating testsuite runner at ${TESTSUITE_RUNNER}"
         VERBATIM ${CODEGEN}
