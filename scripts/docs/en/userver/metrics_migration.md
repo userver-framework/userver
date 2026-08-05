@@ -11,10 +11,10 @@ The API docstrings are the source of truth. See @ref pytest_userver.client.Clien
 
 ## 1. Understand the format change
 
-The removed methods requested `format=internal`. That format is a nested JSON object without metric types. Labels are
-encoded indirectly through `$meta: {solomon_children_labels: <label-name>}`: children of that node become values of the
-specified label and disappear from the metric path. A node marked with `SolomonSkip` also disappears from the path, but
-its children do not become label values.
+The removed methods requested the removed `format=internal`. That format was a nested JSON object without metric types.
+Labels were encoded indirectly through `$meta: {solomon_children_labels: <label-name>}`: children of that node became values of the
+specified label and disappeared from the metric path. A node marked with `SolomonSkip` also disappeared from the path,
+but its children did not become label values.
 
 The current API requests `format=json` and returns a flat collection of metric series. Every series has a path, labels,
 a value, and a type. Tests receive it as a @ref pytest_userver.metrics.MetricsSnapshot "MetricsSnapshot".

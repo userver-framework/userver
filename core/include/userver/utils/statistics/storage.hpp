@@ -62,11 +62,6 @@ public:
 
     Storage(const Storage&) = delete;
 
-    /// Creates new Json::Value and calls every deprecated registered extender function over it.
-    ///
-    /// @deprecated Use VisitMetrics instead.
-    formats::json::Value GetAsJson() const;
-
     /// Visits all the metrics and calls `out.HandleMetric` for each metric.
     void VisitMetrics(BaseFormatBuilder& out, const Request& request = {}) const;
 

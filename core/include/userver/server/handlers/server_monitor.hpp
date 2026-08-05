@@ -26,7 +26,7 @@ enum class StatsFormat;
 /// Items of the map are added to each metric.
 ///
 /// Default format can be set via 'format' option. Supported formats are: "prometheus", "prometheus-untyped", "graphite",
-///   "json", "solomon", "pretty" and "internal". For more info see the documentation for utils::statistics::ToPrometheusFormat,
+///   "json", "solomon" and "pretty". For more info see the documentation for utils::statistics::ToPrometheusFormat,
 ///   utils::statistics::ToPrometheusFormatUntyped, utils::statistics::ToGraphiteFormat, utils::statistics::ToJsonFormat,
 ///   utils::statistics::ToSolomonFormat, utils::statistics::ToPrettyFormat.
 ///

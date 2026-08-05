@@ -80,24 +80,6 @@ Storage::Storage()
     : may_register_extenders_(true)
 {}
 
-formats::json::Value Storage::GetAsJson() const {
-    formats::json::ValueBuilder result;
-    result[kVersionField] = kVersion;
-
-    const std::shared_lock lock(mutex_);
-
-    for (const auto& entry : metrics_sources_) {
-        if (entry.writer) {
-            continue;
-        }
-
-        LOG_DEBUG() << "Getting statistics for prefix=" << entry.prefix_path;
-        SetSubField(result, std::vector(entry.path_segments), entry.extender(StatisticsRequest{}));
-    }
-
-    return result.ExtractValue();
-}
-
 void Storage::VisitMetrics(BaseFormatBuilder& out, const Request& request) const {
     {
         impl::WriterState state{out, request, {}, {}};
@@ -138,7 +120,20 @@ void Storage::VisitMetrics(BaseFormatBuilder& out, const Request& request) const
         }
     }
 
-    statistics::VisitMetrics(out, GetAsJson(), request);
+    formats::json::ValueBuilder legacy_metrics;
+    legacy_metrics[kVersionField] = kVersion;
+    {
+        const std::shared_lock lock(mutex_);
+        for (const auto& entry : metrics_sources_) {
+            if (entry.writer) {
+                continue;
+            }
+
+            LOG_DEBUG() << "Getting statistics for prefix=" << entry.prefix_path;
+            SetSubField(legacy_metrics, std::vector(entry.path_segments), entry.extender(StatisticsRequest{}));
+        }
+    }
+    statistics::VisitMetrics(out, legacy_metrics.ExtractValue(), request);
 }
 
 void Storage::StopRegisteringExtenders() { may_register_extenders_ = false; }
