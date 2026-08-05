@@ -1,7 +1,7 @@
 #pragma once
 
-#include <optional>
 #include <string>
+#include <string_view>
 
 #include <userver/clients/http/request.hpp>
 #include <userver/clients/http/response.hpp>
@@ -39,6 +39,8 @@ public:
 
     ~S3Connection() = default;
 
+    static std::string MakeHostHeader(std::string_view api_url, std::string_view bucket);
+
     std::shared_ptr<clients::http::Response> RequestApi(Request& r, std::string_view method_name);
 
     std::shared_ptr<clients::http::Response> DoStartApiRequest(const Request& r) const;
@@ -46,6 +48,8 @@ public:
     std::shared_ptr<clients::http::Response> StartApiRequest(const Request& r) const;
 
     std::string GetHost() const { return api_url_; }
+
+    std::string GetHostHeader(const Request& r) const;
 
     void UpdateConfig(ConnectionCfg&& config) { config_ = config; }
 

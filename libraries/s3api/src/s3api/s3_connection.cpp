@@ -41,21 +41,26 @@ clients::http::Request& GetMethod(
 // Префикс "bucket." сохраняем всегда: при обращении к localhost GetUrl не
 // кладёт bucket в путь, и mock определяет bucket именно по Host. Внешнее
 // связывание — используется в unit-тесте.
-std::string MakeHostHeader(std::string_view api_url, std::string_view bucket) {
+std::string S3Connection::MakeHostHeader(std::string_view api_url, std::string_view bucket) {
     const auto schema_pos = api_url.find("://");
-    std::string_view authority = schema_pos == std::string_view::npos ? api_url : api_url.substr(schema_pos + 3);
+    auto authority = schema_pos == std::string_view::npos ? api_url : api_url.substr(schema_pos + 3);
+
     const auto path_pos = authority.find('/');
     if (path_pos != std::string_view::npos) {
         authority = authority.substr(0, path_pos);
     }
+
     if (!bucket.empty()) {
         return fmt::format("{}.{}", bucket, authority);
     }
+
     return std::string{authority};
 }
 
+std::string S3Connection::GetHostHeader(const Request& r) const { return MakeHostHeader(api_url_, r.bucket); }
+
 std::shared_ptr<clients::http::Response> S3Connection::RequestApi(Request& r, std::string_view method_name) {
-    r.headers[USERVER_NAMESPACE::http::headers::kHost] = MakeHostHeader(api_url_, r.bucket);
+    r.headers[USERVER_NAMESPACE::http::headers::kHost] = GetHostHeader(r);
     LOG_DEBUG() << "S3 Host: " << r.headers[USERVER_NAMESPACE::http::headers::kHost];
 
     const std::string full_url = GetUrl(r, connection_type_);
@@ -86,7 +91,7 @@ std::shared_ptr<clients::http::Response> S3Connection::RequestApi(Request& r, st
 
 std::shared_ptr<clients::http::Response> S3Connection::DoStartApiRequest(const Request& r) const {
     auto headers = r.headers;
-    headers[USERVER_NAMESPACE::http::headers::kHost] = MakeHostHeader(api_url_, r.bucket);
+    headers[USERVER_NAMESPACE::http::headers::kHost] = GetHostHeader(r);
 
     const std::string full_url = GetUrl(r, connection_type_);
 
