@@ -11,6 +11,7 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/datetime_light.hpp>
 
+#include <formats/json/impl/exttypes.hpp>
 #include <formats/json/impl/types_impl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -189,9 +190,38 @@ bool ValueBuilder::IsObject() const noexcept { return value_->IsObject(); }
 
 std::size_t ValueBuilder::GetSize() const { return value_->GetSize(); }
 
+std::size_t ValueBuilder::GetCapacity() const {
+    const auto& native = value_->GetNative();
+    if (native.IsArray()) {
+        return native.Capacity();
+    }
+    if (native.IsObject()) {
+        return native.MemberCapacity();
+    }
+    throw TypeMismatchException(value_->GetExtendedType(), impl::kArrayValue, value_->GetPath());
+}
+
 bool ValueBuilder::HasMember(std::string_view key) const { return value_->HasMember(key); }
 
 std::string ValueBuilder::GetPath() const { return value_->GetPath(); }
+
+void ValueBuilder::Reserve(std::size_t capacity) {
+    auto& native = value_->GetNative();
+    std::size_t old_capacity = 0;
+    if (native.IsArray()) {
+        old_capacity = native.Capacity();
+        native.Reserve(capacity, g_allocator);
+    } else if (native.IsObject()) {
+        old_capacity = native.MemberCapacity();
+        native.MemberReserve(capacity, g_allocator);
+    } else {
+        throw TypeMismatchException(value_->GetExtendedType(), impl::kArrayValue, value_->GetPath());
+    }
+
+    if (old_capacity && capacity > old_capacity) {
+        value_.OnMembersChange();
+    }
+}
 
 void ValueBuilder::Resize(std::size_t size) {
     value_->CheckArrayOrNull();
