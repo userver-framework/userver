@@ -47,8 +47,6 @@ public:
 private:
     void ExtendStatistics(utils::statistics::Writer& writer);
 
-    void ProcessTimer();
-
     struct Impl;
     std::unique_ptr<Impl> impl_;
 };

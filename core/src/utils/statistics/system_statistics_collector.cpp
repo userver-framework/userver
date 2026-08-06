@@ -28,13 +28,35 @@ struct SystemStatisticsCollector::Impl {
     Impl(const ComponentConfig& config, const ComponentContext& context)
         : with_nginx(config["with-nginx"].As<bool>(false)),
           fs_task_processor(GetFsTaskProcessor(config, context))
-    {}
+    {
+        periodic.Start(
+            "system_statistics_collector",
+            {std::chrono::seconds(10), {utils::PeriodicTask::Flags::kNow}},
+            [this] { ProcessTimer(); }
+        );
+    }
+
+    void ProcessTimer();
 
     const bool with_nginx;
     engine::TaskProcessor& fs_task_processor;
     concurrent::Variable<Data> data;
     utils::PeriodicTask periodic;
 };
+
+void SystemStatisticsCollector::Impl::ProcessTimer() {
+    engine::CriticalAsyncNoTracing(fs_task_processor, [&] {
+        auto self = utils::statistics::impl::GetSelfSystemStatistics();
+        utils::statistics::impl::SystemStats nginx;
+        if (with_nginx) {
+            nginx = utils::statistics::impl::GetSystemStatisticsByExeName("nginx");
+        }
+
+        auto data_lock = data.UniqueLock();
+        data_lock->last_stats = self;
+        data_lock->last_nginx_stats = nginx;
+    }).Get();
+}
 
 SystemStatisticsCollector::SystemStatisticsCollector(const ComponentConfig& config, const ComponentContext& context)
     : ComponentBase(config, context),
@@ -43,27 +65,9 @@ SystemStatisticsCollector::SystemStatisticsCollector(const ComponentConfig& conf
     utils::statistics::RegisterWriterScope(context, "", [this](utils::statistics::Writer& writer) {
         ExtendStatistics(writer);
     });
-    impl_->periodic
-        .Start("system_statistics_collector", {std::chrono::seconds(10), {utils::PeriodicTask::Flags::kNow}}, [this] {
-            ProcessTimer();
-        });
 }
 
 SystemStatisticsCollector::~SystemStatisticsCollector() = default;
-
-void SystemStatisticsCollector::ProcessTimer() {
-    engine::CriticalAsyncNoTracing(impl_->fs_task_processor, [&] {
-        auto self = utils::statistics::impl::GetSelfSystemStatistics();
-        utils::statistics::impl::SystemStats nginx;
-        if (impl_->with_nginx) {
-            nginx = utils::statistics::impl::GetSystemStatisticsByExeName("nginx");
-        }
-
-        auto data = impl_->data.UniqueLock();
-        data->last_stats = self;
-        data->last_nginx_stats = nginx;
-    }).Get();
-}
 
 void SystemStatisticsCollector::ExtendStatistics(utils::statistics::Writer& writer) {
     auto data = impl_->data.Lock();
