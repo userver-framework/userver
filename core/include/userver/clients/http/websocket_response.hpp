@@ -3,6 +3,8 @@
 /// @file userver/clients/http/websocket_response.hpp
 /// @brief @copybrief clients::http::WebSocketResponse
 
+#include <string>
+
 #include <userver/clients/http/response.hpp>
 #include <userver/fs/blocking/file_descriptor.hpp>
 
@@ -25,7 +27,11 @@ namespace clients::http {
 class WebSocketResponse final {
 public:
     /// @cond
-    WebSocketResponse(std::shared_ptr<Response> handshake_response, fs::blocking::FileDescriptor&& socket);
+    WebSocketResponse(
+        std::shared_ptr<Response> handshake_response,
+        fs::blocking::FileDescriptor&& socket,
+        std::string socket_preamble = {}
+    );
     /// @endcond
 
     WebSocketResponse() = default;
@@ -50,7 +56,18 @@ public:
 private:
     std::shared_ptr<Response> handshake_response_;
     fs::blocking::FileDescriptor socket_;
+    /// Raw WebSocket frames drained from libcurl CONNECT_ONLY buffers.
+    std::string socket_preamble_;
 };
+
+/// @cond
+namespace impl {
+
+/// Function pointer for curl::easy::enable_socket_extraction (curl thread, before remove).
+std::string DrainCurlWebSocketPreamble(void* native_easy);
+
+}  // namespace impl
+/// @endcond
 
 }  // namespace clients::http
 

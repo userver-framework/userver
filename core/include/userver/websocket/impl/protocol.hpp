@@ -93,18 +93,14 @@ union Mask32 {
 void ApplyMask(utils::span<std::byte> payload, Mask32 mask);
 
 boost::container::small_vector<char, impl::kMaxFrameHeaderSize> DataFrameHeader(
-    utils::span<const std::byte> data,
+    std::size_t payload_len,
     bool is_text,
     Continuation is_continuation,
     Final is_final,
     Masked is_masked
 );
 
-std::array<char, sizeof(WSHeader)> MakeControlFrame(
-    WSOpcodes opcode,
-    utils::span<const std::byte> data,
-    Masked is_masked
-);
+std::array<char, sizeof(WSHeader)> MakeControlFrame(WSOpcodes opcode, std::size_t payload_len, Masked is_masked);
 
 }  // namespace frames
 

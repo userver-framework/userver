@@ -124,6 +124,7 @@ and make sure that it builds and passes tests.
 * Low level:
     * @ref engine::io::TlsWrapper "TLS client and server socket"
     * @ref engine::io::Socket "TCP and UDP sockets"
+    * @ref engine::io::PrefixedRw "Prefixed stream wrapper"
     * @ref engine::subprocess::ProcessStarter "Subprocesses"
 
 
