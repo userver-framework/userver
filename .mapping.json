@@ -1824,6 +1824,7 @@
   "core/src/engine/io/tls_wrapper_benchmark.cpp":"taxi/uservices/userver/core/src/engine/io/tls_wrapper_benchmark.cpp",
   "core/src/engine/io/tls_wrapper_test.cpp":"taxi/uservices/userver/core/src/engine/io/tls_wrapper_test.cpp",
   "core/src/engine/multi_consumer_event.cpp":"taxi/uservices/userver/core/src/engine/multi_consumer_event.cpp",
+  "core/src/engine/multi_consumer_event_test.cpp":"taxi/uservices/userver/core/src/engine/multi_consumer_event_test.cpp",
   "core/src/engine/mutex.cpp":"taxi/uservices/userver/core/src/engine/mutex.cpp",
   "core/src/engine/mutex_benchmark.cpp":"taxi/uservices/userver/core/src/engine/mutex_benchmark.cpp",
   "core/src/engine/mutex_test.cpp":"taxi/uservices/userver/core/src/engine/mutex_test.cpp",

@@ -10,6 +10,7 @@
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/shared_mutex.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/current_task.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/fixed_array.hpp>
@@ -48,6 +49,25 @@ UTEST(WaitTokenStorage, SingleToken) {
 
     wts.WaitForAllTokens();
     EXPECT_TRUE(is_finished);
+}
+
+UTEST(WaitTokenStorage, WaitForAllTokensIgnoresCancel) {
+    utils::impl::WaitTokenStorage wts;
+    auto token = wts.GetToken();
+
+    auto waiter = engine::CriticalAsyncNoTracing([&] {
+        engine::current_task::RequestCancel();
+        EXPECT_TRUE(engine::current_task::IsCancelRequested());
+        // Must complete despite cancellation: WaitForAllTokens uses TaskCancellationBlocker.
+        wts.WaitForAllTokens();
+        EXPECT_TRUE(engine::current_task::IsCancelRequested());
+    });
+
+    engine::Yield();
+    EXPECT_FALSE(waiter.IsFinished());
+
+    token = {};
+    UEXPECT_NO_THROW(waiter.Get());
 }
 
 UTEST_MT(WaitTokenStorage, MultipleTokens, 4) {

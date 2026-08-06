@@ -8,7 +8,6 @@
 
 #include <userver/engine/io/exception.hpp>
 #include <userver/engine/io/socket.hpp>
-#include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -25,13 +24,12 @@ engine::io::Socket ConnectTcpToAddrs(
 
     for (const auto& current_addr : addrs) {
         try {
-            const engine::TaskCancellationBlocker block_cancel;
             engine::io::Socket socket{current_addr.Domain(), engine::io::SocketType::kStream};
             socket.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
             socket.Connect(current_addr, deadline);
             return socket;
-        } catch (const engine::io::IoCancelled& ex) {
-            throw engine::io::IoException(ex.what());
+        } catch (const engine::io::IoCancelled&) {
+            throw;
         } catch (const engine::io::IoException& ex) {
             LOG_DEBUG() << "Cannot connect to " << host << " at " << current_addr << ": " << ex;
             connect_errors.push_back(current_addr.PrimaryAddressString() + ": " + ex.what());
