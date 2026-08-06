@@ -1,7 +1,11 @@
 cmake_minimum_required(VERSION 3.14)
 project(userver-easy-samples CXX)
 
-find_package(userver COMPONENTS easy REQUIRED)
+find_package(
+    userver
+    COMPONENTS easy
+    REQUIRED
+)
 
 add_custom_target(${PROJECT_NAME})
 

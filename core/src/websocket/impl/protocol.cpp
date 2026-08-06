@@ -9,6 +9,7 @@
 #include <userver/crypto/base64.hpp>
 #include <userver/engine/io/exception.hpp>
 #include <userver/engine/task/cancel.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/rand.hpp>
 #include <userver/utils/span.hpp>
 
@@ -87,7 +88,7 @@ void PushRaw(const T& value, V& data) {
 namespace frames {
 
 boost::container::small_vector<char, impl::kMaxFrameHeaderSize> DataFrameHeader(
-    utils::span<const std::byte> data,
+    std::size_t payload_len,
     bool is_text,
     Continuation is_continuation,
     Final is_final,
@@ -107,34 +108,30 @@ boost::container::small_vector<char, impl::kMaxFrameHeaderSize> DataFrameHeader(
     }
     hdr->bits.mask = is_masked == Masked::kYes ? 1 : 0;
 
-    if (data.size() <= 125) {
-        hdr->bits.payload_len = data.size();
-    } else if (data.size() <= INT16_MAX) {
+    if (payload_len <= 125) {
+        hdr->bits.payload_len = payload_len;
+    } else if (payload_len <= INT16_MAX) {
         hdr->bits.payload_len = 126;
-        PushRaw(boost::endian::native_to_big(static_cast<std::int16_t>(data.size())), frame);
+        PushRaw(boost::endian::native_to_big(static_cast<std::int16_t>(payload_len)), frame);
     } else {
         hdr->bits.payload_len = 127;
-        PushRaw(boost::endian::native_to_big(data.size()), frame);
+        PushRaw(boost::endian::native_to_big(payload_len), frame);
     }
 
     return frame;
 }
 
-std::array<char, sizeof(WSHeader)> MakeControlFrame(
-    WSOpcodes opcode,
-    utils::span<const std::byte> data,
-    Masked is_masked
-) {
+std::array<char, sizeof(WSHeader)> MakeControlFrame(WSOpcodes opcode, std::size_t payload_len, Masked is_masked) {
     std::array<char, sizeof(WSHeader)> frame{};
 
     auto* hdr = reinterpret_cast<WSHeader*>(frame.data());
     hdr->bytes = 0;
     hdr->bits.fin = 1;
     hdr->bits.opcode = opcode;
-    // the field is 7 bits wide and a control frame never carries an extended
-    // length, so anything above 125 would go out truncated
-    UASSERT(data.size() <= 125);
-    hdr->bits.payload_len = data.size();
+    // RFC 6455 5.5
+    static constexpr std::size_t kMaxPyalod = 125;
+    UASSERT(kMaxPyalod <= 125);
+    hdr->bits.payload_len = std::min(payload_len, kMaxPyalod);
     hdr->bits.mask = is_masked == Masked::kYes ? 1 : 0;
 
     return frame;
@@ -185,8 +182,10 @@ CloseStatus ReadWSFrameImpl(
         return CloseStatus::kGoingAway;
     }
 
-    const bool is_data_frame =
-        hdr.bits.opcode == kText || hdr.bits.opcode == kBinary || hdr.bits.opcode == kContinuation;
+    // Opcode check must be equality-based: ping (0x9) / pong (0xA) share bits with
+    // text/binary and must not be treated as data frames.
+    const bool
+        is_data_frame = hdr.bits.opcode == kText || hdr.bits.opcode == kBinary || hdr.bits.opcode == kContinuation;
     if (hdr.bits.payload_len <= 125) {
         payload_len = hdr.bits.payload_len;
     } else if (hdr.bits.payload_len == 126) {
@@ -254,9 +253,14 @@ CloseStatus ReadWSFrameImpl(
             break;
         case kClose:
             frame.closed = true;
-            if (frame.payload->size() >= 2) {
-                frame.remote_close_status =
-                    boost::endian::big_to_native(*(reinterpret_cast<CloseStatusInt const*>(frame.payload->data())));
+            if (payload_len >= 2) {
+                UASSERT_MSG(
+                    frame.payload->size() == payload_len,
+                    "Close frame payload must not be mixed with data-frame bytes"
+                );
+                CloseStatusInt status_be = 0;
+                std::memcpy(&status_be, frame.payload->data(), sizeof(status_be));
+                frame.remote_close_status = boost::endian::big_to_native(status_be);
             }
             break;
         case kText:

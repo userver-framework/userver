@@ -61,10 +61,13 @@ protobuf-compiler-grpc
 python3-dev
 python3-jinja2
 python3-protobuf
+python3-sqlparse
+python3-transliterate
 python3-venv
 python3-voluptuous
 python3-yaml
 ragel
 unixodbc-dev
+unzip
 yasm
 zlib1g-dev

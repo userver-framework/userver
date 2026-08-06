@@ -48,34 +48,22 @@ struct IteratorWrapper {
     constexpr bool operator==(const IteratorWrapper<OtherIter>& other) const {
         return iterator == other.iterator;
     }
-
-    template <typename OtherIter>
-    constexpr bool operator!=(const IteratorWrapper<OtherIter>& other) const {
-        return !(iterator == other.iterator);
-    }
 };
 
-template <typename Range>
-using IteratorTypeOf = decltype(std::begin(std::declval<Range&>()));
-
-template <typename Range>
-using SentinelTypeOf = decltype(std::end(std::declval<Range&>()));
+template <typename Iter>
+constexpr IteratorWrapper<Iter> MakeIteratorWrapper(Iter iterator) {
+    return IteratorWrapper<Iter>{.iterator = std::move(iterator), .pos = 0};
+}
 
 template <typename Container>
 struct ContainerWrapper {
-    constexpr IteratorWrapper<IteratorTypeOf<Container>> begin() {
-        return {.iterator = std::begin(container), .pos = 0};
-    }
+    constexpr auto begin() { return MakeIteratorWrapper(std::begin(container)); }
 
-    constexpr IteratorWrapper<SentinelTypeOf<Container>> end() { return {.iterator = std::end(container), .pos = 0}; }
+    constexpr auto end() { return MakeIteratorWrapper(std::end(container)); }
 
-    constexpr IteratorWrapper<IteratorTypeOf<const Container>> begin() const {
-        return {.iterator = std::begin(container), .pos = 0};
-    }
+    constexpr auto begin() const { return MakeIteratorWrapper(std::begin(std::as_const(container))); }
 
-    constexpr IteratorWrapper<SentinelTypeOf<const Container>> end() const {
-        return {.iterator = std::end(container), .pos = 0};
-    }
+    constexpr auto end() const { return MakeIteratorWrapper(std::end(std::as_const(container))); }
 
     Container container;
 };
@@ -87,9 +75,9 @@ namespace utils {
 /// @brief Implementation of python-style enumerate function for range-for loops
 /// @param iterable: Container to iterate
 /// @returns ContainerWrapper, which iterator after dereference returns pair
-/// of index and (!!!)non-const reference to element(it seems impossible to make
-/// this reference const). It can be used in "range based for loop" with
-/// "structured binding" like this
+/// of index and reference to element. The reference is const-qualified if either
+/// the wrapper itself or the underlying container is const; otherwise, it is non-const.
+/// It can be used in "range based for loop" with "structured binding" like this
 /// @code
 /// for (auto [pos, elem] : enumerate(someContainer)) {...}
 /// @endcode

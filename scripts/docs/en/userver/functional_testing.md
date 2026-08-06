@@ -427,6 +427,9 @@ It allows you to:
 - diff of metrics: @ref pytest_userver.client.ClientMonitor.metrics_diff "await monitor_client.metrics_diff()"
 - reset metrics (discouraged): @ref pytest_userver.client.Client.reset_metrics "await service_client.reset_metrics()"
 
+For migrating tests from the removed legacy metrics API, see
+@ref scripts/docs/en/userver/metrics_migration.md "Migrating tests from the removed legacy metrics API".
+
 Example usage:
 
 For a metric tag that is defined as:
@@ -525,7 +528,7 @@ For per-daemon fixtures see @ref pytest_userver.plugins.service.daemon_scoped_ma
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/testing.md | @ref scripts/docs/en/userver/chaos_testing.md ⇨
+⇦ @ref scripts/docs/en/userver/testing.md | @ref scripts/docs/en/userver/metrics_migration.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example cmake/UserverTestsuite.cmake

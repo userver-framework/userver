@@ -121,8 +121,7 @@ function(_userver_directory_install)
             DIRECTORY ${ARG_DIRECTORY}
             DESTINATION ${ARG_DESTINATION}
             COMPONENT ${ARG_COMPONENT}
-            USE_SOURCE_PERMISSIONS
-            ${install_args}
+            USE_SOURCE_PERMISSIONS ${install_args}
         )
     endif()
 endfunction()

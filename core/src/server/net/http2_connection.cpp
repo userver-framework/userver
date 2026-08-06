@@ -100,9 +100,11 @@ void Http2Connection::ListenForRequests() {
             return;
         }
 
-        const auto ready_id = wait_any.Wait();
+        const auto ready_id = wait_any.WaitUntil(engine::Deadline::FromDuration(config_.keepalive_timeout));
         if (!ready_id) {
-            UASSERT(ready_id == utils::unexpected(engine::WaitAnyError::kCancelled));
+            if (ready_id == utils::unexpected(engine::WaitAnyError::kTimeout) && !IsIdle()) {
+                continue;
+            }
             return;
         }
 
@@ -181,6 +183,8 @@ void Http2Connection::SendResponse(http::HttpRequest& request) noexcept {
 
     request.WriteAccessLogs(request_handler_.LoggerAccess(), request_handler_.LoggerAccessTskv(), GetPeerName());
 }
+
+bool Http2Connection::IsIdle() const noexcept { return handler_tasks_.empty(); }
 
 bool Http2Connection::ShouldCloseConnection() const noexcept {
     UASSERT(parser_);

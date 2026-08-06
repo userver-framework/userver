@@ -17,15 +17,10 @@ function(userver_chaos_testsuite_add)
     cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     userver_testsuite_add_simple(
-        WORKING_DIRECTORY
-        "${ARG_TESTS_DIRECTORY}"
-        PYTHON_BINARY
-        "${TESTSUITE_PYTHON_BINARY}"
-        PYTHONPATH
-        ${ARG_PYTHONPATH}
-        TEST_ENV
-        "${ARG_ENV}"
-        RESOURCE_LOCKS
-        ${ARG_RESOURCE_LOCKS}
+        WORKING_DIRECTORY "${ARG_TESTS_DIRECTORY}"
+        PYTHON_BINARY "${TESTSUITE_PYTHON_BINARY}"
+        PYTHONPATH ${ARG_PYTHONPATH}
+        TEST_ENV "${ARG_ENV}"
+        RESOURCE_LOCKS ${ARG_RESOURCE_LOCKS}
     )
 endfunction()

@@ -15,9 +15,7 @@ userver_module(
 userver_target_generate_chaotic_dynamic_configs(${PROJECT_NAME}-dynamic-configs dynamic_configs/*.yaml)
 target_link_libraries(${PROJECT_NAME} PUBLIC ${PROJECT_NAME}-dynamic-configs)
 
-_userver_install_targets(
-    COMPONENT odbc TARGETS ${PROJECT_NAME}-dynamic-configs
-)
+_userver_install_targets(COMPONENT odbc TARGETS ${PROJECT_NAME}-dynamic-configs)
 
 _userver_directory_install(
     COMPONENT odbc

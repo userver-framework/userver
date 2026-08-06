@@ -14,8 +14,6 @@
 #include <userver/yaml_config/merge_schemas.hpp>
 #include <userver/yaml_config/schema.hpp>
 
-#include <utils/statistics/value_builder_helpers.hpp>
-
 #ifndef ARCADIA_ROOT
 #include "generated/src/server/handlers/server_monitor.yaml.hpp"  // Y_IGNORE
 #endif
@@ -25,7 +23,6 @@ USERVER_NAMESPACE_BEGIN
 namespace server::handlers {
 
 enum class impl::StatsFormat {
-    kInternal,
     kGraphite,
     kPrometheus,
     kPrometheusUntyped,
@@ -50,8 +47,7 @@ std::optional<StatsFormat> ParseFormat(std::string_view format) {
             .Case("prometheus-untyped", StatsFormat::kPrometheusUntyped)
             .Case("json", StatsFormat::kJson)
             .Case("pretty", StatsFormat::kPretty)
-            .Case("solomon", StatsFormat::kSolomon)
-            .Case("internal", StatsFormat::kInternal);
+            .Case("solomon", StatsFormat::kSolomon);
     };
 
     const auto opt_value = kToFormat.TryFind(format);
@@ -129,12 +125,6 @@ std::string ServerMonitor::HandleRequestThrow(const http::HttpRequest& request, 
         case StatsFormat::kSolomon:
             request.GetHttpResponse().SetContentType("application/json");
             return utils::statistics::ToSolomonFormat(statistics_storage_, common_labels_, statistics_request);
-
-        case StatsFormat::kInternal:
-            request.GetHttpResponse().SetContentType("application/json");
-            const auto json = statistics_storage_.GetAsJson();
-            UASSERT(utils::statistics::AreAllMetricsNumbers(json));
-            return formats::json::ToString(json);
     }
 
     UINVARIANT(false, "Unexpected 'format' value");

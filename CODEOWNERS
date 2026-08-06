@@ -20,9 +20,10 @@
 /mongo/ @bugaevskiy
 /postgresql/ @bugaevskiy
 /redis/ @segoon
-/grpc/ @antonyzhilin
+/grpc/ @antonyzhilin @kpavlov00
 /clickhouse/ @itrofimow
 /rabbitmq/ @itrofimow
+/ydb/ @antonyzhilin @kpavlov00
 
 /third_party/pfr/ @ser-fedorov @antoshkka
 /third_party/uboost_coro/ @bugaevskiy @antoshkka

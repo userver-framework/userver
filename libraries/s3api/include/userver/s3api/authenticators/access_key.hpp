@@ -20,7 +20,7 @@ public:
           secret_key_{std::move(secret_key)}
     {}
     std::unordered_map<std::string, std::string> Auth(const Request& request) const override;
-    std::unordered_map<std::string, std::string> Sign(const Request& request, time_t expires) const override;
+    std::unordered_map<std::string, std::string> Sign(const Request& request, std::time_t expires) const override;
 
 private:
     std::string access_key_;

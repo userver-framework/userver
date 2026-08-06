@@ -1,3 +1,5 @@
 libmariadb-dev
 zlib1g-dev
 libssl-dev
+python3-jinja2
+python3-sqlparse

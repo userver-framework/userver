@@ -247,8 +247,15 @@ void multi::process_messages() {
                 ec = std::error_code{static_cast<errc::EasyErrorCode>(msg->data.result)};
             }
 
+            // Capture WS preamble while still attached, then remove before
+            // completion: handle_completion may wake a worker that destroys
+            // RequestState and curl_easy_reset()'s the easy. Doing remove after
+            // that races with Curl_pollset_move (UAF under ASan). Drain must
+            // happen before remove - after detach curl_ws_recv no longer sees
+            // CONNECT_ONLY buffered frames on libcurl 8.17.
+            LOG_TRACE() << "mult::process_messages() remove + handle_completion";
+            easy_handle->CaptureSocketPreambleBeforeMultiRemove();
             remove(easy_handle);
-            LOG_TRACE() << "mult::process_messages() handle_completion";
             easy_handle->handle_completion(ec);
         }
     }

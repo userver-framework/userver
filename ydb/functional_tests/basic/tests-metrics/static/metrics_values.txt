@@ -1,3 +1,4 @@
+# SDK 3.21.0 uses unprefixed Query operation labels and reports BeginTransaction.
 distlock.cancel-task-time-limit-exceeded: distlock_name=sample-dist-lock	RATE	0
 distlock.lock-failures: distlock_name=sample-dist-lock	RATE	0
 distlock.lock-successes: distlock_name=sample-dist-lock	RATE	0
@@ -56,12 +57,14 @@ ydb.native.Request/FailedDiscoveryQueueOverflow: database=/local, ydb_database=s
 ydb.native.Request/FailedNoEndpoint: database=/local, ydb_database=sampledb	RATE	0
 ydb.native.Request/FailedTransportError: database=/local, ydb_database=sampledb	RATE	1
 ydb.native.Request/Latency: database=/local, ydb_database=sampledb	HIST_RATE	[1]=0,[2]=0,[4]=0,[8]=0,[16]=2,[32]=5,[64]=2,[128]=0,[256]=0,[512]=0,[1024]=0,[2048]=0,[4096]=0,[8192]=0,[16384]=0,[32768]=0,[65536]=0,[131072]=0,[262144]=0,[inf]=0
-ydb.native.Request/OperationLatencyMs: database=/local, operation=ydb.Commit, ydb_client=Query, ydb_database=sampledb	HIST_RATE	[1]=0,[2]=0,[4]=2,[8]=1,[16]=0,[32]=0,[64]=0,[128]=0,[256]=0,[512]=0,[1024]=0,[2048]=0,[4096]=0,[8192]=0,[16384]=0,[32768]=0,[65536]=0,[131072]=0,[262144]=0,[inf]=0
-ydb.native.Request/OperationLatencyMs: database=/local, operation=ydb.CreateSession, ydb_client=Query, ydb_database=sampledb	HIST_RATE	[1]=3,[2]=0,[4]=0,[8]=0,[16]=1,[32]=0,[64]=0,[128]=0,[256]=0,[512]=0,[1024]=0,[2048]=0,[4096]=0,[8192]=0,[16384]=0,[32768]=0,[65536]=0,[131072]=0,[262144]=0,[inf]=0
-ydb.native.Request/OperationLatencyMs: database=/local, operation=ydb.ExecuteQuery, ydb_client=Query, ydb_database=sampledb	HIST_RATE	[1]=0,[2]=0,[4]=1,[8]=1,[16]=0,[32]=1,[64]=0,[128]=1,[256]=0,[512]=0,[1024]=0,[2048]=0,[4096]=0,[8192]=0,[16384]=0,[32768]=0,[65536]=0,[131072]=0,[262144]=0,[inf]=0
-ydb.native.Request/Operations: database=/local, operation=ydb.Commit, ydb_client=Query, ydb_database=sampledb	RATE	3
-ydb.native.Request/Operations: database=/local, operation=ydb.CreateSession, ydb_client=Query, ydb_database=sampledb	RATE	4
-ydb.native.Request/Operations: database=/local, operation=ydb.ExecuteQuery, ydb_client=Query, ydb_database=sampledb	RATE	4
+ydb.native.Request/OperationLatencyMs: database=/local, operation=BeginTransaction, ydb_client=Query, ydb_database=sampledb	HIST_RATE	[1]=3,[2]=0,[4]=0,[8]=0,[16]=0,[32]=0,[64]=0,[128]=0,[256]=0,[512]=0,[1024]=0,[2048]=0,[4096]=0,[8192]=0,[16384]=0,[32768]=0,[65536]=0,[131072]=0,[262144]=0,[inf]=0
+ydb.native.Request/OperationLatencyMs: database=/local, operation=Commit, ydb_client=Query, ydb_database=sampledb	HIST_RATE	[1]=0,[2]=0,[4]=2,[8]=1,[16]=0,[32]=0,[64]=0,[128]=0,[256]=0,[512]=0,[1024]=0,[2048]=0,[4096]=0,[8192]=0,[16384]=0,[32768]=0,[65536]=0,[131072]=0,[262144]=0,[inf]=0
+ydb.native.Request/OperationLatencyMs: database=/local, operation=CreateSession, ydb_client=Query, ydb_database=sampledb	HIST_RATE	[1]=3,[2]=0,[4]=0,[8]=0,[16]=1,[32]=0,[64]=0,[128]=0,[256]=0,[512]=0,[1024]=0,[2048]=0,[4096]=0,[8192]=0,[16384]=0,[32768]=0,[65536]=0,[131072]=0,[262144]=0,[inf]=0
+ydb.native.Request/OperationLatencyMs: database=/local, operation=ExecuteQuery, ydb_client=Query, ydb_database=sampledb	HIST_RATE	[1]=0,[2]=0,[4]=1,[8]=1,[16]=0,[32]=1,[64]=0,[128]=1,[256]=0,[512]=0,[1024]=0,[2048]=0,[4096]=0,[8192]=0,[16384]=0,[32768]=0,[65536]=0,[131072]=0,[262144]=0,[inf]=0
+ydb.native.Request/Operations: database=/local, operation=BeginTransaction, ydb_client=Query, ydb_database=sampledb	RATE	3
+ydb.native.Request/Operations: database=/local, operation=Commit, ydb_client=Query, ydb_database=sampledb	RATE	3
+ydb.native.Request/Operations: database=/local, operation=CreateSession, ydb_client=Query, ydb_database=sampledb	RATE	4
+ydb.native.Request/Operations: database=/local, operation=ExecuteQuery, ydb_client=Query, ydb_database=sampledb	RATE	4
 ydb.native.Request/ParamsSize: database=/local, ydb_client=Query, ydb_database=sampledb	HIST_RATE	[32]=1,[64]=0,[128]=3,[256]=0,[512]=0,[1024]=0,[2048]=0,[4096]=0,[8192]=0,[inf]=0
 ydb.native.Request/ParamsSize: database=/local, ydb_client=Table, ydb_database=sampledb	HIST_RATE	[32]=0,[64]=0,[128]=0,[256]=0,[512]=0,[1024]=0,[2048]=0,[4096]=0,[8192]=0,[inf]=0
 ydb.native.Request/QuerySize: database=/local, ydb_client=Query, ydb_database=sampledb	HIST_RATE	[32]=1,[64]=0,[128]=0,[256]=0,[512]=3,[1024]=0,[2048]=0,[4096]=0,[8192]=0,[16384]=0,[32768]=0,[65536]=0,[131072]=0,[262144]=0,[524288]=0,[1048576]=0,[2097152]=0,[4194304]=0,[8388608]=0,[inf]=0
@@ -118,10 +121,10 @@ ydb.native.Request/FailedDiscoveryQueueOverflow: database=/local, ydb_database=s
 ydb.native.Request/FailedNoEndpoint: database=/local, ydb_database=sampledb2	RATE	0
 ydb.native.Request/FailedTransportError: database=/local, ydb_database=sampledb2	RATE	1
 ydb.native.Request/Latency: database=/local, ydb_database=sampledb2	HIST_RATE	[1]=0,[2]=0,[4]=0,[8]=0,[16]=2,[32]=5,[64]=2,[128]=0,[256]=0,[512]=0,[1024]=0,[2048]=0,[4096]=0,[8192]=0,[16384]=0,[32768]=0,[65536]=0,[131072]=0,[262144]=0,[inf]=0
-ydb.native.Request/OperationLatencyMs: database=/local, operation=ydb.CreateSession, ydb_client=Query, ydb_database=sampledb2	HIST_RATE	[1]=3,[2]=0,[4]=0,[8]=0,[16]=1,[32]=0,[64]=0,[128]=0,[256]=0,[512]=0,[1024]=0,[2048]=0,[4096]=0,[8192]=0,[16384]=0,[32768]=0,[65536]=0,[131072]=0,[262144]=0,[inf]=0
-ydb.native.Request/OperationLatencyMs: database=/local, operation=ydb.ExecuteQuery, ydb_client=Query, ydb_database=sampledb2	HIST_RATE	[1]=0,[2]=0,[4]=1,[8]=1,[16]=0,[32]=1,[64]=0,[128]=1,[256]=0,[512]=0,[1024]=0,[2048]=0,[4096]=0,[8192]=0,[16384]=0,[32768]=0,[65536]=0,[131072]=0,[262144]=0,[inf]=0
-ydb.native.Request/Operations: database=/local, operation=ydb.CreateSession, ydb_client=Query, ydb_database=sampledb2	RATE	4
-ydb.native.Request/Operations: database=/local, operation=ydb.ExecuteQuery, ydb_client=Query, ydb_database=sampledb2	RATE	4
+ydb.native.Request/OperationLatencyMs: database=/local, operation=CreateSession, ydb_client=Query, ydb_database=sampledb2	HIST_RATE	[1]=3,[2]=0,[4]=0,[8]=0,[16]=1,[32]=0,[64]=0,[128]=0,[256]=0,[512]=0,[1024]=0,[2048]=0,[4096]=0,[8192]=0,[16384]=0,[32768]=0,[65536]=0,[131072]=0,[262144]=0,[inf]=0
+ydb.native.Request/OperationLatencyMs: database=/local, operation=ExecuteQuery, ydb_client=Query, ydb_database=sampledb2	HIST_RATE	[1]=0,[2]=0,[4]=1,[8]=1,[16]=0,[32]=1,[64]=0,[128]=1,[256]=0,[512]=0,[1024]=0,[2048]=0,[4096]=0,[8192]=0,[16384]=0,[32768]=0,[65536]=0,[131072]=0,[262144]=0,[inf]=0
+ydb.native.Request/Operations: database=/local, operation=CreateSession, ydb_client=Query, ydb_database=sampledb2	RATE	4
+ydb.native.Request/Operations: database=/local, operation=ExecuteQuery, ydb_client=Query, ydb_database=sampledb2	RATE	4
 ydb.native.Request/ParamsSize: database=/local, ydb_client=Query, ydb_database=sampledb2	HIST_RATE	[32]=1,[64]=0,[128]=3,[256]=0,[512]=0,[1024]=0,[2048]=0,[4096]=0,[8192]=0,[inf]=0
 ydb.native.Request/ParamsSize: database=/local, ydb_client=Table, ydb_database=sampledb2	HIST_RATE	[32]=0,[64]=0,[128]=0,[256]=0,[512]=0,[1024]=0,[2048]=0,[4096]=0,[8192]=0,[inf]=0
 ydb.native.Request/QuerySize: database=/local, ydb_client=Query, ydb_database=sampledb2	HIST_RATE	[32]=1,[64]=0,[128]=0,[256]=0,[512]=3,[1024]=0,[2048]=0,[4096]=0,[8192]=0,[16384]=0,[32768]=0,[65536]=0,[131072]=0,[262144]=0,[524288]=0,[1048576]=0,[2097152]=0,[4194304]=0,[8388608]=0,[inf]=0

@@ -38,7 +38,7 @@ std::unordered_map<std::string, std::string> AccessKey::Auth(const Request& requ
     return auth_headers;
 }
 
-std::unordered_map<std::string, std::string> AccessKey::Sign(const Request& request, time_t expires) const {
+std::unordered_map<std::string, std::string> AccessKey::Sign(const Request& request, std::time_t expires) const {
     static const std::string kExpires{"Expires"};
     static const std::string kSignature{"Signature"};
     static const std::string kAWSAccessKeyId{"AWSAccessKeyId"};

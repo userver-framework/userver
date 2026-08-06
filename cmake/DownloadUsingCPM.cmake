@@ -35,7 +35,7 @@ function(write_package_stub PACKAGE_NAME)
     else()
         # CPM with cmake<3.24 behaves badly for packages normally found via find_package(... CONFIG).
         # This is an ugly workaround.
-        file(WRITE "${CMAKE_BINARY_DIR}/package_stubs/${PACKAGE_NAME}Config.cmake")
+        file(WRITE "${CMAKE_BINARY_DIR}/package_stubs/${PACKAGE_NAME}Config.cmake" )
     endif()
 endfunction()
 

@@ -306,29 +306,6 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
         super().__init__(base_url, **kwargs)
         self._config = config
 
-    async def get_metrics(self, prefix=None):
-        if not self._config.server_monitor_path:
-            raise ConfigurationError(
-                'handler-server-monitor component is not configured',
-            )
-        params = {'format': 'internal'}
-        if prefix is not None:
-            params['prefix'] = prefix
-        response = await self.get(
-            self._config.server_monitor_path,
-            params=params,
-        )
-        async with response:
-            response.raise_for_status()
-            return await response.json(content_type=None)
-
-    async def get_metric(self, metric_name):
-        metrics = await self.get_metrics(metric_name)
-        assert metric_name in metrics, (
-            f'No metric with name {metric_name!r}. Use "single_metric" function instead of "get_metric"'
-        )
-        return metrics[metric_name]
-
     async def metrics_raw(
         self,
         output_format,
@@ -553,20 +530,6 @@ class ClientMonitor(ClientWrapper):
             prefix=prefix,
             labels=labels,
         )
-
-    @_wrap_client_error
-    async def get_metrics(self, prefix=None):
-        """
-        @deprecated Use metrics() or single_metric() instead
-        """
-        return await self._client.get_metrics(prefix=prefix)
-
-    @_wrap_client_error
-    async def get_metric(self, metric_name):
-        """
-        @deprecated Use metrics() or single_metric() instead
-        """
-        return await self._client.get_metric(metric_name)
 
     @_wrap_client_error
     async def fired_alerts(self):

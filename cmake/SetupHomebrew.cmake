@@ -14,7 +14,7 @@ if(NOT DEFINED $CACHE{USERVER_BREW_PREFIX})
         )
 
         if(brew_prefix_result EQUAL 0)
-	    # @ingroup dependencies
+            # @ingroup dependencies
             set(USERVER_BREW_PREFIX
                 "${brew_prefix}"
                 CACHE INTERNAL "Brew prefix"

@@ -157,8 +157,7 @@ function(userver_venv_setup)
             )
         else()
             execute_process(
-                COMMAND "${USERVER_PYTHON_PATH}" -m venv "${venv_dir}" ${venv_additional_args}
-                RESULT_VARIABLE status
+                COMMAND "${USERVER_PYTHON_PATH}" -m venv "${venv_dir}" ${venv_additional_args} RESULT_VARIABLE status
             )
         endif()
         if(status)
@@ -199,8 +198,7 @@ function(userver_venv_setup)
         else()
             execute_process(
                 COMMAND "${venv_bin_dir}/python3" -m pip install --disable-pip-version-check -U ${pip_requirements}
-                        ${ARG_PIP_ARGS}
-                RESULT_VARIABLE status
+                        ${ARG_PIP_ARGS} RESULT_VARIABLE status
             )
         endif()
         if(status)

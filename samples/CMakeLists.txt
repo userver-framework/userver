@@ -24,6 +24,11 @@ if(USERVER_FEATURE_CHAOTIC)
     endif()
 endif()
 
+if(USERVER_FEATURE_POSTGRESQL AND USERVER_FEATURE_CHAOTIC)
+    add_subdirectory(benchmark_service)
+    add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-benchmark_service)
+endif()
+
 if(USERVER_FEATURE_OTLP)
     add_subdirectory(otlp_service)
     add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-otlp_service)

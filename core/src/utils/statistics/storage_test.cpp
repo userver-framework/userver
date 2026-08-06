@@ -1,6 +1,8 @@
 #include <userver/utils/statistics/storage.hpp>
 
+#include <userver/formats/json/serialize.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/statistics/json.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -10,8 +12,8 @@ UTEST(StatisticsStorage, RegisterExtender) {
         return formats::json::ValueBuilder{42};
     });
 
-    const auto json = statistics_storage.GetAsJson();
-    EXPECT_EQ(json["foo"]["bar"]["baz"].As<int>(), 42);
+    const auto json = formats::json::FromString(utils::statistics::ToJsonFormat(statistics_storage));
+    EXPECT_EQ(json["foo.bar.baz"][0]["value"].As<int>(), 42);
 }
 
 USERVER_NAMESPACE_END

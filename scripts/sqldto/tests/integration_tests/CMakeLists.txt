@@ -26,12 +26,8 @@ userver_embed_file(
 add_executable(sqldto-integration client_pgtest.cpp embed.cpp)
 
 target_link_libraries(
-    sqldto-integration
-    PRIVATE userver-utest
-            userver-postgresql
-            userver-postgresql-utest
-            sqldto-integration-input
-            sqldto-integration-embed-schema
+    sqldto-integration PRIVATE userver-utest userver-postgresql userver-postgresql-utest sqldto-integration-input
+                               sqldto-integration-embed-schema
 )
 
 userver_add_utest(

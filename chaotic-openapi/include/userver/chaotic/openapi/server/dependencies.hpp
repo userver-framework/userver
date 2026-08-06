@@ -147,7 +147,7 @@ const utils::AnyStorageDataTag<AnyTag, WithTag<T, Tag>> kTag;
 template <typename T, typename Tag, typename ForHandlerTag>
 void BuildAndStore(Factories& f, utils::AnyStorage<ForHandlerTag>& storage)
 {
-    storage.template Emplace(impl::kTag<ForHandlerTag, T, Tag>, f.MakeData<T, Tag>());
+    storage.Emplace(impl::kTag<ForHandlerTag, T, Tag>, f.MakeData<T, Tag>());
 }
 
 // Registration of a per-handler dependency builder MUST happen during static
@@ -204,7 +204,7 @@ T ForHandler<ForHandlerTag>::operator[](const FactoryTag<T, Tag>&)
     // any Factories::Make<ForHandlerTag>() runs. See BuilderRegistrar comment.
     (void)&impl::BuilderRegistrar<ForHandlerTag, T, Tag>::kRegistered;
 
-    auto* dep = deps_.template GetOptional(impl::kTag<ForHandlerTag, T, Tag>);
+    auto* dep = deps_.GetOptional(impl::kTag<ForHandlerTag, T, Tag>);
 
     // Must be non-NULL if this was built from Factories
     // due to Factories::Make implementation
@@ -265,7 +265,7 @@ void Factories::Register(Func func)
     using T = std::invoke_result_t<Func>;
     FactoryFunc<T> wrapper = std::move(func);
 
-    builder_storage_.template Emplace(impl::kTag<Factories, FactoryFunc<T>, Tag>, std::move(wrapper));
+    builder_storage_.Emplace(impl::kTag<Factories, FactoryFunc<T>, Tag>, std::move(wrapper));
 }
 
 template <typename ForHandlerTag>
@@ -280,7 +280,7 @@ ForHandler<ForHandlerTag> Factories::Make() {
 template <typename T, typename Tag>
 T Factories::MakeData()
 {
-    auto* builder = builder_storage_.template GetOptional(impl::kTag<Factories, FactoryFunc<T>, Tag>);
+    auto* builder = builder_storage_.GetOptional(impl::kTag<Factories, FactoryFunc<T>, Tag>);
 
     UINVARIANT(
         builder,

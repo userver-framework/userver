@@ -25,14 +25,9 @@ struct SystemStatisticsCollector::Impl {
         utils::statistics::impl::SystemStats last_nginx_stats{};
     };
 
-    Impl(SystemStatisticsCollector& owner, const ComponentConfig& config, const ComponentContext& context)
+    Impl(const ComponentConfig& config, const ComponentContext& context)
         : with_nginx(config["with-nginx"].As<bool>(false)),
-          fs_task_processor(GetFsTaskProcessor(config, context)),
-          periodic(
-              "system_statistics_collector",
-              {std::chrono::seconds(10), {utils::PeriodicTask::Flags::kNow}},
-              [&owner] { owner.ProcessTimer(); }
-          )
+          fs_task_processor(GetFsTaskProcessor(config, context))
     {}
 
     const bool with_nginx;
@@ -43,11 +38,15 @@ struct SystemStatisticsCollector::Impl {
 
 SystemStatisticsCollector::SystemStatisticsCollector(const ComponentConfig& config, const ComponentContext& context)
     : ComponentBase(config, context),
-      impl_(std::make_unique<Impl>(*this, config, context))
+      impl_(std::make_unique<Impl>(config, context))
 {
     utils::statistics::RegisterWriterScope(context, "", [this](utils::statistics::Writer& writer) {
         ExtendStatistics(writer);
     });
+    impl_->periodic
+        .Start("system_statistics_collector", {std::chrono::seconds(10), {utils::PeriodicTask::Flags::kNow}}, [this] {
+            ProcessTimer();
+        });
 }
 
 SystemStatisticsCollector::~SystemStatisticsCollector() = default;

@@ -113,11 +113,7 @@ function(userver_target_generate_chaotic TARGET)
         )
 
         if(NOT PARSE_NO_SAX_PARSE)
-            list(
-                APPEND
-                SCHEMAS
-                "${PARSE_OUTPUT_DIR}/${PARSE_OUTPUT_PREFIX}/${SCHEMA}_sax_parsers.hpp"
-            )
+            list(APPEND SCHEMAS "${PARSE_OUTPUT_DIR}/${PARSE_OUTPUT_PREFIX}/${SCHEMA}_sax_parsers.hpp")
         endif()
     endforeach()
 
@@ -138,7 +134,7 @@ function(userver_target_generate_chaotic TARGET)
     if(PARSE_PARSE_EXTRA_FORMATS)
         list(APPEND CHAOTIC_ARGS "--parse-extra-formats")
     endif()
-    
+
     if(PARSE_NO_SAX_PARSE)
         list(APPEND CHAOTIC_ARGS "--no-sax-parse")
     endif()
@@ -252,7 +248,8 @@ function(userver_target_generate_openapi_client TARGET)
     )
     foreach(SCHEMA ${PARSE_SCHEMAS})
         string(REGEX REPLACE "^.*/([^/]*)\\.([^.]*)\$" "\\1" SCHEMA "${SCHEMA}")
-        set(SCHEMAS ${SCHEMAS}
+        set(SCHEMAS
+            ${SCHEMAS}
             "${PARSE_OUTPUT_DIR}/include/clients/${PARSE_NAME}/${SCHEMA}_fwd.hpp"
             "${PARSE_OUTPUT_DIR}/include/clients/${PARSE_NAME}/${SCHEMA}.hpp"
             "${PARSE_OUTPUT_DIR}/include/clients/${PARSE_NAME}/${SCHEMA}_parsers.ipp"
@@ -279,10 +276,10 @@ function(userver_target_generate_openapi_client TARGET)
 
     add_custom_command(
         OUTPUT ${SCHEMAS}
-        COMMAND ${CMAKE_COMMAND} -E env "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}" "${CHAOTIC_OPENAPI_BIN}" ${CHAOTIC_EXTRA_ARGS}
-                --gen client ${PARSE_ARGS} --name "${PARSE_NAME}" -o "${PARSE_OUTPUT_DIR}"
-                "--clang-format=${CLANG_FORMAT}"
-                ${CHAOTIC_OPENAPI_INCLUDE_ARGS} ${PARSE_SCHEMAS}
+        COMMAND
+            ${CMAKE_COMMAND} -E env "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}" "${CHAOTIC_OPENAPI_BIN}"
+            ${CHAOTIC_EXTRA_ARGS} --gen client ${PARSE_ARGS} --name "${PARSE_NAME}" -o "${PARSE_OUTPUT_DIR}"
+            "--clang-format=${CLANG_FORMAT}" ${CHAOTIC_OPENAPI_INCLUDE_ARGS} ${PARSE_SCHEMAS}
         COMMENT "Generating OpenAPI client ${PARSE_NAME}"
         DEPENDS ${PARSE_SCHEMAS}
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -329,9 +326,8 @@ function(userver_target_generate_openapi_handlers TARGET)
 
     # Extract operation relpaths from YAML at configure time so we can enumerate output files.
     execute_process(
-        COMMAND
-            "${USERVER_CHAOTIC_PYTHON_BINARY}" "${USERVER_CHAOTIC_SCRIPTS_PATH}/openapi_operations.py"
-            ${PARSE_SCHEMAS}
+        COMMAND "${USERVER_CHAOTIC_PYTHON_BINARY}" "${USERVER_CHAOTIC_SCRIPTS_PATH}/openapi_operations.py"
+                ${PARSE_SCHEMAS}
         OUTPUT_VARIABLE _OPERATIONS
         OUTPUT_STRIP_TRAILING_WHITESPACE
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -346,7 +342,8 @@ function(userver_target_generate_openapi_handlers TARGET)
         set(_OP_INC "${PARSE_OUTPUT_DIR}/include/handlers/${PARSE_NAME}/${OP}")
         set(_OP_SRC "${PARSE_OUTPUT_DIR}/src/handlers/${PARSE_NAME}/${OP}")
         list(
-            APPEND _HANDLER_FILES
+            APPEND
+            _HANDLER_FILES
             "${_OP_INC}/handler.hpp"
             "${_OP_INC}/requests.hpp"
             "${_OP_INC}/responses.hpp"
@@ -359,10 +356,8 @@ function(userver_target_generate_openapi_handlers TARGET)
     set(_SCHEMA_TYPE_FILES)
     foreach(SCHEMA ${PARSE_SCHEMAS})
         string(REGEX REPLACE "^.*/([^/]*)\\.([^.]*)\$" "\\1" _SCHEMA_STEM "${SCHEMA}")
-        list(
-            APPEND _SCHEMA_TYPE_FILES
-            "${PARSE_OUTPUT_DIR}/include/handlers/${PARSE_NAME}/${_SCHEMA_STEM}.hpp"
-            "${PARSE_OUTPUT_DIR}/src/handlers/${PARSE_NAME}/${_SCHEMA_STEM}.cpp"
+        list(APPEND _SCHEMA_TYPE_FILES "${PARSE_OUTPUT_DIR}/include/handlers/${PARSE_NAME}/${_SCHEMA_STEM}.hpp"
+             "${PARSE_OUTPUT_DIR}/src/handlers/${PARSE_NAME}/${_SCHEMA_STEM}.cpp"
         )
     endforeach()
 
@@ -403,9 +398,12 @@ function(userver_target_generate_openapi_handlers TARGET)
     endif()
 
     set(_GEN_ARGS
-        --name "${PARSE_NAME}"
-        --gen "${_GEN_MODE}"
-        -o "${PARSE_OUTPUT_DIR}"
+        --name
+        "${PARSE_NAME}"
+        --gen
+        "${_GEN_MODE}"
+        -o
+        "${PARSE_OUTPUT_DIR}"
         "--clang-format=${CLANG_FORMAT}"
         ${PARSE_ARGS}
     )
@@ -431,10 +429,8 @@ function(userver_target_generate_openapi_handlers TARGET)
 
     add_custom_command(
         OUTPUT ${_ALL_OUTPUTS}
-        COMMAND
-            ${CMAKE_COMMAND} -E env "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}"
-            "${CHAOTIC_OPENAPI_BIN}" ${CHAOTIC_EXTRA_ARGS} ${_GEN_ARGS}
-            ${_CHAOTIC_OPENAPI_INCLUDE_ARGS} ${PARSE_SCHEMAS}
+        COMMAND ${CMAKE_COMMAND} -E env "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}" "${CHAOTIC_OPENAPI_BIN}"
+                ${CHAOTIC_EXTRA_ARGS} ${_GEN_ARGS} ${_CHAOTIC_OPENAPI_INCLUDE_ARGS} ${PARSE_SCHEMAS}
         COMMENT "Generating OpenAPI handlers ${PARSE_NAME}"
         DEPENDS ${PARSE_SCHEMAS}
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
@@ -446,8 +442,11 @@ function(userver_target_generate_openapi_handlers TARGET)
     if(PARSE_SRC_DIR)
         target_include_directories("${TARGET}" PUBLIC "${PARSE_SRC_DIR}")
     endif()
-    set_property(TARGET "${TARGET}" APPEND PROPERTY
-        INTERFACE_USERVER_EXTRA_CONFIG_YAML_PATHS "${_CONFIG_YAML_PATH}")
+    set_property(
+        TARGET "${TARGET}"
+        APPEND
+        PROPERTY INTERFACE_USERVER_EXTRA_CONFIG_YAML_PATHS "${_CONFIG_YAML_PATH}"
+    )
 endfunction()
 
 # Merges BASE_CONFIGS (user-provided, applied last / highest priority) with
@@ -471,12 +470,8 @@ function(userver_generate_config_yaml BINARY_TARGET)
 
     add_custom_command(
         OUTPUT "${PARSE_OUTPUT}"
-        COMMAND
-            "${USERVER_CHAOTIC_PYTHON_BINARY}"
-            "${USERVER_CHAOTIC_SCRIPTS_PATH}/merge_yaml_configs/main.py"
-            ${_extra_configs}
-            ${PARSE_BASE_CONFIGS}
-            -o "${PARSE_OUTPUT}"
+        COMMAND "${USERVER_CHAOTIC_PYTHON_BINARY}" "${USERVER_CHAOTIC_SCRIPTS_PATH}/merge_yaml_configs/main.py"
+                ${_extra_configs} ${PARSE_BASE_CONFIGS} -o "${PARSE_OUTPUT}"
         DEPENDS ${_extra_configs} ${PARSE_BASE_CONFIGS}
         COMMENT "Merging config.yaml for ${BINARY_TARGET}"
         VERBATIM
@@ -511,7 +506,10 @@ function(_userver_collect_extra_config_yamls TARGET RESULT_VAR)
     set_property(GLOBAL PROPERTY _userver_config_yaml_visited "")
     _userver_collect_extra_config_yamls_impl("${TARGET}")
     get_property(_result GLOBAL PROPERTY _userver_config_yaml_result)
-    set(${RESULT_VAR} "${_result}" PARENT_SCOPE)
+    set(${RESULT_VAR}
+        "${_result}"
+        PARENT_SCOPE
+    )
 endfunction()
 
 #TODO
@@ -546,8 +544,8 @@ function(userver_target_generate_chaotic_dynamic_configs TARGET SCHEMAS_REGEX)
 
     add_custom_command(
         OUTPUT ${OUTPUT_FILENAMES}
-        COMMAND ${CMAKE_COMMAND} -E env "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}" "${CHAOTIC_DYNAMIC_CONFIGS_BIN}"
-                ${CHAOTIC_EXTRA_ARGS} -o "${OUTPUT_DIR}" ${CHGEN_FILENAMES}
+        COMMAND ${CMAKE_COMMAND} -E env "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}"
+                "${CHAOTIC_DYNAMIC_CONFIGS_BIN}" ${CHAOTIC_EXTRA_ARGS} -o "${OUTPUT_DIR}" ${CHGEN_FILENAMES}
         COMMENT "Generating dynamic configs${CONFIG_NAMES}"
         DEPENDS ${CHGEN_FILENAMES}
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
