@@ -120,6 +120,8 @@ RequestGeosearch MockTransactionImplBase::Geosearch(
 
 RequestGet MockTransactionImplBase::Get(std::string /*key*/) { AbortWithStacktrace("Redis method not mocked"); }
 
+RequestGetdel MockTransactionImplBase::Getdel(std::string /*key*/) { AbortWithStacktrace("Redis method not mocked"); }
+
 RequestGetset MockTransactionImplBase::Getset(std::string /*key*/, std::string /*value*/) {
     AbortWithStacktrace("Redis method not mocked");
 }

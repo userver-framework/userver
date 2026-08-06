@@ -1,0 +1,7 @@
+default: false
+description: |
+    Dynamic config that completely bypasses health check in components::Redis.
+    When true, GetComponentHealth always returns Ok regardless of actual Redis
+    connection state.
+schema:
+    type: boolean

@@ -240,7 +240,7 @@ UTEST(BackgroundTaskStorage, CancelAndWait) {
     EXPECT_TRUE(finished);
 }
 
-UTEST(BackgroundTaskStorage, CloseAndWaitDebug) {
+UTEST(BackgroundTaskStorage, WaitAndDisposeSlow) {
     std::atomic<bool> finished{false};
     concurrent::BackgroundTaskStorage bts;
     bts.AsyncDetach("", [&] {
@@ -249,7 +249,7 @@ UTEST(BackgroundTaskStorage, CloseAndWaitDebug) {
         finished = true;
     });
 
-    bts.CloseAndWaitDebug();
+    bts.WaitAndDisposeSlow();
     EXPECT_TRUE(finished);
 }
 
@@ -328,6 +328,15 @@ TEST(BackgroundTaskStorage, StrongTaskProcessorBinding) {
 
         EXPECT_TRUE(finished.WaitForEvent());
     });
+}
+
+UTEST(BackgroundTaskStorage, MultipleCancelAndWait) {
+    concurrent::BackgroundTaskStorage bts;
+    bts.AsyncDetach("test", [] {});
+    bts.WaitAndDisposeSlow();
+    bts.CancelAndWait();
+    bts.WaitAndDisposeSlow();
+    bts.CancelAndWait();
 }
 
 USERVER_NAMESPACE_END

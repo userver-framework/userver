@@ -21,3 +21,19 @@ foreach(CLIENT ${CLIENTS})
     )
     target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-client-${CLIENT})
 endforeach()
+
+file(
+    GLOB HANDLERS
+    RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/handlers/
+    ${CMAKE_CURRENT_SOURCE_DIR}/handlers/*
+)
+foreach(HANDLER ${HANDLERS})
+    file(GLOB SCHEMAS ${CMAKE_CURRENT_SOURCE_DIR}/handlers/${HANDLER}/*.yaml)
+    userver_target_generate_openapi_handlers(
+        ${PROJECT_NAME}-handler-${HANDLER}
+        NAME ${HANDLER}
+        SCHEMAS ${SCHEMAS}
+        SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src
+    )
+    target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-handler-${HANDLER})
+endforeach()

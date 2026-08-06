@@ -1,7 +1,7 @@
 #pragma once
 
 /// @file userver/ydb/io/insert_row.hpp
-/// @brief @copybrief ydb::ValueTraits<ydb::InsertRow>
+/// @brief Serialization traits for @c ydb::InsertRow
 
 #include <userver/ydb/io/traits.hpp>
 #include <userver/ydb/types.hpp>

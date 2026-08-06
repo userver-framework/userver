@@ -3,17 +3,44 @@
 /// @file userver/utils/expected.hpp
 /// @brief @copybrief utils::expected
 
+#include <concepts>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <variant>
 
 #include <userver/compiler/impl/lifetime.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
 // NOLINTBEGIN(readability-identifier-naming)
+
+namespace impl {
+
+// Standard library implementations of std::cmp_equal are not required to be SFINAE-friendly (e.g. libstdc++
+// enforces the "both types are standard integers" precondition via a body-level static_assert instead of a
+// constrained declaration), so `requires { std::cmp_equal(lhs, rhs); }` is not a portable way to detect
+// applicability. Do the check manually instead, following the exact rules of [utility.intcmp].
+template <class T>
+concept StandardInteger =
+    std::integral<T> && !std::same_as<T, bool> && !std::same_as<T, char> && !std::same_as<T, wchar_t> &&
+    !std::same_as<T, char8_t> && !std::same_as<T, char16_t> && !std::same_as<T, char32_t>;
+
+/// @brief Same as `lhs == rhs`, but avoids `-Wsign-compare` warnings when comparing integers of different
+/// signedness by using `std::cmp_equal` where applicable.
+template <class T, class U>
+constexpr bool ExpectedEqual(const T& lhs, const U& rhs) {
+    if constexpr (StandardInteger<T> && StandardInteger<U>) {
+        return std::cmp_equal(lhs, rhs);
+    } else {
+        return lhs == rhs;
+    }
+}
+
+}  // namespace impl
 
 class bad_expected_access : public std::exception {
 public:
@@ -87,6 +114,23 @@ public:
 
     /// @overload
     const S& value() const& USERVER_IMPL_LIFETIME_BOUND;
+
+    /// @brief Unchecked access to the contained value.
+    /// @warning The behavior is undefined if `*this` does not contain a value; use @ref value for checked access.
+    S& operator*() & noexcept USERVER_IMPL_LIFETIME_BOUND;
+
+    /// @overload
+    S&& operator*() && noexcept USERVER_IMPL_LIFETIME_BOUND;
+
+    /// @overload
+    const S& operator*() const& noexcept USERVER_IMPL_LIFETIME_BOUND;
+
+    /// @brief Unchecked access to the members of the contained value.
+    /// @warning The behavior is undefined if `*this` does not contain a value; use @ref value for checked access.
+    S* operator->() noexcept USERVER_IMPL_LIFETIME_BOUND;
+
+    /// @overload
+    const S* operator->() const noexcept USERVER_IMPL_LIFETIME_BOUND;
 
     /// @brief Return reference to the error value or throws bad_expected_access
     /// if it's not available
@@ -231,6 +275,35 @@ const S& expected<S, E>::value() const& USERVER_IMPL_LIFETIME_BOUND {
 }
 
 template <class S, class E>
+S& expected<S, E>::operator*() & noexcept USERVER_IMPL_LIFETIME_BOUND {
+    UASSERT_MSG(has_value(), "Trying to dereference utils::expected that does not contain a value");
+    return *std::get_if<S>(&data_);
+}
+
+template <class S, class E>
+S&& expected<S, E>::operator*() && noexcept USERVER_IMPL_LIFETIME_BOUND {
+    return std::move(**this);
+}
+
+template <class S, class E>
+const S& expected<S, E>::operator*() const& noexcept USERVER_IMPL_LIFETIME_BOUND {
+    UASSERT_MSG(has_value(), "Trying to dereference utils::expected that does not contain a value");
+    return *std::get_if<S>(&data_);
+}
+
+template <class S, class E>
+S* expected<S, E>::operator->() noexcept USERVER_IMPL_LIFETIME_BOUND {
+    UASSERT_MSG(has_value(), "Trying to dereference utils::expected that does not contain a value");
+    return std::get_if<S>(&data_);
+}
+
+template <class S, class E>
+const S* expected<S, E>::operator->() const noexcept USERVER_IMPL_LIFETIME_BOUND {
+    UASSERT_MSG(has_value(), "Trying to dereference utils::expected that does not contain a value");
+    return std::get_if<S>(&data_);
+}
+
+template <class S, class E>
 E& expected<S, E>::error() USERVER_IMPL_LIFETIME_BOUND {
     auto* result = std::get_if<unexpected<E>>(&data_);
     if (result == nullptr) {
@@ -246,6 +319,39 @@ const E& expected<S, E>::error() const USERVER_IMPL_LIFETIME_BOUND {
         throw bad_expected_access("Trying to get undefined error value from utils::expected");
     }
     return result->error();
+}
+
+/// @brief Compares two utils::expected: equal either if both hold equal values, or if both hold equal errors.
+///
+/// @note `operator!=` and the reversed-argument-order overload are synthesized by the compiler (C++20 rewritten
+/// comparison operators), no need to define them separately.
+template <class S, class E>
+requires std::equality_comparable<S> && std::equality_comparable<E>
+bool operator==(const expected<S, E>& lhs, const expected<S, E>& rhs) {
+    if (lhs.has_value() != rhs.has_value()) {
+        return false;
+    }
+    return lhs.has_value() ? impl::ExpectedEqual(*lhs, *rhs) : impl::ExpectedEqual(lhs.error(), rhs.error());
+}
+
+/// @brief Compares utils::expected with a value: equal if `lhs` holds a value equal to `rhs`.
+///
+/// @note `operator!=` and the reversed-argument-order overload (`rhs == lhs`) are synthesized by the compiler
+/// (C++20 rewritten comparison operators), no need to define them separately.
+template <class S, class E, class T>
+requires(!std::same_as<T, expected<S, E>>) && std::equality_comparable_with<S, T>
+bool operator==(const expected<S, E>& lhs, const T& rhs) {
+    return lhs.has_value() && impl::ExpectedEqual(*lhs, rhs);
+}
+
+/// @brief Compares utils::expected with utils::unexpected: equal if `lhs` holds an error equal to `rhs.error()`.
+///
+/// @note `operator!=` and the reversed-argument-order overload (`rhs == lhs`) are synthesized by the compiler
+/// (C++20 rewritten comparison operators), no need to define them separately.
+template <class S, class E, class G>
+requires std::equality_comparable_with<E, G>
+bool operator==(const expected<S, E>& lhs, const unexpected<G>& rhs) {
+    return !lhs.has_value() && impl::ExpectedEqual(lhs.error(), rhs.error());
 }
 
 template <class E>
@@ -308,6 +414,30 @@ const E& expected<void, E>::error() const USERVER_IMPL_LIFETIME_BOUND {
         throw bad_expected_access("Trying to get undefined error value from utils::expected");
     }
     return result->error();
+}
+
+/// @brief Compares two utils::expected<void, E>: equal either if both hold a value, or if both hold equal errors.
+///
+/// @note `operator!=` is synthesized by the compiler (C++20 rewritten comparison operators), no need to define it
+/// separately.
+template <class E>
+requires std::equality_comparable<E>
+bool operator==(const expected<void, E>& lhs, const expected<void, E>& rhs) {
+    if (lhs.has_value() != rhs.has_value()) {
+        return false;
+    }
+    return lhs.has_value() || impl::ExpectedEqual(lhs.error(), rhs.error());
+}
+
+/// @brief Compares utils::expected<void, E> with utils::unexpected: equal if `lhs` holds an error equal to
+/// `rhs.error()`.
+///
+/// @note `operator!=` and the reversed-argument-order overload (`rhs == lhs`) are synthesized by the compiler
+/// (C++20 rewritten comparison operators), no need to define them separately.
+template <class E, class G>
+requires std::equality_comparable_with<E, G>
+bool operator==(const expected<void, E>& lhs, const unexpected<G>& rhs) {
+    return !lhs.has_value() && impl::ExpectedEqual(lhs.error(), rhs.error());
 }
 
 // NOLINTEND(readability-identifier-naming)

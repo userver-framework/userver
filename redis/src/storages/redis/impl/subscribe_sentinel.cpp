@@ -58,6 +58,9 @@ SubscribeSentinel::SubscribeSentinel(
               std::move(creation_config.key_shard_factory),
               std::move(creation_config.command_control),
               creation_config.topology_update_method,
+              creation_config.required_mode,
+              creation_config.max_failed_shards,
+              creation_config.max_failed_shards_percent
           },
           testsuite_redis_control,
           database_index

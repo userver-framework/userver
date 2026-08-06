@@ -7,9 +7,12 @@
 #include <storages/postgres/experiments.hpp>
 #include <userver/storages/postgres/component.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
+#include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/userver_info.hpp>
 
 #include <userver/formats/common/items.hpp>
+
+#include <type_traits>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -182,7 +185,12 @@ Settings ParsePoolSettings(const ConfigType& config) {
     result.max_size = GetField(config, "max_pool_size", result.max_size);
     result.max_queue_size = GetField(config, "max_queue_size", result.max_queue_size);
     result.connecting_limit = GetField(config, "connecting_limit", result.connecting_limit);
-    result.connecting_interval_ms = GetField(config, "connecting_interval_ms", result.connecting_interval_ms);
+
+    const std::size_t default_connecting_interval_ms =
+        USERVER_NAMESPACE::utils::impl::kPgConnectingRateLimitExperiment.IsEnabled()
+            ? kExperimentDefaultConnectingIntervalMs
+            : kDefaultConnectingIntervalMs;
+    result.connecting_interval_ms = GetField(config, "connecting_interval_ms", default_connecting_interval_ms);
 
     if (result.max_size == 0) {
         throw InvalidConfig{"max_pool_size must be greater than 0"};

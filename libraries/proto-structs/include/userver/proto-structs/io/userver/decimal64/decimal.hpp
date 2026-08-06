@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/proto-structs/io/userver/decimal64/decimal64.hpp
+/// @file userver/proto-structs/io/userver/decimal64/decimal.hpp
 /// @brief Provides `userver::decimal64::Decimal` proto struct field support.
 
 #include <userver/decimal64/decimal64.hpp>

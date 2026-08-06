@@ -35,7 +35,7 @@ std::string ToStringViaStreams(const T& value) {
 
 void CheckModulePath(std::string_view message, std::string_view expected) {
     auto module_pos = message.find("module=");
-    ASSERT_NE(std::string::npos, module_pos) << "no module logged";
+    ASSERT_THAT(message, testing::HasSubstr("module=")) << "no module logged";
     auto path_pos = message.find(std::string{expected} + ':', module_pos);
     auto delim_pos = message.find('\t', module_pos);
     ASSERT_LT(path_pos, delim_pos)
@@ -372,10 +372,10 @@ TEST_F(LoggingTest, LogExtraTAXICOMMON1362) {
     EXPECT_EQ(result.back(), '\n');
     result.pop_back();
 
-    EXPECT_TRUE(result.find(tskv_test::ascii_part) != std::string::npos) << "Result: " << result;
+    EXPECT_THAT(result, testing::HasSubstr(tskv_test::ascii_part)) << "Result: " << result;
 
     const auto png_pos = result.find("PNG");
-    EXPECT_TRUE(png_pos != std::string::npos) << "Result: " << result;
+    ASSERT_THAT(result, testing::HasSubstr("PNG")) << "Result: " << result;
 
     EXPECT_EQ(0, std::count(result.begin() + png_pos, result.end(), '\n')) << "Result: " << result;
     EXPECT_EQ(0, std::count(result.begin() + png_pos, result.end(), '\t')) << "Result: " << result;
@@ -391,10 +391,10 @@ TEST_F(LoggingTest, TAXICOMMON1362) {
     const std::string result = GetStreamString();
 
     const auto ascii_pos = result.find(tskv_test::ascii_part);
-    EXPECT_TRUE(ascii_pos != std::string::npos) << "Result: " << result;
+    ASSERT_THAT(result, testing::HasSubstr(tskv_test::ascii_part)) << "Result: " << result;
 
     const auto body_pos = result.find("body=");
-    EXPECT_TRUE(body_pos != std::string::npos) << "Result: " << result;
+    ASSERT_THAT(result, testing::HasSubstr("body=")) << "Result: " << result;
 
     EXPECT_EQ(result.substr(body_pos, ascii_pos - body_pos).find_first_of({'\n', '\t', '\0'}), std::string::npos)
         << "Result: " << result;

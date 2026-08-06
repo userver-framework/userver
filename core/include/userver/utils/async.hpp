@@ -74,7 +74,9 @@ template <typename Function, typename... Args>
 template <typename Function, typename... Args>
 [[nodiscard]] auto Async(engine::TaskProcessor& task_processor, std::string name, Function&& f, Args&&... args) {
     return engine::impl::MakeTaskWithResult<engine::TaskWithResult>(
-        engine::impl::TaskConfig{.task_processor = &task_processor},
+        engine::impl::TaskConfig{
+            .task_processor = &task_processor,
+        },
         utils::impl::SpanLazyPrvalue(std::move(name)),
         std::forward<Function>(f),
         std::forward<Args>(args)...
@@ -98,11 +100,7 @@ template <typename Function, typename... Args>
 [[nodiscard]] auto AsyncHideSpan(Function&& f, Args&&... args) {
     return engine::impl::MakeTaskWithResult<engine::TaskWithResult>(
         engine::impl::TaskConfig{},
-        utils::impl::SpanLazyPrvalue(
-            std::string{},
-            utils::impl::SpanWrapCall::InheritVariables::kYes,
-            utils::impl::SpanWrapCall::HideSpan::kYes
-        ),
+        utils::impl::SpanLazyPrvalue(std::string{}, utils::impl::SpanWrapCall::HideSpan::kYes),
         std::forward<Function>(f),
         std::forward<Args>(args)...
     );
@@ -125,12 +123,10 @@ template <typename Function, typename... Args>
 template <typename Function, typename... Args>
 [[nodiscard]] auto AsyncHideSpan(engine::TaskProcessor& task_processor, Function&& f, Args&&... args) {
     return engine::impl::MakeTaskWithResult<engine::TaskWithResult>(
-        engine::impl::TaskConfig{.task_processor = &task_processor},
-        utils::impl::SpanLazyPrvalue(
-            std::string{},
-            utils::impl::SpanWrapCall::InheritVariables::kYes,
-            utils::impl::SpanWrapCall::HideSpan::kYes
-        ),
+        engine::impl::TaskConfig{
+            .task_processor = &task_processor,
+        },
+        utils::impl::SpanLazyPrvalue(std::string{}, utils::impl::SpanWrapCall::HideSpan::kYes),
         std::forward<Function>(f),
         std::forward<Args>(args)...
     );
@@ -179,7 +175,9 @@ template <typename Function, typename... Args>
 template <typename Function, typename... Args>
 [[nodiscard]] auto SharedAsync(engine::TaskProcessor& task_processor, std::string name, Function&& f, Args&&... args) {
     return engine::impl::MakeTaskWithResult<engine::SharedTaskWithResult>(
-        engine::impl::TaskConfig{.task_processor = &task_processor},
+        engine::impl::TaskConfig{
+            .task_processor = &task_processor,
+        },
         utils::impl::SpanLazyPrvalue(std::move(name)),
         std::forward<Function>(f),
         std::forward<Args>(args)...
@@ -199,7 +197,9 @@ template <typename Function, typename... Args>
 template <typename Function, typename... Args>
 [[nodiscard]] auto CriticalAsync(std::string name, Function&& f, Args&&... args) {
     return engine::impl::MakeTaskWithResult<engine::TaskWithResult>(
-        engine::impl::TaskConfig{.importance = engine::Task::Importance::kCritical},
+        engine::impl::TaskConfig{
+            .importance = engine::Task::Importance::kCritical,
+        },
         utils::impl::SpanLazyPrvalue(std::move(name)),
         std::forward<Function>(f),
         std::forward<Args>(args)...
@@ -219,7 +219,9 @@ template <typename Function, typename... Args>
 template <typename Function, typename... Args>
 [[nodiscard]] auto SharedCriticalAsync(std::string name, Function&& f, Args&&... args) {
     return engine::impl::MakeTaskWithResult<engine::SharedTaskWithResult>(
-        engine::impl::TaskConfig{.importance = engine::Task::Importance::kCritical},
+        engine::impl::TaskConfig{
+            .importance = engine::Task::Importance::kCritical,
+        },
         utils::impl::SpanLazyPrvalue(std::move(name)),
         std::forward<Function>(f),
         std::forward<Args>(args)...
@@ -260,7 +262,9 @@ template <typename Function, typename... Args>
 template <typename Function, typename... Args>
 [[nodiscard]] auto Async(std::string name, engine::Deadline deadline, Function&& f, Args&&... args) {
     return engine::impl::MakeTaskWithResult<engine::TaskWithResult>(
-        engine::impl::TaskConfig{.deadline = deadline},
+        engine::impl::TaskConfig{
+            .deadline = deadline,
+        },
         utils::impl::SpanLazyPrvalue(std::move(name)),
         std::forward<Function>(f),
         std::forward<Args>(args)...
@@ -305,12 +309,11 @@ template <typename Function, typename... Args>
     Args&&... args
 ) {
     return engine::impl::MakeTaskWithResult<engine::TaskWithResult>(
-        engine::impl::TaskConfig{.task_processor = &task_processor},
-        utils::impl::SpanLazyPrvalue(
-            std::move(name),
-            utils::impl::SpanWrapCall::InheritVariables::kNo,
-            utils::impl::SpanWrapCall::HideSpan::kNo
-        ),
+        engine::impl::TaskConfig{
+            .task_processor = &task_processor,
+            .inherited_variables_priority = engine::TaskInheritedVariablePriority::kBackground,
+        },
+        utils::impl::SpanLazyPrvalue(std::move(name)),
         std::forward<Function>(f),
         std::forward<Args>(args)...
     );
@@ -340,12 +343,9 @@ template <typename Function, typename... Args>
         engine::impl::TaskConfig{
             .task_processor = &task_processor,
             .importance = engine::Task::Importance::kCritical,
+            .inherited_variables_priority = engine::TaskInheritedVariablePriority::kBackground,
         },
-        utils::impl::SpanLazyPrvalue(
-            std::move(name),
-            utils::impl::SpanWrapCall::InheritVariables::kNo,
-            utils::impl::SpanWrapCall::HideSpan::kNo
-        ),
+        utils::impl::SpanLazyPrvalue(std::move(name)),
         std::forward<Function>(f),
         std::forward<Args>(args)...
     );

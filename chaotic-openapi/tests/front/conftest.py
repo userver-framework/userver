@@ -1,5 +1,6 @@
-from chaotic_openapi.front import parser as front_parser
 import pytest
+
+from chaotic_openapi.front import parser as front_parser
 
 
 @pytest.fixture

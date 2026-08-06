@@ -55,6 +55,8 @@ components_manager:
             testpoint-url: $mockserver/testpoint
             throttling_enabled: false
 
+        # /// [YDB service sample - static config ydb]
+        # yaml
         ydb:
             operation-settings:
                 client-timeout: 1100ms
@@ -64,7 +66,10 @@ components_manager:
                     database: sampledb
                     max_pool_size: 10
                     min_pool_size: 5
+        # /// [YDB service sample - static config ydb]
 
+        # /// [YDB service sample - static config handlers]
+        # yaml
         handler-bson-reading:
             method: POST
             path: /ydb/bson-reading
@@ -89,7 +94,10 @@ components_manager:
             method: POST
             path: /ydb/upsert-2rows
             task_processor: main-task-processor
+        # /// [YDB service sample - static config handlers]
 
+        # /// [YDB service sample - static config topic readers]
+        # yaml
         sample-topic-reader:
             consumer-name: sample-topic-consumer
             topics:
@@ -101,3 +109,4 @@ components_manager:
             topics:
               - records/changefeed
             restart-session-delay: 200ms
+            # /// [YDB service sample - static config topic readers]

@@ -8,6 +8,7 @@
 
 namespace sample {
 
+/// [YDB service sample - base handler]
 class BaseHandler : public server::handlers::HttpHandlerJsonBase {
 public:
     BaseHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
@@ -21,5 +22,6 @@ protected:
 private:
     std::shared_ptr<ydb::TableClient> ydb_client_;
 };
+/// [YDB service sample - base handler]
 
 }  // namespace sample

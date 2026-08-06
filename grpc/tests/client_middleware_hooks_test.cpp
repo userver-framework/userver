@@ -552,7 +552,7 @@ UTEST_F(ClientMiddlewaresHooksTest, AbandonedCancelledUnary) {
         const auto future = Client().AsyncSayHello(request);
 
         event.Wait();
-        engine::current_task::GetCancellationToken().RequestCancel();
+        engine::current_task::RequestCancel();
 
         // The destructor of `future` will cancel the RPC and await grpcpp cleanup.
         // Cancellation should not lead to a crash.

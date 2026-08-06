@@ -1,19 +1,21 @@
-redis-pubsub.messages.alien-count: redis_database=metrics_test, redis_pubsub_channel=post_channel0	GAUGE	0
-redis-pubsub.messages.alien-count: redis_database=metrics_test, redis_pubsub_channel=post_channel0, redis_shard=test_master0	GAUGE	0
-redis-pubsub.messages.alien-count: redis_database=metrics_test2, redis_pubsub_channel=total	GAUGE	0
-redis-pubsub.messages.alien-count: redis_database=metrics_test2, redis_pubsub_channel=total, redis_shard=test_master0	GAUGE	0
-redis-pubsub.messages.count: redis_database=metrics_test, redis_pubsub_channel=post_channel0	GAUGE	0
-redis-pubsub.messages.count: redis_database=metrics_test, redis_pubsub_channel=post_channel0, redis_shard=test_master0	GAUGE	0
-redis-pubsub.messages.count: redis_database=metrics_test2, redis_pubsub_channel=total	GAUGE	0
-redis-pubsub.messages.count: redis_database=metrics_test2, redis_pubsub_channel=total, redis_shard=test_master0	GAUGE	0
+redis-pubsub.health: redis_database=metrics_test	GAUGE	0
+redis-pubsub.health: redis_database=metrics_test2	GAUGE	0
+redis-pubsub.messages.alien-count: redis_database=metrics_test, redis_pubsub_channel=post_channel0	RATE	0
+redis-pubsub.messages.alien-count: redis_database=metrics_test, redis_pubsub_channel=post_channel0, redis_shard=test_master0	RATE	0
+redis-pubsub.messages.alien-count: redis_database=metrics_test2, redis_pubsub_channel=total	RATE	0
+redis-pubsub.messages.alien-count: redis_database=metrics_test2, redis_pubsub_channel=total, redis_shard=test_master0	RATE	0
+redis-pubsub.messages.count: redis_database=metrics_test, redis_pubsub_channel=post_channel0	RATE	0
+redis-pubsub.messages.count: redis_database=metrics_test, redis_pubsub_channel=post_channel0, redis_shard=test_master0	RATE	0
+redis-pubsub.messages.count: redis_database=metrics_test2, redis_pubsub_channel=total	RATE	0
+redis-pubsub.messages.count: redis_database=metrics_test2, redis_pubsub_channel=total, redis_shard=test_master0	RATE	0
 redis-pubsub.messages.discarded: redis_database=metrics_test, redis_pubsub_channel=post_channel0	RATE	0
 redis-pubsub.messages.discarded: redis_database=metrics_test, redis_pubsub_channel=post_channel0, redis_shard=test_master0	RATE	0
 redis-pubsub.messages.discarded: redis_database=metrics_test2, redis_pubsub_channel=total	RATE	0
 redis-pubsub.messages.discarded: redis_database=metrics_test2, redis_pubsub_channel=total, redis_shard=test_master0	RATE	0
-redis-pubsub.messages.size: redis_database=metrics_test, redis_pubsub_channel=post_channel0	GAUGE	0
-redis-pubsub.messages.size: redis_database=metrics_test, redis_pubsub_channel=post_channel0, redis_shard=test_master0	GAUGE	0
-redis-pubsub.messages.size: redis_database=metrics_test2, redis_pubsub_channel=total	GAUGE	0
-redis-pubsub.messages.size: redis_database=metrics_test2, redis_pubsub_channel=total, redis_shard=test_master0	GAUGE	0
+redis-pubsub.messages.size: redis_database=metrics_test, redis_pubsub_channel=post_channel0	RATE	0
+redis-pubsub.messages.size: redis_database=metrics_test, redis_pubsub_channel=post_channel0, redis_shard=test_master0	RATE	0
+redis-pubsub.messages.size: redis_database=metrics_test2, redis_pubsub_channel=total	RATE	0
+redis-pubsub.messages.size: redis_database=metrics_test2, redis_pubsub_channel=total, redis_shard=test_master0	RATE	0
 redis-pubsub.subscribed-ms: redis_database=metrics_test, redis_pubsub_channel=post_channel0, redis_shard=test_master0	GAUGE	0
 redis-pubsub: redis_database=metrics_test, redis_instance=127.0.0.1:00000, redis_pubsub_channel=post_channel0, redis_shard=test_master0	GAUGE	0
 
@@ -83,6 +85,7 @@ redis.ev_threads.cpu_load_percent: ev_thread_name=redis_client_6	GAUGE	0
 redis.ev_threads.cpu_load_percent: ev_thread_name=redis_client_7	GAUGE	0
 redis.ev_threads.cpu_load_percent: ev_thread_name=redis_sentinel_0	GAUGE	0
 
+redis.health: redis_database=metrics_test	GAUGE	0
 redis.instances_count: redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0
 redis.is_ready: redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0
 redis.not_ready_ms: redis_database=metrics_test, redis_instance_type=sentinels	GAUGE	0

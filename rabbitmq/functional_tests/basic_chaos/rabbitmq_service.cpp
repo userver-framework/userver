@@ -22,12 +22,12 @@
 
 namespace chaos {
 
-class ChaosProducer final : public components::LoggableComponentBase {
+class ChaosProducer final : public components::ComponentBase {
 public:
     static constexpr std::string_view kName{"chaos-producer"};
 
     ChaosProducer(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : components::LoggableComponentBase{config, context},
+        : components::ComponentBase{config, context},
           rabbit_client_{context.FindComponent<components::RabbitMQ>("chaos-rabbit").GetClient()}
     {
         const auto setup_deadline = engine::Deadline::FromDuration(kDefaultOperationTimeout);

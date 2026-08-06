@@ -95,6 +95,8 @@ public:
 
     RequestGet Get(std::string key) override;
 
+    RequestGetdel Getdel(std::string key) override;
+
     RequestGetset Getset(std::string key, std::string value) override;
 
     RequestHdel Hdel(std::string key, std::string field) override;

@@ -10,12 +10,15 @@ components_manager:
             groups:
               - config_name: metrics_test
                 db: metrics_test
+                required: master_and_slave
             subscribe_groups:
               - config_name: metrics_test
                 db: metrics_test
+                required: master_and_slave
               - config_name: metrics_test
                 db: metrics_test2
                 per_channel_statistics: false
+                required: master_and_slave
             thread_pools:
                 redis_thread_pool_size: 8
                 sentinel_thread_pool_size: 1

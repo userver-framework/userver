@@ -9,6 +9,7 @@ WHERE id = "id1"
 """
 
 
+# /// [YDB service sample - bson upserting functional test]
 async def test_ok(service_client, ydb):
     # validate YDB state
     cursor = ydb.execute(SQL_REQUEST)
@@ -28,3 +29,4 @@ async def test_ok(service_client, ydb):
     assert len(cursor) == 1
     assert len(cursor[0].rows) == 1
     assert DATA == bson.BSON.decode(cursor[0].rows[0]['doc'])
+    # /// [YDB service sample - bson upserting functional test]

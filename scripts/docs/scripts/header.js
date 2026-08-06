@@ -28,7 +28,7 @@ const addModal = () => {
 
 const onBurger = () => {
     const burgerBtn = document.querySelector('.main-menu-btn');
-    const modal = document.getElementById('navbar-main-menu');
+    const modal = document.getElementById('main-menu');
 
     burgerBtn.addEventListener('click', () => {
         const isVisible = modal.style.display == 'flex';
@@ -39,36 +39,63 @@ const onBurger = () => {
 
 const create_nav_wrapper = () => {
     const searchBoxWrapper = document.getElementById('searchBoxPos2');
-    const themeToggler = document.querySelector("doxygen-awesome-dark-mode-toggle");
+    const themeToggler = document.querySelector("dark-mode-toggle");
     const searchBox = document.getElementById('MSearchBox');
 
     const mainNav = document.createElement('div');
     mainNav.id = 'main-navbar';
 
     const mainMenu = document.getElementById('main-menu');
-    mainMenu.id = 'navbar-main-menu';
+    mainMenu.classList.add('navbar-main-menu');
 
     mainNav.appendChild(mainMenu);
 
-    mainMenu.after(searchBox);
-    mainMenu.after(themeToggler);
+    if (searchBox) {
+        mainMenu.after(searchBox);
+    }
+    if (themeToggler) {
+        mainMenu.after(themeToggler);
+    }
 
-    searchBoxWrapper.parentNode.removeChild(searchBoxWrapper);
+    if (searchBoxWrapper) {
+        searchBoxWrapper.parentNode.removeChild(searchBoxWrapper);
+    }
 
     const oldWrapper = document.getElementById('main-nav');
-
     oldWrapper.before(mainNav);
 }
 
 const remove_legacy_searchbox = () => {
     const burgerBtn = document.querySelector('.main-menu-btn');
-    const mainMenu = document.getElementById('navbar-main-menu');
+    const mainMenu = document.getElementById('main-menu');
 
     mainMenu.after(burgerBtn);
 
     const mobileSearchBox = document.getElementById('searchBoxPos1');
+    if (mobileSearchBox?.parentNode) {
+        mobileSearchBox.parentNode.removeChild(mobileSearchBox);
+    }
+}
 
-    mobileSearchBox.parentNode.removeChild(mobileSearchBox);
+const disable_top_level_dropdowns = () => {
+    const mainMenu = document.getElementById('main-menu');
+    if (!mainMenu) {
+        return;
+    }
+
+    mainMenu.querySelectorAll(':scope > li').forEach((item) => {
+        const link = item.querySelector(':scope > a.has-submenu');
+        const submenu = item.querySelector(':scope > ul');
+        if (!link || !submenu) {
+            return;
+        }
+
+        link.classList.remove('has-submenu');
+        link.removeAttribute('aria-haspopup');
+        link.removeAttribute('aria-expanded');
+        link.querySelector('.sub-arrow')?.remove();
+        submenu.remove();
+    });
 }
 
 const old_docs_version = () => {
@@ -168,7 +195,7 @@ const add_docs_versioning = () => {
 
         const footer = document.getElementById('nav-path').getElementsByTagName('ul')[0];
         const footer_prefix = `
-        <li style="box-shadow: inset -1px 0 0 0 var(--separator-color); background-image: none; margin-right: 48px;">
+        <li style="box-shadow: inset -1px 0 0 0 var(--separator-color); background-image: none; margin-right: 48px; padding: 0 15px 0 10px;">
         <span style="color: var(--toc-foreground);">Docs version:</span>
     `
 
@@ -200,10 +227,18 @@ const add_docs_versioning = () => {
 
 }
 
+let headerInitialized = false;
+
 export const init_header = () => {
+    if (headerInitialized) {
+        return;
+    }
+    headerInitialized = true;
+
     addModal();
     create_nav_wrapper();
     remove_legacy_searchbox();
+    disable_top_level_dropdowns();
     onBurger();
     add_docs_versioning();
 }

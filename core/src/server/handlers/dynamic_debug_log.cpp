@@ -36,7 +36,7 @@ std::string ProcessGet(const http::HttpRequest& request, request::RequestContext
     const auto& locations = logging::GetDynamicDebugLocations();
     if (!location.empty()) {
         auto [path, line] = logging::SplitLocation(location);
-        auto it = locations.find({path.c_str(), line});
+        auto it = locations.find({path, line});
         if (it == locations.end()) {
             request.SetResponseStatus(server::http::HttpStatus::kNotFound);
             return "Location not found\n";

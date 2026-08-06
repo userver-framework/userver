@@ -1,5 +1,8 @@
 import pytest
 
+# For the `get_free_port` fixture
+pytest_plugins = ['testsuite.pytest_plugin']
+
 
 def pytest_configure(config):
     config.option.asyncio_mode = 'auto'

@@ -142,7 +142,12 @@ DeliveryResult ProducerImpl::Send(
     auto delivery_result_future =
         ScheduleMessageDelivery(topic_name, key, message, partition, std::move(headers_holder), deadline);
 
-    WaitUntilDeliveryReported(delivery_result_future);
+    {
+        // return before actual librdkafka delivery causes heap-use-after-free
+        const engine::TaskCancellationBlocker cancelation_blocker{};
+
+        WaitUntilDeliveryReported(delivery_result_future);
+    }
 
     return delivery_result_future.get();
 }
@@ -169,12 +174,18 @@ std::vector<DeliveryResult> ProducerImpl::Send(
         );
     }
 
+    {
+        // return before actual librdkafka delivery causes heap-use-after-free
+        const engine::TaskCancellationBlocker cancelation_blocker{};
+
+        for (auto& delivery_result_future : delivery_result_futures) {
+            WaitUntilDeliveryReported(delivery_result_future);
+        }
+    }
+
     std::vector<DeliveryResult> delivery_results;
     delivery_results.reserve(messages.Size());
-
     for (auto& delivery_result_future : delivery_result_futures) {
-        WaitUntilDeliveryReported(delivery_result_future);
-
         delivery_results.emplace_back(delivery_result_future.get());
     }
 
@@ -341,8 +352,7 @@ void ProducerImpl::WaitUntilDeliveryReported(engine::Future<DeliveryResult>& del
     ///
     /// Remark: events are created by `librdkafka` internal threads, so it is not
     /// possible to atomically check queue emptiness and suspend the coroutine.
-
-    while (!delivery_result.is_ready() && !engine::current_task::ShouldCancel()) {
+    while (!delivery_result.is_ready()) {
         /// optimistic path. suppose that there are already some ready events from
         /// other tasks or our `delivery_result` is completed
         HandleEvents("optimistic path");
@@ -395,16 +405,11 @@ void ProducerImpl::WaitUntilDeliveryReported(engine::Future<DeliveryResult>& del
             }
             break;
         } else {
-            waiters_.PopWaiter(waiter);
-            /// waitAny is canceled, but delivery reports are handled in another tasks
-            /// or/and in producer's dctor.
-
-            LOG_WARNING(
-                "Delivery waiting loop is canceled before the message "
-                "is delivered. Ensure to call a producer destructor to "
-                "guarantee that all messages are delivered"
+            UASSERT_MSG(
+                false,
+                "Delivery waiting loop is canceled before the message is delivered. Return before actual librdkafka "
+                "delivery causes heap-use-after-free"
             );
-            break;
         }
     }
 }

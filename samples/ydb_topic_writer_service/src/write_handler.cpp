@@ -12,12 +12,15 @@ constexpr std::string_view kWriterName = "messages";
 
 }  // namespace
 
+/// [YDB topic writer service sample - write handler constructor]
 WriteHandler::WriteHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
     : server::handlers::HttpHandlerBase(config, context),
       writer_manager_{context.FindComponent<ydb::TopicWriterComponent>().GetTopicWriterManager()},
       writer_(writer_manager_.GetTopicWriter(kWriterName))
 {}
+/// [YDB topic writer service sample - write handler constructor]
 
+/// [YDB topic writer service sample - write handler HandleRequest]
 std::string WriteHandler::HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&) const {
     request.GetHttpResponse().SetContentType(http::content_type::kTextPlain);
 
@@ -38,5 +41,6 @@ std::string WriteHandler::HandleRequest(server::http::HttpRequest& request, serv
     request.SetResponseStatus(server::http::HttpStatus::kInternalServerError);
     return "Unexpected topic writer status\n";
 }
+/// [YDB topic writer service sample - write handler HandleRequest]
 
 }  // namespace samples::ydb_topic_writer

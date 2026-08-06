@@ -20,7 +20,6 @@
 namespace ns {
 
 struct Circle {
-
     std::optional<std::string> kind{};
     std::optional<double> radius{};
     USERVER_NAMESPACE::formats::json::Value extra{};
@@ -60,13 +59,11 @@ void WriteToStream(
 
 using EntityUuid = std::string;
 
-        static constexpr auto kLatitudeMinimum = -90.0;
+static constexpr auto kLatitudeMinimum = -90.0;
 static constexpr auto kLatitudeMaximum = 90.0;
-
 using Latitude = double;
 
 struct Object {
-
     int foo{};
     std::optional<std::string> bar{};
 };
@@ -104,7 +101,6 @@ void WriteToStream(
     std::string_view hide_field_name = {});
 
 struct ObjectCpp {
-
     std::optional<std::string> some_hyphenated_key{};
 };
 
@@ -140,20 +136,16 @@ void WriteToStream(
     bool hide_brackets = false,
     std::string_view hide_field_name = {});
 
-        static constexpr auto kPetCountMinimum = 0;
-
+static constexpr auto kPetCountMinimum = 0;
 using PetCount = std::int64_t;
 
-        static constexpr auto kPetCountSizeMinimum = 0;
-
+static constexpr auto kPetCountSizeMinimum = 0;
 using PetCountSize = std::int64_t;
 
-        static constexpr std::string_view kPetNamesAPattern = R"--(\w+)--";
-
+static constexpr std::string_view kPetNamesAPattern = R"--(\w+)--";
 using PetNames = std::vector<std::string>;
 
 struct Rectangle {
-
     std::optional<std::string> kind{};
     std::optional<double> width{};
     std::optional<double> height{};
@@ -262,9 +254,7 @@ void WriteToStream(
     USERVER_NAMESPACE::formats::json::StringBuilder& sw);
 
 std::string ToString(Status value);
-
 struct TreeNode {
-
     std::optional<std::string> data{};
     std::optional<USERVER_NAMESPACE::utils::Box<::ns::TreeNode>> left{};
     std::optional<USERVER_NAMESPACE::utils::Box<::ns::TreeNode>> right{};

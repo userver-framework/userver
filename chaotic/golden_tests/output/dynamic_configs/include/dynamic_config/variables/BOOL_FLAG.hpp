@@ -16,6 +16,8 @@ using BoolFlag = VariableTypeRaw;
 
 }  // namespace bool_flag
 
-extern const USERVER_NAMESPACE::dynamic_config::Key<bool> BOOL_FLAG;
+extern const USERVER_NAMESPACE::dynamic_config::Key<
+    bool
+> BOOL_FLAG;
 
 }  // namespace dynamic_config

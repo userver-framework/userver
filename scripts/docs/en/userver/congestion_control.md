@@ -70,7 +70,7 @@ The Congestion Control logic is implemented as sensors (`overloads_ps`, `rps`) a
 - `rps` – Number of requests received in the last second.
 
 **State Machine Variables:**
-- `is_overloaded – Whether the server is stably under unsustainable load.
+- `is_overloaded` – Whether the server is stably under unsustainable load.
 - `is_overloaded_now` – Whether the server is currently under unsustainable load.
 - `current_limit` – Current RPS limit.
 
@@ -145,6 +145,38 @@ Basic dynamic configuration options:
   `default-service.default-task-processor.wait_queue_overload.sensor_time_limit_us`.
   This setting defines wait in queue time after which the overload events for RPS congestion control are generated.
   It is recommended to set this setting >= 2000 (2 ms) because system scheduler (CFS) time unit by default equals 2 ms.
+
+## Metrics
+
+The component exports metrics under the `congestion-control.rps` prefix. If the service has no handlers with throttling
+enabled, the component is force-disabled and does not export these metrics.
+
+| Metric | Type | Description |
+|--------|------|-------------|
+| `is-enabled` | GAUGE | `1` if congestion control can enforce the RPS limit, `0` in fake mode or when disabled by dynamic config. |
+| `is-activated` | GAUGE | `1` if an RPS limit exists and `current_rps * activated_factor < limit`, otherwise `0`. `activated_factor` is configured by @ref USERVER_RPS_CCONTROL_ACTIVATED_FACTOR_METRIC. |
+| `limit` | GAUGE | Current RPS limit. The metric is omitted when there is no limit or congestion control is disabled. |
+| `states.no-limit` | RATE | Rate of controller checks with no RPS limit. |
+| `states.not-overloaded-no-pressure` | RATE | Rate of controller checks with `is_overloaded=false`, `is_overloaded_now=false`, and an RPS limit. |
+| `states.not-overloaded-under-pressure` | RATE | Rate of controller checks with `is_overloaded=false`, `is_overloaded_now=true`. |
+| `states.overloaded-no-pressure.v2` | RATE | Rate of controller checks with `is_overloaded=true`, `is_overloaded_now=false`. |
+| `states.overloaded-under-pressure.v2` | RATE | Rate of controller checks with `is_overloaded=true`, `is_overloaded_now=true`. |
+| `time-from-last-overloaded-under-pressure-secs` | GAUGE | Seconds since the controller was last in the `is_overloaded=true`, `is_overloaded_now=true` state. |
+| `current-state` | GAUGE | Numeric identifier of the current controller state; see the mapping below. |
+
+The `current-state` values correspond to the state metrics as follows:
+
+| Value | State |
+|-------|-------|
+| `0` | `states.no-limit` |
+| `1` | `states.not-overloaded-no-pressure` |
+| `2` | `states.not-overloaded-under-pressure` |
+| `3` | `states.overloaded-no-pressure.v2` |
+| `4` | `states.overloaded-under-pressure.v2` |
+
+For compatibility with existing alerts, `states.overloaded-no-pressure` and
+`states.overloaded-under-pressure` are also exported as legacy GAUGE metrics containing raw cumulative counter values.
+New dashboards and alerts should use their RATE counterparts with the `.v2` suffix.
 
 ## Diagnostics
 

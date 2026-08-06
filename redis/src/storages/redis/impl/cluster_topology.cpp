@@ -76,10 +76,26 @@ ClusterTopology::ClusterTopology(
 
 ClusterTopology::~ClusterTopology() = default;
 
-bool ClusterTopology::IsReady(WaitConnectedMode mode) const {
-    return !cluster_shards_.empty() && std::ranges::all_of(cluster_shards_, [mode](const ClusterShard& shard) {
-        return shard.IsReady(mode);
+bool ClusterTopology::IsReady(const HealthCheckParams& params) const {
+    if (cluster_shards_.empty()) {
+        return false;
+    }
+
+    const size_t shards_count = cluster_shards_.size();
+    const size_t failed_shards = std::ranges::count_if(cluster_shards_, [&params](const auto& shard) {
+        return !shard.IsReady(params.mode);
     });
+
+    if (params.max_failed_shards && failed_shards <= params.max_failed_shards) {
+        return true;
+    }
+
+    const auto percent_failed = static_cast<float>(failed_shards) / shards_count * 100;
+    if (params.max_failed_shards_percent && percent_failed <= params.max_failed_shards_percent) {
+        return true;
+    }
+
+    return failed_shards == 0;
 }
 
 std::string ClusterTopology::GetReadinessInfo() const {

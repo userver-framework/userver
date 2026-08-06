@@ -66,7 +66,8 @@ races. In such cases, use `_MT` macro versions:
 
 @snippet core/src/engine/semaphore_test.cpp  UTEST macro example 2
 
-The specified thread count is available in `U`-tests as `GetThreadCount()` method.
+The specified thread count is available in `U`-tests via
+`engine::current_task::GetWorkerCount()`.
 
 For DEATH-tests (when testing aborts or assertion fails) use `UTEST_DEATH`. It
 configures gtest-DEATH-checks to work in multithreaded environment. Also it

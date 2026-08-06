@@ -1,5 +1,7 @@
 #include "tp_logger.hpp"
 
+#include <algorithm>
+
 #include <fmt/format.h>
 
 #include <engine/task/task_context.hpp>
@@ -55,10 +57,12 @@ TpLogger::TpLogger(Format format, std::string logger_name)
 void TpLogger::StartConsumerTask(
     engine::TaskProcessor& task_processor,
     std::size_t max_queue_size,
-    QueueOverflowBehavior overflow_policy
+    QueueOverflowBehavior overflow_policy,
+    std::size_t flush_queue_size
 ) {
     UINVARIANT(max_queue_size != 0 && max_queue_size <= (std::size_t{1} << 31), "Invalid max queue size");
     max_queue_size_.store(max_queue_size);
+    flush_queue_size_.store(std::min(flush_queue_size, max_queue_size / 2));
     overflow_policy_.store(overflow_policy);
 
     auto expected = State::kSync;
@@ -97,7 +101,7 @@ void TpLogger::StopConsumerTask() {
         return;
     }
 
-    DoPush(stop_node_);
+    DoPush(stop_node_, Queue::NotificationMode::kNotify);
 
     const engine::TaskCancellationBlocker block_cancel;
     consuming_task_.Wait();
@@ -113,7 +117,7 @@ void TpLogger::Flush() {
         impl::async::FlushCoro action{};
         auto future = action.promise.get_future();
 
-        Push(std::move(action));
+        Push(std::move(action), Queue::NotificationMode::kNotify);
 
         const engine::TaskCancellationBlocker block_cancel;
         future.get();
@@ -121,7 +125,7 @@ void TpLogger::Flush() {
         impl::async::FlushThreaded action{};
         auto future = action.promise.get_future();
 
-        Push(std::move(action));
+        Push(std::move(action), Queue::NotificationMode::kNotify);
 
         future.get();
     }
@@ -143,10 +147,20 @@ void TpLogger::Log(Level level, impl::formatters::LoggerItemRef item) {
         // The queue might have concurrently become full, in which case the size
         // will temporarily go over the max size. The actual number of log actions
         // in queue_ will not typically go over max_size + n_threads.
-        produced_->fetch_add(1);
+        const auto produced = produced_->fetch_add(1) + 1;
+
+        // Wake the consumer for logs that must be flushed immediately (level at or above the flush level),
+        // or once the queue reaches the configured flush size;
+        // otherwise leave the draining to the periodic flush.
+        const bool should_notify =
+            ShouldFlush(level) || !notification_batching_.load() ||
+            (produced - consumed_->load()) >= flush_queue_size_.load();
 
         try {
-            Push(impl::async::Log{level, std::string{msg.log_line}});
+            Push(
+                impl::async::Log{level, std::string{msg.log_line}},
+                should_notify ? Queue::NotificationMode::kNotify : Queue::NotificationMode::kDeferred
+            );
         } catch (const std::exception&) {
             // failed to construct a Log action or a node in Push
             produced_->fetch_sub(1);
@@ -166,6 +180,8 @@ void TpLogger::AddSink(impl::SinkPtr&& sink) {
 
 const std::vector<impl::SinkPtr>& TpLogger::GetSinks() const { return sinks_; }
 
+void TpLogger::SetNotificationBatching(bool enabled) noexcept { notification_batching_.store(enabled); }
+
 void TpLogger::Reopen(ReopenMode reopen_mode) {
     if (GetSinks().empty()) {
         return;
@@ -175,7 +191,7 @@ void TpLogger::Reopen(ReopenMode reopen_mode) {
     impl::async::ReopenCoro action{reopen_mode, {}};
     auto future = action.promise.get_future();
 
-    Push(std::move(action));
+    Push(std::move(action), Queue::NotificationMode::kNotify);
 
     const engine::TaskCancellationBlocker block_cancel;
     future.get();
@@ -227,14 +243,14 @@ bool TpLogger::TryWaitFreeQueueCapacity() {
     return true;
 }
 
-void TpLogger::Push(impl::async::Action&& action) {
+void TpLogger::Push(impl::async::Action&& action, Queue::NotificationMode notify) {
     auto node = std::make_unique<impl::async::ActionNode>();
     node->action = std::move(action);
-    DoPush(*node.release());
+    DoPush(*node.release(), notify);
 }
 
-void TpLogger::DoPush(concurrent::impl::SinglyLinkedBaseHook& node) noexcept {
-    auto consumer = queue_.PushAndTryStartConsuming(node);
+void TpLogger::DoPush(concurrent::impl::SinglyLinkedBaseHook& node, Queue::NotificationMode notify) noexcept {
+    auto consumer = queue_.PushAndTryStartConsuming(node, notify);
     if (consumer.IsValid()) {
         CleanUpQueue(std::move(consumer));
     }

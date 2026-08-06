@@ -98,7 +98,7 @@ The exact format of setting cmake options varies depending on the method of buil
 |--------------------------------|------------------------------------------------------------------------------------------------------|---------|
 | `USERVER_BUILD_ALL_COMPONENTS` | Build all userver libraries compatible with the host except for ones disabled by `USERVER_FEATURE_*` | `OFF`   |
 | `USERVER_BUILD_TESTS`          | Build unit tests, functional tests and benchmarks for userver itself                                 | `OFF`   |
-| `USERVER_BUILD_SAMPLES`        | Build userver samples                                                                                | `OFF`   |
+| `USERVER_BUILD_SAMPLES`        | Install userver samples; also build them when `USERVER_BUILD_TESTS` is `ON`                          | `OFF`   |
 
 ### CMake options for features that are unavailable for some platforms
 
@@ -187,6 +187,7 @@ The exact format of setting cmake options varies depending on the method of buil
 | `USERVER_FEATURE_ERASE_LOG_WITH_LEVEL` | Logs of this and below levels are removed from binary. Possible values: trace, info, debug, warning, error | `OFF`                                                       |
 | `USERVER_PIP_USE_SYSTEM_PACKAGES`      | Use system python packages inside venv. Useful for Docker, CI and other controlled environments            | `OFF`                                                       |
 | `USERVER_PIP_OPTIONS`                  | Options for all pip calls. Useful for passing `--no-index` option to prevent network usage                 | (no options)                                                |
+| `USERVER_PIP_USE_UV`                   | Use `uv` tool for creating Python virtual environments instead of the built-in `venv` and `pip`            | `ON` if `uv` is available, `OFF` otherwise                  |
 | `USERVER_INSTALL`                      | Build userver for further installation                                                                     | `OFF`                                                       |
 | `USERVER_INSTALL_MULTIPACKAGE`         | Whether create per-component packages                                                                      | `OFF`                                                       |
 | `USERVER_CONAN`                        | Build userver using Conan packages                                                                         | `ON` if build is launched from Conan, `OFF` otherwise       |

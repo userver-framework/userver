@@ -82,6 +82,28 @@ public:
         : Iterator(std::move(iter))
     {}
 
+    IteratorToValue& operator++() {
+        Iterator::operator++();
+        return *this;
+    }
+
+    IteratorToValue operator++(int) {
+        IteratorToValue copy{*this};
+        ++*this;
+        return copy;
+    }
+
+    IteratorToValue& operator--() {
+        Iterator::operator--();
+        return *this;
+    }
+
+    IteratorToValue operator--(int) {
+        IteratorToValue copy{*this};
+        --*this;
+        return copy;
+    }
+
     decltype(auto) operator->() noexcept { return std::addressof((**this).value); }
 
     decltype(auto) operator->() const noexcept { return std::addressof((**this).value); }

@@ -64,6 +64,7 @@ public:
     );
     MOCK_METHOD(size_t, ShardsCount, (), (const, override));
     MOCK_METHOD(bool, IsInClusterMode, (), (const, override));
+    MOCK_METHOD(bool, IsReady, (const HealthCheckParams& params), (const, override));
 };
 
 /// @brief Mocked storages::redis::SubscriptionToken.

@@ -16,6 +16,8 @@ using ConnectionPoolSettings = USERVER_NAMESPACE::utils::DefaultDict<::dynamic_c
 
 }  // namespace connection_pool_settings
 
-extern const USERVER_NAMESPACE::dynamic_config::Key<USERVER_NAMESPACE::utils::DefaultDict<::dynamic_config::connection_pool_settings::PoolSettings>> CONNECTION_POOL_SETTINGS;
+extern const USERVER_NAMESPACE::dynamic_config::Key<
+    USERVER_NAMESPACE::utils::DefaultDict<::dynamic_config::connection_pool_settings::PoolSettings>
+> CONNECTION_POOL_SETTINGS;
 
 }  // namespace dynamic_config

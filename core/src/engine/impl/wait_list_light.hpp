@@ -5,12 +5,11 @@
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
 #include <concurrent/impl/fast_atomic.hpp>
+#include <userver/engine/impl/awaiter_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
-
-class Awaiter;
 
 struct alignas(sizeof(std::uintptr_t) * 2) AwaiterWithContext final {
     Awaiter* awaiter{nullptr};
@@ -34,7 +33,7 @@ public:
     /// `Sleep` + `Append`, you have to recheck the condition after `Append`
     /// returns in `SetupWakeups`.
     /// @note Must not be used together with `SetSignalAndNotifyOne`.
-    void Append(boost::intrusive_ptr<impl::Awaiter>&& awaiter, std::uintptr_t context) noexcept;
+    void Append(AwaiterPtr&& awaiter, std::uintptr_t context) noexcept;
 
     /// @brief Get the signal if one was set by SetSignalAndNotifyOne, else Append.
     ///
@@ -49,10 +48,10 @@ public:
     ///
     /// @returns `true` if already signaled
     /// @see Append
-    void GetSignalOrAppend(boost::intrusive_ptr<impl::Awaiter>& awaiter, std::uintptr_t context) noexcept;
+    void GetSignalOrAppend(AwaiterPtr& awaiter, std::uintptr_t context) noexcept;
 
     /// @brief Remove the task from the `WaitListLight` without notification.
-    boost::intrusive_ptr<impl::Awaiter> Remove(impl::Awaiter& awaiter, std::uintptr_t context) noexcept;
+    AwaiterPtr Remove(Awaiter& awaiter, std::uintptr_t context) noexcept;
 
     /// @brief Notifies the waiting task; the next awaiter may not `Append` until
     /// `Remove` is called.

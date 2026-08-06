@@ -1,6 +1,7 @@
 import json
 
 
+# /// [YDB service sample - upsert functional test]
 async def test_upsert_row(service_client, ydb):
     response = await service_client.post(
         'ydb/upsert-row',
@@ -28,6 +29,7 @@ async def test_upsert_row(service_client, ydb):
         'channel': 123,
         'state': None,
     }
+    # /// [YDB service sample - upsert functional test]
 
 
 async def test_transaction(service_client, ydb):

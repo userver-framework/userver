@@ -324,7 +324,7 @@ V1ChannelNotificationNewResponse Parse(
     value.CheckObjectOrNull();
 
     V1ChannelNotificationNewResponse res{
-            };
+    };
 
     USERVER_NAMESPACE::chaotic::ValidateNoAdditionalProperties(
         value, k__ns__V1ChannelNotificationNewResponse_PropertiesNames
@@ -785,7 +785,7 @@ V1UserStatusUpdateResponse Parse(
     value.CheckObjectOrNull();
 
     V1UserStatusUpdateResponse res{
-            };
+    };
 
     USERVER_NAMESPACE::chaotic::ValidateNoAdditionalProperties(
         value, k__ns__V1UserStatusUpdateResponse_PropertiesNames

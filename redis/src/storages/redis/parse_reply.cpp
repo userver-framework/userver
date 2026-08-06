@@ -13,9 +13,12 @@ namespace {
 const std::string kOk{"OK"};
 const std::string kPong{"PONG"};
 
-std::string ExtractStringElem(ReplyData& array_data, size_t elem_idx, const std::string& request_description) {
-    auto& array = array_data.GetArray();
-    auto& elem = array.at(elem_idx);
+std::string ExtractStringElem(
+    ReplyData& array_data,
+    ReplyData& elem,
+    size_t elem_idx,
+    const std::string& request_description
+) {
     if (!elem.IsString()) {
         throw ParseReplyException(
             "Unexpected redis reply type to '" + request_description + "' request: " + "array[" +
@@ -85,12 +88,12 @@ const std::string& RequestDescription(const ReplyPtr& reply, const std::string& 
 
 std::vector<std::string>
 ParseReplyDataArray(ReplyData&& array_data, const std::string& request_description, To<std::vector<std::string>>) {
-    const auto& array = array_data.GetArray();
+    auto& array = array_data.GetArray();
     std::vector<std::string> result;
     result.reserve(array.size());
 
     for (size_t elem_idx = 0; elem_idx < array.size(); ++elem_idx) {
-        result.emplace_back(ExtractStringElem(array_data, elem_idx, request_description));
+        result.emplace_back(ExtractStringElem(array_data, array[elem_idx], elem_idx, request_description));
     }
     return result;
 }
@@ -118,17 +121,17 @@ ParseReplyDataArray(ReplyData&& array_data, const std::string& request_descripti
 std::
     vector<std::optional<std::string>>
     ParseReplyDataArray(ReplyData&& array_data, const std::string& request_description, To<std::vector<std::optional<std::string>>>) {
-    const auto& array = array_data.GetArray();
+    auto& array = array_data.GetArray();
     std::vector<std::optional<std::string>> result;
     result.reserve(array.size());
 
     for (size_t elem_idx = 0; elem_idx < array.size(); ++elem_idx) {
-        const auto& elem = array[elem_idx];
+        auto& elem = array[elem_idx];
         if (elem.IsNil()) {
             result.emplace_back(std::nullopt);
             continue;
         }
-        result.emplace_back(ExtractStringElem(array_data, elem_idx, request_description));
+        result.emplace_back(ExtractStringElem(array_data, elem, elem_idx, request_description));
     }
     return result;
 }
@@ -160,7 +163,7 @@ ParseReplyDataArray(ReplyData&& array_data, const std::string& request_descripti
         const auto& score_elem = elem.Value();
         double score = NAN;
         try {
-            score = std::stod(score_elem);
+            score = utils::FromString<double>(score_elem);
         } catch (const std::exception& ex) {
             throw ParseReplyException(
                 std::string("Can't parse response to '")
@@ -180,20 +183,30 @@ ParseReplyDataArray(ReplyData&& array_data, const std::string& request_descripti
 }
 
 std::vector<GeoPoint> ParseReplyDataArray(ReplyData&& array_data, [[maybe_unused]] const std::string& request_description, To<std::vector<GeoPoint>>) {
+    auto& array = array_data.GetArray();
     std::vector<GeoPoint> result;
+    result.reserve(array.size());
 
-    for (auto& elem : array_data.GetArray()) {
+    for (auto& elem : array) {
         GeoPoint geo_point;
         if (elem.IsString()) {
             geo_point.member = std::move(elem.GetString());
         } else if (elem.IsArray()) {
-            auto additional_infos = elem.GetArray();
+            auto& additional_infos = elem.GetArray();
             if (additional_infos.empty()) {
                 throw ParseReplyException(
                     "Can't parse value from reply to '" + request_description + ", additional_info item is empty array"
                 );
             }
-            geo_point.member = additional_infos[0].GetString();
+            if (!additional_infos[0].IsString()) {
+                throw ParseReplyException(
+                    "Can't parse value from reply to '" + request_description + "', expected " +
+                    ReplyData::TypeToString(ReplyData::Type::kString) +
+                    " as the first additional_info element, got type: " + additional_infos[0].GetTypeString() +
+                    " elem=" + additional_infos[0].ToDebugString()
+                );
+            }
+            geo_point.member = std::move(additional_infos[0].GetString());
 
             for (size_t i = 1; i < additional_infos.size(); ++i) {
                 const auto& sub_elem = additional_infos[i];
@@ -258,7 +271,7 @@ std::string Parse(ReplyData&& reply_data, const std::string& request_description
 double Parse(ReplyData&& reply_data, const std::string& request_description, To<double>) {
     reply_data.ExpectString(request_description);
     try {
-        return std::stod(reply_data.GetString());
+        return utils::FromString<double>(reply_data.GetString());
     } catch (const std::exception& ex) {
         throw ParseReplyException(
             "Can't parse value from reply to '" + request_description + "' request (" + reply_data.ToDebugString() +
@@ -296,8 +309,8 @@ Parse(ReplyData&& reply_data, const std::string& request_description, To<std::ch
         i.ExpectString(request_description);
     }
     return std::chrono::system_clock::time_point(
-        std::chrono::seconds(std::stoi(result[0].GetString())) +
-        std::chrono::microseconds(std::stoi(result[1].GetString()))
+        std::chrono::seconds(utils::FromString<int64_t>(result[0].GetString())) +
+        std::chrono::microseconds(utils::FromString<int64_t>(result[1].GetString()))
     );
 }
 
@@ -482,12 +495,12 @@ std::unordered_set<std::string>
 Parse(ReplyData&& reply_data, const std::string& request_description, To<std::unordered_set<std::string>>) {
     reply_data.ExpectArray(request_description);
 
-    const auto& array = reply_data.GetArray();
+    auto& array = reply_data.GetArray();
     std::unordered_set<std::string> result;
     result.reserve(array.size());
 
     for (size_t elem_idx = 0; elem_idx < array.size(); ++elem_idx) {
-        result.emplace(ExtractStringElem(reply_data, elem_idx, request_description));
+        result.emplace(ExtractStringElem(reply_data, array[elem_idx], elem_idx, request_description));
     }
     return result;
 }
@@ -529,12 +542,12 @@ formats::json::Value Parse(ReplyData&& reply_data, const std::string& request_de
 
 std::vector<std::optional<formats::json::Value>>
 ParseReplyDataArray(ReplyData&& array_data, const std::string& request_description, To<std::vector<std::optional<formats::json::Value>>>) {
-    const auto& array = array_data.GetArray();
+    auto& array = array_data.GetArray();
     std::vector<std::optional<formats::json::Value>> result;
     result.reserve(array.size());
 
     for (size_t elem_idx = 0; elem_idx < array.size(); ++elem_idx) {
-        auto& elem = array_data.GetArray()[elem_idx];
+        auto& elem = array[elem_idx];
         if (elem.IsNil()) {
             result.emplace_back(std::nullopt);
             continue;

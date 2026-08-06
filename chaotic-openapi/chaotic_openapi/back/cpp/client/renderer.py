@@ -80,7 +80,11 @@ def make_env() -> jinja2.Environment:
 JINJA_ENV = make_env()
 
 
-def render(spec: types.ClientSpec, context: Context) -> list[CppOutput]:
+def render(
+    spec: types.ClientSpec,
+    context: Context,
+    schema_files: list[str] | None = None,
+) -> list[CppOutput]:
     assert '-' not in spec.cpp_namespace
     env = {
         'spec': spec,
@@ -127,7 +131,9 @@ def render(spec: types.ClientSpec, context: Context) -> list[CppOutput]:
         spec.extract_cpp_types(),
         local_pair_header=False,
     )
+    produced_stems: set[str] = set()
     for cpp_output in cpp_outputs:
+        produced_stems.add(cpp_output.filepath_wo_ext.split('/')[-1])
         for file in cpp_output.files:
             output.append(
                 CppOutput(
@@ -135,5 +141,24 @@ def render(spec: types.ClientSpec, context: Context) -> list[CppOutput]:
                     content=file.content,
                 ),
             )
+
+    # For every input schema that produced no C++ types, emit empty stub files
+    # so that both CMake and ya.make can unconditionally declare the full 5-file
+    # set per schema without special-casing type-less schemas.
+    if schema_files is not None:
+        client = spec.client_name
+        for schema_file in schema_files:
+            stem = schema_file.rsplit('.', 1)[0]
+            if stem in produced_stems:
+                continue
+            include_base = f'include/clients/{client}/{stem}'
+            src_base = f'src/clients/{client}/{stem}'
+            output.extend([
+                CppOutput(rel_path=f'{include_base}_fwd.hpp', content='#pragma once\n'),
+                CppOutput(rel_path=f'{include_base}.hpp', content=f'#pragma once\n\n#include "{stem}_fwd.hpp"\n'),
+                CppOutput(rel_path=f'{include_base}_parsers.ipp', content=''),
+                CppOutput(rel_path=f'{include_base}_sax_parsers.hpp', content='#pragma once\n'),
+                CppOutput(rel_path=f'{src_base}.cpp', content=f'#include "clients/{client}/{stem}.hpp"\n'),
+            ])
 
     return output

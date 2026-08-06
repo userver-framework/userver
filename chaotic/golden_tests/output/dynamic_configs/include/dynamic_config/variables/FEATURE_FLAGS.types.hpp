@@ -12,9 +12,7 @@
 namespace dynamic_config {namespace feature_flags {
 
 struct VariableTypeRaw {
-
-            static constexpr auto kTimeout_MsMinimum = 0;
-
+    static constexpr auto kTimeout_MsMinimum = 0;
     bool enable_new_logic{};
     std::optional<std::chrono::milliseconds> timeout_ms{};
 };

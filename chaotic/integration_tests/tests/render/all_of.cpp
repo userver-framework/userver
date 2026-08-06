@@ -1,6 +1,8 @@
 #include <userver/formats/json/inline.hpp>
 #include <userver/utest/assert_macros.hpp>
 
+#include <gmock/gmock.h>
+
 #include <userver/chaotic/exception.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
@@ -161,7 +163,7 @@ TEST(Simple, AllOfOneOf) {
     std::get<1>(oneof).type = "broken";
     EXPECT_EQ(std::get<1>(oneof).type, "broken");
     EXPECT_EQ(TestToJsonString(obj), json);
-    EXPECT_NE(ToJsonString(obj).find("\"type\""), std::string::npos) << "No 'type'";
+    EXPECT_THAT(ToJsonString(obj), testing::HasSubstr("\"type\"")) << "No 'type'";
     EXPECT_EQ(ToJsonString(obj).find("\"type\""), ToJsonString(obj).rfind("\"type\"")) << "Multiple 'type's";
 }*/
 

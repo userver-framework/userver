@@ -33,6 +33,7 @@ public:
     void Stop() override;
 
     bool WaitReadyOnce(engine::Deadline deadline, WaitConnectedMode mode) override;
+    bool IsReady(const HealthCheckParams& params) const override;
 
     rcu::ReadablePtr<ClusterTopology, rcu::BlockingRcuTraits> GetTopology() const override;
 

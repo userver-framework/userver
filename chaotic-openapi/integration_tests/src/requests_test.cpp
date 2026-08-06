@@ -1,5 +1,7 @@
 #include <userver/utest/utest.hpp>
 
+#include <gmock/gmock.h>
+
 #include <userver/clients/http/client.hpp>
 #include <userver/clients/http/client_core.hpp>
 #include <userver/dump/operations_mock.hpp>
@@ -24,7 +26,9 @@ namespace client = ::clients::multiple_content_types::test1::post;
 
 UTEST(Requests, RegexDestinationName) {
     const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest&) {
-        return utest::HttpServerMock::HttpResponse{200};
+        utest::HttpServerMock::HttpResponse response{};
+        response.response_status = 200;
+        return response;
     });
 
     chaotic::openapi::client::Config config;
@@ -60,7 +64,9 @@ UTEST(RequestsMultipleContentTypes, Json) {
     const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest& request) {
         EXPECT_EQ(request.body, R"({"foo":"a"})");
         EXPECT_EQ(request.headers.at(std::string{"Content-Type"}), "application/json");
-        return utest::HttpServerMock::HttpResponse{200};
+        utest::HttpServerMock::HttpResponse response{};
+        response.response_status = 200;
+        return response;
     });
 
     auto http_client_ptr = utest::CreateHttpClient();
@@ -74,9 +80,23 @@ UTEST(RequestsMultipleContentTypes, Json) {
 
 UTEST(RequestsMultipleContentTypes, XWwwFormUrlencoded) {
     const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest& request) {
-        EXPECT_EQ(request.body, "is_smoking=true&salary=1000.500000&age=30&password=123%20456&name=abc");
+        // x-www-form-urlencoded field order is unspecified (serialized from a
+        // std::unordered_map), so compare the '&'-separated parts order-independently.
+        const auto parts = utils::text::Split(request.body, "&");
+        EXPECT_THAT(
+            parts,
+            ::testing::UnorderedElementsAre(
+                "name=abc",
+                "password=123%20456",
+                "age=30",
+                "salary=1000.500000",
+                "is_smoking=true"
+            )
+        );
         EXPECT_EQ(request.headers.at(std::string{"Content-Type"}), "application/x-www-form-urlencoded");
-        return utest::HttpServerMock::HttpResponse{200};
+        utest::HttpServerMock::HttpResponse response{};
+        response.response_status = 200;
+        return response;
     });
 
     auto http_client_ptr = utest::CreateHttpClient();
@@ -109,7 +129,9 @@ UTEST(RequestsMultipleContentTypes, MultipartFormData) {
                 "\r\nfile\ncontent\r\n" +
                 "--" + boundary + "--\r\n"
         );
-        return utest::HttpServerMock::HttpResponse{200};
+        utest::HttpServerMock::HttpResponse response{};
+        response.response_status = 200;
+        return response;
     });
 
     auto http_client_ptr = utest::CreateHttpClient();
@@ -129,7 +151,9 @@ UTEST(RequestsMultipleContentTypes, OctetStream) {
     const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest& request) {
         EXPECT_EQ(request.body, "blabla");
         EXPECT_EQ(request.headers.at(std::string{"Content-Type"}), "application/octet-stream");
-        return utest::HttpServerMock::HttpResponse{200};
+        utest::HttpServerMock::HttpResponse response{};
+        response.response_status = 200;
+        return response;
     });
 
     auto http_client_ptr = utest::CreateHttpClient();
@@ -145,7 +169,9 @@ class RequestsQueryLogMode : public utest::LogCaptureFixture<> {};
 
 UTEST_F(RequestsQueryLogMode, HideOperation) {
     const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest&) {
-        return utest::HttpServerMock::HttpResponse{200};
+        utest::HttpServerMock::HttpResponse response{};
+        response.response_status = 200;
+        return response;
     });
     auto http_client_ptr = utest::CreateHttpClient();
     auto request = http_client_ptr->CreateRequest();
@@ -157,12 +183,14 @@ UTEST_F(RequestsQueryLogMode, HideOperation) {
     EXPECT_EQ(response->status_code(), 200);
 
     auto text = GetLogCapture().GetAll().back().GetTag("url.full");
-    EXPECT_TRUE(utils::text::EndsWith(text, "test1/query-log-mode?password=***&secret=***"));
+    EXPECT_TRUE(text.ends_with("test1/query-log-mode?password=***&secret=***"));
 }
 
 UTEST_F(RequestsQueryLogMode, HideParameter) {
     const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest&) {
-        return utest::HttpServerMock::HttpResponse{200};
+        utest::HttpServerMock::HttpResponse response{};
+        response.response_status = 200;
+        return response;
     });
     auto http_client_ptr = utest::CreateHttpClient();
     auto request = http_client_ptr->CreateRequest();
@@ -174,7 +202,7 @@ UTEST_F(RequestsQueryLogMode, HideParameter) {
     EXPECT_EQ(response->status_code(), 200);
 
     auto text = GetLogCapture().GetAll().back().GetTag("url.full");
-    EXPECT_TRUE(utils::text::EndsWith(text, "test1/query-log-mode/parameter?password=***&secret=bar"));
+    EXPECT_TRUE(text.ends_with("test1/query-log-mode/parameter?password=***&secret=bar"));
 }
 
 }  // namespace

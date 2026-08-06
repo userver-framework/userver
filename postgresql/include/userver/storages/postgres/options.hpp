@@ -111,6 +111,11 @@ USERVER_NAMESPACE::utils::StringLiteral BeginStatement(TransactionOptions opts) 
 /// @see https://www.postgresql.org/docs/12/runtime-config-client.html
 ///
 /// `execute` timeout should always be greater than the `statement` timeout!
+/// If the `statement` timeout happens to be greater than (or too close to) the
+/// `execute` timeout, the driver caps the effective `statement` timeout to be
+/// below the `execute` timeout (by a small margin when the `execute` timeout is
+/// large enough to spare it), so that the database gets a chance to cancel the
+/// statement on its own before the driver gives up waiting on the network.
 ///
 /// In case of a timeout, either back-end or overall, the client gets an
 /// exception and the driver tries to clean up the connection for further reuse.
@@ -177,6 +182,9 @@ inline constexpr std::size_t kDefaultConnectingLimit = 0;
 
 /// Default minimum time between starting new connections per host in milliseconds
 inline constexpr std::size_t kDefaultConnectingIntervalMs = 0;
+
+/// Default connecting interval when pg-connecting-rate-limit experiment is enabled
+inline constexpr std::size_t kExperimentDefaultConnectingIntervalMs = 4000;
 
 /// @brief PostgreSQL topology options
 ///
@@ -291,7 +299,7 @@ struct ConnectionSettings {
     OmitDescribeInExecuteMode omit_describe_mode = OmitDescribeInExecuteMode::kDisabled;
 
     /// This many connection errors in 15 seconds block new connections opening
-    std::size_t recent_errors_threshold = 5;
+    std::size_t recent_errors_threshold = 30;
 
     /// The maximum lifetime of the connection after which it will be closed
     std::optional<std::chrono::seconds> max_ttl{};

@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/clients/http/midddlewares/yandex_tracing/component.hpp
+/// @file userver/clients/http/middlewares/yandex_tracing/component.hpp
 /// @brief @copybrief clients::http::middlewares::yandex_tracing::Component
 
 #include <memory>

@@ -17,9 +17,9 @@ public:
 private:
     bool IsReady() const noexcept override { return true; }
 
-    void TryAppendAwaiter(boost::intrusive_ptr<impl::Awaiter>&, std::uintptr_t) override {}
+    void TryAppendAwaiter(impl::AwaiterPtr&, std::uintptr_t) override {}
 
-    boost::intrusive_ptr<impl::Awaiter> RemoveAwaiter(impl::Awaiter&, std::uintptr_t) noexcept override {
+    impl::AwaiterPtr RemoveAwaiter(impl::Awaiter&, std::uintptr_t) noexcept override {
         // The awaiter is always notified early by TryAppendAwaiter, nothing to remove.
         return {};
     }

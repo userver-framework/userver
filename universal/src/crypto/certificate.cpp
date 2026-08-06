@@ -7,7 +7,6 @@
 #include <userver/crypto/hash.hpp>
 #include <userver/crypto/openssl.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/text_light.hpp>
 
 #include <crypto/helpers.hpp>
 
@@ -48,7 +47,7 @@ std::optional<std::string> Certificate::GetPemString() const {
 Certificate Certificate::LoadFromString(std::string_view certificate) {
     Openssl::Init();
 
-    if (!utils::text::StartsWith(certificate, kBeginMarker)) {
+    if (!certificate.starts_with(kBeginMarker)) {
         throw KeyParseError("Not a certificate");
     }
 

@@ -16,6 +16,8 @@ using FeatureFlags = VariableTypeRaw;
 
 }  // namespace feature_flags
 
-extern const USERVER_NAMESPACE::dynamic_config::Key<::dynamic_config::feature_flags::VariableTypeRaw> FEATURE_FLAGS;
+extern const USERVER_NAMESPACE::dynamic_config::Key<
+    ::dynamic_config::feature_flags::VariableTypeRaw
+> FEATURE_FLAGS;
 
 }  // namespace dynamic_config

@@ -30,6 +30,16 @@ void WriteToStream(const Ref<T>& ps, formats::json::StringBuilder& sw) {
     WriteToStream(T{*ps.value}, sw);
 }
 
+template <typename T>
+void WriteToStream(
+    const Ref<T>& ps,
+    formats::json::StringBuilder& sw,
+    bool hide_brackets,
+    std::string_view hide_field_name
+) {
+    WriteToStream(T{*ps.value}, sw, hide_brackets, hide_field_name);
+}
+
 }  // namespace chaotic
 
 USERVER_NAMESPACE_END

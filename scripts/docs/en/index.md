@@ -15,7 +15,7 @@ Telegram support chats: [English-speaking](https://t.me/userver_en) |
 [Russian-speaking](https://t.me/userver_ru) | [News channel](https://t.me/userver_news).
 
 
-## Source codes and service templates at github
+## Source code
 
 Samples and the source codes of the framework itself are available at the
 [userver-framework at github](https://github.com/userver-framework/).
@@ -66,6 +66,8 @@ and make sure that it builds and passes tests.
 * @ref scripts/docs/en/userver/tutorial/scylla_service.md
 * @ref scripts/docs/en/userver/tutorial/redis_service.md
 * @ref scripts/docs/en/userver/tutorial/kafka_service.md
+* @ref scripts/docs/en/userver/tutorial/ydb_service.md
+* @ref scripts/docs/en/userver/tutorial/ydb_topic_writer_service.md
 * @ref scripts/docs/en/userver/tutorial/auth_postgres.md
 * @ref scripts/docs/en/userver/tutorial/digest_auth_postgres.md
 * @ref scripts/docs/en/userver/tutorial/websocket_service.md
@@ -97,6 +99,7 @@ and make sure that it builds and passes tests.
 ## Testing and Benchmarking
 * @ref scripts/docs/en/userver/testing.md
 * @ref scripts/docs/en/userver/functional_testing.md
+    * @ref scripts/docs/en/userver/metrics_migration.md
 * @ref scripts/docs/en/userver/chaos_testing.md
 * @ref scripts/docs/en/userver/profile_context_switches.md
 * @ref scripts/docs/en/userver/gdb_debugging.md
@@ -121,6 +124,7 @@ and make sure that it builds and passes tests.
 * Low level:
     * @ref engine::io::TlsWrapper "TLS client and server socket"
     * @ref engine::io::Socket "TCP and UDP sockets"
+    * @ref engine::io::PrefixedRw "Prefixed stream wrapper"
     * @ref engine::subprocess::ProcessStarter "Subprocesses"
 
 

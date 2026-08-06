@@ -1,6 +1,7 @@
 #include <userver/otlp/logs/component.hpp>
 
 #include <string>
+#include <string_view>
 
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
@@ -26,6 +27,22 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace otlp {
+
+namespace {
+
+// Our gRPC framework can't work with an "http://"/"https://" scheme prefix in
+// the endpoint, so strip it out during preprocessing.
+std::string StripSchemePrefix(std::string endpoint) {
+    for (const std::string_view scheme : {"http://", "https://"}) {
+        if (endpoint.starts_with(scheme)) {
+            endpoint.erase(0, scheme.size());
+            break;
+        }
+    }
+    return endpoint;
+}
+
+}  // namespace
 
 LoggerComponent::LoggerComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
     : old_logger_(logging::GetDefaultLogger())
@@ -59,6 +76,11 @@ LoggerComponent::LoggerComponent(const components::ComponentConfig& config, cons
         logs_endpoint = logs_endpoint_cfg.As<std::string>();
         tracing_endpoint = tracing_endpoint_cfg.As<std::string>();
     }
+
+    // gRPC endpoints are "host:port", so cut off an optional "http://"/"https://"
+    // scheme prefix that our gRPC framework can't handle.
+    logs_endpoint = StripSchemePrefix(std::move(logs_endpoint));
+    tracing_endpoint = StripSchemePrefix(std::move(tracing_endpoint));
 
     auto client = client_factory.MakeClient<
         opentelemetry::proto::collector::logs::v1::LogsServiceClient>("otlp-logger", logs_endpoint);

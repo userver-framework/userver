@@ -269,7 +269,8 @@ async def test_events_list_page_size(service_client):
         assert response.status == 200
 
     response = await service_client.get(
-        '/v1/events/list', params={'page_size': 2},
+        '/v1/events/list',
+        params={'page_size': 2},
     )
     assert response.status == 200
     body = response.json()
@@ -375,10 +376,7 @@ async def test_raw_ddl_void(service_client):
     response = await service_client.post(
         '/v1/raw',
         json={
-            'query': (
-                'CREATE INDEX IF NOT EXISTS idx_events_name '
-                'ON examples.events (name)'
-            ),
+            'query': ('CREATE INDEX IF NOT EXISTS idx_events_name ON examples.events (name)'),
             'void': True,
         },
     )
@@ -435,7 +433,8 @@ async def test_pagination_cursor_contract(service_client):
         assert response.status == 200
 
     response = await service_client.get(
-        '/v1/kv/pages', params={'page_size': 2},
+        '/v1/kv/pages',
+        params={'page_size': 2},
     )
     assert response.status == 200
     first = response.json()
@@ -490,7 +489,9 @@ async def test_raw_full_table_scan(service_client):
     body = response.json()
     assert body['count'] == 3
     assert {row['key'] for row in body['rows']} == {
-        'scan-a', 'scan-b', 'scan-c',
+        'scan-a',
+        'scan-b',
+        'scan-c',
     }
 
 

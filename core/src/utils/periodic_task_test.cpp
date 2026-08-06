@@ -1,3 +1,5 @@
+#include <gmock/gmock.h>
+
 #include <userver/utest/utest.hpp>
 
 #include <boost/algorithm/string/split.hpp>
@@ -415,7 +417,7 @@ UTEST_F(PeriodicTaskLog, ErrorLog) {
     for (const auto& str : log_strings) {
         if (str.find("error_msg") != std::string::npos) {
             error_msg++;
-            EXPECT_NE(std::string::npos, str.find("span_id="));
+            EXPECT_THAT(str, testing::HasSubstr("span_id="));
         }
     }
     EXPECT_EQ(1, error_msg);

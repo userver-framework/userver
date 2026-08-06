@@ -255,7 +255,7 @@ std::string DsnMaskPassword(const Dsn& dsn) {
     static constexpr std::string_view pg_url_start = "postgresql://";
     static constexpr USERVER_NAMESPACE::utils::Re2Replacement url_replace{"\\1***\\2"};
     static constexpr USERVER_NAMESPACE::utils::Re2Replacement option_replace{"\\1***"};
-    if (USERVER_NAMESPACE::utils::text::StartsWith(dsn.GetUnderlying(), pg_url_start)) {
+    if (dsn.GetUnderlying().starts_with(pg_url_start)) {
         static const USERVER_NAMESPACE::utils::regex kUrlRe("^(postgresql://[^:]*:)[^@]+(@)");
         static const USERVER_NAMESPACE::utils::regex kOptionRe("\\b(password=)[^&]+");
         auto masked = regex_replace(dsn.GetUnderlying(), kUrlRe, url_replace);

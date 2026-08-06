@@ -3,8 +3,7 @@ INCLUDE(${ARCADIA_ROOT}/taxi/uservices/userver/chaotic/ya.make.deps)
 RUN_PROGRAM(
     taxi/uservices/userver/chaotic/bin-dynamic-configs
         -o ${BINDIR}/dynamic_configs/
-        -I ${CURDIR}/include
-        -I ${ARCADIA_ROOT}/taxi/uservices/userver/chaotic/include
+        --no-check-includes
         --clang-format ''
 
             dynamic_configs/BOOL_FLAG.yaml
@@ -17,7 +16,6 @@ RUN_PROGRAM(
         ${CHAOTIC_INCLUDES}
         taxi/uservices/userver/core/include/userver/dynamic_config/snapshot.hpp
     IN_NOPARSE
-        ${CHAOTIC_INCLUDES}
 
             dynamic_configs/BOOL_FLAG.yaml
 

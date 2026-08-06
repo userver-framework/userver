@@ -55,10 +55,10 @@ def do_main():
             parser.service(),
             dynamic_config=args.dynamic_config,
             cpp_namespace=(args.namespace or f'clients::{args.name}'),
-            include_dirs=args.include_dirs or [],
+            include_dirs=None if not args.check_includes else args.include_dirs or [],
             middleware_plugins=[],
         ).spec()
-        outputs = client_renderer.render(spec, ctx)
+        outputs = client_renderer.render(spec, ctx, schema_files=[os.path.basename(f) for f in args.files])
         client_renderer.CppOutput.save(outputs, args.output_dir)
 
     elif args.gen in ('handlers', 'handlers+views', 'views'):
@@ -70,7 +70,7 @@ def do_main():
         spec = handler_translator.HandlerTranslator(
             parser.service(),
             cpp_namespace=(args.namespace or f'handlers::{args.name}'),
-            include_dirs=args.include_dirs or [],
+            include_dirs=None if not args.check_includes else args.include_dirs or [],
         ).spec()
 
         if args.gen in ('handlers', 'handlers+views'):
@@ -125,7 +125,16 @@ def parse_args() -> argparse.Namespace:
         '--include-dir',
         dest='include_dirs',
         action='append',
-        help='Path to search for include files for x-usrv-cpp-type',
+        help=(
+            'Path to search for include files for x-usrv-cpp-type, used only '
+            'to produce a nicer error message if the header is missing.'
+        ),
+    )
+    parser.add_argument(
+        '--no-check-includes',
+        action='store_false',
+        dest='check_includes',
+        help='Do not check that x-usrv-cpp-type headers exist',
     )
     parser.add_argument(
         'files',

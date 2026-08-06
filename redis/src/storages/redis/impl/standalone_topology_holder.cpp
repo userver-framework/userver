@@ -57,13 +57,15 @@ void StandaloneTopologyHolder::Stop() {
 bool StandaloneTopologyHolder::WaitReadyOnce(engine::Deadline deadline, WaitConnectedMode mode) {
     LOG_DEBUG() << "WaitReadyOnce in mode " << ToString(mode);
     std::unique_lock lock{mutex_};
-    return cv_.WaitUntil(lock, deadline, [this, mode]() {
-        if (!is_nodes_received_) {
-            return false;
-        }
-        auto ptr = topology_.Read();
-        return ptr->IsReady(mode);
-    });
+    return cv_.WaitUntil(lock, deadline, [this, mode]() { return IsReady(HealthCheckParams{mode, 0, 0}); });
+}
+
+bool StandaloneTopologyHolder::IsReady(const HealthCheckParams& params) const {
+    if (!is_nodes_received_) {
+        return false;
+    }
+    auto ptr = topology_.Read();
+    return ptr->IsReady(params);
 }
 
 rcu::ReadablePtr<ClusterTopology, rcu::BlockingRcuTraits> StandaloneTopologyHolder::GetTopology() const {

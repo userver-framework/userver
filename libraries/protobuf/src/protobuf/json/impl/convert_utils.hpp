@@ -43,7 +43,7 @@ enum class MessageType {
     kBytesValue = 17
 };
 
-[[nodiscard]] MessageType ClassifyMessage(std::string_view full_name) noexcept;
+[[nodiscard]] MessageType ClassifyMessage(std::string_view name) noexcept;
 
 [[nodiscard]] inline bool IsNullValue(const ::google::protobuf::EnumDescriptor& desc) {
     constexpr std::string_view kNullValueName = "google.protobuf.NullValue";

@@ -429,7 +429,6 @@ IntegerOneOfDiscriminator Parse(
 {
     return Parse<USERVER_NAMESPACE::formats::json::Value>(json, to);
 }
-
 /* Parse(USERVER_NAMESPACE::formats::yaml::Value, To<IntegerOneOfDiscriminator>) was not generated: ::ns::IntegerOneOfDiscriminator::Foo has JSON-specific field "extra" */
 /* Parse(USERVER_NAMESPACE::yaml_config::Value, To<IntegerOneOfDiscriminator>) was not generated: ::ns::IntegerOneOfDiscriminator::Foo has JSON-specific field "extra" */
 
@@ -505,7 +504,6 @@ OneOfDiscriminator Parse(
 {
     return Parse<USERVER_NAMESPACE::formats::json::Value>(json, to);
 }
-
 /* Parse(USERVER_NAMESPACE::formats::yaml::Value, To<OneOfDiscriminator>) was not generated: ::ns::OneOfDiscriminator::Foo has JSON-specific field "extra" */
 /* Parse(USERVER_NAMESPACE::yaml_config::Value, To<OneOfDiscriminator>) was not generated: ::ns::OneOfDiscriminator::Foo has JSON-specific field "extra" */
 

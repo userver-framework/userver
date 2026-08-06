@@ -1,6 +1,6 @@
 #pragma once
 
-{% macro generate_type_fwd(name, type) %}
+{% macro _generate_type_fwd(name, type) %}
     {% if not type.needs_new_type() %}
         {#- nothing -#}
     {% elif type.get_py_type() == 'CppStruct' %}
@@ -21,7 +21,7 @@
 {% for name, type in types.items() %}
     {{- common.switch_namespace(cpp_namespace(name)) -}}
 
-    {{- generate_type_fwd(name, type) -}}
+    {{- _generate_type_fwd(name, type) -}}
 {% endfor %}
 
 {{ common.switch_namespace('') }}

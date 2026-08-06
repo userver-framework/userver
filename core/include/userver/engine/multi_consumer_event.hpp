@@ -66,8 +66,8 @@ public:
     }
 
 private:
-    void TryAppendAwaiter(boost::intrusive_ptr<impl::Awaiter>& awaiter, std::uintptr_t context) override;
-    boost::intrusive_ptr<impl::Awaiter> RemoveAwaiter(impl::Awaiter& awaiter, std::uintptr_t context) noexcept override;
+    void TryAppendAwaiter(impl::AwaiterPtr& awaiter, std::uintptr_t context) override;
+    impl::AwaiterPtr RemoveAwaiter(impl::Awaiter& awaiter, std::uintptr_t context) noexcept override;
 
     std::atomic<bool> is_ready_{false};
     impl::FastPimplWaitList awaiters_;

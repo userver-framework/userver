@@ -37,7 +37,7 @@ UTEST(Inotify, File) {
         fd.Write("1");
         fd.Seek(0);
         char buffer[1];
-        fd.Read(buffer, sizeof(buffer));
+        fd.Read(buffer);
     }
 
     auto event = inotify.Poll({});
@@ -129,7 +129,7 @@ UTEST(Inotify, TaskCancel) {
          sys_linux::EventType::kModify}
     );
 
-    engine::current_task::GetCancellationToken().RequestCancel();
+    engine::current_task::RequestCancel();
 
     auto event = inotify.Poll({});
     ASSERT_FALSE(event);

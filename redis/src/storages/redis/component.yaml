@@ -51,6 +51,41 @@ properties:
                     enum:
                       - cluster_slots
                       - cluster_shards
+                required:
+                    type: string
+                    description: required connection mode for the client
+                    enum:
+                      - no_wait
+                      - master
+                      - slave
+                      - master_or_slave
+                      - master_and_slave
+                max_disconnect_time:
+                    type: integer
+                    description: |
+                        The maximum allowed time in seconds for a database host to be disconnected before it is considered unhealthy.
+                        It depends on the `cluster-node-timeout` setting in the Redis/Valkey config and should be greater than 2x that value plus some additional time.
+                    minimum: 0
+                    maximum: 1000
+                    default: 35
+                max_failed_shards:
+                    type: object
+                    description: |
+                        Maximum number or percent of failed shards allowed in GetComponentHealth check.
+                        0 means all shards must be ready (default behavior).
+                        This only affects health checks, not WaitConnectedOnce.
+                    additionalProperties: false
+                    properties:
+                        amount:
+                            type: integer
+                            description: Maximum number of failed shards allowed.
+                            default: 0
+                            minimum: 0
+                        percent:
+                            type: integer
+                            description: Maximum percent of failed shards allowed.
+                            default: 0
+                            minimum: 0
     metrics_level:
         type: string
         description: set metrics detail level
@@ -99,3 +134,38 @@ properties:
                     type: boolean
                     description: enables statistics for each redis pub/sub channel
                     default: true
+                required:
+                    type: string
+                    description: required connection mode for the subscription client
+                    enum:
+                      - no_wait
+                      - master
+                      - slave
+                      - master_or_slave
+                      - master_and_slave
+                max_disconnect_time:
+                    type: integer
+                    description: |
+                        The maximum allowed time in seconds for a database host to be disconnected before it is considered unhealthy.
+                        It depends on the `cluster-node-timeout` setting in the Redis/Valkey config and should be greater than 2x that value plus some additional time.
+                    minimum: 0
+                    maximum: 1000
+                    default: 35
+                max_failed_shards:
+                    type: object
+                    description: |
+                        Maximum number or percent of failed shards allowed in GetComponentHealth check.
+                        0 means all shards must be ready (default behavior).
+                        This only affects health checks, not WaitConnectedOnce.
+                    additionalProperties: false
+                    properties:
+                        amount:
+                            type: integer
+                            description: Maximum number of failed shards allowed.
+                            default: 0
+                            minimum: 0
+                        percent:
+                            type: integer
+                            description: Maximum percent of failed shards allowed.
+                            default: 0
+                            minimum: 0

@@ -13,10 +13,10 @@
 {% endfor %}
 
 
-{% macro generate_sax_parser(type) %}
+{% macro _generate_sax_parser(type) %}
     {# handle subtypes #}
     {% for schema in type.subtypes() %}
-        {{- generate_sax_parser(schema) -}}
+        {{- _generate_sax_parser(schema) -}}
     {% endfor %}
 
     {% if type.get_py_type() == 'CppStruct' %}
@@ -38,7 +38,7 @@
 {% for name, type in types.items() %}
     {{ common.switch_namespace(cpp_namespace(name)) }}
 
-    {{ generate_sax_parser(type) }}
+    {{ _generate_sax_parser(type) }}
 {% endfor %}
 
 {{ common.switch_namespace('') }}

@@ -14,12 +14,15 @@ auto DoParse(const USERVER_NAMESPACE::formats::json::Value& value) {
 
 }  // anonymous namespace
 
-const USERVER_NAMESPACE::dynamic_config::Key<bool> BOOL_FLAG{
+const USERVER_NAMESPACE::dynamic_config::Key<
+    bool
+> BOOL_FLAG{
     "BOOL_FLAG",
     DoParse,
     USERVER_NAMESPACE::dynamic_config::DefaultAsJsonString{R"~(
         false
     )~"},
+    "7cb541e84f226754a46c21c79f131fa2898354e1242456e6fd1c162bce319553",
 };
 
 }  // namespace dynamic_config

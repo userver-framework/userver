@@ -93,6 +93,44 @@ TEST(JsonValueBuilder, ValueNull) {
     ASSERT_EQ(json_def.As<std::optional<std::string>>(), std::nullopt);
 }
 
+TEST(JsonValueBuilder, ReserveArray) {
+    formats::json::ValueBuilder builder(formats::common::Type::kArray);
+    builder.PushBack(1);
+    auto element = builder[0];
+
+    builder.Reserve(100);
+    EXPECT_GE(builder.GetCapacity(), 100);
+    element = 2;
+
+    const auto json = builder.ExtractValue();
+    ASSERT_EQ(json.GetSize(), 1);
+    EXPECT_EQ(json[0].As<int>(), 2);
+}
+
+TEST(JsonValueBuilder, ReserveObject) {
+    formats::json::ValueBuilder builder(formats::common::Type::kObject);
+    builder["key"] = 1;
+    auto member = builder["key"];
+
+    builder.Reserve(100);
+    EXPECT_GE(builder.GetCapacity(), 100);
+    member = 2;
+
+    const auto json = builder.ExtractValue();
+    ASSERT_EQ(json.GetSize(), 1);
+    EXPECT_EQ(json["key"].As<int>(), 2);
+}
+
+TEST(JsonValueBuilder, ReserveRejectsNonContainer) {
+    formats::json::ValueBuilder null_builder;
+    formats::json::ValueBuilder scalar_builder = 1;
+
+    EXPECT_THROW(null_builder.Reserve(1), formats::json::TypeMismatchException);
+    EXPECT_THROW(scalar_builder.Reserve(1), formats::json::TypeMismatchException);
+    EXPECT_THROW(null_builder.GetCapacity(), formats::json::TypeMismatchException);
+    EXPECT_THROW(scalar_builder.GetCapacity(), formats::json::TypeMismatchException);
+}
+
 /// [Sample Customization formats::json::ValueBuilder usage]
 namespace my_namespace {
 

@@ -33,13 +33,13 @@ UTEST(TaskBuilder, Sample) {
 
 UTEST(TaskBuilder, Smoke) {
     utils::TaskBuilder builder;
-    engine::TaskWithResult<int> task = builder.NoSpan().Background().Build([] { return 1; });
+    engine::TaskWithResult<int> task = builder.NoTracing().Background().Build([] { return 1; });
     EXPECT_EQ(task.Get(), 1);
 }
 
 UTEST(TaskBuilder, SmokeShared) {
     utils::TaskBuilder builder;
-    engine::SharedTaskWithResult<int> task = builder.NoSpan().Background().BuildShared([] { return 1; });
+    engine::SharedTaskWithResult<int> task = builder.NoTracing().Background().BuildShared([] { return 1; });
     EXPECT_EQ(task.Get(), 1);
 }
 
@@ -48,12 +48,13 @@ UTEST(TaskBuilder, MultipleAwaitOnShared) {
     engine::SingleUseEvent first_ready;
     engine::SingleUseEvent second_ready;
 
-    engine::SharedTaskWithResult<int> task = builder.NoSpan().Background().BuildShared([&first_ready, &second_ready] {
-        first_ready.Wait();
-        second_ready.Wait();
-        engine::InterruptibleSleepFor(std::chrono::milliseconds(100));
-        return 1;
-    });
+    engine::SharedTaskWithResult<int>
+        task = builder.NoTracing().Background().BuildShared([&first_ready, &second_ready] {
+            first_ready.Wait();
+            second_ready.Wait();
+            engine::InterruptibleSleepFor(std::chrono::milliseconds(100));
+            return 1;
+        });
 
     auto first_res = engine::AsyncNoTracing([&first_ready, &task] {
         first_ready.Send();
@@ -81,28 +82,30 @@ UTEST(TaskBuilder, HideSpan) {
     EXPECT_EQ(task.Get(), logging::Level::kNone);
 }
 
-UTEST(TaskBuilder, NoSpan) {
+UTEST(TaskBuilder, NoTracing) {
     utils::TaskBuilder builder;
-    auto task = builder.NoSpan().Background().Build([] { return tracing::Span::CurrentSpanUnchecked(); });
+    auto task = builder.NoTracing().Background().Build([] { return tracing::Span::CurrentSpanUnchecked(); });
     EXPECT_EQ(task.Get(), nullptr);
 }
 
 UTEST(TaskBuilder, NonCritical) {
     utils::TaskBuilder builder;
-    auto task = builder.NoSpan().Background().Build([] { return engine::current_task::impl::IsCritical(); });
+    auto task = builder.NoTracing().Background().Build([] { return engine::current_task::impl::IsCritical(); });
     EXPECT_FALSE(task.Get());
 }
 
 UTEST(TaskBuilder, Critical) {
     utils::TaskBuilder builder;
-    auto task = builder.NoSpan().Background().Critical().Build([] { return engine::current_task::impl::IsCritical(); });
+    auto task = builder.NoTracing().Background().Critical().Build([] {
+        return engine::current_task::impl::IsCritical();
+    });
     EXPECT_TRUE(task.Get());
 }
 
 UTEST(TaskBuilder, Deadline) {
     utils::TaskBuilder builder;
     auto task =
-        builder.NoSpan()
+        builder.NoTracing()
             .Background()
             .Deadline(engine::Deadline::FromDuration(std::chrono::milliseconds(100)))
             .Build([] { engine::InterruptibleSleepFor(std::chrono::seconds(5)); });
@@ -117,7 +120,7 @@ UTEST(TaskBuilder, ForwardsMoveOnlyType) {
     utils::TaskBuilder builder;
 
     auto ptr = std::make_unique<int>(42);
-    builder.NoSpan().Background().Build(test_function, std::move(ptr)).Get();
+    builder.NoTracing().Background().Build(test_function, std::move(ptr)).Get();
 
     EXPECT_TRUE(task_executed);
 }
@@ -130,7 +133,7 @@ UTEST(TaskBuilder, Background) {
     task_local_variable.Set(1);
 
     utils::TaskBuilder builder;
-    auto task = builder.NoSpan().Background().Build([] { return task_local_variable.GetOptional(); });
+    auto task = builder.NoTracing().Background().Build([] { return task_local_variable.GetOptional(); });
 
     EXPECT_EQ(task.Get(), nullptr);
 }

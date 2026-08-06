@@ -128,7 +128,7 @@ private:
 // Register location during static initialization for dynamic debug logs.
 class StaticLogEntry final {
 public:
-    StaticLogEntry(const char* path, int line) noexcept;
+    StaticLogEntry(std::string_view path, int line) noexcept;
 
     StaticLogEntry(StaticLogEntry&&) = delete;
     StaticLogEntry& operator=(StaticLogEntry&&) = delete;
@@ -137,7 +137,7 @@ public:
     bool ShouldNotLog(const LoggerPtr& logger, Level level) const noexcept;
 
 private:
-    static constexpr std::size_t kContentSize = compiler::SelectSize().For64Bit(40).For32Bit(24);
+    static constexpr std::size_t kContentSize = compiler::SelectSize().For64Bit(48).For32Bit(28);
 
     alignas(void*) std::byte content_[kContentSize];
 };
@@ -165,7 +165,7 @@ USERVER_NAMESPACE_END
 // * SourceLocation info
 #define USERVER_IMPL_ERASE_LOG(logger, ...)                                     \
     true                                                                        \
-        ? logging::impl::Noop{}                                                 \
+        ? USERVER_NAMESPACE::logging::impl::Noop{}                              \
         : USERVER_NAMESPACE::logging::LogHelper(                                \
               logger,                                                           \
               USERVER_NAMESPACE::logging::Level::kTrace,                        \
@@ -226,7 +226,7 @@ USERVER_NAMESPACE_END
 #define USERVER_IMPL_DYNAMIC_DEBUG_ENTRY                                                                 \
     []() noexcept -> const USERVER_NAMESPACE::logging::impl::StaticLogEntry& {                           \
         struct NameHolder {                                                                              \
-            static constexpr const char* Get() noexcept { return USERVER_FILEPATH.c_str(); }             \
+            static constexpr std::string_view Get() noexcept { return USERVER_FILEPATH; }                \
         };                                                                                               \
         const auto& entry = USERVER_NAMESPACE::logging::impl::EntryStorage<NameHolder, __LINE__>::entry; \
         return entry;                                                                                    \

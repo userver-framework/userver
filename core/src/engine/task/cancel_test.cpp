@@ -11,6 +11,7 @@
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/single_use_event.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/async.hpp>
@@ -72,7 +73,7 @@ UTEST(Cancel, CancelDuringInterruptibleSleep) {
 }
 
 UTEST(Cancel, CancelBeforeInterruptibleSleep) {
-    engine::current_task::GetCancellationToken().RequestCancel();
+    engine::current_task::RequestCancel();
 
     // The task should wake up from this sleep immediately, because it is
     // already cancelled
@@ -122,7 +123,7 @@ void CheckUserCancelled(engine::TaskWithResult<int>& task) {
 UTEST(Cancel, DeadlineBeforeTaskStarted) {
     const auto passed_deadline = engine::Deadline::FromDuration(-1s);
 
-    auto task = utils::TaskBuilder{}.NoSpan().Background().Deadline(passed_deadline).Build([] {
+    auto task = utils::TaskBuilder{}.NoTracing().Background().Deadline(passed_deadline).Build([] {
         FAIL() << "This task's body should not run";
     });
 
@@ -133,7 +134,7 @@ UTEST(Cancel, DeadlineBeforeTaskStartedCritical) {
     const auto passed_deadline = engine::Deadline::FromDuration(-1s);
     const engine::SingleConsumerEvent infinity;
 
-    auto task = utils::TaskBuilder{}.NoSpan().Background().Critical().Deadline(passed_deadline).Build([&] {
+    auto task = utils::TaskBuilder{}.NoTracing().Background().Critical().Deadline(passed_deadline).Build([&] {
         // Critical should ensure that the task is started, but should still allow
         // the cancellations to work within the task body.
         EXPECT_TRUE(engine::current_task::ShouldCancel());
@@ -146,7 +147,7 @@ UTEST(Cancel, DeadlineBeforeTaskStartedCritical) {
 UTEST(Cancel, DeadlineShouldCancel) {
     const auto deadline = engine::Deadline::FromDuration(kSmallDuration);
 
-    auto task = utils::TaskBuilder{}.NoSpan().Background().Critical().Deadline(deadline).Build([] {
+    auto task = utils::TaskBuilder{}.NoTracing().Background().Critical().Deadline(deadline).Build([] {
         while (!engine::current_task::ShouldCancel()) {
             // Normally, some CPU-bound work should go here
         }
@@ -159,7 +160,7 @@ UTEST(Cancel, DeadlineShouldCancel) {
 UTEST(Cancel, DeadlineCancellationPoint) {
     const auto deadline = engine::Deadline::FromDuration(kSmallDuration);
 
-    auto task = utils::TaskBuilder{}.NoSpan().Background().Critical().Deadline(deadline).Build([] {
+    auto task = utils::TaskBuilder{}.NoTracing().Background().Critical().Deadline(deadline).Build([] {
         while (true) {
             engine::current_task::CancellationPoint();
             // Normally, some CPU-bound work should go here
@@ -175,7 +176,7 @@ UTEST(Cancel, DeadlineNotReached) {
     engine::SingleConsumerEvent delayed_event;
     engine::SingleConsumerEvent infinity;
 
-    auto task = utils::TaskBuilder{}.NoSpan().Background().Deadline(deadline).Build([&] {
+    auto task = utils::TaskBuilder{}.NoTracing().Background().Deadline(deadline).Build([&] {
         EXPECT_FALSE(infinity.WaitForEventFor(kSmallDuration));
         EXPECT_FALSE(engine::current_task::IsCancelRequested());
 
@@ -244,7 +245,7 @@ UTEST(Cancel, DeadlinePropagationParentToChild) {
     bool wait_interrupted_exception_thrown = false;
     bool child_finished_ok = false;
 
-    auto parent_task = utils::TaskBuilder{}.NoSpan().Background().Critical().Deadline(deadline).Build([&] {
+    auto parent_task = utils::TaskBuilder{}.NoTracing().Background().Critical().Deadline(deadline).Build([&] {
         try {
             auto child_task = engine::CriticalAsyncNoTracing([&] {
                 engine::InterruptibleSleepUntil(engine::Deadline::FromDuration(utest::kMaxTestWaitTime));
@@ -273,7 +274,7 @@ UTEST(Cancel, DeadlinePropagationNotChildToParent) {
 
     auto child_task =
         utils::TaskBuilder{}
-            .NoSpan()
+            .NoTracing()
             .Background()
             .Critical()
             .Deadline(deadline)
@@ -447,7 +448,7 @@ UTEST(Cancel, ParentCancelledSample) {
 UTEST(Async, CancellationBeforeStartNormal) {
     // The test relies on there only being a single TaskProcessor thread, otherwise there could be a race
     // between `RequestCancel()` and the concurrent execution of the child task.
-    ASSERT_EQ(GetThreadCount(), 1);
+    ASSERT_EQ(engine::current_task::GetWorkerCount(), 1);
 
     bool captures_destroyed = false;
     utils::FastScopeGuard guard([&captures_destroyed]() noexcept {
@@ -476,7 +477,7 @@ UTEST(Async, CancellationBeforeStartNormal) {
 UTEST(Async, CancellationBeforeStartCritical) {
     // The test relies on there only being a single TaskProcessor thread, otherwise there could be a race
     // between `RequestCancel()` and the concurrent execution of the child task.
-    ASSERT_EQ(GetThreadCount(), 1);
+    ASSERT_EQ(engine::current_task::GetWorkerCount(), 1);
 
     engine::SingleUseEvent event;
     auto task = engine::CriticalAsyncNoTracing([&event] {

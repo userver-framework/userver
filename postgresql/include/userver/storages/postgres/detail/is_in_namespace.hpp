@@ -5,8 +5,6 @@
 
 #include <boost/current_function.hpp>
 
-#include <userver/utils/text_light.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::detail {
@@ -19,7 +17,6 @@ constexpr std::string_view kExpectedPrefix = "postgres::detail::IsInNamespaceImp
 
 template <typename T>
 constexpr bool IsInNamespaceImpl(std::string_view nsp) {
-    using USERVER_NAMESPACE::utils::text::StartsWith;
     constexpr std::string_view fname = BOOST_CURRENT_FUNCTION;
     constexpr auto pos = fname.find(kExpectedPrefix);
     if (pos == std::string_view::npos) {
@@ -27,8 +24,8 @@ constexpr bool IsInNamespaceImpl(std::string_view nsp) {
     }
     constexpr std::string_view fname_short{fname.data() + pos, fname.size() - pos};
     static_assert(!fname_short.empty(), "Your compiler produces an unexpected function pretty name");
-    return StartsWith(fname_short.substr(kExpectedPrefix.size()), nsp) &&
-           StartsWith(fname_short.substr(kExpectedPrefix.size() + nsp.size()), "::");
+    return fname_short.substr(kExpectedPrefix.size()).starts_with(nsp) &&
+           fname_short.substr(kExpectedPrefix.size() + nsp.size()).starts_with("::");
 }
 
 template <typename T>

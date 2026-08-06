@@ -82,7 +82,7 @@ void ListenerImpl::StopListening() {
 bool ListenerImpl::WaitForNoConnections(engine::Deadline deadline) const {
     return endpoint_info_->no_connections_event.WaitUntil(deadline, [this] {
         return endpoint_info_->connection_count == 0;
-    });
+    }) == engine::FutureStatus::kReady;
 }
 
 void ListenerImpl::AcceptConnection(engine::io::Socket& request_socket, const PortConfig& port_config) {

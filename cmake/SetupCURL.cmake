@@ -33,9 +33,8 @@ if(NOT USERVER_FORCE_DOWNLOAD_CURL)
                 )
             else()
                 message(
-                    FATAL_ERROR
-                        "libcurl versions from 7.88.0 to 8.1.2 may crash on HTTP/2 "
-                        "requests and thus are unsupported, upgrade or turn on USERVER_DOWNLOAD_PACKAGE_CURL"
+                    FATAL_ERROR "libcurl versions from 7.88.0 to 8.1.2 may crash on HTTP/2 "
+                                "requests and thus are unsupported, upgrade or turn on USERVER_DOWNLOAD_PACKAGE_CURL"
                 )
             endif()
         else()
@@ -62,8 +61,13 @@ cpmaddpackage(
     GITHUB_REPOSITORY curl/curl
     GIT_TAG curl-7_81_0
     GIT_SHALLOW TRUE
-    OPTIONS "BUILD_CURL_EXE OFF" "BUILD_SHARED_LIBS OFF" "CURL_DISABLE_TESTS ON" "CURL_DISABLE_LDAP ON"
-            "HAVE_DLOPEN TRUE" "USE_NGHTTP2 TRUE" ${CURL_EXTRA_OPTIONS}
+    OPTIONS "BUILD_CURL_EXE OFF"
+            "BUILD_SHARED_LIBS OFF"
+            "CURL_DISABLE_TESTS ON"
+            "CURL_DISABLE_LDAP ON"
+            "HAVE_DLOPEN TRUE"
+            "USE_NGHTTP2 TRUE"
+            ${CURL_EXTRA_OPTIONS}
 )
 
 mark_targets_as_system("${CURL_SOURCE_DIR}")

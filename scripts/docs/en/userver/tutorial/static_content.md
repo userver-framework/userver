@@ -120,7 +120,9 @@ In `conftest.py` path to the directory with static content should be adjusted:
 @include samples/static_service/testsuite/conftest.py
 
 After that,  @ref scripts/docs/en/userver/functional_testing.md "Functional tests" for the service could be
-implemented using the @ref service_client "service_client" fixture from pytest_userver.plugins.core in the
+implemented using the @ref pytest_userver.plugins.service_client.service_client "service_client" fixture and the
+@ref pytest_userver.plugins.base.service_source_dir "service_source_dir" fixture from
+pytest_userver.plugins.core in the
 following way:
 
 @snippet samples/static_service/testsuite/test_static.py  Functional test

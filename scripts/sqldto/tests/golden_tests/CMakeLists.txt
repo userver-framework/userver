@@ -2,15 +2,13 @@ project(sqldto-golden-tests)
 
 add_test(
     NAME sqldto-golden
-    COMMAND "${USERVER_SQLDTO_PYTEST_PYTHON_BINARY}" tests/golden_tests/main.py
-            --python "${USERVER_SQLDTO_PYTEST_PYTHON_BINARY}"
+    COMMAND "${USERVER_SQLDTO_TESTS_PYTHON_BINARY}" -m pytest tests/golden_tests/golden_test.py
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../.."
 )
 
 add_custom_target(
-    NAME sqldto-golden-update
-    COMMAND "${USERVER_SQLDTO_PYTEST_PYTHON_BINARY}" tests/golden_tests/main.py
-            --python "${USERVER_SQLDTO_PYTEST_PYTHON_BINARY}"
-            --canonize-tests
+    NAME
+    sqldto-golden-canonize
+    COMMAND "${USERVER_SQLDTO_CANONIZE_TESTS_PYTHON_BINARY}" -m pytest tests/golden_tests/canonize/canonize_test.py
     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../.."
 )

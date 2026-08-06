@@ -91,7 +91,7 @@ using GrpcClientCancel = ugrpc::tests::ServiceWithClientFixture<UnitTestService,
 
 UTEST_F(GrpcClientCancel, UnaryCall) {
     {
-        engine::current_task::GetCancellationToken().RequestCancel();
+        engine::current_task::RequestCancel();
 
         sample::ugrpc::GreetingRequest out;
         out.set_name("userver");
@@ -106,7 +106,7 @@ UTEST_F(GrpcClientCancel, UnaryCall) {
 
 UTEST_F(GrpcClientCancel, AsyncUnaryRPC) {
     {
-        engine::current_task::GetCancellationToken().RequestCancel();
+        engine::current_task::RequestCancel();
 
         sample::ugrpc::GreetingRequest out;
         out.set_name("userver");
@@ -125,7 +125,7 @@ UTEST_F(GrpcClientCancel, UnaryFinish) {
         out.set_name("userver");
         auto future = GetClient().AsyncSayHello(out, PrepareCallOptions());
 
-        engine::current_task::GetCancellationToken().RequestCancel();
+        engine::current_task::RequestCancel();
 
         sample::ugrpc::GreetingResponse in;
         UEXPECT_THROW(in = future.Get(), ugrpc::client::RpcCancelledError);
@@ -144,7 +144,7 @@ UTEST_F(GrpcClientCancel, InputStreamRead) {
 
         auto is = GetClient().ReadMany(out, PrepareCallOptions());
 
-        engine::current_task::GetCancellationToken().RequestCancel();
+        engine::current_task::RequestCancel();
 
         sample::ugrpc::StreamGreetingResponse in;
         UEXPECT_THROW([[maybe_unused]] auto ok = is.Read(in), ugrpc::client::RpcCancelledError);
@@ -161,7 +161,7 @@ UTEST_F(GrpcClientCancel, InputStreamCall) {
         out.set_name("userver");
         out.set_number(1);
 
-        engine::current_task::GetCancellationToken().RequestCancel();
+        engine::current_task::RequestCancel();
 
         UEXPECT_THROW(auto is = GetClient().ReadMany(out, PrepareCallOptions()), ugrpc::client::RpcCancelledError);
     }
@@ -174,7 +174,7 @@ UTEST_F(GrpcClientCancel, InputStreamCall) {
 
 UTEST_F(GrpcClientCancel, OutputStreamCall) {
     {
-        engine::current_task::GetCancellationToken().RequestCancel();
+        engine::current_task::RequestCancel();
 
         UEXPECT_THROW(auto os = GetClient().WriteMany(PrepareCallOptions()), ugrpc::client::RpcCancelledError);
     }
@@ -189,7 +189,7 @@ UTEST_F(GrpcClientCancel, OutputStreamWrite) {
     {
         auto os = GetClient().WriteMany(PrepareCallOptions());
 
-        engine::current_task::GetCancellationToken().RequestCancel();
+        engine::current_task::RequestCancel();
 
         sample::ugrpc::StreamGreetingRequest out;
         out.set_name("userver");
@@ -211,7 +211,7 @@ UTEST_F(GrpcClientCancel, OutputStreamFinish) {
         out.set_number(1);
         EXPECT_TRUE(os.Write(out));
 
-        engine::current_task::GetCancellationToken().RequestCancel();
+        engine::current_task::RequestCancel();
 
         UEXPECT_THROW(os.Finish(), ugrpc::client::RpcCancelledError);
     }
@@ -223,7 +223,7 @@ UTEST_F(GrpcClientCancel, OutputStreamFinish) {
 
 UTEST_F(GrpcClientCancel, BidirectionalStreamCall) {
     {
-        engine::current_task::GetCancellationToken().RequestCancel();
+        engine::current_task::RequestCancel();
 
         UEXPECT_THROW(
             [[maybe_unused]] auto bs = GetClient().Chat(PrepareCallOptions()),
@@ -241,7 +241,7 @@ UTEST_F(GrpcClientCancel, BidirectionalStreamRead) {
     {
         auto bs = GetClient().Chat(PrepareCallOptions());
 
-        engine::current_task::GetCancellationToken().RequestCancel();
+        engine::current_task::RequestCancel();
 
         sample::ugrpc::StreamGreetingResponse in;
         EXPECT_FALSE(bs.Read(in));
@@ -256,7 +256,7 @@ UTEST_F(GrpcClientCancel, BidirectionalStreamWrite) {
     {
         auto bs = GetClient().Chat(PrepareCallOptions());
 
-        engine::current_task::GetCancellationToken().RequestCancel();
+        engine::current_task::RequestCancel();
 
         const sample::ugrpc::StreamGreetingRequest out{};
         EXPECT_FALSE(bs.Write(out));
@@ -271,7 +271,7 @@ UTEST_F(GrpcClientCancel, BidirectionalStreamWritesDone) {
     {
         auto bs = GetClient().Chat(PrepareCallOptions());
 
-        engine::current_task::GetCancellationToken().RequestCancel();
+        engine::current_task::RequestCancel();
 
         EXPECT_FALSE(bs.WritesDone());
     }

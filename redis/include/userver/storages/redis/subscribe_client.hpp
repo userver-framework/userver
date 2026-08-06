@@ -3,12 +3,11 @@
 /// @file userver/storages/redis/subscribe_client.hpp
 /// @brief @copybrief storages::redis::SubscribeClient
 
-#include <memory>
 #include <string>
 
 #include <userver/storages/redis/base.hpp>
 #include <userver/storages/redis/client_fwd.hpp>
-#include <userver/storages/redis/wait_connected_mode.hpp>
+#include <userver/storages/redis/health_check_param.hpp>
 
 #include <userver/storages/redis/subscription_token.hpp>
 
@@ -57,6 +56,9 @@ public:
 
     virtual size_t ShardsCount() const = 0;
     virtual bool IsInClusterMode() const = 0;
+    virtual bool IsReady(const HealthCheckParams& params) const = 0;
+
+    bool IsReady(WaitConnectedMode mode) const { return IsReady(HealthCheckParams{mode, 0, 0}); }
 
     SubscriptionToken Psubscribe(std::string pattern, SubscriptionToken::OnPmessageCb on_pmessage_cb) {
         return Psubscribe(std::move(pattern), std::move(on_pmessage_cb), {});

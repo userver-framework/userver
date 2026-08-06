@@ -72,6 +72,9 @@ class Parameter:
     def __post_init__(self) -> None:
         self._validate_schema(self.cpp_type, is_array_allowed=True)
 
+    def is_array(self) -> bool:
+        return isinstance(self.cpp_type, cpp_types.CppArray)
+
     # TODO: for handler only
     def span_value(self) -> str:
         if self.required:

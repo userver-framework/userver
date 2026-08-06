@@ -8,8 +8,6 @@ namespace engine::impl {
 
 namespace {
 
-constexpr bool kAdopt = false;
-
 template <class Container, class Value>
 bool IsInIntrusiveContainer(const Container& container, const Value& val) {
     const auto val_it = Container::s_iterator_to(val);
@@ -35,13 +33,13 @@ bool WaitList::IsEmpty(Lock& lock) const noexcept {
     return awaiters_.empty();
 }
 
-void WaitList::Append(Lock& lock, boost::intrusive_ptr<impl::Awaiter> awaiter, std::uintptr_t context) noexcept {
+void WaitList::Append(Lock& lock, AwaiterPtr awaiter, std::uintptr_t context) noexcept {
     UASSERT(lock);
     UASSERT(awaiter);
     UASSERT_MSG(!awaiter->wait_list_data_.is_linked(), "context already in list");
 
     awaiter->wait_list_data_.context = context;
-    awaiters_.push_back(*awaiter.detach());  // referencing, not copying!
+    awaiters_.push_back(*awaiter.release());  // referencing, not copying!
 }
 
 void WaitList::NotifyOne(Lock& lock) {
@@ -49,29 +47,29 @@ void WaitList::NotifyOne(Lock& lock) {
     if (awaiters_.empty()) {
         return;
     }
-    boost::intrusive_ptr<impl::Awaiter> awaiter(&awaiters_.front(), kAdopt);
+    AwaiterPtr awaiter(&awaiters_.front());
     awaiter->wait_list_data_.unlink();
     const auto context = awaiter->wait_list_data_.context;
-    impl::Notify(std::move(awaiter), context);
+    impl::NotifyAndDispose(std::move(awaiter), context);
 }
 
 void WaitList::NotifyAll(Lock& lock) {
     UASSERT(lock);
     while (!awaiters_.empty()) {
-        boost::intrusive_ptr<impl::Awaiter> awaiter(&awaiters_.front(), kAdopt);
+        AwaiterPtr awaiter(&awaiters_.front());
         awaiter->wait_list_data_.unlink();
         const auto context = awaiter->wait_list_data_.context;
-        impl::Notify(std::move(awaiter), context);
+        impl::NotifyAndDispose(std::move(awaiter), context);
     }
 }
 
-boost::intrusive_ptr<impl::Awaiter> WaitList::Remove(Lock& lock, impl::Awaiter& awaiter, std::uintptr_t) noexcept {
+AwaiterPtr WaitList::Remove(Lock& lock, Awaiter& awaiter, std::uintptr_t) noexcept {
     UASSERT(lock);
     if (!awaiter.wait_list_data_.is_linked()) {
         return {};
     }
 
-    boost::intrusive_ptr<impl::Awaiter> holder(&awaiter, kAdopt);
+    AwaiterPtr holder(&awaiter);
     UASSERT_MSG(IsInIntrusiveContainer(awaiters_, awaiter), "awaiter belongs to other list");
 
     awaiter.wait_list_data_.unlink();

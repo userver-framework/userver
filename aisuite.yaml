@@ -1,0 +1,6 @@
+extends:
+  - techplatform/backend/mcps_rw
+  - techplatform/backend/common
+rules:
+  - ai/artifacts/rules/techplatform/ai-mindset.md
+  - taxi/uservices/ai/rules/arcadia-development.md

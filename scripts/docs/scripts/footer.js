@@ -1,27 +1,50 @@
-import { draw_toc } from "./toc.js";
 import { changeTelegramChannelLanguageForRussianSpeakingUser } from "./telegramLanguage.js";
 import { init_header } from "./header.js";
-import { init_all_results_button, init_search_hotkey, init_search_observer } from "./search.js";
+import { init_all_results_button, init_search_hotkey, init_search_observer, init_search_results_anchor } from "./search.js";
 import { highlight_code } from "./codeHighlight.js";
 import { styleNavButtons } from "./styledBtn.js";
 import { LandingFeedback, PageFeedback } from "./feedback.js";
 
-const addLinks = () =>  {
-    const links = document.createElement('div')
+const addLink = (container, href, { id, className, imgSrc, imgAlt, imgClass } = {}) => {
+    const link = document.createElement('a');
+    link.href = href;
+    link.rel = 'noopener';
+    link.target = '_blank';
+    link.id = id;
+    link.className = className;
+    
+    const img = document.createElement('img');
+    img.src = imgSrc;
+    img.alt = imgAlt;
+    if (imgClass) {
+        img.className = imgClass;
+    }
+    link.appendChild(img);
+    container.appendChild(link);
+};
+
+const addLinks = () => {
+    const links = document.createElement('div');
     links.id = 'links';
     const logo_path = document.getElementById('projectlogo').getElementsByTagName('img')[0].src;
     const path = logo_path.substring(0, logo_path.lastIndexOf('/'));
 
-    links.innerHTML = `
-        <a href="https://github.com/userver-framework/" id='github_header' rel="noopener" target="_blank" class="titlelink">
-            <img src="${path}/github_logo.svg" alt="Github" class="gh-logo"/>
-        </a>
-        <a href="https://t.me/userver_en" rel="noopener" id='telegram_channel' target="_blank" class="titlelink generic_tg_link">
-            <img src="${path}/telegram_logo.svg" alt="Telegram"/>
-        </a>
-    `
+    addLink(links, 'https://github.com/userver-framework/', {
+        id: 'github_header',
+        className: 'titlelink',
+        imgSrc: `${path}/github_logo.svg`,
+        imgAlt: 'Github',
+        imgClass: 'gh-logo',
+    });
+    addLink(links, 'https://t.me/userver_en', {
+        id: 'telegram_channel',
+        className: 'titlelink generic_tg_link',
+        imgSrc: `${path}/telegram_logo.svg`,
+        imgAlt: 'Telegram',
+    });
+
     document.getElementById('main-navbar').appendChild(links);
-}
+};
 
 function waitForElm(selector) {
     return new Promise(resolve => {
@@ -44,13 +67,16 @@ function waitForElm(selector) {
     });
 }
 
-waitForElm('#MSearchField').then((elm) => {
+waitForElm('#MSearchField').then(() => {
+    init_search_results_anchor();
     init_all_results_button();
     init_search_hotkey();
     init_search_observer();
 
-    /* Following actions require '#MSearchField' AND 'doxygen-awesome-dark-mode-toggle' */
-    waitForElm('doxygen-awesome-dark-mode-toggle').then((elm) => {
+    /* init_header() must run after initMenu() fills #main-menu; waiting for
+     * dark-mode-toggle is too early because DarkModeToggle runs before initMenu
+     * on DOMContentLoaded and would move an empty menu out of #main-nav. */
+    waitForElm('#main-menu > li > a').then(() => {
         init_header();
 
         addLinks();
@@ -58,13 +84,24 @@ waitForElm('#MSearchField').then((elm) => {
     });
 });
 
+function hideEmptyPageNav() {
+    const pageNav = document.getElementById('page-nav');
+    if (!pageNav?.querySelector('ul.page-outline li')) {
+        pageNav.style.display = 'none';
+
+        const container = document.getElementById('container');
+        container?.classList.add('page-nav-hidden');
+    }
+}
+
 const isLanding = document.getElementById('landing_logo_id') !== null;
 if (isLanding) {
     LandingFeedback.init();
 } else {
-    draw_toc();
     highlight_code();
     styleNavButtons();
-    DoxygenAwesomeInteractiveToc.init();
-    PageFeedback.init();
+    waitForElm('#page-nav-contents ul.page-outline').then(() => {
+        hideEmptyPageNav();
+        PageFeedback.init();
+    });
 }

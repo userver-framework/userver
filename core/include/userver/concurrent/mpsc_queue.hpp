@@ -223,7 +223,7 @@ bool MpscQueue<T>::DoPush(ProducerToken& /*unused*/, T&& value) {
 template <typename T>
 bool MpscQueue<T>::Pop(ConsumerToken& token, T& value, engine::Deadline deadline) {
     bool no_more_producers = false;
-    const bool success = nonempty_event_.WaitUntil(deadline, [&] {
+    const auto wait_status = nonempty_event_.WaitUntil(deadline, [&] {
         // kWeak is OK here, because if there is another push operation in process,
         // they will notify us after pushing.
         if (DoPop(token, value, impl::IntrusiveMpscQueueImpl::PopMode::kWeak)) {
@@ -240,7 +240,7 @@ bool MpscQueue<T>::Pop(ConsumerToken& token, T& value, engine::Deadline deadline
         }
         return false;
     });
-    return success && !no_more_producers;
+    return (wait_status == engine::FutureStatus::kReady) && !no_more_producers;
 }
 
 template <typename T>

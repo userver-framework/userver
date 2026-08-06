@@ -1,8 +1,10 @@
 #include <userver/utest/utest.hpp>
 
 #include <arpa/inet.h>
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 #include <sys/socket.h>
+#include <sys/uio.h>
 #include <unistd.h>
 
 #include <array>
@@ -10,6 +12,7 @@
 #include <cstdlib>
 #include <memory>
 #include <string_view>
+#include <vector>
 
 #include <engine/io/tests/net_listener.hpp>
 #include <userver/engine/async.hpp>
@@ -281,6 +284,44 @@ UTEST(Socket, SendAllVectorHeap) {
     EXPECT_EQ(bytes_sent, bytes_read);
 }
 
+UTEST(Socket, SendAllLargeIoVec) {
+    constexpr std::size_t kIovCount = IOV_MAX * 8;
+    const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+    TcpListener listener;
+    auto sockets = listener.MakeSocketPair(deadline);
+
+    std::vector<char> expected(kIovCount);
+    for (std::size_t i = 0; i < kIovCount; ++i) {
+        expected[i] = static_cast<char>('a' + (i % 26));
+    }
+
+    std::vector<struct iovec> iov(kIovCount);
+    for (std::size_t i = 0; i < kIovCount; ++i) {
+        iov[i] = {.iov_base = &expected[i], .iov_len = 1};
+    }
+
+    std::vector<char> received;
+    auto listen_task = engine::AsyncNoTracing([&sockets, &deadline, &received, &expected] {
+        received.assign(expected.size(), '\0');
+        std::size_t total = 0;
+        while (total < expected.size()) {
+            const auto bytes_read = sockets.first.ReadSome(received.data() + total, expected.size() - total, deadline);
+            if (bytes_read == 0) {
+                break;
+            }
+            total += bytes_read;
+        }
+        EXPECT_EQ(total, expected.size());
+    });
+
+    const auto bytes_sent = sockets.second.SendAll(iov.data(), iov.size(), deadline);
+
+    listen_task.Get();
+    EXPECT_EQ(bytes_sent, expected.size());
+    EXPECT_EQ(received, expected);
+}
+
 UTEST(Socket, Cancel) {
     const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
 
@@ -346,7 +387,7 @@ UTEST(Socket, ErrorPeername) {
             error_value == std::errc::wrong_protocol_type || error_value == std::errc::broken_pipe ||
             error_value == std::errc::connection_reset || error_value == std::errc::connection_aborted
         );
-        EXPECT_NE(std::string_view{ex.what()}.find(fmt::to_string(listener.addr)), std::string_view::npos);
+        EXPECT_THAT(std::string_view{ex.what()}, testing::HasSubstr(fmt::to_string(listener.addr)));
     }
 }
 
@@ -523,7 +564,7 @@ UTEST(Socket, UdpIpMreqIPv4) {
 
         EXPECT_FALSE(result);  // not expecting any input
     } catch (const std::exception& e) {
-        EXPECT_NE(std::string_view{e.what()}.find("No such device"), std::string_view::npos)
+        EXPECT_THAT(std::string_view{e.what()}, testing::HasSubstr("No such device"))
             << "Error not related to host support of IPv4: " << e.what();
     }
 }

@@ -1,3 +1,5 @@
+#include <gmock/gmock.h>
+
 #include <userver/utest/utest.hpp>
 
 #include <sys/param.h>
@@ -150,7 +152,7 @@ TEST(HttpCookie, AttributeValidation) {
     UEXPECT_NO_THROW(cookie.SetPath("/some/path"));
     UEXPECT_NO_THROW(cookie.SetDomain("sub.domain.test"));
     UEXPECT_NO_THROW(cookie.SetSameSite("None"));
-    EXPECT_EQ(cookie.ToString().find("\r\n"), std::string::npos);
+    EXPECT_THAT(cookie.ToString(), testing::Not(testing::HasSubstr("\r\n")));
 }
 
 TEST(HttpCookie, FromString) {

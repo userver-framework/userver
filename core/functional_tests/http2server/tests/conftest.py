@@ -1,9 +1,58 @@
+import contextlib
+import logging
+import socket
+
+import h2.connection
+import h2.events
 import httpx
 import pytest
+
+import utils
 
 pytest_plugins = ['pytest_userver.plugins.core']
 
 DEFAULT_TIMEOUT = 10.0
+
+
+@pytest.fixture(name='create_socket')
+async def _create_socket(service_port, asyncio_socket):
+    @contextlib.asynccontextmanager
+    async def create_socket():
+        logging.debug('Connecting to localhost:%d', service_port)
+        try:
+            sock = asyncio_socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            await sock.connect(('localhost', service_port))
+            logging.debug('Connected: %r', sock)
+
+            yield sock
+
+        finally:
+            sock.close()
+
+    return create_socket
+
+
+@pytest.fixture(name='create_connection')
+async def _create_connection(create_socket):
+    @contextlib.asynccontextmanager
+    async def create_connection():
+        conn = h2.connection.H2Connection()
+        conn.initiate_connection()
+
+        async with create_socket() as sock:
+            events = []
+            while len(events) != 2:
+                events += await utils.send_and_receive(sock, conn)
+            assert isinstance(events[0], h2.events.RemoteSettingsChanged)
+            assert utils.MAX_CONCURRENT_STREAMS == events[0].changed_settings[3].new_value
+            assert utils.DEFAULT_FRAME_SIZE == events[0].changed_settings[5].new_value
+            assert isinstance(events[1], h2.events.SettingsAcknowledged)
+
+            logging.debug('Connection successfully created')
+
+            yield sock, conn
+
+    return create_connection
 
 
 class Http2Client:

@@ -38,5 +38,9 @@ paths:
             responses:
                 200:
                     description: OK
+                    headers:
+                        X-Header:
+                            schema:
+                                type: string
 
 components: {}

@@ -40,6 +40,7 @@ public:
     void Stop() override;
 
     bool WaitReadyOnce(engine::Deadline deadline, WaitConnectedMode mode) override;
+    bool IsReady(const HealthCheckParams& params) const override;
 
     rcu::ReadablePtr<ClusterTopology, rcu::BlockingRcuTraits> GetTopology() const override;
 
@@ -102,7 +103,6 @@ private:
     std::mutex mutex_;
     engine::impl::ConditionVariableAny<std::mutex> cv_;
     std::atomic<bool> is_topology_received_{false};
-    bool IsInitialized() const { return is_topology_received_.load(); }
     ///}
 
     concurrent::Variable<std::optional<CommandsBufferingSettings>, std::mutex> commands_buffering_settings_;

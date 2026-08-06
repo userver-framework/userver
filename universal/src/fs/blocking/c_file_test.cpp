@@ -52,8 +52,8 @@ TEST(CFile, Reading) {
     EXPECT_TRUE(reader.IsOpen());
 
     std::string buffer(10, '\0');
-    EXPECT_EQ(reader.Read(buffer.data(), 1), 1);
-    EXPECT_EQ(reader.Read(buffer.data(), 10), 2);
+    EXPECT_EQ(reader.Read({buffer.data(), 1}), 1);
+    EXPECT_EQ(reader.Read({buffer.data(), 10}), 2);
 
     std::move(reader).Close();
     // NOLINTNEXTLINE(bugprone-use-after-move)
@@ -69,10 +69,11 @@ TEST(CFile, Writing) {
 
     fs::blocking::CFile file(path, {fs::blocking::OpenFlag::kWrite, fs::blocking::OpenFlag::kCreateIfNotExists});
     file.Write("bar");
+    file.Write("<p>🐙 <b>userver</b></p>");
     file.Write("baz");
     file.Flush();
 
-    EXPECT_EQ(fs::blocking::ReadFileContents(path), "barbaz");
+    EXPECT_EQ(fs::blocking::ReadFileContents(path), "bar<p>🐙 <b>userver</b></p>baz");
 }
 
 TEST(CFile, WriteEmpty) {
@@ -109,11 +110,11 @@ TEST(CFile, Position) {
         EXPECT_EQ(reader.GetPosition(), 0);
         EXPECT_EQ(reader.GetSize(), 5);
 
-        EXPECT_EQ(reader.Read(buffer.data(), 3), 3);
+        EXPECT_EQ(reader.Read({buffer.data(), 3}), 3);
         EXPECT_EQ(reader.GetPosition(), 3);
         EXPECT_EQ(reader.GetSize(), 5);
 
-        EXPECT_EQ(reader.Read(buffer.data(), 10), 2);
+        EXPECT_EQ(reader.Read({buffer.data(), 10}), 2);
         EXPECT_EQ(reader.GetPosition(), 5);
         EXPECT_EQ(reader.GetSize(), 5);
     }

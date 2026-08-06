@@ -13,17 +13,14 @@ userver_venv_setup(
 function(userver_chaos_testsuite_add)
     set(options)
     set(oneValueArgs TESTS_DIRECTORY)
-    set(multiValueArgs PYTHONPATH ENV)
+    set(multiValueArgs PYTHONPATH ENV RESOURCE_LOCKS)
     cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     userver_testsuite_add_simple(
-        WORKING_DIRECTORY
-        "${ARG_TESTS_DIRECTORY}"
-        PYTHON_BINARY
-        "${TESTSUITE_PYTHON_BINARY}"
-        PYTHONPATH
-        ${ARG_PYTHONPATH}
-        TEST_ENV
-        "${ARG_ENV}"
+        WORKING_DIRECTORY "${ARG_TESTS_DIRECTORY}"
+        PYTHON_BINARY "${TESTSUITE_PYTHON_BINARY}"
+        PYTHONPATH ${ARG_PYTHONPATH}
+        TEST_ENV "${ARG_ENV}"
+        RESOURCE_LOCKS ${ARG_RESOURCE_LOCKS}
     )
 endfunction()

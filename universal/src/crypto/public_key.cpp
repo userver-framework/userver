@@ -13,7 +13,6 @@
 #include <userver/crypto/openssl.hpp>
 #include <userver/utils/numeric_cast.hpp>
 #include <userver/utils/str_icase.hpp>
-#include <userver/utils/text_light.hpp>
 #include <userver/utils/trivial_map.hpp>
 
 #include <crypto/helpers.hpp>
@@ -93,7 +92,7 @@ std::unique_ptr<EC_KEY, decltype(&::EC_KEY_free)> LoadEc(int curve_type, Bignum 
 PublicKey PublicKey::LoadFromString(std::string_view key) {
     Openssl::Init();
 
-    if (utils::text::StartsWith(key, "-----BEGIN CERTIFICATE-----")) {
+    if (key.starts_with("-----BEGIN CERTIFICATE-----")) {
         return LoadFromCertificate(Certificate::LoadFromString(key));
     }
 

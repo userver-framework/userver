@@ -10,10 +10,10 @@ pytest_plugins = [
 
 
 @pytest.fixture(scope='session')
-def service_env(redis_cluster_ports, redis_cluster_topology_session):
+def service_env(redis_cluster_proxy_ports, redis_cluster_topology_session):
     cluster_hosts = []
     cluster_shards = []
-    for index, port in enumerate(redis_cluster_ports):
+    for index, port in enumerate(redis_cluster_proxy_ports):
         cluster_hosts.append({'host': '127.0.0.1', 'port': port})
     for index in range(3):
         cluster_shards.append({'name': f'shard{index}'})
@@ -26,6 +26,11 @@ def service_env(redis_cluster_ports, redis_cluster_topology_session):
                 'shards': cluster_shards,
             },
             'redis-cluster2': {
+                'password': '',
+                'sentinels': cluster_hosts,
+                'shards': cluster_shards,
+            },
+            'redis-cluster3': {
                 'password': '',
                 'sentinels': cluster_hosts,
                 'shards': cluster_shards,

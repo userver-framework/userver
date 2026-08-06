@@ -18,6 +18,7 @@ VALUES ($id, $doc);
 
 }  // namespace
 
+/// [YDB service sample - bson upserting]
 std::string BsonUpsertingHandler::HandleRequest(server::http::HttpRequest& request, server::request::RequestContext&)
     const {
     const auto& id = request.GetArg("id");
@@ -26,5 +27,6 @@ std::string BsonUpsertingHandler::HandleRequest(server::http::HttpRequest& reque
     ydb_client_->ExecuteDataQuery(kInsertQuery, "$id", id, "$doc", body);
     return {};
 }
+/// [YDB service sample - bson upserting]
 
 }  // namespace sample

@@ -106,7 +106,9 @@ AMQP::Table CreateHeadersForPublish(const Envelope& envelope) {
 
 }  // namespace
 
-AmqpChannel::AmqpChannel(AmqpConnection& conn) : conn_{conn} {}
+AmqpChannel::AmqpChannel(AmqpConnection& conn)
+    : conn_{conn}
+{}
 
 AmqpChannel::~AmqpChannel() = default;
 
@@ -270,7 +272,9 @@ void AmqpChannel::CancelConsumer(const std::optional<std::string>& consumer_tag)
 
 void AmqpChannel::AccountMessageConsumed() { conn_.GetStatistics().AccountMessageConsumed(); }
 
-AmqpReliableChannel::AmqpReliableChannel(AmqpConnection& conn) : conn_{conn} {}
+AmqpReliableChannel::AmqpReliableChannel(AmqpConnection& conn)
+    : conn_{conn}
+{}
 
 AmqpReliableChannel::~AmqpReliableChannel() = default;
 

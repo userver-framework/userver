@@ -23,6 +23,32 @@ namespace {
 
 enum class Typed { kYes, kNo };
 
+// Neutralizes a label value for the Prometheus text exposition format. The
+// format only allows a backslash, a double quote and a line feed inside a
+// quoted label value when they are escaped; a raw trailing backslash would
+// escape the closing quote and pull following output into the value, and a raw
+// line feed would start a new sample line. The double quote keeps the
+// historical replacement with a single quote.
+void AppendEscapedLabelValue(fmt::memory_buffer& buf, std::string_view value) {
+    for (const char c : value) {
+        switch (c) {
+            case '\\':
+                buf.push_back('\\');
+                buf.push_back('\\');
+                break;
+            case '\n':
+                buf.push_back('\\');
+                buf.push_back('n');
+                break;
+            case '"':
+                buf.push_back('\'');
+                break;
+            default:
+                buf.push_back(c);
+        }
+    }
+}
+
 template <Typed IsTyped>
 class FormatBuilder final : public utils::statistics::BaseFormatBuilder {
 public:
@@ -141,8 +167,7 @@ private:
                 buf_.push_back(',');
             }
             fmt::format_to(std::back_inserter(buf_), FMT_COMPILE("{}=\""), impl::ToPrometheusLabel(label.Name()));
-            const auto& value = label.Value();
-            std::ranges::replace_copy(value, std::back_inserter(buf_), '"', '\'');
+            AppendEscapedLabelValue(buf_, label.Value());
             buf_.push_back('"');
             sep = true;
         }

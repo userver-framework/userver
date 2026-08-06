@@ -3,7 +3,6 @@
 #pragma once
 
 #include <gmock/gmock.h>
-
 #include <pg_queries/pg_client.hpp>
 
 namespace pg_queries {
@@ -15,35 +14,45 @@ public:
     MOCK_METHOD(
         (std::vector<std::optional<QueriesUserProfile>>),
         CreateProfileComposite,
-        (HostType host_type,
-         const std::optional<std::string>& arg1,
-         const std::optional<std::int32_t>& arg2,
-         const std::optional<std::string>& arg3,
-         const std::optional<bool>& arg4),
+        (
+            HostType host_type,
+            const std::optional<std::string>& arg1,
+            const std::optional<std::int32_t>& arg2,
+            const std::optional<std::string>& arg3,
+            const std::optional<bool>& arg4
+        ),
         (const, override)
     );
 
     MOCK_METHOD(
         (std::vector<CreateUserRow>),
         CreateUser,
-        (HostType host_type,
-         const std::string& arg1,
-         const std::string& arg2,
-         const std::optional<QueriesUserStatus>& arg3),
+        (
+            HostType host_type,
+            const std::string& arg1,
+            const std::string& arg2,
+            const std::optional<QueriesUserStatus>& arg3
+        ),
         (const, override)
     );
 
     MOCK_METHOD(
         (std::vector<DeleteUserRow>),
         DeleteUser,
-        (HostType host_type, const std::optional<std::int64_t>& arg1),
+        (
+            HostType host_type,
+            const std::optional<std::int64_t>& arg1
+        ),
         (const, override)
     );
 
     MOCK_METHOD(
         (void),
         DeleteUserSimple,
-        (HostType host_type, const std::optional<std::int64_t>& arg1),
+        (
+            HostType host_type,
+            const std::optional<std::int64_t>& arg1
+        ),
         (const, override)
     );
 
@@ -54,21 +63,30 @@ public:
     MOCK_METHOD(
         (std::vector<std::optional<QueriesUserProfile>>),
         GetUserAsComposite,
-        (HostType host_type, const std::optional<std::int64_t>& arg1),
+        (
+            HostType host_type,
+            const std::optional<std::int64_t>& arg1
+        ),
         (const, override)
     );
 
     MOCK_METHOD(
         (std::vector<GetUserByIdRow>),
         GetUserById,
-        (HostType host_type, const std::optional<std::int64_t>& arg1),
+        (
+            HostType host_type,
+            const std::optional<std::int64_t>& arg1
+        ),
         (const, override)
     );
 
     MOCK_METHOD(
         (std::vector<GetUserProfileCompositeRow>),
         GetUserProfileComposite,
-        (HostType host_type, const std::optional<std::int64_t>& arg1),
+        (
+            HostType host_type,
+            const std::optional<std::int64_t>& arg1
+        ),
         (const, override)
     );
 
@@ -77,14 +95,22 @@ public:
     MOCK_METHOD(
         (void),
         UpdateUserSimple,
-        (HostType host_type, const std::optional<std::int64_t>& arg1, const std::optional<QueriesUserStatus>& arg2),
+        (
+            HostType host_type,
+            const std::optional<std::int64_t>& arg1,
+            const std::optional<QueriesUserStatus>& arg2
+        ),
         (const, override)
     );
 
     MOCK_METHOD(
         (std::vector<UpdateUserStatusRow>),
         UpdateUserStatus,
-        (HostType host_type, const std::optional<std::int64_t>& arg1, const std::optional<QueriesUserStatus>& arg2),
+        (
+            HostType host_type,
+            const std::optional<std::int64_t>& arg1,
+            const std::optional<QueriesUserStatus>& arg2
+        ),
         (const, override)
     );
 

@@ -144,18 +144,48 @@ static Builders<ForHandlerTag>& GetBuilders() {
 template <typename AnyTag, typename T, typename Tag>
 const utils::AnyStorageDataTag<AnyTag, WithTag<T, Tag>> kTag;
 
-template <typename ForHandlerTag, typename T, typename Tag>
-extern const int kBuilderRegistrator;
-
 template <typename T, typename Tag, typename ForHandlerTag>
 void BuildAndStore(Factories& f, utils::AnyStorage<ForHandlerTag>& storage)
 {
-    storage.template Emplace(impl::kTag<ForHandlerTag, T, Tag>, f.MakeData<T, Tag>());
+    storage.Emplace(impl::kTag<ForHandlerTag, T, Tag>, f.MakeData<T, Tag>());
 }
 
+// Registration of a per-handler dependency builder MUST happen during static
+// initialization, i.e. before main() / utils::impl::FinishStaticRegistration()
+// and thus before any Factories::Make<ForHandlerTag>() call, for two reasons:
+//
+//  1. Factories::Make<ForHandlerTag>() iterates GetBuilders<ForHandlerTag>() to
+//     populate the storage. If a builder is registered lazily (e.g. only when
+//     ForHandler::operator[] is executed at runtime), Make() may run before the
+//     registration and produce an empty storage, tripping the UINVARIANT in
+//     ForHandler::operator[].
+//
+//  2. BuildAndStore() (and eager registration below) constructs
+//     kTag<...> which is a utils::AnyStorageDataTag. Its constructor calls
+//     AssertStaticRegistrationAllowed(), so it is only legal before
+//     FinishStaticRegistration().
+//
+// The set of dependencies a handler needs is still discovered from the
+// 'handler[kXxx]' call sites: instantiating ForHandler::operator[]<T, Tag>
+// (which the compiler does at every call site) odr-uses
+// BuilderRegistrar<...>::kRegistered below, whose dynamic initializer performs
+// the registration during static initialization.
 template <typename ForHandlerTag, typename T, typename Tag>
-const int
-    kBuilderRegistrator = (impl::GetBuilders<ForHandlerTag>().emplace_back(BuildAndStore<T, Tag, ForHandlerTag>), 1);
+struct BuilderRegistrar final {
+    static bool Register() {
+        // Force construction of the storage tag during static registration so
+        // the per-ForHandlerTag storage layout (count/offset) is complete
+        // before the first Make(), and AssertStaticRegistrationAllowed() holds.
+        (void)&kTag<ForHandlerTag, T, Tag>;
+        GetBuilders<ForHandlerTag>().emplace_back(BuildAndStore<T, Tag, ForHandlerTag>);
+        return true;
+    }
+
+    static const bool kRegistered;
+};
+
+template <typename ForHandlerTag, typename T, typename Tag>
+const bool BuilderRegistrar<ForHandlerTag, T, Tag>::kRegistered = BuilderRegistrar<ForHandlerTag, T, Tag>::Register();
 
 }  // namespace impl
 
@@ -168,9 +198,13 @@ template <typename ForHandlerTag>
 template <typename T, typename Tag>
 T ForHandler<ForHandlerTag>::operator[](const FactoryTag<T, Tag>&)
 {
-    (void)impl::kBuilderRegistrator<ForHandlerTag, T, Tag>;
+    // Instantiating this operator (done by the compiler at every 'handler[kXxx]'
+    // call site) odr-uses BuilderRegistrar<...>::kRegistered, whose dynamic
+    // initializer registers the builder during static initialization, before
+    // any Factories::Make<ForHandlerTag>() runs. See BuilderRegistrar comment.
+    (void)&impl::BuilderRegistrar<ForHandlerTag, T, Tag>::kRegistered;
 
-    auto* dep = deps_.template GetOptional(impl::kTag<ForHandlerTag, T, Tag>);
+    auto* dep = deps_.GetOptional(impl::kTag<ForHandlerTag, T, Tag>);
 
     // Must be non-NULL if this was built from Factories
     // due to Factories::Make implementation
@@ -231,7 +265,7 @@ void Factories::Register(Func func)
     using T = std::invoke_result_t<Func>;
     FactoryFunc<T> wrapper = std::move(func);
 
-    builder_storage_.template Emplace(impl::kTag<Factories, FactoryFunc<T>, Tag>, std::move(wrapper));
+    builder_storage_.Emplace(impl::kTag<Factories, FactoryFunc<T>, Tag>, std::move(wrapper));
 }
 
 template <typename ForHandlerTag>
@@ -246,7 +280,7 @@ ForHandler<ForHandlerTag> Factories::Make() {
 template <typename T, typename Tag>
 T Factories::MakeData()
 {
-    auto* builder = builder_storage_.template GetOptional(impl::kTag<Factories, FactoryFunc<T>, Tag>);
+    auto* builder = builder_storage_.GetOptional(impl::kTag<Factories, FactoryFunc<T>, Tag>);
 
     UINVARIANT(
         builder,

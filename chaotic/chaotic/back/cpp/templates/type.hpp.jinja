@@ -14,37 +14,45 @@
 
 {% import 'templates/stream_writer.jinja' as sw %}
 
-{% macro generate_type(type) %}
+{% macro _generate_type(type) %}
     {% if type.get_py_type() == 'CppStruct' %}
+        {% if type.cpp_comment() %}
         {{ type.cpp_comment() }}
+        {% endif %}
         struct {{ type.cpp_local_name() }} {
-        {% filter indent(width=4, first=True) %}
-            {# handle subtypes #}
+        {% filter indent_not_empty(width=4) %}
             {% for field in type.fields.values() %}
-                {{- generate_type(field.schema) }}
+                {{- _generate_type(field.schema) -}}
             {% endfor %}
             {% if type.extra_type not in [True, False, None] and not type._is_default_dict() %}
-                {{- generate_type(type.extra_type) }}
+                {{- _generate_type(type.extra_type) -}}
             {% endif %}
         {% endfilter %}
 
+        {%- set ns = namespace(requires_newlines=false) %}
         {% for field in type.fields.values() if field.get_default() != '' %}
+            {% set ns.requires_newlines = true %}
             static constexpr auto kFieldDefault{{ field.cpp_field_name() }} = {{ field.get_default_raw() }};
         {% endfor %}
+        {% if ns.requires_newlines %}
 
-        {% for field in type.fields.values() %}
+        {% endif %}
+
+        {%- for field in type.fields.values() %}
             {{ field.cpp_field_type() }} {{ field.cpp_field_name() }}{ {{- field.get_default() -}} };
         {% endfor %}
         {% if type.extra_type %}
             {{ extra_cpp_type(type) }} extra{};
         {% endif %}
         };
+
     {% elif type.get_py_type() == 'CppPrimitiveType' %}
-        {{ generate_validators_data_declaration(type) }}
+        {{- _generate_validators_data_declaration(type) -}}
     {% elif type.get_py_type() == 'CppConstType' %}
         inline constexpr {{ type.const_declaration_type() }} k{{ type.prefix }}Const = {{ type.get_const_value() }};
 
         using {{ type.prefix }} = USERVER_NAMESPACE::chaotic::ConstValue<k{{ type.prefix }}Const>;
+
     {% elif type.get_py_type() == 'CppRef' %}
         {#- nothing -#}
     {% elif type.get_py_type() == 'CppIntEnum' %}
@@ -59,6 +67,7 @@
             {{ type.cpp_local_name() }}::k{{ item.cpp_name }},
         {% endfor %}
         };
+
     {% elif type.get_py_type() == 'CppStringEnum' %}
         enum class {{ type.cpp_local_name() }} {
         {% for item in type.enums %}
@@ -71,19 +80,20 @@
             {{ type.cpp_local_name() }}::{{ item.cpp_name }},
         {% endfor %}
         };
+
     {% elif type.get_py_type() == 'CppArray' %}
         {#- handle subtype -#}
-        {{ generate_type(type.items) }}
+        {{- _generate_type(type.items) -}}
     {% elif type.get_py_type() == 'CppStructAllOf' %}
         {#- handle subtypes -#}
         {% for parent in type.parents %}
-            {{ generate_type(parent) }}
+            {{- _generate_type(parent) -}}
         {% endfor %}
 
         {# TODO: x-usrv-cpp-type #}
         struct {{ type.cpp_local_name() }} :
           {% for parent in type.parents %}
-            public {{ shortest_cpp_name(parent) }}{% if not loop.last %}, {% endif +%}
+            public {{ shortest_cpp_name(parent) }}{% if not loop.last %},{% endif +%}
           {% endfor %}
         {
             {{ type.cpp_local_name() }}() = default;
@@ -94,22 +104,24 @@
                 {% endfor -%}
                 ) :
                   {% for num, parent in enumerate(type.parents) %}
-                  {{ shortest_cpp_name(parent) }}(std::move(a{{ num }})){% if not loop.last %}, {% endif +%}
+                  {{ shortest_cpp_name(parent) }}(std::move(a{{ num }})){% if not loop.last %},{% endif +%}
                   {% endfor %}
             {}
         };
+
     {% elif type.get_py_type() == 'CppVariant' %}
         {#- handle subtypes -#}
         {% for variant in type.variants %}
-            {{ generate_type(variant) }}
+            {{- _generate_type(variant) -}}
         {% endfor %}
 
         {#- oneOf -#}
         using {{ type.cpp_local_name() }} = std::variant<
           {% for variant in type.variants %}
-            {{ variant.cpp_user_name() }}{% if not loop.last %}, {% endif +%}
+            {{ variant.cpp_user_name() }}{% if not loop.last %},{% endif +%}
           {% endfor %}
         >;
+
     {% elif type.get_py_type() == 'CppVariantWithDiscriminator' %}
         {% if type.is_str_discriminator() %}
         [[maybe_unused]] static constexpr {{ userver }}::chaotic::OneOfStringSettings k{{ type.cpp_local_name() }}_Settings = {
@@ -141,9 +153,10 @@
 
         using {{ type.cpp_local_name() }} = std::variant<
           {% for variant in type.variants.values() %}
-            {{ shortest_cpp_name(variant) }}{% if not loop.last %}, {% endif +%}
+            {{ shortest_cpp_name(variant) }}{% if not loop.last %},{% endif +%}
           {% endfor %}
         >;
+
     {% elif not type.needs_new_type() %}
         {#- No new type -#}
     {% else %}
@@ -151,7 +164,7 @@
     {% endif %}
 {% endmacro %}
 
-{% macro generate_validators_data_declaration(type) %}
+{% macro _generate_validators_data_declaration(type) %}
     {% if type.validators.min != None %}
         static constexpr auto k{{ type.validators.prefix }}Minimum = {{ type.validators.min }};
     {% endif %}
@@ -170,10 +183,10 @@
 {% endmacro %}
 
 
-{% macro generate_operator_eq_declaration(type) %}
+{% macro _generate_operator_eq_declaration(type) %}
     {#- handle subtypes -#}
     {% for schema in type.subtypes() %}
-        {{ generate_operator_eq_declaration(schema) }}
+        {{ _generate_operator_eq_declaration(schema) }}
     {% endfor %}
 
     {% if type.need_operator_eq() %}
@@ -181,10 +194,10 @@
     {% endif %}
 {% endmacro %}
 
-{% macro generate_operator_lshift_declaration(type) %}
+{% macro _generate_operator_lshift_declaration(type) %}
     {#- handle subtypes -#}
     {% for schema in type.subtypes() %}
-        {{ generate_operator_lshift_declaration(schema) }}
+        {{ _generate_operator_lshift_declaration(schema) }}
     {% endfor %}
 
     {% if type.need_operator_lshift() and (type.get_py_type() == 'CppStringEnum' or generate_serializer) %}
@@ -192,16 +205,16 @@
     {% endif %}
 {% endmacro %}
 
-{% macro generate_parser_declaration(type, format) %}
+{% macro _generate_parser_declaration(type, format) %}
     {% if not type.may_generate_for_format(format) %}
         /* Parse({{ format }}::Value, To<{{ shortest_cpp_name(type) }}>) was not generated: {{ type.only_json_reason() }} */
 
     {% else %}
-        {{- _generate_parser_declaration(type, format) }}
+        {{- _generate_parser_declaration_impl(type, format) }}
     {% endif %}
 {% endmacro %}
 
-{% macro generate_from_json_string_declaration(type) %}
+{% macro _generate_from_json_string_declaration(type) %}
     {% if type.get_py_type() == 'CppStruct' %}
         {{ type.cpp_local_name() }} FromJsonString(
             std::string_view json,
@@ -209,16 +222,16 @@
     {% endif %}
 {% endmacro %}
 
-{% macro generate_to_json_string_declaration(type) %}
+{% macro _generate_to_json_string_declaration(type) %}
     {% if type.get_py_type() in ('CppStruct', 'CppStructAllOf') %}
         std::string ToJsonString(const {{ type.cpp_local_name() }}& value);
     {% endif %}
 {% endmacro %}
 
-{% macro _generate_parser_declaration(type, format) %}
+{% macro _generate_parser_declaration_impl(type, format) %}
     {#- handle subtypes -#}
     {% for schema in type.subtypes() %}
-        {{- generate_parser_declaration(schema, format) }}
+        {{- _generate_parser_declaration(schema, format) }}
     {% endfor %}
 
     {% if type.need_dom_parser() %}
@@ -228,10 +241,10 @@
     {% endif %}
 {% endmacro %}
 
-{% macro generate_string_parser_declaration(type) %}
+{% macro _generate_string_parser_declaration(type) %}
     {#- handle subtypes -#}
     {% for schema in type.subtypes() %}
-        {{- generate_string_parser_declaration(schema) }}
+        {{- _generate_string_parser_declaration(schema) }}
     {% endfor %}
 
     {% if type.get_py_type() == 'CppIntEnum' %}
@@ -256,10 +269,10 @@
     {% endif %}
 {% endmacro %}
 
-{% macro generate_serializer_declaration(type) %}
+{% macro _generate_serializer_declaration(type) %}
     {#- handle subtypes -#}
     {% for schema in type.subtypes() %}
-        {{- generate_serializer_declaration(schema) }}
+        {{- _generate_serializer_declaration(schema) }}
     {% endfor %}
 
     {% if type.need_serializer() %}
@@ -269,10 +282,10 @@
     {% endif %}
 {% endmacro %}
 
-{% macro generate_tostring_declaration(type) %}
+{% macro _generate_tostring_declaration(type) %}
     {#- handle subtypes -#}
     {% for schema in type.subtypes() %}
-        {{ generate_tostring_declaration(schema) }}
+        {{ _generate_tostring_declaration(schema) }}
     {% endfor %}
 
     {% if type.get_py_type() in ['CppIntEnum', 'CppStringEnum'] %}
@@ -280,10 +293,10 @@
     {% endif %}
 {% endmacro %}
 
-{% macro generate_fmt_formatter_declaration(type) %}
+{% macro _generate_fmt_formatter_declaration(type) %}
     {#- handle subtypes -#}
     {% for schema in type.subtypes() %}
-        {{- generate_fmt_formatter_declaration(schema) }}
+        {{- _generate_fmt_formatter_declaration(schema) }}
     {% endfor %}
 
     {% if type.get_py_type() in ('CppIntEnum', 'CppStringEnum') %}
@@ -296,49 +309,49 @@
             }
         };
     {% endif %}
-{%endmacro%} 
+{% endmacro %}
 
 {% import 'templates/common.jinja' as common %}
 
 {% for name, type in types.items() %}
     {{- common.switch_namespace(cpp_namespace(name)) -}}
 
-    {{- generate_type(type) -}}
+    {{- _generate_type(type) -}}
 
     {% if type.need_using_type() %}
         using {{ cpp_type(name) }} = {{ shortest_cpp_name(type) }};
     {% endif %}
 
-    {{- generate_operator_eq_declaration(type) -}}
+    {{- _generate_operator_eq_declaration(type) -}}
 
-    {{- generate_operator_lshift_declaration(type) -}}
+    {{- _generate_operator_lshift_declaration(type) -}}
 
     {% for parse_format in parse_formats %}
-        {{- generate_parser_declaration(type, userver + parse_format) -}}
+        {{- _generate_parser_declaration(type, userver + parse_format) -}}
     {% endfor %}
 
     {% if has_json_parse(parse_formats) %}
-        {{- generate_from_json_string_declaration(type) }}
+        {{- _generate_from_json_string_declaration(type) }}
 
         {% if generate_serializer %}
-            {{- generate_to_json_string_declaration(type) -}}
+            {{- _generate_to_json_string_declaration(type) -}}
         {% endif %}
     {% endif %}
 
-    {{- generate_string_parser_declaration(type) -}}
+    {{- _generate_string_parser_declaration(type) -}}
 
     {% if generate_serializer %}
-        {{- generate_serializer_declaration(type) }}
+        {{- _generate_serializer_declaration(type) }}
         {% if generate_stream_writer %}
             {{- sw.generate_stream_writer_declaration(userver, type) -}}
         {% endif %}
     {% endif %}
 
-    {{- generate_tostring_declaration(type) -}}
+    {{- _generate_tostring_declaration(type) -}}
 {% endfor %}
 
 {{ common.switch_namespace('') }}
 
 {% for type in types.values() %}
-    {{- generate_fmt_formatter_declaration(type) -}}
+    {{- _generate_fmt_formatter_declaration(type) -}}
 {% endfor %}

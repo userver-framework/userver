@@ -104,11 +104,18 @@ void DumpMetric(utils::statistics::Writer& writer, const DistLockedWorker& worke
         std::chrono::duration_cast<std::chrono::milliseconds>(locked_duration.value_or(std::chrono::seconds(0)))
             .count();
 
-    writer["successes"] = stats.lock_successes.Load();
-    writer["failures"] = stats.lock_failures.Load();
-    writer["watchdog-triggers"] = stats.watchdog_triggers.Load();
-    writer["brain-splits"] = stats.brain_splits.Load();
-    writer["task-failures"] = stats.task_failures.Load();
+    // "successes" and "task-failures" are used in production alerts (e.g. hejmdal-distlock-task-failures)
+    // that still rely on the legacy GAUGE + non_negative_derivative pattern, so keep emitting the
+    // legacy value alongside the new RATE ".v2" metric until the alerts are migrated.
+    writer["successes"] = stats.lock_successes.Load().value;
+    writer["successes"]["v2"] = stats.lock_successes;
+
+    writer["failures"] = stats.lock_failures;
+    writer["watchdog-triggers"] = stats.watchdog_triggers;
+    writer["brain-splits"] = stats.brain_splits;
+
+    writer["task-failures"] = stats.task_failures.Load().value;
+    writer["task-failures"]["v2"] = stats.task_failures;
 }
 
 }  // namespace dist_lock

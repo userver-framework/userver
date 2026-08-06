@@ -52,11 +52,11 @@ void FutureStateBase::WaitForResult() {
     }
 }
 
-void FutureStateBase::TryAppendAwaiter(boost::intrusive_ptr<Awaiter>& awaiter, std::uintptr_t context) {
+void FutureStateBase::TryAppendAwaiter(AwaiterPtr& awaiter, std::uintptr_t context) {
     finish_awaiters_->GetSignalOrAppend(awaiter, context);
 }
 
-boost::intrusive_ptr<Awaiter> FutureStateBase::RemoveAwaiter(Awaiter& awaiter, std::uintptr_t context) noexcept {
+AwaiterPtr FutureStateBase::RemoveAwaiter(Awaiter& awaiter, std::uintptr_t context) noexcept {
     return finish_awaiters_->Remove(awaiter, context);
 }
 

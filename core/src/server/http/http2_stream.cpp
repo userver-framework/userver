@@ -59,6 +59,9 @@ bool Stream::CheckUrlComplete() {
     if (url_complete_) {
         return true;
     }
+    if (!constructor_.IsUrlReadyToParse()) {
+        return true;
+    }
     try {
         constructor_.ParseUrl();
     } catch (const std::exception& e) {

@@ -19,7 +19,7 @@ S3ApiSampleComponent::S3ApiSampleComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
 )
-    : LoggableComponentBase(config, context),
+    : ComponentBase(config, context),
       url_(config["url"].As<std::string>()),
       http_client_(context.FindComponent<::components::HttpClient>().GetHttpClient())
 {
@@ -56,7 +56,7 @@ s3api::ClientPtr S3ApiSampleComponent::GetClient() {
 /// [create_client]
 
 yaml_config::Schema S3ApiSampleComponent::GetStaticConfigSchema() {
-    return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
+    return yaml_config::MergeSchemas<components::ComponentBase>(R"(
 type: object
 description: S3 API sample component
 additionalProperties: false

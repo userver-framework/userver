@@ -38,3 +38,23 @@ components_manager:
             path: /*  # Registering handlers '/*' find files.
             method: GET  # Handle only GET requests.
             # /// [static config]
+
+        dynamic-config:  # Dynamic config storage options
+            defaults:
+                USERVER_FILES_CONTENT_TYPE_MAP:
+                    .css: "text/css"
+                    .gif: "image/gif"
+                    .htm: "text/html; charset=utf-8"
+                    .html: "text/html; charset=utf-8"
+                    .jpeg: "image/jpeg"
+                    .js: "application/javascript"
+                    .json: "application/json"
+                    .md: "text/markdown"
+                    .png: "image/png"
+                    .svg: "image/svg+xml"
+                    .ttf: "font/ttf"
+                    .otf: "font/otf"
+                    .woff: "font/woff"
+                    .woff2: "font/woff2"
+                    .eot: "application/vnd.ms-fontobject"
+

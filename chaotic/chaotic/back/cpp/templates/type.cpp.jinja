@@ -9,19 +9,19 @@
 #include "{{ pair_header }}_sax_parsers.hpp"
 {% endif %}
 
-{% macro generate_parser_definition_call(type, format) %}
+{% macro _generate_parser_definition_call(type, format) %}
     {% if not type.may_generate_for_format(format) %}
         /* Parse({{ format }}::Value, To<{{ shortest_cpp_name(type) }}>) was not generated: {{ type.only_json_reason() }} */
     {% else %}
-        {{ _generate_parser_definition_call(type, format) }}
+        {{- _generate_parser_definition_call_impl(type, format) -}}
     {% endif %}
 {% endmacro %}
 
 
-{% macro _generate_parser_definition_call(type, format) %}
+{% macro _generate_parser_definition_call_impl(type, format) %}
     {#- handle subtypes -#}
     {% for schema in type.subtypes() %}
-        {{ generate_parser_definition_call(schema, format) }}
+        {{- _generate_parser_definition_call(schema, format) -}}
     {% endfor %}
 
     {% if type.need_dom_parser() %}
@@ -35,7 +35,7 @@
 {% endmacro %}
 
 
-{% macro generate_from_json_string_definition(type) %}
+{% macro _generate_from_json_string_definition(type) %}
     {% if type.get_py_type() == 'CppStruct' %}
         {{ shortest_cpp_name(type) }} FromJsonString(
             std::string_view json,
@@ -56,7 +56,7 @@
 {% endmacro %}
 
 
-{% macro generate_to_json_string_definition(type) %}
+{% macro _generate_to_json_string_definition(type) %}
     {% if type.get_py_type() in ('CppStruct', 'CppStructAllOf') %}
         std::string ToJsonString(const {{ shortest_cpp_name(type) }}& value) {
           {% if generate_stream_writer %}
@@ -71,10 +71,10 @@
 {% endmacro %}
 
 
-{% macro generate_string_parser_definition(type) %}
+{% macro _generate_string_parser_definition(type) %}
     {#- handle subtypes -#}
     {% for schema in type.subtypes() %}
-        {{ generate_string_parser_definition(schema) }}
+        {{ _generate_string_parser_definition(schema) }}
     {% endfor %}
 
     {% if type.get_py_type() == 'CppIntEnum' %}
@@ -137,12 +137,12 @@
 {% endmacro %}
 
 
-{% macro generate_serializer_definition(type) %}
+{% macro _generate_serializer_definition(type) %}
     {% set local_name = shortest_cpp_name(type) %}
 
     {#- handle subtypes -#}
     {% for schema in type.subtypes() %}
-        {{ generate_serializer_definition(schema) }}
+        {{ _generate_serializer_definition(schema) }}
     {% endfor %}
 
     {% if type.get_py_type() == 'CppStruct' %}
@@ -218,10 +218,10 @@
     {% endif %}
 {% endmacro %}
 
-{% macro generate_tostring_definition(type) %}
+{% macro _generate_tostring_definition(type) %}
     {#- handle subtypes -#}
     {% for schema in type.subtypes() %}
-        {{- generate_tostring_definition(schema) }}
+        {{- _generate_tostring_definition(schema) }}
     {% endfor %}
 
     {% if type.get_py_type() in ('CppIntEnum', 'CppStringEnum') %}
@@ -240,17 +240,17 @@
 {% endmacro %}
 
 
-{% macro generate_operator_eq_definition(type) %}
+{% macro _generate_operator_eq_definition(type) %}
     {% set local_name = shortest_cpp_name(type) %}
 
     {#- handle subtypes -#}
     {% for schema in type.subtypes() %}
-        {{- generate_operator_eq_definition(schema) }}
+        {{- _generate_operator_eq_definition(schema) }}
     {% endfor %}
 
     {% if type.get_py_type() == 'CppStruct' %}
         bool operator==(const {{ local_name }} & lhs,const {{ local_name }} & rhs) {
-          {% if not type.fields %} 
+          {% if not type.fields %}
             (void)lhs;
             (void)rhs;
           {% endif %}
@@ -280,10 +280,10 @@
     {% endif %}
 {% endmacro %}
 
-{% macro generate_operator_lshift_definition(type) %}
+{% macro _generate_operator_lshift_definition(type) %}
     {#- handle subtypes -#}
     {% for schema in type.subtypes() %}
-        {{- generate_operator_lshift_definition(schema) }}
+        {{- _generate_operator_lshift_definition(schema) }}
     {% endfor %}
 
     {% if type.get_py_type() == 'CppStringEnum' %}
@@ -304,12 +304,12 @@
 {% endmacro %}
 
 
-{% macro generate_fmt_formatter_definition(type) %}
+{% macro _generate_fmt_formatter_definition(type) %}
     {#- handle subtypes -#}
     {% for schema in type.subtypes() %}
-        {{- generate_fmt_formatter_definition(schema) }}
+        {{- _generate_fmt_formatter_definition(schema) }}
     {% endfor %}
-    
+
     {% if type.get_py_type() in ('CppIntEnum', 'CppStringEnum') %}
         fmt::format_context::iterator fmt::formatter<{{ shortest_cpp_name(type) }}>::format(const {{ shortest_cpp_name(type) }}& value, fmt::format_context& ctx) const {
             return fmt::format_to(ctx.out(), "{}", ToString(value));
@@ -323,34 +323,34 @@
     {{- common.switch_namespace(cpp_namespace(name)) -}}
 
     {% if has_json_parse(parse_formats) %}
-        {{- generate_from_json_string_definition(type) }}
+        {{- _generate_from_json_string_definition(type) }}
         {% if generate_serializer %}
-            {{- generate_to_json_string_definition(type) -}}
+            {{- _generate_to_json_string_definition(type) -}}
         {% endif %}
     {% endif %}
 
-    {{- generate_operator_eq_definition(type) -}}
+    {{- _generate_operator_eq_definition(type) -}}
 
-    {{- generate_operator_lshift_definition(type) -}}
+    {{- _generate_operator_lshift_definition(type) -}}
 
     {% for parse_format in parse_formats %}
-        {{- generate_parser_definition_call(type, userver + parse_format) -}}
+        {{- _generate_parser_definition_call(type, userver + parse_format) -}}
     {% endfor %}
 
-    {{- generate_string_parser_definition(type) -}}
+    {{- _generate_string_parser_definition(type) -}}
 
     {% if generate_serializer %}
-        {{- generate_serializer_definition(type) -}}
+        {{- _generate_serializer_definition(type) -}}
         {% if generate_stream_writer %}
             {{- sw.generate_stream_writer_definition(userver, type) -}}
         {% endif %}
     {% endif %}
 
-    {{- generate_tostring_definition(type) -}}
+    {{- _generate_tostring_definition(type) -}}
 {% endfor %}
 
 {{ common.switch_namespace('') }}
 
 {% for type in types.values() %}
-    {{- generate_fmt_formatter_definition(type) -}}
+    {{- _generate_fmt_formatter_definition(type) -}}
 {% endfor %}

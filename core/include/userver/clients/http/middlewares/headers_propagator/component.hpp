@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/clients/http/midddlewares/headers_propagator/component.hpp
+/// @file userver/clients/http/middlewares/headers_propagator/component.hpp
 /// @brief @copybrief clients::http::middlewares::headers_propagator::Component
 
 #include <memory>

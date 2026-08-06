@@ -5,6 +5,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <system_error>
 
 #include <clients/http/middlewares/pipeline.hpp>
@@ -173,8 +174,8 @@ private:
     static curl::native::CURLcode OnCertificateRequest(void* curl, void* sslctx, void* userdata) noexcept;
 
     /// parse one header
-    void ParseHeader(char* ptr, size_t size);
-    void ParseSingleCookie(const char* ptr, size_t size);
+    void ParseHeader(std::string_view header);
+    void ParseSingleCookie(std::string_view cookie);
     /// simply run perform_request if there is now errors from timer
     void OnRetryTimer(std::error_code err);
     /// run curl async_request, called once per attempt

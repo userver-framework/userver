@@ -414,6 +414,18 @@ UTEST_F(RedisClientTransactionTest, Geopos) {
     EXPECT_NEAR(result[1].value().lat, 37.4, geo_tolerance);
 }
 
+UTEST_F(RedisClientTransactionTest, Getdel) {
+    const Version since{6, 2, 0};
+    if (!CheckRedisVersion(since)) {
+        GTEST_SKIP() << SkipMsgByVersion("Getdel", since);
+    }
+
+    auto& client = GetTransactionClient();
+    EXPECT_EQ(Get(client->Incr("key")), 1);
+    EXPECT_EQ(Get(client->Getdel("key")), "1");
+    EXPECT_EQ(Get(client->Exists("key"), kMasterCC), false);
+}
+
 UTEST_F(RedisClientTransactionTest, Getset) {
     auto& client = GetTransactionClient();
     EXPECT_EQ(Get(client->Incr("key")), 1);

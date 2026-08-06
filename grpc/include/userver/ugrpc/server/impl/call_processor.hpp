@@ -120,7 +120,7 @@ public:
     {}
 
     void ProcessCall() {
-        auto scope_time = state_.GetSpan().CreateScopeTime("finish");
+        auto scope_time = state_.GetSpan().CreateScopeTime("pre_call");
 
         DeserializeInitialRequest();
 
@@ -136,6 +136,8 @@ public:
         // Don't keep the config snapshot for too long, especially for streaming RPCs.
         state_.config_snapshot.reset();
 
+        scope_time.Reset("call");
+
         std::optional<Response> response;
         if (!engine::current_task::ShouldCancel() && status_.ok()) {
             RunWithCatch([this, &response] {
@@ -146,9 +148,12 @@ public:
         }
 
         if (!engine::current_task::ShouldCancel() && !responder_.IsInterrupted()) {
+            scope_time.Reset("pre_finish");
             RunPreFinishHooks(response);
+            scope_time.Reset("finish");
             finished = impl::Finish(responder_, response, status_);
         } else {
+            scope_time.Reset("finish");
             impl::FinishInterrupted(responder_);
         }
 

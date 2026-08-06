@@ -27,6 +27,8 @@
 #include <userver/storages/redis/redis_config.hpp>
 #include <userver/storages/redis/subscribe_client.hpp>
 
+#include <storages/redis/impl/health_check_manager.hpp>
+#include <storages/redis/impl/keyshard_impl.hpp>
 #include <storages/redis/impl/redis_group.hpp>
 #include <storages/redis/impl/sentinel.hpp>
 #include <storages/redis/impl/subscribe_sentinel.hpp>
@@ -84,6 +86,7 @@ RedisPools Parse(const yaml_config::YamlConfig& value, formats::parse::To<RedisP
 
 Redis::Redis(const ComponentConfig& config, const ComponentContext& component_context)
     : ComponentBase(config, component_context),
+      health_check_manager_(std::make_shared<storages::redis::impl::HealthCheckManager>()),
       config_(component_context.FindComponent<DynamicConfig>().GetSource())
 {
     const auto&
@@ -184,6 +187,13 @@ void Redis::Connect(
             sentinels_.emplace(redis_group.db, sentinel);
             const auto& client = std::make_shared<storages::redis::ClientImpl>(sentinel);
             clients_.emplace(redis_group.db, client);
+
+            if (redis_group.required_mode != storages::redis::WaitConnectedMode::kNoWait) {
+                health_check_manager_->AddClient(
+                    redis_group.db,
+                    {redis_group.required_mode, redis_group.max_failed_shards, redis_group.max_failed_shards_percent}
+                );
+            }
         } else {
             LOG_WARNING() << "skip redis client for " << redis_group.db;
         }
@@ -211,6 +221,12 @@ void Redis::Connect(
         if (sentinel) {
             subscribe_clients_
                 .emplace(redis_group.db, std::make_shared<storages::redis::SubscribeClientImpl>(std::move(sentinel)));
+            if (redis_group.required_mode != storages::redis::WaitConnectedMode::kNoWait) {
+                health_check_manager_->AddSubscribeClient(
+                    redis_group.db,
+                    {redis_group.required_mode, redis_group.max_failed_shards, redis_group.max_failed_shards_percent}
+                );
+            }
         } else {
             LOG_WARNING() << "skip subscribe-redis client for " << redis_group.db;
         }
@@ -225,6 +241,15 @@ void Redis::Connect(
     }
 }
 
+ComponentHealth Redis::GetComponentHealth() const {
+    auto cfg = config_.GetSnapshot();
+    if (cfg[storages::redis::kConfig].ignore_health_check) {
+        return ComponentHealth::kOk;
+    }
+
+    return health_check_manager_->GetComponentHealth(clients_, subscribe_clients_);
+}
+
 Redis::~Redis() { config_subscription_.Unsubscribe(); }
 
 void Redis::WriteStatistics(utils::statistics::Writer& writer) {
@@ -232,15 +257,28 @@ void Redis::WriteStatistics(utils::statistics::Writer& writer) {
     for (const auto& [name, redis] : sentinels_) {
         writer.ValueWithLabels(*redis->GetStatistics(*settings), {"redis_database", name});
     }
-    auto threads_writer = writer["ev_threads"]["cpu_load_percent"];
-    threads_writer.ValueWithLabels(*thread_pools_->GetRedisThreadPool(), {});
-    threads_writer.ValueWithLabels(thread_pools_->GetSentinelThreadPool(), {});
+
+    {
+        auto threads_writer = writer["ev_threads"]["cpu_load_percent"];
+        threads_writer.ValueWithLabels(*thread_pools_->GetRedisThreadPool(), {});
+        threads_writer.ValueWithLabels(thread_pools_->GetSentinelThreadPool(), {});
+    }
+
+    {
+        auto health_writer = writer["health"];
+        health_check_manager_->WriteHealthStatistics(health_writer, clients_);
+    }
 }
 
 void Redis::WriteStatisticsPubsub(utils::statistics::Writer& writer) {
     auto settings = pubsub_metrics_settings_.Read();
     for (const auto& [name, redis] : subscribe_clients_) {
         writer.ValueWithLabels(redis->GetNative().GetSubscriberStatistics(*settings), {"redis_database", name});
+    }
+
+    {
+        auto health_writer = writer["health"];
+        health_check_manager_->WriteSubscribeHealthStatistics(health_writer, subscribe_clients_);
     }
 }
 

@@ -274,7 +274,7 @@ struct ComplexStatusValidateCallback {
 HttpResponse PutValidateCallback(const HttpRequest& request) {
     LOG_INFO() << "HTTP Server receive: " << request;
 
-    EXPECT_NE(request.find("PUT"), std::string::npos) << "PUT request has no PUT in headers: " << request;
+    EXPECT_THAT(request, testing::HasSubstr("PUT")) << "PUT request has no PUT in headers: " << request;
 
     return {
         "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: "
@@ -322,8 +322,7 @@ std::string TryGetHeader(const HttpRequest& request, std::string_view header) {
     if (first_pos == std::string::npos) {
         return {};
     }
-    const auto second_pos = request.find(header, first_pos + header.length());
-    EXPECT_EQ(second_pos, std::string::npos)
+    EXPECT_EQ(request.find(header, first_pos + header.length()), std::string::npos)
         << "Header `" << header << "` exists more than once in request: " << request;
 
     auto values_begin_pos = request.find(':', first_pos + header.length()) + 1;
@@ -335,8 +334,8 @@ std::string TryGetHeader(const HttpRequest& request, std::string_view header) {
 }
 
 std::string AssertHeader(const HttpRequest& request, std::string_view header) {
-    const auto first_pos = request.find(header);
-    EXPECT_NE(first_pos, std::string::npos) << "Failed to find header `" << header << "` in request: " << request;
+    EXPECT_THAT(request, testing::HasSubstr(header))
+        << "Failed to find header `" << header << "` in request: " << request;
 
     return TryGetHeader(request, header);
 }
@@ -403,16 +402,30 @@ struct CheckCookie {
     const std::set<std::string> expected_cookies;
 
     HttpResponse operator()(const HttpRequest& request) {
+        static const HttpResponse kOkResponse{
+            "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 0\r\n\r\n",
+            HttpResponse::kWriteAndClose
+        };
+
         const auto header_pos = request.find("Cookie:");
-        EXPECT_NE(header_pos, std::string::npos) << "Failed to find 'Cookie' header in request: " << request;
+        if (header_pos == std::string::npos) {
+            ADD_FAILURE() << "Failed to find 'Cookie' header in request: " << request;
+            return kOkResponse;
+        }
 
         EXPECT_EQ(request.find("Cookie:", header_pos + 1), std::string::npos)
             << "Duplicate 'Cookie' header in request: " << request;
 
         const auto value_start = request.find_first_not_of(' ', header_pos + 7);
-        EXPECT_NE(value_start, std::string::npos) << "Malformed request: " << request;
+        if (value_start == std::string::npos) {
+            ADD_FAILURE() << "Malformed request: " << request;
+            return kOkResponse;
+        }
         const auto value_end = request.find("\r\n", value_start);
-        EXPECT_NE(value_end, std::string::npos) << "Malformed request: " << request;
+        if (value_end == std::string::npos) {
+            ADD_FAILURE() << "Malformed request: " << request;
+            return kOkResponse;
+        }
 
         auto value = request.substr(value_start, value_end - value_start);
         std::vector<std::string> received_cookies;
@@ -425,7 +438,7 @@ struct CheckCookie {
         }
         EXPECT_TRUE(unseen_cookies.empty()) << "Not all cookies received";
 
-        return {"HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 0\r\n\r\n", HttpResponse::kWriteAndClose};
+        return kOkResponse;
     }
 };
 
@@ -678,7 +691,7 @@ UTEST(HttpClient, CancelPre) {
         const utest::SimpleServer http_server{EchoCallback{}};
         auto http_client_ptr = utest::CreateHttpClient();
 
-        engine::current_task::GetCancellationToken().RequestCancel();
+        engine::current_task::RequestCancel();
 
         UEXPECT_THROW(http_client_ptr->CreateRequest(), clients::http::CancelException);
     });
@@ -693,7 +706,7 @@ UTEST(HttpClient, CancelPost) {
 
         auto request = http_client_ptr->CreateRequest().post(http_server.GetBaseUrl(), kTestData).timeout(kTimeout);
 
-        engine::current_task::GetCancellationToken().RequestCancel();
+        engine::current_task::RequestCancel();
 
         auto future = request.async_perform();
         UEXPECT_THROW(future.Wait(), clients::http::CancelException);
@@ -738,7 +751,7 @@ UTEST(HttpClient, CancelRetries) {
     ASSERT_TRUE(enough_retries_event.WaitForEventFor(utest::kMaxTestWaitTime));
 
     const auto cancellation_start_time = std::chrono::steady_clock::now();
-    engine::current_task::GetCancellationToken().RequestCancel();
+    engine::current_task::RequestCancel();
 
     const auto request_creation_duration = cancellation_start_time - start_create_request_time;
 
@@ -1113,6 +1126,40 @@ UTEST(HttpClient, Cookies) {
     test({{"a", "B"}, {"A", "b"}}, {"a=B", "A=b"});
 }
 
+UTEST(HttpClient, DuplicateSetCookieOverwrites) {
+    const utest::SimpleServer http_server{[](const utest::SimpleServer::Request&) {
+        static const utest::SimpleServer::Response kResponse{
+            "HTTP/1.1 200 OK\r\n"
+            "Connection: close\r\n"
+            "Content-Length: 0\r\n"
+            "Set-Cookie: test=first\r\n"
+            "Set-Cookie: test=second\r\n"
+            "Set-Cookie: test=third\r\n"
+            "\r\n",
+            utest::SimpleServer::Response::kWriteAndClose,
+        };
+        return kResponse;
+    }};
+
+    auto http_client_ptr = utest::CreateHttpClient();
+    const auto response =
+        http_client_ptr->CreateRequest()
+            .get(http_server.GetBaseUrl())
+            .retry(1)
+            .verify(true)
+            .http_version(USERVER_NAMESPACE::http::HttpVersion::k11)
+            .timeout(kTimeout)
+            .perform();
+
+    EXPECT_TRUE(response->IsOk());
+
+    const auto& cookies = response->cookies();
+    ASSERT_EQ(cookies.size(), 1u);
+    const auto it = cookies.find("test");
+    ASSERT_NE(it, cookies.end());
+    EXPECT_EQ(it->second.Value(), "third");
+}
+
 UTEST(HttpClient, HeadersAndWhitespaces) {
     auto http_client_ptr = utest::CreateHttpClient();
 
@@ -1140,6 +1187,34 @@ UTEST(HttpClient, HeadersAndWhitespaces) {
         ASSERT_TRUE(response->headers().count(kTestHeaderMixedCase)) << "Header value is '" << header_value << "'";
         EXPECT_EQ(response->headers()[kTestHeader], header_data) << "Header value is '" << header_value << "'";
         EXPECT_EQ(response->headers()[kTestHeaderMixedCase], header_data) << "Header value is '" << header_value << "'";
+    }
+}
+
+// Boundary cases for the header line trimming logic: a value that becomes
+// empty after trimming (nothing follows the colon but whitespace/CRLF), and a
+// single-character value with no whitespace at all (no room to hide an
+// off-by-one error in the trimming code without dropping that one character).
+UTEST(HttpClient, HeadersWithBoundaryValues) {
+    auto http_client_ptr = utest::CreateHttpClient();
+
+    const std::pair<std::string, std::string> header_value_and_expected[] = {
+        {"", ""},
+        {"\t  ", ""},
+        {"a", "a"},
+        {"\ta", "a"},
+    };
+
+    for (const auto& [header_value, expected] : header_value_and_expected) {
+        const utest::SimpleServer http_server{
+            clients::http::Response200WithHeader{std::string(kTestHeader) + ':' + header_value}
+        };
+
+        const auto
+            response = http_client_ptr->CreateRequest().post(http_server.GetBaseUrl()).timeout(kTimeout).perform();
+
+        EXPECT_TRUE(response->IsOk()) << "Header value is '" << header_value << "'";
+        ASSERT_TRUE(response->headers().count(kTestHeader)) << "Header value is '" << header_value << "'";
+        EXPECT_EQ(response->headers()[kTestHeader], expected) << "Header value is '" << header_value << "'";
     }
 }
 
@@ -1203,7 +1278,7 @@ UTEST(HttpClient, GetWithBody) {
     auto http_client_ptr = utest::CreateHttpClient();
 
     const utest::SimpleServer http_server_final{[](const HttpRequest& request) -> HttpResponse {
-        EXPECT_NE(request.find("get_body_data"), std::string::npos);
+        EXPECT_THAT(request, testing::HasSubstr("get_body_data"));
         return {
             fmt::format(clients::http::kResponse200WithHeaderPattern, "xxx: good"),
             HttpResponse::kWriteAndClose,

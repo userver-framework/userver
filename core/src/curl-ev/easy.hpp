@@ -685,8 +685,19 @@ public:
 
     time_point::duration time_to_start() const;
 
-    // WebSocket support: enable socket duplication for later extraction
-    void enable_socket_extraction() { extract_socket_enabled_ = true; }
+    // WebSocket support: enable socket duplication for later extraction.
+    // Optional drainer runs on the curl thread before multi remove (ws->recvbuf
+    // is not usable after curl_multi_remove_handle on some libcurl versions).
+    // Argument is native::CURL* passed as void* to avoid leaking curl types
+    // into call sites that only have a function pointer.
+    using SocketPreambleDrainer = std::string (*)(void* native_easy);
+    void enable_socket_extraction(SocketPreambleDrainer drainer = nullptr) {
+        extract_socket_enabled_ = true;
+        socket_preamble_drainer_ = drainer;
+    }
+
+    void CaptureSocketPreambleBeforeMultiRemove();
+    std::string TakeCapturedSocketPreamble();
 
     fs::blocking::FileDescriptor& extracted_socket() { return extracted_socket_; }
 
@@ -747,6 +758,8 @@ private:
 
     fs::blocking::FileDescriptor extracted_socket_{};
     bool extract_socket_enabled_{false};
+    SocketPreambleDrainer socket_preamble_drainer_{nullptr};
+    std::string socket_preamble_{};
 };
 }  // namespace curl
 

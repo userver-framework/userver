@@ -1,5 +1,7 @@
 #include <userver/storages/mongo/cursor.hpp>
 
+#include <iterator>
+
 #include <storages/mongo/cursor_impl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -53,6 +55,8 @@ const formats::bson::Document& Cursor::Iterator::operator*() const { return curs
 const formats::bson::Document* Cursor::Iterator::operator->() const { return &cursor_->impl_->Current(); }
 
 bool Cursor::Iterator::operator==(const Iterator& rhs) const { return cursor_ == rhs.cursor_; }
+
+static_assert(std::input_iterator<Cursor::Iterator>);
 
 }  // namespace storages::mongo
 

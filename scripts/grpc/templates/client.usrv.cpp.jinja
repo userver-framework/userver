@@ -36,7 +36,7 @@ inline constexpr std::array<USERVER_NAMESPACE::ugrpc::impl::MethodDescriptor, {{
 
 // Inline to deduplicate between client.usrv.cpp and service.usrv.cpp
 inline const bool k{{service.name}}TypesRegistration =
-    (USERVER_NAMESPACE::ugrpc::impl::RegisterMessageTypes({
+    (USERVER_NAMESPACE::protobuf::impl::RegisterMessageTypes({
 {% for method in service.method %}
         std::string("{{method.input_type}}").substr(1),
         std::string("{{method.output_type}}").substr(1),

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <optional>
 
 #include <userver/congestion_control/sensor.hpp>
@@ -22,8 +23,8 @@ public:
 
 private:
     detail::ConnectionPool& pool_;
-    std::size_t last_total_queries_{0};
-    std::size_t last_timeouted_queries_{0};
+    std::uint64_t last_total_queries_{0};
+    std::uint64_t last_timeouted_queries_{0};
 };
 
 }  // namespace cc

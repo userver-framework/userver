@@ -86,7 +86,7 @@ jobs:
 
           - name: Restore cached directories
             id: restore-cache
-            uses: actions/cache/restore@v5
+            uses: actions/cache/restore@v6
             with:
                 path: |
                     .ccache
@@ -126,7 +126,7 @@ jobs:
                 'cd /userver && cmake --build build -j $(nproc)'
 
           - name: Save cached directories
-            uses: actions/cache/save@v5
+            uses: actions/cache/save@v6
             with:
                 path: |
                     .ccache
@@ -150,4 +150,4 @@ jobs:
                 docker-compose -f .github/docker-compose.yml
                 run --rm ${{ matrix.image}} bash -c
                 'cd /userver/build && ulimit -n 4096 && GTEST_FILTER="${{ matrix.gtest-filter
-                }}" TESTSUITE_REDIS_HOSTNAME=::1 ctest -V'
+                }}" TESTSUITE_REDIS_HOSTNAME=::1 ctest -j2 --output-on-failure'

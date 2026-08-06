@@ -106,14 +106,10 @@ const char* MsgForStatus(ConnStatusType status) {
             return "PQstatus: Consuming remaining response messages on connection";
         case CONNECTION_GSS_STARTUP:
             return "PQstatus: Negotiating GSSAPI";
-#if USERVER_LIBPQ_VERSION >= 130000
         case CONNECTION_CHECK_TARGET:
             return "PQstatus: Checking target server properties";
-#endif
-#if USERVER_LIBPQ_VERSION >= 140000
         case CONNECTION_CHECK_STANDBY:
             return "PQstatus: Checking if server is in standby mode";
-#endif
 #if USERVER_LIBPQ_VERSION >= 170000
         case CONNECTION_ALLOCATED:
             return "PQstatus: Waiting for connection attempt to be started";
@@ -425,37 +421,23 @@ void PGConnectionWrapper::WaitConnectionFinish(Deadline deadline, const Dsn& dsn
 }
 
 void PGConnectionWrapper::EnterPipelineMode() {
-#if LIBPQ_HAS_PIPELINING
     if (!PQenterPipelineMode(conn_)) {
         PGCW_LOG_LIMITED_ERROR() << "libpq failed to enter pipeline connection mode";
         throw ConnectionError{"Failed to enter pipeline connection mode"};
     }
     PGCW_LOG_INFO() << "Entered pipeline mode";
-#else
-    UINVARIANT(false, "Pipeline mode is not supported");
-#endif
 }
 
 void PGConnectionWrapper::ExitPipelineMode() {
-#if LIBPQ_HAS_PIPELINING
     if (!PQexitPipelineMode(conn_)) {
         PGCW_LOG_LIMITED_ERROR() << "libpq failed to exit pipeline connection mode";
         throw ConnectionError{"Failed to exit pipeline connection mode"};
     }
-#else
-    UINVARIANT(false, "Pipeline mode is not supported");
-#endif
 }
 
 bool PGConnectionWrapper::IsSyncingPipeline() const { return pipeline_sync_counter_ > 0; }
 
-bool PGConnectionWrapper::IsPipelineActive() const {
-#if LIBPQ_HAS_PIPELINING
-    return PQpipelineStatus(conn_) != PQ_PIPELINE_OFF;
-#else
-    return false;
-#endif
-}
+bool PGConnectionWrapper::IsPipelineActive() const { return PQpipelineStatus(conn_) != PQ_PIPELINE_OFF; }
 
 void PGConnectionWrapper::RefreshSocket(const Dsn& dsn) {
     const auto fd = PQsocket(conn_);
@@ -489,13 +471,11 @@ bool PGConnectionWrapper::WaitSocketWriteable(Deadline deadline) {
 }
 
 void PGConnectionWrapper::Flush(Deadline deadline) {
-#if LIBPQ_HAS_PIPELINING
     if (PQpipelineStatus(conn_) != PQ_PIPELINE_OFF) {
         HandleSocketPostClose();
         CheckError<CommandError>("PQpipelineSync", PQpipelineSync(conn_));
         ++pipeline_sync_counter_;
     }
-#endif
     while (const int flush_res = PQflush(conn_)) {
         if (flush_res < 0) {
             HandleSocketPostClose();
@@ -569,13 +549,12 @@ ResultSet PGConnectionWrapper::WaitResult(Deadline deadline, tracing::ScopeTime&
                 PGCW_LOG_LIMITED_INFO() << "Query returned several result sets, a result set is discarded";
             }
             auto next_handle = MakeResultHandle(pg_res);
-#if LIBPQ_HAS_PIPELINING
             const auto status = PQresultStatus(pg_res);
             if (status == PGRES_PIPELINE_SYNC) {
                 HandlePipelineSync();
-            } else if (status != PGRES_PIPELINE_ABORTED)
-#endif
+            } else if (status != PGRES_PIPELINE_ABORTED) {
                 handle = std::move(next_handle);
+            }
         }
         // There is an issue with libpq when db shuts down we may receive an error
         // instead of PGRES_PIPELINE_SYNC and never get out of this cycle, hence
@@ -617,9 +596,6 @@ std::vector<ResultSet> PGConnectionWrapper::GatherPipeline(
 ) {
     UASSERT(!descriptions.empty());
 
-#if !LIBPQ_HAS_PIPELINING
-    UINVARIANT(false, "QueryQueue usage requires pipelining to be enabled");
-#else
     Flush(deadline);
 
     std::vector<ResultSet> result{};
@@ -671,7 +647,6 @@ std::vector<ResultSet> PGConnectionWrapper::GatherPipeline(
     }
 
     return result;
-#endif
 }
 
 void PGConnectionWrapper::DiscardInput(Deadline deadline) {
@@ -682,11 +657,9 @@ void PGConnectionWrapper::DiscardInput(Deadline deadline) {
         while (auto* pg_res = ReadResult(deadline, nullptr)) {
             null_res_counter = 0;
             handle = MakeResultHandle(pg_res);
-#if LIBPQ_HAS_PIPELINING
             if (PQresultStatus(pg_res) == PGRES_PIPELINE_SYNC) {
                 HandlePipelineSync();
             }
-#endif
         }
         // Same issue as with WaitResult
         if (++null_res_counter > 2) {
@@ -770,16 +743,21 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
         }
         case PGRES_FATAL_ERROR: {
             const Message msg{wrapper};
-            if (!IsWhitelistedState(msg.GetSqlState())) {
-                PGCW_LOG_LIMITED_ERROR() << "Fatal error occurred: " << msg.GetMessage() << msg.GetLogExtra();
-            } else {
-                PGCW_LOG_LIMITED_WARNING() << "Fatal error occurred: " << msg.GetMessage() << msg.GetLogExtra();
+            const auto sql_state = msg.GetSqlState();
+            const bool suppress_dup_prepared_statement_log =
+                sql_state == SqlState::kDuplicatePreparedStatement &&
+                GetConnectionState() != ConnectionState::kTranError;
+            if (!suppress_dup_prepared_statement_log) {
+                if (!IsWhitelistedState(sql_state)) {
+                    PGCW_LOG_LIMITED_ERROR() << "Fatal error occurred: " << msg.GetMessage() << msg.GetLogExtra();
+                } else {
+                    PGCW_LOG_LIMITED_WARNING() << "Fatal error occurred: " << msg.GetMessage() << msg.GetLogExtra();
+                }
+                LOG_DEBUG() << "Ready to throw";
             }
-            LOG_DEBUG() << "Ready to throw";
             msg.ThrowException();
             break;
         }
-#if USERVER_LIBPQ_VERSION >= 140000
         case PGRES_PIPELINE_ABORTED:
             PGCW_LOG_LIMITED_WARNING() << "Command failure in a pipeline";
             CloseWithError(ConnectionError{"Command failure in a pipeline"});
@@ -787,7 +765,6 @@ ResultSet PGConnectionWrapper::MakeResult(ResultHandle&& handle) {
         case PGRES_PIPELINE_SYNC:
             PGCW_LOG_TRACE() << "Successful completion of all commands in a pipeline";
             break;
-#endif
 #if USERVER_LIBPQ_VERSION >= 170000
         case PGRES_TUPLES_CHUNK:
             PGCW_LOG_LIMITED_WARNING() << "Got a chunk of tuples from the larger resultset";
@@ -997,11 +974,7 @@ void PGConnectionWrapper::MarkAsBroken() { is_broken_ = true; }
 bool PGConnectionWrapper::IsBroken() const { return is_broken_; }
 
 bool PGConnectionWrapper::IsInAbortedPipeline() const {
-#if LIBPQ_HAS_PIPELINING
     return PQpipelineStatus(conn_) == PGpipelineStatus::PQ_PIPELINE_ABORTED;
-#else
-    return false;
-#endif
 }
 
 std::string PGConnectionWrapper::EscapeIdentifier(std::string_view str) {
@@ -1014,9 +987,6 @@ std::string PGConnectionWrapper::EscapeIdentifier(std::string_view str) {
 }
 
 void PGConnectionWrapper::PutPipelineSync() {
-#if !LIBPQ_HAS_PIPELINING
-    UINVARIANT(false, "Pipeline mode is not supported");
-#else
     if (PQpipelineStatus(conn_) != PQ_PIPELINE_OFF) {
         HandleSocketPostClose();
 #if LIBPQ_HAS_SEND_PIPELINE_SYNC
@@ -1028,7 +998,6 @@ void PGConnectionWrapper::PutPipelineSync() {
 #endif
         ++pipeline_sync_counter_;
     }
-#endif
 }
 
 void PGConnectionWrapper::SetSessionId(const std::string& session_id, tracing::Span& span) {

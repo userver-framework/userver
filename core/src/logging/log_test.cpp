@@ -1,3 +1,4 @@
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <optional>
@@ -46,9 +47,9 @@ TEST_F(LoggingTest, LogExtraExtendType) {
 
     logging::LogFlush();
     const auto log_contents = GetStreamString();
-    EXPECT_NE(log_contents.find("key1=value1"), std::string::npos);
-    EXPECT_NE(log_contents.find("key1=value2"), std::string::npos);
-    EXPECT_EQ(log_contents.find("key1=value3"), std::string::npos);
+    EXPECT_THAT(log_contents, testing::HasSubstr("key1=value1"));
+    EXPECT_THAT(log_contents, testing::HasSubstr("key1=value2"));
+    EXPECT_THAT(log_contents, testing::Not(testing::HasSubstr("key1=value3")));
 }
 
 TEST_F(LoggingTest, MultipleFlushes) {
@@ -62,8 +63,8 @@ TEST_F(LoggingTest, MultipleFlushes) {
     LOG_TRACE() << "some message2";
 
     const auto log_contents = GetStreamString();
-    EXPECT_NE(log_contents.find("text=some message1"), std::string::npos);
-    EXPECT_NE(log_contents.find("text=some message2"), std::string::npos);
+    EXPECT_THAT(log_contents, testing::HasSubstr("text=some message1"));
+    EXPECT_THAT(log_contents, testing::HasSubstr("text=some message2"));
 }
 
 TEST_F(LoggingTest, ChronoDuration) {

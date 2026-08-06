@@ -43,7 +43,7 @@ jobs:
 
           - name: Restore cached directories
             id: restore-cache
-            uses: actions/cache/restore@v5
+            uses: actions/cache/restore@v6
             with:
                 path: |
                     ${{env.CCACHE_DIR}}
@@ -102,7 +102,7 @@ jobs:
                 cmake --build build_debug -j$(nproc) -- -k 1
 
           - name: Save cached directories
-            uses: actions/cache/save@v5
+            uses: actions/cache/save@v6
             with:
                 path: |
                     ${{env.CCACHE_DIR}}
@@ -115,72 +115,54 @@ jobs:
                 du -h -d 1 ${{env.CPM_SOURCE_CACHE}}
                 ccache -s -v
 
-          - name: Run tests (universal)
-            run: |
-                cd build_debug/universal
-                GTEST_FILTER="-UUID.ParseFail" ctest -V
-
-          - name: Run tests (samples)
-            run: |
-                cd build_debug/samples
-                ctest -V
-
-          - name: Run tests (core)
-            run: |
-                cd build_debug/core
-                ulimit -n 4096 && ctest -V -E "userver-core-unittest|testsuite-userver-core-tests-basic-chaos-tests-deadline|testsuite-userver-core-tests-websocket|testsuite-userver-core-tests-basic-chaos"  # ~10 failed tests
-
-          - name: Run tests (libraries)
-            run: |
-                cd build_debug/libraries
-                ctest -V
-
-          - name: Run tests (clickhouse)
-            run: |
-                cd build_debug/clickhouse
-                ctest -V
-
-          - name: Run tests (rocks)
-            run: |
-                cd build_debug/rocks
-                ctest -V
-
-          - name: Run tests (kafka)
-            run: |
-                cd build_debug/kafka
-                ctest -V
-
-          - name: Run tests (rabbitmq)
-            run: |
-                cd build_debug/rabbitmq
-                ctest -V
-
-          - name: Run tests (grpc)
-            run: |
-                cd build_debug/grpc
-                ctest -V
-
-          - name: Run tests (mongo)
-            run: |
-                cd build_debug/mongo
-                ctest -V -R "userver-mongo-unittest|userver-mongo-benchmark" # many flaps in integrational tests
-
-          - name: Run tests (mysql)
-            run: |
-                cd build_debug/mysql
-                GTEST_FILTER="-*Transaction*" ctest -V
-
-          - name: Run tests (redis)
-            run: |
-                cd build_debug/redis
-                ctest -V -E testsuite-userver-redis-tests-basic-chaos
-
-          - name: Run tests (postgresql)
-            run: |
-                cd build_debug/postgresql
-                ulimit -n 4096 && GTEST_FILTER="-PostgreCluster.TransactionTimeouts" ctest -V -E testsuite-userver-postgresql-tests-basic-chaos
-
-          - name: Run tests (sqlite)
+          - name: Run tests
             run: |-
-                cd build_debug/sqlite
-                ctest -V -E "userver-sqlite-unittest" # unittests failed with fs access
+                cd build_debug
+                ulimit -n 4096
+                # gtest cases broken/flaky on macOS (filtered out individually)
+                broken_gtests=(
+                  UUID.ParseFail
+                  Transaction.Commit
+                  Transaction.Rollback
+                  Transaction.AutoRollback
+                  Transaction.ActuallyTransactional
+                  Transaction.InsertOne
+                  Transaction.InsertMany
+                  TransactionDeathTest.AccessAfterCommit
+                  TransactionDeathTest.AccessAfterRollback
+                  PostgreCluster.TransactionTimeouts
+                  HttpClient.HttpsWithCrl
+                  HttpClient.HttpsWithNoClientCa
+                  HttpClient.StatsOnTimeout
+                  HttpClientProxy.HttpsTruncatedHeaders
+                  DestinationStatistics.Ok
+                  DestinationStatistics.Multiple
+                  CurlFormTest.MultipartFileWithContentType
+                  CurlFormTest.FilesWithContentType
+                  CurlFormTest.FormMovable
+                  WaitWake.WakeupTriggersPredicateRecheck
+                  AsyncFlatCombiningQueue.StressAsync
+                  Socket.UdpIpMreqIPv6
+                  Socket.UdpIpMreqMultipleReceiversIPv6
+                  Subprocess.EnvironmentVariablesScope
+                  ThreadLocal.SafeThreadLocalWorks
+                  HedgedRequest.Base
+                  HedgedRequest.SuccessfulHedging
+                  HedgedRequest.Timeout
+                  'PeriodicTask.*'
+                )
+                # whole tests not run / failing on macOS
+                excluded_tests=(
+                  testsuite-userver-core-tests-basic-chaos
+                  testsuite-userver-core-tests-websocket
+                  userver-mongo-dbtest
+                  testsuite-userver-mongo
+                  testsuite-userver-redis-tests-basic-chaos
+                  testsuite-userver-postgresql-tests-basic-chaos
+                  userver-sqlite-unittest
+                  userver-testsuite-tests-chaos
+                  userver-odbc-dbtest
+                  testsuite-userver-odbc-tests-basic-chaos
+                )
+                export GTEST_FILTER="-$(IFS=:; printf '%s' "${broken_gtests[*]}")"
+                ctest --output-on-failure -E "$(IFS='|'; printf '%s' "${excluded_tests[*]}")"

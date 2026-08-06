@@ -14,7 +14,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
 
-/// @ingroup userver_ugrpc
+/// @ingroup userver_clients
 ///
 /// @brief Special completion types for gRPC client calls that don't result in a normal `grpc::Status`.
 ///
@@ -25,12 +25,19 @@ namespace ugrpc::client {
 /// @see @ref CompletionStatus
 enum class SpecialCaseCompletionType : std::uint8_t {
     /// [special_cases_declaration]
-    /// @brief Network-level error occurred before receiving a gRPC status.
+    /// @brief The RPC was interrupted at the network/transport level without a gRPC status.
     ///
-    /// Indicates that the underlying network operation failed (e.g., connection lost,
-    /// socket error) before the server could send a proper gRPC status response.
-    /// This means that the underlying grpcpp framework returned an error.
-    /// This is distinct from `grpc::StatusCode::UNAVAILABLE` which is a valid gRPC status.
+    /// The call did not finish with a gRPC status from the server: the connection was lost, reset
+    /// or otherwise interrupted. This is distinct from `grpc::StatusCode::UNAVAILABLE`, which is a
+    /// valid gRPC status.
+    ///
+    /// For a unary call this is reported only when no concrete gRPC status is available and the
+    /// response could not be obtained (not received, or received but not parseable). Whenever a
+    /// concrete status is available instead (for example `UNAVAILABLE` or `CANCELLED`), it is
+    /// reported as that `grpc::Status` rather than as this special case.
+    ///
+    /// Surfaces to the caller as @ref ugrpc::client::RpcInterruptedError; for unary calls it is
+    /// retryable.
     kNetworkError,
     /// @brief Request timed out with deadline propagation enabled.
     ///
@@ -56,7 +63,7 @@ std::string_view ToString(SpecialCaseCompletionType type);
 /// @brief Convert SpecialCaseCompletionType to human-readable description.
 std::string_view GetSpecialCaseCompletionTypeDescription(SpecialCaseCompletionType type);
 
-/// @ingroup userver_ugrpc
+/// @ingroup userver_clients
 ///
 /// @brief Result type for gRPC client call completion.
 ///

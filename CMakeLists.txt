@@ -32,7 +32,7 @@ option(USERVER_FEATURE_CORE "Provide a core library with coroutines, otherwise b
 # @ingroup libraries
 option(USERVER_FEATURE_CHAOTIC "Provide chaotic-codegen for jsonschema" ON)
 # @ingroup libraries
-option(USERVER_FEATURE_CHAOTIC_EXPERIMENTAL "Provide chaotic-codegen for openapi" OFF)
+option(USERVER_FEATURE_CHAOTIC_OPENAPI "Provide chaotic-codegen for openapi" ON)
 
 set(USERVER_BUILD_PLATFORM_X86 OFF)
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "^x86")
@@ -243,8 +243,8 @@ add_subdirectory(universal)
 if(USERVER_FEATURE_CHAOTIC)
     add_subdirectory(chaotic)
 
-    if(USERVER_FEATURE_CHAOTIC_EXPERIMENTAL)
-        _require_userver_core(USERVER_FEATURE_CHAOTIC_EXPERIMENTAL)
+    if(USERVER_FEATURE_CHAOTIC_OPENAPI)
+        _require_userver_core(USERVER_FEATURE_CHAOTIC_OPENAPI)
         add_subdirectory(chaotic-openapi)
     endif()
 endif()
@@ -345,20 +345,37 @@ _userver_export_targets()
 _userver_make_install_config()
 
 if(USERVER_BUILD_SAMPLES AND USERVER_FEATURE_CORE)
-    add_subdirectory(samples)
+    if(USERVER_BUILD_TESTS)
+        add_subdirectory(samples)
+    endif()
+
+    # Install the whole samples tree, but drop the master samples/CMakeLists.txt: it writes
+    # a fake userverConfig.cmake stub and would shadow the real installed userver. The leaf
+    # samples' own CMakeLists.txt files live in subdirectories and are kept, so the anchored
+    # "samples/CMakeLists.txt" pattern only matches the top-level file.
+    _userver_directory_install(
+        COMPONENT examples
+        DIRECTORY "${USERVER_ROOT_DIR}/samples"
+        DESTINATION share/userver
+        EXCLUDE_PATTERNS "samples/CMakeLists.txt"
+    )
+    # NON_FINDABLE: the 'examples' install/CPack component only ships sample sources.
+    _userver_install_component(COMPONENT examples NON_FINDABLE)
+    # libuserver-samples, not libuserver-samples-dev
+    set(CPACK_DEBIAN_SAMPLES_PACKAGE_NAME libuserver-examples)
 endif()
 
 if(USERVER_FEATURE_CORE)
     _userver_directory_install(
         COMPONENT core
         PROGRAMS "${USERVER_ROOT_DIR}/scripts/userver-create-service.py"
-        DESTINATION ${CMAKE_INSTALL_BINDIR}/
+        DESTINATION ${CMAKE_INSTALL_BINDIR}
         RENAME userver-create-service
     )
     _userver_directory_install(
         COMPONENT core
         DIRECTORY "${USERVER_ROOT_DIR}/service_template"
-        DESTINATION ${CMAKE_INSTALL_DATADIR}/userver/
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/userver
     )
 endif()
 

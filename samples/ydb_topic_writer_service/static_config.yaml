@@ -55,6 +55,8 @@ components_manager:
             task_processor: main-task-processor
             throttling_enabled: false
 
+        # /// [YDB topic writer service sample - static config ydb]
+        # yaml
         ydb:
             operation-settings:
                 client-timeout: 1100ms
@@ -64,14 +66,21 @@ components_manager:
                     database: sampledb
                     max_pool_size: 10
                     min_pool_size: 5
+        # /// [YDB topic writer service sample - static config ydb]
 
+        # /// [YDB topic writer service sample - static config topic writer]
+        # yaml
         ydb-topic-writer:
             topics:
                 messages:
                     topic: messages
                     database: sampledb
+        # /// [YDB topic writer service sample - static config topic writer]
 
+        # /// [YDB topic writer service sample - static config handler]
+        # yaml
         handler-write:
             path: /write
             method: POST
             task_processor: main-task-processor
+            # /// [YDB topic writer service sample - static config handler]

@@ -151,12 +151,21 @@ public:
     /// @throw `TypeMismatchException` if not an array or an object.
     std::size_t GetSize() const;
 
+    /// @brief Returns storage capacity for array elements or object members.
+    /// @throw `TypeMismatchException` if not an array or an object.
+    std::size_t GetCapacity() const;
+
     /// @brief Returns true if value holds a `key`.
     /// @throw `TypeMismatchException` if `*this` is not a map or null.
     bool HasMember(std::string_view key) const;
 
     /// @brief Returns full path to this value.
     std::string GetPath() const;
+
+    /// @brief Ensures storage capacity for array elements or object members is at least `capacity` without changing
+    /// size.
+    /// @throw `TypeMismatchException` if not an array or object.
+    void Reserve(std::size_t capacity);
 
     /// @brief Resize the array value or convert null value
     /// into an array of requested size.

@@ -23,21 +23,34 @@ pg::ConnectionSettings MakeSettings() {
 const pg::Query::Name kQueryName{R"~(select_best_names)~"};
 const std::string kStatement{R"~(SELECT * FROM (VALUES ('Nikita'), ('Christina')) AS names)~"};
 const pg::Query kTestQuery(kStatement, kQueryName);
+const pg::Query kUnnamedQuery(kStatement);
 
 class LoggableConnection : public utest::LogCaptureFixture<PostgreConnectionBaseFixture> {
 protected:
-    void CheckLogCapture() {
+    void CheckNamedLogCapture() {
         const utest::LogCaptureLogger& logger = GetLogCapture();
-        ASSERT_THAT(logger.Filter(kStatement), ::testing::SizeIs(0));
 
-        const std::vector<utest::LogRecord> logs_with_query_tags = logger.Filter([&](const utest::LogRecord& log) {
-            return log.GetTagOptional(tracing::kDatabaseStatementName) == kQueryName.GetUnderlying() &&
-                   log.GetTagOptional(tracing::kDatabaseStatement);
+        const std::vector<utest::LogRecord> logs_with_query_name = logger.Filter([&](const utest::LogRecord& log) {
+            return log.GetTagOptional(tracing::kDatabaseStatementName) == kQueryName.GetUnderlying();
         });
-        ASSERT_THAT(logs_with_query_tags, ::testing::SizeIs(::testing::Gt(0)));
+        ASSERT_THAT(logs_with_query_name, ::testing::SizeIs(::testing::Gt(0)));
 
-        const utest::LogRecord& log = logs_with_query_tags.front();
-        ASSERT_THAT(log.GetTagOptional(tracing::kDatabaseStatement), ::testing::Optional(kStatement));
+        for (const utest::LogRecord& log : logs_with_query_name) {
+            EXPECT_EQ(log.GetTagOptional(tracing::kDatabaseStatement), std::nullopt);
+        }
+    }
+
+    void CheckUnnamedLogCapture() {
+        const utest::LogCaptureLogger& logger = GetLogCapture();
+
+        const std::vector<utest::LogRecord> logs_with_statement = logger.Filter([&](const utest::LogRecord& log) {
+            return log.GetTagOptional(tracing::kDatabaseStatement) == kStatement;
+        });
+        ASSERT_THAT(logs_with_statement, ::testing::SizeIs(::testing::Gt(0)));
+
+        for (const utest::LogRecord& log : logs_with_statement) {
+            EXPECT_EQ(log.GetTagOptional(tracing::kDatabaseStatementName), std::nullopt);
+        }
     }
 };
 
@@ -58,7 +71,7 @@ UTEST_F(LoggableConnection, PortalStatementLogs) {
     EXPECT_TRUE(portal.Done());
     UEXPECT_NO_THROW(trx.Commit());
 
-    CheckLogCapture();
+    CheckNamedLogCapture();
 }
 
 UTEST_F(LoggableConnection, TrxStatementLogs) {
@@ -73,7 +86,7 @@ UTEST_F(LoggableConnection, TrxStatementLogs) {
     UEXPECT_NO_THROW(trx.Execute(kTestQuery));
     UEXPECT_NO_THROW(trx.Commit());
 
-    CheckLogCapture();
+    CheckNamedLogCapture();
 }
 
 UTEST_F(LoggableConnection, NonTrxStatementLogs) {
@@ -84,7 +97,18 @@ UTEST_F(LoggableConnection, NonTrxStatementLogs) {
 
     UEXPECT_NO_THROW(ntrx.Execute(kTestQuery));
 
-    CheckLogCapture();
+    CheckNamedLogCapture();
+}
+
+UTEST_F(LoggableConnection, UnnamedStatementLogs) {
+    auto conn = MakeConn(MakeSettings());
+    CheckConnection(conn);
+
+    pg::detail::NonTransaction ntrx(std::move(conn));
+
+    UEXPECT_NO_THROW(ntrx.Execute(kUnnamedQuery));
+
+    CheckUnnamedLogCapture();
 }
 
 }  // namespace

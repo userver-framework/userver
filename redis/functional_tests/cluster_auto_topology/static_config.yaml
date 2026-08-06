@@ -7,14 +7,23 @@ components_manager:
             task_processor: main-task-processor
             method: GET,DELETE,POST
 
+        handler-is-ready:
+            path: /is-ready
+            method: GET
+            task_processor: main-task-processor
+
         key-value-database:
             groups:
               - config_name: redis-cluster
                 db: redis-cluster
                 sharding_strategy: RedisCluster
+
               - config_name: redis-cluster2
                 db: redis-cluster2
                 sharding_strategy: RedisCluster
+                required: master_and_slave
+                topology_update_method: cluster_shards
+                max_disconnect_time: 35
             subscribe_groups: []
             thread_pools:
                 redis_thread_pool_size: 2
@@ -34,6 +43,13 @@ components_manager:
             testpoint-timeout: 10s
             testpoint-url: $mockserver/testpoint
             throttling_enabled: false
+
+        handler-ping:
+            path: /ping
+            method: GET,POST
+            task_processor: main-task-processor
+            throttling_enabled: false
+            url_trailing_slash: strict-match
 
         secdist: {}
         default-secdist-provider:

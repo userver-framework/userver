@@ -6,6 +6,7 @@
 #include <type_traits>
 
 #include <fmt/format.h>
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <userver/compiler/demangle.hpp>
@@ -252,9 +253,9 @@ TYPED_TEST(FromStringTest, ExceptionDetails) {
     }
 
     ASSERT_FALSE(what.empty());
-    ASSERT_NE(what.find(".blah"), std::string::npos);
+    ASSERT_THAT(what, testing::HasSubstr(".blah"));
     // NOTE: GetTypeName(typeid(T)) for old version of GCC
-    ASSERT_NE(what.find(compiler::GetTypeName(typeid(T))), std::string::npos);
+    ASSERT_THAT(what, testing::HasSubstr(compiler::GetTypeName(typeid(T))));
 }
 
 TEST(FromString, StringViewToFloatingPointSmall) {

@@ -941,7 +941,6 @@ std::string ToJsonString(const V1ChannelNotificationNewResponse& value) {
 }
 
 bool operator==(const V1ChannelNotificationNewResponse & lhs,const V1ChannelNotificationNewResponse & rhs) {
-
     (void)lhs;
     (void)rhs;
     return true
@@ -1017,7 +1016,6 @@ std::string ToJsonString(const V1Error& value) {
 }
 
 bool operator==(const V1Error::Details & lhs,const V1Error::Details & rhs) {
-
     (void)lhs;
     (void)rhs;
     return true
@@ -2006,7 +2004,6 @@ std::string ToJsonString(const V1UserStatus& value) {
 }
 
 bool operator==(const V1UserStatus & lhs,const V1UserStatus & rhs) {
-
     (void)lhs;
     (void)rhs;
     return true
@@ -2364,7 +2361,6 @@ std::string ToJsonString(const V1UserStatusUpdateResponse& value) {
 }
 
 bool operator==(const V1UserStatusUpdateResponse & lhs,const V1UserStatusUpdateResponse & rhs) {
-
     (void)lhs;
     (void)rhs;
     return true

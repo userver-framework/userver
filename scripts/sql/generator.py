@@ -167,9 +167,10 @@ def render(
             py_file.write(content)
 
 
-def main():
+def main(loader: jinja2.BaseLoader | None = None):
     args = parse_args()
     items = read_items(args)
+    env = jinja2.Environment(loader=loader) if loader else None
     render(
         SqlParams(
             namespace=args.namespace,
@@ -179,6 +180,7 @@ def main():
         ),
         items,
         [],
+        env=env,
     )
 
 

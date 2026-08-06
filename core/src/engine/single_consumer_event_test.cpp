@@ -6,6 +6,7 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/engine/wait_any.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utest/utest.hpp>
@@ -89,6 +90,24 @@ UTEST(SingleConsumerEvent, WaitFailed) {
     engine::SingleConsumerEvent event;
 
     EXPECT_FALSE(event.WaitForEventUntil(engine::Deadline::Passed()));
+}
+
+UTEST(SingleConsumerEvent, WaitUntilAllStatuses) {
+    engine::SingleConsumerEvent event;
+
+    // kReady: the event is already signaled.
+    event.Send();
+    EXPECT_EQ(event.WaitUntil(engine::Deadline{}), engine::FutureStatus::kReady);
+
+    // kTimeout: the event is not signaled and the deadline is reached.
+    EXPECT_EQ(event.WaitUntil(engine::Deadline::Passed()), engine::FutureStatus::kTimeout);
+
+    // kCancelled: the waiting task is cancelled before the event is signaled.
+    auto waiter = engine::CriticalAsyncNoTracing([&event] {
+        return event.WaitUntil(engine::Deadline::FromDuration(utest::kMaxTestWaitTime));
+    });
+    waiter.SyncCancel();
+    UEXPECT_NO_THROW(EXPECT_EQ(waiter.Get(), engine::FutureStatus::kCancelled));
 }
 
 UTEST(SingleConsumerEvent, SendAndWait2) {
@@ -214,7 +233,10 @@ UTEST(SingleConsumerEvent, AwaitableTokenHasSpuriousWakeups) {
     // In this example, we actually want to wait on the predicate `count >= 3`, using SCE like a condition variable.
     // This test shows how it can be done without race conditions.
 
-    ASSERT_EQ(GetThreadCount(), 1) << "This test relies on Yield passing execution to the other task";
+    ASSERT_EQ(engine::current_task::GetWorkerCount(), 1)
+        << "This test relies on Yield "
+           "passing execution to the other "
+           "task";
 
     std::atomic<int> count{0};
     int wait_iterations{0};
@@ -296,7 +318,7 @@ UTEST_MT(SingleConsumerEvent, AsConditionVariable, 4) {
     engine::SingleConsumerEvent event;
     /// [CV init]
 
-    auto incrementors = utils::GenerateFixedArray(GetThreadCount() - 1, [&](std::size_t) {
+    auto incrementors = utils::GenerateFixedArray(engine::current_task::GetWorkerCount() - 1, [&](std::size_t) {
         return engine::CriticalAsyncNoTracing([&count, &event] {
             while (!engine::current_task::ShouldCancel()) {
                 /// [CV notifier]
@@ -315,14 +337,14 @@ UTEST_MT(SingleConsumerEvent, AsConditionVariable, 4) {
 
     /// [CV waiter]
     std::uint64_t count_acquired{};
-    const bool success = event.WaitUntil({}, [&] {
+    const auto wait_status = event.WaitUntil({}, [&] {
         // Operations must be atomic, can be std::memory_order_relaxed.
         count_acquired = count.load(std::memory_order_relaxed);
         return count_acquired % 2 == 0 && count.compare_exchange_strong(count_acquired, 0, std::memory_order_relaxed);
     });
     /// [CV waiter]
 
-    EXPECT_TRUE(success);
+    EXPECT_EQ(wait_status, engine::FutureStatus::kReady);
     EXPECT_TRUE(count_acquired != 0);
     EXPECT_TRUE(count_acquired % 2 == 0);
 
@@ -368,7 +390,7 @@ UTEST(SingleConsumerEvent, WaitAndDestroySuccess) {
 }
 
 UTEST(SingleConsumerEvent, WaitAndDestroyCancellation) {
-    engine::current_task::GetCancellationToken().RequestCancel();
+    engine::current_task::RequestCancel();
 
     auto sender = WaitAndDestroySample();
 

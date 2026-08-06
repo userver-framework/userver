@@ -3,6 +3,7 @@
 /// @file
 /// @brief Valkey/Redis futures for storages::redis::Client and storages::redis::Transaction.
 
+#include <iterator>
 #include <memory>
 #include <optional>
 #include <string>
@@ -149,9 +150,9 @@ public:
             return *this;
         }
 
-        reference operator*() { return stream_->Current(); }
+        reference operator*() const { return stream_->Current(); }
 
-        pointer operator->() { return &**this; }
+        pointer operator->() const { return &**this; }
 
         bool operator==(const Iterator& rhs) const { return stream_ == rhs.stream_; }
 
@@ -199,6 +200,7 @@ using RequestGeopos = Request<std::vector<std::optional<Point>>>;
 using RequestGeoradius = Request<std::vector<GeoPoint>>;
 using RequestGeosearch = Request<std::vector<GeoPoint>>;
 using RequestGet = Request<std::optional<std::string>>;
+using RequestGetdel = Request<std::optional<std::string>>;
 using RequestGetset = Request<std::optional<std::string>>;
 using RequestHdel = Request<size_t>;
 using RequestHexists = Request<size_t>;

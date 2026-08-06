@@ -14,6 +14,8 @@ import pytest
         'unauth',
         'connection_already_extracted',
         'remote_addr',
+        'large_server_message_default_limit',
+        'large_server_message_custom_limit',
     ],
 )
 async def test_client(service_client, service_port, test_name):

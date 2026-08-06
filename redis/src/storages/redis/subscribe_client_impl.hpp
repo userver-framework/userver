@@ -4,7 +4,7 @@
 #include <string>
 
 #include <userver/storages/redis/base.hpp>
-#include <userver/storages/redis/wait_connected_mode.hpp>
+#include <userver/storages/redis/health_check_param.hpp>
 
 #include <userver/storages/redis/subscribe_client.hpp>
 #include <userver/storages/redis/subscription_token.hpp>
@@ -71,6 +71,7 @@ public:
 
     size_t ShardsCount() const override;
     bool IsInClusterMode() const override;
+    bool IsReady(const HealthCheckParams& params) const override;
 
     void WaitConnectedOnce(RedisWaitConnected wait_connected);
 

@@ -8,6 +8,9 @@
 
 #include <userver/utils/strong_typedef.hpp>
 
+// TODO remove extra include.
+#include <userver/utils/text_light.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres {

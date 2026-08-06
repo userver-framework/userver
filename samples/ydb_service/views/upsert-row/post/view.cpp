@@ -5,6 +5,7 @@
 
 namespace sample {
 
+/// [YDB service sample - upsert row]
 formats::json::Value UpsertRowHandler::
     HandleRequestJsonThrow(const server::http::HttpRequest& http_request, const formats::json::Value& request, server::request::RequestContext&)
         const {
@@ -45,5 +46,6 @@ VALUES ($id_key, $name_key, $service_key, $channel_key, CurrentUtcTimestamp(), $
 
     return formats::json::MakeObject();
 }
+/// [YDB service sample - upsert row]
 
 }  // namespace sample

@@ -263,7 +263,7 @@ void CacheControl::DoResetCachesConcurrently(
         for (std::size_t i = 0; i < async_jobs.size(); ++i) {
             async_jobs[i].task =
                 utils::TaskBuilder{}
-                    .NoSpan()
+                    .NoTracing()
                     .Background()
                     .BuildShared([i, &async_jobs, &tasks_init_mutex, &force_incremental_names, update_type, state] {
                         const std::shared_lock lock{tasks_init_mutex};

@@ -3,10 +3,13 @@
 /// @file userver/ydb/topic.hpp
 /// @brief YDB Topic client
 
+#include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 
 #include <ydb-cpp-sdk/client/topic/client.h>
 #include <ydb-cpp-sdk/client/topic/producer.h>
@@ -121,7 +124,85 @@ private:
     std::shared_ptr<NYdb::NTopic::IWriteSession> write_session_;
 };
 
-/// @brief Producer used to write messages to a topic.
+/// @brief Simple write session used to write messages to a topic without
+/// manually handling write session events.
+///
+/// This is a userver-native analogue of YDB SDK
+/// `ISimpleBlockingWriteSession`: methods may wait for YDB flow-control
+/// continuation tokens, but waiting suspends the current coroutine instead of
+/// blocking an OS thread. It wraps a single `IWriteSession`; its simple API does
+/// not expose the native event loop or acknowledgments.
+///
+/// @see https://ydb.tech/docs/en/reference/ydb-sdk/topic#write
+class TopicSimpleWriteSession final {
+public:
+    /// @cond
+    /// For internal use only.
+    explicit TopicSimpleWriteSession(std::shared_ptr<NYdb::NTopic::IWriteSession> write_session);
+    /// @endcond
+
+    TopicSimpleWriteSession(const TopicSimpleWriteSession&) = delete;
+    TopicSimpleWriteSession& operator=(const TopicSimpleWriteSession&) = delete;
+    TopicSimpleWriteSession(TopicSimpleWriteSession&&) noexcept;
+    TopicSimpleWriteSession& operator=(TopicSimpleWriteSession&&) noexcept;
+
+    /// @brief Write a single message.
+    ///
+    /// Waits until YDB provides a continuation token or until `deadline`.
+    /// @returns true if the message was enqueued for writing, false if the
+    /// deadline was reached or the session was closed before a token arrived.
+    bool Write(
+        NYdb::NTopic::TWriteMessage&& message,
+        NYdb::TTransactionBase* tx = nullptr,
+        engine::Deadline deadline = {}
+    );
+
+    /// @brief Write a single message using basic message options.
+    bool Write(
+        std::string_view data,
+        std::optional<std::uint64_t> seq_no = std::nullopt,
+        std::optional<std::chrono::system_clock::time_point> create_timestamp = std::nullopt,
+        engine::Deadline deadline = {}
+    );
+
+    /// @brief Wait until initial SeqNo is discovered from the server.
+    std::uint64_t GetInitSeqNo(engine::Deadline deadline = {});
+
+    /// @brief Close the write session.
+    ///
+    /// Waits for all in-flight messages to be acknowledged.
+    /// Force closes after `timeout`.
+    /// @returns `true` if all writes were completed and acknowledged. Returns
+    /// `false` if the timeout expired and some writes were aborted; in that
+    /// case their delivery is not guaranteed and should be handled as an
+    /// application-level delivery failure.
+    bool Close(std::chrono::milliseconds timeout);
+
+    /// @brief Returns true if the write session is alive and active.
+    bool IsAlive() const noexcept;
+
+    /// @brief Get native write session
+    ///
+    /// @warning Use with care! Facilities from @ref userver/drivers/subscribable_futures.hpp can help
+    /// with non-blocking wait operations.
+    NYdb::NTopic::IWriteSession& GetNativeTopicWriteSession() USERVER_IMPL_LIFETIME_BOUND;
+
+private:
+    std::optional<NYdb::NTopic::TContinuationToken> WaitForToken(engine::Deadline deadline);
+
+    std::shared_ptr<NYdb::NTopic::IWriteSession> write_session_;
+    std::atomic_bool closed_{false};
+};
+
+/// @brief Native YDB producer used for partition-aware writes to a topic.
+///
+/// Unlike TopicSimpleWriteSession, this is a wrapper around the experimental
+/// YDB SDK `IProducer`. It selects partitions by message key or explicit
+/// partition and manages the corresponding write sessions internally.
+///
+/// @warning Write() may block the current OS thread for up to
+/// `TProducerSettings::MaxBlockTimeout()` when the internal buffer is
+/// overloaded. The YDB SDK producer API is experimental.
 ///
 /// @see https://ydb.tech/docs/en/reference/ydb-sdk/topic#write
 class TopicProducer final {
@@ -133,7 +214,9 @@ public:
 
     /// @brief Write a single message to the topic.
     ///
-    /// Adds the message to the internal buffer and returns immediately.
+    /// Adds the message to the internal buffer and returns its queueing status.
+    /// May block the current OS thread if the buffer is overloaded; see
+    /// `TProducerSettings::MaxBlockTimeout()`.
     /// Use Flush() to wait for the buffered messages to be persistently written.
     NYdb::NTopic::TWriteResult Write(NYdb::NTopic::TWriteMessage&& message);
 
@@ -185,7 +268,20 @@ public:
     /// Create write session
     TopicWriteSession CreateWriteSession(const NYdb::NTopic::TWriteSessionSettings& settings);
 
-    /// Create producer
+    /// Create simple write session.
+    ///
+    /// @note Event handlers from `settings` are not compatible with
+    /// TopicSimpleWriteSession. They are reset with a warning.
+    TopicSimpleWriteSession CreateSimpleWriteSession(const NYdb::NTopic::TWriteSessionSettings& settings);
+
+    /// Create producer.
+    ///
+    /// Unlike TopicSimpleWriteSession, TopicProducer is an experimental native
+    /// YDB multi-session producer: it routes each message by key or explicit
+    /// partition and may block the current OS thread while its buffer is
+    /// overloaded. Flush() waits for persistence without closing the producer;
+    /// TopicSimpleWriteSession instead flushes pending writes as part of
+    /// Close().
     TopicProducer CreateProducer(const NYdb::NTopic::TProducerSettings& settings);
 
     /// Get native topic client

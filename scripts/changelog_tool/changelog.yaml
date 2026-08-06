@@ -1,0 +1,20 @@
+generate:
+    from_sha: c9f77729c0edce7e423def2d4a4450aa7fc9d259
+    to_sha: HEAD
+    repo_path: ../..
+    core_team_patterns:
+      - ".*@userver\\.tech"
+      - ".*@yandex-team\\.com"
+
+llm-config:
+    target_rps: 1
+    retries: 7
+    max_commits_per_batch: 4
+    max_user_prompt_length: 100000
+    max_concurrent_requests: 3
+    max_rounds: 5
+    round_delay_seconds: 300
+    backoff_max_seconds: 60
+
+render:
+    github_url: "https://github.com/userver-framework/userver"

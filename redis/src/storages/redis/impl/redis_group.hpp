@@ -4,6 +4,7 @@
 
 #include <userver/formats/parse/to.hpp>
 #include <userver/storages/redis/command_options.hpp>
+#include <userver/storages/redis/health_check_param.hpp>
 #include <userver/storages/redis/sharding_strategies.hpp>
 #include <userver/storages/redis/topology_update_method.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
@@ -26,6 +27,10 @@ struct RedisGroup {
     storages::redis::ShardingStrategy sharding_strategy{storages::redis::ShardingStrategy::kKeyShardTaximeterCrc32};
     bool allow_reads_from_master{false};
     storages::redis::TopologyUpdateMethod topology_update_method{storages::redis::TopologyUpdateMethod::kClusterSlots};
+    storages::redis::WaitConnectedMode required_mode{storages::redis::WaitConnectedMode::kNoWait};
+    uint32_t max_failed_shards{0};
+    uint32_t max_failed_shards_percent{0};
+    std::chrono::seconds max_disconnect_time{35};
 };
 
 RedisGroup Parse(const yaml_config::YamlConfig& value, formats::parse::To<RedisGroup>);
@@ -40,6 +45,10 @@ struct SubscribeRedisGroup {
     bool allow_reads_from_master{false};
     storages::redis::TopologyUpdateMethod topology_update_method{storages::redis::TopologyUpdateMethod::kClusterSlots};
     bool per_channel_stats_enabled{true};
+    storages::redis::WaitConnectedMode required_mode{storages::redis::WaitConnectedMode::kNoWait};
+    uint32_t max_failed_shards{0};
+    uint32_t max_failed_shards_percent{0};
+    std::chrono::seconds max_disconnect_time{35};
 };
 
 SubscribeRedisGroup Parse(const yaml_config::YamlConfig& value, formats::parse::To<SubscribeRedisGroup>);
@@ -58,6 +67,11 @@ struct SentinelStaticConfig {
     CommandControl command_control;
     /// Method used to discover topology updates.
     storages::redis::TopologyUpdateMethod topology_update_method{storages::redis::TopologyUpdateMethod::kClusterSlots};
+
+    storages::redis::WaitConnectedMode required_mode{storages::redis::WaitConnectedMode::kNoWait};
+    uint32_t max_failed_shards{0};
+    uint32_t max_failed_shards_percent{0};
+    std::chrono::seconds max_disconnect_time{35};
 };
 
 /// @brief Extends SentinelStaticConfig with subscription-specific options.
@@ -67,6 +81,11 @@ struct SubscribeSentinelStaticConfig {
     CommandControl command_control;
     storages::redis::TopologyUpdateMethod topology_update_method{storages::redis::TopologyUpdateMethod::kClusterSlots};
     bool per_channel_stats_enabled{true};
+
+    storages::redis::WaitConnectedMode required_mode{storages::redis::WaitConnectedMode::kNoWait};
+    uint32_t max_failed_shards{0};
+    uint32_t max_failed_shards_percent{0};
+    std::chrono::seconds max_disconnect_time{35};
 };
 
 /// @brief Helper: build a SentinelStaticConfig from a RedisGroup.
@@ -78,6 +97,10 @@ inline SentinelStaticConfig MakeSentinelStaticConfig(const RedisGroup& group) {
         KeyShardFactory{group.sharding_strategy},
         cc,
         group.topology_update_method,
+        group.required_mode,
+        group.max_failed_shards,
+        group.max_failed_shards_percent,
+        group.max_disconnect_time
     };
 }
 
@@ -91,6 +114,10 @@ inline SubscribeSentinelStaticConfig MakeSubscribeSentinelStaticConfig(const Sub
         cc,
         group.topology_update_method,
         group.per_channel_stats_enabled,
+        group.required_mode,
+        group.max_failed_shards,
+        group.max_failed_shards_percent,
+        group.max_disconnect_time
     };
 }
 

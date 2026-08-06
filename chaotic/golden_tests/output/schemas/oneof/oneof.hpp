@@ -15,7 +15,6 @@
 namespace ns {
 
 struct OneOf {
-
 using Foo = std::variant<
         int,
         std::string

@@ -105,7 +105,9 @@ known-third-party = [
 known-first-party = [
     "requests_client",
     "chaotic",
+    "chaotic_openapi",
     "samples",
+    "sqldto",
     "utils",
 ]
 

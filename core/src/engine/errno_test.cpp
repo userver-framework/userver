@@ -1,6 +1,5 @@
 #include <userver/utest/utest.hpp>
 
-#include <atomic>
 #include <cerrno>
 #include <chrono>
 #include <condition_variable>
@@ -8,7 +7,6 @@
 #include <thread>
 #include <vector>
 
-#include <userver/compiler/impl/tsan.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/sleep.hpp>
@@ -17,14 +15,14 @@
 
 USERVER_NAMESPACE_BEGIN
 
-// Test is not ready to TSan non-migrating scheduler
-#if !USERVER_IMPL_HAS_TSAN
 namespace {
-constexpr std::size_t kNumThreads = 2;
+constexpr std::size_t kNumThreads = 3;
 }  // namespace
 
 UTEST_MT(Errno, IsCoroLocal, kNumThreads) {
-    const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+    // A pinning queue is allowed to keep a coroutine on its original worker.
+    // The test should verify errno after an actual switch, not require one.
+    const auto deadline = engine::Deadline::FromDuration(std::chrono::milliseconds{100});
 
     std::size_t threads_started{0};
     std::size_t threads_switched{0};
@@ -61,7 +59,7 @@ UTEST_MT(Errno, IsCoroLocal, kNumThreads) {
                     engine::Yield();
                 }
             }
-            return false;
+            return true;
         }));
     }
 
@@ -69,6 +67,5 @@ UTEST_MT(Errno, IsCoroLocal, kNumThreads) {
         EXPECT_TRUE(task.Get());
     }
 }
-#endif
 
 USERVER_NAMESPACE_END

@@ -80,14 +80,18 @@ hello
 
 ### Functional testing
 @ref scripts/docs/en/userver/functional_testing.md "Functional tests" for the service could be
-implemented using the testsuite in the following way:
+implemented using the @ref pytest_userver.plugins.service_client.service_client "service_client" fixture, the
+@ref pytest_userver.plugins.asyncio_socket._asyncio_socket "asyncio_socket" fixture and the
+`tcp_service_port` fixture from @ref samples/tcp_service/tests/conftest.py in the
+following way:
 
 @snippet samples/tcp_service/tests/test_tcp.py  Functional test
 
 
 Note that in this case testsuite requires some help to detect that the service
 is ready to accept requests. To do that, override the
-pytest_userver.plugins.service.service_non_http_health_checks :
+@ref pytest_userver.plugins.service.service_non_http_health_checks "service_non_http_health_checks"
+fixture:
 
 @snippet samples/tcp_service/tests/conftest.py  service_non_http_health_checker
 

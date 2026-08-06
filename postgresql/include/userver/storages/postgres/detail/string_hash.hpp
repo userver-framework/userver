@@ -7,8 +7,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::utils {
 
-std::size_t StrHash(const char* str, std::size_t len) noexcept;
-inline std::size_t StrHash(std::string_view str) noexcept { return StrHash(str.data(), str.size()); }
+std::size_t StrHash(std::string_view str) noexcept;
 
 struct StringViewHash {
     std::size_t operator()(std::string_view str) const noexcept { return StrHash(str); }

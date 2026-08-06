@@ -3,7 +3,6 @@
 #include <boost/stacktrace.hpp>
 
 #include <userver/logging/stacktrace_cache.hpp>
-#include <userver/utils/text.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,7 +16,7 @@ UTEST(StacktraceCache, StartOfCoroutine) {
     const logging::stacktrace_cache::StacktraceGuard guard(true);
     auto st = boost::stacktrace::stacktrace();
     auto text = logging::stacktrace_cache::to_string(st);
-    EXPECT_TRUE(utils::text::EndsWith(text, "[start of coroutine]\n")) << text;
+    EXPECT_TRUE(text.ends_with("[start of coroutine]\n")) << text;
 }
 
 USERVER_NAMESPACE_END

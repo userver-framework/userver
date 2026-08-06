@@ -15,6 +15,7 @@ include_guard(GLOBAL)
 # Pack initialization into a function to avoid non-cache variable leakage.
 function(_userver_prepare_testsuite)
     include("${CMAKE_CURRENT_LIST_DIR}/UserverVenv.cmake")
+    include("${CMAKE_CURRENT_LIST_DIR}/TargetIteration.cmake")
     set_property(GLOBAL PROPERTY userver_cmake_dir "${CMAKE_CURRENT_LIST_DIR}")
 
     # @ingroup libraries
@@ -143,7 +144,7 @@ endfunction()
 # TODO
 function(userver_testsuite_add)
     set(oneValueArgs SERVICE_TARGET TEST_SUFFIX WORKING_DIRECTORY PYTHON_BINARY PRETTY_LOGS SQL_LIBRARY)
-    set(multiValueArgs PYTEST_ARGS REQUIREMENTS PYTHONPATH TEST_ENV)
+    set(multiValueArgs PYTEST_ARGS REQUIREMENTS PYTHONPATH TEST_ENV RESOURCE_LOCKS)
     cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     _userver_setup_environment_validate_impl()
@@ -207,7 +208,8 @@ function(userver_testsuite_add)
     set(TESTSUITE_RUNNER "${CMAKE_CURRENT_BINARY_DIR}/runtests-${service_target_with_suffix}")
     list(APPEND ARG_PYTHONPATH "${USERVER_TESTSUITE_DIR}/pytest_plugins")
 
-    file(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary)
+    set(testsuite_temp_dir "${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/${service_target_with_suffix}")
+    file(MAKE_DIRECTORY "${testsuite_temp_dir}")
 
     set(TESTS_PATHS ${ARG_WORKING_DIRECTORY})
     if(ARG_SQL_LIBRARY)
@@ -224,8 +226,8 @@ function(userver_testsuite_add)
             "${python_binary}" "${USERVER_TESTSUITE_DIR}/create_runner.py" "--output=${TESTSUITE_RUNNER}"
             "--python=${python_binary}" "--tests-path=${TESTS_PATHS}" "--working-dir=${CMAKE_CURRENT_BINARY_DIR}"
             "--python-path=${ARG_PYTHONPATH}" -- "--build-dir=${CMAKE_CURRENT_BINARY_DIR}"
-            "--service-logs-file=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/service.log"
-            "--basetemp=${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary" ${ARG_PYTEST_ARGS}
+            "--service-logs-file=${testsuite_temp_dir}/service.log" "--basetemp=${testsuite_temp_dir}"
+            ${ARG_PYTEST_ARGS}
         DEPENDS "${USERVER_TESTSUITE_DIR}/create_runner.py"
         COMMENT "Creating testsuite runner at ${TESTSUITE_RUNNER}"
         VERBATIM ${CODEGEN}
@@ -251,6 +253,13 @@ function(userver_testsuite_add)
     add_test(NAME "${testsuite_test_name}" COMMAND ${testsuite_test_command})
     if(ARG_TEST_ENV)
         set_tests_properties("${testsuite_test_name}" PROPERTIES ENVIRONMENT "${ARG_TEST_ENV}")
+    endif()
+
+    _userver_get_test_resource_locks_for_target("${ARG_SERVICE_TARGET}" testsuite_resource_locks)
+    list(APPEND testsuite_resource_locks ${ARG_RESOURCE_LOCKS})
+    if(testsuite_resource_locks)
+        list(REMOVE_DUPLICATES testsuite_resource_locks)
+        set_tests_properties("${testsuite_test_name}" PROPERTIES RESOURCE_LOCK "${testsuite_resource_locks}")
     endif()
 
     # Pre-collect command in a list to support spaces in paths
@@ -293,6 +302,8 @@ endfunction()
 # @multiparam REQUIREMENTS
 # @multiparam PYTHONPATH
 # @multiparam TEST_ENV
+# @multiparam RESOURCE_LOCKS ctest resource locks for databases the service uses
+#   without linking their module (e.g. 'userver_postgresql' for an odbc service)
 function(userver_testsuite_add_simple)
     set(oneValueArgs
         SERVICE_TARGET
@@ -307,7 +318,7 @@ function(userver_testsuite_add_simple)
         DUMP_CONFIG
         SQL_LIBRARY
     )
-    set(multiValueArgs PYTEST_ARGS REQUIREMENTS PYTHONPATH TEST_ENV)
+    set(multiValueArgs PYTEST_ARGS REQUIREMENTS PYTHONPATH TEST_ENV RESOURCE_LOCKS)
     cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     _userver_setup_environment_validate_impl()
@@ -455,6 +466,7 @@ function(userver_testsuite_add_simple)
         REQUIREMENTS ${ARG_REQUIREMENTS}
         PYTHONPATH ${ARG_PYTHONPATH}
         TEST_ENV ${ARG_TEST_ENV}
+        RESOURCE_LOCKS ${ARG_RESOURCE_LOCKS}
         SQL_LIBRARY ${ARG_SQL_LIBRARY}
     )
 endfunction()
@@ -495,6 +507,14 @@ function(userver_add_utest)
     if(ARG_TEST_ENV)
         set_tests_properties("${ARG_NAME}" PROPERTIES ENVIRONMENT "${ARG_TEST_ENV}")
     endif()
+
+    set(utest_resource_locks "")
+    foreach(database IN LISTS ARG_DATABASES)
+        list(APPEND utest_resource_locks "userver_${database}")
+    endforeach()
+    if(utest_resource_locks)
+        set_tests_properties("${ARG_NAME}" PROPERTIES RESOURCE_LOCK "${utest_resource_locks}")
+    endif()
 endfunction()
 
 # @param NAME
@@ -525,6 +545,43 @@ function(userver_add_ubench_test)
         TEST_ENV ${ARG_TEST_ENV}
         TEST_ARGS --benchmark_min_time=${BENCHMARK_MIN_TIME} --benchmark_color=no
         DISABLE_GTEST_XML_OUTPUT ON
+    )
+endfunction()
+
+# Converts a target name into a ';'-separated list of ctest RESOURCE_LOCK names, one
+# per userver database module the target links against (directly or transitively).
+# Tests that share a lock are never run concurrently by ctest, which protects the
+# per-engine database daemons started by testsuite (each on a fixed port/data-dir)
+# from races during parallel `ctest -j`. Lock name for an engine is "userver_<engine>".
+function(_userver_get_test_resource_locks_for_target target output_var)
+    # userver database modules backed by a shared daemon. Embedded engines without a
+    # daemon (e.g. sqlite, rocks) are intentionally omitted.
+    set(db_engines
+        postgresql
+        mongo
+        redis
+        clickhouse
+        rabbitmq
+        kafka
+        mysql
+        ydb
+    )
+
+    set(resource_locks "")
+    if(TARGET "${target}")
+        _userver_collect_linked_targets("${target}" linked_targets)
+        foreach(engine IN LISTS db_engines)
+            list(FIND linked_targets "userver-${engine}" index_dash)
+            list(FIND linked_targets "userver::${engine}" index_colons)
+            if(NOT index_dash EQUAL -1 OR NOT index_colons EQUAL -1)
+                list(APPEND resource_locks "userver_${engine}")
+            endif()
+        endforeach()
+    endif()
+
+    set(${output_var}
+        "${resource_locks}"
+        PARENT_SCOPE
     )
 endfunction()
 

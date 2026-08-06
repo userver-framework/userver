@@ -7,6 +7,7 @@
 
 namespace sample {
 
+/// [YDB service sample - bson upserting handler]
 class BsonUpsertingHandler final : public server::handlers::HttpHandlerBase {
 public:
     static constexpr std::string_view kName = "handler-bson-upserting";
@@ -22,5 +23,6 @@ public:
 private:
     std::shared_ptr<ydb::TableClient> ydb_client_;
 };
+/// [YDB service sample - bson upserting handler]
 
 }  // namespace sample

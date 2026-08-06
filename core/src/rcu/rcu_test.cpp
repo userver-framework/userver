@@ -418,17 +418,19 @@ constexpr std::size_t kTotalTasks = kReadablePtrPingPongTasks + kReadingTasks + 
 
 UTEST_MT(Rcu, TortureTest, kTotalTasks) {
     rcu::Variable<CleaningUpInt> data{1};
-    std::atomic<bool> keep_running{true};
 
     engine::Mutex ping_pong_mutex;
     rcu::ReadablePtr<CleaningUpInt> ptr = data.Read();
 
+    // Pinning queues may delay the main test task while worker-local queues are
+    // busy, so the stress tasks must be able to finish without an external flag.
+    const auto test_deadline = engine::Deadline::FromDuration(std::chrono::milliseconds{100});
     std::vector<engine::TaskWithResult<void>> tasks;
     tasks.reserve(kTotalTasks - 1);
 
     for (std::size_t i = 0; i < kReadablePtrPingPongTasks; ++i) {
         tasks.push_back(engine::AsyncNoTracing([&] {
-            while (keep_running) {
+            while (!test_deadline.IsReached()) {
                 {
                     const std::lock_guard lock(ping_pong_mutex);
                     // copy a ptr created by another thread
@@ -442,7 +444,7 @@ UTEST_MT(Rcu, TortureTest, kTotalTasks) {
 
     for (std::size_t i = 0; i < kReadingTasks; ++i) {
         tasks.push_back(engine::AsyncNoTracing([&] {
-            while (keep_running) {
+            while (!test_deadline.IsReached()) {
                 const auto local_ptr = data.Read();
                 ASSERT_GT(local_ptr->value, 0);
             }
@@ -451,15 +453,16 @@ UTEST_MT(Rcu, TortureTest, kTotalTasks) {
 
     for (std::size_t i = 0; i < kWritingTasks; ++i) {
         tasks.push_back(engine::AsyncNoTracing([&] {
-            while (keep_running) {
+            while (!test_deadline.IsReached()) {
                 const auto old = data.Read();
                 data.Assign(CleaningUpInt{old->value + 1});
             }
         }));
     }
 
-    engine::SleepFor(std::chrono::milliseconds{100});
-    keep_running = false;
+    for (auto& task : tasks) {
+        task.Get();
+    }
 }
 
 UTEST(Rcu, WritablePtrUnlocksInCommit) {

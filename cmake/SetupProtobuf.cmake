@@ -66,9 +66,9 @@ if(NOT USERVER_FORCE_DOWNLOAD_PROTOBUF)
 
     if(Protobuf_FOUND)
         _userver_set_protobuf_version_category()
-        if (Protobuf_PROTOC_EXECUTABLE)
+        if(Protobuf_PROTOC_EXECUTABLE)
             set(PROTOBUF_PROTOC "${Protobuf_PROTOC_EXECUTABLE}")
-        elseif (TARGET protobuf::protoc)  # Newer protobuf versions outside Conan dropped additional cmake variable.
+        elseif(TARGET protobuf::protoc) # Newer protobuf versions outside Conan dropped additional cmake variable.
             set(PROTOBUF_PROTOC $<TARGET_FILE:protobuf::protoc>)
         endif()
         return()
@@ -88,7 +88,10 @@ cpmaddpackage(
             "protobuf_MSVC_STATIC_RUNTIME OFF" "protobuf_ABSL_PROVIDER package"
 )
 
-set(Protobuf_VERSION "${CPM_PACKAGE_Protobuf_VERSION}" CACHE INTERNAL "")
+set(Protobuf_VERSION
+    "${CPM_PACKAGE_Protobuf_VERSION}"
+    CACHE INTERNAL ""
+)
 set(Protobuf_FOUND TRUE)
 set(PROTOBUF_INCLUDE_DIRS "${Protobuf_SOURCE_DIR}/src")
 set(Protobuf_INCLUDE_DIR "${Protobuf_SOURCE_DIR}/src")

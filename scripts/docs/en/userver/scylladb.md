@@ -9,7 +9,7 @@ a Rust reimplementation of the DataStax C/C++ driver.
 The framework wraps that C API in a thin
 coroutine-friendly layer. Every `CassFuture` is bridged into an awaitable task,
 so CQL calls suspend the current coroutine instead of blocking a task
-processor thread, while the driver's own I/O threads keep talking to the cluster. 
+processor thread, while the driver's own I/O threads keep talking to the cluster.
 
 ## Main features
 

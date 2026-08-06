@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/clients/http/midddlewares/retry_budget/component.hpp
+/// @file userver/clients/http/middlewares/retry_budget/component.hpp
 /// @brief @copybrief clients::http::middlewares::retry_budget::Component
 
 #include <memory>

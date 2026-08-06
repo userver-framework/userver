@@ -1,6 +1,8 @@
 #include <userver/formats/json/inline.hpp>
 #include <userver/utest/assert_macros.hpp>
 
+#include <gmock/gmock.h>
+
 #include <userver/chaotic/exception.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
@@ -48,7 +50,7 @@ TEST(Simple, OneOfWithDiscriminator2) {
     EXPECT_EQ(std::get<0>(obj.foo.value()).extra["additional"].As<int>(), 14);
     EXPECT_EQ(TestToJsonString(obj), json);
     EXPECT_EQ(TestWriteToStream(obj), json);
-    EXPECT_NE(ToJsonString(obj).find("\"type\""), std::string::npos) << "No 'type'";
+    EXPECT_THAT(ToJsonString(obj), testing::HasSubstr("\"type\"")) << "No 'type'";
     EXPECT_EQ(ToJsonString(obj).find("\"type\""), ToJsonString(obj).rfind("\"type\"")) << "Multiple 'type's";
 
     EXPECT_EQ(TestDomSerializer(obj), json);
@@ -57,7 +59,7 @@ TEST(Simple, OneOfWithDiscriminator2) {
     EXPECT_EQ(std::get<0>(obj.foo.value()).type, "incorrect");
     EXPECT_EQ(TestDomSerializer(obj), json);
     EXPECT_EQ(TestToJsonString(obj), json);
-    EXPECT_NE(ToJsonString(obj).find("\"type\""), std::string::npos) << "No 'type'";
+    EXPECT_THAT(ToJsonString(obj), testing::HasSubstr("\"type\"")) << "No 'type'";
     EXPECT_EQ(ToJsonString(obj).find("\"type\""), ToJsonString(obj).rfind("\"type\"")) << "Multiple 'type's";
 }
 
@@ -69,7 +71,7 @@ TEST(Simple, OneOfWithDiscriminator3) {
     EXPECT_EQ(std::get<1>(obj.foo.value()).b_prop, 42);
     EXPECT_EQ(std::get<1>(obj.foo.value()).extra["additional"].As<int>(), 14);
     EXPECT_EQ(TestToJsonString(obj), json);
-    EXPECT_NE(ToJsonString(obj).find("\"type\""), std::string::npos) << "No 'type'";
+    EXPECT_THAT(ToJsonString(obj), testing::HasSubstr("\"type\"")) << "No 'type'";
     EXPECT_EQ(ToJsonString(obj).find("\"type\""), ToJsonString(obj).rfind("\"type\"")) << "Multiple 'type's";
 
     EXPECT_EQ(TestDomSerializer(obj), json);
@@ -78,7 +80,7 @@ TEST(Simple, OneOfWithDiscriminator3) {
     EXPECT_EQ(std::get<1>(obj.foo.value()).type, "incorrect");
     EXPECT_EQ(TestDomSerializer(obj), json);
     EXPECT_EQ(TestToJsonString(obj), json);
-    EXPECT_NE(ToJsonString(obj).find("\"type\""), std::string::npos) << "No 'type'";
+    EXPECT_THAT(ToJsonString(obj), testing::HasSubstr("\"type\"")) << "No 'type'";
     EXPECT_EQ(ToJsonString(obj).find("\"type\""), ToJsonString(obj).rfind("\"type\"")) << "Multiple 'type's";
 }
 
@@ -87,7 +89,7 @@ TEST(Simple, OneOfWithDiscriminator4) {
     auto obj = json.As<ns::IntegerOneOfDiscriminator>();
     EXPECT_EQ(std::get<0>(obj.foo.value()).version, 42);
     EXPECT_EQ(TestToJsonString(obj), json);
-    EXPECT_NE(ToJsonString(obj).find("\"version\""), std::string::npos) << "No 'version'";
+    EXPECT_THAT(ToJsonString(obj), testing::HasSubstr("\"version\"")) << "No 'version'";
     EXPECT_EQ(ToJsonString(obj).find("\"version\""), ToJsonString(obj).rfind("\"version\"")) << "Multiple 'version's";
 
     EXPECT_EQ(TestDomSerializer(obj), json);
@@ -96,7 +98,7 @@ TEST(Simple, OneOfWithDiscriminator4) {
     EXPECT_EQ(std::get<0>(obj.foo.value()).version, 777);
     EXPECT_EQ(TestDomSerializer(obj), json);
     EXPECT_EQ(TestToJsonString(obj), json);
-    EXPECT_NE(ToJsonString(obj).find("\"version\""), std::string::npos) << "No 'version'";
+    EXPECT_THAT(ToJsonString(obj), testing::HasSubstr("\"version\"")) << "No 'version'";
     EXPECT_EQ(ToJsonString(obj).find("\"version\""), ToJsonString(obj).rfind("\"version\"")) << "Multiple 'version's";
 }
 
@@ -105,7 +107,7 @@ TEST(Simple, OneOfWithDiscriminator5) {
     auto obj = json.As<ns::IntegerOneOfDiscriminator>();
     EXPECT_EQ(std::get<1>(obj.foo.value()).version, 52);
     EXPECT_EQ(TestToJsonString(obj), json);
-    EXPECT_NE(ToJsonString(obj).find("\"version\""), std::string::npos) << "No 'version'";
+    EXPECT_THAT(ToJsonString(obj), testing::HasSubstr("\"version\"")) << "No 'version'";
     EXPECT_EQ(ToJsonString(obj).find("\"version\""), ToJsonString(obj).rfind("\"version\"")) << "Multiple 'version's";
 
     EXPECT_EQ(TestDomSerializer(obj), json);
@@ -114,7 +116,7 @@ TEST(Simple, OneOfWithDiscriminator5) {
     EXPECT_EQ(std::get<1>(obj.foo.value()).version, 777);
     EXPECT_EQ(TestDomSerializer(obj), json);
     EXPECT_EQ(TestToJsonString(obj), json);
-    EXPECT_NE(ToJsonString(obj).find("\"version\""), std::string::npos) << "No 'version'";
+    EXPECT_THAT(ToJsonString(obj), testing::HasSubstr("\"version\"")) << "No 'version'";
     EXPECT_EQ(ToJsonString(obj).find("\"version\""), ToJsonString(obj).rfind("\"version\"")) << "Multiple 'version's";
 }
 

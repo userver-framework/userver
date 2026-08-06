@@ -6,6 +6,9 @@
 #include <utility>
 
 #include <userver/engine/impl/task_context_holder.hpp>
+#include <userver/engine/impl/task_local_storage.hpp>
+#include <userver/engine/task/current_task.hpp>
+#include <userver/engine/task/inherited_variable_options.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/impl/wrapped_call.hpp>
@@ -25,6 +28,9 @@ struct TaskConfig final {
     Task::Importance importance{Task::Importance::kNormal};
     Task::WaitMode wait_mode{Task::WaitMode::kSingleAwaiter};
     engine::Deadline deadline{};
+    // The lower bound of priority of variables that the new task inherits from the creating task.
+    // The parent storage itself is captured synchronously on the creating thread.
+    TaskInheritedVariablePriority inherited_variables_priority{TaskInheritedVariablePriority::kNormal};
 };
 
 [[nodiscard]] TaskContext& PlacementNewTaskContext(

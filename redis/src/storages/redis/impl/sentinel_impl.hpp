@@ -20,8 +20,8 @@
 #include <storages/redis/impl/redis_stats.hpp>
 #include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/fwd.hpp>
+#include <userver/storages/redis/health_check_param.hpp>
 #include <userver/storages/redis/topology_update_method.hpp>
-#include <userver/storages/redis/wait_connected_mode.hpp>
 
 #include "shard.hpp"
 
@@ -80,6 +80,7 @@ public:
     void WaitConnectedDebug(bool allow_empty_slaves);
 
     void WaitConnectedOnce(RedisWaitConnected wait_connected);
+    bool IsReady(const HealthCheckParams& params) const;
 
     void ForceUpdateHosts();
 

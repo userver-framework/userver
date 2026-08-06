@@ -5,7 +5,6 @@
 #include <userver/ugrpc/client/middlewares/base.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/utils/algo.hpp>
-#include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -16,7 +15,7 @@ namespace {
 constexpr std::string_view kClientSuffix = "-client";
 
 std::string_view RemoveClientSuffix(std::string_view client_name) {
-    if (utils::text::EndsWith(client_name, kClientSuffix)) {
+    if (client_name.ends_with(kClientSuffix)) {
         client_name.remove_suffix(kClientSuffix.size());
     }
     return client_name;

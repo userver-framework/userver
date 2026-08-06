@@ -18,7 +18,7 @@
 #include <userver/components/component_list.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/current_task.hpp>
-#include <userver/engine/wait_any.hpp>
+#include <userver/engine/wait_all_checked.hpp>
 #include <userver/hostinfo/cpu_limit.hpp>
 #include <userver/logging/component.hpp>
 #include <userver/logging/log.hpp>
@@ -366,51 +366,45 @@ components::ComponentConfigMap Manager::MakeComponentConfigMap(const ComponentLi
     return component_config_map;
 }
 
+struct ComponentAddResult {
+    bool has_components_load_cancelled_exception{false};
+};
+
 void Manager::AddComponents(const ComponentList& component_list) {
-    const auto component_config_map = MakeComponentConfigMap(component_list);
-
     auto start_time = std::chrono::steady_clock::now();
-    std::vector<engine::TaskWithResult<void>> tasks;
-    bool is_load_cancelled = false;
-    try {
-        ValidateConfigs(component_list, component_config_map, config_->validate_components_configs);
 
+    const auto component_config_map = MakeComponentConfigMap(component_list);
+    ValidateConfigs(component_list, component_config_map, config_->validate_components_configs);
+    std::vector<engine::TaskWithResult<ComponentAddResult>> tasks;
+
+    try {
         for (const auto& adder : component_list) {
             const auto& component_name = adder->GetComponentName();
             auto task_name = "boot/" + component_name;
-            tasks.push_back(utils::CriticalAsync(std::move(task_name), [&]() {
+
+            tasks.push_back(utils::CriticalAsync(std::move(task_name), [&]() -> ComponentAddResult {
                 tracing::Span::CurrentSpan().AddTag("component_name", component_name);
                 tracing::Span::CurrentSpan().SetLogLevel(logging::Level::kDebug);
                 try {
                     AddComponentImpl(component_config_map, component_name, *adder);
+                    return {};
                 } catch (const ComponentsLoadCancelledException& ex) {
                     LOG_WARNING() << "Cannot start component " << component_name << ": " << ex;
-                    component_context_->CancelComponentsLoad();
-                    throw;
+                    // Keep the parent task waiting for the root cause of the startup failure.
+                    return {.has_components_load_cancelled_exception = true};
                 } catch (const std::exception& ex) {
-                    LOG_ERROR() << "Cannot start component " << component_name << ": " << ex;
-                    component_context_->CancelComponentsLoad();
+                    // The exception is likely the root cause of the startup failure
+                    // if it happened not because of a task cancellation.
+                    const auto log_level =
+                        engine::current_task::ShouldCancel() ? logging::Level::kWarning : logging::Level::kError;
+                    LOG(log_level) << "Cannot start component " << component_name << ": " << ex;
                     throw std::runtime_error(fmt::format("Cannot start component {}: {}", component_name, ex.what()));
-                } catch (...) {
-                    component_context_->CancelComponentsLoad();
-                    throw;
                 }
             }));
         }
 
         // Wait for tasks in completion order and rethrow exceptions as soon as possible.
-        auto wait_any = engine::MakeWaitAny(tasks);
-        for (std::size_t completed = 0; completed < tasks.size(); ++completed) {
-            const auto idx = wait_any.Wait();
-            if (!idx.has_value()) {
-                throw engine::WaitInterruptedException(engine::current_task::CancellationReason());
-            }
-            try {
-                tasks[*idx].Get();
-            } catch (const ComponentsLoadCancelledException&) {
-                is_load_cancelled = true;
-            }
-        }
+        engine::WaitAllChecked(tasks);
     } catch (const std::exception& ex) {
         component_context_->CancelComponentsLoad();
 
@@ -431,12 +425,12 @@ void Manager::AddComponents(const ComponentList& component_list) {
         throw;
     }
 
+    const bool is_load_cancelled = std::ranges::any_of(tasks, [](auto& task) {
+        return task.Get().has_components_load_cancelled_exception;
+    });
     if (is_load_cancelled) {
         ClearComponents();
-        throw std::logic_error(
-            "Components load cancelled, but only ComponentsLoadCancelledExceptions "
-            "were caught"
-        );
+        throw std::logic_error("Components load cancelled, but only ComponentsLoadCancelledExceptions were caught");
     }
 
     LOG_INFO()

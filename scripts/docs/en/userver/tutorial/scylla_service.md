@@ -45,7 +45,7 @@ private:
 
 The component holds a storages::scylla::SessionPtr, a client to the
 ScyllaDB cluster. That client is thread safe, you can use it concurrently from
-different threads and tasks. 
+different threads and tasks.
 
 
 ### KeyValueHandler::Post
@@ -157,7 +157,7 @@ if (!result.applied) {
 ### Paging
 
 For large result sets, storages::scylla::operations::SelectMany together with
-ExecutePaged gives you one page plus an opaque cursor. 
+ExecutePaged gives you one page plus an opaque cursor.
 
 ```cpp
 storages::scylla::operations::SelectMany op;
@@ -185,7 +185,7 @@ while (!cursor.Done()) {
 
 ### Rich CQL types
 
-Examples of the non-scalar CQL types. 
+Examples of the non-scalar CQL types.
 
 ```cpp
 storages::scylla::operations::InsertOne op;
@@ -252,7 +252,7 @@ cqlsh.
 
 Static configuration of service is quite close to the configuration from
 @ref scripts/docs/en/userver/tutorial/hello_service.md except for the handlers
-and DB. Secdist carries the  cluster contact points so 
+and DB. Secdist carries the  cluster contact points so
 they are not checked into the config file.
 
 ```yaml
@@ -364,13 +364,15 @@ implemented using the testsuite. To do that you have to:
 * Turn on the `pytest_userver.plugins.scylla` plugin and provide ScyllaDB
   connection info for the testsuite:
   @snippet samples/scylla_service/testsuite/conftest.py scylla setup
-  The `pytest_userver.plugins.service.auto_client_deps()` fixture already knows
-  about the scylla fixture, so there's no need to override the
-  `extra_client_deps()` fixture. The sample's `conftest.py` additionally calls
+  The @ref pytest_userver.plugins.service.auto_client_deps "auto_client_deps" fixture
+  already knows about the @ref pytest_userver.plugins.scylla.scylla "scylla" fixture,
+  so there's no need to override the
+  @ref pytest_userver.plugins.service.extra_client_deps "extra_client_deps" fixture.
+  The sample's `conftest.py` additionally calls
   `/v1/schema/init` and truncates both tables before every test so each case
   starts from a clean slate.
 
-* Write the test:
+* Write the test using the @ref pytest_userver.plugins.service_client.service_client "service_client" fixture:
   @snippet samples/scylla_service/testsuite/test_scylla.py  Functional test
 
 ## Full sources

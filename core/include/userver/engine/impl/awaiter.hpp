@@ -1,40 +1,32 @@
 #pragma once
 
-#include <atomic>
 #include <cstddef>
 #include <cstdint>
 
 #include <boost/intrusive/list_hook.hpp>
-#include <boost/smart_ptr/intrusive_ptr.hpp>
-#include <boost/smart_ptr/intrusive_ref_counter.hpp>
 
-#include <userver/engine/impl/epoch.hpp>
+#include <userver/engine/impl/awaiter_fwd.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-class PolymorphicAwaiter;
+class TaskContext;
 
 class Awaiter {
 public:
-    enum InitialRefCounter : std::size_t { kZero = 0, kOne = 1 };  // NOLINT(performance-enum-size)
-
     Awaiter(const Awaiter&) = delete;
     Awaiter(Awaiter&&) = delete;
     Awaiter& operator=(const Awaiter&) = delete;
     Awaiter& operator=(Awaiter&&) = delete;
 
-    std::size_t UseCount() const noexcept;
-
-    friend void intrusive_ptr_add_ref(Awaiter* awaiter) noexcept;  // NOLINT(readability-identifier-naming)
-    friend void intrusive_ptr_release(Awaiter* awaiter) noexcept;  // NOLINT(readability-identifier-naming)
+    TaskContext& CastToTaskContext() noexcept;
 
 protected:
-    enum StaticType : std::uint8_t { kPolymorphic, kTaskContext };
+    enum class StaticType : std::uint8_t { kPolymorphic, kTaskContext };
 
-    Awaiter(StaticType type, InitialRefCounter initial_ref_counter);
+    explicit Awaiter(StaticType type) noexcept;
     ~Awaiter() = default;
 
 private:
@@ -47,46 +39,60 @@ private:
         std::uintptr_t context{0};
     };
 
+    friend struct AwaiterDeleter;
     friend class WaitList;
-    friend void Notify(boost::intrusive_ptr<Awaiter>&& awaiter, std::uintptr_t context) noexcept;
 
-    static void NotifyTaskContext(boost::intrusive_ptr<Awaiter> self, std::uintptr_t context) noexcept;
+    friend void NotifyAndDispose(AwaiterPtr&& awaiter, std::uintptr_t context) noexcept;
 
-    PolymorphicAwaiter& CastToPolymorphic() noexcept;
-
-    // refcounter for resources and memory deallocation
-    std::atomic<std::size_t> intrusive_refcount_{0};
+    static void NotifyAndDisposeTaskContext(Awaiter* self, std::uintptr_t context) noexcept;
+    static void DisposeWithoutNotificationTaskContext(Awaiter* self) noexcept;
 
     StaticType type_;
-
     WaitListData wait_list_data_;
 };
 
+struct AwaiterDeleter {
+    void operator()(Awaiter* awaiter) noexcept;
+};
+
+using AwaiterPtr = std::unique_ptr<Awaiter, AwaiterDeleter>;
+
 class PolymorphicAwaiter : public Awaiter {
 public:
-    virtual void DoNotify(boost::intrusive_ptr<PolymorphicAwaiter> self, std::uintptr_t context) noexcept = 0;
+    virtual void NotifyAndDispose(std::uintptr_t context) noexcept = 0;
+
+    virtual void DisposeWithoutNotification() noexcept = 0;
 
 protected:
     PolymorphicAwaiter();
-    explicit PolymorphicAwaiter(InitialRefCounter initial_ref_counter);
-
     ~PolymorphicAwaiter() = default;
-
-    // Called from intrusive_ptr_release. Should delete the instance
-    virtual void Destroy() noexcept = 0;
-
-private:
-    friend void intrusive_ptr_release(Awaiter* awaiter) noexcept;  // NOLINT(readability-identifier-naming)
 };
 
-inline void Notify(boost::intrusive_ptr<Awaiter>&& awaiter, std::uintptr_t context) noexcept {
+inline void NotifyAndDispose(AwaiterPtr&& awaiter, std::uintptr_t context) noexcept {
     UASSERT(awaiter);
 
-    if (awaiter->type_ == Awaiter::StaticType::kTaskContext) {
-        Awaiter::NotifyTaskContext(std::move(awaiter), context);
-    } else {
-        auto polymorphic_awaiter = boost::static_pointer_cast<PolymorphicAwaiter>(std::move(awaiter));
-        polymorphic_awaiter->DoNotify(std::move(polymorphic_awaiter), context);
+    switch (awaiter->type_) {
+        case Awaiter::StaticType::kTaskContext:
+            Awaiter::NotifyAndDisposeTaskContext(awaiter.release(), context);
+            break;
+        case Awaiter::StaticType::kPolymorphic:
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+            static_cast<PolymorphicAwaiter&>(*awaiter.release()).NotifyAndDispose(context);
+            break;
+    }
+}
+
+inline void AwaiterDeleter::operator()(Awaiter* awaiter) noexcept {
+    UASSERT(awaiter);
+
+    switch (awaiter->type_) {
+        case Awaiter::StaticType::kTaskContext:
+            Awaiter::DisposeWithoutNotificationTaskContext(awaiter);
+            break;
+        case Awaiter::StaticType::kPolymorphic:
+            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+            static_cast<PolymorphicAwaiter&>(*awaiter).DisposeWithoutNotification();
+            break;
     }
 }
 

@@ -275,9 +275,14 @@ bool ComponentContextImpl::IsAnyComponentInFatalState() const {
 #endif
 
     for (const auto& comp : components_) {
-        switch (comp->GetComponent()->GetComponentHealth()) {
+        // Do NOT use comp->GetComponent() + GetComponentHealth(), as there's a race on components destruction
+        switch (comp->GetComponentHealth()) {
             case ComponentHealth::kFatal:
-                LOG_ERROR() << "Component '" << comp->GetName() << "' is in kFatal state";
+                LOG(service_lifetime_stage_ == ServiceLifetimeStage::kRunning
+                        ? logging::Level::kError
+                        : logging::Level::kDebug
+                ) << "Component '"
+                  << comp->GetName() << "' is in kFatal state";
                 return true;
             case ComponentHealth::kFallback:
                 LOG_LIMITED_WARNING() << "Component '" << comp->GetName() << "' is in kFallback state";
@@ -289,6 +294,37 @@ bool ComponentContextImpl::IsAnyComponentInFatalState() const {
     }
 
     return false;
+}
+
+std::vector<State::ComponentWithHealth> ComponentContextImpl::GetUnhealthyComponents() const {
+#ifndef NDEBUG
+    {
+        const auto data = shared_data_.Lock();
+        UASSERT_MSG(
+            data->print_adding_components_stopped,
+            "GetUnhealthyComponents() should be called only after all the components has been loaded."
+        );
+    }
+#endif
+
+    std::vector<State::ComponentWithHealth> result;
+    for (const auto& comp : components_) {
+        // Do NOT use comp->GetComponent() + GetComponentHealth(), as there's a race on components destruction
+        const auto health = comp->GetComponentHealth();
+        switch (health) {
+            case ComponentHealth::kFatal:
+            case ComponentHealth::kFallback:
+                // components_ (and `name` stored in it) are freed at the very end of the component system lifetime
+                // when all the components are already stopped and no component can use the result of this function,
+                // that returns a string_view on name.
+                result.push_back({comp->GetName(), health});
+                break;
+            case ComponentHealth::kOk:
+                break;
+        }
+    }
+
+    return result;
 }
 
 ServiceLifetimeStage ComponentContextImpl::GetServiceLifetimeStage() const { return service_lifetime_stage_.load(); }
@@ -336,8 +372,7 @@ std::unordered_set<std::string_view> ComponentContextImpl::GetAllDependencies(st
     UASSERT_MSG(
         Contains(component_name),
         fmt::format(
-            "Exception while calling GetAllDependencies(\"{0}\" "
-            "). Component \"{0}\" was not loaded.",
+            "Exception while calling GetAllDependencies(\"{0}\" ). Component \"{0}\" was not loaded.",
             component_name
         )
     );
@@ -347,8 +382,7 @@ std::unordered_set<std::string_view> ComponentContextImpl::GetAllDependencies(st
     const auto data = shared_data_.Lock();
     UASSERT_MSG(
         data->print_adding_components_stopped,
-        "HasDependencyOn() should be called only after all the "
-        "components has been loaded."
+        "HasDependencyOn() should be called only after all the components has been loaded."
     );
 
     std::unordered_set<ConstComponentInfoRef> handled;
@@ -375,8 +409,7 @@ void ComponentContextImpl::ThrowNonRegisteredComponent(
 ) const {
     throw std::runtime_error(fmt::format(
         "Component '{}' requested component {} with name '{}'. That name is "
-        "missing in the static config or the '{}' static config section contains "
-        "'load-enabled: false'.",
+        "missing in the static config or the '{}' static config section contains 'load-enabled: false'.",
         current_component.GetName(),
         type,
         name,
@@ -391,8 +424,7 @@ void ComponentContextImpl::ThrowComponentTypeMismatch(
     ComponentInfo& current_component
 ) const {
     throw std::runtime_error(fmt::format(
-        "Component '{}' requested component with name '{}' that is actually "
-        "{}{} rather than a {}",
+        "Component '{}' requested component with name '{}' that is actually {}{} rather than a {}",
         current_component.GetName(),
         name,
         (component ? "has type " : "a nullptr"),
@@ -466,7 +498,7 @@ void ComponentContextImpl::ProcessAllComponentLifetimeStageSwitchings(ComponentL
     std::vector<std::pair<ComponentInfoRef, engine::TaskWithResult<void>>> tasks;
     tasks.reserve(components_.size());
     for (auto& component_info : components_) {
-        tasks.emplace_back(*component_info, utils::TaskBuilder{}.NoSpan().Background().Critical().Build([&] {
+        tasks.emplace_back(*component_info, utils::TaskBuilder{}.NoTracing().Background().Critical().Build([&] {
             ProcessSingleComponentLifetimeStageSwitching(*component_info, params);
         }));
     }
@@ -613,7 +645,7 @@ void ComponentContextImpl::CancelComponentLifetimeStageSwitching() {
 }
 
 void ComponentContextImpl::StartPrintAddingComponentsTask() {
-    print_adding_components_task_ = utils::TaskBuilder{}.NoSpan().Background().Critical().Build([this]() {
+    print_adding_components_task_ = utils::TaskBuilder{}.NoTracing().Background().Critical().Build([this]() {
         for (;;) {
             {
                 auto data = shared_data_.UniqueLock();

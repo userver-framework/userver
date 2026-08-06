@@ -23,7 +23,7 @@ public:
 
     bool IsReady() const noexcept override { return false; }
 
-    void TryAppendAwaiter(boost::intrusive_ptr<Awaiter>& awaiter, std::uintptr_t context) override {
+    void TryAppendAwaiter(engine::impl::AwaiterPtr& awaiter, std::uintptr_t context) override {
         UASSERT(mutex_lock_);
         {
             WaitList::Lock awaiters_lock{awaiters_};
@@ -36,7 +36,7 @@ public:
         // by user under mutex_lock_.
     }
 
-    boost::intrusive_ptr<Awaiter> RemoveAwaiter(Awaiter& awaiter, std::uintptr_t context) noexcept override {
+    engine::impl::AwaiterPtr RemoveAwaiter(engine::impl::Awaiter& awaiter, std::uintptr_t context) noexcept override {
         WaitList::Lock awaiters_lock{awaiters_};
         return awaiters_.Remove(awaiters_lock, awaiter, context);
     }

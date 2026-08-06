@@ -255,12 +255,12 @@ ClusterShard::RedisPtr ClusterShard::GetInstance(
     return ret;
 }
 
-bool ClusterShard::IsMasterReady() const { return master_ && master_->GetState() == Redis::State::kConnected; }
+// If a node is in failed state, we can ignore its connection state because the problem is on the remote side, not with
+// our connection.
+bool ClusterShard::IsMasterReady() const { return master_ && master_->IsReady(); }
 
 bool ClusterShard::IsReplicaReady() const {
-    return std::ranges::any_of(replicas_, [](const auto& replica) {
-        return replica && replica->GetState() == Redis::State::kConnected;
-    });
+    return std::ranges::any_of(replicas_, [](const auto& replica) { return replica && replica->IsReady(); });
 }
 
 size_t GetStartIndex(

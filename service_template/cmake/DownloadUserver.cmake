@@ -28,15 +28,10 @@ function(download_userver)
     endif()
 
     cpmaddpackage(
-        NAME
-        userver
-        GITHUB_REPOSITORY
-        userver-framework/userver
-        VERSION
-        ${ARG_VERSION}
-        GIT_TAG
-        ${ARG_GIT_TAG}
-        GIT_SHALLOW TRUE
-        ${ARG_UNPARSED_ARGUMENTS}
+        NAME userver
+        GITHUB_REPOSITORY userver-framework/userver
+        VERSION ${ARG_VERSION}
+        GIT_TAG ${ARG_GIT_TAG}
+        GIT_SHALLOW TRUE ${ARG_UNPARSED_ARGUMENTS}
     )
 endfunction()

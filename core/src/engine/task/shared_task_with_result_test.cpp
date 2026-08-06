@@ -1,10 +1,14 @@
 #include <userver/utest/utest.hpp>
 
+#include <array>
 #include <type_traits>
 
+#include <userver/engine/future.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/shared_task_with_result.hpp>
+#include <userver/engine/wait_all_checked.hpp>
+#include <userver/engine/wait_any.hpp>
 #include <userver/utils/async.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -391,5 +395,124 @@ static_assert(std::is_move_assignable_v<engine::SharedTaskWithResult<void>>);
 
 static_assert(std::is_copy_constructible_v<engine::SharedTaskWithResult<void>>);
 static_assert(std::is_copy_assignable_v<engine::SharedTaskWithResult<void>>);
+
+namespace {
+
+constexpr int kFirstSharedTaskValue = 2;
+constexpr int kSecondSharedTaskValue = 3;
+
+using IntSharedTask = engine::SharedTaskWithResult<int>;
+
+std::array<int, 2> WaitAnyAndGetResults(IntSharedTask task1, IntSharedTask task2) {
+    auto wait_any = engine::MakeWaitAny(task1, task2);
+    std::array<int, 2> values{};
+    std::array<bool, 2> completed{};
+
+    for (std::size_t i = 0; i < completed.size(); ++i) {
+        const auto index = wait_any.Wait();
+        EXPECT_TRUE(index.has_value());
+        if (index != 0 && index != 1) {
+            ADD_FAILURE() << "Unexpected task index";
+            return values;
+        }
+        EXPECT_FALSE(completed[*index]);
+        completed[*index] = true;
+        values[*index] = *index == 0 ? task1.Get() : task2.Get();
+    }
+
+    return values;
+}
+
+}  // namespace
+
+UTEST(SharedTask, WaitAnyWithMultipleAwaiters) {
+    engine::Promise<int> promise1;
+    engine::Promise<int> promise2;
+
+    auto future1 = promise1.get_future();
+    auto future2 = promise2.get_future();
+
+    auto task1 = utils::SharedAsync("shared_task_1", [future = std::move(future1)]() mutable { return future.get(); });
+    auto task2 = utils::SharedAsync("shared_task_2", [future = std::move(future2)]() mutable { return future.get(); });
+
+    auto sum_waiter = utils::Async(
+        "sum_waiter",
+        [](IntSharedTask task1, IntSharedTask task2) {
+            const auto values = WaitAnyAndGetResults(std::move(task1), std::move(task2));
+            return values[0] + values[1];
+        },
+        task1,
+        task2
+    );
+
+    auto product_waiter = utils::Async(
+        "product_waiter",
+        [](IntSharedTask task1, IntSharedTask task2) {
+            const auto values = WaitAnyAndGetResults(std::move(task1), std::move(task2));
+            return values[0] * values[1];
+        },
+        task1,
+        task2
+    );
+
+    engine::Yield();
+    EXPECT_FALSE(task1.IsFinished());
+    EXPECT_FALSE(task2.IsFinished());
+
+    promise1.set_value(kFirstSharedTaskValue);
+    promise2.set_value(kSecondSharedTaskValue);
+
+    const auto sum = sum_waiter.Get();
+    const auto product = product_waiter.Get();
+
+    EXPECT_EQ(sum, kFirstSharedTaskValue + kSecondSharedTaskValue);
+    EXPECT_EQ(product, kFirstSharedTaskValue * kSecondSharedTaskValue);
+    EXPECT_NE(sum, product);
+}
+
+UTEST(SharedTask, WaitAllCheckedWithMultipleAwaiters) {
+    engine::Promise<int> promise1;
+    engine::Promise<int> promise2;
+
+    auto future1 = promise1.get_future();
+    auto future2 = promise2.get_future();
+
+    auto task1 = utils::SharedAsync("shared_task_1", [future = std::move(future1)]() mutable { return future.get(); });
+    auto task2 = utils::SharedAsync("shared_task_2", [future = std::move(future2)]() mutable { return future.get(); });
+
+    auto sum_waiter = utils::Async(
+        "sum_waiter",
+        [](IntSharedTask task1, IntSharedTask task2) {
+            engine::WaitAllChecked(task1, task2);
+            return task1.Get() + task2.Get();
+        },
+        task1,
+        task2
+    );
+
+    auto product_waiter = utils::Async(
+        "product_waiter",
+        [](IntSharedTask task1, IntSharedTask task2) {
+            engine::WaitAllChecked(task1, task2);
+            return task1.Get() * task2.Get();
+        },
+        task1,
+        task2
+    );
+
+    engine::Yield();
+    EXPECT_FALSE(task1.IsFinished());
+    EXPECT_FALSE(task2.IsFinished());
+
+    promise1.set_value(kFirstSharedTaskValue);
+    promise2.set_value(kSecondSharedTaskValue);
+
+    const auto sum = sum_waiter.Get();
+    const auto product = product_waiter.Get();
+
+    EXPECT_EQ(sum, kFirstSharedTaskValue + kSecondSharedTaskValue);
+    EXPECT_EQ(product, kFirstSharedTaskValue * kSecondSharedTaskValue);
+    EXPECT_NE(sum, product);
+}
 
 USERVER_NAMESPACE_END

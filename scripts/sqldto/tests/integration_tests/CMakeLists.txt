@@ -23,15 +23,11 @@ userver_embed_file(
     HPP_FILENAME input_schema.sql
 )
 
-add_executable(sqldto-integration client_pgtest.cpp)
+add_executable(sqldto-integration client_pgtest.cpp embed.cpp)
 
 target_link_libraries(
-    sqldto-integration
-    PRIVATE userver-utest
-            userver-postgresql
-            userver-postgresql-utest
-            sqldto-integration-input
-            sqldto-integration-embed-schema
+    sqldto-integration PRIVATE userver-utest userver-postgresql userver-postgresql-utest sqldto-integration-input
+                               sqldto-integration-embed-schema
 )
 
 userver_add_utest(

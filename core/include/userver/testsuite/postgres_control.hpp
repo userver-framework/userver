@@ -26,6 +26,8 @@ public:
 
     [[nodiscard]] engine::Deadline MakeExecuteDeadline(std::chrono::milliseconds duration) const;
 
+    [[nodiscard]] std::chrono::milliseconds MakeNetworkTimeout(std::chrono::milliseconds duration) const;
+
     [[nodiscard]] std::chrono::milliseconds MakeStatementTimeout(std::chrono::milliseconds duration) const;
 
     bool IsReadonlyMasterExpected() const;

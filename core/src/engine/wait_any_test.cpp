@@ -15,6 +15,7 @@
 #include <userver/engine/wait_any.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
+#include <userver/utils/expected.hpp>
 #include <userver/utils/slot_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -43,13 +44,13 @@ public:
         ready_ = true;
         if (awaiter_ != nullptr) {
             auto awaiter = std::move(awaiter_);
-            engine::impl::Notify(std::move(awaiter), context_);
+            engine::impl::NotifyAndDispose(std::move(awaiter), context_);
         }
     }
 
     bool IsReady() const noexcept override { return ready_; }
 
-    void TryAppendAwaiter(boost::intrusive_ptr<engine::impl::Awaiter>& awaiter, std::uintptr_t context) override {
+    void TryAppendAwaiter(engine::impl::AwaiterPtr& awaiter, std::uintptr_t context) override {
         if (ready_) {
             return;
         }
@@ -58,8 +59,7 @@ public:
         context_ = context;
     }
 
-    boost::intrusive_ptr<engine::impl::Awaiter> RemoveAwaiter(engine::impl::Awaiter& awaiter, std::uintptr_t context)
-        noexcept override {
+    engine::impl::AwaiterPtr RemoveAwaiter(engine::impl::Awaiter& awaiter, std::uintptr_t context) noexcept override {
         UINVARIANT(context_ == context, "Context does not match");
 
         if (awaiter_ == nullptr) {
@@ -71,7 +71,7 @@ public:
 
 private:
     bool ready_{false};
-    boost::intrusive_ptr<engine::impl::Awaiter> awaiter_;
+    engine::impl::AwaiterPtr awaiter_;
     std::uintptr_t context_{0};
 };
 
@@ -107,7 +107,8 @@ struct StatefulWaitAnyProxy {
     template <typename... Awaitables>
     std::optional<std::size_t> WaitAny(Awaitables&... awaitables) {
         auto wait_any = engine::MakeWaitAny(awaitables...);
-        return wait_any.Wait();
+        const auto result = wait_any.Wait();
+        return result.has_value() ? std::optional<std::size_t>{*result} : std::nullopt;
     }
 
     template <typename... Awaitables, typename Rep, typename Period>
@@ -116,7 +117,8 @@ struct StatefulWaitAnyProxy {
         Awaitables&... awaitables
     ) {
         auto wait_any = engine::MakeWaitAny(awaitables...);
-        return wait_any.WaitFor(duration);
+        const auto result = wait_any.WaitFor(duration);
+        return result.has_value() ? std::optional<std::size_t>{*result} : std::nullopt;
     }
 
     template <typename... Awaitables, typename Clock, typename Duration>
@@ -125,13 +127,15 @@ struct StatefulWaitAnyProxy {
         Awaitables&... awaitables
     ) {
         auto wait_any = engine::MakeWaitAny(awaitables...);
-        return wait_any.WaitUntil(until);
+        const auto result = wait_any.WaitUntil(until);
+        return result.has_value() ? std::optional<std::size_t>{*result} : std::nullopt;
     }
 
     template <typename... Awaitables>
     std::optional<std::size_t> WaitAnyUntil(engine::Deadline deadline, Awaitables&... awaitables) {
         auto wait_any = engine::MakeWaitAny(awaitables...);
-        return wait_any.WaitUntil(deadline);
+        const auto result = wait_any.WaitUntil(deadline);
+        return result.has_value() ? std::optional<std::size_t>{*result} : std::nullopt;
     }
 };
 
@@ -407,23 +411,23 @@ UTEST(WaitAnyContext, WaitAnyContextMoveAssignemt) {
     auto wait_any2 = engine::MakeWaitAny(awaitable2);
 
     // Force subscription to awaitable 1.
-    ASSERT_EQ(wait_any1.WaitUntil(engine::Deadline::Passed()), std::nullopt);
+    EXPECT_EQ(wait_any1.WaitUntil(engine::Deadline::Passed()), utils::unexpected(engine::WaitAnyError::kTimeout));
 
     // This should remove the subscription from awaitable 1.
     wait_any1 = std::move(wait_any2);
     wait_any1.Append(awaitable1);
 
     // Force subscriptions
-    ASSERT_EQ(wait_any1.WaitUntil(engine::Deadline::Passed()), std::nullopt);
+    EXPECT_EQ(wait_any1.WaitUntil(engine::Deadline::Passed()), utils::unexpected(engine::WaitAnyError::kTimeout));
 
     awaitable1.SetReady();
     auto ready = wait_any1.Wait();
-    ASSERT_NE(ready, std::nullopt);
+    ASSERT_TRUE(ready.has_value());
     EXPECT_EQ(*ready, 1);
 
     awaitable2.SetReady();
     ready = wait_any1.Wait();
-    ASSERT_NE(ready, std::nullopt);
+    ASSERT_TRUE(ready.has_value());
     EXPECT_EQ(*ready, 0);
 }
 
@@ -432,15 +436,15 @@ UTEST(WaitAnyContext, WaitAnyContextMoveConstruction) {
     auto wait_any1 = engine::MakeWaitAny(awaitable);
 
     // Force subscription to awaitable.
-    ASSERT_EQ(wait_any1.WaitUntil(engine::Deadline::Passed()), std::nullopt);
+    EXPECT_EQ(wait_any1.WaitUntil(engine::Deadline::Passed()), utils::unexpected(engine::WaitAnyError::kTimeout));
 
     engine::WaitAnyContext wait_any2{std::move(wait_any1)};
 
-    ASSERT_EQ(wait_any2.WaitUntil(engine::Deadline::Passed()), std::nullopt);
+    EXPECT_EQ(wait_any2.WaitUntil(engine::Deadline::Passed()), utils::unexpected(engine::WaitAnyError::kTimeout));
 
     awaitable.SetReady();
     auto ready = wait_any2.Wait();
-    ASSERT_NE(ready, std::nullopt);
+    ASSERT_TRUE(ready.has_value());
     EXPECT_EQ(*ready, 0);
 }
 
@@ -483,7 +487,7 @@ UTEST(WaitAnyContext, WaitAnyContextSingleVector) {
         EXPECT_TRUE(completed[i]);
     }
     ASSERT_EQ(wait_any.GetSize(), 0);
-    EXPECT_EQ(wait_any.Wait(), std::nullopt);
+    EXPECT_EQ(wait_any.Wait(), utils::unexpected(engine::WaitAnyError::kEmpty));
 }
 
 UTEST(WaitAnyContext, WaitAnyContextPlainAwaitables) {
@@ -493,7 +497,7 @@ UTEST(WaitAnyContext, WaitAnyContextPlainAwaitables) {
     auto wait_any = engine::MakeWaitAny(awaitables[0], awaitables[1], awaitables[2]);
     ASSERT_EQ(wait_any.GetNextId(), awaitables.size());
 
-    EXPECT_EQ(wait_any.WaitUntil(engine::Deadline::Passed()), std::nullopt);
+    EXPECT_EQ(wait_any.WaitUntil(engine::Deadline::Passed()), utils::unexpected(engine::WaitAnyError::kTimeout));
 
     for (std::size_t i = 0; i < awaitables.size(); ++i) {
         ASSERT_EQ(wait_any.GetSize(), awaitables.size() - i);
@@ -503,7 +507,7 @@ UTEST(WaitAnyContext, WaitAnyContextPlainAwaitables) {
         EXPECT_EQ(*index, (i + 1) % awaitables.size());
     }
     ASSERT_EQ(wait_any.GetSize(), 0);
-    EXPECT_EQ(wait_any.Wait(), std::nullopt);
+    EXPECT_EQ(wait_any.Wait(), utils::unexpected(engine::WaitAnyError::kEmpty));
     /// [sample MakeWaitAny]
 }
 
@@ -520,7 +524,7 @@ UTEST(WaitAnyContext, WaitAnyContextMixed) {
     auto wait_any = engine::MakeWaitAny(awaitable1, v1, awaitable2, awaitable3, v2);
     ASSERT_EQ(wait_any.GetNextId(), all.size());
 
-    EXPECT_EQ(wait_any.WaitUntil(engine::Deadline::Passed()), std::nullopt);
+    EXPECT_EQ(wait_any.WaitUntil(engine::Deadline::Passed()), utils::unexpected(engine::WaitAnyError::kTimeout));
 
     for (std::size_t i = 0; i < all.size(); ++i) {
         ASSERT_EQ(wait_any.GetSize(), all.size() - i);
@@ -530,7 +534,7 @@ UTEST(WaitAnyContext, WaitAnyContextMixed) {
         EXPECT_EQ(*index, (i + 3) % all.size());
     }
     ASSERT_EQ(wait_any.GetSize(), 0);
-    EXPECT_EQ(wait_any.Wait(), std::nullopt);
+    EXPECT_EQ(wait_any.Wait(), utils::unexpected(engine::WaitAnyError::kEmpty));
 }
 
 UTEST(WaitAnyContext, WaitAnyContextDynamicAppend) {
@@ -544,7 +548,7 @@ UTEST(WaitAnyContext, WaitAnyContextDynamicAppend) {
         wait_any.Append(awaitables[(i * 2) + 1]);
         ASSERT_EQ(wait_any.GetSize(), i + 2);
         ASSERT_EQ(wait_any.GetNextId(), (i + 1) * 2);
-        EXPECT_EQ(wait_any.WaitUntil(engine::Deadline::Passed()), std::nullopt);
+        EXPECT_EQ(wait_any.WaitUntil(engine::Deadline::Passed()), utils::unexpected(engine::WaitAnyError::kTimeout));
 
         awaitables[i * 2].SetReady();
         auto index = wait_any.Wait();
@@ -554,7 +558,7 @@ UTEST(WaitAnyContext, WaitAnyContextDynamicAppend) {
 
     for (std::size_t i = 0; i < awaitables.size() / 2; ++i) {
         ASSERT_EQ(wait_any.GetSize(), (awaitables.size() / 2) - i);
-        EXPECT_EQ(wait_any.WaitUntil(engine::Deadline::Passed()), std::nullopt);
+        EXPECT_EQ(wait_any.WaitUntil(engine::Deadline::Passed()), utils::unexpected(engine::WaitAnyError::kTimeout));
 
         awaitables[(i * 2) + 1].SetReady();
         auto index = wait_any.Wait();
@@ -562,7 +566,7 @@ UTEST(WaitAnyContext, WaitAnyContextDynamicAppend) {
         EXPECT_EQ(*index, (i * 2) + 1);
     }
     ASSERT_EQ(wait_any.GetSize(), 0);
-    EXPECT_EQ(wait_any.Wait(), std::nullopt);
+    EXPECT_EQ(wait_any.Wait(), utils::unexpected(engine::WaitAnyError::kEmpty));
 }
 
 UTEST(WaitAnyContext, AppendWithExplicitIndex) {
@@ -581,7 +585,7 @@ UTEST(WaitAnyContext, AppendWithExplicitIndex) {
     EXPECT_EQ(wait_any.GetSize(), 3);
 
     // Force subscriptions.
-    EXPECT_EQ(wait_any.WaitUntil(engine::Deadline::Passed()), std::nullopt);
+    EXPECT_EQ(wait_any.WaitUntil(engine::Deadline::Passed()), utils::unexpected(engine::WaitAnyError::kTimeout));
 
     awaitable1.SetReady();
     auto index = wait_any.Wait();
@@ -599,7 +603,7 @@ UTEST(WaitAnyContext, AppendWithExplicitIndex) {
     EXPECT_EQ(*index, 100);
 
     EXPECT_EQ(wait_any.GetSize(), 0);
-    EXPECT_EQ(wait_any.Wait(), std::nullopt);
+    EXPECT_EQ(wait_any.Wait(), utils::unexpected(engine::WaitAnyError::kEmpty));
 }
 
 UTEST(WaitAnyContext, AppendWithExplicitIndexMixedWithImplicit) {
@@ -624,7 +628,7 @@ UTEST(WaitAnyContext, AppendWithExplicitIndexMixedWithImplicit) {
     EXPECT_EQ(wait_any.GetSize(), 3);
 
     // Force subscriptions.
-    EXPECT_EQ(wait_any.WaitUntil(engine::Deadline::Passed()), std::nullopt);
+    EXPECT_EQ(wait_any.WaitUntil(engine::Deadline::Passed()), utils::unexpected(engine::WaitAnyError::kTimeout));
 
     awaitable_explicit.SetReady();
     auto index = wait_any.Wait();
@@ -642,7 +646,7 @@ UTEST(WaitAnyContext, AppendWithExplicitIndexMixedWithImplicit) {
     EXPECT_EQ(*index, 1);
 
     EXPECT_EQ(wait_any.GetSize(), 0);
-    EXPECT_EQ(wait_any.Wait(), std::nullopt);
+    EXPECT_EQ(wait_any.Wait(), utils::unexpected(engine::WaitAnyError::kEmpty));
 }
 
 UTEST(WaitAnyContext, AppendWithExplicitIndexEmptyAwaitable) {
@@ -659,7 +663,7 @@ UTEST(WaitAnyContext, AppendWithExplicitIndexEmptyAwaitable) {
     // GetSize must be 0 because the token is empty (awaitable is ready, returns empty token).
     EXPECT_EQ(wait_any.GetSize(), 0);
 
-    EXPECT_EQ(wait_any.Wait(), std::nullopt);
+    EXPECT_EQ(wait_any.Wait(), utils::unexpected(engine::WaitAnyError::kEmpty));
 }
 
 UTEST(WaitAnyContext, AppendWithExplicitIndexAlreadyReadyAwaitable) {
@@ -696,7 +700,7 @@ UTEST(WaitAnyContext, MakeReadyAwaitableTokenWithWaitAnyContext) {
     EXPECT_EQ(*index, 0);
 
     EXPECT_EQ(wait_any.GetSize(), 0);
-    EXPECT_EQ(wait_any.Wait(), std::nullopt);
+    EXPECT_EQ(wait_any.Wait(), utils::unexpected(engine::WaitAnyError::kEmpty));
 }
 
 UTEST(WaitAnyContext, AppendWithExplicitIndexDuplicateIndexAllowed) {
@@ -711,7 +715,7 @@ UTEST(WaitAnyContext, AppendWithExplicitIndexDuplicateIndexAllowed) {
     EXPECT_EQ(wait_any.GetSize(), 2);
 
     // Force subscriptions.
-    EXPECT_EQ(wait_any.WaitUntil(engine::Deadline::Passed()), std::nullopt);
+    EXPECT_EQ(wait_any.WaitUntil(engine::Deadline::Passed()), utils::unexpected(engine::WaitAnyError::kTimeout));
 
     awaitable0.SetReady();
     auto index = wait_any.Wait();
@@ -724,7 +728,7 @@ UTEST(WaitAnyContext, AppendWithExplicitIndexDuplicateIndexAllowed) {
     EXPECT_EQ(*index, 7);
 
     EXPECT_EQ(wait_any.GetSize(), 0);
-    EXPECT_EQ(wait_any.Wait(), std::nullopt);
+    EXPECT_EQ(wait_any.Wait(), utils::unexpected(engine::WaitAnyError::kEmpty));
 }
 
 UTEST(WaitAnyContext, AppendWithExplicitIndexSlotMap) {
@@ -742,12 +746,11 @@ UTEST(WaitAnyContext, AppendWithExplicitIndexSlotMap) {
     // Collect results as tasks finish, in completion order.
     int sum = 0;
     while (!tasks.empty()) {
-        const auto index_opt = wait_any.Wait();
-        ASSERT_TRUE(index_opt.has_value());
+        const auto index = wait_any.Wait();
+        ASSERT_TRUE(index.has_value());
 
-        const std::size_t index = *index_opt;
-        sum += tasks[index].Get();
-        tasks.erase(index);
+        sum += tasks[*index].Get();
+        tasks.erase(*index);
     }
 
     EXPECT_EQ(sum, 1 + 2 + 3 + 4);

@@ -11,6 +11,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::tests {
 
+/// @brief RPC client middleware pipeline for tests
 using SimpleClientMiddlewarePipeline = USERVER_NAMESPACE::middlewares::impl::SimpleMiddlewarePipeline<
     ugrpc::client::MiddlewareBase,
     ugrpc::client::ClientInfo>;

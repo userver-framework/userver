@@ -112,7 +112,7 @@ public:
     /// @note Can return less than len if socket is closed by peer.
     [[nodiscard]] size_t SendAll(const IoData* list, std::size_t list_size, Deadline deadline);
 
-    /// @brief Sends exactly list_size iovec to the socket.
+    /// @brief Sends exactly list_size iovec to the socket, has no IOV_MAX limits on list_size
     /// @note Can return less than len if socket is closed by peer.
     [[nodiscard]] size_t SendAll(const struct iovec* list, std::size_t list_size, Deadline deadline);
 

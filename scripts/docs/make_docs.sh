@@ -18,15 +18,15 @@ if [ ! -f "$BUILD_DIR/compile_commands.json" ]; then
 fi
 
 download_and_extract_doxygen() {
-    if [ ! -d "$BUILD_DIR/doxygen-1.13.2" ]; then
+    if [ ! -d "$BUILD_DIR/doxygen-1.17.0" ]; then
         echo "Doxygen not found in $BUILD_DIR or version is too low. Downloading..."
-        wget --no-verbose https://github.com/doxygen/doxygen/releases/download/Release_1_13_2/doxygen-1.13.2.linux.bin.tar.gz -P "$BUILD_DIR"
-        tar -xzf "$BUILD_DIR/doxygen-1.13.2.linux.bin.tar.gz" -C "$BUILD_DIR"
-        export DOXYGEN="$BUILD_DIR/doxygen-1.13.2/bin/doxygen"
+        wget --no-verbose https://github.com/doxygen/doxygen/releases/download/Release_1_17_0/doxygen-1.17.0.linux.bin.tar.gz -P "$BUILD_DIR"
+        tar -xzf "$BUILD_DIR/doxygen-1.17.0.linux.bin.tar.gz" -C "$BUILD_DIR"
+        export DOXYGEN="$BUILD_DIR/doxygen-1.17.0/bin/doxygen"
         echo "Doxygen has been successfully downloaded."
     else
         echo "Using already downloaded doxygen in $BUILD_DIR."
-        export DOXYGEN="$BUILD_DIR/doxygen-1.13.2/bin/doxygen"
+        export DOXYGEN="$BUILD_DIR/doxygen-1.17.0/bin/doxygen"
     fi
 }
 

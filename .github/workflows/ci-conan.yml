@@ -100,9 +100,9 @@ jobs:
 
           - name: Test userver conan package
             run: |-
-                mv libraries/easy/samples/0_hello_world samples/
-                mv libraries/easy/samples/1_hi samples/
-                mv libraries/easy/samples/3_json samples/
+                mv samples/easy/0_hello_world samples/
+                mv samples/easy/1_hi samples/
+                mv samples/easy/3_json samples/
                 mv scripts/tests/conanfile.py samples/
                 rm -rf userver/cmake/
                 cd samples/

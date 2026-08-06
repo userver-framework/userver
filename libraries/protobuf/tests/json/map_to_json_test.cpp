@@ -79,7 +79,7 @@ INSTANTIATE_TEST_SUITE_P(
     ::testing::Values(MapToJsonFailureTestParam{
         MapMessageData{.field7 = {{"aaa", {.seconds = -1, .nanos = 1}}}},
         PrintErrorCode::kInvalidValue,
-        "field7['aaa']"
+        "field7['aaa'].value"
     })
 );
 

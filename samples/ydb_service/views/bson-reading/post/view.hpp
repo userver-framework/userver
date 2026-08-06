@@ -7,6 +7,7 @@
 
 namespace sample {
 
+/// [YDB service sample - bson reading handler]
 class BsonReadingHandler final : public server::handlers::HttpHandlerBase {
 public:
     static constexpr std::string_view kName = "handler-bson-reading";
@@ -22,5 +23,6 @@ public:
 private:
     std::shared_ptr<ydb::TableClient> ydb_client_;
 };
+/// [YDB service sample - bson reading handler]
 
 }  // namespace sample

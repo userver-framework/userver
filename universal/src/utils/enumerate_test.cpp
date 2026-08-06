@@ -1,4 +1,7 @@
 #include <array>
+#include <iterator>
+#include <type_traits>
+#include <utility>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
@@ -8,6 +11,33 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace {
+
+static_assert(std::input_iterator<utils::impl::IteratorWrapper<int*>>);
+
+template <typename Container>
+using EnumerateImpl = decltype(utils::enumerate(std::declval<Container>()));
+
+template <typename Container, bool ConstWrapper>
+using Enumerate = std::conditional_t<ConstWrapper, const EnumerateImpl<Container>, EnumerateImpl<Container>>;
+
+template <typename Container, bool ConstWrapper>
+using EnumerateElem = decltype(*std::begin(std::declval<Enumerate<Container, ConstWrapper>&>()))::second_type;
+
+static_assert(std::is_same_v<int&, EnumerateElem<std::vector<int>, false>>);
+static_assert(std::is_same_v<int&, EnumerateElem<std::vector<int>&, false>>);
+static_assert(std::is_same_v<int&, EnumerateElem<std::vector<int>&&, false>>);
+
+static_assert(std::is_same_v<const int&, EnumerateElem<const std::vector<int>, false>>);
+static_assert(std::is_same_v<const int&, EnumerateElem<const std::vector<int>&, false>>);
+static_assert(std::is_same_v<const int&, EnumerateElem<const std::vector<int>&&, false>>);
+
+static_assert(std::is_same_v<const int&, EnumerateElem<std::vector<int>, true>>);
+static_assert(std::is_same_v<const int&, EnumerateElem<std::vector<int>&, true>>);
+static_assert(std::is_same_v<const int&, EnumerateElem<std::vector<int>&&, true>>);
+
+static_assert(std::is_same_v<const int&, EnumerateElem<const std::vector<int>, true>>);
+static_assert(std::is_same_v<const int&, EnumerateElem<const std::vector<int>&, true>>);
+static_assert(std::is_same_v<const int&, EnumerateElem<const std::vector<int>&&, true>>);
 
 constexpr int ConstexprTest(std::array<int, 2> data) {
     int result = 0;
@@ -73,6 +103,28 @@ TEST(Enumerate, Vector) {
 
         current_pos++;
     }
+}
+
+TEST(Enumerate, PostfixIncrement) {
+    std::vector<int> data{10, 20, 30};
+    auto range = utils::enumerate(data);
+    auto it = range.begin();
+
+    const auto [pos0, elem0] = *it;
+    EXPECT_EQ(pos0, 0);
+    EXPECT_EQ(elem0, 10);
+
+    auto prev = it++;
+    EXPECT_EQ(std::get<0>(*prev), 0);
+    EXPECT_EQ(std::get<1>(*prev), 10);
+    EXPECT_EQ(std::get<0>(*it), 1);
+    EXPECT_EQ(std::get<1>(*it), 20);
+
+    it++;
+    EXPECT_EQ(std::get<0>(*it), 2);
+    it++;
+    EXPECT_EQ(it, range.end());
+    EXPECT_NE(it, range.begin());
 }
 
 TEST(Enumerate, EmptyVector) {

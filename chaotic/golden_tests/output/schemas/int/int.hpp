@@ -11,7 +11,6 @@
 namespace ns {
 
 struct Int {
-
     std::optional<int> foo{};
 };
 

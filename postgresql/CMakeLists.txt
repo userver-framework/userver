@@ -39,7 +39,8 @@ add_custom_command(
 userver_module(
     postgresql
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
-    LINK_LIBRARIES_PRIVATE userver-libpq INCLUDE_DIRS_PRIVATE "${LIBPQ_VERSION_DIR}"
+    LINK_LIBRARIES_PRIVATE userver-libpq
+    INCLUDE_DIRS_PRIVATE "${LIBPQ_VERSION_DIR}"
     UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
     DBTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_pgtest.cpp"
     DBTEST_LINK_LIBRARIES userver-postgresql-utest

@@ -53,7 +53,7 @@ void UnreachedTaskDeadlineBenchmark(benchmark::State& state, bool has_task_deadl
             benchmark::DoNotOptimize(task_deadline_raw);
             const auto task_deadline = has_task_deadline ? task_deadline_raw : engine::Deadline{};
 
-            auto task = utils::TaskBuilder{}.NoSpan().Background().Deadline(task_deadline).Build([&] {
+            auto task = utils::TaskBuilder{}.NoTracing().Background().Deadline(task_deadline).Build([&] {
                 engine::InterruptibleSleepUntil(sleep_deadline);
             });
             engine::Yield();

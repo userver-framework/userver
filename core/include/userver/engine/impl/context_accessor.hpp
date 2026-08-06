@@ -2,18 +2,13 @@
 
 #include <cstdint>
 #include <exception>
+#include <memory>
 
-#include <boost/smart_ptr/intrusive_ptr.hpp>
+#include <userver/engine/impl/awaiter_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
-
-class Awaiter;
-class TaskContext;
-
-void intrusive_ptr_add_ref(Awaiter* awaiter) noexcept;  // NOLINT(readability-identifier-naming)
-void intrusive_ptr_release(Awaiter* awaiter) noexcept;  // NOLINT(readability-identifier-naming)
 
 class WeakAwaitable {
 public:
@@ -31,7 +26,7 @@ public:
     //    * do not notify `awaiter`.
     //
     // You may not sleep in `TryAppendAwaiter`.
-    virtual void TryAppendAwaiter(boost::intrusive_ptr<Awaiter>& awaiter, std::uintptr_t context) = 0;
+    virtual void TryAppendAwaiter(AwaiterPtr& awaiter, std::uintptr_t context) = 0;
 
     // Atomically:
     //
@@ -48,7 +43,7 @@ public:
     //
     // Depending on a wait list implementation `context` match also could be required for the awaiter removal.
     // You may not sleep in `RemoveAwaiter`.
-    virtual boost::intrusive_ptr<Awaiter> RemoveAwaiter(Awaiter& awaiter, std::uintptr_t context) noexcept = 0;
+    virtual AwaiterPtr RemoveAwaiter(Awaiter& awaiter, std::uintptr_t context) noexcept = 0;
 
     // Returns the stored exception if present.
     // Precondition: IsReady.

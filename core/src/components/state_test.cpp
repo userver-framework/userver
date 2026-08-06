@@ -211,4 +211,160 @@ TEST_F(ComponentList, StateHasDependencyOn) {
     components::RunOnce(components::InMemoryConfig{std::string{kStaticConfigBase}}, MakeComponentList());
 }
 
+namespace {
+
+class ComponentOk final : public components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "component-ok";
+
+    ComponentOk(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::ComponentBase(config, context)
+    {}
+
+    components::ComponentHealth GetComponentHealth() const override { return components::ComponentHealth::kOk; }
+};
+
+class ComponentFallback final : public components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "component-fallback";
+
+    ComponentFallback(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::ComponentBase(config, context)
+    {}
+
+    components::ComponentHealth GetComponentHealth() const override { return components::ComponentHealth::kFallback; }
+};
+
+class ComponentFatal final : public components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "component-fatal";
+
+    ComponentFatal(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::ComponentBase(config, context)
+    {}
+
+    components::ComponentHealth GetComponentHealth() const override { return components::ComponentHealth::kFatal; }
+};
+
+class ComponentHealthChecker final : public components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "component-health-checker";
+
+    ComponentHealthChecker(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::ComponentBase(config, context),
+          state_{context}
+    {}
+
+    void OnAllComponentsLoaded() override {
+        EXPECT_TRUE(state_.IsAnyComponentInFatalState());
+
+        const auto unhealthy = state_.GetUnhealthyComponents();
+        ASSERT_EQ(unhealthy.size(), 2);
+
+        const auto fallback = std::ranges::find_if(unhealthy, [](const components::State::ComponentWithHealth& item) {
+            return item.name == ComponentFallback::kName;
+        });
+        ASSERT_NE(fallback, unhealthy.end());
+        EXPECT_EQ(fallback->health, components::ComponentHealth::kFallback);
+
+        const auto fatal = std::ranges::find_if(unhealthy, [](const components::State::ComponentWithHealth& item) {
+            return item.name == ComponentFatal::kName;
+        });
+        ASSERT_NE(fatal, unhealthy.end());
+        EXPECT_EQ(fatal->health, components::ComponentHealth::kFatal);
+
+        for (const auto& item : unhealthy) {
+            EXPECT_NE(item.name, ComponentOk::kName);
+            EXPECT_NE(item.health, components::ComponentHealth::kOk);
+        }
+    }
+
+private:
+    components::State state_;
+};
+
+class ComponentAllHealthyChecker final : public components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "component-all-healthy-checker";
+
+    ComponentAllHealthyChecker(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::ComponentBase(config, context),
+          state_{context}
+    {}
+
+    void OnAllComponentsLoaded() override {
+        EXPECT_FALSE(state_.IsAnyComponentInFatalState());
+        EXPECT_TRUE(state_.GetUnhealthyComponents().empty());
+    }
+
+private:
+    components::State state_;
+};
+
+}  // namespace
+
+template <>
+inline constexpr auto components::kConfigFileMode<ComponentOk> = ConfigFileMode::kNotRequired;
+
+template <>
+inline constexpr auto components::kConfigFileMode<ComponentFallback> = ConfigFileMode::kNotRequired;
+
+template <>
+inline constexpr auto components::kConfigFileMode<ComponentFatal> = ConfigFileMode::kNotRequired;
+
+template <>
+inline constexpr auto components::kConfigFileMode<ComponentHealthChecker> = ConfigFileMode::kNotRequired;
+
+template <>
+inline constexpr auto components::kConfigFileMode<ComponentAllHealthyChecker> = ConfigFileMode::kNotRequired;
+
+namespace {
+
+constexpr std::string_view kStaticConfigHealth = R"(
+components_manager:
+  event_thread_pool:
+    threads: 1
+  default_task_processor: main-task-processor
+  fs_task_processor: main-task-processor
+  task_processors:
+    main-task-processor:
+      worker_threads: 1
+  components:
+    logging:
+      fs-task-processor: main-task-processor
+      loggers:
+        default:
+          file_path: '@null'
+)";
+
+components::ComponentList MakeUnhealthyComponentList() {
+    return components::ComponentList()
+        .Append<os_signals::ProcessorComponent>()
+        .Append<components::StatisticsStorage>()
+        .Append<components::Logging>()
+        .Append<ComponentOk>()
+        .Append<ComponentFallback>()
+        .Append<ComponentFatal>()
+        .Append<ComponentHealthChecker>();
+}
+
+components::ComponentList MakeAllHealthyComponentList() {
+    return components::ComponentList()
+        .Append<os_signals::ProcessorComponent>()
+        .Append<components::StatisticsStorage>()
+        .Append<components::Logging>()
+        .Append<ComponentOk>()
+        .Append<ComponentAllHealthyChecker>();
+}
+
+}  // namespace
+
+TEST_F(ComponentList, StateGetUnhealthyComponents) {
+    components::RunOnce(components::InMemoryConfig{std::string{kStaticConfigHealth}}, MakeUnhealthyComponentList());
+}
+
+TEST_F(ComponentList, StateGetUnhealthyComponentsEmpty) {
+    components::RunOnce(components::InMemoryConfig{std::string{kStaticConfigHealth}}, MakeAllHealthyComponentList());
+}
+
 USERVER_NAMESPACE_END

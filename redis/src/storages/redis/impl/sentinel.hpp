@@ -15,8 +15,8 @@
 #include <userver/storages/redis/base.hpp>
 #include <userver/storages/redis/command_options.hpp>
 #include <userver/storages/redis/fwd.hpp>
+#include <userver/storages/redis/health_check_param.hpp>
 #include <userver/storages/redis/topology_update_method.hpp>
-#include <userver/storages/redis/wait_connected_mode.hpp>
 
 #include <storages/redis/impl/keyshard.hpp>
 #include <storages/redis/impl/redis_group.hpp>
@@ -88,6 +88,7 @@ public:
     // mode == kMasterAndSlave: for each shard need a connection to its master and
     // at least one of its slaves.
     void WaitConnectedOnce(RedisWaitConnected wait_connected);
+    bool IsReady(const HealthCheckParams& params) const;
 
     void ForceUpdateHosts();
 

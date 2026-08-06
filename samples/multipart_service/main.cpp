@@ -4,7 +4,6 @@
 #include <userver/http/common_headers.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/utils/daemon_run.hpp>
-#include <userver/utils/text_light.hpp>
 
 namespace samples {
 
@@ -31,7 +30,7 @@ std::string Multipart::HandleRequest(server::http::HttpRequest& req, server::req
 
     const auto& image = req.GetFormDataArg("profileImage");
     static constexpr std::string_view kPngMagicBytes = "\x89PNG\r\n\x1a\n";
-    if (!utils::text::StartsWith(image.value, kPngMagicBytes)) {
+    if (!image.value.starts_with(kPngMagicBytes)) {
         req.GetHttpResponse().SetStatus(server::http::HttpStatus::kBadRequest);
         return "Expecting PNG image format";
     }

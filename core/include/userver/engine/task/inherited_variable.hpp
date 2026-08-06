@@ -7,6 +7,7 @@
 #include <utility>
 
 #include <userver/engine/impl/task_local_storage.hpp>
+#include <userver/engine/task/inherited_variable_options.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -19,6 +20,9 @@ namespace engine {
 /// These are like engine::TaskLocalVariable, but the variable instances are
 /// inherited by child tasks created via utils::Async.
 ///
+/// By default a variable is inherited only by regular child tasks, not @ref utils::AsyncBackground.
+/// This behavior can be changed by passing a different priority to the constructor.
+///
 /// The order of destruction of task-inherited variables is unspecified.
 template <typename T>
 class TaskInheritedVariable final {
@@ -26,6 +30,16 @@ class TaskInheritedVariable final {
     static_assert(!std::is_const_v<T>);
 
 public:
+    /// @brief Create a task-inherited variable with @ref TaskInheritedVariablePriority::kNormal.
+    TaskInheritedVariable()
+        : TaskInheritedVariable(TaskInheritedVariablePriority::kNormal)
+    {}
+
+    /// @brief Create a task-inherited variable with the specified inheritance priority.
+    explicit TaskInheritedVariable(TaskInheritedVariablePriority priority)
+        : impl_(priority)
+    {}
+
     /// @brief Get the variable instance for the current task.
     /// @returns the variable or `nullptr` if variable was not set.
     const T* GetOptional() const noexcept { return Storage().GetOptional<T, kVariableKind>(impl_.GetKey()); }
@@ -50,14 +64,6 @@ public:
     /// current or new child tasks.
     /// @note The variable might not actually be destroyed immediately.
     void Erase() { Storage().Erase<T, kVariableKind>(impl_.GetKey()); }
-
-    /// @cond
-    // For internal use only
-    // inherits data to another storage
-    void InheritTo(impl::task_local::Storage& other, impl::task_local::InternalTag) {
-        other.InheritNodeIfExists(Storage(), impl_.GetKey());
-    }
-    /// @endcond
 
 private:
     static constexpr auto kVariableKind = impl::task_local::VariableKind::kInherited;

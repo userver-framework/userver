@@ -4,10 +4,14 @@ import logging
 import os
 import os.path
 import platform
+import re
 import shutil
 import signal
 import subprocess
+import socket
 import time
+from typing import Any
+from typing import TypeAlias
 
 import pytest
 import redis
@@ -17,6 +21,7 @@ import yatest.common
 from library.python import port_manager
 from library.python import resource
 import pytest_userver.utils.sync as sync
+from pytest_userver import chaos
 
 TOTAL_WAIT_SECONDS = 180
 CLUSTER_MINIMUM_NODES_COUNT = 6
@@ -25,6 +30,10 @@ REDIS_CLUSTER_HOST = '127.0.0.1'
 
 logger = logging.getLogger(__name__)
 pm = port_manager.PortManager()
+
+
+EvLoop: TypeAlias = Any
+Socket: TypeAlias = socket.socket
 
 
 class RedisClusterTopologyError(Exception):
@@ -84,11 +93,151 @@ def _is_pid_running(pid: int) -> bool:
         return False
 
 
+class ProxyInterceptor:
+    def __init__(self, all_hosts: list[tuple[int, int, int]], encoding='utf-8'):
+        """
+        all_hosts - list of real instance hostname, real instance port, real instance cluster port, proxy port
+        """
+
+        self._list = all_hosts
+        self._patterns = [(re.compile(pattern), repl) for pattern, repl in self._make_substitute_patterns(all_hosts)]
+        self._encoding = encoding
+
+    async def __call__(
+        self,
+        loop: EvLoop,
+        socket_from: Socket,
+        socket_to: Socket,
+    ) -> None:
+        data = await loop.sock_recv(socket_from, 4096)
+        if not data:
+            raise chaos.ConnectionClosedError()
+        try:
+            data = self._transform(data)
+        except UnicodeError:
+            pass
+        await loop.sock_sendall(socket_to, data)
+
+    def _transform(self, data: bytes) -> bytes:
+        decoded = data.decode(self._encoding)
+        decoded = self._process_cluster_nodes(decoded)
+        for pattern, repl in self._patterns:
+            decoded = pattern.sub(repl, decoded)
+        return decoded.encode(self._encoding)
+
+    def _process_cluster_nodes(self, data: str) -> str:
+        """
+        detects if string is similar to:
+        ```
+        +PONG <<Can be +OK and maybe other strings or maybe nothing>>
+        $727
+        76f39983c800af9393028d01792eed3984ea7a44 127.0.0.1:6380@7380 myself,master - 0 0 1 connected 0-5460
+        b79724912ccbef350b62657c42a4388fbf77f352 127.0.0.1:6384@7384 slave 404d3cdd247f224c53001c2bb188694b455046e5 0 1779094106410 2 connected
+        404d3cdd247f224c53001c2bb188694b455046e5 127.0.0.1:6381@7381 master - 0 1779094106410 2 connected 5461-10922
+        d42049e80952f735239c90bdab8d0f3c0722c10c 127.0.0.1:6385@7385 slave 3830472185ccafc92dc3cd615f1b0755f883b20d 0 1779094106410 3 connected
+        a26a24058eedc5e0f9b0fff035069abaa4eaa02c 127.0.0.1:6383@7383 slave 76f39983c800af9393028d01792eed3984ea7a44 0 1779094106410 1 connected
+        3830472185ccafc92dc3cd615f1b0755f883b20d 127.0.0.1:6382@7382 master - 0 1779094106410 3 connected 10923-16383
+        ```
+        If so, substitute the ports with proxy ports and adjust the message length accordingly.
+        """
+        if not all(word in data for word in ['myself', 'connected', 'master', 'slave', '@', '\r\n']):
+            return data
+
+        # need to find line with payload size addjust to corrected message
+        # do not loose lines previous to message size and size itself
+        lines = data.split('\r\n')
+        # Find the bulk string length line (starts with $)
+        # It usually appears right after the status line (+PONG, etc.)
+        # or at the beginning if no status line.
+        # The structure is roughly:
+        # Line 0: Status (optional)
+        # Line 1: Bulk String Length ($<len>)
+        # Line 2..N: Content
+
+        # We need to identify the index of the bulk string length line.
+        # It starts with '$'.
+        length_index = -1
+        for i, line in enumerate(lines):
+            if line.startswith('$') and '@' in lines[i + 1]:
+                length_index = i
+                break
+
+        if length_index == -1:
+            # No bulk string found, return original
+            return data
+
+        last_line_index = length_index + 2
+        # The content starts at length_index + 1
+        content_lines = lines[length_index + 1 : last_line_index]
+        content_str = '\r\n'.join(content_lines)
+
+        # Perform substitutions on the content
+        # We use the patterns defined in _make_substitute_patterns
+        # Note: self._patterns is a list of (compiled_regex, replacement_string)
+        for pattern, repl in self._patterns:
+            content_str = pattern.sub(repl, content_str)
+
+        # Reconstruct the data
+        # Calculate new length
+        new_length = len(content_str)
+
+        # Construct new lines
+        # Keep everything before the content
+        new_lines = lines[:length_index]
+        # Update the length line
+        new_lines.append(f'${new_length}')
+        # Add the modified content
+        new_lines.append(content_str)
+
+        new_lines = new_lines + lines[last_line_index:]
+
+        # log original and final data
+        return '\r\n'.join(new_lines)
+
+    def _make_substitute_patterns(self, all_hosts: list[tuple[int, int, int]]) -> list[tuple[str, str]]:
+        """
+        returns list of tuples(regex substitute pattern, string to replace) for single host to mock responses from redis commands (cluster nodes, cluster
+        shards, cluster slots)
+        """
+        patterns = []
+        # all_hosts: list of (real_port, real_cluster_port, proxy_port)
+
+        host = REDIS_CLUSTER_HOST
+        for port, cluster_port, proxy_port in all_hosts:
+            # Pattern for CLUSTER NODES is NOT USED because it is harder than just replace.
+            # Matches: <h_host>:<h_port>@<h_cluster_port>
+            # Example: 127.0.0.1:6380@7380
+            # We replace with: <h_host>:<h_proxy_port>@<h_cluster_port>
+            pattern = rf'\b{host}:{port}@{cluster_port}'
+            replacement = rf'{host}:{proxy_port}@{cluster_port}'
+            patterns.append((pattern, replacement))
+
+            # Pattern for CLUSTER SLOTS
+            # Format: *4 \n $<len> \n <ip> \n :<port> \n $<len> \n <id> \n ...
+            # Pattern for Port integer: r':' + str(h_port) + r'\r\n'
+            # Replacement: r':' + str(h_proxy_port) + r'\r\n'
+            patterns.append((
+                f'\\${len(host)}\r\n{host}\r\n:{port}\r\n',
+                f'${len(host)}\r\n{host}\r\n:{proxy_port}\r\n',
+            ))
+
+            # Pattern for port in CLUSTER SHARDS
+            # The key is "port" (4 bytes).
+            # The value is an integer, e.g., :6382.
+            # We want to replace :6382 with :<proxy_port>.
+            # We must ensure we don't replace other integers.
+            # The key "port" is unique enough in this context.
+            patterns.append((rf'port\r\n:{port}\r\n', rf'port\r\n:{proxy_port}\r\n'))
+
+        return patterns
+
+
 class _RedisClusterNode:
-    def __init__(self, host: str, port: int, cluster_port: int):
+    def __init__(self, host: str, port: int, cluster_port: int, proxy_port: int):
         config_name = 'cluster.conf'
         self.host = host
         self.port = port
+        self.proxy_port = proxy_port
         self.cluster_port = cluster_port
         self.data_directory = os.path.join(
             _get_data_directory(),
@@ -105,9 +254,27 @@ class _RedisClusterNode:
         shutil.rmtree(self.data_directory, ignore_errors=True)
         os.makedirs(self.data_directory, exist_ok=True)
         self._write_config()
+        self.proxy = None
         self.started = False
 
         self.connection_pool = aredis.ConnectionPool.from_url(f'redis://{host}:{port}')
+
+    async def _add_proxy(self, all_hosts: list[tuple[int, int, int]]):
+        """
+        Add proxy to node wich substitutes all real nodes' ips and ports to specified.
+        all_hosts - list of real instance hostname, real instance port, real instance cluster port, proxy port
+        """
+        gate_config = chaos.GateRoute(
+            name=f'{self.host}:{self.proxy_port}->{self.port}',
+            host_for_client=REDIS_CLUSTER_HOST,
+            port_for_client=self.proxy_port,
+            host_to_server=REDIS_CLUSTER_HOST,
+            port_to_server=self.port,
+        )
+        self.proxy: chaos.TcpGate = chaos.TcpGate(gate_config)
+        await self.proxy.set_to_client_interceptor(ProxyInterceptor(all_hosts))
+        await self.proxy.to_server_pass()
+        self.proxy.start()
 
     def get_info(self, section=None):
         client = self.get_client()
@@ -120,30 +287,67 @@ class _RedisClusterNode:
     def get_async_client(self) -> aredis.Redis:
         return aredis.Redis(connection_pool=self.connection_pool)
 
-    def get_primary_addresses(self) -> set[str]:
+    def _get_nodes_by_role(self, role) -> list[str]:
+        if self.version < '8.0.0':
+            return []
+
         try:
             client = self.get_client()
-            cluster_slots = client.cluster('SLOTS')
+            cluster_shards = client.cluster('SHARDS')
         except (BaseException, redis.exceptions.ConnectionError):
-            return set()
-        ret = set()
-        for interval in cluster_slots:
-            master = interval[2]
-            ret.add(f'{master[0].decode()}:{master[1]}')
+            return []
+
+        ret = []
+        for shard in cluster_shards:
+            nodes = shard[3]  # "nodes" field
+            for node in nodes:
+                # node is a list of [key, value, key, value, ...] - like a map
+                node_dict = {}
+                for i in range(0, len(node), 2):
+                    node_dict[node[i]] = node[i + 1]
+                # Check if this node matches the requested role
+                node_role = node_dict.get(b'role', b'').decode()
+                if node_role == role:
+                    ip = node_dict.get(b'ip', b'').decode()
+                    port = node_dict.get(b'port')
+                    if ip and port:
+                        ret.append(f'{ip}:{port}')
+        ret.sort()
         return ret
 
-    def get_replica_addresses(self) -> set[str]:
+    def get_primary_addresses(self) -> list[str]:
+        if ret := self._get_nodes_by_role('master'):
+            return ret
+
         try:
             client = self.get_client()
             cluster_slots = client.cluster('SLOTS')
         except (BaseException, redis.exceptions.ConnectionError):
-            return set()
+            return []
 
-        ret = set()
+        ret = []
+        for interval in cluster_slots:
+            master = interval[2]
+            ret.append(f'{master[0].decode()}:{master[1]}')
+        ret.sort()
+        return ret
+
+    def get_replica_addresses(self) -> list[str]:
+        if ret := self._get_nodes_by_role('replica'):
+            return ret
+
+        try:
+            client = self.get_client()
+            cluster_slots = client.cluster('SLOTS')
+        except (BaseException, redis.exceptions.ConnectionError):
+            return []
+
+        ret = []
         for interval in cluster_slots:
             replicas = interval[3:]
             for replica in replicas:
-                ret.add(f'{replica[0].decode()}:{replica[1]}')
+                ret.append(f'{replica[0].decode()}:{replica[1]}')
+        ret.sort()
         return ret
 
     def get_address(self):
@@ -169,9 +373,15 @@ class _RedisClusterNode:
         ]
         await _call_binary('redis-server', *args)
         await self.wait_ready()
+        if self.proxy:
+            self.proxy.start()
         self.started = True
 
-    def stop(self):
+        # string version from INFO response
+        info = self.get_info()
+        self.version = info.get('valkey_version', info.get('redis_version'))
+
+    async def stop(self):
         pid = self._read_pid()
         if pid is None:
             logger.warning('%s is not running: no PID file', self.pid_path)
@@ -185,6 +395,8 @@ class _RedisClusterNode:
 
         while _is_pid_running(pid):
             time.sleep(1)
+        if self.proxy:
+            await self.proxy.stop()
         self.started = False
 
     def assert_running(self):
@@ -230,11 +442,14 @@ class _RedisClusterNode:
 
 
 class RedisClusterTopology:
-    def __init__(self, ports, cluster_ports):
+    def __init__(self, ports, cluster_ports, proxy_ports):
         self.ports = ports
-        self.all_ports = [(port, cport) for port, cport in zip(ports, cluster_ports, strict=True)]
+        self.all_ports = [
+            (port, cport, proxy_port) for port, cport, proxy_port in zip(ports, cluster_ports, proxy_ports, strict=True)
+        ]
         self.nodes = [
-            _RedisClusterNode(REDIS_CLUSTER_HOST, port, cluster_port) for port, cluster_port in self.all_ports
+            _RedisClusterNode(REDIS_CLUSTER_HOST, port, cluster_port, proxy_port)
+            for port, cluster_port, proxy_port in self.all_ports
         ]
         self.nodes_by_names = {node.get_address(): node for node in self.nodes}
         self.added_master = None
@@ -243,6 +458,8 @@ class RedisClusterTopology:
         self.client = None
 
     async def start(self):
+        for node in self.nodes:
+            await node._add_proxy(self.all_ports)
         await self.start_all_nodes()
         await self._create_cluster(self.all_ports)
         self.client = redis.RedisCluster(
@@ -290,9 +507,11 @@ class RedisClusterTopology:
         await self._wait_cluster_nodes_known(self.nodes, 6)
         await self._wait_cluster_nodes_ready(self.nodes, 6)
 
-        # create 2 nodes
+        # create 2 nodes.
+        # Additional shard has no proxy. so we do not call _add_proxy.
         new_master = _RedisClusterNode(
             REDIS_CLUSTER_HOST,
+            pm.get_port(),
             pm.get_port(),
             pm.get_port(),
         )
@@ -303,6 +522,7 @@ class RedisClusterTopology:
 
         new_replica = _RedisClusterNode(
             REDIS_CLUSTER_HOST,
+            pm.get_port(),
             pm.get_port(),
             pm.get_port(),
         )
@@ -375,8 +595,8 @@ class RedisClusterTopology:
         await self._wait_cluster_nodes_known(original_masters, 6)
         await self._wait_cluster_nodes_known(original_replicas, 6)
 
-        new_master.stop()
-        new_replica.stop()
+        await new_master.stop()
+        await new_replica.stop()
         self.added_master = None
         self.added_replica = None
 
@@ -392,13 +612,13 @@ class RedisClusterTopology:
         if self.added_replica:
             await self.added_replica.start()
 
-    def cleanup(self):
+    async def cleanup(self):
         for node in self.nodes:
-            node.stop()
+            await node.stop()
         if self.added_master:
-            self.added_master.stop()
+            await self.added_master.stop()
         if self.added_replica:
-            self.added_replica.stop()
+            await self.added_replica.stop()
 
     async def _move_slot(
         self,
@@ -474,14 +694,14 @@ class RedisClusterTopology:
             args += ['--cluster-slave']
         await _call_binary(_get_prefixed_path('bin', 'redis-cli'), *args)
 
-    async def _wait_nodes_connect(self, ports: [tuple[int, int]]) -> bool:
+    async def _wait_nodes_connect(self, ports: [tuple[int, int, int]]) -> bool:
         """Wait until every node connects to other nodes."""
         expected_ids = set()
-        for port, _ in ports:
+        for port, _, _ in ports:
             myid = redis.Redis(port=port).cluster('myid').decode()
             expected_ids.add(myid)
 
-        for port, _ in ports:
+        for port, _, _ in ports:
             client = aredis.Redis(port=port)
 
             async def is_ready() -> bool:
@@ -517,14 +737,14 @@ class RedisClusterTopology:
         SLOTS_REM = SLOTS_COUNT % SHARD_COUNT
 
         epoch = 0
-        for client_port, _ in ports:
+        for client_port, _, _ in ports:
             redis.Redis(port=client_port).cluster('set-config-epoch', epoch)
             epoch += 1
 
         # meet each other
-        for client_port, _ in ports:
+        for client_port, _, _ in ports:
             c = redis.Redis(port=client_port)
-            for port, cport in ports:
+            for port, cport, _ in ports:
                 if port != client_port:
                     c.cluster(
                         'meet',
@@ -629,20 +849,22 @@ class RedisClusterTopologyPlugin:
     def __init__(self):
         self.ports = [pm.get_port() for _ in range(CLUSTER_MINIMUM_NODES_COUNT)]
         self.cluster_ports = [pm.get_port() for _ in range(CLUSTER_MINIMUM_NODES_COUNT)]
+        self.proxy_ports = [pm.get_port() for _ in range(CLUSTER_MINIMUM_NODES_COUNT)]
 
     @pytest.fixture(scope='session')
     async def redis_cluster_topology_session(self):
-        redis_cluster = RedisClusterTopology(
-            self.ports,
-            self.cluster_ports,
-        )
+        redis_cluster = RedisClusterTopology(self.ports, self.cluster_ports, self.proxy_ports)
         await redis_cluster.start()
         yield redis_cluster
-        redis_cluster.cleanup()
+        await redis_cluster.cleanup()
 
     @pytest.fixture(scope='session')
     def redis_cluster_ports(self):
         return self.ports
+
+    @pytest.fixture(scope='session')
+    def redis_cluster_proxy_ports(self):
+        return self.proxy_ports
 
 
 @pytest.fixture

@@ -14,16 +14,16 @@
 
 namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }} {
 
-{% macro parse_json(body, result_expr) %}
+{% macro _parse_json(body, result_expr) %}
     auto json = {{ userver }}::formats::json::FromString(http_request.RequestBody());
     {{ result_expr }} = json.As<{{ body.schema.cpp_user_name() }}>();
 {% endmacro %}
 
-{% macro parse_octet_stream(prefix) %}
+{% macro _parse_octet_stream(prefix) %}
     {{ prefix }}.data = http_request.RequestBody();
 {% endmacro %}
 
-{% macro parse_urlencoded(body, prefix) %}
+{% macro _parse_urlencoded(body, prefix) %}
     {% for field_name, field in body.schema.fields.items() %}
         {% if field.required %}
             if (!http_request.HasArg("{{ field_name }}")) {
@@ -48,7 +48,7 @@ namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }} {
     {% endfor %}
 {% endmacro %}
 
-{% macro parse_multipart(body, prefix) %}
+{% macro _parse_multipart(body, prefix) %}
     {% for field_name, field in body.schema.fields.items() %}
         {% if field.required %}
             if (!http_request.HasFormDataArg("{{ field_name }}")) {
@@ -73,15 +73,15 @@ namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }} {
     {% endfor %}
 {% endmacro %}
 
-{% macro parse_body(body, prefix) %}
+{% macro _parse_body(body, prefix) %}
     {% if body.content_type == 'application/json' %}
-        {{ parse_json(body, prefix) }}
+        {{ _parse_json(body, prefix) }}
     {% elif body.content_type == 'application/octet-stream' %}
-        {{ parse_octet_stream(prefix) }}
+        {{ _parse_octet_stream(prefix) }}
     {% elif body.content_type == 'application/x-www-form-urlencoded' %}
-        {{ parse_urlencoded(body, prefix) }}
+        {{ _parse_urlencoded(body, prefix) }}
     {% elif body.content_type == 'multipart/form-data' %}
-        {{ parse_multipart(body, prefix) }}
+        {{ _parse_multipart(body, prefix) }}
     {% else %}
         {{ NOT_IMPLEMENTED(body) }}
     {% endif %}
@@ -94,7 +94,7 @@ namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }} {
             namespace openapi = {{ userver }}::chaotic::openapi;
 
             {{ body.cpp_type() }} result{};
-            {{ parse_body(body, 'result') }}
+            {{ _parse_body(body, 'result') }}
             return result;
         }
     {% endfor %}
@@ -106,6 +106,9 @@ Request ParseRequest(
     namespace openapi = {{ userver }}::chaotic::openapi;
 
     Request r{};
+    {% if op.empty_request() %}
+        (void)http_request;
+    {% endif %}
     {% for param in op.parameters %}
         {% if param.required %}
             r.{{ param.cpp_name }} = openapi::ReadParameter<{{ param.parser }}>(http_request);
@@ -117,7 +120,7 @@ Request ParseRequest(
     {% if op.request_bodies | length == 1 %}
         {% set body = op.request_bodies[0] %}
         {% if body.schema %}
-            {{ parse_body(body, 'r.body') }}
+            {{ _parse_body(body, 'r.body') }}
         {% endif %}
     {% elif op.request_bodies | length > 1 %}
         {

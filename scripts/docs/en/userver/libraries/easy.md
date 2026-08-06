@@ -16,30 +16,30 @@ is straightforward.
 Let's write a service that responds `Hello world` to any request by URL `/hello`. To do that, just describe the handler
 in `main.cpp` file:
 
-@include libraries/easy/samples/0_hello_world/main.cpp
+@include samples/easy/0_hello_world/main.cpp
 
 Build it with a trivial `CMakeLists.txt`:
 
-@include libraries/easy/samples/0_hello_world/CMakeLists.txt
+@include samples/easy/0_hello_world/CMakeLists.txt
 
 Note the `userver_testsuite_add_simple(DUMP_CONFIG True)` usage. It automatically adds the `testsuite` directory
 and tells the testsuite to retrieve static config from the binary itself, so
 that the new service can be easily tested from python. Just add a `testsuite/conftest.py` file:
-@include libraries/easy/samples/0_hello_world/testsuite/conftest.py
+@include samples/easy/0_hello_world/testsuite/conftest.py
 
 And put the tests in any other file, for example `testsuite/test_basic.py`:
-@include libraries/easy/samples/0_hello_world/testsuite/test_basic.py
+@include samples/easy/0_hello_world/testsuite/test_basic.py
 
 Tests can be run in a usual way, for example
 ```
 # bash
-make -j11 userver-easy-samples-hello-world && (cd libraries/easy/samples/0_hello_world && ctest -V)
+make -j11 userver-easy-samples-hello-world && (cd samples/easy/0_hello_world && ctest -V)
 ```
 
 The easy library works well with any callables, so feel free to move the logic out of lambdas to functions or functional
 objects:
 
-@include libraries/easy/samples/1_hi/main.cpp
+@include samples/easy/1_hi/main.cpp
 
 @note Each callable for a route in the easy library actually creates and configures a component derived from
       server::handlers::HttpHandlerBase. See @ref scripts/docs/en/userver/tutorial/hello_service.md for more insight on
@@ -55,16 +55,16 @@ HTTP GET request for the URL `/kv?key=KEY` is done.
 For this service we will need a database. To add a database to the service an easy::PgDep dependency should be added to
 the easy::HttpWith. After that, the dependency can be retrieved in the handlers:
 
-@include libraries/easy/samples/2_key_value/main.cpp
+@include samples/easy/2_key_value/main.cpp
 
 Note the easy::HttpWith::DbSchema usage. PostgreSQL database requires schema, so it is provided in place.
 
 To test the service we should instruct the testsuite to retrieve the schema from the service.
 Content of `testsuite/conftest.py` file is:
-@include libraries/easy/samples/2_key_value/testsuite/conftest.py
+@include samples/easy/2_key_value/testsuite/conftest.py
 
 After that tests can be written in a usual way, for example `testsuite/test_basic.py`:
-@include libraries/easy/samples/2_key_value/testsuite/test_basic.py
+@include samples/easy/2_key_value/testsuite/test_basic.py
 
 
 ### JSON service with the easy library
@@ -78,15 +78,15 @@ automatically parse the request
 as JSON. If the function returns formats::json::Value or a JSON parseable structure, then the content type is
 automatically set to `application/json`:
 
-@include libraries/easy/samples/3_json/main.cpp
+@include samples/easy/3_json/main.cpp
 
 Note the `schemas::KeyRequest` usage. This example uses @ref scripts/docs/en/userver/chaotic.md
 to generate the parsers and serializers via `CMakeLists.txt`:
 
-@include libraries/easy/samples/3_json/CMakeLists.txt
+@include samples/easy/3_json/CMakeLists.txt
 
 Content of `testsuite/conftest.py` file did not change, the `testsuite/test_basic.py` now uses JSON:
-@include libraries/easy/samples/3_json/testsuite/test_basic.py
+@include samples/easy/3_json/testsuite/test_basic.py
 
 
 ### Custom and multiple dependencies for a service with the easy library
@@ -97,14 +97,14 @@ based services.
 
 Consider the example, where an HTTP client to a remote service is converted to a component:
 
-@snippet libraries/easy/samples/4_custom_dependency/main.cpp  ActionClient
+@snippet samples/easy/4_custom_dependency/main.cpp  ActionClient
 
 To use that component with the easy library a dependency type should be written, that has a constructor from a single
 `const components::ComponentContext&` parameter to retrieve the clients/components and has a
 `static void RegisterOn(easy::HttpBase& app)` member function, to register the required component and configs in the
 component list.
 
-@snippet libraries/easy/samples/4_custom_dependency/main.cpp  ActionDep
+@snippet samples/easy/4_custom_dependency/main.cpp  ActionDep
 
 @note It is time to think about migrating to a more functional
       [pg_service_template](https://github.com/userver-framework/pg_service_template) if new components start to appear
@@ -112,13 +112,13 @@ component list.
 
 Multiple dependencies can be used with easy::HttpWith in the following way:
 
-@snippet libraries/easy/samples/4_custom_dependency/main.cpp  main
+@snippet samples/easy/4_custom_dependency/main.cpp  main
 
 See the full example, including tests:
-* @ref libraries/easy/samples/4_custom_dependency/main.cpp
-* @ref libraries/easy/samples/4_custom_dependency/CMakeLists.txt
-* @ref libraries/easy/samples/4_custom_dependency/testsuite/conftest.py
-* @ref libraries/easy/samples/4_custom_dependency/testsuite/test_basic.py
+* @ref samples/easy/4_custom_dependency/main.cpp
+* @ref samples/easy/4_custom_dependency/CMakeLists.txt
+* @ref samples/easy/4_custom_dependency/testsuite/conftest.py
+* @ref samples/easy/4_custom_dependency/testsuite/test_basic.py
 
 
 ### Migration from the easy library to a service template
@@ -164,20 +164,20 @@ You can keep using parts of the easy library in the service template for quite s
 locations.
 
 As a result you should get something close to the following:
-* @ref libraries/easy/samples/5_pg_service_template/src/main.cpp
-* @ref libraries/easy/samples/5_pg_service_template/testsuite/conftest.py
-* @ref libraries/easy/samples/5_pg_service_template/testsuite/test_basic.py
-* @ref libraries/easy/samples/5_pg_service_template/configs/static_config.yaml
-* @ref libraries/easy/samples/5_pg_service_template/postgresql/schemas/db_1.sql
+* @ref samples/easy/5_pg_service_template/src/main.cpp
+* @ref samples/easy/5_pg_service_template/testsuite/conftest.py
+* @ref samples/easy/5_pg_service_template/testsuite/test_basic.py
+* @ref samples/easy/5_pg_service_template/configs/static_config.yaml
+* @ref samples/easy/5_pg_service_template/postgresql/schemas/db_1.sql
 
 After that, if you fell that easy::HttpWith gets in the way then you can remove it while still using
 easy::Dependencies. For example the following code with easy::HttpWith:
 
-@snippet libraries/easy/samples/5_pg_service_template/src/main.cpp  main
+@snippet samples/easy/5_pg_service_template/src/main.cpp  main
 
 Becomes:
 
-@snippet libraries/easy/samples/6_pg_service_template_no_http_with/src/main.cpp  main
+@snippet samples/easy/6_pg_service_template_no_http_with/src/main.cpp  main
 
 ----------
 
@@ -185,13 +185,13 @@ Becomes:
 ⇦ @ref scripts/docs/en/userver/clickhouse/driver.md | @ref scripts/docs/en/userver/libraries/s3api.md ⇨
 @htmlonly </div> @endhtmlonly
 
-@example libraries/easy/samples/4_custom_dependency/main.cpp
-@example libraries/easy/samples/4_custom_dependency/CMakeLists.txt
-@example libraries/easy/samples/4_custom_dependency/testsuite/conftest.py
-@example libraries/easy/samples/4_custom_dependency/testsuite/test_basic.py
+@example samples/easy/4_custom_dependency/main.cpp
+@example samples/easy/4_custom_dependency/CMakeLists.txt
+@example samples/easy/4_custom_dependency/testsuite/conftest.py
+@example samples/easy/4_custom_dependency/testsuite/test_basic.py
 
-@example libraries/easy/samples/5_pg_service_template/src/main.cpp
-@example libraries/easy/samples/5_pg_service_template/testsuite/conftest.py
-@example libraries/easy/samples/5_pg_service_template/testsuite/test_basic.py
-@example libraries/easy/samples/5_pg_service_template/configs/static_config.yaml
-@example libraries/easy/samples/5_pg_service_template/postgresql/schemas/db_1.sql
+@example samples/easy/5_pg_service_template/src/main.cpp
+@example samples/easy/5_pg_service_template/testsuite/conftest.py
+@example samples/easy/5_pg_service_template/testsuite/test_basic.py
+@example samples/easy/5_pg_service_template/configs/static_config.yaml
+@example samples/easy/5_pg_service_template/postgresql/schemas/db_1.sql

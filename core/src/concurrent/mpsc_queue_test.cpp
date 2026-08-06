@@ -5,6 +5,7 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/exception.hpp>
 #include <userver/engine/task/cancel.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utest/utest.hpp>
@@ -102,7 +103,7 @@ public:
         // There is no use for a Span in a task that lives until the service stops.
         // The task should be Critical, because the whole service (not just a single request) depends on it.
         consumer_task_ =
-            utils::TaskBuilder{}.NoSpan().Background().Critical().Build([&, consumer = queue_->GetConsumer()] {
+            utils::TaskBuilder{}.NoTracing().Background().Critical().Build([&, consumer = queue_->GetConsumer()] {
                 ConsumerTaskLoop(consumer);
             });
     }
@@ -176,7 +177,7 @@ void FooProcessor::DoProcess(const FooItem& item) { foo_items.push_back(item); }
 }  // namespace
 
 UTEST(MpscQueue, ProcessingRemainingItemsSample) {
-    ASSERT_EQ(GetThreadCount(), 1)
+    ASSERT_EQ(engine::current_task::GetWorkerCount(), 1)
         << "In this test we can observe the exact moments of task switching, because there "
            "is a single TaskProcessor thread. We also don't need protecting 'foo_items'";
     foo_items.clear();
@@ -208,7 +209,7 @@ UTEST(MpscQueue, ProcessingRemainingItemsSample) {
 }
 
 UTEST(MpscQueue, ProcessingRemainingItemsCancelled) {
-    ASSERT_EQ(GetThreadCount(), 1)
+    ASSERT_EQ(engine::current_task::GetWorkerCount(), 1)
         << "In this test we can observe the exact moments of task switching, because there "
            "is a single TaskProcessor thread. We also don't need protecting 'foo_items'";
     foo_items.clear();

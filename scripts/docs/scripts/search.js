@@ -22,15 +22,22 @@ export function init_search_observer() {
         .toLowerCase()
         .indexOf(searchValue.trim().toLowerCase());
 
-      searchResultSymbolNode.innerHTML =
-        searchResultValue.slice(0, searchValueIndex) +
-        '<span class="highlight">' +
-        searchResultValue.slice(
-          searchValueIndex,
-          searchValueIndex + searchValue.length
-        ) +
-        "</span>" +
-        searchResultValue.slice(searchValueIndex + searchValue.length);
+      const before = searchResultValue.slice(0, searchValueIndex);
+      const match = searchResultValue.slice(
+        searchValueIndex,
+        searchValueIndex + searchValue.length
+      );
+      const after = searchResultValue.slice(
+        searchValueIndex + searchValue.length
+      );
+
+      searchResultSymbolNode.replaceChildren();
+      searchResultSymbolNode.appendChild(document.createTextNode(before));
+      const highlight = document.createElement('span');
+      highlight.className = 'highlight';
+      highlight.textContent = match;
+      searchResultSymbolNode.appendChild(highlight);
+      searchResultSymbolNode.appendChild(document.createTextNode(after));
     }
   };
 
@@ -38,28 +45,37 @@ export function init_search_observer() {
   observer.observe(searchResultsContainer, observerOptions);
 };
 
+export function init_search_results_anchor() {
+  const searchBox = document.getElementById("MSearchBox");
+  const resultsWindow = document.getElementById("MSearchResultsWindow");
+  if (searchBox && resultsWindow && resultsWindow.parentElement !== searchBox) {
+    searchBox.appendChild(resultsWindow);
+  }
+}
+
 export function init_all_results_button() {
   const searchBox = document.getElementById("MSearchResultsWindow");
   const searchInput = document.getElementById("MSearchField");
 
   const allResultsLink = document.createElement("a");
   allResultsLink.classList.add("all-results-link");
-
-  allResultsLink.text = "All results";
+  allResultsLink.textContent = "All results";
   allResultsLink.target = "_blank";
 
-  const searchURL = new URL("https://yandex.ru/search/");
+  const updateHref = () => {
+    const searchURL = new URL("https://yandex.ru/search/");
+    const query = searchInput.value.trim();
+    if (query) {
+      searchURL.searchParams.set("text", `site:userver.tech ${query}`);
+    } else {
+      searchURL.searchParams.set("text", "site:userver.tech");
+    }
+    allResultsLink.href = searchURL.href;
+  };
 
   searchBox.appendChild(allResultsLink);
-
-  searchInput.addEventListener("change", (event) => {
-    searchURL.searchParams.set(
-      "text",
-      `site:userver.tech ${event.target.value}`
-    );
-
-    allResultsLink.href = searchURL;
-  });
+  updateHref();
+  searchInput.addEventListener("input", updateHref);
 }
 
 export function init_search_hotkey() {

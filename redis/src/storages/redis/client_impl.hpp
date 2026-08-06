@@ -2,7 +2,6 @@
 
 #include <chrono>
 #include <memory>
-#include <optional>
 #include <string>
 #include <vector>
 
@@ -32,6 +31,7 @@ public:
     explicit ClientImpl(std::shared_ptr<impl::Sentinel> sentinel);
 
     void WaitConnectedOnce(RedisWaitConnected wait_connected) override;
+    bool IsReady(const HealthCheckParams& params) const override;
 
     size_t ShardsCount() const override;
     bool IsInClusterMode() const override;
@@ -176,6 +176,8 @@ public:
     ) override;
 
     RequestGet Get(std::string key, const CommandControl& command_control) override;
+
+    RequestGetdel Getdel(std::string key, const CommandControl& command_control) override;
 
     RequestGetset Getset(std::string key, std::string value, const CommandControl& command_control) override;
 

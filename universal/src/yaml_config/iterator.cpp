@@ -1,7 +1,8 @@
 #include <userver/yaml_config/iterator.hpp>
 
+#include <iterator>
+
 #include <userver/utils/assert.hpp>
-#include <userver/utils/text_light.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -18,7 +19,7 @@ std::string_view RemoveInternalSuffix(std::string_view key) noexcept {
     };
 
     for (const auto suffix : kInternalSuffixes) {
-        if (utils::text::EndsWith(key, suffix)) {
+        if (key.ends_with(suffix)) {
             return key.substr(0, key.size() - suffix.size());
         }
     }
@@ -136,6 +137,8 @@ void Iterator<IterTraits>::IncrementInternalIterator() {
 
 // Explicit instantiation
 template class Iterator<YamlConfig::IterTraits>;
+
+static_assert(std::forward_iterator<Iterator<YamlConfig::IterTraits>>);
 
 }  // namespace yaml_config
 

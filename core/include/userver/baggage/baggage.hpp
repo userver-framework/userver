@@ -149,7 +149,7 @@ bool HasInvalidSymbols(const T& obj) {
            }) != obj.end();
 }
 
-inline engine::TaskInheritedVariable<Baggage> kInheritedBaggage;
+inline engine::TaskInheritedVariable<Baggage> kInheritedBaggage{engine::TaskInheritedVariablePriority::kBackground};
 
 }  // namespace baggage
 

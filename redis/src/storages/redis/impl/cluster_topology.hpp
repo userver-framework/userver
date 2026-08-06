@@ -68,7 +68,7 @@ public:
         return cluster_shards_.at(index);
     }
 
-    bool IsReady(WaitConnectedMode mode) const;
+    bool IsReady(const HealthCheckParams& params) const;
     std::string GetReadinessInfo() const;
 
     bool HasSameInfos(const ClusterShardHostInfos& infos) const;

@@ -1,5 +1,7 @@
 #include "cluster_topology_holder.hpp"
 
+#include <ranges>
+
 #include <boost/container_hash/hash.hpp>
 #include <engine/ev/thread_control.hpp>
 #include <userver/logging/log.hpp>
@@ -29,6 +31,9 @@ struct NodeAddresses {
 
     std::string ip;
     std::optional<std::string> fqdn_name;
+    // Failed flag. Node is in FAIL state.
+    // It was not reachable for multiple nodes that promoted the PFAIL state to FAIL.
+    bool failed{false};
 };
 
 struct NodeAddressesHasher {
@@ -79,6 +84,24 @@ std::optional<std::string> GetHostNameFromClusterNodesLine(std::string_view line
     return std::string(line.substr(it + 1)) + ":" + std::string(port);
 }
 
+// Expected format (space-separated):
+// id ip:port@cport flags master ping-sent pong-recv config-epoch link-state [slots...]
+// The "flags" field (index 2) may contain multiple comma-separated flags,
+// one of which can be "fail" indicating the node is in FAIL state.
+bool IsNodeHasFailedFlag(const std::vector<std::string_view>& cluster_nodes_line) {
+    if (cluster_nodes_line.size() < 3) {
+        return false;
+    }
+    const std::string_view flags_view = cluster_nodes_line[2];
+    for (auto word : std::views::split(flags_view, ',')) {
+        std::string_view sv(&*word.begin(), std::ranges::distance(word));
+        if (sv == "fail") {
+            return true;
+        }
+    }
+    return false;
+}
+
 ClusterNodesResponseStatus ParseClusterNodesResponse(const ReplyPtr& reply, NodesAddressesSet& res) {
     UASSERT(reply);
     if (reply->IsUnknownCommandError()) {
@@ -92,6 +115,7 @@ ClusterNodesResponseStatus ParseClusterNodesResponse(const ReplyPtr& reply, Node
     if (!reply->data.IsString()) {
         return ClusterNodesResponseStatus::kFail;
     }
+
     const auto& host_lines = utils::text::SplitIntoStringViewVector(reply->data.GetString(), "\n");
 
     for (const auto& host_line : host_lines) {
@@ -115,6 +139,7 @@ ClusterNodesResponseStatus ParseClusterNodesResponse(const ReplyPtr& reply, Node
         NodeAddresses addrs;
         addrs.ip = std::move(host_port);
         addrs.fqdn_name = GetHostNameFromClusterNodesLine(host_port_communication_port, port);
+        addrs.failed = IsNodeHasFailedFlag(split);
         res.emplace(addrs);
     }
 
@@ -133,7 +158,9 @@ ClusterTopologyHolder::ClusterTopologyHolder(
     const std::vector<std::string>& /*shards*/,
     const std::vector<ConnectionInfo>& conns,
     ConnectionSecurity connection_security,
-    TopologyUpdateMethod topology_update_method
+    TopologyUpdateMethod topology_update_method,
+    Hysteresis::Config hysteresis_config,
+    std::chrono::seconds max_disconnect_time
 )
     : ev_thread_(sentinel_thread_control),
       redis_thread_pool_(redis_thread_pool),
@@ -197,7 +224,9 @@ ClusterTopologyHolder::ClusterTopologyHolder(
       ),
       is_topology_received_(false),
       update_cluster_slots_flag_(false),
-      connection_security_(connection_security)
+      connection_security_(connection_security),
+      hysteresis_config_(hysteresis_config),
+      max_disconnect_time_(max_disconnect_time)
 {
     log_extra_.Extend("shard_group_name", shard_group_name_);
     LOG_DEBUG() << log_extra_ << "Created ClusterTopologyHolder";
@@ -267,13 +296,19 @@ void ClusterTopologyHolder::Stop() {
 
 bool ClusterTopologyHolder::WaitReadyOnce(engine::Deadline deadline, WaitConnectedMode mode) {
     std::unique_lock lock{mutex_};
-    return cv_.WaitUntil(lock, deadline, [this, mode]() {
-        if (!IsInitialized()) {
-            return false;
-        }
-        auto ptr = topology_.Read();
-        return ptr->IsReady(mode);
-    });
+    return cv_.WaitUntil(lock, deadline, [this, mode]() { return IsReady(HealthCheckParams{mode, 0, 0}); });
+}
+
+bool ClusterTopologyHolder::IsReady(const HealthCheckParams& params) const {
+    if (!is_nodes_received_.load()) {
+        return false;
+    }
+    if (!is_topology_received_.load()) {
+        return false;
+    }
+
+    auto ptr = topology_.Read();
+    return ptr->IsReady(params);
 }
 
 rcu::ReadablePtr<ClusterTopology, rcu::BlockingRcuTraits> ClusterTopologyHolder::GetTopology() const {
@@ -376,12 +411,15 @@ void ClusterTopologyHolder::ExploreNodes() {
         }
 
         for (const auto& host_port : host_ports) {
-            if (!nodes_.Get(host_port.ip)) {
+            auto& node = nodes_.Get(host_port.ip);
+            if (!node) {
                 host_ports_to_create.insert(host_port.ip);
+            } else {
+                node->AccountFail(host_port.failed);
             }
         }
         if (!host_ports.empty()) {
-            for (const auto& [ip, fqdn] : host_ports) {
+            for (const auto& [ip, fqdn, failed] : host_ports) {
                 if (!fqdn.has_value()) {
                     continue;
                 }
@@ -480,7 +518,9 @@ std::shared_ptr<RedisConnectionHolder> ClusterTopologyHolder::CreateRedisInstanc
         *replication_monitoring_settings_ptr,
         *retry_budget_settings_ptr,
         statistics_holder_.MakeInstanceStats(),
-        creation_settings
+        creation_settings,
+        hysteresis_config_,
+        max_disconnect_time_
     );
 }
 

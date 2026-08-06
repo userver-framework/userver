@@ -168,13 +168,15 @@ void SentinelTopologyHolder::Stop() {
 
 bool SentinelTopologyHolder::WaitReadyOnce(engine::Deadline deadline, WaitConnectedMode mode) {
     std::unique_lock lock{mutex_};
-    return cv_.WaitUntil(lock, deadline, [this, mode]() {
-        if (!IsInitialized()) {
-            return false;
-        }
-        auto ptr = topology_.Read();
-        return ptr->IsReady(mode);
-    });
+    return cv_.WaitUntil(lock, deadline, [this, mode]() { return IsReady(HealthCheckParams{mode, 0, 0}); });
+}
+
+bool SentinelTopologyHolder::IsReady(const HealthCheckParams& params) const {
+    if (!is_topology_received_.load()) {
+        return false;
+    }
+    auto ptr = topology_.Read();
+    return ptr->IsReady(params);
 }
 
 rcu::ReadablePtr<ClusterTopology, rcu::BlockingRcuTraits> SentinelTopologyHolder::GetTopology() const {

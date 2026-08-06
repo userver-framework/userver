@@ -281,7 +281,11 @@ SentinelImpl::SentinelImpl(
                 shards,
                 conns,
                 connection_security,
-                topology_update_method
+                topology_update_method,
+                creation_config.required_mode == storages::redis::WaitConnectedMode::kNoWait
+                    ? Hysteresis::Config()
+                    : Hysteresis::Config{.consecutive_failures = 3, .consecutive_ok = 5},
+                creation_config.max_disconnect_time
             );
         } else if (key_shard_type == ShardingStrategy::kRedisStandalone) {
             LOG_DEBUG() << log_extra_ << "Construct Standalone topology holder";
@@ -356,6 +360,8 @@ void SentinelImpl::WaitConnectedOnce(RedisWaitConnected wait_connected) {
         }
     }
 }
+
+bool SentinelImpl::IsReady(const HealthCheckParams& params) const { return topology_holder_->IsReady(params); }
 
 void SentinelImpl::ForceUpdateHosts() { topology_holder_->SendUpdateClusterTopology(); }
 

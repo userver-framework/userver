@@ -10,6 +10,7 @@
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/shared_mutex.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/fixed_array.hpp>
 
@@ -121,7 +122,7 @@ UTEST_MT(WaitTokenStorage, TokenReleaseRace, 3) {
 }
 
 UTEST(WaitTokenStorage, AcquireTokenWhileWaiting) {
-    ASSERT_EQ(GetThreadCount(), 1);
+    ASSERT_EQ(engine::current_task::GetWorkerCount(), 1);
 
     utils::impl::WaitTokenStorage wts;
 

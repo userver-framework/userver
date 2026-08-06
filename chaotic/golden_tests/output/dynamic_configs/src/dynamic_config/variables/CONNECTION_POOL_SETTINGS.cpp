@@ -40,12 +40,15 @@ auto DoParse(const USERVER_NAMESPACE::formats::json::Value& value) {
 
 }  // anonymous namespace
 
-const USERVER_NAMESPACE::dynamic_config::Key<USERVER_NAMESPACE::utils::DefaultDict<::dynamic_config::connection_pool_settings::PoolSettings>> CONNECTION_POOL_SETTINGS{
+const USERVER_NAMESPACE::dynamic_config::Key<
+    USERVER_NAMESPACE::utils::DefaultDict<::dynamic_config::connection_pool_settings::PoolSettings>
+> CONNECTION_POOL_SETTINGS{
     "CONNECTION_POOL_SETTINGS",
     DoParse,
     USERVER_NAMESPACE::dynamic_config::DefaultAsJsonString{R"~(
         {}
     )~"},
+    "1b31f8984adb341bee5b51b53e44117a8fda141ee6fc89bc4eb910392a3bed37",
 };
 
 }  // namespace dynamic_config

@@ -5,10 +5,11 @@
 #include <chrono>
 #include <cstdint>
 #include <future>
+#include <iterator>
 #include <mutex>
 #include <thread>
 
-#include <userver/compiler/impl/tsan.hpp>
+#include <userver/engine/deadline.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/algo.hpp>
@@ -25,6 +26,9 @@ struct RcuTraitsStdMutex : rcu::DefaultRcuMapTraits<Key> {
 };
 
 using StdMutexRcuMap = rcu::RcuMap<std::string, int, RcuTraitsStdMutex<std::string>>;
+
+static_assert(std::input_iterator<StdMutexRcuMap::Iterator>);
+static_assert(std::input_iterator<StdMutexRcuMap::ConstIterator>);
 
 }  // namespace
 
@@ -161,16 +165,15 @@ UTEST(RcuMap, Snapshot) {
     EXPECT_EQ(2, *second_snap.at("b"));
 }
 
-#if !USERVER_IMPL_HAS_TSAN
 UTEST_MT(RcuMap, ConcurrentUpdates, 4) {
     rcu::RcuMap<int, std::atomic<uint32_t>> map;
     std::array<engine::TaskWithResult<void>, 4> workers;
-    std::atomic<bool> stop_flag{false};
+    const auto test_deadline = engine::Deadline::FromDuration(std::chrono::milliseconds{100});
 
     for (size_t i = 0; i < workers.size(); ++i) {
-        workers[i] = utils::Async("writer", [i, &map, &stop_flag] {
+        workers[i] = utils::Async("writer", [i, &map, &test_deadline] {
             const uint32_t mask = 0xFFu << (i * 8);
-            while (!stop_flag) {
+            while (!test_deadline.IsReached()) {
                 *map[i << 8] = -1;
                 for (uint8_t v = 1; v != 0; ++v) {
                     ASSERT_TRUE(map.Get((i << 8) + v - 1));
@@ -191,8 +194,6 @@ UTEST_MT(RcuMap, ConcurrentUpdates, 4) {
         });
     }
 
-    engine::SleepFor(std::chrono::milliseconds(100));
-    stop_flag = true;
     for (auto& w : workers) {
         w.Get();
     }
@@ -214,12 +215,12 @@ UTEST_MT(RcuMap, ConcurrentTryEmplace, 16) {
         tasks.reserve(kTaskCount);
         for (std::size_t i = 0; i < kTaskCount; ++i) {
             tasks.push_back(engine::AsyncNoTracing([&map, &insertions, i] {
-                auto key = std::string(20 + i / 2, 'x');
+                auto key = std::string(20 + (i / 2), 'x');
                 auto res = map.TryEmplace(key, i);
                 if (res.inserted) {
                     ++insertions;
                 }
-                EXPECT_EQ(*res.value / 2, i / 2);
+                EXPECT_EQ((*res.value) / 2, i / 2);
             }));
         }
         for (auto& task : tasks) {
@@ -228,7 +229,6 @@ UTEST_MT(RcuMap, ConcurrentTryEmplace, 16) {
         EXPECT_EQ(insertions, kTaskCount / 2);
     }
 }
-#endif
 
 UTEST(RcuMap, IterStability) {
     rcu::RcuMap<int, int> map;

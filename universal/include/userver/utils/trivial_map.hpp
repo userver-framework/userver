@@ -847,9 +847,12 @@ public:
     public:
         using iterator_category = std::input_iterator_tag;
         using difference_type = std::ptrdiff_t;
+        using value_type = ValueType;
+        using reference = ValueType;
+        using pointer = void;
 
         constexpr explicit Iterator(const TrivialBiMap& map, std::size_t position)
-            : map_{map},
+            : map_{&map},
               position_{position}
         {}
 
@@ -857,21 +860,21 @@ public:
 
         constexpr bool operator!=(Iterator other) const { return position_ != other.position_; }
 
-        constexpr Iterator operator++() {
+        constexpr Iterator& operator++() {
             ++position_;
             return *this;
         }
 
         constexpr Iterator operator++(int) {
             Iterator copy{*this};
-            ++position_;
+            ++*this;
             return copy;
         }
 
-        constexpr ValueType operator*() const { return map_.GetValuesByIndex(position_); }
+        constexpr ValueType operator*() const { return map_->GetValuesByIndex(position_); }
 
     private:
-        const TrivialBiMap& map_;
+        const TrivialBiMap* map_;
         std::size_t position_;
     };
 

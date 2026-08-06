@@ -154,6 +154,49 @@ INSTANTIATE_TEST_SUITE_P(
                 }
               }
             })"
+        },
+        // nonportable_raw_any: serialize Any as {"type_url": "...", "value": "<base64>"} without descriptor lookup
+        AnyToJsonSuccessTestParam{
+            AnyMessageData{Int32MessageData{1, 2, 3}},
+            R"({"field1":{"type_url":"type.googleapis.com/proto_json.messages.Int32Message","value":"CAEQBB0DAAAA"}})",
+            {.preserve_proto_field_names = true, .nonportable_raw_any = true},
+            // Native implementation does not support nonportable_raw_any option.
+            true
+        },
+        AnyToJsonSuccessTestParam{
+            AnyMessageData{Int32MessageData{1, 2, 3}},
+            R"({"field1":{"typeUrl":"type.googleapis.com/proto_json.messages.Int32Message","value":"CAEQBB0DAAAA"}})",
+            {.nonportable_raw_any = true},
+            // Native implementation does not support nonportable_raw_any option.
+            true
+        },
+        AnyToJsonSuccessTestParam{
+            AnyMessageData{RawAnyData{"type.googleapis.com/proto_json.messages.NonExistent", "\x08\x01"}},
+            R"({"field1":{"type_url":"type.googleapis.com/proto_json.messages.NonExistent","value":"CAE="}})",
+            {.preserve_proto_field_names = true, .nonportable_raw_any = true},
+            // Native implementation does not support nonportable_raw_any option.
+            true
+        },
+        AnyToJsonSuccessTestParam{
+            AnyMessageData{RawAnyData{"type.googleapis.com/proto_json.messages.NonExistent", "\x08\x01"}},
+            R"({"field1":{"typeUrl":"type.googleapis.com/proto_json.messages.NonExistent","value":"CAE="}})",
+            {.nonportable_raw_any = true},
+            // Native implementation does not support nonportable_raw_any option.
+            true
+        },
+        AnyToJsonSuccessTestParam{
+            AnyMessageData{RawAnyData{"", ""}},
+            R"({"field1":{"type_url":"","value":""}})",
+            {.preserve_proto_field_names = true, .nonportable_raw_any = true},
+            // Native implementation does not support nonportable_raw_any option.
+            true
+        },
+        AnyToJsonSuccessTestParam{
+            AnyMessageData{RawAnyData{"", ""}},
+            R"({"field1":{"typeUrl":"","value":""}})",
+            {.nonportable_raw_any = true},
+            // Native implementation does not support nonportable_raw_any option.
+            true
         }
     )
 );

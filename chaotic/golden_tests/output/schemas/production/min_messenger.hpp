@@ -20,7 +20,6 @@ using V1Login = std::string;
 
 // Current user information, including authorization token if authorized (empty otherwise)
 struct V1CurrentUser {
-
     std::optional<std::string> token{};
     ::ns::V1Login login{};
     std::string name{};
@@ -59,7 +58,6 @@ void WriteToStream(
     std::string_view hide_field_name = {});
 
 struct V1ChannelMessage {
-
     ::ns::V1CurrentUser current_user{};
     std::int64_t id{};
     std::string timestamp{};
@@ -99,7 +97,6 @@ void WriteToStream(
     std::string_view hide_field_name = {});
 
 struct V1ChannelMessageByTimestampRequest {
-
     ::ns::V1ChannelId channel_id{};
     std::string from{};
     std::optional<std::string> to{};
@@ -138,7 +135,6 @@ void WriteToStream(
     std::string_view hide_field_name = {});
 
 struct V1ChannelMessageByTimestampResponse {
-
     std::vector<::ns::V1ChannelMessage> messages{};
 };
 
@@ -175,7 +171,6 @@ void WriteToStream(
     std::string_view hide_field_name = {});
 
 struct V1ChannelMessageNewRequest {
-
     ::ns::V1CurrentUser current_user{};
     ::ns::V1ChannelId channel_id{};
     std::string message{};
@@ -216,7 +211,6 @@ void WriteToStream(
 using V1MessageId = std::int64_t;
 
 struct V1ChannelMessageNewResponse {
-
     ::ns::V1MessageId message_id{};
 };
 
@@ -253,7 +247,6 @@ void WriteToStream(
     std::string_view hide_field_name = {});
 
 struct V1ChannelNotificationListRequest {
-
     ::ns::V1CurrentUser current_user{};
     ::ns::V1ChannelId channel_id{};
 };
@@ -291,7 +284,6 @@ void WriteToStream(
     std::string_view hide_field_name = {});
 
 struct V1ChannelNotificationListResponse {
-
     std::vector<std::int64_t> notifications{};
 };
 
@@ -329,7 +321,6 @@ void WriteToStream(
 
 // Notify other user that message requires his attention.
 struct V1ChannelNotificationNewRequest {
-
     ::ns::V1CurrentUser current_user{};
     ::ns::V1ChannelId channel_id{};
     ::ns::V1MessageId message_id{};
@@ -369,7 +360,6 @@ void WriteToStream(
     std::string_view hide_field_name = {});
 
 struct V1ChannelNotificationNewResponse {
-
 };
 
 bool operator==(const V1ChannelNotificationNewResponse & lhs,const V1ChannelNotificationNewResponse & rhs);
@@ -414,10 +404,8 @@ void WriteToStream(
 //    server::handlers::InternalMessage{"User sent a 42 key"}     // goes to server logs
 //);
 struct V1Error {
-
     // Any additional info
     struct Details {
-
         USERVER_NAMESPACE::formats::json::Value extra{};
     };
 
@@ -485,7 +473,6 @@ void WriteToStream(
     std::string_view hide_field_name = {});
 
 struct V1File {
-
     ::ns::V1Login login{};
     std::string filename{};
     std::string content{};
@@ -524,7 +511,6 @@ void WriteToStream(
     std::string_view hide_field_name = {});
 
 struct V1FileByUriRequest {
-
     ::ns::V1CurrentUser current_user{};
     std::string uri{};
 };
@@ -566,7 +552,6 @@ using V1FileByUriResponse = ::ns::V1File;
 using V1FileNewRequest = ::ns::V1File;
 
 struct V1FileNewResponse {
-
     ::ns::V1CurrentUser current_user{};
     std::string uri{};
 };
@@ -605,7 +590,6 @@ void WriteToStream(
 
 // Adds/removes a specified animation on a message
 struct V1LikeTriggerRequest {
-
     enum class Animation {
         kLike,
         kDislike,
@@ -707,7 +691,6 @@ std::string ToString(V1LikeTriggerRequest::Animation value);
 //successful (the user previously registered), then the HTTP 200 is returned with
 //V1UserAuthorizationResponse object in response body.
 struct V1UserAuthorizationRequest {
-
     ::ns::V1Login login{};
     std::string password{};
 };
@@ -745,7 +728,6 @@ void WriteToStream(
     std::string_view hide_field_name = {});
 
 struct V1UserAuthorizationResponse {
-
     ::ns::V1CurrentUser current_user{};
 };
 
@@ -786,7 +768,6 @@ void WriteToStream(
 //User sends `POST /v1/user/registration` request with this object in body. If the registration is
 //successful, then the HTTP 200 is returned with V1UserRegistrationResponse object in response body.
 struct V1UserRegistrationRequest {
-
     ::ns::V1Login login{};
     std::string name{};
     std::string email{};
@@ -830,7 +811,6 @@ using V1UserRegistrationResponse = ::ns::V1UserAuthorizationResponse;
 
 // Key-values of arbitrary types (in other words, just JSON without a schema)
 struct V1UserStatus {
-
     USERVER_NAMESPACE::formats::json::Value extra{};
 };
 
@@ -867,7 +847,6 @@ void WriteToStream(
     std::string_view hide_field_name = {});
 
 struct V1UserStatusByLoginRequest {
-
     ::ns::V1CurrentUser current_user{};
     ::ns::V1Login login{};
 };
@@ -905,7 +884,6 @@ void WriteToStream(
     std::string_view hide_field_name = {});
 
 struct V1UserStatusByLoginResponse {
-
     ::ns::V1UserStatus status{};
 };
 
@@ -942,7 +920,6 @@ void WriteToStream(
     std::string_view hide_field_name = {});
 
 struct V1UserStatusUpdateRequest {
-
     ::ns::V1CurrentUser current_user{};
     ::ns::V1UserStatus status{};
 };
@@ -980,7 +957,6 @@ void WriteToStream(
     std::string_view hide_field_name = {});
 
 struct V1UserStatusUpdateResponse {
-
 };
 
 bool operator==(const V1UserStatusUpdateResponse & lhs,const V1UserStatusUpdateResponse & rhs);

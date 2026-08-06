@@ -49,6 +49,10 @@ struct Config final {
     PubsubMetricsSettings pubsub_metrics_settings;
     dynamic_config::ValueDict<ReplicationMonitoringSettings> replication_monitoring_settings;
     dynamic_config::ValueDict<USERVER_NAMESPACE::utils::RetryBudgetSettings> retry_budget_settings;
+    /// When 'required' is not set to 'no' and 'max-failed-shards' is set to a value greater than 0 in the static
+    /// config, the service will report 500 on the Ping handler. This setting turns off this check, so the service
+    /// will ignore status of redis cluster and connection when answering on ping requests
+    bool ignore_health_check{false};
 };
 
 extern const dynamic_config::Key<Config> kConfig;

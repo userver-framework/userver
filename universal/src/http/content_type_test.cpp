@@ -1,3 +1,4 @@
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <functional>
@@ -77,10 +78,10 @@ TEST(ContentType, Charset) {
 
     EXPECT_FALSE(impli.HasExplicitCharset());
     EXPECT_EQ("UTF-8", impli.Charset());
-    EXPECT_TRUE(impli.ToString().find("charset=") == std::string::npos);
+    EXPECT_THAT(impli.ToString(), testing::Not(testing::HasSubstr("charset=")));
     EXPECT_TRUE(expli.HasExplicitCharset());
     EXPECT_EQ("utf-8", expli.Charset());
-    EXPECT_FALSE(expli.ToString().find("charset=utf-8") == std::string::npos);
+    EXPECT_THAT(expli.ToString(), testing::HasSubstr("charset=utf-8"));
     EXPECT_EQ(impli, expli);
 
     EXPECT_TRUE(other.HasExplicitCharset());
@@ -110,19 +111,19 @@ TEST(ContentType, Quality) {
     EXPECT_EQ(max2, max3);
     EXPECT_EQ(max3, max4);
 
-    EXPECT_TRUE(impli.ToString().find("q=") == std::string::npos);
+    EXPECT_THAT(impli.ToString(), testing::Not(testing::HasSubstr("q=")));
     // max quality may be skipped if specified
 
     const http::ContentType min1("text/html; q=0.");
     EXPECT_EQ(0, min1.Quality());
-    EXPECT_FALSE(min1.ToString().find("q=0.000") == std::string::npos);
+    EXPECT_THAT(min1.ToString(), testing::HasSubstr("q=0.000"));
 
     const http::ContentType other1("text/html; q=0.1");
     const http::ContentType other2("text/html; q=0.397");
     EXPECT_EQ(100, other1.Quality());
-    EXPECT_FALSE(other1.ToString().find("q=0.100") == std::string::npos);
+    EXPECT_THAT(other1.ToString(), testing::HasSubstr("q=0.100"));
     EXPECT_EQ(397, other2.Quality());
-    EXPECT_FALSE(other2.ToString().find("q=0.397") == std::string::npos);
+    EXPECT_THAT(other2.ToString(), testing::HasSubstr("q=0.397"));
 
     EXPECT_NE(other1, other2);
     EXPECT_NE(max0, other1);

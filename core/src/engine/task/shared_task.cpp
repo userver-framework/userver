@@ -47,6 +47,14 @@ SharedTask& SharedTask::operator=(SharedTask&& other) noexcept {
     return *this;
 }
 
+AwaitableToken SharedTask::GetAwaitableToken() noexcept USERVER_IMPL_LIFETIME_BOUND {
+    if (!IsValid()) {
+        return {};
+    }
+
+    return AwaitableToken{utils::impl::InternalTag{}, &GetContext()};
+}
+
 void SharedTask::DecrementSharedUsages() noexcept {
     if (!IsValid()) {
         return;

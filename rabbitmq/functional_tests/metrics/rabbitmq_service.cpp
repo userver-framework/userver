@@ -22,12 +22,12 @@
 
 namespace samples::amqp {
 
-class MyRabbitProducer final : public components::LoggableComponentBase {
+class MyRabbitProducer final : public components::ComponentBase {
 public:
     static constexpr std::string_view kName{"my-producer"};
 
     MyRabbitProducer(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : components::LoggableComponentBase{config, context},
+        : components::ComponentBase{config, context},
           client_{context.FindComponent<components::RabbitMQ>("my-rabbit").GetClient()}
     {
         const auto setup_deadline = engine::Deadline::FromDuration(std::chrono::seconds{2});

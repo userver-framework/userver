@@ -36,10 +36,6 @@ export class PageFeedback extends HTMLElement {
 
   #popup = document.createElement("page-feedback-popup");
 
-  #docContentElement = document.getElementById("doc-content");
-  #contentsElement = document.querySelector(".contents");
-  #resizeObserver = new ResizeObserver(this.#updatePosition.bind(this));
-
   #title = document.querySelector(".title");
 
   get #pageTitle() {
@@ -47,13 +43,15 @@ export class PageFeedback extends HTMLElement {
   }
 
   static init() {
-    const toc = document.querySelector(".toc");
-
-    if (toc === null) {
+    const headertitle = document.querySelector(".headertitle");
+    if (
+      !headertitle ||
+      !document.querySelector("#page-nav-contents ul.page-outline li")
+    ) {
       return;
-    } else {
-      toc.parentNode.insertBefore(document.createElement("page-feedback"), toc);
     }
+
+    headertitle.appendChild(document.createElement("page-feedback"));
   }
 
   constructor() {
@@ -132,13 +130,9 @@ export class PageFeedback extends HTMLElement {
     this.appendChild(this.#likeCheckbox);
     this.appendChild(this.#dislikeCheckbox);
     this.appendChild(this.#popup);
-
-    this.#resizeObserver.observe(document.body);
   }
 
-  disconnectedCallback() {
-    this.#resizeObserver.unobserve(document.body);
-  }
+  disconnectedCallback() {}
 
   #makeFeedbackCheckbox({ className, title }) {
     const checkbox = document.createElement("input");
@@ -146,18 +140,6 @@ export class PageFeedback extends HTMLElement {
     checkbox.title = title;
     checkbox.className = className;
     return checkbox;
-  }
-
-  #updatePosition() {
-    const marginRight = parseFloat(
-      window.getComputedStyle(this.#contentsElement).marginRight
-    );
-    const paddingRight = parseFloat(
-      window.getComputedStyle(this.#contentsElement).paddingRight
-    );
-    const scrollbarWidth =
-      this.#docContentElement.offsetWidth - this.#docContentElement.clientWidth;
-    this.style.right = `${marginRight + paddingRight + scrollbarWidth}px`;
   }
 }
 

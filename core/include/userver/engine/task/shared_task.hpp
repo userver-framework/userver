@@ -51,6 +51,9 @@ public:
     /// other task into this, leaving the other in an invalid state.
     SharedTask& operator=(SharedTask&& other) noexcept;
 
+    /// Satisfies @ref engine::Awaitable, for use with @ref engine::WaitAnyContext and friends.
+    AwaitableToken GetAwaitableToken() noexcept USERVER_IMPL_LIFETIME_BOUND;
+
     /// @cond
     static constexpr WaitMode kWaitMode = WaitMode::kMultipleAwaiters;
 

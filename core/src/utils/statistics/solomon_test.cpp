@@ -102,15 +102,15 @@ UTEST(MetricsSolomon, Tvm2TicketsCache) {
     auto statistics_holder = statistics_storage.RegisterExtender("cache.tvm2-tickets-cache", producer);
 
     const auto* const expected = R"([
-    {"labels": {"sensor": "cache.current-documents-count", "cache_name": "tvm2-tickets-cache"}, "value": 8},
-    {"labels": {"sensor": "cache.full.time.time-from-last-update-start-ms", "cache_name": "tvm2-tickets-cache"}, "value": 2521742},
-    {"labels": {"sensor": "cache.full.time.time-from-last-successful-start-ms", "cache_name": "tvm2-tickets-cache"}, "value": 2521742},
-    {"labels": {"sensor": "cache.full.time.last-update-duration-ms", "cache_name": "tvm2-tickets-cache"}, "value": 58},
-    {"labels": {"sensor": "cache.full.documents.read_count", "cache_name": "tvm2-tickets-cache"}, "value": 432},
-    {"labels": {"sensor": "cache.full.documents.parse_failures", "cache_name": "tvm2-tickets-cache"}, "value": 0},
-    {"labels": {"sensor": "cache.full.update.attempts_count", "cache_name": "tvm2-tickets-cache"}, "value": 56},
-    {"labels": {"sensor": "cache.full.update.no_changes_count", "cache_name": "tvm2-tickets-cache"}, "value": 0},
-    {"labels": {"sensor": "cache.full.update.failures_count", "cache_name": "tvm2-tickets-cache"}, "value": 0}
+    {"labels": {"sensor": "cache.current-documents-count", "cache_name": "tvm2-tickets-cache"}, "value": 8, "type": "IGAUGE"},
+    {"labels": {"sensor": "cache.full.time.time-from-last-update-start-ms", "cache_name": "tvm2-tickets-cache"}, "value": 2521742, "type": "IGAUGE"},
+    {"labels": {"sensor": "cache.full.time.time-from-last-successful-start-ms", "cache_name": "tvm2-tickets-cache"}, "value": 2521742, "type": "IGAUGE"},
+    {"labels": {"sensor": "cache.full.time.last-update-duration-ms", "cache_name": "tvm2-tickets-cache"}, "value": 58, "type": "IGAUGE"},
+    {"labels": {"sensor": "cache.full.documents.read_count", "cache_name": "tvm2-tickets-cache"}, "value": 432, "type": "IGAUGE"},
+    {"labels": {"sensor": "cache.full.documents.parse_failures", "cache_name": "tvm2-tickets-cache"}, "value": 0, "type": "IGAUGE"},
+    {"labels": {"sensor": "cache.full.update.attempts_count", "cache_name": "tvm2-tickets-cache"}, "value": 56, "type": "IGAUGE"},
+    {"labels": {"sensor": "cache.full.update.no_changes_count", "cache_name": "tvm2-tickets-cache"}, "value": 0, "type": "IGAUGE"},
+    {"labels": {"sensor": "cache.full.update.failures_count", "cache_name": "tvm2-tickets-cache"}, "value": 0, "type": "IGAUGE"}
   ])";
     TestToMetricsSolomon(statistics_storage, expected);
 }
@@ -163,11 +163,11 @@ UTEST(MetricsSolomon, SolomonChildrenLabel) {
     auto statistics_holder = statistics_storage.RegisterExtender("base_key.some_key", producer);
 
     const auto* const expected = R"([
-    {"labels": {"child_label_name": "label_value_1", "sensor": "base_key.some_key.ag.test"}, "value": 76},
-    {"labels": {"child_label_name": "label_value_1", "sensor": "base_key.some_key.ag.test1"}, "value": 90},
-    {"labels": {"child_label_name": "label_value_2", "sensor": "base_key.some_key.field1"}, "value": 3},
+    {"labels": {"child_label_name": "label_value_1", "sensor": "base_key.some_key.ag.test"}, "value": 76, "type": "IGAUGE"},
+    {"labels": {"child_label_name": "label_value_1", "sensor": "base_key.some_key.ag.test1"}, "value": 90, "type": "IGAUGE"},
+    {"labels": {"child_label_name": "label_value_2", "sensor": "base_key.some_key.field1"}, "value": 3, "type": "IGAUGE"},
     {"labels": {"child_label_name": "label_value_2", "sensor": "base_key.some_key.field2"}, "value": 6.67},
-    {"labels": {"overridden_label_name": "overridden_label_value", "sensor": "base_key.some_key.field3"}, "value": 9999}
+    {"labels": {"overridden_label_name": "overridden_label_value", "sensor": "base_key.some_key.field3"}, "value": 9999, "type": "IGAUGE"}
   ])";
     TestToMetricsSolomon(statistics_storage, expected);
 }
@@ -220,11 +220,11 @@ UTEST(MetricsSolomon, SolomonChildrenLabelEscaping) {
     auto statistics_holder = statistics_storage.RegisterExtender("base_key.some_key", producer);
 
     const auto* const expected = R"([
-    {"labels": {"child.label.#$/\\ _{}'\"=name": "label.value.#$/\\ _{}'\"1", "sensor": "base_key.some_key.a_#$/\\ _{}g.test"}, "value": 76},
-    {"labels": {"child.label.#$/\\ _{}'\"=name": "label.value.#$/\\ _{}'\"1", "sensor": "base_key.some_key.a_#$/\\ _{}g.test1"}, "value": 90},
-    {"labels": {"child.label.#$/\\ _{}'\"=name": "label.value.#$/\\ _{}2", "sensor": "base_key.some_key.field1"}, "value": 3},
+    {"labels": {"child.label.#$/\\ _{}'\"=name": "label.value.#$/\\ _{}'\"1", "sensor": "base_key.some_key.a_#$/\\ _{}g.test"}, "value": 76, "type": "IGAUGE"},
+    {"labels": {"child.label.#$/\\ _{}'\"=name": "label.value.#$/\\ _{}'\"1", "sensor": "base_key.some_key.a_#$/\\ _{}g.test1"}, "value": 90, "type": "IGAUGE"},
+    {"labels": {"child.label.#$/\\ _{}'\"=name": "label.value.#$/\\ _{}2", "sensor": "base_key.some_key.field1"}, "value": 3, "type": "IGAUGE"},
     {"labels": {"child.label.#$/\\ _{}'\"=name": "label.value.#$/\\ _{}2", "sensor": "base_key.some_key.field2"}, "value": 6.67},
-    {"labels": {"overridden.#$/\\ _{}'\"=name": "overridden.#$/\\ _{}'\"value", "sensor": "base_key.some_key.field3"}, "value": 9999}
+    {"labels": {"overridden.#$/\\ _{}'\"=name": "overridden.#$/\\ _{}'\"value", "sensor": "base_key.some_key.field3"}, "value": 9999, "type": "IGAUGE"}
   ])";
     TestToMetricsSolomon(statistics_storage, expected);
 }
@@ -254,8 +254,8 @@ UTEST(MetricsSolomon, SimpleStatistics) {
     EXPECT_EQ(producer2({}).ExtractValue(), formats::json::FromString(statistics));
 
     const auto* const expected = R"([
-    {"labels": {"sensor": "parent.child1"}, "value": 1},
-    {"labels": {"sensor": "parent.child2"}, "value": 2}
+    {"labels": {"sensor": "parent.child1"}, "value": 1, "type": "IGAUGE"},
+    {"labels": {"sensor": "parent.child2"}, "value": 2, "type": "IGAUGE"}
   ])";
     {
         utils::statistics::Storage statistics_storage;
@@ -298,7 +298,7 @@ UTEST(MetricsSolomon, SimpleParentRenamed) {
     EXPECT_EQ(producer2({}).ExtractValue(), formats::json::FromString(statistics));
 
     const auto* const expected = R"([
-    {"labels": {"sensor": "parent.child"}, "value": 8}
+    {"labels": {"sensor": "parent.child"}, "value": 8, "type": "IGAUGE"}
   ])";
     {
         utils::statistics::Storage statistics_storage;
@@ -341,7 +341,7 @@ UTEST(MetricsSolomon, SimpleParentSkipped) {
     EXPECT_EQ(producer2({}).ExtractValue(), formats::json::FromString(statistics));
 
     const auto* const expected = R"([
-    {"labels": {"sensor": "child"}, "value": 8}
+    {"labels": {"sensor": "child"}, "value": 8, "type": "IGAUGE"}
   ])";
 
     {
@@ -356,18 +356,20 @@ UTEST(MetricsSolomon, SimpleParentSkipped) {
     }
 }
 
-UTEST(MetricsSolomon, RateMetric) {
+UTEST(MetricsSolomon, MetricTypes) {
     auto producer = [](Writer& writer) {
         writer["rate-metric"] = Rate{5};
-        writer["dgauge-metric"] = 6;
+        writer["igauge-metric"] = 6;
+        writer["dgauge-metric"] = 6.5;
     };
 
     utils::statistics::Storage statistics_storage;
-    auto statistics_holder = statistics_storage.RegisterWriter("test_rate_metric", producer);
+    auto statistics_holder = statistics_storage.RegisterWriter("test_metric_types", producer);
 
     const auto* const expected = R"([
-    {"labels": {"sensor": "test_rate_metric.rate-metric"}, "value": 5, "type": "RATE"},
-    {"labels": {"sensor": "test_rate_metric.dgauge-metric"}, "value": 6}
+    {"labels": {"sensor": "test_metric_types.rate-metric"}, "value": 5, "type": "RATE"},
+    {"labels": {"sensor": "test_metric_types.igauge-metric"}, "value": 6, "type": "IGAUGE"},
+    {"labels": {"sensor": "test_metric_types.dgauge-metric"}, "value": 6.5}
   ])";
     TestToMetricsSolomon(statistics_storage, expected);
 }

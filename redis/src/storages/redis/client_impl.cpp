@@ -49,6 +49,8 @@ void ClientImpl::WaitConnectedOnce(RedisWaitConnected wait_connected) {
     redis_client_->WaitConnectedOnce(wait_connected);
 }
 
+bool ClientImpl::IsReady(const HealthCheckParams& params) const { return redis_client_->IsReady(params); }
+
 size_t ClientImpl::ShardsCount() const { return redis_client_->ShardsCount(); }
 bool ClientImpl::IsInClusterMode() const { return redis_client_->IsInClusterMode(); }
 
@@ -440,6 +442,12 @@ RequestGet ClientImpl::Get(std::string key, const CommandControl& command_contro
     auto shard = ShardByKey(key, command_control);
     return CreateRequest<
         RequestGet>(MakeRequest(CmdArgs{"get", std::move(key)}, shard, false, GetCommandControl(command_control)));
+}
+
+RequestGetdel ClientImpl::Getdel(std::string key, const CommandControl& command_control) {
+    auto shard = ShardByKey(key, command_control);
+    return CreateRequest<
+        RequestGetdel>(MakeRequest(CmdArgs{"getdel", std::move(key)}, shard, true, GetCommandControl(command_control)));
 }
 
 RequestGetset ClientImpl::Getset(std::string key, std::string value, const CommandControl& command_control) {

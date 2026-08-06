@@ -8,11 +8,9 @@ PgWorkerComponent::PgWorkerComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
 )
-    : storages::postgres::DistLockComponentBase(config, context) {
-    AutostartDistLock();
-}
+    : storages::postgres::DistLockComponentBase(config, context) {}
 
-PgWorkerComponent::~PgWorkerComponent() { StopDistLock(); }
+PgWorkerComponent::~PgWorkerComponent() = default;
 
 void PgWorkerComponent::DoWork() { TESTPOINT("distlock-worker", formats::json::Value()); }
 

@@ -38,7 +38,7 @@ std::vector<std::string> ReadFromFd(fs::blocking::FileDescriptor&& fd) {
     std::string data{};
     auto read_size = 0;
     do {
-        read_size = fd.Read(buf, sizeof(buf));
+        read_size = fd.Read(buf);
         data.append(buf, read_size);
     } while (read_size > 0);
     return test::NormalizeLogs(data);

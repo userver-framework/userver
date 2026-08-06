@@ -143,8 +143,13 @@ HttpBase::~HttpBase() {
     ;
     // clang-format on
 
-    po::store(po::parse_command_line(argc_, argv_, desc), vm);
-    po::notify(vm);
+    try {
+        po::store(po::parse_command_line(argc_, argv_, desc), vm);
+        po::notify(vm);
+    } catch (const std::exception& ex) {
+        std::cerr << ex.what() << '\n' << desc << '\n';
+        return;
+    }
 
     if (vm.count("help")) {
         std::cerr << desc << '\n';

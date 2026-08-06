@@ -11,6 +11,7 @@
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/algo.hpp>
@@ -96,16 +97,16 @@ TEST(StripedIntrusivePool, WalkUnsafe) {
 
 UTEST_MT(StripedIntrusivePool, TortureTest, 12) {
     // 'nodes' must outlive 'stack'
-    utils::FixedArray<CheckedInt> nodes(GetThreadCount() * 2);
+    utils::FixedArray<CheckedInt> nodes(engine::current_task::GetWorkerCount() * 2);
 
     constexpr std::size_t kMinNodesPerTask = 2;
     CheckedIntPool pool;
 
     std::atomic<bool> keep_running{true};
     std::vector<engine::TaskWithResult<std::size_t>> tasks;
-    tasks.reserve(GetThreadCount() - 1);
+    tasks.reserve(engine::current_task::GetWorkerCount() - 1);
 
-    for (std::size_t i = 0; i < GetThreadCount() - 1; ++i) {
+    for (std::size_t i = 0; i < engine::current_task::GetWorkerCount() - 1; ++i) {
         tasks.push_back(engine::AsyncNoTracing([&] {
             std::size_t nodes_created = 0;
             std::vector<std::unique_ptr<CheckedInt>> nodes_we_could_pop;

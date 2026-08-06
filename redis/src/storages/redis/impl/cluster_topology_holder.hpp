@@ -30,7 +30,9 @@ public:
         const std::vector<std::string>& /*shards*/,
         const std::vector<ConnectionInfo>& conns,
         ConnectionSecurity connection_security,
-        TopologyUpdateMethod topology_update_method
+        TopologyUpdateMethod topology_update_method,
+        Hysteresis::Config hysteresis_config,
+        std::chrono::seconds max_disconnect_time
     );
 
     ~ClusterTopologyHolder() override = default;
@@ -39,6 +41,8 @@ public:
     void Start() override;
     void Stop() override;
     bool WaitReadyOnce(engine::Deadline deadline, WaitConnectedMode mode) override;
+    bool IsReady(const HealthCheckParams& params) const override;
+
     rcu::ReadablePtr<ClusterTopology, rcu::BlockingRcuTraits> GetTopology() const override;
     void SendUpdateClusterTopology() override;
     std::shared_ptr<Redis> GetRedisInstance(const HostPort& host_port) const override;
@@ -105,7 +109,6 @@ private:
     std::atomic<bool> is_topology_received_{false};
     std::atomic<bool> is_nodes_received_{false};
     std::atomic<bool> update_cluster_slots_flag_{false};
-    bool IsInitialized() const { return is_nodes_received_.load() && is_topology_received_.load(); }
     ///}
 
     boost::signals2::signal<void(HostPort, Redis::State)> signal_node_state_change_;
@@ -124,6 +127,8 @@ private:
     static std::atomic<size_t> cluster_slots_call_counter;
 
     const ConnectionSecurity connection_security_;
+    Hysteresis::Config hysteresis_config_;
+    const std::chrono::seconds max_disconnect_time_{35};
 };
 
 }  // namespace storages::redis::impl

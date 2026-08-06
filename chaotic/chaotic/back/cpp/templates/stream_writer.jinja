@@ -9,7 +9,7 @@
             const {{ shortest_cpp_name(type) }}& value,
             {{ userver }}::formats::json::StringBuilder& sw
           {%- if type.need_add_hiding_args() %},
-            bool hide_brackets = false, 
+            bool hide_brackets = false,
             std::string_view hide_field_name = {}
           {%- endif -%}
         );
@@ -109,10 +109,10 @@
                     {% if parent.get_py_type() == 'CppRef' %}
                         {% set parent = parent.orig_cpp_type %}
                     {% endif%}
-                
+
                     {% if parent.get_py_type() == 'CppStruct' %}
                         {{- _generate_cpp_struct_properties_stream_writer_definition(parent) -}}
-                        
+
                         {% if parent.extra_type %}
                             {{userver}}::formats::common::Merge(vb, static_cast<const {{ parent.cpp_global_name() }}&>(value).extra);
                         {% endif %}

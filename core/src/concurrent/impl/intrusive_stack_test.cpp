@@ -8,6 +8,7 @@
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/assert.hpp>
@@ -61,7 +62,7 @@ TEST(IntrusiveStack, CanHoldSingle) {
 
 UTEST_MT(IntrusiveStack, TortureTest, 12) {
     // 'nodes' must outlive 'stack'
-    utils::FixedArray<CheckedInt> nodes(GetThreadCount() * 2);
+    utils::FixedArray<CheckedInt> nodes(engine::current_task::GetWorkerCount() * 2);
 
     CheckedIntStack stack;
     for (auto& node : nodes) {
@@ -70,9 +71,9 @@ UTEST_MT(IntrusiveStack, TortureTest, 12) {
 
     std::atomic<bool> keep_running{true};
     std::vector<engine::TaskWithResult<void>> tasks;
-    tasks.reserve(GetThreadCount() - 1);
+    tasks.reserve(engine::current_task::GetWorkerCount() - 1);
 
-    for (std::size_t i = 0; i < GetThreadCount() - 1; ++i) {
+    for (std::size_t i = 0; i < engine::current_task::GetWorkerCount() - 1; ++i) {
         tasks.push_back(engine::AsyncNoTracing([&] {
             std::vector<CheckedInt*> our_nodes;
             our_nodes.reserve(nodes.size());

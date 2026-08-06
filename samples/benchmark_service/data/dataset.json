@@ -1,0 +1,817 @@
+[
+  {
+    "id": 1,
+    "name": "Alpha Widget",
+    "category": "electronics",
+    "price": 328,
+    "quantity": 15,
+    "active": true,
+    "tags": [
+      "sale",
+      "heavy-duty",
+      "popular"
+    ],
+    "rating": {
+      "score": 48,
+      "count": 53
+    }
+  },
+  {
+    "id": 2,
+    "name": "Pro Valve",
+    "category": "tools",
+    "price": 347,
+    "quantity": 95,
+    "active": true,
+    "tags": [
+      "fast",
+      "heavy-duty",
+      "new",
+      "wireless"
+    ],
+    "rating": {
+      "score": 15,
+      "count": 259
+    }
+  },
+  {
+    "id": 3,
+    "name": "Core Relay",
+    "category": "books",
+    "price": 309,
+    "quantity": 4,
+    "active": true,
+    "tags": [
+      "sale",
+      "wireless",
+      "eco",
+      "limited"
+    ],
+    "rating": {
+      "score": 1,
+      "count": 389
+    }
+  },
+  {
+    "id": 4,
+    "name": "Edge Link",
+    "category": "clothing",
+    "price": 413,
+    "quantity": 21,
+    "active": false,
+    "tags": [
+      "eco",
+      "popular",
+      "sale"
+    ],
+    "rating": {
+      "score": 49,
+      "count": 173
+    }
+  },
+  {
+    "id": 5,
+    "name": "Nano Gadget",
+    "category": "sports",
+    "price": 53,
+    "quantity": 12,
+    "active": false,
+    "tags": [
+      "premium"
+    ],
+    "rating": {
+      "score": 23,
+      "count": 310
+    }
+  },
+  {
+    "id": 6,
+    "name": "Ultra Driver",
+    "category": "toys",
+    "price": 136,
+    "quantity": 6,
+    "active": false,
+    "tags": [
+      "limited"
+    ],
+    "rating": {
+      "score": 6,
+      "count": 283
+    }
+  },
+  {
+    "id": 7,
+    "name": "Swift Switch",
+    "category": "home",
+    "price": 151,
+    "quantity": 81,
+    "active": false,
+    "tags": [
+      "new",
+      "fast"
+    ],
+    "rating": {
+      "score": 43,
+      "count": 117
+    }
+  },
+  {
+    "id": 8,
+    "name": "Prime Gear",
+    "category": "garden",
+    "price": 396,
+    "quantity": 38,
+    "active": true,
+    "tags": [
+      "new",
+      "limited"
+    ],
+    "rating": {
+      "score": 18,
+      "count": 233
+    }
+  },
+  {
+    "id": 9,
+    "name": "Flex Module",
+    "category": "office",
+    "price": 326,
+    "quantity": 47,
+    "active": true,
+    "tags": [
+      "premium",
+      "sale",
+      "eco"
+    ],
+    "rating": {
+      "score": 45,
+      "count": 480
+    }
+  },
+  {
+    "id": 10,
+    "name": "Hyper Node",
+    "category": "auto",
+    "price": 350,
+    "quantity": 83,
+    "active": true,
+    "tags": [
+      "compact",
+      "sale"
+    ],
+    "rating": {
+      "score": 11,
+      "count": 237
+    }
+  },
+  {
+    "id": 11,
+    "name": "Alpha Widget",
+    "category": "electronics",
+    "price": 195,
+    "quantity": 35,
+    "active": true,
+    "tags": [
+      "fast",
+      "sale",
+      "heavy-duty"
+    ],
+    "rating": {
+      "score": 21,
+      "count": 206
+    }
+  },
+  {
+    "id": 12,
+    "name": "Pro Valve",
+    "category": "tools",
+    "price": 138,
+    "quantity": 9,
+    "active": true,
+    "tags": [
+      "sale",
+      "wireless",
+      "limited"
+    ],
+    "rating": {
+      "score": 42,
+      "count": 235
+    }
+  },
+  {
+    "id": 13,
+    "name": "Core Relay",
+    "category": "books",
+    "price": 74,
+    "quantity": 34,
+    "active": true,
+    "tags": [
+      "compact",
+      "heavy-duty"
+    ],
+    "rating": {
+      "score": 17,
+      "count": 383
+    }
+  },
+  {
+    "id": 14,
+    "name": "Edge Link",
+    "category": "clothing",
+    "price": 300,
+    "quantity": 55,
+    "active": false,
+    "tags": [
+      "sale",
+      "popular",
+      "wireless"
+    ],
+    "rating": {
+      "score": 6,
+      "count": 387
+    }
+  },
+  {
+    "id": 15,
+    "name": "Nano Gadget",
+    "category": "sports",
+    "price": 25,
+    "quantity": 15,
+    "active": true,
+    "tags": [
+      "limited",
+      "new"
+    ],
+    "rating": {
+      "score": 25,
+      "count": 196
+    }
+  },
+  {
+    "id": 16,
+    "name": "Ultra Driver",
+    "category": "toys",
+    "price": 306,
+    "quantity": 60,
+    "active": false,
+    "tags": [
+      "new"
+    ],
+    "rating": {
+      "score": 44,
+      "count": 454
+    }
+  },
+  {
+    "id": 17,
+    "name": "Swift Switch",
+    "category": "home",
+    "price": 275,
+    "quantity": 97,
+    "active": false,
+    "tags": [
+      "new",
+      "eco",
+      "limited"
+    ],
+    "rating": {
+      "score": 11,
+      "count": 233
+    }
+  },
+  {
+    "id": 18,
+    "name": "Prime Gear",
+    "category": "garden",
+    "price": 2,
+    "quantity": 93,
+    "active": false,
+    "tags": [
+      "compact",
+      "new"
+    ],
+    "rating": {
+      "score": 41,
+      "count": 153
+    }
+  },
+  {
+    "id": 19,
+    "name": "Flex Module",
+    "category": "office",
+    "price": 431,
+    "quantity": 82,
+    "active": true,
+    "tags": [
+      "premium",
+      "popular"
+    ],
+    "rating": {
+      "score": 35,
+      "count": 489
+    }
+  },
+  {
+    "id": 20,
+    "name": "Hyper Node",
+    "category": "auto",
+    "price": 399,
+    "quantity": 68,
+    "active": true,
+    "tags": [
+      "wireless",
+      "fast",
+      "new"
+    ],
+    "rating": {
+      "score": 24,
+      "count": 450
+    }
+  },
+  {
+    "id": 21,
+    "name": "Alpha Widget",
+    "category": "electronics",
+    "price": 426,
+    "quantity": 40,
+    "active": true,
+    "tags": [
+      "sale"
+    ],
+    "rating": {
+      "score": 37,
+      "count": 485
+    }
+  },
+  {
+    "id": 22,
+    "name": "Pro Valve",
+    "category": "tools",
+    "price": 41,
+    "quantity": 11,
+    "active": false,
+    "tags": [
+      "compact"
+    ],
+    "rating": {
+      "score": 50,
+      "count": 65
+    }
+  },
+  {
+    "id": 23,
+    "name": "Core Relay",
+    "category": "books",
+    "price": 66,
+    "quantity": 85,
+    "active": false,
+    "tags": [
+      "eco",
+      "compact"
+    ],
+    "rating": {
+      "score": 39,
+      "count": 217
+    }
+  },
+  {
+    "id": 24,
+    "name": "Edge Link",
+    "category": "clothing",
+    "price": 494,
+    "quantity": 28,
+    "active": true,
+    "tags": [
+      "limited",
+      "premium",
+      "wireless"
+    ],
+    "rating": {
+      "score": 34,
+      "count": 232
+    }
+  },
+  {
+    "id": 25,
+    "name": "Nano Gadget",
+    "category": "sports",
+    "price": 62,
+    "quantity": 32,
+    "active": true,
+    "tags": [
+      "premium"
+    ],
+    "rating": {
+      "score": 2,
+      "count": 302
+    }
+  },
+  {
+    "id": 26,
+    "name": "Ultra Driver",
+    "category": "toys",
+    "price": 284,
+    "quantity": 30,
+    "active": true,
+    "tags": [
+      "new"
+    ],
+    "rating": {
+      "score": 46,
+      "count": 324
+    }
+  },
+  {
+    "id": 27,
+    "name": "Swift Switch",
+    "category": "home",
+    "price": 31,
+    "quantity": 30,
+    "active": true,
+    "tags": [
+      "premium"
+    ],
+    "rating": {
+      "score": 5,
+      "count": 264
+    }
+  },
+  {
+    "id": 28,
+    "name": "Prime Gear",
+    "category": "garden",
+    "price": 122,
+    "quantity": 36,
+    "active": false,
+    "tags": [
+      "compact",
+      "popular"
+    ],
+    "rating": {
+      "score": 47,
+      "count": 479
+    }
+  },
+  {
+    "id": 29,
+    "name": "Flex Module",
+    "category": "office",
+    "price": 452,
+    "quantity": 74,
+    "active": false,
+    "tags": [
+      "wireless",
+      "limited"
+    ],
+    "rating": {
+      "score": 13,
+      "count": 49
+    }
+  },
+  {
+    "id": 30,
+    "name": "Hyper Node",
+    "category": "auto",
+    "price": 50,
+    "quantity": 85,
+    "active": false,
+    "tags": [
+      "limited",
+      "heavy-duty",
+      "wireless"
+    ],
+    "rating": {
+      "score": 47,
+      "count": 28
+    }
+  },
+  {
+    "id": 31,
+    "name": "Alpha Widget",
+    "category": "electronics",
+    "price": 345,
+    "quantity": 84,
+    "active": true,
+    "tags": [
+      "limited"
+    ],
+    "rating": {
+      "score": 47,
+      "count": 174
+    }
+  },
+  {
+    "id": 32,
+    "name": "Pro Valve",
+    "category": "tools",
+    "price": 410,
+    "quantity": 14,
+    "active": true,
+    "tags": [
+      "sale",
+      "compact"
+    ],
+    "rating": {
+      "score": 29,
+      "count": 72
+    }
+  },
+  {
+    "id": 33,
+    "name": "Core Relay",
+    "category": "books",
+    "price": 217,
+    "quantity": 24,
+    "active": false,
+    "tags": [
+      "sale",
+      "new",
+      "wireless",
+      "limited"
+    ],
+    "rating": {
+      "score": 36,
+      "count": 51
+    }
+  },
+  {
+    "id": 34,
+    "name": "Edge Link",
+    "category": "clothing",
+    "price": 26,
+    "quantity": 84,
+    "active": true,
+    "tags": [
+      "sale"
+    ],
+    "rating": {
+      "score": 11,
+      "count": 209
+    }
+  },
+  {
+    "id": 35,
+    "name": "Nano Gadget",
+    "category": "sports",
+    "price": 249,
+    "quantity": 62,
+    "active": true,
+    "tags": [
+      "fast",
+      "popular",
+      "limited",
+      "heavy-duty"
+    ],
+    "rating": {
+      "score": 25,
+      "count": 136
+    }
+  },
+  {
+    "id": 36,
+    "name": "Ultra Driver",
+    "category": "toys",
+    "price": 475,
+    "quantity": 59,
+    "active": false,
+    "tags": [
+      "compact",
+      "wireless",
+      "popular",
+      "new"
+    ],
+    "rating": {
+      "score": 19,
+      "count": 112
+    }
+  },
+  {
+    "id": 37,
+    "name": "Swift Switch",
+    "category": "home",
+    "price": 496,
+    "quantity": 8,
+    "active": true,
+    "tags": [
+      "fast",
+      "heavy-duty",
+      "wireless"
+    ],
+    "rating": {
+      "score": 33,
+      "count": 471
+    }
+  },
+  {
+    "id": 38,
+    "name": "Prime Gear",
+    "category": "garden",
+    "price": 437,
+    "quantity": 68,
+    "active": true,
+    "tags": [
+      "compact"
+    ],
+    "rating": {
+      "score": 6,
+      "count": 436
+    }
+  },
+  {
+    "id": 39,
+    "name": "Flex Module",
+    "category": "office",
+    "price": 96,
+    "quantity": 9,
+    "active": true,
+    "tags": [
+      "limited",
+      "new"
+    ],
+    "rating": {
+      "score": 37,
+      "count": 127
+    }
+  },
+  {
+    "id": 40,
+    "name": "Hyper Node",
+    "category": "auto",
+    "price": 297,
+    "quantity": 77,
+    "active": true,
+    "tags": [
+      "limited"
+    ],
+    "rating": {
+      "score": 43,
+      "count": 299
+    }
+  },
+  {
+    "id": 41,
+    "name": "Alpha Widget",
+    "category": "electronics",
+    "price": 290,
+    "quantity": 67,
+    "active": false,
+    "tags": [
+      "sale",
+      "premium",
+      "heavy-duty"
+    ],
+    "rating": {
+      "score": 17,
+      "count": 203
+    }
+  },
+  {
+    "id": 42,
+    "name": "Pro Valve",
+    "category": "tools",
+    "price": 68,
+    "quantity": 86,
+    "active": false,
+    "tags": [
+      "premium",
+      "new",
+      "fast",
+      "sale"
+    ],
+    "rating": {
+      "score": 40,
+      "count": 289
+    }
+  },
+  {
+    "id": 43,
+    "name": "Core Relay",
+    "category": "books",
+    "price": 52,
+    "quantity": 10,
+    "active": true,
+    "tags": [
+      "popular",
+      "premium",
+      "new"
+    ],
+    "rating": {
+      "score": 16,
+      "count": 190
+    }
+  },
+  {
+    "id": 44,
+    "name": "Edge Link",
+    "category": "clothing",
+    "price": 146,
+    "quantity": 21,
+    "active": false,
+    "tags": [
+      "heavy-duty",
+      "compact",
+      "fast"
+    ],
+    "rating": {
+      "score": 43,
+      "count": 419
+    }
+  },
+  {
+    "id": 45,
+    "name": "Nano Gadget",
+    "category": "sports",
+    "price": 284,
+    "quantity": 39,
+    "active": true,
+    "tags": [
+      "eco",
+      "new"
+    ],
+    "rating": {
+      "score": 7,
+      "count": 381
+    }
+  },
+  {
+    "id": 46,
+    "name": "Ultra Driver",
+    "category": "toys",
+    "price": 284,
+    "quantity": 20,
+    "active": false,
+    "tags": [
+      "heavy-duty",
+      "sale",
+      "premium"
+    ],
+    "rating": {
+      "score": 14,
+      "count": 352
+    }
+  },
+  {
+    "id": 47,
+    "name": "Swift Switch",
+    "category": "home",
+    "price": 325,
+    "quantity": 34,
+    "active": false,
+    "tags": [
+      "fast",
+      "new",
+      "limited"
+    ],
+    "rating": {
+      "score": 18,
+      "count": 23
+    }
+  },
+  {
+    "id": 48,
+    "name": "Prime Gear",
+    "category": "garden",
+    "price": 2,
+    "quantity": 43,
+    "active": true,
+    "tags": [
+      "popular",
+      "wireless",
+      "limited"
+    ],
+    "rating": {
+      "score": 36,
+      "count": 5
+    }
+  },
+  {
+    "id": 49,
+    "name": "Flex Module",
+    "category": "office",
+    "price": 58,
+    "quantity": 10,
+    "active": true,
+    "tags": [
+      "premium"
+    ],
+    "rating": {
+      "score": 38,
+      "count": 283
+    }
+  },
+  {
+    "id": 50,
+    "name": "Hyper Node",
+    "category": "auto",
+    "price": 76,
+    "quantity": 56,
+    "active": true,
+    "tags": [
+      "eco"
+    ],
+    "rating": {
+      "score": 24,
+      "count": 461
+    }
+  }
+]

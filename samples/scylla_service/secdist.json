@@ -1,7 +1,7 @@
 {
-    "scylla_settings": {
-        "scylla_example": {
-            "hosts": "scylla"
-        }
+  "scylla_settings": {
+    "scylla_example": {
+      "hosts": "scylla"
     }
+  }
 }

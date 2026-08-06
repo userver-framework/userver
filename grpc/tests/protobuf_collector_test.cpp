@@ -1,4 +1,4 @@
-#include <userver/ugrpc/impl/protobuf_collector.hpp>
+#include <userver/protobuf/impl/descriptor_collector.hpp>
 
 #include <cstddef>
 #include <vector>
@@ -12,7 +12,7 @@
 USERVER_NAMESPACE_BEGIN
 
 TEST(GetGeneratedMessages, Ok) {
-    const ugrpc::DescriptorList generated_message = ugrpc::impl::GetGeneratedMessages();
+    const ugrpc::DescriptorList generated_message = protobuf::impl::GetGeneratedMessages();
 
     // Please adjust this number if new test proto schemas are added.
 #if GOOGLE_PROTOBUF_VERSION >= 4022000

@@ -1,5 +1,6 @@
 #include <string_view>
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <userver/http/url.hpp>
@@ -122,8 +123,8 @@ TEST(EncodeS3Key, UnicodeCharacters) {
     auto result = EncodeS3Key(key);
     // Check that Cyrillic characters are percent-encoded
     EXPECT_EQ(result, "folder/%D1%84%D0%B0%D0%B9%D0%BB.txt");
-    EXPECT_TRUE(result.find("folder/") != std::string::npos);
-    EXPECT_TRUE(result.find(".txt") != std::string::npos);
+    EXPECT_THAT(result, testing::HasSubstr("folder/"));
+    EXPECT_THAT(result, testing::HasSubstr(".txt"));
 }
 
 TEST(UrlEncode, Special) {

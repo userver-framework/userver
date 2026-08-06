@@ -15,7 +15,6 @@
 namespace ns {
 
 struct A {
-
     std::optional<std::string> type{};
     std::optional<int> a_prop{};
     USERVER_NAMESPACE::formats::json::Value extra{};
@@ -54,7 +53,6 @@ void WriteToStream(
     std::string_view hide_field_name = {});
 
 struct B {
-
     std::optional<std::string> type{};
     std::optional<int> b_prop{};
     USERVER_NAMESPACE::formats::json::Value extra{};
@@ -93,7 +91,6 @@ void WriteToStream(
     std::string_view hide_field_name = {});
 
 struct C {
-
     std::optional<int> version{};
 };
 
@@ -130,7 +127,6 @@ void WriteToStream(
     std::string_view hide_field_name = {});
 
 struct D {
-
     std::optional<int> version{};
 };
 

@@ -956,6 +956,29 @@ void ReadAnyMessage(
         throw FieldError(ParseErrorCode::kInvalidType);
     }
 
+    if (options.nonportable_raw_any) {
+        const bool has_proto_typeurl = json.HasMember("type_url");
+        const bool has_nonproto_typeurl = json.HasMember("typeUrl");
+        if (has_proto_typeurl == has_nonproto_typeurl) {
+            throw FieldError(
+                ParseErrorCode::kInvalidValue,
+                "Exactly one of 'type_url' and 'typeUrl' msut be specified"
+            );
+        }
+        const std::string_view type_url_field = has_proto_typeurl ? "type_url" : "typeUrl";
+
+        if (!json[type_url_field].IsString()) {
+            throw FieldError(ParseErrorCode::kInvalidValue, "'type_url' field is not a string");
+        }
+        if (!json["value"].IsString()) {
+            throw FieldError(ParseErrorCode::kInvalidValue, "'value' field is not a string");
+        }
+
+        reflection.SetString(&message, &type_url_desc, json[type_url_field].As<std::string>());
+        reflection.SetString(&message, &value_desc, crypto::base64::Base64Decode(json["value"].As<std::string>()));
+        return;
+    }
+
     if (json.IsEmpty()) {
         return;
     }

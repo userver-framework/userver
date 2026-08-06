@@ -218,10 +218,9 @@ public:
 
     bool IsReady() const noexcept override;
 
-    void TryAppendAwaiter(boost::intrusive_ptr<engine::impl::Awaiter>& awaiter, std::uintptr_t context) override;
+    void TryAppendAwaiter(engine::impl::AwaiterPtr& awaiter, std::uintptr_t context) override;
 
-    boost::intrusive_ptr<engine::impl::Awaiter> RemoveAwaiter(engine::impl::Awaiter& awaiter, std::uintptr_t context)
-        noexcept override;
+    engine::impl::AwaiterPtr RemoveAwaiter(engine::impl::Awaiter& awaiter, std::uintptr_t context) noexcept override;
 
     std::exception_ptr GetErrorResult() const noexcept override;
 
@@ -437,10 +436,7 @@ bool TlsWrapper::ReadContextAccessor::IsReady() const noexcept {
     return token.GetAwaitable(utils::impl::InternalTag{}).IsReady();
 }
 
-void TlsWrapper::ReadContextAccessor::TryAppendAwaiter(
-    boost::intrusive_ptr<engine::impl::Awaiter>& awaiter,
-    std::uintptr_t context
-) {
+void TlsWrapper::ReadContextAccessor::TryAppendAwaiter(engine::impl::AwaiterPtr& awaiter, std::uintptr_t context) {
     auto* ssl = impl.ssl.get();
     if (!ssl || SSL_has_pending(ssl)) {
         return;
@@ -450,7 +446,7 @@ void TlsWrapper::ReadContextAccessor::TryAppendAwaiter(
     token.GetAwaitable(utils::impl::InternalTag{}).TryAppendAwaiter(awaiter, context);
 }
 
-boost::intrusive_ptr<engine::impl::Awaiter> TlsWrapper::ReadContextAccessor::RemoveAwaiter(
+engine::impl::AwaiterPtr TlsWrapper::ReadContextAccessor::RemoveAwaiter(
     engine::impl::Awaiter& awaiter,
     std::uintptr_t context
 ) noexcept {

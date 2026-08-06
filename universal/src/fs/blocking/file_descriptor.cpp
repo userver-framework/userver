@@ -4,7 +4,9 @@
 
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/uio.h>
 #include <unistd.h>
+#include <numeric>
 #include <system_error>
 #include <utility>
 
@@ -158,9 +160,50 @@ void FileDescriptor::Write(std::string_view contents) {
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const)
-std::size_t FileDescriptor::Read(char* buffer, std::size_t max_size) {
+void FileDescriptor::Write(std::span<const struct iovec> contents) {
+    if (contents.empty()) {
+        return;
+    }
+
+    const auto* list = contents.data();
+    auto list_size = contents.size();
+    do {
+        const auto chunk_size = ::writev(fd_, list, (list_size < IOV_MAX ? list_size : IOV_MAX));
+        if (chunk_size < 0) {
+            if (errno == EAGAIN || errno == EINTR) {
+                continue;
+            }
+
+            const auto code = std::make_error_code(std::errc{errno});
+            throw std::system_error(code, "calling ::writev");
+        } else if (chunk_size > 0) {
+            std::size_t offset = chunk_size;
+            while (list_size > 0) {
+                const std::size_t len = list->iov_len;
+                if (offset >= len) {
+                    ++list;
+                    offset -= len;
+                    --list_size;
+                    UASSERT(list_size != 0 || offset == 0);
+                } else [[unlikely]] {
+                    // Never happens?
+                    Write(std::string_view(static_cast<char*>(list->iov_base) + offset, len - offset));
+                    ++list;
+                    --list_size;
+                    break;
+                }
+            }
+        } else [[unlikely]] {
+            UASSERT(chunk_size == 0);
+            break;
+        }
+    } while (list_size != 0);
+}
+
+// NOLINTNEXTLINE(readability-make-member-function-const)
+std::size_t FileDescriptor::Read(std::span<char> buffer) {
     while (true) {
-        const ::ssize_t s = ::read(fd_, buffer, max_size);
+        const ::ssize_t s = ::read(fd_, buffer.data(), buffer.size());
         if (s < 0) {
             if (errno == EAGAIN || errno == EINTR) {
                 continue;

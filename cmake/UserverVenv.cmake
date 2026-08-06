@@ -26,6 +26,27 @@ function(_userver_prepare_venv_variables)
         ""
         CACHE STRING "Options for all pip calls"
     )
+
+    # If not set explicitly during the first configure, default to ON when 'uv' is available.
+    if(DEFINED CACHE{USERVER_PIP_USE_UV})
+        set(_userver_pip_use_uv_default "$CACHE{USERVER_PIP_USE_UV}")
+    else()
+        execute_process(
+            COMMAND uv --version
+            RESULT_VARIABLE _userver_uv_probe_status
+            OUTPUT_QUIET ERROR_QUIET
+        )
+        if(_userver_uv_probe_status EQUAL 0)
+            set(_userver_pip_use_uv_default ON)
+            message(STATUS "Found 'uv', using it for Python virtual environments by default")
+        else()
+            set(_userver_pip_use_uv_default OFF)
+        endif()
+    endif()
+    # @ingroup dependencies
+    option(USERVER_PIP_USE_UV "Use uv instead of venv for managing Python virtual environments"
+           "${_userver_pip_use_uv_default}"
+    )
 endfunction()
 
 _userver_prepare_venv_variables()
@@ -72,9 +93,10 @@ function(userver_venv_setup)
 
     list(APPEND ARG_PIP_ARGS ${USERVER_PIP_OPTIONS})
     set(venv_params "")
-    set(format_version 2)
+    set(format_version 3)
     string(APPEND venv_params "format-version=${format_version}\n")
     string(APPEND venv_params "pip-args=${ARG_PIP_ARGS}\n")
+    string(APPEND venv_params "use-uv=${USERVER_PIP_USE_UV}\n")
     _userver_append_requirements_from_file(venv_params ${ARG_REQUIREMENTS})
 
     if(NOT ARG_NAME)
@@ -103,7 +125,7 @@ function(userver_venv_setup)
     set(venv_dir "${parent_directory}/${venv_name}")
     set(venv_bin_dir "${venv_dir}/bin")
     set("${python_output_var}"
-        "${venv_bin_dir}/python"
+        "${venv_bin_dir}/python3"
         PARENT_SCOPE
     )
 
@@ -126,11 +148,18 @@ function(userver_venv_setup)
     message(STATUS "Setting up the venv at ${venv_dir}")
 
     if(NOT EXISTS "${venv_dir}/.venv-settled")
-	file(REMOVE_RECURSE "${venv_dir}")
+        file(REMOVE_RECURSE "${venv_dir}")
 
-        execute_process(
-            COMMAND "${USERVER_PYTHON_PATH}" -m venv "${venv_dir}" ${venv_additional_args} RESULT_VARIABLE status
-        )
+        if(USERVER_PIP_USE_UV)
+            execute_process(
+                COMMAND uv venv "${venv_dir}" --python "${USERVER_PYTHON_PATH}" ${venv_additional_args}
+                RESULT_VARIABLE status
+            )
+        else()
+            execute_process(
+                COMMAND "${USERVER_PYTHON_PATH}" -m venv "${venv_dir}" ${venv_additional_args} RESULT_VARIABLE status
+            )
+        endif()
         if(status)
             file(REMOVE_RECURSE "${venv_dir}")
             message(
@@ -139,8 +168,8 @@ function(userver_venv_setup)
             )
         endif()
 
-	# to be sure 'python -m venv' is atomic
-	file(TOUCH "${venv_dir}/.venv-settled")
+        # To make sure that venv creation is atomic.
+        file(TOUCH "${venv_dir}/.venv-settled")
     endif()
 
     # If pip has already installed packages using the same requirements, then don't run it again. This optimization
@@ -161,18 +190,17 @@ function(userver_venv_setup)
         endforeach()
         list(TRANSFORM ARG_REQUIREMENTS PREPEND "--requirement=" OUTPUT_VARIABLE pip_requirements)
 
-        # psycopg2 implicitly requires 'wheel' to be already installed
-        execute_process(
-            COMMAND "${venv_bin_dir}/python3" -m pip install -U wheel ${ARG_PIP_ARGS} RESULT_VARIABLE status
-        )
-        if(status)
-            message(FATAL_ERROR "Failed to install venv requirements")
+        if(USERVER_PIP_USE_UV)
+            execute_process(
+                COMMAND uv pip install --python "${venv_bin_dir}/python3" -U ${pip_requirements} ${ARG_PIP_ARGS}
+                RESULT_VARIABLE status
+            )
+        else()
+            execute_process(
+                COMMAND "${venv_bin_dir}/python3" -m pip install --disable-pip-version-check -U ${pip_requirements}
+                        ${ARG_PIP_ARGS} RESULT_VARIABLE status
+            )
         endif()
-
-        execute_process(
-            COMMAND "${venv_bin_dir}/python3" -m pip install --disable-pip-version-check -U ${pip_requirements}
-                    ${ARG_PIP_ARGS} RESULT_VARIABLE status
-        )
         if(status)
             message(FATAL_ERROR "Failed to install venv requirements")
         endif()

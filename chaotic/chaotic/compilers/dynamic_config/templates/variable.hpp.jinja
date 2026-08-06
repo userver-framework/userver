@@ -34,6 +34,12 @@ namespace {{ name.lower() }} {
 
 }  // namespace {{ name.lower() }}
 
-extern const USERVER_NAMESPACE::dynamic_config::Key<{{ cpp_user_type }}> {{ name }};
+
+{% filter indent(width=4, first=True) %} 
+    extern const USERVER_NAMESPACE::dynamic_config::Key<
+        {{ cpp_user_type }}
+    > {{ name }};
+{% endfilter %}
 
 }  // namespace {{ namespace }}
+

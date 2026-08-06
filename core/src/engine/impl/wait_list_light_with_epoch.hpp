@@ -5,6 +5,7 @@
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
 #include <concurrent/impl/fast_atomic.hpp>
+#include <userver/engine/impl/awaiter_fwd.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -39,10 +40,10 @@ public:
 
     /// Atomically get signal or append with context, using the current epoch.
     /// Only moves from `awaiter` if the awaiter has been appended.
-    void GetSignalOrAppend(boost::intrusive_ptr<Awaiter>& awaiter, std::uintptr_t context);
+    void GetSignalOrAppend(AwaiterPtr& awaiter, std::uintptr_t context);
 
     /// Remove awaiter while preserving the epoch.
-    boost::intrusive_ptr<Awaiter> Remove(Awaiter& awaiter, std::uintptr_t context) noexcept;
+    AwaiterPtr Remove(Awaiter& awaiter, std::uintptr_t context) noexcept;
 
     /// Atomically get and reset signal while preserving the epoch.
     bool GetAndResetSignal() noexcept;

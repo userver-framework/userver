@@ -138,7 +138,8 @@ void Logging::Init(const ComponentConfig& config, const ComponentContext& contex
                 ? context.GetTaskProcessor(*logger_config.fs_task_processor)
                 : fs_task_processor_,
             logger_config.message_queue_size,
-            logger_config.queue_overflow_behavior
+            logger_config.queue_overflow_behavior,
+            logger_config.flush_queue_size
         );
 
         auto insertion_result = loggers_.emplace(logger_config.logger_name, std::move(logger));

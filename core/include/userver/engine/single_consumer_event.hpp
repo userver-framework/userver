@@ -7,6 +7,7 @@
 
 #include <userver/engine/awaitable.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/future_status.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -57,6 +58,16 @@ public:
     /// @overload bool WaitForEvent()
     [[nodiscard]] bool WaitForEventUntil(Deadline);
 
+    /// @brief Waits until the event is in a signaled state, same as @ref WaitForEventUntil, but gives the precise
+    /// reason of a failure instead of just `false`.
+    ///
+    /// If the event is auto-resetting, clears the signal flag upon waking up. If already in a signaled state,
+    /// does the same without sleeping.
+    ///
+    /// @return `FutureStatus::kReady` if the event signaled, `FutureStatus::kCancelled` if the current task was
+    /// cancelled, `FutureStatus::kTimeout` if the deadline was reached.
+    [[nodiscard]] FutureStatus WaitUntil(Deadline deadline);
+
     /// @brief Works like `std::condition_variable::wait_until`. Waits until
     /// @a stop_waiting becomes `true`, and we are notified via `Send`.
     ///
@@ -78,8 +89,11 @@ public:
     ///
     /// Waiter side:
     /// @snippet engine/single_consumer_event_test.cpp  CV waiter
+    ///
+    /// @return `FutureStatus::kReady` if @a stop_waiting became `true`, `FutureStatus::kCancelled` if the current
+    /// task was cancelled, `FutureStatus::kTimeout` if the deadline was reached.
     template <typename Predicate>
-    [[nodiscard]] bool WaitUntil(Deadline, Predicate stop_waiting);
+    [[nodiscard]] FutureStatus WaitUntil(Deadline, Predicate stop_waiting);
 
     /// Resets the signal flag, if there is any existing event. Guarantees at least 'acquire' and 'release'
     /// memory ordering. Must only be called by the waiting task.
@@ -128,7 +142,7 @@ bool SingleConsumerEvent::WaitForEventUntil(std::chrono::time_point<Clock, Durat
 }
 
 template <typename Predicate>
-bool SingleConsumerEvent::WaitUntil(Deadline deadline, Predicate stop_waiting) {
+FutureStatus SingleConsumerEvent::WaitUntil(Deadline deadline, Predicate stop_waiting) {
     // If the state, according to what we've been previously notified of via
     // 'Send', is OK, then return right away. Fresh state updates can also
     // leak to us here, but we should not rely on it.
@@ -140,8 +154,8 @@ bool SingleConsumerEvent::WaitUntil(Deadline deadline, Predicate stop_waiting) {
         // We may also receive false signals from cases when we are allowed
         // and unallowed to make progress in a rapid sequence, or when the notifier
         // thinks that we might be happy with the state, but we aren't.
-        if (!WaitForEventUntil(deadline)) {
-            return false;
+        if (const auto status = WaitUntil(deadline); status != FutureStatus::kReady) {
+            return status;
         }
 
         if (!IsAutoReset()) {
@@ -152,7 +166,7 @@ bool SingleConsumerEvent::WaitUntil(Deadline deadline, Predicate stop_waiting) {
         }
     }
 
-    return true;
+    return FutureStatus::kReady;
 }
 
 }  // namespace engine

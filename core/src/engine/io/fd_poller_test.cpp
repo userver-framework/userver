@@ -1,5 +1,6 @@
 #include <userver/utest/utest.hpp>
 
+#include <userver/engine/impl/awaiter.hpp>
 #include <userver/engine/impl/context_accessor.hpp>
 #include <userver/engine/io/fd_poller.hpp>
 #include <userver/engine/task/task_base.hpp>
@@ -36,12 +37,9 @@ class ReadyAwaitableImpl final : public engine::impl::AwaitableBase {
 public:
     bool IsReady() const noexcept override { return is_ready_; }
 
-    void TryAppendAwaiter(boost::intrusive_ptr<engine::impl::Awaiter>&, std::uintptr_t) override { is_ready_ = true; }
+    void TryAppendAwaiter(engine::impl::AwaiterPtr&, std::uintptr_t) override { is_ready_ = true; }
 
-    boost::intrusive_ptr<engine::impl::Awaiter> RemoveAwaiter(engine::impl::Awaiter&, std::uintptr_t)
-        noexcept override {
-        return {};
-    }
+    engine::impl::AwaiterPtr RemoveAwaiter(engine::impl::Awaiter&, std::uintptr_t) noexcept override { return {}; }
 
 private:
     bool is_ready_{false};

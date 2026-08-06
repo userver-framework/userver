@@ -11,7 +11,6 @@
 namespace ns {
 
 struct String {
-
     std::optional<std::string> foo{};
 };
 

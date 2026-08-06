@@ -382,7 +382,7 @@ UTEST(ConditionVariable, CancelledOnTaskDeadline) {
     engine::Mutex mutex;
     engine::ConditionVariable cond_var;
 
-    auto task = utils::TaskBuilder{}.NoSpan().Background().Critical().Deadline(deadline).Build([&] {
+    auto task = utils::TaskBuilder{}.NoTracing().Background().Critical().Deadline(deadline).Build([&] {
         std::unique_lock lock(mutex);
         const auto result = cond_var.WaitFor(lock, utest::kMaxTestWaitTime);
         EXPECT_EQ(result, engine::CvStatus::kCancelled);
@@ -397,7 +397,7 @@ UTEST(ConditionVariable, AlreadyCancelled) {
     engine::Mutex mutex;
     engine::ConditionVariable cv;
 
-    engine::current_task::GetCancellationToken().RequestCancel();
+    engine::current_task::RequestCancel();
 
     std::unique_lock lock(mutex);
     UEXPECT_NO_THROW(EXPECT_EQ(cv.WaitFor(lock, utest::kMaxTestWaitTime), engine::CvStatus::kCancelled));

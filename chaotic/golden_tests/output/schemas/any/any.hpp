@@ -13,7 +13,6 @@ namespace ns {
 using AnyValue = USERVER_NAMESPACE::formats::json::Value;
 
 struct WithAnyField {
-
     std::optional<USERVER_NAMESPACE::formats::json::Value> payload{};
 };
 

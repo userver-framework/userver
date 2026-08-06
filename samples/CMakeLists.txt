@@ -18,10 +18,15 @@ if(USERVER_FEATURE_CHAOTIC)
     add_subdirectory(chaotic_service)
     add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-chaotic_service)
 
-    if(USERVER_FEATURE_CHAOTIC_EXPERIMENTAL)
+    if(USERVER_FEATURE_CHAOTIC_OPENAPI)
         add_subdirectory(chaotic_openapi_service)
         add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-chaotic-openapi_service)
     endif()
+endif()
+
+if(USERVER_FEATURE_POSTGRESQL AND USERVER_FEATURE_CHAOTIC)
+    add_subdirectory(benchmark_service)
+    add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-benchmark_service)
 endif()
 
 if(USERVER_FEATURE_OTLP)
@@ -172,20 +177,10 @@ if(USERVER_FEATURE_S3API)
     add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-s3api)
 endif()
 
-# Install the whole samples tree, but drop this master CMakeLists.txt: it writes a
-# fake userverConfig.cmake stub (above) and would shadow the real installed userver.
-# The leaf samples' own CMakeLists.txt files live in subdirectories and are kept, so
-# the anchored "samples/CMakeLists.txt" pattern only matches this top-level file.
-_userver_directory_install(
-    COMPONENT examples
-    DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    DESTINATION share/userver
-    EXCLUDE_PATTERNS "samples/CMakeLists.txt"
-)
-# NON_FINDABLE: the 'examples' install/CPack component only ships sample sources.
-_userver_install_component(COMPONENT examples NON_FINDABLE)
-# libuserver-samples, not libuserver-samples-dev
-set(CPACK_DEBIAN_SAMPLES_PACKAGE_NAME libuserver-examples)
+if(USERVER_FEATURE_EASY)
+    add_subdirectory(easy)
+    add_dependencies(${PROJECT_NAME} userver-easy-samples)
+endif()
 
 # Clean up fake userver installation above to avoid messing with find_package(userver) in the parent project.
 file(REMOVE "${CMAKE_BINARY_DIR}/package_stubs/userverConfig.cmake")

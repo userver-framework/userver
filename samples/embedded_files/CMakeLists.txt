@@ -15,7 +15,11 @@ add_executable(${PROJECT_NAME} main.cpp)
 target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_objs)
 
 # /// [embedded]
-userver_embed_file(${PROJECT_NAME}_config NAME static_config_yaml FILEPATH static_config.yaml)
+userver_embed_file(
+    ${PROJECT_NAME}_config
+    NAME static_config_yaml
+    FILEPATH static_config.yaml
+)
 target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}_config)
 # /// [embedded]
 

@@ -12,16 +12,22 @@ properties:
             Please note that "endpoint" is mutually exclusive with either
             "logs-endpoint" or "tracing-endpoint". Basically, you either have
             one endpoint for both, or you specify directly what goes where.
+            An optional "http://" or "https://" scheme prefix is allowed and
+            will be stripped, as the gRPC client works with a bare host:port.
     logs-endpoint:
         type: string
         description: >
             Hostname:port of otel collector (gRPC). This endpoint is used
-            only for logs.
+            only for logs. An optional "http://" or "https://" scheme prefix
+            is allowed and will be stripped, as the gRPC client works with a
+            bare host:port.
     tracing-endpoint:
         type: string
         description: >
             Hostname:port of otel collector (gRPC). This endpoint is used
-            only for traces.
+            only for traces. An optional "http://" or "https://" scheme prefix
+            is allowed and will be stripped, as the gRPC client works with a
+            bare host:port.
     client-factory-name:
         type: string
         description: >

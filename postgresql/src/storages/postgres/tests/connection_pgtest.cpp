@@ -188,6 +188,22 @@ UTEST_P(PostgreConnection, QueryErrors) {
     UEXPECT_THROW(GetConn()->Execute("delete from pgtest where id = 1"), pg::ForeignKeyViolation);
 }
 
+UTEST_P(PostgreConnection, DuplicatePreparedStatement) {
+    CheckConnection(GetConn());
+
+    UEXPECT_NO_THROW(GetConn()->Execute("prepare pgtest_stmt as select 1"));
+    UEXPECT_THROW(GetConn()->Execute("prepare pgtest_stmt as select 1"), pg::DuplicatePreparedStatement);
+    EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState()) << "Connection is not broken";
+    UEXPECT_NO_THROW(GetConn()->Execute("select 1")) << "Connection is still usable";
+
+    UEXPECT_NO_THROW(GetConn()->Begin({}, {}));
+    UEXPECT_NO_THROW(GetConn()->Execute("prepare pgtest_stmt_trx as select 1"));
+    UEXPECT_THROW(GetConn()->Execute("prepare pgtest_stmt_trx as select 1"), pg::DuplicatePreparedStatement);
+    EXPECT_EQ(pg::ConnectionState::kTranError, GetConn()->GetState());
+    UEXPECT_NO_THROW(GetConn()->Rollback());
+    EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
+}
+
 UTEST_P(PostgreConnection, InvalidParameter) {
     CheckConnection(GetConn());
     UEXPECT_THROW(
@@ -358,15 +374,45 @@ UTEST_P(PostgreConnection, StatementTimeout) {
     EXPECT_FALSE(GetConn()->IsBroken());
 }
 
+UTEST_P(PostgreConnection, StatementTimeoutCappedToNetworkTimeout) {
+    CheckConnection(GetConn());
+
+    EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
+
+    const DefaultCommandControlScope scope(pg::CommandControl{std::chrono::milliseconds{500}, std::chrono::seconds{2}});
+    UEXPECT_NO_THROW(GetConn()->Execute("SELECT 1"));
+    EXPECT_EQ(std::chrono::milliseconds{495}, GetConn()->GetStatementTimeout());
+    EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
+    EXPECT_FALSE(GetConn()->IsBroken());
+}
+
 UTEST_P(PostgreConnection, CachedPlanChange) {
     // this only works with english messages, better than nothing
     GetConn()->Execute("SET lc_messages = 'en_US.UTF-8'");
     GetConn()->Execute("CREATE TEMPORARY TABLE plan_change_test ( a integer )");
     UEXPECT_NO_THROW(GetConn()->Execute("SELECT * FROM plan_change_test"));
     GetConn()->Execute("ALTER TABLE plan_change_test ALTER a TYPE bigint");
-    UEXPECT_THROW(GetConn()->Execute("SELECT * FROM plan_change_test"), pg::FeatureNotSupported);
-    // broken plan should not be reused anymore
+
     UEXPECT_NO_THROW(GetConn()->Execute("SELECT * FROM plan_change_test"));
+}
+
+UTEST_P(PostgreConnection, CachedPlanChangeInTransactionThrows) {
+    GetConn()->Execute("SET lc_messages = 'en_US.UTF-8'");
+    GetConn()->Execute("CREATE TEMPORARY TABLE plan_change_trx_test ( a integer )");
+    UEXPECT_NO_THROW(GetConn()->Execute("SELECT * FROM plan_change_trx_test"));
+    GetConn()->Execute("ALTER TABLE plan_change_trx_test ALTER a TYPE bigint");
+
+    UEXPECT_NO_THROW(GetConn()->Begin({}, {}));
+    UEXPECT_THROW_MSG(
+        GetConn()->Execute("SELECT * FROM plan_change_trx_test"),
+        pg::FeatureNotSupported,
+        "cached plan must not change result type"
+    );
+    EXPECT_EQ(pg::ConnectionState::kTranError, GetConn()->GetState());
+    UEXPECT_NO_THROW(GetConn()->Rollback());
+    EXPECT_EQ(pg::ConnectionState::kIdle, GetConn()->GetState());
+
+    UEXPECT_NO_THROW(GetConn()->Execute("SELECT * FROM plan_change_trx_test"));
 }
 
 }  // namespace

@@ -3,6 +3,7 @@
 #include <engine/ev/watcher.hpp>
 #include <engine/impl/wait_list_light_with_epoch.hpp>
 #include <engine/task/task_context.hpp>
+#include <userver/engine/impl/awaiter.hpp>
 
 template <>
 struct fmt::formatter<USERVER_NAMESPACE::engine::io::FdPoller::State> {
@@ -114,15 +115,14 @@ public:
     // Awaitable implementation
     bool IsReady() const noexcept override { return awaiters_.IsSignaled(); }
 
-    void TryAppendAwaiter(boost::intrusive_ptr<engine::impl::Awaiter>& awaiter, std::uintptr_t context) override {
+    void TryAppendAwaiter(engine::impl::AwaiterPtr& awaiter, std::uintptr_t context) override {
         awaiters_.GetSignalOrAppend(awaiter, context);
         if (awaiter == nullptr) {  // Not signaled yet, awaiter was appended.
             watcher_.StartAsync(awaiters_.GetEpoch());
         }
     }
 
-    boost::intrusive_ptr<engine::impl::Awaiter> RemoveAwaiter(engine::impl::Awaiter& awaiter, std::uintptr_t context)
-        noexcept override {
+    engine::impl::AwaiterPtr RemoveAwaiter(engine::impl::Awaiter& awaiter, std::uintptr_t context) noexcept override {
         auto removed_awaiter = awaiters_.Remove(awaiter, context);
         // we need to stop watcher manually to avoid racy wakeups later
         watcher_.StopAsync();

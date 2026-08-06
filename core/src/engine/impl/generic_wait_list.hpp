@@ -5,21 +5,20 @@
 
 #include <engine/impl/wait_list.hpp>
 #include <engine/impl/wait_list_light.hpp>
+#include <userver/engine/impl/awaiter_fwd.hpp>
 #include <userver/engine/task/task.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-class Awaiter;
-
 class GenericWaitList final {
 public:
     explicit GenericWaitList(Task::WaitMode wait_mode) noexcept;
 
-    void GetSignalOrAppend(boost::intrusive_ptr<Awaiter>& awaiter, std::uintptr_t context) noexcept;
+    void GetSignalOrAppend(AwaiterPtr& awaiter, std::uintptr_t context) noexcept;
 
-    boost::intrusive_ptr<Awaiter> Remove(Awaiter& awaiter, std::uintptr_t context) noexcept;
+    AwaiterPtr Remove(Awaiter& awaiter, std::uintptr_t context) noexcept;
 
     void SetSignalAndNotifyAll();
 

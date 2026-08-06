@@ -13,15 +13,12 @@
 namespace ns {
 
 struct AllOf {
-
     struct Foo__P0 {
-
         std::optional<std::string> foo{};
         USERVER_NAMESPACE::formats::json::Value extra{};
     };
 
     struct Foo__P1 {
-
         std::optional<int> bar{};
         USERVER_NAMESPACE::formats::json::Value extra{};
     };

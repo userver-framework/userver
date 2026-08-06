@@ -30,6 +30,8 @@ MockClientBase::~MockClientBase() = default;
 
 void MockClientBase::WaitConnectedOnce(RedisWaitConnected) {}
 
+bool MockClientBase::IsReady(const HealthCheckParams&) const { return true; }
+
 size_t MockClientBase::ShardsCount() const { return 1; }
 
 bool MockClientBase::IsInClusterMode() const { return false; }
@@ -237,6 +239,10 @@ RequestGeosearch MockClientBase::Geosearch(
 }
 
 RequestGet MockClientBase::Get(std::string /*key*/, const CommandControl& /*command_control*/) {
+    AbortWithStacktrace(kNotMocked);
+}
+
+RequestGetdel MockClientBase::Getdel(std::string /*key*/, const CommandControl& /*command_control*/) {
     AbortWithStacktrace(kNotMocked);
 }
 

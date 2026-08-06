@@ -6,10 +6,10 @@
 #include <{{ file }}>
 {% endfor %}
 
-{% macro generate_global_struct_field_definition(type) %}
+{% macro _generate_global_struct_field_definition(type) %}
     {#- handle subtypes -#}
     {% for schema in type.subtypes() %}
-        {{ generate_global_struct_field_definition(schema) }}
+        {{ _generate_global_struct_field_definition(schema) }}
     {% endfor %}
 
     {% if type.get_py_type() == 'CppStruct' %}
@@ -58,10 +58,10 @@
     {% endif %}
 {%- endmacro %}
 
-{% macro generate_parser_definition(type) %}
-    {# handle subtypes #}
+{% macro _generate_parser_definition(type) %}
+    {#- handle subtypes -#}
     {% for schema in type.subtypes() %}
-        {{- generate_parser_definition(schema) -}}
+        {{- _generate_parser_definition(schema) -}}
     {% endfor %}
 
     {% set local_name = shortest_cpp_name(type, blacklist=['Value']) %}
@@ -87,7 +87,7 @@
             {% endif %}
 
             {{ local_name }} res{
-                {% filter indent(width=8, first=True) %}
+                {% filter indent_not_empty(width=8) %}
                     {{- _generate_cpp_struct_aggregate_initialization(type, 'std::move(extra)') -}}
                 {% endfilter %}
             };
@@ -152,10 +152,10 @@
             {% for parent in type.parents_dereferenced() %}
               {% if parent.get_py_type() == 'CppStruct' %}
                 {{ shortest_cpp_name(parent, blacklist=['Value']) }}{
-                  {% filter indent(width=12, first=True) %}
+                  {% filter indent_not_empty(width=12) %}
                       {{- _generate_cpp_struct_aggregate_initialization(parent, 'extra') -}}
                   {% endfilter %}
-                }{% if not loop.last %}, {% endif +%}
+                }{% if not loop.last %},{% endif +%}
               {% else %}
                 {{ NOT_IMPLEMENTED('"allOf" for nested type "{{ parent.get_py_type() }}". Details: ' + parent) }}
               {% endif %}
@@ -172,9 +172,9 @@
 {% for name, type in types.items() %}
     {{- common.switch_namespace(cpp_namespace(name)) -}}
 
-    {{- generate_global_struct_field_definition(type) -}}
+    {{- _generate_global_struct_field_definition(type) -}}
 
-    {{- generate_parser_definition(type) -}}
+    {{- _generate_parser_definition(type) -}}
 {% endfor %}
 
 {{ common.switch_namespace('') }}

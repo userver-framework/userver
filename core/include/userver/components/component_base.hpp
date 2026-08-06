@@ -60,7 +60,7 @@ public:
     /// active requests until this deadline (unless those requests finish earlier).
     /// And it might completely shutdown requests processing when the deadline is reached
     /// (or when no active requests left).
-    void OnGracefulShutdown(engine::Deadline /*serving_shutdown_deadline*/) override;
+    void OnGracefulShutdown(engine::Deadline serving_shutdown_deadline) override;
 
     /// Component may use this function to stop doing work before the stop of the
     /// components that depend on it.

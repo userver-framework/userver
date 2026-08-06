@@ -1,13 +1,12 @@
 #include <concurrent/intrusive_walkable_pool.hpp>
 
-#include <atomic>
 #include <cstddef>
 #include <thread>
 #include <unordered_set>
 #include <vector>
 
 #include <userver/engine/async.hpp>
-#include <userver/engine/sleep.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/assert.hpp>
@@ -79,15 +78,17 @@ UTEST_MT(IntrusiveWalkablePool, TortureTest, 4) {
     constexpr std::size_t kNodesPerTask = 3;
     CheckedIntPool pool;
 
-    std::atomic<bool> keep_running{true};
+    // Let worker tasks stop by their own deadline: with a pinning queue the
+    // main test task may not resume promptly enough to flip a shared stop flag.
+    const auto test_deadline = engine::Deadline::FromDuration(50ms);
     std::vector<engine::TaskWithResult<void>> tasks;
-    tasks.reserve(GetThreadCount() - 1);
+    tasks.reserve(engine::current_task::GetWorkerCount() - 1);
 
-    for (std::size_t i = 0; i < GetThreadCount() - 2; ++i) {
+    for (std::size_t i = 0; i < engine::current_task::GetWorkerCount() - 2; ++i) {
         tasks.push_back(engine::AsyncNoTracing([&] {
             CheckedInt* nodes[kNodesPerTask]{};
 
-            while (keep_running) {
+            while (!test_deadline.IsReached()) {
                 for (auto*& node : nodes) {
                     node = &pool.Acquire();
                     node->CheckAlive();
@@ -101,7 +102,7 @@ UTEST_MT(IntrusiveWalkablePool, TortureTest, 4) {
     }
 
     tasks.push_back(engine::AsyncNoTracing([&] {
-        while (keep_running) {
+        while (!test_deadline.IsReached()) {
             std::size_t node_count = 0;
             pool.Walk([&](CheckedInt& node) {
                 node.CheckAlive();
@@ -111,8 +112,6 @@ UTEST_MT(IntrusiveWalkablePool, TortureTest, 4) {
         }
     }));
 
-    engine::SleepFor(50ms);
-    keep_running = false;
     for (auto& task : tasks) {
         task.Get();
     }

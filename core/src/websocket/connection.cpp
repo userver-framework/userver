@@ -1,6 +1,7 @@
 #include <userver/websocket/connection.hpp>
 
 #include <atomic>
+#include <vector>
 
 #include <boost/endian/conversion.hpp>
 
@@ -104,21 +105,22 @@ public:
 
     void SendExtended(MessageExtended& message) {
         stats_.msg_sent++;
-        stats_.bytes_sent += message.data.size();
+        stats_.bytes_sent += utils::statistics::Rate{message.data.size()};
 
         const std::lock_guard lock(write_mutex_);
 
         LOG_TRACE() << "Write message " << message.data.size() << " bytes";
         if (message.opcode == impl::WSOpcodes::kPing) {
-            const auto frame = impl::frames::MakeControlFrame(impl::WSOpcodes::kPing, {}, need_data_masking_);
+            const auto frame = impl::frames::MakeControlFrame(impl::WSOpcodes::kPing, 0, need_data_masking_);
 
             SendFrame(*io_, frame, {}, need_data_masking_);
         } else if (message.opcode == impl::WSOpcodes::kPong) {
-            const auto frame = impl::frames::MakeControlFrame(impl::WSOpcodes::kPong, message.data, need_data_masking_);
+            const auto
+                frame = impl::frames::MakeControlFrame(impl::WSOpcodes::kPong, message.data.size(), need_data_masking_);
 
             SendFrame(*io_, frame, message.data, need_data_masking_);
         } else if (message.close_status == CloseStatus::kNone) {
-            const auto frame = impl::frames::MakeControlFrame(impl::WSOpcodes::kClose, {}, need_data_masking_);
+            const auto frame = impl::frames::MakeControlFrame(impl::WSOpcodes::kClose, 0, need_data_masking_);
 
             SendFrame(*io_, frame, {}, need_data_masking_);
         } else if (message.close_status.has_value()) {
@@ -126,7 +128,8 @@ public:
             auto status_be = boost::endian::native_to_big(static_cast<CloseStatusInt>(message.close_status.value()));
             auto payload = utils::span{reinterpret_cast<const std::byte*>(&status_be), sizeof(status_be)};
 
-            const auto frame = impl::frames::MakeControlFrame(impl::WSOpcodes::kClose, payload, need_data_masking_);
+            const auto
+                frame = impl::frames::MakeControlFrame(impl::WSOpcodes::kClose, payload.size(), need_data_masking_);
 
             SendFrame(*io_, frame, payload, need_data_masking_);
         } else if (!message.data.empty()) {
@@ -137,7 +140,7 @@ public:
             while (data_to_send.size() > config_.fragment_size && config_.fragment_size > 0) {
                 const auto fragment = data_to_send.first(config_.fragment_size);
                 const auto frame = impl::frames::DataFrameHeader(
-                    fragment,
+                    fragment.size(),
                     message.opcode == impl::WSOpcodes::kText,
                     continuation,
                     impl::frames::Final::kNo,
@@ -151,7 +154,7 @@ public:
 
             // Send final fragment
             const auto frame = impl::frames::DataFrameHeader(
-                data_to_send,
+                data_to_send.size(),
                 message.opcode == impl::WSOpcodes::kText,
                 continuation,
                 impl::frames::Final::kYes,
@@ -191,6 +194,7 @@ public:
 
     bool RecvImpl(Message& msg, bool do_not_wait_for_message_header) {
         msg.data.resize(0);  // do not call .clear() to keep the allocated memory
+        msg.close_status = std::nullopt;
         frame_.payload = &msg.data;
 
         while (true) {
@@ -250,7 +254,7 @@ public:
 
             msg.is_text = frame_.is_text;
             stats_.msg_recv++;
-            stats_.bytes_recv += msg.data.size();
+            stats_.bytes_recv += utils::statistics::Rate{msg.data.size()};
             return true;
         }
     }
@@ -270,10 +274,10 @@ public:
 
     void AddFinalTags(tracing::Span& span) const override {
         span.AddTag("peer", remote_addr_.PrimaryAddressString());
-        span.AddTag("msg_sent", stats_.msg_sent.load());
-        span.AddTag("msg_recv", stats_.msg_recv.load());
-        span.AddTag("bytes_sent", stats_.bytes_sent.load());
-        span.AddTag("bytes_recv", stats_.bytes_recv.load());
+        span.AddTag("msg_sent", stats_.msg_sent.Load().value);
+        span.AddTag("msg_recv", stats_.msg_recv.Load().value);
+        span.AddTag("bytes_sent", stats_.bytes_sent.Load().value);
+        span.AddTag("bytes_recv", stats_.bytes_recv.Load().value);
     }
 
     void AddStatistics(Statistics& stats) const override {

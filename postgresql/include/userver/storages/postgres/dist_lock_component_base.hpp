@@ -19,7 +19,11 @@ namespace storages::postgres {
 ///
 /// A component that implements a distlock with lock in Postgres. Inherit from
 /// DistLockComponentBase and implement DoWork(). Lock options are configured
-/// in static config.
+/// in static config. To customize a distlock for testsuite override DoWorkTestsuite().
+///
+/// By default the distlock is started and stopped automatically by the framework
+/// in all environments except testsuite. If manual control over the distlock startup
+/// and shutdown is needed pass DisableAutostartAtBase{} to the DistLockComponentBase .ctor.
 ///
 /// The class must be used for infinite loop jobs. If you want a distributed
 /// periodic, you should look at locked_periodiccomponents::PgLockedPeriodic.
@@ -63,12 +67,20 @@ namespace storages::postgres {
 /// @see @ref scripts/docs/en/userver/periodics.md
 class DistLockComponentBase : public components::ComponentBase {
 public:
-    enum class AutostartDistlock : bool { kNo = false, kYes = true };
+    struct DisableAutostartAtBase {};
 
+    /// @brief Constructs the distlock base and enables automatic startup and shutdown of the distlock.
     DistLockComponentBase(
-        const components::ComponentConfig&,
-        const components::ComponentContext&,
-        AutostartDistlock autostart_at_base_component = AutostartDistlock::kNo
+        const components::ComponentConfig& component_config,
+        const components::ComponentContext& component_context
+    );
+
+    /// @brief Constructs the distlock base and disables automatic startup and shutdown of the distlock.
+    /// The dislock should be started and stopped manually via AutostartDistlock() and StopDistLock() calls.
+    DistLockComponentBase(
+        const components::ComponentConfig& component_config,
+        const components::ComponentContext& component_context,
+        DisableAutostartAtBase
     );
 
     ~DistLockComponentBase() override;
@@ -119,10 +131,12 @@ protected:
     /// Override this function to provide custom testsuite handler.
     virtual void DoWorkTestsuite() { DoWork(); }
 
-    /// Must be called in ctr
+    /// Should be called in a .ctor of a derived class iff DisableAutostartAtBase{}
+    /// has been passed to the DistLockComponentBase .ctor.
     void AutostartDistLock();
 
-    /// Must be called in dtr
+    /// Should be called in a .dtor of a derived class iff DisableAutostartAtBase{}
+    /// has been passed to the DistLockComponentBase .ctor.
     void StopDistLock();
 
     /// Check this method when going for the next independent processing
@@ -131,6 +145,14 @@ protected:
     bool IsCancelAdvised() const;
 
 private:
+    enum class AutostartDistlock : bool { kNo = false, kYes = true };
+
+    DistLockComponentBase(
+        const components::ComponentConfig& component_config,
+        const components::ComponentContext& component_context,
+        AutostartDistlock enable_autostart_at_base
+    );
+
     bool ShouldRunOnHost(const dynamic_config::Snapshot& config) const;
     void OnConfigUpdate(const dynamic_config::Diff& diff);
 
@@ -140,8 +162,7 @@ private:
     std::unique_ptr<dist_lock::DistLockedWorker> worker_;
     bool autostart_;
     bool testsuite_enabled_{false};
-    // temporary parameter, will be removed when all AutostartDistlock calls will be removed from the ctors
-    AutostartDistlock autostart_at_base_component_{AutostartDistlock::kNo};
+    AutostartDistlock enable_autostart_at_base_;
     dist_lock::DistLockSettings default_settings_;
 
     concurrent::AsyncEventSubscriberScope subscription_token_;

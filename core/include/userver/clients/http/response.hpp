@@ -57,7 +57,7 @@ public:
     enum class RaiseIncludeBody : std::uint8_t { kNo = 0, kYes = 1 };
 
     /// @brief Raise an exception depending on the response status.
-    ///        The body of the response may be included in the exception depending on the @param include_body.
+    ///        The body of the response may be included in the exception depending on the \c include_body.
     ///
     /// @throws HttpClientException for statuses [400; 500)
     /// @throws HttpServerException for statuses [500; 600)

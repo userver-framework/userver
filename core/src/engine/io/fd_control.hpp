@@ -4,6 +4,8 @@
 #include <atomic>
 #include <cerrno>
 
+#include <boost/container/small_vector.hpp>
+
 #include <userver/compiler/impl/lifetime.hpp>
 #include <userver/engine/io/exception.hpp>
 #include <userver/engine/io/fd_control_holder.hpp>
@@ -93,7 +95,7 @@ public:
     size_t PerformIoV(
         SingleUserGuard& guard,
         IoFunc&& io_func,
-        struct iovec* list,
+        const struct iovec* list,
         std::size_t list_size,
         TransferMode mode,
         Deadline deadline,
@@ -105,6 +107,17 @@ public:
     }
 
 private:
+    template <typename IoFunc, typename... Context>
+    size_t PerformIoVMutating(
+        IoFunc&& io_func,
+        const struct iovec* list,
+        std::size_t list_size,
+        std::size_t offset,
+        TransferMode mode,
+        Deadline deadline,
+        const Context&... context
+    );
+
     friend class FdControl;
     explicit Direction(const ev::ThreadControl& control)
         : poller_(control)
@@ -210,20 +223,71 @@ ErrorMode Direction::TryHandleError(
 }
 
 template <typename IoFunc, typename... Context>
+size_t Direction::PerformIoVMutating(
+    IoFunc&& io_func,
+    const struct iovec* initial_list,
+    std::size_t list_size,
+    std::size_t offset,
+    TransferMode mode,
+    Deadline deadline,
+    const Context&... context
+) {
+    UASSERT(list_size != 0);
+    UASSERT_MSG(mode != TransferMode::kOnce, "TransferMode::kOnce must be handled in PerformIoV");
+
+    static constexpr std::size_t kReasonableSize = 1024 / sizeof(struct iovec);  // 1KB for the on stack buffer
+    boost::container::small_vector<struct iovec, kReasonableSize> cloned(initial_list, initial_list + list_size);
+    cloned[0].iov_len -= offset;
+    cloned[0].iov_base = static_cast<char*>(initial_list->iov_base) + offset;
+    auto* list = cloned.data();
+
+    std::size_t processed_bytes = 0;
+    do {
+        const auto chunk_size = io_func(Fd(), list, (list_size < IOV_MAX ? list_size : IOV_MAX));
+
+        if (chunk_size > 0) {
+            processed_bytes += chunk_size;
+            std::size_t offset = chunk_size;
+            while (list_size > 0) {
+                const std::size_t len = list->iov_len;
+                if (offset >= len) {
+                    ++list;
+                    offset -= len;
+                    --list_size;
+                    UASSERT(list_size != 0 || offset == 0);
+                } else [[unlikely]] {
+                    list->iov_len -= offset;
+                    list->iov_base = static_cast<char*>(list->iov_base) + offset;
+                    break;
+                }
+            }
+        } else if (!chunk_size ||
+                   TryHandleError(errno, processed_bytes, mode, deadline, context...) == ErrorMode::kFatal)
+        {
+            break;
+        }
+    } while (list_size != 0);
+
+    return processed_bytes;
+}
+
+template <typename IoFunc, typename... Context>
 size_t Direction::PerformIoV(
     SingleUserGuard&,
     IoFunc&& io_func,
-    struct iovec* list,
+    const struct iovec* list,
     std::size_t list_size,
     TransferMode mode,
     Deadline deadline,
     const Context&... context
 ) {
-    UASSERT(list_size > 0);
-    UASSERT(list_size <= IOV_MAX);
+    if (list_size == 0) {
+        return 0;
+    }
+
     std::size_t processed_bytes = 0;
     do {
-        auto chunk_size = io_func(Fd(), list, list_size);
+        const auto chunk_size = io_func(Fd(), list, (list_size < IOV_MAX ? list_size : IOV_MAX));
 
         if (chunk_size > 0) {
             processed_bytes += chunk_size;
@@ -238,10 +302,18 @@ size_t Direction::PerformIoV(
                     offset -= len;
                     --list_size;
                     UASSERT(list_size != 0 || offset == 0);
-                } else {
-                    list->iov_len -= offset;
-                    list->iov_base = static_cast<char*>(list->iov_base) + offset;
-                    break;
+                } else [[unlikely]] {
+                    // Never happens?
+                    return processed_bytes +
+                           PerformIoVMutating(
+                               std::forward<IoFunc>(io_func),
+                               list,
+                               list_size,
+                               offset,
+                               mode,
+                               deadline,
+                               context...
+                           );
                 }
             }
         } else if (!chunk_size ||

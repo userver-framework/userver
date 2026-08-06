@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file
+/// @file userver/grpc-protovalidate/client/exceptions.hpp
 /// @brief Exceptions thrown by gRPC client validator middleware
 
 #include <userver/grpc-protovalidate/buf_validate.hpp>
@@ -16,7 +16,7 @@ public:
     using ugrpc::client::RpcError::RpcError;
 };
 
-/// @brief Base grpc_protovalidate error with @ref buf::validate::ValidationResult.
+/// @brief Base grpc_protovalidate error with `buf::validate::ValidationResult`.
 class MessageError : public BaseError {
 public:
     MessageError(

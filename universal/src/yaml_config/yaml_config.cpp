@@ -10,7 +10,6 @@
 #include <userver/formats/yaml/value_builder.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/string_to_duration.hpp>
-#include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -181,9 +180,7 @@ YamlConfig::YamlConfig(formats::yaml::Value yaml, formats::yaml::Value config_va
 {}
 
 YamlConfig YamlConfig::operator[](std::string_view key) const {
-    if (utils::text::EndsWith(key, "#env") || utils::text::EndsWith(key, "#file") ||
-        utils::text::EndsWith(key, "#fallback"))
-    {
+    if (key.ends_with("#env") || key.ends_with("#file") || key.ends_with("#fallback")) {
         UASSERT_MSG(false, "Do not use names ending on #env, #file and #fallback");
         return MakeMissingConfig(*this, key);
     }

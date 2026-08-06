@@ -60,7 +60,7 @@ CodeStatisticsSummary CodeStatistics::Snapshot::DumpMetricAndGetSummary(utils::s
         }
 
         if (count || IsZeroWritten(code)) {
-            status_writer.ValueWithLabels(count, {"grpc_code", ugrpc::ToString(code)});
+            status_writer.ValueWithLabels(count, {"grpc_code", ugrpc::ToStringView(code)});
         }
     }
 

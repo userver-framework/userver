@@ -69,6 +69,7 @@ public:
     stats::OperationKey op_key{stats::OpType::kInsertOne};
     std::optional<formats::bson::impl::BsonBuilder> options;
     bool should_throw{true};
+    std::chrono::milliseconds max_server_time{kNoMaxServerTime};
 };
 
 class InsertMany::Impl {
@@ -83,6 +84,7 @@ public:
     stats::OperationKey op_key{stats::OpType::kInsertMany};
     std::optional<formats::bson::impl::BsonBuilder> options;
     bool should_throw{true};
+    std::chrono::milliseconds max_server_time{kNoMaxServerTime};
 };
 
 class ReplaceOne::Impl {
@@ -128,6 +130,7 @@ public:
     formats::bson::Document selector;
     stats::OperationKey op_key{ToStatsOpType(mode)};
     std::optional<formats::bson::impl::BsonBuilder> options;
+    std::chrono::milliseconds max_server_time{kNoMaxServerTime};
 };
 
 class FindAndModify::Impl {

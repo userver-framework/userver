@@ -91,8 +91,6 @@ UTEST_MT(ThreadLocal, DISABLED_TaskUsesCorrectInstanceAfterSleep, 2) {
     UEXPECT_NO_THROW(sleep2.Get());
 }
 
-// Test is not ready to TSan non-migrating scheduler
-#if !USERVER_IMPL_HAS_TSAN
 namespace {
 
 auto& SafeGetThreadLocal() {
@@ -111,6 +109,10 @@ void SafeMultiplyThreadLocal(int new_value) noexcept {
 // This is a copy-paste from TaskUsesCorrectInstanceAfterSleep test.
 // While the test above consistently fails as of now, this test should pass.
 UTEST_MT(ThreadLocal, SafeThreadLocalWorks, 2) {
+#if USERVER_IMPL_HAS_TSAN
+    GTEST_SKIP() << "The test is not ready for the TSan non-migrating scheduler";
+#endif
+
     const auto thread1_id = pthread_self();
 
     auto sleep2 = engine::AsyncNoTracing([&] {
@@ -160,7 +162,6 @@ UTEST_MT(ThreadLocal, SafeThreadLocalWorks, 2) {
 
     UEXPECT_NO_THROW(sleep2.Get());
 }
-#endif
 
 namespace {
 

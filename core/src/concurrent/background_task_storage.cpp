@@ -20,7 +20,6 @@ BackgroundTaskStorageCore::~BackgroundTaskStorageCore() {
 }
 
 void BackgroundTaskStorageCore::CancelAndWait() noexcept {
-    UASSERT_MSG(sync_block_, "CancelAndWait should be called no more than once");
     if (!sync_block_) {
         return;
     }
@@ -28,8 +27,7 @@ void BackgroundTaskStorageCore::CancelAndWait() noexcept {
     sync_block_.reset();
 }
 
-void BackgroundTaskStorageCore::CloseAndWaitDebug() noexcept {
-    UASSERT_MSG(sync_block_, "CloseAndWaitDebug should be called no more than once");
+void BackgroundTaskStorageCore::WaitAndDisposeSlow() noexcept {
     if (!sync_block_) {
         return;
     }
@@ -60,7 +58,7 @@ BackgroundTaskStorage::BackgroundTaskStorage(engine::TaskProcessor& task_process
 
 void BackgroundTaskStorage::CancelAndWait() noexcept { core_.CancelAndWait(); }
 
-void BackgroundTaskStorage::CloseAndWaitDebug() noexcept { core_.CloseAndWaitDebug(); }
+void BackgroundTaskStorage::WaitAndDisposeSlow() noexcept { core_.WaitAndDisposeSlow(); }
 
 std::int64_t BackgroundTaskStorage::ActiveTasksApprox() const noexcept { return core_.ActiveTasksApprox(); }
 

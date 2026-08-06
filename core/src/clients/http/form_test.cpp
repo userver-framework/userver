@@ -1,5 +1,7 @@
 #include <userver/clients/http/form.hpp>
 
+#include <gmock/gmock.h>
+
 #include <userver/clients/http/client.hpp>
 #include <userver/http/http_version.hpp>
 #include <userver/utest/http_client.hpp>
@@ -57,20 +59,20 @@ void ValidateFilesend(
     key = "name=\"" + key + "\"";
     filename = "filename=\"" + filename + "\"";
 
-    const auto key_pos = request.find(key);
-    EXPECT_NE(key_pos, std::string::npos) << "Found no '" << key << "' in: " << request;
+    EXPECT_THAT(request, testing::HasSubstr(key)) << "Found no '" << key << "' in: " << request;
 
     const auto test_data_pos = request.find(test_data);
-    EXPECT_NE(test_data_pos, std::string::npos) << "failed to find '" << test_data << "' in:" << request;
+    EXPECT_THAT(request, testing::HasSubstr(test_data)) << "failed to find '" << test_data << "' in:" << request;
 
     const auto multipart_pos = request.find("multipart/form-data");
-    EXPECT_NE(multipart_pos, std::string::npos) << "failed to find 'multipart/form-data' in:" << request;
+    EXPECT_THAT(request, testing::HasSubstr("multipart/form-data"))
+        << "failed to find 'multipart/form-data' in:" << request;
 
     const auto filename_pos = request.find(filename);
-    EXPECT_NE(filename_pos, std::string::npos) << "failed to find '" << filename << "' in:" << request;
+    EXPECT_THAT(request, testing::HasSubstr(filename)) << "failed to find '" << filename << "' in:" << request;
 
     const auto content_type_pos = request.find(content_type);
-    EXPECT_NE(content_type_pos, std::string::npos) << "failed to find 'image/jpeg' in:" << request;
+    EXPECT_THAT(request, testing::HasSubstr(content_type)) << "failed to find 'image/jpeg' in:" << request;
 
     EXPECT_LT(multipart_pos, filename_pos) << "Filename appears before 'multipart/form-data': " << request;
 

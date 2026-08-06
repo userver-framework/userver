@@ -21,12 +21,15 @@ auto DoParse(const USERVER_NAMESPACE::formats::json::Value& value) {
 
 }  // anonymous namespace
 
-const USERVER_NAMESPACE::dynamic_config::Key<::dynamic_config::feature_flags::VariableTypeRaw> FEATURE_FLAGS{
+const USERVER_NAMESPACE::dynamic_config::Key<
+    ::dynamic_config::feature_flags::VariableTypeRaw
+> FEATURE_FLAGS{
     "FEATURE_FLAGS",
     DoParse,
     USERVER_NAMESPACE::dynamic_config::DefaultAsJsonString{R"~(
         {"enable_new_logic": false, "timeout_ms": 5000}
     )~"},
+    "87532654226185e45e1e788e08df6be5e2a748579036dac7c7606f2ac0cd17ef",
 };
 
 }  // namespace dynamic_config

@@ -15,10 +15,8 @@
 namespace dynamic_config {namespace connection_pool_settings {
 
 struct PoolSettings {
-            static constexpr auto kMin_Pool_SizeMinimum = 0;
-
-            static constexpr auto kMax_Pool_SizeMinimum = 1;
-
+    static constexpr auto kMin_Pool_SizeMinimum = 0;
+    static constexpr auto kMax_Pool_SizeMinimum = 1;
     static constexpr auto kFieldDefaultmin_pool_size = std::int64_t{1};
     static constexpr auto kFieldDefaultmax_pool_size = std::int64_t{10};
 
@@ -53,7 +51,6 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
     USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
 
 struct VariableTypeRaw {
-
     std::optional<::dynamic_config::connection_pool_settings::PoolSettings> __default__{};
     std::unordered_map<std::string, ::dynamic_config::connection_pool_settings::PoolSettings> extra{};
 };

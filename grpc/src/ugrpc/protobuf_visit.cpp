@@ -7,7 +7,7 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 
-#include <userver/ugrpc/impl/protobuf_collector.hpp>
+#include <userver/protobuf/impl/descriptor_collector.hpp>
 #include <userver/ugrpc/protobuf_logging.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -154,13 +154,7 @@ DescriptorList GetNestedMessageDescriptors(const google::protobuf::Descriptor& d
 }
 
 const google::protobuf::Descriptor* FindGeneratedMessage(std::string_view name) {
-    const google::protobuf::DescriptorPool* pool = google::protobuf::DescriptorPool::generated_pool();
-    UINVARIANT(pool, "pool is nullptr");
-#if GOOGLE_PROTOBUF_VERSION >= 4022000
-    return pool->FindMessageTypeByName(name);
-#else
-    return pool->FindMessageTypeByName(std::string(name));
-#endif
+    return protobuf::impl::FindGeneratedMessage(name);
 }
 
 const google::protobuf::FieldDescriptor* FindField(
@@ -234,7 +228,7 @@ void VisitorCompiler::Compile(const DescriptorList& descriptors) {
     }
 }
 
-void VisitorCompiler::CompileAllGenerated() { Compile(impl::GetGeneratedMessages()); }
+void VisitorCompiler::CompileAllGenerated() { Compile(protobuf::impl::GetGeneratedMessages()); }
 
 void VisitorCompiler::CompileGenerated(std::string_view message_name) { Compile(FindGeneratedMessage(message_name)); }
 

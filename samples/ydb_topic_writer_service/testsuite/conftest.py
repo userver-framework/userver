@@ -1,3 +1,4 @@
+# /// [YDB topic writer service sample - testsuite conftest]
 import pytest
 
 pytest_plugins = ['pytest_userver.plugins.core', 'pytest_userver.plugins.ydb']
@@ -29,3 +30,4 @@ def ydb_create_topic(ydb, ydb_topic_path, ydb_topic_consumer_name):
         )
         if hasattr(create_result, 'result'):
             create_result.result()
+            # /// [YDB topic writer service sample - testsuite conftest]

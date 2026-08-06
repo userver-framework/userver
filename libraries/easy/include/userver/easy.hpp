@@ -94,7 +94,7 @@ std::string FormatToJsonString(const T& value) {
 ///
 /// This component can be registered in the component list and used by any client. For example:
 ///
-/// @snippet libraries/easy/samples/6_pg_service_template_no_http_with/src/main.cpp  main
+/// @snippet samples/easy/6_pg_service_template_no_http_with/src/main.cpp  main
 template <class Dependencies>
 class DependenciesComponent : public impl::DependenciesBase {
 public:
