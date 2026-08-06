@@ -3,6 +3,8 @@
 /// @file userver/utils/boost_uuid4.hpp
 /// @brief @copybrief utils::generators::GenerateBoostUuid()
 
+#include <string_view>
+
 #include <boost/uuid/uuid.hpp>
 
 #include <fmt/core.h>
