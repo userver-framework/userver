@@ -245,16 +245,16 @@ void CacheUpdateTrait::Impl::StartPeriodicUpdates(utils::Flags<CacheUpdateTrait:
             });
         }
     } catch (...) {
-        is_running_ = false;  // update_task_ is not started, don't check it in dtr
+        StopPeriodicUpdates();
         throw;
     }
 }
 
 void CacheUpdateTrait::Impl::StopPeriodicUpdates() {
-    if (!is_running_.exchange(false)) {
-        return;
-    }
+    is_running_.store(false);
 
+    // All of the following cleanup operations are idempotent. Do not gate them on the previous is_running_ value:
+    // StartPeriodicUpdates may have partially completed, so we need to clean up even if it failed.
     cache_reset_registration_.Unregister();
     config_subscription_.Unsubscribe();
     statistics_holder_.Unregister();
