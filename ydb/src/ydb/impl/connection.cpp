@@ -21,16 +21,18 @@ NYdb::NTable::TClientSettings MakeTableSettings(const TableSettings& settings) {
     return table_settings;
 }
 
+}  // namespace
+
 NYdb::NQuery::TClientSettings MakeQuerySettings(const TableSettings& settings) {
     NYdb::NQuery::TSessionPoolSettings session_pool_settings;
-    session_pool_settings.MaxActiveSessions(settings.max_pool_size).MinPoolSize(settings.min_pool_size);
+    session_pool_settings.MaxActiveSessions(settings.max_pool_size)
+        .MinPoolSize(settings.min_pool_size)
+        .UseDeferredSessionCreation(settings.use_deferred_session_creation);
 
     NYdb::NQuery::TClientSettings query_settings;
     query_settings.SessionPoolSettings(session_pool_settings);
     return query_settings;
 }
-
-}  // namespace
 
 Connection::Connection(std::shared_ptr<Driver> from_driver, const TableSettings& settings)
     : driver(std::move(from_driver)),

@@ -6703,6 +6703,7 @@
   "ydb/src/ydb/topic_writer_component.yaml":"taxi/uservices/userver/ydb/src/ydb/topic_writer_component.yaml",
   "ydb/src/ydb/topic_writer_types.cpp":"taxi/uservices/userver/ydb/src/ydb/topic_writer_types.cpp",
   "ydb/src/ydb/transaction.cpp":"taxi/uservices/userver/ydb/src/ydb/transaction.cpp",
+  "ydb/tests/config_test.cpp":"taxi/uservices/userver/ydb/tests/config_test.cpp",
   "ydb/tests/coordination_test.cpp":"taxi/uservices/userver/ydb/tests/coordination_test.cpp",
   "ydb/tests/dist_lock_test.cpp":"taxi/uservices/userver/ydb/tests/dist_lock_test.cpp",
   "ydb/tests/execute_test.cpp":"taxi/uservices/userver/ydb/tests/execute_test.cpp",

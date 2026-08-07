@@ -60,6 +60,12 @@ properties:
                     minimum: 0
                     default: 5
                     description: retries count to get session, every attempt with a get-session-timeout
+                use_deferred_session_creation:
+                    type: boolean
+                    default: false
+                    description: |
+                        Continue creating a Query API session in the background after the requesting operation reaches its
+                        get-session timeout. A successfully created session is added to the pool for subsequent operations.
                 keep-in-query-cache:
                     type: boolean
                     default: true
