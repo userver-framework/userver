@@ -26,36 +26,30 @@ struct SystemStatisticsCollector::Impl {
     };
 
     Impl(const ComponentConfig& config, const ComponentContext& context)
-        : with_nginx(config["with-nginx"].As<bool>(false)),
-          fs_task_processor(GetFsTaskProcessor(config, context))
+        : with_nginx(config["with-nginx"].As<bool>(false))
     {
-        periodic.Start(
-            "system_statistics_collector",
-            {std::chrono::seconds(10), {utils::PeriodicTask::Flags::kNow}},
-            [this] { ProcessTimer(); }
-        );
+        utils::PeriodicTask::Settings settings{std::chrono::seconds(10), {utils::PeriodicTask::Flags::kNow}};
+        settings.task_processor = &GetFsTaskProcessor(config, context);
+        periodic.Start("system_statistics_collector", settings, [this] { ProcessTimer(); });
     }
 
     void ProcessTimer();
 
     const bool with_nginx;
-    engine::TaskProcessor& fs_task_processor;
     concurrent::Variable<Data> data;
     utils::PeriodicTask periodic;
 };
 
 void SystemStatisticsCollector::Impl::ProcessTimer() {
-    engine::CriticalAsyncNoTracing(fs_task_processor, [&] {
-        auto self = utils::statistics::impl::GetSelfSystemStatistics();
-        utils::statistics::impl::SystemStats nginx;
-        if (with_nginx) {
-            nginx = utils::statistics::impl::GetSystemStatisticsByExeName("nginx");
-        }
+    auto self = utils::statistics::impl::GetSelfSystemStatistics();
+    utils::statistics::impl::SystemStats nginx;
+    if (with_nginx) {
+        nginx = utils::statistics::impl::GetSystemStatisticsByExeName("nginx");
+    }
 
-        auto data_lock = data.UniqueLock();
-        data_lock->last_stats = self;
-        data_lock->last_nginx_stats = nginx;
-    }).Get();
+    auto data_lock = data.UniqueLock();
+    data_lock->last_stats = self;
+    data_lock->last_nginx_stats = nginx;
 }
 
 SystemStatisticsCollector::SystemStatisticsCollector(const ComponentConfig& config, const ComponentContext& context)

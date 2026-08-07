@@ -189,7 +189,7 @@ properties:
                     description: |
                         tunes the number of spin-wait iterations in case of
                         an empty task queue before threads go to sleep
-                    defaultDescription: 10000
+                    defaultDescription: 1000
                 task-processor-queue:
                     type: string
                     description: |
