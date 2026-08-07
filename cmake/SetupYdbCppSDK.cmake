@@ -1,6 +1,41 @@
 # @ingroup download
 option(USERVER_DOWNLOAD_PACKAGE_YDBCPPSDK "Download and setup ydb-cpp-sdk" ${USERVER_DOWNLOAD_PACKAGES})
 
+set(USERVER_YDBCPPSDK_VERSION 3.21.0)
+set(USERVER_YDBCPPSDK_COMPONENTS
+    Coordination
+    Driver
+    FederatedTopic
+    Iam
+    Operation
+    Query
+    Result
+    Scheme
+    SolomonStats
+    Table
+    Topic
+    Types
+)
+
+set(USERVER_YDBCPPSDK_DEB_PREFIX /usr/share/yandex)
+if(EXISTS "${USERVER_YDBCPPSDK_DEB_PREFIX}/lib/cmake/ydb-cpp-sdk")
+    list(PREPEND CMAKE_PREFIX_PATH "${USERVER_YDBCPPSDK_DEB_PREFIX}")
+endif()
+
+if(NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
+    if(USERVER_DOWNLOAD_PACKAGE_YDBCPPSDK)
+        find_package(ydb-cpp-sdk ${USERVER_YDBCPPSDK_VERSION} QUIET CONFIG COMPONENTS ${USERVER_YDBCPPSDK_COMPONENTS})
+    else()
+        find_package(
+            ydb-cpp-sdk ${USERVER_YDBCPPSDK_VERSION} REQUIRED CONFIG COMPONENTS ${USERVER_YDBCPPSDK_COMPONENTS}
+        )
+    endif()
+
+    if(ydb-cpp-sdk_FOUND)
+        return()
+    endif()
+endif()
+
 include(DownloadUsingCPM)
 include(SetupBrotli)
 
@@ -34,7 +69,7 @@ endif()
 
 cpmaddpackage(
     NAME ydb-cpp-sdk
-    GIT_TAG v3.21.0
+    GIT_TAG v${USERVER_YDBCPPSDK_VERSION}
     GITHUB_REPOSITORY ydb-platform/ydb-cpp-sdk
     GIT_SHALLOW TRUE
     OPTIONS "Brotli_VERSION ${Brotli_VERSION}" "RAPIDJSON_INCLUDE_DIRS ${RAPIDJSON_INCLUDE_DIRS}"
