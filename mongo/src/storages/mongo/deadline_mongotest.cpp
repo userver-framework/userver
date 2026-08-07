@@ -99,7 +99,8 @@ UTEST_F(DeadlinePropagation, CancelledByDeadlineAfterGetClient) {
         // check positive case, connection creation is fast
         auto pool = MakePool({}, pool_config);
         auto coll = pool.GetCollection("dp");
-        server::request::kTaskInheritedData.Set(MakeRequestData(engine::Deadline::FromDuration(200ms)));
+        server::request::kTaskInheritedData.Set(MakeRequestData(engine::Deadline::FromDuration(utest::kMaxTestWaitTime))
+        );
         UASSERT_NO_THROW(coll.InsertOne(bson::MakeDoc("_id", 1)));
     }
     {
