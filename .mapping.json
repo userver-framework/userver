@@ -29,6 +29,7 @@
   ".gitignore":"taxi/uservices/userver/.gitignore",
   "AGENTS.md":"taxi/uservices/userver/AGENTS.md",
   "AUTHORS":"taxi/uservices/userver/AUTHORS",
+  "CLAUDE.md":"taxi/uservices/userver/CLAUDE.md",
   "CMakeLists.txt":"taxi/uservices/userver/CMakeLists.txt",
   "CODEOWNERS":"taxi/uservices/userver/CODEOWNERS",
   "CODE_OF_CONDUCT.md":"taxi/uservices/userver/CODE_OF_CONDUCT.md",
