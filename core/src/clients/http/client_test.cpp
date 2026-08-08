@@ -97,6 +97,12 @@ g3n5Bom64kOrAWOk2xcpd0Pm00o=
 constexpr char
     kResponse301WithHeaderPattern[] = "HTTP/1.1 301 OK\r\nConnection: close\r\nContent-Length: 0\r\n{}\r\n\r\n";
 
+
+using ::testing::IsEmpty;
+using ::testing::ElementsAreArray;
+using ::testing::UnorderedElementsAreArray;
+
+
 class RequestMethodTestData final {
 public:
     using Request = clients::http::Request;
@@ -154,6 +160,15 @@ std::optional<HttpResponse> Process100(const HttpRequest& request) {
     }
 
     return std::nullopt;
+}
+
+std::vector<std::string> Pairs(const clients::http::Response::CookiesMap& cookies) {
+    std::vector<std::string> out;
+    out.reserve(cookies.size());
+    for (const auto& cookie : cookies) {
+        out.push_back(cookie.first + '=' + cookie.second.Value());
+    }
+    return out;
 }
 
 struct EchoCallback {
@@ -440,6 +455,26 @@ struct CheckCookie {
         EXPECT_TRUE(unseen_cookies.empty()) << "Not all cookies received";
 
         return kOkResponse;
+    }
+};
+
+struct ReturnCookies {
+    const std::vector<std::string> cookies;
+
+    HttpResponse operator()(const HttpRequest&) {
+        constexpr std::string_view prefix = "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: 0";
+        std::string builder;
+        builder.reserve(prefix.size() * 2 + cookies.size() * 20); // magic constant to average size of cookie string
+        builder.append(prefix);
+        for (const auto& cookie : cookies) {
+            builder.append("\r\nSet-Cookie: ");
+            builder.append(cookie);
+        }
+        builder.append("\r\n\r\n");
+        return HttpResponse{
+            std::move(builder),
+            HttpResponse::kWriteAndClose
+        };
     }
 };
 
@@ -1177,6 +1212,28 @@ UTEST(HttpClient, Cookies) {
     test({{"a", "b"}}, {"a=b"});
     test({{"A", "B"}}, {"A=B"});
     test({{"a", "B"}, {"A", "b"}}, {"a=B", "A=b"});
+}
+
+UTEST(HttpClient, CookiesFromServerMapAPI) {
+    // Without compliant CookieJar with rfc 6265, we will just check raw cookies without deduplication etc
+    const auto test = [](std::vector<std::string> response_cookies, std::vector<std::string> expected) {
+        const utest::SimpleServer http_server{ReturnCookies{response_cookies}};
+        auto http_client_ptr = utest::CreateHttpClient();
+        for (unsigned i = 0; i < kRepetitions; ++i) {
+            const auto response =
+                http_client_ptr->CreateRequest()
+                    .get(http_server.GetBaseUrl())
+                    .retry(1)
+                    .verify(true)
+                    .http_version(USERVER_NAMESPACE::http::HttpVersion::k11)
+                    .timeout(kTimeout)
+                    .perform();
+            EXPECT_TRUE(response->IsOk());
+            EXPECT_THAT(Pairs(response->cookies()), UnorderedElementsAreArray(expected));
+        }
+    };
+    test({"token=xyz789"}, {"token=xyz789"});
+    test({"A=1", "A=2", "FOO=BAR"}, {"A=2", "FOO=BAR"});
 }
 
 UTEST(HttpClient, DuplicateSetCookieOverwrites) {

@@ -232,6 +232,8 @@ HttpServerMock::HttpServerMock(HttpHandler http_handler, SimpleServer::Protocol 
 
 std::string HttpServerMock::GetBaseUrl() const { return server_.GetBaseUrl(); }
 
+unsigned short HttpServerMock::GetPort() const { return server_.GetPort(); }
+
 std::uint64_t HttpServerMock::GetConnectionsOpenedCount() const { return server_.GetConnectionsOpenedCount(); }
 
 }  // namespace utest

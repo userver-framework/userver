@@ -274,6 +274,8 @@ RequestState::RequestState(
     // Even if proxy is an empty string we should set it, because empty proxy
     // for CURL disables the use of *_proxy env variables.
     easy().set_proxy("");
+    // Disabling cookie engine by default
+    EnableCookieEngine(false);
 
     RequestCompleted();
 }
@@ -390,6 +392,17 @@ void RequestState::proxy(utils::zstring_view value) {
 
 bool RequestState::IsProxySet() const { return proxy_url_.has_value(); }
 
+void RequestState::EnableCookieEngine(bool enable) {
+    cookie_engine_enabled_ = enable;
+    // "" for enabling cookie engine withour reading any files
+    // null for disabling and clearing in memory jar
+    easy().set_cookie_file(enable ? "" : nullptr);
+}
+
+bool RequestState::IsCookieEngineEnabled(void) const {
+    return cookie_engine_enabled_;
+}
+
 void RequestState::proxy_auth_type(curl::easy::proxyauth_t value) { easy().set_proxy_auth(value); }
 
 void RequestState::http_auth_type(
@@ -401,6 +414,14 @@ void RequestState::http_auth_type(
     easy().set_http_auth(value, auth_only);
     easy().set_user(user.c_str());
     easy().set_password(password.c_str());
+}
+
+void RequestState::set_cookie_engine(const std::vector<std::string>& cookies) {
+    EnableCookieEngine(true);
+    //  cookies should be presented by netscape file format, otherwise (Set-Cookie format) can lead for unexpected results for domains. see libcurl docs
+    for (const auto& item : cookies) {
+        easy().set_cookie_list(item);
+    }
 }
 
 void RequestState::Cancel() {
@@ -681,7 +702,12 @@ void RequestState::OnRetryTimer(std::error_code err) {
 }
 
 void RequestState::ParseSingleCookie(std::string_view cookie) {
+    if (IsCookieEngineEnabled()) {
+        LOG_WARNING() << "Cookies engine was enabled. Ignoring parsing cookie '" << cookie << "'";
+        return;
+    }
     if (auto parsed_cookie = server::http::Cookie::FromString(cookie)) {
+        //  For API compatibiliy we preserve old API
         [[maybe_unused]] auto
             [it, ok] = response_->cookies().try_emplace(parsed_cookie->Name(), std::move(*parsed_cookie));
         if (!ok) {

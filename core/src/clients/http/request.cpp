@@ -4,6 +4,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <ranges>
 
 #include <userver/clients/http/connect_to.hpp>
 #include <userver/clients/http/error.hpp>
@@ -428,17 +429,28 @@ Request& Request::proxy_auth_type(ProxyAuthType value) & {
 Request Request::proxy_auth_type(ProxyAuthType value) && { return std::move(this->proxy_auth_type(value)); }
 
 Request& Request::cookies(const Cookies& cookies) & {
+    pimpl_->EnableCookieEngine(false);
     SetCookies(pimpl_->easy(), cookies);
     return *this;
 }
 Request Request::cookies(const Cookies& cookies) && { return std::move(this->cookies(cookies)); }
 
 Request& Request::cookies(const std::unordered_map<std::string, std::string>& cookies) & {
+    pimpl_->EnableCookieEngine(false);
     SetCookies(pimpl_->easy(), cookies);
     return *this;
 }
 Request Request::cookies(const std::unordered_map<std::string, std::string>& cookies) && {
     return std::move(this->cookies(cookies));
+}
+
+Request& Request::cookies(const CookieJar& cookie_jar) & {
+    pimpl_->set_cookie_engine(cookie_jar.cookies_);
+    return *this;
+}
+
+Request Request::cookies(const CookieJar& cookie_jar) && {
+    return std::move(this->cookies(std::move(cookie_jar)));
 }
 
 Request& Request::method(HttpMethod method) & {
@@ -588,6 +600,10 @@ const std::string& Request::GetUrl() const& { return pimpl_->easy().get_original
 const std::string& Request::GetData() const& { return pimpl_->easy().get_post_data(); }
 
 std::string Request::ExtractData() { return pimpl_->easy().extract_post_data(); }
+
+CookieJar Request::GetCookieJar() {
+    return pimpl_->easy().get_cookielist();
+}
 
 void Request::SetWaitToken(utils::impl::InternalTag, utils::impl::WaitTokenStorageLock&& wait_token) {
     pimpl_->SetWaitToken(std::move(wait_token));

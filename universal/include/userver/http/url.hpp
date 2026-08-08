@@ -52,6 +52,11 @@ std::string UrlEncodePathSegment(std::string_view input_string);
 /// @snippet universal/src/http/url_test.cpp  EncodeS3Key example
 std::string EncodeS3Key(std::string_view key);
 
+/// @brief Convert a domain name to its ASCII form using Punycode (RFC 3492)
+/// @param domain UTF-8 encoded domain name
+/// @returns Domain in ASCII form, in the case of any errors returns std::nullopt
+std::optional<std::string> ToPunycodeAscii(std::string_view domain);
+
 using Args = std::unordered_map<std::string, std::string, utils::StrCaseHash>;
 using MultiArgs = std::multimap<std::string, std::string>;
 using PathArgs = std::unordered_map<std::string, std::string>;
