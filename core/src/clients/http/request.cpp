@@ -602,7 +602,7 @@ const std::string& Request::GetData() const& { return pimpl_->easy().get_post_da
 std::string Request::ExtractData() { return pimpl_->easy().extract_post_data(); }
 
 CookieJar Request::GetCookieJar() {
-    return pimpl_->easy().get_cookielist();
+    return CookieJar(pimpl_->easy().get_cookielist());
 }
 
 void Request::SetWaitToken(utils::impl::InternalTag, utils::impl::WaitTokenStorageLock&& wait_token) {

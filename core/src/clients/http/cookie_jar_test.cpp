@@ -1,16 +1,10 @@
 #include <userver/clients/http/cookie_jar.hpp>
 
-#include <chrono>
-#include <string>
-#include <string_view>
-#include <fmt/format.h>
-#include <vector>
-
 #include <gmock/gmock.h>
-
 #include <boost/algorithm/string/split.hpp>
 #include <boost/algorithm/string/trim.hpp>
 
+#include <curl-ev/native.hpp>
 #include <engine/task/task_processor.hpp>
 #include <userver/server/http/http_response_cookie.hpp>
 #include <userver/http/url.hpp>
@@ -18,12 +12,22 @@
 #include <userver/fs/blocking/write.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/clients/http/client_core.hpp>
-#include <userver/utils/str_icase.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/mock_now.hpp>
 #include <userver/utest/http_client.hpp>
 #include <userver/utest/http_server_mock.hpp>
 #include <userver/utest/utest.hpp>
+
+//  Must repeat the condition that guards the definition in cookie_jar.cpp
+#if defined(__linux__) && !defined(USERVER_IMPL_STATIC_CURL)
+#include <dlfcn.h>
+
+//  Injected userver's function
+struct psl_ctx_st;
+extern "C" psl_ctx_st* psl_latest(const char* fname);
+//  Process wide count of psl_latest() invocations, defined next to it in cookie_jar.cpp
+extern "C" std::size_t userver_impl_psl_latest_calls();
+#endif
 
 USERVER_NAMESPACE_BEGIN
 
@@ -140,6 +144,11 @@ protected:
     const CookieJar& GetCookieJar() const {
         return state_->cookie_jar;
     }
+
+    //  Checking, whether curl was built with PSL support
+    bool IsPSLEnabled() const {
+        return curl_version_info(curl::native::CURLVERSION_NOW)->features & CURL_VERSION_PSL;
+    }
 private:
     struct ReturnCookie {
         std::reference_wrapper<std::string> cookie;
@@ -180,7 +189,7 @@ private:
     };
 
     std::string FormatPort(utest::HttpServerMock& server, std::string_view url) {
-         auto parsed_url = userver::http::DecomposeUrlIntoViews(url);
+         auto parsed_url = USERVER_NAMESPACE::http::DecomposeUrlIntoViews(url);
          auto host = parsed_url.host.substr(0, parsed_url.host.find(":"));
          if (state_->valid_domains.find(std::string{host}) == state_->valid_domains.end()) {
             throw std::runtime_error(fmt::format("Attempt to use not mocked domain {}", parsed_url.host));
@@ -221,6 +230,9 @@ UTEST_F(HttpCookieJar, EmptyJarReturnsNothing) {
 
 // Security issue, don't allow supercookie
 UTEST_F(HttpCookieJar, EmptyJarForSuperCookies) {
+    if (!IsPSLEnabled()) {
+        GTEST_SKIP() << "libcurl is built without libpsl";
+    }
     MockDomains({"a.com", "hacked.com", "hacked.a.com"});
     Store("http://a.com", "session=cracked; Domain=.com;");
 
@@ -573,6 +585,40 @@ UTEST_F(HttpCookieJar, CookiesWithinRedirections) {
     EXPECT_EQ(invocation_count, 4);
 }
 
+//  Filesystem should not be used with cookie jar on libev thread
+UTEST_F(HttpCookieJar, PslInterpositionIsLinkedIn) {
+    /*
+        Libcurl can load prefix graph from libpsl indirectly throught `psl_latest` which in turn can access to filesystem.
+        This can lead to performance drop because this invocation can occur on libev threads. 
+    */
+    if (!IsPSLEnabled()) {
+        //  In the case of disabled psl for libcurl nothing to test. Trivial and most obvious way
+        GTEST_SKIP() << "libcurl is built without libpsl, nothing calls psl_latest()";
+    }
+#if defined(USERVER_IMPL_STATIC_CURL) || !defined(__linux__)
+    //  We expect pls to be turned off for statically linked curl for simplicity or for not linux based api
+    FAIL() << "PLS is not expected to be enabled";
+#else
+    //  In the case of dynamically linked curl, we hacked `psl_latest` by injecting to forward calls to `psl_builtin`, 
+    //  which in turn uses libpsl's embedded graph. 
+
+    //  Testing that own version of `psl_latest` is invoked
+    const auto calls_before = userver_impl_psl_latest_calls();
+    Store("http://localhost", "key1=value1");
+    EXPECT_GT(userver_impl_psl_latest_calls(), calls_before) 
+        << "Injected `psl_latest` is not working. Was libcurl library linked statically with own version of psl?";
+
+    //  Testing that own version of `psl_latest` returns valid builtin context
+    void* psl_builtin = dlsym(RTLD_DEFAULT, "psl_builtin");
+    ASSERT_NE(psl_builtin, nullptr) << "libpsl is linked into libcurl privately, the interposition cannot work";
+    const auto builtin_psl_context = reinterpret_cast<const psl_ctx_st* (*)()>(psl_builtin)();
+    //  psl_latest MUST return builtin context
+    EXPECT_NE(builtin_psl_context, nullptr) << "psl's builtin context is empty";
+    EXPECT_EQ(psl_latest(""), builtin_psl_context) << "libcurl returns unexpected psl context";
+    EXPECT_EQ(psl_latest(""), builtin_psl_context) << "libcurl should return the same builtin psl context by repetitive calls";
+#endif
+}
+
 //  Http request can be reused, cookie jar should be persisted correctly
 UTEST(HttpCookieJarRequest, CookiesForReusedRequest) {
     int invocation_count = 0;
@@ -614,6 +660,5 @@ UTEST(HttpCookieJarRequest, CookiesForReusedRequest) {
 
     EXPECT_EQ(invocation_count, 3);
 }
-
 
 USERVER_NAMESPACE_END

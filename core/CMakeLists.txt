@@ -53,6 +53,35 @@ add_library(${PROJECT_NAME} STATIC ${SOURCES})
 # thread_local usage in Moodycamel is incompatible with userver scheduler that migrates coroutines between threads.
 target_compile_definitions(${PROJECT_NAME} PUBLIC MOODYCAMEL_NO_THREAD_LOCAL)
 
+# A statically linked libcurl leaves no dynamic symbols to interpose, so the Public Suffix List workaround in
+# src/clients/http/cookie_jar.cpp cannot work and is compiled out
+
+get_target_property(_curl_target CURL::libcurl ALIASED_TARGET)
+if(NOT _curl_target)
+    set(_curl_target CURL::libcurl)
+endif()
+
+get_target_property(_curl_config ${_curl_target} IMPORTED_CONFIGURATIONS)
+if(_curl_config)
+    list(GET _curl_config 0 _curl_config)
+    get_target_property(_curl_path ${_curl_target} IMPORTED_LOCATION_${_curl_config})
+else()
+    get_target_property(_curl_path ${_curl_target} IMPORTED_LOCATION)
+endif()
+
+get_target_property(_curl_type ${_curl_target} TYPE)
+get_target_property(_curl_defs ${_curl_target} INTERFACE_COMPILE_DEFINITIONS)
+
+if(_curl_type STREQUAL "STATIC_LIBRARY"
+   OR "CURL_STATICLIB" IN_LIST _curl_defs
+   OR _curl_path MATCHES "\\${CMAKE_STATIC_LIBRARY_SUFFIX}$"
+)
+    set(USERVER_IMPL_STATIC_CURL ON)
+    target_compile_definitions(${PROJECT_NAME} PRIVATE USERVER_IMPL_STATIC_CURL)
+else()
+    set(USERVER_IMPL_STATIC_CURL OFF)
+endif()
+
 include(GenGdbPrinters)
 gen_gdb_cmd(${PROJECT_NAME} "cmd/utask")
 
@@ -280,6 +309,9 @@ if(USERVER_BUILD_TESTS)
     add_executable(${PROJECT_NAME}-unittest ${UNIT_TEST_SOURCES})
     target_include_directories(${PROJECT_NAME}-unittest PRIVATE $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
     target_link_libraries(${PROJECT_NAME}-unittest PRIVATE userver-utest)
+    if(USERVER_IMPL_STATIC_CURL)
+        target_compile_definitions(${PROJECT_NAME}-unittest PRIVATE USERVER_IMPL_STATIC_CURL)
+    endif()
 
     add_google_tests(${PROJECT_NAME}-unittest)
     add_subdirectory(functional_tests)

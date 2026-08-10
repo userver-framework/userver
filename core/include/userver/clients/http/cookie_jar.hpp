@@ -15,12 +15,7 @@ class Request;
 /// @brief Storage for cookies, compliable with RFC 6265. Can be used for sending and receiving cookies on agent side.
 class CookieJar final {
 public:
-    CookieJar();
-    ~CookieJar();
-    CookieJar(const CookieJar&);
-    CookieJar(CookieJar&&);
-    CookieJar& operator=(const CookieJar&);
-    CookieJar& operator=(CookieJar&&);
+    CookieJar() = default;
 
     /// @brief Gets ANY cookie value, associated with name. In general case, multiple cookies can be stored with the same name, order is not specified
     /// @param name Name of cookie
@@ -29,7 +24,7 @@ public:
     std::optional<std::string> FindCookieValue(std::string_view name) const;
 private:
     // Constructs CookieJar by list of cookies in netscape file format
-    CookieJar(std::vector<std::string>&& cookies);
+    explicit CookieJar(std::vector<std::string>&& cookies);
 
     // To allow request to construct/extract cookies in netscape format
     friend class Request;
