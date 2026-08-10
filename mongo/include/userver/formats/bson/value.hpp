@@ -250,10 +250,10 @@ public:
     /// @brief Returns an array as its internal representation (BSON document),
     /// internal use only
     Document GetInternalArrayDocument() const;
-    /// @endcond
 
-protected:
+    /// Native type access, internal use only
     const impl::BsonHolder& GetBson() const;
+    /// @endcond
 
 private:
     friend class ValueBuilder;

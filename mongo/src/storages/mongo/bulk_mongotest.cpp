@@ -3,11 +3,13 @@
 #include <storages/mongo/util_mongotest.hpp>
 #include <userver/formats/bson.hpp>
 #include <userver/storages/mongo.hpp>
+#include <userver/storages/mongo/exception.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace bson = formats::bson;
 namespace mongo = storages::mongo;
+namespace bulk_ops = storages::mongo::bulk_ops;
 
 namespace {
 class Bulk : public MongoPoolFixture {};
@@ -225,6 +227,23 @@ UTEST_F(Bulk, Update) {
         EXPECT_EQ(1, upserted_ids.size());
         EXPECT_EQ(2, upserted_ids[1].As<int>());
     }
+    {
+        const formats::bson::Value
+            query = formats::bson::ValueBuilder(bson::MakeDoc("$set", bson::MakeDoc("z", 3))).ExtractValue();
+
+        auto bulk = coll.MakeOrderedBulk();
+        bulk.UpdateOne(bson::MakeDoc("_id", 1), query);  // Ensure Value overload correctly handles documents
+        EXPECT_FALSE(bulk.IsEmpty());
+        auto result = coll.Execute(std::move(bulk));
+
+        EXPECT_EQ(0, result.InsertedCount());
+        EXPECT_EQ(1, result.MatchedCount());
+        EXPECT_EQ(1, result.ModifiedCount());
+        EXPECT_EQ(0, result.UpsertedCount());
+        EXPECT_EQ(0, result.DeletedCount());
+        EXPECT_TRUE(result.ServerErrors().empty());
+        EXPECT_TRUE(result.WriteConcernErrors().empty());
+    }
 }
 
 UTEST_F(Bulk, UpdateWithArrayFilters) {
@@ -336,6 +355,73 @@ UTEST_F(Bulk, Hint) {
     bulk.DeleteOne(bson::MakeDoc("x", 2), mongo::options::Hint{bson::MakeDoc("_id", 1)});
 
     UEXPECT_NO_THROW(coll.Execute(std::move(bulk)));
+}
+
+UTEST_F(Bulk, UpdateOneWithAggregationPipeline) {
+    auto coll = GetDefaultPool().GetCollection("update_pipeline_one");
+    coll.InsertOne(bson::MakeDoc("_id", 1, "x", 1));
+
+    auto bulk = coll.MakeOrderedBulk();
+    bulk.UpdateOne(bson::MakeDoc("_id", 1), bson::MakeArray(bson::MakeDoc("$set", bson::MakeDoc("x", 10))));
+    EXPECT_FALSE(bulk.IsEmpty());
+    auto result = coll.Execute(std::move(bulk));
+
+    EXPECT_EQ(0, result.InsertedCount());
+    EXPECT_EQ(1, result.MatchedCount());
+    EXPECT_EQ(1, result.ModifiedCount());
+    EXPECT_EQ(0, result.UpsertedCount());
+    EXPECT_EQ(0, result.DeletedCount());
+    EXPECT_TRUE(result.ServerErrors().empty());
+    EXPECT_TRUE(result.WriteConcernErrors().empty());
+}
+
+UTEST_F(Bulk, UpdateManyWithAggregationPipeline) {
+    auto coll = GetDefaultPool().GetCollection("update_pipeline_many");
+    coll.InsertOne(bson::MakeDoc("_id", 1, "x", 1));
+    coll.InsertOne(bson::MakeDoc("_id", 2, "x", 2));
+    coll.InsertOne(bson::MakeDoc("_id", 3, "x", 3));
+
+    auto bulk = coll.MakeOrderedBulk();
+    bulk.UpdateMany(
+        bson::MakeDoc("x", bson::MakeDoc("$gt", 0)),
+        bson::MakeArray(bson::MakeDoc("$set", bson::MakeDoc("updated", true)))
+    );
+    EXPECT_FALSE(bulk.IsEmpty());
+    auto result = coll.Execute(std::move(bulk));
+
+    EXPECT_EQ(0, result.InsertedCount());
+    EXPECT_EQ(3, result.MatchedCount());
+    EXPECT_EQ(3, result.ModifiedCount());
+    EXPECT_EQ(0, result.UpsertedCount());
+    EXPECT_EQ(0, result.DeletedCount());
+    EXPECT_TRUE(result.ServerErrors().empty());
+    EXPECT_TRUE(result.WriteConcernErrors().empty());
+}
+
+UTEST_F(Bulk, UpdateWithMultiStageAggregationPipeline) {
+    auto coll = GetDefaultPool().GetCollection("update_pipeline_multistage");
+    coll.InsertOne(bson::MakeDoc("_id", 2, "x", 2));
+
+    auto bulk = coll.MakeOrderedBulk();
+    bulk.UpdateOne(
+        bson::MakeDoc("_id", 2),
+        bson::MakeArray(bson::MakeDoc("$set", bson::MakeDoc("y", 100)), bson::MakeDoc("$unset", "x"))
+    );
+    EXPECT_FALSE(bulk.IsEmpty());
+    auto result = coll.Execute(std::move(bulk));
+
+    EXPECT_EQ(1, result.MatchedCount());
+    EXPECT_EQ(1, result.ModifiedCount());
+    EXPECT_TRUE(result.ServerErrors().empty());
+}
+
+UTEST_F(Bulk, UpdateWithAggregationPipelineInvalidType) {
+    // Test: invalid update type (integer, not document or array) should throw on construction
+    const bson::Value int_value = bson::ValueBuilder{42}.ExtractValue();
+    UEXPECT_THROW(
+        (bulk_ops::Update{bulk_ops::Update::Mode::kSingle, bson::MakeDoc("_id", 1), int_value}),
+        mongo::InvalidQueryArgumentException
+    );
 }
 
 USERVER_NAMESPACE_END

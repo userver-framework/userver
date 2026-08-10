@@ -204,6 +204,12 @@ public:
     enum class Mode { kSingle, kMulti };
 
     Update(Mode mode, formats::bson::Document selector, formats::bson::Document update);
+
+    /// @brief Creates an update operation with an aggregation pipeline
+    /// @note `update` must be either an update document or an aggregation pipeline array
+    /// @note Available starting in MongoDB 4.2
+    Update(Mode mode, formats::bson::Document selector, formats::bson::Value update);
+
     ~Update();
 
     Update(const Update&);

@@ -49,10 +49,24 @@ public:
     template <typename... Options>
     void UpdateOne(formats::bson::Document selector, formats::bson::Document update, Options&&... options);
 
+    /// @brief Updates a single matching document with an aggregation pipeline
+    /// @note `update` must be either an update document or an aggregation pipeline array
+    /// @note Available starting in MongoDB 4.2
+    /// @see options::Upsert
+    template <typename... Options>
+    void UpdateOne(formats::bson::Document selector, formats::bson::Value update, Options&&... options);
+
     /// @brief Updates all matching documents
     /// @see options::Upsert
     template <typename... Options>
     void UpdateMany(formats::bson::Document selector, formats::bson::Document update, Options&&... options);
+
+    /// @brief Updates all matching documents with an aggregation pipeline
+    /// @note `update` must be either an update document or an aggregation pipeline array
+    /// @note Available starting in MongoDB 4.2
+    /// @see options::Upsert
+    template <typename... Options>
+    void UpdateMany(formats::bson::Document selector, formats::bson::Value update, Options&&... options);
 
     /// Deletes a single matching document
     template <typename... Options>
@@ -103,7 +117,21 @@ void Bulk::UpdateOne(formats::bson::Document selector, formats::bson::Document u
 }
 
 template <typename... Options>
+void Bulk::UpdateOne(formats::bson::Document selector, formats::bson::Value update, Options&&... options) {
+    bulk_ops::Update update_subop(bulk_ops::Update::Mode::kSingle, std::move(selector), std::move(update));
+    (update_subop.SetOption(std::forward<Options>(options)), ...);
+    Append(update_subop);
+}
+
+template <typename... Options>
 void Bulk::UpdateMany(formats::bson::Document selector, formats::bson::Document update, Options&&... options) {
+    bulk_ops::Update update_subop(bulk_ops::Update::Mode::kMulti, std::move(selector), std::move(update));
+    (update_subop.SetOption(std::forward<Options>(options)), ...);
+    Append(update_subop);
+}
+
+template <typename... Options>
+void Bulk::UpdateMany(formats::bson::Document selector, formats::bson::Value update, Options&&... options) {
     bulk_ops::Update update_subop(bulk_ops::Update::Mode::kMulti, std::move(selector), std::move(update));
     (update_subop.SetOption(std::forward<Options>(options)), ...);
     Append(update_subop);
