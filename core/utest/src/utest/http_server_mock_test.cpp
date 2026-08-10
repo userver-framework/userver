@@ -1,6 +1,10 @@
 #include <userver/utest/utest.hpp>
 
 #include <userver/clients/http/client.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/io/sockaddr.hpp>
+#include <userver/engine/io/socket.hpp>
+#include <userver/engine/sleep.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utest/http_client.hpp>
@@ -87,6 +91,48 @@ UTEST(HttpServerMock, Ctr) {
             response->headers()
         );
     }
+}
+
+UTEST(HttpServerMock, BodyAcrossMultipleReads) {
+    const std::string first_half = "first-part-of-body;";
+    const std::string second_half = "second-part-of-body";
+    const std::string full_body = first_half + second_half;
+
+    const utest::HttpServerMock mock([&](const utest::HttpServerMock::HttpRequest& request) {
+        EXPECT_EQ(request.body, full_body);
+        return utest::HttpServerMock::HttpResponse{200, {}, ""};
+    });
+
+    const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+    auto addr = engine::io::Sockaddr::MakeIPv4LoopbackAddress();
+    addr.SetPort(mock.GetPort());
+
+    engine::io::Socket sock{addr.Domain(), engine::io::SocketType::kStream};
+    sock.Connect(addr, deadline);
+
+    const std::string head =
+        "POST /test HTTP/1.1\r\n"
+        "Host: 127.0.0.1\r\n"
+        "Content-Length: " +
+        std::to_string(full_body.size()) +
+        "\r\n"
+        "\r\n";
+
+    // Write #1: headers + first half of body.
+    const std::string write1 = head + first_half;
+    [[maybe_unused]] const auto sent1 = sock.SendAll(write1.data(), write1.size(), deadline);
+
+    // Small deliberate delay so the mock's ReadSome() returns with a partial
+    // body, triggering a second ReadSome() call for the remaining bytes.
+    engine::SleepFor(std::chrono::milliseconds{50});
+
+    // Write #2: second half of body.
+    [[maybe_unused]] const auto sent2 = sock.SendAll(second_half.data(), second_half.size(), deadline);
+
+    // Read the response to let the mock's handler EXPECT assertions execute.
+    std::array<char, 1024> buf{};
+    [[maybe_unused]] const auto received = sock.RecvSome(buf.data(), buf.size(), deadline);
 }
 
 USERVER_NAMESPACE_END

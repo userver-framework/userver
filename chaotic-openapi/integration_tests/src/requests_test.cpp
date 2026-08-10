@@ -114,9 +114,12 @@ UTEST(RequestsMultipleContentTypes, XWwwFormUrlencoded) {
 
 UTEST(RequestsMultipleContentTypes, MultipartFormData) {
     const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest& request) {
-        const http::ContentType content_type(request.headers.at(std::string{"Content-Type"}));
+        const auto& raw_content_type = request.headers.at(std::string{"Content-Type"});
+        const http::ContentType content_type(raw_content_type);
         EXPECT_EQ(content_type.MediaType(), "multipart/form-data");
         const auto& boundary = content_type.Boundary();
+        EXPECT_THAT(raw_content_type, ::testing::HasSubstr("boundary="));
+        EXPECT_FALSE(boundary.empty());
         EXPECT_EQ(
             request.body,
             "--" + boundary +
