@@ -6,9 +6,12 @@
 - defensive programming, no implicit contracts
 - informative configuration error message, include 'how to fix' hints if possible
 - avoid no-op code, it might be misleading
+- Do **not** update changelogs unless explicitly asked
 
-## Comments
+## Comments and readable code
 
+- Prefer readable code over comments: extract magic numbers/strings into `constexpr` (or similarly named) constants with clear names
+- Where the code is still unclear without a comment, add a **short** comment that is easy to understand
 - code comments must describe "why" and "what", not "how"
 - avoid trivial comments
 - use comments to explicitly mark tricky/buggy/TODO code
@@ -33,11 +36,15 @@ Do not use C++ standard library / libc synchronization or blocking IO on the mai
 
 Any new functionality or bug fix **must** be covered by tests. Add or update documentation when it makes sense.
 
+If asked to fix a flaky failure and the root cause is in production code (not in the test itself), **first** add a new test that reliably reproduces the bug without flakiness, then fix the code.
+
 Usage and testing examples: `samples/`. Documentation pages: `scripts/docs/en/`.
 
 ## Build systems
 
 The project is built with both **CMake** and the internal **ya.make** build system. Always update `CMakeLists.txt`. Update `ya.make` **only if it already exists** for the affected target; otherwise change only CMake.
+
+**Always** ask for explicit user permission before forcibly deleting build caches (e.g. wiping build directories, `ya`/`cmake` caches, or similar). Do not clear them on your own.
 
 ## CMake
 
