@@ -95,6 +95,7 @@ void MergeConnectionSettings(
         MergeField(static_settings.recent_errors_threshold, dynamic_settings.recent_errors_threshold);
         MergeField(static_settings.discard_on_connect, dynamic_settings.discard_on_connect);
         MergeField(static_settings.deadline_propagation_enabled, dynamic_settings.deadline_propagation_enabled);
+        MergeField(static_settings.pooler_mode, dynamic_settings.pooler_mode);
         if (const auto max_ttl = dynamic_settings.max_ttl; max_ttl) {
             static_settings.max_ttl = *max_ttl;
         }

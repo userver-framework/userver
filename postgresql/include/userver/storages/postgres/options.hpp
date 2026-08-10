@@ -344,6 +344,7 @@ struct ConnectionSettingsDynamic final {
     std::optional<std::chrono::seconds> max_ttl{};
     std::optional<ConnectionSettings::DiscardOnConnectOptions> discard_on_connect{};
     std::optional<bool> deadline_propagation_enabled{};
+    std::optional<PoolerMode> pooler_mode{};
 };
 
 /// @brief PostgreSQL statements metrics options
