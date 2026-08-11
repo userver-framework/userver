@@ -191,7 +191,8 @@ std::shared_ptr<websocket::WebSocketConnection> WebSocketResponse::MakeWebSocket
     }
 
     auto socket = std::make_unique<engine::io::Socket>(socket_.GetNative());
-    auto addr = socket->Getsockname();
+    auto addr = socket->Getpeername();
+
     std::move(socket_).Release();
 
     std::unique_ptr<engine::io::RwBase> rw = std::move(socket);

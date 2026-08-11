@@ -13,6 +13,7 @@ import pytest
         'nonblocking_write',
         'unauth',
         'connection_already_extracted',
+        'remote_addr',
         'large_server_message_default_limit',
         'large_server_message_custom_limit',
     ],
