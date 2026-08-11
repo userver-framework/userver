@@ -366,37 +366,29 @@ components::ComponentConfigMap Manager::MakeComponentConfigMap(const ComponentLi
     return component_config_map;
 }
 
-struct ComponentAddResult {
-    bool has_components_load_cancelled_exception{false};
-};
-
 void Manager::AddComponents(const ComponentList& component_list) {
     auto start_time = std::chrono::steady_clock::now();
 
     const auto component_config_map = MakeComponentConfigMap(component_list);
     ValidateConfigs(component_list, component_config_map, config_->validate_components_configs);
-    std::vector<engine::TaskWithResult<ComponentAddResult>> tasks;
+
+    std::atomic<bool> is_first_std_exception{true};
+    std::vector<engine::TaskWithResult<void>> tasks;
 
     try {
         for (const auto& adder : component_list) {
             const auto& component_name = adder->GetComponentName();
             auto task_name = "boot/" + component_name;
 
-            tasks.push_back(utils::CriticalAsync(std::move(task_name), [&]() -> ComponentAddResult {
+            tasks.push_back(utils::CriticalAsync(std::move(task_name), [&] {
                 tracing::Span::CurrentSpan().AddTag("component_name", component_name);
                 tracing::Span::CurrentSpan().SetLogLevel(logging::Level::kDebug);
                 try {
                     AddComponentImpl(component_config_map, component_name, *adder);
-                    return {};
-                } catch (const ComponentsLoadCancelledException& ex) {
-                    LOG_WARNING() << "Cannot start component " << component_name << ": " << ex;
-                    // Keep the parent task waiting for the root cause of the startup failure.
-                    return {.has_components_load_cancelled_exception = true};
                 } catch (const std::exception& ex) {
-                    // The exception is likely the root cause of the startup failure
-                    // if it happened not because of a task cancellation.
+                    const bool is_likely_root_cause_of_startup_failure = is_first_std_exception.exchange(false);
                     const auto log_level =
-                        engine::current_task::ShouldCancel() ? logging::Level::kWarning : logging::Level::kError;
+                        is_likely_root_cause_of_startup_failure ? logging::Level::kError : logging::Level::kWarning;
                     LOG(log_level) << "Cannot start component " << component_name << ": " << ex;
                     throw std::runtime_error(fmt::format("Cannot start component {}: {}", component_name, ex.what()));
                 }
@@ -423,14 +415,6 @@ void Manager::AddComponents(const ComponentList& component_list) {
 
         ClearComponents();
         throw;
-    }
-
-    const bool is_load_cancelled = std::ranges::any_of(tasks, [](auto& task) {
-        return task.Get().has_components_load_cancelled_exception;
-    });
-    if (is_load_cancelled) {
-        ClearComponents();
-        throw std::logic_error("Components load cancelled, but only ComponentsLoadCancelledExceptions were caught");
     }
 
     LOG_INFO()

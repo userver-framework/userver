@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <fmt/format.h>
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <userver/components/component_base.hpp>
@@ -44,7 +45,20 @@ public:
     }
 };
 
-// Yields several times so the slow component starts waiting, then throws.
+// Waits for SlowStartingComponent via FindComponent. After CancelComponentsLoad it gets
+// ComponentsLoadCancelledException; that failure must be logged as WARNING (not the root cause).
+class DependentOnSlowComponent final : public components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "dependent-on-slow-component";
+
+    DependentOnSlowComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : ComponentBase(config, context)
+    {
+        [[maybe_unused]] auto& slow = context.FindComponent<SlowStartingComponent>();
+    }
+};
+
+// Yields several times so the slow / dependent components start waiting, then throws.
 class FailingComponent final : public components::ComponentBase {
 public:
     static constexpr std::string_view kName = "failing-component";
@@ -102,6 +116,7 @@ TEST_F(ComponentStartFailureLog, RootCauseAndCancelledComponentLogs) {
             components_manager:
                 components:
                     slow-component: {{}}
+                    dependent-on-slow-component: {{}}
                     failing-component: {{}}
                     statistics-storage: {{}}
                     logging:
@@ -121,6 +136,7 @@ TEST_F(ComponentStartFailureLog, RootCauseAndCancelledComponentLogs) {
             .Append<components::StatisticsStorage>()
             .Append<components::Logging>()
             .Append<SlowStartingComponent>()
+            .Append<DependentOnSlowComponent>()
             .Append<FailingComponent>();
 
     UEXPECT_THROW_MSG(
@@ -135,9 +151,11 @@ TEST_F(ComponentStartFailureLog, RootCauseAndCancelledComponentLogs) {
 
     ASSERT_EQ(CountCannotStartComponentLogs(records, "ERROR", FailingComponent::kName), 1) << records;
     ASSERT_EQ(CountCannotStartComponentLogs(records, "WARNING", SlowStartingComponent::kName), 1) << records;
-    ASSERT_EQ(CountCannotStartComponentLogs(records), 2) << records;
+    ASSERT_EQ(CountCannotStartComponentLogs(records, "WARNING", DependentOnSlowComponent::kName), 1) << records;
+    ASSERT_EQ(CountCannotStartComponentLogs(records), 3) << records;
 
     ASSERT_EQ(CountOnLoadingCancelledLogs(records, "DEBUG", SlowStartingComponent::kName), 1) << records;
+    ASSERT_EQ(CountOnLoadingCancelledLogs(records, "DEBUG", DependentOnSlowComponent::kName), 1) << records;
     ASSERT_EQ(CountOnLoadingCancelledLogs(records, "DEBUG", FailingComponent::kName), 1) << records;
     ASSERT_EQ(CountOnLoadingCancelledLogs(records, "DEBUG"), std::ranges::distance(component_list)) << records;
 }

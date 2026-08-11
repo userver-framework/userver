@@ -117,6 +117,8 @@ void HttpClientCore::OnLoadingCancelled() {
 void HttpClientCore::WaitUntilConfigSet() const {
     config_updated_event_.Wait();
     if (is_loading_cancelled_.load()) {
+        // The exception does not reflect the root cause of the startup failure.
+        // This is okay, because the first exception will be registered and logged before OnLoadingCancelled is called.
         throw ComponentsLoadCancelledException("http core client loading cancelled");
     }
 }

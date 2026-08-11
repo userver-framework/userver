@@ -159,6 +159,9 @@ void DynamicConfig::Impl::WaitUntilLoaded() {
     LOG_TRACE() << "Wait finished";
 
     if (!Has() || config_load_cancelled_) {
+        // Note: this exception may be caught before the exception in the updater component and may be displayed
+        // as the root cause of the startup failure.
+        // This makes it important to pass a descriptive message to NotifyLoadingFailed.
         throw ComponentsLoadCancelledException(load_cancellation_message_.value_or("config load cancelled"));
     }
 }
