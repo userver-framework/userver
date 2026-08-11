@@ -99,6 +99,7 @@ and make sure that it builds and passes tests.
 ## Testing and Benchmarking
 * @ref scripts/docs/en/userver/testing.md
 * @ref scripts/docs/en/userver/functional_testing.md
+    * @ref scripts/docs/en/userver/metrics_migration.md
 * @ref scripts/docs/en/userver/chaos_testing.md
 * @ref scripts/docs/en/userver/profile_context_switches.md
 * @ref scripts/docs/en/userver/gdb_debugging.md
@@ -123,6 +124,7 @@ and make sure that it builds and passes tests.
 * Low level:
     * @ref engine::io::TlsWrapper "TLS client and server socket"
     * @ref engine::io::Socket "TCP and UDP sockets"
+    * @ref engine::io::PrefixedRw "Prefixed stream wrapper"
     * @ref engine::subprocess::ProcessStarter "Subprocesses"
 
 

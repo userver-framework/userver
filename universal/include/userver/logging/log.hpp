@@ -165,7 +165,7 @@ USERVER_NAMESPACE_END
 // * SourceLocation info
 #define USERVER_IMPL_ERASE_LOG(logger, ...)                                     \
     true                                                                        \
-        ? logging::impl::Noop{}                                                 \
+        ? USERVER_NAMESPACE::logging::impl::Noop{}                              \
         : USERVER_NAMESPACE::logging::LogHelper(                                \
               logger,                                                           \
               USERVER_NAMESPACE::logging::Level::kTrace,                        \

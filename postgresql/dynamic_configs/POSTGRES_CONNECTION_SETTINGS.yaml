@@ -73,4 +73,12 @@ schema:
                     type: boolean
                     default: true
                     description: Whether statement timeout is affected by deadline propagation
+                pooler-mode:
+                    type: string
+                    enum:
+                      - session
+                      - transaction
+                    default: session
+                    description: Pooler mode. `session` (default) for session poolers; `transaction` for Odyssey transaction pooler
+                        only
 

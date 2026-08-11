@@ -46,6 +46,10 @@ Update::Update(Mode mode, formats::bson::Document selector, formats::bson::Docum
     : impl_(mode, std::move(selector), std::move(update))
 {}
 
+Update::Update(Mode mode, formats::bson::Document selector, formats::bson::Value update)
+    : impl_(mode, std::move(selector), std::move(update))
+{}
+
 Update::~Update() = default;
 
 Update::Update(const Update&) = default;

@@ -1,5 +1,7 @@
 #include <storages/mongo/cdriver/collection_impl.hpp>
 
+#include <type_traits>
+
 #include <bson/bson.h>
 #include <mongoc/mongoc.h>
 
@@ -135,6 +137,426 @@ void SetMaxServerTime(
         throw MongoException("Cannot set max server time");
     }
 }
+
+#ifdef MONGOC_BULKWRITE_H
+
+void SetUpsert(mongoc_bulkwrite_updateoneopts_t* opts, bool upsert) {
+    mongoc_bulkwrite_updateoneopts_set_upsert(opts, upsert);
+}
+
+void SetUpsert(mongoc_bulkwrite_updatemanyopts_t* opts, bool upsert) {
+    mongoc_bulkwrite_updatemanyopts_set_upsert(opts, upsert);
+}
+
+void SetUpsert(mongoc_bulkwrite_replaceoneopts_t* opts, bool upsert) {
+    mongoc_bulkwrite_replaceoneopts_set_upsert(opts, upsert);
+}
+
+void SetHint(mongoc_bulkwrite_updateoneopts_t* opts, const bson_value_t* hint) {
+    mongoc_bulkwrite_updateoneopts_set_hint(opts, hint);
+}
+
+void SetHint(mongoc_bulkwrite_updatemanyopts_t* opts, const bson_value_t* hint) {
+    mongoc_bulkwrite_updatemanyopts_set_hint(opts, hint);
+}
+
+void SetHint(mongoc_bulkwrite_replaceoneopts_t* opts, const bson_value_t* hint) {
+    mongoc_bulkwrite_replaceoneopts_set_hint(opts, hint);
+}
+
+void SetCollation(mongoc_bulkwrite_updateoneopts_t* opts, const bson_t* collation) {
+    mongoc_bulkwrite_updateoneopts_set_collation(opts, collation);
+}
+
+void SetCollation(mongoc_bulkwrite_updatemanyopts_t* opts, const bson_t* collation) {
+    mongoc_bulkwrite_updatemanyopts_set_collation(opts, collation);
+}
+
+void SetCollation(mongoc_bulkwrite_replaceoneopts_t* opts, const bson_t* collation) {
+    mongoc_bulkwrite_replaceoneopts_set_collation(opts, collation);
+}
+
+void SetArrayFilters(mongoc_bulkwrite_updateoneopts_t* opts, const bson_t* array_filters) {
+    mongoc_bulkwrite_updateoneopts_set_arrayfilters(opts, array_filters);
+}
+
+void SetArrayFilters(mongoc_bulkwrite_updatemanyopts_t* opts, const bson_t* array_filters) {
+    mongoc_bulkwrite_updatemanyopts_set_arrayfilters(opts, array_filters);
+}
+
+void SetSort(mongoc_bulkwrite_updateoneopts_t* opts, const bson_t* sort) {
+    mongoc_bulkwrite_updateoneopts_set_sort(opts, sort);
+}
+
+void SetSort(mongoc_bulkwrite_replaceoneopts_t* opts, const bson_t* sort) {
+    mongoc_bulkwrite_replaceoneopts_set_sort(opts, sort);
+}
+
+void InitBsonView(const bson_iter_t& iter, bson_t& view) {
+    std::uint32_t length = 0;
+    const std::uint8_t* data = nullptr;
+    if (BSON_ITER_HOLDS_DOCUMENT(&iter)) {
+        bson_iter_document(&iter, &length, &data);
+    } else if (BSON_ITER_HOLDS_ARRAY(&iter)) {
+        bson_iter_array(&iter, &length, &data);
+    } else {
+        throw MongoException("Unexpected BSON type of option '") << bson_iter_key(&iter) << '\'';
+    }
+    if (!bson_init_static(&view, data, length)) {
+        throw MongoException("Invalid BSON of option '") << bson_iter_key(&iter) << '\'';
+    }
+}
+
+WriteConcernPtr BuildWriteConcernFromBson(const bson_iter_t& write_concern_iter) {
+    bson_iter_t iter;
+    if (!BSON_ITER_HOLDS_DOCUMENT(&write_concern_iter) || !bson_iter_recurse(&write_concern_iter, &iter)) {
+        throw MongoException("Invalid 'writeConcern' option");
+    }
+
+    WriteConcernPtr write_concern(mongoc_write_concern_new());
+    while (bson_iter_next(&iter)) {
+        const std::string_view key{bson_iter_key(&iter), bson_iter_key_len(&iter)};
+        if (key == "w") {
+            if (BSON_ITER_HOLDS_UTF8(&iter)) {
+                std::uint32_t length = 0;
+                const char* value = bson_iter_utf8(&iter, &length);
+                if (std::string_view{value, length} == "majority") {
+                    mongoc_write_concern_set_wmajority(write_concern.get(), -1);
+                } else {
+                    mongoc_write_concern_set_wtag(write_concern.get(), value);
+                }
+            } else if (BSON_ITER_HOLDS_INT32(&iter)) {
+                mongoc_write_concern_set_w(write_concern.get(), bson_iter_int32(&iter));
+            } else {
+                throw MongoException("Unexpected BSON type of write concern field 'w'");
+            }
+        } else if (key == "j") {
+            mongoc_write_concern_set_journal(write_concern.get(), bson_iter_bool(&iter));
+        } else if (key == "wtimeout") {
+            mongoc_write_concern_set_wtimeout_int64(write_concern.get(), bson_iter_as_int64(&iter));
+        } else {
+            throw MongoException("Unexpected write concern field '") << key << '\'';
+        }
+    }
+    return write_concern;
+}
+
+bool ApplyBulkWriteCommandOption(
+    bson_iter_t& iter,
+    std::string_view key,
+    mongoc_bulkwriteopts_t& bulk_opts,
+    mongoc_client_session_t* session
+) {
+    if (key == "writeConcern") {
+        if (!session || !mongoc_client_session_in_transaction(session)) {
+            const auto write_concern = BuildWriteConcernFromBson(iter);
+            mongoc_bulkwriteopts_set_writeconcern(&bulk_opts, write_concern.get());
+        }
+    } else if (key == "comment") {
+        mongoc_bulkwriteopts_set_comment(&bulk_opts, bson_iter_value(&iter));
+    } else if (key == "let") {
+        bson_t let_view;
+        InitBsonView(iter, let_view);
+        mongoc_bulkwriteopts_set_let(&bulk_opts, &let_view);
+    } else if (key == "bypassDocumentValidation") {
+        mongoc_bulkwriteopts_set_bypassdocumentvalidation(&bulk_opts, bson_iter_bool(&iter));
+    } else {
+        return false;
+    }
+    return true;
+}
+
+template <typename StatementOptsPtr>
+StatementOptsPtr MakeBulkWriteStatementOpts(
+    StatementOptsPtr statement_opts,
+    const std::optional<formats::bson::impl::BsonBuilder>& options,
+    mongoc_bulkwriteopts_t& bulk_opts,
+    mongoc_client_session_t* session
+) {
+    const bson_t* options_bson = impl::GetNative(options);
+    if (!options_bson) {
+        return statement_opts;
+    }
+
+    bson_iter_t iter;
+    if (!bson_iter_init(&iter, options_bson)) {
+        throw MongoException("Invalid write operation options");
+    }
+    while (bson_iter_next(&iter)) {
+        const std::string_view key{bson_iter_key(&iter), bson_iter_key_len(&iter)};
+        if (key == "sessionId" || ApplyBulkWriteCommandOption(iter, key, bulk_opts, session)) {
+            continue;
+        }
+
+        if (key == "upsert") {
+            SetUpsert(statement_opts.get(), bson_iter_bool(&iter));
+        } else if (key == "hint") {
+            SetHint(statement_opts.get(), bson_iter_value(&iter));
+        } else if (key == "collation") {
+            bson_t collation_view;
+            InitBsonView(iter, collation_view);
+            SetCollation(statement_opts.get(), &collation_view);
+        } else if (key == "arrayFilters") {
+            if constexpr (std::is_same_v<StatementOptsPtr, ReplaceOneOptsPtr>) {
+                throw MongoException("'arrayFilters' is not supported by replace operations");
+            } else {
+                bson_t array_filters_view;
+                InitBsonView(iter, array_filters_view);
+                SetArrayFilters(statement_opts.get(), &array_filters_view);
+            }
+        } else if (key == "sort") {
+            if constexpr (std::is_same_v<StatementOptsPtr, UpdateManyOptsPtr>) {
+                throw MongoException("'sort' is not supported by multi-document updates");
+            } else {
+                bson_t sort_view;
+                InitBsonView(iter, sort_view);
+                SetSort(statement_opts.get(), &sort_view);
+            }
+        } else {
+            throw MongoException("Unexpected write operation option '") << key << '\'';
+        }
+    }
+    return statement_opts;
+}
+
+[[maybe_unused]] UpdateOneOptsPtr MakeUpdateOneOpts(
+    const std::optional<formats::bson::impl::BsonBuilder>& options,
+    mongoc_bulkwriteopts_t& bulk_opts,
+    mongoc_client_session_t* session
+) {
+    return MakeBulkWriteStatementOpts(
+        UpdateOneOptsPtr{mongoc_bulkwrite_updateoneopts_new()},
+        options,
+        bulk_opts,
+        session
+    );
+}
+
+[[maybe_unused]] UpdateManyOptsPtr MakeUpdateManyOpts(
+    const std::optional<formats::bson::impl::BsonBuilder>& options,
+    mongoc_bulkwriteopts_t& bulk_opts,
+    mongoc_client_session_t* session
+) {
+    return MakeBulkWriteStatementOpts(
+        UpdateManyOptsPtr{mongoc_bulkwrite_updatemanyopts_new()},
+        options,
+        bulk_opts,
+        session
+    );
+}
+
+[[maybe_unused]] ReplaceOneOptsPtr MakeReplaceOneOpts(
+    const std::optional<formats::bson::impl::BsonBuilder>& options,
+    mongoc_bulkwriteopts_t& bulk_opts,
+    mongoc_client_session_t* session
+) {
+    return MakeBulkWriteStatementOpts(
+        ReplaceOneOptsPtr{mongoc_bulkwrite_replaceoneopts_new()},
+        options,
+        bulk_opts,
+        session
+    );
+}
+
+constexpr std::int32_t kDuplicateKeyErrorCode = 11000;
+
+std::size_t ParseModelIndex(const bson_iter_t& iter) {
+    return static_cast<std::size_t>(bson_ascii_strtoll(bson_iter_key(&iter), nullptr, 10));
+}
+
+void AppendBulkWriteUpserted(bson_t* out, const mongoc_bulkwriteresult_t* res) {
+    if (mongoc_bulkwriteresult_upsertedcount(res) == 0) {
+        return;
+    }
+    const bson_t* update_results = mongoc_bulkwriteresult_updateresults(res);
+    if (!update_results) {
+        return;
+    }
+
+    bson_iter_t iter;
+    if (!bson_iter_init(&iter, update_results)) {
+        return;
+    }
+
+    constexpr std::string_view kKey = "upserted";
+    formats::bson::impl::SubarrayBson array(out, kKey.data(), kKey.size());
+    formats::bson::impl::ArrayIndexer indexer;
+    while (bson_iter_next(&iter)) {
+        bson_iter_t result_iter;
+        if (!BSON_ITER_HOLDS_DOCUMENT(&iter) || !bson_iter_recurse(&iter, &result_iter) ||
+            !bson_iter_find(&result_iter, "upsertedId"))
+        {
+            continue;
+        }
+        const bson_value_t* upserted_id = bson_iter_value(&result_iter);
+        const auto model_index = ParseModelIndex(iter);
+        const auto element_key = indexer.GetKey();
+        formats::bson::impl::SubdocBson element(array.Get(), element_key.data(), element_key.size());
+        indexer.Advance();
+        bson_append_int64(element.Get(), "index", -1, static_cast<std::int64_t>(model_index));
+        bson_append_value(element.Get(), "_id", -1, upserted_id);
+    }
+}
+
+void AppendErrorCodeAndMessage(bson_t* element, bson_iter_t& error_iter) {
+    while (bson_iter_next(&error_iter)) {
+        const std::string_view field{bson_iter_key(&error_iter), bson_iter_key_len(&error_iter)};
+        if (field == "code") {
+            bson_append_int32(element, "code", -1, static_cast<std::int32_t>(bson_iter_as_int64(&error_iter)));
+        } else if (field == "message") {
+            std::uint32_t length = 0;
+            const char* message = bson_iter_utf8(&error_iter, &length);
+            bson_append_utf8(element, "errmsg", -1, message, static_cast<int>(length));
+        }
+    }
+}
+
+void AppendBulkWriteErrors(bson_t* out, const mongoc_bulkwriteexception_t* exc) {
+    const bson_t* write_errors = mongoc_bulkwriteexception_writeerrors(exc);
+    if (!write_errors || bson_empty(write_errors)) {
+        return;
+    }
+
+    bson_iter_t iter;
+    if (!bson_iter_init(&iter, write_errors)) {
+        return;
+    }
+
+    constexpr std::string_view kKey = "writeErrors";
+    formats::bson::impl::SubarrayBson array(out, kKey.data(), kKey.size());
+    formats::bson::impl::ArrayIndexer indexer;
+    while (bson_iter_next(&iter)) {
+        bson_iter_t error_iter;
+        if (!BSON_ITER_HOLDS_DOCUMENT(&iter) || !bson_iter_recurse(&iter, &error_iter)) {
+            continue;
+        }
+        const auto model_index = ParseModelIndex(iter);
+        const auto element_key = indexer.GetKey();
+        formats::bson::impl::SubdocBson element(array.Get(), element_key.data(), element_key.size());
+        indexer.Advance();
+        bson_append_int64(element.Get(), "index", -1, static_cast<std::int64_t>(model_index));
+        AppendErrorCodeAndMessage(element.Get(), error_iter);
+    }
+}
+
+void AppendBulkWriteConcernErrors(bson_t* out, const mongoc_bulkwriteexception_t* exc) {
+    const bson_t* wc_errors = mongoc_bulkwriteexception_writeconcernerrors(exc);
+    if (!wc_errors || bson_empty(wc_errors)) {
+        return;
+    }
+
+    bson_iter_t iter;
+    if (!bson_iter_init(&iter, wc_errors)) {
+        return;
+    }
+
+    constexpr std::string_view kKey = "writeConcernErrors";
+    formats::bson::impl::SubarrayBson array(out, kKey.data(), kKey.size());
+    formats::bson::impl::ArrayIndexer indexer;
+    while (bson_iter_next(&iter)) {
+        bson_iter_t error_iter;
+        if (!BSON_ITER_HOLDS_DOCUMENT(&iter) || !bson_iter_recurse(&iter, &error_iter)) {
+            continue;
+        }
+        const auto element_key = indexer.GetKey();
+        formats::bson::impl::SubdocBson element(array.Get(), element_key.data(), element_key.size());
+        indexer.Advance();
+        AppendErrorCodeAndMessage(element.Get(), error_iter);
+    }
+}
+
+MongoError GetBulkWriteError(const mongoc_bulkwriteexception_t* exc) {
+    MongoError error;
+    if (!exc) {
+        return error;
+    }
+    if (mongoc_bulkwriteexception_error(exc, error.GetNative())) {
+        return error;
+    }
+
+    const auto set_first_error = [&error](const bson_t* errors, std::uint32_t domain) {
+        if (!errors) {
+            return false;
+        }
+        bson_iter_t iter;
+        if (!bson_iter_init(&iter, errors) || !bson_iter_next(&iter)) {
+            return false;
+        }
+        bson_iter_t error_iter;
+        if (!BSON_ITER_HOLDS_DOCUMENT(&iter) || !bson_iter_recurse(&iter, &error_iter)) {
+            return false;
+        }
+        std::int64_t code = 0;
+        const char* message = "";
+        while (bson_iter_next(&error_iter)) {
+            const std::string_view field{bson_iter_key(&error_iter), bson_iter_key_len(&error_iter)};
+            if (field == "code") {
+                code = bson_iter_as_int64(&error_iter);
+            } else if (field == "message" && BSON_ITER_HOLDS_UTF8(&error_iter)) {
+                message = bson_iter_utf8(&error_iter, nullptr);
+            }
+        }
+        bson_set_error(error.GetNative(), domain, static_cast<std::uint32_t>(code), "%s", message);
+        return true;
+    };
+
+    if (set_first_error(mongoc_bulkwriteexception_writeerrors(exc), MONGOC_ERROR_SERVER)) {
+        return error;
+    }
+    set_first_error(mongoc_bulkwriteexception_writeconcernerrors(exc), MONGOC_ERROR_WRITE_CONCERN);
+    return error;
+}
+
+[[maybe_unused]] WriteResult FinishBulkWrite(
+    const mongoc_bulkwriteresult_t* res,
+    const mongoc_bulkwriteexception_t* exc
+) {
+    formats::bson::impl::MutableBson document;
+    bson_t* out = document.Get();
+
+    if (res) {
+        bson_append_int64(out, "insertedCount", -1, mongoc_bulkwriteresult_insertedcount(res));
+        bson_append_int64(out, "matchedCount", -1, mongoc_bulkwriteresult_matchedcount(res));
+        bson_append_int64(out, "modifiedCount", -1, mongoc_bulkwriteresult_modifiedcount(res));
+        bson_append_int64(out, "upsertedCount", -1, mongoc_bulkwriteresult_upsertedcount(res));
+        bson_append_int64(out, "deletedCount", -1, mongoc_bulkwriteresult_deletedcount(res));
+        AppendBulkWriteUpserted(out, res);
+    }
+
+    MongoError error;
+    if (exc) {
+        AppendBulkWriteErrors(out, exc);
+        AppendBulkWriteConcernErrors(out, exc);
+        error = GetBulkWriteError(exc);
+    }
+
+    return WriteResult(formats::bson::Document(document.Extract()), std::move(error));
+}
+
+[[maybe_unused]] bool BulkWriteHasDuplicateKey(const mongoc_bulkwriteexception_t* exc) {
+    if (!exc) {
+        return false;
+    }
+    const bson_t* write_errors = mongoc_bulkwriteexception_writeerrors(exc);
+    if (!write_errors) {
+        return false;
+    }
+    bson_iter_t iter;
+    if (!bson_iter_init(&iter, write_errors)) {
+        return false;
+    }
+    while (bson_iter_next(&iter)) {
+        bson_iter_t error_iter;
+        if (BSON_ITER_HOLDS_DOCUMENT(&iter) && bson_iter_recurse(&iter, &error_iter) &&
+            bson_iter_find(&error_iter, "code") && bson_iter_as_int64(&error_iter) == kDuplicateKeyErrorCode)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+#endif  // MONGOC_BULKWRITE_H
 
 std::optional<std::chrono::milliseconds> GetTimeoutOrThrow(
     const dynamic_config::Snapshot& dynamic_config,

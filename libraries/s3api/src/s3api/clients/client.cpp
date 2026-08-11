@@ -81,7 +81,7 @@ void AddQueryParamsToPresignedUrl(
 }
 
 std::string GeneratePresignedUrl(
-    const Request& request,
+    Request& request,
     std::string_view host,
     std::string_view protocol,
     const std::chrono::system_clock::time_point& expires_at,
@@ -90,7 +90,9 @@ std::string GeneratePresignedUrl(
     std::ostringstream generated_url;
     // both internal (s3.mds(t)) and private (s3-private)
     // balancers support virtual host addressing and https
-    generated_url << protocol << request.bucket << "." << host;
+    request.headers[USERVER_NAMESPACE::http::headers::kHost] = fmt::format("{}.{}", request.bucket, host);
+    generated_url << protocol << request.headers[USERVER_NAMESPACE::http::headers::kHost];
+
     const auto expires_at_time_t = std::chrono::system_clock::to_time_t(expires_at);
     AddQueryParamsToPresignedUrl(generated_url, expires_at_time_t, request, std::move(authenticator));
     return generated_url.str();
@@ -306,14 +308,19 @@ std::optional<ClientImpl::HeadersDataResponse> ClientImpl::GetObjectHead(
 
     std::ostringstream generated_url;
     auto host = conn_->GetHost();
-    if (host.find("://") == std::string::npos) {
-        generated_url << (use_ssl ? "https" : "http") << "://";
+
+    if (const auto scheme_pos = host.find("://"); scheme_pos == std::string::npos) {
+        generated_url << (use_ssl ? "https" : "http") << "://" << host;
+        req.headers[USERVER_NAMESPACE::http::headers::kHost] = host;
+    } else {
+        generated_url << host;
+        req.headers[USERVER_NAMESPACE::http::headers::kHost] = host.substr(scheme_pos + 3);
     }
-    generated_url << host;
 
     if (!req.bucket.empty()) {
-        generated_url << "/" + req.bucket;
+        generated_url << '/' << req.bucket;
     }
+
     AddQueryParamsToPresignedUrl(generated_url, expires_at, req, authenticator_);
     return generated_url.str();
 }
@@ -372,6 +379,7 @@ std::string ClientImpl::RequestApi(
     HeadersDataResponse* headers_data,
     const HeaderDataRequest& headers_request
 ) const {
+    request.headers[USERVER_NAMESPACE::http::headers::kHost] = conn_->GetHostHeader(request);
     Auth(request);
 
     auto response = conn_->RequestApi(request, method_name);

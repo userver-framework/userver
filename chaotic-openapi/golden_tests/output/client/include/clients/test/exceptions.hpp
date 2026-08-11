@@ -6,58 +6,69 @@
 namespace clients::test {
 
 /// @brief Base class for test client exceptions
-class Exception : public USERVER_NAMESPACE::chaotic::openapi::client::Exception {
-public:
-    using USERVER_NAMESPACE::chaotic::openapi::client::Exception::Exception;
-    ~Exception();
+class Exception: public USERVER_NAMESPACE::chaotic::openapi::client::Exception {
+ public:
+  using USERVER_NAMESPACE::chaotic::openapi::client::Exception::Exception;
+  ~Exception();
 };
 
 /// @brief Response with ErrorKind for test client exceptions
-class HttpException : public USERVER_NAMESPACE::chaotic::openapi::client::HttpException {
-public:
-    explicit HttpException(USERVER_NAMESPACE::clients::http::ErrorKind error_kind);
+class HttpException : public USERVER_NAMESPACE::chaotic::openapi::client::HttpException
+{
+ public:
+   explicit HttpException(USERVER_NAMESPACE::clients::http::ErrorKind error_kind);
 };
 
 /// @brief Response with HTTP status code for test client exceptions
-class ExceptionWithStatusCode : public USERVER_NAMESPACE::chaotic::openapi::client::ExceptionWithStatusCode {
-public:
-    ExceptionWithStatusCode(int status_code);
+class ExceptionWithStatusCode : public USERVER_NAMESPACE::chaotic::openapi::client::ExceptionWithStatusCode
+{
+ public:
+   ExceptionWithStatusCode(int status_code);
 };
 
 /// @brief Timeout exception class for test client exceptions
-class TimeoutException : public USERVER_NAMESPACE::chaotic::openapi::client::TimeoutException {
-public:
-    using USERVER_NAMESPACE::chaotic::openapi::client::TimeoutException::TimeoutException;
-    ~TimeoutException();
+class TimeoutException: public USERVER_NAMESPACE::chaotic::openapi::client::TimeoutException {
+ public:
+  using USERVER_NAMESPACE::chaotic::openapi::client::TimeoutException::TimeoutException;
+  ~TimeoutException();
 };
 
 namespace testme::post {
 
 /// @brief Base exception class for all client POST operations with URL '/testme'
-class Exception : public ::clients::test::Exception {
-public:
+class Exception: public ::clients::test::Exception {
+ public:
     const char* what() const noexcept override;
 
     static constexpr USERVER_NAMESPACE::utils::zstring_view kHandlerInfo{"POST /testme"};
 };
 
 /// @brief Error response with ErrorKind for all client POST operations with URL '/testme'
-class HttpException : public Exception, public ::clients::test::HttpException {
-public:
+class HttpException
+    : public Exception
+    , public ::clients::test::HttpException
+{
+  public:
     using ::clients::test::HttpException::HttpException;
     ~HttpException();
 };
 
 /// @brief Timeout exception class for all client POST operations with URL '/testme'
-class TimeoutException : public HttpException, public ::clients::test::TimeoutException {
-public:
+class TimeoutException
+    : public HttpException
+    , public ::clients::test::TimeoutException
+{
+  public:
     TimeoutException();
     ~TimeoutException();
 };
 
 /// @brief Error response with HTTP status code for all client POST operations with URL '/testme'
-class ExceptionWithStatusCode : public Exception, public ::clients::test::ExceptionWithStatusCode {
-public:
+class ExceptionWithStatusCode
+    : public Exception
+    , public ::clients::test::ExceptionWithStatusCode
+{
+  public:
     using ::clients::test::ExceptionWithStatusCode::ExceptionWithStatusCode;
     ~ExceptionWithStatusCode();
 };

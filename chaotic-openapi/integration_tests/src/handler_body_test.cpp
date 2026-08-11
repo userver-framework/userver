@@ -88,8 +88,12 @@ UTEST(HandlerBodyFormUrlencoded, ThrowsOnMissingRequiredField) {
 
 UTEST(HandlerBodyMultipartFormData, ParsesRequiredAndOptionalFields) {
     utils::impl::TransparentMap<std::string, std::vector<server::http::FormDataArg>, utils::StrCaseHash> form_data;
-    form_data["name"] = {server::http::FormDataArg{.value = "charlie"}};
-    form_data["count"] = {server::http::FormDataArg{.value = "7"}};
+    server::http::FormDataArg name_arg{};
+    name_arg.value = "charlie";
+    form_data["name"] = {name_arg};
+    server::http::FormDataArg count_arg{};
+    count_arg.value = "7";
+    form_data["count"] = {count_arg};
 
     auto request = server::http::HttpRequestBuilder{}.SetFormDataArgs(std::move(form_data)).Build();
 
@@ -101,7 +105,9 @@ UTEST(HandlerBodyMultipartFormData, ParsesRequiredAndOptionalFields) {
 
 UTEST(HandlerBodyMultipartFormData, ParsesWithoutOptionalField) {
     utils::impl::TransparentMap<std::string, std::vector<server::http::FormDataArg>, utils::StrCaseHash> form_data;
-    form_data["name"] = {server::http::FormDataArg{.value = "dave"}};
+    server::http::FormDataArg name_arg{};
+    name_arg.value = "dave";
+    form_data["name"] = {name_arg};
 
     auto request = server::http::HttpRequestBuilder{}.SetFormDataArgs(std::move(form_data)).Build();
 

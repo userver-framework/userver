@@ -1,5 +1,6 @@
 #include <userver/formats/common/items.hpp>
 
+#include <iterator>
 #include <ranges>
 
 #include <gmock/gmock.h>
@@ -126,6 +127,9 @@ TEST(FormatsItems, IsForwardRange) {
 
     static_assert(std::ranges::forward_range<MutableItems>);
     static_assert(std::ranges::forward_range<ConstItems>);
+
+    static_assert(std::forward_iterator<typename MutableItems::iterator>);
+    static_assert(std::forward_iterator<typename ConstItems::const_iterator>);
 }
 
 TEST(FormatsItems, BoostRanges) {

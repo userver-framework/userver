@@ -7,9 +7,15 @@
 
 #include <engine/io/tests/net_listener.hpp>
 #include <userver/clients/dns/resolver.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/engine/io/exception.hpp>
 #include <userver/engine/io/socket.hpp>
+#include <userver/engine/single_consumer_event.hpp>
+#include <userver/engine/task/cancel.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/fs/blocking/temp_file.hpp>
 #include <userver/fs/blocking/write.hpp>
+#include <userver/net/detail/connect_tcp_to_addrs.hpp>
 #include <userver/utest/dns_server_mock.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -96,6 +102,47 @@ UTEST_F(LoopbackResolverFixture, ConnectTcpByNameSocketCommunicates) {
     ASSERT_EQ(kMsgLen, server_socket.RecvAll(buf, kMsgLen, deadline));
     buf[kMsgLen] = '\0';
     EXPECT_STREQ(k_msg, buf);
+}
+
+UTEST_F(LoopbackResolverFixture, ConnectTcpByNameIgnoresCancel) {
+    engine::io::tests::TcpListener listener;
+    const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+    engine::SingleConsumerEvent started;
+    auto task = engine::CriticalAsyncNoTracing([&] {
+        engine::current_task::RequestCancel();
+        EXPECT_TRUE(engine::current_task::IsCancelRequested());
+        started.Send();
+        // Cancellations are ignored by ConnectTcpByName; interruptible versions may be added later.
+        auto socket = net::ConnectTcpByName("localhost", listener.Port(), resolver, deadline);
+        EXPECT_TRUE(socket.IsValid());
+        EXPECT_TRUE(engine::current_task::IsCancelRequested());
+        return socket.Getpeername().Port();
+    });
+
+    ASSERT_TRUE(started.WaitForEventFor(utest::kMaxTestWaitTime));
+    EXPECT_EQ(task.Get(), listener.Port());
+}
+
+UTEST(ConnectTcpToAddrs, RespectsCancel) {
+    engine::io::tests::TcpListener listener;
+    const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+    const std::vector<engine::io::Sockaddr> addrs{listener.addr};
+
+    engine::SingleConsumerEvent started;
+    auto task = engine::CriticalAsyncNoTracing([&] {
+        engine::current_task::RequestCancel();
+        EXPECT_TRUE(engine::current_task::IsCancelRequested());
+        started.Send();
+        UEXPECT_THROW(
+            [[maybe_unused]] auto
+                socket = net::detail::ConnectTcpToAddrs("127.0.0.1", listener.Port(), addrs, deadline),
+            engine::io::IoCancelled
+        );
+    });
+
+    ASSERT_TRUE(started.WaitForEventFor(utest::kMaxTestWaitTime));
+    UEXPECT_NO_THROW(task.Get());
 }
 
 USERVER_NAMESPACE_END

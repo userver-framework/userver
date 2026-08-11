@@ -100,6 +100,8 @@ std::string MessageToJsonString(const ::google::protobuf::Message& message, cons
 /// have been produced.
 ///
 /// Unlike @ref MessageToJson / @ref MessageToJsonBuilder / @ref MessageToJsonString, this is a **debug** serializer:
+/// - Field names are always the proto field names (`preserve_proto_field_names`), not `json_name`, to match the
+///   `.proto` definition.
 /// - Fields marked with the `[debug_redact = true]` option are hidden: their value is replaced with a `"[REDACTED]"`
 ///   marker.
 /// - `google.protobuf.Any` is expanded (like @ref MessageToJsonString with default options), but falls back to the

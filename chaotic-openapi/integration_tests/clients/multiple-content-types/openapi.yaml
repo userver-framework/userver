@@ -18,6 +18,8 @@ paths:
                     multipart/form-data:
                         schema:
                             type: object
+                            required:
+                              - filename
                             properties:
                                 filename:
                                     type: string

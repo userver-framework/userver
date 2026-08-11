@@ -1,6 +1,7 @@
 # pylint: disable=redefined-outer-name
 import concurrent.futures
 import contextlib
+import dataclasses
 import os
 import pathlib
 import subprocess
@@ -88,6 +89,7 @@ def ydb_service_settings(pytestconfig) -> service.ServiceSettings:
             mon_port=None,
             ic_port=None,
             database=database,
+            wait_time=0,
         )
 
     if pytestconfig.option.ydb_host:
@@ -97,8 +99,10 @@ def ydb_service_settings(pytestconfig) -> service.ServiceSettings:
             mon_port=pytestconfig.option.ydb_mon_port,
             ic_port=pytestconfig.option.ydb_ic_port,
             database=database,
+            wait_time=pytestconfig.option.ydb_wait_time,
         )
-    return service.get_service_settings()
+    settings = service.get_service_settings()
+    return dataclasses.replace(settings, wait_time=pytestconfig.option.ydb_wait_time)
 
 
 @pytest.fixture(scope='session')

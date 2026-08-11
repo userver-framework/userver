@@ -3,13 +3,18 @@
 #include <vector>
 
 #include <gmock/gmock.h>
+#include <ydb-cpp-sdk/client/value/value.h>
 
 #include <userver/utest/utest.hpp>
+#include <userver/ydb/io/list.hpp>
+#include <userver/ydb/io/primitives.hpp>
 
 #include "small_table.hpp"
 #include "test_utils.hpp"
 
 USERVER_NAMESPACE_BEGIN
+
+static_assert(std::input_iterator<ydb::impl::ParseItemsIterator<std::int32_t>>);
 
 namespace {
 class YdbListIO : public YdbSmallTableTest {};
@@ -23,6 +28,34 @@ UTEST_F(YdbListIO, ReadVector) {
     auto cursor = response.GetSingleCursor();
     const auto list = cursor.GetFirstRow().Get<std::vector<std::int32_t>>(0);
     EXPECT_THAT(list, testing::ElementsAreArray({1, 2, 3, 4, 5}));
+}
+
+UTEST_F(YdbListIO, ParseItemsIteratorPostfixIncrement) {
+    NYdb::TValueBuilder builder;
+    builder.BeginList();
+    builder.AddListItem().Int32(1);
+    builder.AddListItem().Int32(2);
+    builder.AddListItem().Int32(3);
+    builder.EndList();
+
+    NYdb::TValueParser parser{builder.Build()};
+    const ydb::ParseContext context{.column_name = "list"};
+
+    parser.OpenList();
+    ydb::impl::ParseItemsIterator<std::int32_t> it{parser, context};
+    const ydb::impl::ParseItemsIterator<std::int32_t> end{};
+
+    ASSERT_NE(it, end);
+    EXPECT_EQ(*it, 1);
+    it++;
+    ASSERT_NE(it, end);
+    EXPECT_EQ(*it, 2);
+    it++;
+    ASSERT_NE(it, end);
+    EXPECT_EQ(*it, 3);
+    it++;
+    EXPECT_EQ(it, end);
+    parser.CloseList();
 }
 
 UTEST_F(YdbListIO, ReadUnorderedSet) {

@@ -32,7 +32,7 @@ option(USERVER_FEATURE_CORE "Provide a core library with coroutines, otherwise b
 # @ingroup libraries
 option(USERVER_FEATURE_CHAOTIC "Provide chaotic-codegen for jsonschema" ON)
 # @ingroup libraries
-option(USERVER_FEATURE_CHAOTIC_EXPERIMENTAL "Provide chaotic-codegen for openapi" OFF)
+option(USERVER_FEATURE_CHAOTIC_OPENAPI "Provide chaotic-codegen for openapi" ON)
 
 set(USERVER_BUILD_PLATFORM_X86 OFF)
 if(CMAKE_SYSTEM_PROCESSOR MATCHES "^x86")
@@ -243,8 +243,8 @@ add_subdirectory(universal)
 if(USERVER_FEATURE_CHAOTIC)
     add_subdirectory(chaotic)
 
-    if(USERVER_FEATURE_CHAOTIC_EXPERIMENTAL)
-        _require_userver_core(USERVER_FEATURE_CHAOTIC_EXPERIMENTAL)
+    if(USERVER_FEATURE_CHAOTIC_OPENAPI)
+        _require_userver_core(USERVER_FEATURE_CHAOTIC_OPENAPI)
         add_subdirectory(chaotic-openapi)
     endif()
 endif()

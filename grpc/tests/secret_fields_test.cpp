@@ -238,7 +238,7 @@ UTEST(ToLimitedLoggingStringWithSecrets, StructSecret) {
     auto& fields = *current_state.mutable_fields();
     fields["key"].set_string_value("value");
 
-    const std::string expected = R"({"name1":"name1","currentState":"[REDACTED]","name2":"name2"})";
+    const std::string expected = R"({"name1":"name1","current_state":"[REDACTED]","name2":"name2"})";
 
     const auto out = ugrpc::ToLimitedLoggingString(message, kLimit);
     EXPECT_EQ(out, expected);

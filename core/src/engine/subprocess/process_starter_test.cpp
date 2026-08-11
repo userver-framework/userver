@@ -24,6 +24,8 @@
 #include <engine/ev/thread_pool.hpp>
 #include <userver/engine/subprocess/child_process.hpp>
 #include <userver/engine/subprocess/process_starter.hpp>
+#include <userver/engine/task/cancel.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/fs/blocking/file_descriptor.hpp>
 #include <userver/fs/blocking/read.hpp>
@@ -130,6 +132,49 @@ UTEST(Subprocess, ExecvpSuccess) {
     auto status = starter.Exec(kProgram, {"-n", "1"}, std::move(options)).Get();
     ASSERT_TRUE(status.IsExited());
     EXPECT_EQ(0, status.GetExitCode());
+}
+
+UTEST(Subprocess, WaitIgnoresCancel) {
+    engine::subprocess::ProcessStarter starter(engine::current_task::GetTaskProcessor());
+
+    const engine::subprocess::EnvironmentVariablesScope scope{};
+    SetEnvironmentVariable("PATH", kPath, engine::subprocess::Overwrite::kAllowed);
+
+    engine::subprocess::ExecOptions options{};
+    options.use_path = true;
+
+    // `sleep` is available on the same PATH as `test` on supported platforms.
+    auto child = starter.Exec("sleep", {"0.2"}, std::move(options));
+
+    engine::current_task::RequestCancel();
+    EXPECT_TRUE(engine::current_task::IsCancelRequested());
+    EXPECT_TRUE(engine::current_task::ShouldCancel());
+    child.Wait();
+    EXPECT_TRUE(engine::current_task::IsCancelRequested());
+    EXPECT_TRUE(engine::current_task::ShouldCancel());
+    auto status = child.Get();
+    ASSERT_TRUE(status.IsExited());
+    EXPECT_EQ(0, status.GetExitCode());
+}
+
+UTEST(Subprocess, GetIgnoresCancel) {
+    engine::subprocess::ProcessStarter starter(engine::current_task::GetTaskProcessor());
+
+    const engine::subprocess::EnvironmentVariablesScope scope{};
+    SetEnvironmentVariable("PATH", kPath, engine::subprocess::Overwrite::kAllowed);
+
+    engine::subprocess::ExecOptions options{};
+    options.use_path = true;
+
+    auto child = starter.Exec("sleep", {"0.2"}, std::move(options));
+
+    engine::current_task::RequestCancel();
+    EXPECT_TRUE(engine::current_task::IsCancelRequested());
+
+    auto status = child.Get();
+    ASSERT_TRUE(status.IsExited());
+    EXPECT_EQ(0, status.GetExitCode());
+    EXPECT_TRUE(engine::current_task::IsCancelRequested());
 }
 
 UTEST(Subprocess, ExecvpVulnerability) {

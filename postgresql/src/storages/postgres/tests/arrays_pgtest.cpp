@@ -1,3 +1,5 @@
+#include <iterator>
+
 #include <storages/postgres/tests/test_buffers.hpp>
 #include <storages/postgres/tests/util_pgtest.hpp>
 #include <userver/storages/postgres/io/array_types.hpp>
@@ -14,6 +16,9 @@ namespace static_test {
 using Int = std::optional<int>;
 
 using one_dim_vector = std::vector<Int>;
+
+static_assert(std::input_iterator<io::detail::ContainerSplitter<one_dim_vector>::ChunkIterator>);
+
 using two_dim_vector = std::vector<one_dim_vector>;
 using three_dim_vector = std::vector<two_dim_vector>;
 
@@ -882,6 +887,30 @@ TEST(PostgreIO, SplitContainer) {
     CheckSplit(io::SplitContainer(data, 10));
     data.clear();
     CheckSplit(io::SplitContainer(data, 10));
+}
+
+TEST(PostgreIO, SplitContainerIteratorOps) {
+    std::vector<int> data{1, 2, 3, 4, 5};
+    auto split = io::SplitContainer(data, 2);
+
+    auto it = split.begin();
+    EXPECT_EQ(it, split.begin());
+    EXPECT_NE(it, split.end());
+    EXPECT_EQ((*it).size(), 2);
+
+    auto prev = it++;
+    EXPECT_EQ((*prev).size(), 2);
+    EXPECT_EQ((*it).size(), 2);
+
+    auto assigned = split.end();
+    assigned = it;
+    EXPECT_EQ(assigned, it);
+    EXPECT_EQ((*assigned).size(), 2);
+
+    ++it;
+    EXPECT_EQ((*it).size(), 1);
+    it++;
+    EXPECT_EQ(it, split.end());
 }
 
 UTEST_P(PostgreConnection, ChunkedContainer) {

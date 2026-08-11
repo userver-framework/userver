@@ -18,10 +18,15 @@ if(USERVER_FEATURE_CHAOTIC)
     add_subdirectory(chaotic_service)
     add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-chaotic_service)
 
-    if(USERVER_FEATURE_CHAOTIC_EXPERIMENTAL)
+    if(USERVER_FEATURE_CHAOTIC_OPENAPI)
         add_subdirectory(chaotic_openapi_service)
         add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-chaotic-openapi_service)
     endif()
+endif()
+
+if(USERVER_FEATURE_POSTGRESQL AND USERVER_FEATURE_CHAOTIC)
+    add_subdirectory(benchmark_service)
+    add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-benchmark_service)
 endif()
 
 if(USERVER_FEATURE_OTLP)

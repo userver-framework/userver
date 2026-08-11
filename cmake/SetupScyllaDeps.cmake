@@ -10,7 +10,7 @@ endif()
 message(STATUS "ScyllaDB cpp-driver: ${SCYLLA_CPP_DRIVER_LIB}")
 
 add_library(scylla_cpp_driver SHARED IMPORTED)
-set_target_properties(scylla_cpp_driver PROPERTIES
-    IMPORTED_LOCATION "${SCYLLA_CPP_DRIVER_LIB}"
-    INTERFACE_INCLUDE_DIRECTORIES "${SCYLLA_CPP_DRIVER_INCLUDE}"
+set_target_properties(
+    scylla_cpp_driver PROPERTIES IMPORTED_LOCATION "${SCYLLA_CPP_DRIVER_LIB}" INTERFACE_INCLUDE_DIRECTORIES
+                                                                              "${SCYLLA_CPP_DRIVER_INCLUDE}"
 )

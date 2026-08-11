@@ -715,7 +715,7 @@ UTEST_F(Options, MaxServerTime) {
 }
 
 UTEST_F(Options, DefaultMaxServerTime) {
-    SetDynamicConfig({{::dynamic_config::MONGO_DEFAULT_MAX_TIME_MS, std::chrono::milliseconds{123}}});
+    SetDynamicConfig({{::dynamic_config::MONGO_DEFAULT_MAX_TIME_MS, std::chrono::milliseconds{400}}});
     auto coll = GetDefaultPool().GetCollection("max_server_time");
 
     coll.InsertOne(bson::MakeDoc("x", 1));
@@ -723,7 +723,7 @@ UTEST_F(Options, DefaultMaxServerTime) {
 
     coll.InsertOne(bson::MakeDoc("x", 2));
     coll.InsertOne(bson::MakeDoc("x", 3));
-    UEXPECT_THROW(coll.Find(bson::MakeDoc("$where", "sleep(50) || true")), storages::mongo::ServerException);
+    UEXPECT_THROW(coll.Find(bson::MakeDoc("$where", "sleep(380) || true")), storages::mongo::ServerException);
     UEXPECT_NO_THROW(
         coll.Find(bson::MakeDoc("$where", "sleep(50) || true"), mongo::options::MaxServerTime{utest::kMaxTestWaitTime})
     );

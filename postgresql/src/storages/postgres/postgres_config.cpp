@@ -11,6 +11,7 @@
 #include <userver/utils/userver_info.hpp>
 
 #include <userver/formats/common/items.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 #include <type_traits>
 
@@ -54,6 +55,18 @@ CommandControl Parse(const formats::json::Value& elem, formats::parse::To<Comman
 }
 
 namespace {
+
+constexpr USERVER_NAMESPACE::utils::TrivialBiMap kPoolerModes = [](auto&& selector) {
+    return selector().Case(PoolerMode::kSession, "session").Case(PoolerMode::kTransaction, "transaction");
+};
+
+PoolerMode ParsePoolerMode(const std::string_view pooler_mode_name) {
+    const auto pooler_mode = kPoolerModes.TryFind(pooler_mode_name);
+    if (!pooler_mode) {
+        throw std::runtime_error("Unknown pooler mode: " + std::string{pooler_mode_name});
+    }
+    return *pooler_mode;
+}
 
 template <typename ConfigType>
 ConnectionSettings::StatementLogMode ParseStatementLogMode(const ConfigType& config) {
@@ -101,6 +114,7 @@ ConnectionSettings ParseConnectionSettings(const ConfigType& config) {
             ? ConnectionSettings::kDiscardAll
             : ConnectionSettings::kDiscardNone;
     settings.deadline_propagation_enabled = config["deadline-propagation-enabled"].template As<bool>(true);
+    settings.pooler_mode = config["pooler-mode"].template As<PoolerMode>(PoolerMode::kSession);
     settings.application_name =
         config["application_name"].template As<std::string>(USERVER_NAMESPACE::utils::GetUserverIdentifier());
 
@@ -108,6 +122,14 @@ ConnectionSettings ParseConnectionSettings(const ConfigType& config) {
 }
 
 }  // namespace
+
+PoolerMode Parse(const yaml_config::YamlConfig& config, formats::parse::To<PoolerMode>) {
+    return ParsePoolerMode(config.As<std::string>("session"));
+}
+
+PoolerMode Parse(const formats::json::Value& config, formats::parse::To<PoolerMode>) {
+    return ParsePoolerMode(config.As<std::string>("session"));
+}
 
 ConnectionSettings::StatementLogMode
 Parse(const yaml_config::YamlConfig& config, formats::parse::To<ConnectionSettings::StatementLogMode>) {
@@ -152,6 +174,9 @@ ConnectionSettingsDynamic Parse(const formats::json::Value& config, formats::par
     }
     if (const auto dp_enabled = config["deadline-propagation-enabled"].As<std::optional<bool>>(); dp_enabled) {
         settings.deadline_propagation_enabled = *dp_enabled;
+    }
+    if (const auto pooler_mode = config["pooler-mode"].As<std::optional<PoolerMode>>(); pooler_mode) {
+        settings.pooler_mode = *pooler_mode;
     }
 
     return settings;

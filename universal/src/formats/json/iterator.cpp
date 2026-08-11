@@ -1,5 +1,6 @@
 #include <userver/formats/json/iterator.hpp>
 
+#include <iterator>
 #include <limits>
 
 #include <rapidjson/document.h>
@@ -226,6 +227,10 @@ template class Iterator<Value::IterTraits, IteratorDirection::kForward>;
 template class Iterator<Value::IterTraits, IteratorDirection::kReverse>;
 template class Iterator<ValueBuilder::IterTraits, IteratorDirection::kForward>;
 template class Iterator<ValueBuilder::IterTraits, IteratorDirection::kReverse>;
+
+static_assert(std::forward_iterator<Iterator<Value::IterTraits, IteratorDirection::kForward>>);
+static_assert(std::forward_iterator<Iterator<Value::IterTraits, IteratorDirection::kReverse>>);
+static_assert(std::forward_iterator<Iterator<ValueBuilder::IterTraits, IteratorDirection::kForward>>);
 
 }  // namespace formats::json
 

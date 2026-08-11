@@ -299,7 +299,7 @@ struct ConnectionSettings {
     OmitDescribeInExecuteMode omit_describe_mode = OmitDescribeInExecuteMode::kDisabled;
 
     /// This many connection errors in 15 seconds block new connections opening
-    std::size_t recent_errors_threshold = 5;
+    std::size_t recent_errors_threshold = 30;
 
     /// The maximum lifetime of the connection after which it will be closed
     std::optional<std::chrono::seconds> max_ttl{};
@@ -344,6 +344,7 @@ struct ConnectionSettingsDynamic final {
     std::optional<std::chrono::seconds> max_ttl{};
     std::optional<ConnectionSettings::DiscardOnConnectOptions> discard_on_connect{};
     std::optional<bool> deadline_propagation_enabled{};
+    std::optional<PoolerMode> pooler_mode{};
 };
 
 /// @brief PostgreSQL statements metrics options

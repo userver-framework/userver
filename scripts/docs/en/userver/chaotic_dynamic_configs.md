@@ -95,6 +95,7 @@ if (flags.enable_new_logic) { ... }
 | `-o` / `--output-dir` | yes | Directory for generated files. |
 | `file …` | yes | One or more YAML variable files. |
 | `-I` / `--include-dir` | no (repeatable) | Extra include path for `x-usrv-cpp-type` header lookup. |
+| `--no-check-includes` | no | Skip the `x-usrv-cpp-type` header existence check (see @ref scripts/docs/en/userver/chaotic.md). |
 | `--clang-format` | no | clang-format binary; set to empty string to disable. |
 
 

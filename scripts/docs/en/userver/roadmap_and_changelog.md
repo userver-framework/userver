@@ -147,6 +147,7 @@ Features:
   * Added support for OpenTelemetry trace sampling flags. When `otel-trace-sampling-enabled` is true, spans will respect the W3C trace-context sampled flag (unsampled spans are not written to tracing systems). Added @ref Span::IsSampled() and @ref Span::SetSampled() methods for manual control.
 
 * ydb
+  * Added a static configuration option to defer Query API session creation after a get-session timeout
   * Added support for YDB tuple type serialization with `std::tuple` support
   * Added @ref ydb::TopicWriteSession support to YDB client for coroutine-friendly topic writing. Many thanks to [Vasily Sviridov](https://github.com/vasily-sviridov) for the PR!
   * Added deadline support for YDB topic producer flush operations

@@ -1,1 +1,5 @@
+libydb-cpp-dev
+libydb-cpp-iam-dev
 ragel
+python3-jinja2
+python3-sqlparse

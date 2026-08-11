@@ -5,7 +5,11 @@
 #include <chrono>
 
 #include <engine/io/tests/net_listener.hpp>
+#include <userver/engine/async.hpp>
 #include <userver/engine/io/socket.hpp>
+#include <userver/engine/single_consumer_event.hpp>
+#include <userver/engine/task/cancel.hpp>
+#include <userver/engine/task/current_task.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -45,6 +49,27 @@ UTEST(BlockingConnectTcpByName, SocketCommunicates) {
     ASSERT_EQ(kMsgLen, server_socket.RecvAll(buf, kMsgLen, deadline));
     buf[kMsgLen] = '\0';
     EXPECT_STREQ(k_msg, buf);
+}
+
+UTEST(BlockingConnectTcpByName, IgnoresCancel) {
+    // Prefer IPv4: on some systems getaddrinfo("localhost") returns only 127.0.0.1.
+    engine::io::tests::TcpListener listener{engine::io::tests::IpVersion::kV4};
+    const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+    engine::SingleConsumerEvent started;
+    auto task = engine::CriticalAsyncNoTracing([&] {
+        engine::current_task::RequestCancel();
+        EXPECT_TRUE(engine::current_task::IsCancelRequested());
+        started.Send();
+        // Cancellations are ignored by ConnectTcpByName; interruptible versions may be added later.
+        auto socket = net::blocking::ConnectTcpByName("localhost", listener.Port(), deadline);
+        EXPECT_TRUE(socket.IsValid());
+        EXPECT_TRUE(engine::current_task::IsCancelRequested());
+        return socket.Getpeername().Port();
+    });
+
+    ASSERT_TRUE(started.WaitForEventFor(utest::kMaxTestWaitTime));
+    EXPECT_EQ(task.Get(), listener.Port());
 }
 
 USERVER_NAMESPACE_END

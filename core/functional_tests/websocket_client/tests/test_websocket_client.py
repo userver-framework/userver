@@ -13,6 +13,8 @@ import pytest
         'nonblocking_write',
         'unauth',
         'connection_already_extracted',
+        'large_server_message_default_limit',
+        'large_server_message_custom_limit',
     ],
 )
 async def test_client(service_client, service_port, test_name):

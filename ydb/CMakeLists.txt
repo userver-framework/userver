@@ -31,7 +31,7 @@ userver_module(
 
 _userver_directory_install(
     COMPONENT ydb
-    FILES "${USERVER_ROOT_DIR}/cmake/SetupYdbCPPSDK.cmake"
+    FILES "${USERVER_ROOT_DIR}/cmake/SetupYdbCppSDK.cmake"
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
 )
 

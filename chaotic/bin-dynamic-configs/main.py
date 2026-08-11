@@ -27,7 +27,16 @@ def parse_args() -> argparse.Namespace:
         '-I',
         '--include-dir',
         action='append',
-        help='Path to search for include files for x-usrv-cpp-type',
+        help=(
+            'Path to search for include files for x-usrv-cpp-type, used only '
+            'to produce a nicer error message if the header is missing.'
+        ),
+    )
+    parser.add_argument(
+        '--no-check-includes',
+        action='store_false',
+        dest='check_includes',
+        help='Do not check that x-usrv-cpp-type headers exist',
     )
     parser.add_argument(
         '--clang-format',
@@ -54,7 +63,7 @@ def main():
         compiler.parse_variable(
             file,
             name,
-            include_dirs=(args.include_dir or []),
+            include_dirs=None if not args.check_includes else args.include_dir or [],
             namespace='dynamic_config',
         )
         compiler.generate_variable(

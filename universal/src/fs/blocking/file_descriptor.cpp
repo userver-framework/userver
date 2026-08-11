@@ -14,6 +14,7 @@
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/iovec_advance.hpp>
 #include <utils/check_syscall.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -177,21 +178,18 @@ void FileDescriptor::Write(std::span<const struct iovec> contents) {
             const auto code = std::make_error_code(std::errc{errno});
             throw std::system_error(code, "calling ::writev");
         } else if (chunk_size > 0) {
-            std::size_t offset = chunk_size;
-            while (list_size > 0) {
-                const std::size_t len = list->iov_len;
-                if (offset >= len) {
-                    ++list;
-                    offset -= len;
-                    --list_size;
-                    UASSERT(list_size != 0 || offset == 0);
-                } else [[unlikely]] {
-                    // Never happens?
-                    Write(std::string_view(static_cast<char*>(list->iov_base) + offset, len - offset));
-                    ++list;
-                    --list_size;
-                    break;
-                }
+            utils::IovIter iter{list, list_size};
+            utils::Advance(iter, chunk_size);
+            if (0 == iter.iov_offset) {
+                list = iter.iov;
+                list_size = iter.iov_size;
+            } else [[unlikely]] {
+                // Never happens?
+                struct iovec iov = *iter.iov;
+                utils::Advance(iov, iter.iov_offset);
+                Write(std::string_view{static_cast<char*>(iov.iov_base), iov.iov_len});
+                list = iter.iov + 1;
+                list_size = iter.iov_size - 1;
             }
         } else [[unlikely]] {
             UASSERT(chunk_size == 0);

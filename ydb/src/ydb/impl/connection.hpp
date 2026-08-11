@@ -13,6 +13,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ydb::impl {
 
+NYdb::NQuery::TClientSettings MakeQuerySettings(const TableSettings& settings);
+
 struct Connection final {
     std::shared_ptr<Driver> driver;
     NYdb::NScheme::TSchemeClient scheme_client;

@@ -34,6 +34,57 @@ current coroutine for carrying out network I/O.
 - `LISTEN`/`NOTIFY` support via @ref storages::postgres::Cluster::Listen();
 - @ref scripts/docs/en/userver/deadline_propagation.md .
 
+## Transaction pooling with a PostgreSQL balancer
+
+In session pooling mode, a PostgreSQL backend connection is assigned to a
+client connection for the whole session, so session state is preserved between
+transactions. In transaction pooling mode, the backend connection is returned
+to the pool after each transaction, and the next transaction may use a
+different connection. This allows more clients to share fewer backend
+connections, but the service must not rely on session state being preserved
+between transactions.
+
+Transaction pooling with persistent prepared statements is supported only with
+Odyssey's prepared statement reservation enabled:
+
+```text
+pool "transaction"
+pool_reserve_prepared_statement yes
+```
+
+To switch a running service without restarting it, apply the changes in the
+following order:
+
+1. Set `pooler-mode` to `transaction` and
+   `persistent-prepared-statements` to `false` in the
+   @ref POSTGRES_CONNECTION_SETTINGS dynamic config:
+
+   ```json
+   {
+     "postgres-component-name": {
+       "pooler-mode": "transaction",
+       "persistent-prepared-statements": false
+     }
+   }
+   ```
+
+2. Reload Odyssey with `pool "transaction"` and
+   `pool_reserve_prepared_statement yes` for the corresponding route.
+3. After the Odyssey reload has completed, set
+   `persistent-prepared-statements` back to `true`:
+
+   ```json
+   {
+     "postgres-component-name": {
+       "pooler-mode": "transaction",
+       "persistent-prepared-statements": true
+     }
+   }
+   ```
+
+Replace `postgres-component-name` with the PostgreSQL component's `name_alias`,
+or with the component name if `name_alias` is not set.
+
 @section toc More information
 - For configuration see components::Postgres
 - For cluster topology see storages::postgres::Cluster

@@ -6,6 +6,7 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/logging/log_helper.hpp>
 #include <userver/proto-structs/convert.hpp>
+#include <userver/proto-structs/log.hpp>
 #include <userver/proto-structs/type_mapping.hpp>
 #include <userver/protobuf/json/convert.hpp>
 
@@ -27,14 +28,14 @@ requires traits::ProtoStruct<std::remove_cvref_t<TStruct>>
 
 /// @brief Converts protobuf struct @a obj to an std::string, containing the JSON representation of the struct.
 /// Conversion is performed by converting the protobuf struct to an intermediate protobuf message, then
-/// converting the message to @ref formats::json::Value, and finally converting the value to a string.
+/// converting the message to a string.
 /// @tparam TStruct protobuf struct type
 /// @throws WriteError if struct to message conversion has failed.
 /// @throws PrintError if message to JSON conversion has failed.
 template <typename TStruct>
 requires traits::ProtoStruct<std::remove_cvref_t<TStruct>>
 [[nodiscard]] std::string StructToJsonString(TStruct&& obj, const protobuf::json::PrintOptions& options) {
-    return formats::json::ToString(StructToJson(std::forward<TStruct>(obj), options));
+    return protobuf::json::MessageToJsonString(StructToMessage(std::forward<TStruct>(obj)), options);
 }
 
 /// @brief Converts @a json to protobuf struct of type `TStruct`.
@@ -103,29 +104,5 @@ TStruct Parse(const json::Value& json, To<TStruct>) {
 }
 
 }  // namespace formats::parse
-
-namespace logging {
-
-namespace impl {
-
-logging::LogHelper& LogMessage(logging::LogHelper& h, const google::protobuf::Message& message);
-
-}  // namespace impl
-
-/// @brief Logs the protobuf struct @a obj as a JSON string.
-/// The resulting JSON is constructed with always_print_primitive_fields and preserve_proto_field_names set to true,
-/// which allows the struct field names and values to be serialized as close as possible to the definition.
-template <typename TStruct>
-requires proto_structs::traits::ProtoStruct<std::remove_cvref_t<TStruct>>
-logging::LogHelper& operator<<(logging::LogHelper& h, const TStruct& obj) {
-    try {
-        const auto message = proto_structs::StructToMessage(obj);
-        return impl::LogMessage(h, message);
-    } catch (const std::exception& ex) {
-        return h << "Failed to log struct: " << ex;
-    }
-}
-
-}  // namespace logging
 
 USERVER_NAMESPACE_END

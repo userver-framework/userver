@@ -1,9 +1,15 @@
 #include <userver/utils/statistics/system_statistics_collector.hpp>
 
+#include <memory>
+
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
+#include <userver/concurrent/variable.hpp>
 #include <userver/engine/async.hpp>
+#include <userver/utils/periodic_task.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
+
+#include <utils/statistics/system_statistics.hpp>
 
 #ifndef ARCADIA_ROOT
 #include "generated/src/utils/statistics/system_statistics_collector.yaml.hpp"  // Y_IGNORE
@@ -13,40 +19,55 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
+struct SystemStatisticsCollector::Impl {
+    struct Data {
+        utils::statistics::impl::SystemStats last_stats{};
+        utils::statistics::impl::SystemStats last_nginx_stats{};
+    };
+
+    Impl(const ComponentConfig& config, const ComponentContext& context)
+        : with_nginx(config["with-nginx"].As<bool>(false))
+    {
+        utils::PeriodicTask::Settings settings{std::chrono::seconds(10), {utils::PeriodicTask::Flags::kNow}};
+        settings.task_processor = &GetFsTaskProcessor(config, context);
+        periodic.Start("system_statistics_collector", settings, [this] { ProcessTimer(); });
+    }
+
+    void ProcessTimer();
+
+    const bool with_nginx;
+    concurrent::Variable<Data> data;
+    utils::PeriodicTask periodic;
+};
+
+void SystemStatisticsCollector::Impl::ProcessTimer() {
+    auto self = utils::statistics::impl::GetSelfSystemStatistics();
+    utils::statistics::impl::SystemStats nginx;
+    if (with_nginx) {
+        nginx = utils::statistics::impl::GetSystemStatisticsByExeName("nginx");
+    }
+
+    auto data_lock = data.UniqueLock();
+    data_lock->last_stats = self;
+    data_lock->last_nginx_stats = nginx;
+}
+
 SystemStatisticsCollector::SystemStatisticsCollector(const ComponentConfig& config, const ComponentContext& context)
     : ComponentBase(config, context),
-      with_nginx_(config["with-nginx"].As<bool>(false)),
-      fs_task_processor_(GetFsTaskProcessor(config, context)),
-      periodic_(
-          "system_statistics_collector",
-          {std::chrono::seconds(10), {utils::PeriodicTask::Flags::kNow}},
-          [this] { ProcessTimer(); }
-      )
+      impl_(std::make_unique<Impl>(config, context))
 {
     utils::statistics::RegisterWriterScope(context, "", [this](utils::statistics::Writer& writer) {
         ExtendStatistics(writer);
     });
 }
 
-void SystemStatisticsCollector::ProcessTimer() {
-    engine::CriticalAsyncNoTracing(fs_task_processor_, [&] {
-        auto self = utils::statistics::impl::GetSelfSystemStatistics();
-        utils::statistics::impl::SystemStats nginx;
-        if (with_nginx_) {
-            nginx = utils::statistics::impl::GetSystemStatisticsByExeName("nginx");
-        }
-
-        auto data = data_.UniqueLock();
-        data->last_stats = self;
-        data->last_nginx_stats = nginx;
-    }).Get();
-}
+SystemStatisticsCollector::~SystemStatisticsCollector() = default;
 
 void SystemStatisticsCollector::ExtendStatistics(utils::statistics::Writer& writer) {
-    auto data = data_.Lock();
+    auto data = impl_->data.Lock();
 
     DumpMetric(writer, data->last_stats);
-    if (with_nginx_) {
+    if (impl_->with_nginx) {
         writer.ValueWithLabels(data->last_nginx_stats, {"application", "nginx"});
     }
 }

@@ -4,7 +4,7 @@
 
   {% for field_name, field in body.schema.fields.items() %}
       {% if field.required %}
-        form.AddContent("{{ field_name }}", USERVER_NAMESPACE::chaotic::openapi::PrimitiveToString(data.{{ field_name }});
+        form.AddContent("{{ field_name }}", USERVER_NAMESPACE::chaotic::openapi::PrimitiveToString(data.{{ field_name }}));
       {% else %}
         if (data.{{ field_name }})
           form.AddContent("{{ field_name }}", USERVER_NAMESPACE::chaotic::openapi::PrimitiveToString(*data.{{ field_name }}));

@@ -94,6 +94,12 @@ RawComponentBase* ComponentInfo::WaitAndGetComponent() const {
     return component_.get();
 }
 
+ComponentHealth ComponentInfo::GetComponentHealth() const {
+    const std::lock_guard lock{mutex_};
+    auto* component_ptr = component_.get();
+    return component_ptr ? component_ptr->GetComponentHealth() : ComponentHealth::kFatal;
+}
+
 void ComponentInfo::AddItDependsOn(ComponentInfo& component) {
     const std::lock_guard lock{mutex_};
     UASSERT_MSG(

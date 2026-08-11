@@ -16,6 +16,10 @@ Paths to dependencies start from the @ref service_templates "directory of your s
 Dependencies can be installed via:
 
 ```bash
+YDB_DEPS_INSTALLER="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/ydb/install-ydb-cpp-sdk-debs.sh" && \
+wget -q -O /tmp/install-ydb-cpp-sdk-debs.sh ${YDB_DEPS_INSTALLER} && \
+sudo bash /tmp/install-ydb-cpp-sdk-debs.sh && \
+rm /tmp/install-ydb-cpp-sdk-debs.sh && \
 DEPS_FILE="https://raw.githubusercontent.com/userver-framework/userver/refs/heads/develop/scripts/docs/en/deps/ubuntu-24.04.md" && \
 sudo apt install --allow-downgrades -y $(wget -q -O - ${DEPS_FILE})
 ```

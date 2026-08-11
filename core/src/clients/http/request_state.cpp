@@ -606,8 +606,12 @@ void RequestState::OnCompleted(std::shared_ptr<RequestState> holder, std::error_
             },
             [&holder, &easy](WebSocketHandshakeData& data) {
                 auto promise = std::move(data.promise);
-                // The task will wake up and may reuse RequestState.
-                promise.set_value(WebSocketResponse(holder->response_move(), std::move(easy.extracted_socket())));
+                // Preamble was drained on the curl thread before multi remove.
+                promise.set_value(WebSocketResponse(
+                    holder->response_move(),
+                    std::move(easy.extracted_socket()),
+                    easy.TakeCapturedSocketPreamble()
+                ));
             }
         };
         std::visit(visitor, holder->data_);
@@ -858,7 +862,7 @@ engine::Future<WebSocketResponse> RequestState::async_perform_websocket_handshak
     // set place for response body
     easy().set_sink(&response_->sink_string());
     easy().set_connect_only(2L /** websocket handshake */);
-    easy().enable_socket_extraction();
+    easy().enable_socket_extraction(&impl::DrainCurlWebSocketPreamble);
 
     auto future = data.promise.get_future();
 

@@ -115,7 +115,7 @@ sure that the service restores:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/functional_testing.md | @ref scripts/docs/en/userver/profile_context_switches.md ⇨
+⇦ @ref scripts/docs/en/userver/metrics_migration.md | @ref scripts/docs/en/userver/profile_context_switches.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example postgresql/functional_tests/basic_chaos/conftest.py

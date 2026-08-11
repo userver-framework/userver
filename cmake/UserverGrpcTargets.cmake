@@ -51,9 +51,9 @@ function(_userver_prepare_grpc)
         set_property(GLOBAL PROPERTY userver_protobuf_import_dir "${Protobuf_INCLUDE_DIRS}")
     elseif(protobuf_INCLUDE_DIRS)
         set_property(GLOBAL PROPERTY userver_protobuf_import_dir "${protobuf_INCLUDE_DIRS}")
-    else()  # Newer Protobuf versions outside Conan dropped all additional cmake variables.
+    else() # Newer Protobuf versions outside Conan dropped all additional cmake variables.
         get_target_property(Protobuf_INCLUDE_DIR protobuf::libprotobuf INTERFACE_INCLUDE_DIRECTORIES)
-        if (Protobuf_INCLUDE_DIR)
+        if(Protobuf_INCLUDE_DIR)
             set_property(GLOBAL PROPERTY userver_protobuf_import_dir "${Protobuf_INCLUDE_DIR}")
         else()
             message(FATAL_ERROR "Invalid Protobuf package")
@@ -278,20 +278,13 @@ function(userver_add_grpc_library NAME)
     cmake_parse_arguments(RPC_LIB "${options}" "${one_value_args}" "${multi_value_args}" ${ARGN})
 
     userver_generate_grpc_files(
-        PROTOS
-        ${RPC_LIB_PROTOS}
-        INCLUDE_DIRECTORIES
-        ${RPC_LIB_INCLUDE_DIRECTORIES}
-        SOURCE_PATH
-        "${RPC_LIB_SOURCE_PATH}"
-        OUTPUT_PATH
-        "${RPC_LIB_OUTPUT_PATH}"
-        GENERATED_INCLUDES
-        include_paths
-        CPP_FILES
-        generated_sources
-        CPP_USRV_FILES
-        generated_usrv_sources
+        PROTOS ${RPC_LIB_PROTOS}
+        INCLUDE_DIRECTORIES ${RPC_LIB_INCLUDE_DIRECTORIES}
+        SOURCE_PATH "${RPC_LIB_SOURCE_PATH}"
+        OUTPUT_PATH "${RPC_LIB_OUTPUT_PATH}"
+        GENERATED_INCLUDES include_paths
+        CPP_FILES generated_sources
+        CPP_USRV_FILES generated_usrv_sources
     )
     add_library(${NAME} STATIC ${generated_sources} ${generated_usrv_sources})
     target_compile_options(${NAME} PUBLIC -Wno-unused-parameter)

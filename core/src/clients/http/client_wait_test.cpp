@@ -1,8 +1,10 @@
 #include <userver/clients/http/client.hpp>
 
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/task/task_with_result.hpp>
 #include <userver/engine/wait_any.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utils/async.hpp>
 
 #include <userver/http/http_version.hpp>
 #include <userver/utest/http_client.hpp>
@@ -172,6 +174,37 @@ UTEST(HttpClient, WaitAnyMany) {
     const std::size_t processed = ProcessReadyRequests(async_requests, deadline);
     EXPECT_EQ(processed, async_requests.size());
     EXPECT_EQ(processed, kRepetitions);
+}
+
+// Catches heap-use-after-free when handle_completion runs before
+// curl_multi_remove_handle: Get() destroys RequestState / resets the easy on a
+// worker while the curl thread is still inside remove_handle (pollset).
+UTEST(HttpClient, EasyResetDoesNotRaceWithMultiRemove) {
+    auto http_client_ptr = utest::CreateHttpClient();
+    const utest::SimpleServer http_echo_server{&EchoSimpleCallback};
+
+    constexpr unsigned kParallel = 8;
+    constexpr unsigned kPerTask = 100;
+
+    std::vector<engine::TaskWithResult<void>> tasks;
+    tasks.reserve(kParallel);
+    for (unsigned t = 0; t < kParallel; ++t) {
+        tasks.push_back(utils::Async("http-easy-reset-race", [&] {
+            for (unsigned i = 0; i < kPerTask; ++i) {
+                auto response =
+                    http_client_ptr->CreateRequest()
+                        .post(http_echo_server.GetBaseUrl(), kTestData)
+                        .retry(1)
+                        .timeout(utest::kMaxTestWaitTime)
+                        .perform();
+                EXPECT_TRUE(response->IsOk());
+                EXPECT_EQ(response->body_view(), kTestData);
+            }
+        }));
+    }
+    for (auto& task : tasks) {
+        task.Get();
+    }
 }
 
 USERVER_NAMESPACE_END

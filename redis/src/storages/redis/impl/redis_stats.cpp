@@ -39,6 +39,7 @@ const std::string_view kCommandTypes[] = {
     "georadius_ro",
     "geosearch",
     "get",
+    "getdel",
     "getset",
     "hdel",
     "hexists",

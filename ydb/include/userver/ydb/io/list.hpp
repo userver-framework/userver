@@ -56,6 +56,12 @@ public:
         return *this;
     }
 
+    ParseItemsIterator operator++(int) {
+        ParseItemsIterator copy{*this};
+        ++*this;
+        return copy;
+    }
+
     bool operator==(const ParseItemsIterator& other) const noexcept {
         UASSERT(parser_ == nullptr || other.parser_ == nullptr);
         return parser_ == other.parser_;

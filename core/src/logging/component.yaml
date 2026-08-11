@@ -40,6 +40,11 @@ properties:
                     type: integer
                     description: the size of internal message queue, must be a power of 2
                     default: 65536
+                flush_queue_size:
+                    type: integer
+                    description: number of queued messages that wakes the log consumer; values above half of `message_queue_size`
+                        are capped at half of `message_queue_size`
+                    default: 128
                 overflow_behavior:
                     type: string
                     description: "message handling policy while the queue is full: `discard` drops messages, `block` waits until

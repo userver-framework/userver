@@ -390,6 +390,13 @@ in case of `x-usrv-cpp-type: X::Y`. The header must contain:
 Pass `INCLUDE_DIRS` (or `-I` on the CLI) to `userver_target_generate_chaotic` so the generator
 can find the header, and pass `LINK_TARGETS` to link with the target that provides it.
 
+The existence check exists only to produce a nicer error message at codegen time; it has no
+effect on the generated code, which always `#include`s the header derived from the
+`x-usrv-cpp-type` value regardless of whether it was found. Build systems that cannot cheaply
+compute the real include search path at codegen time (e.g. `ya.make`) may pass
+`--no-check-includes` (or `include_dirs=None` via the Python API) to skip the check altogether
+and rely on the C++ compiler to report a missing header instead.
+
 @include chaotic/integration_tests/include/userver/chaotic/io/my/custom_string.hpp
 
 

@@ -29,6 +29,7 @@ struct TableSettings {
     std::uint32_t min_pool_size{10};
     std::uint32_t max_pool_size{50};
     std::uint32_t get_session_retry_limit{5};
+    bool use_deferred_session_creation{false};
     // Deprecated, parsed for backward compatibility but not used by execute.
     bool keep_in_query_cache{true};
     bool sync_start{true};

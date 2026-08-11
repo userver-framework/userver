@@ -5,6 +5,7 @@
 
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/engine/io/sockaddr.hpp>
+#include <userver/engine/task/cancel.hpp>
 #include <userver/net/detail/connect_tcp_to_addrs.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -22,6 +23,7 @@ engine::io::Socket ConnectTcpByName(
     for (auto& addr : addrs_vec) {
         addr.SetPort(port);
     }
+    const engine::TaskCancellationBlocker block_cancel;
     return detail::ConnectTcpToAddrs(host, port, addrs_vec, deadline);
 }
 

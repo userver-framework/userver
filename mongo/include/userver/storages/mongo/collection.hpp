@@ -76,10 +76,24 @@ public:
     template <typename... Options>
     WriteResult UpdateOne(formats::bson::Document selector, formats::bson::Document update, Options&&... options);
 
+    /// @brief Updates a single matching document with an aggregation pipeline
+    /// @note `update` must be either an update document or an aggregation pipeline array
+    /// @note Available starting in MongoDB 4.2
+    /// @see options::Upsert
+    template <typename... Options>
+    WriteResult UpdateOne(formats::bson::Document selector, formats::bson::Value update, Options&&... options);
+
     /// @brief Updates all matching documents
     /// @see options::Upsert
     template <typename... Options>
     WriteResult UpdateMany(formats::bson::Document selector, formats::bson::Document update, Options&&... options);
+
+    /// @brief Updates all matching documents with an aggregation pipeline
+    /// @note `update` must be either an update document or an aggregation pipeline array
+    /// @note Available starting in MongoDB 4.2
+    /// @see options::Upsert
+    template <typename... Options>
+    WriteResult UpdateMany(formats::bson::Document selector, formats::bson::Value update, Options&&... options);
 
     /// Deletes a single matching document
     template <typename... Options>
@@ -245,9 +259,27 @@ WriteResult Collection::UpdateOne(
 }
 
 template <typename... Options>
+WriteResult Collection::UpdateOne(formats::bson::Document selector, formats::bson::Value update, Options&&... options) {
+    operations::Update update_op(operations::Update::Mode::kSingle, std::move(selector), std::move(update));
+    (update_op.SetOption(std::forward<Options>(options)), ...);
+    return Execute(update_op);
+}
+
+template <typename... Options>
 WriteResult Collection::UpdateMany(
     formats::bson::Document selector,
     formats::bson::Document update,
+    Options&&... options
+) {
+    operations::Update update_op(operations::Update::Mode::kMulti, std::move(selector), std::move(update));
+    (update_op.SetOption(std::forward<Options>(options)), ...);
+    return Execute(update_op);
+}
+
+template <typename... Options>
+WriteResult Collection::UpdateMany(
+    formats::bson::Document selector,
+    formats::bson::Value update,
     Options&&... options
 ) {
     operations::Update update_op(operations::Update::Mode::kMulti, std::move(selector), std::move(update));

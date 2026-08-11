@@ -198,6 +198,14 @@ std::vector<GeoPoint> ParseReplyDataArray(ReplyData&& array_data, [[maybe_unused
                     "Can't parse value from reply to '" + request_description + ", additional_info item is empty array"
                 );
             }
+            if (!additional_infos[0].IsString()) {
+                throw ParseReplyException(
+                    "Can't parse value from reply to '" + request_description + "', expected " +
+                    ReplyData::TypeToString(ReplyData::Type::kString) +
+                    " as the first additional_info element, got type: " + additional_infos[0].GetTypeString() +
+                    " elem=" + additional_infos[0].ToDebugString()
+                );
+            }
             geo_point.member = std::move(additional_infos[0].GetString());
 
             for (size_t i = 1; i < additional_infos.size(); ++i) {
@@ -263,7 +271,7 @@ std::string Parse(ReplyData&& reply_data, const std::string& request_description
 double Parse(ReplyData&& reply_data, const std::string& request_description, To<double>) {
     reply_data.ExpectString(request_description);
     try {
-        return std::stod(reply_data.GetString());
+        return utils::FromString<double>(reply_data.GetString());
     } catch (const std::exception& ex) {
         throw ParseReplyException(
             "Can't parse value from reply to '" + request_description + "' request (" + reply_data.ToDebugString() +

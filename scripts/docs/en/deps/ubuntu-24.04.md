@@ -54,6 +54,8 @@ libssl-dev
 libxxhash-dev
 libyaml-cpp-dev
 libyaml-cpp0.8
+libydb-cpp-dev
+libydb-cpp-iam-dev
 libzstd-dev
 netbase
 ninja-build
@@ -63,10 +65,13 @@ protobuf-compiler-grpc
 python3-dev
 python3-jinja2
 python3-protobuf
+python3-sqlparse
+python3-transliterate
 python3-venv
 python3-voluptuous
 python3-yaml
 ragel
 unixodbc-dev
+unzip
 yasm
 zlib1g-dev

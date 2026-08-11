@@ -5,8 +5,7 @@ include(ChaoticGen)
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/bin/chaotic-gen" "${CMAKE_CURRENT_BINARY_DIR}/chaotic-gen" @ONLY)
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/bin-dynamic-configs/chaotic-gen-dynamic-configs"
-    "${CMAKE_CURRENT_BINARY_DIR}/chaotic-gen-dynamic-configs"
-    @ONLY
+    "${CMAKE_CURRENT_BINARY_DIR}/chaotic-gen-dynamic-configs" @ONLY
 )
 
 userver_module(

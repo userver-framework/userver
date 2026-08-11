@@ -21,6 +21,7 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/task/cancel.hpp>
 #include <userver/fs/blocking/temp_file.hpp>
 #include <userver/fs/blocking/write.hpp>
 #include <userver/http/common_headers.hpp>
@@ -687,32 +688,84 @@ UTEST(HttpClient, StatsOnTimeout) {
 }
 
 UTEST(HttpClient, CancelPre) {
-    auto task = utils::Async("test", [] {
-        const utest::SimpleServer http_server{EchoCallback{}};
-        auto http_client_ptr = utest::CreateHttpClient();
+    const utest::SimpleServer http_server{EchoCallback{}};
+    auto http_client_ptr = utest::CreateHttpClient();
 
-        engine::current_task::RequestCancel();
+    engine::current_task::RequestCancel();
 
-        UEXPECT_THROW(http_client_ptr->CreateRequest(), clients::http::CancelException);
-    });
-
-    task.Get();
+    UEXPECT_THROW(http_client_ptr->CreateRequest(), clients::http::CancelException);
 }
 
 UTEST(HttpClient, CancelPost) {
-    auto task = utils::Async("test", [] {
-        const utest::SimpleServer http_server{EchoCallback{}};
-        auto http_client_ptr = utest::CreateHttpClient();
+    const utest::SimpleServer http_server{EchoCallback{}};
+    auto http_client_ptr = utest::CreateHttpClient();
 
-        auto request = http_client_ptr->CreateRequest().post(http_server.GetBaseUrl(), kTestData).timeout(kTimeout);
+    auto request = http_client_ptr->CreateRequest().post(http_server.GetBaseUrl(), kTestData).timeout(kTimeout);
 
-        engine::current_task::RequestCancel();
+    engine::current_task::RequestCancel();
 
-        auto future = request.async_perform();
-        UEXPECT_THROW(future.Wait(), clients::http::CancelException);
-    });
+    auto future = request.async_perform();
+    UEXPECT_THROW(future.Wait(), clients::http::CancelException);
+}
 
-    task.Get();
+UTEST(HttpClient, CancellationPolicyIgnoreDetachesOnDestroy) {
+    std::atomic<unsigned> completed{0};
+    engine::SingleConsumerEvent request_started;
+    engine::SingleConsumerEvent allow_response;
+    const utest::SimpleServer http_server{[&](const HttpRequest& request) {
+        request_started.Send();
+        EXPECT_TRUE(allow_response.WaitForEventFor(utest::kMaxTestWaitTime));
+        ++completed;
+        return EchoCallback{}(request);
+    }};
+    auto http_client_ptr = utest::CreateHttpClient();
+
+    {
+        auto request =
+            http_client_ptr->CreateRequest().post(http_server.GetBaseUrl(), kTestData).retry(1).timeout(kTimeout);
+        request.SetCancellationPolicy(clients::http::CancellationPolicy::kIgnore);
+        [[maybe_unused]] auto future = request.async_perform();
+        ASSERT_TRUE(request_started.WaitForEventFor(utest::kMaxTestWaitTime));
+        // Destroying the future must Detach, not Cancel, so the in-flight request can finish.
+    }
+
+    allow_response.Send();
+    const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+    while (completed.load() == 0 && !deadline.IsReached()) {
+        engine::Yield();
+    }
+    EXPECT_EQ(completed.load(), 1u);
+}
+
+UTEST(HttpClient, CancellationPolicyIgnoreOnWaitCancel) {
+    std::atomic<unsigned> completed{0};
+    engine::SingleConsumerEvent request_started;
+    engine::SingleConsumerEvent allow_response;
+    const utest::SimpleServer http_server{[&](const HttpRequest& request) {
+        request_started.Send();
+        EXPECT_TRUE(allow_response.WaitForEventFor(utest::kMaxTestWaitTime));
+        ++completed;
+        return EchoCallback{}(request);
+    }};
+    auto http_client_ptr = utest::CreateHttpClient();
+
+    auto
+        request = http_client_ptr->CreateRequest().post(http_server.GetBaseUrl(), kTestData).retry(1).timeout(kTimeout);
+    request.SetCancellationPolicy(clients::http::CancellationPolicy::kIgnore);
+    auto future = request.async_perform();
+
+    ASSERT_TRUE(request_started.WaitForEventFor(utest::kMaxTestWaitTime));
+    engine::current_task::RequestCancel();
+    UEXPECT_THROW(future.Wait(), clients::http::CancelException);
+
+    // kIgnore detaches on cancel: the physical request should still complete.
+    allow_response.Send();
+    const engine::TaskCancellationBlocker cancel_blocker;
+    const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+    while (completed.load() == 0 && !deadline.IsReached()) {
+        engine::Yield();
+    }
+    EXPECT_EQ(completed.load(), 1u);
 }
 
 UTEST(HttpClient, CancelRetries) {
@@ -1595,20 +1648,16 @@ UTEST(HttpClient, RequestReuseDifferentUrlAndTimeout) {
 }
 
 UTEST_DEATH(HttpClientDeathTest, TestsuiteAllowedUrls) {
-    auto task = utils::Async("test", [] {
-        const utest::SimpleServer http_server{EchoCallback{}};
-        auto http_client_ptr = utest::impl::CreateHttpClientCore();
-        http_client_ptr->SetTestsuiteConfig({{"http://126.0.0.1"}, {}});
+    const utest::SimpleServer http_server{EchoCallback{}};
+    auto http_client_ptr = utest::impl::CreateHttpClientCore();
+    http_client_ptr->SetTestsuiteConfig({{"http://126.0.0.1"}, {}});
 
-        UEXPECT_NO_THROW((void)http_client_ptr->CreateRequest().get("http://126.0.0.1").async_perform());
-        UEXPECT_DEATH((void)http_client_ptr->CreateRequest().get("http://12.0.0.1").async_perform(), ".*");
+    UEXPECT_NO_THROW((void)http_client_ptr->CreateRequest().get("http://126.0.0.1").async_perform());
+    UEXPECT_DEATH((void)http_client_ptr->CreateRequest().get("http://12.0.0.1").async_perform(), ".*");
 
-        http_client_ptr->SetAllowedUrlsExtra({"http://12.0"});
-        UEXPECT_NO_THROW((void)http_client_ptr->CreateRequest().get("http://12.0.0.1").async_perform());
-        UEXPECT_DEATH((void)http_client_ptr->CreateRequest().get("http://13.0.0.1").async_perform(), ".*");
-    });
-
-    task.Get();
+    http_client_ptr->SetAllowedUrlsExtra({"http://12.0"});
+    UEXPECT_NO_THROW((void)http_client_ptr->CreateRequest().get("http://12.0.0.1").async_perform());
+    UEXPECT_DEATH((void)http_client_ptr->CreateRequest().get("http://13.0.0.1").async_perform(), ".*");
 }
 
 UTEST(HttpClient, TestConnectTo) {

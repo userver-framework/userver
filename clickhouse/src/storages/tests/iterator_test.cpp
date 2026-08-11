@@ -1,5 +1,7 @@
 #include <userver/utest/utest.hpp>
 
+#include <iterator>
+
 #include <userver/storages/clickhouse.hpp>
 
 #include "utils_test.hpp"
@@ -10,6 +12,15 @@ namespace {
 namespace io = USERVER_NAMESPACE::storages::clickhouse::io;
 namespace columns = io::columns;
 namespace clickhouse_cpp = clickhouse;
+
+static_assert(std::forward_iterator<columns::ColumnIterator<columns::Int8Column>>);
+static_assert(std::forward_iterator<columns::ColumnIterator<columns::StringColumn>>);
+
+struct ConceptCheckColumn final {
+    using cpp_type = int;
+};
+
+static_assert(std::forward_iterator<columns::ColumnIterator<ConceptCheckColumn>>);
 
 template <typename... Args>
 struct IteratorDefaultConstructorInstantiator final {

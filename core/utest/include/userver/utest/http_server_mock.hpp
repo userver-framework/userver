@@ -51,6 +51,9 @@ public:
     /// Returns URL to the server, for example 'http://127.0.0.1:8080'
     std::string GetBaseUrl() const;
 
+    /// Returns the port the server listens on
+    SimpleServer::Port GetPort() const;
+
     std::uint64_t GetConnectionsOpenedCount() const;
 
 private:

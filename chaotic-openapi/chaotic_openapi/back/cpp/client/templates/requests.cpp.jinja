@@ -71,7 +71,9 @@ void SerializeRequest(const Request& request, const std::string& base_url, USERV
     switch (request.body.index()) {
     {%- for num, body in enumerate(op.request_bodies) -%}
       case {{ num }}: {
-        http_request.headers(USERVER_NAMESPACE::clients::http::Headers{ {USERVER_NAMESPACE::http::headers::kContentType, "{{ body.content_type }}"} });
+        {% if body.content_type != 'multipart/form-data' %}
+            http_request.headers(USERVER_NAMESPACE::clients::http::Headers{ {USERVER_NAMESPACE::http::headers::kContentType, "{{ body.content_type }}"} });
+        {% endif %}
 
         {% set body_obj = "std::get<" + str(num) + ">(request.body)" %}
         {% if body.content_type == 'application/json' %}

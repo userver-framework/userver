@@ -242,8 +242,11 @@ void easy::do_ev_cancel(size_t request_num) {
     if (multi_registered_) {
         const BusyMarker busy(multi_->Statistics().get_busy_storage());
 
-        handle_completion(std::make_error_code(std::errc::operation_canceled));
+        // Same order as multi::process_messages: capture WS preamble, remove,
+        // then completion so a woken worker cannot reset during remove_handle.
+        CaptureSocketPreambleBeforeMultiRemove();
         multi_->remove(this);
+        handle_completion(std::make_error_code(std::errc::operation_canceled));
     }
 }
 
@@ -272,6 +275,8 @@ void easy::reset() {
 
     extracted_socket_ = {};
     extract_socket_enabled_ = false;
+    socket_preamble_drainer_ = nullptr;
+    socket_preamble_.clear();
 
     set_custom_request(nullptr);
     set_no_body(false);
@@ -674,6 +679,15 @@ void easy::handle_completion(const std::error_code& err) {
      */
     handler(err);
 }
+
+void easy::CaptureSocketPreambleBeforeMultiRemove() {
+    if (!socket_preamble_drainer_ || !handle_) {
+        return;
+    }
+    socket_preamble_ = socket_preamble_drainer_(handle_);
+}
+
+std::string easy::TakeCapturedSocketPreamble() { return std::move(socket_preamble_); }
 
 void easy::mark_retry() { ++retries_count_; }
 

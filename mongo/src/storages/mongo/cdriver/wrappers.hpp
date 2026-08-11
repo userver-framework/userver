@@ -23,6 +23,53 @@ struct BulkOperationDeleter {
 };
 using BulkOperationPtr = std::unique_ptr<mongoc_bulk_operation_t, BulkOperationDeleter>;
 
+#ifdef MONGOC_BULKWRITE_H
+
+struct BulkWriteDeleter {
+    void operator()(mongoc_bulkwrite_t* bulk_write) const noexcept { mongoc_bulkwrite_destroy(bulk_write); }
+};
+using BulkWritePtr = std::unique_ptr<mongoc_bulkwrite_t, BulkWriteDeleter>;
+
+struct BulkWriteOptsDeleter {
+    void operator()(mongoc_bulkwriteopts_t* opts) const noexcept { mongoc_bulkwriteopts_destroy(opts); }
+};
+using BulkWriteOptsPtr = std::unique_ptr<mongoc_bulkwriteopts_t, BulkWriteOptsDeleter>;
+
+struct UpdateOneOptsDeleter {
+    void operator()(mongoc_bulkwrite_updateoneopts_t* opts) const noexcept {
+        mongoc_bulkwrite_updateoneopts_destroy(opts);
+    }
+};
+using UpdateOneOptsPtr = std::unique_ptr<mongoc_bulkwrite_updateoneopts_t, UpdateOneOptsDeleter>;
+
+struct UpdateManyOptsDeleter {
+    void operator()(mongoc_bulkwrite_updatemanyopts_t* opts) const noexcept {
+        mongoc_bulkwrite_updatemanyopts_destroy(opts);
+    }
+};
+using UpdateManyOptsPtr = std::unique_ptr<mongoc_bulkwrite_updatemanyopts_t, UpdateManyOptsDeleter>;
+
+struct ReplaceOneOptsDeleter {
+    void operator()(mongoc_bulkwrite_replaceoneopts_t* opts) const noexcept {
+        mongoc_bulkwrite_replaceoneopts_destroy(opts);
+    }
+};
+using ReplaceOneOptsPtr = std::unique_ptr<mongoc_bulkwrite_replaceoneopts_t, ReplaceOneOptsDeleter>;
+
+struct BulkWriteResultDeleter {
+    void operator()(mongoc_bulkwriteresult_t* result) const noexcept { mongoc_bulkwriteresult_destroy(result); }
+};
+using BulkWriteResultPtr = std::unique_ptr<mongoc_bulkwriteresult_t, BulkWriteResultDeleter>;
+
+struct BulkWriteExceptionDeleter {
+    void operator()(mongoc_bulkwriteexception_t* exception) const noexcept {
+        mongoc_bulkwriteexception_destroy(exception);
+    }
+};
+using BulkWriteExceptionPtr = std::unique_ptr<mongoc_bulkwriteexception_t, BulkWriteExceptionDeleter>;
+
+#endif  // MONGOC_BULKWRITE_H
+
 struct CollectionDeleter {
     void operator()(mongoc_collection_t* collection) const noexcept { mongoc_collection_destroy(collection); }
 };

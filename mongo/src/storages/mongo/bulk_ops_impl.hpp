@@ -4,7 +4,9 @@
 
 #include <userver/formats/bson/bson_builder.hpp>
 #include <userver/formats/bson/document.hpp>
+#include <userver/formats/bson/value.hpp>
 #include <userver/storages/mongo/bulk_ops.hpp>
+#include <userver/storages/mongo/exception.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -33,15 +35,19 @@ public:
 
 class Update::Impl {
 public:
-    Impl(Mode mode, formats::bson::Document&& selector, formats::bson::Document&& update)
+    Impl(Mode mode, formats::bson::Document&& selector, formats::bson::Value&& update)
         : mode(mode),
           selector(std::move(selector)),
           update(std::move(update))
-    {}
+    {
+        if (!this->update.IsDocument() && !this->update.IsArray()) {
+            throw InvalidQueryArgumentException("update must be a document or an aggregation pipeline array");
+        }
+    }
 
     Mode mode;
     formats::bson::Document selector;
-    formats::bson::Document update;
+    formats::bson::Value update;
     std::optional<formats::bson::impl::BsonBuilder> options;
 };
 

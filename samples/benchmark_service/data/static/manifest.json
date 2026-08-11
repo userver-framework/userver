@@ -1,0 +1,172 @@
+{
+  "name": "HttpArena Web Application",
+  "short_name": "HttpArena",
+  "description": "A comprehensive HTTP framework benchmarking platform for comparing web server performance across multiple protocols and configurations",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "theme_color": "#1a1a2e",
+  "background_color": "#ffffff",
+  "categories": [
+    "developer tools",
+    "productivity",
+    "utilities"
+  ],
+  "lang": "en-US",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/icons/icon-48x48.png",
+      "sizes": "48x48",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-256x256.png",
+      "sizes": "256x256",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Storage Usage",
+      "short_name": "Storage",
+      "url": "/storage-usage",
+      "description": "Go to Storage Usage"
+    },
+    {
+      "name": "System Status",
+      "short_name": "System",
+      "url": "/system-status",
+      "description": "Go to System Status"
+    },
+    {
+      "name": "Resource Monitor",
+      "short_name": "Resource",
+      "url": "/resource-monitor",
+      "description": "Go to Resource Monitor"
+    },
+    {
+      "name": "API Keys",
+      "short_name": "API",
+      "url": "/api-keys",
+      "description": "Go to API Keys"
+    },
+    {
+      "name": "Load Balancer",
+      "short_name": "Load",
+      "url": "/load-balancer",
+      "description": "Go to Load Balancer"
+    },
+    {
+      "name": "Project Overview",
+      "short_name": "Project",
+      "url": "/project-overview",
+      "description": "Go to Project Overview"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/screen-0.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/screenshots/screen-1.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "/screenshots/screen-2.png",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide"
+    },
+    {
+      "src": "/screenshots/screen-3.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "narrow"
+    }
+  ],
+  "prefer_related_applications": false,
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=com.httparena.app",
+      "id": "com.httparena.app"
+    },
+    {
+      "platform": "itunes",
+      "url": "https://apps.apple.com/app/httparena/id123456789"
+    }
+  ],
+  "protocol_handlers": [
+    {
+      "protocol": "web+httparena",
+      "url": "/protocol?uri=%s"
+    }
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+}

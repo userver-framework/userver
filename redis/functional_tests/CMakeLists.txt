@@ -3,9 +3,7 @@ project(userver-redis-tests CXX)
 add_custom_target(${PROJECT_NAME})
 
 function(userver_chaos_testsuite_add_redis)
-    userver_chaos_testsuite_add(
-        ENV REDIS_SLEEP_WORKAROUND_SECONDS=120
-    )
+    userver_chaos_testsuite_add(ENV REDIS_SLEEP_WORKAROUND_SECONDS=120)
 endfunction()
 
 add_subdirectory(basic_chaos)

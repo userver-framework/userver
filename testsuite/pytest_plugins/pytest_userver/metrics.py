@@ -172,7 +172,7 @@ class MetricsSnapshot:
             merged with (and overridden by) that metric's own labels.
         """
         self._values = _apply_common_prefix_labels(values, common_prefix, common_labels)
-        self._sliced_prefix: str = ''
+        self._sliced_prefix: str | None = None
         self._sliced_labels: Mapping[str, str] = {}
 
     def __getitem__(self, path: str) -> Set[Metric]:
@@ -233,21 +233,28 @@ class MetricsSnapshot:
 
     def sliced(
         self,
-        prefix: str,
+        prefix: str | None,
         labels: dict[str, str] | None = None,
         /,
     ) -> MetricsSnapshot:
         """
         Returns a new MetricsSnapshot restricted to the metrics whose path starts with `prefix` as a whole
-        '.'-separated segment (`prefix='a.b'` matches paths `'a.b'` and `'a.b.c'`, but not `'a.bc'`), and, if
-        `labels` is given, whose labels are a superset of `labels` (same subset-match semantics as
-        `require_labels` in `metrics_at`).
+        '.'-separated segment, and, if `labels` is given, whose labels are a superset of `labels` (same
+        subset-match semantics as `require_labels` in `metrics_at`).
 
-        The matched `prefix` (and the following '.', if any) is stripped from the start of every surviving
-        metric's path, so e.g. slicing `'a.b.c'` by `prefix='a.b'` makes it accessible as `'c'`, and slicing
-        `'a.b'` by `prefix='a.b'` makes it accessible as `''`. Calling `sliced()` several times in a row
-        composes: each `prefix` is matched against the already-stripped paths of the previous `sliced()` call,
-        and `labels` requirements accumulate.
+        `prefix` may be:
+
+        * A non-empty string: matches paths equal to `prefix`, or starting with `prefix` followed by a whole
+          '.'-separated segment boundary (`prefix='a.b'` matches paths `'a.b'` and `'a.b.c'`, but not `'a.bc'`).
+          The matched `prefix` (and the following '.', if any) is stripped from the start of every surviving
+          metric's path, so e.g. slicing `'a.b.c'` by `prefix='a.b'` makes it accessible as `'c'`, and slicing
+          `'a.b'` by `prefix='a.b'` makes it accessible as `''`.
+        * `''`: matches paths equal to `''`, or starting with a literal leading `'.'`; the leading `'.'` is
+          stripped. Only relevant for the rare case of a metric path that itself starts with a dot.
+        * `None`: matches every path unconditionally. Use this to filter by `labels` only.
+
+        Calling `sliced()` several times in a row composes: each `prefix` is matched against the
+        already-stripped paths of the previous `sliced()` call, and `labels` requirements accumulate.
 
         Slicing only ever affects *filtering* (which metrics are visible, and under which path): it never
         touches the `Metric` objects themselves. `metrics_at()`, `value_at()` and iteration over a sliced
@@ -258,16 +265,19 @@ class MetricsSnapshot:
         varying labels) to compare it with `==` against a compact expected snapshot, or to look up several
         label combinations with `value_at`/`metrics_at` without repeating the common prefix and labels in every call.
 
-        @throws AssertionError if a metric path has an empty '.'-segment right after `prefix`, which would
-            make prefix stripping ambiguous (e.g. path 'a.b.' or 'a.b..c' sliced by prefix='a.b').
+        @throws AssertionError if stripping `prefix` from a metric path would leave an empty remainder,
+            e.g. path 'a.b.' sliced by prefix='a.b', which would be indistinguishable from path 'a.b'.
 
         @snippet testsuite/tests/metrics/test_sliced.py sliced snippet
         """
         result: dict[str, set[Metric]] = {}
         for path, metric_set in self._values.items():
-            remainder = _strip_prefix_segment(path, prefix)
-            if remainder is None:
-                continue
+            if prefix is None:
+                remainder = path
+            else:
+                remainder = _strip_prefix_segment(path, prefix)
+                if remainder is None:
+                    continue
 
             if labels:
                 metric_set = {metric for metric in metric_set if labels.items() <= metric.labels.items()}
@@ -278,7 +288,12 @@ class MetricsSnapshot:
             result[remainder] |= metric_set
 
         sliced_snapshot = MetricsSnapshot(result)
-        sliced_snapshot._sliced_prefix = f'{self._sliced_prefix}.{prefix}' if self._sliced_prefix else prefix
+        if prefix is None:
+            sliced_snapshot._sliced_prefix = self._sliced_prefix
+        elif self._sliced_prefix is None:
+            sliced_snapshot._sliced_prefix = prefix
+        else:
+            sliced_snapshot._sliced_prefix = f'{self._sliced_prefix}.{prefix}'
         sliced_snapshot._sliced_labels = {**self._sliced_labels, **labels} if labels else self._sliced_labels
         return sliced_snapshot
 
@@ -294,7 +309,7 @@ class MetricsSnapshot:
         If this snapshot was never `sliced()` (i.e. `self` is the original snapshot, or the result of
         operations other than `sliced()`), returns an equivalent snapshot unchanged.
         """
-        if not self._sliced_prefix:
+        if self._sliced_prefix is None:
             return MetricsSnapshot(self._values)
         prefix = self._sliced_prefix
         result = {(f'{prefix}.{path}' if path else prefix): metric_set for path, metric_set in self._values.items()}
@@ -338,7 +353,7 @@ class MetricsSnapshot:
         """
         entry = self.get(path, set())
         assert entry or default is not _MISSING, f'No metrics found by path "{path}"' + (
-            f' after slicing "{self._sliced_prefix}"' if self._sliced_prefix else ''
+            f' after slicing "{self._sliced_prefix}"' if self._sliced_prefix is not None else ''
         )
 
         if labels is not None:
@@ -553,8 +568,13 @@ def _strip_prefix_segment(path: str, prefix: str) -> str | None:
     dotted_prefix = f'{prefix}.'
     if path.startswith(dotted_prefix):
         remainder = path.removeprefix(dotted_prefix)
-        assert remainder and not remainder.startswith('.'), (
-            f'Metric path "{path}" has an empty segment right after prefix "{prefix}", '
+        # An empty remainder here would be indistinguishable from the `path == prefix` case above
+        # (e.g. path 'a.' sliced by prefix 'a' would otherwise collide with path 'a'). A remainder
+        # starting with '.' is fine, though: it just means `path` had an empty '.'-segment right
+        # after `prefix` (e.g. path 'a..b' sliced by prefix 'a' yields '.b', still distinguishable
+        # from path 'a.b' sliced by prefix 'a', which yields 'b').
+        assert remainder, (
+            f'Metric path "{path}" becomes empty right after prefix "{prefix}", '
             f'which would make prefix matching ambiguous. This looks like a malformed metric path.'
         )
         return remainder

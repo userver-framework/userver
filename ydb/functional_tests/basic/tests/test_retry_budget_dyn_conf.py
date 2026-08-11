@@ -48,10 +48,10 @@ async def test_retry_budget(
 
     assert differ.value_at('account_ok', add_labels=_SAMPLEDB) == requests_count
     assert differ.value_at('account_fail', add_labels=_SAMPLEDB) == 0
-    assert differ.current.value_at('ydb.retry_budget.approx_token_count', _SAMPLEDB) == (
-        differ.baseline.value_at('ydb.retry_budget.approx_token_count', _SAMPLEDB) + requests_count
+    assert differ.current.value_at('approx_token_count', _SAMPLEDB) == (
+        differ.baseline.value_at('approx_token_count', _SAMPLEDB) + requests_count
     )
-    assert differ.current.value_at('ydb.retry_budget.max_token_count', _SAMPLEDB) == max_token_count
+    assert differ.current.value_at('max_token_count', _SAMPLEDB) == max_token_count
 
 
 async def test_retry_budget_success_limit(
@@ -61,7 +61,7 @@ async def test_retry_budget_success_limit(
 ) -> None:
     async with monitor_client.metrics_diff(prefix='ydb.retry_budget') as differ:
         current_approx_token_count = differ.baseline.value_at(
-            'ydb.retry_budget.approx_token_count',
+            'approx_token_count',
             _SAMPLEDB,
         )
 
@@ -83,5 +83,5 @@ async def test_retry_budget_success_limit(
 
     assert differ.value_at('account_ok', add_labels=_SAMPLEDB) == requests_count
     assert differ.value_at('account_fail', add_labels=_SAMPLEDB) == 0
-    assert differ.current.value_at('ydb.retry_budget.approx_token_count', _SAMPLEDB) == current_approx_token_count
-    assert differ.current.value_at('ydb.retry_budget.max_token_count', _SAMPLEDB) == current_approx_token_count
+    assert differ.current.value_at('approx_token_count', _SAMPLEDB) == current_approx_token_count
+    assert differ.current.value_at('max_token_count', _SAMPLEDB) == current_approx_token_count
