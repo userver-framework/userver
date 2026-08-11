@@ -11,6 +11,7 @@ DEFAULT_GRPC_PORT = 2136
 DEFAULT_MON_PORT = 8765
 DEFAULT_DATABASE = 'local'
 DEFAULT_CONTAINER_NAME = 'ydb-local-testsuite'
+# TODO (lemito): change to ydbplatform/local-ydb:latest
 DEFAULT_DOCKER_IMAGE = 'cr.yandex/yc/yandex-docker-local-ydb:latest'
 
 PLUGIN_DIR = pathlib.Path(__file__).parent
@@ -24,6 +25,7 @@ class ServiceSettings:
     mon_port: int
     ic_port: int
     database: str
+    wait_time: int = 30
 
 
 def create_ydb_service(
@@ -36,7 +38,7 @@ def create_ydb_service(
         settings = get_service_settings()
     return service.ScriptService(
         service_name=service_name,
-        script_path=str(SCRIPTS_DIR.joinpath('service-ydb')),
+        script_path=str(SCRIPTS_DIR.joinpath('service-ydb.sh')),
         working_dir=working_dir,
         environment={
             'YDB_TMPDIR': working_dir,
@@ -47,6 +49,7 @@ def create_ydb_service(
             'YDB_MON_PORT': str(settings.mon_port),
             'YDB_CONTAINER_NAME': DEFAULT_CONTAINER_NAME,
             'YDB_DOCKER_IMAGE': DEFAULT_DOCKER_IMAGE,
+            'YDB_WAIT_TIME': str(settings.wait_time),
             **(env or {}),
         },
         check_ports=[settings.grpc_port, settings.mon_port],
@@ -63,4 +66,5 @@ def get_service_settings():
         mon_port=utils.getenv_int('TESTSUITE_YDB_MON_PORT', DEFAULT_MON_PORT),
         ic_port=utils.getenv_int('TESTSUITE_YDB_IC_PORT', 0),
         database=os.getenv('TESTSUITE_YDB_DATABASE', DEFAULT_DATABASE),
+        wait_time=utils.getenv_int('TESTSUITE_YDB_WAIT_TIME', 30),
     )
