@@ -6,6 +6,7 @@
 #include <userver/formats/bson.hpp>
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/exception.hpp>
+#include <userver/storages/mongo/operators.hpp>
 #include <userver/storages/mongo/pool.hpp>
 
 #include <dynamic_config/variables/MONGO_DEFAULT_MAX_TIME_MS.hpp>
@@ -223,7 +224,10 @@ UTEST_F(Options, Projection) {
         EXPECT_TRUE((*doc)["doc"]["b"].IsInt32());
     }
     {
-        auto doc = coll.FindOne(bson::MakeDoc("arr", bson::MakeDoc("$gt", 0)), mongo::options::Projection{"arr.$"});
+        auto doc = coll.FindOne(
+            bson::MakeDoc("arr", bson::MakeDoc(mongo::operators::kGt, 0)),
+            mongo::options::Projection{"arr.$"}
+        );
         ASSERT_TRUE(doc);
         EXPECT_EQ(2, doc->GetSize());
         EXPECT_TRUE(doc->HasMember("_id"));
@@ -266,7 +270,10 @@ UTEST_F(Options, Projection) {
         EXPECT_TRUE((*doc)["a"].IsInt32());
     }
     {
-        auto doc = coll.FindOne({}, mongo::options::Projection{"a"}.ElemMatch("arr", bson::MakeDoc("$bitsAllSet", 2)));
+        auto doc = coll.FindOne(
+            {},
+            mongo::options::Projection{"a"}.ElemMatch("arr", bson::MakeDoc(mongo::operators::kBitsAllSet, 2))
+        );
         ASSERT_TRUE(doc);
         EXPECT_EQ(3, doc->GetSize());
         EXPECT_TRUE(doc->HasMember("_id"));
@@ -293,7 +300,7 @@ UTEST_F(Options, ProjectionTwo) {
         bson::MakeDoc("a", 1, "b", "2", "doc", bson::MakeDoc("a", nullptr, "b", 0), "arr", bson::MakeArray(0, 1, 2, 3))
     );
 
-    const auto dummy_update = bson::MakeDoc("$set", bson::MakeDoc("a", 1));
+    const auto dummy_update = bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("a", 1));
     {
         auto result = coll.FindAndModify({}, dummy_update, mongo::options::Projection{});
         EXPECT_EQ(1, result.MatchedCount());
@@ -381,11 +388,11 @@ UTEST_F(Options, ProjectionThree) {
         bson::MakeDoc("a", 1, "b", "2", "doc", bson::MakeDoc("a", nullptr, "b", 0), "arr", bson::MakeArray(0, 1, 2, 3))
     );
 
-    const auto dummy_update = bson::MakeDoc("$set", bson::MakeDoc("a", 1));
+    const auto dummy_update = bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("a", 1));
 
     {
         auto result = coll.FindAndModify(
-            bson::MakeDoc("arr", bson::MakeDoc("$gt", 0)),
+            bson::MakeDoc("arr", bson::MakeDoc(mongo::operators::kGt, 0)),
             dummy_update,
             mongo::options::Projection{"arr.$"}
         );
@@ -462,7 +469,7 @@ UTEST_F(Options, ProjectionThree) {
         auto result = coll.FindAndModify(
             {},
             dummy_update,
-            mongo::options::Projection{"a"}.ElemMatch("arr", bson::MakeDoc("$bitsAllSet", 2))
+            mongo::options::Projection{"a"}.ElemMatch("arr", bson::MakeDoc(mongo::operators::kBitsAllSet, 2))
         );
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
@@ -624,9 +631,11 @@ UTEST_F(Options, Hint) {
     UEXPECT_NO_THROW(coll.FindOne({}, mongo::options::Hint{"some_index"}));
     UEXPECT_NO_THROW(coll.FindOne({}, mongo::options::Hint{bson::MakeDoc("_id", 1)}));
 
-    UEXPECT_NO_THROW(
-        coll.UpdateMany({}, bson::MakeDoc("$set", bson::MakeDoc("a", "b")), mongo::options::Hint{"some_index"})
-    );
+    UEXPECT_NO_THROW(coll.UpdateMany(
+        {},
+        bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("a", "b")),
+        mongo::options::Hint{"some_index"}
+    ));
 
     UEXPECT_NO_THROW(coll.Count({}, mongo::options::Hint{"some_index"}));
 
@@ -657,12 +666,13 @@ UTEST_F(Options, MaxServerTime) {
 
     coll.InsertOne(bson::MakeDoc("x", 1));
 
-    UEXPECT_NO_THROW(
-        coll.Find(bson::MakeDoc("$where", "sleep(100) || true"), mongo::options::MaxServerTime{utest::kMaxTestWaitTime})
-    );
+    UEXPECT_NO_THROW(coll.Find(
+        bson::MakeDoc(mongo::operators::kWhere, "sleep(100) || true"),
+        mongo::options::MaxServerTime{utest::kMaxTestWaitTime}
+    ));
     UEXPECT_THROW(
         coll.Find(
-            bson::MakeDoc("$where", "sleep(100) || true"),
+            bson::MakeDoc(mongo::operators::kWhere, "sleep(100) || true"),
             mongo::options::MaxServerTime{std::chrono::milliseconds{50}}
         ),
         storages::mongo::ServerException
@@ -700,14 +710,14 @@ UTEST_F(Options, MaxServerTime) {
 
     UEXPECT_THROW(
         coll.DeleteMany(
-            bson::MakeDoc("$where", "sleep(100) || true"),
+            bson::MakeDoc(mongo::operators::kWhere, "sleep(100) || true"),
             mongo::options::MaxServerTime{std::chrono::milliseconds{50}}
         ),
         storages::mongo::ServerException
     );
 
     UEXPECT_NO_THROW(coll.DeleteMany(
-        bson::MakeDoc("$where", "sleep(100) || true"),
+        bson::MakeDoc(mongo::operators::kWhere, "sleep(100) || true"),
         mongo::options::MaxServerTime{utest::kMaxTestWaitTime}
     ));
 
@@ -719,14 +729,18 @@ UTEST_F(Options, DefaultMaxServerTime) {
     auto coll = GetDefaultPool().GetCollection("max_server_time");
 
     coll.InsertOne(bson::MakeDoc("x", 1));
-    UEXPECT_NO_THROW(coll.Find(bson::MakeDoc("$where", "sleep(50) || true")));
+    UEXPECT_NO_THROW(coll.Find(bson::MakeDoc(mongo::operators::kWhere, "sleep(50) || true")));
 
     coll.InsertOne(bson::MakeDoc("x", 2));
     coll.InsertOne(bson::MakeDoc("x", 3));
-    UEXPECT_THROW(coll.Find(bson::MakeDoc("$where", "sleep(380) || true")), storages::mongo::ServerException);
-    UEXPECT_NO_THROW(
-        coll.Find(bson::MakeDoc("$where", "sleep(50) || true"), mongo::options::MaxServerTime{utest::kMaxTestWaitTime})
+    UEXPECT_THROW(
+        coll.Find(bson::MakeDoc(mongo::operators::kWhere, "sleep(380) || true")),
+        storages::mongo::ServerException
     );
+    UEXPECT_NO_THROW(coll.Find(
+        bson::MakeDoc(mongo::operators::kWhere, "sleep(50) || true"),
+        mongo::options::MaxServerTime{utest::kMaxTestWaitTime}
+    ));
 
     UEXPECT_NO_THROW(coll.FindOne({}, mongo::options::MaxServerTime{utest::kMaxTestWaitTime}));
     UEXPECT_NO_THROW(coll.FindAndRemove({}, mongo::options::MaxServerTime{utest::kMaxTestWaitTime}));
@@ -914,19 +928,21 @@ UTEST_F(Options, ArrayFilters) {
     {
         auto result = coll.UpdateOne(
             bson::MakeDoc("_id", 1),
-            bson::MakeDoc("$set", bson::MakeDoc("grades.$[elem]", 100)),
-            mongo::options::ArrayFilters({bson::MakeDoc("elem", bson::MakeDoc("$gte", 100))})
+            bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("grades.$[elem]", 100)),
+            mongo::options::ArrayFilters({bson::MakeDoc("elem", bson::MakeDoc(mongo::operators::kGte, 100))})
         );
 
         EXPECT_TRUE(result.ServerErrors().empty());
         EXPECT_TRUE(result.WriteConcernErrors().empty());
     }
     {
-        std::vector<formats::bson::Document>
-            filters{bson::MakeDoc("low", bson::MakeDoc("$lt", 95)), bson::MakeDoc("high", bson::MakeDoc("$gte", 95))};
+        std::vector<formats::bson::Document> filters{
+            bson::MakeDoc("low", bson::MakeDoc(mongo::operators::kLt, 95)),
+            bson::MakeDoc("high", bson::MakeDoc(mongo::operators::kGte, 95))
+        };
         auto result = coll.UpdateOne(
             bson::MakeDoc("_id", 1),
-            bson::MakeDoc("$set", bson::MakeDoc("grades.$[low]", 90, "grades.$[high]", 100)),
+            bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("grades.$[low]", 90, "grades.$[high]", 100)),
             mongo::options::ArrayFilters(filters.begin(), filters.end())
         );
 
@@ -938,7 +954,7 @@ UTEST_F(Options, ArrayFilters) {
 
         UEXPECT_NO_THROW(coll.FindAndModify(
             bson::MakeDoc("_id", 1),
-            bson::MakeDoc("$set", bson::MakeDoc("grades", bson::MakeArray(100, 100, 100))),
+            bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("grades", bson::MakeArray(100, 100, 100))),
             mongo::options::ArrayFilters(empty_filters.begin(), empty_filters.end())
         ));
     }

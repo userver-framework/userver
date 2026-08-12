@@ -3,7 +3,7 @@
 #include <userver/formats/bson/inline.hpp>
 #include <userver/formats/bson/value_builder.hpp>
 #include <userver/storages/mongo/exception.hpp>
-#include <userver/utils/string_literal.hpp>
+#include <userver/storages/mongo/operators.hpp>
 #include <userver/utils/text.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -110,17 +110,16 @@ Projection& Projection::Exclude(std::string_view field) {
 }
 
 Projection& Projection::Slice(std::string_view field, int32_t limit, int32_t skip) {
-    static constexpr utils::StringLiteral kSliceOp = "$slice";
     formats::bson::Value slice;
     if (!skip) {
-        slice = formats::bson::MakeDoc(kSliceOp, limit);
+        slice = formats::bson::MakeDoc(operators::kSlice, limit);
     } else {
         if (limit < 0) {
             throw InvalidQueryArgumentException("Cannot use negative slice limit "
             ) << limit
               << " with nonzero skip " << skip << " in projection";
         }
-        slice = formats::bson::MakeDoc(kSliceOp, formats::bson::MakeArray(skip, limit));
+        slice = formats::bson::MakeDoc(operators::kSlice, formats::bson::MakeArray(skip, limit));
     }
 
     projection_builder_.Append(field, slice);
@@ -128,8 +127,7 @@ Projection& Projection::Slice(std::string_view field, int32_t limit, int32_t ski
 }
 
 Projection& Projection::ElemMatch(std::string_view field, const formats::bson::Document& pred) {
-    static constexpr utils::StringLiteral kElemMatchOp = "$elemMatch";
-    projection_builder_.Append(field, formats::bson::MakeDoc(kElemMatchOp, pred));
+    projection_builder_.Append(field, formats::bson::MakeDoc(operators::kElemMatch, pred));
     return *this;
 }
 

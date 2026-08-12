@@ -9,6 +9,7 @@
 #include <userver/server/handlers/server_monitor.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/storages/mongo/component.hpp>
+#include <userver/storages/mongo/operators.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/storages/secdist/provider_component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
@@ -67,7 +68,7 @@ std::string KeyValue::GetValue(const server::http::HttpRequest& request) const {
 
     using formats::bson::MakeDoc;
     auto coll = pool_->GetCollection("test");
-    auto doc = coll.FindOne(MakeDoc("key", MakeDoc("$eq", key)));
+    auto doc = coll.FindOne(MakeDoc("key", MakeDoc(storages::mongo::operators::kEq, key)));
 
     if (!doc) {
         throw server::handlers::ResourceNotFound{};

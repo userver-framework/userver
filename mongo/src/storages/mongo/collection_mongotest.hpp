@@ -6,6 +6,7 @@
 #include <userver/formats/bson.hpp>
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/exception.hpp>
+#include <userver/storages/mongo/operators.hpp>
 #include <userver/storages/mongo/options.hpp>
 #include <userver/storages/mongo/pool.hpp>
 
@@ -26,9 +27,9 @@ inline void SampleMongoPool(storages::mongo::Pool& pool) {
 
     auto cursor = in_coll.Aggregate(
         MakeArray(
-            MakeDoc("$match", MakeDoc("_id", MakeDoc("$gte", 2))),
-            MakeDoc("$addFields", MakeDoc("check", true)),
-            MakeDoc("$out", "aggregate_out")
+            MakeDoc(storages::mongo::operators::kMatch, MakeDoc("_id", MakeDoc(storages::mongo::operators::kGte, 2))),
+            MakeDoc(storages::mongo::operators::kAddFields, MakeDoc("check", true)),
+            MakeDoc(storages::mongo::operators::kOut, "aggregate_out")
         ),
         storages::mongo::options::ReadPreference::kSecondaryPreferred,
         storages::mongo::options::WriteConcern::kMajority
@@ -47,7 +48,7 @@ inline void SampleMongoPool(storages::mongo::Pool& pool) {
 /// [Sample Mongo write result]
 inline void UpdateOneDoc(storages::mongo::Collection& coll) {
     using formats::bson::MakeDoc;
-    auto result = coll.UpdateOne(MakeDoc("_id", 1), MakeDoc("$set", MakeDoc("x", 10)));
+    auto result = coll.UpdateOne(MakeDoc("_id", 1), MakeDoc(storages::mongo::operators::kSet, MakeDoc("x", 10)));
 
     EXPECT_EQ(1, result.MatchedCount());
     EXPECT_EQ(1, result.ModifiedCount());

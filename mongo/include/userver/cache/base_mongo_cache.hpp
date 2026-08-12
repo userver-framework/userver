@@ -16,6 +16,7 @@
 #include <userver/formats/bson/value_builder.hpp>
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/operations.hpp>
+#include <userver/storages/mongo/operators.hpp>
 #include <userver/storages/mongo/options.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/cpu_relax.hpp>
@@ -294,8 +295,8 @@ storages::mongo::operations::Find MongoCache<MongoCacheTraits>::GetFindOperation
             bson::ValueBuilder query_builder(bson::ValueBuilder::Type::kObject);
             if constexpr (mongo_cache::impl::HasUpdateFieldName<MongoCacheTraits>) {
                 if (type == cache::UpdateType::kIncremental) {
-                    query_builder
-                        [MongoCacheTraits::kMongoUpdateFieldName] = bson::MakeDoc("$gt", last_update - correction);
+                    query_builder[MongoCacheTraits::kMongoUpdateFieldName] =
+                        bson::MakeDoc(storages::mongo::operators::kGt, last_update - correction);
                 }
             }
             return sm::operations::Find(query_builder.ExtractValue());

@@ -5,6 +5,7 @@
 
 #include <userver/formats/bson/inline.hpp>
 #include <userver/storages/mongo/component.hpp>
+#include <userver/storages/mongo/operators.hpp>
 #include <userver/storages/mongo/options.hpp>
 
 static constexpr std::string_view kNameArg = "name";
@@ -31,7 +32,7 @@ std::string HelloMongo::
         auto users = mongo_pool_->GetCollection("hello_users");
         const auto result = users.FindAndModify(
             MakeDoc(kNameArg, name),
-            MakeDoc("$inc", MakeDoc("count", 1)),
+            MakeDoc(userver::storages::mongo::operators::kInc, MakeDoc("count", 1)),
             userver::storages::mongo::options::Upsert{}
         );
 

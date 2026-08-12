@@ -1,5 +1,7 @@
 #include "collection_mongotest.hpp"
 
+#include <userver/storages/mongo/operators.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace bson = formats::bson;
@@ -50,13 +52,13 @@ UTEST_F(Collection, Read) {
     EXPECT_EQ(3, coll.CountApprox());
     EXPECT_EQ(3, coll.Count({}));
     EXPECT_EQ(1, coll.Count(kFilter));
-    EXPECT_EQ(2, coll.Count(bson::MakeDoc("x", bson::MakeDoc("$gt", 1))));
+    EXPECT_EQ(2, coll.Count(bson::MakeDoc("x", bson::MakeDoc(mongo::operators::kGt, 1))));
 
     coll.InsertOne(kFilter);
     EXPECT_EQ(4, coll.CountApprox());
     EXPECT_EQ(4, coll.Count({}));
     EXPECT_EQ(2, coll.Count(kFilter));
-    EXPECT_EQ(2, coll.Count(bson::MakeDoc("x", bson::MakeDoc("$gt", 1))));
+    EXPECT_EQ(2, coll.Count(bson::MakeDoc("x", bson::MakeDoc(mongo::operators::kGt, 1))));
 
     auto other_coll = GetDefaultPool().GetCollection("read_other");
     EXPECT_EQ(0, other_coll.CountApprox());
@@ -75,8 +77,15 @@ UTEST_F(Collection, Read) {
     }
     {
         auto cursor = coll.Aggregate(MakeArray(bson::MakeDoc(
-            "$group",
-            bson::MakeDoc("_id", nullptr, "count", bson::MakeDoc("$sum", 1), "sum", bson::MakeDoc("$sum", "$x"))
+            mongo::operators::kGroup,
+            bson::MakeDoc(
+                "_id",
+                nullptr,
+                "count",
+                bson::MakeDoc(mongo::operators::kSum, 1),
+                "sum",
+                bson::MakeDoc(mongo::operators::kSum, "$x")
+            )
         )));
         auto doc = *cursor.begin();
         EXPECT_EQ(++cursor.begin(), cursor.end());
@@ -205,7 +214,7 @@ UTEST_F(Collection, ReplaceOne) {
 
     coll.InsertOne(bson::MakeDoc("_id", 1));
     UEXPECT_THROW(
-        coll.ReplaceOne(bson::MakeDoc("_id", 1), bson::MakeDoc("$set", bson::MakeDoc("x", 1))),
+        coll.ReplaceOne(bson::MakeDoc("_id", 1), bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("x", 1))),
         mongo::InvalidQueryArgumentException
     );
     {
@@ -262,7 +271,8 @@ UTEST_F(Collection, Update) {
     UpdateOneDoc(coll);
 
     {
-        auto result = coll.UpdateOne(bson::MakeDoc("_id", 1), bson::MakeDoc("$set", bson::MakeDoc("x", 10)));
+        auto result =
+            coll.UpdateOne(bson::MakeDoc("_id", 1), bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("x", 10)));
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(0, result.ModifiedCount());
         EXPECT_EQ(0, result.UpsertedCount());
@@ -271,7 +281,8 @@ UTEST_F(Collection, Update) {
         EXPECT_TRUE(result.WriteConcernErrors().empty());
     }
     {
-        auto result = coll.UpdateOne(bson::MakeDoc("_id", 2), bson::MakeDoc("$set", bson::MakeDoc("x", 20)));
+        auto result =
+            coll.UpdateOne(bson::MakeDoc("_id", 2), bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("x", 20)));
         EXPECT_EQ(0, result.MatchedCount());
         EXPECT_EQ(0, result.ModifiedCount());
         EXPECT_EQ(0, result.UpsertedCount());
@@ -282,7 +293,7 @@ UTEST_F(Collection, Update) {
     {
         auto result = coll.UpdateOne(
             bson::MakeDoc("_id", 2),
-            bson::MakeDoc("$set", bson::MakeDoc("x", 20)),
+            bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("x", 20)),
             mongo::options::Upsert{}
         );
         EXPECT_EQ(0, result.MatchedCount());
@@ -295,7 +306,7 @@ UTEST_F(Collection, Update) {
         EXPECT_EQ(2, upserted_ids[0].As<int>());
     }
     {
-        auto result = coll.UpdateMany(bson::MakeDoc(), bson::MakeDoc("$set", bson::MakeDoc("x", 20)));
+        auto result = coll.UpdateMany(bson::MakeDoc(), bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("x", 20)));
         EXPECT_EQ(2, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
         EXPECT_EQ(0, result.UpsertedCount());
@@ -306,7 +317,7 @@ UTEST_F(Collection, Update) {
     {
         auto result = coll.UpdateMany(
             bson::MakeDoc("_id", 3),
-            bson::MakeDoc("$set", bson::MakeDoc("x", 30)),
+            bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("x", 30)),
             mongo::options::Upsert{}
         );
         EXPECT_EQ(0, result.MatchedCount());
@@ -319,7 +330,7 @@ UTEST_F(Collection, Update) {
         EXPECT_EQ(3, upserted_ids[0].As<int>());
     }
     {
-        auto result = coll.UpdateOne(bson::MakeDoc(), bson::MakeDoc("$set", bson::MakeDoc("x", 40)));
+        auto result = coll.UpdateOne(bson::MakeDoc(), bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("x", 40)));
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
         EXPECT_EQ(0, result.UpsertedCount());
@@ -350,20 +361,20 @@ UTEST_F(Collection, Delete) {
         EXPECT_EQ(0, coll.Count(bson::MakeDoc("x", 1)));
     }
     {
-        auto result = coll.DeleteOne(bson::MakeDoc("x", bson::MakeDoc("$gt", 6)));
+        auto result = coll.DeleteOne(bson::MakeDoc("x", bson::MakeDoc(mongo::operators::kGt, 6)));
         EXPECT_EQ(1, result.DeletedCount());
         EXPECT_TRUE(result.ServerErrors().empty());
         EXPECT_TRUE(result.WriteConcernErrors().empty());
-        EXPECT_EQ(2, coll.Count(bson::MakeDoc("x", bson::MakeDoc("$gt", 6))));
+        EXPECT_EQ(2, coll.Count(bson::MakeDoc("x", bson::MakeDoc(mongo::operators::kGt, 6))));
     }
     {
-        auto result = coll.DeleteMany(bson::MakeDoc("x", bson::MakeDoc("$gt", 10)));
+        auto result = coll.DeleteMany(bson::MakeDoc("x", bson::MakeDoc(mongo::operators::kGt, 10)));
         EXPECT_EQ(0, result.DeletedCount());
         EXPECT_TRUE(result.ServerErrors().empty());
         EXPECT_TRUE(result.WriteConcernErrors().empty());
     }
     {
-        auto result = coll.DeleteMany(bson::MakeDoc("x", bson::MakeDoc("$lt", 5)));
+        auto result = coll.DeleteMany(bson::MakeDoc("x", bson::MakeDoc(mongo::operators::kLt, 5)));
         EXPECT_EQ(4, result.DeletedCount());
         EXPECT_TRUE(result.ServerErrors().empty());
         EXPECT_TRUE(result.WriteConcernErrors().empty());
@@ -422,7 +433,8 @@ UTEST_F(Collection, FindAndModify) {
         EXPECT_EQ(30, doc["x"].As<int>());
     }
     {
-        auto result = coll.FindAndModify(bson::MakeDoc("_id", 1), bson::MakeDoc("$inc", bson::MakeDoc("x", 2)));
+        auto result =
+            coll.FindAndModify(bson::MakeDoc("_id", 1), bson::MakeDoc(mongo::operators::kInc, bson::MakeDoc("x", 2)));
         EXPECT_EQ(1, result.MatchedCount());
         EXPECT_EQ(1, result.ModifiedCount());
         EXPECT_EQ(0, result.UpsertedCount());
@@ -440,7 +452,7 @@ UTEST_F(Collection, FindAndModify) {
     {
         auto result = coll.FindAndModify(
             bson::MakeDoc("_id", 1),
-            bson::MakeDoc("$inc", bson::MakeDoc("x", 2)),
+            bson::MakeDoc(mongo::operators::kInc, bson::MakeDoc("x", 2)),
             mongo::options::ReturnNew{}
         );
         EXPECT_EQ(1, result.MatchedCount());
@@ -458,7 +470,7 @@ UTEST_F(Collection, FindAndModify) {
     {
         auto result = coll.FindAndModify(
             bson::MakeDoc(),
-            bson::MakeDoc("$inc", bson::MakeDoc("x", -1)),
+            bson::MakeDoc(mongo::operators::kInc, bson::MakeDoc("x", -1)),
             mongo::options::Sort{{"x", mongo::options::Sort::kDescending}}
         );
         EXPECT_EQ(1, result.MatchedCount());
@@ -476,7 +488,7 @@ UTEST_F(Collection, FindAndModify) {
     {
         auto result = coll.FindAndModify(
             bson::MakeDoc(),
-            bson::MakeDoc("$inc", bson::MakeDoc("x", -1)),
+            bson::MakeDoc(mongo::operators::kInc, bson::MakeDoc("x", -1)),
             mongo::options::Sort{{"x", mongo::options::Sort::kAscending}},
             mongo::options::Projection{"y"}
         );
@@ -694,8 +706,9 @@ UTEST_F(Collection, Distinct) {
         }
 
         {
-            const auto sorted_result =
-                SortBsonValues(coll.Distinct("category", bson::MakeDoc("score", bson::MakeDoc("$gte", 80))));
+            const auto sorted_result = SortBsonValues(
+                coll.Distinct("category", bson::MakeDoc("score", bson::MakeDoc(mongo::operators::kGte, 80)))
+            );
 
             ASSERT_EQ(2, sorted_result.size());
             EXPECT_EQ("A", sorted_result[0].As<std::string>());
@@ -706,8 +719,11 @@ UTEST_F(Collection, Distinct) {
             const auto sorted_result = SortBsonValues(coll.Distinct(
                 "category",
                 bson::MakeDoc(
-                    "$and",
-                    bson::MakeArray(bson::MakeDoc("status", "active"), bson::MakeDoc("score", bson::MakeDoc("$gt", 80)))
+                    mongo::operators::kAnd,
+                    bson::MakeArray(
+                        bson::MakeDoc("status", "active"),
+                        bson::MakeDoc("score", bson::MakeDoc(mongo::operators::kGt, 80))
+                    )
                 )
             ));
             ASSERT_EQ(2, sorted_result.size());

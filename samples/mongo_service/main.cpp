@@ -4,6 +4,7 @@
 #include <userver/formats/bson/inline.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/storages/mongo/component.hpp>
+#include <userver/storages/mongo/operators.hpp>
 #include <userver/utils/daemon_run.hpp>
 #include <userver/utils/datetime.hpp>
 
@@ -68,7 +69,7 @@ std::string Translations::ReturnDiff(const server::http::HttpRequest& request) c
     namespace options = storages::mongo::options;
     auto transl = pool_->GetCollection("translations");
     auto cursor = transl.Find(
-        MakeDoc("_id", MakeDoc("$gte", formats::bson::Oid::MakeMinimalFor(time_point))),
+        MakeDoc("_id", MakeDoc(storages::mongo::operators::kGte, formats::bson::Oid::MakeMinimalFor(time_point))),
         options::Sort{std::make_pair("_id", options::Sort::kAscending)}
     );
 

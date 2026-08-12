@@ -6,6 +6,7 @@
 
 #include <userver/formats/bson.hpp>
 #include <userver/storages/mongo/exception.hpp>
+#include <userver/storages/mongo/operators.hpp>
 #include <userver/storages/mongo/transaction.hpp>
 #include <userver/utest/utest.hpp>
 
@@ -142,7 +143,7 @@ UTEST_F(MongoTransaction, MultipleOperationsInTransaction) {
 
     // Update one document
     auto filter = bson::MakeDoc("name", "user_2");
-    auto update = bson::MakeDoc("$set", bson::MakeDoc("age", 100));
+    auto update = bson::MakeDoc(operators::kSet, bson::MakeDoc("age", 100));
 
     auto update_result = collection.UpdateOne(filter, update);
     EXPECT_EQ(update_result.ModifiedCount(), 1);

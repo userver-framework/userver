@@ -8,6 +8,7 @@
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/storages/mongo/component.hpp>
 #include <userver/storages/mongo/dist_lock_component_base.hpp>
+#include <userver/storages/mongo/operators.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/daemon_run.hpp>
 
@@ -56,7 +57,7 @@ std::string KeyValue::GetValue(const server::http::HttpRequest& request) const {
 
     // Using 'count' instead of 'find', because Cursor may or may not provide
     // metrics, depending on the mongoc version.
-    const auto count = coll.Count(MakeDoc("_id", MakeDoc("$eq", key)));
+    const auto count = coll.Count(MakeDoc("_id", MakeDoc(storages::mongo::operators::kEq, key)));
 
     return std::to_string(count);
 }

@@ -7,6 +7,7 @@
 #include <userver/hostinfo/blocking/get_hostname.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/storages/mongo/exception.hpp>
+#include <userver/storages/mongo/operators.hpp>
 
 #include <userver/formats/bson/serialize.hpp>
 
@@ -50,13 +51,14 @@ void DistLockStrategy::Acquire(std::chrono::milliseconds lock_ttl, const std::st
     auto query = bson::MakeDoc(
         fields::kId,
         lock_name_,
-        "$or",
+        operators::kOr,
         bson::MakeArray(
-            bson::MakeDoc(fields::kLockedTill, bson::MakeDoc("$lte", now)),
+            bson::MakeDoc(fields::kLockedTill, bson::MakeDoc(operators::kLte, now)),
             bson::MakeDoc(fields::kOwner, owner)
         )
     );
-    auto update = bson::MakeDoc("$set", bson::MakeDoc(fields::kLockedTill, expiration_time, fields::kOwner, owner));
+    auto update =
+        bson::MakeDoc(operators::kSet, bson::MakeDoc(fields::kLockedTill, expiration_time, fields::kOwner, owner));
 
     try {
         LOG_INFO() << "Owner " << owner << " try to acquire lock " << lock_name_;
@@ -85,7 +87,8 @@ void DistLockStrategy::Prolong(std::chrono::milliseconds lock_ttl, const std::st
     const auto owner = MakeOwnerId(owner_prefix_, locker_id);
 
     auto query = bson::MakeDoc(fields::kId, lock_name_, fields::kOwner, owner);
-    auto update = bson::MakeDoc("$set", bson::MakeDoc(fields::kLockedTill, expiration_time, fields::kOwner, owner));
+    auto update =
+        bson::MakeDoc(operators::kSet, bson::MakeDoc(fields::kLockedTill, expiration_time, fields::kOwner, owner));
 
     try {
         LOG_DEBUG() << "Owner " << owner << " try to prolong lock " << lock_name_;
