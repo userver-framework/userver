@@ -130,9 +130,9 @@ private:
 
 class ClickhouseTlsSocketAdapter : public clickhouse_cpp::SocketBase {
 public:
-    ClickhouseTlsSocketAdapter(engine::io::Sockaddr addr, engine::Deadline& deadline)
+    ClickhouseTlsSocketAdapter(engine::io::Sockaddr addr, const std::string& server_name, engine::Deadline& deadline)
         : deadline_{deadline},
-          tls_socket_{engine::io::TlsWrapper::StartTlsClient(CreateSocket(addr, deadline_), {}, deadline_)}
+          tls_socket_{engine::io::TlsWrapper::StartTlsClient(CreateSocket(addr, deadline_), server_name, deadline_)}
     {}
 
     std::unique_ptr<clickhouse_cpp::InputStream> makeInputStream() const override {
@@ -205,7 +205,8 @@ private:
                     case ConnectionMode::kNonSecure:
                         return std::make_unique<ClickhouseSocketAdapter>(current_addr, operations_deadline_);
                     case ConnectionMode::kSecure:
-                        return std::make_unique<ClickhouseTlsSocketAdapter>(current_addr, operations_deadline_);
+                        return std::make_unique<
+                            ClickhouseTlsSocketAdapter>(current_addr, opts.host, operations_deadline_);
                 }
             } catch (const std::exception&) {
             }
