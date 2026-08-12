@@ -13,16 +13,21 @@
 #pragma once
 
 #include <boost/pfr/detail/config.hpp>
+
 #include <boost/pfr/detail/core.hpp>
-#include <boost/pfr/detail/sequence_tuple.hpp>
-#include <boost/pfr/detail/make_integer_sequence.hpp>
-#include <boost/pfr/detail/fields_count.hpp>
-#include <boost/pfr/detail/stdarray.hpp>
 #include <boost/pfr/detail/fake_object.hpp>
+#include <boost/pfr/detail/fields_count.hpp>
+#include <boost/pfr/detail/for_each_field.hpp>
+#include <boost/pfr/detail/make_integer_sequence.hpp>
+#include <boost/pfr/detail/sequence_tuple.hpp>
+#include <boost/pfr/detail/stdarray.hpp>
+
+#if !defined(BOOST_PFR_INTERFACE_UNIT)
 #include <type_traits>
 #include <string_view>
 #include <array>
 #include <memory> // for std::addressof
+#endif
 
 namespace boost { namespace pfr { namespace detail {
 
@@ -167,7 +172,7 @@ consteval auto name_of_field() noexcept {
         && std::string_view{
             detail::name_of_field_impl<
                 core_name_skip, detail::make_clang_wrapper(std::addressof(
-                    fake_object<core_name_skip>.size_at_begin
+                    detail::fake_object<core_name_skip>().size_at_begin
                 ))
             >().data()
         } == "size_at_begin",
@@ -187,7 +192,7 @@ consteval auto name_of_field() noexcept {
 template <class T, std::size_t I>
 inline constexpr auto stored_name_of_field = detail::name_of_field<T,
     detail::make_clang_wrapper(std::addressof(detail::sequence_tuple::get<I>(
-        detail::tie_as_tuple(detail::fake_object<T>)
+        detail::tie_as_tuple(detail::fake_object<T>())
     )))
 >();
 
@@ -211,8 +216,8 @@ constexpr std::string_view get_name() noexcept {
         "====================> Boost.PFR: It is impossible to extract name from old C array since it doesn't have named members"
     );
     static_assert(
-        sizeof(T) && BOOST_PFR_USE_CPP17,
-        "====================> Boost.PFR: Extraction of field's names is allowed only when the BOOST_PFR_USE_CPP17 macro enabled."
+        sizeof(T) && (BOOST_PFR_USE_CPP17 || BOOST_PFR_USE_CPP26),
+        "====================> Boost.PFR: Extraction of field's names is allowed only when the BOOST_PFR_USE_CPP17 or the BOOST_PFR_USE_CPP26 macro enabled."
    );
 
    return stored_name_of_field<T, I>.data();
@@ -234,6 +239,22 @@ constexpr auto tie_as_names_tuple() noexcept {
     );
 
     return detail::tie_as_names_tuple_impl<T>(detail::make_index_sequence<detail::fields_count<T>()>{});
+}
+
+template <class T, class F>
+constexpr void for_each_field_with_name(T&& value, F&& func) {
+    return boost::pfr::detail::for_each_field(
+        std::forward<T>(value),
+        [f = std::forward<F>(func)](auto&& field, auto index) mutable {
+            using IndexType = decltype(index);
+            using FieldType = decltype(field);
+            constexpr auto name = boost::pfr::detail::get_name<std::remove_reference_t<T>, IndexType::value>();
+            if constexpr (std::is_invocable_v<F, std::string_view, FieldType, IndexType>) {
+                f(name, std::forward<FieldType>(field), index);
+            } else {
+                f(name, std::forward<FieldType>(field));
+            }
+        });
 }
 
 }}} // namespace boost::pfr::detail

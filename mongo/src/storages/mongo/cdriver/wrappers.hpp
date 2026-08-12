@@ -10,107 +10,134 @@ namespace storages::mongo::impl::cdriver {
 
 // driver cannot be reinitialized after cleanup!
 class GlobalInitializer {
- public:
-  GlobalInitializer();
-  ~GlobalInitializer();
+public:
+    GlobalInitializer();
+    ~GlobalInitializer();
 
-  // Call when it's safe to use logger, will only log once.
-  static void LogInitWarningsOnce();
+    // Call when it's safe to use logger, will only log once.
+    static void LogInitWarningsOnce();
 };
 
 struct BulkOperationDeleter {
-  void operator()(mongoc_bulk_operation_t* bulk) const noexcept {
-    mongoc_bulk_operation_destroy(bulk);
-  }
+    void operator()(mongoc_bulk_operation_t* bulk) const noexcept { mongoc_bulk_operation_destroy(bulk); }
 };
-using BulkOperationPtr =
-    std::unique_ptr<mongoc_bulk_operation_t, BulkOperationDeleter>;
+using BulkOperationPtr = std::unique_ptr<mongoc_bulk_operation_t, BulkOperationDeleter>;
 
-struct ClientDeleter {
-  void operator()(mongoc_client_t* client) const noexcept {
-    mongoc_client_destroy(client);
-  }
+#ifdef MONGOC_BULKWRITE_H
+
+struct BulkWriteDeleter {
+    void operator()(mongoc_bulkwrite_t* bulk_write) const noexcept { mongoc_bulkwrite_destroy(bulk_write); }
 };
-using UnboundClientPtr = std::unique_ptr<mongoc_client_t, ClientDeleter>;
+using BulkWritePtr = std::unique_ptr<mongoc_bulkwrite_t, BulkWriteDeleter>;
+
+struct BulkWriteOptsDeleter {
+    void operator()(mongoc_bulkwriteopts_t* opts) const noexcept { mongoc_bulkwriteopts_destroy(opts); }
+};
+using BulkWriteOptsPtr = std::unique_ptr<mongoc_bulkwriteopts_t, BulkWriteOptsDeleter>;
+
+struct UpdateOneOptsDeleter {
+    void operator()(mongoc_bulkwrite_updateoneopts_t* opts) const noexcept {
+        mongoc_bulkwrite_updateoneopts_destroy(opts);
+    }
+};
+using UpdateOneOptsPtr = std::unique_ptr<mongoc_bulkwrite_updateoneopts_t, UpdateOneOptsDeleter>;
+
+struct UpdateManyOptsDeleter {
+    void operator()(mongoc_bulkwrite_updatemanyopts_t* opts) const noexcept {
+        mongoc_bulkwrite_updatemanyopts_destroy(opts);
+    }
+};
+using UpdateManyOptsPtr = std::unique_ptr<mongoc_bulkwrite_updatemanyopts_t, UpdateManyOptsDeleter>;
+
+struct ReplaceOneOptsDeleter {
+    void operator()(mongoc_bulkwrite_replaceoneopts_t* opts) const noexcept {
+        mongoc_bulkwrite_replaceoneopts_destroy(opts);
+    }
+};
+using ReplaceOneOptsPtr = std::unique_ptr<mongoc_bulkwrite_replaceoneopts_t, ReplaceOneOptsDeleter>;
+
+struct BulkWriteResultDeleter {
+    void operator()(mongoc_bulkwriteresult_t* result) const noexcept { mongoc_bulkwriteresult_destroy(result); }
+};
+using BulkWriteResultPtr = std::unique_ptr<mongoc_bulkwriteresult_t, BulkWriteResultDeleter>;
+
+struct BulkWriteExceptionDeleter {
+    void operator()(mongoc_bulkwriteexception_t* exception) const noexcept {
+        mongoc_bulkwriteexception_destroy(exception);
+    }
+};
+using BulkWriteExceptionPtr = std::unique_ptr<mongoc_bulkwriteexception_t, BulkWriteExceptionDeleter>;
+
+#endif  // MONGOC_BULKWRITE_H
 
 struct CollectionDeleter {
-  void operator()(mongoc_collection_t* collection) const noexcept {
-    mongoc_collection_destroy(collection);
-  }
+    void operator()(mongoc_collection_t* collection) const noexcept { mongoc_collection_destroy(collection); }
 };
 using CollectionPtr = std::unique_ptr<mongoc_collection_t, CollectionDeleter>;
 
 struct CursorDeleter {
-  void operator()(mongoc_cursor_t* cursor) const noexcept {
-    mongoc_cursor_destroy(cursor);
-  }
+    void operator()(mongoc_cursor_t* cursor) const noexcept { mongoc_cursor_destroy(cursor); }
 };
 using CursorPtr = std::unique_ptr<mongoc_cursor_t, CursorDeleter>;
 
 struct DatabaseDeleter {
-  void operator()(mongoc_database_t* db) const noexcept {
-    mongoc_database_destroy(db);
-  }
+    void operator()(mongoc_database_t* db) const noexcept { mongoc_database_destroy(db); }
 };
 using DatabasePtr = std::unique_ptr<mongoc_database_t, DatabaseDeleter>;
 
 struct FindAndModifyOptsDeleter {
-  void operator()(mongoc_find_and_modify_opts_t* opts) const noexcept {
-    mongoc_find_and_modify_opts_destroy(opts);
-  }
+    void operator()(mongoc_find_and_modify_opts_t* opts) const noexcept { mongoc_find_and_modify_opts_destroy(opts); }
 };
-using FindAndModifyOptsPtr =
-    std::unique_ptr<mongoc_find_and_modify_opts_t, FindAndModifyOptsDeleter>;
+using FindAndModifyOptsPtr = std::unique_ptr<mongoc_find_and_modify_opts_t, FindAndModifyOptsDeleter>;
 
 struct ReadConcernDeleter {
-  void operator()(mongoc_read_concern_t* read_concern) const noexcept {
-    mongoc_read_concern_destroy(read_concern);
-  }
+    void operator()(mongoc_read_concern_t* read_concern) const noexcept { mongoc_read_concern_destroy(read_concern); }
 };
-using ReadConcernPtr =
-    std::unique_ptr<mongoc_read_concern_t, ReadConcernDeleter>;
+using ReadConcernPtr = std::unique_ptr<mongoc_read_concern_t, ReadConcernDeleter>;
 
 class ReadPrefsPtr {
- public:
-  ReadPrefsPtr() = default;
-  explicit ReadPrefsPtr(mongoc_read_mode_t);
-  ~ReadPrefsPtr();
+public:
+    ReadPrefsPtr() = default;
+    explicit ReadPrefsPtr(mongoc_read_mode_t);
+    ~ReadPrefsPtr();
 
-  ReadPrefsPtr(const ReadPrefsPtr&);
-  ReadPrefsPtr(ReadPrefsPtr&&) noexcept;
-  ReadPrefsPtr& operator=(const ReadPrefsPtr&);
-  ReadPrefsPtr& operator=(ReadPrefsPtr&&) noexcept;
+    ReadPrefsPtr(const ReadPrefsPtr&);
+    ReadPrefsPtr(ReadPrefsPtr&&) noexcept;
+    ReadPrefsPtr& operator=(const ReadPrefsPtr&);
+    ReadPrefsPtr& operator=(ReadPrefsPtr&&) noexcept;
 
-  explicit operator bool() const;
+    explicit operator bool() const;
 
-  const mongoc_read_prefs_t* Get() const;
-  mongoc_read_prefs_t* Get();
+    const mongoc_read_prefs_t* Get() const;
+    mongoc_read_prefs_t* Get();
 
-  void Reset() noexcept;
+    void Reset() noexcept;
 
- private:
-  mongoc_read_prefs_t* read_prefs_{nullptr};
+private:
+    mongoc_read_prefs_t* read_prefs_{nullptr};
 };
 
 struct StreamDeleter {
-  void operator()(mongoc_stream_t* stream) const noexcept {
-    mongoc_stream_destroy(stream);
-  }
+    void operator()(mongoc_stream_t* stream) const noexcept { mongoc_stream_destroy(stream); }
 };
 using StreamPtr = std::unique_ptr<mongoc_stream_t, StreamDeleter>;
 
 struct UriDeleter {
-  void operator()(mongoc_uri_t* uri) const noexcept { mongoc_uri_destroy(uri); }
+    void operator()(mongoc_uri_t* uri) const noexcept { mongoc_uri_destroy(uri); }
 };
 using UriPtr = std::unique_ptr<mongoc_uri_t, UriDeleter>;
 
 struct WriteConcernDeleter {
-  void operator()(mongoc_write_concern_t* write_concern) const noexcept {
-    mongoc_write_concern_destroy(write_concern);
-  }
+    void operator()(mongoc_write_concern_t* write_concern) const noexcept {
+        mongoc_write_concern_destroy(write_concern);
+    }
 };
-using WriteConcernPtr =
-    std::unique_ptr<mongoc_write_concern_t, WriteConcernDeleter>;
+using WriteConcernPtr = std::unique_ptr<mongoc_write_concern_t, WriteConcernDeleter>;
+
+struct SessionDeleter {
+    void operator()(mongoc_client_session_t* session) const noexcept { mongoc_client_session_destroy(session); }
+};
+using SessionPtr = std::shared_ptr<mongoc_client_session_t>;
 
 }  // namespace storages::mongo::impl::cdriver
 

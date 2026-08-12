@@ -5,7 +5,6 @@
 
 USERVER_NAMESPACE_BEGIN
 
-INSTANTIATE_TYPED_TEST_SUITE_P(FormatsYaml, Roundtrip,
-                               formats::yaml::ValueBuilder);
+INSTANTIATE_TYPED_TEST_SUITE_P(FormatsYaml, Roundtrip, formats::yaml::ValueBuilder);
 
 USERVER_NAMESPACE_END

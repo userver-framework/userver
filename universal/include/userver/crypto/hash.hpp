@@ -8,7 +8,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-/// Cryptographic hashing
+/// @brief Cryptographic hashing
 namespace crypto::hash {
 
 enum class OutputEncoding { kBinary, kBase16, kHex = kBase16, kBase64 };
@@ -16,42 +16,60 @@ enum class OutputEncoding { kBinary, kBase16, kHex = kBase16, kBase64 };
 enum class Pad { kWith, kWithout };
 
 #ifndef USERVER_NO_CRYPTOPP_BLAKE2
-/// @brief Calculates Blake2-128, output format depends from encoding param
+/// @brief Calculates Blake2-128, output format depends on encoding param
+/// @param data binary data to calculate hash from
 /// @param encoding result could be returned as binary string or encoded
 /// @throws CryptoException internal library exception
-std::string Blake2b128(std::string_view data,
-                       OutputEncoding encoding = OutputEncoding::kHex);
+std::string Blake2b128(std::string_view data, OutputEncoding encoding = OutputEncoding::kHex);
+
+/// @overload
+std::string Blake2b128(std::initializer_list<std::string_view> data, OutputEncoding encoding = OutputEncoding::kHex);
 #endif
 
-/// @brief Calculates SHA-1, output format depends from encoding param
+/// @brief Calculates SHA-1, output format depends on encoding param
+/// @param data binary data to calculate hash from
 /// @param encoding result could be returned as binary string or encoded
 /// @throws CryptoException internal library exception
-std::string Sha1(std::string_view data,
-                 OutputEncoding encoding = OutputEncoding::kHex);
+std::string Sha1(std::string_view data, OutputEncoding encoding = OutputEncoding::kHex);
 
-/// @brief Calculates SHA-224, output format depends from encoding param
-/// @param encoding result could be returned as binary string or encoded
-/// @throws CryptoException internal library exception
-std::string Sha224(std::string_view data,
-                   OutputEncoding encoding = OutputEncoding::kHex);
+/// @overload
+std::string Sha1(std::initializer_list<std::string_view> data, OutputEncoding encoding = OutputEncoding::kHex);
 
-/// @brief Calculates SHA-256, output format depends from encoding param
+/// @brief Calculates SHA-224, output format depends on encoding param
+/// @param data binary data to calculate hash from
 /// @param encoding result could be returned as binary string or encoded
 /// @throws CryptoException internal library exception
-std::string Sha256(std::string_view data,
-                   OutputEncoding encoding = OutputEncoding::kHex);
+std::string Sha224(std::string_view data, OutputEncoding encoding = OutputEncoding::kHex);
 
-/// @brief Calculates SHA-384, output format depends from encoding param
-/// @param encoding result could be returned as binary string or encoded
-/// @throws CryptoException internal library exception
-std::string Sha384(std::string_view data,
-                   OutputEncoding encoding = OutputEncoding::kHex);
+/// @overload
+std::string Sha224(std::initializer_list<std::string_view> data, OutputEncoding encoding = OutputEncoding::kHex);
 
-/// @brief Calculates SHA-512, output format depends from encoding param
+/// @brief Calculates SHA-256, output format depends on encoding param
+/// @param data binary data to calculate hash from
 /// @param encoding result could be returned as binary string or encoded
 /// @throws CryptoException internal library exception
-std::string Sha512(std::string_view data,
-                   OutputEncoding encoding = OutputEncoding::kHex);
+std::string Sha256(std::string_view data, OutputEncoding encoding = OutputEncoding::kHex);
+
+/// @overload
+std::string Sha256(std::initializer_list<std::string_view> data, OutputEncoding encoding = OutputEncoding::kHex);
+
+/// @brief Calculates SHA-384, output format depends on encoding param
+/// @param data binary data to calculate hash from
+/// @param encoding result could be returned as binary string or encoded
+/// @throws CryptoException internal library exception
+std::string Sha384(std::string_view data, OutputEncoding encoding = OutputEncoding::kHex);
+
+/// @overload
+std::string Sha384(std::initializer_list<std::string_view> data, OutputEncoding encoding = OutputEncoding::kHex);
+
+/// @brief Calculates SHA-512, output format depends on encoding param
+/// @param data binary data to calculate hash from
+/// @param encoding result could be returned as binary string or encoded
+/// @throws CryptoException internal library exception
+std::string Sha512(std::string_view data, OutputEncoding encoding = OutputEncoding::kHex);
+
+/// @overload
+std::string Sha512(std::initializer_list<std::string_view> data, OutputEncoding encoding = OutputEncoding::kHex);
 
 /// @brief Calculates HMAC (using SHA-1 hash), encodes result with `encoding`
 /// algorithm
@@ -59,8 +77,14 @@ std::string Sha512(std::string_view data,
 /// @param message data to encode
 /// @param encoding result could be returned as binary string or encoded
 /// @throws CryptoException internal library exception
-std::string HmacSha1(std::string_view key, std::string_view message,
-                     OutputEncoding encoding = OutputEncoding::kHex);
+std::string HmacSha1(std::string_view key, std::string_view message, OutputEncoding encoding = OutputEncoding::kHex);
+
+/// @overload
+std::string HmacSha1(
+    std::string_view key,
+    std::initializer_list<std::string_view> message,
+    OutputEncoding encoding = OutputEncoding::kHex
+);
 
 /// @brief Calculates HMAC (using SHA-256 hash), encodes result with `encoding`
 /// algorithm
@@ -68,8 +92,14 @@ std::string HmacSha1(std::string_view key, std::string_view message,
 /// @param message data to encode
 /// @param encoding result could be returned as binary string or encoded
 /// @throws CryptoException internal library exception
-std::string HmacSha256(std::string_view key, std::string_view message,
-                       OutputEncoding encoding = OutputEncoding::kHex);
+std::string HmacSha256(std::string_view key, std::string_view message, OutputEncoding encoding = OutputEncoding::kHex);
+
+/// @overload
+std::string HmacSha256(
+    std::string_view key,
+    std::initializer_list<std::string_view> message,
+    OutputEncoding encoding = OutputEncoding::kHex
+);
 
 /// @brief Calculates HMAC (using SHA-384 hash), encodes result with `encoding`
 /// algorithm
@@ -77,8 +107,14 @@ std::string HmacSha256(std::string_view key, std::string_view message,
 /// @param message data to encode
 /// @param encoding result could be returned as binary string or encoded
 /// @throws CryptoException internal library exception
-std::string HmacSha384(std::string_view key, std::string_view message,
-                       OutputEncoding encoding = OutputEncoding::kHex);
+std::string HmacSha384(std::string_view key, std::string_view message, OutputEncoding encoding = OutputEncoding::kHex);
+
+/// @overload
+std::string HmacSha384(
+    std::string_view key,
+    std::initializer_list<std::string_view> message,
+    OutputEncoding encoding = OutputEncoding::kHex
+);
 
 /// @brief Calculates HMAC (using SHA-512 hash), encodes result with `encoding`
 /// algorithm
@@ -86,17 +122,26 @@ std::string HmacSha384(std::string_view key, std::string_view message,
 /// @param message data to encode
 /// @param encoding result could be returned as binary string or encoded
 /// @throws CryptoException internal library exception
-std::string HmacSha512(std::string_view key, std::string_view message,
-                       OutputEncoding encoding = OutputEncoding::kHex);
+std::string HmacSha512(std::string_view key, std::string_view message, OutputEncoding encoding = OutputEncoding::kHex);
 
-/// Broken cryptographic hashes, must not be used except for compatibility
+/// @overload
+std::string HmacSha512(
+    std::string_view key,
+    std::initializer_list<std::string_view> message,
+    OutputEncoding encoding = OutputEncoding::kHex
+);
+
+/// @brief Non-cryptographic hash helpers (Broken cryptographic hashes, must not be used except for compatibility).
 namespace weak {
 
-/// @brief Calculates MD5, output format depends from encoding param
+/// @brief Calculates MD5, output format depends on encoding param
+/// @param data binary data to calculate hash from
 /// @param encoding result could be returned as binary string or encoded
 /// @throws CryptoException internal library exception
-std::string Md5(std::string_view data,
-                OutputEncoding encoding = OutputEncoding::kHex);
+std::string Md5(std::string_view data, OutputEncoding encoding = OutputEncoding::kHex);
+
+/// @overload
+std::string Md5(std::initializer_list<std::string_view> data, OutputEncoding encoding = OutputEncoding::kHex);
 
 }  // namespace weak
 }  // namespace crypto::hash

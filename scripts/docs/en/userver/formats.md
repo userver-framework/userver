@@ -4,7 +4,7 @@ Userver provides classes for reading, working with, and serializing various
 data formats. Classes for different formats have an almost identical interface.
 There are common points for customizing parsers and serializers of custom types.
 
-### formats::*::Value
+### `formats::*::Value`
 Classes formats::json::Value, formats::bson::Value, yaml_config::YamlConfig
 and formats::yaml::Value are intended for non-modifying work with formats
 (in other words, for reading data).
@@ -14,11 +14,18 @@ Usage Example:
 @snippet formats/json/value_test.cpp  Sample formats::json::Value usage
 
 
-### Customization of formats::*::Value::As<T>()
+### Iterate over formats
+
+To iterate over `formats::*::Value` as object use formats::common::Items:
+
+@snippet universal/src/formats/common/items_test.cpp  Items Example Usage - Simple object
+
+
+### Customization of `formats::*::Value::As<T>()`
 
 In order for `formats::*::Value` to be able to represent data as a C++ type,
 you should write a special function `Parse` for that C++ type. `Parse` should
-be located in the namespace of the type or may be located in the 
+be located in the namespace of the type or may be located in the
 `formats::common` namespace if the type comes from third-party library that you
 have no control of:
 
@@ -29,7 +36,7 @@ You can write a single parser for all formats, just make it a template:
 @snippet formats/common/value_test.cpp  Sample formats::*::Value::As<T>() usage
 
 
-### Inline helpers formats::*::Make*
+### Inline helpers `formats::*::Make*`
 
 To build objects of trivial types some of the formats provide inline helpers,
 like formats::json::MakeArray(), formats::json::MakeObject():
@@ -44,14 +51,14 @@ Those inline helper functions usually work slightly faster than `formats::*::Val
 However, if you need a `std::string` with JSON the fastest way would be to use
 the @ref formats_streaming_serialization "Streaming Serialization".
 Inline helpers could not be customized
-for used provided types, unlike other format building types. Inline helpers
+for user-provided types, unlike other format building types. Inline helpers
 could produce broken value on bad input because they skip some of the checks,
 for example a key uniqueness check.
 
 
-### formats::*::ValueBuilder
+### `formats::*::ValueBuilder`
 
-Classes `formats::json::ValueBuilder`, `formats::bson::ValueBuilder` and `formats::yaml::ValueBuilder` 
+Classes `formats::json::ValueBuilder`, `formats::bson::ValueBuilder` and `formats::yaml::ValueBuilder`
 are designed for building objects of a given format.
 
 Usage Example:
@@ -59,7 +66,7 @@ Usage Example:
 @snippet formats/json/value_builder_test.cpp  Sample formats::json::ValueBuilder usage
 
 
-### Customization of formats::*::ValueBuilder
+### Customization of `formats::*::ValueBuilder`
 In order for `formats::*::ValueBuilder` to be able to represent a C++ type in
 the specified format, you should write a special function `Serialize` for that
 C++ type. `Serialize` should be located in the namespace of the type or may be

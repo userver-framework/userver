@@ -1,8 +1,7 @@
-# pylint: disable=invalid-name,unused-variable
 import asyncio
 
-import samples.greeter_pb2 as greeter_pb2  # noqa: E402, E501
-import samples.greeter_pb2_grpc as greeter_pb2_grpc  # noqa: E402, E501
+import samples.greeter_pb2 as greeter_pb2
+import samples.greeter_pb2_grpc as greeter_pb2_grpc
 
 
 class GreeterService(greeter_pb2_grpc.GreeterServiceServicer):
@@ -16,7 +15,6 @@ class GreeterService(greeter_pb2_grpc.GreeterServiceServicer):
             message += '!'
             await asyncio.sleep(time_interval)
             yield greeter_pb2.GreetingResponse(greeting=message)
-        return
 
     async def SayHelloRequestStream(self, request_iterator, context):
         message = 'Hello, '
@@ -31,7 +29,6 @@ class GreeterService(greeter_pb2_grpc.GreeterServiceServicer):
             income += f'{request.name}'
             await asyncio.sleep(time_interval)
             yield greeter_pb2.GreetingResponse(greeting=f'Hello, {income}')
-        return
 
     async def SayHelloIndependentStreams(self, request_iterator, context):
         time_interval_read = 0.2
@@ -49,7 +46,7 @@ class GreeterService(greeter_pb2_grpc.GreeterServiceServicer):
             'kernel',
             'developer',
             'core',
-            'anonim',
+            'anonymous',
             'user',
         ]
         for val in values:

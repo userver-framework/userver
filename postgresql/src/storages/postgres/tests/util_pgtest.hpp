@@ -4,17 +4,18 @@
 
 #include <cctype>
 #include <cstdlib>
-#include <vector>
+#include <string>
+#include <tuple>
 
 #include <userver/concurrent/background_task_storage_fwd.hpp>
 #include <userver/engine/async.hpp>
-#include <userver/engine/task/task.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
 
 #include <storages/postgres/default_command_controls.hpp>
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/experiments.hpp>
+#include <storages/postgres/tests/postgres_chaos_proxy.hpp>
 #include <userver/storages/postgres/detail/connection_ptr.hpp>
 #include <userver/storages/postgres/dsn.hpp>
 
@@ -24,25 +25,34 @@ inline constexpr std::uint32_t kConnectionId = 0;
 
 inline constexpr storages::postgres::CommandControl kTestCmdCtl{
     // TODO: lower execute timeout after TAXICOMMON-1313
-    std::chrono::seconds{2}, std::chrono::milliseconds{500}};
+    std::chrono::seconds{10},
+    std::chrono::milliseconds{500}
+};
 
 storages::postgres::DefaultCommandControls GetTestCmdCtls();
 
 class DefaultCommandControlScope {
- public:
-  explicit DefaultCommandControlScope(
-      storages::postgres::CommandControl default_cmd_ctl);
+public:
+    explicit DefaultCommandControlScope(storages::postgres::CommandControl default_cmd_ctl);
 
-  ~DefaultCommandControlScope();
+    ~DefaultCommandControlScope();
 
- private:
-  storages::postgres::CommandControl old_cmd_ctl_;
+private:
+    storages::postgres::CommandControl old_cmd_ctl_;
 };
 
+enum class ConnectionMode : std::uint8_t { kChaosProxy, kDirect };
+
 inline const storages::postgres::ConnectionSettings kCachePreparedStatements{
-    storages::postgres::ConnectionSettings::kCachePreparedStatements};
+    .prepared_statements = storages::postgres::ConnectionSettings::kCachePreparedStatements,
+};
+inline const storages::postgres::ConnectionSettings kMaxPreparedCacheSize3{
+    .prepared_statements = storages::postgres::ConnectionSettings::kCachePreparedStatements,
+    .max_prepared_cache_size = storages::postgres::kMinPreparedStatementsCacheSize,
+};
 inline const storages::postgres::ConnectionSettings kNoPreparedStatements{
-    storages::postgres::ConnectionSettings::kNoPreparedStatements};
+    .prepared_statements = storages::postgres::ConnectionSettings::kNoPreparedStatements,
+};
 inline const storages::postgres::ConnectionSettings kNoUserTypes{
     storages::postgres::ConnectionSettings::kCachePreparedStatements,
     storages::postgres::ConnectionSettings::kPredefinedTypesOnly,
@@ -54,15 +64,14 @@ inline const storages::postgres::ConnectionSettings kPipelineEnabled{
     storages::postgres::kDefaultMaxPreparedCacheSize,
     storages::postgres::PipelineMode::kEnabled,
 };
-inline const storages::postgres::ConnectionSettings
-    kOmitDescribeAndPipelineEnabled{
-        storages::postgres::ConnectionSettings::kCachePreparedStatements,
-        storages::postgres::ConnectionSettings::kUserTypesEnabled,
-        storages::postgres::ConnectionSettings::kCheckUnused,
-        storages::postgres::kDefaultMaxPreparedCacheSize,
-        storages::postgres::PipelineMode::kEnabled,
-        storages::postgres::OmitDescribeInExecuteMode::kEnabled,
-    };
+inline const storages::postgres::ConnectionSettings kOmitDescribeAndPipelineEnabled{
+    storages::postgres::ConnectionSettings::kCachePreparedStatements,
+    storages::postgres::ConnectionSettings::kUserTypesEnabled,
+    storages::postgres::ConnectionSettings::kCheckUnused,
+    storages::postgres::kDefaultMaxPreparedCacheSize,
+    storages::postgres::PipelineMode::kEnabled,
+    storages::postgres::OmitDescribeInExecuteMode::kEnabled,
+};
 
 engine::Deadline MakeDeadline();
 
@@ -70,42 +79,47 @@ void PrintBuffer(std::ostream&, const std::uint8_t* buffer, std::size_t size);
 void PrintBuffer(std::ostream&, const std::string& buffer);
 
 class PostgreSQLBase : public ::testing::Test {
- protected:
-  PostgreSQLBase();
-  ~PostgreSQLBase() override;
+protected:
+    PostgreSQLBase();
+    ~PostgreSQLBase() override;
 
-  static storages::postgres::Dsn GetDsnFromEnv();
-  static storages::postgres::DsnList GetDsnListFromEnv();
-  static storages::postgres::Dsn GetUnavailableDsn();
-  static engine::TaskProcessor& GetTaskProcessor();
-  static concurrent::BackgroundTaskStorageCore& GetTaskStorage();
+    static storages::postgres::Dsn GetDsnFromEnv();
+    static storages::postgres::DsnList GetDsnListFromEnv();
+    static storages::postgres::Dsn GetUnavailableDsn();
+    static engine::TaskProcessor& GetTaskProcessor();
+    static concurrent::BackgroundTaskStorageCore& GetTaskStorage();
 
-  static storages::postgres::detail::ConnectionPtr MakeConnection(
-      const storages::postgres::Dsn& dsn, engine::TaskProcessor& task_processor,
-      storages::postgres::ConnectionSettings settings =
-          kCachePreparedStatements);
+    static storages::postgres::detail::ConnectionPtr MakeConnection(
+        const storages::postgres::Dsn& dsn,
+        engine::TaskProcessor& task_processor,
+        storages::postgres::ConnectionSettings settings = kCachePreparedStatements
+    );
 
-  static void CheckConnection(
-      const storages::postgres::detail::ConnectionPtr& conn);
-  static void FinalizeConnection(
-      storages::postgres::detail::ConnectionPtr conn);
+    static void CheckConnection(const storages::postgres::detail::ConnectionPtr& conn);
+    static void FinalizeConnection(storages::postgres::detail::ConnectionPtr conn);
+};
 
- private:
-  utils::impl::UserverExperimentsScope experiments_;
+class PostgreConnectionBaseFixture : public PostgreSQLBase {
+protected:
+    PostgreConnectionBaseFixture();
+    ~PostgreConnectionBaseFixture() override;
+
+    virtual storages::postgres::detail::ConnectionPtr MakeConn(storages::postgres::ConnectionSettings settings);
 };
 
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class PostgreConnection : public PostgreSQLBase,
-                          public ::testing::WithParamInterface<
-                              storages::postgres::ConnectionSettings> {
- protected:
-  PostgreConnection();
-  ~PostgreConnection() override;
+class PostgreConnection
+    : public PostgreConnectionBaseFixture,
+      public ::testing::WithParamInterface<std::tuple<storages::postgres::ConnectionSettings, ConnectionMode>> {
+protected:
+    PostgreConnection();
+    ~PostgreConnection() override;
 
-  storages::postgres::detail::ConnectionPtr& GetConn() { return conn; }
+    storages::postgres::detail::ConnectionPtr& GetConn();
 
- private:
-  storages::postgres::detail::ConnectionPtr conn;
+private:
+    std::unique_ptr<PostgresChaosProxy> chaos_proxy_;
+    storages::postgres::detail::ConnectionPtr conn_;
 };
 
 USERVER_NAMESPACE_END

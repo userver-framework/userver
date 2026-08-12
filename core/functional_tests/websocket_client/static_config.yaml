@@ -1,0 +1,60 @@
+components_manager:
+
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+        fs-task-processor:
+            worker_threads: 4
+
+    default_task_processor: main-task-processor
+
+    components:
+        server:
+            listener:
+                port: 8080
+                task_processor: main-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        # WebSocket echo handler (server-side)
+        websocket-echo-handler:
+            path: /echo
+            method: GET
+            task_processor: main-task-processor
+            max-remote-payload: 100000
+            fragment-size: 65536
+
+        websocket-unauth-handler:
+            path: /unauth
+            method: GET
+            task_processor: main-task-processor
+            max-remote-payload: 100000
+            fragment-size: 65536
+
+        websocket-large-message-handler:
+            path: /large-message
+            method: GET
+            task_processor: main-task-processor
+            max-remote-payload: 100000
+            fragment-size: 65536
+
+        # HTTP handler for C++ client tests
+        test-client:
+            path: /test-client
+            method: GET
+            task_processor: main-task-processor
+
+        testsuite-support:
+
+        http-client:
+        http-client-core:
+            fs-task-processor: fs-task-processor
+            user-agent: $server-name
+            user-agent#fallback: 'userver-based-service 1.0'
+        dns-client:
+            fs-task-processor: fs-task-processor

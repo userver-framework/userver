@@ -3,7 +3,7 @@
 ## Before you start
 
 Make sure that you can compile and run core tests as described at
-@ref scripts/docs/en/userver/tutorial/build.md.
+@ref scripts/docs/en/userver/build/build.md.
 
 Take a look at the @ref scripts/docs/en/userver/tutorial/hello_service.md
 and make sure that you do realize the basic concepts.
@@ -20,7 +20,7 @@ for such form could look like:
 ```
 # yaml
 requestBody:
-  content: 
+  content:
     multipart/form-data: # Media type
       schema:            # Request payload
         type: object
@@ -49,10 +49,10 @@ Just like in the @ref scripts/docs/en/userver/tutorial/hello_service.md
 the handler itself is a component inherited from
 server::handlers::HttpHandlerBase:
 
-@snippet samples/multipart_service/service.cpp  Multipart service sample - component
+@snippet samples/multipart_service/main.cpp  Multipart service sample - component
 
 The primary functionality of the handler should be located in
-`HandleRequestThrow` function. To work with the `multipart/form-data`
+`HandleRequest` function. To work with the `multipart/form-data`
 parameters use the appropriate
 server::http::HttpRequest functions:
 
@@ -62,7 +62,7 @@ server::http::HttpRequest functions:
 * server::http::HttpRequest::GetFormDataArgVector()
 * server::http::HttpRequest::HasFormDataArg()
 
-@snippet samples/multipart_service/service.cpp  Multipart service sample - HandleRequestThrow
+@snippet samples/multipart_service/main.cpp  Multipart service sample - HandleRequestThrow
 
 Note the work with the `image` in the above snippet. The image has a
 binary representation that require no additional decoding. The bytes of a
@@ -95,7 +95,7 @@ Finally, we
 add our component to the `components::MinimalServerComponentList()`,
 and start the server with static configuration file passed from command line.
 
-@snippet samples/multipart_service/service.cpp  Multipart service sample - main
+@snippet samples/multipart_service/main.cpp  Multipart service sample - main
 
 
 ### Build and Run
@@ -116,7 +116,6 @@ paths in the configuration files and starts the service.
 To start the service manually run
 `./samples/multipart_service/userver-samples-multipart_service -c </path/to/static_config.yaml>`.
 
-@note Without file path to `static_config.yaml` `userver-samples-multipart_service` will look for a file with name `config_dev.yaml`
 @note CMake doesn't copy `static_config.yaml` files from `samples` directory into build directory.
 
 Now you can send a request to your server from another terminal:
@@ -133,7 +132,7 @@ $ curl -v -F address='{"street": "3, Garden St", "city": "Hillsbery, UT"}' \
 > Accept: */*
 > Content-Length: 10651
 > Content-Type: multipart/form-data; boundary=------------------------048363632fdb9acc
-> 
+>
 * We are completely uploaded and fine
 * Mark bundle as not supporting multiuse
 < HTTP/1.1 200 OK
@@ -146,7 +145,7 @@ $ curl -v -F address='{"street": "3, Garden St", "city": "Hillsbery, UT"}' \
 < Accept-Encoding: gzip, identity
 < Connection: keep-alive
 < Content-Length: 76
-< 
+<
 * Connection #0 to host localhost left intact
 city=Hillsbery, UT image_size=10173
 ```
@@ -154,7 +153,8 @@ city=Hillsbery, UT image_size=10173
 ### Functional testing
 
 @ref scripts/docs/en/userver/functional_testing.md "Functional tests" for the service could be
-implemented using the @ref service_client "service_client" fixture from
+implemented using the @ref pytest_userver.plugins.service_client.service_client "service_client" fixture and the
+@ref testsuite.plugins.common.load_binary "load_binary" fixture from
 pytest_userver.plugins.core in the
 following way:
 
@@ -167,7 +167,7 @@ Do not forget to add the plugin in conftest.py:
 ## Full sources
 
 See the full example at:
-* @ref samples/multipart_service/service.cpp
+* @ref samples/multipart_service/main.cpp
 * @ref samples/multipart_service/static_config.yaml
 * @ref samples/multipart_service/CMakeLists.txt
 * @ref samples/multipart_service/tests/conftest.py
@@ -176,11 +176,11 @@ See the full example at:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/tutorial/websocket_service.md | @ref scripts/docs/en/userver/tutorial/json_to_yaml.md ⇨
+⇦ @ref scripts/docs/en/userver/tutorial/static_content.md | @ref scripts/docs/en/userver/tutorial/s3api.md ⇨
 @htmlonly </div> @endhtmlonly
 
 
-@example samples/multipart_service/service.cpp
+@example samples/multipart_service/main.cpp
 @example samples/multipart_service/static_config.yaml
 @example samples/multipart_service/CMakeLists.txt
 @example samples/multipart_service/tests/conftest.py

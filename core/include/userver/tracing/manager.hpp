@@ -3,7 +3,7 @@
 /// @file userver/tracing/manager.hpp
 /// @brief @copybrief tracing::TracingManagerBase
 
-#include <userver/clients/http/request_tracing_editor.hpp>
+#include <userver/clients/http/middlewares/base.hpp>
 #include <userver/clients/http/response.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/span_builder.hpp>
@@ -12,8 +12,8 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
-class HttpRequest;
 class HttpResponse;
+class HttpRequest;
 }  // namespace server::http
 
 namespace tracing {
@@ -24,25 +24,22 @@ namespace tracing {
 ///
 /// Mostly used by tracing::DefaultTracingManagerLocator.
 class TracingManagerBase {
- public:
-  virtual ~TracingManagerBase() = default;
+public:
+    virtual ~TracingManagerBase() = default;
 
-  /// Fill SpanBuilder params with actual tracing information extracted from the
-  /// request. You should build Span with SpanBuilder::Build, after calling
-  /// this.
-  /// @return Returns bool, that tells us was any of tracing headers used to
-  /// create new span
-  virtual bool TryFillSpanBuilderFromRequest(
-      const server::http::HttpRequest& request,
-      SpanBuilder& span_builder) const = 0;
+    /// Fill SpanBuilder params with actual tracing information extracted from the
+    /// request. You should build Span with SpanBuilder::Build, after calling
+    /// this.
+    /// @return Returns bool, that tells us was any of tracing headers used to
+    /// create new span
+    virtual bool TryFillSpanBuilderFromRequest(const server::http::HttpRequest& request, SpanBuilder& span_builder)
+        const = 0;
 
-  /// Fill new client requests with tracing information
-  virtual void FillRequestWithTracingContext(
-      const Span& span, clients::http::RequestTracingEditor request) const = 0;
+    /// Fill new client requests with tracing information
+    virtual void FillRequestWithTracingContext(const Span& span, clients::http::MiddlewareRequest request) const = 0;
 
-  /// Fill response with tracing information
-  virtual void FillResponseWithTracingContext(
-      const Span& span, server::http::HttpResponse& response) const = 0;
+    /// Fill response with tracing information
+    virtual void FillResponseWithTracingContext(const Span& span, server::http::HttpResponse& response) const = 0;
 };
 
 // clang-format off
@@ -64,7 +61,7 @@ enum class Format : short {
   /// tracing::opentelemetry::TraceParentData as per OpenTelemetry.
   kOpenTelemetry = 1 << 3,
 
-  /// Openzipkin b3 alternative propagation, where Span ID goes to partern ID:
+  /// Openzipkin b3 alternative propagation, where Span ID goes to parent ID:
   /// @code
   /// b3::kTraceId -> tracing::Span::GetTraceId() -> b3::kTraceId
   /// b3::kSpanId -> tracing::Span::GetParentId(); tracing::Span::GetSpanId() -> b3::kSpanId
@@ -78,39 +75,66 @@ enum class Format : short {
 /// Converts a textual representation of format into tracing::Format enum.
 Format FormatFromString(std::string_view format);
 
-bool TryFillSpanBuilderFromRequest(Format format,
-                                   const server::http::HttpRequest& request,
-                                   SpanBuilder& span_builder);
+bool TryFillSpanBuilderFromRequest(Format format, const server::http::HttpRequest& request, SpanBuilder& span_builder);
 
-void FillRequestWithTracingContext(Format format, const tracing::Span& span,
-                                   clients::http::RequestTracingEditor request);
+void FillRequestWithTracingContext(Format format, const tracing::Span& span, clients::http::MiddlewareRequest request);
 
-void FillResponseWithTracingContext(Format format, const Span& span,
-                                    server::http::HttpResponse& response);
+void FillResponseWithTracingContext(Format format, const Span& span, server::http::HttpResponse& response);
+
+/// W3C trace-flags byte values from the @c traceparent header.
+/// @see https://www.w3.org/TR/trace-context/#trace-flags
+enum OtelTraceFlags : std::uint8_t {
+    kNoTracing = 0x00,
+    kSampled = 0x01,
+};
+
+/// @returns the W3C trace-flags byte from the incoming request, stored in
+/// @ref engine::TaskInheritedVariable. Defaults to @ref OtelTraceFlags::kSampled
+/// when absent.
+OtelTraceFlags GetInheritedOtelTraceFlags();
+
+/// @returns the W3C `tracestate` header value from the incoming request, stored
+/// in @ref engine::TaskInheritedVariable. Empty string_view when absent.
+std::string_view GetInheritedOtelTraceState();
+
+/// Stores `tracestate` and the parsed `traceflags` hex byte into
+/// @ref engine::TaskInheritedVariable so they are available for outgoing
+/// request propagation within the current task tree.
+void SetInheritedOtelTracingData(std::string_view tracestate, std::string_view traceflags);
 
 /// @brief Generic tracing manager that knows about popular tracing
 /// headers and allows customising input and output headers.
 class GenericTracingManager final : public TracingManagerBase {
- public:
-  GenericTracingManager() = delete;
+public:
+    enum class SamplingEnabled : bool {
+        kNo = false,
+        kYes = true,
+    };
 
-  GenericTracingManager(utils::Flags<Format> in_request_response,
-                        utils::Flags<Format> new_request)
-      : in_request_response_{in_request_response}, new_request_{new_request} {}
+    GenericTracingManager() = delete;
 
-  bool TryFillSpanBuilderFromRequest(const server::http::HttpRequest& request,
-                                     SpanBuilder& span_builder) const override;
+    GenericTracingManager(
+        utils::Flags<Format> in_request_response,
+        utils::Flags<Format> new_request,
+        SamplingEnabled sampling = SamplingEnabled::kNo
+    )
+        : in_request_response_{in_request_response},
+          new_request_{new_request},
+          sampling_{sampling}
+    {}
 
-  void FillRequestWithTracingContext(
-      const tracing::Span& span,
-      clients::http::RequestTracingEditor request) const override;
+    bool TryFillSpanBuilderFromRequest(const server::http::HttpRequest& request, SpanBuilder& span_builder)
+        const override;
 
-  void FillResponseWithTracingContext(
-      const Span& span, server::http::HttpResponse& response) const override;
+    void FillRequestWithTracingContext(const tracing::Span& span, clients::http::MiddlewareRequest request)
+        const override;
 
- private:
-  const utils::Flags<Format> in_request_response_;
-  const utils::Flags<Format> new_request_;
+    void FillResponseWithTracingContext(const Span& span, server::http::HttpResponse& response) const override;
+
+private:
+    const utils::Flags<Format> in_request_response_;
+    const utils::Flags<Format> new_request_;
+    const SamplingEnabled sampling_{SamplingEnabled::kNo};
 };
 
 }  // namespace tracing

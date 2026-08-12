@@ -5,8 +5,7 @@
 
 #include <memory>
 
-#include <userver/components/loggable_component_base.hpp>
-#include <userver/utils/statistics/entry.hpp>
+#include <userver/components/component_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,7 +19,6 @@ class Cluster;
 
 namespace storages::mysql {
 
-// clang-format off
 /// @ingroup userver_components
 ///
 /// @brief MySQL/MariaDB client component
@@ -44,32 +42,28 @@ namespace storages::mysql {
 /// primary detection and always considers the first host in `hosts` list
 /// an only primary node in the cluster.
 ///
-/// ## Static options (more to come)
-/// Name                     | Description                                 | Default value
-/// -------------------------|---------------------------------------------|---------------
-/// initial_pool_size        | initial connection pool size (per host)     | 5
-/// max_pool_size            | maximum connection pool size (per host)     | 10
+/// ## Static options of storages::mysql::Component :
+/// @include{doc} scripts/docs/en/components_schema/mysql/src/storages/mysql/component.md
 ///
-// clang-format on
-class Component final : public components::LoggableComponentBase {
- public:
-  /// Component constructor
-  Component(const components::ComponentConfig& config,
-            const components::ComponentContext& context);
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
+class Component final : public components::ComponentBase {
+public:
+    /// Component constructor
+    Component(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  /// Component destructor
-  ~Component() override;
+    /// Component destructor
+    ~Component() override;
 
-  /// Cluster accessor
-  std::shared_ptr<storages::mysql::Cluster> GetCluster() const;
+    /// Cluster accessor
+    std::shared_ptr<storages::mysql::Cluster> GetCluster() const;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  clients::dns::Component& dns_;
+private:
+    clients::dns::Component& dns_;
 
-  const std::shared_ptr<storages::mysql::Cluster> cluster_;
-  utils::statistics::Entry statistics_holder_;
+    const std::shared_ptr<storages::mysql::Cluster> cluster_;
 };
 
 }  // namespace storages::mysql

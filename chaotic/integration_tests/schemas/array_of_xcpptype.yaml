@@ -1,0 +1,66 @@
+definitions:
+    ObjectArrayOfXCppType:
+        type: object
+        additionalProperties:
+            type: array
+            items:
+                type: object
+                x-usrv-cpp-type: my::Point
+                additionalProperties: false
+                required:
+                  - lon
+                  - lat
+                properties:
+                    lon:
+                        type: number
+                    lat:
+                        type: number
+
+        properties:
+            foo:
+                type: array
+                items:
+                    type: array
+                    x-usrv-cpp-type: my::Point
+                    items:
+                        type: number
+
+            bar:
+                type: array
+                items:
+                    $ref: '#/definitions/AOXIndirect'
+
+            baz:
+                type: array
+                items:
+                    oneOf:
+                      - $ref: '#/definitions/AOXIndirect'
+                      - type: string
+                        x-usrv-cpp-type: my::CustomString
+
+    AOXIndirect:
+        type: number
+        x-usrv-cpp-type: my::CustomNumber
+
+    ObjectNonZeroArrayOfXCppType:
+        type: object
+        additionalProperties:
+            type: array
+            minItems: 1
+            maxItems: 4
+            items:
+                type: object
+                x-usrv-cpp-type: my::Point
+                additionalProperties: false
+                required:
+                  - lon
+                  - lat
+                properties:
+                    lon:
+                        type: number
+                        minimum: -42
+                    lat:
+                        type: number
+                        maximum: 43
+
+        properties: {}

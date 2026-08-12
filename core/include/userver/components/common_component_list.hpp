@@ -15,16 +15,17 @@ namespace components {
 /// updates and HTTP client.
 ///
 /// The list contains:
-/// * everything from components::MinimalComponentList
-/// * components::LoggingConfigurator
-/// * components::DumpConfigurator
-/// * components::TestsuiteSupport
-/// * components::SystemStatisticsCollector
-/// * components::HttpClient (default and "http-client-statistics")
-/// * clients::dns::Component
-/// * components::DynamicConfigClient
-/// * components::DynamicConfigClientUpdater
-/// * engine::TaskProcessorsLoadMonitor
+/// * everything from @ref components::MinimalComponentList
+/// * @ref components::LoggingConfigurator
+/// * @ref components::DumpConfigurator
+/// * @ref components::TestsuiteSupport
+/// * @ref components::SystemStatisticsCollector
+/// * @ref components::HttpClientCore (default and "http-client-statistics-core")
+/// * @ref components::HttpClient (default and "http-client-statistics")
+/// * @ref clients::dns::Component
+/// * @ref components::DynamicConfigClient
+/// * @ref components::DynamicConfigClientUpdater
+/// * @ref engine::TaskProcessorsLoadMonitor
 ComponentList CommonComponentList();
 
 }  // namespace components

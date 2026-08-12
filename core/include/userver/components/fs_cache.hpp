@@ -3,8 +3,7 @@
 /// @file userver/components/fs_cache.hpp
 /// @brief @copybrief components::FsCache
 
-#include <unordered_map>
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/fs/fs_cache_client.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
@@ -12,34 +11,27 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
 /// @brief Component for storing files in memory
-/// ## Static options:
 ///
-/// Name              | Description                                          | Default value
-/// ----------------- | ---------------------------------------------------- | -------------
-/// dir               | directory to cache files from                        | /var/www
-/// update-period     | Update period (0 - fill the cache only at startup)   | 0
-/// fs-task-processor | task processor to do filesystem operations           | fs-task-processor
+/// ## Static options of components::FsCache :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/fs_cache.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
+class FsCache final : public components::ComponentBase {
+public:
+    using Client = fs::FsCacheClient;
 
-// clang-format on
+    FsCache(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-class FsCache final : public components::LoggableComponentBase {
- public:
-  using Client = fs::FsCacheClient;
+    static yaml_config::Schema GetStaticConfigSchema();
 
-  FsCache(const components::ComponentConfig& config,
-          const components::ComponentContext& context);
+    const Client& GetClient() const;
 
-  static yaml_config::Schema GetStaticConfigSchema();
-
-  const Client& GetClient() const;
-
- private:
-  Client client_;
+private:
+    Client client_;
 };
 
 template <>

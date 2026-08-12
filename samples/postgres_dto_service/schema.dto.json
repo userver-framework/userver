@@ -1,0 +1,88 @@
+{
+  "catalog": {
+    "enums": {},
+    "tables": {
+      "public.key_value_table": {
+        "columns": [
+          {
+            "name": "key",
+            "nullable": false,
+            "type": "character varying"
+          },
+          {
+            "name": "value",
+            "nullable": true,
+            "type": "character varying"
+          }
+        ],
+        "name": "key_value_table",
+        "namespace": "public",
+        "version": 0
+      }
+    },
+    "types": {
+      "public.key_value_table_v0": {
+        "fields": [
+          {
+            "name": "key",
+            "nullable": true,
+            "type": "character varying"
+          },
+          {
+            "name": "value",
+            "nullable": true,
+            "type": "character varying"
+          }
+        ],
+        "name": "key_value_table_v0",
+        "namespace": "public"
+      }
+    }
+  },
+  "hashsum": "348e2c7377e1dd9197bf49a77fb8aad580e850926df738cf2004b0e3b1004ac3",
+  "queries": [
+    {
+      "args": [
+        {
+          "nullable": true,
+          "type": "text"
+        }
+      ],
+      "cardinality": "many",
+      "name": "delete_value",
+      "returns": []
+    },
+    {
+      "args": [
+        {
+          "nullable": false,
+          "type": "character varying"
+        },
+        {
+          "nullable": true,
+          "type": "character varying"
+        }
+      ],
+      "cardinality": "many",
+      "name": "insert_value",
+      "returns": []
+    },
+    {
+      "args": [
+        {
+          "nullable": true,
+          "type": "text"
+        }
+      ],
+      "cardinality": "many",
+      "name": "select_value",
+      "returns": [
+        {
+          "name": "value",
+          "nullable": true,
+          "type": "character varying"
+        }
+      ]
+    }
+  ]
+}

@@ -9,9 +9,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::middlewares::misc {
 
-std::string_view CutTrailingSlash(
-    const std::string& meta_type,
-    handlers::UrlTrailingSlashOption trailing_slash);
+std::string_view CutTrailingSlash(const std::string& meta_type, handlers::UrlTrailingSlashOption trailing_slash);
 
 }
 

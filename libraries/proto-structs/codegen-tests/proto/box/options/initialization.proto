@@ -1,0 +1,53 @@
+// Fields containing a message that is defined in the same file must be left uninitialized.
+// Otherwise, the compiler suddenly requires definitions of all mentioned forward-declared types:
+//
+// ```cpp
+// struct Foo;
+//
+// struct Bar {
+//     std::vector<Foo> foo;  // ok
+// };
+//
+// struct Baz {
+//     Bar bar{};  // error: std::vector<Foo> needs Foo?!
+// };
+// ```
+//
+// Compare:
+// * https://godbolt.org/z/1796cr4vP
+// * https://godbolt.org/z/fbxc8cz8v
+//
+// Reason for this behavior is that if an initialization is given, then the compiler must immediately check
+// that it is valid, and the constructor of `std::vector` requires that the item type is complete.
+
+syntax = "proto3";
+
+package box.options;
+
+option go_package = "a.yandex-team.ru/taxi/uservices/userver/libraries/proto-structs/codegen-tests/proto/box/options;boxoptions";
+
+import "userver/structs/annotations.proto";
+
+message DependsOnNotDefinedYet {
+    NotDefinedYet plain_field = 1 [(userver.structs.field).indirect = true];
+    optional NotDefinedYet optional_field = 2 [(userver.structs.field).indirect = true];
+    repeated NotDefinedYet vector_field = 3;
+    map<string, NotDefinedYet> map_field = 4 [(userver.structs.field).indirect = true];
+
+    oneof oneof {
+        NotDefinedYet oneof_field = 5 [(userver.structs.field).indirect = true];
+    }
+}
+
+message IndirectlyDependsOnNotDefinedYet {
+    DependsOnNotDefinedYet plain_field = 1 [(userver.structs.field).indirect = true];
+    optional DependsOnNotDefinedYet optional_field = 2 [(userver.structs.field).indirect = true];
+    repeated DependsOnNotDefinedYet vector_field = 3;
+    map<string, DependsOnNotDefinedYet> map_field = 4 [(userver.structs.field).indirect = true];
+
+    oneof oneof {
+        DependsOnNotDefinedYet oneof_field = 5 [(userver.structs.field).indirect = true];
+    }
+}
+
+message NotDefinedYet {}

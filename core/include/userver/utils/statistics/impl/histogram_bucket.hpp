@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdint>
 
+#include <userver/concurrent/impl/interference_shield.hpp>
 #include <userver/utils/span.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -19,18 +20,23 @@ namespace utils::statistics::impl::histogram {
 // - size in 'upper_bound'
 // - inf count in 'counter'
 union BoundOrSize {
-  double bound;
-  std::size_t size;
+    double bound;
+    std::size_t size;
 };
 
-struct Bucket final {
-  constexpr Bucket() noexcept = default;
+// We make sure that nearby Buckets do not interfere with each other, while `counter` and `sum` reside in the same
+// cache line and gain benefits of interference.
+struct alignas(concurrent::impl::kDestructiveInterferenceSize) Bucket final {
+    constexpr Bucket() noexcept = default;
 
-  Bucket(const Bucket& other) noexcept;
-  Bucket& operator=(const Bucket& other) noexcept;
+    Bucket(const Bucket& other) noexcept;
+    Bucket& operator=(const Bucket& other) noexcept;
 
-  BoundOrSize upper_bound{0.0};
-  std::atomic<std::uint64_t> counter{0};
+    BoundOrSize upper_bound{0.0};
+
+    // Reside in same cache line, atomic operations gain benefits of constructive interference size.
+    std::atomic<std::uint64_t> counter{0};
+    std::atomic<double> sum{0.0};
 };
 
 void CopyBounds(Bucket* bucket_array, utils::span<const double> upper_bounds);

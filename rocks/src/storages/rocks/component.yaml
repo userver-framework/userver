@@ -1,0 +1,10 @@
+type: object
+description: Rocks client component
+additionalProperties: false
+properties:
+    task-processor:
+        type: string
+        description: name of the task processor to run the blocking file operations
+    db-path:
+        type: string
+        description: path to database file

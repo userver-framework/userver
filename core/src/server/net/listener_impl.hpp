@@ -3,40 +3,47 @@
 #include <memory>
 
 #include <userver/concurrent/background_task_storage.hpp>
+#include <userver/engine/deadline.hpp>
 #include <userver/engine/io/socket.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 
-#include "connection.hpp"
-#include "endpoint_info.hpp"
-#include "stats.hpp"
+#include <server/net/endpoint_info.hpp>
+#include <server/net/http1_connection.hpp>
+#include <server/net/stats.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::net {
 
 class ListenerImpl final {
- public:
-  ListenerImpl(engine::TaskProcessor& task_processor,
-               std::shared_ptr<EndpointInfo> endpoint_info,
-               request::ResponseDataAccounter& data_accounter);
-  ~ListenerImpl();
+public:
+    ListenerImpl(
+        engine::TaskProcessor& task_processor,
+        std::shared_ptr<EndpointInfo> endpoint_info,
+        request::ResponseDataAccounter& data_accounter
+    );
+    ~ListenerImpl();
 
-  StatsAggregation GetStats() const;
+    StatsAggregation GetStats() const;
 
- private:
-  void AcceptConnection(engine::io::Socket& request_socket);
-  void ProcessConnection(engine::io::Socket peer_socket);
+    void StopListening();
 
-  engine::TaskProcessor& task_processor_;
-  std::shared_ptr<EndpointInfo> endpoint_info_;
+    bool WaitForNoConnections(engine::Deadline deadline) const;
 
-  std::shared_ptr<Stats> stats_;
-  request::ResponseDataAccounter& data_accounter_;
+private:
+    void AcceptConnection(engine::io::Socket& request_socket, const PortConfig& port_config);
+    void ProcessConnection(engine::io::Socket peer_socket, const PortConfig& port_config);
 
-  concurrent::BackgroundTaskStorageCore connections_;
+    engine::TaskProcessor& task_processor_;
+    std::shared_ptr<EndpointInfo> endpoint_info_;
 
-  engine::TaskWithResult<void> socket_listener_task_;
+    std::shared_ptr<Stats> stats_;
+    request::ResponseDataAccounter& data_accounter_;
+
+    concurrent::BackgroundTaskStorageCore connections_;
+
+    std::vector<engine::TaskWithResult<void>> socket_listener_tasks_;
 };
 
 }  // namespace server::net

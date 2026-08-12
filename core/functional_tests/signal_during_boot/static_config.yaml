@@ -1,0 +1,21 @@
+components_manager:
+    components:
+        slow-component:
+        server:
+            listener:
+                port: 8089
+                task_processor: main-task-processor
+        logging:
+            fs-task-processor: main-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+
+    default_task_processor: main-task-processor
+    fs_task_processor: main-task-processor

@@ -4,10 +4,10 @@
 /// @brief Functions for synchronous (blocking) file write operations
 /// @ingroup userver_universal
 
-#include <string>
 #include <string_view>
 
-#include <boost/filesystem/operations.hpp>
+#include <userver/utils/boost_filesystem_file_status.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -29,7 +29,7 @@ void CreateDirectories(std::string_view path);
 /// @param contents new file contents
 /// @throws std::runtime_error if failed to overwrite
 /// @see fs::RewriteFileContents
-void RewriteFileContents(const std::string& path, std::string_view contents);
+void RewriteFileContents(utils::zstring_view path, std::string_view contents);
 
 /// @brief Rewrite file contents synchronously and call `fsync`
 ///
@@ -46,18 +46,17 @@ void RewriteFileContents(const std::string& path, std::string_view contents);
 /// @param path file to rewrite
 /// @param contents new file contents
 /// @throws std::runtime_error if failed to overwrite
-void RewriteFileContentsFSync(const std::string& path,
-                              std::string_view contents);
+void RewriteFileContentsFSync(utils::zstring_view path, std::string_view contents);
 
 /// @brief flushes directory contents on disk using sync(2)
 /// @param path directory to flush
-void SyncDirectoryContents(const std::string& path);
+void SyncDirectoryContents(utils::zstring_view path);
 
 /// @brief Renames existing file synchronously
 /// @param source path to move from
 /// @param destination path to move to
 /// @throws std::runtime_error
-void Rename(const std::string& source, const std::string& destination);
+void Rename(utils::zstring_view source, utils::zstring_view destination);
 
 /// @brief Rewrite file contents atomically
 ///
@@ -71,21 +70,19 @@ void Rename(const std::string& source, const std::string& destination);
 /// @param contents new file contents
 /// @param perms new file permissions
 /// @throws std::runtime_error
-void RewriteFileContentsAtomically(const std::string& path,
-                                   std::string_view contents,
-                                   boost::filesystem::perms perms);
+void RewriteFileContentsAtomically(utils::zstring_view path, std::string_view contents, boost::filesystem::perms perms);
 
 /// @brief Change file mode synchronously
 /// @param path file path to chmod
 /// @param perms new file permissions
 /// @throws std::runtime_error
-void Chmod(const std::string& path, boost::filesystem::perms perms);
+void Chmod(utils::zstring_view path, boost::filesystem::perms perms);
 
 /// @brief Remove existing file synchronously
 /// @param path file path to chmod
 /// @returns true if successfully removed, false if file doesn't exist
 /// @throws std::runtime_error
-bool RemoveSingleFile(const std::string& path);
+bool RemoveSingleFile(utils::zstring_view path);
 
 }  // namespace fs::blocking
 

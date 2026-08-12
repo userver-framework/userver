@@ -2,6 +2,9 @@
   "ydb_settings": {
     "sampledb": {
       "token": ""
+    },
+    "sampledb2": {
+      "token": ""
     }
   }
 }

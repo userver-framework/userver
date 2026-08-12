@@ -13,8 +13,6 @@ class Resolver;
 
 namespace server::handlers {
 
-// clang-format off
-
 /// @ingroup userver_components userver_http_handlers
 ///
 /// @brief Handlers that controls the DNS client.
@@ -31,31 +29,25 @@ namespace server::handlers {
 /// * `reload_hosts` - to reload hosts file cache
 /// * `flush_cache` - to remove network cache records for `name` specified as a query parameter
 /// * `flush_cache_full` - to completely wipe network cache
-
-// clang-format on
-
 class DnsClientControl final : public HttpHandlerBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of server::handlers::DnsClientControl
-  static constexpr std::string_view kName = "handler-dns-client-control";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of server::handlers::DnsClientControl
+    static constexpr std::string_view kName = "handler-dns-client-control";
 
-  DnsClientControl(const components::ComponentConfig&,
-                   const components::ComponentContext&);
+    DnsClientControl(const components::ComponentConfig&, const components::ComponentContext&);
 
-  std::string HandleRequestThrow(const http::HttpRequest&,
-                                 request::RequestContext&) const override;
+    std::string HandleRequestThrow(const http::HttpRequest&, request::RequestContext&) const override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  clients::dns::Resolver* resolver_;
+private:
+    clients::dns::Resolver* resolver_;
 };
 
 }  // namespace server::handlers
 
 template <>
-inline constexpr bool
-    components::kHasValidate<server::handlers::DnsClientControl> = true;
+inline constexpr bool components::kHasValidate<server::handlers::DnsClientControl> = true;
 
 USERVER_NAMESPACE_END

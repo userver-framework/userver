@@ -1,0 +1,49 @@
+INCLUDE(${ARCADIA_ROOT}/taxi/uservices/userver/chaotic/ya.make.deps)
+
+RUN_PROGRAM(
+    taxi/uservices/userver/chaotic/bin-dynamic-configs
+        -o ${BINDIR}/dynamic_configs/
+        --no-check-includes
+        --clang-format ''
+
+            dynamic_configs/BOOL_FLAG.yaml
+
+            dynamic_configs/FEATURE_FLAGS.yaml
+
+            dynamic_configs/CONNECTION_POOL_SETTINGS.yaml
+
+    OUTPUT_INCLUDES
+        ${CHAOTIC_INCLUDES}
+        taxi/uservices/userver/core/include/userver/dynamic_config/snapshot.hpp
+    IN_NOPARSE
+
+            dynamic_configs/BOOL_FLAG.yaml
+
+            dynamic_configs/FEATURE_FLAGS.yaml
+
+            dynamic_configs/CONNECTION_POOL_SETTINGS.yaml
+
+    OUT
+
+            dynamic_configs/src/dynamic_config/variables/BOOL_FLAG.cpp
+            dynamic_configs/src/dynamic_config/variables/BOOL_FLAG.types.cpp
+            dynamic_configs/include/dynamic_config/variables/BOOL_FLAG.hpp
+            dynamic_configs/include/dynamic_config/variables/BOOL_FLAG.types_parsers.ipp
+            dynamic_configs/include/dynamic_config/variables/BOOL_FLAG.types.hpp
+            dynamic_configs/include/dynamic_config/variables/BOOL_FLAG.types_fwd.hpp
+
+            dynamic_configs/src/dynamic_config/variables/FEATURE_FLAGS.cpp
+            dynamic_configs/src/dynamic_config/variables/FEATURE_FLAGS.types.cpp
+            dynamic_configs/include/dynamic_config/variables/FEATURE_FLAGS.hpp
+            dynamic_configs/include/dynamic_config/variables/FEATURE_FLAGS.types_parsers.ipp
+            dynamic_configs/include/dynamic_config/variables/FEATURE_FLAGS.types.hpp
+            dynamic_configs/include/dynamic_config/variables/FEATURE_FLAGS.types_fwd.hpp
+
+            dynamic_configs/src/dynamic_config/variables/CONNECTION_POOL_SETTINGS.cpp
+            dynamic_configs/src/dynamic_config/variables/CONNECTION_POOL_SETTINGS.types.cpp
+            dynamic_configs/include/dynamic_config/variables/CONNECTION_POOL_SETTINGS.hpp
+            dynamic_configs/include/dynamic_config/variables/CONNECTION_POOL_SETTINGS.types_parsers.ipp
+            dynamic_configs/include/dynamic_config/variables/CONNECTION_POOL_SETTINGS.types.hpp
+            dynamic_configs/include/dynamic_config/variables/CONNECTION_POOL_SETTINGS.types_fwd.hpp
+
+)

@@ -1,0 +1,38 @@
+{% macro required(r) %}
+{%- if not r %}[{% endif %}
+{{- caller() }}
+{%- if not r %}]{% endif %}
+{%- endmacro -%}
+
+## {{ symbol.name }}
+
+{{ symbol.prototype.description }}
+
+```
+{{ symbol.name }}(
+{%- for arg in symbol.prototype.args %}
+    <{{ arg.name }}>
+{%- endfor %}
+{%- for arg in symbol.prototype.options %}
+    {% call required(arg.required) %}{{ arg.name }}{% endcall %}
+{%- endfor %}
+{%- for arg in symbol.prototype.params %}
+    {% call required(arg.required) %}{{ arg.name }} <value>{% endcall %}
+{%- endfor %}
+{%- for arg in symbol.prototype.multi_params %}
+    {% call required(arg.required) %}{{ arg.name }} <value>...{% endcall %}
+{%- endfor %}
+)
+```
+{% for arg in symbol.prototype.args %}
+* <**{{ arg.name }}**> {{ arg.description }}
+{%- endfor %}
+{%- for arg in symbol.prototype.options %}
+* **{{ arg.name }}** {{ arg.description }}
+{%- endfor %}
+{%- for arg in symbol.prototype.params %}
+* **{{ arg.name }} <value>** {{ arg.description }}
+{%- endfor %}
+{%- for arg in symbol.prototype.multi_params %}
+* **{{ arg.name }} <value>...** {{ arg.description }}
+{%- endfor %}

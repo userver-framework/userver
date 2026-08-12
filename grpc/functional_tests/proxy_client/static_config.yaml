@@ -1,0 +1,89 @@
+# yaml
+components_manager:
+    components:
+        dynamic-config:
+            updates-enabled: true
+        dynamic-config-client:
+            config-url: $config-server-url
+            http-retries: 5
+            http-timeout: 20s
+            service-name: testsuite-support
+        dynamic-config-client-updater:
+            config-settings: false
+            first-update-fail-ok: true
+            full-update-interval: 1m
+            update-interval: 5s
+
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        handler-server-monitor:
+            path: /service/monitor
+            method: GET
+            task_processor: main-task-processor
+
+        congestion-control:
+
+        greeter-client-test:
+
+        grpc-client-common:
+            blocking-task-processor: grpc-blocking-task-processor
+            proxy-address#env: EGRESS_GRPC_PROXY
+
+        grpc-client-headers-propagator:
+            skip-headers:
+                skipped-header: true
+
+        grpc-client-origin:
+            user-agent: proxy-client-service
+
+        grpc-client-factory:
+            middlewares:
+                grpc-client-deadline-propagation:
+                    enabled: false
+            retry-config:
+                attempts: 2
+            channel-args: {}
+
+        greeter-client:
+            endpoint: $greeter-client-endpoint
+
+        server:
+            listener:
+                port: 8092
+                task_processor: main-task-processor
+            listener-monitor:
+                port: $monitor-server-port
+                task_processor: main-task-processor
+
+        testsuite-support:
+        tests-control:
+            path: /tests/{action}
+            method: POST
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url:
+            throttling_enabled: false
+
+        http-client:
+        http-client-core:
+            fs-task-processor: main-task-processor
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+    default_task_processor: main-task-processor
+
+    task_processors:
+        grpc-blocking-task-processor:
+            thread_name: grpc-worker
+            worker_threads: 2
+        main-task-processor:
+            worker_threads: 4
+        fs-task-processor:
+            worker_threads: 2

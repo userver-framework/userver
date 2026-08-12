@@ -3,83 +3,85 @@
 #include <atomic>
 #include <mutex>
 
-#include <boost/smart_ptr/intrusive_ptr.hpp>
+#include <boost/intrusive/list.hpp>
 
-#include <userver/utils/fast_pimpl.hpp>
+#include <userver/engine/impl/awaiter.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-class TaskContext;
-
 /// Wait list for multiple entries with explicit control over critical section.
 class WaitList final {
- public:
-  class Lock final {
-   public:
-    explicit Lock(WaitList& list) noexcept : impl_(list.mutex_) {}
+public:
+    class Lock final {
+    public:
+        explicit Lock(WaitList& list) noexcept : impl_(list.mutex_) {}
 
-    explicit operator bool() noexcept { return !!impl_; }
+        explicit operator bool() noexcept { return !!impl_; }
 
-    void lock() { impl_.lock(); }
-    void unlock() { impl_.unlock(); }
+        void lock() { impl_.lock(); }
+        void unlock() { impl_.unlock(); }
 
-   private:
-    std::unique_lock<std::mutex> impl_;
-  };
+    private:
+        std::unique_lock<std::mutex> impl_;
+    };
 
-  // This guard is used to optimize the hot path of unlocking:
-  //
-  // Use `WaitersScopeCounter` before acquiring the `WaitList::Lock` and do
-  // not destroy it as long as the coroutine  may go to sleep.
-  //
-  // Now in the `unlock` part call `GetCountOfSleepies()` before
-  // `WaitList::Lock + WakeupOne/WakeupAll`.
-  class WaitersScopeCounter final {
-   public:
-    explicit WaitersScopeCounter(WaitList& list) noexcept : impl_(list) {
-      ++impl_.sleepies_;
-    }
-    ~WaitersScopeCounter() { --impl_.sleepies_; }
+    // This guard is used to optimize the hot path of unlocking:
+    //
+    // Use `AwaitersScopeCounter` before acquiring the `WaitList::Lock` and do
+    // not destroy it as long as the coroutine  may go to sleep.
+    //
+    // Now in the `unlock` part call `GetCountOfSleepies()` before
+    // `WaitList::Lock + NotifyOne/NotifyAll`.
+    class AwaitersScopeCounter final {
+    public:
+        explicit AwaitersScopeCounter(WaitList& list) noexcept : impl_(list) {
+            ++impl_.sleepies_;
+        }
+        ~AwaitersScopeCounter() { --impl_.sleepies_; }
 
-   private:
-    WaitList& impl_;
-  };
+    private:
+        WaitList& impl_;
+    };
 
-  /// Create an empty `WaitList`
-  WaitList() noexcept;
+    /// Create an empty `WaitList`
+    WaitList() noexcept;
 
-  WaitList(const WaitList&) = delete;
-  WaitList(WaitList&&) = delete;
-  WaitList& operator=(const WaitList&) = delete;
-  WaitList& operator=(WaitList&&) = delete;
-  ~WaitList();
+    WaitList(const WaitList&) = delete;
+    WaitList(WaitList&&) = delete;
+    WaitList& operator=(const WaitList&) = delete;
+    WaitList& operator=(WaitList&&) = delete;
+    ~WaitList();
 
-  bool IsEmpty(Lock&) const noexcept;
+    bool IsEmpty(Lock&) const noexcept;
 
-  /// @brief Append the task to the `WaitList`
-  void Append(Lock& lock,
-              boost::intrusive_ptr<impl::TaskContext> context) noexcept;
+    /// @brief Append the task to the `WaitList`
+    void Append(Lock& lock, AwaiterPtr awaiter, std::uintptr_t context) noexcept;
 
-  /// @brief Remove the task from the `WaitList` without wakeup
-  void Remove(Lock& lock, impl::TaskContext& context) noexcept;
+    /// @brief Remove the task from the `WaitList` without notifying
+    AwaiterPtr Remove(Lock& lock, Awaiter& awaiter, std::uintptr_t context) noexcept;
 
-  void WakeupOne(Lock&);
-  void WakeupAll(Lock&);
+    void NotifyOne(Lock&);
+    void NotifyAll(Lock&);
 
-  /// @brief Get the maximum amount of coroutines that may be sleeping
-  /// @returns 0 if there are definitely no waiters currently, non-0 otherwise
-  std::size_t GetCountOfSleepies() const noexcept { return sleepies_.load(); }
+    /// @brief Get the maximum amount of coroutines that may be sleeping
+    /// @returns 0 if there are definitely no awaiters currently, non-0 otherwise
+    std::size_t GetCountOfSleepies() const noexcept { return sleepies_.load(); }
 
- private:
-  std::atomic<std::size_t> sleepies_{0};
-  std::mutex mutex_;
+private:
+    using MemberHookConfig =
+        boost::intrusive::member_hook<impl::Awaiter, impl::Awaiter::WaitListData, &impl::Awaiter::wait_list_data_>;
 
-  struct List;
-  static constexpr std::size_t kListSize = sizeof(void*) * 2;
-  static constexpr std::size_t kListAlignment = alignof(void*);
-  utils::FastPimpl<List, kListSize, kListAlignment> waiting_contexts_;
+    struct List
+        : public boost::intrusive::make_list<
+              impl::Awaiter,
+              boost::intrusive::constant_time_size<false>,
+              MemberHookConfig>::type {};
+
+    std::atomic<std::size_t> sleepies_{0};
+    std::mutex mutex_;
+    List awaiters_;
 };
 
 }  // namespace engine::impl

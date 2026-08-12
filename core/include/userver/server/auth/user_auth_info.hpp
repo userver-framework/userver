@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/auth/user_auth_info.hpp
+/// @brief @copybrief server::auth::UserAuthInfo
+
 #include <optional>
 #include <string>
 
@@ -19,41 +22,46 @@ class AuthCheckerBase;
 
 namespace server::auth {
 
+/// @brief Authenticated user data attached to a request
 class UserAuthInfo final {
- public:
-  using Ticket = utils::NonLoggable<class TicketTag, std::string>;
+public:
+    using Ticket = utils::NonLoggable<class TicketTag, std::string>;
 
-  UserAuthInfo(UserId default_id, UserEnv env, UserProvider provider);
-  UserAuthInfo(UserId default_id, Ticket user_ticket, UserEnv env,
-               UserProvider provider);
+    UserAuthInfo(UserId default_id, UserEnv env, UserProvider provider);
+    UserAuthInfo(UserId default_id, Ticket user_ticket, UserEnv env, UserProvider provider);
 
-  UserAuthInfo(UserId default_id, UserIds ids, UserScopes scopes, UserEnv env,
-               UserProvider provider);
-  UserAuthInfo(UserId default_id, UserIds ids, UserScopes scopes,
-               Ticket user_ticket, UserEnv env, UserProvider provider);
+    UserAuthInfo(UserId default_id, UserIds ids, UserScopes scopes, UserEnv env, UserProvider provider);
+    UserAuthInfo(
+        UserId default_id,
+        UserIds ids,
+        UserScopes scopes,
+        Ticket user_ticket,
+        UserEnv env,
+        UserProvider provider
+    );
 
-  UserId GetDefaultUserId() const;
-  const UserIds& GetUserIds() const;
-  const std::optional<UserScopes>& GetUserScopesOptional() const;
-  const std::optional<Ticket>& GetTicketOptional() const;
-  UserEnv GetUserEnv() const { return user_env_; }
-  UserProvider GetUserProvider() const { return user_provider_; }
+    UserId GetDefaultUserId() const noexcept;
+    const UserIds& GetUserIds() const;
+    const std::optional<UserScopes>& GetUserScopesOptional() const;
+    const std::optional<Ticket>& GetTicketOptional() const;
+    UserEnv GetUserEnv() const { return user_env_; }
+    UserProvider GetUserProvider() const { return user_provider_; }
 
- private:
-  friend class server::handlers::auth::AuthCheckerBase;
-  static void Set(server::request::RequestContext& request_context,
-                  UserAuthInfo&& info);
+private:
+    friend class server::handlers::auth::AuthCheckerBase;
+    static void Set(server::request::RequestContext& request_context, UserAuthInfo&& info);
 
-  UserId default_id_;
-  UserIds ids_;
-  std::optional<UserScopes> scopes_;
-  std::optional<Ticket> user_ticket_;
-  UserEnv user_env_;
-  UserProvider user_provider_;
+    UserId default_id_;
+    UserIds ids_;
+    std::optional<UserScopes> scopes_;
+    std::optional<Ticket> user_ticket_;
+    UserEnv user_env_;
+    UserProvider user_provider_;
 };
 
-const UserAuthInfo& GetUserAuthInfo(
-    const server::request::RequestContext& request_context);
+const UserAuthInfo& GetUserAuthInfo(const server::request::RequestContext& request_context);
+
+std::optional<UserAuthInfo> GetUserAuthInfoOpt(const server::request::RequestContext& request_context);
 
 }  // namespace server::auth
 

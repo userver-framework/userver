@@ -1,0 +1,30 @@
+definitions:
+    struct:
+        description: An object with C++ keywords as fields
+        type: object
+        required:
+          - int
+          - delete
+          - new
+          - co_await
+        properties:
+            int:
+                type: integer
+            delete:
+                type: integer
+            new:
+                type: integer
+            co_await:
+                type: integer
+            co_yield:
+                type: integer
+            class:
+                type: integer
+        additionalProperties: false
+
+    "Bad naming":
+        type: object
+        properties:
+            "some+ugly-name with%20trash":
+                type: integer
+        additionalProperties: false

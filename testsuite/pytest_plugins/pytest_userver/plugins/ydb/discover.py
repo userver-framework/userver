@@ -1,8 +1,7 @@
 import pathlib
-from typing import List
 
 
-def find_schemas(schema_dirs: List[pathlib.Path]) -> List[pathlib.Path]:
+def find_schemas(schema_dirs: list[pathlib.Path]) -> list[pathlib.Path]:
     result = []
     for path in schema_dirs:
         if not path.is_dir():
@@ -11,7 +10,7 @@ def find_schemas(schema_dirs: List[pathlib.Path]) -> List[pathlib.Path]:
     return result
 
 
-def _scan_path(schema_path: pathlib.Path) -> List[pathlib.Path]:
+def _scan_path(schema_path: pathlib.Path) -> list[pathlib.Path]:
     result = []
     for entry in schema_path.iterdir():
         if entry.suffix == '.yaml' and entry.is_file():

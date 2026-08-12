@@ -81,7 +81,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 **[boost-cmake build scripts](https://github.com/Orphis/boost-cmake)**
 Copyright (c) 2016, Florent Castelli All rights reserved.
 
-**[Goggle Test library](https://github.com/google/googletest)**
+**[Google Test library](https://github.com/google/googletest)**
 Copyright 2008, Google Inc.
 
 **[Highlight.js library](https://github.com/highlightjs/highlight.js/)**
@@ -113,35 +113,36 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
 
-## BSD License
+## BSD-3-Clause License (Decimal64)
 
-**[Decimal64  library](https://github.com/vpiotr/decimal_for_cpp)**
-Copyright (c) 2010-2015 Illumina, Inc.
-All rights reserved
+**[Decimal64 library](https://github.com/vpiotr/decimal_for_cpp)**
+Copyright (c) 2010-2014, Piotr Likus
+All rights reserved.
 
-**[GSSAPI build scripts](https://github.com/libgit2/libgit2/blob/main/cmake/FindGSSAPI.cmake)**
-Copyright (c) 2013 Andreas Schneider
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
 
-Redistribution and use in any form are permitted provided that the
-following restrictions are are met:
+* Redistributions of source code must retain the above copyright notice,
+  this list of conditions and the following disclaimer.
 
-1.  Source distributions must retain this entire copyright notice
-    and comment.
-2.  Binary distributions must include the acknowledgement ``This
-    product includes software developed by Rich Salz'' in the
-    documentation or other materials provided with the
-    distribution.  This must not be represented as an endorsement
-   or promotion without specific prior written permission.
-3.  The origin of this software must not be misrepresented, either
-    by explicit claim or by omission.  Credits must appear in the
-    source and documentation.
-4.  Altered versions must be plainly marked as such in the source
-    and documentation and must not be misrepresented as being the
-    original software.
+* Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation
+  and/or other materials provided with the distribution.
 
-THIS SOFTWARE IS PROVIDED ``AS IS'' AND WITHOUT ANY EXPRESS OR IMPLIED
-WARRANTIES, INCLUDING, WITHOUT LIMITATION, THE IMPLIED WARRANTIES OF
-MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE.
+* Neither the name of Piotr Likus nor the names of his
+  contributors may be used to endorse or promote products derived from this
+  software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 ## PostgreSQL License
 

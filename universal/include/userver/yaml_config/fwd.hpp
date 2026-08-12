@@ -8,6 +8,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
+/// @brief YAML-backed static configuration (`YamlConfig`) and schemas.
 namespace yaml_config {
 
 class YamlConfig;

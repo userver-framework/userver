@@ -9,13 +9,15 @@
 
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/clients/http/error.hpp>
-#include <userver/clients/http/plugin.hpp>
 #include <userver/clients/http/response.hpp>
 #include <userver/clients/http/response_future.hpp>
 #include <userver/concurrent/queue.hpp>
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
+#include <userver/http/http_version.hpp>
+#include <userver/utils/impl/internal_tag_fwd.hpp>
 #include <userver/utils/impl/source_location.hpp>
+#include <userver/utils/not_null.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,337 +25,430 @@ namespace tracing {
 class TracingManagerBase;
 }  // namespace tracing
 
-namespace server::http {
-class HeadersPropagator;
-}  // namespace server::http
+namespace utils::impl {
+class WaitTokenStorageLock;
+}  // namespace utils::impl
 
 /// HTTP client helpers
 namespace clients::http {
 
 class RequestState;
 class StreamedResponse;
+class WebSocketResponse;
 class ConnectTo;
 class Form;
 struct DeadlinePropagationConfig;
 class RequestStats;
 class DestinationStatistics;
 struct TestsuiteConfig;
+class MiddlewareBase;
 
 namespace impl {
 class EasyWrapper;
 }  // namespace impl
 
-/// HTTP request method
+/// @brief HTTP request method
 enum class HttpMethod { kGet, kPost, kHead, kPut, kDelete, kPatch, kOptions };
 
+/// @brief Convert HTTP method enum value to string
 std::string_view ToStringView(HttpMethod method);
 
-/// HTTP version to use
-enum class HttpVersion {
-  kDefault,  ///< unspecified version
-  k10,       ///< HTTP/1.0 only
-  k11,       ///< HTTP/1.1 only
-  k2,        ///< HTTP/2 with fallback to HTTP/1.1
-  k2Tls,     ///< HTTP/2 over TLS only, otherwise (no TLS or h2) HTTP/1.1
-  k2PriorKnowledge,  ///< HTTP/2 only (without Upgrade)
-};
+/// @brief Convert HTTP method string to enum value
+HttpMethod HttpMethodFromString(std::string_view method_str);
 
+using USERVER_NAMESPACE::http::HttpVersion;
+
+/// HTTP Authorization types
 enum class HttpAuthType {
-  kBasic,      ///< "basic"
-  kDigest,     ///< "digest"
-  kDigestIE,   ///< "digest_ie"
-  kNegotiate,  ///< "negotiate"
-  kNtlm,       ///< "ntlm"
-  kNtlmWb,     ///< "ntlm_wb"
-  kAny,        ///< "any"
-  kAnySafe,    ///< "any_safe"
+    kBasic,      ///< "basic"
+    kDigest,     ///< "digest"
+    kDigestIE,   ///< "digest_ie"
+    kNegotiate,  ///< "negotiate"
+    kNtlm,       ///< "ntlm"
+    kNtlmWb,     ///< "ntlm_wb"
+    kAny,        ///< "any"
+    kAnySafe,    ///< "any_safe"
 };
 
+/// HTTP Proxy Authorization types
 enum class ProxyAuthType {
-  kBasic,      ///< "basic"
-  kDigest,     ///< "digest"
-  kDigestIE,   ///< "digest_ie"
-  kBearer,     ///< "bearer"
-  kNegotiate,  ///< "negotiate"
-  kNtlm,       ///< "ntlm"
-  kNtlmWb,     ///< "ntlm_wb"
-  kAny,        ///< "any"
-  kAnySafe,    ///< "any_safe"
+    kBasic,      ///< "basic"
+    kDigest,     ///< "digest"
+    kDigestIE,   ///< "digest_ie"
+    kBearer,     ///< "bearer"
+    kNegotiate,  ///< "negotiate"
+    kNtlm,       ///< "ntlm"
+    kNtlmWb,     ///< "ntlm_wb"
+    kAny,        ///< "any"
+    kAnySafe,    ///< "any_safe"
 };
 
-ProxyAuthType ProxyAuthTypeFromString(const std::string& auth_name);
+ProxyAuthType ProxyAuthTypeFromString(std::string_view auth_name);
 
-/// Class for creating and performing new http requests
+/// @brief Class for creating and performing new http requests, usually retrieved from @ref clients::http::Client.
 class Request final {
- public:
-  /// Request cookies container type
-  using Cookies =
-      std::unordered_map<std::string, std::string, utils::StrCaseHash>;
+public:
+    /// Request cookies container type
+    using Cookies = std::unordered_map<std::string, std::string, utils::StrCaseHash>;
 
-  /// @cond
-  // For internal use only.
-  explicit Request(impl::EasyWrapper&&, RequestStats&& req_stats,
-                   const std::shared_ptr<DestinationStatistics>& dest_stats,
-                   clients::dns::Resolver* resolver,
-                   impl::PluginPipeline& plugin_pipeline,
-                   const tracing::TracingManagerBase& tracing_manager);
-  /// @endcond
+    /// @cond
+    // For internal use only.
+    explicit Request(
+        impl::EasyWrapper&&,
+        RequestStats&& req_stats,
+        DestinationStatistics& dest_stats,
+        clients::dns::Resolver* resolver,
+        const tracing::TracingManagerBase& tracing_manager
+    );
+    /// @endcond
 
-  /// Specifies method
-  Request& method(HttpMethod method) &;
-  Request method(HttpMethod method) &&;
-  /// GET request
-  Request& get() &;
-  Request get() &&;
-  /// GET request with url
-  Request& get(const std::string& url) &;
-  Request get(const std::string& url) &&;
-  /// HEAD request
-  Request& head() &;
-  Request head() &&;
-  /// HEAD request with url
-  Request& head(const std::string& url) &;
-  Request head(const std::string& url) &&;
-  /// POST request
-  Request& post() &;
-  Request post() &&;
-  /// POST request with url and data
-  Request& post(const std::string& url, std::string data = {}) &;
-  Request post(const std::string& url, std::string data = {}) &&;
-  /// POST request with url and multipart/form-data
-  Request& post(const std::string& url, Form&& form) &;
-  Request post(const std::string& url, Form&& form) &&;
-  /// PUT request
-  Request& put() &;
-  Request put() &&;
-  /// PUT request with url and data
-  Request& put(const std::string& url, std::string data = {}) &;
-  Request put(const std::string& url, std::string data = {}) &&;
+    /// Specifies method
+    Request& method(HttpMethod method) &;
+    /// @overload
+    Request method(HttpMethod method) &&;
 
-  /// PATCH request
-  Request& patch() &;
-  Request patch() &&;
-  /// PATCH request with url and data
-  Request& patch(const std::string& url, std::string data = {}) &;
-  Request patch(const std::string& url, std::string data = {}) &&;
+    /// GET request
+    Request& get() &;
+    /// @overload
+    Request get() &&;
+    /// @overload
+    Request& get(std::string url) &;
+    /// @overload
+    Request get(std::string url) &&;
 
-  /// DELETE request
-  Request& delete_method() &;
-  Request delete_method() &&;
-  /// DELETE request with url
-  Request& delete_method(const std::string& url) &;
-  Request delete_method(const std::string& url) &&;
-  /// DELETE request with url and data
-  Request& delete_method(const std::string& url, std::string data) &;
-  Request delete_method(const std::string& url, std::string data) &&;
+    /// HEAD request
+    Request& head() &;
+    /// @overload
+    Request head() &&;
+    /// @overload
+    Request& head(std::string url) &;
+    /// @overload
+    Request head(std::string url) &&;
 
-  /// Set custom request method. Only replaces name of the HTTP method
-  Request& set_custom_http_request_method(std::string method) &;
-  Request set_custom_http_request_method(std::string method) &&;
+    /// POST request
+    Request& post() &;
+    /// @overload
+    Request post() &&;
+    /// @overload
+    Request& post(std::string url, std::string data = {}) &;
+    /// @overload
+    Request post(std::string url, std::string data = {}) &&;
+    /// @overload
+    Request& post(std::string url, Form&& form) &;
+    /// @overload
+    Request post(std::string url, Form&& form) &&;
 
-  /// url if you don't specify request type with url
-  Request& url(const std::string& url) &;
-  Request url(const std::string& url) &&;
-  /// data for POST request
-  Request& data(std::string data) &;
-  Request data(std::string data) &&;
-  /// form for POST request
-  Request& form(Form&& form) &;
-  Request form(Form&& form) &&;
-  /// Headers for request as map
-  Request& headers(const Headers& headers) &;
-  Request headers(const Headers& headers) &&;
-  /// Headers for request as list
-  Request& headers(const std::initializer_list<
-                   std::pair<std::string_view, std::string_view>>& headers) &;
-  Request headers(const std::initializer_list<
-                  std::pair<std::string_view, std::string_view>>& headers) &&;
-  /// Sets http auth type to use.
-  Request& http_auth_type(HttpAuthType value, bool auth_only,
-                          std::string_view user, std::string_view password) &;
-  Request http_auth_type(HttpAuthType value, bool auth_only,
-                         std::string_view user, std::string_view password) &&;
-  /// Proxy headers for request as map
-  Request& proxy_headers(const Headers& headers) &;
-  Request proxy_headers(const Headers& headers) &&;
-  /// Proxy headers for request as list
-  Request& proxy_headers(
-      const std::initializer_list<
-          std::pair<std::string_view, std::string_view>>& headers) &;
-  Request proxy_headers(
-      const std::initializer_list<
-          std::pair<std::string_view, std::string_view>>& headers) &&;
-  /// Sets the User-Agent header
-  Request& user_agent(const std::string& value) &;
-  Request user_agent(const std::string& value) &&;
-  /// Sets proxy to use. Example: [::1]:1080
-  Request& proxy(const std::string& value) &;
-  Request proxy(const std::string& value) &&;
-  /// Sets proxy auth type to use.
-  Request& proxy_auth_type(ProxyAuthType value) &;
-  Request proxy_auth_type(ProxyAuthType value) &&;
-  /// Cookies for request as HashDos-safe map
-  Request& cookies(const Cookies& cookies) &;
-  Request cookies(const Cookies& cookies) &&;
-  /// Cookies for request as map
-  Request& cookies(
-      const std::unordered_map<std::string, std::string>& cookies) &;
-  Request cookies(
-      const std::unordered_map<std::string, std::string>& cookies) &&;
-  /// Follow redirects or not. Default: follow
-  Request& follow_redirects(bool follow = true) &;
-  Request follow_redirects(bool follow = true) &&;
-  /// Set timeout in ms for request
-  Request& timeout(long timeout_ms) &;
-  Request timeout(long timeout_ms) &&;
-  Request& timeout(std::chrono::milliseconds timeout_ms) & {
-    return timeout(timeout_ms.count());
-  }
-  Request timeout(std::chrono::milliseconds timeout_ms) && {
-    return std::move(this->timeout(timeout_ms.count()));
-  }
-  /// Verify host and peer or not. Default: verify
-  Request& verify(bool verify = true) &;
-  Request verify(bool verify = true) &&;
-  /// Set file holding one or more certificates to verify the peer with
-  Request& ca_info(const std::string& file_path) &;
-  Request ca_info(const std::string& file_path) &&;
-  /// Set CA
-  Request& ca(crypto::Certificate cert) &;
-  Request ca(crypto::Certificate cert) &&;
-  /// Set CRL-file
-  Request& crl_file(const std::string& file_path) &;
-  Request crl_file(const std::string& file_path) &&;
-  /// Set private client key and certificate for request.
-  ///
-  /// @warning Do not use this function on MacOS as it may cause Segmentation
-  /// Fault on that platform.
-  Request& client_key_cert(crypto::PrivateKey pkey, crypto::Certificate cert) &;
-  Request client_key_cert(crypto::PrivateKey pkey, crypto::Certificate cert) &&;
-  /// Set HTTP version
-  Request& http_version(HttpVersion version) &;
-  Request http_version(HttpVersion version) &&;
+    /// PUT request
+    Request& put() &;
+    /// @overload
+    Request put() &&;
+    /// @overload
+    Request& put(std::string url, std::string data = {}) &;
+    /// @overload
+    Request put(std::string url, std::string data = {}) &&;
 
-  /// Specify number of retries on incorrect status, if on_fails is True
-  /// retry on network error too. Retries = 3 means that maximum 3 request
-  /// will be performed.
-  ///
-  /// Retries use exponential backoff with jitter - an exponentially increasing
-  /// randomized delay is added before each retry of this request.
-  Request& retry(short retries = 3, bool on_fails = true) &;
-  Request retry(short retries = 3, bool on_fails = true) &&;
+    /// PATCH request
+    Request& patch() &;
+    /// @overload
+    Request patch() &&;
+    /// @overload
+    Request& patch(std::string url, std::string data = {}) &;
+    /// @overload
+    Request patch(std::string url, std::string data = {}) &&;
 
-  /// Set unix domain socket as connection endpoint and provide path to it
-  /// When enabled, request will connect to the Unix domain socket instead
-  /// of establishing a TCP connection to a host.
-  Request& unix_socket_path(const std::string& path) &;
-  Request unix_socket_path(const std::string& path) &&;
+    /// DELETE request
+    Request& delete_method() &;
+    /// @overload
+    Request delete_method() &&;
+    /// @overload
+    Request& delete_method(std::string url) &;
+    /// @overload
+    Request delete_method(std::string url) &&;
+    /// @overload
+    Request& delete_method(std::string url, std::string data) &;
+    /// @overload
+    Request delete_method(std::string url, std::string data) &&;
 
-  /// Set CURL_IPRESOLVE_V4 for ipv4 resolving
-  Request& use_ipv4() &;
-  Request use_ipv4() &&;
-  /// Set CURL_IPRESOLVE_V6 for ipv6 resolving
-  Request& use_ipv6() &;
-  Request use_ipv6() &&;
+    /// Set custom request method. Only replaces name of the HTTP method
+    Request& set_custom_http_request_method(std::string method) &;
+    /// @overload
+    Request set_custom_http_request_method(std::string method) &&;
 
-  /// Set CURLOPT_CONNECT_TO option
-  /// @warning connect_to argument must outlive Request
-  Request& connect_to(const ConnectTo& connect_to) &;
-  Request connect_to(const ConnectTo& connect_to) &&;
+    /// url if you don't specify request type with url
+    Request& url(std::string url) &;
+    /// @overload
+    Request url(std::string url) &&;
 
-  template <typename T>
-  std::enable_if_t<std::is_same_v<ConnectTo, T>, Request&> connect_to(T&&) {
-    static_assert(
-        !sizeof(T),
-        "ConnectTo argument must not be temporary, it must outlive Request");
-    return *this;
-  }
+    /// Set data for POST request
+    Request& data(std::string data) &;
+    /// @overload
+    Request data(std::string data) &&;
 
-  /// Override log URL. Usefull for "there's a secret in the query".
-  /// @warning The query might be logged by other intermediate HTTP agents
-  ///          (nginx, L7 balancer, etc.).
-  Request& SetLoggedUrl(std::string url) &;
-  Request SetLoggedUrl(std::string url) &&;
+    /// Set 'form' for POST request
+    Request& form(Form&& form) &;
+    /// @overload
+    Request form(Form&& form) &&;
 
-  /// Set destination name in metric "httpclient.destinations.<name>".
-  /// If not set, defaults to HTTP path.  Should be called for all requests
-  /// with parameters in HTTP path.
-  Request& SetDestinationMetricName(const std::string& destination) &;
-  Request SetDestinationMetricName(const std::string& destination) &&;
+    /// Set headers for request
+    Request& headers(const Headers& headers) &;
+    /// @overload
+    Request headers(const Headers& headers) &&;
+    /// @overload
+    Request& headers(const std::initializer_list<std::pair<utils::zstring_view, utils::zstring_view>>& headers) &;
+    /// @overload
+    Request headers(const std::initializer_list<std::pair<utils::zstring_view, utils::zstring_view>>& headers) &&;
 
-  /// @cond
-  // Set testsuite related settings. For internal use only.
-  void SetTestsuiteConfig(
-      const std::shared_ptr<const TestsuiteConfig>& config) &;
+    /// Sets http auth type to use.
+    Request& http_auth_type(
+        HttpAuthType value,
+        bool auth_only,
+        utils::zstring_view user,
+        utils::zstring_view password
+    ) &;
+    /// @overload
+    Request http_auth_type(
+        HttpAuthType value,
+        bool auth_only,
+        utils::zstring_view user,
+        utils::zstring_view password
+    ) &&;
 
-  void SetAllowedUrlsExtra(const std::vector<std::string>& urls) &;
+    /// Set proxy headers for request
+    Request& proxy_headers(const Headers& headers) &;
+    /// @overload
+    Request proxy_headers(const Headers& headers) &&;
+    /// @overload
+    Request& proxy_headers(const std::initializer_list<std::pair<utils::zstring_view, utils::zstring_view>>& headers) &;
+    /// @overload
+    Request proxy_headers(const std::initializer_list<std::pair<utils::zstring_view, utils::zstring_view>>& headers) &&;
 
-  // Set deadline propagation settings. For internal use only.
-  void SetDeadlinePropagationConfig(
-      const DeadlinePropagationConfig& deadline_propagation_config) &;
+    /// Sets the User-Agent header
+    Request& user_agent(utils::zstring_view value) &;
+    /// @overload
+    Request user_agent(utils::zstring_view value) &&;
 
-  void SetHeadersPropagator(const server::http::HeadersPropagator*) &;
-  /// @endcond
+    /// Sets proxy to use.
+    ///
+    /// Example: [::1]:1080
+    /// Empty string disables proxy.
+    Request& proxy(utils::zstring_view value) &;
+    /// @overload
+    Request proxy(utils::zstring_view value) &&;
 
-  /// Disable auto-decoding of received replies.
-  /// Useful to proxy replies 'as is'.
-  Request& DisableReplyDecoding() &;
-  Request DisableReplyDecoding() &&;
+    /// Sets proxy auth type to use.
+    Request& proxy_auth_type(ProxyAuthType value) &;
+    /// @overload
+    Request proxy_auth_type(ProxyAuthType value) &&;
 
-  void SetCancellationPolicy(CancellationPolicy cp);
+    /// Cookies for request as HashDos-safe map
+    Request& cookies(const Cookies& cookies) &;
+    /// Cookies for request as HashDos-safe map
+    Request cookies(const Cookies& cookies) &&;
 
-  /// Override the default tracing manager from HTTP client for this
-  /// particular request.
-  Request& SetTracingManager(const tracing::TracingManagerBase&) &;
-  Request SetTracingManager(const tracing::TracingManagerBase&) &&;
+    /// Cookies for request as map
+    Request& cookies(const std::unordered_map<std::string, std::string>& cookies) &;
+    /// Cookies for request as map
+    Request cookies(const std::unordered_map<std::string, std::string>& cookies) &&;
 
-  /// Perform request asynchronously.
-  ///
-  /// Works well with engine::WaitAny, engine::WaitAnyFor, and
-  /// engine::WaitUntil functions:
-  /// @snippet src/clients/http/client_wait_test.cpp HTTP Client - waitany
-  ///
-  /// Request object could be reused after retrieval of data from
-  /// ResponseFuture, all the setup holds:
-  /// @snippet src/clients/http/client_test.cpp  HTTP Client - reuse async
-  [[nodiscard]] ResponseFuture async_perform(
-      utils::impl::SourceLocation location =
-          utils::impl::SourceLocation::Current());
+    /// Follow redirects or not. Default: follow
+    Request& follow_redirects(bool follow = true) &;
+    /// @overload
+    Request follow_redirects(bool follow = true) &&;
 
-  /// @brief Perform a request with streamed response body.
-  ///
-  /// The HTTP client uses queue producer.
-  /// StreamedResponse uses queue consumer.
-  /// @see src/clients/http/partial_pesponse.hpp
-  [[nodiscard]] StreamedResponse async_perform_stream_body(
-      const std::shared_ptr<concurrent::StringStreamQueue>& queue,
-      utils::impl::SourceLocation location =
-          utils::impl::SourceLocation::Current());
+    /// The maximum time in milliseconds for the entire transfer operation (from name lookup and connection
+    /// construction to the end of data acquisition).
+    Request& timeout(long timeout_ms) &;
+    /// @overload
+    Request timeout(long timeout_ms) &&;
+    /// @overload
+    Request& timeout(std::chrono::milliseconds timeout_ms) & { return timeout(timeout_ms.count()); }
+    /// @overload
+    Request timeout(std::chrono::milliseconds timeout_ms) && { return std::move(this->timeout(timeout_ms.count())); }
 
-  /// Calls async_perform and wait for timeout_ms on a future. Default time
-  /// for waiting will be timeout value if it was set. If error occurred it
-  /// will be thrown as exception.
-  ///
-  /// Request object could be reused after return from perform(), all the
-  /// setup holds:
-  /// @snippet src/clients/http/client_test.cpp  HTTP Client - request reuse
-  [[nodiscard]] std::shared_ptr<Response> perform(
-      utils::impl::SourceLocation location =
-          utils::impl::SourceLocation::Current());
+    /// Verify host and peer or not. Default: verify
+    Request& verify(bool verify = true) &;
+    /// @overload
+    Request verify(bool verify = true) &&;
 
-  /// Returns a reference to the original URL of a request
-  const std::string& GetUrl() const&;
-  const std::string& GetUrl() && = delete;
+    /// Set file holding one or more certificates to verify the peer with
+    Request& ca_info(utils::zstring_view file_path) &;
+    /// @overload
+    Request ca_info(utils::zstring_view file_path) &&;
 
-  /// Returns a reference to the HTTP body of a request to send
-  const std::string& GetData() const&;
-  const std::string& GetData() && = delete;
+    /// Set CA
+    Request& ca(crypto::Certificate cert) &;
+    /// @overload
+    Request ca(crypto::Certificate cert) &&;
 
-  /// Returns HTTP body of a request, leaving it empty
-  std::string ExtractData();
+    /// Set CRL-file
+    Request& crl_file(utils::zstring_view file_path) &;
+    /// @overload
+    Request crl_file(utils::zstring_view file_path) &&;
 
- private:
-  std::shared_ptr<RequestState> pimpl_;
+    /// Set private client key and certificate for request.
+    ///
+    /// @warning Do not use this function on MacOS as it may cause Segmentation Fault on that platform.
+    Request& client_key_cert(crypto::PrivateKey pkey, crypto::Certificate cert) &;
+    /// @overload
+    Request client_key_cert(crypto::PrivateKey pkey, crypto::Certificate cert) &&;
+
+    /// Set HTTP version
+    Request& http_version(HttpVersion version) &;
+    /// @overload
+    Request http_version(HttpVersion version) &&;
+
+    /// Specify number of retries on incorrect status, if on_fails is True
+    /// retry on network error too. Retries = 3 means that maximum 3 request will be performed.
+    ///
+    /// Retries use exponential backoff with jitter - an exponentially increasing
+    /// randomized delay is added before each retry of this request.
+    Request& retry(short retries = 3, bool on_fails = true) &;
+    Request retry(short retries = 3, bool on_fails = true) &&;
+
+    /// Set unix domain socket as connection endpoint and provide path to it
+    /// When enabled, request will connect to the Unix domain socket instead
+    /// of establishing a TCP connection to a host.
+    Request& unix_socket_path(utils::zstring_view path) &;
+    Request unix_socket_path(utils::zstring_view path) &&;
+
+    /// Set CURL_IPRESOLVE_V4 for ipv4 resolving
+    Request& use_ipv4() &;
+    /// @overload
+    Request use_ipv4() &&;
+
+    /// Set CURL_IPRESOLVE_V6 for ipv6 resolving
+    Request& use_ipv6() &;
+    /// @overload
+    Request use_ipv6() &&;
+
+    /// Set CURLOPT_CONNECT_TO option
+    /// @warning connect_to argument must outlive Request
+    Request& connect_to(const ConnectTo& connect_to) &;
+    /// @overload
+    Request connect_to(const ConnectTo& connect_to) &&;
+
+    /// @overload
+    template <typename T>
+    requires std::is_same_v<ConnectTo, T>
+    Request& connect_to(T&&) {
+        static_assert(!sizeof(T), "ConnectTo argument must not be temporary, it must outlive Request");
+        return *this;
+    }
+
+    /// Override list of middlewares from @ref components::HttpClient for specific request
+    Request& SetMiddlewaresList(const std::vector<utils::NotNull<MiddlewareBase*>>& middlewares) &;
+
+    /// Set flag to ignore tls receive error for responses
+    /// with `Connection: close` header.
+    ///
+    /// The behaviour of handling TLS errors has been changed
+    /// in libcurl>=8.15.0 and reproducible for connections
+    /// with incomplete TLS close procedure.
+    ///
+    /// @see https://github.com/curl/curl/pull/17531/changes
+    Request& SetIncompleteTlsConnectionCloseExpected(bool expect) &;
+    /// @overload
+    Request SetIncompleteTlsConnectionCloseExpected(bool expect) &&;
+
+    /// Override log URL. Useful for "there's a secret in the query".
+    /// @warning The query might be logged by other intermediate HTTP agents (nginx, L7 balancer, etc.).
+    Request& SetLoggedUrl(std::string url) &;
+    /// @overload
+    Request SetLoggedUrl(std::string url) &&;
+
+    /// Set URL template (low-cardinality) for tracing, i.e. `/v1/user/{user_id}`
+    /// @see https://opentelemetry.io/docs/specs/semconv/registry/attributes/url/
+    Request& SetUrlTemplate(std::string url_template) &;
+    /// @overload
+    Request SetUrlTemplate(std::string url_template) &&;
+
+    /// Set destination name in metric "httpclient.destinations.<name>".
+    /// If not set, defaults to HTTP path.  Should be called for all requests
+    /// with parameters in HTTP path.
+    Request& SetDestinationMetricName(const std::string& destination) &;
+    /// @overload
+    Request SetDestinationMetricName(const std::string& destination) &&;
+
+    /// @cond
+    // Set testsuite related settings. For internal use only.
+    void SetTestsuiteConfig(const std::shared_ptr<const TestsuiteConfig>& config) &;
+
+    void SetAllowedUrlsExtra(const std::vector<std::string>& urls) &;
+
+    // Set deadline propagation settings. For internal use only.
+    void SetDeadlinePropagationConfig(const DeadlinePropagationConfig& deadline_propagation_config) &;
+
+    void SetWaitToken(utils::impl::InternalTag, utils::impl::WaitTokenStorageLock&&);
+    /// @endcond
+
+    /// Disable auto-decoding of received replies. Useful to proxy replies 'as is'.
+    Request& DisableReplyDecoding() &;
+    /// @overload
+    Request DisableReplyDecoding() &&;
+
+    void SetCancellationPolicy(CancellationPolicy cp);
+
+    /// Override the default tracing manager from HTTP client for this particular request.
+    Request& SetTracingManager(const tracing::TracingManagerBase&) &;
+    /// @overload
+    Request SetTracingManager(const tracing::TracingManagerBase&) &&;
+
+    /// Perform request asynchronously.
+    ///
+    /// Works well with @ref engine::WaitAny(), @ref engine::WaitAnyFor(), and @ref engine::WaitUntil() functions:
+    /// @snippet src/clients/http/client_wait_test.cpp HTTP Client - waitany
+    ///
+    /// Refrain from reusing the Request object.
+    /// Though it might be possible to reuse it after extracting data from ResponseFuture, a subsequent async_perform
+    /// or perform call could be delayed until the previous request fully completes. This delay can occur if the
+    /// previous request either timed out or was canceled.
+    /// Future versions might entirely forbid Request objects reuse.
+    [[nodiscard]] ResponseFuture async_perform(
+        utils::impl::SourceLocation location = utils::impl::SourceLocation::Current()
+    );
+
+    /// @brief Perform a request with streamed response body.
+    ///
+    /// The HTTP client uses queue producer. StreamedResponse uses queue consumer.
+    [[nodiscard]] StreamedResponse async_perform_stream_body(
+        const std::shared_ptr<concurrent::StringStreamQueue>& queue,
+        utils::impl::SourceLocation location = utils::impl::SourceLocation::Current()
+    );
+
+    /// Calls async_perform and wait for timeout_ms on a future. Default time  for waiting will be timeout value if it
+    /// was set. If error occurred it will be thrown as exception.
+    ///
+    /// Refrain from reusing the Request object.
+    /// Though it might be possible to reuse it after extracting data from ResponseFuture, a subsequent async_perform
+    /// or perform call could be delayed until the previous request fully completes. This delay can occur if the
+    /// previous request either timed out or was canceled.
+    /// Future versions might entirely forbid Request objects reuse.
+    [[nodiscard]] std::shared_ptr<Response> perform(
+        utils::impl::SourceLocation location = utils::impl::SourceLocation::Current()
+    );
+
+    /// @brief Starts the Websocket handshake.
+    ///
+    /// @snippet samples/websocket_client/main.cpp WebSocket client sample - handler
+    [[nodiscard]] WebSocketResponse PerformWebSocketHandshake(
+        utils::impl::SourceLocation location = utils::impl::SourceLocation::Current()
+    );
+
+    /// Returns a reference to the original URL of a request
+    const std::string& GetUrl() const&;
+    /// @overload
+    const std::string& GetUrl() && = delete;
+
+    /// Returns a reference to the HTTP body of a request to send
+    const std::string& GetData() const&;
+    /// @overload
+    const std::string& GetData() && = delete;
+
+    /// Returns HTTP body of a request, leaving it empty
+    std::string ExtractData();
+
+private:
+    std::shared_ptr<RequestState> pimpl_;
 };
 
 }  // namespace clients::http

@@ -7,6 +7,7 @@ components_manager:
             task_processor: main-task-processor
 
         http-client:
+        http-client-core:
             fs-task-processor: fs-task-processor
 
         dns-client:
@@ -26,29 +27,22 @@ components_manager:
         logging:
             fs-task-processor: fs-task-processor
             loggers:
-                opentracing:    # Required for writing opentracing data into a separate file
-                    file_path: /var/log/file/overwritten/by-testsuit
-                    level: info
-                    flush_level: info
-                    overflow_behavior: block
                 default:
                     file_path: '@stderr'
                     level: debug
                     overflow_behavior: discard
 
-        tracer:
-            service-name: http-tracing-test
-
         tracing-manager-locator:
             incoming-format: ['taxi', 'yandex', 'b3-alternative', 'opentelemetry']
             new-requests-format: ['taxi', 'yandex', 'b3-alternative', 'opentelemetry']
+            otel-trace-sampling-enabled: true
 
-    task_processors:                  # Task processor is an executor for coroutine tasks
+    task_processors:  # Task processor is an executor for coroutine tasks
 
-        main-task-processor:          # Make a task processor for CPU-bound coroutine tasks.
-            worker_threads: 4         # Process tasks in 4 threads.
+        main-task-processor:  # Make a task processor for CPU-bound coroutine tasks.
+            worker_threads: 4  # Process tasks in 4 threads.
 
-        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+        fs-task-processor:  # Make a separate task processor for filesystem bound tasks.
             worker_threads: 4
 
     default_task_processor: main-task-processor

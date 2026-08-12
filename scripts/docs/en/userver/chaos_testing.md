@@ -9,10 +9,10 @@ behavior could be controlled from
 @ref scripts/docs/en/userver/functional_testing.md "functional tests". In other
 words, it is a tool to do chaos testing.
 
-To implement the tests, the pytest_userver.chaos.TcpGate and pytest_userver.chaos.UdpGate 
-are placed between client and server. After that, the proxy could be used to 
+To implement the tests, the pytest_userver.chaos.TcpGate and pytest_userver.chaos.UdpGate
+are placed between client and server. After that, the proxy could be used to
 test the client and the server fault tolerance. The following network conditions
-could be simulated: 
+could be simulated:
 
 | Network condition                                   | Possible reasons for the behavior in production                 |
 |-----------------------------------------------------|-----------------------------------------------------------------|
@@ -60,8 +60,8 @@ server.
 
 ## chaos.UdpGate
 
-Use @ref pytest_userver.chaos.UdpGate "chaos.UdpGate" when you work with  
-UDP protocol (for example DNS). UdpGate supports data providing between 
+Use @ref pytest_userver.chaos.UdpGate "chaos.UdpGate" when you work with
+UDP protocol (for example DNS). UdpGate supports data providing between
 only one client and one server. If you wish to connect more than one Client
 to Server, please use different instance of UdpGate for every client.
 
@@ -115,7 +115,7 @@ sure that the service restores:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/functional_testing.md | @ref scripts/docs/en/userver/profile_context_switches.md ⇨
+⇦ @ref scripts/docs/en/userver/metrics_migration.md | @ref scripts/docs/en/userver/profile_context_switches.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example postgresql/functional_tests/basic_chaos/conftest.py

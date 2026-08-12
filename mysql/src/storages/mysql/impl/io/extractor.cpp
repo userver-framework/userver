@@ -6,13 +6,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl::io {
 
-ExtractorBase::ExtractorBase(std::size_t size) : binder_{size} {}
+ExtractorBase::ExtractorBase(std::size_t size)
+    : binder_{size}
+{}
 
 ExtractorBase::~ExtractorBase() = default;
 
-void ExtractorBase::UpdateBinds(void* binds_array) {
-  binder_.GetBinds().WrapBinds(binds_array);
-}
+void ExtractorBase::UpdateBinds(void* binds_array) { binder_.GetBinds().WrapBinds(binds_array); }
 
 }  // namespace storages::mysql::impl::io
 

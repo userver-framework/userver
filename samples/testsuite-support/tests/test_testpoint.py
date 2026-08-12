@@ -1,27 +1,31 @@
 import pytest
 import pytest_userver.plugins.testpoint
 
+import testsuite.plugins.testpoint
+
 
 # /// [Testpoint - fixture]
-async def test_basic(service_client, testpoint):
+async def test_basic(service_client, testpoint: testsuite.plugins.testpoint.TestpointFixture):
     @testpoint('simple-testpoint')
-    def simple_testpoint(data):
+    def simple_testpoint(data: dict):
         assert data == {'payload': 'Hello, world!'}
 
     response = await service_client.get('/testpoint')
     assert response.status == 200
+    assert 'application/json' in response.headers['Content-Type']
     assert simple_testpoint.times_called == 1
     # /// [Testpoint - fixture]
 
 
 # /// [Sample TESTPOINT_CALLBACK usage python]
-async def test_injection(service_client, testpoint):
+async def test_injection(service_client, testpoint: testsuite.plugins.testpoint.TestpointFixture):
     @testpoint('injection-point')
-    def injection_point(data):
+    def injection_point(data: dict):
         return {'value': 'injected'}
 
     response = await service_client.get('/testpoint')
     assert response.status == 200
+    assert 'application/json' in response.headers['Content-Type']
     assert response.json() == {'value': 'injected'}
 
     # testpoint supports callqueue interface
@@ -34,12 +38,12 @@ async def test_disabled_testpoint(service_client, testpoint):
     assert response.status == 200
 
     @testpoint('injection-point')
-    def injection_point(data):
+    def injection_point(data: dict):
         return {'value': 'injected'}
 
     # /// [Unregistered testpoint usage]
     with pytest.raises(
-            pytest_userver.plugins.testpoint.UnregisteredTestpointError,
+        pytest_userver.plugins.testpoint.UnregisteredTestpointError,
     ):
         assert injection_point.times_called == 0
     # /// [Unregistered testpoint usage]

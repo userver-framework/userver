@@ -1,0 +1,113 @@
+#!/usr/bin/make -f
+
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all optimize=-lto
+
+BUILD_DIR_RELEASE = $(CURDIR)/debian/obj-$(DEB_HOST_GNU_TYPE)-release
+BUILD_DIR_DEBUG = $(CURDIR)/debian/obj-$(DEB_HOST_GNU_TYPE)-debug
+
+CMAKE_OPTS = \
+	     -DUSERVER_INSTALL=ON \
+	     -DUSERVER_BUILD_SAMPLES=ON \
+	     -DUSERVER_BUILD_ALL_COMPONENTS=1 \
+	     -DUSERVER_DOWNLOAD_PACKAGE_YDBCPPSDK=OFF \
+	     -DUSERVER_FORCE_DOWNLOAD_ABSEIL=OFF \
+	     -DUSERVER_FEATURE_YDB=ON \
+	     -DUSERVER_FEATURE_UTEST=ON \
+
+# These features have no apt package for their C++ client libraries and are
+# not shipped as libuserver-*-dev packages in this PPA
+CMAKE_OPTS += \
+	     -DUSERVER_FEATURE_CLICKHOUSE=OFF \
+	     -DUSERVER_FEATURE_RABBITMQ=OFF \
+	     -DUSERVER_FEATURE_PATCH_LIBPQ=OFF \
+
+
+# Disable testsuite on userver package build,
+# but a user may still fetch testsuite via cmake
+CMAKE_OPTS += -DUSERVER_FEATURE_TESTSUITE=OFF
+
+# Launchpad builders are offline. The chaotic venv installs pydantic2 from vendored wheels
+# (debian/vendor-wheels, populated by gen-debian-directory); jinja2, pyyaml and
+# transliterate come from apt (USERVER_PIP_USE_SYSTEM_PACKAGES=ON, Build-Depends).
+# USERVER_PIP_USE_UV=OFF is mandatory: uv ignores --system-site-packages under --no-index
+# and declares jinja2/pyyaml/transliterate unsatisfiable. pip handles them correctly.
+CMAKE_OPTS += \
+	     -DUSERVER_PIP_USE_SYSTEM_PACKAGES=ON \
+	     -DUSERVER_PIP_USE_UV=OFF \
+	     "-DUSERVER_PIP_OPTIONS=--no-index;--find-links=$(CURDIR)/debian/vendor-wheels"
+
+# Launchpad builders are offline; disable all CPM/GitHub source downloads.
+# All third-party deps resolve via apt Build-Depends.
+# grpc proto sources (api-common-protos, opentelemetry-proto) have no apt package and
+# are vendored by gen-debian-directory into debian/vendor-protos/.
+CMAKE_OPTS += \
+	     -DUSERVER_DOWNLOAD_PACKAGES=OFF \
+	     -DUSERVER_GOOGLE_COMMON_PROTOS=$(CURDIR)/debian/vendor-protos/api-common-protos \
+	     -DUSERVER_OPENTELEMETRY_PROTO=$(CURDIR)/debian/vendor-protos/opentelemetry-proto
+
+DEBUG_SANITIZERS = ub addr
+
+
+%:
+	dh $@ --buildsystem=cmake+ninja
+
+override_dh_ctest_configure:
+	dh_ctest_configure --builddirectory=$(BUILD_DIR_RELEASE) -- \
+		-DCMAKE_BUILD_TYPE=Release \
+		$(CMAKE_OPTS)
+	
+	dh_ctest_configure --builddirectory=$(BUILD_DIR_DEBUG) -- \
+		-DCMAKE_BUILD_TYPE=Debug \
+		-DUSERVER_SANITIZE=$(DEBUG_SANITIZERS) \
+		$(CMAKE_OPTS)
+
+override_dh_ctest_build:
+	dh_ctest_build --builddirectory=$(BUILD_DIR_RELEASE)
+	dh_ctest_build --builddirectory=$(BUILD_DIR_DEBUG)
+
+override_dh_ctest_test:
+	dh_ctest_test --builddirectory=$(BUILD_DIR_RELEASE)
+	dh_ctest_test --builddirectory=$(BUILD_DIR_DEBUG)
+
+override_dh_cpack_generate:
+	cpack -G External \
+		--config $(BUILD_DIR_RELEASE)/CPackConfig.cmake \
+		-D CPACK_PACKAGE_FILE_NAME=cpack-metadata \
+		-D CPACK_EXT_REQUESTED_VERSIONS=1.0 \
+		-D CPACK_INSTALL_CMAKE_PROJECTS="$(BUILD_DIR_DEBUG);userver;ALL;/;$(BUILD_DIR_RELEASE);userver;ALL;/" \
+		-B debian/.cpack
+	# Guard: verify every declared .cpack-components file only references components
+	# that actually exist in cpack-metadata.json. A mismatch means a module was added to
+	# deps/$DISTRO/ but its cmake feature is OFF (or vice-versa). Fix by adding the module
+	# to DISABLED_MODULES in scripts/generate-debian-directory.sh and regenerating.
+	@python3 scripts/check-cpack-components/__main__.py debian/.cpack/cpack-metadata.json debian/
+
+
+override_dh_cpack_install:
+	dh_cpack_install --builddirectory=$(BUILD_DIR_RELEASE)
+	dh_cpack_install --builddirectory=$(BUILD_DIR_DEBUG)
+	# Ship pydantic2 (+ closure: pydantic_core, annotated_types, typing_extensions,
+	# typing_inspection) inside libuserver-chaotic-dev so that the installed chaotic-gen
+	# tool works out-of-the-box. Noble/jammy apt only ship pydantic 1.10; chaotic needs
+	# pydantic 2 (TypeAdapter, ConfigDict). The wheels are pre-downloaded by
+	# generate-debian-directory.sh into debian/vendor-wheels/.
+	#
+	# The chaotic-gen launcher sets PYTHONPATH=<libdir>/userver, so unpacking the wheels
+	# directly there makes all packages importable with no launcher changes.
+	#
+	# These files bypass debian/tmp, so dh_missing does not see them.
+	set -e; \
+	dest=debian/libuserver-chaotic-dev/usr/lib/$(DEB_HOST_MULTIARCH)/userver; \
+	mkdir -p $$dest; \
+	for whl in $(CURDIR)/debian/vendor-wheels/*.whl; do \
+		unzip -o -q $$whl -d $$dest; \
+	done; \
+	rm -rf $$dest/*.dist-info
+
+override_dh_auto_install:
+	dh_auto_install --builddirectory=$(BUILD_DIR_RELEASE)
+	dh_auto_install --builddirectory=$(BUILD_DIR_DEBUG)
+
+override_dh_auto_clean:
+	dh_auto_clean --builddirectory=$(BUILD_DIR_RELEASE)
+	dh_auto_clean --builddirectory=$(BUILD_DIR_DEBUG)

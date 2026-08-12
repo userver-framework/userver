@@ -4,20 +4,39 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
 
-void PutArg(USERVER_NAMESPACE::redis::CmdArgs::CmdArgsArray& args_,
-            std::optional<ScanOptionsBase::Match> arg) {
-  if (arg) {
-    args_.emplace_back("MATCH");
-    args_.emplace_back(std::move(arg)->Get());
-  }
+HgetexOptions HgetexOptions::Keep() { return HgetexOptions{TtlAction::kKeep, std::chrono::milliseconds{0}}; }
+
+HgetexOptions HgetexOptions::Persist() { return HgetexOptions{TtlAction::kPersist, std::chrono::milliseconds{0}}; }
+
+HgetexOptions HgetexOptions::Expire(std::chrono::milliseconds ttl) {
+    return HgetexOptions{TtlAction::kSetMilliseconds, ttl};
 }
 
-void PutArg(USERVER_NAMESPACE::redis::CmdArgs::CmdArgsArray& args_,
-            std::optional<ScanOptionsBase::Count> arg) {
-  if (arg) {
-    args_.emplace_back("COUNT");
-    args_.emplace_back(std::to_string(arg->Get()));
-  }
+HgetexOptions HgetexOptions::ExpireAt(std::chrono::system_clock::time_point deadline) {
+    return HgetexOptions{
+        TtlAction::kSetAtMilliseconds,
+        std::chrono::duration_cast<std::chrono::milliseconds>(deadline.time_since_epoch())
+    };
+}
+
+HsetexOptions HsetexOptions::NoTtl() {
+    return HsetexOptions{Exist::kSetAlways, TtlAction::kNone, std::chrono::milliseconds{0}};
+}
+
+HsetexOptions HsetexOptions::KeepTtl() {
+    return HsetexOptions{Exist::kSetAlways, TtlAction::kKeepTtl, std::chrono::milliseconds{0}};
+}
+
+HsetexOptions HsetexOptions::Expire(std::chrono::milliseconds ttl) {
+    return HsetexOptions{Exist::kSetAlways, TtlAction::kSetMilliseconds, ttl};
+}
+
+HsetexOptions HsetexOptions::ExpireAt(std::chrono::system_clock::time_point deadline) {
+    return HsetexOptions{
+        Exist::kSetAlways,
+        TtlAction::kSetAtMilliseconds,
+        std::chrono::duration_cast<std::chrono::milliseconds>(deadline.time_since_epoch())
+    };
 }
 
 }  // namespace storages::redis

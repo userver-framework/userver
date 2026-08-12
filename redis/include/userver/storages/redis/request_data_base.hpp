@@ -1,8 +1,12 @@
 #pragma once
 
+/// @file userver/storages/redis/request_data_base.hpp
+/// @brief Abstract bases for Redis request/scan pending results
+
 #include <string>
 
-#include <userver/engine/impl/context_accessor.hpp>
+#include <userver/compiler/impl/lifetime.hpp>
+#include <userver/engine/awaitable.hpp>
 #include <userver/storages/redis/reply_fwd.hpp>
 #include <userver/storages/redis/reply_types.hpp>
 #include <userver/storages/redis/scan_tag.hpp>
@@ -20,38 +24,39 @@ namespace storages::redis {
 
 template <typename ReplyType>
 class RequestDataBase {
- public:
-  virtual ~RequestDataBase() = default;
+public:
+    virtual ~RequestDataBase() = default;
 
-  virtual void Wait() = 0;
+    virtual void Wait() = 0;
 
-  virtual ReplyType Get(const std::string& request_description) = 0;
+    virtual ReplyType Get(const std::string& request_description) = 0;
 
-  virtual ReplyPtr GetRaw() = 0;
+    virtual ReplyPtr GetRaw() = 0;
 
-  virtual engine::impl::ContextAccessor* TryGetContextAccessor() noexcept = 0;
+    /// Satisfies @ref engine::Awaitable, for use with @ref engine::WaitAnyContext and friends.
+    virtual engine::AwaitableToken GetAwaitableToken() noexcept USERVER_IMPL_LIFETIME_BOUND = 0;
 };
 
-template <ScanTag scan_tag>
+template <ScanTag TScanTag>
 class RequestScanDataBase {
- public:
-  using ReplyElem = typename ScanReplyElem<scan_tag>::type;
+public:
+    using ReplyElem = typename ScanReplyElem<TScanTag>::type;
 
-  virtual ~RequestScanDataBase() = default;
+    virtual ~RequestScanDataBase() = default;
 
-  void SetRequestDescription(std::string request_description) {
-    request_description_ = std::move(request_description);
-  }
+    void SetRequestDescription(std::string request_description) {
+        request_description_ = std::move(request_description);
+    }
 
-  virtual ReplyElem Get() = 0;
+    virtual ReplyElem Get() = 0;
 
-  virtual ReplyElem& Current() = 0;
+    virtual ReplyElem& Current() = 0;
 
-  virtual bool Eof() = 0;
+    virtual bool Eof() = 0;
 
- protected:
-  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-  std::string request_description_;
+protected:
+    // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+    std::string request_description_;
 };
 
 }  // namespace storages::redis

@@ -1,0 +1,38 @@
+#pragma once
+
+/// @file userver/ugrpc/server/metadata_utils.hpp
+/// @brief Utilities to work with the request metadata
+
+#include <map>
+#include <ranges>
+#include <string_view>
+#include <utility>
+
+#include <grpcpp/support/string_ref.h>
+
+#include <userver/ugrpc/impl/to_string.hpp>
+#include <userver/ugrpc/server/call_context.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/text.hpp>
+
+USERVER_NAMESPACE_BEGIN
+
+namespace ugrpc::server {
+
+/// @brief Returns an std::input_range containing std::string_view
+/// which are non-owning references to the values of the metadata field.
+/// The references must not outlive the call object to avoid undefined behavior.
+inline auto GetRepeatedMetadata(const CallContextBase& context, std::string_view field_name) {
+    UASSERT(field_name == utils::text::ToLower(field_name));
+    const auto& metadata = context.GetServerContext().client_metadata();
+    auto [it_begin, it_end] = metadata.equal_range(ugrpc::impl::ToGrpcStringRef(field_name));
+
+    return std::ranges::subrange(it_begin, it_end) |
+           std::views::transform([](const std::pair<const grpc::string_ref, grpc::string_ref>& entry) {
+               return ugrpc::impl::ToStringView(entry.second);
+           });
+}
+
+}  // namespace ugrpc::server
+
+USERVER_NAMESPACE_END

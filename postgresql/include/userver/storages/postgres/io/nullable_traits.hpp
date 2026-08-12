@@ -12,17 +12,18 @@ namespace storages::postgres::io::traits {
 /// @brief Metafunction to detect nullability of a type.
 template <typename T>
 struct IsNullable : std::false_type {};
+
 template <typename T>
-inline constexpr bool kIsNullable = IsNullable<T>::value;
+concept kIsNullable = IsNullable<T>::value;  // NOLINT(readability-identifier-naming)
 
 template <typename T>
 struct GetSetNull {
-  inline static bool IsNull(const T&) { return false; }
-  inline static void SetNull(T&) {
-    // TODO Consider a static_assert here
-    throw TypeCannotBeNull(compiler::GetTypeName<T>());
-  }
-  inline static void SetDefault(T& value) { value = T{}; }
+    inline static bool IsNull(const T&) { return false; }
+    inline static void SetNull(T&) {
+        // TODO Consider a static_assert here
+        throw TypeCannotBeNull(compiler::GetTypeName<T>());
+    }
+    inline static void SetDefault(T& value) { value = T{}; }
 };
 
 }  // namespace storages::postgres::io::traits

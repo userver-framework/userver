@@ -12,139 +12,131 @@
 USERVER_NAMESPACE_BEGIN
 
 /// [RunStandalone sample]
-void semaphore_lock(benchmark::State& state) {
-  engine::RunStandalone([&]() {
-    std::size_t i = 0;
-    engine::Semaphore sem{std::numeric_limits<std::size_t>::max()};
+void SemaphoreLock(benchmark::State& state) {
+    engine::RunStandalone([&]() {
+        std::size_t i = 0;
+        engine::Semaphore sem{std::numeric_limits<std::size_t>::max()};
 
-    for ([[maybe_unused]] auto _ : state) {
-      sem.lock_shared();
-      ++i;
-    }
+        for ([[maybe_unused]] auto _ : state) {
+            sem.lock_shared();
+            ++i;
+        }
 
-    for (std::size_t j = 0; j < i; ++j) {
-      sem.unlock_shared();
-    }
-  });
+        for (std::size_t j = 0; j < i; ++j) {
+            sem.unlock_shared();
+        }
+    });
 }
-BENCHMARK(semaphore_lock);
+BENCHMARK(SemaphoreLock);
 /// [RunStandalone sample]
 
-void semaphore_unlock(benchmark::State& state) {
-  engine::RunStandalone([&]() {
-    unsigned i = 0;
-    engine::Semaphore sem{std::numeric_limits<std::size_t>::max()};
+void SemaphoreUnlock(benchmark::State& state) {
+    engine::RunStandalone([&]() {
+        unsigned i = 0;
+        engine::Semaphore sem{std::numeric_limits<std::size_t>::max()};
 
-    auto lock_multiple = [&i, &sem]() {
-      for (; i < 1024; ++i) {
-        sem.lock_shared();
-      }
-    };
-    lock_multiple();
-
-    for ([[maybe_unused]] auto _ : state) {
-      sem.unlock_shared();
-
-      if (--i == 0) {
-        state.PauseTiming();
+        auto lock_multiple = [&i, &sem]() {
+            for (; i < 1024; ++i) {
+                sem.lock_shared();
+            }
+        };
         lock_multiple();
-        state.ResumeTiming();
-      }
-    }
 
-    while (i) {
-      sem.unlock_shared();
-      --i;
-    }
-  });
-}
-BENCHMARK(semaphore_unlock);
+        for ([[maybe_unused]] auto _ : state) {
+            sem.unlock_shared();
 
-void semaphore_lock_unlock_contention(benchmark::State& state) {
-  engine::RunStandalone(state.range(0), [&] {
-    engine::Semaphore sem{1};
-
-    RunParallelBenchmark(state, [&](auto& range) {
-      for ([[maybe_unused]] auto _ : range) {
-        sem.lock_shared();
-        sem.unlock_shared();
-      }
-    });
-  });
-}
-BENCHMARK(semaphore_lock_unlock_contention)->RangeMultiplier(2)->Range(1, 32);
-
-void semaphore_lock_unlock_payload_contention(benchmark::State& state) {
-  engine::RunStandalone(state.range(0), [&] {
-    engine::Semaphore sem{1};
-
-    RunParallelBenchmark(state, [&](auto& range) {
-      for ([[maybe_unused]] auto _ : range) {
-        sem.lock_shared();
-        {
-          std::vector<int> tmp(32, 32);
-          benchmark::DoNotOptimize(tmp);
+            if (--i == 0) {
+                state.PauseTiming();
+                lock_multiple();
+                state.ResumeTiming();
+            }
         }
-        sem.unlock_shared();
-      }
-    });
-  });
-}
-BENCHMARK(semaphore_lock_unlock_payload_contention)
-    ->RangeMultiplier(2)
-    ->Range(1, 32);
 
-void semaphore_lock_unlock_coro_contention(benchmark::State& state) {
-  engine::RunStandalone(4, [&] {
-    engine::Semaphore sem{1};
-
-    RunParallelBenchmark(state, [&](auto& range) {
-      for ([[maybe_unused]] auto _ : range) {
-        sem.lock_shared();
-        sem.unlock_shared();
-      }
-    });
-  });
-}
-BENCHMARK(semaphore_lock_unlock_coro_contention)
-    ->RangeMultiplier(2)
-    ->Range(1, 1024);
-
-void semaphore_lock_unlock_payload_coro_contention(benchmark::State& state) {
-  engine::RunStandalone(4, [&] {
-    engine::Semaphore sem{1};
-
-    RunParallelBenchmark(state, [&](auto& range) {
-      for ([[maybe_unused]] auto _ : range) {
-        sem.lock_shared();
-        {
-          std::vector<int> tmp(32, 32);
-          benchmark::DoNotOptimize(tmp);
+        while (i) {
+            sem.unlock_shared();
+            --i;
         }
-        sem.unlock_shared();
-      }
     });
-  });
 }
-BENCHMARK(semaphore_lock_unlock_payload_coro_contention)
-    ->RangeMultiplier(2)
-    ->Range(1, 1024);
+BENCHMARK(SemaphoreUnlock);
 
-void semaphore_lock_unlock_st_coro_contention(benchmark::State& state) {
-  engine::RunStandalone([&]() {
-    engine::Semaphore sem{1};
+void SemaphoreLockUnlockContention(benchmark::State& state) {
+    engine::RunStandalone(state.range(0), [&] {
+        engine::Semaphore sem{1};
 
-    RunParallelBenchmark(state, [&](auto& range) {
-      for ([[maybe_unused]] auto _ : range) {
-        sem.lock_shared();
-        engine::Yield();
-        sem.unlock_shared();
-      }
+        RunParallelBenchmark(state, [&](auto& range) {
+            for ([[maybe_unused]] auto _ : range) {
+                sem.lock_shared();
+                sem.unlock_shared();
+            }
+        });
     });
-  });
 }
-BENCHMARK(semaphore_lock_unlock_st_coro_contention)
-    ->RangeMultiplier(2)
-    ->Range(1, 1024);
+BENCHMARK(SemaphoreLockUnlockContention)->RangeMultiplier(2)->Range(1, 32);
+
+void SemaphoreLockUnlockPayloadContention(benchmark::State& state) {
+    engine::RunStandalone(state.range(0), [&] {
+        engine::Semaphore sem{1};
+
+        RunParallelBenchmark(state, [&](auto& range) {
+            for ([[maybe_unused]] auto _ : range) {
+                sem.lock_shared();
+                {
+                    std::vector<int> tmp(32, 32);
+                    benchmark::DoNotOptimize(tmp);
+                }
+                sem.unlock_shared();
+            }
+        });
+    });
+}
+BENCHMARK(SemaphoreLockUnlockPayloadContention)->RangeMultiplier(2)->Range(1, 32);
+
+void SemaphoreLockUnlockCoroContention(benchmark::State& state) {
+    engine::RunStandalone(4, [&] {
+        engine::Semaphore sem{1};
+
+        RunParallelBenchmark(state, [&](auto& range) {
+            for ([[maybe_unused]] auto _ : range) {
+                sem.lock_shared();
+                sem.unlock_shared();
+            }
+        });
+    });
+}
+BENCHMARK(SemaphoreLockUnlockCoroContention)->RangeMultiplier(2)->Range(1, 1024);
+
+void SemaphoreLockUnlockPayloadCoroContention(benchmark::State& state) {
+    engine::RunStandalone(4, [&] {
+        engine::Semaphore sem{1};
+
+        RunParallelBenchmark(state, [&](auto& range) {
+            for ([[maybe_unused]] auto _ : range) {
+                sem.lock_shared();
+                {
+                    std::vector<int> tmp(32, 32);
+                    benchmark::DoNotOptimize(tmp);
+                }
+                sem.unlock_shared();
+            }
+        });
+    });
+}
+BENCHMARK(SemaphoreLockUnlockPayloadCoroContention)->RangeMultiplier(2)->Range(1, 1024);
+
+void SemaphoreLockUnlockStCoroContention(benchmark::State& state) {
+    engine::RunStandalone([&]() {
+        engine::Semaphore sem{1};
+
+        RunParallelBenchmark(state, [&](auto& range) {
+            for ([[maybe_unused]] auto _ : range) {
+                sem.lock_shared();
+                engine::Yield();
+                sem.unlock_shared();
+            }
+        });
+    });
+}
+BENCHMARK(SemaphoreLockUnlockStCoroContention)->RangeMultiplier(2)->Range(1, 1024);
 
 USERVER_NAMESPACE_END

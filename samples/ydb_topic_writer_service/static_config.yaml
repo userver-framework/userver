@@ -1,0 +1,86 @@
+# yaml
+components_manager:
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+
+        fs-task-processor:
+            worker_threads: 1
+
+    default_task_processor: main-task-processor
+
+    components:
+        server:
+            listener:
+                port: 8080
+                task_processor: main-task-processor
+
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        default-secdist-provider:
+            config: secure_data.json
+
+        dynamic-config:
+            updates-enabled: true
+            fs-task-processor: fs-task-processor
+        dynamic-config-client:
+            config-url: localhost:8080
+            http-retries: 5
+            http-timeout: 20s
+            service-name: ydb-topic-writer-service
+        dynamic-config-client-updater:
+            config-settings: false
+            first-update-fail-ok: true
+            full-update-interval: 1m
+            update-interval: 5s
+
+        http-client:
+        http-client-core:
+            fs-task-processor: fs-task-processor
+            user-agent: $server-name
+            user-agent#fallback: 'userver-based-service 1.0'
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+        testsuite-support:
+        tests-control:
+            path: /tests/{action}
+            method: POST
+            task_processor: main-task-processor
+            throttling_enabled: false
+
+        # /// [YDB topic writer service sample - static config ydb]
+        # yaml
+        ydb:
+            operation-settings:
+                client-timeout: 1100ms
+                retries: 3
+            databases:
+                sampledb:
+                    database: sampledb
+                    max_pool_size: 10
+                    min_pool_size: 5
+        # /// [YDB topic writer service sample - static config ydb]
+
+        # /// [YDB topic writer service sample - static config topic writer]
+        # yaml
+        ydb-topic-writer:
+            topics:
+                messages:
+                    topic: messages
+                    database: sampledb
+        # /// [YDB topic writer service sample - static config topic writer]
+
+        # /// [YDB topic writer service sample - static config handler]
+        # yaml
+        handler-write:
+            path: /write
+            method: POST
+            task_processor: main-task-processor
+            # /// [YDB topic writer service sample - static config handler]

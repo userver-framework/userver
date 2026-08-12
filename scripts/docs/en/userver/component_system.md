@@ -1,8 +1,14 @@
 ## Component system
- 
+
 A userver-based service usually consists of components. A component is a basic
 building block that encapsulates dependencies logic with configuration and
 is able to interact with other components.
+
+Each component is a singleton within a service instance, so they should only encapsulate global state,
+not per-request state. (Although *factories* for per-request objects may be appropriate.)
+Any mutable state probably needs @ref scripts/docs/en/userver/synchronization.md "synchronization".
+Built-in userver components perform synchronization internally when needed and are fully thread-safe
+unless specified otherwise.
 
 \b Example:
 
@@ -48,7 +54,7 @@ configuring its own client. With components the configuration and dependency
 management problem is decomposed into small and manageable pieces:
 
 ```cpp
-class ComponentA: components::LoggableComponentBase {
+class ComponentA: components::ComponentBase {
  public:
   ComponentA(const components::ComponentConfig& config,
              const components::ComponentContext& context)
@@ -66,68 +72,66 @@ class ComponentA: components::LoggableComponentBase {
 ```
 
 Only components should know about components. Clients and other types
-constructed by components should not use components::ComponentConfig,
-components::ComponentContext, or components directly. All the components
-should inherit from components::LoggableComponentBase base class and may
+constructed by components should not use @ref components::ComponentConfig,
+@ref components::ComponentContext, or components directly. All the components
+should inherit from @ref components::ComponentBase base class and may
 override its methods.
 
 All the components are listed at the @ref userver_components API Group.
 
 ## Startup context
-On component construction a components::ComponentContext is passed as a
+On component construction a @ref components::ComponentContext is passed as a
 second parameter to the constructor of the component. That context could
 be used to get references to other components. That reference to the
 component is guaranteed to outlive the component that is being constructed.
 
+## Service lifetime stages and component hooks
+Please see docs on @ref components::ServiceLifetimeStage.
+
 ## Components construction and destruction order
-utils::DaemonMain, components::Run or components::RunOnce
-start all the components from the passed components::ComponentList.
-Each component is constructed in a separate engine::Task on the default
+@ref utils::DaemonMain, @ref components::Run or @ref components::RunOnce
+start all the components from the passed @ref components::ComponentList.
+Each component is constructed in a separate @ref engine::Task on the default
 task processor and is initialized concurrently with other components.
 
 This is a useful feature, for example in cases
 with multiple caches that slowly read from different databases.
 
 To make component *A* depend on component *B* just call
-components::ComponentContext::FindComponent<B>() in the constructor of A.
+@ref components::ComponentContext::FindComponent<B>() in the constructor of A.
 FindComponent() suspends the current task and continues only after the
 construction of component B is finished. Components are destroyed
 in reverse order of construction, so the component A is destroyed before
 the component B. In other words - references from FindComponent() outlive
 the component that called the FindComponent() function. If any component
 loading fails, FindComponent() wakes up and throws an
-components::ComponentsLoadCancelledException.
+@ref components::ComponentsLoadCancelledException.
 
 @anchor clients_from_components_lifetime
 ## References from components and lifetime of clients
-It is a common practice to have a component that returns a reference *R* from
-some function *F*. In such cases:
+It is a common practice to have a component that returns a reference *R* from some function *F*. In such cases:
 * a reference *R* lives as long as the component is alive
-* a reference *R* is usually a client 
-* and it is safe to invoke member functions of reference *R* concurrently
-  unless otherwise specified.
+* a reference *R* is usually a client
+* and it is safe to invoke member functions of reference *R* concurrently unless otherwise specified.
 
 Examples:
 * components::HttpClient::GetHttpClient()
 * components::StatisticsStorage::GetStorage()
 
-
-
-
 ## Components static configuration
 components::ManagerControllerComponent configures the engine internals from
 information provided in its static config: preallocates coroutines, creates
-the engine::TaskProcessor, creates threads for low-level event processing.
+the @ref engine::TaskProcessor, creates threads for low-level event processing.
 After that it starts all the components that
 were added to the components::ComponentList. Each registered component
 should have a section in service config (also known as static config).
 
 The component configuration is passed as a first parameter of type
-components::ComponentConfig to the constructor of the component. Note that
-components::ComponentConfig extends the functionality of
-yaml_config::YamlConfig with YamlConfig::Mode::kEnvAllowed mode
-that is able to substitute variables with values, use environment variales and
-fallbacks. See yaml_config::YamlConfig for more info and examples.
+@ref components::ComponentConfig to the constructor of the component. Note that
+@ref components::ComponentConfig extends the functionality of
+@ref yaml_config::YamlConfig with @ref YamlConfig::Mode::kEnvAllowed mode
+that is able to substitute variables with values, use environment variables and
+fallbacks. See @ref yaml_config::YamlConfig for more info and examples.
 
 All the components have the following options:
 
@@ -138,15 +142,15 @@ All the components have the following options:
 @anchor static-configs-validation
 ### Static configs validation
 
-To validate static configs you only need to define member function of your component 
+To validate static configs you only need to define a member function in your component
 `GetStaticConfigSchema()`
 
 @snippet components/component_sample_test.cpp  Sample user component schema
 
-All schemas and sub-schemas must have `description` field and can have 
+All schemas and sub-schemas must have `description` field and can have
 `defaultDescription` field if they have a default value.
 
-Scope of static config validatoin can be specified by `validate_all_components` section of 
+Scope of static config validation can be specified by `validate_all_components` section of
 `components_manager` config. To disable it use:
 
 ```
@@ -163,7 +167,7 @@ You also can force static config validation of your component by adding `compone
 
 Supported types:
 * Scalars: `boolean`, `string`, `integer`, `double`
-* `object` must have options `additionalProperties` and `properties`
+* `object` must have options `additionalProperties` and `properties`, may have `required`
 * `array` must have option `items`
 
 @anchor select-config-file-mode
@@ -191,13 +195,12 @@ the component.
 You need a component if:
 * you need a static config
 * you need to work with other components
-* you are writing clients (you need a component to be the factory for your
-clients)
+* you are writing clients (you need a component to be the factory for your clients)
 * you want to subscribe for configs or cache changes
 
 ### HowTo
 Start writing your component from adding a header file with a class
-inherited from components::LoggableComponentBase.
+inherited from @ref components::ComponentBase.
 @snippet components/component_sample_test.hpp  Sample user component header
 
 In source file write the implementation of the component:
@@ -212,9 +215,9 @@ If you need dynamic configs, you can get them using this approach:
 @note See @ref scripts/docs/en/userver/tutorial/config_service.md for info on how to
 implement your own config server.
 
-Do not forget to register your component in components::ComponentList
-before invoking the utils::DaemonMain, components::Run or
-components::RunOnce.
+Do not forget to register your component in @ref components::ComponentList
+before invoking the @ref utils::DaemonMain, @ref components::Run or
+@ref components::RunOnce.
 
 Done! You've implemented your first component. Full sources:
 * @ref components/component_sample_test.hpp

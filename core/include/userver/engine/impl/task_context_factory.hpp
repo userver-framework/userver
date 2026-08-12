@@ -6,6 +6,9 @@
 #include <utility>
 
 #include <userver/engine/impl/task_context_holder.hpp>
+#include <userver/engine/impl/task_local_storage.hpp>
+#include <userver/engine/task/current_task.hpp>
+#include <userver/engine/task/inherited_variable_options.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/impl/wrapped_call.hpp>
@@ -20,15 +23,21 @@ std::size_t GetTaskContextSize() noexcept;
 inline constexpr std::size_t kTaskContextAlignment = 16;
 
 struct TaskConfig final {
-  engine::TaskProcessor& task_processor;
-  Task::Importance importance{Task::Importance::kNormal};
-  Task::WaitMode wait_mode{Task::WaitMode::kSingleWaiter};
-  engine::Deadline deadline;
+    // nullptr means "use current task processor"
+    engine::TaskProcessor* task_processor{nullptr};
+    Task::Importance importance{Task::Importance::kNormal};
+    Task::WaitMode wait_mode{Task::WaitMode::kSingleAwaiter};
+    engine::Deadline deadline{};
+    // The lower bound of priority of variables that the new task inherits from the creating task.
+    // The parent storage itself is captured synchronously on the creating thread.
+    TaskInheritedVariablePriority inherited_variables_priority{TaskInheritedVariablePriority::kNormal};
 };
 
 [[nodiscard]] TaskContext& PlacementNewTaskContext(
-    std::byte* storage, TaskConfig config,
-    utils::impl::WrappedCallBase& payload);
+    std::byte* storage,
+    TaskConfig config,
+    utils::impl::WrappedCallBase& payload
+);
 
 // Never returns nullptr, may throw.
 std::byte* AllocateFusedTaskContext(std::size_t total_size);
@@ -44,35 +53,42 @@ void DeleteFusedTaskContext(std::byte* storage) noexcept;
 // managed by boost::intrusive_ptr<TaskContext> through intrusive_ptr_add_ref
 // and intrusive_ptr_release hooks.
 template <typename Function, typename... Args>
-TaskContextHolder MakeTask(TaskConfig config, Function&& f, Args&&... args) {
-  using WrappedCallType = utils::impl::WrappedCallImplType<Function, Args...>;
+[[nodiscard]] TaskContextHolder MakeTask(TaskConfig&& config, Function&& f, Args&&... args) {
+    using WrappedCallType = utils::impl::WrappedCallImplType<Function, Args...>;
 
-  constexpr auto kPayloadSize = sizeof(WrappedCallType);
-  constexpr auto kPayloadAlignment = alignof(WrappedCallType);
-  // Makes sure that the WrappedCall is aligned appropriately just by being
-  // placed after TaskContext. To remove this limitation, we could store
-  // the dynamic alignment somewhere and use it in DeleteFusedTaskContext.
-  static_assert(kPayloadAlignment <= kTaskContextAlignment);
+    constexpr auto kPayloadSize = sizeof(WrappedCallType);
+    constexpr auto kPayloadAlignment = alignof(WrappedCallType);
+    // Makes sure that the WrappedCall is aligned appropriately just by being
+    // placed after TaskContext. To remove this limitation, we could store
+    // the dynamic alignment somewhere and use it in DeleteFusedTaskContext.
+    static_assert(kPayloadAlignment <= kTaskContextAlignment);
 
-  const auto task_context_size = GetTaskContextSize();
-  const auto total_size = task_context_size + kPayloadSize;
+    const auto task_context_size = GetTaskContextSize();
+    const auto total_size = task_context_size + kPayloadSize;
 
-  std::byte* const storage = AllocateFusedTaskContext(total_size);
-  utils::FastScopeGuard delete_guard{
-      [&]() noexcept { DeleteFusedTaskContext(storage); }};
+    std::byte* const storage = AllocateFusedTaskContext(total_size);
+    utils::FastScopeGuard delete_guard{[&]() noexcept { DeleteFusedTaskContext(storage); }};
 
-  std::byte* const payload_storage = storage + task_context_size;
+    std::byte* const payload_storage = storage + task_context_size;
 
-  auto& payload = utils::impl::PlacementNewWrapCall(
-      payload_storage, std::forward<Function>(f), std::forward<Args>(args)...);
-  utils::FastScopeGuard destroy_payload_guard{
-      [&]() noexcept { std::destroy_at(&payload); }};
+    auto& payload =
+        utils::impl::PlacementNewWrapCall(payload_storage, std::forward<Function>(f), std::forward<Args>(args)...);
+    utils::FastScopeGuard destroy_payload_guard{[&]() noexcept { std::destroy_at(&payload); }};
 
-  auto& context = PlacementNewTaskContext(storage, config, payload);
+    auto& context = PlacementNewTaskContext(storage, config, payload);
 
-  destroy_payload_guard.Release();
-  delete_guard.Release();
-  return TaskContextHolder::Adopt(context);
+    destroy_payload_guard.Release();
+    delete_guard.Release();
+    return TaskContextHolder::Adopt(context);
+}
+
+template <template <typename> typename TaskType, typename Function, typename... Args>
+[[nodiscard]] auto MakeTaskWithResult(TaskConfig&& config, Function&& f, Args&&... args) {
+    using ResultType = typename utils::impl::WrappedCallImplType<Function, Args...>::ResultType;
+    constexpr auto kWaitMode = TaskType<ResultType>::kWaitMode;
+    config.wait_mode = kWaitMode;
+
+    return TaskType<ResultType>{MakeTask(std::move(config), std::forward<Function>(f), std::forward<Args>(args)...)};
 }
 
 }  // namespace engine::impl

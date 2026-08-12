@@ -1,0 +1,69 @@
+definitions:
+    Object1:
+        type: object
+        additionalProperties: true
+        properties:
+            foo:
+                type: integer
+                minimum: 1
+                maximum: 100
+
+        x-taxi-extra-member: true
+    AllOf:
+        allOf:
+          - $ref: '#/definitions/Object1'
+          - type: object
+            additionalProperties: true
+            properties:
+                bar:
+                    type: integer
+            x-taxi-extra-member: true
+
+    OneOfA:
+        type: object
+        additionalProperties: false
+        required:
+          - type
+        properties:
+            type:
+                type: string
+
+    OneOfB:
+        type: object
+        additionalProperties: false
+        required:
+          - type
+        properties:
+            type:
+                type: string
+            integer:
+                type: integer
+                minimum: 1
+                maximum: 10
+
+    AllOfNoAdditional:
+        allOf:
+          - $ref: '#/definitions/OneOfB'
+          - $ref: '#/definitions/Object1'
+
+    OneOfDiscriminatorForAllOf:
+        oneOf:
+          - $ref: '#/definitions/OneOfA'
+          - $ref: '#/definitions/OneOfB'
+        discriminator:
+            propertyName: type
+            mapping:
+                'A': '#/definitions/OneOfA'
+                'B': '#/definitions/OneOfB'
+                # TODO:
+                # AllOfOneOf:
+                #     type: object
+                #     additionalProperties: false
+                #     required:
+                #       - value
+                #     properties:
+                #         value:
+                #             allOf:
+                #               - $ref: '#/definitions/Object1'
+                #               - $ref: '#/definitions/OneOfDiscriminatorForAllOf'
+

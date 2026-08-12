@@ -1,0 +1,47 @@
+#pragma once
+
+#include <string>
+
+#include <userver/chaotic/openapi/server/dependencies.hpp>
+#include <userver/server/http/http_request.hpp>
+#include <userver/server/request/request_context.hpp>
+{% if op.request_bodies | selectattr('content_type', 'equalto', 'application/json') | list %}
+#include <userver/formats/json/value.hpp>
+{% endif %}
+#include <handlers/{{ spec.service_name }}/{{ make_op_relpath(op) }}/requests.hpp>
+#include <handlers/{{ spec.service_name }}/{{ make_op_relpath(op) }}/responses.hpp>
+
+namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }} {
+
+struct HandlerTag;
+
+class View final {
+public:
+    using Deps = {{ userver }}::chaotic::openapi::server::dependencies::ForHandler<HandlerTag>;
+
+    static Response Handle(Request&& request, Deps&& deps);
+
+    /* Uncomment, if you want to define a custom logging for request/response body.
+     * E.g. you want to log several fields, but omit the others (secrets, etc.).
+     *
+{% if op.request_bodies | length == 1 %}
+{% if op.request_bodies[0].content_type == 'application/json' %}
+    static std::string GetRequestBodyForLogging(
+        const {{ userver }}::formats::json::Value& body);
+
+    // Logger for 'invalid JSON body' request
+    static std::string GetInvalidRequestBodyForLogging(
+        const {{ userver }}::server::http::HttpRequest& request);
+{% else %}
+    static std::string GetRequestBodyForLogging(const std::string& body);
+{% endif %}
+{% endif %}
+
+    static std::string GetResponseForLogging(
+        const Response& response,
+        const std::string& serialized_response,
+        {{ userver }}::server::request::RequestContext& context);
+    */
+};
+
+}  // namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }}

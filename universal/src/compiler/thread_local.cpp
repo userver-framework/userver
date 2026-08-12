@@ -11,23 +11,19 @@ namespace compiler::impl {
 namespace {
 
 std::size_t& CoroutineSwitchBansCount() noexcept {
-  return ThreadLocal([] { return std::size_t{0}; });
+    return ThreadLocal([] { return std::size_t{0}; });
 }
 
 }  // namespace
 
-bool AreCoroutineSwitchesAllowed() noexcept {
-  return CoroutineSwitchBansCount() == 0;
-}
+bool AreCoroutineSwitchesAllowed() noexcept { return CoroutineSwitchBansCount() == 0; }
 
-void IncrementLocalCoroutineSwitchBans() noexcept {
-  ++CoroutineSwitchBansCount();
-}
+void IncrementLocalCoroutineSwitchBans() noexcept { ++CoroutineSwitchBansCount(); }
 
 void DecrementLocalCoroutineSwitchBans() noexcept {
-  auto& block_count = CoroutineSwitchBansCount();
-  UASSERT(block_count != 0);
-  --block_count;
+    auto& block_count = CoroutineSwitchBansCount();
+    UASSERT(block_count != 0);
+    --block_count;
 }
 
 }  // namespace compiler::impl

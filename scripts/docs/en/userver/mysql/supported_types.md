@@ -76,3 +76,9 @@ You can see to what C++ types MySQL types can map in the following table:
  | storages::mysql::DateTime +optional             | `DATETIME`, with respect to NULL/NOT NULL                                                                                                                           |
  | formats::json::Value + optional                 | `JSON`, with respect to NULL/NOT NULL                                                                                                                               |
  | decimal64::Decimal<Prec, Policy> + optional     | `DECIMAL`, with respect to NULL/NOT NULL                                                                                                                            |
+
+----------
+
+@htmlonly <div class="bottom-nav"> @endhtmlonly
+⇦ @ref scripts/docs/en/userver/mysql/mysql_driver.md | @ref scripts/docs/en/userver/mysql/design_and_details.md ⇨
+@htmlonly </div> @endhtmlonly

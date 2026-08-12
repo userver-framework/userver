@@ -1,0 +1,33 @@
+openapi: 3.0.3
+info:
+    title: Test Middleware API
+    version: 1.0.0
+    description: API for testing middleware functionality
+
+servers:
+  - url: http://localhost:8080
+
+paths:
+    /test:
+        get:
+            operationId: test
+            summary: Test endpoint
+            responses:
+                200:
+                    description: Successful operation
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/TestResponse'
+
+components:
+    schemas:
+        TestResponse:
+            type: object
+            properties:
+                status:
+                    type: string
+                    example: "ok"
+            required:
+              - status
+            additionalProperties: false

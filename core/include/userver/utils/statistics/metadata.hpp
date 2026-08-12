@@ -24,36 +24,30 @@ void SolomonSkip(formats::json::ValueBuilder&& stats_node);
 /// @brief Replaces a node in Solomon sensor name.
 /// @deprecated Use utils::statistics::Writer instead.
 /// @warning Cannot be applied to leaf nodes.
-void SolomonRename(formats::json::ValueBuilder& stats_node,
-                   const std::string& new_name);
+void SolomonRename(formats::json::ValueBuilder& stats_node, const std::string& new_name);
 
 /// @brief Replaces a node in Solomon sensor name.
 /// @deprecated Use utils::statistics::Writer instead.
 /// @warning Cannot be applied to leaf nodes.
-void SolomonRename(formats::json::ValueBuilder&& stats_node,
-                   const std::string& new_name);
+void SolomonRename(formats::json::ValueBuilder&& stats_node, const std::string& new_name);
 
 /// Moves statistic node name to label value for Solomon sensor.
 /// @deprecated Use utils::statistics::Writer instead.
 /// @warning Cannot be applied to leaf nodes.
-void SolomonLabelValue(formats::json::ValueBuilder& stats_node,
-                       const std::string& label_name);
+void SolomonLabelValue(formats::json::ValueBuilder& stats_node, const std::string& label_name);
 
 /// Moves statistic node name to label value for Solomon sensor.
 /// @deprecated Use utils::statistics::Writer instead.
 /// @warning Cannot be applied to leaf nodes.
-void SolomonLabelValue(formats::json::ValueBuilder&& stats_node,
-                       const std::string& label_name);
+void SolomonLabelValue(formats::json::ValueBuilder&& stats_node, const std::string& label_name);
 
 /// Moves statistics node children names to label values for Solomon sensors.
 /// @deprecated Use utils::statistics::Writer instead.
-void SolomonChildrenAreLabelValues(formats::json::ValueBuilder& stats_node,
-                                   const std::string& label_name);
+void SolomonChildrenAreLabelValues(formats::json::ValueBuilder& stats_node, const std::string& label_name);
 
 /// Moves statistics node children names to label values for Solomon sensors.
 /// @deprecated Use utils::statistics::Writer instead.
-void SolomonChildrenAreLabelValues(formats::json::ValueBuilder&& stats_node,
-                                   const std::string& label_name);
+void SolomonChildrenAreLabelValues(formats::json::ValueBuilder&& stats_node, const std::string& label_name);
 
 }  // namespace utils::statistics
 

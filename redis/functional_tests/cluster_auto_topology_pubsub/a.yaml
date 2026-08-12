@@ -1,0 +1,7 @@
+# Disabling strong check mode for flapping Redis tests
+
+service: taxidutycommontools
+title: Userver framework Redis tests
+ci:
+    autocheck:
+        strong: false

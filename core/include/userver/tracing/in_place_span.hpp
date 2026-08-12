@@ -16,25 +16,38 @@ namespace tracing {
 /// @warning Never put InPlaceSpan on the stack! It has a large size and can
 /// cause stack overflow.
 class InPlaceSpan final {
- public:
-  explicit InPlaceSpan(std::string&& name,
-                       utils::impl::SourceLocation source_location =
-                           utils::impl::SourceLocation::Current());
+public:
+    struct DetachedTag {};
 
-  explicit InPlaceSpan(std::string&& name, std::string&& trace_id,
-                       std::string&& parent_span_id,
-                       utils::impl::SourceLocation source_location =
-                           utils::impl::SourceLocation::Current());
+    explicit InPlaceSpan(
+        std::string&& name,
+        const utils::impl::SourceLocation& source_location = utils::impl::SourceLocation::Current()
+    );
 
-  InPlaceSpan(InPlaceSpan&&) = delete;
-  InPlaceSpan& operator=(InPlaceSpan&&) = delete;
-  ~InPlaceSpan();
+    explicit InPlaceSpan(
+        std::string&& name,
+        std::string_view trace_id,
+        std::string_view parent_span_id,
+        const utils::impl::SourceLocation& source_location = utils::impl::SourceLocation::Current()
+    );
 
-  tracing::Span& Get() noexcept;
+    explicit InPlaceSpan(
+        std::string&& name,
+        DetachedTag,
+        const utils::impl::SourceLocation& source_location = utils::impl::SourceLocation::Current()
+    );
 
- private:
-  struct Impl;
-  utils::FastPimpl<Impl, 4224, 8> impl_;
+    InPlaceSpan(InPlaceSpan&&) = delete;
+    InPlaceSpan& operator=(InPlaceSpan&&) = delete;
+    ~InPlaceSpan();
+
+    const tracing::Span& Get() const noexcept;
+
+    tracing::Span& Get() noexcept;
+
+private:
+    struct Impl;
+    utils::FastPimpl<Impl, 4392, 8> impl_;
 };
 
 }  // namespace tracing

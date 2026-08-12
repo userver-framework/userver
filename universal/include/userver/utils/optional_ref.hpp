@@ -3,6 +3,7 @@
 /// @file userver/utils/optional_ref.hpp
 /// @brief @copybrief utils::OptionalRef
 
+#include <memory>
 #include <optional>
 #include <type_traits>
 
@@ -25,94 +26,94 @@ namespace utils {
 /// different address.
 template <class T>
 class OptionalRef {
- public:
-  static_assert(!std::is_reference<T>::value, "Do not use a reference for T");
+public:
+    using value_type = T;
 
-  constexpr OptionalRef() noexcept = default;
-  constexpr OptionalRef(std::nullopt_t) noexcept {}
-  constexpr OptionalRef(const OptionalRef&) noexcept = default;
-  constexpr OptionalRef& operator=(const OptionalRef&) noexcept = delete;
+    static_assert(!std::is_reference<T>::value, "Do not use a reference for T");
 
-  constexpr OptionalRef(T& other) noexcept : data_(&other) {}
+    constexpr OptionalRef() noexcept = default;
+    constexpr OptionalRef(std::nullopt_t) noexcept {}
+    constexpr OptionalRef(const OptionalRef&) noexcept = default;
+    constexpr OptionalRef& operator=(const OptionalRef&) noexcept = delete;
 
-  // Forming a reference to a temporary is forbidden
-  explicit constexpr OptionalRef(const T&&) = delete;
+    constexpr OptionalRef(T& other) noexcept : data_(std::addressof(other)) {}
 
-  template <typename U>
-  explicit constexpr OptionalRef(const std::optional<U>& other) noexcept
-      : data_(GetPointer(other)) {}
+    // Forming a reference to a temporary is forbidden
+    constexpr explicit OptionalRef(const T&&) = delete;
 
-  template <typename U>
-  explicit constexpr OptionalRef(std::optional<U>& other) noexcept
-      : data_(GetPointer(other)) {}
+    template <typename U>
+    constexpr explicit OptionalRef(const std::optional<U>& other) noexcept : data_(GetPointer(other)) {}
 
-  template <typename U>
-  explicit constexpr OptionalRef(const std::optional<U>&&) noexcept {
-    static_assert(!sizeof(U), "Forming a reference to a temporary");
-  }
+    template <typename U>
+    constexpr explicit OptionalRef(std::optional<U>& other) noexcept : data_(GetPointer(other)) {}
 
-  template <typename U>
-  explicit constexpr OptionalRef(const boost::optional<U>& other) noexcept
-      : data_(GetPointer(other)) {}
-
-  template <typename U>
-  explicit constexpr OptionalRef(boost::optional<U>& other) noexcept
-      : data_(GetPointer(other)) {}
-
-  template <typename U>
-  explicit constexpr OptionalRef(const boost::optional<U>&&) noexcept {
-    static_assert(!sizeof(U), "Forming a reference to a temporary");
-  }
-
-  constexpr bool has_value() const noexcept { return !!data_; }
-  constexpr explicit operator bool() const noexcept { return has_value(); }
-
-  constexpr T* operator->() const {
-    UASSERT(data_);
-    return data_;
-  }
-
-  constexpr T& operator*() const {
-    UASSERT(data_);
-    return *data_;
-  }
-
-  constexpr T& value() const {
-    if (!has_value()) {
-      throw std::bad_optional_access();
+    template <typename U>
+    constexpr explicit OptionalRef(const std::optional<U>&&) noexcept {
+        static_assert(!sizeof(U), "Forming a reference to a temporary");
     }
 
-    return *data_;
-  }
+    template <typename U>
+    constexpr explicit OptionalRef(const boost::optional<U>& other) noexcept : data_(GetPointer(other)) {}
 
- private:
-  template <class Optional>
-  static T* GetPointer(Optional& other) noexcept {
-    using ValueType = decltype(*other);
-    static_assert(
-        std::is_const<T>::value || !std::is_const<ValueType>::value,
-        "Attempt to initialize non-const T from a const optional value");
+    template <typename U>
+    constexpr explicit OptionalRef(boost::optional<U>& other) noexcept : data_(GetPointer(other)) {}
 
-    if (!other) {
-      return nullptr;
+    template <typename U>
+    constexpr explicit OptionalRef(const boost::optional<U>&&) noexcept {
+        static_assert(!sizeof(U), "Forming a reference to a temporary");
     }
 
-    auto& value = *other;
-    return &value;
-  }
+    constexpr bool has_value() const noexcept { return !!data_; }
+    constexpr explicit operator bool() const noexcept { return has_value(); }
 
-  T* const data_ = nullptr;
+    constexpr T* operator->() const {
+        UASSERT(data_);
+        return data_;
+    }
+
+    constexpr T& operator*() const {
+        UASSERT(data_);
+        return *data_;
+    }
+
+    constexpr T& value() const {
+        if (!has_value()) {
+            throw std::bad_optional_access();
+        }
+
+        return *data_;
+    }
+
+    template <typename U>
+    constexpr T value_or(U&& default_value) const {
+        if (!has_value()) {
+            return std::forward<U>(default_value);
+        }
+
+        return *data_;
+    }
+
+private:
+    template <class Optional>
+    static T* GetPointer(Optional& other) noexcept {
+        using ValueType = decltype(*other);
+        static_assert(
+            std::is_const<T>::value || !std::is_const<ValueType>::value,
+            "Attempt to initialize non-const T from a const optional value"
+        );
+
+        return other.has_value() ? std::addressof(*other) : nullptr;
+    }
+
+    T* const data_ = nullptr;
 };
 
 template <class T, class U>
 constexpr bool operator==(OptionalRef<T> lhs, OptionalRef<U> rhs) noexcept {
-  if (!lhs || !rhs) return !lhs && !rhs;
-  return *lhs == *rhs;
-}
-
-template <class T, class U>
-constexpr bool operator!=(OptionalRef<T> lhs, OptionalRef<U> rhs) noexcept {
-  return !(lhs == rhs);
+    if (!lhs || !rhs) {
+        return !lhs && !rhs;
+    }
+    return *lhs == *rhs;
 }
 
 }  // namespace utils

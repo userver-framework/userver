@@ -4,13 +4,12 @@
 /// @brief Utilities for managing gRPC connections
 
 #include <grpcpp/channel.h>
-#include <grpcpp/completion_queue.h>
 #include <grpcpp/security/credentials.h>
 
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 
-#include <userver/ugrpc/client/impl/client_data.hpp>
+#include <userver/ugrpc/client/impl/client_data_accessor.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -19,12 +18,10 @@ namespace ugrpc::client {
 namespace impl {
 
 [[nodiscard]] bool TryWaitForConnected(
-    grpc::Channel& channel, grpc::CompletionQueue& queue,
-    engine::Deadline deadline, engine::TaskProcessor& blocking_task_processor);
-
-[[nodiscard]] bool TryWaitForConnected(
-    impl::ChannelCache::Token& token, grpc::CompletionQueue& queue,
-    engine::Deadline deadline, engine::TaskProcessor& blocking_task_processor);
+    const ClientData& client_data,
+    engine::Deadline deadline,
+    engine::TaskProcessor& blocking_task_processor
+);
 
 }  // namespace impl
 
@@ -43,7 +40,8 @@ namespace impl {
 std::shared_ptr<grpc::Channel> MakeChannel(
     engine::TaskProcessor& blocking_task_processor,
     std::shared_ptr<grpc::ChannelCredentials> channel_credentials,
-    const std::string& endpoint);
+    const std::string& endpoint
+);
 
 /// @brief Wait until the channel state of `client` is `READY`. If the current
 /// state is already `READY`, returns `true` immediately. In case of multiple
@@ -52,12 +50,15 @@ std::shared_ptr<grpc::Channel> MakeChannel(
 /// @note The wait operation does not support task cancellations
 template <typename Client>
 [[nodiscard]] bool TryWaitForConnected(
-    Client& client, engine::Deadline deadline,
-    engine::TaskProcessor& blocking_task_processor) {
-  return impl::TryWaitForConnected(
-      impl::GetClientData(client).GetChannelToken(),
-      impl::GetClientData(client).GetQueue(), deadline,
-      blocking_task_processor);
+    Client& client,
+    engine::Deadline deadline,
+    engine::TaskProcessor& blocking_task_processor
+) {
+    return impl::TryWaitForConnected(
+        impl::ClientDataAccessor::GetClientData(client),
+        deadline,
+        blocking_task_processor
+    );
 }
 
 }  // namespace ugrpc::client

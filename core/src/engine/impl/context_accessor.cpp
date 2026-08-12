@@ -4,7 +4,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-ContextAccessor::ContextAccessor() = default;
+void WeakAwaitable::ImplMoveWeakAwaitableVirtualTableToCpp() {}
+
+void AwaitableBase::ImplMoveAwaitableBaseVirtualTableToCpp() {}
 
 }  // namespace engine::impl
 

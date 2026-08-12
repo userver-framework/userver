@@ -14,10 +14,23 @@ If you are trying to build the framework on Windows OS, you should use WSL
 as the platform native API
 [is not supported at the moment](https://github.com/userver-framework/userver/issues/228).
 
-Try disabling modules that you do not use, see @ref scripts/docs/en/userver/tutorial/build.md
+Try disabling modules that you do not use, see @ref scripts/docs/en/userver/build/build.md
 for a list of supported CMake options.
 
-If you have problems with PostgreSQL build, see @ref POSTGRES_LIBS "PostgreSQL versions".
+If you have problems with PostgreSQL build, see @ref postgres_deps_versions "PostgreSQL versions".
+
+
+### SIGUSR1 terminates the service or SIGUSR1 ignored instead of rotating logs
+
+A third-party library is setting a custom signal mask for its own thread. This causes the SIGUSR1 signal to be
+delivered to that thread instead of the userver threads, which are supposed to handle log rotation.
+
+To locate the code that is interfering with signal handling, try the following approaches:
+* Search the source code of your dependencies for calls to POSIX and pthread functions that manage signals. For
+  instance, you can search using regular expressions like `.*sigmask.*` and `sig.*`.
+* Run your service under a debugger and set breakpoints on all relevant POSIX and pthread functions that manage signal
+  handling (e.g., `sigaction`, `rt_sigaction`, `signal`, `sigset`, `sighold`, `sigrelse`, `sigignore`, `sigprocmask`,
+  `pthread_sigmask`, `pthread_attr_setsigmask_np`, etc.).
 
 
 ### Service Terminated/Aborted/SIGSEGV. What to do?
@@ -34,11 +47,11 @@ Otherwise, there could be enough information to reproduce the problem.
 
 #### Hint: Take a look at the core dump or stacktrace.
 
-* `std::terminate` in core dump usually means that the an exception was thrown from
+* `std::terminate` in core dump usually means that an exception was thrown from
   a `noexcept` function. See the trace for the place where that happened and add
   `try`+`catch` block in your sources, to catch and print the exception that
   is thrown.
-* Take a closer look at the utils::Async and engine::AsyncNoSpan usage in
+* Take a closer look at the utils::Async and @ref engine::AsyncNoTracing usage in
   your code. Captured by reference variables in lambdas should outlive the
   returned task.
 
@@ -50,7 +63,7 @@ Otherwise, there could be enough information to reproduce the problem.
   std::string data = "I store some heap allocated data";
   task1 = utils::Async("task1", [&data](){ function1(data); });
   task2 = utils::Async("task2", [&data](){ function2(data); });
-  
+
   task2.Get(); // oops! The exception from Get() would call the destructor
                // of `data` while `task1` still uses it.
   ```
@@ -59,7 +72,7 @@ Otherwise, there could be enough information to reproduce the problem.
   std::string data = "I store some heap allocated data";
   auto task1 = utils::Async("task1", [&data](){ function1(data); });
   auto task2 = utils::Async("task2", [&data](){ function2(data); });
-  
+
   task2.Get(); // `task1` and `task2` cancelled, waited and destroyed
                // before destruction of `data`.
   ```
@@ -84,7 +97,9 @@ This could be handy in detecting infinite loops or CPU intensive computations.
 #### Hint: Grab a stacktrace from a running service
 
 Command like `gdb -batch -ex 'thread apply all bt full' -p PID_OF_THE_SERVICE`
-should output a detailed information on each thread. Search for
+should output a detailed information on each thread. Search for `futex_wait` for hints.
+
+Also see @ref scripts/docs/en/userver/gdb_debugging.md for more info.
 
 
 #### Hint: Take a look at the metrics
@@ -119,13 +134,13 @@ acquire connection + execute query <= network timeout
 ```
 
 See PostgreSQL related
-@ref scripts/docs/en/schemas/dynamic_configs.md for more info.
+@ref scripts/docs/en/dynamic_configs/dynamic_configs.md for more info.
 
 
 ### PostgreSQL: Statement XXXX was canceled
 
 Statement was canceled by the `statement timeout`. See PostgreSQL related
-@ref scripts/docs/en/schemas/dynamic_configs.md for more info.
+@ref scripts/docs/en/dynamic_configs/dynamic_configs.md for more info.
 
 
 ### PostgreSQL: Something is slow
@@ -204,5 +219,5 @@ storages::postgres::TimePointTz.
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/roadmap_and_changelog.md | @ref scripts/docs/en/userver/tutorial/hello_service.md ⇨
+⇦ @ref scripts/docs/en/userver/distro_maintainers.md | @ref scripts/docs/en/userver/build/build.md ⇨
 @htmlonly </div> @endhtmlonly

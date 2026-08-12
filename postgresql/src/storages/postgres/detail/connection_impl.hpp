@@ -16,6 +16,8 @@
 #include <userver/error_injection/settings_fwd.hpp>
 #include <userver/testsuite/postgres_control.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/utils/statistics/fwd.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 #include <storages/postgres/default_command_controls.hpp>
 #include <storages/postgres/detail/connection.hpp>
@@ -31,190 +33,250 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::postgres::detail {
 
 class ConnectionImpl {
- public:
-  struct PreparedStatementInfo {
-    Connection::StatementId id{};
-    std::string statement;
-    std::string statement_name;
-    ResultSet description{nullptr};
-  };
+public:
+    struct PreparedStatementInfo {
+        Connection::StatementId id{};
+        Query query;
+        std::string meta_statement_name;
+        ResultSet description{nullptr};
+    };
 
-  ConnectionImpl(engine::TaskProcessor& bg_task_processor,
-                 concurrent::BackgroundTaskStorageCore& bg_task_storage,
-                 uint32_t id, ConnectionSettings settings,
-                 const DefaultCommandControls& default_cmd_ctls,
-                 const testsuite::PostgresControl& testsuite_pg_ctl,
-                 const error_injection::Settings& ei_settings,
-                 engine::SemaphoreLock&& size_lock);
+    ConnectionImpl(
+        engine::TaskProcessor& bg_task_processor,
+        concurrent::BackgroundTaskStorageCore& bg_task_storage,
+        uint32_t id,
+        ConnectionSettings settings,
+        const DefaultCommandControls& default_cmd_ctls,
+        const testsuite::PostgresControl& testsuite_pg_ctl,
+        const error_injection::Settings& ei_settings,
+        engine::SemaphoreLock&& size_lock,
+        USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics
+    );
 
-  void AsyncConnect(const Dsn& dsn, engine::Deadline deadline);
-  void Close();
+    void AsyncConnect(const Dsn& dsn, engine::Deadline deadline);
+    void Close();
 
-  int GetServerVersion() const;
-  bool IsInAbortedPipeline() const;
-  bool IsInRecovery() const;
-  bool IsReadOnly() const;
-  void RefreshReplicaState(engine::Deadline deadline);
+    int GetServerVersion() const;
+    bool IsInAbortedPipeline() const;
+    bool IsInRecovery() const;
+    bool IsReadOnly() const;
+    void RefreshReplicaState(engine::Deadline deadline);
 
-  ConnectionState GetConnectionState() const;
-  bool IsConnected() const;
-  bool IsIdle() const;
-  bool IsInTransaction() const;
-  bool IsPipelineActive() const;
-  bool ArePreparedStatementsEnabled() const;
-  bool IsBroken() const;
-  bool IsExpired() const;
-  ConnectionSettings const& GetSettings() const;
+    ConnectionState GetConnectionState() const;
+    bool IsConnected() const;
+    bool IsIdle() const;
+    bool IsInTransaction() const;
+    bool IsPipelineActive() const;
+    bool ArePreparedStatementsEnabled() const;
+    bool IsBroken() const;
+    bool IsExpired() const;
+    bool IsSessionPooler() const noexcept;
+    bool IsTransactionPooler() const noexcept;
+    const ConnectionSettings& GetSettings() const;
 
-  CommandControl GetDefaultCommandControl() const;
-  void UpdateDefaultCommandControl();
+    CommandControl GetDefaultCommandControl() const;
 
-  const OptionalCommandControl& GetTransactionCommandControl() const;
-  OptionalCommandControl GetNamedQueryCommandControl(
-      const std::optional<Query::Name>& query_name) const;
+    const OptionalCommandControl& GetTransactionCommandControl() const;
+    OptionalCommandControl GetNamedQueryCommandControl(std::optional<Query::NameView> query_name) const;
 
-  Connection::Statistics GetStatsAndReset();
+    Connection::Statistics GetStatsAndReset();
 
-  ResultSet ExecuteCommand(const Query& query,
-                           const detail::QueryParameters& params,
-                           OptionalCommandControl statement_cmd_ctl);
+    ResultSet ExecuteCommand(
+        const Query& query,
+        const detail::QueryParameters& params,
+        OptionalCommandControl statement_cmd_ctl
+    );
 
-  const PreparedStatementInfo& PrepareStatement(
-      const Query& query, const detail::QueryParameters& params,
-      TimeoutDuration timeout);
-  void AddIntoPipeline(CommandControl cc,
-                       const std::string& prepared_statement_name,
-                       const detail::QueryParameters& params,
-                       const ResultSet& description, tracing::ScopeTime& scope);
-  std::vector<ResultSet> GatherPipeline(
-      TimeoutDuration timeout, const std::vector<ResultSet>& descriptions);
+    const PreparedStatementInfo& PrepareStatement(
+        const Query& query,
+        const detail::QueryParameters& params,
+        TimeoutDuration timeout
+    );
+    void AddIntoPipeline(
+        CommandControl cc,
+        USERVER_NAMESPACE::utils::zstring_view meta_statement_name,
+        const detail::QueryParameters& params,
+        const ResultSet& description,
+        tracing::ScopeTime& scope
+    );
+    std::vector<ResultSet> GatherPipeline(TimeoutDuration timeout, const std::vector<ResultSet>& descriptions);
 
-  void Begin(const TransactionOptions& options,
-             SteadyClock::time_point trx_start_time,
-             OptionalCommandControl trx_cmd_ctl = {});
-  void Commit();
-  void Rollback();
+    void Begin(
+        const TransactionOptions& options,
+        SteadyClock::time_point trx_start_time,
+        OptionalCommandControl trx_cmd_ctl = {}
+    );
+    void Commit();
+    void Rollback();
 
-  void Start(SteadyClock::time_point start_time);
-  void Finish();
+    void Start(SteadyClock::time_point start_time);
+    void Finish();
 
-  Connection::StatementId PortalBind(const std::string& statement,
-                                     const std::string& portal_name,
-                                     const detail::QueryParameters& params,
-                                     OptionalCommandControl statement_cmd_ctl);
+    Connection::StatementId PortalBind(
+        const Query& query,
+        USERVER_NAMESPACE::utils::zstring_view portal_name,
+        const detail::QueryParameters& params,
+        OptionalCommandControl statement_cmd_ctl
+    );
 
-  ResultSet PortalExecute(Connection::StatementId statement_id,
-                          const std::string& portal_name, std::uint32_t n_rows,
-                          OptionalCommandControl statement_cmd_ctl);
+    ResultSet PortalExecute(
+        Connection::StatementId statement_id,
+        USERVER_NAMESPACE::utils::zstring_view portal_name,
+        std::uint32_t n_rows,
+        OptionalCommandControl statement_cmd_ctl
+    );
 
-  void Listen(std::string_view channel, OptionalCommandControl);
-  void Unlisten(std::string_view channel, OptionalCommandControl);
-  Notification WaitNotify(engine::Deadline deadline);
+    void Listen(std::string_view channel, OptionalCommandControl);
+    void Unlisten(std::string_view channel, OptionalCommandControl);
+    Notification WaitNotify(engine::Deadline deadline);
 
-  void CancelAndCleanup(TimeoutDuration timeout);
-  bool Cleanup(TimeoutDuration timeout);
+    void CancelAndCleanup(TimeoutDuration timeout);
+    bool Cleanup(TimeoutDuration timeout);
 
-  void SetParameter(std::string_view name, std::string_view value,
-                    Connection::ParameterScope scope);
+    void SetParameter(std::string_view name, std::string_view value, Connection::ParameterScope scope);
 
-  const UserTypes& GetUserTypes() const;
-  void LoadUserTypes();
+    const UserTypes& GetUserTypes() const;
+    void LoadUserTypes();
 
-  TimeoutDuration GetIdleDuration() const;
-  TimeoutDuration GetStatementTimeout() const;
+    TimeoutDuration GetIdleDuration() const;
+    TimeoutDuration GetStatementTimeout() const;
 
-  void Ping();
-  void MarkAsBroken();
+    void Ping();
+    void MarkAsBroken();
 
- private:
-  using PreparedStatements =
-      cache::LruMap<Connection::StatementId, PreparedStatementInfo>;
+private:
+    using PreparedStatements = cache::LruMap<Connection::StatementId, PreparedStatementInfo>;
 
-  struct ResetTransactionCommandControl;
+    struct ResetTransactionCommandControl;
 
-  void CheckBusy() const;
-  void CheckDeadlineReached(const engine::Deadline& deadline);
-  tracing::Span MakeQuerySpan(const Query& query,
-                              const CommandControl& cc) const;
-  engine::Deadline MakeCurrentDeadline() const;
+    void CheckBusy() const;
+    void CheckDeadlineReached(const engine::Deadline& deadline);
+    tracing::Span MakeQuerySpan(const Query& query, const CommandControl& cc) const;
+    engine::Deadline MakeCurrentDeadline() const;
 
-  void SetTransactionCommandControl(CommandControl cmd_ctl);
+    void SetTransactionCommandControl(CommandControl cmd_ctl);
 
-  TimeoutDuration ExecuteTimeout(OptionalCommandControl) const;
-  TimeoutDuration CurrentExecuteTimeout() const;
+    TimeoutDuration NetworkTimeout(OptionalCommandControl) const;
+    TimeoutDuration CurrentNetworkTimeout() const;
 
-  void SetConnectionStatementTimeout(TimeoutDuration timeout,
-                                     engine::Deadline deadline);
+    bool PreparedStatementsEnabled(OptionalCommandControl cmd_ctl) const;
 
-  void SetStatementTimeout(TimeoutDuration timeout, engine::Deadline deadline);
+    void SetConnectionStatementTimeout(
+        TimeoutDuration timeout,
+        TimeoutDuration network_timeout,
+        engine::Deadline deadline
+    );
 
-  void SetStatementTimeout(OptionalCommandControl cmd_ctl);
+    void SetStatementTimeout(TimeoutDuration timeout, TimeoutDuration network_timeout, engine::Deadline deadline);
 
-  const PreparedStatementInfo& DoPrepareStatement(
-      const std::string& statement, const detail::QueryParameters& params,
-      engine::Deadline deadline, tracing::Span& span,
-      tracing::ScopeTime& scope);
-  void DiscardOldPreparedStatements(engine::Deadline deadline);
-  void DiscardPreparedStatement(const PreparedStatementInfo& info,
-                                engine::Deadline deadline);
+    void SetStatementTimeout(OptionalCommandControl cmd_ctl);
 
-  ResultSet ExecuteCommand(const Query& query, engine::Deadline deadline);
+    TimeoutDuration NormalizeStatementTimeout(TimeoutDuration timeout, TimeoutDuration network_timeout);
 
-  ResultSet ExecuteCommand(const Query& query,
-                           const detail::QueryParameters& params,
-                           engine::Deadline deadline);
+    void ApplyStatementTimeoutIfItChanged(
+        TimeoutDuration timeout,
+        Connection::ParameterScope scope,
+        engine::Deadline deadline
+    );
 
-  ResultSet ExecuteCommandNoPrepare(const Query& query,
-                                    engine::Deadline deadline);
+    const PreparedStatementInfo& DoPrepareStatement(
+        const Query& query,
+        const detail::QueryParameters& params,
+        engine::Deadline deadline,
+        tracing::Span& span,
+        tracing::ScopeTime& scope
+    );
+    void DiscardOldPreparedStatements(engine::Deadline deadline);
+    void DiscardPreparedStatement(std::string_view meta_statement_name, engine::Deadline deadline);
 
-  ResultSet ExecuteCommandNoPrepare(const Query& query,
-                                    const QueryParameters& params,
-                                    engine::Deadline deadline);
+    ResultSet ExecuteCommand(
+        const Query& query,
+        engine::Deadline deadline,
+        logging::Level span_log_level = logging::Level::kInfo
+    );
 
-  void SendCommandNoPrepare(const Query& query, engine::Deadline deadline);
+    ResultSet ExecuteCommand(
+        const Query& query,
+        const detail::QueryParameters& params,
+        engine::Deadline deadline,
+        logging::Level span_log_level = logging::Level::kInfo,
+        bool ignore_prepared_statements_setting = false
+    );
 
-  void SendCommandNoPrepare(const Query& query, const QueryParameters& params,
-                            engine::Deadline deadline);
+    ResultSet ExecuteCommandNoPrepare(const Query& query, engine::Deadline deadline);
 
-  void SetParameter(std::string_view name, std::string_view value,
-                    Connection::ParameterScope scope,
-                    engine::Deadline deadline);
+    ResultSet ExecuteCommandNoPrepare(const Query& query, const QueryParameters& params, engine::Deadline deadline);
 
-  void LoadUserTypes(engine::Deadline deadline);
-  void FillBufferCategories(ResultSet& res);
+    void SendCommandNoPrepare(const Query& query, engine::Deadline deadline);
 
-  template <typename Counter>
-  ResultSet WaitResult(const std::string& statement, engine::Deadline deadline,
-                       TimeoutDuration network_timeout, Counter& counter,
-                       tracing::Span& span, tracing::ScopeTime& scope,
-                       const ResultSet* description_ptr);
+    void SendCommandNoPrepare(
+        const Query& query,
+        const QueryParameters& params,
+        engine::Deadline deadline,
+        logging::Level span_log_level = logging::Level::kInfo
+    );
 
-  void Cancel();
+    void SetParameter(
+        std::string_view name,
+        std::string_view value,
+        Connection::ParameterScope scope,
+        engine::Deadline deadline
+    );
 
-  void ReportStatement(const std::string& name);
+    void LoadUserTypes(engine::Deadline deadline);
+    void FillBufferCategories(ResultSet& res);
 
-  bool IsOmitDescribeInExecuteEnabled() const;
+    template <typename Counter>
+    ResultSet WaitResult(
+        engine::Deadline deadline,
+        TimeoutDuration network_timeout,
+        Counter& counter,
+        tracing::Span& span,
+        tracing::ScopeTime& scope,
+        const ResultSet* description_ptr
+    );
 
-  const std::string uuid_;
-  Connection::Statistics stats_;
-  PGConnectionWrapper conn_wrapper_;
-  PreparedStatements prepared_;
-  UserTypes db_types_;
-  bool is_in_recovery_ = true;
-  bool is_read_only_ = true;
-  bool is_discard_prepared_pending_ = false;
-  ConnectionSettings settings_;
-  std::optional<std::chrono::steady_clock::time_point> expires_at_;
+    void Rollback(std::optional<engine::Deadline> deadline);
+    void Cancel();
 
-  CommandControl default_cmd_ctl_{{}, {}};
-  DefaultCommandControls default_cmd_ctls_;
-  testsuite::PostgresControl testsuite_pg_ctl_;
-  OptionalCommandControl transaction_cmd_ctl_;
-  TimeoutDuration current_statement_timeout_{};
-  const error_injection::Settings ei_settings_;
+    void ReportStatement(std::string_view name);
 
-  std::unordered_set<std::string> statements_reported_;
-  engine::Mutex statements_mutex_;
+    bool ShouldWrapInAutoTransaction(std::string_view statement) const noexcept;
+
+    void TryRollbackAutoTransaction(engine::Deadline deadline);
+
+    ResultSet ExecuteCommandInAutoTransaction(
+        const Query& query,
+        const QueryParameters& params,
+        OptionalCommandControl statement_cmd_ctl,
+        engine::Deadline deadline
+    );
+
+    bool IsOmitDescribeInExecuteEnabled() const;
+
+    const std::string uuid_;
+    Connection::Statistics stats_;
+    PGConnectionWrapper conn_wrapper_;
+    PreparedStatements prepared_;
+    UserTypes db_types_;
+    bool is_in_recovery_ = true;
+    bool is_read_only_ = true;
+    bool is_discard_prepared_pending_ = false;
+    ConnectionSettings settings_;
+    std::optional<std::chrono::steady_clock::time_point> expires_at_;
+    bool deadline_propagation_is_active_{false};
+
+    DefaultCommandControls default_cmd_ctls_;
+    testsuite::PostgresControl testsuite_pg_ctl_;
+    OptionalCommandControl transaction_cmd_ctl_;
+    TimeoutDuration current_statement_timeout_{};
+    const error_injection::Settings ei_settings_;
+    USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics_;
+
+    USERVER_NAMESPACE::utils::impl::TransparentSet<std::string> statements_reported_;
+    engine::Mutex statements_mutex_;
+    // Flag to check a correct order of calling Begin.
+    bool in_transaction_{false};
 };
 
 }  // namespace storages::postgres::detail

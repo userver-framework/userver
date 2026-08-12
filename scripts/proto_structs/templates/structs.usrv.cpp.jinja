@@ -1,0 +1,14 @@
+{% import "utils.inc.jinja" as utils %}
+{% import "io.inc.jinja" as io %}
+{{ utils.do_not_edit(file_name_wo_ext) }}
+#include <{{ file_name_wo_ext }}.structs.usrv.pb.hpp>
+
+#include <userver/proto-structs/impl/bundles/structs_cpp.hpp>
+{% call utils.prepend_empty_line_if_not_empty() %}
+{% for include in includes_cpp %}
+#include <{{ include }}>
+{% endfor %}
+{% endcall %}
+{% for node in file.children %}
+{{ io.render_gen_node(node, file) -}}
+{% endfor -%}

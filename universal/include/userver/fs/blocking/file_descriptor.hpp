@@ -3,12 +3,17 @@
 /// @file userver/fs/blocking/file_descriptor.hpp
 /// @brief @copybrief fs::blocking::FileDescriptor
 
-#include <string>
+#include <span>
 #include <string_view>
 
-#include <boost/filesystem/operations.hpp>
+#include <userver/utils/boost_filesystem_file_status.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 #include <userver/fs/blocking/open_mode.hpp>
+
+extern "C" {
+struct iovec;
+}
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,71 +25,81 @@ namespace fs::blocking {
 /// @details The file is closed in the destructor
 /// @note The operations on the file are blocking and not thread-safe
 class FileDescriptor final {
- public:
-  /// @brief Open a file using ::open
-  /// @throws std::runtime_error
-  static FileDescriptor Open(
-      const std::string& path, OpenMode flags,
-      boost::filesystem::perms perms = boost::filesystem::perms::owner_read |
-                                       boost::filesystem::perms::owner_write);
+public:
+    /// @brief Open a file using `::open`
+    /// @throws std::runtime_error
+    static FileDescriptor Open(
+        utils::zstring_view path,
+        OpenMode flags,
+        boost::filesystem::perms perms = boost::filesystem::perms::owner_read | boost::filesystem::perms::owner_write
+    );
 
-  /// @brief Open a directory node
-  /// @note The only valid operation for such a `FileDescriptor` is `FSync`.
-  /// @throws std::runtime_error
-  static FileDescriptor OpenDirectory(const std::string& path);
+    /// @brief Open a directory node
+    /// @note The only valid operation for such a `FileDescriptor` is `FSync`.
+    /// @throws std::runtime_error
+    static FileDescriptor OpenDirectory(utils::zstring_view path);
 
-  /// @brief Use the file descriptor directly
-  static FileDescriptor AdoptFd(int fd) noexcept;
+    /// @brief Use the file descriptor directly
+    static FileDescriptor AdoptFd(int fd) noexcept;
 
-  FileDescriptor() = delete;
-  FileDescriptor(FileDescriptor&& other) noexcept;
-  FileDescriptor& operator=(FileDescriptor&& other) noexcept;
-  ~FileDescriptor();
+    /// @brief Duplicate the file descriptor
+    static FileDescriptor DupFd(int fd) noexcept;
 
-  /// @brief Checks if the file is open
-  /// @note Operations can only be performed on an open `FileDescriptor`.
-  bool IsOpen() const;
+    /// @brief Default constructor
+    /// @note The file descriptor is not open
+    FileDescriptor();
 
-  /// @brief Closes the file manually
-  /// @throws std::runtime_error
-  void Close() &&;
+    FileDescriptor(FileDescriptor&& other) noexcept;
+    FileDescriptor& operator=(FileDescriptor&& other) noexcept;
+    ~FileDescriptor();
 
-  /// Returns the native file handle
-  int GetNative() const;
+    /// @brief Checks if the file is open
+    /// @note Operations can only be performed on an open `FileDescriptor`.
+    bool IsOpen() const noexcept;
 
-  /// Passes the ownership of the file descriptor to the caller
-  int Release() &&;
+    /// @brief Closes the file manually
+    /// @throws std::runtime_error
+    void Close() &&;
 
-  /// @brief Writes data to the file
-  /// @warning Unless `FSync` is called, there is no guarantee the data
-  /// is stored on disk safely.
-  /// @throws std::runtime_error
-  void Write(std::string_view contents);
+    /// Returns the native file handle
+    int GetNative() const noexcept;
 
-  /// @brief Reads data from the file at current offset
-  /// @returns The amount of bytes actually acquired, which can be equal
-  /// to `max_size`, or less on end-of-file
-  /// @throws std::runtime_error
-  std::size_t Read(char* buffer, std::size_t max_size);
+    /// Passes the ownership of the file descriptor to the caller
+    int Release() &&;
 
-  /// @brief Sets the file read/write offset from the beginning of the file
-  /// @throws std::runtime_error
-  void Seek(std::size_t offset_in_bytes);
+    /// @brief Writes data to the file
+    /// @warning Unless `FSync` is called, there is no guarantee the data is stored on disk safely.
+    /// @throws std::runtime_error
+    void Write(std::string_view contents);
 
-  /// @brief Makes sure the written data is actually stored on disk
-  /// @throws std::runtime_error
-  void FSync();
+    /// @brief Writes data to the file, has no IOV_MAX limits on contents.size()
+    /// @warning Unless `FSync` is called, there is no guarantee the data is stored on disk safely.
+    /// @throws std::runtime_error
+    void Write(std::span<const struct iovec> contents);
 
-  /// @brief Fetches the file size
-  /// @throws std::runtime_error
-  std::size_t GetSize() const;
+    /// @brief Reads data from the file at current offset
+    /// @returns The amount of bytes actually acquired, which can be equal to `max_size`, or less on end-of-file
+    /// @throws std::runtime_error
+    std::size_t Read(std::span<char> buffer);
 
- private:
-  explicit FileDescriptor(int fd);
+    /// @brief Sets the file read/write offset from the beginning of the file
+    /// @throws std::runtime_error
+    void Seek(std::size_t offset_in_bytes);
 
-  friend class TempFile;
+    /// @brief Makes sure the written data is actually stored on disk
+    /// @throws std::runtime_error
+    void FSync();
 
-  int fd_;
+    /// @brief Fetches the file size
+    /// @throws std::runtime_error
+    std::size_t GetSize() const;
+
+private:
+    explicit FileDescriptor(int fd);
+
+    friend class TempFile;
+
+    int fd_;
 };
 
 }  // namespace fs::blocking

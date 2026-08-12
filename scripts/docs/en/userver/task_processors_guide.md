@@ -15,10 +15,10 @@ Any amount of task processors could be created with any names.
 
 ## How to use
 
-utils::Async and engine::AsyncNoSpan start a new task on a provided as a
+utils::Async and engine::AsyncNoTracing start a new task on a provided as a
 first argument task processor. If the task processor is not provided
-utils::Async and engine::AsyncNoSpan use the task processor that
-runs the current task (engine::current_task::GetTaskProcessor()). 
+utils::Async and engine::AsyncNoTracing use the task processor that
+runs the current task (engine::current_task::GetTaskProcessor()).
 
 A task processor could be obtained from components::ComponentContext in the
 constructor of the component. References to task processors outlive the
@@ -42,6 +42,10 @@ there's no way to call any of the task processor members directly.
 In static configuration we use different names for task processors. The name
 does not affect the task processor behavior, only gives a hint on its usage
 for the developer.
+
+However, components::ManagerControllerComponent has defaults for `default_task_processor` and `fs_task_processor`
+static config options. So if the task processor names in your project differ from the usual names in userver samples,
+specify the `default_task_processor` and `fs_task_processor`.
 
 
 ### main-task-processor
@@ -73,7 +77,7 @@ A common usage pattern for this task processor looks like:
 
 ```cpp
 // lib_sample synchronously reads some of /etc/* files.
-auto result = engine::AsyncNoSpan(fs_task_processor_, [preset_name]() {
+auto result = engine::AsyncNoTracing(fs_task_processor_, [preset_name]() {
   return lib_sample::quick_check_config_preset(preset_name);
 }).Get();
 ```

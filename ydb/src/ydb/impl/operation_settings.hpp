@@ -1,10 +1,11 @@
 #pragma once
 
-#include <ydb-cpp-sdk/client/retry/retry.h>
-#include <ydb-cpp-sdk/client/types/request_settings.h>
-
-#include <algorithm>  // for std::min
 #include <chrono>
+
+#include <ydb-cpp-sdk/client/query/query.h>
+#include <ydb-cpp-sdk/client/retry/retry.h>
+#include <ydb-cpp-sdk/client/table/table.h>
+#include <ydb-cpp-sdk/client/types/request_settings.h>
 
 #include <userver/engine/deadline.hpp>
 #include <userver/ydb/impl/cast.hpp>
@@ -15,49 +16,64 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ydb::impl {
 
-std::chrono::milliseconds DeadlineToTimeout(engine::Deadline deadline);
+constexpr double kOperationTimeoutMultiplier = 0.8;
 
-template <typename T>
-void ApplyToRequestSettings(NYdb::TRequestSettings<T>& result,
-                            const OperationSettings& settings,
-                            engine::Deadline deadline) {
-  const auto timeout = impl::DeadlineToTimeout(deadline);
+std::chrono::milliseconds GetBoundTimeout(std::chrono::milliseconds timeout, engine::Deadline deadline);
+std::chrono::milliseconds GetBoundTimeout(std::optional<std::chrono::milliseconds> timeout, engine::Deadline deadline);
 
-  if (settings.client_timeout_ms > std::chrono::milliseconds::zero()) {
-    // That's not the most optimal way to propagate deadline, but oh well.
-    result.ClientTimeout(std::min(settings.client_timeout_ms, timeout));
-  }
-  if (!settings.trace_id.empty()) {
-    result.TraceId(impl::ToString(settings.trace_id));
-  }
+template <typename T, typename Settings>
+void ApplyToRequestSettings(
+    NYdb::TRequestSettings<T>& result,
+    const Settings& settings,
+    engine::Deadline deadline,
+    std::string_view trace_id
+) {
+    result.ClientTimeout(GetBoundTimeout(settings.client_timeout_ms, deadline));
+
+    if (!trace_id.empty()) {
+        result.TraceId(impl::ToString(trace_id));
+    }
+}
+
+template <typename T, typename Settings>
+void ApplyToRequestSettings(
+    NYdb::TOperationRequestSettings<T>& result,
+    const Settings& settings,
+    engine::Deadline deadline,
+    std::string_view trace_id
+) {
+    std::chrono::milliseconds timeout;
+
+    if constexpr (std::is_same_v<Settings, OperationSettings> &&
+                  (std::is_same_v<T, NYdb::NQuery::TCreateSessionSettings> ||
+                   std::is_same_v<T, NYdb::NTable::TCreateSessionSettings>))
+    {
+        timeout = GetBoundTimeout(settings.get_session_timeout_ms, deadline);
+    } else {
+        timeout = GetBoundTimeout(settings.client_timeout_ms, deadline);
+    }
+
+    result.ClientTimeout(timeout);
+    result.OperationTimeout(timeout * kOperationTimeoutMultiplier);
+    result.CancelAfter(timeout * kOperationTimeoutMultiplier);
+
+    if (!trace_id.empty()) {
+        result.TraceId(impl::ToString(trace_id));
+    }
 }
 
 template <typename T>
-void ApplyToRequestSettings(NYdb::TOperationRequestSettings<T>& result,
-                            const OperationSettings& settings,
-                            engine::Deadline deadline) {
-  const auto timeout = impl::DeadlineToTimeout(deadline);
-
-  if (settings.operation_timeout_ms > std::chrono::milliseconds::zero()) {
-    result.OperationTimeout(std::min(settings.operation_timeout_ms, timeout));
-  }
-  if (settings.cancel_after_ms > std::chrono::milliseconds::zero()) {
-    result.CancelAfter(settings.cancel_after_ms);
-  }
-  if (settings.client_timeout_ms > std::chrono::milliseconds::zero()) {
-    result.ClientTimeout(settings.client_timeout_ms);
-  }
-  if (!settings.trace_id.empty()) {
-    result.TraceId(impl::ToString(settings.trace_id));
-  }
+T PrepareRequestSettings(const OperationSettings& settings, engine::Deadline deadline) {
+    T result;
+    impl::ApplyToRequestSettings(result, settings, deadline, settings.trace_id);
+    return result;
 }
 
-template <typename T>
-T PrepareRequestSettings(const OperationSettings& settings,
-                         engine::Deadline deadline) {
-  T result;
-  impl::ApplyToRequestSettings(result, settings, deadline);
-  return result;
+template <typename T, typename Settings>
+T PrepareRequestSettings(const Settings& settings, engine::Deadline deadline, std::string_view trace_id) {
+    T result;
+    impl::ApplyToRequestSettings(result, settings, deadline, trace_id);
+    return result;
 }
 
 }  // namespace ydb::impl

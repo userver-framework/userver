@@ -4,7 +4,9 @@
 
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <sys/uio.h>
 #include <unistd.h>
+#include <numeric>
 #include <system_error>
 #include <utility>
 
@@ -12,6 +14,7 @@
 
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/iovec_advance.hpp>
 #include <utils/check_syscall.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -21,174 +24,218 @@ namespace fs::blocking {
 namespace {
 
 int ToNative(OpenMode flags) {
-  int result = 0;
+    int result = 0;
 
-  // using file descriptor without this flag is a security risk
-  // read: man 2 open
-  result |= O_CLOEXEC;
+    // using file descriptor without this flag is a security risk
+    // read: man 2 open
+    result |= O_CLOEXEC;
 
-  if ((flags & OpenFlag::kRead) && (flags & OpenFlag::kWrite)) {
-    result |= O_RDWR;
-  } else if (flags & OpenFlag::kRead) {
-    result |= O_RDONLY;
-  } else if (flags & OpenFlag::kWrite) {
-    result |= O_WRONLY;
-  } else {
-    UINVARIANT(false, "Specify at least one of kRead, kWrite in OpenFlags");
-  }
+    if ((flags & OpenFlag::kRead) && (flags & OpenFlag::kWrite)) {
+        result |= O_RDWR;
+    } else if (flags & OpenFlag::kRead) {
+        result |= O_RDONLY;
+    } else if (flags & OpenFlag::kWrite) {
+        result |= O_WRONLY;
+    } else {
+        UINVARIANT(false, "Specify at least one of kRead, kWrite in OpenFlags");
+    }
 
-  if (flags & OpenFlag::kCreateIfNotExists) {
-    UINVARIANT(flags & OpenFlag::kWrite,
-               "Cannot use kCreateIfNotExists without kWrite in OpenFlags");
-    result |= O_CREAT;
-  }
+    if (flags & OpenFlag::kCreateIfNotExists) {
+        UINVARIANT(flags & OpenFlag::kWrite, "Cannot use kCreateIfNotExists without kWrite in OpenFlags");
+        result |= O_CREAT;
+    }
 
-  if (flags & OpenFlag::kExclusiveCreate) {
-    UINVARIANT(flags & OpenFlag::kWrite,
-               "Cannot use kCreateIfNotExists without kWrite in OpenFlags");
-    result |= O_CREAT | O_EXCL;
-  }
+    if (flags & OpenFlag::kExclusiveCreate) {
+        UINVARIANT(flags & OpenFlag::kWrite, "Cannot use kCreateIfNotExists without kWrite in OpenFlags");
+        result |= O_CREAT | O_EXCL;
+    }
 
-  if (flags & OpenFlag::kTruncate) {
-    UINVARIANT(flags & OpenFlag::kWrite,
-               "Cannot use kTruncate without kWrite in OpenFlags");
-    UINVARIANT(!(flags & OpenFlag::kExclusiveCreate),
-               "Cannot use kTruncate with kExclusiveCreate in OpenFlags");
-    result |= O_TRUNC;
-  }
+    if (flags & OpenFlag::kTruncate) {
+        UINVARIANT(flags & OpenFlag::kWrite, "Cannot use kTruncate without kWrite in OpenFlags");
+        UINVARIANT(!(flags & OpenFlag::kExclusiveCreate), "Cannot use kTruncate with kExclusiveCreate in OpenFlags");
+        result |= O_TRUNC;
+    }
 
-  if (flags & OpenFlag::kAppend) {
-    UINVARIANT(flags & OpenFlag::kWrite,
-               "Cannot use kAppend without kWrite in OpenFlags");
-    result |= O_APPEND;
-  }
+    if (flags & OpenFlag::kAppend) {
+        UINVARIANT(flags & OpenFlag::kWrite, "Cannot use kAppend without kWrite in OpenFlags");
+        result |= O_APPEND;
+    }
 
-  return result;
+    return result;
 }
 
 auto GetFileStats(int fd) {
-  // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-  struct ::stat result;
-  utils::CheckSyscall(::fstat(fd, &result), "calling ::fstat");
-  return result;
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
+    struct ::stat result;
+    utils::CheckSyscall(::fstat(fd, &result), "calling ::fstat");
+    return result;
 }
 
 constexpr int kNoFd = -1;
 
 }  // namespace
 
-FileDescriptor::FileDescriptor(int fd) : fd_(fd) { UASSERT(fd != kNoFd); }
+FileDescriptor::FileDescriptor()
+    : fd_(kNoFd)
+{}
 
-FileDescriptor FileDescriptor::Open(const std::string& path, OpenMode flags,
-                                    boost::filesystem::perms perms) {
-  UASSERT(!path.empty());
-  const auto fd = utils::CheckSyscall(
-      ::open(path.c_str(), ToNative(flags), perms), "opening file '{}'", path);
-  return FileDescriptor{fd};
+FileDescriptor::FileDescriptor(int fd)
+    : fd_(fd)
+{
+    UASSERT(fd != kNoFd);
+}
+
+FileDescriptor FileDescriptor::Open(utils::zstring_view path, OpenMode flags, boost::filesystem::perms perms) {
+    UASSERT(!path.empty());
+    const auto fd = utils::CheckSyscall(::open(path.c_str(), ToNative(flags), perms), "opening file '{}'", path);
+    return FileDescriptor{fd};
 }
 
 FileDescriptor FileDescriptor::AdoptFd(int fd) noexcept {
-  UASSERT_MSG(::fcntl(fd, F_GETFD) != -1, "This file descriptor is not valid");
-  return FileDescriptor{fd};
+    UASSERT_MSG(::fcntl(fd, F_GETFD) != -1, "This file descriptor is not valid");
+    return FileDescriptor{fd};
 }
 
-FileDescriptor FileDescriptor::OpenDirectory(const std::string& path) {
-  UASSERT(!path.empty());
-  const auto fd =
-      utils::CheckSyscall(::open(path.c_str(), O_RDONLY | O_DIRECTORY),
-                          "opening directory '{}'", path);
-  return FileDescriptor{fd};
+FileDescriptor FileDescriptor::OpenDirectory(utils::zstring_view path) {
+    UASSERT(!path.empty());
+    const auto fd = utils::CheckSyscall(::open(path.c_str(), O_RDONLY | O_DIRECTORY), "opening directory '{}'", path);
+    return FileDescriptor{fd};
 }
 
-FileDescriptor::FileDescriptor(FileDescriptor&& other) noexcept
-    : fd_(std::exchange(other.fd_, kNoFd)) {}
+FileDescriptor FileDescriptor::DupFd(int fd) noexcept {
+    UASSERT_MSG(::fcntl(fd, F_GETFD) != -1, "This file descriptor is not valid");
+    const auto dup_fd = utils::CheckSyscall(::dup(fd), "duplicating file descriptor");
+    return FileDescriptor{dup_fd};
+}
+
+FileDescriptor::FileDescriptor(FileDescriptor&& other) noexcept : fd_(std::exchange(other.fd_, kNoFd)) {}
 
 FileDescriptor& FileDescriptor::operator=(FileDescriptor&& other) noexcept {
-  if (&other != this) {
-    FileDescriptor temp = std::move(*this);
-    fd_ = std::exchange(other.fd_, kNoFd);
-  }
-  return *this;
+    if (&other != this) {
+        const FileDescriptor temp = std::move(*this);
+        fd_ = std::exchange(other.fd_, kNoFd);
+    }
+    return *this;
 }
 
 FileDescriptor::~FileDescriptor() {
-  if (IsOpen()) {
-    try {
-      std::move(*this).Close();
-    } catch (const std::exception& e) {
-      LOG_ERROR() << e;
+    if (IsOpen()) {
+        try {
+            std::move(*this).Close();
+        } catch (const std::exception& e) {
+            LOG_ERROR() << e;
+        }
     }
-  }
 }
 
-bool FileDescriptor::IsOpen() const { return fd_ != kNoFd; }
+bool FileDescriptor::IsOpen() const noexcept { return fd_ != kNoFd; }
 
 void FileDescriptor::Close() && {
-  const auto fd = std::exchange(fd_, kNoFd);
-  utils::CheckSyscall(::close(fd), "calling ::close");
+    const auto fd = std::exchange(fd_, kNoFd);
+    utils::CheckSyscall(::close(fd), "calling ::close");
 }
 
-int FileDescriptor::GetNative() const { return fd_; }
+int FileDescriptor::GetNative() const noexcept { return fd_; }
 
 int FileDescriptor::Release() && { return std::exchange(fd_, kNoFd); }
 
 // NOLINTNEXTLINE(readability-make-member-function-const)
 void FileDescriptor::Write(std::string_view contents) {
-  const char* buffer = contents.data();
-  size_t len = contents.size();
+    const char* buffer = contents.data();
+    size_t len = contents.size();
 
-  while (len > 0) {
-    ssize_t s = ::write(fd_, buffer, len);
-    if (s < 0) {
-      if (errno == EAGAIN || errno == EINTR) continue;
+    while (len > 0) {
+        const ssize_t s = ::write(fd_, buffer, len);
+        if (s < 0) {
+            if (errno == EAGAIN || errno == EINTR) {
+                continue;
+            }
 
-      const auto code = std::make_error_code(std::errc{errno});
-      throw std::system_error(code, "calling ::write");
+            const auto code = std::make_error_code(std::errc{errno});
+            throw std::system_error(code, "calling ::write");
+        }
+
+        buffer += s;
+        len -= s;
     }
-
-    buffer += s;
-    len -= s;
-  }
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const)
-std::size_t FileDescriptor::Read(char* buffer, std::size_t max_size) {
-  while (true) {
-    const ::ssize_t s = ::read(fd_, buffer, max_size);
-    if (s < 0) {
-      if (errno == EAGAIN || errno == EINTR) continue;
-
-      const auto code = std::make_error_code(std::errc{errno});
-      throw std::system_error(code, "calling ::read");
+void FileDescriptor::Write(std::span<const struct iovec> contents) {
+    if (contents.empty()) {
+        return;
     }
-    return s;
-  }
+
+    const auto* list = contents.data();
+    auto list_size = contents.size();
+    do {
+        const auto chunk_size = ::writev(fd_, list, (list_size < IOV_MAX ? list_size : IOV_MAX));
+        if (chunk_size < 0) {
+            if (errno == EAGAIN || errno == EINTR) {
+                continue;
+            }
+
+            const auto code = std::make_error_code(std::errc{errno});
+            throw std::system_error(code, "calling ::writev");
+        } else if (chunk_size > 0) {
+            utils::IovIter iter{list, list_size};
+            utils::Advance(iter, chunk_size);
+            if (0 == iter.iov_offset) {
+                list = iter.iov;
+                list_size = iter.iov_size;
+            } else [[unlikely]] {
+                // Never happens?
+                struct iovec iov = *iter.iov;
+                utils::Advance(iov, iter.iov_offset);
+                Write(std::string_view{static_cast<char*>(iov.iov_base), iov.iov_len});
+                list = iter.iov + 1;
+                list_size = iter.iov_size - 1;
+            }
+        } else [[unlikely]] {
+            UASSERT(chunk_size == 0);
+            break;
+        }
+    } while (list_size != 0);
+}
+
+// NOLINTNEXTLINE(readability-make-member-function-const)
+std::size_t FileDescriptor::Read(std::span<char> buffer) {
+    while (true) {
+        const ::ssize_t s = ::read(fd_, buffer.data(), buffer.size());
+        if (s < 0) {
+            if (errno == EAGAIN || errno == EINTR) {
+                continue;
+            }
+
+            const auto code = std::make_error_code(std::errc{errno});
+            throw std::system_error(code, "calling ::read");
+        }
+        return s;
+    }
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const)
 void FileDescriptor::Seek(std::size_t offset_in_bytes) {
-  while (true) {
-    const auto s = ::lseek(fd_, offset_in_bytes, SEEK_SET);
-    if (s < 0) {
-      if (errno == EAGAIN || errno == EINTR) continue;
+    while (true) {
+        const auto s = ::lseek(fd_, offset_in_bytes, SEEK_SET);
+        if (s < 0) {
+            if (errno == EAGAIN || errno == EINTR) {
+                continue;
+            }
 
-      const auto code = std::make_error_code(std::errc{errno});
-      throw std::system_error(code, "calling ::lseek");
+            const auto code = std::make_error_code(std::errc{errno});
+            throw std::system_error(code, "calling ::lseek");
+        }
+
+        UASSERT(static_cast<std::size_t>(s) == offset_in_bytes);
+        break;
     }
-
-    UASSERT(static_cast<std::size_t>(s) == offset_in_bytes);
-    break;
-  }
 }
 
 // NOLINTNEXTLINE(readability-make-member-function-const)
-void FileDescriptor::FSync() {
-  utils::CheckSyscall(::fsync(fd_), "calling ::fsync");
-}
+void FileDescriptor::FSync() { utils::CheckSyscall(::fsync(fd_), "calling ::fsync"); }
 
-std::size_t FileDescriptor::GetSize() const {
-  return GetFileStats(fd_).st_size;
-}
+std::size_t FileDescriptor::GetSize() const { return GetFileStats(fd_).st_size; }
 
 }  // namespace fs::blocking
 

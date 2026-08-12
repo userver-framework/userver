@@ -1,0 +1,33 @@
+openapi: 3.0.0
+info:
+    description: Service sample
+    title: Service sample
+    version: '1.0'
+
+servers:
+  - url: uservice-sample.yandex.net
+    description: production
+  - url: uservice-sample.tst.yandex.net
+    description: testing
+
+paths:
+    /test:
+        get:
+            parameters:
+              - in: query
+                name: name
+                schema:
+                    type: string
+                required: true
+            responses:
+                200:
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                type: string
+
+components:
+    schemas:
+        Test:
+            type: integer

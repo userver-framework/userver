@@ -1,0 +1,29 @@
+#pragma once
+
+{% for op in spec.operations %}
+#include <handlers/{{ spec.service_name }}/{{ make_op_relpath(op) }}/handler.hpp>
+{% endfor %}
+#include <userver/chaotic/openapi/server/dependencies.hpp>
+#include <userver/components/component_list.hpp>
+#include <userver/components/container.hpp>
+
+namespace {{ spec.cpp_namespace }} {
+
+/// @brief Returns the component list with all generated handlers
+/// and the chaotic-openapi dependency-injection container.
+///
+/// Add this list to your service's component list:
+/// @code
+/// component_list.AppendComponentList({{ spec.cpp_namespace }}::ChaoticHandlersList());
+/// @endcode
+inline {{ userver }}::components::ComponentList ChaoticHandlersList() {
+    return {{ userver }}::components::ComponentList()
+        .Append<{{ userver }}::components::Container<
+            {{ userver }}::chaotic::openapi::server::dependencies::Factories>>()
+{% for op in spec.operations %}
+        .Append<{{ spec.cpp_namespace }}::{{ op.cpp_namespace() }}::Handler>()
+{% endfor %}
+        ;
+}
+
+}  // namespace {{ spec.cpp_namespace }}

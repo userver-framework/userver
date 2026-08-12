@@ -22,12 +22,12 @@ std::string ToString(const boost::uuids::uuid& value);
 /// Outputs UUID in format: 12345678-1234-1234-1234-123412345678
 template <typename Value>
 Value Serialize(const boost::uuids::uuid& value, To<Value>) {
-  return typename Value::Builder(detail::ToString(value)).ExtractValue();
+    return typename Value::Builder(detail::ToString(value)).ExtractValue();
 }
 
 template <typename StringBuilder>
 void WriteToStream(const boost::uuids::uuid& value, StringBuilder& sw) {
-  WriteToStream(detail::ToString(value), sw);
+    WriteToStream(detail::ToString(value), sw);
 }
 
 }  // namespace formats::serialize

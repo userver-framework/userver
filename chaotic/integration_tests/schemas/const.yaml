@@ -1,0 +1,26 @@
+definitions:
+    StringConst:
+        type: string
+        const: active
+    IntConst:
+        type: integer
+        const: 42
+    Int64Const:
+        type: integer
+        format: int64
+        const: 9000000000
+    BoolConst:
+        type: boolean
+        const: true
+    StandaloneStringConst:
+        const: standalone
+    ObjectWithConst:
+        type: object
+        additionalProperties: false
+        properties:
+            status:
+                $ref: '#/definitions/StringConst'
+            code:
+                $ref: '#/definitions/IntConst'
+            enabled:
+                $ref: '#/definitions/BoolConst'

@@ -3,14 +3,13 @@ import logging
 
 from pytest_userver import chaos
 
-
 logger = logging.getLogger(__name__)
 
 
 async def _check_that_restores(service_client, gate: chaos.TcpGate):
     logger.info('mongotest starts "_check_that_restores"')
-    gate.to_server_pass()
-    gate.to_client_pass()
+    await gate.to_server_pass()
+    await gate.to_client_pass()
     gate.start_accepting()
 
     try:
@@ -67,7 +66,7 @@ async def test_stop_accepting(service_client, gate: chaos.TcpGate):
 
 
 async def test_close_connection(service_client, gate: chaos.TcpGate):
-    gate.to_server_close_on_data()
+    await gate.to_server_close_on_data()
 
     response = await service_client.put('/v1/key-value?key=foo&value=bar')
     assert response.status == 500
@@ -76,7 +75,7 @@ async def test_close_connection(service_client, gate: chaos.TcpGate):
 
 
 async def test_block_to_server(service_client, gate: chaos.TcpGate):
-    gate.to_server_noop()
+    await gate.to_server_noop()
 
     response = await service_client.put('/v1/key-value?key=foo&value=bar')
     assert response.status == 500
@@ -85,7 +84,7 @@ async def test_block_to_server(service_client, gate: chaos.TcpGate):
 
 
 async def test_block_to_client(service_client, gate: chaos.TcpGate):
-    gate.to_client_noop()
+    await gate.to_client_noop()
 
     response = await service_client.put('/v1/key-value?key=foo&value=bar')
     assert response.status == 500

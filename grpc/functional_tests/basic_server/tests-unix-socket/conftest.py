@@ -1,26 +1,36 @@
+from collections.abc import Iterator
 import pathlib
+import tempfile
 
 import pytest
-import samples.greeter_pb2_grpc as greeter_services  # noqa: E402, E501
+
+import samples.greeter_pb2_grpc as greeter_services
 
 pytest_plugins = ['pytest_userver.plugins.grpc']
 
-USERVER_CONFIG_HOOKS = ['prepare_service_config']
+USERVER_CONFIG_HOOKS = ['config_echo_url']
 
 
 @pytest.fixture(scope='session')
-def unix_socket_path(tmp_path_factory) -> pathlib.Path:
-    return tmp_path_factory.mktemp('socket_dir') / 's'
+def config_echo_url(mockserver_info):
+    def _do_patch(config_yaml, config_vars):
+        components = config_yaml['components_manager']['components']
+        components['greeter-service']['echo-url'] = mockserver_info.url(
+            '/test-service/echo-no-body',
+        )
+
+    return _do_patch
 
 
 @pytest.fixture(scope='session')
-def grpc_service_endpoint(service_config) -> str:
-    components = service_config['components_manager']['components']
-    return f'unix:{components["grpc-server"]["unix-socket-path"]}'
+def unix_socket_path(tmp_path_factory) -> Iterator[pathlib.Path]:
+    with tempfile.TemporaryDirectory(prefix='userver-grpc-socket-') as name:
+        yield pathlib.Path(name) / 's'
 
 
-@pytest.fixture(name='prepare_service_config', scope='session')
-def _prepare_service_config(unix_socket_path):
+# Overrides userver fixture.
+@pytest.fixture(scope='session')
+def userver_config_grpc_endpoint(unix_socket_path):
     def patch_config(config, config_vars):
         components = config['components_manager']['components']
         components['grpc-server']['unix-socket-path'] = str(unix_socket_path)
@@ -29,5 +39,5 @@ def _prepare_service_config(unix_socket_path):
 
 
 @pytest.fixture
-def grpc_client(grpc_channel, service_client):
+def grpc_client(grpc_channel):
     return greeter_services.GreeterServiceStub(grpc_channel)

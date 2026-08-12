@@ -11,9 +11,11 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::server {
 
 class MiddlewareBase;
+// NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
+class MiddlewareCallContext;
 
 /// @brief A chain of middlewares
-using Middlewares = std::vector<std::shared_ptr<MiddlewareBase>>;
+using Middlewares = std::vector<std::shared_ptr<const MiddlewareBase>>;
 
 }  // namespace ugrpc::server
 

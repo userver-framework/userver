@@ -1,0 +1,7 @@
+default: true
+description: |
+    Cancel server task if context deadline is expired before
+    call handling.
+schema:
+    type: boolean
+

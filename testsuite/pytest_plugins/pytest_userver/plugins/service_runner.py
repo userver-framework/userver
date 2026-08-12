@@ -2,59 +2,40 @@
 Helpers to make the `make start-*` commands work.
 """
 
-# pylint: disable=no-member,missing-kwoa
-import pathlib
+from collections.abc import Iterable
+from collections.abc import Sequence
 
 import pytest
 
-
-class ServiceRunnerModule(pytest.Module):
-    class FakeModule:
-        def __init__(self, path):
-            self.__file__ = path
-
-    def __init__(self, **kwargs) -> None:
-        super().__init__(**kwargs)
-        self._module = self.FakeModule(path=str(self.path))
-
-    @property
-    def obj(self):
-        return self._module
+pytest_plugins = ['pytest_userver.plugins.generated_tests']
 
 
-class UserviceRunner:
-    @pytest.hookimpl(tryfirst=True)
-    def pytest_collection_modifyitems(self, session, config, items):
-        paths = set()
+def pytest_generate_virtual_tests(
+    parent: pytest.File,
+    config: pytest.Config,
+    existing_items: Sequence[pytest.Item],
+) -> Iterable[pytest.Item]:
+    if not config.option.service_runner_mode:
+        return
 
-        # Is there servicetest chosen
-        for item in items:
-            paths.add(pathlib.Path(item.module.__file__).parent)
-            for marker in item.own_markers:
-                if marker.name == 'servicetest':
-                    return
+    for item in existing_items:
+        for marker in item.own_markers:
+            if marker.name == 'servicetest':
+                return
 
-        if not paths:
-            return
-
-        tests_root = min(paths, key=lambda p: len(p.parts))
-
-        module = ServiceRunnerModule.from_parent(
-            parent=session,
-            path=(pathlib.Path(tests_root) / '__service__').resolve(),
-        )
-        function = pytest.Function.from_parent(
-            parent=module,
-            name=test_service_default.__name__,
-            callobj=test_service_default,
-        )
-
-        items.append(function)
+    yield pytest.Function.from_parent(
+        parent=parent,
+        name=test_service_default.__name__,
+        callobj=test_service_default,
+    )
 
 
 @pytest.mark.servicetest
 def test_service_default(
-        service_client, service_baseurl, monitor_baseurl,
+    service_client,
+    service_baseurl,
+    monitor_baseurl,
+    request,
 ) -> None:
     """
     This is default service runner testcase. Feel free to override it
@@ -72,12 +53,9 @@ def test_service_default(
     delimiter = '=' * 100
     message = f'\n{delimiter}\nStarted service at {service_baseurl}'
     if monitor_baseurl:
-        message += f', configured monitor URL is {monitor_baseurl}'
+        message += f'\nMonitor URL is {monitor_baseurl}'
+    if 'grpc_service_endpoint' in request.fixturenames:
+        grpc_endpoint = request.getfixturevalue('grpc_service_endpoint')
+        message += f'\ngRPC endpoint is {grpc_endpoint}'
     message += f'\n{delimiter}\n'
     print(message)
-
-
-def pytest_configure(config):
-    if config.option.service_runner_mode:
-        runner = UserviceRunner()
-        config.pluginmanager.register(runner, 'uservice_runner')

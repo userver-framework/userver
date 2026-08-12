@@ -1,0 +1,7 @@
+logger-level: info
+
+config-server-url: http://localhost:8083/
+server-port: 8185
+monitor-server-port: 8186
+
+greeter-client-endpoint: $grpc_mockserver

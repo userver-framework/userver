@@ -1,274 +1,401 @@
 #include <userver/engine/single_consumer_event.hpp>
 
 #include <atomic>
+#include <optional>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
+#include <userver/engine/task/current_task.hpp>
+#include <userver/engine/wait_any.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/fixed_array.hpp>
 
 using namespace std::chrono_literals;
 
 USERVER_NAMESPACE_BEGIN
 
 TEST(SingleConsumerEvent, Ctr) {
-  engine::SingleConsumerEvent event;
-  EXPECT_TRUE(event.IsAutoReset());
-  EXPECT_FALSE(event.IsReady());
+    const engine::SingleConsumerEvent event;
+    EXPECT_TRUE(event.IsAutoReset());
+    EXPECT_FALSE(event.IsReady());
 }
 
 UTEST(SingleConsumerEvent, IsReady) {
-  engine::SingleConsumerEvent event;
-  event.Send();
-  EXPECT_TRUE(event.IsReady());
-  EXPECT_TRUE(event.IsReady());
+    engine::SingleConsumerEvent event;
+    event.Send();
+    EXPECT_TRUE(event.IsReady());
+    EXPECT_TRUE(event.IsReady());
 
-  EXPECT_TRUE(event.WaitForEvent());
-  EXPECT_FALSE(event.IsReady());
+    EXPECT_TRUE(event.WaitForEvent());
+    EXPECT_FALSE(event.IsReady());
 }
 
 UTEST(SingleConsumerEvent, WaitAndCancel) {
-  engine::SingleConsumerEvent event;
-  auto task =
-      engine::AsyncNoSpan([&event]() { EXPECT_FALSE(event.WaitForEvent()); });
+    engine::SingleConsumerEvent event;
+    auto task = engine::AsyncNoTracing([&event]() { EXPECT_FALSE(event.WaitForEvent()); });
 
-  task.WaitFor(50ms);
-  EXPECT_FALSE(task.IsFinished());
+    task.WaitFor(50ms);
+    EXPECT_FALSE(task.IsFinished());
 }
 
 UTEST(SingleConsumerEvent, WaitAndSend) {
-  engine::SingleConsumerEvent event;
-  auto task =
-      engine::AsyncNoSpan([&event]() { EXPECT_TRUE(event.WaitForEvent()); });
+    engine::SingleConsumerEvent event;
+    auto task = engine::AsyncNoTracing([&event]() { EXPECT_TRUE(event.WaitForEvent()); });
 
-  engine::SleepFor(50ms);
-  event.Send();
+    engine::SleepFor(50ms);
+    event.Send();
 
-  task.WaitFor(50ms);
-  EXPECT_TRUE(task.IsFinished());
+    task.WaitFor(50ms);
+    EXPECT_TRUE(task.IsFinished());
 }
 
 UTEST(SingleConsumerEvent, WaitAndSendDouble) {
-  engine::SingleConsumerEvent event;
-  auto task = engine::AsyncNoSpan([&event]() {
-    for (int i = 0; i < 2; i++) EXPECT_TRUE(event.WaitForEvent());
-  });
+    engine::SingleConsumerEvent event;
+    auto task = engine::AsyncNoTracing([&event]() {
+        for (int i = 0; i < 2; i++) {
+            EXPECT_TRUE(event.WaitForEvent());
+        }
+    });
 
-  for (int i = 0; i < 2; i++) {
-    engine::SleepFor(50ms);
-    event.Send();
-  }
+    for (int i = 0; i < 2; i++) {
+        engine::SleepFor(50ms);
+        event.Send();
+    }
 
-  task.WaitFor(50ms);
-  EXPECT_TRUE(task.IsFinished());
+    task.WaitFor(50ms);
+    EXPECT_TRUE(task.IsFinished());
 }
 
 UTEST(SingleConsumerEvent, SendAndWait) {
-  engine::SingleConsumerEvent event;
-  std::atomic<bool> is_event_sent{false};
+    engine::SingleConsumerEvent event;
+    std::atomic<bool> is_event_sent{false};
 
-  auto task = engine::AsyncNoSpan([&event, &is_event_sent]() {
-    while (!is_event_sent) engine::SleepFor(10ms);
-    EXPECT_TRUE(event.WaitForEvent());
-  });
+    auto task = engine::AsyncNoTracing([&event, &is_event_sent]() {
+        while (!is_event_sent) {
+            engine::SleepFor(10ms);
+        }
+        EXPECT_TRUE(event.WaitForEvent());
+    });
 
-  event.Send();
-  is_event_sent = true;
+    event.Send();
+    is_event_sent = true;
 
-  task.WaitFor(utest::kMaxTestWaitTime);
-  EXPECT_TRUE(task.IsFinished());
+    task.WaitFor(utest::kMaxTestWaitTime);
+    EXPECT_TRUE(task.IsFinished());
 }
 
 UTEST(SingleConsumerEvent, WaitFailed) {
-  engine::SingleConsumerEvent event;
+    engine::SingleConsumerEvent event;
 
-  EXPECT_FALSE(event.WaitForEventUntil(engine::Deadline::Passed()));
+    EXPECT_FALSE(event.WaitForEventUntil(engine::Deadline::Passed()));
+}
+
+UTEST(SingleConsumerEvent, WaitUntilAllStatuses) {
+    engine::SingleConsumerEvent event;
+
+    // kReady: the event is already signaled.
+    event.Send();
+    EXPECT_EQ(event.WaitUntil(engine::Deadline{}), engine::FutureStatus::kReady);
+
+    // kTimeout: the event is not signaled and the deadline is reached.
+    EXPECT_EQ(event.WaitUntil(engine::Deadline::Passed()), engine::FutureStatus::kTimeout);
+
+    // kCancelled: the waiting task is cancelled before the event is signaled.
+    auto waiter = engine::CriticalAsyncNoTracing([&event] {
+        return event.WaitUntil(engine::Deadline::FromDuration(utest::kMaxTestWaitTime));
+    });
+    waiter.SyncCancel();
+    UEXPECT_NO_THROW(EXPECT_EQ(waiter.Get(), engine::FutureStatus::kCancelled));
 }
 
 UTEST(SingleConsumerEvent, SendAndWait2) {
-  engine::SingleConsumerEvent event;
-  auto task = engine::AsyncNoSpan([&event]() {
-    EXPECT_TRUE(event.WaitForEvent());
-    EXPECT_TRUE(event.WaitForEvent());
-  });
+    engine::SingleConsumerEvent event;
+    auto task = engine::AsyncNoTracing([&event]() {
+        EXPECT_TRUE(event.WaitForEvent());
+        EXPECT_TRUE(event.WaitForEvent());
+    });
 
-  event.Send();
-  engine::Yield();
-  event.Send();
-  engine::Yield();
+    event.Send();
+    engine::Yield();
+    event.Send();
+    engine::Yield();
 
-  EXPECT_TRUE(task.IsFinished());
+    EXPECT_TRUE(task.IsFinished());
 }
 
 UTEST(SingleConsumerEvent, SendAndWait3) {
-  engine::SingleConsumerEvent event;
-  auto task = engine::AsyncNoSpan([&event]() {
-    EXPECT_TRUE(event.WaitForEvent());
-    EXPECT_TRUE(event.WaitForEvent());
-    EXPECT_FALSE(event.WaitForEvent());
-  });
+    engine::SingleConsumerEvent event;
+    auto task = engine::AsyncNoTracing([&event]() {
+        EXPECT_TRUE(event.WaitForEvent());
+        EXPECT_TRUE(event.WaitForEvent());
+        EXPECT_FALSE(event.WaitForEvent());
+    });
 
-  event.Send();
-  engine::Yield();
-  event.Send();
-  engine::Yield();
+    event.Send();
+    engine::Yield();
+    event.Send();
+    engine::Yield();
 }
 
 UTEST_MT(SingleConsumerEvent, Multithread, 2) {
-  const auto count = 10000;
+    const auto count = 10000;
 
-  engine::SingleConsumerEvent event;
-  std::atomic<int> got{0};
+    engine::SingleConsumerEvent event;
+    std::atomic<int> got{0};
 
-  auto task = engine::AsyncNoSpan([&got, &event]() {
-    while (event.WaitForEvent()) {
-      got++;
+    auto task = engine::AsyncNoTracing([&got, &event]() {
+        while (event.WaitForEvent()) {
+            got++;
+        }
+    });
+
+    engine::SleepFor(10ms);
+    for (size_t i = 0; i < count; i++) {
+        event.Send();
     }
-  });
+    engine::SleepFor(10ms);
 
-  engine::SleepFor(10ms);
-  for (size_t i = 0; i < count; i++) {
-    event.Send();
-  }
-  engine::SleepFor(10ms);
-
-  EXPECT_GE(got.load(), 1);
-  EXPECT_LE(got.load(), count);
-  LOG_INFO() << "waiting";
-  task.SyncCancel();
-  LOG_INFO() << "waited";
+    EXPECT_GE(got.load(), 1);
+    EXPECT_LE(got.load(), count);
+    LOG_INFO() << "waiting";
+    task.SyncCancel();
+    LOG_INFO() << "waited";
 }
 
 UTEST(SingleConsumerEvent, PassBetweenTasks) {
-  constexpr size_t kIterations = 4;
+    constexpr size_t kIterations = 4;
 
-  engine::SingleConsumerEvent task_started;
-  engine::SingleConsumerEvent event;
+    engine::SingleConsumerEvent task_started;
+    engine::SingleConsumerEvent event;
 
-  for (size_t i = 0; i < kIterations; ++i) {
-    auto task = engine::AsyncNoSpan([&event, &task_started] {
-      task_started.Send();
-      EXPECT_TRUE(event.WaitForEventFor(utest::kMaxTestWaitTime));
-    });
-    ASSERT_TRUE(task_started.WaitForEventFor(utest::kMaxTestWaitTime));
-    event.Send();
-    task.WaitFor(utest::kMaxTestWaitTime);
-    EXPECT_TRUE(task.IsFinished());
-    UEXPECT_NO_THROW(task.Get());
-  }
+    for (size_t i = 0; i < kIterations; ++i) {
+        auto task = engine::AsyncNoTracing([&event, &task_started] {
+            task_started.Send();
+            EXPECT_TRUE(event.WaitForEventFor(utest::kMaxTestWaitTime));
+        });
+        ASSERT_TRUE(task_started.WaitForEventFor(utest::kMaxTestWaitTime));
+        event.Send();
+        task.WaitFor(utest::kMaxTestWaitTime);
+        EXPECT_TRUE(task.IsFinished());
+        UEXPECT_NO_THROW(task.Get());
+    }
 }
 
 UTEST(SingleConsumerEvent, NoAutoReset) {
-  static constexpr auto kNoWait = std::chrono::seconds::zero();
+    static constexpr auto kNoWait = std::chrono::seconds::zero();
 
-  engine::SingleConsumerEvent event(engine::SingleConsumerEvent::NoAutoReset{});
+    engine::SingleConsumerEvent event(engine::SingleConsumerEvent::NoAutoReset{});
 
-  EXPECT_FALSE(event.IsAutoReset());
-  EXPECT_FALSE(event.WaitForEventFor(kNoWait));
+    EXPECT_FALSE(event.IsAutoReset());
+    EXPECT_FALSE(event.WaitForEventFor(kNoWait));
 
-  event.Send();
-  EXPECT_TRUE(event.WaitForEventFor(kNoWait));
-  EXPECT_TRUE(event.WaitForEventFor(kNoWait));
-  event.Reset();
-  EXPECT_FALSE(event.WaitForEventFor(kNoWait));
-  event.Send();
-  EXPECT_TRUE(event.WaitForEventFor(kNoWait));
-  EXPECT_TRUE(event.WaitForEventFor(kNoWait));
+    event.Send();
+    EXPECT_TRUE(event.WaitForEventFor(kNoWait));
+    EXPECT_TRUE(event.WaitForEventFor(kNoWait));
+    event.Reset();
+    EXPECT_FALSE(event.WaitForEventFor(kNoWait));
+    event.Send();
+    EXPECT_TRUE(event.WaitForEventFor(kNoWait));
+    EXPECT_TRUE(event.WaitForEventFor(kNoWait));
+}
+
+UTEST(SingleConsumerEvent, WaitAny) {
+    engine::SingleConsumerEvent events[]{
+        engine::SingleConsumerEvent{engine::SingleConsumerEvent::NoAutoReset{}},
+        engine::SingleConsumerEvent{engine::SingleConsumerEvent::NoAutoReset{}},
+    };
+
+    // Check that notifying events[1] works.
+    events[1].Send();
+
+    EXPECT_EQ(engine::WaitAnyFor(utest::kMaxTestWaitTime, events), 1);
+    EXPECT_TRUE(events[1].IsReady());
+    events[1].Reset();
+
+    // Check that notifying events[0] works.
+    events[0].Send();
+
+    EXPECT_EQ(engine::WaitAnyFor(utest::kMaxTestWaitTime, events), 0);
+    EXPECT_TRUE(events[0].IsReady());
+    // No Reset here.
+
+    // Check that the existing signal holds and keeps notifying WaitAny until reset.
+    EXPECT_EQ(engine::WaitAnyFor(utest::kMaxTestWaitTime, events), 0);
+    EXPECT_TRUE(events[0].IsReady());
+}
+
+UTEST(SingleConsumerEvent, AwaitableTokenHasSpuriousWakeups) {
+    // When waiting on SingleConsumerEvent with a predicate, spurious wakeups need to be handled manually.
+    // (For normal waiting there is SingleConsumerEvent::WaitUntil; for WaitAny, there is no equivalent.)
+    //
+    // In this example, we actually want to wait on the predicate `count >= 3`, using SCE like a condition variable.
+    // This test shows how it can be done without race conditions.
+
+    ASSERT_EQ(engine::current_task::GetWorkerCount(), 1)
+        << "This test relies on Yield "
+           "passing execution to the other "
+           "task";
+
+    std::atomic<int> count{0};
+    int wait_iterations{0};
+    engine::SingleConsumerEvent event{engine::SingleConsumerEvent::NoAutoReset{}};
+
+    auto producer = engine::CriticalAsyncNoTracing([&] {
+        for (int i = 0; i < 10; ++i) {
+            count.fetch_add(1, std::memory_order_relaxed);
+            event.Send();
+            engine::Yield();
+        }
+    });
+
+    const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+    // A manual loop similar to SingleConsumerEvent::WaitUntil.
+    while (count.load(std::memory_order_relaxed) < 3) {
+        ++wait_iterations;
+        ASSERT_EQ(engine::WaitAnyUntil(deadline, event), 0);
+        event.Reset();
+    }
+
+    EXPECT_EQ(wait_iterations, 3);
+    UEXPECT_NO_THROW(producer.Get());
 }
 
 UTEST_MT(SingleConsumerEvent, NoSignalDuplication, 2) {
-  engine::SingleConsumerEvent event;
-  std::atomic<std::size_t> events_received{0};
+    engine::SingleConsumerEvent event;
+    std::atomic<std::size_t> events_received{0};
 
-  auto waiter = engine::AsyncNoSpan([&] {
-    if (event.WaitForEvent()) {
-      ++events_received;
-    }
-    if (event.WaitForEvent()) {
-      ++events_received;
-    }
-  });
+    auto waiter = engine::AsyncNoTracing([&] {
+        if (event.WaitForEvent()) {
+            ++events_received;
+        }
+        if (event.WaitForEvent()) {
+            ++events_received;
+        }
+    });
 
-  event.Send();
+    event.Send();
 
-  // Allow 'WaitForEvent' to race with 'Send' for a little while
-  engine::SleepFor(10us);
+    // Allow 'WaitForEvent' to race with 'Send' for a little while
+    engine::SleepFor(10us);
 
-  waiter.SyncCancel();
-  ASSERT_LE(events_received, 1);
+    waiter.SyncCancel();
+    ASSERT_LE(events_received, 1);
 }
 
 UTEST_MT(SingleConsumerEvent, ParallelSend, 3) {
-  constexpr std::size_t kProducersCount = 2;
+    constexpr std::size_t kProducersCount = 2;
 
-  const auto test_deadline = engine::Deadline::FromDuration(50ms);
-  engine::SingleConsumerEvent event;
+    const auto test_deadline = engine::Deadline::FromDuration(50ms);
+    engine::SingleConsumerEvent event;
 
-  std::vector<engine::TaskWithResult<void>> producers;
-  for (std::size_t i = 0; i < kProducersCount; ++i) {
-    producers.push_back(engine::CriticalAsyncNoSpan([&] {
-      while (!engine::current_task::ShouldCancel()) {
-        event.Send();
-        engine::Yield();
-      }
-    }));
-  }
+    std::vector<engine::TaskWithResult<void>> producers;
+    producers.reserve(kProducersCount);
+    for (std::size_t i = 0; i < kProducersCount; ++i) {
+        producers.push_back(engine::CriticalAsyncNoTracing([&] {
+            while (!engine::current_task::ShouldCancel()) {
+                event.Send();
+                engine::Yield();
+            }
+        }));
+    }
 
-  while (!test_deadline.IsReached()) {
-    const bool success = event.WaitForEvent();
-    ASSERT_TRUE(success);
-  }
+    while (!test_deadline.IsReached()) {
+        const bool success = event.WaitForEvent();
+        ASSERT_TRUE(success);
+    }
 
-  for (auto& producer : producers) {
-    producer.RequestCancel();
-    UEXPECT_NO_THROW(producer.Get());
-  }
+    for (auto& producer : producers) {
+        producer.RequestCancel();
+        UEXPECT_NO_THROW(producer.Get());
+    }
+}
+
+UTEST_MT(SingleConsumerEvent, AsConditionVariable, 4) {
+    /// [CV init]
+    std::atomic<std::uint64_t> count{1};
+    engine::SingleConsumerEvent event;
+    /// [CV init]
+
+    auto incrementors = utils::GenerateFixedArray(engine::current_task::GetWorkerCount() - 1, [&](std::size_t) {
+        return engine::CriticalAsyncNoTracing([&count, &event] {
+            while (!engine::current_task::ShouldCancel()) {
+                /// [CV notifier]
+                // First, mutate the state.
+                // Notifiers and the waiter will access the state in parallel.
+                // Operations must be atomic, can be std::memory_order_relaxed.
+                count.fetch_add(1, std::memory_order_relaxed);
+                // Second, notify the waiter.
+                event.Send();
+                /// [CV notifier]
+
+                engine::Yield();
+            }
+        });
+    });
+
+    /// [CV waiter]
+    std::uint64_t count_acquired{};
+    const auto wait_status = event.WaitUntil({}, [&] {
+        // Operations must be atomic, can be std::memory_order_relaxed.
+        count_acquired = count.load(std::memory_order_relaxed);
+        return count_acquired % 2 == 0 && count.compare_exchange_strong(count_acquired, 0, std::memory_order_relaxed);
+    });
+    /// [CV waiter]
+
+    EXPECT_EQ(wait_status, engine::FutureStatus::kReady);
+    EXPECT_TRUE(count_acquired != 0);
+    EXPECT_TRUE(count_acquired % 2 == 0);
+
+    for (auto& incrementor : incrementors) {
+        incrementor.RequestCancel();
+        UEXPECT_NO_THROW(incrementor.Get());
+    }
 }
 
 namespace {
 
 auto WaitAndDestroySample() {
-  /// [Wait and destroy]
-  engine::TaskWithResult<void> sender;
-  {
-    engine::SingleConsumerEvent event;
-    sender = engine::AsyncNoSpan([&event] { event.Send(); });
-    // will be woken up by 'Send()' above
-    const bool success = event.WaitForEvent();
+    /// [Wait and destroy]
+    engine::TaskWithResult<void> sender;
+    {
+        engine::SingleConsumerEvent event;
+        sender = engine::AsyncNoTracing([&event] { event.Send(); });
+        // will be woken up by 'Send()' above
+        const bool success = event.WaitForEvent();
 
-    if (!success) {
-      // If the waiting failed due to deadline or cancellation, we must somehow
-      // wait until the parallel task does Send (or prevent the parallel task
-      // from ever doing Send) before destroying the SingleConsumerEvent.
-      sender.SyncCancel();
+        if (!success) {
+            // If the waiting failed due to deadline or cancellation, we must somehow
+            // wait until the parallel task does Send (or prevent the parallel task
+            // from ever doing Send) before destroying the SingleConsumerEvent.
+            sender.SyncCancel();
+        }
+
+        // 'event' is destroyed here. Note that 'Send' might continue executing, but
+        // it will still complete safely.
     }
+    /// [Wait and destroy]
 
-    // 'event' is destroyed here. Note that 'Send' might continue executing, but
-    // it will still complete safely.
-  }
-  /// [Wait and destroy]
-
-  // The test succeeds if the sanitizers are happy, and we haven't violated
-  // event's lifetime.
-  return sender;
+    // The test succeeds if the sanitizers are happy, and we haven't violated
+    // event's lifetime.
+    return sender;
 }
 
 }  // namespace
 
 UTEST(SingleConsumerEvent, WaitAndDestroySuccess) {
-  auto sender = WaitAndDestroySample();
-  UEXPECT_NO_THROW(sender.Get());
+    auto sender = WaitAndDestroySample();
+    UEXPECT_NO_THROW(sender.Get());
 }
 
 UTEST(SingleConsumerEvent, WaitAndDestroyCancellation) {
-  engine::current_task::GetCancellationToken().RequestCancel();
+    engine::current_task::RequestCancel();
 
-  auto sender = WaitAndDestroySample();
+    auto sender = WaitAndDestroySample();
 
-  const engine::TaskCancellationBlocker cancel_blocker;
-  UEXPECT_THROW_MSG(sender.Get(), engine::TaskCancelledException,
-                    "User request");
+    const engine::TaskCancellationBlocker cancel_blocker;
+    UEXPECT_THROW_MSG(sender.Get(), engine::TaskCancelledException, "User request");
 }
 
 USERVER_NAMESPACE_END

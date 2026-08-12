@@ -1,0 +1,18 @@
+definitions:
+    NodeData:
+        type: string
+        minLength: 1
+        maxLength: 20
+
+    TreeNode:
+        type: object
+        additionalProperties: false
+        properties:
+            data:
+                $ref: '#/definitions/NodeData'
+            left:
+                $ref: '#/definitions/TreeNode'
+                x-usrv-cpp-indirect: true
+            right:
+                $ref: '#/definitions/TreeNode'
+                x-usrv-cpp-indirect: true

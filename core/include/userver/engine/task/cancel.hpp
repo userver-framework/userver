@@ -18,12 +18,13 @@ class TaskContext;
 
 /// Task cancellation reason
 enum class TaskCancellationReason {
-  kNone,         ///< Not cancelled
-  kUserRequest,  ///< User request
-  kDeadline,     ///< Deadline
-  kOverload,     ///< Task processor overload
-  kAbandoned,    ///< Task destructor is called before the payload finished
-  kShutdown,     ///< Task processor shutdown
+    kNone,         ///< Not cancelled
+    kUserRequest,  ///< User request
+    kDeadline,     ///< Deadline
+    kOverload,     ///< Task processor overload
+    kOOM,          ///< Not enough memory
+    kAbandoned,    ///< Task destructor is called before the payload finished
+    kShutdown,     ///< Task processor shutdown
 };
 
 class Task;
@@ -54,7 +55,7 @@ TaskCancellationReason CancellationReason() noexcept;
 /// @throws unspecified (non-std) exception if cancellation is pending and not
 /// blocked
 ///
-/// @warning cathching this exception without a rethrow in the same scope leads
+/// @warning catching this exception without a rethrow in the same scope leads
 /// to undefined behavior.
 /// @see @ref task_cancellation_intro
 void CancellationPoint();
@@ -63,7 +64,11 @@ void CancellationPoint();
 /// The task will be cancelled when the deadline is reached.
 void SetDeadline(Deadline deadline);
 
-/// Return cancellation token for current coroutine.
+/// @see engine::Task::RequestCancel
+void RequestCancel();
+
+/// @brief Return cancellation token for current coroutine.
+/// @note Prefer engine::current_task::RequestCancel in most cases.
 TaskCancellationToken GetCancellationToken();
 
 }  // namespace current_task
@@ -71,18 +76,18 @@ TaskCancellationToken GetCancellationToken();
 /// Blocks cancellation for specific scopes, e.g. destructors.
 /// Recursive, i.e. can be instantiated multiple times in a given call stack.
 class TaskCancellationBlocker final {
- public:
-  TaskCancellationBlocker();
-  ~TaskCancellationBlocker();
+public:
+    TaskCancellationBlocker();
+    ~TaskCancellationBlocker();
 
-  TaskCancellationBlocker(const TaskCancellationBlocker&) = delete;
-  TaskCancellationBlocker(TaskCancellationBlocker&&) = delete;
-  TaskCancellationBlocker& operator=(const TaskCancellationBlocker&) = delete;
-  TaskCancellationBlocker& operator=(TaskCancellationBlocker&&) = delete;
+    TaskCancellationBlocker(const TaskCancellationBlocker&) = delete;
+    TaskCancellationBlocker(TaskCancellationBlocker&&) = delete;
+    TaskCancellationBlocker& operator=(const TaskCancellationBlocker&) = delete;
+    TaskCancellationBlocker& operator=(TaskCancellationBlocker&&) = delete;
 
- private:
-  impl::TaskContext& context_;
-  const bool was_allowed_;
+private:
+    impl::TaskContext& context_;
+    const bool was_allowed_;
 };
 
 /// Returns a string representation of a cancellation reason
@@ -97,33 +102,42 @@ std::string_view ToString(TaskCancellationReason reason) noexcept;
 ///
 /// General rule: whenever possible, prefer using engine::Task object instead.
 class TaskCancellationToken final {
- public:
-  /// Creates an invalid TaskCancellationToken
-  TaskCancellationToken() noexcept;
+public:
+    /// Creates an invalid TaskCancellationToken
+    TaskCancellationToken() noexcept;
 
-  /// Creates a TaskCancellationToken associated with a task. The task must be
-  /// valid.
-  explicit TaskCancellationToken(Task& task);
+    /// Creates a TaskCancellationToken associated with a task. The task must be
+    /// valid.
+    explicit TaskCancellationToken(Task& task);
 
-  TaskCancellationToken(const TaskCancellationToken&) noexcept;
-  TaskCancellationToken(TaskCancellationToken&&) noexcept;
-  TaskCancellationToken& operator=(const TaskCancellationToken&) noexcept;
-  TaskCancellationToken& operator=(TaskCancellationToken&&) noexcept;
-  ~TaskCancellationToken();
+    TaskCancellationToken(const TaskCancellationToken&) noexcept;
+    TaskCancellationToken(TaskCancellationToken&&) noexcept;
+    TaskCancellationToken& operator=(const TaskCancellationToken&) noexcept;
+    TaskCancellationToken& operator=(TaskCancellationToken&&) noexcept;
+    ~TaskCancellationToken();
 
-  /// @see engine::Task::RequestCancel
-  /// This method should not be called on invalid TaskCancellationToken
-  void RequestCancel();
+    /// @see engine::Task::RequestCancel
+    /// This method should not be called on invalid TaskCancellationToken
+    void RequestCancel();
 
-  /// True if this token is associated with a task
-  bool IsValid() const noexcept;
+    /// @see engine::Task::CancellationReason
+    /// This method should not be called on invalid TaskCancellationToken
+    TaskCancellationReason CancellationReason() const noexcept;
 
- private:
-  friend TaskCancellationToken current_task::GetCancellationToken();
+    /// @see @ref task_cancellation_intro
+    /// True if there is pending cancellation request for the associated task
+    /// This method should not be called on invalid TaskCancellationToken
+    bool IsCancelRequested() const noexcept;
 
-  explicit TaskCancellationToken(impl::TaskContext& context) noexcept;
+    /// True if this token is associated with a task
+    bool IsValid() const noexcept;
 
-  boost::intrusive_ptr<impl::TaskContext> context_;
+private:
+    friend TaskCancellationToken current_task::GetCancellationToken();
+
+    explicit TaskCancellationToken(impl::TaskContext& context) noexcept;
+
+    boost::intrusive_ptr<impl::TaskContext> context_;
 };
 
 }  // namespace engine

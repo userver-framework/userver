@@ -9,8 +9,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
-// clang-format off
-
 /// @ingroup userver_components userver_http_handlers
 ///
 /// @brief Handler that controls the jemalloc allocator.
@@ -28,28 +26,37 @@ namespace server::handlers {
 /// * `enable` - to start memory profiling
 /// * `disable` - to stop memory profiling
 /// * `dump` - to get jemalloc profiling dump
-
-// clang-format on
-
+/// * `bg_threads_set_max` - to set maximum number of background threads
+/// * `bg_threads_enable` - to start background threads
+/// * `bg_threads_disable` - to *synchronously* stop background threads
 class Jemalloc final : public HttpHandlerBase {
- public:
-  Jemalloc(const components::ComponentConfig&,
-           const components::ComponentContext&);
+public:
+    enum class Command {
+        kStat,
+        kEnable,
+        kDisable,
+        kDump,
+        kBgThreadsSetMax,
+        kBgThreadsEnable,
+        kBgThreadsDisable,
+    };
+    static std::optional<Command> GetCommandFromString(std::string_view str);
+    static std::string ListCommands();
 
-  /// @ingroup userver_component_names
-  /// @brief The default name of server::handlers::Jemalloc
-  static constexpr std::string_view kName = "handler-jemalloc";
+    Jemalloc(const components::ComponentConfig&, const components::ComponentContext&);
 
-  std::string HandleRequestThrow(const http::HttpRequest&,
-                                 request::RequestContext&) const override;
+    /// @ingroup userver_component_names
+    /// @brief The default name of server::handlers::Jemalloc
+    static constexpr std::string_view kName = "handler-jemalloc";
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    std::string HandleRequestThrow(const http::HttpRequest&, request::RequestContext&) const override;
+
+    static yaml_config::Schema GetStaticConfigSchema();
 };
 
 }  // namespace server::handlers
 
 template <>
-inline constexpr bool components::kHasValidate<server::handlers::Jemalloc> =
-    true;
+inline constexpr bool components::kHasValidate<server::handlers::Jemalloc> = true;
 
 USERVER_NAMESPACE_END

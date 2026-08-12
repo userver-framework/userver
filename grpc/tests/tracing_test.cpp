@@ -1,0 +1,159 @@
+#include <userver/utest/utest.hpp>
+
+#include <userver/logging/log.hpp>
+#include <userver/tracing/span.hpp>
+#include <userver/utils/algo.hpp>
+
+#include <ugrpc/impl/rpc_metadata.hpp>
+
+#include <tests/unit_test_client.usrv.pb.hpp>
+#include <tests/unit_test_service.usrv.pb.hpp>
+#include <userver/ugrpc/impl/to_string.hpp>
+#include <userver/ugrpc/tests/service_fixtures.hpp>
+
+USERVER_NAMESPACE_BEGIN
+
+namespace {
+
+template <typename MetadataMap>
+grpc::string GetMetadataValue(const MetadataMap& metadata, const grpc::string& key) {
+    return ugrpc::impl::ToGrpcString(utils::FindOrDefault(metadata, key));
+}
+
+const grpc::string kServerTraceId = "server-trace-id";
+const grpc::string kServerSpanId = "server-span-id";
+const grpc::string kServerLink = "server-link";
+const grpc::string kServerParentSpanId = "server-parent-span-id";
+const grpc::string kServerParentLink = "server-parent-link";
+const grpc::string kClientTraceIdEcho = "client-trace-id-echo";
+const grpc::string kClientSpanIdEcho = "client-span-id-echo";
+const grpc::string kClientLinkEcho = "client-link-echo";
+
+class UnitTestServiceWithTracingChecks final : public sample::ugrpc::UnitTestServiceBase {
+public:
+    SayHelloResult SayHello(CallContext& context, sample::ugrpc::GreetingRequest&& /*request*/) override {
+        SetMetadata(context.GetServerContext());
+        return sample::ugrpc::GreetingResponse{};
+    }
+
+    ReadManyResult ReadMany(
+        CallContext& context,
+        sample::ugrpc::StreamGreetingRequest&& /*request*/,
+        ReadManyWriter& /*writer*/
+    ) override {
+        SetMetadata(context.GetServerContext());
+        return grpc::Status::OK;
+    }
+
+    WriteManyResult WriteMany(CallContext& context, WriteManyReader& /*reader*/) override {
+        SetMetadata(context.GetServerContext());
+        return sample::ugrpc::StreamGreetingResponse{};
+    }
+
+    ChatResult Chat(CallContext& context, ChatReaderWriter& /*stream*/) override {
+        SetMetadata(context.GetServerContext());
+        return grpc::Status::OK;
+    }
+
+private:
+    static void SetMetadata(grpc::ServerContextBase& context) {
+        const auto& span = tracing::Span::CurrentSpan();
+        const auto& client_meta = context.client_metadata();
+
+        context.AddInitialMetadata(kServerTraceId, ugrpc::impl::ToGrpcString(span.GetTraceId()));
+        context.AddInitialMetadata(kServerSpanId, ugrpc::impl::ToGrpcString(span.GetSpanId()));
+        context.AddInitialMetadata(kServerLink, ugrpc::impl::ToGrpcString(span.GetLink()));
+        context.AddInitialMetadata(kServerParentSpanId, ugrpc::impl::ToGrpcString(span.GetParentId()));
+        context.AddInitialMetadata(kServerParentLink, ugrpc::impl::ToGrpcString(span.GetParentLink()));
+
+        context.AddInitialMetadata(kClientTraceIdEcho, GetMetadataValue(client_meta, ugrpc::impl::kXYaTraceId));
+        context.AddInitialMetadata(kClientSpanIdEcho, GetMetadataValue(client_meta, ugrpc::impl::kXYaSpanId));
+        context.AddInitialMetadata(kClientLinkEcho, GetMetadataValue(client_meta, ugrpc::impl::kXYaRequestId));
+    }
+};
+
+class GrpcTracing
+    : public ugrpc::tests::ServiceWithClientFixture<
+          UnitTestServiceWithTracingChecks,
+          sample::ugrpc::UnitTestServiceClient> {
+    logging::DefaultLoggerLevelScope log_level_scope_{logging::Level::kInfo};
+};
+
+void CheckMetadata(const grpc::ClientContext& client_context) {
+    const auto& metadata = client_context.GetServerInitialMetadata();
+    const auto& span = tracing::Span::CurrentSpan();
+
+    // - TraceId should propagate both to sub-spans within a single service,
+    //   and from client to server
+    // - Link should propagate within a single service, but not from client to
+    //   server (a new link will be generated for the request processing task)
+    // - SpanId should not propagate
+    // - there are also ParentSpanId and ParentLink with obvious semantics
+    // - client uses a detached sub-Span for the RPC
+
+    // the checks below follow EXPECT_EQ(cause, effect) order
+    EXPECT_EQ(span.GetTraceId(), GetMetadataValue(metadata, kClientTraceIdEcho));
+    EXPECT_EQ(GetMetadataValue(metadata, kClientTraceIdEcho), GetMetadataValue(metadata, kServerTraceId));
+
+    EXPECT_NE(span.GetSpanId(), GetMetadataValue(metadata, kClientSpanIdEcho));
+    EXPECT_EQ(GetMetadataValue(metadata, kClientSpanIdEcho), GetMetadataValue(metadata, kServerParentSpanId));
+    EXPECT_NE(GetMetadataValue(metadata, kServerParentSpanId), GetMetadataValue(metadata, kServerSpanId));
+
+    EXPECT_EQ(span.GetLink(), GetMetadataValue(metadata, kClientLinkEcho));
+    EXPECT_EQ(GetMetadataValue(metadata, kClientLinkEcho), GetMetadataValue(metadata, kServerParentLink));
+    EXPECT_NE(GetMetadataValue(metadata, kServerParentLink), GetMetadataValue(metadata, kServerLink));
+}
+
+}  // namespace
+
+UTEST_F(GrpcTracing, UnaryRPC) {
+    sample::ugrpc::GreetingRequest out;
+    out.set_name("userver");
+    auto future = GetClient().AsyncSayHello(out);
+    UEXPECT_NO_THROW(future.Get());
+    CheckMetadata(future.GetContext().GetClientContext());
+}
+
+UTEST_F(GrpcTracing, InputStream) {
+    sample::ugrpc::StreamGreetingRequest out;
+    out.set_name("userver");
+    out.set_number(42);
+    sample::ugrpc::StreamGreetingResponse in;
+    auto call = GetClient().ReadMany(out);
+    EXPECT_FALSE(call.Read(in));
+    CheckMetadata(call.GetContext().GetClientContext());
+}
+
+UTEST_F(GrpcTracing, OutputStream) {
+    auto call = GetClient().WriteMany();
+    UEXPECT_NO_THROW(call.Finish());
+    CheckMetadata(call.GetContext().GetClientContext());
+}
+
+UTEST_F(GrpcTracing, BidirectionalStream) {
+    sample::ugrpc::StreamGreetingResponse in;
+    auto call = GetClient().Chat();
+    EXPECT_FALSE(call.Read(in));
+    CheckMetadata(call.GetContext().GetClientContext());
+}
+
+UTEST_F(GrpcTracing, SpansInDifferentRPCs) {
+    sample::ugrpc::GreetingRequest out;
+    out.set_name("userver");
+
+    auto future1 = GetClient().AsyncSayHello(out);
+    future1.Get();
+    const auto& metadata1 = future1.GetContext().GetClientContext().GetServerInitialMetadata();
+
+    auto future2 = GetClient().AsyncSayHello(out);
+    future2.Get();
+    const auto& metadata2 = future2.GetContext().GetClientContext().GetServerInitialMetadata();
+
+    EXPECT_EQ(GetMetadataValue(metadata1, kServerTraceId), GetMetadataValue(metadata2, kServerTraceId));
+    EXPECT_NE(GetMetadataValue(metadata1, kServerSpanId), GetMetadataValue(metadata2, kServerSpanId));
+    EXPECT_NE(GetMetadataValue(metadata1, kServerParentSpanId), GetMetadataValue(metadata2, kServerParentSpanId));
+    EXPECT_NE(GetMetadataValue(metadata1, kServerLink), GetMetadataValue(metadata2, kServerLink));
+    EXPECT_EQ(GetMetadataValue(metadata1, kServerParentLink), GetMetadataValue(metadata2, kServerParentLink));
+}
+
+USERVER_NAMESPACE_END

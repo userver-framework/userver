@@ -3,6 +3,8 @@
 /// @file userver/utils/boost_uuid4.hpp
 /// @brief @copybrief utils::generators::GenerateBoostUuid()
 
+#include <string_view>
+
 #include <boost/uuid/uuid.hpp>
 
 #include <fmt/core.h>
@@ -12,7 +14,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-/// Generators
+/// @brief Generators, including UUID and random string/id generators.
 namespace generators {
 
 /// Generates UUIDv4
@@ -32,15 +34,10 @@ USERVER_NAMESPACE_END
 
 template <>
 struct fmt::formatter<boost::uuids::uuid> {
-  constexpr static auto parse(format_parse_context& ctx)
-      -> decltype(ctx.begin()) {
-    return ctx.begin();
-  }
+    constexpr static auto parse(format_parse_context& ctx) -> decltype(ctx.begin()) { return ctx.begin(); }
 
-  template <typename FormatContext>
-  auto format(const boost::uuids::uuid& uuid,
-              FormatContext& ctx) USERVER_FMT_CONST {
-    return fmt::format_to(ctx.out(), "{}",
-                          USERVER_NAMESPACE::utils::ToString(uuid));
-  }
+    template <typename FormatContext>
+    auto format(const boost::uuids::uuid& uuid, FormatContext& ctx) USERVER_FMT_CONST {
+        return fmt::format_to(ctx.out(), "{}", USERVER_NAMESPACE::utils::ToString(uuid));
+    }
 };

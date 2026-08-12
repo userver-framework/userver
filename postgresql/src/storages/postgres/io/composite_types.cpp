@@ -9,8 +9,8 @@ namespace storages::postgres::io {
 namespace {
 
 struct Record {
-  // must be non-empty to be a composite type
-  int dummy_;
+    // must be non-empty to be a composite type
+    int dummy;
 };
 
 }  // namespace
@@ -18,14 +18,13 @@ struct Record {
 template <>
 struct CppToSystemPg<Record> : PredefinedOid<PredefinedOids::kRecord> {};
 
-static_assert(traits::kTypeBufferCategory<Record> ==
-              BufferCategory::kCompositeBuffer);
-static_assert(traits::kHasParser<Record>);
+static_assert(traits::kTypeBufferCategory<Record> == BufferCategory::kCompositeBuffer);
+static_assert(traits::HasParser<Record>);
 
 namespace detail {
 
 // here to force linkage
-void InitRecordParser() { ForceReference(CppToPg<Record>::init_); }
+void InitRecordParser() { ForceReference(CppToPg<Record>::init); }
 
 }  // namespace detail
 }  // namespace storages::postgres::io

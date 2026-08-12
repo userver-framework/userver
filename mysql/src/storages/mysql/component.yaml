@@ -1,0 +1,16 @@
+type: object
+description: MySQL client component
+additionalProperties: false
+properties:
+    initial_pool_size:
+        type: integer
+        description: number of connections created initially
+        default: 5
+    max_pool_size:
+        type: integer
+        description: maximum number of created connections
+        default: 10
+    use_secure_connection:
+        type: boolean
+        description: whether to use TLS for connections
+        defaultDescription: true

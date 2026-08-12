@@ -1,0 +1,373 @@
+{
+  "catalog": {
+    "enums": {
+      "tables.user_role": {
+        "name": "user_role",
+        "namespace": "tables",
+        "values": [
+          "admin",
+          "user",
+          "guest"
+        ]
+      }
+    },
+    "tables": {
+      "tables.posts": {
+        "columns": [
+          {
+            "name": "id",
+            "nullable": false,
+            "type": "bigint"
+          },
+          {
+            "name": "author_id",
+            "nullable": true,
+            "type": "bigint"
+          },
+          {
+            "name": "title",
+            "nullable": false,
+            "type": "character varying(200)"
+          },
+          {
+            "name": "content",
+            "nullable": true,
+            "type": "text"
+          },
+          {
+            "name": "published_at",
+            "nullable": true,
+            "type": "timestamp with time zone"
+          },
+          {
+            "name": "updated_at",
+            "nullable": true,
+            "type": "timestamp with time zone"
+          },
+          {
+            "name": "view_count",
+            "nullable": true,
+            "type": "integer"
+          },
+          {
+            "name": "is_published",
+            "nullable": true,
+            "type": "boolean"
+          }
+        ],
+        "name": "posts",
+        "namespace": "tables",
+        "version": 0
+      },
+      "tables.users": {
+        "columns": [
+          {
+            "name": "id",
+            "nullable": false,
+            "type": "bigint"
+          },
+          {
+            "name": "username",
+            "nullable": false,
+            "type": "character varying(50)"
+          },
+          {
+            "name": "email",
+            "nullable": false,
+            "type": "text"
+          },
+          {
+            "name": "password_hash",
+            "nullable": true,
+            "type": "character(64)"
+          },
+          {
+            "name": "age",
+            "nullable": true,
+            "type": "smallint"
+          },
+          {
+            "name": "balance",
+            "nullable": true,
+            "type": "numeric(10,2)"
+          },
+          {
+            "name": "rating",
+            "nullable": true,
+            "type": "real"
+          },
+          {
+            "name": "created_at",
+            "nullable": true,
+            "type": "timestamp with time zone"
+          },
+          {
+            "name": "last_login",
+            "nullable": true,
+            "type": "timestamp without time zone"
+          },
+          {
+            "name": "birth_date",
+            "nullable": true,
+            "type": "date"
+          },
+          {
+            "name": "external_id",
+            "nullable": true,
+            "type": "uuid"
+          },
+          {
+            "name": "is_active",
+            "nullable": true,
+            "type": "boolean"
+          },
+          {
+            "name": "is_deleted",
+            "nullable": true,
+            "type": "boolean"
+          },
+          {
+            "name": "preferences",
+            "nullable": true,
+            "type": "jsonb"
+          },
+          {
+            "name": "metadata",
+            "nullable": true,
+            "type": "json"
+          },
+          {
+            "name": "role",
+            "nullable": true,
+            "type": "tables.user_role"
+          },
+          {
+            "name": "profile",
+            "nullable": true,
+            "type": "tables.profile_data"
+          },
+          {
+            "name": "tags",
+            "nullable": true,
+            "type": "text[]"
+          },
+          {
+            "name": "favorite_numbers",
+            "nullable": true,
+            "type": "integer[]"
+          },
+          {
+            "name": "avatar",
+            "nullable": true,
+            "type": "bytea"
+          },
+          {
+            "name": "session_duration",
+            "nullable": true,
+            "type": "interval"
+          },
+          {
+            "name": "valid_age_range",
+            "nullable": true,
+            "type": "int4range"
+          }
+        ],
+        "name": "users",
+        "namespace": "tables",
+        "version": 0
+      }
+    },
+    "types": {
+      "tables.posts_v0": {
+        "fields": [
+          {
+            "name": "id",
+            "nullable": true,
+            "type": "bigint"
+          },
+          {
+            "name": "author_id",
+            "nullable": true,
+            "type": "bigint"
+          },
+          {
+            "name": "title",
+            "nullable": true,
+            "type": "character varying(200)"
+          },
+          {
+            "name": "content",
+            "nullable": true,
+            "type": "text"
+          },
+          {
+            "name": "published_at",
+            "nullable": true,
+            "type": "timestamp with time zone"
+          },
+          {
+            "name": "updated_at",
+            "nullable": true,
+            "type": "timestamp with time zone"
+          },
+          {
+            "name": "view_count",
+            "nullable": true,
+            "type": "integer"
+          },
+          {
+            "name": "is_published",
+            "nullable": true,
+            "type": "boolean"
+          }
+        ],
+        "name": "posts_v0",
+        "namespace": "tables"
+      },
+      "tables.profile_data": {
+        "fields": [
+          {
+            "name": "first_name",
+            "nullable": true,
+            "type": "text"
+          },
+          {
+            "name": "last_name",
+            "nullable": true,
+            "type": "text"
+          },
+          {
+            "name": "birth_year",
+            "nullable": true,
+            "type": "integer"
+          },
+          {
+            "name": "is_verified",
+            "nullable": true,
+            "type": "boolean"
+          }
+        ],
+        "name": "profile_data",
+        "namespace": "tables"
+      },
+      "tables.users_v0": {
+        "fields": [
+          {
+            "name": "id",
+            "nullable": true,
+            "type": "bigint"
+          },
+          {
+            "name": "username",
+            "nullable": true,
+            "type": "character varying(50)"
+          },
+          {
+            "name": "email",
+            "nullable": true,
+            "type": "text"
+          },
+          {
+            "name": "password_hash",
+            "nullable": true,
+            "type": "character(64)"
+          },
+          {
+            "name": "age",
+            "nullable": true,
+            "type": "smallint"
+          },
+          {
+            "name": "balance",
+            "nullable": true,
+            "type": "numeric(10,2)"
+          },
+          {
+            "name": "rating",
+            "nullable": true,
+            "type": "real"
+          },
+          {
+            "name": "created_at",
+            "nullable": true,
+            "type": "timestamp with time zone"
+          },
+          {
+            "name": "last_login",
+            "nullable": true,
+            "type": "timestamp without time zone"
+          },
+          {
+            "name": "birth_date",
+            "nullable": true,
+            "type": "date"
+          },
+          {
+            "name": "external_id",
+            "nullable": true,
+            "type": "uuid"
+          },
+          {
+            "name": "is_active",
+            "nullable": true,
+            "type": "boolean"
+          },
+          {
+            "name": "is_deleted",
+            "nullable": true,
+            "type": "boolean"
+          },
+          {
+            "name": "preferences",
+            "nullable": true,
+            "type": "jsonb"
+          },
+          {
+            "name": "metadata",
+            "nullable": true,
+            "type": "json"
+          },
+          {
+            "name": "role",
+            "nullable": true,
+            "type": "tables.user_role"
+          },
+          {
+            "name": "profile",
+            "nullable": true,
+            "type": "tables.profile_data"
+          },
+          {
+            "name": "tags",
+            "nullable": true,
+            "type": "text[]"
+          },
+          {
+            "name": "favorite_numbers",
+            "nullable": true,
+            "type": "integer[]"
+          },
+          {
+            "name": "avatar",
+            "nullable": true,
+            "type": "bytea"
+          },
+          {
+            "name": "session_duration",
+            "nullable": true,
+            "type": "interval"
+          },
+          {
+            "name": "valid_age_range",
+            "nullable": true,
+            "type": "int4range"
+          }
+        ],
+        "name": "users_v0",
+        "namespace": "tables"
+      }
+    }
+  },
+  "hashsum": "a022edbaad8387f8fdc1ee86c31a73d08d672d758619404f8df2a86d027f3c7c",
+  "queries": []
+}

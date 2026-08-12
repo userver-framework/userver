@@ -19,27 +19,27 @@ components_manager:
         grpc-server:
             port: 8091
 
+        congestion-control:
+
         grpc-server-logging:
             msg-size-log-limit: 10
 
-        grpc-server-deadline-propagation:
-        grpc-server-baggage:
+        grpc-client-middlewares-pipeline:
+        grpc-server-middlewares-pipeline:
 
         greeter-service:
             task-processor: main-task-processor
-            middlewares:
-              - grpc-server-logging
-              - grpc-server-baggage
 
         # gRPC client
+        grpc-client-common:
+            blocking-task-processor: grpc-blocking-task-processor
         grpc-client-factory:
-            task-processor: grpc-blocking-task-processor
-            channel-args: {}
             middlewares:
-              - grpc-client-logging
-              - grpc-client-baggage
+                grpc-client-deadline-propagation:
+                    enabled: false
+            channel-args: {}
         greeter-client:
-            endpoint: '[::]:8081'
+            endpoint: $greeter-client-endpoint
 
         # http server
         server:
@@ -58,6 +58,8 @@ components_manager:
         grpc-client-logging:
         grpc-client-deadline-propagation:
         grpc-client-baggage:
+        grpc-client-origin:
+            user-agent: metrics-service
 
     default_task_processor: main-task-processor
 
@@ -65,7 +67,7 @@ components_manager:
         grpc-blocking-task-processor:  # For blocking gRPC channel creation
             thread_name: grpc-worker
             worker_threads: 2
-        main-task-processor:           # For non-blocking operations
+        main-task-processor:  # For non-blocking operations
             worker_threads: 4
-        fs-task-processor:             # For blocking filesystem operations
+        fs-task-processor:  # For blocking filesystem operations
             worker_threads: 2

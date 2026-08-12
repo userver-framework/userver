@@ -5,6 +5,10 @@
 #include <userver/tracing/span_builder.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
+#ifndef ARCADIA_ROOT
+#include "generated/src/tracing/manager_component.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace tracing {
@@ -18,75 +22,61 @@ using FlagsFormat = utils::Flags<tracing::Format>;
 const TracingManagerBase& GetTracingManagerFromConfig(
     const GenericTracingManager& default_manager,
     const components::ComponentConfig& config,
-    const components::ComponentContext& context) {
-  if (config.HasMember("component-name")) {
-    auto tracing_manager_name = config["component-name"].As<std::string>();
-    if (!tracing_manager_name.empty()) {
-      return context.FindComponent<TracingManagerBase>(tracing_manager_name);
+    const components::ComponentContext& context
+) {
+    if (config.HasMember("component-name")) {
+        auto tracing_manager_name = config["component-name"].As<std::string>();
+        if (!tracing_manager_name.empty()) {
+            return context.FindComponent<TracingManagerBase>(tracing_manager_name);
+        }
     }
-  }
-  return default_manager;
+    return default_manager;
 }
 
-FlagsFormat Parse(const yaml_config::YamlConfig& value,
-                  formats::parse::To<FlagsFormat>) {
-  utils::Flags<tracing::Format> format = tracing::Format{};
+FlagsFormat Parse(const yaml_config::YamlConfig& value, formats::parse::To<FlagsFormat>) {
+    utils::Flags<tracing::Format> format = tracing::Format{};
 
-  if (!value.IsArray()) {
-    format |= tracing::FormatFromString(value.As<std::string>("taxi"));
-  } else {
-    for (const auto& f : value) {
-      format |= tracing::FormatFromString(f.As<std::string>());
+    if (!value.IsArray()) {
+        format |= tracing::FormatFromString(value.As<std::string>("opentelemetry"));
+        format |= tracing::FormatFromString(value.As<std::string>("taxi"));
+    } else {
+        for (const auto& f : value) {
+            format |= tracing::FormatFromString(f.As<std::string>());
+        }
     }
-  }
 
-  return format;
+    return format;
 }
 
 TracingManagerComponentBase::TracingManagerComponentBase(
     const components::ComponentConfig& config,
-    const components::ComponentContext& context)
-    : components::LoggableComponentBase(config, context) {}
+    const components::ComponentContext& context
+)
+    : components::ComponentBase(config, context) {}
 
 DefaultTracingManagerLocator::DefaultTracingManagerLocator(
     const components::ComponentConfig& config,
-    const components::ComponentContext& context)
-    : components::LoggableComponentBase(config, context),
-      default_manager_(config["incoming-format"].As<FlagsFormat>(),
-                       config["new-requests-format"].As<FlagsFormat>()),
-      tracing_manager_(
-          GetTracingManagerFromConfig(default_manager_, config, context)) {}
+    const components::ComponentContext& context
+)
+    : components::ComponentBase(config, context),
+      otel_sampling_(static_cast<
+                     GenericTracingManager::SamplingEnabled>(config["otel-trace-sampling-enabled"].As<bool>(false))),
+      default_manager_(
+          config["incoming-format"].As<FlagsFormat>(),
+          config["new-requests-format"].As<FlagsFormat>(),
+          otel_sampling_
+      ),
+      tracing_manager_(GetTracingManagerFromConfig(default_manager_, config, context))
+{}
 
-const TracingManagerBase& DefaultTracingManagerLocator::GetTracingManager()
-    const {
-  return tracing_manager_;
+const TracingManagerBase& DefaultTracingManagerLocator::GetTracingManager() const { return tracing_manager_; }
+
+bool DefaultTracingManagerLocator::IsOtelTraceSamplingEnabled() const noexcept {
+    return static_cast<bool>(otel_sampling_);
 }
 
 yaml_config::Schema DefaultTracingManagerLocator::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<components::LoggableComponentBase>(R"(
-type: object
-description: component for finding actual tracing manager
-additionalProperties: false
-properties:
-    component-name:
-        type: string
-        description: tracing manager component's name
-    incoming-format:
-        type: array
-        description: Incoming tracing data formats
-        items: &format_items
-            type: string
-            description: tracing formats
-            enum:
-              - b3-alternative
-              - yandex
-              - taxi
-              - opentelemetry
-    new-requests-format:
-        type: array
-        description: Send tracing data in those formats
-        items: *format_items
-)");
+    return yaml_config::MergeSchemasFromResource<components::ComponentBase>("src/tracing/manager_component.yaml");
 }
 
 }  // namespace tracing

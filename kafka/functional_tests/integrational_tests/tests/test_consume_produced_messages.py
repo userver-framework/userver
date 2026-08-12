@@ -1,17 +1,18 @@
 from common import generate_messages_to_consume
+
 from utils import consume
 from utils import consume_topic_messages
 from utils import make_producer_request_body
 from utils import produce
 from utils import produce_batch
 
-
 TOPIC1 = 'test-topic-consume-produced-1'
 TOPIC2 = 'test-topic-consume-produced-2'
 
 
 async def test_one_producer_sync_one_consumer_one_topic(
-        service_client, testpoint,
+    service_client,
+    testpoint,
 ):
     @testpoint('tp_kafka-consumer')
     def received_messages_func(_data):
@@ -32,7 +33,8 @@ async def test_one_producer_sync_one_consumer_one_topic(
 
 
 async def test_many_producers_sync_one_consumer_many_topic(
-        service_client, testpoint,
+    service_client,
+    testpoint,
 ):
     @testpoint('tp_kafka-consumer')
     def received_messages_func(_data):
@@ -42,7 +44,8 @@ async def test_many_producers_sync_one_consumer_many_topic(
 
     topics: list[str] = [TOPIC1, TOPIC2]
     messages: dict[str, list[dict[str, str]]] = generate_messages_to_consume(
-        topics=topics, cnt=15,
+        topics=topics,
+        cnt=15,
     )
 
     for topic in topics:
@@ -63,7 +66,8 @@ async def test_many_producers_sync_one_consumer_many_topic(
 
 
 async def test_many_producers_async_one_consumer_many_topic(
-        service_client, testpoint,
+    service_client,
+    testpoint,
 ):
     @testpoint('tp_kafka-consumer')
     def received_messages_func(_data):
@@ -73,7 +77,8 @@ async def test_many_producers_async_one_consumer_many_topic(
 
     topics: list[str] = [TOPIC1, TOPIC2]
     messages: dict[str, list[dict[str, str]]] = generate_messages_to_consume(
-        topics=topics, cnt=15,
+        topics=topics,
+        cnt=15,
     )
 
     requests: list[dict[str, str]] = []

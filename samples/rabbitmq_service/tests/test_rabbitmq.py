@@ -7,7 +7,8 @@ async def test_rabbitmq(testpoint, service_client):
 
     for i in range(num_messages):
         response = await service_client.post(
-            '/v1/messages/', json={'message': str(i)},
+            '/v1/messages/',
+            json={'message': str(i)},
         )
         assert response.status_code == 200
 
@@ -16,5 +17,5 @@ async def test_rabbitmq(testpoint, service_client):
 
     response = await service_client.get('/v1/messages')
     assert response.status_code == 200
-
+    assert 'application/json' in response.headers['Content-Type']
     assert response.json()['messages'] == [i for i in range(num_messages)]

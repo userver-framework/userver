@@ -1,0 +1,43 @@
+#pragma once
+
+#include "string.hpp"
+
+#include <userver/chaotic/additional_properties.hpp>
+#include <userver/chaotic/primitive.hpp>
+#include <userver/chaotic/validators.hpp>
+#include <userver/chaotic/with_type.hpp>
+#include <userver/formats/parse/common_containers.hpp>
+#include <userver/formats/serialize/common_containers.hpp>
+#include <userver/utils/trivial_map.hpp>
+
+namespace ns {
+
+constexpr USERVER_NAMESPACE::utils::TrivialSet k__ns__String_PropertiesNames = [](auto selector) {
+    return selector().template Type<std::string_view>()
+        .Case("foo")
+    ;
+};
+
+template <USERVER_NAMESPACE::formats::common::IsFormatValue Value>
+String Parse(
+    Value value,
+    USERVER_NAMESPACE::formats::parse::To<String>)
+{
+    value.CheckNotMissing();
+    value.CheckObjectOrNull();
+
+    String res{
+        .foo = value["foo"].template As<
+            std::optional<USERVER_NAMESPACE::chaotic::Primitive<std::string>>
+        >(),
+    };
+
+    USERVER_NAMESPACE::chaotic::ValidateNoAdditionalProperties(
+        value, k__ns__String_PropertiesNames
+    );
+
+    return res;
+}
+
+}  // namespace ns
+

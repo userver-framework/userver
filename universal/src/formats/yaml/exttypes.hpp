@@ -9,12 +9,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace formats::yaml::impl {
 enum Type {
-  // order is important, it matches order in yaml-cpp/node/type.h
-  nullValue = YAML::NodeType::Null,
-  scalarValue = YAML::NodeType::Scalar,
-  arrayValue = YAML::NodeType::Sequence,
-  objectValue = YAML::NodeType::Map,
-  errorValue
+    // order is important, it matches order in yaml-cpp/node/type.h
+    kNullValue = YAML::NodeType::Null,
+    kScalarValue = YAML::NodeType::Scalar,
+    kArrayValue = YAML::NodeType::Sequence,
+    kObjectValue = YAML::NodeType::Map,
+    kErrorValue
 };
 
 Type GetExtendedType(const YAML::Node& val);

@@ -10,10 +10,14 @@ components_manager:
                     level: debug
                     overflow_behavior: discard
 
+        # Contains machinery common to all gRPC clients
+        grpc-client-common:
+            # The TaskProcessor for blocking connection initiation
+            blocking-task-processor: grpc-blocking-task-processor
+
         # Creates gRPC clients
         grpc-client-factory:
-            # The TaskProcessor for blocking connection initiation
-            task-processor: grpc-blocking-task-processor
+            disable-all-pipeline-middlewares: true
 
             # Optional channel parameters for gRPC Core
             # https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
@@ -27,8 +31,40 @@ components_manager:
 
         # Our GreeterService implementation
         greeter-service:
+            echo-url: 'mockserver/v1/translations'  # Some other microservice listens on this URL
             task-processor: main-task-processor
-            middlewares: []
+            disable-all-pipeline-middlewares: true
+            middlewares:
+                grpc-server-headers-propagator:
+                    enabled: true
+
+        grpc-server-middlewares-pipeline:
+        grpc-client-middlewares-pipeline:
+
+        http-client-middleware-pipeline:
+            middlewares:
+                http-client-headers-propagator:
+                    enabled: true
+        http-client-core:
+            fs-task-processor: main-task-processor
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+        headers-propagator:
+            headers: ["custom-header-1", "custom-header-2"]
+
+        grpc-server-headers-propagator:
+            headers: ["custom-header-1", "custom-header-2"]
+
+        http-client-headers-propagator: {}
+
+        tracing-manager-locator:
+            incoming-format: ['opentelemetry', 'taxi']
+            new-requests-format: ['opentelemetry', 'taxi']
+            otel-trace-sampling-enabled: true
+
+        congestion-control:
 
         server:
             listener:
@@ -37,13 +73,18 @@ components_manager:
 
         testsuite-support:
 
+        tests-control:
+            path: /tests/{action}
+            method: POST
+            task_processor: main-task-processor
+
     default_task_processor: main-task-processor  # Task processor in which components start.
 
     task_processors:
         grpc-blocking-task-processor:  # For blocking gRPC channel creation
             worker_threads: 2
             thread_name: grpc-worker
-        main-task-processor:           # For non-blocking operations
+        main-task-processor:  # For non-blocking operations
             worker_threads: 8
-        fs-task-processor:             # For blocking filesystem operations
+        fs-task-processor:  # For blocking filesystem operations
             worker_threads: 2

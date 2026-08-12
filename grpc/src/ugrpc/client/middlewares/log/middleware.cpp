@@ -1,31 +1,134 @@
-#include "middleware.hpp"
+#include <ugrpc/client/middlewares/log/middleware.hpp>
 
-#include <userver/utils/log.hpp>
+#include <fmt/format.h>
+
+#include <userver/logging/level.hpp>
+#include <userver/logging/log_extra.hpp>
+#include <userver/tracing/tags.hpp>
+#include <userver/ugrpc/client/impl/call_state.hpp>
+#include <userver/ugrpc/protobuf_logging.hpp>
+#include <userver/ugrpc/status_codes.hpp>
+
+#include <ugrpc/impl/logging.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::middlewares::log {
 
-Middleware::Middleware(const Settings& settings) : settings_(settings) {}
+namespace {
 
-void Middleware::Handle(MiddlewareCallContext& context) const {
-  const auto* request = context.GetInitialRequest();
-  if (request) {
-    LOG(settings_.log_level)
-        << "gRPC message: " << [request, this]() -> std::string {
-      const auto& str = request->Utf8DebugString();
-      return utils::log::ToLimitedUtf8(str, settings_.max_msg_size);
-    }();
-  }
-  context.Next();
+std::string GetMessageForLogging(const google::protobuf::Message& message, const Settings& settings) {
+    if (settings.msg_log_level < settings.log_level || !logging::ShouldLog(settings.msg_log_level)) {
+        return "";
+    }
+    return ugrpc::ToLimitedLoggingString(message, settings.max_msg_size);
 }
 
-MiddlewareFactory::MiddlewareFactory(const Middleware::Settings& settings)
-    : settings_(settings) {}
+class SpanLogger {
+public:
+    SpanLogger(const tracing::Span& span, logging::Level log_level)
+        : span_{span},
+          log_level_threshold_(log_level)
+    {}
 
-std::shared_ptr<const MiddlewareBase> MiddlewareFactory::GetMiddleware(
-    std::string_view /*client_name*/) const {
-  return std::make_shared<Middleware>(settings_);
+    void Log(logging::Level level, std::string_view message, logging::LogExtra&& extra) const {
+        if (level < log_level_threshold_) {
+            return;
+        }
+        const tracing::impl::DetachLocalSpansScope ignore_local_span;
+        LOG(level) << message << std::move(extra) << tracing::impl::LogSpanAsLastNoCurrent{span_};
+    }
+
+private:
+    const tracing::Span& span_;
+    logging::Level log_level_threshold_;
+};
+
+}  // namespace
+
+Middleware::Middleware(const Settings& settings)
+    : settings_(settings)
+{}
+
+void Middleware::PreStartCall(MiddlewareCallContext& context) const {
+    auto& span = context.GetSpan();
+
+    span.AddTag(ugrpc::impl::kComponentTag, "client");
+    span.AddTag("meta_type", std::string{context.GetCallName()});
+    span.AddTag(tracing::kSpanKind, tracing::kSpanKindClient);
+    span.AddTag(tracing::kRpcSystem, context.GetClientContext().peer());
+
+    if (!IsSingleRequestMethod(context.GetRpcType())) {
+        SpanLogger{span, settings_.log_level}
+            .Log(settings_.msg_log_level, "gRPC request stream started", logging::LogExtra{});
+    }
+}
+
+/// [MiddlewareBase Message methods example]
+void Middleware::PreSendMessage(MiddlewareCallContext& context, const google::protobuf::Message& message) const {
+    auto& span = context.GetSpan();
+
+    const SpanLogger logger{span, settings_.log_level};
+    logging::LogExtra extra{
+        {ugrpc::impl::kTypeTag, "request"},
+        {ugrpc::impl::kBodyTag, GetMessageForLogging(message, settings_)},
+        {ugrpc::impl::kMessageMarshalledLenTag, message.ByteSizeLong()},
+    };
+    if (IsSingleRequestMethod(context.GetRpcType())) {
+        logger.Log(settings_.msg_log_level, "gRPC request", std::move(extra));
+    } else {
+        logger.Log(settings_.msg_log_level, "gRPC request stream message", std::move(extra));
+    }
+}
+
+void Middleware::PostRecvMessage(MiddlewareCallContext& context, const google::protobuf::Message& message) const {
+    const SpanLogger logger{context.GetSpan(), settings_.log_level};
+    logging::LogExtra extra{
+        {ugrpc::impl::kTypeTag, "response"},
+        {ugrpc::impl::kBodyTag, GetMessageForLogging(message, settings_)},
+        {ugrpc::impl::kMessageMarshalledLenTag, message.ByteSizeLong()},
+    };
+    if (IsSingleResponseMethod(context.GetRpcType())) {
+        logger.Log(settings_.msg_log_level, "gRPC response", std::move(extra));
+    } else {
+        logger.Log(settings_.msg_log_level, "gRPC response stream message", std::move(extra));
+    }
+}
+/// [MiddlewareBase Message methods example]
+
+void Middleware::PostFinish(MiddlewareCallContext& context, const CompletionStatus& result) const {
+    const SpanLogger logger{context.GetSpan(), settings_.log_level};
+
+    if (result.has_value()) {
+        // Normal completion with grpc::Status
+        const auto& status = result.value();
+        if (status.ok()) {
+            if (!IsSingleResponseMethod(context.GetRpcType())) {
+                logger.Log(settings_.msg_log_level, "gRPC response stream finished", logging::LogExtra{});
+            }
+        } else {
+            auto error_details = ugrpc::ToUnlimitedLoggingString(status);
+            logging::LogExtra extra{
+                {ugrpc::impl::kTypeTag, "error_status"},
+                {ugrpc::impl::kCodeTag, ugrpc::ToStringView(status.error_code())},
+                {tracing::kErrorMessage, std::move(error_details)}
+            };
+            logger.Log(logging::Level::kWarning, "gRPC error", std::move(extra));
+        }
+    } else {
+        // Special case completion
+        const auto completion_type = result.error();
+        logging::LogExtra extra{
+            {ugrpc::impl::kTypeTag, "special_case_completion"},
+            {"completion_type", ToString(completion_type)},
+            {tracing::kErrorMessage,
+             fmt::format(
+                 "Call is interrupted before it was finished and response with status code was received, reason='{}'",
+                 GetSpecialCaseCompletionTypeDescription(completion_type)
+             )}
+        };
+        logger.Log(logging::Level::kWarning, "gRPC error", std::move(extra));
+    }
 }
 
 }  // namespace ugrpc::client::middlewares::log

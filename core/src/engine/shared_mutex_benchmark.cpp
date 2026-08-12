@@ -7,25 +7,25 @@
 
 USERVER_NAMESPACE_BEGIN
 
-void shared_mutex_benchmark(benchmark::State& state) {
-  engine::RunStandalone(state.range(0), [&] {
-    int variable = 0;
-    engine::SharedMutex mutex;
+void SharedMutexBenchmark(benchmark::State& state) {
+    engine::RunStandalone(state.range(0), [&] {
+        int variable = 0;
+        engine::SharedMutex mutex;
 
-    auto initial_lock_holder = engine::AsyncNoSpan([&] {
-      // ensure the locks are actually needed
-      std::unique_lock lock(mutex);
-      variable = 1;
-    });
+        auto initial_lock_holder = engine::AsyncNoTracing([&] {
+            // ensure the locks are actually needed
+            const std::lock_guard lock(mutex);
+            variable = 1;
+        });
 
-    RunParallelBenchmark(state, [&](auto& range) {
-      for ([[maybe_unused]] auto _ : range) {
-        std::shared_lock lock(mutex);
-        benchmark::DoNotOptimize(variable);
-      }
+        RunParallelBenchmark(state, [&](auto& range) {
+            for ([[maybe_unused]] auto _ : range) {
+                const std::shared_lock lock(mutex);
+                benchmark::DoNotOptimize(variable);
+            }
+        });
     });
-  });
 }
-BENCHMARK(shared_mutex_benchmark)->DenseRange(1, 6);
+BENCHMARK(SharedMutexBenchmark)->DenseRange(1, 6);
 
 USERVER_NAMESPACE_END

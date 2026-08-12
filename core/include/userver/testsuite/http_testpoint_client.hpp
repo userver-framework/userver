@@ -1,7 +1,10 @@
 #pragma once
 
+/// @file userver/testsuite/http_testpoint_client.hpp
+/// @brief @copybrief testsuite::impl::HttpTestpointClient
+
 #include <chrono>
-#include <functional>
+#include <memory>
 #include <string>
 
 #include <userver/formats/json_fwd.hpp>
@@ -15,21 +18,19 @@ class Client;
 
 namespace testsuite::impl {
 
+/// @brief HTTP-based testsuite testpoint client
 class HttpTestpointClient final : public TestpointClientBase {
- public:
-  HttpTestpointClient(clients::http::Client& http_client,
-                      const std::string& url,
-                      std::chrono::milliseconds timeout);
+public:
+    HttpTestpointClient(clients::http::Client& http_client, const std::string& url, std::chrono::milliseconds timeout);
 
-  ~HttpTestpointClient() override;
+    ~HttpTestpointClient() override;
 
-  void Execute(std::string_view name, const formats::json::Value& json,
-               Callback callback) const override;
+    void Execute(std::string_view name, const formats::json::Value& json, Callback callback) const override;
 
- private:
-  clients::http::Client& http_client_;
-  const std::string url_;
-  const std::chrono::milliseconds timeout_;
+private:
+    clients::http::Client& http_client_;
+    const std::string url_;
+    const std::chrono::milliseconds timeout_;
 };
 
 }  // namespace testsuite::impl

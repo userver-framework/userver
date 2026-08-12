@@ -1,0 +1,140 @@
+syntax = "proto3";
+package messages;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "google/type/date.proto";
+import "google/type/decimal.proto";
+import "google/type/timeofday.proto";
+
+option go_package = "a.yandex-team.ru/taxi/uservices/userver/libraries/proto-structs/tests/proto;testmessages";
+
+enum TestEnum {
+  TEST_ENUM_UNSPECIFIED = 0;
+  TEST_ENUM_VALUE1 = 1;
+  TEST_ENUM_VALUE2 = 2;
+}
+
+message Empty {}
+
+message Simple {
+  int32 f1 = 1;
+}
+
+message ConversionFailure {
+  enum Type {
+    TYPE_UNSPECIFIED = 0;
+    TYPE_EXCEPTION = 1;
+    TYPE_ERROR = 2;
+    TYPE_ERROR_WITH_UNKNOWN_FIELD = 3;
+  }
+
+  Type error_type = 1;
+  int32 error_field = 2;
+}
+
+message Scalar {
+  bool f1 = 1;
+  int32 f2 = 2;
+  uint32 f3 = 3;
+  int64 f4 = 4;
+  uint64 f5 = 5;
+  float f6 = 6;
+  double f7 = 7;
+  string f8 = 8;
+  bytes f9 = 9;
+  TestEnum f10 = 10;
+  int32 f11 = 11; // std::size_t
+}
+
+message WellKnownStd {
+  google.protobuf.Timestamp f1 = 1; // std::chrono::time_point
+  google.protobuf.Duration f2 = 2;  // std::chrono::duration
+  google.type.Date f3 = 3;          // std::chrono::year_month_day
+  google.type.TimeOfDay f4 = 4;     // std::chrono::hh_mm_ss
+}
+
+message WellKnownUsrv {
+  google.protobuf.Any f1 = 1;       // proto_structs::Any
+  google.protobuf.Timestamp f2 = 2; // proto_structs::Timestamp
+  google.protobuf.Duration f3 = 3;  // proto_structs::Duration
+  google.type.Date f4 = 4;          // proto_structs::Date
+  google.type.TimeOfDay f5 = 5;     // proto_structs::TimeOfDay
+  google.type.TimeOfDay f6 = 6;     // utils::datetime::TimeOfDay
+  google.type.Decimal f7 = 7;       // decimal64::Decimal
+}
+
+message WellKnownJson {
+  google.protobuf.Value f1 = 1;     // formats::json::Value
+  google.protobuf.ListValue f2 = 2; // formats::json::Array
+  google.protobuf.Struct f3 = 3;    // formats::json::Object
+}
+
+message Optional {
+  optional int32 f1 = 1;
+  optional string f2 = 2;
+  optional TestEnum f3 = 3;
+  optional Simple f4 = 4;
+}
+
+message Repeated {
+  repeated int32 f1 = 1;
+  repeated string f2 = 2;
+  repeated TestEnum f3 = 3;
+  repeated Simple f4 = 4;
+}
+
+message Map {
+  map<int32, int32> f1 = 1;
+  map<string, string> f2 = 2;
+  map<bool, TestEnum> f3 = 3;
+  map<string, Simple> f4 = 4;
+}
+
+message Oneof {
+  oneof test_oneof {
+    int32 f1 = 1;
+    string f2 = 2;
+    TestEnum f3 = 3;
+    Simple f4 = 4;
+  }
+}
+
+message Indirect {
+  Simple f1 = 1;
+  optional google.protobuf.Duration f2 = 2;
+  repeated Simple f3 = 3;
+  map<int32, Simple> f4 = 4;
+
+  oneof test_oneof {
+    Simple f5 = 5;
+    string f6 = 6;
+  }
+
+  int32 f7 = 7;
+  repeated TestEnum f8 = 8;
+  map<string, Simple> f9 = 9;
+}
+
+message Strong {
+  int32 f1 = 1;
+  optional string f2 = 2;
+  repeated TestEnum f3 = 3;
+  map<int32, Simple> f4 = 4;
+
+  oneof test_oneof {
+    google.protobuf.Duration f5 = 5;
+  }
+}
+
+message Erroneous {
+  optional ConversionFailure f1 = 1;
+  repeated ConversionFailure f2 = 2;
+  map<int32, ConversionFailure> f3 = 3;
+
+  oneof test_oneof {
+    ConversionFailure f4 = 4;
+  }
+}

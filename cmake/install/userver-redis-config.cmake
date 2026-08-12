@@ -1,12 +1,11 @@
 include_guard(GLOBAL)
 
 if(userver_redis_FOUND)
-  return()
+    return()
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/..")
-include("${USERVER_CMAKE_DIR}/FindHiredis.cmake")
+find_package(userver REQUIRED COMPONENTS core)
 
-add_library(userver::redis ALIAS userver::userver-redis)
+find_package(hiredis REQUIRED)
 
 set(userver_redis_FOUND TRUE)

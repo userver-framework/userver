@@ -11,11 +11,8 @@ namespace storages::postgres::test {
 using Buffer = std::vector<char>;
 
 template <typename BufferType>
-io::FieldBuffer MakeFieldBuffer(
-    const BufferType& buffer,
-    io::BufferCategory cat = io::BufferCategory::kPlainBuffer) {
-  return {false, cat, buffer.size(),
-          reinterpret_cast<const std::uint8_t*>(buffer.data())};
+io::FieldBuffer MakeFieldBuffer(const BufferType& buffer, io::BufferCategory cat = io::BufferCategory::kPlainBuffer) {
+    return {false, cat, buffer.size(), reinterpret_cast<const std::uint8_t*>(buffer.data())};
 }
 
 }  // namespace storages::postgres::test

@@ -1,44 +1,45 @@
 #include <userver/ugrpc/client/middlewares/base.hpp>
 
+#include <userver/utils/impl/internal_tag.hpp>
+
+#include <userver/ugrpc/client/impl/call_state.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
+
+void MiddlewareBase::PreStartCall(MiddlewareCallContext& /*context*/) const {}
+
+void MiddlewareBase::PostFinish(
+    MiddlewareCallContext& /*context*/,
+    const CompletionStatus& /*result*/
+) const {}
+
+void MiddlewareBase::PreSendMessage(MiddlewareCallContext& /*context*/, const google::protobuf::Message& /*message*/)
+    const {}
+
+void MiddlewareBase::PostRecvMessage(MiddlewareCallContext& /*context*/, const google::protobuf::Message& /*message*/)
+    const {}
 
 MiddlewareBase::MiddlewareBase() = default;
 
 MiddlewareBase::~MiddlewareBase() = default;
 
-MiddlewareCallContext::MiddlewareCallContext(
-    const Middlewares& middlewares, CallAnyBase& call,
-    utils::function_ref<void()> user_call,
-    const ::google::protobuf::Message* request)
-    : middleware_(middlewares.begin()),
-      middleware_end_(middlewares.end()),
-      user_call_(user_call),
-      call_(call),
-      request_(request) {}
+MiddlewareCallContext::MiddlewareCallContext(impl::CallState& state)
+    : state_(state)
+{}
 
-void MiddlewareCallContext::Next() {
-  if (middleware_ == middleware_end_) {
-    (*user_call_)();
-    user_call_ = {};
-  } else {
-    // NOLINTNEXTLINE(readability-qualified-auto)
-    const auto middleware = middleware_++;
-    UASSERT(*middleware);
-    (*middleware)->Handle(*this);
+grpc::ClientContext& MiddlewareCallContext::GetClientContext() noexcept { return state_.GetClientContext(); }
 
-    UINVARIANT(!user_call_, "Middleware forgot to call context.Next()?");
-  }
-}
+std::string_view MiddlewareCallContext::GetClientName() const noexcept { return state_.GetClientName(); }
 
-CallAnyBase& MiddlewareCallContext::GetCall() { return call_; }
+std::string_view MiddlewareCallContext::GetCallName() const noexcept { return state_.GetCallName(); }
 
-const ::google::protobuf::Message* MiddlewareCallContext::GetInitialRequest() {
-  return request_;
-}
+RpcType MiddlewareCallContext::GetRpcType() const noexcept { return state_.GetRpcType(); }
 
-MiddlewareFactoryBase::~MiddlewareFactoryBase() = default;
+tracing::Span& MiddlewareCallContext::GetSpan() noexcept { return state_.GetSpan(); }
+
+impl::CallState& MiddlewareCallContext::GetState(utils::impl::InternalTag) { return state_; }
 
 }  // namespace ugrpc::client
 

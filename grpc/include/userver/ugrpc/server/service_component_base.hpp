@@ -5,8 +5,10 @@
 
 #include <atomic>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/middlewares/runner.hpp>
+#include <userver/yaml_config/fwd.hpp>
 
 #include <userver/ugrpc/server/middlewares/fwd.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
@@ -16,61 +18,74 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::server {
 
 class ServerComponent;
+class GenericServiceBase;
+class MiddlewareBase;
+struct ServiceInfo;
 
-// clang-format off
+namespace impl {
+
+/// @brief The interface for a `ServerComponentBase` component. So, `ServerComponentBase` runs with middlewares.
+using MiddlewareRunnerComponentBase = USERVER_NAMESPACE::middlewares::RunnerComponentBase<MiddlewareBase, ServiceInfo>;
+
+}  // namespace impl
 
 /// @ingroup userver_components userver_base_classes
 ///
 /// @brief Base class for all the gRPC service components.
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// task-processor | the task processor to use for responses | taken from grpc-server.service-defaults
-/// middlewares | middleware component names to use for each RPC call, can be empty array ([]) | taken from grpc-server.service-defaults
+/// ## Static options of ugrpc::server::ServiceComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/grpc/src/ugrpc/server/service_component_base.md
+///
+/// Options inherited from @ref middlewares::RunnerComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/middlewares/runner_component_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
+class ServiceComponentBase : public impl::MiddlewareRunnerComponentBase {
+public:
+    ServiceComponentBase(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-// clang-format on
+    ~ServiceComponentBase() override;
 
-class ServiceComponentBase : public components::LoggableComponentBase {
- public:
-  ServiceComponentBase(const components::ComponentConfig& config,
-                       const components::ComponentContext& context);
+    static yaml_config::Schema GetStaticConfigSchema();
 
-  static yaml_config::Schema GetStaticConfigSchema();
+protected:
+    /// Derived classes must store the actual service class in a field and call
+    /// RegisterService with it
+    void RegisterService(ServiceBase& service);
 
- protected:
-  /// Derived classes must store the actual service class in a field and call
-  /// RegisterService with it
-  void RegisterService(ServiceBase& service);
+    /// @overload
+    void RegisterService(GenericServiceBase& service);
 
- private:
-  ServerComponent& server_;
-  ServiceConfig config_;
-  std::atomic<bool> registered_{false};
+private:
+    ServerComponent& server_;
+    ServiceConfig config_;
+    std::string component_name_;
+    std::atomic<bool> registered_{false};
 };
 
 namespace impl {
 
 template <typename ServiceInterface>
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class ServiceComponentBase : public server::ServiceComponentBase,
-                             public ServiceInterface {
-  static_assert(std::is_base_of_v<ServiceBase, ServiceInterface>);
+class ServiceComponentBase : public server::ServiceComponentBase, public ServiceInterface {
+    static_assert(std::is_base_of_v<ServiceBase, ServiceInterface> || std::is_base_of_v<GenericServiceBase, ServiceInterface>);
 
- public:
-  ServiceComponentBase(const components::ComponentConfig& config,
-                       const components::ComponentContext& context)
-      : server::ServiceComponentBase(config, context), ServiceInterface() {
-    // At this point the derived class that implements ServiceInterface is not
-    // constructed yet. We rely on the implementation detail that the methods of
-    // ServiceInterface are never called right after RegisterService. Unless
-    // Server starts during the construction of this component (which is an
-    // error anyway), we should be fine.
-    RegisterService(*this);
-  }
+public:
+    ServiceComponentBase(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : server::ServiceComponentBase(config, context),
+          ServiceInterface()
+    {
+        // At this point the derived class that implements ServiceInterface is not
+        // constructed yet. We rely on the implementation detail that the methods of
+        // ServiceInterface are never called right after RegisterService. Unless
+        // Server starts during the construction of this component (which is an
+        // error anyway), we should be fine.
+        RegisterService(*this);
+    }
 
- private:
-  using server::ServiceComponentBase::RegisterService;
+private:
+    using server::ServiceComponentBase::RegisterService;
 };
 
 }  // namespace impl

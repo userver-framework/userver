@@ -2,13 +2,19 @@
 
 #include <chrono>
 #include <cstdint>
-#include <memory>
 #include <optional>
 
-#include <kafka/impl/delivery_waiter.hpp>
-#include <kafka/impl/stats.hpp>
-
 #include <librdkafka/rdkafka.h>
+
+#include <userver/engine/deadline.hpp>
+#include <userver/kafka/impl/messages.hpp>
+#include <userver/kafka/impl/stats.hpp>
+#include <userver/logging/level.hpp>
+#include <userver/utils/periodic_task.hpp>
+
+#include <kafka/impl/concurrent_event_waiter.hpp>
+#include <kafka/impl/delivery_waiter.hpp>
+#include <kafka/impl/holders_aliases.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,61 +23,97 @@ namespace kafka::impl {
 class Configuration;
 
 class ProducerImpl final {
- public:
-  static constexpr std::chrono::milliseconds kCoolDownFlushTimeout{2000};
+public:
+    explicit ProducerImpl(
+        Configuration&& configuration,
+        logging::Level debug_info_log_level,
+        logging::Level operation_log_level
+    );
 
-  explicit ProducerImpl(std::unique_ptr<Configuration> configuration);
+    const Stats& GetStats() const;
 
-  ~ProducerImpl();
+    /// @brief Send the message and waits for its delivery.
+    /// While waiting handles other messages delivery reports, errors and logs.
+    [[nodiscard]] DeliveryResult Send(
+        utils::zstring_view topic_name,
+        std::string_view key,
+        std::string_view message,
+        std::optional<std::uint32_t> partition,
+        HeadersHolder headers
+    ) const;
 
-  /// @brief Send the message and waits for its delivery.
-  void Send(const std::string& topic_name, std::string_view key,
-            std::string_view message, std::optional<std::uint32_t> partition,
-            std::uint32_t max_retries) const;
+    /// @brief Send messages and waits for its delivery.
+    /// While waiting handles other messages delivery reports, errors and logs.
+    [[nodiscard]] std::vector<DeliveryResult> Send(
+        utils::zstring_view topic_name,
+        std::string_view key,
+        const Messages& messages,
+        std::optional<std::uint32_t> partition,
+        std::vector<HeadersHolder> headers
+    ) const;
 
-  /// @brief Polls for delivery events for `poll_timeout_` milliseconds
-  void Poll(std::chrono::milliseconds poll_timeout) const;
+    /// @brief Waits until scheduled messages are delivered for
+    /// at most 2 x `delivery_timeout`.
+    ///
+    /// @warning The function must be called before the destructor. After this
+    /// call producer stops working and cannot be used anymore.
+    void WaitUntilAllMessagesDelivered() &&;
 
-  const Stats& GetStats() const;
+    /// @brief Wakes a sleeping waiting to acknowledge about new events.
+    void EventCallback();
 
-  void ErrorCallbackProxy(int error_code, const char* reason);
+private:
+    /// @brief Schedules the message delivery.
+    /// @returns the future for delivery result, which must be awaited.
+    [[nodiscard]] engine::Future<DeliveryResult> ScheduleMessageDelivery(
+        utils::zstring_view topic_name,
+        std::string_view key,
+        std::string_view message,
+        std::optional<std::uint32_t> partition,
+        HeadersHolder headers,
+        engine::Deadline deadline
+    ) const;
 
-  /// @brief Callback called on each succeeded/failed message delivery.
-  /// @param message represents the delivered (or not) message. Its `_private`
-  /// field contains for `opaque` argument, which was passed to
-  /// `rd_kafka_producev`
-  void DeliveryReportCallbackProxy(const rd_kafka_message_s* message);
+    /// @brief Poll a delivery or error event from producer's queue.
+    EventHolder PollEvent() const;
 
- private:
-  DeliveryResult SendImpl(const std::string& topic_name, std::string_view key,
-                          std::string_view message,
-                          std::optional<std::uint32_t> partition,
-                          std::uint32_t current_retry,
-                          std::uint32_t max_retries) const;
+    /// @brief Call a corresponding callback for the event data depends on its
+    /// type.
+    void DispatchEvent(const EventHolder& event_holder) const;
 
- private:
-  Stats stats_;
+    /// @brief Polls and handles events from producer's queue, until queue is
+    /// empty.
+    /// @returns the number of handled events.
+    std::size_t HandleEvents(std::string_view context) const;
 
-  class ProducerHolder final {
-   public:
-    ProducerHolder(rd_kafka_conf_t* conf);
+    /// @brief Waits until message delivery status reported by `librdkafka`.
+    /// Suspends for no more than `delivery_timeout` milliseconds.
+    void WaitUntilDeliveryReported(engine::Future<DeliveryResult>& delivery_result) const;
 
-    ~ProducerHolder();
+    /// @brief Callback called on error in `librdkafka` work.
+    void ErrorCallback(rd_kafka_resp_err_t error, const char* reason, bool is_fatal) const;
 
-    ProducerHolder(const ProducerHolder&) = delete;
-    ProducerHolder& operator=(const ProducerHolder&) = delete;
+    /// @brief Callback called on debug `librdkafka` messages.
+    void LogCallback(const char* facility, const char* message, int log_level) const;
 
-    ProducerHolder(ProducerHolder&&) noexcept = delete;
-    ProducerHolder& operator=(ProducerHolder&&) noexcept = delete;
+    /// @brief Callback called on each succeeded/failed message delivery.
+    /// @param message represents the delivered (or not) message. Its `_private`
+    /// field contains and `opaque` argument, which was passed to
+    /// `rd_kafka_producev`, i.e. the Promise which must be set to notify
+    /// waiter about the delivery.
+    void DeliveryReportCallback(const rd_kafka_message_s* message) const;
 
-    rd_kafka_t* Handle() const;
+    const std::chrono::milliseconds delivery_timeout_;
+    const logging::Level debug_info_log_level_;
+    const logging::Level operation_log_level_;
 
-   private:
-    using HandleHolder =
-        std::unique_ptr<rd_kafka_t, decltype(&rd_kafka_destroy)>;
-    HandleHolder handle_{nullptr, &rd_kafka_destroy};
-  };
-  ProducerHolder producer_;
+    mutable Stats stats_;
+
+    ConcurrentEventWaiters waiters_;
+    ProducerHolder producer_;
+
+    /// If no messages are send, some errors may occurred and we want to log them anyway.
+    utils::PeriodicTask log_events_handler_;
 };
 
 }  // namespace kafka::impl

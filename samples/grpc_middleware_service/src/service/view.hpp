@@ -9,20 +9,18 @@
 
 namespace samples::grpc::auth {
 
-class GreeterServiceComponent final
-    : public api::GreeterServiceBase::Component {
- public:
-  static constexpr std::string_view kName = "greeter-service";
+class GreeterServiceComponent final : public api::GreeterServiceBase::Component {
+public:
+    static constexpr std::string_view kName = "greeter-service";
 
-  GreeterServiceComponent(const components::ComponentConfig& config,
-                          const components::ComponentContext& context);
+    GreeterServiceComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  void SayHello(SayHelloCall& call, api::GreetingRequest&& request) override;
+    SayHelloResult SayHello(CallContext& context, api::GreetingRequest&& request) override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  const std::string prefix_;
+private:
+    const std::string prefix_;
 };
 
 }  // namespace samples::grpc::auth

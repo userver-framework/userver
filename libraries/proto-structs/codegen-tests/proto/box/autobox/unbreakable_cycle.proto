@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package box.autobox;
+
+option go_package = "a.yandex-team.ru/taxi/uservices/userver/libraries/proto-structs/codegen-tests/proto/box/autobox;boxautobox";
+
+message UnbreakableCycle {
+    message A {
+        message Inner {}
+
+        B.Inner b = 1;
+    }
+
+    message B {
+        message Inner {}
+
+        optional A.Inner a = 1;
+    }
+}

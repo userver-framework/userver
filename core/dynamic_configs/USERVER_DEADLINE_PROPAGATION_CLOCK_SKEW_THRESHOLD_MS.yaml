@@ -1,0 +1,18 @@
+default: 60000
+description: |
+    Maximum allowed clock skew in milliseconds between the absolute deadline
+    timestamp and the expected value based on duration header.
+
+    When the detected skew exceeds this threshold, the absolute timestamp is
+    ignored and duration-based deadline propagation is used as a fallback.
+
+    Set to 0 to disable the check (always trust the absolute timestamp).
+
+    Recommended values:
+    - 60000 (1 minute) for well-synchronized environments (default)
+    - 300000 (5 minutes) for less reliable environments
+    - 0 only if you fully trust your clock synchronization
+schema:
+    type: integer
+    minimum: 0
+    x-taxi-cpp-type: std::chrono::milliseconds

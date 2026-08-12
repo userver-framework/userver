@@ -5,14 +5,13 @@
 
 #include <chrono>
 #include <memory>
-#include <string>
-
-#include <boost/smart_ptr/intrusive_ptr.hpp>
+#include <string_view>
 
 #include <userver/engine/deadline.hpp>
-#include <userver/engine/exception.hpp>
+#include <userver/engine/future_status.hpp>
 #include <userver/engine/task/cancel.hpp>
-#include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/engine/task/current_task.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,182 +20,199 @@ class WrappedCallBase;
 }  // namespace utils::impl
 
 namespace engine {
-namespace ev {
-class ThreadControl;
-}  // namespace ev
 namespace impl {
 class TaskContextHolder;
 class TaskContext;
-class DetachedTasksSyncBlock;
-class ContextAccessor;
+class TaskContextAccessor;
+class AwaitableBase;
 }  // namespace impl
 
 /// @brief Base class for all the asynchronous tasks
 /// (engine::Task, engine::SharedTask, engine::SharedTaskWithResult,
 /// engine::TaskWithResult, dist_lock::DistLockedTask, ...).
 class [[nodiscard]] TaskBase {
- public:
-  /// Task importance
-  enum class Importance {
-    /// Normal task
-    kNormal,
+public:
+    /// Task importance
+    enum class Importance {
+        /// Normal task
+        kNormal,
 
-    /// Critical task. The task will be started regardless of cancellations,
-    /// e.g. due to user request, deadline or TaskProcessor overload. After the
-    /// task starts, it may be cancelled. In particular, if it received any
-    /// cancellation requests before starting, then it will start as cancelled.
-    kCritical,
-  };
+        /// Critical task. The task will be started regardless of cancellations,
+        /// e.g. due to user request, deadline or TaskProcessor overload. After the
+        /// task starts, it may be cancelled. In particular, if it received any
+        /// cancellation requests before starting, then it will start as cancelled.
+        kCritical,
+    };
 
-  /// Task state
-  enum class State {
-    kInvalid,    ///< Unusable
-    kNew,        ///< just created, not registered with task processor
-    kQueued,     ///< awaits execution
-    kRunning,    ///< executing user code
-    kSuspended,  ///< suspended, e.g. waiting for blocking call to complete
-    kCancelled,  ///< exited user code because of external request
-    kCompleted,  ///< exited user code with return or throw
-  };
+    /// Task state
+    enum class State {
+        kInvalid,    ///< Unusable
+        kNew,        ///< just created, not registered with task processor
+        kQueued,     ///< awaits execution
+        kRunning,    ///< executing user code
+        kSuspended,  ///< suspended, e.g. waiting for blocking call to complete
 
-  /// Task wait mode
-  enum class WaitMode {
-    /// Can be awaited by at most one task at a time
-    kSingleWaiter,
-    /// Can be awaited by multiple tasks simultaneously
-    kMultipleWaiters
-  };
+        /// The task is cancelled and was finished without returning a value or throwing a user-provided exception.
+        ///
+        /// This can happen for two reasons:
+        ///
+        /// 1. When a non-critical task (see @ref Importance::kCritical, see @ref flavors_of_async) is cancelled before
+        ///    it starts running, the task functor is skipped, only destructor is executed. This can be interpreted
+        ///    as every non-critical task having an implicit cancellation point at its start.
+        ///    See more details and examples in @ref task_cancellation_before_start.
+        ///
+        /// 2. When a task is cancelled because of a call to @ref engine::current_task::CancellationPoint.
+        ///    This cancellation is implemented using a non-`std::exception`-based exception.
+        ///
+        /// In both cases, @ref engine::TaskWithResult::Get throws @ref engine::TaskCancelledException.
+        ///
+        /// Unintuitively, this status is not set when the task was cancelled after it started running,
+        /// which caused the user code to exit early.
+        ///
+        /// Use @ref TaskBase::CancellationReason instead to check whether the task was cancelled.
+        kCancelled,
 
-  /// @brief Checks whether this object owns
-  /// an actual task (not `State::kInvalid`)
-  ///
-  /// An invalid task cannot be used. The task becomes invalid
-  /// after each of the following calls:
-  ///
-  /// 1. the default constructor
-  /// 2. `Detach()`
-  /// 3. `Get()` (see `engine::TaskWithResult`)
-  bool IsValid() const;
+        /// Exited user code with return or throw.
+        ///
+        /// This includes cases where the task was cancelled after it started running,
+        /// which caused the user code to exit early.
+        ///
+        /// Use @ref TaskBase::IsFinished instead to check whether the task finished execution.
+        kCompleted,
+    };
 
-  /// Gets the task State
-  State GetState() const;
+    /// Task wait mode
+    enum class WaitMode {
+        /// Can be awaited by at most one task at a time
+        kSingleAwaiter,
+        /// Can be awaited by multiple tasks simultaneously
+        kMultipleAwaiters
+    };
 
-  static const std::string& GetStateName(State state);
+    /// @brief Checks whether this object owns an actual task (not @ref State::kInvalid)
+    ///
+    /// An invalid task cannot be used. The task becomes invalid after each of the following calls:
+    ///
+    /// 1. the default constructor
+    /// 2. moving from this task object
+    /// 3. @ref engine::TaskWithResult::Get
+    /// 4. @ref concurrent::BackgroundTaskStorageCore::Detach
+    /// 5. @ref engine::DetachUnscopedUnsafe
+    ///
+    /// Notably, the task does *not* become invalid immediately after it finishes execution.
+    /// (That would always cause race conditions when trying to await a task.)
+    /// It means that some of the task's resources are held onto until the task object is invalidated or destroyed.
+    bool IsValid() const;
 
-  /// Returns whether the task finished execution
-  bool IsFinished() const;
+    /// Gets the task State
+    State GetState() const;
 
-  /// @brief Suspends execution until the task finishes or caller is cancelled.
-  /// Can be called from coroutine context only. For non-coroutine context use
-  /// BlockingWait().
-  /// @throws WaitInterruptedException when `current_task::IsCancelRequested()`
-  /// and no TaskCancellationBlockers are present.
-  void Wait() const noexcept(false);
+    static std::string_view GetStateName(State state);
 
-  /// @brief Suspends execution until the task finishes or after the specified
-  /// timeout or until caller is cancelled
-  /// @throws WaitInterruptedException when `current_task::IsCancelRequested()`
-  /// and no TaskCancellationBlockers are present.
-  template <typename Rep, typename Period>
-  void WaitFor(const std::chrono::duration<Rep, Period>&) const noexcept(false);
+    /// Returns whether the task finished execution
+    bool IsFinished() const;
 
-  /// @brief Suspends execution until the task finishes or until the specified
-  /// time point is reached or until caller is cancelled
-  /// @throws WaitInterruptedException when `current_task::IsCancelRequested()`
-  /// and no TaskCancellationBlockers are present.
-  template <typename Clock, typename Duration>
-  void WaitUntil(const std::chrono::time_point<Clock, Duration>&) const
-      noexcept(false);
+    /// @brief Suspends execution until the task finishes or caller is cancelled.
+    /// Can be called from coroutine context only. For non-coroutine context use
+    /// BlockingWait().
+    /// @throws WaitInterruptedException when `current_task::IsCancelRequested()`
+    /// and no TaskCancellationBlockers are present.
+    void Wait() const noexcept(false);
 
-  /// @brief Suspends execution until the task finishes or until the specified
-  /// deadline is reached or until caller is cancelled
-  /// @throws WaitInterruptedException when `current_task::IsCancelRequested()`
-  /// and no TaskCancellationBlockers are present.
-  void WaitUntil(Deadline) const;
+    /// @brief Suspends execution until the task finishes or after the specified
+    /// timeout or until caller is cancelled
+    /// @throws WaitInterruptedException when `current_task::IsCancelRequested()`
+    /// and no TaskCancellationBlockers are present.
+    template <typename Rep, typename Period>
+    void WaitFor(const std::chrono::duration<Rep, Period>&) const noexcept(false);
 
-  /// Queues task cancellation request
-  void RequestCancel();
+    /// @brief Suspends execution until the task finishes or until the specified
+    /// time point is reached or until caller is cancelled
+    /// @throws WaitInterruptedException when `current_task::IsCancelRequested()`
+    /// and no TaskCancellationBlockers are present.
+    template <typename Clock, typename Duration>
+    void WaitUntil(const std::chrono::time_point<Clock, Duration>&) const noexcept(false);
 
-  /// @brief Cancels the task and suspends execution until it is finished.
-  /// Can be called from coroutine context only. For non-coroutine context use
-  /// RequestCancel() + BlockingWait().
-  void SyncCancel() noexcept;
+    /// @brief Suspends execution until the task finishes or until the specified
+    /// deadline is reached or until caller is cancelled
+    /// @throws WaitInterruptedException when `current_task::IsCancelRequested()`
+    /// and no TaskCancellationBlockers are present.
+    void WaitUntil(Deadline) const;
 
-  /// Gets task cancellation reason
-  TaskCancellationReason CancellationReason() const;
+    /// @brief Suspends execution until the task finishes or caller is cancelled.
+    /// Can be called from coroutine context only. For non-coroutine context use
+    /// BlockingWait().
+    /// @returns `false` when `current_task::IsCancelRequested()`
+    /// and no TaskCancellationBlockers are present.
+    [[nodiscard]] bool WaitNothrow() const noexcept;
 
-  /// Waits for the task in non-coroutine context
-  /// (e.g. non-TaskProcessor's std::thread).
-  void BlockingWait() const;
+    /// @brief Suspends execution until the task finishes or until the specified
+    /// deadline is reached or until caller is cancelled
+    /// @returns FutureStatus::kCancelled when `current_task::IsCancelRequested()`
+    /// and no TaskCancellationBlockers are present.
+    [[nodiscard]] FutureStatus WaitNothrowUntil(Deadline) const noexcept;
 
- protected:
-  /// @cond
-  // For internal use only.
-  TaskBase();
+    /// Queues task cancellation request
+    void RequestCancel();
 
-  // For internal use only.
-  explicit TaskBase(impl::TaskContextHolder&& context);
+    /// @brief Cancels the task and suspends execution until it is finished.
+    /// Can be called from coroutine context only. For non-coroutine context use
+    /// RequestCancel() + BlockingWait().
+    void SyncCancel() noexcept;
 
-  // The following special functions must remain protected to forbid slicing
-  // and force those methods implementation in derived classes.
-  TaskBase(TaskBase&&) noexcept;
-  TaskBase& operator=(TaskBase&&) noexcept;
-  TaskBase(const TaskBase&) noexcept;
-  TaskBase& operator=(const TaskBase&) noexcept;
-  ~TaskBase();
+    /// Gets task cancellation reason
+    TaskCancellationReason CancellationReason() const;
 
-  // For internal use only.
-  impl::TaskContext& GetContext() const noexcept;
+    /// Waits for the task in non-coroutine context
+    /// (e.g. non-TaskProcessor's std::thread).
+    void BlockingWait() const;
 
-  // For internal use only.
-  bool HasSameContext(const TaskBase& other) const noexcept;
+protected:
+    /// @cond
+    // For internal use only.
+    TaskBase();
 
-  // For internal use only.
-  utils::impl::WrappedCallBase& GetPayload() const noexcept;
+    // For internal use only.
+    explicit TaskBase(impl::TaskContextHolder&& context);
 
-  // Marks task as invalid. For internal use only.
-  void Invalidate() noexcept;
+    // The following special functions must remain protected to forbid slicing
+    // and force those methods implementation in derived classes.
+    TaskBase(TaskBase&&) noexcept;
+    TaskBase& operator=(TaskBase&&) noexcept;
+    TaskBase(const TaskBase&) noexcept;
+    TaskBase& operator=(const TaskBase&) noexcept;
+    ~TaskBase();
 
-  void Terminate(TaskCancellationReason) noexcept;
-  /// @endcond
+    // For internal use only.
+    impl::TaskContext& GetContext() const noexcept;
 
- private:
-  friend class impl::DetachedTasksSyncBlock;
-  friend class TaskCancellationToken;
+    // For internal use only.
+    bool HasSameContext(const TaskBase& other) const noexcept;
 
-  boost::intrusive_ptr<impl::TaskContext> context_;
+    // For internal use only.
+    utils::impl::WrappedCallBase& GetPayload() const noexcept;
+
+    // Marks task as invalid. For internal use only.
+    void Invalidate() noexcept;
+
+    void Terminate(TaskCancellationReason) noexcept;
+    /// @endcond
+
+private:
+    friend class impl::TaskContextAccessor;
+
+    struct Impl;
+    utils::FastPimpl<Impl, 8, 8> pimpl_;
 };
 
-/// @brief Namespace with functions to work with current task from within it
-namespace current_task {
-
-/// Returns true only when running in userver coroutine environment,
-/// i.e. in an engine::TaskProcessor thread.
-bool IsTaskProcessorThread() noexcept;
-
-/// Returns reference to the task processor executing the caller
-TaskProcessor& GetTaskProcessor();
-
-/// Returns task coroutine stack size
-std::size_t GetStackSize();
-
-/// @cond
-// Returns ev thread handle, internal use only
-ev::ThreadControl& GetEventThread();
-/// @endcond
-
-}  // namespace current_task
-
 template <typename Rep, typename Period>
-void TaskBase::WaitFor(const std::chrono::duration<Rep, Period>& duration) const
-    noexcept(false) {
-  WaitUntil(Deadline::FromDuration(duration));
+void TaskBase::WaitFor(const std::chrono::duration<Rep, Period>& duration) const noexcept(false) {
+    WaitUntil(Deadline::FromDuration(duration));
 }
 
 template <typename Clock, typename Duration>
-void TaskBase::WaitUntil(const std::chrono::time_point<Clock, Duration>& until)
-    const noexcept(false) {
-  WaitUntil(Deadline::FromTimePoint(until));
+void TaskBase::WaitUntil(const std::chrono::time_point<Clock, Duration>& until) const noexcept(false) {
+    WaitUntil(Deadline::FromTimePoint(until));
 }
 
 }  // namespace engine

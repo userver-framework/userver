@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <engine/task/task_context.hpp>
+#include <userver/engine/awaitable.hpp>
 #include <userver/engine/impl/context_accessor.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/span.hpp>
@@ -13,54 +14,80 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-class WaitAnyWaitStrategy final : public WaitStrategy {
- public:
-  WaitAnyWaitStrategy(utils::span<ContextAccessor*> targets,
-                      TaskContext& waiter)
-      : waiter_(waiter), targets_(targets) {}
+class WaitAnyAwaitable final : public WeakAwaitable {
+public:
+    explicit WaitAnyAwaitable(utils::span<AwaitableToken> targets)
+        : targets_(targets)
+    {}
 
-  EarlyWakeup SetupWakeups() override {
-    for (auto*& target : targets_) {
-      if (!target) continue;
-
-      utils::FastScopeGuard disable_wakeups([&]() noexcept {
-        DoDisableWakeups(utils::span{targets_.data(), &target});
-      });
-
-      // SetupWakeups might throw.
-      const auto early_wakeup = target->TryAppendWaiter(waiter_);
-
-      if (static_cast<bool>(early_wakeup)) {
-        return EarlyWakeup{true};
-      }
-
-      disable_wakeups.Release();
+    bool IsReady() const noexcept override {
+        return std::ranges::all_of(targets_, [](const AwaitableToken& target) {
+            return target.IsEmpty() || target.GetAwaitable(utils::impl::InternalTag{}).IsReady();
+        });
     }
 
-    return EarlyWakeup{false};
-  }
+    void TryAppendAwaiter(AwaiterPtr& awaiter, std::uintptr_t context) override {
+        for (auto& target : targets_) {
+            if (target.IsEmpty()) {
+                continue;
+            }
+            auto& awaitable = target.GetAwaitable(utils::impl::InternalTag{});
 
-  void DisableWakeups() noexcept override { DoDisableWakeups(targets_); }
+            utils::FastScopeGuard disable_wakeups([&]() noexcept {
+                DoDisableWakeups(utils::span{targets_.data(), &target}, *awaiter, context);
+            });
 
- private:
-  void DoDisableWakeups(utils::span<ContextAccessor*> targets) const noexcept {
-    for (auto* const target : targets) {
-      if (!target) continue;
-      target->RemoveWaiter(waiter_);
+            // TryAppendAwaiter might throw.
+            auto awaiter_copy = awaiter->CastToTaskContext().AsAwaiterPtr();
+            awaitable.TryAppendAwaiter(awaiter_copy, context);
+            if (awaiter_copy != nullptr) {  // target is ready.
+                return;
+            }
+
+            disable_wakeups.Release();
+        }
+
+        // Mark that the compound awaitable is not ready. A possible optimization (not performed currently)
+        // is to pass `awaiter` to the last target directly instead of copying it.
+        awaiter = nullptr;
     }
-  }
 
-  TaskContext& waiter_;
-  const utils::span<ContextAccessor*> targets_;
+    AwaiterPtr RemoveAwaiter(Awaiter& awaiter, std::uintptr_t context) noexcept override {
+        return DoDisableWakeups(targets_, awaiter, context);
+    }
+
+private:
+    AwaiterPtr DoDisableWakeups(utils::span<AwaitableToken> targets, Awaiter& awaiter, std::uintptr_t context) const
+        noexcept {
+        AwaiterPtr compound_removal_result;
+        bool removed_before_notification = true;
+
+        for (const auto& target : targets) {
+            if (target.IsEmpty()) {
+                continue;
+            }
+            auto& awaitable = target.GetAwaitable(utils::impl::InternalTag{});
+
+            auto removal_result = awaitable.RemoveAwaiter(awaiter, context);
+            removed_before_notification &= (removal_result != nullptr);
+            compound_removal_result = std::move(removal_result);
+        }
+
+        if (!removed_before_notification) {
+            compound_removal_result = nullptr;
+        }
+        return compound_removal_result;
+    }
+
+    const utils::span<AwaitableToken> targets_;
 };
 
-inline bool AreUniqueValues(utils::span<ContextAccessor*> targets) {
-  std::vector<ContextAccessor*> sorted;
-  sorted.reserve(targets.size());
-  std::copy_if(targets.begin(), targets.end(), std::back_inserter(sorted),
-               [](const auto& target) { return target != nullptr; });
-  std::sort(sorted.begin(), sorted.end());
-  return std::adjacent_find(sorted.begin(), sorted.end()) == sorted.end();
+inline bool AreUniqueValues(utils::span<AwaitableToken> targets) {
+    std::vector<AwaitableToken> sorted;
+    sorted.reserve(targets.size());
+    std::ranges::copy_if(targets, std::back_inserter(sorted), [](const auto& target) { return !target.IsEmpty(); });
+    std::ranges::sort(sorted, {}, [](const auto& target) { return &target.GetAwaitable(utils::impl::InternalTag{}); });
+    return std::ranges::adjacent_find(sorted) == sorted.end();
 }
 
 }  // namespace engine::impl

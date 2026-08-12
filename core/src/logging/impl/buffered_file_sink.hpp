@@ -12,32 +12,32 @@ USERVER_NAMESPACE_BEGIN
 namespace logging::impl {
 
 class BufferedFileSink : public BaseSink {
- public:
-  explicit BufferedFileSink(const std::string& filename);
-  ~BufferedFileSink() override;
+public:
+    explicit BufferedFileSink(const std::string& filename);
+    ~BufferedFileSink() override;
 
-  void Reopen(ReopenMode mode) override;
+    void Reopen(ReopenMode mode) override;
 
-  void Flush() override;
+    void Flush() override;
 
- protected:
-  explicit BufferedFileSink(fs::blocking::CFile&& file);
+protected:
+    explicit BufferedFileSink(fs::blocking::CFile&& file);
 
-  void Write(std::string_view log) final;
+    void Write(std::string_view log) final;
 
-  fs::blocking::CFile& GetFile();
+    fs::blocking::CFile& GetFile();
 
- private:
-  std::string filename_;
-  fs::blocking::CFile file_;
+private:
+    std::string filename_;
+    fs::blocking::CFile file_;
 };
 
 class BufferedUnownedFileSink final : public BufferedFileSink {
- public:
-  explicit BufferedUnownedFileSink(std::FILE* c_file);
-  ~BufferedUnownedFileSink() override;
-  void Reopen(ReopenMode) override;
-  void Flush() override;
+public:
+    explicit BufferedUnownedFileSink(std::FILE* c_file);
+    ~BufferedUnownedFileSink() override;
+    void Reopen(ReopenMode) override;
+    void Flush() override;
 };
 
 }  // namespace logging::impl

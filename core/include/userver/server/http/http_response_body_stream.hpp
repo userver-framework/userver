@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/http/http_response_body_stream.hpp
+/// @brief @copybrief server::http::ResponseBodyStream
+
 #include <string>
 
 #include <userver/server/http/http_response.hpp>
@@ -13,34 +16,40 @@ class HttpHandlerBase;
 
 namespace server::http {
 
+/// @brief Streaming HTTP response body writer
 class ResponseBodyStream final {
- public:
-  ResponseBodyStream(ResponseBodyStream&&) = default;
+public:
+    ResponseBodyStream(ResponseBodyStream&&) = default;
+    ~ResponseBodyStream();
 
-  // Send a chunk of response data. It may NOT generate
-  // exactly one HTTP chunk per call to PushBodyChunk().
-  void PushBodyChunk(std::string&& chunk, engine::Deadline deadline);
+    // Send a chunk of response data. It may NOT generate
+    // exactly one HTTP chunk per call to PushBodyChunk().
+    // May not be called after SetBody().
+    void PushBodyChunk(std::string&& chunk, engine::Deadline deadline);
 
-  void SetHeader(const std::string&, const std::string&);
+    // Set full response body instead of sending chunks.
+    // May not be called after PushBodyChunk().
+    void SetBody(std::string&& body);
 
-  void SetHeader(std::string_view, const std::string&);
+    void SetHeader(const std::string&, const std::string&);
 
-  void SetEndOfHeaders();
+    void SetHeader(std::string_view, const std::string&);
 
-  void SetStatusCode(int status_code);
+    void SetEndOfHeaders();
 
-  void SetStatusCode(HttpStatus status);
+    void SetStatusCode(int status_code);
 
- private:
-  friend class server::handlers::HttpHandlerBase;
+    void SetStatusCode(HttpStatus status);
 
-  ResponseBodyStream(
-      server::http::HttpResponse::Queue::Producer&& queue_producer,
-      server::http::HttpResponse& http_response);
+private:
+    friend class server::handlers::HttpHandlerBase;
 
-  bool headers_ended_{false};
-  HttpResponse::Queue::Producer queue_producer_;
-  server::http::HttpResponse& http_response_;
+    ResponseBodyStream(HttpResponse::Producer&& queue_producer, HttpResponse& http_response);
+
+    bool headers_ended_{false};
+    bool headers_end_sent_{false};
+    HttpResponse::Producer queue_producer_;
+    HttpResponse& http_response_;
 };
 
 }  // namespace server::http

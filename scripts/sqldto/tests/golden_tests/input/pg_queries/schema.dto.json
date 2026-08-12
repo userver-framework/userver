@@ -1,0 +1,493 @@
+{
+  "catalog": {
+    "enums": {
+      "queries.user_status": {
+        "name": "user_status",
+        "namespace": "queries",
+        "values": [
+          "active",
+          "blocked",
+          "deleted"
+        ]
+      }
+    },
+    "tables": {
+      "queries.users": {
+        "columns": [
+          {
+            "name": "id",
+            "nullable": false,
+            "type": "bigint"
+          },
+          {
+            "name": "username",
+            "nullable": false,
+            "type": "character varying(50)"
+          },
+          {
+            "name": "email",
+            "nullable": false,
+            "type": "text"
+          },
+          {
+            "name": "status",
+            "nullable": true,
+            "type": "queries.user_status"
+          },
+          {
+            "name": "profile",
+            "nullable": true,
+            "type": "queries.user_profile"
+          },
+          {
+            "name": "created_at",
+            "nullable": true,
+            "type": "timestamp with time zone"
+          },
+          {
+            "name": "updated_at",
+            "nullable": true,
+            "type": "timestamp with time zone"
+          },
+          {
+            "name": "tags",
+            "nullable": true,
+            "type": "text[]"
+          }
+        ],
+        "name": "users",
+        "namespace": "queries",
+        "version": 0
+      }
+    },
+    "types": {
+      "queries.user_profile": {
+        "fields": [
+          {
+            "name": "display_name",
+            "nullable": true,
+            "type": "text"
+          },
+          {
+            "name": "age",
+            "nullable": true,
+            "type": "integer"
+          },
+          {
+            "name": "country",
+            "nullable": true,
+            "type": "character varying(100)"
+          },
+          {
+            "name": "is_verified",
+            "nullable": true,
+            "type": "boolean"
+          }
+        ],
+        "name": "user_profile",
+        "namespace": "queries"
+      },
+      "queries.users_v0": {
+        "fields": [
+          {
+            "name": "id",
+            "nullable": true,
+            "type": "bigint"
+          },
+          {
+            "name": "username",
+            "nullable": true,
+            "type": "character varying(50)"
+          },
+          {
+            "name": "email",
+            "nullable": true,
+            "type": "text"
+          },
+          {
+            "name": "status",
+            "nullable": true,
+            "type": "queries.user_status"
+          },
+          {
+            "name": "profile",
+            "nullable": true,
+            "type": "queries.user_profile"
+          },
+          {
+            "name": "created_at",
+            "nullable": true,
+            "type": "timestamp with time zone"
+          },
+          {
+            "name": "updated_at",
+            "nullable": true,
+            "type": "timestamp with time zone"
+          },
+          {
+            "name": "tags",
+            "nullable": true,
+            "type": "text[]"
+          }
+        ],
+        "name": "users_v0",
+        "namespace": "queries"
+      }
+    }
+  },
+  "hashsum": "8471b43a7110a008b2bd3ff153d652eaedeac0efc410d6498cbfbd69bb6c6c6e",
+  "queries": [
+    {
+      "args": [],
+      "cardinality": "many",
+      "name": "count_users_by_status",
+      "returns": [
+        {
+          "name": "status",
+          "nullable": true,
+          "type": "queries.user_status"
+        },
+        {
+          "name": "user_count",
+          "nullable": true,
+          "type": "bigint"
+        }
+      ]
+    },
+    {
+      "args": [
+        {
+          "nullable": true,
+          "type": "text"
+        },
+        {
+          "nullable": true,
+          "type": "integer"
+        },
+        {
+          "nullable": true,
+          "type": "character varying"
+        },
+        {
+          "nullable": true,
+          "type": "boolean"
+        }
+      ],
+      "cardinality": "many",
+      "name": "create_profile_composite",
+      "returns": [
+        {
+          "name": "row",
+          "nullable": true,
+          "type": "queries.user_profile"
+        }
+      ]
+    },
+    {
+      "args": [
+        {
+          "nullable": false,
+          "type": "text"
+        },
+        {
+          "nullable": false,
+          "type": "text"
+        },
+        {
+          "nullable": true,
+          "type": "queries.user_status"
+        }
+      ],
+      "cardinality": "many",
+      "name": "create_user",
+      "returns": [
+        {
+          "name": "id",
+          "nullable": true,
+          "type": "bigint"
+        },
+        {
+          "name": "username",
+          "nullable": true,
+          "type": "character varying(50)"
+        },
+        {
+          "name": "email",
+          "nullable": true,
+          "type": "text"
+        },
+        {
+          "name": "status",
+          "nullable": true,
+          "type": "queries.user_status"
+        },
+        {
+          "name": "created_at",
+          "nullable": true,
+          "type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "args": [
+        {
+          "nullable": true,
+          "type": "bigint"
+        }
+      ],
+      "cardinality": "many",
+      "name": "delete_user",
+      "returns": [
+        {
+          "name": "id",
+          "nullable": true,
+          "type": "bigint"
+        },
+        {
+          "name": "username",
+          "nullable": true,
+          "type": "character varying(50)"
+        }
+      ]
+    },
+    {
+      "args": [
+        {
+          "nullable": true,
+          "type": "bigint"
+        }
+      ],
+      "cardinality": "many",
+      "name": "delete_user_simple",
+      "returns": []
+    },
+    {
+      "args": [],
+      "cardinality": "many",
+      "name": "get_active_users",
+      "returns": [
+        {
+          "name": "id",
+          "nullable": true,
+          "type": "bigint"
+        },
+        {
+          "name": "username",
+          "nullable": true,
+          "type": "character varying(50)"
+        },
+        {
+          "name": "email",
+          "nullable": true,
+          "type": "text"
+        },
+        {
+          "name": "created_at",
+          "nullable": true,
+          "type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "args": [],
+      "cardinality": "many",
+      "name": "get_all_users",
+      "returns": [
+        {
+          "name": "id",
+          "nullable": true,
+          "type": "bigint"
+        },
+        {
+          "name": "username",
+          "nullable": true,
+          "type": "character varying(50)"
+        },
+        {
+          "name": "email",
+          "nullable": true,
+          "type": "text"
+        },
+        {
+          "name": "status",
+          "nullable": true,
+          "type": "queries.user_status"
+        },
+        {
+          "name": "created_at",
+          "nullable": true,
+          "type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "args": [
+        {
+          "nullable": true,
+          "type": "bigint"
+        }
+      ],
+      "cardinality": "many",
+      "name": "get_user_as_composite",
+      "returns": [
+        {
+          "name": "profile",
+          "nullable": true,
+          "type": "queries.user_profile"
+        }
+      ]
+    },
+    {
+      "args": [
+        {
+          "nullable": true,
+          "type": "bigint"
+        }
+      ],
+      "cardinality": "many",
+      "name": "get_user_by_id",
+      "returns": [
+        {
+          "name": "id",
+          "nullable": true,
+          "type": "bigint"
+        },
+        {
+          "name": "username",
+          "nullable": true,
+          "type": "character varying(50)"
+        },
+        {
+          "name": "email",
+          "nullable": true,
+          "type": "text"
+        },
+        {
+          "name": "status",
+          "nullable": true,
+          "type": "queries.user_status"
+        },
+        {
+          "name": "created_at",
+          "nullable": true,
+          "type": "timestamp with time zone"
+        }
+      ]
+    },
+    {
+      "args": [
+        {
+          "nullable": true,
+          "type": "bigint"
+        }
+      ],
+      "cardinality": "many",
+      "name": "get_user_profile_composite",
+      "returns": [
+        {
+          "name": "display_name",
+          "nullable": true,
+          "type": "text"
+        },
+        {
+          "name": "age",
+          "nullable": true,
+          "type": "integer"
+        },
+        {
+          "name": "country",
+          "nullable": true,
+          "type": "character varying"
+        },
+        {
+          "name": "is_verified",
+          "nullable": true,
+          "type": "boolean"
+        }
+      ]
+    },
+    {
+      "args": [],
+      "cardinality": "many",
+      "name": "get_users_with_profile",
+      "returns": [
+        {
+          "name": "id",
+          "nullable": true,
+          "type": "bigint"
+        },
+        {
+          "name": "username",
+          "nullable": true,
+          "type": "character varying(50)"
+        },
+        {
+          "name": "email",
+          "nullable": true,
+          "type": "text"
+        },
+        {
+          "name": "profile",
+          "nullable": true,
+          "type": "queries.user_profile"
+        },
+        {
+          "name": "tags",
+          "nullable": true,
+          "type": "text[]"
+        }
+      ]
+    },
+    {
+      "args": [
+        {
+          "nullable": true,
+          "type": "bigint"
+        },
+        {
+          "nullable": true,
+          "type": "queries.user_status"
+        }
+      ],
+      "cardinality": "many",
+      "name": "update_user_simple",
+      "returns": []
+    },
+    {
+      "args": [
+        {
+          "nullable": true,
+          "type": "bigint"
+        },
+        {
+          "nullable": true,
+          "type": "queries.user_status"
+        }
+      ],
+      "cardinality": "many",
+      "name": "update_user_status",
+      "returns": [
+        {
+          "name": "id",
+          "nullable": true,
+          "type": "bigint"
+        },
+        {
+          "name": "username",
+          "nullable": true,
+          "type": "character varying(50)"
+        },
+        {
+          "name": "status",
+          "nullable": true,
+          "type": "queries.user_status"
+        },
+        {
+          "name": "updated_at",
+          "nullable": true,
+          "type": "timestamp with time zone"
+        }
+      ]
+    }
+  ]
+}

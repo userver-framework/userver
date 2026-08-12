@@ -3,7 +3,7 @@
 /// @file userver/storages/clickhouse/component.hpp
 /// @brief @copybrief components::ClickHouse
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 
 #include <userver/utils/statistics/storage.hpp>
 
@@ -19,8 +19,6 @@ class Cluster;
 
 namespace components {
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
 /// @brief ClickHouse client component
@@ -32,8 +30,7 @@ namespace components {
 /// @snippet samples/clickhouse_service/static_config.yaml  Clickhouse service sample - static config
 ///
 /// If the component is configured with an secdist_alias, it will lookup
-/// connection data in secdist.json via secdist_alias value, otherwise via
-/// components name.
+/// connection data in secdist.json via secdist_alias value, otherwise via components name.
 ///
 /// ## Secdist format
 ///
@@ -42,35 +39,27 @@ namespace components {
 ///
 /// @snippet samples/clickhouse_service/tests/conftest.py  Clickhouse service sample - secdist
 ///
-/// ## Static options:
-/// Name                  | Description                                      | Default value
-/// --------------------- | ------------------------------------------------ | ---------------
-/// secdist_alias         | name of the key in secdist config                | components name
-/// initial_pool_size     | number of connections created initially          | 5
-/// max_pool_size         | maximum number of created connections            | 10
-/// queue_timeout         | client waiting for a free connection time limit  | 1s
-/// use_secure_connection | whether to use TLS for connections               | true
-/// compression           | compression method to use (none / lz4)           | none
+/// ## Static options of components::ClickHouse :
+/// @include{doc} scripts/docs/en/components_schema/clickhouse/src/storages/clickhouse/component.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
+class ClickHouse : public ComponentBase {
+public:
+    /// Component constructor
+    ClickHouse(const ComponentConfig&, const ComponentContext&);
+    /// Component destructor
+    ~ClickHouse() override;
 
-// clang-format on
+    /// Cluster accessor
+    std::shared_ptr<storages::clickhouse::Cluster> GetCluster() const;
 
-class ClickHouse : public LoggableComponentBase {
- public:
-  /// Component constructor
-  ClickHouse(const ComponentConfig&, const ComponentContext&);
-  /// Component destructor
-  ~ClickHouse() override;
+    static yaml_config::Schema GetStaticConfigSchema();
 
-  /// Cluster accessor
-  std::shared_ptr<storages::clickhouse::Cluster> GetCluster() const;
+private:
+    clients::dns::Component& dns_;
 
-  static yaml_config::Schema GetStaticConfigSchema();
-
- private:
-  clients::dns::Component& dns_;
-
-  std::shared_ptr<storages::clickhouse::Cluster> cluster_;
-  utils::statistics::Entry statistics_holder_;
+    std::shared_ptr<storages::clickhouse::Cluster> cluster_;
 };
 
 template <>

@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/utils/statistics/metric_tag.hpp
+/// @brief @copybrief utils::statistics::MetricTag
+
 #include <string>
 #include <typeinfo>
 #include <utility>
@@ -10,7 +13,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
-/// @brief Metric description
+/// @brief Metric description and registration in a declarative way
 ///
 /// Use `MetricTag<Metric>` for declarative style of metric registration and
 /// call `MetricStorage::GetMetric` for accessing metric data. Please
@@ -23,23 +26,35 @@ namespace utils::statistics {
 /// @code
 /// void DumpMetric(utils::statistics::Writer&, const Metric&)
 /// @endcode
+///
+/// For alerts consider using alerts::Source.
+///
+/// ## Example usage:
+///
+/// @snippet samples/tcp_full_duplex_service/main.cpp  TCP sample - Stats tag
+/// where `Stats` are defined in a following way:
+/// @snippet samples/tcp_full_duplex_service/main.cpp  TCP sample - Stats definition
+///
+/// For a full usage example see @ref samples/tcp_full_duplex_service/main.cpp
+///
+/// For introduction to metrics see @ref scripts/docs/en/userver/metrics.md
 template <typename Metric>
 class MetricTag final {
- public:
-  /// Register metric, passing a copy of `args` to the constructor of `Metric`
-  template <typename... Args>
-  explicit MetricTag(const std::string& path, Args&&... args)
-      : key_{typeid(Metric), path} {
-    impl::RegisterMetricInfo(
-        key_, impl::MakeMetricFactory<Metric>(std::forward<Args>(args)...));
-  }
+public:
+    /// Register metric, passing a copy of `args` to the constructor of `Metric`
+    template <typename... Args>
+    explicit MetricTag(std::string path, Args&&... args)
+        : key_{typeid(Metric), std::move(path)}
+    {
+        impl::RegisterMetricInfo(key_, impl::MakeMetricFactory<Metric>(std::forward<Args>(args)...));
+    }
 
-  std::string GetPath() const { return key_.path; }
+    std::string GetPath() const { return key_.path; }
 
- private:
-  friend class MetricsStorage;
+private:
+    friend class MetricsStorage;
 
-  const impl::MetricKey key_;
+    const impl::MetricKey key_;
 };
 
 }  // namespace utils::statistics

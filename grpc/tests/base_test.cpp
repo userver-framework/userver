@@ -1,0 +1,406 @@
+#include <userver/utest/utest.hpp>
+
+#include <utility>
+#include <vector>
+
+#include <userver/engine/async.hpp>
+#include <userver/engine/future_status.hpp>
+#include <userver/engine/single_consumer_event.hpp>
+#include <userver/engine/sleep.hpp>
+#include <userver/engine/task/current_task.hpp>
+#include <userver/engine/task/task_with_result.hpp>
+#include <userver/utils/algo.hpp>
+
+#include <tests/service_multichannel.hpp>
+#include <tests/unit_test_client.usrv.pb.hpp>
+#include <tests/unit_test_service.usrv.pb.hpp>
+#include <userver/ugrpc/tests/service_fixtures.hpp>
+
+using namespace std::chrono_literals;
+
+USERVER_NAMESPACE_BEGIN
+
+namespace {
+
+constexpr int kNumber = 42;
+constexpr auto kLongTimeout = 500ms;
+
+void CheckServerContext(grpc::ServerContextBase& context) {
+    const auto& client_metadata = context.client_metadata();
+    EXPECT_EQ(utils::FindOptional(client_metadata, "req_header"), "value");
+    context.AddTrailingMetadata("resp_header", "value");
+}
+
+class UnitTestLongAnswerService final : public sample::ugrpc::UnitTestServiceBase {
+public:
+    SayHelloResult SayHello(CallContext& context, sample::ugrpc::GreetingRequest&& request) override {
+        if (request.name() != "default_context") {
+            CheckServerContext(context.GetServerContext());
+        }
+        sample::ugrpc::GreetingResponse response;
+        response.set_name("Hello " + request.name());
+
+        engine::SleepUntil(engine::Deadline::FromDuration(answer_duration_));
+
+        return response;
+    }
+
+    void SetAnswerDuration(std::chrono::milliseconds duration) { answer_duration_ = duration; };
+
+private:
+    std::chrono::milliseconds answer_duration_{kLongTimeout};
+};
+
+class UnitTestService final : public sample::ugrpc::UnitTestServiceBase {
+public:
+    SayHelloResult SayHello(CallContext& context, sample::ugrpc::GreetingRequest&& request) override {
+        if (request.name() != "default_context") {
+            CheckServerContext(context.GetServerContext());
+        }
+        sample::ugrpc::GreetingResponse response;
+        response.set_name("Hello " + request.name());
+        return response;
+    }
+
+    ReadManyResult ReadMany(
+        CallContext& context,
+        sample::ugrpc::StreamGreetingRequest&& request,
+        ReadManyWriter& writer
+    ) override {
+        CheckServerContext(context.GetServerContext());
+        const std::string response_name = "Hello again " + request.name();
+        for (int i = 0; i < request.number(); ++i) {
+            sample::ugrpc::StreamGreetingResponse response;
+            response.set_name(response_name);
+            response.set_number(i);
+            writer.Write(std::move(response));
+        }
+        return grpc::Status::OK;
+    }
+
+    WriteManyResult WriteMany(CallContext& context, WriteManyReader& reader) override {
+        CheckServerContext(context.GetServerContext());
+        sample::ugrpc::StreamGreetingRequest request;
+        int count = 0;
+        while (reader.Read(request)) {
+            ++count;
+        }
+        sample::ugrpc::StreamGreetingResponse response;
+        response.set_name("Hello");
+        response.set_number(count);
+        return response;
+    }
+
+    ChatResult Chat(CallContext& context, ChatReaderWriter& stream) override {
+        CheckServerContext(context.GetServerContext());
+        sample::ugrpc::StreamGreetingRequest request;
+        int count = 0;
+        while (stream.Read(request)) {
+            sample::ugrpc::StreamGreetingResponse response;
+            ++count;
+            response.set_number(count);
+            response.set_name("Hello " + request.name());
+            stream.Write(std::move(response));
+        }
+        return grpc::Status::OK;
+    }
+};
+
+}  // namespace
+
+using GrpcClientTest = ugrpc::tests::ServiceWithClientFixture<UnitTestService, sample::ugrpc::UnitTestServiceClient>;
+
+ugrpc::client::CallOptions PrepareCallOptions() {
+    ugrpc::client::CallOptions call_options;
+    call_options.AddMetadata("req_header", "value");
+    return call_options;
+}
+
+void CheckClientContext(const grpc::ClientContext& client_context) {
+    const auto& metadata = client_context.GetServerTrailingMetadata();
+    const auto iter = metadata.find("resp_header");
+    ASSERT_NE(iter, metadata.end());
+    EXPECT_EQ(iter->second, "value");
+}
+
+UTEST_F(GrpcClientTest, UnaryRPC) {
+    sample::ugrpc::GreetingRequest out;
+    out.set_name("userver");
+    sample::ugrpc::GreetingResponse in;
+    UEXPECT_NO_THROW(in = GetClient().SayHello(out, PrepareCallOptions()));
+    EXPECT_EQ("Hello " + out.name(), in.name());
+}
+
+UTEST_F(GrpcClientTest, AsyncUnaryRPC) {
+    sample::ugrpc::GreetingRequest out;
+    out.set_name("userver");
+    auto future_for_move = GetClient().AsyncSayHello(out, PrepareCallOptions());
+    auto future = std::move(future_for_move);  // test move operation
+
+    bool is_ready = false;
+    UEXPECT_NO_THROW(is_ready = future.IsReady());
+
+    sample::ugrpc::GreetingResponse in;
+    UEXPECT_NO_THROW(in = future.Get());
+    CheckClientContext(future.GetContext().GetClientContext());
+    EXPECT_EQ("Hello " + out.name(), in.name());
+}
+
+UTEST_F(GrpcClientTest, AsyncUnaryRPCWithTimeout) {
+    sample::ugrpc::GreetingRequest out;
+    out.set_name("userver");
+    auto future_for_move = GetClient().AsyncSayHello(out, PrepareCallOptions());
+    auto future = std::move(future_for_move);  // test move operation
+
+    EXPECT_EQ(future.WaitUntil(engine::Deadline::FromDuration(60s)), engine::FutureStatus::kReady);
+
+    EXPECT_TRUE(future.IsReady());
+
+    CheckClientContext(future.GetContext().GetClientContext());
+
+    sample::ugrpc::GreetingResponse in;
+    UEXPECT_NO_THROW(in = future.Get());
+    EXPECT_EQ("Hello " + out.name(), in.name());
+}
+
+UTEST_F(GrpcClientTest, UnaryRPCDefaultContext) {
+    sample::ugrpc::GreetingRequest out;
+    out.set_name("default_context");
+
+    sample::ugrpc::GreetingResponse in;
+    UEXPECT_NO_THROW(in = GetClient().SayHello(out));
+    EXPECT_EQ("Hello " + out.name(), in.name());
+}
+
+UTEST_F(GrpcClientTest, InputStream) {
+    sample::ugrpc::StreamGreetingRequest out;
+    out.set_name("userver");
+    out.set_number(kNumber);
+    auto is_for_move = GetClient().ReadMany(out, PrepareCallOptions());
+    auto is = std::move(is_for_move);  // test move operation
+
+    sample::ugrpc::StreamGreetingResponse in;
+    for (auto i = 0; i < kNumber; ++i) {
+        EXPECT_TRUE(is.Read(in));
+        EXPECT_EQ(in.number(), i);
+    }
+    EXPECT_FALSE(is.Read(in));
+
+    CheckClientContext(is.GetContext().GetClientContext());
+}
+
+UTEST_F(GrpcClientTest, EmptyInputStream) {
+    sample::ugrpc::StreamGreetingRequest out;
+    out.set_name("userver");
+    out.set_number(0);
+    auto is = GetClient().ReadMany(out, PrepareCallOptions());
+
+    sample::ugrpc::StreamGreetingResponse in;
+    EXPECT_FALSE(is.Read(in));
+    CheckClientContext(is.GetContext().GetClientContext());
+}
+
+UTEST_F(GrpcClientTest, OutputStream) {
+    auto os_for_move = GetClient().WriteMany(PrepareCallOptions());
+    auto os = std::move(os_for_move);  // test move operation
+
+    sample::ugrpc::StreamGreetingRequest out;
+    out.set_name("userver");
+    for (auto i = 0; i < kNumber; ++i) {
+        out.set_number(i);
+        EXPECT_TRUE(os.Write(out));
+    }
+
+    sample::ugrpc::StreamGreetingResponse in;
+    UEXPECT_NO_THROW(in = os.Finish());
+    EXPECT_EQ(in.number(), kNumber);
+    CheckClientContext(os.GetContext().GetClientContext());
+}
+
+UTEST_F(GrpcClientTest, OutputStreamWriteAndCheck) {
+    auto os_for_move = GetClient().WriteMany(PrepareCallOptions());
+    auto os = std::move(os_for_move);  // test move operation
+
+    sample::ugrpc::StreamGreetingRequest out;
+    out.set_name("userver");
+    for (auto i = 0; i < kNumber; ++i) {
+        out.set_number(i);
+        UEXPECT_NO_THROW(os.WriteAndCheck(out));
+    }
+
+    sample::ugrpc::StreamGreetingResponse in;
+    UEXPECT_NO_THROW(in = os.Finish());
+    EXPECT_EQ(in.number(), kNumber);
+    CheckClientContext(os.GetContext().GetClientContext());
+}
+
+UTEST_F(GrpcClientTest, EmptyOutputStream) {
+    auto os = GetClient().WriteMany(PrepareCallOptions());
+
+    sample::ugrpc::StreamGreetingResponse in;
+    UEXPECT_NO_THROW(in = os.Finish());
+    EXPECT_EQ(in.number(), 0);
+    CheckClientContext(os.GetContext().GetClientContext());
+}
+
+UTEST_F(GrpcClientTest, BidirectionalStream) {
+    auto bs_for_move = GetClient().Chat(PrepareCallOptions());
+    auto bs = std::move(bs_for_move);  // test move operation
+
+    sample::ugrpc::StreamGreetingRequest out{};
+    out.set_name("userver");
+    sample::ugrpc::StreamGreetingResponse in;
+
+    for (auto i = 0; i < 42; ++i) {
+        out.set_number(i);
+        EXPECT_TRUE(bs.Write(out));
+        EXPECT_TRUE(bs.Read(in));
+        EXPECT_EQ(in.number(), i + 1);
+    }
+    EXPECT_TRUE(bs.WritesDone());
+    EXPECT_FALSE(bs.Read(in));
+    CheckClientContext(bs.GetContext().GetClientContext());
+}
+
+UTEST_F(GrpcClientTest, BidirectionalStreamWriteAndCheck) {
+    auto bs_for_move = GetClient().Chat(PrepareCallOptions());
+    auto bs = std::move(bs_for_move);  // test move operation
+
+    sample::ugrpc::StreamGreetingRequest out{};
+    out.set_name("userver");
+    sample::ugrpc::StreamGreetingResponse in;
+
+    for (auto i = 0; i < 42; ++i) {
+        out.set_number(i);
+        // NOLINTNEXTLINE(clang-analyzer-optin.cplusplus.UninitializedObject)
+        UEXPECT_NO_THROW(bs.WriteAndCheck(out));
+        EXPECT_TRUE(bs.Read(in));
+        EXPECT_EQ(in.number(), i + 1);
+    }
+    EXPECT_TRUE(bs.WritesDone());
+    EXPECT_FALSE(bs.Read(in));
+    CheckClientContext(bs.GetContext().GetClientContext());
+}
+
+UTEST_F(GrpcClientTest, EmptyBidirectionalStream) {
+    auto bs = GetClient().Chat(PrepareCallOptions());
+
+    sample::ugrpc::StreamGreetingResponse in;
+    EXPECT_TRUE(bs.WritesDone());
+    EXPECT_FALSE(bs.Read(in));
+    CheckClientContext(bs.GetContext().GetClientContext());
+}
+
+using GrpcClientLongAnswerTest =
+    ugrpc::tests::ServiceWithClientFixture<UnitTestLongAnswerService, sample::ugrpc::UnitTestServiceClient>;
+
+UTEST_F(GrpcClientLongAnswerTest, AsyncUnaryLongAnswerRPC) {
+    GetService().SetAnswerDuration(kLongTimeout);
+
+    sample::ugrpc::GreetingRequest out;
+    out.set_name("userver");
+
+    auto future_for_move = GetClient().AsyncSayHello(out, PrepareCallOptions());
+    auto future = std::move(future_for_move);  // test move operation
+
+    EXPECT_EQ(future.WaitUntil(engine::Deadline::FromDuration(kLongTimeout / 100)), engine::FutureStatus::kTimeout);
+    EXPECT_EQ(future.WaitUntil(engine::Deadline::FromDuration(kLongTimeout / 50)), engine::FutureStatus::kTimeout);
+    EXPECT_EQ(future.WaitUntil(engine::Deadline::FromDuration(utest::kMaxTestWaitTime)), engine::FutureStatus::kReady);
+    EXPECT_EQ(future.WaitUntil(engine::Deadline::FromDuration(utest::kMaxTestWaitTime)), engine::FutureStatus::kReady);
+    sample::ugrpc::GreetingResponse in;
+    UEXPECT_NO_THROW(in = future.Get());
+
+    CheckClientContext(future.GetContext().GetClientContext());
+    EXPECT_EQ("Hello " + out.name(), in.name());
+}
+
+using GrpcClientMultichannelTest = tests::ServiceFixtureMultichannel<UnitTestService>;
+
+UTEST_P_MT(GrpcClientMultichannelTest, MultiThreadedClientTest, 4) {
+    auto client = MakeClient<sample::ugrpc::UnitTestServiceClient>();
+    engine::SingleConsumerEvent request_finished;
+    std::atomic<bool> keep_running{true};
+    std::vector<engine::TaskWithResult<void>> tasks;
+    tasks.reserve(engine::current_task::GetWorkerCount());
+
+    for (std::size_t i = 0; i < engine::current_task::GetWorkerCount(); ++i) {
+        tasks.push_back(engine::AsyncNoTracing([&] {
+            sample::ugrpc::GreetingRequest out;
+            out.set_name("userver");
+
+            while (keep_running) {
+                auto future = client.AsyncSayHello(out, PrepareCallOptions());
+                auto in = future.Get();
+                CheckClientContext(future.GetContext().GetClientContext());
+                EXPECT_EQ("Hello " + out.name(), in.name());
+                request_finished.Send();
+                engine::Yield();
+            }
+        }));
+    }
+
+    EXPECT_TRUE(request_finished.WaitForEventFor(utest::kMaxTestWaitTime));
+
+    // Make sure that multi-threaded requests work fine for some time
+    engine::SleepFor(50ms);
+
+    keep_running = false;
+    for (auto& task : tasks) {
+        task.Get();
+    }
+}
+
+INSTANTIATE_UTEST_SUITE_P(Basic, GrpcClientMultichannelTest, testing::Values(std::size_t{1}, std::size_t{4}));
+
+namespace {
+
+class WriteAndFinishService final : public sample::ugrpc::UnitTestServiceBase {
+public:
+    ReadManyResult ReadMany(
+        CallContext& /*context*/,
+        sample::ugrpc::StreamGreetingRequest&& request,
+        ReadManyWriter& /*writer*/
+    ) override {
+        sample::ugrpc::StreamGreetingResponse response;
+        response.set_number(kNumber);
+        response.set_name("Hello " + request.name());
+        return response;
+    }
+
+    ChatResult Chat(CallContext& /*context*/, ChatReaderWriter& /*stream*/) override {
+        sample::ugrpc::StreamGreetingResponse response;
+        response.set_number(kNumber);
+        response.set_name("Hello");
+        return response;
+    }
+};
+
+}  // namespace
+
+using GrpcWriteAndFinish =
+    ugrpc::tests::ServiceWithClientFixture<WriteAndFinishService, sample::ugrpc::UnitTestServiceClient>;
+
+UTEST_F(GrpcWriteAndFinish, InputStream) {
+    sample::ugrpc::StreamGreetingRequest out;
+    out.set_name("userver");
+    out.set_number(kNumber);
+    auto is = GetClient().ReadMany(out, PrepareCallOptions());
+
+    sample::ugrpc::StreamGreetingResponse in;
+    EXPECT_TRUE(is.Read(in));
+    EXPECT_EQ(in.number(), kNumber);
+    EXPECT_EQ(in.name(), "Hello userver");
+    EXPECT_FALSE(is.Read(in));
+}
+
+UTEST_F(GrpcWriteAndFinish, BidirectionalStream) {
+    auto is = GetClient().Chat(PrepareCallOptions());
+
+    sample::ugrpc::StreamGreetingResponse in;
+    EXPECT_TRUE(is.Read(in));
+    EXPECT_EQ(in.number(), kNumber);
+    EXPECT_EQ(in.name(), "Hello");
+    EXPECT_FALSE(is.Read(in));
+}
+
+USERVER_NAMESPACE_END

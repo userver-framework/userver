@@ -1,5 +1,9 @@
 #pragma once
 
+/// @file userver/formats/json/parser/int_parser.hpp
+/// @brief SAX parsers for JSON integral numbers.
+/// @ingroup userver_universal
+
 #include <cstdint>
 
 #include <userver/formats/json/parser/typed_parser.hpp>
@@ -13,36 +17,34 @@ class IntegralParser;
 
 template <>
 class IntegralParser<std::int32_t> final : public TypedParser<std::int32_t> {
- public:
-  using TypedParser<std::int32_t>::TypedParser;
+public:
+    using TypedParser<std::int32_t>::TypedParser;
 
- private:
-  void Int64(std::int64_t i) override;
+    std::string GetPathItem() const override { return {}; }
 
-  void Uint64(std::uint64_t i) override;
+    std::string Expected() const override { return "integer"; }
 
-  void Double(double value) override;
+    void Int64(std::int64_t i) override;
 
-  std::string GetPathItem() const override { return {}; }
+    void Uint64(std::uint64_t i) override;
 
-  std::string Expected() const override { return "integer"; }
+    void Double(double value) override;
 };
 
 template <>
 class IntegralParser<std::int64_t> final : public TypedParser<std::int64_t> {
- public:
-  using TypedParser<std::int64_t>::TypedParser;
+public:
+    using TypedParser<std::int64_t>::TypedParser;
 
- private:
-  void Int64(std::int64_t i) override;
+    std::string GetPathItem() const override { return {}; }
 
-  void Uint64(std::uint64_t i) override;
+    std::string Expected() const override { return "integer"; }
 
-  void Double(double value) override;
+    void Int64(std::int64_t i) override;
 
-  std::string GetPathItem() const override { return {}; }
+    void Uint64(std::uint64_t i) override;
 
-  std::string Expected() const override { return "integer"; }
+    void Double(double value) override;
 };
 
 using IntParser = IntegralParser<std::int32_t>;

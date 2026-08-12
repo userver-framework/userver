@@ -21,50 +21,59 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::postgres::detail::topology {
 
 class TopologyBase {
- public:
-  using DsnIndex = size_t;
-  using DsnIndices = std::vector<DsnIndex>;
-  using DsnIndicesByType =
-      std::unordered_map<ClusterHostType, DsnIndices, ClusterHostTypeHash>;
+public:
+    using DsnIndex = size_t;
+    struct DsnIndices final {
+        // all alive indices
+        std::vector<DsnIndex> indices{};
 
-  TopologyBase(engine::TaskProcessor& bg_task_processor, DsnList dsns,
-               clients::dns::Resolver* resolver,
-               const TopologySettings& topology_settings,
-               const ConnectionSettings& conn_settings,
-               const DefaultCommandControls& default_cmd_ctls,
-               const testsuite::PostgresControl& testsuite_pg_ctl,
-               error_injection::Settings ei_settings);
+        // index with lowest rrt
+        std::optional<DsnIndex> nearest{};
+    };
+    using DsnIndicesByType = std::unordered_map<ClusterHostType, DsnIndices, ClusterHostTypeHash>;
 
-  virtual ~TopologyBase() = default;
+    TopologyBase(
+        engine::TaskProcessor& bg_task_processor,
+        DsnList dsns,
+        clients::dns::Resolver* resolver,
+        const TopologySettings& topology_settings,
+        const ConnectionSettings& conn_settings,
+        const DefaultCommandControls& default_cmd_ctls,
+        const testsuite::PostgresControl& testsuite_pg_ctl,
+        error_injection::Settings ei_settings,
+        USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics
+    );
 
-  const DsnList& GetDsnList() const;
-  void SetTopologySettings(const TopologySettings&);
-  const TopologySettings& GetTopologySettings() const;
-  const testsuite::PostgresControl& GetTestsuiteControl() const;
+    virtual ~TopologyBase() = default;
 
-  /// Currently determined host types, ordered by rtt
-  virtual rcu::ReadablePtr<DsnIndicesByType> GetDsnIndicesByType() const = 0;
+    const DsnList& GetDsnList() const;
+    void SetTopologySettings(const TopologySettings&);
+    const TopologySettings& GetTopologySettings() const;
+    const testsuite::PostgresControl& GetTestsuiteControl() const;
 
-  /// Currently accessible hosts
-  virtual rcu::ReadablePtr<DsnIndices> GetAliveDsnIndices() const = 0;
+    /// Currently determined host types, ordered by rtt
+    virtual rcu::ReadablePtr<DsnIndicesByType> GetDsnIndicesByType() const = 0;
 
-  // Returns statistics for each DSN in DsnList
-  virtual const std::vector<decltype(InstanceStatistics::topology)>&
-  GetDsnStatistics() const = 0;
+    /// Currently accessible hosts
+    virtual rcu::ReadablePtr<DsnIndices> GetAliveDsnIndices() const = 0;
 
- protected:
-  std::unique_ptr<Connection> MakeTopologyConnection(DsnIndex);
+    // Returns statistics for each DSN in DsnList
+    virtual const std::vector<decltype(InstanceStatistics::topology)>& GetDsnStatistics() const = 0;
 
- private:
-  engine::TaskProcessor& bg_task_processor_;
-  concurrent::BackgroundTaskStorageCore bg_task_storage_;
-  const DsnList dsns_;
-  clients::dns::Resolver* resolver_;
-  TopologySettings topology_settings_;
-  const ConnectionSettings conn_settings_;
-  const DefaultCommandControls default_cmd_ctls_;
-  const testsuite::PostgresControl testsuite_pg_ctl_;
-  const error_injection::Settings ei_settings_;
+protected:
+    std::unique_ptr<Connection> MakeTopologyConnection(DsnIndex);
+
+private:
+    engine::TaskProcessor& bg_task_processor_;
+    concurrent::BackgroundTaskStorageCore bg_task_storage_;
+    const DsnList dsns_;
+    clients::dns::Resolver* resolver_;
+    TopologySettings topology_settings_;
+    const ConnectionSettings conn_settings_;
+    const DefaultCommandControls default_cmd_ctls_;
+    const testsuite::PostgresControl testsuite_pg_ctl_;
+    const error_injection::Settings ei_settings_;
+    USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics_;
 };
 
 }  // namespace storages::postgres::detail::topology

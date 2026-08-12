@@ -8,16 +8,20 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server::middlewares::congestion_control {
 
-class Middleware final
-    : public MiddlewareBase,
-      public USERVER_NAMESPACE::server::congestion_control::Limitee {
- public:
-  void Handle(MiddlewareCallContext& context) const override;
+struct Settings final {
+    /// gRPC-code that the congestion control uses to reject requests
+    grpc::StatusCode reject_status_code{grpc::StatusCode::RESOURCE_EXHAUSTED};
+};
 
-  void SetLimit(std::optional<size_t> new_limit) override;
+class Middleware final : public MiddlewareBase {
+public:
+    Middleware(const Settings& settings, std::shared_ptr<utils::TokenBucket> rate_limit);
 
- private:
-  mutable utils::TokenBucket rate_limit_{utils::TokenBucket::MakeUnbounded()};
+    void OnCallStart(MiddlewareCallContext& context) const override;
+
+private:
+    std::shared_ptr<utils::TokenBucket> rate_limit_;
+    Settings settings_;
 };
 
 }  // namespace ugrpc::server::middlewares::congestion_control

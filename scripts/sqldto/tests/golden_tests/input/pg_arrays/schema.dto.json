@@ -1,0 +1,167 @@
+{
+  "catalog": {
+    "enums": {
+      "nested.category": {
+        "name": "category",
+        "namespace": "nested",
+        "values": [
+          "work",
+          "personal",
+          "other"
+        ]
+      },
+      "nested.priority": {
+        "name": "priority",
+        "namespace": "nested",
+        "values": [
+          "low",
+          "high"
+        ]
+      }
+    },
+    "tables": {},
+    "types": {
+      "nested.address": {
+        "fields": [
+          {
+            "name": "street",
+            "nullable": true,
+            "type": "text"
+          },
+          {
+            "name": "city",
+            "nullable": true,
+            "type": "character varying(100)"
+          },
+          {
+            "name": "postal_code",
+            "nullable": true,
+            "type": "character varying(20)"
+          }
+        ],
+        "name": "address",
+        "namespace": "nested"
+      },
+      "nested.contact": {
+        "fields": [
+          {
+            "name": "phone",
+            "nullable": true,
+            "type": "text"
+          },
+          {
+            "name": "email",
+            "nullable": true,
+            "type": "character varying(255)"
+          },
+          {
+            "name": "is_primary",
+            "nullable": true,
+            "type": "boolean"
+          }
+        ],
+        "name": "contact",
+        "namespace": "nested"
+      },
+      "nested.organization": {
+        "fields": [
+          {
+            "name": "org_id",
+            "nullable": true,
+            "type": "bigint"
+          },
+          {
+            "name": "org_name",
+            "nullable": true,
+            "type": "text"
+          },
+          {
+            "name": "founded",
+            "nullable": true,
+            "type": "date"
+          },
+          {
+            "name": "headquarters",
+            "nullable": true,
+            "type": "nested.address"
+          },
+          {
+            "name": "phone_numbers",
+            "nullable": true,
+            "type": "text[]"
+          },
+          {
+            "name": "employee_counts",
+            "nullable": true,
+            "type": "integer[]"
+          },
+          {
+            "name": "locations",
+            "nullable": true,
+            "type": "nested.address[]"
+          },
+          {
+            "name": "key_contacts",
+            "nullable": true,
+            "type": "nested.contact[]"
+          },
+          {
+            "name": "categories",
+            "nullable": true,
+            "type": "nested.category[]"
+          },
+          {
+            "name": "ceo",
+            "nullable": true,
+            "type": "nested.person"
+          },
+          {
+            "name": "employees",
+            "nullable": true,
+            "type": "nested.person[]"
+          }
+        ],
+        "name": "organization",
+        "namespace": "nested"
+      },
+      "nested.person": {
+        "fields": [
+          {
+            "name": "name",
+            "nullable": true,
+            "type": "text"
+          },
+          {
+            "name": "age",
+            "nullable": true,
+            "type": "integer"
+          },
+          {
+            "name": "contacts",
+            "nullable": true,
+            "type": "nested.contact"
+          },
+          {
+            "name": "home_address",
+            "nullable": true,
+            "type": "nested.address"
+          },
+          {
+            "name": "work_address",
+            "nullable": true,
+            "type": "nested.address"
+          },
+          {
+            "name": "priority",
+            "nullable": true,
+            "type": "nested.priority"
+          }
+        ],
+        "name": "person",
+        "namespace": "nested"
+      }
+    }
+  },
+  "hashsum": "25da8d07c9619a1cff930b029d7cebb40a51f1a1842dfb3c743c23a046b3b626",
+  "queries": []
+}

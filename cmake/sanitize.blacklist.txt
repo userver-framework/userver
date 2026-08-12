@@ -10,7 +10,7 @@ src:*bits/stl_iterator.h
 [undefined]
 src:*bits/stl_vector.h
 
-# TODO: fix the issues in TAXICOMMON-8084 and remove the following tsan related lines: 
+# TODO: fix the issues in TAXICOMMON-8084 and remove the following tsan related lines:
 [thread]
 mainfile:*core/src/engine/task/task_context.cpp
 mainfile:*core/src/engine/task/task_context.hpp

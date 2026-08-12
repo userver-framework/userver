@@ -3,16 +3,15 @@
 /// @file userver/storages/postgres/dist_lock_component_base.hpp
 /// @brief @copybrief storages::postgres::DistLockComponentBase
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/dist_lock/dist_locked_worker.hpp>
+#include <userver/dynamic_config/snapshot.hpp>
+#include <userver/dynamic_config/source.hpp>
 #include <userver/storages/postgres/dist_lock_strategy.hpp>
-#include <userver/utils/statistics/entry.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres {
-
-// clang-format off
 
 /// @ingroup userver_components userver_base_classes
 ///
@@ -20,7 +19,11 @@ namespace storages::postgres {
 ///
 /// A component that implements a distlock with lock in Postgres. Inherit from
 /// DistLockComponentBase and implement DoWork(). Lock options are configured
-/// in static config.
+/// in static config. To customize a distlock for testsuite override DoWorkTestsuite().
+///
+/// By default the distlock is started and stopped automatically by the framework
+/// in all environments except testsuite. If manual control over the distlock startup
+/// and shutdown is needed pass DisableAutostartAtBase{} to the DistLockComponentBase .ctor.
 ///
 /// The class must be used for infinite loop jobs. If you want a distributed
 /// periodic, you should look at locked_periodiccomponents::PgLockedPeriodic.
@@ -39,19 +42,13 @@ namespace storages::postgres {
 ///            lock-ttl: 10s
 ///            autostart: true
 /// ```
+/// See config `POSTGRES_DISTLOCK_SETTINGS`, some of parameters can be dynamically overridden.
 ///
-/// ## Static options:
-/// name           | Description  | Default value
-/// -------------- | ------------ | -------------
-/// cluster        | postgres cluster name | --
-/// table          | table name to store distlocks | --
-/// lockname       | name of the lock | --
-/// lock-ttl       | TTL of the lock; must be at least as long as the duration between subsequent cancellation checks, otherwise brain split is possible | --
-/// pg-timeout     | timeout, must be less than lock-ttl/2 | --
-/// restart-delay  | how much time to wait after failed task restart | 100ms
-/// autostart      | if true, start automatically after component load | false
-/// task-processor | the name of the TaskProcessor for running DoWork | main-task-processor
-/// testsuite-support | Enable testsuite support | false
+/// ## Static options of storages::postgres::DistLockComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/postgresql/src/storages/postgres/dist_lock_component_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Migration example
 ///
@@ -68,68 +65,107 @@ namespace storages::postgres {
 /// ```
 ///
 /// @see @ref scripts/docs/en/userver/periodics.md
+class DistLockComponentBase : public components::ComponentBase {
+public:
+    struct DisableAutostartAtBase {};
 
-// clang-format on
+    /// @brief Constructs the distlock base and enables automatic startup and shutdown of the distlock.
+    DistLockComponentBase(
+        const components::ComponentConfig& component_config,
+        const components::ComponentContext& component_context
+    );
 
-class DistLockComponentBase : public components::LoggableComponentBase {
- public:
-  DistLockComponentBase(const components::ComponentConfig&,
-                        const components::ComponentContext&);
+    /// @brief Constructs the distlock base and disables automatic startup and shutdown of the distlock.
+    /// The dislock should be started and stopped manually via AutostartDistlock() and StopDistLock() calls.
+    DistLockComponentBase(
+        const components::ComponentConfig& component_config,
+        const components::ComponentContext& component_context,
+        DisableAutostartAtBase
+    );
 
-  ~DistLockComponentBase() override;
+    ~DistLockComponentBase() override;
 
-  dist_lock::DistLockedWorker& GetWorker();
+    dist_lock::DistLockedWorker& GetWorker();
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    /// @note In testsuite always returns `true`, because there is only one host.
+    bool OwnsLock() const noexcept;
 
- protected:
-  /// Override this function with anything that must be done under the pg lock.
-  ///
-  /// ## Example implementation
-  ///
-  /// ```cpp
-  /// void MyDistLockComponent::DoWork()
-  /// {
-  ///     while (!engine::ShouldCancel())
-  ///     {
-  ///         // Start a new trace_id
-  ///         auto span = tracing::Span::MakeRootSpan("my-dist-lock");
-  ///
-  ///         // If Foo() or other function in DoWork() throws an exception,
-  ///         // DoWork() will be restarted in `restart-delay` seconds.
-  ///         Foo();
-  ///
-  ///         // Check for cancellation after cpu-intensive Foo().
-  ///         // You must check for cancellation at least every `lock-ttl`
-  ///         // seconds to have time to notice lock prolongation failure.
-  ///         if (engine::ShouldCancel()) break;
-  ///
-  ///         Bar();
-  ///     }
-  /// }
-  /// ```
-  ///
-  /// @note `DoWork` must honour task cancellation and stop ASAP when
-  /// it is cancelled, otherwise brain split is possible (IOW, two different
-  /// users do work assuming both of them hold the lock, which is not true).
-  virtual void DoWork() = 0;
+    static yaml_config::Schema GetStaticConfigSchema();
 
-  /// Override this function to provide custom testsuite handler.
-  virtual void DoWorkTestsuite() { DoWork(); }
+protected:
+    /// Override this function with anything that must be done under the pg lock.
+    ///
+    /// ## Example implementation
+    ///
+    /// ```cpp
+    /// void MyDistLockComponent::DoWork()
+    /// {
+    ///     // `IsCancelAdvised` is advisory/soft signal to stop the task.
+    ///     // Check it in every independent processing iteration.
+    ///     // Whereas @ref engine::current_task::ShouldCancel() checks as frequently,
+    ///     // as you can to honor low-level task cancellation.
+    ///     while (!IsCancelAdvised())
+    ///     {
+    ///         // Start a new trace_id
+    ///         auto span = tracing::Span::MakeRootSpan("my-dist-lock");
+    ///
+    ///         // If Foo() or other function in DoWork() throws an exception,
+    ///         // DoWork() will be restarted in `restart-delay` seconds.
+    ///         Foo();
+    ///
+    ///         // Check for cancellation after cpu-intensive Foo().
+    ///         // You must check for cancellation at least every `lock-ttl`
+    ///         // seconds to have time to notice lock prolongation failure.
+    ///         if (engine::ShouldCancel()) break;
+    ///
+    ///         Bar();
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// @note `DoWork` must honour task cancellation and stop ASAP when
+    /// it is cancelled, otherwise brain split is possible (IOW, two different
+    /// users do work assuming both of them hold the lock, which is not true).
+    virtual void DoWork() = 0;
 
-  /// Must be called in ctr
-  void AutostartDistLock();
+    /// Override this function to provide custom testsuite handler.
+    virtual void DoWorkTestsuite() { DoWork(); }
 
-  /// Must be called in dtr
-  void StopDistLock();
+    /// Should be called in a .ctor of a derived class iff DisableAutostartAtBase{}
+    /// has been passed to the DistLockComponentBase .ctor.
+    void AutostartDistLock();
 
- private:
-  std::unique_ptr<dist_lock::DistLockedWorker> worker_;
-  bool autostart_;
-  bool testsuite_enabled_{false};
+    /// Should be called in a .dtor of a derived class iff DisableAutostartAtBase{}
+    /// has been passed to the DistLockComponentBase .ctor.
+    void StopDistLock();
 
-  // Subscriptions must be the last fields.
-  USERVER_NAMESPACE::utils::statistics::Entry statistics_holder_;
+    /// Check this method when going for the next independent processing
+    /// iteration. Whereas @ref engine::current_task::ShouldCancel()
+    /// checks as frequently, as you can to honor low-level task cancellation.
+    bool IsCancelAdvised() const;
+
+private:
+    enum class AutostartDistlock : bool { kNo = false, kYes = true };
+
+    DistLockComponentBase(
+        const components::ComponentConfig& component_config,
+        const components::ComponentContext& component_context,
+        AutostartDistlock enable_autostart_at_base
+    );
+
+    bool ShouldRunOnHost(const dynamic_config::Snapshot& config) const;
+    void OnConfigUpdate(const dynamic_config::Diff& diff);
+
+    dynamic_config::Source config_;
+    const std::string name_;
+    const std::string real_host_name_;
+    std::unique_ptr<dist_lock::DistLockedWorker> worker_;
+    bool autostart_;
+    bool testsuite_enabled_{false};
+    AutostartDistlock enable_autostart_at_base_;
+    dist_lock::DistLockSettings default_settings_;
+
+    concurrent::AsyncEventSubscriberScope subscription_token_;
 };
 
 }  // namespace storages::postgres

@@ -3,11 +3,14 @@
 /// @file userver/engine/single_use_event.hpp
 /// @brief @copybrief engine::SingleUseEvent
 
+#include <userver/compiler/impl/lifetime.hpp>
+#include <userver/engine/awaitable.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/future_status.hpp>
 #include <userver/engine/impl/context_accessor.hpp>
 #include <userver/engine/impl/wait_list_fwd.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,13 +29,13 @@ namespace engine {
 ///
 /// ## Destroying a SingleUseEvent after waking up
 ///
-/// The waiting coroutine is allowed to immediately destroy the `SingleUseEvent`
+/// The waiting task is allowed to immediately destroy the `SingleUseEvent`
 /// after waking up; it will not stop a concurrent `Send` from completing
 /// correctly. This is contrary to the properties of other userver
 /// synchronization primitives, like engine::Mutex.
 ///
 /// However, if the wait operation ends in something other than
-/// engine::Future::kReady, then it is the responsibility of the waiter
+/// engine::Future::kReady, then it is the responsibility of the awaiter
 /// to guarantee that it either prevents the oncoming `Send` call or awaits it.
 /// One way to force waiting until the `Send` call happens is to use
 /// engine::SingleUseEvent::WaitNonCancellable.
@@ -42,53 +45,51 @@ namespace engine {
 /// @snippet engine/single_use_event_test.cpp  Wait and destroy
 ///
 /// @see @ref scripts/docs/en/userver/synchronization.md
-class SingleUseEvent final : private impl::ContextAccessor {
- public:
-  SingleUseEvent() noexcept;
+class SingleUseEvent final : private impl::AwaitableBase {
+public:
+    SingleUseEvent() noexcept;
 
-  SingleUseEvent(const SingleUseEvent&) = delete;
-  SingleUseEvent(SingleUseEvent&&) = delete;
-  SingleUseEvent& operator=(const SingleUseEvent&) = delete;
-  SingleUseEvent& operator=(SingleUseEvent&&) = delete;
-  ~SingleUseEvent();
+    SingleUseEvent(const SingleUseEvent&) = delete;
+    SingleUseEvent(SingleUseEvent&&) = delete;
+    SingleUseEvent& operator=(const SingleUseEvent&) = delete;
+    SingleUseEvent& operator=(SingleUseEvent&&) = delete;
+    ~SingleUseEvent();
 
-  /// @brief Waits until the event is in a signaled state.
-  ///
-  /// @throws engine::WaitInterruptedException if the current task is cancelled
-  void Wait();
+    /// @brief Waits until the event is in a signaled state.
+    ///
+    /// @throws engine::WaitInterruptedException if the current task is cancelled
+    void Wait();
 
-  /// @brief Waits until the event is in a signaled state, or the deadline
-  /// expires, or the current task is cancelled.
-  [[nodiscard]] FutureStatus WaitUntil(Deadline);
+    /// @brief Waits until the event is in a signaled state, or the deadline
+    /// expires, or the current task is cancelled.
+    [[nodiscard]] FutureStatus WaitUntil(Deadline);
 
-  /// @brief Waits until the event is in a signaled state, ignoring task
-  /// cancellations.
-  ///
-  /// The waiter coroutine can destroy the `SingleUseEvent` object immediately
-  /// after waking up, if necessary.
-  void WaitNonCancellable() noexcept;
+    /// @brief Waits until the event is in a signaled state, ignoring task
+    /// cancellations.
+    ///
+    /// The awaiter task can destroy the `SingleUseEvent` object immediately
+    /// after waking up, if necessary.
+    void WaitNonCancellable() noexcept;
 
-  /// Sets the signal flag and wakes a coroutine that waits on it, if any.
-  /// `Send` must not be called again.
-  void Send() noexcept;
+    /// Sets the signal flag and wakes a task that waits on it, if any.
+    /// `Send` must not be called again.
+    ///
+    /// You can safely invoke Send from outside a coroutine.
+    void Send() noexcept;
 
-  /// Returns true iff already signaled.
-  [[nodiscard]] bool IsReady() const noexcept override;
+    /// Returns true iff already signaled.
+    [[nodiscard]] bool IsReady() const noexcept override;
 
-  /// @cond
-  // For internal use only.
-  impl::ContextAccessor* TryGetContextAccessor() noexcept { return this; }
-  /// @endcond
+    /// Satisfies @ref engine::Awaitable, for use with @ref engine::WaitAnyContext and friends.
+    AwaitableToken GetAwaitableToken() noexcept USERVER_IMPL_LIFETIME_BOUND {
+        return AwaitableToken{utils::impl::InternalTag{}, this};
+    }
 
- private:
-  friend class impl::FutureWaitStrategy<SingleUseEvent>;
+private:
+    void TryAppendAwaiter(impl::AwaiterPtr& awaiter, std::uintptr_t context) override;
+    impl::AwaiterPtr RemoveAwaiter(impl::Awaiter& awaiter, std::uintptr_t context) noexcept override;
 
-  impl::EarlyWakeup TryAppendWaiter(impl::TaskContext& waiter) override;
-  void RemoveWaiter(impl::TaskContext& waiter) noexcept override;
-  void RethrowErrorResult() const override;
-  void AfterWait() noexcept override;
-
-  impl::FastPimplWaitListLight waiters_;
+    impl::FastPimplWaitListLight awaiters_;
 };
 
 }  // namespace engine

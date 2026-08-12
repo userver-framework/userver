@@ -1,5 +1,8 @@
 # yaml
 components_manager:
+    graceful_shutdown_continue_accepting_requests_interval: 10s
+    graceful_shutdown_pending_requests_completion_interval: 10s
+
     components:
         # The required common components
         logging:
@@ -9,6 +12,10 @@ components_manager:
                     file_path: '@stderr'
                     level: debug
                     overflow_behavior: discard
+
+        congestion-control:
+
+        grpc-server-middlewares-pipeline:
 
         grpc-server:
             port: 8091
@@ -20,7 +27,10 @@ components_manager:
 
         grpc-health:
             task-processor: main-task-processor
-            middlewares: []
+            disable-all-pipeline-middlewares: true
+            middlewares:
+                grpc-server-graceful-shutdown-headers:
+                    enabled: true
 
     default_task_processor: main-task-processor
 
@@ -28,7 +38,7 @@ components_manager:
         grpc-blocking-task-processor:  # For blocking gRPC channel creation
             thread_name: grpc-worker
             worker_threads: 2
-        main-task-processor:           # For non-blocking operations
+        main-task-processor:  # For non-blocking operations
             worker_threads: 4
-        fs-task-processor:             # For blocking filesystem operations
+        fs-task-processor:  # For blocking filesystem operations
             worker_threads: 2

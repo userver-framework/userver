@@ -18,31 +18,40 @@ namespace components {
 enum class ValidationMode;
 
 struct ManagerConfig {
-  engine::coro::PoolConfig coro_pool;
-  engine::ev::ThreadPoolConfig event_thread_pool;
-  std::vector<components::ComponentConfig> components;
-  std::vector<engine::TaskProcessorConfig> task_processors;
-  std::string default_task_processor;
-  ValidationMode validate_components_configs{};
-  utils::impl::UserverExperimentSet enabled_experiments;
-  bool experiments_force_enabled{false};
-  bool mlock_debug_info{true};
-  bool disable_phdr_cache{false};
-  bool preheat_stacktrace_collector{true};
+    engine::coro::PoolConfig coro_pool;
+    engine::ev::ThreadPoolConfig event_thread_pool;
+    std::vector<components::ComponentConfig> components;
+    std::string boot_log_path;
+    std::vector<engine::TaskProcessorConfig> task_processors;
+    std::string default_task_processor;
+    std::string fs_task_processor;
+    ValidationMode validate_components_configs{};
+    utils::impl::UserverExperimentSet enabled_experiments;
+    std::chrono::milliseconds graceful_shutdown_continue_accepting_requests_interval{};
+    std::chrono::milliseconds graceful_shutdown_pending_requests_completion_interval{};
+    bool mlock_debug_info{true};
+    bool disable_phdr_cache{false};
+    bool preheat_stacktrace_collector{true};
+    bool enable_trx_tracker{true};
+    bool enable_component_load_tracing{false};
+    std::chrono::milliseconds component_load_print_interval{10000};
+    engine::DeadlockDetector deadlock_detector{engine::DeadlockDetector::kOff};
 
-  static ManagerConfig FromString(
-      const std::string&, const std::optional<std::string>& config_vars_path,
-      const std::optional<std::string>& config_vars_override_path);
-  static ManagerConfig FromFile(
-      const std::string& path,
-      const std::optional<std::string>& config_vars_path,
-      const std::optional<std::string>& config_vars_override_path);
+    static ManagerConfig FromString(
+        const std::string&,
+        const std::optional<std::string>& config_vars_path,
+        const std::optional<std::string>& config_vars_override_path
+    );
+    static ManagerConfig FromFile(
+        const std::string& path,
+        const std::optional<std::string>& config_vars_path,
+        const std::optional<std::string>& config_vars_override_path
+    );
 };
 
 yaml_config::Schema GetManagerConfigSchema();
 
-ManagerConfig Parse(const yaml_config::YamlConfig& value,
-                    formats::parse::To<ManagerConfig>);
+ManagerConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<ManagerConfig>);
 
 }  // namespace components
 

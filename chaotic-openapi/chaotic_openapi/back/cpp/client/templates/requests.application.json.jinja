@@ -1,0 +1,8 @@
+{% macro serialize(request, http_request) %}
+  {{ http_request }}.data(ToString(USERVER_NAMESPACE::formats::json::ValueBuilder({{ request }}).ExtractValue()));
+{% endmacro %}
+
+
+{% macro define_body_cpp_name(body) %}
+  using {{ body.cpp_name() }} = {{ body.schema.cpp_user_name() }};
+{% endmacro %}

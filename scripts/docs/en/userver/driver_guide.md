@@ -13,7 +13,7 @@ interactions of the native library into it:
 
 ```cpp
 template <class... Args>
-auto UserverSide::DoStuff(Args&&... args) { 
+auto UserverSide::DoStuff(Args&&... args) {
   return utils::Async(driver_task_processor, "driver-action", [&]() {
     return native_do_stuff(std::forward<Args>(args));
   }).Get();
@@ -42,7 +42,7 @@ in userver.
 Otherwise, if the native driver is written in C++ and is not too big, then
 it may be possible to patch it to use userver IO primitives
 (engine::io::Socket, for example) and cleaning out other blocking primitives
-in favor of userver ones (engine::Mutex, engine::ConditionVariable). This
+in favor of userver ones (engine::Mutex, @ref engine::ConditionVariable). This
 approach was used to write the Clickhouse driver in userver.
 
 In both approaches there is a downside. The native library must be integrated
@@ -56,7 +56,7 @@ Implement the protocol yourself (probably reusing a subset of the native
 library functionality).  This approach was used to write the PostgreSQL driver
 in userver - it creates a
 connection in a separate `TaskProcessor` via native functions, and then
-subscribes to the socket via engine::io::Socket, parses the protocol in the
+subscribes to the socket via @ref engine::io::Socket, parses the protocol in the
 main `TaskProcessor`.
 
 Such an approach may open the door for further optimizations. If no native
@@ -88,5 +88,5 @@ help you to deal with the remaining parts.
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/development/stability.md | @ref scripts/docs/en/userver/tutorial/build_userver.md ⇨
+⇦ @ref scripts/docs/en/userver/development/stability.md | @ref scripts/docs/en/userver/publications.md ⇨
 @htmlonly </div> @endhtmlonly

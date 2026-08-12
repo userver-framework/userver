@@ -1,0 +1,27 @@
+# SQLite driver metrics on connections (read / write)
+sqlite.connections.active: component=key-value-database, connection_pool=read	GAUGE	0
+sqlite.connections.active: component=key-value-database, connection_pool=write	GAUGE	0
+sqlite.connections.busy: component=key-value-database, connection_pool=read	GAUGE	0
+sqlite.connections.busy: component=key-value-database, connection_pool=write	GAUGE	0
+sqlite.connections.closed: component=key-value-database, connection_pool=read	RATE	0
+sqlite.connections.closed: component=key-value-database, connection_pool=write	RATE	0
+sqlite.connections.created: component=key-value-database, connection_pool=read	RATE	0
+sqlite.connections.created: component=key-value-database, connection_pool=write	RATE	0
+sqlite.connections.overload: component=key-value-database, connection_pool=read	RATE	0
+sqlite.connections.overload: component=key-value-database, connection_pool=write	RATE	0
+
+# SQLite queries stats
+sqlite.queries.error: component=key-value-database, connection_pool=read	RATE	0
+sqlite.queries.error: component=key-value-database, connection_pool=write	RATE	0
+sqlite.queries.executed: component=key-value-database, connection_pool=read	RATE	0
+sqlite.queries.executed: component=key-value-database, connection_pool=write	RATE	0
+sqlite.queries.timings: component=key-value-database, connection_pool=read	HIST_RATE	0
+sqlite.queries.timings: component=key-value-database, connection_pool=write	HIST_RATE	0
+sqlite.queries.total: component=key-value-database, connection_pool=read	RATE	0
+sqlite.queries.total: component=key-value-database, connection_pool=write	RATE	0
+
+# SQLite transactions stats
+sqlite.transactions.commit: component=key-value-database	RATE	0
+sqlite.transactions.rollback: component=key-value-database	RATE	0
+sqlite.transactions.timings: component=key-value-database	HIST_RATE	0
+sqlite.transactions.total: component=key-value-database	RATE	0

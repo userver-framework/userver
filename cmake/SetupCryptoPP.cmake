@@ -1,38 +1,35 @@
-if (TARGET CryptoPP)
+if(TARGET CryptoPP)
     return()
 endif()
 
-option(
-    USERVER_DOWNLOAD_PACKAGE_CRYPTOPP
-    "Download and setup CryptoPP if no CryptoPP of matching version was found"
-    ${USERVER_DOWNLOAD_PACKAGES}
+# @ingroup download
+option(USERVER_DOWNLOAD_PACKAGE_CRYPTOPP "Download and setup CryptoPP if no CryptoPP of matching version was found"
+       ${USERVER_DOWNLOAD_PACKAGES}
 )
 
-if (NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
-  if (USERVER_DOWNLOAD_PACKAGE_CRYPTOPP)
-      find_package(CryptoPP QUIET)
-  else()
-      find_package(CryptoPP REQUIRED)
-  endif()
+if(NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
+    if(USERVER_DOWNLOAD_PACKAGE_CRYPTOPP)
+        find_package(cryptopp QUIET)
+    else()
+        find_package(cryptopp REQUIRED)
+    endif()
 
-  if (CryptoPP_FOUND)
-      return()
-  endif()
+    if(cryptopp_FOUND)
+        return()
+    endif()
 endif()
 
 include(DownloadUsingCPM)
 
-CPMAddPackage(
+cpmaddpackage(
     NAME cryptopp-cmake
     VERSION 8.9.0
     GITHUB_REPOSITORY abdes/cryptopp-cmake
-    GIT_TAG CRYPTOPP_8_9_0
-    OPTIONS
-    "CRYPTOPP_BUILD_SHARED OFF"
-    "CRYPTOPP_BUILD_TESTING OFF"
-    "CRYPTOPP_USE_INTERMEDIATE_OBJECTS_TARGET OFF"
-    "CRYPTOPP_USE_OPENMP OFF"
-    "CRYPTOPP_DATA_DIR"
+    # 8.9.0 is not enough, because cmake 3.30+ complains about FetchContent_Populate usage.
+    # We should use 8.10.0 tag instead as soon as it is released.
+    GIT_TAG d2b072ab65c036f3dca67f4204ad57d66728bf99
+    OPTIONS "CRYPTOPP_BUILD_SHARED OFF" "CRYPTOPP_BUILD_TESTING OFF" "CRYPTOPP_USE_INTERMEDIATE_OBJECTS_TARGET OFF"
+            "CRYPTOPP_USE_OPENMP OFF" "CRYPTOPP_DATA_DIR"
 )
 
 add_library(CryptoPP INTERFACE)

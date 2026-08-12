@@ -1,13 +1,14 @@
 #include "redis_fixture.hpp"
 
+#include <storages/redis/impl/thread_pools.hpp>
 #include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/task/task.hpp>
-#include <userver/storages/redis/impl/thread_pools.hpp>
 
 #include <storages/redis/client_impl.hpp>
 #include <storages/redis/impl/sentinel.hpp>
 #include <storages/redis/redis_secdist.hpp>
+#include <userver/storages/redis/redis_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -38,39 +39,50 @@ constexpr std::string_view kRedisSettings = R"({{
 }})";
 
 const USERVER_NAMESPACE::secdist::RedisSettings& GetTestsuiteRedisSettings() {
-  static const auto settings_map = [] {
-    // NOLINTNEXTLINE(concurrency-mt-unsafe)
-    const auto* sentinel_port_env = std::getenv(kTestsuiteSentinelPort);
-    return storages::secdist::RedisMapSettings{formats::json::FromString(
-        fmt::format(kRedisSettings, sentinel_port_env ? sentinel_port_env
-                                                      : kDefaultSentinelPort))};
-  }();
-  return settings_map.GetSettings("taxi-test");
+    static const auto settings_map = [] {
+        // NOLINTNEXTLINE(concurrency-mt-unsafe)
+        const auto* sentinel_port_env = std::getenv(kTestsuiteSentinelPort);
+        return storages::secdist::RedisMapSettings{formats::json::FromString(
+            fmt::format(kRedisSettings, sentinel_port_env ? sentinel_port_env : kDefaultSentinelPort)
+        )};
+    }();
+    return settings_map.GetSettings("taxi-test");
 }
 
 }  // namespace
 
 void Redis::RunStandalone(std::function<void()> payload) {
-  engine::RunStandalone(kMainWorkerThreads, [&] {
-    auto thread_pools = std::make_shared<USERVER_NAMESPACE::redis::ThreadPools>(
-        kSentinelThreadPoolSize, kRedisThreadPoolSize);
-    dynamic_config::StorageMock config;
+    engine::RunStandalone(kMainWorkerThreads, [&] {
+        auto thread_pools = std::make_shared<
+            storages::redis::impl::ThreadPools>(kSentinelThreadPoolSize, kRedisThreadPoolSize);
+        dynamic_config::StorageMock config{
+            {
+                storages::redis::kConfig,
+                storages::redis::Config{},
+            },
+        };
 
-    sentinel_ = USERVER_NAMESPACE::redis::Sentinel::CreateSentinel(
-        std::move(thread_pools), GetTestsuiteRedisSettings(), "none",
-        config.GetSource(), "pub",
-        USERVER_NAMESPACE::redis::KeyShardFactory{""});
+        auto key_shard = storages::redis::impl::KeyShardFactory{
+            storages::redis::ShardingStrategy::kKeyShardTaximeterCrc32
+        };
+        sentinel_ = storages::redis::impl::Sentinel::CreateSentinel(
+            std::move(thread_pools),
+            GetTestsuiteRedisSettings(),
+            "none",
+            config.GetSource(),
+            storages::redis::impl::SentinelStaticConfig{"pub", std::move(key_shard), {}, {}}
+        );
 
-    sentinel_->WaitConnectedDebug();
-    sentinel_->MakeRequest({"FLUSHDB"}, "none").Get();
+        sentinel_->WaitConnectedDebug();
+        sentinel_->MakeRequest({"FLUSHDB"}, "none").Get();
 
-    client_ = std::make_shared<storages::redis::ClientImpl>(sentinel_);
+        client_ = std::make_shared<storages::redis::ClientImpl>(sentinel_);
 
-    payload();
+        payload();
 
-    client_.reset();
-    sentinel_.reset();
-  });
+        client_.reset();
+        sentinel_.reset();
+    });
 }
 
 }  // namespace storages::redis::bench

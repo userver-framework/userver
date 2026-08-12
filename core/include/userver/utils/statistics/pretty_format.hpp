@@ -23,7 +23,8 @@ namespace utils::statistics {
 /// @endcode
 std::string ToPrettyFormat(
     const utils::statistics::Storage& statistics,
-    const utils::statistics::Request& statistics_request = {});
+    const utils::statistics::Request& statistics_request = {}
+);
 
 }  // namespace utils::statistics
 

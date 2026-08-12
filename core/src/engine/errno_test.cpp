@@ -1,6 +1,5 @@
 #include <userver/utest/utest.hpp>
 
-#include <atomic>
 #include <cerrno>
 #include <chrono>
 #include <condition_variable>
@@ -17,56 +16,56 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace {
-constexpr size_t kNumThreads = 2;
+constexpr std::size_t kNumThreads = 3;
 }  // namespace
 
 UTEST_MT(Errno, IsCoroLocal, kNumThreads) {
-  size_t threads_started{0};
-  size_t threads_switched{0};
-  std::mutex mutex;
-  std::condition_variable cv;
-  std::vector<engine::TaskWithResult<bool>> tasks;
+    // A pinning queue is allowed to keep a coroutine on its original worker.
+    // The test should verify errno after an actual switch, not require one.
+    const auto deadline = engine::Deadline::FromDuration(std::chrono::milliseconds{100});
 
-  auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+    std::size_t threads_started{0};
+    std::size_t threads_switched{0};
+    std::mutex mutex;
+    std::condition_variable cv;
+    std::vector<engine::TaskWithResult<bool>> tasks;
+    tasks.reserve(kNumThreads);
 
-  for (size_t i = 0; i < kNumThreads; ++i) {
-    tasks.push_back(engine::AsyncNoSpan([&] {
-      {
-        // ensure every task gets its own thread
-        std::unique_lock lock(mutex);
-        ++threads_started;
-        cv.wait_for(lock, deadline.TimeLeft(),
-                    [&] { return threads_started >= kNumThreads; });
-        cv.notify_all();
-      }
+    for (size_t i = 0; i < kNumThreads; ++i) {
+        tasks.push_back(engine::AsyncNoTracing([&] {
+            {
+                // ensure every task gets its own thread
+                std::unique_lock lock(mutex);
+                ++threads_started;
+                cv.wait_for(lock, deadline.TimeLeft(), [&] { return threads_started >= kNumThreads; });
+                cv.notify_all();
+            }
 
-      const auto init_thread_id = std::this_thread::get_id();
-      const auto* init_errno_ptr = &errno;
-      // if attribute `const` is used all subsequent `errno` TLS accesses
-      // may be optimized out
+            const auto init_thread_id = std::this_thread::get_id();
+            const auto* init_errno_ptr = &errno;
+            // if attribute `const` is used all subsequent `errno` TLS accesses
+            // may be optimized out
 
-      while (!engine::current_task::IsCancelRequested() &&
-             !deadline.IsReached()) {
-        if (std::this_thread::get_id() != init_thread_id) {
-          // lock this thread until all others switch as well
-          std::unique_lock lock(mutex);
-          ++threads_switched;
-          cv.wait_for(lock, deadline.TimeLeft(),
-                      [&] { return threads_switched >= kNumThreads; });
-          cv.notify_all();
+            while (!engine::current_task::IsCancelRequested() && !deadline.IsReached()) {
+                if (std::this_thread::get_id() != init_thread_id) {
+                    // lock this thread until all others switch as well
+                    std::unique_lock lock(mutex);
+                    ++threads_switched;
+                    cv.wait_for(lock, deadline.TimeLeft(), [&] { return threads_switched >= kNumThreads; });
+                    cv.notify_all();
 
-          return &errno != init_errno_ptr;
-        } else {
-          engine::Yield();
-        }
-      }
-      return false;
-    }));
-  }
+                    return &errno != init_errno_ptr;
+                } else {
+                    engine::Yield();
+                }
+            }
+            return true;
+        }));
+    }
 
-  for (auto& task : tasks) {
-    EXPECT_TRUE(task.Get());
-  }
+    for (auto& task : tasks) {
+        EXPECT_TRUE(task.Get());
+    }
 }
 
 USERVER_NAMESPACE_END

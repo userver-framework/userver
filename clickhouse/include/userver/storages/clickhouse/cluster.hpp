@@ -23,6 +23,7 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::clickhouse {
 
 class ExecutionResult;
+class ParameterStore;
 
 namespace impl {
 struct ClickhouseSettings;
@@ -34,159 +35,183 @@ struct ClickhouseSettings;
 ///
 /// Usually retrieved from components::ClickHouse component.
 class Cluster final {
- public:
-  /// Cluster constructor
-  /// @param resolver asynchronous DNS resolver
-  /// @param settings struct with settings fields:
-  /// endpoints - list of endpoints (host + port)
-  /// auth_settings - authentication settings (user, password, database)
-  /// @param config components::ClickHouse component config
-  Cluster(clients::dns::Resolver& resolver,
-          const impl::ClickhouseSettings& settings,
-          const components::ComponentConfig& config);
-  /// Cluster destructor
-  ~Cluster();
+public:
+    /// Cluster constructor
+    /// @param resolver asynchronous DNS resolver
+    /// @param settings struct with settings fields:
+    /// endpoints - list of endpoints (host + port)
+    /// auth_settings - authentication settings (user, password, database)
+    /// @param config components::ClickHouse component config
+    Cluster(
+        clients::dns::Resolver& resolver,
+        const impl::ClickhouseSettings& settings,
+        const components::ComponentConfig& config
+    );
+    /// Cluster destructor
+    ~Cluster();
 
-  Cluster(const Cluster&) = delete;
+    Cluster(const Cluster&) = delete;
 
-  /// @brief Execute a statement at some host of the cluster
-  /// with args as query parameters.
-  template <typename... Args>
-  ExecutionResult Execute(const Query& query, const Args&... args) const;
+    /// @brief Execute a statement at some host of the cluster
+    /// with args as query parameters.
+    ///
+    /// It is convenient to keep SQL queries in separate files, see @ref scripts/docs/en/userver/sql_files.md
+    /// for more info.
+    template <typename... Args>
+    ExecutionResult Execute(const Query& query, const Args&... args) const;
 
-  /// @brief Execute a statement with specified command control settings
-  /// at some host of the cluster with args as query parameters.
-  template <typename... Args>
-  ExecutionResult Execute(OptionalCommandControl, const Query& query,
-                          const Args&... args) const;
+    /// @brief Execute a statement with specified command control settings
+    /// at some host of the cluster with args as query parameters.
+    ///
+    /// It is convenient to keep SQL queries in separate files, see @ref scripts/docs/en/userver/sql_files.md
+    /// for more info.
+    ///
+    /// # Example usage:
+    /// @snippet clickhouse/src/storages/tests/escape_chtest.cpp  basic_usage
+    template <typename... Args>
+    ExecutionResult Execute(OptionalCommandControl, const Query& query, const Args&... args) const;
 
-  /// @brief Insert data at some host of the cluster;
-  /// `T` is expected to be a struct of vectors of same length.
-  /// @param table_name table to insert into
-  /// @param column_names names of columns of the table
-  /// @param data data to insert
-  /// See @ref clickhouse_io for better understanding of T's requirements.
-  template <typename T>
-  void Insert(const std::string& table_name,
-              const std::vector<std::string_view>& column_names,
-              const T& data) const;
+    /// @overload
+    ExecutionResult Execute(const Query& query, const ParameterStore& params) const;
 
-  /// @brief Insert data with specified command control settings
-  /// at some host of the cluster;
-  /// `T` is expected to be a struct of vectors of same length.
-  /// @param table_name table to insert into
-  /// @param column_names names of columns of the table
-  /// @param data data to insert
-  /// See @ref clickhouse_io for better understanding of T's requirements.
-  template <typename T>
-  void Insert(OptionalCommandControl, const std::string& table_name,
-              const std::vector<std::string_view>& column_names,
-              const T& data) const;
+    /// @overload
+    ExecutionResult Execute(OptionalCommandControl, const Query& query, const ParameterStore& params) const;
 
-  /// @brief Insert data at some host of the cluster;
-  /// `Container` is expected to be an iterable of clickhouse-mapped type.
-  /// @param table_name table to insert into
-  /// @param column_names names of columns of the table
-  /// @param data data to insert
-  /// See @ref clickhouse_io for better understanding of
-  /// `Container::value_type`'s requirements.
-  /// @note This version of insert is less performant than `Insert` (it makes 2
-  /// copies of data instead of just 1 copy) due to implementation details, so
-  /// consider using less convenient but more performant analogue if performance
-  /// is a concern.
-  template <typename Container>
-  void InsertRows(const std::string& table_name,
-                  const std::vector<std::string_view>& column_names,
-                  const Container& data) const;
+    /// @brief Insert data at some host of the cluster;
+    /// `T` is expected to be a struct of vectors of same length.
+    /// @param table_name table to insert into
+    /// @param column_names names of columns of the table
+    /// @param data data to insert
+    /// See @ref scripts/docs/en/userver/clickhouse/io.md for better understanding of T's requirements.
+    template <typename T>
+    void Insert(const std::string& table_name, const std::vector<std::string_view>& column_names, const T& data) const;
 
-  /// @brief Insert data with specified command control settings
-  /// at some host of the cluster;
-  /// `Container` is expected to be an iterable of clickhouse-mapped type.
-  /// @param table_name table to insert into
-  /// @param column_names names of columns of the table
-  /// @param data data to insert
-  /// See @ref clickhouse_io for better understanding of
-  /// `Container::value_type`'s requirements.
-  /// @note This version of insert is less performant than `Insert` (it makes 2
-  /// copies of data instead of just 1 copy) due to implementation details, so
-  /// consider using less convenient but more performant analogue if performance
-  /// is a concern.
-  template <typename Container>
-  void InsertRows(OptionalCommandControl, const std::string& table_name,
-                  const std::vector<std::string_view>& column_names,
-                  const Container& data) const;
+    /// @brief Insert data with specified command control settings
+    /// at some host of the cluster;
+    /// `T` is expected to be a struct of vectors of same length.
+    /// @param optional_cc optional request QOS overrides
+    /// @param table_name table to insert into
+    /// @param column_names names of columns of the table
+    /// @param data data to insert
+    /// See @ref scripts/docs/en/userver/clickhouse/io.md for better understanding of T's requirements.
+    template <typename T>
+    void Insert(
+        OptionalCommandControl optional_cc,
+        const std::string& table_name,
+        const std::vector<std::string_view>& column_names,
+        const T& data
+    ) const;
 
-  /// Write cluster statistics
-  void WriteStatistics(
-      USERVER_NAMESPACE::utils::statistics::Writer& writer) const;
+    /// @brief Insert data at some host of the cluster;
+    /// `Container` is expected to be an iterable of clickhouse-mapped type.
+    /// @param table_name table to insert into
+    /// @param column_names names of columns of the table
+    /// @param data data to insert
+    /// See @ref scripts/docs/en/userver/clickhouse/io.md for better understanding of
+    /// `Container::value_type`'s requirements.
+    /// @note This version of insert is less performant than `Insert` (it makes 2
+    /// copies of data instead of just 1 copy) due to implementation details, so
+    /// consider using less convenient but more performant analogue if performance
+    /// is a concern.
+    template <typename Container>
+    void InsertRows(
+        const std::string& table_name,
+        const std::vector<std::string_view>& column_names,
+        const Container& data
+    ) const;
 
-  /// Exception that is thrown if all specified endpoints are unavailable
-  class NoAvailablePoolError : public std::runtime_error {
-    using std::runtime_error::runtime_error;
-  };
+    /// @brief Insert data with specified command control settings
+    /// at some host of the cluster;
+    /// `Container` is expected to be an iterable of clickhouse-mapped type.
+    /// @param optional_cc optional request QOS overrides
+    /// @param table_name table to insert into
+    /// @param column_names names of columns of the table
+    /// @param data data to insert
+    /// See @ref scripts/docs/en/userver/clickhouse/io.md for better understanding of
+    /// `Container::value_type`'s requirements.
+    /// @note This version of insert is less performant than `Insert` (it makes 2
+    /// copies of data instead of just 1 copy) due to implementation details, so
+    /// consider using less convenient but more performant analogue if performance
+    /// is a concern.
+    template <typename Container>
+    void InsertRows(
+        OptionalCommandControl optional_cc,
+        const std::string& table_name,
+        const std::vector<std::string_view>& column_names,
+        const Container& data
+    ) const;
 
- private:
-  void DoInsert(OptionalCommandControl,
-                const impl::InsertionRequest& request) const;
+    /// Write cluster statistics
+    void WriteStatistics(USERVER_NAMESPACE::utils::statistics::Writer& writer) const;
 
-  ExecutionResult DoExecute(OptionalCommandControl, const Query& query) const;
+    /// Exception that is thrown if all specified endpoints are unavailable
+    class NoAvailablePoolError : public std::runtime_error {
+        using std::runtime_error::runtime_error;
+    };
 
-  const impl::Pool& GetPool() const;
+private:
+    void DoInsert(OptionalCommandControl, const impl::InsertionRequest& request) const;
 
-  std::vector<impl::Pool> pools_;
-  mutable std::atomic<std::size_t> current_pool_ind_{0};
+    ExecutionResult DoExecute(OptionalCommandControl, const Query& query) const;
+
+    const impl::Pool& GetPool() const;
+
+    std::vector<impl::Pool> pools_;
+    mutable std::atomic<std::size_t> current_pool_ind_{0};
 };
 
 template <typename T>
-void Cluster::Insert(const std::string& table_name,
-                     const std::vector<std::string_view>& column_names,
-                     const T& data) const {
-  Insert(OptionalCommandControl{}, table_name, column_names, data);
+void Cluster::Insert(const std::string& table_name, const std::vector<std::string_view>& column_names, const T& data)
+    const {
+    Insert(OptionalCommandControl{}, table_name, column_names, data);
 }
 
 template <typename T>
-void Cluster::Insert(OptionalCommandControl optional_cc,
-                     const std::string& table_name,
-                     const std::vector<std::string_view>& column_names,
-                     const T& data) const {
-  const auto request =
-      impl::InsertionRequest::Create(table_name, column_names, data);
+void Cluster::Insert(
+    OptionalCommandControl optional_cc,
+    const std::string& table_name,
+    const std::vector<std::string_view>& column_names,
+    const T& data
+) const {
+    const auto request = impl::InsertionRequest::Create(table_name, column_names, data);
 
-  DoInsert(optional_cc, request);
+    DoInsert(optional_cc, request);
 }
 
 template <typename Container>
-void Cluster::InsertRows(const std::string& table_name,
-                         const std::vector<std::string_view>& column_names,
-                         const Container& data) const {
-  InsertRows(OptionalCommandControl{}, table_name, column_names, data);
+void Cluster::InsertRows(
+    const std::string& table_name,
+    const std::vector<std::string_view>& column_names,
+    const Container& data
+) const {
+    InsertRows(OptionalCommandControl{}, table_name, column_names, data);
 }
 
 template <typename Container>
-void Cluster::InsertRows(OptionalCommandControl optional_cc,
-                         const std::string& table_name,
-                         const std::vector<std::string_view>& column_names,
-                         const Container& data) const {
-  if (data.empty()) return;
+void Cluster::InsertRows(
+    OptionalCommandControl optional_cc,
+    const std::string& table_name,
+    const std::vector<std::string_view>& column_names,
+    const Container& data
+) const {
+    if (data.empty()) {
+        return;
+    }
 
-  const auto request =
-      impl::InsertionRequest::CreateFromRows(table_name, column_names, data);
+    const auto request = impl::InsertionRequest::CreateFromRows(table_name, column_names, data);
 
-  DoInsert(optional_cc, request);
+    DoInsert(optional_cc, request);
 }
 
 template <typename... Args>
-ExecutionResult Cluster::Execute(const Query& query,
-                                 const Args&... args) const {
-  return Execute(OptionalCommandControl{}, query, args...);
+ExecutionResult Cluster::Execute(const Query& query, const Args&... args) const {
+    return Execute(OptionalCommandControl{}, query, args...);
 }
 
 template <typename... Args>
-ExecutionResult Cluster::Execute(OptionalCommandControl optional_cc,
-                                 const Query& query,
-                                 const Args&... args) const {
-  const auto formatted_query = query.WithArgs(args...);
-  return DoExecute(optional_cc, formatted_query);
+ExecutionResult Cluster::Execute(OptionalCommandControl optional_cc, const Query& query, const Args&... args) const {
+    const auto formatted_query = impl::WithArgs(query, args...);
+    return DoExecute(optional_cc, formatted_query);
 }
 
 }  // namespace storages::clickhouse

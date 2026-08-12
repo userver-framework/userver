@@ -12,51 +12,59 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
-// clang-format off
-
 /// @ingroup userver_components userver_http_handlers
 ///
-/// @brief Handler that returns HTTP 200 if file exist
-/// and returns file data with mapped content/type
+/// @brief Handler that returns HTTP 200 if file exist and returns file data with mapped content/type.
 ///
-/// ## Dynamic config
+/// Path arguments of this handle are passed to `fs-cache-component` to get the file. In other words, for the following
+/// `fs-cache-main`:
+/// @code{.yaml}
+/// fs-cache-main:
+///     dir: /fs-cache-main-path/          # Path to the directory with files
+/// @endcode
+/// the `handler-static` with `path: /handler-static-path/*` on request to `/handler-static-path/some/file.html`
+/// would return file at path `/fs-cache-main-path/some/file.html`.
+///
+/// ## HttpHandlerStatic Dynamic config
 /// * @ref USERVER_FILES_CONTENT_TYPE_MAP
 ///
 /// \ref userver_http_handlers "Userver HTTP Handlers".
 ///
-/// ## Static options:
-/// Inherits all the options from server::handlers::HttpHandlerBase and adds the
-/// following ones:
+/// ## Static options of server::handlers::HttpHandlerStatic :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/http_handler_static.md
 ///
-/// Name               | Description                   | Default value
-/// ------------------ | ----------------------------- | -------------
-/// fs-cache-component | Name of the FsCache component | fs-cache-component
+/// Options inherited from @ref server::handlers::HttpHandlerBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/http_handler_base.md
+///
+/// Options inherited from @ref server::handlers::HandlerBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/handler_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Example usage:
 ///
-/// @snippet samples/static_service/static_service.cpp Static service sample - main
-
-// clang-format on
-
+/// @snippet samples/static_service/main.cpp Static service sample - main
 class HttpHandlerStatic final : public HttpHandlerBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of server::handlers::HttpHandlerStatic
-  static constexpr std::string_view kName = "handler-static";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of server::handlers::HttpHandlerStatic
+    static constexpr std::string_view kName = "handler-static";
 
-  using HttpHandlerBase::HttpHandlerBase;
+    using HttpHandlerBase::HttpHandlerBase;
 
-  HttpHandlerStatic(const components::ComponentConfig& config,
-                    const components::ComponentContext& context);
+    HttpHandlerStatic(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  std::string HandleRequestThrow(const http::HttpRequest& request,
-                                 request::RequestContext&) const override;
+    std::string HandleRequestThrow(const http::HttpRequest& request, request::RequestContext&) const override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  dynamic_config::Source config_;
-  const fs::FsCacheClient& storage_;
+private:
+    dynamic_config::Source config_;
+    const fs::FsCacheClient& storage_;
+    const std::chrono::seconds cache_age_;
+    const std::string directory_file_;
+    const std::string not_found_file_;
 };
 
 }  // namespace server::handlers

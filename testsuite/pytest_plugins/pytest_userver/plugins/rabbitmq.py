@@ -1,5 +1,5 @@
 """
-Plugin that imports the required fixtures to start the Redis database.
+Plugin that imports the required fixtures to start the RabbitMQ.
 """
 
 pytest_plugins = [

@@ -1,0 +1,156 @@
+type: object
+description: component for YDB
+additionalProperties: false
+properties:
+    blocking_task_processor:
+        type: string
+        description: deprecated, unused property
+    credentials-provider:
+        type: string
+        description: name of credentials provider component
+    operation-settings:
+        type: object
+        description: default operation settings for requests to the database
+        additionalProperties: false
+        properties:
+            retries:
+                type: integer
+                description: default retries count for an operation
+                default: 3
+            client-timeout:
+                type: string
+                description: default client timeout in utils::StringToDuration format
+                default: 1s
+            get-session-timeout:
+                type: string
+                default: 5s
+                description: default session timeout
+    databases:
+        type: object
+        description: per-databases settings
+        properties: {}
+        additionalProperties:
+            type: object
+            additionalProperties: false
+            description: single database settings
+            properties:
+                endpoint:
+                    type: string
+                    description: gRPC endpoint URL, e.g. grpc://localhost:1234
+                database:
+                    type: string
+                    description: full database path, e.g. /ru/service/production/database
+                credentials:
+                    type: object
+                    properties: {}
+                    additionalProperties: true
+                    description: credentials config passed to credentials provider component
+                max_pool_size:
+                    type: integer
+                    minimum: 1
+                    default: 50
+                    description: maximum connection pool size
+                min_pool_size:
+                    type: integer
+                    minimum: 1
+                    default: 10
+                    description: minimum connection pool size
+                get_session_retry_limit:
+                    type: integer
+                    minimum: 0
+                    default: 5
+                    description: retries count to get session, every attempt with a get-session-timeout
+                use_deferred_session_creation:
+                    type: boolean
+                    default: false
+                    description: |
+                        Continue creating a Query API session in the background after the requesting operation reaches its
+                        get-session timeout. A successfully created session is added to the pool for subsequent operations.
+                keep-in-query-cache:
+                    type: boolean
+                    default: true
+                    description: |
+                        Deprecated, ignored. Execute always uses Query API, which caches queries automatically.
+                network-threads-num:
+                    type: integer
+                    minimum: 1
+                    description: |
+                        NYdb::TDriverConfig::SetNetworkThreadsNum. If omitted, not set (SDK default).
+                client-threads-num:
+                    type: integer
+                    minimum: 0
+                    description: |
+                        NYdb::TDriverConfig::SetClientThreadsNum. If omitted, not set (SDK default).
+                tcp-keepalive:
+                    type: object
+                    additionalProperties: false
+                    description: |
+                        NYdb::TDriverConfig::SetTcpKeepAliveSettings. If the whole block is omitted, not set (SDK default).
+                        Use 0 for idle/count/interval on Linux to mean OS default.
+                    properties:
+                        enabled:
+                            type: boolean
+                            description: enable TCP keepalive on gRPC sockets (Linux; if omitted in a partial block, parser default
+                                applies)
+                        idle-sec:
+                            type: integer
+                            minimum: 0
+                            description: seconds idle before first keepalive probe (0 = OS default on Linux)
+                        probe-count:
+                            type: integer
+                            minimum: 0
+                            description: unacknowledged probes before drop (0 = OS default on Linux)
+                        interval-sec:
+                            type: integer
+                            minimum: 0
+                            description: seconds between probes (0 = OS default on Linux)
+                    required:
+                      - enabled
+                      - idle-sec
+                      - probe-count
+                      - interval-sec
+                grpc-keepalive-timeout:
+                    type: string
+                    description: |
+                        Duration string, e.g. 10s. NYdb::TDriverConfig::SetGRpcKeepAliveTimeout. If omitted, not set (SDK default).
+                grpc-keepalive-permit-without-calls:
+                    type: boolean
+                    description: |
+                        NYdb::TDriverConfig::SetGRpcKeepAlivePermitWithoutCalls. If omitted, not set (SDK default).
+                prefer_local_dc:
+                    type: boolean
+                    default: true
+                    description: prefer making requests to local data center
+                sync_start:
+                    type: boolean
+                    default: true
+                    description: fail to boot if YDB is not available
+                use-query-client:
+                    type: boolean
+                    default: true
+                    description: |
+                        Deprecated, ignored. ExecuteDataQuery, Begin, and Transaction::Execute always use Query API.
+                aliases:
+                    description: list of aliases for this database
+                    type: array
+                    items:
+                        type: string
+                        description: alias name
+                by-database-timings-buckets-ms:
+                    type: array
+                    description: |
+                        Histogram bounds for by-database timing metrics.
+
+                        Default: 40 buckets with +20% increment per step
+                    items:
+                        type: number
+                        description: upper bound for an individual bucket
+                by-query-timings-buckets-ms:
+                    type: array
+                    description: |
+                        Histogram bounds for by-query timing metrics.
+
+                        Default: 15 buckets with +100% increment per step
+                    items:
+                        type: number
+                        description: upper bound for an individual bucket

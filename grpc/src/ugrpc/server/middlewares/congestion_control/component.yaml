@@ -1,0 +1,8 @@
+type: object
+description: gRPC congestion control component
+additionalProperties: false
+properties:
+    grpc-status-code:
+        type: string
+        description: gRPC status code for ratelimited responses
+        default: RESOURCE_EXHAUSTED

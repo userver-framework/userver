@@ -1,92 +1,216 @@
 #pragma once
 
-/// @file userver/ugrpc/server/middlewares/middleware_base.hpp
+/// @file userver/ugrpc/server/middlewares/base.hpp
 /// @brief @copybrief ugrpc::server::MiddlewareBase
 
-#include <memory>
-#include <vector>
+#include <optional>
+#include <string>
 
-#include <userver/components/loggable_component_base.hpp>
-#include <userver/utils/function_ref.hpp>
+#include <google/protobuf/message.h>
+#include <grpcpp/support/status.h>
 
-#include <userver/ugrpc/server/middlewares/fwd.hpp>
-#include <userver/ugrpc/server/rpc.hpp>
+#include <userver/components/component_base.hpp>
+#include <userver/dynamic_config/snapshot.hpp>
+#include <userver/middlewares/groups.hpp>
+#include <userver/middlewares/runner.hpp>
+#include <userver/utils/impl/internal_tag_fwd.hpp>
+
+#include <userver/ugrpc/rpc_type.hpp>
+#include <userver/ugrpc/server/call_context.hpp>
+
+namespace google::protobuf {
+
+class ServiceDescriptor;
+
+}  // namespace google::protobuf
 
 USERVER_NAMESPACE_BEGIN
 
+namespace ugrpc::impl {
+
+class RpcStatisticsScope;
+
+}  // namespace ugrpc::impl
+
+/// @see @ref scripts/docs/en/userver/grpc/server_middlewares.md
+namespace ugrpc::server::middlewares {}
+
 namespace ugrpc::server {
 
-/// @brief Context for middleware-specific data during gRPC call
-class MiddlewareCallContext final {
- public:
-  /// @cond
-  MiddlewareCallContext(const Middlewares& middlewares, CallAnyBase& call,
-                        utils::function_ref<void()> user_call,
-                        std::string_view service_name,
-                        std::string_view method_name,
-                        const dynamic_config::Snapshot& config,
-                        const ::google::protobuf::Message* request);
-  /// @endcond
+/// @ingroup userver_grpc_server_middlewares
+///
+/// @brief Service meta info for a middleware construction.
+struct ServiceInfo final {
+    /// Name of the service component for which the middlewares are being instantiated.
+    std::string service_component_name;
 
-  /// @brief Call next plugin, or gRPC handler if none
-  void Next();
+    /// Full gRPC service name in the form `package.name.ServiceName`.
+    ///
+    /// For @ref ugrpc::server::GenericServiceBase "generic services", there is no name,
+    /// and only one middleware instance is created for all RPCs.
+    std::optional<std::string> full_service_name;
 
-  /// @brief Get original gRPC Call
-  CallAnyBase& GetCall();
-
-  /// @brief Get name of gRPC service
-  std::string_view GetServiceName() const;
-
-  /// @brief Get name of called gRPC method
-  std::string_view GetMethodName() const;
-
-  /// @brief Get values extracted from dynamic_config. Snapshot will be
-  /// deleted when the last meddleware completes
-  const dynamic_config::Snapshot& GetInitialDynamicConfig() const;
-
-  /// @brief Get initial gRPC request. For RPC w/o initial request
-  /// returns nullptr.
-  const ::google::protobuf::Message* GetInitialRequest();
-
- private:
-  void ClearMiddlewaresResources();
-
-  Middlewares::const_iterator middleware_;
-  Middlewares::const_iterator middleware_end_;
-  utils::function_ref<void()> user_call_;
-
-  CallAnyBase& call_;
-
-  std::string_view service_name_;
-  std::string_view method_name_;
-  std::optional<dynamic_config::Snapshot> config_;
-  const ::google::protobuf::Message* request_;
+    /// Protobuf descriptor of the service.
+    ///
+    /// For @ref ugrpc::server::GenericServiceBase "generic services", there is no descriptor.
+    ///
+    /// If request and response messages are defined in a separate `.proto` file, then there might not be
+    /// a `ServiceDescriptor` for a non-generic RPC,
+    /// see [Protobuf issue](https://github.com/protocolbuffers/protobuf/issues/4221).
+    const google::protobuf::ServiceDescriptor* service_descriptor{nullptr};
 };
 
+/// @ingroup userver_grpc_server_middlewares
+///
+/// @brief Context for middleware-specific data during gRPC call.
+class MiddlewareCallContext final : public CallContextBase {
+public:
+    /// @cond
+    // For internal use only
+    MiddlewareCallContext(utils::impl::InternalTag, impl::CallState& state, grpc::Status& status);
+    /// @endcond
+
+    /// @brief Aborts the RPC, returning the specified status to the upstream client, see details below.
+    ///
+    /// It should be the last command in middlewares hooks.
+    ///
+    /// If that method is called in methods:
+    ///
+    /// 1. @ref MiddlewareBase::OnCallStart - remaining OnCallStart hooks won't be called. Will be called OnCallFinish
+    ///    hooks of middlewares that was called before `SetError`
+    /// 2. @ref MiddlewareBase::PostRecvMessage or @ref ugrpc::server::MiddlewareBase::PreSendMessage :
+    ///    * unary: handler won't be called - all. All `OnCallFinish` hooks will be called.
+    ///    * stream: from Read/Write throws a special exception, that ends a handler. All `OnCallFinish` hooks will be
+    ///      called.
+    /// 3. @ref MiddlewareBase::OnCallFinish - all `OnCallFinish` will be called, despite of `SetError` and exceptions.
+    ///    If the request is going to end with the error status, then the status is replaced with the status of the
+    ///    current hook.
+    ///
+    /// Example usage
+    ///
+    /// @snippet samples/grpc_middleware_service/src/middlewares/server/auth.cpp Middleware implementation
+    void SetError(grpc::Status&& status) noexcept;
+
+    /// @returns RPC type
+    RpcType GetRpcType() const noexcept;
+
+    /// @brief Get values extracted from dynamic_config. Snapshot will be
+    /// deleted when the last middleware completes.
+    const dynamic_config::Snapshot& GetInitialDynamicConfig() const;
+
+    /// @cond
+    // For internal use only.
+    ugrpc::impl::RpcStatisticsScope& GetStatistics(utils::impl::InternalTag);
+    /// @endcond
+
+private:
+    grpc::Status& status_;
+};
+
+/// @ingroup userver_base_classes userver_grpc_server_middlewares
+///
 /// @brief Base class for server gRPC middleware
 class MiddlewareBase {
- public:
-  MiddlewareBase();
-  MiddlewareBase(const MiddlewareBase&) = delete;
-  MiddlewareBase& operator=(const MiddlewareBase&) = delete;
-  MiddlewareBase& operator=(MiddlewareBase&&) = delete;
+public:
+    MiddlewareBase();
+    MiddlewareBase(const MiddlewareBase&) = delete;
+    MiddlewareBase& operator=(const MiddlewareBase&) = delete;
+    MiddlewareBase& operator=(MiddlewareBase&&) = delete;
 
-  virtual ~MiddlewareBase();
+    virtual ~MiddlewareBase();
 
-  /// @brief Handles the gRPC request
-  /// @note You should call context.Next() inside, otherwise the call will be
-  /// dropped
-  virtual void Handle(MiddlewareCallContext& context) const = 0;
+    /// @brief This hook is invoked once per Call (RPC), after the message metadata is received, but before the handler
+    /// function is called.
+    ///
+    /// If all OnCallStart succeeded => OnCallFinish will invoked after a success method call.
+    virtual void OnCallStart(MiddlewareCallContext& context) const;
+
+    /// @brief The function is invoked after each received message.
+    ///
+    /// PostRecvMessage is called:
+    ///  * unary: exactly once per Call (RPC)
+    ///  * stream: 0, 1 or more times
+    virtual void PostRecvMessage(MiddlewareCallContext& context, google::protobuf::Message& request) const;
+
+    /// @brief The function is invoked before each sent message.
+    ///
+    /// PreSendMessage is called:
+    ///  * unary: 0 or 1 per Call (RPC), depending on whether the RPC returns a response or a failed status
+    ///  * stream: once per response message, that is, 0, 1, more times per Call (RPC).
+    virtual void PreSendMessage(MiddlewareCallContext& context, google::protobuf::Message& response) const;
+
+    /// @brief The function is invoked before sending the final status of the call.
+    ///
+    /// PreSendStatus is called exactly once per Call (RPC), right before sending
+    /// the final gRPC status to the client. This allows middlewares to inspect
+    /// and potentially modify the status that will be sent to the client.
+    virtual void PreSendStatus(MiddlewareCallContext& context, grpc::Status& status) const;
+
+    /// @brief This hook is invoked once per Call (RPC), after the handler function
+    /// has finished execution and the final status is determined.
+    ///
+    /// OnCallFinish is called exactly once per Call (RPC), regardless of whether
+    /// the call succeeded or failed. It's the final middleware hook in the call chain.
+    /// This is useful for cleanup operations, logging, or metrics collection that should
+    /// happen after the RPC is completely processed.
+    /// @param context The middleware call context containing call information
+    /// @param status The final status of the call, if available
+    virtual void OnCallFinish(MiddlewareCallContext& context, const std::optional<grpc::Status>& status) const;
 };
 
-/// @brief Base class for middleware component
-class MiddlewareComponentBase : public components::LoggableComponentBase {
-  using components::LoggableComponentBase::LoggableComponentBase;
+/// @ingroup userver_base_classes
+///
+/// @brief Factory that creates specific server middlewares for services.
+///
+/// Override `CreateMiddleware` to create middleware for your gRPC service.
+/// If you declare a static config for a middleware, you must override `GetMiddlewareConfigSchema`.
+///
+/// @note If you are not going to use a static config, ugrpc::server::ServiceInfo and your middleware is default
+/// constructible, just use ugrpc::server::SimpleMiddlewareFactoryComponent.
+///
+/// ## Static options:
+///
+/// Options inherited from @ref middlewares::MiddlewareFactoryComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/middlewares/factory_component_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
+///
+/// ## Example:
+///
+/// @snippet samples/grpc_middleware_service/src/middlewares/server/meta_filter.hpp gRPC middleware sample
+/// @snippet samples/grpc_middleware_service/src/middlewares/server/meta_filter.cpp gRPC middleware sample
+///
+/// And there is a possibility to override the middleware config per service:
+///
+/// @snippet samples/grpc_middleware_service/configs/static_config.yaml gRPC greeter-service sample
 
- public:
-  /// @brief Returns a middleware according to the component's settings
-  virtual std::shared_ptr<MiddlewareBase> GetMiddleware() = 0;
-};
+using MiddlewareFactoryComponentBase =
+    USERVER_NAMESPACE::middlewares::MiddlewareFactoryComponentBase<MiddlewareBase, ServiceInfo>;
+
+/// @ingroup userver_components
+///
+/// @brief The alias for a short-cut server middleware factory.
+///
+/// ## Static options:
+///
+/// Options inherited from @ref middlewares::MiddlewareFactoryComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/middlewares/factory_component_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
+///
+/// ## Example usage:
+///
+/// @snippet samples/grpc_middleware_service/src/middlewares/server/auth.hpp Middleware declaration
+///
+/// ## Static config example
+///
+/// @snippet samples/grpc_middleware_service/configs/static_config.yaml grpc-server-auth static config
+
+template <typename Middleware>
+using SimpleMiddlewareFactoryComponent =
+    USERVER_NAMESPACE::middlewares::impl::SimpleMiddlewareFactoryComponent<MiddlewareBase, Middleware, ServiceInfo>;
 
 }  // namespace ugrpc::server
 

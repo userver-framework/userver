@@ -13,15 +13,14 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::postgres::secdist {
 
 class PostgresSettings {
- public:
-  explicit PostgresSettings(const formats::json::Value& doc);
+public:
+    explicit PostgresSettings(const formats::json::Value& doc);
 
-  std::vector<DsnList> GetShardedClusterDescription(
-      const std::string& dbalias) const;
+    std::vector<DsnList> GetShardedClusterDescription(const std::string& dbalias) const;
 
- private:
-  std::unordered_map<std::string, std::vector<DsnList>> sharded_cluster_descs_;
-  std::unordered_set<std::string> invalid_dbaliases_;
+private:
+    std::unordered_map<std::string, std::vector<DsnList>> sharded_cluster_descs_;
+    std::unordered_set<std::string> invalid_dbaliases_;
 };
 
 }  // namespace storages::postgres::secdist

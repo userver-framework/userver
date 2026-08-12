@@ -20,7 +20,7 @@ Examples: `2.0`, `2.1_rc`
 We attempt to keep the API stable as long as it does not stand in the way of
 new features or better safety.
 
-Note that framework internals located in `*::impl::*` and `*::detail::*`
+Note that framework internals located in `impl` and `detail`
 namespaces have no stability guarantees. You should not use those in your code
 directly.
 
@@ -29,7 +29,7 @@ directly.
 
 Transitive includes could not be relied on. Even a change in patch
 version could remove some `#include` from header and break code that
-relies on transitive includes. However, we provide script 
+relies on transitive includes. However, we provide script
 `./scripts/add-missing-include.sh` that helps to add missing includes
 in big code bases.
 
@@ -51,8 +51,23 @@ would to allow you mixing different versions of userver in a single binary
 without ODR-violations.
 
 
+@anchor QUALITY_TIERS
+## Quality Tiers
+
+🐙 **userver** consists of multiple drivers and technologies. Some of those are
+well tested on large scale of hundreds and thousands of services, some are
+less popular.
+
+There are tiers to differentiate technologies:
+
+* **Platinum Tier** - driver is known to be used in multiple high load critical to uptime services in huge companies.
+* **Golden Tier** - driver that has not enough usage feedback from huge companies. Still fine for production usage.
+* **Silver Tier** - early days of the driver. It passes all the tests and works
+  fine, but more feedback/time required to become a Golden Tier driver. Fine
+  for prototyping and production usage with some caution.
+
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref clickhouse_driver | @ref scripts/docs/en/userver/driver_guide.md ⇨
+⇦ @ref scripts/docs/en/userver/libraries/multi_index_lru.md | @ref scripts/docs/en/userver/driver_guide.md ⇨
 @htmlonly </div> @endhtmlonly

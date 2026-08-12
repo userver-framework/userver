@@ -1,0 +1,103 @@
+#include "service.hpp"
+
+#include <fmt/format.h>
+
+#include <userver/components/component_context.hpp>
+#include <userver/congestion_control/component.hpp>
+#include <userver/engine/async.hpp>
+#include <userver/engine/sleep.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
+
+#include <userver/ugrpc/server/service_component_base.hpp>
+
+namespace functional_tests {
+
+namespace {
+
+void EnsureCongestionControlEnbled(const congestion_control::Controller& congestion_control_controller) {
+    UINVARIANT(congestion_control_controller.IsEnabled(), "CongestionControl Controller should be enabled");
+}
+
+}  // namespace
+
+GreeterServiceComponent::GreeterServiceComponent(
+    const components::ComponentConfig& config,
+    const components::ComponentContext& context
+)
+    : samples::api::GreeterServiceBase::Component(config, context),
+      congestion_control_controller_{context.FindComponent<congestion_control::Component>().GetServerController()}
+{}
+
+GreeterServiceComponent::SayHelloResult GreeterServiceComponent::SayHello(
+    CallContext& /*context*/,
+    samples::api::GreetingRequest&& request
+) {
+    EnsureCongestionControlEnbled(congestion_control_controller_);
+    samples::api::GreetingResponse response;
+    response.set_greeting(fmt::format("Hello, {}!", request.name()));
+    return response;
+}
+
+GreeterServiceComponent::SayHelloResponseStreamResult GreeterServiceComponent::SayHelloResponseStream(
+    CallContext& /*context*/,
+    samples::api::GreetingRequest&& request,
+    SayHelloResponseStreamWriter& writer
+) {
+    EnsureCongestionControlEnbled(congestion_control_controller_);
+    std::string message = fmt::format("{}, {}", "Hello", request.name());
+    constexpr auto kCountSend = 5;
+    constexpr std::chrono::milliseconds kTimeInterval{200};
+    for (auto i = 0; i < kCountSend; ++i) {
+        samples::api::GreetingResponse response;
+        message.push_back('!');
+        response.set_greeting(grpc::string(message));
+        engine::SleepFor(kTimeInterval);
+        writer.Write(std::move(response));
+    }
+    return grpc::Status::OK;
+}
+
+GreeterServiceComponent::SayHelloRequestStreamResult GreeterServiceComponent::SayHelloRequestStream(
+    CallContext& /*context*/,
+    SayHelloRequestStreamReader& reader
+) {
+    EnsureCongestionControlEnbled(congestion_control_controller_);
+    std::string income_message;
+    samples::api::GreetingRequest request;
+    while (reader.Read(request)) {
+        income_message.append(request.name());
+    }
+    samples::api::GreetingResponse response;
+    response.set_greeting(fmt::format("{}, {}", "Hello", income_message));
+    return response;
+}
+
+GreeterServiceComponent::SayHelloStreamsResult GreeterServiceComponent::SayHelloStreams(
+    CallContext& /*context*/,
+    SayHelloStreamsReaderWriter& stream
+) {
+    EnsureCongestionControlEnbled(congestion_control_controller_);
+    constexpr std::chrono::milliseconds kTimeInterval{200};
+    std::string income_message;
+    samples::api::GreetingRequest request;
+    while (stream.Read(request)) {
+        samples::api::GreetingResponse response;
+        income_message.append(request.name());
+        response.set_greeting(fmt::format("{}, {}", "Hello", income_message));
+        engine::SleepFor(kTimeInterval);
+        stream.Write(std::move(response));
+    }
+    return grpc::Status::OK;
+}
+
+yaml_config::Schema GreeterServiceComponent::GetStaticConfigSchema() {
+    return yaml_config::MergeSchemas<ugrpc::server::ServiceComponentBase>(R"(
+type: object
+description: gRPC sample greater service component
+additionalProperties: false
+properties: {}
+)");
+}
+
+}  // namespace functional_tests

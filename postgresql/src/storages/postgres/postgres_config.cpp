@@ -1,204 +1,295 @@
 #include <storages/postgres/postgres_config.hpp>
 
+#include <fmt/format.h>
+
 #include <userver/logging/log.hpp>
 
 #include <storages/postgres/experiments.hpp>
 #include <userver/storages/postgres/component.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
+#include <userver/utils/impl/userver_experiments.hpp>
+#include <userver/utils/userver_info.hpp>
+
+#include <userver/formats/common/items.hpp>
+#include <userver/utils/trivial_map.hpp>
+
+#include <type_traits>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres {
 
-CommandControl Parse(const formats::json::Value& elem,
-                     formats::parse::To<CommandControl>) {
-  CommandControl result{components::Postgres::kDefaultCommandControl};
-  for (auto it = elem.begin(); it != elem.end(); ++it) {
-    const auto& name = it.GetName();
-    if (name == "network_timeout_ms") {
-      result.execute = std::chrono::milliseconds{it->As<int64_t>()};
-      if (result.execute.count() <= 0) {
-        throw InvalidConfig{"Invalid network_timeout_ms `" +
-                            std::to_string(result.execute.count()) +
-                            "` in postgres CommandControl. The timeout must be "
-                            "greater than 0."};
-      }
-    } else if (name == "statement_timeout_ms") {
-      result.statement = std::chrono::milliseconds{it->As<int64_t>()};
-      if (result.statement.count() <= 0) {
-        throw InvalidConfig{"Invalid statement_timeout_ms `" +
-                            std::to_string(result.statement.count()) +
-                            "` in postgres CommandControl. The timeout must be "
-                            "greater than 0."};
-      }
-    } else {
-      LOG_WARNING() << "Unknown parameter " << name << " in PostgreSQL config";
+CommandControl Parse(const formats::json::Value& elem, formats::parse::To<CommandControl>) {
+    CommandControl result{components::Postgres::kDefaultCommandControl};
+    for (const auto& [name, val] : formats::common::Items(elem)) {
+        if (name == "network_timeout_ms") {
+            const auto ms = std::chrono::milliseconds{val.As<std::int64_t>()};
+            result.network_timeout_ms = ms;
+            if (result.network_timeout_ms.count() <= 0) {
+                throw InvalidConfig{
+                    "Invalid network_timeout_ms `" + std::to_string(result.network_timeout_ms.count()) +
+                    "` in postgres CommandControl. The timeout must be "
+                    "greater than 0."
+                };
+            }
+        } else if (name == "statement_timeout_ms") {
+            const auto ms = std::chrono::milliseconds{val.As<std::int64_t>()};
+            result.statement_timeout_ms = ms;
+            if (result.statement_timeout_ms.count() <= 0) {
+                throw InvalidConfig{
+                    "Invalid statement_timeout_ms `" + std::to_string(result.statement_timeout_ms.count()) +
+                    "` in postgres CommandControl. The timeout must be "
+                    "greater than 0."
+                };
+            }
+        } else if (name == "prepared_statements_enabled") {
+            result.prepared_statements_enabled =
+                val.As<bool>()
+                    ? CommandControl::PreparedStatementsOptionOverride::kEnabled
+                    : CommandControl::PreparedStatementsOptionOverride::kDisabled;
+        } else {
+            LOG_WARNING() << "Unknown parameter " << name << " in PostgreSQL config";
+        }
     }
-  }
-  return result;
+    return result;
 }
 
 namespace {
+
+constexpr USERVER_NAMESPACE::utils::TrivialBiMap kPoolerModes = [](auto&& selector) {
+    return selector().Case(PoolerMode::kSession, "session").Case(PoolerMode::kTransaction, "transaction");
+};
+
+PoolerMode ParsePoolerMode(const std::string_view pooler_mode_name) {
+    const auto pooler_mode = kPoolerModes.TryFind(pooler_mode_name);
+    if (!pooler_mode) {
+        throw std::runtime_error("Unknown pooler mode: " + std::string{pooler_mode_name});
+    }
+    return *pooler_mode;
+}
+
+template <typename ConfigType>
+ConnectionSettings::StatementLogMode ParseStatementLogMode(const ConfigType& config) {
+    auto mode = config.template As<std::string>("show");
+    if (mode == "hide") {
+        return ConnectionSettings::kLogSkip;
+    }
+    if (mode == "show") {
+        return ConnectionSettings::kLog;
+    }
+    throw std::runtime_error("Unknown statement log mode: " + mode);
+}
 
 template <typename ConfigType>
 ConnectionSettings ParseConnectionSettings(const ConfigType& config) {
-  ConnectionSettings settings{};
-  settings.prepared_statements =
-      config["persistent-prepared-statements"].template As<bool>(true)
-          ? ConnectionSettings::kCachePreparedStatements
-          : ConnectionSettings::kNoPreparedStatements;
-  settings.user_types =
-      config["user-types-enabled"].template As<bool>(true)
-          ? config["check-user-types"].template As<bool>(false)
-                ? ConnectionSettings::kUserTypesEnforced
-                : ConnectionSettings::kUserTypesEnabled
-          : ConnectionSettings::kPredefinedTypesOnly;
-  // TODO: use hyphens in config keys, TAXICOMMON-5606
-  settings.max_prepared_cache_size =
-      config["max-prepared-cache-size"].template As<size_t>(
-          config["max_prepared_cache_size"].template As<size_t>(
-              kDefaultMaxPreparedCacheSize));
-  settings.ignore_unused_query_params =
-      config["ignore-unused-query-params"].template As<bool>(
-          config["ignore_unused_query_params"].template As<bool>(false))
-          ? ConnectionSettings::kIgnoreUnused
-          : ConnectionSettings::kCheckUnused;
+    ConnectionSettings settings{};
+    settings.prepared_statements =
+        config["persistent-prepared-statements"].template As<bool>(true)
+            ? ConnectionSettings::kCachePreparedStatements
+            : ConnectionSettings::kNoPreparedStatements;
+    settings.statement_log_mode = ParseStatementLogMode(config["statement-log-mode"]);
+    settings.user_types =
+        config["user-types-enabled"].template As<bool>(true)
+            ? config["check-user-types"].template As<bool>(false)
+                  ? ConnectionSettings::kUserTypesEnforced
+                  : ConnectionSettings::kUserTypesEnabled
+            : ConnectionSettings::kPredefinedTypesOnly;
+    // TODO: use hyphens in config keys, TAXICOMMON-5606
+    settings.max_prepared_cache_size =
+        config["max-prepared-cache-size"]
+            .template As<size_t>(config["max_prepared_cache_size"].template As<size_t>(kDefaultMaxPreparedCacheSize));
+    settings.ignore_unused_query_params =
+        config["ignore-unused-query-params"]
+                .template As<bool>(config["ignore_unused_query_params"].template As<bool>(false))
+            ? ConnectionSettings::kIgnoreUnused
+            : ConnectionSettings::kCheckUnused;
 
-  settings.recent_errors_threshold =
-      config["recent-errors-threshold"].template As<size_t>(
-          settings.recent_errors_threshold);
+    settings.recent_errors_threshold =
+        config["recent-errors-threshold"].template As<size_t>(settings.recent_errors_threshold);
 
-  settings.max_ttl =
-      config["max-ttl-sec"].template As<std::optional<std::chrono::seconds>>();
+    settings.max_ttl = config["max-ttl-sec"].template As<std::optional<std::chrono::seconds>>();
 
-  settings.discard_on_connect =
-      config["discard-all-on-connect"].template As<bool>(true)
-          ? ConnectionSettings::kDiscardAll
-          : ConnectionSettings::kDiscardNone;
+    settings.discard_on_connect =
+        config["discard-all-on-connect"].template As<bool>(true)
+            ? ConnectionSettings::kDiscardAll
+            : ConnectionSettings::kDiscardNone;
+    settings.deadline_propagation_enabled = config["deadline-propagation-enabled"].template As<bool>(true);
+    settings.pooler_mode = config["pooler-mode"].template As<PoolerMode>(PoolerMode::kSession);
+    settings.application_name =
+        config["application_name"].template As<std::string>(USERVER_NAMESPACE::utils::GetUserverIdentifier());
 
-  return settings;
-}
-
-PipelineMode ParsePipelineMode(const formats::json::Value& value) {
-  return value.As<int>() > 0 ? PipelineMode::kEnabled : PipelineMode::kDisabled;
-}
-
-OmitDescribeInExecuteMode ParseOmitDescribeInExecuteMode(
-    const formats::json::Value& value) {
-  using Mode = OmitDescribeInExecuteMode;
-
-  return value.As<int>() == kOmitDescribeExperimentVersion ? Mode::kEnabled
-                                                           : Mode::kDisabled;
+    return settings;
 }
 
 }  // namespace
 
-ConnectionSettings Parse(const formats::json::Value& config,
-                         formats::parse::To<ConnectionSettings>) {
-  return ParseConnectionSettings(config);
+PoolerMode Parse(const yaml_config::YamlConfig& config, formats::parse::To<PoolerMode>) {
+    return ParsePoolerMode(config.As<std::string>("session"));
 }
 
-ConnectionSettings Parse(const yaml_config::YamlConfig& config,
-                         formats::parse::To<ConnectionSettings>) {
-  return ParseConnectionSettings(config);
+PoolerMode Parse(const formats::json::Value& config, formats::parse::To<PoolerMode>) {
+    return ParsePoolerMode(config.As<std::string>("session"));
+}
+
+ConnectionSettings::StatementLogMode
+Parse(const yaml_config::YamlConfig& config, formats::parse::To<ConnectionSettings::StatementLogMode>) {
+    return ParseStatementLogMode(config);
+}
+
+ConnectionSettingsDynamic Parse(const formats::json::Value& config, formats::parse::To<ConnectionSettingsDynamic>) {
+    ConnectionSettingsDynamic settings{};
+    if (const auto pps = config["persistent-prepared-statements"].As<std::optional<bool>>(); pps) {
+        settings.prepared_statements =
+            *pps ? ConnectionSettings::kCachePreparedStatements : ConnectionSettings::kNoPreparedStatements;
+    }
+    if (const auto user_types_enabled = config["user-types-enabled"].As<std::optional<bool>>(); user_types_enabled) {
+        if (*user_types_enabled) {
+            if (const auto check = config["check-user-types"].As<std::optional<bool>>(); check) {
+                settings.user_types =
+                    *check ? ConnectionSettings::kUserTypesEnforced : ConnectionSettings::kUserTypesEnabled;
+            }
+        } else {
+            settings.user_types = ConnectionSettings::kPredefinedTypesOnly;
+        }
+    }
+    if (const auto max_prepared_cache_size = config["max-prepared-cache-size"].As<std::optional<std::size_t>>();
+        max_prepared_cache_size)
+    {
+        settings.max_prepared_cache_size = *max_prepared_cache_size;
+    }
+    if (const auto recent_errors_threshold = config["recent-errors-threshold"].As<std::optional<std::size_t>>();
+        recent_errors_threshold)
+    {
+        settings.recent_errors_threshold = *recent_errors_threshold;
+    }
+    if (const auto ignore = config["ignore-unused-query-params"].As<std::optional<bool>>(); ignore) {
+        settings.ignore_unused_query_params =
+            *ignore ? ConnectionSettings::kIgnoreUnused : ConnectionSettings::kCheckUnused;
+    }
+    if (const auto max_ttl = config["max-ttl-sec"].As<std::optional<std::chrono::seconds>>(); max_ttl) {
+        settings.max_ttl = *max_ttl;
+    }
+    if (const auto discard_all = config["discard-all-on-connect"].As<std::optional<bool>>(); discard_all) {
+        settings.discard_on_connect = *discard_all ? ConnectionSettings::kDiscardAll : ConnectionSettings::kDiscardNone;
+    }
+    if (const auto dp_enabled = config["deadline-propagation-enabled"].As<std::optional<bool>>(); dp_enabled) {
+        settings.deadline_propagation_enabled = *dp_enabled;
+    }
+    if (const auto pooler_mode = config["pooler-mode"].As<std::optional<PoolerMode>>(); pooler_mode) {
+        settings.pooler_mode = *pooler_mode;
+    }
+
+    return settings;
+}
+
+ConnectionSettings Parse(const yaml_config::YamlConfig& config, formats::parse::To<ConnectionSettings>) {
+    return ParseConnectionSettings(config);
+}
+
+namespace {
+
+template <typename T>
+std::string ToString(const std::optional<T>& v) {
+    if (v.has_value()) {
+        return std::to_string(*v);
+    }
+    return "std::nullopt";
+}
+
+std::string ToString(std::size_t v) { return std::to_string(v); }
+
+template <typename T, typename ConfigType>
+T GetField(const ConfigType& config, std::string_view name, T default_val) {
+    return config[name].template As<T>(default_val);
+}
+
+template <typename Settings, typename ConfigType>
+Settings ParsePoolSettings(const ConfigType& config) {
+    Settings result{};
+    result.min_size = GetField(config, "min_pool_size", result.min_size);
+    result.max_size = GetField(config, "max_pool_size", result.max_size);
+    result.max_queue_size = GetField(config, "max_queue_size", result.max_queue_size);
+    result.connecting_limit = GetField(config, "connecting_limit", result.connecting_limit);
+
+    const std::size_t default_connecting_interval_ms =
+        USERVER_NAMESPACE::utils::impl::kPgConnectingRateLimitExperiment.IsEnabled()
+            ? kExperimentDefaultConnectingIntervalMs
+            : kDefaultConnectingIntervalMs;
+    result.connecting_interval_ms = GetField(config, "connecting_interval_ms", default_connecting_interval_ms);
+
+    if (result.max_size == 0) {
+        throw InvalidConfig{"max_pool_size must be greater than 0"};
+    }
+    if (result.max_size < result.min_size) {
+        throw InvalidConfig{fmt::format(
+            "max_pool_size cannot be less than min_pool_size. max_pool_size={}, min_pool_size={}",
+            ToString(result.max_size),
+            ToString(result.min_size)
+        )};
+    }
+
+    return result;
+}
+
+}  // namespace
+
+PoolSettingsDynamic Parse(const formats::json::Value& config, formats::parse::To<PoolSettingsDynamic>) {
+    return ParsePoolSettings<PoolSettingsDynamic>(config);
+}
+
+PoolSettings Parse(const yaml_config::YamlConfig& config, formats::parse::To<PoolSettings>) {
+    return ParsePoolSettings<PoolSettings>(config);
+}
+
+TopologySettings Parse(const formats::json::Value& config, formats::parse::To<TopologySettings>) {
+    TopologySettings result{};
+
+    result.max_replication_lag =
+        config["max_replication_lag_ms"].template As<std::chrono::milliseconds>(result.max_replication_lag);
+    result.disabled_replicas = config["disabled_replicas"].template As<decltype(result.disabled_replicas)>({});
+
+    if (result.max_replication_lag < std::chrono::milliseconds{0}) {
+        throw InvalidConfig{"max_replication_lag cannot be less than 0"};
+    }
+
+    return result;
 }
 
 namespace {
 
 template <typename ConfigType>
-PoolSettings ParsePoolSettings(const ConfigType& config) {
-  PoolSettings result{};
-  result.min_size =
-      config["min_pool_size"].template As<size_t>(result.min_size);
-  result.max_size =
-      config["max_pool_size"].template As<size_t>(result.max_size);
-  result.max_queue_size =
-      config["max_queue_size"].template As<size_t>(result.max_queue_size);
-  result.connecting_limit =
-      config["connecting_limit"].template As<size_t>(result.connecting_limit);
+StatementMetricsSettings ParseStatementMetricsSettings(const ConfigType& config) {
+    StatementMetricsSettings result{};
+    result.max_statements = config["max_statement_metrics"].template As<size_t>(result.max_statements);
 
-  if (result.max_size == 0)
-    throw InvalidConfig{"max_pool_size must be greater than 0"};
-  if (result.max_size < result.min_size)
-    throw InvalidConfig{"max_pool_size cannot be less than min_pool_size"};
-
-  return result;
+    return result;
 }
 
 }  // namespace
 
-PoolSettings Parse(const formats::json::Value& config,
-                   formats::parse::To<PoolSettings>) {
-  return ParsePoolSettings(config);
+StatementMetricsSettings Parse(const formats::json::Value& config, formats::parse::To<StatementMetricsSettings>) {
+    return ParseStatementMetricsSettings(config);
 }
 
-PoolSettings Parse(const yaml_config::YamlConfig& config,
-                   formats::parse::To<PoolSettings>) {
-  return ParsePoolSettings(config);
-}
-
-TopologySettings Parse(const formats::json::Value& config,
-                       formats::parse::To<TopologySettings>) {
-  TopologySettings result{};
-
-  result.max_replication_lag =
-      config["max_replication_lag_ms"].template As<std::chrono::milliseconds>(
-          result.max_replication_lag);
-
-  if (result.max_replication_lag < std::chrono::milliseconds{0})
-    throw InvalidConfig{"max_replication_lag cannot be less than 0"};
-
-  return result;
-}
-
-namespace {
-
-template <typename ConfigType>
-StatementMetricsSettings ParseStatementMetricsSettings(
-    const ConfigType& config) {
-  StatementMetricsSettings result{};
-  result.max_statements = config["max_statement_metrics"].template As<size_t>(
-      result.max_statements);
-
-  return result;
-}
-
-}  // namespace
-
-StatementMetricsSettings Parse(const formats::json::Value& config,
-                               formats::parse::To<StatementMetricsSettings>) {
-  return ParseStatementMetricsSettings(config);
-}
-
-StatementMetricsSettings Parse(const yaml_config::YamlConfig& config,
-                               formats::parse::To<StatementMetricsSettings>) {
-  return ParseStatementMetricsSettings(config);
+StatementMetricsSettings Parse(const yaml_config::YamlConfig& config, formats::parse::To<StatementMetricsSettings>) {
+    return ParseStatementMetricsSettings(config);
 }
 
 Config Config::Parse(const dynamic_config::DocsMap& docs_map) {
-  return Config{
-      /*default_command_control=*/docs_map
-          .Get("POSTGRES_DEFAULT_COMMAND_CONTROL")
-          .As<CommandControl>(),
-      /*handlers_command_control=*/
-      docs_map.Get("POSTGRES_HANDLERS_COMMAND_CONTROL")
-          .As<CommandControlByHandlerMap>(),
-      /*queries_command_control=*/
-      docs_map.Get("POSTGRES_QUERIES_COMMAND_CONTROL")
-          .As<CommandControlByQueryMap>(),
-      /*pool_settings=*/
-      docs_map.Get("POSTGRES_CONNECTION_POOL_SETTINGS")
-          .As<dynamic_config::ValueDict<PoolSettings>>(),
-      /*topology_settings*/
-      docs_map.Get("POSTGRES_TOPOLOGY_SETTINGS")
-          .As<dynamic_config::ValueDict<TopologySettings>>(),
-      /*connection_settings=*/
-      docs_map.Get("POSTGRES_CONNECTION_SETTINGS")
-          .As<dynamic_config::ValueDict<ConnectionSettings>>(),
-      /*statement_metrics_settings=*/
-      docs_map.Get("POSTGRES_STATEMENT_METRICS_SETTINGS")
-          .As<dynamic_config::ValueDict<StatementMetricsSettings>>(),
-  };
+    return Config{
+        .default_command_control = docs_map.Get("POSTGRES_DEFAULT_COMMAND_CONTROL").As<CommandControl>(),
+        .handlers_command_control = docs_map.Get("POSTGRES_HANDLERS_COMMAND_CONTROL").As<CommandControlByHandlerMap>(),
+        .queries_command_control = docs_map.Get("POSTGRES_QUERIES_COMMAND_CONTROL").As<CommandControlByQueryMap>(),
+        .pool_settings =
+            docs_map.Get("POSTGRES_CONNECTION_POOL_SETTINGS").As<dynamic_config::ValueDict<PoolSettingsDynamic>>(),
+        .topology_settings =
+            docs_map.Get("POSTGRES_TOPOLOGY_SETTINGS").As<dynamic_config::ValueDict<TopologySettings>>(),
+        .connection_settings =
+            docs_map.Get("POSTGRES_CONNECTION_SETTINGS").As<dynamic_config::ValueDict<ConnectionSettingsDynamic>>(),
+        .statement_metrics_settings =
+            docs_map.Get("POSTGRES_STATEMENT_METRICS_SETTINGS")
+                .As<dynamic_config::ValueDict<StatementMetricsSettings>>(),
+    };
 }
 
 using JsonString = dynamic_config::DefaultAsJsonString;
@@ -215,21 +306,6 @@ const dynamic_config::Key<Config> kConfig{
         {"POSTGRES_STATEMENT_METRICS_SETTINGS", JsonString{"{}"}},
     },
 };
-
-const dynamic_config::Key<PipelineMode> kPipelineModeKey{
-    "POSTGRES_CONNECTION_PIPELINE_EXPERIMENT", ParsePipelineMode,
-    dynamic_config::DefaultAsJsonString{"0"}};
-
-const dynamic_config::Key<bool> kConnlimitModeAutoEnabled{
-    "POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED", true};
-
-const dynamic_config::Key<int> kDeadlinePropagationVersionConfig{
-    "POSTGRES_DEADLINE_PROPAGATION_VERSION", 0};
-
-const dynamic_config::Key<OmitDescribeInExecuteMode>
-    kOmitDescribeInExecuteModeKey{"POSTGRES_OMIT_DESCRIBE_IN_EXECUTE",
-                                  ParseOmitDescribeInExecuteMode,
-                                  dynamic_config::DefaultAsJsonString{"1"}};
 
 }  // namespace storages::postgres
 

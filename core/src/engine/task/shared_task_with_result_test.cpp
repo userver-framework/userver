@@ -1,384 +1,393 @@
 #include <userver/utest/utest.hpp>
 
+#include <array>
 #include <type_traits>
 
+#include <userver/engine/future.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/shared_task_with_result.hpp>
+#include <userver/engine/wait_all_checked.hpp>
+#include <userver/engine/wait_any.hpp>
 #include <userver/utils/async.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 TEST(SharedTaskWithResult, Ctr) {
-  engine::SharedTaskWithResult<void> task;
-  engine::SharedTaskWithResult<int> task_int;
+    const engine::SharedTaskWithResult<void> task;
+    const engine::SharedTaskWithResult<int> task_int;
 
-  static_assert(sizeof(task) == sizeof(engine::SharedTask),
-                "Additional fields will be lost by slicing of "
-                "SharedTaskWithResult into SharedTask");
-  static_assert(sizeof(task_int) == sizeof(engine::SharedTask),
-                "Additional fields will be lost by slicing of "
-                "SharedTaskWithResult into SharedTask");
+    static_assert(
+        sizeof(task) == sizeof(engine::SharedTask),
+        "Additional fields will be lost by slicing of "
+        "SharedTaskWithResult into SharedTask"
+    );
+    static_assert(
+        sizeof(task_int) == sizeof(engine::SharedTask),
+        "Additional fields will be lost by slicing of "
+        "SharedTaskWithResult into SharedTask"
+    );
 }
 
 TEST(SharedTaskWithResult, MoveCtr) {
-  engine::SharedTaskWithResult<void> t;
-  engine::SharedTaskWithResult<void> t2 = std::move(t);
+    engine::SharedTaskWithResult<void> t;
+    const engine::SharedTaskWithResult<void> t2 = std::move(t);
 
-  using IntSharedTask = engine::SharedTaskWithResult<int>;
-  IntSharedTask t_int;
-  IntSharedTask t2_int = std::move(t_int);
+    using IntSharedTask = engine::SharedTaskWithResult<int>;
+    IntSharedTask t_int;
+    const IntSharedTask t2_int = std::move(t_int);
 }
 
 UTEST(SharedTaskWithResult, MoveInvalidatesOther) {
-  auto moved_from = utils::SharedAsync("we", []() {});
-  EXPECT_TRUE(moved_from.IsValid());
+    auto moved_from = utils::SharedAsync("we", []() {});
+    EXPECT_TRUE(moved_from.IsValid());
 
-  engine::SharedTaskWithResult<void> moved_to{std::move(moved_from)};
-  EXPECT_TRUE(moved_to.IsValid());
-  // NOLINTNEXTLINE(clang-analyzer-cplusplus.Move,bugprone-use-after-move)
-  EXPECT_FALSE(moved_from.IsValid());
+    const engine::SharedTaskWithResult<void> moved_to{std::move(moved_from)};
+    EXPECT_TRUE(moved_to.IsValid());
+    // NOLINTNEXTLINE(clang-analyzer-cplusplus.Move,bugprone-use-after-move)
+    EXPECT_FALSE(moved_from.IsValid());
 }
 
 TEST(SharedTaskWithResult, CopyCtr) {
-  engine::SharedTaskWithResult<void> t;
-  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
-  engine::SharedTaskWithResult<void> t2 = t;
+    const engine::SharedTaskWithResult<void> t;
+    // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+    const engine::SharedTaskWithResult<void> t2 = t;
 
-  engine::SharedTaskWithResult<int> t_int;
-  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
-  engine::SharedTaskWithResult<int> t2_int = t_int;
+    const engine::SharedTaskWithResult<int> t_int;
+    // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+    const engine::SharedTaskWithResult<int> t2_int = t_int;
 }
 
 UTEST(SharedTaskWithResult, CopyLeavesBothTasksValid) {
-  auto copy_from =
-      utils::SharedAsync("we", []() { return std::make_unique<int>(5); });
-  EXPECT_TRUE(copy_from.IsValid());
+    auto copy_from = utils::SharedAsync("we", []() { return std::make_unique<int>(5); });
+    EXPECT_TRUE(copy_from.IsValid());
 
-  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
-  auto copy_to = copy_from;
-  EXPECT_TRUE(copy_from.IsValid());
-  EXPECT_TRUE(copy_to.IsValid());
-
-  EXPECT_EQ(*copy_from.Get(), 5);
-  EXPECT_EQ(*copy_to.Get(), 5);
-}
-
-UTEST(SharedTaskWithResult, DestroyOfCopyLeavesInitialTaskValid) {
-  auto copy_from =
-      utils::SharedAsync("we", []() { return std::make_unique<int>(5); });
-  EXPECT_TRUE(copy_from.IsValid());
-
-  {
     // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
     auto copy_to = copy_from;
     EXPECT_TRUE(copy_from.IsValid());
     EXPECT_TRUE(copy_to.IsValid());
-  }
 
-  EXPECT_TRUE(copy_from.IsValid());
-  EXPECT_EQ(*copy_from.Get(), 5);
+    EXPECT_EQ(*copy_from.Get(), 5);
+    EXPECT_EQ(*copy_to.Get(), 5);
+}
+
+UTEST(SharedTaskWithResult, DestroyOfCopyLeavesInitialTaskValid) {
+    auto copy_from = utils::SharedAsync("we", []() { return std::make_unique<int>(5); });
+    EXPECT_TRUE(copy_from.IsValid());
+
+    {
+        // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+        auto copy_to = copy_from;
+        EXPECT_TRUE(copy_from.IsValid());
+        EXPECT_TRUE(copy_to.IsValid());
+    }
+
+    EXPECT_TRUE(copy_from.IsValid());
+    EXPECT_EQ(*copy_from.Get(), 5);
 }
 
 UTEST(SharedTaskWithResult, MoveToCopyLeavesInitialTaskValid) {
-  auto copy_from =
-      utils::SharedAsync("we", []() { return std::make_unique<int>(5); });
-  EXPECT_TRUE(copy_from.IsValid());
+    auto copy_from = utils::SharedAsync("we", []() { return std::make_unique<int>(5); });
+    EXPECT_TRUE(copy_from.IsValid());
 
-  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
-  auto copy_to = copy_from;
-  EXPECT_TRUE(copy_from.IsValid());
-  EXPECT_TRUE(copy_to.IsValid());
+    // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+    auto copy_to = copy_from;
+    EXPECT_TRUE(copy_from.IsValid());
+    EXPECT_TRUE(copy_to.IsValid());
 
-  copy_to =
-      utils::SharedAsync("we", []() { return std::make_unique<int>(42); });
+    copy_to = utils::SharedAsync("we", []() { return std::make_unique<int>(42); });
 
-  EXPECT_TRUE(copy_from.IsValid());
-  EXPECT_EQ(*copy_from.Get(), 5);
+    EXPECT_TRUE(copy_from.IsValid());
+    EXPECT_EQ(*copy_from.Get(), 5);
 
-  EXPECT_TRUE(copy_to.IsValid());
-  EXPECT_EQ(*copy_to.Get(), 42);
+    EXPECT_TRUE(copy_to.IsValid());
+    EXPECT_EQ(*copy_to.Get(), 42);
 }
 
 UTEST(SharedTaskWithResult, AssignToCopyLeavesInitialTaskValid) {
-  auto copy_from =
-      utils::SharedAsync("we", []() { return std::make_unique<int>(5); });
-  EXPECT_TRUE(copy_from.IsValid());
+    auto copy_from = utils::SharedAsync("we", []() { return std::make_unique<int>(5); });
+    EXPECT_TRUE(copy_from.IsValid());
 
-  auto copy_to = copy_from;
-  EXPECT_TRUE(copy_from.IsValid());
-  EXPECT_TRUE(copy_to.IsValid());
+    auto copy_to = copy_from;
+    EXPECT_TRUE(copy_from.IsValid());
+    EXPECT_TRUE(copy_to.IsValid());
 
-  auto another_copy_from =
-      utils::SharedAsync("we", []() { return std::make_unique<int>(42); });
-  copy_to = another_copy_from;
+    auto another_copy_from = utils::SharedAsync("we", []() { return std::make_unique<int>(42); });
+    copy_to = another_copy_from;
 
-  EXPECT_TRUE(copy_from.IsValid());
-  EXPECT_EQ(*copy_from.Get(), 5);
+    EXPECT_TRUE(copy_from.IsValid());
+    EXPECT_EQ(*copy_from.Get(), 5);
 
-  EXPECT_TRUE(copy_to.IsValid());
-  EXPECT_EQ(*copy_to.Get(), 42);
+    EXPECT_TRUE(copy_to.IsValid());
+    EXPECT_EQ(*copy_to.Get(), 42);
 
-  EXPECT_TRUE(another_copy_from.IsValid());
-  EXPECT_EQ(*another_copy_from.Get(), 42);
+    EXPECT_TRUE(another_copy_from.IsValid());
+    EXPECT_EQ(*another_copy_from.Get(), 42);
 }
 
 UTEST(SharedTaskWithResult, CopyAfterCompletion) {
-  auto copy_from =
-      utils::SharedAsync("we", []() { return std::make_unique<int>(5); });
-  copy_from.Get();
+    auto copy_from = utils::SharedAsync("we", []() { return std::make_unique<int>(5); });
+    copy_from.Get();
 
-  // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
-  auto copy_to = copy_from;
-  EXPECT_EQ(*copy_from.Get(), 5);
-  EXPECT_EQ(*copy_to.Get(), 5);
+    // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+    auto copy_to = copy_from;
+    EXPECT_EQ(*copy_from.Get(), 5);
+    EXPECT_EQ(*copy_to.Get(), 5);
 }
 
 UTEST(SharedTaskWithResult, AutoCancel) {
-  bool initial_task_was_canceled = false;
-  {
-    auto task = utils::SharedAsync("cancel me", [&initial_task_was_canceled] {
-      engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
-      EXPECT_TRUE(engine::current_task::IsCancelRequested());
-      initial_task_was_canceled = engine::current_task::IsCancelRequested();
-    });
-    engine::Yield();
-    EXPECT_FALSE(task.IsFinished());
-    EXPECT_FALSE(initial_task_was_canceled);
-  }
-  EXPECT_TRUE(initial_task_was_canceled);
+    bool initial_task_was_canceled = false;
+    {
+        auto task = utils::SharedAsync("cancel me", [&initial_task_was_canceled] {
+            engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
+            EXPECT_TRUE(engine::current_task::IsCancelRequested());
+            initial_task_was_canceled = engine::current_task::IsCancelRequested();
+        });
+        engine::Yield();
+        EXPECT_FALSE(task.IsFinished());
+        EXPECT_FALSE(initial_task_was_canceled);
+    }
+    EXPECT_TRUE(initial_task_was_canceled);
 }
 
 UTEST(SharedTaskWithResult, AutoCancelOnAssignInvalid) {
-  bool initial_task_was_canceled = false;
+    bool initial_task_was_canceled = false;
 
-  auto task = utils::SharedAsync("cancel me", [&initial_task_was_canceled] {
-    engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
-    EXPECT_TRUE(engine::current_task::IsCancelRequested());
-    initial_task_was_canceled = engine::current_task::IsCancelRequested();
-  });
-  engine::Yield();
-  EXPECT_FALSE(task.IsFinished());
-  EXPECT_FALSE(initial_task_was_canceled);
-
-  {
-    // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
-    auto other = task;
-    // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
-    task = other;  // self assignment should not invalidate
-    engine::Yield();
-    EXPECT_FALSE(other.IsFinished());
-    EXPECT_FALSE(task.IsFinished());
-    EXPECT_FALSE(initial_task_was_canceled);
-  }
-  EXPECT_FALSE(task.IsFinished());
-  EXPECT_FALSE(initial_task_was_canceled);
-
-  {
-    // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
-    auto other = task;
-    task = std::move(other);  // self move assignment should not invalidate
-    engine::Yield();
-    // NOLINTNEXTLINE(clang-analyzer-cplusplus.Move)
-    EXPECT_FALSE(other.IsFinished());
-    EXPECT_FALSE(task.IsFinished());
-    EXPECT_FALSE(initial_task_was_canceled);
-  }
-  EXPECT_FALSE(task.IsFinished());
-  EXPECT_FALSE(initial_task_was_canceled);
-
-  task = {};
-  EXPECT_FALSE(task.IsValid());
-  EXPECT_TRUE(initial_task_was_canceled);
-}
-
-UTEST(SharedTaskWithResult, AutoCancelWithCopy) {
-  bool initial_task_was_canceled = false;
-  {
     auto task = utils::SharedAsync("cancel me", [&initial_task_was_canceled] {
-      engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
-      EXPECT_TRUE(engine::current_task::IsCancelRequested());
-      initial_task_was_canceled = engine::current_task::IsCancelRequested();
+        engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
+        EXPECT_TRUE(engine::current_task::IsCancelRequested());
+        initial_task_was_canceled = engine::current_task::IsCancelRequested();
     });
     engine::Yield();
     EXPECT_FALSE(task.IsFinished());
     EXPECT_FALSE(initial_task_was_canceled);
 
     {
-      // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
-      auto copy_to = task;
-      EXPECT_TRUE(task.IsValid());
-      EXPECT_TRUE(copy_to.IsValid());
-      EXPECT_FALSE(initial_task_was_canceled);
+        // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+        auto other = task;
+        // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+        task = other;  // self assignment should not invalidate
+        engine::Yield();
+        EXPECT_FALSE(other.IsFinished());
+        EXPECT_FALSE(task.IsFinished());
+        EXPECT_FALSE(initial_task_was_canceled);
     }
-
-    EXPECT_TRUE(task.IsValid());
-    EXPECT_FALSE(initial_task_was_canceled);
-  }
-  EXPECT_TRUE(initial_task_was_canceled);
-}
-
-UTEST(SharedTaskWithResult, AutoCancelWithCopyOutlivesInitialValue) {
-  bool initial_task_was_canceled = false;
-  {
-    auto task = utils::SharedAsync("cancel me", [&initial_task_was_canceled] {
-      engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
-      EXPECT_TRUE(engine::current_task::IsCancelRequested());
-      initial_task_was_canceled = engine::current_task::IsCancelRequested();
-    });
-    engine::Yield();
     EXPECT_FALSE(task.IsFinished());
     EXPECT_FALSE(initial_task_was_canceled);
 
-    // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
-    auto copy_to = task;
-    EXPECT_TRUE(task.IsValid());
-    EXPECT_TRUE(copy_to.IsValid());
+    {
+        // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+        auto other = task;
+        task = std::move(other);  // self move assignment should not invalidate
+        engine::Yield();
+        // NOLINTNEXTLINE(clang-analyzer-cplusplus.Move, bugprone-use-after-move)
+        EXPECT_FALSE(other.IsFinished());
+        EXPECT_FALSE(task.IsFinished());
+        EXPECT_FALSE(initial_task_was_canceled);
+    }
+    EXPECT_FALSE(task.IsFinished());
     EXPECT_FALSE(initial_task_was_canceled);
 
-    task = utils::SharedAsync("cancel me 2", []() {});
-    engine::Yield();
-    EXPECT_TRUE(copy_to.IsValid());
-    EXPECT_FALSE(initial_task_was_canceled);
-  }
-  EXPECT_TRUE(initial_task_was_canceled);
+    task = {};
+    EXPECT_FALSE(task.IsValid());
+    EXPECT_TRUE(initial_task_was_canceled);
+}
+
+UTEST(SharedTaskWithResult, AutoCancelWithCopy) {
+    bool initial_task_was_canceled = false;
+    {
+        auto task = utils::SharedAsync("cancel me", [&initial_task_was_canceled] {
+            engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
+            EXPECT_TRUE(engine::current_task::IsCancelRequested());
+            initial_task_was_canceled = engine::current_task::IsCancelRequested();
+        });
+        engine::Yield();
+        EXPECT_FALSE(task.IsFinished());
+        EXPECT_FALSE(initial_task_was_canceled);
+
+        {
+            // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+            auto copy_to = task;
+            EXPECT_TRUE(task.IsValid());
+            EXPECT_TRUE(copy_to.IsValid());
+            EXPECT_FALSE(initial_task_was_canceled);
+        }
+
+        EXPECT_TRUE(task.IsValid());
+        EXPECT_FALSE(initial_task_was_canceled);
+    }
+    EXPECT_TRUE(initial_task_was_canceled);
+}
+
+UTEST(SharedTaskWithResult, AutoCancelWithCopyOutlivesInitialValue) {
+    bool initial_task_was_canceled = false;
+    {
+        auto task = utils::SharedAsync("cancel me", [&initial_task_was_canceled] {
+            engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
+            EXPECT_TRUE(engine::current_task::IsCancelRequested());
+            initial_task_was_canceled = engine::current_task::IsCancelRequested();
+        });
+        engine::Yield();
+        EXPECT_FALSE(task.IsFinished());
+        EXPECT_FALSE(initial_task_was_canceled);
+
+        // NOLINTNEXTLINE(performance-unnecessary-copy-initialization)
+        auto copy_to = task;
+        EXPECT_TRUE(task.IsValid());
+        EXPECT_TRUE(copy_to.IsValid());
+        EXPECT_FALSE(initial_task_was_canceled);
+
+        task = utils::SharedAsync("cancel me 2", []() {});
+        engine::Yield();
+        EXPECT_TRUE(copy_to.IsValid());
+        EXPECT_FALSE(initial_task_was_canceled);
+    }
+    EXPECT_TRUE(initial_task_was_canceled);
 }
 
 UTEST(SharedTaskWithResult, AutoCancelOnMove) {
-  bool initial_task_was_cancelled = false;
-  auto task = utils::SharedAsync("cancel me", [&initial_task_was_cancelled] {
-    engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
-    EXPECT_TRUE(engine::current_task::IsCancelRequested());
-    initial_task_was_cancelled = engine::current_task::IsCancelRequested();
-  });
-  engine::Yield();
-  EXPECT_FALSE(task.IsFinished());
-  EXPECT_FALSE(initial_task_was_cancelled);
+    bool initial_task_was_cancelled = false;
+    auto task = utils::SharedAsync("cancel me", [&initial_task_was_cancelled] {
+        engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
+        EXPECT_TRUE(engine::current_task::IsCancelRequested());
+        initial_task_was_cancelled = engine::current_task::IsCancelRequested();
+    });
+    engine::Yield();
+    EXPECT_FALSE(task.IsFinished());
+    EXPECT_FALSE(initial_task_was_cancelled);
 
-  bool was_invoked = false;
-  task = utils::SharedAsync("new", [&was_invoked] { was_invoked = true; });
-  EXPECT_TRUE(initial_task_was_cancelled);
-  EXPECT_EQ(was_invoked, task.IsFinished());
-  EXPECT_TRUE(task.IsValid());
-  engine::Yield();
-  EXPECT_TRUE(was_invoked);
-  EXPECT_TRUE(task.IsFinished());
-  EXPECT_TRUE(task.IsValid());
+    bool was_invoked = false;
+    task = utils::SharedAsync("new", [&was_invoked] { was_invoked = true; });
+    EXPECT_TRUE(initial_task_was_cancelled);
+    EXPECT_EQ(was_invoked, task.IsFinished());
+    EXPECT_TRUE(task.IsValid());
+    engine::Yield();
+    EXPECT_TRUE(was_invoked);
+    EXPECT_TRUE(task.IsFinished());
+    EXPECT_TRUE(task.IsValid());
 }
 
 UTEST(SharedTaskWithResult, AutoCancelOnAssign) {
-  bool initial_task_was_cancelled = false;
-  auto task = utils::SharedAsync("cancel me", [&initial_task_was_cancelled] {
-    engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
-    EXPECT_TRUE(engine::current_task::IsCancelRequested());
-    initial_task_was_cancelled = engine::current_task::IsCancelRequested();
-  });
-  engine::Yield();
-  EXPECT_FALSE(task.IsFinished());
-  EXPECT_FALSE(initial_task_was_cancelled);
+    bool initial_task_was_cancelled = false;
+    auto task = utils::SharedAsync("cancel me", [&initial_task_was_cancelled] {
+        engine::InterruptibleSleepFor(utest::kMaxTestWaitTime);
+        EXPECT_TRUE(engine::current_task::IsCancelRequested());
+        initial_task_was_cancelled = engine::current_task::IsCancelRequested();
+    });
+    engine::Yield();
+    EXPECT_FALSE(task.IsFinished());
+    EXPECT_FALSE(initial_task_was_cancelled);
 
-  bool was_invoked = false;
-  auto new_task =
-      utils::SharedAsync("new", [&was_invoked] { was_invoked = true; });
-  task = new_task;
-  EXPECT_TRUE(initial_task_was_cancelled);
-  EXPECT_EQ(was_invoked, task.IsFinished());
-  EXPECT_TRUE(task.IsValid());
-  engine::Yield();
-  EXPECT_TRUE(was_invoked);
-  EXPECT_TRUE(task.IsFinished());
-  EXPECT_TRUE(task.IsValid());
+    bool was_invoked = false;
+    auto new_task = utils::SharedAsync("new", [&was_invoked] { was_invoked = true; });
+    task = new_task;
+    EXPECT_TRUE(initial_task_was_cancelled);
+    EXPECT_EQ(was_invoked, task.IsFinished());
+    EXPECT_TRUE(task.IsValid());
+    engine::Yield();
+    EXPECT_TRUE(was_invoked);
+    EXPECT_TRUE(task.IsFinished());
+    EXPECT_TRUE(task.IsValid());
 }
 
 UTEST(SharedTaskWithResult, Wait) {
-  auto task = utils::SharedAsync("we", []() { return 5; });
+    auto task = utils::SharedAsync("we", []() { return 5; });
 
-  task.Wait();
+    task.Wait();
 }
 
 UTEST(SharedTaskWithResult, Get) {
-  auto task = utils::SharedAsync("we", []() {});
+    auto task = utils::SharedAsync("we", []() {});
 
-  task.Get();
+    task.Get();
 }
 
 UTEST(SharedTaskWithResult, GetMultiThrow) {
-  auto task =
-      utils::SharedAsync("we", []() { throw std::runtime_error{"error"}; });
+    auto task = utils::SharedAsync("we", []() { throw std::runtime_error{"error"}; });
 
-  UEXPECT_THROW(task.Get(), std::runtime_error);
-  UEXPECT_THROW(task.Get(), std::runtime_error);
+    UEXPECT_THROW(task.Get(), std::runtime_error);
+    UEXPECT_THROW(task.Get(), std::runtime_error);
 }
 
 UTEST(SharedTaskWithResult, WaitNoThrow) {
-  auto task =
-      utils::SharedAsync("we", []() { throw std::runtime_error{"error"}; });
+    auto task = utils::SharedAsync("we", []() { throw std::runtime_error{"error"}; });
 
-  UEXPECT_NO_THROW(task.Wait());
+    UEXPECT_NO_THROW(task.Wait());
 }
 
 UTEST_MT(SharedTaskWithResult, MultithreadedGet, 4) {
-  /// [Sample SharedTaskWithResult usage]
-  // Creating task that will be awaited in parallel
-  auto shared_task = utils::SharedAsync("shared_task", []() {
-    engine::InterruptibleSleepFor(std::chrono::milliseconds(100));
+    /// [Sample SharedTaskWithResult usage]
+    // Creating task that will be awaited in parallel
+    auto shared_task = utils::SharedAsync("shared_task", []() {
+        engine::InterruptibleSleepFor(std::chrono::milliseconds(100));
 
-    return 1;
-  });
+        return 1;
+    });
 
-  std::vector<engine::TaskWithResult<void>> tasks;
-  std::atomic_int sum{0};
-  for (size_t i = 0; i < 4; ++i) {
-    // Getting shared_task's result in parallel
-    tasks.push_back(
-        utils::Async("waiter_task", [shared_task /* copy is allowed */,
-                                     &sum]() { sum += shared_task.Get(); }));
-  }
+    static constexpr std::size_t kTaskCount = 4;
 
-  for (auto& task : tasks) task.Wait();
-  /// [Sample SharedTaskWithResult usage]
+    std::atomic_int sum{0};
 
-  EXPECT_EQ(sum, 4);
+    std::vector<engine::TaskWithResult<void>> tasks;
+    tasks.reserve(kTaskCount);
+    for (size_t i = 0; i < kTaskCount; ++i) {
+        // Getting shared_task's result in parallel
+        tasks.push_back(utils::Async("waiter_task", [shared_task /* copy is allowed */, &sum]() {
+            sum += shared_task.Get();
+        }));
+    }
+
+    for (auto& task : tasks) {
+        task.Wait();
+    }
+    /// [Sample SharedTaskWithResult usage]
+
+    EXPECT_EQ(sum, 4);
 }
 
 UTEST_MT(SharedTaskWithResult, MultithreadedWait, 4) {
-  auto shared_task = utils::SharedAsync("we", []() {
-    engine::SingleConsumerEvent event;
-    EXPECT_FALSE(event.WaitForEventFor(std::chrono::milliseconds{50}));
+    auto shared_task = utils::SharedAsync("we", []() {
+        engine::SingleConsumerEvent event;
+        EXPECT_FALSE(event.WaitForEventFor(std::chrono::milliseconds{50}));
 
-    return 1;
-  });
+        return 1;
+    });
 
-  std::vector<engine::TaskWithResult<void>> tasks;
-  std::atomic_int sum{0};
-  for (size_t i = 0; i < 4; ++i) {
-    tasks.push_back(utils::Async("waiter_task", [&shared_task, &sum]() {
-      shared_task.Wait();
+    static constexpr std::size_t kTaskCount = 4;
 
-      sum += shared_task.Get();
-    }));
-  }
+    std::vector<engine::TaskWithResult<void>> tasks;
+    tasks.reserve(kTaskCount);
+    std::atomic_int sum{0};
+    for (size_t i = 0; i < kTaskCount; ++i) {
+        tasks.push_back(utils::Async("waiter_task", [&shared_task, &sum]() {
+            shared_task.Wait();
 
-  for (auto& task : tasks) task.Wait();
+            sum += shared_task.Get();
+        }));
+    }
 
-  EXPECT_EQ(sum, 4);
+    for (auto& task : tasks) {
+        task.Wait();
+    }
+
+    EXPECT_EQ(sum, 4);
 }
 
 UTEST(SharedTaskWithResult, MultiWaitGet) {
-  const auto res = 2;
+    const auto res = 2;
 
-  auto task = utils::SharedAsync("we", []() {
-    engine::SingleConsumerEvent event;
-    EXPECT_FALSE(event.WaitForEventFor(std::chrono::milliseconds{20}));
+    auto task = utils::SharedAsync("we", []() {
+        engine::SingleConsumerEvent event;
+        EXPECT_FALSE(event.WaitForEventFor(std::chrono::milliseconds{20}));
 
-    return res;
-  });
+        return res;
+    });
 
-  EXPECT_EQ(task.Get(), res);
-  task.Wait();
+    EXPECT_EQ(task.Get(), res);
+    task.Wait();
 
-  EXPECT_EQ(task.Get(), res);
-  task.Wait();
+    EXPECT_EQ(task.Get(), res);
+    task.Wait();
 }
 
 static_assert(std::is_move_constructible_v<engine::SharedTaskWithResult<void>>);
@@ -386,5 +395,124 @@ static_assert(std::is_move_assignable_v<engine::SharedTaskWithResult<void>>);
 
 static_assert(std::is_copy_constructible_v<engine::SharedTaskWithResult<void>>);
 static_assert(std::is_copy_assignable_v<engine::SharedTaskWithResult<void>>);
+
+namespace {
+
+constexpr int kFirstSharedTaskValue = 2;
+constexpr int kSecondSharedTaskValue = 3;
+
+using IntSharedTask = engine::SharedTaskWithResult<int>;
+
+std::array<int, 2> WaitAnyAndGetResults(IntSharedTask task1, IntSharedTask task2) {
+    auto wait_any = engine::MakeWaitAny(task1, task2);
+    std::array<int, 2> values{};
+    std::array<bool, 2> completed{};
+
+    for (std::size_t i = 0; i < completed.size(); ++i) {
+        const auto index = wait_any.Wait();
+        EXPECT_TRUE(index.has_value());
+        if (index != 0 && index != 1) {
+            ADD_FAILURE() << "Unexpected task index";
+            return values;
+        }
+        EXPECT_FALSE(completed[*index]);
+        completed[*index] = true;
+        values[*index] = *index == 0 ? task1.Get() : task2.Get();
+    }
+
+    return values;
+}
+
+}  // namespace
+
+UTEST(SharedTask, WaitAnyWithMultipleAwaiters) {
+    engine::Promise<int> promise1;
+    engine::Promise<int> promise2;
+
+    auto future1 = promise1.get_future();
+    auto future2 = promise2.get_future();
+
+    auto task1 = utils::SharedAsync("shared_task_1", [future = std::move(future1)]() mutable { return future.get(); });
+    auto task2 = utils::SharedAsync("shared_task_2", [future = std::move(future2)]() mutable { return future.get(); });
+
+    auto sum_waiter = utils::Async(
+        "sum_waiter",
+        [](IntSharedTask task1, IntSharedTask task2) {
+            const auto values = WaitAnyAndGetResults(std::move(task1), std::move(task2));
+            return values[0] + values[1];
+        },
+        task1,
+        task2
+    );
+
+    auto product_waiter = utils::Async(
+        "product_waiter",
+        [](IntSharedTask task1, IntSharedTask task2) {
+            const auto values = WaitAnyAndGetResults(std::move(task1), std::move(task2));
+            return values[0] * values[1];
+        },
+        task1,
+        task2
+    );
+
+    engine::Yield();
+    EXPECT_FALSE(task1.IsFinished());
+    EXPECT_FALSE(task2.IsFinished());
+
+    promise1.set_value(kFirstSharedTaskValue);
+    promise2.set_value(kSecondSharedTaskValue);
+
+    const auto sum = sum_waiter.Get();
+    const auto product = product_waiter.Get();
+
+    EXPECT_EQ(sum, kFirstSharedTaskValue + kSecondSharedTaskValue);
+    EXPECT_EQ(product, kFirstSharedTaskValue * kSecondSharedTaskValue);
+    EXPECT_NE(sum, product);
+}
+
+UTEST(SharedTask, WaitAllCheckedWithMultipleAwaiters) {
+    engine::Promise<int> promise1;
+    engine::Promise<int> promise2;
+
+    auto future1 = promise1.get_future();
+    auto future2 = promise2.get_future();
+
+    auto task1 = utils::SharedAsync("shared_task_1", [future = std::move(future1)]() mutable { return future.get(); });
+    auto task2 = utils::SharedAsync("shared_task_2", [future = std::move(future2)]() mutable { return future.get(); });
+
+    auto sum_waiter = utils::Async(
+        "sum_waiter",
+        [](IntSharedTask task1, IntSharedTask task2) {
+            engine::WaitAllChecked(task1, task2);
+            return task1.Get() + task2.Get();
+        },
+        task1,
+        task2
+    );
+
+    auto product_waiter = utils::Async(
+        "product_waiter",
+        [](IntSharedTask task1, IntSharedTask task2) {
+            engine::WaitAllChecked(task1, task2);
+            return task1.Get() * task2.Get();
+        },
+        task1,
+        task2
+    );
+
+    engine::Yield();
+    EXPECT_FALSE(task1.IsFinished());
+    EXPECT_FALSE(task2.IsFinished());
+
+    promise1.set_value(kFirstSharedTaskValue);
+    promise2.set_value(kSecondSharedTaskValue);
+
+    const auto sum = sum_waiter.Get();
+    const auto product = product_waiter.Get();
+
+    EXPECT_EQ(sum, kFirstSharedTaskValue + kSecondSharedTaskValue);
+    EXPECT_EQ(product, kFirstSharedTaskValue * kSecondSharedTaskValue);
+    EXPECT_NE(sum, product);
+}
 
 USERVER_NAMESPACE_END

@@ -2,7 +2,7 @@
 
 /// @file userver/utils/statistics/entry.hpp
 /// @brief Header with all the types required in component header to use
-/// statistics (includes utils::statistics::Entry and forward declarations).
+/// statistics (includes @ref utils::statistics::Entry and forward declarations).
 
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/statistics/fwd.hpp>
@@ -15,30 +15,32 @@ namespace impl {
 enum class UnregisteringKind { kManual, kAutomatic };
 }
 
-/// @brief Statistics registration holder, used to unregister a metric source
-/// before it is destroyed.
+/// @brief Statistics registration holder, used to unregister a metric source before it is destroyed.
 ///
-/// See utils::statistics::Storage for info on registrations
+/// See @ref utils::statistics::Storage for info on registrations
 class [[nodiscard]] Entry final {
- public:
-  Entry();
+public:
+    Entry();
 
-  Entry(const Entry& other) = delete;
-  Entry& operator=(const Entry& other) = delete;
-  Entry(Entry&& other) noexcept;
-  Entry& operator=(Entry&& other) noexcept;
-  ~Entry();
+    Entry(const Entry& other) = delete;
+    Entry& operator=(const Entry& other) = delete;
+    Entry(Entry&& other) noexcept;
+    Entry& operator=(Entry&& other) noexcept;
 
-  void Unregister() noexcept;
+    /// Unregisters metric source.
+    ~Entry();
 
- private:
-  struct Impl;
+    /// Unregisters metric source.
+    void Unregister() noexcept;
 
-  friend class Storage;  // in RegisterExtender()
+private:
+    struct Impl;
 
-  explicit Entry(const Impl& impl) noexcept;
+    friend class Storage;  // in RegisterExtender()
 
-  utils::FastPimpl<Impl, 16, 8> impl_;
+    explicit Entry(const Impl& impl) noexcept;
+
+    utils::FastPimpl<Impl, 16, 8> impl_;
 };
 
 }  // namespace utils::statistics

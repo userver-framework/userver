@@ -3,36 +3,28 @@
 /// @file userver/rcu/fwd.hpp
 /// @brief Forward declarations for rcu::Variable and rcu::RcuMap
 
-#include <functional>
-#include <unordered_map>
-
 USERVER_NAMESPACE_BEGIN
-
-namespace engine {
-
-class Mutex;
-
-}  // namespace engine
 
 namespace rcu {
 
-template <typename T>
 struct DefaultRcuTraits;
+struct SyncRcuTraits;
+struct BlockingRcuTraits;
+struct ExclusiveRcuTraits;
 
-template <typename Key, typename Value>
+template <typename Key>
 struct DefaultRcuMapTraits;
 
-template <typename T, typename RcuTraits = DefaultRcuTraits<T>>
+template <typename T, typename RcuTraits = DefaultRcuTraits>
 class Variable;
 
-template <typename T, typename RcuTraits = DefaultRcuTraits<T>>
+template <typename T, typename RcuTraits = DefaultRcuTraits>
 class ReadablePtr;
 
-template <typename T, typename RcuTraits = DefaultRcuTraits<T>>
+template <typename T, typename RcuTraits = DefaultRcuTraits>
 class WritablePtr;
 
-template <typename Key, typename Value,
-          typename RcuMapTraits = DefaultRcuMapTraits<Key, Value>>
+template <typename Key, typename Value, typename RcuMapTraits = DefaultRcuMapTraits<Key>>
 class RcuMap;
 
 }  // namespace rcu

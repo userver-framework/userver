@@ -16,6 +16,18 @@ components_manager:
             path: /chaos/httpserver
             task_processor: main-task-processor
             method: GET,DELETE,POST
+            deadline_propagation_prefer_timestamp: true
+
+        handler-chaos-httpserver-parse-body-args:
+            path: /chaos/httpserver-parse-body-args
+            parse_args_from_body: true
+            task_processor: main-task-processor
+            method: GET,DELETE,POST
+
+        handler-chaos-httpserver-with-exception:
+            path: /chaos/httpserver-with-exception
+            task_processor: main-task-processor
+            method: GET
 
         handler-chaos-dns-resolver:
             path: /chaos/resolver
@@ -39,9 +51,15 @@ components_manager:
             method: POST
             task_processor: monitor-task-processor
 
+        handler-dynamic-debug-log:
+            path: /log/dynamic-debug
+            method: GET,PUT,DELETE
+            task_processor: monitor-task-processor
+
         testsuite-support:
 
         http-client:
+        http-client-core:
             fs-task-processor: main-task-processor
 
         tests-control:
@@ -67,20 +85,21 @@ components_manager:
             listener-monitor:
                 port: 8188
                 task_processor: main-task-processor
+
+        # /// [logging]
         logging:
             fs-task-processor: fs-task-processor
             loggers:
                 default:
                     file_path: '@stderr'
-                    level: debug
-                    overflow_behavior: discard
+                    level: info
+                    # /// [logging]
 
         dynamic-config:
             updates-enabled: true
             fs-cache-path: $dynamic-config-cache
             fs-task-processor: fs-task-processor
             defaults:
-                USERVER_HANDLER_STREAM_API_ENABLED: true
                 # Test that non-existent lines in USERVER_LOG_DYNAMIC_DEBUG
                 # do not prevent the service from starting or updating
                 # dynamic config.
@@ -102,17 +121,17 @@ components_manager:
         dns-client:
             fs-task-processor: fs-task-processor
 
-        handler-fired-alerts:
-            path: /service/fired-alerts
-            method: GET
-            task_processor: main-task-processor
-
         handler-ping:
             path: /ping
-            method: GET
+            method: GET,POST
             task_processor: main-task-processor
             throttling_enabled: false
             url_trailing_slash: strict-match
+
+        handler-restart:
+            path: /restart
+            method: GET
+            task_processor: main-task-processor
 
     task_processors:
         main-task-processor:

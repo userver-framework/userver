@@ -1,39 +1,40 @@
 #pragma once
 
-#include <userver/ugrpc/client/client_factory.hpp>
+#include <grpcpp/security/credentials.h>
+#include <grpcpp/support/channel_arguments.h>
+
+#include <userver/yaml_config/yaml_config.hpp>
+
+#include <userver/ugrpc/client/auth_type.hpp>
+#include <userver/ugrpc/client/retry_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
 
-enum class AuthType {
-  kInsecure,
-  kSsl,
-};
-
 /// Settings relating to the ClientFactory
 struct ClientFactoryConfig final {
-  AuthType auth_type{AuthType::kInsecure};
+    AuthType auth_type{AuthType::kInsecure};
 
-  /// Optional grpc-core channel args
-  /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
-  grpc::ChannelArguments channel_args{};
+    grpc::SslCredentialsOptions ssl_credentials_options{};
 
-  /// The logging level override for the internal grpcpp library. Must be either
-  /// `kDebug`, `kInfo` or `kError`.
-  logging::Level native_log_level{logging::Level::kError};
+    /// Retry configuration for outgoing RPCs
+    RetryConfig retry_config;
 
-  /// Number of underlying channels that will be created for every client
-  /// in this factory.
-  std::size_t channel_count{1};
+    /// Optional grpc-core channel args
+    /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
+    grpc::ChannelArguments channel_args{};
+
+    /// default service config
+    /// @see https://github.com/grpc/grpc/blob/master/doc/service_config.md
+    std::optional<std::string> default_service_config;
+
+    /// Number of underlying channels that will be created for every client
+    /// in this factory.
+    std::size_t channel_count{1};
 };
 
-ClientFactoryConfig Parse(const yaml_config::YamlConfig& value,
-                          formats::parse::To<ClientFactoryConfig>);
-
-ClientFactorySettings MakeFactorySettings(
-    impl::ClientFactoryConfig&& config,
-    const storages::secdist::SecdistConfig* secdist);
+ClientFactoryConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<ClientFactoryConfig>);
 
 }  // namespace ugrpc::client::impl
 

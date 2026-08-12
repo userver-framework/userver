@@ -1,8 +1,18 @@
 #pragma once
 
+/// @file userver/ydb/transaction.hpp
+/// @brief YDB transaction and retry transaction actor
+
+#include <functional>
 #include <string>
 
+#include <ydb-cpp-sdk/client/query/client.h>
+#include <ydb-cpp-sdk/client/table/table.h>
+
+#include <userver/engine/deadline.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/utils/function_ref.hpp>
+#include <userver/utils/trx_tracker.hpp>
 
 #include <userver/ydb/builder.hpp>
 #include <userver/ydb/exceptions.hpp>
@@ -15,88 +25,184 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ydb {
 
+class TxActor;
+
+/// Action to take after the retry function completes.
+enum class TxAction {
+    kCommit,
+    kRollback,
+};
+
+/// Signature for the function passed to TableClient::RetryTx.
+using RetryTxFunction = utils::function_ref<TxAction(TxActor&)>;
+
+/// @brief Transaction actor for use with TableClient::RetryTx.
+///
+/// Provides only query execution within a transaction. Commit and rollback
+/// are controlled by returning TxAction from the retry function.
+/// https://ydb.tech/docs/en/concepts/transactions
+class TxActor {
+public:
+    TxActor(const TxActor&) = delete;
+    TxActor& operator=(const TxActor&) = delete;
+    TxActor(TxActor&&) noexcept = delete;
+    TxActor& operator=(TxActor&&) = delete;
+
+    /// Execute a single data query as a part of the transaction. Query parameters
+    /// are passed in `Args` as "string key - value" pairs:
+    ///
+    /// @code
+    /// tx.Execute(query, "name1", value1, "name2", value2, ...);
+    /// @endcode
+    ///
+    /// Use ydb::PreparedArgsBuilder for storing a generic buffer of query params
+    /// if needed.
+    ///
+    /// @{
+    template <typename... Args>
+    ExecuteResponse Execute(const Query& query, Args&&... args);
+
+    template <typename... Args>
+    ExecuteResponse Execute(ExecuteSettings settings, const Query& query, Args&&... args);
+
+    ExecuteResponse Execute(ExecuteSettings settings, const Query& query, PreparedArgsBuilder&& builder);
+    /// @}
+
+    PreparedArgsBuilder GetBuilder() const;
+
+private:
+    friend class TableClient;
+
+    TxActor(
+        TableClient& table_client,
+        NYdb::NQuery::TSession& session,
+        NYdb::NQuery::TTxSettings&& tx_settings,
+        engine::Deadline deadline,
+        std::uint32_t attempt
+    ) noexcept;
+
+    NYdb::NQuery::TTransaction BeginTx(NYdb::NQuery::TSession& session, NYdb::NQuery::TTxSettings&& tx_settings);
+
+    template <TxAction Action>
+    void FinishTx(const RequestSettings& settings);
+
+    TableClient& table_client_;
+    engine::Deadline deadline_;
+    std::uint32_t attempt_;
+
+    NYdb::NQuery::TTransaction ydb_tx_;
+};
+
+template <typename... Args>
+ExecuteResponse TxActor::Execute(const Query& query, Args&&... args) {
+    auto builder = GetBuilder();
+    builder.AddParams(std::forward<Args>(args)...);
+    return Execute(ExecuteSettings{}, query, std::move(builder));
+}
+
+template <typename... Args>
+ExecuteResponse TxActor::Execute(ExecuteSettings settings, const Query& query, Args&&... args) {
+    auto builder = GetBuilder();
+    builder.AddParams(std::forward<Args>(args)...);
+    return Execute(std::move(settings), query, std::move(builder));
+}
+
 /// @brief YDB Transaction
+///
+/// @deprecated Use TableClient::RetryTx instead of manually managing
+/// transactions with Begin/Commit/Rollback.
 ///
 /// https://ydb.tech/docs/en/concepts/transactions
 class Transaction final {
- public:
-  Transaction(Transaction&&) noexcept = default;
-  Transaction(const Transaction&) = delete;
-  Transaction& operator=(Transaction&&) = delete;
-  Transaction& operator=(const Transaction&) = delete;
-  ~Transaction();
+public:
+    Transaction(Transaction&&) noexcept = default;
+    Transaction(const Transaction&) = delete;
+    Transaction& operator=(Transaction&&) = delete;
+    Transaction& operator=(const Transaction&) = delete;
+    ~Transaction();
 
-  /// Execute a single data query as a part of the transaction. Query parameters
-  /// are passed in `Args` as "string key - value" pairs:
-  ///
-  /// @code
-  /// client.ExecuteDataQuery(query, "name1", value1, "name2", value2, ...);
-  /// @endcode
-  ///
-  /// Use ydb::PreparedArgsBuilder for storing a generic buffer of query params
-  /// if needed.
-  ///
-  /// @{
-  template <typename... Args>
-  ExecuteResponse Execute(const Query& query, Args&&... args);
+    /// Execute a single data query as a part of the transaction. Query parameters
+    /// are passed in `Args` as "string key - value" pairs:
+    ///
+    /// @code
+    /// client.ExecuteDataQuery(query, "name1", value1, "name2", value2, ...);
+    /// @endcode
+    ///
+    /// Use ydb::PreparedArgsBuilder for storing a generic buffer of query params
+    /// if needed.
+    ///
+    /// @{
+    template <typename... Args>
+    ExecuteResponse Execute(const Query& query, Args&&... args);
 
-  template <typename... Args>
-  ExecuteResponse Execute(OperationSettings settings, const Query& query,
-                          Args&&... args);
+    template <typename... Args>
+    ExecuteResponse Execute(OperationSettings settings, const Query& query, Args&&... args);
 
-  ExecuteResponse Execute(OperationSettings settings, const Query& query,
-                          PreparedArgsBuilder&& builder);
+    ExecuteResponse Execute(OperationSettings settings, const Query& query, PreparedArgsBuilder&& builder);
 
-  ExecuteResponse Execute(QuerySettings query_settings,
-                          OperationSettings settings, const Query& query,
-                          PreparedArgsBuilder&& builder);
-  /// @}
+    ExecuteResponse Execute(
+        QuerySettings query_settings,
+        OperationSettings settings,
+        const Query& query,
+        PreparedArgsBuilder&& builder
+    );
+    /// @}
 
-  /// Commit the transaction. The options that are missing in `settings` are
-  /// taken from the static config or driver defaults. `settings` can be
-  /// overridden by dynamic config's options for `Commit` "query".
-  void Commit(OperationSettings settings = {});
+    /// Commit the transaction. The options that are missing in `settings` are
+    /// taken from the static config or driver defaults. `settings` can be
+    /// overridden by dynamic config's options for `Commit` "query".
+    void Commit(OperationSettings settings = {});
 
-  /// Rollback the transaction. The operation settings are taken from `Begin`
-  /// settings.
-  void Rollback();
+    /// Rollback the transaction. The operation settings are taken from `Begin`
+    /// settings.
+    void Rollback();
 
-  PreparedArgsBuilder GetBuilder() const;
+    PreparedArgsBuilder GetBuilder() const;
 
-  /// @cond
-  // For internal use only.
-  Transaction(TableClient& table_client, NYdb::NTable::TTransaction ydb_tx,
-              std::string name, OperationSettings&& rollback_settings) noexcept;
-  /// @endcond
+    /// @cond
+    // For internal use only.
+    Transaction(
+        TableClient& table_client,
+        NYdb::NQuery::TTransaction ydb_tx,
+        std::string name,
+        OperationSettings&& rollback_settings
+    ) noexcept;
+    /// @endcond
 
- private:
-  void MarkError() noexcept;
-  auto ErrorGuard();
+    /// Get native transaction
+    /// @warning Use with care! Facilities from
+    /// `<core/include/userver/drivers/subscribable_futures.hpp>` can help with
+    /// non-blocking wait operations.
+    NYdb::TTransactionBase& GetNativeTransaction();
 
-  void EnsureActive() const;
+private:
+    void MarkError() noexcept;
+    auto ErrorGuard();
 
-  TableClient& table_client_;
-  std::string name_;
-  impl::StatsScope stats_scope_;
-  tracing::Span span_;
-  NYdb::NTable::TTransaction ydb_tx_;
-  OperationSettings rollback_settings_;
-  bool is_active_{true};
+    void EnsureActive() const;
+
+    TableClient& table_client_;
+    std::string name_;
+    impl::StatsScope stats_scope_;
+    tracing::Span span_;
+    NYdb::NQuery::TTransaction ydb_tx_;
+    OperationSettings rollback_settings_;
+    bool is_active_{true};
+    utils::trx_tracker::TransactionLock trx_lock_;
 };
 
 template <typename... Args>
 ExecuteResponse Transaction::Execute(const Query& query, Args&&... args) {
-  auto builder = GetBuilder();
-  builder.AddParams(std::forward<Args>(args)...);
-  return Execute(OperationSettings{}, query, std::move(builder));
+    auto builder = GetBuilder();
+    builder.AddParams(std::forward<Args>(args)...);
+    return Execute(OperationSettings{}, query, std::move(builder));
 }
 
 template <typename... Args>
-ExecuteResponse Transaction::Execute(OperationSettings settings,
-                                     const Query& query, Args&&... args) {
-  auto builder = GetBuilder();
-  builder.AddParams(std::forward<Args>(args)...);
-  return Execute(std::move(settings), query, std::move(builder));
+ExecuteResponse Transaction::Execute(OperationSettings settings, const Query& query, Args&&... args) {
+    auto builder = GetBuilder();
+    builder.AddParams(std::forward<Args>(args)...);
+    return Execute(std::move(settings), query, std::move(builder));
 }
 
 }  // namespace ydb

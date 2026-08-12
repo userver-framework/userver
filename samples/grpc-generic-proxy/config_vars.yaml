@@ -1,0 +1,7 @@
+testsuite-enabled: true
+server-port: 8080
+monitor-port: 8081
+grpc-server-port: 8090
+# "Magical" config_vars value that will cause testsuite to override it with
+# real grpc mockserver endpoint
+grpc-generic-endpoint: $grpc_mockserver

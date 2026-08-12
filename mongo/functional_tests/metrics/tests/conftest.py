@@ -2,10 +2,9 @@ import datetime
 
 import pytest
 
-
 _BASE_TIME_SEC = 100
 _RECENT_PERIOD_WAIT_INTERVAL_SEC = 6
-_DEFAULT_NOW = datetime.datetime.utcfromtimestamp(_BASE_TIME_SEC)
+_DEFAULT_NOW = datetime.datetime.fromtimestamp(_BASE_TIME_SEC, tz=datetime.timezone.utc)
 
 pytest_plugins = ['pytest_userver.plugins.mongo']
 
@@ -40,19 +39,17 @@ def _metrics_setup_once_flag() -> list:
 
 @pytest.fixture
 async def force_metrics_to_appear(
-        service_client,
-        mocked_time,
-        _metrics_setup_once_flag,
-        force_mocked_time_for_metrics,
+    service_client,
+    mocked_time,
+    _metrics_setup_once_flag,
+    force_mocked_time_for_metrics,
 ):
     if _metrics_setup_once_flag:
         return
     _metrics_setup_once_flag.append(True)
 
     old_now = mocked_time.now()
-    now = datetime.datetime.utcfromtimestamp(
-        _BASE_TIME_SEC - _RECENT_PERIOD_WAIT_INTERVAL_SEC,
-    )
+    now = datetime.datetime.fromtimestamp(_BASE_TIME_SEC - _RECENT_PERIOD_WAIT_INTERVAL_SEC, tz=datetime.timezone.utc)
     mocked_time.set(now)
     await service_client.update_server_state()
 

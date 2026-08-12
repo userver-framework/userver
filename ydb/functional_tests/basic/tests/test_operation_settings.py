@@ -1,3 +1,6 @@
+import pytest
+
+
 async def test_get_settings_from_user_code(service_client):
     async with service_client.capture_logs() as capture:
         response = await service_client.post(
@@ -14,18 +17,17 @@ async def test_get_settings_from_user_code(service_client):
     assert capture.select(
         link=response.headers['x-yarequestid'],
         stopwatch_name='ydb_query',
-        max_attempts='3',
+        max_retries='3',
         get_session_timeout_ms='4999',
-        operation_timeout_ms='1000',
-        cancel_after_ms='1000',
         client_timeout_ms='1100',
     )
 
 
-async def test_get_settings_from_static_config(service_client):
+@pytest.mark.parametrize('handler', ['upsert-row', 'upsert-row-old'])
+async def test_get_settings_from_static_config(service_client, handler):
     async with service_client.capture_logs() as capture:
         response = await service_client.post(
-            'ydb/upsert-row',
+            f'ydb/{handler}',
             json={
                 'id': 'id-upsert',
                 'name': 'name-upsert',
@@ -36,33 +38,38 @@ async def test_get_settings_from_static_config(service_client):
         assert response.status_code == 200
         assert response.json() == {}
 
-    assert capture.select(
-        link=response.headers['x-yarequestid'],
-        stopwatch_name='ydb_query',
-        max_attempts='2',
-        get_session_timeout_ms='5001',
-        operation_timeout_ms='1001',
-        cancel_after_ms='1001',
-        client_timeout_ms='1101',
-    )
+    if handler == 'upsert-row':
+        assert capture.select(
+            link=response.headers['x-yarequestid'],
+            stopwatch_name='ydb_query',
+            max_retries='2',
+            client_timeout_ms='1101',
+        )
+    else:
+        assert capture.select(
+            link=response.headers['x-yarequestid'],
+            stopwatch_name='ydb_query',
+            max_retries='2',
+            get_session_timeout_ms='5001',
+            client_timeout_ms='1101',
+        )
 
 
 async def test_get_settings_from_dynamic_config(
-        service_client, dynamic_config,
+    service_client,
+    dynamic_config,
 ):
     async with service_client.capture_logs() as capture:
         operation_settings = {
             'select': {
-                'attempts': 4,
-                'operation-timeout-ms': 1002,
-                'cancel-after-ms': 1002,
+                'attempts': 5,
                 'client-timeout-ms': 1102,
                 'get-session-timeout-ms': 5002,
             },
         }
-        dynamic_config.set_values(
-            {'YDB_QUERIES_COMMAND_CONTROL': operation_settings},
-        )
+        dynamic_config.set_values({
+            'YDB_QUERIES_COMMAND_CONTROL': operation_settings,
+        })
         await service_client.update_server_state()
 
         response = await service_client.post(
@@ -79,9 +86,7 @@ async def test_get_settings_from_dynamic_config(
     assert capture.select(
         link=response.headers['x-yarequestid'],
         stopwatch_name='ydb_query',
-        max_attempts='4',
-        operation_timeout_ms='1002',
-        cancel_after_ms='1002',
+        max_retries='4',
         client_timeout_ms='1102',
         get_session_timeout_ms='5002',
     )

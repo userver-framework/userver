@@ -13,13 +13,17 @@ constexpr uint32_t kConnectionId = 4'100'200'300;
 
 }  // namespace
 
-TopologyBase::TopologyBase(engine::TaskProcessor& bg_task_processor,
-                           DsnList dsns, clients::dns::Resolver* resolver,
-                           const TopologySettings& topology_settings,
-                           const ConnectionSettings& conn_settings,
-                           const DefaultCommandControls& default_cmd_ctls,
-                           const testsuite::PostgresControl& testsuite_pg_ctl,
-                           error_injection::Settings ei_settings)
+TopologyBase::TopologyBase(
+    engine::TaskProcessor& bg_task_processor,
+    DsnList dsns,
+    clients::dns::Resolver* resolver,
+    const TopologySettings& topology_settings,
+    const ConnectionSettings& conn_settings,
+    const DefaultCommandControls& default_cmd_ctls,
+    const testsuite::PostgresControl& testsuite_pg_ctl,
+    error_injection::Settings ei_settings,
+    USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics
+)
     : bg_task_processor_(bg_task_processor),
       dsns_(std::move(dsns)),
       resolver_{resolver},
@@ -27,28 +31,33 @@ TopologyBase::TopologyBase(engine::TaskProcessor& bg_task_processor,
       conn_settings_(conn_settings),
       default_cmd_ctls_(default_cmd_ctls),
       testsuite_pg_ctl_(testsuite_pg_ctl),
-      ei_settings_(ei_settings) {}
+      ei_settings_(ei_settings),
+      metrics_(metrics)
+{}
 
 const DsnList& TopologyBase::GetDsnList() const { return dsns_; }
 
-const TopologySettings& TopologyBase::GetTopologySettings() const {
-  return topology_settings_;
-}
+const TopologySettings& TopologyBase::GetTopologySettings() const { return topology_settings_; }
 
-void TopologyBase::SetTopologySettings(const TopologySettings& settings) {
-  topology_settings_ = settings;
-}
+void TopologyBase::SetTopologySettings(const TopologySettings& settings) { topology_settings_ = settings; }
 
-const testsuite::PostgresControl& TopologyBase::GetTestsuiteControl() const {
-  return testsuite_pg_ctl_;
-}
+const testsuite::PostgresControl& TopologyBase::GetTestsuiteControl() const { return testsuite_pg_ctl_; }
 
 std::unique_ptr<Connection> TopologyBase::MakeTopologyConnection(DsnIndex idx) {
-  UASSERT(idx < dsns_.size());
-  return Connection::Connect(dsns_[idx], resolver_, bg_task_processor_,
-                             bg_task_storage_, kConnectionId, conn_settings_,
-                             default_cmd_ctls_, testsuite_pg_ctl_,
-                             ei_settings_);
+    UASSERT(idx < dsns_.size());
+    return Connection::Connect(
+        dsns_[idx],
+        resolver_,
+        bg_task_processor_,
+        bg_task_storage_,
+        kConnectionId,
+        conn_settings_,
+        default_cmd_ctls_,
+        testsuite_pg_ctl_,
+        ei_settings_,
+        engine::SemaphoreLock{},
+        metrics_
+    );
 }
 
 }  // namespace storages::postgres::detail::topology

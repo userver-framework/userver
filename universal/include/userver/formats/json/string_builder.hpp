@@ -16,8 +16,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace formats::json {
 
-// clang-format off
-
 /// @ingroup userver_universal userver_containers userver_formats userver_formats_serialize_sax
 ///
 /// @brief SAX like builder of JSON string. Use with extreme caution and only in
@@ -30,61 +28,58 @@ namespace formats::json {
 /// @snippet formats/json/string_builder_test.cpp  Sample formats::json::StringBuilder usage
 ///
 /// @see @ref scripts/docs/en/userver/formats.md
-
-// clang-format on
-
 class StringBuilder final : public serialize::SaxStream {
- public:
-  // Required by the WriteToStream fallback to Serialize
-  using Value = formats::json::Value;
+public:
+    // Required by the WriteToStream fallback to Serialize
+    using Value = formats::json::Value;
 
-  StringBuilder();
-  ~StringBuilder();
+    StringBuilder();
+    ~StringBuilder();
 
-  /// Construct this guard on new object start and its destructor will end the
-  /// object
-  class ObjectGuard final {
-   public:
-    explicit ObjectGuard(StringBuilder& sw);
-    ~ObjectGuard();
+    /// Construct this guard on new object start and its destructor will end the
+    /// object
+    class ObjectGuard final {
+    public:
+        explicit ObjectGuard(StringBuilder& sw);
+        ~ObjectGuard();
 
-   private:
-    StringBuilder& sw_;
-  };
+    private:
+        StringBuilder& sw_;
+    };
 
-  /// Construct this guard on new array start and its destructor will end the
-  /// array
-  class ArrayGuard final {
-   public:
-    explicit ArrayGuard(StringBuilder& sw);
-    ~ArrayGuard();
+    /// Construct this guard on new array start and its destructor will end the
+    /// array
+    class ArrayGuard final {
+    public:
+        explicit ArrayGuard(StringBuilder& sw);
+        ~ArrayGuard();
 
-   private:
-    StringBuilder& sw_;
-  };
+    private:
+        StringBuilder& sw_;
+    };
 
-  /// @return JSON string
-  std::string GetString() const;
-  std::string_view GetStringView() const;
+    /// @return JSON string
+    std::string GetString() const;
+    std::string_view GetStringView() const;
 
-  void WriteNull();
-  void WriteString(std::string_view value);
-  void WriteBool(bool value);
-  void WriteInt64(int64_t value);
-  void WriteUInt64(uint64_t value);
-  void WriteDouble(double value);
+    void WriteNull();
+    void WriteString(std::string_view value);
+    void WriteBool(bool value);
+    void WriteInt64(int64_t value);
+    void WriteUInt64(uint64_t value);
+    void WriteDouble(double value);
 
-  /// ONLY for objects/dicts: write key
-  void Key(std::string_view sw);
+    /// ONLY for objects/dicts: write key
+    void Key(std::string_view sw);
 
-  /// Appends raw data
-  void WriteRawString(std::string_view value);
+    /// Appends raw data
+    void WriteRawString(std::string_view value);
 
-  void WriteValue(const Value& value);
+    void WriteValue(const Value& value);
 
- private:
-  struct Impl;
-  utils::FastPimpl<Impl, 112, 8> impl_;
+private:
+    struct Impl;
+    utils::FastPimpl<Impl, 112, 8> impl_;
 };
 
 void WriteToStream(bool value, StringBuilder& sw);

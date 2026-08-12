@@ -1,150 +1,344 @@
-#include <kafka/impl/consumer.hpp>
+#include <userver/kafka/impl/consumer.hpp>
 
+#include <map>
 #include <string_view>
+#include <vector>
 
+#include <userver/engine/sleep.hpp>
 #include <userver/formats/json/value_builder.hpp>
+#include <userver/kafka/exceptions.hpp>
+#include <userver/kafka/impl/configuration.hpp>
+#include <userver/kafka/impl/stats.hpp>
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/async.hpp>
+#include <userver/utils/scope_guard.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 
-#include <kafka/impl/configuration.hpp>
 #include <kafka/impl/consumer_impl.hpp>
-#include <kafka/impl/stats.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace kafka::impl {
 
-Consumer::Consumer(std::unique_ptr<Configuration> configuration,
-                   const std::vector<std::string>& topics,
-                   std::size_t max_batch_size,
-                   std::chrono::milliseconds poll_timeout,
-                   bool enable_auto_commit,
-                   engine::TaskProcessor& consumer_task_processor,
-                   engine::TaskProcessor& main_task_processor)
-    : component_name_(configuration->GetComponentName()),
+namespace {
+
+void CallErrorTestpoint(const std::string& testpoint_name, const std::string& error_text) {
+    TESTPOINT(testpoint_name, [&error_text] {
+        formats::json::ValueBuilder error_json;
+        error_json["error"] = error_text;
+        return error_json.ExtractValue();
+    }());
+}
+
+std::function<void()> CreateDurationNotifier(std::chrono::milliseconds max_callback_duration) {
+    return [max_callback_duration, start_time = std::chrono::system_clock::now()]() {
+        const auto callback_duration = std::chrono::duration_cast<
+            std::chrono::milliseconds>(std::chrono::system_clock::now() - start_time);
+
+        if (callback_duration > max_callback_duration / 2) {
+            LOG_WARNING(
+                "Your callback duration is {}ms. If callback duration "
+                "exceeds the {}ms your consumer will be kicked from the "
+                "group. If it is okey to have such a long callbacks, "
+                "increase the `max_callback_duration` configuration option.",
+                callback_duration.count(),
+                max_callback_duration.count()
+            );
+        }
+    };
+}
+
+}  // namespace
+
+Consumer::Consumer(
+    const std::string& name,
+    const std::vector<std::string>& topics,
+    engine::TaskProcessor& consumer_task_processor,
+    engine::TaskProcessor& consumer_blocking_task_processor,
+    engine::TaskProcessor& main_task_processor,
+    const ConsumerConfiguration& configuration,
+    const Secret& secrets,
+    ConsumerExecutionParams params
+)
+    : name_(name),
       topics_(topics),
-      max_batch_size_(max_batch_size),
-      poll_timeout(poll_timeout),
-      enable_auto_commit_(enable_auto_commit),
+      execution_params_(params),
       consumer_task_processor_(consumer_task_processor),
+      consumer_blocking_task_processor_(consumer_blocking_task_processor),
       main_task_processor_(main_task_processor),
-      consumer_(std::make_unique<ConsumerImpl>(std::move(configuration))) {}
+      conf_(Configuration{name, configuration, secrets}.Release()),
+      consumer_(std::make_unique<ConsumerImpl>(name_, conf_, topics_, params, rebalance_callback_, stats_))
+{
+    /// To check configuration validity
+    [[maybe_unused]] auto _ = ConsumerHolder{conf_};
+}
 
 Consumer::~Consumer() {
-  static constexpr std::string_view kErrShutdownFailed{
-      "Stop has somehow not been called, ConsumerScope leak?"};
+    static constexpr std::string_view kErrShutdownFailed{"Stop has somehow not been called, ConsumerScope leak?"};
 
-  const bool shutdown_succeeded{!poll_task_.IsValid() ||
-                                poll_task_.IsFinished()};
+    const bool shutdown_succeeded{!poll_task_.IsValid() || poll_task_.IsFinished()};
 
-  if (!shutdown_succeeded) {
-    UASSERT_MSG(false, kErrShutdownFailed);
-    // in Release UASSERTs are skipped
-    LOG_ERROR() << kErrShutdownFailed;
-  }
+    if (!shutdown_succeeded) {
+        UASSERT_MSG(false, kErrShutdownFailed);
+        // in Release UASSERTs are skipped
+        LOG_ERROR() << kErrShutdownFailed;
+    }
 }
 
 ConsumerScope Consumer::MakeConsumerScope() { return ConsumerScope{*this}; }
 
 void Consumer::DumpMetric(utils::statistics::Writer& writer) const {
-  USERVER_NAMESPACE::kafka::impl::DumpMetric(writer, consumer_->GetStats());
+    USERVER_NAMESPACE::kafka::impl::DumpMetric(writer, stats_, this->name_);
+}
+
+void Consumer::CloseConsumingAfterFatalError() noexcept {
+    if (!consumer_) {
+        return;
+    }
+
+    LOG_INFO("Closing consumer after fatal librdkafka error before restart");
+    try {
+        consumer_->StopConsuming();
+    } catch (const ConsumerRestartRequiredException&) {
+        // StopConsuming polls the event queue; a pending fatal error may surface again.
+        LOG_DEBUG("Consumer close after fatal error: restart still required (expected)");
+    } catch (const std::exception& e) {
+        LOG_ERROR() << "Failed to close consumer after fatal error: " << e;
+    }
+    consumer_.reset();
+}
+
+void Consumer::RunConsuming(ConsumerScope::Callback callback) {
+    // note: Consumer must be recreated after each stop,
+    // because stop invalidates some internal consumer state (in librdkafka).
+    // Nevertheless, it is possible to use blocking consumer methods after stop.
+    consumer_ = std::make_unique<ConsumerImpl>(name_, conf_, topics_, execution_params_, rebalance_callback_, stats_);
+    consumer_->StartConsuming();
+
+    LOG_INFO("Started messages polling");
+
+    while (!engine::current_task::ShouldCancel()) {
+        auto polled_messages = consumer_->PollBatch(
+            execution_params_.max_batch_size,
+            engine::Deadline::FromDuration(execution_params_.poll_timeout)
+        );
+
+        if (engine::current_task::ShouldCancel()) {
+            // Message batch may be not empty. The messages will be polled by
+            // another consumer in future, because they are not committed
+            LOG_DEBUG("Stopping consuming because of cancel");
+            break;
+        }
+        if (polled_messages.empty()) {
+            continue;
+        }
+        const engine::TaskCancellationBlocker cancelation_blocker;
+
+        TESTPOINT(fmt::format("tp_{}_polled", name_), {});
+
+        auto batch_processing_task =
+            utils::Async(main_task_processor_, "messages_processing", callback, utils::span{polled_messages});
+        const utils::ScopeGuard callback_duration_notifier{
+            CreateDurationNotifier(execution_params_.max_callback_duration)
+        };
+
+        try {
+            batch_processing_task.Get();
+
+            consumer_->AccountMessageBatchProcessingSucceeded(polled_messages);
+            TESTPOINT(fmt::format("tp_{}", name_), {});
+        } catch (const std::exception& e) {
+            LOG_ERROR("Messages processing failed in consumer into client callback: {}", e.what());
+            consumer_->AccountMessageBatchProcessingFailed(polled_messages);
+
+            // Seek back to the start of the failed batch so the same messages
+            // are redelivered on the next poll (no consumer recreation).
+            // Seek with numeric offset is local-only in librdkafka: it sets
+            // next_fetch_position; no broker request until the next Fetch (poll).
+            using Key = std::pair<utils::zstring_view, std::uint32_t>;
+            std::map<Key, std::uint64_t> min_offset_by_partition;
+            for (const auto& msg : polled_messages) {
+                Key key{msg.GetTopic(), static_cast<std::uint32_t>(msg.GetPartition())};
+                const auto offset = static_cast<std::uint64_t>(msg.GetOffset());
+                auto it = min_offset_by_partition.find(key);
+                if (it == min_offset_by_partition.end()) {
+                    min_offset_by_partition[key] = offset;
+                } else {
+                    it->second = std::min(it->second, offset);
+                }
+            }
+            std::vector<SeekParams> seek_params;
+            seek_params.reserve(min_offset_by_partition.size());
+            for (const auto& [key, offset] : min_offset_by_partition) {
+                seek_params.push_back({key.first, key.second, offset});
+            }
+            constexpr auto kSeekAfterFailureTimeout = std::chrono::seconds(20);
+            MultiSeek(seek_params, kSeekAfterFailureTimeout);
+            LOG_WARNING("Sought back to reprocess failed batch");
+            CallErrorTestpoint(fmt::format("tp_error_{}", name_), e.what());
+        }
+    }
 }
 
 void Consumer::StartMessageProcessing(ConsumerScope::Callback callback) {
-  UINVARIANT(!processing_.exchange(true), "Message processing already started");
+    UINVARIANT(!processing_.exchange(true), "Message processing already started");
 
-  poll_task_ = utils::Async(
-      consumer_task_processor_, "consumer_polling",
-      [this, callback = std::move(callback)] {
-        ExtendCurrentSpan();
+    poll_task_ =
+        utils::CriticalAsync(consumer_task_processor_, "consumer_polling", [this, callback = std::move(callback)] {
+            ExtendCurrentSpan();
 
-        consumer_->Subscribe(topics_);
+            while (!engine::current_task::ShouldCancel()) {
+                try {
+                    RunConsuming(callback);
+                } catch (const ConsumerRestartRequiredException& e) {
+                    LOG_WARNING("Restarting consumer after fatal librdkafka error: {}", e.what());
 
-        LOG_INFO() << fmt::format("Started messages polling");
+                    CloseConsumingAfterFatalError();
+                    CallErrorTestpoint(fmt::format("tp_error_{}", name_), e.what());
+                } catch (const std::exception& e) {
+                    LOG_ERROR("Messages processing failed in consumer: {}", e.what());
 
-        while (!engine::current_task::ShouldCancel()) {
-          auto polled_messages = consumer_->PollBatch(
-              max_batch_size_, engine::Deadline::FromDuration(poll_timeout));
+                    CallErrorTestpoint(fmt::format("tp_error_{}", name_), e.what());
+                }
 
-          if (polled_messages.empty() || engine::current_task::ShouldCancel()) {
-            /// @note Message batch may be not empty. It may be polled by
-            /// another consumer in future, because they are not commited
-            continue;
-          }
-          TESTPOINT(fmt::format("tp_{}_polled", component_name_), {});
+                if (engine::current_task::ShouldCancel()) {
+                    break;
+                }
 
-          auto batch_processing_task =
-              utils::Async(main_task_processor_, "messages_processing",
-                           callback, utils::span{polled_messages});
-          try {
-            batch_processing_task.Get();
-
-            consumer_->AccountMessageBatchProccessingSucceeded(polled_messages);
-            TESTPOINT(fmt::format("tp_{}", component_name_), {});
-          } catch (const std::exception& e) {
-            consumer_->AccountMessageBatchProcessingFailed(polled_messages);
-
-            const std::string error_text = e.what();
-            LOG_ERROR() << fmt::format(
-                "Messages processing failed in consumer: {}", error_text);
-            TESTPOINT(fmt::format("tp_error_{}", component_name_),
-                      [&error_text] {
-                        formats::json::ValueBuilder error_json;
-                        error_json["error"] = error_text;
-                        return error_json.ExtractValue();
-                      }());
-
-            /// @note Messages must be destroyed, otherwise consumer won't stop
-            /// and block forever
-            polled_messages.clear();
-
-            // Returning to last committed offsets
-            LOG_INFO() << "Resubscribing after failure";
-            consumer_->Resubscribe(topics_);
-            processing_.store(true);
-          }
-        }
-      });
+                LOG_WARNING("Restarting consumer after {}ms...", execution_params_.restart_after_failure_delay.count());
+                engine::InterruptibleSleepFor(execution_params_.restart_after_failure_delay);
+            }
+        });
 }
 
 void Consumer::AsyncCommit() {
-  UINVARIANT(processing_.load(), "Message processing is not currently started");
+    UINVARIANT(processing_.load(), "Message processing is not currently started");
 
-  utils::Async(consumer_task_processor_, "consumer_committing", [this] {
-    ExtendCurrentSpan();
+    utils::Async(consumer_task_processor_, "consumer_committing", [this] {
+        ExtendCurrentSpan();
 
-    if (enable_auto_commit_) {
-      LOG_WARNING() << "Manually commit invoked while `enable_auto_commit` "
-                       "enabled. May cause an unexpected behaviour!!!";
-    }
+        /// @note Only schedules the offsets commitment. Actual commit
+        /// occurs in future, after some polling cycles.
+        consumer_->AsyncCommit();
+    }).Get();
+}
 
-    /// @note Only schedules the offsets committment. Actual commit
-    /// occurs in future, after some polling cycles.
-    consumer_->AsyncCommit();
-  }).Get();
+OffsetRange Consumer::GetOffsetRange(
+    utils::zstring_view topic,
+    std::uint32_t partition,
+    std::optional<std::chrono::milliseconds> timeout
+) const {
+    return utils::Async(
+               consumer_blocking_task_processor_,
+               "consumer_getting_offset",
+               [this, topic, partition, timeout] {
+                   ExtendCurrentSpan();
+
+                   return consumer_->GetOffsetRange(topic, partition, timeout);
+               }
+    ).Get();
+}
+
+std::vector<std::uint32_t> Consumer::GetPartitionIds(
+    utils::zstring_view topic,
+    std::optional<std::chrono::milliseconds> timeout
+) const {
+    return utils::Async(
+               consumer_blocking_task_processor_,
+               "consumer_getting_partition_ids",
+               [this, topic, timeout] {
+                   ExtendCurrentSpan();
+
+                   return consumer_->GetPartitionIds(topic, timeout);
+               }
+    ).Get();
+}
+
+void Consumer::Seek(
+    utils::zstring_view topic,
+    std::uint32_t partition_id,
+    std::uint64_t offset,
+    std::chrono::milliseconds timeout
+) const {
+    UINVARIANT(processing_.load(), "Message processing is not currently started");
+
+    utils::Async(consumer_blocking_task_processor_, "consumer_seek", [this, topic, partition_id, offset, timeout] {
+        ExtendCurrentSpan();
+
+        consumer_->Seek(topic, partition_id, offset, timeout);
+    }).Get();
+}
+
+void Consumer::MultiSeek(utils::span<const SeekParams> params, std::chrono::milliseconds timeout) const {
+    UINVARIANT(processing_.load(), "Message processing is not currently started");
+
+    utils::Async(consumer_blocking_task_processor_, "consumer_multi_seek", [this, params, timeout] {
+        ExtendCurrentSpan();
+
+        consumer_->MultiSeek(params, timeout);
+    }).Get();
+}
+
+void Consumer::SeekToBeginning(utils::zstring_view topic, std::uint32_t partition_id, std::chrono::milliseconds timeout)
+    const {
+    UINVARIANT(processing_.load(), "Message processing is not currently started");
+
+    utils::Async(consumer_blocking_task_processor_, "consumer_seek_to_beginning", [this, topic, partition_id, timeout] {
+        ExtendCurrentSpan();
+
+        consumer_->SeekToBeginning(topic, partition_id, timeout);
+    }).Get();
+}
+
+void Consumer::SeekToEnd(utils::zstring_view topic, std::uint32_t partition_id, std::chrono::milliseconds timeout)
+    const {
+    UINVARIANT(processing_.load(), "Message processing is not currently started");
+
+    utils::Async(consumer_blocking_task_processor_, "consumer_seek_to_end", [this, topic, partition_id, timeout] {
+        ExtendCurrentSpan();
+
+        consumer_->SeekToEnd(topic, partition_id, timeout);
+    }).Get();
+}
+
+void Consumer::SetRebalanceCallback(ConsumerRebalanceCallback rebalance_callback) {
+    UINVARIANT(
+        !processing_.load(),
+        "Message processing is already started. Rebalance callback should be set before Start() call or after Stop() "
+        "call ."
+    );
+
+    rebalance_callback_ = std::move(rebalance_callback);
+}
+
+void Consumer::ResetRebalanceCallback() {
+    UINVARIANT(
+        !processing_.load(),
+        "Message processing is already started. Rebalance callback should be set before Start() call or after Stop() "
+        "call ."
+    );
+
+    rebalance_callback_.reset();
 }
 
 void Consumer::Stop() noexcept {
-  if (processing_.load() && poll_task_.IsValid()) {
-    LOG_INFO() << "Consumer stopping";
-    poll_task_.SyncCancel();
-    LOG_INFO() << "Leaving group. Messages polling stopped";
+    if (processing_.exchange(false) && poll_task_.IsValid()) {
+        LOG_INFO("Stopping consumer poll task");
+        poll_task_.SyncCancel();
 
-    utils::Async(consumer_task_processor_, "consumer_stopping", [this] {
-      ExtendCurrentSpan();
-
-      consumer_->LeaveGroup();
-      TESTPOINT(fmt::format("tp_{}_stopped", component_name_), {});
-    }).Get();
-    processing_.store(false);
-    LOG_INFO() << "Consumer stopped";
-  }
+        LOG_INFO("Stopping consumer");
+        utils::Async(consumer_task_processor_, "consumer_stopping", [this] {
+            // 1. This is blocking.
+            // 2. This calls testpoints
+            consumer_->StopConsuming();
+        }).Get();
+        TESTPOINT(fmt::format("tp_{}_stopped", name_), {});
+        LOG_INFO("Consumer stopped");
+    }
 }
 
-void Consumer::ExtendCurrentSpan() const {
-  tracing::Span::CurrentSpan().AddTag("kafka_consumer", component_name_);
-}
+void Consumer::ExtendCurrentSpan() const { tracing::Span::CurrentSpan().AddTag("kafka_consumer", name_); }
 
 }  // namespace kafka::impl
 

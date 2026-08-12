@@ -4,6 +4,7 @@
 #include <vector>
 
 #include <userver/storages/mongo/collection.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 #include <storages/mongo/pool_impl.hpp>
 
@@ -12,20 +13,20 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::mongo::impl {
 
 class Database {
- public:
-  Database(PoolImplPtr pool, std::string database_name);
+public:
+    Database(PoolImplPtr pool, std::string database_name);
 
-  void DropDatabase();
+    void DropDatabase();
 
-  bool HasCollection(const std::string& collection_name) const;
+    bool HasCollection(utils::zstring_view collection_name) const;
 
-  Collection GetCollection(std::string collection_name) const;
+    Collection GetCollection(std::string collection_name) const;
 
-  std::vector<std::string> ListCollectionNames() const;
+    std::vector<std::string> ListCollectionNames() const;
 
- private:
-  PoolImplPtr pool_;
-  std::string database_name_;
+private:
+    PoolImplPtr pool_;
+    std::string database_name_;
 };
 
 }  // namespace storages::mongo::impl

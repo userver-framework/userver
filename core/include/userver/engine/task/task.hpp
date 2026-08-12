@@ -3,6 +3,8 @@
 /// @file userver/engine/task/task.hpp
 /// @brief @copybrief engine::Task
 
+#include <userver/compiler/impl/lifetime.hpp>
+#include <userver/engine/awaitable.hpp>
 #include <userver/engine/task/task_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -14,51 +16,51 @@ namespace engine {
 /// See engine::TaskWithResult for a type that could return a value or
 /// report an exception from the payload.
 class [[nodiscard]] Task : public TaskBase {
- public:
-  /// @brief Default constructor
-  ///
-  /// Creates an invalid task.
-  Task();
+public:
+    /// @brief Default constructor
+    ///
+    /// Creates an invalid task.
+    Task();
 
-  /// @brief If the task is still valid and is not finished, cancels it and
-  /// waits until it finishes.
-  ~Task();
+    /// @brief If the task is still valid and is not finished, cancels it and
+    /// waits until it finishes.
+    ~Task();
 
-  /// @brief Moves the other task into this, leaving the other in an invalid
-  /// state.
-  Task(Task&& other) noexcept;
+    /// @brief Moves the other task into this, leaving the other in an invalid
+    /// state.
+    Task(Task&& other) noexcept;
 
-  /// @brief If this Task is still valid and is not finished, cancels it and
-  /// waits until it finishes before moving the other. Otherwise just moves the
-  /// other task into this, leaving the other in invalid state.
-  Task& operator=(Task&& other) noexcept;
+    /// @brief If this Task is still valid and is not finished, cancels it and
+    /// waits until it finishes before moving the other. Otherwise just moves the
+    /// other task into this, leaving the other in invalid state.
+    Task& operator=(Task&& other) noexcept;
 
-  Task(const Task&) = delete;
-  Task& operator=(const Task&) = delete;
+    Task(const Task&) = delete;
+    Task& operator=(const Task&) = delete;
 
-  /// @brief Detaches task, allowing it to continue execution out of scope;
-  /// memory safety is much better with concurrent::BackgroundTaskStorage
-  ///
-  /// @note After detach, Task becomes invalid
-  ///
-  /// @warning Variables, which are captured by reference for this task in
-  /// `Async*`, should outlive the task execution. This is hard to achieve in
-  /// general, detached tasks may outlive all the components!
-  /// Use concurrent::BackgroundTaskStorage as a safe and efficient alternative
-  /// to calling Detach().
-  void Detach() &&;
+    /// Satisfies @ref engine::Awaitable, for use with @ref engine::WaitAnyContext and friends.
+    AwaitableToken GetAwaitableToken() noexcept USERVER_IMPL_LIFETIME_BOUND;
 
-  /// @cond
-  // For internal use only.
-  impl::ContextAccessor* TryGetContextAccessor() noexcept;
-  /// @endcond
+protected:
+    /// @cond
+    // For internal use only.
+    explicit Task(impl::TaskContextHolder&& context);
+    /// @endcond
 
- protected:
-  /// @cond
-  // For internal use only.
-  explicit Task(impl::TaskContextHolder&& context);
-  /// @endcond
+private:
+    friend void DetachUnscopedUnsafe(Task&& task);
 };
+
+/// @brief Detaches task, allowing it to continue execution out of scope;
+/// memory safety is much better with concurrent::BackgroundTaskStorage.
+///
+/// @note After detach, Task becomes invalid.
+///
+/// @warning Variables, which are captured by reference for this task in
+/// `Async*`, should outlive the task execution. This is hard to achieve in
+/// general, detached tasks may outlive all the components!
+/// Use concurrent::BackgroundTaskStorage as a safe and efficient alternative.
+void DetachUnscopedUnsafe(Task&& task);
 
 }  // namespace engine
 

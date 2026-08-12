@@ -1,13 +1,15 @@
 #pragma once
 
-/// @file userver/utils/macaddr/macaddr_base.hpp
+/// @file userver/utils/macaddr.hpp
 /// @brief MAC address types
 
 #include <array>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <utility>
 
+#include <userver/compiler/impl/lifetime.hpp>
 #include <userver/utils/encoding/hex.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -19,31 +21,24 @@ namespace utils {
 /// @brief Base class for Macaddr/Macaddr8
 template <std::size_t N>
 class MacaddrBase final {
-  static_assert(N == 6 || N == 8, "Address can only be 6 or 8 bytes size");
+    static_assert(N == 6 || N == 8, "Address can only be 6 or 8 bytes size");
 
- public:
-  using OctetsType = std::array<unsigned char, N>;
+public:
+    using OctetsType = std::array<unsigned char, N>;
 
-  MacaddrBase() = default;
+    MacaddrBase() = default;
 
-  explicit MacaddrBase(const OctetsType& macaddr) noexcept
-      : macaddr_(macaddr) {}
+    explicit MacaddrBase(const OctetsType& macaddr) noexcept : macaddr_(macaddr) {}
 
-  /// @brief Get octets of MAC-address
-  const OctetsType& GetOctets() const noexcept { return macaddr_; }
+    /// @brief Get octets of MAC-address
+    const OctetsType& GetOctets() const noexcept USERVER_IMPL_LIFETIME_BOUND { return macaddr_; }
 
-  friend bool operator==(const MacaddrBase<N>& a,
-                         const MacaddrBase<N>& b) noexcept {
-    return a.GetOctets() == b.GetOctets();
-  }
+    friend bool operator==(const MacaddrBase<N>& a, const MacaddrBase<N>& b) noexcept {
+        return a.GetOctets() == b.GetOctets();
+    }
 
-  friend bool operator!=(const MacaddrBase<N>& a,
-                         const MacaddrBase<N>& b) noexcept {
-    return !(a == b);
-  }
-
- private:
-  OctetsType macaddr_ = {0};
+private:
+    OctetsType macaddr_ = {0};
 };
 
 /// @ingroup userver_containers
@@ -63,10 +58,10 @@ std::string MacaddrToString(Macaddr macaddr);
 std::string Macaddr8ToString(Macaddr8 macaddr);
 
 /// @brief Get 48-bit MAC address from std::string.
-Macaddr MacaddrFromString(const std::string& str);
+Macaddr MacaddrFromString(std::string_view str);
 
 /// @brief Get 64-bit MAC address from std::string.
-Macaddr8 Macaddr8FromString(const std::string& str);
+Macaddr8 Macaddr8FromString(std::string_view str);
 
 }  // namespace utils
 

@@ -10,7 +10,7 @@ Make sure that you can compile and run core tests and read a basic example
 
 This tutorial shows how to create a custom digest authorization checker. In
 the tutorial the authorization data is stored in PostgreSQL database, and
-information of an authorized user (i.e. Authorization header) 
+information of an authorized user (i.e. Authorization header)
 is passed to the HTTP handler.
 
 Authentication credentials checking logic is set in base class `server::handlers::auth::digest::AuthChecker`.
@@ -28,7 +28,7 @@ Let's make a table to store users data:
 
 ### Authorization Checker
 
-To implement an authorization checker derive from 
+To implement an authorization checker derive from
 `server::handlers::auth::digest::AuthChecker` and override the virtual functions:
 
 @snippet samples/digest_auth_service/auth_digest.cpp  auth checker declaration
@@ -64,7 +64,7 @@ authorization configs:
 Each factory should be registered at the beginning of the `main()` function via
 `server::handlers::auth::RegisterAuthCheckerFactory` function call:
 
-@snippet samples/digest_auth_service/digest_auth_service.cpp  auth checker registration
+@snippet samples/digest_auth_service/main.cpp  auth checker registration
 
 ### Static config
 That factory is invoked on each HTTP handler with the matching authorization
@@ -88,7 +88,7 @@ Aside from calling `server::handlers::auth::RegisterAuthCheckerFactory` for
 authorization factory registration, the `main()` function should also
 construct the component list and start the daemon:
 
-@snippet samples/digest_auth_service/digest_auth_service.cpp  main
+@snippet samples/digest_auth_service/main.cpp  main
 
 
 ### Functional testing
@@ -101,7 +101,9 @@ implemented using the testsuite. To do that you have to:
   @ref samples/digest_auth_service/tests/conftest.py
 * Prepare the DB test data
   @ref samples/digest_auth_service/postgresql/data/test_data.sql
-* Write the test:
+* Write the test using the @ref pytest_userver.plugins.service_client.service_client "service_client" fixture, the
+  @ref testsuite.databases.pgsql.pytest_plugin.pgsql "pgsql" fixture and the
+  @ref testsuite.plugins.mocked_time.mocked_time "mocked_time" fixture:
   @snippet samples/digest_auth_service/tests/test_digest.py  Functional test
 
 

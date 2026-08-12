@@ -1,6 +1,6 @@
 #pragma once
 
-/// @file userver/ugrpc/client/middleware/log/component.hpp
+/// @file userver/ugrpc/client/middlewares/log/component.hpp
 /// @brief @copybrief ugrpc::client::middlewares::log::Component
 
 #include <userver/ugrpc/client/middlewares/base.hpp>
@@ -8,40 +8,66 @@
 USERVER_NAMESPACE_BEGIN
 
 /// Client logging middleware
+/// @see @ref scripts/docs/en/userver/grpc/client_middlewares.md
+/// @see @ref ugrpc::client::middlewares::log::Component
 namespace ugrpc::client::middlewares::log {
-
-// clang-format off
 
 /// @ingroup userver_components
 ///
 /// @brief Component for gRPC client logging
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// log-level | log level for msg logging | debug
-/// msg-size-log-limit | max message size to log, the rest will be truncated | 512
+/// `google::protobuf::Message` fields with the option `[debug_redact = true]` are logged as `[REDACTED]` string
+/// to avoid print secrets in logs. `debug_redact` is available in protobuf version >= 22.
+///
+/// @warning Before Protobuf v35 (which contains the `TextFormat` early-termination fix
+/// https://github.com/protocolbuffers/protobuf/pull/26237), each logged message is serialized in full regardless of
+/// the `msg-size-log-limit` option, and only then the result is truncated. For large messages this may consume a
+/// significant amount of CPU. If this becomes a problem, disable this middleware,
+/// see @ref scripts/docs/en/userver/grpc/middlewares_toggle.md
+///
+/// @warning Logs are currently written with log level `debug` by default, which typically means that they are not
+/// written in production. See details below.
+///
+/// ## Static options of ugrpc::client::middlewares::log::Component:
+/// @include{doc} scripts/docs/en/components_schema/grpc/src/ugrpc/client/middlewares/log/component.md
+///
+/// Options inherited from @ref middlewares::MiddlewareFactoryComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/middlewares/factory_component_base.md
+///
+/// ## Static configuration example:
+///
+/// @snippet grpc/functional_tests/basic_chaos/static_config.yaml Sample grpc client logging middleware component config
+///
+/// In this example, we enable logs for gRPC clients in production.
+///
+/// @see @ref scripts/docs/en/userver/grpc/client_middlewares.md
+class Component final : public MiddlewareFactoryComponentBase {
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of @ref ugrpc::client::middlewares::log::Component.
+    static constexpr std::string_view kName = "grpc-client-logging";
 
-// clang-format on
+    Component(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-class Component final : public MiddlewareComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of ugrpc::client::middlewares::log::Component
-  static constexpr std::string_view kName = "grpc-client-logging";
+    ~Component() override;
 
-  Component(const components::ComponentConfig& config,
-            const components::ComponentContext& context);
+    static yaml_config::Schema GetStaticConfigSchema();
 
-  std::shared_ptr<const MiddlewareFactoryBase> GetMiddlewareFactory() override;
+    yaml_config::Schema GetMiddlewareConfigSchema() const override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
-
- private:
-  std::size_t max_size_;
-  logging::Level log_level_;
+    std::shared_ptr<const MiddlewareBase> CreateMiddleware(
+        const ugrpc::client::ClientInfo&,
+        const yaml_config::YamlConfig& middleware_config
+    ) const override;
 };
 
 }  // namespace ugrpc::client::middlewares::log
+
+template <>
+inline constexpr bool components::kHasValidate<ugrpc::client::middlewares::log::Component> = true;
+
+template <>
+inline constexpr auto
+    components::kConfigFileMode<ugrpc::client::middlewares::log::Component> = ConfigFileMode::kNotRequired;
 
 USERVER_NAMESPACE_END

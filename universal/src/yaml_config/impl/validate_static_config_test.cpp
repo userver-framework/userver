@@ -1,6 +1,7 @@
 #include <userver/yaml_config/impl/validate_static_config.hpp>
 
 #include <userver/formats/yaml/serialize.hpp>
+#include <userver/formats/yaml/value_builder.hpp>
 #include <userver/yaml_config/schema.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
@@ -11,45 +12,49 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 void Validate(const std::string& static_config, const std::string& schema) {
-  yaml_config::impl::Validate(
-      yaml_config::YamlConfig(formats::yaml::FromString(static_config), {}),
-      yaml_config::impl::SchemaFromString(schema));
+    yaml_config::impl::Validate(
+        yaml_config::YamlConfig(formats::yaml::FromString(static_config), {}),
+        yaml_config::impl::SchemaFromString(schema)
+    );
 }
 
 }  // namespace
 
 TEST(StaticConfigValidator, IncorrectSchemaField) {
-  const std::string kSchema = R"(
+    const std::string schema = R"(
 type: integer
 description: with incorrect field name
 incorrect_filed_name:
 )";
 
-  UEXPECT_THROW_MSG(
-      formats::yaml::FromString(kSchema).As<yaml_config::Schema>(),
-      std::runtime_error,
-      "Schema field name must be one of ['type', 'description', "
-      "'defaultDescription', 'additionalProperties', 'properties', 'items', "
-      "'enum', 'minimum', 'maximum'], but 'incorrect_filed_name' was given. "
-      "Schema path: '/'");
+    UEXPECT_THROW_MSG(
+        formats::yaml::FromString(schema).As<yaml_config::Schema>(),
+        std::runtime_error,
+        "Schema field name must be one of ['type', 'description', 'default', "
+        "'defaultDescription', 'additionalProperties', 'properties', 'items', "
+        "'enum', 'minimum', 'maximum', 'minItems', 'maxItems', 'required'], but "
+        "'incorrect_filed_name' was given. "
+        "Schema path: '/'"
+    );
 }
 
 TEST(StaticConfigValidator, AdditionalPropertiesAbsent) {
-  const std::string kSchema = R"(
+    const std::string schema = R"(
 type: object
 description: object without additionalProperties
 properties: {}
 )";
 
-  UEXPECT_THROW_MSG(
-      formats::yaml::FromString(kSchema).As<yaml_config::Schema>(),
-      std::runtime_error,
-      "Schema field '/' of type 'object' must have field "
-      "'additionalProperties'");
+    UEXPECT_THROW_MSG(
+        formats::yaml::FromString(schema).As<yaml_config::Schema>(),
+        std::runtime_error,
+        "Schema field '/' of type 'object' must have field "
+        "'additionalProperties'"
+    );
 }
 
 TEST(StaticConfigValidator, AdditionalProperties) {
-  const std::string kSchema = R"(
+    const std::string schema = R"(
 type: object
 description: object with integer additionalProperties
 additionalProperties:
@@ -60,7 +65,7 @@ properties:
         type: string
         description: declared property
 )";
-  const std::string kStaticConfig = R"(
+    const std::string static_config = R"(
 a: 1
 declared: abc
 b: 2
@@ -68,56 +73,60 @@ c: abc
 d: 3
 )";
 
-  UEXPECT_THROW_MSG(
-      Validate(kStaticConfig, kSchema), std::runtime_error,
-      "Error while validating static config against schema. Value "
-      "'abc' of field 'c' must be integer");
+    UEXPECT_THROW_MSG(
+        Validate(static_config, schema),
+        std::runtime_error,
+        "Error while validating static config against schema. Value "
+        "'abc' of field 'c' must be integer"
+    );
 }
 
 TEST(StaticConfigValidator, AdditionalPropertiesTrue) {
-  const std::string kSchema = R"(
+    const std::string schema = R"(
 type: object
 description: object with additionalProperties set to 'true'
 additionalProperties: true
 properties: {}
 )";
 
-  const std::string kStaticConfig = R"(
+    const std::string static_config = R"(
 a: 42
 b: [1, 2, 3]
 c:
     d: abc
 )";
-  UEXPECT_NO_THROW(Validate(kStaticConfig, kSchema));
+    UEXPECT_NO_THROW(Validate(static_config, schema));
 }
 
 TEST(StaticConfigValidator, PropertiesAbsent) {
-  const std::string kSchema = R"(
+    const std::string schema = R"(
 type: object
 description: object without properties
 additionalProperties: false
 )";
 
-  UEXPECT_THROW_MSG(
-      formats::yaml::FromString(kSchema).As<yaml_config::Schema>(),
-      std::runtime_error,
-      "Schema field '/' of type 'object' must have field 'properties'");
+    UEXPECT_THROW_MSG(
+        formats::yaml::FromString(schema).As<yaml_config::Schema>(),
+        std::runtime_error,
+        "Schema field '/' of type 'object' must have field 'properties'"
+    );
 }
 
 TEST(StaticConfigValidator, ItemsAbsent) {
-  const std::string kSchema = R"(
+    const std::string schema = R"(
 type: array
 description: array without items
 )";
 
-  UEXPECT_THROW_MSG(
-      formats::yaml::FromString(kSchema).As<yaml_config::Schema>(),
-      std::runtime_error,
-      "Schema field '/' of type 'array' must have field 'items'");
+    UEXPECT_THROW_MSG(
+        formats::yaml::FromString(schema).As<yaml_config::Schema>(),
+        std::runtime_error,
+        "Schema field '/' of type 'array' must have field 'items'"
+    );
 }
 
 TEST(StaticConfigValidator, ItemsOutOfArray) {
-  const std::string kSchema = R"(
+    const std::string schema = R"(
 type: string
 description: string with items
 items:
@@ -125,61 +134,64 @@ items:
     description: element description
 )";
 
-  UEXPECT_THROW_MSG(
-      formats::yaml::FromString(kSchema).As<yaml_config::Schema>(),
-      std::runtime_error,
-      "Schema field '/' of type 'string' can not have field "
-      "'items', because its type is not 'array'");
+    UEXPECT_THROW_MSG(
+        formats::yaml::FromString(schema).As<yaml_config::Schema>(),
+        std::runtime_error,
+        "Schema field '/' of type 'string' can not have field "
+        "'items', because its type is not 'array'"
+    );
 }
 
 TEST(StaticConfigValidator, PropertiesOutOfObject) {
-  const std::string kSchema = R"(
+    const std::string schema = R"(
 type: integer
 description: integer with properties
 properties: {}
 )";
 
-  UEXPECT_THROW_MSG(
-      formats::yaml::FromString(kSchema).As<yaml_config::Schema>(),
-      std::runtime_error,
-      "Schema field '/' of type 'integer' can not have field "
-      "'properties', because its type is not 'object'");
+    UEXPECT_THROW_MSG(
+        formats::yaml::FromString(schema).As<yaml_config::Schema>(),
+        std::runtime_error,
+        "Schema field '/' of type 'integer' can not have field "
+        "'properties', because its type is not 'object'"
+    );
 }
 
 TEST(StaticConfigValidator, AdditionalPropertiesOutOfObject) {
-  const std::string kSchema = R"(
+    const std::string schema = R"(
 type: integer
 description: integer with additionalProperties
 additionalProperties: false
 )";
 
-  UEXPECT_THROW_MSG(
-      formats::yaml::FromString(kSchema).As<yaml_config::Schema>(),
-      std::runtime_error,
-      "Schema field '/' of type 'integer' can not have field "
-      "'additionalProperties', because its type is not 'object'");
+    UEXPECT_THROW_MSG(
+        formats::yaml::FromString(schema).As<yaml_config::Schema>(),
+        std::runtime_error,
+        "Schema field '/' of type 'integer' can not have field "
+        "'additionalProperties', because its type is not 'object'"
+    );
 }
 
 TEST(StaticConfigValidator, Integer) {
-  const std::string kStaticConfig = R"(
+    const std::string static_config = R"(
 42
 )";
-  const std::string kSchema = R"(
+    const std::string schema = R"(
 type: integer
 description: answer to the ultimate question
 )";
-  UEXPECT_NO_THROW(Validate(kStaticConfig, kSchema));
+    UEXPECT_NO_THROW(Validate(static_config, schema));
 }
 
 TEST(StaticConfigValidator, RecursiveFailed) {
-  const std::string kStaticConfig = R"(
+    const std::string static_config = R"(
 listener:
     port: 0
     connection:
         in_buffer_size: abc # must be integer
 )";
 
-  const std::string kSchema = R"(
+    const std::string schema = R"(
 type: object
 description: server description
 additionalProperties: false
@@ -202,18 +214,20 @@ properties:
                         description: in_buffer_size description
 )";
 
-  UEXPECT_THROW_MSG(
-      Validate(kStaticConfig, kSchema), std::runtime_error,
-      "Error while validating static config against schema. Value 'abc' "
-      "of field 'listener.connection.in_buffer_size' must be "
-      "integer");
+    UEXPECT_THROW_MSG(
+        Validate(static_config, schema),
+        std::runtime_error,
+        "Error while validating static config against schema. Value 'abc' "
+        "of field 'listener.connection.in_buffer_size' must be "
+        "integer"
+    );
 }
 
 TEST(StaticConfigValidator, SimpleArrayFailed) {
-  const std::string kStaticConfig = R"(
+    const std::string static_config = R"(
 arr: [2, 4, 6, abc]
 )";
-  const std::string kSchema = R"(
+    const std::string schema = R"(
 type: object
 description: simple array
 additionalProperties: false
@@ -225,14 +239,16 @@ properties:
             type: integer
             description: element of array
 )";
-  UEXPECT_THROW_MSG(
-      Validate(kStaticConfig, kSchema), std::runtime_error,
-      "Error while validating static config against schema. Value 'abc' "
-      "of field 'arr[3]' must be integer");
+    UEXPECT_THROW_MSG(
+        Validate(static_config, schema),
+        std::runtime_error,
+        "Error while validating static config against schema. Value 'abc' "
+        "of field 'arr[3]' must be integer"
+    );
 }
 
 TEST(StaticConfigValidator, ArrayFailed) {
-  const std::string kStaticConfig = R"(
+    const std::string static_config = R"(
 arr:
   - key: a
     value: 1
@@ -240,7 +256,7 @@ arr:
     value: 1
     not_declared_option:
 )";
-  const std::string kSchema = R"(
+    const std::string schema = R"(
 type: object
 description: array description
 additionalProperties: false
@@ -260,15 +276,94 @@ properties:
                     type: integer
                     description: value description
 )";
-  UEXPECT_THROW_MSG(
-      Validate(kStaticConfig, kSchema), std::runtime_error,
-      "Error while validating static config against schema. Field "
-      "'arr[1].not_declared_option' is not declared in schema "
-      "'properties.arr.items'");
+    UEXPECT_THROW_MSG(
+        Validate(static_config, schema),
+        std::runtime_error,
+        "Error while validating static config against schema. Field "
+        "'arr[1].not_declared_option' is not declared in schema "
+        "'properties.arr.items'"
+    );
+}
+
+TEST(StaticConfigValidator, MinArrayLenFailed) {
+    const std::string static_config = R"(
+arr: [1]
+)";
+
+    const std::string schema = R"(
+type: object
+description: simple array
+additionalProperties: false
+properties:
+    arr:
+        type: array
+        description: integer array
+        minItems: 2
+        items:
+            type: integer
+            description: element of array
+)";
+
+    UEXPECT_THROW_MSG(
+        Validate(static_config, schema),
+        std::runtime_error,
+        "Error while validating static config against schema. "
+        "Expected length of array at path 'arr' to be >= 2 (actual: 1)."
+    );
+}
+
+TEST(StaticConfigValidator, MaxArrayLenFailed) {
+    const std::string static_config = R"(
+arr: [1, 2, 3]
+)";
+
+    const std::string schema = R"(
+type: object
+description: simple array
+additionalProperties: false
+properties:
+    arr:
+        type: array
+        description: integer array
+        maxItems: 2
+        items:
+            type: integer
+            description: element of array
+)";
+
+    UEXPECT_THROW_MSG(
+        Validate(static_config, schema),
+        std::runtime_error,
+        "Error while validating static config against schema. "
+        "Expected length of array at path 'arr' to be <= 2 (actual: 3)."
+    );
+}
+
+TEST(StaticConfigValidator, ArrayLenPassed) {
+    const std::string static_config = R"(
+arr: [1, 2, 3]
+)";
+
+    const std::string schema = R"(
+type: object
+description: simple array
+additionalProperties: false
+properties:
+    arr:
+        type: array
+        description: integer array
+        minItems: 1
+        maxItems: 3
+        items:
+            type: integer
+            description: element of array
+)";
+
+    UEXPECT_NO_THROW(Validate(static_config, schema));
 }
 
 TEST(StaticConfigValidator, Recursive) {
-  const std::string kStaticConfig = R"(
+    const std::string static_config = R"(
 huge-object:
     big-object:
         key: a
@@ -281,7 +376,7 @@ huge-object:
               - key: b
                 value: 2
 )";
-  const std::string kSchema = R"(
+    const std::string schema = R"(
 type: object
 description: recursive description
 additionalProperties: false
@@ -328,27 +423,58 @@ properties:
                                             type: integer
                                             description: value description
 )";
-  UEXPECT_NO_THROW(Validate(kStaticConfig, kSchema));
+    UEXPECT_NO_THROW(Validate(static_config, schema));
+}
+
+TEST(StaticConfigValidator, ArrayWithEnvPassed) {
+    const std::string static_config = R"(
+component:
+  values:
+    - value#env: ENV_VALUE
+)";
+
+    const std::string schema = R"(
+type: object
+description: test component with nested array
+additionalProperties: false
+properties:
+    values:
+      type: array
+      description: values
+      items:
+        type: object
+        additionalProperties: false
+        properties:
+          value:
+            type: string
+            description: value
+)";
+
+    UEXPECT_THROW(Validate(static_config, schema), formats::yaml::MemberMissingException);
+
+    // NOLINTNEXTLINE(concurrency-mt-unsafe)
+    ::setenv("ENV_VALUE", "100", 1);
+    UEXPECT_THROW(Validate(static_config, schema), formats::yaml::MemberMissingException);
 }
 
 TEST(StaticConfigValidator, Enum) {
-  const std::string kCorrectStaticConfig = R"(
+    const std::string correct_static_config = R"(
 mode: on
 )";
 
-  const std::string kMissingEnumStaticConfig = R"(
+    const std::string missing_enum_static_config = R"(
 mode:
 )";
 
-  const std::string kIncorrectEnumValueStaticConfig = R"(
+    const std::string incorrect_enum_value_static_config = R"(
 mode: not declared enum value
 )";
 
-  const std::string kIncorrectTypeStaticConfig = R"(
+    const std::string incorrect_type_static_config = R"(
 mode: []
 )";
 
-  const std::string kSchema = R"(
+    const std::string schema = R"(
 type: object
 description: for enum test
 additionalProperties: false
@@ -361,61 +487,205 @@ properties:
           - off
 )";
 
-  UEXPECT_NO_THROW(Validate(kCorrectStaticConfig, kSchema));
+    UEXPECT_NO_THROW(Validate(correct_static_config, schema));
 
-  UEXPECT_NO_THROW(Validate(kMissingEnumStaticConfig, kSchema));
+    UEXPECT_NO_THROW(Validate(missing_enum_static_config, schema));
 
-  UEXPECT_THROW_MSG(Validate(kIncorrectEnumValueStaticConfig, kSchema),
-                    std::runtime_error,
-                    "Error while validating static config against schema. Enum "
-                    "field 'not declared enum value' must be one of [off, on]");
+    UEXPECT_THROW_MSG(
+        Validate(incorrect_enum_value_static_config, schema),
+        std::runtime_error,
+        "Error while validating static config against schema. Enum "
+        "field 'not declared enum value' must be one of [off, on]"
+    );
 
-  UEXPECT_THROW_MSG(Validate(kIncorrectTypeStaticConfig, kSchema),
-                    std::runtime_error,
-                    "Error while validating static config against schema. "
-                    "Value '[]' of field 'mode' must be string");
+    UEXPECT_THROW_MSG(
+        Validate(incorrect_type_static_config, schema),
+        std::runtime_error,
+        "Error while validating static config against schema. "
+        "Value '[]' of field 'mode' must be string"
+    );
 }
 
 TEST(StaticConfigValidator, IntegerBounds) {
-  const std::string kSchema = R"(
+    const std::string schema = R"(
 type: integer
 description: .
 minimum: 10
 maximum: 20
 )";
 
-  UEXPECT_NO_THROW(Validate("10", kSchema));
-  UEXPECT_NO_THROW(Validate("15", kSchema));
-  UEXPECT_NO_THROW(Validate("20", kSchema));
-  UEXPECT_THROW_MSG(Validate("9", kSchema), std::runtime_error,
-                    "Expected integer at path '/' to be >= 10 (actual: 9)");
-  UEXPECT_THROW_MSG(Validate("21", kSchema), std::runtime_error,
-                    "Expected integer at path '/' to be <= 20 (actual: 21)");
-  UEXPECT_THROW_MSG(Validate("15.5", kSchema), std::runtime_error,
-                    "Value '15.5' of field '/' must be integer");
-  UEXPECT_THROW_MSG(Validate("What", kSchema), std::runtime_error,
-                    "Value 'What' of field '/' must be integer");
+    UEXPECT_NO_THROW(Validate("10", schema));
+    UEXPECT_NO_THROW(Validate("15", schema));
+    UEXPECT_NO_THROW(Validate("20", schema));
+    UEXPECT_THROW_MSG(
+        Validate("9", schema),
+        std::runtime_error,
+        "Expected integer at path '/' to be >= 10 (actual: 9)"
+    );
+    UEXPECT_THROW_MSG(
+        Validate("21", schema),
+        std::runtime_error,
+        "Expected integer at path '/' to be <= 20 (actual: 21)"
+    );
+    UEXPECT_THROW_MSG(Validate("15.5", schema), std::runtime_error, "Value '15.5' of field '/' must be integer");
+    UEXPECT_THROW_MSG(Validate("What", schema), std::runtime_error, "Value 'What' of field '/' must be integer");
 }
 
 TEST(StaticConfigValidatorBounds, NumberBounds) {
-  const std::string kSchema = R"(
+    const std::string schema = R"(
 type: number
 description: .
 minimum: 10.5
 maximum: 19.5
 )";
 
-  UEXPECT_NO_THROW(Validate("15", kSchema));
-  UEXPECT_NO_THROW(Validate("10.5", kSchema));
-  UEXPECT_NO_THROW(Validate("10.6", kSchema));
-  UEXPECT_NO_THROW(Validate("19.4", kSchema));
-  UEXPECT_NO_THROW(Validate("19.5", kSchema));
-  UEXPECT_THROW_MSG(Validate("10.4", kSchema), std::runtime_error,
-                    "Expected number at path '/' to be >= 10.5 (actual: 10.4)");
-  UEXPECT_THROW_MSG(Validate("19.6", kSchema), std::runtime_error,
-                    "Expected number at path '/' to be <= 19.5 (actual: 19.6)");
-  UEXPECT_THROW_MSG(Validate("What", kSchema), std::runtime_error,
-                    "Value 'What' of field '/' must be number");
+    UEXPECT_NO_THROW(Validate("15", schema));
+    UEXPECT_NO_THROW(Validate("10.5", schema));
+    UEXPECT_NO_THROW(Validate("10.6", schema));
+    UEXPECT_NO_THROW(Validate("19.4", schema));
+    UEXPECT_NO_THROW(Validate("19.5", schema));
+    UEXPECT_THROW_MSG(
+        Validate("10.4", schema),
+        std::runtime_error,
+        "Expected number at path '/' to be >= 10.5 (actual: 10.4)"
+    );
+    UEXPECT_THROW_MSG(
+        Validate("19.6", schema),
+        std::runtime_error,
+        "Expected number at path '/' to be <= 19.5 (actual: 19.6)"
+    );
+    UEXPECT_THROW_MSG(Validate("What", schema), std::runtime_error, "Value 'What' of field '/' must be number");
+}
+
+const std::string kRequiredFooSchema = R"(
+type: object
+description: object with required field
+additionalProperties: false
+properties:
+    foo:
+        type: string
+        description: required string
+required:
+  - foo
+)";
+
+TEST(StaticConfigValidator, RequiredField) {
+    const auto& schema = kRequiredFooSchema;
+
+    // present — no throw
+    UEXPECT_NO_THROW(Validate("foo: bar\n", schema));
+
+    // missing (empty object) — throws
+    UEXPECT_THROW_MSG(
+        Validate("{}\n", schema),
+        std::runtime_error,
+        "Error while validating static config against schema. Required field 'foo' is missing"
+    );
+
+    // null is treated as present — no throw
+    UEXPECT_NO_THROW(Validate("foo:\n", schema));
+}
+
+TEST(StaticConfigValidator, RequiredMultipleFields) {
+    const std::string schema = R"(
+type: object
+description: object with multiple required fields
+additionalProperties: false
+properties:
+    foo:
+        type: string
+        description: foo
+    bar:
+        type: integer
+        description: bar
+    baz:
+        type: string
+        description: optional baz
+required:
+  - foo
+  - bar
+)";
+    // both required present
+    UEXPECT_NO_THROW(Validate("foo: a\nbar: 1\n", schema));
+
+    // one required missing
+    UEXPECT_THROW_MSG(
+        Validate("foo: a\n", schema),
+        std::runtime_error,
+        "Error while validating static config against schema. Required field 'bar' is missing"
+    );
+}
+
+TEST(StaticConfigValidator, RequiredFieldNotInProperties) {
+    const std::string schema = R"(
+type: object
+description: schema with required name not in properties
+additionalProperties: false
+properties:
+    foo:
+        type: string
+        description: foo
+required:
+  - not_declared
+)";
+    UEXPECT_THROW_MSG(
+        formats::yaml::FromString(schema).As<yaml_config::Schema>(),
+        std::runtime_error,
+        "Schema field '/': 'required' contains 'not_declared' which is not declared in 'properties'"
+    );
+}
+
+TEST(StaticConfigValidator, RequiredOnNonObject) {
+    const std::string schema = R"(
+type: integer
+description: integer with required
+required:
+  - foo
+)";
+    UEXPECT_THROW_MSG(
+        formats::yaml::FromString(schema).As<yaml_config::Schema>(),
+        std::runtime_error,
+        "Schema field '/' of type 'integer' can not have field 'required', because its type is not 'object'"
+    );
+}
+
+TEST(StaticConfigValidator, RequiredFieldNestedObject) {
+    const std::string schema = R"(
+type: object
+description: outer
+additionalProperties: false
+properties:
+    inner:
+        type: object
+        description: inner
+        additionalProperties: false
+        properties:
+            field:
+                type: string
+                description: required nested field
+        required:
+          - field
+)";
+    // nested required field present
+    UEXPECT_NO_THROW(Validate("inner:\n  field: hello\n", schema));
+
+    // nested required field missing
+    UEXPECT_THROW_MSG(
+        Validate("inner: {}\n", schema),
+        std::runtime_error,
+        "Error while validating static config against schema. Required field 'inner.field' is missing"
+    );
+}
+
+TEST(StaticConfigValidator, RequiredSchemaSerializeRoundtrip) {
+    const auto schema = formats::yaml::FromString(kRequiredFooSchema).As<yaml_config::Schema>();
+    ASSERT_TRUE(schema.required.has_value());
+    EXPECT_EQ(*schema.required, (std::unordered_set<std::string>{"foo"}));
+
+    // Serialize and re-parse
+    const auto serialized = formats::yaml::ValueBuilder(schema).ExtractValue();
+    const auto reparsed = serialized.As<yaml_config::Schema>();
+    EXPECT_EQ(schema, reparsed);
 }
 
 USERVER_NAMESPACE_END

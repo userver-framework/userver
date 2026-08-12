@@ -4,105 +4,108 @@
 /// @brief @copybrief utils::FixedArray
 
 #include <cstddef>
+#include <iterator>
 #include <memory>  // std::allocator
 #include <type_traits>
 #include <utility>
 
+#include <userver/compiler/impl/lifetime.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
-namespace impl {
-
-struct GenerateTag final {
-  explicit GenerateTag() = default;
-};
-
-}  // namespace impl
-
 /// @ingroup userver_universal userver_containers
 ///
 /// @brief A fixed-size array with the size determined at runtime.
 ///
-/// The array also allows initializing each of the array elements with the same
-/// parameters:
+/// The array allows initializing each of the array elements with the same parameters:
 /// @snippet src/utils/fixed_array_test.cpp  Sample FixedArray
+///
+/// The array also allows initializing each of the array elements with the output of a generator function:
+/// @snippet src/utils/fixed_array_test.cpp  Sample GenerateFixedArray
 template <class T>
 class FixedArray final {
- public:
-  using iterator = T*;
-  using const_iterator = const T*;
+public:
+    using iterator = T*;
+    using const_iterator = const T*;
 
-  /// Make an empty array
-  FixedArray() = default;
+    /// Make an empty array
+    FixedArray() = default;
 
-  /// Make an array and initialize each element with "args"
-  template <class... Args>
-  explicit FixedArray(std::size_t size, Args&&... args);
+    /// Make an array and initialize each element with "args"
+    template <class... Args>
+    explicit FixedArray(std::size_t size, Args&&... args);
 
-  FixedArray(FixedArray&& other) noexcept;
-  FixedArray& operator=(FixedArray&& other) noexcept;
+    /// Make an array by copying elements from a forward iterator range [first, last).
+    template <std::forward_iterator ForwardIterator>
+    FixedArray(ForwardIterator first, ForwardIterator last);
 
-  FixedArray(const FixedArray&) = delete;
-  FixedArray& operator=(const FixedArray&) = delete;
+    FixedArray(FixedArray&& other) noexcept;
+    FixedArray& operator=(FixedArray&& other) noexcept;
 
-  ~FixedArray();
+    FixedArray(const FixedArray&) = delete;
+    FixedArray& operator=(const FixedArray&) = delete;
 
-  std::size_t size() const noexcept { return size_; }
-  bool empty() const noexcept { return size_ == 0; }
+    ~FixedArray();
 
-  const T& operator[](std::size_t i) const noexcept {
-    UASSERT(i < size_);
-    return data()[i];
-  }
+    std::size_t size() const noexcept { return size_; }
+    bool empty() const noexcept { return size_ == 0; }
 
-  T& operator[](std::size_t i) noexcept {
-    UASSERT(i < size_);
-    return data()[i];
-  }
+    const T& operator[](std::size_t i) const noexcept USERVER_IMPL_LIFETIME_BOUND {
+        UASSERT(i < size_);
+        return data()[i];
+    }
 
-  T& front() noexcept { return *NonEmptyData(); }
-  const T& front() const noexcept { return *NonEmptyData(); }
+    T& operator[](std::size_t i) noexcept USERVER_IMPL_LIFETIME_BOUND {
+        UASSERT(i < size_);
+        return data()[i];
+    }
 
-  T& back() noexcept { return *(NonEmptyData() + size_ - 1); }
-  const T& back() const noexcept { return *(NonEmptyData() + size_ - 1); }
+    T& front() noexcept USERVER_IMPL_LIFETIME_BOUND { return *NonEmptyData(); }
+    const T& front() const noexcept USERVER_IMPL_LIFETIME_BOUND { return *NonEmptyData(); }
 
-  T* data() noexcept { return storage_; }
-  const T* data() const noexcept { return storage_; }
+    T& back() noexcept USERVER_IMPL_LIFETIME_BOUND { return *(NonEmptyData() + size_ - 1); }
+    const T& back() const noexcept USERVER_IMPL_LIFETIME_BOUND { return *(NonEmptyData() + size_ - 1); }
 
-  T* begin() noexcept { return data(); }
-  T* end() noexcept { return data() + size_; }
-  const T* begin() const noexcept { return data(); }
-  const T* end() const noexcept { return data() + size_; }
-  const T* cbegin() const noexcept { return data(); }
-  const T* cend() const noexcept { return data() + size_; }
+    T* data() noexcept USERVER_IMPL_LIFETIME_BOUND { return storage_; }
+    const T* data() const noexcept USERVER_IMPL_LIFETIME_BOUND { return storage_; }
 
-  /// @cond
-  template <class GeneratorFunc>
-  FixedArray(impl::GenerateTag tag, std::size_t size,
-             GeneratorFunc&& generator);
-  /// @endcond
+    T* begin() noexcept USERVER_IMPL_LIFETIME_BOUND { return data(); }
+    T* end() noexcept USERVER_IMPL_LIFETIME_BOUND { return data() + size_; }
+    const T* begin() const noexcept USERVER_IMPL_LIFETIME_BOUND { return data(); }
+    const T* end() const noexcept USERVER_IMPL_LIFETIME_BOUND { return data() + size_; }
+    const T* cbegin() const noexcept USERVER_IMPL_LIFETIME_BOUND { return data(); }
+    const T* cend() const noexcept USERVER_IMPL_LIFETIME_BOUND { return data() + size_; }
 
- private:
-  T* NonEmptyData() noexcept {
-    UASSERT(size_);
-    return data();
-  }
+    /// @cond
+    template <class GeneratorFunc>
+    FixedArray(impl::InternalTag tag, std::size_t size, GeneratorFunc&& generator);
+    /// @endcond
 
-  const T* NonEmptyData() const noexcept {
-    UASSERT(size_);
-    return data();
-  }
+private:
+    T* NonEmptyData() noexcept {
+        UASSERT(size_);
+        return data();
+    }
 
-  T* storage_{nullptr};
-  std::size_t size_{0};
+    const T* NonEmptyData() const noexcept {
+        UASSERT(size_);
+        return data();
+    }
+
+    T* storage_{nullptr};
+    std::size_t size_{0};
 };
 
 /// @brief Applies @p generator to indices in the range `[0, size)`, storing the
-/// results in a new utils::FixedArray. The generator is guaranteed to be
-/// invoked in the first-to-last order.
+/// results in a new utils::FixedArray. The generator is guaranteed to be invoked in the first-to-last order.
+///
+/// Usage example:
+/// @snippet src/utils/fixed_array_test.cpp  Sample GenerateFixedArray
+///
 /// @param size How many objects to generate
 /// @param generator A functor that takes an index and returns an object for the
 /// `FixedArray`
@@ -112,71 +115,86 @@ auto GenerateFixedArray(std::size_t size, GeneratorFunc&& generator);
 
 template <class T>
 template <class... Args>
-FixedArray<T>::FixedArray(std::size_t size, Args&&... args) : size_(size) {
-  if (size_ == 0) return;
-  storage_ = std::allocator<T>{}.allocate(size_);
-
-  auto* begin = data();
-  try {
-    for (auto* end = begin + size - 1; begin != end; ++begin) {
-      new (begin) T(args...);
+FixedArray<T>::FixedArray(std::size_t size, Args&&... args)
+    : size_(size)
+{
+    if (size_ == 0) {
+        return;
     }
-    new (begin) T(std::forward<Args>(args)...);
-  } catch (...) {
-    std::destroy(data(), begin);
-    std::allocator<T>{}.deallocate(storage_, size);
-    throw;
-  }
+    storage_ = std::allocator<T>{}.allocate(size_);
+
+    auto* begin = data();
+    try {
+        for (auto* end = begin + size - 1; begin != end; ++begin) {
+            new (begin) T(args...);
+        }
+        new (begin) T(std::forward<Args>(args)...);
+    } catch (...) {
+        std::destroy(data(), begin);
+        std::allocator<T>{}.deallocate(storage_, size);
+        throw;
+    }
 }
 
 template <class T>
+template <std::forward_iterator ForwardIterator>
+FixedArray<T>::FixedArray(ForwardIterator first, ForwardIterator last)
+    : FixedArray(
+          impl::InternalTag{},
+          static_cast<std::size_t>(std::distance(first, last)),
+          [it = first](std::size_t) mutable -> decltype(*first) { return *it++; }
+      )
+{}
+
+template <class T>
 template <class GeneratorFunc>
-FixedArray<T>::FixedArray(impl::GenerateTag /*tag*/, std::size_t size,
-                          GeneratorFunc&& generator)
-    : size_(size) {
-  if (size_ == 0) return;
-  storage_ = std::allocator<T>{}.allocate(size_);
-
-  auto* our_begin = begin();
-  auto* const our_end = end();
-  std::size_t index = 0;
-
-  try {
-    for (; our_begin != our_end; ++our_begin) {
-      new (our_begin) T(generator(index));
-      ++index;
+// Accepting `generator` by forwarding reference to be able to be called with both prvalue and non-const references.
+// NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
+FixedArray<T>::FixedArray(impl::InternalTag /*tag*/, std::size_t size, GeneratorFunc&& generator)
+    : size_(size)
+{
+    if (size_ == 0) {
+        return;
     }
-  } catch (...) {
-    std::destroy(begin(), our_begin);
-    std::allocator<T>{}.deallocate(storage_, size_);
-    throw;
-  }
+    storage_ = std::allocator<T>{}.allocate(size_);
+
+    auto* our_begin = begin();
+    auto* const our_end = end();
+    std::size_t index = 0;
+
+    try {
+        for (; our_begin != our_end; ++our_begin) {
+            new (our_begin) T(generator(index));
+            ++index;
+        }
+    } catch (...) {
+        std::destroy(begin(), our_begin);
+        std::allocator<T>{}.deallocate(storage_, size_);
+        throw;
+    }
 }
 
 template <class T>
 FixedArray<T>::FixedArray(FixedArray&& other) noexcept
-    : storage_(std::exchange(other.storage_, nullptr)),
-      size_(std::exchange(other.size_, 0)) {}
+    : storage_(std::exchange(other.storage_, nullptr)), size_(std::exchange(other.size_, 0)) {}
 
 template <class T>
 FixedArray<T>& FixedArray<T>::operator=(FixedArray&& other) noexcept {
-  std::swap(storage_, other.storage_);
-  std::swap(size_, other.size_);
-  return *this;
+    std::swap(storage_, other.storage_);
+    std::swap(size_, other.size_);
+    return *this;
 }
 
 template <class T>
 FixedArray<T>::~FixedArray() {
-  std::destroy(begin(), end());
-  std::allocator<T>{}.deallocate(storage_, size_);
+    std::destroy(begin(), end());
+    std::allocator<T>{}.deallocate(storage_, size_);
 }
 
 template <class GeneratorFunc>
 auto GenerateFixedArray(std::size_t size, GeneratorFunc&& generator) {
-  using ResultType = std::remove_reference_t<
-      std::invoke_result_t<GeneratorFunc&, std::size_t>>;
-  return FixedArray<ResultType>(impl::GenerateTag{}, size,
-                                std::forward<GeneratorFunc>(generator));
+    using ResultType = std::remove_cvref_t<std::invoke_result_t<GeneratorFunc&, std::size_t>>;
+    return FixedArray<ResultType>(impl::InternalTag{}, size, std::forward<GeneratorFunc>(generator));
 }
 
 }  // namespace utils

@@ -5,6 +5,9 @@
 
 #include <grpcpp/support/status.h>
 
+#include <userver/formats/json_fwd.hpp>
+#include <userver/yaml_config/fwd.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc {
@@ -13,9 +16,59 @@ namespace ugrpc {
 /// @throws std::runtime_error
 grpc::StatusCode StatusCodeFromString(std::string_view str);
 
-/// @brief Convert grpc::StatusCode to string
-std::string_view ToString(grpc::StatusCode code) noexcept;
+/// @brief Convert `grpc::StatusCode` to `std::string_view`.
+std::string_view ToStringView(grpc::StatusCode code) noexcept;
+
+/// @brief Convert `grpc::StatusCode` to `std::string`.
+std::string ToString(grpc::StatusCode code);
+
+/// @brief Whether a given status code is definitely a server-side error
+///
+/// Currently includes:
+///
+/// * `UNKNOWN`
+/// * `UNIMPLEMENTED`
+/// * `INTERNAL`
+/// * `UNAVAILABLE`
+/// * `DATA_LOSS`
+///
+/// We intentionally do not include `CANCELLED` and `DEADLINE_EXCEEDED` here, because the situation may either be
+/// considered not erroneous at all (when a client explicitly cancels an RPC; when a client attempts an RPC with a very
+/// short deadline), or there is no single obvious service to blame (when the collective deadline expires for an RPC
+/// tree).
+bool IsServerError(grpc::StatusCode code) noexcept;
+
+/// @brief Check if a gRPC status code is retryable
+///
+/// Returns true for status codes that typically indicate transient failures
+/// and are safe to retry:
+///
+/// * `CANCELLED`
+/// * `UNKNOWN`
+/// * `DEADLINE_EXCEEDED`
+/// * `INTERNAL`
+/// * `UNAVAILABLE`
+///
+/// @param code The gRPC status code to check
+/// @return true if the status code is retryable, false otherwise
+bool IsRetryable(grpc::StatusCode code) noexcept;
 
 }  // namespace ugrpc
+
+namespace formats::parse {
+
+/// @ref yaml_config::YamlConfig parsing support for `grpc::StatusCode`.
+grpc::StatusCode Parse(const yaml_config::YamlConfig& value, To<grpc::StatusCode>);
+
+/// Support for parsing `grpc::StatusCode` from string. Used for headers and map keys.
+grpc::StatusCode Parse(std::string_view value, To<grpc::StatusCode>);
+
+}  // namespace formats::parse
+
+namespace formats::serialize {
+
+formats::json::Value Serialize(const grpc::StatusCode& value, formats::serialize::To<formats::json::Value>);
+
+}
 
 USERVER_NAMESPACE_END

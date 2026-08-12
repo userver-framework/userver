@@ -4,52 +4,63 @@
 
 #include <userver/formats/bson/bson_builder.hpp>
 #include <userver/formats/bson/document.hpp>
+#include <userver/formats/bson/value.hpp>
 #include <userver/storages/mongo/bulk_ops.hpp>
+#include <userver/storages/mongo/exception.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::bulk_ops {
 
 class InsertOne::Impl {
- public:
-  explicit Impl(formats::bson::Document&& document_)
-      : document(std::move(document_)) {}
+public:
+    explicit Impl(formats::bson::Document&& document)
+        : document(std::move(document))
+    {}
 
-  formats::bson::Document document;
+    formats::bson::Document document;
 };
 
 class ReplaceOne::Impl {
- public:
-  Impl(formats::bson::Document&& selector_,
-       formats::bson::Document&& replacement_)
-      : selector(std::move(selector_)), replacement(std::move(replacement_)) {}
+public:
+    Impl(formats::bson::Document&& selector, formats::bson::Document&& replacement)
+        : selector(std::move(selector)),
+          replacement(std::move(replacement))
+    {}
 
-  formats::bson::Document selector;
-  formats::bson::Document replacement;
-  std::optional<formats::bson::impl::BsonBuilder> options;
+    formats::bson::Document selector;
+    formats::bson::Document replacement;
+    std::optional<formats::bson::impl::BsonBuilder> options;
 };
 
 class Update::Impl {
- public:
-  Impl(Mode mode_, formats::bson::Document&& selector_,
-       formats::bson::Document&& update_)
-      : mode(mode_),
-        selector(std::move(selector_)),
-        update(std::move(update_)) {}
+public:
+    Impl(Mode mode, formats::bson::Document&& selector, formats::bson::Value&& update)
+        : mode(mode),
+          selector(std::move(selector)),
+          update(std::move(update))
+    {
+        if (!this->update.IsDocument() && !this->update.IsArray()) {
+            throw InvalidQueryArgumentException("update must be a document or an aggregation pipeline array");
+        }
+    }
 
-  Mode mode;
-  formats::bson::Document selector;
-  formats::bson::Document update;
-  std::optional<formats::bson::impl::BsonBuilder> options;
+    Mode mode;
+    formats::bson::Document selector;
+    formats::bson::Value update;
+    std::optional<formats::bson::impl::BsonBuilder> options;
 };
 
 class Delete::Impl {
- public:
-  Impl(Mode mode_, formats::bson::Document&& selector_)
-      : mode(mode_), selector(std::move(selector_)) {}
+public:
+    Impl(Mode mode, formats::bson::Document&& selector)
+        : mode(mode),
+          selector(std::move(selector))
+    {}
 
-  Mode mode;
-  formats::bson::Document selector;
+    Mode mode;
+    formats::bson::Document selector;
+    std::optional<formats::bson::impl::BsonBuilder> options;
 };
 
 }  // namespace storages::mongo::bulk_ops

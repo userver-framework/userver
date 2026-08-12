@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -17,10 +18,6 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace utils {
-struct RetryBudgetSettings;
-}  // namespace utils
-
 namespace ydb::impl {
 
 namespace secdist {
@@ -28,58 +25,58 @@ struct DatabaseSettings;
 }  // namespace secdist
 
 struct TableSettings {
-  std::uint32_t min_pool_size{10};
-  std::uint32_t max_pool_size{50};
-  bool keep_in_query_cache{true};
-  bool sync_start{true};
-  std::optional<std::vector<double>> by_database_timings_buckets{};
-  std::optional<std::vector<double>> by_query_timings_buckets{};
+    std::uint32_t min_pool_size{10};
+    std::uint32_t max_pool_size{50};
+    std::uint32_t get_session_retry_limit{5};
+    bool use_deferred_session_creation{false};
+    // Deprecated, parsed for backward compatibility but not used by execute.
+    bool keep_in_query_cache{true};
+    bool sync_start{true};
+    // Deprecated, parsed for backward compatibility but not used by execute.
+    bool use_query_client{true};
+    std::optional<std::vector<double>> by_database_timings_buckets{};
+    std::optional<std::vector<double>> by_query_timings_buckets{};
 };
 
 struct TopicSettings {};
 
-struct DriverSettings {
-  std::string endpoint;
-  std::string database;
-
-  bool prefer_local_dc{false};
-  std::optional<std::string> oauth_token;
-  std::optional<std::string> iam_jwt_params;
-  std::shared_ptr<NYdb::ICredentialsProviderFactory>
-      credentials_provider_factory;
+struct TcpKeepaliveSettings {
+    bool enabled;
+    std::size_t idle_sec;
+    std::size_t probe_count;
+    std::size_t interval_sec;
 };
 
-TableSettings ParseTableSettings(const yaml_config::YamlConfig& dbconfig,
-                                 const secdist::DatabaseSettings& dbsecdist);
+struct DriverSettings {
+    std::string endpoint;
+    std::string database;
+
+    std::optional<std::size_t> network_threads_num{};
+    std::optional<std::size_t> client_threads_num{};
+
+    std::optional<TcpKeepaliveSettings> tcp_keepalive{};
+
+    std::optional<std::chrono::milliseconds> grpc_keepalive_timeout{};
+    std::optional<bool> grpc_keepalive_permit_without_calls{};
+
+    bool prefer_local_dc{false};
+    std::optional<std::string> oauth_token;
+    std::optional<std::string> iam_jwt_params;
+    std::optional<std::string> secure_connection_cert;
+    std::optional<std::string> user;
+    std::optional<std::string> password;
+    std::shared_ptr<NYdb::ICredentialsProviderFactory> credentials_provider_factory;
+};
+
+TableSettings ParseTableSettings(const yaml_config::YamlConfig& dbconfig, const secdist::DatabaseSettings& dbsecdist);
 
 DriverSettings ParseDriverSettings(
     const yaml_config::YamlConfig& dbconfig,
     const secdist::DatabaseSettings& dbsecdist,
-    std::shared_ptr<NYdb::ICredentialsProviderFactory>
-        credentials_provider_factory);
-
-struct ConfigCommandControl {
-  std::optional<std::uint32_t> attempts;
-  std::optional<std::chrono::milliseconds> operation_timeout_ms;
-  std::optional<std::chrono::milliseconds> cancel_after_ms;
-  std::optional<std::chrono::milliseconds> client_timeout_ms;
-  std::optional<std::chrono::milliseconds> get_session_timeout_ms;
-};
-
-ConfigCommandControl Parse(const formats::json::Value& config,
-                           formats::parse::To<ConfigCommandControl>);
-
-extern const dynamic_config::Key<
-    std::unordered_map<std::string, ConfigCommandControl>>
-    kQueryCommandControl;
+    std::shared_ptr<NYdb::ICredentialsProviderFactory> credentials_provider_factory
+);
 
 inline constexpr int kDeadlinePropagationExperimentVersion = 1;
-
-extern const dynamic_config::Key<int> kDeadlinePropagationVersion;
-
-extern const dynamic_config::Key<
-    std::unordered_map<std::string, utils::RetryBudgetSettings>>
-    kRetryBudgetSettings;
 
 }  // namespace ydb::impl
 

@@ -1,0 +1,4 @@
+default: false
+description: Controls whether the HTTP request task should be cancelled when the deadline received from the client is reached.
+schema:
+    type: boolean

@@ -24,39 +24,44 @@ struct StrongTypedefTag;
 /// Common serializers
 namespace formats::serialize {
 
+namespace impl {
+
+template <typename T>
+concept RangeNotMap =
+    meta::kIsRange<T> && !meta::kIsMap<T> && !std::is_same_v<T, boost::uuids::uuid> &&
+    !std::is_convertible_v<T&, utils::impl::strong_typedef::StrongTypedefTag&>;
+
+}
+
 /// Common containers serialization (vector/set)
-template <typename T, typename Value>
-std::enable_if_t<meta::kIsRange<T> && !meta::kIsMap<T> &&
-                     !std::is_same_v<T, boost::uuids::uuid> &&
-                     !std::is_convertible_v<
-                         T&, utils::impl::strong_typedef::StrongTypedefTag&>,
-                 Value>
-Serialize(const T& value, To<Value>) {
-  typename Value::Builder builder(formats::common::Type::kArray);
-  for (const auto& item : value) {
-    // explicit cast for vector<bool> shenanigans
-    builder.PushBack(static_cast<const meta::RangeValueType<T>&>(item));
-  }
-  return builder.ExtractValue();
+template <impl::RangeNotMap T, typename Value>
+Value Serialize(const T& value, To<Value>) {
+    typename Value::Builder builder(formats::common::Type::kArray);
+    for (const auto& item : value) {
+        // explicit cast for vector<bool> shenanigans
+        builder.PushBack(static_cast<const meta::RangeValueType<T>&>(item));
+    }
+    return builder.ExtractValue();
 }
 
 /// Mappings serialization
-template <typename T, typename Value>
-std::enable_if_t<meta::kIsUniqueMap<T>, Value> Serialize(const T& value,
-                                                         To<Value>) {
-  typename Value::Builder builder(formats::common::Type::kObject);
-  for (const auto& [key, value] : value) {
-    builder[key] = value;
-  }
-  return builder.ExtractValue();
+template <meta::IsUniqueMap T, typename Value>
+Value Serialize(const T& value, To<Value>) {
+    typename Value::Builder builder(formats::common::Type::kObject);
+    for (const auto& [key, value] : value) {
+        builder[key] = value;
+    }
+    return builder.ExtractValue();
 }
 
 /// std::optional serialization
 template <typename T, typename Value>
 Value Serialize(const std::optional<T>& value, To<Value>) {
-  if (!value) return {};
+    if (!value) {
+        return {};
+    }
 
-  return typename Value::Builder(*value).ExtractValue();
+    return typename Value::Builder(*value).ExtractValue();
 }
 
 }  // namespace formats::serialize

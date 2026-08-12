@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/ydb/builder.hpp
+/// @brief @copybrief ydb::PreparedArgsBuilder
+
 #include <ydb-cpp-sdk/client/params/params.h>
 
 #include <string>
@@ -16,66 +19,70 @@ namespace ydb {
 class TableClient;
 class Transaction;
 
+/// @brief Builder for prepared query parameters
 class PreparedArgsBuilder final {
- public:
-  PreparedArgsBuilder(PreparedArgsBuilder&&) noexcept = default;
-  PreparedArgsBuilder& operator=(PreparedArgsBuilder&&) = delete;
+public:
+    PreparedArgsBuilder() = default;
 
-  /// Supported types and required includes are documented in:
-  /// <userver/ydb/io/supported_types.hpp>
-  template <typename T>
-  void Add(const std::string& name, T&& value);
+    PreparedArgsBuilder(PreparedArgsBuilder&&) noexcept = default;
+    PreparedArgsBuilder& operator=(PreparedArgsBuilder&&) = delete;
 
-  /// @cond
-  // For internal use only.
-  explicit PreparedArgsBuilder(NYdb::TParamsBuilder&& builder)
-      : builder_(std::move(builder)) {}
+    explicit PreparedArgsBuilder(NYdb::TParamsBuilder&& builder)
+        : builder_(std::move(builder))
+    {}
 
-  // For internal use only.
-  template <typename... NamesValues>
-  void AddParams(NamesValues&&... names_values);
-  /// @endcond
+    /// Supported types and required includes are documented in:
+    /// <userver/ydb/io/supported_types.hpp>
+    template <typename T>
+    void Add(const std::string& name, T&& value);
 
- private:
-  friend class Transaction;
-  friend class TableClient;
-  struct PreparedArgsWithKey;
+    /// @cond
+    // For internal use only.
+    template <typename... NamesValues>
+    void AddParams(NamesValues&&... names_values);
+    /// @endcond
 
-  NYdb::TParams Build() && { return std::move(builder_).Build(); }
+private:
+    friend class Transaction;
+    friend class TableClient;
+    friend class TxActor;
+    struct PreparedArgsWithKey;
 
-  PreparedArgsWithKey operator<<(const std::string& key);
+    NYdb::TParams Build() && { return std::move(builder_).Build(); }
 
-  NYdb::TParamsBuilder builder_;
+    PreparedArgsWithKey operator<<(const std::string& key);
+
+    NYdb::TParamsBuilder builder_;
 };
 
 template <typename T>
 void PreparedArgsBuilder::Add(const std::string& name, T&& value) {
-  auto& param_builder = builder_.AddParam(impl::ToString(name));
-  Write(param_builder, std::forward<T>(value));
-  param_builder.Build();
+    auto& param_builder = builder_.AddParam(impl::ToString(name));
+    Write(param_builder, std::forward<T>(value));
+    param_builder.Build();
 }
 
+/// @cond
 template <typename... NamesValues>
 void PreparedArgsBuilder::AddParams(NamesValues&&... names_values) {
-  [[maybe_unused]] decltype(auto) result =
-      (*this << ... << std::forward<NamesValues>(names_values));
-  static_assert(std::is_same_v<decltype(result), PreparedArgsBuilder&>);
+    [[maybe_unused]] decltype(auto) result = (*this << ... << std::forward<NamesValues>(names_values));
+    static_assert(std::is_same_v<decltype(result), PreparedArgsBuilder&>);
 }
+/// @endcond
 
 struct PreparedArgsBuilder::PreparedArgsWithKey final {
-  PreparedArgsBuilder& builder;
-  const std::string& key;
+    PreparedArgsBuilder& builder;
+    const std::string& key;
 
-  template <typename T>
-  PreparedArgsBuilder& operator<<(T&& value) const {
-    builder.Add(key, std::forward<T>(value));
-    return builder;
-  }
+    template <typename T>
+    PreparedArgsBuilder& operator<<(T&& value) const {
+        builder.Add(key, std::forward<T>(value));
+        return builder;
+    }
 };
 
-inline auto PreparedArgsBuilder::operator<<(const std::string& key)
-    -> PreparedArgsWithKey {
-  return PreparedArgsWithKey{*this, key};
+inline auto PreparedArgsBuilder::operator<<(const std::string& key) -> PreparedArgsWithKey {
+    return PreparedArgsWithKey{*this, key};
 }
 
 }  // namespace ydb

@@ -1,0 +1,44 @@
+#pragma once
+
+#include "{{ pair_header }}.hpp"
+
+{% for file in definition_includes(types.values()) %}
+    #include <{{ file }}>
+{% endfor %}
+{% for file in sax_parser_includes(types.values()) %}
+    #include <{{ file }}>
+{% endfor %}
+{% for file in external_sax_parser_includes %}
+    #include <{{ file }}>
+{% endfor %}
+
+
+{% macro _generate_sax_parser(type) %}
+    {# handle subtypes #}
+    {% for schema in type.subtypes() %}
+        {{- _generate_sax_parser(schema) -}}
+    {% endfor %}
+
+    {% if type.get_py_type() == 'CppStruct' %}
+        {% for property_name, field in type.fields.items() %}
+        constexpr inline USERVER_NAMESPACE::utils::StringLiteral {{ field.property_name_holder_variable(type.cpp_global_name()) }} = "{{ property_name }}";
+        {% endfor %}
+
+        [[maybe_unused]] USERVER_NAMESPACE::chaotic::sax::Parser<{{ type.descriptor_type() }}>
+            ParserOf(USERVER_NAMESPACE::chaotic::sax::Type<{{ shortest_cpp_name(type) }}>);
+    {% elif type.get_py_type() == 'CppStructAllOf' %}
+        [[maybe_unused]] USERVER_NAMESPACE::chaotic::sax::impl::JsonDomParser<{{ shortest_cpp_name(type) }}>
+            ParserOf(USERVER_NAMESPACE::chaotic::sax::Type<{{ shortest_cpp_name(type) }}>);
+    {% endif %}
+{% endmacro %}
+
+
+{% import 'templates/common.jinja' as common %}
+
+{% for name, type in types.items() %}
+    {{ common.switch_namespace(cpp_namespace(name)) }}
+
+    {{ _generate_sax_parser(type) }}
+{% endfor %}
+
+{{ common.switch_namespace('') }}

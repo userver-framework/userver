@@ -3,6 +3,7 @@
 /// @file userver/storages/postgres/message.hpp
 /// @brief Database messages
 
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -16,42 +17,36 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::postgres {
 
 class Message {
- public:
-  enum class Severity {
-    kLog,
-    kDebug,
-    kInfo,
-    kNotice,
-    kWarning,
-    kError,
-    kFatal,
-    kPanic
-  };
+public:
+    enum class Severity { kLog, kDebug, kInfo, kNotice, kWarning, kError, kFatal, kPanic };
 
-  explicit Message(detail::ResultWrapperPtr);
+    explicit Message(detail::ResultWrapperPtr);
 
-  std::string GetMessage() const;
-  std::string GetPrimary() const;
-  std::string GetDetail() const;
-  Severity GetSeverity() const;
-  std::string GetSeverityString() const;
-  SqlState GetSqlState() const;
+    std::string GetMessage() const;
+    std::string GetPrimary() const;
+    std::string GetDetail() const;
+    Severity GetSeverity() const;
+    std::string GetSeverityString() const;
+    SqlState GetSqlState() const;
 
-  std::string GetSchema() const;
-  std::string GetTable() const;
-  std::string GetColumn() const;
-  std::string GetDatatype() const;
-  std::string GetConstraint() const;
+    std::string GetSchema() const;
+    std::string GetTable() const;
+    std::string GetColumn() const;
+    std::string GetDatatype() const;
+    std::string GetConstraint() const;
 
-  logging::LogExtra GetLogExtra() const;
+    logging::LogExtra GetLogExtra() const;
 
-  /// @brief Throw an exception according to the SQL code
-  void ThrowException() const;
+    /// @brief Throw an exception according to the SQL code
+    void ThrowException() const;
 
-  static Severity SeverityFromString(std::string_view);
+    static Severity SeverityFromString(std::string_view);
 
- private:
-  detail::ResultWrapperPtr res_;
+    /// This constant is returned from Message::Get* functions if the PostgreSQL failed retrieve some info.
+    static constexpr const char* kUnknown = "<unknown>";
+
+private:
+    detail::ResultWrapperPtr res_;
 };
 
 }  // namespace storages::postgres

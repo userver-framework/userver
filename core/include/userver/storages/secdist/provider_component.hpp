@@ -5,7 +5,7 @@
 
 #include <string>
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/storages/secdist/provider.hpp>
 #include <userver/storages/secdist/secdist.hpp>
 
@@ -14,27 +14,27 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::secdist {
 
 class DefaultLoader final : public storages::secdist::SecdistProvider {
- public:
-  struct Settings {
-    std::string config_path;
-    SecdistFormat format{SecdistFormat::kJson};
-    bool missing_ok{false};
-    std::optional<std::string> environment_secrets_key;
-    engine::TaskProcessor* blocking_task_processor{nullptr};
-  };
+public:
+    struct Settings {
+        std::string config_path;
+        SecdistFormat format{SecdistFormat::kJson};
+        bool missing_ok{false};
+        std::optional<std::string> environment_secrets_key;
+        engine::TaskProcessor* blocking_task_processor{nullptr};
+        formats::json::Value inline_config;
+    };
 
-  explicit DefaultLoader(Settings settings);
+    explicit DefaultLoader(Settings settings);
 
-  formats::json::Value Get() const override;
+    formats::json::Value Get() const override;
 
- private:
-  Settings settings_;
+private:
+    Settings settings_;
 };
 
 }  // namespace storages::secdist
 
 namespace components {
-// clang-format off
 
 /// @ingroup userver_components
 ///
@@ -42,32 +42,25 @@ namespace components {
 ///
 /// The component must be configured in service config.
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// config | path to the config file with data | ''
-/// format | config format, either `json` or `yaml` | 'json'
-/// missing-ok | do not terminate components load if no file found by the config option | false
-/// environment-secrets-key | name of environment variable from which to load additional data | -
-/// blocking-task-processor | name of task processor for background blocking operations | --
+/// ## Static options of components::DefaultSecdistProvider :
+/// @include{doc} scripts/docs/en/components_schema/core/src/storages/secdist/provider_component.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
+class DefaultSecdistProvider final : public ComponentBase, public storages::secdist::SecdistProvider {
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of @ref components::DefaultSecdistProvider
+    static constexpr std::string_view kName = "default-secdist-provider";
 
-// clang-format on
+    DefaultSecdistProvider(const ComponentConfig&, const ComponentContext&);
 
-class DefaultSecdistProvider final : public LoggableComponentBase,
-                                     public storages::secdist::SecdistProvider {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::DefaultSecdistProvider
-  static constexpr std::string_view kName = "default-secdist-provider";
+    formats::json::Value Get() const override;
 
-  DefaultSecdistProvider(const ComponentConfig&, const ComponentContext&);
+    static yaml_config::Schema GetStaticConfigSchema();
 
-  formats::json::Value Get() const override;
-
-  static yaml_config::Schema GetStaticConfigSchema();
-
- private:
-  storages::secdist::DefaultLoader loader_;
+private:
+    storages::secdist::DefaultLoader loader_;
 };
 
 template <>

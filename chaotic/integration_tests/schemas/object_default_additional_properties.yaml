@@ -1,0 +1,9 @@
+definitions:
+    ObjectDefaultAdditionalProperties:
+        type: object
+        description: |
+            some long
+            description
+        properties:
+            one:
+                type: integer

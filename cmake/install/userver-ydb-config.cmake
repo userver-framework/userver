@@ -1,13 +1,21 @@
-# TODO: not working yet
-include_guard(GLOBAL)
+if(USERVER_YDB_CONFIG_PHASE STREQUAL "deps")
+    if(_USERVER_YDB_DEPS_LOADED)
+        return()
+    endif()
 
-if(userver_ydb_FOUND)
-  return()
+    find_dependency(googleapis CONFIG)
+    find_dependency(ydb-cpp-sdk CONFIG)
+
+    set(_USERVER_YDB_DEPS_LOADED TRUE)
+    return()
 endif()
 
-list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/..")
-# include("${USERVER_CMAKE_DIR}/ydb-cpp-sdk.cmake")
+if(userver_ydb_FOUND)
+    return()
+endif()
 
-add_library(userver::ydb ALIAS userver::userver-ydb)
+find_package(userver REQUIRED COMPONENTS core)
+
+include("${USERVER_CMAKE_DIR}/UserverSql.cmake")
 
 set(userver_ydb_FOUND TRUE)

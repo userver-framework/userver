@@ -1,0 +1,43 @@
+type: object
+description: YDB topic writer component
+additionalProperties: false
+properties:
+    topics:
+        description: per-topic writer settings map
+        type: object
+        properties: {}
+        additionalProperties:
+            type: object
+            additionalProperties: false
+            description: settings for a single topic writer
+            properties:
+                topic:
+                    type: string
+                    description: topic path used for message writing
+                database:
+                    type: string
+                    description: database name from ydb component configuration
+                internal-workers-num:
+                    type: integer
+                    minimum: 1
+                    default: 1
+                    description: >
+                        number of internal workers for a single topic writer.
+                        Note that using several workers violates message ordering.
+                internal-msg-queue-size:
+                    type: integer
+                    minimum: 1
+                    default: 1000
+                    description: >
+                        size of the internal queue for incoming messages from the client.
+                        When the queue is full, WriteMessage returns kResourceExhausted.
+                internal-ydb-control-queue-size:
+                    type: integer
+                    minimum: 1
+                    default: 10
+                    description: >
+                        size of the internal queue for control events received from YDB.
+                        When the queue is full, the worker stops reading new events from the session.
+            required:
+              - topic
+              - database

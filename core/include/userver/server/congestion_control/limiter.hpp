@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/congestion_control/limiter.hpp
+/// @brief @copybrief server::congestion_control::Limiter
+
 #include <optional>
 #include <vector>
 
@@ -12,20 +15,23 @@ USERVER_NAMESPACE_BEGIN
 namespace server::congestion_control {
 
 class Limitee {
- public:
-  virtual void SetLimit(std::optional<size_t> new_limit) = 0;
+public:
+    virtual void SetLimit(std::optional<size_t> new_limit) = 0;
+
+    virtual std::size_t GetLimitableHandlersCount() const = 0;
 };
 
+/// @brief HTTP server congestion control limiter
 class Limiter final : public USERVER_NAMESPACE::congestion_control::Limiter {
- public:
-  void SetLimit(
-      const USERVER_NAMESPACE::congestion_control::Limit& new_limit) override;
+public:
+    void SetLimit(const USERVER_NAMESPACE::congestion_control::Limit& new_limit) override;
 
-  void RegisterLimitee(Limitee& limitee);
+    std::size_t GetLimitableHandlersCount() const;
 
- private:
-  concurrent::Variable<std::vector<utils::NotNull<Limitee*>>, std::mutex>
-      limitees_;
+    void RegisterLimitee(Limitee& limitee);
+
+private:
+    concurrent::Variable<std::vector<utils::NotNull<Limitee*>>, std::mutex> limitees_;
 };
 
 }  // namespace server::congestion_control

@@ -10,7 +10,9 @@
 #include <boost/pfr/detail/config.hpp>
 #include <boost/pfr/traits_fwd.hpp>
 
+#if !defined(BOOST_PFR_INTERFACE_UNIT)
 #include <type_traits> // for std::is_aggregate
+#endif
 
 namespace boost { namespace pfr { namespace detail {
 

@@ -1,70 +1,149 @@
 #include "listener_config.hpp"
 
+#include <charconv>
 #include <stdexcept>
 #include <string>
 
+#include <userver/engine/io.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/fs/blocking/read.hpp>
+
+#include <server/pph_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::net {
 
-ListenerConfig Parse(const yaml_config::YamlConfig& value,
-                     formats::parse::To<ListenerConfig>) {
-  ListenerConfig config;
+namespace {
+int ParseOctal(std::string_view s) {
+    int value{};
+    if (std::from_chars(s.data(), s.data() + s.size(), value, 8).ec != std::errc{}) {
+        throw std::runtime_error(fmt::format("not an octal string: {}", s));
+    }
+    return value;
+}
 
-  config.connection_config = value["connection"].As<ConnectionConfig>();
-  config.handler_defaults =
-      value["handler-defaults"].As<request::HttpRequestConfig>();
-  config.port = value["port"].As<uint16_t>(0);
-  config.address = value["address"].As<std::string>("::");
-  config.unix_socket_path = value["unix-socket"].As<std::string>("");
-  config.max_connections =
-      value["max_connections"].As<size_t>(config.max_connections);
-  config.shards = value["shards"].As<std::optional<size_t>>(config.shards);
-  config.task_processor = value["task_processor"].As<std::string>();
-  config.backlog = value["backlog"].As<int>(config.backlog);
+class SingleSocketSource final {
+public:
+    void AddSource(std::string source) {
+        if (source.empty()) {
+            return;
+        }
 
-  if (config.port != 0 && !config.unix_socket_path.empty())
-    throw std::runtime_error(
-        "Both 'port' and 'unix-socket' fields are set, only single field may "
-        "be set at a time");
-  if (config.port == 0 && config.unix_socket_path.empty())
-    throw std::runtime_error(
-        "Either non-zero 'port' or non-empty 'unix-socket' fields must be set");
+        if (!source_.empty()) {
+            throw std::runtime_error(fmt::format(
+                "Both '{}' and '{}' fields are set, only single field may "
+                "be set at a time",
+                source_,
+                source
+            ));
+        }
+        source_ = std::move(source);
+    }
 
-  if (config.backlog <= 0) {
-    throw std::runtime_error("Invalid backlog value in " + value.GetPath());
-  }
+    void ValidateSingleSource() {
+        if (source_.empty()) {
+            throw std::runtime_error(
+                "One of the following fields must be set: non-zero 'port', non-empty 'unix-socket', 'listen-socket-fd'"
+            );
+        }
+    }
 
-  auto cert_path = value["tls"]["cert"].As<std::string>({});
-  auto pkey_path = value["tls"]["private-key"].As<std::string>({});
-  auto pkey_pass_name =
-      value["tls"]["private-key-passphrase-name"].As<std::string>({});
-  if (cert_path.empty() != pkey_path.empty()) {
-    throw std::runtime_error(
-        "Either set both tls.cert and tls.private-key options or none of them");
-  }
-  if (!cert_path.empty()) {
-    auto contents = fs::blocking::ReadFileContents(cert_path);
-    config.tls_cert = crypto::Certificate::LoadFromString(contents);
-    config.tls = true;
-  }
-  if (!pkey_path.empty()) {
-    config.tls_private_key_path = pkey_path;
-  }
-  if (!pkey_pass_name.empty()) {
-    config.tls_private_key_passphrase_name = pkey_pass_name;
-  }
-  auto ca_paths = value["tls"]["ca"].As<std::vector<std::string>>({});
-  for (const auto& ca_path : ca_paths) {
-    auto contents = fs::blocking::ReadFileContents(ca_path);
-    config.tls_certificate_authorities.push_back(
-        crypto::Certificate::LoadFromString(contents));
-  }
+private:
+    std::string source_;
+};
 
-  return config;
+}  // namespace
+
+PortConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<PortConfig>) {
+    PortConfig config;
+
+    config.port = value["port"].As<uint16_t>(0);
+    config.address = value["address"].As<std::string>("::");
+    config.unix_socket_path = value["unix-socket"].As<std::string>("");
+    config.unix_socket_perms = static_cast<
+        boost::filesystem::perms>(ParseOctal(value["unix-socket-permissions"].As<std::string>("600")));
+    config.listen_socket_fd = value["listen-socket-fd"].As<std::optional<int>>();
+
+    SingleSocketSource source;
+    if (config.port != 0) {
+        source.AddSource("port");
+    }
+    if (!config.unix_socket_path.empty()) {
+        source.AddSource("unix_socket_path");
+    }
+    if (config.listen_socket_fd) {
+        source.AddSource("listen_socket_fd");
+    }
+    source.ValidateSingleSource();
+
+    auto cert_path = value["tls"]["cert"].As<std::string>({});
+    auto pkey_path = value["tls"]["private-key"].As<std::string>({});
+    auto pkey_pass_name = value["tls"]["private-key-passphrase-name"].As<std::string>({});
+    if (cert_path.empty() != pkey_path.empty()) {
+        throw std::runtime_error("Either set both tls.cert and tls.private-key options or none of them");
+    }
+    if (!cert_path.empty()) {
+        auto contents = fs::blocking::ReadFileContents(cert_path);
+        config.tls_cert_chain = crypto::LoadCertificatesChainFromString(contents);
+        config.tls = true;
+    }
+    if (!pkey_path.empty()) {
+        config.tls_private_key_path = pkey_path;
+    }
+    if (!pkey_pass_name.empty()) {
+        config.tls_private_key_passphrase_name = pkey_pass_name;
+    }
+    auto ca_paths = value["tls"]["ca"].As<std::vector<std::string>>({});
+    for (const auto& ca_path : ca_paths) {
+        auto contents = fs::blocking::ReadFileContents(ca_path);
+        config.tls_certificate_authorities.push_back(crypto::Certificate::LoadFromString(contents));
+    }
+
+    return config;
+}
+
+ListenerConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<ListenerConfig>) {
+    ListenerConfig config;
+
+    config.connection_config = value["connection"].As<ConnectionConfig>();
+    config.handler_defaults = value["handler-defaults"].As<request::HttpRequestConfig>();
+    config.max_connections = value["max_connections"].As<size_t>(config.max_connections);
+    config.shards = value["shards"].As<std::optional<size_t>>(config.shards);
+    config.task_processor = value["task_processor"].As<std::optional<std::string>>();
+    config.backlog = value["backlog"].As<int>(config.backlog);
+
+    config.ports = value["ports"].As<std::vector<PortConfig>>({});
+    if (value.HasMember("port") || value.HasMember("unix-socket") || value.HasMember("listen-socket-fd")) {
+        config.ports.emplace_back(value.As<PortConfig>());
+    }
+    if (config.ports.empty()) {
+        throw std::runtime_error("No port/fd/unix socket is set in listener config");
+    }
+
+    if (config.backlog <= 0) {
+        throw std::runtime_error("Invalid backlog value in " + value.GetPath());
+    }
+
+    return config;
+}
+
+void PortConfig::ReadTlsSettings(const storages::secdist::SecdistConfig& secdist) {
+    if (tls) {
+        auto contents = fs::blocking::ReadFileContents(tls_private_key_path);
+        if (tls_private_key_passphrase_name.empty()) {
+            tls_private_key = crypto::PrivateKey::LoadFromString(contents);
+        } else {
+            auto pph = secdist.Get<PassphraseConfig>().GetPassphrase(tls_private_key_passphrase_name);
+            tls_private_key = crypto::PrivateKey::LoadFromString(contents, pph.GetUnderlying());
+        }
+    }
+}
+
+void PortConfig::InitSslCtx() {
+    if (tls) {
+        ssl_ctx = crypto::SslCtx::CreateServerTlsContext(tls_cert_chain, tls_private_key, tls_certificate_authorities);
+    }
 }
 
 }  // namespace server::net

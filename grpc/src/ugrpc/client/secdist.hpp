@@ -1,16 +1,20 @@
 #pragma once
 
+#include <string>
+#include <unordered_map>
+
+#include <userver/formats/json/value.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
 
 struct Secdist final {
-  explicit Secdist(const formats::json::Value& doc)
-      : tokens(
-            doc["GRPC_TOKENS"].As<std::unordered_map<std::string, std::string>>(
-                {})) {}
+    explicit Secdist(const formats::json::Value& doc)
+        : tokens(doc["GRPC_TOKENS"].As<std::unordered_map<std::string, std::string>>({}))
+    {}
 
-  std::unordered_map<std::string, std::string> tokens;
+    std::unordered_map<std::string, std::string> tokens;
 };
 
 }  // namespace ugrpc::client

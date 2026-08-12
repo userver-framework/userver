@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/ydb/io/insert_row.hpp
+/// @brief Serialization traits for @c ydb::InsertRow
+
 #include <userver/ydb/io/traits.hpp>
 #include <userver/ydb/types.hpp>
 
@@ -7,17 +10,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ydb {
 
+/// @brief YDB I/O traits for insert row type
 template <>
 struct ValueTraits<InsertRow> {
-  // We don't have enough type information to parse Null.
-  static InsertRow Parse(NYdb::TValueParser& parser,
-                         const std::string& column_name) = delete;
+    // We don't have enough type information to parse Null.
+    static InsertRow Parse(NYdb::TValueParser& parser, const std::string& column_name) = delete;
 
-  static void Write(NYdb::TValueBuilderBase<NYdb::TValueBuilder>& builder,
-                    const InsertRow& value);
+    static void Write(NYdb::TValueBuilderBase<NYdb::TValueBuilder>& builder, const InsertRow& value);
 
-  static void Write(NYdb::TValueBuilderBase<NYdb::TParamValueBuilder>& builder,
-                    const InsertRow& value);
+    static void Write(NYdb::TValueBuilderBase<NYdb::TParamValueBuilder>& builder, const InsertRow& value);
 };
 
 }  // namespace ydb

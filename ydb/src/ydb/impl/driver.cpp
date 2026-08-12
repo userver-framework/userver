@@ -3,10 +3,11 @@
 #include <ydb-cpp-sdk/client/driver/driver.h>
 #include <ydb-cpp-sdk/client/extensions/solomon_stats/pull_connector.h>
 #include <ydb-cpp-sdk/client/iam/iam.h>
+#include <ydb-cpp-sdk/client/types/credentials/credentials.h>
 
 #include <userver/utils/algo.hpp>
-#include <userver/utils/text_light.hpp>
 
+#include <ydb/impl/build_info.hpp>
 #include <ydb/impl/config.hpp>
 #include <ydb/impl/native_metrics.hpp>
 
@@ -17,29 +18,62 @@ namespace ydb::impl {
 Driver::Driver(std::string dbname, impl::DriverSettings settings)
     : dbname_(std::move(dbname)),
       dbpath_(settings.database),
-      native_metrics_(std::make_unique<NMonitoring::TMetricRegistry>(
-          NMonitoring::TLabels{})),
-      retry_budget_(utils::RetryBudgetSettings{}) {
-  NYdb::TDriverConfig driver_config;
-  driver_config.SetEndpoint(settings.endpoint.data())
-      .SetDatabase(settings.database.data())
-      .SetBalancingPolicy(settings.prefer_local_dc
-                              ? NYdb::EBalancingPolicy::UsePreferableLocation
-                              : NYdb::EBalancingPolicy::UseAllNodes);
+      native_metrics_(std::make_unique<NMonitoring::TMetricRegistry>(NMonitoring::TLabels{})),
+      retry_budget_(utils::RetryBudgetSettings{})
+{
+    NYdb::TDriverConfig driver_config;
+    driver_config.SetEndpoint(settings.endpoint)
+        .SetDatabase(settings.database)
+        .SetBalancingPolicy(
+            settings.prefer_local_dc
+                ? NYdb::EBalancingPolicy::UsePreferableLocation
+                : NYdb::EBalancingPolicy::UseAllNodes
+        );
+    if (settings.network_threads_num.has_value()) {
+        driver_config.SetNetworkThreadsNum(*settings.network_threads_num);
+    }
+    if (settings.client_threads_num.has_value()) {
+        driver_config.SetClientThreadsNum(*settings.client_threads_num);
+    }
 
-  if (settings.credentials_provider_factory) {
-    driver_config.SetCredentialsProviderFactory(
-        settings.credentials_provider_factory);
-  } else if (settings.oauth_token.has_value()) {
-    driver_config.SetAuthToken(settings.oauth_token->data());
-  } else if (settings.iam_jwt_params.has_value()) {
-    driver_config.UseSecureConnection().SetCredentialsProviderFactory(
-        NYdb::CreateIamJwtParamsCredentialsProviderFactory(
-            {.JwtContent = settings.iam_jwt_params->data()}));
-  }
+    if (settings.secure_connection_cert.has_value()) {
+        driver_config.UseSecureConnection(*settings.secure_connection_cert);
+    }
 
-  driver_ = std::make_unique<NYdb::TDriver>(driver_config);
-  NSolomonStatExtension::AddMetricRegistry(*driver_, native_metrics_.get());
+    if (settings.credentials_provider_factory) {
+        driver_config.SetCredentialsProviderFactory(settings.credentials_provider_factory);
+    } else if (settings.oauth_token.has_value()) {
+        driver_config.SetAuthToken(*settings.oauth_token);
+    } else if (settings.iam_jwt_params.has_value()) {
+        driver_config.UseSecureConnection().SetCredentialsProviderFactory(
+            NYdb::CreateIamJwtParamsCredentialsProviderFactory({.JwtContent = *settings.iam_jwt_params})
+        );
+    } else if (settings.user.has_value() && settings.password.has_value()) {
+        NYdb::TLoginCredentialsParams creds{};
+        creds.User = *settings.user;
+        creds.Password = *settings.password;
+        driver_config.SetCredentialsProviderFactory(NYdb::CreateLoginCredentialsProviderFactory(std::move(creds)));
+    }
+
+    if (settings.tcp_keepalive.has_value()) {
+        driver_config.SetTcpKeepAliveSettings(
+            settings.tcp_keepalive->enabled,
+            settings.tcp_keepalive->idle_sec,
+            settings.tcp_keepalive->probe_count,
+            settings.tcp_keepalive->interval_sec
+        );
+    }
+    if (settings.grpc_keepalive_timeout.has_value()) {
+        driver_config.SetGRpcKeepAliveTimeout(TDuration(*settings.grpc_keepalive_timeout));
+    }
+    if (settings.grpc_keepalive_permit_without_calls.has_value()) {
+        driver_config.SetGRpcKeepAlivePermitWithoutCalls(*settings.grpc_keepalive_permit_without_calls);
+    }
+
+    AppendUserverYdbBuildInfo(driver_config);
+
+    driver_ = std::make_unique<NYdb::TDriver>(driver_config);
+    NSolomonStatExtension::AddMetricRegistry(*driver_, native_metrics_.get());
 }
 
 Driver::~Driver() { driver_->Stop(true); }
@@ -52,15 +86,11 @@ const std::string& Driver::GetDbPath() const { return dbpath_; }
 
 utils::RetryBudget& Driver::GetRetryBudget() { return retry_budget_; }
 
-void DumpMetric(utils::statistics::Writer& writer, const Driver& driver) {
-  writer["native"] = *driver.native_metrics_;
-  writer["retry_budget"] = driver.retry_budget_;
-}
+void DumpMetric(utils::statistics::Writer& writer, const Driver& driver) { writer["native"] = *driver.native_metrics_; }
 
 std::string JoinPath(std::string_view database_path, std::string_view path) {
-  UASSERT(!utils::text::EndsWith(database_path, "/"));
-  return utils::StrCat(database_path,
-                       (utils::text::StartsWith(path, "/") ? "" : "/"), path);
+    UASSERT(!database_path.ends_with("/"));
+    return utils::StrCat(database_path, (path.starts_with("/") ? "" : "/"), path);
 }
 
 }  // namespace ydb::impl

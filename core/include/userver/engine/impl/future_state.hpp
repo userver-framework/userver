@@ -3,130 +3,128 @@
 #include <atomic>
 #include <exception>
 
+#include <userver/compiler/impl/lifetime.hpp>
+#include <userver/engine/awaitable.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/future_status.hpp>
 #include <userver/engine/impl/context_accessor.hpp>
 #include <userver/engine/impl/wait_list_fwd.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 #include <userver/utils/result_store.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-class FutureStateBase : private ContextAccessor {
- public:
-  bool IsReady() const noexcept final;
+class FutureStateBase : private AwaitableBase {
+public:
+    bool IsReady() const noexcept final;
 
-  [[nodiscard]] FutureStatus WaitUntil(Deadline deadline);
+    [[nodiscard]] FutureStatus WaitUntil(Deadline deadline);
 
-  void OnFutureCreated();
-  bool IsFutureCreated() const noexcept;
+    void OnFutureCreated();
+    bool IsFutureCreated() const noexcept;
 
-  // Internal helper for WaitAny/WaitAll
-  ContextAccessor* TryGetContextAccessor() noexcept { return this; }
+    AwaitableToken GetAwaitableToken() noexcept USERVER_IMPL_LIFETIME_BOUND {
+        return AwaitableToken{utils::impl::InternalTag{}, this};
+    }
 
- protected:
-  FutureStateBase() noexcept;
-  ~FutureStateBase();
+protected:
+    FutureStateBase() noexcept;
+    ~FutureStateBase();
 
-  void LockResultStore();
-  void ReleaseResultStore();
-  void WaitForResult();
+    void LockResultStore();
+    void ReleaseResultStore();
+    void WaitForResult();
 
- private:
-  friend class FutureWaitStrategy<FutureStateBase>;
+private:
+    void TryAppendAwaiter(AwaiterPtr& awaiter, std::uintptr_t context) final;
+    AwaiterPtr RemoveAwaiter(Awaiter& awaiter, std::uintptr_t context) noexcept final;
 
-  EarlyWakeup TryAppendWaiter(TaskContext& waiter) final;
-  void RemoveWaiter(TaskContext& waiter) noexcept final;
-  void AfterWait() noexcept final;
-
-  FastPimplWaitListLight finish_waiters_;
-  std::atomic<bool> is_ready_;
-  std::atomic<bool> is_result_store_locked_;
-  std::atomic<bool> is_future_created_;
+    FastPimplWaitListLight finish_awaiters_;
+    std::atomic<bool> is_result_store_locked_;
+    std::atomic<bool> is_future_created_;
 };
 
 template <typename T>
 class FutureState final : public FutureStateBase {
- public:
-  [[nodiscard]] T Get();
+public:
+    [[nodiscard]] T Get();
 
-  void SetValue(const T& value);
-  void SetValue(T&& value);
-  void SetException(std::exception_ptr&& ex);
+    void SetValue(const T& value);
+    void SetValue(T&& value);
+    void SetException(std::exception_ptr&& ex);
 
- private:
-  void RethrowErrorResult() const override;
+private:
+    std::exception_ptr GetErrorResult() const noexcept override;
 
-  utils::ResultStore<T> result_store_;
+    utils::ResultStore<T> result_store_;
 };
 
 template <>
 class FutureState<void> final : public FutureStateBase {
- public:
-  void Get();
+public:
+    void Get();
 
-  void SetValue();
-  void SetException(std::exception_ptr&& ex);
+    void SetValue();
+    void SetException(std::exception_ptr&& ex);
 
- private:
-  void RethrowErrorResult() const override;
+private:
+    std::exception_ptr GetErrorResult() const noexcept override;
 
-  utils::ResultStore<void> result_store_;
+    utils::ResultStore<void> result_store_;
 };
 
 template <typename T>
 T FutureState<T>::Get() {
-  WaitForResult();
-  return result_store_.Retrieve();
+    WaitForResult();
+    return result_store_.Retrieve();
 }
 
 template <typename T>
 void FutureState<T>::SetValue(const T& value) {
-  LockResultStore();
-  result_store_.SetValue(value);
-  ReleaseResultStore();
+    LockResultStore();
+    result_store_.SetValue(value);
+    ReleaseResultStore();
 }
 
 template <typename T>
 void FutureState<T>::SetValue(T&& value) {
-  LockResultStore();
-  result_store_.SetValue(std::move(value));
-  ReleaseResultStore();
+    LockResultStore();
+    result_store_.SetValue(std::move(value));
+    ReleaseResultStore();
 }
 
 template <typename T>
 void FutureState<T>::SetException(std::exception_ptr&& ex) {
-  LockResultStore();
-  result_store_.SetException(std::move(ex));
-  ReleaseResultStore();
+    LockResultStore();
+    result_store_.SetException(std::move(ex));
+    ReleaseResultStore();
 }
 
 template <typename T>
-void FutureState<T>::RethrowErrorResult() const {
-  (void)result_store_.Get();
+std::exception_ptr FutureState<T>::GetErrorResult() const noexcept {
+    return result_store_.GetException();
 }
 
 inline void FutureState<void>::Get() {
-  WaitForResult();
-  return result_store_.Retrieve();
+    WaitForResult();
+    result_store_.Retrieve();
 }
 
 inline void FutureState<void>::SetValue() {
-  LockResultStore();
-  result_store_.SetValue();
-  ReleaseResultStore();
+    LockResultStore();
+    result_store_.SetValue();
+    ReleaseResultStore();
 }
 
 inline void FutureState<void>::SetException(std::exception_ptr&& ex) {
-  LockResultStore();
-  result_store_.SetException(std::move(ex));
-  ReleaseResultStore();
+    LockResultStore();
+    result_store_.SetException(std::move(ex));
+    ReleaseResultStore();
 }
 
-inline void FutureState<void>::RethrowErrorResult() const {
-  (void)result_store_.Get();
-}
+inline std::exception_ptr FutureState<void>::GetErrorResult() const noexcept { return result_store_.GetException(); }
 
 }  // namespace engine::impl
 

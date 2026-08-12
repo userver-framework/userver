@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/utils/statistics/metrics_storage_fwd.hpp
+/// @brief Forward declarations for utils::statistics::MetricsStorage
+
 #include <memory>
 
 USERVER_NAMESPACE_BEGIN

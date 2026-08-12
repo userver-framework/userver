@@ -1,0 +1,11 @@
+components:
+    schemas:
+        OneOf:
+            type: object
+            additionalProperties: false
+            properties:
+                foo:
+                    oneOf:
+                      - type: integer
+                      - type: string
+

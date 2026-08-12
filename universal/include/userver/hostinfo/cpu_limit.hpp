@@ -19,6 +19,8 @@ namespace hostinfo {
 ///
 /// Uses:
 ///   * CPU_LIMIT environment variable (example: `CPU_LIMIT=1.95c`).
+///   * DEPLOY_VCPU_LIMIT environment variable (example: `DEPLOY_VCPU_LIMIT=2000`).
+///   * cpu limit from cgroup v2 (CFS scheduler)
 std::optional<double> CpuLimit();
 
 /// @brief Returns true if the current process is run in container (CPU_LIMIT

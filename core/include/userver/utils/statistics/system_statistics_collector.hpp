@@ -3,16 +3,20 @@
 /// @file userver/utils/statistics/system_statistics_collector.hpp
 /// @brief @copybrief components::SystemStatisticsCollector
 
+#include <memory>
+
+#include <userver/components/component_base.hpp>
 #include <userver/components/component_fwd.hpp>
-#include <userver/components/loggable_component_base.hpp>
-#include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/utils/statistics/entry.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace components {
+namespace utils::statistics {
 
-// clang-format off
+class Writer;
+
+}  // namespace utils::statistics
+
+namespace components {
 
 /// @ingroup userver_components
 ///
@@ -20,38 +24,31 @@ namespace components {
 ///
 /// Periodically queries resource usage info and reports is as a set of metrics.
 ///
-/// ## Static options:
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// fs-task-processor | Task processor to use for statistics gathering | -
-/// with-nginx | Whether to collect and report nginx processes statistics | false
+/// ## Static options of components::SystemStatisticsCollector :
+/// @include{doc} scripts/docs/en/components_schema/core/src/utils/statistics/system_statistics_collector.md
 ///
-/// Note that `with-nginx` is a relatively expensive option as it requires full
-/// process list scan.
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Static configuration example:
 ///
 /// @snippet components/common_component_list_test.cpp  Sample system statistics component config
+class SystemStatisticsCollector final : public ComponentBase {
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of @ref components::SystemStatisticsCollector
+    static constexpr std::string_view kName = "system-statistics-collector";
 
-// clang-format on
+    SystemStatisticsCollector(const ComponentConfig&, const ComponentContext&);
+    ~SystemStatisticsCollector() override;
 
-class SystemStatisticsCollector final : public LoggableComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::SystemStatisticsCollector
-  static constexpr std::string_view kName = "system-statistics-collector";
+    static yaml_config::Schema GetStaticConfigSchema();
 
-  SystemStatisticsCollector(const ComponentConfig&, const ComponentContext&);
-  ~SystemStatisticsCollector() override;
+private:
+    void ExtendStatistics(utils::statistics::Writer& writer);
 
-  static yaml_config::Schema GetStaticConfigSchema();
-
- private:
-  void ExtendStatistics(utils::statistics::Writer& writer);
-
-  const bool with_nginx_;
-  engine::TaskProcessor& fs_task_processor_;
-  utils::statistics::Entry statistics_holder_;
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
 };
 
 template <>

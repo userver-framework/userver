@@ -8,13 +8,9 @@ namespace utils::datetime {
 
 constexpr auto kClockFlag = kCoarseRealtimeClockNativeFlag;
 
-WallCoarseClock::time_point WallCoarseClock::now() noexcept {
-  return CoarseNow<time_point, kClockFlag>();
-}
+WallCoarseClock::time_point WallCoarseClock::now() noexcept { return CoarseNow<time_point, kClockFlag>(); }
 
-WallCoarseClock::duration WallCoarseClock::resolution() noexcept {
-  return CoarseResolution<duration, kClockFlag>();
-}
+WallCoarseClock::duration WallCoarseClock::resolution() noexcept { return CoarseResolution<duration, kClockFlag>(); }
 
 }  // namespace utils::datetime
 

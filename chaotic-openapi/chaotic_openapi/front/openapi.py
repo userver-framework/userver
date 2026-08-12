@@ -1,0 +1,382 @@
+import enum
+from typing import Any
+
+import pydantic
+
+from chaotic_openapi.front import base_model
+from chaotic_openapi.front import errors
+
+
+# https://spec.openapis.org/oas/v3.0.0.html#info-object
+class Info(base_model.BaseModel):
+    title: str
+    description: str | None = None
+    termsOfService: str | None = None
+    contact: Any = None
+    license: Any = None
+    version: str
+
+
+# https://spec.openapis.org/oas/v3.0.0.html#server-object
+class Server(base_model.BaseModel):
+    url: str
+    description: str | None = None
+    variables: dict[str, Any] = pydantic.Field(default_factory=dict)
+
+
+Schema = Any
+
+
+# https://spec.openapis.org/oas/v3.0.0.html#style-values
+class Style(str, enum.Enum):
+    matrix = 'matrix'
+    label = 'label'
+    form = 'form'
+    simple = 'simple'
+    spaceDelimited = 'spaceDelimited'
+    pipeDelimited = 'pipeDelimited'
+    # TODO: deepObject
+
+
+# https://spec.openapis.org/oas/v3.0.0.html#header-object
+class Header(base_model.BaseModel):
+    description: str | None = None
+    required: bool = False
+    deprecated: bool = False
+    allowEmptyValue: bool = False
+
+    style: Style | None = pydantic.Field(default=None, strict=False)
+    explode: bool | None = None
+    allowReserved: bool = False
+    schema_: Schema = pydantic.Field(alias='schema')
+    example: Any = None
+    examples: dict[str, Any] = pydantic.Field(default_factory=dict)
+
+
+# https://spec.openapis.org/oas/v3.0.0.html#media-type-object
+class MediaType(base_model.BaseModel):
+    schema_: Schema = pydantic.Field(alias='schema', default=None)
+    example: Any = None
+    examples: dict[str, Any] = pydantic.Field(default_factory=dict)
+    # encoding: dict[str, Encoding] = {}
+
+    x_non_std_type_reason: str | None = pydantic.Field(
+        default=None,
+        validation_alias=pydantic.AliasChoices('x-taxi-non-std-type-reason', 'x-usrv-non-std-type-reason'),
+    )
+
+
+# https://spec.openapis.org/oas/v3.0.0.html#reference-object
+class Ref(base_model.BaseModel):
+    ref: str = pydantic.Field(alias='$ref')
+
+
+# https://spec.openapis.org/oas/v3.0.0.html#responses-object
+class Response(base_model.BaseModel):
+    description: str
+    headers: dict[str, Header | Ref] = pydantic.Field(default_factory=dict)
+    content: dict[str, MediaType] = pydantic.Field(default_factory=dict)
+    # TODO: links
+
+    def model_post_init(self, context: Any, /) -> None:
+        if 'application/json' in self.content and not self.content['application/json'].schema_:
+            # empty application/json means the same "no body"
+            del self.content['application/json']
+
+
+class In(str, enum.Enum):
+    path = 'path'
+    query = 'query'
+    header = 'header'
+    cookie = 'cookie'
+
+
+class QueryLogMode(str, enum.Enum):
+    show = 'show'
+    hide = 'hide'
+
+
+# https://spec.openapis.org/oas/v3.0.0.html#parameter-object
+class Parameter(base_model.BaseModel):
+    name: str
+    in_: In = pydantic.Field(alias='in', strict=False)
+    description: str | None = None
+    required: bool = False
+    deprecated: bool = False
+    allowEmptyValue: bool = False
+
+    style: Style | None = pydantic.Field(default=None, strict=False)
+    explode: bool | None = None
+    allowReserved: bool = False
+    schema_: Schema = pydantic.Field(alias='schema')
+    example: Any = None
+    examples: dict[str, Any] = pydantic.Field(default_factory=dict)
+
+    # content: dict[str, MediaType] = {}
+
+    x_handler_tag: str | None = pydantic.Field(
+        default=None,
+        validation_alias=pydantic.AliasChoices('x-taxi-handler-tag', 'x-usrv-handler-tag'),
+    )
+    x_cpp_name: str | None = pydantic.Field(
+        default=None,
+        validation_alias=pydantic.AliasChoices('x-taxi-cpp-name', 'x-usrv-cpp-name'),
+    )
+    x_query_log_mode: QueryLogMode = pydantic.Field(
+        default=QueryLogMode.show,
+        validation_alias=pydantic.AliasChoices('x-taxi-query-log-mode', 'x-usrv-query-log-mode'),
+        strict=False,
+    )
+    x_explode_true_reason: str = pydantic.Field(
+        default='',
+        validation_alias=pydantic.AliasChoices('x-taxi-explode-true-reason', 'x-usrv-explode-true-reason'),
+    )
+
+    def model_post_init(self, context: Any, /) -> None:
+        super().model_post_init(context)
+        if self.style:
+            return
+
+        self.style = {
+            In.query: Style.form,
+            In.path: Style.simple,
+            In.header: Style.simple,
+            In.cookie: Style.form,
+        }[self.in_]
+
+
+# https://spec.openapis.org/oas/v3.0.0.html#request-body-object
+class RequestBody(base_model.BaseModel):
+    description: str | None = None
+    content: dict[str, MediaType]
+    required: bool = False
+
+
+class SecurityType(str, enum.Enum):
+    apiKey = 'apiKey'
+    http = 'http'
+    oauth2 = 'oauth2'
+    openIdConnect = 'openIdConnect'
+
+
+class SecurityIn(str, enum.Enum):
+    query = 'query'
+    header = 'header'
+    cookie = 'cookie'
+
+
+class ImplicitFlow(base_model.BaseModel):
+    refreshUrl: str | None = None
+    scopes: dict[str, str] = pydantic.Field(default_factory=dict)
+    authorizationUrl: str
+
+
+class PasswordFlow(base_model.BaseModel):
+    refreshUrl: str | None = None
+    scopes: dict[str, str] = pydantic.Field(default_factory=dict)
+    tokenUrl: str
+
+
+class ClientCredFlow(base_model.BaseModel):
+    refreshUrl: str | None = None
+    scopes: dict[str, str] = pydantic.Field(default_factory=dict)
+    tokenUrl: str
+
+
+class AuthCodeFlow(base_model.BaseModel):
+    refreshUrl: str | None = None
+    scopes: dict[str, str] = pydantic.Field(default_factory=dict)
+    authorizationUrl: str
+    tokenUrl: str
+
+
+# https://spec.openapis.org/oas/v3.0.0.html#oauth-flows-object
+class OAuthFlows(base_model.BaseModel):
+    implicit: ImplicitFlow | None = None
+    password: PasswordFlow | None = None
+    clientCredentials: ClientCredFlow | None = None
+    authorizationCode: AuthCodeFlow | None = None
+
+
+# https://spec.openapis.org/oas/v3.0.0.html#security-scheme-object
+class SecurityScheme(base_model.BaseModel):
+    type: SecurityType = pydantic.Field(strict=False)
+    description: str | None = None
+    name: str | None = None
+    in_: SecurityIn | None = pydantic.Field(alias='in', default=None, strict=False)
+    scheme_: str | None = pydantic.Field(alias='scheme', default=None)
+    bearerFormat: str | None = None
+    flows: OAuthFlows | None = None
+    openIdConnectUrl: str | None = None
+
+    def model_post_init(self, context: Any, /) -> None:
+        super().model_post_init(context)
+
+        match self.type:
+            case SecurityType.apiKey:
+                if not self.name:
+                    raise ValueError(errors.missing_field_msg('name'))
+                if not self.in_:
+                    raise ValueError(errors.missing_field_msg('in'))
+            case SecurityType.oauth2:
+                if not self.flows:
+                    raise ValueError(errors.missing_field_msg('flows'))
+            case SecurityType.http:
+                if not self.scheme_:
+                    raise ValueError(errors.missing_field_msg('scheme'))
+            case SecurityType.openIdConnect:
+                if not self.openIdConnectUrl:
+                    raise ValueError(errors.missing_field_msg('openIdConnectUrl'))
+
+
+SecuritySchemes = dict[str, SecurityScheme | Ref]
+
+
+# https://spec.openapis.org/oas/v3.0.0.html#security-requirement-object
+Security = dict[str, list[str]]
+
+
+# https://spec.openapis.org/oas/v3.0.0.html#components-object
+class Components(base_model.BaseModel):
+    schemas: dict[str, Schema] = pydantic.Field(default_factory=dict)
+    requests: dict[str, Any] = pydantic.Field(default_factory=dict)  # TODO
+    responses: dict[str, Response] = pydantic.Field(default_factory=dict)
+    parameters: dict[str, Parameter] = pydantic.Field(default_factory=dict)
+    headers: dict[str, Header] = pydantic.Field(default_factory=dict)
+    requestBodies: dict[str, RequestBody] = pydantic.Field(default_factory=dict)
+    securitySchemes: SecuritySchemes = pydantic.Field(default_factory=dict)
+
+
+# https://spec.openapis.org/oas/v3.0.0.html#operation-object
+class Operation(base_model.BaseModel):
+    tags: list[str] = pydantic.Field(default_factory=list)
+    summary: str | None = None
+    description: str = ''
+    externalDocs: Any = None
+
+    operationId: str | None = None
+    parameters: list[Parameter | Ref] = pydantic.Field(default_factory=list)
+    requestBody: RequestBody | Ref | None = None
+    responses: dict[str | int, Response | Ref]
+    deprecated: bool = False
+    security: Security | None = None
+    servers: list[Server] = pydantic.Field(default_factory=list)
+
+    x_taxi_middlewares: base_model.XMiddlewares | None = pydantic.Field(
+        default=None,
+        validation_alias=pydantic.AliasChoices('x-taxi-middlewares', 'x-usrv-middlewares'),
+    )
+    x_taxi_handler_codegen: bool = pydantic.Field(
+        default=True,
+        validation_alias=pydantic.AliasChoices('x-taxi-handler-codegen', 'x-usrv-handler-codegen'),
+    )
+    x_query_log_mode: QueryLogMode = pydantic.Field(
+        default=QueryLogMode.show,
+        validation_alias=pydantic.AliasChoices('x-taxi-query-log-mode', 'x-usrv-query-log-mode'),
+        strict=False,
+    )
+    x_client_codegen: bool = pydantic.Field(
+        default=True,
+        validation_alias=pydantic.AliasChoices('x-taxi-client-codegen', 'x-usrv-client-codegen'),
+    )
+
+    def model_post_init(self, context: Any, /) -> None:
+        super().model_post_init(context)
+
+        if self.x_query_log_mode == QueryLogMode.hide:
+            for parameter in self.parameters:
+                if not isinstance(parameter, Parameter):
+                    continue
+                if parameter.in_ == In.query:
+                    parameter.x_query_log_mode = QueryLogMode.hide
+
+
+# https://spec.openapis.org/oas/v3.0.0.html#path-item-object
+class Path(base_model.BaseModel):
+    summary: str | None = None
+    description: str = ''
+
+    get: Operation | None = None
+    post: Operation | None = None
+    put: Operation | None = None
+    delete: Operation | None = None
+    options: Operation | None = None
+    head: Operation | None = None
+    patch: Operation | None = None
+    trace: Operation | None = None
+
+    servers: list[Server] = pydantic.Field(default_factory=list)
+    parameters: list[Parameter | Ref] = pydantic.Field(default_factory=list)
+
+
+class XTaxiClientQos(base_model.BaseModel):
+    taxi_config: str = pydantic.Field(alias='taxi-config')
+
+
+# https://spec.openapis.org/oas/v3.0.0.html#schema
+class OpenApi(base_model.BaseModel):
+    openapi: str = '3.0.0'
+    info: Info | None = None
+    servers: list[Server] = pydantic.Field(default_factory=list)
+    paths: dict[str, Path] = pydantic.Field(default_factory=dict)
+    components: Components = Components()
+    security: Security = pydantic.Field(default_factory=dict)
+    tags: list[Any] = pydantic.Field(default_factory=list)
+    externalDocs: Any = None
+
+    x_taxi_client_qos: XTaxiClientQos | None = pydantic.Field(
+        default=None,
+        validation_alias=pydantic.AliasChoices('x-taxi-client-qos', 'x-usrv-client-qos'),
+    )
+    x_taxi_middlewares: base_model.XMiddlewares | None = pydantic.Field(
+        default=None,
+        validation_alias=pydantic.AliasChoices('x-taxi-middlewares', 'x-usrv-middlewares'),
+    )
+
+    def validate_security(self, security: Security | None) -> None:
+        if not security:
+            return
+
+        for name, values in security.items():
+            if name not in self.components.securitySchemes:
+                raise ValueError(
+                    f'Undefined security name="{name}". Expected on of: {self.components.securitySchemes.keys()}',
+                )
+            sec_scheme = self.components.securitySchemes[name]
+
+            if isinstance(sec_scheme, Ref):
+                if sec_scheme not in self.components.securitySchemes:
+                    raise ValueError(
+                        f'Invalid reference "{sec_scheme}". Expected one of: "{self.components.securitySchemes.keys()}"',
+                    )
+            elif isinstance(sec_scheme, SecurityScheme):
+                if sec_scheme.type not in [SecurityType.oauth2, SecurityType.openIdConnect]:
+                    if len(values) != 0:
+                        raise ValueError(f'For security "{name}" the array must be empty')
+
+    def model_post_init(self, context: Any, /) -> None:
+        super().model_post_init(context)
+
+        self.validate_security(self.security)
+
+        for path in self.paths.values():
+            if path.get:
+                self.validate_security(path.get.security)
+            if path.post:
+                self.validate_security(path.post.security)
+            if path.put:
+                self.validate_security(path.put.security)
+            if path.delete:
+                self.validate_security(path.delete.security)
+            if path.options:
+                self.validate_security(path.options.security)
+            if path.head:
+                self.validate_security(path.head.security)
+            if path.patch:
+                self.validate_security(path.patch.security)
+            if path.trace:
+                self.validate_security(path.trace.security)
+
+    @staticmethod
+    def schema_type() -> str:
+        return 'openapi'

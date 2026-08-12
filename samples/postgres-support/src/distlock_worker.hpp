@@ -6,16 +6,14 @@
 
 namespace tests::distlock {
 
-class PgWorkerComponent final
-    : public storages::postgres::DistLockComponentBase {
- public:
-  static constexpr std::string_view kName = "distlock-pg";
+class PgWorkerComponent final : public storages::postgres::DistLockComponentBase {
+public:
+    static constexpr std::string_view kName = "distlock-pg";
 
-  PgWorkerComponent(const components::ComponentConfig& config,
-                    const components::ComponentContext& context);
-  ~PgWorkerComponent() override;
+    PgWorkerComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
+    ~PgWorkerComponent() override;
 
-  void DoWork() final;
+    void DoWork() final;
 };
 
 }  // namespace tests::distlock

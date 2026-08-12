@@ -1,0 +1,265 @@
+{
+  "catalog": {
+    "enums": {
+      "smoke.color": {
+        "name": "color",
+        "namespace": "smoke",
+        "values": [
+          "red",
+          "green",
+          "blue"
+        ]
+      }
+    },
+    "tables": {
+      "smoke.items": {
+        "columns": [
+          {
+            "name": "id",
+            "nullable": false,
+            "type": "bigint"
+          },
+          {
+            "name": "name",
+            "nullable": false,
+            "type": "text"
+          },
+          {
+            "name": "color",
+            "nullable": false,
+            "type": "smoke.color"
+          },
+          {
+            "name": "tags",
+            "nullable": true,
+            "type": "text[]"
+          },
+          {
+            "name": "profile",
+            "nullable": true,
+            "type": "smoke.profile"
+          }
+        ],
+        "name": "items",
+        "namespace": "smoke",
+        "version": 0
+      }
+    },
+    "types": {
+      "smoke.contact": {
+        "fields": [
+          {
+            "name": "kind",
+            "nullable": true,
+            "type": "text"
+          },
+          {
+            "name": "value",
+            "nullable": true,
+            "type": "text"
+          },
+          {
+            "name": "is_primary",
+            "nullable": true,
+            "type": "boolean"
+          }
+        ],
+        "name": "contact",
+        "namespace": "smoke"
+      },
+      "smoke.profile": {
+        "fields": [
+          {
+            "name": "display_name",
+            "nullable": true,
+            "type": "text"
+          },
+          {
+            "name": "age",
+            "nullable": true,
+            "type": "integer"
+          },
+          {
+            "name": "favourite",
+            "nullable": true,
+            "type": "smoke.color"
+          },
+          {
+            "name": "contacts",
+            "nullable": true,
+            "type": "smoke.contact[]"
+          }
+        ],
+        "name": "profile",
+        "namespace": "smoke"
+      }
+    }
+  },
+  "hashsum": "e0ddfc86ea363af8de60429e3b74c1bfd44e2856610c74e6b981089381e9f9f6",
+  "queries": [
+    {
+      "args": [],
+      "cardinality": "many",
+      "name": "count_items_by_color",
+      "returns": [
+        {
+          "name": "color",
+          "nullable": true,
+          "type": "smoke.color"
+        },
+        {
+          "name": "amount",
+          "nullable": true,
+          "type": "bigint"
+        }
+      ]
+    },
+    {
+      "args": [
+        {
+          "nullable": true,
+          "type": "bigint"
+        }
+      ],
+      "cardinality": "optional",
+      "name": "delete_item",
+      "returns": [
+        {
+          "name": "id",
+          "nullable": true,
+          "type": "bigint"
+        },
+        {
+          "name": "name",
+          "nullable": true,
+          "type": "text"
+        }
+      ]
+    },
+    {
+      "args": [
+        {
+          "nullable": false,
+          "type": "text"
+        },
+        {
+          "nullable": false,
+          "type": "smoke.color"
+        },
+        {
+          "nullable": true,
+          "type": "text[]"
+        },
+        {
+          "nullable": true,
+          "type": "smoke.profile"
+        }
+      ],
+      "cardinality": "one",
+      "name": "insert_item",
+      "returns": [
+        {
+          "name": "id",
+          "nullable": true,
+          "type": "bigint"
+        }
+      ]
+    },
+    {
+      "args": [],
+      "cardinality": "many",
+      "name": "select_all_items",
+      "returns": [
+        {
+          "name": "id",
+          "nullable": true,
+          "type": "bigint"
+        },
+        {
+          "name": "name",
+          "nullable": true,
+          "type": "text"
+        },
+        {
+          "name": "color",
+          "nullable": true,
+          "type": "smoke.color"
+        },
+        {
+          "name": "tags",
+          "nullable": true,
+          "type": "text[]"
+        },
+        {
+          "name": "profile",
+          "nullable": true,
+          "type": "smoke.profile"
+        }
+      ]
+    },
+    {
+      "args": [
+        {
+          "nullable": true,
+          "type": "bigint"
+        }
+      ],
+      "cardinality": "optional",
+      "name": "select_item_by_id",
+      "returns": [
+        {
+          "name": "id",
+          "nullable": true,
+          "type": "bigint"
+        },
+        {
+          "name": "name",
+          "nullable": true,
+          "type": "text"
+        },
+        {
+          "name": "color",
+          "nullable": true,
+          "type": "smoke.color"
+        },
+        {
+          "name": "tags",
+          "nullable": true,
+          "type": "text[]"
+        },
+        {
+          "name": "profile",
+          "nullable": true,
+          "type": "smoke.profile"
+        }
+      ]
+    },
+    {
+      "args": [],
+      "cardinality": "one",
+      "name": "select_item_count",
+      "returns": [
+        {
+          "name": "count",
+          "nullable": true,
+          "type": "bigint"
+        }
+      ]
+    },
+    {
+      "args": [
+        {
+          "nullable": true,
+          "type": "bigint"
+        },
+        {
+          "nullable": true,
+          "type": "smoke.color"
+        }
+      ],
+      "cardinality": "many",
+      "name": "update_item_color",
+      "returns": []
+    }
+  ]
+}

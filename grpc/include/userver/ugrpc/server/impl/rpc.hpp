@@ -1,0 +1,277 @@
+#pragma once
+
+#include <type_traits>
+
+#include <google/protobuf/message.h>
+#include <grpcpp/support/byte_buffer.h>
+
+#include <userver/engine/single_waiting_task_mutex.hpp>
+#include <userver/engine/task/cancel.hpp>
+#include <userver/utils/assert.hpp>
+
+#include <userver/ugrpc/server/exceptions.hpp>
+#include <userver/ugrpc/server/impl/async_methods.hpp>
+#include <userver/ugrpc/server/impl/call_state.hpp>
+#include <userver/ugrpc/server/impl/status_utils.hpp>
+
+USERVER_NAMESPACE_BEGIN
+
+namespace ugrpc::server::impl {
+
+grpc::Status MakeUninitializedResponseStatus(const google::protobuf::Message& response);
+
+void ValidateResponseIsInitialized(const google::protobuf::Message& response);
+
+template <typename Message>
+grpc::Status DeserializeMessage(grpc::ByteBuffer&& buffer, Message& message) {
+    if constexpr (std::is_same_v<Message, grpc::ByteBuffer>) {
+        message.Swap(&buffer);
+        return grpc::Status::OK;
+    } else {
+        const auto status = grpc::SerializationTraits<Message>::Deserialize(&buffer, &message);
+        if (!status.ok()) {
+            return {grpc::StatusCode::INTERNAL, "Unable to parse request"};
+        }
+        return grpc::Status::OK;
+    }
+}
+
+template <typename Message>
+grpc::Status SerializeMessage(const Message& message, grpc::ByteBuffer& buffer) {
+    if constexpr (std::is_same_v<Message, grpc::ByteBuffer>) {
+        buffer = message;
+        return grpc::Status::OK;
+    } else {
+        bool own_buffer = false;
+        return grpc::SerializationTraits<Message>::Serialize(message, &buffer, &own_buffer);
+    }
+}
+
+/// @brief A non-typed base class for any gRPC call.
+class ResponderBase {
+protected:
+    ResponderBase(utils::impl::InternalTag, CallState& state)
+        : state_(state)
+    {}
+
+    // Prevent ownership via pointer to base.
+    ~ResponderBase() = default;
+
+    void ApplyRequestHook(google::protobuf::Message& request);
+
+    void ApplyResponseHook(google::protobuf::Message& response);
+
+    std::string_view GetCallName() const { return state_.call_name; }
+
+private:
+    std::unique_lock<engine::SingleWaitingTaskMutex> TakeMutexIfBidirectional();
+
+    CallState& state_;
+    engine::SingleWaitingTaskMutex mutex_;
+};
+
+/// @brief Controls an RPC, server-side.
+///
+/// This class allows the following concurrent calls:
+///
+///   - `GetContext`
+///   - `Read`;
+///   - one of (`Write`, `Finish`, `FinishWithError`).
+///
+/// The RPC is cancelled on destruction unless the stream has been finished.
+///
+/// If any method throws, further methods must not be called on the same stream,
+/// except for `GetContext`.
+template <typename CallTraits>
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
+class Responder final : public ResponderBase, public CallTraits::StreamAdapter {
+    using Request = typename CallTraits::Request;
+    using Response = typename CallTraits::Response;
+    using RawResponder = typename CallTraits::RawResponder;
+
+public:
+    Responder(CallState& call_state, RawResponder& raw_responder);
+
+    Responder(Responder&&) = delete;
+    Responder& operator=(Responder&&) = delete;
+    ~Responder() override;
+
+    bool IsInterrupted() const { return is_interrupted_; }
+
+    /// @brief Await and read the next incoming message. Only makes sense for client-streaming RPCs.
+    /// @param request where to put the request on success
+    /// @returns `true` on success, `false` on end-of-input
+    /// @throws ugrpc::server::RpcError on an RPC error
+    /// @throws ugrpc::server::impl::MiddlewareRpcInterruptionError on error from middlewares
+    bool DoRead(Request& request);
+
+    /// @brief Write the next outgoing message. Only makes sense for server-streaming RPCs.
+    /// @param response the next message to write
+    /// @param options the write options
+    /// @throws ugrpc::server::RpcError on an RPC error
+    /// @throws ugrpc::server::impl::MiddlewareRpcInterruptionError on error from middlewares
+    void DoWrite(Response& response, const grpc::WriteOptions& options);
+
+    /// @brief Complete the RPC with an error
+    ///
+    /// Trims whitespaces from gRPC status messages before transmission.
+    /// Clamps invalid status codes to UNKNOWN if not in range [0, 16].
+    ///
+    /// `Finish` must not be called multiple times.
+    ///
+    /// @param status error details. Whitespaces may be trimmed in the status message.
+    /// @returns `true` if the status is going to the wire, `false` if the RPC is dead.
+    [[nodiscard]] bool FinishWithError(grpc::Status& status);
+
+    /// @brief Complete the RPC successfully, sending the given response message to the client.
+    ///
+    /// For response-streaming calls, this is mostly equivalent to `Write + Finish`, but saves one round-trip.
+    ///
+    /// `Finish` must not be called multiple times for the same RPC.
+    ///
+    /// @param response the final `Response` message to send to the client
+    /// @returns `true` if the response is going to the wire, `false` if the RPC is dead.
+    [[nodiscard]] bool Finish(const Response& response);
+
+    /// @brief Complete the RPC with `OK` status, without a final response. Only makes sense for server-streaming RPCs.
+    ///
+    /// `Finish` must not be called multiple times.
+    ///
+    /// @returns `true` if the status is going to the wire, `false` if the RPC is dead.
+    [[nodiscard]] bool Finish();
+
+private:
+    RawResponder& raw_responder_;
+    // Separate flags are required to be able to set them in parallel in Read and Write.
+    bool are_reads_done_{CallTraits::kRpcType == RpcType::kUnary};
+    bool is_interrupted_{false};
+    bool is_finished_{false};
+};
+
+template <typename CallTraits>
+Responder<CallTraits>::Responder(CallState& state, RawResponder& raw_responder)
+    : ResponderBase(utils::impl::InternalTag{}, state),
+      raw_responder_(raw_responder)
+{}
+
+template <typename CallTraits>
+Responder<CallTraits>::~Responder() {
+    UASSERT(is_finished_ || is_interrupted_ || engine::current_task::ShouldCancel());
+}
+
+template <typename CallTraits>
+bool Responder<CallTraits>::DoRead(Request& request) {
+    static_assert(!IsSingleRequestMethod(CallTraits::kRpcType));
+    UINVARIANT(!are_reads_done_, "'Read' called while the stream is half-closed for reads");
+
+    grpc::ByteBuffer buffer;
+    if (!impl::Read(raw_responder_, buffer)) {
+        are_reads_done_ = true;
+        return false;
+    }
+
+    const auto parse_status = impl::DeserializeMessage(std::move(buffer), request);
+    if (!parse_status.ok()) {
+        are_reads_done_ = true;
+        return false;
+    }
+
+    if constexpr (std::is_base_of_v<google::protobuf::Message, Request>) {
+        ApplyRequestHook(request);
+    }
+    return true;
+}
+
+template <typename CallTraits>
+void Responder<CallTraits>::DoWrite(Response& response, const grpc::WriteOptions& options) {
+    static_assert(!IsSingleResponseMethod(CallTraits::kRpcType));
+    UINVARIANT(!is_interrupted_, "'Write' called on an interrupted stream");
+
+    if constexpr (std::is_base_of_v<google::protobuf::Message, Response>) {
+        impl::ValidateResponseIsInitialized(response);
+        ApplyResponseHook(response);
+    }
+
+    if constexpr (CallTraits::kRpcType == RpcType::kServerStreaming) {
+        // For some reason, gRPC requires explicit 'SendInitialMetadata' in output streams.
+        if (!are_reads_done_) {
+            are_reads_done_ = true;
+            if (!impl::SendInitialMetadata(raw_responder_)) {
+                is_interrupted_ = true;
+                throw RpcInterruptedError(GetCallName(), "SendInitialMetadata");
+            }
+        }
+    }
+
+    grpc::ByteBuffer buffer;
+    const auto serialization_status = impl::SerializeMessage(response, buffer);
+    if (!serialization_status.ok()) {
+        is_interrupted_ = true;
+        throw ErrorWithStatus(serialization_status);
+    }
+
+    if (!impl::Write(raw_responder_, buffer, options)) {
+        is_interrupted_ = true;
+        throw RpcInterruptedError(GetCallName(), "Write");
+    }
+}
+
+template <typename CallTraits>
+[[nodiscard]] bool Responder<CallTraits>::FinishWithError(grpc::Status& status) {
+    UASSERT(!status.ok());
+    UINVARIANT(!is_finished_, "'FinishWithError' called on a finished stream");
+    is_finished_ = true;
+
+    // Trim whitespaces from gRPC status messages before transmission
+    // to ensure compliance with HTTP/2 RFC9113 8.2.1
+    // Clamp status code to [0, 16], converting out-of-range values to UNKNOWN
+    // to ensure compliance with gRPC spec
+    impl::NormalizeStatus(status);
+
+    if constexpr (IsSingleResponseMethod(CallTraits::kRpcType)) {
+        return impl::FinishWithError(raw_responder_, status);
+    } else {
+        return impl::Finish(raw_responder_, status);
+    }
+}
+
+template <typename CallTraits>
+[[nodiscard]] bool Responder<CallTraits>::Finish(const Response& response) {
+    UINVARIANT(!is_finished_, "'Finish' called on a finished stream");
+
+    if constexpr (std::is_base_of_v<google::protobuf::Message, Response>) {
+        // Final responses from handlers are validated and converted to an error status in
+        // CallProcessor before running server middlewares.
+        UASSERT(response.IsInitialized());
+    }
+
+    grpc::ByteBuffer buffer;
+    auto serialization_status = impl::SerializeMessage(response, buffer);
+    if (!serialization_status.ok()) {
+        return FinishWithError(serialization_status);
+    }
+
+    is_finished_ = true;
+
+    if constexpr (IsSingleResponseMethod(CallTraits::kRpcType)) {
+        return impl::Finish(raw_responder_, buffer, grpc::Status::OK);
+    } else {
+        // Don't buffer writes, optimize for ping-pong-style interaction.
+        const grpc::WriteOptions write_options{};
+
+        return impl::WriteAndFinish(raw_responder_, buffer, write_options, grpc::Status::OK);
+    }
+}
+
+template <typename CallTraits>
+[[nodiscard]] bool Responder<CallTraits>::Finish() {
+    static_assert(!IsSingleResponseMethod(CallTraits::kRpcType));
+    UINVARIANT(!is_finished_, "'Finish' called on a finished stream");
+    is_finished_ = true;
+
+    return impl::Finish(raw_responder_, grpc::Status::OK);
+}
+
+}  // namespace ugrpc::server::impl
+
+USERVER_NAMESPACE_END

@@ -1,14 +1,17 @@
 """
 Fixtures for controlling userver caches.
 """
+
+from collections.abc import Callable
+from collections.abc import Iterable
+from collections.abc import Sequence
+from collections.abc import Set
 import copy
 import enum
 import types
-import typing
+from typing import Any
 
 import pytest
-
-from testsuite.daemons.pytest_plugin import DaemonInstance
 
 
 class UserverCachePlugin:
@@ -16,7 +19,7 @@ class UserverCachePlugin:
         self._hooks = {}
 
     @property
-    def userver_cache_control_hooks(self) -> typing.Dict[str, str]:
+    def userver_cache_control_hooks(self) -> dict[str, str]:
         return self._hooks
 
     def pytest_plugin_registered(self, plugin, manager):
@@ -27,28 +30,26 @@ class UserverCachePlugin:
             return
         if not isinstance(uhooks, dict):
             raise RuntimeError(
-                f'USERVER_CACHE_CONTROL_HOOKS must be dictionary: '
-                f'{{cache_name: fixture_name}}, got {uhooks} instead',
+                f'USERVER_CACHE_CONTROL_HOOKS must be dictionary: {{cache_name: fixture_name}}, got {uhooks} instead',
             )
         for cache_name, fixture_name in uhooks.items():
             if cache_name in self._hooks:
                 raise RuntimeError(
-                    f'USERVER_CACHE_CONTROL_HOOKS: hook already registered '
-                    f'for cache {cache_name}',
+                    f'USERVER_CACHE_CONTROL_HOOKS: hook already registered for cache {cache_name}',
                 )
             self._hooks[cache_name] = fixture_name
 
 
 class InvalidationState:
-    def __init__(self):
+    def __init__(self) -> None:
         # None means that we should update all caches.
         # We invalidate all caches at the start of each test.
-        self._invalidated_caches: typing.Optional[typing.Set[str]] = None
+        self._invalidated_caches: set[str] | None = None
 
     def invalidate_all(self) -> None:
         self._invalidated_caches = None
 
-    def invalidate(self, caches: typing.Iterable[str]) -> None:
+    def invalidate(self, caches: Iterable[str]) -> None:
         if self._invalidated_caches is not None:
             self._invalidated_caches.update(caches)
 
@@ -57,7 +58,7 @@ class InvalidationState:
         return self._invalidated_caches is None
 
     @property
-    def caches_to_update(self) -> typing.FrozenSet[str]:
+    def caches_to_update(self) -> frozenset[str]:
         assert self._invalidated_caches is not None
         return frozenset(self._invalidated_caches)
 
@@ -66,7 +67,7 @@ class InvalidationState:
         caches = self._invalidated_caches
         return caches is None or bool(caches)
 
-    def on_caches_updated(self, caches: typing.Iterable[str]) -> None:
+    def on_caches_updated(self, caches: Iterable[str]) -> None:
         if self._invalidated_caches is not None:
             self._invalidated_caches.difference_update(caches)
 
@@ -98,12 +99,12 @@ class CacheControlRequest:
 
 class CacheControl:
     def __init__(
-            self,
-            *,
-            enabled: bool,
-            context: typing.Dict,
-            fixtures: typing.List[str],
-            caches_disabled: typing.Set[str],
+        self,
+        *,
+        enabled: bool,
+        context: dict[Any, Any],
+        fixtures: dict[str, Callable[[...], Any]],
+        caches_disabled: Set[str],
     ):
         self._enabled = enabled
         self._context = context
@@ -111,10 +112,9 @@ class CacheControl:
         self._caches_disabled = caches_disabled
 
     def query_caches(
-            self, cache_names: typing.Optional[typing.List[str]],
-    ) -> typing.Tuple[
-        typing.Dict, typing.List[typing.Tuple[str, CacheControlAction]],
-    ]:
+        self,
+        cache_names: list[str] | None,
+    ) -> tuple[dict[Any, Any], list[tuple[str, CacheControlAction]]]:
         """Query cache control handlers.
 
         Returns pair (staged, [(cache_name, action), ...])
@@ -137,15 +137,16 @@ class CacheControl:
             actions.append((cache_name, request.action))
         return staged, actions
 
-    def commit_staged(self, staged: typing.Dict[str, typing.Any]) -> None:
-        """Apply recently commited state."""
+    def commit_staged(self, staged: dict[str, Any]) -> None:
+        """Apply recently committed state."""
         self._context.update(staged)
 
 
 def pytest_configure(config):
     config.pluginmanager.register(UserverCachePlugin(), 'userver_cache')
     config.addinivalue_line(
-        'markers', 'userver_cache_control_disabled: disable cache control',
+        'markers',
+        'userver_cache_control_disabled: disable cache control',
     )
 
 
@@ -163,14 +164,15 @@ def cache_invalidation_state() -> InvalidationState:
 
 
 @pytest.fixture(scope='session')
-def _userver_cache_control_context() -> typing.Dict:
+def _userver_cache_control_context(daemon_scoped_mark) -> dict[Any, Any]:
     return {}
 
 
 @pytest.fixture
 def _userver_cache_fixtures(
-        pytestconfig, request,
-) -> typing.Dict[str, typing.Callable]:
+    pytestconfig,
+    request,
+) -> dict[str, Callable[[...], Any]]:
     plugin: UserverCachePlugin = pytestconfig.pluginmanager.get_plugin(
         'userver_cache',
     )
@@ -182,8 +184,10 @@ def _userver_cache_fixtures(
 
 @pytest.fixture
 def userver_cache_control(
-        _userver_cache_control_context, _userver_cache_fixtures, request,
-) -> typing.Callable[[DaemonInstance], CacheControl]:
+    _userver_cache_control_context,
+    _userver_cache_fixtures,
+    request,
+) -> CacheControl:
     """Userver cache control handler.
 
     To install per cache handler use USERVER_CACHE_CONTROL_HOOKS variable
@@ -213,9 +217,7 @@ def userver_cache_control(
     enabled = True
     caches_disabled = set()
 
-    def userver_cache_control_disabled(
-            caches: typing.Sequence[str] = None, *, reason: str,
-    ):
+    def userver_cache_control_disabled(caches: Sequence[str] = None, *, reason: str):
         if caches is not None:
             caches_disabled.update(caches)
             return enabled
@@ -224,13 +226,17 @@ def userver_cache_control(
     for mark in request.node.iter_markers('userver_cache_control_disabled'):
         enabled = userver_cache_control_disabled(*mark.args, **mark.kwargs)
 
-    def get_cache_control(daemon: DaemonInstance):
-        context = _userver_cache_control_context.setdefault(daemon.id, {})
-        return CacheControl(
-            context=context,
-            fixtures=_userver_cache_fixtures,
-            enabled=enabled,
-            caches_disabled=caches_disabled,
-        )
+    return CacheControl(
+        context=_userver_cache_control_context,
+        fixtures=_userver_cache_fixtures,
+        enabled=enabled,
+        caches_disabled=caches_disabled,
+    )
 
-    return get_cache_control
+
+@pytest.fixture(scope='session')
+def userver_allow_all_caches_invalidation():
+    """
+    Allows use of invalidate_caches() without cache_names.
+    """
+    return True

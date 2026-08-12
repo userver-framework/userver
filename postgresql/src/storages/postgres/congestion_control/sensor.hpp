@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdint>
 #include <optional>
 
 #include <userver/congestion_control/sensor.hpp>
@@ -15,15 +16,15 @@ class ConnectionPool;
 namespace cc {
 
 class Sensor final : public congestion_control::v2::Sensor {
- public:
-  explicit Sensor(detail::ConnectionPool& pool);
+public:
+    explicit Sensor(detail::ConnectionPool& pool);
 
-  Data GetCurrent() override;
+    Data GetCurrent() override;
 
- private:
-  detail::ConnectionPool& pool_;
-  std::size_t last_total_queries{0};
-  std::size_t last_timeouted_queries{0};
+private:
+    detail::ConnectionPool& pool_;
+    std::uint64_t last_total_queries_{0};
+    std::uint64_t last_timeouted_queries_{0};
 };
 
 }  // namespace cc

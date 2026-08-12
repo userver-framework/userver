@@ -29,29 +29,34 @@ VALUES ($id_key, $name_key, $service_key, $channel_key, CurrentUtcTimestamp(), $
 
 namespace sample {
 
-formats::json::Value UpsertRowHandler::HandleRequestJsonThrow(
-    const server::http::HttpRequest&, const formats::json::Value& request,
-    server::request::RequestContext&) const {
-  engine::SleepFor(std::chrono::milliseconds(10));
+formats::json::Value
+UpsertRowHandler::HandleRequestJsonThrow(const server::http::HttpRequest&, const formats::json::Value& request, server::request::RequestContext&)
+    const {
+    engine::SleepFor(std::chrono::milliseconds(10));
 
-  auto trx = Ydb().Begin("trx", ydb::TransactionMode::kSerializableRW);
-  auto response =
-      trx.Execute(kUpsertQuery,                                               //
-                  "$id_key", request["id"].As<std::string>(),                 //
-                  "$name_key", ydb::Utf8{request["name"].As<std::string>()},  //
-                  "$service_key", request["service"].As<std::string>(),       //
-                  "$channel_key", request["channel"].As<int64_t>(),           //
-                  "$state_key",
-                  request["state"].As<std::optional<formats::json::Value>>()  //
-      );
+    Ydb().RetryTx("trx", {.tx_mode = ydb::TransactionMode::kSerializableRW}, [&](ydb::TxActor& tx) {
+        auto response = tx.Execute(
+            kUpsertQuery,  //
+            "$id_key",
+            request["id"].As<std::string>(),  //
+            "$name_key",
+            ydb::Utf8{request["name"].As<std::string>()},  //
+            "$service_key",
+            request["service"].As<std::string>(),  //
+            "$channel_key",
+            request["channel"].As<int64_t>(),  //
+            "$state_key",
+            request["state"].As<std::optional<formats::json::Value>>()  //
+        );
 
-  if (response.GetCursorCount()) {
-    throw std::runtime_error("Unexpected response data");
-  }
+        if (response.GetCursorCount()) {
+            throw std::runtime_error("Unexpected response data");
+        }
 
-  trx.Commit();
+        return ydb::TxAction::kCommit;
+    });
 
-  return formats::json::MakeObject();
+    return formats::json::MakeObject();
 }
 
 }  // namespace sample

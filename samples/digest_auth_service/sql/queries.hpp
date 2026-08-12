@@ -7,13 +7,17 @@ namespace uservice_dynconf::sql {
 const storages::postgres::Query kSelectUser{
     "SELECT username, nonce, timestamp, nonce_count, ha1 "
     "FROM auth_schema.users WHERE username=$1",
-    storages::postgres::Query::Name{"select_user"}};
+    storages::postgres::Query::NameLiteral{"select_user"},
+    storages::postgres::Query::LogMode::kNameOnly,
+};
 
 const storages::postgres::Query kUpdateUser{
     "UPDATE auth_schema.users "
     "SET nonce=$1, timestamp=$2, nonce_count=$3 "
     "WHERE username=$4",
-    storages::postgres::Query::Name{"update_user"}};
+    storages::postgres::Query::NameLiteral{"update_user"},
+    storages::postgres::Query::LogMode::kNameOnly,
+};
 
 /// [insert unnamed nonce]
 /// 1) Searches for id of expired nonce or generates new nonce.
@@ -44,11 +48,15 @@ const storages::postgres::Query kInsertUnnamedNonce{
     "  creation_time=$3 "
     "  WHERE auth_schema.unnamed_nonce.id=(SELECT free_id.id FROM free_id "
     "LIMIT 1) ",
-    storages::postgres::Query::Name{"insert_unnamed_nonce"}};
+    storages::postgres::Query::NameLiteral{"insert_unnamed_nonce"},
+    storages::postgres::Query::LogMode::kNameOnly,
+};
 /// [insert unnamed nonce]
 const storages::postgres::Query kSelectUnnamedNonce{
     "UPDATE auth_schema.unnamed_nonce SET nonce=id WHERE nonce=$1 "
     "RETURNING creation_time ",
-    storages::postgres::Query::Name{"select_unnamed_nonce"}};
+    storages::postgres::Query::NameLiteral{"select_unnamed_nonce"},
+    storages::postgres::Query::LogMode::kNameOnly,
+};
 
 }  // namespace uservice_dynconf::sql

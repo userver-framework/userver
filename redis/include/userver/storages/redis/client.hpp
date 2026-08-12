@@ -1,20 +1,22 @@
 #pragma once
 
 /// @file userver/storages/redis/client.hpp
-/// @brief @copybrief storages::redis::Client
+/// @brief Valkey or Redis client
 
 #include <chrono>
 #include <memory>
 #include <string>
 
-#include <userver/storages/redis/impl/base.hpp>
-#include <userver/storages/redis/impl/wait_connected_mode.hpp>
+#include <userver/storages/redis/base.hpp>
+#include <userver/storages/redis/health_check_param.hpp>
 
+#include <userver/storages/redis/bit_operation.hpp>
 #include <userver/storages/redis/client_fwd.hpp>
 #include <userver/storages/redis/command_options.hpp>
 #include <userver/storages/redis/request.hpp>
 #include <userver/storages/redis/request_eval.hpp>
 #include <userver/storages/redis/request_evalsha.hpp>
+#include <userver/storages/redis/request_generic.hpp>
 #include <userver/storages/redis/transaction.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -22,17 +24,13 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::redis {
 
 enum class PubShard {
-  kZeroShard,
-  kRoundRobin,
+    kZeroShard,
+    kRoundRobin,
 };
-
-using RetryNilFromMaster = USERVER_NAMESPACE::redis::RetryNilFromMaster;
-
-inline constexpr RetryNilFromMaster kRetryNilFromMaster{};
 
 /// @ingroup userver_clients
 ///
-/// @brief Redis client.
+/// @brief Valkey or Redis client.
 ///
 /// Usually retrieved from components::Redis component.
 ///
@@ -40,454 +38,893 @@ inline constexpr RetryNilFromMaster kRetryNilFromMaster{};
 ///
 /// @snippet storages/redis/client_redistest.cpp  Sample Redis Client usage
 class Client {
- public:
-  virtual ~Client() = default;
-
-  virtual size_t ShardsCount() const = 0;
-  virtual bool IsInClusterMode() const = 0;
-
-  virtual size_t ShardByKey(const std::string& key) const = 0;
-
-  void CheckShardIdx(size_t shard_idx) const;
-
-  virtual const std::string& GetAnyKeyForShard(size_t shard_idx) const = 0;
-
-  virtual std::shared_ptr<Client> GetClientForShard(size_t shard_idx) = 0;
-
-  virtual void WaitConnectedOnce(
-      USERVER_NAMESPACE::redis::RedisWaitConnected wait_connected) = 0;
-
-  // redis commands:
-
-  virtual RequestAppend Append(std::string key, std::string value,
-                               const CommandControl& command_control) = 0;
-
-  virtual RequestDbsize Dbsize(size_t shard,
-                               const CommandControl& command_control) = 0;
-
-  virtual RequestDel Del(std::string key,
-                         const CommandControl& command_control) = 0;
-
-  virtual RequestDel Del(std::vector<std::string> keys,
-                         const CommandControl& command_control) = 0;
-
-  virtual RequestUnlink Unlink(std::string key,
-                               const CommandControl& command_control) = 0;
-
-  virtual RequestUnlink Unlink(std::vector<std::string> keys,
-                               const CommandControl& command_control) = 0;
-
-  template <typename ScriptResult, typename ReplyType = ScriptResult>
-  RequestEval<ScriptResult, ReplyType> Eval(
-      std::string script, std::vector<std::string> keys,
-      std::vector<std::string> args, const CommandControl& command_control) {
-    return RequestEval<ScriptResult, ReplyType>{EvalCommon(
-        std::move(script), std::move(keys), std::move(args), command_control)};
-  }
-  template <typename ScriptResult, typename ReplyType = ScriptResult>
-  RequestEvalSha<ScriptResult, ReplyType> EvalSha(
-      std::string script_hash, std::vector<std::string> keys,
-      std::vector<std::string> args, const CommandControl& command_control) {
-    return RequestEvalSha<ScriptResult, ReplyType>{
-        EvalShaCommon(std::move(script_hash), std::move(keys), std::move(args),
-                      command_control)};
-  }
-
-  virtual RequestScriptLoad ScriptLoad(
-      std::string script, size_t shard,
-      const CommandControl& command_control) = 0;
-
-  template <typename ScriptInfo, typename ReplyType = std::decay_t<ScriptInfo>>
-  RequestEval<std::decay_t<ScriptInfo>, ReplyType> Eval(
-      const ScriptInfo& script_info, std::vector<std::string> keys,
-      std::vector<std::string> args, const CommandControl& command_control) {
-    return RequestEval<std::decay_t<ScriptInfo>, ReplyType>{
-        EvalCommon(script_info.GetScript(), std::move(keys), std::move(args),
-                   command_control)};
-  }
-
-  virtual RequestExists Exists(std::string key,
-                               const CommandControl& command_control) = 0;
-
-  virtual RequestExists Exists(std::vector<std::string> keys,
-                               const CommandControl& command_control) = 0;
-
-  virtual RequestExpire Expire(std::string key, std::chrono::seconds ttl,
-                               const CommandControl& command_control) = 0;
-
-  virtual RequestGeoadd Geoadd(std::string key, GeoaddArg point_member,
-                               const CommandControl& command_control) = 0;
-
-  virtual RequestGeoadd Geoadd(std::string key,
-                               std::vector<GeoaddArg> point_members,
-                               const CommandControl& command_control) = 0;
-
-  virtual RequestGeoradius Georadius(std::string key, Longitude lon,
-                                     Latitude lat, double radius,
-                                     const GeoradiusOptions& georadius_options,
-                                     const CommandControl& command_control) = 0;
-
-  virtual RequestGeosearch Geosearch(std::string key, std::string member,
-                                     double radius,
-                                     const GeosearchOptions& geosearch_options,
-                                     const CommandControl& command_control) = 0;
-
-  virtual RequestGeosearch Geosearch(std::string key, std::string member,
-                                     BoxWidth width, BoxHeight height,
-                                     const GeosearchOptions& geosearch_options,
-                                     const CommandControl& command_control) = 0;
-
-  virtual RequestGeosearch Geosearch(std::string key, Longitude lon,
-                                     Latitude lat, double radius,
-                                     const GeosearchOptions& geosearch_options,
-                                     const CommandControl& command_control) = 0;
-
-  virtual RequestGeosearch Geosearch(std::string key, Longitude lon,
-                                     Latitude lat, BoxWidth width,
-                                     BoxHeight height,
-                                     const GeosearchOptions& geosearch_options,
-                                     const CommandControl& command_control) = 0;
-
-  virtual RequestGet Get(std::string key,
-                         const CommandControl& command_control) = 0;
-
-  virtual RequestGetset Getset(std::string key, std::string value,
-                               const CommandControl& command_control) = 0;
-
-  virtual RequestHdel Hdel(std::string key, std::string field,
-                           const CommandControl& command_control) = 0;
-
-  virtual RequestHdel Hdel(std::string key, std::vector<std::string> fields,
-                           const CommandControl& command_control) = 0;
-
-  virtual RequestHexists Hexists(std::string key, std::string field,
-                                 const CommandControl& command_control) = 0;
-
-  virtual RequestHget Hget(std::string key, std::string field,
-                           const CommandControl& command_control) = 0;
-
-  // use Hscan in case of a big hash
-  virtual RequestHgetall Hgetall(std::string key,
-                                 const CommandControl& command_control) = 0;
-
-  virtual RequestHincrby Hincrby(std::string key, std::string field,
-                                 int64_t increment,
-                                 const CommandControl& command_control) = 0;
-
-  virtual RequestHincrbyfloat Hincrbyfloat(
-      std::string key, std::string field, double increment,
-      const CommandControl& command_control) = 0;
-
-  // use Hscan in case of a big hash
-  virtual RequestHkeys Hkeys(std::string key,
-                             const CommandControl& command_control) = 0;
-
-  virtual RequestHlen Hlen(std::string key,
-                           const CommandControl& command_control) = 0;
-
-  virtual RequestHmget Hmget(std::string key, std::vector<std::string> fields,
-                             const CommandControl& command_control) = 0;
-
-  virtual RequestHmset Hmset(
-      std::string key,
-      std::vector<std::pair<std::string, std::string>> field_values,
-      const CommandControl& command_control) = 0;
-
-  virtual RequestHscan Hscan(std::string key, HscanOptions options,
-                             const CommandControl& command_control) = 0;
-
-  virtual RequestHset Hset(std::string key, std::string field,
-                           std::string value,
-                           const CommandControl& command_control) = 0;
-
-  virtual RequestHsetnx Hsetnx(std::string key, std::string field,
-                               std::string value,
-                               const CommandControl& command_control) = 0;
-
-  // use Hscan in case of a big hash
-  virtual RequestHvals Hvals(std::string key,
-                             const CommandControl& command_control) = 0;
-
-  virtual RequestIncr Incr(std::string key,
-                           const CommandControl& command_control) = 0;
-
-  [[deprecated("use Scan")]] virtual RequestKeys Keys(
-      std::string keys_pattern, size_t shard,
-      const CommandControl& command_control) = 0;
-
-  virtual RequestLindex Lindex(std::string key, int64_t index,
-                               const CommandControl& command_control) = 0;
-
-  virtual RequestLlen Llen(std::string key,
-                           const CommandControl& command_control) = 0;
-
-  virtual RequestLpop Lpop(std::string key,
-                           const CommandControl& command_control) = 0;
-
-  virtual RequestLpush Lpush(std::string key, std::string value,
-                             const CommandControl& command_control) = 0;
-
-  virtual RequestLpush Lpush(std::string key, std::vector<std::string> values,
-                             const CommandControl& command_control) = 0;
-
-  virtual RequestLpushx Lpushx(std::string key, std::string element,
-                               const CommandControl& command_control) = 0;
-
-  virtual RequestLrange Lrange(std::string key, int64_t start, int64_t stop,
-                               const CommandControl& command_control) = 0;
-
-  virtual RequestLrem Lrem(std::string key, int64_t count, std::string element,
-                           const CommandControl& command_control) = 0;
-
-  virtual RequestLtrim Ltrim(std::string key, int64_t start, int64_t stop,
-                             const CommandControl& command_control) = 0;
-
-  virtual RequestMget Mget(std::vector<std::string> keys,
-                           const CommandControl& command_control) = 0;
-
-  virtual RequestMset Mset(
-      std::vector<std::pair<std::string, std::string>> key_values,
-      const CommandControl& command_control) = 0;
-
-  virtual TransactionPtr Multi() = 0;
-
-  virtual TransactionPtr Multi(Transaction::CheckShards check_shards) = 0;
-
-  virtual RequestPersist Persist(std::string key,
-                                 const CommandControl& command_control) = 0;
-
-  virtual RequestPexpire Pexpire(std::string key, std::chrono::milliseconds ttl,
-                                 const CommandControl& command_control) = 0;
-
-  virtual RequestPing Ping(size_t shard,
-                           const CommandControl& command_control) = 0;
-
-  virtual RequestPingMessage Ping(size_t shard, std::string message,
-                                  const CommandControl& command_control) = 0;
-
-  virtual void Publish(std::string channel, std::string message,
-                       const CommandControl& command_control,
-                       PubShard policy) = 0;
-
-  virtual void Spublish(std::string channel, std::string message,
-                        const CommandControl& command_control) = 0;
-
-  virtual RequestRename Rename(std::string key, std::string new_key,
-                               const CommandControl& command_control) = 0;
-
-  virtual RequestRpop Rpop(std::string key,
-                           const CommandControl& command_control) = 0;
-
-  virtual RequestRpush Rpush(std::string key, std::string value,
-                             const CommandControl& command_control) = 0;
-
-  virtual RequestRpush Rpush(std::string key, std::vector<std::string> values,
-                             const CommandControl& command_control) = 0;
-
-  virtual RequestRpushx Rpushx(std::string key, std::string element,
-                               const CommandControl& command_control) = 0;
-
-  virtual RequestSadd Sadd(std::string key, std::string member,
-                           const CommandControl& command_control) = 0;
-
-  virtual RequestSadd Sadd(std::string key, std::vector<std::string> members,
-                           const CommandControl& command_control) = 0;
-
-  virtual RequestScan Scan(size_t shard, ScanOptions options,
-                           const CommandControl& command_control) = 0;
-
-  virtual RequestScard Scard(std::string key,
-                             const CommandControl& command_control) = 0;
-
-  virtual RequestSet Set(std::string key, std::string value,
-                         const CommandControl& command_control) = 0;
-
-  virtual RequestSet Set(std::string key, std::string value,
-                         std::chrono::milliseconds ttl,
-                         const CommandControl& command_control) = 0;
-
-  virtual RequestSetIfExist SetIfExist(
-      std::string key, std::string value,
-      const CommandControl& command_control) = 0;
-
-  virtual RequestSetIfExist SetIfExist(
-      std::string key, std::string value, std::chrono::milliseconds ttl,
-      const CommandControl& command_control) = 0;
-
-  virtual RequestSetIfNotExist SetIfNotExist(
-      std::string key, std::string value,
-      const CommandControl& command_control) = 0;
-
-  virtual RequestSetIfNotExist SetIfNotExist(
-      std::string key, std::string value, std::chrono::milliseconds ttl,
-      const CommandControl& command_control) = 0;
-
-  virtual RequestSetex Setex(std::string key, std::chrono::seconds seconds,
-                             std::string value,
-                             const CommandControl& command_control) = 0;
-
-  virtual RequestSismember Sismember(std::string key, std::string member,
-                                     const CommandControl& command_control) = 0;
-
-  // use Sscan in case of a big set
-  virtual RequestSmembers Smembers(std::string key,
-                                   const CommandControl& command_control) = 0;
-
-  virtual RequestSrandmember Srandmember(
-      std::string key, const CommandControl& command_control) = 0;
-
-  virtual RequestSrandmembers Srandmembers(
-      std::string key, int64_t count,
-      const CommandControl& command_control) = 0;
-
-  virtual RequestSrem Srem(std::string key, std::string member,
-                           const CommandControl& command_control) = 0;
-
-  virtual RequestSrem Srem(std::string key, std::vector<std::string> members,
-                           const CommandControl& command_control) = 0;
-
-  virtual RequestSscan Sscan(std::string key, SscanOptions options,
-                             const CommandControl& command_control) = 0;
-
-  virtual RequestStrlen Strlen(std::string key,
-                               const CommandControl& command_control) = 0;
-
-  virtual RequestTime Time(size_t shard,
-                           const CommandControl& command_control) = 0;
-
-  virtual RequestTtl Ttl(std::string key,
-                         const CommandControl& command_control) = 0;
-
-  virtual RequestType Type(std::string key,
-                           const CommandControl& command_control) = 0;
-
-  virtual RequestZadd Zadd(std::string key, double score, std::string member,
-                           const CommandControl& command_control) = 0;
-
-  virtual RequestZadd Zadd(std::string key, double score, std::string member,
-                           const ZaddOptions& options,
-                           const CommandControl& command_control) = 0;
-
-  virtual RequestZadd Zadd(
-      std::string key,
-      std::vector<std::pair<double, std::string>> scored_members,
-      const CommandControl& command_control) = 0;
-
-  virtual RequestZadd Zadd(
-      std::string key,
-      std::vector<std::pair<double, std::string>> scored_members,
-      const ZaddOptions& options, const CommandControl& command_control) = 0;
-
-  virtual RequestZaddIncr ZaddIncr(std::string key, double score,
-                                   std::string member,
-                                   const CommandControl& command_control) = 0;
-
-  virtual RequestZaddIncrExisting ZaddIncrExisting(
-      std::string key, double score, std::string member,
-      const CommandControl& command_control) = 0;
-
-  virtual RequestZcard Zcard(std::string key,
-                             const CommandControl& command_control) = 0;
-
-  virtual RequestZcount Zcount(std::string key, double min, double max,
-                               const CommandControl& command_control) = 0;
-
-  virtual RequestZrange Zrange(std::string key, int64_t start, int64_t stop,
-                               const CommandControl& command_control) = 0;
-
-  virtual RequestZrangeWithScores ZrangeWithScores(
-      std::string key, int64_t start, int64_t stop,
-      const CommandControl& command_control) = 0;
-
-  virtual RequestZrangebyscore Zrangebyscore(
-      std::string key, double min, double max,
-      const CommandControl& command_control) = 0;
-
-  virtual RequestZrangebyscore Zrangebyscore(
-      std::string key, std::string min, std::string max,
-      const CommandControl& command_control) = 0;
-
-  virtual RequestZrangebyscore Zrangebyscore(
-      std::string key, double min, double max,
-      const RangeOptions& range_options,
-      const CommandControl& command_control) = 0;
-
-  virtual RequestZrangebyscore Zrangebyscore(
-      std::string key, std::string min, std::string max,
-      const RangeOptions& range_options,
-      const CommandControl& command_control) = 0;
-
-  virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
-      std::string key, double min, double max,
-      const CommandControl& command_control) = 0;
-
-  virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
-      std::string key, std::string min, std::string max,
-      const CommandControl& command_control) = 0;
-
-  virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
-      std::string key, double min, double max,
-      const RangeOptions& range_options,
-      const CommandControl& command_control) = 0;
-
-  virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
-      std::string key, std::string min, std::string max,
-      const RangeOptions& range_options,
-      const CommandControl& command_control) = 0;
-
-  virtual RequestZrem Zrem(std::string key, std::string member,
-                           const CommandControl& command_control) = 0;
-
-  virtual RequestZrem Zrem(std::string key, std::vector<std::string> members,
-                           const CommandControl& command_control) = 0;
-
-  virtual RequestZremrangebyrank Zremrangebyrank(
-      std::string key, int64_t start, int64_t stop,
-      const CommandControl& command_control) = 0;
-
-  virtual RequestZremrangebyscore Zremrangebyscore(
-      std::string key, double min, double max,
-      const CommandControl& command_control) = 0;
-
-  virtual RequestZremrangebyscore Zremrangebyscore(
-      std::string key, std::string min, std::string max,
-      const CommandControl& command_control) = 0;
-
-  virtual RequestZscan Zscan(std::string key, ZscanOptions options,
-                             const CommandControl& command_control) = 0;
-
-  virtual RequestZscore Zscore(std::string key, std::string member,
-                               const CommandControl& command_control) = 0;
-
-  // end of redis commands
-
-  RequestGet Get(std::string key, RetryNilFromMaster,
-                 const CommandControl& command_control);
-
-  RequestHget Hget(std::string key, std::string field, RetryNilFromMaster,
-                   const CommandControl& command_control);
-
-  RequestZscore Zscore(std::string key, std::string member, RetryNilFromMaster,
-                       const CommandControl& command_control);
-
-  void Publish(std::string channel, std::string message,
-               const CommandControl& command_control);
-
-  RequestScan Scan(size_t shard, const CommandControl& command_control);
-
-  RequestHscan Hscan(std::string key, const CommandControl& command_control);
-
-  RequestSscan Sscan(std::string key, const CommandControl& command_control);
-
-  RequestZscan Zscan(std::string key, const CommandControl& command_control);
-
- protected:
-  virtual RequestEvalCommon EvalCommon(
-      std::string script, std::vector<std::string> keys,
-      std::vector<std::string> args, const CommandControl& command_control) = 0;
-  virtual RequestEvalShaCommon EvalShaCommon(
-      std::string script_hash, std::vector<std::string> keys,
-      std::vector<std::string> args, const CommandControl& command_control) = 0;
+public:
+    virtual ~Client() = default;
+
+    virtual size_t ShardsCount() const = 0;
+    virtual bool IsInClusterMode() const = 0;
+
+    virtual size_t ShardByKey(const std::string& key) const = 0;
+
+    void CheckShardIdx(size_t shard_idx) const;
+
+    virtual void WaitConnectedOnce(RedisWaitConnected wait_connected) = 0;
+    virtual bool IsReady(const HealthCheckParams& params) const = 0;
+
+    bool IsReady(WaitConnectedMode mode) const { return IsReady(HealthCheckParams{mode, 0, 0}); }
+
+    // redis commands:
+
+    virtual RequestAppend Append(std::string key, std::string value, const CommandControl& command_control) = 0;
+
+    virtual RequestBitop Bitop(
+        BitOperation op,
+        std::string dest_key,
+        std::vector<std::string> src_keys,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestDbsize Dbsize(size_t shard, const CommandControl& command_control) = 0;
+
+    virtual RequestDecr Decr(std::string key, const CommandControl& command_control) = 0;
+
+    virtual RequestDel Del(std::string key, const CommandControl& command_control) = 0;
+
+    virtual RequestDel Del(std::vector<std::string> keys, const CommandControl& command_control) = 0;
+
+    virtual RequestUnlink Unlink(std::string key, const CommandControl& command_control) = 0;
+
+    virtual RequestUnlink Unlink(std::vector<std::string> keys, const CommandControl& command_control) = 0;
+
+    /// @brief Invoke the execution of a server-side Lua script.
+    ///
+    /// For huge scripts consider EvalSha() to save network bandwidth.
+    ///
+    /// Sample usage:
+    /// @snippet redis/src/storages/redis/client_cluster_redistest.cpp  Sample eval usage
+    template <typename ScriptResult, typename ReplyType = ScriptResult>
+    RequestEval<ScriptResult, ReplyType> Eval(
+        std::string script,
+        std::vector<std::string> keys,
+        std::vector<std::string> args,
+        const CommandControl& command_control
+    ) {
+        return RequestEval<ScriptResult, ReplyType>{
+            EvalCommon(std::move(script), std::move(keys), std::move(args), command_control)
+        };
+    }
+
+    /// @brief Invoke the execution of a server-side Lua script that was previously uploaded to the server via
+    /// ScriptLoad() member function.
+    ///
+    /// For small scripts consider using a simpler Eval() member function.
+    ///
+    /// Sample usage:
+    /// @snippet redis/src/storages/redis/client_cluster_redistest.cpp  Sample evalsha usage
+    template <typename ScriptResult, typename ReplyType = ScriptResult>
+    RequestEvalSha<ScriptResult, ReplyType> EvalSha(
+        std::string script_hash,
+        std::vector<std::string> keys,
+        std::vector<std::string> args,
+        const CommandControl& command_control
+    ) {
+        return RequestEvalSha<ScriptResult, ReplyType>{
+            EvalShaCommon(std::move(script_hash), std::move(keys), std::move(args), command_control)
+        };
+    }
+
+    /// @brief This is a read-only variant of the Eval() command that cannot execute commands that modify data.
+    ///
+    /// For huge scripts consider EvalShaReadOnly() to save network bandwidth.
+    ///
+    /// Sample usage:
+    /// @snippet redis/src/storages/redis/client_cluster_redistest.cpp  Sample eval_ro usage
+    template <typename ScriptResult, typename ReplyType = ScriptResult>
+    RequestEval<ScriptResult, ReplyType> EvalReadOnly(
+        std::string script,
+        std::vector<std::string> keys,
+        std::vector<std::string> args,
+        const CommandControl& command_control
+    ) {
+        return RequestEval<ScriptResult, ReplyType>{
+            EvalReadOnlyCommon(std::move(script), std::move(keys), std::move(args), command_control)
+        };
+    }
+
+    /// @brief This is a read-only variant of the EvalSha() command that cannot execute commands that modify data.
+    ///
+    /// For small scripts consider using a simpler EvalReadOnly() member function.
+    ///
+    /// Sample usage:
+    /// @snippet redis/src/storages/redis/client_cluster_redistest.cpp  Sample evalsha_ro usage
+    template <typename ScriptResult, typename ReplyType = ScriptResult>
+    RequestEvalSha<ScriptResult, ReplyType> EvalShaReadOnly(
+        std::string script_hash,
+        std::vector<std::string> keys,
+        std::vector<std::string> args,
+        const CommandControl& command_control
+    ) {
+        return RequestEvalSha<ScriptResult, ReplyType>{
+            EvalShaReadOnlyCommon(std::move(script_hash), std::move(keys), std::move(args), command_control)
+        };
+    }
+
+    /// @brief Execute a custom Redis command.
+    /// @param key_index Index of the key in the args vector used to determine the shard
+    ///
+    /// Sample usage:
+    /// @snippet redis/src/storages/redis/client_cluster_redistest.cpp  Sample generic command usage
+    template <typename ReplyType>
+    RequestGeneric<ReplyType> GenericCommand(
+        std::string command,
+        std::vector<std::string> args,
+        size_t key_index,
+        const CommandControl& command_control
+    ) {
+        return RequestGeneric<ReplyType>{GenericCommon(std::move(command), std::move(args), key_index, command_control)
+        };
+    }
+
+    /// @brief Load the script to the server for further execution via EvalSha() member function.
+    ///
+    /// Sample usage:
+    /// @snippet redis/src/storages/redis/client_cluster_redistest.cpp  Sample evalsha usage
+    virtual RequestScriptLoad ScriptLoad(std::string script, size_t shard, const CommandControl& command_control) = 0;
+
+    /// @overload
+    template <typename ScriptInfo, typename ReplyType = std::decay_t<ScriptInfo>>
+    RequestEval<std::decay_t<ScriptInfo>, ReplyType> Eval(
+        const ScriptInfo& script_info,
+        std::vector<std::string> keys,
+        std::vector<std::string> args,
+        const CommandControl& command_control
+    ) {
+        return RequestEval<std::decay_t<ScriptInfo>, ReplyType>{
+            EvalCommon(script_info.GetScript(), std::move(keys), std::move(args), command_control)
+        };
+    }
+
+    virtual RequestExists Exists(std::string key, const CommandControl& command_control) = 0;
+
+    virtual RequestExists Exists(std::vector<std::string> keys, const CommandControl& command_control) = 0;
+
+    virtual RequestExpire Expire(std::string key, std::chrono::seconds ttl, const CommandControl& command_control) = 0;
+
+    virtual RequestExpire Expire(
+        std::string key,
+        std::chrono::seconds ttl,
+        ExpireOptions options,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestGeoadd Geoadd(std::string key, GeoaddArg point_member, const CommandControl& command_control) = 0;
+
+    virtual RequestGeoadd Geoadd(
+        std::string key,
+        std::vector<GeoaddArg> point_members,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestGeopos Geopos(
+        std::string key,
+        std::vector<std::string> members,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestGeoradius Georadius(
+        std::string key,
+        Longitude lon,
+        Latitude lat,
+        double radius,
+        const GeoradiusOptions& georadius_options,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestGeosearch Geosearch(
+        std::string key,
+        std::string member,
+        double radius,
+        const GeosearchOptions& geosearch_options,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestGeosearch Geosearch(
+        std::string key,
+        std::string member,
+        BoxWidth width,
+        BoxHeight height,
+        const GeosearchOptions& geosearch_options,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestGeosearch Geosearch(
+        std::string key,
+        Longitude lon,
+        Latitude lat,
+        double radius,
+        const GeosearchOptions& geosearch_options,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestGeosearch Geosearch(
+        std::string key,
+        Longitude lon,
+        Latitude lat,
+        BoxWidth width,
+        BoxHeight height,
+        const GeosearchOptions& geosearch_options,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestGet Get(std::string key, const CommandControl& command_control) = 0;
+
+    virtual RequestGetdel Getdel(std::string key, const CommandControl& command_control) = 0;
+
+    virtual RequestGetset Getset(std::string key, std::string value, const CommandControl& command_control) = 0;
+
+    virtual RequestHdel Hdel(std::string key, std::string field, const CommandControl& command_control) = 0;
+
+    virtual RequestHdel Hdel(
+        std::string key,
+        std::vector<std::string> fields,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestHexists Hexists(std::string key, std::string field, const CommandControl& command_control) = 0;
+
+    virtual RequestHget Hget(std::string key, std::string field, const CommandControl& command_control) = 0;
+
+    // use Hscan in case of a big hash
+    virtual RequestHgetall Hgetall(std::string key, const CommandControl& command_control) = 0;
+
+    virtual RequestHincrby Hincrby(
+        std::string key,
+        std::string field,
+        int64_t increment,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestHincrbyfloat Hincrbyfloat(
+        std::string key,
+        std::string field,
+        double increment,
+        const CommandControl& command_control
+    ) = 0;
+
+    // use Hscan in case of a big hash
+    virtual RequestHkeys Hkeys(std::string key, const CommandControl& command_control) = 0;
+
+    virtual RequestHlen Hlen(std::string key, const CommandControl& command_control) = 0;
+
+    virtual RequestHmget Hmget(
+        std::string key,
+        std::vector<std::string> fields,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestHmset Hmset(
+        std::string key,
+        std::vector<std::pair<std::string, std::string>> field_values,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Iterate over a collection of elements.
+    ///
+    /// Sample usage:
+    /// @snippet redis/src/storages/redis/client_scan_redistest.cpp  Sample Hscan usage
+    virtual RequestHscan Hscan(std::string key, HscanOptions options, const CommandControl& command_control) = 0;
+
+    virtual RequestHset Hset(
+        std::string key,
+        std::string field,
+        std::string value,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestHsetnx Hsetnx(
+        std::string key,
+        std::string field,
+        std::string value,
+        const CommandControl& command_control
+    ) = 0;
+
+    // use Hscan in case of a big hash
+    virtual RequestHvals Hvals(std::string key, const CommandControl& command_control) = 0;
+
+    virtual RequestIncr Incr(std::string key, const CommandControl& command_control) = 0;
+
+    [[deprecated("use Scan")]] virtual RequestKeys Keys(
+        std::string keys_pattern,
+        size_t shard,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestLindex Lindex(std::string key, int64_t index, const CommandControl& command_control) = 0;
+
+    virtual RequestLlen Llen(std::string key, const CommandControl& command_control) = 0;
+
+    virtual RequestLpop Lpop(std::string key, const CommandControl& command_control) = 0;
+
+    virtual RequestLpush Lpush(std::string key, std::string value, const CommandControl& command_control) = 0;
+
+    virtual RequestLpush Lpush(
+        std::string key,
+        std::vector<std::string> values,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestLpushx Lpushx(std::string key, std::string element, const CommandControl& command_control) = 0;
+
+    virtual RequestLrange Lrange(
+        std::string key,
+        int64_t start,
+        int64_t stop,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestLrem Lrem(
+        std::string key,
+        int64_t count,
+        std::string element,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestLtrim Ltrim(std::string key, int64_t start, int64_t stop, const CommandControl& command_control) = 0;
+
+    virtual RequestMget Mget(std::vector<std::string> keys, const CommandControl& command_control) = 0;
+
+    virtual RequestMset Mset(
+        std::vector<std::pair<std::string, std::string>> key_values,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual TransactionPtr Multi() = 0;
+
+    virtual TransactionPtr Multi(Transaction::CheckShards check_shards) = 0;
+
+    virtual RequestPersist Persist(std::string key, const CommandControl& command_control) = 0;
+
+    virtual RequestPexpire Pexpire(
+        std::string key,
+        std::chrono::milliseconds ttl,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestPing Ping(size_t shard, const CommandControl& command_control) = 0;
+
+    virtual RequestPingMessage Ping(size_t shard, std::string message, const CommandControl& command_control) = 0;
+
+    virtual void Publish(
+        std::string channel,
+        std::string message,
+        const CommandControl& command_control,
+        PubShard policy
+    ) = 0;
+
+    virtual void Spublish(std::string channel, std::string message, const CommandControl& command_control) = 0;
+
+    virtual RequestRename Rename(std::string key, std::string new_key, const CommandControl& command_control) = 0;
+
+    virtual RequestRpop Rpop(std::string key, const CommandControl& command_control) = 0;
+
+    virtual RequestRpush Rpush(std::string key, std::string value, const CommandControl& command_control) = 0;
+
+    virtual RequestRpush Rpush(
+        std::string key,
+        std::vector<std::string> values,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestRpushx Rpushx(std::string key, std::string element, const CommandControl& command_control) = 0;
+
+    /// @brief Add member to a set of elements.
+    ///
+    /// Sample usage:
+    /// @snippet redis/src/storages/redis/client_scan_redistest.cpp  Sample Sadd and Sscan usage
+    virtual RequestSadd Sadd(std::string key, std::string member, const CommandControl& command_control) = 0;
+
+    /// @overload
+    virtual RequestSadd Sadd(
+        std::string key,
+        std::vector<std::string> members,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Iterate over a collection of elements.
+    ///
+    /// Sample usage:
+    /// @snippet redis/src/storages/redis/client_scan_redistest.cpp  Sample Scan usage
+    virtual RequestScan Scan(size_t shard, ScanOptions options, const CommandControl& command_control) = 0;
+
+    virtual RequestScard Scard(std::string key, const CommandControl& command_control) = 0;
+
+    virtual RequestSet Set(std::string key, std::string value, const CommandControl& command_control) = 0;
+
+    virtual RequestSet Set(
+        std::string key,
+        std::string value,
+        std::chrono::milliseconds ttl,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestSetIfExist SetIfExist(std::string key, std::string value, const CommandControl& command_control) = 0;
+
+    virtual RequestSetIfExist SetIfExist(
+        std::string key,
+        std::string value,
+        std::chrono::milliseconds ttl,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestSetIfNotExist SetIfNotExist(
+        std::string key,
+        std::string value,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestSetIfNotExist SetIfNotExist(
+        std::string key,
+        std::string value,
+        std::chrono::milliseconds ttl,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestSetIfNotExistOrGet SetIfNotExistOrGet(
+        std::string key,
+        std::string value,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestSetIfNotExistOrGet SetIfNotExistOrGet(
+        std::string key,
+        std::string value,
+        std::chrono::milliseconds ttl,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestSetex Setex(
+        std::string key,
+        std::chrono::seconds seconds,
+        std::string value,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestSetAndGetPrevious SetAndGetPrevious(
+        std::string key,
+        std::string value,
+        std::chrono::milliseconds ttl,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestSismember Sismember(std::string key, std::string member, const CommandControl& command_control) = 0;
+
+    // use Sscan in case of a big set
+    virtual RequestSmembers Smembers(std::string key, const CommandControl& command_control) = 0;
+
+    virtual RequestSrandmember Srandmember(std::string key, const CommandControl& command_control) = 0;
+
+    virtual RequestSrandmembers Srandmembers(std::string key, int64_t count, const CommandControl& command_control) = 0;
+
+    virtual RequestSrem Srem(std::string key, std::string member, const CommandControl& command_control) = 0;
+
+    virtual RequestSrem Srem(
+        std::string key,
+        std::vector<std::string> members,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Iterate over a collection of elements.
+    ///
+    /// Sample usage:
+    /// @snippet redis/src/storages/redis/client_scan_redistest.cpp  Sample Sadd and Sscan usage
+    virtual RequestSscan Sscan(std::string key, SscanOptions options, const CommandControl& command_control) = 0;
+
+    virtual RequestStrlen Strlen(std::string key, const CommandControl& command_control) = 0;
+
+    virtual RequestTime Time(size_t shard, const CommandControl& command_control) = 0;
+
+    virtual RequestTtl Ttl(std::string key, const CommandControl& command_control) = 0;
+
+    virtual RequestType Type(std::string key, const CommandControl& command_control) = 0;
+
+    virtual RequestZadd Zadd(
+        std::string key,
+        double score,
+        std::string member,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestZadd Zadd(
+        std::string key,
+        double score,
+        std::string member,
+        const ZaddOptions& options,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestZadd Zadd(
+        std::string key,
+        std::vector<std::pair<double, std::string>> scored_members,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestZadd Zadd(
+        std::string key,
+        std::vector<std::pair<double, std::string>> scored_members,
+        const ZaddOptions& options,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestZaddIncr ZaddIncr(
+        std::string key,
+        double score,
+        std::string member,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestZaddIncrExisting ZaddIncrExisting(
+        std::string key,
+        double score,
+        std::string member,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestZcard Zcard(std::string key, const CommandControl& command_control) = 0;
+
+    virtual RequestZcount Zcount(std::string key, double min, double max, const CommandControl& command_control) = 0;
+
+    virtual RequestZrange Zrange(
+        std::string key,
+        int64_t start,
+        int64_t stop,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestZrangeWithScores ZrangeWithScores(
+        std::string key,
+        int64_t start,
+        int64_t stop,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestZrangebyscore Zrangebyscore(
+        std::string key,
+        double min,
+        double max,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestZrangebyscore Zrangebyscore(
+        std::string key,
+        std::string min,
+        std::string max,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestZrangebyscore Zrangebyscore(
+        std::string key,
+        double min,
+        double max,
+        const RangeOptions& range_options,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestZrangebyscore Zrangebyscore(
+        std::string key,
+        std::string min,
+        std::string max,
+        const RangeOptions& range_options,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
+        std::string key,
+        double min,
+        double max,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
+        std::string key,
+        std::string min,
+        std::string max,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
+        std::string key,
+        double min,
+        double max,
+        const RangeOptions& range_options,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
+        std::string key,
+        std::string min,
+        std::string max,
+        const RangeOptions& range_options,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestZrem Zrem(std::string key, std::string member, const CommandControl& command_control) = 0;
+
+    virtual RequestZrem Zrem(
+        std::string key,
+        std::vector<std::string> members,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestZremrangebyrank Zremrangebyrank(
+        std::string key,
+        int64_t start,
+        int64_t stop,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestZremrangebyscore Zremrangebyscore(
+        std::string key,
+        double min,
+        double max,
+        const CommandControl& command_control
+    ) = 0;
+
+    virtual RequestZremrangebyscore Zremrangebyscore(
+        std::string key,
+        std::string min,
+        std::string max,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Iterate over a collection of elements.
+    ///
+    /// Sample usage:
+    /// @snippet redis/src/storages/redis/client_scan_redistest.cpp  Sample Zscan usage
+    virtual RequestZscan Zscan(std::string key, ZscanOptions options, const CommandControl& command_control) = 0;
+
+    virtual RequestZscore Zscore(std::string key, std::string member, const CommandControl& command_control) = 0;
+
+    // Hash field expiration commands:
+
+    /// @brief Set TTL (in seconds) on one or more hash fields (HEXPIRE).
+    virtual RequestHexpire Hexpire(
+        std::string key,
+        std::chrono::seconds ttl,
+        std::vector<std::string> fields,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Set TTL (in seconds) on one or more hash fields with NX/XX/GT/LT modifier (HEXPIRE).
+    virtual RequestHexpire Hexpire(
+        std::string key,
+        std::chrono::seconds ttl,
+        ExpireOptions options,
+        std::vector<std::string> fields,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Set TTL (in milliseconds) on one or more hash fields (HPEXPIRE).
+    virtual RequestHexpire Hpexpire(
+        std::string key,
+        std::chrono::milliseconds ttl,
+        std::vector<std::string> fields,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Set TTL (in milliseconds) on one or more hash fields with NX/XX/GT/LT modifier (HPEXPIRE).
+    virtual RequestHexpire Hpexpire(
+        std::string key,
+        std::chrono::milliseconds ttl,
+        ExpireOptions options,
+        std::vector<std::string> fields,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Set absolute expiration deadline on one or more hash fields (HEXPIREAT, seconds-precision).
+    virtual RequestHexpire Hexpireat(
+        std::string key,
+        std::chrono::system_clock::time_point deadline,
+        std::vector<std::string> fields,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Set absolute expiration deadline on one or more hash fields with modifier (HEXPIREAT).
+    virtual RequestHexpire Hexpireat(
+        std::string key,
+        std::chrono::system_clock::time_point deadline,
+        ExpireOptions options,
+        std::vector<std::string> fields,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Set absolute expiration deadline on one or more hash fields (HPEXPIREAT, ms-precision).
+    virtual RequestHexpire Hpexpireat(
+        std::string key,
+        std::chrono::system_clock::time_point deadline,
+        std::vector<std::string> fields,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Set absolute expiration deadline on one or more hash fields with modifier (HPEXPIREAT).
+    virtual RequestHexpire Hpexpireat(
+        std::string key,
+        std::chrono::system_clock::time_point deadline,
+        ExpireOptions options,
+        std::vector<std::string> fields,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Get absolute expiration unix timestamp (seconds) of one or more hash fields (HEXPIRETIME).
+    virtual RequestHexpiretime Hexpiretime(
+        std::string key,
+        std::vector<std::string> fields,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Get absolute expiration unix timestamp (ms) of one or more hash fields (HPEXPIRETIME).
+    virtual RequestHpexpiretime Hpexpiretime(
+        std::string key,
+        std::vector<std::string> fields,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Get remaining TTL (in seconds) of one or more hash fields (HTTL).
+    virtual RequestHttl Httl(
+        std::string key,
+        std::vector<std::string> fields,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Get remaining TTL (in milliseconds) of one or more hash fields (HPTTL).
+    virtual RequestHpttl Hpttl(
+        std::string key,
+        std::vector<std::string> fields,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Remove the TTL from one or more hash fields.
+    virtual RequestHpersist Hpersist(
+        std::string key,
+        std::vector<std::string> fields,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Get the values of one or more hash fields.
+    virtual RequestHgetex Hgetex(
+        std::string key,
+        std::vector<std::string> fields,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Get the values of one or more hash fields, optionally updating their TTL.
+    virtual RequestHgetex Hgetex(
+        std::string key,
+        HgetexOptions options,
+        std::vector<std::string> fields,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Set one or more field/value pairs in a hash without a TTL clause.
+    virtual RequestHsetex Hsetex(
+        std::string key,
+        std::vector<HsetexFieldValue> field_values,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Set one or more field/value pairs in a hash with optional FNX|FXX and TTL modifiers.
+    virtual RequestHsetex Hsetex(
+        std::string key,
+        HsetexOptions options,
+        std::vector<HsetexFieldValue> field_values,
+        const CommandControl& command_control
+    ) = 0;
+
+    // JSON module commands:
+
+    /// @brief Set a JSON value at the given key and path.
+    virtual RequestJsonSet JsonSet(
+        std::string key,
+        std::string path,
+        formats::json::Value value,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Set a JSON value only if the path does not already exist (NX).
+    virtual RequestJsonSetIfNotExist JsonSetIfNotExist(
+        std::string key,
+        std::string path,
+        formats::json::Value value,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Set a JSON value only if the path already exists (XX).
+    virtual RequestJsonSetIfExist JsonSetIfExist(
+        std::string key,
+        std::string path,
+        formats::json::Value value,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Get the JSON value at the root path of the given key.
+    virtual RequestJsonGet JsonGet(std::string key, const CommandControl& command_control) = 0;
+
+    /// @brief Get the JSON value at the given path of the given key.
+    virtual RequestJsonGet JsonGet(std::string key, std::string path, const CommandControl& command_control) = 0;
+
+    /// @brief Get the JSON value at multiple paths of the given key.
+    virtual RequestJsonGet JsonGet(
+        std::string key,
+        std::vector<std::string> paths,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Get JSON values from multiple keys at the given path.
+    virtual RequestJsonMget JsonMget(
+        std::vector<std::string> keys,
+        std::string path,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Set JSON values for multiple key-path-value triplets.
+    virtual RequestJsonMset JsonMset(
+        std::vector<JsonKeyPathValue> key_path_values,
+        const CommandControl& command_control
+    ) = 0;
+
+    // end of redis commands
+
+    RequestGet Get(std::string key, RetryNilFromMaster, const CommandControl& command_control);
+
+    RequestHget Hget(std::string key, std::string field, RetryNilFromMaster, const CommandControl& command_control);
+
+    RequestZscore Zscore(
+        std::string key,
+        std::string member,
+        RetryNilFromMaster,
+        const CommandControl& command_control
+    );
+
+    void Publish(std::string channel, std::string message, const CommandControl& command_control);
+
+    RequestScan Scan(size_t shard, const CommandControl& command_control);
+
+    RequestHscan Hscan(std::string key, const CommandControl& command_control);
+
+    RequestSscan Sscan(std::string key, const CommandControl& command_control);
+
+    RequestZscan Zscan(std::string key, const CommandControl& command_control);
+
+protected:
+    virtual RequestEvalCommon EvalCommon(
+        std::string script,
+        std::vector<std::string> keys,
+        std::vector<std::string> args,
+        const CommandControl& command_control
+    ) = 0;
+    virtual RequestEvalShaCommon EvalShaCommon(
+        std::string script_hash,
+        std::vector<std::string> keys,
+        std::vector<std::string> args,
+        const CommandControl& command_control
+    ) = 0;
+    virtual RequestEvalCommon EvalReadOnlyCommon(
+        std::string script,
+        std::vector<std::string> keys,
+        std::vector<std::string> args,
+        const CommandControl& command_control
+    ) = 0;
+    virtual RequestEvalShaCommon EvalShaReadOnlyCommon(
+        std::string script_hash,
+        std::vector<std::string> keys,
+        std::vector<std::string> args,
+        const CommandControl& command_control
+    ) = 0;
+    virtual RequestGenericCommon GenericCommon(
+        std::string command,
+        std::vector<std::string> args,
+        size_t key_index,
+        const CommandControl& command_control
+    ) = 0;
 };
 
 std::string CreateTmpKey(const std::string& key, std::string prefix);

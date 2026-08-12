@@ -1,24 +1,46 @@
-#include <userver/ugrpc/server/health/health.hpp>
+#include <ugrpc/server/health/health.hpp>
 
 #include <userver/components/component_context.hpp>
+#include <userver/logging/log.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace ugrpc::server {
+namespace {
 
-HealthHandler::HealthHandler(const components::ComponentContext& context)
-    : components_(context) {}
+bool IsServing(const components::State& components_state) {
+    if (components_state.IsAnyComponentInFatalState()) {
+        return false;
+    }
 
-void HealthHandler::Check(CheckCall& call,
-                          ::grpc::health::v1::HealthCheckRequest&&) {
-  ::grpc::health::v1::HealthCheckResponse response;
-  if (components_.IsAnyComponentInFatalState())
-    response.set_status(::grpc::health::v1::HealthCheckResponse::NOT_SERVING);
-  else
-    response.set_status(::grpc::health::v1::HealthCheckResponse::SERVING);
-  call.Finish(response);
+    const auto lifetime_stage = components_state.GetServiceLifetimeStage();
+    if (lifetime_stage != components::ServiceLifetimeStage::kRunning) {
+        LOG_WARNING()
+            << "Service is not ready for requests (stage=" << ToString(lifetime_stage)
+            << "), returning NOT_SERVING from Health/Check";
+        return false;
+    }
+
+    return true;
 }
 
-}  // namespace ugrpc::server
+}  // namespace
 
 USERVER_NAMESPACE_END
+
+namespace grpc::health::v1 {
+
+HealthHandler::HealthHandler(const USERVER_NAMESPACE::components::ComponentContext& context)
+    : components_(context)
+{}
+
+HealthHandler::CheckResult HealthHandler::Check([[maybe_unused]] CallContext& context, HealthCheckRequest&&) {
+    HealthCheckResponse response;
+    if (USERVER_NAMESPACE::IsServing(components_)) {
+        response.set_status(HealthCheckResponse::SERVING);
+    } else {
+        response.set_status(HealthCheckResponse::NOT_SERVING);
+    }
+    return response;
+}
+
+}  // namespace grpc::health::v1

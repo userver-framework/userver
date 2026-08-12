@@ -2,7 +2,6 @@
 import asyncio
 import dataclasses
 import logging
-import typing
 
 # @cond
 
@@ -33,7 +32,7 @@ class HealthChecks:
     @ingroup userver_testsuite
     """
 
-    tcp: typing.List[HostPort] = dataclasses.field(default_factory=list)
+    tcp: list[HostPort] = dataclasses.field(default_factory=list)
 
 
 async def _check_tcp_port_availability(tcp: HostPort) -> bool:
@@ -54,10 +53,7 @@ async def check_availability(checks: HealthChecks) -> bool:
     """
     assert checks.tcp
     done, pending = await asyncio.wait(
-        [
-            asyncio.Task(_check_tcp_port_availability(val))
-            for val in checks.tcp
-        ],
+        [asyncio.Task(_check_tcp_port_availability(val)) for val in checks.tcp],
         timeout=25.0,
         return_when=asyncio.ALL_COMPLETED,
     )

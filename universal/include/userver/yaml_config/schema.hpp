@@ -6,12 +6,12 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <unordered_set>
 #include <variant>
 #include <vector>
 
-#include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/yaml_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -21,63 +21,81 @@ namespace yaml_config {
 struct Schema;
 
 enum class FieldType {
-  kBool,
-  kInteger,
-  kNumber,
-  kString,
-  kArray,
-  kObject,
+    kBool,
+    kInteger,
+    kNumber,
+    kString,
+    kArray,
+    kObject,
 };
 
 std::string ToString(FieldType type);
 
 class SchemaPtr final {
- public:
-  explicit SchemaPtr(Schema&& schema);
+public:
+    explicit SchemaPtr(Schema&& schema);
 
-  const Schema& operator*() const { return *schema_; }
-  Schema& operator*() { return *schema_; }
+    SchemaPtr(SchemaPtr&&) noexcept = default;
+    SchemaPtr& operator=(SchemaPtr&&) noexcept = default;
+    SchemaPtr(const SchemaPtr&);
+    SchemaPtr& operator=(const SchemaPtr&);
 
-  const Schema* operator->() const { return schema_.get(); }
+    const Schema& operator*() const;
+    Schema& operator*();
+    const Schema* operator->() const { return &**this; }
+    Schema* operator->() { return &**this; }
 
- private:
-  std::unique_ptr<Schema> schema_;
+    bool operator==(const SchemaPtr&) const;
+
+private:
+    std::unique_ptr<Schema> schema_;
 };
 
-formats::yaml::Value Serialize(const SchemaPtr& schema,
-                               formats::serialize::To<formats::yaml::Value>);
+formats::yaml::Value Serialize(const SchemaPtr& schema, formats::serialize::To<formats::yaml::Value>);
+
+/// Helper class for Schema that hides `path` from operator== in Schema.
+/// `path` is ignored, because it serves a purely diagnostic purpose.
+struct PathSupplementary {
+    bool operator==(const PathSupplementary&) const noexcept;
+
+    std::string path;
+};
 
 /// @ingroup userver_universal
 ///
 /// @brief JSON Schema-like type definition
 ///
+/// @see https://json-schema.org/specification
 /// @see @ref static-configs-validation "Static configs validation"
-struct Schema final {
-  void UpdateDescription(std::string new_description);
+struct Schema final : public PathSupplementary {
+    void UpdateDescription(std::string new_description);
 
-  static Schema EmptyObject();
+    static Schema EmptyObject();
 
-  std::string path;
+    bool operator==(const Schema&) const noexcept;
 
-  FieldType type{};
-  std::string description;
-  std::optional<std::string> default_description;
-  std::optional<std::variant<bool, SchemaPtr>> additional_properties;
-  std::optional<std::unordered_map<std::string, SchemaPtr>> properties;
-  std::optional<SchemaPtr> items;
-  std::optional<std::unordered_set<std::string>> enum_values;
-  std::optional<double> minimum;
-  std::optional<double> maximum;
+    FieldType type{};
+    std::string description;
+    std::optional<std::string> default_description;
+    std::optional<std::variant<bool, SchemaPtr>> additional_properties;
+    std::optional<std::unordered_map<std::string, SchemaPtr>> properties;
+    std::optional<SchemaPtr> items;
+    std::optional<std::unordered_set<std::string>> enum_values;
+    std::optional<double> minimum;
+    std::optional<double> maximum;
+    std::optional<std::size_t> min_items;
+    std::optional<std::size_t> max_items;
+    std::optional<std::unordered_set<std::string>> required;
 };
 
 Schema Parse(const formats::yaml::Value& schema, formats::parse::To<Schema>);
 
-formats::yaml::Value Serialize(const Schema& schema,
-                               formats::serialize::To<formats::yaml::Value>);
+formats::yaml::Value Serialize(const Schema& schema, formats::serialize::To<formats::yaml::Value>);
 
 namespace impl {
 
 Schema SchemaFromString(const std::string& yaml_string);
+Schema SchemaFromResource(std::string_view resource_name);
 
 }  // namespace impl
 

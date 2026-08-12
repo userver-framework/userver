@@ -1,0 +1,8 @@
+default: 0
+description: |
+    Dynamic config that controls default $maxTimeMS for mongo requests
+    (0 - disables default timeout).
+schema:
+    x-usrv-cpp-type: std::chrono::milliseconds
+    type: integer
+    minimum: 0

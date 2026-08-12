@@ -10,56 +10,56 @@ namespace storages::mysql {
 
 /// @brief Base class for all uMySQL driver exceptions
 class MySQLException : public std::runtime_error {
- public:
-  MySQLException(unsigned int error, const char* message);
-  MySQLException(unsigned int error, const std::string& message);
+public:
+    MySQLException(unsigned int error, const char* message);
+    MySQLException(unsigned int error, const std::string& message);
 
-  ~MySQLException() override;
+    ~MySQLException() override;
 
-  unsigned int GetErrno() const;
+    unsigned int GetErrno() const;
 
- private:
-  unsigned int errno_;
+private:
+    unsigned int errno_;
 };
 
 /// @brief IO exception (read/write timeout/cancelled)
 class MySQLIOException : public MySQLException {
- public:
-  using MySQLException::MySQLException;
+public:
+    using MySQLException::MySQLException;
 
-  ~MySQLIOException() override;
+    ~MySQLIOException() override;
 };
 
 /// @brief Statement exception - something went wrong with the statement
 class MySQLStatementException : public MySQLException {
- public:
-  using MySQLException::MySQLException;
+public:
+    using MySQLException::MySQLException;
 
-  ~MySQLStatementException() override;
+    ~MySQLStatementException() override;
 };
 
 /// @brief Command exception - something went wrong with the command
 class MySQLCommandException : public MySQLException {
- public:
-  using MySQLException::MySQLException;
+public:
+    using MySQLException::MySQLException;
 
-  ~MySQLCommandException() override;
+    ~MySQLCommandException() override;
 };
 
 /// @brief Transaction exception - something went wrong with the transaction
 class MySQLTransactionException : public MySQLException {
- public:
-  using MySQLException::MySQLException;
+public:
+    using MySQLException::MySQLException;
 
-  ~MySQLTransactionException() override;
+    ~MySQLTransactionException() override;
 };
 
 /// @brief
 class MySQLValidationException : public MySQLException {
- public:
-  using MySQLException::MySQLException;
+public:
+    using MySQLException::MySQLException;
 
-  ~MySQLValidationException() override;
+    ~MySQLValidationException() override;
 };
 
 }  // namespace storages::mysql

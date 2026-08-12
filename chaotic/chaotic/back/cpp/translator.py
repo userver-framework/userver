@@ -1,0 +1,852 @@
+import collections
+from collections.abc import Callable
+import dataclasses
+import os
+import pathlib
+import re
+from typing import NoReturn
+
+import transliterate
+
+from chaotic import cpp_keywords
+from chaotic import cpp_names
+from chaotic import error
+from chaotic.back.cpp import type_name
+from chaotic.back.cpp import types as cpp_types
+from chaotic.front import ref
+from chaotic.front import types
+
+
+@dataclasses.dataclass
+class GeneratorConfig:
+    # vfull -> namespace
+    namespaces: dict[str, str]
+    # infile_path -> cpp type
+    infile_to_name_func: Callable
+    # Where to look for `x-usrv-cpp-type` headers to check that they exist
+    # (used only to produce a nicer error message, does not affect codegen).
+    # `None` disables the check entirely; `[]` fails on the very first usage
+    # of `x-usrv-cpp-type`, since there is nowhere to look.
+    # type: ignore
+    include_dirs: list[str] | None = dataclasses.field(
+        # type: ignore
+        default_factory=list,
+    )
+    autodiscover_default_dict: bool = False
+    strict_parsing_default: bool = True
+
+
+@dataclasses.dataclass
+class GeneratorState:
+    types: dict[str, cpp_types.CppType]
+    refs: dict[types.Schema, str]  # type: ignore
+    ref_objects: list[cpp_types.CppRef]
+    external_types: dict[types.Schema, cpp_types.CppType]  # type: ignore
+    seen_includes: set[str]
+
+
+NON_NAME_SYMBOL_RE = re.compile('[^_0-9a-zA-Z]')
+SPLIT_RE = re.compile(r'[a-zA-Z0-9]+')
+SPLIT_WORDS_RE = re.compile(r'[A-Z]+(?=[A-Z][a-z0-9])|[A-Z][a-z0-9]+|[a-z0-9]+|[A-Z]+')
+
+
+class FormatChooser:
+    def __init__(self, types: list[cpp_types.CppType]) -> None:
+        self.types = types
+        self.parent: dict[
+            cpp_types.CppType,
+            list[cpp_types.CppType | None],
+        ] = collections.defaultdict(list)
+
+    def check_for_json_onlyness(self) -> None:
+        def add(
+            parent: cpp_types.CppType | None,
+            type_: cpp_types.CppType,
+        ) -> None:
+            self.parent[type_].append(parent)
+            for subtype in type_.subtypes():
+                add(type_, subtype)
+
+            if isinstance(type_, cpp_types.CppRef):
+                self.parent[type_.orig_cpp_type].append(type_)
+
+        for type_ in self.types:
+            add(None, type_)
+
+        def mark_as_only_json(type_: cpp_types.CppType, reason: str) -> None:
+            assert reason
+            # pylint: disable=protected-access
+            type_._only_json_reason = reason
+
+            for parent in self.parent[type_]:
+                if not parent:
+                    continue
+
+                if parent._only_json_reason:
+                    continue
+                mark_as_only_json(parent, reason)
+
+        for type_ in self.parent:
+            if isinstance(type_, cpp_types.CppVariantWithDiscriminator):
+                mark_as_only_json(
+                    type_,
+                    f'{type_.raw_cpp_type} has JSON-specific field "extra"',
+                )
+
+
+class TranslatorError(error.BaseError):
+    pass
+
+
+class Generator:
+    def __init__(self, config: GeneratorConfig) -> None:
+        self._config = config
+        self._state = GeneratorState(
+            types=collections.OrderedDict(),
+            refs={},
+            ref_objects=[],
+            external_types={},
+            seen_includes=set(),
+        )
+        self._state.ref_objects = []
+
+    def generate_types(
+        self,
+        schemas: types.ResolvedSchemas,
+        external_schemas: dict[str, cpp_types.CppType] = {},
+    ) -> dict[str, cpp_types.CppType]:
+        self._state.seen_includes = set()
+
+        for cpp_type in external_schemas.values():
+            schema = cpp_type.json_schema
+            assert schema
+            self._state.external_types[schema] = cpp_type
+
+        for name, schema in schemas.schemas.items():
+            fq_cpp_name = self._gen_fq_cpp_name(name)
+            if fq_cpp_name in self._state.types:
+                sl1 = schema.source_location()
+                path1 = f'{sl1.filepath}#{sl1.location}'
+
+                existing_schema = self._state.types[fq_cpp_name].json_schema
+                assert existing_schema
+                sl2 = existing_schema.source_location()
+                path2 = f'{sl2.filepath}#{sl2.location}'
+                raise Exception(f'Duplicate type name: {fq_cpp_name}, generated from {path1} and {path2}')
+
+            self._state.refs[schema] = fq_cpp_name
+            self._state.types[fq_cpp_name] = self._generate_type(
+                type_name.TypeName(fq_cpp_name),
+                schema,
+            )
+
+        self.fixup_refs()
+        self.fixup_formats()
+
+        return self._state.types
+
+    @property
+    def seen_includes(self) -> set[str]:
+        return self._state.seen_includes
+
+    def _validate_type(self, type_: cpp_types.CppType) -> None:
+        if not type_.user_cpp_type:
+            return
+        if type_.has_generated_user_cpp_type():
+            return
+
+        user_includes = type_.get_includes_by_cpp_type(type_.user_cpp_type)
+        for user_include in user_includes:
+            self._validate_user_include_exists(type_, user_include)
+
+    def _validate_user_include_exists(self, type_: cpp_types.CppType, user_include: str) -> None:
+        if self._config.include_dirs is None:
+            # no check at all
+            return
+
+        for include_dir in self._config.include_dirs:
+            path = os.path.join(include_dir, user_include)
+            if os.path.exists(path):
+                self._state.seen_includes.add(path)
+                return
+
+        assert type_.json_schema
+        self._raise(
+            type_.json_schema,
+            msg=(
+                f'Include file "{user_include}" not found, tried paths:\n'
+                + '\n'.join(['- ' + include_dir for include_dir in self._config.include_dirs])
+            ),
+        )
+
+    def _raise(self, schema: types.Schema, msg: str) -> NoReturn:
+        location = schema.source_location()
+        raise TranslatorError(
+            full_filepath=location.filepath,
+            infile_path=location.location,
+            schema_type='jsonschema',
+            msg=msg,
+        )
+
+    def _validate_x_properties(self, type_: cpp_types.CppType) -> None:
+        slots = type_.KNOWN_X_PROPERTIES
+        assert type_.json_schema
+        properties = type_.json_schema.x_properties
+        for prop in properties:
+            if (
+                not prop.startswith('x-usrv-cpp-')
+                and not prop.startswith('x-taxi-cpp-')
+                and not prop.startswith('x-cpp-')
+            ):
+                continue
+            if prop in slots:
+                continue
+
+            source_location = type_.json_schema.source_location()
+            file = source_location.filepath
+            location = source_location.location
+            self._raise(
+                type_.json_schema,
+                f'Unknown x- property: {prop} in {location} at {file}',
+            )
+
+    def _extract_user_cpp_type(self, schema: types.Schema) -> str | None:
+        cpp_type = schema.get_x_property_str(
+            'x-usrv-cpp-type',
+        ) or schema.get_x_property_str('x-taxi-cpp-type')
+        if cpp_type:
+            cpp_type = cpp_type.strip()
+        return cpp_type or None
+
+    def _extract_container(self, schema: types.Schema) -> str:
+        container = schema.get_x_property_str(
+            'x-usrv-cpp-container',
+            'std::vector',
+        )
+        assert container is not None
+        return container
+
+    def fixup_refs(self) -> None:
+        for ref_ in self._state.ref_objects:
+            assert isinstance(ref_.json_schema, types.Ref)
+            schema = ref_.json_schema.schema_
+            name = self._state.refs.get(schema)
+            if name:
+                orig_cpp_type = self._state.types[name]
+            else:
+                orig_cpp_type = self._state.external_types[schema]
+
+            ref_.orig_cpp_type = orig_cpp_type
+            ref_.indirect = ref_.json_schema.indirect
+            ref_.self_ref = ref_.json_schema.self_ref
+            ref_.cpp_name = name
+
+    def fixup_formats(self) -> None:
+        chooser = FormatChooser(list(self._state.types.values()))
+        chooser.check_for_json_onlyness()
+
+    def _generate_type(
+        self,
+        fq_cpp_name: type_name.TypeName,
+        schema: types.Schema,
+    ) -> cpp_types.CppType:
+        method = SCHEMA_GENERATORS[type(schema)]
+        cpp_type = method(self, fq_cpp_name, schema)  # type: ignore
+        self._validate_type(cpp_type)
+        self._validate_x_properties(cpp_type)
+        return cpp_type
+
+    def _gen_fq_cpp_name(self, jsonschema_name: str) -> str:
+        reference = ref.Ref(jsonschema_name)
+        name = self._config.infile_to_name_func(reference.fragment, pathlib.Path(reference.file).stem)
+        namespace = self._config.namespaces[reference.file]
+        if namespace:
+            return '::' + namespace + '::' + name
+        else:
+            return '::' + name
+
+    def _gen_any_value(
+        self,
+        name: type_name.TypeName,
+        schema: types.AnyValue,
+    ) -> cpp_types.CppType:
+        return cpp_types.CppAnyValue(
+            json_schema=schema,
+            nullable=False,
+            raw_cpp_type=type_name.TypeName(
+                'USERVER_NAMESPACE::formats::json::Value',
+            ),
+            user_cpp_type=None,
+        )
+
+    def _gen_boolean(
+        self,
+        name: type_name.TypeName,
+        schema: types.Boolean,
+    ) -> cpp_types.CppType:
+        return cpp_types.CppPrimitiveType(
+            json_schema=schema,
+            nullable=schema.nullable,
+            raw_cpp_type=type_name.TypeName('bool'),
+            user_cpp_type=self._extract_user_cpp_type(schema),
+            validators=cpp_types.CppPrimitiveValidator(),
+            default=schema.default,
+        )
+
+    def _gen_integer(
+        self,
+        name: type_name.TypeName,
+        schema: types.Integer,
+    ) -> cpp_types.CppType:
+        user_cpp_type = self._extract_user_cpp_type(schema)
+
+        if schema.enum:
+            assert schema.format is None
+            assert user_cpp_type is None
+
+            enum_names = []
+
+            if 'x-enum-varnames' in schema.x_properties:
+                enum_names = schema.x_properties['x-enum-varnames']
+
+            emum_items: list[cpp_types.CppIntEnumItem] = []
+
+            def to_camel_case(text: str) -> str:
+                words = SPLIT_RE.findall(text)
+                result = []
+                for word in words:
+                    result.extend([part.capitalize() for part in SPLIT_WORDS_RE.findall(word)])
+                return ''.join(result)
+
+            for i, val in enumerate(schema.enum):
+                raw_name = str(val)
+                if i < len(enum_names):
+                    raw_name = enum_names[i]
+                emum_items.append(
+                    cpp_types.CppIntEnumItem(
+                        value=val,
+                        raw_name=raw_name,
+                        cpp_name=to_camel_case(raw_name),
+                    ),
+                )
+
+            return cpp_types.CppIntEnum(
+                json_schema=schema,
+                nullable=schema.nullable,
+                raw_cpp_type=name,
+                user_cpp_type=None,
+                name=name.in_global_scope(),
+                enums=emum_items,
+            )
+
+        match schema.format:
+            case None:
+                raw_cpp_type = 'int'
+            case types.IntegerFormat.INT32:
+                raw_cpp_type = 'std::int32_t'
+            case types.IntegerFormat.INT64:
+                raw_cpp_type = 'std::int64_t'
+            case _:
+                self._raise(schema, f'"format: {schema.format}" is not implemented')
+
+        typedef_tag = schema.get_x_property_str(
+            'x-usrv-cpp-typedef-tag',
+        ) or schema.get_x_property_str('x-taxi-cpp-typedef-tag')
+        if typedef_tag:
+            if user_cpp_type:
+                self._raise(
+                    schema,
+                    '"x-usrv-cpp-typedef-tag" and "x-usrv-cpp-type" are mutually exclusive',
+                )
+            user_cpp_type = f'userver::utils::StrongTypedef<{typedef_tag}, {raw_cpp_type}>'
+
+        validators = cpp_types.CppPrimitiveValidator(
+            min=schema.minimum,
+            max=schema.maximum,
+            exclusiveMin=schema.exclusiveMinimum,
+            exclusiveMax=schema.exclusiveMaximum,
+            namespace=name.namespace(),
+            prefix=name.in_local_scope(),
+        )
+        validators.fix_legacy_exclusive()
+        return cpp_types.CppPrimitiveType(
+            json_schema=schema,
+            nullable=schema.nullable,
+            raw_cpp_type=type_name.TypeName(raw_cpp_type),
+            user_cpp_type=user_cpp_type,
+            validators=validators,
+            default=schema.default,
+        )
+
+    def _gen_number(
+        self,
+        name: type_name.TypeName,
+        schema: types.Number,
+    ) -> cpp_types.CppType:
+        user_cpp_type = self._extract_user_cpp_type(schema)
+
+        validators = cpp_types.CppPrimitiveValidator(
+            min=schema.minimum,
+            max=schema.maximum,
+            exclusiveMin=schema.exclusiveMinimum,
+            exclusiveMax=schema.exclusiveMaximum,
+            namespace=name.namespace(),
+            prefix=name.in_local_scope(),
+        )
+        validators.fix_legacy_exclusive()
+        return cpp_types.CppPrimitiveType(
+            json_schema=schema,
+            nullable=schema.nullable,
+            raw_cpp_type=type_name.TypeName('double'),
+            user_cpp_type=user_cpp_type,
+            validators=validators,
+            default=schema.default,
+        )
+
+    def _str_enum_name(self, item: str) -> str:
+        cpp_name = cpp_names.camel_case(self._normalize_name(item))
+        if cpp_name[0].isnumeric():
+            cpp_name = 'X' + cpp_name
+        return 'k' + cpp_name
+
+    def _gen_string(
+        self,
+        name: type_name.TypeName,
+        schema: types.String,
+    ) -> cpp_types.CppType:
+        user_cpp_type = self._extract_user_cpp_type(schema)
+
+        if schema.enum:
+            assert not user_cpp_type
+
+            enums = []
+            for item in schema.enum:
+                enums.append(
+                    cpp_types.CppStringEnumItem(
+                        raw_name=item,
+                        cpp_name=self._str_enum_name(item),
+                    ),
+                )
+
+            default: cpp_types.EnumItemName | None
+            if schema.default:
+                default = cpp_types.EnumItemName(
+                    name.in_global_scope() + '::' + self._str_enum_name(schema.default),
+                )
+            else:
+                default = None
+
+            return cpp_types.CppStringEnum(
+                json_schema=schema,
+                nullable=schema.nullable,
+                raw_cpp_type=name,
+                user_cpp_type=None,
+                name=name.in_global_scope(),
+                enums=enums,
+                default=default,
+            )
+
+        validators = cpp_types.CppPrimitiveValidator(
+            minLength=schema.minLength,
+            maxLength=schema.maxLength,
+            pattern=schema.pattern,
+            namespace=name.namespace(),
+            prefix=name.in_local_scope(),
+        )
+
+        typedef_tag = schema.get_x_property_str(
+            'x-usrv-cpp-typedef-tag',
+        ) or schema.get_x_property_str('x-taxi-cpp-typedef-tag')
+        if typedef_tag:
+            if user_cpp_type:
+                self._raise(
+                    schema,
+                    '"x-usrv-cpp-typedef-tag" and "x-usrv-cpp-type" are mutually exclusive',
+                )
+            user_cpp_type = f'userver::utils::StrongTypedef<{typedef_tag}, std::string>'
+
+        if schema.format == types.StringFormat.URI:
+            assert not validators.pattern, '"format: uri" and "pattern" are not yet implemented'
+            validators.pattern = '^[a-z][-a-z0-9+.]*:.*'
+
+        if schema.format and schema.format not in {types.StringFormat.BINARY, types.StringFormat.URI}:
+            match schema.format:
+                case types.StringFormat.BYTE:
+                    format_cpp_type = 'crypto::base64::String64'
+                case types.StringFormat.UUID:
+                    format_cpp_type = 'boost::uuids::uuid'
+                case types.StringFormat.DATE:
+                    format_cpp_type = 'userver::utils::datetime::Date'
+                case types.StringFormat.DATE_TIME:
+                    format_cpp_type = 'userver::utils::datetime::TimePointTz'
+                case types.StringFormat.DATE_TIME_ISO_BASIC:
+                    format_cpp_type = 'userver::utils::datetime::TimePointTzIsoBasic'
+                case types.StringFormat.DATE_TIME_FRACTION:
+                    format_cpp_type = 'userver::utils::datetime::TimePointTzFraction'
+                case _:
+                    self._raise(schema, f'"format: {schema.format}" is unsupported yet')
+            return cpp_types.CppStringWithFormat(
+                json_schema=schema,
+                nullable=schema.nullable,
+                raw_cpp_type=type_name.TypeName('std::string'),
+                user_cpp_type=user_cpp_type,
+                default=schema.default,
+                format_cpp_type=format_cpp_type,
+            )
+
+        return cpp_types.CppPrimitiveType(
+            json_schema=schema,
+            nullable=schema.nullable,
+            raw_cpp_type=type_name.TypeName('std::string'),
+            user_cpp_type=user_cpp_type,
+            validators=validators,
+            default=schema.default,
+        )
+
+    @staticmethod
+    def _is_emoji(code_point: int) -> bool:
+        return (
+            # Box Drawing, Block Elements, Geometric Shapes, Miscellaneous Symbols, Dingbats
+            (0x2500 <= code_point and code_point <= 0x27BF)
+            # Miscellaneous Symbols and Pictographs, Ornamental Dingbats, Transport and Map Symbols, Alchemical Symbols
+            or (0x1F300 <= code_point and code_point <= 0x1F77F)
+        )
+
+    @staticmethod
+    def _normalize_name(name: str) -> str:
+        if re.search(NON_NAME_SYMBOL_RE, name):
+            initially_with_leading_underscore = name.startswith('_')
+
+            lang = transliterate.detect_language(name, heavy_check=True)
+            if lang:
+                name = transliterate.translit(name, lang, reversed=True)
+
+            replacements = {}
+            for symbol in name:
+                code_point = ord(symbol)
+                if Generator._is_emoji(code_point):
+                    replacements[symbol] = f'_u{code_point:X}'
+
+            for symbol, replacement in replacements.items():
+                name = name.replace(symbol, replacement)
+
+            name = re.sub(NON_NAME_SYMBOL_RE, '_', name)
+
+            if not initially_with_leading_underscore and name.startswith('_'):
+                name = name[1:]
+
+        if not name:
+            name = '_'
+
+        if name[0].isnumeric():
+            name = 'x' + name
+        elif cpp_keywords.is_cpp_keyword(name):
+            name = name + '_'
+
+        return name
+
+    def _gen_field(
+        self,
+        class_name: type_name.TypeName,
+        field_name: str,
+        schema: types.Schema,
+        required: bool,
+    ) -> cpp_types.CppStructField:
+        # Field name must not be the same as the type
+        type_name = field_name.title()
+        if type_name == field_name:
+            type_name += '_'
+
+        # Struct X may not have subtype X
+        if type_name == class_name.in_local_scope():
+            type_name += '_'
+
+        type_name = self._normalize_name(type_name)
+
+        cpp_name = schema.get_x_property_str(
+            'x-usrv-cpp-name',
+        ) or schema.get_x_property_str('x-taxi-cpp-name')
+        schema.delete_x_property('x-usrv-cpp-name')
+        schema.delete_x_property('x-taxi-cpp-name')
+
+        name = class_name.joinns(type_name)
+        type_ = self._generate_type(name, schema)
+        nullable = type_.nullable
+
+        if nullable and not required:
+            self._raise(
+                schema,
+                msg='optional nullable fields are not supported',
+            )
+
+        field = cpp_types.CppStructField(
+            name=cpp_name or self._normalize_name(field_name),
+            required=required,
+            schema=type_,
+        )
+
+        return field
+
+    def _gen_array(
+        self,
+        name: type_name.TypeName,
+        schema: types.Array,
+    ) -> cpp_types.CppType:
+        # TODO: name?
+        items = self._generate_type(name.add_suffix('A'), schema.items)
+
+        if schema.uniqueItems and not isinstance(schema.items, (types.Integer, types.String, types.Boolean)):
+            self._raise(
+                schema,
+                'uniqueItems is only supported for integer, string, and boolean item types',
+            )
+
+        user_cpp_type = self._extract_user_cpp_type(schema)
+        container = self._extract_container(schema)
+
+        if container == 'std::vector' and user_cpp_type in LEGACY_X_TAXI_CPP_TYPE_CONTAINERS:
+            container = user_cpp_type
+            user_cpp_type = None
+
+        return cpp_types.CppArray(
+            raw_cpp_type=name,
+            json_schema=schema,
+            nullable=schema.nullable,
+            user_cpp_type=user_cpp_type,
+            items=items,
+            container=container,
+            validators=cpp_types.CppArrayValidator(
+                minItems=schema.minItems,
+                maxItems=schema.maxItems,
+                uniqueItems=schema.uniqueItems,
+            ),
+        )
+
+    def _gen_all_of(
+        self,
+        name: type_name.TypeName,
+        schema: types.AllOf,
+    ) -> cpp_types.CppType:
+        parents = []
+        for num, subtype in enumerate(schema.allOf):
+            parents.append(
+                self._generate_type(name.add_suffix(f'__P{num}'), subtype),
+            )
+
+        user_cpp_type = self._extract_user_cpp_type(schema)
+
+        return cpp_types.CppStructAllOf(
+            raw_cpp_type=name,
+            user_cpp_type=user_cpp_type,
+            json_schema=schema,
+            nullable=schema.nullable,
+            parents=parents,
+        )
+
+    def _gen_one_of(
+        self,
+        name: type_name.TypeName,
+        schema: types.OneOfWithoutDiscriminator,
+    ) -> cpp_types.CppType:
+        variants = []
+        for num, subtype in enumerate(schema.oneOf):
+            variants.append(
+                self._generate_type(name.add_suffix(f'__O{num}'), subtype),
+            )
+
+        user_cpp_type = self._extract_user_cpp_type(schema)
+
+        obj = cpp_types.CppVariant(
+            raw_cpp_type=name,
+            user_cpp_type=user_cpp_type,
+            json_schema=schema,
+            nullable=schema.nullable,
+            variants=variants,
+        )
+        return obj
+
+    def _gen_one_of_with_discriminator(
+        self,
+        name: type_name.TypeName,
+        schema: types.OneOfWithDiscriminator,
+    ) -> cpp_types.CppType:
+        variants = {}
+
+        mapping_values: list
+        if schema.mapping.is_str():
+            mapping_values = schema.mapping.as_strs()
+        elif schema.mapping.is_int():
+            mapping_values = schema.mapping.as_ints()
+
+        for field_value, refs in zip(schema.oneOf, mapping_values, strict=True):
+            for ref_ in refs:
+                variants[ref_] = self._gen_ref(
+                    type_name.TypeName(''),
+                    field_value,
+                )
+
+        assert schema.discriminator_property
+
+        user_cpp_type = self._extract_user_cpp_type(schema)
+
+        return cpp_types.CppVariantWithDiscriminator(
+            raw_cpp_type=name,
+            user_cpp_type=user_cpp_type,
+            json_schema=schema,
+            nullable=schema.nullable,
+            variants=variants,
+            property_name=schema.discriminator_property,
+            mapping_type=schema.mapping.get_type(),
+        )
+
+    def _gen_object(
+        self,
+        name: type_name.TypeName,
+        schema: types.SchemaObject,
+    ) -> cpp_types.CppType:
+        assert schema.properties is not None
+        required = schema.required or []
+
+        fields = {
+            field_name: self._gen_field(
+                name,
+                field_name,
+                schema,
+                required=field_name in required,
+            )
+            for field_name, schema in schema.properties.items()
+        }
+
+        extra_type: cpp_types.CppType | bool | None
+        if schema.additionalProperties:
+            if isinstance(schema.additionalProperties, types.Schema):
+                extra_name = 'Extra'
+                if extra_name == name.in_local_scope():
+                    extra_name += '_'
+
+                type_ = self._generate_type(
+                    name.joinns(extra_name),
+                    schema.additionalProperties,
+                )
+                extra_type = type_
+            else:
+                # schema.additionalProperties is True (explicit `additionalProperties: true`)
+                extra_type = True
+        else:
+            extra_type = False
+
+        strict_parsing = schema.get_x_property_bool(
+            'x-taxi-strict-parsing',
+            schema.get_x_property_bool(
+                'x-usrv-strict-parsing',
+                self._config.strict_parsing_default,
+            ),
+        )
+        assert strict_parsing is not None
+
+        user_cpp_type = self._extract_user_cpp_type(schema)
+
+        # Default for need_extra_member:
+        # - non-bool extra_type (a Schema) -> True: we must store typed extras
+        # - explicit `additionalProperties: true` -> True: generate extra member by default
+        # - None (key absent) -> False: keep old "ignore unknown" behavior
+        # - `additionalProperties: false` -> False
+        need_extra_member_default = (
+            not isinstance(extra_type, bool)  # typed schema case
+            or schema.additionalProperties is True  # explicit `true`
+        )
+        need_extra_member = schema.get_x_property_bool(
+            'x-usrv-extra-member',
+            schema.get_x_property_bool(
+                'x-taxi-extra-member',
+                need_extra_member_default,
+            ),
+        )
+        if not need_extra_member and not isinstance(extra_type, bool):
+            self._raise(
+                schema,
+                msg=('"x-usrv-extra-member: false" is not allowed for non-boolean "additionalProperties"'),
+            )
+        if not need_extra_member:
+            if extra_type or schema.additionalProperties is None:
+                # extra_type=True  → explicit `additionalProperties: true`: user opted out
+                #                    of storing extras, so disable strict parsing to
+                #                    preserve "ignore unknown fields" behavior.
+                # additionalProperties is None → key was absent: same "ignore unknowns"
+                #                    semantics as before this field existed.
+                strict_parsing = False
+            extra_type = None
+
+        return cpp_types.CppStruct(
+            raw_cpp_type=name.parent().joinns(self._normalize_name(name.in_local_scope())),
+            user_cpp_type=user_cpp_type,
+            json_schema=schema,
+            nullable=schema.nullable,
+            fields=fields,
+            extra_type=extra_type,
+            autodiscover_default_dict=self._config.autodiscover_default_dict,
+            strict_parsing=strict_parsing,
+        )
+
+    def _gen_const(
+        self,
+        name: type_name.TypeName,
+        schema: types.ConstSchema,
+    ) -> cpp_types.CppType:
+        cpp_type = types.CONST_TYPE_TO_CPP[schema.const_type]
+        return cpp_types.CppConstType(
+            json_schema=schema,
+            nullable=False,
+            raw_cpp_type=name,
+            user_cpp_type=None,
+            const_value=schema.const,
+            cpp_type=cpp_type,
+            prefix=name.in_local_scope(),
+            namespace=name.namespace(),
+        )
+
+    def _gen_ref(
+        self,
+        name: type_name.TypeName,
+        schema: types.Ref,
+    ) -> cpp_types.CppType:
+        ref_ = cpp_types.CppRef(
+            json_schema=schema,
+            nullable=False,
+            # stub
+            user_cpp_type=None,
+            orig_cpp_type=cpp_types.CppType(
+                raw_cpp_type=type_name.TypeName(''),
+                json_schema=types.Schema(),
+                nullable=False,
+                user_cpp_type=None,
+            ),
+            raw_cpp_type=name,
+            indirect=False,
+            self_ref=False,
+        )
+        self._state.ref_objects.append(ref_)
+        return ref_
+
+
+# pylint: disable=protected-access
+SCHEMA_GENERATORS = {
+    types.AnyValue: Generator._gen_any_value,
+    types.Boolean: Generator._gen_boolean,
+    types.Integer: Generator._gen_integer,
+    types.Number: Generator._gen_number,
+    types.String: Generator._gen_string,
+    types.ConstSchema: Generator._gen_const,
+    types.SchemaObject: Generator._gen_object,
+    types.Array: Generator._gen_array,
+    types.Ref: Generator._gen_ref,
+    types.AllOf: Generator._gen_all_of,
+    types.OneOfWithoutDiscriminator: Generator._gen_one_of,
+    types.OneOfWithDiscriminator: Generator._gen_one_of_with_discriminator,
+}
+
+LEGACY_X_TAXI_CPP_TYPE_CONTAINERS = (
+    'std::set',
+    'std::unordered_set',
+    'std::vector',
+)

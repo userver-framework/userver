@@ -10,13 +10,12 @@ namespace dynamic_config {
 
 components::DynamicConfigUpdatesSinkBase& FindUpdatesSink(
     const components::ComponentConfig& config,
-    const components::ComponentContext& context) {
-  const auto sink_name =
-      config["updates-sink"].As<std::string>(components::DynamicConfig::kName);
-  auto& sink = context.FindComponent<components::DynamicConfigUpdatesSinkBase>(
-      sink_name);
-  impl::RegisterUpdater(sink, sink_name, config.Name());
-  return sink;
+    const components::ComponentContext& context
+) {
+    const auto sink_name = config["updates-sink"].As<std::string>(components::DynamicConfig::kName);
+    auto& sink = context.FindComponent<components::DynamicConfigUpdatesSinkBase>(sink_name);
+    impl::RegisterUpdater(sink, sink_name, config.Name());
+    return sink;
 }
 
 }  // namespace dynamic_config

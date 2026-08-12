@@ -1,55 +1,68 @@
-import typing
+import pytest
+
+import samples.greeter_pb2 as greeter_protos
 
 
-def _normalize_metrics(metrics: str) -> typing.Set[str]:
+def _normalize_metrics(metrics: str) -> str:
     result = metrics.splitlines()
 
     result = _drop_non_grpc_metrics(result)
     result = _hide_metrics_values(result)
 
-    return set(result)
+    result.sort()
+    return '\n'.join(result) + '\n'
 
 
-def _drop_non_grpc_metrics(metrics: typing.List[str]) -> typing.List[str]:
+def _drop_non_grpc_metrics(metrics: list[str]) -> list[str]:
     result = []
     for line in metrics:
-        if line.startswith(('grpc.server', 'grpc.client')):
-            result.append(line)
+        try:
+            path = line.split(':')[0]
+            if 'grpc' in path:
+                result.append(line)
+        except IndexError:
+            continue
 
     return result
 
 
-def _hide_metrics_values(metrics: typing.List[str]) -> typing.List[str]:
-    return [line.rsplit('\t', 1)[0] for line in metrics]
+def _hide_metrics_values(metrics: list[str]) -> list[str]:
+    return ['\t'.join(line.split('\t')[0:2]) for line in metrics]
 
 
-async def test_metrics_smoke(monitor_client):
+@pytest.fixture(name='force_metrics_to_appear')
+async def _force_metrics_to_appear(grpc_client, greeter_mock):
+    # /// [grpc client test]
+    @greeter_mock('SayHello')
+    async def mock_say_hello(mock_request, _mock_context):
+        return greeter_protos.GreetingResponse(
+            greeting=f'Hello, {mock_request.name} from mockserver!',
+        )
+        # /// [grpc client test]
+
+    request = greeter_protos.GreetingRequest(name='Python')
+    response = await grpc_client.SayHello(request)
+    assert response.greeting == 'FWD: Hello, Python from mockserver!'
+
+    assert mock_say_hello.times_called == 1
+
+
+async def test_metrics_smoke(monitor_client, force_metrics_to_appear):
     metrics = await monitor_client.metrics()
     assert len(metrics) > 1
 
     cache_hits = await monitor_client.single_metric(
-        'grpc.client.by-destination.deadline-propagated',
+        'grpc.server.by-destination.rps',
     )
-    assert cache_hits.value >= 0
-
-    cache_hits = await monitor_client.metrics(
-        prefix='grpc.client.by-destination.deadline-propagated',
-    )
-    assert (
-        cache_hits.value_at('grpc.client.by-destination.deadline-propagated')
-        >= 0
-    )
+    assert cache_hits.value > 0
 
 
-async def test_metrics(monitor_client, load):
+async def test_metrics(monitor_client, load, force_metrics_to_appear):
     reference = _normalize_metrics(load('metrics_values.txt'))
     assert reference
     all_metrics = _normalize_metrics(
         await monitor_client.metrics_raw(output_format='pretty'),
     )
-    assert all_metrics == reference
     assert all_metrics == reference, (
-        '\n===== Service metrics start =====\n'
-        f'{all_metrics}\n'
-        '===== Service metrics end =====\n'
+        f'\n===== Service metrics start =====\n{all_metrics}\n===== Service metrics end =====\n'
     )

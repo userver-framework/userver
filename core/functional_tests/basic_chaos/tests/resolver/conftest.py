@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 import datetime
@@ -9,7 +10,6 @@ import struct
 
 import pytest
 from pytest_userver import chaos
-
 
 logger = logging.getLogger(__name__)
 sys_random = random.SystemRandom()
@@ -57,15 +57,14 @@ class DnsServerProtocol:
         return self.queries
 
     def connection_made(self, transport):
-        self.transport = transport
+        self.transport = transport  # pylint: disable=attribute-defined-outside-init
 
     def connection_lost(self, exc):
         logger.info('Dns server "%s" lost connection', self.name)
 
     def datagram_received(self, data, addr):
         logger.info(
-            f'Dns server "{self.name}" received {len(data)} bytes from {addr} '
-            f'at {datetime.datetime.now()}',
+            f'Dns server "{self.name}" received {len(data)} bytes from {addr} at {datetime.datetime.now()}',
         )
         self.times_called += 1
 
@@ -89,18 +88,21 @@ class DnsServerProtocol:
         response += struct.pack('!H', 1)  # class IN
         response += struct.pack('!I', 99999)  # TTL
 
-        if query_type == b'\x00\x01':  # type A record
-            response += struct.pack('!H', 4)  # data length (IPv4)
-            response += socket.inet_pton(
-                socket.AF_INET, '77.88.55.55',
-            )  # our fake IPv4 address
-        elif query_type == b'\x00\x1c':  # type AAAA record
-            response += struct.pack('!H', 16)  # data length (IPv6)
-            response += socket.inet_pton(
-                socket.AF_INET6, '2a02:6b8:a::a',
-            )  # our fake IPv6 address
-        else:
-            raise Exception('unknown type')
+        match query_type:
+            case b'\x00\x01':  # type A record
+                response += struct.pack('!H', 4)  # data length (IPv4)
+                response += socket.inet_pton(
+                    socket.AF_INET,
+                    '77.88.55.55',
+                )  # our fake IPv4 address
+            case b'\x00\x1c':  # type AAAA record
+                response += struct.pack('!H', 16)  # data length (IPv6)
+                response += socket.inet_pton(
+                    socket.AF_INET6,
+                    '2a02:6b8:a::a',
+                )  # our fake IPv6 address
+            case _:
+                raise Exception('unknown type')
 
         logger.info(
             f'Dns "{self.name}" sends {len(response)} bytes to {addr} '
@@ -109,20 +111,14 @@ class DnsServerProtocol:
         self.transport.sendto(response, addr)
 
 
-def _bind_udp_socket(hostname, port, family=socket.AF_INET6):
-    sock = socket.socket(family, socket.SOCK_DGRAM)
-    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-    sock.bind((hostname, port))
-    logger.info(f'socket for udp_server {sock}')
-    return sock
-
-
 @asynccontextmanager
-async def create_server(dns_info, loop, name):
-    sock = _bind_udp_socket(dns_info.host, dns_info.port)
+async def create_server(dns_info, name):
+    loop = asyncio.get_running_loop()
     transport, protocol = await loop.create_datagram_endpoint(
         lambda: DnsServerProtocol(name),  # pylint: disable=unnecessary-lambda
-        sock=sock,
+        family=socket.AF_INET6,
+        local_addr=(dns_info.host, dns_info.port),
+        reuse_port=True,
     )
     try:
         yield protocol
@@ -131,27 +127,19 @@ async def create_server(dns_info, loop, name):
 
 
 @pytest.fixture(scope='session', name='dns_mock')
-async def _dns_mock(loop, dns_info):
-    async with create_server(dns_info, loop, 'primary') as server:
+async def _dns_mock(dns_info):
+    async with create_server(dns_info, 'primary') as server:
         yield server
 
 
-@pytest.fixture(scope='function', name='dns_mock2_lazy')
-async def _dns_mock2_lazy(loop, dns_info2):
-    return create_server(dns_info2, loop, 'secondary')
-
-
-@pytest.fixture(name='for_dns_mock_port', scope='session')
-def _for_dns_mock_port(request) -> int:
-    # This fixture might be defined in an outer scope.
-    if 'dns_mock_port' in request.fixturenames:
-        return request.getfixturevalue('dns_mock_port')
-    return 11053
+@pytest.fixture(name='dns_mock2_lazy')
+async def _dns_mock2_lazy(dns_info2):
+    return create_server(dns_info2, 'secondary')
 
 
 @pytest.fixture(scope='session', name='dns_info')
-def _dns_info(for_dns_mock_port) -> DnsInfo:
-    return DnsInfo('::1', for_dns_mock_port)
+def _dns_info(choose_free_port) -> DnsInfo:
+    return DnsInfo('::1', choose_free_port(11053))
 
 
 @pytest.fixture(scope='session', name='dns_info2')
@@ -159,7 +147,7 @@ def _dns_info2(for_dns_gate_port2) -> DnsInfo:
     return DnsInfo('::1', for_dns_gate_port2)
 
 
-@pytest.fixture(scope='function', name='dns_mock_stats')
+@pytest.fixture(name='dns_mock_stats')
 def _dns_mock_stats(dns_mock):
     dns_mock.reset_stats()
 
@@ -174,7 +162,7 @@ def _dns_mock_stats(dns_mock):
 
 
 @pytest.fixture
-async def _gate_started(loop, for_dns_gate_port, dns_info, dns_mock):
+async def _gate_started(for_dns_gate_port, dns_info, dns_mock):
     gate_config = chaos.GateRoute(
         name='udp proxy',
         host_for_client='::1',
@@ -182,7 +170,7 @@ async def _gate_started(loop, for_dns_gate_port, dns_info, dns_mock):
         host_to_server='::1',
         port_to_server=dns_info.port,
     )
-    async with chaos.UdpGate(gate_config, loop) as proxy:
+    async with chaos.UdpGate(gate_config) as proxy:
         yield proxy
 
 
@@ -193,19 +181,17 @@ def extra_client_deps(_gate_started):
 
 @pytest.fixture(name='gate')
 async def _gate_ready(service_client, _gate_started):
-    _gate_started.to_server_pass()
-    _gate_started.to_client_pass()
+    await _gate_started.to_server_pass()
+    await _gate_started.to_client_pass()
     await _gate_started.sockets_close()  # close keepalive connections
 
-    yield _gate_started
+    return _gate_started
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture
 def gen_domain_name():
     def _gen_domain_name(length: int = 10, tld: str = '.com'):
-        domain = ''.join(
-            sys_random.choice(string.ascii_lowercase) for _ in range(length)
-        )
+        domain = ''.join(sys_random.choice(string.ascii_lowercase) for _ in range(length))
         return domain + tld
 
     return _gen_domain_name

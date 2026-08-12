@@ -1,0 +1,78 @@
+#pragma once
+
+#include <vector>
+
+#include <userver/chaotic/validators.hpp>
+#include <userver/formats/json/string_builder_fwd.hpp>
+#include <userver/formats/json/value.hpp>
+#include <userver/formats/parse/common_containers.hpp>
+#include <userver/formats/parse/to.hpp>
+#include <userver/utils/meta.hpp>
+
+USERVER_NAMESPACE_BEGIN
+
+namespace chaotic {
+
+template <typename ItemType, typename UserType, typename... Validators>
+struct Array final {
+    const UserType& value;
+};
+
+template <typename Value, typename ItemType, typename UserType, typename... Validators>
+UserType Parse(const Value& value, formats::parse::To<Array<ItemType, UserType, Validators...>>) {
+    value.CheckNotMissing();
+    value.CheckArrayOrNull();
+
+    UserType arr;
+    if constexpr (meta::kIsReservable<UserType>) {
+        arr.reserve(value.GetSize());
+    }
+    // Note: call arr.end() *after* reserve() as the latter may invalidate end()
+    auto inserter = std::inserter(arr, arr.end());
+    for (const auto& item : value) {
+        *inserter = item.template As<ItemType>();
+        ++inserter;
+    }
+
+    chaotic::Validate<Validators...>(arr, value);
+
+    return arr;
+}
+
+template <typename Value, typename ItemType, typename... Validators>
+std::vector<formats::common::ParseType<Value, ItemType>>
+Parse(const Value& value, formats::parse::To<Array<ItemType, std::vector<formats::common::ParseType<Value, ItemType>>, Validators...>>) {
+    value.CheckNotMissing();
+    value.CheckArrayOrNull();
+
+    std::vector<formats::common::ParseType<Value, ItemType>> arr;
+    arr.reserve(value.GetSize());
+    for (const auto& item : value) {
+        arr.emplace_back(item.template As<ItemType>());
+    }
+
+    chaotic::Validate<Validators...>(arr, value);
+
+    return arr;
+}
+
+template <typename Value, typename ItemType, typename UserType, typename... Validators>
+Value Serialize(const Array<ItemType, UserType, Validators...>& ps, formats::serialize::To<Value>) {
+    typename Value::Builder vb{formats::common::Type::kArray};
+    for (const auto& item : ps.value) {
+        vb.PushBack(ItemType{item});
+    }
+    return vb.ExtractValue();
+}
+
+template <typename ItemType, typename UserType, typename... Validators, typename StringBuilder>
+void WriteToStream(const Array<ItemType, UserType, Validators...>& ps, StringBuilder& sw) {
+    const typename StringBuilder::ArrayGuard guard{sw};
+    for (const auto& item : ps.value) {
+        WriteToStream(ItemType{item}, sw);
+    }
+}
+
+}  // namespace chaotic
+
+USERVER_NAMESPACE_END

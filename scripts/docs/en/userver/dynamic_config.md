@@ -1,7 +1,7 @@
 ## Dynamic config
 
 For schemas of dynamic configs used by userver itself:
-@see @ref scripts/docs/en/schemas/dynamic_configs.md
+@see @ref scripts/docs/en/dynamic_configs/dynamic_configs.md
 
 For information on how to write a service that distributes dynamic configs:
 @see @ref scripts/docs/en/userver/tutorial/config_service.md
@@ -36,6 +36,7 @@ proxy setup and so forth.
 See @ref scripts/docs/en/userver/tutorial/production_service.md setup example.
 
 
+@anchor dynamic_config_usage
 ### Adding and using your own dynamic configs
 
 Dynamic config values are obtained via the dynamic_config::Source client
@@ -139,11 +140,12 @@ but it frequently comes up in the context of defining configs.
 If your dynamic config is any more complex than
 a @ref dynamic_config_parsing_trivial "trivial type", then you need to ensure
 that JSON parsing is defined for it.
+You may use @ref scripts/docs/en/userver/chaotic.md if you hesitate writing the parser by yourself.
 
 @anchor dynamic_config_parsing_trivial
 #### Trivial types
 
-JSON leafs can be parsed out of the box:
+JSON leaves can be parsed out of the box:
 
 | OpenAPI   | C++ type                                 |
 |-----------|------------------------------------------|
@@ -175,7 +177,7 @@ A string that may only be selected a finite range of values should be mapped
 to C++ `enum class`. Parsers for enums currently have to be defined manually.
 Example enum parser:
 
-@snippet engine/task/task_processor_config.cpp  sample enum parser
+@snippet core/src/dynamic_config/config_test.cpp parse enum
 
 #### Structs
 
@@ -249,8 +251,8 @@ MyStruct Parse(const formats::json::Value& value,
 
 3. Make sure to check feasible invariants while parsing, e.g. minimum and
    maximum values of numbers.
-   For that you occasionally may need to use
-   @ref dynamic_config::Key::Key(std::string_view name, JsonParser parser, DefaultAsJsonString default_json)
+   For that you occasionally may need to use @ref dynamic_config::Key
+   constructor with `JsonParser`.
    Don't leave strings that are semantically enums as strings, parse them
    to C++ `enum class`.
 
@@ -267,7 +269,7 @@ Config defaults are specified in their
 @ref dynamic_config_key "C++ definition".
 They may be overridden in the static config of `dynamic-config` component:
 
-@see @ref dynamic_config_defaults_override
+@see @ref dynamic_config_defaults_override "Overriding dynamic configs defaults"
 
 If utils::DaemonMain is used, then the default dynamic configs can
 be printed by passing `--print-dynamic-config-defaults` command line option.
@@ -291,6 +293,9 @@ Dynamic config defaults are used in the following places:
 5. If `dynamic-config` component loads the config cache file, and some configs
    are missing, then those are filled in from defaults.
 
+6. If a @ref kill_switches "Kill Switch" is disabled, the default is used
+   instead of runtime updates.
+
 
 @anchor dynamic_config_setup
 ### Setting up dynamic config
@@ -312,7 +317,7 @@ then you may skip this section entirely and use defaults only for testing.
 
 On the other hand, if you prefer to run without a configs service, then you
 may want to override some of the
-@ref scripts/docs/en/schemas/dynamic_configs.md "built-in userver configs".
+@ref scripts/docs/en/dynamic_configs/dynamic_configs.md "built-in userver configs".
 
 Defaults can be overridden in the config of the `dynamic-config` component:
 
@@ -349,6 +354,98 @@ Here is a reasonable static config for those:
 @snippet samples/production_service/static_config.yaml Production service sample - static config dynamic configs
 
 
+@anchor dynamic_config_client_schema
+#### Schema of the dynamic config client
+
+Components components::DynamicConfigClientUpdater and components::DynamicConfigClient
+use the following OpenAPI Schema to communicate with the dynamic configs server:
+
+```
+# yaml
+swagger: '2.0'
+info:
+    title: Dynamic configs service
+    version: '1.0'
+
+paths:
+    /configs/values:
+        post:
+            description: |
+                Returns configs changed since updated_since and last update time.
+                If any changed configs are kill switches, returns additional list of disabled Kill Switches.
+                A config with a changed Kill Switch flag is considered changed.
+
+            parameters:
+              - in: body
+                name: values_request
+                schema:
+                    $ref: '#/definitions/Request'
+            responses:
+                200:
+                    description: OK
+                    schema:
+                        $ref: '#/definitions/Response'
+
+definitions:
+    Request:
+        type: object
+        description: Request configs/values
+        additionalProperties: false
+        properties:
+            stage_name:
+                type: string
+                description: Environment name
+            ids:
+                type: array
+                description: Requested configs
+                items:
+                    type: string
+                    description: Config id
+            updated_since:
+                type: string
+                description: |
+                    Time since which updates are requested,
+                    format string "%Y-%m-%dT%H:%M:%E*SZ"
+                example: '2018-08-24T18:36:00.15Z'
+            service:
+                type: string
+                description: Service name
+    Response:
+        type: object
+        description: Response to the configs/values request (with code 200)
+        additionalProperties: false
+        properties:
+            configs:
+                type: object
+                additionalProperties: true
+                description: Configs values
+            kill_switches_disabled:
+                type: array
+                description: Disabled Kill Switches
+                items:
+                    type: string
+                    description: Config id
+            updated_at:
+                type: string
+                description: |
+                    Last update time,
+                    format string "%Y-%m-%dT%H:%M:%E*SZ"
+                example: '2018-08-24T18:36:00.15Z'
+            removed:
+                type: array
+                description: |
+                    Configs that were removed from the last update.
+                    Should be returned only by testsuite mocks, but not by real config services.
+                    Used only in case of incremental updates, i.e. updated_since is present.
+                items:
+                    type: string
+                    description: Config id
+        required:
+          - configs
+          - updated_at
+```
+
+
 @anchor dynamic_config_fallback
 ### Fallback mechanisms for dynamic configs updates
 
@@ -368,8 +465,7 @@ then the periodic config update will fail, and alerts will fire:
    if ((1) != previous (1) || (2) == 0) show alert
    ```
 
-2. An alert will be registered in alerts::StorageComponent, which can be
-   accessed from outside using the optional alerts::Handler component
+2. An alert will be fired in via alerts::Source with metric name name `alerts.config_parse_error`.
 
 If the config service is not accessible at this point (down or overloaded),
 then the periodic config update will also obviously fail.
@@ -404,6 +500,51 @@ can create a config cache file with contents `{}`, or bake a config cache file
 into the service's Docker image.
 
 
+@anchor kill_switches
+### Kill Switches
+
+The Kill Switch is a special type of dynamic config option that,
+depending on a special flag, can be configured
+either dynamically or statically.
+
+* If the Kill Switch flag is `true`, it is considered as enabled and works
+  like a normal dynamic config option.
+* Otherwise, it is disabled and its value is determined by the
+  @ref dynamic_config_defaults "static default",
+  ignoring runtime updates.
+
+The Kill Switch flag can be changed at runtime,
+allowing to switch between these two modes.
+
+#### Why Kill Switches may be useful
+
+If you need a static configuration option
+that can be temporarily changed at runtime (e.g. in the event of an incident),
+you should consider using a Kill Switch.
+
+If you enable the Kill Switch very rarely and for a short time,
+then you get advantages that ordinary dynamic configs do not have:
+
+* The production and test configurations are not different.
+* Configuration changes are synchronized with code releases.
+
+#### Usage of Kill Switches
+
+To use a Kill Switch, you need to do the following:
+
+1. Add support for the Kill Switches to the dynamic configuration server
+   used by your component. In particular, the server must send
+   the `kill_switch_disabled` field that is explained in
+   @ref dynamic_config_client_schema "Dynamic config client schema".
+2. Define a global dynamic_config::Key variable
+   in your component's code.
+   @see @ref dynamic_config_usage "Adding and using your own dynamic configs"
+3. You should define a meaningful default value in the dynamic_config::Key variable.
+   Alternatively, you may provide a reasonable
+   @ref dynamic_config_defaults_override "override".
+4. Mark this key as a Kill Switch in the dynamic config server.
+
+
 @anchor dynamic_config_unit_tests
 ### Using dynamic config in unit tests and benchmarks
 
@@ -427,6 +568,7 @@ Main testsuite page:
 
 @see @ref scripts/docs/en/userver/functional_testing.md
 
+@anchor dynamic_config_testsuite_global_override
 #### Overriding dynamic config for testsuite globally
 
 Dynamic config can be overridden specifically for testsuite. It can be done
@@ -436,7 +578,8 @@ globally in the following ways:
    `userver_testsuite_add_simple` to setup tests in CMake, it is enough
    to place the `dynamic_config_fallback.json` file next to the static config.
 2. Providing a patch directly in "Python JSON" format by overriding
-   @ref dynamic_config_fallback_patch fixture
+   @ref pytest_userver.plugins.dynamic_config.dynamic_config_fallback_patch "dynamic_config_fallback_patch"
+   fixture.
 
 The various config patches are applied in the following order, going
 from the lowest to the highest priority:
@@ -457,12 +600,16 @@ dynamic config (as shown above) in each of those directories in different ways.
 If the service has config updates enabled, then you can change dynamic config
 per-test as follows:
 
-```python
-@pytest.mark.config(MY_CONFIG_NAME=42, MY_OTHER_CONFIG_NAME=True)
-async def test_whatever(service_client, ...):
-```
+@snippet core/functional_tests/dynamic_configs/tests/test_examples.py pytest marker basic usage
 
-Dynamic config can also be modified mid-test using @ref dynamic_config fixture.
+In a similar way, you can disable the @ref kill_switches "kill switches"
+whose values are @ref dynamic_config_testsuite_global_override "globally overridden":
+
+@snippet core/functional_tests/dynamic_configs/tests/test_examples.py kill switch disabling using a pytest marker
+
+Dynamic config can also be modified mid-test using
+@ref pytest_userver.plugins.dynamic_config.dynamic_config "dynamic_config"
+fixture.
 
 Such dynamic config changes are applied (sent to the service) at the first
 `service_client` request in the test, or manually:
@@ -471,9 +618,65 @@ Such dynamic config changes are applied (sent to the service) at the first
 await service_client.update_server_state()
 ```
 
+#### Changing dynamic configs in testsuite for a subset of tests
+
+The testsuite provides multiple ways to set dynamic config values for specific groups of tests:
+
+1. **Directory-level configuration**
+
+   To apply configs to all tests in a directory:
+   - Create `config.json` in the directory's `static` subfolder
+   - OR create `default/config.json` in the `static` subfolder
+
+   Example folder structure for directory `foo`:
+   ```
+   foo/
+   ├── static/
+   │   └── config.json
+   └── test_bar.py
+   ```
+
+   The `config.json` file would contain:
+   ```json
+   {
+     "MY_CONFIG_NAME": 42,
+     "MY_OTHER_CONFIG_NAME": true,
+   }
+   ```
+
+2. **Test file-specific configuration**
+
+   To apply configs to tests in a specific file:
+   - Create a directory matching the test filename in `static`
+   - Place `config.json` in this directory
+
+   Example for `foo/test_bar.py`:
+   ```
+   foo/
+   ├── static/
+   │   └── test_bar/
+   │       └── config.json
+   └── test_bar.py
+   ```
+
+3. **Test function-specific configuration**
+
+   To apply configs to individual test functions:
+   @snippet core/functional_tests/dynamic_configs/tests/test_examples.py pytest marker in a variable
+
+#### Precedence rules of dynamic config modification in testsuite
+
+Dynamic config modifications are applied with the following order,
+going from the lowest to the highest priority:
+1. Global defaults
+2. Directory-level configs, if any
+3. Test file-specific configs, if any
+4. Test function-level markers, if any
+5. Mid-test modifications, if any
+
 
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref rabbitmq_driver | @ref scripts/docs/en/schemas/dynamic_configs.md ⇨
+⇦ @ref scripts/docs/en/userver/rabbitmq_driver.md | @ref scripts/docs/en/dynamic_configs/dynamic_configs.md ⇨
 @htmlonly </div> @endhtmlonly

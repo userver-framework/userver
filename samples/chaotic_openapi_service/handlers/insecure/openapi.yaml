@@ -1,0 +1,40 @@
+openapi: 3.0.0
+info:
+    title: Insecure handler
+    version: '1.0'
+paths:
+    /insecure/secret:
+        post:
+            operationId: insecureSecretPost
+            parameters:
+              - name: name
+                in: query
+                required: true
+                schema:
+                    type: string
+              - name: value
+                in: query
+                required: true
+                description: >-
+                    Warning: should be used for legacy API / test only,
+                    as the query might still be logged on proxies/other HTTP agents.
+                schema:
+                    type: string
+                x-usrv-query-log-mode: hide
+            responses:
+                '200':
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GreetingResponse'
+components:
+    schemas:
+        GreetingResponse:
+            type: object
+            additionalProperties: false
+            required:
+              - greeting
+            properties:
+                greeting:
+                    type: string

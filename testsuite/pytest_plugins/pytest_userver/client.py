@@ -8,28 +8,43 @@ testsuite; see
 
 # pylint: disable=too-many-lines
 
+from __future__ import annotations
+
+from collections.abc import Awaitable
+from collections.abc import Iterator
 import contextlib
 import copy
 import dataclasses
 import json
 import logging
 import typing
+from typing import Any
+from typing import overload
+from typing import TypeAlias
+from typing import TypeVar
 import warnings
 
 import aiohttp
 
-from testsuite import annotations
+from testsuite import logcapture
 from testsuite import utils
 from testsuite.daemons import service_client
 from testsuite.utils import approx
 from testsuite.utils import http
 
-import pytest_userver.metrics as metric_module  # pylint: disable=import-error
+from pytest_userver import userver_warnings
+import pytest_userver.metrics
 from pytest_userver.plugins import caches
 
 # @cond
 logger = logging.getLogger(__name__)
 # @endcond
+
+JsonAny: TypeAlias = int | float | str | list | dict
+JsonAnyOptional: TypeAlias = JsonAny | None
+
+T = TypeVar('T')
+_MISSING: Any = object()
 
 _UNKNOWN_STATE = '__UNKNOWN__'
 
@@ -71,9 +86,9 @@ class PeriodicTaskFailed(BaseError):
 
 
 class PeriodicTasksState:
-    def __init__(self):
-        self.suspended_tasks: typing.Set[str] = set()
-        self.tasks_to_suspend: typing.Set[str] = set()
+    def __init__(self) -> None:
+        self.suspended_tasks: set[str] = set()
+        self.tasks_to_suspend: set[str] = set()
 
 
 class TestsuiteTaskFailed(TestsuiteTaskError):
@@ -85,11 +100,11 @@ class TestsuiteTaskFailed(TestsuiteTaskError):
 
 @dataclasses.dataclass(frozen=True)
 class TestsuiteClientConfig:
-    testsuite_action_path: typing.Optional[str] = None
-    server_monitor_path: typing.Optional[str] = None
+    testsuite_action_path: str | None = None
+    server_monitor_path: str | None = None
 
 
-Metric = metric_module.Metric
+Metric: TypeAlias = pytest_userver.metrics.Metric
 
 
 class ClientWrapper:
@@ -105,16 +120,16 @@ class ClientWrapper:
         self._client = client
 
     async def post(
-            self,
-            path: str,
-            # pylint: disable=redefined-outer-name
-            json: annotations.JsonAnyOptional = None,
-            data: typing.Any = None,
-            params: typing.Optional[typing.Dict[str, str]] = None,
-            bearer: typing.Optional[str] = None,
-            x_real_ip: typing.Optional[str] = None,
-            headers: typing.Optional[typing.Dict[str, str]] = None,
-            **kwargs,
+        self,
+        path: str,
+        # pylint: disable=redefined-outer-name
+        json: JsonAnyOptional = None,
+        data: Any = None,
+        params: dict[str, str] | None = None,
+        bearer: str | None = None,
+        x_real_ip: str | None = None,
+        headers: dict[str, str] | None = None,
+        **kwargs,
     ) -> http.ClientResponse:
         """
         Make a HTTP POST request
@@ -132,16 +147,16 @@ class ClientWrapper:
         return await self._wrap_client_response(response)
 
     async def put(
-            self,
-            path,
-            # pylint: disable=redefined-outer-name
-            json: annotations.JsonAnyOptional = None,
-            data: typing.Any = None,
-            params: typing.Optional[typing.Dict[str, str]] = None,
-            bearer: typing.Optional[str] = None,
-            x_real_ip: typing.Optional[str] = None,
-            headers: typing.Optional[typing.Dict[str, str]] = None,
-            **kwargs,
+        self,
+        path,
+        # pylint: disable=redefined-outer-name
+        json: JsonAnyOptional = None,
+        data: Any = None,
+        params: dict[str, str] | None = None,
+        bearer: str | None = None,
+        x_real_ip: str | None = None,
+        headers: dict[str, str] | None = None,
+        **kwargs,
     ) -> http.ClientResponse:
         """
         Make a HTTP PUT request
@@ -159,16 +174,16 @@ class ClientWrapper:
         return await self._wrap_client_response(response)
 
     async def patch(
-            self,
-            path,
-            # pylint: disable=redefined-outer-name
-            json: annotations.JsonAnyOptional = None,
-            data: typing.Any = None,
-            params: typing.Optional[typing.Dict[str, str]] = None,
-            bearer: typing.Optional[str] = None,
-            x_real_ip: typing.Optional[str] = None,
-            headers: typing.Optional[typing.Dict[str, str]] = None,
-            **kwargs,
+        self,
+        path,
+        # pylint: disable=redefined-outer-name
+        json: JsonAnyOptional = None,
+        data: Any = None,
+        params: dict[str, str] | None = None,
+        bearer: str | None = None,
+        x_real_ip: str | None = None,
+        headers: dict[str, str] | None = None,
+        **kwargs,
     ) -> http.ClientResponse:
         """
         Make a HTTP PATCH request
@@ -186,12 +201,12 @@ class ClientWrapper:
         return await self._wrap_client_response(response)
 
     async def get(
-            self,
-            path: str,
-            headers: typing.Optional[typing.Dict[str, str]] = None,
-            bearer: typing.Optional[str] = None,
-            x_real_ip: typing.Optional[str] = None,
-            **kwargs,
+        self,
+        path: str,
+        headers: dict[str, str] | None = None,
+        bearer: str | None = None,
+        x_real_ip: str | None = None,
+        **kwargs,
     ) -> http.ClientResponse:
         """
         Make a HTTP GET request
@@ -206,12 +221,12 @@ class ClientWrapper:
         return await self._wrap_client_response(response)
 
     async def delete(
-            self,
-            path: str,
-            headers: typing.Optional[typing.Dict[str, str]] = None,
-            bearer: typing.Optional[str] = None,
-            x_real_ip: typing.Optional[str] = None,
-            **kwargs,
+        self,
+        path: str,
+        headers: dict[str, str] | None = None,
+        bearer: str | None = None,
+        x_real_ip: str | None = None,
+        **kwargs,
     ) -> http.ClientResponse:
         """
         Make a HTTP DELETE request
@@ -226,12 +241,12 @@ class ClientWrapper:
         return await self._wrap_client_response(response)
 
     async def options(
-            self,
-            path: str,
-            headers: typing.Optional[typing.Dict[str, str]] = None,
-            bearer: typing.Optional[str] = None,
-            x_real_ip: typing.Optional[str] = None,
-            **kwargs,
+        self,
+        path: str,
+        headers: dict[str, str] | None = None,
+        bearer: str | None = None,
+        x_real_ip: str | None = None,
+        **kwargs,
     ) -> http.ClientResponse:
         """
         Make a HTTP OPTIONS request
@@ -246,7 +261,10 @@ class ClientWrapper:
         return await self._wrap_client_response(response)
 
     async def request(
-            self, http_method: str, path: str, **kwargs,
+        self,
+        http_method: str,
+        path: str,
+        **kwargs,
     ) -> http.ClientResponse:
         """
         Make a HTTP request with the specified method
@@ -254,9 +272,14 @@ class ClientWrapper:
         response = await self._client.request(http_method, path, **kwargs)
         return await self._wrap_client_response(response)
 
-    def _wrap_client_response(
-            self, response: aiohttp.ClientResponse,
-    ) -> typing.Awaitable[http.ClientResponse]:
+    @property
+    def raw_aiohttp_client(self):
+        """
+        @deprecated Use pytest_userver.client.Client directly instead.
+        """
+        return self._client
+
+    def _wrap_client_response(self, response: aiohttp.ClientResponse) -> Awaitable[http.ClientResponse]:
         return http.wrap_client_response(response)
 
 
@@ -269,7 +292,8 @@ def _wrap_client_error(func):
             return await func(*args, **kwargs)
         except aiohttp.client_exceptions.ClientResponseError as exc:
             raise http.HttpResponseError(
-                url=exc.request_info.url, status=exc.status,
+                url=exc.request_info.url,
+                status=exc.status,
             )
 
     return _wrapper
@@ -282,36 +306,13 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
         super().__init__(base_url, **kwargs)
         self._config = config
 
-    async def get_metrics(self, prefix=None):
-        if not self._config.server_monitor_path:
-            raise ConfigurationError(
-                'handler-server-monitor component is not configured',
-            )
-        params = {'format': 'internal'}
-        if prefix is not None:
-            params['prefix'] = prefix
-        response = await self.get(
-            self._config.server_monitor_path, params=params,
-        )
-        async with response:
-            response.raise_for_status()
-            return await response.json(content_type=None)
-
-    async def get_metric(self, metric_name):
-        metrics = await self.get_metrics(metric_name)
-        assert metric_name in metrics, (
-            f'No metric with name {metric_name!r}. '
-            f'Use "single_metric" function instead of "get_metric"'
-        )
-        return metrics[metric_name]
-
     async def metrics_raw(
-            self,
-            output_format,
-            *,
-            path: str = None,
-            prefix: str = None,
-            labels: typing.Optional[typing.Dict[str, str]] = None,
+        self,
+        output_format,
+        *,
+        path: str | None = None,
+        prefix: str | None = None,
+        labels: dict[str, str] | None = None,
     ) -> str:
         if not self._config.server_monitor_path:
             raise ConfigurationError(
@@ -329,37 +330,45 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
             params['labels'] = json.dumps(labels)
 
         response = await self.get(
-            self._config.server_monitor_path, params=params,
+            self._config.server_monitor_path,
+            params=params,
         )
         async with response:
             response.raise_for_status()
             return await response.text()
 
     async def metrics(
-            self,
-            *,
-            path: str = None,
-            prefix: str = None,
-            labels: typing.Optional[typing.Dict[str, str]] = None,
-    ) -> metric_module.MetricsSnapshot:
+        self,
+        *,
+        path: str | None = None,
+        prefix: str | None = None,
+        labels: dict[str, str] | None = None,
+        sliced: bool = False,
+    ) -> pytest_userver.metrics.MetricsSnapshot:
+        assert (path is not None) + (prefix is not None) <= 1, 'path and prefix are mutually exclusive'
         response = await self.metrics_raw(
-            output_format='json', path=path, prefix=prefix, labels=labels,
+            output_format='json',
+            path=path,
+            prefix=prefix,
+            labels=labels,
         )
-        return metric_module.MetricsSnapshot.from_json(str(response))
+        snapshot = pytest_userver.metrics.MetricsSnapshot.from_json(str(response))
+        if sliced:
+            sliced_prefix = prefix or path
+            sliced_prefix = sliced_prefix.rstrip('.') if sliced_prefix is not None else None
+            snapshot = snapshot.sliced(sliced_prefix, labels)
+        return snapshot
 
     async def single_metric_optional(
-            self,
-            path: str,
-            *,
-            labels: typing.Optional[typing.Dict[str, str]] = None,
-    ) -> typing.Optional[Metric]:
+        self,
+        path: str,
+        *,
+        labels: dict[str, str] | None = None,
+    ) -> pytest_userver.metrics.Metric | None:
         response = await self.metrics(path=path, labels=labels)
         metrics_list = response.get(path, [])
 
-        assert len(metrics_list) <= 1, (
-            f'More than one metric found for path {path} and labels {labels}: '
-            f'{response}',
-        )
+        assert len(metrics_list) <= 1, (f'More than one metric found for path {path} and labels {labels}: {response}',)
 
         if not metrics_list:
             return None
@@ -367,15 +376,13 @@ class AiohttpClientMonitor(service_client.AiohttpClient):
         return next(iter(metrics_list))
 
     async def single_metric(
-            self,
-            path: str,
-            *,
-            labels: typing.Optional[typing.Dict[str, str]] = None,
-    ) -> Metric:
+        self,
+        path: str,
+        *,
+        labels: dict[str, str] | None = None,
+    ) -> pytest_userver.metrics.Metric:
         value = await self.single_metric_optional(path, labels=labels)
-        assert value is not None, (
-            f'No metric was found for path {path} and labels {labels}',
-        )
+        assert value is not None, (f'No metric was found for path {path} and labels {labels}',)
         return value
 
 
@@ -393,109 +400,126 @@ class ClientMonitor(ClientWrapper):
     """
 
     def metrics_diff(
-            self,
-            *,
-            path: typing.Optional[str] = None,
-            prefix: typing.Optional[str] = None,
-            labels: typing.Optional[typing.Dict[str, str]] = None,
-            diff_gauge: bool = False,
-    ) -> 'MetricsDiffer':
+        self,
+        *,
+        path: str | None = None,
+        prefix: str | None = None,
+        labels: dict[str, str] | None = None,
+        sliced: bool = True,
+        diff_gauge: bool = False,
+    ) -> MetricsDiffer:
         """
         Creates a `MetricsDiffer` that fetches metrics using this client.
         It's recommended to use this method over `metrics` to make sure
         the tests don't affect each other.
 
-        With `diff_gauge` off, only RATE metrics are differentiated.
-        With `diff_gauge` on, GAUGE metrics are differentiated as well,
+        With `diff_gauge` off, only `RATE` metrics are differentiated.
+        With `diff_gauge` on, `GAUGE` metrics are differentiated as well,
         which may lead to nonsensical results for those.
 
         @param path Optional full metric path
         @param prefix Optional prefix on which the metric paths should start
         @param labels Optional dictionary of labels that must be in the metric
+        @param sliced If `True` (the default), then `differ.value_at`, `differ.baseline`, `differ.current` and
+            `differ.diff` have `path`/`prefix` (and `labels`, if given) stripped via
+            @ref pytest_userver.metrics.MetricsSnapshot.sliced, same as `metrics(sliced=True)`.
         @param diff_gauge Whether to differentiate GAUGE metrics
 
-        @code
-        async with monitor_client.metrics_diff(prefix='foo') as differ:
-            # Do something that makes the service update its metrics
-        assert differ.value_at('path-suffix', {'label'}) == 42
-        @endcode
+        @snippet samples/testsuite-support/tests/test_metrics.py metrics diff
         """
         return MetricsDiffer(
             _client=self,
             _path=path,
             _prefix=prefix,
             _labels=labels,
+            _sliced=sliced,
             _diff_gauge=diff_gauge,
         )
 
     @_wrap_client_error
     async def metrics(
-            self,
-            *,
-            path: typing.Optional[str] = None,
-            prefix: typing.Optional[str] = None,
-            labels: typing.Optional[typing.Dict[str, str]] = None,
-    ) -> metric_module.MetricsSnapshot:
+        self,
+        *,
+        path: str | None = None,
+        prefix: str | None = None,
+        labels: dict[str, str] | None = None,
+        sliced: bool = False,
+    ) -> pytest_userver.metrics.MetricsSnapshot:
         """
         Returns a dict of metric names to Metric.
 
         @param path Optional full metric path
         @param prefix Optional prefix on which the metric paths should start
         @param labels Optional dictionary of labels that must be in the metric
+        @param sliced If True, the returned snapshot is additionally passed through
+            @ref pytest_userver.metrics.MetricsSnapshot.sliced using `path` or `prefix` (one of which must be set)
+            and `labels` (if set), stripping them from the result paths and labels
+
+        @snippet samples/testsuite-support/tests/test_metrics.py metrics metrics
+
+        Example of `sliced=True` avoiding repetition of a common prefix and label:
+        @snippet core/functional_tests/metrics/tests/test_sliced.py sliced functional test
         """
         return await self._client.metrics(
-            path=path, prefix=prefix, labels=labels,
+            path=path,
+            prefix=prefix,
+            labels=labels,
+            sliced=sliced,
         )
 
     @_wrap_client_error
     async def single_metric_optional(
-            self,
-            path: str,
-            *,
-            labels: typing.Optional[typing.Dict[str, str]] = None,
-    ) -> typing.Optional[Metric]:
+        self,
+        path: str,
+        *,
+        labels: dict[str, str] | None = None,
+    ) -> pytest_userver.metrics.Metric | None:
         """
-        Either return a Metric or None if there's no such metric.
+        Either return a pytest_userver.metrics.Metric or None if there's no such metric.
 
         @param path Full metric path
         @param labels Optional dictionary of labels that must be in the metric
 
         @throws AssertionError if more than one metric returned
+
+        @snippet samples/testsuite-support/tests/test_metrics.py metrics single_metric_optional
         """
         return await self._client.single_metric_optional(path, labels=labels)
 
     @_wrap_client_error
     async def single_metric(
-            self,
-            path: str,
-            *,
-            labels: typing.Optional[typing.Dict[str, str]] = None,
-    ) -> typing.Optional[Metric]:
+        self,
+        path: str,
+        *,
+        labels: dict[str, str] | None = None,
+    ) -> pytest_userver.metrics.Metric | None:
         """
-        Returns the Metric.
+        Returns the pytest_userver.metrics.Metric.
 
         @param path Full metric path
         @param labels Optional dictionary of labels that must be in the metric
 
         @throws AssertionError if more than one metric or no metric found
+
+        @snippet samples/testsuite-support/tests/test_metrics.py metrics single_metric
         """
         return await self._client.single_metric(path, labels=labels)
 
     @_wrap_client_error
     async def metrics_raw(
-            self,
-            output_format: str,
-            *,
-            path: typing.Optional[str] = None,
-            prefix: typing.Optional[str] = None,
-            labels: typing.Optional[typing.Dict[str, str]] = None,
-    ) -> typing.Dict[str, Metric]:
+        self,
+        output_format: str,
+        *,
+        path: str | None = None,
+        prefix: str | None = None,
+        labels: dict[str, str] | None = None,
+    ) -> dict[str, pytest_userver.metrics.Metric]:
         """
         Low level function that returns metrics in a specific format.
         Use `metrics` and `single_metric` instead if possible.
 
-        @param output_format Metric output format. See
-               server::handlers::ServerMonitor for a list of supported formats.
+        @param output_format pytest_userver.metrics.Metric output format. See
+               @ref server::handlers::ServerMonitor for a list of supported formats.
         @param path Optional full metric path
         @param prefix Optional prefix on which the metric paths should start
         @param labels Optional dictionary of labels that must be in the metric
@@ -506,20 +530,6 @@ class ClientMonitor(ClientWrapper):
             prefix=prefix,
             labels=labels,
         )
-
-    @_wrap_client_error
-    async def get_metrics(self, prefix=None):
-        """
-        @deprecated Use metrics() or single_metric() instead
-        """
-        return await self._client.get_metrics(prefix=prefix)
-
-    @_wrap_client_error
-    async def get_metric(self, metric_name):
-        """
-        @deprecated Use metrics() or single_metric() instead
-        """
-        return await self._client.get_metric(metric_name)
 
     @_wrap_client_error
     async def fired_alerts(self):
@@ -533,143 +543,185 @@ class MetricsDiffer:
     A helper class for computing metric differences.
 
     @see ClientMonitor.metrics_diff
+
+    Example with @ref pytest_userver.client.ClientMonitor.metrics_diff "await monitor_client.metrics_diff()":
+    @snippet samples/testsuite-support/tests/test_metrics.py metrics diff
+
     @ingroup userver_testsuite
     """
 
     # @cond
     def __init__(
-            self,
-            _client: ClientMonitor,
-            _path: typing.Optional[str],
-            _prefix: typing.Optional[str],
-            _labels: typing.Optional[typing.Dict[str, str]],
-            _diff_gauge: bool,
+        self,
+        _client: ClientMonitor,
+        _path: str | None,
+        _prefix: str | None,
+        _labels: dict[str, str] | None,
+        _sliced: bool,
+        _diff_gauge: bool,
     ):
         self._client = _client
         self._path = _path
         self._prefix = _prefix
         self._labels = _labels
+        self._sliced = _sliced
         self._diff_gauge = _diff_gauge
-        self._baseline: typing.Optional[metric_module.MetricsSnapshot] = None
-        self._current: typing.Optional[metric_module.MetricsSnapshot] = None
-        self._diff: typing.Optional[metric_module.MetricsSnapshot] = None
+        self._baseline: pytest_userver.metrics.MetricsSnapshot | None = None
+        self._current: pytest_userver.metrics.MetricsSnapshot | None = None
+        self._diff: pytest_userver.metrics.MetricsSnapshot | None = None
 
     # @endcond
 
     @property
-    def baseline(self) -> metric_module.MetricsSnapshot:
+    def baseline(self) -> pytest_userver.metrics.MetricsSnapshot:
         assert self._baseline is not None
         return self._baseline
 
     @baseline.setter
-    def baseline(self, value: metric_module.MetricsSnapshot) -> None:
+    def baseline(self, value: pytest_userver.metrics.MetricsSnapshot) -> None:
         self._baseline = value
         if self._current is not None:
             self._diff = _subtract_metrics_snapshots(
-                self._current, self._baseline, self._diff_gauge,
+                self._current,
+                self._baseline,
+                self._diff_gauge,
             )
 
     @property
-    def current(self) -> metric_module.MetricsSnapshot:
+    def current(self) -> pytest_userver.metrics.MetricsSnapshot:
         assert self._current is not None, 'Set self.current first'
         return self._current
 
     @current.setter
-    def current(self, value: metric_module.MetricsSnapshot) -> None:
+    def current(self, value: pytest_userver.metrics.MetricsSnapshot) -> None:
         self._current = value
         assert self._baseline is not None, 'Set self.baseline first'
         self._diff = _subtract_metrics_snapshots(
-            self._current, self._baseline, self._diff_gauge,
+            self._current,
+            self._baseline,
+            self._diff_gauge,
         )
 
     @property
-    def diff(self) -> metric_module.MetricsSnapshot:
+    def diff(self) -> pytest_userver.metrics.MetricsSnapshot:
         assert self._diff is not None, 'Set self.current first'
         return self._diff
 
+    @overload
     def value_at(
-            self,
-            subpath: typing.Optional[str] = None,
-            add_labels: typing.Optional[typing.Dict] = None,
-            *,
-            default: typing.Optional[float] = None,
-    ) -> metric_module.MetricValue:
+        self,
+        subpath: str | None = None,
+        add_labels: dict[str, str] | None = None,
+    ) -> pytest_userver.metrics.MetricValue: ...
+
+    @overload
+    def value_at(
+        self,
+        subpath: str | None,
+        add_labels: dict[str, str] | None,
+        *,
+        default: T,
+    ) -> pytest_userver.metrics.MetricValue | T: ...
+
+    def value_at(
+        self,
+        subpath: str | None = None,
+        add_labels: dict[str, str] | None = None,
+        *,
+        default: Any = _MISSING,
+    ) -> pytest_userver.metrics.MetricValue | Any:
         """
         Returns a single metric value at the specified path, prepending
         the path provided at construction. If a dict of labels is provided,
-        does en exact match of labels, prepending the labels provided
-        at construction.
+        does an exact match of labels, prepending the labels provided at construction.
 
-        @param subpath Suffix of the metric path; the path provided
-        at construction is prepended
-        @param add_labels Labels that the metric must have in addition
-        to the labels provided at construction
+        If `default` is provided, it is returned instead of asserting when
+        the metric is not found.
+
+        @param subpath Suffix of the metric path; the path provided at construction is prepended
+        @param add_labels Labels that the metric must have in addition to the labels provided at construction
         @param default An optional default value in case the metric is missing
-        @throws AssertionError if not one metric by path
+        @throws AssertionError if not one metric by path and no `default` is given
         """
-        base_path = self._path or self._prefix
-        if base_path and subpath:
-            path = f'{base_path}.{subpath}'
-        else:
-            assert base_path or subpath, 'No path provided'
-            path = base_path or subpath or ''
-        labels: typing.Optional[dict] = None
-        if self._labels is not None or add_labels is not None:
-            labels = {**(self._labels or {}), **(add_labels or {})}
-        return self.diff.value_at(path, labels, default=default)
+        path = subpath or ''
+        if default is _MISSING:
+            return self.diff.value_at(path, add_labels)
+        return self.diff.value_at(path, add_labels, default=default)
 
-    async def fetch(self) -> metric_module.MetricsSnapshot:
+    async def fetch(self) -> pytest_userver.metrics.MetricsSnapshot:
         """
-        Fetches metric values from the service.
+        Returns metric values from the service without mutating the differ.
         """
         return await self._client.metrics(
-            path=self._path, prefix=self._prefix, labels=self._labels,
+            path=self._path,
+            prefix=self._prefix,
+            labels=self._labels,
+            sliced=self._sliced,
         )
 
-    async def __aenter__(self) -> 'MetricsDiffer':
-        self._baseline = await self.fetch()
+    async def fetch_baseline(self) -> None:
+        """
+        Fetches metric values from the service and stores them as `self.baseline`.
+
+        Useful as an alternative to `async with monitor_client.metrics_diff(...)`
+        when the diffing scope doesn't map cleanly onto a single `with` block.
+        """
+        self.baseline = await self.fetch()
+
+    async def fetch_current(self) -> None:
+        """
+        Fetches metric values from the service and stores them as `self.current`,
+        updating `self.diff` accordingly.
+
+        @throws AssertionError if `self.baseline` was not set first
+        """
+        self.current = await self.fetch()
+
+    async def __aenter__(self) -> MetricsDiffer:
         self._current = None
+        await self.fetch_baseline()
         return self
 
     async def __aexit__(self, exc_type, exc, exc_tb) -> None:
-        self.current = await self.fetch()
+        await self.fetch_current()
 
 
 # @cond
 
 
 def _subtract_metrics_snapshots(
-        current: metric_module.MetricsSnapshot,
-        initial: metric_module.MetricsSnapshot,
-        diff_gauge: bool,
-) -> metric_module.MetricsSnapshot:
-    return metric_module.MetricsSnapshot(
-        {
-            path: {
-                _subtract_metrics(path, current_metric, initial, diff_gauge)
-                for current_metric in current_group
-            }
-            for path, current_group in current.items()
-        },
-    )
+    current: pytest_userver.metrics.MetricsSnapshot,
+    initial: pytest_userver.metrics.MetricsSnapshot,
+    diff_gauge: bool,
+) -> pytest_userver.metrics.MetricsSnapshot:
+    assert current._sliced_prefix == initial._sliced_prefix
+    assert current._sliced_labels == initial._sliced_labels
+    diff = pytest_userver.metrics.MetricsSnapshot({
+        path: {_subtract_metrics(path, current_metric, initial, diff_gauge) for current_metric in current_group}
+        for path, current_group in current.items()
+    })
+    diff._sliced_prefix = current._sliced_prefix
+    diff._sliced_labels = current._sliced_labels
+    return diff
 
 
 def _subtract_metrics(
-        path: str,
-        current_metric: metric_module.Metric,
-        initial: metric_module.MetricsSnapshot,
-        diff_gauge: bool,
-) -> metric_module.Metric:
+    path: str,
+    current_metric: pytest_userver.metrics.Metric,
+    initial: pytest_userver.metrics.MetricsSnapshot,
+    diff_gauge: bool,
+) -> pytest_userver.metrics.Metric:
     initial_group = initial.get(path, None)
     if initial_group is None:
         return current_metric
     initial_metric = next(
-        (x for x in initial_group if x.labels == current_metric.labels), None,
+        (x for x in initial_group if x.labels == current_metric.labels),
+        None,
     )
     if initial_metric is None:
         return current_metric
 
-    return metric_module.Metric(
+    return pytest_userver.metrics.Metric(
         labels=current_metric.labels,
         value=_subtract_metric_values(
             current=current_metric,
@@ -681,51 +733,51 @@ def _subtract_metrics(
 
 
 def _subtract_metric_values(
-        current: metric_module.Metric,
-        initial: metric_module.Metric,
-        diff_gauge: bool,
-) -> metric_module.MetricValue:
-    assert current.type() is not metric_module.MetricType.UNSPECIFIED
-    assert initial.type() is not metric_module.MetricType.UNSPECIFIED
+    current: pytest_userver.metrics.Metric,
+    initial: pytest_userver.metrics.Metric,
+    diff_gauge: bool,
+) -> pytest_userver.metrics.MetricValue:
+    assert current.type() is not pytest_userver.metrics.MetricType.UNSPECIFIED
+    assert initial.type() is not pytest_userver.metrics.MetricType.UNSPECIFIED
     assert current.type() == initial.type()
 
-    if isinstance(current.value, metric_module.Histogram):
-        assert isinstance(initial.value, metric_module.Histogram)
+    if isinstance(current.value, pytest_userver.metrics.Histogram):
+        assert isinstance(initial.value, pytest_userver.metrics.Histogram)
         return _subtract_metric_values_hist(current=current, initial=initial)
     else:
-        assert not isinstance(initial.value, metric_module.Histogram)
+        assert not isinstance(initial.value, pytest_userver.metrics.Histogram)
         return _subtract_metric_values_num(
-            current=current, initial=initial, diff_gauge=diff_gauge,
+            current=current,
+            initial=initial,
+            diff_gauge=diff_gauge,
         )
 
 
 def _subtract_metric_values_num(
-        current: metric_module.Metric,
-        initial: metric_module.Metric,
-        diff_gauge: bool,
+    current: pytest_userver.metrics.Metric,
+    initial: pytest_userver.metrics.Metric,
+    diff_gauge: bool,
 ) -> float:
     current_value = typing.cast(float, current.value)
     initial_value = typing.cast(float, initial.value)
     should_diff = (
-        current.type() is metric_module.MetricType.RATE
-        or initial.type() is metric_module.MetricType.RATE
+        current.type() is pytest_userver.metrics.MetricType.RATE
+        or initial.type() is pytest_userver.metrics.MetricType.RATE
         or diff_gauge
     )
     return current_value - initial_value if should_diff else current_value
 
 
 def _subtract_metric_values_hist(
-        current: metric_module.Metric, initial: metric_module.Metric,
-) -> metric_module.Histogram:
-    current_value = typing.cast(metric_module.Histogram, current.value)
-    initial_value = typing.cast(metric_module.Histogram, initial.value)
+    current: pytest_userver.metrics.Metric,
+    initial: pytest_userver.metrics.Metric,
+) -> pytest_userver.metrics.Histogram:
+    current_value = typing.cast(pytest_userver.metrics.Histogram, current.value)
+    initial_value = typing.cast(pytest_userver.metrics.Histogram, initial.value)
     assert current_value.bounds == initial_value.bounds
-    return metric_module.Histogram(
+    return pytest_userver.metrics.Histogram(
         bounds=current_value.bounds,
-        buckets=[
-            t[0] - t[1]
-            for t in zip(current_value.buckets, initial_value.buckets)
-        ],
+        buckets=[t[0] - t[1] for t in zip(current_value.buckets, initial_value.buckets, strict=True)],
         inf=current_value.inf - initial_value.inf,
     )
 
@@ -738,21 +790,22 @@ class AiohttpClient(service_client.AiohttpClient):
     TestsuiteTaskFailed = TestsuiteTaskFailed
 
     def __init__(
-            self,
-            base_url: str,
-            *,
-            config: TestsuiteClientConfig,
-            mocked_time,
-            log_capture_fixture,
-            testpoint,
-            testpoint_control,
-            cache_invalidation_state,
-            span_id_header=None,
-            api_coverage_report=None,
-            periodic_tasks_state: typing.Optional[PeriodicTasksState] = None,
-            allow_all_caches_invalidation: bool = True,
-            cache_control: typing.Optional[caches.CacheControl] = None,
-            **kwargs,
+        self,
+        base_url: str,
+        *,
+        config: TestsuiteClientConfig,
+        mocked_time,
+        log_capture_fixture: logcapture.CaptureServer,
+        testpoint,
+        testpoint_control,
+        cache_invalidation_state,
+        span_id_header=None,
+        api_coverage_report=None,
+        periodic_tasks_state: PeriodicTasksState | None = None,
+        allow_all_caches_invalidation: bool = True,
+        cache_control: caches.CacheControl | None = None,
+        asyncexc_check=None,
+        **kwargs,
     ):
         super().__init__(base_url, span_id_header=span_id_header, **kwargs)
         self._config = config
@@ -768,19 +821,25 @@ class AiohttpClient(service_client.AiohttpClient):
         )
         self._api_coverage_report = api_coverage_report
         self._allow_all_caches_invalidation = allow_all_caches_invalidation
+        self._asyncexc_check = asyncexc_check
+
+    async def run_periodic(self, name) -> None:
+        await self.run_task(f'periodic/{name}')
 
     async def run_periodic_task(self, name):
+        warnings.warn(userver_warnings.WARN_PERIODIC_DEPRECATION, DeprecationWarning)
         response = await self._testsuite_action('run_periodic_task', name=name)
         if not response['status']:
             raise self.PeriodicTaskFailed(f'Periodic task {name} failed')
 
-    async def suspend_periodic_tasks(self, names: typing.List[str]) -> None:
+    async def suspend_periodic_tasks(self, names: list[str]) -> None:
         if not self._periodic_tasks:
             raise ConfigurationError('No periodic_tasks_state given')
         self._periodic_tasks.tasks_to_suspend.update(names)
         await self._suspend_periodic_tasks()
 
-    async def resume_periodic_tasks(self, names: typing.List[str]) -> None:
+    async def resume_periodic_tasks(self, names: list[str]) -> None:
+        warnings.warn(userver_warnings.WARN_PERIODIC_DEPRECATION, DeprecationWarning)
         if not self._periodic_tasks:
             raise ConfigurationError('No periodic_tasks_state given')
         self._periodic_tasks.tasks_to_suspend.difference_update(names)
@@ -793,7 +852,10 @@ class AiohttpClient(service_client.AiohttpClient):
         await self._suspend_periodic_tasks()
 
     async def write_cache_dumps(
-            self, names: typing.List[str], *, testsuite_skip_prepare=False,
+        self,
+        names: list[str],
+        *,
+        testsuite_skip_prepare=False,
     ) -> None:
         await self._testsuite_action(
             'write_cache_dumps',
@@ -802,7 +864,10 @@ class AiohttpClient(service_client.AiohttpClient):
         )
 
     async def read_cache_dumps(
-            self, names: typing.List[str], *, testsuite_skip_prepare=False,
+        self,
+        names: list[str],
+        *,
+        testsuite_skip_prepare=False,
     ) -> None:
         await self._testsuite_action(
             'read_cache_dumps',
@@ -817,13 +882,16 @@ class AiohttpClient(service_client.AiohttpClient):
         await self._testsuite_action('reset_metrics')
 
     async def metrics_portability(
-            self, *, prefix: typing.Optional[str] = None,
-    ) -> typing.Dict[str, typing.List[typing.Dict[str, str]]]:
+        self,
+        *,
+        prefix: str | None = None,
+    ) -> dict[str, list[dict[str, str]]]:
         return await self._testsuite_action(
-            'metrics_portability', prefix=prefix,
+            'metrics_portability',
+            prefix=prefix,
         )
 
-    async def list_tasks(self) -> typing.List[str]:
+    async def list_tasks(self) -> list[str]:
         response = await self._do_testsuite_action('tasks_list')
         async with response:
             response.raise_for_status()
@@ -832,7 +900,8 @@ class AiohttpClient(service_client.AiohttpClient):
 
     async def run_task(self, name: str) -> None:
         response = await self._do_testsuite_action(
-            'task_run', json={'name': name},
+            'task_run',
+            json={'name': name},
         )
         await _task_check_response(name, response)
 
@@ -846,19 +915,22 @@ class AiohttpClient(service_client.AiohttpClient):
 
     async def _task_spawn(self, name: str) -> str:
         response = await self._do_testsuite_action(
-            'task_spawn', json={'name': name},
+            'task_spawn',
+            json={'name': name},
         )
         data = await _task_check_response(name, response)
         return data['task_id']
 
     async def _task_stop_spawned(self, task_id: str) -> None:
         response = await self._do_testsuite_action(
-            'task_stop', json={'task_id': task_id},
+            'task_stop',
+            json={'task_id': task_id},
         )
         await _task_check_response(task_id, response)
 
     async def http_allowed_urls_extra(
-            self, http_allowed_urls_extra: typing.List[str],
+        self,
+        http_allowed_urls_extra: list[str],
     ) -> None:
         await self._do_testsuite_action(
             'http_allowed_urls_extra',
@@ -868,60 +940,61 @@ class AiohttpClient(service_client.AiohttpClient):
 
     @contextlib.asynccontextmanager
     async def capture_logs(
-            self,
-            *,
-            log_level: str = 'DEBUG',
-            testsuite_skip_prepare: bool = False,
+        self,
+        *,
+        log_level: str = 'DEBUG',
+        testsuite_skip_prepare: bool = False,
     ):
-        async with self._log_capture_fixture.start_capture(
-                log_level=log_level,
+        async with self._log_capture_fixture.capture(
+            log_level=logcapture.LogLevel.from_string(log_level),
         ) as capture:
+            logger.debug('Starting logcapture')
             await self._testsuite_action(
                 'log_capture',
                 log_level=log_level,
                 socket_logging_duplication=True,
                 testsuite_skip_prepare=testsuite_skip_prepare,
             )
+
             try:
+                await self._log_capture_fixture.wait_for_client()
                 yield capture
             finally:
                 await self._testsuite_action(
                     'log_capture',
-                    log_level=self._log_capture_fixture.default_log_level,
+                    log_level=self._log_capture_fixture.default_log_level.name,
                     socket_logging_duplication=False,
                     testsuite_skip_prepare=testsuite_skip_prepare,
                 )
 
-    async def log_flush(self, logger_name: typing.Optional[str] = None):
+    async def log_flush(self, logger_name: str | None = None):
         await self._testsuite_action(
-            'log_flush', logger_name=logger_name, testsuite_skip_prepare=True,
+            'log_flush',
+            logger_name=logger_name,
+            testsuite_skip_prepare=True,
         )
 
     async def invalidate_caches(
-            self,
-            *,
-            clean_update: bool = True,
-            cache_names: typing.Optional[typing.List[str]] = None,
-            testsuite_skip_prepare: bool = False,
+        self,
+        *,
+        clean_update: bool = True,
+        cache_names: list[str] | None = None,
+        testsuite_skip_prepare: bool = False,
     ) -> None:
         if cache_names is None and clean_update:
             if self._allow_all_caches_invalidation:
-                warnings.warn(CACHE_INVALIDATION_MESSAGE, DeprecationWarning)
+                warnings.warn(CACHE_INVALIDATION_MESSAGE, DeprecationWarning, stacklevel=2)
             else:
                 __tracebackhide__ = True
                 raise RuntimeError(CACHE_INVALIDATION_MESSAGE)
 
         if testsuite_skip_prepare:
-            await self._tests_control(
-                {
-                    'invalidate_caches': {
-                        'update_type': (
-                            'full' if clean_update else 'incremental'
-                        ),
-                        **({'names': cache_names} if cache_names else {}),
-                    },
+            await self._tests_control({
+                'invalidate_caches': {
+                    'update_type': ('full' if clean_update else 'incremental'),
+                    **({'names': cache_names} if cache_names else {}),
                 },
-            )
+            })
         else:
             await self.tests_control(
                 invalidate_caches=True,
@@ -930,22 +1003,19 @@ class AiohttpClient(service_client.AiohttpClient):
             )
 
     async def tests_control(
-            self,
-            *,
-            invalidate_caches: bool = True,
-            clean_update: bool = True,
-            cache_names: typing.Optional[typing.List[str]] = None,
-            http_allowed_urls_extra=None,
-    ) -> typing.Dict[str, typing.Any]:
-        body: typing.Dict[
-            str, typing.Any,
-        ] = self._state_manager.get_pending_update()
+        self,
+        *,
+        invalidate_caches: bool = True,
+        clean_update: bool = True,
+        cache_names: list[str] | None = None,
+        http_allowed_urls_extra: list[str] | None = None,
+    ) -> dict[str, Any]:
+        body: dict[str, Any] = self._state_manager.get_pending_update()
 
         if 'invalidate_caches' in body and invalidate_caches:
             if not clean_update or cache_names:
                 logger.warning(
-                    'Manual cache invalidation leads to indirect initial '
-                    'full cache invalidation',
+                    'Manual cache invalidation leads to indirect initial full cache invalidation',
                 )
                 await self._prepare()
                 body = {}
@@ -969,37 +1039,36 @@ class AiohttpClient(service_client.AiohttpClient):
         if not self._testpoint:
             return
         if no_auto_cache_cleanup:
-            await self._tests_control(
-                {'testpoints': sorted(self._testpoint.keys())},
-            )
+            await self._tests_control({
+                'testpoints': sorted(self._testpoint.keys()),
+            })
         else:
             await self.update_server_state()
 
     async def get_dynamic_config_defaults(
-            self,
-    ) -> typing.Dict[str, typing.Any]:
+        self,
+    ) -> dict[str, Any]:
         return await self._testsuite_action(
-            'get_dynamic_config_defaults', testsuite_skip_prepare=True,
+            'get_dynamic_config_defaults',
+            testsuite_skip_prepare=True,
         )
 
-    async def _tests_control(self, body: dict) -> typing.Dict[str, typing.Any]:
+    async def _tests_control(self, body: dict) -> dict[str, Any]:
         with self._state_manager.updating_state(body):
             async with await self._do_testsuite_action(
-                    'control', json=body, testsuite_skip_prepare=True,
+                'control',
+                json=body,
+                testsuite_skip_prepare=True,
             ) as response:
                 if response.status == 404:
                     raise ConfigurationError(
-                        'It seems that testsuite support is not enabled '
-                        'for your service',
+                        'It seems that testsuite support is not enabled for your service',
                     )
                 response.raise_for_status()
                 return await response.json(content_type=None)
 
     async def _suspend_periodic_tasks(self):
-        if (
-                self._periodic_tasks.tasks_to_suspend
-                != self._periodic_tasks.suspended_tasks
-        ):
+        if self._periodic_tasks.tasks_to_suspend != self._periodic_tasks.suspended_tasks:
             await self._testsuite_action(
                 'suspend_periodic_tasks',
                 names=sorted(self._periodic_tasks.tasks_to_suspend),
@@ -1017,12 +1086,16 @@ class AiohttpClient(service_client.AiohttpClient):
         return self.post(path, **kwargs)
 
     async def _testsuite_action(
-            self, action, *, testsuite_skip_prepare=False, **kwargs,
+        self,
+        action,
+        *,
+        testsuite_skip_prepare=False,
+        **kwargs,
     ):
         async with await self._do_testsuite_action(
-                action,
-                json=kwargs,
-                testsuite_skip_prepare=testsuite_skip_prepare,
+            action,
+            json=kwargs,
+            testsuite_skip_prepare=testsuite_skip_prepare,
         ) as response:
             if response.status == 500:
                 raise TestsuiteActionFailed
@@ -1035,26 +1108,42 @@ class AiohttpClient(service_client.AiohttpClient):
                 await self._tests_control(pending_update)
 
     async def _request(  # pylint: disable=arguments-differ
-            self,
-            http_method: str,
-            path: str,
-            headers: typing.Optional[typing.Dict[str, str]] = None,
-            bearer: typing.Optional[str] = None,
-            x_real_ip: typing.Optional[str] = None,
-            *,
-            testsuite_skip_prepare: bool = False,
-            **kwargs,
+        self,
+        http_method: str,
+        path: str,
+        headers: dict[str, str] | None = None,
+        bearer: str | None = None,
+        x_real_ip: str | None = None,
+        *,
+        testsuite_skip_prepare: bool = False,
+        **kwargs,
     ) -> aiohttp.ClientResponse:
+        if self._asyncexc_check:
+            # Check for pending background exceptions before call.
+            self._asyncexc_check()
+
         if not testsuite_skip_prepare:
             await self._prepare()
 
         response = await super()._request(
-            http_method, path, headers, bearer, x_real_ip, **kwargs,
+            http_method,
+            path,
+            headers,
+            bearer,
+            x_real_ip,
+            **kwargs,
         )
         if self._api_coverage_report:
             self._api_coverage_report.update_usage_stat(
-                path, http_method, response.status, response.content_type,
+                path,
+                http_method,
+                response.status,
+                response.content_type,
             )
+
+        if self._asyncexc_check:
+            # Check for pending background exceptions after call.
+            self._asyncexc_check()
 
         return response
 
@@ -1079,23 +1168,28 @@ class Client(ClientWrapper):
     TestsuiteTaskConflict = TestsuiteTaskConflict
     TestsuiteTaskFailed = TestsuiteTaskFailed
 
-    def _wrap_client_response(
-            self, response: aiohttp.ClientResponse,
-    ) -> typing.Awaitable[http.ClientResponse]:
+    def _wrap_client_response(self, response: aiohttp.ClientResponse) -> Awaitable[http.ClientResponse]:
         return http.wrap_client_response(
-            response, json_loads=approx.json_loads,
+            response,
+            json_loads=approx.json_loads,
         )
 
     @_wrap_client_error
+    async def run_periodic(self, name) -> None:
+        await self._client.run_periodic(name)
+
+    @_wrap_client_error
     async def run_periodic_task(self, name):
+        warnings.warn(userver_warnings.WARN_PERIODIC_DEPRECATION, DeprecationWarning)
         await self._client.run_periodic_task(name)
 
     @_wrap_client_error
-    async def suspend_periodic_tasks(self, names: typing.List[str]) -> None:
+    async def suspend_periodic_tasks(self, names: list[str]) -> None:
         await self._client.suspend_periodic_tasks(names)
 
     @_wrap_client_error
-    async def resume_periodic_tasks(self, names: typing.List[str]) -> None:
+    async def resume_periodic_tasks(self, names: list[str]) -> None:
+        warnings.warn(userver_warnings.WARN_PERIODIC_DEPRECATION, DeprecationWarning)
         await self._client.resume_periodic_tasks(names)
 
     @_wrap_client_error
@@ -1104,18 +1198,26 @@ class Client(ClientWrapper):
 
     @_wrap_client_error
     async def write_cache_dumps(
-            self, names: typing.List[str], *, testsuite_skip_prepare=False,
+        self,
+        names: list[str],
+        *,
+        testsuite_skip_prepare=False,
     ) -> None:
         await self._client.write_cache_dumps(
-            names=names, testsuite_skip_prepare=testsuite_skip_prepare,
+            names=names,
+            testsuite_skip_prepare=testsuite_skip_prepare,
         )
 
     @_wrap_client_error
     async def read_cache_dumps(
-            self, names: typing.List[str], *, testsuite_skip_prepare=False,
+        self,
+        names: list[str],
+        *,
+        testsuite_skip_prepare=False,
     ) -> None:
         await self._client.read_cache_dumps(
-            names=names, testsuite_skip_prepare=testsuite_skip_prepare,
+            names=names,
+            testsuite_skip_prepare=testsuite_skip_prepare,
         )
 
     async def run_task(self, name: str) -> None:
@@ -1126,45 +1228,62 @@ class Client(ClientWrapper):
 
     async def reset_metrics(self) -> None:
         """
-        Calls `ResetMetric(metric);` for each metric that has such C++ function
+        Calls `ResetMetric(metric);` for each metric that has such C++ function.
+
+        Note that using `reset_metrics()` is discouraged, prefer using a more reliable
+        @ref pytest_userver.client.ClientMonitor.metrics_diff "await monitor_client.metrics_diff()".
+
+        @snippet samples/testsuite-support/tests/test_metrics.py metrics reset
         """
         await self._client.reset_metrics()
 
     async def metrics_portability(
-            self, *, prefix: typing.Optional[str] = None,
-    ) -> typing.Dict[str, typing.List[typing.Dict[str, str]]]:
+        self,
+        *,
+        prefix: str | None = None,
+    ) -> dict[str, list[dict[str, str]]]:
         """
         Reports metrics related issues that could be encountered on
         different monitoring systems.
 
-        @sa @ref utils::statistics::GetPortabilityInfo
+        @sa @ref utils::statistics::GetPortabilityWarnings
         """
         return await self._client.metrics_portability(prefix=prefix)
 
-    def list_tasks(self) -> typing.List[str]:
+    def list_tasks(self) -> list[str]:
         return self._client.list_tasks()
 
     def spawn_task(self, name: str):
         return self._client.spawn_task(name)
 
     def capture_logs(
-            self,
-            *,
-            log_level: str = 'DEBUG',
-            testsuite_skip_prepare: bool = False,
+        self,
+        *,
+        log_level: str = 'DEBUG',
+        testsuite_skip_prepare: bool = False,
     ):
         """
         Captures logs from the service.
 
         @param log_level Do not capture logs below this level.
+        @param testsuite_skip_prepare An advanced parameter to skip auto-`update_server_state`.
+
+        Example — filter captured logs after a request:
+
+        @snippet samples/testsuite-support/tests/test_logcapture.py select
+
+        Example — subscribe to log events as they arrive:
+
+        @snippet samples/testsuite-support/tests/test_logcapture.py subscribe
 
         @see @ref testsuite_logs_capture
         """
         return self._client.capture_logs(
-            log_level=log_level, testsuite_skip_prepare=testsuite_skip_prepare,
+            log_level=log_level,
+            testsuite_skip_prepare=testsuite_skip_prepare,
         )
 
-    def log_flush(self, logger_name: typing.Optional[str] = None):
+    def log_flush(self, logger_name: str | None = None):
         """
         Flush service logs.
         """
@@ -1172,11 +1291,11 @@ class Client(ClientWrapper):
 
     @_wrap_client_error
     async def invalidate_caches(
-            self,
-            *,
-            clean_update: bool = True,
-            cache_names: typing.Optional[typing.List[str]] = None,
-            testsuite_skip_prepare: bool = False,
+        self,
+        *,
+        clean_update: bool = True,
+        cache_names: list[str] | None = None,
+        testsuite_skip_prepare: bool = False,
     ) -> None:
         """
         Send request to service to update caches.
@@ -1197,9 +1316,18 @@ class Client(ClientWrapper):
 
     @_wrap_client_error
     async def tests_control(
-            self, *args, **kwargs,
-    ) -> typing.Dict[str, typing.Any]:
-        return await self._client.tests_control(*args, **kwargs)
+        self,
+        invalidate_caches: bool = True,
+        clean_update: bool = True,
+        cache_names: list[str] | None = None,
+        http_allowed_urls_extra: list[str] | None = None,
+    ) -> dict[str, Any]:
+        return await self._client.tests_control(
+            invalidate_caches=invalidate_caches,
+            clean_update=clean_update,
+            cache_names=cache_names,
+            http_allowed_urls_extra=http_allowed_urls_extra,
+        )
 
     @_wrap_client_error
     async def update_server_state(self) -> None:
@@ -1214,7 +1342,7 @@ class Client(ClientWrapper):
         await self._client.update_server_state()
 
     @_wrap_client_error
-    async def enable_testpoints(self, *args, **kwargs) -> None:
+    async def enable_testpoints(self, no_auto_cache_cleanup: bool = False) -> None:
         """
         Send list of handled testpoint pats to service. For these paths service
         will no more skip http calls from TESTPOINT(...) macro.
@@ -1224,12 +1352,12 @@ class Client(ClientWrapper):
         makes additional http call to `tests/control` to update caches, to get
         rid of data from previous test.
         """
-        await self._client.enable_testpoints(*args, **kwargs)
+        await self._client.enable_testpoints(no_auto_cache_cleanup=no_auto_cache_cleanup)
 
     @_wrap_client_error
     async def get_dynamic_config_defaults(
-            self,
-    ) -> typing.Dict[str, typing.Any]:
+        self,
+    ) -> dict[str, Any]:
         return await self._client.get_dynamic_config_defaults()
 
 
@@ -1238,8 +1366,8 @@ class _State:
     """Reflects the (supposed) current service state."""
 
     invalidation_state: caches.InvalidationState
-    now: typing.Optional[str] = _UNKNOWN_STATE
-    testpoints: typing.FrozenSet[str] = frozenset([_UNKNOWN_STATE])
+    now: str | None = _UNKNOWN_STATE
+    testpoints: frozenset[str] = frozenset([_UNKNOWN_STATE])
 
 
 class _StateManager:
@@ -1249,13 +1377,13 @@ class _StateManager:
     """
 
     def __init__(
-            self,
-            *,
-            mocked_time,
-            testpoint,
-            testpoint_control,
-            invalidation_state: caches.InvalidationState,
-            cache_control: typing.Optional[caches.CacheControl],
+        self,
+        *,
+        mocked_time,
+        testpoint,
+        testpoint_control,
+        invalidation_state: caches.InvalidationState,
+        cache_control: caches.CacheControl | None,
     ):
         self._state = _State(
             invalidation_state=copy.deepcopy(invalidation_state),
@@ -1267,7 +1395,7 @@ class _StateManager:
         self._cache_control = cache_control
 
     @contextlib.contextmanager
-    def updating_state(self, body: typing.Dict[str, typing.Any]):
+    def updating_state(self, body: dict[str, Any]):
         """
         Whenever `tests_control` handler is invoked
         (by the client itself during `prepare` or manually by the user),
@@ -1284,12 +1412,12 @@ class _StateManager:
             self._apply_new_state()
             raise
 
-    def get_pending_update(self) -> typing.Dict[str, typing.Any]:
+    def get_pending_update(self) -> dict[str, Any]:
         """
         Compose the body of the `tests_control` request required to completely
         synchronize the service state with the state of test fixtures.
         """
-        body: typing.Dict[str, typing.Any] = {}
+        body: dict[str, Any] = {}
 
         if self._invalidation_state.has_caches_to_update:
             body['invalidate_caches'] = {'update_type': 'full'}
@@ -1309,7 +1437,7 @@ class _StateManager:
         return body
 
     @contextlib.contextmanager
-    def cache_control_update(self) -> typing.ContextManager[typing.Dict]:
+    def cache_control_update(self) -> Iterator[dict[Any, Any]]:
         pending_update = self.get_pending_update()
         invalidate_caches = pending_update.get('invalidate_caches')
         if not invalidate_caches or not self._cache_control:
@@ -1323,24 +1451,28 @@ class _StateManager:
 
     @staticmethod
     def _apply_cache_control_actions(
-            invalidate_caches: typing.Dict,
-            actions: typing.List[typing.Tuple[str, caches.CacheControlAction]],
+        invalidate_caches: dict[Any, Any],
+        actions: list[tuple[str, caches.CacheControlAction]],
     ) -> None:
         cache_names = invalidate_caches.get('names')
         exclude_names = invalidate_caches.setdefault('exclude_names', [])
         force_incremental_names = invalidate_caches.setdefault(
-            'force_incremental_names', [],
+            'force_incremental_names',
+            [],
         )
         for cache_name, action in actions:
-            if action == caches.CacheControlAction.INCREMENTAL:
-                force_incremental_names.append(cache_name)
-            elif action == caches.CacheControlAction.EXCLUDE:
-                if cache_names is not None:
-                    cache_names.remove(cache_name)
-                else:
-                    exclude_names.append(cache_name)
+            match action:
+                case caches.CacheControlAction.FULL:
+                    pass
+                case caches.CacheControlAction.INCREMENTAL:
+                    force_incremental_names.append(cache_name)
+                case caches.CacheControlAction.EXCLUDE:
+                    if cache_names is not None:
+                        cache_names.remove(cache_name)
+                    else:
+                        exclude_names.append(cache_name)
 
-    def _update_state(self, body: typing.Dict[str, typing.Any]) -> None:
+    def _update_state(self, body: dict[str, Any]) -> None:
         body_invalidate_caches = body.get('invalidate_caches', {})
         update_type = body_invalidate_caches.get('update_type', 'full')
         body_cache_names = body_invalidate_caches.get('names', None)
@@ -1357,9 +1489,7 @@ class _StateManager:
         if 'mock_now' in body:
             self._state.now = body['mock_now']
 
-        testpoints: typing.Optional[typing.List[str]] = body.get(
-            'testpoints', None,
-        )
+        testpoints: list[str] | None = body.get('testpoints')
         if testpoints is not None:
             self._state.testpoints = frozenset(testpoints)
 
@@ -1368,7 +1498,7 @@ class _StateManager:
         self._testpoint_control.enabled_testpoints = self._state.testpoints
         self._invalidation_state.assign_copy(self._state.invalidation_state)
 
-    def _get_desired_now(self) -> typing.Optional[str]:
+    def _get_desired_now(self) -> str | None:
         if self._mocked_time.is_enabled:
             return utils.timestring(self._mocked_time.now())
         return None

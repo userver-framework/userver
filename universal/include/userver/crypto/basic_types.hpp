@@ -14,6 +14,7 @@ struct x509_st;
 
 USERVER_NAMESPACE_BEGIN
 
+/// @brief Cryptographic primitives: hashing, signatures, certificates, and randomness.
 namespace crypto {
 
 /// @cond
@@ -29,14 +30,14 @@ enum class DsaType { kRsa, kEc, kRsaPss };
 
 /// Base class for a crypto algorithm implementation
 class NamedAlgo {
- public:
-  explicit NamedAlgo(std::string name);
-  virtual ~NamedAlgo();
+public:
+    explicit NamedAlgo(std::string name);
+    virtual ~NamedAlgo();
 
-  const std::string& Name() const;
+    const std::string& Name() const;
 
- private:
-  const std::string name_;
+private:
+    const std::string name_;
 };
 
 }  // namespace crypto

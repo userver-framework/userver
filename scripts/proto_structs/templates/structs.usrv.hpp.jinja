@@ -1,0 +1,20 @@
+{% import "io_forward_declarations.inc.jinja" as io_forward_declarations %}
+{% import "types.inc.jinja" as types with context %}
+{% import "utils.inc.jinja" as utils %}
+{{ utils.do_not_edit(file_name_wo_ext) }}
+#pragma once
+
+#include <userver/proto-structs/impl/bundles/structs_hpp.hpp>
+{% call utils.prepend_empty_line_if_not_empty() %}
+{% for include in includes_hpp %}
+#include <{{ include }}>
+{% endfor %}
+{% endcall %}
+{% for node in file.children %}
+{{ types.render_gen_node(node) -}}
+{% endfor %}
+
+// ======================================== IO implementation ========================================
+{% for child in file.children %}
+{{ io_forward_declarations.render_gen_node(child, file) -}}
+{% endfor -%}

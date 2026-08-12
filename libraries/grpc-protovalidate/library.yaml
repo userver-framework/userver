@@ -1,0 +1,10 @@
+project-name: userver-grpc-protovalidate
+project-alt-names:
+  - yandex-userver-grpc-protovalidate
+description: library with client/server protovalidate middlewares implementation
+
+maintainers:
+  - Common components
+
+libraries:
+  - yandex-userver-grpc

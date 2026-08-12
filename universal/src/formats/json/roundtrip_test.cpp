@@ -5,7 +5,6 @@
 
 USERVER_NAMESPACE_BEGIN
 
-INSTANTIATE_TYPED_TEST_SUITE_P(FormatsJson, Roundtrip,
-                               formats::json::ValueBuilder);
+INSTANTIATE_TYPED_TEST_SUITE_P(FormatsJson, Roundtrip, formats::json::ValueBuilder);
 
 USERVER_NAMESPACE_END

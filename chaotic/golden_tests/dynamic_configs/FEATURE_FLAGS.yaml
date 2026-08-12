@@ -1,0 +1,17 @@
+default:
+    enable_new_logic: false
+    timeout_ms: 5000
+description: Feature flags with primitive fields
+schema:
+    type: object
+    additionalProperties: false
+    properties:
+        enable_new_logic:
+            type: boolean
+        timeout_ms:
+            type: integer
+            format: int64
+            minimum: 0
+            x-taxi-cpp-type: std::chrono::milliseconds
+    required:
+      - enable_new_logic

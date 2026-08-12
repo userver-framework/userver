@@ -1,9 +1,10 @@
 #pragma once
 
+/// @file userver/storages/mysql/convert.hpp
+/// @brief MySQL value conversion tag `To` and helper `DoConvert`
+
 #include <type_traits>
 #include <utility>
-
-#include <userver/utils/meta_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -15,23 +16,20 @@ struct To final {};
 namespace impl {
 
 template <typename T, typename DbType>
-using HasConvert =
-    decltype(Convert(std::declval<DbType&&>(), convert::To<T>{}));
-
-template <typename T, typename DbType>
-inline constexpr bool kHasConvert = meta::kIsDetected<HasConvert, T, DbType>;
+concept HasConvert = requires(DbType&& from) { Convert(std::forward<DbType>(from), convert::To<T>{}); };
 
 }  // namespace impl
 
 template <typename T, typename DbType>
 T DoConvert(DbType&& from) {
-  static_assert(
-      // TODO : better wording
-      impl::kHasConvert<T, DbType>,
-      "There is no 'T Convert(From&&, storages::mysql::convert::To<T>)' in "
-      "neither namespace of 'T' or `storages::mysql::convert`");
+    static_assert(
+        // TODO : better wording
+        impl::HasConvert<T, DbType>,
+        "There is no 'T Convert(From&&, storages::mysql::convert::To<T>)' in "
+        "neither namespace of 'T' or `storages::mysql::convert`"
+    );
 
-  return Convert(std::forward<DbType>(from), To<T>{});
+    return Convert(std::forward<DbType>(from), To<T>{});
 }
 
 }  // namespace storages::mysql::convert

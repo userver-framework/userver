@@ -1,24 +1,24 @@
 # yaml
 components_manager:
-    task_processors:                  # Task processor is an executor for coroutine tasks
+    task_processors:  # Task processor is an executor for coroutine tasks
 
-        main-task-processor:          # Make a task processor for CPU-bound couroutine tasks.
-            worker_threads: 4         # Process tasks in 4 threads.
+        main-task-processor:  # Make a task processor for CPU-bound coroutine tasks.
+            worker_threads: 4  # Process tasks in 4 threads.
 
-        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+        fs-task-processor:  # Make a separate task processor for filesystem bound tasks.
             worker_threads: 4
 
-        monitor-task-processor:       # for monitoring
+        monitor-task-processor:  # for monitoring
             worker_threads: 1
             thread_name: mon-worker
 
     default_task_processor: main-task-processor  # Task processor in which components start.
 
-    components:                       # Configuring components that were registered via component_list
+    components:  # Configuring components that were registered via component_list
         server:
-            listener:                 # configuring the main listening socket...
-                port: 8080            # ...to listen on this port and...
-                task_processor: main-task-processor    # ...process incoming requests on this task processor.
+            listener:  # configuring the main listening socket...
+                port: 8080  # ...to listen on this port and...
+                task_processor: main-task-processor  # ...process incoming requests on this task processor.
             listener-monitor:
                 # Listen on localhost:8085 for developer/utility requests
                 port: $monitor-server-port
@@ -49,6 +49,7 @@ components_manager:
             update-interval: 5s
 
         # /// [monitor - config.yaml]
+        # yaml
         handler-server-monitor:
             path: /service/monitor
             method: GET
@@ -56,9 +57,10 @@ components_manager:
         # /// [monitor - config.yaml]
 
         http-client:
+        http-client-core:
             fs-task-processor: fs-task-processor
             user-agent: userver testsuite
-        dns-client:                     # Asynchronous DNS component
+        dns-client:  # Asynchronous DNS component
             fs-task-processor: fs-task-processor
 
         congestion-control:
@@ -110,6 +112,7 @@ components_manager:
         tasks-sample: {}
 
         # /// [testsuite - config.yaml]
+        # yaml
         tests-control:
             load-enabled: $testsuite-enabled
             path: /tests/{action}
@@ -118,5 +121,4 @@ components_manager:
             testpoint-timeout: 10s
             testpoint-url: mockserver/testpoint
             throttling_enabled: false
-        testsuite-support:
-        # /// [testsuite - config.yaml]
+        testsuite-support:  # /// [testsuite - config.yaml]

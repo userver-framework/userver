@@ -1,4 +1,4 @@
-// Copyright (c) 2016-2023 Antony Polukhin
+// Copyright (c) 2016-2025 Antony Polukhin
 //
 // Distributed under the Boost Software License, Version 1.0. (See accompanying
 // file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -9,9 +9,6 @@
 
 #include <boost/pfr/detail/config.hpp>
 
-#include <type_traits>
-#include <utility>      // metaprogramming stuff
-
 #include <boost/pfr/detail/sequence_tuple.hpp>
 #include <boost/pfr/detail/offset_based_getter.hpp>
 #include <boost/pfr/detail/fields_count.hpp>
@@ -20,6 +17,11 @@
 #include <boost/pfr/detail/size_array.hpp>
 #include <boost/pfr/detail/size_t_.hpp>
 #include <boost/pfr/detail/rvalue_t.hpp>
+
+#if !defined(BOOST_PFR_INTERFACE_UNIT)
+#include <type_traits>
+#include <utility>      // metaprogramming stuff
+#endif
 
 #ifdef __clang__
 #   pragma clang diagnostic push

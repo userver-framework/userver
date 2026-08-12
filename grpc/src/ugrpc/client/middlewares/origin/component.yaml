@@ -1,0 +1,11 @@
+type: object
+description: gRPC client origin middleware component
+additionalProperties: false
+properties:
+    user-agent:
+        type: string
+        description: |-
+            The name of the current deploy unit that will appear in `x-origin`
+            metadata.
+
+            Default: Do not send `x-origin`

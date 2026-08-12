@@ -15,46 +15,12 @@
 #include <userver/urabbitmq/consumer_settings.hpp>
 #include <userver/urabbitmq/typedefs.hpp>
 
-/// @page rabbitmq_driver RabbitMQ (AMQP 0-9-1) - EXPERIMENTAL
-///
-/// Disclaimer: current state of the driver is experimental, and
-/// although APIs are not likely to change drastically, some adjustments may be
-/// made in the future.
-/// Please also keep in mind that this driver is
-/// not backed by Yandex-scale production usage.
-///
-/// 🐙 **userver** provides access to RabbitMQ servers via
-/// components::RabbitMQ. The uRabbitMQ driver is asynchronous, it suspends
-/// current coroutine for carrying out network I/O.
-///
-/// @section feature Features
-/// - Publishing messages;
-/// - Consuming messages;
-/// - Creating Exchanges, Queues and Bindings;
-/// - Transport level security;
-/// - Connections pooling;
-/// - End-to-end logging for messages in publish->consume chain.
-///
-/// @section info More information
-/// - For configuration see components::RabbitMQ
-/// - For cluster operations see urabbitmq::Client, urabbitmq::AdminChannel,
-///   urabbitmq::Channel, urabbitmq::ReliableChannel
-/// - For consumers support see urabbitmq::ConsumerBase and
-///   urabbitmq::ConsumerComponentBase
-///
-/// ----------
-///
-/// @htmlonly <div class="bottom-nav"> @endhtmlonly
-/// ⇦ @ref scripts/docs/en/userver/grpc.md |
-/// @ref scripts/docs/en/userver/dynamic_config.md ⇨
-/// @htmlonly </div> @endhtmlonly
-
 USERVER_NAMESPACE_BEGIN
 
 namespace urabbitmq {
 /// @brief top namespace for uRabbitMQ driver.
 ///
-/// For more information see @ref rabbitmq_driver.
+/// For more information see @ref scripts/docs/en/userver/rabbitmq_driver.md.
 }
 
 USERVER_NAMESPACE_END

@@ -1,0 +1,8 @@
+definitions:
+    ObjectString64:
+        type: object
+        additionalProperties: false
+        properties:
+            value:
+                type: string
+                format: byte

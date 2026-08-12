@@ -1,565 +1,588 @@
-# Functions for setting up Python virtual environments and running
-# testsuite tests.
+# Functions for running testsuite tests.
 #
 # Provides:
-# - USERVER_PYTHON_PATH option
-# - USERVER_FEATURE_TESTSUITE option
-# - USERVER_PIP_USE_SYSTEM_PACKAGES option
-# - USERVER_PIP_OPTIONS option
-# - userver_venv_setup function that sets up a Python virtual environment
-#   with the given requirements
-# - userver_testsuite_requirements function that returns a list of requirements
-#   files needed to run userver testsuite
-# - userver_testsuite_add function that registers a directory with testsuite
-#   tests in ctest. Note that userver testsuite requires some arguments, they
-#   should be passed manually using PYTEST_ARGS
-# - userver_testsuite_add_simple that automatically detects and fills in some
-#   PYTEST_ARGS
 #
-# Implementation note: public functions here should be usable even without
-# a direct include of this script, so the functions should not rely
-# on non-cache variables being present.
+# * USERVER_FEATURE_TESTSUITE option
+# * userver_testsuite_requirements function that returns a list of requirements files needed to run userver testsuite
+# * userver_testsuite_add function that registers a directory with testsuite tests in ctest. Note that userver testsuite
+#   requires some arguments, they should be passed manually using PYTEST_ARGS
+# * userver_testsuite_add_simple that automatically detects and fills in some PYTEST_ARGS
+#
+# Implementation note: public functions here should be usable even without a direct include of this script, so the
+# functions should not rely on non-cache variables being present.
 include_guard(GLOBAL)
 
+# Pack initialization into a function to avoid non-cache variable leakage.
 function(_userver_prepare_testsuite)
-  set(USERVER_PYTHON_PATH "python3" CACHE FILEPATH "Path to python3 executable to use")
-  message(STATUS "Python: ${USERVER_PYTHON_PATH}")
+    include("${CMAKE_CURRENT_LIST_DIR}/UserverVenv.cmake")
+    include("${CMAKE_CURRENT_LIST_DIR}/TargetIteration.cmake")
+    set_property(GLOBAL PROPERTY userver_cmake_dir "${CMAKE_CURRENT_LIST_DIR}")
 
-  option(USERVER_FEATURE_TESTSUITE "Enable functional tests via testsuite" ON)
-  option(
-      USERVER_PIP_USE_SYSTEM_PACKAGES
-      "Use system python packages inside venv"
-      OFF
-  )
-  set(USERVER_PIP_OPTIONS "" CACHE STRING "Options for all pip calls")
+    # @ingroup libraries
+    option(USERVER_FEATURE_TESTSUITE "Enable functional tests via testsuite" ON)
 
-  if(USERVER_FEATURE_TESTSUITE AND NOT USERVER_PYTHON_DEV_CHECKED)
-    # find package python3-dev required by venv
-    execute_process(
-        COMMAND sh "-c" "command -v python3-config"
-        OUTPUT_VARIABLE PYTHONCONFIG_FOUND
-    )
-    if(NOT PYTHONCONFIG_FOUND)
-      message(FATAL_ERROR "Python dev is not found")
+    if(USERVER_FEATURE_TESTSUITE AND NOT USERVER_PYTHON_DEV_CHECKED)
+        # find package python3-dev required by venv
+        execute_process(COMMAND sh "-c" "command -v python3-config" OUTPUT_VARIABLE PYTHONCONFIG_FOUND)
+        if(NOT PYTHONCONFIG_FOUND)
+            message(FATAL_ERROR "Python dev is not found")
+        endif()
+        set(USERVER_PYTHON_DEV_CHECKED
+            TRUE
+            CACHE INTERNAL "" FORCE
+        )
     endif()
-    set(USERVER_PYTHON_DEV_CHECKED TRUE CACHE INTERNAL "")
-  endif()
 
-  if(NOT USERVER_TESTSUITE_DIR)
-    get_filename_component(
-        USERVER_TESTSUITE_DIR "${CMAKE_CURRENT_LIST_DIR}/../testsuite" ABSOLUTE)
-  endif()
-  set_property(GLOBAL PROPERTY userver_testsuite_dir "${USERVER_TESTSUITE_DIR}")
+    if(NOT USERVER_TESTSUITE_DIR)
+        get_filename_component(USERVER_TESTSUITE_DIR "${CMAKE_CURRENT_LIST_DIR}/../testsuite" ABSOLUTE)
+    endif()
+    set_property(GLOBAL PROPERTY userver_testsuite_dir "${USERVER_TESTSUITE_DIR}")
+
+    if(USERVER_FEATURE_TESTSUITE)
+        userver_testsuite_requirements(REQUIREMENTS_FILES_VAR requirements_files TESTSUITE_ONLY)
+        userver_venv_setup(
+            NAME utest
+            # TESTSUITE_PYTHON_BINARY is used in `env.in`
+            PYTHON_OUTPUT_VAR TESTSUITE_PYTHON_BINARY
+            REQUIREMENTS ${requirements_files}
+            UNIQUE
+        )
+        configure_file("${USERVER_TESTSUITE_DIR}/env.in" "${CMAKE_BINARY_DIR}/testsuite/env" @ONLY)
+    endif()
+endfunction()
+
+# @option TESTSUITE_ONLY
+# @param REQUIREMENTS_FILES_VAR @required Cmake variable name to store path to `requirements.txt` file
+function(userver_testsuite_requirements)
+    set(options TESTSUITE_ONLY)
+    set(oneValueArgs REQUIREMENTS_FILES_VAR)
+    set(multiValueArgs)
+
+    cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
+
+    get_property(USERVER_CMAKE_DIR GLOBAL PROPERTY userver_cmake_dir)
+    get_property(USERVER_TESTSUITE_DIR GLOBAL PROPERTY userver_testsuite_dir)
+
+    list(APPEND requirements_files "${USERVER_TESTSUITE_DIR}/requirements.txt")
+
+    if(USERVER_FEATURE_GRPC OR TARGET userver::grpc)
+        get_property(protobuf_category GLOBAL PROPERTY userver_protobuf_version_category)
+        if(NOT protobuf_category)
+            include("${USERVER_CMAKE_DIR}/SetupProtobuf.cmake")
+            get_property(protobuf_category GLOBAL PROPERTY userver_protobuf_version_category)
+        endif()
+        list(APPEND requirements_files "${USERVER_TESTSUITE_DIR}/requirements-grpc-${protobuf_category}.txt")
+    endif()
+
+    if(USERVER_FEATURE_MONGODB OR TARGET userver::mongo)
+        list(APPEND requirements_files "${USERVER_TESTSUITE_DIR}/requirements-mongo.txt")
+        list(APPEND testsuite_modules mongodb)
+    endif()
+
+    if(USERVER_FEATURE_POSTGRESQL OR TARGET userver::postgresql)
+        list(APPEND requirements_files "${USERVER_TESTSUITE_DIR}/requirements-postgres.txt")
+        if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+            list(APPEND testsuite_modules postgresql-binary)
+        else()
+            list(APPEND testsuite_modules postgresql)
+        endif()
+    endif()
+
+    if(USERVER_FEATURE_YDB OR TARGET userver::ydb)
+        list(APPEND requirements_files "${USERVER_TESTSUITE_DIR}/requirements-ydb.txt")
+    endif()
+
+    if(USERVER_FEATURE_REDIS OR TARGET userver::redis)
+        list(APPEND requirements_files "${USERVER_TESTSUITE_DIR}/requirements-redis.txt")
+        list(APPEND testsuite_modules redis)
+    endif()
+
+    if(USERVER_FEATURE_CLICKHOUSE OR TARGET userver::clickhouse)
+        list(APPEND testsuite_modules clickhouse)
+    endif()
+
+    if(USERVER_FEATURE_RABBITMQ OR TARGET userver::rabbitmq)
+        list(APPEND testsuite_modules rabbitmq)
+    endif()
+
+    if(USERVER_FEATURE_KAFKA OR TARGET userver::kafka)
+        list(APPEND testsuite_modules kafka)
+    endif()
+
+    if(USERVER_FEATURE_MYSQL OR TARGET userver::mysql)
+        list(APPEND testsuite_modules mysql)
+    endif()
+
+    # This function returns "public" dependencies for userver-based services. For private dependencies that only
+    # userver's own tests need, see SetupUserverTestsuiteEnv.cmake
+
+    file(READ "${USERVER_TESTSUITE_DIR}/requirements-testsuite.txt" requirements_testsuite_text)
+    if(testsuite_modules)
+        list(JOIN testsuite_modules "," testsuite_modules_str)
+        string(REPLACE "yandex-taxi-testsuite[]" "yandex-taxi-testsuite[${testsuite_modules_str}]"
+                       requirements_testsuite_text "${requirements_testsuite_text}"
+        )
+    endif()
+
+    set(requirements_testsuite_file "${CMAKE_BINARY_DIR}/requirements-userver-testsuite.txt")
+    file(WRITE "${requirements_testsuite_file}" "${requirements_testsuite_text}")
+    list(APPEND requirements_files "${requirements_testsuite_file}")
+
+    if(NOT ARG_TESTSUITE_ONLY)
+        set("${ARG_REQUIREMENTS_FILES_VAR}"
+            ${requirements_files}
+            PARENT_SCOPE
+        )
+    else()
+        set("${ARG_REQUIREMENTS_FILES_VAR}"
+            ${requirements_testsuite_file}
+            PARENT_SCOPE
+        )
+    endif()
+endfunction()
+
+# TODO
+function(userver_testsuite_add)
+    set(oneValueArgs SERVICE_TARGET TEST_SUFFIX WORKING_DIRECTORY PYTHON_BINARY PRETTY_LOGS SQL_LIBRARY)
+    set(multiValueArgs PYTEST_ARGS REQUIREMENTS PYTHONPATH TEST_ENV RESOURCE_LOCKS)
+    cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    _userver_setup_environment_validate_impl()
+
+    include(CTest)
+
+    get_property(USERVER_TESTSUITE_DIR GLOBAL PROPERTY userver_testsuite_dir)
+
+    if(NOT ARG_SERVICE_TARGET)
+        message(FATAL_ERROR "No SERVICE_TARGET given for testsuite")
+        return()
+    endif()
+
+    if(NOT ARG_WORKING_DIRECTORY)
+        set(ARG_WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+    endif()
+
+    if(NOT DEFINED ARG_PRETTY_LOGS)
+        set(ARG_PRETTY_LOGS ON)
+    endif()
+
+    if(NOT ARG_TEST_SUFFIX)
+        set(service_target_with_suffix "${ARG_SERVICE_TARGET}")
+    else()
+        set(service_target_with_suffix "${ARG_SERVICE_TARGET}-${ARG_TEST_SUFFIX}")
+    endif()
+    set(testsuite_test_name "testsuite-${service_target_with_suffix}")
+
+    if(NOT USERVER_FEATURE_TESTSUITE)
+        message(STATUS "Testsuite test ${testsuite_test_name} is disabled")
+        return()
+    endif()
+
+    if(ARG_PYTHON_BINARY)
+        if(ARG_REQUIREMENTS)
+            message(FATAL_ERROR "PYTHON_BINARY and REQUIREMENTS options are incompatible")
+        endif()
+        set(python_binary "${ARG_PYTHON_BINARY}")
+    elseif(ARG_REQUIREMENTS)
+        userver_testsuite_requirements(REQUIREMENTS_FILES_VAR requirements_files)
+        list(APPEND requirements_files ${ARG_REQUIREMENTS})
+        userver_venv_setup(
+            NAME "${testsuite_test_name}"
+            REQUIREMENTS ${requirements_files}
+            PYTHON_OUTPUT_VAR python_binary
+        )
+    else()
+        userver_testsuite_requirements(REQUIREMENTS_FILES_VAR requirements_files)
+        userver_venv_setup(
+            NAME userver-default
+            REQUIREMENTS ${requirements_files}
+            PYTHON_OUTPUT_VAR python_binary
+            UNIQUE
+        )
+    endif()
+
+    if(NOT python_binary)
+        message(FATAL_ERROR "No python binary given.")
+    endif()
+
+    set(TESTSUITE_RUNNER "${CMAKE_CURRENT_BINARY_DIR}/runtests-${service_target_with_suffix}")
+    list(APPEND ARG_PYTHONPATH "${USERVER_TESTSUITE_DIR}/pytest_plugins")
+
+    set(testsuite_temp_dir "${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/${service_target_with_suffix}")
+    file(MAKE_DIRECTORY "${testsuite_temp_dir}")
+
+    set(TESTS_PATHS ${ARG_WORKING_DIRECTORY})
+    if(ARG_SQL_LIBRARY)
+        get_target_property(TESTSUITE_OUTPUT_DIR ${ARG_SQL_LIBRARY} USERVER_TESTSUITE_DIRECTORY)
+        list(APPEND ARG_PYTEST_ARGS "-p" "sql_files")
+        list(APPEND ARG_PYTEST_ARGS "-p" "pytest_userver.plugins.sql_coverage")
+        list(APPEND ARG_PYTHONPATH ${TESTSUITE_OUTPUT_DIR})
+    endif()
+
+    _userver_initialize_codegen_flag()
+    add_custom_command(
+        OUTPUT "${TESTSUITE_RUNNER}"
+        COMMAND
+            "${python_binary}" "${USERVER_TESTSUITE_DIR}/create_runner.py" "--output=${TESTSUITE_RUNNER}"
+            "--python=${python_binary}" "--tests-path=${TESTS_PATHS}" "--working-dir=${CMAKE_CURRENT_BINARY_DIR}"
+            "--python-path=${ARG_PYTHONPATH}" -- "--build-dir=${CMAKE_CURRENT_BINARY_DIR}"
+            "--service-logs-file=${testsuite_temp_dir}/service.log" "--basetemp=${testsuite_temp_dir}"
+            ${ARG_PYTEST_ARGS}
+        DEPENDS "${USERVER_TESTSUITE_DIR}/create_runner.py"
+        COMMENT "Creating testsuite runner at ${TESTSUITE_RUNNER}"
+        VERBATIM ${CODEGEN}
+    )
+    _userver_codegen_register_files("${TESTSUITE_RUNNER}")
+
+    set(CREATE_TESTSUITE_RUNNER_TARGET "create-runtests-${service_target_with_suffix}")
+    add_custom_target("${CREATE_TESTSUITE_RUNNER_TARGET}" SOURCES "${TESTSUITE_RUNNER}")
+    add_dependencies("${ARG_SERVICE_TARGET}" "${CREATE_TESTSUITE_RUNNER_TARGET}")
+
+    set(PRETTY_LOGS_MODE "")
+    if(ARG_PRETTY_LOGS)
+        set(PRETTY_LOGS_MODE "--service-logs-pretty")
+    endif()
+
+    # Pre-collect command in a list to support spaces in paths
+    set(testsuite_test_command)
+    list(APPEND testsuite_test_command "${python_binary}")
+    list(APPEND testsuite_test_command "${TESTSUITE_RUNNER}")
+    list(APPEND testsuite_test_command ${PRETTY_LOGS_MODE})
+    list(APPEND testsuite_test_command -vv)
+    # Without WORKING_DIRECTORY the `add_test` prints better diagnostic info
+    add_test(NAME "${testsuite_test_name}" COMMAND ${testsuite_test_command})
+    if(ARG_TEST_ENV)
+        set_tests_properties("${testsuite_test_name}" PROPERTIES ENVIRONMENT "${ARG_TEST_ENV}")
+    endif()
+
+    _userver_get_test_resource_locks_for_target("${ARG_SERVICE_TARGET}" testsuite_resource_locks)
+    list(APPEND testsuite_resource_locks ${ARG_RESOURCE_LOCKS})
+    if(testsuite_resource_locks)
+        list(REMOVE_DUPLICATES testsuite_resource_locks)
+        set_tests_properties("${testsuite_test_name}" PROPERTIES RESOURCE_LOCK "${testsuite_resource_locks}")
+    endif()
+
+    # Pre-collect command in a list to support spaces in paths
+    set(testsuite_start_command)
+    list(APPEND testsuite_start_command "${python_binary}")
+    list(APPEND testsuite_start_command "${TESTSUITE_RUNNER}")
+    list(APPEND testsuite_start_command ${PRETTY_LOGS_MODE})
+    list(APPEND testsuite_start_command --service-runner-mode)
+    list(APPEND testsuite_start_command -vvs)
+    add_custom_target(
+        "start-${service_target_with_suffix}"
+        COMMAND ${testsuite_start_command}
+        DEPENDS "${TESTSUITE_RUNNER}"
+        VERBATIM USES_TERMINAL
+    )
+    add_dependencies("start-${service_target_with_suffix}" "${ARG_SERVICE_TARGET}")
+endfunction()
+
+# Tries to search service files in some standard places. Should be invoked from the service's CMakeLists.txt Supports
+# the following file structure (and a few others):
+#
+# * configs/config.yaml
+# * configs/config_vars.[testsuite|tests].yaml [optional]
+# * configs/dynamic_config_fallback.json [optional]
+# * configs/[secdist|secure_data].json [optional]
+# * [testsuite|tests]/conftest.py
+#
+# @param SERVICE_TARGET
+# @param TEST_SUFFIX
+# @param WORKING_DIRECTORY
+# @param PYTHON_BINARY
+# @param PRETTY_LOGS
+# @param CONFIG_PATH
+# @param CONFIG_VARS_PATH
+# @param DYNAMIC_CONFIG_FALLBACK_PATH
+# @param SECDIST_PATH
+# @param DUMP_CONFIG
+# @param SQL_LIBRARY
+# @multiparam PYTEST_ARGS
+# @multiparam REQUIREMENTS
+# @multiparam PYTHONPATH
+# @multiparam TEST_ENV
+# @multiparam RESOURCE_LOCKS ctest resource locks for databases the service uses
+#   without linking their module (e.g. 'userver_postgresql' for an odbc service)
+function(userver_testsuite_add_simple)
+    set(oneValueArgs
+        SERVICE_TARGET
+        TEST_SUFFIX
+        WORKING_DIRECTORY
+        PYTHON_BINARY
+        PRETTY_LOGS
+        CONFIG_PATH
+        CONFIG_VARS_PATH
+        DYNAMIC_CONFIG_FALLBACK_PATH
+        SECDIST_PATH
+        DUMP_CONFIG
+        SQL_LIBRARY
+    )
+    set(multiValueArgs PYTEST_ARGS REQUIREMENTS PYTHONPATH TEST_ENV RESOURCE_LOCKS)
+    cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    _userver_setup_environment_validate_impl()
+
+    set(pytest_additional_args)
+
+    if(ARG_WORKING_DIRECTORY)
+        if(IS_ABSOLUTE "${ARG_WORKING_DIRECTORY}")
+            file(RELATIVE_PATH tests_relative_path "${CMAKE_CURRENT_SOURCE_DIR}" "${ARG_WORKING_DIRECTORY}")
+        else()
+            set(tests_relative_path "${ARG_WORKING_DIRECTORY}")
+            get_filename_component(
+                ARG_WORKING_DIRECTORY "${ARG_WORKING_DIRECTORY}" REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
+            )
+        endif()
+    else()
+        foreach(probable_tests_path IN ITEMS "testsuite" "tests" ".")
+            if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${probable_tests_path}/conftest.py")
+                set(ARG_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/${probable_tests_path}")
+                set(tests_relative_path "${probable_tests_path}")
+                break()
+            endif()
+        endforeach()
+    endif()
+
+    if(NOT ARG_SERVICE_TARGET)
+        set(ARG_SERVICE_TARGET "${PROJECT_NAME}")
+    endif()
+    if(NOT ARG_TEST_SUFFIX)
+        set(ARG_TEST_SUFFIX "${tests_relative_path}")
+    endif()
+    if("${ARG_TEST_SUFFIX}" STREQUAL "."
+       OR "${ARG_TEST_SUFFIX}" STREQUAL "tests"
+       OR "${ARG_TEST_SUFFIX}" STREQUAL "testsuite"
+    )
+        set(ARG_TEST_SUFFIX "")
+    endif()
+
+    set(DUMP_CONFIG_OPTION "")
+    if(ARG_DUMP_CONFIG)
+        set(DUMP_CONFIG_OPTION "--dump-config")
+    endif()
+
+    if(ARG_CONFIG_PATH)
+        get_filename_component(config_path "${ARG_CONFIG_PATH}" REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+    elseif(ARG_DUMP_CONFIG)
+        set(config_path "${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/static_config.yaml")
+    else()
+        foreach(
+            probable_config_path IN
+            ITEMS "${CMAKE_CURRENT_SOURCE_DIR}/configs/static_config.yaml"
+                  "${CMAKE_CURRENT_SOURCE_DIR}/configs/config.yaml" "${CMAKE_CURRENT_SOURCE_DIR}/static_config.yaml"
+                  "${CMAKE_CURRENT_SOURCE_DIR}/config.yaml"
+        )
+            if(EXISTS "${probable_config_path}")
+                set(config_path "${probable_config_path}")
+                break()
+            endif()
+        endforeach()
+
+        if(NOT config_path)
+            message(FATAL_ERROR "Failed to find service static config for testsuite. "
+                                "Please pass it to ${CMAKE_CURRENT_FUNCTION} as CONFIG_PATH arg."
+            )
+        endif()
+    endif()
+
+    if(ARG_CONFIG_VARS_PATH)
+        get_filename_component(
+            config_vars_path "${ARG_CONFIG_VARS_PATH}" REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
+        )
+    else()
+        foreach(
+            probable_config_vars_path IN
+            ITEMS "${CMAKE_CURRENT_SOURCE_DIR}/configs/config_vars.testsuite.yaml"
+                  "${CMAKE_CURRENT_SOURCE_DIR}/configs/config_vars.testing.yaml"
+                  "${CMAKE_CURRENT_SOURCE_DIR}/configs/config_vars.yaml"
+                  "${CMAKE_CURRENT_SOURCE_DIR}/config_vars.testsuite.yaml"
+                  "${CMAKE_CURRENT_SOURCE_DIR}/config_vars.testing.yaml"
+                  "${CMAKE_CURRENT_SOURCE_DIR}/config_vars.yaml"
+        )
+            if(EXISTS "${probable_config_vars_path}")
+                set(config_vars_path "${probable_config_vars_path}")
+                break()
+            endif()
+        endforeach()
+    endif()
+    if(config_vars_path)
+        list(APPEND pytest_additional_args "--service-config-vars=${config_vars_path}")
+    endif()
+
+    if(ARG_DYNAMIC_CONFIG_FALLBACK_PATH)
+        get_filename_component(
+            dynamic_config_fallback_path "${ARG_DYNAMIC_CONFIG_FALLBACK_PATH}" REALPATH BASE_DIR
+            "${CMAKE_CURRENT_SOURCE_DIR}"
+        )
+    else()
+        foreach(probable_dynamic_config_fallback_path IN
+                ITEMS "${CMAKE_CURRENT_SOURCE_DIR}/configs/dynamic_config_fallback.json"
+                      "${CMAKE_CURRENT_SOURCE_DIR}/dynamic_config_fallback.json"
+        )
+            if(EXISTS "${probable_dynamic_config_fallback_path}")
+                set(dynamic_config_fallback_path "${probable_dynamic_config_fallback_path}")
+                break()
+            endif()
+        endforeach()
+    endif()
+    if(dynamic_config_fallback_path)
+        list(APPEND pytest_additional_args "--config-fallback=${dynamic_config_fallback_path}")
+    endif()
+
+    if(ARG_SECDIST_PATH)
+        get_filename_component(secdist_path "${ARG_CONFIG_VARS_PATH}" REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+    else()
+        foreach(
+            probable_secdist_path IN
+            ITEMS "${CMAKE_CURRENT_SOURCE_DIR}/configs/secdist.json"
+                  "${CMAKE_CURRENT_SOURCE_DIR}/configs/secure_data.json" "${CMAKE_CURRENT_SOURCE_DIR}/secdist.json"
+                  "${CMAKE_CURRENT_SOURCE_DIR}/secure_data.json"
+        )
+            if(EXISTS "${probable_secdist_path}")
+                set(secdist_path "${probable_secdist_path}")
+                break()
+            endif()
+        endforeach()
+    endif()
+    if(secdist_path)
+        list(APPEND pytest_additional_args "--service-secdist=${secdist_path}")
+    endif()
+
+    if(EXISTS "${CMAKE_CURRENT_BINARY_DIR}/proto")
+        list(APPEND ARG_PYTHONPATH "${CMAKE_CURRENT_BINARY_DIR}/proto")
+    endif()
+
+    userver_testsuite_add(
+        SERVICE_TARGET "${ARG_SERVICE_TARGET}"
+        TEST_SUFFIX "${ARG_TEST_SUFFIX}"
+        WORKING_DIRECTORY "${ARG_WORKING_DIRECTORY}"
+        PYTHON_BINARY "${ARG_PYTHON_BINARY}"
+        PRETTY_LOGS "${ARG_PRETTY_LOGS}"
+        PYTEST_ARGS
+            "--service-config=${config_path}" "--service-source-dir=${CMAKE_CURRENT_SOURCE_DIR}"
+            "--service-binary=${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}" "${DUMP_CONFIG_OPTION}"
+            ${pytest_additional_args} ${ARG_PYTEST_ARGS}
+        REQUIREMENTS ${ARG_REQUIREMENTS}
+        PYTHONPATH ${ARG_PYTHONPATH}
+        TEST_ENV ${ARG_TEST_ENV}
+        RESOURCE_LOCKS ${ARG_RESOURCE_LOCKS}
+        SQL_LIBRARY ${ARG_SQL_LIBRARY}
+    )
+endfunction()
+
+# Add utest, test runs in testsuite env.
+#
+# @option DISABLE_GTEST_XML_OUTPUT
+# @param oneValueArgs
+# @multiparam DATABASES
+# @multiparam TEST_ENV
+# @multiparam TEST_ARGS
+function(userver_add_utest)
+    set(options DISABLE_GTEST_XML_OUTPUT)
+    set(oneValueArgs NAME)
+    set(multiValueArgs DATABASES TEST_ENV TEST_ARGS)
+
+    cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    if(NOT USERVER_FEATURE_TESTSUITE)
+        message(FATAL_ERROR "userver_add_utest requires 'USERVER_FEATURE_TESTSUITE=ON'")
+    endif()
+
+    set(additional_args)
+    if(ARG_DATABASES)
+        list(JOIN ARG_DATABASES "," databases_value)
+        list(APPEND additional_args "--databases=${databases_value}")
+    else()
+        list(APPEND additional_args "--databases=")
+    endif()
+
+    if(NOT ARG_DISABLE_GTEST_XML_OUTPUT)
+        list(APPEND ARG_TEST_ARGS "--gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${ARG_NAME}.xml")
+    endif()
+
+    add_test(NAME "${ARG_NAME}" COMMAND "${CMAKE_BINARY_DIR}/testsuite/env" ${additional_args} run --
+                                        $<TARGET_FILE:${ARG_NAME}> ${ARG_TEST_ARGS}
+    )
+    if(ARG_TEST_ENV)
+        set_tests_properties("${ARG_NAME}" PROPERTIES ENVIRONMENT "${ARG_TEST_ENV}")
+    endif()
+
+    set(utest_resource_locks "")
+    foreach(database IN LISTS ARG_DATABASES)
+        list(APPEND utest_resource_locks "userver_${database}")
+    endforeach()
+    if(utest_resource_locks)
+        set_tests_properties("${ARG_NAME}" PROPERTIES RESOURCE_LOCK "${utest_resource_locks}")
+    endif()
+endfunction()
+
+# @param NAME
+# @multiparam DATABASES
+# @multiparam TEST_ENV
+function(userver_add_ubench_test)
+    set(options)
+    set(oneValueArgs NAME)
+    set(multiValueArgs DATABASES TEST_ENV)
+
+    cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
+
+    if(USERVER_CONAN)
+        set(BENCHMARK_VERSION ${benchmark_VERSION})
+    else()
+        set(BENCHMARK_VERSION ${UserverGBench_VERSION})
+    endif()
+
+    if(BENCHMARK_VERSION VERSION_LESS "1.8.0")
+        set(BENCHMARK_MIN_TIME "0")
+    else()
+        set(BENCHMARK_MIN_TIME "0.0s")
+    endif()
+
+    userver_add_utest(
+        NAME "${ARG_NAME}"
+        DATABASES ${ARG_DATABASES}
+        TEST_ENV ${ARG_TEST_ENV}
+        TEST_ARGS --benchmark_min_time=${BENCHMARK_MIN_TIME} --benchmark_color=no
+        DISABLE_GTEST_XML_OUTPUT ON
+    )
+endfunction()
+
+# Converts a target name into a ';'-separated list of ctest RESOURCE_LOCK names, one
+# per userver database module the target links against (directly or transitively).
+# Tests that share a lock are never run concurrently by ctest, which protects the
+# per-engine database daemons started by testsuite (each on a fixed port/data-dir)
+# from races during parallel `ctest -j`. Lock name for an engine is "userver_<engine>".
+function(_userver_get_test_resource_locks_for_target target output_var)
+    # userver database modules backed by a shared daemon. Embedded engines without a
+    # daemon (e.g. sqlite, rocks) are intentionally omitted.
+    set(db_engines
+        postgresql
+        mongo
+        redis
+        clickhouse
+        rabbitmq
+        kafka
+        mysql
+        ydb
+    )
+
+    set(resource_locks "")
+    if(TARGET "${target}")
+        _userver_collect_linked_targets("${target}" linked_targets)
+        foreach(engine IN LISTS db_engines)
+            list(FIND linked_targets "userver-${engine}" index_dash)
+            list(FIND linked_targets "userver::${engine}" index_colons)
+            if(NOT index_dash EQUAL -1 OR NOT index_colons EQUAL -1)
+                list(APPEND resource_locks "userver_${engine}")
+            endif()
+        endforeach()
+    endif()
+
+    set(${output_var}
+        "${resource_locks}"
+        PARENT_SCOPE
+    )
 endfunction()
 
 _userver_prepare_testsuite()
-
-function(userver_venv_setup)
-  set(options UNIQUE)
-  set(oneValueArgs NAME PYTHON_OUTPUT_VAR)
-  set(multiValueArgs REQUIREMENTS PIP_ARGS)
-
-  cmake_parse_arguments(
-      ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
-
-  if(NOT ARG_REQUIREMENTS)
-    message(FATAL_ERROR "No REQUIREMENTS given for venv")
-    return()
-  endif()
-
-  if(NOT ARG_NAME)
-    set(venv_name "venv")
-    set(python_output_var "TESTSUITE_VENV_PYTHON")
-  else()
-    set(venv_name "venv-${ARG_NAME}")
-    string(TOUPPER "TESTSUITE_VENV_${ARG_NAME}_PYTHON" python_output_var)
-  endif()
-
-  if(ARG_PYTHON_OUTPUT_VAR)
-    set(python_output_var "${ARG_PYTHON_OUTPUT_VAR}")
-  endif()
-
-  if(ARG_UNIQUE)
-    set(parent_directory "${CMAKE_BINARY_DIR}")
-  else()
-    set(parent_directory "${CMAKE_CURRENT_BINARY_DIR}")
-  endif()
-
-  set(venv_additional_args)
-  if(USERVER_PIP_USE_SYSTEM_PACKAGES)
-    list(APPEND venv_additional_args "--system-site-packages")
-  endif()
-  list(APPEND ARG_PIP_ARGS ${USERVER_PIP_OPTIONS})
-
-  set(venv_dir "${parent_directory}/${venv_name}")
-  set(venv_bin_dir "${venv_dir}/bin")
-  set("${python_output_var}" "${venv_bin_dir}/python" PARENT_SCOPE)
-
-  # A unique venv is set up once for the whole build.
-  # For example, a userver gRPC cmake script may be included multiple times
-  # during the Configure, but only 1 venv should be created.
-  # Global properties are used to check that all userver_venv_setup
-  # for a given venv are invoked with the same params.
-  if(ARG_UNIQUE)
-    set(venv_unique_params
-        venv ${ARG_REQUIREMENTS} ${venv_additional_args} ${ARG_PIP_ARGS})
-    get_property(cached_venv_unique_params
-        GLOBAL PROPERTY "userver-venv-${ARG_NAME}-params")
-    if(cached_venv_unique_params)
-      if(NOT cached_venv_unique_params STREQUAL venv_unique_params)
-        message(FATAL_ERROR
-            "Unique venv '${ARG_NAME}' is created multiple times with "
-            "different params, "
-            "before='${cached_venv_unique_params}' "
-            "after='${venv_unique_params}'")
-      endif()
-      return()
-    endif()
-  endif()
-
-  message(STATUS "Setting up the venv at ${venv_dir}")
-
-  if(NOT EXISTS "${venv_dir}")
-    execute_process(
-        COMMAND
-        "${USERVER_PYTHON_PATH}"
-        -m venv
-        "${venv_dir}"
-        ${venv_additional_args}
-        RESULT_VARIABLE status
-    )
-    if(status)
-      file(REMOVE_RECURSE "${venv_dir}")
-      message(FATAL_ERROR
-          "Failed to create Python virtual environment. "
-          "On Debian-based systems, venv is installed separately:\n"
-          "sudo apt install python3-venv"
-      )
-    endif()
-  endif()
-
-  # If pip has already installed packages using the same requirements,
-  # then don't run it again. This optimization dramatically reduces
-  # re-Configure times.
-  set(venv_params "")
-  set(format_version 2)
-  string(APPEND venv_params "format-version=${format_version}\n")
-  string(APPEND venv_params "pip-args=${ARG_PIP_ARGS}\n")
-  foreach(requirement IN LISTS ARG_REQUIREMENTS)
-    file(READ "${requirement}" requirement_contents)
-    if(NOT requirement_contents MATCHES "\n$")
-      message(FATAL_ERROR "venv requirements file must end with a newline")
-    endif()
-    string(APPEND venv_params "${requirement_contents}")
-  endforeach()
-
-  set(should_run_pip TRUE)
-  set(venv_params_file "${venv_dir}/venv-params.txt")
-  if(EXISTS "${venv_params_file}")
-    file(READ "${venv_params_file}" venv_params_old)
-    if(venv_params_old STREQUAL venv_params)
-      set(should_run_pip FALSE)
-    endif()
-  endif()
-
-  if(should_run_pip)
-    message(STATUS "Installing requirements:")
-    foreach(requirement IN LISTS ARG_REQUIREMENTS)
-      message(STATUS "  ${requirement}")
-    endforeach()
-    list(
-        TRANSFORM ARG_REQUIREMENTS
-        PREPEND "--requirement="
-        OUTPUT_VARIABLE pip_requirements
-    )
-    execute_process(
-        COMMAND
-        "${venv_bin_dir}/python3" -m pip install
-        --disable-pip-version-check
-        -U ${pip_requirements}
-        ${ARG_PIP_ARGS}
-        RESULT_VARIABLE status
-    )
-    if(status)
-      message(FATAL_ERROR "Failed to install venv requirements")
-    endif()
-    file(WRITE "${venv_params_file}" "${venv_params}")
-  endif()
-
-  if(ARG_UNIQUE)
-    set_property(GLOBAL PROPERTY "userver-venv-${ARG_NAME}-params"
-        ${venv_unique_params})
-  endif()
-endfunction()
-
-function(userver_testsuite_requirements)
-  set(options)
-  set(oneValueArgs REQUIREMENT_FILES_VAR)
-  set(multiValueArgs)
-
-  cmake_parse_arguments(
-      ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
-
-  get_property(USERVER_TESTSUITE_DIR GLOBAL PROPERTY userver_testsuite_dir)
-
-  list(APPEND requirements_files
-      "${USERVER_TESTSUITE_DIR}/requirements.txt")
-
-  if(USERVER_FEATURE_GRPC OR TARGET userver::grpc)
-    get_property(protobuf_category
-        GLOBAL PROPERTY userver_protobuf_version_category)
-    if(NOT protobuf_category)
-      include(SetupProtobuf)
-      get_property(protobuf_category
-          GLOBAL PROPERTY userver_protobuf_version_category)
-    endif()
-    list(APPEND requirements_files
-        "${USERVER_TESTSUITE_DIR}/requirements-grpc-${protobuf_category}.txt")
-  endif()
-
-  if(USERVER_FEATURE_MONGODB OR TARGET userver::mongo)
-    list(APPEND requirements_files
-        "${USERVER_TESTSUITE_DIR}/requirements-mongo.txt")
-    list(APPEND testsuite_modules mongodb)
-  endif()
-
-  if(USERVER_FEATURE_POSTGRESQL OR TARGET userver::postgresql)
-    list(APPEND requirements_files
-        "${USERVER_TESTSUITE_DIR}/requirements-postgres.txt")
-    if (${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-      list(APPEND testsuite_modules postgresql-binary)
-    else()
-      list(APPEND testsuite_modules postgresql)
-    endif()
-  endif()
-
-  if(USERVER_FEATURE_YDB OR TARGET userver::ydb)
-    list(APPEND requirements_files
-        "${USERVER_TESTSUITE_DIR}/requirements-ydb.txt")
-  endif()
-
-  if(USERVER_FEATURE_REDIS OR TARGET userver::redis)
-    list(APPEND requirements_files
-        "${USERVER_TESTSUITE_DIR}/requirements-redis.txt")
-    list(APPEND testsuite_modules redis)
-  endif()
-
-  if(USERVER_FEATURE_CLICKHOUSE OR TARGET userver::clickhouse)
-    list(APPEND testsuite_modules clickhouse)
-  endif()
-
-  if(USERVER_FEATURE_RABBITMQ OR TARGET userver::rabbitmq)
-    list(APPEND testsuite_modules rabbitmq)
-  endif()
-
-  if(USERVER_FEATURE_MYSQL OR TARGET userver::mysql)
-    list(APPEND testsuite_modules mysql)
-  endif()
-
-  # This function returns "public" dependencies for userver-based services.
-  # For private dependencies that only userver's own tests need, see
-  # SetupUserverTestsuiteEnv.cmake
-
-  file(READ "${USERVER_TESTSUITE_DIR}/requirements-testsuite.txt"
-      requirements_testsuite_text)
-  if(testsuite_modules)
-    list(JOIN testsuite_modules "," testsuite_modules_str)
-    string(
-        REPLACE
-        "yandex-taxi-testsuite[]"
-        "yandex-taxi-testsuite[${testsuite_modules_str}]"
-        requirements_testsuite_text
-        "${requirements_testsuite_text}"
-    )
-  endif()
-
-  set(requirements_testsuite_file
-      "${CMAKE_BINARY_DIR}/requirements-userver-testsuite.txt")
-  file(WRITE "${requirements_testsuite_file}" "${requirements_testsuite_text}")
-  list(APPEND requirements_files "${requirements_testsuite_file}")
-
-  set("${ARG_REQUIREMENT_FILES_VAR}" ${requirements_files} PARENT_SCOPE)
-endfunction()
-
-function(userver_testsuite_add)
-  set(oneValueArgs
-      SERVICE_TARGET
-      WORKING_DIRECTORY
-      PYTHON_BINARY
-      PRETTY_LOGS
-  )
-  set(multiValueArgs
-      PYTEST_ARGS
-      REQUIREMENTS
-      PYTHONPATH
-  )
-  cmake_parse_arguments(
-    ARG "${options}" "${oneValueArgs}" "${multiValueArgs}"  ${ARGN})
-
-  include(CTest)
-
-  get_property(USERVER_TESTSUITE_DIR GLOBAL PROPERTY userver_testsuite_dir)
-
-  if (NOT ARG_SERVICE_TARGET)
-    message(FATAL_ERROR "No SERVICE_TARGET given for testsuite")
-    return()
-  endif()
-
-  if (NOT ARG_WORKING_DIRECTORY)
-    set(ARG_WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
-  endif()
-
-  if (NOT DEFINED ARG_PRETTY_LOGS)
-    set(ARG_PRETTY_LOGS ON)
-  endif()
-
-  set(TESTSUITE_TARGET "testsuite-${ARG_SERVICE_TARGET}")
-
-  if (NOT USERVER_FEATURE_TESTSUITE)
-    message(STATUS "Testsuite target ${TESTSUITE_TARGET} is disabled")
-    return()
-  endif()
-
-  if(ARG_PYTHON_BINARY)
-    if(ARG_REQUIREMENTS)
-      message(FATAL_ERROR
-          "PYTHON_BINARY and REQUIREMENTS options are incompatible")
-    endif()
-    set(python_binary "${ARG_PYTHON_BINARY}")
-  else()
-    userver_testsuite_requirements(REQUIREMENT_FILES_VAR requirement_files)
-    list(APPEND requirement_files ${ARG_REQUIREMENTS})
-    userver_venv_setup(
-        NAME "${TESTSUITE_TARGET}"
-        REQUIREMENTS ${requirement_files}
-        PYTHON_OUTPUT_VAR python_binary
-    )
-  endif()
-
-  if(NOT python_binary)
-    message(FATAL_ERROR "No python binary given.")
-  endif()
-
-  set(TESTSUITE_RUNNER "${CMAKE_CURRENT_BINARY_DIR}/runtests-${TESTSUITE_TARGET}")
-  list(APPEND ARG_PYTHONPATH ${USERVER_TESTSUITE_DIR}/pytest_plugins)
-
-  execute_process(
-    COMMAND
-    "${python_binary}" ${USERVER_TESTSUITE_DIR}/create_runner.py
-    -o ${TESTSUITE_RUNNER}
-    --python=${python_binary}
-    "--python-path=${ARG_PYTHONPATH}"
-    --
-    --build-dir=${CMAKE_BINARY_DIR}
-    ${ARG_PYTEST_ARGS}
-    RESULT_VARIABLE STATUS
-  )
-  if (STATUS)
-    message(FATAL_ERROR "Failed to create testsuite runner")
-  endif()
-
-  set(PRETTY_LOGS_MODE "")
-  if (ARG_PRETTY_LOGS)
-      set(PRETTY_LOGS_MODE "--service-logs-pretty")
-  endif()
-
-  # Without WORKING_DIRECTORY the `add_test` prints better diagnostic info
-  add_test(
-      NAME "${TESTSUITE_TARGET}"
-      COMMAND
-      "${TESTSUITE_RUNNER}"
-      ${PRETTY_LOGS_MODE}
-      -vv
-      "${ARG_WORKING_DIRECTORY}"
-  )
-
-  add_custom_target(
-      "start-${ARG_SERVICE_TARGET}"
-      COMMAND
-      "${TESTSUITE_RUNNER}"
-      ${PRETTY_LOGS_MODE}
-      --service-runner-mode
-      -vvs
-      "${ARG_WORKING_DIRECTORY}"
-      DEPENDS
-      "${TESTSUITE_RUNNER}"
-      "${ARG_SERVICE_TARGET}"
-      USES_TERMINAL
-  )
-endfunction()
-
-# Tries to search service files in some standard places.
-# Should be invoked from the service's CMakeLists.txt
-# Supports the following file structure (and a few others):
-# - configs/config.yaml
-# - configs/config_vars.[testsuite|tests].yaml [optional]
-# - configs/dynamic_config_fallback.json [optional]
-# - configs/[secdist|secure_data].json [optional]
-# - [testsuite|tests]/conftest.py
-function(userver_testsuite_add_simple)
-  set(oneValueArgs
-      SERVICE_TARGET
-      WORKING_DIRECTORY
-      PYTHON_BINARY
-      PRETTY_LOGS
-      CONFIG_PATH
-      CONFIG_VARS_PATH
-      DYNAMIC_CONFIG_FALLBACK_PATH
-      SECDIST_PATH
-      TEST_ENV
-  )
-  set(multiValueArgs
-      PYTEST_ARGS
-      REQUIREMENTS
-      PYTHONPATH
-  )
-  cmake_parse_arguments(
-      ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
-
-  set(pytest_additional_args)
-
-  if(ARG_WORKING_DIRECTORY)
-    if(IS_ABSOLUTE "${ARG_WORKING_DIRECTORY}")
-      file(RELATIVE_PATH tests_relative_path
-          "${CMAKE_CURRENT_SOURCE_DIR}" "${ARG_WORKING_DIRECTORY}")
-    else()
-      set(tests_relative_path "${ARG_WORKING_DIRECTORY}")
-      get_filename_component(ARG_WORKING_DIRECTORY "${ARG_WORKING_DIRECTORY}"
-          REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-    endif()
-  else()
-    foreach(probable_tests_path IN ITEMS
-        "testsuite"
-        "tests"
-        "."
-    )
-      if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${probable_tests_path}/conftest.py")
-        set(ARG_WORKING_DIRECTORY
-            "${CMAKE_CURRENT_SOURCE_DIR}/${probable_tests_path}")
-        set(tests_relative_path "${probable_tests_path}")
-        break()
-      endif()
-    endforeach()
-  endif()
-
-  if(NOT ARG_SERVICE_TARGET)
-    if(tests_relative_path STREQUAL "." OR tests_relative_path STREQUAL "tests")
-      set(ARG_SERVICE_TARGET "${PROJECT_NAME}")
-    else()
-      set(ARG_SERVICE_TARGET "${PROJECT_NAME}-${tests_relative_path}")
-    endif()
-  endif()
-
-  if(ARG_CONFIG_PATH)
-    get_filename_component(config_path "${ARG_CONFIG_PATH}"
-        REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-  else()
-    foreach(probable_config_path IN ITEMS
-        "${CMAKE_CURRENT_SOURCE_DIR}/configs/static_config.yaml"
-        "${CMAKE_CURRENT_SOURCE_DIR}/configs/config.yaml"
-        "${CMAKE_CURRENT_SOURCE_DIR}/static_config.yaml"
-        "${CMAKE_CURRENT_SOURCE_DIR}/config.yaml"
-    )
-      if(EXISTS "${probable_config_path}")
-        set(config_path "${probable_config_path}")
-        break()
-      endif()
-    endforeach()
-
-    if(NOT config_path)
-      message(FATAL_ERROR
-          "Failed to find service static config for testsuite. "
-          "Please pass it to ${CMAKE_CURRENT_FUNCTION} as CONFIG_PATH arg.")
-    endif()
-  endif()
-
-  if(ARG_CONFIG_VARS_PATH)
-    get_filename_component(config_vars_path "${ARG_CONFIG_VARS_PATH}"
-        REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-  else()
-    foreach(probable_config_vars_path IN ITEMS
-        "${CMAKE_CURRENT_SOURCE_DIR}/configs/config_vars.testsuite.yaml"
-        "${CMAKE_CURRENT_SOURCE_DIR}/configs/config_vars.testing.yaml"
-        "${CMAKE_CURRENT_SOURCE_DIR}/configs/config_vars.yaml"
-        "${CMAKE_CURRENT_SOURCE_DIR}/config_vars.testsuite.yaml"
-        "${CMAKE_CURRENT_SOURCE_DIR}/config_vars.testing.yaml"
-        "${CMAKE_CURRENT_SOURCE_DIR}/config_vars.yaml"
-    )
-      if(EXISTS "${probable_config_vars_path}")
-        set(config_vars_path "${probable_config_vars_path}")
-        break()
-      endif()
-    endforeach()
-  endif()
-  if(config_vars_path)
-    list(APPEND pytest_additional_args
-        "--service-config-vars=${config_vars_path}")
-  endif()
-
-  if(ARG_DYNAMIC_CONFIG_FALLBACK_PATH)
-    get_filename_component(dynamic_config_fallback_path
-        "${ARG_DYNAMIC_CONFIG_FALLBACK_PATH}"
-        REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-  else()
-    foreach(probable_dynamic_config_fallback_path IN ITEMS
-        "${CMAKE_CURRENT_SOURCE_DIR}/configs/dynamic_config_fallback.json"
-        "${CMAKE_CURRENT_SOURCE_DIR}/dynamic_config_fallback.json"
-    )
-      if(EXISTS "${probable_dynamic_config_fallback_path}")
-        set(dynamic_config_fallback_path
-            "${probable_dynamic_config_fallback_path}")
-        break()
-      endif()
-    endforeach()
-  endif()
-  if(dynamic_config_fallback_path)
-    list(APPEND pytest_additional_args
-        "--config-fallback=${dynamic_config_fallback_path}")
-  endif()
-
-  if(ARG_SECDIST_PATH)
-    get_filename_component(secdist_path "${ARG_CONFIG_VARS_PATH}"
-        REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
-  else()
-    foreach(probable_secdist_path IN ITEMS
-        "${CMAKE_CURRENT_SOURCE_DIR}/configs/secdist.json"
-        "${CMAKE_CURRENT_SOURCE_DIR}/configs/secure_data.json"
-        "${CMAKE_CURRENT_SOURCE_DIR}/secdist.json"
-        "${CMAKE_CURRENT_SOURCE_DIR}/secure_data.json"
-    )
-      if(EXISTS "${probable_secdist_path}")
-        set(secdist_path "${probable_secdist_path}")
-        break()
-      endif()
-    endforeach()
-  endif()
-  if(secdist_path)
-    list(APPEND pytest_additional_args
-        "--service-secdist=${secdist_path}")
-  endif()
-
-  if(EXISTS "${CMAKE_CURRENT_BINARY_DIR}/proto")
-    list(APPEND ARG_PYTHONPATH "${CMAKE_CURRENT_BINARY_DIR}/proto")
-  endif()
-
-  userver_testsuite_add(
-      SERVICE_TARGET "${ARG_SERVICE_TARGET}"
-      WORKING_DIRECTORY "${ARG_WORKING_DIRECTORY}"
-      PYTHON_BINARY "${ARG_PYTHON_BINARY}"
-      PRETTY_LOGS "${ARG_PRETTY_LOGS}"
-      PYTEST_ARGS
-      "--service-config=${config_path}"
-      "--service-source-dir=${CMAKE_CURRENT_SOURCE_DIR}"
-      "--service-binary=${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}"
-      ${pytest_additional_args}
-      ${ARG_PYTEST_ARGS}
-      REQUIREMENTS ${ARG_REQUIREMENTS}
-      PYTHONPATH ${ARG_PYTHONPATH}
-  )
-
-  if(ARG_TEST_ENV)
-    set_tests_properties("testsuite-${ARG_SERVICE_TARGET}"
-        PROPERTIES ENVIRONMENT ${ARG_TEST_ENV}
-    )
-  endif()
-endfunction()

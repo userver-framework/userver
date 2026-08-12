@@ -1,19 +1,19 @@
 # yaml
 components_manager:
-    task_processors:                  # Task processor is an executor for coroutine tasks
-        main-task-processor:          # Make a task processor for CPU-bound couroutine tasks.
-            worker_threads: 4         # Process tasks in 4 threads.
+    task_processors:  # Task processor is an executor for coroutine tasks
+        main-task-processor:  # Make a task processor for CPU-bound coroutine tasks.
+            worker_threads: 4  # Process tasks in 4 threads.
 
-        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+        fs-task-processor:  # Make a separate task processor for filesystem bound tasks.
             worker_threads: 1
 
     default_task_processor: main-task-processor
 
-    components:                       # Configuring components that were registered via component_list
+    components:  # Configuring components that were registered via component_list
         server:
-            listener:                 # configuring the main listening socket...
-                port: 8080            # ...to listen on this port and...
-                task_processor: main-task-processor    # ...process incoming requests on this task processor.
+            listener:  # configuring the main listening socket...
+                port: 8080  # ...to listen on this port and...
+                task_processor: main-task-processor  # ...process incoming requests on this task processor.
         logging:
             fs-task-processor: fs-task-processor
             loggers:
@@ -21,8 +21,6 @@ components_manager:
                     file_path: '@stderr'
                     level: debug
                     overflow_behavior: discard  # Drop logs if the system is too busy to write them down.
-        secdist:
-            provider: default-secdist-provider
         default-secdist-provider:
             config: secure_data.json
 
@@ -41,6 +39,7 @@ components_manager:
             update-interval: 5s
 
         http-client:
+        http-client-core:
             fs-task-processor: fs-task-processor
             user-agent: $server-name
             user-agent#fallback: 'userver-based-service 1.0'
@@ -56,18 +55,21 @@ components_manager:
             testpoint-url: $mockserver/testpoint
             throttling_enabled: false
 
+        # /// [YDB service sample - static config ydb]
+        # yaml
         ydb:
             operation-settings:
-                cancel-after: 1000ms
                 client-timeout: 1100ms
-                operation-timeout: 1000ms
                 retries: 3
             databases:
                 sampledb:
                     database: sampledb
                     max_pool_size: 10
                     min_pool_size: 5
+        # /// [YDB service sample - static config ydb]
 
+        # /// [YDB service sample - static config handlers]
+        # yaml
         handler-bson-reading:
             method: POST
             path: /ydb/bson-reading
@@ -92,9 +94,19 @@ components_manager:
             method: POST
             path: /ydb/upsert-2rows
             task_processor: main-task-processor
+        # /// [YDB service sample - static config handlers]
 
+        # /// [YDB service sample - static config topic readers]
+        # yaml
         sample-topic-reader:
-            consumer-name: sample-consumer
+            consumer-name: sample-topic-consumer
             topics:
               - records/changefeed
             restart-session-delay: 200ms
+
+        sample-federated-topic-reader:
+            consumer-name: sample-federated-topic-consumer
+            topics:
+              - records/changefeed
+            restart-session-delay: 200ms
+            # /// [YDB service sample - static config topic readers]

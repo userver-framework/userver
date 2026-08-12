@@ -1,0 +1,15 @@
+project-name: userver-odbc
+project-alt-names:
+  - yandex-userver-odbc
+maintainers:
+  - Common components
+description: ODBC driver wrapper
+
+libraries:
+  - userver-core
+
+
+configs:
+    names:
+      - USERVER_ODBC_DEFAULT_COMMAND_CONTROL
+      - USERVER_ODBC_CONNECTION_POOL_SETTINGS

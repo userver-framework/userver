@@ -14,9 +14,6 @@ html {
   --secondary-color-1: #f5f5f5;
   --secondary-color-2: #f0f0f0;
 
-  /* Header */
-  --header-text-color: #f7f7f7;
-
   /* Table of contents */
   --toc-active-color: #352e48;
 }
@@ -39,12 +36,13 @@ html {
   font-family: 'fontello';
   src: url('fontello.eot?53870425');
   src: url('fontello.eot?53870425#iefix') format('embedded-opentype'),
-       url('fontello.woff2?53870425') format('woff2'),
-       url('fontello.woff?53870425') format('woff'),
-       url('fontello.ttf?53870425') format('truetype'),
-       url('fontello.svg?53870425#fontello') format('svg');
+    url('fontello.woff2?53870425') format('woff2'),
+    url('fontello.woff?53870425') format('woff'),
+    url('fontello.ttf?53870425') format('truetype'),
+    url('fontello.svg?53870425#fontello') format('svg');
   font-weight: normal;
   font-style: normal;
+  unicode-range: U+1F419;
 }
 
 /* Change color of iframe polygon scheme in dark-mode */
@@ -61,6 +59,15 @@ html.dark-mode {
   --secondary-color-2: #94919c;
 
   --toc-active-color: #ffffff;
+
+  /* font-families. will affect all text on the website
+     * font-family: the normal font for text, headlines, menus
+     * font-family-monospace: used for preformatted text in memtitle, code, fragments
+     */
+  --font-family: "fontello", Roboto, Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans,
+    Helvetica Neue, sans-serif;
+  --font-family-monospace: "fontello", "Roboto Mono", ui-monospace, SFMono-Regular, SF Mono,
+    Menlo, Consolas, Liberation Mono, monospace;
 }
 
 /* Doxygen Awesome override */
@@ -90,6 +97,12 @@ html {
     Helvetica Neue, sans-serif;
   --font-family-monospace: "fontello", "Roboto Mono", ui-monospace, SFMono-Regular, SF Mono,
     Menlo, Consolas, Liberation Mono, monospace;
+
+  /* The content is centered and constraint in it's width. To make the content fill the whole page, set the variable to auto.*/
+  --content-maxwidth: 1140px;
+
+  /* Fixed default width for the page outline panel (matches navtree.js cookie default + min-width). */
+  --page-nav-width: 300px;
 
   /* table colors */
   --tablehead-background: var(--primary-color-1);
@@ -125,7 +138,7 @@ html {
   }
 }
 
-/* dark mode variables are defined twice, to support both the dark-mode without and with doxygen-awesome-darkmode-toggle.js */
+/* dark mode variables are defined twice, to support both system preference and explicit toggle */
 html.dark-mode {
   color-scheme: dark;
 
@@ -145,9 +158,59 @@ html.dark-mode {
   --side-nav-background: var(--black-color-1);
 }
 
+/* Treeview is hidden; navigation uses the top menu and PAGE_OUTLINE_PANEL */
+#side-nav {
+  display: none;
+}
+
 #doc-content {
   /* Disable standard Doxygen content margin */
   margin-left: 0 !important;
+}
+
+/*
+ * Anchor for absolutely positioned #page-nav. Grid columns are fixed here so
+ * navtree.js inline gridTemplateColumns (default 250px) cannot shrink the
+ * content column after DOMContentLoaded.
+ *
+ * --content-stable-* keep div.header and div.contents horizontally aligned from
+ * the first paint, independent of grid initialization.
+ */
+#container {
+  position: relative;
+  --content-stable-width: min(var(--content-maxwidth), 100vw);
+  --content-stable-margin-left: max(
+    0px,
+    calc((100vw - var(--content-stable-width)) / 2)
+  );
+}
+
+@media screen and (min-width: 768px) {
+  #container:has(.doxsection, h2.groupheader):not(.page-nav-hidden) {
+    --content-stable-width: min(
+      var(--content-maxwidth),
+      calc(100vw - var(--page-nav-width))
+    ) - var(--spacing-xlarge);
+    --content-stable-margin-left: max(
+      0px,
+      calc(
+        (100vw - var(--page-nav-width) - var(--content-stable-width)) / 2
+      )
+    );
+    grid-template-columns: minmax(0, 1fr) var(--page-nav-width) !important;
+  }
+
+  #container:not(:has(.doxsection, h2.groupheader)),
+  #container.page-nav-hidden {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+}
+
+#MSearchCloseImg.close-icon {
+  margin: 2px;
+  width: 19px;
+  height: 19px;
+  box-sizing: content-box;
 }
 
 /* Highlight.js overrides */
@@ -190,10 +253,6 @@ html.dark-mode {
   color: #eb6bbb;
 }
 
-.hljs-literal {
-  color: #eb6bbb;
-}
-
 .hljs-addition,
 .hljs-built_in {
   color: #8D41DA;
@@ -215,7 +274,8 @@ html.dark-mode {
 }
 
 .hljs-code,
-.hljs-regexpб .hljs-selector-id,
+.hljs-regexp,
+.hljs-selector-id,
 .hljs-template-variable {
   color: #FF5C5C;
 }
@@ -227,20 +287,16 @@ span.paramname em {
   color: var(--primary-dark-color);
 }
 
-/* Too wide page makes people uncomfortable, keep content in center */
-div.contents {
-  max-width: 1440px;
-}
 
 /* Scale down image to the page width */
-.image img {
+.image img, p > img {
   max-width: calc(100% - 7px - 7px - 1px - 1px);
   background-color: var(--primary-color-1);
-  /* matches .fragment */
   border: 1px solid var(--separator-color);
   /* matches .fragment */
   padding: 7px;
   /* matches .fragment */
+  border-radius: var(--border-radius-large);
 }
 
 hr {
@@ -253,7 +309,8 @@ hr {
   justify-content: space-between;
   background-color: var(--black-color-1);
   color: white !important;
-  padding: 20px;
+  padding: 15px 20px;
+  border-right: 0;
 }
 
 #titlearea {
@@ -271,7 +328,7 @@ hr {
 }
 
 #projectlogo img {
-  width: 70px;
+  width: 55px;
   max-height: none;
 }
 
@@ -279,18 +336,20 @@ hr {
   padding-left: 0.5em;
 }
 
-#projectalign div {
-  line-height: 26px;
-}
-
-#projectname a {
-  font-size: 42px;
-  color: white !important;
-}
-
+#projectname a,
 #projectbrief a {
-  font-size: 17px;
   color: white !important;
+}
+
+#projectname {
+  line-height: 26px;
+  font-size: 38px;
+}
+
+#projectbrief {
+  margin-top: 2px;
+  font-size: 16px;
+  line-height: 18px;
 }
 
 #links a:hover {
@@ -314,9 +373,10 @@ html.dark-mode .gh-logo {
   align-items: center;
 }
 
-#navbar-main-menu>li>a {
+#main-menu.navbar-main-menu>li>a {
   color: rgb(255, 255, 255) !important;
   font-size: 18px;
+  margin: 6px;
 }
 
 .sm.sm-dox a {
@@ -375,16 +435,37 @@ html.dark-mode .sm.sm-dox li:last-child ul li a {
   margin: 0px;
   margin-left: 5px;
   border-radius: 14px;
-  /* TODO: verify */
+  box-sizing: content-box;
   background: white !important;
+  position: relative;
+  overflow: visible !important;
 }
 
 #MSearchBox span.left {
   width: 100%;
 }
 
-#projectbrief {
-  font-size: 120%;
+.MSearchBoxInactive::before,
+.MSearchBoxInactive::after {
+  display: block;
+  position: absolute;
+  top: 7px;
+  background-color: #373148;
+  font-family: var(--font-family-monospace);
+  font-size: 13px;
+  line-height: 1;
+  border-radius: 4px;
+  padding: 3px 5px;
+}
+
+.MSearchBoxInactive::before {
+  content: "Ctrl";
+  right: 36px;
+}
+
+.MSearchBoxInactive::after {
+  content: "K";
+  right: 15px;
 }
 
 #projectlogo img {
@@ -397,10 +478,41 @@ h2.groupheader {
 
 div.header {
   border: 0;
+  padding: 0 var(--spacing-xlarge);
 }
 
 div.header .summary {
   display: none;
+}
+
+div.header .title {
+  margin-top: 0;
+  margin-bottom: 0;
+  margin-left: 0;
+  margin-right: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+div.headertitle {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  width: 100%;
+  max-width: none;
+  margin-top: calc(var(--spacing-medium) + .2em);
+  margin-bottom: var(--spacing-medium);
+  margin-left: 0;
+  margin-right: 0;
+  box-sizing: border-box;
+}
+
+div.headertitle .title {
+  flex: 1;
+  min-width: 0;
+  max-width: none;
+  padding: 0;
 }
 
 .sm-dox ul a:hover,
@@ -434,8 +546,7 @@ html.dark-mode .sm-dox a span.sub-arrow {
 }
 
 .sm-dox a:hover,
-.sm-dox a:active,
-.tablist li a:hover {
+.sm-dox a:active {
   background: transparent;
   color: var(--primary-color) !important;
 }
@@ -452,7 +563,7 @@ a.titlelink:hover {
 
 /* Burger menu */
 .main-menu-btn {
-  margin-left: 7px;
+  margin-left: 5px;
 }
 
 .main-menu-btn-icon,
@@ -489,7 +600,8 @@ a.titlelink:hover {
   border-radius: var(--border-radius-large);
 }
 
-#MSearchSelect {
+#MSearchSelect,
+.search-icon-dropdown {
   display: none;
 }
 
@@ -506,6 +618,7 @@ a.titlelink:hover {
 
 #MSearchCloseImg {
   width: 16px;
+  box-sizing: content-box;
 }
 
 .all-results-link {
@@ -535,13 +648,16 @@ a.titlelink:hover {
 }
 
 #MSearchResultsWindow {
+  position: absolute !important;
+  top: calc(100% + 8px) !important;
+  left: 0 !important;
+  right: auto !important;
+  transform: none !important;
   height: auto !important;
   max-height: 80vh !important;
-  width: 400px !important;
-}
-
-#MSearchResultsWindow {
-  transform: translate(-90px, 20px) !important;
+  width: 100% !important;
+  box-sizing: border-box;
+  z-index: 10001;
 }
 
 .MSearchBoxActive #MSearchField {
@@ -552,8 +668,40 @@ a.titlelink:hover {
   background-color: none;
 }
 
-doxygen-awesome-dark-mode-toggle {
+dark-mode-toggle {
+  display: inline-flex;
+  margin: 0 0 0 var(--spacing-small);
+  padding: 0;
+  width: var(--searchbar-height);
+  height: var(--searchbar-height);
+  background: none;
+  border: none;
+  border-radius: var(--searchbar-border-radius);
+  vertical-align: middle;
+  align-items: center;
+  justify-content: center;
+  user-select: none;
+  cursor: pointer;
   order: 1;
+}
+
+dark-mode-toggle > svg {
+  transition: transform var(--animation-duration) ease-in-out;
+  height: 1.5em;
+  width: 1.5em;
+}
+
+dark-mode-toggle:hover {
+  background-color: rgba(0, 0, 0, .03);
+}
+
+html.dark-mode dark-mode-toggle:hover {
+  background-color: rgba(0, 0, 0, .18);
+}
+
+#toggle-dark-mode {
+  list-style: none;
+  background: none;
 }
 
 #MSearchBox {
@@ -575,26 +723,27 @@ doxygen-awesome-dark-mode-toggle {
     max-height: none;
   }
 
-  #projectalign div {
-    line-height: 12px;
-  }
-
   td#projectalign {
     padding: 5px;
   }
 
-  #projectname a {
-    font-size: 15px;
-    color: white !important;
+  #projectname {
+    font-size: 18px;
+    line-height: 12px;
   }
 
-  #projectbrief a {
-    font-size: 9px;
-    color: white !important;
+  #projectbrief {
+    line-height: 12px;
+    font-size: 10px;
   }
 
   #MSearchBox {
     width: 390px;
+  }
+
+  .MSearchBoxInactive::before,
+  .MSearchBoxInactive::after {
+    display: none;
   }
 
   #MSearchField {
@@ -602,13 +751,24 @@ doxygen-awesome-dark-mode-toggle {
   }
 
   #MSearchResultsWindow {
-    height: auto !important;
-    max-height: 80vh !important;
-    width: 390px !important;
-    transform: translate(-54px, 20px) !important;
+    width: 100% !important;
+    transform: none !important;
   }
 
-  #navbar-main-menu {
+  #links {
+    margin-left: 5px;
+  }
+
+  #telegram_channel {
+    display: none;
+  }
+
+  #github_header {
+    padding: 0;
+    order: 3;
+  }
+
+  #main-menu.navbar-main-menu {
     display: none;
     position: absolute;
     top: 65px;
@@ -620,26 +780,26 @@ doxygen-awesome-dark-mode-toggle {
     border: 1px solid #d3d1d1;
   }
 
-  html.dark-mode #navbar-main-menu {
+  html.dark-mode #main-menu.navbar-main-menu {
     background-color: #2e273f;
     border: 1px solid #796da0;
   }
 
-  #navbar-main-menu>li>a {
+  #main-menu.navbar-main-menu>li>a {
     color: black !important;
     font-size: 18px;
   }
 
-  html.dark-mode #navbar-main-menu>li>a {
+  html.dark-mode #main-menu.navbar-main-menu>li>a {
     color: white !important;
   }
 
-  #navbar-main-menu li:hover {
+  #main-menu.navbar-main-menu li:hover {
     cursor: pointer;
     background-color: var(--primary-color-2) !important;
   }
 
-  html.dark-mode #navbar-main-menu li:hover {
+  html.dark-mode #main-menu.navbar-main-menu li:hover {
     background-color: #7a6da0 !important;
   }
 
@@ -662,8 +822,7 @@ doxygen-awesome-dark-mode-toggle {
   }
 
   .sm.sm-dox>li {
-    padding: 5px 70px;
-    /* TODO: adaptive width */
+    padding: 5px;
   }
 
   .sm.sm-dox>li:first-child {
@@ -675,13 +834,9 @@ doxygen-awesome-dark-mode-toggle {
   }
 
   .main-menu-btn {
-    order: 3;
+    order: 4;
     position: relative;
     top: 0px;
-  }
-
-  #links {
-    display: none;
   }
 }
 
@@ -726,8 +881,7 @@ doxygen-awesome-dark-mode-toggle {
   }
 
   .sm.sm-dox>li {
-    padding: 5px 70px;
-    /* TODO: adaptive width */
+    padding: 5px;
   }
 
   .sm.sm-dox>li:first-child {
@@ -740,10 +894,6 @@ doxygen-awesome-dark-mode-toggle {
 
   td#projectalign {
     padding: 5px;
-  }
-
-  #projectalign div {
-    line-height: 10px;
   }
 
   #projectalign {
@@ -764,19 +914,24 @@ doxygen-awesome-dark-mode-toggle {
     width: 100%;
   }
 
+  .MSearchBoxInactive::before,
+  .MSearchBoxInactive::after {
+    display: none;
+  }
+
   #MSearchField {
     width: 100%;
   }
 
   #MSearchResultsWindow {
-    height: auto !important;
-    max-height: 80vh !important;
-    width: 95% !important;
-    transform: translate(0px, 20px) !important;
-    z-index: 1000;
+    left: 0 !important;
+    right: auto !important;
+    width: 100% !important;
+    transform: none !important;
+    z-index: 10001;
   }
 
-  #navbar-main-menu {
+  #main-menu.navbar-main-menu {
     display: none;
     position: absolute;
     flex-direction: column;
@@ -786,32 +941,18 @@ doxygen-awesome-dark-mode-toggle {
     border: 1px solid #d3d1d1;
   }
 
-  #navbar-main-menu li:hover {
+  #main-menu.navbar-main-menu li:hover {
     cursor: pointer;
     background-color: var(--primary-color-2) !important;
   }
 
   .main-menu-btn {
-    position: relative;
-    top: 0px;
-  }
-
-  #links {
-    display: none;
+    width: 45px;
   }
 
   #MSearchCloseImg {
-    width: 34px;
-    transform: translate(-2px, -6px);
+    width: 16px;
   }
-}
-
-html:not(.black-mode) .landing-intro-center {
-  color: #304053;
-}
-
-html:not(.light-mode) .landing-intro-center {
-  color: #dedede;
 }
 
 /* Next/prev page buttons */
@@ -882,12 +1023,6 @@ html.dark-mode .btn-title {
   color: #716690;
 }
 
-/* Bigger font for menu */
-
-#main-nav>ul>li>a:hover {
-  color: var(--primary-color) !important;
-}
-
 .sm-dox a span.sub-arrow {
   border-color: #d2dbde transparent transparent transparent;
 }
@@ -896,84 +1031,285 @@ html.dark-mode .btn-title {
   border-color: transparent transparent transparent var(--primary-color);
 }
 
-/* Table of contents */
-div.toc li.level1 {
-  margin-left: 0px;
+/*
+ * Horizontal layout stability for div.header, div.contents and #page-nav.
+ *
+ * navtree.js sets page-nav to 250px and rewrites #container grid after load;
+ * --content-stable-* on #container keeps centering stable from the first paint.
+ */
+@media screen and (min-width: 768px) {
+  div.header {
+    width: var(--content-stable-width);
+    max-width: var(--content-maxwidth);
+    margin-left: var(--content-stable-margin-left);
+    margin-right: auto;
+    box-sizing: border-box;
+  }
 }
 
-div.toc li.level2 {
-  margin-left: 15px;
-}
-
-div.toc li.level3 {
-  margin-left: 30px;
-}
-
-div.toc li.level4 {
-  margin-left: 45px;
-}
-
-div.toc li.level5 {
-  margin-left: 60px;
-}
-
-div.toc li.level6 {
-  margin-left: 75px;
-}
-
-div.contents .toc {
-  border: 1px solid var(--separator-color);
-  border-radius: var(--border-radius-large);
+div.contents {
+  width: 100%;
+  min-width: 0;
   box-sizing: border-box;
-  min-width: 300px;
-  padding: 16px 16px;
 }
 
-div.toc li.level1:first-child {
-  margin-top: 16px;
+@media screen and (min-width: 768px) {
+  div.contents:has(.doxsection, h2.groupheader) {
+    width: var(--content-stable-width);
+    max-width: var(--content-maxwidth);
+    margin-left: var(--content-stable-margin-left);
+    margin-right: auto;
+  }
+
+  div.contents .textblock {
+    min-width: 0;
+  }
 }
 
-div.toc li.level1,
-div.toc li.level2,
-div.toc li.level3,
-div.toc li.level4 {
-  margin-top: 12px;
+/* Page outline (Doxygen 1.17 PAGE_OUTLINE_PANEL) */
+
+@media screen and (min-width: 768px) {
+  #page-nav {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: var(--page-nav-width) !important;
+    min-width: var(--page-nav-width) !important;
+    max-width: var(--page-nav-width) !important;
+    flex-shrink: 0;
+    overflow-x: hidden;
+  }
 }
 
-.toc ul li {
+#page-nav {
+  background: var(--page-background-color);
+  border-left: 1px solid var(--separator-color);
+  box-sizing: border-box;
+}
+
+#page-nav-resize-handle {
+  display: none;
+}
+
+#container:not(:has(.doxsection, h2.groupheader)) #page-nav,
+#container.page-nav-hidden #page-nav {
+  display: none;
+}
+
+#container:has(.doxsection, h2.groupheader):not(.page-nav-hidden) #page-nav:not(:has(ul.page-outline li)) {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+#page-nav #page-nav-contents {
+  padding: 16px;
+  top: 77px;
+}
+
+#page-nav-contents:has(ul.page-outline li)::before {
+  content: "Table of Contents";
+  display: block;
+  font-family: var(--font-family);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--page-foreground-color);
+  margin-bottom: 16px;
+}
+
+#page-nav ul.page-outline {
+  margin: 0;
+  padding: 0;
+}
+
+#page-nav ul.page-outline div.item {
+  font-family: var(--font-family);
   line-height: 18px;
 }
 
-div.toc li {
-  font-family: "Roboto", sans-serif;
+#page-nav ul.page-outline li {
+  white-space: normal;
 }
 
-div.toc li a {
+#page-nav ul.page-outline li a {
+  font-family: var(--font-family);
   font-size: 14px;
   color: var(--primary-color) !important;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: normal;
 }
 
-div.toc li a.active {
+#page-nav ul.page-outline li.vis:not(.vis ~ .vis) a {
   color: var(--toc-active-color) !important;
   font-weight: bold;
 }
 
 @media (max-width: 999px) {
-  div.contents .toc {
-    padding: 0px;
-    padding-left: 10px;
+  #page-nav #page-nav-contents {
+    padding: 0 10px;
   }
 
-  div.toc h3 {
-    padding-top: 14px !important;
+  #page-nav-contents:has(ul.page-outline li)::before {
+    padding-top: 14px;
+  }
+}
+
+/* Disable dark backround on the left side of outline, added by doxygen-awesome.css */
+#page-nav ul.page-outline li.vis ~ * a {
+    color: var(--primary-color) !important;
+}
+#page-nav ul.page-outline .vis::after {
+    background: transparent;
+}
+
+/* Page feedback */
+
+page-feedback {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-self: center;
+  padding-right: var(--spacing-xlarge);
+}
+
+page-feedback>input {
+  -webkit-appearance: none;
+  appearance: none;
+  box-shadow: none;
+  margin: 0;
+  border: 0;
+  background-color: transparent;
+  cursor: pointer;
+  padding: 0;
+  background-color: var(--page-foreground-color);
+  width: 20px;
+  height: 20px;
+  mask-size: contain;
+  -webkit-mask-size: contain;
+  mask-repeat: no-repeat;
+  -webkit-mask-repeat: no-repeat;
+  mask-position: center;
+  -webkit-mask-position: center;
+  transition: filter 0.3s;
+}
+
+page-feedback>input:not(:first-child) {
+  margin-left: 8px;
+}
+
+page-feedback>input.like-checkbox {
+  mask-image: url("like.svg");
+  -webkit-mask-image: url("like.svg");
+}
+
+page-feedback>input.like-checkbox:checked {
+  background-color: var(--primary-color);
+}
+
+page-feedback>input.dislike-checkbox {
+  mask-image: url("dislike.svg");
+  -webkit-mask-image: url("dislike.svg");
+}
+
+page-feedback>input.dislike-checkbox:checked {
+  background-color: var(--primary-color);
+}
+
+page-feedback-popup {
+  opacity: 0;
+  background-color: var(--page-background-color);
+  border-radius: var(--border-radius-large);
+  border: 1px solid var(--separator-color);
+  width: 150px;
+  display: block;
+  top: 22px;
+  position: absolute;
+  padding: 10px;
+  box-shadow: 0 6px 10px 0 rgba(0, 0, 0, 0.1);
+  z-index: -1;
+}
+
+page-feedback-popup>h6,
+page-feedback-popup>p {
+  margin: 0;
+}
+
+page-feedback-popup>h6 {
+  font-size: 16px;
+}
+
+page-feedback-popup>p,
+page-feedback-popup>a {
+  margin-top: 8px;
+}
+
+page-feedback-popup>p {
+  font-size: 14px;
+  line-height: 18px !important;
+}
+
+page-feedback-popup>a {
+  display: block;
+  font-size: 16px;
+  background-image: none !important;
+}
+
+page-feedback-popup>a:hover {
+  filter: brightness(1.2);
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.light-mode) page-feedback-popup {
+    box-shadow: 0 6px 10px 0 rgba(128, 128, 128, 0.1);
+  }
+}
+
+html.dark-mode page-feedback-popup {
+  box-shadow: 0 6px 10px 0 rgba(128, 128, 128, 0.1);
+}
+
+@media (hover: hover) and (prefers-color-scheme: dark) {
+  page-feedback>input:hover {
+    filter: brightness(0.7);
+  }
+}
+
+@media (hover: hover) {
+  page-feedback>input:hover {
+    filter: brightness(2.5);
+  }
+
+  page-feedback>input:checked:hover {
+    filter: brightness(1.3);
+  }
+
+  html.dark-mode page-feedback>input:hover {
+    filter: brightness(0.7);
+  }
+}
+
+@media screen and (max-width: 1439px) {
+  page-feedback-popup {
+    left: unset !important;
+    right: 0px;
+  }
+}
+
+@media screen and (max-width: 999px) {
+  page-feedback {
+    padding-right: var(--spacing-large);
+  }
+
+  /* in the mobile version, the popup is always on the right side */
+  page-feedback-popup {
+    left: unset !important;
+    right: 0px;
   }
 }
 
 @media (max-width: 768px) {
-  div.contents .toc {
-    padding-top: 0;
-  }
-
   .bottom-nav .button {
     font-size: 14px;
   }
@@ -991,22 +1327,14 @@ pre {
   font-family: var(--font-family-monospace);
 }
 
-.memItemLeft,
-.memTemplItemLeft {
+.memItemLeft {
   white-space: normal;
   font-size: 14px;
 }
 
 /* style block code */
-.textblock li>.fragment,
-.textblock li>.doxygen-awesome-fragment-wrapper>.fragment {
+.textblock li>.fragment {
   margin: var(--spacing-medium) calc(15px - var(--spacing-large));
-}
-
-@media screen and (max-width: 767px) {
-  doxygen-awesome-fragment-copy-button {
-    right: (var(--spacing-small));
-  }
 }
 
 @media screen and (max-width: 767px) {
@@ -1020,17 +1348,8 @@ pre {
     border-radius: var(--border-radius-large);
     margin: var(--spacing-medium) calc(15px - var(--spacing-large));
   }
-}
 
-
-/* position copy btn */
-@media screen and (max-width: 767px) {
-
-  .textblock>.doxygen-awesome-fragment-wrapper>doxygen-awesome-fragment-copy-button,
-  .textblock li>.doxygen-awesome-fragment-wrapper>doxygen-awesome-fragment-copy-button,
-  .memdoc li>.doxygen-awesome-fragment-wrapper>doxygen-awesome-fragment-copy-button,
-  .memdoc>.doxygen-awesome-fragment-wrapper>doxygen-awesome-fragment-copy-button,
-  dl dd>.doxygen-awesome-fragment-wrapper>doxygen-awesome-fragment-copy-button {
+  .fragment .clipboard {
     right: 7px;
   }
 }
@@ -1038,3 +1357,4 @@ pre {
 #nav-sync {
   display: none;
 }
+

@@ -1,0 +1,116 @@
+#include <userver/ugrpc/tests/service.hpp>
+
+#include <fmt/format.h>
+
+#include <userver/engine/task/task.hpp>
+#include <userver/ugrpc/client/middlewares/deadline_propagation/middleware.hpp>
+#include <userver/ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
+#include <userver/utils/statistics/metrics_storage.hpp>
+
+USERVER_NAMESPACE_BEGIN
+
+namespace ugrpc::tests {
+
+ServiceBase::ServiceBase()
+    : ServiceBase(server::ServerConfig{})
+{}
+
+ServiceBase::ServiceBase(server::ServerConfig&& server_config)
+    : metrics_storage_(),
+      metrics_storage_registration_(metrics_storage_.RegisterIn(statistics_storage_)),
+      config_storage_(dynamic_config::MakeDefaultStorage({})),
+      unix_socket_path_(server_config.unix_socket_path),
+      server_(std::in_place, std::move(server_config), statistics_storage_, config_storage_.GetSource()),
+      testsuite_({}, false),
+      client_statistics_storage_(std::in_place, statistics_storage_, ugrpc::impl::StatisticsDomain::kClient)
+{}
+
+ServiceBase::~ServiceBase() = default;
+
+void ServiceBase::RegisterService(server::ServiceBase& service) { server_->AddService(service, MakeServiceConfig()); }
+
+void ServiceBase::RegisterService(server::GenericServiceBase& service) {
+    server_->AddService(service, MakeServiceConfig());
+}
+
+server::ServiceConfig ServiceBase::MakeServiceConfig() {
+    middlewares_change_allowed_ = false;
+    return server::ServiceConfig{engine::current_task::GetTaskProcessor(), server_middlewares_, {}};
+}
+
+void ServiceBase::StartServer(client::ClientFactorySettings&& client_factory_settings) {
+    middlewares_change_allowed_ = false;
+    server_->Start();
+    if (unix_socket_path_) {
+        endpoint_ = fmt::format("unix:{}", *unix_socket_path_);
+    } else {
+        endpoint_ = fmt::format("localhost:{}", server_->GetPort());
+    }
+    client_factory_.emplace(
+        std::move(client_factory_settings),
+        engine::current_task::GetTaskProcessor(),
+        simple_client_middleware_pipeline_,
+        server_->GetCompletionQueues(utils::impl::InternalTag{}),
+        *client_statistics_storage_,
+        metrics_storage_,
+        testsuite_,
+        config_storage_.GetSource()
+    );
+}
+
+void ServiceBase::StopServer() noexcept {
+    client_factory_.reset();
+    endpoint_.reset();
+    server_->Stop();
+}
+
+void ServiceBase::ExtendDynamicConfig(const std::vector<dynamic_config::KeyValue>& overrides) {
+    config_storage_.Extend(overrides);
+}
+
+utils::statistics::Storage& ServiceBase::GetStatisticsStorage() { return statistics_storage_; }
+
+server::Server& ServiceBase::GetServer() noexcept { return *server_; }
+
+dynamic_config::Source ServiceBase::GetConfigSource() const { return config_storage_.GetSource(); }
+
+void ServiceBase::SetServerMiddlewares(server::Middlewares middlewares) {
+    UINVARIANT(
+        middlewares_change_allowed_,
+        "Set server middlewares after RegisterService call "
+        "is not allowed"
+    );
+    server_middlewares_ = std::move(middlewares);
+}
+
+void ServiceBase::SetClientMiddlewares(client::Middlewares middlewares) {
+    UINVARIANT(
+        middlewares_change_allowed_,
+        "Set client middleware factories after StartServer call "
+        "is not allowed"
+    );
+    simple_client_middleware_pipeline_.SetMiddlewares(std::move(middlewares));
+}
+
+client::ClientFactory& ServiceBase::GetClientFactory() {
+    UINVARIANT(client_factory_, "Server is not either not yet started, or already stopped");
+    return *client_factory_;
+}
+
+std::string ServiceBase::GetEndpoint() const {
+    UINVARIANT(endpoint_, "Server is not either not yet started, or already stopped");
+    return *endpoint_;
+}
+
+server::Middlewares GetDefaultServerMiddlewares() {
+    return {std::make_shared<
+        server::middlewares::deadline_propagation::Middleware>(server::middlewares::deadline_propagation::Settings{})};
+}
+
+client::Middlewares GetDefaultClientMiddlewares() {
+    return {std::make_shared<client::middlewares::deadline_propagation::Middleware>()};
+}
+
+}  // namespace ugrpc::tests
+
+USERVER_NAMESPACE_END

@@ -21,41 +21,52 @@ namespace engine {
 /// initialization.
 template <typename T>
 class TaskLocalVariable final {
-  static_assert(!std::is_reference_v<T>);
-  static_assert(!std::is_const_v<T>);
+    static_assert(!std::is_reference_v<T>);
+    static_assert(!std::is_const_v<T>);
 
- public:
-  /// @brief Get the instance of the variable for the current coroutine.
-  /// Initializes (default constructs) the variable if it was not previously
-  /// initialized.
-  /// @note Must be called from a coroutine, otherwise it is UB.
-  T& operator*();
+public:
+    /// @brief Get the instance of the variable for the current coroutine.
+    /// Initializes (default constructs) the variable if it was not previously
+    /// initialized.
+    /// @note Must be called from a coroutine, otherwise it is UB.
+    T& operator*();
 
-  /// @overload
-  T* operator->();
+    /// @overload
+    T* operator->();
 
-  /// @brief Get the variable instance for the current task.
-  /// @returns the variable or `nullptr` if variable was not initialized.
-  T* GetOptional() noexcept {
-    return impl::task_local::GetCurrentStorage().GetOptional<T, kVariableKind>(
-        impl_.GetKey());
-  }
+    /// @brief Get the variable instance for the current task, or emplace a new
+    /// one with the given arguments.
+    /// @note Must be called from a coroutine, otherwise it is UB.
+    template <typename... Args>
+    T& GetOrEmplace(Args&&... args) {
+        return impl::task_local::GetCurrentStorage()
+            .GetOrEmplace<T, kVariableKind>(impl_.GetKey(), std::forward<Args>(args)...);
+    }
 
- private:
-  static constexpr auto kVariableKind = impl::task_local::VariableKind::kNormal;
+    /// @brief Get the variable instance for the current task.
+    /// @returns the variable or `nullptr` if the variable was not initialized,
+    /// was already destroyed, or is being destroyed right now. That is,
+    /// a non-null result is guaranteed to point to a variable whose
+    /// destruction has not started (the variable is unset before its
+    /// destructor is invoked, as in POSIX `pthread_getspecific`).
+    T* GetOptional() noexcept {
+        return impl::task_local::GetCurrentStorage().GetOptional<T, kVariableKind>(impl_.GetKey());
+    }
 
-  impl::task_local::Variable impl_;
+private:
+    static constexpr auto kVariableKind = impl::task_local::VariableKind::kNormal;
+
+    impl::task_local::Variable impl_;
 };
 
 template <typename T>
 T& TaskLocalVariable<T>::operator*() {
-  return impl::task_local::GetCurrentStorage().GetOrEmplace<T, kVariableKind>(
-      impl_.GetKey());
+    return impl::task_local::GetCurrentStorage().GetOrEmplace<T, kVariableKind>(impl_.GetKey());
 }
 
 template <typename T>
 T* TaskLocalVariable<T>::operator->() {
-  return &(**this);
+    return &(**this);
 }
 
 }  // namespace engine

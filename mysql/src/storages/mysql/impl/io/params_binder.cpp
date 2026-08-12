@@ -6,12 +6,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mysql::impl::io {
 
-ParamsBinder::ParamsBinder(std::size_t size) : ParamsBinderBase{size} {}
+ParamsBinder::ParamsBinder(std::size_t size)
+    : ParamsBinderBase{size}
+{}
 
 ParamsBinder::~ParamsBinder() = default;
 
-ParamsBinder::ParamsBinder(ParamsBinder&& other) noexcept
-    : ParamsBinderBase(std::move(other)) {}
+ParamsBinder::ParamsBinder(ParamsBinder&& other) noexcept : ParamsBinderBase(std::move(other)) {}
 
 std::size_t ParamsBinder::GetRowsCount() const { return 1; }
 

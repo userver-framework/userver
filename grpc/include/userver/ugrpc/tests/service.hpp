@@ -1,0 +1,160 @@
+#pragma once
+
+/// @file userver/ugrpc/tests/service.hpp
+/// @brief Base classes for testing and benchmarking ugrpc service
+/// implementations in a simplified gRPC environment.
+
+#include <optional>
+#include <utility>
+#include <vector>
+
+#include <userver/dynamic_config/snapshot.hpp>
+#include <userver/dynamic_config/storage_mock.hpp>
+#include <userver/dynamic_config/test_helpers.hpp>
+#include <userver/testsuite/grpc_control.hpp>
+#include <userver/utils/resource_scopes.hpp>
+#include <userver/utils/statistics/metrics_storage.hpp>
+#include <userver/utils/statistics/storage.hpp>
+
+#include <userver/ugrpc/client/client_factory.hpp>
+#include <userver/ugrpc/impl/statistics_storage.hpp>
+#include <userver/ugrpc/server/server.hpp>
+#include <userver/ugrpc/server/service_base.hpp>
+#include <userver/ugrpc/tests/simple_client_middleware_pipeline.hpp>
+
+USERVER_NAMESPACE_BEGIN
+
+namespace ugrpc::server {
+class GenericServiceBase;
+}  // namespace ugrpc::server
+
+/// userver gRPC testing facilities
+namespace ugrpc::tests {
+
+/// Sets up a mini gRPC server using the provided service implementations.
+class ServiceBase {
+public:
+    ServiceBase();
+
+    explicit ServiceBase(server::ServerConfig&& server_config);
+
+    ServiceBase(ServiceBase&&) = delete;
+    ServiceBase& operator=(ServiceBase&&) = delete;
+    virtual ~ServiceBase();
+
+    /// Register a gRPC service implementation. The caller owns the service and
+    /// should ensure that the services live at least until StopServer is called.
+    void RegisterService(server::ServiceBase& service);
+
+    /// @overload
+    void RegisterService(server::GenericServiceBase& service);
+
+    /// Starts the server and connects a grpc channel to it.
+    /// Should be called after the services are registered.
+    void StartServer(client::ClientFactorySettings&& settings = {});
+
+    /// Should be called before the registered services are destroyed.
+    /// Should typically be called in the destructor of your gtest fixture.
+    void StopServer() noexcept;
+
+    /// @returns a client for the specified gRPC service, connected to the server.
+    template <typename Client>
+    Client MakeClient() {
+        return GetClientFactory().MakeClient<Client>("test", *endpoint_);
+    }
+
+    /// @returns the stored @ref server::Server for advanced tweaking.
+    server::Server& GetServer() noexcept;
+
+    /// Server middlewares can be modified before the first RegisterService call.
+    void SetServerMiddlewares(server::Middlewares middlewares);
+
+    /// Client middlewares can be modified before the first RegisterService call.
+    void SetClientMiddlewares(client::Middlewares middlewares);
+
+    /// Modifies the internal dynamic configs storage. It is used by the server
+    /// and clients, and is accessible through @ref GetConfigSource.
+    /// Initially, the configs are filled with compile-time defaults.
+    void ExtendDynamicConfig(const std::vector<dynamic_config::KeyValue>&);
+
+    /// @returns the dynamic configs affected by @ref ExtendDynamicConfig.
+    dynamic_config::Source GetConfigSource() const;
+
+    /// @returns the statistics storage used by the server and clients.
+    utils::statistics::Storage& GetStatisticsStorage();
+
+    /// @cond
+    // For internal use only.
+    client::ClientFactory& GetClientFactory();
+
+    // For internal use only.
+    std::string GetEndpoint() const;
+    /// @endcond
+
+private:
+    server::ServiceConfig MakeServiceConfig();
+
+    utils::statistics::Storage statistics_storage_;
+    utils::statistics::MetricsStorage metrics_storage_;
+    std::vector<utils::statistics::Entry> metrics_storage_registration_;
+    dynamic_config::StorageMock config_storage_;
+    std::optional<std::string> unix_socket_path_;
+    utils::WithResourceScopes<server::Server> server_;
+    server::Middlewares server_middlewares_;
+    SimpleClientMiddlewarePipeline simple_client_middleware_pipeline_;
+    bool middlewares_change_allowed_{true};
+    testsuite::GrpcControl testsuite_;
+    std::optional<std::string> endpoint_;
+    utils::WithResourceScopes<ugrpc::impl::StatisticsStorage> client_statistics_storage_;
+    std::optional<client::ClientFactory> client_factory_;
+};
+
+/// @brief return list of default server middlewares for tests
+server::Middlewares GetDefaultServerMiddlewares();
+
+/// @brief return list of default client middleware factories for tests
+client::Middlewares GetDefaultClientMiddlewares();
+
+/// @brief Options for @ref ugrpc::tests::Service. Use designated initialization to construct.
+struct ServiceConfigs {
+    server::ServerConfig server_config{};
+    client::ClientFactorySettings client_factory_settings{};
+    server::Middlewares server_middlewares{GetDefaultServerMiddlewares()};
+    client::Middlewares client_middlewares{GetDefaultClientMiddlewares()};
+};
+
+/// @brief Sets up a mini gRPC server using a single service implementation.
+/// @see @ref ugrpc::tests::ServiceBase
+template <typename GrpcService>
+class Service : public ServiceBase {
+public:
+    /// Passes @a args to the service.
+    template <typename... Args>
+    explicit Service(std::in_place_t = std::in_place, Args&&... args)
+        : Service(ServiceConfigs{}, std::in_place, std::forward<Args>(args)...)
+    {}
+
+    /// Passes @a args to the service, sets up the server and client according to @a configs.
+    template <typename... Args>
+    explicit Service(ServiceConfigs&& configs, std::in_place_t = std::in_place, Args&&... args)
+        : ServiceBase(std::move(configs.server_config)),
+          service_(std::forward<Args>(args)...)
+    {
+        SetServerMiddlewares(std::move(configs.server_middlewares));
+        SetClientMiddlewares(std::move(configs.client_middlewares));
+        RegisterService(service_);
+        StartServer(std::move(configs.client_factory_settings));
+    }
+
+    ~Service() override { StopServer(); }
+
+    /// @returns the stored service.
+    GrpcService& GetService() { return service_; }
+
+private:
+    GrpcService service_{};
+};
+
+}  // namespace ugrpc::tests
+
+USERVER_NAMESPACE_END

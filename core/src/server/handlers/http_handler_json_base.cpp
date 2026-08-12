@@ -10,6 +10,7 @@
 #include <userver/server/handlers/legacy_json_error_builder.hpp>
 #include <userver/server/http/http_error.hpp>
 #include <userver/server/http/http_status.hpp>
+#include <userver/server/request/json_data.hpp>
 #include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -18,8 +19,6 @@ namespace server::handlers {
 
 namespace {
 
-const std::string kRequestDataName = "__request_json";
-const std::string kResponseDataName = "__response_json";
 const std::string kSerializeJson = "serialize_json";
 
 const formats::json::Value kEmptyJson{};
@@ -28,69 +27,55 @@ const formats::json::Value kEmptyJson{};
 
 HttpHandlerJsonBase::HttpHandlerJsonBase(
     const components::ComponentConfig& config,
-    const components::ComponentContext& component_context, bool is_monitor)
-    : HttpHandlerBase(config, component_context, is_monitor) {}
+    const components::ComponentContext& component_context,
+    bool is_monitor
+)
+    : HttpHandlerBase(config, component_context, is_monitor)
+{}
 
-std::string HttpHandlerJsonBase::HandleRequestThrow(
-    const http::HttpRequest& request, request::RequestContext& context) const {
-  const auto& request_json =
-      context.GetData<const formats::json::Value&>(kRequestDataName);
+std::string HttpHandlerJsonBase::HandleRequestThrow(const http::HttpRequest& request, request::RequestContext& context)
+    const {
+    const auto request_json = request::GetRequestJson(context);
+    UASSERT(request_json != nullptr);
 
-  auto& response = request.GetHttpResponse();
-  response.SetContentType(
-      USERVER_NAMESPACE::http::content_type::kApplicationJson);
+    auto& response = request.GetHttpResponse();
+    response.SetContentType(USERVER_NAMESPACE::http::content_type::kApplicationJson);
 
-  const auto& response_json = context.SetData<formats::json::Value>(
-      kResponseDataName,
-      HandleRequestJsonThrow(request, request_json, context));
+    const auto&
+        response_json = request::SetResponseJson(context, HandleRequestJsonThrow(request, *request_json, context));
 
-  const auto scope_time =
-      tracing::ScopeTime::CreateOptionalScopeTime(kSerializeJson);
-  return formats::json::ToString(response_json);
+    const auto scope_time = tracing::ScopeTime::CreateOptionalScopeTime(kSerializeJson);
+    return formats::json::ToString(response_json);
 }
 
-const formats::json::Value* HttpHandlerJsonBase::GetRequestJson(
-    const request::RequestContext& context) {
-  return context.GetDataOptional<const formats::json::Value>(kRequestDataName);
+FormattedErrorData HttpHandlerJsonBase::GetFormattedExternalErrorBody(const CustomHandlerException& exc) const {
+    if (exc.GetServiceCode().empty()) {
+        // Legacy format has no "service codes", only HTTP codes.
+        return {LegacyJsonErrorBuilder(exc).GetExternalBody(), LegacyJsonErrorBuilder::GetContentType()};
+    }
+    return {JsonErrorBuilder(exc).GetExternalBody(), JsonErrorBuilder::GetContentType()};
 }
 
-const formats::json::Value* HttpHandlerJsonBase::GetResponseJson(
-    const request::RequestContext& context) {
-  return context.GetDataOptional<const formats::json::Value>(kResponseDataName);
-}
+void HttpHandlerJsonBase::ParseRequestData(const http::HttpRequest& request, request::RequestContext& context) const {
+    if (request.RequestBody().empty()) {
+        request::SetRequestJson(context, kEmptyJson);
+        return;
+    }
 
-FormattedErrorData HttpHandlerJsonBase::GetFormattedExternalErrorBody(
-    const CustomHandlerException& exc) const {
-  if (exc.GetServiceCode().empty()) {
-    // Legacy format has no "service codes", only HTTP codes.
-    return {LegacyJsonErrorBuilder(exc).GetExternalBody(),
-            LegacyJsonErrorBuilder::GetContentType()};
-  }
-  return {JsonErrorBuilder(exc).GetExternalBody(),
-          JsonErrorBuilder::GetContentType()};
-}
-
-void HttpHandlerJsonBase::ParseRequestData(
-    const http::HttpRequest& request, request::RequestContext& context) const {
-  if (request.RequestBody().empty()) {
-    context.SetData<formats::json::Value>(kRequestDataName, kEmptyJson);
-    return;
-  }
-
-  try {
-    context.SetData<formats::json::Value>(
-        kRequestDataName, formats::json::FromString(request.RequestBody()));
-  } catch (const formats::json::Exception& e) {
-    throw RequestParseError(
-        InternalMessage{"Invalid JSON body"},
-        ExternalBody{std::string("Invalid JSON body: ") + e.what()});
-  }
+    try {
+        request::SetRequestJson(context, formats::json::FromString(request.RequestBody()));
+    } catch (const formats::json::Exception& e) {
+        throw RequestParseError(
+            InternalMessage{"Invalid JSON body"},
+            ExternalBody{std::string("Invalid JSON body: ") + e.what()}
+        );
+    }
 }
 
 yaml_config::Schema HttpHandlerJsonBase::GetStaticConfigSchema() {
-  auto schema = HttpHandlerBase::GetStaticConfigSchema();
-  schema.UpdateDescription("HTTP handler JSON base config");
-  return schema;
+    auto schema = HttpHandlerBase::GetStaticConfigSchema();
+    schema.UpdateDescription("HTTP handler JSON base config");
+    return schema;
 }
 
 }  // namespace server::handlers

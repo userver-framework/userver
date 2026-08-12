@@ -1,106 +1,120 @@
 ---
 Checks:
-  "-*\
-  ,boost-*\
-  ,bugprone-*\
-  ,cert-*\
-  ,clang-analyzer-*\
-  ,concurrency-*\
-  ,cppcoreguidelines-*\
-  ,fuchsia-multiple-inheritance\
-  ,google-*\
-  ,hicpp-*\
-  ,misc-*\
-  ,modernize-*\
-  ,performance-*\
-  ,portability-*\
-  ,readability-*\
-  # it will work from clang-16
-  ,-bugprone-unchecked-optional-access\
-  ,-bugprone-easily-swappable-parameters\
-  ,-bugprone-exception-escape\
-  ,-bugprone-implicit-widening-of-multiplication-result\
-  ,-bugprone-lambda-function-name\
-  ,-bugprone-narrowing-conversions\
-  ,-bugprone-use-after-move\
-  ,-cert-dcl21-cpp\
-  ,-cert-err09-cpp\
-  ,-cert-err33-c\
-  ,-cert-err58-cpp\
-  ,-cert-err61-cpp\
-  ,-cert-msc30-c\
-  ,-cert-msc32-c\
-  ,-clang-analyzer-core.uninitialized.Assign\
-  ,-clang-analyzer-optin.cplusplus.VirtualCall\
-  ,-cppcoreguidelines-avoid-c-arrays\
-  ,-cppcoreguidelines-avoid-const-or-ref-data-members\
-  ,-cppcoreguidelines-avoid-do-while\
-  ,-cppcoreguidelines-avoid-goto\
-  ,-cppcoreguidelines-avoid-magic-numbers\
-  ,-cppcoreguidelines-avoid-non-const-global-variables\
-  ,-cppcoreguidelines-c-copy-assignment-signature\
-  ,-cppcoreguidelines-narrowing-conversions\
-  ,-cppcoreguidelines-non-private-member-variables-in-classes\
-  ,-cppcoreguidelines-owning-memory\
-  ,-cppcoreguidelines-pro-bounds-array-to-pointer-decay\
-  ,-cppcoreguidelines-pro-bounds-constant-array-index\
-  ,-cppcoreguidelines-pro-bounds-pointer-arithmetic\
-  ,-cppcoreguidelines-pro-type-reinterpret-cast\
-  ,-cppcoreguidelines-pro-type-union-access\
-  ,-cppcoreguidelines-pro-type-vararg\
-  ,-cppcoreguidelines-special-member-functions\
+  "-*
+  ,boost-*
+  ,bugprone-*
+  ,cert-*
+  ,clang-analyzer-*
+  ,concurrency-*
+  ,cppcoreguidelines-*
+  ,fuchsia-multiple-inheritance
+  ,google-*
+  ,hicpp-*
+  ,misc-*
+  ,modernize-*
+  ,performance-*
+  ,portability-*
+  ,readability-*
+  ,-bugprone-unchecked-optional-access
+  ,-bugprone-easily-swappable-parameters
+  ,-bugprone-exception-escape
+  ,-bugprone-implicit-widening-of-multiplication-result
+  ,-bugprone-lambda-function-name
+  ,-bugprone-narrowing-conversions
+  ,-cert-dcl21-cpp
+  ,-cert-err09-cpp
+  ,-cert-err33-c
+  ,-cert-err58-cpp
+  ,-cert-err61-cpp
+  ,-cert-msc30-c
+  ,-cert-msc32-c
+  ,-clang-analyzer-core.uninitialized.Assign
+  ,-clang-analyzer-optin.cplusplus.VirtualCall
+  ,-cppcoreguidelines-avoid-c-arrays
+  ,-cppcoreguidelines-avoid-const-or-ref-data-members
+  ,-cppcoreguidelines-avoid-do-while
+  ,-cppcoreguidelines-avoid-goto
+  ,-cppcoreguidelines-avoid-magic-numbers
+  ,-cppcoreguidelines-avoid-non-const-global-variables
+  ,-cppcoreguidelines-c-copy-assignment-signature
+  ,-cppcoreguidelines-narrowing-conversions
+  ,-cppcoreguidelines-non-private-member-variables-in-classes
+  ,-cppcoreguidelines-owning-memory
+  ,-cppcoreguidelines-pro-bounds-array-to-pointer-decay
+  ,-cppcoreguidelines-pro-bounds-avoid-unchecked-container-access
+  ,-cppcoreguidelines-pro-bounds-constant-array-index
+  ,-cppcoreguidelines-pro-bounds-pointer-arithmetic
+  ,-cppcoreguidelines-pro-type-reinterpret-cast
+  ,-cppcoreguidelines-pro-type-union-access
+  ,-cppcoreguidelines-pro-type-vararg
+  ,-cppcoreguidelines-special-member-functions
+  ,-cppcoreguidelines-rvalue-reference-param-not-moved
   ,-cppcoreguidelines-virtual-class-destructor
-  ,-google-explicit-constructor\
-  ,-google-readability-braces-around-statements\
-  ,-google-readability-function-size\
-  ,-google-readability-todo\
-  ,-google-runtime-int\
-  ,-hicpp-avoid-c-arrays\
-  ,-hicpp-avoid-goto\
-  ,-hicpp-braces-around-statements\
-  ,-hicpp-deprecated-headers\
-  ,-hicpp-explicit-conversions\
-  ,-hicpp-function-size\
-  ,-hicpp-invalid-access-moved\
-  ,-hicpp-member-init\
-  ,-hicpp-move-const-arg\
-  ,-hicpp-named-parameter\
-  ,-hicpp-no-array-decay\
-  ,-hicpp-no-malloc\
-  ,-hicpp-noexcept-move\
-  ,-hicpp-signed-bitwise\
-  ,-hicpp-special-member-functions\
-  ,-hicpp-uppercase-literal-suffix\
-  ,-hicpp-vararg\
-  ,-misc-include-cleaner\
-  ,-misc-no-recursion\
-  ,-misc-unconventional-assign-operator\
-  ,-modernize-avoid-c-arrays\
-  ,-modernize-pass-by-value\
-  ,-modernize-return-braced-init-list\
-  ,-modernize-use-nodiscard\
-  ,-modernize-use-trailing-return-type\
-  ,-performance-move-const-arg\
-  ,-performance-no-int-to-ptr\
-  ,-performance-trivially-destructible\
-  ,-performance-unnecessary-value-param\
-  ,-portability-simd-intrinsics\
-  ,-readability-braces-around-statements\
-  ,-readability-container-contains\
-  ,-readability-else-after-return\
-  ,-readability-function-cognitive-complexity\
-  ,-readability-identifier-length\
-  ,-readability-implicit-bool-conversion\
-  ,-readability-magic-numbers\
-  ,-readability-misleading-indentation\
-  ,-readability-named-parameter\
-  ,-readability-redundant-declaration\
-  ,-readability-uppercase-literal-suffix\
-  ,-readability-use-anyofallof\
+  ,-google-explicit-constructor
+  ,-google-readability-braces-around-statements
+  ,-google-readability-function-size
+  ,-google-readability-todo
+  ,-google-runtime-int
+  ,-hicpp-avoid-c-arrays
+  ,-hicpp-avoid-goto
+  ,-hicpp-braces-around-statements
+  ,-hicpp-deprecated-headers
+  ,-hicpp-explicit-conversions
+  ,-hicpp-function-size
+  ,-hicpp-invalid-access-moved
+  ,-hicpp-member-init
+  ,-hicpp-move-const-arg
+  ,-hicpp-named-parameter
+  ,-hicpp-no-array-decay
+  ,-hicpp-no-malloc
+  ,-hicpp-noexcept-move
+  ,-hicpp-signed-bitwise
+  ,-hicpp-special-member-functions
+  ,-hicpp-uppercase-literal-suffix
+  ,-hicpp-vararg
+  ,-misc-const-correctness
+  ,-misc-include-cleaner
+  ,-misc-no-recursion
+  ,-misc-unconventional-assign-operator
+  ,-misc-use-anonymous-namespace
+  ,-misc-override-with-different-visibility
+  ,-modernize-avoid-c-arrays
+  ,-modernize-pass-by-value
+  ,-modernize-return-braced-init-list
+  ,-modernize-use-designated-initializers
+  ,-modernize-use-nodiscard
+  ,-modernize-use-starts-ends-with
+  ,-modernize-use-trailing-return-type
+  ,-performance-move-const-arg
+  ,-performance-no-int-to-ptr
+  ,-performance-trivially-destructible
+  ,-performance-unnecessary-value-param
+  ,-portability-simd-intrinsics
+  ,-readability-braces-around-statements
+  ,-readability-container-contains
+  ,-readability-convert-member-functions-to-static
+  ,-readability-else-after-return
+  ,-readability-function-cognitive-complexity
+  ,-readability-identifier-length
+  ,-readability-implicit-bool-conversion
+  ,-readability-magic-numbers
+  ,-readability-misleading-indentation
+  ,-readability-named-parameter
+  ,-readability-qualified-auto
+  ,-readability-redundant-declaration
+  ,-readability-redundant-member-init
+  ,-readability-simplify-boolean-expr
+  ,-readability-suspicious-call-argument
+  ,-readability-uppercase-literal-suffix
+  ,-readability-use-anyofallof
+  ,-hicpp-use-emplace
+  ,-modernize-use-emplace
   "
+# WARNING: DO NOT PUT COMMENTS BETWEEN CHECKS ABOVE!
+# It will have the effect of silently breaking clang-tidy checks altogether.
 
 WarningsAsErrors: '*'
-HeaderFilterRegex: '/userver/(build|clickhouse|core|grpc|mongo|postgresql|redis|shared|tools)/'
+HeaderFilterRegex: '/userver/(build|clickhouse|core|grpc|mongo|postgresql|redis|kafka|shared|tools)/'
 CheckOptions:
   - key: misc-non-private-member-variables-in-classes.IgnoreClassesWithAllMemberVariablesBeingPublic
     value: '1'
@@ -108,3 +122,83 @@ CheckOptions:
     value: '1'
   - key: modernize-loop-convert.UseCxx20ReverseRanges
     value: 'false'
+
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+    # Allow DISABLED_CamelCase to skip gtest tests.
+  - key: readability-identifier-naming.ClassIgnoredRegexp
+    value: '^DISABLED_([A-Z][a-z]+)+$'
+  - key: readability-identifier-naming.StructCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumCase
+    value: CamelCase
+  - key: readability-identifier-naming.UnionCase
+    value: CamelCase
+  - key: readability-identifier-naming.MemberCase
+    value: lower_case
+  - key: readability-identifier-naming.PrivateMemberSuffix
+    value: '_'
+  - key: readability-identifier-naming.ProtectedMemberSuffix
+    value: '_'
+  - key: readability-identifier-naming.MethodCase
+    value: CamelCase
+  - key: readability-identifier-naming.PublicMethodIgnoredRegexp
+    value: "(begin|end|empty|size|ysize|front|back|parse|format)"
+  - key: readability-identifier-naming.FunctionCase
+    value: CamelCase
+  - key: readability-identifier-naming.ParameterCase
+    value: lower_case
+  - key: readability-identifier-naming.ParameterPackCase
+    value: lower_case
+  - key: readability-identifier-naming.VariableCase
+    value: lower_case
+  - key: readability-identifier-naming.ConstexprVariableCase
+    value: CamelCase
+  - key: readability-identifier-naming.ConstexprVariablePrefix
+    value: k
+  # Allow lower_case for constexpr. Probably needs to be reconsidered in the future.
+  # Allow SimpleExceptionMessage: expands from Y_ENSURE macro.
+  - key: readability-identifier-naming.ConstexprVariableIgnoredRegexp
+    value: "^[a-z0-9]+([_]?[a-z0-9]+)*$|^SimpleExceptionMessage$"
+  - key: readability-identifier-naming.GlobalVariableCase
+    value: lower_case
+  # Allow kCamelCase for global variables. Probably needs to be reconsidered in the future.
+  - key: readability-identifier-naming.GlobalVariableIgnoredRegexp
+    value: "^k([A-Z]($|[a-z0-9]+))+$"
+  - key: readability-identifier-naming.GlobalConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.GlobalConstantPrefix
+    value: k
+  # Allow lower_case for global constants. Probably needs to be reconsidered in the future.
+  - key: readability-identifier-naming.GlobalConstantIgnoredRegexp
+    value: "^[a-z0-9]+([_]?[a-z0-9]+)*$"
+  - key: readability-identifier-naming.StaticConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.StaticConstantPrefix
+    value: k
+  - key: readability-identifier-naming.EnumConstantCase
+    value: CamelCase
+  - key: readability-identifier-naming.EnumConstantPrefix
+    value: k
+  - key: readability-identifier-naming.MacroDefinitionCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.NamespaceCase
+    value: lower_case
+  # Allow NCamelCase for NMonitoring.
+  - key: readability-identifier-naming.NamespaceIgnoredRegexp
+    value: ^(N([A-Z][a-z]+)+|Headers)$
+  # Allow kCamelCase.
+  - key: readability-identifier-naming.ValueTemplateParameterIgnoredRegexp
+    value: "^k([A-Z]($|[a-z0-9]+))+$"
+  - key: readability-identifier-naming.ConceptCase
+    value: CamelCase
+  - key: readability-identifier-naming.TemplateParameterCase
+    value: CamelCase
+  - key: readability-identifier-naming.TemplateTemplateParameterCase
+    value: CamelCase
+  - key: readability-identifier-naming.TypedefCase
+    value: CamelCase
+  - key: readability-identifier-naming.TypeTemplateParameterCase
+    value: CamelCase
+  - key: readability-identifier-naming.ValueTemplateParameterCase
+    value: CamelCase

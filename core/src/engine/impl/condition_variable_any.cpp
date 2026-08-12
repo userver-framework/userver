@@ -13,47 +13,38 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
-void OnConditionVariableSpuriousWakeup() {
-  current_task::GetTaskProcessor().GetTaskCounter().AccountSpuriousWakeup();
-}
+void OnConditionVariableSpuriousWakeup() { current_task::GetTaskProcessor().GetTaskCounter().AccountSpuriousWakeup(); }
 
 template <typename MutexType>
-class CvWaitStrategy final : public WaitStrategy {
- public:
-  CvWaitStrategy(WaitList& waiters, TaskContext& current,
-                 std::unique_lock<MutexType>& mutex_lock) noexcept
-      : waiters_(waiters),
-        waiter_token_(waiters_),
-        current_(current),
-        mutex_lock_(mutex_lock) {}
+class CvAwaitable final : public WeakAwaitable {
+public:
+    CvAwaitable(WaitList& awaiters, std::unique_lock<MutexType>& mutex_lock) noexcept
+        : awaiters_(awaiters), awaiter_token_(awaiters_), mutex_lock_(mutex_lock) {}
 
-  EarlyWakeup SetupWakeups() override {
-    UASSERT(mutex_lock_);
-    UASSERT(current_.IsCurrent());
-    {
-      WaitList::Lock waiters_lock{waiters_};
-      waiters_.Append(waiters_lock, &current_);
+    bool IsReady() const noexcept override { return false; }
+
+    void TryAppendAwaiter(engine::impl::AwaiterPtr& awaiter, std::uintptr_t context) override {
+        UASSERT(mutex_lock_);
+        {
+            WaitList::Lock awaiters_lock{awaiters_};
+            awaiters_.Append(awaiters_lock, std::move(awaiter), context);
+        }
+
+        mutex_lock_.unlock();
+        // A race is not possible here, because check + Append is performed under
+        // mutex_lock_, and user state that defines readiness should only be changed
+        // by user under mutex_lock_.
     }
 
-    mutex_lock_.unlock();
-    // A race is not possible here, because check + Append is performed under
-    // mutex_lock_, and user state that defines readiness should only be changed
-    // by user under mutex_lock_.
-    return EarlyWakeup{false};
-  }
+    engine::impl::AwaiterPtr RemoveAwaiter(engine::impl::Awaiter& awaiter, std::uintptr_t context) noexcept override {
+        WaitList::Lock awaiters_lock{awaiters_};
+        return awaiters_.Remove(awaiters_lock, awaiter, context);
+    }
 
-  void DisableWakeups() noexcept override {
-    UASSERT(current_.IsCurrent());
-
-    WaitList::Lock waiters_lock{waiters_};
-    waiters_.Remove(waiters_lock, current_);
-  }
-
- private:
-  WaitList& waiters_;
-  const WaitList::WaitersScopeCounter waiter_token_;
-  TaskContext& current_;
-  std::unique_lock<MutexType>& mutex_lock_;
+private:
+    WaitList& awaiters_;
+    const WaitList::AwaitersScopeCounter awaiter_token_;
+    std::unique_lock<MutexType>& mutex_lock_;
 };
 
 template <typename MutexType>
@@ -63,55 +54,56 @@ template <typename MutexType>
 ConditionVariableAny<MutexType>::~ConditionVariableAny() = default;
 
 template <typename MutexType>
-CvStatus ConditionVariableAny<MutexType>::WaitUntil(
-    std::unique_lock<MutexType>& lock, Deadline deadline) {
-  UASSERT(lock.owns_lock());
+CvStatus ConditionVariableAny<MutexType>::WaitUntil(std::unique_lock<MutexType>& lock, Deadline deadline) {
+    UASSERT(lock.owns_lock());
 
-  if (deadline.IsReached()) {
-    return CvStatus::kTimeout;
-  }
+    if (deadline.IsReached()) {
+        return CvStatus::kTimeout;
+    }
 
-  auto& current = current_task::GetCurrentTaskContext();
+    auto& current = current_task::GetCurrentTaskContext();
 
-  auto wakeup_source = TaskContext::WakeupSource::kNone;
-  {
-    CvWaitStrategy<MutexType> wait_manager(*waiters_, current, lock);
-    wakeup_source = current.Sleep(wait_manager, deadline);
-  }
-  // re-lock the mutex after it's been released in SetupWakeups()
-  // lock.owns_lock() can occur on an immediate cancellation
-  if (!lock) lock.lock();
+    auto wakeup_source = TaskContext::WakeupSource::kNone;
+    {
+        CvAwaitable<MutexType> awaitable(*awaiters_, lock);
+        wakeup_source = current.Sleep(awaitable, deadline);
+    }
+    // re-lock the mutex after it's been released in SetupWakeups()
+    // lock.owns_lock() can occur on an immediate cancellation
+    if (!lock) {
+        lock.lock();
+    }
 
-  switch (wakeup_source) {
-    case TaskContext::WakeupSource::kCancelRequest:
-      return CvStatus::kCancelled;
-    case TaskContext::WakeupSource::kDeadlineTimer:
-      return CvStatus::kTimeout;
-    case TaskContext::WakeupSource::kNone:
-    case TaskContext::WakeupSource::kBootstrap:
-      UASSERT(!"invalid wakeup source");
-      [[fallthrough]];
-    case TaskContext::WakeupSource::kWaitList:
-      return CvStatus::kNoTimeout;
-  }
+    switch (wakeup_source) {
+        case TaskContext::WakeupSource::kCancelRequest:
+            return CvStatus::kCancelled;
+        case TaskContext::WakeupSource::kDeadlineTimer:
+            return CvStatus::kTimeout;
+        case TaskContext::WakeupSource::kNone:
+        case TaskContext::WakeupSource::kBootstrap:
+            UASSERT(!"invalid wakeup source");
+            [[fallthrough]];
+        case TaskContext::WakeupSource::kNotify:
+            return CvStatus::kNoTimeout;
+    }
 
-  UINVARIANT(false, "Unexpected wakeup source in ConditionVariableAny");
+    UINVARIANT(false, "Unexpected wakeup source in ConditionVariableAny");
 }
 
 template <typename MutexType>
 void ConditionVariableAny<MutexType>::NotifyOne() {
-  if (waiters_->GetCountOfSleepies()) {
-    WaitList::Lock lock(*waiters_);
-    waiters_->WakeupOne(lock);
-  }
+    if (awaiters_->GetCountOfSleepies()) {
+        WaitList::Lock lock(*awaiters_);
+        awaiters_->NotifyOne(lock);
+    }
 }
 
 template <typename MutexType>
 void ConditionVariableAny<MutexType>::NotifyAll() {
-  if (waiters_->GetCountOfSleepies()) {
-    WaitList::Lock lock(*waiters_);
-    waiters_->WakeupAll(lock);
-  }
+    if (awaiters_->GetCountOfSleepies()) {
+        WaitList::Lock lock(*awaiters_);
+        awaiters_->NotifyAll(lock);
+    }
 }
 
 template class ConditionVariableAny<std::mutex>;

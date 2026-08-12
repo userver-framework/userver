@@ -3,11 +3,12 @@
 #include <string>
 #include <vector>
 
-#include <userver/storages/redis/impl/base.hpp>
-
 #include <userver/engine/future.hpp>
+#include <userver/storages/redis/base.hpp>
 #include <userver/storages/redis/client.hpp>
 #include <userver/storages/redis/transaction.hpp>
+
+#include <storages/redis/impl/cmd_args.hpp>
 
 #include "request_data_impl.hpp"
 
@@ -18,334 +19,428 @@ namespace storages::redis {
 class ClientImpl;
 
 class TransactionImpl final : public Transaction {
- public:
-  explicit TransactionImpl(std::shared_ptr<ClientImpl> client,
-                           CheckShards check_shards = CheckShards::kSame);
+public:
+    explicit TransactionImpl(std::shared_ptr<ClientImpl> client, CheckShards check_shards = CheckShards::kSame);
 
-  RequestExec Exec(const CommandControl& command_control) override;
+    RequestExec Exec(const CommandControl& command_control) override;
 
-  class ResultPromise {
-   public:
-    template <typename Result, typename ReplyType>
-    ResultPromise(engine::Promise<ReplyType>&& promise,
-                  To<Request<Result, ReplyType>>)
-        : impl_(std::make_unique<ResultPromiseImpl<Result, ReplyType>>(
-              std::move(promise))) {}
-    ResultPromise(ResultPromise&& other) = default;
+    class ResultPromise {
+    public:
+        template <typename Result, typename ReplyType>
+        ResultPromise(engine::Promise<ReplyType>&& promise, To<Request<Result, ReplyType>>)
+            : impl_(std::make_unique<ResultPromiseImpl<Result, ReplyType>>(std::move(promise)))
+        {}
+        ResultPromise(ResultPromise&& other) = default;
 
-    void ProcessReply(ReplyData&& reply_data,
-                      const std::string& request_description) {
-      impl_->ProcessReply(std::move(reply_data), request_description);
-    }
-
-   private:
-    class ResultPromiseImplBase {
-     public:
-      virtual ~ResultPromiseImplBase() = default;
-
-      virtual void ProcessReply(ReplyData&& reply_data,
-                                const std::string& request_description) = 0;
-    };
-
-    template <typename Result, typename ReplyType>
-    class ResultPromiseImpl : public ResultPromiseImplBase {
-     public:
-      ResultPromiseImpl(engine::Promise<ReplyType>&& promise)
-          : promise_(std::move(promise)) {}
-
-      void ProcessReply(ReplyData&& reply_data,
-                        const std::string& request_description) override {
-        try {
-          if constexpr (std::is_same<ReplyType, void>::value) {
-            Parse(std::move(reply_data), request_description,
-                  To<Result, ReplyType>{});
-            promise_.set_value();
-          } else {
-            promise_.set_value(Parse(std::move(reply_data), request_description,
-                                     To<Result, ReplyType>{}));
-          }
-        } catch (const std::exception&) {
-          promise_.set_exception(std::current_exception());
+        void ProcessReply(ReplyData&& reply_data, const std::string& request_description) {
+            impl_->ProcessReply(std::move(reply_data), request_description);
         }
-      }
 
-     private:
-      engine::Promise<ReplyType> promise_;
+    private:
+        class ResultPromiseImplBase {
+        public:
+            virtual ~ResultPromiseImplBase() = default;
+
+            virtual void ProcessReply(ReplyData&& reply_data, const std::string& request_description) = 0;
+        };
+
+        template <typename Result, typename ReplyType>
+        class ResultPromiseImpl : public ResultPromiseImplBase {
+        public:
+            ResultPromiseImpl(engine::Promise<ReplyType>&& promise)
+                : promise_(std::move(promise))
+            {}
+
+            void ProcessReply(ReplyData&& reply_data, const std::string& request_description) override {
+                try {
+                    if constexpr (std::is_same<ReplyType, void>::value) {
+                        Parse(std::move(reply_data), request_description, To<Result, ReplyType>{});
+                        promise_.set_value();
+                    } else {
+                        promise_.set_value(Parse(std::move(reply_data), request_description, To<Result, ReplyType>{}));
+                    }
+                } catch (const std::exception&) {
+                    promise_.set_exception(std::current_exception());
+                }
+            }
+
+        private:
+            engine::Promise<ReplyType> promise_;
+        };
+
+        std::unique_ptr<ResultPromiseImplBase> impl_;
     };
 
-    std::unique_ptr<ResultPromiseImplBase> impl_;
-  };
+    // redis commands:
 
-  // redis commands:
+    RequestAppend Append(std::string key, std::string value) override;
 
-  RequestAppend Append(std::string key, std::string value) override;
+    RequestBitop Bitop(BitOperation op, std::string dest, std::vector<std::string> srcs) override;
 
-  RequestDbsize Dbsize(size_t shard) override;
+    RequestDbsize Dbsize(size_t shard) override;
 
-  RequestDel Del(std::string key) override;
+    RequestDecr Decr(std::string key) override;
 
-  RequestDel Del(std::vector<std::string> keys) override;
+    RequestDel Del(std::string key) override;
 
-  RequestUnlink Unlink(std::string key) override;
+    RequestDel Del(std::vector<std::string> keys) override;
 
-  RequestUnlink Unlink(std::vector<std::string> keys) override;
+    RequestUnlink Unlink(std::string key) override;
 
-  RequestExists Exists(std::string key) override;
+    RequestUnlink Unlink(std::vector<std::string> keys) override;
 
-  RequestExists Exists(std::vector<std::string> keys) override;
+    RequestExists Exists(std::string key) override;
 
-  RequestExpire Expire(std::string key, std::chrono::seconds ttl) override;
+    RequestExists Exists(std::vector<std::string> keys) override;
 
-  RequestGeoadd Geoadd(std::string key, GeoaddArg point_member) override;
+    RequestExpire Expire(std::string key, std::chrono::seconds ttl) override;
 
-  RequestGeoadd Geoadd(std::string key,
-                       std::vector<GeoaddArg> point_members) override;
+    RequestExpire Expire(std::string key, std::chrono::seconds ttl, ExpireOptions options) override;
 
-  RequestGeoradius Georadius(
-      std::string key, Longitude lon, Latitude lat, double radius,
-      const GeoradiusOptions& georadius_options) override;
+    RequestGeoadd Geoadd(std::string key, GeoaddArg point_member) override;
 
-  RequestGeosearch Geosearch(
-      std::string key, std::string member, double radius,
-      const GeosearchOptions& geosearch_options) override;
+    RequestGeoadd Geoadd(std::string key, std::vector<GeoaddArg> point_members) override;
 
-  RequestGeosearch Geosearch(
-      std::string key, std::string member, BoxWidth width, BoxHeight height,
-      const GeosearchOptions& geosearch_options) override;
+    RequestGeopos Geopos(std::string key, std::vector<std::string> members) override;
 
-  RequestGeosearch Geosearch(
-      std::string key, Longitude lon, Latitude lat, double radius,
-      const GeosearchOptions& geosearch_options) override;
+    RequestGeoradius Georadius(
+        std::string key,
+        Longitude lon,
+        Latitude lat,
+        double radius,
+        const GeoradiusOptions& georadius_options
+    ) override;
 
-  RequestGeosearch Geosearch(
-      std::string key, Longitude lon, Latitude lat, BoxWidth width,
-      BoxHeight height, const GeosearchOptions& geosearch_options) override;
+    RequestGeosearch Geosearch(
+        std::string key,
+        std::string member,
+        double radius,
+        const GeosearchOptions& geosearch_options
+    ) override;
 
-  RequestGet Get(std::string key) override;
+    RequestGeosearch Geosearch(
+        std::string key,
+        std::string member,
+        BoxWidth width,
+        BoxHeight height,
+        const GeosearchOptions& geosearch_options
+    ) override;
 
-  RequestGetset Getset(std::string key, std::string value) override;
+    RequestGeosearch Geosearch(
+        std::string key,
+        Longitude lon,
+        Latitude lat,
+        double radius,
+        const GeosearchOptions& geosearch_options
+    ) override;
 
-  RequestHdel Hdel(std::string key, std::string field) override;
+    RequestGeosearch Geosearch(
+        std::string key,
+        Longitude lon,
+        Latitude lat,
+        BoxWidth width,
+        BoxHeight height,
+        const GeosearchOptions& geosearch_options
+    ) override;
 
-  RequestHdel Hdel(std::string key, std::vector<std::string> fields) override;
+    RequestGet Get(std::string key) override;
 
-  RequestHexists Hexists(std::string key, std::string field) override;
+    RequestGetdel Getdel(std::string key) override;
 
-  RequestHget Hget(std::string key, std::string field) override;
+    RequestGetset Getset(std::string key, std::string value) override;
 
-  RequestHgetall Hgetall(std::string key) override;
+    RequestHdel Hdel(std::string key, std::string field) override;
 
-  RequestHincrby Hincrby(std::string key, std::string field,
-                         int64_t increment) override;
+    RequestHdel Hdel(std::string key, std::vector<std::string> fields) override;
 
-  RequestHincrbyfloat Hincrbyfloat(std::string key, std::string field,
-                                   double increment) override;
+    RequestHexists Hexists(std::string key, std::string field) override;
 
-  RequestHkeys Hkeys(std::string key) override;
+    RequestHget Hget(std::string key, std::string field) override;
 
-  RequestHlen Hlen(std::string key) override;
+    RequestHgetall Hgetall(std::string key) override;
 
-  RequestHmget Hmget(std::string key, std::vector<std::string> fields) override;
+    RequestHincrby Hincrby(std::string key, std::string field, int64_t increment) override;
 
-  RequestHmset Hmset(
-      std::string key,
-      std::vector<std::pair<std::string, std::string>> field_values) override;
+    RequestHincrbyfloat Hincrbyfloat(std::string key, std::string field, double increment) override;
 
-  RequestHset Hset(std::string key, std::string field,
-                   std::string value) override;
+    RequestHkeys Hkeys(std::string key) override;
 
-  RequestHsetnx Hsetnx(std::string key, std::string field,
-                       std::string value) override;
+    RequestHlen Hlen(std::string key) override;
 
-  RequestHvals Hvals(std::string key) override;
+    RequestHmget Hmget(std::string key, std::vector<std::string> fields) override;
 
-  RequestIncr Incr(std::string key) override;
+    RequestHmset Hmset(std::string key, std::vector<std::pair<std::string, std::string>> field_values) override;
 
-  RequestKeys Keys(std::string keys_pattern, size_t shard) override;
+    RequestHset Hset(std::string key, std::string field, std::string value) override;
 
-  RequestLindex Lindex(std::string key, int64_t index) override;
+    RequestHsetnx Hsetnx(std::string key, std::string field, std::string value) override;
 
-  RequestLlen Llen(std::string key) override;
+    RequestHvals Hvals(std::string key) override;
 
-  RequestLpop Lpop(std::string key) override;
+    RequestIncr Incr(std::string key) override;
 
-  RequestLpush Lpush(std::string key, std::string value) override;
+    RequestKeys Keys(std::string keys_pattern, size_t shard) override;
 
-  RequestLpush Lpush(std::string key, std::vector<std::string> values) override;
+    RequestLindex Lindex(std::string key, int64_t index) override;
 
-  RequestLpushx Lpushx(std::string key, std::string element) override;
+    RequestLlen Llen(std::string key) override;
 
-  RequestLrange Lrange(std::string key, int64_t start, int64_t stop) override;
+    RequestLpop Lpop(std::string key) override;
 
-  RequestLrem Lrem(std::string key, int64_t count,
-                   std::string element) override;
+    RequestLpush Lpush(std::string key, std::string value) override;
 
-  RequestLtrim Ltrim(std::string key, int64_t start, int64_t stop) override;
+    RequestLpush Lpush(std::string key, std::vector<std::string> values) override;
 
-  RequestMget Mget(std::vector<std::string> keys) override;
+    RequestLpushx Lpushx(std::string key, std::string element) override;
 
-  RequestMset Mset(
-      std::vector<std::pair<std::string, std::string>> key_values) override;
+    RequestLrange Lrange(std::string key, int64_t start, int64_t stop) override;
 
-  RequestPersist Persist(std::string key) override;
+    RequestLrem Lrem(std::string key, int64_t count, std::string element) override;
 
-  RequestPexpire Pexpire(std::string key,
-                         std::chrono::milliseconds ttl) override;
+    RequestLtrim Ltrim(std::string key, int64_t start, int64_t stop) override;
 
-  RequestPing Ping(size_t shard) override;
+    RequestMget Mget(std::vector<std::string> keys) override;
 
-  RequestPingMessage PingMessage(size_t shard, std::string message) override;
+    RequestMset Mset(std::vector<std::pair<std::string, std::string>> key_values) override;
 
-  RequestRename Rename(std::string key, std::string new_key) override;
+    RequestPersist Persist(std::string key) override;
 
-  RequestRpop Rpop(std::string key) override;
+    RequestPexpire Pexpire(std::string key, std::chrono::milliseconds ttl) override;
 
-  RequestRpush Rpush(std::string key, std::string value) override;
+    RequestPing Ping(size_t shard) override;
 
-  RequestRpush Rpush(std::string key, std::vector<std::string> values) override;
+    RequestPingMessage PingMessage(size_t shard, std::string message) override;
 
-  RequestRpushx Rpushx(std::string key, std::string element) override;
+    RequestRename Rename(std::string key, std::string new_key) override;
 
-  RequestSadd Sadd(std::string key, std::string member) override;
+    RequestRpop Rpop(std::string key) override;
 
-  RequestSadd Sadd(std::string key, std::vector<std::string> members) override;
+    RequestRpush Rpush(std::string key, std::string value) override;
 
-  RequestScard Scard(std::string key) override;
+    RequestRpush Rpush(std::string key, std::vector<std::string> values) override;
 
-  RequestSet Set(std::string key, std::string value) override;
+    RequestRpushx Rpushx(std::string key, std::string element) override;
 
-  RequestSet Set(std::string key, std::string value,
-                 std::chrono::milliseconds ttl) override;
+    RequestSadd Sadd(std::string key, std::string member) override;
 
-  RequestSetIfExist SetIfExist(std::string key, std::string value) override;
+    RequestSadd Sadd(std::string key, std::vector<std::string> members) override;
 
-  RequestSetIfExist SetIfExist(std::string key, std::string value,
-                               std::chrono::milliseconds ttl) override;
+    RequestScard Scard(std::string key) override;
 
-  RequestSetIfNotExist SetIfNotExist(std::string key,
-                                     std::string value) override;
+    RequestSet Set(std::string key, std::string value) override;
 
-  RequestSetIfNotExist SetIfNotExist(std::string key, std::string value,
-                                     std::chrono::milliseconds ttl) override;
+    RequestSet Set(std::string key, std::string value, std::chrono::milliseconds ttl) override;
 
-  RequestSetex Setex(std::string key, std::chrono::seconds seconds,
-                     std::string value) override;
+    RequestSetIfExist SetIfExist(std::string key, std::string value) override;
 
-  RequestSismember Sismember(std::string key, std::string member) override;
+    RequestSetIfExist SetIfExist(std::string key, std::string value, std::chrono::milliseconds ttl) override;
 
-  RequestSmembers Smembers(std::string key) override;
+    RequestSetIfNotExist SetIfNotExist(std::string key, std::string value) override;
 
-  RequestSrandmember Srandmember(std::string key) override;
+    RequestSetIfNotExist SetIfNotExist(std::string key, std::string value, std::chrono::milliseconds ttl) override;
 
-  RequestSrandmembers Srandmembers(std::string key, int64_t count) override;
+    RequestSetIfNotExistOrGet SetIfNotExistOrGet(std::string key, std::string value) override;
 
-  RequestSrem Srem(std::string key, std::string member) override;
+    RequestSetIfNotExistOrGet SetIfNotExistOrGet(std::string key, std::string value, std::chrono::milliseconds ttl)
+        override;
 
-  RequestSrem Srem(std::string key, std::vector<std::string> members) override;
+    RequestSetex Setex(std::string key, std::chrono::seconds seconds, std::string value) override;
 
-  RequestStrlen Strlen(std::string key) override;
+    RequestSetAndGetPrevious SetAndGetPrevious(std::string key, std::string value, std::chrono::milliseconds ttl)
+        override;
 
-  RequestTime Time(size_t shard) override;
+    RequestSismember Sismember(std::string key, std::string member) override;
 
-  RequestTtl Ttl(std::string key) override;
+    RequestSmembers Smembers(std::string key) override;
 
-  RequestType Type(std::string key) override;
+    RequestSrandmember Srandmember(std::string key) override;
 
-  RequestZadd Zadd(std::string key, double score, std::string member) override;
+    RequestSrandmembers Srandmembers(std::string key, int64_t count) override;
 
-  RequestZadd Zadd(std::string key, double score, std::string member,
-                   const ZaddOptions& options) override;
+    RequestSrem Srem(std::string key, std::string member) override;
 
-  RequestZadd Zadd(
-      std::string key,
-      std::vector<std::pair<double, std::string>> scored_members) override;
+    RequestSrem Srem(std::string key, std::vector<std::string> members) override;
 
-  RequestZadd Zadd(std::string key,
-                   std::vector<std::pair<double, std::string>> scored_members,
-                   const ZaddOptions& options) override;
+    RequestStrlen Strlen(std::string key) override;
 
-  RequestZaddIncr ZaddIncr(std::string key, double score,
-                           std::string member) override;
+    RequestTime Time(size_t shard) override;
 
-  RequestZaddIncrExisting ZaddIncrExisting(std::string key, double score,
-                                           std::string member) override;
+    RequestTtl Ttl(std::string key) override;
 
-  RequestZcard Zcard(std::string key) override;
+    RequestType Type(std::string key) override;
 
-  RequestZcount Zcount(std::string key, double min, double max) override;
+    RequestZadd Zadd(std::string key, double score, std::string member) override;
 
-  RequestZrange Zrange(std::string key, int64_t start, int64_t stop) override;
+    RequestZadd Zadd(std::string key, double score, std::string member, const ZaddOptions& options) override;
 
-  RequestZrangeWithScores ZrangeWithScores(std::string key, int64_t start,
-                                           int64_t stop) override;
+    RequestZadd Zadd(std::string key, std::vector<std::pair<double, std::string>> scored_members) override;
 
-  RequestZrangebyscore Zrangebyscore(std::string key, double min,
-                                     double max) override;
+    RequestZadd Zadd(
+        std::string key,
+        std::vector<std::pair<double, std::string>> scored_members,
+        const ZaddOptions& options
+    ) override;
 
-  RequestZrangebyscore Zrangebyscore(std::string key, std::string min,
-                                     std::string max) override;
+    RequestZaddIncr ZaddIncr(std::string key, double score, std::string member) override;
 
-  RequestZrangebyscore Zrangebyscore(
-      std::string key, double min, double max,
-      const RangeOptions& range_options) override;
+    RequestZaddIncrExisting ZaddIncrExisting(std::string key, double score, std::string member) override;
 
-  RequestZrangebyscore Zrangebyscore(
-      std::string key, std::string min, std::string max,
-      const RangeOptions& range_options) override;
+    RequestZcard Zcard(std::string key) override;
 
-  RequestZrangebyscoreWithScores ZrangebyscoreWithScores(std::string key,
-                                                         double min,
-                                                         double max) override;
+    RequestZcount Zcount(std::string key, double min, double max) override;
 
-  RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
-      std::string key, std::string min, std::string max) override;
+    RequestZrange Zrange(std::string key, int64_t start, int64_t stop) override;
 
-  RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
-      std::string key, double min, double max,
-      const RangeOptions& range_options) override;
+    RequestZrangeWithScores ZrangeWithScores(std::string key, int64_t start, int64_t stop) override;
 
-  RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
-      std::string key, std::string min, std::string max,
-      const RangeOptions& range_options) override;
+    RequestZrangebyscore Zrangebyscore(std::string key, double min, double max) override;
 
-  RequestZrem Zrem(std::string key, std::string member) override;
+    RequestZrangebyscore Zrangebyscore(std::string key, std::string min, std::string max) override;
 
-  RequestZrem Zrem(std::string key, std::vector<std::string> members) override;
+    RequestZrangebyscore Zrangebyscore(std::string key, double min, double max, const RangeOptions& range_options)
+        override;
 
-  RequestZremrangebyrank Zremrangebyrank(std::string key, int64_t start,
-                                         int64_t stop) override;
+    RequestZrangebyscore Zrangebyscore(
+        std::string key,
+        std::string min,
+        std::string max,
+        const RangeOptions& range_options
+    ) override;
 
-  RequestZremrangebyscore Zremrangebyscore(std::string key, double min,
-                                           double max) override;
+    RequestZrangebyscoreWithScores ZrangebyscoreWithScores(std::string key, double min, double max) override;
 
-  RequestZremrangebyscore Zremrangebyscore(std::string key, std::string min,
-                                           std::string max) override;
+    RequestZrangebyscoreWithScores ZrangebyscoreWithScores(std::string key, std::string min, std::string max) override;
 
-  RequestZscore Zscore(std::string key, std::string member) override;
+    RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
+        std::string key,
+        double min,
+        double max,
+        const RangeOptions& range_options
+    ) override;
 
-  // end of redis commands
+    RequestZrangebyscoreWithScores ZrangebyscoreWithScores(
+        std::string key,
+        std::string min,
+        std::string max,
+        const RangeOptions& range_options
+    ) override;
 
- private:
-  void UpdateShard(const std::string& key);
-  void UpdateShard(const std::vector<std::string>& keys);
-  void UpdateShard(
-      const std::vector<std::pair<std::string, std::string>>& key_values);
-  void UpdateShard(size_t shard);
+    RequestZrem Zrem(std::string key, std::string member) override;
 
-  template <typename Result, typename ReplyType>
-  Request<Result, ReplyType> DoAddCmd(To<Request<Result, ReplyType>>);
+    RequestZrem Zrem(std::string key, std::vector<std::string> members) override;
 
-  template <typename Request, typename... Args>
-  Request AddCmd(std::string command, bool master, Args&&... args);
+    RequestZremrangebyrank Zremrangebyrank(std::string key, int64_t start, int64_t stop) override;
 
-  std::shared_ptr<ClientImpl> client_;
-  const CheckShards check_shards_;
+    RequestZremrangebyscore Zremrangebyscore(std::string key, double min, double max) override;
 
-  std::optional<size_t> shard_;
+    RequestZremrangebyscore Zremrangebyscore(std::string key, std::string min, std::string max) override;
 
-  bool master_{};
-  USERVER_NAMESPACE::redis::CmdArgs cmd_args_;
-  std::vector<ResultPromise> result_promises_;
+    RequestZscore Zscore(std::string key, std::string member) override;
+
+    // Hash field expiration commands:
+
+    RequestHexpire Hexpire(std::string key, std::chrono::seconds ttl, std::vector<std::string> fields) override;
+
+    RequestHexpire Hexpire(
+        std::string key,
+        std::chrono::seconds ttl,
+        ExpireOptions options,
+        std::vector<std::string> fields
+    ) override;
+
+    RequestHexpire Hpexpire(std::string key, std::chrono::milliseconds ttl, std::vector<std::string> fields) override;
+
+    RequestHexpire Hpexpire(
+        std::string key,
+        std::chrono::milliseconds ttl,
+        ExpireOptions options,
+        std::vector<std::string> fields
+    ) override;
+
+    RequestHexpire Hexpireat(
+        std::string key,
+        std::chrono::system_clock::time_point deadline,
+        std::vector<std::string> fields
+    ) override;
+
+    RequestHexpire Hexpireat(
+        std::string key,
+        std::chrono::system_clock::time_point deadline,
+        ExpireOptions options,
+        std::vector<std::string> fields
+    ) override;
+
+    RequestHexpire Hpexpireat(
+        std::string key,
+        std::chrono::system_clock::time_point deadline,
+        std::vector<std::string> fields
+    ) override;
+
+    RequestHexpire Hpexpireat(
+        std::string key,
+        std::chrono::system_clock::time_point deadline,
+        ExpireOptions options,
+        std::vector<std::string> fields
+    ) override;
+
+    RequestHexpiretime Hexpiretime(std::string key, std::vector<std::string> fields) override;
+
+    RequestHpexpiretime Hpexpiretime(std::string key, std::vector<std::string> fields) override;
+
+    RequestHttl Httl(std::string key, std::vector<std::string> fields) override;
+
+    RequestHpttl Hpttl(std::string key, std::vector<std::string> fields) override;
+
+    RequestHpersist Hpersist(std::string key, std::vector<std::string> fields) override;
+
+    RequestHgetex Hgetex(std::string key, std::vector<std::string> fields) override;
+
+    RequestHgetex Hgetex(std::string key, HgetexOptions options, std::vector<std::string> fields) override;
+
+    RequestHsetex Hsetex(std::string key, std::vector<HsetexFieldValue> field_values) override;
+
+    RequestHsetex Hsetex(std::string key, HsetexOptions options, std::vector<HsetexFieldValue> field_values) override;
+
+    // JSON module commands:
+
+    RequestJsonSet JsonSet(std::string key, std::string path, formats::json::Value value) override;
+
+    RequestJsonSetIfNotExist JsonSetIfNotExist(std::string key, std::string path, formats::json::Value value) override;
+
+    RequestJsonSetIfExist JsonSetIfExist(std::string key, std::string path, formats::json::Value value) override;
+
+    RequestJsonGet JsonGet(std::string key) override;
+
+    RequestJsonGet JsonGet(std::string key, std::string path) override;
+
+    RequestJsonGet JsonGet(std::string key, std::vector<std::string> paths) override;
+
+    RequestJsonMget JsonMget(std::vector<std::string> keys, std::string path) override;
+
+    RequestJsonMset JsonMset(std::vector<JsonKeyPathValue> key_path_values) override;
+
+    // end of redis commands
+
+private:
+    void UpdateShard(const std::string& key);
+    void UpdateShard(const std::vector<std::string>& keys);
+    void UpdateShard(const std::vector<std::pair<std::string, std::string>>& key_values);
+    void UpdateShard(size_t shard);
+
+    template <typename Result, typename ReplyType>
+    Request<Result, ReplyType> DoAddCmd(To<Request<Result, ReplyType>>);
+
+    template <typename Request, typename... Args>
+    Request AddCmd(std::string command, bool master, Args&&... args);
+
+    std::shared_ptr<ClientImpl> client_;
+    const CheckShards check_shards_;
+
+    std::optional<size_t> shard_;
+
+    bool master_{};
+    impl::CmdArgs cmd_args_;
+    std::vector<ResultPromise> result_promises_;
 };
 
 }  // namespace storages::redis

@@ -8,52 +8,59 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::postgres {
 
 struct NotifyScope::Impl {
-  detail::ConnectionPtr conn_;
-  std::string channel_;
-  OptionalCommandControl cmd_ctl_;
+    detail::ConnectionPtr conn;
+    std::string channel;
+    OptionalCommandControl cmd_ctl;
 
-  Impl(detail::ConnectionPtr conn, std::string_view channel,
-       OptionalCommandControl cmd_ctl)
-      : conn_{std::move(conn)}, channel_{channel}, cmd_ctl_{cmd_ctl} {
-    Listen();
-  }
-
-  ~Impl() { Unlisten(); }
-
-  Impl(Impl&&) = default;
-  Impl& operator=(Impl&&) = default;
-
-  Impl(const Impl&) = delete;
-  Impl& operator=(const Impl&) = delete;
-
-  Notification WaitNotify(engine::Deadline deadline) {
-    UINVARIANT(conn_, "Called WaitNotify on empty NotifyScope");
-    return conn_->WaitNotify(deadline);
-  }
-
- private:
-  void Listen() {
-    UASSERT(conn_);
-    LOG_DEBUG() << "Start listening on channel '" << channel_ << "'";
-    conn_->Listen(channel_, cmd_ctl_);
-  }
-
-  void Unlisten() {
-    if (!conn_) return;
-    try {
-      LOG_DEBUG() << "Stop listening on channel '" << channel_ << "'";
-      conn_->Unlisten(channel_, cmd_ctl_);
-    } catch (const std::exception& e) {
-      LOG_LIMITED_ERROR() << "Exception while executing unlisten: " << e;
-      // Will be closed to avoid unsolicited notifications in the future
-      conn_->MarkAsBroken();
+    Impl(detail::ConnectionPtr conn, std::string_view channel, OptionalCommandControl cmd_ctl)
+        : conn{std::move(conn)},
+          channel{channel},
+          cmd_ctl{cmd_ctl}
+    {
+        Listen();
     }
-  }
+
+    ~Impl() { Unlisten(); }
+
+    Impl(Impl&&) = default;
+    Impl& operator=(Impl&&) = default;
+
+    Impl(const Impl&) = delete;
+    Impl& operator=(const Impl&) = delete;
+
+    // NOLINTNEXTLINE(readability-make-member-function-const)
+    Notification WaitNotify(engine::Deadline deadline) {
+        UINVARIANT(conn, "Called WaitNotify on empty NotifyScope");
+        return conn->WaitNotify(deadline);
+    }
+
+private:
+    // NOLINTNEXTLINE(readability-make-member-function-const)
+    void Listen() {
+        UASSERT(conn);
+        LOG_DEBUG() << "Start listening on channel '" << channel << "'";
+        conn->Listen(channel, cmd_ctl);
+    }
+
+    // NOLINTNEXTLINE(readability-make-member-function-const)
+    void Unlisten() {
+        if (!conn) {
+            return;
+        }
+        try {
+            LOG_DEBUG() << "Stop listening on channel '" << channel << "'";
+            conn->Unlisten(channel, cmd_ctl);
+        } catch (const std::exception& e) {
+            LOG_LIMITED_ERROR() << "Exception while executing unlisten: " << e;
+            // Will be closed to avoid unsolicited notifications in the future
+            conn->MarkAsBroken();
+        }
+    }
 };
 
-NotifyScope::NotifyScope(detail::ConnectionPtr conn, std::string_view channel,
-                         OptionalCommandControl cmd_ctl)
-    : pimpl_{std::move(conn), channel, cmd_ctl} {}
+NotifyScope::NotifyScope(detail::ConnectionPtr conn, std::string_view channel, OptionalCommandControl cmd_ctl)
+    : pimpl_{std::move(conn), channel, cmd_ctl}
+{}
 
 NotifyScope::~NotifyScope() = default;
 
@@ -61,9 +68,7 @@ NotifyScope::NotifyScope(NotifyScope&&) noexcept = default;
 
 NotifyScope& NotifyScope::operator=(NotifyScope&&) noexcept = default;
 
-Notification NotifyScope::WaitNotify(engine::Deadline deadline) {
-  return pimpl_->WaitNotify(deadline);
-}
+Notification NotifyScope::WaitNotify(engine::Deadline deadline) { return pimpl_->WaitNotify(deadline); }
 
 }  // namespace storages::postgres
 

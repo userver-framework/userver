@@ -1,0 +1,17 @@
+default: {}
+description: |
+    Runtime routing table for YDB databases. Maps a logical database name
+    (a key in the ydb component's static `databases`) to another already
+    configured database name. An empty map (default) means no routing.
+
+    Enables blue-green database deployments, live cross-cluster migration and
+    operator-driven switchover of a service's database without a restart.
+    Routing is resolved per operation, so already-obtained table clients are
+    redirected as well. Single-hop only (the target is not resolved further).
+schema:
+    type: object
+    additionalProperties:
+        type: string
+        description: |-
+            Target database name. Must be a database configured in the ydb
+            component's static config (a key in `databases` or its static alias).

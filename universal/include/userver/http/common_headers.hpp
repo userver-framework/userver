@@ -8,7 +8,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-/// Common HTTP headers
+/// @brief Predefined HTTP header names and related helpers.
 namespace http::headers {
 
 // Headers from rfc7231
@@ -87,8 +87,7 @@ inline constexpr PredefinedHeader kLocation{"Location"};
 inline constexpr PredefinedHeader kRetryAfter{"Retry-After"};
 inline constexpr PredefinedHeader kVary{"Vary"};
 inline constexpr PredefinedHeader kWarning{"Warning"};
-inline constexpr PredefinedHeader kAccessControlAllowHeaders{
-    "Access-Control-Allow-Headers"};
+inline constexpr PredefinedHeader kAccessControlAllowHeaders{"Access-Control-Allow-Headers"};
 /// @}
 
 /// @name Validator Header Fields
@@ -119,6 +118,7 @@ inline constexpr PredefinedHeader kSetCookie{"Set-Cookie"};
 /// @{
 inline constexpr PredefinedHeader kWebsocketKey{"Sec-WebSocket-Key"};
 inline constexpr PredefinedHeader kWebsocketAccept{"Sec-WebSocket-Accept"};
+inline constexpr PredefinedHeader kWebsocketProtocol{"Sec-WebSocket-Protocol"};
 inline constexpr PredefinedHeader kWebsocketVersion{"Sec-WebSocket-Version"};
 /// @}
 
@@ -136,10 +136,9 @@ inline constexpr PredefinedHeader kXYaTraceId{"X-YaTraceId"};
 inline constexpr PredefinedHeader kXYaSpanId{"X-YaSpanId"};
 inline constexpr PredefinedHeader kXRequestId{"X-RequestId"};
 inline constexpr PredefinedHeader kXBackendServer{"X-Backend-Server"};
-inline constexpr PredefinedHeader kXTaxiEnvoyProxyDstVhost{
-    "X-Taxi-EnvoyProxy-DstVhost"};
+inline constexpr PredefinedHeader kXTaxiEnvoyProxyDstVhost{"X-Taxi-EnvoyProxy-DstVhost"};
 
-/// B3 tracing Headers
+/// @brief B3 distributed tracing header name constants.
 namespace b3 {
 inline constexpr PredefinedHeader kTraceId{"X-B3-TraceId"};
 inline constexpr PredefinedHeader kSpanId{"X-B3-SpanId"};
@@ -147,7 +146,7 @@ inline constexpr PredefinedHeader kSampled{"X-B3-Sampled"};
 inline constexpr PredefinedHeader kParentSpanId{"X-B3-ParentSpanId"};
 }  // namespace b3
 
-/// OpenTelemetry tracing Headers
+/// @brief W3C Trace Context / OpenTelemetry-related header names.
 namespace opentelemetry {
 inline constexpr PredefinedHeader kTraceParent{"traceparent"};
 inline constexpr PredefinedHeader kTraceState{"tracestate"};
@@ -163,6 +162,7 @@ inline constexpr PredefinedHeader kXBaggage{"baggage"};
 /// @name Generic Yandex headers
 /// @{
 inline constexpr PredefinedHeader kXYandexUid{"X-Yandex-UID"};
+inline constexpr PredefinedHeader kXYandexLogin{"X-Yandex-Login"};
 
 // IP address of mobile client, not an IP address of single-hop client.
 inline constexpr PredefinedHeader kXRemoteIp{"X-Remote-IP"};
@@ -170,31 +170,34 @@ inline constexpr PredefinedHeader kXRemoteIp{"X-Remote-IP"};
 
 /// @name Generic Yandex/MLU headers
 /// @{
-inline constexpr PredefinedHeader kXYaTaxiAllowAuthRequest{
-    "X-YaTaxi-Allow-Auth-Request"};
-inline constexpr PredefinedHeader kXYaTaxiAllowAuthResponse{
-    "X-YaTaxi-Allow-Auth-Response"};
-inline constexpr PredefinedHeader kXYaTaxiServerHostname{
-    "X-YaTaxi-Server-Hostname"};
-inline constexpr PredefinedHeader kXYaTaxiClientTimeoutMs{
-    "X-YaTaxi-Client-TimeoutMs"};
-inline constexpr PredefinedHeader kXYaTaxiDeadlineExpired{
-    "X-YaTaxi-Deadline-Expired"};
-inline constexpr PredefinedHeader kXYaTaxiRatelimitedBy{
-    "X-YaTaxi-Ratelimited-By"};
-inline constexpr PredefinedHeader kXYaTaxiRatelimitReason{
-    "X-YaTaxi-Ratelimit-Reason"};
+inline constexpr PredefinedHeader kXYaTaxiAllowAuthRequest{"X-YaTaxi-Allow-Auth-Request"};
+inline constexpr PredefinedHeader kXYaTaxiAllowAuthResponse{"X-YaTaxi-Allow-Auth-Response"};
+inline constexpr PredefinedHeader kXYaTaxiServerHostname{"X-YaTaxi-Server-Hostname"};
+inline constexpr PredefinedHeader kXYaTaxiClientTimeoutMs{"X-YaTaxi-Client-TimeoutMs"};
+inline constexpr PredefinedHeader kXYaTaxiDeadlineExpired{"X-YaTaxi-Deadline-Expired"};
+inline constexpr PredefinedHeader kXRequestDeadline{"X-Request-Deadline"};
+inline constexpr PredefinedHeader kXYaTaxiRatelimitedBy{"X-YaTaxi-Ratelimited-By"};
+inline constexpr PredefinedHeader kXYaTaxiRatelimitReason{"X-YaTaxi-Ratelimit-Reason"};
 
+/// @brief Rate limiting metadata header name constants.
 namespace ratelimit_reason {
 inline constexpr std::string_view kCC{"congestion-control"};
-inline constexpr std::string_view kMaxResponseSizeInFlight{
-    "max-response-size-in-flight"};
-inline constexpr std::string_view kMaxPendingResponses{
-    "too-many-pending-responses"};
+inline constexpr std::string_view kMaxResponseSizeInFlight{"max-response-size-in-flight"};
+inline constexpr std::string_view kMaxPendingResponses{"too-many-pending-responses"};
 inline constexpr std::string_view kGlobal{"global-ratelimit"};
 inline constexpr std::string_view kInFlight{"max-requests-in-flight"};
 }  // namespace ratelimit_reason
 /// @}
+
+/// @brief K2 header name constants.
+namespace k2 {
+inline constexpr PredefinedHeader kHttp2SettingsHeader{"HTTP2-Settings"};
+inline constexpr PredefinedHeader kMethod{":method"};
+inline constexpr PredefinedHeader kScheme{":scheme"};
+inline constexpr PredefinedHeader kAuthority{":authority"};
+inline constexpr PredefinedHeader kPath{":path"};
+inline constexpr PredefinedHeader kStatus{":status"};
+}  // namespace k2
 
 }  // namespace http::headers
 

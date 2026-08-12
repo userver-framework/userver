@@ -8,13 +8,10 @@ ConditionVariable::ConditionVariable() = default;
 
 ConditionVariable::~ConditionVariable() = default;
 
-CvStatus ConditionVariable::Wait(std::unique_lock<Mutex>& lock) {
-  return WaitUntil(lock, {});
-}
+CvStatus ConditionVariable::Wait(std::unique_lock<Mutex>& lock) { return WaitUntil(lock, {}); }
 
-CvStatus ConditionVariable::WaitUntil(std::unique_lock<Mutex>& lock,
-                                      Deadline deadline) {
-  return impl_.WaitUntil(lock, deadline);
+CvStatus ConditionVariable::WaitUntil(std::unique_lock<Mutex>& lock, Deadline deadline) {
+    return impl_.WaitUntil(lock, deadline);
 }
 
 void ConditionVariable::NotifyOne() { impl_.NotifyOne(); }

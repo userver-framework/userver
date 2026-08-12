@@ -37,243 +37,242 @@ class ValueBuilder;
 /// @snippet formats/bson/value_test.cpp  Sample formats::bson::Value usage
 ///
 /// @see @ref scripts/docs/en/userver/formats.md
+///
+/// To iterate over `Value` as object use formats::common::Items.
 class Value {
- public:
-  struct DefaultConstructed {};
+public:
+    struct DefaultConstructed {};
 
-  using const_iterator =
-      Iterator<const Value, common::IteratorDirection::kForward>;
-  using const_reverse_iterator =
-      Iterator<const Value, common::IteratorDirection::kReverse>;
-  using Exception = formats::bson::BsonException;
-  using ParseException = formats::bson::ParseException;
-  using ExceptionWithPath = formats::bson::ExceptionWithPath;
-  using Builder = ValueBuilder;
+    using const_iterator = Iterator<const Value, common::IteratorDirection::kForward>;
+    using const_reverse_iterator = Iterator<const Value, common::IteratorDirection::kReverse>;
+    using Exception = formats::bson::BsonException;
+    using ParseException = formats::bson::ParseException;
+    using ExceptionWithPath = formats::bson::ExceptionWithPath;
+    using Builder = ValueBuilder;
 
-  /// @brief Selectors for duplicate fields parsing behavior
-  /// @see SetDuplicateFieldsPolicy
-  enum class DuplicateFieldsPolicy { kForbid, kUseFirst, kUseLast };
+    /// @brief Selectors for duplicate fields parsing behavior
+    /// @see SetDuplicateFieldsPolicy
+    enum class DuplicateFieldsPolicy { kForbid, kUseFirst, kUseLast };
 
-  /// Constructs a `null` value
-  Value();
+    /// Constructs a `null` value
+    Value();
 
-  Value(const Value&) = default;
-  Value(Value&&) noexcept = default;
-  Value& operator=(const Value&) & = default;
-  Value& operator=(Value&&) & noexcept = default;
+    Value(const Value&) = default;
+    Value(Value&&) noexcept = default;
+    Value& operator=(const Value&) & = default;
+    Value& operator=(Value&&) & noexcept = default;
 
-  template <class T>
-  Value& operator=(T&&) && {
-    static_assert(!sizeof(T),
-                  "You're assigning to a temporary formats::bson::Value! Use "
-                  "formats::bson::ValueBuilder for data modifications.");
-    return *this;
-  }
-
-  /// @cond
-  /// Constructor from implementation, internal use only
-  explicit Value(impl::ValueImplPtr);
-  /// @endcond
-
-  /// @brief Retrieves document field by name
-  /// @param name field name
-  /// @throws TypeMismatchException if value is not a missing value, a document,
-  /// or `null`
-  Value operator[](const std::string& name) const;
-
-  /// @brief Retrieves array element by index
-  /// @param index element index
-  /// @throws TypeMismatchException if value is not an array or `null`
-  /// @throws OutOfBoundsException if index is invalid for the array
-  Value operator[](uint32_t index) const;
-
-  /// @brief Checks whether the document has a field
-  /// @param name field name
-  /// @throws TypeMismatchExcepiton if value is not a document or `null`
-  bool HasMember(const std::string& name) const;
-
-  /// @brief Returns an iterator to the first array element/document field
-  /// @throws TypeMismatchException if value is not a document, array or `null`
-  const_iterator begin() const;
-
-  /// @brief Returns an iterator following the last array element/document field
-  /// @throws TypeMismatchException if value is not a document, array or `null`
-  const_iterator end() const;
-
-  /// @brief Returns a reversed iterator to the last array element
-  /// @throws TypeMismatchException if value is not an array or `null`
-  const_reverse_iterator rbegin() const;
-
-  /// @brief Returns a reversed iterator following the first array element
-  /// @throws TypeMismatchException if value is not an array or `null`
-  const_reverse_iterator rend() const;
-
-  /// @brief Returns whether the document/array is empty
-  /// @throws TypeMismatchException if value is not a document, array or `null`
-  /// @note Returns `true` for `null`.
-  bool IsEmpty() const;
-
-  /// @brief Returns the number of elements in a document/array
-  /// @throws TypeMismatchException if value is not a document, array or `null`
-  /// @note May require linear time before the first element access.
-  /// @note Returns 0 for `null`.
-  uint32_t GetSize() const;
-
-  /// Returns value path in a document
-  std::string GetPath() const;
-
-  bool operator==(const Value&) const;
-  bool operator!=(const Value&) const;
-
-  /// @brief Checks whether the selected element exists
-  /// @note MemberMissingException is throws on nonexisting element access
-  bool IsMissing() const;
-
-  /// @name Type checking
-  /// @{
-  bool IsArray() const;
-  bool IsDocument() const;
-  bool IsNull() const;
-  bool IsBool() const;
-  bool IsInt32() const;
-  bool IsInt64() const;
-  bool IsDouble() const;
-  bool IsString() const;
-  bool IsDateTime() const;
-  bool IsOid() const;
-  bool IsBinary() const;
-  bool IsDecimal128() const;
-  bool IsMinKey() const;
-  bool IsMaxKey() const;
-  bool IsTimestamp() const;
-
-  bool IsObject() const { return IsDocument(); }
-  /// @}
-
-  // clang-format off
-
-  /// Extracts the specified type with strict type checks
-  ///
-  /// ## Example usage:
-  ///
-  /// @snippet formats/bson/value_test.cpp  Sample formats::bson::Value::As<T>() usage
-  ///
-  /// @see @ref scripts/docs/en/userver/formats.md
-
-  // clang-format on
-
-  template <typename T>
-  auto As() const {
-    static_assert(
-        formats::common::impl::kHasParse<Value, T>,
-        "There is no `Parse(const Value&, formats::parse::To<T>)` in namespace "
-        "of `T` or `formats::parse`. "
-        "Probably you have not provided a `Parse` function overload.");
-
-    return Parse(*this, formats::parse::To<T>{});
-  }
-
-  /// Extracts the specified type with strict type checks, or constructs the
-  /// default value when the field is not present
-  template <typename T, typename First, typename... Rest>
-  auto As(First&& default_arg, Rest&&... more_default_args) const {
-    if (IsMissing() || IsNull()) {
-      // intended raw ctor call, sometimes casts
-      // NOLINTNEXTLINE(google-readability-casting)
-      return decltype(As<T>())(std::forward<First>(default_arg),
-                               std::forward<Rest>(more_default_args)...);
+    template <class T>
+    Value& operator=(T&&) && {
+        static_assert(
+            !sizeof(T),
+            "You're assigning to a temporary formats::bson::Value! Use "
+            "formats::bson::ValueBuilder for data modifications."
+        );
+        return *this;
     }
-    return As<T>();
-  }
 
-  /// @brief Returns value of *this converted to T or T() if this->IsMissing().
-  /// @throw Anything derived from std::exception.
-  /// @note Use as `value.As<T>({})`
-  template <typename T>
-  auto As(DefaultConstructed) const {
-    return (IsMissing() || IsNull()) ? decltype(As<T>())() : As<T>();
-  }
+    /// @cond
+    /// Constructor from implementation, internal use only
+    explicit Value(impl::ValueImplPtr);
+    /// @endcond
 
-  /// @brief Extracts the specified type with relaxed type checks.
-  /// For example, `true` may be converted to 1.0.
-  template <typename T>
-  T ConvertTo() const {
-    if constexpr (formats::common::impl::kHasConvert<Value, T>) {
-      return Convert(*this, formats::parse::To<T>{});
-    } else if constexpr (formats::common::impl::kHasParse<Value, T>) {
-      return Parse(*this, formats::parse::To<T>{});
-    } else {
-      static_assert(
-          !sizeof(T),
-          "There is no `Convert(const Value&, formats::parse::To<T>)` or"
-          "`Parse(const Value&, formats::parse::To<T>)`"
-          "in namespace of `T` or `formats::parse`. "
-          "Probably you have not provided a `Convert` function overload.");
+    /// @brief Retrieves document field by name
+    /// @param name field name
+    /// @throws TypeMismatchException if value is not a missing value, a document,
+    /// or `null`
+    Value operator[](const std::string& name) const;
+
+    /// @brief Retrieves array element by index
+    /// @param index element index
+    /// @throws TypeMismatchException if value is not an array or `null`
+    /// @throws OutOfBoundsException if index is invalid for the array
+    Value operator[](uint32_t index) const;
+
+    /// @brief Checks whether the document has a field
+    /// @param name field name
+    /// @throws TypeMismatchExcepiton if value is not a document or `null`
+    bool HasMember(const std::string& name) const;
+
+    /// @brief Returns an iterator to the first array element/document field
+    /// @throws TypeMismatchException if value is not a document, array or `null`
+    ///
+    /// To iterate over `Value` as object use formats::common::Items.
+    const_iterator begin() const;
+
+    /// @brief Returns an iterator following the last array element/document field
+    /// @throws TypeMismatchException if value is not a document, array or `null`
+    const_iterator end() const;
+
+    /// @brief Returns a reversed iterator to the last array element
+    /// @throws TypeMismatchException if value is not an array or `null`
+    const_reverse_iterator rbegin() const;
+
+    /// @brief Returns a reversed iterator following the first array element
+    /// @throws TypeMismatchException if value is not an array or `null`
+    const_reverse_iterator rend() const;
+
+    /// @brief Returns whether the document/array is empty
+    /// @throws TypeMismatchException if value is not a document, array or `null`
+    /// @note Returns `true` for `null`.
+    bool IsEmpty() const;
+
+    /// @brief Returns the number of elements in a document/array
+    /// @throws TypeMismatchException if value is not a document, array or `null`
+    /// @note May require linear time before the first element access.
+    /// @note Returns 0 for `null`.
+    uint32_t GetSize() const;
+
+    /// Returns value path in a document
+    std::string GetPath() const;
+
+    bool operator==(const Value&) const;
+
+    /// @brief Checks whether the selected element exists
+    /// @note MemberMissingException is throws on nonexisting element access
+    bool IsMissing() const;
+
+    /// @name Type checking
+    /// @{
+    bool IsArray() const;
+    bool IsDocument() const;
+    bool IsNull() const;
+    bool IsBool() const;
+    bool IsInt() const;
+    bool IsInt32() const;
+    bool IsInt64() const;
+    bool IsUInt64() const;
+    bool IsDouble() const;
+    bool IsString() const;
+    bool IsDateTime() const;
+    bool IsOid() const;
+    bool IsBinary() const;
+    bool IsDecimal128() const;
+    bool IsMinKey() const;
+    bool IsMaxKey() const;
+    bool IsTimestamp() const;
+
+    bool IsObject() const { return IsDocument(); }
+    /// @}
+
+    /// Extracts the specified type with strict type checks
+    ///
+    /// ## Example usage:
+    ///
+    /// @snippet formats/bson/value_test.cpp  Sample formats::bson::Value::As<T>() usage
+    ///
+    /// @see @ref scripts/docs/en/userver/formats.md
+    template <typename T>
+    auto As() const {
+        static_assert(
+            formats::common::impl::HasParse<Value, T>,
+            "There is no `Parse(const Value&, formats::parse::To<T>)` in namespace "
+            "of `T` or `formats::parse`. "
+            "Probably you have not provided a `Parse` function overload."
+        );
+
+        return Parse(*this, formats::parse::To<T>{});
     }
-  }
 
-  /// Extracts the specified type with strict type checks, or constructs the
-  /// default value when the field is not present
-  template <typename T, typename First, typename... Rest>
-  T ConvertTo(First&& default_arg, Rest&&... more_default_args) const {
-    if (IsMissing() || IsNull()) {
-      // NOLINTNEXTLINE(google-readability-casting)
-      return T(std::forward<First>(default_arg),
-               std::forward<Rest>(more_default_args)...);
+    /// Extracts the specified type with strict type checks, or constructs the
+    /// default value when the field is not present
+    template <typename T, typename First, typename... Rest>
+    auto As(First&& default_arg, Rest&&... more_default_args) const {
+        if (IsMissing() || IsNull()) {
+            // intended raw ctor call, sometimes casts
+            // NOLINTNEXTLINE(google-readability-casting)
+            return decltype(As<T>())(std::forward<First>(default_arg), std::forward<Rest>(more_default_args)...);
+        }
+        return As<T>();
     }
-    return ConvertTo<T>();
-  }
 
-  /// @brief Changes parsing behavior when duplicate fields are encountered.
-  /// Should not be used normally.
-  /// @details Should be called before the first field access. Only affects
-  /// documents. Default policy is to throw an exception when duplicate fields
-  /// are encountered.
-  /// @warning At most one value will be read, all others will be discarded and
-  /// cannot be serialized back!
-  void SetDuplicateFieldsPolicy(DuplicateFieldsPolicy);
+    /// @brief Returns value of *this converted to T or T() if this->IsMissing().
+    /// @throw Anything derived from std::exception.
+    /// @note Use as `value.As<T>({})`
+    template <typename T>
+    auto As(DefaultConstructed) const {
+        return (IsMissing() || IsNull()) ? decltype(As<T>())() : As<T>();
+    }
 
-  /// Throws a MemberMissingException if the selected element does not exist
-  void CheckNotMissing() const;
+    /// @brief Extracts the specified type with relaxed type checks.
+    /// For example, `true` may be converted to 1.0.
+    template <typename T>
+    T ConvertTo() const {
+        if constexpr (formats::common::impl::HasConvert<Value, T>) {
+            return Convert(*this, formats::parse::To<T>{});
+        } else if constexpr (formats::common::impl::HasParse<Value, T>) {
+            return Parse(*this, formats::parse::To<T>{});
+        } else {
+            static_assert(
+                !sizeof(T),
+                "There is no `Convert(const Value&, formats::parse::To<T>)` or "
+                "`Parse(const Value&, formats::parse::To<T>)` in namespace of `T` or `formats::parse`. "
+                "Probably you have not provided a `Convert` function overload."
+            );
+        }
+    }
 
-  /// @brief Throws a TypeMismatchException if the selected element
-  /// is not an array or null
-  void CheckArrayOrNull() const;
+    /// Extracts the specified type with strict type checks, or constructs the
+    /// default value when the field is not present
+    template <typename T, typename First, typename... Rest>
+    T ConvertTo(First&& default_arg, Rest&&... more_default_args) const {
+        if (IsMissing() || IsNull()) {
+            // NOLINTNEXTLINE(google-readability-casting)
+            return T(std::forward<First>(default_arg), std::forward<Rest>(more_default_args)...);
+        }
+        return ConvertTo<T>();
+    }
 
-  /// @brief Throws a TypeMismatchException if the selected element
-  /// is not a document or null
-  void CheckDocumentOrNull() const;
+    /// @brief Changes parsing behavior when duplicate fields are encountered.
+    /// Should not be used normally.
+    /// @details Should be called before the first field access. Only affects
+    /// documents. Default policy is to throw an exception when duplicate fields
+    /// are encountered.
+    /// @warning At most one value will be read, all others will be discarded and
+    /// cannot be serialized back!
+    void SetDuplicateFieldsPolicy(DuplicateFieldsPolicy);
 
-  /// @cond
-  /// Same, for parsing capabilities
-  void CheckObjectOrNull() const { CheckDocumentOrNull(); }
+    /// Throws a MemberMissingException if the selected element does not exist
+    void CheckNotMissing() const;
 
-  /// @brief Returns an array as its internal representation (BSON document),
-  /// internal use only
-  Document GetInternalArrayDocument() const;
-  /// @endcond
+    /// @brief Throws a TypeMismatchException if the selected element
+    /// is not an array or null
+    void CheckArrayOrNull() const;
 
- protected:
-  const impl::BsonHolder& GetBson() const;
+    /// @brief Throws a TypeMismatchException if the selected element
+    /// is not a document or null
+    void CheckDocumentOrNull() const;
 
- private:
-  friend class ValueBuilder;
-  friend class impl::BsonBuilder;
+    /// @cond
+    /// Same, for parsing capabilities
+    void CheckObjectOrNull() const { CheckDocumentOrNull(); }
 
-  friend bool Parse(const Value& value, parse::To<bool>);
-  friend int64_t Parse(const Value& value, parse::To<int64_t>);
-  friend uint64_t Parse(const Value& value, parse::To<uint64_t>);
-  friend double Parse(const Value& value, parse::To<double>);
-  friend std::string Parse(const Value& value, parse::To<std::string>);
-  friend std::chrono::system_clock::time_point Parse(
-      const Value& value, parse::To<std::chrono::system_clock::time_point>);
-  friend Oid Parse(const Value& value, parse::To<Oid>);
-  friend Binary Parse(const Value& value, parse::To<Binary>);
-  friend Decimal128 Parse(const Value& value, parse::To<Decimal128>);
-  friend Timestamp Parse(const Value& value, parse::To<Timestamp>);
-  friend Document Parse(const Value& value, parse::To<Document>);
+    /// @brief Returns an array as its internal representation (BSON document),
+    /// internal use only
+    Document GetInternalArrayDocument() const;
 
-  impl::ValueImplPtr impl_;
+    /// Native type access, internal use only
+    const impl::BsonHolder& GetBson() const;
+    /// @endcond
+
+private:
+    friend class ValueBuilder;
+    friend class impl::BsonBuilder;
+
+    friend bool Parse(const Value& value, parse::To<bool>);
+    friend int64_t Parse(const Value& value, parse::To<int64_t>);
+    friend uint64_t Parse(const Value& value, parse::To<uint64_t>);
+    friend double Parse(const Value& value, parse::To<double>);
+    friend std::string Parse(const Value& value, parse::To<std::string>);
+    friend std::chrono::system_clock::time_point
+    Parse(const Value& value, parse::To<std::chrono::system_clock::time_point>);
+    friend Oid Parse(const Value& value, parse::To<Oid>);
+    friend Binary Parse(const Value& value, parse::To<Binary>);
+    friend Decimal128 Parse(const Value& value, parse::To<Decimal128>);
+    friend Timestamp Parse(const Value& value, parse::To<Timestamp>);
+    friend Document Parse(const Value& value, parse::To<Document>);
+
+    impl::ValueImplPtr impl_;
 };
 
 /// @cond
@@ -287,8 +286,7 @@ double Parse(const Value& value, parse::To<double>);
 
 std::string Parse(const Value& value, parse::To<std::string>);
 
-std::chrono::system_clock::time_point Parse(
-    const Value& value, parse::To<std::chrono::system_clock::time_point>);
+std::chrono::system_clock::time_point Parse(const Value& value, parse::To<std::chrono::system_clock::time_point>);
 
 Oid Parse(const Value& value, parse::To<Oid>);
 
@@ -318,9 +316,7 @@ std::string Value::ConvertTo<std::string>() const;
 
 /// @brief Wrapper for handy python-like iteration over a map
 ///
-/// @code
-///   for (const auto& [name, value]: Items(map)) ...
-/// @endcode
+/// @snippet universal/src/formats/common/items_test.cpp  Items const iteration
 using formats::common::Items;
 
 }  // namespace formats::bson
@@ -329,7 +325,7 @@ using formats::common::Items;
 /// 'using namespace ABC' may contradict code style of your company.
 namespace formats::literals {
 
-bson::Value operator"" _bson(const char* str, std::size_t len);
+bson::Value operator""_bson(const char* str, std::size_t len);
 
 }  // namespace formats::literals
 

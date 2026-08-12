@@ -3,6 +3,13 @@
 /// @file userver/urabbitmq/typedefs.hpp
 /// @brief Convenient typedefs for RabbitMQ entities.
 
+#include <chrono>
+#include <cstdint>
+#include <optional>
+#include <string>
+#include <unordered_map>
+
+#include <userver/formats/json/value.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -11,55 +18,85 @@ namespace urabbitmq {
 
 /// @brief StrongTypedef alias for a queue name.
 class Queue final : public utils::StrongTypedef<class QueueTag, std::string> {
- public:
-  using utils::StrongTypedef<QueueTag, std::string>::StrongTypedef;
+public:
+    using utils::StrongTypedef<QueueTag, std::string>::StrongTypedef;
 
-  /// @brief Queue options, consult RabbitMQ docs for better understanding
-  enum class Flags {
-    kNone = 0,
-    kPassive = 1 << 0,
-    kDurable = 1 << 1,
-    kExclusive = 1 << 2,
-    kAutoDelete = 1 << 3,
-    kNoAck = 1 << 4
-  };
+    /// @brief Queue options, consult RabbitMQ docs for better understanding
+    enum class Flags {
+        kNone = 0,
+        kPassive = 1 << 0,
+        kDurable = 1 << 1,
+        kExclusive = 1 << 2,
+        kAutoDelete = 1 << 3,
+        kNoAck = 1 << 4
+    };
 };
 
 /// @brief StrongTypedef alias for an exchange name.
-class Exchange final
-    : public utils::StrongTypedef<class ExchangeTag, std::string> {
- public:
-  using utils::StrongTypedef<ExchangeTag, std::string>::StrongTypedef;
+class Exchange final : public utils::StrongTypedef<class ExchangeTag, std::string> {
+public:
+    using utils::StrongTypedef<ExchangeTag, std::string>::StrongTypedef;
 
-  /// @brief Type of an exchange.
-  ///
-  /// Consult RabbitMQ docs for better understanding.
-  enum class Type {
-    kFanOut,
-    kDirect,
-    kTopic,
-    kHeaders,
-    // plugin required
-    kConsistentHash,
-    // plugin required
-    kMessageDeduplication
-  };
+    /// @brief Type of an exchange.
+    ///
+    /// Consult RabbitMQ docs for better understanding.
+    enum class Type {
+        kFanOut,
+        kDirect,
+        kTopic,
+        kHeaders,
+        // plugin required
+        kConsistentHash,
+        // plugin required
+        kMessageDeduplication
+    };
 
-  /// @brief Exchange options, consult RabbitMQ docs for better understanding
-  enum class Flags {
-    kNone = 0,
-    kPassive = 1 << 0,
-    kDurable = 1 << 1,
-    kAutoDelete = 1 << 2,
-    kInternal = 1 << 3,
-    kNoWait = 1 << 4
-  };
+    /// @brief Exchange options, consult RabbitMQ docs for better understanding
+    enum class Flags {
+        kNone = 0,
+        kPassive = 1 << 0,
+        kDurable = 1 << 1,
+        kAutoDelete = 1 << 2,
+        kInternal = 1 << 3,
+        kNoWait = 1 << 4
+    };
 };
 
 /// @brief Message storage type, consult RabbitMQ docs for better understanding
 enum class MessageType {
-  kPersistent,
-  kTransient,
+    kPersistent,
+    kTransient,
+};
+
+/// JSON-like representation of an AMQP header value.
+/// This is not JSON, but a convenient tree representation for AMQP field values.
+using HeaderValue = formats::json::Value;
+
+/// @brief Structure holding an AMQP message body along with some of its
+/// metadata fields. This struct is used to pass messages to the end user,
+/// hiding the actual AMQP message object implementation.
+struct ConsumedMessage {
+    struct Metadata {
+        std::string exchange;
+        std::string routingKey;
+    };
+    std::string message;
+    Metadata metadata;
+    std::optional<std::string> reply_to{};
+    std::optional<std::string> correlation_id{};
+    std::unordered_map<std::string, HeaderValue> headers{};
+};
+
+/// @brief Structure holding an AMQP message body along with some of its
+/// metadata fields. This struct is used to pass messages from the end user,
+/// hiding the actual AMQP message object implementation.
+struct Envelope {
+    std::string message;
+    MessageType type;
+    std::optional<std::string> reply_to{};
+    std::optional<std::string> correlation_id{};
+    std::optional<std::chrono::milliseconds> expiration{};
+    std::optional<std::unordered_map<std::string, HeaderValue>> headers{};
 };
 
 }  // namespace urabbitmq

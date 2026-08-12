@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/engine/io/fd_control_holder.hpp
+/// @brief File descriptor control holder type aliases
+
 #include <memory>
 
 USERVER_NAMESPACE_BEGIN
@@ -9,7 +12,7 @@ namespace engine::io::impl {
 class FdControl;
 
 struct FdControlDeleter {
-  void operator()(FdControl* ptr) const noexcept;
+    void operator()(FdControl* ptr) const noexcept;
 };
 
 using FdControlHolder = std::unique_ptr<FdControl, FdControlDeleter>;

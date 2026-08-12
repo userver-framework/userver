@@ -71,7 +71,8 @@ async def test_empty_yandex_tracing_headers(service_client, mockserver):
 
 
 async def test_b3_tracing_headers(
-        service_client, mockserver, assert_ids_in_file,
+    service_client,
+    mockserver,
 ):
     @mockserver.json_handler('/test-service/echo-no-body')
     async def _handler(request):
@@ -84,43 +85,34 @@ async def test_b3_tracing_headers(
     response = await service_client.get('/echo-no-body', headers=B3_HEADERS)
     assert _handler.times_called >= 1
     assert response.status_code == 200
-    await assert_ids_in_file(B3_HEADERS['X-B3-TraceId'])
 
 
 async def test_otel_tracing_headers(
-        service_client, mockserver, assert_ids_in_file,
+    service_client,
+    mockserver,
 ):
     @mockserver.json_handler('/test-service/echo-no-body')
     async def _handler(request):
         assert request.headers['X-YaTraceId'] == OPENTELEMETRY_TRACE_ID
-        assert (
-            request.headers['traceparent'].split('-')[0]
-            == OPENTELEMETRY_HEADERS['traceparent'].split('-')[0]
+        assert request.headers['traceparent'].split('-')[0] == OPENTELEMETRY_HEADERS['traceparent'].split('-')[0]
+        assert request.headers['traceparent'].split('-')[1] == OPENTELEMETRY_HEADERS['traceparent'].split('-')[1]
+        assert request.headers['traceparent'].split('-')[3] == OPENTELEMETRY_HEADERS['traceparent'].split('-')[3], (
+            request.headers['traceparent']
         )
-        assert (
-            request.headers['traceparent'].split('-')[1]
-            == OPENTELEMETRY_HEADERS['traceparent'].split('-')[1]
-        )
-        assert (
-            request.headers['traceparent'].split('-')[3]
-            == OPENTELEMETRY_HEADERS['traceparent'].split('-')[3]
-        ), request.headers['traceparent']
-        assert (
-            request.headers['tracestate']
-            == OPENTELEMETRY_HEADERS['tracestate']
-        )
+        assert request.headers['tracestate'] == OPENTELEMETRY_HEADERS['tracestate']
         return mockserver.make_response()
 
     response = await service_client.get(
-        '/echo-no-body', headers=OPENTELEMETRY_HEADERS,
+        '/echo-no-body',
+        headers=OPENTELEMETRY_HEADERS,
     )
     assert _handler.times_called >= 1
     assert response.status_code == 200
-    await assert_ids_in_file(OPENTELEMETRY_TRACE_ID)
 
 
 async def test_taxi_tracing_headers(
-        service_client, mockserver, assert_ids_in_file,
+    service_client,
+    mockserver,
 ):
     @mockserver.json_handler('/test-service/echo-no-body')
     async def _handler(request):
@@ -132,22 +124,19 @@ async def test_taxi_tracing_headers(
     response = await service_client.get('/echo-no-body', headers=TAXI_HEADERS)
     assert _handler.times_called >= 1
     assert response.status_code == 200
-    await assert_ids_in_file(TAXI_HEADERS['X-YaTraceId'])
 
 
 async def test_taxi_tracing_headers_ext(service_client, mockserver):
     @mockserver.json_handler('/test-service/echo-no-body')
     async def _handler(request):
         assert request.headers['X-YaTraceId'] == TAXI_HEADERS['X-YaTraceId']
-        assert (
-            request.headers['X-YaRequestId']
-            != TAXI_HEADERS_EXT['X-YaRequestId']
-        )
+        assert request.headers['X-YaRequestId'] != TAXI_HEADERS_EXT['X-YaRequestId']
         assert request.headers['X-YaSpanId'] != TAXI_HEADERS['X-YaSpanId']
         return mockserver.make_response()
 
     response = await service_client.get(
-        '/echo-no-body', headers={**TAXI_HEADERS, **TAXI_HEADERS_EXT},
+        '/echo-no-body',
+        headers={**TAXI_HEADERS, **TAXI_HEADERS_EXT},
     )
     assert _handler.times_called >= 1
     assert response.status_code == 200
@@ -162,14 +151,16 @@ async def test_taxi_tracing_headers_min(service_client, mockserver):
         return mockserver.make_response()
 
     response = await service_client.get(
-        '/echo-no-body', headers={'X-YaTraceId': TAXI_HEADERS['X-YaTraceId']},
+        '/echo-no-body',
+        headers={'X-YaTraceId': TAXI_HEADERS['X-YaTraceId']},
     )
     assert _handler.times_called >= 1
     assert response.status_code == 200
 
 
 async def test_yandex_tracing_headers(
-        service_client, mockserver, assert_ids_in_file,
+    service_client,
+    mockserver,
 ):
     @mockserver.json_handler('/test-service/echo-no-body')
     async def _handler(request):
@@ -178,11 +169,11 @@ async def test_yandex_tracing_headers(
         return mockserver.make_response()
 
     response = await service_client.get(
-        '/echo-no-body', headers=YANDEX_HEADERS,
+        '/echo-no-body',
+        headers=YANDEX_HEADERS,
     )
     assert _handler.times_called >= 1
     assert response.status_code == 200
-    await assert_ids_in_file(YANDEX_HEADERS['X-RequestId'])
 
 
 async def test_priority_otel_tracing_headers(service_client, mockserver):
@@ -192,7 +183,8 @@ async def test_priority_otel_tracing_headers(service_client, mockserver):
         return mockserver.make_response()
 
     response = await service_client.get(
-        '/echo-no-body', headers={**TAXI_HEADERS, **OPENTELEMETRY_HEADERS},
+        '/echo-no-body',
+        headers={**TAXI_HEADERS, **OPENTELEMETRY_HEADERS},
     )
     assert _handler.times_called >= 1
     assert response.status_code == 200
@@ -205,7 +197,8 @@ async def test_priority_b3_tracing_headers(service_client, mockserver):
         return mockserver.make_response()
 
     response = await service_client.get(
-        '/echo-no-body', headers={**TAXI_HEADERS, **B3_HEADERS},
+        '/echo-no-body',
+        headers={**TAXI_HEADERS, **B3_HEADERS},
     )
     assert _handler.times_called >= 1
     assert response.status_code == 200

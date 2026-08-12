@@ -11,7 +11,7 @@ developer to call service handlers and test their result.
 
 Supported features:
 
-* Database startup (Mongo, Postgresql, Clickhouse, ...)
+* Database startup (Mongo, Postgresql, Clickhouse, Kafka, ...)
 * Per-test database state
 * Service startup
 * Mocksever to mock external service handlers
@@ -23,7 +23,7 @@ Supported features:
 
 ## CMake integration
 
-### CMake integration via `userver_testsuite_add()`
+### CMake integration via userver_testsuite_add()
 
 With `userver_testsuite_add()` function you can easily add testsuite support to your project.
 Its main purpose is:
@@ -34,24 +34,24 @@ Its main purpose is:
 * Add a `start-*` target that starts the service and databases with testsuite
   configs and waits for keyboard interruption to stop the service.
 
-@ref cmake/UserverTestsuite.cmake library is automatically added to CMake path
-after userver environment setup. Add the following line to use it:
-
-@snippet testsuite/SetupUserverTestsuiteEnv.cmake testsuite - UserverTestsuite
-
 Then create testsuite target:
 @snippet samples/testsuite-support/CMakeLists.txt testsuite - cmake
 
-### Arguments
+### userver_testsuite_add() arguments
 
 * SERVICE_TARGET, required CMake name of the target service to test. Used as
   suffix for `testsuite-` and `start-` CMake target names.
+* TEST_SUFFIX, required when many testsuite's are created for the same SERVICE_TARGET.
 * WORKING_DIRECTORY, pytest working directory. Default is ${CMAKE_CURRENT_SOURCE_DIR}.
 * PYTEST_ARGS, list of extra arguments passed to `pytest`.
 * PYTHONPATH, list of directories to be prepended to `PYTHONPATH`.
 * REQUIREMENTS, list of requirements.txt files used to populate `venv`.
 * PYTHON_BINARY, path to existing Python binary.
 * PRETTY_LOGS, set to `OFF` to disable pretty printing.
+* DUMP_CONFIG, set to `TRUE` to tell the testsuite that there is no static config file in the file system and force the
+  testsuite to retrieve config from a service itself, by running it
+  with `--dump-config` option first. See @ref scripts/docs/en/userver/libraries/easy.md for usage example.
+* SQL_LIBRARY, target to enable @ref sql_coverage_test_info "SQL coverage tests".
 
 Some of the most useful arguments for PYTEST_ARGS:
 
@@ -67,7 +67,7 @@ Some of the most useful arguments for PYTEST_ARGS:
 | `--service-wait`                | With this argument the testsuite will wait for the service start by user. For example under gdb. Testsuite outputs a hint on starting the service |
 | `-rf`                           | Show a summary of failed tests          |
 
-### CMake integration via `userver_testsuite_add_simple()`
+### CMake integration via userver_testsuite_add_simple()
 
 `userver_testsuite_add_simple()` is a version of `userver_testsuite_add()`
 that makes some assumptions of the project structure.
@@ -120,29 +120,29 @@ that could be found in corresponding binary directory.
 This may be useful to run a single testcase, to start the testsuite with gdb or to
 start the testsuite with extra pytest arguments:
 
-`${CMAKE_CURRENT_BINARY_DIR}/runtests-testsuite-${SERVICE_TARGET}`
+`${CMAKE_CURRENT_BINARY_DIR}/runtests-${SERVICE_TARGET}`
 
 You can use it to manually start testsuite with extra `pytest` arguments, e.g.:
 
 
 ```shell
-./build/tests/runtests-testsuite-my-project -vvx ./tests -k test_foo
+./build-debug/runtests-service_template -vvx -k test_foo
 ```
 
 Please refer to `testuite` and `pytest` documentation for available options.
 Run it with `--help` argument to see the short options description.
 
 ```shell
-./build/tests/runtests-testsuite-my-project ./tests --help
+./build-debug/runtests-service_template --help
 ```
 
-### Debug 
+### Debug
 
 To debug the functional test you can start testsuite with extra `pytest` arguments, e.g.:
 
 
 ```shell
-./build/tests/runtests-testsuite-my-project --service-wait ./tests -k test_foo
+./build-debug/runtests-service_template --service-wait -k test_foo
 ```
 
 At the beginning of the execution the console will display the command to start the service, e.g.:
@@ -152,7 +152,7 @@ At the beginning of the execution the console will display the command to start 
 gdb --args /.../my-project/build/functional-tests --config /.../config.yaml
 ```
 
-Now you can open a new terminal window and run this command in it or if 
+Now you can open a new terminal window and run this command in it, or if
 you use an IDE you can find the corresponding CMake target and add arg `--config /.../config.yaml`.
 After that it will be possible to set breakpoints and start target with debug.
 
@@ -169,19 +169,21 @@ It requires extra PYTEST_ARGS to be passed:
 @snippet samples/testsuite-support/CMakeLists.txt testsuite - cmake
 
 The plugins match the userver cmake targets. For example, if the service links
-with `userver-core` its tests should use the pytest_userver.plugins.core
+with `userver::core` its tests should use the pytest_userver.plugins.core
 plugin.
 
-| CMake target       | Matching plugin for testsuite     |
-|--------------------|-----------------------------------|
-| userver-core       | pytest_userver.plugins.core       |
-| userver-grpc       | pytest_userver.plugins.grpc       |
-| userver-postgresql | pytest_userver.plugins.postgresql |
-| userver-clickhouse | pytest_userver.plugins.clickhouse |
-| userver-redis      | pytest_userver.plugins.redis      |
-| userver-mongo      | pytest_userver.plugins.mongo      |
-| userver-rabbitmq   | pytest_userver.plugins.rabbitmq   |
-| userver-mysql      | pytest_userver.plugins.mysql      |
+| CMake target        | Matching plugin for testsuite     |
+|---------------------|-----------------------------------|
+| userver::core       | pytest_userver.plugins.core       |
+| userver::grpc       | pytest_userver.plugins.grpc       |
+| userver::postgresql | pytest_userver.plugins.postgresql |
+| userver::clickhouse | pytest_userver.plugins.clickhouse |
+| userver::redis      | pytest_userver.plugins.redis      |
+| userver::mongo      | pytest_userver.plugins.mongo      |
+| userver::rabbitmq   | pytest_userver.plugins.rabbitmq   |
+| userver::kafka      | pytest_userver.plugins.kafka      |
+| userver::mysql      | pytest_userver.plugins.mysql      |
+| userver::ydb        | pytest_userver.plugins.ydb        |
 
 @see @ref userver_libraries
 
@@ -194,11 +196,11 @@ In order to use it you need to register corresponding components:
 
 Headers:
 
-@snippet samples/testsuite-support/src/main.cpp testsuite - include components
+@snippet samples/testsuite-support/main.cpp testsuite - include components
 
 Add components to components list:
 
-@snippet samples/testsuite-support/src/main.cpp testsuite - register components
+@snippet samples/testsuite-support/main.cpp testsuite - register components
 
 Add testsuite components to `config.yaml`:
 
@@ -212,10 +214,10 @@ This component must be disabled for production.
 ### Features
 
 The essential parts of the testsuite are
-@ref service_client "pytest_userver.plugins.service_client.service_client" and
+@ref pytest_userver.plugins.service_client.service_client "service_client" and
 pytest_userver.plugins.service_client.monitor_client fixtures that give you
 access to the pytest_userver.client.Client and
-pytest_userver.client.ClientMonitor respectively. Those types allow to interact
+pytest_userver.client.ClientMonitor respectively. Those types allow you to interact
 with a running service.
 
 Testsuite functions reference could be found at @ref userver_testsuite.
@@ -234,11 +236,11 @@ collected functions and fixtures are applied.
 
 Example usage:
 
-@snippet samples/grpc_service/tests/conftest.py Prepare configs
+@snippet samples/http_caching/tests/conftest.py  patch configs
 
 #### Service client
 
-Fixture @ref "service_client"
+Fixture @ref pytest_userver.plugins.service_client.service_client "service_client"
 is used to access the service being tested:
 
 @snippet samples/testsuite-support/tests/test_ping.py service_client
@@ -255,11 +257,11 @@ caches, mocked time, etc.
 Use @ref pytest_userver.plugins.service.service_env "service_env" fixture
 to provide extra environment variables for your service:
 
-@snippet samples/redis_service/tests/conftest.py service_env
+@snippet samples/redis_service/testsuite/conftest.py service_env
 
 #### Extra client dependencies
 
-Use @ref pytest_userver.plugins.service_client.extra_client_deps "extra_client_deps"
+Use @ref pytest_userver.plugins.service.extra_client_deps "extra_client_deps"
 fixture to provide extra fixtures that your service depends on:
 
 @code{.py}
@@ -268,16 +270,16 @@ def extra_client_deps(some_fixture_that_required_by_service, some_other_fixture)
     pass
 @endcode
 
-Note that @ref pytest_userver.plugins.service_client.auto_client_deps "auto_client_deps"
+Note that @ref pytest_userver.plugins.service.auto_client_deps "auto_client_deps"
 fixture already knows about the userver supported databases and clients, so
 usually you do not need to manually register any dependencies.
 
 #### Mockserver
 
-[Mockserver](https://yandex.github.io/yandex-taxi-testsuite/mockserver/) allows to mock external
+[Mockserver](https://yandex.github.io/yandex-taxi-testsuite/mockserver/) allows you to mock external
 HTTP handlers. It starts its own HTTP server that receives HTTP traffic from
 the service being tested.
-And allows to install custom HTTP handlers within testsuite.
+It also allows you to install custom HTTP handlers within testsuite.
 In order to use it all HTTP clients must be pointed to mockserver address.
 
 Mockserver usage example:
@@ -294,6 +296,14 @@ This could be achieved by patching static config as described in
 [mockserver_info.url(path)](https://yandex.github.io/yandex-taxi-testsuite/mockserver/#testsuite.mockserver.classes.MockserverInfo.url):
 
 @snippet samples/http_caching/tests/conftest.py patch configs
+
+Alternatively, use `$mockserver`
+@ref pytest_userver.plugins.config.userver_config_substitutions "substitution var"
+in `config_vars.testsuite.yaml`:
+
+@code{.yaml}
+translations-url: $mockserver/v1/translations
+@endcode
 
 #### Mock time
 
@@ -342,7 +352,7 @@ Then you can use testpoint from testcase:
 
 In order to eliminate unnecessary testpoint requests userver keeps track of testpoints
 that have testsuite handlers installed. Usually testpoint handlers are declared before
-first call to @ref service_client which implicitly updates userver's list of testpoint.
+first call to @ref pytest_userver.plugins.service_client.service_client "service_client" which implicitly updates userver's list of testpoint.
 Sometimes it might be required to manually update server state.
 This can be achieved using `service_client.update_server_state()` method e.g.:
 
@@ -354,6 +364,10 @@ Accessing testpoint userver is not aware of will raise an exception:
 
 * C++ code: @ref samples/testsuite-support/src/testpoint.cpp
 * Testcase: @ref samples/testsuite-support/tests/test_testpoint.py
+
+#### Dynamic config mock
+
+@see @ref dynamic_config_testsuite
 
 @anchor testsuite_logs_capture
 #### Logs capture
@@ -374,7 +388,7 @@ Example on logs capture usage could be found here:
 @anchor TESTSUITE_TASKS
 #### Testsuite tasks
 
-Testsuite tasks facility allows to register a custom function and call it by name from testsuite.
+Testsuite tasks facility allows you to register a custom function and call it by name from testsuite.
 It's useful for testing components that perform periodic job not related to its own HTTP handler.
 
 You can use `testsuite::TestsuiteTasks` to register your own task:
@@ -395,21 +409,26 @@ An example on testsuite tasks could be found here:
 * Testcase: @ref samples/testsuite-support/tests/test_tasks.py
 
 @anchor TESTSUITE_METRICS_TESTING
-#### Metrics
+#### Metrics tesing in testsuite
 
-Testsuite provides access to userver metrics written by
-utils::statistics::Writer and utils::statistics::MetricTag via
+Testsuite provides access to userver metrics written by @ref utils::statistics::Writer and
+@ref utils::statistics::MetricTag via
 @ref pytest_userver.plugins.service_client.monitor_client "monitor_client"
 , see @ref tutorial_metrics "tutorial on configuration".
-It allows to:
+
+It allows you to:
 
 - retrieve specific service metric by path and (optionally) labels:
   @ref pytest_userver.client.ClientMonitor.single_metric "await monitor_client.single_metric(path, labels)"
 - retrieve array of metrics by path prefix and (optionally) labels:
   @ref pytest_userver.client.ClientMonitor.metrics "await monitor_client.metrics(path_prefix, labels)"
 - retrieve specific service metric by path and (optionally) labels or `None` if no such metric:
-  @ref pytest_userver.client.ClientMonitor.single_metric "await monitor_client.single_metric_optional(path, labels)"
-- reset metrics: @ref pytest_userver.client.Client.reset_metrics "await service_client.reset_metrics()"
+  @ref pytest_userver.client.ClientMonitor.single_metric_optional "await monitor_client.single_metric_optional(path, labels)"
+- diff of metrics: @ref pytest_userver.client.ClientMonitor.metrics_diff "await monitor_client.metrics_diff()"
+- reset metrics (discouraged): @ref pytest_userver.client.Client.reset_metrics "await service_client.reset_metrics()"
+
+For migrating tests from the removed legacy metrics API, see
+@ref scripts/docs/en/userver/metrics_migration.md "Migrating tests from the removed legacy metrics API".
 
 Example usage:
 
@@ -421,30 +440,39 @@ and used like:
 
 @snippet samples/testsuite-support/src/metrics.cpp metrics usage
 
-the metrics could be retrieved and reset as follows:
- 
-@snippet samples/testsuite-support/tests/test_metrics.py metrics reset
+the metrics could be checked in the following way:
 
-For metrics with labels, they could be retrieved in the following way: 
+@snippet samples/testsuite-support/tests/test_metrics.py  metrics diff
+
+For metrics with labels, they could be retrieved in the following way:
 
 @snippet samples/testsuite-support/tests/test_metrics.py metrics labels
+
+@note To avoid repeating a common path prefix and common labels in every subsequent call, pass
+`sliced=True` to @ref pytest_userver.client.ClientMonitor.metrics "monitor_client.metrics()".
+See @ref pytest_userver.client.ClientMonitor.metrics "metrics()" and
+@ref pytest_userver.metrics.MetricsSnapshot.sliced "MetricsSnapshot.sliced()" for details.
 
 The @ref pytest_userver.metrics.Metric "Metric" python type is hashable and
 comparable:
 
-@snippet testsuite/tests/test_metrics.py  values set
+@snippet testsuite/tests/metrics/test_metrics.py  values set
+
+A discouraged method for retrieving and resetting metrics is following:
+
+@snippet samples/testsuite-support/tests/test_metrics.py metrics reset
 
 * C++ code: @ref samples/testsuite-support/src/metrics.cpp
 * C++ header: @ref samples/testsuite-support/src/metrics.hpp
 * Testcase: @ref samples/testsuite-support/tests/test_metrics.py
 
 
-#### Metrics Portability
+#### Metrics Portability Testing in Testsuite
 
 Different monitoring systems and time series databases have different
 limitations. To make sure that the metrics of your service could be used on
 most of the popular systems, there is special action in
-server::handlers::TestsControl.
+@ref server::handlers::TestsControl.
 
 To use it you could just write the following test:
 
@@ -468,7 +496,7 @@ Testsuite provides a way to start standalone service with all mocks and database
 This can be done by adding `--service-runner-mode` flag to pytest, e.g.:
 
 ```shell
-./build/tests/runtests-my-project ./tests -s --service-runner-mode
+./build-debug/runtests-service_template -s --service-runner-mode
 ```
 
 Please note that `-s` flag is required to disable console output capture.
@@ -476,21 +504,34 @@ Please note that `-s` flag is required to disable console output capture.
 `pytest_userver` provides default service runner testcase.
 In order to override it you have to add your own testcase with `@pytest.mark.servicetest`:
 
-
 @code{.py}
 @pytest.mark.servicetest
 def test_service(service_client):
     ...
 @endcode
 
+@anchor uservice_oneshot
+#### uservice_oneshot testsuite tests
+
+Testsuite allows you to create tests that start a new service instance for the test and stop it on test finish:
+
+@snippet samples/testsuite-support/tests/test_metrics.py  uservice_oneshot sample
+
+Such functionality slows down the tests run, but it may be required
+* to test service state right after the service start,
+* or to test that the service stops fine at some point,
+* or the test breaks the service for some time and restarting it is faster than waiting for recovery.
+
+For per-daemon fixtures see @ref pytest_userver.plugins.service.daemon_scoped_mark "daemon_scoped_mark" fixture.
+
+
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/testing.md | @ref scripts/docs/en/userver/chaos_testing.md ⇨
+⇦ @ref scripts/docs/en/userver/testing.md | @ref scripts/docs/en/userver/metrics_migration.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example cmake/UserverTestsuite.cmake
-@example samples/http_caching/tests/conftest.py
 @example samples/testsuite-support/src/logcapture.cpp
 @example samples/testsuite-support/src/metrics.cpp
 @example samples/testsuite-support/src/metrics.hpp
@@ -502,4 +543,3 @@ def test_service(service_client):
 @example samples/testsuite-support/tests/test_mocked_time.py
 @example samples/testsuite-support/tests/test_tasks.py
 @example samples/testsuite-support/tests/test_testpoint.py
-@example samples/production_service/tests/test_production.py

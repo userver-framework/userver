@@ -1,13 +1,12 @@
 import os
 import subprocess
 import sys
-import typing
 
 import pytest
 
-
 try:
     import yatest.common.runtime
+
     UCTL_BIN = [
         yatest.common.runtime.build_path(
             'taxi/uservices/userver/scripts/uctl/uctl',
@@ -31,7 +30,7 @@ except ModuleNotFoundError:
 
 @pytest.fixture(name='run_uctl', scope='session')
 def _run_uctl(service_config_path_temp):
-    async def _uctl(cmdline: typing.List[str]) -> str:
+    async def _uctl(cmdline: list[str]) -> str:
         return subprocess.check_output(
             UCTL_BIN + ['--config', str(service_config_path_temp)] + cmdline,
             encoding='utf-8',

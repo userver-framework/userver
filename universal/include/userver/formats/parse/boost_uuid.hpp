@@ -24,22 +24,19 @@ namespace formats::parse {
  * {01234567-89ab-cdef-0123-456789abcdef}
  * {0123456789abcdef0123456789abcdef}
  */
-template <typename Value>
-std::enable_if_t<common::kIsFormatValue<Value>, boost::uuids::uuid> Parse(
-    const Value& value, To<boost::uuids::uuid>) {
-  std::optional<std::string> str;
-  try {
-    str = value.template As<std::string>();
-    return utils::BoostUuidFromString(*str);
-  } catch (const std::exception& e) {
-    if (!!str) {
-      throw typename Value::ParseException(
-          "'" + *str + "' cannot be parsed to `boost::uuids::uuid`");
-    } else {
-      throw typename Value::ParseException(
-          "Only strings can be parsed as boost uuid");
+template <common::IsFormatValue Value>
+boost::uuids::uuid Parse(const Value& value, To<boost::uuids::uuid>) {
+    std::optional<std::string> str;
+    try {
+        str = value.template As<std::string>();
+        return utils::BoostUuidFromString(*str);
+    } catch (const std::exception& e) {
+        if (!!str) {
+            throw typename Value::ParseException("'" + *str + "' cannot be parsed to `boost::uuids::uuid`");
+        } else {
+            throw typename Value::ParseException("Only strings can be parsed as boost uuid");
+        }
     }
-  }
 }
 
 }  // namespace formats::parse

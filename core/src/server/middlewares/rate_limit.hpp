@@ -2,38 +2,38 @@
 
 #include <optional>
 
+#include <userver/server/middlewares/builtin.hpp>
 #include <userver/server/middlewares/http_middleware_base.hpp>
 #include <userver/utils/token_bucket.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
-class HttpHandlerStatistics;
+class HttpHandlerStatisticsAggregate;
 }
 
 namespace server::middlewares {
 
 class RateLimit final : public HttpMiddlewareBase {
- public:
-  static constexpr std::string_view kName{"userver-rate-limit-middleware"};
+public:
+    static constexpr std::string_view kName = builtin::kRateLimit;
 
-  explicit RateLimit(const handlers::HttpHandlerBase&);
+    explicit RateLimit(const handlers::HttpHandlerBase&);
 
- private:
-  void HandleRequest(http::HttpRequest& request,
-                     request::RequestContext& context) const override;
+private:
+    void HandleRequest(http::HttpRequest& request, request::RequestContext& context) const override;
 
-  bool CheckRateLimit(const http::HttpRequest& request) const;
+    bool CheckRateLimit(const http::HttpRequest& request, request::RequestContext& context) const;
 
-  void FailProcessingAndSetResponse(const http::HttpRequest& request) const;
+    void FailProcessingAndSetResponse(const http::HttpRequest& request, request::RequestContext& context) const;
 
-  mutable utils::TokenBucket rate_limit_;
-  handlers::HttpHandlerStatistics& statistics_;
+    mutable utils::TokenBucket rate_limit_;
+    handlers::HttpHandlerStatisticsAggregate& statistics_;
 
-  std::optional<std::size_t> max_requests_per_second_;
-  std::optional<std::size_t> max_requests_in_flight_;
+    std::optional<std::size_t> max_requests_per_second_;
+    std::optional<std::size_t> max_requests_in_flight_;
 
-  const handlers::HttpHandlerBase& handler_;
+    const handlers::HttpHandlerBase& handler_;
 };
 
 using RateLimitFactory = SimpleHttpMiddlewareFactory<RateLimit>;

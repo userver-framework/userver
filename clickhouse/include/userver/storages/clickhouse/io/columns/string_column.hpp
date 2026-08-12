@@ -14,13 +14,13 @@ namespace storages::clickhouse::io::columns {
 
 /// @brief Represents ClickHouse String column
 class StringColumn final : public ClickhouseColumn<StringColumn> {
- public:
-  using cpp_type = std::string;
-  using container_type = std::vector<cpp_type>;
+public:
+    using cpp_type = std::string;
+    using container_type = std::vector<cpp_type>;
 
-  StringColumn(ColumnRef column);
+    StringColumn(ColumnRef column);
 
-  static ColumnRef Serialize(const container_type& from);
+    static ColumnRef Serialize(const container_type& from);
 };
 
 }  // namespace storages::clickhouse::io::columns

@@ -3,14 +3,22 @@
 /// @file userver/ugrpc/client/client_factory_component.hpp
 /// @brief @copybrief ugrpc::client::ClientFactoryComponent
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
+#include <userver/middlewares/runner.hpp>
 
 #include <userver/ugrpc/client/client_factory.hpp>
-#include <userver/ugrpc/client/queue_holder.hpp>
+#include <userver/ugrpc/client/middlewares/base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client {
+
+namespace impl {
+
+/// @brief The interface for a `ClientFactoryComponent` component. So, `ClientFactoryComponent` runs with middlewares.
+using MiddlewareRunnerComponentBase = USERVER_NAMESPACE::middlewares::RunnerComponentBase<MiddlewareBase, ClientInfo>;
+
+}  // namespace impl
 
 /// @ingroup userver_components
 ///
@@ -18,6 +26,8 @@ namespace ugrpc::client {
 ///
 /// Multiple ClientFactoryComponent instances may be created if different
 /// parameters are required for different clients.
+///
+/// Requires ugrpc::client::CommonComponent.
 ///
 /// ## Authentication
 /// Authentication is controlled by `auth-type` static config field.
@@ -31,51 +41,39 @@ namespace ugrpc::client {
 /// ## Service config
 /// As per https://github.com/grpc/grpc/blob/master/doc/service_config.md
 /// service config should be distributed via the name resolution process.
-/// We allow setting default service_config: pass desired JSON literal
-/// to `default-service-config` parameter
-
-// clang-format off
-
-/// ## Static options:
+/// We allow setting default service_config: pass desired JSON literal to `default-service-config` parameter
+///
+/// ## Static options of ugrpc::client::ClientFactoryComponent :
+/// @include{doc} scripts/docs/en/components_schema/grpc/src/ugrpc/client/client_factory_component.md
+///
+/// Options inherited from @ref middlewares::RunnerComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/middlewares/runner_component_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
+///
 /// The default component name for static config is `"grpc-client-factory"`.
 ///
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// task-processor | the task processor for blocking channel creation | -
-/// channel-args | a map of channel arguments, see gRPC Core docs | {}
-/// native-log-level | min log level for the native gRPC library | 'error'
-/// auth-type | authentication method, see above | -
-/// default-service-config | default service config, see above | -
-/// channel-count | Number of underlying grpc::Channel objects | 1
-/// middlewares | middlewares names to use | []
-///
-///
 /// @see https://grpc.github.io/grpc/core/group__grpc__arg__keys.html
+class ClientFactoryComponent final : public impl::MiddlewareRunnerComponentBase {
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of ugrpc::client::middlewares::log::Component
+    static constexpr std::string_view kName = "grpc-client-factory";
 
-// clang-format on
+    ClientFactoryComponent(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-class ClientFactoryComponent final : public components::LoggableComponentBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of ugrpc::client::middlewares::log::Component
-  static constexpr std::string_view kName = "grpc-client-factory";
+    ClientFactory& GetFactory();
 
-  ClientFactoryComponent(const components::ComponentConfig& config,
-                         const components::ComponentContext& context);
+    static yaml_config::Schema GetStaticConfigSchema();
 
-  ClientFactory& GetFactory();
-
-  static yaml_config::Schema GetStaticConfigSchema();
-
- private:
-  std::optional<QueueHolder> queue_;
-  std::optional<ClientFactory> factory_;
+private:
+    std::optional<ClientFactory> factory_;
 };
 
 }  // namespace ugrpc::client
 
 template <>
-inline constexpr bool
-    components::kHasValidate<ugrpc::client::ClientFactoryComponent> = true;
+inline constexpr bool components::kHasValidate<ugrpc::client::ClientFactoryComponent> = true;
 
 USERVER_NAMESPACE_END

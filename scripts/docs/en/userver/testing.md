@@ -1,13 +1,21 @@
 # Unit Tests and Benchmarks
 
-## Unit tests (googletest)
+## Unit tests (gtest)
 
 ### Getting started
 
-All userver test helpers live in `userver-utest` CMake target:
+userver test helpers live in `userver::utest` CMake target:
 
 ```cmake
-target_link_libraries(your-test-target PRIVATE userver-utest)
+target_link_libraries(your-test-target PRIVATE userver::utest)
+```
+
+When being limited to `userver::universal`, you can use a subset of the helpers
+that don't require coroutine environment via `userver::universal-utest`
+CMake target:
+
+```cmake
+target_link_libraries(your-test-target PRIVATE userver::universal-utest)
 ```
 
 To include gtest and userver-specific macros, do:
@@ -16,7 +24,12 @@ To include gtest and userver-specific macros, do:
 #include <userver/utest/utest.hpp>
 ```
 
-The header provides alternative gtest-like macros that run tests in a coroutine environment:
+As usual, gmock is available in `<gmock/gmock.h>`.
+
+### Unit tests with coroutine environment
+
+`utest.hpp` header provides alternative gtest-like macros that run tests
+in a coroutine environment:
 
 *  UTEST(test_suite_name, test_name)
 *  UTEST_MT(test_suite_name, test_name, thread_count)
@@ -34,13 +47,6 @@ The header provides alternative gtest-like macros that run tests in a coroutine 
 *  #REGISTER_TYPED_UTEST_SUITE_P(test_suite_name, ...)
 *  INSTANTIATE_TYPED_UTEST_SUITE_P(prefix, test_suite_name, types)
 *  TYPED_UTEST_SUITE_P(test_suite_name)
-
-As usual, gmock is available in `<gmock/gmock.h>`.
-
-See also utest::PrintTestName for info on how to simplify writing parametrized
-tests and [official gtest documentation](https://google.github.io/googletest/).
-
-### Coroutine environment
 
 To test code that uses coroutine environment (e.g. creates tasks or uses
 @ref scripts/docs/en/userver/synchronization.md "synchronization primitives"),
@@ -60,7 +66,8 @@ races. In such cases, use `_MT` macro versions:
 
 @snippet core/src/engine/semaphore_test.cpp  UTEST macro example 2
 
-The specified thread count is available in `U`-tests as `GetThreadCount()` method.
+The specified thread count is available in `U`-tests via
+`engine::current_task::GetWorkerCount()`.
 
 For DEATH-tests (when testing aborts or assertion fails) use `UTEST_DEATH`. It
 configures gtest-DEATH-checks to work in multithreaded environment. Also it
@@ -70,7 +77,8 @@ with gtest's `waitpid()` calls.
 ### Exception assertions
 
 Standard gtest exception assertions provide poor error messages. Their
-equivalents with proper diagnostics are available in `<userver/utest/utest.hpp>`:
+equivalents with proper diagnostics are available in `<userver/utest/assert_macros.hpp>`
+(which gets pulled in by `<userver/utest/utest.hpp>` automatically):
 
 * #UEXPECT_THROW_MSG(statement, exception_type, message_substring)
 * #UASSERT_THROW_MSG(statement, exception_type, message_substring)
@@ -81,7 +89,9 @@ equivalents with proper diagnostics are available in `<userver/utest/utest.hpp>`
 
 Example usage:
 
-@snippet universal/src/utest/assert_macros_test.cpp  Sample assert macros usage
+@snippet universal/utest/src/utest/assert_macros_test.cpp  Sample assert macros usage
+
+### Exception assertions
 
 @anchor utest-mocked-time
 ### Mocked time
@@ -89,10 +99,15 @@ Example usage:
 - To mock time, use `utils::datetime::Now()` and `utils::datetime::SteadyNow()`
   from `<userver/utils/datetime.hpp>` instead of
   `std::chrono::system_clock::now()` and `std::chrono::steady_clock::now()`,
-  respectively. 
+  respectively.
 - Control the mocked time in tests using `<userver/utils/mock_now.hpp>`
 
 @snippet universal/src/utils/mock_now_test.cpp  Mocked time sample
+
+### Parametrized tests with custom names
+
+See utest::PrintTestName for info on how to simplify writing parametrized
+tests and [official gtest documentation](https://google.github.io/googletest/).
 
 @anchor utest-dynamic-config
 ### Mocked dynamic config
@@ -118,15 +133,49 @@ Default dynamic config values can be accessed using `<dynamic_config/test_helper
 
 @snippet core/src/dynamic_config/config_test.cpp Sample StorageMock defaults
 
+### Testing userver logging
+
+API for capturing userver logs can be found in @ref userver/utest/log_capture_fixture.hpp
+
+@ref utest::LogCaptureFixture can be used for testing that a certain piece of code produces logs
+with the given text (which is brittle, but sometimes needs to be done).
+
+@snippet grpc/tests/cancel_test.cpp  Sample of LogCaptureFixture
+
+It can also be used for testing @ref logging::LogHelper serialization functions.
+
+### Outputting logs in unit test run
+
+Log level in the unit tests can be controlled via `log-level` parameter. For example, the following command outputs
+the debug logs for all the `*Log*` tests for the CMake built binary:
+
+```shell
+./core/userver-core-unittest --log-level=debug --gtest_filter=*Log*
+```
+
+@warning Link with `userver::utest` CMake target to make the `--log-level=debug` work
+
+
+### Ignoring signals in debugger
+
+🐙 userver uses signals for internal matters to identify coroutine stack usage @ref scripts/docs/en/userver/stack.md.
+In debugger presence the functionality is automatically disabled. However, if you are using an exotic OS or debugger,
+you may force-disable stack usage monitor via environment variable:
+
+```
+USERVER_ENABLE_STACK_USAGE_MONITOR=0
+```
+
+Now you should not be annoyed by extra "caught signal X" events.
 
 ## Benchmarks (google-benchmark)
 
 ### Getting started
 
-All userver benchmark helpers live in `userver-ubench` CMake target:
+All userver benchmark helpers live in `userver::ubench` CMake target:
 
 ```cmake
-target_link_libraries(your-bench-target PRIVATE userver-ubench)
+target_link_libraries(your-bench-target PRIVATE userver::ubench)
 ```
 
 As usual, google-benchmark is available in `<benchmark/benchmark.h>`.
@@ -144,7 +193,7 @@ Use `engine::RunStandalone` to run parts of your benchmark in a coroutine enviro
 See the [equivalent utest section](#utest-dynamic-config).
 
 Default dynamic configs are available in
-in `<userver/dynamic_config/test_helpers.hpp>`.
+`<userver/dynamic_config/test_helpers.hpp>`.
 
 
 ----------

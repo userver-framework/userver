@@ -4,6 +4,7 @@
 
 #include <userver/components/run.hpp>
 #include <userver/dynamic_config/test_helpers.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/fs/blocking/write.hpp>
 
@@ -31,7 +32,7 @@ constexpr std::string_view kStaticConfig = R"(
 # yaml
 components_manager:
   coro_pool:
-    initial_size: 5000
+    initial_size: 50
     max_size: 50000
   default_task_processor: main-task-processor
   event_thread_pool:
@@ -41,6 +42,7 @@ components_manager:
       thread_name: bg-worker
       worker_threads: 2
       os-scheduling: idle
+      task-processor-queue: global-task-queue
       task-trace:
         every: 1000
         max-context-switch-count: 1000
@@ -83,11 +85,25 @@ components_manager:
 # /// [Sample testsuite support component config]
 # /// [Sample http client component config]
 # yaml
+    http-client-middleware-pipeline:
+      middlewares:
+        # http-client-middleware-enabled:
+        #  enabled: true
+        http-client-middleware-disabled:
+          enabled: false
+        http-client-middleware-override:
+          enabled: false
     http-client:
+      core-component: http-client-core
+      middlewares:
+        # http-client-middleware-override:
+        #   enabled: true
+        # http-client-middleware-additional:
+        #   enabled: true
+    http-client-core:
       pool-statistics-disable: false
       thread-name-prefix: http-client
       threads: 2
-      defer-events: false
       fs-task-processor: fs-task-processor
       destination-metrics-auto-max-size: 100
       user-agent: common_component_list sample
@@ -120,7 +136,6 @@ components_manager:
       http-retries: 5
       config-url: http://localhost:8083/
       configs-stage: $configs_stage
-      fallback-to-no-proxy: false
 # /// [Sample dynamic configs client component config]
 # /// [Sample dynamic config client updater component config]
 # yaml
@@ -142,6 +157,11 @@ components_manager:
     logging:
       fs-task-processor: fs-task-processor
       loggers:
+        default:
+          file_path: $default_log_path
+          level: $log_level
+          level#fallback: debug
+          overflow_behavior: discard
         access:
           file_path: $access_log_path
           overflow_behavior: discard
@@ -150,21 +170,10 @@ components_manager:
           file_path: $access_tskv_log_path
           overflow_behavior: discard
           format: raw
-        default:
-          file_path: $default_log_path
-          level: $log_level
-          level#fallback: debug
-          overflow_behavior: discard
         tracer:
           file_path: '@stdout'
           overflow_behavior: discard
 # /// [Sample logging component config]
-# /// [Sample tracer component config]
-# yaml
-    tracer:
-        service-name: config-service
-        tracer: native
-# /// [Sample tracer component config]
 # /// [Sample statistics storage component config]
 # yaml
     statistics-storage:
@@ -178,6 +187,8 @@ components_manager:
       fs-task-processor: fs-task-processor
 # /// [Sample dynamic config component config]
     http-client-statistics:
+      core-component: http-client-statistics-core
+    http-client-statistics-core:
       fs-task-processor: fs-task-processor
 # /// [Sample system statistics component config]
 # yaml
@@ -185,32 +196,67 @@ components_manager:
       fs-task-processor: fs-task-processor
       with-nginx: false
 # /// [Sample system statistics component config]
-config_vars: )";
+)";
 // clang-format on
 
 }  // namespace
 
 TEST_F(ComponentList, Common) {
-  const auto temp_root = fs::blocking::TempDirectory::Create();
-  const std::string dynamic_config_cache_path =
-      temp_root.GetPath() + "/dynamic_config.json";
-  const std::string config_vars_path =
-      temp_root.GetPath() + "/config_vars.json";
+    const auto temp_root = fs::blocking::TempDirectory::Create();
+    const std::string dynamic_config_cache_path = temp_root.GetPath() + "/dynamic_config.json";
+    const std::string config_vars_path = temp_root.GetPath() + "/config_vars.json";
 
-  fs::blocking::RewriteFileContents(
-      dynamic_config_cache_path,
-      formats::json::ToString(
-          dynamic_config::impl::GetDefaultDocsMap().AsJson()));
+    fs::blocking::RewriteFileContents(
+        dynamic_config_cache_path,
+        formats::json::ToString(dynamic_config::impl::GetDefaultDocsMap().AsJson())
+    );
 
-  fs::blocking::RewriteFileContents(
-      config_vars_path,
-      fmt::format(kConfigVarsTemplate, temp_root.GetPath(),
-                  dynamic_config_cache_path,
-                  ToString(logging::GetDefaultLoggerLevel())));
+    fs::blocking::RewriteFileContents(
+        config_vars_path,
+        fmt::format(
+            kConfigVarsTemplate,
+            temp_root.GetPath(),
+            dynamic_config_cache_path,
+            ToString(logging::GetDefaultLoggerLevel())
+        )
+    );
 
-  components::RunOnce(
-      components::InMemoryConfig{std::string{kStaticConfig} + config_vars_path},
-      components::CommonComponentList());
+    components::RunOnce(
+        components::InMemoryConfig{std::string{kStaticConfig} + "config_vars: " + config_vars_path},
+        components::CommonComponentList()
+    );
+}
+
+TEST_F(ComponentList, ValidationWithConfigVars) {
+    const auto temp_root = fs::blocking::TempDirectory::Create();
+    const std::string dynamic_config_cache_path = temp_root.GetPath() + "/dynamic_config.json";
+    const std::string config_vars_path = temp_root.GetPath() + "/config_vars.json";
+
+    fs::blocking::RewriteFileContents(
+        dynamic_config_cache_path,
+        formats::json::ToString(dynamic_config::impl::GetDefaultDocsMap().AsJson())
+    );
+
+    fs::blocking::RewriteFileContents(
+        config_vars_path,
+        fmt::format(
+            kConfigVarsTemplate,
+            temp_root.GetPath(),
+            dynamic_config_cache_path,
+            ToString(logging::GetDefaultLoggerLevel())
+        )
+    );
+
+    constexpr const char* kBadParam = "      non-described-in-schema-parameter: $default_log_path\n";
+    const components::InMemoryConfig conf{std::string{kStaticConfig} + kBadParam + "config_vars: " + config_vars_path};
+
+    UEXPECT_THROW_MSG(
+        components::RunOnce(conf, components::CommonComponentList()),
+        std::exception,
+        "Error while validating static config against schema. Field "
+        "'components_manager.components.system-statistics-collector.non-described-in-schema-parameter' is not declared "
+        "in schema 'system-statistics-collector' (declared: load-enabled, with-nginx, fs-task-processor)"
+    );
 }
 
 USERVER_NAMESPACE_END

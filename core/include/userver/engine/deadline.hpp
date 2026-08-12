@@ -6,119 +6,119 @@
 #include <chrono>
 #include <type_traits>
 
-#include <userver/utils/assert.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
 
 /// @brief Internal representation of a deadline time point
 class Deadline final {
- public:
-  using Clock = std::chrono::steady_clock;
-  using TimePoint = Clock::time_point;
-  using Duration = TimePoint::duration;
+public:
+    using Clock = std::chrono::steady_clock;
+    using TimePoint = Clock::time_point;
+    using Duration = TimePoint::duration;
 
-  /// Creates an unreachable deadline
-  constexpr Deadline() = default;
+    /// Creates an unreachable deadline
+    constexpr Deadline() = default;
 
-  /// Returns whether the deadline can be reached
-  constexpr bool IsReachable() const noexcept { return value_ != TimePoint{}; }
+    /// Returns whether the deadline can be reached
+    constexpr bool IsReachable() const noexcept { return value_ != kUnreachable; }
 
-  /// Returns whether the deadline is reached
-  bool IsReached() const noexcept;
+    /// Returns whether the deadline is reached
+    bool IsReached() const noexcept;
 
-  /// Returns whether the deadline is reached. Will report false-negatives, will
-  /// never report false-positives.
-  bool IsSurelyReachedApprox() const noexcept;
+    /// Returns whether the deadline is reached. Will report false-negatives, will
+    /// never report false-positives.
+    bool IsSurelyReachedApprox() const noexcept;
 
-  /// Returns the duration of time left before the reachable deadline
-  Duration TimeLeft() const noexcept;
+    /// Returns the duration of time left before the reachable deadline
+    Duration TimeLeft() const noexcept;
 
-  /// Returns the approximate duration of time left before the reachable
-  /// deadline. May be faster than TimeLeft.
-  /// @see utils::datetime::SteadyCoarseClock
-  Duration TimeLeftApprox() const noexcept;
+    /// Returns the approximate duration of time left before the reachable
+    /// deadline. May be faster than TimeLeft.
+    /// @see utils::datetime::SteadyCoarseClock
+    Duration TimeLeftApprox() const noexcept;
 
-  /// Converts duration to a Deadline
-  template <typename Rep, typename Period>
-  static Deadline FromDuration(
-      const std::chrono::duration<Rep, Period>& incoming_duration) noexcept {
-    using IncomingDuration = std::chrono::duration<Rep, Period>;
+    /// Returns the native time point value.
+    /// Returns `TimePoint::max()` for unreachable deadline
+    /// and `TimePoint::min()` for `Deadline::Passed()`
+    constexpr TimePoint GetTimePoint() const noexcept { return value_; }
 
-    if (incoming_duration.count() < 0) {
-      return Deadline::Passed();
+    /// Converts duration to a Deadline
+    template <typename Rep, typename Period>
+    static Deadline FromDuration(const std::chrono::duration<Rep, Period>& duration) noexcept {
+        return FromDuration(ToDurationSaturating(duration));
     }
 
-    const auto now = TimePoint::clock::now();
-    constexpr auto max_now = TimePoint::clock::time_point::max();
-
-    // If:
-    // 1. incoming_duration would overflow Duration,
-    // 2. or adding it to 'now' would overflow,
-    // then set deadline to unreachable right away.
-
-    // Implementation strategy:
-    // 1. Check that resolution of Duration >= that of IncomingDuration.
-    static_assert(std::is_constructible_v<Duration, IncomingDuration>);
-
-    // 2. As it is higher, then the range is lower (or equal). So casting
-    //    Duration::max to IncomingDuration is safe. Do a quick check
-    //    that Duration{incoming_duration} won't overflow.
-    if (incoming_duration >
-        std::chrono::duration_cast<IncomingDuration>(Duration::max())) {
-      OnDurationOverflow(
-          std::chrono::duration_cast<std::chrono::duration<double>>(
-              incoming_duration));
-      return Deadline{};
+    static Deadline FromDuration(const Duration& duration) noexcept {
+        if (duration < Duration::zero()) {
+            return Deadline::Passed();
+        }
+        return Deadline{SumWithSaturation(Clock::now(), duration)};
     }
 
-    // 3. Check that now + Duration{incoming_duration} won't overflow.
-    UASSERT(max_now - now >= Duration{incoming_duration});
+    /// @brief Converts time point to a Deadline
+    ///
+    /// Non-steady clocks may produce inaccurate Deadlines. Prefer using
+    /// Deadline::FromDuration or std::chrono::steady_clock::time_point
+    /// if possible.
+    template <typename Clock, typename Duration>
+    static Deadline FromTimePoint(const std::chrono::time_point<Clock, Duration>& time_point) noexcept {
+        return FromDuration(time_point - Clock::now());
+    }
 
-    return Deadline(now + Duration{incoming_duration});
-  }
+    /// @cond
+    /// Specialization for the native time point type
+    constexpr static Deadline FromTimePoint(const TimePoint& time_point) noexcept { return Deadline(time_point); }
+    /// @endcond
 
-  /// @brief Converts time point to a Deadline
-  ///
-  /// Non-steady clocks may produce inaccurate Deadlines. Prefer using
-  /// Deadline::FromDuration or std::chrono::steady_clock::time_point
-  /// if possible.
-  template <typename Clock, typename Duration>
-  static Deadline FromTimePoint(
-      const std::chrono::time_point<Clock, Duration>& time_point) noexcept {
-    return FromDuration(time_point - Clock::now());
-  }
+    /// A Deadline that is guaranteed to be IsReached
+    constexpr static Deadline Passed() noexcept { return Deadline{kPassed}; }
 
-  /// @cond
-  /// Specialization for the native time point type
-  constexpr static Deadline FromTimePoint(const TimePoint& time_point) {
-    return Deadline(time_point);
-  }
-  /// @endcond
+    constexpr bool operator==(const Deadline& r) const noexcept { return value_ == r.value_; }
 
-  /// A Deadline that is guaranteed to be IsReached
-  constexpr static Deadline Passed() noexcept { return Deadline{kPassed}; }
+    constexpr bool operator<(const Deadline& r) const noexcept {
+        if (!IsReachable()) {
+            return false;
+        }
+        if (!r.IsReachable()) {
+            return true;
+        }
+        return value_ < r.value_;
+    }
 
-  constexpr bool operator==(const Deadline& r) const noexcept {
-    return value_ == r.value_;
-  }
+    /// Converts 'std::chrono::duration<>' to 'Deadline::Duration'
+    template <typename Rep, typename Period>
+    static Duration ToDurationSaturating(const std::chrono::duration<Rep, Period>& from) noexcept {
+        using FromDuration = std::chrono::duration<Rep, Period>;
 
-  constexpr bool operator<(const Deadline& r) const noexcept {
-    if (!IsReachable()) return false;
-    if (!r.IsReachable()) return true;
-    return value_ < r.value_;
-  }
+        // Require resolution of 'FromDuration' higher than 'Duration',
+        // to safely cast 'Duration::max' value to 'FromDuration'
+        static_assert(std::is_constructible_v<Duration, FromDuration>);
 
- private:
-  constexpr explicit Deadline(TimePoint value) noexcept : value_(value) {}
+        if (std::chrono::duration_cast<FromDuration>(Duration::max()) < from) {
+            return Duration::max();
+        }
 
-  static void OnDurationOverflow(
-      std::chrono::duration<double> incoming_duration);
+        if constexpr (std::is_signed_v<Rep>) {
+            if (from < std::chrono::duration_cast<FromDuration>(Duration::min())) {
+                return Duration::min();
+            }
+        }
 
-  static constexpr TimePoint kPassed = TimePoint::min();
+        return std::chrono::duration_cast<Duration>(from);
+    }
 
-  TimePoint value_;
+private:
+    constexpr explicit Deadline(TimePoint value) noexcept : value_(value) {}
+
+    constexpr static TimePoint SumWithSaturation(const TimePoint& time_point, Duration duration) noexcept {
+        return TimePoint::max() - time_point < duration ? TimePoint::max() : time_point + duration;
+    }
+
+    static constexpr TimePoint kUnreachable = TimePoint::max();
+    static constexpr TimePoint kPassed = TimePoint::min();
+
+    TimePoint value_{kUnreachable};
 };
 
 }  // namespace engine

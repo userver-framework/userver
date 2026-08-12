@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/tracing/set_throttle_reason.hpp
+/// @brief Functions to set span throttle reason tags
+
 #include <string>
 
 USERVER_NAMESPACE_BEGIN

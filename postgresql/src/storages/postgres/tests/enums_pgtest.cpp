@@ -30,6 +30,14 @@ select  'red'::__pgtest.rainbow as red,
         'cyan'::__pgtest.rainbow as cyan
 )~";
 
+const std::string kCreateAnimalsEnumType = R"~(
+-- /// [Animals enum type postgres]
+CREATE TYPE __pgtest.animals AS enum (
+  'cat', 'dog', 'bird', 'fish'
+)
+-- /// [Animals enum type postgres]
+)~";
+
 }  // anonymous namespace
 
 /*! [User enum type cpp] */
@@ -38,16 +46,15 @@ enum class Rainbow { kRed, kOrange, kYellow, kGreen, kCyan };
 // This specialization MUST go to the header together with the mapped type
 template <>
 struct storages::postgres::io::CppToUserPg<Rainbow> {
-  static constexpr DBTypeName postgres_name = "__pgtest.rainbow";
-  static constexpr USERVER_NAMESPACE::utils::TrivialBiMap enumerators =
-      [](auto selector) {
+    static constexpr DBTypeName postgres_name = "__pgtest.rainbow";
+    static constexpr USERVER_NAMESPACE::utils::TrivialBiMap enumerators = [](auto selector) {
         return selector()
             .Case("red", Rainbow::kRed)
             .Case("orange", Rainbow::kOrange)
             .Case("yellow", Rainbow::kYellow)
             .Case("green", Rainbow::kGreen)
             .Case("cyan", Rainbow::kCyan);
-      };
+    };
 };
 /*! [User enum type cpp] */
 
@@ -60,52 +67,81 @@ enum class AnotherRainbowRO { kRed, kOrange, kYellow, kGreen, kCyan };
 enum class AnotherRainbow { kRed, kOrange, kYellow, kGreen, kCyan };
 // This specialization MUST go to the header together with the mapped type
 template <>
-struct storages::postgres::io::CppToUserPg<AnotherRainbow>
-    : storages::postgres::io::EnumMappingBase<AnotherRainbow> {
-  static constexpr DBTypeName postgres_name = "__pgtest.rainbow";
-  static constexpr Enumerator enumerators[]{
-      {EnumType::kRed, "red"},       {EnumType::kOrange, "orange"},
-      {EnumType::kYellow, "yellow"}, {EnumType::kGreen, "green"},
-      {EnumType::kCyan, "cyan"},
-  };
+struct storages::postgres::io::CppToUserPg<AnotherRainbow> : storages::postgres::io::EnumMappingBase<AnotherRainbow> {
+    static constexpr DBTypeName postgres_name = "__pgtest.rainbow";
+    static constexpr Enumerator enumerators[]{
+        {EnumType::kRed, "red"},
+        {EnumType::kOrange, "orange"},
+        {EnumType::kYellow, "yellow"},
+        {EnumType::kGreen, "green"},
+        {EnumType::kCyan, "cyan"},
+    };
 };
 /*! [User enum type cpp2] */
+
+namespace pg_absrnd_mvp::transaction_type {
+
+enum class Enum : std::uint16_t { kPosting = 0, kHold = 1 };
+
+constexpr utils::StringLiteral kPosting{"posting"};
+constexpr utils::StringLiteral kHold{"hold"};
+
+}  // namespace pg_absrnd_mvp::transaction_type
 
 // Reopen the namespace not to get to the code snippet
 namespace storages::postgres::io {
 
 template <>
 struct CppToUserPg<RainbowRO> : EnumMappingBase<RainbowRO> {
-  static constexpr DBTypeName postgres_name = "__pgtest.rainbow";
-  static constexpr Enumerator enumerators[]{{EnumType::kRed, "red"},
-                                            {EnumType::kOrange, "orange"},
-                                            {EnumType::kYellow, "yellow"},
-                                            {EnumType::kGreen, "green"},
-                                            {EnumType::kCyan, "cyan"}};
+    static constexpr DBTypeName postgres_name = "__pgtest.rainbow";
+    static constexpr Enumerator enumerators[]{
+        {EnumType::kRed, "red"},
+        {EnumType::kOrange, "orange"},
+        {EnumType::kYellow, "yellow"},
+        {EnumType::kGreen, "green"},
+        {EnumType::kCyan, "cyan"}
+    };
 };
 
 template <>
 struct CppToUserPg<AnotherRainbowRO> : EnumMappingBase<AnotherRainbowRO> {
-  static constexpr DBTypeName postgres_name = "__pgtest.rainbow";
-  static constexpr USERVER_NAMESPACE::utils::TrivialBiMap enumerators =
-      [](auto selector) {
+    static constexpr DBTypeName postgres_name = "__pgtest.rainbow";
+    static constexpr USERVER_NAMESPACE::utils::TrivialBiMap enumerators = [](auto selector) {
         return selector()
             .Case("red", AnotherRainbowRO::kRed)
             .Case("orange", AnotherRainbowRO::kOrange)
             .Case("yellow", AnotherRainbowRO::kYellow)
             .Case("green", AnotherRainbowRO::kGreen)
             .Case("cyan", AnotherRainbowRO::kCyan);
-      };
+    };
+};
+
+template <>
+struct CppToUserPg<pg_absrnd_mvp::transaction_type::Enum> : EnumMappingBase<pg_absrnd_mvp::transaction_type::Enum> {
+    static constexpr DBTypeName postgres_name = "__pgtest.transaction_type";
+    static constexpr USERVER_NAMESPACE::utils::TrivialBiMap enumerators = [](auto selector)
+    {
+        return selector()
+            .Case(pg_absrnd_mvp::transaction_type::kPosting, pg_absrnd_mvp::transaction_type::Enum::kPosting)
+            .Case(pg_absrnd_mvp::transaction_type::kHold, pg_absrnd_mvp::transaction_type::Enum::kHold);
+    };
 };
 
 namespace traits {
 
 // To ensure it is never written to a buffer
 template <>
-struct HasFormatter<RainbowRO> : std::false_type {};
+struct IO<RainbowRO> {
+    using ParserType = typename Input<RainbowRO>::type;
+};
 
 template <>
-struct HasFormatter<AnotherRainbowRO> : std::false_type {};
+struct IO<AnotherRainbowRO> {
+    using ParserType = typename Input<AnotherRainbowRO>::type;
+};
+
+static_assert(!HasFormatter<RainbowRO>);
+static_assert(!HasFormatter<AnotherRainbowRO>);
 
 }  // namespace traits
 
@@ -115,11 +151,11 @@ namespace static_test {
 
 template <typename T>
 struct Checker {
-  static_assert(tt::IsMappedToPg<T>());
-  static_assert(io::detail::EnumerationMap<T>::size == 5);
+    static_assert(tt::IsMappedToPg<T>());
+    static_assert(io::detail::EnumerationMap<T>::size == 5);
 
-  static_assert(tt::kHasParser<T>);
-  static_assert(tt::kHasFormatter<T>);
+    static_assert(tt::HasParser<T>);
+    static_assert(tt::HasFormatter<T>);
 };
 template struct Checker<Rainbow>;
 template struct Checker<AnotherRainbow>;
@@ -129,92 +165,258 @@ template struct Checker<AnotherRainbow>;
 namespace {
 
 TEST(PostgreIO, Enum) {
-  using EnumMap = io::detail::EnumerationMap<Rainbow>;
-  EXPECT_EQ("red", EnumMap::GetLiteral(Rainbow::kRed));
-  EXPECT_EQ(Rainbow::kRed, EnumMap::GetEnumerator("red"));
+    using EnumMap = io::detail::EnumerationMap<Rainbow>;
+    EXPECT_EQ("red", EnumMap::GetLiteral(Rainbow::kRed));
+    EXPECT_EQ(Rainbow::kRed, EnumMap::GetEnumerator("red"));
 }
 
 TEST(PostgreIO, EnumTrivialMap) {
-  using EnumMap = io::detail::EnumerationMap<AnotherRainbow>;
-  EXPECT_EQ("red", EnumMap::GetLiteral(AnotherRainbow::kRed));
-  EXPECT_EQ(AnotherRainbow::kRed, EnumMap::GetEnumerator("red"));
+    using EnumMap = io::detail::EnumerationMap<AnotherRainbow>;
+    EXPECT_EQ("red", EnumMap::GetLiteral(AnotherRainbow::kRed));
+    EXPECT_EQ(AnotherRainbow::kRed, EnumMap::GetEnumerator("red"));
 }
 
 UTEST_P(PostgreConnection, EnumRoundtrip) {
-  using EnumMap = io::detail::EnumerationMap<Rainbow>;
-  CheckConnection(GetConn());
-  ASSERT_FALSE(GetConn()->IsReadOnly()) << "Expect a read-write connection";
+    using EnumMap = io::detail::EnumerationMap<Rainbow>;
+    CheckConnection(GetConn());
+    ASSERT_FALSE(GetConn()->IsReadOnly()) << "Expect a read-write connection";
 
-  pg::ResultSet res{nullptr};
-  UASSERT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
+    pg::ResultSet res{nullptr};
+    UASSERT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
 
-  UASSERT_NO_THROW(GetConn()->Execute(kCreateTestSchema)) << "Create schema";
+    UASSERT_NO_THROW(GetConn()->Execute(kCreateTestSchema)) << "Create schema";
 
-  UEXPECT_NO_THROW(GetConn()->Execute(kCreateAnEnumType))
-      << "Successfully create an enumeration type";
-  UEXPECT_NO_THROW(GetConn()->ReloadUserTypes()) << "Reload user types";
-  const auto& user_types = GetConn()->GetUserTypes();
-  EXPECT_NE(0, io::CppToPg<Rainbow>::GetOid(user_types));
+    UEXPECT_NO_THROW(GetConn()->Execute(kCreateAnEnumType)) << "Successfully create an enumeration type";
+    UEXPECT_NO_THROW(GetConn()->ReloadUserTypes()) << "Reload user types";
+    const auto& user_types = GetConn()->GetUserTypes();
+    EXPECT_NE(0, io::CppToPg<Rainbow>::GetOid(user_types));
 
-  UEXPECT_NO_THROW(res = GetConn()->Execute(kSelectEnumValues));
-  for (auto f : res.Front()) {
-    UEXPECT_NO_THROW(f.As<Rainbow>());
-  }
+    UEXPECT_NO_THROW(res = GetConn()->Execute(kSelectEnumValues));
+    for (auto f : res.Front()) {
+        UEXPECT_NO_THROW(f.As<Rainbow>());
+    }
 
-  for (const auto& [literal, enumerator] : EnumMap::enumerators) {
-    res = GetConn()->Execute("select $1", enumerator);
-    EXPECT_EQ(enumerator, res[0][0].As<Rainbow>());
-    EXPECT_EQ(literal, res[0][0].As<std::string_view>());
-    // Test the data type that is used for reading only
-    UEXPECT_NO_THROW(res[0][0].As<RainbowRO>())
-        << "Read a datatype that is never written to a Pg buffer";
-  }
-  {
-    auto& connection = GetConn();
-    /// [User enum type cpp usage]
-    auto result = connection->Execute("select $1", Rainbow::kRed);
-    EXPECT_EQ(Rainbow::kRed, result[0][0].As<Rainbow>());
-    /// [User enum type cpp usage]
-  }
-  UEXPECT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
+    for (const auto& [literal, enumerator] : EnumMap::enumerators) {
+        res = GetConn()->Execute("select $1", enumerator);
+        EXPECT_EQ(enumerator, res[0][0].As<Rainbow>());
+        EXPECT_EQ(literal, res[0][0].As<std::string_view>());
+        // Test the data type that is used for reading only
+        UEXPECT_NO_THROW(res[0][0].As<RainbowRO>()) << "Read a datatype that is never written to a Pg buffer";
+    }
+    {
+        auto& connection = GetConn();
+        /// [User enum type cpp usage]
+        auto result = connection->Execute("select $1", Rainbow::kRed);
+        EXPECT_EQ(Rainbow::kRed, result[0][0].As<Rainbow>());
+        /// [User enum type cpp usage]
+    }
+    UEXPECT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
 }
 
 UTEST_P(PostgreConnection, EnumTrivialMapRoundtrip) {
-  using EnumMap = io::detail::EnumerationMap<AnotherRainbow>;
-  CheckConnection(GetConn());
-  ASSERT_FALSE(GetConn()->IsReadOnly()) << "Expect a read-write connection";
+    using EnumMap = io::detail::EnumerationMap<AnotherRainbow>;
+    CheckConnection(GetConn());
+    ASSERT_FALSE(GetConn()->IsReadOnly()) << "Expect a read-write connection";
 
-  pg::ResultSet res{nullptr};
-  UASSERT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
+    pg::ResultSet res{nullptr};
+    UASSERT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
 
-  UASSERT_NO_THROW(GetConn()->Execute(kCreateTestSchema)) << "Create schema";
+    UASSERT_NO_THROW(GetConn()->Execute(kCreateTestSchema)) << "Create schema";
 
-  UEXPECT_NO_THROW(GetConn()->Execute(kCreateAnEnumType))
-      << "Successfully create an enumeration type";
-  UEXPECT_NO_THROW(GetConn()->ReloadUserTypes()) << "Reload user types";
-  const auto& user_types = GetConn()->GetUserTypes();
-  EXPECT_NE(0, io::CppToPg<AnotherRainbow>::GetOid(user_types));
+    UEXPECT_NO_THROW(GetConn()->Execute(kCreateAnEnumType)) << "Successfully create an enumeration type";
+    UEXPECT_NO_THROW(GetConn()->ReloadUserTypes()) << "Reload user types";
+    const auto& user_types = GetConn()->GetUserTypes();
+    EXPECT_NE(0, io::CppToPg<AnotherRainbow>::GetOid(user_types));
 
-  UEXPECT_NO_THROW(res = GetConn()->Execute(kSelectEnumValues));
-  for (auto f : res.Front()) {
-    UEXPECT_NO_THROW(f.As<AnotherRainbow>());
-  }
+    UEXPECT_NO_THROW(res = GetConn()->Execute(kSelectEnumValues));
+    for (auto f : res.Front()) {
+        UEXPECT_NO_THROW(f.As<AnotherRainbow>());
+    }
 
-  static constexpr AnotherRainbow enumerators[]{
-      AnotherRainbow::kRed, AnotherRainbow::kOrange, AnotherRainbow::kYellow,
-      AnotherRainbow::kGreen, AnotherRainbow::kCyan};
-  for (const auto& en : enumerators) {
-    UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", en));
-    EXPECT_EQ(en, res[0][0].As<AnotherRainbow>());
-    EXPECT_EQ(EnumMap::GetLiteral(en), res[0][0].As<std::string_view>());
-    // Test the data type that is used for reading only
-    UEXPECT_NO_THROW(res[0][0].As<AnotherRainbowRO>())
-        << "Read a datatype that is never written to a Pg buffer";
-  }
+    static constexpr AnotherRainbow enumerators[]{
+        AnotherRainbow::kRed,
+        AnotherRainbow::kOrange,
+        AnotherRainbow::kYellow,
+        AnotherRainbow::kGreen,
+        AnotherRainbow::kCyan
+    };
+    for (const auto& en : enumerators) {
+        UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", en));
+        EXPECT_EQ(en, res[0][0].As<AnotherRainbow>());
+        EXPECT_EQ(EnumMap::GetLiteral(en), res[0][0].As<std::string_view>());
+        // Test the data type that is used for reading only
+        UEXPECT_NO_THROW(res[0][0].As<AnotherRainbowRO>()) << "Read a datatype that is never written to a Pg buffer";
+    }
 
-  UEXPECT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
+    UEXPECT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
 }
 
 }  // namespace
+
+/// [autogenerated enum type postgres]
+// Autogenerated enum with formatters and parsers
+enum class GeneratedRainbow { kRed, kOrange, kYellow, kGreen, kCyan };
+
+GeneratedRainbow Parse(std::string_view value, formats::parse::To<GeneratedRainbow>);
+std::string ToString(GeneratedRainbow value);
+/// [autogenerated enum type postgres]
+
+/// [autogenerated enum registration postgres]
+template <>
+struct storages::postgres::io::CppToUserPg<GeneratedRainbow> : EnumMappingBase<GeneratedRainbow> {
+    static constexpr DBTypeName postgres_name = "__pgtest.rainbow";
+    static constexpr auto enumerators = storages::postgres::io::Codegen{};
+};
+/// [autogenerated enum registration postgres]
+
+UTEST_P(PostgreConnection, GeneratedEnumSample) {
+    CheckConnection(GetConn());
+    ASSERT_FALSE(GetConn()->IsReadOnly()) << "Expect a read-write connection";
+
+    UASSERT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
+    UASSERT_NO_THROW(GetConn()->Execute(kCreateTestSchema)) << "Create schema";
+    UEXPECT_NO_THROW(GetConn()->Execute(kCreateAnEnumType)) << "Successfully create an enumeration type";
+
+    /// [autogenerated enum usage postgres]
+    auto res = GetConn()->Execute("select 'red'::__pgtest.rainbow");
+    EXPECT_EQ(res[0][0].As<GeneratedRainbow>(), GeneratedRainbow::kRed);
+
+    res = GetConn()->Execute("select $1", GeneratedRainbow::kYellow);
+    EXPECT_EQ(res[0][0].As<GeneratedRainbow>(), GeneratedRainbow::kYellow);
+    /// [autogenerated enum usage postgres]
+
+    UEXPECT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
+}
+
+static constexpr USERVER_NAMESPACE::utils::TrivialBiMap kGeneratedMap{[](auto selector) {
+    return selector()
+        .Case("red", GeneratedRainbow::kRed)
+        .Case("orange", GeneratedRainbow::kOrange)
+        .Case("yellow", GeneratedRainbow::kYellow)
+        .Case("green", GeneratedRainbow::kGreen)
+        .Case("cyan", GeneratedRainbow::kCyan);
+}};
+
+GeneratedRainbow Parse(std::string_view value, formats::parse::To<GeneratedRainbow>) {
+    return *kGeneratedMap.TryFind(value);
+}
+
+std::string ToString(GeneratedRainbow value) { return std::string{*kGeneratedMap.TryFind(value)}; }
+
+UTEST_P(PostgreConnection, GeneratedEnumRoundtrip) {
+    using EnumMap = io::detail::EnumerationMap<GeneratedRainbow>;
+    CheckConnection(GetConn());
+    ASSERT_FALSE(GetConn()->IsReadOnly()) << "Expect a read-write connection";
+
+    pg::ResultSet res{nullptr};
+    UASSERT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
+
+    UASSERT_NO_THROW(GetConn()->Execute(kCreateTestSchema)) << "Create schema";
+
+    UEXPECT_NO_THROW(GetConn()->Execute(kCreateAnEnumType)) << "Successfully create an enumeration type";
+    UEXPECT_NO_THROW(GetConn()->ReloadUserTypes()) << "Reload user types";
+    const auto& user_types = GetConn()->GetUserTypes();
+    EXPECT_NE(0, io::CppToPg<GeneratedRainbow>::GetOid(user_types));
+
+    UEXPECT_NO_THROW(res = GetConn()->Execute(kSelectEnumValues));
+    for (auto f : res.Front()) {
+        UEXPECT_NO_THROW(f.As<GeneratedRainbow>());
+    }
+
+    for (const auto& p : kGeneratedMap) {
+        UEXPECT_NO_THROW(res = GetConn()->Execute("select $1", p.second));
+        EXPECT_EQ(p.second, res[0][0].As<GeneratedRainbow>());
+        EXPECT_EQ(EnumMap::GetLiteral(p.second), p.first);
+        EXPECT_EQ(EnumMap::GetLiteral(p.second), res[0][0].As<std::string_view>());
+    }
+
+    UEXPECT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
+}
+
+/// [Autogenerated user enum type]
+enum class GeneratedAnimals { kCat, kDog, kBird, kFish };
+
+GeneratedAnimals Parse(std::string_view value, formats::parse::To<GeneratedAnimals>);
+std::string ToString(GeneratedAnimals value);
+
+template <>
+struct storages::postgres::io::CppToSystemPg<GeneratedAnimals>
+    : storages::postgres::io::PredefinedOid<storages::postgres::io::PredefinedOids::kText> {};
+/// [Autogenerated user enum type]
+
+static constexpr USERVER_NAMESPACE::utils::TrivialBiMap kGeneratedAnimalsMap{[](auto selector) {
+    return selector()
+        .Case("cat", GeneratedAnimals::kCat)
+        .Case("dog", GeneratedAnimals::kDog)
+        .Case("bird", GeneratedAnimals::kBird)
+        .Case("fish", GeneratedAnimals::kFish);
+}};
+
+GeneratedAnimals Parse(std::string_view value, formats::parse::To<GeneratedAnimals>) {
+    const auto result = kGeneratedAnimalsMap.TryFind(value);
+    if (!result) {
+        throw std::runtime_error("Unknown value: " + std::string(value));
+    }
+    return *result;
+}
+
+std::string ToString(GeneratedAnimals value) { return std::string{*kGeneratedAnimalsMap.TryFind(value)}; }
+
+UTEST_P(PostgreConnection, AutogeneratedEnumToText) {
+    CheckConnection(GetConn());
+    ASSERT_FALSE(GetConn()->IsReadOnly()) << "Expect a read-write connection";
+
+    UASSERT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
+    UASSERT_NO_THROW(GetConn()->Execute(kCreateTestSchema)) << "Create schema";
+
+    pg::ResultSet res{nullptr};
+    UEXPECT_NO_THROW(res = GetConn()->Execute("SELECT $1", GeneratedAnimals::kCat));
+    EXPECT_EQ("cat", res[0][0].As<std::string>());
+
+    UEXPECT_NO_THROW(res = GetConn()->Execute("SELECT 'dog'::text"));
+    EXPECT_EQ(res[0][0].As<GeneratedAnimals>(), GeneratedAnimals::kDog);
+
+    UEXPECT_NO_THROW(res = GetConn()->Execute("SELECT 'unknown_value'::text"));
+    UEXPECT_THROW(res[0][0].As<GeneratedAnimals>(), std::runtime_error);
+
+    UEXPECT_NO_THROW(GetConn()->Execute(kCreateAnimalsEnumType)) << "Successfully create an enumeration type";
+    UEXPECT_THROW(res = GetConn()->Execute("SELECT 'cat'::__pgtest.animals"), storages::postgres::NoBinaryParser);
+
+    UEXPECT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
+}
+
+UTEST_P(PostgreConnection, EnumInParameterStore) {
+    CheckConnection(GetConn());
+    ASSERT_FALSE(GetConn()->IsReadOnly()) << "Expect a read-write connection";
+
+    UASSERT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
+    UASSERT_NO_THROW(GetConn()->Execute(kCreateTestSchema)) << "Create schema";
+
+    // 'hold' and 'posting' order intentionally does not match C++ order/values
+    const std::string create_enum = "CREATE TYPE __pgtest.transaction_type AS enum ('hold', 'posting')";
+    UEXPECT_NO_THROW(GetConn()->Execute(create_enum)) << "Successfully created an enumeration type";
+    UEXPECT_NO_THROW(GetConn()->ReloadUserTypes()) << "Reload user types";
+
+    pg::ResultSet res{nullptr};
+    UEXPECT_NO_THROW(res = GetConn()->Execute("SELECT $1", pg_absrnd_mvp::transaction_type::Enum::kPosting));
+    EXPECT_EQ(pg_absrnd_mvp::transaction_type::Enum::kPosting, res[0][0].As<pg_absrnd_mvp::transaction_type::Enum>());
+
+    UEXPECT_NO_THROW(res = GetConn()->Execute("SELECT 'posting'::__pgtest.transaction_type"));
+
+    storages::postgres::ParameterStore parameter_store;
+    parameter_store.PushBack(pg_absrnd_mvp::transaction_type::Enum::kPosting);
+    parameter_store.PushBack(pg_absrnd_mvp::transaction_type::Enum::kHold);
+    UEXPECT_NO_THROW(res = GetConn()->Execute("SELECT $1, $2", parameter_store));
+    EXPECT_EQ(pg_absrnd_mvp::transaction_type::Enum::kPosting, res[0][0].As<pg_absrnd_mvp::transaction_type::Enum>());
+    EXPECT_EQ(pg_absrnd_mvp::transaction_type::Enum::kHold, res[0][1].As<pg_absrnd_mvp::transaction_type::Enum>());
+
+    const std::string create_table = "CREATE TABLE __pgtest.enum_table (i INTEGER, e __pgtest.transaction_type)";
+    UEXPECT_NO_THROW(GetConn()->Execute(create_table)) << "Successfully created a table";
+    UEXPECT_NO_THROW(GetConn()
+                         ->Execute("INSERT INTO __pgtest.enum_table(i, e) VALUES (1, $1), (2, $2)", parameter_store));
+    UEXPECT_NO_THROW(res = GetConn()->Execute("SELECT e FROM __pgtest.enum_table ORDER BY i"));
+    EXPECT_EQ(pg_absrnd_mvp::transaction_type::Enum::kPosting, res[0][0].As<pg_absrnd_mvp::transaction_type::Enum>());
+    EXPECT_EQ(pg_absrnd_mvp::transaction_type::Enum::kHold, res[1][0].As<pg_absrnd_mvp::transaction_type::Enum>());
+}
 
 USERVER_NAMESPACE_END

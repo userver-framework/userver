@@ -3,133 +3,22 @@ Capture and work with logs.
 """
 
 # pylint: disable=redefined-outer-name
-import asyncio
-import contextlib
-import enum
-import sys
-import typing
+import logging
 
 import pytest
 
-from testsuite.utils import callinfo
-from testsuite.utils import compat
-from testsuite.utils import net as net_utils
+from testsuite import logcapture
+from testsuite.logcapture import __tracebackhide__  # noqa
 
 from ..utils import tskv
 
 USERVER_CONFIG_HOOKS = ['_userver_config_logs_capture']
 DEFAULT_PORT = 2211
 
-
-class LogLevel(enum.Enum):
-    TRACE = 0
-    DEBUG = 1
-    INFO = 2
-    WARNING = 3
-    ERROR = 4
-    CRITICAL = 5
-    NONE = 6
-
-    @classmethod
-    def from_string(cls, level: str) -> 'LogLevel':
-        return cls[level.upper()]
+logger = logging.getLogger(__name__)
 
 
-class CapturedLogs:
-    def __init__(self, *, log_level: str) -> None:
-        self._log_level = LogLevel.from_string(log_level)
-        self._logs: typing.List[tskv.TskvRow] = []
-        self._subscribers: typing.List = []
-
-    async def publish(self, row: tskv.TskvRow) -> None:
-        self._logs.append(row)
-        for query, callback in self._subscribers:
-            if _match_entry(row, query):
-                await callback(**row)
-
-    def select(self, **query) -> typing.List[tskv.TskvRow]:
-        level = query.get('level')
-        if level:
-            log_level = LogLevel[level]
-            if log_level.value < self._log_level.value:
-                raise RuntimeError(
-                    f'Requested log level={log_level.name} is lower than '
-                    f'service log level {self._log_level.name}',
-                )
-        result = []
-        for row in self._logs:
-            if _match_entry(row, query):
-                result.append(row)
-        return result
-
-    def subscribe(self, **query):
-        def decorator(func):
-            decorated = callinfo.acallqueue(func)
-            self._subscribers.append((query, decorated))
-            return decorated
-
-        return decorator
-
-
-class CaptureControl:
-    def __init__(self, *, log_level: str):
-        self.default_log_level = log_level
-        self._capture: typing.Optional[CapturedLogs] = None
-        self._tasks = []
-
-    @compat.asynccontextmanager
-    async def start_capture(
-            self,
-            *,
-            log_level: typing.Optional[str] = None,
-            timeout: float = 10.0,
-    ):
-        if self._capture:
-            yield self._capture
-            return
-
-        if not log_level:
-            log_level = self.default_log_level
-
-        self._capture = CapturedLogs(log_level=log_level)
-        try:
-            yield self._capture
-        finally:
-            self._capture = None
-            if self._tasks:
-                _, pending = await asyncio.wait(self._tasks, timeout=timeout)
-                self._tasks = []
-                if pending:
-                    raise RuntimeError(
-                        'Timedout while waiting for capture task to finish',
-                    )
-
-    @compat.asynccontextmanager
-    async def start_server(self, *, sock, loop=None):
-        extra = {}
-        if sys.version_info < (3, 8):
-            extra['loop'] = loop
-        server = await asyncio.start_server(
-            self._handle_client, sock=sock, **extra,
-        )
-        try:
-            yield server
-        finally:
-            server.close()
-            await server.wait_closed()
-
-    async def _handle_client(self, reader, writer):
-        async def log_reader():
-            with contextlib.closing(writer):
-                async for line in reader:
-                    if self._capture:
-                        row = tskv.parse_line(line.decode('utf-8'))
-                        await self._capture.publish(row)
-
-        self._tasks.append(asyncio.create_task(log_reader()))
-
-
-def pytest_addoption(parser):
+def pytest_addoption(parser) -> None:
     group = parser.getgroup('logs-capture')
     group.addoption(
         '--logs-capture-port',
@@ -145,41 +34,47 @@ def pytest_addoption(parser):
 
 
 @pytest.fixture(scope='session')
-def userver_log_capture(_userver_capture_control, _userver_capture_server):
-    return _userver_capture_control
+async def userver_log_capture(pytestconfig, userver_log_level) -> logcapture.CaptureServer:
+    """
+    Session-scoped TCP server that receives service logs in TSKV format.
 
+    The server is started once per testsuite session. Static config is patched
+    so that the service can send logs when log capture is enabled for a test.
 
-@pytest.fixture(scope='session')
-def _userver_capture_control(userver_log_level):
-    return CaptureControl(log_level=userver_log_level)
+    In most tests use
+    @ref pytest_userver.plugins.service_client.service_client "service_client".capture_logs()
+    instead of this fixture directly. See @ref testsuite_logs_capture.
 
+    Example — filter captured logs after a request:
 
-@pytest.fixture(scope='session')
-def _userver_log_capture_socket(pytestconfig):
+    @snippet samples/testsuite-support/tests/test_logcapture.py select
+
+    Example — subscribe to log events as they arrive:
+
+    @snippet samples/testsuite-support/tests/test_logcapture.py subscribe
+
+    @ingroup userver_testsuite_fixtures
+    """
     host = pytestconfig.option.logs_capture_host
     port = pytestconfig.option.logs_capture_port
     if pytestconfig.option.service_wait or pytestconfig.option.service_disable:
         port = port or DEFAULT_PORT
-    with net_utils.bind_socket(host, port) as socket:
-        yield socket
 
-
-@pytest.fixture(scope='session')
-async def _userver_capture_server(
-        _userver_capture_control: CaptureControl,
-        _userver_log_capture_socket,
-        loop,
-):
-    async with _userver_capture_control.start_server(
-            sock=_userver_log_capture_socket, loop=loop,
-    ) as server:
+    server = logcapture.CaptureServer(
+        log_level=logcapture.LogLevel.from_string(userver_log_level),
+        parse_line=_tskv_parse_line,
+    )
+    async with server.start(host=host, port=port):
         yield server
 
 
 @pytest.fixture(scope='session')
-def _userver_config_logs_capture(_userver_log_capture_socket):
-    def patch_config(config, _config_vars) -> None:
-        sockname = _userver_log_capture_socket.getsockname()
+def _userver_config_logs_capture(userver_log_capture):
+    socknames = userver_log_capture.getsocknames()
+    assert socknames
+    sockname = socknames[0]
+
+    def patch_config(config: dict, _config_vars: dict) -> None:
         logging_config = config['components_manager']['components']['logging']
         default_logger = logging_config['loggers']['default']
         # Other formats are not yet supported by log-capture.
@@ -192,8 +87,6 @@ def _userver_config_logs_capture(_userver_log_capture_socket):
     return patch_config
 
 
-def _match_entry(row: tskv.TskvRow, query) -> bool:
-    for key, value in query.items():
-        if row.get(key) != value:
-            return False
-    return True
+def _tskv_parse_line(rawline: bytes) -> tskv.TskvRow:
+    line = rawline.decode(encoding='utf-8', errors='replace')
+    return tskv.parse_line(line)

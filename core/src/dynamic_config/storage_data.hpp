@@ -3,7 +3,7 @@
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/dynamic_config/impl/snapshot.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
-#include <userver/engine/mutex.hpp>
+#include <userver/engine/shared_mutex.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/utils/function_ref.hpp>
 
@@ -12,36 +12,42 @@ USERVER_NAMESPACE_BEGIN
 namespace dynamic_config::impl {
 
 class StorageData final {
- public:
-  using SnapshotChannel = concurrent::AsyncEventChannel<const Snapshot&>;
-  using DiffChannel = concurrent::AsyncEventChannel<const Diff&>;
-  using AfterAssignHook = utils::function_ref<void()>;
+public:
+    using SnapshotChannel = concurrent::AsyncEventChannel<const Snapshot&>;
+    using DiffChannel = concurrent::AsyncEventChannel<const Diff&>;
+    using AfterAssignHook = utils::function_ref<void()>;
 
-  StorageData();
-  explicit StorageData(SnapshotData config);
+    StorageData();
+    explicit StorageData(SnapshotData config);
 
-  rcu::ReadablePtr<SnapshotData> Read() const;
+    rcu::ReadablePtr<SnapshotData> Read() const;
 
-  void Update(SnapshotData config, AfterAssignHook after_assign_hook);
+    void Update(SnapshotData config, AfterAssignHook after_assign_hook);
 
-  SnapshotChannel& GetChannel();
+    SnapshotChannel& GetChannel();
 
-  concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
-      concurrent::FunctionId id, std::string_view name,
-      SnapshotChannel::Function&& func);
+    DiffChannel& GetDiffChannel();
 
-  concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
-      concurrent::FunctionId id, std::string_view name,
-      DiffChannel::Function&& func);
+    concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
+        concurrent::FunctionId id,
+        std::string_view name,
+        SnapshotChannel::Function&& func
+    );
 
- private:
-  Snapshot GetSnapshot() { return Snapshot{*this}; }
+    concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
+        concurrent::FunctionId id,
+        std::string_view name,
+        DiffChannel::Function&& func
+    );
 
-  rcu::Variable<SnapshotData> config_;
-  SnapshotChannel snapshot_channel_;
-  DiffChannel diff_channel_;
+private:
+    Snapshot GetSnapshot() { return Snapshot{*this}; }
 
-  engine::Mutex update_mutex_;
+    rcu::Variable<SnapshotData> config_;
+    SnapshotChannel snapshot_channel_;
+    DiffChannel diff_channel_;
+
+    engine::SharedMutex update_mutex_;
 };
 
 }  // namespace dynamic_config::impl

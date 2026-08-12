@@ -1,0 +1,59 @@
+components_manager:
+    components:
+        handler-server-monitor:
+            path: /service/monitor
+            method: GET
+            task_processor: monitor-task-processor
+
+        handler-ping:
+            path: /ping
+            method: GET
+            task_processor: main-task-processor  # !!!
+            throttling_enabled: false
+            url_trailing_slash: strict-match
+
+        handler-very-important-product:
+            path: /very-important-product
+            method: GET
+            task_processor: main-task-processor
+            url_trailing_slash: strict-match
+
+        server:
+            listener:
+                port: 8089
+                task_processor: main-task-processor
+            listener-monitor:
+                port: 8086
+                connection:
+                    in_buffer_size: 32768
+                    requests_queue_size_threshold: 100
+                task_processor: monitor-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: info
+
+        http-client:
+        http-client-core:
+            fs-task-processor: fs-task-processor
+            user-agent: 'userver-based-service 1.0'
+
+        auth-checker-settings:
+            load-enabled: true
+
+        testsuite-support:
+
+    default_task_processor: main-task-processor
+
+    task_processors:
+        fs-task-processor:
+            worker_threads: 2
+        main-task-processor:
+            worker_threads: 6
+        monitor-task-processor:
+            thread_name: mon-worker
+            worker_threads: 1
+    event_thread_pool:
+        threads: 2

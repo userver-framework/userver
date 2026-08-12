@@ -1,0 +1,50 @@
+type: object
+description: ODBC client component
+additionalProperties: false
+properties:
+    secdist_alias:
+        type: string
+        description: |
+            name of the database in secdist config.
+            If specified, DSN will be read from secdist instead of static config.
+    dsn:
+        type: string
+        description: connection DSN string (used for single-pool configuration)
+    min_pool_size:
+        type: integer
+        description: |
+            number of connections created initially by this component instance.
+            Connections are kept even without requests
+        default: 1
+    max_pool_size:
+        type: integer
+        description: |
+            maximum number of connections that can be created by this component instance.
+            Should not be less than `min_pool_size`
+        default: 10
+    dns_resolver:
+        type: string
+        description: server hostname resolver type (getaddrinfo or async)
+        default: 'async'
+        enum:
+          - getaddrinfo
+          - async
+    pools:
+        type: array
+        description: list of connection pools (used for multi-pool configuration)
+        items:
+            type: object
+            description: connection pool configuration
+            additionalProperties: false
+            properties:
+                dsn:
+                    type: string
+                    description: connection DSN string for this pool
+                min_pool_size:
+                    type: integer
+                    description: minimum number of connections in this pool
+                    default: 1
+                max_pool_size:
+                    type: integer
+                    description: maximum number of connections in this pool
+                    default: 10

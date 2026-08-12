@@ -1,73 +1,73 @@
 #pragma once
 
-/// @file userver/utils/lazy_value.hpp
-/// @brief @copybrief utils::LazyValue
+/// @file userver/concurrent/lazy_value.hpp
+/// @brief @copybrief concurrent::LazyValue
 
 #include <atomic>
 #include <exception>
 #include <utility>
 
-#include <userver/engine/condition_variable.hpp>
-#include <userver/engine/exception.hpp>
-#include <userver/engine/task/cancel.hpp>
+#include <userver/engine/multi_consumer_event.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/move_only_function.hpp>
 #include <userver/utils/result_store.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace concurrent {
 
-/// @brief lazy value computation with multiple users
+/// @brief Lazy value computation with multiple consumers.
 template <typename T>
 class LazyValue final {
- public:
-  explicit LazyValue(std::function<T()> f) : f_(std::move(f)) { UASSERT(f_); }
+public:
+    explicit LazyValue(utils::move_only_function<T()> f)
+        : f_(std::move(f))
+    {
+        UASSERT(f_);
+    }
 
-  /// @brief Get an already calculated result or calculate it.
-  ///        It is guaranteed that `f` is called exactly once.
-  ///        Can be called concurrently from multiple coroutines.
-  /// @throws anything `f` throws.
-  const T& operator()();
+    LazyValue(const LazyValue&) = delete;
+    LazyValue(LazyValue&&) = delete;
+    LazyValue& operator=(const LazyValue&) = delete;
+    LazyValue& operator=(LazyValue&&) = delete;
 
- private:
-  std::function<T()> f_;
-  std::atomic<bool> started_{false};
-  utils::ResultStore<T> result_;
+    /// @brief Get an already calculated result or calculate it. It is guaranteed that `f` is called exactly once.
+    /// Can be called concurrently from multiple coroutines.
+    ///
+    /// @note If `f` throws, it is not re-evaluated on subsequent calls (unlike with `std::once_flag`).
+    ///
+    /// @throws Anything `f` throws.
+    const T& operator()();
 
-  engine::ConditionVariable cv_finished_;
-  engine::Mutex m_finished_;
-  std::atomic<bool> finished_{false};
+private:
+    utils::move_only_function<T()> f_;
+    std::atomic<bool> started_{false};
+    utils::ResultStore<T> result_;
+
+    engine::MultiConsumerEvent finished_event_;
 };
 
 template <typename T>
 const T& LazyValue<T>::operator()() {
-  if (finished_) return result_.Get();
-
-  auto old = started_.exchange(true);
-  if (!old) {
-    try {
-      result_.SetValue(f_());
-
-      std::lock_guard lock(m_finished_);
-      finished_ = true;
-      cv_finished_.NotifyAll();
-    } catch (...) {
-      result_.SetException(std::current_exception());
-
-      std::lock_guard lock(m_finished_);
-      finished_ = true;
-      cv_finished_.NotifyAll();
-      throw;
+    if (finished_event_.IsReady()) {
+        return result_.Get();
     }
-  } else {
-    std::unique_lock lock(m_finished_);
-    auto rc = cv_finished_.Wait(lock, [this]() { return finished_.load(); });
-    if (!rc)
-      throw engine::WaitInterruptedException(
-          engine::current_task::CancellationReason());
-  }
 
-  return result_.Get();
+    const bool old = started_.exchange(true, std::memory_order_relaxed);
+    if (!old) {
+        try {
+            result_.SetValue(f_());
+        } catch (...) {
+            result_.SetException(std::current_exception());
+            finished_event_.Send();
+            throw;
+        }
+        finished_event_.Send();
+    } else {
+        finished_event_.Wait();
+    }
+
+    return result_.Get();
 }
 
 }  // namespace concurrent

@@ -3,7 +3,7 @@
 /// @file userver/server/handlers/auth/auth_checker_settings_component.hpp
 /// @brief @copybrief components::AuthCheckerSettings
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/storages/secdist/component.hpp>
 
 #include "auth_checker_settings.hpp"
@@ -12,8 +12,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-// clang-format off
-
 /// @ingroup userver_components
 ///
 /// @brief Component that loads auth configuration settings from a
@@ -21,33 +19,27 @@ namespace components {
 /// components::ComponentList.
 ///
 /// The component does **not** have any options for service config.
+class AuthCheckerSettings final : public ComponentBase {
+public:
+    AuthCheckerSettings(const ComponentConfig&, const ComponentContext&);
 
-// clang-format on
+    /// @ingroup userver_component_names
+    /// @brief The default name of components::AuthCheckerSettings
+    static constexpr std::string_view kName = "auth-checker-settings";
 
-class AuthCheckerSettings final : public LoggableComponentBase {
- public:
-  AuthCheckerSettings(const ComponentConfig&, const ComponentContext&);
+    const server::handlers::auth::AuthCheckerSettings& Get() const { return settings_; }
 
-  /// @ingroup userver_component_names
-  /// @brief The default name of components::AuthCheckerSettings
-  static constexpr std::string_view kName = "auth-checker-settings";
+    static yaml_config::Schema GetStaticConfigSchema();
 
-  const server::handlers::auth::AuthCheckerSettings& Get() const {
-    return settings_;
-  }
-
-  static yaml_config::Schema GetStaticConfigSchema();
-
- private:
-  server::handlers::auth::AuthCheckerSettings settings_;
+private:
+    server::handlers::auth::AuthCheckerSettings settings_;
 };
 
 template <>
 inline constexpr bool kHasValidate<AuthCheckerSettings> = true;
 
 template <>
-inline constexpr auto kConfigFileMode<AuthCheckerSettings> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto kConfigFileMode<AuthCheckerSettings> = ConfigFileMode::kNotRequired;
 
 }  // namespace components
 

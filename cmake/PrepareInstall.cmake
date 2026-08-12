@@ -1,87 +1,234 @@
-include_guard()
+include_guard(GLOBAL)
 
 set_property(GLOBAL PROPERTY userver_cmake_dir "${CMAKE_CURRENT_LIST_DIR}")
 
 function(_userver_install_targets)
-  if(NOT USERVER_INSTALL)
-    return()
-  endif()
-  set(oneValueArgs COMPONENT)
-  set(multiValueArgs TARGETS)
-  cmake_parse_arguments(
-    ARG "${option}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}"
-  )
-  if(NOT ARG_COMPONENT)
-    message(FATAL_ERROR "No COMPONENT for install")
-  endif()
-  if(NOT ARG_TARGETS)
-    message(FATAL_ERROR "No TARGETS given for install")
-    return()
-  endif()
-  foreach(ITEM_TARGET IN LISTS ARG_TARGETS)
-    if(NOT TARGET ${ITEM_TARGET})
-      message(FATAL_ERROR "${ITEM_TARGET} is not target. You should use only targets")
-      return()
+    set(options)
+    set(oneValueArgs COMPONENT)
+    set(multiValueArgs TARGETS)
+    cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
+    if(NOT ARG_COMPONENT)
+        message(FATAL_ERROR "No COMPONENT for install")
     endif()
-  endforeach()
-  install(TARGETS ${ARG_TARGETS}
-          EXPORT userver-targets
-          CONFIGURATIONS RELEASE
-          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT ${ARG_COMPONENT}
-          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT ${ARG_COMPONENT}
-          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT ${ARG_COMPONENT}
-          INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-  )
-  install(TARGETS ${ARG_TARGETS}
-          EXPORT userver-targets_d
-          CONFIGURATIONS DEBUG
-          LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT ${ARG_COMPONENT}
-          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT ${ARG_COMPONENT}
-          RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT ${ARG_COMPONENT}
-          INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
-  )
+    if(NOT ARG_TARGETS)
+        message(FATAL_ERROR "No TARGETS given for install")
+    endif()
+
+    foreach(target IN LISTS ARG_TARGETS)
+        if(NOT TARGET ${target})
+            message(FATAL_ERROR "${target} is not a target. You should use only targets")
+        endif()
+        if(target MATCHES "^userver-.*")
+            string(REGEX REPLACE "^userver-" "" target_without_userver "${target}")
+            add_library("userver::${target_without_userver}" ALIAS "${target}")
+            set_target_properties("${target}" PROPERTIES EXPORT_NAME "${target_without_userver}")
+        endif()
+    endforeach()
+
+    if(NOT USERVER_INSTALL)
+        return()
+    endif()
+
+    install(
+        TARGETS ${ARG_TARGETS}
+        EXPORT userver-targets
+        CONFIGURATIONS RELEASE
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT ${ARG_COMPONENT}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT ${ARG_COMPONENT}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT ${ARG_COMPONENT}
+        INCLUDES
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
+    install(
+        TARGETS ${ARG_TARGETS}
+        EXPORT userver-targets_d
+        CONFIGURATIONS DEBUG
+        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT ${ARG_COMPONENT}
+        ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT ${ARG_COMPONENT}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR} COMPONENT ${ARG_COMPONENT}
+        INCLUDES
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    )
 endfunction()
 
 function(_userver_export_targets)
-  if(NOT USERVER_INSTALL)
-    return()
-  endif()
-  install(EXPORT userver-targets
-          FILE userver-targets.cmake
-          CONFIGURATIONS RELEASE
-          NAMESPACE userver::
-         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/release
-  )
-  install(EXPORT userver-targets_d
-          FILE userver-targets_d.cmake
-          CONFIGURATIONS DEBUG
-          NAMESPACE userver::
-          DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/debug
-  )
+    if(NOT USERVER_INSTALL)
+        return()
+    endif()
+    install(
+        EXPORT userver-targets
+        FILE userver-targets.cmake
+        CONFIGURATIONS RELEASE
+        NAMESPACE userver::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/release
+        COMPONENT universal
+    )
+    install(
+        EXPORT userver-targets_d
+        FILE userver-targets_d.cmake
+        CONFIGURATIONS DEBUG
+        NAMESPACE userver::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/debug
+        COMPONENT universal
+    )
 endfunction()
 
 function(_userver_directory_install)
-  if(NOT USERVER_INSTALL)
-    return()
-  endif()
-  set(oneValueArgs COMPONENT DESTINATION)
-  set(multiValueArgs FILES DIRECTORY PERMISSIONS)
-  cmake_parse_arguments(
-    ARG "${option}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}"
-  )
-  if(NOT ARG_COMPONENT)
-    message(FATAL_ERROR "No COMPONENT for install")
-  endif()
-  if(NOT ARG_DESTINATION)
-    message(FATAL_ERROR "No DESTINATION for install")
-  endif()
-  if(NOT ARG_FILES AND NOT ARG_DIRECTORY)
-    message(FATAL_ERROR "No FILES or DIRECTORY provided to install")
-  endif()
-  if(ARG_FILES)
-    install(FILES ${ARG_FILES} DESTINATION ${ARG_DESTINATION} COMPONENT ${ARG_COMPONENT})
-  endif()
-  if(ARG_DIRECTORY)
-    install(DIRECTORY ${ARG_DIRECTORY} DESTINATION ${ARG_DESTINATION} COMPONENT ${ARG_COMPONENT} USE_SOURCE_PERMISSIONS)
-  endif()
+    if(NOT USERVER_INSTALL)
+        return()
+    endif()
+    set(option)
+    set(oneValueArgs COMPONENT DESTINATION PATTERN RENAME)
+    set(multiValueArgs FILES DIRECTORY PROGRAMS EXCLUDE_PATTERNS)
+    cmake_parse_arguments(ARG "${option}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
+    if(NOT ARG_COMPONENT)
+        message(FATAL_ERROR "No COMPONENT for install")
+    endif()
+    if(NOT ARG_DESTINATION)
+        message(FATAL_ERROR "No DESTINATION for install")
+    endif()
+    if(NOT ARG_FILES
+       AND NOT ARG_DIRECTORY
+       AND NOT ARG_PROGRAMS
+    )
+        message(FATAL_ERROR "No FILES or DIRECTORY or PROGRAMS provided to install")
+    endif()
+    if(ARG_PROGRAMS)
+        install(
+            PROGRAMS ${ARG_PROGRAMS}
+            DESTINATION ${ARG_DESTINATION}
+            COMPONENT ${ARG_COMPONENT}
+            RENAME ${ARG_RENAME}
+        )
+    endif()
+    if(ARG_FILES)
+        install(
+            FILES ${ARG_FILES}
+            DESTINATION ${ARG_DESTINATION}
+            COMPONENT ${ARG_COMPONENT}
+            RENAME ${ARG_RENAME}
+        )
+    endif()
+    if(ARG_DIRECTORY)
+        set(install_args)
+        if(ARG_PATTERN)
+            list(APPEND install_args FILES_MATCHING PATTERN ${ARG_PATTERN})
+        endif()
+        foreach(pattern IN LISTS ARG_EXCLUDE_PATTERNS)
+            list(APPEND install_args PATTERN "${pattern}" EXCLUDE)
+        endforeach()
+        install(
+            DIRECTORY ${ARG_DIRECTORY}
+            DESTINATION ${ARG_DESTINATION}
+            COMPONENT ${ARG_COMPONENT}
+            USE_SOURCE_PERMISSIONS ${install_args}
+        )
+    endif()
 endfunction()
+
+function(_userver_make_install_config)
+    if(NOT USERVER_INSTALL)
+        return()
+    endif()
+
+    # USERVER_AVAILABLE_COMPONENTS is collected automatically from
+    # _userver_install_component() calls (see the global property of the same
+    # name). It is substituted into Config.cmake.in as the default list of
+    # find_package(userver) components.
+    get_property(USERVER_AVAILABLE_COMPONENTS GLOBAL PROPERTY USERVER_AVAILABLE_COMPONENTS)
+
+    configure_package_config_file(
+        "${USERVER_ROOT_DIR}/cmake/install/Config.cmake.in" "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake"
+        INSTALL_DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
+    )
+
+    write_basic_package_version_file(
+        "${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake"
+        VERSION "${USERVER_VERSION}"
+        COMPATIBILITY SameMajorVersion
+    )
+
+    _userver_directory_install(
+        COMPONENT universal
+        FILES "${CMAKE_CURRENT_BINARY_DIR}/userverConfig.cmake" "${CMAKE_CURRENT_BINARY_DIR}/userverConfigVersion.cmake"
+        DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
+    )
+endfunction()
+
+function(_userver_install_component)
+    if(NOT USERVER_INSTALL)
+        return()
+    endif()
+
+    set(options NON_FINDABLE)
+    set(oneValueArgs COMPONENT)
+    set(multiValueArgs DEPENDS)
+    cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
+
+    if(NOT ARG_NON_FINDABLE)
+        set_property(GLOBAL APPEND PROPERTY USERVER_AVAILABLE_COMPONENTS ${ARG_COMPONENT})
+    endif()
+
+    string(TOUPPER "${ARG_COMPONENT}" COMPONENT_UPPER)
+    if(CPACK_COMPONENTS_GROUPING STREQUAL ONE_PER_GROUP)
+        if(NOT CPACK_DEBIAN_${COMPONENT_UPPER}_PACKAGE_DEPENDS)
+            message(
+                FATAL_ERROR
+                    "File with per-component dependencies is missing (component ${ARG_COMPONENT}). Either use CPACK_COMPONENTS_GROUPING=ALL_COMPONENTS_IN_ONE to build a single all-in-one package, or create dependency file ${USERVER_ROOT_DIR}/scripts/docs/en/deps/${DEPENDENCIES_FILESTEM}/${ARG_COMPONENT}."
+            )
+        endif()
+    endif()
+
+    execute_process(
+        COMMAND cat "${USERVER_ROOT_DIR}/scripts/docs/en/deps/${DEPENDENCIES_FILESTEM}/${ARG_COMPONENT}"
+        COMMAND tr "\n" " "
+        COMMAND sed "s/ \\(.\\)/, \\1/g"
+        OUTPUT_VARIABLE COMPONENT_DEPENDS
+    )
+    file(
+        APPEND "${CMAKE_BINARY_DIR}/cpack.variables.inc"
+        "
+        set(CPACK_DEBIAN_${COMPONENT_UPPER}_PACKAGE_NAME libuserver-${ARG_COMPONENT}-dev)
+        set(CPACK_DEBIAN_${COMPONENT_UPPER}_PACKAGE_CONFLICTS libuserver-all-dev)
+        set(CPACK_COMPONENT_${COMPONENT_UPPER}_DEPENDS ${ARG_DEPENDS})
+        set(CPACK_DEBIAN_${COMPONENT_UPPER}_PACKAGE_DEPENDS \"${COMPONENT_DEPENDS}\")
+    "
+    )
+
+    file(
+        APPEND "${CMAKE_BINARY_DIR}/cpack.inc"
+        "
+        cpack_add_component_group(${ARG_COMPONENT} EXPANDED)
+        cpack_add_component(${ARG_COMPONENT} GROUP ${ARG_COMPONENT} INSTALL_TYPES Full)
+    "
+    )
+endfunction()
+
+function(_userver_prepare_components)
+    file(REMOVE "${CMAKE_BINARY_DIR}/cpack.inc")
+    file(REMOVE "${CMAKE_BINARY_DIR}/cpack.variables.inc")
+
+    # DEB dependencies:
+    execute_process(COMMAND lsb_release -cs OUTPUT_VARIABLE OS_CODENAME)
+    if(OS_CODENAME MATCHES "^bookworm")
+        set(DEPENDENCIES_FILESTEM "debian-12")
+    elseif(OS_CODENAME MATCHES "^bullseye")
+        set(DEPENDENCIES_FILESTEM "debian-11")
+    elseif(OS_CODENAME MATCHES "^noble")
+        set(DEPENDENCIES_FILESTEM "ubuntu-24.04")
+    elseif(OS_CODENAME MATCHES "^jammy")
+        set(DEPENDENCIES_FILESTEM "ubuntu-22.04")
+    elseif(OS_CODENAME MATCHES "^impish")
+        set(DEPENDENCIES_FILESTEM "ubuntu-21.04")
+    elseif(OS_CODENAME MATCHES "^focal")
+        set(DEPENDENCIES_FILESTEM "ubuntu-20.04")
+    elseif(OS_CODENAME MATCHES "^bionic")
+        set(DEPENDENCIES_FILESTEM "ubuntu-18.04")
+    endif()
+    set(DEPENDENCIES_FILESTEM
+        ${DEPENDENCIES_FILESTEM}
+        CACHE INTERNAL ""
+    )
+endfunction()
+
+_userver_prepare_components()

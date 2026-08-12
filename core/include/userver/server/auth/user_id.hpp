@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/server/auth/user_id.hpp
+/// @brief @copybrief server::auth::UserId
+
 #include <cstdint>
 #include <iosfwd>
 #include <string>
@@ -15,6 +18,8 @@ class LogHelper;
 
 namespace server::auth {
 
+/// @brief Strongly typed user identifier (uid)
+///
 /// Type that represents a yandex uid and has all the comparison and hashing
 /// operators. It is not implicitly convertible to/from integers and provides
 /// better type safety.
@@ -24,18 +29,16 @@ using UserIds = std::vector<UserId>;
 
 template <class Value>
 UserId Parse(const Value& v, formats::parse::To<UserId>) {
-  return UserId{v.template As<std::uint64_t>()};
+    return UserId{v.template As<std::uint64_t>()};
 }
 
-inline std::uint64_t ToUInt64(UserId v) noexcept {
-  return static_cast<std::uint64_t>(v);
-}
+inline std::uint64_t ToUInt64(UserId v) noexcept { return static_cast<std::uint64_t>(v); }
 
 std::string ToString(UserId v);
 
 template <class Char>
 std::basic_ostream<Char>& operator<<(std::basic_ostream<Char>& os, UserId v) {
-  return os << ToUInt64(v);
+    return os << ToUInt64(v);
 }
 
 // Optimized output for LogHelper

@@ -11,6 +11,7 @@
 #include <userver/ydb/query.hpp>
 #include <userver/ydb/table.hpp>
 
+#include <ydb/impl/connection.hpp>
 #include <ydb/impl/operation_settings.hpp>
 #include <ydb/impl/stats.hpp>
 
@@ -18,23 +19,41 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ydb::impl {
 
-struct RequestContext final {
-  RequestContext(TableClient& client, const Query& query,
-                 OperationSettings& settings,
-                 IsStreaming is_streaming = IsStreaming{false},
-                 tracing::Span* custom_parent_span = nullptr,
-                 const utils::impl::SourceLocation& location =
-                     utils::impl::SourceLocation::Current());
+engine::Deadline GetDeadline(tracing::Span& span, const dynamic_config::Snapshot& config_snapshot);
 
-  ~RequestContext();
+void PrepareSettings(RetryTxSettings& rs, const OperationSettings& default_settings);
 
-  TableClient& table_client;
-  OperationSettings& settings;
-  const int initial_uncaught_exceptions;
-  StatsScope stats_scope;
-  dynamic_config::Snapshot config_snapshot;
-  tracing::Span span;
-  engine::Deadline deadline;
+template <typename Settings>
+class RequestContext final {
+public:
+    RequestContext(
+        Connection& connection,
+        TableClient& table_client,
+        const Query& query,
+        Settings&& settings,
+        IsStreaming is_streaming = IsStreaming{false},
+        tracing::Span* custom_parent_span = nullptr,
+        engine::Deadline parent_deadline = {},
+        const utils::impl::SourceLocation& location = utils::impl::SourceLocation::Current()
+    );
+
+    RequestContext(const RequestContext&) = delete;
+    RequestContext(RequestContext&&) = delete;
+    RequestContext& operator=(const RequestContext&) = delete;
+    RequestContext& operator=(RequestContext&&) = delete;
+
+    void HandleError(const NYdb::TStatus& status);
+
+    ~RequestContext();
+
+    Connection& connection;
+    Settings settings;
+    const int initial_uncaught_exceptions;
+    StatsScope stats_scope;
+    dynamic_config::Snapshot config_snapshot;
+    tracing::Span span;
+    engine::Deadline deadline;
+    bool is_error{false};
 };
 
 }  // namespace ydb::impl

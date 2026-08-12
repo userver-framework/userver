@@ -1,0 +1,23 @@
+default: {}
+description: |
+    Dynamic config that controls default network and statement timeouts for ODBC driver.
+    Overrides the built-in timeouts, but could be overridden by explicit
+    engine::Deadline passed to Execute/Begin methods.
+schema:
+    type: object
+    additionalProperties: false
+    properties:
+        network_timeout_ms:
+            type: integer
+            minimum: 1
+            x-usrv-cpp-type: std::chrono::milliseconds
+            description: |
+                Network timeout in milliseconds. Controls how long to wait for
+                network operations (connection establishment, data transfer).
+        statement_timeout_ms:
+            type: integer
+            minimum: 1
+            x-usrv-cpp-type: std::chrono::milliseconds
+            description: |-
+                Statement execution timeout in milliseconds. Controls how long
+                to wait for SQL statement execution to complete.

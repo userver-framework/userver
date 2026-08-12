@@ -1,18 +1,18 @@
 #pragma once
 
-#include <userver/storages/redis/impl/reply.hpp>
+#include <userver/storages/redis/reply.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
+namespace storages::redis::impl {
 
 struct ScanReply {
-  std::optional<ScanCursor> cursor;
-  std::vector<std::string> keys;
+    std::optional<ScanCursor> cursor;
+    std::vector<std::string> keys;
 
-  static ScanReply parse(ReplyPtr reply);
+    static ScanReply parse(ReplyPtr reply);
 };
 
-}  // namespace redis
+}  // namespace storages::redis::impl
 
 USERVER_NAMESPACE_END

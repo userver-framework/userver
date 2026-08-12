@@ -1,0 +1,4 @@
+grpcio >= 1.72.0
+grpcio-tools >= 1.72.0
+grpcio-reflection >= 1.72.0
+protobuf >= 6.30.0, < 7.0dev

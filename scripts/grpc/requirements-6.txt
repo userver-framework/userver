@@ -1,0 +1,2 @@
+Jinja2 >= 2.10
+protobuf >= 6.30.0, < 7.0dev

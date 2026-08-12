@@ -1,0 +1,308 @@
+#include <userver/websocket/impl/protocol.hpp>
+
+#include <cstdlib>
+#include <cstring>
+
+#include <cryptopp/sha.h>
+#include <boost/endian/conversion.hpp>
+
+#include <userver/crypto/base64.hpp>
+#include <userver/engine/io/exception.hpp>
+#include <userver/engine/task/cancel.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/utils/rand.hpp>
+#include <userver/utils/span.hpp>
+
+USERVER_NAMESPACE_BEGIN
+
+namespace websocket::impl {
+
+namespace {
+
+inline void RecvExactly(engine::io::ReadableBase& readable, utils::span<char> buffer, engine::Deadline deadline) {
+    if (readable.ReadAll(buffer.data(), buffer.size(), deadline) != buffer.size()) {
+        throw(engine::io::IoException() << "Socket closed during transfer ");
+    }
+}
+
+inline bool RecvAny(engine::io::ReadableBase& readable, utils::span<char> buffer, size_t& offset) {
+    UASSERT(0 != buffer.size());
+    UASSERT(offset < buffer.size());
+
+    const size_t left_to_read = buffer.size() - offset;
+    const auto opt_read = readable.ReadNoblock(buffer.data(), left_to_read);
+    if (!opt_read) {
+        return false;
+    }
+
+    if (left_to_read == *opt_read) {
+        offset = 0;
+        return true;
+    } else if (*opt_read > 0) {
+        offset += *opt_read;
+        return false;
+    } else  // 0 == *optRead
+    {
+        throw(engine::io::IoException() << "Socket closed during transfer ");
+    }
+}
+
+template <class T>
+utils::span<char> AsWritableBytes(utils::span<T> s) noexcept {
+    return utils::span<char>{reinterpret_cast<char*>(s.data()), reinterpret_cast<char*>(s.data() + s.size())};
+}
+
+template <class T>
+utils::span<T> MakeSpan(T* ptr, size_t count) {
+    return utils::span<T>(ptr, ptr + count);
+}
+
+void XorMaskInplace(uint8_t* dest, size_t len, frames::Mask32 mask) {
+    // Check if the pointer is aligned for uint32_t operations
+    const auto alignment = reinterpret_cast<std::uintptr_t>(dest) % sizeof(uint32_t);
+
+    if (alignment == 0 && len >= sizeof(uint32_t)) {
+        // Pointer is aligned, we can safely use uint32_t operations
+        auto* dest32 = reinterpret_cast<uint32_t*>(dest);
+        while (len >= sizeof(uint32_t)) {
+            *(dest32++) ^= mask.mask32;
+            len -= sizeof(uint32_t);
+        }
+        dest = reinterpret_cast<uint8_t*>(dest32);
+    }
+
+    // Process remaining bytes (or all bytes if unaligned) using byte operations
+    for (size_t i = 0; i < len; ++i) {
+        dest[i] ^= mask.mask8[i % 4];
+    }
+}
+
+template <class T, class V>
+void PushRaw(const T& value, V& data) {
+    const auto* val_bytes = reinterpret_cast<const char*>(&value);
+    data.insert(data.end(), val_bytes, val_bytes + sizeof(value));
+}
+
+}  // namespace
+
+namespace frames {
+
+boost::container::small_vector<char, impl::kMaxFrameHeaderSize> DataFrameHeader(
+    std::size_t payload_len,
+    bool is_text,
+    Continuation is_continuation,
+    Final is_final,
+    Masked is_masked
+) {
+    boost::container::small_vector<char, impl::kMaxFrameHeaderSize> frame;
+
+    frame.resize(sizeof(WSHeader));
+    auto* hdr = reinterpret_cast<WSHeader*>(frame.data());
+    UASSERT_MSG(reinterpret_cast<std::uintptr_t>(frame.data()) % alignof(WSHeader) == 0, "Misaligned");
+
+    hdr->bytes = 0;
+    hdr->bits.fin = is_final == Final::kYes ? 1 : 0;
+    hdr->bits.opcode = is_text ? kText : kBinary;
+    if (is_continuation == Continuation::kYes) {
+        hdr->bits.opcode = kContinuation;
+    }
+    hdr->bits.mask = is_masked == Masked::kYes ? 1 : 0;
+
+    if (payload_len <= 125) {
+        hdr->bits.payload_len = payload_len;
+    } else if (payload_len <= INT16_MAX) {
+        hdr->bits.payload_len = 126;
+        PushRaw(boost::endian::native_to_big(static_cast<std::int16_t>(payload_len)), frame);
+    } else {
+        hdr->bits.payload_len = 127;
+        PushRaw(boost::endian::native_to_big(payload_len), frame);
+    }
+
+    return frame;
+}
+
+std::array<char, sizeof(WSHeader)> MakeControlFrame(WSOpcodes opcode, std::size_t payload_len, Masked is_masked) {
+    std::array<char, sizeof(WSHeader)> frame{};
+
+    auto* hdr = reinterpret_cast<WSHeader*>(frame.data());
+    hdr->bytes = 0;
+    hdr->bits.fin = 1;
+    hdr->bits.opcode = opcode;
+    hdr->bits.payload_len = payload_len;
+    hdr->bits.mask = is_masked == Masked::kYes ? 1 : 0;
+
+    return frame;
+}
+
+Mask32 Mask32::Generate() {
+    Mask32 mask;
+    mask.mask32 = utils::Rand();
+    return mask;
+}
+
+void ApplyMask(utils::span<std::byte> payload, Mask32 mask) {
+    XorMaskInplace(reinterpret_cast<uint8_t*>(payload.data()), payload.size(), mask);
+}
+
+}  // namespace frames
+
+std::string WebsocketSecAnswer(std::string_view sec_key) {
+    // guid is taken from RFC
+    // https://datatracker.ietf.org/doc/html/rfc6455#section-1.3
+    static constexpr std::string_view kWebsocketGuid = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+
+#if defined(CRYPTOPP_NO_GLOBAL_BYTE)
+    using CryptoByte = CryptoPP::byte;
+#else
+    using CryptoByte = ::byte;
+#endif
+
+    CryptoByte web_socket_resp_key_sh_a1[CryptoPP::SHA1::DIGESTSIZE];
+    CryptoPP::SHA1 hash;
+    hash.Update(reinterpret_cast<const CryptoByte*>(sec_key.data()), sec_key.size());
+    hash.Update(reinterpret_cast<const CryptoByte*>(kWebsocketGuid.data()), kWebsocketGuid.size());
+    hash.Final(web_socket_resp_key_sh_a1);
+    return crypto::base64::Base64Encode(
+        std::string_view(reinterpret_cast<const char*>(web_socket_resp_key_sh_a1), sizeof(web_socket_resp_key_sh_a1))
+    );
+}
+
+CloseStatus ReadWSFrameImpl(
+    WSHeader& hdr,
+    FrameParserState& frame,
+    engine::io::ReadableBase& io,
+    unsigned max_payload_size,
+    std::size_t& payload_len
+) {
+    // we assume that the WSHeader has been read a while ago
+    if (engine::current_task::ShouldCancel()) {
+        return CloseStatus::kGoingAway;
+    }
+
+    // Opcode check must be equality-based: ping (0x9) / pong (0xA) share bits with
+    // text/binary and must not be treated as data frames.
+    const bool
+        is_data_frame = hdr.bits.opcode == kText || hdr.bits.opcode == kBinary || hdr.bits.opcode == kContinuation;
+    if (hdr.bits.payload_len <= 125) {
+        payload_len = hdr.bits.payload_len;
+    } else if (hdr.bits.payload_len == 126) {
+        uint16_t payload_len16 = 0;
+        RecvExactly(io, AsWritableBytes(MakeSpan(&payload_len16, 1)), {});
+        payload_len = boost::endian::big_to_native(payload_len16);
+    } else  // if (hdr.payloadLen == 127)
+    {
+        uint64_t payload_len64 = 0;
+        RecvExactly(io, AsWritableBytes(MakeSpan(&payload_len64, 1)), {});
+        payload_len = boost::endian::big_to_native(payload_len64);
+    }
+    if (engine::current_task::ShouldCancel()) {
+        return CloseStatus::kGoingAway;
+    }
+
+    if (!is_data_frame && hdr.bits.payload_len > 125) {
+        // control frame should not have extended payload
+        return CloseStatus::kProtocolError;
+    }
+
+    // payload_len comes straight from the 64-bit extended length, so check it
+    // separately to avoid size_t wraparound in the sum below.
+    if (payload_len > max_payload_size || frame.payload->size() > max_payload_size - payload_len) {
+        return CloseStatus::kTooBigData;
+    }
+
+    frames::Mask32 mask;
+    if (hdr.bits.mask) {
+        RecvExactly(io, AsWritableBytes(MakeSpan(&mask, 1)), {});
+    }
+    if (engine::current_task::ShouldCancel()) {
+        return CloseStatus::kGoingAway;
+    }
+
+    if (payload_len > 0) {
+        if (is_data_frame) {
+            if (!frame.payload->empty() && hdr.bits.opcode != kContinuation) {
+                // non-continuation opcode while waiting continuation
+                return CloseStatus::kProtocolError;
+            }
+        }
+
+        const size_t new_payload_offset = frame.payload->size();
+        frame.payload->resize(frame.payload->size() + payload_len);
+        RecvExactly(io, MakeSpan(frame.payload->data() + new_payload_offset, payload_len), {});
+        if (engine::current_task::ShouldCancel()) {
+            return CloseStatus::kGoingAway;
+        }
+
+        // Apply masking only to the current frame's data, not to the entire buffer
+        if (mask.mask32) {
+            XorMaskInplace(reinterpret_cast<uint8_t*>(frame.payload->data() + new_payload_offset), payload_len, mask);
+        }
+    }
+    const char opcode = hdr.bits.opcode;
+    const char fin = hdr.bits.fin;
+
+    switch (opcode) {
+        case kPing:
+            frame.ping_received = true;
+            break;
+        case kPong:
+            frame.pong_received = true;
+            break;
+        case kClose:
+            frame.closed = true;
+            if (payload_len >= 2) {
+                UASSERT_MSG(
+                    frame.payload->size() == payload_len,
+                    "Close frame payload must not be mixed with data-frame bytes"
+                );
+                CloseStatusInt status_be = 0;
+                std::memcpy(&status_be, frame.payload->data(), sizeof(status_be));
+                frame.remote_close_status = boost::endian::big_to_native(status_be);
+            }
+            break;
+        case kText:
+            frame.is_text = true;
+            frame.waiting_continuation = !fin;
+            break;
+        case kBinary:
+            frame.is_text = false;
+            frame.waiting_continuation = !fin;
+            break;
+        case kContinuation:
+            frame.waiting_continuation = !fin;
+            break;
+        default:
+            // unknown opcode
+            return CloseStatus::kProtocolError;
+    }
+    return CloseStatus::kNone;
+}
+
+CloseStatus ReadWSFrame(
+    FrameParserState& frame,
+    engine::io::ReadableBase& io,
+    unsigned max_payload_size,
+    std::size_t& payload_len
+) {
+    WSHeader hdr;
+    RecvExactly(io, AsWritableBytes(MakeSpan(&hdr, 1)), {});
+    return ReadWSFrameImpl(hdr, frame, io, max_payload_size, payload_len);
+}
+
+std::optional<CloseStatus> ReadWSFrameDontWaitForHeader(
+    FrameParserState& frame,
+    engine::io::ReadableBase& io,
+    unsigned max_payload_size,
+    std::size_t& payload_len
+) {
+    WSHeader hdr;
+    if (!RecvAny(io, AsWritableBytes(MakeSpan(&hdr, 1)), frame.offset_when_noblock)) {
+        return {};
+    }
+
+    return ReadWSFrameImpl(hdr, frame, io, max_payload_size, payload_len);
+}
+
+}  // namespace websocket::impl
+
+USERVER_NAMESPACE_END

@@ -1,0 +1,17 @@
+// grpc template on
+syntax = "proto3";
+
+package handlers.api;
+
+service HelloService {
+    rpc SayHello(HelloRequest) returns(HelloResponse) {}
+}
+
+message HelloRequest {
+    string name = 1;
+}
+
+message HelloResponse {
+    string text = 1;
+}
+// grpc template off

@@ -7,6 +7,7 @@ testsuite; see
 """
 
 pytest_plugins = [
+    'testsuite.protobuf.pytest_plugin',
     'pytest_userver.plugins.core',
     'pytest_userver.plugins.grpc.client',
     'pytest_userver.plugins.grpc.mockserver',

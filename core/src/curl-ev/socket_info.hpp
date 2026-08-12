@@ -16,20 +16,21 @@ namespace curl {
 
 class easy;
 
-struct socket_info {
-  explicit socket_info(engine::ev::ThreadControl& thread_control)
-      : watcher(thread_control) {}
+struct socket_info {  // NOLINT(readability-identifier-naming)
+    explicit socket_info(engine::ev::ThreadControl& thread_control)
+        : watcher(thread_control)
+    {}
 
-  ~socket_info() { UASSERT(!handle); }
+    ~socket_info() { UASSERT(!handle); }
 
-  bool IsEasySocket() const { return handle; }
+    bool IsEasySocket() const { return handle; }
 
-  easy* handle{nullptr};
-  engine::ev::IoWatcher watcher;
-  bool pending_read_op{false};
-  bool pending_write_op{false};
-  bool monitor_read{false};
-  bool monitor_write{false};
+    easy* handle{nullptr};
+    engine::ev::IoWatcher watcher;
+    bool pending_read_op{false};
+    bool pending_write_op{false};
+    bool monitor_read{false};
+    bool monitor_write{false};
 };
 }  // namespace curl
 

@@ -1,62 +1,53 @@
 #include <userver/ugrpc/server/middlewares/base.hpp>
 
+#include <userver/components/component.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
+
+#include <userver/ugrpc/rpc_type.hpp>
+#include <userver/ugrpc/server/impl/call_state.hpp>
+#include <userver/ugrpc/server/impl/exceptions.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::server {
+
+MiddlewareCallContext::MiddlewareCallContext(utils::impl::InternalTag, impl::CallState& state, grpc::Status& status)
+    : CallContextBase(utils::impl::InternalTag{}, state),
+      status_(status)
+{}
+
+void MiddlewareCallContext::SetError(grpc::Status&& status) noexcept {
+    UASSERT(!status.ok());
+    if (!status.ok()) {
+        status_ = std::move(status);
+    }
+}
+
+RpcType MiddlewareCallContext::GetRpcType() const noexcept { return GetCallState(utils::impl::InternalTag{}).rpc_type; }
+
+const dynamic_config::Snapshot& MiddlewareCallContext::GetInitialDynamicConfig() const {
+    const auto& config_snapshot = GetCallState(utils::impl::InternalTag{}).config_snapshot;
+    UINVARIANT(config_snapshot.has_value(), "GetInitialDynamicConfig can only be called in OnCallStart");
+    return *config_snapshot;
+}
+
+ugrpc::impl::RpcStatisticsScope& MiddlewareCallContext::GetStatistics(utils::impl::InternalTag) {
+    return GetCallState(utils::impl::InternalTag{}).statistics_scope;
+}
 
 MiddlewareBase::MiddlewareBase() = default;
 
 MiddlewareBase::~MiddlewareBase() = default;
 
-MiddlewareCallContext::MiddlewareCallContext(
-    const Middlewares& middlewares, CallAnyBase& call,
-    utils::function_ref<void()> user_call, std::string_view service_name,
-    std::string_view method_name, const dynamic_config::Snapshot& config,
-    const ::google::protobuf::Message* request)
-    : middleware_(middlewares.begin()),
-      middleware_end_(middlewares.end()),
-      user_call_(std::move(user_call)),
-      call_(call),
-      service_name_(service_name),
-      method_name_(method_name),
-      config_(config),
-      request_(request) {}
+void MiddlewareBase::OnCallStart(MiddlewareCallContext&) const {}
 
-void MiddlewareCallContext::Next() {
-  if (middleware_ == middleware_end_) {
-    ClearMiddlewaresResources();
-    user_call_();
-  } else {
-    // NOLINTNEXTLINE(readability-qualified-auto)
-    const auto middleware = middleware_++;
-    (*middleware)->Handle(*this);
-  }
-}
+void MiddlewareBase::PostRecvMessage(MiddlewareCallContext&, google::protobuf::Message&) const {}
 
-void MiddlewareCallContext::ClearMiddlewaresResources() {
-  UASSERT(config_);
-  config_.reset();
-}
+void MiddlewareBase::PreSendMessage(MiddlewareCallContext&, google::protobuf::Message&) const {}
 
-CallAnyBase& MiddlewareCallContext::GetCall() { return call_; }
+void MiddlewareBase::PreSendStatus(MiddlewareCallContext&, grpc::Status&) const {}
 
-std::string_view MiddlewareCallContext::GetServiceName() const {
-  return service_name_;
-}
-
-std::string_view MiddlewareCallContext::GetMethodName() const {
-  return method_name_;
-}
-
-const dynamic_config::Snapshot& MiddlewareCallContext::GetInitialDynamicConfig()
-    const {
-  UASSERT(config_);
-  return config_.value();
-}
-
-const ::google::protobuf::Message* MiddlewareCallContext::GetInitialRequest() {
-  return request_;
-}
+void MiddlewareBase::OnCallFinish(MiddlewareCallContext&, const std::optional<grpc::Status>&) const {}
 
 }  // namespace ugrpc::server
 

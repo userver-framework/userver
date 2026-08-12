@@ -1,14 +1,12 @@
 #pragma once
 
 #include <chrono>
-#include <list>
 #include <optional>
 #include <string>
 #include <string_view>
 
 #include <boost/intrusive/list.hpp>
 
-#include <userver/formats/json/string_builder.hpp>
 #include <userver/logging/level.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/logging/log_filepath.hpp>
@@ -17,6 +15,7 @@
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tracer.hpp>
 #include <userver/utils/impl/source_location.hpp>
+#include <userver/utils/small_string.hpp>
 
 #include <tracing/time_storage.hpp>
 
@@ -24,113 +23,96 @@ USERVER_NAMESPACE_BEGIN
 
 namespace tracing {
 
-inline const std::string kLinkTag = "link";
-inline const std::string kParentLinkTag = "parent_link";
+inline constexpr std::size_t kTypicalSpanIdSize = 16;
+inline constexpr std::size_t kTypicalTraceIdSize = 32;
+inline constexpr std::size_t kTypicalLinkSize = 32;
 
-class Span::Impl
-    : public boost::intrusive::list_base_hook<
-          boost::intrusive::link_mode<boost::intrusive::auto_unlink>> {
- public:
-  explicit Impl(std::string name,
-                ReferenceType reference_type = ReferenceType::kChild,
-                logging::Level log_level = logging::Level::kInfo,
-                utils::impl::SourceLocation source_location =
-                    utils::impl::SourceLocation::Current());
+class Span::Impl : public boost::intrusive::list_base_hook<boost::intrusive::link_mode<boost::intrusive::auto_unlink>> {
+public:
+    Impl(
+        std::string name,
+        const Impl* parent,
+        ReferenceType reference_type,
+        const utils::impl::SourceLocation& source_location
+    );
 
-  Impl(TracerPtr tracer, std::string name, const Span::Impl* parent,
-       ReferenceType reference_type, logging::Level log_level,
-       utils::impl::SourceLocation source_location);
+    Impl(Impl&&) noexcept = default;
 
-  Impl(Impl&&) = default;
+    ~Impl();
 
-  ~Impl();
+    impl::TimeStorage& GetTimeStorage() { return time_storage_; }
+    const impl::TimeStorage& GetTimeStorage() const { return time_storage_; }
 
-  impl::TimeStorage& GetTimeStorage() { return time_storage_; }
-  const impl::TimeStorage& GetTimeStorage() const { return time_storage_; }
+    // Log this Span specifically
+    void PutIntoLogger(logging::impl::TagWriter writer) &&;
 
-  // Log this Span specifically
-  void PutIntoLogger(logging::impl::TagWriter writer) &&;
+    // Add the context of this Span a non-Span-specific log record
+    void LogTo(logging::impl::TagWriter writer) const;
 
-  // Add the context of this Span a non-Span-specific log record
-  void LogTo(logging::impl::TagWriter writer);
+    std::string_view GetTraceId() const noexcept { return trace_id_; }
+    std::string_view GetSpanId() const noexcept { return span_id_; }
+    std::string_view GetParentId() const noexcept { return parent_id_; }
+    std::string_view GetLink() const noexcept { return link_; }
+    std::string_view GetParentLink() const noexcept { return parent_link_; }
+    std::string_view GetName() const noexcept { return name_; }
 
-  const std::string& GetTraceId() const& noexcept { return trace_id_; }
-  const std::string& GetSpanId() const& noexcept { return span_id_; }
-  const std::string& GetParentId() const& noexcept { return parent_id_; }
+    void SetTraceId(std::string_view id) noexcept { trace_id_ = std::move(id); }
+    void SetSpanId(std::string_view id) noexcept { span_id_ = std::move(id); }
+    void SetParentId(std::string_view id) noexcept { parent_id_ = std::move(id); }
+    void SetLink(std::string_view id) noexcept { link_ = std::move(id); }
+    void SetParentLink(std::string_view id) noexcept { parent_link_ = std::move(id); }
 
-  std::string GetTraceId() && noexcept { return std::move(trace_id_); }
-  std::string GetSpanId() && noexcept { return std::move(span_id_); }
-  std::string GetParentId() && noexcept { return std::move(parent_id_); }
+    ReferenceType GetReferenceType() const noexcept { return reference_type_; }
 
-  void SetTraceId(std::string&& id) noexcept { trace_id_ = std::move(id); }
-  void SetSpanId(std::string&& id) noexcept { span_id_ = std::move(id); }
-  void SetParentId(std::string&& id) noexcept { parent_id_ = std::move(id); }
+    void DetachFromCoroStack() noexcept;
+    void AttachToCoroStack();
 
-  ReferenceType GetReferenceType() const noexcept { return reference_type_; }
+    std::optional<std::string_view> GetSpanIdForChildLogs() const noexcept;
 
-  void DetachFromCoroStack();
-  void AttachToCoroStack();
+private:
+    static std::string_view GetParentIdForLogging(const Span::Impl* parent);
+    bool ShouldLog() const;
 
- private:
-  void LogOpenTracing() const;
-  void DoLogOpenTracing(logging::impl::TagWriter writer) const;
-  static void AddOpentracingTags(formats::json::StringBuilder& output,
-                                 const logging::LogExtra& input);
+    const std::string name_;
+    const bool is_no_log_span_;
+    logging::Level log_level_;
+    std::optional<logging::Level> local_log_level_;
+    bool is_sampled_{true};
+    const ReferenceType reference_type_;
+    const utils::impl::SourceLocation source_location_;
 
-  static std::string GetParentIdForLogging(const Span::Impl* parent);
-  bool ShouldLog() const;
+    Span* span_{nullptr};
 
-  const std::string name_;
-  const bool is_no_log_span_;
-  logging::Level log_level_;
-  std::optional<logging::Level> local_log_level_;
+    utils::SmallString<kTypicalTraceIdSize> trace_id_;
+    utils::SmallString<kTypicalSpanIdSize> span_id_;
+    utils::SmallString<kTypicalSpanIdSize> parent_id_;
+    utils::SmallString<kTypicalLinkSize> link_;
+    utils::SmallString<kTypicalLinkSize> parent_link_;
 
-  std::shared_ptr<Tracer> tracer_;
-  logging::LogExtra log_extra_inheritable_;
+    logging::LogExtra log_extra_inheritable_;
+    std::optional<logging::LogExtra> log_extra_local_;
+    impl::TimeStorage time_storage_;
 
-  Span* span_{nullptr};
+    const std::chrono::system_clock::time_point start_system_time_;
+    const std::chrono::steady_clock::time_point start_steady_time_;
 
-  std::optional<logging::LogExtra> log_extra_local_;
-  impl::TimeStorage time_storage_;
+    std::vector<SpanEvent> events_;
 
-  const std::chrono::system_clock::time_point start_system_time_;
-  const std::chrono::steady_clock::time_point start_steady_time_;
-
-  std::string trace_id_;
-  std::string span_id_;
-  std::string parent_id_;
-  const ReferenceType reference_type_;
-  utils::impl::SourceLocation source_location_;
-
-  friend class Span;
-  friend class SpanBuilder;
-  friend class TagScope;
+    friend class Span;
+    friend class SpanBuilder;
+    friend class TagScope;
 };
 
 // Use list instead of stack to avoid UB in case of "pop non-last item"
 // in case of buggy users.
-using SpanStack =
-    boost::intrusive::list<Span::Impl,
-                           boost::intrusive::constant_time_size<false>>;
+using SpanStack = boost::intrusive::list<Span::Impl, boost::intrusive::constant_time_size<false>>;
 
 const Span::Impl* GetParentSpanImpl();
 
 template <typename... Args>
 Span::Impl* AllocateImpl(Args&&... args) {
-  return new Span::Impl(std::forward<Args>(args)...);
+    return new Span::Impl(std::forward<Args>(args)...);
 }
-
-class DetachLocalSpansScope final {
- public:
-  DetachLocalSpansScope() noexcept;
-
-  DetachLocalSpansScope(DetachLocalSpansScope&&) = delete;
-  DetachLocalSpansScope& operator=(DetachLocalSpansScope&&) = delete;
-  ~DetachLocalSpansScope();
-
- private:
-  SpanStack old_spans_;
-};
 
 }  // namespace tracing
 

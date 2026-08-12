@@ -2,14 +2,15 @@
 Configure the service in testsuite.
 """
 
+from collections.abc import Callable
 import pathlib
+import socket
 
 import pytest
 
+import testsuite.plugins.network
 
-class TestsuiteReport:
-    def __init__(self):
-        self.failed = False
+USERVER_CONFIG_HOOKS = ['userver_base_prepare_service_config']
 
 
 def pytest_addoption(parser) -> None:
@@ -22,23 +23,19 @@ def pytest_addoption(parser) -> None:
 
     group = parser.getgroup('Test service')
     group.addoption(
-        '--service-binary', type=pathlib.Path, help='Path to service binary.',
+        '--service-binary',
+        type=pathlib.Path,
+        help='Path to service binary.',
     )
     group.addoption(
         '--service-port',
-        help=(
-            'Main HTTP port of the service '
-            '(default: use the port from the static config)'
-        ),
+        help=('Main HTTP port of the service (default: use the port from the static config)'),
         default=None,
         type=int,
     )
     group.addoption(
         '--monitor-port',
-        help=(
-            'Monitor HTTP port of the service '
-            '(default: use the port from the static config)'
-        ),
+        help=('Monitor HTTP port of the service (default: use the port from the static config)'),
         default=None,
         type=int,
     )
@@ -46,19 +43,12 @@ def pytest_addoption(parser) -> None:
         '--service-source-dir',
         type=pathlib.Path,
         help='Path to service source directory.',
-        default=pathlib.Path('.'),
+        default=pathlib.Path(),  # Current directory by default.
     )
 
 
-@pytest.hookimpl(hookwrapper=True, tryfirst=True)
-def pytest_runtest_makereport(item, call):
-    if not hasattr(item, 'utestsuite_report'):
-        item.utestsuite_report = TestsuiteReport()
-    outcome = yield
-    rep = outcome.get_result()
-    if rep.failed:
-        item.utestsuite_report.failed = True
-    return rep
+def pytest_configure(config):
+    config.option.asyncio_mode = 'auto'
 
 
 @pytest.fixture(scope='session')
@@ -103,7 +93,7 @@ def service_binary(pytestconfig) -> pathlib.Path:
 
 
 @pytest.fixture(scope='session')
-def service_port(pytestconfig, _original_service_config) -> int:
+def service_port(pytestconfig, _original_service_config, choose_free_port) -> int:
     """
     Returns the main listener port number of the service set by command line
     `--service-port` option.
@@ -116,12 +106,16 @@ def service_port(pytestconfig, _original_service_config) -> int:
     @ingroup userver_testsuite_fixtures
     """
     return pytestconfig.option.service_port or _get_port(
-        _original_service_config, 'listener', service_port, '--service-port',
+        _original_service_config,
+        choose_free_port,
+        'listener',
+        service_port,
+        '--service-port',
     )
 
 
 @pytest.fixture(scope='session')
-def monitor_port(pytestconfig, _original_service_config) -> int:
+def monitor_port(pytestconfig, _original_service_config, choose_free_port) -> int:
     """
     Returns the monitor listener port number of the service set by command line
     `--monitor-port` option.
@@ -135,14 +129,29 @@ def monitor_port(pytestconfig, _original_service_config) -> int:
     """
     return pytestconfig.option.monitor_port or _get_port(
         _original_service_config,
+        choose_free_port,
         'listener-monitor',
         monitor_port,
         '--service-port',
     )
 
 
+@pytest.fixture(scope='session')
+def congestion_control_fake_mode() -> bool:
+    """
+    Returns congestion control fake-mode value.
+
+    @ingroup userver_testsuite_fixtures
+    """
+    return True
+
+
 def _get_port(
-        original_service_config, listener_name, port_fixture, option_name,
+    original_service_config,
+    choose_free_port,
+    listener_name,
+    port_fixture,
+    option_name,
 ) -> int:
     config_yaml = original_service_config.config_yaml
     config_vars = original_service_config.config_vars
@@ -153,7 +162,8 @@ def _get_port(
     port = listener.get('port', None)
     if isinstance(port, str) and port.startswith('$'):
         port = config_vars.get(port[1:], None) or listener.get(
-            'port#fallback', None,
+            'port#fallback',
+            None,
         )
     assert port, (
         f'Please specify '
@@ -161,4 +171,67 @@ def _get_port(
         f'in the static config, or pass {option_name} pytest option, '
         f'or override the {port_fixture.__name__} fixture'
     )
-    return port
+    return choose_free_port(port)
+
+
+# Beware: global variable
+_allocated_ports = set()
+
+
+@pytest.fixture(scope='session')
+def choose_free_port(
+    pytestconfig,
+    get_free_port,
+    _testsuite_socket_cleanup,
+    _testsuite_default_af,
+) -> Callable[[int | None], int]:
+    """
+    A function that chooses a free port based on the optional hint given in the parameter.
+
+    @ingroup userver_testsuite_fixtures
+    """
+
+    family, address = _testsuite_default_af
+
+    def choose(port_hint: int | None = None, /) -> int:
+        should_not_randomize_ports = pytestconfig.option.service_runner_mode
+        if should_not_randomize_ports and port_hint is not None and port_hint != 0:
+            if _is_port_free(port_hint, family, address):
+                _allocated_ports.add(port_hint)
+                return port_hint
+        port = _get_free_port_not_allocated(get_free_port)
+        _allocated_ports.add(port)
+        return port
+
+    return choose
+
+
+def _get_free_port_not_allocated(get_free_port) -> int:
+    for _ in range(100):
+        port = get_free_port()
+        if port not in _allocated_ports:
+            return port
+    raise testsuite.plugins.network.NoEnabledPorts()
+
+
+def _is_port_free(port_num: int, family: int, address: str) -> bool:
+    try:
+        with socket.socket(family, socket.SOCK_STREAM) as sock:
+            sock.bind((address, port_num))
+    except OSError:
+        return False
+    else:
+        return True
+
+
+@pytest.fixture(scope='session')
+def userver_base_prepare_service_config(congestion_control_fake_mode):
+    def patch_config(config, config_vars):
+        components = config['components_manager']['components']
+        if 'congestion-control' in components:
+            if components['congestion-control'] is None:
+                components['congestion-control'] = {}
+
+            components['congestion-control']['fake-mode'] = congestion_control_fake_mode
+
+    return patch_config

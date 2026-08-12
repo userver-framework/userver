@@ -6,4 +6,5 @@ async def test_flatbuf(service_client):
     )
     response = await service_client.post('/fbs', data=body)
     assert response.status == 200
+    assert 'application/octet-stream' == response.headers['Content-Type']
     # /// [Functional test]

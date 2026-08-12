@@ -3,11 +3,13 @@
 /// @file userver/engine/io/tls_wrapper.hpp
 /// @brief TLS socket wrappers
 
+#include <span>
 #include <string>
 #include <vector>
 
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
+#include <userver/crypto/ssl_ctx.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/io/common.hpp>
 #include <userver/engine/io/socket.hpp>
@@ -25,90 +27,113 @@ namespace engine::io {
 /// Usage example:
 /// @snippet src/engine/io/tls_wrapper_test.cpp TLS wrapper usage
 class [[nodiscard]] TlsWrapper final : public RwBase {
- public:
-  /// Starts a TLS client on an opened socket
-  static TlsWrapper StartTlsClient(Socket&& socket,
-                                   const std::string& server_name,
-                                   Deadline deadline);
+public:
+    /// Starts a TLS client on an opened socket
+    static TlsWrapper StartTlsClient(Socket&& socket, const std::string& server_name, Deadline deadline);
 
-  /// Starts a TLS server on an opened socket
-  static TlsWrapper StartTlsServer(
-      Socket&& socket, const crypto::Certificate& cert,
-      const crypto::PrivateKey& key, Deadline deadline,
-      const std::vector<crypto::Certificate>& cert_authorities = {});
+    /// Starts a TLS client with client cert on an opened socket
+    static TlsWrapper StartTlsClient(
+        Socket&& socket,
+        const std::string& server_name,
+        const crypto::Certificate& cert,
+        const crypto::PrivateKey& key,
+        Deadline deadline,
+        const std::vector<crypto::Certificate>& extra_cert_authorities = {}
+    );
 
-  ~TlsWrapper() override;
+    /// Starts a TLS server on an opened socket
+    static TlsWrapper StartTlsServer(Socket&& socket, const crypto::SslCtx& ctx, Deadline deadline);
 
-  TlsWrapper(const TlsWrapper&) = delete;
-  TlsWrapper(TlsWrapper&&) noexcept;
+    ~TlsWrapper() override;
 
-  /// Whether the socket is valid.
-  explicit operator bool() const { return IsValid(); }
+    TlsWrapper(const TlsWrapper&) = delete;
+    TlsWrapper(TlsWrapper&&) noexcept;
 
-  /// Whether the socket is valid.
-  bool IsValid() const override;
+    /// Whether the socket is valid.
+    explicit operator bool() const { return IsValid(); }
 
-  /// Suspends current task until the socket has data available.
-  [[nodiscard]] bool WaitReadable(Deadline) override;
+    /// Whether the socket is valid.
+    bool IsValid() const override;
 
-  /// Suspends current task until the socket can accept more data.
-  [[nodiscard]] bool WaitWriteable(Deadline) override;
+    /// Suspends current task until the socket has data available.
+    /// @returns false on timeout or on task cancellations; true otherwise.
+    [[nodiscard]] bool WaitReadable(Deadline) override;
 
-  /// @brief Receives at least one byte from the socket.
-  /// @returns 0 if connection is closed on one side and no data could be
-  /// received any more, received bytes count otherwise.
-  [[nodiscard]] size_t RecvSome(void* buf, size_t len, Deadline deadline);
+    /// Suspends current task until the socket can accept more data.
+    /// @returns false on timeout or on task cancellations; true otherwise.
+    [[nodiscard]] bool WaitWriteable(Deadline) override;
 
-  /// @brief Receives exactly len bytes from the socket.
-  /// @note Can return less than len if socket is closed by peer.
-  [[nodiscard]] size_t RecvAll(void* buf, size_t len, Deadline deadline);
+    /// @brief Receives at least one byte from the socket.
+    /// @returns 0 if connection is closed on one side and no data could be
+    /// received any more, received bytes count otherwise.
+    [[nodiscard]] size_t RecvSome(void* buf, size_t len, Deadline deadline);
 
-  /// @brief Sends exactly len bytes to the socket.
-  /// @note Can return less than len if socket is closed by peer.
-  [[nodiscard]] size_t SendAll(const void* buf, size_t len, Deadline deadline);
+    /// @brief Receives up to len bytes from the socket
+    /// @returns
+    /// - nullopt on data absence
+    /// - optional{0} if socket is closed by peer.
+    /// - optional{data_bytes_available} otherwise,
+    ///    1 <= data_bytes_available <= len
+    [[nodiscard]] std::optional<size_t> RecvNoblock(void* buf, size_t len);
 
-  /// @brief Finishes TLS session and returns the socket.
-  /// @warning Wrapper becomes invalid on entry and can only be used to retry
-  ///   socket extraction if interrupted.
-  [[nodiscard]] Socket StopTls(Deadline deadline);
+    /// @brief Receives exactly len bytes from the socket.
+    /// @note Can return less than len if socket is closed by peer.
+    [[nodiscard]] size_t RecvAll(void* buf, size_t len, Deadline deadline);
 
-  /// @brief Receives at least one byte from the socket.
-  /// @returns 0 if connection is closed on one side and no data could be
-  /// received any more, received bytes count otherwise.
-  [[nodiscard]] size_t ReadSome(void* buf, size_t len,
-                                Deadline deadline) override {
-    return RecvSome(buf, len, deadline);
-  }
+    /// @brief Sends exactly len bytes to the socket.
+    /// @note Can return less than len if socket is closed by peer.
+    [[nodiscard]] size_t SendAll(const void* buf, size_t len, Deadline deadline);
 
-  /// @brief Receives exactly len bytes from the socket.
-  /// @note Can return less than len if socket is closed by peer.
-  [[nodiscard]] size_t ReadAll(void* buf, size_t len,
-                               Deadline deadline) override {
-    return RecvAll(buf, len, deadline);
-  }
+    /// @brief Finishes TLS session and returns the socket.
+    /// @warning Wrapper becomes invalid on entry and can only be used to retry
+    ///   socket extraction if interrupted.
+    [[nodiscard]] Socket StopTls(Deadline deadline);
 
-  /// @brief Writes exactly len bytes to the socket.
-  /// @note Can return less than len if socket is closed by peer.
-  [[nodiscard]] size_t WriteAll(const void* buf, size_t len,
-                                Deadline deadline) override {
-    return SendAll(buf, len, deadline);
-  }
+    /// @brief Receives up to len bytes from the stream
+    /// @returns
+    /// - nullopt on data absence
+    /// - optional{0} if socket is closed by peer.
+    /// - optional{data_bytes_available} otherwise,
+    ///    1 <= data_bytes_available <= len
+    [[nodiscard]] std::optional<size_t> ReadNoblock(void* buf, size_t len) override { return RecvNoblock(buf, len); }
 
-  [[nodiscard]] size_t WriteAll(std::initializer_list<IoData> list,
-                                Deadline deadline) override;
+    /// @brief Receives at least one byte from the socket.
+    /// @returns 0 if connection is closed on one side and no data could be
+    /// received any more, received bytes count otherwise.
+    [[nodiscard]] size_t ReadSome(void* buf, size_t len, Deadline deadline) override {
+        return RecvSome(buf, len, deadline);
+    }
 
-  int GetRawFd();
+    /// @brief Receives exactly len bytes from the socket.
+    /// @note Can return less than len if socket is closed by peer.
+    [[nodiscard]] size_t ReadAll(void* buf, size_t len, Deadline deadline) override {
+        return RecvAll(buf, len, deadline);
+    }
 
- private:
-  explicit TlsWrapper(Socket&&);
+    /// @brief Writes exactly len bytes to the socket.
+    /// @note Can return less than len if socket is closed by peer.
+    [[nodiscard]] size_t WriteAll(const void* buf, size_t len, Deadline deadline) override {
+        return SendAll(buf, len, deadline);
+    }
 
-  void SetupContextAccessors();
+    [[nodiscard]] size_t WriteAll(std::span<const IoData> list, Deadline deadline) override;
 
-  class Impl;
-  class ReadContextAccessor;
-  constexpr static size_t kSize = 336;
-  constexpr static size_t kAlignment = 8;
-  utils::FastPimpl<Impl, kSize, kAlignment> impl_;
+    [[nodiscard]] size_t WriteAll(std::initializer_list<IoData> list, Deadline deadline) override {
+        return WriteAll(std::span<const IoData>{list.begin(), list.size()}, deadline);
+    }
+
+    int GetRawFd();
+
+private:
+    explicit TlsWrapper(Socket&&);
+
+    void SetupContextAccessors();
+
+    class Impl;
+    class ReadContextAccessor;
+    constexpr static size_t kSize = 336;
+    constexpr static size_t kAlignment = 8;
+    utils::FastPimpl<Impl, kSize, kAlignment> impl_;
 };
 
 }  // namespace engine::io

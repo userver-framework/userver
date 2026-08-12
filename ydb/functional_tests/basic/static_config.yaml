@@ -1,19 +1,22 @@
 # yaml
 components_manager:
-    task_processors:                  # Task processor is an executor for coroutine tasks
-        main-task-processor:          # Make a task processor for CPU-bound couroutine tasks.
-            worker_threads: 4         # Process tasks in 4 threads.
+    userver_experiments:
+        ydb-deadline-propagation: true
 
-        fs-task-processor:            # Make a separate task processor for filesystem bound tasks.
+    task_processors:  # Task processor is an executor for coroutine tasks
+        main-task-processor:  # Make a task processor for CPU-bound coroutine tasks.
+            worker_threads: 4  # Process tasks in 4 threads.
+
+        fs-task-processor:  # Make a separate task processor for filesystem bound tasks.
             worker_threads: 1
 
     default_task_processor: main-task-processor
 
-    components:                       # Configuring components that were registered via component_list
+    components:  # Configuring components that were registered via component_list
         server:
-            listener:                 # configuring the main listening socket...
-                port: 8080            # ...to listen on this port and...
-                task_processor: main-task-processor    # ...process incoming requests on this task processor.
+            listener:  # configuring the main listening socket...
+                port: 8080  # ...to listen on this port and...
+                task_processor: main-task-processor  # ...process incoming requests on this task processor.
             listener-monitor:
                 port: 8081
                 task_processor: main-task-processor
@@ -43,6 +46,7 @@ components_manager:
             update-interval: 5s
 
         http-client:
+        http-client-core:
             fs-task-processor: fs-task-processor
             user-agent: $server-name
             user-agent#fallback: 'userver-based-service 1.0'
@@ -65,9 +69,7 @@ components_manager:
 
         ydb:
             operation-settings:
-                cancel-after: 1001ms
                 client-timeout: 1101ms
-                operation-timeout: 1001ms
                 retries: 2
                 get-session-timeout: 5001ms
             databases:
@@ -75,6 +77,16 @@ components_manager:
                     database: sampledb
                     max_pool_size: 10
                     min_pool_size: 5
+                    get_session_retry_limit: 1
+                # Second logical database used by the YDB_DATABASE_ROUTING test.
+                # The testsuite ydb recipe points every database to the same
+                # physical instance, so routing here is observed via per-database
+                # metrics (which driver's retry budget is charged), not via data.
+                sampledb2:
+                    database: sampledb2
+                    max_pool_size: 10
+                    min_pool_size: 5
+                    get_session_retry_limit: 1
 
         handler-select-rows:
             method: POST
@@ -88,12 +100,16 @@ components_manager:
             method: POST
             path: /ydb/upsert-row
             task_processor: main-task-processor
+        handler-upsert-row-old:
+            method: POST
+            path: /ydb/upsert-row-old
+            task_processor: main-task-processor
         handler-describe-table:
             method: POST
             path: /ydb/describe-table
             task_processor: main-task-processor
 
-# /// [sample-dist-lock]
+        # /// [sample-dist-lock]
         # yaml
         sample-dist-lock:
             # Settings that might be used for a group of related distlock instances
@@ -104,7 +120,4 @@ components_manager:
                 coordination-node: sample-node
             # Name of the semaphore within the coordination node
             semaphore-name: sample-lock
-# /// [sample-dist-lock]
-
-userver_experiments:
-  - ydb-deadline-propagation
+            # /// [sample-dist-lock]

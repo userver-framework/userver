@@ -1,0 +1,29 @@
+#pragma once
+
+#include <handlers/{{ spec.service_name }}/{{ make_op_relpath(op) }}/requests.hpp>
+#include <handlers/{{ spec.service_name }}/{{ make_op_relpath(op) }}/responses.hpp>
+#include <handlers/{{ spec.service_name }}/{{ make_op_relpath(op) }}/view.hpp>
+
+#include <userver/chaotic/openapi/server/handler_base.hpp>
+
+namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }} {
+
+/// @brief Unique type tag for ForHandler<> keying
+struct HandlerTag final {};
+
+namespace impl {
+inline constexpr std::string_view kHandlerName = "{{ component_name(op) }}";
+}
+
+using Handler = {{ userver }}::chaotic::openapi::server::BaseHandler<
+    impl::kHandlerName,
+    {% if op.iter_error_responses() | list %}ErrorResponseBase{% else %}void{% endif %},
+    Request,
+    Response,
+    HandlerTag,
+    View
+    {%- if op.has_any_hidden_query_parameters() %}, HiddenQueryArguments{% endif %}
+>;
+
+}  // namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }}
+

@@ -1,0 +1,12 @@
+type: object
+description: Base class for WebSocket handlers
+additionalProperties: false
+properties:
+    max-remote-payload:
+        type: integer
+        description: max input message payload size
+        default: 65536
+    fragment-size:
+        type: integer
+        description: max output fragment size
+        default: 65536

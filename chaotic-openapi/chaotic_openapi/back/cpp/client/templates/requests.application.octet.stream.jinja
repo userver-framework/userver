@@ -1,0 +1,10 @@
+{% macro serialize(request, http_request) %}
+  {{ http_request }}.data({{ request }}.data);
+{% endmacro %}
+
+
+{% macro define_body_cpp_name(body) %}
+  struct {{ body.cpp_name() }} {
+    std::string data;
+  };
+{% endmacro %}

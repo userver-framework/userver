@@ -1,0 +1,11 @@
+type: object
+description: gRPC server deadline propagation middleware component
+additionalProperties: false
+properties:
+    prefer-absolute-deadline:
+        type: boolean
+        description: >
+            When enabled, the middleware prefers absolute timestamps
+            (x-request-deadline metadata) over duration-based gRPC deadlines,
+            analogous to deadline_propagation_prefer_timestamp in HTTP handlers.
+        default: false

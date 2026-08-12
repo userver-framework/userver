@@ -1,0 +1,40 @@
+name: Docker build
+
+'on':
+    schedule:
+      - cron: '30 5 * * 1'  # Every Monday at 5:30
+    pull_request:
+    push:
+        branches:
+          - master
+          - develop
+          - feature/**
+
+env:
+    UBSAN_OPTIONS: print_stacktrace=1
+
+jobs:
+    tests:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v4
+            with:
+                submodules: true
+
+          - name: Reuse ccache directory
+            uses: actions/cache@v4
+            with:
+                path: .ccache
+                key: 'ccache-dir-${{github.ref}}_run-${{github.run_number}}'
+                restore-keys: |
+                    ccache-dir-${{github.ref}}_run-
+                    ccache-
+
+          - name: Cmake
+            run: make docker-cmake-debug
+
+          - name: Build
+            run: make docker-build-debug
+
+          - name: Test
+            run: make docker-test-debug

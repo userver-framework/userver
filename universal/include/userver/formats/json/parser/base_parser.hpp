@@ -1,5 +1,9 @@
 #pragma once
 
+/// @file userver/formats/json/parser/base_parser.hpp
+/// @brief @copybrief formats::json::parser::BaseParser
+/// @ingroup userver_universal
+
 #include <userver/formats/json/parser/exception.hpp>
 #include <userver/formats/json/parser/parser_state.hpp>
 
@@ -10,41 +14,44 @@ namespace formats::json::parser {
 /// @brief Base class for SAX parser.
 ///
 class BaseParser {
- public:
-  virtual ~BaseParser() = default;
+public:
+    virtual ~BaseParser();
 
-  virtual void Null() { Throw("null"); }
-  virtual void Bool(bool) { Throw("bool"); }
-  virtual void Int64(int64_t) { Throw("integer"); }
-  virtual void Uint64(uint64_t) { Throw("integer"); }
-  virtual void Double(double) { Throw("double"); }
-  virtual void String(std::string_view) { Throw("string"); }
-  virtual void StartObject() { Throw("object"); }
-  virtual void Key(std::string_view key) {
-    Throw("field '" + std::string(key) + "'");
-  }
-  virtual void EndObject() { Throw("'}'"); }
-  virtual void StartArray() { Throw("array"); }
-  virtual void EndArray() { Throw("']'"); }
+    BaseParser() = default;
+    BaseParser(BaseParser&&) = delete;
+    BaseParser(const BaseParser&) = delete;
+    BaseParser& operator=(const BaseParser&) = delete;
+    BaseParser& operator=(BaseParser&&) = delete;
 
-  // Low-level variants of EndObject/EndArray
-  virtual void EndObject(size_t /* members */) { EndObject(); }
-  virtual void EndArray(size_t /* members */) { EndArray(); }
+    virtual void Null();
+    virtual void Bool(bool);
+    virtual void Int64(int64_t);
+    virtual void Uint64(uint64_t);
+    virtual void Double(double);
+    virtual void String(std::string_view);
+    virtual void StartObject();
+    virtual void Key(std::string_view key);
+    virtual void EndObject();
+    virtual void StartArray();
+    virtual void EndArray();
 
-  void SetState(ParserState& state) { parser_state_ = &state; }
+    // Low-level variants of EndObject/EndArray
+    virtual void EndObject(size_t /* members */) { EndObject(); }
+    virtual void EndArray(size_t /* members */) { EndArray(); }
 
-  virtual std::string GetPathItem() const = 0;
+    void SetState(ParserState& state) { parser_state_ = &state; }
 
- protected:
-  [[noreturn]] void Throw(const std::string& found) {
-    throw InternalParseError(Expected() + " was expected, but " + found +
-                             " found");
-  }
+    virtual std::string GetPathItem() const = 0;
 
-  virtual std::string Expected() const = 0;
+    std::string GetCurrentPath() const { return parser_state_->GetCurrentPath(); }
 
-  // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
-  ParserState* parser_state_{nullptr};
+protected:
+    [[noreturn]] void Throw(const std::string& found);
+
+    virtual std::string Expected() const = 0;
+
+    // NOLINTNEXTLINE(misc-non-private-member-variables-in-classes)
+    ParserState* parser_state_{nullptr};
 };
 
 }  // namespace formats::json::parser

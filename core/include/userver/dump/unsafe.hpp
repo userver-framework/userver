@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/dump/unsafe.hpp
+/// @brief Low-level unsafe dump read/write helpers
+
 #include <string_view>
 
 #include <userver/dump/operations.hpp>
@@ -26,6 +29,15 @@ std::string_view ReadStringViewUnsafe(Reader& reader, std::size_t size);
 /// the amount of bytes returned can be less than `max_size`.
 /// @warning The `string_view` will be invalidated on the next `Read` operation
 std::string_view ReadUnsafeAtMost(Reader& reader, std::size_t max_size);
+
+/// @brief Moves the internal cursor back by `size` bytes
+/// so that the next call to @ref ReadUnsafeAtMost returns the same data again
+/// @note If there has been no previous call to @ref ReadUnsafeAtMost,
+/// or the last read operation was performed using something except
+/// @ref ReadUnsafeAtMost,
+/// or `size` is greater than the number of bytes returned,
+/// then the behavior is undefined.
+void BackUpReadUnsafe(Reader& reader, std::size_t size);
 
 }  // namespace dump
 

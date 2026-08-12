@@ -67,6 +67,8 @@ HTTP_STATUS_COLORS = {
     '5': Colors.RED,
 }
 
+HTTP_LOCALHOST_PREFIX = 'http://localhost'
+
 
 class Colorizer:
     def __init__(self, *, verbose=False, colors_enabled=True):
@@ -95,14 +97,26 @@ class Colorizer:
         extra_fields = []
         if entry_type == 'request':
             self._requests[link] = self._build_request_info(row)
-            if 'body' in row:
+
+            uri = row.pop('uri')
+            uri_sep_pos = uri.find('?')
+            if uri_sep_pos != -1:
+                text += self.textcolor(uri[uri_sep_pos:], Colors.GREEN)
+
+            if row.get('body'):
                 extra_fields.append(
                     'request_body='
                     + self.textcolor(
-                        try_reformat_json(row.pop('body')), Colors.YELLOW,
+                        try_reformat_json(row.pop('body')),
+                        Colors.YELLOW,
                     ),
                 )
         elif entry_type == 'response':
+            if 'body' not in row:
+                raise RuntimeError(
+                    f'Response log record without "body" tag. Looks like in the C++ code the tracing::Span of a'
+                    f'request was moved out or corrupted. Link: {link}. Text: {text}. Other: {row}',
+                )
             if 'meta_code' in row:
                 status_code = row.pop('meta_code')
                 extra_fields.append(
@@ -110,12 +124,14 @@ class Colorizer:
                 )
             if not text:
                 text = 'Response finished'
-            extra_fields.append(
-                'response_body='
-                + self.textcolor(
-                    try_reformat_json(row.pop('body')), Colors.YELLOW,
-                ),
-            )
+            if row.get('body'):
+                extra_fields.append(
+                    'response_body='
+                    + self.textcolor(
+                        try_reformat_json(row.pop('body')),
+                        Colors.YELLOW,
+                    ),
+                )
         elif entry_type == 'mockserver_request':
             text = 'Mockserver request finished'
             if 'meta_code' in row:
@@ -140,9 +156,48 @@ class Colorizer:
 
         fields = [
             self.textcolor(f'{level:<8}', level_color),
-            self.textcolor(logid, flow_color),
         ]
+
+        if 'service' in row:
+            service = row.pop('service')
+            fields.append(self.textcolor(f'[{service}]', Colors.colorize(service)))
+
+        fields.append(self.textcolor(logid, flow_color))
+
         if text:
+            if 'http_url' in row:
+                localhost_pos = text.find(HTTP_LOCALHOST_PREFIX)
+                if localhost_pos != -1:
+                    start_url_pos = text.find('/', localhost_pos + len(HTTP_LOCALHOST_PREFIX))
+                    text = text[:localhost_pos] + self.textcolor(text[start_url_pos:], Colors.GREEN)
+                else:
+                    start_url_pos = text.rfind(' ')
+                    text = text[:start_url_pos] + self.textcolor(text[start_url_pos:], Colors.GREEN)
+
+                meta_code = row.pop('meta_code', None)
+                if meta_code:
+                    extra_fields.append(
+                        self._http_status('meta_code', meta_code),
+                    )
+
+                if row.get('body'):
+                    extra_fields.append(
+                        'body='
+                        + self.textcolor(
+                            try_reformat_json(row.pop('body')),
+                            Colors.YELLOW,
+                        ),
+                    )
+
+            if 'db_statement_name' in row:
+                extra_fields.append(
+                    'db_statement_name='
+                    + self.textcolor(
+                        row['db_statement_name'],
+                        Colors.YELLOW,
+                    ),
+                )
+
             fields.append(text)
         elif self.verbose:
             fields.append('<NO TEXT>')
@@ -150,9 +205,12 @@ class Colorizer:
             return None
 
         fields.extend(extra_fields)
+        result = ' '.join(fields)
+
         if self.verbose:
-            fields.extend([f'{k}={v}' for k, v in row.items()])
-        return ' '.join(fields)
+            result += '\n' + self.textcolor(' '.join([f'{k}={v}' for k, v in row.items()]), Colors.GRAY)
+
+        return result
 
     def textcolor(self, text, color):
         if not self.colors_enabled:
@@ -164,11 +222,11 @@ class Colorizer:
         return self.textcolor(f'{key}={status}', color)
 
     def _build_request_info(self, row):
-        if 'uri' not in row:
+        if 'meta_type' not in row:
             return None
-        uri = row['uri']
+        meta_type = row['meta_type']
         method = row.get('method', 'UNKNOWN')
-        return f'{method} {uri}'
+        return f'{method} {meta_type}'
 
 
 def format_json(obj):
@@ -184,7 +242,6 @@ def format_json(obj):
 
 def try_reformat_json(body):
     try:
-        # TODO: unescape string
         data = json.loads(body)
         return format_json(data)
     except ValueError:
@@ -213,15 +270,15 @@ def parse_color(value):
 def colorize_main():
     parser = argparse.ArgumentParser(description='Colorize userver log file.')
     parser.add_argument(
-        '--verbose', '-v', action='store_true', help='Be verbose',
+        '--verbose',
+        '-v',
+        action='store_true',
+        help='Be verbose',
     )
     parser.add_argument(
         '--color',
         metavar='WHEN',
-        help=(
-            'Control color highlighting, WHEN is always, never or '
-            'auto (default)'
-        ),
+        help=('Control color highlighting, WHEN is always, never or auto (default)'),
         nargs='?',
         type=parse_color,
         default=ColorArg.AUTO,
@@ -247,12 +304,13 @@ def colorize_main():
     else:
         stream = open(args.log, 'r')
 
-    if args.color == ColorArg.AUTO:
-        colors_enabled = sys.stdout.isatty()
-    elif args.color == ColorArg.ALWAYS:
-        colors_enabled = True
-    else:
-        colors_enabled = False
+    match args.color:
+        case ColorArg.AUTO:
+            colors_enabled = sys.stdout.isatty()
+        case ColorArg.ALWAYS:
+            colors_enabled = True
+        case _:
+            colors_enabled = False
 
     with contextlib.closing(stream):
         colorize(stream, verbose=args.verbose, colors_enabled=colors_enabled)

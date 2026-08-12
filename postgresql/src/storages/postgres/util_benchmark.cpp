@@ -7,6 +7,7 @@
 #include <storages/postgres/detail/connection.hpp>
 #include <userver/engine/run_standalone.hpp>
 #include <userver/storages/postgres/dsn.hpp>
+#include <userver/utils/statistics/metrics_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -15,52 +16,56 @@ namespace storages::postgres::bench {
 namespace {
 
 Dsn GetDsnFromEnv() {
-  auto* conn_list_env = std::getenv(kPostgresDsn);
-  if (!conn_list_env) {
-    return Dsn{{}};
-  }
-  auto by_host = SplitByHost(Dsn{conn_list_env});
-  if (by_host.empty()) {
-    return Dsn{{}};
-  }
-  return by_host[0];
+    auto* conn_list_env = std::getenv(kPostgresDsn);
+    if (!conn_list_env) {
+        return Dsn{{}};
+    }
+    auto by_host = SplitByHost(Dsn{conn_list_env});
+    if (by_host.empty()) {
+        return Dsn{{}};
+    }
+    return by_host[0];
 }
 
 }  // namespace
 
-void PgConnection::RunStandalone(benchmark::State& state,
-                                 std::function<void()> payload) {
-  RunStandalone(state, 1, std::move(payload));
+void PgConnection::RunStandalone(benchmark::State& state, std::function<void()> payload) {
+    RunStandalone(state, 1, std::move(payload));
 }
 
-void PgConnection::RunStandalone(benchmark::State& state,
-                                 std::size_t thread_count,
-                                 std::function<void()> payload) {
-  engine::RunStandalone(thread_count, [&] {
-    auto bts = concurrent::BackgroundTaskStorageCore{};
-    auto dsn = GetDsnFromEnv();
-    if (!dsn.empty()) {
-      conn_ = detail::Connection::Connect(
-          dsn, nullptr, engine::current_task::GetTaskProcessor(), bts,
-          kConnectionId, {ConnectionSettings::kCachePreparedStatements},
-          DefaultCommandControls(kBenchCmdCtl, {}, {}), {}, {});
-    }
+void PgConnection::RunStandalone(benchmark::State& state, std::size_t thread_count, std::function<void()> payload) {
+    engine::RunStandalone(thread_count, [&] {
+        auto bts = concurrent::BackgroundTaskStorageCore{};
+        auto dsn = GetDsnFromEnv();
+        if (!dsn.empty()) {
+            conn_ = detail::Connection::Connect(
+                dsn,
+                nullptr,
+                engine::current_task::GetTaskProcessor(),
+                bts,
+                kConnectionId,
+                {ConnectionSettings::kCachePreparedStatements},
+                DefaultCommandControls(kBenchCmdCtl, {}, {}),
+                {},
+                {},
+                {},
+                std::make_shared<USERVER_NAMESPACE::utils::statistics::MetricsStorage>()
+            );
+        }
 
-    if (!IsConnectionValid()) {
-      state.SkipWithError("Database not connected");
-      return;
-    }
+        if (!IsConnectionValid()) {
+            state.SkipWithError("Database not connected");
+            return;
+        }
 
-    payload();
+        payload();
 
-    conn_->Close();
-    conn_.reset();
-  });
+        conn_->Close();
+        conn_.reset();
+    });
 }
 
-bool PgConnection::IsConnectionValid() const {
-  return conn_ && conn_->IsConnected();
-}
+bool PgConnection::IsConnectionValid() const { return conn_ && conn_->IsConnected(); }
 
 }  // namespace storages::postgres::bench
 

@@ -1,28 +1,28 @@
 #pragma once
 
+/// @file userver/testsuite/middlewares.hpp
+/// @brief Testsuite HTTP middleware for exception handling
+
 #include <userver/server/middlewares/http_middleware_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace testsuite {
 
-class ExceptionsHandlingMiddleware final
-    : public server::middlewares::HttpMiddlewareBase {
- public:
-  static constexpr std::string_view kName{
-      "testsuite-exceptions-handling-middleware"};
+class ExceptionsHandlingMiddleware final : public server::middlewares::HttpMiddlewareBase {
+public:
+    static constexpr std::string_view kName{"testsuite-exceptions-handling-middleware"};
 
-  explicit ExceptionsHandlingMiddleware(
-      const server::handlers::HttpHandlerBase&) {}
+    explicit ExceptionsHandlingMiddleware(const server::handlers::HttpHandlerBase& handler);
 
- private:
-  void HandleRequest(server::http::HttpRequest& request,
-                     server::request::RequestContext& context) const override;
+private:
+    void HandleRequest(server::http::HttpRequest& request, server::request::RequestContext& context) const override;
+
+    const server::handlers::HttpHandlerBase& handler_;
 };
 
-using ExceptionsHandlingMiddlewareFactory =
-    server::middlewares::SimpleHttpMiddlewareFactory<
-        ExceptionsHandlingMiddleware>;
+using ExceptionsHandlingMiddlewareFactory = server::middlewares::SimpleHttpMiddlewareFactory<
+    ExceptionsHandlingMiddleware>;
 
 }  // namespace testsuite
 

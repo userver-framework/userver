@@ -1,0 +1,35 @@
+type: object
+description: gRPC request validator component
+additionalProperties: false
+properties:
+    fail-fast:
+        type: boolean
+        description: do not check remaining constraints after first error is encountered
+        defaultDescription: true
+    send-violations:
+        type: boolean
+        description: send found constraint violations in grpc::Status
+        defaultDescription: false
+    validate-responses:
+        type: boolean
+        description: whether to validate outgoing response messages
+        defaultDescription: false
+    methods:
+        type: object
+        description: per-method middleware options overrides
+        properties: {}
+        additionalProperties:
+            type: object
+            description: method options
+            additionalProperties: false
+            properties:
+                fail-fast:
+                    type: boolean
+                    description: see 'fail-fast' global option
+                send-violations:
+                    type: boolean
+                    description: see 'send-violations' global option
+                validate-responses:
+                    type: boolean
+                    description: see 'validate-responses' global option
+                    defaultDescription: false

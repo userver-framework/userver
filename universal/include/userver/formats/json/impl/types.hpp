@@ -28,45 +28,44 @@ namespace impl {
 // rapidjson integration
 using UTF8 = ::rapidjson::UTF8<char>;
 using Value = ::rapidjson::GenericValue<UTF8, ::rapidjson::CrtAllocator>;
-using Document = ::rapidjson::GenericDocument<UTF8, ::rapidjson::CrtAllocator,
-                                              ::rapidjson::CrtAllocator>;
+using Document = ::rapidjson::GenericDocument<UTF8, ::rapidjson::CrtAllocator, ::rapidjson::CrtAllocator>;
 
 class VersionedValuePtr final {
- public:
-  static constexpr size_t kInvalidVersion = -1;
+public:
+    static constexpr size_t kInvalidVersion = -1;
 
-  VersionedValuePtr() noexcept;
+    VersionedValuePtr() noexcept;
 
-  template <typename... Args>
-  static VersionedValuePtr Create(Args&&... args);
+    template <typename... Args>
+    static VersionedValuePtr Create(Args&&... args);
 
-  VersionedValuePtr(const VersionedValuePtr&) = default;
-  VersionedValuePtr(VersionedValuePtr&&) = default;
-  VersionedValuePtr& operator=(const VersionedValuePtr&) = default;
-  VersionedValuePtr& operator=(VersionedValuePtr&&) noexcept = default;
+    VersionedValuePtr(const VersionedValuePtr&) = default;
+    VersionedValuePtr(VersionedValuePtr&&) = default;
+    VersionedValuePtr& operator=(const VersionedValuePtr&) = default;
+    VersionedValuePtr& operator=(VersionedValuePtr&&) noexcept = default;
 
-  ~VersionedValuePtr();
+    ~VersionedValuePtr();
 
-  explicit operator bool() const;
-  bool IsUnique() const;
+    explicit operator bool() const;
+    bool IsUnique() const;
 
-  const impl::Value* Get() const;
-  impl::Value* Get();
+    const impl::Value* Get() const;
+    impl::Value* Get();
 
-  const impl::Value& operator*() const;
-  impl::Value& operator*();
-  const impl::Value* operator->() const;
-  impl::Value* operator->();
+    const impl::Value& operator*() const;
+    impl::Value& operator*();
+    const impl::Value* operator->() const;
+    impl::Value* operator->();
 
-  size_t Version() const;
-  void BumpVersion();
+    size_t Version() const;
+    void BumpVersion();
 
- private:
-  struct Data;
+private:
+    struct Data;
 
-  explicit VersionedValuePtr(std::shared_ptr<Data>&&) noexcept;
+    explicit VersionedValuePtr(std::shared_ptr<Data>&&) noexcept;
 
-  std::shared_ptr<Data> data_;
+    std::shared_ptr<Data> data_;
 };
 
 }  // namespace impl

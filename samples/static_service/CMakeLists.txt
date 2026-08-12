@@ -1,6 +1,13 @@
+cmake_minimum_required(VERSION 3.14)
 project(userver-samples-static_service CXX)
 
-add_executable(${PROJECT_NAME} "static_service.cpp")
+find_package(
+    userver
+    COMPONENTS core
+    REQUIRED
+)
+
+add_executable(${PROJECT_NAME} "main.cpp")
 target_link_libraries(${PROJECT_NAME} userver::core)
 
-userver_sample_testsuite_add()
+userver_testsuite_add_simple(WORKING_DIRECTORY testsuite)

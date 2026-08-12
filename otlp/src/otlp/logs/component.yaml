@@ -1,0 +1,90 @@
+type: object
+description: >
+    OpenTelemetry logger component
+additionalProperties: false
+properties:
+    endpoint:
+        type: string
+        description: >
+            Hostname:port of otel collector (gRPC). This endpoint is used
+            both for logs and traces. If you want separate endpoints, then
+            use "logs-endpoint" and "tracing-endpoint" members.
+            Please note that "endpoint" is mutually exclusive with either
+            "logs-endpoint" or "tracing-endpoint". Basically, you either have
+            one endpoint for both, or you specify directly what goes where.
+            An optional "http://" or "https://" scheme prefix is allowed and
+            will be stripped, as the gRPC client works with a bare host:port.
+    logs-endpoint:
+        type: string
+        description: >
+            Hostname:port of otel collector (gRPC). This endpoint is used
+            only for logs. An optional "http://" or "https://" scheme prefix
+            is allowed and will be stripped, as the gRPC client works with a
+            bare host:port.
+    tracing-endpoint:
+        type: string
+        description: >
+            Hostname:port of otel collector (gRPC). This endpoint is used
+            only for traces. An optional "http://" or "https://" scheme prefix
+            is allowed and will be stripped, as the gRPC client works with a
+            bare host:port.
+    client-factory-name:
+        type: string
+        description: >
+            This component needs ugrpc::client::ClientFactoryComponent to
+            work and we will look for it with name given in this
+            parameter.
+            You need to set that component propertly, e.g. disable
+            middlewares (otherwise it will be an infinite loop of client
+            producing logs that go into otlp logger and back to client
+            and that causes even more logs).
+
+            Although it is possible to omit this parameter and use
+            default ClientFactoryComponent instance, it is not recommended
+            and will cause severe problems in the long run.
+
+    log-level:
+        type: string
+        description: log level
+    max-queue-size:
+        type: integer
+        description: max async queue size
+        default: 65535
+    max-batch-delay:
+        type: string
+        description: max delay between send batches (e.g. 100ms or 1s)
+        default: 100ms
+    service-name:
+        type: string
+        description: service name
+        default: unknown_service
+    sinks:
+        type: object
+        description: sinks to send logs/traces to
+        additionalProperties: false
+        properties:
+            logs:
+                type: string
+                enum: [otlp, default, both]
+                description: logs sink, one of [otlp, default, both]
+                default: otlp
+            tracing:
+                type: string
+                enum: [otlp, default, both]
+                description: tracing sink, one of [otlp, default, both]
+                default: otlp
+    attributes-mapping:
+        type: object
+        description: rename rules for OTLP attributes
+        properties: {}
+        additionalProperties:
+            type: string
+            description: new attribute name
+    extra-attributes:
+        type: object
+        description: extra OTLP attributes
+        properties: {}
+        additionalProperties:
+            type: string
+            description: attribute value
+

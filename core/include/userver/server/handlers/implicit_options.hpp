@@ -23,7 +23,6 @@ using AuthCheckerBasePtr = std::shared_ptr<AuthCheckerBase>;
 
 namespace server::handlers {
 
-// clang-format off
 /// @ingroup userver_components userver_http_handlers
 ///
 /// @brief A "magical" handler that will respond to OPTIONS HTTP method for any
@@ -48,61 +47,60 @@ namespace server::handlers {
 /// * `OK` if the check succeeds
 /// * an unspecified error message if the check fails
 ///
-/// ## Static options
+/// ## Static options of server::handlers::ImplicitOptions :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/implicit_options.md
 ///
-/// The component has no service configuration except the
-/// @ref userver_http_handlers "common handler options".
-/// and adds the following ones:
+/// Options inherited from @ref server::handlers::HttpHandlerBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/http_handler_base.md
 ///
-/// Name | Description | Default value
-/// ---- | ----------- | -------------
-/// auth | server::handlers::auth::HandlerAuthConfig authorization config | auth checker testing is disabled
+/// Options inherited from @ref server::handlers::HandlerBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/server/handlers/handler_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// ## Static configuration example:
 ///
 /// @snippet components/common_server_component_list_test.cpp  Sample handler implicit http options component config
 ///
 /// ## Scheme
-/// Provide an optional query parameter `body` to get the bodies of all the
-/// in-flight requests.
-// clang-format on
+/// Provide an optional query parameter `body` to get the bodies of all the in-flight requests.
 class ImplicitOptions /*non-final*/ : public HttpHandlerBase {
- public:
-  /// @ingroup userver_component_names
-  /// @brief The default name of server::handlers::ImplicitOptions component
-  static constexpr std::string_view kName = "handler-implicit-http-options";
+public:
+    /// @ingroup userver_component_names
+    /// @brief The default name of server::handlers::ImplicitOptions component
+    static constexpr std::string_view kName = "handler-implicit-http-options";
 
-  ImplicitOptions(const components::ComponentConfig& config,
-                  const components::ComponentContext& component_context,
-                  bool is_monitor = false);
+    ImplicitOptions(
+        const components::ComponentConfig& config,
+        const components::ComponentContext& component_context,
+        bool is_monitor = false
+    );
 
-  ~ImplicitOptions() override;
+    ~ImplicitOptions() override;
 
-  std::string HandleRequestThrow(
-      const server::http::HttpRequest& request,
-      server::request::RequestContext& context) const override;
+    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext& context)
+        const override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  using AuthCheckers =
-      std::unordered_map<std::string, auth::AuthCheckerBasePtr>;
+private:
+    using AuthCheckers = std::unordered_map<std::string, auth::AuthCheckerBasePtr>;
 
-  std::string ExtractAllowedMethods(const std::string& path) const;
+    std::string ExtractAllowedMethods(const std::string& path) const;
 
-  const http::HandlerInfoIndex& GetHandlerInfoIndex() const;
+    const http::HandlerInfoIndex& GetHandlerInfoIndex() const;
 
-  const Server& server_;
-  const AuthCheckers auth_checkers_;
+    const Server& server_;
+    const AuthCheckers auth_checkers_;
 
-  mutable engine::Mutex handler_info_index_mutex_;
-  mutable const http::HandlerInfoIndex* handler_info_index_ = nullptr;
+    mutable engine::Mutex handler_info_index_mutex_;
+    mutable const http::HandlerInfoIndex* handler_info_index_ = nullptr;
 };
 
 }  // namespace server::handlers
 
 template <>
-inline constexpr bool
-    components::kHasValidate<server::handlers::ImplicitOptions> = true;
+inline constexpr bool components::kHasValidate<server::handlers::ImplicitOptions> = true;
 
 USERVER_NAMESPACE_END

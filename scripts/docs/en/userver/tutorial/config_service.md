@@ -8,9 +8,8 @@ Make sure that you can compile and run core tests and read a basic example @ref 
 
 An ability to change service behavior at runtime without restarting the service is priceless! We have that ability, it is called dynamic configs and it allows you:
 
-* to control logging (@ref USERVER_NO_LOG_SPANS, @ref USERVER_LOG_REQUEST, @ref USERVER_LOG_REQUEST_HEADERS)
+* to control logging (@ref USERVER_NO_LOG_SPANS, @ref USERVER_LOG_REQUEST, @ref USERVER_LOG_REQUEST_HEADERS, @ref USERVER_LOG_REQUEST_HEADERS_WHITELIST)
 * to control RPS and deal with high loads (@ref HTTP_CLIENT_CONNECT_THROTTLE, @ref USERVER_RPS_CCONTROL, @ref USERVER_TASK_PROCESSOR_QOS)
-* to dynamically switch from one HTTP proxy to another or turn off proxying (@ref USERVER_HTTP_PROXY)
 * to write your own runtime dynamic configs:
   * to create experiments that could be adjusted or turned on/off without service restarts
   * to do whatever you like
@@ -28,8 +27,6 @@ In previous example we made a simple HTTP server with some dynamic configs set i
         http-retries: 5
         http-timeout: 20s
         service-name: configs-service
-        fallback-to-no-proxy: false    # On error do not attempt to retrieve configs 
-                                       # by bypassing proxy from USERVER_HTTP_PROXY dynamic config
 
     dynamic-config-client-updater:        # A component that periodically uses `dynamic-config-client` to retrieve new values
         update-interval: 5s            # Request for new configs every 5 seconds
@@ -53,7 +50,7 @@ There are two ways to write a JSON handler:
 
 We are going to take the second approach:
 
-@snippet samples/config_service/config_service.cpp Config service sample - component
+@snippet samples/config_service/main.cpp Config service sample - component
 
 @warning `Handle*` functions are invoked concurrently on the same instance of the handler class. Use @ref scripts/docs/en/userver/synchronization.md "synchronization primitives" or do not modify shared data in `Handle*`.
 
@@ -65,11 +62,11 @@ Function `ConfigDistributor::SetNewValues` is meant for setting config values to
 
 All the interesting things happen in the `HandleRequestJsonThrow` function, where we grab a rcu::Variable snapshot, fill the update time and the configuration from it:
 
-@snippet samples/config_service/config_service.cpp Config service sample - HandleRequestJsonThrow
+@snippet samples/config_service/main.cpp Config service sample - HandleRequestJsonThrow
 
 The "configs" field is formed in the `MakeConfigs` function depending on the request parameters:
 
-@snippet samples/config_service/config_service.cpp Config service sample - MakeConfigs
+@snippet samples/config_service/main.cpp Config service sample - MakeConfigs
 
 Note that the service name is sent in the "service" field of the JSON request body. Using it you can make **service specific dynamic configs**.
 
@@ -82,11 +79,11 @@ Now we have to configure our new HTTP handle. The configuration is quite straigh
 
 ### int main()
 
-Finally, 
+Finally,
 we add required components to the `components::MinimalServerComponentList()`,
 and start the server with static config `kStaticConfig`.
 
-@snippet samples/config_service/config_service.cpp  Config service sample - main
+@snippet samples/config_service/main.cpp  Config service sample - main
 
 
 ### Build and Run
@@ -131,8 +128,7 @@ $ curl -X POST -d '{}' 127.0.0.1:8083/configs/values | jq
     },
     "USERVER_TASK_PROCESSOR_PROFILER_DEBUG": {},
     "USERVER_LOG_REQUEST_HEADERS": true,
-    "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE": false,
-    "USERVER_HTTP_PROXY": ""
+    "USERVER_CANCEL_HANDLE_REQUEST_BY_DEADLINE": false
   },
   "updated_at": "2021-06-29T14:15:31.173239295+0000"
 }
@@ -159,7 +155,7 @@ $ curl -X POST -d '{"ids":["USERVER_TASK_PROCESSOR_QOS"]}' 127.0.0.1:8083/config
 
 ### Functional testing
 @ref scripts/docs/en/userver/functional_testing.md "Functional tests" for the service
-could be implemented using the @ref service_client "service_client fixture"
+could be implemented using the @ref pytest_userver.plugins.service_client.service_client "service_client fixture"
 in the following way:
 
 @snippet samples/config_service/tests/test_config.py  Functional test
@@ -179,7 +175,7 @@ dynamic config updates and keep developing without a supplementary service.
 ## Full sources
 
 See the full example:
-* @ref samples/config_service/config_service.cpp
+* @ref samples/config_service/main.cpp
 * @ref samples/config_service/static_config.yaml
 * @ref samples/config_service/CMakeLists.txt
 * @ref samples/config_service/tests/conftest.py
@@ -193,7 +189,7 @@ See the full example:
 
 
 
-@example samples/config_service/config_service.cpp
+@example samples/config_service/main.cpp
 @example samples/config_service/static_config.yaml
 @example samples/config_service/CMakeLists.txt
 @example samples/config_service/tests/conftest.py

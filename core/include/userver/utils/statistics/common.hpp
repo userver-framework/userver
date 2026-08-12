@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/utils/statistics/common.hpp
+/// @brief Default statistics period constants and duration formatting
+
 #include <chrono>
 #include <string>
 

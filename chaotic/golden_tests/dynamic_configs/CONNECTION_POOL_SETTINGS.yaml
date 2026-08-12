@@ -1,0 +1,28 @@
+default: {}
+description: |
+    Per-component pool settings. Keys are component names or `__default__`.
+schema:
+    type: object
+    properties:
+        __default__:
+            $ref: "#/definitions/PoolSettings"
+    additionalProperties:
+        $ref: "#/definitions/PoolSettings"
+    definitions:
+        PoolSettings:
+            type: object
+            additionalProperties: false
+            properties:
+                min_pool_size:
+                    type: integer
+                    minimum: 0
+                    default: 1
+                    x-usrv-cpp-type: std::size_t
+                max_pool_size:
+                    type: integer
+                    minimum: 1
+                    default: 10
+                    x-usrv-cpp-type: std::size_t
+            required:
+              - min_pool_size
+              - max_pool_size

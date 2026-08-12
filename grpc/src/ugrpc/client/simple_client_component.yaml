@@ -1,0 +1,31 @@
+type: object
+description: Provides a ClientFactory in the component system
+additionalProperties: false
+properties:
+    endpoint:
+        type: string
+        description: URL of the gRPC service
+    client-name:
+        type: string
+        description: |
+            Name of the gRPC server we talk to, for diagnostics.
+
+            Default: <uses the component name>
+    destination-prefix-in-metrics:
+        type: string
+        description: |
+            Prefix for the full destination path in metrics: "destination_prefix_in_metrics/grpc_service/grpc_method".
+
+            Default: "client(client_name)"
+    factory-component:
+        type: string
+        description: ClientFactoryComponent name to use for client creation
+    dedicated-channel-counts:
+        type: object
+        description: a map of rpc method names to channel counts. Used for high-load methods
+        default: {}
+        additionalProperties:
+            type: integer
+            description: number of channels for this method
+            minimum: 1
+        properties: {}

@@ -1,0 +1,52 @@
+definitions:
+    Number:
+        type: number
+        minimum: 1
+        maximum: 100
+
+    OneOf:
+        oneOf:
+          - type: boolean
+          - $ref: '#/definitions/Number'
+          - type: object
+            additionalProperties: false
+            properties: {}
+
+    ObjectOneOfNoDiscriminator:
+        type: object
+        additionalProperties: false
+        properties:
+            oneof:
+                $ref: '#/definitions/OneOf'
+
+    ObjectOneOfWithDiscriminator:
+        type: object
+        additionalProperties: false
+        properties:
+            oneof:
+                oneOf:
+                  - $ref: '#/definitions/ObjectFoo'
+                  - $ref: '#/definitions/ObjectBar'
+                discriminator:
+                    propertyName: type
+
+    ObjectFoo:
+        type: object
+        additionalProperties: false
+        properties:
+            type:
+                type: string
+            foo:
+                type: integer
+                minimum: 1
+
+    ObjectBar:
+        type: object
+        additionalProperties: false
+        properties:
+            type:
+                type: string
+            bar:
+                type: string
+                minLength: 3
+

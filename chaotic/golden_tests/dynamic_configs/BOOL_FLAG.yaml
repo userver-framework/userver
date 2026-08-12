@@ -1,0 +1,4 @@
+default: false
+description: Simple boolean dynamic config variable
+schema:
+    type: boolean

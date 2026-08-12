@@ -11,16 +11,13 @@ namespace components {
 
 /// @ingroup userver_components
 ///
-/// @brief Returns a list of components to do basic logging, component
-/// initialization and configuration.
+/// @brief Returns a list of components to do basic logging, component initialization and configuration.
 ///
 /// The list contains:
 /// * os_signals::ProcessorComponent
 /// * components::Logging
-/// * components::Tracer
 /// * components::ManagerControllerComponent
 /// * components::StatisticsStorage
-/// * alerts::StorageComponent
 /// * components::DynamicConfig
 /// * tracing::DefaultTracingManagerLocator
 ComponentList MinimalComponentList();

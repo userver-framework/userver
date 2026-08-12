@@ -1,0 +1,20 @@
+definitions:
+    Foo:
+        type: string
+        pattern: foo.*
+    Bar:
+        type: string
+        pattern: bar.*
+    Zoo:
+        type: string
+        pattern: something\with\slash
+    ObjectPattern:
+        type: object
+        additionalProperties: false
+        properties:
+            foo:
+                $ref: '#/definitions/Foo'
+            bar:
+                $ref: '#/definitions/Bar'
+            zoo:
+                $ref: '#/definitions/Zoo'

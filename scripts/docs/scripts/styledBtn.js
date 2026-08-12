@@ -1,4 +1,4 @@
-function styleNavButtons() {
+export function styleNavButtons() {
     const navButtonsContainer = document.querySelector('.bottom-nav')
     const navButtons = document.querySelectorAll('.bottom-nav .el');
     

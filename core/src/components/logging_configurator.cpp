@@ -2,8 +2,9 @@
 
 #include <logging/dynamic_debug.hpp>
 #include <logging/dynamic_debug_config.hpp>
-#include <tracing/no_log_spans.hpp>
+#include <userver/alerts/source.hpp>
 #include <userver/components/component.hpp>
+#include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>
 #include <userver/tracing/tracer.hpp>
@@ -12,103 +13,95 @@
 #include <logging/rate_limit.hpp>
 #include <logging/split_location.hpp>
 
+#include <dynamic_config/variables/USERVER_NO_LOG_SPANS.hpp>
+
+#ifndef ARCADIA_ROOT
+#include "generated/src/components/logging_configurator.yaml.hpp"  // Y_IGNORE
+#endif
+
 USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
 namespace {
 
-/// [key]
-const dynamic_config::Key<tracing::NoLogSpans> kNoLogSpans{
-    "USERVER_NO_LOG_SPANS", dynamic_config::DefaultAsJsonString{R"(
-  {
-    "names": [],
-    "prefixes": []
-  }
-)"}};
-/// [key]
-
-const dynamic_config::Key<logging::DynamicDebugConfig> kDynamicDebugConfig{
-    "USERVER_LOG_DYNAMIC_DEBUG", dynamic_config::DefaultAsJsonString{R"(
+const dynamic_config::Key<logging::DynamicDebugConfig>
+    kDynamicDebugConfig{"USERVER_LOG_DYNAMIC_DEBUG", dynamic_config::DefaultAsJsonString{R"(
   {
     "force-disabled": [],
     "force-enabled": []
   }
 )"}};
 
+alerts::Source kDynamicDebugInvalidLocation{"dynamic_debug_invalid_location"};
+
 }  // namespace
 
-LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config,
-                                         const ComponentContext& context) {
-  logging::impl::SetLogLimitedEnable(
-      config["limited-logging-enable"].As<bool>());
-  logging::impl::SetLogLimitedInterval(
-      config["limited-logging-interval"].As<std::chrono::milliseconds>());
+LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config, const ComponentContext& context)
+    : metrics_storage_(context.FindComponent<components::StatisticsStorage>().GetMetricsStorage())
+{
+    logging::impl::SetLogLimitedEnable(config["limited-logging-enable"].As<bool>());
+    logging::impl::SetLogLimitedInterval(config["limited-logging-interval"].As<std::chrono::milliseconds>());
 
-  config_subscription_ =
-      context.FindComponent<components::DynamicConfig>()
-          .GetSource()
-          .UpdateAndListen(this, kName, &LoggingConfigurator::OnConfigUpdate);
+    config_subscription_ = context.FindComponent<components::DynamicConfig>().GetSource().UpdateAndListen(
+        this,
+        kName,
+        &LoggingConfigurator::OnConfigUpdate,
+        ::dynamic_config::USERVER_NO_LOG_SPANS,
+        kDynamicDebugConfig
+    );
 }
 
-LoggingConfigurator::~LoggingConfigurator() {
-  config_subscription_.Unsubscribe();
-}
+LoggingConfigurator::~LoggingConfigurator() { config_subscription_.Unsubscribe(); }
 
-void LoggingConfigurator::OnConfigUpdate(
-    const dynamic_config::Snapshot& config) {
-  (void)this;  // silence clang-tidy
-  tracing::Tracer::SetNoLogSpans(tracing::NoLogSpans{config[kNoLogSpans]});
+void LoggingConfigurator::OnConfigUpdate(const dynamic_config::Snapshot& config) {
+    (void)this;  // silence clang-tidy
+    tracing::SetNoLogSpans(tracing::NoLogSpans{config[::dynamic_config::USERVER_NO_LOG_SPANS]});
 
-  try {
     const auto& dd = config[kDynamicDebugConfig];
-    auto old_dd = dynamic_debug_.Read();
-    if (!(*old_dd == dd)) {
-      auto lock = dynamic_debug_.StartWrite();
-      *lock = dd;
 
-      /* There is a race between multiple AddDynamicDebugLog(), thus some logs
-       * may be logged or not logged by mistake. This is on purpose as logging
-       * locking would be too slow and heavy.
-       */
+    /* There is a race between multiple AddDynamicDebugLog(), thus some logs
+     * may be logged or not logged by mistake. This is on purpose as logging
+     * locking would be too slow and heavy.
+     */
 
-      // Flush
-      logging::RemoveDynamicDebugLog("", logging::kAnyLine);
+    // Flush
+    logging::RemoveAllDynamicDebugLog();
+    bool has_error = false;
 
-      for (const auto& [location, level] : dd.force_disabled) {
-        const auto [path, line] = logging::SplitLocation(location);
-        logging::EntryState state;
-        state.force_disabled_level_plus_one =
-            logging::GetForceDisabledLevelPlusOne(level);
-        AddDynamicDebugLog(path, line, state);
-      }
-      for (const auto& [location, level] : dd.force_enabled) {
-        const auto [path, line] = logging::SplitLocation(location);
-        logging::EntryState state;
-        state.force_enabled_level = level;
-        AddDynamicDebugLog(path, line, state);
-      }
-
-      lock.Commit();
+    for (const auto& [location, level] : dd.force_disabled) {
+        try {
+            const auto [path, line] = logging::SplitLocation(location);
+            logging::EntryState state;
+            state.force_disabled_level_plus_one = logging::GetForceDisabledLevelPlusOne(level);
+            SetDynamicDebugLog(path, line, state);
+        } catch (const std::exception& e) {
+            LOG_ERROR() << "Failed to disable dynamic debug log at '" << location << "': " << e;
+            has_error = true;
+        }
     }
-  } catch (const std::exception& e) {
-    LOG_ERROR() << "Failed to set dynamic debug logs from config: " << e;
-  }
+
+    for (const auto& [location, level] : dd.force_enabled) {
+        try {
+            const auto [path, line] = logging::SplitLocation(location);
+            logging::EntryState state;
+            state.force_enabled_level = level;
+            SetDynamicDebugLog(path, line, state);
+        } catch (const std::exception& e) {
+            LOG_ERROR() << "Failed to enable dynamic debug log at '" << location << "': " << e;
+            has_error = true;
+        }
+    }
+
+    if (has_error) {
+        kDynamicDebugInvalidLocation.FireAlert(*metrics_storage_, alerts::Source::kInfiniteDuration);
+    } else {
+        kDynamicDebugInvalidLocation.StopAlertNow(*metrics_storage_);
+    }
 }
 
 yaml_config::Schema LoggingConfigurator::GetStaticConfigSchema() {
-  return yaml_config::MergeSchemas<impl::ComponentBase>(R"(
-type: object
-description: Helper component to configure logging
-additionalProperties: false
-properties:
-    limited-logging-enable:
-        type: boolean
-        description: set to true to make LOG_LIMITED drop repeated logs
-    limited-logging-interval:
-        type: string
-        description: utils::StringToDuration suitable duration string to group repeated logs into one message
-)");
+    return yaml_config::MergeSchemasFromResource<RawComponentBase>("src/components/logging_configurator.yaml");
 }
 
 }  // namespace components

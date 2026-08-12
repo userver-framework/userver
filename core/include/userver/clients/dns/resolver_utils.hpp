@@ -1,5 +1,8 @@
 #pragma once
 
+/// @file userver/clients/dns/resolver_utils.hpp
+/// @brief DNS resolver type and component lookup helpers
+
 #include <userver/clients/dns/exception.hpp>
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/components/component_fwd.hpp>
@@ -10,8 +13,8 @@ namespace clients::dns {
 
 /// Resolver types used by the components
 enum class ResolverType {
-  kGetaddrinfo,  ///< resolve hosts using blocking getaddrinfo call
-  kAsync,        ///< use non-blocking resolver
+    kGetaddrinfo,  ///< resolve hosts using blocking getaddrinfo call
+    kAsync,        ///< use non-blocking resolver
 };
 
 /// Returns pointer to asynchronous resolver interface if required by config
@@ -20,7 +23,8 @@ enum class ResolverType {
 clients::dns::Resolver* GetResolverPtr(
     const components::ComponentConfig& config,
     const components::ComponentContext& context,
-    ResolverType default_type = ResolverType::kAsync);
+    ResolverType default_type = ResolverType::kAsync
+);
 
 }  // namespace clients::dns
 

@@ -1,0 +1,5 @@
+CREATE TABLE IF NOT EXISTS key_value_table (
+  key VARCHAR,
+  value VARCHAR,
+  updated TIMESTAMPTZ NOT NULL DEFAULT NOW()
+)

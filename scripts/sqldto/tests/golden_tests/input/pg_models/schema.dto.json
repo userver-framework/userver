@@ -1,0 +1,141 @@
+{
+  "catalog": {
+    "enums": {
+      "test.status_type": {
+        "name": "status_type",
+        "namespace": "test",
+        "values": [
+          "active",
+          "inactive",
+          "pending"
+        ]
+      }
+    },
+    "tables": {},
+    "types": {
+      "test.user_data": {
+        "fields": [
+          {
+            "name": "small_num",
+            "nullable": true,
+            "type": "smallint"
+          },
+          {
+            "name": "regular_num",
+            "nullable": true,
+            "type": "integer"
+          },
+          {
+            "name": "big_num",
+            "nullable": true,
+            "type": "bigint"
+          },
+          {
+            "name": "name",
+            "nullable": true,
+            "type": "text"
+          },
+          {
+            "name": "code",
+            "nullable": true,
+            "type": "character varying(50)"
+          },
+          {
+            "name": "single_char",
+            "nullable": true,
+            "type": "character(1)"
+          },
+          {
+            "name": "is_enabled",
+            "nullable": true,
+            "type": "boolean"
+          },
+          {
+            "name": "rate",
+            "nullable": true,
+            "type": "real"
+          },
+          {
+            "name": "precise_rate",
+            "nullable": true,
+            "type": "double precision"
+          },
+          {
+            "name": "balance",
+            "nullable": true,
+            "type": "numeric(15,2)"
+          },
+          {
+            "name": "score",
+            "nullable": true,
+            "type": "numeric(10,4)"
+          },
+          {
+            "name": "created_at",
+            "nullable": true,
+            "type": "timestamp with time zone"
+          },
+          {
+            "name": "updated_at",
+            "nullable": true,
+            "type": "timestamp without time zone"
+          },
+          {
+            "name": "birth_date",
+            "nullable": true,
+            "type": "date"
+          },
+          {
+            "name": "work_time",
+            "nullable": true,
+            "type": "time without time zone"
+          },
+          {
+            "name": "duration",
+            "nullable": true,
+            "type": "interval"
+          },
+          {
+            "name": "user_uuid",
+            "nullable": true,
+            "type": "uuid"
+          },
+          {
+            "name": "metadata",
+            "nullable": true,
+            "type": "jsonb"
+          },
+          {
+            "name": "settings",
+            "nullable": true,
+            "type": "json"
+          },
+          {
+            "name": "avatar",
+            "nullable": true,
+            "type": "bytea"
+          },
+          {
+            "name": "age_range",
+            "nullable": true,
+            "type": "int4range"
+          },
+          {
+            "name": "id_range",
+            "nullable": true,
+            "type": "int8range"
+          },
+          {
+            "name": "status",
+            "nullable": true,
+            "type": "test.status_type"
+          }
+        ],
+        "name": "user_data",
+        "namespace": "test"
+      }
+    }
+  },
+  "hashsum": "c7034fd6a581d21470f1ef5802a366f3cfe86363e81b1c4f8379cc514bef3d62",
+  "queries": []
+}

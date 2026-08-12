@@ -2,14 +2,16 @@
 
 #include <userver/storages/postgres/io/buffer_io.hpp>
 
+#include <userver/utils/zstring_view.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::io::detail {
 
 /// All digits packed in a single integer value, if the size of int64 is enough
 struct IntegralRepresentation {
-  std::int64_t value;
-  int fractional_digit_count;
+    std::int64_t value;
+    int fractional_digit_count;
 };
 
 /// A helper function to read PostgreSQL binary buffer containing a
@@ -17,7 +19,7 @@ struct IntegralRepresentation {
 std::string NumericBufferToString(const FieldBuffer& buffer);
 /// A helper function to write string representation of a numeric/decimal to
 /// PostgreSQL binary buffer representation
-std::string StringToNumericBuffer(const std::string& str_rep);
+std::string StringToNumericBuffer(USERVER_NAMESPACE::utils::zstring_view str_rep);
 
 /// A helper function to read PostgreSQL numeric/decimal binary buffer and pack
 /// the value in a single int64 value.

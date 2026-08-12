@@ -1,0 +1,1188 @@
+# pylint: disable=too-many-lines
+from collections.abc import Callable
+import dataclasses
+import itertools
+from typing import Any
+
+from chaotic.back.cpp import type_name
+from chaotic.front import types
+
+USERVER_COLONCOLON = 'userver::'
+
+
+@dataclasses.dataclass
+class CppType:
+    raw_cpp_type: type_name.TypeName
+    json_schema: types.Schema
+    nullable: bool  # TODO: maybe move into  field?
+    user_cpp_type: str | None
+
+    _only_json_reason = ''
+
+    KNOWN_X_PROPERTIES = []  # type: ignore
+
+    def __hash__(self) -> int:
+        return id(self)
+
+    def is_isomorphic(self, other: 'CppType') -> bool:
+        if self == other:
+            return True
+
+        left = self.json_schema.model_dump()
+        right = other.json_schema.model_dump()
+        return self._is_isomorphic_dicts(left, right)
+
+    @staticmethod
+    def _is_isomorphic_dicts(left: dict, right: dict) -> bool:
+        left.pop('source_location_', None)
+        right.pop('source_location_', None)
+        left.pop('description', None)
+        right.pop('description', None)
+        if 'x_properties' in left:
+            left['x_properties'].pop('description', None)
+        if 'x_properties' in right:
+            right['x_properties'].pop('description', None)
+
+        if left.keys() != right.keys():
+            return False
+
+        for prop in left:
+            p1 = left[prop]
+            p2 = right[prop]
+
+            if isinstance(p1, CppType) and isinstance(p2, CppType):
+                if not p1.is_isomorphic(p2):
+                    return False
+            elif isinstance(p1, dict) and isinstance(p2, dict):
+                if not CppType._is_isomorphic_dicts(p1, p2):
+                    return False
+            else:
+                if p1 != p2:
+                    return False
+
+        return True
+
+    def visit_children(self, cb: Callable[['CppType', 'CppType'], None]) -> None:
+        for subtype in self.subtypes():
+            cb(subtype, self)
+            subtype.visit_children(cb)
+
+    # Should return only direct subtypes, not recursively because
+    # jinja's generate_*() is called recursively.
+    def subtypes(self) -> list['CppType']:
+        return []
+
+    def declaration_includes(self) -> list[str]:
+        raise NotImplementedError()
+
+    def definition_includes(self) -> list[str]:
+        raise NotImplementedError()
+
+    def sax_parser_includes(self) -> list[str]:
+        return ['userver/chaotic/sax_parser.hpp']
+
+    def descriptor_type(self) -> str:
+        return self.parser_type('TODO', 'TODO')
+
+    def parser_type(self, ns: str, name: str) -> str:
+        """
+        C++ type for parser:
+
+            field = json.As<Parser>():
+                            ^^^^^^
+        """
+        raise NotImplementedError(self.raw_cpp_type)
+
+    def get_py_type(self) -> str:
+        return self.__class__.__name__
+
+    def _cpp_name(self) -> str:
+        """
+        C++ type for declarations. May contain '@':
+
+            namespace::Struct@Field
+            ^^^^^^^^^^^^^^^^^^^^^^^
+        """
+        return self.raw_cpp_type.in_global_scope()
+
+    def cpp_local_name(self) -> str:
+        """
+        C++ type in the parent struct:
+
+            namespace::Struct::SubStruct
+                               ^^^^^^^^^
+        E.g. for type definition:
+
+            class SubStruct { ... };
+        """
+        return self.raw_cpp_type.in_local_scope()
+
+    def cpp_global_name(self) -> str:
+        """
+        C++ type in the global namespace:
+
+            namespace::Struct::SubStruct
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        """
+        return self._cpp_name()
+
+    def cpp_user_name(self) -> str:
+        """
+        C++ type for field declaration:
+
+            namespace::Struct::Field field;
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+        """
+        if not self.user_cpp_type:
+            return self.cpp_global_name()
+        cpp_type = self.user_cpp_type.replace('@', '::')
+        if cpp_type.startswith(USERVER_COLONCOLON):
+            cpp_type = 'USERVER_NAMESPACE::' + cpp_type[len(USERVER_COLONCOLON) :]
+        return cpp_type
+
+    def cpp_global_struct_field_name(self) -> str:
+        """
+        C++ name for global struct field declaration:
+
+            namespace__Struct__Substruct
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        """
+        return self.cpp_global_name().replace('::', '__')
+
+    def cpp_comment(self) -> str:
+        schema = self.json_schema
+        description = ((schema.title or '') + '\n' + (schema.description or '')).strip()
+        if description:
+            return '// ' + description.replace('\n', '\n//')
+        else:
+            return ''
+
+    @classmethod
+    def get_includes_by_cpp_type(cls, cpp_type: str) -> list[str]:
+        includes = []
+
+        parts = cpp_type.split('<', 1)
+        cpp_type = parts[0]
+        if cpp_type == 'userver::utils::StrongTypedef' and parts[1][-1] == '>':
+            cpp_type = parts[1].split(', ', 1)[0]
+            includes.append('userver/utils/strong_typedef.hpp')
+        elif cpp_type == 'utils::StrongTypedef' and parts[1][-1] == '>':
+            # legacy uservices
+            cpp_type = parts[1].split(', ', 1)[0]
+            includes.append('userver/utils/strong_typedef.hpp')
+
+        if cpp_type.startswith('::'):
+            cpp_type = cpp_type[2:]
+
+        includes.append('userver/chaotic/io/' + camel_to_snake_case(cpp_type.replace('::', '/')) + '.hpp')
+
+        return includes
+
+    def _primitive_parser_type(self) -> str:
+        raw_cpp_type = f'USERVER_NAMESPACE::chaotic::Primitive<{self.raw_cpp_type.in_global_scope()}>'
+        if self.user_cpp_type:
+            user_cpp_type = self.cpp_user_name()
+            return f'USERVER_NAMESPACE::chaotic::WithType<{raw_cpp_type}, {user_cpp_type}>'
+        else:
+            return raw_cpp_type
+
+    def has_generated_user_cpp_type(self) -> bool:
+        return False
+
+    def need_dom_parser(self) -> bool:
+        return False
+
+    def may_generate_for_format(self, format_: str) -> bool:
+        return format_ == 'USERVER_NAMESPACE::formats::json' or not self._only_json_reason
+
+    def only_json_reason(self) -> str:
+        return self._only_json_reason
+
+    def need_serializer(self) -> bool:
+        return False
+
+    def need_stream_writer(self) -> bool:
+        return False
+
+    def need_add_hiding_args(self) -> bool:
+        return False
+
+    def need_operator_eq(self) -> bool:
+        return False
+
+    def need_using_type(self) -> bool:
+        return False
+
+    def need_operator_lshift(self) -> bool:
+        return True
+
+    def needs_new_type(self) -> bool:
+        """Returns True when this type introduces a new C++ declaration
+        (struct, enum class). Returns False for types that are resolved
+        entirely via template machinery without emitting a new declaration."""
+        return True
+
+
+def camel_to_snake_case(string: str) -> str:
+    parts = string.rsplit('/', 1)
+    if len(parts) == 1:
+        namespace = ''
+        name = parts[0]
+    else:
+        namespace, name = parts
+
+    result = ''
+    for char in name:
+        if char.isupper():
+            if result:
+                result += '_'
+            result += char.lower()
+        else:
+            result += char
+    if namespace:
+        return namespace + '/' + result
+    else:
+        # e.g. unsigned
+        return result
+
+
+@dataclasses.dataclass
+class CppPrimitiveValidator:
+    min: int | float | None = None
+    max: int | float | None = None
+    exclusiveMin: int | float | None = None
+    exclusiveMax: int | float | None = None
+    minLength: int | None = None
+    maxLength: int | None = None
+    pattern: str | None = None
+
+    namespace: str = ''
+    prefix: str = ''
+
+    # TODO: remove in TAXICOMMON-8626
+    def fix_legacy_exclusive(self) -> None:
+        if self.exclusiveMax is True:
+            self.exclusiveMax = self.max
+            self.max = None
+        if self.exclusiveMax is False:
+            self.exclusiveMax = None
+        if self.exclusiveMin is True:
+            self.exclusiveMin = self.min
+            self.min = None
+        if self.exclusiveMin is False:
+            self.exclusiveMin = None
+
+    def is_none(self) -> bool:
+        return self == CppPrimitiveValidator()
+
+
+# boolean, integer, number, string
+@dataclasses.dataclass
+class CppPrimitiveType(CppType):
+    default: Any = None
+    validators: CppPrimitiveValidator = dataclasses.field(
+        default_factory=CppPrimitiveValidator,
+    )
+
+    KNOWN_X_PROPERTIES = [
+        'x-usrv-cpp-type',
+        'x-usrv-cpp-typedef-tag',
+        'x-taxi-cpp-type',
+        'x-taxi-cpp-typedef-tag',
+    ]
+
+    __hash__ = CppType.__hash__
+
+    def declaration_includes(self) -> list[str]:
+        includes = []
+        if self.user_cpp_type:
+            includes += self.get_includes_by_cpp_type(self.user_cpp_type)
+
+        type_ = self.json_schema.type  # type: ignore
+        if type_ == 'integer':
+            includes.append('cstdint')
+        elif type_ in ('number', 'boolean'):
+            pass
+        elif type_ in ('string', 'file'):
+            includes.append('string')
+        else:
+            raise NotImplementedError(type_)
+        return includes
+
+    def definition_includes(self) -> list[str]:
+        includes = ['userver/chaotic/primitive.hpp']
+        if not self.validators.is_none():
+            includes.append('userver/chaotic/validators.hpp')
+        if self.validators.pattern:
+            includes.append('userver/chaotic/validators_pattern.hpp')
+        if self.user_cpp_type:
+            includes.append('userver/chaotic/with_type.hpp')
+        return includes
+
+    def parser_type(self, ns: str, name: str) -> str:
+        type_name_ns = self.validators.namespace
+        type_name_decl = self.validators.prefix
+
+        validators = ''
+        if self.validators.min is not None:
+            validators += f', USERVER_NAMESPACE::chaotic::Minimum<{type_name_ns}::k{type_name_decl}Minimum>'
+        if self.validators.max is not None:
+            validators += f', USERVER_NAMESPACE::chaotic::Maximum<{type_name_ns}::k{type_name_decl}Maximum>'
+
+        if self.validators.exclusiveMin is not None:
+            validators += (
+                f', USERVER_NAMESPACE::chaotic::ExclusiveMinimum<{type_name_ns}::k{type_name_decl}ExclusiveMinimum>'
+            )
+        if self.validators.exclusiveMax is not None:
+            validators += (
+                f', USERVER_NAMESPACE::chaotic::ExclusiveMaximum<{type_name_ns}::k{type_name_decl}ExclusiveMaximum>'
+            )
+
+        if self.validators.minLength is not None:
+            validators += f', USERVER_NAMESPACE::chaotic::MinLength<{self.validators.minLength}>'
+        if self.validators.maxLength is not None:
+            validators += f', USERVER_NAMESPACE::chaotic::MaxLength<{self.validators.maxLength}>'
+
+        if self.validators.pattern is not None:
+            validators += f', USERVER_NAMESPACE::chaotic::Pattern<{type_name_ns}::k{type_name_decl}Pattern>'
+
+        parser_type = f'USERVER_NAMESPACE::chaotic::Primitive<{self.raw_cpp_type.in_global_scope()}{validators}>'
+        if self.user_cpp_type:
+            return f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, {self.cpp_user_name()}>'
+        else:
+            return parser_type
+
+    def need_using_type(self) -> bool:
+        return True
+
+    def need_operator_lshift(self) -> bool:
+        return False
+
+    def needs_new_type(self) -> bool:
+        return False
+
+
+# any JSON value ({})
+@dataclasses.dataclass
+class CppAnyValue(CppType):
+    __hash__ = CppType.__hash__
+
+    def declaration_includes(self) -> list[str]:
+        return ['userver/formats/json/value.hpp']
+
+    def definition_includes(self) -> list[str]:
+        return []
+
+    def parser_type(self, ns: str, name: str) -> str:
+        return 'USERVER_NAMESPACE::formats::json::Value'
+
+    def need_using_type(self) -> bool:
+        return True
+
+    def need_operator_lshift(self) -> bool:
+        return False
+
+    def needs_new_type(self) -> bool:
+        return False
+
+
+@dataclasses.dataclass
+class CppConstType(CppType):
+    const_value: str | int | bool
+    # C++ raw type, e.g. 'std::string', 'int', 'std::int32_t', 'std::int64_t', 'bool'
+    cpp_type: str
+    prefix: str
+    namespace: str
+
+    __hash__ = CppType.__hash__
+
+    def const_declaration_type(self) -> str:
+        if self.cpp_type == 'std::string':
+            return 'USERVER_NAMESPACE::utils::StringLiteral'
+        # int32_t, int64_t, bool, int
+        return self.cpp_type
+
+    def get_const_value(self) -> str:
+        if self.cpp_type == 'std::string':
+            return f'R"--({self.const_value})--"'
+        if self.cpp_type == 'bool':
+            return 'true' if self.const_value else 'false'
+        return str(self.const_value)
+
+    def declaration_includes(self) -> list[str]:
+        includes = ['userver/chaotic/const_value.hpp']
+        if self.cpp_type == 'std::string':
+            includes.append('userver/utils/string_literal.hpp')
+        elif self.cpp_type in ('std::int32_t', 'std::int64_t'):
+            includes.append('cstdint')
+        return includes
+
+    def definition_includes(self) -> list[str]:
+        return ['userver/chaotic/const_value.hpp']
+
+    def parser_type(self, ns: str, name: str) -> str:
+        parser_type = f'USERVER_NAMESPACE::chaotic::ConstValue<{self.namespace}::k{self.prefix}Const>'
+        return parser_type
+
+    def need_using_type(self) -> bool:
+        return False
+
+    def need_operator_lshift(self) -> bool:
+        return False
+
+    def needs_new_type(self) -> bool:
+        return False
+
+
+@dataclasses.dataclass
+class CppStringWithFormat(CppType):
+    default: Any = None
+    format_cpp_type: str = ''
+
+    KNOWN_X_PROPERTIES = [
+        'x-usrv-cpp-type',
+        'x-usrv-cpp-typedef-tag',
+        'x-taxi-cpp-type',
+        'x-taxi-cpp-typedef-tag',
+    ]
+
+    __hash__ = CppType.__hash__
+
+    def cpp_user_name(self) -> str:
+        """
+        C++ type for field declaration:
+
+            namespace::Struct::Field field;
+            ^^^^^^^^^^^^^^^^^^^^^^^^
+        """
+        if self.user_cpp_type:
+            cpp_type = self.user_cpp_type.replace('@', '::')
+        else:
+            cpp_type = self.format_cpp_type.replace('@', '::')
+
+        if cpp_type.startswith(USERVER_COLONCOLON):
+            cpp_type = 'USERVER_NAMESPACE::' + cpp_type[len(USERVER_COLONCOLON) :]
+        return cpp_type
+
+    def declaration_includes(self) -> list[str]:
+        includes = []
+        if self.user_cpp_type:
+            includes += self.get_includes_by_cpp_type(self.user_cpp_type)
+        includes += self.get_includes_by_cpp_type(self.format_cpp_type)
+
+        includes.append('string')
+        return includes
+
+    def definition_includes(self) -> list[str]:
+        includes = ['userver/chaotic/primitive.hpp']
+        includes.append('userver/chaotic/with_type.hpp')
+        return includes
+
+    def parser_type(self, ns: str, name: str) -> str:
+        format_cpp_type = self.format_cpp_type
+        if format_cpp_type.startswith(USERVER_COLONCOLON):
+            format_cpp_type = 'USERVER_NAMESPACE::' + format_cpp_type[len(USERVER_COLONCOLON) :]
+        parser_type = f'USERVER_NAMESPACE::chaotic::Primitive<{self.raw_cpp_type.in_global_scope()}>'
+        parser_type = f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, {format_cpp_type}>'
+        if self.user_cpp_type:
+            parser_type = f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, {self.cpp_user_name()}>'
+        return parser_type
+
+    def need_using_type(self) -> bool:
+        return True
+
+    def need_operator_lshift(self) -> bool:
+        return False
+
+    def needs_new_type(self) -> bool:
+        return False
+
+
+@dataclasses.dataclass
+class CppRef(CppType):
+    orig_cpp_type: CppType
+    indirect: bool
+    self_ref: bool
+    cpp_name: str | None = None
+
+    KNOWN_X_PROPERTIES = ['x-usrv-cpp-indirect', 'x-taxi-cpp-indirect']
+
+    __hash__ = CppType.__hash__
+
+    @property
+    def default(self) -> str:
+        return self.orig_cpp_type.default  # type: ignore
+
+    def _cpp_name(self) -> str:
+        if self.indirect:
+            return f'USERVER_NAMESPACE::utils::Box<{self.orig_cpp_type._cpp_name()}>'
+        else:
+            return self.orig_cpp_type._cpp_name()
+
+    def cpp_user_name(self) -> str:
+        if self.indirect:
+            return f'USERVER_NAMESPACE::utils::Box<{self.orig_cpp_type.cpp_user_name()}>'
+        else:
+            if not self.cpp_name or (self.orig_cpp_type.cpp_user_name() != self.orig_cpp_type.cpp_global_name()):
+                # x-usrv-cpp-type
+                return self.orig_cpp_type.cpp_user_name()
+            else:
+                return self.cpp_name
+
+    def declaration_includes(self) -> list[str]:
+        if self.indirect:
+            return ['userver/utils/box.hpp']
+        if self.self_ref:
+            return []
+        else:
+            return self.orig_cpp_type.declaration_includes()
+
+    def definition_includes(self) -> list[str]:
+        if self.indirect:
+            return ['userver/chaotic/ref.hpp']
+        if self.self_ref:
+            return []
+        else:
+            return self.orig_cpp_type.definition_includes()
+
+    def sax_parser_includes(self) -> list[str]:
+        includes = super().sax_parser_includes()
+        if not self.indirect and not self.self_ref:
+            includes += self.orig_cpp_type.sax_parser_includes()
+        return includes
+
+    def parser_type(self, ns: str, name: str) -> str:
+        if self.indirect:
+            return f'USERVER_NAMESPACE::chaotic::Ref<{self.orig_cpp_type.parser_type(ns, name)}>'
+        return self.orig_cpp_type.parser_type(ns, name)
+
+    def need_using_type(self) -> bool:
+        return True
+
+    def need_operator_lshift(self) -> bool:
+        return False
+
+    def needs_new_type(self) -> bool:
+        return False
+
+
+class EnumItemName(str):
+    pass
+
+
+@dataclasses.dataclass
+class CppIntEnumItem:
+    value: int
+    raw_name: str
+    cpp_name: str
+
+    def declaration_includes(self) -> list[str]:
+        return ['fmt/core.h']
+
+
+@dataclasses.dataclass
+class CppIntEnum(CppType):
+    name: str
+    enums: list[CppIntEnumItem]
+
+    __hash__ = CppType.__hash__
+
+    def declaration_includes(self) -> list[str]:
+        return ['fmt/core.h']
+
+    def definition_includes(self) -> list[str]:
+        return [
+            'cstdint',
+            'userver/formats/common/meta.hpp',
+            'userver/chaotic/exception.hpp',
+            'userver/chaotic/primitive.hpp',
+            'userver/utils/trivial_map.hpp',
+        ]
+
+    def parser_type(self, ns: str, name: str) -> str:
+        return self._primitive_parser_type()
+
+    def has_generated_user_cpp_type(self) -> bool:
+        return True
+
+    def need_dom_parser(self) -> bool:
+        return True
+
+    def need_serializer(self) -> bool:
+        return True
+
+    def need_stream_writer(self) -> bool:
+        return True
+
+
+@dataclasses.dataclass
+class CppStringEnumItem:
+    raw_name: str
+    cpp_name: str
+
+    def declaration_includes(self) -> list[str]:
+        return ['fmt/core.h']
+
+
+@dataclasses.dataclass
+class CppStringEnum(CppType):
+    name: str
+    enums: list[CppStringEnumItem]
+    default: EnumItemName | None
+
+    __hash__ = CppType.__hash__
+
+    def declaration_includes(self) -> list[str]:
+        return ['string', 'fmt/core.h']
+
+    def definition_includes(self) -> list[str]:
+        return [
+            'userver/formats/common/meta.hpp',
+            'userver/chaotic/exception.hpp',
+            'userver/chaotic/primitive.hpp',
+            'userver/utils/trivial_map.hpp',
+        ]
+
+    def has_generated_user_cpp_type(self) -> bool:
+        return True
+
+    def parser_type(self, ns: str, name: str) -> str:
+        return self._primitive_parser_type()
+
+    def need_dom_parser(self) -> bool:
+        return True
+
+    def need_serializer(self) -> bool:
+        return True
+
+    def need_stream_writer(self) -> bool:
+        return True
+
+
+@dataclasses.dataclass
+class CppStructField:
+    name: str
+    required: bool
+    schema: CppType
+
+    def _default(self) -> Any | None:
+        return getattr(self.schema, 'default', None)
+
+    def get_default_cpp_type(self) -> str:
+        default = self._default()
+        assert default is not None
+
+        if isinstance(default, EnumItemName):
+            cpp_type = default.rsplit('::', 1)[0]
+            return cpp_type
+        elif isinstance(default, str):
+            return 'std::string_view'
+        elif isinstance(default, bool):
+            return 'bool'
+        elif isinstance(default, float):
+            return 'double'
+        else:
+            return 'std::int64_t'
+
+    def _get_default(self) -> Any:
+        default = self._default()
+        if default is None:
+            return ''
+        elif isinstance(default, EnumItemName):
+            return f'{default}'
+        elif isinstance(default, str):
+            return f'"{default}"'
+        elif isinstance(default, bool):
+            if default:
+                return 'true'
+            else:
+                return 'false'
+        else:
+            return default
+
+    def get_default_raw(self) -> Any:
+        default = self._get_default()
+        if isinstance(default, int):
+            return f'std::int64_t{{{default}}}'
+        elif isinstance(default, str) and default.startswith('"'):
+            # TODO: return f'USERVER_NAMESPACE::utils::StringLiteral{{{default}}}'
+            return f'std::string_view{{{default}}}'
+        else:
+            return f'{default}'
+
+    def get_default(self) -> str:
+        default = self._get_default()
+        if not default:
+            return default
+
+        if self.schema.user_cpp_type:
+            if isinstance(default, str):
+                default = f'std::string_view({default})'
+            elif isinstance(default, int):
+                default = f'{default}LL'
+            type_ = self.schema.user_cpp_type
+            return f'USERVER_NAMESPACE::chaotic::ConvertTo<{type_}>({default})'
+
+        return f'{default}'
+
+    def cpp_field_type(self) -> str:
+        type_ = self.schema
+        cpp_type = type_.cpp_user_name()
+
+        if self.is_optional():
+            return f'std::optional<{cpp_type}>'
+        else:
+            return cpp_type
+
+    def is_optional(self) -> bool:
+        optional = not self.required or self.schema.nullable
+        return optional and self._default() is None
+
+    def cpp_field_name(self) -> str:
+        return self.name
+
+    def cpp_field_parse_type(self) -> str:
+        type_ = self.schema.parser_type('TODO', self.name.title())
+        if self.required or self._default() is not None:
+            if self.schema.nullable:
+                return f'std::optional<{type_}>'
+            else:
+                return type_
+        else:
+            return f'std::optional<{type_}>'
+
+    def property_name_holder_variable(self, object_type: str) -> str:
+        type_prefix = object_type.replace('::', '_')
+        return f'k{type_prefix}FieldName{self.cpp_field_name()}'
+
+    def descriptor_type(self, object_type: str) -> str:
+        ch = 'USERVER_NAMESPACE::chaotic'
+        type_ = self.schema.parser_type('TODO', self.name.title())
+        name = self.cpp_field_name()
+        nullable = self.schema.nullable
+
+        if self.required:
+            if nullable:
+                mode = f'{ch}::Optional<{type_}>'
+            else:
+                mode = f'{ch}::Required<{type_}>'
+        elif self._default() is None:
+            assert not nullable
+            mode = f'{ch}::Optional<{type_}>'
+        else:
+            default_var = f'{object_type}::kFieldDefault{name}'
+            mode = f'{ch}::Defaulted<{type_}, {self.get_default_cpp_type()}, {default_var}>'
+
+        name_var = self.property_name_holder_variable(object_type)
+        return f'{ch}::Field<{object_type}, {mode}, &{object_type}::{name}, {name_var}>'
+
+
+@dataclasses.dataclass
+class CppStruct(CppType):
+    fields: dict[str, CppStructField]
+    # 'None' means 'do not generate extra member'
+    extra_type: CppType | bool | None = None
+    autodiscover_default_dict: bool = False
+    strict_parsing: bool = True
+
+    KNOWN_X_PROPERTIES = [
+        'x-usrv-cpp-type',
+        'x-usrv-cpp-extra-type',
+        'x-usrv-extra-member',
+        'x-taxi-cpp-type',
+        'x-taxi-cpp-extra-type',
+        'x-taxi-extra-member',
+    ]
+
+    __hash__ = CppType.__hash__
+
+    def __post_init__(self) -> None:
+        if self._is_default_dict():
+            self.extra_type = self.fields['__default__'].schema
+            self.fields['__default__'].required = False
+
+    def _is_default_dict_candidate(self) -> bool:
+        if len(self.fields) != 1:
+            return False
+        default = self.fields.get('__default__')
+        if default and isinstance(self.extra_type, CppType) and default.schema.is_isomorphic(self.extra_type):
+            return True
+        return False
+
+    def _is_default_dict(self) -> bool:
+        return self.autodiscover_default_dict and self._is_default_dict_candidate()
+
+    def cpp_user_name(self) -> str:
+        if self._is_default_dict():
+            assert isinstance(self.extra_type, CppType)
+            return f'USERVER_NAMESPACE::utils::DefaultDict<{self.extra_type.cpp_user_name()}>'
+        return super().cpp_user_name()
+
+    def parser_type(self, ns: str, name: str) -> str:
+        if self._is_default_dict():
+            assert isinstance(self.extra_type, CppType)
+            dict_type = f'USERVER_NAMESPACE::utils::DefaultDict<{self.extra_type.cpp_user_name()}>'
+            parser_type = self._primitive_parser_type()
+            return f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, {dict_type}>'
+
+        return self._primitive_parser_type()
+
+    def descriptor_type(self) -> str:
+        name = self.raw_cpp_type.in_global_scope()
+        ch = 'USERVER_NAMESPACE::chaotic'
+
+        match self.extra_type:
+            case None:
+                if self.strict_parsing:
+                    unknown_fields = f'{ch}::UnknownFields::Forbid'
+                else:
+                    unknown_fields = f'{ch}::UnknownFields::Ignore'
+            case True:
+                unknown_fields = f'{ch}::UnknownFields::StoreJson'
+            case False:
+                unknown_fields = f'{ch}::UnknownFields::Forbid'
+            case _:
+                unknown_fields = f'{ch}::UnknownFields::StoreTyped<{self.extra_type.parser_type(ch, name)}>'
+
+        fields = [
+            self.fields[field].descriptor_type(
+                name,
+            )
+            for field in self.fields
+        ]
+
+        template_args = ', '.join([name, unknown_fields] + fields)
+        parser_type = f'{ch}::Object<{template_args}>'
+
+        if self.user_cpp_type:
+            parser_type = f'{ch}::WithType<{parser_type}, {self.cpp_user_name()}>'
+        return parser_type
+
+    def subtypes(self) -> list[CppType]:
+        types = [field.schema for field in self.fields.values()]
+        if isinstance(self.extra_type, CppType) and not self._is_default_dict():
+            types.append(self.extra_type)
+        return types
+
+    def extra_container(self) -> str:
+        kwargs = self.json_schema.x_properties
+        return kwargs.get(
+            'x-usrv-cpp-extra-type',
+            kwargs.get('x-taxi-cpp-extra-type', 'std::unordered_map'),
+        )
+
+    def declaration_includes(self) -> list[str]:
+        includes = [
+            'optional',
+            'userver/chaotic/object.hpp',
+        ]
+        if self.user_cpp_type:
+            includes += self.get_includes_by_cpp_type(self.user_cpp_type)
+        for field in self.fields.values():
+            includes.extend(field.schema.declaration_includes())
+
+        if self.extra_type:
+            includes.append('string')
+            if isinstance(self.extra_type, CppType):
+                extra_container = self.extra_container()
+                includes += self.get_includes_by_cpp_type(extra_container)
+                includes.extend(self.extra_type.declaration_includes())
+            else:
+                includes.append('userver/formats/json/value.hpp')
+
+        if self._is_default_dict():
+            includes.append('userver/utils/default_dict.hpp')
+        return includes
+
+    def definition_includes(self) -> list[str]:
+        includes = [
+            'userver/formats/parse/common_containers.hpp',
+            'userver/formats/serialize/common_containers.hpp',
+            'userver/chaotic/primitive.hpp',
+            'userver/chaotic/with_type.hpp',
+        ]
+        if self.extra_type or self.strict_parsing:
+            includes.append('userver/chaotic/additional_properties.hpp')
+            includes.append('userver/utils/trivial_map.hpp')  # for kPropertiesNames
+        for field in self.fields.values():
+            includes.extend(field.schema.definition_includes())
+        if isinstance(self.extra_type, CppType):
+            includes.extend(self.extra_type.definition_includes())
+        if self._is_default_dict():
+            includes += self.get_includes_by_cpp_type(
+                'userver::utils::DefaultDict<>',
+            )
+        return includes
+
+    def sax_parser_includes(self) -> list[str]:
+        includes = super().sax_parser_includes()
+        for field in self.fields.values():
+            includes.extend(field.schema.sax_parser_includes())
+        if isinstance(self.extra_type, CppType):
+            includes.extend(self.extra_type.sax_parser_includes())
+        return includes
+
+    def need_dom_parser(self) -> bool:
+        return True
+
+    def need_serializer(self) -> bool:
+        return True
+
+    def need_stream_writer(self) -> bool:
+        return True
+
+    def need_add_hiding_args(self) -> bool:
+        return True
+
+    def need_operator_eq(self) -> bool:
+        return True
+
+
+@dataclasses.dataclass
+class CppArrayValidator:
+    minItems: int | None = None
+    maxItems: int | None = None
+    uniqueItems: bool = False
+
+    def is_none(self) -> bool:
+        return self == CppArrayValidator()
+
+
+@dataclasses.dataclass
+class CppArray(CppType):
+    items: CppType
+    container: str
+    validators: CppArrayValidator
+
+    KNOWN_X_PROPERTIES = [
+        'x-usrv-cpp-type',
+        'x-usrv-cpp-container',
+        'x-taxi-cpp-type',
+        'x-taxi-cpp-container',
+    ]
+
+    __hash__ = CppType.__hash__
+
+    def _cpp_name(self) -> str:
+        return f'{self.container}<{self.items.cpp_user_name()}>'
+
+    def subtypes(self) -> list[CppType]:
+        return [self.items]
+
+    def parser_type(self, ns: str, name: str) -> str:
+        validators = ''
+        if self.validators.minItems is not None:
+            validators += f', USERVER_NAMESPACE::chaotic::MinItems<{self.validators.minItems}>'
+        if self.validators.maxItems is not None:
+            validators += f', USERVER_NAMESPACE::chaotic::MaxItems<{self.validators.maxItems}>'
+        if self.validators.uniqueItems:
+            validators += ', USERVER_NAMESPACE::chaotic::UniqueItems'
+
+        parser_type = (
+            'USERVER_NAMESPACE::chaotic::Array'
+            f'<{self.items.parser_type(ns, name)}, '
+            f'{self.container}<{self.items.cpp_user_name()}>{validators}>'
+        )
+        user_cpp_type = self.user_cpp_type
+        if user_cpp_type:
+            parser_type = f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, {user_cpp_type}>'
+        return parser_type
+
+    def declaration_includes(self) -> list[str]:
+        includes = self.get_includes_by_cpp_type(self.container) + self.items.declaration_includes()
+        if self.user_cpp_type:
+            includes += self.get_includes_by_cpp_type(self.user_cpp_type)
+        return includes
+
+    def definition_includes(self) -> list[str]:
+        return [
+            'userver/chaotic/array.hpp',
+            'userver/chaotic/with_type.hpp',
+        ] + self.items.definition_includes()
+
+    def sax_parser_includes(self) -> list[str]:
+        return super().sax_parser_includes() + self.items.sax_parser_includes()
+
+    def need_using_type(self) -> bool:
+        return True
+
+    def need_operator_lshift(self) -> bool:
+        return False
+
+    def needs_new_type(self) -> bool:
+        return False
+
+
+def flatten(data: list) -> list:
+    return list(itertools.chain.from_iterable(data))
+
+
+@dataclasses.dataclass
+class CppStructAllOf(CppType):
+    parents: list[CppType]
+
+    KNOWN_X_PROPERTIES = ['x-usrv-cpp-type', 'x-taxi-cpp-type']
+
+    __hash__ = CppType.__hash__
+
+    def declaration_includes(self) -> list[str]:
+        includes = []
+        if self.user_cpp_type:
+            includes += self.get_includes_by_cpp_type(self.user_cpp_type)
+        includes += flatten([item.declaration_includes() for item in self.parents])
+        return includes
+
+    def definition_includes(self) -> list[str]:
+        return [
+            'userver/formats/common/merge.hpp',
+            'userver/chaotic/primitive.hpp',
+            'userver/chaotic/additional_properties.hpp',
+        ] + flatten([item.definition_includes() for item in self.parents])
+
+    def sax_parser_includes(self) -> list[str]:
+        return super().sax_parser_includes() + flatten([item.sax_parser_includes() for item in self.parents])
+
+    def has_nested_additional_properties(self) -> bool:
+        for parent in self.parents_dereferenced():
+            if isinstance(parent, CppStruct) and parent.extra_type:
+                return True
+
+        return False
+
+    def parents_dereferenced(self) -> list[CppType]:
+        result: list[CppType] = list()
+        for parent in self.parents:
+            if isinstance(parent, CppRef) and parent.orig_cpp_type:
+                result.append(parent.orig_cpp_type)
+            else:
+                result.append(parent)
+        return result
+
+    def parser_type(self, ns: str, name: str) -> str:
+        return self._primitive_parser_type()
+
+    def subtypes(self) -> list[CppType]:
+        return self.parents
+
+    def need_dom_parser(self) -> bool:
+        return True
+
+    def need_serializer(self) -> bool:
+        return True
+
+    def need_stream_writer(self) -> bool:
+        return True
+
+    def need_add_hiding_args(self) -> bool:
+        return True
+
+    def need_operator_eq(self) -> bool:
+        return True
+
+
+@dataclasses.dataclass
+class CppVariant(CppType):
+    variants: list[CppType]
+
+    KNOWN_X_PROPERTIES = ['x-usrv-cpp-type', 'x-taxi-cpp-type']
+
+    __hash__ = CppType.__hash__
+
+    def declaration_includes(self) -> list[str]:
+        includes = []
+        if self.user_cpp_type:
+            includes += self.get_includes_by_cpp_type(self.user_cpp_type)
+        return (
+            includes
+            + [
+                'variant',
+                'userver/formats/parse/variant.hpp',
+                'userver/formats/json/serialize_variant.hpp',
+            ]
+            + flatten([item.declaration_includes() for item in self.variants])
+        )
+
+    def definition_includes(self) -> list[str]:
+        return [
+            'userver/chaotic/primitive.hpp',
+            'userver/chaotic/variant.hpp',
+        ] + flatten([item.definition_includes() for item in self.variants])
+
+    def sax_parser_includes(self) -> list[str]:
+        return super().sax_parser_includes() + flatten([item.sax_parser_includes() for item in self.variants])
+
+    def parser_type(self, ns: str, name: str) -> str:
+        parsers = []
+        for variant in self.variants:
+            parsers.append(variant.parser_type(ns, name))
+        parser_type = f'USERVER_NAMESPACE::chaotic::Variant<{",".join(parsers)}>'
+        if self.user_cpp_type:
+            return f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, {self.cpp_user_name()}>'
+        else:
+            return parser_type
+
+    def subtypes(self) -> list[CppType]:
+        return self.variants
+
+    def need_operator_lshift(self) -> bool:
+        return False
+
+    def needs_new_type(self) -> bool:
+        return False
+
+
+@dataclasses.dataclass
+class CppVariantWithDiscriminator(CppType):
+    property_name: str
+    variants: dict[str, CppType]
+    mapping_type: types.MappingType = types.MappingType.STR
+
+    KNOWN_X_PROPERTIES = ['x-usrv-cpp-type', 'x-taxi-cpp-type']
+
+    __hash__ = CppType.__hash__
+
+    def declaration_includes(self) -> list[str]:
+        includes = ['variant', 'userver/chaotic/oneof_with_discriminator.hpp']
+
+        if self.user_cpp_type:
+            includes += self.get_includes_by_cpp_type(self.user_cpp_type)
+        return includes + flatten([item.declaration_includes() for item in self.variants.values()])
+
+    def definition_includes(self) -> list[str]:
+        return [
+            'userver/formats/json/serialize_variant.hpp',
+            'userver/chaotic/additional_properties.hpp',
+        ] + flatten([item.definition_includes() for item in self.variants.values()])
+
+    def sax_parser_includes(self) -> list[str]:
+        return super().sax_parser_includes() + flatten([item.sax_parser_includes() for item in self.variants.values()])
+
+    def parser_type(self, ns: str, name: str) -> str:
+        variants_list = []
+        for variant in self.variants.values():
+            variants_list.append(variant.parser_type(ns, name))
+        variants = ', '.join(variants_list)
+
+        settings_name = (
+            self.raw_cpp_type.parent().joinns(
+                'k' + self.cpp_local_name() + '_Settings',
+            )
+        ).in_global_scope()
+
+        parser_type = f'USERVER_NAMESPACE::chaotic::OneOfWithDiscriminator<&{settings_name}, {variants}>'
+        if self.user_cpp_type:
+            return f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, {self.cpp_user_name()}>'
+        else:
+            return parser_type
+
+    def need_operator_lshift(self) -> bool:
+        return False
+
+    def needs_new_type(self) -> bool:
+        return False
+
+    def is_str_discriminator(self) -> bool:
+        return self.mapping_type == types.MappingType.STR
+
+    def is_int_discriminator(self) -> bool:
+        return self.mapping_type == types.MappingType.INT

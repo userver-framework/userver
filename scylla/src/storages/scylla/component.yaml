@@ -1,0 +1,134 @@
+type: object
+description: ScyllaDB client component
+additionalProperties: false
+properties:
+    dbconnection:
+        type: string
+        description: connection string
+    dbalias:
+        type: string
+        description: name of the database in secdist config
+        default: ''
+    conn_timeout:
+        type: string
+        description: connection timeout
+        default: 2s
+    request_timeout:
+        type: string
+        description: per-query timeout
+        default: 10s
+    consistency:
+        type: string
+        description: default consistency level
+        default: local_quorum
+        enum:
+          - any
+          - one
+          - two
+          - three
+          - quorum
+          - all
+          - local_quorum
+          - each_quorum
+          - local_one
+    serial_consistency:
+        type: string
+        description: consistency for IF/LWT queries
+        default: local_serial
+        enum:
+          - serial
+          - local_serial
+    pool:
+        type: object
+        description: connection pool settings passed to the cpp-driver
+        additionalProperties: false
+        properties:
+            num_threads_io:
+                type: integer
+                description: number of IO threads owned by the cpp-driver
+                default: 1
+            core_connections_per_host:
+                type: integer
+                description: number of tcp connections
+                default: 1
+            core_connections_per_shard:
+                type: integer
+                description: |
+                    Scylla shard-aware connections per shard
+                default: 0
+    load_balancing_policy:
+        type: string
+        description: how to pick which node to query
+        default: dc_aware
+        enum:
+          - round_robin
+          - dc_aware
+    preferred_datacenter:
+        type: string
+        description: local datacenter for DC-aware routing
+        default: ''
+    retry_policy:
+        type: string
+        description: what to do when a query fails
+        default: default
+        enum:
+          - default
+          - fallthrough
+    speculative_execution:
+        type: object
+        description: backup request settings
+        additionalProperties: false
+        properties:
+            enabled:
+                type: boolean
+                description: enable speculative execution of queries
+                default: false
+            max_attempts:
+                type: integer
+                description: maximum number of speculative retry attempts
+                default: 2
+            delay:
+                type: string
+                description: delay before launching a speculative request
+                default: 100ms
+    app_name:
+        type: string
+        description: application name for the DB server
+        default: userver
+    default_keyspace:
+        type: string
+        description: Default keyspace for queries. If empty, table names must be fully qualified (e.g. keyspace.table).
+        default: ''
+    ssl:
+        type: object
+        description: TLS/SSL settings
+        additionalProperties: false
+        properties:
+            enabled:
+                type: boolean
+                description: enable TLS for cluster connections
+                default: false
+            verify:
+                type: string
+                description: certificate verification mode
+                default: peer_cert
+                enum:
+                  - none
+                  - peer_cert
+                  - peer_identity
+                  - peer_identity_dns
+    dns_resolver:
+        type: string
+        description: server hostname resolver type
+        default: async
+        enum:
+          - getaddrinfo
+          - async
+    stats_verbosity:
+        type: string
+        description: granularity of reported metrics
+        default: terse
+        enum:
+          - terse
+          - full
+          - none

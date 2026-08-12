@@ -5,9 +5,7 @@
 
 #include <memory>
 
-#include <userver/components/loggable_component_base.hpp>
-
-#include <userver/utils/statistics/storage.hpp>
+#include <userver/components/component_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,7 +19,6 @@ class Client;
 
 namespace components {
 
-// clang-format off
 /// @ingroup userver_components
 ///
 /// @brief RabbitMQ (AMQP 0.9.1) client component
@@ -43,34 +40,26 @@ namespace components {
 ///
 /// @snippet samples/rabbitmq_service/tests/conftest.py  RabbitMQ service sample - secdist
 ///
-/// ## Static options:
-/// Name                    | Description                                                          | Default value
-/// ----------------------- | -------------------------------------------------------------------- | ---------------
-/// secdist_alias           | name of the key in secdist config                                    | components name
-/// min_pool_size           | minimum connections pool size (per host)                             | 5
-/// max_pool_size           | maximum connections pool size (per host, consumers excluded)         | 10
-/// max_in_flight_requests  | per-connection limit for requests awaiting response from the broker  | 5
-/// use_secure_connection   | whether to use TLS for connections                                   | true
+/// ## Static options of components::RabbitMQ :
+/// @include{doc} scripts/docs/en/components_schema/rabbitmq/src/urabbitmq/component.md
 ///
-// clang-format on
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
+class RabbitMQ final : public ComponentBase {
+public:
+    /// Component constructor
+    RabbitMQ(const ComponentConfig& config, const ComponentContext& context);
+    /// Component destructor
+    ~RabbitMQ() override;
 
-class RabbitMQ : public LoggableComponentBase {
- public:
-  /// Component constructor
-  RabbitMQ(const ComponentConfig& config, const ComponentContext& context);
-  /// Component destructor
-  ~RabbitMQ() override;
+    /// Cluster accessor
+    std::shared_ptr<urabbitmq::Client> GetClient() const;
 
-  /// Cluster accessor
-  std::shared_ptr<urabbitmq::Client> GetClient() const;
+    static yaml_config::Schema GetStaticConfigSchema();
 
-  static yaml_config::Schema GetStaticConfigSchema();
-
- private:
-  clients::dns::Component& dns_;
-
-  std::shared_ptr<urabbitmq::Client> client_;
-  utils::statistics::Entry statistics_holder_;
+private:
+    clients::dns::Component& dns_;
+    std::shared_ptr<urabbitmq::Client> client_;
 };
 
 template <>

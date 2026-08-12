@@ -1,15 +1,13 @@
 #include <userver/utest/utest.hpp>
 
 #include <components/component_list_test.hpp>
-#include <userver/alerts/component.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/components/component_context.hpp>
-#include <userver/components/loggable_component_base.hpp>
 #include <userver/components/run.hpp>
 #include <userver/components/state.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/logging/component.hpp>
 #include <userver/os_signals/component.hpp>
-#include <userver/tracing/component.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -19,185 +17,160 @@ namespace {
 
 void CheckTheComponents(components::State state, std::string_view where);
 
-class Component1 final : public components::LoggableComponentBase {
- public:
-  static constexpr std::string_view kName = "component-1";
+class Component1 final : public components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "component-1";
 
-  Component1(const components::ComponentConfig& config,
-             const components::ComponentContext& context)
-      : components::LoggableComponentBase(config, context), state_{context} {}
+    Component1(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::ComponentBase(config, context),
+          state_{context}
+    {}
 
-  void OnAllComponentsLoaded() override {
-    CheckTheComponents(state_, "Component1::OnAllComponentsLoaded()");
-  }
+    void OnAllComponentsLoaded() override { CheckTheComponents(state_, "Component1::OnAllComponentsLoaded()"); }
 
-  void OnAllComponentsAreStopping() override {
-    CheckTheComponents(state_, "Component1::OnAllComponentsAreStopping()");
-  }
+    void OnAllComponentsAreStopping() override {
+        CheckTheComponents(state_, "Component1::OnAllComponentsAreStopping()");
+    }
 
-  ~Component1() override {
-    CheckTheComponents(state_, "Component1::~Component1()");
-  }
+    ~Component1() override { CheckTheComponents(state_, "Component1::~Component1()"); }
 
- private:
-  components::State state_;
+private:
+    components::State state_;
 };
 
-class Component2 final : public components::LoggableComponentBase {
- public:
-  static constexpr std::string_view kName = "component-2";
+class Component2 final : public components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "component-2";
 
-  Component2(const components::ComponentConfig& config,
-             const components::ComponentContext& context)
-      : components::LoggableComponentBase(config, context), state_{context} {
-    context.FindComponent<Component1>();
-  }
+    Component2(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::ComponentBase(config, context),
+          state_{context}
+    {
+        context.FindComponent<Component1>();
+    }
 
-  void OnAllComponentsLoaded() override {
-    CheckTheComponents(state_, "Component2::OnAllComponentsLoaded()");
-  }
+    void OnAllComponentsLoaded() override { CheckTheComponents(state_, "Component2::OnAllComponentsLoaded()"); }
 
-  void OnAllComponentsAreStopping() override {
-    CheckTheComponents(state_, "Component2::OnAllComponentsAreStopping()");
-  }
+    void OnAllComponentsAreStopping() override {
+        CheckTheComponents(state_, "Component2::OnAllComponentsAreStopping()");
+    }
 
-  ~Component2() override {
-    CheckTheComponents(state_, "Component2::~Component2()");
-  }
+    ~Component2() override { CheckTheComponents(state_, "Component2::~Component2()"); }
 
- private:
-  const components::State state_;
+private:
+    const components::State state_;
 };
 
-class ComponentNotLoaded final : public components::LoggableComponentBase {
- public:
-  static constexpr std::string_view kName = "component-not-loaded";
+class ComponentNotLoaded final : public components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "component-not-loaded";
 
-  ComponentNotLoaded(const components::ComponentConfig& config,
-                     const components::ComponentContext& context)
-      : components::LoggableComponentBase(config, context), state_{context} {
-    context.FindComponent<Component1>();
-  }
+    ComponentNotLoaded(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::ComponentBase(config, context),
+          state_{context}
+    {
+        context.FindComponent<Component1>();
+    }
 
-  void OnAllComponentsLoaded() override {
-    CheckTheComponents(state_, "ComponentNotLoaded::OnAllComponentsLoaded()");
-  }
+    void OnAllComponentsLoaded() override { CheckTheComponents(state_, "ComponentNotLoaded::OnAllComponentsLoaded()"); }
 
-  void OnAllComponentsAreStopping() override {
-    CheckTheComponents(state_,
-                       "ComponentNotLoaded::OnAllComponentsAreStopping()");
-  }
+    void OnAllComponentsAreStopping() override {
+        CheckTheComponents(state_, "ComponentNotLoaded::OnAllComponentsAreStopping()");
+    }
 
-  ~ComponentNotLoaded() override {
-    CheckTheComponents(state_, "ComponentNotLoaded::~ComponentNotLoaded()");
-  }
+    ~ComponentNotLoaded() override { CheckTheComponents(state_, "ComponentNotLoaded::~ComponentNotLoaded()"); }
 
- private:
-  const components::State state_;
+private:
+    const components::State state_;
 };
 
-class Component3 final : public components::LoggableComponentBase {
- public:
-  static constexpr std::string_view kName = "component-3";
+class Component3 final : public components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "component-3";
 
-  Component3(const components::ComponentConfig& config,
-             const components::ComponentContext& context)
-      : components::LoggableComponentBase(config, context), state_{context} {
-    context.FindComponentOptional<Component2>();
-    context.FindComponentOptional<ComponentNotLoaded>();
-  }
+    Component3(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::ComponentBase(config, context),
+          state_{context}
+    {
+        context.FindComponentOptional<Component2>();
+        context.FindComponentOptional<ComponentNotLoaded>();
+    }
 
-  void OnAllComponentsLoaded() override {
-    CheckTheComponents(state_, "Component3::OnAllComponentsLoaded()");
-  }
+    void OnAllComponentsLoaded() override { CheckTheComponents(state_, "Component3::OnAllComponentsLoaded()"); }
 
-  void OnAllComponentsAreStopping() override {
-    CheckTheComponents(state_, "Component3::OnAllComponentsAreStopping()");
-  }
+    void OnAllComponentsAreStopping() override {
+        CheckTheComponents(state_, "Component3::OnAllComponentsAreStopping()");
+    }
 
-  ~Component3() override {
-    CheckTheComponents(state_, "Component3::~Component3()");
-  }
+    ~Component3() override { CheckTheComponents(state_, "Component3::~Component3()"); }
 
- private:
-  components::State state_;
+private:
+    components::State state_;
 };
 
 void CheckTheComponents(components::State state, std::string_view where) {
-  constexpr std::string_view not_existing = "not-existing_component";
-  {
-    const auto deps = state.GetAllDependencies(Component1::kName);
-    for (auto dependency : {components::Logging::kName}) {
-      EXPECT_TRUE(state.HasDependencyOn(Component1::kName, dependency))
-          << where;
-      EXPECT_TRUE(deps.count(dependency)) << where;
+    constexpr std::string_view not_existing = "not-existing_component";
+    {
+        const auto deps = state.GetAllDependencies(Component1::kName);
+        for (auto dependency : {components::Logging::kName}) {
+            EXPECT_TRUE(state.HasDependencyOn(Component1::kName, dependency)) << where;
+            EXPECT_TRUE(deps.count(dependency)) << where;
+        }
+
+        for (auto dependency :
+             {Component1::kName, Component2::kName, Component3::kName, ComponentNotLoaded::kName, not_existing})
+        {
+            EXPECT_FALSE(state.HasDependencyOn(Component1::kName, dependency)) << where;
+            EXPECT_FALSE(deps.count(dependency)) << where;
+        }
     }
 
-    for (auto dependency :
-         {Component1::kName, Component2::kName, Component3::kName,
-          ComponentNotLoaded::kName, not_existing}) {
-      EXPECT_FALSE(state.HasDependencyOn(Component1::kName, dependency))
-          << where;
-      EXPECT_FALSE(deps.count(dependency)) << where;
-    }
-  }
+    {
+        const auto deps = state.GetAllDependencies(Component2::kName);
+        for (auto dependency : {components::Logging::kName, Component1::kName}) {
+            EXPECT_TRUE(state.HasDependencyOn(Component2::kName, dependency)) << where;
+            EXPECT_TRUE(deps.count(dependency)) << where;
+        }
 
-  {
-    const auto deps = state.GetAllDependencies(Component2::kName);
-    for (auto dependency : {components::Logging::kName, Component1::kName}) {
-      EXPECT_TRUE(state.HasDependencyOn(Component2::kName, dependency))
-          << where;
-      EXPECT_TRUE(deps.count(dependency)) << where;
+        for (auto dependency : {Component2::kName, Component3::kName, ComponentNotLoaded::kName, not_existing}) {
+            EXPECT_FALSE(state.HasDependencyOn(Component2::kName, dependency)) << where;
+            EXPECT_FALSE(deps.count(dependency)) << where;
+        }
     }
 
-    for (auto dependency : {Component2::kName, Component3::kName,
-                            ComponentNotLoaded::kName, not_existing}) {
-      EXPECT_FALSE(state.HasDependencyOn(Component2::kName, dependency))
-          << where;
-      EXPECT_FALSE(deps.count(dependency)) << where;
-    }
-  }
+    {
+        const auto deps = state.GetAllDependencies(Component3::kName);
+        for (auto dependency : {components::Logging::kName, Component1::kName, Component2::kName}) {
+            EXPECT_TRUE(state.HasDependencyOn(Component3::kName, dependency)) << where;
+            EXPECT_TRUE(deps.count(dependency)) << where;
+        }
 
-  {
-    const auto deps = state.GetAllDependencies(Component3::kName);
-    for (auto dependency :
-         {components::Logging::kName, Component1::kName, Component2::kName}) {
-      EXPECT_TRUE(state.HasDependencyOn(Component3::kName, dependency))
-          << where;
-      EXPECT_TRUE(deps.count(dependency)) << where;
+        for (auto dependency : {Component3::kName, ComponentNotLoaded::kName, not_existing}) {
+            EXPECT_FALSE(state.HasDependencyOn(Component3::kName, dependency)) << where;
+            EXPECT_FALSE(deps.count(dependency)) << where;
+        }
     }
 
-    for (auto dependency :
-         {Component3::kName, ComponentNotLoaded::kName, not_existing}) {
-      EXPECT_FALSE(state.HasDependencyOn(Component3::kName, dependency))
-          << where;
-      EXPECT_FALSE(deps.count(dependency)) << where;
-    }
-  }
-
-  // For now we are conservative and UASSERT if the source component was not
-  // loaded.
+    // For now we are conservative and UASSERT if the source component was not
+    // loaded.
 #ifdef NDEBUG
-  EXPECT_FALSE(state.HasDependencyOn(not_existing, Component1::kName)) << where;
-  EXPECT_FALSE(state.HasDependencyOn(not_existing, Component2::kName)) << where;
-  EXPECT_FALSE(state.HasDependencyOn(not_existing, Component3::kName)) << where;
-  EXPECT_FALSE(state.HasDependencyOn(not_existing, not_existing)) << where;
+    EXPECT_FALSE(state.HasDependencyOn(not_existing, Component1::kName)) << where;
+    EXPECT_FALSE(state.HasDependencyOn(not_existing, Component2::kName)) << where;
+    EXPECT_FALSE(state.HasDependencyOn(not_existing, Component3::kName)) << where;
+    EXPECT_FALSE(state.HasDependencyOn(not_existing, not_existing)) << where;
 #endif
 }
 
 }  // namespace
 
 template <>
-inline constexpr auto components::kConfigFileMode<Component1> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto components::kConfigFileMode<Component1> = ConfigFileMode::kNotRequired;
 
 template <>
-inline constexpr auto components::kConfigFileMode<Component2> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto components::kConfigFileMode<Component2> = ConfigFileMode::kNotRequired;
 
 template <>
-inline constexpr auto components::kConfigFileMode<Component3> =
-    ConfigFileMode::kNotRequired;
+inline constexpr auto components::kConfigFileMode<Component3> = ConfigFileMode::kNotRequired;
 
 namespace {
 
@@ -206,6 +179,7 @@ components_manager:
   event_thread_pool:
     threads: 1
   default_task_processor: main-task-processor
+  fs_task_processor: main-task-processor
   task_processors:
     main-task-processor:
       worker_threads: 1
@@ -220,25 +194,177 @@ components_manager:
 )";
 
 components::ComponentList MakeComponentList() {
-  return components::ComponentList()
-      .Append<os_signals::ProcessorComponent>()
-      .Append<components::StatisticsStorage>()
-      .Append<components::Logging>()
-      .Append<components::Tracer>()
-      // Make sure that order in list does not affect HasDependencyOn
-      .Append<Component2>()
-      .Append<Component1>()
-      .Append<ComponentNotLoaded>()
-      .Append<Component3>()
-      .Append<alerts::StorageComponent>();
+    return components::ComponentList()
+        .Append<os_signals::ProcessorComponent>()
+        .Append<components::StatisticsStorage>()
+        .Append<components::Logging>()
+        // Make sure that order in list does not affect HasDependencyOn
+        .Append<Component2>()
+        .Append<Component1>()
+        .Append<ComponentNotLoaded>()
+        .Append<Component3>();
 }
 
 }  // namespace
 
 TEST_F(ComponentList, StateHasDependencyOn) {
-  components::RunOnce(
-      components::InMemoryConfig{std::string{kStaticConfigBase}},
-      MakeComponentList());
+    components::RunOnce(components::InMemoryConfig{std::string{kStaticConfigBase}}, MakeComponentList());
+}
+
+namespace {
+
+class ComponentOk final : public components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "component-ok";
+
+    ComponentOk(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::ComponentBase(config, context)
+    {}
+
+    components::ComponentHealth GetComponentHealth() const override { return components::ComponentHealth::kOk; }
+};
+
+class ComponentFallback final : public components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "component-fallback";
+
+    ComponentFallback(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::ComponentBase(config, context)
+    {}
+
+    components::ComponentHealth GetComponentHealth() const override { return components::ComponentHealth::kFallback; }
+};
+
+class ComponentFatal final : public components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "component-fatal";
+
+    ComponentFatal(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::ComponentBase(config, context)
+    {}
+
+    components::ComponentHealth GetComponentHealth() const override { return components::ComponentHealth::kFatal; }
+};
+
+class ComponentHealthChecker final : public components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "component-health-checker";
+
+    ComponentHealthChecker(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::ComponentBase(config, context),
+          state_{context}
+    {}
+
+    void OnAllComponentsLoaded() override {
+        EXPECT_TRUE(state_.IsAnyComponentInFatalState());
+
+        const auto unhealthy = state_.GetUnhealthyComponents();
+        ASSERT_EQ(unhealthy.size(), 2);
+
+        const auto fallback = std::ranges::find_if(unhealthy, [](const components::State::ComponentWithHealth& item) {
+            return item.name == ComponentFallback::kName;
+        });
+        ASSERT_NE(fallback, unhealthy.end());
+        EXPECT_EQ(fallback->health, components::ComponentHealth::kFallback);
+
+        const auto fatal = std::ranges::find_if(unhealthy, [](const components::State::ComponentWithHealth& item) {
+            return item.name == ComponentFatal::kName;
+        });
+        ASSERT_NE(fatal, unhealthy.end());
+        EXPECT_EQ(fatal->health, components::ComponentHealth::kFatal);
+
+        for (const auto& item : unhealthy) {
+            EXPECT_NE(item.name, ComponentOk::kName);
+            EXPECT_NE(item.health, components::ComponentHealth::kOk);
+        }
+    }
+
+private:
+    components::State state_;
+};
+
+class ComponentAllHealthyChecker final : public components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "component-all-healthy-checker";
+
+    ComponentAllHealthyChecker(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::ComponentBase(config, context),
+          state_{context}
+    {}
+
+    void OnAllComponentsLoaded() override {
+        EXPECT_FALSE(state_.IsAnyComponentInFatalState());
+        EXPECT_TRUE(state_.GetUnhealthyComponents().empty());
+    }
+
+private:
+    components::State state_;
+};
+
+}  // namespace
+
+template <>
+inline constexpr auto components::kConfigFileMode<ComponentOk> = ConfigFileMode::kNotRequired;
+
+template <>
+inline constexpr auto components::kConfigFileMode<ComponentFallback> = ConfigFileMode::kNotRequired;
+
+template <>
+inline constexpr auto components::kConfigFileMode<ComponentFatal> = ConfigFileMode::kNotRequired;
+
+template <>
+inline constexpr auto components::kConfigFileMode<ComponentHealthChecker> = ConfigFileMode::kNotRequired;
+
+template <>
+inline constexpr auto components::kConfigFileMode<ComponentAllHealthyChecker> = ConfigFileMode::kNotRequired;
+
+namespace {
+
+constexpr std::string_view kStaticConfigHealth = R"(
+components_manager:
+  event_thread_pool:
+    threads: 1
+  default_task_processor: main-task-processor
+  fs_task_processor: main-task-processor
+  task_processors:
+    main-task-processor:
+      worker_threads: 1
+  components:
+    logging:
+      fs-task-processor: main-task-processor
+      loggers:
+        default:
+          file_path: '@null'
+)";
+
+components::ComponentList MakeUnhealthyComponentList() {
+    return components::ComponentList()
+        .Append<os_signals::ProcessorComponent>()
+        .Append<components::StatisticsStorage>()
+        .Append<components::Logging>()
+        .Append<ComponentOk>()
+        .Append<ComponentFallback>()
+        .Append<ComponentFatal>()
+        .Append<ComponentHealthChecker>();
+}
+
+components::ComponentList MakeAllHealthyComponentList() {
+    return components::ComponentList()
+        .Append<os_signals::ProcessorComponent>()
+        .Append<components::StatisticsStorage>()
+        .Append<components::Logging>()
+        .Append<ComponentOk>()
+        .Append<ComponentAllHealthyChecker>();
+}
+
+}  // namespace
+
+TEST_F(ComponentList, StateGetUnhealthyComponents) {
+    components::RunOnce(components::InMemoryConfig{std::string{kStaticConfigHealth}}, MakeUnhealthyComponentList());
+}
+
+TEST_F(ComponentList, StateGetUnhealthyComponentsEmpty) {
+    components::RunOnce(components::InMemoryConfig{std::string{kStaticConfigHealth}}, MakeAllHealthyComponentList());
 }
 
 USERVER_NAMESPACE_END

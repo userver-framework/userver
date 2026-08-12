@@ -1,18 +1,16 @@
 #pragma once
 
+/// @file
+/// @brief Forward declarations of storages::redis::Reply and storages::redis::ReplyData.
+
 #include <memory>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace redis {
-class ReplyData;
-class Reply;
-}  // namespace redis
-
 namespace storages::redis {
 
-using ReplyData = USERVER_NAMESPACE::redis::ReplyData;
-using Reply = USERVER_NAMESPACE::redis::Reply;
+class Reply;
+class ReplyData;
 
 using ReplyPtr = std::shared_ptr<Reply>;
 

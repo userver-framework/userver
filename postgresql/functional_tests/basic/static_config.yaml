@@ -1,0 +1,55 @@
+# yaml
+components_manager:
+    components:
+        handler-insert-value:
+            path: /v1/key-value
+            task_processor: main-task-processor
+            method: POST
+
+        handler-select-value:
+            path: /v1/key-value
+            task_processor: main-task-processor
+            method: GET
+
+        key-value-database:
+            dbconnection: 'postgresql://testsuite@localhost:15433/pg_key_value'
+            blocking_task_processor: fs-task-processor
+            dns_resolver: async
+
+        testsuite-support:
+
+        http-client:
+        http-client-core:
+            fs-task-processor: main-task-processor
+
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            skip-unregistered-testpoints: true
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
+
+        server:
+            listener:
+                port: 8189
+                task_processor: main-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+        fs-task-processor:
+            worker_threads: 4
+
+    default_task_processor: main-task-processor

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <userver/compiler/select.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -16,7 +15,7 @@ class WaitListLight;
 using FastPimplWaitListLight = utils::FastPimpl<WaitListLight, 16, 16>;
 
 class GenericWaitList;
-using FastPimplGenericWaitList = utils::FastPimpl<GenericWaitList, 112, 16>;
+using FastPimplGenericWaitList = utils::FastPimpl<GenericWaitList, 128, 16>;
 
 }  // namespace engine::impl
 

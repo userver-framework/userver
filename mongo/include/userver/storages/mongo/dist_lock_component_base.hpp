@@ -3,7 +3,7 @@
 /// @file userver/storages/mongo/dist_lock_component_base.hpp
 /// @brief @copybrief storages::mongo::DistLockComponentBase
 
-#include <userver/components/loggable_component_base.hpp>
+#include <userver/components/component_base.hpp>
 #include <userver/dist_lock/dist_locked_worker.hpp>
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/dist_lock_strategy.hpp>
@@ -13,15 +13,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo {
 
-// clang-format off
-
 /// @ingroup userver_components userver_base_classes
 ///
 /// @brief Base class for mongo-based distlock worker components
 ///
 /// A component that implements a distlock with lock in Mongo. Inherit from
-/// DistLockComponentBase and implement DoWork(). Lock options are configured
-/// in static config.
+/// DistLockComponentBase and implement DoWork(). Lock options are configured in static config.
 ///
 /// Mongo might not perform well on a high load, so you might want to use
 /// postgres-based distlock storages::postgres::DistLockComponentBase instead.
@@ -32,8 +29,7 @@ namespace storages::mongo {
 /// engine::InterruptibleSleepFor(), engine::InterruptibleSleepUntil() and
 /// engine::current_task::CancellationPoint() check for task cancellation.
 /// Overridden DistLockComponentBase::DoWork must use the above functions to
-/// honour task cancellation and stop ASAP when
-/// it is cancelled.
+/// honour task cancellation and stop ASAP when it is cancelled.
 ///
 /// ## Static configuration example:
 ///
@@ -44,80 +40,73 @@ namespace storages::mongo {
 ///            lock-ttl: 10s
 /// ```
 ///
-/// ## Static options:
-/// name           | Description  | Default value
-/// -------------- | ------------ | -------------
-/// lockname       | name of the lock | --
-/// lock-ttl       | TTL of the lock; must be at least as long as the duration between subsequent cancellation checks, otherwise brain split is possible | --
-/// mongo-timeout  | timeout, must be less than lock-ttl / 2 | --
-/// restart-delay  | how much time to wait after failed task restart | 100ms
-/// task-processor | the name of the TaskProcessor for running DoWork | main-task-processor
-/// testsuite-support | Enable testsuite support | false
+/// ## Static options of storages::mongo::DistLockComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/mongo/src/storages/mongo/dist_lock_component_base.md
+///
+/// Options inherited from @ref components::ComponentBase :
+/// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// @see @ref scripts/docs/en/userver/periodics.md
+class DistLockComponentBase : public components::ComponentBase {
+public:
+    DistLockComponentBase(
+        const components::ComponentConfig&,
+        const components::ComponentContext&,
+        storages::mongo::Collection
+    );
 
-// clang-format on
+    dist_lock::DistLockedWorker& GetWorker();
 
-class DistLockComponentBase : public components::LoggableComponentBase {
- public:
-  DistLockComponentBase(const components::ComponentConfig&,
-                        const components::ComponentContext&,
-                        storages::mongo::Collection);
+    /// @note In testsuite always returns `true`, because there is only one host.
+    bool OwnsLock() const noexcept;
 
-  ~DistLockComponentBase() override;
+    static yaml_config::Schema GetStaticConfigSchema();
 
-  dist_lock::DistLockedWorker& GetWorker();
+protected:
+    /// Override this function with anything that must be done under the mongo
+    /// lock.
+    ///
+    /// ## Example implementation
+    ///
+    /// @code
+    /// void MyDistLockComponent::DoWork()
+    /// {
+    ///     while (!engine::ShouldCancel())
+    ///     {
+    ///         // Start a new trace_id
+    ///         auto span = tracing::Span::MakeRootSpan("my-dist-lock");
+    ///
+    ///         // If Foo() or other function in DoWork() throws an exception,
+    ///         // DoWork() will be restarted in `restart-delay` seconds.
+    ///         Foo();
+    ///
+    ///         // Check for cancellation after cpu-intensive Foo().
+    ///         // You must check for cancellation at least every `lock-ttl`
+    ///         // seconds to have time to notice lock prolongation failure.
+    ///         if (engine::ShouldCancel()) break;
+    ///
+    ///         Bar();
+    ///     }
+    /// }
+    /// @endcode
+    ///
+    /// @note `DoWork` must honour task cancellation and stop ASAP when
+    /// it is cancelled, otherwise brain split is possible (IOW, two different
+    /// users do work assuming both of them hold the lock, which is not true).
+    virtual void DoWork() = 0;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    /// Override this function to provide custom testsuite handler.
+    virtual void DoWorkTestsuite() { DoWork(); }
 
- protected:
-  /// Override this function with anything that must be done under the mongo
-  /// lock.
-  ///
-  /// ## Example implementation
-  ///
-  /// @code
-  /// void MyDistLockComponent::DoWork()
-  /// {
-  ///     while (!engine::ShouldCancel())
-  ///     {
-  ///         // Start a new trace_id
-  ///         auto span = tracing::Span::MakeRootSpan("my-dist-lock");
-  ///
-  ///         // If Foo() or other function in DoWork() throws an exception,
-  ///         // DoWork() will be restarted in `restart-delay` seconds.
-  ///         Foo();
-  ///
-  ///         // Check for cancellation after cpu-intensive Foo().
-  ///         // You must check for cancellation at least every `lock-ttl`
-  ///         // seconds to have time to notice lock prolongation failure.
-  ///         if (engine::ShouldCancel()) break;
-  ///
-  ///         Bar();
-  ///     }
-  /// }
-  /// @endcode
-  ///
-  /// @note `DoWork` must honour task cancellation and stop ASAP when
-  /// it is cancelled, otherwise brain split is possible (IOW, two different
-  /// users do work assuming both of them hold the lock, which is not true).
-  virtual void DoWork() = 0;
+    /// Must be called in constructor
+    void Start();
 
-  /// Override this function to provide custom testsuite handler.
-  virtual void DoWorkTestsuite() { DoWork(); }
+    /// Must be called in destructor
+    void Stop();
 
-  /// Must be called in constructor
-  void Start();
-
-  /// Must be called in destructor
-  void Stop();
-
- private:
-  std::unique_ptr<dist_lock::DistLockedWorker> worker_;
-  bool testsuite_enabled_{false};
-
-  // Subscriptions must be the last fields.
-  utils::statistics::Entry statistics_holder_;
+private:
+    std::unique_ptr<dist_lock::DistLockedWorker> worker_;
+    bool testsuite_enabled_{false};
 };
 
 }  // namespace storages::mongo

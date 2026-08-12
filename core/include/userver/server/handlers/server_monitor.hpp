@@ -26,7 +26,7 @@ enum class StatsFormat;
 /// Items of the map are added to each metric.
 ///
 /// Default format can be set via 'format' option. Supported formats are: "prometheus", "prometheus-untyped", "graphite",
-///   "json", "solomon", "pretty" and "internal". For more info see the documentation for utils::statistics::ToPrometheusFormat,
+///   "json", "solomon" and "pretty". For more info see the documentation for utils::statistics::ToPrometheusFormat,
 ///   utils::statistics::ToPrometheusFormatUntyped, utils::statistics::ToGraphiteFormat, utils::statistics::ToJsonFormat,
 ///   utils::statistics::ToSolomonFormat, utils::statistics::ToPrettyFormat.
 ///
@@ -46,35 +46,34 @@ enum class StatsFormat;
 
 // clang-format on
 class ServerMonitor final : public HttpHandlerBase {
- public:
-  ServerMonitor(const components::ComponentConfig& config,
-                const components::ComponentContext& component_context);
+public:
+    ServerMonitor(const components::ComponentConfig& config, const components::ComponentContext& component_context);
 
-  /// @ingroup userver_component_names
-  /// @brief The default name of server::handlers::ServerMonitor
-  static constexpr std::string_view kName = "handler-server-monitor";
+    /// @ingroup userver_component_names
+    /// @brief The default name of server::handlers::ServerMonitor
+    static constexpr std::string_view kName = "handler-server-monitor";
 
-  std::string HandleRequestThrow(const http::HttpRequest& request,
-                                 request::RequestContext&) const override;
+    std::string HandleRequestThrow(const http::HttpRequest& request, request::RequestContext&) const override;
 
-  static yaml_config::Schema GetStaticConfigSchema();
+    static yaml_config::Schema GetStaticConfigSchema();
 
- private:
-  std::string GetResponseDataForLogging(
-      const http::HttpRequest& request, request::RequestContext& context,
-      const std::string& response_data) const override;
+private:
+    std::string GetResponseDataForLogging(
+        const http::HttpRequest& request,
+        request::RequestContext& context,
+        const std::string& response_data
+    ) const override;
 
-  utils::statistics::Storage& statistics_storage_;
+    utils::statistics::Storage& statistics_storage_;
 
-  using CommonLabels = std::unordered_map<std::string, std::string>;
-  const CommonLabels common_labels_;
-  const std::optional<impl::StatsFormat> default_format_;
+    using CommonLabels = std::unordered_map<std::string, std::string>;
+    const CommonLabels common_labels_;
+    const std::optional<impl::StatsFormat> default_format_;
 };
 
 }  // namespace server::handlers
 
 template <>
-inline constexpr bool
-    components::kHasValidate<server::handlers::ServerMonitor> = true;
+inline constexpr bool components::kHasValidate<server::handlers::ServerMonitor> = true;
 
 USERVER_NAMESPACE_END

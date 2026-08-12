@@ -49,8 +49,8 @@
  * than a couple of kilobytes).
  */
 #define VALID_LONG_MESSAGE_TYPE(id)                                           \
-  ((id) == 'T' || (id) == 'D' || (id) == 'd' || (id) == 'V' || (id) == 'E' || \
-   (id) == 'N' || (id) == 'A')
+  ((id) == 'T' || (id) == 't' || (id) == 'D' || (id) == 'd' || (id) == 'V' || \
+   (id) == 'E' || (id) == 'N' || (id) == 'A')
 
 static void handleSyncLoss(PGconn* conn, char id, int msgLength);
 static int getRowDescriptions(PGconn* conn, int msgLength);
@@ -60,16 +60,15 @@ static int getNotify(PGconn* conn);
 static int getCopyStart(PGconn* conn, ExecStatusType copytype);
 static int getReadyForQuery(PGconn* conn);
 
+#if PG_VERSION_NUM >= 180000
+static int getBackendKeyData(PGconn *conn, int msgLength);
+#endif
+
 /* Glue to simplify working with error reporting between versions */
-#if PG_VERSION_NUM >= 140000
 #define updatePQXExpBuffer appendPQExpBuffer
 #define updatePQXExpBufferStr appendPQExpBufferStr
 
 #include "pq_pipeline_funcs.i"
-#else
-#define updatePQXExpBuffer printfPQExpBuffer
-#define updatePQXExpBufferStr printfPQExpBuffer
-#endif
 
 /*
  * This is a copy-paste of pqSaveWriteError from fe-exec.c
@@ -79,7 +78,6 @@ static int getReadyForQuery(PGconn* conn);
  * our chances of reporting something else instead.
  */
 static void pqSaveWriteError(PGconn* conn) {
-#if PG_VERSION_NUM >= 140000
   /*
    * If write_err_msg is null because of previous strdup failure, do what we
    * can.  (It's likely our machinations here will get OOM failures as well,
@@ -94,24 +92,6 @@ static void pqSaveWriteError(PGconn* conn) {
                          libpq_gettext("write to server failed\n"));
 
   pqSaveErrorResult(conn);
-#else
-  /*
-   * Ensure conn->result is an error result, and add anything in
-   * conn->errorMessage to it.
-   */
-  pqSaveErrorResult(conn);
-
-  /*
-   * Now append write_err_msg to that.  If it's null because of previous
-   * strdup failure, do what we can.  (It's likely our machinations here are
-   * all getting OOM failures as well, but ...)
-   */
-  if (conn->write_err_msg && conn->write_err_msg[0] != '\0')
-    pqCatenateResultError(conn->result, conn->write_err_msg);
-  else
-    pqCatenateResultError(conn->result,
-                          libpq_gettext("write to server failed\n"));
-#endif
 }
 
 /*
@@ -300,7 +280,6 @@ static void pqxParseInput3(PGconn* conn, const PGresult* description) {
         case 'Z': /* sync response, backend is ready for new
                    * query */
           if (getReadyForQuery(conn)) return;
-#if PG_VERSION_NUM >= 140000
           if (conn->pipelineStatus != PQ_PIPELINE_OFF) {
             conn->result = PQmakeEmptyPGresult(conn, PGRES_PIPELINE_SYNC);
             if (!conn->result) {
@@ -314,9 +293,6 @@ static void pqxParseInput3(PGconn* conn, const PGresult* description) {
           } else {
             /* Advance the command queue and set us idle */
             pqCommandQueueAdvanceGlue(conn, true, false);
-#else
-          {
-#endif
             conn->asyncStatus = PGASYNC_IDLE;
           }
           break;
@@ -333,12 +309,8 @@ static void pqxParseInput3(PGconn* conn, const PGresult* description) {
           break;
         case '1': /* Parse Complete */
                   /* If we're doing PQprepare, we're done; else ignore */
-#if PG_VERSION_NUM >= 140000
           if (conn->cmd_queue_head &&
               conn->cmd_queue_head->queryclass == PGQUERY_PREPARE) {
-#else
-          if (conn->queryclass == PGQUERY_PREPARE) {
-#endif
             if (conn->result == NULL) {
               conn->result = PQmakeEmptyPGresult(conn, PGRES_COMMAND_OK);
               if (!conn->result) {
@@ -351,20 +323,19 @@ static void pqxParseInput3(PGconn* conn, const PGresult* description) {
           }
           break;
         case '2': /* Bind Complete */
-#if PG_VERSION_NUM >= 140000
           if (conn->cmd_queue_head &&
               conn->cmd_queue_head->queryclass == PGXQUERY_BIND) {
             pqCommandQueueAdvanceGlue(conn, false, false);
-#else
-          if (conn->queryclass == PGXQUERY_BIND) {
-#endif
-            /* In case of portal bind, the query ends here without a result */
-#if PG_VERSION_NUM >= 140005
+            /*
+              In case of portal bind, only in pipeline mode
+              the query ends here without a result
+            */
             if (conn->pipelineStatus != PQ_PIPELINE_OFF)
+#if PG_VERSION_NUM >= 140005
               conn->asyncStatus = PGASYNC_PIPELINE_IDLE;
-            else
-#endif
+#else
               conn->asyncStatus = PGASYNC_IDLE;
+#endif
           }
           break;
         case '3': /* Close Complete */
@@ -394,8 +365,12 @@ static void pqxParseInput3(PGconn* conn, const PGresult* description) {
            * just as easy to handle it as part of the main loop.
            * Save the data and continue processing.
            */
+#if PG_VERSION_NUM >= 180000
+          if (getBackendKeyData(conn, msgLength)) return;
+#else
           if (pqGetInt(&(conn->be_pid), 4, conn)) return;
           if (pqGetInt(&(conn->be_key), 4, conn)) return;
+#endif
           break;
         case 'T': /* Row Description */
           if (conn->result != NULL &&
@@ -406,12 +381,8 @@ static void pqxParseInput3(PGconn* conn, const PGresult* description) {
              */
             conn->inCursor += msgLength;
           } else if (conn->result == NULL ||
-#if PG_VERSION_NUM >= 140000
                      (conn->cmd_queue_head &&
                       conn->cmd_queue_head->queryclass == PGQUERY_DESCRIBE)) {
-#else
-                     conn->queryclass == PGQUERY_DESCRIBE) {
-#endif
             /* First 'T' in a query sequence */
             if (getRowDescriptions(conn, msgLength)) return;
           } else {
@@ -438,12 +409,8 @@ static void pqxParseInput3(PGconn* conn, const PGresult* description) {
            * instead of PGRES_TUPLES_OK.  Otherwise we can just
            * ignore this message.
            */
-#if PG_VERSION_NUM >= 140000
           if (conn->cmd_queue_head &&
               conn->cmd_queue_head->queryclass == PGQUERY_DESCRIBE) {
-#else
-          if (conn->queryclass == PGQUERY_DESCRIBE) {
-#endif
             if (conn->result == NULL) {
               conn->result = PQmakeEmptyPGresult(conn, PGRES_COMMAND_OK);
               if (!conn->result) {
@@ -555,11 +522,9 @@ static void pqxParseInput3(PGconn* conn, const PGresult* description) {
     }
     /* Successfully consumed this message */
     if (conn->inCursor == conn->inStart + 5 + msgLength) {
-#if PG_VERSION_NUM >= 140000
       /* trace server-to-client message */
       if (conn->Pfdebug)
         pqTraceOutputMessage(conn, conn->inBuffer + conn->inStart, false);
-#endif
       /* Normal case: parsing agrees with specified length */
       conn->inStart = conn->inCursor;
     } else {
@@ -587,15 +552,7 @@ static void pqxParseInput3(PGconn* conn, const PGresult* description) {
  * backend.
  */
 static void parseInput(PGconn* conn, const PGresult* description) {
-#if PG_VERSION_NUM >= 140000
   pqxParseInput3(conn, description);
-#else
-  if (PG_PROTOCOL_MAJOR(conn->pversion) >= 3)
-    pqxParseInput3(conn, description);
-  else
-    /* For compatibility - parse protocol v2, very infeasible */
-    pqParseInput2(conn);
-#endif
 }
 
 /*
@@ -755,7 +712,6 @@ PGresult* PQXgetResult(PGconn* conn, const PGresult* description) {
       break;
 #endif
     case PGASYNC_READY:
-#if PG_VERSION_NUM >= 140000
       res = pqPrepareAsyncResult(conn);
 
       /* Advance the queue as appropriate */
@@ -792,7 +748,6 @@ PGresult* PQXgetResult(PGconn* conn, const PGresult* description) {
       }
       break;
     case PGASYNC_READY_MORE:
-#endif
       res = pqPrepareAsyncResult(conn);
       /* Set the state back to BUSY, allowing parsing to proceed. */
       conn->asyncStatus = PGASYNC_BUSY;
@@ -847,10 +802,8 @@ PGresult* PQXgetResult(PGconn* conn, const PGresult* description) {
         // We might use `conn->errorReported` instead of a 0
         // to negate a rare possibility of messages duplication
         pqSetResultError(res, &conn->errorMessage, 0);
-#elif PG_VERSION_NUM >= 140000
-        pqSetResultError(res, &conn->errorMessage);
 #else
-        pqSetResultError(res, conn->errorMessage.data);
+        pqSetResultError(res, &conn->errorMessage);
 #endif
         res->resultStatus = PGRES_FATAL_ERROR;
         break;
@@ -908,6 +861,78 @@ static int getReadyForQuery(PGconn* conn) {
 
   return 0;
 }
+
+#if PG_VERSION_NUM >= 180000
+/*
+ * This is copy-paste of getNotify from fe-protocol3.c
+ *
+ * parseInput subroutine to read a BackendKeyData message.
+ * Entry: 'v' message type and length have already been consumed.
+ * Exit: returns 0 if successfully consumed message.
+ *       returns EOF if not enough data.
+ */
+static int
+getBackendKeyData(PGconn *conn, int msgLength)
+{
+    int         cancel_key_len;
+
+    if (conn->be_cancel_key)
+    {
+        free(conn->be_cancel_key);
+        conn->be_cancel_key = NULL;
+        conn->be_cancel_key_len = 0;
+    }
+
+    if (pqGetInt(&(conn->be_pid), 4, conn))
+        return EOF;
+
+    cancel_key_len = 5 + msgLength - (conn->inCursor - conn->inStart);
+
+    if (cancel_key_len != 4 && conn->pversion == PG_PROTOCOL(3, 0))
+    {
+        updatePQXExpBuffer(&conn->errorMessage,
+                           libpq_gettext("received invalid BackendKeyData message: cancel key with length %d not allowed in protocol version 3.0 (must be 4 bytes)"),
+                           cancel_key_len);
+        pqSaveErrorResult(conn);
+        return 0;
+    }
+
+    if (cancel_key_len < 4)
+    {
+        updatePQXExpBuffer(&conn->errorMessage,
+                           libpq_gettext("received invalid BackendKeyData message: cancel key with length %d is too short (minimum 4 bytes)"),
+                           cancel_key_len);
+        pqSaveErrorResult(conn);
+        return 0;
+    }
+
+    if (cancel_key_len > 256)
+    {
+        updatePQXExpBuffer(&conn->errorMessage,
+                           libpq_gettext("received invalid BackendKeyData message: cancel key with length %d is too long (maximum 256 bytes)"),
+                           cancel_key_len);
+        pqSaveErrorResult(conn);
+        return 0;
+    }
+
+    conn->be_cancel_key = malloc(cancel_key_len);
+    if (conn->be_cancel_key == NULL)
+    {
+        updatePQXExpBufferStr(&conn->errorMessage,
+                              libpq_gettext("out of memory"));
+        pqSaveErrorResult(conn);
+        return 0;
+    }
+    if (pqGetnchar(conn->be_cancel_key, cancel_key_len, conn))
+    {
+        free(conn->be_cancel_key);
+        conn->be_cancel_key = NULL;
+        return EOF;
+    }
+    conn->be_cancel_key_len = cancel_key_len;
+    return 0;
+}
+#endif
 
 /*
  * This is copy-paste of getNotify from fe-protocol3.c
@@ -982,13 +1007,9 @@ static int getRowDescriptions(PGconn* conn, int msgLength) {
    * PGresult created by getParamDescriptions, and we should fill data into
    * that.  Otherwise, create a new, empty PGresult.
    */
-#if PG_VERSION_NUM >= 140000
   if (!conn->cmd_queue_head ||
       (conn->cmd_queue_head &&
        conn->cmd_queue_head->queryclass == PGQUERY_DESCRIBE)) {
-#else
-  if (conn->queryclass == PGQUERY_DESCRIBE) {
-#endif
     if (conn->result)
       result = conn->result;
     else
@@ -1071,13 +1092,9 @@ static int getRowDescriptions(PGconn* conn, int msgLength) {
    * If we're doing a Describe, we're done, and ready to pass the result
    * back to the client.
    */
-#if PG_VERSION_NUM >= 140000
   if ((!conn->cmd_queue_head) ||
       (conn->cmd_queue_head &&
        conn->cmd_queue_head->queryclass == PGQUERY_DESCRIBE)) {
-#else
-  if (conn->queryclass == PGQUERY_DESCRIBE) {
-#endif
     conn->asyncStatus = PGASYNC_READY;
     return 0;
   }
@@ -1364,7 +1381,6 @@ failure:
   return EOF;
 }
 
-#if PG_VERSION_NUM >= 140000
 /*
  * This is copy-paste of PQsendQueryStart from fe-exec.c
  * We need this function because PQXsendQueryPrepared depends on it.
@@ -1678,25 +1694,4 @@ sendFailed:
   /* error message should be set up already */
   return 0;
 }
-#else
-int PQXsendQueryPrepared(PGconn* conn, const char* stmtName, int nParams,
-                         const char* const* paramValues,
-                         const int* paramLengths, const int* paramFormats,
-                         int resultFormat, PGresult* description) {
-  (void)description;
-
-  return PQsendQueryPrepared(conn,
-                             stmtName,
-                             nParams,
-                             paramValues,
-                             paramLengths,
-                             paramFormats,
-                             resultFormat);
-}
-
-int PQXpipelinePutSync(PGconn* conn) {
-  (void)conn;
-  return 0;
-}
-#endif
 

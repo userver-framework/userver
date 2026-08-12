@@ -1,0 +1,8 @@
+components:
+    schemas:
+        AnyValue: {}
+        WithAnyField:
+            type: object
+            additionalProperties: false
+            properties:
+                payload: {}

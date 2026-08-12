@@ -5,253 +5,294 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <system_error>
 
+#include <clients/http/middlewares/pipeline.hpp>
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/clients/http/config.hpp>
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/form.hpp>
-#include <userver/clients/http/plugin.hpp>
-#include <userver/clients/http/request_tracing_editor.hpp>
+#include <userver/clients/http/request.hpp>
 #include <userver/clients/http/response_future.hpp>
 #include <userver/concurrent/queue.hpp>
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/future.hpp>
+#include <userver/engine/single_consumer_event.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/http/url.hpp>
+#include <userver/server/request/task_inherited_data.hpp>
 #include <userver/tracing/in_place_span.hpp>
 #include <userver/tracing/manager.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/utils/impl/wait_token_storage.hpp>
 #include <userver/utils/not_null.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 #include <clients/http/destination_statistics.hpp>
 #include <clients/http/easy_wrapper.hpp>
 #include <clients/http/testsuite.hpp>
 #include <crypto/helpers.hpp>
 #include <engine/ev/watcher/timer_watcher.hpp>
-#include <server/http/headers_propagator.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace clients::http {
 
+constexpr std::string_view kHeaderExpect = "Expect";
+
 class StreamedResponse;
+class WebSocketResponse;
 class ConnectTo;
 
 class RequestState : public std::enable_shared_from_this<RequestState> {
- public:
-  RequestState(impl::EasyWrapper&&, RequestStats&& req_stats,
-               const std::shared_ptr<DestinationStatistics>& dest_stats,
-               clients::dns::Resolver* resolver,
-               impl::PluginPipeline& plugin_pipeline,
-               const tracing::TracingManagerBase& tracing_manager);
-  ~RequestState();
+public:
+    RequestState(
+        impl::EasyWrapper&&,
+        RequestStats&& req_stats,
+        DestinationStatistics& dest_stats,
+        clients::dns::Resolver* resolver,
+        const tracing::TracingManagerBase& tracing_manager
+    );
+    ~RequestState();
 
-  using Queue = concurrent::StringStreamQueue;
+    using Queue = concurrent::StringStreamQueue;
 
-  /// Perform async http request
-  engine::Future<std::shared_ptr<Response>> async_perform(
-      utils::impl::SourceLocation location =
-          utils::impl::SourceLocation::Current());
+    /// Perform async http request
+    engine::Future<std::shared_ptr<Response>> async_perform(
+        utils::impl::SourceLocation location = utils::impl::SourceLocation::Current()
+    );
 
-  /// Perform streaming http request, returns headers future
-  engine::Future<void> async_perform_stream(
-      const std::shared_ptr<Queue>& queue,
-      utils::impl::SourceLocation location =
-          utils::impl::SourceLocation::Current());
+    /// Perform streaming http request, returns headers future
+    engine::Future<void> async_perform_stream(
+        const std::shared_ptr<Queue>& queue,
+        utils::impl::SourceLocation location = utils::impl::SourceLocation::Current()
+    );
 
-  /// set redirect flags
-  void follow_redirects(bool follow);
-  /// set verify flags
-  void verify(bool verify);
-  /// set file holding one or more certificates to verify the peer with
-  void ca_info(const std::string& file_path);
-  /// set certificate to verify the peer with
-  void ca(crypto::Certificate cert);
-  /// set CRL-file
-  void crl_file(const std::string& file_path);
-  /// set private key and certificate from memory
-  void client_key_cert(crypto::PrivateKey pkey, crypto::Certificate cert);
-  /// Set HTTP version
-  void http_version(curl::easy::http_version_t version);
-  /// set timeout value
-  void set_timeout(long timeout_ms);
-  /// set number of retries
-  void retry(short retries, bool on_fails);
-  /// set unix socket as transport instead of TCP
-  void unix_socket_path(const std::string& path);
-  /// set connect_to option
-  void connect_to(const ConnectTo& connect_to);
-  /// sets proxy to use
-  void proxy(const std::string& value);
-  /// sets proxy auth type to use
-  void proxy_auth_type(curl::easy::proxyauth_t value);
-  /// sets proxy auth type and credentials to use
-  void http_auth_type(curl::easy::httpauth_t value, bool auth_only,
-                      std::string_view user, std::string_view password);
+    engine::Future<WebSocketResponse> async_perform_websocket_handshake(
+        utils::impl::SourceLocation location = utils::impl::SourceLocation::Current()
+    );
 
-  /// get timeout value in milliseconds
-  long timeout() const { return original_timeout_.count(); }
-  /// get retries count
-  short retries() const { return retry_.retries; }
+    /// set redirect flags
+    void follow_redirects(bool follow);
+    /// set verify flags
+    void verify(bool verify);
+    /// set file holding one or more certificates to verify the peer with
+    void ca_info(utils::zstring_view file_path);
+    /// set certificate to verify the peer with
+    void ca(crypto::Certificate cert);
+    /// set CRL-file
+    void crl_file(utils::zstring_view file_path);
+    /// set private key and certificate from memory
+    void client_key_cert(crypto::PrivateKey pkey, crypto::Certificate cert);
+    /// Set HTTP version
+    void http_version(curl::easy::http_version_t version);
+    /// set timeout value
+    void set_timeout(long timeout_ms);
+    /// set number of retries
+    void retry(short retries, bool on_fails);
+    /// set unix socket as transport instead of TCP
+    void unix_socket_path(utils::zstring_view path);
+    /// set connect_to option
+    void connect_to(const ConnectTo& connect_to);
+    /// sets proxy to use
+    void proxy(utils::zstring_view value);
+    /// sets proxy auth type to use
+    void proxy_auth_type(curl::easy::proxyauth_t value);
+    /// sets proxy auth type and credentials to use
+    void http_auth_type(
+        curl::easy::httpauth_t value,
+        bool auth_only,
+        utils::zstring_view user,
+        utils::zstring_view password
+    );
 
-  engine::Deadline GetDeadline() const noexcept;
-  /// true iff *we detected* that the deadline has expired
-  bool IsDeadlineExpired() const noexcept;
+    /// get timeout value in milliseconds
+    long timeout() const { return original_timeout_.count(); }
+    /// get retries count
+    short retries() const { return retry_.retries; }
 
-  [[noreturn]] void ThrowDeadlineExpiredException();
+    engine::Deadline GetDeadline() const noexcept;
+    /// true iff *we detected* that the deadline has expired
+    bool IsDeadlineExpired() const noexcept;
 
-  /// cancel request
-  void Cancel();
+    [[noreturn]] void ThrowDeadlineExpiredException();
 
-  void SetDestinationMetricNameAuto(std::string destination);
+    /// cancel request
+    void Cancel();
 
-  void SetDestinationMetricName(const std::string& destination);
+    void SetDestinationMetricNameAuto(std::string destination);
 
-  void SetTestsuiteConfig(const std::shared_ptr<const TestsuiteConfig>& config);
+    void SetDestinationMetricName(const std::string& destination);
 
-  void SetAllowedUrlsExtra(const std::vector<std::string>& urls);
+    void SetTestsuiteConfig(const std::shared_ptr<const TestsuiteConfig>& config);
 
-  void DisableReplyDecoding();
+    void SetAllowedUrlsExtra(const std::vector<std::string>& urls);
 
-  void SetCancellationPolicy(CancellationPolicy cp);
+    void DisableReplyDecoding();
 
-  CancellationPolicy GetCancellationPolicy() const;
+    void SetCancellationPolicy(CancellationPolicy cp);
 
-  void SetDeadlinePropagationConfig(
-      const DeadlinePropagationConfig& deadline_propagation_config);
+    CancellationPolicy GetCancellationPolicy() const;
 
-  curl::easy& easy() { return easy_.Easy(); }
-  const curl::easy& easy() const { return easy_.Easy(); }
-  std::shared_ptr<Response> response() const { return response_; }
-  std::shared_ptr<Response> response_move() { return std::move(response_); }
+    void SetDeadlinePropagationConfig(const DeadlinePropagationConfig& deadline_propagation_config);
 
-  void SetLoggedUrl(std::string url);
-  void SetEasyTimeout(std::chrono::milliseconds timeout);
+    curl::easy& easy() { return easy_.Easy(); }
+    const curl::easy& easy() const { return easy_.Easy(); }
+    std::shared_ptr<Response> response() const { return response_; }
+    std::shared_ptr<Response> response_move() { return std::move(response_); }
 
-  void SetTracingManager(const tracing::TracingManagerBase&);
-  void SetHeadersPropagator(const server::http::HeadersPropagator*);
+    void SetMiddlewaresList(const std::vector<utils::NotNull<MiddlewareBase*>>& middlewares);
+    void SetIncompleteTlsConnectionCloseExpected(bool expect);
+    void SetLoggedUrl(std::string url);
+    void SetUrlTemplate(std::string url_template);
+    void SetMethod(clients::http::HttpMethod method);
+    void data(std::string data);
+    void SetEasyTimeout(std::chrono::milliseconds timeout);
 
-  RequestTracingEditor GetEditableTracingInstance();
+    void SetTracingManager(const tracing::TracingManagerBase&);
 
- private:
-  /// final callback that calls user callback and set value in promise
-  static void on_completed(std::shared_ptr<RequestState>, std::error_code err);
-  /// retry callback
-  static void on_retry(std::shared_ptr<RequestState>, std::error_code err);
-  /// header function curl callback
-  static size_t on_header(void* ptr, size_t size, size_t nmemb, void* userdata);
+    void SetWaitToken(utils::impl::WaitTokenStorageLock&&);
 
-  /// certificate function curl callback
-  static curl::native::CURLcode on_certificate_request(void* curl, void* sslctx,
-                                                       void* userdata) noexcept;
+    /// true if proxy was set using proxy method
+    bool IsProxySet() const;
 
-  /// parse one header
-  void parse_header(char* ptr, size_t size);
-  void ParseSingleCookie(const char* ptr, size_t size);
-  /// simply run perform_request if there is now errors from timer
-  void on_retry_timer(std::error_code err);
-  /// run curl async_request, called once per attempt
-  void perform_request(curl::easy::handler_type handler);
+    MiddlewareRequest GetEditableRequestInstance();
 
-  void UpdateTimeoutFromDeadline(std::chrono::milliseconds backoff);
-  [[nodiscard]] bool UpdateTimeoutFromDeadlineAndCheck(
-      std::chrono::milliseconds backoff = {});
-  void UpdateTimeoutHeader();
-  void HandleDeadlineAlreadyPassed();
-  void CheckResponseDeadline(std::error_code& err, Status status_code);
-  bool IsDeadlineExpiredResponse(Status status_code);
-  bool ShouldRetryResponse();
+private:
+    /// final callback that calls user callback and set value in promise
+    static void OnCompleted(std::shared_ptr<RequestState>, std::error_code err);
+    /// retry callback
+    static void OnRetry(std::shared_ptr<RequestState>, std::error_code err);
+    /// header function curl callback
+    static size_t OnHeader(void* ptr, size_t size, size_t nmemb, void* userdata);
 
-  const std::string& GetLoggedOriginalUrl() const noexcept;
+    /// certificate function curl callback
+    static curl::native::CURLcode OnCertificateRequest(void* curl, void* sslctx, void* userdata) noexcept;
 
-  static size_t StreamWriteFunction(char* ptr, size_t size, size_t nmemb,
-                                    void* userdata);
+    /// parse one header
+    void ParseHeader(std::string_view header);
+    void ParseSingleCookie(std::string_view cookie);
+    /// simply run perform_request if there is now errors from timer
+    void OnRetryTimer(std::error_code err);
+    /// run curl async_request, called once per attempt
+    void PerformRequest(curl::easy::handler_type handler);
 
-  void AccountResponse(std::error_code err);
-  std::exception_ptr PrepareException(std::error_code err);
+    void UpdateTimeoutFromDeadline(std::chrono::milliseconds backoff);
+    [[nodiscard]] bool UpdateTimeoutFromDeadlineAndCheck(std::chrono::milliseconds backoff = {});
+    void UpdateTimeoutHeader();
+    void HandleDeadlineAlreadyPassed();
+    void CheckResponseDeadline(std::error_code& err, Status status_code);
+    bool IsDeadlineExpiredResponse(Status status_code);
+    bool ShouldRetryResponse();
 
-  void ResetDataForNewRequest();
-  void ApplyTestsuiteConfig();
-  void StartNewSpan(utils::impl::SourceLocation location);
-  void StartStats();
+    const std::string& GetLoggedOriginalUrl() const noexcept;
+    std::string_view GetLoggedEffectiveUrl() noexcept;
 
-  template <typename Func>
-  void WithRequestStats(const Func& func);
+    static size_t StreamWriteFunction(char* ptr, size_t size, size_t nmemb, void* userdata);
 
-  void ResolveTargetAddress(clients::dns::Resolver& resolver);
+    void AccountResponse(std::error_code err);
+    std::exception_ptr PrepareException(std::error_code err);
 
-  /// curl handler wrapper
-  impl::EasyWrapper easy_;
-  RequestStats stats_;
-  std::shared_ptr<RequestStats> dest_req_stats_;
-  CancellationPolicy cancellation_policy_{CancellationPolicy::kCancel};
+    void ResetDataForNewRequest();
+    void ApplyTestsuiteConfig();
+    void StartNewSpan(utils::impl::SourceLocation location);
+    void StartStats();
 
-  std::shared_ptr<DestinationStatistics> dest_stats_;
-  std::string destination_metric_name_;
+    template <typename Func>
+    void WithRequestStats(const Func& func);
 
-  std::shared_ptr<const TestsuiteConfig> testsuite_config_;
-  std::vector<std::string> allowed_urls_extra_;
+    void ResolveTargetAddress(clients::dns::Resolver& resolver);
 
-  crypto::PrivateKey pkey_;
-  crypto::Certificate cert_;
-  crypto::Certificate ca_;
+    void ResetRequestCompletion();
+    void RequestCompleted();
+    void WaitForRequestCompletion();
 
-  /// response
-  std::shared_ptr<Response> response_;
+    // should be the first member to prevent HttpClient destruction before destruction of RequestState fields
+    utils::impl::WaitTokenStorageLock wait_token_;
+    /// curl handler wrapper
+    impl::EasyWrapper easy_;
+    RequestStats stats_;
+    std::optional<RequestStats> dest_req_stats_;
+    CancellationPolicy cancellation_policy_{CancellationPolicy::kCancel};
 
-  /// the timeout value provided by user (or the default)
-  std::chrono::milliseconds original_timeout_;
-  /// the timeout propagated to the downstream service
-  std::chrono::milliseconds remote_timeout_;
+    DestinationStatistics& dest_stats_;
+    std::string destination_metric_name_;
 
-  DeadlinePropagationConfig deadline_propagation_config_;
-  /// deadline from current task
-  engine::Deadline deadline_;
-  bool timeout_updated_by_deadline_{false};
-  bool deadline_expired_{false};
+    std::shared_ptr<const TestsuiteConfig> testsuite_config_;
+    std::vector<std::string> allowed_urls_extra_;
 
-  utils::NotNull<const tracing::TracingManagerBase*> tracing_manager_;
-  const server::http::HeadersPropagator* headers_propagator_{nullptr};
-  /// struct for reties
-  struct {
-    /// maximum number of retries
-    short retries{1};
-    /// current retry
-    short current{1};
-    /// flag for treating network errors as reason for retry
-    bool on_fails{false};
-    /// pointer to timer
-    std::optional<engine::ev::TimerWatcher> timer;
-  } retry_;
+    crypto::PrivateKey pkey_;
+    crypto::Certificate cert_;
+    crypto::Certificate ca_;
 
-  std::optional<tracing::InPlaceSpan> span_storage_;
-  std::optional<std::string> log_url_;
+    /// response
+    std::shared_ptr<Response> response_;
 
-  std::atomic<bool> is_cancelled_{false};
-  std::array<char, CURL_ERROR_SIZE> errorbuffer_{};
+    /// the timeout value provided by user (or the default)
+    std::chrono::milliseconds original_timeout_;
+    /// the timeout propagated to the downstream service
+    std::chrono::milliseconds remote_timeout_;
 
-  clients::dns::Resolver* resolver_{nullptr};
-  std::string proxy_url_;
-  impl::PluginPipeline& plugin_pipeline_;
+    DeadlinePropagationConfig deadline_propagation_config_;
+    /// original absolute deadline from task inherited data
+    std::optional<server::request::TaskInheritedOriginalDeadline> inherited_original_deadline_;
+    /// deadline from current task
+    engine::Deadline deadline_;
+    bool timeout_updated_by_deadline_{false};
+    bool deadline_expired_{false};
 
-  struct StreamData {
-    StreamData(Queue::Producer&& queue_producer)
-        : queue_producer(std::move(queue_producer)) {}
+    utils::NotNull<const tracing::TracingManagerBase*> tracing_manager_;
+    /// struct for reties
+    struct {
+        /// maximum number of retries
+        short retries{1};
+        /// current retry
+        short current{1};
+        /// flag for treating network errors as reason for retry
+        bool on_fails{false};
+        /// pointer to timer
+        std::optional<engine::ev::TimerWatcher> timer;
+    } retry_;
 
-    Queue::Producer queue_producer;
-    std::atomic<bool> headers_promise_set{false};
-    engine::Promise<void> headers_promise;
-  };
+    std::optional<tracing::InPlaceSpan> span_storage_;
+    std::optional<std::string> log_url_;
 
-  struct FullBufferedData {
-    engine::Promise<std::shared_ptr<Response>> promise_;
-  };
+    std::optional<std::string> url_template_;
+    HttpMethod method_{HttpMethod::kGet};
 
-  std::variant<FullBufferedData, StreamData> data_;
+    std::atomic<bool> is_cancelled_{false};
+    std::atomic<bool> is_incomplete_tls_connection_close_expected_{false};
+    std::array<char, CURL_ERROR_SIZE> errorbuffer_{};
+
+    clients::dns::Resolver* resolver_{nullptr};
+    std::optional<std::string> proxy_url_;
+    MiddlewaresPipeline middlewares_pipeline_;
+
+    struct StreamData {
+        StreamData(Queue::Producer&& queue_producer)
+            : queue_producer(std::move(queue_producer))
+        {}
+
+        Queue::Producer queue_producer;
+        std::atomic<bool> headers_promise_set{false};
+        engine::Promise<void> headers_promise;
+    };
+
+    struct FullBufferedData {
+        engine::Promise<std::shared_ptr<Response>> promise;
+    };
+
+    struct WebSocketHandshakeData {
+        engine::Promise<WebSocketResponse> promise;
+    };
+
+    std::variant<FullBufferedData, StreamData, WebSocketHandshakeData> data_;
+
+    engine::SingleConsumerEvent request_completed_{engine::SingleConsumerEvent::NoAutoReset{}};
 };
 
 }  // namespace clients::http

@@ -28,118 +28,167 @@ struct Config;
 /// @note Don't use directly, inherit from components::CachingComponentBase
 /// instead
 class CacheUpdateTrait {
- public:
-  CacheUpdateTrait(CacheUpdateTrait&&) = delete;
-  CacheUpdateTrait& operator=(CacheUpdateTrait&&) = delete;
+public:
+    CacheUpdateTrait(CacheUpdateTrait&&) = delete;
+    CacheUpdateTrait& operator=(CacheUpdateTrait&&) = delete;
 
-  /// @brief Non-blocking forced cache update of specified type
-  /// @see PeriodicTask::ForceStepAsync for behavior details
-  void InvalidateAsync(UpdateType update_type);
+    /// @brief Non-blocking forced cache update of specified type
+    /// @see PeriodicTask::ForceStepAsync for behavior details
+    void InvalidateAsync(UpdateType update_type);
 
-  /// @brief Forces a cache update of specified type
-  /// @throws If `Update` throws
-  void UpdateSyncDebug(UpdateType update_type);
+    /// @brief Forces a synchronous cache update of specified type
+    ///
+    /// @warning This method is intended for tests and debugging only. In
+    /// production code use `InvalidateAsync` instead. The reasons are:
+    ///
+    /// 1. `InvalidateAsync` shifts the time of the next update as if a periodic
+    ///    update has just happened. `UpdateSyncDebug` does not do that: it locks
+    ///    the mutex and performs an additional update on the side, which puts
+    ///    extra load on the CPU and on the data source.
+    /// 2. The cache we subscribe to sends events *as part of its own update*. If
+    ///    the callback does something lengthy, e.g. updating another cache, this
+    ///    affects the cache we subscribe to: it may disrupt its updates and
+    ///    cause a traffic jam in the whole chain of caches. `InvalidateAsync` is
+    ///    not subject to this. On top of that, `UpdateSyncDebug` will block the
+    ///    cache we subscribe to for the time we wait for the previous update of
+    ///    the dependent cache to finish (if one was in progress).
+    /// 3. `InvalidateAsync` robustly handles situations with repeated update
+    ///    requests, see the docs of `PeriodicTask::ForceStepAsync`, on top of
+    ///    which it is implemented. `UpdateSyncDebug` tries to lock the mutex over
+    ///    and over and performs as many updates as were requested, even if they
+    ///    were requested many times in a row.
+    /// 4. If `UpdateSyncDebug` is called before the periodic updates of the
+    ///    current cache have started (they start after the constructor of the
+    ///    derived cache finishes), the behavior is undefined, because the state
+    ///    of the periodic updates is not set up yet, while an update was already
+    ///    requested. `InvalidateAsync` handles this case: in that situation
+    ///    nothing happens.
+    ///
+    /// @see InvalidateAsync
+    /// @throws If `Update` throws
+    void UpdateSyncDebug(UpdateType update_type);
 
-  /// @return name of the component
-  const std::string& Name() const;
+    /// @return name of the component
+    const std::string& Name() const noexcept;
 
- protected:
-  /// @cond
-  // For internal use only
-  CacheUpdateTrait(const components::ComponentConfig& config,
-                   const components::ComponentContext& context);
+protected:
+    /// @cond
+    // For internal use only
+    CacheUpdateTrait(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-  // For internal use only
-  explicit CacheUpdateTrait(CacheDependencies&& dependencies);
+    // For internal use only
+    explicit CacheUpdateTrait(CacheDependencies&& dependencies);
 
-  virtual ~CacheUpdateTrait();
-  /// @endcond
+    virtual ~CacheUpdateTrait();
+    /// @endcond
 
-  /// Update types configured for the cache
-  AllowedUpdateTypes GetAllowedUpdateTypes() const;
+    /// Update types configured for the cache
+    AllowedUpdateTypes GetAllowedUpdateTypes() const;
 
-  /// Periodic update flags
-  enum class Flag {
-    kNone = 0,
-    kNoFirstUpdate = 1 << 0,  ///< Disable initial update on start
-  };
+    /// Periodic update flags
+    enum class Flag {
+        kNone = 0,
 
-  /// Starts periodic updates
-  void StartPeriodicUpdates(utils::Flags<Flag> flags = {});
+        /// @brief Disable initial update on start
+        /// @deprecated Use `first-update-fail-ok: true` instead
+        kNoFirstUpdate = 1 << 0,
+    };
 
-  /// @brief Stops periodic updates
-  /// @warning Should be called in destructor of derived class.
-  void StopPeriodicUpdates();
+    /// Called in `CachingComponentBase::Set` during update to indicate
+    /// that the cached data has been modified
+    void OnCacheModified() noexcept;
 
-  void AssertPeriodicUpdateStarted();
+    /// @cond
+    // For internal use only
+    rcu::ReadablePtr<Config> GetConfig() const;
 
-  /// Called in `CachingComponentBase::Set` during update to indicate
-  /// that the cached data has been modified
-  void OnCacheModified();
+    // Checks for the presence of the flag for pre-assign check.
+    // For internal use only.
+    bool HasPreAssignCheck() const noexcept;
 
-  /// @cond
-  // For internal use only
-  rcu::ReadablePtr<Config> GetConfig() const;
+    // Returns value of the flag safe-data-lifetime.
+    // For internal use only.
+    bool IsSafeDataLifetime() const noexcept;
 
-  // Checks for the presence of the flag for pre-assign check.
-  // For internal use only.
-  bool HasPreAssignCheck() const;
+    // For internal use only.
+    void SetDataSizeStatistic(std::size_t size) noexcept;
 
-  // For internal use only.
-  void SetDataSizeStatistic(std::size_t size) noexcept;
+    // For internal use only
+    // TODO remove after TAXICOMMON-3959
+    engine::TaskProcessor& GetCacheTaskProcessor() const noexcept;
+    /// @endcond
 
-  // For internal use only
-  // TODO remove after TAXICOMMON-3959
-  engine::TaskProcessor& GetCacheTaskProcessor() const;
-  /// @endcond
+    /// @brief Should be overridden in a derived class to align the stored data
+    /// with some data source.
+    ///
+    /// `Update` implementation should do one of the following:
+    ///
+    /// A. If the update succeeded and has changes...
+    ///    1. call CachingComponentBase::Set to update the stored value and send a
+    ///       notification to subscribers
+    ///    2. call UpdateStatisticsScope::Finish
+    ///    3. return normally (an exception is allowed in edge cases)
+    ///
+    /// B. If the update succeeded and verified that there are no changes...
+    ///    1. DON'T call CachingComponentBase::Set
+    ///    2. call UpdateStatisticsScope::FinishNoChanges
+    ///    3. return normally (an exception is allowed in edge cases)
+    ///
+    /// C. If the update failed...
+    ///    1. DON'T call CachingComponentBase::Set
+    ///    2. call UpdateStatisticsScope::FinishWithError, or...
+    ///    3. throw an exception, which will be logged nicely
+    ///       (if there already is an exception, prefer rethrowing it instead
+    ///       of calling UpdateStatisticsScope::FinishWithError)
+    ///
+    /// @param type type of the update
+    /// @param last_update time of the last update (value of `now` from previous
+    /// invocation of Update or default constructed value if this is the first
+    /// Update).
+    /// @param now current time point
+    /// @param stats_scope the scope that expects
+    /// one of `Finish`, `FinishNoChanges`, `FinishWithError` or an exception.
+    ///
+    /// @throws std::exception on update failure
+    ///
+    /// @warning If `Update` returns without throwing an exception and without
+    /// calling one of the `Finish*` methods, the behavior is undefined.
+    ///
+    /// @see @ref scripts/docs/en/userver/caches.md
+    virtual void Update(
+        UpdateType type,
+        const std::chrono::system_clock::time_point& last_update,
+        const std::chrono::system_clock::time_point& now,
+        UpdateStatisticsScope& stats_scope
+    ) = 0;
 
-  /// @brief Should be overridden in a derived class to align the stored data
-  /// with some data source.
-  ///
-  /// `Update` implementation should do one of the following:
-  ///
-  /// A. If the update succeeded and has changes...
-  ///    1. call CachingComponentBase::Set to update the stored value and send a
-  ///    notification to subscribers
-  ///    2. call UpdateStatisticsScope::Finish
-  ///    3. return normally (an exception is allowed in edge cases)
-  /// B. If the update succeeded and verified that there are no changes...
-  ///    1. DON'T call CachingComponentBase::Set
-  ///    2. call UpdateStatisticsScope::FinishNoChanges
-  ///    3. return normally (an exception is allowed in edge cases)
-  /// C. If the update failed...
-  ///    1. DON'T call CachingComponentBase::Set
-  ///    2. call UpdateStatisticsScope::FinishWithError, or...
-  ///    3. throw an exception, which will be logged nicely
-  ///
-  /// @param type type of the update
-  /// @param last_update time of the last update (value of `now` from previous
-  /// invocation of Update or default constructed value if this is the first
-  /// Update).
-  /// @param now current time point
-  ///
-  /// @throws std::exception on update failure
-  ///
-  /// @warning If `Update` returns without throwing an exception and without
-  /// calling one of the `Finish*` methods, the behavior is undefined.
-  ///
-  /// @see @ref scripts/docs/en/userver/caches.md
-  virtual void Update(UpdateType type,
-                      const std::chrono::system_clock::time_point& last_update,
-                      const std::chrono::system_clock::time_point& now,
-                      UpdateStatisticsScope& stats_scope) = 0;
+    /// @brief Returns flags for cache start.
+    virtual utils::Flags<Flag> GetStartFlags() const;
 
- private:
-  virtual void Cleanup() = 0;
+    /// @brief Call this to start periodic updates just now,
+    /// not after the constructor.
+    void EarlyStartPeriodicUpdates(utils::Flags<Flag> flags);
 
-  virtual void MarkAsExpired();
+    /// @cond
+    // For internal use only
+    void EarlyStopPeriodicUpdates();
+    /// @endcond
 
-  virtual void GetAndWrite(dump::Writer& writer) const;
+private:
+    void StartPeriodicUpdates();
 
-  virtual void ReadAndSet(dump::Reader& reader);
+    void StopPeriodicUpdates();
 
-  class Impl;
-  std::unique_ptr<Impl> impl_;
+    virtual void Cleanup() = 0;
+
+    virtual void MarkAsExpired();
+
+    virtual void GetAndWrite(dump::Writer& writer) const;
+
+    virtual void ReadAndSet(dump::Reader& reader);
+
+    class Impl;
+    std::unique_ptr<Impl> impl_;
 };
 
 }  // namespace cache
