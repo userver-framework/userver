@@ -31,20 +31,17 @@ find_package(Iconv REQUIRED)
 
 find_package(libev REQUIRED)
 find_package(libnghttp2 REQUIRED)
-if(USERVER_CONAN AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    find_package(liburing REQUIRED CONFIG)
-elseif(USERVER_CONAN)
-    list(APPEND CMAKE_MODULE_PATH "${USERVER_ROOT_DIR}/cmake/modules")
-    find_package(liburing REQUIRED MODULE)
-else()
-    find_package(liburing REQUIRED)
-endif()
-if(USERVER_CONAN AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    if(TARGET liburing::liburing AND NOT TARGET liburing::uring)
-        add_library(liburing::uring ALIAS liburing::liburing)
-    endif()
-    if(NOT TARGET uring::uring AND TARGET liburing::uring)
-        add_library(uring::uring ALIAS liburing::uring)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    if(USERVER_CONAN)
+        find_package(liburing REQUIRED CONFIG)
+        if(NOT TARGET liburing::uring)
+            add_library(liburing::uring ALIAS liburing::liburing)
+        endif()
+        if(NOT TARGET uring::uring)
+            add_library(uring::uring ALIAS liburing::uring)
+        endif()
+    else()
+        find_package(liburing REQUIRED)
     endif()
 endif()
 
@@ -216,8 +213,12 @@ endif()
 target_link_libraries(
     ${PROJECT_NAME}
     PUBLIC c-ares::cares
-    PRIVATE cryptopp::cryptopp libev::libev libnghttp2::nghttp2 liburing::uring
+    PRIVATE cryptopp::cryptopp libev::libev libnghttp2::nghttp2
 )
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_link_libraries(${PROJECT_NAME} PRIVATE liburing::uring)
+endif()
 
 if(USERVER_CONAN)
     target_link_libraries(${PROJECT_NAME} PUBLIC concurrentqueue::concurrentqueue)
