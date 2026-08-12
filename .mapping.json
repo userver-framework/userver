@@ -2389,6 +2389,7 @@
   "core/src/utils/userver_info.cpp":"taxi/uservices/userver/core/src/utils/userver_info.cpp",
   "core/src/websocket/connection.cpp":"taxi/uservices/userver/core/src/websocket/connection.cpp",
   "core/src/websocket/impl/protocol.cpp":"taxi/uservices/userver/core/src/websocket/impl/protocol.cpp",
+  "core/src/websocket/impl/protocol_test.cpp":"taxi/uservices/userver/core/src/websocket/impl/protocol_test.cpp",
   "core/static_configs/dns_client.yaml":"taxi/uservices/userver/core/static_configs/dns_client.yaml",
   "core/sys_coro/include/coroutines/coroutine.hpp":"taxi/uservices/userver/core/sys_coro/include/coroutines/coroutine.hpp",
   "core/uboost_coro/include/coroutines/coroutine.hpp":"taxi/uservices/userver/core/uboost_coro/include/coroutines/coroutine.hpp",

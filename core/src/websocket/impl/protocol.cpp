@@ -12,6 +12,7 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/rand.hpp>
 #include <userver/utils/span.hpp>
+#include <userver/utils/underlying_value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -128,7 +129,18 @@ std::array<char, sizeof(WSHeader)> MakeControlFrame(WSOpcodes opcode, std::size_
     hdr->bytes = 0;
     hdr->bits.fin = 1;
     hdr->bits.opcode = opcode;
+
+    static constexpr std::size_t kMaxPayload = 125;
+    UASSERT_MSG(
+        payload_len <= kMaxPayload,
+        fmt::format(
+            "Violation of RFC 6455 for opcode {:x}: All control frames MUST have a payload length of 125 bytes or "
+            "less...",
+            utils::UnderlyingValue(opcode)
+        )
+    );
     hdr->bits.payload_len = payload_len;
+
     hdr->bits.mask = is_masked == Masked::kYes ? 1 : 0;
 
     return frame;

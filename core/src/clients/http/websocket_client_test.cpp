@@ -1,5 +1,8 @@
 #include <atomic>
+#include <cstdint>
+#include <cstring>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -10,6 +13,7 @@
 #include <userver/clients/http/client.hpp>
 #include <userver/clients/http/websocket_response.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/io/exception.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/utest/http_client.hpp>
 #include <userver/utest/simple_server.hpp>
@@ -25,18 +29,55 @@ namespace {
 
 using HttpResponse = utest::SimpleServer::Response;
 using HttpRequest = utest::SimpleServer::Request;
+using websocket::impl::FrameParserState;
+using websocket::impl::ReadWSFrame;
+using websocket::impl::WebsocketSecAnswer;
+using websocket::impl::WSHeader;
+using websocket::impl::WSOpcodes;
 using websocket::impl::frames::Continuation;
+using websocket::impl::frames::DataFrameHeader;
 using websocket::impl::frames::Final;
+using websocket::impl::frames::MakeControlFrame;
 using websocket::impl::frames::Masked;
 
 constexpr std::string_view kPayload = "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+constexpr std::size_t kMaxControlPayload = 125;
+constexpr std::size_t kMaxUint16Payload = 0xffff;
+constexpr std::size_t kOversizedControlPayload = 200;
+constexpr unsigned kMaxRemotePayload = 65536;
+// RFC 6455: payload_len == 126 means a 16-bit extended length follows.
+constexpr unsigned char kExtendedPayloadLen16 = 126;
+constexpr char kExtendedControlPayloadFill = 'P';
 
-std::string AppendHeaderAndPayload(
-    boost::container::small_vector<char, websocket::impl::kMaxFrameHeaderSize> header,
-    std::string_view payload
-) {
+class BufferReader final : public engine::io::ReadableBase {
+public:
+    explicit BufferReader(std::string data)
+        : data_(std::move(data))
+    {}
+
+    bool IsValid() const override { return true; }
+
+    bool WaitReadable(engine::Deadline) override { return true; }
+
+    size_t ReadSome(void* buf, size_t len, engine::Deadline deadline) override { return ReadAll(buf, len, deadline); }
+
+    size_t ReadAll(void* buf, size_t len, engine::Deadline) override {
+        const size_t left = data_.size() - pos_;
+        const size_t count = std::min(len, left);
+        std::memcpy(buf, data_.data() + pos_, count);
+        pos_ += count;
+        return count;
+    }
+
+private:
+    std::string data_;
+    size_t pos_{0};
+};
+
+std::string AppendHeaderAndPayload(std::string_view header, std::string_view payload) {
     std::string frame;
-    frame.append(header.data(), header.size());
+    frame.reserve(header.size() + payload.size());
+    frame.append(header);
     frame.append(payload);
     return frame;
 }
@@ -47,10 +88,8 @@ std::string MakeUnmaskedDataFrame(
     Continuation is_continuation = Continuation::kNo,
     Final is_final = Final::kYes
 ) {
-    return AppendHeaderAndPayload(
-        websocket::impl::frames::DataFrameHeader(payload.size(), is_text, is_continuation, is_final, Masked::kNo),
-        payload
-    );
+    const auto header = DataFrameHeader(payload.size(), is_text, is_continuation, is_final, Masked::kNo);
+    return AppendHeaderAndPayload({header.data(), header.size()}, payload);
 }
 
 std::string MakeUnmaskedTextFrame(std::string_view payload) { return MakeUnmaskedDataFrame(payload, /*is_text=*/true); }
@@ -59,28 +98,44 @@ std::string MakeUnmaskedBinaryFrame(std::string_view payload) {
     return MakeUnmaskedDataFrame(payload, /*is_text=*/false);
 }
 
-std::string MakeUnmaskedControlFrame(websocket::impl::WSOpcodes opcode, std::string_view payload) {
-    EXPECT_LE(payload.size(), 125);
-    const auto header = websocket::impl::frames::MakeControlFrame(opcode, payload.size(), Masked::kNo);
+std::string MakeUnmaskedControlFrame(WSOpcodes opcode, std::string_view payload) {
+    EXPECT_LE(payload.size(), kMaxControlPayload);
+    const auto header = MakeControlFrame(opcode, payload.size(), Masked::kNo);
+    return AppendHeaderAndPayload({header.data(), header.size()}, payload);
+}
+
+// MakeControlFrame refuses payload_len > 125, so an invalid extended control
+// frame is built via WSHeader + 16-bit length.
+std::string MakeUnmaskedExtendedControlFrame(WSOpcodes opcode, std::size_t payload_size) {
+    EXPECT_GT(payload_size, kMaxControlPayload);
+    EXPECT_LE(payload_size, kMaxUint16Payload);
+
+    WSHeader hdr{};
+    hdr.bits.fin = 1;
+    hdr.bits.opcode = opcode;
+    hdr.bits.mask = 0;
+    hdr.bits.payload_len = kExtendedPayloadLen16;
+
+    const auto len_be = boost::endian::native_to_big(static_cast<std::uint16_t>(payload_size));
+
     std::string frame;
-    frame.append(header.data(), header.size());
-    frame.append(payload);
+    frame.append(reinterpret_cast<const char*>(&hdr), sizeof(hdr));
+    frame.append(reinterpret_cast<const char*>(&len_be), sizeof(len_be));
+    frame.append(payload_size, kExtendedControlPayloadFill);
     return frame;
 }
 
 std::string MakeUnmaskedCloseFrame(websocket::CloseStatus status) {
     const auto status_be = boost::endian::native_to_big(static_cast<websocket::CloseStatusInt>(status));
-    std::string payload(reinterpret_cast<const char*>(&status_be), sizeof(status_be));
-    return MakeUnmaskedControlFrame(websocket::impl::WSOpcodes::kClose, payload);
+    const std::string_view payload(reinterpret_cast<const char*>(&status_be), sizeof(status_be));
+    return MakeUnmaskedControlFrame(WSOpcodes::kClose, payload);
 }
 
 // Incomplete data frame: header advertises @a full_len, but only @a partial bytes follow.
 std::string MakeIncompleteUnmaskedTextFrame(std::string_view partial, std::size_t full_len) {
     EXPECT_LT(partial.size(), full_len);
-    return AppendHeaderAndPayload(
-        websocket::impl::frames::DataFrameHeader(full_len, true, Continuation::kNo, Final::kYes, Masked::kNo),
-        partial
-    );
+    const auto header = DataFrameHeader(full_len, true, Continuation::kNo, Final::kYes, Masked::kNo);
+    return AppendHeaderAndPayload({header.data(), header.size()}, partial);
 }
 
 std::string ExtractHeaderValue(const HttpRequest& request, std::string_view name) {
@@ -113,7 +168,7 @@ HttpResponse MakeUpgradeResponse(const HttpRequest& request, std::string_view fr
         "Upgrade: websocket\r\n"
         "Connection: Upgrade\r\n"
         "Sec-WebSocket-Accept: ";
-    response += websocket::impl::WebsocketSecAnswer(sec_key);
+    response += WebsocketSecAnswer(sec_key);
     response += "\r\n\r\n";
     // Same TCP write as the 101 so libcurl CONNECT_ONLY buffers the frame(s).
     response += frames;
@@ -136,7 +191,7 @@ HttpResponse WebSocketUpgradeWithBinaryMessage(const HttpRequest& request) {
 HttpResponse WebSocketUpgradeWithPingThenText(const HttpRequest& request) {
     return MakeUpgradeResponse(
         request,
-        MakeUnmaskedControlFrame(websocket::impl::WSOpcodes::kPing, "ping-body") + MakeUnmaskedTextFrame("after-ping")
+        MakeUnmaskedControlFrame(WSOpcodes::kPing, "ping-body") + MakeUnmaskedTextFrame("after-ping")
     );
 }
 
@@ -145,7 +200,7 @@ HttpResponse WebSocketUpgradeWithPongThenText(const HttpRequest& request) {
     // and make the following text frame look like a protocol error.
     return MakeUpgradeResponse(
         request,
-        MakeUnmaskedControlFrame(websocket::impl::WSOpcodes::kPong, "") + MakeUnmaskedTextFrame("after-pong")
+        MakeUnmaskedControlFrame(WSOpcodes::kPong, "") + MakeUnmaskedTextFrame("after-pong")
     );
 }
 
@@ -167,9 +222,39 @@ HttpResponse WebSocketUpgradeWithFragmentedTextAndInterleavedPing(const HttpRequ
     return MakeUpgradeResponse(
         request,
         MakeUnmaskedDataFrame("AA", true, Continuation::kNo, Final::kNo) +
-            MakeUnmaskedControlFrame(websocket::impl::WSOpcodes::kPing, "x") +
+            MakeUnmaskedControlFrame(WSOpcodes::kPing, "x") +
             MakeUnmaskedDataFrame("BB", true, Continuation::kYes, Final::kYes)
     );
+}
+
+// Client->server frames are masked. Parse with ReadWSFrame and return the first Pong payload.
+std::optional<std::string> TryExtractMaskedPongPayload(std::string_view data) {
+    BufferReader reader{std::string(data)};
+    std::string payload;
+    FrameParserState frame;
+    frame.payload = &payload;
+
+    try {
+        while (true) {
+            std::size_t payload_len = 0;
+            const auto status = ReadWSFrame(frame, reader, kMaxRemotePayload, payload_len);
+            if (status != websocket::CloseStatus::kNone) {
+                return std::nullopt;
+            }
+            if (frame.pong_received) {
+                return payload.substr(payload.size() - payload_len);
+            }
+            if (frame.closed) {
+                return std::nullopt;
+            }
+            if (!frame.waiting_continuation) {
+                payload.clear();
+            }
+            frame.ping_received = false;
+        }
+    } catch (const engine::io::IoException&) {
+        return std::nullopt;
+    }
 }
 
 HttpResponse WebSocketUpgradeWithLargeText(const HttpRequest& request) {
@@ -322,6 +407,59 @@ UTEST(HttpClientWebSocket, HandshakePreambleFragmentedTextWithPingDrained) {
     conn->Close(websocket::CloseStatus::kNormal);
 }
 
+// Ping may arrive while a fragmented data message is still being assembled. The
+// auto-pong must echo only the ping's own payload (the buffer tail), not the
+// unfinished data sitting in front of it.
+UTEST(HttpClientWebSocket, InterleavedPingPongEchoesOnlyPingPayload) {
+    const std::string frag1(100, 'D');
+    const std::string ping_body(100, 'P');
+    const std::string frag2 = "TAIL";
+
+    std::atomic<bool> upgraded{false};
+    std::string pong_payload;
+    std::atomic<bool> got_pong{false};
+
+    const utest::SimpleServer server{[&](const HttpRequest& request) -> HttpResponse {
+        if (!upgraded.load()) {
+            if (request.find("\r\n\r\n") == std::string::npos) {
+                return {{}, HttpResponse::kTryReadMore};
+            }
+            upgraded.store(true);
+            return MakeUpgradeResponse(
+                request,
+                MakeUnmaskedDataFrame(frag1, true, Continuation::kNo, Final::kNo) +
+                    MakeUnmaskedControlFrame(WSOpcodes::kPing, ping_body) +
+                    MakeUnmaskedDataFrame(frag2, true, Continuation::kYes, Final::kYes)
+            );
+        }
+
+        if (auto pong = TryExtractMaskedPongPayload(request)) {
+            pong_payload = std::move(*pong);
+            got_pong.store(true);
+            return {{}, HttpResponse::kWriteAndClose};
+        }
+        return {{}, HttpResponse::kTryReadMore};
+    }};
+
+    auto conn = ConnectWs(server);
+
+    websocket::Message msg;
+    ASSERT_TRUE(TryRecvUntil(*conn, msg, engine::Deadline::FromDuration(utest::kMaxTestWaitTime))
+    ) << "fragmented message with interleaved ping was lost";
+    EXPECT_TRUE(msg.is_text);
+    EXPECT_EQ(msg.data, frag1 + frag2);
+
+    const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+    while (!got_pong.load() && !deadline.IsReached()) {
+        engine::Yield();
+    }
+    ASSERT_TRUE(got_pong.load()) << "auto-pong for interleaved ping was not received";
+    // Would be frag1+ping_body if the whole assembly buffer were echoed.
+    EXPECT_EQ(pong_payload, ping_body);
+
+    conn->Close(websocket::CloseStatus::kNormal);
+}
+
 UTEST(HttpClientWebSocket, HandshakePreambleLargeTextDrained) {
     const utest::SimpleServer server{&WebSocketUpgradeWithLargeText};
 
@@ -336,6 +474,35 @@ UTEST(HttpClientWebSocket, HandshakePreambleLargeTextDrained) {
     conn->Close(websocket::CloseStatus::kNormal);
 }
 
+// Oversized Pong cannot go through the 101 preamble: curl_ws_recv would decode
+// it and MakeControlFrame asserts on payload_len > 125. Send it on the socket
+// after upgrade instead — ReadWSFrame must reject it as a protocol error.
+UTEST(HttpClientWebSocket, OversizedPongIsRejected) {
+    std::atomic<bool> upgraded{false};
+    const utest::SimpleServer server{[&](const HttpRequest& request) -> HttpResponse {
+        if (!upgraded.load()) {
+            if (request.find("\r\n\r\n") == std::string::npos) {
+                return {{}, HttpResponse::kTryReadMore};
+            }
+            upgraded.store(true);
+            return MakeUpgradeResponse(request, "");
+        }
+        return {
+            MakeUnmaskedExtendedControlFrame(WSOpcodes::kPong, kOversizedControlPayload),
+            HttpResponse::kWriteAndClose
+        };
+    }};
+
+    auto conn = ConnectWs(server);
+    // Wake the server so it can push the oversized pong onto the socket.
+    conn->SendPing();
+
+    websocket::Message msg;
+    ASSERT_TRUE(TryRecvUntil(*conn, msg, engine::Deadline::FromDuration(utest::kMaxTestWaitTime))
+    ) << "oversized pong did not produce a close";
+    EXPECT_EQ(msg.close_status, websocket::CloseStatus::kProtocolError);
+}
+
 // curl_ws_recv() returns a partial payload (bytesleft > 0) then CURLE_AGAIN:
 // DrainCurlWebSocketPreamble rebuilds a full-length header + partial bytes;
 // the unread tail must still be readable from the OS socket.
@@ -344,13 +511,13 @@ UTEST(HttpClientWebSocket, HandshakePreambleIncompleteFrameDrained) {
     constexpr std::size_t kFullLen = 40;
     const std::string rest(kFullLen - kPartial.size(), 'R');
 
-    const auto upgraded = std::make_shared<std::atomic<bool>>(false);
-    const utest::SimpleServer server{[upgraded, rest, kPartial](const HttpRequest& request) -> HttpResponse {
-        if (!upgraded->load()) {
+    std::atomic<bool> upgraded{false};
+    const utest::SimpleServer server{[&](const HttpRequest& request) -> HttpResponse {
+        if (!upgraded.load()) {
             if (request.find("\r\n\r\n") == std::string::npos) {
                 return {{}, HttpResponse::kTryReadMore};
             }
-            upgraded->store(true);
+            upgraded.store(true);
             return MakeUpgradeResponse(request, MakeIncompleteUnmaskedTextFrame(kPartial, kFullLen));
         }
         // Client traffic (e.g. SendPing) triggers the second write with the payload tail.
