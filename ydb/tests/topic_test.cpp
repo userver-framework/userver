@@ -262,7 +262,7 @@ protected:
     }
 
     ydb::TopicProducer CreateProducer() {
-        NYdb::NTopic::TProducerSettings producer_settings;
+        ydb::TopicProducerSettings producer_settings;
         producer_settings.Path(ydb::impl::ToString(kProducerTopic));
         producer_settings.ProducerIdPrefix(ydb::impl::ToString(kProducerIdPrefix));
         return GetTopicClient().CreateProducer(producer_settings);

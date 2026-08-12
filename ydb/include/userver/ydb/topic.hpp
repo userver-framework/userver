@@ -194,15 +194,21 @@ private:
     std::atomic_bool closed_{false};
 };
 
+/// @brief Settings for TopicProducer.
+class TopicProducerSettings final : public NYdb::NTopic::TProducerSettings {
+    using NYdb::NTopic::TProducerSettings::MaxBlockTimeout;
+    using NYdb::NTopic::TProducerSettings::MaxBlockTimeout_;
+    using NYdb::NTopic::TProducerSettings::MaxMemoryUsage;
+    using NYdb::NTopic::TProducerSettings::MaxMemoryUsage_;
+};
+
 /// @brief Native YDB producer used for partition-aware writes to a topic.
 ///
-/// Unlike TopicSimpleWriteSession, this is a wrapper around the experimental
-/// YDB SDK `IProducer`. It selects partitions by message key or explicit
-/// partition and manages the corresponding write sessions internally.
+/// Unlike TopicSimpleWriteSession, this is a wrapper around the YDB SDK
+/// `IProducer`. It selects partitions by message key or explicit partition and
+/// manages the corresponding write sessions internally.
 ///
-/// @warning Write() may block the current OS thread for up to
-/// `TProducerSettings::MaxBlockTimeout()` when the internal buffer is
-/// overloaded. The YDB SDK producer API is experimental.
+/// Write() fails immediately if the internal buffer is overloaded.
 ///
 /// @see https://ydb.tech/docs/en/reference/ydb-sdk/topic#write
 class TopicProducer final {
@@ -215,8 +221,7 @@ public:
     /// @brief Write a single message to the topic.
     ///
     /// Adds the message to the internal buffer and returns its queueing status.
-    /// May block the current OS thread if the buffer is overloaded; see
-    /// `TProducerSettings::MaxBlockTimeout()`.
+    /// Fails immediately with `EWriteStatus::Timeout` if the buffer is full.
     /// Use Flush() to wait for the buffered messages to be persistently written.
     NYdb::NTopic::TWriteResult Write(NYdb::NTopic::TWriteMessage&& message);
 
@@ -249,6 +254,8 @@ private:
 /// @see https://ydb.tech/docs/en/concepts/topic
 class TopicClient final {
 public:
+    static constexpr std::uint64_t kDefaultProducerMaxMemoryUsageBytes = 2ULL * 1024 * 1024 * 1024;
+
     /// @cond
     // For internal use only.
     TopicClient(std::shared_ptr<impl::Driver> driver, impl::TopicSettings settings);
@@ -276,13 +283,17 @@ public:
 
     /// Create producer.
     ///
-    /// Unlike TopicSimpleWriteSession, TopicProducer is an experimental native
-    /// YDB multi-session producer: it routes each message by key or explicit
-    /// partition and may block the current OS thread while its buffer is
-    /// overloaded. Flush() waits for persistence without closing the producer;
+    /// Unlike TopicSimpleWriteSession, TopicProducer is a native YDB
+    /// multi-session producer: it routes each message by key or explicit
+    /// partition and fails immediately if its buffer is overloaded. Flush()
+    /// waits for persistence without closing the producer;
     /// TopicSimpleWriteSession instead flushes pending writes as part of
     /// Close().
-    TopicProducer CreateProducer(const NYdb::NTopic::TProducerSettings& settings);
+    /// @param max_memory_usage_bytes maximum buffered message memory in bytes
+    TopicProducer CreateProducer(
+        const TopicProducerSettings& settings,
+        std::uint64_t max_memory_usage_bytes = kDefaultProducerMaxMemoryUsageBytes
+    );
 
     /// Get native topic client
     /// @warning Use with care! Facilities from
