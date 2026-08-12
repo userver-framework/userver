@@ -115,6 +115,8 @@ class UserverConan(ConanFile):
         self.requires('libnghttp2/[^1.61]')
         self.requires('libcurl/[>=7.86.0 <7.88 || >8.1.2]')
         self.requires('libev/[^4.33]')
+        if self.settings.os == 'Linux':
+            self.requires('liburing/[^2.4]')
         self.requires('openssl/[>=1.1 <4]')
         self.requires('rapidjson/[>=cci.20230929 <cci.20230930]', transitive_headers=True)
         self.requires('yaml-cpp/[>=0.8.0 <=0.9.0]')
