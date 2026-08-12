@@ -21,6 +21,7 @@ libasan
 libatomic
 libbson-devel
 libev-devel
+liburing-devel
 libnghttp2-devel
 librdkafka-devel
 libubsan

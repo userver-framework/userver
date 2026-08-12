@@ -31,6 +31,7 @@ find_package(Iconv REQUIRED)
 
 find_package(libev REQUIRED)
 find_package(libnghttp2 REQUIRED)
+find_package(liburing REQUIRED)
 
 if(USERVER_CONAN)
     find_package(c-ares REQUIRED)
@@ -200,7 +201,7 @@ endif()
 target_link_libraries(
     ${PROJECT_NAME}
     PUBLIC c-ares::cares
-    PRIVATE cryptopp::cryptopp libev::libev libnghttp2::nghttp2
+    PRIVATE cryptopp::cryptopp libev::libev libnghttp2::nghttp2 liburing::uring
 )
 
 if(USERVER_CONAN)
@@ -321,7 +322,7 @@ _userver_directory_install(
 _userver_directory_install(
     COMPONENT core
     FILES "${USERVER_ROOT_DIR}/cmake/modules/Findc-ares.cmake" "${USERVER_ROOT_DIR}/cmake/modules/Findlibnghttp2.cmake"
-          "${USERVER_ROOT_DIR}/cmake/modules/Findlibev.cmake"
+          "${USERVER_ROOT_DIR}/cmake/modules/Findlibev.cmake" "${USERVER_ROOT_DIR}/cmake/modules/Findliburing.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules
 )
 

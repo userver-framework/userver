@@ -16,6 +16,7 @@ find_package(ZLIB REQUIRED)
 find_package(c-ares REQUIRED)
 find_package(libnghttp2 REQUIRED)
 find_package(libev REQUIRED)
+find_package(liburing REQUIRED)
 
 if(USERVER_CONAN)
     find_package(concurrentqueue REQUIRED)

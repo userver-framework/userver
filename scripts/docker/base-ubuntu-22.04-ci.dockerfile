@@ -1,5 +1,7 @@
 FROM ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest
 
+COPY scripts/clickhouse/ubuntu-install-clickhouse.sh /userver_tmp/
+
 # Apply the following:
 # * fix for porto layers
 # * set up ramdisk symlink for working tmpfs directory in tests
@@ -15,7 +17,6 @@ RUN \
   DEBIAN_FRONTEND=noninteractive apt install -y --no-install-recommends \
     $PORTO_WORKAROUND \
     net-tools \
-    clickhouse-server \
     mariadb-server \
     mongodb-org \
     postgresql-14 \
@@ -27,6 +28,8 @@ RUN \
     g++-11 gcc-11 \
     g++-13 gcc-13 \
     && \
+  /userver_tmp/ubuntu-install-clickhouse.sh server && \
+  rm -rf /userver_tmp && \
   pip3 install pep8 && \
   apt clean all && \
   curl -fsSL https://raw.githubusercontent.com/pressly/goose/master/install.sh | sh && \

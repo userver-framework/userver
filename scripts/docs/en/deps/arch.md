@@ -15,6 +15,7 @@ hiredis
 jemalloc
 krb5
 libev
+liburing
 libunwind
 libnghttp2
 librdkafka

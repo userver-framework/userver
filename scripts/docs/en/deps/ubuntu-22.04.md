@@ -23,6 +23,7 @@ libcrypto++-dev
 libcurl4-openssl-dev
 libdouble-conversion-dev
 libev-dev
+liburing-dev
 libfmt-dev
 libgflags-dev
 libgmock-dev

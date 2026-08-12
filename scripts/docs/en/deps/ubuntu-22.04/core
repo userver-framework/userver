@@ -9,6 +9,7 @@ zlib1g-dev
 libssl-dev
 libnghttp2-dev
 libev-dev
+liburing-dev
 libc-ares-dev
 libcurl4-openssl-dev
 libcrypto++-dev

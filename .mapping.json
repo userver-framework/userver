@@ -773,6 +773,7 @@
   "cmake/modules/Findlibnghttp2.cmake":"taxi/uservices/userver/cmake/modules/Findlibnghttp2.cmake",
   "cmake/modules/Findlibodbc.cmake":"taxi/uservices/userver/cmake/modules/Findlibodbc.cmake",
   "cmake/modules/Findlibsnappy.cmake":"taxi/uservices/userver/cmake/modules/Findlibsnappy.cmake",
+  "cmake/modules/Findliburing.cmake":"taxi/uservices/userver/cmake/modules/Findliburing.cmake",
   "cmake/modules/Findlz4.cmake":"taxi/uservices/userver/cmake/modules/Findlz4.cmake",
   "cmake/modules/Findmongoc.cmake":"taxi/uservices/userver/cmake/modules/Findmongoc.cmake",
   "cmake/modules/Findpugixml.cmake":"taxi/uservices/userver/cmake/modules/Findpugixml.cmake",
