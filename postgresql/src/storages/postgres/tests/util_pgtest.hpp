@@ -57,20 +57,8 @@ inline const storages::postgres::ConnectionSettings kNoUserTypes{
     storages::postgres::ConnectionSettings::kCachePreparedStatements,
     storages::postgres::ConnectionSettings::kPredefinedTypesOnly,
 };
-inline const storages::postgres::ConnectionSettings kPipelineEnabled{
-    storages::postgres::ConnectionSettings::kCachePreparedStatements,
-    storages::postgres::ConnectionSettings::kUserTypesEnabled,
-    storages::postgres::ConnectionSettings::kCheckUnused,
-    storages::postgres::kDefaultMaxPreparedCacheSize,
-    storages::postgres::PipelineMode::kEnabled,
-};
-inline const storages::postgres::ConnectionSettings kOmitDescribeAndPipelineEnabled{
-    storages::postgres::ConnectionSettings::kCachePreparedStatements,
-    storages::postgres::ConnectionSettings::kUserTypesEnabled,
-    storages::postgres::ConnectionSettings::kCheckUnused,
-    storages::postgres::kDefaultMaxPreparedCacheSize,
-    storages::postgres::PipelineMode::kEnabled,
-    storages::postgres::OmitDescribeInExecuteMode::kEnabled,
+inline const storages::postgres::ConnectionSettings kOmitDescribe{
+    .omit_describe_mode = storages::postgres::OmitDescribeInExecuteMode::kEnabled,
 };
 
 engine::Deadline MakeDeadline();

@@ -239,11 +239,6 @@ inline constexpr std::size_t kMinPreparedStatementsCacheSize = 3;
 /// Default size limit for prepared statements cache
 inline constexpr std::size_t kDefaultMaxPreparedCacheSize = 200;
 
-/// Pipeline mode configuration
-///
-/// Dynamic option @ref POSTGRES_CONNECTION_PIPELINE_EXPERIMENT
-enum class PipelineMode { kDisabled, kEnabled };
-
 /// Whether to omit excessive D(escribe) message
 /// when executing prepared statements
 ///
@@ -292,9 +287,6 @@ struct ConnectionSettings {
     /// Limits the size or prepared statements cache
     std::size_t max_prepared_cache_size = kDefaultMaxPreparedCacheSize;
 
-    /// Turns on connection pipeline mode
-    PipelineMode pipeline_mode = PipelineMode::kDisabled;
-
     /// Enables protocol-level optimization when executing prepared statements
     OmitDescribeInExecuteMode omit_describe_mode = OmitDescribeInExecuteMode::kDisabled;
 
@@ -328,10 +320,9 @@ struct ConnectionSettings {
         // TODO: max_prepared_cache_size check could be relaxed
         return prepared_statements != rhs.prepared_statements || user_types != rhs.user_types ||
                ignore_unused_query_params != rhs.ignore_unused_query_params ||
-               max_prepared_cache_size != rhs.max_prepared_cache_size || pipeline_mode != rhs.pipeline_mode ||
-               max_ttl != rhs.max_ttl || discard_on_connect != rhs.discard_on_connect ||
-               omit_describe_mode != rhs.omit_describe_mode || application_name != rhs.application_name ||
-               pooler_mode != rhs.pooler_mode;
+               max_prepared_cache_size != rhs.max_prepared_cache_size || max_ttl != rhs.max_ttl ||
+               discard_on_connect != rhs.discard_on_connect || omit_describe_mode != rhs.omit_describe_mode ||
+               application_name != rhs.application_name || pooler_mode != rhs.pooler_mode;
     }
 };
 

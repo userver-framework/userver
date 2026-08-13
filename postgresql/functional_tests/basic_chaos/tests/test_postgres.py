@@ -351,6 +351,10 @@ async def test_close_with_error(service_client, gate, testpoint):
     POSTGRES_CONNECTION_POOL_SETTINGS={
         '__default__': {'max_pool_size': 1, 'min_pool_size': 1},
     },
+    # Force a fresh connection with an empty local prepared statements cache.
+    POSTGRES_CONNECTION_SETTINGS={
+        '__default__': {'max-prepared-cache-size': 201},
+    },
 )
 async def test_prepared_statement_already_exists(
     service_client,

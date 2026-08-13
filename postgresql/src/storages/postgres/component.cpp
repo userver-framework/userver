@@ -29,7 +29,6 @@
 
 #include <storages/postgres/experiments.hpp>
 
-#include <dynamic_config/variables/POSTGRES_CONNECTION_PIPELINE_EXPERIMENT.hpp>
 #include <dynamic_config/variables/POSTGRES_OMIT_DESCRIBE_IN_EXECUTE.hpp>
 
 #ifndef ARCADIA_ROOT
@@ -161,10 +160,6 @@ Postgres::Postgres(const ComponentConfig& config, const ComponentContext& contex
     initial_settings_.conn_settings.statement_log_mode =
         config["statement-log-mode"].As<storages::postgres::ConnectionSettings::StatementLogMode>();
 
-    initial_settings_.conn_settings.pipeline_mode =
-        initial_config[::dynamic_config::POSTGRES_CONNECTION_PIPELINE_EXPERIMENT] > 0
-            ? storages::postgres::PipelineMode::kEnabled
-            : storages::postgres::PipelineMode::kDisabled;
     initial_settings_.conn_settings.omit_describe_mode = ParseOmitDescribe(initial_config);
     initial_settings_.statement_metrics_settings =
         pg_config.statement_metrics_settings.GetOptional(name_)
@@ -261,10 +256,6 @@ void Postgres::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
     auto connection_settings = initial_settings_.conn_settings;
     MergeConnectionSettings(pg_config.connection_settings.GetOptional(name_), connection_settings);
 
-    connection_settings.pipeline_mode =
-        cfg[::dynamic_config::POSTGRES_CONNECTION_PIPELINE_EXPERIMENT] > 0
-            ? storages::postgres::PipelineMode::kEnabled
-            : storages::postgres::PipelineMode::kDisabled;
     connection_settings.omit_describe_mode = ParseOmitDescribe(cfg);
     const auto statement_metrics_settings =
         pg_config.statement_metrics_settings.GetOptional(name_).value_or(initial_settings_.statement_metrics_settings);

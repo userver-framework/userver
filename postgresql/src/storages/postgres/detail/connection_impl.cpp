@@ -381,9 +381,7 @@ void ConnectionImpl::AsyncConnect(const Dsn& dsn, engine::Deadline deadline) {
     if (settings_.user_types != ConnectionSettings::kPredefinedTypesOnly) {
         LoadUserTypes(deadline);
     }
-    if (settings_.pipeline_mode == PipelineMode::kEnabled) {
-        conn_wrapper_.EnterPipelineMode();
-    }
+    conn_wrapper_.EnterPipelineMode();
 }
 
 void ConnectionImpl::Close() { conn_wrapper_.Close().Wait(); }
@@ -818,7 +816,7 @@ bool ConnectionImpl::Cleanup(TimeoutDuration timeout) {
         // If the query timeouts we won't be IDLE, and apart from timeouts there's
         // no other way for the query to fail, so just discard its result.
         conn_wrapper_.DiscardInput(deadline);
-    } else if (settings_.pipeline_mode == PipelineMode::kEnabled) {
+    } else {
         // Reenter pipeline mode if necessary
         conn_wrapper_.EnterPipelineMode();
     }
