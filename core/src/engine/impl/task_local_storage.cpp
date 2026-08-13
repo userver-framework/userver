@@ -23,18 +23,10 @@ namespace {
 
 constinit Key variable_count{0};
 
-#ifdef __clang__
-constinit std::vector<TaskInheritedVariablePriority> inherited_variable_priorities;
-std::vector<TaskInheritedVariablePriority>& InheritedVariablePriorities() noexcept {
-    return inherited_variable_priorities;
-}
-#else
-// GCC only implemented enough constexpr for std::vector in 12.1.
 std::vector<TaskInheritedVariablePriority>& InheritedVariablePriorities() noexcept {
     static std::vector<TaskInheritedVariablePriority> inherited_variable_priorities;
     return inherited_variable_priorities;
 }
-#endif
 
 Key RegisterVariable(TaskInheritedVariablePriority priority) {
     utils::impl::AssertStaticRegistrationAllowed("TaskLocalVariable registration");

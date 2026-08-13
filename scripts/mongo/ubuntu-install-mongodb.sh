@@ -3,7 +3,7 @@
 # Exit on any error and treat unset variables as errors, print all commands
 set -euox pipefail
 
-apt install curl lsb-release
+apt install -y curl lsb-release
 
 # Download mongo's GPG key
 curl -fsSL https://www.mongodb.org/static/pgp/server-8.0.asc | gpg --dearmor -o /usr/share/keyrings/mongodb.gpg
