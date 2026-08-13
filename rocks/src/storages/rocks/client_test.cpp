@@ -4,11 +4,8 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace {
-
-// TAXICOMMON-10374
-UTEST(Rocks, DISABLED_CheckCRUD) {
-    storages::rocks::Client client{"/tmp/rocksdb_simple_example", engine::current_task::GetTaskProcessor()};
+UTEST(Rocks, CheckCRUD) {
+    storages::rocks::Client client{"/tmp/urocksdb_check_crud", engine::current_task::GetTaskProcessor()};
 
     const std::string key = "key";
 
@@ -25,6 +22,33 @@ UTEST(Rocks, DISABLED_CheckCRUD) {
     EXPECT_EQ("", res);
 }
 
-}  // namespace
+UTEST(RocksSnapshot, CheckSnapshot) {
+    storages::rocks::Client client{"/tmp/urocksdb_check_snapshot", engine::current_task::GetTaskProcessor()};
+    std::string key = "key";
+    std::string value = "value";
+
+    client.Put(key, value);
+    std::string res = client.Get(key);
+    EXPECT_EQ(value, res);
+
+    storages::rocks::Client snapshot(client.MakeSnapshot("/tmp/urocksdb_the_snapshot"));
+    res = snapshot.Get(key);
+    EXPECT_EQ(value, res);
+
+    std::string new_value = "new value";
+    snapshot.Put(key, new_value);
+    res = snapshot.Get(key);
+    EXPECT_EQ(new_value, res);
+
+    res = client.Get(key);
+    EXPECT_EQ(value, res);
+
+    snapshot.Delete(key);
+    res = snapshot.Get(key);
+    EXPECT_EQ("", res);
+
+    res = client.Get(key);
+    EXPECT_EQ(value, res);
+}
 
 USERVER_NAMESPACE_END
