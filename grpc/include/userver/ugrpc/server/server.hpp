@@ -93,8 +93,7 @@ public:
     explicit Server(
         utils::ResourceScopeStorage& scope_storage,
         ServerConfig&& config,
-        utils::statistics::Storage& statistics_storage,
-        dynamic_config::Source config_source
+        utils::statistics::Storage& statistics_storage
     );
 
     Server(Server&&) = delete;

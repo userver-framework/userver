@@ -11,6 +11,9 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-metrics)
 add_subdirectory(basic_server)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-basic-server)
 
+add_subdirectory(light_client)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-light-client)
+
 add_subdirectory(middleware_server)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-middleware-server)
 

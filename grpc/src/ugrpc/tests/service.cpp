@@ -20,7 +20,7 @@ ServiceBase::ServiceBase(server::ServerConfig&& server_config)
       metrics_storage_registration_(metrics_storage_.RegisterIn(statistics_storage_)),
       config_storage_(dynamic_config::MakeDefaultStorage({})),
       unix_socket_path_(server_config.unix_socket_path),
-      server_(std::in_place, std::move(server_config), statistics_storage_, config_storage_.GetSource()),
+      server_(std::in_place, std::move(server_config), statistics_storage_),
       testsuite_({}, false),
       client_statistics_storage_(std::in_place, statistics_storage_, ugrpc::impl::StatisticsDomain::kClient)
 {}
@@ -35,7 +35,12 @@ void ServiceBase::RegisterService(server::GenericServiceBase& service) {
 
 server::ServiceConfig ServiceBase::MakeServiceConfig() {
     middlewares_change_allowed_ = false;
-    return server::ServiceConfig{engine::current_task::GetTaskProcessor(), server_middlewares_, {}};
+    return server::ServiceConfig{
+        .task_processor = engine::current_task::GetTaskProcessor(),
+        .middlewares = server_middlewares_,
+        .status_codes_log_level = {},
+        .config_source = config_storage_.GetSource(),
+    };
 }
 
 void ServiceBase::StartServer(client::ClientFactorySettings&& client_factory_settings) {

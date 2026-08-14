@@ -43,6 +43,26 @@ using MiddlewareRunnerComponentBase = USERVER_NAMESPACE::middlewares::RunnerComp
 /// service config should be distributed via the name resolution process.
 /// We allow setting default service_config: pass desired JSON literal to `default-service-config` parameter
 ///
+/// ## Dynamic config bootstrap
+/// By default this component waits for @ref components::DynamicConfig to load the first successful dynamic config
+/// update (via @ref components::DynamicConfig::GetSource() "GetSource()"), which may block component construction.
+/// Set `use-constant-dynamic-configs: true` to instead use
+/// @ref components::DynamicConfig::GetDefaultsAsConstantSource() "GetDefaultsAsConstantSource()" — a non-blocking,
+/// constant @ref dynamic_config::Source built from @ref components::DynamicConfig's own fallback defaults. This is
+/// useful e.g. for a gRPC client used to deliver dynamic configs to the service itself, where waiting for
+/// @ref components::DynamicConfig would create a bootstrap cycle.
+///
+/// When `use-constant-dynamic-configs` is in effect, this component also skips
+/// @ref ugrpc::client::CommonComponent's shared default `retry-limiter` (as set by `grpc-client-common`'s
+/// `retry-limiter`/`retry-limiter-enabled` options), since that default implementation may itself depend on
+/// @ref components::DynamicConfig (e.g. the standard `statistics-retry-limiter` component), which would reintroduce
+/// the same bootstrap dependency. An explicit `retry-limiter` specified directly in this component's own static
+/// config is still always honored, regardless of `use-constant-dynamic-configs`; set it to `none` to force no
+/// retry-limiter at all for this factory, even if a `grpc-client-common` default is configured.
+///
+/// ## Example: a "light" client factory used to deliver dynamic configs to the service itself
+/// @snippet grpc/functional_tests/light_client/static_config.yaml Sample light grpc client factory config
+///
 /// ## Static options of ugrpc::client::ClientFactoryComponent :
 /// @include{doc} scripts/docs/en/components_schema/grpc/src/ugrpc/client/client_factory_component.md
 ///

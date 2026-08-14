@@ -47,6 +47,8 @@ properties:
         description: |
             Default component that will be used as retry-limiter for all clients if there is no specified value in the factory component.
             Retry limiter tracks success/failure rates and decides whether retries should be allowed
+            Not looked up (and thus not constructed) for client factories with 'use-constant-dynamic-configs: true' —
+            see ugrpc::client::ClientFactoryComponent's documentation for details.
     retry-limiter-enabled:
         type: boolean
         description: Temporary feature flag for the retry limiter feature. Used for gradual rollout across services

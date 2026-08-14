@@ -11,6 +11,7 @@
 #include <grpcpp/support/status.h>
 
 #include <userver/components/component_base.hpp>
+#include <userver/dynamic_config/source.hpp>
 #include <userver/middlewares/groups.hpp>
 #include <userver/middlewares/runner.hpp>
 #include <userver/tracing/span.hpp>
@@ -40,6 +41,9 @@ struct ClientInfo final {
     std::string client_name{};
     /// `std::nullopt` for generic clients.
     std::optional<std::string> service_full_name{};
+    /// The same @ref dynamic_config::Source that is used by this client's `ClientData`/`CallState`.
+    /// See @ref ugrpc::client::MiddlewareBase for how a custom middleware should use it.
+    dynamic_config::Source config_source;
 };
 
 /// @ingroup userver_grpc_client_middlewares
@@ -83,6 +87,19 @@ private:
 /// @ingroup userver_base_classes userver_grpc_client_middlewares
 ///
 /// @brief Base class for client gRPC middleware
+///
+/// @note If your middleware needs a dynamic config value, do NOT do your own
+/// `FindComponent<components::DynamicConfig>()` in your middleware factory
+/// component, and do NOT depend, even transitively, on a component that does
+/// so itself (e.g. do not add @ref components::DynamicConfig or such a
+/// component as a dependency of your middleware factory component). Instead,
+/// store @ref ClientInfo::config_source, passed to `CreateMiddleware`, as a field
+/// of your middleware object, and read the config through it
+/// (`.GetSnapshot()[key]`) inside the hooks below. This way your middleware
+/// keeps working correctly for "light" gRPC clients that use a constant,
+/// non-blocking @ref dynamic_config::Source (see
+/// @ref ugrpc::client::ClientFactoryComponent's `use-constant-dynamic-configs`
+/// option) instead of the live @ref components::DynamicConfig.
 class MiddlewareBase {
 public:
     virtual ~MiddlewareBase();

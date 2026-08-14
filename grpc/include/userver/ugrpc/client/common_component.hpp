@@ -10,7 +10,6 @@
 
 #include <userver/ugrpc/client/impl/completion_queue_pool.hpp>
 #include <userver/ugrpc/client/proxy_settings.hpp>
-#include <userver/ugrpc/client/retry_limiter.hpp>
 #include <userver/ugrpc/impl/completion_queue_pool_base.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
 
@@ -50,7 +49,13 @@ private:
     ugrpc::impl::CompletionQueuePoolBase& completion_queues_;
     ugrpc::impl::StatisticsStorage client_statistics_storage_;
     ProxySettings proxy_settings_;
-    RetryLimiterFactory* retry_limiter_factory_;
+    // Deliberately only the *name* of the shared default retry-limiter component, not a pointer to the component
+    // itself: looking the component up eagerly here (in CommonComponent's own constructor) would force its
+    // construction for every ClientFactoryComponent that uses this CommonComponent, including "light"
+    // (use-constant-dynamic-configs) factories, for which this is typically undesired (see
+    // ugrpc::client::ClientFactoryComponent's documentation). The actual lookup is deferred to each
+    // ClientFactoryComponent's own constructor -- see FindRetryLimiterFactory in client_factory_component.cpp.
+    std::optional<std::string> retry_limiter_factory_name_;
 };
 
 }  // namespace ugrpc::client

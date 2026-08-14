@@ -38,27 +38,15 @@ ugrpc::impl::CompletionQueuePoolBase& FindOrEmplaceCompletionQueues(
     return *holder;
 }
 
-RetryLimiterFactory* TryFindRetryLimiterFactory(
-    const components::ComponentConfig& config,
-    const components::ComponentContext& context
-) {
+std::optional<std::string> ParseRetryLimiterFactoryName(const components::ComponentConfig& config) {
     auto retry_limiter_enabled = config["retry-limiter-enabled"].As<bool>(false);
     if (!retry_limiter_enabled) {
-        return nullptr;
+        return std::nullopt;
     }
 
-    auto retry_limiter_factory_name = config["retry-limiter"].As<std::optional<std::string>>();
-    if (retry_limiter_factory_name) {
-        auto* retry_limiter_factory = context.FindComponentOptional<RetryLimiterFactory>(*retry_limiter_factory_name);
-        UINVARIANT(
-            retry_limiter_factory,
-            fmt::format("RetryLimiterFactory component '{}' not found", *retry_limiter_factory_name)
-        );
-
-        return retry_limiter_factory;
-    }
-
-    return nullptr;
+    // Deliberately no component lookup here: see the doc comment on
+    // CommonComponent::retry_limiter_factory_name_ for why.
+    return config["retry-limiter"].As<std::optional<std::string>>();
 }
 
 }  // namespace
@@ -80,7 +68,7 @@ CommonComponent::CommonComponent(const components::ComponentConfig& config, cons
           config["proxy-address"].As<std::string>(""),
           config["servicemesh-settings"]["egress"]["disable_proxy"].As<std::unordered_set<std::string>>({})
       },
-      retry_limiter_factory_{TryFindRetryLimiterFactory(config, context)}
+      retry_limiter_factory_name_{ParseRetryLimiterFactoryName(config)}
 {
     ugrpc::impl::SetupNativeLogging();
     ugrpc::impl::UpdateNativeLogLevel(config["native-log-level"].As<logging::Level>(logging::Level::kError));

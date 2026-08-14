@@ -216,6 +216,30 @@ If you want to use static config options for your middleware, use @ref ugrpc::cl
 
 To override static config options of a middleware per a client see @ref grpc_middlewares_config_override.
 
+## Using dynamic config values in middlewares
+
+If your middleware needs a dynamic config value, do NOT do your own
+`FindComponent<components::DynamicConfig>()` in your middleware factory component,
+and do NOT depend, even transitively, on a component that does so itself
+(e.g. do not add `components::DynamicConfig`, or a component that depends on it,
+as a dependency of your middleware factory component).
+Instead, store @ref ugrpc::client::ClientInfo::config_source, passed to
+`CreateMiddleware`, as a field of your middleware object, and read the config
+through it (`.GetSnapshot()[key]`) inside the middleware hooks
+(`PreStartCall`/`PreSendMessage`/`PostRecvMessage`/`PostFinish`).
+
+`CreateMiddleware` is called once per client, so the resulting `config_source`
+is the same one that the rest of the client uses. This is important because a
+client's `ClientFactoryComponent` may be configured with
+`use-constant-dynamic-configs: true` (a "light" gRPC client without a blocking
+dependency on `components::DynamicConfig`, see
+@ref ugrpc::client::ClientFactoryComponent) — in that case `config_source` is
+constant and does not go through `components::DynamicConfig` at all. A
+middleware that bypasses `ClientInfo::config_source` and does its own
+`FindComponent<components::DynamicConfig>()` (directly or transitively, through
+some other component it depends on) would silently reintroduce a blocking
+dependency for such a client.
+
 
 @anchor grpc_client_middlewares_order
 ## Middlewares order

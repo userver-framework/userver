@@ -32,7 +32,12 @@ properties:
         description: |
             Component that will be used as retry-limiter for this client.
             Retry limiter tracks success/failure rates and decides whether retries should be allowed
-            Might be set to 'null' or ommited value as 'retry-limiter: ', to explicitly disable retry-limiter for this client.
+            If ommited (or explicitly set to 'null'), the default retry-limiter from
+            grpc-client-common (if any) is used, unless 'use-constant-dynamic-configs' is
+            in effect, in which case the grpc-client-common default is
+            skipped (it may itself depend on components::DynamicConfig).
+            Set to 'none' to explicitly force no retry-limiter for this client,
+            even if a grpc-client-common default is configured.
     retry-config:
         type: object
         description: Retry configuration for outgoing RPCs
@@ -66,3 +71,13 @@ properties:
         description: |
             Number of channels created for each endpoint.
         default: 1
+    use-constant-dynamic-configs:
+        type: boolean
+        description: |-
+            Whether to use a constant dynamic_config::Source built from
+            components::DynamicConfig's own fallback defaults
+            (dynamic-config.defaults/defaults-path), instead of waiting for the
+            first successful dynamic config update via GetSource().
+            Defaults to false.
+            Also affects the retry-limiter default: see the description of
+            'retry-limiter' above.

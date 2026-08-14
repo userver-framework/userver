@@ -83,8 +83,7 @@ public:
     explicit Impl(
         utils::ResourceScopeStorage& scope_storage,
         ServerConfig&& config,
-        utils::statistics::Storage& statistics_storage,
-        dynamic_config::Source config_source
+        utils::statistics::Storage& statistics_storage
     );
     ~Impl();
 
@@ -138,18 +137,15 @@ private:
     mutable engine::Mutex configuration_mutex_;
 
     ugrpc::impl::StatisticsStorage statistics_storage_;
-    const dynamic_config::Source config_source_;
     const bool otel_trace_sampling_enabled_;
 };
 
 Server::Impl::Impl(
     utils::ResourceScopeStorage& scope_storage,
     ServerConfig&& config,
-    utils::statistics::Storage& statistics_storage,
-    dynamic_config::Source config_source
+    utils::statistics::Storage& statistics_storage
 )
     : statistics_storage_(scope_storage, statistics_storage, ugrpc::impl::StatisticsDomain::kServer),
-      config_source_(config_source),
       otel_trace_sampling_enabled_(config.otel_trace_sampling_enabled)
 {
     LOG_INFO() << "Configuring the gRPC server";
@@ -218,7 +214,7 @@ impl::ServiceInternals Server::Impl::MakeServiceInternals(ServiceConfig&& config
         config.task_processor,
         statistics_storage_,
         std::move(config.middlewares),
-        config_source_,
+        config.config_source,
         std::move(config.status_codes_log_level),
         otel_trace_sampling_enabled_,
     };
@@ -390,10 +386,9 @@ void Server::Impl::ShutdownServer(std::optional<engine::Deadline> serving_shutdo
 Server::Server(
     utils::ResourceScopeStorage& scope_storage,
     ServerConfig&& config,
-    utils::statistics::Storage& statistics_storage,
-    dynamic_config::Source config_source
+    utils::statistics::Storage& statistics_storage
 )
-    : impl_(std::make_unique<Impl>(scope_storage, std::move(config), statistics_storage, config_source))
+    : impl_(std::make_unique<Impl>(scope_storage, std::move(config), statistics_storage))
 {}
 
 Server::~Server() = default;

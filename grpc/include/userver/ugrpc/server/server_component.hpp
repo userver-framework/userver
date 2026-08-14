@@ -43,10 +43,11 @@ public:
     Server& GetServer() noexcept;
 
     /// @cond
+    // For internal use only.
     ServiceConfig ParseServiceConfig(
         const components::ComponentConfig& config,
         const components::ComponentContext& context
-    );
+    ) const;
     /// @endcond
 
     static yaml_config::Schema GetStaticConfigSchema();

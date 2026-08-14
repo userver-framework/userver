@@ -65,27 +65,38 @@ std::unordered_map<std::string, std::shared_ptr<grpc::ChannelCredentials>> MakeC
     return client_credentials;
 }
 
-std::optional<RetryLimiterFactory*> TryFindRetryLimiterFactory(
-    const components::ComponentConfig& config,
+// Looks up a RetryLimiterFactory component by name. Used for both this
+// factory's own explicit `retry-limiter` override and the common
+// (grpc-client-common-level) shared default -- see
+// CommonComponent::retry_limiter_factory_name_ for why the latter is looked
+// up lazily here rather than eagerly in CommonComponent's own constructor.
+RetryLimiterFactory* FindRetryLimiterFactory(
+    const std::optional<std::string>& retry_limiter_factory_name,
     const components::ComponentContext& context
 ) {
-    auto retry_limiter_factory_name_yaml = config["retry-limiter"];
-    if (retry_limiter_factory_name_yaml.IsMissing()) {
-        return std::nullopt;
+    if (!retry_limiter_factory_name) {
+        return nullptr;
     }
 
-    auto retry_limiter_factory_name = retry_limiter_factory_name_yaml.As<std::optional<std::string>>();
-    if (retry_limiter_factory_name) {
-        auto* retry_limiter_factory = context.FindComponentOptional<RetryLimiterFactory>(*retry_limiter_factory_name);
-        UINVARIANT(
-            retry_limiter_factory,
-            fmt::format("RetryLimiterFactory component '{}' not found", *retry_limiter_factory_name)
-        );
+    auto* retry_limiter_factory = context.FindComponentOptional<RetryLimiterFactory>(*retry_limiter_factory_name);
+    UINVARIANT(
+        retry_limiter_factory,
+        fmt::format("RetryLimiterFactory component '{}' not found", *retry_limiter_factory_name)
+    );
+    return retry_limiter_factory;
+}
 
-        return retry_limiter_factory;
-    }
+bool ShouldUseConstantDynamicConfigs(const components::ComponentConfig& config) {
+    return config["use-constant-dynamic-configs"].As<bool>(false);
+}
 
-    return nullptr;
+// Explicit sentinel value for `retry-limiter`, forcing no retry-limiter for this factory regardless of any common
+// default. This is orthogonal to `use-constant-dynamic-configs`: an omitted (or `null`) `retry-limiter` falls back
+// to the common default depending on `use-constant-dynamic-configs`, while `none` always disables it.
+constexpr std::string_view kNoRetryLimiterSentinel = "none";
+
+bool IsNoRetryLimiterSentinel(const std::optional<std::string>& own_retry_limiter_factory_name) {
+    return own_retry_limiter_factory_name == kNoRetryLimiterSentinel;
 }
 
 }  // namespace
@@ -97,12 +108,27 @@ ClientFactoryComponent::ClientFactoryComponent(
     : impl::MiddlewareRunnerComponentBase(config, context, MiddlewarePipelineComponent::kName) {
     auto& client_common_component = context.FindComponent<CommonComponent>();
 
-    auto retry_limiter_factory =
-        TryFindRetryLimiterFactory(config, context).value_or(client_common_component.retry_limiter_factory_);
+    const bool use_constant_dynamic_configs = ShouldUseConstantDynamicConfigs(config);
+
+    const auto own_retry_limiter_factory_name = config["retry-limiter"].As<std::optional<std::string>>();
+    const bool no_retry_limiter = IsNoRetryLimiterSentinel(own_retry_limiter_factory_name);
+
+    RetryLimiterFactory* retry_limiter_factory = nullptr;
+    if (!no_retry_limiter) {
+        retry_limiter_factory = FindRetryLimiterFactory(own_retry_limiter_factory_name, context);
+        if (!retry_limiter_factory && !use_constant_dynamic_configs) {
+            retry_limiter_factory =
+                FindRetryLimiterFactory(client_common_component.retry_limiter_factory_name_, context);
+        }
+    }
 
     auto& metrics_storage = context.FindComponent<components::StatisticsStorage>().GetMetricsStorageRef();
 
-    const auto config_source = context.FindComponent<components::DynamicConfig>().GetSource();
+    auto& dynamic_config_component = context.FindComponent<components::DynamicConfig>();
+    const auto config_source =
+        use_constant_dynamic_configs
+            ? dynamic_config_component.GetDefaultsAsConstantSource()
+            : dynamic_config_component.GetSource();
 
     auto& testsuite_grpc = context.FindComponent<components::TestsuiteSupport>().GetGrpcControl();
     auto client_factory_config = config.As<impl::ClientFactoryConfig>();

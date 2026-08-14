@@ -2,6 +2,7 @@
 
 #include <boost/container/flat_map.hpp>
 
+#include <userver/dynamic_config/storage/component.hpp>
 #include <userver/tracing/manager_component.hpp>
 
 #include <userver/formats/parse/common_containers.hpp>
@@ -81,6 +82,7 @@ server::ServiceConfig ParseServiceConfig(
         .middlewares = {},
         .status_codes_log_level =
             value[kStatusCodesLogLevelKey].As<boost::container::flat_map<grpc::StatusCode, logging::Level>>({}),
+        .config_source = context.FindComponent<components::DynamicConfig>().GetSource(),
     };
 }
 

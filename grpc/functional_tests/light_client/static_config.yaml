@@ -1,0 +1,131 @@
+# yaml
+components_manager:
+    components:
+        # The required common components
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        handler-server-monitor:
+            path: /service/monitor
+            method: GET
+            task_processor: main-task-processor
+
+        congestion-control:
+
+        light-client-test:
+
+        # No registered gRPC services; proves its mere presence doesn't force
+        # a blocking DynamicConfig::GetSource() call (see
+        # ServerComponent::ParseServiceConfig).
+        grpc-server: {}
+
+        # No fs cache, no dynamic-config-client/-updater: config-pusher below
+        # is this service's ONLY source of dynamic config updates, and it
+        # depends on the light client factories below (see
+        # config_pusher.hpp).
+        dynamic-config:
+            updates-enabled: true
+
+        # gRPC clients
+        grpc-client-origin:
+            user-agent: light-client-service
+
+        grpc-client-common:
+            blocking-task-processor: grpc-blocking-task-processor
+            # Shared default retry-limiter for all "regular" client factories.
+            retry-limiter-enabled: true
+            retry-limiter: blocking-retry-limiter
+
+        blocking-retry-limiter:
+
+        # No dependency on components::DynamicConfig, unlike
+        # blocking-retry-limiter above (see non_blocking_retry_limiter.hpp
+        # for why that matters for the explicit override below).
+        non-blocking-retry-limiter:
+
+        # A regular (non-light) client factory: uses grpc-client-common's
+        # default retry-limiter and blocks on GetSource() at construction.
+        grpc-client-factory:
+
+        # /// [Sample light grpc client factory config]
+        # A "light" client factory: uses GetDefaultsAsConstantSource()
+        # instead of GetSource(), and skips grpc-client-common's shared
+        # default retry-limiter. Nothing here is special-cased by component
+        # name -- only use-constant-dynamic-configs below matters.
+        light-client-factory:
+            use-constant-dynamic-configs: true
+        # /// [Sample light grpc client factory config]
+
+        # A light factory with an explicit per-factory retry-limiter
+        # override, proving that it still works despite skipping
+        # grpc-client-common's shared default above.
+        light-client-factory-explicit-retry-limiter:
+            use-constant-dynamic-configs: true
+            retry-limiter: non-blocking-retry-limiter
+
+        # A regular factory with retry-limiter explicitly disabled --
+        # orthogonal to use-constant-dynamic-configs.
+        regular-client-factory-no-retry-limiter:
+            retry-limiter: none
+
+        config-pusher:
+            factory-components:
+              - light-client-factory
+              - light-client-factory-explicit-retry-limiter
+
+        regular-greeter-client:
+            endpoint: $greeter-client-endpoint
+
+        light-greeter-client:
+            endpoint: $greeter-client-endpoint
+            factory-component: light-client-factory
+
+        light-greeter-client-explicit-retry-limiter:
+            endpoint: $greeter-client-endpoint
+            factory-component: light-client-factory-explicit-retry-limiter
+
+        regular-greeter-client-no-retry-limiter:
+            endpoint: $greeter-client-endpoint
+            factory-component: regular-client-factory-no-retry-limiter
+
+        # http server (for testsuite support)
+        server:
+            listener:
+                port: 8092
+                task_processor: main-task-processor
+            listener-monitor:
+                port: $monitor-server-port
+                task_processor: main-task-processor
+
+        testsuite-support:
+        tests-control:
+            path: /tests/{action}
+            method: POST
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
+
+        # http client (for testsuite support)
+        http-client:
+        http-client-core:
+            fs-task-processor: main-task-processor
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+    default_task_processor: main-task-processor
+
+    task_processors:
+        grpc-blocking-task-processor:  # For blocking gRPC channel creation
+            thread_name: grpc-worker
+            worker_threads: 2
+        main-task-processor:  # For non-blocking operations
+            worker_threads: 4
+        fs-task-processor:  # For blocking filesystem operations
+            worker_threads: 2

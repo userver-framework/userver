@@ -52,6 +52,7 @@ impl::ClientInternals ClientFactory::MakeClientInternals(
     ClientInfo info{
         .client_name = client_settings.client_name,
         .service_full_name = std::nullopt,
+        .config_source = config_source_,
     };
     if (meta.has_value()) {
         info.service_full_name.emplace(meta.value().service_full_name);

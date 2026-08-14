@@ -1,0 +1,7 @@
+# yaml
+logger-level: info
+
+server-port: 8185
+monitor-server-port: 8186
+
+greeter-client-endpoint: $grpc_mockserver

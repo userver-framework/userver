@@ -70,6 +70,23 @@ public:
     /// something special on config updates
     dynamic_config::Source GetSource();
 
+    /// @brief Returns a constant @ref dynamic_config::Source built from this
+    /// component's own fallback defaults (`dynamic-config.defaults`/
+    /// `defaults-path`), without waiting for the first successful dynamic
+    /// config update.
+    ///
+    /// Intended for bootstrapping components that must not have a blocking
+    /// dependency on this component (e.g. to break a bootstrap cycle), while
+    /// still needing a valid @ref dynamic_config::Source to pass around —
+    /// for example, custom instances of components that are dependencies of
+    /// the dynamic config updater itself. Values that matter for such a
+    /// component should be set explicitly via `dynamic-config.defaults`/
+    /// `defaults-path`, not left at their compile-time defaults.
+    ///
+    /// @warning The returned `Source` never updates at runtime. Prefer
+    /// @ref GetSource() whenever possible.
+    dynamic_config::Source GetDefaultsAsConstantSource();
+
     /// Get config defaults with overrides applied. Useful in the implementation
     /// of custom config clients. Most code does not need to deal with these
     const dynamic_config::DocsMap& GetDefaultDocsMap() const;

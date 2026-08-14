@@ -63,6 +63,9 @@ public:
     Impl(const ComponentConfig&, const ComponentContext&);
 
     dynamic_config::Source GetSource();
+
+    dynamic_config::Source GetDefaultsAsConstantSource();
+
     auto& GetChannel() { return cache_.GetChannel(); }
 
     auto& GetDiffChannel() { return cache_.GetDiffChannel(); }
@@ -90,7 +93,10 @@ private:
     bool Has() const;
     void WaitUntilLoaded();
 
-    void ReadFallback(const ComponentConfig& config);
+    static dynamic_config::DocsMap ReadFallback(
+        engine::TaskProcessor& fs_task_processor,
+        const ComponentConfig& config
+    );
 
     void ReadFsCache();
     void WriteFsCache(const dynamic_config::DocsMap&);
@@ -103,7 +109,14 @@ private:
 
     dynamic_config::impl::StorageData cache_;
     std::string fs_loading_error_msg_;
-    dynamic_config::DocsMap fallback_config_;
+    const dynamic_config::DocsMap fallback_config_;
+
+    // Backs GetDefaultsAsConstantSource(), which is only used by "light" gRPC clients
+    // opting out of the default components::DynamicConfig dependency. Most services
+    // never call it, so it is built lazily on first use instead of unconditionally
+    // parsing and storing a second copy of the defaults snapshot for everyone.
+    engine::Mutex defaults_storage_mutex_;
+    std::optional<dynamic_config::impl::StorageData> defaults_storage_;
 
     const bool updates_enabled_;
     const bool fs_write_enabled_;
@@ -119,10 +132,10 @@ DynamicConfig::Impl::Impl(const ComponentConfig& config, const ComponentContext&
     : metrics_storage_(context.FindComponent<components::StatisticsStorage>().GetMetricsStorage()),
       fs_cache_path_(config["fs-cache-path"].As<std::string>({})),
       fs_task_processor_(GetFsTaskProcessor(config, context)),
+      fallback_config_(ReadFallback(fs_task_processor_, config)),
       updates_enabled_(config["updates-enabled"].As<bool>(false)),
       fs_write_enabled_(AreCacheDumpsEnabled(context))
 {
-    ReadFallback(config);
     ReadFsCache();
 
     utils::statistics::RegisterWriterScope(context, "dynamic-config", [this](auto& writer) {
@@ -133,6 +146,14 @@ DynamicConfig::Impl::Impl(const ComponentConfig& config, const ComponentContext&
 dynamic_config::Source DynamicConfig::Impl::GetSource() {
     WaitUntilLoaded();
     return dynamic_config::Source{cache_};
+}
+
+dynamic_config::Source DynamicConfig::Impl::GetDefaultsAsConstantSource() {
+    const std::lock_guard lock(defaults_storage_mutex_);
+    if (!defaults_storage_) {
+        defaults_storage_.emplace(ParseConfig(fallback_config_));
+    }
+    return dynamic_config::Source{*defaults_storage_};
 }
 
 const dynamic_config::DocsMap& DynamicConfig::Impl::GetDefaultDocsMap() const { return fallback_config_; }
@@ -250,8 +271,11 @@ void DynamicConfig::Impl::OnLoadingCancelled() {
 
 bool DynamicConfig::Impl::Has() const { return is_loaded_.load(); }
 
-void DynamicConfig::Impl::ReadFallback(const ComponentConfig& config) {
-    fallback_config_ = dynamic_config::impl::MakeDefaultDocsMap();
+dynamic_config::DocsMap DynamicConfig::Impl::ReadFallback(
+    engine::TaskProcessor& fs_task_processor,
+    const ComponentConfig& config
+) {
+    dynamic_config::DocsMap fallback_config = dynamic_config::impl::MakeDefaultDocsMap();
 
     const auto default_overrides_path = config["defaults-path"].As<std::optional<std::string>>();
 
@@ -267,8 +291,8 @@ void DynamicConfig::Impl::ReadFallback(const ComponentConfig& config) {
     if (default_overrides_path) {
         const tracing::Span span("dynamic_config_fallback_read");
         try {
-            const auto fallback_contents = fs::ReadFileContents(fs_task_processor_, *default_overrides_path);
-            fallback_config_.Parse(fallback_contents, true);
+            const auto fallback_contents = fs::ReadFileContents(fs_task_processor, *default_overrides_path);
+            fallback_config.Parse(fallback_contents, true);
         } catch (const std::exception& ex) {
             throw std::runtime_error(
                 fmt::format("Failed to load dynamic config fallback from '{}': {}", *default_overrides_path, ex.what())
@@ -278,9 +302,11 @@ void DynamicConfig::Impl::ReadFallback(const ComponentConfig& config) {
 
     if (default_overrides) {
         for (const auto& [key, value] : Items(*default_overrides)) {
-            fallback_config_.Set(key, value);
+            fallback_config.Set(key, value);
         }
     }
+
+    return fallback_config;
 }
 
 void DynamicConfig::Impl::ReadFsCache() {
@@ -378,6 +404,8 @@ DynamicConfig::DynamicConfig(const ComponentConfig& config, const ComponentConte
 DynamicConfig::~DynamicConfig() = default;
 
 dynamic_config::Source DynamicConfig::GetSource() { return impl_->GetSource(); }
+
+dynamic_config::Source DynamicConfig::GetDefaultsAsConstantSource() { return impl_->GetDefaultsAsConstantSource(); }
 
 const dynamic_config::DocsMap& DynamicConfig::GetDefaultDocsMap() const { return impl_->GetDefaultDocsMap(); }
 
