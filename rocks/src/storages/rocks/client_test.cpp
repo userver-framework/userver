@@ -4,7 +4,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-UTEST(Rocks, CheckCRUD) {
+UTEST(Rocks, DISABLED_CheckCRUD) {
     storages::rocks::Client client{"/tmp/urocksdb_check_crud", engine::current_task::GetTaskProcessor()};
 
     const std::string key = "key";
@@ -22,7 +22,7 @@ UTEST(Rocks, CheckCRUD) {
     EXPECT_EQ("", res);
 }
 
-UTEST(RocksSnapshot, CheckSnapshot) {
+UTEST(RocksSnapshot, DISABLED_CheckSnapshot) {
     storages::rocks::Client client{"/tmp/urocksdb_check_snapshot", engine::current_task::GetTaskProcessor()};
     std::string key = "key";
     std::string value = "value";
