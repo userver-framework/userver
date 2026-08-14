@@ -149,6 +149,9 @@ TEST(DatetimeUtilsDateIsValid, BigMonth) { EXPECT_FALSE(ugrpc::IsValid(MakeDate(
 TEST(DatetimeUtilsDateIsValid, NegativeDay) { EXPECT_FALSE(ugrpc::IsValid(MakeDate(2025, 4, -10))); }
 TEST(DatetimeUtilsDateIsValid, BigDay) { EXPECT_FALSE(ugrpc::IsValid(MakeDate(2025, 4, 50))); }
 TEST(DatetimeUtilsDateIsValid, DayDoesNotMatchMonth) { EXPECT_FALSE(ugrpc::IsValid(MakeDate(2025, 4, 31))); }
+// day is a wire-controlled int32; values above 255 must not wrap into the valid range
+TEST(DatetimeUtilsDateIsValid, DayWrapsToZero) { EXPECT_FALSE(ugrpc::IsValid(MakeDate(2025, 4, 256))); }
+TEST(DatetimeUtilsDateIsValid, DayWrapsIntoValidRange) { EXPECT_FALSE(ugrpc::IsValid(MakeDate(2025, 4, 286))); }
 
 #if __cpp_lib_chrono >= 201907L
 
