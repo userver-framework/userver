@@ -5,7 +5,7 @@
 #include <fmt/format.h>
 
 #include <userver/logging/impl/logger_base.hpp>
-#include <userver/logging/impl/timestamp.hpp>
+#include <userver/logging/timestamp.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/encoding/tskv.hpp>
 
@@ -84,7 +84,7 @@ logging::impl::LogExtraTskvFormatter FormatLogMessage(
         "\tupstream_response_time={}.{:0>3}"
         "\tgrpc_status={}"
         "\tgrpc_status_code={}",
-        logging::impl::GetCurrentGMTimeString(start_time).ToStringView(),
+        logging::GetCurrentGMTimeString(start_time).ToStringView(),
         EscapeForAccessTskvLog(user_agent),
         ip,
         ip,

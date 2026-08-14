@@ -5,7 +5,7 @@
 #include <fmt/format.h>
 
 #include <userver/compiler/thread_local.hpp>
-#include <userver/logging/impl/timestamp.hpp>
+#include <userver/logging/timestamp.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/encoding/tskv.hpp>
 
