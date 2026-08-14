@@ -2,7 +2,10 @@
 
 namespace handlers::test::testme::post {
 
-Response View::Handle(Request&& /*request*/, Deps&& /*deps*/) {
+Response View::Handle(
+Request&& /*request*/,
+Deps&& /*deps*/,
+USERVER_NAMESPACE::server::request::RequestContext& /*context*/) {
 // Handle request using dependencies from Deps (clients, caches, configs, databases...)
 return {};
 }

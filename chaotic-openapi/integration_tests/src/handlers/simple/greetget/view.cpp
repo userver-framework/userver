@@ -2,7 +2,13 @@
 
 namespace handlers::simple::greetget {
 
-Response View::Handle(Request&& /*request*/, Deps&& /*deps*/) { return {}; }
+Response View::Handle(
+    Request&& /*request*/,
+    Deps&& /*deps*/,
+    USERVER_NAMESPACE::server::request::RequestContext& /*context*/
+) {
+    return {};
+}
 
 std::string View::GetResponseForLogging(
     const Response& /*response*/,

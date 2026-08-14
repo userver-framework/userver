@@ -2,7 +2,13 @@
 
 namespace handlers::simple::multipartpost {
 
-Response View::Handle(Request&& /*request*/, Deps&& /*deps*/) { return {}; }
+Response View::Handle(
+    Request&& /*request*/,
+    Deps&& /*deps*/,
+    USERVER_NAMESPACE::server::request::RequestContext& /*context*/
+) {
+    return {};
+}
 
 std::string View::GetRequestBodyForLogging(const std::string& /*body*/) { return {}; }
 

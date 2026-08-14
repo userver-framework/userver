@@ -7,7 +7,11 @@
 namespace handlers::insecure::insecuresecretpost {
 
 /// [view-impl]
-Response View::Handle(Request&& request, Deps&& /*deps*/) {
+Response View::Handle(
+    Request&& request,
+    Deps&& /*deps*/,
+    USERVER_NAMESPACE::server::request::RequestContext& /*context*/
+) {
     return Response200{.body = {.greeting = fmt::format("Hello, {}!", request.name)}};
 }
 /// [view-impl]
