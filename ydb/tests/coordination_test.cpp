@@ -73,6 +73,38 @@ UTEST_F(YdbCoordinationFixture, CreateSemaphore) {
     UASSERT_THROW(session.DescribeSemaphore(kSemaphoreName, {}), ydb::YdbResponseError);
 }
 
+UTEST_F(YdbCoordinationFixture, CreateSemaphoreWithData) {
+    auto session = StartSession(kCoordinationNode);
+
+    constexpr std::string_view semaphore_data = "test_semaphore_data";
+    UASSERT_NO_THROW(session.CreateSemaphore(kSemaphoreName, kSemaphoreLimit, semaphore_data));
+
+    NYdb::NCoordination::TSemaphoreDescription desc;
+    UASSERT_NO_THROW(desc = session.DescribeSemaphore(kSemaphoreName, {}));
+    EXPECT_EQ(kSemaphoreName, desc.GetName());
+    EXPECT_EQ(semaphore_data, desc.GetData());
+    EXPECT_EQ(kSemaphoreLimit, desc.GetLimit());
+
+    UASSERT_NO_THROW(session.DeleteSemaphore(kSemaphoreName));
+}
+
+UTEST_F(YdbCoordinationFixture, DeleteSemaphoreForce) {
+    auto session = StartSession(kCoordinationNode);
+    UASSERT_NO_THROW(session.CreateSemaphore(kSemaphoreName, kSemaphoreLimit));
+
+    ASSERT_TRUE(session.AcquireSemaphore(
+        kSemaphoreName,
+        NYdb::NCoordination::TAcquireSemaphoreSettings{}.Count(kSemaphoreLimit)
+    ));
+
+    UASSERT_THROW(
+        session.DeleteSemaphore(kSemaphoreName, ydb::CoordinationSession::Mode::kNormal),
+        ydb::YdbResponseError
+    );
+    UASSERT_NO_THROW(session.DeleteSemaphore(kSemaphoreName, ydb::CoordinationSession::Mode::kForce));
+    UASSERT_THROW(session.DescribeSemaphore(kSemaphoreName, {}), ydb::YdbResponseError);
+}
+
 UTEST_F(YdbCoordinationFixture, UpdateSemaphore) {
     auto session = StartSession(kCoordinationNode);
     UASSERT_NO_THROW(session.CreateSemaphore(kSemaphoreName, kSemaphoreLimit));

@@ -61,13 +61,21 @@ public:
     );
 
     /// Create semaphore
-    void CreateSemaphore(std::string_view name, std::uint64_t limit);
+    /// @param data user-defined data attached to the semaphore
+    void CreateSemaphore(std::string_view name, std::uint64_t limit, std::string_view data = {});
 
     /// Update semaphore
     void UpdateSemaphore(std::string_view name, std::string_view data);
 
+    /// Semaphore deletion mode
+    enum class Mode {
+        kNormal,  ///< Fail if the semaphore is currently acquired
+        kForce,   ///< Delete even if currently acquired by sessions
+    };
+
     /// Delete semaphore
-    void DeleteSemaphore(std::string_view name);
+    /// @param mode deletion mode; use `Mode::kForce` to delete even if currently acquired
+    void DeleteSemaphore(std::string_view name, Mode mode = Mode::kNormal);
 
 private:
     NYdb::NCoordination::TSession session_;
