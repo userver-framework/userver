@@ -1,4 +1,5 @@
 import logging
+import shutil
 import sys
 
 from sqldto.dumper.postgres import catalog_analyzer
@@ -66,9 +67,10 @@ def main() -> int:
         raise
 
     except errors.BaseError as e:
-        print('#' * 80)
+        separator = '#' * shutil.get_terminal_size().columns
+        print(separator)
         print(e)
-        print('#' * 80)
+        print(separator)
         return 1
 
 

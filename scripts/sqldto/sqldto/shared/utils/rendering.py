@@ -64,10 +64,6 @@ class Context:
     dump_command: str = ''
     schemas: models.Schema | None = field(default=None, init=False)
 
-    def __post_init__(self) -> None:
-        if self.queries_dir is not None and not self.query_files:
-            self.query_files = [str(path) for path in self.queries_dir.rglob('*.sql')]
-
     @property
     def output_headers_dir(self) -> pathlib.Path:
         return self.output_dir / 'include' / self.namespace
@@ -76,17 +72,25 @@ class Context:
     def output_sources_dir(self) -> pathlib.Path:
         return self.output_dir / 'src' / self.namespace
 
-    @functools.cached_property
-    def fetcher(self) -> fetcher.DumpLoader:
+    def make_fetcher(self) -> fetcher.DumpLoader:
+        query_files = self.query_files
+
+        if self.queries_dir is not None and not query_files:
+            query_files = [str(path) for path in self.queries_dir.rglob('*.sql')]
+
         loader = fetcher.DumpLoader(
             dump_dir=self.dump_dir,
             migrations_dir=self.migrations_dir,
             queries_dir=self.queries_dir,
-            query_files=self.query_files,
+            query_files=query_files,
             dump_command=self.dump_command,
         )
         loader.load()
         return loader
+
+    @functools.cached_property
+    def fetcher(self) -> fetcher.DumpLoader:
+        return self.make_fetcher()
 
     @property
     def migrations(self) -> list[models.Migration]:
