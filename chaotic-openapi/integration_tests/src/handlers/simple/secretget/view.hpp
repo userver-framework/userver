@@ -15,7 +15,7 @@ class View final {
 public:
     using Deps = USERVER_NAMESPACE::chaotic::openapi::server::dependencies::ForHandler<HandlerTag>;
 
-    static Response Handle(Request&& request, Deps&& deps);
+    static Response Handle(Request&& request, Deps&& deps, USERVER_NAMESPACE::server::request::RequestContext& context);
 
     static std::string GetResponseForLogging(
         const Response& response,
