@@ -44,7 +44,9 @@ jobs:
                     id: ubuntu24_clang18_debug_sanitize-addr-ub
                     # Sanitizer consumes too much virtual memory and Subprocess tests fail with:
                     # "Error while fork: Cannot allocate memory" (std::system_error)
-                    tests-flags: '--gtest_filter=-Subprocess.*'
+                    #
+                    # curl lacks ws:// support
+                    tests-flags: '--gtest_filter=-Subprocess.*:HttpClientWebSocket.*'
                     tests-env: ''
 
                   - cmake-flags: >-
@@ -63,7 +65,7 @@ jobs:
                     os: ubuntu-24.04
                     info: gcc-13 + release
                     id: ubuntu24_gcc13_release
-                    tests-flags: '--gtest_filter=-StackUsageMonitorTest.BacktraceLogging'
+                    tests-flags: '--gtest_filter=-StackUsageMonitorTest.BacktraceLogging:HttpClientWebSocket.*'
                     tests-env: ''
 
         name: '${{matrix.os}}: ${{matrix.info}}'
