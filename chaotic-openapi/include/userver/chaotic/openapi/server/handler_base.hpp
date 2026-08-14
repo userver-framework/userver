@@ -55,6 +55,14 @@ concept ViewHasGetResponseForLogging =
         } -> std::convertible_to<std::string>;
     };
 
+template <typename V, typename Request, typename Deps, typename Response>
+concept ViewHasHandleWithContext =
+    requires(Request&& r, Deps&& d, USERVER_NAMESPACE::server::request::RequestContext& ctx) {
+        {
+            V::Handle(std::move(r), std::move(d), ctx)
+        } -> std::convertible_to<Response>;
+    };
+
 }  // namespace impl
 
 /// @brief Base class for generated HTTP handlers.
@@ -165,7 +173,13 @@ private:
         USERVER_NAMESPACE::server::request::RequestContext& context
     ) const {
         auto deps = factories_.Get().template Make<HandlerTag>();
-        auto response = View::Handle(std::move(request), std::move(deps));
+        auto response = [&] {
+            if constexpr (impl::ViewHasHandleWithContext<View, Request, Deps, Response>) {
+                return View::Handle(std::move(request), std::move(deps), context);
+            } else {
+                return View::Handle(std::move(request), std::move(deps));
+            }
+        }();
         auto serialized = SerializeResponse(response, http_request);
         if constexpr (impl::ViewHasGetResponseForLogging<View, Response>) {
             context.SetData<

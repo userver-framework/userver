@@ -2,7 +2,10 @@
 
 namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }} {
 
-Response View::Handle(Request&& /*request*/, Deps&& /*deps*/) {
+Response View::Handle(
+    Request&& /*request*/,
+    Deps&& /*deps*/,
+    {{ userver }}::server::request::RequestContext& /*context*/) {
     // Handle request using dependencies from Deps (clients, caches, configs, databases...)
     return {};
 }
