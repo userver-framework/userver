@@ -58,6 +58,9 @@ instances of the same Middleware type, but a MiddlewareFactory is a Component, h
 For reference, this is the userver-provided default middlewares pipeline:
 @snippet core/src/server/middlewares/configuration.cpp  Middlewares sample - default pipeline
 
+There is also a minimal pipeline with only exceptions handling:
+@snippet core/src/server/middlewares/configuration.cpp  Middlewares sample - minimal pipeline
+
 ## Caveats
 
 In general, one should be very careful when modifying the response after the downstream part of the pipeline completed,
@@ -140,6 +143,9 @@ and one for a more granular per-handler configuration.
 The server-wide pipeline is server::middlewares::PipelineBuilder. In its simple form, it takes
 server::middlewares::DefaultPipeline and appends the given middlewares to it, which looks like this:
 @snippet samples/http_middleware_service/static_config.yaml  Middlewares sample - pipeline builder configuration
+
+To use the minimal built-in pipeline instead, set `middleware-pipeline-builder` to
+server::middlewares::MinimalPipelineBuilder (`minimal-server-middleware-pipeline-builder`).
 
 If a more sophisticated behavior is desired, derive from server::middlewares::PipelineBuilder and override
 its `BuildPipeline` method. Then set the custom pipeline component's name in the config of components::Server:

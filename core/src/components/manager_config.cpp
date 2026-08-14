@@ -201,6 +201,7 @@ properties:
                     enum:
                       - global-task-queue
                       - work-stealing-task-queue
+                      - pull-pin-task-queue
                 task-trace:
                     type: object
                     description: .

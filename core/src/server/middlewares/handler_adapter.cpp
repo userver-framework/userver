@@ -140,29 +140,29 @@ void HandlerAdapter::LogRequest(const http::HttpRequest& request, request::Reque
     const auto& config_snapshot = context.GetInternalContext().GetConfigSnapshot();
 
     if (config_snapshot[::dynamic_config::USERVER_LOG_REQUEST]) {
-        const bool need_log_request_headers = config_snapshot[::dynamic_config::USERVER_LOG_REQUEST_HEADERS];
+        auto log_lambda = [&](auto& logger) {
+            const bool need_log_request_headers = config_snapshot[::dynamic_config::USERVER_LOG_REQUEST_HEADERS];
+            const auto& header_whitelist = config_snapshot[::dynamic_config::USERVER_LOG_REQUEST_HEADERS_WHITELIST];
+            const std::string_view
+                meta_type = misc::CutTrailingSlash(request.GetRequestPath(), handler_.GetConfig().url_trailing_slash);
 
-        const auto& header_whitelist = config_snapshot[::dynamic_config::USERVER_LOG_REQUEST_HEADERS_WHITELIST];
-
-        const std::string_view
-            meta_type = misc::CutTrailingSlash(request.GetRequestPath(), handler_.GetConfig().url_trailing_slash);
-
-        logging::LogExtra log_extra{
-            {tracing::kHttpMetaType, meta_type},
-            {tracing::kType, kTracingTypeRequest},
-            {kTracingRequestBodyLength, request.RequestBody().length()},
-            {kTracingBody, handler_.GetRequestBodyForLoggingChecked(request, context, request.RequestBody())},
-            {kTracingUri, handler_.GetUrlForLoggingChecked(request, context)},
-            {tracing::kHttpMethod, request.GetMethodStr()},
+            logging::LogExtra log_extra{
+                {tracing::kHttpMetaType, meta_type},
+                {tracing::kType, kTracingTypeRequest},
+                {kTracingRequestBodyLength, request.RequestBody().length()},
+                {kTracingBody, handler_.GetRequestBodyForLoggingChecked(request, context, request.RequestBody())},
+                {kTracingUri, handler_.GetUrlForLoggingChecked(request, context)},
+                {tracing::kHttpMethod, request.GetMethodStr()},
+            };
+            log_extra.Extend(GetHeadersLogExtra(
+                need_log_request_headers,
+                request,
+                header_whitelist,
+                handler_.GetConfig().request_headers_size_log_limit
+            ));
+            logger.Format("start handling {} {}", request.GetMethodStr(), meta_type) << log_extra;
         };
-        log_extra.Extend(GetHeadersLogExtra(
-            need_log_request_headers,
-            request,
-            header_whitelist,
-            handler_.GetConfig().request_headers_size_log_limit
-        ));
-
-        LOG_INFO("start handling {} {}", request.GetMethodStr(), meta_type) << log_extra;
+        LOG_INFO() << log_lambda;  // lambda is called only if log is going to be written
     }
 }
 

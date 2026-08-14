@@ -2,28 +2,38 @@
 config_vars: config_vars.yaml
 
 components_manager:
-    event_thread_pool:
-        threads: 2
+
+    # Preallocate coroutines and tweak the VMEM usage for the benchmark. Not required in production, defaults are fine
     coro_pool:
-        initial_size: 500
-        max_size: 1000
+        initial_size: 5000
+        max_size: 1000000
+        # In release build 32KB is OK for the existing benchmarks
+        #stack_size: 32000
 
     task_processors:
         main-task-processor:
-            thread_name: main-worker
+            # guess-cpu-limit: true
+            task-processor-queue: global-task-queue  # `pull-pin-task-queue` could be benifitable, depending on workload
             worker_threads: 4
 
         fs-task-processor:
-            thread_name: fs-worker
             worker_threads: 2
 
-    default_task_processor: main-task-processor
+    # Matches default
+    event_thread_pool:
+        threads: 2
 
     components:
         server:
+            # Production solution:
+            #middleware-pipeline-builder: default-server-middleware-pipeline-builder
+
+            # Max performance with close to zero diagnostics
+            middleware-pipeline-builder: minimal-server-middleware-pipeline-builder
+
             listener:
-                port: 8080
                 ports:
+                  - port: 8080
                   - port: 8081
                     tls:
                         cert: cert.crt
@@ -40,7 +50,7 @@ components_manager:
             loggers:
                 default:
                     file_path: '@stderr'
-                    level: debug
+                    level: warning
                     overflow_behavior: discard
 
         dns-client:
@@ -58,6 +68,8 @@ components_manager:
             updates-enabled: false
             fs-cache-path: ''
             fs-task-processor: fs-task-processor
+            defaults:
+                USERVER_LOG_REQUEST: false
 
         testsuite-support:
 

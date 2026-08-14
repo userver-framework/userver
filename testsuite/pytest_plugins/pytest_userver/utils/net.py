@@ -79,19 +79,21 @@ def get_health_checks_info(service_config: dict) -> HealthChecks:
     checks = HealthChecks()
 
     components = service_config['components_manager']['components']
-    server = components.get('server')
-    if server:
+    if server := components.get('server'):
+        ports_addresses = list()
         for listener_name in ('listener-monitor', 'listener'):
             listener_config = server.get(listener_name, {})
-            port = int(listener_config.get('port', 0))
-            if port:
-                host = listener_config.get('address', 'localhost')
+            ports_addresses.extend(listener_config.get('ports', []))
+            ports_addresses.append(listener_config)
+
+        for entry in ports_addresses:
+            if port := int(entry.get('port', 0)):
+                host = entry.get('address', 'localhost')
                 if host == '::':
                     host = 'localhost'
                 checks.tcp.append(HostPort(host, port))
 
-    port = int(components.get('grpc-server', {}).get('port', 0))
-    if port:
+    if port := int(components.get('grpc-server', {}).get('port', 0)):
         checks.tcp.append(HostPort('localhost', port))
 
     return checks

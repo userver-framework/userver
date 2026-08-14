@@ -2159,6 +2159,7 @@
   "core/src/server/middlewares/baggage.hpp":"taxi/uservices/userver/core/src/server/middlewares/baggage.hpp",
   "core/src/server/middlewares/configuration.cpp":"taxi/uservices/userver/core/src/server/middlewares/configuration.cpp",
   "core/src/server/middlewares/configuration.yaml":"taxi/uservices/userver/core/src/server/middlewares/configuration.yaml",
+  "core/src/server/middlewares/configuration_test.cpp":"taxi/uservices/userver/core/src/server/middlewares/configuration_test.cpp",
   "core/src/server/middlewares/cors.cpp":"taxi/uservices/userver/core/src/server/middlewares/cors.cpp",
   "core/src/server/middlewares/cors.yaml":"taxi/uservices/userver/core/src/server/middlewares/cors.yaml",
   "core/src/server/middlewares/deadline_propagation.cpp":"taxi/uservices/userver/core/src/server/middlewares/deadline_propagation.cpp",

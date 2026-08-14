@@ -159,7 +159,8 @@ def _get_port(
     listener = components.get('server', {}).get(listener_name, {})
     if not listener:
         return -1
-    port = listener.get('port', None)
+
+    port = listener.get('port', None) or listener.get('ports', [None])[0]
     if isinstance(port, str) and port.startswith('$'):
         port = config_vars.get(port[1:], None) or listener.get(
             'port#fallback',

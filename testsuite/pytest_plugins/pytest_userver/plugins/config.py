@@ -492,13 +492,14 @@ def userver_config_http_server(service_port, monitor_port) -> ServiceConfigPatch
 
     def _patch_config(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']
-        if 'server' in components:
-            server = components['server']
-            if 'listener' in server:
-                server['listener']['port'] = service_port
-
-            if 'listener-monitor' in server:
-                server['listener-monitor']['port'] = monitor_port
+        if server := components.get('server'):
+            for listener_name, new_port in [('listener', service_port), ('listener-monitor', monitor_port)]:
+                if listener := server.get(listener_name):
+                    ports = listener.get('ports')
+                    if ports and 'port' in ports[0]:
+                        ports[0]['port'] = new_port
+                    else:
+                        listener['port'] = new_port
 
     return _patch_config
 

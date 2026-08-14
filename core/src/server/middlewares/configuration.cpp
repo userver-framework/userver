@@ -63,6 +63,16 @@ MiddlewaresList DefaultPipeline() {
 }
 /// [Middlewares sample - default pipeline]
 
+/// [Middlewares sample - minimal pipeline]
+MiddlewaresList MinimalPipeline() {
+    return {
+        // Transforms CustomHandlerException into response as specified by the
+        // exception, transforms std::exception into Http500 without context.
+        std::string{builtin::kExceptionsHandling},
+    };
+}
+/// [Middlewares sample - minimal pipeline]
+
 components::ComponentList DefaultMiddlewareComponents() {
     return MinimalMiddlewareComponents()
         .Append<HandlerMetricsFactory>()
@@ -82,6 +92,7 @@ components::ComponentList DefaultMiddlewareComponents() {
 components::ComponentList MinimalMiddlewareComponents() {
     return components::ComponentList{}
         .Append<PipelineBuilder>()
+        .Append<MinimalPipelineBuilder>()
         .Append<HandlerPipelineBuilder>()
         .Append<HandlerAdapterFactory>();
 }
@@ -97,6 +108,12 @@ yaml_config::Schema PipelineBuilder::GetStaticConfigSchema() {
     return yaml_config::MergeSchemasFromResource<components::ComponentBase>("src/server/middlewares/configuration.yaml"
     );
 }
+
+MiddlewaresList MinimalPipelineBuilder::BuildPipeline(MiddlewaresList /*userver_middleware_pipeline*/) const {
+    return PipelineBuilder::BuildPipeline(MinimalPipeline());
+}
+
+yaml_config::Schema MinimalPipelineBuilder::GetStaticConfigSchema() { return PipelineBuilder::GetStaticConfigSchema(); }
 
 HandlerPipelineBuilder::HandlerPipelineBuilder(
     const components::ComponentConfig& config,

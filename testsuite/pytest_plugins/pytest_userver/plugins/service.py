@@ -152,13 +152,13 @@ def service_health_check(
         'to accept requests.',
     )
 
+    if service_http_ping_url:
+        return None
+
     logger.debug(
         'userver fixture "service_health_check" would check for "%s"',
         service_non_http_health_checks,
     )
-
-    if service_http_ping_url:
-        return None
 
     class LocalCounters:
         last_log_time = 0.0

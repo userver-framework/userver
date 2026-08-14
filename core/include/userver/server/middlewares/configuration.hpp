@@ -42,6 +42,17 @@ using MiddlewaresList = std::vector<std::string>;
 /// @brief Returns the default userver-provided middleware pipeline.
 MiddlewaresList DefaultPipeline();
 
+/// @ingroup userver_middlewares
+///
+/// @brief Returns a minimal middleware pipeline sufficient for correct HTTP
+/// handling.
+///
+/// The list keeps only exceptions handling, and omits tracing and
+/// business-logic middlewares such as auth, rate-limit, baggage, decompression
+/// and deadline propagation. Useful for simple handlers (e.g. ping) or
+/// benchmarks.
+MiddlewaresList MinimalPipeline();
+
 /// @ingroup userver_middlewares userver_base_classes
 ///
 /// @brief Base class to build a server-wide middleware pipeline.
@@ -79,6 +90,24 @@ private:
 
 /// @ingroup userver_middlewares userver_base_classes
 ///
+/// @brief Server-wide middleware pipeline builder based on @ref MinimalPipeline.
+///
+/// Set `server.middleware-pipeline-builder` to
+/// `minimal-server-middleware-pipeline-builder` to use it. Same `append` config
+/// as @ref PipelineBuilder is supported.
+class MinimalPipelineBuilder : public PipelineBuilder {
+public:
+    static constexpr std::string_view kName{"minimal-server-middleware-pipeline-builder"};
+
+    using PipelineBuilder::PipelineBuilder;
+
+    MiddlewaresList BuildPipeline(MiddlewaresList userver_middleware_pipeline) const override;
+
+    static yaml_config::Schema GetStaticConfigSchema();
+};
+
+/// @ingroup userver_middlewares userver_base_classes
+///
 /// @brief Base class to build a per-handler middleware pipeline.
 /// One may inherit from it and implement any custom logic, if desired.
 /// By default the behavior is to use the server-wide pipeline.
@@ -92,7 +121,7 @@ public:
     /// one may override it if custom behavior is desired.
     ///
     /// For example, a ping/ handler doesn't necessary need any business-logic
-    /// related functionality, and could use just DefaultPipeline() for itself.
+    /// related functionality, and could use just MinimalPipeline() for itself.
     ///
     /// @param server_middleware_pipeline the server-wide middleware pipeline
     virtual MiddlewaresList BuildPipeline(MiddlewaresList server_middleware_pipeline) const {
@@ -107,6 +136,13 @@ inline constexpr bool components::kHasValidate<server::middlewares::PipelineBuil
 
 template <>
 inline constexpr auto components::kConfigFileMode<server::middlewares::PipelineBuilder> = ConfigFileMode::kNotRequired;
+
+template <>
+inline constexpr bool components::kHasValidate<server::middlewares::MinimalPipelineBuilder> = true;
+
+template <>
+inline constexpr auto
+    components::kConfigFileMode<server::middlewares::MinimalPipelineBuilder> = ConfigFileMode::kNotRequired;
 
 template <>
 inline constexpr bool components::kHasValidate<server::middlewares::HandlerPipelineBuilder> = true;
