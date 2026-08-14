@@ -1,0 +1,86 @@
+# yaml
+components_manager:
+    components:
+        cache-database:
+            dbconnection: mongodb://localhost:27217/admin
+            conn_timeout: 15s
+            so_timeout: 20s
+            queue_timeout: 7s
+            initial_size: 2
+            max_size: 4
+
+        mongo-collections:
+
+        # The query is built by RuntimeQueryCache::MakeFindOperation, so the
+        # incremental updates need no kMongoUpdateFieldName in the traits
+        runtime-query-mongo-cache:
+            update-types: full-and-incremental
+            update-interval: 10m
+            full-update-interval: 1h
+
+        default-query-mongo-cache:
+            update-types: only-full
+            update-interval: 1h
+
+        handler-cache-state:
+            path: /v1/cache-state
+            method: GET
+            task_processor: main-task-processor
+
+        server:
+            listener:
+                port: 8090
+                task_processor: main-task-processor
+            listener-monitor:
+                port: $monitor-server-port
+                port#fallback: 8086
+                connection:
+                    in_buffer_size: 32768
+                    requests_queue_size_threshold: 100
+                task_processor: main-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        dynamic-config:
+            updates-enabled: true
+        dynamic-config-client:
+            config-url: $config-server-url
+            http-retries: 5
+            http-timeout: 20s
+            service-name: testsuite-support
+        dynamic-config-client-updater:
+            config-settings: false
+            first-update-fail-ok: true
+            full-update-interval: 1m
+            update-interval: 5s
+
+        testsuite-support:
+
+        http-client:
+        http-client-core:
+            fs-task-processor: main-task-processor
+
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            skip-unregistered-testpoints: true
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+        fs-task-processor:
+            worker_threads: 4
+
+    default_task_processor: main-task-processor

@@ -69,6 +69,14 @@ concept HasCorrectFindOperation = requires(
 template <typename T>
 concept HasDefaultFindOperation = requires { T::kUseDefaultFindOperation; };
 
+/// @brief Whether the traits define the query themselves.
+///
+/// If they don't, the query is only known at runtime, and
+/// components::MongoCache::MakeFindOperation is pure virtual, so the compiler
+/// requires a derived component to build the query.
+template <typename T>
+concept HasFindOperationInTraits = HasFindOperation<T> || HasDefaultFindOperation<T>;
+
 template <typename T>
 concept HasInvalidDocumentsSkipped = requires { T::kAreInvalidDocumentsSkipped; };
 
@@ -115,10 +123,6 @@ struct CheckTraits {
         "Mongo cache traits must specify validation policy of a bool type"
     );
 
-    static_assert(
-        HasFindOperation<MongoCacheTraits> || HasDefaultFindOperation<MongoCacheTraits>,
-        "Mongo cache traits must specify find operation"
-    );
     static_assert(
         !HasFindOperation<MongoCacheTraits> || HasCorrectFindOperation<MongoCacheTraits>,
         "Mongo cache traits must specify find operation with correct "

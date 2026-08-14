@@ -42,6 +42,18 @@ struct CorrectMongoCacheTraits {
     );
 };
 
+// Neither GetFindOperation nor kUseDefaultFindOperation: the query is built by
+// an override of MongoCache::MakeFindOperation in a derived component
+struct MongoCacheTraitsWithoutFindOperation {
+    static constexpr int kMongoCollectionsField = 0;
+    static constexpr int kKeyField = 0;
+    using DataType = std::unordered_map<int, int>;
+
+    static constexpr bool kIsSecondaryPreferred = true;
+    static constexpr bool kAreInvalidDocumentsSkipped = true;
+    static constexpr bool kUseDefaultDeserializeObject = true;
+};
+
 struct IncorrectReturnTypeOfFindOperation {
     static int GetFindOperation(
         cache::UpdateType type,
@@ -67,6 +79,18 @@ TEST(CheckTraits, FindOperation) {
     EXPECT_FALSE(mongo_cache::impl::HasCorrectFindOperation<IncorrectSignatureOfFindOperation>);
 }
 
+TEST(CheckTraits, FindOperationInTraits) {
+    EXPECT_TRUE(mongo_cache::impl::HasFindOperationInTraits<CorrectMongoCacheTraits>);
+    EXPECT_FALSE(mongo_cache::impl::HasFindOperationInTraits<MongoCacheTraitsWithoutFindOperation>);
+}
+
 TEST(CheckTraits, CorrectTraits) { mongo_cache::impl::CheckTraits<CorrectMongoCacheTraits>{}; }
+
+// The find operation is optional in the traits: MongoCache::MakeFindOperation
+// is then pure virtual, and the compiler requires an override in a derived
+// component. See mongo/functional_tests/cache for the tests of such a cache
+TEST(CheckTraits, TraitsWithoutFindOperation) {
+    mongo_cache::impl::CheckTraits<MongoCacheTraitsWithoutFindOperation>{};
+}
 
 USERVER_NAMESPACE_END
