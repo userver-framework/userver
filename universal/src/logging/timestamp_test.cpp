@@ -15,15 +15,14 @@ TEST(Timestamp, GMTimeString) {
 }
 
 TEST(Timestamp, LocalTimeString) {
-    std::tm local_time{
-        .tm_sec = 56,
-        .tm_min = 34,
-        .tm_hour = 12,
-        .tm_mday = 2,
-        .tm_mon = 0,
-        .tm_year = 120,
-        .tm_isdst = -1,
-    };
+    std::tm local_time{};
+    local_time.tm_sec = 56;
+    local_time.tm_min = 34;
+    local_time.tm_hour = 12;
+    local_time.tm_mday = 2;
+    local_time.tm_mon = 0;
+    local_time.tm_year = 120;
+    local_time.tm_isdst = -1;
 
     const auto time = std::chrono::system_clock::from_time_t(std::mktime(&local_time));
     EXPECT_EQ(logging::GetCurrentLocalTimeString(time).ToStringView(), "2020-01-02T12:34:56");
