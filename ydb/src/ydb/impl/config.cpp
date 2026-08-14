@@ -33,6 +33,25 @@ T MergeWithSecdist(
     );
 }
 
+NYdb::EGrpcCompressionAlgorithm ToCompressionAlgorithm(std::string_view alg) {
+    if (alg == "gzip") {
+        return NYdb::EGrpcCompressionAlgorithm::Gzip;
+    }
+    if (alg == "deflate") {
+        return NYdb::EGrpcCompressionAlgorithm::Deflate;
+    }
+    if (alg == "none") {
+        return NYdb::EGrpcCompressionAlgorithm::None;
+    }
+    throw yaml_config::Exception(fmt::format("Unknown grpc-compression-algorithm: {}", alg));
+}
+
+void ValidateLoadBalancingPolicy(std::string_view policy) {
+    if (policy != "round_robin" && policy != "pick_first") {
+        throw yaml_config::Exception(fmt::format("Unknown grpc-load-balancing-policy: {}", policy));
+    }
+}
+
 }  // namespace
 
 TableSettings ParseTableSettings(const yaml_config::YamlConfig& dbconfig, const secdist::DatabaseSettings& dbsecdist) {
@@ -57,19 +76,6 @@ TableSettings ParseTableSettings(const yaml_config::YamlConfig& dbconfig, const 
     result.sync_start = dbsecdist.sync_start.value_or(result.sync_start);
 
     return result;
-}
-
-NYdb::EGrpcCompressionAlgorithm ToCompressionAlgorithm(std::string_view alg) {
-    if (alg == "gzip") {
-        return NYdb::EGrpcCompressionAlgorithm::Gzip;
-    } else if (alg == "deflate") {
-        return NYdb::EGrpcCompressionAlgorithm::Deflate;
-    } else if (alg == "none") {
-        return NYdb::EGrpcCompressionAlgorithm::None;
-    } else {
-        throw yaml_config::Exception(fmt::format("Unknown grpc-compression-algorithm: {}", alg));
-    }
-
 }
 
 std::string_view ToString(NYdb::EGrpcCompressionAlgorithm algorithm) {
@@ -111,10 +117,13 @@ DriverSettings ParseDriverSettings(
     result.grpc_keepalive_permit_without_calls =
         dbconfig["grpc-keepalive-permit-without-calls"].As<std::optional<bool>>();
 
-    if (auto alg = dbconfig["grpc-compression-algorithm"].As<std::optional<std::string>>()) {                                                                                                                                       
-        result.grpc_compression_algorithm = ToCompressionAlgorithm(*alg);                                                                                                                                                           
+    if (auto alg = dbconfig["grpc-compression-algorithm"].As<std::optional<std::string>>()) {
+        result.grpc_compression_algorithm = ToCompressionAlgorithm(*alg);
     }
     result.grpc_load_balancing_policy = dbconfig["grpc-load-balancing-policy"].As<std::optional<std::string>>();
+    if (result.grpc_load_balancing_policy.has_value()) {
+        ValidateLoadBalancingPolicy(*result.grpc_load_balancing_policy);
+    }
 
     result.endpoint = MergeWithSecdist(dbsecdist.endpoint, std::move(config_endpoint), dbconfig, "endpoint");
     result.database = MergeWithSecdist(dbsecdist.database, std::move(config_database), dbconfig, "database");

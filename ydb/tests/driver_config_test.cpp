@@ -53,6 +53,10 @@ UTEST(YdbDriverConfig, GrpcLoadBalancingPolicyPickFirst) {
     EXPECT_EQ(*settings.grpc_load_balancing_policy, "pick_first");
 }
 
+UTEST(YdbDriverConfig, GrpcLoadBalancingPolicyUnknownThrows) {
+    EXPECT_THROW(DriverSettingsFromYaml("grpc-load-balancing-policy: random"), yaml_config::Exception);
+}
+
 UTEST(YdbDriverConfig, MissingKeysLeaveSettingsUnset) {
     const auto settings = DriverSettingsFromYaml("max_pool_size: 10");
     EXPECT_FALSE(settings.grpc_compression_algorithm.has_value());

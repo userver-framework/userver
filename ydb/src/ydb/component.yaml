@@ -126,6 +126,7 @@ properties:
                         Valid values: "gzip", "deflate", "none".
                 grpc-load-balancing-policy:
                     type: string
+                    enum: [round_robin, pick_first]
                     default: round_robin
                     description: |
                         NYdb::TDriverConfig::SetGRpcLoadBalancingPolicy. If omitted, not set (SDK default).
