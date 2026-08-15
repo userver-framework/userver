@@ -100,6 +100,7 @@ public:
     stats::OperationKey op_key{stats::OpType::kReplaceOne};
     std::optional<formats::bson::impl::BsonBuilder> options;
     bool should_throw{true};
+    std::chrono::milliseconds max_server_time{kNoMaxServerTime};
 };
 
 class Update::Impl {

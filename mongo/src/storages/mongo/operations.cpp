@@ -374,6 +374,10 @@ void ReplaceOne::SetOption(const options::WriteConcern& write_concern) {
 
 void ReplaceOne::SetOption(options::SuppressServerExceptions) { impl_->should_throw = false; }
 
+void ReplaceOne::SetOption(const options::MaxServerTime& max_server_time) {
+    AppendMaxServerTime(impl_->max_server_time, max_server_time);
+}
+
 Update::Update(Mode mode, formats::bson::Document selector, formats::bson::Document update)
     : impl_(mode, std::move(selector), std::move(update))
 {}

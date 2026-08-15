@@ -6,6 +6,7 @@
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/testsuite/testpoint_control.hpp>
 
+#include <storages/mongo/features.hpp>
 #include <storages/mongo/util_mongotest.hpp>
 #include <userver/formats/bson.hpp>
 #include <userver/storages/mongo/collection.hpp>
@@ -79,6 +80,34 @@ UTEST_F(DeadlinePropagation, CancelledByDeadline) {
 
     UEXPECT_THROW(coll.InsertOne(bson::MakeDoc("_id", 2)), mongo::CancelledException);
 }
+
+UTEST_F(DeadlinePropagation, ReplaceOneCancelledByDeadline) {
+    auto coll = GetDefaultPool().GetCollection("dp_replace_one");
+
+    server::request::kTaskInheritedData.Set(MakeRequestData(engine::Deadline::FromDuration(-1s)));
+
+    UEXPECT_THROW(
+        coll.ReplaceOne(bson::MakeDoc("_id", 1), bson::MakeDoc("_id", 1, "foo", 42)),
+        mongo::CancelledException
+    );
+}
+
+#ifdef USERVER_FEATURE_MONGO_BULKWRITE
+UTEST_F(DeadlinePropagation, ReplaceOneDeadlineBecomesMaxServerTime) {
+    auto coll = GetDefaultPool().GetCollection("dp_replace_one_max_server_time");
+
+    UASSERT_NO_THROW(coll.InsertOne(bson::MakeDoc("_id", 1, "foo", 42)));
+
+    server::request::kTaskInheritedData.Set(MakeRequestData(engine::Deadline::FromDuration(utest::kMaxTestWaitTime)));
+    UEXPECT_NO_THROW(coll.ReplaceOne(bson::MakeDoc("_id", 1), bson::MakeDoc("_id", 1, "foo", 43)));
+
+    server::request::kTaskInheritedData.Set(MakeRequestData(engine::Deadline::FromDuration(300ms)));
+    UEXPECT_THROW(
+        coll.ReplaceOne(bson::MakeDoc("$where", "sleep(1000) || true"), bson::MakeDoc("foo", 44)),
+        mongo::ServerException
+    );
+}
+#endif
 
 UTEST_F(DeadlinePropagation, AlreadyCancelled) {
     auto coll = GetDefaultPool().GetCollection("dp");

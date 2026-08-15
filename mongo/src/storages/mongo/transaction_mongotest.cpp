@@ -1,3 +1,4 @@
+#include <storages/mongo/features.hpp>
 #include <storages/mongo/util_mongotest.hpp>
 
 #include <fmt/format.h>
@@ -170,6 +171,106 @@ UTEST_F(MongoTransaction, MultipleOperationsInTransaction) {
     auto deleted_doc = regular_collection.FindOne(delete_filter);
     EXPECT_FALSE(deleted_doc);
 }
+
+#ifdef USERVER_FEATURE_MONGO_BULKWRITE
+UTEST_F(MongoTransaction, ReplaceOneWithMaxServerTime) {
+    static const std::string kCollectionName = "test_txn_replace_max_server_time";
+
+    auto regular_collection = GetDefaultPool().GetCollection(kCollectionName);
+    try {
+        regular_collection.Drop();
+    } catch (const MongoException&) {
+        // Ignore if collection doesn't exist
+    }
+
+    regular_collection.InsertOne(bson::MakeDoc("_id", 1, "x", 1));
+
+    auto txn = GetDefaultPool().BeginTransaction();
+    auto collection = txn.GetCollection(kCollectionName);
+
+    auto result = collection.ReplaceOne(
+        bson::MakeDoc("_id", 1),
+        bson::MakeDoc("x", 2),
+        options::MaxServerTime{utest::kMaxTestWaitTime}
+    );
+    EXPECT_EQ(result.MatchedCount(), 1);
+    EXPECT_EQ(result.ModifiedCount(), 1);
+
+    auto uncommitted_doc = regular_collection.FindOne(bson::MakeDoc("_id", 1));
+    ASSERT_TRUE(uncommitted_doc);
+    EXPECT_EQ((*uncommitted_doc)["x"].As<int>(), 1);
+
+    txn.Commit();
+
+    auto committed_doc = regular_collection.FindOne(bson::MakeDoc("_id", 1));
+    ASSERT_TRUE(committed_doc);
+    EXPECT_EQ((*committed_doc)["x"].As<int>(), 2);
+}
+
+UTEST_F(MongoTransaction, ReplaceOneWithMaxServerTimeRejectsWriteConcern) {
+    static const std::string kCollectionName = "test_txn_replace_write_concern";
+
+    auto regular_collection = GetDefaultPool().GetCollection(kCollectionName);
+    try {
+        regular_collection.Drop();
+    } catch (const MongoException&) {
+        // Ignore if collection doesn't exist
+    }
+
+    regular_collection.InsertOne(bson::MakeDoc("_id", 1, "x", 1));
+
+    {
+        auto txn = GetDefaultPool().BeginTransaction();
+        auto collection = txn.GetCollection(kCollectionName);
+
+        UEXPECT_THROW(
+            collection.ReplaceOne(
+                bson::MakeDoc("_id", 1),
+                bson::MakeDoc("x", 2),
+                options::WriteConcern::kMajority,
+                options::MaxServerTime{utest::kMaxTestWaitTime}
+            ),
+            MongoException
+        );
+    }
+
+    auto committed_doc = regular_collection.FindOne(bson::MakeDoc("_id", 1));
+    ASSERT_TRUE(committed_doc);
+    EXPECT_EQ((*committed_doc)["x"].As<int>(), 1);
+}
+
+UTEST_F(MongoTransaction, ReplaceOneWithMaxServerTimeRejectsUnacknowledgedWriteConcern) {
+    static const std::string kCollectionName = "test_txn_replace_unacknowledged_write_concern";
+
+    auto regular_collection = GetDefaultPool().GetCollection(kCollectionName);
+    try {
+        regular_collection.Drop();
+    } catch (const MongoException&) {
+        // Ignore if collection doesn't exist
+    }
+
+    regular_collection.InsertOne(bson::MakeDoc("_id", 1, "x", 1));
+
+    {
+        auto txn = GetDefaultPool().BeginTransaction();
+        auto collection = txn.GetCollection(kCollectionName);
+
+        UEXPECT_THROW(
+            collection.ReplaceOne(
+                bson::MakeDoc("_id", 1),
+                bson::MakeDoc("x", 2),
+                options::WriteConcern::kUnacknowledged,
+                options::MaxServerTime{utest::kMaxTestWaitTime}
+            ),
+            MongoException
+        );
+    }
+
+    auto committed_doc = regular_collection.FindOne(bson::MakeDoc("_id", 1));
+    ASSERT_TRUE(committed_doc);
+    EXPECT_EQ((*committed_doc)["x"].As<int>(), 1);
+}
+#endif
 
 UTEST_F(MongoTransaction, Move) {
     static const std::string kCollectionName = "test_transactions";

@@ -186,13 +186,14 @@ public:
     void SetOption(options::WriteConcern::Level);
     void SetOption(const options::WriteConcern&);
     void SetOption(options::SuppressServerExceptions);
+    void SetOption(const options::MaxServerTime&);
 
 private:
     friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
     friend class storages::mongo::impl::cdriver::CDriverTransactionCollectionImpl;
 
     class Impl;
-    static constexpr size_t kSize = 96;
+    static constexpr size_t kSize = 104;
     static constexpr size_t kAlignment = 8;
     // MAC_COMPAT: std::string size differs
     utils::FastPimpl<Impl, kSize, kAlignment, false> impl_;

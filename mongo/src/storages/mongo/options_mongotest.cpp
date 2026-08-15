@@ -2,6 +2,7 @@
 #include <chrono>
 #include <string>
 
+#include <storages/mongo/features.hpp>
 #include <storages/mongo/util_mongotest.hpp>
 #include <userver/formats/bson.hpp>
 #include <userver/storages/mongo/collection.hpp>
@@ -687,6 +688,22 @@ UTEST_F(Options, MaxServerTime) {
         mongo::options::MaxServerTime{utest::kMaxTestWaitTime}
     ));
 
+#ifdef USERVER_FEATURE_MONGO_BULKWRITE
+    UEXPECT_NO_THROW(coll.ReplaceOne(
+        bson::MakeDoc("$where", "sleep(100) || true"),
+        bson::MakeDoc("x", 7),
+        mongo::options::MaxServerTime{utest::kMaxTestWaitTime}
+    ));
+    UEXPECT_THROW(
+        coll.ReplaceOne(
+            bson::MakeDoc("$where", "sleep(100) || true"),
+            bson::MakeDoc("x", 8),
+            mongo::options::MaxServerTime{std::chrono::milliseconds{50}}
+        ),
+        storages::mongo::ServerException
+    );
+#endif
+
     UEXPECT_THROW(
         coll.InsertOne(bson::MakeDoc("x", 5), mongo::options::MaxServerTime{std::chrono::milliseconds{-1}}),
         mongo::InvalidQueryArgumentException
@@ -725,7 +742,7 @@ UTEST_F(Options, MaxServerTime) {
 }
 
 UTEST_F(Options, DefaultMaxServerTime) {
-    SetDynamicConfig({{::dynamic_config::MONGO_DEFAULT_MAX_TIME_MS, std::chrono::milliseconds{400}}});
+    SetDynamicConfig({{::dynamic_config::MONGO_DEFAULT_MAX_TIME_MS, std::chrono::milliseconds{800}}});
     auto coll = GetDefaultPool().GetCollection("max_server_time");
 
     coll.InsertOne(bson::MakeDoc("x", 1));
@@ -734,13 +751,25 @@ UTEST_F(Options, DefaultMaxServerTime) {
     coll.InsertOne(bson::MakeDoc("x", 2));
     coll.InsertOne(bson::MakeDoc("x", 3));
     UEXPECT_THROW(
-        coll.Find(bson::MakeDoc(mongo::operators::kWhere, "sleep(380) || true")),
+        coll.Find(bson::MakeDoc(mongo::operators::kWhere, "sleep(780) || true")),
         storages::mongo::ServerException
     );
     UEXPECT_NO_THROW(coll.Find(
         bson::MakeDoc(mongo::operators::kWhere, "sleep(50) || true"),
         mongo::options::MaxServerTime{utest::kMaxTestWaitTime}
     ));
+
+#ifdef USERVER_FEATURE_MONGO_BULKWRITE
+    UEXPECT_THROW(
+        coll.ReplaceOne(bson::MakeDoc("$where", "sleep(800) || true"), bson::MakeDoc("x", 4)),
+        storages::mongo::ServerException
+    );
+    UEXPECT_NO_THROW(coll.ReplaceOne(
+        bson::MakeDoc("$where", "sleep(50) || true"),
+        bson::MakeDoc("x", 4),
+        mongo::options::MaxServerTime{utest::kMaxTestWaitTime}
+    ));
+#endif
 
     UEXPECT_NO_THROW(coll.FindOne({}, mongo::options::MaxServerTime{utest::kMaxTestWaitTime}));
     UEXPECT_NO_THROW(coll.FindAndRemove({}, mongo::options::MaxServerTime{utest::kMaxTestWaitTime}));

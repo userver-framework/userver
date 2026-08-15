@@ -38,6 +38,8 @@ public:
 protected:
     CDriverPoolImpl::BoundClientPtr GetClient(stats::OperationStatisticsItem& stats) const override;
 
+    mongoc_client_session_t* GetSession() const override;
+
 private:
     template <typename Operation>
     auto DoExecute(Operation&& op);

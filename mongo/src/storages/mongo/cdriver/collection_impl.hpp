@@ -45,11 +45,25 @@ public:
 protected:
     virtual cdriver::CDriverPoolImpl::BoundClientPtr GetClient(stats::OperationStatisticsItem& stats) const;
 
+    [[maybe_unused]] virtual mongoc_client_session_t* GetSession() const;
+
 private:
     RequestContext MakeRequestContext(std::string&& span_name, const stats::OperationKey& stats_key) const;
 
     template <typename Operation>
     RequestContext MakeRequestContext(std::string&& span_name, const Operation& operation) const;
+
+    WriteResult ExecuteReplaceNative(const operations::ReplaceOne& operation, RequestContext& context);
+
+#ifdef MONGOC_BULKWRITE_H
+    std::optional<WriteResult> ExecuteReplaceBulkWrite(
+        const operations::ReplaceOne& operation,
+        RequestContext& context,
+        std::chrono::milliseconds effective
+    );
+#endif
+
+    cdriver::CDriverPoolImpl& GetPool() const;
 
     PoolImplPtr pool_impl_;
     std::shared_ptr<stats::CollectionStatistics> statistics_;

@@ -1,6 +1,7 @@
 #include <storages/mongo/cdriver/pool_impl.hpp>
 
 #include <limits>
+#include <optional>
 
 #include <bson/bson.h>
 #include <fmt/chrono.h>
@@ -62,6 +63,33 @@ int32_t CheckedDurationSeconds(const std::chrono::seconds& timeout, const char* 
     }
     return timeout_sec;
 }
+
+#ifdef MONGOC_BULKWRITE_H
+
+constexpr std::int32_t kBulkWriteMinWireVersion = 25;
+
+std::optional<std::int32_t> GetMaxWireVersion(mongoc_client_t* client) {
+    MongoError error;
+    const ServerDescriptionPtr description{
+        mongoc_client_select_server(client, /*for_writes=*/true, /*prefs=*/nullptr, error.GetNative())
+    };
+    if (!description) {
+        LOG_LIMITED_WARNING() << "Cannot detect MongoDB server version: " << error.Message();
+        return std::nullopt;
+    }
+
+    const bson_t* hello_response = mongoc_server_description_hello_response(description.get());
+    bson_iter_t iter;
+    if (!hello_response || !bson_iter_init_find(&iter, hello_response, "maxWireVersion") ||
+        !BSON_ITER_HOLDS_INT32(&iter))
+    {
+        LOG_LIMITED_WARNING() << "No 'maxWireVersion' in the MongoDB server handshake response";
+        return std::nullopt;
+    }
+    return bson_iter_int32(&iter);
+}
+
+#endif  // MONGOC_BULKWRITE_H
 
 bool HasOption(const UriPtr& uri, const char* opt) {
     const bson_t* options = mongoc_uri_get_options(uri.get());
@@ -409,12 +437,55 @@ void CDriverPoolImpl::SetPoolSettings(const PoolSettings& pool_settings) {
     connecting_semaphore_.SetCapacity(pool_settings.connecting_limit);
 }
 
+bool CDriverPoolImpl::IsBulkWriteSupported() const {
+    return bulk_write_support_.load(std::memory_order_relaxed) == BulkWriteSupport::kSupported;
+}
+
+void CDriverPoolImpl::MarkBulkWriteUnsupported() {
+    if (bulk_write_support_.exchange(BulkWriteSupport::kUnsupported, std::memory_order_relaxed) !=
+        BulkWriteSupport::kSupported)
+    {
+        return;
+    }
+
+    LOG_WARNING()
+        << "MongoDB server of pool '" << Id()
+        << "' does not support the 'bulkWrite' command, MongoDB 8.0 or newer is required. Operations that "
+           "are implemented via 'bulkWrite' fall back to the plain commands, max_server_time is ignored "
+           "for them";
+}
+
+void CDriverPoolImpl::RecheckBulkWriteSupport([[maybe_unused]] mongoc_client_t* client) {
+#ifdef MONGOC_BULKWRITE_H
+    if (bulk_write_support_.load(std::memory_order_relaxed) != BulkWriteSupport::kUnknown) {
+        return;
+    }
+
+    const auto max_wire_version = GetMaxWireVersion(client);
+    if (!max_wire_version) {
+        return;
+    }
+
+    const auto support =
+        *max_wire_version >= kBulkWriteMinWireVersion ? BulkWriteSupport::kSupported : BulkWriteSupport::kUnsupported;
+    auto expected = BulkWriteSupport::kUnknown;
+    if (bulk_write_support_.compare_exchange_strong(expected, support, std::memory_order_relaxed) &&
+        support == BulkWriteSupport::kSupported)
+    {
+        LOG_INFO()
+            << "MongoDB server of pool '" << Id()
+            << "' supports the 'bulkWrite' command, the operations that use it are enabled";
+    }
+#endif
+}
+
 void CDriverPoolImpl::SetConnectionString(const std::string& connection_string) {
     if (orig_connection_string_ == connection_string) {
         // not changed
         return;
     }
     orig_connection_string_ = connection_string;
+    bulk_write_support_.store(BulkWriteSupport::kUnknown, std::memory_order_relaxed);
     LOG_WARNING()
         << "New connection string for " << Id() << " found in secdist, all old sockets will be eventually closed";
 

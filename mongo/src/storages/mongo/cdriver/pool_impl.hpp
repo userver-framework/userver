@@ -138,6 +138,12 @@ public:
     /// @throws CancelledException, PoolOverloadException
     BoundClientPtr Acquire();
 
+    bool IsBulkWriteSupported() const;
+
+    void RecheckBulkWriteSupport(mongoc_client_t* client);
+
+    void MarkBulkWriteUnsupported();
+
     void SetPoolSettings(const PoolSettings& pool_settings) override;
 
     // Cannot be called in parallel
@@ -166,6 +172,8 @@ private:
     std::atomic<size_t> idle_limit_;
     const std::chrono::milliseconds queue_timeout_;
     std::atomic<size_t> size_;
+    enum class BulkWriteSupport { kUnknown, kSupported, kUnsupported };
+    std::atomic<BulkWriteSupport> bulk_write_support_{BulkWriteSupport::kUnknown};
     engine::Semaphore in_use_semaphore_;
     engine::Semaphore connecting_semaphore_;
     const PoolConfig pool_config_;

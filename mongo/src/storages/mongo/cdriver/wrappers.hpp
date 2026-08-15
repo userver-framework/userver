@@ -117,6 +117,13 @@ private:
     mongoc_read_prefs_t* read_prefs_{nullptr};
 };
 
+struct ServerDescriptionDeleter {
+    void operator()(mongoc_server_description_t* description) const noexcept {
+        mongoc_server_description_destroy(description);
+    }
+};
+using ServerDescriptionPtr = std::unique_ptr<mongoc_server_description_t, ServerDescriptionDeleter>;
+
 struct StreamDeleter {
     void operator()(mongoc_stream_t* stream) const noexcept { mongoc_stream_destroy(stream); }
 };

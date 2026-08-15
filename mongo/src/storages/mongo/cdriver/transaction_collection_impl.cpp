@@ -45,6 +45,11 @@ CDriverPoolImpl::BoundClientPtr CDriverTransactionCollectionImpl::GetClient(stat
     return CDriverPoolImpl::BoundClientPtr::Borrowed(data_->client.value());
 }
 
+mongoc_client_session_t* CDriverTransactionCollectionImpl::GetSession() const {
+    UASSERT(data_->session);
+    return data_->session.get();
+}
+
 template <typename Operation>
 auto CDriverTransactionCollectionImpl::DoExecute(Operation&& op) {
     auto operation = std::forward<Operation>(op);
