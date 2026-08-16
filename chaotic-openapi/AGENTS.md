@@ -32,23 +32,6 @@ that generates the `PEERDIR`/include lists for `ya.make` files. It is never call
 `main.py`.
 
 
-## View contract
-
-For each operation the generator emits a `View` with a hand-written entry point:
-
-```cpp
-using RequestContext = userver::server::request::RequestContext;
-
-static Response Handle(Request&& request, Deps&& deps, RequestContext& context);
-```
-
-The third parameter gives the handler access to the per-request context (e.g. data set by
-the auth middleware via `userver::server::auth::GetUserAuthInfo(context)` / `context.SetData`).
-It is **always** passed by the runtime dispatcher (`BaseHandler` in
-`include/userver/chaotic/openapi/server/handler_base.hpp`) — the legacy 2-argument
-`Handle(Request&&, Deps&&)` is not supported.
-
-
 # Tests
 
 Tests are implemented at multiple levels:
