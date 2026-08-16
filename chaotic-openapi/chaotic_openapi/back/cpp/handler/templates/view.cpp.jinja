@@ -5,7 +5,7 @@ namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }} {
 Response View::Handle(
     Request&& /*request*/,
     Deps&& /*deps*/,
-    {{ userver }}::server::request::RequestContext& /*context*/) {
+    RequestContext& /*context*/) {
     // Handle request using dependencies from Deps (clients, caches, configs, databases...)
     return {};
 }
@@ -35,7 +35,7 @@ std::string View::GetRequestBodyForLogging(const std::string& body) {
 std::string View::GetResponseForLogging(
     const Response& response,
     const std::string& serialized_response,
-    {{ userver }}::server::request::RequestContext& context) {
+    RequestContext& context) {
     (void)response;
     (void)serialized_response;
     (void)context;
