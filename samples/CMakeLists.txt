@@ -21,6 +21,9 @@ if(USERVER_FEATURE_CHAOTIC)
     if(USERVER_FEATURE_CHAOTIC_OPENAPI)
         add_subdirectory(chaotic_openapi_service)
         add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-chaotic-openapi_service)
+
+        add_subdirectory(chaotic_openapi_auth_service)
+        add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-chaotic-openapi_auth_service)
     endif()
 endif()
 
