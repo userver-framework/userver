@@ -5,7 +5,7 @@ namespace handlers::simple::headersget {
 Response View::Handle(
     Request&& /*request*/,
     Deps&& /*deps*/,
-    USERVER_NAMESPACE::server::request::RequestContext& context
+    RequestContext& context
 ) {
     Response200 response;
     const auto* user_id = context.GetDataOptional<std::string>("x-user-id");
@@ -17,7 +17,7 @@ Response View::Handle(
 std::string View::GetResponseForLogging(
     const Response& /*response*/,
     const std::string& /*serialized_response*/,
-    USERVER_NAMESPACE::server::request::RequestContext& /*context*/
+    RequestContext& /*context*/
 ) {
     return {};
 }

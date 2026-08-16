@@ -16,8 +16,9 @@ struct HandlerTag;
 class View final {
 public:
 using Deps = USERVER_NAMESPACE::chaotic::openapi::server::dependencies::ForHandler<HandlerTag>;
+using RequestContext = USERVER_NAMESPACE::server::request::RequestContext;
 
-static Response Handle(Request&& request, Deps&& deps, USERVER_NAMESPACE::server::request::RequestContext& context);
+static Response Handle(Request&& request, Deps&& deps, RequestContext& context);
 
 /* Uncomment, if you want to define a custom logging for request/response body.
 * E.g. you want to log several fields, but omit the others (secrets, etc.).
@@ -32,7 +33,7 @@ const USERVER_NAMESPACE::server::http::HttpRequest& request);
 static std::string GetResponseForLogging(
 const Response& response,
 const std::string& serialized_response,
-USERVER_NAMESPACE::server::request::RequestContext& context);
+RequestContext& context);
 */
 };
 

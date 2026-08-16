@@ -14,15 +14,16 @@ struct HandlerTag;
 class View final {
 public:
     using Deps = USERVER_NAMESPACE::chaotic::openapi::server::dependencies::ForHandler<HandlerTag>;
+    using RequestContext = USERVER_NAMESPACE::server::request::RequestContext;
 
-    static Response Handle(Request&& request, Deps&& deps, USERVER_NAMESPACE::server::request::RequestContext& context);
+    static Response Handle(Request&& request, Deps&& deps, RequestContext& context);
 
     static std::string GetRequestBodyForLogging(const std::string& body);
 
     static std::string GetResponseForLogging(
         const Response& response,
         const std::string& serialized_response,
-        USERVER_NAMESPACE::server::request::RequestContext& context
+        RequestContext& context
     );
 };
 

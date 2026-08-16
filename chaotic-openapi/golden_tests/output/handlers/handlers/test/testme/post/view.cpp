@@ -5,7 +5,7 @@ namespace handlers::test::testme::post {
 Response View::Handle(
 Request&& /*request*/,
 Deps&& /*deps*/,
-USERVER_NAMESPACE::server::request::RequestContext& /*context*/) {
+RequestContext& /*context*/) {
 // Handle request using dependencies from Deps (clients, caches, configs, databases...)
 return {};
 }
@@ -26,7 +26,7 @@ return {};
 std::string View::GetResponseForLogging(
 const Response& response,
 const std::string& serialized_response,
-USERVER_NAMESPACE::server::request::RequestContext& context) {
+RequestContext& context) {
 (void)response;
 (void)serialized_response;
 (void)context;
