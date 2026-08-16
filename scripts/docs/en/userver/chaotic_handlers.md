@@ -15,6 +15,8 @@ For each HTTP operation in the schema chaotic produces:
 * **Request / response types** — C++ structs with JSON parsers and serializers.
 * **View stub** — a minimal `.hpp`/`.cpp` pair in `SRC_DIR` that you fill in with business logic.
   Existing view stubs are **never overwritten** on subsequent runs.
+  `View::Handle` receives the parsed request, the dependencies (`Deps`), and the per-request
+  `RequestContext` (see @ref scripts/docs/en/userver/chaotic_handlers.md "Authentication and request context" below).
 * **`config.chaotic.yaml`** — static config fragment for all generated handlers; merged into
   the service config by `userver_generate_config_yaml()`.
 
@@ -30,7 +32,8 @@ For each HTTP operation in the schema chaotic produces:
 @snippet samples/chaotic_openapi_service/CMakeLists.txt chaotic-handler
 
 **Step 3.** Implement the generated view stub. Chaotic writes a skeleton to
-`src/handlers/NAME/OPERATION/view.cpp` on the first run:
+`src/handlers/NAME/OPERATION/view.cpp` on the first run. `Handle` always receives the
+per-request context as the third argument (an alias `RequestContext` is provided in `View`):
 
 @snippet samples/chaotic_openapi_service/src/handlers/insecure/insecuresecretpost/view.cpp view-impl
 
@@ -43,6 +46,39 @@ Subsequent runs leave `view.cpp` untouched.
 **Step 5.** Merge the generated `config.chaotic.yaml` into the service config:
 
 @snippet samples/chaotic_openapi_service/CMakeLists.txt generate-config
+
+
+### Authentication and request context
+
+`View::Handle` always receives `userver::server::request::RequestContext` as its third
+argument (the generated `View` provides a short `RequestContext` alias for it, same as `Deps`):
+
+```cpp
+using RequestContext = userver::server::request::RequestContext;
+
+static Response Handle(Request&& request, Deps&& deps, RequestContext& context);
+```
+
+The context carries per-request data set by the middlewares of the default pipeline —
+most notably the auth info set by the `userver-auth-middleware`. Read it with
+`userver::server::auth::GetUserAuthInfo(context)`:
+
+@snippet samples/chaotic_openapi_auth_service/src/handlers/secure/greetingget/view.cpp view-impl-auth
+
+A complete example lives in `samples/chaotic_openapi_auth_service`:
+
+1. Register a custom auth checker factory in `main.cpp`:
+
+@snippet samples/chaotic_openapi_auth_service/main.cpp auth checker registration
+
+2. The checker (`src/auth_bearer.cpp`) parses `Authorization: Bearer <userId>` and stores
+   the user info in the context via `SetUserAuthInfo()`:
+
+@snippet samples/chaotic_openapi_auth_service/src/auth_bearer.cpp auth checker definition
+
+3. Enable auth for the generated handler in the static config (`auth: {types: [bearer]}`):
+
+@snippet samples/chaotic_openapi_auth_service/static_config.yaml secure-handler-config
 
 
 ### CMake reference
