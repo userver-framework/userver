@@ -93,6 +93,13 @@ template <typename T>
 static T CidrNetworkFromInetNetwork(const InetNetwork& inet_network) {
     typename T::AddressType::BytesType bytes;
     const auto& inet_bytes = inet_network.GetBytes();
+    if (inet_bytes.size() != bytes.size()) {
+        throw std::invalid_argument(fmt::format(
+            "InetNetwork address size {} does not match the target CIDR network size {}",
+            inet_bytes.size(),
+            bytes.size()
+        ));
+    }
     std::ranges::copy(inet_bytes, bytes.begin());
     return T(typename T::AddressType(bytes), inet_network.GetPrefixLength());
 }
