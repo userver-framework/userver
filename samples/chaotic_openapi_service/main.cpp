@@ -5,6 +5,8 @@
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/dynamic_config/updater/component_list.hpp>
 #include <userver/server/handlers/tests_control.hpp>
+#include <userver/storages/secdist/component.hpp>
+#include <userver/storages/secdist/provider_component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utest/using_namespace_userver.hpp>
 #include <userver/utils/daemon_run.hpp>
@@ -25,6 +27,8 @@ int main(int argc, char* argv[]) {
             .Append<samples::hello::HelloHandler>()
             .Append<USERVER_NAMESPACE::components::TestsuiteSupport>()
             .Append<USERVER_NAMESPACE::server::handlers::TestsControl>()
+            .Append<USERVER_NAMESPACE::components::Secdist>()
+            .Append<USERVER_NAMESPACE::components::DefaultSecdistProvider>()
             .AppendComponentList(USERVER_NAMESPACE::clients::http::ComponentList())
             .Append<USERVER_NAMESPACE::clients::dns::Component>()
             /// [register-qos]

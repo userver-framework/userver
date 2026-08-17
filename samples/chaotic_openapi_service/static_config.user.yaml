@@ -24,6 +24,10 @@ components_manager:
 
         dns-client:
             fs-task-processor: fs-task-processor
+        default-secdist-provider:  # Component that loads secrets from secdist.
+            config: /etc/chaotic_openapi_service/secdist.json  # Values are supposed to be stored in this file
+            missing-ok: true  # ... but if the file is missing it is still ok
+            environment-secrets-key: SECDIST_CONFIG  # ... values will be loaded from this environment value
         http-client:
         http-client-core:
             fs-task-processor: fs-task-processor

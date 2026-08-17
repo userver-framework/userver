@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 pytest_plugins = ['pytest_userver.plugins.core']
@@ -14,3 +16,14 @@ def userver_config_client(mockserver_info):
 
     return do_patch
     # /// [URL]
+
+
+@pytest.fixture(scope='session')
+def service_env():
+    secdist_config = {
+        'tokens': {
+            'user-1-token': 123,
+        },
+    }
+
+    return {'SECDIST_CONFIG': json.dumps(secdist_config)}

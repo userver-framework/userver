@@ -1,6 +1,9 @@
 #pragma once
 
+#include <cstdint>
+#include <string>
 #include <string_view>
+#include <unordered_map>
 
 #include <userver/server/handlers/auth/auth_checker_factory.hpp>
 #include <userver/utest/using_namespace_userver.hpp>
@@ -16,6 +19,9 @@ public:
     server::handlers::auth::AuthCheckerBasePtr MakeAuthChecker(
         const server::handlers::auth::HandlerAuthConfig& auth_config
     ) const override;
+
+private:
+    std::unordered_map<std::string, std::uint64_t> tokens_;
 };
 
 }  // namespace samples::auth
