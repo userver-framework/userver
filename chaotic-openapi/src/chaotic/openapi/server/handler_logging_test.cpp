@@ -22,7 +22,7 @@ using FakeDeps = co_server::dependencies::ForHandler<FakeTag>;
 // ---- MinimalView (no logging methods) ----
 
 struct MinimalView {
-    static FakeResponse Handle(FakeRequest&&, FakeDeps&&) { return {}; }
+    static FakeResponse Handle(FakeRequest&&, FakeDeps&&, server::request::RequestContext&) { return {}; }
 };
 
 static_assert(!co_server::impl::ViewHasGetRequestBodyForLoggingJson<MinimalView>);
@@ -40,7 +40,7 @@ TEST(HandlerLogging, MinimalViewReturnsNullopt) {
 // ---- JsonBodyView ----
 
 struct JsonBodyView {
-    static FakeResponse Handle(FakeRequest&&, FakeDeps&&) { return {}; }
+    static FakeResponse Handle(FakeRequest&&, FakeDeps&&, server::request::RequestContext&) { return {}; }
 
     static std::string GetRequestBodyForLogging(const formats::json::Value& body) {
         return "k=" + body["k"].As<std::string>("");
@@ -70,7 +70,7 @@ TEST(HandlerLogging, JsonBodyInvalidThrows) {
 // ---- StringBodyView ----
 
 struct StringBodyView {
-    static FakeResponse Handle(FakeRequest&&, FakeDeps&&) { return {}; }
+    static FakeResponse Handle(FakeRequest&&, FakeDeps&&, server::request::RequestContext&) { return {}; }
 
     static std::string GetRequestBodyForLogging(const std::string& body) {
         return "len=" + std::to_string(body.size());
@@ -94,7 +94,7 @@ TEST(HandlerLogging, StringBody) {
 // ---- ResponseLoggingView ----
 
 struct ResponseLoggingView {
-    static FakeResponse Handle(FakeRequest&&, FakeDeps&&) { return {}; }
+    static FakeResponse Handle(FakeRequest&&, FakeDeps&&, server::request::RequestContext&) { return {}; }
 
     static std::string
     GetResponseForLogging(const FakeResponse&, const std::string& serialized, server::request::RequestContext&) {
