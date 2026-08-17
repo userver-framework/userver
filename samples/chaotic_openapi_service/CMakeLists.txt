@@ -7,7 +7,7 @@ find_package(
     REQUIRED
 )
 
-add_library(${PROJECT_NAME}_objs OBJECT src/say_hello.hpp src/say_hello.cpp src/hello_handler.hpp src/hello_handler.cpp)
+add_library(${PROJECT_NAME}_objs OBJECT src/auth_bearer.hpp src/auth_bearer.cpp src/say_hello.hpp src/say_hello.cpp src/hello_handler.hpp src/hello_handler.cpp)
 target_link_libraries(${PROJECT_NAME}_objs userver::core)
 target_include_directories(${PROJECT_NAME}_objs PUBLIC src)
 

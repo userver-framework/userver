@@ -15,6 +15,8 @@
 #include <handlers/insecure/chaotic_handlers_list.hpp>
 #include <hello_handler.hpp>
 
+#include "auth_bearer.hpp"
+
 int main(int argc, char* argv[]) {
     auto component_list =
         USERVER_NAMESPACE::components::MinimalServerComponentList()
@@ -36,6 +38,8 @@ int main(int argc, char* argv[]) {
     /// [register-handlers]
 
     USERVER_NAMESPACE::chaotic::openapi::middlewares::AppendDefaultMiddlewares(component_list);
+
+    server::handlers::auth::RegisterAuthCheckerFactory<samples::auth::CheckerFactory>();
 
     return USERVER_NAMESPACE::utils::DaemonMain(argc, argv, component_list);
 }

@@ -28,6 +28,17 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/GreetingResponse'
+
+    /secure/greeting:
+        get:
+            operationId: greetingGet
+            responses:
+                '200':
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GreetingResponse'
 components:
     schemas:
         GreetingResponse:

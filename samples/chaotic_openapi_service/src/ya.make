@@ -15,9 +15,11 @@ ADDINCL(
 )
 
 SRCS(
+    auth_bearer.cpp
     hello_handler.cpp
     say_hello.cpp
     handlers/insecure/insecuresecretpost/view.cpp
+    handlers/insecure/greetingget/view.cpp
 )
 
 ADDINCL(
@@ -70,6 +72,7 @@ RUN_PROGRAM(
         ${CHAOTIC_INCLUDES}
         ${CHAOTIC_OPENAPI_INCLUDES}
         handlers/insecure/insecuresecretpost/view.hpp
+        handlers/insecure/greetingget/view.hpp
     IN_NOPARSE
         ../handlers/insecure/openapi.yaml
     OUT
@@ -88,6 +91,14 @@ RUN_PROGRAM(
         src/handlers/insecure/insecuresecretpost/handler.cpp
         src/handlers/insecure/insecuresecretpost/requests.cpp
         src/handlers/insecure/insecuresecretpost/responses.cpp
+
+        include/handlers/insecure/greetingget/handler.hpp
+        include/handlers/insecure/greetingget/requests.hpp
+        include/handlers/insecure/greetingget/responses.hpp
+
+        src/handlers/insecure/greetingget/handler.cpp
+        src/handlers/insecure/greetingget/requests.cpp
+        src/handlers/insecure/greetingget/responses.cpp
 
         config.chaotic.yaml
 )
