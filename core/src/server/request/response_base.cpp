@@ -32,20 +32,32 @@ std::chrono::milliseconds ToMsFromStart(std::chrono::steady_clock::time_point tp
     return std::chrono::duration_cast<std::chrono::milliseconds>(tp - kStartTime);
 }
 
+// Guarantees that time_point::min() / kUnset can be used as a sentinel (before the epoch).
+static_assert(std::chrono::steady_clock::duration::min() < std::chrono::steady_clock::duration::zero());
+static_assert(std::chrono::steady_clock::time_point::min() < std::chrono::steady_clock::time_point{});
+
 }  // namespace
 
-void ResponseDataAccounter::StartRequest(size_t size, std::chrono::steady_clock::time_point create_time) {
+void ResponseDataAccounter::StartRequest(std::chrono::steady_clock::time_point create_time) {
     pending_responses_count_.Add(1);
-    pending_responses_size_in_bytes_ += size;
-    auto ms = ToMsFromStart(create_time);
-    time_sum_.Add(ms.count());
+    time_sum_.Add(ToMsFromStart(create_time).count());
 }
 
 void ResponseDataAccounter::StopRequest(size_t size, std::chrono::steady_clock::time_point create_time) {
     pending_responses_size_in_bytes_ -= size;
-    auto ms = ToMsFromStart(create_time);
-    time_sum_.Subtract(ms.count());
+    time_sum_.Subtract(ToMsFromStart(create_time).count());
     pending_responses_count_.Subtract(1);
+}
+
+void ResponseDataAccounter::ReaccountRequest(
+    std::size_t old_size,
+    std::chrono::steady_clock::time_point old_create_time,
+    std::size_t new_size,
+    std::chrono::steady_clock::time_point new_create_time
+) {
+    UASSERT(old_create_time <= new_create_time);
+    pending_responses_size_in_bytes_ += new_size - old_size;
+    time_sum_.Add(std::chrono::duration_cast<std::chrono::milliseconds>(new_create_time - old_create_time).count());
 }
 
 std::chrono::milliseconds ResponseDataAccounter::GetAvgRequestTime() const {
@@ -66,29 +78,32 @@ ResponseBase::ResponseBase(ResponseDataAccounter& data_account, std::chrono::ste
     : accounter_{data_account},
       create_time_{now}
 {
-    guard_.emplace(accounter_, create_time_, data_.size());
+    UASSERT(accounted_size_ == 0);
+    UASSERT(data_.empty());
+    accounter_.StartRequest(create_time_);
 }
 
 ResponseBase::~ResponseBase() noexcept {
-    UASSERT_MSG(
-        !is_sent_ || !guard_,
-        "SetDone must be called explicitly within Server's lifetime, "
-        "otherwise guard_ may violate Server's lifetime"
-    );
+    if (sent_time_ == kUnset) {
+        accounter_.StopRequest(accounted_size_, create_time_);
+    }
 }
 
 void ResponseBase::SetData(std::string data) {
-    UASSERT(!is_sent_);
-    create_time_ = std::chrono::steady_clock::now();
+    UASSERT(sent_time_ == kUnset);
     data_ = std::move(data);
-    guard_.emplace(accounter_, create_time_, data_.size());
+    const auto old_size = accounted_size_;
+    const auto old_create_time = create_time_;
+    create_time_ = std::chrono::steady_clock::now();
+    accounted_size_ = data_.size();
+    accounter_.ReaccountRequest(old_size, old_create_time, accounted_size_, create_time_);
 }
 
 void ResponseBase::SetReady() { SetReady(std::chrono::steady_clock::now()); }
 
 void ResponseBase::SetReady(std::chrono::steady_clock::time_point now) {
+    UASSERT(now != kUnset);
     ready_time_ = now;
-    is_ready_ = true;
 }
 
 bool ResponseBase::IsLimitReached() const {
@@ -98,12 +113,11 @@ bool ResponseBase::IsLimitReached() const {
 void ResponseBase::SetSendFailed(std::chrono::steady_clock::time_point failure_time) { SetSent(0, failure_time); }
 
 void ResponseBase::SetSent(std::size_t bytes_sent, std::chrono::steady_clock::time_point sent_time) {
-    UASSERT(!is_sent_);
-    UASSERT(guard_);
-    is_sent_ = true;
+    UASSERT(sent_time_ == kUnset);
+    UASSERT(sent_time != kUnset);
+    accounter_.StopRequest(accounted_size_, create_time_);
     bytes_sent_ = bytes_sent;
     sent_time_ = sent_time;
-    guard_.reset();
 }
 
 void ResponseBase::SetStreamId(std::int32_t stream_id) {

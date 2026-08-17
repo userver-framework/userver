@@ -55,11 +55,20 @@ namespace server::request {
 
 class ResponseDataAccounter final {
 public:
-    void StartRequest(std::size_t size, std::chrono::steady_clock::time_point create_time);
+    void StartRequest(std::chrono::steady_clock::time_point create_time);
 
     void StopRequest(std::size_t size, std::chrono::steady_clock::time_point create_time);
 
+    void ReaccountRequest(
+        std::size_t old_size,
+        std::chrono::steady_clock::time_point old_create_time,
+        std::size_t new_size,
+        std::chrono::steady_clock::time_point new_create_time
+    );
+
     std::size_t GetPendingResponsesSizeInBytes() const { return pending_responses_size_in_bytes_; }
+
+    std::size_t GetPendingResponsesCount() const { return pending_responses_count_.NonNegativeRead(); }
 
     std::size_t GetMaxPendingResponsesSizeInBytes() const { return max_pending_responses_size_in_bytes_; }
 
@@ -99,8 +108,8 @@ public:
     virtual void SetSendFailed(std::chrono::steady_clock::time_point failure_time);
     bool IsLimitReached() const;
 
-    bool IsReady() const { return is_ready_; }
-    bool IsSent() const noexcept { return is_sent_; }
+    bool IsReady() const { return ready_time_ != kUnset; }
+    bool IsSent() const noexcept { return sent_time_ != kUnset; }
     size_t BytesSent() const { return bytes_sent_; }
     std::chrono::steady_clock::time_point ReadyTime() const { return ready_time_; }
     std::chrono::steady_clock::time_point SentTime() const { return sent_time_; }
@@ -123,33 +132,15 @@ protected:
     void SetSent(std::size_t bytes_sent, std::chrono::steady_clock::time_point sent_time);
 
 private:
-    class Guard final {
-    public:
-        Guard(ResponseDataAccounter& accounter, std::chrono::steady_clock::time_point create_time, size_t size)
-            : accounter_(accounter),
-              create_time_(create_time),
-              size_(size)
-        {
-            accounter_.StartRequest(size_, create_time_);
-        }
-
-        ~Guard() { accounter_.StopRequest(size_, create_time_); }
-
-    private:
-        ResponseDataAccounter& accounter_;
-        std::chrono::steady_clock::time_point create_time_;
-        size_t size_;
-    };
+    static constexpr auto kUnset = std::chrono::steady_clock::time_point::min();
 
     ResponseDataAccounter& accounter_;
-    std::optional<Guard> guard_;
     std::string data_;
     std::chrono::steady_clock::time_point create_time_;
-    std::chrono::steady_clock::time_point ready_time_;
-    std::chrono::steady_clock::time_point sent_time_;
+    std::chrono::steady_clock::time_point ready_time_{kUnset};
+    std::chrono::steady_clock::time_point sent_time_{kUnset};
+    std::size_t accounted_size_ = 0;
     size_t bytes_sent_ = 0;
-    bool is_ready_ = false;
-    bool is_sent_ = false;
     std::optional<std::int32_t> stream_id_;
     std::optional<http::impl::Http2StreamEventProducer> producer_{};
 };
