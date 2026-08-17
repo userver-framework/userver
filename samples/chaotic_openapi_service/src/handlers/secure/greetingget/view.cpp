@@ -2,10 +2,10 @@
 
 #include <fmt/format.h>
 
-#include <handlers/insecure/greetingget/handler.hpp>
+#include <handlers/secure/greetingget/handler.hpp>
 #include <userver/server/auth/user_auth_info.hpp>
 
-namespace handlers::insecure::greetingget {
+namespace handlers::secure::greetingget {
 
 Response View::Handle(
     Request&& /*request*/,
@@ -19,4 +19,4 @@ Response View::Handle(
     };
 }
 
-}  // namespace handlers::insecure::greetingget
+}  // namespace handlers::secure::greetingget

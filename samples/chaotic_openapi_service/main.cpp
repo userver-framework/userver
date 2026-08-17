@@ -13,6 +13,7 @@
 #include <clients/test/qos.hpp>
 
 #include <handlers/insecure/chaotic_handlers_list.hpp>
+#include <handlers/secure/greetingget/handler.hpp>
 #include <hello_handler.hpp>
 
 #include "auth_bearer.hpp"
@@ -34,7 +35,8 @@ int main(int argc, char* argv[]) {
             .Append<::clients::test::Component>()
             /// [register-client]
             /// [register-handlers]
-            .AppendComponentList(::handlers::insecure::ChaoticHandlersList());
+            .AppendComponentList(::handlers::insecure::ChaoticHandlersList())
+            .Append<::handlers::secure::greetingget::Handler>();
     /// [register-handlers]
 
     USERVER_NAMESPACE::chaotic::openapi::middlewares::AppendDefaultMiddlewares(component_list);

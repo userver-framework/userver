@@ -2,12 +2,12 @@
 
 #include <string>
 
-#include <handlers/insecure/greetingget/requests.hpp>
-#include <handlers/insecure/greetingget/responses.hpp>
+#include <handlers/secure/greetingget/requests.hpp>
+#include <handlers/secure/greetingget/responses.hpp>
 #include <userver/chaotic/openapi/server/dependencies.hpp>
 #include <userver/server/request/request_context.hpp>
 
-namespace handlers::insecure::greetingget {
+namespace handlers::secure::greetingget {
 
 struct HandlerTag;
 
@@ -19,4 +19,4 @@ public:
     static Response Handle(Request&& request, Deps&& deps, RequestContext& context);
 };
 
-}  // namespace handlers::insecure::greetingget
+}  // namespace handlers::secure::greetingget

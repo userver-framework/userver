@@ -34,6 +34,15 @@ userver_target_generate_openapi_handlers(
     SCHEMAS "${CMAKE_CURRENT_SOURCE_DIR}/handlers/insecure/openapi.yaml"
 )
 target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-handler-insecure_objs)
+
+userver_target_generate_openapi_handlers(
+    ${PROJECT_NAME}-handler-secure_objs
+    NAME secure
+    OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/handlers/secure"
+    SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src"
+    SCHEMAS "${CMAKE_CURRENT_SOURCE_DIR}/handlers/secure/openapi.yaml"
+)
+target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-handler-secure_objs)
 # /// [chaotic-handler]
 
 # /// [generate-config]
