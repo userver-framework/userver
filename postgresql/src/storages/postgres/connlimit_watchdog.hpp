@@ -26,6 +26,7 @@ public:
         int shard_number,
         std::size_t min_fallback_connections,
         std::function<void()> on_new_connlimit,
+        std::size_t non_pool_connections_per_instance,
         std::string host_name = hostinfo::blocking::GetRealHostName()
     );
 
@@ -58,6 +59,7 @@ private:
     USERVER_NAMESPACE::utils::PeriodicTask periodic_;
     int shard_number_;
     std::size_t min_fallback_connections_;
+    std::size_t non_pool_connections_per_instance_;
     std::string host_name_;
 };
 

@@ -105,7 +105,8 @@ ClusterImpl::ClusterImpl(
           testsuite_tasks,
           shard_number,
           cluster_settings.pool_settings.min_size,
-          [this]() { OnConnlimitChanged(); }
+          [this]() { OnConnlimitChanged(); },
+          dsns.size() > 1 ? 1 : 0
       )
 {
     CreateTopology(dsns);

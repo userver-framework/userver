@@ -20,7 +20,8 @@ The PostgreSQL driver allows one to automatically determine the required max
 connection limit. It is calculated as follows:
 
 ```
-client_max_connections = server_max_connections/instances - reserved
+available_connections = server_max_connections - reserved
+client_max_connections = max(1, available_connections / instances - topology_connections)
 ```
 
 `server_max_connections` is calculated as a minimum of
@@ -30,8 +31,13 @@ client_max_connections = server_max_connections/instances - reserved
 The service identifies `instances` based on the following algorithm.
 The service creates `u_clients` table and regularly writes down information about
 itself. After that the service reads the table and identifies alive instances.
-`reserved` is set to be 5 to reflect administrative scripts connections,
-migration scripts, etc.
+`reserved` is 5% of `server_max_connections`, but no less than 2 and no more
+than 10. It reflects administrative connections, migration scripts, etc.
+
+`topology_connections` is 1 for a hot standby topology (two or more DSNs per
+shard) and 0 for a standalone topology. A hot standby instance keeps one
+additional connection to each PostgreSQL host for topology discovery; this
+connection is not part of the host connection pool.
 
 The limit is promptly changed after service topology change: node
 addition/removal, service instance stop, etc.

@@ -108,8 +108,19 @@ public:
         return connlimit_watchdog_v2.GetConnlimit();
     }
 
-    pg::ConnlimitWatchdog MakeConnlimitWatchdog(std::string host_name = hostinfo::blocking::GetRealHostName()) {
-        return pg::ConnlimitWatchdog{cluster_, testsuite_tasks_, kShardNumber, kFallbackConnlimit, [] {}, host_name};
+    pg::ConnlimitWatchdog MakeConnlimitWatchdog(
+        std::string host_name = hostinfo::blocking::GetRealHostName(),
+        std::size_t non_pool_connections_per_instance = 0
+    ) {
+        return pg::ConnlimitWatchdog{
+            cluster_,
+            testsuite_tasks_,
+            kShardNumber,
+            kFallbackConnlimit,
+            [] {},
+            non_pool_connections_per_instance,
+            host_name,
+        };
     }
 
     pgd::ClusterImpl& GetCluster() { return cluster_; }
@@ -249,6 +260,18 @@ UTEST_F(Watchdog, CheckLimit) {
 
     // There are two hosts after 'StepV2'.
     EXPECT_EQ(kConnectionsLimit / 2, DoStepV1());
+}
+
+UTEST_F(Watchdog, AccountsForNonPoolConnections) {
+    constexpr std::size_t kTopologyConnectionsPerInstance = 1;
+    auto first_watchdog = MakeConnlimitWatchdog("host-with-topology-connection-1", kTopologyConnectionsPerInstance);
+    first_watchdog.StepV2();
+    EXPECT_EQ(kTestsuiteConnlimit - kTopologyConnectionsPerInstance, first_watchdog.GetConnlimit());
+
+    auto second_watchdog = MakeConnlimitWatchdog("host-with-topology-connection-2", kTopologyConnectionsPerInstance);
+    second_watchdog.StepV2();
+
+    EXPECT_EQ(kTestsuiteConnlimit / 2 - kTopologyConnectionsPerInstance, second_watchdog.GetConnlimit());
 }
 
 USERVER_NAMESPACE_END
