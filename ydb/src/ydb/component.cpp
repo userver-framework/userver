@@ -144,13 +144,15 @@ YdbComponent::YdbComponent(const components::ComponentConfig& config, const comp
         WriteStatistics(writer);
     });
 
-    config_subscription_ = config_.UpdateAndListen(
-        this,
-        "ydb",
-        &YdbComponent::OnConfigUpdate,
-        ::dynamic_config::YDB_RETRY_BUDGET,
-        ::dynamic_config::YDB_DATABASE_ROUTING
-    );
+    config_
+        .UpdateAndListen(
+            this,
+            "ydb",
+            &YdbComponent::OnConfigUpdate,
+            ::dynamic_config::YDB_RETRY_BUDGET,
+            ::dynamic_config::YDB_DATABASE_ROUTING
+        )
+        .Scoped(context);
 }
 
 YdbComponent::~YdbComponent() = default;

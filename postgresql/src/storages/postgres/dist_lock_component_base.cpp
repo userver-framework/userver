@@ -76,7 +76,7 @@ DistLockComponentBase::DistLockComponentBase(
         task_processor,
         locker_log_level
     );
-    subscription_token_ = config_.UpdateAndListen(this, name_, &DistLockComponentBase::OnConfigUpdate);
+    config_.UpdateAndListen(this, name_, &DistLockComponentBase::OnConfigUpdate).Scoped(component_context);
     autostart_ = component_config["autostart"].As<bool>(true);
 
     utils::statistics::RegisterWriterScope(
@@ -119,8 +119,6 @@ DistLockComponentBase::DistLockComponentBase(
     DisableAutostartAtBase
 )
     : storages::postgres::DistLockComponentBase(component_config, component_context, AutostartDistlock::kNo) {}
-
-DistLockComponentBase::~DistLockComponentBase() { subscription_token_.Unsubscribe(); }
 
 dist_lock::DistLockedWorker& DistLockComponentBase::GetWorker() { return *worker_; }
 

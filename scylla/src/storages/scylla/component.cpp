@@ -67,7 +67,7 @@ Scylla::Scylla(const ComponentConfig& config, const ComponentContext& context)
         storages::scylla::Session>(config.Name(), hosts, session_config, dynamic_config, dns_resolver);
 
     if (!dbalias_.empty()) {
-        secdist_subscriber_ = secdist->UpdateAndListen(this, dbalias_, &Scylla::OnSecdistUpdate);
+        secdist->UpdateAndListen(this, dbalias_, &Scylla::OnSecdistUpdate).Scoped(context);
     }
 
     auto section_name = config.Name();
@@ -99,7 +99,6 @@ void Scylla::OnSecdistUpdate(const storages::secdist::SecdistConfig& config) {
     session_->SetContactPoints(hosts);
 }
 
-Scylla::~Scylla() { secdist_subscriber_.Unsubscribe(); }
 }  // namespace components
 
 USERVER_NAMESPACE_END

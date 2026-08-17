@@ -66,8 +66,8 @@ ManagerControllerComponent::ManagerControllerComponent(
     : components_manager_(context.GetManager(utils::impl::InternalTag{}))
 {
     auto config_source = context.FindComponent<DynamicConfig>().GetSource();
-    config_subscription_ =
-        config_source.UpdateAndListen(this, "engine_controller", &ManagerControllerComponent::OnConfigUpdate);
+    config_source.UpdateAndListen(this, "engine_controller", &ManagerControllerComponent::OnConfigUpdate)
+        .Scoped(context);
 
     utils::statistics::RegisterWriterScope(context, "engine", [this](utils::statistics::Writer& writer) {
         WriteStatistics(writer);
@@ -82,8 +82,6 @@ ManagerControllerComponent::ManagerControllerComponent(
         }
     }
 }
-
-ManagerControllerComponent::~ManagerControllerComponent() { config_subscription_.Unsubscribe(); }
 
 void ManagerControllerComponent::WriteStatistics(utils::statistics::Writer& writer) {
     // task processors

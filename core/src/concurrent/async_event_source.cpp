@@ -1,6 +1,8 @@
 #include <userver/concurrent/async_event_source.hpp>
 
+#include <userver/components/component_context.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/resource_scopes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -46,6 +48,10 @@ void AsyncEventSubscriberScope::Unsubscribe() noexcept {
         channel_->RemoveListener(id_, UnsubscribingKind::kManual);
         id_ = {};
     }
+}
+
+void AsyncEventSubscriberScope::Scoped(const components::ComponentContext& context) && {
+    context.Scopes().Register([scope = std::move(*this)]() mutable { return std::move(scope); });
 }
 
 AsyncEventSubscriberScope::~AsyncEventSubscriberScope() {

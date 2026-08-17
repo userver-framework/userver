@@ -6,7 +6,6 @@
 
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
-#include <userver/concurrent/async_event_channel.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>
 #include <userver/hostinfo/cpu_limit.hpp>
@@ -76,7 +75,6 @@ struct Component::Impl {
 
     // These subscriptions and tasks must be the last fields!
     Watchdog wd;
-    concurrent::AsyncEventSubscriberScope config_subscription;
     // See the comment above before adding new fields.
 
     Impl(dynamic_config::Source dynamic_config, server::Server& server, engine::TaskProcessor& tp, bool fake_mode)
@@ -131,14 +129,14 @@ Component::Component(const components::ComponentConfig& config, const components
 
     pimpl_->wd.Register({pimpl_->server_sensor, pimpl_->server_limiter, pimpl_->server_controller});
 
-    pimpl_->config_subscription = pimpl_->dynamic_config.UpdateAndListen(this, kName, &Component::OnConfigUpdate);
+    pimpl_->dynamic_config.UpdateAndListen(this, kName, &Component::OnConfigUpdate).Scoped(context);
 
     utils::statistics::RegisterWriterScope(context, std::string{kName}, [this](utils::statistics::Writer& writer) {
         ExtendWriter(writer);
     });
 }
 
-Component::~Component() { pimpl_->config_subscription.Unsubscribe(); }
+Component::~Component() = default;
 
 void Component::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
     const bool is_enabled_dynamic = cfg[::dynamic_config::USERVER_RPS_CCONTROL_ENABLED];

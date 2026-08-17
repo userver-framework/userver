@@ -43,16 +43,17 @@ LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config, const Co
     logging::impl::SetLogLimitedEnable(config["limited-logging-enable"].As<bool>());
     logging::impl::SetLogLimitedInterval(config["limited-logging-interval"].As<std::chrono::milliseconds>());
 
-    config_subscription_ = context.FindComponent<components::DynamicConfig>().GetSource().UpdateAndListen(
-        this,
-        kName,
-        &LoggingConfigurator::OnConfigUpdate,
-        ::dynamic_config::USERVER_NO_LOG_SPANS,
-        kDynamicDebugConfig
-    );
+    context.FindComponent<components::DynamicConfig>()
+        .GetSource()
+        .UpdateAndListen(
+            this,
+            kName,
+            &LoggingConfigurator::OnConfigUpdate,
+            ::dynamic_config::USERVER_NO_LOG_SPANS,
+            kDynamicDebugConfig
+        )
+        .Scoped(context);
 }
-
-LoggingConfigurator::~LoggingConfigurator() { config_subscription_.Unsubscribe(); }
 
 void LoggingConfigurator::OnConfigUpdate(const dynamic_config::Snapshot& config) {
     (void)this;  // silence clang-tidy

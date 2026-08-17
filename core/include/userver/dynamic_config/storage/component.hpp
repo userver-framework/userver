@@ -144,8 +144,9 @@ public:
     /// @param name the name of the subscriber, for diagnostic purposes
     /// @param func the listener method, named `OnConfigUpdate` by convention.
     /// @returns a @ref concurrent::AsyncEventSubscriberScope controlling the
-    /// subscription, which should be stored as a member in the subscriber;
-    /// `Unsubscribe` should be called explicitly
+    /// subscription. In a component constructor, prefer chaining
+    /// @ref concurrent::AsyncEventSubscriberScope::Scoped.
+    /// Otherwise store the scope as a member and call `Unsubscribe` explicitly.
     ///
     /// @see based on @ref concurrent::AsyncEventSource engine
     ///

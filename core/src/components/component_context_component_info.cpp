@@ -43,7 +43,12 @@ void ComponentInfo::SetComponent(std::unique_ptr<RawComponentBase>&& component) 
     bool call_on_loading_cancelled = false;
     {
         // Calling user callback under no lock
-        AfterConstruction();
+        try {
+            AfterConstruction();
+        } catch (...) {
+            BeforeDestruction();
+            throw;
+        }
 
         const std::lock_guard lock{mutex_};
         component_ = std::move(component);
@@ -64,6 +69,11 @@ void ComponentInfo::AfterConstruction()
     resource_scopes_.AfterConstruction();
 }
 
+void ComponentInfo::BeforeDestruction()
+{
+    resource_scopes_.BeforeDestruction();
+}
+
 void ComponentInfo::ClearComponent() {
     if (!HasComponent()) {
         return;
@@ -74,7 +84,7 @@ void ComponentInfo::ClearComponent() {
     auto component = ExtractComponent();
     LOG_DEBUG() << "Stopping component";
 
-    resource_scopes_.BeforeDestruction();
+    BeforeDestruction();
 
     component.reset();
     LOG_DEBUG() << "Stopped component";

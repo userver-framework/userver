@@ -126,8 +126,6 @@ class Redis : public ComponentBase {
 public:
     Redis(const ComponentConfig& config, const ComponentContext& component_context);
 
-    ~Redis() override;
-
     /// @ingroup userver_component_names
     /// @brief The default name of components::Redis
     static constexpr std::string_view kName = "redis";
@@ -168,8 +166,6 @@ private:
     std::shared_ptr<storages::redis::impl::HealthCheckManager> health_check_manager_;
 
     dynamic_config::Source config_;
-    concurrent::AsyncEventSubscriberScope config_subscription_;
-    concurrent::AsyncEventSubscriberScope secdist_subscription_;
 
     rcu::Variable<storages::redis::MetricsSettings> metrics_settings_;
     rcu::Variable<storages::redis::PubsubMetricsSettings> pubsub_metrics_settings_;

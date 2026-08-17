@@ -15,8 +15,6 @@ class Scylla : public ComponentBase {
 public:
     Scylla(const ComponentConfig&, const ComponentContext&);
 
-    ~Scylla() override;
-
     storages::scylla::SessionPtr GetSession() const;
     static yaml_config::Schema GetStaticConfigSchema();
 
@@ -25,8 +23,6 @@ private:
 
     std::string dbalias_;
     storages::scylla::SessionPtr session_;
-
-    concurrent::AsyncEventSubscriberScope secdist_subscriber_;
 };
 
 }  // namespace components

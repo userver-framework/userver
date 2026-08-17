@@ -158,6 +158,8 @@ TEST(ResourceScopeStorage, CallbackThrow)
                 return utils::FastScopeGuard([]() noexcept { trace.push_back(4); });
             });
         }
+
+        ~ComponentWithResource() override { trace.push_back(5); }
     };
 
     auto component_list = components::MinimalComponentList().Append<ComponentWithResource>("component");
@@ -167,7 +169,7 @@ TEST(ResourceScopeStorage, CallbackThrow)
         "1"
     );
 
-    EXPECT_THAT(trace, ::testing::ElementsAre(0, 1, 3, 2));
+    EXPECT_THAT(trace, ::testing::ElementsAre(0, 1, 3, 2, 5));
 }
 
 TEST(ResourceScopeStorage, WithResourceScopes) {

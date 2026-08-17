@@ -56,7 +56,7 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
         storages::mongo::Pool>(config.Name(), connection_string, pool_config, dns_resolver, config_source);
 
     if (!dbalias_.empty()) {
-        secdist_subscriber_ = secdist->UpdateAndListen(this, dbalias_, &Mongo::OnSecdistUpdate);
+        secdist->UpdateAndListen(this, dbalias_, &Mongo::OnSecdistUpdate).Scoped(context);
     }
 
     auto section_name = config.Name();
@@ -75,8 +75,6 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
         {{"mongo_database", std::move(section_name)}}
     );
 }
-
-Mongo::~Mongo() { secdist_subscriber_.Unsubscribe(); }
 
 storages::mongo::PoolPtr Mongo::GetPool() const { return pool_; }
 

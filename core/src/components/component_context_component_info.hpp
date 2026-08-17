@@ -108,6 +108,7 @@ private:
     bool HasComponent() const;
     std::unique_ptr<RawComponentBase> ExtractComponent();
     void AfterConstruction();
+    void BeforeDestruction();
 
     const std::string name_;
 

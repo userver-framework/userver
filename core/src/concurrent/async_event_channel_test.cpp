@@ -3,6 +3,10 @@
 #include <atomic>
 #include <stdexcept>
 
+#include <userver/components/component_base.hpp>
+#include <userver/components/component_context.hpp>
+#include <userver/components/minimal_component_list.hpp>
+#include <userver/components/run.hpp>
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/single_consumer_event.hpp>
@@ -321,5 +325,92 @@ UTEST(AsyncEventChannel, UnsibscribeWhileHandling) {
 }
 
 }  // namespace
+
+namespace {
+
+const std::string kComponentConfig = R"(
+components_manager:
+  coro_pool:
+    initial_size: 50
+    max_size: 500
+  default_task_processor: main-task-processor
+  fs_task_processor: main-task-processor
+  event_thread_pool:
+    threads: 1
+  task_processors:
+    main-task-processor:
+      worker_threads: 1
+  components:
+    component: {}
+    logging:
+      loggers: {}
+)";
+
+}  // namespace
+
+TEST(AsyncEventChannel, SubscriberScope)
+{
+    static int value = 0;
+    static concurrent::AsyncEventChannel<int> channel{"test-channel"};
+
+    // Reset static variables for --gtest_repeat.
+    value = 0;
+
+    class ComponentWithSubscription final : public components::ComponentBase {
+    public:
+        ComponentWithSubscription(
+            const components::ComponentConfig& config,
+            const components::ComponentContext& context
+        )
+            : components::ComponentBase(config, context)
+        {
+            channel.AddListener(this, "component", &ComponentWithSubscription::OnEvent).Scoped(context);
+            channel.SendEvent(1);
+        }
+
+    private:
+        void OnEvent(int x) { value = x; }
+    };
+
+    auto component_list = components::MinimalComponentList().Append<ComponentWithSubscription>("component");
+    components::RunOnce(components::InMemoryConfig{kComponentConfig}, component_list);
+
+    EXPECT_EQ(value, 1);
+}
+
+TEST(AsyncEventChannel, SubscriberScopeCtrThrow)
+{
+    static int value = 0;
+    static concurrent::AsyncEventChannel<int> channel{"test-channel-throw"};
+
+    // Reset static variables for --gtest_repeat.
+    value = 0;
+
+    class ComponentWithSubscription final : public components::ComponentBase {
+    public:
+        ComponentWithSubscription(
+            const components::ComponentConfig& config,
+            const components::ComponentContext& context
+        )
+            : components::ComponentBase(config, context)
+        {
+            channel.AddListener(this, "component", &ComponentWithSubscription::OnEvent).Scoped(context);
+            channel.SendEvent(1);
+            throw std::runtime_error("1");
+        }
+
+    private:
+        void OnEvent(int x) { value = x; }
+    };
+
+    auto component_list = components::MinimalComponentList().Append<ComponentWithSubscription>("component");
+    UEXPECT_THROW_MSG(
+        components::RunOnce(components::InMemoryConfig{kComponentConfig}, component_list),
+        std::runtime_error,
+        "1"
+    );
+
+    EXPECT_EQ(value, 1);
+}
 
 USERVER_NAMESPACE_END
