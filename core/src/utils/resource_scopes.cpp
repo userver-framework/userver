@@ -34,6 +34,12 @@ void ResourceScopeStorage::BeforeDestruction()
     for (auto& scope : initialized_scopes_ | std::views::reverse) {
         scope.reset();
     }
+    // Factories that never ran AfterConstruction still hold captured RAII
+    // handles. Drop them here so unregister runs while dependencies are
+    // still alive — including constructor failure.
+    for (auto& scope : registered_scopes_ | std::views::reverse) {
+        scope.reset();
+    }
 }
 
 ResourceScopeStorage& LocateDependency(

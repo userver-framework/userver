@@ -12,6 +12,8 @@
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 
+#include <components/component_list_test.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 TEST(AsyncEventChannel, Ctr) { const concurrent::AsyncEventChannel<int> channel("channel"); }
@@ -328,27 +330,15 @@ UTEST(AsyncEventChannel, UnsibscribeWhileHandling) {
 
 namespace {
 
-const std::string kComponentConfig = R"(
+const auto kComponentConfig = tests::MergeYaml(tests::kMinimalStaticConfig, R"(
 components_manager:
-  coro_pool:
-    initial_size: 50
-    max_size: 500
-  default_task_processor: main-task-processor
-  fs_task_processor: main-task-processor
-  event_thread_pool:
-    threads: 1
-  task_processors:
-    main-task-processor:
-      worker_threads: 1
-  components:
-    component: {}
-    logging:
-      loggers: {}
-)";
+    components:
+        component: {}
+)");
 
 }  // namespace
 
-TEST(AsyncEventChannel, SubscriberScope)
+TEST_F(ComponentList, SubscriberScope)
 {
     static int value = 0;
     static concurrent::AsyncEventChannel<int> channel{"test-channel"};
@@ -378,7 +368,7 @@ TEST(AsyncEventChannel, SubscriberScope)
     EXPECT_EQ(value, 1);
 }
 
-TEST(AsyncEventChannel, SubscriberScopeCtrThrow)
+TEST_F(ComponentList, SubscriberScopeCtrThrow)
 {
     static int value = 0;
     static concurrent::AsyncEventChannel<int> channel{"test-channel-throw"};

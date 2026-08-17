@@ -15,6 +15,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace utils {
+class ResourceScopeStorage;
+}  // namespace utils
+
 namespace cache {
 class CacheUpdateTrait;
 struct Config;
@@ -153,9 +157,13 @@ private:
     std::unique_ptr<Impl> impl_;
 };
 
-/// @brief RAII helper for testsuite registration. Must be kept alive to keep
-/// supporting cache resetting.
-/// @warning Make sure to always place CacheResetRegistration after the rest of
+/// @brief RAII helper for testsuite registration.
+///
+/// Removes the associated resetter automatically on destruction.
+///
+/// In a component constructor, prefer chaining @ref Scoped so that the
+/// resetter is unregistered just before the component destructor.
+/// Otherwise store the registration as a member after the rest of
 /// the component's fields.
 /// @see testsuite::CacheControl
 class [[nodiscard]] CacheResetRegistration final {
@@ -169,6 +177,24 @@ public:
     /// Unregister the cache component explicitly.
     /// `Unregister` is called in the destructor automatically.
     void Unregister() noexcept;
+
+    /// @brief Transfers the registration lifetime to the component.
+    ///
+    /// The resetter is unregistered just before the component destructor
+    /// runs, while all component fields are still valid. Prefer this over
+    /// storing the registration as a member.
+    ///
+    /// Typical usage:
+    /// @code
+    /// testsuite::RegisterCache(context, this, &MyCache::ResetCache).Scoped(context);
+    /// @endcode
+    void Scoped(const components::ComponentContext& context) &&;
+
+    /// @overload
+    ///
+    /// This overload is intended for use with @ref components::Container
+    /// or with other objects that can be mocked in gtest tests.
+    void Scoped(utils::ResourceScopeStorage& scopes) &&;
 
     /// @cond
     // For internal use only.
@@ -185,8 +211,10 @@ private:
 /// @see testsuite::RegisterCache
 CacheControl& FindCacheControl(const components::ComponentContext& context);
 
-/// @brief The method for registering a cache from component constructor. The
-/// returned handle must be kept alive to keep supporting cache resetting.
+/// @brief The method for registering a cache from component constructor.
+///
+/// In a component constructor, prefer chaining @ref CacheResetRegistration::Scoped.
+/// Otherwise the returned handle must be kept alive to keep supporting cache resetting.
 ///
 /// @warning The function should be called in the component's constructor
 /// *after* all FindComponent calls. This ensures that reset will first be

@@ -133,7 +133,12 @@ RawComponentBase* ComponentContextImpl::AddComponent(
     // Put `context` on heap to detect use-after-free consistently.
     const auto context = std::make_unique<ComponentContext>(utils::impl::InternalTag{}, *this, component_info);
 
-    component_info.SetComponent(adder.MakeComponent(config, *context));
+    try {
+        component_info.SetComponent(adder.MakeComponent(config, *context));
+    } catch (...) {
+        component_info.BeforeDestruction();
+        throw;
+    }
 
     auto* component = component_info.GetComponent();
     if (component) {

@@ -20,6 +20,7 @@
 #include <userver/utils/algo.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/impl/intrusive_link_mode.hpp>
+#include <userver/utils/resource_scopes.hpp>
 #include <userver/utils/task_builder.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -338,6 +339,14 @@ void CacheResetRegistration::Unregister() noexcept {
         cache_control_->UnregisterCache(std::move(cache_info_iterator_));
         cache_control_ = nullptr;
     }
+}
+
+void CacheResetRegistration::Scoped(const components::ComponentContext& context) && {
+    std::move(*this).Scoped(context.Scopes());
+}
+
+void CacheResetRegistration::Scoped(utils::ResourceScopeStorage& scopes) && {
+    scopes.Register([scope = std::move(*this)]() mutable { return std::move(scope); });
 }
 
 CacheControl& FindCacheControl(const components::ComponentContext& context) {

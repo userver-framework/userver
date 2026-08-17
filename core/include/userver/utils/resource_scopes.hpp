@@ -113,6 +113,9 @@ public:
     void AfterConstruction();
 
     /// @brief Unregister all previously registered resources.
+    ///
+    /// Also drops factories that have not run @ref AfterConstruction yet,
+    /// so captured RAII handles unregister immediately.
     void BeforeDestruction();
 
 private:

@@ -14,6 +14,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace utils {
+class ResourceScopeStorage;
+}  // namespace utils
+
 namespace concurrent {
 
 class FunctionId;
@@ -96,6 +100,12 @@ public:
     /// source.UpdateAndListen(this, "name", &MyComponent::OnConfigUpdate).Scoped(context);
     /// @endcode
     void Scoped(const components::ComponentContext& context) &&;
+
+    /// @overload
+    ///
+    /// This overload is intended for use with @ref components::Container
+    /// or with other objects that can be mocked in gtest tests.
+    void Scoped(utils::ResourceScopeStorage& scopes) &&;
 
     /// @cond
     // For internal use only.

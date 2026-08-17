@@ -103,10 +103,6 @@ private:
     const LruCacheConfigStatic static_config_;
     const std::shared_ptr<Cache> cache_;
     std::shared_ptr<dump::Dumper> dumper_;
-
-    // Subscriptions must be the last fields.
-    testsuite::CacheResetRegistration reset_registration_;
-    // See the comment above before adding a new field.
 };
 
 template <typename Key, typename Value, typename Hash, typename Equal>
@@ -144,13 +140,11 @@ LruCacheComponent<
 
     impl::RegisterOnStatisticsStorage(context, name_, [this](utils::statistics::Writer& writer) { writer = *cache_; });
 
-    reset_registration_ = testsuite::RegisterCache(context, this, &LruCacheComponent::DropCache);
+    testsuite::RegisterCache(context, this, &LruCacheComponent::DropCache).Scoped(context);
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
 LruCacheComponent<Key, Value, Hash, Equal>::~LruCacheComponent() {
-    reset_registration_.Unregister();
-
     if (dumper_) {
         dumper_->CancelWriteTaskAndWait();
     }

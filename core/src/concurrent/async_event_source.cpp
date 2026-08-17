@@ -51,7 +51,11 @@ void AsyncEventSubscriberScope::Unsubscribe() noexcept {
 }
 
 void AsyncEventSubscriberScope::Scoped(const components::ComponentContext& context) && {
-    context.Scopes().Register([scope = std::move(*this)]() mutable { return std::move(scope); });
+    std::move(*this).Scoped(context.Scopes());
+}
+
+void AsyncEventSubscriberScope::Scoped(utils::ResourceScopeStorage& scopes) && {
+    scopes.Register([scope = std::move(*this)]() mutable { return std::move(scope); });
 }
 
 AsyncEventSubscriberScope::~AsyncEventSubscriberScope() {

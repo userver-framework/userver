@@ -176,8 +176,8 @@ public:
         }
         // ...
 
-        // reset_registration_ must be set at the end of the constructor.
-        reset_registration_ = testsuite::RegisterCache(context, this, &MyCache::ResetCache);
+        // RegisterCache must be called at the end of the constructor.
+        testsuite::RegisterCache(context, this, &MyCache::ResetCache).Scoped(context);
     }
 
     std::string GetToken() {
@@ -201,9 +201,6 @@ private:
     }
 
     concurrent::Variable<std::optional<std::string>> cached_token_;
-
-    // Subscriptions must be the last fields.
-    testsuite::CacheResetRegistration reset_registration_;
 };
 /// [sample]
 
@@ -219,7 +216,7 @@ public:
 
     Component1(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
-        reset_registration_ = testsuite::RegisterCache(context, this, &Component1::ResetCache);
+        testsuite::RegisterCache(context, this, &Component1::ResetCache).Scoped(context);
     }
 
     void ResetCache() {
@@ -228,10 +225,6 @@ public:
     }
 
     static inline std::atomic<std::size_t> resets_count{0};
-
-private:
-    // Subscriptions must be the last fields.
-    testsuite::CacheResetRegistration reset_registration_;
 };
 
 class Component1a final : public components::ComponentBase {
@@ -240,7 +233,7 @@ public:
 
     Component1a(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
-        reset_registration_ = testsuite::RegisterCache(context, this, &Component1a::ResetCache);
+        testsuite::RegisterCache(context, this, &Component1a::ResetCache).Scoped(context);
     }
 
     void ResetCache() {
@@ -249,10 +242,6 @@ public:
     }
 
     static inline std::atomic<std::size_t> resets_count{0};
-
-private:
-    // Subscriptions must be the last fields.
-    testsuite::CacheResetRegistration reset_registration_;
 };
 
 class Component1b final : public components::ComponentBase {
@@ -261,7 +250,7 @@ public:
 
     Component1b(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
-        reset_registration_ = testsuite::RegisterCache(context, this, &Component1b::ResetCache);
+        testsuite::RegisterCache(context, this, &Component1b::ResetCache).Scoped(context);
     }
 
     void ResetCache() {
@@ -270,10 +259,6 @@ public:
     }
 
     static inline std::atomic<std::size_t> resets_count{0};
-
-private:
-    // Subscriptions must be the last fields.
-    testsuite::CacheResetRegistration reset_registration_;
 };
 
 class Component1c final : public components::ComponentBase {
@@ -282,7 +267,7 @@ public:
 
     Component1c(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
-        reset_registration_ = testsuite::RegisterCache(context, this, &Component1c::ResetCache);
+        testsuite::RegisterCache(context, this, &Component1c::ResetCache).Scoped(context);
     }
 
     void ResetCache() {
@@ -291,10 +276,6 @@ public:
     }
 
     static inline std::atomic<std::size_t> resets_count{0};
-
-private:
-    // Subscriptions must be the last fields.
-    testsuite::CacheResetRegistration reset_registration_;
 };
 
 class Component2 final : public components::ComponentBase {
@@ -304,7 +285,7 @@ public:
     Component2(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
         context.FindComponent<Component1>();
-        reset_registration_ = testsuite::RegisterCache(context, this, &Component2::ResetCache);
+        testsuite::RegisterCache(context, this, &Component2::ResetCache).Scoped(context);
     }
 
     void ResetCache() {
@@ -313,10 +294,6 @@ public:
     }
 
     static inline std::atomic<std::size_t> resets_count{0};
-
-private:
-    // Subscriptions must be the last fields.
-    testsuite::CacheResetRegistration reset_registration_;
 };
 
 class ComponentNotLoaded final : public components::ComponentBase {
@@ -326,14 +303,10 @@ public:
     ComponentNotLoaded(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
         context.FindComponent<Component1>();
-        reset_registration_ = testsuite::RegisterCache(context, this, &ComponentNotLoaded::ResetCache);
+        testsuite::RegisterCache(context, this, &ComponentNotLoaded::ResetCache).Scoped(context);
     }
 
     void ResetCache() { UASSERT(false); }
-
-private:
-    // Subscriptions must be the last fields.
-    testsuite::CacheResetRegistration reset_registration_;
 };
 
 class Component3 final : public components::ComponentBase {
@@ -351,7 +324,7 @@ public:
         context.FindComponent<Component1b>();
         context.FindComponent<Component1c>();
 
-        reset_registration_ = testsuite::RegisterCache(context, this, &Component3::ResetCache);
+        testsuite::RegisterCache(context, this, &Component3::ResetCache).Scoped(context);
     }
 
     void ResetCache() {
@@ -383,9 +356,6 @@ public:
 
 private:
     testsuite::CacheControl& cc_;
-
-    // Subscriptions must be the last fields.
-    testsuite::CacheResetRegistration reset_registration_;
 };
 
 void AssertConcurrentResets() {
