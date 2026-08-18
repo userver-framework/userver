@@ -1,3 +1,4 @@
+#include <userver/chaotic/openapi/server/dependencies.hpp>
 #include <userver/chaotic/openapi/middlewares/component_list.hpp>
 #include <userver/chaotic/openapi/middlewares/qos_middleware.hpp>
 #include <userver/clients/dns/component.hpp>
@@ -39,6 +40,7 @@ int main(int argc, char* argv[]) {
             .Append<::clients::test::Component>()
             /// [register-client]
             /// [register-handlers]
+            .Append<USERVER_NAMESPACE::components::Container<USERVER_NAMESPACE::chaotic::openapi::server::dependencies::Factories>>()
             .AppendComponentList(::handlers::insecure::ChaoticHandlersList())
             .AppendComponentList(::handlers::secure::ChaoticHandlersList());
     /// [register-handlers]
