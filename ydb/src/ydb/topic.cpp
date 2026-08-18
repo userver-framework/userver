@@ -290,6 +290,7 @@ TopicProducer TopicClient::CreateProducer(const TopicProducerSettings& settings,
     auto native_settings = static_cast<const NYdb::NTopic::TProducerSettings&>(settings);
     native_settings.MaxMemoryUsage(max_memory_usage_bytes);
     native_settings.MaxBlockTimeout(TDuration::Zero());
+    native_settings.AsyncExecutionMode(true);
     return TopicProducer{topic_client_->CreateProducer(native_settings)};
 }
 
