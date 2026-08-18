@@ -58,6 +58,8 @@ HttpMethod ConvertHttpMethod(llhttp_method method) {
             return HttpMethod::kPatch;
         case HTTP_OPTIONS:
             return HttpMethod::kOptions;
+        case HTTP_TRACE:
+            return HttpMethod::kTrace;
         default:
             return HttpMethod::kUnknown;
     }
