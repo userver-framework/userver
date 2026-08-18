@@ -1,7 +1,13 @@
 #include <algorithm>
 #include <chrono>
+#include <cstdint>
+#include <memory>
 #include <string>
 
+#include <mongoc/mongoc.h>
+
+#include <storages/mongo/cdriver/collection_impl.hpp>
+#include <storages/mongo/cdriver/pool_impl.hpp>
 #include <storages/mongo/features.hpp>
 #include <storages/mongo/util_mongotest.hpp>
 #include <userver/formats/bson.hpp>
@@ -9,6 +15,7 @@
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/operators.hpp>
 #include <userver/storages/mongo/pool.hpp>
+#include <userver/utils/assert.hpp>
 
 #include <dynamic_config/variables/MONGO_DEFAULT_MAX_TIME_MS.hpp>
 
@@ -19,6 +26,20 @@ namespace mongo = storages::mongo;
 
 namespace {
 class Options : public MongoPoolFixture {};
+
+constexpr std::chrono::seconds kPoolMaxReplicationLag{90};
+
+class InspectableCollectionImpl final : public mongo::impl::cdriver::CDriverCollectionImpl {
+public:
+    using CDriverCollectionImpl::CDriverCollectionImpl;
+
+    std::int64_t GetEffectiveMaxStaleness(mongoc_read_mode_t mode) const {
+        const mongo::impl::cdriver::ReadPrefsPtr operation_read_prefs{mode};
+        const auto effective_read_prefs = MakeEffectiveReadPrefs(operation_read_prefs);
+        UASSERT(effective_read_prefs);
+        return mongoc_read_prefs_get_max_staleness_seconds(effective_read_prefs.Get());
+    }
+};
 
 bool IsWriteConcernTimeoutResult(const storages::mongo::WriteResult& result) {
     constexpr std::size_t kWriteConcernTimeoutMongoCode = 64;
@@ -108,6 +129,24 @@ UTEST_F(Options, ReadPreference) {
         ),
         mongo::InvalidQueryArgumentException
     );
+}
+
+UTEST(CollectionReadPreference, DefaultMaxReplicationLagIsApplied) {
+    auto dns_resolver = MakeDnsResolver();
+    auto dynamic_config = MakeDynamicConfig();
+    auto pool_config = MakeTestPoolConfig();
+    pool_config.max_replication_lag = kPoolMaxReplicationLag;
+
+    auto pool_impl = std::make_shared<mongo::impl::cdriver::CDriverPoolImpl>(
+        "max-replication-lag-test",
+        GetTestsuiteMongoUri(kTestDatabaseDefaultName),
+        pool_config,
+        &dns_resolver,
+        dynamic_config.GetSource()
+    );
+    const InspectableCollectionImpl collection_impl{pool_impl, kTestDatabaseDefaultName, "max_replication_lag"};
+
+    EXPECT_EQ(kPoolMaxReplicationLag.count(), collection_impl.GetEffectiveMaxStaleness(MONGOC_READ_SECONDARY));
 }
 
 UTEST_F(Options, ReadConcern) {

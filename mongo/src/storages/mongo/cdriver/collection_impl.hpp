@@ -46,6 +46,7 @@ protected:
     virtual cdriver::CDriverPoolImpl::BoundClientPtr GetClient(stats::OperationStatisticsItem& stats) const;
 
     [[maybe_unused]] virtual mongoc_client_session_t* GetSession() const;
+    ReadPrefsPtr MakeEffectiveReadPrefs(const ReadPrefsPtr& operation_read_prefs) const;
 
 private:
     RequestContext MakeRequestContext(std::string&& span_name, const stats::OperationKey& stats_key) const;

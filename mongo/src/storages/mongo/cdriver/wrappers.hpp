@@ -1,6 +1,8 @@
 #pragma once
 
+#include <chrono>
 #include <memory>
+#include <optional>
 
 #include <mongoc/mongoc.h>
 
@@ -123,6 +125,11 @@ struct ServerDescriptionDeleter {
     }
 };
 using ServerDescriptionPtr = std::unique_ptr<mongoc_server_description_t, ServerDescriptionDeleter>;
+
+ReadPrefsPtr MakeReadPrefsWithDefaultMaxStaleness(
+    const ReadPrefsPtr& read_prefs,
+    const std::optional<std::chrono::seconds>& default_max_staleness
+);
 
 struct StreamDeleter {
     void operator()(mongoc_stream_t* stream) const noexcept { mongoc_stream_destroy(stream); }

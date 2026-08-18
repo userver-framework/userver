@@ -608,6 +608,7 @@ CDriverCollectionImpl::CDriverCollectionImpl(
 
 size_t CDriverCollectionImpl::Execute(const operations::Count& operation) const {
     auto context = MakeRequestContext("mongo_count", operation);
+    const auto read_prefs = MakeEffectiveReadPrefs(operation.impl_->read_prefs);
 
     auto options = operation.impl_->options;
     SetMaxServerTime(options, operation.impl_->max_server_time, context);
@@ -619,7 +620,7 @@ size_t CDriverCollectionImpl::Execute(const operations::Count& operation) const 
         context.collection.get(),
         native_filter_bson_ptr,
         impl::GetNative(operation.impl_->options),
-        operation.impl_->read_prefs.Get(),
+        read_prefs.Get(),
         nullptr,
         error.GetNative()
     );
@@ -633,6 +634,7 @@ size_t CDriverCollectionImpl::Execute(const operations::Count& operation) const 
 
 size_t CDriverCollectionImpl::Execute(const operations::CountApprox& operation) const {
     auto context = MakeRequestContext("mongo_count_approx", operation);
+    const auto read_prefs = MakeEffectiveReadPrefs(operation.impl_->read_prefs);
 
     auto options = operation.impl_->options;
     SetMaxServerTime(options, operation.impl_->max_server_time, context);
@@ -642,7 +644,7 @@ size_t CDriverCollectionImpl::Execute(const operations::CountApprox& operation) 
     auto count = mongoc_collection_estimated_document_count(
         context.collection.get(),
         impl::GetNative(operation.impl_->options),
-        operation.impl_->read_prefs.Get(),
+        read_prefs.Get(),
         nullptr,
         error.GetNative()
     );
@@ -656,6 +658,7 @@ size_t CDriverCollectionImpl::Execute(const operations::CountApprox& operation) 
 
 Cursor CDriverCollectionImpl::Execute(const operations::Find& operation) const {
     auto context = MakeRequestContext("mongo_find", operation);
+    const auto read_prefs = MakeEffectiveReadPrefs(operation.impl_->read_prefs);
 
     auto options = operation.impl_->options;
     SetMaxServerTime(options, operation.impl_->max_server_time, context);
@@ -669,7 +672,7 @@ Cursor CDriverCollectionImpl::Execute(const operations::Find& operation) const {
         context.collection.get(),
         native_filter_bson_ptr,
         impl::GetNative(options),
-        operation.impl_->read_prefs.Get()
+        read_prefs.Get()
     ));
     return Cursor(std::make_unique<impl::cdriver::CDriverCursorImpl>(
         std::move(context.client),
@@ -680,6 +683,7 @@ Cursor CDriverCollectionImpl::Execute(const operations::Find& operation) const {
 
 std::vector<formats::bson::Value> CDriverCollectionImpl::Execute(const operations::Distinct& operation) const {
     auto context = MakeRequestContext("mongo_distinct", operation);
+    const auto read_prefs = MakeEffectiveReadPrefs(operation.impl_->read_prefs);
 
     auto options = operation.impl_->options;
     SetMaxServerTime(options, operation.impl_->max_server_time, context);
@@ -706,7 +710,7 @@ std::vector<formats::bson::Value> CDriverCollectionImpl::Execute(const operation
     if (!mongoc_collection_read_command_with_opts(
             context.collection.get(),
             native_command_bson_ptr,
-            operation.impl_->read_prefs.Get(),
+            read_prefs.Get(),
             impl::GetNative(options),
             result_bson.Get(),
             error.GetNative()
@@ -1225,6 +1229,7 @@ WriteResult CDriverCollectionImpl::Execute(operations::Bulk&& operation) {
 
 Cursor CDriverCollectionImpl::Execute(const operations::Aggregate& operation) {
     auto context = MakeRequestContext("mongo_aggregate", operation);
+    const auto read_prefs = MakeEffectiveReadPrefs(operation.impl_->read_prefs);
 
     auto options = operation.impl_->options;
     SetMaxServerTime(options, operation.impl_->max_server_time, context);
@@ -1240,7 +1245,7 @@ Cursor CDriverCollectionImpl::Execute(const operations::Aggregate& operation) {
         MONGOC_QUERY_NONE,
         native_pipeline_bson_ptr,
         impl::GetNative(options),
-        operation.impl_->read_prefs.Get()
+        read_prefs.Get()
     ));
     return Cursor(std::make_unique<impl::cdriver::CDriverCursorImpl>(
         std::move(context.client),
@@ -1328,6 +1333,13 @@ RequestContext CDriverCollectionImpl::MakeRequestContext(std::string&& span_name
 template <typename Operation>
 RequestContext CDriverCollectionImpl::MakeRequestContext(std::string&& span_name, const Operation& operation) const {
     return MakeRequestContext(std::move(span_name), operation.impl_->op_key);
+}
+
+ReadPrefsPtr CDriverCollectionImpl::MakeEffectiveReadPrefs(const ReadPrefsPtr& operation_read_prefs) const {
+    // Uasserted in ctor.
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+    const auto& pool = static_cast<const CDriverPoolImpl&>(*pool_impl_);
+    return MakeReadPrefsWithDefaultMaxStaleness(operation_read_prefs, pool.GetMaxReplicationLag());
 }
 
 }  // namespace storages::mongo::impl::cdriver

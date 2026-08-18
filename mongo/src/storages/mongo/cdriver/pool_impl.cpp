@@ -430,6 +430,10 @@ void CDriverPoolImpl::SetMaxSize(size_t max_size) { max_size_ = max_size; }
 
 const std::string& CDriverPoolImpl::DefaultDatabaseName() const { return default_database_; }
 
+const std::optional<std::chrono::seconds>& CDriverPoolImpl::GetMaxReplicationLag() const {
+    return pool_config_.max_replication_lag;
+}
+
 void CDriverPoolImpl::SetPoolSettings(const PoolSettings& pool_settings) {
     SetMaxSize(pool_settings.max_size);
     idle_limit_ = pool_settings.idle_limit;

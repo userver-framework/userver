@@ -76,6 +76,25 @@ void ReadPrefsPtr::Reset() noexcept {
     }
 }
 
+ReadPrefsPtr MakeReadPrefsWithDefaultMaxStaleness(
+    const ReadPrefsPtr& read_prefs,
+    const std::optional<std::chrono::seconds>& default_max_staleness
+) {
+    if (!read_prefs) {
+        return {};
+    }
+
+    ReadPrefsPtr effective_read_prefs{read_prefs};
+    if (!default_max_staleness || mongoc_read_prefs_get_mode(effective_read_prefs.Get()) == MONGOC_READ_PRIMARY ||
+        mongoc_read_prefs_get_max_staleness_seconds(effective_read_prefs.Get()) != MONGOC_NO_MAX_STALENESS)
+    {
+        return effective_read_prefs;
+    }
+
+    mongoc_read_prefs_set_max_staleness_seconds(effective_read_prefs.Get(), default_max_staleness->count());
+    return effective_read_prefs;
+}
+
 }  // namespace storages::mongo::impl::cdriver
 
 USERVER_NAMESPACE_END

@@ -52,6 +52,7 @@ public:
 
     /// @brief Sets maximum replication lag for eligible replica.
     /// @note Must be at least 90 seconds, cannot be used with kPrimary mode.
+    /// @note `std::nullopt` resets the operation override, allowing the pool default to apply.
     ReadPreference& SetMaxStaleness(std::optional<std::chrono::seconds> max_staleness);
 
     /// @brief Adds a tag to the tag set.

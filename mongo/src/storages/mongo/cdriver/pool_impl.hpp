@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <optional>
 
 #include <mongoc/mongoc.h>
 #include <moodycamel/concurrentqueue.h>
@@ -126,6 +127,7 @@ public:
     ~CDriverPoolImpl() override;
 
     const std::string& DefaultDatabaseName() const override;
+    const std::optional<std::chrono::seconds>& GetMaxReplicationLag() const;
 
     void Ping() override;
 
