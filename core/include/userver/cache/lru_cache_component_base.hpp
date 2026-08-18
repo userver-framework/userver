@@ -8,6 +8,7 @@
 #include <userver/cache/expirable_lru_cache.hpp>
 #include <userver/cache/lru_cache_config.hpp>
 #include <userver/components/component_base.hpp>
+#include <userver/concurrent/async_event_source.hpp>
 #include <userver/dump/dumper.hpp>
 #include <userver/dump/meta.hpp>
 #include <userver/dump/operations.hpp>
@@ -103,6 +104,9 @@ private:
     const LruCacheConfigStatic static_config_;
     const std::shared_ptr<Cache> cache_;
     std::shared_ptr<dump::Dumper> dumper_;
+
+    // Subscriptions must be the last fields.
+    concurrent::AsyncEventSubscriberScope config_subscription_;
 };
 
 template <typename Key, typename Value, typename Hash, typename Equal>
@@ -131,9 +135,9 @@ LruCacheComponent<
                "dynamic-config updates, cache="
             << name_;
 
-        impl::FindDynamicConfigSource(context)
-            .UpdateAndListen(this, "cache." + name_, &LruCacheComponent::OnConfigUpdate)
-            .Scoped(context);
+        config_subscription_ =
+            impl::FindDynamicConfigSource(context)
+                .UpdateAndListen(this, "cache." + name_, &LruCacheComponent::OnConfigUpdate);
     } else {
         LOG_INFO() << "Dynamic LRU cache config is disabled, cache=" << name_;
     }
@@ -145,6 +149,8 @@ LruCacheComponent<
 
 template <typename Key, typename Value, typename Hash, typename Equal>
 LruCacheComponent<Key, Value, Hash, Equal>::~LruCacheComponent() {
+    config_subscription_.Unsubscribe();
+
     if (dumper_) {
         dumper_->CancelWriteTaskAndWait();
     }

@@ -97,15 +97,17 @@ HttpClientCore::HttpClientCore(const ComponentConfig& component_config, const Co
     }
 
     auto& config_component = context.FindComponent<components::DynamicConfig>();
-    components::DynamicConfig::NoblockSubscriber{config_component}
-        .UpdateIfHasConfigAndListen(this, kName, &HttpClientCore::OnConfigUpdate)
-        .Scoped(context);
+    subscriber_scope_ =
+        components::DynamicConfig::NoblockSubscriber{config_component}
+            .UpdateIfHasConfigAndListen(this, kName, &HttpClientCore::OnConfigUpdate);
     const auto thread_name_prefix = component_config["thread-name-prefix"].As<std::string>("");
     auto stats_name = "httpclient" + (thread_name_prefix.empty() ? "" : ("-" + thread_name_prefix));
     utils::statistics::RegisterWriterScope(context, std::move(stats_name), [this](utils::statistics::Writer& writer) {
         WriteStatistics(writer);
     });
 }
+
+HttpClientCore::~HttpClientCore() { subscriber_scope_.Unsubscribe(); }
 
 void HttpClientCore::OnLoadingCancelled() {
     is_loading_cancelled_.store(true);

@@ -22,6 +22,7 @@ public:
     static constexpr std::string_view kName = "odbc";
 
     Odbc(const ComponentConfig& config, const ComponentContext& context);
+    ~Odbc() override;
 
     std::shared_ptr<storages::odbc::Cluster> GetCluster() const;
 
@@ -34,6 +35,7 @@ private:
     std::shared_ptr<storages::odbc::Cluster> cluster_;
 
     dynamic_config::Source config_source_;
+    concurrent::AsyncEventSubscriberScope config_subscription_;
 };
 
 }  // namespace components

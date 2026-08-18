@@ -119,16 +119,17 @@ Odbc::Odbc(const ComponentConfig& config, const ComponentContext& context)
         {{"component", name_}}
     );
 
-    config_source_
-        .UpdateAndListen(
-            this,
-            "odbc",
-            &Odbc::OnConfigUpdate,
-            ::dynamic_config::USERVER_ODBC_CONNECTION_POOL_SETTINGS,
-            ::dynamic_config::USERVER_ODBC_DEFAULT_COMMAND_CONTROL
-        )
-        .Scoped(context);
+    // Subscribe to dynamic config updates
+    config_subscription_ = config_source_.UpdateAndListen(
+        this,
+        "odbc",
+        &Odbc::OnConfigUpdate,
+        ::dynamic_config::USERVER_ODBC_CONNECTION_POOL_SETTINGS,
+        ::dynamic_config::USERVER_ODBC_DEFAULT_COMMAND_CONTROL
+    );
 }
+
+Odbc::~Odbc() { config_subscription_.Unsubscribe(); }
 
 void Odbc::OnConfigUpdate(const dynamic_config::Snapshot& config) {
     const auto& pool_settings = config[::dynamic_config::USERVER_ODBC_CONNECTION_POOL_SETTINGS];

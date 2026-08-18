@@ -123,9 +123,8 @@ public:
     /// @param name the name of the subscriber, for diagnostic purposes
     /// @param func the listener method, named `OnConfigUpdate` by convention.
     /// @returns a `concurrent::AsyncEventSubscriberScope` controlling the
-    /// subscription. In a component constructor, prefer chaining
-    /// @ref concurrent::AsyncEventSubscriberScope::Scoped.
-    /// Otherwise store the scope as a member and call `Unsubscribe` explicitly.
+    /// subscription, which should be stored as a member in the subscriber;
+    /// `Unsubscribe` should be called explicitly
     ///
     /// @see based on concurrent::AsyncEventSource engine
     template <typename Class>
@@ -164,9 +163,8 @@ public:
     /// @param name the name of the subscriber, for diagnostic purposes
     /// @param func the listener method, named `OnConfigUpdate` by convention.
     /// @returns a `concurrent::AsyncEventSubscriberScope` controlling the
-    /// subscription. In a component constructor, prefer chaining
-    /// @ref concurrent::AsyncEventSubscriberScope::Scoped.
-    /// Otherwise store the scope as a member and call `Unsubscribe` explicitly.
+    /// subscription, which should be stored as a member in the subscriber;
+    /// `Unsubscribe` should be called explicitly
     ///
     /// @see based on concurrent::AsyncEventSource engine
     ///
@@ -201,9 +199,8 @@ public:
     /// @param func the listener method, named `OnConfigUpdate` by convention.
     /// @param keys config objects, specializations of `dynamic_config::Key`.
     /// @returns a `concurrent::AsyncEventSubscriberScope` controlling the
-    /// subscription. In a component constructor, prefer chaining
-    /// @ref concurrent::AsyncEventSubscriberScope::Scoped.
-    /// Otherwise store the scope as a member and call `Unsubscribe` explicitly.
+    /// subscription, which should be stored as a member in the subscriber;
+    /// `Unsubscribe` should be called explicitly
     ///
     /// @see based on concurrent::AsyncEventSource engine
     template <typename Class, typename... Keys>

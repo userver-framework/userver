@@ -94,6 +94,9 @@ private:
     std::unordered_map<std::string, Database> databases_;
 
     dynamic_config::Source config_;
+
+    // These fields must be the last ones
+    concurrent::AsyncEventSubscriberScope config_subscription_;
 };
 
 }  // namespace ydb

@@ -93,10 +93,10 @@ Redis::Redis(const ComponentConfig& config, const ComponentContext& component_co
         testsuite_redis_control = component_context.FindComponent<components::TestsuiteSupport>().GetRedisControl();
     Connect(config, component_context, testsuite_redis_control);
 
-    config_.UpdateAndListen(this, "redis", &Redis::OnConfigUpdate).Scoped(component_context);
+    config_subscription_ = config_.UpdateAndListen(this, "redis", &Redis::OnConfigUpdate);
 
     auto& secdist = component_context.FindComponent<Secdist>();
-    secdist.GetStorage().UpdateAndListen(this, "redis", &Redis::OnSecdistUpdate).Scoped(component_context);
+    secdist_subscription_ = secdist.GetStorage().UpdateAndListen(this, "redis", &Redis::OnSecdistUpdate);
 
     utils::statistics::RegisterWriterScope(
         component_context,
@@ -249,6 +249,8 @@ ComponentHealth Redis::GetComponentHealth() const {
 
     return health_check_manager_->GetComponentHealth(clients_, subscribe_clients_);
 }
+
+Redis::~Redis() { config_subscription_.Unsubscribe(); }
 
 void Redis::WriteStatistics(utils::statistics::Writer& writer) {
     auto settings = metrics_settings_.Read();

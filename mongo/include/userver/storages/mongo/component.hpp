@@ -86,6 +86,9 @@ public:
     /// Component constructor
     Mongo(const ComponentConfig&, const ComponentContext&);
 
+    /// Component destructor
+    ~Mongo() override;
+
     /// Client pool accessor
     storages::mongo::PoolPtr GetPool() const;
 
@@ -96,6 +99,9 @@ private:
 
     std::string dbalias_;
     storages::mongo::PoolPtr pool_;
+
+    // Subscriptions must be the last fields.
+    concurrent::AsyncEventSubscriberScope secdist_subscriber_;
 };
 
 template <>
