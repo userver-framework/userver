@@ -1,10 +1,13 @@
 #include "driver.hpp"
 
+#include <utility>
+
 #include <ydb-cpp-sdk/client/driver/driver.h>
 #include <ydb-cpp-sdk/client/extensions/solomon_stats/pull_connector.h>
 #include <ydb-cpp-sdk/client/iam/iam.h>
 #include <ydb-cpp-sdk/client/types/credentials/credentials.h>
 
+#include <userver/engine/async.hpp>
 #include <userver/utils/algo.hpp>
 
 #include <ydb/impl/build_info.hpp>
@@ -15,7 +18,23 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ydb::impl {
 
-Driver::Driver(std::string dbname, impl::DriverSettings settings)
+UserverExecutor::UserverExecutor(engine::TaskProcessor& task_processor)
+    : task_processor_{task_processor}
+{}
+
+void UserverExecutor::Post(TFunction&& task) {
+    tasks_.Detach(engine::CriticalAsyncNoTracing(task_processor_, std::move(task)));
+}
+
+bool UserverExecutor::IsAsync() const { return true; }
+
+void UserverExecutor::Stop() { tasks_.WaitAndDisposeSlow(); }
+
+void UserverExecutor::DoStart() {
+    // The userver task processor is already running when YDB starts the executor.
+}
+
+Driver::Driver(std::string dbname, impl::DriverSettings settings, engine::TaskProcessor& task_processor)
     : dbname_(std::move(dbname)),
       dbpath_(settings.database),
       native_metrics_(std::make_unique<NMonitoring::TMetricRegistry>(NMonitoring::TLabels{})),
@@ -31,9 +50,6 @@ Driver::Driver(std::string dbname, impl::DriverSettings settings)
         );
     if (settings.network_threads_num.has_value()) {
         driver_config.SetNetworkThreadsNum(*settings.network_threads_num);
-    }
-    if (settings.client_threads_num.has_value()) {
-        driver_config.SetClientThreadsNum(*settings.client_threads_num);
     }
 
     if (settings.secure_connection_cert.has_value()) {
@@ -71,6 +87,7 @@ Driver::Driver(std::string dbname, impl::DriverSettings settings)
     }
 
     AppendUserverYdbBuildInfo(driver_config);
+    driver_config.SetExecutor(std::make_shared<UserverExecutor>(task_processor));
 
     driver_ = std::make_unique<NYdb::TDriver>(driver_config);
     NSolomonStatExtension::AddMetricRegistry(*driver_, native_metrics_.get());

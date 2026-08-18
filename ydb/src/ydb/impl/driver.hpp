@@ -2,11 +2,15 @@
 
 #include <memory>
 #include <string>
+#include <string_view>
 
+#include <userver/concurrent/background_task_storage.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/retry_budget.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 
 #include <ydb-cpp-sdk/client/driver/fwd.h>
+#include <ydb-cpp-sdk/client/types/executor/executor.h>
 
 namespace NMonitoring {
 class TMetricRegistry;
@@ -18,9 +22,24 @@ namespace ydb::impl {
 
 struct DriverSettings;
 
+class UserverExecutor final : public NYdb::IExecutor {
+public:
+    explicit UserverExecutor(engine::TaskProcessor& task_processor);
+
+    void Post(TFunction&& task) override;
+    bool IsAsync() const override;
+    void Stop() override;
+
+private:
+    void DoStart() override;
+
+    engine::TaskProcessor& task_processor_;
+    concurrent::BackgroundTaskStorageCore tasks_;
+};
+
 class Driver final {
 public:
-    Driver(std::string dbname, impl::DriverSettings settings);
+    Driver(std::string dbname, impl::DriverSettings settings, engine::TaskProcessor& task_processor);
 
     Driver(const Driver&) = delete;
     Driver(Driver&&) noexcept = delete;

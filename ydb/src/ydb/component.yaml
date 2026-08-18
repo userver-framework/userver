@@ -80,7 +80,7 @@ properties:
                     type: integer
                     minimum: 0
                     description: |
-                        NYdb::TDriverConfig::SetClientThreadsNum. If omitted, not set (SDK default).
+                        Deprecated, ignored. YDB callbacks run on userver's task processor.
                 tcp-keepalive:
                     type: object
                     additionalProperties: false

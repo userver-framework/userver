@@ -70,7 +70,6 @@ DriverSettings ParseDriverSettings(
 
     result.prefer_local_dc = dbconfig["prefer_local_dc"].As<bool>(result.prefer_local_dc);
     result.network_threads_num = dbconfig["network-threads-num"].As<std::optional<std::size_t>>();
-    result.client_threads_num = dbconfig["client-threads-num"].As<std::optional<std::size_t>>();
 
     if (!dbconfig["tcp-keepalive"].IsMissing()) {
         const auto tcp = dbconfig["tcp-keepalive"];
