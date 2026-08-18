@@ -98,6 +98,9 @@ TEST(ErrorPages, RejectsInvalidConfigs) {
     EXPECT_THROW(ParseErrorPages("- statuses: [200]\n  status: 204"), std::runtime_error);
     EXPECT_THROW(ParseErrorPages("- statuses: [600]\n  status: 204"), std::runtime_error);
     EXPECT_THROW(ParseErrorPages("- statuses: [404]\n  status: 42"), std::runtime_error);
+    // A header that HttpResponse would reject must be rejected at start.
+    EXPECT_THROW(ParseErrorPages("- statuses: [404]\n  headers:\n      'Bad Name': v"), std::runtime_error);
+    EXPECT_THROW(ParseErrorPages("- statuses: [404]\n  headers:\n      Name: \"bad\\rvalue\""), std::runtime_error);
     // A status must not be claimed by two pages.
     EXPECT_THROW(
         ParseErrorPages("- statuses: [404, 405]\n  status: 200\n- statuses: [405]\n  status: 201"), std::runtime_error

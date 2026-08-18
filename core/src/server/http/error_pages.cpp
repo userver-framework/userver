@@ -9,6 +9,8 @@
 #include <userver/server/http/http_response.hpp>
 #include <userver/utils/algo.hpp>
 
+#include <server/http/header_validation.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
@@ -69,7 +71,15 @@ std::vector<std::pair<std::string, std::string>> ParseHeaders(const yaml_config:
     }
 
     for (const auto& [name, value] : yaml_config::Items(headers)) {
-        result.emplace_back(name, value.As<std::string>());
+        auto header_value = value.As<std::string>();
+        // Better to fail the start than to throw on every substituted response.
+        try {
+            CheckHeaderName(name);
+            CheckHeaderValue(header_value);
+        } catch (const std::exception& ex) {
+            throw std::runtime_error(fmt::format("Invalid header in '{}': {}", headers.GetPath(), ex.what()));
+        }
+        result.emplace_back(name, std::move(header_value));
     }
     return result;
 }
