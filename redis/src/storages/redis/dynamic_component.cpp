@@ -38,6 +38,8 @@ const auto kStatisticsName = "redis";
 
 namespace components {
 
+namespace {
+
 struct RedisPools {
     int sentinel_thread_pool_size;
     int redis_thread_pool_size;
@@ -49,6 +51,8 @@ RedisPools Parse(const yaml_config::YamlConfig& value, formats::parse::To<RedisP
     pools.redis_thread_pool_size = value["redis_thread_pool_size"].As<int>();
     return pools;
 }
+
+}  // namespace
 
 DynamicRedis::DynamicRedis(const ComponentConfig& config, const ComponentContext& component_context)
     : ComponentBase(config, component_context),
