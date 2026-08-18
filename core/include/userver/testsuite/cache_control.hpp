@@ -12,12 +12,9 @@
 #include <userver/cache/update_type.hpp>
 #include <userver/components/component_fwd.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/move_only_function.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-namespace utils {
-class ResourceScopeStorage;
-}  // namespace utils
 
 namespace cache {
 class CacheUpdateTrait;
@@ -111,7 +108,7 @@ public:
     // For internal use only.
     CacheResetRegistration RegisterPeriodicCache(cache::CacheUpdateTrait& cache);
 
-    // For internal use only. Use testsuite::RegisterCache instead
+    // For internal use only. Use testsuite::RegisterCacheScoped instead
     template <typename Component>
     CacheResetRegistration RegisterCache(Component* self, std::string_view name, void (Component::*reset_method)());
 
@@ -161,8 +158,8 @@ private:
 ///
 /// Removes the associated resetter automatically on destruction.
 ///
-/// In a component constructor, prefer chaining @ref Scoped so that the
-/// resetter is unregistered just before the component destructor.
+/// Prefer @ref RegisterCacheScoped so that the resetter is registered after
+/// the component constructor and unregistered just before the destructor.
 /// Otherwise store the registration as a member after the rest of
 /// the component's fields.
 /// @see testsuite::CacheControl
@@ -178,24 +175,6 @@ public:
     /// `Unregister` is called in the destructor automatically.
     void Unregister() noexcept;
 
-    /// @brief Transfers the registration lifetime to the component.
-    ///
-    /// The resetter is unregistered just before the component destructor
-    /// runs, while all component fields are still valid. Prefer this over
-    /// storing the registration as a member.
-    ///
-    /// Typical usage:
-    /// @code
-    /// testsuite::RegisterCache(context, this, &MyCache::ResetCache).Scoped(context);
-    /// @endcode
-    void Scoped(const components::ComponentContext& context) &&;
-
-    /// @overload
-    ///
-    /// This overload is intended for use with @ref components::Container
-    /// or with other objects that can be mocked in gtest tests.
-    void Scoped(utils::ResourceScopeStorage& scopes) &&;
-
     /// @cond
     // For internal use only.
     CacheResetRegistration(CacheControl&, CacheControl::CacheInfoIterator);
@@ -208,13 +187,46 @@ private:
 
 /// The method for acquiring testsuite::CacheControl in the component system.
 ///
-/// @see testsuite::RegisterCache
+/// @see testsuite::RegisterCacheScoped
 CacheControl& FindCacheControl(const components::ComponentContext& context);
 
-/// @brief The method for registering a cache from component constructor.
+namespace impl {
+
+void DoRegisterCacheScoped(
+    const components::ComponentContext& context,
+    utils::move_only_function<CacheResetRegistration()> factory
+);
+
+}  // namespace impl
+
+/// @brief Registers a cache resetter bound to the component lifetime.
 ///
-/// In a component constructor, prefer chaining @ref CacheResetRegistration::Scoped.
-/// Otherwise the returned handle must be kept alive to keep supporting cache resetting.
+/// The resetter is registered after the component constructor finishes
+/// and is unregistered just before the destructor runs.
+///
+/// Typical usage:
+/// @code
+/// testsuite::RegisterCacheScoped(context, this, &MyCache::ResetCache);
+/// @endcode
+///
+/// @warning The function should be called in the component's constructor
+/// *after* all FindComponent calls. This ensures that reset will first be
+/// called for dependencies, then for dependent components.
+template <typename Component>
+void RegisterCacheScoped(
+    const components::ComponentContext& context,
+    Component* self,
+    void (Component::*reset_method)()
+) {
+    auto& cc = testsuite::FindCacheControl(context);
+    auto name = std::string{components::GetCurrentComponentName(context)};
+    impl::DoRegisterCacheScoped(context, [&cc, self, name = std::move(name), reset_method] {
+        return cc.RegisterCache(self, name, reset_method);
+    });
+}
+
+/// @deprecated Use @ref RegisterCacheScoped instead.
+/// The returned handle must be kept alive to keep supporting cache resetting.
 ///
 /// @warning The function should be called in the component's constructor
 /// *after* all FindComponent calls. This ensures that reset will first be

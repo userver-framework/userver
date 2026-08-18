@@ -341,13 +341,16 @@ void CacheResetRegistration::Unregister() noexcept {
     }
 }
 
-void CacheResetRegistration::Scoped(const components::ComponentContext& context) && {
-    std::move(*this).Scoped(context.Scopes());
+namespace impl {
+
+void DoRegisterCacheScoped(
+    const components::ComponentContext& context,
+    utils::move_only_function<CacheResetRegistration()> factory
+) {
+    context.Scopes().Register(std::move(factory));
 }
 
-void CacheResetRegistration::Scoped(utils::ResourceScopeStorage& scopes) && {
-    scopes.Register([scope = std::move(*this)]() mutable { return std::move(scope); });
-}
+}  // namespace impl
 
 CacheControl& FindCacheControl(const components::ComponentContext& context) {
     return context.FindComponent<components::TestsuiteSupport>().GetCacheControl();

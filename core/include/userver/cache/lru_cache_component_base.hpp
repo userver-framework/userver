@@ -140,7 +140,7 @@ LruCacheComponent<
 
     impl::RegisterOnStatisticsStorage(context, name_, [this](utils::statistics::Writer& writer) { writer = *cache_; });
 
-    testsuite::RegisterCache(context, this, &LruCacheComponent::DropCache).Scoped(context);
+    testsuite::RegisterCacheScoped(context, this, &LruCacheComponent::DropCache);
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
