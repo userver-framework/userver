@@ -229,19 +229,6 @@ CacheResetRegistration RegisterCache(
     return cc.RegisterCache(self, components::GetCurrentComponentName(context), reset_method);
 }
 
-/// @overload
-///
-/// @deprecated Use the overload without the `config` parameter.
-template <typename Component>
-[[deprecated("Remove 'config' parameter from RegisterCache call")]] CacheResetRegistration RegisterCache(
-    [[maybe_unused]] const components::ComponentConfig& config,
-    const components::ComponentContext& context,
-    Component* self,
-    void (Component::*reset_method)()
-) {
-    return testsuite::RegisterCache(context, self, reset_method);
-}
-
 /// @cond
 template <typename Component>
 CacheResetRegistration CacheControl::RegisterCache(
