@@ -11,6 +11,7 @@
 #include <userver/formats/bson.hpp>
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/exception.hpp>
+#include <userver/storages/mongo/operators.hpp>
 #include <userver/storages/mongo/pool.hpp>
 #include <userver/tracing/span.hpp>
 
@@ -104,6 +105,39 @@ UTEST_F(DeadlinePropagation, ReplaceOneDeadlineBecomesMaxServerTime) {
     server::request::kTaskInheritedData.Set(MakeRequestData(engine::Deadline::FromDuration(300ms)));
     UEXPECT_THROW(
         coll.ReplaceOne(bson::MakeDoc("$where", "sleep(1000) || true"), bson::MakeDoc("foo", 44)),
+        mongo::ServerException
+    );
+}
+#endif
+UTEST_F(DeadlinePropagation, CancelledByDeadlineUpdate) {
+    auto coll = GetDefaultPool().GetCollection("dp_update");
+
+    static const auto kSelector = bson::MakeDoc("_id", 1);
+    static const auto kUpdate = bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("x", 1));
+
+    server::request::kTaskInheritedData.Set(MakeRequestData(engine::Deadline::FromDuration(-1s)));
+
+    UEXPECT_THROW(coll.UpdateOne(kSelector, kUpdate), mongo::CancelledException);
+    UEXPECT_THROW(coll.UpdateMany(kSelector, kUpdate), mongo::CancelledException);
+}
+
+#ifdef USERVER_FEATURE_MONGO_BULKWRITE
+UTEST_F(DeadlinePropagation, UpdateDeadlineBecomesMaxServerTime) {
+    auto coll = GetDefaultPool().GetCollection("dp_update_max_server_time");
+
+    static const auto kSelector = bson::MakeDoc("_id", 1);
+    static const auto kUpdate = bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("x", 1));
+
+    UASSERT_NO_THROW(coll.InsertOne(bson::MakeDoc("_id", 1)));
+
+    server::request::kTaskInheritedData.Set(MakeRequestData(engine::Deadline::FromDuration(utest::kMaxTestWaitTime)));
+
+    UEXPECT_NO_THROW(coll.UpdateOne(kSelector, kUpdate));
+    UEXPECT_NO_THROW(coll.UpdateMany(kSelector, kUpdate));
+
+    server::request::kTaskInheritedData.Set(MakeRequestData(engine::Deadline::FromDuration(300ms)));
+    UEXPECT_THROW(
+        coll.UpdateMany(bson::MakeDoc(mongo::operators::kWhere, "sleep(1000) || true"), kUpdate),
         mongo::ServerException
     );
 }

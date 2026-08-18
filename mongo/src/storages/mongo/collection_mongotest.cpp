@@ -1,6 +1,8 @@
 #include "collection_mongotest.hpp"
 
 #include <userver/storages/mongo/operators.hpp>
+#include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/statistics/testing.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -289,38 +291,24 @@ UTEST_F(Collection, ReplaceMaxServerTimeParity) {
         bulk_write_coll.ReplaceOne(bson::MakeDoc("_id", 2), bson::MakeDoc("x", 3), kBulkWriteMaxServerTime)
     );
 
-    ExpectSameWriteCounts(
-        native_coll.ReplaceOne(bson::MakeDoc("_id", 2), bson::MakeDoc("x", 3), mongo::options::Upsert{}),
-        bulk_write_coll.ReplaceOne(
-            bson::MakeDoc("_id", 2),
-            bson::MakeDoc("x", 3),
-            mongo::options::Upsert{},
-            kBulkWriteMaxServerTime
-        )
-    );
-
-    EXPECT_EQ(native_coll.CountApprox(), bulk_write_coll.CountApprox());
-}
-
-UTEST_F(Collection, ReplaceMaxServerTimeUpsertedIds) {
-    auto coll = GetDefaultPool().GetCollection("replace_one_upserted_ids");
-
-    auto result = coll.ReplaceOne(
-        bson::MakeDoc("_id", 1),
-        bson::MakeDoc("x", 1),
+    const auto
+        native = native_coll.ReplaceOne(bson::MakeDoc("_id", 2), bson::MakeDoc("x", 3), mongo::options::Upsert{});
+    const auto bulk_write = bulk_write_coll.ReplaceOne(
+        bson::MakeDoc("_id", 2),
+        bson::MakeDoc("x", 3),
         mongo::options::Upsert{},
         kBulkWriteMaxServerTime
     );
-    EXPECT_EQ(0, result.MatchedCount());
-    EXPECT_EQ(0, result.ModifiedCount());
-    EXPECT_EQ(1, result.UpsertedCount());
-    EXPECT_TRUE(result.ServerErrors().empty());
-    EXPECT_TRUE(result.WriteConcernErrors().empty());
+    ExpectSameWriteCounts(native, bulk_write);
 
-    auto upserted_ids = result.UpsertedIds();
+    const auto upserted_ids = bulk_write.UpsertedIds();
     ASSERT_EQ(1, upserted_ids.size());
-    ASSERT_TRUE(upserted_ids[0].IsInt32());
-    EXPECT_EQ(1, upserted_ids[0].As<int>());
+    ASSERT_TRUE(upserted_ids.at(0).IsInt32());
+    EXPECT_EQ(2, upserted_ids.at(0).As<int>());
+    EXPECT_TRUE(bulk_write.ServerErrors().empty());
+    EXPECT_TRUE(bulk_write.WriteConcernErrors().empty());
+
+    EXPECT_EQ(native_coll.CountApprox(), bulk_write_coll.CountApprox());
 }
 
 UTEST_F(Collection, ReplaceMaxServerTimeDuplicateKey) {
@@ -472,6 +460,199 @@ UTEST_F(Collection, Update) {
         EXPECT_TRUE(result.WriteConcernErrors().empty());
     }
     EXPECT_EQ(3, coll.CountApprox());
+}
+
+UTEST_F(Collection, UpdateMaxServerTimeParity) {
+    auto native_coll = GetDefaultPool().GetCollection("update_native");
+    auto bulk_write_coll = GetDefaultPool().GetCollection("update_bulk_write");
+    const mongo::options::MaxServerTime k_max_server_time{utest::kMaxTestWaitTime};
+
+    for (auto* coll : {&native_coll, &bulk_write_coll}) {
+        coll->InsertMany({bson::MakeDoc("_id", 1, "x", 1), bson::MakeDoc("_id", 2, "x", 1)});
+    }
+
+    {
+        static const auto kSelector = bson::MakeDoc("_id", 1);
+        static const auto kUpdate = bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("x", 2));
+
+        auto native = native_coll.UpdateOne(kSelector, kUpdate);
+        auto bulk_write = bulk_write_coll.UpdateOne(kSelector, kUpdate, k_max_server_time);
+        ExpectSameWriteCounts(native, bulk_write);
+        EXPECT_EQ(1, bulk_write.MatchedCount());
+        EXPECT_EQ(1, bulk_write.ModifiedCount());
+        EXPECT_TRUE(bulk_write.ServerErrors().empty());
+        EXPECT_TRUE(bulk_write.WriteConcernErrors().empty());
+    }
+    {
+        static const auto kSelector = bson::MakeDoc("_id", 42);
+        static const auto kUpdate = bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("x", 3));
+
+        auto native = native_coll.UpdateOne(kSelector, kUpdate);
+        auto bulk_write = bulk_write_coll.UpdateOne(kSelector, kUpdate, k_max_server_time);
+        ExpectSameWriteCounts(native, bulk_write);
+        EXPECT_EQ(0, bulk_write.MatchedCount());
+        EXPECT_EQ(0, bulk_write.ModifiedCount());
+    }
+    {
+        static const auto kUpdate = bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("x", 4));
+
+        auto native = native_coll.UpdateMany(bson::MakeDoc(), kUpdate);
+        auto bulk_write = bulk_write_coll.UpdateMany(bson::MakeDoc(), kUpdate, k_max_server_time);
+        ExpectSameWriteCounts(native, bulk_write);
+        EXPECT_EQ(2, bulk_write.MatchedCount());
+        EXPECT_EQ(2, bulk_write.ModifiedCount());
+    }
+    {
+        static const auto kSelector = bson::MakeDoc("_id", 3);
+        static const auto kUpdate = bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("x", 5));
+
+        auto native = native_coll.UpdateOne(kSelector, kUpdate, mongo::options::Upsert{});
+        auto bulk_write = bulk_write_coll.UpdateOne(kSelector, kUpdate, mongo::options::Upsert{}, k_max_server_time);
+        ExpectSameWriteCounts(native, bulk_write);
+        EXPECT_EQ(1, bulk_write.UpsertedCount());
+        auto upserted_ids = bulk_write.UpsertedIds();
+        ASSERT_EQ(1, upserted_ids.size());
+        ASSERT_TRUE(upserted_ids[0].IsInt32());
+        EXPECT_EQ(3, upserted_ids[0].As<int>());
+    }
+    EXPECT_EQ(native_coll.CountApprox(), bulk_write_coll.CountApprox());
+}
+
+UTEST_F(Collection, UpdateMaxServerTimeUpsertedIds) {
+    auto coll = GetDefaultPool().GetCollection("update_bulk_write_upsert");
+    const mongo::options::MaxServerTime k_max_server_time{utest::kMaxTestWaitTime};
+
+    {
+        auto result = coll.UpdateMany(
+            bson::MakeDoc("_id", 1),
+            bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("x", 1)),
+            mongo::options::Upsert{},
+            k_max_server_time
+        );
+        EXPECT_EQ(0, result.MatchedCount());
+        EXPECT_EQ(0, result.ModifiedCount());
+        EXPECT_EQ(1, result.UpsertedCount());
+        EXPECT_TRUE(result.ServerErrors().empty());
+        EXPECT_TRUE(result.WriteConcernErrors().empty());
+        auto upserted_ids = result.UpsertedIds();
+        ASSERT_EQ(1, upserted_ids.size());
+        ASSERT_TRUE(upserted_ids[0].IsInt32());
+        EXPECT_EQ(1, upserted_ids[0].As<int>());
+    }
+    EXPECT_EQ(1, coll.CountApprox());
+}
+
+UTEST_F(Collection, UpdateMaxServerTimeDuplicateKey) {
+    auto coll = GetDefaultPool().GetCollection("update_bulk_write_dupkey");
+    const mongo::options::MaxServerTime k_max_server_time{utest::kMaxTestWaitTime};
+
+    coll.InsertOne(bson::MakeDoc("_id", 1, "x", 1));
+
+    static const auto kSelector = bson::MakeDoc("_id", 1, "x", 2);
+    static const auto kUpdate = bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("y", 1));
+
+    UEXPECT_THROW(
+        coll.UpdateOne(kSelector, kUpdate, mongo::options::Upsert{}, k_max_server_time),
+        mongo::DuplicateKeyException
+    );
+
+    {
+        auto result = coll.UpdateOne(
+            kSelector,
+            kUpdate,
+            mongo::options::Upsert{},
+            k_max_server_time,
+            mongo::options::SuppressServerExceptions{}
+        );
+        EXPECT_EQ(0, result.MatchedCount());
+        EXPECT_EQ(0, result.ModifiedCount());
+        EXPECT_EQ(0, result.UpsertedCount());
+        EXPECT_TRUE(result.UpsertedIds().empty());
+        auto errors = result.ServerErrors();
+        ASSERT_EQ(1, errors.size());
+        EXPECT_TRUE(errors[0].IsServerError());
+        EXPECT_EQ(11000, errors[0].Code());
+    }
+    EXPECT_EQ(1, coll.CountApprox());
+}
+
+UTEST_F(Collection, UpdateMaxServerTimeRetryDuplicateKey) {
+    auto pool_config = MakeTestPoolConfig();
+    pool_config.stats_verbosity = mongo::StatsVerbosity::kFull;
+    auto pool = MakePool({}, pool_config);
+    auto coll = pool.GetCollection("update_bulk_write_retry_dupkey");
+
+    coll.InsertOne(bson::MakeDoc("_id", 1, "x", 1));
+
+    mongo::operations::Update
+        op(mongo::operations::Update::Mode::kSingle,
+           bson::MakeDoc("_id", 1, "x", 2),
+           bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("y", 1)));
+    op.SetOption(mongo::options::Upsert{});
+    op.SetOption(mongo::options::RetryDuplicateKey{});
+    op.SetOption(mongo::options::SuppressServerExceptions{});
+    op.SetOption(mongo::options::MaxServerTime{utest::kMaxTestWaitTime});
+
+    auto result = coll.Execute(op);
+    auto errors = result.ServerErrors();
+    ASSERT_EQ(1, errors.size());
+    EXPECT_EQ(11000, errors[0].Code());
+    EXPECT_EQ(1, coll.CountApprox());
+
+    utils::statistics::Storage statistics_storage;
+    [[maybe_unused]] const auto
+        statistics_holder = statistics_storage.RegisterWriter("mongo", [&pool](utils::statistics::Writer& writer) {
+            DumpMetric(writer, pool);
+        });
+    const utils::statistics::Snapshot snapshot{statistics_storage};
+    EXPECT_EQ(
+        snapshot
+            .SingleMetric(
+                "mongo.by-operation.errors",
+                {
+                    {"mongo_collection", "update_bulk_write_retry_dupkey"},
+                    {"mongo_operation", "update-one"},
+                    {"mongo_direction", "write"},
+                    {"mongo_error", "duplicate-key"},
+                }
+            )
+            .AsRate(),
+        utils::statistics::Rate{2}
+    );
+}
+
+UTEST_F(Collection, UpdateMaxServerTimeUnacknowledged) {
+    auto explicit_coll = GetDefaultPool().GetCollection("update_unacknowledged_explicit");
+    explicit_coll.InsertOne(bson::MakeDoc("_id", 1, "x", 1));
+
+    UEXPECT_NO_THROW(explicit_coll.UpdateOne(
+        bson::MakeDoc("_id", 1),
+        bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("x", 2)),
+        mongo::options::WriteConcern::kUnacknowledged,
+        kBulkWriteMaxServerTime
+    ));
+
+    const std::string default_wc_collection_name = "update_unacknowledged_default";
+    GetDefaultPool()
+        .GetCollection(default_wc_collection_name)
+        .InsertMany({bson::MakeDoc("_id", 1, "x", 1), bson::MakeDoc("_id", 2, "x", 1)});
+
+    auto resolver = MakeDnsResolver();
+    auto dynamic_config = MakeDynamicConfig();
+    mongo::Pool unacknowledged_pool{
+        "unacknowledged",
+        GetTestsuiteMongoUri(kTestDatabaseDefaultName) + "?w=0",
+        MakeTestPoolConfig(),
+        &resolver,
+        dynamic_config.GetSource(),
+    };
+    auto default_wc_coll = unacknowledged_pool.GetCollection(default_wc_collection_name);
+
+    UEXPECT_NO_THROW(default_wc_coll.UpdateMany(
+        bson::MakeDoc(),
+        bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("x", 2)),
+        kBulkWriteMaxServerTime
+    ));
 }
 
 UTEST_F(Collection, Delete) {

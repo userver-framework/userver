@@ -418,6 +418,10 @@ void Update::SetOption(const options::ArrayFilters& filters) {
 
 void Update::SetOption(const options::Hint& hint) { AppendHint(impl::EnsureBuilder(impl_->options), hint); }
 
+void Update::SetOption(const options::MaxServerTime& max_server_time) {
+    AppendMaxServerTime(impl_->max_server_time, max_server_time);
+}
+
 Delete::Delete(Mode mode, formats::bson::Document selector)
     : impl_(mode, std::move(selector))
 {}

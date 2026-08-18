@@ -54,10 +54,16 @@ private:
     RequestContext MakeRequestContext(std::string&& span_name, const Operation& operation) const;
 
     WriteResult ExecuteReplaceNative(const operations::ReplaceOne& operation, RequestContext& context);
+    WriteResult ExecuteUpdateNative(const operations::Update& operation, RequestContext& context);
 
 #ifdef MONGOC_BULKWRITE_H
     std::optional<WriteResult> ExecuteReplaceBulkWrite(
         const operations::ReplaceOne& operation,
+        RequestContext& context,
+        std::chrono::milliseconds effective
+    );
+    std::optional<WriteResult> ExecuteUpdateBulkWrite(
+        const operations::Update& operation,
         RequestContext& context,
         std::chrono::milliseconds effective
     );

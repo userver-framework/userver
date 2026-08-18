@@ -642,6 +642,19 @@ UTEST_F(Options, Hint) {
 
     UEXPECT_NO_THROW(coll.DeleteOne(bson::MakeDoc("_id", 1), mongo::options::Hint{"some_index"}));
     UEXPECT_NO_THROW(coll.DeleteMany({}, mongo::options::Hint{"some_index"}));
+
+#ifdef USERVER_FEATURE_MONGO_BULKWRITE
+    auto bulk_write_coll = GetDefaultPool().GetCollection("hint_bulk_write");
+    bulk_write_coll.InsertOne(bson::MakeDoc("_id", 1, "a", "before"));
+    auto result = bulk_write_coll.UpdateMany(
+        {},
+        bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("a", "after")),
+        mongo::options::Hint{bson::MakeDoc("_id", 1)},
+        mongo::options::MaxServerTime{utest::kMaxTestWaitTime}
+    );
+    EXPECT_EQ(1, result.MatchedCount());
+    EXPECT_EQ(1, result.ModifiedCount());
+#endif
 }
 
 UTEST_F(Options, AllowPartialResults) {
@@ -698,6 +711,34 @@ UTEST_F(Options, MaxServerTime) {
         coll.ReplaceOne(
             bson::MakeDoc("$where", "sleep(100) || true"),
             bson::MakeDoc("x", 8),
+            mongo::options::MaxServerTime{std::chrono::milliseconds{50}}
+        ),
+        storages::mongo::ServerException
+    );
+
+    UEXPECT_NO_THROW(coll.UpdateOne(
+        bson::MakeDoc("x", 2),
+        bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("y", 1)),
+        mongo::options::MaxServerTime{utest::kMaxTestWaitTime}
+    ));
+    UEXPECT_NO_THROW(coll.UpdateMany(
+        {},
+        bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("y", 2)),
+        mongo::options::MaxServerTime{utest::kMaxTestWaitTime}
+    ));
+
+    UEXPECT_THROW(
+        coll.UpdateOne(
+            bson::MakeDoc(mongo::operators::kWhere, "sleep(100) || true"),
+            bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("y", 3)),
+            mongo::options::MaxServerTime{std::chrono::milliseconds{50}}
+        ),
+        storages::mongo::ServerException
+    );
+    UEXPECT_THROW(
+        coll.UpdateMany(
+            bson::MakeDoc(mongo::operators::kWhere, "sleep(100) || true"),
+            bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("y", 4)),
             mongo::options::MaxServerTime{std::chrono::milliseconds{50}}
         ),
         storages::mongo::ServerException
@@ -767,6 +808,19 @@ UTEST_F(Options, DefaultMaxServerTime) {
     UEXPECT_NO_THROW(coll.ReplaceOne(
         bson::MakeDoc("$where", "sleep(50) || true"),
         bson::MakeDoc("x", 4),
+        mongo::options::MaxServerTime{utest::kMaxTestWaitTime}
+    ));
+
+    UEXPECT_THROW(
+        coll.UpdateMany(
+            bson::MakeDoc(mongo::operators::kWhere, "sleep(800) || true"),
+            bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("y", 1))
+        ),
+        storages::mongo::ServerException
+    );
+    UEXPECT_NO_THROW(coll.UpdateMany(
+        bson::MakeDoc(mongo::operators::kWhere, "sleep(50) || true"),
+        bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("y", 2)),
         mongo::options::MaxServerTime{utest::kMaxTestWaitTime}
     ));
 #endif
@@ -987,6 +1041,19 @@ UTEST_F(Options, ArrayFilters) {
             mongo::options::ArrayFilters(empty_filters.begin(), empty_filters.end())
         ));
     }
+
+#ifdef USERVER_FEATURE_MONGO_BULKWRITE
+    {
+        auto result = coll.UpdateOne(
+            bson::MakeDoc("_id", 2),
+            bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("grades.$[elem]", 101)),
+            mongo::options::ArrayFilters({bson::MakeDoc("elem", bson::MakeDoc(mongo::operators::kGte, 100))}),
+            mongo::options::MaxServerTime{utest::kMaxTestWaitTime}
+        );
+        EXPECT_EQ(1, result.MatchedCount());
+        EXPECT_EQ(1, result.ModifiedCount());
+    }
+#endif
 }
 
 USERVER_NAMESPACE_END
