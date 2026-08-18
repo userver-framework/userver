@@ -19,6 +19,7 @@ struct HttpMethodStrings {
     const std::string kConnect = "CONNECT";
     const std::string kPatch = "PATCH";
     const std::string kOptions = "OPTIONS";
+    const std::string kTrace = "TRACE";
     const std::string kUnknown = "unknown";
 };
 // NOLINTEND(readability-identifier-naming)
@@ -81,6 +82,11 @@ HttpMethod HttpMethodFromString(std::string_view method_str) {
                     result = HttpMethod::kOptions;
                 }
                 break;
+            case 'T':
+                if (method_str == strings.kTrace) {
+                    result = HttpMethod::kTrace;
+                }
+                break;
         }
     }
 
@@ -116,6 +122,8 @@ const std::string& ToString(HttpMethod method) noexcept {
             return strings.kPatch;
         case HttpMethod::kOptions:
             return strings.kOptions;
+        case HttpMethod::kTrace:
+            return strings.kTrace;
         case HttpMethod::kUnknown:
             return strings.kUnknown;
     }
