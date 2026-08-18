@@ -30,10 +30,12 @@ HttpRequestHandler::HttpRequestHandler(
     const std::optional<std::string>& logger_access_component,
     const std::optional<std::string>& logger_access_tskv_component,
     bool is_monitor,
-    std::string server_name
+    std::string server_name,
+    ErrorPages error_pages
 )
     : is_monitor_(is_monitor),
       server_name_(std::move(server_name)),
+      error_pages_(std::move(error_pages)),
       rate_limit_(utils::TokenBucket::MakeUnbounded()),
       metrics_(component_context.FindComponent<components::StatisticsStorage>().GetMetricsStorage()),
       config_source_(component_context.FindComponent<components::DynamicConfig>().GetSource())
@@ -57,13 +59,19 @@ engine::TaskWithResult<void> HttpRequestHandler::StartFailsafeTask(std::shared_p
 ) const {
     const auto* handler = http_request->GetHttpHandler();
 
-    return engine::AsyncNoTracing([request = std::move(http_request), handler]() {
+    // Neither the handler nor the middlewares run on this path, so the error
+    // pages are the only way to customize the response the server reports here.
+    return engine::AsyncNoTracing([request = std::move(http_request), handler, error_pages = &error_pages_]() {
         request->SetTaskStartTime();
+        auto& response = request->GetHttpResponse();
         if (handler) {
             handler->ReportMalformedRequest(*request);
         }
+        if (const auto* error_page = error_pages->Find(response.GetStatus())) {
+            ApplyErrorPage(*error_page, response);
+        }
         request->SetResponseNotifyTime();
-        request->GetHttpResponse().SetReady();
+        response.SetReady();
     });
 }
 

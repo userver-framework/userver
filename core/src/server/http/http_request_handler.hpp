@@ -12,6 +12,7 @@
 #include <userver/utils/statistics/metrics_storage.hpp>
 #include <userver/utils/token_bucket.hpp>
 
+#include "error_pages.hpp"
 #include "handler_info_index.hpp"
 
 USERVER_NAMESPACE_BEGIN
@@ -25,7 +26,8 @@ public:
         const std::optional<std::string>& logger_access_component,
         const std::optional<std::string>& logger_access_tskv_component,
         bool is_monitor,
-        std::string server_name
+        std::string server_name,
+        ErrorPages error_pages
     );
 
     using NewRequestHook = std::function<void(std::shared_ptr<http::HttpRequest>)>;
@@ -55,6 +57,7 @@ private:
 
     const bool is_monitor_;
     const std::string server_name_;
+    const ErrorPages error_pages_;
     NewRequestHook new_request_hook_;
     mutable utils::TokenBucket rate_limit_;
     std::atomic<HttpStatus> cc_status_code_{HttpStatus::kTooManyRequests};

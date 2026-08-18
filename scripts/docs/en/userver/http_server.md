@@ -27,6 +27,7 @@
 * @ref scripts/docs/en/userver/tutorial/multipart_service.md "File uploads and multipart/form-data"
 * @ref scripts/docs/en/userver/deadline_propagation.md .
 * @ref scripts/docs/en/userver/http_server_middlewares.md "Middlewares"
+* Error pages - substitute responses for the errors reported by the server itself.
 
 ## Streaming API
 
@@ -81,6 +82,27 @@ components_manager:
                         initial_window_size: 65536
 ```
 You can set some options specific to `HTTP/2.0` in the `http2-session` section. See docs for these options in components::Server
+
+
+## Error pages
+
+Some requests never reach a handler: the URL matches no handler, the method is
+not allowed for the matched handler, the request is malformed, or the request is
+throttled. The server reports such errors by itself, running neither the handler
+nor the @ref scripts/docs/en/userver/http_server_middlewares.md "middlewares",
+so the only way to customize those responses is the `error-pages` option of the
+listener - an analog of the nginx `error_page` directive:
+
+@snippet core/functional_tests/error_pages/static_config.yaml error pages
+
+Each entry substitutes the response for every status it lists in `statuses`:
+`status` replaces the status code, `body` or `body-path` replaces the body, and
+`headers` are added to the response. Whatever is not set is left as is, so the
+first entry above turns "404 Not Found" into "200 OK" with an HTML page, while
+the second one only replaces the body of "414 URI Too Long".
+
+Responses produced by handlers are not affected - use
+@ref scripts/docs/en/userver/http_server_middlewares.md "middlewares" for those.
 
 
 ## Components
