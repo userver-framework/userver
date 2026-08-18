@@ -21,6 +21,25 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
+namespace {
+
+/// @brief Checks the `Sec-WebSocket-Key` of the RFC 6455 handshake over HTTP/1.1.
+/// The extended CONNECT of RFC 8441 has no counterpart: opening the stream is itself
+/// the proof of intent.
+const std::string& GetCheckedWebsocketKey(const server::http::HttpRequest& request) {
+    const std::string& sec_websocket_key = request.GetHeader(USERVER_NAMESPACE::http::headers::kWebsocketKey);
+
+    // We are fine if `secWebsocketKey` is not properly base64-ecoded
+    static constexpr std::size_t kLengthOfBase64Encoded16Bytes = 24;
+    if (kLengthOfBase64Encoded16Bytes != sec_websocket_key.size()) {
+        LOG_WARNING() << "Empty or invalid Websocket Key";
+        throw server::handlers::ClientError();
+    }
+    return sec_websocket_key;
+}
+
+}  // namespace
+
 WebsocketHandlerBase::WebsocketHandlerBase(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
@@ -34,6 +53,12 @@ WebsocketHandlerBase::WebsocketHandlerBase(
 }
 
 bool WebsocketHandlerBase::IsWebsocketRequest(const server::http::HttpRequest& request) const {
+    if (request.IsWebsocketExtendedConnect()) {
+        // RFC 8441 carries no Upgrade/Connection headers, and the extended CONNECT form
+        // has already been validated while parsing the HTTP/2.0 stream.
+        return true;
+    }
+
     constexpr auto kIcaseEq = utils::StrIcaseEqual();
 
     return request.GetMethod() == server::http::HttpMethod::kGet &&
@@ -45,14 +70,10 @@ void WebsocketHandlerBase::HandleWebsocketRequest(
     server::http::HttpRequest& request,
     server::request::RequestContext& context
 ) const {
-    const std::string& sec_websocket_key = request.GetHeader(USERVER_NAMESPACE::http::headers::kWebsocketKey);
-
-    // We are fine if `secWebsocketKey` is not properly base64-ecoded
-    static constexpr std::size_t kLengthOfBase64Encoded16Bytes = 24;
-    if (kLengthOfBase64Encoded16Bytes != sec_websocket_key.size()) {
-        LOG_WARNING() << "Empty or invalid Websocket Key";
-        throw server::handlers::ClientError();
-    }
+    const bool is_extended_connect = request.IsWebsocketExtendedConnect();
+    // Checked before anything else, as an invalid key is a bad request no matter what
+    // websocket version was asked for.
+    const std::string sec_websocket_key = is_extended_connect ? std::string{} : GetCheckedWebsocketKey(request);
 
     auto& response = request.GetHttpResponse();
 
@@ -68,13 +89,19 @@ void WebsocketHandlerBase::HandleWebsocketRequest(
         return;
     }
 
-    response.SetStatus(server::http::HttpStatus::kSwitchingProtocols);
-    response.SetHeader(USERVER_NAMESPACE::http::headers::kConnection, "Upgrade");
-    response.SetHeader(USERVER_NAMESPACE::http::headers::kUpgrade, "websocket");
-    response.SetHeader(
-        USERVER_NAMESPACE::http::headers::kWebsocketAccept,
-        websocket::impl::WebsocketSecAnswer(sec_websocket_key)
-    );
+    if (is_extended_connect) {
+        // RFC 8441: the stream is accepted with a plain 200 and stays open. There is no
+        // protocol switch to announce, as the connection keeps speaking HTTP/2.0.
+        response.SetStatus(server::http::HttpStatus::kOk);
+    } else {
+        response.SetStatus(server::http::HttpStatus::kSwitchingProtocols);
+        response.SetHeader(USERVER_NAMESPACE::http::headers::kConnection, "Upgrade");
+        response.SetHeader(USERVER_NAMESPACE::http::headers::kUpgrade, "websocket");
+        response.SetHeader(
+            USERVER_NAMESPACE::http::headers::kWebsocketAccept,
+            websocket::impl::WebsocketSecAnswer(sec_websocket_key)
+        );
+    }
 
     request.SetUpgradeWebsocket([context = std::make_shared<server::request::RequestContext>(std::move(context)),
                                  this](std::unique_ptr<engine::io::RwBase> socket, engine::io::Sockaddr&& peer_name) {

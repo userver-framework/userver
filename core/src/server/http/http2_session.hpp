@@ -60,6 +60,13 @@ public:
 
     void UpgradeToHttp2(std::string_view client_magic);
 
+    /// @brief Hands an already answered stream over to a tunnelled protocol.
+    /// @returns the stream presented as a stream-like object for that protocol.
+    std::unique_ptr<engine::io::RwBase> UpgradeStream(Stream::Id id);
+
+    /// @brief Half-closes an upgraded stream once its tunnelled protocol is over.
+    void CloseUpgradedStream(Stream::Id id);
+
     engine::SingleConsumerEvent& GetStreamingEvent();
 
     void WriteWhileWant();
@@ -126,11 +133,14 @@ private:
 
     void RegisterStream(Stream::Id id);
     void RemoveStream(Stream& stream);
+    Stream* FindStream(Stream::Id id);
     Stream& GetStreamChecked(Stream::Id id);
 
     void SubmitRstStream(Stream::Id stream_id, std::uint32_t error_code = NGHTTP2_INTERNAL_ERROR);
 
     void FinalizeRequest(Stream& stream);
+    void FinalizeCompleteRequest(Stream& stream);
+    void FinalizeConnectRequest(Stream& stream);
 
     bool MemRecv(std::string_view data);
 

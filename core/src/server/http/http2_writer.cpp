@@ -98,8 +98,9 @@ private:
 
 class Http2ResponseWriter final {
 public:
-    Http2ResponseWriter(HttpResponseImpl& response, Http2Session& session)
-        : response_(response),
+    Http2ResponseWriter(const HttpRequest& request, HttpResponseImpl& response, Http2Session& session)
+        : request_(request),
+          response_(response),
           http2_session_(session)
     {}
 
@@ -107,18 +108,23 @@ public:
         const bool buffered_h1_stream = response_.BufferHttp1StreamedBody();
         const auto& data = response_.GetData();
 
-        auto headers = GetHeaders();
-        const bool is_body_forbidden = IsBodyForbiddenForStatus(response_.status_);
+        const auto status = GetStatus();
+        auto headers = GetHeaders(status);
+        const bool is_body_forbidden = IsBodyForbiddenForStatus(status);
 
         if (is_body_forbidden && !data.empty()) {
             LOG_LIMITED_WARNING()
-                << "Non-empty body provided for response with HTTP2 code " << static_cast<int>(response_.status_)
+                << "Non-empty body provided for response with HTTP2 code " << static_cast<int>(status)
                 << " which does not allow one, it will be dropped";
         }
 
         const auto stream_id = response_.GetStreamId().value();
         auto& stream = http2_session_.GetStreamChecked(Stream::Id{stream_id});
-        stream.SetStreaming(response_.IsBodyStreamed() && !buffered_h1_stream && data.empty());
+        // An upgraded stream is answered with headers only and then stays open for the
+        // bytes of the tunnelled protocol, exactly like a streamed body.
+        const bool keeps_stream_open =
+            (response_.IsBodyStreamed() && !buffered_h1_stream) || request_.IsUpgradeWebsocket();
+        stream.SetStreaming(keeps_stream_open && data.empty());
 
         std::size_t bytes = headers.GetSize();
         nghttp2_data_provider* provider{nullptr};
@@ -144,7 +150,21 @@ public:
     }
 
 private:
-    Http2HeaderWriter GetHeaders() const {
+    HttpStatus GetStatus() const {
+        // RFC 8441: a 2xx answer to an extended CONNECT tells the client that the tunnel
+        // is established, so a handler that did not upgrade the stream must not send one.
+        // The handler cannot fix this up itself: by the time we know whether the upgrade
+        // happened, its response headers are already frozen.
+        const auto status = static_cast<int>(response_.status_);
+        if (request_.IsWebsocketExtendedConnect() && !request_.IsUpgradeWebsocket() && status >= 200 && status < 300)
+        {
+            LOG_LIMITED_WARNING() << "The handler of an extended CONNECT did not upgrade the stream";
+            return HttpStatus::kBadGateway;
+        }
+        return response_.status_;
+    }
+
+    Http2HeaderWriter GetHeaders(HttpStatus status) const {
         // Preallocate space for all headers
         Http2HeaderWriter header_writer{
             response_.system_headers_.size() + response_.user_headers_.size() + response_.cookies_.size() + 3
@@ -152,7 +172,7 @@ private:
 
         header_writer.AddKeyValue(
             USERVER_NAMESPACE::http::headers::k2::kStatus,
-            fmt::to_string(static_cast<std::uint16_t>(response_.status_))
+            fmt::to_string(static_cast<std::uint16_t>(status))
         );
 
         if (!response_.HasHeader(USERVER_NAMESPACE::http::headers::kDate)) {
@@ -180,12 +200,13 @@ private:
         return header_writer;
     }
 
+    const HttpRequest& request_;
     HttpResponseImpl& response_;
     Http2Session& http2_session_;
 };
 
-void WriteHttp2ResponseToSocket(HttpResponse& response, Http2Session& session) {
-    Http2ResponseWriter w{GetHttpResponseImpl(response), session};
+void WriteHttp2ResponseToSocket(HttpRequest& request, Http2Session& session) {
+    Http2ResponseWriter w{request, GetHttpResponseImpl(request), session};
     w.WriteHttpResponse();
 }
 

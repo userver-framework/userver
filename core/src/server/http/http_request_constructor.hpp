@@ -61,6 +61,7 @@ public:
     // HTTP/2.0 only:
     void SetStreamProducer(impl::Http2StreamEventProducer&& producer);
     void SetResponseStreamId(std::int32_t stream_id);
+    void SetWebsocketExtendedConnect(bool is_websocket_extended_connect);
 
     std::shared_ptr<http::HttpRequest> Finalize();
 
