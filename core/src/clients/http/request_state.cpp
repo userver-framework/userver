@@ -753,6 +753,7 @@ void RequestState::SetMethod(HttpMethod method) {
     switch (method) {
         case HttpMethod::kDelete:
         case HttpMethod::kOptions:
+        case HttpMethod::kTrace:
             easy().set_custom_request(ToString(method));
             break;
         case HttpMethod::kGet:
