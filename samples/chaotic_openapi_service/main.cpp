@@ -40,7 +40,7 @@ int main(int argc, char* argv[]) {
             /// [register-client]
             /// [register-handlers]
             .AppendComponentList(::handlers::insecure::ChaoticHandlersList())
-            .AppendComponentList(::handlers::secure::ChaoticHandlersListWithoutFactories());
+            .AppendComponentList(::handlers::secure::ChaoticHandlersList());
     /// [register-handlers]
 
     USERVER_NAMESPACE::chaotic::openapi::middlewares::AppendDefaultMiddlewares(component_list);

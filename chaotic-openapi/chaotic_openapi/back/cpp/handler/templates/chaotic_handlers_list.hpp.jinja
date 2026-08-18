@@ -9,24 +9,6 @@
 
 namespace {{ spec.cpp_namespace }} {
 
-/// @brief Returns the component list with all generated handlers, without
-/// registering the chaotic-openapi dependency-injection container.
-///
-/// Use it when the container is already registered by another schema, e.g.
-/// when combining handlers generated from several schemas in one service:
-/// @code
-/// component_list
-///     .AppendComponentList(handlers::insecure::ChaoticHandlersList())
-///     .AppendComponentList(handlers::secure::ChaoticHandlersListWithoutFactories());
-/// @endcode
-inline {{ userver }}::components::ComponentList ChaoticHandlersListWithoutFactories() {
-    return {{ userver }}::components::ComponentList()
-{% for op in spec.operations %}
-        .Append<{{ spec.cpp_namespace }}::{{ op.cpp_namespace() }}::Handler>()
-{% endfor %}
-        ;
-}
-
 /// @brief Returns the component list with all generated handlers
 /// and the chaotic-openapi dependency-injection container.
 ///
@@ -38,7 +20,10 @@ inline {{ userver }}::components::ComponentList ChaoticHandlersList() {
     return {{ userver }}::components::ComponentList()
         .Append<{{ userver }}::components::Container<
             {{ userver }}::chaotic::openapi::server::dependencies::Factories>>()
-        .AppendComponentList(ChaoticHandlersListWithoutFactories());
+{% for op in spec.operations %}
+        .Append<{{ spec.cpp_namespace }}::{{ op.cpp_namespace() }}::Handler>()
+{% endfor %}
+        ;
 }
 
 }  // namespace {{ spec.cpp_namespace }}

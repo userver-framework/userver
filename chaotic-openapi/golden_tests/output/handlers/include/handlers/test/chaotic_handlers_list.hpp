@@ -8,22 +8,6 @@
 
 namespace handlers::test {
 
-/// @brief Returns the component list with all generated handlers, without
-/// registering the chaotic-openapi dependency-injection container.
-///
-/// Use it when the container is already registered by another schema, e.g.
-/// when combining handlers generated from several schemas in one service:
-/// @code
-/// component_list
-///     .AppendComponentList(handlers::insecure::ChaoticHandlersList())
-///     .AppendComponentList(handlers::secure::ChaoticHandlersListWithoutFactories());
-/// @endcode
-inline USERVER_NAMESPACE::components::ComponentList ChaoticHandlersListWithoutFactories() {
-return USERVER_NAMESPACE::components::ComponentList()
-.Append<handlers::test::testme::post::Handler>()
-;
-}
-
 /// @brief Returns the component list with all generated handlers
 /// and the chaotic-openapi dependency-injection container.
 ///
@@ -35,7 +19,8 @@ inline USERVER_NAMESPACE::components::ComponentList ChaoticHandlersList() {
 return USERVER_NAMESPACE::components::ComponentList()
 .Append<USERVER_NAMESPACE::components::Container<
     USERVER_NAMESPACE::chaotic::openapi::server::dependencies::Factories>>()
-.AppendComponentList(ChaoticHandlersListWithoutFactories());
+.Append<handlers::test::testme::post::Handler>()
+;
 }
 
 }  // namespace handlers::test
