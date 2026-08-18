@@ -258,6 +258,13 @@ public:
     /// Get approximate time point of request handling start
     std::chrono::steady_clock::time_point GetStartTime() const;
 
+    /// @brief Whether the request is a websocket bootstrapped over HTTP/2.0 with the
+    /// extended CONNECT method of RFC 8441.
+    ///
+    /// Such a request is routed as a `GET` so that ordinary websocket handlers match
+    /// it, and it carries neither `Upgrade`/`Connection` nor `Sec-WebSocket-Key`.
+    bool IsWebsocketExtendedConnect() const;
+
     /// @cond
     void MarkAsInternalServerError() const;
 

@@ -11,6 +11,10 @@ components_manager:
     components:  # Configuring components that were registered via component_list
         server:
             listener:  # configuring the main listening socket...
+                connection:
+                    http-version: 2
+                    http2-session:
+                        enable_connect_protocol: true
                 port: 8080  # ...to listen on this port and...
                 task_processor: main-task-processor  # ...process incoming requests on this task processor.
         logging:
@@ -45,7 +49,7 @@ components_manager:
             task_processor: main-task-processor
             max-remote-payload: 100000
             fragment-size: 10
-        plain-handler:  # Unused here; exercised by the HTTP/2.0 variant of this service.
+        plain-handler:  # An ordinary handler, to check that it never accepts a tunnel.
             path: /plain
             method: GET
             task_processor: main-task-processor

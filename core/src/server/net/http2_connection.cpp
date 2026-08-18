@@ -27,12 +27,16 @@ constexpr std::string_view kHttp2Preface = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
 constexpr std::string_view kPrefaceBegin = kHttp2Preface.substr(0, kMinLenPrefaceToDetect);
 
 constexpr std::uint64_t kSocketId = std::numeric_limits<std::uint64_t>::max();
+constexpr std::uint64_t kStreamingId = kSocketId - 1;
 
-enum class WakeupKind { kSocketReadable, kTaskComputedResponse };
+enum class WakeupKind { kSocketReadable, kStreamingReady, kTaskComputedResponse };
 
 WakeupKind GetWakeupKind(std::uint64_t id) {
     if (id == kSocketId) {
         return WakeupKind::kSocketReadable;
+    }
+    if (id == kStreamingId) {
+        return WakeupKind::kStreamingReady;
     }
     return WakeupKind::kTaskComputedResponse;
 }
@@ -92,6 +96,7 @@ void Http2Connection::ListenForRequests() {
 
     engine::WaitAnyContext wait_any{};
     wait_any.Append(kSocketId, GetSocket().GetReadableBase());
+    wait_any.Append(kStreamingId, parser_->GetStreamingEvent());
 
     while (!engine::current_task::ShouldCancel()) {
         StartAllRequestTasks(wait_any);
@@ -117,12 +122,19 @@ void Http2Connection::ListenForRequests() {
                 }
                 wait_any.Append(kSocketId, GetSocket().GetReadableBase());
                 break;
+            case WakeupKind::kStreamingReady:
+                // Chunks produced by handler tasks (a streamed body, or the bytes of a
+                // protocol tunnelled over an upgraded stream) may only reach nghttp2 here.
+                parser_->HandleStreamingEvents();
+                wait_any.Append(kStreamingId, parser_->GetStreamingEvent());
+                break;
             case WakeupKind::kTaskComputedResponse:
-                OnRequestTaskFinished(*ready_id);
+                OnRequestTaskFinished(*ready_id, wait_any);
                 break;
         }
 
-        UASSERT(wait_any.GetSize() <= config_.http2_session_config.max_concurrent_streams + 1);
+        // One slot per stream, plus the socket and the streaming event.
+        UASSERT(wait_any.GetSize() <= config_.http2_session_config.max_concurrent_streams + 2);
     }
 }
 
@@ -145,9 +157,51 @@ Http2Connection::RequestTaskContext Http2Connection::StartRequestTask(std::share
     return {.task = ConnectionBase::StartRequestTask(request_ptr), .request = std::move(request_ptr)};
 }
 
-void Http2Connection::OnRequestTaskFinished(std::uint64_t event_id) noexcept {
-    SendResponse(*handler_tasks_[event_id].request);
+void Http2Connection::OnRequestTaskFinished(std::uint64_t event_id, engine::WaitAnyContext& wait_any) noexcept {
+    auto& task_context = handler_tasks_[event_id];
+    if (task_context.is_upgraded) {
+        FinishUpgradedStream(*task_context.request);
+        handler_tasks_.erase(event_id);
+        return;
+    }
+
+    const bool is_upgrade = task_context.request->IsUpgradeWebsocket();
+    SendResponse(*task_context.request);
+    auto request = std::move(task_context.request);
     handler_tasks_.erase(event_id);
+    if (is_upgrade) {
+        StartUpgradedTask(std::move(request), wait_any);
+    }
+}
+
+void Http2Connection::StartUpgradedTask(HttpRequestPtr&& request_ptr, engine::WaitAnyContext& wait_any) noexcept {
+    UASSERT(parser_);
+    try {
+        const auto stream_id = http::Stream::Id{request_ptr->GetHttpResponse().GetStreamId().value()};
+        auto stream_rw = parser_->UpgradeStream(stream_id);
+        // The tunnelled protocol runs in its own task, so that the connection keeps
+        // multiplexing the other streams for as long as it lives.
+        auto task = engine::CriticalAsyncNoTracing(
+            [request = request_ptr, socket = std::move(stream_rw), peer_name = remote_address_]() mutable {
+                request->DoUpgrade(std::move(socket), std::move(peer_name));
+            }
+        );
+        const auto& [task_context, slot_id] = handler_tasks_.emplace(
+            RequestTaskContext{.task = std::move(task), .request = std::move(request_ptr), .is_upgraded = true}
+        );
+        wait_any.Append(slot_id, task_context.task);
+    } catch (const std::exception& ex) {
+        LOG_ERROR() << "Failed to upgrade a stream on fd " << GetFd() << ": " << ex;
+    }
+}
+
+void Http2Connection::FinishUpgradedStream(const http::HttpRequest& request) noexcept {
+    UASSERT(parser_);
+    try {
+        parser_->CloseUpgradedStream(http::Stream::Id{request.GetHttpResponse().GetStreamId().value()});
+    } catch (const std::exception& ex) {
+        LOG_WARNING() << "Failed to close an upgraded stream on fd " << GetFd() << ": " << ex;
+    }
 }
 
 void Http2Connection::SendResponse(http::HttpRequest& request) noexcept {

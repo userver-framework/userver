@@ -1,5 +1,7 @@
 #include <server/http/http2_stream.hpp>
 
+#include <server/http/http2_stream_rw.hpp>
+
 #include <userver/engine/io/socket.hpp>
 
 #include <numeric>  // std::accumulate
@@ -54,6 +56,21 @@ void Stream::SetEnd(bool end) { is_end_ = end; }
 bool Stream::IsStreaming() const { return is_streaming_; }
 
 void Stream::SetStreaming(bool streaming) { is_streaming_ = streaming; }
+
+void Stream::SetConnect() { is_connect_ = true; }
+
+bool Stream::IsConnect() const { return is_connect_; }
+
+void Stream::SetUpgradeProtocol(std::string_view protocol) { upgrade_protocol_ = protocol; }
+
+std::string_view Stream::GetUpgradeProtocol() const { return upgrade_protocol_; }
+
+void Stream::SetReadPipe(std::shared_ptr<Http2StreamReadPipe> pipe) {
+    UASSERT(!read_pipe_);
+    read_pipe_ = std::move(pipe);
+}
+
+const std::shared_ptr<Http2StreamReadPipe>& Stream::GetReadPipe() const { return read_pipe_; }
 
 bool Stream::CheckUrlComplete() {
     if (url_complete_) {

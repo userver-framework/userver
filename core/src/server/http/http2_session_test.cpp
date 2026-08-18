@@ -1,6 +1,7 @@
 #include <server/http/handler_info_index.hpp>
 #include <server/http/http2_session.hpp>
 #include <server/http/http_request_parser.hpp>
+#include <server/net/connection_config.hpp>
 #include <server/net/stats.hpp>
 
 #include <fmt/format.h>
@@ -11,6 +12,7 @@
 #include <userver/concurrent/queue.hpp>
 #include <userver/engine/io/socket.hpp>
 #include <userver/http/common_headers.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 
 #include <userver/utest/http_client.hpp>
 #include <userver/utest/simple_server.hpp>
@@ -356,6 +358,218 @@ UTEST_F(Http2SessionTest, HeavyHeader) {
     EXPECT_TRUE(consumer.Pop(request));
     EXPECT_EQ(request->GetHeader("heavy_header"), heavy_header);
     EXPECT_EQ(request->GetMethod(), HttpMethod::kGet);
+}
+
+namespace {
+
+// No HTTP client we can link against speaks the extended CONNECT of RFC 8441, so the
+// requests are produced by a real client-side nghttp2 session wired straight to the
+// parser under test.
+class Http2TestClient final {
+public:
+    Http2TestClient() {
+        nghttp2_session_callbacks* callbacks{nullptr};
+        UINVARIANT(nghttp2_session_callbacks_new(&callbacks) == 0, "Failed to init client callbacks");
+        const utils::FastScopeGuard delete_guard{[&callbacks]() noexcept { nghttp2_session_callbacks_del(callbacks); }};
+
+        nghttp2_session* session{nullptr};
+        UINVARIANT(nghttp2_session_client_new(&session, callbacks, this) == 0, "Failed to init client session");
+        session_ = SessionPtr{session, nghttp2_session_del};
+
+        const int rv = nghttp2_submit_settings(session_.get(), NGHTTP2_FLAG_NONE, nullptr, 0);
+        UINVARIANT(rv == 0, "Failed to submit client settings");
+    }
+
+    std::int32_t SubmitRequest(const std::vector<nghttp2_nv>& headers, bool end_stream) {
+        const auto flags = end_stream ? NGHTTP2_FLAG_END_STREAM : NGHTTP2_FLAG_NONE;
+        const std::int32_t stream_id =
+            nghttp2_submit_headers(session_.get(), flags, -1, nullptr, headers.data(), headers.size(), nullptr);
+        UINVARIANT(stream_id > 0, "Failed to submit client headers");
+        return stream_id;
+    }
+
+    void SubmitData(std::int32_t stream_id, std::string_view data, bool end_stream) {
+        data_to_send_ = data;
+        nghttp2_data_provider provider{};
+        provider.source.ptr = this;
+        provider.read_callback = ReadData;
+        const auto flags = end_stream ? NGHTTP2_FLAG_END_STREAM : NGHTTP2_FLAG_NONE;
+        const int rv = nghttp2_submit_data(session_.get(), flags, stream_id, &provider);
+        UINVARIANT(rv == 0, "Failed to submit client data");
+    }
+
+    /// @returns the bytes the client wants to send, to be fed into the parser.
+    std::string ExtractOutput() {
+        std::string output;
+        while (nghttp2_session_want_write(session_.get())) {
+            const std::uint8_t* data{nullptr};
+            const auto len = nghttp2_session_mem_send(session_.get(), &data);
+            if (len <= 0) {
+                break;
+            }
+            output.append(reinterpret_cast<const char*>(data), len);
+        }
+        return output;
+    }
+
+    void Feed(std::string_view data) {
+        const auto readlen =
+            nghttp2_session_mem_recv(session_.get(), reinterpret_cast<const std::uint8_t*>(data.data()), data.size());
+        UINVARIANT(readlen >= 0, "Failed to parse the server output");
+    }
+
+    std::uint32_t GetRemoteSetting(nghttp2_settings_id id) const {
+        return nghttp2_session_get_remote_settings(session_.get(), id);
+    }
+
+private:
+    using SessionPtr = std::unique_ptr<nghttp2_session, decltype(&nghttp2_session_del)>;
+
+    static ssize_t
+    ReadData(nghttp2_session*, std::int32_t, std::uint8_t* buf, std::size_t length, std::uint32_t* flags, nghttp2_data_source* source, void*) {
+        auto& client = *static_cast<Http2TestClient*>(source->ptr);
+        const auto size = std::min(length, client.data_to_send_.size());
+        std::memcpy(buf, client.data_to_send_.data(), size);
+        client.data_to_send_.erase(0, size);
+        if (client.data_to_send_.empty()) {
+            *flags |= NGHTTP2_DATA_FLAG_EOF;
+        }
+        return static_cast<ssize_t>(size);
+    }
+
+    SessionPtr session_{nullptr, nghttp2_session_del};
+    std::string data_to_send_;
+};
+
+nghttp2_nv MakeHeader(std::string_view name, std::string_view value) {
+    return {
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+        reinterpret_cast<std::uint8_t*>(const_cast<char*>(name.data())),
+        // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+        reinterpret_cast<std::uint8_t*>(const_cast<char*>(value.data())),
+        name.size(),
+        value.size(),
+        NGHTTP2_NV_FLAG_NONE};
+}
+
+std::vector<nghttp2_nv> MakeExtendedConnectHeaders(std::string_view path) {
+    return {
+        MakeHeader(":method", "CONNECT"),
+        MakeHeader(":protocol", "websocket"),
+        MakeHeader(":scheme", "https"),
+        MakeHeader(":path", path),
+        MakeHeader(":authority", "localhost"),
+        MakeHeader("sec-websocket-version", "13"),
+    };
+}
+
+}  // namespace
+
+// Drives Http2Session directly: RFC 8441 needs no sockets to be exercised, and the
+// `enable_connect_protocol` option has to be flipped per test.
+class Http2ExtendedConnectTest : public ::testing::Test {
+public:
+    void SetUp() override { MakeSession(/*enable_connect_protocol=*/true); }
+
+    void MakeSession(bool enable_connect_protocol) {
+        config_.enable_connect_protocol = enable_connect_protocol;
+        // SETTINGS are deltas, so a client that already learned the setting from an
+        // earlier session would keep it. Both sides start over together.
+        client_ = std::make_unique<Http2TestClient>();
+        session_ = std::make_unique<Http2Session>(
+            index_,
+            request_config_,
+            config_,
+            [this](std::shared_ptr<http::HttpRequest>&& request) { requests_.push_back(std::move(request)); },
+            stats_,
+            accounter_,
+            engine::io::Sockaddr{}
+        );
+        // The client needs the server SETTINGS before it may use `:protocol` at all.
+        client_->Feed(PullServerOutput());
+    }
+
+    std::string PullServerOutput() {
+        auto* raw_session = session_->GetNghttp2SessionPtr();
+        std::string output;
+        while (nghttp2_session_want_write(raw_session)) {
+            const std::uint8_t* data{nullptr};
+            const auto len = nghttp2_session_mem_send(raw_session, &data);
+            if (len <= 0) {
+                break;
+            }
+            output.append(reinterpret_cast<const char*>(data), len);
+        }
+        return output;
+    }
+
+    void PumpClientToServer() { EXPECT_TRUE(session_->Parse(client_->ExtractOutput())); }
+
+protected:
+    HandlerInfoIndex index_;
+    request::HttpRequestConfig request_config_;
+    request::ResponseDataAccounter accounter_;
+    net::ParserStats stats_;
+    net::Http2SessionConfig config_;
+
+    std::unique_ptr<Http2TestClient> client_;
+    std::unique_ptr<Http2Session> session_;
+    std::vector<std::shared_ptr<http::HttpRequest>> requests_;
+};
+
+UTEST_F(Http2ExtendedConnectTest, SettingIsAdvertised) {
+    EXPECT_EQ(1, client_->GetRemoteSetting(NGHTTP2_SETTINGS_ENABLE_CONNECT_PROTOCOL));
+}
+
+UTEST_F(Http2ExtendedConnectTest, SettingIsNotAdvertisedByDefault) {
+    MakeSession(/*enable_connect_protocol=*/false);
+    EXPECT_EQ(0, client_->GetRemoteSetting(NGHTTP2_SETTINGS_ENABLE_CONNECT_PROTOCOL));
+}
+
+UTEST_F(Http2ExtendedConnectTest, RoutedAsGetWithoutEndStream) {
+    client_->SubmitRequest(MakeExtendedConnectHeaders("/chat"), /*end_stream=*/false);
+    PumpClientToServer();
+
+    ASSERT_EQ(1, requests_.size());
+    const auto& request = *requests_.front();
+    EXPECT_EQ(HttpMethod::kGet, request.GetMethod());
+    EXPECT_EQ("/chat", request.GetRequestPath());
+    EXPECT_TRUE(request.IsWebsocketExtendedConnect());
+    EXPECT_EQ("13", request.GetHeader("sec-websocket-version"));
+}
+
+UTEST_F(Http2ExtendedConnectTest, DataIsNotARequestBody) {
+    const auto stream_id = client_->SubmitRequest(MakeExtendedConnectHeaders("/chat"), /*end_stream=*/false);
+    PumpClientToServer();
+    ASSERT_EQ(1, requests_.size());
+
+    client_->SubmitData(stream_id, "websocket frame bytes", /*end_stream=*/false);
+    PumpClientToServer();
+
+    // The bytes belong to the tunnelled protocol, not to the request.
+    EXPECT_EQ("", requests_.front()->RequestBody());
+    EXPECT_EQ(1, requests_.size());
+}
+
+UTEST_F(Http2ExtendedConnectTest, RejectedWhenDisabled) {
+    MakeSession(/*enable_connect_protocol=*/false);
+
+    // The client refuses to use `:protocol` unadvertised, so the pseudo-header has to be
+    // smuggled in as a plain CONNECT to reach the parser at all.
+    client_->SubmitRequest(
+        {MakeHeader(":method", "CONNECT"), MakeHeader(":authority", "localhost")},
+        /*end_stream=*/false
+    );
+    PumpClientToServer();
+
+    EXPECT_TRUE(requests_.empty());
+}
+
+UTEST_F(Http2ExtendedConnectTest, PlainConnectIsRejected) {
+    client_->SubmitRequest({MakeHeader(":method", "CONNECT"), MakeHeader(":authority", "localhost")}, false);
+    PumpClientToServer();
+
+    EXPECT_TRUE(requests_.empty());
 }
 
 UTEST_F(Http2SessionTest, ForCurl) {
