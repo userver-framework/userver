@@ -43,6 +43,7 @@ Driver::Driver(std::string dbname, impl::DriverSettings settings, engine::TaskPr
     NYdb::TDriverConfig driver_config;
     driver_config.SetEndpoint(settings.endpoint)
         .SetDatabase(settings.database)
+        .SetDiscoveryMode(NYdb::EDiscoveryMode::Async)
         .SetBalancingPolicy(
             settings.prefer_local_dc
                 ? NYdb::EBalancingPolicy::UsePreferableLocation
