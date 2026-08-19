@@ -255,4 +255,18 @@ TEST(InetNetworkTest, FromInetNetworkTests) {
     EXPECT_EQ(NetworkV6FromInetNetwork(inet_v6), net_v6);
 }
 
+TEST(InetNetworkTest, FromInetNetworkFamilyMismatch) {
+    using utils::ip::NetworkV4FromInetNetwork;
+    using utils::ip::NetworkV6FromInetNetwork;
+
+    // An IPv6 InetNetwork carries 16 address bytes; converting it to a 4-byte
+    // NetworkV4 must be rejected instead of copying past the target array.
+    const InetNetwork inet_v6(std::vector<unsigned char>(16, 0), 128, InetNetwork::AddressFamily::kIPv6);
+    EXPECT_THROW(NetworkV4FromInetNetwork(inet_v6), std::invalid_argument);
+
+    // The reverse mismatch (4-byte value into a 16-byte NetworkV6) is rejected too.
+    const InetNetwork inet_v4({127, 0, 0, 1}, 32, InetNetwork::AddressFamily::kIPv4);
+    EXPECT_THROW(NetworkV6FromInetNetwork(inet_v4), std::invalid_argument);
+}
+
 USERVER_NAMESPACE_END
