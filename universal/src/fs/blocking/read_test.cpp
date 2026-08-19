@@ -1,5 +1,8 @@
+#include <filesystem>
 #include <fstream>
 #include <sstream>
+#include <string>
+#include <variant>
 
 #include <gtest/gtest.h>
 #include <boost/filesystem/directory.hpp>
@@ -7,6 +10,7 @@
 
 #include <userver/fs/blocking/read.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
+#include <userver/utils/overloaded.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -44,6 +48,14 @@ private:
 
 namespace {
 
+std::string DataToString(const std::variant<std::string, std::filesystem::path>& data) {
+    return utils::Visit(
+        data,
+        [](const std::string& contents) { return contents; },
+        [](const std::filesystem::path& path) { return path.string(); }
+    );
+}
+
 std::string ToString(const FileInfoWithDataMap& file_info_with_data_map) {
     std::ostringstream ostr;
     ostr << "{";
@@ -58,7 +70,8 @@ std::string ToString(const FileInfoWithDataMap& file_info_with_data_map) {
             ostr << "{\"" << file_path << "\"}";
             continue;
         }
-        ostr << "{\"" << file_path << "\",\"" << info_ptr->data << "\",\"" << info_ptr->extension << "\"}";
+        ostr << "{\"" << file_path << "\",\"" << DataToString(info_ptr->data_or_path) << "\",\"" << info_ptr->extension
+             << "\"}";
     }
     ostr << "}";
     return ostr.str();
@@ -69,7 +82,7 @@ void CreateTestFiles(const boost::filesystem::path& dir_path, const FileInfoWith
         const auto file_path = dir_path / path_str;
         boost::filesystem::create_directories(file_path.parent_path());
         std::ofstream output_file(file_path.string());
-        output_file << info->data;
+        output_file << std::get<std::string>(info->data_or_path);
     }
 }
 
@@ -107,7 +120,9 @@ FileInfoWithDataConstPtr CreateFileInfo(std::string data, std::string ext) {
             continue;
         }
         const auto& rhs_info = rhs_iter->second;
-        if (std::tie(lhs_info->data, lhs_info->extension) != std::tie(rhs_info->data, rhs_info->extension)) {
+        if (std::tie(lhs_info->data_or_path, lhs_info->extension) !=
+            std::tie(rhs_info->data_or_path, rhs_info->extension))
+        {
             return AssertionFailure(lhs_expr, rhs_expr, lhs, rhs);
         }
     }
@@ -154,6 +169,45 @@ TEST_F(TestReadRecursiveFilesInfoWithData, ReadWithException) {
 
     // fails to read the content of 'file_1.abc' due to the lack of a read permission
     EXPECT_THROW(ReadRecursiveFilesInfoWithData(GetDirPathStr(), SettingsReadFile::kSkipHidden), std::runtime_error);
+}
+
+TEST_F(TestReadRecursiveFilesInfoWithData, MaxSizeToCache) {
+    constexpr std::string_view kSmallContent = "small";
+    constexpr std::string_view kLargeContent = "content that does not fit";
+
+    const auto small_path = GetDirPath() / "small.txt";
+    const auto large_path = GetDirPath() / "large.txt";
+    {
+        std::ofstream output_file(small_path.string());
+        output_file << kSmallContent;
+    }
+    {
+        std::ofstream output_file(large_path.string());
+        output_file << kLargeContent;
+    }
+
+    const auto read_result = ReadRecursiveFilesInfoWithData(
+        GetDirPathStr(),
+        SettingsReadFile::kSkipHidden,
+        /*max_size_to_cache=*/kSmallContent.size()
+    );
+
+    ASSERT_EQ(read_result.size(), 2);
+
+    const auto small_it = read_result.find("/small.txt");
+    ASSERT_NE(small_it, read_result.end());
+    ASSERT_TRUE(std::holds_alternative<std::string>(small_it->second->data_or_path));
+    EXPECT_EQ(std::get<std::string>(small_it->second->data_or_path), kSmallContent);
+    EXPECT_EQ(small_it->second->extension, ".txt");
+
+    const auto large_it = read_result.find("/large.txt");
+    ASSERT_NE(large_it, read_result.end());
+    ASSERT_TRUE(std::holds_alternative<std::filesystem::path>(large_it->second->data_or_path));
+    EXPECT_EQ(
+        std::filesystem::absolute(std::filesystem::path{large_path.string()}),
+        std::get<std::filesystem::path>(large_it->second->data_or_path)
+    );
+    EXPECT_EQ(large_it->second->extension, ".txt");
 }
 
 }  // namespace fs::blocking

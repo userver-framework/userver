@@ -15,11 +15,12 @@ const FsCache::Client& FsCache::GetClient() const { return client_; }
 
 FsCache::FsCache(const components::ComponentConfig& config, const components::ComponentContext& context)
     : components::ComponentBase(config, context),
-      client_(
-          config["dir"].As<std::string>("/var/www"),
-          config["update-period"].As<std::chrono::milliseconds>(0),
-          GetFsTaskProcessor(config, context)
-      )
+      client_(fs::FsCacheClient::Settings{
+          .dir = config["dir"].As<std::string>("/var/www"),
+          .update_period = config["update-period"].As<std::chrono::milliseconds>(0),
+          .task_processor = GetFsTaskProcessor(config, context),
+          .max_size_to_cache = config["max-size-to-cache"].As<std::size_t>(fs::kDefaultMaxSizeToCache),
+      })
 {}
 
 yaml_config::Schema FsCache::GetStaticConfigSchema() {

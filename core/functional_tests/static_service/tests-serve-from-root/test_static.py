@@ -40,3 +40,20 @@ async def test_hidden_file(service_client, service_source_dir):
     assert response.status == 404
     file = service_source_dir.joinpath('public') / '404.html'
     assert response.content.decode() == file.open().read()
+
+
+async def test_invalid_path(service_client):
+    response = await service_client.get('/../../../../../../../../../../../../../etc/passwd')
+    assert response.status == 404
+    assert b'File not found' in response.content
+
+
+async def test_file_larger_than_cache(service_client, service_source_dir):
+    file = service_source_dir.joinpath('public') / 'large.txt'
+    assert file.stat().st_size > 1024
+
+    response = await service_client.get('/large.txt')
+    assert response.status == 200
+    assert response.headers['Content-Type'] == 'text/plain'
+    assert response.headers['Expires'] == '600'
+    assert response.content.decode() == file.open().read()

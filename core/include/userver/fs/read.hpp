@@ -3,6 +3,8 @@
 /// @file userver/fs/read.hpp
 /// @brief functions for asynchronous file read operations
 
+#include <cstddef>
+#include <limits>
 #include <string>
 
 #include <userver/engine/task/task_processor_fwd.hpp>
@@ -19,29 +21,29 @@ namespace fs {
 /// @param async_tp TaskProcessor for synchronous waiting
 /// @param path to directory to traverse recursively
 /// @param flags settings read files
+/// @param max_size_to_cache files larger than this store a full path in
+/// @ref FileInfoWithData::data_or_path instead of contents
 /// @returns map with relative to `path` filepaths and file info
-/// @throws std::runtime_error if read fails for any reason (e.g. no such file,
-/// read error, etc.),
+/// @throws std::runtime_error if read fails for any reason (e.g. no such file, read error, etc.),
 FileInfoWithDataMap ReadRecursiveFilesInfoWithData(
     engine::TaskProcessor& async_tp,
     const std::string& path,
-    SettingReadFileFlags flags = {SettingsReadFile::kSkipHidden}
+    SettingReadFileFlags flags = {SettingsReadFile::kSkipHidden},
+    std::size_t max_size_to_cache = std::numeric_limits<std::size_t>::max()
 );
 
 /// @brief Reads file contents asynchronously
 /// @param async_tp TaskProcessor for synchronous waiting
 /// @param path file to open
 /// @returns file contents
-/// @throws std::runtime_error if read fails for any reason (e.g. no such file,
-/// read error, etc.),
+/// @throws std::runtime_error if read fails for any reason (e.g. no such file, read error, etc.),
 std::string ReadFileContents(engine::TaskProcessor& async_tp, const std::string& path);
 
 /// @brief Checks whether the file exists asynchronously
 /// @param async_tp TaskProcessor for synchronous waiting
 /// @param path file path to check
 /// @returns true if file exists, false if file doesn't exist
-/// @throws std::runtime_error if something goes wrong (e.g. out of file
-/// descriptors)
+/// @throws std::runtime_error if something goes wrong (e.g. out of file descriptors)
 bool FileExists(engine::TaskProcessor& async_tp, const std::string& path);
 
 }  // namespace fs

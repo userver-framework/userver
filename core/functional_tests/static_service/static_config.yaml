@@ -25,6 +25,7 @@ components_manager:
         fs-cache-main:
             dir: /var/www/  # Path to the directory with files
             update-period: 10s  # update cache each N seconds
+            max-size-to-cache: 1024  # files larger than 1 KiB are streamed from disk
             fs-task-processor: fs-task-processor  # Run it on blocking task processor
 
         handler-static:  # Finally! Static handler.
@@ -32,3 +33,4 @@ components_manager:
             path: /*  # Registering handlers '/*' find files.
             method: GET  # Handle only GET requests.
             task_processor: main-task-processor  # Run it on CPU bound task processor
+            fs-task-processor: fs-task-processor  # Run file IO on blocking task processor

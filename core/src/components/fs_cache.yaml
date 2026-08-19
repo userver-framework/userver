@@ -11,6 +11,12 @@ properties:
         description: |
             update period (0 - fill the cache only at startup)
         default: 0
+    max-size-to-cache:
+        type: integer
+        description: |
+            Maximum file size in bytes to store in memory.
+            Larger files keep only the full path in the cache.
+        default: 1073741824
     fs-task-processor:
         type: string
         description: |-

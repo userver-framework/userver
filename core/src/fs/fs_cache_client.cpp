@@ -1,5 +1,8 @@
 #include <userver/fs/fs_cache_client.hpp>
 
+#include <exception>
+#include <filesystem>
+
 #include <boost/filesystem.hpp>
 #include <boost/filesystem/operations.hpp>
 
@@ -42,10 +45,11 @@ bool IsFilepathHidden(const std::string& path) {
 }  // namespace
 #endif  // __linux__
 
-FsCacheClient::FsCacheClient(std::string_view dir, std::chrono::milliseconds update_period, engine::TaskProcessor& tp)
-    : dir_(GetNormalizeDirectory(dir)),
-      update_period_(update_period),
-      tp_(tp)
+FsCacheClient::FsCacheClient(const Settings& settings)
+    : dir_(GetNormalizeDirectory(settings.dir)),
+      update_period_(settings.update_period),
+      max_size_to_cache_(settings.max_size_to_cache),
+      tp_(settings.task_processor)
 {
     UpdateCache();
 
@@ -61,7 +65,7 @@ FsCacheClient::FsCacheClient(std::string_view dir, std::chrono::milliseconds upd
 }
 
 void FsCacheClient::UpdateCache() {
-    auto map = fs::ReadRecursiveFilesInfoWithData(tp_, dir_, {fs::SettingsReadFile::kSkipHidden});
+    auto map = fs::ReadRecursiveFilesInfoWithData(tp_, dir_, {fs::SettingsReadFile::kSkipHidden}, max_size_to_cache_);
     data_.Assign(std::move(map));
 }
 
@@ -85,10 +89,8 @@ void FsCacheClient::InotifyWork() {
             } else {
                 HandleDeleteDirectory(inotify, event->path);
             }
-        }
-
-        if (event->mask & sys_linux::EventType::kMovedTo || event->mask & sys_linux::EventType::kCreate ||
-            event->mask & sys_linux::EventType::kModify)
+        } else if (event->mask & sys_linux::EventType::kMovedTo || event->mask & sys_linux::EventType::kCreate ||
+                   event->mask & sys_linux::EventType::kModify)
         {
             if (!(event->mask & sys_linux::EventType::kIsDir)) {
                 HandleCreate(event->path);
@@ -111,10 +113,22 @@ void FsCacheClient::HandleCreate(const std::string& path) {
         return;
     }
 
-    FileInfoWithData info{};
-    info.extension = boost::filesystem::path(path).extension().string();
-    info.data = ReadFileContents(tp_, path);
-    data_.InsertOrAssign(GetLexicallyRelative(path, dir_), std::make_shared<const FileInfoWithData>(std::move(info)));
+    try {
+        FileInfoWithData info{};
+        info.extension = boost::filesystem::path(path).extension().string();
+        const auto file_size = boost::filesystem::file_size(path);
+        if (file_size > max_size_to_cache_) {
+            info.data_or_path = std::filesystem::absolute(std::filesystem::path{path});
+        } else {
+            info.data_or_path = ReadFileContents(tp_, path);
+        }
+        data_.InsertOrAssign(
+            GetLexicallyRelative(path, dir_),
+            std::make_shared<const FileInfoWithData>(std::move(info))
+        );
+    } catch (const std::exception& ex) {
+        LOG_LIMITED_WARNING() << "Failed to cache file " << path << ": " << ex;
+    }
 }
 
 void FsCacheClient::HandleCreateDirectory(engine::io::sys_linux::Inotify& inotify, const std::string& path) {
