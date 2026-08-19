@@ -16,6 +16,10 @@ properties:
         type: string
         description: how much time to wait after failed task restart
         default: 100ms
+    autostart:
+        type: boolean
+        description: if true, start when the derived component calls Start
+        default: true
     task-processor:
         type: string
         description: the name of the TaskProcessor for running DoWork

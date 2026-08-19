@@ -21,7 +21,9 @@ DistLockComponentBase::DistLockComponentBase(
     const components::ComponentContext& component_context,
     storages::mongo::Collection collection
 )
-    : components::ComponentBase(component_config, component_context) {
+    : components::ComponentBase(component_config, component_context),
+      autostart_(component_config["autostart"].As<bool>(true))
+{
     auto lock_name = component_config["lockname"].As<std::string>();
 
     auto ttl = component_config["lock-ttl"].As<std::chrono::milliseconds>();
@@ -79,7 +81,7 @@ dist_lock::DistLockedWorker& DistLockComponentBase::GetWorker() { return *worker
 bool DistLockComponentBase::OwnsLock() const noexcept { return worker_->OwnsLock() || testsuite_enabled_; }
 
 void DistLockComponentBase::Start() {
-    if (testsuite_enabled_) {
+    if (testsuite_enabled_ || !autostart_) {
         return;
     }
     worker_->Start();
