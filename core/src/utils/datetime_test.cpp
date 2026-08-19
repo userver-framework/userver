@@ -53,6 +53,17 @@ TEST(Datetime, UtcTimestringCTime) {
     /// [UtcTimestring C time example]
 }
 
+TEST(Datetime, TimestampToStringFarFuture) {
+    // Year >= 10000 formats to more than the usual 24 bytes, so the fixed-length
+    // buffer could not hold the result and the returned string was truncated /
+    // read past the written bytes.
+    const std::time_t year_10000 = 253402300800;  // 10000-01-01T00:00:00Z
+    EXPECT_EQ(utils::datetime::TimestampToString(year_10000), "10000-01-01T00:00:00+0000");
+
+    const std::time_t year_2020 = 1577836800;  // 2020-01-01T00:00:00Z
+    EXPECT_EQ(utils::datetime::TimestampToString(year_2020), "2020-01-01T00:00:00+0000");
+}
+
 TEST(Datetime, GuessStringtime) {
     /// [GuessStringtime example]
     const auto tp = utils::datetime::UtcStringtime("2014-03-17T02:47:07+0000");

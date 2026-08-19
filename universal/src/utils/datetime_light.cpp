@@ -196,15 +196,18 @@ std::chrono::system_clock::time_point Epoch() noexcept {
 
 /// Return string with time in ISO8601 format "YYYY-MM-DDTHH:MM:SS+0000".
 std::string TimestampToString(const time_t timestamp) {
-    static constexpr size_t kStringLen = 24;  // "YYYY-MM-DDTHH:MM:SS+0000"
+    // "%Y" is not limited to four digits, so far-future timestamps (year >= 10000)
+    // format to more than the usual 24 bytes. Size the buffer for any 64-bit year
+    // and return exactly the bytes strftime wrote; otherwise strftime reports 0 on
+    // truncation and the fixed-length slice reads the rest of an uninitialized
+    // buffer.
+    static constexpr size_t kBufferSize = 64;
 
     std::tm ptm{};
     gmtime_r(&timestamp, &ptm);
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init): performance
-    std::array<char, kStringLen + 1> buffer;
-    auto ret = strftime(buffer.data(), buffer.size(), "%Y-%m-%dT%H:%M:%S+0000", &ptm);
-    UASSERT(ret == kStringLen);
-    return {buffer.data(), kStringLen};
+    std::array<char, kBufferSize> buffer{};
+    const auto len = strftime(buffer.data(), buffer.size(), "%Y-%m-%dT%H:%M:%S+0000", &ptm);
+    return {buffer.data(), len};
 }
 
 std::int64_t TimePointToTicks(const std::chrono::system_clock::time_point& tp) noexcept {
