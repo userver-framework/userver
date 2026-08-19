@@ -108,7 +108,7 @@ public:
     // For internal use only.
     CacheResetRegistration RegisterPeriodicCache(cache::CacheUpdateTrait& cache);
 
-    // For internal use only. Use testsuite::RegisterCacheScoped instead
+    // For internal use only. Use testsuite::RegisterCacheScope instead
     template <typename Component>
     CacheResetRegistration RegisterCache(Component* self, std::string_view name, void (Component::*reset_method)());
 
@@ -158,7 +158,7 @@ private:
 ///
 /// Removes the associated resetter automatically on destruction.
 ///
-/// Prefer @ref RegisterCacheScoped so that the resetter is registered after
+/// Prefer @ref RegisterCacheScope so that the resetter is registered after
 /// the component constructor and unregistered just before the destructor.
 /// Otherwise store the registration as a member after the rest of
 /// the component's fields.
@@ -187,12 +187,12 @@ private:
 
 /// The method for acquiring testsuite::CacheControl in the component system.
 ///
-/// @see testsuite::RegisterCacheScoped
+/// @see testsuite::RegisterCacheScope
 CacheControl& FindCacheControl(const components::ComponentContext& context);
 
 namespace impl {
 
-void DoRegisterCacheScoped(
+void DoRegisterCacheScope(
     const components::ComponentContext& context,
     utils::move_only_function<CacheResetRegistration()> factory
 );
@@ -206,26 +206,26 @@ void DoRegisterCacheScoped(
 ///
 /// Typical usage:
 /// @code
-/// testsuite::RegisterCacheScoped(context, this, &MyCache::ResetCache);
+/// testsuite::RegisterCacheScope(context, this, &MyCache::ResetCache);
 /// @endcode
 ///
 /// @warning The function should be called in the component's constructor
 /// *after* all FindComponent calls. This ensures that reset will first be
 /// called for dependencies, then for dependent components.
 template <typename Component>
-void RegisterCacheScoped(
+void RegisterCacheScope(
     const components::ComponentContext& context,
     Component* self,
     void (Component::*reset_method)()
 ) {
     auto& cc = testsuite::FindCacheControl(context);
     auto name = std::string{components::GetCurrentComponentName(context)};
-    impl::DoRegisterCacheScoped(context, [&cc, self, name = std::move(name), reset_method] {
+    impl::DoRegisterCacheScope(context, [&cc, self, name = std::move(name), reset_method] {
         return cc.RegisterCache(self, name, reset_method);
     });
 }
 
-/// @deprecated Use @ref RegisterCacheScoped instead.
+/// @deprecated Use @ref RegisterCacheScope instead.
 /// The returned handle must be kept alive to keep supporting cache resetting.
 ///
 /// @warning The function should be called in the component's constructor

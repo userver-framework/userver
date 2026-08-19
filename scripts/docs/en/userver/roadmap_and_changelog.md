@@ -29,6 +29,12 @@ Changelog news also go to the
 
 Breaking Change:
 
+* Renamed `testsuite::RegisterCacheScoped` to @ref testsuite::RegisterCacheScope.
+</br> Migration: Replace `RegisterCacheScoped` with `RegisterCacheScope`.
+
+* Removed `concurrent::AsyncEventSubscriberScope::Scoped`.
+</br> Migration: Store the subscriber scope as a class member and call `Unsubscribe` in the destructor.
+
 * Changed `X-Request-Deadline` header format from ISO timestamp to Unix epoch microseconds.
 </br> Migration: Update clients to send deadlines as `uint64_t` microseconds since Unix epoch instead of ISO strings.
 

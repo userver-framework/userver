@@ -176,8 +176,8 @@ public:
         }
         // ...
 
-        // RegisterCacheScoped must be called at the end of the constructor.
-        testsuite::RegisterCacheScoped(context, this, &MyCache::ResetCache);
+        // RegisterCacheScope must be called at the end of the constructor.
+        testsuite::RegisterCacheScope(context, this, &MyCache::ResetCache);
     }
 
     std::string GetToken() {
@@ -216,7 +216,7 @@ public:
 
     Component1(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
-        testsuite::RegisterCacheScoped(context, this, &Component1::ResetCache);
+        testsuite::RegisterCacheScope(context, this, &Component1::ResetCache);
     }
 
     void ResetCache() {
@@ -233,7 +233,7 @@ public:
 
     Component1a(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
-        testsuite::RegisterCacheScoped(context, this, &Component1a::ResetCache);
+        testsuite::RegisterCacheScope(context, this, &Component1a::ResetCache);
     }
 
     void ResetCache() {
@@ -250,7 +250,7 @@ public:
 
     Component1b(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
-        testsuite::RegisterCacheScoped(context, this, &Component1b::ResetCache);
+        testsuite::RegisterCacheScope(context, this, &Component1b::ResetCache);
     }
 
     void ResetCache() {
@@ -267,7 +267,7 @@ public:
 
     Component1c(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
-        testsuite::RegisterCacheScoped(context, this, &Component1c::ResetCache);
+        testsuite::RegisterCacheScope(context, this, &Component1c::ResetCache);
     }
 
     void ResetCache() {
@@ -285,7 +285,7 @@ public:
     Component2(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
         context.FindComponent<Component1>();
-        testsuite::RegisterCacheScoped(context, this, &Component2::ResetCache);
+        testsuite::RegisterCacheScope(context, this, &Component2::ResetCache);
     }
 
     void ResetCache() {
@@ -303,7 +303,7 @@ public:
     ComponentNotLoaded(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
         context.FindComponent<Component1>();
-        testsuite::RegisterCacheScoped(context, this, &ComponentNotLoaded::ResetCache);
+        testsuite::RegisterCacheScope(context, this, &ComponentNotLoaded::ResetCache);
     }
 
     void ResetCache() { UASSERT(false); }
@@ -324,7 +324,7 @@ public:
         context.FindComponent<Component1b>();
         context.FindComponent<Component1c>();
 
-        testsuite::RegisterCacheScoped(context, this, &Component3::ResetCache);
+        testsuite::RegisterCacheScope(context, this, &Component3::ResetCache);
     }
 
     void ResetCache() {

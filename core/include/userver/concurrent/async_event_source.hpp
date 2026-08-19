@@ -9,14 +9,9 @@
 #include <typeinfo>
 #include <utility>
 
-#include <userver/components/component_fwd.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-namespace utils {
-class ResourceScopeStorage;
-}  // namespace utils
 
 namespace concurrent {
 
@@ -71,9 +66,7 @@ enum class UnsubscribingKind { kManual, kAutomatic };
 ///
 /// Removes the associated listener automatically on destruction.
 ///
-/// In a component constructor, prefer chaining @ref Scoped so that the
-/// subscription is cancelled just before the component destructor.
-/// Otherwise store the Scope as a member and call `Unsubscribe` manually
+/// Store the Scope as a member and call `Unsubscribe` manually
 /// in the object's destructor, before anything that the callback needs
 /// is destroyed.
 class [[nodiscard]] AsyncEventSubscriberScope final {
@@ -87,25 +80,6 @@ public:
     /// Unsubscribes manually. The subscription should be cancelled before
     /// anything that the callback needs is destroyed.
     void Unsubscribe() noexcept;
-
-    /// @brief Transfers the subscription lifetime to the component.
-    ///
-    /// The subscription is cancelled just before the component destructor
-    /// runs, while all component fields are still valid. Prefer this over
-    /// storing the scope as a member and calling @ref Unsubscribe in the
-    /// destructor.
-    ///
-    /// Typical usage:
-    /// @code
-    /// source.UpdateAndListen(this, "name", &MyComponent::OnConfigUpdate).Scoped(context);
-    /// @endcode
-    void Scoped(const components::ComponentContext& context) &&;
-
-    /// @overload
-    ///
-    /// This overload is intended for use with @ref components::Container
-    /// or with other objects that can be mocked in gtest tests.
-    void Scoped(utils::ResourceScopeStorage& scopes) &&;
 
     /// @cond
     // For internal use only.
@@ -153,8 +127,7 @@ public:
     /// @param func the listener method, usually called `On<DataName>Update`, e.g.
     /// `OnConfigUpdate` or `OnCacheUpdate`
     /// @returns a AsyncEventSubscriberScope controlling the subscription.
-    /// In a component constructor, prefer chaining @ref AsyncEventSubscriberScope::Scoped.
-    /// Otherwise store the scope as a member and call `Unsubscribe` explicitly.
+    /// Store the scope as a member and call `Unsubscribe` explicitly.
     template <class Class>
     AsyncEventSubscriberScope AddListener(Class* obj, std::string_view name, void (Class::*func)(Args...)) {
         return AddListener(FunctionId(obj), name, [obj, func](Args... args) { (obj->*func)(args...); });

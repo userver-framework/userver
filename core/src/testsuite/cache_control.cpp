@@ -343,7 +343,7 @@ void CacheResetRegistration::Unregister() noexcept {
 
 namespace impl {
 
-void DoRegisterCacheScoped(
+void DoRegisterCacheScope(
     const components::ComponentContext& context,
     utils::move_only_function<CacheResetRegistration()> factory
 ) {
