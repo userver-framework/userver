@@ -1,5 +1,7 @@
 #pragma once
 
+#include <atomic>
+#include <chrono>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -51,8 +53,8 @@ public:
 private:
     std::unordered_map<std::string, HealthCheckParams> clients_;
     std::unordered_map<std::string, HealthCheckParams> subscribe_clients_;
-    mutable components::ComponentHealth last_health_value_{components::ComponentHealth::kFatal};
-    mutable std::chrono::system_clock::time_point last_time_checked_;
+    mutable std::atomic<components::ComponentHealth> last_health_value_{components::ComponentHealth::kFatal};
+    mutable std::atomic<std::chrono::steady_clock::time_point> last_time_checked_{{}};
 };
 
 }  // namespace storages::redis::impl
