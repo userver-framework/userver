@@ -43,6 +43,23 @@ void DumpMetric(utils::statistics::Writer& writer, const InstanceStatistics& sta
     }
 }
 
+void DumpMetric(utils::statistics::Writer& writer, const StatementStatisticsSnapshot& stats) {
+    for (const auto& [name, statement] : stats.statements) {
+        writer["statement_timings"].ValueWithLabels(statement.timings, {"odbc_query", name});
+        writer["statement_executed"].ValueWithLabels(statement.executed, {"odbc_query", name});
+        writer["statement_errors"].ValueWithLabels(statement.errors, {"odbc_query", name});
+    }
+}
+
+void DumpMetric(utils::statistics::Writer& writer, const PreparedStatementCacheStatistics& stats) {
+    if (auto queries = writer["queries"]) {
+        queries["prepared-cache-hits"] = stats.hits;
+        queries["prepared-cache-misses"] = stats.misses;
+        queries["prepared-cache-evictions"] = stats.evictions;
+    }
+    writer["connections"]["prepared-statements"] = stats.current;
+}
+
 }  // namespace storages::odbc::detail
 
 USERVER_NAMESPACE_END

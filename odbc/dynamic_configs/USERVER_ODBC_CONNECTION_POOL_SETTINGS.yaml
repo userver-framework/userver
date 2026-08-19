@@ -6,8 +6,9 @@ description: |
     The latter configuration is applied for every non-matching
     ODBC component of the service.
 
-    Note: Pool size changes require component restart to take effect,
-    as the underlying connection pool does not support dynamic resizing.
+    Updates atomically replace pools for new operations. Queries and
+    transactions already in progress keep their old pools alive until they
+    finish.
 schema:
     type: object
     example: |

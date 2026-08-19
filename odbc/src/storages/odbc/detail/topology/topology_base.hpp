@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 #include <userver/storages/odbc/cluster_types.hpp>
@@ -22,17 +23,28 @@ class TopologyBase {
 public:
     virtual ~TopologyBase();
 
-    static std::unique_ptr<TopologyBase> Create(
+    static std::shared_ptr<TopologyBase> Create(
         const settings::ODBCClusterSettings& settings,
-        clients::dns::Resolver* resolver
+        const settings::StatementMetricsSettings& statement_metrics_settings,
+        const settings::PreparedStatementCacheSettings& prepared_statement_cache_settings,
+        clients::dns::Resolver* resolver,
+        engine::TaskProcessor& blocking_task_processor
     );
 
     Pool& SelectPool(ClusterHostType host_type) const;
 
     void WriteStatistics(utils::statistics::Writer& writer) const;
+    void SetStatementMetricsSettings(const settings::StatementMetricsSettings& settings);
+    void SetPreparedStatementCacheSettings(const settings::PreparedStatementCacheSettings& settings);
 
 protected:
-    TopologyBase(const settings::ODBCClusterSettings& settings, clients::dns::Resolver* resolver);
+    TopologyBase(
+        const settings::ODBCClusterSettings& settings,
+        const settings::StatementMetricsSettings& statement_metrics_settings,
+        const settings::PreparedStatementCacheSettings& prepared_statement_cache_settings,
+        clients::dns::Resolver* resolver,
+        engine::TaskProcessor& blocking_task_processor
+    );
 
     virtual Pool& GetPrimary() const = 0;
     virtual Pool& GetSecondary() const = 0;

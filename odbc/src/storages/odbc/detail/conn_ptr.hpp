@@ -24,6 +24,8 @@ public:
     Connection& operator*() const;
     Connection* operator->() const noexcept;
 
+    std::shared_ptr<Pool> GetPool() const noexcept { return pool_; }
+
 private:
     void Reset(std::unique_ptr<Connection> conn, std::shared_ptr<Pool> pool);
     void Release();

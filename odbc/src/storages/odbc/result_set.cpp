@@ -13,6 +13,15 @@ ResultSet::size_type ResultSet::Size() const { return pimpl_ != nullptr ? pimpl_
 
 ResultSet::size_type ResultSet::FieldCount() const { return pimpl_ != nullptr ? pimpl_->FieldCount() : 0; }
 
+ResultSet::size_type ResultSet::RowsAffected() const { return pimpl_ != nullptr ? pimpl_->RowsAffected() : 0; }
+
+std::string_view ResultSet::GetFieldName(size_type index) const {
+    if (!pimpl_) {
+        throw FieldIndexOutOfBounds{index};
+    }
+    return pimpl_->GetFieldName(index);
+}
+
 bool ResultSet::IsEmpty() const { return Size() == 0; }
 
 ResultSet::reference ResultSet::operator[](size_type index) const& {

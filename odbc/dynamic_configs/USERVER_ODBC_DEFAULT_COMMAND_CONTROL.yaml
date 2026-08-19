@@ -1,8 +1,9 @@
 default: {}
 description: |
     Dynamic config that controls default network and statement timeouts for ODBC driver.
-    Overrides the built-in timeouts, but could be overridden by explicit
-    engine::Deadline passed to Execute/Begin methods.
+    Overrides the built-in timeouts. Individual operations can override these
+    values with storages::odbc::OptionalCommandControl. A task-inherited
+    request deadline always caps the resulting deadline.
 schema:
     type: object
     additionalProperties: false
@@ -12,8 +13,11 @@ schema:
             minimum: 1
             x-usrv-cpp-type: std::chrono::milliseconds
             description: |
-                Network timeout in milliseconds. Controls how long to wait for
-                network operations (connection establishment, data transfer).
+                Overall operation budget in milliseconds. It starts before
+                connection acquisition, configures the ODBC login timeout, and
+                caps statement and transaction deadlines. Blocking ODBC calls
+                are ultimately subject to timeout support and whole-second
+                resolution of the selected ODBC driver.
         statement_timeout_ms:
             type: integer
             minimum: 1

@@ -1,0 +1,42 @@
+default: {}
+description: |
+    Dynamic config that controls the per-connection prepared statement cache for
+    ODBC components.
+
+    Dictionary keys can be either an ODBC component name or `__default__`.
+    An exact component entry takes precedence over `__default__`, which takes
+    precedence over the component's static `max_prepared_cache_size` value.
+    Zero disables the cache and clears retained prepared statements before the
+    next operation on each physical connection.
+schema:
+    type: object
+    example: |
+        {
+            "odbc-orders": {
+                "max_prepared_cache_size": 50
+            },
+            "__default__": {
+                "max_prepared_cache_size": 10
+            }
+        }
+    properties:
+        __default__:
+            $ref: "#/definitions/PreparedStatementCacheSettings"
+    additionalProperties:
+        $ref: "#/definitions/PreparedStatementCacheSettings"
+    definitions:
+        PreparedStatementCacheSettings:
+            type: object
+            additionalProperties: false
+            properties:
+                max_prepared_cache_size:
+                    type: integer
+                    minimum: 0
+                    default: 0
+                    x-usrv-cpp-type: std::size_t
+                    description: |
+                        Maximum number of prepared parameterized SQL statements
+                        retained per physical ODBC connection. Zero disables and
+                        clears the cache.
+            required:
+              - max_prepared_cache_size

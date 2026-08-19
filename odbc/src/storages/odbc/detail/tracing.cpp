@@ -72,6 +72,22 @@ std::string MakeQuerySpanName(std::string_view statement) {
     return "odbc_query";
 }
 
+QuerySpanTags MakeQuerySpanTags(const Query& query) noexcept {
+    if (const auto name = query.GetOptionalNameView()) {
+        return {
+            .statement_name = std::string_view{*name},
+            .statement = std::nullopt,
+        };
+    }
+    if (query.GetLogMode() == Query::LogMode::kFull) {
+        return {
+            .statement_name = std::nullopt,
+            .statement = std::string_view{query.GetStatementView()},
+        };
+    }
+    return {};
+}
+
 }  // namespace storages::odbc::detail::tracing
 
 USERVER_NAMESPACE_END

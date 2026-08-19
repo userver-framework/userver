@@ -14,8 +14,20 @@ std::size_t WrappingIncrement(std::atomic<std::size_t>& value, std::size_t mod) 
 
 }  // namespace
 
-FixedPrimary::FixedPrimary(const settings::ODBCClusterSettings& settings, clients::dns::Resolver* resolver)
-    : TopologyBase(settings, resolver),
+FixedPrimary::FixedPrimary(
+    const settings::ODBCClusterSettings& settings,
+    const settings::StatementMetricsSettings& statement_metrics_settings,
+    const settings::PreparedStatementCacheSettings& prepared_statement_cache_settings,
+    clients::dns::Resolver* resolver,
+    engine::TaskProcessor& blocking_task_processor
+)
+    : TopologyBase(
+          settings,
+          statement_metrics_settings,
+          prepared_statement_cache_settings,
+          resolver,
+          blocking_task_processor
+      ),
       primary_{InitializePrimaryPoolReference()},
       secondaries_{InitializeSecondariesVector()}
 {}
