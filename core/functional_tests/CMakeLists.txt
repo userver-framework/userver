@@ -14,6 +14,9 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-early-monitor-port-open)
 add_subdirectory(dynamic_configs)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-dynamic-configs)
 
+add_subdirectory(error_pages)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-error-pages)
+
 add_subdirectory(graceful_shutdown)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-graceful-shutdown)
 

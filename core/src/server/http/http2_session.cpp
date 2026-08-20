@@ -171,7 +171,15 @@ int Http2Session::OnHeader(
     auto& stream = parser.GetStreamChecked(Stream::Id{frame->hd.stream_id});
     auto& ctor = stream.RequestConstructor();
     if (hname == USERVER_NAMESPACE::http::headers::k2::kMethod) {
-        ctor.SetMethod(HttpMethodFromString(hvalue));
+        try {
+            ctor.SetMethod(HttpMethodFromString(hvalue));
+        } catch (const std::exception& e) {
+            // Leaving the method unset makes the request malformed, so the
+            // stream gets a "400 Bad Request" instead of the whole connection
+            // being torn down (RFC 9113, 8.1.1).
+            LOG_LIMITED_WARNING() << "can't parse the method: " << e;
+            IncStat(parser.stats_.http2_stats.streams_parse_error);
+        }
         stream.CheckUrlComplete();
     } else if (hname == USERVER_NAMESPACE::http::headers::k2::kPath) {
         try {
