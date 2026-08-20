@@ -20,7 +20,7 @@
 inline constexpr std::array<USERVER_NAMESPACE::ugrpc::impl::MethodDescriptor, {{service.method | length}}> k{{service.name}}Methods = {
 {% for method in service.method %}
     USERVER_NAMESPACE::ugrpc::impl::MethodDescriptor{
-        "{{proto.package_prefix}}{{service.name}}/{{method.name}}",
+        "/{{proto.package_prefix}}{{service.name}}/{{method.name}}",
 {% if method.client_streaming and method.server_streaming %}
         USERVER_NAMESPACE::ugrpc::RpcType::kBidiStreaming,
 {% elif method.client_streaming %}

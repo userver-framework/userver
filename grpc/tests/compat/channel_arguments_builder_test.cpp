@@ -274,9 +274,9 @@ UTEST(ServiceConfigBuilderTest, Complex) {
     const ugrpc::client::Qos qos3{.attempts = std::nullopt, .timeout = std::nullopt};
     const ugrpc::client::Qos qos_default{.attempts = 4, .timeout = std::nullopt};
     ugrpc::client::ClientQos client_qos;
-    client_qos.methods.Set(GetMethodFullName(metadata, 0), qos0);
-    client_qos.methods.Set(GetMethodFullName(metadata, 1), qos1);
-    client_qos.methods.Set(GetMethodFullName(metadata, 3), qos3);
+    client_qos.methods.Set(GetMethodFullNameWithoutSlash(metadata, 0), qos0);
+    client_qos.methods.Set(GetMethodFullNameWithoutSlash(metadata, 1), qos1);
+    client_qos.methods.Set(GetMethodFullNameWithoutSlash(metadata, 3), qos3);
     client_qos.methods.SetDefault(qos_default);
 
     const auto service_config = service_config_builder.Build(client_qos);

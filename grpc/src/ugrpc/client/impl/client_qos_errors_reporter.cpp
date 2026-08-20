@@ -53,7 +53,8 @@ void ClientQosErrorsReporter::ValidateAndReportClientQosErrors(
                 metadata.service_full_name,
                 fmt::join(
                     std::views::iota(std::size_t{0}, GetMethodsCount(metadata)) |
-                        std::views::transform([&](std::size_t i) { return GetMethodFullName(metadata, i); }),
+                        std::views::transform([&](std::size_t i) { return GetMethodFullNameWithoutSlash(metadata, i); }
+                        ),
                     ", "
                 )
             );

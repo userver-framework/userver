@@ -84,7 +84,7 @@ void ApplyRetryConfigurationStreaming(
 
 CallParams CreateCallParams(const ClientData& client_data, std::size_t method_id, CallOptions&& call_options) {
     const auto& metadata = client_data.GetMetadata();
-    const auto call_name = GetMethodFullName(metadata, method_id);
+    const auto call_name = GetMethodFullNameWithoutSlash(metadata, method_id);
 
     if (engine::current_task::ShouldCancel()) {
         throw RpcCancelledError(call_name, "RPC construction");

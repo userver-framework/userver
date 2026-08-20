@@ -3,7 +3,6 @@
 #include <boost/container/static_vector.hpp>
 
 #include <userver/utils/algo.hpp>
-#include <userver/utils/enumerate.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 #include <userver/utils/statistics/striped_rate_counter.hpp>
 #include <userver/utils/statistics/writer.hpp>
@@ -216,14 +215,14 @@ void ServiceStatistics::DumpAndCountTotal(
     std::optional<std::string_view> destination_prefix_in_metrics,
     MethodStatisticsSnapshot& total
 ) const {
-    for (const auto& [i, method_descriptor] : utils::enumerate(metadata_.methods)) {
+    for (std::size_t i = 0; i < GetMethodsCount(metadata_); ++i) {
         const MethodStatisticsSnapshot snapshot{method_statistics_[i]};
         total.Add(snapshot);
         DumpMetricWithLabels(
             writer,
             snapshot,
             destination_prefix_in_metrics,
-            method_descriptor.method_full_name,
+            GetMethodFullNameWithoutSlash(metadata_, i),
             metadata_.service_full_name
         );
     }

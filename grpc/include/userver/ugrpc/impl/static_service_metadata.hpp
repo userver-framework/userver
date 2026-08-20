@@ -14,6 +14,7 @@ namespace ugrpc::impl {
 
 /// Descriptor of an RPC method
 struct MethodDescriptor final {
+    /// gRPC method path, including the leading slash (`/pkg.Service/Method`).
     utils::StringLiteral method_full_name;
     RpcType method_type{RpcType::kUnary};
 };
@@ -37,8 +38,17 @@ constexpr utils::StringLiteral GetMethodFullName(const StaticServiceMetadata& me
     return metadata.methods[method_id].method_full_name;
 }
 
+constexpr utils::StringLiteral GetMethodFullNameWithoutSlash(
+    const StaticServiceMetadata& metadata,
+    std::size_t method_id
+) {
+    auto result = metadata.methods[method_id].method_full_name;
+    result.remove_prefix(1);
+    return result;
+}
+
 constexpr utils::StringLiteral GetMethodName(const StaticServiceMetadata& metadata, std::size_t method_id) {
-    auto result = ugrpc::impl::GetMethodFullName(metadata, method_id);
+    auto result = ugrpc::impl::GetMethodFullNameWithoutSlash(metadata, method_id);
     result.remove_prefix(metadata.service_full_name.size() + 1);
     return result;
 }

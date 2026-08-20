@@ -54,7 +54,7 @@ utils::FixedArray<std::unique_ptr<RetryLimiter>> ClientData::CreateRetryLimiters
 
     return utils::GenerateFixedArray(GetMethodsCount(metadata), [&](std::size_t method_id) {
         return factory->CreateRetryLimiter(RetryLimiterSettings{
-            GetMethodFullName(metadata, method_id),
+            GetMethodFullNameWithoutSlash(metadata, method_id),
             std::string(destination_prefix_in_metrics)
         });
     });
