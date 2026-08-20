@@ -59,15 +59,14 @@ struct YdbComponent::DatabaseUtils final {
         const impl::secdist::DatabaseSettings& dbsettings,
         std::shared_ptr<NYdb::ICredentialsProviderFactory> credentials_provider_factory,
         const OperationSettings& operation_settings,
-        const dynamic_config::Source& config_source,
-        engine::TaskProcessor& task_processor
+        const dynamic_config::Source& config_source
     ) {
         const auto table_settings = impl::ParseTableSettings(dbconfig, dbsettings);
         const auto topic_settings = impl::TopicSettings{};
         const auto
             driver_settings = impl::ParseDriverSettings(dbconfig, dbsettings, std::move(credentials_provider_factory));
 
-        auto driver = std::make_shared<impl::Driver>(dbname, driver_settings, task_processor);
+        auto driver = std::make_shared<impl::Driver>(dbname, driver_settings);
 
         auto table_client = std::make_shared<TableClient>(table_settings, operation_settings, config_source, driver);
 
@@ -98,7 +97,6 @@ YdbComponent::YdbComponent(const components::ComponentConfig& config, const comp
     const auto operation_settings = config["operation-settings"].As<OperationSettings>();
 
     const auto dbnames = GetDbNames(config);
-    auto& task_processor = engine::current_task::GetTaskProcessor();
 
     for (const auto& dbname : dbnames) {
         auto dbsettings = utils::FindOrDefault(secdist_settings, dbname);
@@ -120,8 +118,7 @@ YdbComponent::YdbComponent(const components::ComponentConfig& config, const comp
                                      dbsettings,
                                      credentials_provider_factory,
                                      operation_settings,
-                                     config_source,
-                                     task_processor
+                                     config_source
                                  );
                              }).Get());
 
@@ -136,8 +133,7 @@ YdbComponent::YdbComponent(const components::ComponentConfig& config, const comp
                         dbsettings,
                         credentials_provider_factory,
                         operation_settings,
-                        config_source,
-                        task_processor
+                        config_source
                     )
                 );
             }
