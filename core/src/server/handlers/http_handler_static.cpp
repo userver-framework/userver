@@ -128,7 +128,7 @@ HttpHandlerStatic::HttpHandlerStatic(
       not_found_file_(config["not-found-file"].As<std::string>("/404.html")),
       fs_task_processor_(GetFsTaskProcessor(config, context))
 {
-    if (!HttpHandlerBase::IsStreamed()) {
+    if (!HttpHandlerBase::IsBodyStreamingEnabledInConfig()) {
         LOG_INFO() << "'response-body-stream: false' is ignored for " << HttpHandlerBase::HandlerName();
     }
 }

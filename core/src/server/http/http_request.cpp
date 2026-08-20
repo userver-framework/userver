@@ -314,9 +314,13 @@ void HttpRequest::SetPathArgs(std::vector<std::pair<std::string, std::string>> a
 
 void HttpRequest::MarkAsInternalServerError() const {
     // TODO : refactor, this being here is a bit ridiculous
-    pimpl_->response.SetStatus(http::HttpStatus::kInternalServerError);
-    pimpl_->response.SetData({});
-    pimpl_->response.ClearUserHeaders();
+    auto& response = pimpl_->response;
+    if (response.IsHeadersEnd() || response.IsSent()) {
+        return;
+    }
+    response.SetStatus(http::HttpStatus::kInternalServerError);
+    response.SetData({});
+    response.ClearUserHeaders();
 }
 
 void HttpRequest::SetHttpHandler(const handlers::HttpHandlerBase& handler) { pimpl_->handler = &handler; }

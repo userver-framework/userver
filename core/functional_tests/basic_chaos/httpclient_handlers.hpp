@@ -125,6 +125,7 @@ public:
         response_body_stream.SetStatusCode(status_code);
 
         response_body_stream.SetHeader(std::string{"abc"}, std::string{"def"});
+
         response_body_stream.SetEndOfHeaders();
 
         TESTPOINT("stream_after_set_end_of_headers", {});
@@ -133,6 +134,7 @@ public:
         auto deadline = engine::Deadline::FromDuration(std::chrono::seconds(10));
         while (client_response.ReadChunk(body_part, deadline)) {
             TESTPOINT("stream_after_read_chunk", {});
+            // HTTP status can not be changed after first PushBodyChunk() call!
             response_body_stream.PushBodyChunk(std::move(body_part), engine::Deadline());
             TESTPOINT("stream_after_push_body_chunk", {});
         }

@@ -16,9 +16,9 @@
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/request/request_context.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/log.hpp>
 #include <userver/utils/not_null.hpp>
-#include <userver/utils/scope_guard.hpp>
 #include <userver/utils/string_literal.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -123,7 +123,15 @@ void HandlerAdapter::HandleRequest(http::HttpRequest& request, request::RequestC
         // parsed. Request parsing isn't optional, so we can't move it into its own
         // optional middleware, and this is the only place to hook the pipeline
         // reliably.
-        const utils::ScopeGuard log_request_scope{[this, &request, &context] { LogRequest(request, context); }};
+        const utils::FastScopeGuard log_request_scope{[this, &request, &context]() noexcept {
+            try {
+                LogRequest(request, context);
+            } catch (const std::exception& ex) {
+                LOG_ERROR() << "Failed to log request: " << ex;
+            } catch (...) {
+                LOG_ERROR() << "Failed to log request due to an unknown exception (task cancellation?)";
+            }
+        }};
 
         ParseRequestData(request, context);
     }

@@ -2083,6 +2083,7 @@
   "core/src/server/handlers/http_handler_json_base.cpp":"taxi/uservices/userver/core/src/server/handlers/http_handler_json_base.cpp",
   "core/src/server/handlers/http_handler_static.cpp":"taxi/uservices/userver/core/src/server/handlers/http_handler_static.cpp",
   "core/src/server/handlers/http_handler_static.yaml":"taxi/uservices/userver/core/src/server/handlers/http_handler_static.yaml",
+  "core/src/server/handlers/http_handler_stream_test.cpp":"taxi/uservices/userver/core/src/server/handlers/http_handler_stream_test.cpp",
   "core/src/server/handlers/http_server_settings.hpp":"taxi/uservices/userver/core/src/server/handlers/http_server_settings.hpp",
   "core/src/server/handlers/implicit_options.cpp":"taxi/uservices/userver/core/src/server/handlers/implicit_options.cpp",
   "core/src/server/handlers/implicit_options.yaml":"taxi/uservices/userver/core/src/server/handlers/implicit_options.yaml",

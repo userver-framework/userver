@@ -16,19 +16,20 @@ class HttpHandlerBase;
 
 namespace server::http {
 
-/// @brief Streaming HTTP response body writer
+/// @brief Streaming HTTP response body writer that is passed to
+/// @ref server::handlers::HttpHandlerBase::HandleStreamRequest() overloads.
+///
+/// @see @ref scripts/docs/en/userver/http_server.md
 class ResponseBodyStream final {
 public:
     ResponseBodyStream(ResponseBodyStream&&) = default;
     ~ResponseBodyStream();
 
-    // Send a chunk of response data. It may NOT generate
-    // exactly one HTTP chunk per call to PushBodyChunk().
-    // May not be called after SetBody().
+    /// Send a chunk of response data; should not be called after SetBody().
+    /// It may NOT generate exactly one HTTP chunk per call to @ref PushBodyChunk().
     void PushBodyChunk(std::string&& chunk, engine::Deadline deadline);
 
-    // Set full response body instead of sending chunks.
-    // May not be called after PushBodyChunk().
+    /// Set full response body instead of sending chunks; should not be called after @ref PushBodyChunk()
     void SetBody(std::string&& body);
 
     void SetHeader(const std::string&, const std::string&);
@@ -37,8 +38,10 @@ public:
 
     void SetEndOfHeaders();
 
+    /// Set the HTTP status code; should not be called after @ref PushBodyChunk() as the result will be ignored.
     void SetStatusCode(int status_code);
 
+    /// @overload
     void SetStatusCode(HttpStatus status);
 
 private:

@@ -63,7 +63,9 @@ engine::TaskWithResult<void> HttpRequestHandler::StartFailsafeTask(std::shared_p
             handler->ReportMalformedRequest(*request);
         }
         request->SetResponseNotifyTime();
-        request->GetHttpResponse().SetReady();
+        auto& response = request->GetHttpResponse();
+        response.SetHeadersEnd();
+        response.SetReady();
     });
 }
 
@@ -146,11 +148,6 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(std::shared_pt
             << "url=" << http_request->GetUrl() << ", status_code=" << static_cast<size_t>(status);
 
         return StartFailsafeTask(std::move(http_request));
-    }
-
-    request::RequestContext context;
-    if (handler->IsStreamed(*std::move(http_request), context)) {
-        http_response.SetStreamBody();
     }
 
     auto payload = [request = std::move(http_request), handler] {

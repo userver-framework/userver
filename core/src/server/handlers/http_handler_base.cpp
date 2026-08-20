@@ -71,6 +71,10 @@ void SetFormattedErrorResponse(http::HttpResponse& http_response, FormattedError
     }
 }
 
+bool CanOverwriteResponse(const http::HttpResponse& response) noexcept {
+    return !response.IsHeadersEnd() && !response.IsSent();
+}
+
 std::unordered_map<int, logging::Level> ParseStatusCodesLogLevel(
     const std::unordered_map<std::string, std::string>& codes
 ) {
@@ -212,9 +216,9 @@ void HttpHandlerBase::HandleHttpRequest(http::HttpRequest& http_request, request
 
     const auto scope_time = tracing::ScopeTime::CreateOptionalScopeTime("http_handle_request");
     if (IsStreamed(http_request, context)) {
+        response.SetStreamBody();
         HandleRequestStream(http_request, context);
     } else {
-        // !IsBodyStreamed()
         response.SetData(HandleRequest(http_request, context));
     }
 }
@@ -392,6 +396,12 @@ void HttpHandlerBase::HandleCustomHandlerException(
     LOG(level) << "custom handler exception in '" << HandlerName() << "' handler: msg=" << ex;
 
     auto& response = request.GetHttpResponse();
+    if (!CanOverwriteResponse(response)) {
+        LOG_LIMITED_WARNING()
+            << "Cannot convert custom handler exception into an HTTP error: the response streaming has already "
+               "started";
+        return;
+    }
     response.SetStatus(http_status);
     if (ex.IsExternalErrorBodyFormatted()) {
         response.SetData(ex.GetExternalErrorBody());
@@ -411,6 +421,12 @@ void HttpHandlerBase::HandleUnknownException(
     LogUnknownException(ex);
 
     auto& response = request.GetHttpResponse();
+    if (!CanOverwriteResponse(response)) {
+        LOG_LIMITED_WARNING()
+            << "Cannot convert exception into an HTTP error: the response streaming has already "
+               "started";
+        return;
+    }
     if (engine::current_task::ShouldCancel()) {
         response.SetStatus(http::HttpStatus::kClientClosedRequest);
     } else {

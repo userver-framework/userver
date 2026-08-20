@@ -1,5 +1,6 @@
 #include <userver/server/request/response_base.hpp>
 
+#include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -90,7 +91,13 @@ ResponseBase::~ResponseBase() noexcept {
 }
 
 void ResponseBase::SetData(std::string data) {
-    UASSERT(sent_time_ == kUnset);
+    if (sent_time_ != kUnset) {
+        UASSERT(IsBodyStreamed());
+        LOG_LIMITED_WARNING()
+            << "Attempt to set response body after it was already sent by streaming. Probably an "
+               "exception was thrown after streaming started";
+        return;
+    }
     data_ = std::move(data);
     const auto old_size = accounted_size_;
     const auto old_create_time = create_time_;
