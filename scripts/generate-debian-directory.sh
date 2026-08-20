@@ -9,7 +9,7 @@ DISTRO=${DISTRO:-ubuntu-24.04}
 # Modules whose C++ client libraries have no apt package and whose cmake feature
 # flag is set to OFF in scripts/debian-rules.
 # Keep this list in sync with the *_FEATURE_*=OFF flags in scripts/debian-rules.
-DISABLED_MODULES="clickhouse rabbitmq"
+DISABLED_MODULES="clickhouse rabbitmq ydb"
 
 case "$DISTRO" in
     ubuntu-22.04) SUITE=jammy ;;

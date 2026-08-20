@@ -9,14 +9,12 @@ CMAKE_OPTS = \
 	     -DUSERVER_INSTALL=ON \
 	     -DUSERVER_BUILD_SAMPLES=ON \
 	     -DUSERVER_BUILD_ALL_COMPONENTS=1 \
-	     -DUSERVER_DOWNLOAD_PACKAGE_YDBCPPSDK=OFF \
-	     -DUSERVER_FORCE_DOWNLOAD_ABSEIL=OFF \
-	     -DUSERVER_FEATURE_YDB=ON \
 	     -DUSERVER_FEATURE_UTEST=ON \
 
 # These features have no apt package for their C++ client libraries and are
 # not shipped as libuserver-*-dev packages in this PPA
 CMAKE_OPTS += \
+	     -DUSERVER_FEATURE_YDB=OFF \
 	     -DUSERVER_FEATURE_CLICKHOUSE=OFF \
 	     -DUSERVER_FEATURE_RABBITMQ=OFF \
 	     -DUSERVER_FEATURE_PATCH_LIBPQ=OFF \

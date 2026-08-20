@@ -55,8 +55,6 @@ libssl-dev
 libxxhash-dev
 libyaml-cpp-dev
 libyaml-cpp0.8
-libydb-cpp-dev
-libydb-cpp-iam-dev
 libzstd-dev
 netbase
 ninja-build
