@@ -641,7 +641,13 @@ void Redis::RedisImpl::OnCommandTimeoutImpl(ev_timer* w) {
         UASSERT(w == &command.timer);
         reply_privdata_rev_.erase(&command.timer);
         command.invoke_disabled = true;
-        InvokeCommandError(command.meta, command.cmd, ReplyStatus::kTimeoutError, "Command timeout");
+
+        // Moving out command callback captures as the `command` is now logically
+        // complete and the late reply should not invoke its callbacks.
+        const auto redis_impl = command.redis_impl;
+        const auto command_name = command.cmd;
+        auto command_meta = std::move(command.meta);
+        redis_impl->InvokeCommandError(command_meta, command_name, ReplyStatus::kTimeoutError, "Command timeout");
     }
 }
 
