@@ -54,3 +54,4 @@ userver_generate_config_yaml(
 # /// [generate-config]
 
 userver_testsuite_add_simple(CONFIG_PATH "${CMAKE_CURRENT_BINARY_DIR}/config.yaml")
+
