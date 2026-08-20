@@ -16,9 +16,7 @@ namespace handlers::test {
 /// component_list.AppendComponentList(handlers::test::ChaoticHandlersList());
 /// @endcode
 inline USERVER_NAMESPACE::components::ComponentList ChaoticHandlersList() {
-return USERVER_NAMESPACE::components::ComponentList()
-.Append<handlers::test::testme::post::Handler>()
-;
+    return USERVER_NAMESPACE::components::ComponentList().Append<handlers::test::testme::post::Handler>();
 }
 
 }  // namespace handlers::test

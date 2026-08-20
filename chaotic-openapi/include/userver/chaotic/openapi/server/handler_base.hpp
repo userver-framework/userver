@@ -121,8 +121,7 @@ public:
         const USERVER_NAMESPACE::components::ComponentContext& context
     )
         : USERVER_NAMESPACE::server::handlers::HttpHandlerBase(config, context),
-          factories_(context.FindComponent<FactoriesContainer>())
-    {}
+          factories_(context.FindComponent<FactoriesContainer>()) {}
 
     ~BaseHandler() override = default;
 

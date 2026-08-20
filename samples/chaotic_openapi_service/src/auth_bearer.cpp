@@ -39,8 +39,7 @@ class AuthCheckerBearer final : public server::handlers::auth::AuthCheckerBase {
 public:
     using AuthCheckResult = server::handlers::auth::AuthCheckResult;
 
-    explicit AuthCheckerBearer(std::unordered_map<std::string, std::uint64_t> tokens)
-        : tokens_(std::move(tokens)) {}
+    explicit AuthCheckerBearer(std::unordered_map<std::string, std::uint64_t> tokens) : tokens_(std::move(tokens)) {}
 
     [[nodiscard]] AuthCheckResult CheckAuth(
         const server::http::HttpRequest& request,
@@ -95,9 +94,8 @@ AuthCheckerBearer::AuthCheckResult AuthCheckerBearer::CheckAuth(
 CheckerFactory::CheckerFactory(const components::ComponentContext& context)
     : tokens_(context.FindComponent<components::Secdist>().Get().Get<AuthTokens>().Get()) {}
 
-server::handlers::auth::AuthCheckerBasePtr CheckerFactory::MakeAuthChecker(
-    const server::handlers::auth::HandlerAuthConfig&
-) const {
+server::handlers::auth::AuthCheckerBasePtr
+CheckerFactory::MakeAuthChecker(const server::handlers::auth::HandlerAuthConfig&) const {
     return std::make_shared<AuthCheckerBearer>(tokens_);
 }
 
