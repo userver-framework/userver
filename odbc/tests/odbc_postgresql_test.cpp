@@ -141,7 +141,12 @@ struct ReferenceAggregate final {
 };
 
 class PrivateAggregate final {
-    std::int32_t value_{0};
+public:
+    int GetValue() const { return value_; }
+    void SetValue(int value) { value_ = value; }
+
+private:
+    int value_{0};
 };
 
 union UnionAggregate {

@@ -227,7 +227,7 @@ Odbc::Odbc(const ComponentConfig& config, const ComponentContext& context)
 
     if (secdist_alias_) {
         auto& secdist = context.FindComponent<components::Secdist>();
-        secdist.GetStorage().UpdateAndListen(this, name_, &Odbc::OnSecdistUpdate).Scoped(context);
+        secdist_subscription_ = secdist.GetStorage().UpdateAndListen(this, name_, &Odbc::OnSecdistUpdate);
     }
 }
 

@@ -68,6 +68,7 @@ private:
 
     dynamic_config::Source config_source_;
     concurrent::AsyncEventSubscriberScope config_subscription_;
+    concurrent::AsyncEventSubscriberScope secdist_subscription_;
 };
 
 template <>

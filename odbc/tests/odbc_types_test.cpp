@@ -60,6 +60,11 @@ struct User final {
 /// [ODBC typed result mapping]
 
 class PrivateMembers final {
+public:
+    int GetValue() const { return value_; }
+    void SetValue(int value) { value_ = value; }
+
+private:
     int value_{0};
 };
 
