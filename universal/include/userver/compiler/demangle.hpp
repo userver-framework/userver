@@ -53,7 +53,7 @@ namespace detail {
 
 template <typename T>
 constexpr std::string_view GetFullTypeName() {
-    constexpr auto alias = GetTypeAlias<T>();
+    constexpr auto alias = detail::GetTypeAlias<T>();
     if constexpr (!alias.empty()) {
         return alias;
     } else {

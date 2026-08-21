@@ -101,7 +101,7 @@ T RandRange(T from_inclusive, T to_exclusive) {
 /// @note The used random generator is not cryptographically secure
 template <typename T>
 T RandRange(T to_exclusive) {
-    return RandRange(T{0}, to_exclusive);
+    return utils::RandRange(T{0}, to_exclusive);
 }
 
 /// @brief Shuffles the elements within the container

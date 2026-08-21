@@ -70,7 +70,7 @@ Dst NarrowToInt(Src x, const Value& value) {
         "expanding cast requested"
     );
 
-    CheckInBounds<Src>(value, x, std::numeric_limits<Dst>::min(), std::numeric_limits<Dst>::max());
+    impl::CheckInBounds<Src>(value, x, std::numeric_limits<Dst>::min(), std::numeric_limits<Dst>::max());
     return static_cast<Dst>(x);
 }
 
@@ -80,8 +80,7 @@ std::chrono::seconds ToSeconds(const std::string& data, const Value& value) {
     const auto converted = std::chrono::duration_cast<std::chrono::seconds>(ms);
     if (converted != ms) {
         throw typename Value::ParseException(fmt::format(
-            "Value of '{}' = {}ms cannot be represented as "
-            "'std::chrono::seconds' without precision loss",
+            "Value of '{}' = {}ms cannot be represented as 'std::chrono::seconds' without precision loss",
             value.GetPath(),
             ms.count()
         ));

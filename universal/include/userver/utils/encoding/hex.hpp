@@ -23,7 +23,9 @@ char ToHexChar(int num);
 
 constexpr size_t LengthInHexForm(size_t size) noexcept { return size * 2; }
 
-constexpr size_t LengthInHexForm(std::string_view data) noexcept { return LengthInHexForm(data.size()); }
+constexpr size_t LengthInHexForm(std::string_view data) noexcept {
+    return USERVER_NAMESPACE::utils::encoding::LengthInHexForm(data.size());
+}
 /// @}
 
 /// @brief Return upper limit on number of characters required
@@ -57,7 +59,7 @@ void ToHexBuffer(std::string_view input, utils::span<char> out) noexcept;
 /// @param data range of input bytes
 inline std::string ToHex(std::string_view data) noexcept {
     std::string result;
-    ToHex(data, result);
+    USERVER_NAMESPACE::utils::encoding::ToHex(data, result);
     return result;
 }
 
@@ -66,7 +68,7 @@ inline std::string ToHex(std::string_view data) noexcept {
 /// @param len size of that range
 inline std::string ToHex(const void* encoded, size_t len) noexcept {
     const auto* chars = reinterpret_cast<const char*>(encoded);
-    return ToHex(std::string_view{chars, len});
+    return USERVER_NAMESPACE::utils::encoding::ToHex(std::string_view{chars, len});
 }
 
 /// @brief Converts as much of input from hex as possible and writes data
@@ -86,7 +88,7 @@ size_t FromHex(std::string_view encoded, std::string& out) noexcept;
 /// is not fully a hex string, then it will be only partially processed.
 inline std::string FromHex(std::string_view encoded) noexcept {
     std::string result;
-    FromHex(encoded, result);
+    USERVER_NAMESPACE::utils::encoding::FromHex(encoded, result);
     return result;
 }
 
@@ -102,7 +104,9 @@ std::string_view GetHexPart(std::string_view encoded) noexcept;
 bool IsHexData(std::string_view encoded) noexcept;
 
 /// @brief Interprets uint64_t value as array of bytes and applies ToHex to it
-inline std::string ToHexString(uint64_t value) { return ToHex(&value, sizeof(value)); }
+inline std::string ToHexString(uint64_t value) {
+    return USERVER_NAMESPACE::utils::encoding::ToHex(&value, sizeof(value));
+}
 
 }  // namespace utils::encoding
 
