@@ -5,11 +5,17 @@
 #if defined(__has_feature)
 #if __has_feature(memory_sanitizer)
 #define HAS_MSAN 1
-#endif
+#endif  // __has_feature(memory_sanitizer)
 #if __has_feature(address_sanitizer)
 #define HAS_ASAN 1
-#endif
-#endif
+#endif  // __has_feature(address_sanitizer)
+#endif  // defined(__has_feature)
+
+// mlock of the main executable's PT_LOAD / PT_GNU_EH_FRAME sections prevents major page faults during
+// exception unwinding under memory pressure
+#if defined(__linux__)
+#define USE_MLOCK_DEBUG_INFO 1  // NOLINT
+#endif                          // defined(__linux__)
 
 // Thread Sanitizer uses dl_iterate_phdr function on initialization and fails if
 // we provide our own.
@@ -23,9 +29,9 @@
 #if !defined(USERVER_DISABLE_PHDR_CACHE) && defined(__linux__) && !USERVER_IMPL_HAS_TSAN && !defined(HAS_MSAN) && \
     !defined(HAS_ASAN)
 #define USE_PHDR_CACHE 1  // NOLINT
-#endif
+#endif                    // !defined(USERVER_DISABLE_PHDR_CACHE) && ...
 
-#ifdef USE_PHDR_CACHE
+#if defined(USE_PHDR_CACHE) || defined(USE_MLOCK_DEBUG_INFO)
 
 #include <dlfcn.h>
 #include <link.h>
@@ -40,13 +46,14 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
-#include <userver/utils/impl/userver_experiments.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {
 
 namespace {
+
+#if defined(USE_PHDR_CACHE)
 
 using DlIterateCb = int (*)(struct dl_phdr_info* info, size_t size, void* data);
 using DlIterateFn = int (*)(DlIterateCb callback, void* data);
@@ -59,6 +66,10 @@ inline auto GetOriginalDlIteratePhdr() {
 
     return reinterpret_cast<DlIterateFn>(func);
 }
+
+#endif  // defined(USE_PHDR_CACHE)
+
+#if defined(USE_MLOCK_DEBUG_INFO)
 
 class MlockProcessDebugInfoScope final {
 public:
@@ -143,6 +154,21 @@ private:
     std::vector<Section> mlocked_sections_;
 };
 
+MlockProcessDebugInfoScope& GetMlockProcessDebugInfoScope() noexcept {
+    static MlockProcessDebugInfoScope mlock_debug_info_scope{};
+    return mlock_debug_info_scope;
+}
+
+int MLockDebugInfoDlIterateCallback(struct dl_phdr_info* info, size_t /*size*/, void* /*data*/) {
+    GetMlockProcessDebugInfoScope().Initialize(*info);
+    // we are only interested in the first dl_phdr_info, so stop iteration right away.
+    return 1;
+}
+
+#endif  // defined(USE_MLOCK_DEBUG_INFO)
+
+#if defined(USE_PHDR_CACHE)
+
 using PhdrCacheStorage = std::vector<dl_phdr_info>;
 std::atomic<PhdrCacheStorage*> phdr_cache_ptr{nullptr};
 
@@ -177,11 +203,6 @@ public:
 private:
     PhdrCacheStorage cache_{};
 };
-
-MlockProcessDebugInfoScope& GetMlockProcessDebugInfoScope() noexcept {
-    static MlockProcessDebugInfoScope mlock_debug_info_scope{};
-    return mlock_debug_info_scope;
-}
 
 int DlIteratePhdr(DlIterateCb callback, void* data) {
     auto* current_phdr_cache = phdr_cache_ptr.load();
@@ -234,47 +255,57 @@ void AssertDlFunctionFound(void* function, std::string_view dl_function_name) {
     }
 }
 
+#endif  // defined(USE_PHDR_CACHE)
+
 }  // namespace
 
 void InitPhdrCache() {
+#if defined(USE_PHDR_CACHE)
     static PhdrCache phdr_cache{};
     phdr_cache.Initialize();
+#endif  // defined(USE_PHDR_CACHE)
 }
 
 void MLockDebugInfo(DebugInfoAction debug_info_action) {
+#if defined(USE_MLOCK_DEBUG_INFO)
     if (debug_info_action == DebugInfoAction::kLockInMemory) {
-        DlIteratePhdr(
-            [](struct dl_phdr_info* info, size_t, void*) {
-                GetMlockProcessDebugInfoScope().Initialize(*info);
-                // we are only interested in the first dl_phdr_info,
-                // so stop iteration right away.
-                return 1;
-            },
-            nullptr
-        );
+#if defined(USE_PHDR_CACHE)
+        GetOriginalDlIteratePhdr()(&MLockDebugInfoDlIterateCallback, nullptr);
+#else
+        dl_iterate_phdr(&MLockDebugInfoDlIterateCallback, nullptr);
+#endif  // defined(USE_PHDR_CACHE)
     }
+#else
+    (void)debug_info_action;
+#endif  // defined(USE_MLOCK_DEBUG_INFO)
 }
 
 void TeardownPhdrCacheAndEnableDynamicLoading() {
+#if defined(USE_PHDR_CACHE)
     PhdrCache::Teardown();
+#endif  // defined(USE_PHDR_CACHE)
+#if defined(USE_MLOCK_DEBUG_INFO)
     GetMlockProcessDebugInfoScope().Teardown();
+#endif  // defined(USE_MLOCK_DEBUG_INFO)
 }
 
 }  // namespace engine::impl
 
 USERVER_NAMESPACE_END
 
+#if defined(USE_PHDR_CACHE)
+
 extern "C" {
 #ifndef __clang__
 [[gnu::visibility("default")]] [[gnu::externally_visible]]
-#endif
+#endif  // !defined(__clang__)
 int dl_iterate_phdr(USERVER_NAMESPACE::engine::impl::DlIterateCb callback, void* data) {
     return USERVER_NAMESPACE::engine::impl::DlIteratePhdr(callback, data);
 }
 
 #ifndef __clang__
 [[gnu::visibility("default")]] [[gnu::externally_visible]]
-#endif
+#endif  // !defined(__clang__)
 // NOLINTNEXTLINE(readability-inconsistent-declaration-parameter-name)
 void* dlopen(const char* filename, int flags) {
     using DlOpenSignature = void* (*)(const char*, int);
@@ -291,7 +322,7 @@ void* dlopen(const char* filename, int flags) {
 
 #ifndef __clang__
 [[gnu::visibility("default")]] [[gnu::externally_visible]]
-#endif
+#endif  // !defined(__clang__)
 // NOLINTNEXTLINE(readability-inconsistent-declaration-parameter-name)
 void* dlmopen(Lmid_t lmid, const char* filename, int flags) {
     using DlMOpenSignature = void* (*)(Lmid_t, const char*, int);
@@ -304,11 +335,11 @@ void* dlmopen(Lmid_t lmid, const char* filename, int flags) {
     return reinterpret_cast<DlMOpenSignature>(func)(lmid, filename, flags);
 }
 
-#endif  // LM_ID_BASE
+#endif  // defined(LM_ID_BASE)
 
 #ifndef __clang__
 [[gnu::visibility("default")]] [[gnu::externally_visible]]
-#endif
+#endif  // !defined(__clang__)
 // NOLINTNEXTLINE(readability-inconsistent-declaration-parameter-name)
 int dlclose(void* handle) {
     using DlCloseSignature = int (*)(void*);
@@ -322,7 +353,9 @@ int dlclose(void* handle) {
 }
 }
 
-#else
+#endif  // defined(USE_PHDR_CACHE)
+
+#else  // !(defined(USE_PHDR_CACHE) || defined(USE_MLOCK_DEBUG_INFO))
 
 USERVER_NAMESPACE_BEGIN
 
@@ -338,4 +371,4 @@ void TeardownPhdrCacheAndEnableDynamicLoading() {}
 
 USERVER_NAMESPACE_END
 
-#endif
+#endif  // defined(USE_PHDR_CACHE) || defined(USE_MLOCK_DEBUG_INFO)

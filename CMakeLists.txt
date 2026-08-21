@@ -119,8 +119,13 @@ endif()
 # @ingroup some_platforms
 option(USERVER_FEATURE_JEMALLOC "Enable linkage with jemalloc memory allocator" ${JEMALLOC_DEFAULT})
 
+include("${USERVER_ROOT_DIR}/cmake/DetectPhdrCacheDefault.cmake")
+_userver_detect_phdr_cache_default()
 # @ingroup some_platforms
-option(USERVER_DISABLE_PHDR_CACHE "Disable caching of dl_phdr_info items, which interferes with dlopen" OFF)
+option(USERVER_DISABLE_PHDR_CACHE "Disable caching of dl_phdr_info items, which interferes with dlopen. \
+Default ON with sanitizers, or when GCC >= 12 (or Clang >= 15) and the runtime \
+unwinder supports _dl_find_object (mlock of the main binary is kept regardless)." ${USERVER_DISABLE_PHDR_CACHE_DEFAULT}
+)
 # @ingroup some_platforms
 option(USERVER_FEATURE_STACK_USAGE_MONITOR "Enable coroutine stack usage monitor if available" ON)
 
@@ -232,7 +237,7 @@ if(USERVER_FEATURE_GRPC)
     include(SetupProtobuf)
 endif()
 
-include(UserverTestsuite)  # Uses protobuf version.
+include(UserverTestsuite) # Uses protobuf version.
 if(USERVER_BUILD_TESTS)
     include(testsuite/SetupUserverTestsuiteEnv.cmake)
     add_subdirectory(testsuite)
@@ -281,7 +286,6 @@ if(USERVER_FEATURE_SCYLLADB)
     _require_userver_core("USERVER_FEATURE_SCYLLADB")
     add_subdirectory(scylla)
 endif()
-
 
 if(USERVER_FEATURE_OTLP)
     if(NOT USERVER_FEATURE_GRPC)
@@ -387,11 +391,9 @@ if(USERVER_BUILD_TESTS)
         REQUIREMENTS "${USERVER_ROOT_DIR}/scripts/pylint/requirements.txt"
         UNIQUE
     )
-    add_test(
-        NAME sleep-in-tests
-        COMMAND ${CMAKE_COMMAND} -E env
-        PYTHON_BINARY=${PYTHON_BINARY} PYTHONPATH="${USERVER_ROOT_DIR}"
-        "${USERVER_ROOT_DIR}/scripts/pylint/pylint_all.sh"
+    add_test(NAME sleep-in-tests
+             COMMAND ${CMAKE_COMMAND} -E env PYTHON_BINARY=${PYTHON_BINARY} PYTHONPATH="${USERVER_ROOT_DIR}"
+                     "${USERVER_ROOT_DIR}/scripts/pylint/pylint_all.sh"
     )
 endif()
 

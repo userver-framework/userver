@@ -57,6 +57,7 @@ with section('parse'):  # noqa: F821
                 'EMBED_FILES': '*',
             },
         },
+        '_userver_detect_phdr_cache_default': {},
         '_userver_directory_install': {
             'kwargs': {
                 'COMPONENT': '*',
