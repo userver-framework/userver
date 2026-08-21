@@ -1,5 +1,7 @@
 #include <userver/crypto/ssl_ctx.hpp>
 
+#include <string>
+
 #include <openssl/err.h>
 #include <openssl/ssl.h>
 
@@ -7,6 +9,7 @@
 #include <userver/crypto/openssl.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/ip.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -156,9 +159,18 @@ void SslCtx::SetServerName(std::string_view server_name) {
     if (!verify_param) {
         throw CryptoException("SSL_CTX_get0_param failed");
     }
-    if (1 != X509_VERIFY_PARAM_set1_host(verify_param, server_name.data(), server_name.size())) {
-        throw CryptoException(crypto::FormatSslError("X509_VERIFY_PARAM_set1_host failed"));
+
+    if (utils::ip::IsIpAddress(server_name)) {
+        const std::string host{server_name};
+        if (1 != X509_VERIFY_PARAM_set1_ip_asc(verify_param, host.c_str())) {
+            throw CryptoException(crypto::FormatSslError("X509_VERIFY_PARAM_set1_ip_asc failed"));
+        }
+    } else {
+        if (1 != X509_VERIFY_PARAM_set1_host(verify_param, server_name.data(), server_name.size())) {
+            throw CryptoException(crypto::FormatSslError("X509_VERIFY_PARAM_set1_host failed"));
+        }
     }
+
     SSL_CTX_set_verify(impl_->Get(), SSL_VERIFY_PEER, nullptr);
 }
 

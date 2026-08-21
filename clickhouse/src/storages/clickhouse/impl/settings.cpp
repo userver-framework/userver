@@ -7,6 +7,7 @@
 #include <userver/storages/secdist/helpers.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/trivial_map.hpp>
+#include <userver/yaml_config/yaml_config.hpp>
 
 #include <ranges>
 
@@ -36,9 +37,9 @@ std::vector<std::string> ParseHosts(const formats::json::Value& doc) {
     return hosts;
 }
 
-using CompressionMethod = ConnectionSettings::CompressionMethod;
-
 }  // namespace
+
+using CompressionMethod = ConnectionSettings::CompressionMethod;
 
 static CompressionMethod Parse(const yaml_config::YamlConfig& value, formats::parse::To<CompressionMethod>) {
     static constexpr utils::TrivialBiMap kMap([](auto selector) {
@@ -48,21 +49,23 @@ static CompressionMethod Parse(const yaml_config::YamlConfig& value, formats::pa
     return utils::ParseFromValueString(value, kMap);
 }
 
-AuthSettings::AuthSettings() = default;
+AuthSettings Parse(const formats::json::Value& doc, formats::parse::To<AuthSettings>) {
+    return AuthSettings{
+        .user = doc["user"].As<std::string>(),
+        .password = doc["password"].As<std::string>(),
+        .database = doc["dbname"].As<std::string>(),
+    };
+}
 
-AuthSettings::AuthSettings(const formats::json::Value& doc)
-    : user{doc["user"].As<std::string>()},
-      password{doc["password"].As<std::string>()},
-      database{doc["dbname"].As<std::string>()}
-{}
-
-ConnectionSettings::ConnectionSettings(const components::ComponentConfig& config)
-    : connection_mode{GetConnectionMode(config["use_secure_connection"].As<bool>(true))},
-      compression_method{config["compression"].As<CompressionMethod>(CompressionMethod::kNone)}
-{}
+ConnectionSettings Parse(const yaml_config::YamlConfig& config, formats::parse::To<ConnectionSettings>) {
+    return ConnectionSettings{
+        .connection_mode = GetConnectionMode(config["use_secure_connection"].As<bool>(true)),
+        .compression_method = config["compression"].As<CompressionMethod>(CompressionMethod::kNone),
+    };
+}
 
 PoolSettings::PoolSettings(
-    const components::ComponentConfig& config,
+    const yaml_config::YamlConfig& config,
     const EndpointSettings& endpoint,
     const AuthSettings& auth
 )
@@ -71,25 +74,23 @@ PoolSettings::PoolSettings(
       queue_timeout{config["queue_timeout"].As<std::chrono::milliseconds>(std::chrono::milliseconds{200})},
       endpoint_settings{endpoint},
       auth_settings{auth},
-      connection_settings{config}
+      connection_settings{config.As<ConnectionSettings>()}
 {}
 
-ClickhouseSettings::ClickhouseSettings() = default;
-
-ClickhouseSettings::ClickhouseSettings(const formats::json::Value& doc) {
+ClickhouseSettings Parse(const formats::json::Value& doc, formats::parse::To<ClickhouseSettings>) {
     auto port = doc["port"].As<uint32_t>();
     auto hosts = ParseHosts(doc);
 
+    std::vector<EndpointSettings> endpoints;
     endpoints.reserve(hosts.size());
     for (auto& host : hosts) {
-        endpoints.emplace_back(EndpointSettings{std::move(host), port});
+        endpoints.push_back(EndpointSettings{.host = std::move(host), .port = port});
     }
 
-    auth_settings = AuthSettings{doc};
-}
-
-ClickhouseSettings Parse(const formats::json::Value& doc, formats::parse::To<ClickhouseSettings>) {
-    return ClickhouseSettings{doc};
+    return ClickhouseSettings{
+        .endpoints = std::move(endpoints),
+        .auth_settings = doc.As<AuthSettings>(),
+    };
 }
 
 ClickhouseSettingsMulti::ClickhouseSettingsMulti(const formats::json::Value& doc) {

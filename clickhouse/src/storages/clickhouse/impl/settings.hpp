@@ -3,9 +3,11 @@
 #include <chrono>
 #include <string>
 #include <unordered_map>
+#include <vector>
 
 #include <userver/components/component_fwd.hpp>
 #include <userver/formats/json/value.hpp>
+#include <userver/yaml_config/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -15,12 +17,9 @@ struct AuthSettings final {
     std::string user;
     std::string password;
     std::string database;
-
-    // for testing purposes only
-    AuthSettings();
-
-    AuthSettings(const formats::json::Value&);
 };
+
+AuthSettings Parse(const formats::json::Value&, formats::parse::To<AuthSettings>);
 
 struct EndpointSettings final {
     std::string host;
@@ -35,9 +34,9 @@ struct ConnectionSettings final {
     ConnectionMode connection_mode{ConnectionMode::kSecure};
 
     CompressionMethod compression_method{CompressionMethod::kNone};
-
-    ConnectionSettings(const components::ComponentConfig&);
 };
+
+ConnectionSettings Parse(const yaml_config::YamlConfig&, formats::parse::To<ConnectionSettings>);
 
 struct PoolSettings final {
     size_t initial_pool_size;
@@ -48,19 +47,16 @@ struct PoolSettings final {
     AuthSettings auth_settings;
     ConnectionSettings connection_settings;
 
-    PoolSettings(const components::ComponentConfig&, const EndpointSettings&, const AuthSettings&);
+    PoolSettings(const yaml_config::YamlConfig&, const EndpointSettings&, const AuthSettings&);
 };
 
 struct ClickhouseSettings final {
     std::vector<EndpointSettings> endpoints;
 
     AuthSettings auth_settings;
-
-    // for testing purposes only
-    ClickhouseSettings();
-
-    ClickhouseSettings(const formats::json::Value&);
 };
+
+ClickhouseSettings Parse(const formats::json::Value&, formats::parse::To<ClickhouseSettings>);
 
 class ClickhouseSettingsMulti final {
 public:

@@ -648,6 +648,7 @@
   "clickhouse/src/storages/tests/iterator_test.cpp":"taxi/uservices/userver/clickhouse/src/storages/tests/iterator_test.cpp",
   "clickhouse/src/storages/tests/metrics_chtest.cpp":"taxi/uservices/userver/clickhouse/src/storages/tests/metrics_chtest.cpp",
   "clickhouse/src/storages/tests/misc_chtest.cpp":"taxi/uservices/userver/clickhouse/src/storages/tests/misc_chtest.cpp",
+  "clickhouse/src/storages/tests/native_client_factory_test.cpp":"taxi/uservices/userver/clickhouse/src/storages/tests/native_client_factory_test.cpp",
   "clickhouse/src/storages/tests/nullable_chtest.cpp":"taxi/uservices/userver/clickhouse/src/storages/tests/nullable_chtest.cpp",
   "clickhouse/src/storages/tests/parameter_store_chtest.cpp":"taxi/uservices/userver/clickhouse/src/storages/tests/parameter_store_chtest.cpp",
   "clickhouse/src/storages/tests/uint16_chtest.cpp":"taxi/uservices/userver/clickhouse/src/storages/tests/uint16_chtest.cpp",

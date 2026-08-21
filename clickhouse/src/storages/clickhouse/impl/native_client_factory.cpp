@@ -3,6 +3,8 @@
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 
+#include <vector>
+
 #include <clickhouse/base/input.h>
 #include <clickhouse/base/output.h>
 #include <clickhouse/base/socket.h>
@@ -12,6 +14,7 @@
 #include <userver/engine/io/socket.hpp>
 #include <userver/engine/io/tls_wrapper.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
 
@@ -192,6 +195,8 @@ public:
 private:
     std::unique_ptr<clickhouse_cpp::SocketBase> DoConnect(const clickhouse_cpp::ClientOptions& opts) override {
         auto addrs = resolver_.Resolve(opts.host, operations_deadline_);
+        std::vector<std::string> errors;
+        errors.reserve(addrs.size());
 
         for (auto&& current_addr : addrs) {
             current_addr.SetPort(static_cast<int>(opts.port));
@@ -208,13 +213,17 @@ private:
                         return std::make_unique<
                             ClickhouseTlsSocketAdapter>(current_addr, opts.host, operations_deadline_);
                 }
-            } catch (const std::exception&) {
+            } catch (const std::exception& e) {
+                LOG_WARNING() << "Failed to connect to ClickHouse at " << current_addr << ": " << e;
+                errors.push_back(fmt::format("{}: {}", current_addr, e.what()));
             }
         }
 
-        throw std::runtime_error{
-            fmt::format("Could not connect to any of the resolved addresses: {}", fmt::join(addrs, ", "))
-        };
+        auto message = fmt::format("Could not connect to any of the resolved addresses: {}", fmt::join(addrs, ", "));
+        if (!errors.empty()) {
+            message = fmt::format("{}. Errors: {}", message, fmt::join(errors, "; "));
+        }
+        throw std::runtime_error{std::move(message)};
     }
 
     clients::dns::Resolver& resolver_;

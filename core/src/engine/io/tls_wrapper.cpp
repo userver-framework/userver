@@ -12,6 +12,7 @@
 #include <userver/engine/io/exception.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/ip.hpp>
 
 #include <crypto/helpers.hpp>
 #include <engine/io/fd_control.hpp>
@@ -267,7 +268,8 @@ public:
     }
 
     void ClientConnect(const std::string& server_name, Deadline deadline) {
-        if (!server_name.empty()) {
+        // SNI must be a DNS hostname (RFC 6066), not an IP address.
+        if (!server_name.empty() && !utils::ip::IsNulTerminatedIpAddress(server_name)) {
             // cast in openssl1.0 macro expansion
             // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
             if (1 != SSL_set_tlsext_host_name(ssl.get(), server_name.c_str())) {

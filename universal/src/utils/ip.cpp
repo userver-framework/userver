@@ -1,6 +1,7 @@
 #include <userver/utils/ip.hpp>
 
 #include <arpa/inet.h>
+#include <algorithm>
 
 #include <fmt/format.h>
 
@@ -88,6 +89,31 @@ std::string AddressV4ToString(const AddressV4& address) { return AddressToString
 AddressV6 AddressV6FromString(utils::zstring_view str) { return AddressFromString<16>(str); }
 
 std::string AddressV6ToString(const AddressV6& address) { return AddressToString(address); }
+
+bool IsNulTerminatedIpAddress(utils::zstring_view host) noexcept {
+    if (host.empty()) {
+        return false;
+    }
+
+    in_addr v4{};
+    if (inet_pton(AF_INET, host.c_str(), &v4) == 1) {
+        return true;
+    }
+
+    in6_addr v6{};
+    return inet_pton(AF_INET6, host.c_str(), &v6) == 1;
+}
+
+bool IsIpAddress(std::string_view host) noexcept {
+    if (host.empty() || host.size() >= INET6_ADDRSTRLEN) {
+        return false;
+    }
+
+    char buffer[INET6_ADDRSTRLEN];
+    std::ranges::copy(host, buffer);
+    buffer[host.size()] = '\0';
+    return IsNulTerminatedIpAddress(buffer);
+}
 
 template <typename T>
 static T CidrNetworkFromInetNetwork(const InetNetwork& inet_network) {

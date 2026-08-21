@@ -241,6 +241,40 @@ TEST(InetNetworkTest, ToInetNetworkTests) {
     EXPECT_EQ(res_inet_v6, inet_v6);
 }
 
+TEST(IsIpAddressTest, IPv4) {
+    EXPECT_TRUE(utils::ip::IsIpAddress("127.0.0.1"));
+    EXPECT_TRUE(utils::ip::IsIpAddress("172.23.40.32"));
+    EXPECT_TRUE(utils::ip::IsIpAddress("0.0.0.0"));
+}
+
+TEST(IsIpAddressTest, IPv6) {
+    EXPECT_TRUE(utils::ip::IsIpAddress("::1"));
+    EXPECT_TRUE(utils::ip::IsIpAddress("2001:db8::1"));
+}
+
+TEST(IsIpAddressTest, Hostname) {
+    EXPECT_FALSE(utils::ip::IsIpAddress(""));
+    EXPECT_FALSE(utils::ip::IsIpAddress("localhost"));
+    EXPECT_FALSE(utils::ip::IsIpAddress("clickhouse.example.com"));
+    EXPECT_FALSE(utils::ip::IsIpAddress("256.1.1.1"));
+    EXPECT_FALSE(utils::ip::IsIpAddress("1.2.3"));
+}
+
+TEST(IsIpAddressTest, NulTerminatedIpAddress) {
+    EXPECT_TRUE(utils::ip::IsNulTerminatedIpAddress("127.0.0.1"));
+    EXPECT_TRUE(utils::ip::IsNulTerminatedIpAddress("::1"));
+    EXPECT_FALSE(utils::ip::IsNulTerminatedIpAddress("localhost"));
+    EXPECT_FALSE(utils::ip::IsNulTerminatedIpAddress(""));
+}
+
+TEST(IsIpAddressTest, StringViewWithoutTrailingNul) {
+    const char data[] = "127.0.0.1X";
+    EXPECT_TRUE(utils::ip::IsIpAddress(std::string_view{data, 9}));
+    EXPECT_FALSE(utils::ip::IsNulTerminatedIpAddress(data));
+}
+
+TEST(IsIpAddressTest, TooLong) { EXPECT_FALSE(utils::ip::IsIpAddress(std::string(64, '1'))); }
+
 TEST(InetNetworkTest, FromInetNetworkTests) {
     using utils::ip::NetworkV4FromInetNetwork;
     using utils::ip::NetworkV6FromInetNetwork;
