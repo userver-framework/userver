@@ -20,8 +20,8 @@ components_manager:
             method: GET
             task_processor: monitor-task-processor
         handler-jemalloc:
-            path: /service/jemalloc/prof/{command}
-            method: POST
+            path: /service/jemalloc/pprof/{command}
+            method: GET,POST
             task_processor: monitor-task-processor
         handler-log-level:
             path: /service/log-level/{level}

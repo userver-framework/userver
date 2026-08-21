@@ -36,6 +36,10 @@ compiler::ThreadLocal local_frame_name_cache = [] {
     return cache::LruMap<boost::stacktrace::frame, std::string>{10000};
 };
 
+compiler::ThreadLocal local_symbol_name_cache = [] {
+    return cache::LruMap<boost::stacktrace::frame, std::string>{10000};
+};
+
 const std::string& ToStringCachedFiltered(boost::stacktrace::frame frame) {
     auto frame_name_cache = local_frame_name_cache.Use();
     auto* ptr = frame_name_cache->Get(frame);
@@ -84,6 +88,21 @@ std::string to_string(const boost::stacktrace::stacktrace& st) {
     }
 
     return res;
+}
+
+std::string SymbolizeAddress(const void* pc) {
+    if (!stacktrace_enabled.load()) {
+        return {};
+    }
+
+    const boost::stacktrace::frame frame{pc};
+
+    auto symbol_name_cache = local_symbol_name_cache.Use();
+    auto* ptr = symbol_name_cache->Get(frame);
+    if (!ptr) {
+        ptr = symbol_name_cache->Emplace(frame, frame.name());
+    }
+    return *ptr;
 }
 
 bool GlobalEnableStacktrace(bool enable) { return stacktrace_enabled.exchange(enable); }

@@ -27,9 +27,9 @@ that could be is dynamically enabled/disabled via the server::handlers::Jemalloc
    have to do something like this:
    ```
    bash
-   $ curl -X POST localhost:1188/service/jemalloc/prof/enable
+   $ curl -X POST localhost:1188/service/jemalloc/pprof/enable
    OK
-   $ curl -s -X POST localhost:1188/service/jemalloc/prof/stat | grep ' prof.active:'
+   $ curl -s -X POST localhost:1188/service/jemalloc/pprof/stat | grep ' prof.active:'
      prof.active: true
    ```
    If you see "ОК", then the sampling started.
@@ -37,7 +37,7 @@ that could be is dynamically enabled/disabled via the server::handlers::Jemalloc
 4. After some time make a dump of memory state:
    ```
    bash
-   $ curl -X POST localhost:1188/service/jemalloc/prof/dump
+   $ curl -X POST localhost:1188/service/jemalloc/pprof/dump
    OK
    ```
 
@@ -45,9 +45,9 @@ that could be is dynamically enabled/disabled via the server::handlers::Jemalloc
 
 6. Do not forget to turn off the profiling:
    ```
-   $ curl -X POST localhost:1188/service/jemalloc/prof/disable
+   $ curl -X POST localhost:1188/service/jemalloc/pprof/disable
    OK
-   $ curl -s -X POST localhost:1188/service/jemalloc/prof/stat | grep ' prof.active:'
+   $ curl -s -X POST localhost:1188/service/jemalloc/pprof/stat | grep ' prof.active:'
      prof.active: false
    ```
 
@@ -63,14 +63,14 @@ that could be is dynamically enabled/disabled via the server::handlers::Jemalloc
 3. Ensure that the profiler is active:
    ```
    bash
-   $ curl -s -X POST localhost:1188/service/jemalloc/prof/stat | grep ' prof.active:'
+   $ curl -s -X POST localhost:1188/service/jemalloc/pprof/stat | grep ' prof.active:'
      prof.active: true
    ```
 
 4. After some time make a dump of memory state:
    ```
    bash
-   $ curl -X POST localhost:1188/service/jemalloc/prof/dump
+   $ curl -X POST localhost:1188/service/jemalloc/pprof/dump
    OK
    ```
 
@@ -79,9 +79,9 @@ that could be is dynamically enabled/disabled via the server::handlers::Jemalloc
 6. Do not forget to turn off the profiling:
    ```
    bash
-   $ curl -X POST localhost:1188/service/jemalloc/prof/disable
+   $ curl -X POST localhost:1188/service/jemalloc/pprof/disable
    OK
-   $ curl -s -X POST localhost:1188/service/jemalloc/prof/stat | grep ' prof.active:'
+   $ curl -s -X POST localhost:1188/service/jemalloc/pprof/stat | grep ' prof.active:'
      prof.active: false
    ```
 
@@ -109,6 +109,24 @@ that could be is dynamically enabled/disabled via the server::handlers::Jemalloc
     Using local file build/services/userver-sample.
     Using local file /tmp/jeprof.5503.1.m1.heap.
     ```
+
+
+## How to analyse the dump without the service binary
+
+The server::handlers::Jemalloc also implements the `pprof` remote profiling
+protocol, so `jeprof` can fetch a heap profile and let the service symbolize
+its own addresses. That removes both problems of the flow above: hauling a
+multi-gigabyte binary off the build cache, and getting silently wrong symbols
+when that binary does not match the deployed one.
+
+```
+bash
+$ jeprof --raw http://localhost:1188/service/jemalloc/pprof/heap > out.raw
+$ jeprof --text out.raw
+```
+
+The second command needs neither the service nor its binary. Note that
+`--lines` and `--disasm` do not work in this mode - they require a binary.
 
 
 ## FAQ

@@ -192,8 +192,8 @@ components_manager:
 # /// [Sample handler jemalloc component config]
 # yaml
     handler-jemalloc:
-        path: /service/jemalloc/prof/{command}
-        method: POST
+        path: /service/jemalloc/pprof/{command}
+        method: GET,POST
         task_processor: monitor-task-processor
 # /// [Sample handler jemalloc component config]
 # /// [Sample handler dns client control component config]
