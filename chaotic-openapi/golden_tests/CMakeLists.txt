@@ -9,7 +9,7 @@ userver_target_generate_openapi_client(
     ${PROJECT_NAME}-chgen-client
     NAME test
     OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/src/client"
-    FORMAT OFF
+    FORMAT ON
     SCHEMAS ${SCHEMAS}
 )
 
@@ -18,7 +18,7 @@ userver_target_generate_openapi_handlers(
     NAME test
     OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/src/handlers"
     SRC_DIR "${CMAKE_CURRENT_BINARY_DIR}/src/handlers"
-    FORMAT OFF
+    FORMAT ON
     SCHEMAS ${SCHEMAS}
 )
 

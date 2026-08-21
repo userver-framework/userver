@@ -2,20 +2,19 @@
 #pragma once
 
 #include <exception>
+#include <handlers/test/openapi.hpp>
+#include <optional>
 #include <string>
-#include <variant>
-
 #include <userver/http/status_code.hpp>
 #include <userver/server/http/http_request.hpp>
-#include <optional>
-#include <handlers/test/openapi.hpp>
+#include <variant>
 
 namespace handlers::test::testme::post {
 
 struct Response200 final {
-static constexpr int kStatus = 200;
+  static constexpr int kStatus = 200;
 
-    std::optional<std::string> X_Header;
+  std::optional<std::string> X_Header;
 };
 
 /// All possible responses for this operation.
