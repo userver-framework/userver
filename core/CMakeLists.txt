@@ -31,7 +31,19 @@ find_package(Iconv REQUIRED)
 
 find_package(libev REQUIRED)
 find_package(libnghttp2 REQUIRED)
-find_package(liburing REQUIRED)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    if(USERVER_CONAN)
+        find_package(liburing REQUIRED CONFIG)
+        if(NOT TARGET liburing::uring)
+            add_library(liburing::uring ALIAS liburing::liburing)
+        endif()
+        if(NOT TARGET uring::uring)
+            add_library(uring::uring ALIAS liburing::uring)
+        endif()
+    else()
+        find_package(liburing REQUIRED)
+    endif()
+endif()
 
 if(USERVER_CONAN)
     find_package(c-ares REQUIRED)
@@ -201,8 +213,12 @@ endif()
 target_link_libraries(
     ${PROJECT_NAME}
     PUBLIC c-ares::cares
-    PRIVATE cryptopp::cryptopp libev::libev libnghttp2::nghttp2 liburing::uring
+    PRIVATE cryptopp::cryptopp libev::libev libnghttp2::nghttp2
 )
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_link_libraries(${PROJECT_NAME} PRIVATE liburing::uring)
+endif()
 
 if(USERVER_CONAN)
     target_link_libraries(${PROJECT_NAME} PUBLIC concurrentqueue::concurrentqueue)

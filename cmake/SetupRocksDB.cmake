@@ -7,7 +7,9 @@ option(USERVER_DOWNLOAD_PACKAGE_ROCKS "Download and setup RocksDB if no RocksDB 
 
 # Distro RocksDB packages are often built with liburing and export a dependency on
 # uring::uring; find it first so RocksDBTargets.cmake can resolve the link interface.
-find_package(liburing REQUIRED)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    find_package(liburing REQUIRED)
+endif()
 
 if(NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
     if(USERVER_DOWNLOAD_PACKAGE_ROCKS)
