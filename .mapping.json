@@ -6560,6 +6560,7 @@
   "universal/src/utils/fast_scope_guard_test.cpp":"taxi/uservices/userver/universal/src/utils/fast_scope_guard_test.cpp",
   "universal/src/utils/filter_bloom_test.cpp":"taxi/uservices/userver/universal/src/utils/filter_bloom_test.cpp",
   "universal/src/utils/fixed_array_test.cpp":"taxi/uservices/userver/universal/src/utils/fixed_array_test.cpp",
+  "universal/src/utils/flags_test.cpp":"taxi/uservices/userver/universal/src/utils/flags_test.cpp",
   "universal/src/utils/forward_like_test.cpp":"taxi/uservices/userver/universal/src/utils/forward_like_test.cpp",
   "universal/src/utils/from_string.cpp":"taxi/uservices/userver/universal/src/utils/from_string.cpp",
   "universal/src/utils/from_string_benchmark.cpp":"taxi/uservices/userver/universal/src/utils/from_string_benchmark.cpp",
