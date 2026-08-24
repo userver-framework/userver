@@ -419,6 +419,26 @@ UTEST_F(PostgreCluster, NonTransactionExecuteWithParameterStore) {
     }
 }
 
+UTEST_F(PostgreCluster, NonTransactionExecuteNamedQueryWithParameterStore) {
+    testsuite::TestsuiteTasks testsuite_tasks{true};
+    auto cluster = CreateCluster(GetDsnListFromEnv(), GetTaskProcessor(), 1, testsuite_tasks);
+
+    const std::string statement_name = "parameter_store_named_query";
+    const pg::Query query{"select $1", pg::Query::Name{statement_name}};
+
+    auto res = cluster.Execute(pg::ClusterHostType::kMaster, query, pg::ParameterStore{}.PushBack(1));
+    EXPECT_EQ(1, res.Size());
+
+    // Named queries are prepared as q_<id>_<name>. If ParameterStore path drops
+    // Query::Name, the prepared statement will not contain the query name.
+    auto prepared = cluster.Execute(
+        pg::ClusterHostType::kMaster,
+        "SELECT COUNT(name) FROM pg_prepared_statements WHERE name LIKE $1",
+        "%_" + statement_name
+    );
+    EXPECT_GE(prepared.AsSingleRow<int>(), 1);
+}
+
 UTEST_F(PostgreCluster, NonTransactionExecuteWithParameterStoreMove) {
     testsuite::TestsuiteTasks testsuite_tasks{true};
     auto cluster = CreateCluster(GetDsnListFromEnv(), GetTaskProcessor(), 1, testsuite_tasks);

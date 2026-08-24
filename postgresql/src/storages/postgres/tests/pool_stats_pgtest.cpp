@@ -130,6 +130,39 @@ UTEST_F(PostgrePoolStats, RunStatement) {
     EXPECT_NE(stats.find(statement_name), stats.end());
 }
 
+UTEST_F(PostgrePoolStats, RunStatementWithParameterStore) {
+    auto pool = pg::detail::ConnectionPool::Create(
+        GetDsnFromEnv(),
+        nullptr,
+        GetTaskProcessor(),
+        "",
+        storages::postgres::InitMode::kAsync,
+        {1, 10, 10},
+        kCachePreparedStatements,
+        {10},
+        GetTestCmdCtls(),
+        {},
+        {},
+        {},
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
+    );
+
+    const std::string statement_name = "parameter_store_statement";
+    const auto query = pg::Query{"select $1", pg::Query::Name{statement_name}};
+
+    pg::detail::ConnectionPtr conn{nullptr};
+    UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline())) << "Obtained connection from pool";
+    CheckConnection(conn);
+
+    auto ntrx = pg::detail::NonTransaction{std::move(conn)};
+
+    UEXPECT_NO_THROW(ntrx.Execute(query, pg::ParameterStore{}.PushBack(1)));
+    pool->GetStatementStatsStorage().WaitForExhaustion();
+    const auto stats = pool->GetStatementStatsStorage().GetStatementsStats();
+    EXPECT_NE(stats.find(statement_name), stats.end());
+}
+
 UTEST_F(PostgrePoolStats, RunSingleTransaction) {
     auto pool = pg::detail::ConnectionPool::Create(
         GetDsnFromEnv(),
@@ -157,6 +190,40 @@ UTEST_F(PostgrePoolStats, RunSingleTransaction) {
 
     auto trx = pool->Begin(pg::TransactionOptions{});
     trx.Execute(query);
+    trx.Commit();
+
+    pool->GetStatementStatsStorage().WaitForExhaustion();
+    const auto stats = pool->GetStatementStatsStorage().GetStatementsStats();
+    EXPECT_NE(stats.find(statement_name), stats.end());
+}
+
+UTEST_F(PostgrePoolStats, RunSingleTransactionWithParameterStore) {
+    auto pool = pg::detail::ConnectionPool::Create(
+        GetDsnFromEnv(),
+        nullptr,
+        GetTaskProcessor(),
+        "",
+        storages::postgres::InitMode::kAsync,
+        {1, 10, 10},
+        kCachePreparedStatements,
+        {10},
+        GetTestCmdCtls(),
+        {},
+        {},
+        {},
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
+    );
+
+    const std::string statement_name = "trx_parameter_store_statement";
+    const auto query = pg::Query{"select $1", pg::Query::Name{statement_name}};
+
+    pg::detail::ConnectionPtr conn{nullptr};
+    UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline())) << "Obtained connection from pool";
+    CheckConnection(conn);
+
+    auto trx = pool->Begin(pg::TransactionOptions{});
+    trx.Execute(query, pg::ParameterStore{}.PushBack(1));
     trx.Commit();
 
     pool->GetStatementStatsStorage().WaitForExhaustion();

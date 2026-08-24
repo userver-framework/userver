@@ -100,6 +100,17 @@ UTEST_F(LoggableConnection, NonTrxStatementLogs) {
     CheckNamedLogCapture();
 }
 
+UTEST_F(LoggableConnection, NonTrxParameterStoreStatementLogs) {
+    auto conn = MakeConn(MakeSettings());
+    CheckConnection(conn);
+
+    pg::detail::NonTransaction ntrx(std::move(conn));
+
+    UEXPECT_NO_THROW(ntrx.Execute(kTestQuery, pg::ParameterStore{}));
+
+    CheckNamedLogCapture();
+}
+
 UTEST_F(LoggableConnection, UnnamedStatementLogs) {
     auto conn = MakeConn(MakeSettings());
     CheckConnection(conn);

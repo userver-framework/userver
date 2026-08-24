@@ -130,7 +130,7 @@ ResultSet Cluster::Execute(
     }
     statement_cmd_ctl = GetHandlersCmdCtl(statement_cmd_ctl);
     auto ntrx = Start(flags, statement_cmd_ctl);
-    return ntrx.Execute(statement_cmd_ctl, query.GetStatementView(), store);
+    return ntrx.Execute(statement_cmd_ctl, query, store);
 }
 
 }  // namespace storages::postgres
