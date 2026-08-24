@@ -197,6 +197,7 @@ with section('parse'):  # noqa: F821
             'kwargs': {
                 'NAME': '*',
                 'VERSION': '*',
+                'TARGET_NAME': '*',
                 'DEBIAN_NAMES': '*',
                 'FORMULA_NAMES': '*',
                 'RPM_NAMES': '*',
