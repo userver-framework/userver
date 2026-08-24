@@ -93,8 +93,8 @@ UTEST(Subprocess, ExecvExecvFailure) {
 
 UTEST(Subprocess, ExecvFileNotFound) {
     engine::subprocess::ProcessStarter starter(engine::current_task::GetTaskProcessor());
-    const auto status = starter.Exec("myawesomebinary", {}).Get();
-    ASSERT_FALSE(status.IsExited());
+    // posix_spawn reports ENOENT to the parent instead of creating a child that aborts after a failed exec.
+    UEXPECT_THROW((void)starter.Exec("myawesomebinary", {}), std::system_error);
 }
 
 UTEST(Subprocess, EnvironmentVariablesScope) {

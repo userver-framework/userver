@@ -85,8 +85,8 @@ function(_userver_detect_phdr_cache_default)
     else()
         set(phdr_reason "")
         if(NOT compiler_has_dl_find_object)
-            string(APPEND phdr_reason "compiler ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION} is older than "
-                   "GCC 12 / Clang 15"
+            string(APPEND phdr_reason "compiler ${CMAKE_CXX_COMPILER_ID} ${CMAKE_CXX_COMPILER_VERSION} is not "
+                   "GCC-12+ or Clang-15+"
             )
         endif()
         if(NOT unwinder_has_dl_find_object)

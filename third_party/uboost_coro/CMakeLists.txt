@@ -1,9 +1,16 @@
 project(userver-uboost-coro)
 
 include(CMakeDependentOption)
+# Sanitizers require ucontext-based switching (BOOST_USE_ASAN) so ASAN can track
+# fiber stacks. ucontext is deprecated and broken on modern macOS (especially
+# arm64): getcontext() crashes when Boost places ucontext_t on a fiber stack.
+# On Darwin never force ucontext — sanitizers are disabled separately.
+set(_uboost_force_ucontext OFF)
+if(USERVER_SANITIZE AND NOT CMAKE_SYSTEM_NAME MATCHES "Darwin")
+    set(_uboost_force_ucontext ON)
+endif()
 cmake_dependent_option(
-    UBOOST_CORO_USE_UCONTEXT "Use ucontext for context switching" OFF "NOT USERVER_SANITIZE" ON # forced on
-                                                                                                # USERVER_SANITIZE
+    UBOOST_CORO_USE_UCONTEXT "Use ucontext for context switching" OFF "NOT _uboost_force_ucontext" ON
 )
 if(UBOOST_CORO_USE_UCONTEXT)
     message(STATUS "Context impl: ucontext")
