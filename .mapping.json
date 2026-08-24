@@ -4088,6 +4088,7 @@
   "postgresql/src/storages/postgres/tests/numeric_pgtest.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/numeric_pgtest.cpp",
   "postgresql/src/storages/postgres/tests/optional_pgtest.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/optional_pgtest.cpp",
   "postgresql/src/storages/postgres/tests/pool_pgtest.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/pool_pgtest.cpp",
+  "postgresql/src/storages/postgres/tests/pool_settings_test.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/pool_settings_test.cpp",
   "postgresql/src/storages/postgres/tests/pool_stats_pgtest.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/pool_stats_pgtest.cpp",
   "postgresql/src/storages/postgres/tests/portal_pgtest.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/portal_pgtest.cpp",
   "postgresql/src/storages/postgres/tests/postgres_chaos_proxy.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/postgres_chaos_proxy.cpp",

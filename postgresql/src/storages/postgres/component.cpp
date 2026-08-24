@@ -67,26 +67,12 @@ void MergeField(T& field, const std::optional<T>& opt) {
     }
 }
 
-void MergePoolSettings(
-    std::optional<storages::postgres::PoolSettingsDynamic>&& dynamic_settings_opt,
-    storages::postgres::PoolSettings& static_settings
-) {
-    if (dynamic_settings_opt.has_value()) {
-        auto& dynamic_settings = dynamic_settings_opt.value();
-        MergeField(static_settings.max_size, dynamic_settings.max_size);
-        MergeField(static_settings.min_size, dynamic_settings.min_size);
-        MergeField(static_settings.max_queue_size, dynamic_settings.max_queue_size);
-        MergeField(static_settings.connecting_limit, dynamic_settings.connecting_limit);
-        MergeField(static_settings.connecting_interval_ms, dynamic_settings.connecting_interval_ms);
-    }
-}
-
 void MergeConnectionSettings(
     std::optional<storages::postgres::ConnectionSettingsDynamic>&& dynamic_settings_opt,
     storages::postgres::ConnectionSettings& static_settings
 ) {
     if (dynamic_settings_opt.has_value()) {
-        auto& dynamic_settings = dynamic_settings_opt.value();
+        auto& dynamic_settings = *dynamic_settings_opt;
         MergeField(static_settings.prepared_statements, dynamic_settings.prepared_statements);
         MergeField(static_settings.user_types, dynamic_settings.user_types);
         MergeField(static_settings.max_prepared_cache_size, dynamic_settings.max_prepared_cache_size);
@@ -152,7 +138,7 @@ Postgres::Postgres(const ComponentConfig& config, const ComponentContext& contex
         config["max_replication_lag"].As<std::chrono::milliseconds>(storages::postgres::kDefaultMaxReplicationLag);
 
     initial_settings_.pool_settings = config.As<storages::postgres::PoolSettings>();
-    MergePoolSettings(pg_config.pool_settings.GetOptional(name_), initial_settings_.pool_settings);
+    storages::postgres::MergePoolSettings(pg_config.pool_settings.GetOptional(name_), initial_settings_.pool_settings);
 
     initial_settings_.conn_settings = config.As<storages::postgres::ConnectionSettings>();
     MergeConnectionSettings(pg_config.connection_settings.GetOptional(name_), initial_settings_.conn_settings);
@@ -246,7 +232,7 @@ void Postgres::ExtendStatistics(utils::statistics::Writer& writer) {
 void Postgres::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
     const auto& pg_config = cfg[storages::postgres::kConfig];
     auto pool_settings = initial_settings_.pool_settings;
-    MergePoolSettings(pg_config.pool_settings.GetOptional(name_), pool_settings);
+    storages::postgres::MergePoolSettings(pg_config.pool_settings.GetOptional(name_), pool_settings);
     const auto topology_settings =
         pg_config.topology_settings.GetOptional(name_).value_or(initial_settings_.topology_settings);
 

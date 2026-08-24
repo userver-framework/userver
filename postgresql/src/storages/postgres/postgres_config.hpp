@@ -4,6 +4,8 @@
 #include <userver/dynamic_config/value.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
+#include <optional>
+
 #include <userver/storages/postgres/options.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -19,6 +21,8 @@ ConnectionSettings Parse(const yaml_config::YamlConfig& config, formats::parse::
 PoolSettingsDynamic Parse(const formats::json::Value& config, formats::parse::To<PoolSettingsDynamic>);
 
 PoolSettings Parse(const yaml_config::YamlConfig& config, formats::parse::To<PoolSettings>);
+
+void MergePoolSettings(const std::optional<PoolSettingsDynamic>& dynamic_settings, PoolSettings& static_settings);
 
 TopologySettings Parse(const formats::json::Value& config, formats::parse::To<TopologySettings>);
 
