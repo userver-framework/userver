@@ -158,6 +158,10 @@ public:
     /// Synchronously calls @a updater and subscribes with a stub that only records whether an event arrived during
     /// construction. When the scope is entered, @a updater is called again if an event was skipped, and the stub is
     /// replaced with @a func. Unsubscribe runs in @ref utils::ResourceScopeStorage::BeforeDestruction.
+    ///
+    /// @warning @a updater is not only invoked inline. It is stored and may run again after this call returns,
+    /// when the scope is entered. Do not capture locals by reference: copy the pointers and values the updater
+    /// needs (for example @c obj and @c func) and capture @c this explicitly.
     template <typename UpdaterFunc>
     void DoUpdateAndListenScoped(
         utils::ResourceScopeStorage& scopes,
