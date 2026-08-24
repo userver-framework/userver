@@ -6,6 +6,7 @@
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/statistics/writer.hpp>
 #include <userver/ydb/impl/cast.hpp>
 
@@ -40,6 +41,7 @@ std::optional<NYdb::NQuery::TTxSettings> MakeTxSettings(TransactionMode tx_mode)
         case TransactionMode::kImplicitTx:
             return std::nullopt;
     }
+    UINVARIANT(false, "Unexpected TransactionMode value");
 }
 
 NYdb::NQuery::EStatsMode ConvertStatsMode(NYdb::NTable::ECollectQueryStatsMode collect_query_stats_mode) {
@@ -53,6 +55,7 @@ NYdb::NQuery::EStatsMode ConvertStatsMode(NYdb::NTable::ECollectQueryStatsMode c
         case NYdb::NTable::ECollectQueryStatsMode::Profile:
             return NYdb::NQuery::EStatsMode::Profile;
     }
+    UINVARIANT(false, "Unexpected ECollectQueryStatsMode value");
 }
 
 }  // namespace

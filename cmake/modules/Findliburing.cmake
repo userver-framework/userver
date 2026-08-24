@@ -1,7 +1,6 @@
 _userver_module_begin(
     NAME liburing
     DEBIAN_NAMES liburing-dev
-    FORMULA_NAMES liburing
     RPM_NAMES liburing-devel
     PACMAN_NAMES liburing
     CPM_NAME liburing
