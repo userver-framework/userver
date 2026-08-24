@@ -3,10 +3,16 @@
 /// @file
 /// @brief @copybrief components::Container
 
+#include <concepts>
+#include <string_view>
+#include <type_traits>
+#include <utility>
+
 #include <userver/components/component_base.hpp>
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/formats/common/meta.hpp>
+#include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,6 +23,8 @@ struct Of {};
 
 /// @cond
 constexpr std::string_view ContainerName(Of<void>) { return {}; }
+
+yaml_config::Schema GetStaticConfigSchema(Of<void>);
 /// @endcond
 
 template <typename T>
@@ -26,6 +34,9 @@ namespace impl {
 
 template <typename T>
 concept ContainerHasName = requires { ContainerName(Of<T>{}); };
+
+template <typename T>
+concept ContainerHasConfigSchema = requires { GetStaticConfigSchema(Of<T>{}); };
 
 template <typename T>
 constexpr std::string_view GetContainerName()
@@ -38,39 +49,20 @@ constexpr std::string_view GetContainerName()
     }
 }
 
-template <typename U>
-struct DependencyLocator {
-    const ComponentConfig& config;
-    const ComponentContext& context;
-
-    template <typename T>
-    using LocateDependencyResult = decltype(LocateDependency(
-        WithType<std::decay_t<T>>{},
-        std::declval<const ComponentConfig&>(),
-        std::declval<const ComponentContext&>()
-    ));
-
-    template <typename T>
-    static constexpr bool kIsReference = std::is_reference_v<LocateDependencyResult<T>>;
-
-    template <typename T>
-    static constexpr bool kIsLocatable =
-        !std::is_same_v<std::decay_t<T>, std::decay_t<U>>  // 1) skip U::U(const U&)
-        && !!sizeof(LocateDependencyResult<T>)             // 2) U is locate'able
-        ;
-
-    template <typename T>
-    requires(!kIsReference<T> && kIsLocatable<T>)
-    operator T() const {
-        return LocateDependency(WithType<std::decay_t<T>>{}, config, context);
+template <typename T>
+yaml_config::Schema GetContainerConfigSchema() {
+    if constexpr (ContainerHasConfigSchema<T>) {
+        static_assert(
+            std::same_as<decltype(GetStaticConfigSchema(Of<T>{})), yaml_config::Schema>,
+            "GetStaticConfigSchema(components::Of<T>) must return yaml_config::Schema"
+        );
+        auto schema = GetStaticConfigSchema(Of<T>{});
+        yaml_config::impl::Merge(schema, ComponentBase::GetStaticConfigSchema());
+        return schema;
+    } else {
+        return ComponentBase::GetStaticConfigSchema();
     }
-
-    template <typename T>
-    requires(kIsReference<T> && kIsLocatable<T>)
-    operator T&() const {
-        return LocateDependency(WithType<std::decay_t<T>>{}, config, context);
-    }
-};
+}
 
 }  // namespace impl
 
@@ -99,15 +91,57 @@ T& LocateDependency(WithType<T>, const ComponentConfig&, const ComponentContext&
 }
 
 template <typename T>
-requires std::is_base_of_v<RawComponentBase, T>
+requires std::derived_from<T, RawComponentBase>
 T& LocateDependency(WithType<T>, const ComponentConfig&, const ComponentContext& context)
 {
     return context.FindComponent<T>();
 }
 
+namespace impl {
+
+template <typename T, typename U>
+concept LocatableDependency =
+    !std::same_as<std::decay_t<T>, std::decay_t<U>> &&
+    requires(const ComponentConfig& config, const ComponentContext& context) {
+        LocateDependency(WithType<std::decay_t<T>>{}, config, context);
+        sizeof(LocateDependency(WithType<std::decay_t<T>>{}, config, context));
+    };
+
+template <typename T>
+using LocateDependencyResult = decltype(LocateDependency(
+    WithType<std::decay_t<T>>{},
+    std::declval<const ComponentConfig&>(),
+    std::declval<const ComponentContext&>()
+));
+
+template <typename U>
+struct DependencyLocator {
+    const ComponentConfig& config;
+    const ComponentContext& context;
+
+    template <typename T>
+    requires LocatableDependency<T, U> && (!std::is_reference_v<LocateDependencyResult<T>>)
+    operator T() const {
+        return LocateDependency(WithType<std::decay_t<T>>{}, config, context);
+    }
+
+    template <typename T>
+    requires LocatableDependency<T, U> && std::is_reference_v<LocateDependencyResult<T>>
+    operator T&() const {
+        return LocateDependency(WithType<std::decay_t<T>>{}, config, context);
+    }
+};
+
+}  // namespace impl
+
 /// @brief A simple Component that creates, hold, and distributes
 /// an object of user type `T`. The component has a name equal to the constexpr
 /// std::string_view result of user-defined `ContainerName(Of<T>{})`.
+///
+/// You may define `GetStaticConfigSchema(Of<T>)` in T's namespace to provide
+/// a static config schema for the container. The returned schema is merged
+/// with @ref components::ComponentBase schema automatically.
+/// @snippet core/src/components/container_test.cpp custom schema
 ///
 /// Every dependency of type `X` is resolved by the component using
 /// @ref components::LocateDependency. By default, it is able to resolve
@@ -147,6 +181,8 @@ public:
 
     static constexpr std::string_view kName = impl::GetContainerName<T>();
 
+    static yaml_config::Schema GetStaticConfigSchema() { return impl::GetContainerConfigSchema<T>(); }
+
 private:
     static T Build(const ComponentConfig& config, const ComponentContext& context)
     {
@@ -155,27 +191,27 @@ private:
 
         // A kind of copy-paste, but a more generic solution would be too template-ish
         // and absolutely non-readable :(
-        if constexpr (std::is_constructible<T>::value) {
+        if constexpr (std::constructible_from<T>) {
             return T();
-        } else if constexpr (std::is_constructible<T, Arg>::value) {
+        } else if constexpr (std::constructible_from<T, Arg>) {
             return T(arg);
-        } else if constexpr (std::is_constructible<T, Arg, Arg>::value) {
+        } else if constexpr (std::constructible_from<T, Arg, Arg>) {
             return T(arg, arg);
-        } else if constexpr (std::is_constructible<T, Arg, Arg, Arg>::value) {
+        } else if constexpr (std::constructible_from<T, Arg, Arg, Arg>) {
             return T(arg, arg, arg);
-        } else if constexpr (std::is_constructible<T, Arg, Arg, Arg, Arg>::value) {
+        } else if constexpr (std::constructible_from<T, Arg, Arg, Arg, Arg>) {
             return T(arg, arg, arg, arg);
-        } else if constexpr (std::is_constructible<T, Arg, Arg, Arg, Arg, Arg>::value) {
+        } else if constexpr (std::constructible_from<T, Arg, Arg, Arg, Arg, Arg>) {
             return T(arg, arg, arg, arg, arg);
-        } else if constexpr (std::is_constructible<T, Arg, Arg, Arg, Arg, Arg, Arg>::value) {
+        } else if constexpr (std::constructible_from<T, Arg, Arg, Arg, Arg, Arg, Arg>) {
             return T(arg, arg, arg, arg, arg, arg);
-        } else if constexpr (std::is_constructible<T, Arg, Arg, Arg, Arg, Arg, Arg, Arg>::value) {
+        } else if constexpr (std::constructible_from<T, Arg, Arg, Arg, Arg, Arg, Arg, Arg>) {
             return T(arg, arg, arg, arg, arg, arg, arg);
-        } else if constexpr (std::is_constructible<T, Arg, Arg, Arg, Arg, Arg, Arg, Arg, Arg>::value) {
+        } else if constexpr (std::constructible_from<T, Arg, Arg, Arg, Arg, Arg, Arg, Arg, Arg>) {
             return T(arg, arg, arg, arg, arg, arg, arg, arg);
-        } else if constexpr (std::is_constructible<T, Arg, Arg, Arg, Arg, Arg, Arg, Arg, Arg, Arg>::value) {
+        } else if constexpr (std::constructible_from<T, Arg, Arg, Arg, Arg, Arg, Arg, Arg, Arg, Arg>) {
             return T(arg, arg, arg, arg, arg, arg, arg, arg, arg);
-        } else if constexpr (std::is_constructible<T, Arg, Arg, Arg, Arg, Arg, Arg, Arg, Arg, Arg, Arg>::value) {
+        } else if constexpr (std::constructible_from<T, Arg, Arg, Arg, Arg, Arg, Arg, Arg, Arg, Arg, Arg>) {
             return T(arg, arg, arg, arg, arg, arg, arg, arg, arg, arg);
         } else {
             static_assert(

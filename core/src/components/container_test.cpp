@@ -60,6 +60,20 @@ struct MyStruct {
 
 constexpr std::string_view ContainerName(components::Of<MyStruct>) { return "with-config"; }
 
+/// [custom schema]
+yaml_config::Schema GetStaticConfigSchema(components::Of<MyStruct>) {
+    return yaml_config::impl::SchemaFromString(R"(
+type: object
+description: Config for MyStruct
+additionalProperties: false
+properties:
+    value:
+        type: integer
+        description: Value passed to MyConfig
+)");
+}
+/// [custom schema]
+
 struct TypeWithResources {
     TypeWithResources(utils::ResourceScopeStorage& scope) {
         scope.Register([] { return 1; });
@@ -104,6 +118,48 @@ TEST(ComponentsContainer, WithConfig)
         components::InMemoryConfig{std::string{tests::kMinimalStaticConfig}},
         components::MinimalComponentList().Append<components::Container<X>>().Append<components::Container<MyStruct>>()
     );
+}
+
+TEST(ComponentsContainer, WithCustomSchema)
+{
+    constexpr std::string_view kConfigPatch = R"(
+components_manager:
+    components:
+        with-config:
+            load-enabled: true
+            value: 42
+)";
+
+    components::RunOnce(
+        components::InMemoryConfig{tests::MergeYaml(tests::kMinimalStaticConfig, kConfigPatch)},
+        components::MinimalComponentList().Append<components::Container<X>>().Append<components::Container<MyStruct>>()
+    );
+}
+
+TEST(ComponentsContainer, CustomSchemaRejectsUnknownField)
+{
+    constexpr std::string_view kConfigPatch = R"(
+components_manager:
+    components:
+        with-config:
+            unknown-field: 42
+)";
+
+    UEXPECT_THROW_MSG(
+        components::RunOnce(
+            components::InMemoryConfig{tests::MergeYaml(tests::kMinimalStaticConfig, kConfigPatch)},
+            components::MinimalComponentList()
+                .Append<components::Container<X>>()
+                .Append<components::Container<MyStruct>>()
+        ),
+        std::exception,
+        "Field 'components_manager.components.with-config.unknown-field' is not declared"
+    );
+}
+
+TEST(ComponentsContainer, SchemaDefaultsToComponentBase)
+{
+    EXPECT_EQ(components::Container<X>::GetStaticConfigSchema(), components::ComponentBase::GetStaticConfigSchema());
 }
 
 TEST(ComponentsContainer, ResourceScopeStorage)
