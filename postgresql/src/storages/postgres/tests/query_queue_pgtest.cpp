@@ -79,13 +79,16 @@ UTEST_P(PostgreConnection, QueryQueueTimeout) {
         return;
     }
 
+    // Collect() timeout is the network deadline, QueryCancelled is provoked by statement timeout
+    constexpr pg::CommandControl kTimeoutCC{std::chrono::seconds{2}, std::chrono::milliseconds{100}};
+
     pg::QueryQueue query_queue{kDefaultCC, std::move(GetConn())};
 
-    UEXPECT_NO_THROW(query_queue.Push(kDefaultCC, "SELECT 1"));
-    UEXPECT_NO_THROW(query_queue.Push(kDefaultCC, "SELECT pg_sleep(5)"));
+    UEXPECT_NO_THROW(query_queue.Push(kTimeoutCC, "SELECT 1"));
+    UEXPECT_NO_THROW(query_queue.Push(kTimeoutCC, "SELECT pg_sleep(5)"));
 
     QueryQueueResult result{};
-    UEXPECT_THROW(result = query_queue.Collect(std::chrono::milliseconds{100}), pg::QueryCancelled);
+    UEXPECT_THROW(result = query_queue.Collect(std::chrono::seconds{2}), pg::QueryCancelled);
 }
 
 UTEST_P(PostgreConnection, QueryQueueEmpty) {

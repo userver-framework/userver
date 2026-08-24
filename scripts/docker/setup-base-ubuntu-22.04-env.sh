@@ -49,14 +49,6 @@ gpg_retrieve_keyserver 8919F6BD2B48D754 clickhouse-keyring
 echo "deb [signed-by=/usr/share/keyrings/clickhouse-keyring.gpg] https://packages.clickhouse.com/deb stable main"  \
     | tee /etc/apt/sources.list.d/clickhouse.list
 
-# Adding mariadb repositories (from https://www.linuxcapable.com/how-to-install-mariadb-on-ubuntu-linux/ )
-gpg_retrieve_curl https://mariadb.org/mariadb_release_signing_key.pgp mariadb
-# Restore the correct URL after https://jira.mariadb.org/browse/MDBF-651
-#echo "deb [arch=amd64,arm64,ppc64el signed-by=/usr/share/keyrings/mariadb.gpg] https://deb.mariadb.org/10.11/ubuntu $(lsb_release -cs) main" \
-#    | tee /etc/apt/sources.list.d/mariadb.list
-echo "deb [arch=amd64,arm64,ppc64el signed-by=/usr/share/keyrings/mariadb.gpg] https://mirror.kumi.systems/mariadb/repo/10.11/ubuntu $(lsb_release -cs) main" \
-    | tee /etc/apt/sources.list.d/mariadb.list
-
 # Adding librdkafka confluent repositories as in https://docs.confluent.io/platform/current/installation/installing_cp/deb-ubuntu.html#get-the-software
 gpg_retrieve_keyserver 8B1DA6120C2BF624 confluent
 printf "\
@@ -77,6 +69,8 @@ Acquire::https::Timeout "15";
 Acquire::http::Timeout "15";
 Acquire::ftp::Timeout "15";
 ' | tee /etc/apt/apt.conf.d/99custom_increase_retries
+
+"$(dirname "$0")/ubuntu-install-mariadb.sh"
 
 # Install build dependencies
 if [ ! -f ubuntu-22.04.md ]; then

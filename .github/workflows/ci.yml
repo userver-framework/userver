@@ -119,19 +119,15 @@ jobs:
                 curl -fsSL 'https://packages.clickhouse.com/rpm/lts/repodata/repomd.xml.key' | sudo gpg --dearmor -o /usr/share/keyrings/clickhouse-keyring.gpg
                 echo "deb [signed-by=/usr/share/keyrings/clickhouse-keyring.gpg arch=amd64] https://packages.clickhouse.com/deb stable main" | sudo tee /etc/apt/sources.list.d/clickhouse.list
 
-                # Adding mariadb repositories (from https://www.linuxcapable.com/how-to-install-mariadb-on-ubuntu-linux/ )
-                curl -fsSL https://mariadb.org/mariadb_release_signing_key.pgp | sudo gpg --dearmor -o "/usr/share/keyrings/mariadb.gpg"
-                sudo chmod a+r "/usr/share/keyrings/mariadb.gpg"
-                # Restore the correct URL after https://jira.mariadb.org/browse/MDBF-651
-                #echo "deb [arch=amd64,arm64,ppc64el signed-by=/usr/share/keyrings/mariadb.gpg] https://deb.mariadb.org/10.11/ubuntu $(lsb_release -cs) main" \
-                #    | tee /etc/apt/sources.list.d/mariadb.list
-                echo "deb [arch=amd64,arm64,ppc64el signed-by=/usr/share/keyrings/mariadb.gpg] https://mirror.kumi.systems/mariadb/repo/10.11/ubuntu $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/mariadb.list
-
                 # Adding mongodb repositories
                 wget -qO- https://pgp.mongodb.com/server-7.0.asc | sudo gpg --dearmor | sudo tee /usr/share/keyrings/mongodb-server-7.0.gpg >/dev/null
                 echo "deb [ arch=amd64,arm64 signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] https://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" \
                       | sudo tee -a /etc/apt/sources.list.d/mongodb-org-7.0.list
                 # Mongo is not officially supported on Ubuntu 24.04, so install it from jammy
+
+          - name: Install MariaDB
+            run: |
+                sudo ./scripts/mysql/ubuntu-install-mariadb.sh
 
           - name: Install YDB C++ SDK
             run: |
@@ -198,7 +194,7 @@ jobs:
                 # Tests not runnable on the GitHub Ubuntu runner:
                 #  * grpc/mysql: skipped on Ubuntu 24.04 (the only matrix OS)
                 #  * mongo (real DB): mongod replica set does not start on the runner
-                #  * samples-mysql_service: needs mariadb-server (not installed)
+                #  * samples-mysql_service / userver-mysql: skipped on Ubuntu 24.04 matrix OS
                 #  * websocket_client: runner curl lacks ws:// support
                 #  * compile-err-msg: compile-fail test unstable under clang-18
                 #  * ydb (gcc-13 only, YDB enabled there): no ydb server on the runner

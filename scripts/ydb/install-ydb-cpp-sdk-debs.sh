@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-readonly YDB_CPP_SDK_VERSION="${YDB_CPP_SDK_VERSION:-3.21.0}"
+readonly YDB_CPP_SDK_VERSION="${YDB_CPP_SDK_VERSION:-3.21.1}"
 readonly YDB_CPP_SDK_RELEASE_URL="https://github.com/ydb-platform/ydb-cpp-sdk/releases/download/v${YDB_CPP_SDK_VERSION}"
 YDB_CPP_SDK_ARCHITECTURE="$(dpkg --print-architecture)"
 readonly YDB_CPP_SDK_ARCHITECTURE
@@ -25,7 +25,7 @@ download_deb() {
         "${YDB_CPP_SDK_RELEASE_URL}/${filename}"
 }
 
-download_deb "yandex-googleapis-api-common-protos-1.0.0-Linux.deb"
+download_deb "yandex-googleapis-api-common-protos_1.0.0_${YDB_CPP_SDK_ARCHITECTURE}.deb"
 download_deb "libydb-cpp-dev_${YDB_CPP_SDK_VERSION}_${YDB_CPP_SDK_ARCHITECTURE}.deb"
 download_deb "libydb-cpp-iam-dev_${YDB_CPP_SDK_VERSION}_${YDB_CPP_SDK_ARCHITECTURE}.deb"
 

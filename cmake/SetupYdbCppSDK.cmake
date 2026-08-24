@@ -1,7 +1,7 @@
 # @ingroup download
 option(USERVER_DOWNLOAD_PACKAGE_YDBCPPSDK "Download and setup ydb-cpp-sdk" ${USERVER_DOWNLOAD_PACKAGES})
 
-set(USERVER_YDBCPPSDK_VERSION 3.21.0)
+set(USERVER_YDBCPPSDK_VERSION 3.21.1)
 set(USERVER_YDBCPPSDK_COMPONENTS
     Coordination
     Driver

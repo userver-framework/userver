@@ -5352,6 +5352,7 @@
   "scripts/kafka/ubuntu_install_kafka.sh":"taxi/uservices/userver/scripts/kafka/ubuntu_install_kafka.sh",
   "scripts/migrate_from_legacy_redis_ns.sh":"taxi/uservices/userver/scripts/migrate_from_legacy_redis_ns.sh",
   "scripts/mongo/ubuntu-install-mongodb.sh":"taxi/uservices/userver/scripts/mongo/ubuntu-install-mongodb.sh",
+  "scripts/mysql/ubuntu-install-mariadb.sh":"taxi/uservices/userver/scripts/mysql/ubuntu-install-mariadb.sh",
   "scripts/perf-blocking-syscall":"taxi/uservices/userver/scripts/perf-blocking-syscall",
   "scripts/postgres/pg_sql_codes.py":"taxi/uservices/userver/scripts/postgres/pg_sql_codes.py",
   "scripts/postgres/ubuntu-install-postgresql-includes.sh":"taxi/uservices/userver/scripts/postgres/ubuntu-install-postgresql-includes.sh",

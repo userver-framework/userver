@@ -2,6 +2,7 @@ FROM ubuntu:22.04
 
 COPY scripts/docs/en/deps/ubuntu-22.04.md /userver_tmp/
 COPY scripts/docker/setup-base-ubuntu-22.04-env.sh /userver_tmp/
+COPY scripts/mysql/ubuntu-install-mariadb.sh /userver_tmp/
 COPY scripts/clickhouse/ubuntu-install-clickhouse.sh /userver_tmp/
 COPY scripts/rabbitmq/ubuntu_install_rabbitmq_dev.sh /userver_tmp/
 COPY scripts/kafka/ubuntu_install_kafka.sh /userver_tmp/

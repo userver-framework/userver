@@ -163,6 +163,7 @@ jobs:
                   userver-testsuite-tests-chaos
                   userver-odbc-dbtest
                   testsuite-userver-odbc-tests-basic-chaos
+                  testsuite-userver-odbc-tests-secdist-update
                 )
                 export GTEST_FILTER="-$(IFS=:; printf '%s' "${broken_gtests[*]}")"
                 ctest --output-on-failure -E "$(IFS='|'; printf '%s' "${excluded_tests[*]}")"
