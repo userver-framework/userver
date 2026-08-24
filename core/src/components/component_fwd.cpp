@@ -10,6 +10,8 @@ namespace components {
 
 std::string_view GetCurrentComponentName(const ComponentContext& context) { return context.GetComponentName(); }
 
+utils::ResourceScopeStorage& GetResourceScopes(const ComponentContext& context) { return context.Scopes(); }
+
 engine::TaskProcessor& GetFsTaskProcessor(const ComponentConfig& config, const ComponentContext& context) {
     return config["fs-task-processor"].IsMissing()
                ? engine::current_task::GetBlockingTaskProcessor()

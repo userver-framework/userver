@@ -1422,6 +1422,7 @@
   "core/src/cache/cache_dependencies.hpp":"taxi/uservices/userver/core/src/cache/cache_dependencies.hpp",
   "core/src/cache/cache_metrics_initialization_test.cpp":"taxi/uservices/userver/core/src/cache/cache_metrics_initialization_test.cpp",
   "core/src/cache/cache_statistics.cpp":"taxi/uservices/userver/core/src/cache/cache_statistics.cpp",
+  "core/src/cache/cache_update_and_listen_priority_test.cpp":"taxi/uservices/userver/core/src/cache/cache_update_and_listen_priority_test.cpp",
   "core/src/cache/cache_update_trait.cpp":"taxi/uservices/userver/core/src/cache/cache_update_trait.cpp",
   "core/src/cache/cache_update_trait_impl.cpp":"taxi/uservices/userver/core/src/cache/cache_update_trait_impl.cpp",
   "core/src/cache/cache_update_trait_impl.hpp":"taxi/uservices/userver/core/src/cache/cache_update_trait_impl.hpp",

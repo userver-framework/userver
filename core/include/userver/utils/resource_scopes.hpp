@@ -4,8 +4,10 @@
 /// @brief @copybrief utils::ResourceScopeStorage
 
 #include <concepts>
+#include <cstdint>
 #include <memory>
 #include <optional>
+#include <vector>
 
 #include <userver/compiler/impl/lifetime.hpp>
 #include <userver/components/component_fwd.hpp>
@@ -84,6 +86,9 @@ using ScopePtr = std::unique_ptr<impl::ScopeBase>;
 /// @snippet core/src/components/resource_scopes_test.cpp ResourceScopeStorage - HappyPathOrder
 class ResourceScopeStorage final {
 public:
+    /// Lower values run earlier in @ref AfterConstruction and later in @ref BeforeDestruction.
+    using Priority = std::int32_t;
+
     ResourceScopeStorage() = default;
 
     ResourceScopeStorage(ResourceScopeStorage&& other) noexcept = default;
@@ -96,6 +101,8 @@ public:
     /// that unregisters the previously registered resource. The returned handle's
     /// destructor is called just before the component destructor is called.
     ///
+    /// Equivalent to @ref Register with @a priority `0`.
+    ///
     /// @note callback is not called if the component is not created OR
     /// any previously registered callback throws an exception.
     /// @note if you don't have an existing RAII-ish class, but still want
@@ -104,9 +111,19 @@ public:
     template <std::invocable<> AfterConstructionCallback>
     void Register(AfterConstructionCallback after_construction)
     {
+        Register(Priority{0}, std::move(after_construction));
+    }
+
+    /// @overload
+    ///
+    /// Scopes with a lower @a priority run earlier in @ref AfterConstruction and later
+    /// in @ref BeforeDestruction, so they outlive scopes with a higher priority.
+    template <std::invocable<> AfterConstructionCallback>
+    void Register(Priority priority, AfterConstructionCallback after_construction)
+    {
         using Handle = std::invoke_result_t<AfterConstructionCallback>;
         auto scope = std::make_unique<impl::Scope<Handle>>(std::move(after_construction));
-        DoRegister(std::move(scope));
+        DoRegister(std::move(scope), priority);
     }
 
     /// @brief Call all registered functors.
@@ -119,9 +136,15 @@ public:
     void BeforeDestruction();
 
 private:
-    void DoRegister(impl::ScopePtr resource_scope);
+    struct ScopeWithPriority {
+        Priority priority{0};
+        impl::ScopePtr scope;
+    };
 
-    std::vector<impl::ScopePtr> registered_scopes_;
+    void DoRegister(impl::ScopePtr resource_scope, Priority priority);
+    static void SortByPriority(std::vector<ScopeWithPriority>& scopes);
+
+    std::vector<ScopeWithPriority> registered_scopes_;
     std::vector<impl::ScopePtr> initialized_scopes_;
     bool scope_registration_finished_{false};
 };

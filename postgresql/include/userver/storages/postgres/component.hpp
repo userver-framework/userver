@@ -164,7 +164,6 @@ private:
 
     // Subscriptions must be the last fields, because the fields above are used
     // from callbacks.
-    concurrent::AsyncEventSubscriberScope config_subscription_;
     concurrent::AsyncEventSubscriberScope secdist_subscription_;
     dynamic_config::Source config_source_;
 };

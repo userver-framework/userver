@@ -265,4 +265,82 @@ TEST_F(ResourceScopeStorage, WithResourceScopes) {
     EXPECT_EQ(data_on_destruction, "data");
 }
 
+namespace {
+
+auto MakeTraceScope(std::vector<int>& after, std::vector<int>& before, int id) {
+    return [&after, &before, id] {
+        after.push_back(id);
+        return utils::FastScopeGuard([&before, id]() noexcept { before.push_back(id); });
+    };
+}
+
+}  // namespace
+
+TEST(ResourceScopeStorageUnit, PriorityOrder)
+{
+    utils::ResourceScopeStorage scopes;
+    std::vector<int> after;
+    std::vector<int> before;
+
+    scopes.Register(1, MakeTraceScope(after, before, 1));
+    scopes.Register(-1, MakeTraceScope(after, before, -1));
+    scopes.Register(0, MakeTraceScope(after, before, 0));
+
+    scopes.AfterConstruction();
+    EXPECT_THAT(after, ::testing::ElementsAre(-1, 0, 1));
+
+    scopes.BeforeDestruction();
+    EXPECT_THAT(before, ::testing::ElementsAre(1, 0, -1));
+}
+
+TEST(ResourceScopeStorageUnit, EqualPriorityKeepsRegistrationOrder)
+{
+    utils::ResourceScopeStorage scopes;
+    std::vector<int> after;
+    std::vector<int> before;
+
+    scopes.Register(0, MakeTraceScope(after, before, 1));
+    scopes.Register(0, MakeTraceScope(after, before, 2));
+    scopes.Register(0, MakeTraceScope(after, before, 3));
+
+    scopes.AfterConstruction();
+    EXPECT_THAT(after, ::testing::ElementsAre(1, 2, 3));
+
+    scopes.BeforeDestruction();
+    EXPECT_THAT(before, ::testing::ElementsAre(3, 2, 1));
+}
+
+TEST(ResourceScopeStorageUnit, DefaultPriorityIsZero)
+{
+    utils::ResourceScopeStorage scopes;
+    std::vector<int> after;
+    std::vector<int> before;
+
+    scopes.Register(1, MakeTraceScope(after, before, 1));
+    scopes.Register(MakeTraceScope(after, before, 0));
+    scopes.Register(-1, MakeTraceScope(after, before, -1));
+
+    scopes.AfterConstruction();
+    EXPECT_THAT(after, ::testing::ElementsAre(-1, 0, 1));
+
+    scopes.BeforeDestruction();
+    EXPECT_THAT(before, ::testing::ElementsAre(1, 0, -1));
+}
+
+TEST(ResourceScopeStorageUnit, PriorityOnUnusedFactories)
+{
+    utils::ResourceScopeStorage scopes;
+    std::vector<int> before;
+
+    scopes.Register(1, [guard = utils::FastScopeGuard([&before]() noexcept { before.push_back(1); })] {
+        return utils::FastScopeGuard([]() noexcept {});
+    });
+    scopes.Register(-1, [guard = utils::FastScopeGuard([&before]() noexcept { before.push_back(-1); })] {
+        return utils::FastScopeGuard([]() noexcept {});
+    });
+
+    scopes.BeforeDestruction();
+    EXPECT_THAT(before, ::testing::ElementsAre(1, -1));
+}
+
 USERVER_NAMESPACE_END

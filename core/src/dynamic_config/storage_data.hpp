@@ -9,6 +9,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace utils {
+class ResourceScopeStorage;
+}
+
 namespace dynamic_config::impl {
 
 class StorageData final {
@@ -35,6 +39,20 @@ public:
     );
 
     concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
+        concurrent::FunctionId id,
+        std::string_view name,
+        DiffChannel::Function&& func
+    );
+
+    void DoUpdateAndListenScoped(
+        utils::ResourceScopeStorage& scopes,
+        concurrent::FunctionId id,
+        std::string_view name,
+        SnapshotChannel::Function&& func
+    );
+
+    void DoUpdateAndListenScoped(
+        utils::ResourceScopeStorage& scopes,
         concurrent::FunctionId id,
         std::string_view name,
         DiffChannel::Function&& func

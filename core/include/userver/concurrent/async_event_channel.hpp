@@ -4,6 +4,7 @@
 /// @brief @copybrief concurrent::AsyncEventChannel
 
 #include <functional>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <typeindex>
@@ -19,6 +20,7 @@
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
+#include <userver/utils/resource_scopes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -151,6 +153,64 @@ public:
         );
     }
 
+    /// @brief Like @ref DoUpdateAndListen, but binds the subscription to @a scopes.
+    ///
+    /// Synchronously calls @a updater and subscribes with a stub that only records whether an event arrived during
+    /// construction. When the scope is entered, @a updater is called again if an event was skipped, and the stub is
+    /// replaced with @a func. Unsubscribe runs in @ref utils::ResourceScopeStorage::BeforeDestruction.
+    template <typename UpdaterFunc>
+    void DoUpdateAndListenScoped(
+        utils::ResourceScopeStorage& scopes,
+        FunctionId id,
+        std::string_view name,
+        Function&& func,
+        UpdaterFunc&& updater
+    ) {
+        auto state = std::make_unique<ResourceScopeState>();
+
+        {
+            const std::shared_lock lock(event_mutex_);
+            updater();
+            state->scope = DoAddListener(id, name, [&state_ref = *state](Args...) { state_ref.event_skipped = true; });
+            auto data = data_.Lock();
+            state->listener = data->listeners.at(id);
+        }
+
+        // The first callback runs synchronously in the constructor, so the subscription
+        // lifetime must be longer than that of other scope types.
+        constexpr utils::ResourceScopeStorage::Priority kPriority{-1};
+        scopes.Register(
+            kPriority,
+            [state = std::move(state), func = std::move(func), updater = std::forward<UpdaterFunc>(updater)]() mutable {
+                const std::shared_lock sema_lock(state->listener->sema);
+                // listener callback cannot run in parallel here.
+                if (state->event_skipped) {
+                    updater();
+                }
+                state->listener->callback = std::move(func);
+                return std::move(state->scope);
+            }
+        );
+    }
+
+    /// @overload
+    template <typename Class, typename UpdaterFunc>
+    void DoUpdateAndListenScoped(
+        utils::ResourceScopeStorage& scopes,
+        Class* obj,
+        std::string_view name,
+        void (Class::*func)(Args...),
+        UpdaterFunc&& updater
+    ) {
+        DoUpdateAndListenScoped(
+            scopes,
+            FunctionId(obj),
+            name,
+            [obj, func](Args... args) { (obj->*func)(args...); },
+            std::forward<UpdaterFunc>(updater)
+        );
+    }
+
     /// Send the next event and wait until all the listeners process it.
     ///
     /// Strict FIFO serialization is guaranteed, i.e. only after this event is
@@ -212,7 +272,7 @@ private:
         mutable engine::Semaphore sema;
 
         std::string name;
-        Function callback;
+        mutable Function callback;
         std::string task_name;
 
         Listener(std::string name, Function callback, std::string task_name)
@@ -221,6 +281,13 @@ private:
               callback(std::move(callback)),
               task_name(std::move(task_name))
         {}
+    };
+
+    struct ResourceScopeState {
+        bool event_skipped{false};
+        std::shared_ptr<const Listener> listener;
+        // Must be the last field: while the subscription is alive, the fields above remain valid for the stub callback.
+        AsyncEventSubscriberScope scope;
     };
 
     struct ListenersData final {

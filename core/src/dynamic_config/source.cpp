@@ -32,6 +32,24 @@ concurrent::AsyncEventSubscriberScope Source::DoUpdateAndListen(
     return storage_->DoUpdateAndListen(id, name, std::move(func));
 }
 
+void Source::DoUpdateAndListen(
+    utils::ResourceScopeStorage& scopes,
+    concurrent::FunctionId id,
+    std::string_view name,
+    SnapshotEventSource::Function&& func
+) {
+    storage_->DoUpdateAndListenScoped(scopes, id, name, std::move(func));
+}
+
+void Source::DoUpdateAndListen(
+    utils::ResourceScopeStorage& scopes,
+    concurrent::FunctionId id,
+    std::string_view name,
+    DiffEventSource::Function&& func
+) {
+    storage_->DoUpdateAndListenScoped(scopes, id, name, std::move(func));
+}
+
 }  // namespace dynamic_config
 
 USERVER_NAMESPACE_END
