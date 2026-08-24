@@ -1,3 +1,4 @@
+import os
 import re
 
 NUM_SYMBOLS_RE = re.compile(r'num_symbols: [1-9][0-9]*')
@@ -49,8 +50,22 @@ async def test_unknown_command_lists_the_supported_ones(monitor_client):
 
     assert response.status == 404
     assert 'Unsupported command' in response.text
-    for command in ('stat', 'enable', 'disable', 'dump', 'heap', 'symbol'):
+    for command in ('stat', 'enable', 'disable', 'dump', 'heap', 'cmdline', 'symbol'):
         assert command in response.text, response.text
+
+
+async def test_cmdline_get_returns_process_arguments(monitor_client, service_binary):
+    response = await monitor_client.get('service/jemalloc/pprof/cmdline')
+
+    assert response.status == 200
+    arguments = response.content.rstrip(b'\0').split(b'\0')
+    assert arguments[0] == os.fsencode(service_binary)
+
+
+async def test_cmdline_post_is_rejected(monitor_client):
+    response = await monitor_client.post('service/jemalloc/pprof/cmdline')
+
+    assert response.status == 405
 
 
 async def test_symbol_get_reports_that_symbolization_is_available(monitor_client):

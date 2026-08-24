@@ -5,10 +5,10 @@
 #include <optional>
 #include <system_error>
 #include <unordered_set>
-#include <vector>
 
 #include <fmt/format.h>
 
+#include <userver/engine/task/current_task.hpp>
 #include <userver/fs/read.hpp>
 #include <userver/http/content_type.hpp>
 #include <userver/logging/stacktrace_cache.hpp>
@@ -26,6 +26,10 @@ constexpr std::string_view kNumSymbols = "num_symbols: 1\n";
 
 constexpr std::string_view kHexPrefix = "0x";
 
+#if defined(__linux__)
+constexpr std::string_view kProcSelfCmdlinePath = "/proc/self/cmdline";
+#endif
+
 std::optional<std::uintptr_t> ParseHexAddress(std::string_view token) {
     const auto prefix = token.substr(0, kHexPrefix.size());
     if (token.size() > kHexPrefix.size() && (prefix == "0x" || prefix == "0X")) {
@@ -40,6 +44,15 @@ std::optional<std::uintptr_t> ParseHexAddress(std::string_view token) {
         return std::nullopt;
     }
     return address;
+}
+
+std::string PprofCmdline([[maybe_unused]] const http::HttpRequest& request) {
+#if defined(__linux__)
+    return fs::ReadFileContents(engine::current_task::GetBlockingTaskProcessor(), std::string{kProcSelfCmdlinePath});
+#else
+    request.SetResponseStatus(server::http::HttpStatus::kNotImplemented);
+    return "The 'cmdline' pprof command is only supported on Linux\n";
+#endif
 }
 
 }  // namespace
@@ -139,6 +152,11 @@ std::optional<std::string> TryHandlePprofCommand(const http::HttpRequest& reques
                 return PprofMethodNotAllowed(request);
             }
             return std::nullopt;
+        case Jemalloc::Command::kCmdline:
+            if (!IsPprofReadMethod(request)) {
+                return PprofMethodNotAllowed(request);
+            }
+            return PprofCmdline(request);
         default:
             return std::nullopt;
     }

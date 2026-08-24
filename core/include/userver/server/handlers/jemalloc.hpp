@@ -38,6 +38,7 @@ namespace server::handlers {
 /// * `bg_threads_enable` - to start background threads
 /// * `bg_threads_disable` - to *synchronously* stop background threads
 /// * `heap` (`GET`) - the jemalloc heap profile dump, in the `pprof` format
+/// * `cmdline` (`GET`, Linux) - the process arguments separated by null bytes
 /// * `symbol` (`GET`) - reports that symbolization is available
 /// * `symbol` (`POST`) - maps the `+`-separated hex addresses of the request
 ///   body to function names, one `0x<address> <name>` line per resolved address
@@ -58,6 +59,7 @@ public:
         kBgThreadsEnable,
         kBgThreadsDisable,
         kHeap,
+        kCmdline,
         kSymbol,
     };
     static std::optional<Command> GetCommandFromString(std::string_view str);

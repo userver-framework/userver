@@ -68,10 +68,10 @@ std::string PprofReadDump(
 
 /// @brief Handles the allocator independent part of the `pprof` protocol.
 ///
-/// @returns The response body of the `symbol` command, or the error body of a
-/// read only command that was invoked with a modifying method, or std::nullopt
-/// if the command has to be handled by the allocator specific code of the
-/// caller.
+/// @returns The response body of an allocator-independent command, the error
+/// body of a read only command that was invoked with a modifying method, or
+/// std::nullopt if the command has to be handled by the allocator specific code
+/// of the caller.
 std::optional<std::string> TryHandlePprofCommand(const http::HttpRequest& request, Jemalloc::Command command);
 
 /// @brief Whether the `MALLOC_CONF` environment variable of the process enables

@@ -56,6 +56,7 @@ constexpr utils::TrivialBiMap kStrToCommand = [](auto selector) {
         .Case("bg_threads_enable", Command::kBgThreadsEnable)
         .Case("bg_threads_disable", Command::kBgThreadsDisable)
         .Case("heap", Command::kHeap)
+        .Case("cmdline", Command::kCmdline)
         .Case("symbol", Command::kSymbol);
 };
 
@@ -122,6 +123,7 @@ std::string Jemalloc::HandleRequestThrow(const http::HttpRequest& request, reque
             return HandleRc(request, utils::jemalloc::StopBgThreads());
         case Command::kHeap:
             return HandleHeap(request, fs_task_processor_);
+        case Command::kCmdline:
         case Command::kSymbol:
             break;  // handled above
     }
