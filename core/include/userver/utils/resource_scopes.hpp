@@ -12,6 +12,7 @@
 #include <userver/compiler/impl/lifetime.hpp>
 #include <userver/components/component_fwd.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 #include <userver/utils/move_only_function.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -86,9 +87,6 @@ using ScopePtr = std::unique_ptr<impl::ScopeBase>;
 /// @snippet core/src/components/resource_scopes_test.cpp ResourceScopeStorage - HappyPathOrder
 class ResourceScopeStorage final {
 public:
-    /// Lower values run earlier in @ref AfterConstruction and later in @ref BeforeDestruction.
-    using Priority = std::int32_t;
-
     ResourceScopeStorage() = default;
 
     ResourceScopeStorage(ResourceScopeStorage&& other) noexcept = default;
@@ -101,8 +99,6 @@ public:
     /// that unregisters the previously registered resource. The returned handle's
     /// destructor is called just before the component destructor is called.
     ///
-    /// Equivalent to @ref Register with @a priority `0`.
-    ///
     /// @note callback is not called if the component is not created OR
     /// any previously registered callback throws an exception.
     /// @note if you don't have an existing RAII-ish class, but still want
@@ -111,20 +107,22 @@ public:
     template <std::invocable<> AfterConstructionCallback>
     void Register(AfterConstructionCallback after_construction)
     {
-        Register(Priority{0}, std::move(after_construction));
+        Register(utils::impl::InternalTag{}, Priority{0}, std::move(after_construction));
     }
 
-    /// @overload
-    ///
-    /// Scopes with a lower @a priority run earlier in @ref AfterConstruction and later
-    /// in @ref BeforeDestruction, so they outlive scopes with a higher priority.
+    /// @cond
+    // For internal use only.
+    // Lower values run earlier in AfterConstruction and later in BeforeDestruction.
+    using Priority = std::int32_t;
+
     template <std::invocable<> AfterConstructionCallback>
-    void Register(Priority priority, AfterConstructionCallback after_construction)
+    void Register(utils::impl::InternalTag, Priority priority, AfterConstructionCallback after_construction)
     {
         using Handle = std::invoke_result_t<AfterConstructionCallback>;
         auto scope = std::make_unique<impl::Scope<Handle>>(std::move(after_construction));
         DoRegister(std::move(scope), priority);
     }
+    /// @endcond
 
     /// @brief Call all registered functors.
     void AfterConstruction();

@@ -6,6 +6,7 @@
 #include <userver/components/run.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 #include <userver/utils/resource_scopes.hpp>
 
 #include <components/component_list_test.hpp>
@@ -282,9 +283,9 @@ TEST(ResourceScopeStorageUnit, PriorityOrder)
     std::vector<int> after;
     std::vector<int> before;
 
-    scopes.Register(1, MakeTraceScope(after, before, 1));
-    scopes.Register(-1, MakeTraceScope(after, before, -1));
-    scopes.Register(0, MakeTraceScope(after, before, 0));
+    scopes.Register(utils::impl::InternalTag{}, 1, MakeTraceScope(after, before, 1));
+    scopes.Register(utils::impl::InternalTag{}, -1, MakeTraceScope(after, before, -1));
+    scopes.Register(utils::impl::InternalTag{}, 0, MakeTraceScope(after, before, 0));
 
     scopes.AfterConstruction();
     EXPECT_THAT(after, ::testing::ElementsAre(-1, 0, 1));
@@ -299,9 +300,9 @@ TEST(ResourceScopeStorageUnit, EqualPriorityKeepsRegistrationOrder)
     std::vector<int> after;
     std::vector<int> before;
 
-    scopes.Register(0, MakeTraceScope(after, before, 1));
-    scopes.Register(0, MakeTraceScope(after, before, 2));
-    scopes.Register(0, MakeTraceScope(after, before, 3));
+    scopes.Register(utils::impl::InternalTag{}, 0, MakeTraceScope(after, before, 1));
+    scopes.Register(utils::impl::InternalTag{}, 0, MakeTraceScope(after, before, 2));
+    scopes.Register(utils::impl::InternalTag{}, 0, MakeTraceScope(after, before, 3));
 
     scopes.AfterConstruction();
     EXPECT_THAT(after, ::testing::ElementsAre(1, 2, 3));
@@ -316,9 +317,9 @@ TEST(ResourceScopeStorageUnit, DefaultPriorityIsZero)
     std::vector<int> after;
     std::vector<int> before;
 
-    scopes.Register(1, MakeTraceScope(after, before, 1));
+    scopes.Register(utils::impl::InternalTag{}, 1, MakeTraceScope(after, before, 1));
     scopes.Register(MakeTraceScope(after, before, 0));
-    scopes.Register(-1, MakeTraceScope(after, before, -1));
+    scopes.Register(utils::impl::InternalTag{}, -1, MakeTraceScope(after, before, -1));
 
     scopes.AfterConstruction();
     EXPECT_THAT(after, ::testing::ElementsAre(-1, 0, 1));
@@ -332,12 +333,12 @@ TEST(ResourceScopeStorageUnit, PriorityOnUnusedFactories)
     utils::ResourceScopeStorage scopes;
     std::vector<int> before;
 
-    scopes.Register(1, [guard = utils::FastScopeGuard([&before]() noexcept { before.push_back(1); })] {
-        return utils::FastScopeGuard([]() noexcept {});
-    });
-    scopes.Register(-1, [guard = utils::FastScopeGuard([&before]() noexcept { before.push_back(-1); })] {
-        return utils::FastScopeGuard([]() noexcept {});
-    });
+    scopes.Register(utils::impl::InternalTag{}, 1, [guard = utils::FastScopeGuard([&before]() noexcept {
+                                                        before.push_back(1);
+                                                    })] { return utils::FastScopeGuard([]() noexcept {}); });
+    scopes.Register(utils::impl::InternalTag{}, -1, [guard = utils::FastScopeGuard([&before]() noexcept {
+                                                         before.push_back(-1);
+                                                     })] { return utils::FastScopeGuard([]() noexcept {}); });
 
     scopes.BeforeDestruction();
     EXPECT_THAT(before, ::testing::ElementsAre(1, -1));

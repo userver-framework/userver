@@ -180,6 +180,7 @@ public:
         // lifetime must be longer than that of other scope types.
         constexpr utils::ResourceScopeStorage::Priority kPriority{-1};
         scopes.Register(
+            utils::impl::InternalTag{},
             kPriority,
             [state = std::move(state), func = std::move(func), updater = std::forward<UpdaterFunc>(updater)]() mutable {
                 const std::shared_lock sema_lock(state->listener->sema);
