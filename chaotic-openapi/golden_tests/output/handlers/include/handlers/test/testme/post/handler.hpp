@@ -4,7 +4,6 @@
 #include <handlers/test/testme/post/requests.hpp>
 #include <handlers/test/testme/post/responses.hpp>
 #include <handlers/test/testme/post/view.hpp>
-
 #include <userver/chaotic/openapi/server/handler_base.hpp>
 
 namespace handlers::test::testme::post {
@@ -16,12 +15,7 @@ namespace impl {
 inline constexpr std::string_view kHandlerName = "handler-testme-post";
 }
 
-using Handler = USERVER_NAMESPACE::chaotic::openapi::server::BaseHandler<
-impl::kHandlerName,
-void,
-Request,
-Response,
-HandlerTag,
-View>;
+using Handler = USERVER_NAMESPACE::chaotic::openapi::server::BaseHandler<impl::kHandlerName, void, Request, Response,
+                                                                         HandlerTag, View>;
 
 }  // namespace handlers::test::testme::post

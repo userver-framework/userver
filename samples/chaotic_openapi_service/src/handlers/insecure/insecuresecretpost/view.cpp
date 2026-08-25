@@ -7,7 +7,11 @@
 namespace handlers::insecure::insecuresecretpost {
 
 /// [view-impl]
-Response View::Handle(Request&& request, Deps&& /*deps*/) {
+Response View::Handle(
+    Request&& request,
+    Deps&& /*deps*/,
+    RequestContext& /*context*/
+) {
     return Response200{.body = {.greeting = fmt::format("Hello, {}!", request.name)}};
 }
 /// [view-impl]
@@ -15,7 +19,7 @@ Response View::Handle(Request&& request, Deps&& /*deps*/) {
 std::string View::GetResponseForLogging(
     const Response& /*response*/,
     const std::string& /*serialized_response*/,
-    USERVER_NAMESPACE::server::request::RequestContext& /*context*/
+    RequestContext& /*context*/
 ) {
     return {};
 }

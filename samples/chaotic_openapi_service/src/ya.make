@@ -15,9 +15,11 @@ ADDINCL(
 )
 
 SRCS(
+    auth_bearer.cpp
     hello_handler.cpp
     say_hello.cpp
     handlers/insecure/insecuresecretpost/view.cpp
+    handlers/secure/greetingget/view.cpp
 )
 
 ADDINCL(
@@ -93,12 +95,47 @@ RUN_PROGRAM(
 )
 
 RUN_PROGRAM(
+    taxi/uservices/userver/chaotic-openapi/bin
+        --name secure
+        --gen handlers
+        -o ${BINDIR}/handlers/secure
+        --clang-format ''
+        ../handlers/secure/openapi.yaml
+    OUTPUT_INCLUDES
+        ${CHAOTIC_INCLUDES}
+        ${CHAOTIC_OPENAPI_INCLUDES}
+        handlers/secure/greetingget/view.hpp
+    IN_NOPARSE
+        ../handlers/secure/openapi.yaml
+    OUT
+        include/handlers/secure/openapi.hpp
+        include/handlers/secure/openapi_fwd.hpp
+        include/handlers/secure/openapi_parsers.ipp
+        include/handlers/secure/openapi_sax_parsers.hpp
+
+        src/handlers/secure/openapi.cpp
+
+        include/handlers/secure/greetingget/handler.hpp
+        include/handlers/secure/chaotic_handlers_list.hpp
+        include/handlers/secure/greetingget/requests.hpp
+        include/handlers/secure/greetingget/responses.hpp
+
+        src/handlers/secure/greetingget/handler.cpp
+        src/handlers/secure/greetingget/requests.cpp
+        src/handlers/secure/greetingget/responses.cpp
+
+        config.chaotic.yaml
+)
+
+RUN_PROGRAM(
     taxi/uservices/userver/scripts/chaotic
         ${BINDIR}/config.chaotic.yaml
+        ${BINDIR}/handlers/secure/config.chaotic.yaml
         ${CURDIR}/../static_config.yaml
         -o ./config.yaml
     IN_NOPARSE
         ${BINDIR}/config.chaotic.yaml
+        ${BINDIR}/handlers/secure/config.chaotic.yaml
         ../static_config.yaml
     OUT
         config.yaml

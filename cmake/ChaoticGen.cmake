@@ -477,6 +477,7 @@ function(userver_generate_config_yaml BINARY_TARGET)
         VERBATIM
     )
     add_custom_target("${BINARY_TARGET}_config" ALL DEPENDS "${PARSE_OUTPUT}")
+    add_dependencies("${BINARY_TARGET}" "${BINARY_TARGET}_config")
 endfunction()
 
 function(_userver_collect_extra_config_yamls_impl TARGET)

@@ -6,6 +6,6 @@
 namespace clients::test {
 
 inline const USERVER_NAMESPACE::dynamic_config::Key<USERVER_NAMESPACE::chaotic::openapi::client::CommandControlDict>
-kQosConfig{"", USERVER_NAMESPACE::dynamic_config::DefaultAsJsonString{"{}"}};
+    kQosConfig{"", USERVER_NAMESPACE::dynamic_config::DefaultAsJsonString{"{}"}};
 
 }  // namespace clients::test

@@ -24,6 +24,10 @@ components_manager:
 
         dns-client:
             fs-task-processor: fs-task-processor
+        default-secdist-provider:  # Component that loads secrets from secdist.
+            config: /etc/chaotic_openapi_service/secdist.json  # Values are supposed to be stored in this file
+            missing-ok: true  # ... but if the file is missing it is still ok
+            environment-secrets-key: SECDIST_CONFIG  # ... values will be loaded from this environment value
         http-client:
         http-client-core:
             fs-task-processor: fs-task-processor
@@ -39,6 +43,11 @@ components_manager:
             path: /hello  # Registering handler by URL '/hello'.
             method: GET,POST  # It will only reply to GET (HEAD) and POST requests.
             task_processor: main-task-processor  # Run it on CPU bound task processor
+
+        handler-greeting-get:  # Generated handler, overrides the config.chaotic.yaml fragment.
+            auth:  # Authorization config for this handler
+                types:
+                  - bearer  # Authorization type that was registered in main()
 
         dynamic-config:
             updates-enabled: true

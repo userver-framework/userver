@@ -142,6 +142,16 @@ private:
         "View::GetInvalidRequestBodyForLogging requires "
         "View::GetRequestBodyForLogging(const formats::json::Value&)."
     );
+    static_assert(
+        requires(Request&& r, Deps&& d, USERVER_NAMESPACE::server::request::RequestContext& ctx) {
+            {
+                View::Handle(std::move(r), std::move(d), ctx)
+            } -> std::convertible_to<Response>;
+        },
+        "View::Handle must accept server::request::RequestContext as the third parameter: "
+        "static Response Handle(Request&& request, Deps&& deps, RequestContext& context). "
+        "The legacy 2-argument Handle(Request&&, Deps&&) is no longer supported."
+    );
 
     using Factories = chaotic::openapi::server::dependencies::Factories;
     using FactoriesContainer = USERVER_NAMESPACE::components::Container<Factories>;
@@ -165,7 +175,7 @@ private:
         USERVER_NAMESPACE::server::request::RequestContext& context
     ) const {
         auto deps = factories_.Get().template Make<HandlerTag>();
-        auto response = View::Handle(std::move(request), std::move(deps));
+        auto response = View::Handle(std::move(request), std::move(deps), context);
         auto serialized = SerializeResponse(response, http_request);
         if constexpr (impl::ViewHasGetResponseForLogging<View, Response>) {
             context.SetData<
