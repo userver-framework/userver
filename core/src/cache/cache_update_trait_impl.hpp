@@ -8,7 +8,6 @@
 #include <string>
 
 #include <userver/components/component_fwd.hpp>
-#include <userver/concurrent/async_event_channel.hpp>
 #include <userver/dynamic_config/fwd.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/rcu/rcu.hpp>
@@ -129,7 +128,6 @@ private:
     // Subscriptions must be the last fields. They need to be destroyed first to
     // ensure that callbacks don't use fields above after their destruction.
     utils::statistics::Entry statistics_holder_;
-    concurrent::AsyncEventSubscriberScope config_subscription_;
     testsuite::CacheResetRegistration cache_reset_registration_;
     // See the comment above before adding new fields.
 };

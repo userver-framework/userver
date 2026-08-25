@@ -213,7 +213,8 @@ Odbc::Odbc(const ComponentConfig& config, const ComponentContext& context)
     );
 
     // Subscribe to dynamic config updates
-    config_subscription_ = config_source_.UpdateAndListen(
+    config_source_.UpdateAndListen(
+        context.Scopes(),
         this,
         "odbc",
         &Odbc::OnConfigUpdate,
@@ -231,7 +232,7 @@ Odbc::Odbc(const ComponentConfig& config, const ComponentContext& context)
     }
 }
 
-Odbc::~Odbc() { config_subscription_.Unsubscribe(); }
+Odbc::~Odbc() = default;
 
 void Odbc::OnConfigUpdate(const dynamic_config::Snapshot& config) {
     const auto& pool_settings = config[::dynamic_config::USERVER_ODBC_CONNECTION_POOL_SETTINGS];

@@ -64,6 +64,7 @@ CacheDependencies CacheDependencies::Make(
             ? context.GetTaskProcessor(*dump_config->fs_task_processor)
             : engine::current_task::GetBlockingTaskProcessor(),
         context.FindComponent<components::TestsuiteSupport>().GetDumpControl(),
+        context.Scopes(),
     };
 }
 

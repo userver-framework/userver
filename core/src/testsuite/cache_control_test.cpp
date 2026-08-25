@@ -3,6 +3,7 @@
 #include <chrono>
 #include <optional>
 #include <string>
+#include <utility>
 
 #include <boost/filesystem/operations.hpp>
 
@@ -16,6 +17,7 @@
 #include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/fs/blocking/write.hpp>
 #include <userver/testsuite/cache_control.hpp>
+#include <userver/utils/resource_scopes.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 #include <userver/components/component_list.hpp>
@@ -40,8 +42,13 @@ constexpr std::size_t kDummyDocumentsCount = 42;
 
 class FakeCache final : public cache::CacheMockBase {
 public:
-    FakeCache(std::string_view name, const yaml_config::YamlConfig& config, cache::MockEnvironment& environment)
-        : cache::CacheMockBase(name, config, environment)
+    FakeCache(
+        utils::ResourceScopeStorage& scopes,
+        std::string_view name,
+        const yaml_config::YamlConfig& config,
+        cache::MockEnvironment& environment
+    )
+        : cache::CacheMockBase(scopes, name, config, environment)
     {
         EarlyStartPeriodicUpdates(cache::CacheUpdateTrait::Flag::kNoFirstUpdate);
     }
@@ -96,51 +103,52 @@ UTEST(CacheControl, Smoke) {
     const yaml_config::YamlConfig config{formats::yaml::FromString(kConfigContents), {}};
     cache::MockEnvironment env;
 
-    const FakeCache test_cache(kCacheName, config, env);
+    const utils::WithResourceScopes<FakeCache> test_cache(std::in_place, kCacheName, config, env);
 
-    const FakeCache test_cache_alternative(kCacheNameAlternative, config, env);
+    const utils::WithResourceScopes<FakeCache>
+        test_cache_alternative(std::in_place, kCacheNameAlternative, config, env);
 
     // Periodic updates are disabled, so a synchronous update will be performed
-    EXPECT_EQ(1, test_cache.UpdatesCount());
+    EXPECT_EQ(1, test_cache->UpdatesCount());
 
     env.cache_control.ResetCaches(
         cache::UpdateType::kFull,
         {kCacheName},
         /*force_incremental_names=*/{}
     );
-    EXPECT_EQ(2, test_cache.UpdatesCount());
-    EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
+    EXPECT_EQ(2, test_cache->UpdatesCount());
+    EXPECT_EQ(cache::UpdateType::kFull, test_cache->LastUpdateType());
 
     env.cache_control.ResetCaches(
         cache::UpdateType::kIncremental,
         {kCacheNameAlternative},
         /*force_incremental_names=*/{}
     );
-    EXPECT_EQ(2, test_cache.UpdatesCount());
-    EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
+    EXPECT_EQ(2, test_cache->UpdatesCount());
+    EXPECT_EQ(cache::UpdateType::kFull, test_cache->LastUpdateType());
 
     env.cache_control.ResetCaches(
         cache::UpdateType::kIncremental,
         {},
         /*force_incremental_names=*/{}
     );
-    EXPECT_EQ(2, test_cache.UpdatesCount());
-    EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
+    EXPECT_EQ(2, test_cache->UpdatesCount());
+    EXPECT_EQ(cache::UpdateType::kFull, test_cache->LastUpdateType());
 
     env.cache_control.ResetAllCaches(
         cache::UpdateType::kIncremental,
         /*force_incremental_names=*/{},
         /*exclude_names=*/{}
     );
-    EXPECT_EQ(3, test_cache.UpdatesCount());
-    EXPECT_EQ(cache::UpdateType::kIncremental, test_cache.LastUpdateType());
+    EXPECT_EQ(3, test_cache->UpdatesCount());
+    EXPECT_EQ(cache::UpdateType::kIncremental, test_cache->LastUpdateType());
 
-    EXPECT_EQ(test_cache.Get(), "foo");
+    EXPECT_EQ(test_cache->Get(), "foo");
 
     boost::filesystem::remove_all(env.dump_root.GetPath());
     dump::CreateDumps({kDumpToRead}, env.dump_root, kCacheName);
     env.dump_control.ReadCacheDumps({kCacheName});
-    EXPECT_EQ(test_cache.Get(), kDumpToRead);
+    EXPECT_EQ(test_cache->Get(), kDumpToRead);
 
     boost::filesystem::remove_all(env.dump_root.GetPath());
     env.cache_control.ResetCaches(
@@ -155,7 +163,7 @@ UTEST(CacheControl, Smoke) {
 UTEST_DEATH(CacheControlDeathTest, MissingCache) {
     const yaml_config::YamlConfig config{formats::yaml::FromString(kConfigContents), {}};
     cache::MockEnvironment env;
-    const FakeCache test_cache(kCacheName, config, env);
+    const utils::WithResourceScopes<FakeCache> test_cache(std::in_place, kCacheName, config, env);
 
     EXPECT_UINVARIANT_FAILURE(env.dump_control.WriteCacheDumps({"missing"}));
     EXPECT_UINVARIANT_FAILURE(env.dump_control.ReadCacheDumps({"missing"}));

@@ -136,8 +136,8 @@ CacheUpdateTrait::Impl::Impl(CacheDependencies&& dependencies, CacheUpdateTrait&
         });
 
     if (dependencies.config.config_updates_enabled) {
-        config_subscription_ =
-            CheckNotNull(dependencies.config_source)->UpdateAndListen(this, "cache." + Name(), &Impl::OnConfigUpdate);
+        CheckNotNull(dependencies.config_source)
+            ->UpdateAndListen(dependencies.scopes, this, "cache." + Name(), &Impl::OnConfigUpdate);
     }
 }
 
@@ -256,7 +256,6 @@ void CacheUpdateTrait::Impl::StopPeriodicUpdates() {
     // All of the following cleanup operations are idempotent. Do not gate them on the previous is_running_ value:
     // StartPeriodicUpdates may have partially completed, so we need to clean up even if it failed.
     cache_reset_registration_.Unregister();
-    config_subscription_.Unsubscribe();
     statistics_holder_.Unregister();
 
     try {

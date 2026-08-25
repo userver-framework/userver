@@ -144,7 +144,8 @@ YdbComponent::YdbComponent(const components::ComponentConfig& config, const comp
         WriteStatistics(writer);
     });
 
-    config_subscription_ = config_.UpdateAndListen(
+    config_.UpdateAndListen(
+        context.Scopes(),
         this,
         "ydb",
         &YdbComponent::OnConfigUpdate,

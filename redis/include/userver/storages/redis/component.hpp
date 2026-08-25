@@ -168,7 +168,6 @@ private:
     std::shared_ptr<storages::redis::impl::HealthCheckManager> health_check_manager_;
 
     dynamic_config::Source config_;
-    concurrent::AsyncEventSubscriberScope config_subscription_;
     concurrent::AsyncEventSubscriberScope secdist_subscription_;
 
     rcu::Variable<storages::redis::MetricsSettings> metrics_settings_;

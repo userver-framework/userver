@@ -67,7 +67,6 @@ private:
     std::shared_ptr<storages::odbc::Cluster> cluster_;
 
     dynamic_config::Source config_source_;
-    concurrent::AsyncEventSubscriberScope config_subscription_;
     concurrent::AsyncEventSubscriberScope secdist_subscription_;
 };
 
