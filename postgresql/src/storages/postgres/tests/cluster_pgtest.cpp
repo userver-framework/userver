@@ -460,6 +460,41 @@ UTEST_F(PostgreCluster, NonTransactionExecuteWithParameterStoreMove) {
     }
 }
 
+UTEST_F(PostgreCluster, NonTransactionExecuteSameNameDifferentQueriesWithParameterStore) {
+    testsuite::TestsuiteTasks testsuite_tasks{true};
+    auto cluster = CreateCluster(GetDsnListFromEnv(), GetTaskProcessor(), 1, testsuite_tasks);
+
+    // Same Query::Name with different SQL must keep distinct prepared statements
+    // (id is derived from statement text, not from the shared name).
+    const pg::Query::Name query_name{"parameter_store_same_name"};
+    const pg::Query select_arg{"select $1", query_name};
+    const pg::Query select_arg_plus_ten{"select $1 + 10", query_name};
+
+    auto res1 = cluster.Execute(pg::ClusterHostType::kMaster, select_arg, pg::ParameterStore{}.PushBack(1));
+    EXPECT_EQ(1, res1.AsSingleRow<int>());
+
+    auto res2 = cluster.Execute(pg::ClusterHostType::kMaster, select_arg_plus_ten, pg::ParameterStore{}.PushBack(1));
+    EXPECT_EQ(11, res2.AsSingleRow<int>());
+
+    // Interleave again to ensure caches are not confused by the shared name.
+    EXPECT_EQ(
+        2,
+        cluster.Execute(pg::ClusterHostType::kMaster, select_arg, pg::ParameterStore{}.PushBack(2)).AsSingleRow<int>()
+    );
+    EXPECT_EQ(
+        12,
+        cluster.Execute(pg::ClusterHostType::kMaster, select_arg_plus_ten, pg::ParameterStore{}.PushBack(2))
+            .AsSingleRow<int>()
+    );
+
+    auto prepared = cluster.Execute(
+        pg::ClusterHostType::kMaster,
+        "SELECT COUNT(name) FROM pg_prepared_statements WHERE name LIKE $1",
+        "%_" + query_name.GetUnderlying()
+    );
+    EXPECT_GE(prepared.AsSingleRow<int>(), 2);
+}
+
 UTEST_F(PostgreCluster, ListenNotify) {
     constexpr auto kListenChannel = std::string_view{"foo"};
     constexpr auto kNotifyPayload = std::string_view{"bar"};

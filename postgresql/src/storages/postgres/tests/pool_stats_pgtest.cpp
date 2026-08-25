@@ -218,10 +218,6 @@ UTEST_F(PostgrePoolStats, RunSingleTransactionWithParameterStore) {
     const std::string statement_name = "trx_parameter_store_statement";
     const auto query = pg::Query{"select $1", pg::Query::Name{statement_name}};
 
-    pg::detail::ConnectionPtr conn{nullptr};
-    UASSERT_NO_THROW(conn = pool->Acquire(MakeDeadline())) << "Obtained connection from pool";
-    CheckConnection(conn);
-
     auto trx = pool->Begin(pg::TransactionOptions{});
     trx.Execute(query, pg::ParameterStore{}.PushBack(1));
     trx.Commit();
