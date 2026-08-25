@@ -38,6 +38,14 @@ endif()
 
 include(DownloadUsingCPM)
 include(SetupBrotli)
+include(SetupAbseil)
+
+# ydb-cpp-sdk CPMAddPackage's Abseil as "abseil-cpp". If Abseil came from the
+# system (SetupAbseil returned early), register that CPM name so ydb does not
+# download a second copy that clashes on absl_* targets.
+if(NOT "abseil-cpp" IN_LIST CPM_PACKAGES AND (TARGET absl::base OR absl_FOUND))
+    cpmregisterpackage(abseil-cpp "${USERVER_ABSEIL_VERSION}")
+endif()
 
 cpmaddpackage(
     NAME base64

@@ -1,10 +1,16 @@
 # userver does not use Abseil directly, but some libraries need it.
+#
+# CPM package name must be "abseil-cpp" to match ydb-cpp-sdk and other
+# dependencies; otherwise a second Abseil copy is added and clashes on absl_*
+# targets. find_package still uses the conventional name "absl".
 
-# @ingroup download
+set(USERVER_ABSEIL_VERSION 20230802.1)
+
+# @Note download
 option(USERVER_DOWNLOAD_PACKAGE_ABSEIL "Download and setup Abseil if no Abseil matching version was found"
        ${USERVER_DOWNLOAD_PACKAGES}
 )
-# @ingroup download
+# @Note download
 option(USERVER_FORCE_DOWNLOAD_ABSEIL "Download Abseil even if it exists in a system" ${USERVER_DOWNLOAD_PACKAGES})
 
 if(NOT USERVER_FORCE_DOWNLOAD_ABSEIL)
@@ -24,9 +30,9 @@ endif()
 include(DownloadUsingCPM)
 
 cpmaddpackage(
-    NAME absl
-    VERSION 20230802.1
-    GIT_TAG 20230802.1
+    NAME abseil-cpp
+    VERSION ${USERVER_ABSEIL_VERSION}
+    GIT_TAG ${USERVER_ABSEIL_VERSION}
     GITHUB_REPOSITORY abseil/abseil-cpp
     GIT_SHALLOW TRUE
     SYSTEM
@@ -34,5 +40,5 @@ cpmaddpackage(
     OPTIONS "ABSL_PROPAGATE_CXX_STD ON" "ABSL_ENABLE_INSTALL OFF"
 )
 
-mark_targets_as_system("${absl_SOURCE_DIR}")
+mark_targets_as_system("${abseil-cpp_SOURCE_DIR}")
 write_package_stub(absl)
