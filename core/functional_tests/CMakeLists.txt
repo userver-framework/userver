@@ -26,6 +26,11 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-http2server)
 add_subdirectory(https_no_passphrase)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-https-no-passphrase)
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    add_subdirectory(jemalloc)
+    add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-jemalloc)
+endif()
+
 add_subdirectory(metrics)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-metrics)
 
