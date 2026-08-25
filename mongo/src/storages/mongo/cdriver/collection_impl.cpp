@@ -7,35 +7,27 @@
 
 #include <userver/formats/bson/document.hpp>
 #include <userver/formats/bson/inline.hpp>
-#include <userver/server/request/task_inherited_data.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/mongo_error.hpp>
 #include <userver/tracing/span.hpp>
-#include <userver/tracing/tags.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
-#include <userver/utils/text.hpp>
 
 #include <formats/bson/wrappers.hpp>
 #include <storages/mongo/cdriver/cursor_impl.hpp>
 #include <storages/mongo/cdriver/find_and_modify.hpp>
 #include <storages/mongo/cdriver/pool_impl.hpp>
+#include <storages/mongo/cdriver/request_helpers.hpp>
 #include <storages/mongo/cdriver/wrappers.hpp>
 #include <storages/mongo/operations_common.hpp>
 #include <storages/mongo/operations_impl.hpp>
-
-#include <dynamic_config/variables/MONGO_DEFAULT_MAX_TIME_MS.hpp>
-#include <dynamic_config/variables/USERVER_DEADLINE_PROPAGATION_ENABLED.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::impl::cdriver {
 namespace {
-
-const std::string kCancelledByDeadlineTag = "cancelled_by_deadline";
-const std::string kCancelledTag = "cancelled";
-const std::string kMaxTimeMsTag = "max_time_ms";
 
 class WriteResultHelper {
 public:
@@ -48,66 +40,6 @@ private:
     formats::bson::impl::UninitializedBson bson_;
     MongoError error_{};
 };
-
-std::optional<std::string_view> GetCurrentSpanLink() {
-    auto* span = tracing::Span::CurrentSpanUnchecked();
-    if (span) {
-        return span->GetLink();
-    }
-    return std::nullopt;
-}
-
-void SetLinkComment(formats::bson::impl::BsonBuilder& builder, bool& has_comment_option) {
-    auto link = GetCurrentSpanLink();
-    if (link) {
-        operations::AppendComment(builder, has_comment_option, options::Comment(utils::StrCat("link=", *link)));
-    }
-}
-
-std::optional<std::chrono::milliseconds> GetDeadlineTimeLeft(const dynamic_config::Snapshot& config) {
-    if (!config[::dynamic_config::USERVER_DEADLINE_PROPAGATION_ENABLED]) {
-        return std::nullopt;
-    }
-
-    const auto inherited_deadline = server::request::GetTaskInheritedDeadline();
-    if (!inherited_deadline.IsReachable()) {
-        return std::nullopt;
-    }
-
-    const auto
-        inherited_timeout = std::chrono::duration_cast<std::chrono::milliseconds>(inherited_deadline.TimeLeftApprox());
-    return inherited_timeout;
-}
-
-std::chrono::milliseconds ComputeAdjustedMaxServerTime(
-    std::chrono::milliseconds user_max_server_time,
-    const RequestContext& context
-) {
-    auto max_server_time = user_max_server_time;
-    try {
-        operations::VerifyMaxServerTime(max_server_time);
-    } catch (const InvalidQueryArgumentException& /*ex*/) {
-        context.stats->Account(stats::ErrorType::kBadQueryArgument);
-        throw;
-    }
-
-    if (max_server_time == operations::kNoMaxServerTime) {
-        max_server_time = context.dynamic_config[::dynamic_config::MONGO_DEFAULT_MAX_TIME_MS];
-    }
-
-    if (auto inherited_deadline = context.inherited_deadline) {
-        operations::VerifyMaxServerTime(*inherited_deadline);
-        if (max_server_time == operations::kNoMaxServerTime || *inherited_deadline < max_server_time) {
-            max_server_time = *inherited_deadline;
-        }
-    }
-
-    if (max_server_time != operations::kNoMaxServerTime) {
-        tracing::Span::CurrentSpan().AddTag(kMaxTimeMsTag, max_server_time.count());
-    }
-
-    return max_server_time;
-}
 
 void WarnIfBulkWriteMaxServerTimeUnsupported(
     std::string_view operation_name,
@@ -124,23 +56,9 @@ void WarnIfBulkWriteMaxServerTimeUnsupported(
 }
 
 void SetMaxServerTime(
-    std::optional<formats::bson::impl::BsonBuilder>& builder,
-    std::chrono::milliseconds max_server_time,
-    const RequestContext& context
-) {
-    max_server_time = ComputeAdjustedMaxServerTime(max_server_time, context);
-    if (max_server_time == operations::kNoMaxServerTime) {
-        return;
-    }
-
-    constexpr std::string_view kOptionName = "maxTimeMS";
-    impl::EnsureBuilder(builder).Append(kOptionName, max_server_time.count());
-}
-
-void SetMaxServerTime(
     mongoc_find_and_modify_opts_t& options,
     std::chrono::milliseconds max_server_time,
-    const RequestContext& context
+    const RequestContextBase& context
 ) {
     max_server_time = ComputeAdjustedMaxServerTime(max_server_time, context);
     if (max_server_time == operations::kNoMaxServerTime) {
@@ -578,20 +496,6 @@ WriteResult FinishBulkWrite(const BulkWriteResultPtr& result, const BulkWriteExc
 
 #endif  // MONGOC_BULKWRITE_H
 
-std::optional<std::chrono::milliseconds> GetTimeoutOrThrow(
-    const dynamic_config::Snapshot& dynamic_config,
-    stats::OperationStatisticsItem& stats,
-    tracing::Span& span
-) {
-    const auto time_left = GetDeadlineTimeLeft(dynamic_config);
-    if (time_left && time_left <= std::chrono::seconds{0}) {
-        stats.Account(stats::ErrorType::kCancelled);
-        span.AddTag(kCancelledByDeadlineTag, true);
-        throw CancelledException(CancelledException::ByDeadlinePropagation{});
-    }
-    return time_left;
-}
-
 }  // namespace
 
 CDriverCollectionImpl::CDriverCollectionImpl(
@@ -661,11 +565,7 @@ Cursor CDriverCollectionImpl::Execute(const operations::Find& operation) const {
     const auto read_prefs = MakeEffectiveReadPrefs(operation.impl_->read_prefs);
 
     auto options = operation.impl_->options;
-    SetMaxServerTime(options, operation.impl_->max_server_time, context);
-    bool has_comment_option = operation.impl_->has_comment_option;
-    if (!has_comment_option) {
-        SetLinkComment(impl::EnsureBuilder(options), has_comment_option);
-    }
+    PrepareCursorOptions(options, operation.impl_->max_server_time, operation.impl_->has_comment_option, context);
 
     const bson_t* native_filter_bson_ptr = operation.impl_->filter.GetBson().get();
     impl::cdriver::CursorPtr cdriver_cursor(mongoc_collection_find_with_opts(
@@ -686,11 +586,7 @@ std::vector<formats::bson::Value> CDriverCollectionImpl::Execute(const operation
     const auto read_prefs = MakeEffectiveReadPrefs(operation.impl_->read_prefs);
 
     auto options = operation.impl_->options;
-    SetMaxServerTime(options, operation.impl_->max_server_time, context);
-    bool has_comment_option = operation.impl_->has_comment_option;
-    if (!has_comment_option) {
-        SetLinkComment(impl::EnsureBuilder(options), has_comment_option);
-    }
+    PrepareCursorOptions(options, operation.impl_->max_server_time, operation.impl_->has_comment_option, context);
 
     MongoError error;
     stats::OperationStopwatch stopwatch(std::move(context.stats));
@@ -830,7 +726,7 @@ WriteResult CDriverCollectionImpl::Execute(const operations::ReplaceOne& operati
 
 WriteResult CDriverCollectionImpl::ExecuteReplaceNative(
     const operations::ReplaceOne& operation,
-    RequestContext& context
+    CollectionRequestContext& context
 ) {
     WriteResultHelper write_result;
     MongoError& error = write_result.GetError();
@@ -860,7 +756,7 @@ WriteResult CDriverCollectionImpl::ExecuteReplaceNative(
 
 std::optional<WriteResult> CDriverCollectionImpl::ExecuteReplaceBulkWrite(
     const operations::ReplaceOne& operation,
-    RequestContext& context,
+    CollectionRequestContext& context,
     std::chrono::milliseconds effective
 ) {
     const std::string ns = utils::StrCat(GetDatabaseName(), ".", GetCollectionName());
@@ -951,7 +847,10 @@ WriteResult CDriverCollectionImpl::Execute(const operations::Update& operation) 
     return ExecuteUpdateNative(operation, context);
 }
 
-WriteResult CDriverCollectionImpl::ExecuteUpdateNative(const operations::Update& operation, RequestContext& context) {
+WriteResult CDriverCollectionImpl::ExecuteUpdateNative(
+    const operations::Update& operation,
+    CollectionRequestContext& context
+) {
     bool should_retry_dupkey = operation.impl_->should_retry_dupkey;
     while (true) {
         WriteResultHelper write_result;
@@ -1005,7 +904,7 @@ WriteResult CDriverCollectionImpl::ExecuteUpdateNative(const operations::Update&
 
 std::optional<WriteResult> CDriverCollectionImpl::ExecuteUpdateBulkWrite(
     const operations::Update& operation,
-    RequestContext& context,
+    CollectionRequestContext& context,
     std::chrono::milliseconds effective
 ) {
     const bool multi = operation.impl_->mode == operations::Update::Mode::kMulti;
@@ -1232,11 +1131,7 @@ Cursor CDriverCollectionImpl::Execute(const operations::Aggregate& operation) {
     const auto read_prefs = MakeEffectiveReadPrefs(operation.impl_->read_prefs);
 
     auto options = operation.impl_->options;
-    SetMaxServerTime(options, operation.impl_->max_server_time, context);
-    bool has_comment_option = operation.impl_->has_comment_option;
-    if (!has_comment_option) {
-        SetLinkComment(impl::EnsureBuilder(options), has_comment_option);
-    }
+    PrepareCursorOptions(options, operation.impl_->max_server_time, operation.impl_->has_comment_option, context);
 
     auto pipeline_doc = operation.impl_->pipeline.GetInternalArrayDocument();
     const bson_t* native_pipeline_bson_ptr = pipeline_doc.GetBson().get();
@@ -1279,59 +1174,30 @@ cdriver::CDriverPoolImpl& CDriverCollectionImpl::GetPool() const {
 }
 
 cdriver::CDriverPoolImpl::BoundClientPtr CDriverCollectionImpl::GetClient(stats::OperationStatisticsItem& stats) const {
-    try {
-        return GetPool().Acquire();
-    } catch (const CancelledException& ex) {
-        stats.Account(stats::ErrorType::kCancelled);
-        auto& span = tracing::Span::CurrentSpan();
-        if (ex.IsByDeadlinePropagation()) {
-            span.AddTag(kCancelledByDeadlineTag, true);
-        } else {
-            span.AddTag(kCancelledTag, true);
-        }
-        throw;
-    } catch (const PoolOverloadException& /*ex*/) {
-        stats.Account(stats::ErrorType::kPoolOverload);
-        throw;
-    }
+    return AcquireClient(GetPool(), stats);
 }
 
 mongoc_client_session_t* CDriverCollectionImpl::GetSession() const { return nullptr; }
 
-RequestContext CDriverCollectionImpl::MakeRequestContext(std::string&& span_name, const stats::OperationKey& stats_key)
-    const {
-    auto span = MakeSpan(std::move(span_name));
-    auto stats = statistics_->items[stats_key];
-    auto dynamic_config = pool_impl_->GetConfig();
-
-    // first deadline check, to make sure we dont get/wait for client if deadline is already reached.
-    auto timeout_ms = GetTimeoutOrThrow(dynamic_config, *stats, span);
-    if (timeout_ms) {
-        span.AddTag(tracing::kTimeoutMs, timeout_ms->count());
-    }
-
-    auto client = GetClient(*stats);
-    cdriver::CollectionPtr
-        collection(mongoc_client_get_collection(client.get(), GetDatabaseName().c_str(), GetCollectionName().c_str()));
-
-    // The second deadline check, to make sure we did not hit deadline after waiting or creating a new client.
-    timeout_ms = timeout_ms ? GetTimeoutOrThrow(dynamic_config, *stats, span) : timeout_ms;
-    if (timeout_ms) {
-        span.AddTag(tracing::kTimeoutMs, timeout_ms->count());
-    }
-
-    return RequestContext{
-        std::move(stats),
-        std::move(dynamic_config),
-        std::move(client),
-        std::move(collection),
-        std::move(span),
-        timeout_ms,
-    };
+CollectionRequestContext CDriverCollectionImpl::MakeRequestContext(
+    std::string&& span_name,
+    const stats::OperationKey& stats_key
+) const {
+    auto base = MakeRequestContextBase(
+        MakeSpan(std::move(span_name)),
+        statistics_->items[stats_key],
+        pool_impl_->GetConfig(),
+        [this](stats::OperationStatisticsItem& stats) { return GetClient(stats); }
+    );
+    CollectionPtr collection(
+        mongoc_client_get_collection(base.client.get(), GetDatabaseName().c_str(), GetCollectionName().c_str())
+    );
+    return CollectionRequestContext{std::move(base), std::move(collection)};
 }
 
 template <typename Operation>
-RequestContext CDriverCollectionImpl::MakeRequestContext(std::string&& span_name, const Operation& operation) const {
+CollectionRequestContext CDriverCollectionImpl::MakeRequestContext(std::string&& span_name, const Operation& operation)
+    const {
     return MakeRequestContext(std::move(span_name), operation.impl_->op_key);
 }
 

@@ -63,6 +63,10 @@ Transaction Pool::BeginTransaction() const {
     return Transaction{std::move(transaction_impl)};
 }
 
+Cursor Pool::Execute(const operations::Aggregate& aggregate_op) {
+    return impl::Database(impl_, impl_->DefaultDatabaseName()).Aggregate(aggregate_op);
+}
+
 void DumpMetric(utils::statistics::Writer& writer, const Pool& pool) {
     const auto verbosity = pool.impl_->GetStatsVerbosity();
     if (verbosity == StatsVerbosity::kNone) {

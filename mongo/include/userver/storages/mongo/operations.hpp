@@ -10,6 +10,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace storages::mongo::impl {
+class Database;
+}  // namespace storages::mongo::impl
+
 namespace storages::mongo::impl::cdriver {
 class CDriverCollectionImpl;
 class CDriverTransactionCollectionImpl;
@@ -356,6 +360,7 @@ public:
     void SetOption(const options::MaxServerTime&);
 
 private:
+    friend class storages::mongo::impl::Database;
     friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
     friend class storages::mongo::impl::cdriver::CDriverTransactionCollectionImpl;
 

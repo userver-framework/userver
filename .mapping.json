@@ -3510,6 +3510,8 @@
   "mongo/src/storages/mongo/cdriver/pool_impl.cpp":"taxi/uservices/userver/mongo/src/storages/mongo/cdriver/pool_impl.cpp",
   "mongo/src/storages/mongo/cdriver/pool_impl.hpp":"taxi/uservices/userver/mongo/src/storages/mongo/cdriver/pool_impl.hpp",
   "mongo/src/storages/mongo/cdriver/read_prefs_test.cpp":"taxi/uservices/userver/mongo/src/storages/mongo/cdriver/read_prefs_test.cpp",
+  "mongo/src/storages/mongo/cdriver/request_helpers.cpp":"taxi/uservices/userver/mongo/src/storages/mongo/cdriver/request_helpers.cpp",
+  "mongo/src/storages/mongo/cdriver/request_helpers.hpp":"taxi/uservices/userver/mongo/src/storages/mongo/cdriver/request_helpers.hpp",
   "mongo/src/storages/mongo/cdriver/transaction_collection_impl.cpp":"taxi/uservices/userver/mongo/src/storages/mongo/cdriver/transaction_collection_impl.cpp",
   "mongo/src/storages/mongo/cdriver/transaction_collection_impl.hpp":"taxi/uservices/userver/mongo/src/storages/mongo/cdriver/transaction_collection_impl.hpp",
   "mongo/src/storages/mongo/cdriver/wrappers.cpp":"taxi/uservices/userver/mongo/src/storages/mongo/cdriver/wrappers.cpp",

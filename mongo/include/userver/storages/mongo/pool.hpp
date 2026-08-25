@@ -9,7 +9,10 @@
 
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/dynamic_config/fwd.hpp>
+#include <userver/formats/bson/value.hpp>
 #include <userver/storages/mongo/collection.hpp>
+#include <userver/storages/mongo/cursor.hpp>
+#include <userver/storages/mongo/operations.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
 #include <userver/storages/mongo/transaction.hpp>
 #include <userver/utils/statistics/fwd.hpp>
@@ -62,6 +65,25 @@ public:
     /// @throws MongoException if transaction cannot be started
     Transaction BeginTransaction() const;
 
+    /// @brief Executes an aggregation pipeline on the database, without a collection
+    /// @param pipeline an array of aggregation operations
+    /// @param options see @ref storages::mongo::options
+    ///
+    /// Corresponds to MongoDB `db.aggregate([...])`. Use this for pipelines that
+    /// cannot run on a collection, for example when the first stage is `$documents`.
+    ///
+    /// On sharded clusters MongoDB may reject `$documents` together with `$lookup`:
+    /// `$documents` must run on mongos, while `$lookup` must run on a shard.
+    /// @see Collection::Aggregate
+    /// @snippet storages/mongo/pool_mongotest.cpp Sample Mongo database aggregate
+    template <typename... Options>
+    Cursor Aggregate(formats::bson::Value pipeline, Options&&... options);
+
+    /// @name Prepared operation executors
+    /// @{
+    Cursor Execute(const operations::Aggregate&);
+    /// @}
+
     /// @cond
     // For internal use only
     Pool(
@@ -86,6 +108,13 @@ private:
 };
 
 using PoolPtr = std::shared_ptr<Pool>;
+
+template <typename... Options>
+Cursor Pool::Aggregate(formats::bson::Value pipeline, Options&&... options) {
+    operations::Aggregate aggregate(std::move(pipeline));
+    (aggregate.SetOption(std::forward<Options>(options)), ...);
+    return Execute(aggregate);
+}
 
 }  // namespace storages::mongo
 
