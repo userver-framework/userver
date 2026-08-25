@@ -32,7 +32,7 @@ enum class SplitFlags {
 
 /// Split string by separators
 ///
-/// @snippet utils/text_light_test.cpp  SplitMultiple
+/// @snippet universal/src/utils/text_light_test.cpp  SplitMultiple
 std::vector<std::string> Split(
     std::string_view str,
     std::string_view separators,
@@ -43,7 +43,7 @@ std::vector<std::string> Split(
 ///
 /// @warning Initial `str` should outlive the result of the function
 ///
-/// @snippet utils/text_light_test.cpp  SplitStringViewMultiple
+/// @snippet universal/src/utils/text_light_test.cpp  SplitStringViewMultiple
 std::vector<std::string_view> SplitIntoStringViewVector(std::string_view str, std::string_view separators);
 
 /// Join string

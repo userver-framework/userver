@@ -66,8 +66,8 @@ Internal services that require no reliability and chat bots are examples of
 such services. For a starting point on configuration see
 @ref scripts/docs/en/userver/tutorial/production_service.md.
 
-Note that for a longstanding runs the logs of the service should be cleaned up
-at some point. Configure the `logrotate` like software to move/remove the old
+Note that for longstanding runs the logs of the service should be cleaned up
+at some point. Configure `logrotate`-like software to move/remove the old
 logs and notify the `🐙 Service` by `SIGUSR1` signal:
 ```
 postrotate

@@ -47,7 +47,7 @@ struct IsBox<Box<Args...>> : std::true_type {};
 /// - to own an object of a polymorphic base class.
 ///
 /// Usage example:
-/// @snippet utils/box_test.cpp  sample
+/// @snippet universal/src/utils/box_test.cpp  sample
 template <typename T>
 class Box {
 public:

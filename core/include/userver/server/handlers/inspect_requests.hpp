@@ -22,7 +22,7 @@ namespace handlers {
 ///
 /// ## Static configuration example:
 ///
-/// @snippet components/common_server_component_list_test.cpp  Sample handler inspect requests component config
+/// @snippet core/src/components/common_server_component_list_test.cpp  Sample handler inspect requests component config
 ///
 /// ## Scheme
 /// Provide an optional query parameter `body` to get the bodies of all the

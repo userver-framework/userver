@@ -77,7 +77,7 @@ void CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing(
 /// processing, same listener is never called concurrently.
 ///
 /// Example usage:
-/// @snippet concurrent/async_event_channel_test.cpp  AsyncEventChannel sample
+/// @snippet core/src/concurrent/async_event_channel_test.cpp  AsyncEventChannel sample
 template <typename... Args>
 class AsyncEventChannel : public AsyncEventSource<Args...> {
 public:
@@ -103,7 +103,7 @@ public:
     /// until the `AsyncEventChannel` object is completely destroyed.
     ///
     /// Example usage:
-    /// @snippet concurrent/async_event_channel_test.cpp OnListenerRemoval sample
+    /// @snippet core/src/concurrent/async_event_channel_test.cpp OnListenerRemoval sample
     ///
     /// @param name used for diagnostic purposes and is also accessible with Name
     /// @param on_listener_removal the callback used for check

@@ -51,10 +51,10 @@ namespace components {
 ///
 /// ## Static configuration example:
 ///
-/// @snippet components/common_component_list_test.cpp  Sample dynamic config component config
+/// @snippet core/src/components/common_component_list_test.cpp  Sample dynamic config component config
 ///
 /// ## Usage example:
-/// @snippet components/component_sample_test.cpp  Sample user component runtime config source
+/// @snippet core/src/components/component_sample_test.cpp  Sample user component runtime config source
 class DynamicConfig final : public DynamicConfigUpdatesSinkBase {
 public:
     /// @ingroup userver_component_names
@@ -137,7 +137,7 @@ public:
     /// called with `std::nullopt` and current config snapshot.
     ///
     /// Example usage:
-    /// @snippet dynamic_config/config_test.cpp Custom subscription for dynamic config update
+    /// @snippet core/src/dynamic_config/config_test.cpp Custom subscription for dynamic config update
     ///
     /// @param obj the subscriber, which is the owner of the listener method, and
     /// is also used as the unique identifier of the subscription

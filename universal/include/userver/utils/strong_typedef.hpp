@@ -131,7 +131,7 @@ constexpr bool IsStrongToStrongConversion() noexcept {
 /// @brief Strong typedef for a type T.
 ///
 /// Typical usage:
-/// @snippet utils/strong_typedef_test.cpp  StrongTypedef typical usage
+/// @snippet universal/src/utils/strong_typedef_test.cpp  StrongTypedef typical usage
 ///
 /// Has all the:
 /// * comparison (see "Operators" below)
@@ -402,7 +402,7 @@ void PrintTo(const StrongTypedef<Tag, T, Ops>& v, std::ostream* os) {
 /// A StrongTypedef for data that MUST NOT be logged or outputted in some other
 /// way. Also prevents the data from appearing in backtrace prints of debugger.
 ///
-/// @snippet storages/secdist/secdist_test.cpp UserPasswords
+/// @snippet core/src/storages/secdist/secdist_test.cpp UserPasswords
 template <class Tag, class T>
 using NonLoggable = StrongTypedef<Tag, T, StrongTypedefOps::kCompareStrong | StrongTypedefOps::kNonLoggable>;
 

@@ -86,7 +86,7 @@ struct Diff final {
 /// Usually retrieved from components::DynamicConfig component.
 ///
 /// Typical usage:
-/// @snippet components/component_sample_test.cpp  Sample user component runtime config source
+/// @snippet core/src/components/component_sample_test.cpp  Sample user component runtime config source
 class Source final {
 public:
     using SnapshotEventSource = concurrent::AsyncEventSource<const Snapshot&>;
@@ -184,7 +184,7 @@ public:
     /// called with `std::nullopt` and current config snapshot.
     ///
     /// Example usage:
-    /// @snippet dynamic_config/config_test.cpp Custom subscription for dynamic config update
+    /// @snippet core/src/dynamic_config/config_test.cpp Custom subscription for dynamic config update
     ///
     /// @param scopes storage that owns the subscription lifetime. In a component constructor pass `context.Scopes()`
     /// or @ref components::GetResourceScopes.

@@ -38,7 +38,7 @@ std::string_view ToStringView(IsolationLevel lvl);
 /// @brief PostgreSQL transaction options
 ///
 /// A transaction can be started using all isolation levels and modes
-/// supported by PostgreSQL server as specified in it's documentation.
+/// supported by PostgreSQL server as specified in its documentation.
 ///
 /// Default isolation level is READ COMMITTED, default mode is READ WRITE.
 /// @code
@@ -97,7 +97,7 @@ USERVER_NAMESPACE::utils::StringLiteral BeginStatement(TransactionOptions opts) 
 /// * connecting to PostgreSQL server, if there are no connections available and
 ///   connection pool still has space for new connections;
 /// * waiting for a connection to become idle if there are no idle connections
-///   and connection pool already has reached it's max size;
+///   and connection pool already has reached its max size;
 /// * preparing a statement if the statement is run for the first time on the
 ///   connection;
 /// * binding parameters and executing the statement;
@@ -297,7 +297,7 @@ struct ConnectionSettings {
     std::optional<std::chrono::seconds> max_ttl{};
 
     /// Execute DISCARD ALL after establishing a new connection
-    /// Has effect only in session pooler mode (@ref PoolerMode::kSession)
+    /// Has effect only in session pooler mode (@ref storages::postgres::PoolerMode::kSession)
     DiscardOnConnectOptions discard_on_connect = kDiscardAll;
 
     /// Statement logging in span tags

@@ -144,7 +144,7 @@ template <class Connection, class Derived>
 void ConnectionPoolBase<
     Connection,
     Derived>::Init(std::size_t initial_size, std::chrono::milliseconds connection_setup_timeout) {
-    UASSERT_MSG(!initialized_, "Calling Init multiple times is a API misuse");
+    UASSERT_MSG(!initialized_, "Calling Init multiple times is an API misuse");
     // We mark the pool as initialized even if this method throws, because
     // this `initialized_` field is here just to ensure correct API usage,
     // doesn't have much meaning aside from that.
@@ -169,7 +169,7 @@ void ConnectionPoolBase<
 
 template <class Connection, class Derived>
 void ConnectionPoolBase<Connection, Derived>::Reset() {
-    UASSERT_MSG(!reset_, "Calling Reset multiple times is a API misuse");
+    UASSERT_MSG(!reset_, "Calling Reset multiple times is an API misuse");
     reset_ = true;
 
     CleanupQueue();

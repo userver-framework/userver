@@ -65,7 +65,7 @@ struct LoopbackResolverFixture : public ::testing::Test {
 
 }  // namespace
 
-// @snippet src/net/connect_tcp_by_name_test.cpp ConnectTcpByName localhost
+// @snippet core/src/net/connect_tcp_by_name_test.cpp ConnectTcpByName localhost
 UTEST_F(LoopbackResolverFixture, ConnectTcpByNameLocalhost) {
     engine::io::tests::TcpListener listener;
     const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);

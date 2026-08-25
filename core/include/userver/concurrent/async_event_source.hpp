@@ -118,7 +118,7 @@ public:
     /// event inside another listener.
     ///
     /// Example usage:
-    /// @snippet concurrent/async_event_channel_test.cpp  AddListener sample
+    /// @snippet core/src/concurrent/async_event_channel_test.cpp  AddListener sample
     ///
     /// @param obj the subscriber, which is the owner of the listener method, and
     /// is also used as the unique identifier of the subscription for this

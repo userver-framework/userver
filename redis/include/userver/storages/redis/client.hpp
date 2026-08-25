@@ -36,7 +36,7 @@ enum class PubShard {
 ///
 /// ## Example usage:
 ///
-/// @snippet storages/redis/client_redistest.cpp  Sample Redis Client usage
+/// @snippet redis/src/storages/redis/client_redistest.cpp  Sample Redis Client usage
 class Client {
 public:
     virtual ~Client() = default;
@@ -150,7 +150,10 @@ public:
     }
 
     /// @brief Execute a custom Redis command.
+    /// @param command Redis command name
+    /// @param args command arguments
     /// @param key_index Index of the key in the args vector used to determine the shard
+    /// @param command_control per-command execution options
     ///
     /// Sample usage:
     /// @snippet redis/src/storages/redis/client_cluster_redistest.cpp  Sample generic command usage

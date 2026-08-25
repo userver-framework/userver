@@ -36,7 +36,7 @@ namespace components {
 ///
 /// ## Static configuration example:
 ///
-/// @snippet components/common_component_list_test.cpp  Sample testsuite support component config
+/// @snippet core/src/components/common_component_list_test.cpp  Sample testsuite support component config
 class TestsuiteSupport final : public components::RawComponentBase {
 public:
     /// @ingroup userver_component_names

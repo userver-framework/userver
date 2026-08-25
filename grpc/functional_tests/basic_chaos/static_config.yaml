@@ -48,20 +48,20 @@ components_manager:
             msg-size-log-limit: 512
             # /// [Sample grpc server logging middleware component config]
 
-            # /// [Sample grpc server deadline propagation middleware component config]
+            # /// [grpc server dp mw config]
         grpc-server-deadline-propagation:
             prefer-absolute-deadline: true
-        # /// [Sample grpc server deadline propagation middleware component config]
+        # /// [grpc server dp mw config]
 
         # /// [Sample grpc server baggage middleware component config]
         grpc-server-baggage:
         # Nothing
         # /// [Sample grpc server baggage middleware component config]
 
-        # /// [Sample grpc server congestion control middleware component config]
+        # /// [grpc server cc mw config]
         grpc-server-congestion-control:
         # Nothing
-        # /// [Sample grpc server congestion control middleware component config]
+        # /// [grpc server cc mw config]
 
         grpc-client-origin:
             user-agent: basic-chaos-service
@@ -130,10 +130,10 @@ components_manager:
             msg-size-log-limit: 512
             # /// [Sample grpc client logging middleware component config]
 
-            # /// [Sample grpc client deadline propagation middleware component config]
+            # /// [grpc client dp mw config]
         grpc-client-deadline-propagation:
         # Nothing
-        # /// [Sample grpc client deadline propagation middleware component config]
+        # /// [grpc client dp mw config]
 
         # /// [Sample grpc client baggage middleware component config]
         grpc-client-baggage:

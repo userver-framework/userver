@@ -15,11 +15,11 @@ components_manager:
                 port: 8080  # ...to listen on this port and...
                 task_processor: main-task-processor  # ...process incoming requests on this task processor.
 
-        # [Middlewares sample - noop-middleware and server-middleware components configs]
+        # [http mw components config]
         noop-middleware: {}
 
         server-middleware: {}
-        # [Middlewares sample - noop-middleware and server-middleware components configs]
+        # [http mw components config]
 
         # [Middlewares sample - handler-middleware component config]
         handler-middleware: {}
@@ -47,7 +47,7 @@ components_manager:
             method: GET  # It will only reply to GET (HEAD) requests.
             task_processor: main-task-processor  # Run it on CPU bound task processor
 
-        # [Middlewares sample - custom handler pipeline builder configuration]
+        # [custom handler pipeline config]
         # yaml
         handler-with-custom-middlewares:
             path: /custom-hello
@@ -57,7 +57,7 @@ components_manager:
                 pipeline-builder: custom-handler-pipeline-builder
                 handler-middleware:
                     header-value: some_value
-                    # [Middlewares sample - custom handler pipeline builder configuration]
+                    # [custom handler pipeline config]
 
         handler-with-another-middleware-configuration:
             path: /custom-hello-other

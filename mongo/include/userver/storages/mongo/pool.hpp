@@ -33,7 +33,7 @@ class PoolImpl;
 ///
 /// ## Example usage:
 ///
-/// @snippet storages/mongo/collection_mongotest.hpp  Sample Mongo usage
+/// @snippet mongo/src/storages/mongo/collection_mongotest.hpp  Sample Mongo usage
 class Pool {
 public:
     Pool(Pool&&) noexcept;

@@ -140,7 +140,7 @@ protected:
     /// Stream transmission is useful when:
     /// 1) The body size is unknown beforehand.
     /// 2) The client may take advantage of early body transmission (e.g. a Web Browser may start rendering the HTML
-    ///    page or downloading dependant resources).
+    ///    page or downloading dependent resources).
     /// 3) The body size is huge and we want to have only a part of it in memory.
     ///
     /// Example usage:

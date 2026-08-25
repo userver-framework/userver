@@ -32,7 +32,7 @@ namespace engine {
 ///
 /// ## Example usage:
 ///
-/// @snippet engine/future_test.cpp  Sample engine::Future usage
+/// @snippet core/src/engine/future_test.cpp  Sample engine::Future usage
 ///
 /// @see @ref scripts/docs/en/userver/synchronization.md
 template <typename T>
@@ -47,7 +47,7 @@ class Promise;
 ///
 /// ## Example usage:
 ///
-/// @snippet engine/future_test.cpp  Sample engine::Future usage
+/// @snippet core/src/engine/future_test.cpp  Sample engine::Future usage
 ///
 /// @see @ref scripts/docs/en/userver/synchronization.md
 template <typename T>

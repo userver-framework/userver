@@ -21,7 +21,7 @@ namespace engine {
 ///
 /// ## Example usage:
 ///
-/// @snippet engine/task/task_with_result_test.cpp  Sample TaskWithResult usage
+/// @snippet core/src/engine/task/task_with_result_test.cpp  Sample TaskWithResult usage
 ///
 /// @see @ref scripts/docs/en/userver/synchronization.md
 template <typename T>

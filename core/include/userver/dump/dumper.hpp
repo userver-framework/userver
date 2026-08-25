@@ -142,7 +142,7 @@ public:
     /// @param update_type Whether the update modified the data or confirmed its
     /// actuality, UpdateType::kModified by default
     /// @note This overload locks mutexes and should not be used in tight loops.
-    /// On the other hand, it allows to exactly control the dump expiration.
+    /// On the other hand, it allows you to exactly control the dump expiration.
     void OnUpdateCompleted(TimePoint update_time, UpdateType update_type);
 
     /// @brief Cancel and wait for the task running background writes. Also

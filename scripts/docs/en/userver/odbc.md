@@ -191,7 +191,7 @@ rejected by every driver/database combination.
 ### Command control and deadlines
 
 storages::odbc::CommandControl configures the connection-acquisition/network
-timeout and statement timeout for an operation. Pass an
+timeout and statement timeout for an operation. Pass a
 storages::odbc::OptionalCommandControl to `Cluster::Execute`, `Cluster::Begin`,
 or `Transaction::Execute` to override configured values. Each field is resolved
 independently in this order: built-in/default, task-inherited HTTP handler

@@ -129,7 +129,7 @@ should have a section in service config (also known as static config).
 The component configuration is passed as a first parameter of type
 @ref components::ComponentConfig to the constructor of the component. Note that
 @ref components::ComponentConfig extends the functionality of
-@ref yaml_config::YamlConfig with @ref YamlConfig::Mode::kEnvAllowed mode
+@ref yaml_config::YamlConfig with @ref yaml_config::YamlConfig::Mode::kEnvAllowed mode
 that is able to substitute variables with values, use environment variables and
 fallbacks. See @ref yaml_config::YamlConfig for more info and examples.
 
@@ -145,7 +145,7 @@ All the components have the following options:
 To validate static configs you only need to define a member function in your component
 `GetStaticConfigSchema()`
 
-@snippet components/component_sample_test.cpp  Sample user component schema
+@snippet core/src/components/component_sample_test.cpp  Sample user component schema
 
 All schemas and sub-schemas must have `description` field and can have
 `defaultDescription` field if they have a default value.
@@ -161,7 +161,7 @@ components_manager:
 
 You also can force static config validation of your component by adding `components::kHasValidate`
 
-@snippet components/component_sample_test.hpp  Sample kHasValidate specialization
+@snippet core/src/components/component_sample_test.hpp  Sample kHasValidate specialization
 
 @note There are plans to use it to generate documentation.
 
@@ -178,7 +178,7 @@ Supported mode:
 * `kConfigFileMode::kRequired` - The component must be defined in configuration file
 * `kConfigFileMode::kNotRequired` - The component may not be defined in the configuration file
 
-@snippet components/component_sample_test.hpp  Sample kConfigFileMode specialization
+@snippet core/src/components/component_sample_test.hpp  Sample kConfigFileMode specialization
 
 ## Writing your own components
 Users of the framework may (and should) write their own components.
@@ -201,16 +201,16 @@ You need a component if:
 ### HowTo
 Start writing your component from adding a header file with a class
 inherited from @ref components::ComponentBase.
-@snippet components/component_sample_test.hpp  Sample user component header
+@snippet core/src/components/component_sample_test.hpp  Sample user component header
 
 In source file write the implementation of the component:
-@snippet components/component_sample_test.cpp  Sample user component source
+@snippet core/src/components/component_sample_test.cpp  Sample user component source
 Destructor of the component is invoked on service shutdown. Components are
 destroyed in the reverse order of construction. In other words, references from
 `context.FindComponent<components::DynamicConfig>()` outlive the component.
 
 If you need dynamic configs, you can get them using this approach:
-@snippet components/component_sample_test.cpp  Sample user component runtime config source
+@snippet core/src/components/component_sample_test.cpp  Sample user component runtime config source
 
 @note See @ref scripts/docs/en/userver/tutorial/config_service.md for info on how to
 implement your own config server.
@@ -237,5 +237,5 @@ help of @ref scripts/docs/en/userver/functional_testing.md "testsuite functional
 ⇦ @ref scripts/docs/en/userver/tutorial/auth_postgres.md | @ref userver_clients ⇨
 @htmlonly </div> @endhtmlonly
 
-@example components/component_sample_test.hpp
-@example components/component_sample_test.cpp
+@example core/src/components/component_sample_test.hpp
+@example core/src/components/component_sample_test.cpp

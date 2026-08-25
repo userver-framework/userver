@@ -32,7 +32,7 @@ class Controller;
 ///
 /// ## Static configuration example:
 ///
-/// @snippet components/common_server_component_list_test.cpp  Sample congestion control component config
+/// @snippet core/src/components/common_server_component_list_test.cpp  Sample congestion control component config
 class Component final : public components::ComponentBase {
 public:
     /// @ingroup userver_component_names

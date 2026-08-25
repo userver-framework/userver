@@ -18,7 +18,7 @@ you are willing to profile. All the `task-trace` options are described at
 "Static task_processor options" in components::ManagerControllerComponent. It
 is recommended to place traces into a separate
 logger to avoid bloat of your default log file. For example:
-@snippet components/minimal_server_component_list_test.cpp  Sample task-switch tracing
+@snippet core/src/components/minimal_server_component_list_test.cpp  Sample task-switch tracing
 3. Start your service
 4. Look at the traces.
 

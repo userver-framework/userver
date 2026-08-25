@@ -26,7 +26,7 @@ namespace components {
 ///
 /// ## Config example:
 ///
-/// @snippet components/common_component_list_test.cpp Sample dump configurator component config
+/// @snippet core/src/components/common_component_list_test.cpp Sample dump configurator component config
 class DumpConfigurator final : public ComponentBase {
 public:
     /// @ingroup userver_component_names

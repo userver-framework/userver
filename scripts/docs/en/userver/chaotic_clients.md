@@ -1,6 +1,6 @@
 # Chaotic clients
 
-Chaotic is able to generate a HTTP client from an OpenAPI schema.
+Chaotic is able to generate an HTTP client from an OpenAPI schema.
 You declare the API of the endpoint in [OpenAPI 3.x format](https://github.com/OAI/OpenAPI-Specification/blob/main/versions/3.1.1.md)
 (Swagger 2.0 is also accepted)
 and chaotic generates parsers, serializers and a client for you.

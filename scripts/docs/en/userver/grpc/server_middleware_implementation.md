@@ -77,7 +77,7 @@ digraph Pipeline {
   SendMessages -> HandleRPC [style=invis];
   HandleRPC -> ReceiveMessages [style=invis];
 
-  Pipeline[label = "OnCallStart/OnCallFinish middlewares hooks order", shape=plaintext, rank="main"];
+  Pipeline[label = "OnCallStart/OnCallFinish middleware hooks order", shape=plaintext, rank="main"];
 }
 @enddot
 
@@ -145,7 +145,7 @@ digraph Pipeline {
   ReadMessageFromNetwork -> FirstMiddlewarePostRecvMessage -> SecondMiddlewarePostRecvMessage -> AcceptMessage
   ReturnMessage -> SecondMiddlewarePreSendMessage -> FirstMiddlewarePreSendMessage -> WriteMessageToNetwork
 
-  Pipeline[label = "PostRecvMessage/PreSendMessage middlewares hooks order", shape=plaintext, rank="main"];
+  Pipeline[label = "PostRecvMessage/PreSendMessage middleware hooks order", shape=plaintext, rank="main"];
 }
 @enddot
 
@@ -173,12 +173,12 @@ To declare static config options of your middleware see @ref scripts/docs/en/use
 
 ## Exceptions and errors in middlewares
 
-To fully understand what happens when middlewares hooks fail, you should understand the middlewares order:
+To fully understand what happens when middleware hooks fail, you should understand the middlewares order:
 @see @ref grpc_server_middlewares_order.
 
 If you want to interrupt a Call (RPC) in middlewares, you should use @ref ugrpc::server::MiddlewareCallContext::SetError (see examples above on this page).
 
-If you throw an exception in middlewares hooks, that exception will be translated to `grpc::Status` (by default `grpc::StatusCode::UNKNOWN`) and next hooks won't be called.
+If you throw an exception in middleware hooks, that exception will be translated to `grpc::Status` (by default `grpc::StatusCode::UNKNOWN`) and next hooks won't be called.
 @ref server::handlers::CustomHandlerException is translated to a relevant `grpc::Status`.
 
 All errors will be logged just like an exception or error status from the user handler:
@@ -186,11 +186,11 @@ All errors will be logged just like an exception or error status from the user h
 * error status is written in a separate log message by @ref ugrpc::server::middlewares::log::Component before sending it to the upstream client;
 * status summary is additionally attached to the span in `error_msg` tag.
 
-@note But exceptions are not the best practice in middlewares hooks ⇒ prefer `SetError`.
+@note But exceptions are not the best practice in middleware hooks ⇒ prefer `SetError`.
 
 ### Errors and OnCallFinish
 
-@ref ugrpc::server::MiddlewareBase::OnCallFinish will be called **despite of any errors**.
+@ref ugrpc::server::MiddlewareBase::OnCallFinish will be called **despite any errors**.
 
 The actual status is passed to `OnCallFinish` hooks. Each `OnCallFinish` hook gets the status from a previous `OnCallFinish` call and can change that by `SetError` (or exception).
 An error status from a handler will be passed to a first `OnCallFinish` and that hook can change that status, next hooks will get the new status. If all `OnCallFinish` hooks don't change the status, that status will be the final status for a client.

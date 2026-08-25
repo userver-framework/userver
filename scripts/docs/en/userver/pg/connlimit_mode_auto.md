@@ -64,7 +64,7 @@ components_manager:
 
 ## Error "No available connections found"
 
-This error tells that there are no available connections in the pool. But it doesn't
+This error means that there are no available connections in the pool. But it doesn't
 mean that the service exceeded the limit of the number of connections.
 
 The pg-driver will try to create a new connection asynchronously (with the deadline from the initial request).

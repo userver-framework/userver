@@ -35,9 +35,9 @@ class Locker;
 /// the lock, the user task is canceled.
 ///
 /// ## Example with retrying
-/// @snippet dist_lock/dist_lock_test.cpp Sample distributed locked task Retry
+/// @snippet core/src/dist_lock/dist_lock_test.cpp Sample distributed locked task Retry
 /// ## Example without retrying
-/// @snippet dist_lock/dist_lock_test.cpp Sample distributed locked task SingleAttempt
+/// @snippet core/src/dist_lock/dist_lock_test.cpp Sample distributed locked task SingleAttempt
 ///
 /// @see @ref scripts/docs/en/userver/periodics.md
 /// @see AlwaysBusyDistLockStrategy

@@ -146,7 +146,7 @@ public:
     /// @note You may write a query in `.sql` file and generate a header file with Query from it.
     ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
     ///
-    /// @snippet storages/postgres/tests/landing_test.cpp Exec sample
+    /// @snippet postgresql/src/storages/postgres/tests/landing_test.cpp Exec sample
     ///
     /// @warning Do NOT create a query string manually by embedding arguments!
     /// It leads to vulnerabilities and bad performance. Either pass arguments
@@ -191,7 +191,7 @@ public:
         const ParameterStore& store
     );
 
-    /// @snippet storages/postgres/tests/landing_test.cpp ExecuteDecompose
+    /// @snippet postgresql/src/storages/postgres/tests/landing_test.cpp ExecuteDecompose
 
     /// @brief Execute statement, that uses an array of arguments transforming that array
     /// into N arrays of corresponding fields and executing the statement
@@ -202,7 +202,7 @@ public:
     /// @note You may write a query in `.sql` file and generate a header file with Query from it.
     ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
     ///
-    /// @snippet storages/postgres/tests/landing_test.cpp ExecuteDecompose
+    /// @snippet postgresql/src/storages/postgres/tests/landing_test.cpp ExecuteDecompose
     ///
     /// @warning Do NOT create a query string manually by embedding arguments!
     /// It leads to vulnerabilities and bad performance. Either pass arguments
@@ -220,7 +220,7 @@ public:
     /// @note You may write a query in `.sql` file and generate a header file with Query from it.
     ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
     ///
-    /// @snippet storages/postgres/tests/arrays_pgtest.cpp ExecuteDecompose
+    /// @snippet postgresql/src/storages/postgres/tests/landing_test.cpp ExecuteDecompose
     ///
     /// @warning Do NOT create a query string manually by embedding arguments!
     /// It leads to vulnerabilities and bad performance. Either pass arguments

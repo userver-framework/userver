@@ -15,7 +15,7 @@ namespace utest {
 
 /// @ingroup userver_utest
 ///
-/// @brief Fixture that allows to set the default logger and manages its lifetime.
+/// @brief Fixture that allows you to set the default logger and manages its lifetime.
 ///
 /// See @ref utest::LogCaptureFixture for a more high-level and simpler to use fixture.
 template <class Base>

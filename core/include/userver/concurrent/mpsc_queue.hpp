@@ -39,7 +39,7 @@ struct MpscQueueNode final : public SinglyLinkedBaseHook {
 ///
 /// ## Example usage:
 ///
-/// @snippet concurrent/mpsc_queue_test.cpp  Sample concurrent::MpscQueue usage
+/// @snippet core/src/concurrent/mpsc_queue_test.cpp  Sample concurrent::MpscQueue usage
 ///
 /// @see @ref scripts/docs/en/userver/synchronization.md
 template <typename T>

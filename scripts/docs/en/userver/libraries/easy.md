@@ -69,8 +69,8 @@ After that tests can be written in a usual way, for example `testsuite/test_basi
 
 ### JSON service with the easy library
 
-As you may noticed from a previous example, passing arguments in an URL may not be comfortable, especially when the
-request is complex. In this example, let's change the previous service to accept JSON request and answers with JSON, and
+As you may have noticed from a previous example, passing arguments in a URL may not be comfortable, especially when the
+request is complex. In this example, let's change the previous service to accept a JSON request and respond with JSON, and
 force the keys to be integers.
 
 If the function for a path accepts formats::json::Value or a JSON parseable structure the easy library attempts to
@@ -125,9 +125,9 @@ See the full example, including tests:
 
 At some point a prototype service becomes a production ready solution. From that point usually more control over
 databases, configurations and deployment is required than the easy library provides. In that case, migration to
-an opensourse [service template](scripts/docs/en/userver/build/build.md) is recommended.
+an open-source [service template](scripts/docs/en/userver/build/build.md) is recommended.
 
-Let's take a look, how a service from a previous example can be migrated to the
+Let's take a look at how a service from a previous example can be migrated to the
 [pg_service_template](https://github.com/userver-framework/pg_service_template).
 
 First of all, follow the instructions at [service template](scripts/docs/en/userver/build/build.md) to make a new

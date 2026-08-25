@@ -317,7 +317,7 @@ Example usage:
 
 @snippet samples/testsuite-support/tests/test_mocked_time.py mocked_time
 
-Example are available here:
+Examples are available here:
 
 * C++ code: @ref samples/testsuite-support/src/now.cpp
 * Testcase: @ref samples/testsuite-support/tests/test_mocked_time.py

@@ -53,7 +53,7 @@ namespace components {
 /// will be sent to every dynamic config subscriber if *any* part of the config
 /// has updated, not if the interesting part has updated.
 ///
-/// ## Static options @ref components::DynamicConfigClientUpdater :
+/// ## Static options of @ref components::DynamicConfigClientUpdater :
 /// @include{doc} scripts/docs/en/components_schema/core/src/dynamic_config/updater/component.md
 ///
 /// Options inherited from @ref components::CachingComponentBase :
@@ -66,7 +66,7 @@ namespace components {
 ///
 /// ## Static configuration example:
 ///
-/// @snippet components/common_component_list_test.cpp  Sample dynamic config client updater component config
+/// @snippet core/src/components/common_component_list_test.cpp  Sample dynamic config client updater component config
 class DynamicConfigClientUpdater final : public CachingComponentBase<dynamic_config::DocsMap> {
 public:
     /// @ingroup userver_component_names

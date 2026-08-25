@@ -25,7 +25,7 @@ namespace formats::json {
 ///
 /// ## Example usage:
 ///
-/// @snippet formats/json/string_builder_test.cpp  Sample formats::json::StringBuilder usage
+/// @snippet universal/src/formats/json/string_builder_test.cpp  Sample formats::json::StringBuilder usage
 ///
 /// @see @ref scripts/docs/en/userver/formats.md
 class StringBuilder final : public serialize::SaxStream {

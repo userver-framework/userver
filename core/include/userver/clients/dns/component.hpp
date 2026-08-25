@@ -23,7 +23,7 @@ namespace clients::dns {
 ///
 /// ## Static configuration example:
 ///
-/// @snippet components/common_component_list_test.cpp  Sample dns client component config
+/// @snippet core/src/components/common_component_list_test.cpp  Sample dns client component config
 class Component final : public components::ComponentBase {
 public:
     /// @ingroup userver_component_names

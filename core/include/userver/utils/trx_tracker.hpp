@@ -20,7 +20,7 @@ USERVER_NAMESPACE_BEGIN
 ///
 /// ## Example usage:
 ///
-/// @snippet utils/trx_tracker_test.cpp  Sample TransactionTracker usage
+/// @snippet core/src/utils/trx_tracker_test.cpp  Sample TransactionTracker usage
 ///
 /// @see @ref scripts/docs/en/userver/long_transactions.md
 namespace utils::trx_tracker {
@@ -91,7 +91,7 @@ void CheckNoTransactions(std::string_view location);
 /// To consciously call a heavy operation in active transaction, check can be disabled by creating an instance of this
 /// class. Checks will be disabled until every instance either has Reenable() method called or is destroyed.
 ///
-/// @snippet utils/trx_tracker_test.cpp Sample CheckDisabler usage
+/// @snippet core/src/utils/trx_tracker_test.cpp Sample CheckDisabler usage
 class CheckDisabler final {
 public:
     /// @brief Disable check for active transactions.

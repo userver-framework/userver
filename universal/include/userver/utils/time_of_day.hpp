@@ -412,6 +412,7 @@ constexpr TimeOfDay<std::chrono::duration<Rep, Period>>::TimeOfDay(std::string_v
     : since_midnight_{detail::TimeOfDayParser<Rep, Period>{}(str)}
 {}
 
+/// @cond
 template <typename Rep, typename Period>
 constexpr std::chrono::minutes TimeOfDay<std::chrono::duration<Rep, Period>>::Minutes() const noexcept {
     if constexpr (detail::kHasMinutes<Period>) {
@@ -458,6 +459,7 @@ constexpr TimeOfDay<std::chrono::duration<Rep, Period>> TimeOfDay<
     }
     return TimeOfDay{std::chrono::minutes{hh_mm / 100 * 60 + mm}};
 }
+/// @endcond
 
 }  // namespace utils::datetime
 

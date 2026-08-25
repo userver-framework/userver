@@ -19,7 +19,7 @@ namespace clients::http {
 
 /// @brief HTTP response for WebSocket upgrade.
 ///
-/// Call @ref http::client::Request::PerformWebSocketHandshake()
+/// Call @ref clients::http::Request::PerformWebSocketHandshake()
 /// to get one. After successful WebSocket handshake, you can use
 /// MakeWebSocketConnection() to establish a WebSocket connection.
 ///

@@ -395,8 +395,9 @@ public:
 
     /// Perform request asynchronously.
     ///
-    /// Works well with @ref engine::WaitAny(), @ref engine::WaitAnyFor(), and @ref engine::WaitUntil() functions:
-    /// @snippet src/clients/http/client_wait_test.cpp HTTP Client - waitany
+    /// Works well with @ref engine::MakeWaitAny and @ref engine::WaitAnyContext::Wait /
+    /// @ref engine::WaitAnyContext::WaitFor / @ref engine::WaitAnyContext::WaitUntil:
+    /// @snippet core/src/clients/http/client_wait_test.cpp HTTP Client - waitany
     ///
     /// Refrain from reusing the Request object.
     /// Though it might be possible to reuse it after extracting data from ResponseFuture, a subsequent async_perform

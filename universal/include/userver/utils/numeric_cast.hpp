@@ -27,7 +27,7 @@ using PrintableValue = std::conditional_t<(sizeof(T) > 1), T, int>;
 ///
 /// ## Example usage:
 ///
-/// @snippet utils/numeric_cast_test.cpp  Sample utils::numeric_cast usage
+/// @snippet universal/src/utils/numeric_cast_test.cpp  Sample utils::numeric_cast usage
 template <typename To, typename Exception = std::runtime_error, typename From>
 constexpr To numeric_cast(From input) {  // NOLINT(readability-identifier-naming)
     constexpr bool is_integral = std::is_integral_v<From> && std::is_integral_v<To>;

@@ -47,7 +47,7 @@ std::chrono::time_point<std::chrono::system_clock, Duration> FromStringSaturatin
 /// @brief Converts strings like "2012-12-12T00:00:00" to
 /// std::chrono::system_clock::time_point in UTC timezone and saturates on overflow
 /// Example:
-/// @snippet utils/datetime/from_string_saturating_test.cpp FromStringSaturation
+/// @snippet universal/src/utils/datetime/from_string_saturating_test.cpp FromStringSaturation
 template <class Duration = std::chrono::system_clock::duration>
 std::chrono::time_point<std::chrono::system_clock, Duration> FromRfc3339StringSaturating(const std::string& timestring
 ) {

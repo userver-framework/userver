@@ -73,7 +73,7 @@ class Manager;
 ///
 /// ## Static configuration example:
 ///
-/// @snippet components/common_component_list_test.cpp  Sample components manager config component config
+/// @snippet core/src/components/common_component_list_test.cpp  Sample components manager config component config
 
 // clang-format on
 class ManagerControllerComponent final : public RawComponentBase {

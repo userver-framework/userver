@@ -58,13 +58,13 @@ yaml_config::Schema GetLruCacheComponentBaseSchema();
 ///
 /// ## Example usage:
 ///
-/// @snippet cache/lru_cache_component_base_test.hpp  Sample lru cache component
+/// @snippet core/src/cache/lru_cache_component_base_test.hpp  Sample lru cache component
 ///
 /// Do not forget to @ref userver_components "add the component to component list":
-/// @snippet cache/lru_cache_component_base_test.cpp  Sample lru cache component registration
+/// @snippet core/src/cache/lru_cache_component_base_test.cpp  Sample lru cache component registration
 ///
 /// ## Example config:
-/// @snippet cache/lru_cache_component_base_test.cpp  Sample lru cache component config
+/// @snippet core/src/cache/lru_cache_component_base_test.cpp  Sample lru cache component config
 template <typename Key, typename Value, typename Hash = std::hash<Key>, typename Equal = std::equal_to<Key>>
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class LruCacheComponent : public components::ComponentBase, private dump::DumpableEntity {

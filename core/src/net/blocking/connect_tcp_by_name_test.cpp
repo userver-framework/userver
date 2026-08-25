@@ -13,7 +13,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
-// @snippet src/net/blocking/connect_tcp_by_name_test.cpp ConnectTcpByName blocking localhost
+// @snippet core/src/net/blocking/connect_tcp_by_name_test.cpp ConnectTcpByName blocking localhost
 UTEST(BlockingConnectTcpByName, Localhost) {
     engine::io::tests::TcpListener listener;
     const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);

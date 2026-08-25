@@ -27,7 +27,7 @@ component for handling HTTP requests.
 The component holds references to @ref ydb::TopicWriterManager and
 @ref ydb::TopicWriter obtained from @ref ydb::TopicWriterComponent:
 
-@snippet samples/ydb_topic_writer_service/src/write_handler.hpp  YDB topic writer service sample - write handler declaration
+@snippet samples/ydb_topic_writer_service/src/write_handler.hpp  topic writer handler decl
 
 
 ### WriteHandler constructor
@@ -35,7 +35,7 @@ The component holds references to @ref ydb::TopicWriterManager and
 The topic writer is looked up by name configured in static config
 (`messages` in this sample):
 
-@snippet samples/ydb_topic_writer_service/src/write_handler.cpp  YDB topic writer service sample - write handler constructor
+@snippet samples/ydb_topic_writer_service/src/write_handler.cpp  topic writer handler ctor
 
 
 ### WriteHandler::HandleRequest
@@ -44,7 +44,7 @@ To publish a message, call @ref ydb::TopicWriter::WriteMessage().
 The method returns @ref ydb::TopicWriteResult with a status that indicates
 whether the message was accepted into the writer queue:
 
-@snippet samples/ydb_topic_writer_service/src/write_handler.cpp  YDB topic writer service sample - write handler HandleRequest
+@snippet samples/ydb_topic_writer_service/src/write_handler.cpp  topic writer HandleRequest
 
 @ref ydb::TopicWriteStatus::kResourceExhausted means the internal queue is
 full and the caller should retry later.
@@ -61,7 +61,7 @@ component, topic writer and handler:
 
 Topic writer settings:
 
-@snippet samples/ydb_topic_writer_service/static_config.yaml  YDB topic writer service sample - static config topic writer
+@snippet samples/ydb_topic_writer_service/static_config.yaml  topic writer static config
 
 HTTP handler:
 
@@ -123,7 +123,7 @@ implemented using the testsuite. To do that you have to:
 * Write the test that sends a message via the @ref pytest_userver.plugins.service_client.service_client "service_client"
   fixture and reads it back from the topic using the
   @ref pytest_userver.plugins.ydb.ydbsupport.ydb "ydb" fixture:
-  @snippet samples/ydb_topic_writer_service/testsuite/test_topic_writer.py  YDB topic writer service sample - functional test
+  @snippet samples/ydb_topic_writer_service/testsuite/test_topic_writer.py  topic writer functional test
 
 
 ## Full sources

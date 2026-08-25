@@ -63,7 +63,7 @@ For more information about `kDependency`:
 
 `PreStartCall` method of `Middleware` does the actual work:
 
-@snippet samples/grpc_middleware_service/src/middlewares/client/auth.cpp gRPC middleware sample - Middleware implementation
+@snippet samples/grpc_middleware_service/src/middlewares/client/auth.cpp grpc client auth middleware
 
 Lastly, add this component to the static config:
 
@@ -124,7 +124,7 @@ in `config_vars.testsuite.yaml`:
 
 And in static_config.yaml:
 
-@snippet samples/grpc_middleware_service/configs/static_config.yaml gRPC middleware sample - static config greeter-client
+@snippet samples/grpc_middleware_service/configs/static_config.yaml grpc greeter-client config
 
 Write the mocking fixtures using @ref pytest_userver.plugins.grpc.mockserver.grpc_mockserver "grpc_mockserver"
 and the @ref pytest_userver.plugins.service_client.service_client "service_client" fixture:
@@ -157,6 +157,8 @@ See the full example at:
 * @ref samples/grpc_middleware_service/src/middlewares/auth.hpp
 * @ref samples/grpc_middleware_service/src/middlewares/auth.cpp
 
+* @ref samples/grpc_middleware_service/src/service/view.hpp
+* @ref samples/grpc_middleware_service/src/service/view.cpp
 * @ref samples/grpc_middleware_service/main.cpp
 * @ref samples/grpc_middleware_service/proto/samples/greeter.proto
 * @ref samples/grpc_middleware_service/configs/static_config.yaml
@@ -178,7 +180,8 @@ See the full example at:
 @example samples/grpc_middleware_service/src/middlewares/server/auth.cpp
 @example samples/grpc_middleware_service/src/middlewares/auth.hpp
 @example samples/grpc_middleware_service/src/middlewares/auth.cpp
-@example samples/grpc_middleware_service/main.cpp
+@example samples/grpc_middleware_service/src/service/view.hpp
+@example samples/grpc_middleware_service/src/service/view.cpp
 @example samples/grpc_middleware_service/proto/samples/greeter.proto
 @example samples/grpc_middleware_service/configs/static_config.yaml
 @example samples/grpc_middleware_service/configs/config_vars.yaml

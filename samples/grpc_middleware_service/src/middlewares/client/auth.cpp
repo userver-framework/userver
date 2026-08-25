@@ -6,7 +6,7 @@
 
 namespace samples::grpc::auth::client {
 
-/// [gRPC middleware sample - Middleware implementation]
+/// [grpc client auth middleware]
 void ApplyCredentials(::grpc::ClientContext& context) { context.AddMetadata(kKey, kCredentials); }
 
 AuthMiddleware::AuthMiddleware() = default;
@@ -17,6 +17,6 @@ void AuthMiddleware::PreStartCall(ugrpc::client::MiddlewareCallContext& context)
     ApplyCredentials(context.GetClientContext());
 }
 
-/// [gRPC middleware sample - Middleware implementation]
+/// [grpc client auth middleware]
 
 }  // namespace samples::grpc::auth::client

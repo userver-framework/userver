@@ -114,7 +114,7 @@ session, processes events in a loop, and restarts the session on failure:
 
 The federated variant uses `GetFederatedTopicClient()` instead:
 
-@snippet samples/ydb_service/components/federated_topic_reader.cpp  YDB service sample - federated topic reader component
+@snippet samples/ydb_service/components/federated_topic_reader.cpp  federated topic reader
 
 The table `records` has a changefeed configured in
 @ref samples/ydb_service/ydb/migrations/0002_records_changefeed.sql.

@@ -24,7 +24,7 @@ template <typename T, typename Func>
 T AtomicUpdate(std::atomic<T>& atomic, Func updater) {
     T old_value = atomic.load();
     while (true) {
-        // make a copy to to keep old_value unchanged
+        // make a copy to keep old_value unchanged
         const T new_value = updater(T{old_value});
 
         // don't mark cache line as dirty

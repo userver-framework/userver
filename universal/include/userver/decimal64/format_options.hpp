@@ -23,10 +23,10 @@ struct FormatOptions {
     /// https://en.cppreference.com/w/cpp/locale/numpunct/grouping
     std::string grouping;
 
-    /// for negative numbers, the specified string will be inserted at beginning
+    /// for negative numbers, the specified string will be inserted at the beginning
     std::string negative_sign = "-";
 
-    /// for non-negative(>=0) numbers will be inserted at beginning
+    /// for non-negative (>= 0) numbers, the specified string will be inserted at the beginning
     std::string positive_sign;
 
     /// maximum number of digits in the fractional part

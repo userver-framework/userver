@@ -17,7 +17,7 @@ namespace ugrpc::client::middlewares::origin {
 /// @brief gRPC client middleware that sets `x-origin` metadata. gRPC server will then copy that to `useragent` tag
 /// in server request log.
 ///
-/// ## Static options of ugrpc::client::middlewares::log::Component:
+/// ## Static options of @ref ugrpc::client::middlewares::origin::Component:
 /// @include{doc} scripts/docs/en/components_schema/grpc/src/ugrpc/client/middlewares/origin/component.md
 ///
 /// Options inherited from @ref middlewares::MiddlewareFactoryComponentBase :
@@ -33,7 +33,7 @@ namespace ugrpc::client::middlewares::origin {
 class Component final : public MiddlewareFactoryComponentBase {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of ugrpc::client::middlewares::headers_propagator::Component.
+    /// @brief The default name of @ref ugrpc::client::middlewares::origin::Component.
     static constexpr std::string_view kName = "grpc-client-origin";
 
     Component(const components::ComponentConfig& config, const components::ComponentContext& context);

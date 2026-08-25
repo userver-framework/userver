@@ -57,15 +57,15 @@ enum class SecdistFormat {
 ///
 /// Declare a type that would work with the credentials:
 ///
-/// @snippet storages/secdist/secdist_test.cpp UserPasswords
+/// @snippet core/src/storages/secdist/secdist_test.cpp UserPasswords
 ///
 /// Fill the components::Secdist `config` from file with the secure data:
 ///
-/// @snippet storages/secdist/secdist_test.cpp Secdist Usage Sample - json
+/// @snippet core/src/storages/secdist/secdist_test.cpp Secdist Usage Sample - json
 ///
 /// Retrieve SecdistConfig from components::Secdist and get the type from it:
 ///
-/// @snippet storages/secdist/secdist_test.cpp Secdist Usage Sample - SecdistConfig
+/// @snippet core/src/storages/secdist/secdist_test.cpp Secdist Usage Sample - SecdistConfig
 ///
 /// Json with secure data can also be loaded from environment variable with name defined in `environment_secrets_key`.
 /// Sample variable value: `{"user-passwords":{"username":"password","another username":"another password"}}`.

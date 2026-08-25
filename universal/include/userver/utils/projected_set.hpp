@@ -79,12 +79,12 @@ void DoInsert(Set& set, Value&& value) {
 
 /// @ingroup userver_universal
 /// @brief A `std::unordered_set` that compares its elements (of type @a Value)
-/// based on their @a Projection. It allows to create, essentially, an
+/// based on their @a Projection. It allows you to create, essentially, an
 /// equivalent of `std::unordered_map` where keys are stored inside values.
 ///
 /// Usage example:
-/// @snippet utils/projected_set_test.cpp  user
-/// @snippet utils/projected_set_test.cpp  usage
+/// @snippet universal/src/utils/projected_set_test.cpp  user
+/// @snippet universal/src/utils/projected_set_test.cpp  usage
 ///
 /// @see @ref utils::ProjectedInsertOrAssign
 /// @see @ref utils::ProjectedFind

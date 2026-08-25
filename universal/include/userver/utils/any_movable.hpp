@@ -18,7 +18,7 @@ namespace utils {
 
 /// @ingroup userver_universal userver_containers
 ///
-/// @brief Replacement for `std::any` that is not copyable. It allows to store
+/// @brief Replacement for `std::any` that is not copyable. It allows you to store
 /// non-copyable and even non-movable types.
 ///
 /// Usage example:

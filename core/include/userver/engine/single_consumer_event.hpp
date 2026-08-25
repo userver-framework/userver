@@ -58,8 +58,9 @@ public:
     /// @overload bool WaitForEvent()
     [[nodiscard]] bool WaitForEventUntil(Deadline);
 
-    /// @brief Waits until the event is in a signaled state, same as @ref WaitForEventUntil, but gives the precise
-    /// reason of a failure instead of just `false`.
+    /// @brief Waits until the event is in a signaled state, same as @ref
+    /// engine::SingleConsumerEvent::WaitForEventUntil, but gives the precise reason of a failure instead of just
+    /// `false`.
     ///
     /// If the event is auto-resetting, clears the signal flag upon waking up. If already in a signaled state,
     /// does the same without sleeping.
@@ -82,13 +83,13 @@ public:
     /// it.
     ///
     /// Initialization:
-    /// @snippet engine/single_consumer_event_test.cpp  CV init
+    /// @snippet core/src/engine/single_consumer_event_test.cpp  CV init
     ///
     /// Notifier side:
-    /// @snippet engine/single_consumer_event_test.cpp  CV notifier
+    /// @snippet core/src/engine/single_consumer_event_test.cpp  CV notifier
     ///
     /// Waiter side:
-    /// @snippet engine/single_consumer_event_test.cpp  CV waiter
+    /// @snippet core/src/engine/single_consumer_event_test.cpp  CV waiter
     ///
     /// @return `FutureStatus::kReady` if @a stop_waiting became `true`, `FutureStatus::kCancelled` if the current
     /// task was cancelled, `FutureStatus::kTimeout` if the deadline was reached.
@@ -106,7 +107,7 @@ public:
     /// after exiting WaitForEvent, ONLY IF the wait succeeded. Otherwise
     /// a concurrent task may call Send on a destroyed SingleConsumerEvent.
     /// Here is an example of this situation:
-    /// @snippet engine/single_consumer_event_test.cpp  Wait and destroy
+    /// @snippet core/src/engine/single_consumer_event_test.cpp  Wait and destroy
     ///
     /// You can safely invoke Send from outside a coroutine.
     void Send();

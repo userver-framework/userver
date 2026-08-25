@@ -189,7 +189,7 @@ Parsing and formatting is implemented for integral values
 and `std::bitset<N>`.
 
 Example of using the bit types from tests:
-@snippet storages/postgres/tests/bitstring_pgtest.cpp Bit string sample
+@snippet postgresql/src/storages/postgres/tests/bitstring_pgtest.cpp Bit string sample
 
 
 ## PostgreSQL types not covered above

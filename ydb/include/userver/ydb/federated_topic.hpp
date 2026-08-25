@@ -37,7 +37,6 @@ struct TopicSettings;
 /// @ref samples/ydb_service/components/federated_topic_reader.cpp
 ///
 /// @example samples/ydb_service/components/federated_topic_reader.hpp
-/// @example samples/ydb_service/components/federated_topic_reader.cpp
 class FederatedTopicReadSession final {
 public:
     /// @cond

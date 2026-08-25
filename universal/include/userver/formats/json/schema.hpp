@@ -28,7 +28,7 @@ private:
 /// @brief Contains a prepared JSON schema.
 ///
 /// Usage example:
-/// @snippet formats/json/schema_test.cpp  sample
+/// @snippet universal/src/formats/json/schema_test.cpp  sample
 class Schema final {
 public:
     class ValidationResult;

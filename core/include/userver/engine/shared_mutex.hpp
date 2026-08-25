@@ -24,7 +24,7 @@ namespace engine {
 ///
 /// ## Example usage:
 ///
-/// @snippet engine/shared_mutex_test.cpp  Sample engine::SharedMutex usage
+/// @snippet core/src/engine/shared_mutex_test.cpp  Sample engine::SharedMutex usage
 ///
 /// @see @ref scripts/docs/en/userver/synchronization.md
 class SharedMutex final {

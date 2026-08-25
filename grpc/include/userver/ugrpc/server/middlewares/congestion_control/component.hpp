@@ -27,7 +27,7 @@ namespace ugrpc::server::middlewares::congestion_control {
 ///
 /// ## Static configuration example:
 ///
-/// @snippet grpc/functional_tests/basic_chaos/static_config.yaml Sample grpc server congestion control middleware component config
+/// @snippet grpc/functional_tests/basic_chaos/static_config.yaml grpc server cc mw config
 ///
 /// @see @ref scripts/docs/en/userver/grpc/server_middlewares.md
 

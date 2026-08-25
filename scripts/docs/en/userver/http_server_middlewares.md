@@ -94,7 +94,7 @@ and also passes the handler into the middleware constructor. Given the middlewar
 the factory implementation is just this:
 @snippet samples/http_middleware_service/main.cpp  Middlewares sample - some middleware factory implementation
 Do not forget to add components configs:
-@snippet samples/http_middleware_service/static_config.yaml  Middlewares sample - noop-middleware and server-middleware components configs
+@snippet samples/http_middleware_service/static_config.yaml  http mw components config
 
 ### Global middleware configuration
 
@@ -114,10 +114,10 @@ For some options, it's a good idea to implement both global and per-handler conf
 
 ### Per-handler middleware configuration
 
-Basically, the whole point of having MiddlewareFactory-ies separated from Middleware-s, is to have a possibility to
-configure a middleware at a per-handler basis.
+Basically, the whole point of having MiddlewareFactory-ies separated from Middleware-s is to be able to
+configure a middleware on a per-handler basis.
 In the snippet above that's what "handler-middleware.header-value" is for: given the middleware (which actually
-resembles pretty close to how tracing headers are set to the response in userver)
+closely resembles how tracing headers are set on the response in userver)
 @snippet samples/http_middleware_service/main.cpp  Middlewares sample - configurable middleware implementation
 and the factory implementation
 @snippet samples/http_middleware_service/main.cpp  Middlewares sample - configurable middleware factory implementation
@@ -125,7 +125,7 @@ one can configure the middleware behavior (header value, in this particular case
 
 If a global configuration is desired (that is, for every middleware instance there is), the easiest way to achieve that
 would be to have a configuration in the Factory config, and for Factory to pass the configuration into the Middleware
-constructor. This takes away the possibility to declare a Factory as a SimpleHttpMiddlewareFactory, but we find this
+constructor. This removes the ability to declare a Factory as a SimpleHttpMiddlewareFactory, but we find this
 tradeoff acceptable (after all, if a middleware needs a configuration it isn't that "Simple" already).
 
 Do not forget to add components configs:
@@ -169,4 +169,4 @@ For example:
 and to use the class as a pipeline builder we should append it to the @ref components::ComponentList "ComponentList"
 @snippet samples/http_middleware_service/main.cpp  Middlewares sample - custom handler pipeline builder registration
 and specify as a pipeline-builder for the handler (notice the middlewares.pipeline-builder section):
-@snippet samples/http_middleware_service/static_config.yaml  Middlewares sample - custom handler pipeline builder configuration
+@snippet samples/http_middleware_service/static_config.yaml  custom handler pipeline config

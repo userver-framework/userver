@@ -19,7 +19,7 @@ namespace storages::clickhouse {
 ///
 /// @brief Class for dynamic ClickHouse parameter list construction.
 ///
-/// @snippet storages/tests/parameter_store_chtest.cpp  basic usage
+/// @snippet clickhouse/src/storages/tests/parameter_store_chtest.cpp  basic usage
 class ParameterStore {
 public:
     ParameterStore() = default;

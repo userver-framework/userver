@@ -21,7 +21,7 @@ namespace engine {
 ///
 /// ## Example usage:
 ///
-/// @snippet engine/condition_variable_test.cpp  Sample ConditionVariable usage
+/// @snippet core/src/engine/condition_variable_test.cpp  Sample ConditionVariable usage
 ///
 /// @see @ref scripts/docs/en/userver/synchronization.md
 class ConditionVariable final {

@@ -29,10 +29,10 @@ namespace engine {
 /// cancellation of the caller.
 ///
 /// Could be used to get the ready HTTP requests ASAP:
-/// @snippet src/clients/http/client_wait_test.cpp HTTP Client - waitany
+/// @snippet core/src/clients/http/client_wait_test.cpp HTTP Client - waitany
 ///
 /// Works with different types of tasks and futures:
-/// @snippet src/engine/wait_any_test.cpp sample waitany
+/// @snippet core/src/engine/wait_any_test.cpp sample waitany
 ///
 /// @param tasks either a single container, or a pack of future-like elements.
 /// @returns the index of the completed task, or `std::nullopt` if there are no
@@ -128,7 +128,7 @@ enum class WaitAnyError : std::uint8_t {
 /// @brief Stores a set of awaitables and allows waiting for completion of any of the stored awaitables.
 ///
 /// Works with different types of awaitables:
-/// @snippet src/engine/wait_any_test.cpp sample MakeWaitAny
+/// @snippet core/src/engine/wait_any_test.cpp sample MakeWaitAny
 ///
 /// No methods (except .dtor) should be called on a moved-out instance.
 class WaitAnyContext final {
@@ -155,7 +155,7 @@ public:
     /// and this overload, the id-less `Append` maintains a sequence only within its own calls.
     ///
     /// Works well together with @ref utils::SlotMap to process and erase tasks in completion order:
-    /// @snippet src/engine/wait_any_test.cpp sample WaitAnyContext SlotMap
+    /// @snippet core/src/engine/wait_any_test.cpp sample WaitAnyContext SlotMap
     ///
     /// @param id the id that will be returned by @ref Wait.
     /// @param awaitable the awaitable to append.

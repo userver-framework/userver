@@ -533,6 +533,6 @@ Guideline for documentation authors:
 ⇦ @ref scripts/docs/en/userver/faq.md | @ref scripts/docs/en/userver/build/dependencies.md ⇨
 @htmlonly </div> @endhtmlonly
 
-@example service-template/CMakeUserPresets.json.example
-@example service-template/userver-create-service.sh
-@example service-template/userver-create-service.bat
+@example scripts/docs/examples/service-template/CMakeUserPresets.json.example
+@example scripts/docs/examples/service-template/userver-create-service.sh
+@example scripts/docs/examples/service-template/userver-create-service.bat

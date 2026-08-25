@@ -32,7 +32,7 @@ enum class StatsFormat;
 ///
 /// ## Static configuration example:
 ///
-/// @snippet components/common_server_component_list_test.cpp  Sample handler server monitor component config
+/// @snippet core/src/components/common_server_component_list_test.cpp  Sample handler server monitor component config
 ///
 /// ## Scheme
 ///

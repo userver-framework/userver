@@ -23,7 +23,7 @@ namespace engine {
 ///
 /// ## Example usage:
 ///
-/// @snippet engine/task/shared_task_with_result_test.cpp Sample SharedTaskWithResult usage
+/// @snippet core/src/engine/task/shared_task_with_result_test.cpp Sample SharedTaskWithResult usage
 ///
 /// @see @ref scripts/docs/en/userver/synchronization.md
 template <typename T>

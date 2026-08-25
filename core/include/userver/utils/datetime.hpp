@@ -16,7 +16,7 @@ namespace utils::datetime {
 ///
 /// Example:
 ///
-/// @snippet utils/datetime_test.cpp  Timestring example
+/// @snippet core/src/utils/datetime_test.cpp  Timestring example
 ///
 /// @see kRfc3339Format, kTaximeterFormat, kStartOfTheEpoch,
 /// kDefaultDriverTimezone, kDefaultTimezone, kDefaultFormat, kIsoFormat
@@ -31,7 +31,7 @@ std::string Timestring(
 ///
 /// Example:
 ///
-/// @snippet utils/datetime_test.cpp Timestring example
+/// @snippet core/src/utils/datetime_test.cpp Timestring example
 /// @see kRfc3339Format, kTaximeterFormat, kStartOfTheEpoch,
 /// kDefaultDriverTimezone, kDefaultTimezone, kDefaultFormat, kIsoFormat
 std::string Timestring(
@@ -48,7 +48,7 @@ std::string Timestring(
 ///
 /// Example:
 ///
-/// @snippet utils/datetime_test.cpp  Stringtime example
+/// @snippet core/src/utils/datetime_test.cpp  Stringtime example
 /// @see kRfc3339Format, kTaximeterFormat, kStartOfTheEpoch,
 /// kDefaultDriverTimezone, kDefaultTimezone, kDefaultFormat, kIsoFormat
 std::chrono::system_clock::time_point Stringtime(
@@ -63,14 +63,14 @@ std::chrono::system_clock::time_point Stringtime(
 ///
 /// Example:
 ///
-/// @snippet utils/datetime_test.cpp  GuessStringtime example
+/// @snippet core/src/utils/datetime_test.cpp  GuessStringtime example
 std::chrono::system_clock::time_point GuessStringtime(const std::string& timestamp, const std::string& timezone);
 
 /// @brief Returns optional time in a string of specified format
 ///
 /// Example:
 ///
-/// @snippet utils/datetime_test.cpp OptionalStringtime example
+/// @snippet core/src/utils/datetime_test.cpp OptionalStringtime example
 /// @see kRfc3339Format, kTaximeterFormat, kStartOfTheEpoch,
 /// kDefaultDriverTimezone, kDefaultTimezone, kDefaultFormat, kIsoFormat
 std::optional<std::chrono::system_clock::time_point> OptionalStringtime(
@@ -85,7 +85,7 @@ std::optional<std::chrono::system_clock::time_point> OptionalStringtime(
 ///
 /// Example:
 ///
-/// @snippet utils/datetime_test.cpp  Localize example
+/// @snippet core/src/utils/datetime_test.cpp  Localize example
 cctz::civil_second Localize(const std::chrono::system_clock::time_point& tp, const std::string& timezone);
 
 /// @brief Converts a civil time in a specified timezone into an absolute time.
@@ -93,7 +93,7 @@ cctz::civil_second Localize(const std::chrono::system_clock::time_point& tp, con
 ///
 /// Example:
 ///
-/// @snippet utils/datetime_test.cpp  Localize example
+/// @snippet core/src/utils/datetime_test.cpp  Localize example
 std::time_t Unlocalize(const cctz::civil_second& local_tp, const std::string& timezone);
 
 /// @brief Retrieves a time zone by name

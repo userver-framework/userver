@@ -398,7 +398,7 @@ private:
 ///
 /// ## Example usage:
 ///
-/// @snippet rcu/rcu_test.cpp  Sample rcu::Variable usage
+/// @snippet core/src/rcu/rcu_test.cpp  Sample rcu::Variable usage
 ///
 /// @see @ref scripts/docs/en/userver/synchronization.md
 ///

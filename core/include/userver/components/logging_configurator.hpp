@@ -36,7 +36,7 @@ namespace components {
 ///
 /// ## Config example:
 ///
-/// @snippet components/common_component_list_test.cpp Sample logging configurator component config
+/// @snippet core/src/components/common_component_list_test.cpp Sample logging configurator component config
 class LoggingConfigurator final : public RawComponentBase {
 public:
     /// @ingroup userver_component_names

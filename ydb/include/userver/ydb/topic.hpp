@@ -37,7 +37,6 @@ struct TopicSettings;
 /// @ref samples/ydb_service/components/topic_reader.cpp
 ///
 /// @example samples/ydb_service/components/topic_reader.hpp
-/// @example samples/ydb_service/components/topic_reader.cpp
 class TopicReadSession final {
 public:
     /// @cond
@@ -289,6 +288,7 @@ public:
     /// waits for persistence without closing the producer;
     /// TopicSimpleWriteSession instead flushes pending writes as part of
     /// Close().
+    /// @param settings producer settings (topic path, partitioner, etc.)
     /// @param max_memory_usage_bytes maximum buffered message memory in bytes
     TopicProducer CreateProducer(
         const TopicProducerSettings& settings,

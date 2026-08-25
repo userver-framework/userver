@@ -27,11 +27,11 @@ namespace formats::json {
 ///
 /// ## Example usage:
 ///
-/// @snippet formats/json/value_builder_test.cpp  Sample formats::json::ValueBuilder usage
+/// @snippet universal/src/formats/json/value_builder_test.cpp  Sample formats::json::ValueBuilder usage
 ///
 /// ## Customization example:
 ///
-/// @snippet formats/json/value_builder_test.cpp  Sample Customization formats::json::ValueBuilder usage
+/// @snippet universal/src/formats/json/value_builder_test.cpp  Sample Customization formats::json::ValueBuilder usage
 ///
 /// @see @ref scripts/docs/en/userver/formats.md
 class ValueBuilder final {

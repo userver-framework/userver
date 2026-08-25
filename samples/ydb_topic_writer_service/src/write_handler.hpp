@@ -9,7 +9,7 @@
 
 namespace samples::ydb_topic_writer {
 
-/// [YDB topic writer service sample - write handler declaration]
+/// [topic writer handler decl]
 class WriteHandler final : public server::handlers::HttpHandlerBase {
 public:
     static constexpr std::string_view kName{"handler-write"};
@@ -23,6 +23,6 @@ private:
     ydb::TopicWriterManager& writer_manager_;
     ydb::TopicWriter& writer_;
 };
-/// [YDB topic writer service sample - write handler declaration]
+/// [topic writer handler decl]
 
 }  // namespace samples::ydb_topic_writer

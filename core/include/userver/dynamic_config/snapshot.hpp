@@ -76,6 +76,9 @@ public:
     Key(std::string_view name, JsonParser parser, DefaultAsJsonString default_json);
 
     /// @brief Constructor with a schema_hash, used by chaotic codegen.
+    /// @param name config variable name
+    /// @param parser custom JSON parser for the variable
+    /// @param default_json default value as a JSON string
     /// @param schema_hash SHA-256(canonical JSON of schema with inlined definitions),
     ///        lowercase hex, 64 chars. Stored in the global registry and
     ///        retrievable via dynamic_config::impl::GetRegisteredConfigsMeta()
@@ -132,7 +135,7 @@ private:
 /// somewhere in the program.
 ///
 /// ## Usage example:
-/// @snippet components/component_sample_test.cpp  Sample user component runtime config source
+/// @snippet core/src/components/component_sample_test.cpp  Sample user component runtime config source
 class Snapshot final {
 public:
     Snapshot(const Snapshot&);

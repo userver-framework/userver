@@ -284,7 +284,7 @@ Another way to cancel a task it to drop the @ref engine::TaskWithResult without 
 In the example above, `child_task` is cancelled and awaited due to stack unwinding. In any case, the child task's
 execution is guaranteed to be finished once its @ref engine::TaskWithResult handle is destroyed.
 
-Tasks can be cancelled due to @ref engine::TaskProcessor overload, if configured. This is a last-ditch effort to avoid OOM due to a spam of tasks. Read more in @ref utils::Async and @ref engine::TaskBase::Importance. Tasks started with @ref engine::CriticalAsync are excepted from cancellations due to `TaskProcessor` overload.
+Tasks can be cancelled due to @ref engine::TaskProcessor overload, if configured. This is a last-ditch effort to avoid OOM due to a spam of tasks. Read more in @ref utils::Async and @ref engine::TaskBase::Importance. Tasks started with @ref utils::CriticalAsync are excepted from cancellations due to `TaskProcessor` overload.
 
 ### How the task sees its cancellation
 
@@ -324,7 +324,7 @@ If the child task got cancelled without the parent being cancelled, then:
   * @ref engine::TaskWithResult::Get will return or throw whatever the child task has returned or thrown, which is practically meaningless (because why else would someone cancel a task?);
   * @ref engine::TaskBase::Wait will return upon completion;
   * @ref engine::TaskBase::IsFinished will return `true` upon completion;
-  * @ref engine::TaskBase::GetStatus will return @ref engine::TaskBase::Status::kCancelled upon completion.
+  * @ref engine::TaskBase::GetState will return @ref engine::TaskBase::State::kCancelled upon completion.
 
 @anchor task_cancellation_before_start
 ### What happens to tasks that are cancelled before they start running

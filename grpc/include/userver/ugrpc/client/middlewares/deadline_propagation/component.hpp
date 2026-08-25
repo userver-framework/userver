@@ -25,7 +25,7 @@ namespace ugrpc::client::middlewares::deadline_propagation {
 ///
 /// ## Static configuration example:
 ///
-/// @snippet grpc/functional_tests/basic_chaos/static_config.yaml Sample grpc client deadline propagation middleware component config
+/// @snippet grpc/functional_tests/basic_chaos/static_config.yaml grpc client dp mw config
 ///
 /// @see @ref scripts/docs/en/userver/grpc/client_middlewares.md
 

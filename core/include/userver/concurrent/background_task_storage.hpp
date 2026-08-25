@@ -89,7 +89,7 @@ private:
 ///
 /// ## Usage synopsis
 ///
-/// @snippet concurrent/background_task_storage_test.cpp  Sample
+/// @snippet core/src/concurrent/background_task_storage_test.cpp  Sample
 ///
 /// ## Lifetime of task's captures
 ///
@@ -99,12 +99,12 @@ private:
 /// launched inside it (or moved inside it, for BackgroundTaskStorageCore)
 /// can safely access fields declared before it, but not after it:
 ///
-/// @snippet concurrent/background_task_storage_test.cpp  BtsLifetimeCapturesPitfalls
+/// @snippet core/src/concurrent/background_task_storage_test.cpp  BtsLifetimeCapturesPitfalls
 ///
 /// Generally, it's a good idea to declare `bts_` after most other fields
 /// to avoid lifetime bugs. An example of fool-proof code:
 ///
-/// @snippet concurrent/background_task_storage_test.cpp  Bts field ordering
+/// @snippet core/src/concurrent/background_task_storage_test.cpp  Bts field ordering
 ///
 /// Components and their clients can always be safely captured by reference:
 ///

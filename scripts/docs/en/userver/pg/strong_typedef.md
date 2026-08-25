@@ -14,7 +14,7 @@ user PostgreSQL data type. Strong typedef type derives nullability from
 underlying type.
 
 Using `USERVER_NAMESPACE::utils::StrongTypedef` example:
-@snippet storages/postgres/tests/strong_typedef_pgtest.cpp Strong typedef
+@snippet postgresql/src/storages/postgres/tests/strong_typedef_pgtest.cpp Strong typedef
 
 Using `enum class` example:
-@snippet storages/postgres/tests/strong_typedef_pgtest.cpp Enum typedef
+@snippet postgresql/src/storages/postgres/tests/strong_typedef_pgtest.cpp Enum typedef

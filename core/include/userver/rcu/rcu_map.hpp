@@ -108,7 +108,7 @@ private:
 ///
 /// ## Example usage:
 ///
-/// @snippet rcu/rcu_map_test.cpp  Sample rcu::RcuMap usage
+/// @snippet core/src/rcu/rcu_map_test.cpp  Sample rcu::RcuMap usage
 ///
 /// @see @ref scripts/docs/en/userver/synchronization.md
 template <typename Key, typename Value, typename RcuMapTraits>

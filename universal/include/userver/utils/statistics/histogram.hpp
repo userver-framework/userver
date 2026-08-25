@@ -51,7 +51,7 @@ struct BoundsBlock;
 /// ## Usage of Histogram
 ///
 /// Usage example:
-/// @snippet utils/statistics/histogram_test.cpp  sample
+/// @snippet core/src/utils/statistics/histogram_test.cpp  sample
 ///
 /// Contents of a Histogram are read using utils::statistics::HistogramView.
 /// This can be useful for writing custom metric serialization formats or
@@ -61,7 +61,7 @@ struct BoundsBlock;
 /// utils::statistics::HistogramAggregator.
 ///
 /// Histogram can be used in utils::statistics::MetricTag:
-/// @snippet utils/statistics/histogram_test.cpp  metric tag
+/// @snippet core/src/utils/statistics/histogram_test.cpp  metric tag
 class Histogram final {
 public:
     /// @brief Sets upper bounds for each non-"infinite" bucket. The lowest bound is

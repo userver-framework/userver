@@ -34,7 +34,7 @@ namespace components {
 /// * @ref HTTP_CLIENT_CONNECT_THROTTLE
 /// * @ref HTTP_CLIENT_CONNECTION_POOL_SIZE
 ///
-/// ## Static options @ref components::HttpClientCore :
+/// ## Static options of @ref components::HttpClientCore :
 /// @include{doc} scripts/docs/en/components_schema/core/src/clients/http/component_core.md
 ///
 /// Options inherited from @ref components::ComponentBase :
@@ -42,7 +42,7 @@ namespace components {
 ///
 /// ## Static configuration example:
 ///
-/// @snippet components/common_component_list_test.cpp  Sample http client component config
+/// @snippet core/src/components/common_component_list_test.cpp  Sample http client component config
 class HttpClientCore final : public ComponentBase {
 public:
     /// @ingroup userver_component_names

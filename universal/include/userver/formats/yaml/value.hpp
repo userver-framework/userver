@@ -32,7 +32,7 @@ formats::yaml::Value FromStringAllowRepeatedKeys(const std::string& doc);
 ///
 /// ## Example usage:
 ///
-/// @snippet formats/yaml/value_test.cpp  Sample formats::yaml::Value usage
+/// @snippet universal/src/formats/yaml/value_test.cpp  Sample formats::yaml::Value usage
 ///
 /// @see @ref scripts/docs/en/userver/formats.md
 ///
@@ -149,7 +149,7 @@ public:
     ///
     /// ## Example usage:
     ///
-    /// @snippet formats/yaml/value_test.cpp  Sample formats::yaml::Value::As<T>() usage
+    /// @snippet universal/src/formats/yaml/value_test.cpp  Sample formats::yaml::Value::As<T>() usage
     ///
     /// @see @ref scripts/docs/en/userver/formats.md
     template <typename T>

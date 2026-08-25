@@ -45,7 +45,7 @@ class CacheResetRegistration;
 /// or stores caches that may become stale, then it should register its resetter
 /// here. Example:
 ///
-/// @snippet testsuite/cache_control_test.cpp  sample
+/// @snippet core/src/testsuite/cache_control_test.cpp  sample
 ///
 /// Testsuite will then call this hook in the beginning of each test.
 /// You can also reset a specific cache in testsuite explicitly as follows:

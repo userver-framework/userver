@@ -15,7 +15,7 @@ namespace utils::statistics {
 /// supports recirsive starts. Use
 /// utils::statistics::BusyMarker for RAII time measures.
 ///
-/// @snippet utils/statistics/busy_test.cpp  busy sample
+/// @snippet core/src/utils/statistics/busy_test.cpp  busy sample
 class BusyStorage final {
 public:
     using Duration = std::chrono::steady_clock::duration;
@@ -48,7 +48,7 @@ private:
 /// utils::statistics::BusyStorage. Aware of recursive invocations in the same
 /// thread.
 ///
-/// @snippet utils/statistics/busy_test.cpp  busy sample
+/// @snippet core/src/utils/statistics/busy_test.cpp  busy sample
 class BusyMarker final {
 public:
     BusyMarker(BusyStorage& storage)

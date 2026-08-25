@@ -37,7 +37,7 @@ namespace net {
 /// @note Without a Resolver (e.g. in non-component code) use
 /// @ref net::blocking::ConnectTcpByName.
 ///
-/// @snippet src/net/connect_tcp_by_name_test.cpp ConnectTcpByName localhost
+/// @snippet core/src/net/connect_tcp_by_name_test.cpp ConnectTcpByName localhost
 engine::io::Socket ConnectTcpByName(
     const std::string& host,
     std::uint16_t port,

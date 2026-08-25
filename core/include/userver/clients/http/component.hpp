@@ -33,7 +33,7 @@ namespace components {
 ///
 /// ## Static configuration example:
 ///
-/// @snippet components/common_component_list_test.cpp  Sample http client component config
+/// @snippet core/src/components/common_component_list_test.cpp  Sample http client component config
 class HttpClient final : public ComponentBase {
 public:
     /// @ingroup userver_component_names

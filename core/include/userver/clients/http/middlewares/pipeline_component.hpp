@@ -18,7 +18,7 @@ namespace clients::http {
 /// @include{doc} scripts/docs/en/components_schema/core/src/clients/http/middlewares/pipeline_component.md
 ///
 /// ## Static configuration example:
-/// @snippet components/common_component_list_test.cpp  Sample http client component config
+/// @snippet core/src/components/common_component_list_test.cpp  Sample http client component config
 class MiddlewarePipelineComponent final : public components::ComponentBase {
 public:
     /// @ingroup userver_component_names

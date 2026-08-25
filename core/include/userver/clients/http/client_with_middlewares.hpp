@@ -20,11 +20,11 @@ class ClientCore;
 
 /// @ingroup userver_clients
 ///
-/// @brief HTTP client that returns a HTTP request builder from
+/// @brief HTTP client that returns an HTTP request builder from
 /// CreateRequest() with applied middlewares.
 ///
 /// Usually retrieved from @ref components::HttpClient component.
-/// Can also be created manually using @ref clients::http::Client::CreateHttpClient()
+/// Can also be created in tests using @ref utest::CreateHttpClientWithMiddleware().
 class ClientWithMiddlewares final : public Client {
 public:
     /// @cond
@@ -38,7 +38,7 @@ public:
 
     ~ClientWithMiddlewares() override;
 
-    /// @brief Returns a HTTP request builder type with preset values of
+    /// @brief Returns an HTTP request builder type with preset values of
     /// User-Agent, middlewares and some of the Testsuite stuff (if any).
     ///
     /// @note This method is thread-safe despite being non-const.

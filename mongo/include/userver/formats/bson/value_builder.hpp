@@ -29,11 +29,11 @@ namespace formats::bson {
 ///
 /// ## Example usage:
 ///
-/// @snippet formats/bson/value_builder_test.cpp  Sample formats::bson::ValueBuilder usage
+/// @snippet mongo/src/formats/bson/value_builder_test.cpp  Sample formats::bson::ValueBuilder usage
 ///
 /// ## Customization example:
 ///
-/// @snippet formats/bson/value_builder_test.cpp  Sample Customization formats::bson::ValueBuilder usage
+/// @snippet mongo/src/formats/bson/value_builder_test.cpp  Sample Customization formats::bson::ValueBuilder usage
 ///
 /// @see @ref scripts/docs/en/userver/formats.md
 class ValueBuilder {

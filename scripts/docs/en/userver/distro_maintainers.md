@@ -2,9 +2,9 @@
 
 ## Maintainer's role
 
-We develop userver framework and take care of our users. We want userver to be available on as much platforms, OSes and
-distros as possible. It is quite difficult to maintain such complex product as userver working in any environment. It
-is a difficult engineer problem, but also it is often difficult or impossible to test userver on the target platform
+We develop userver framework and take care of our users. We want userver to be available on as many platforms, OSes and
+distros as possible. It is quite difficult to maintain such a complex product as userver working in any environment. It
+is a difficult engineering problem, but also it is often difficult or impossible to test userver on the target platform
 because of absent software/hardware.
 
 That's why there are userver distro package maintainers! That's the community role which is responsible for maintaining

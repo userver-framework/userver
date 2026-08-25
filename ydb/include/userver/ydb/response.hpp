@@ -136,8 +136,8 @@ public:
     Row GetFirstRow();
 
     /// @brief Extract first row
-    /// @throws EmptyResponseError if @ref empty().
-    /// @throws IgnoreResultsError if @ref size() > 1.
+    /// @throws EmptyResponseError if @ref Cursor::empty().
+    /// @throws IgnoreResultsError if @ref Cursor::size() > 1.
     Row GetSingleRow() &&;
 
     /// @brief Extract data into a container. Each row is parsed using @ref Row::As.
@@ -145,7 +145,7 @@ public:
     Container AsContainer() &&;
 
     /// @brief Extract first row into user type using @ref Row::As.
-    /// @throws EmptyResponseError if @ref empty().
+    /// @throws EmptyResponseError if @ref Cursor::empty().
     template <typename T>
     T AsSingleRow() &&;
 

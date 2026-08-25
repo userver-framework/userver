@@ -30,7 +30,7 @@ inline constexpr bool kStrictMatch = true;
 /// ## Example usage:
 /// Take your class with pimpl via smart pointer and
 /// replace the smart pointer with utils::FastPimpl<Impl, Size, Alignment>
-/// @snippet utils/widget_fast_pimpl_test.hpp  FastPimpl - header
+/// @snippet universal/src/utils/widget_fast_pimpl_test.hpp  FastPimpl - header
 ///
 /// If the Size and Alignment are unknown - just put a random ones and
 /// the compiler would show the right ones in the error message:
@@ -41,11 +41,11 @@ inline constexpr bool kStrictMatch = true;
 /// @endcode
 ///
 /// Change the initialization in source file to not allocate for pimpl
-/// @snippet utils/widget_fast_pimpl_test.cpp  FastPimpl - source
+/// @snippet universal/src/utils/widget_fast_pimpl_test.cpp  FastPimpl - source
 ///
 /// Done! Now you can use the header without exposing the implementation
 /// details:
-/// @snippet utils/fast_pimpl_test.cpp  FastPimpl - usage
+/// @snippet universal/src/utils/fast_pimpl_test.cpp  FastPimpl - usage
 template <class T, std::size_t Size, std::size_t Alignment, bool Strict = false>
 class FastPimpl final {
 public:

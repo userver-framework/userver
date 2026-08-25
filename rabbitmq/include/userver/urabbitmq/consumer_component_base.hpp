@@ -32,7 +32,7 @@ namespace urabbitmq {
 ///
 /// @snippet samples/rabbitmq_service/static_config.yaml  RabbitMQ consumer sample - static config
 ///
-/// ## Static options @ref urabbitmq::ConsumerComponentBase :
+/// ## Static options of @ref urabbitmq::ConsumerComponentBase :
 /// @include{doc} scripts/docs/en/components_schema/rabbitmq/src/urabbitmq/consumer_component_base.md
 ///
 /// Options inherited from @ref components::ComponentBase :

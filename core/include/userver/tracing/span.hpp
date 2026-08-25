@@ -188,7 +188,7 @@ public:
     /// * nested logs are still written to the logging system;
     /// * they inherit `trace_id`, `link` and `span_id` of the nearest *written* `Span` object;
     /// * tags are still inherited from the *nearest* `Span` even if it is hidden;
-    ///    * this allows to use `Span`s as tag scopes regardless of their tracing purposes.
+    ///    * this allows you to use `Span`s as tag scopes regardless of their tracing purposes.
     ///
     /// Tracing systems use span's log level to highlight `warning` and `error` spans.
     void SetLogLevel(logging::Level log_level);

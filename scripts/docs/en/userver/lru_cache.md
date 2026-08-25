@@ -26,7 +26,7 @@ intervals. Examples:
 
 Using @ref cache::LruCacheComponent is quite straightforward. Write a component that derives from it:
 
-@snippet cache/lru_cache_component_base_test.hpp  Sample lru cache component
+@snippet core/src/cache/lru_cache_component_base_test.hpp  Sample lru cache component
 
 After that, get the component using the
 components::ComponentContext::FindComponent() and call

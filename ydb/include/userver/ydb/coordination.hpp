@@ -61,6 +61,8 @@ public:
     );
 
     /// Create semaphore
+    /// @param name semaphore name
+    /// @param limit maximum number of tokens that can be acquired
     /// @param data user-defined data attached to the semaphore
     void CreateSemaphore(std::string_view name, std::uint64_t limit, std::string_view data = {});
 
@@ -74,6 +76,7 @@ public:
     };
 
     /// Delete semaphore
+    /// @param name semaphore name
     /// @param mode deletion mode; use `Mode::kForce` to delete even if currently acquired
     void DeleteSemaphore(std::string_view name, Mode mode = Mode::kNormal);
 

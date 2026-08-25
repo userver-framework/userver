@@ -52,7 +52,7 @@ class JsonValueParser;
 ///
 /// ## Example usage:
 ///
-/// @snippet formats/json/value_test.cpp  Sample formats::json::Value usage
+/// @snippet universal/src/formats/json/value_test.cpp  Sample formats::json::Value usage
 ///
 /// @see @ref scripts/docs/en/userver/formats.md
 ///
@@ -176,7 +176,7 @@ public:
     ///
     /// ## Example usage:
     ///
-    /// @snippet formats/json/value_test.cpp  Sample formats::json::Value::As<T>() usage
+    /// @snippet universal/src/formats/json/value_test.cpp  Sample formats::json::Value::As<T>() usage
     ///
     /// @see @ref scripts/docs/en/userver/formats.md
     template <typename T>

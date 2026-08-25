@@ -43,7 +43,7 @@ For a practical assessment of the effectiveness of a particular tool for your ca
 
 For parallel independent calculations the simplest, and most reliable way to transmit data is through the result of the engine::TaskWithResult execution.
 
-@snippet engine/task/task_with_result_test.cpp  Sample TaskWithResult usage
+@snippet core/src/engine/task/task_with_result_test.cpp  Sample TaskWithResult usage
 
 A less convenient and more complicated way to solve the same problem is to create a data structure shared between tasks, where the tasks themselves will record the result. This requires protecting the data through atomic variables or engine::Mutex, as well as passing this data structure to the subtasks. In this case, engine::Future may be useful (see below).
 
@@ -56,7 +56,7 @@ Sometimes calculations could not decomposed easily and a single engine::Task sho
 For such cases, you can use the engine::Promise and engine::Future. They provide a synchronized channel for transmitting the value between tasks.
 The interface and contracts of these classes are as close as possible to similar types from the standard library. The main differences are related to the support for the cancellation mechanism.
 
-@snippet engine/future_test.cpp  Sample engine::Future usage
+@snippet core/src/engine/future_test.cpp  Sample engine::Future usage
 
 In this case, the main mechanism for transmitting data remains the return of values from TaskWithResult.
 
@@ -66,12 +66,12 @@ In this case, the main mechanism for transmitting data remains the return of val
 The most effective way to wait for one of the asynchronous operations is to use
 engine::WaitAny, engine::WaitAnyFor or engine::WaitAnyUntil:
 
-@snippet src/engine/wait_any_test.cpp sample waitany
+@snippet core/src/engine/wait_any_test.cpp sample waitany
 
 It works with different types of tasks and futures. For example could be used
 to get the ready HTTP requests ASAP:
 
-@snippet src/clients/http/client_wait_test.cpp HTTP Client - waitany
+@snippet core/src/clients/http/client_wait_test.cpp HTTP Client - waitany
 
 See also engine::WaitAllChecked and engine::GetAll for a way to wait for all
 of the asynchronous operations, rethrowing exceptions immediately.
@@ -82,7 +82,7 @@ of the asynchronous operations, rethrowing exceptions immediately.
 
 userver provides coroutine-friendly concurrent queues. Basic usage example:
 
-@snippet concurrent/mpsc_queue_test.cpp  Sample concurrent::MpscQueue usage
+@snippet core/src/concurrent/mpsc_queue_test.cpp  Sample concurrent::MpscQueue usage
 
 Consumers wait in for elements in @ref concurrent::Consumer::Pop "Pop". If you set max size for the queue @ref concurrent::GenericQueue::Create "at creation" or @ref concurrent::GenericQueue::SetSoftMaxSize "dynamically", then producers will also wait for non-fullness in @ref concurrent::Producer::Push "Push". There are also @ref concurrent::Producer::PushNoblock "PushNoblock" and @ref concurrent::Consumer::PopNoblock "PopNoblock" that can be called outside of coroutines and used for communicating between coroutine and non-coroutine (typically, driver) threads.
 
@@ -118,7 +118,7 @@ When all @ref concurrent::Producer "producers" of a queue are destroyed, and all
 
 This mechanic can be used to process all the remaining items during shutdown. Here is an example of how you can organize the queue processing correctly:
 
-@snippet concurrent/mpsc_queue_test.cpp  close sample
+@snippet core/src/concurrent/mpsc_queue_test.cpp  close sample
 
 #### Using queue closing mechanic to stop the producers
 
@@ -162,7 +162,7 @@ instead of `thread_local`.
 
 A classic mutex. It allows you to work with standard `std::unique_lock` and `std::lock_guard`.
 
-@snippet engine/mutex_test.cpp  Sample engine::Mutex usage
+@snippet core/src/engine/mutex_test.cpp  Sample engine::Mutex usage
 
 
 Prefer using `concurrent::Variable` instead of an `engine::Mutex`.
@@ -172,7 +172,7 @@ Prefer using `concurrent::Variable` instead of an `engine::Mutex`.
 
 A mutex that has readers and writers. It allows you to work with standard `std::unique_lock`,`std::lock_guard` and `std::shared_lock`.
 
-@snippet engine/shared_mutex_test.cpp  Sample engine::SharedMutex usage
+@snippet core/src/engine/shared_mutex_test.cpp  Sample engine::SharedMutex usage
 
 engine::SharedMutex is a much more complex and heavier synchronization primitive than a regular engine::Mutex. The fact of the existence of readers and writers does not mean that engine::SharedMutex will be faster than an  engine::Mutex. For example, if the critical section is small (2-3 integer variables), then the SharedMutex overhead can outweigh all the gain from concurrent reads. Therefore, you should not mindlessly use SharedMutex without benchmarks. Also, the "frequent reads, rare writes" scenario in most cases is solved much more efficiently through RCU - `rcu::Variable`.
 
@@ -188,7 +188,7 @@ A synchronization primitive with readers and writers that allows readers to work
 
 RCU should be the "default" synchronization primitive for the case of frequent readers and rare writers. Very poorly suited for frequent updates, because a copy of the data is created on update.
 
-@snippet rcu/rcu_test.cpp  Sample rcu::Variable usage
+@snippet core/src/rcu/rcu_test.cpp  Sample rcu::Variable usage
 
 Comparison with SharedMutex is described in the `engine::SharedMutex` section of this page.
 
@@ -199,19 +199,19 @@ Comparison with SharedMutex is described in the `engine::SharedMutex` section of
 
 Note that RcuMap does not protect the value of the dictionary, it only protects the dictionary itself. If the values are non-atomic types, then they must be protected separately (for example, using `concurrent::Variable`).
 
-@snippet rcu/rcu_map_test.cpp  Sample rcu::RcuMap usage
+@snippet core/src/rcu/rcu_map_test.cpp  Sample rcu::RcuMap usage
 
 ### concurrent::Variable
 
 A proxy class that combines user data and a synchronization primitive that protects that data. Its use can greatly reduce the number of bugs associated with incorrect use of the critical section - taking the wrong mutex, forgetting to take the mutex, taking SharedMutex in the wrong mode, etc.
 
-@snippet concurrent/variable_test.cpp  Sample concurrent::Variable usage
+@snippet core/src/concurrent/variable_test.cpp  Sample concurrent::Variable usage
 
 ### engine::Semaphore
 
 The semaphore is used to limit the number of users that run inside a critical section. For example, a semaphore can be used to limit the number of simultaneous concurrent attempts to connect to a resource.
 
-@snippet engine/semaphore_test.cpp  Sample engine::Semaphore usage
+@snippet core/src/engine/semaphore_test.cpp  Sample engine::Semaphore usage
 
 You don't need to use a semaphore if you need to limit the number of threads that perform CPU-heavy operations. For these purposes, create a separate TaskProcessor and perform other operations on it, it is cheaper in terms of synchronization.
 
@@ -223,7 +223,7 @@ A single-producer, single-consumer event without task cancellation support. Must
 
 For multiple producers and cancellation support, use `engine::SingleConsumerEvent` instead.
 
-@snippet engine/single_use_event_test.cpp  Wait and destroy
+@snippet core/src/engine/single_use_event_test.cpp  Wait and destroy
 
 ### utils::SwappingSmart
 

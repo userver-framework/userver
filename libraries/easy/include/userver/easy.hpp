@@ -35,6 +35,7 @@ public:
     ~DependenciesBase() override;
 };
 
+/// @cond
 template <class T>
 struct FirstFunctionArgument;
 
@@ -60,6 +61,7 @@ struct FirstFunctionArgument<Return (Class::*)(First, Args...) const> {
 
 template <class T>
 struct FirstFunctionArgument : FirstFunctionArgument<decltype(&std::decay_t<T>::operator())> {};
+/// @endcond
 
 template <typename T>
 concept HasFromJsonString = requires {

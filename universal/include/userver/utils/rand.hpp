@@ -66,10 +66,10 @@ compiler::ThreadLocalScope<RandomImpl> UseLocalRandomImpl();
 /// ## Usage example
 ///
 /// Standard distributions can be passed to WithDefaultRandom directly:
-/// @snippet utils/rand_test.cpp  WithDefaultRandom distribution
+/// @snippet universal/src/utils/rand_test.cpp  WithDefaultRandom distribution
 ///
 /// A lambda can be passed to perform a series of operations more efficiently:
-/// @snippet utils/rand_test.cpp  WithDefaultRandom multiple
+/// @snippet universal/src/utils/rand_test.cpp  WithDefaultRandom multiple
 ///
 /// @param func functor that will be invoked with the RNG
 /// @returns The invocation result of @a func

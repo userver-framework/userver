@@ -31,11 +31,11 @@ separately (depending on the size of the database, server location, etc.).
 Every command that is sent to the server has the potential to fail. Moreover,
 the client may receive error information (for example, a timeout), but the
 command on the server may succeed. Therefore, Valkey/Redis commands should be
-idemponent. If this is not possible for some reason, then care should be taken
+idempotent. If this is not possible for some reason, then care should be taken
 to ensure that incomplete groups of commands/resent commands do not leave the
 database in an inconsistent state.
 
-Valkey/Redis command has a timeout, number of replays, and a global timeout. If a
+A Valkey/Redis command has a timeout, a number of retries, and a global timeout. If a
 response is not received from the server within the timeout, then the same
 command is sent to another server in the cluster, and so on either until the
 limit on the number of repetitions is reached, or when the global timeout is
@@ -65,7 +65,7 @@ To use Valkey or Redis you must add the component components::Redis and configur
 according to the documentation. After that you can make requests via
 storages::redis::Client:
 
-@snippet storages/redis/client_redistest.cpp Sample Redis Client usage
+@snippet redis/src/storages/redis/client_redistest.cpp Sample Redis Client usage
 
 Also see @ref scripts/docs/en/userver/tutorial/redis_service.md for a complete example.
 
@@ -82,7 +82,7 @@ To interrupt a request on the client side, you can use
 @ref task_cancellation_intro "cancellation mechanism" to cancel the task
 that executes the Redis request:
 
-@snippet storages/redis/client_redistest.cpp Sample Redis Cancel request
+@snippet redis/src/storages/redis/client_redistest.cpp Sample Redis Cancel request
 
 Valkey/Redis driver does not guarantee that the cancelled request was not executed by the server.
 

@@ -42,13 +42,13 @@ See @ref scripts/docs/en/userver/tutorial/production_service.md setup example.
 Dynamic config values are obtained via the dynamic_config::Source client
 that is retrieved from components::DynamicConfig:
 
-@snippet components/component_sample_test.cpp  Sample user component source
+@snippet core/src/components/component_sample_test.cpp  Sample user component source
 
 To read the config, you first need to define a global dynamic_config::Key
 variable for it. Second, you should get the current value from the config
 using the `Key`:
 
-@snippet components/component_sample_test.cpp  Sample user component runtime config source
+@snippet core/src/components/component_sample_test.cpp  Sample user component runtime config source
 
 You can also subscribe to dynamic config updates using
 dynamic_config::Source::UpdateAndListen functions, see their docs for details.
@@ -184,8 +184,8 @@ Example enum parser:
 Objects are represented as C++ structs. Parsers for structs currently
 have to be defined manually. Example struct config:
 
-@snippet dynamic_config/config_test.cpp  struct config hpp
-@snippet dynamic_config/config_test.cpp  struct config cpp
+@snippet core/src/dynamic_config/config_test.cpp  struct config hpp
+@snippet core/src/dynamic_config/config_test.cpp  struct config cpp
 
 #### Optionals
 
