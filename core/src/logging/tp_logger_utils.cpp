@@ -8,7 +8,7 @@
 
 #include <boost/filesystem/operations.hpp>
 
-#include <logging/impl/buffered_file_sink.hpp>
+#include <logging/impl/file_sink.hpp>
 #include <logging/impl/tcp_socket_sink.hpp>
 #include <logging/impl/unix_socket_sink.hpp>
 #include <userver/logging/format.hpp>
@@ -52,7 +52,7 @@ SinkPtr GetSinkFromFilename(const std::string& file_path) {
         // Use Unix-socket sink
         return std::make_unique<UnixSocketSink>(file_path.substr(kUnixSocketPrefix.size()));
     } else {
-        return std::make_unique<BufferedFileSink>(file_path);
+        return std::make_unique<FileSink>(file_path);
     }
 }
 
@@ -60,9 +60,9 @@ SinkPtr MakeOptionalSink(const LoggerConfig& config) {
     if (config.file_path == "@null") {
         return nullptr;
     } else if (config.file_path == "@stderr") {
-        return std::make_unique<logging::impl::BufferedUnownedFileSink>(stderr);
+        return std::make_unique<logging::impl::UnownedFdSink>(STDERR_FILENO);
     } else if (config.file_path == "@stdout") {
-        return std::make_unique<logging::impl::BufferedUnownedFileSink>(stdout);
+        return std::make_unique<logging::impl::UnownedFdSink>(STDOUT_FILENO);
     } else {
         CreateLogDirectory(config.logger_name, config.file_path);
         if (config.truncate_on_start) {

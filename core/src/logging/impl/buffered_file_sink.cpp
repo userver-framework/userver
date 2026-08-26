@@ -24,9 +24,11 @@ void BufferedFileSink::Reopen(ReopenMode mode) {
 
 BufferedFileSink::~BufferedFileSink() = default;
 
-void BufferedFileSink::Write(std::string_view log) { file_.Write(log); }
+void BufferedFileSink::Write(std::span<const struct iovec> logs) {
+    for (const auto& log : logs) {
+        file_.Write({static_cast<const char*>(log.iov_base), log.iov_len});
+    }
 
-void BufferedFileSink::Flush() {
     if (file_.IsOpen()) {
         file_.FlushLight();
     }
@@ -41,8 +43,6 @@ fs::blocking::CFile& BufferedFileSink::GetFile() { return file_; }
 BufferedUnownedFileSink::BufferedUnownedFileSink(std::FILE* c_file)
     : BufferedFileSink{fs::blocking::CFile(c_file)}
 {}
-
-void BufferedUnownedFileSink::Flush() {}
 
 void BufferedUnownedFileSink::Reopen(ReopenMode) {}
 

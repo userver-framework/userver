@@ -10,17 +10,16 @@ USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl {
 
+// Use FileSink for files!
 class FdSink : public BaseSink {
 public:
     explicit FdSink(fs::blocking::FileDescriptor fd);
 
     ~FdSink() override;
 
-    void Flush() override;
+    void Write(std::span<const struct iovec> logs) final;
 
 protected:
-    void Write(std::string_view log) final;
-
     fs::blocking::FileDescriptor& GetFd();
 
     void SetFd(fs::blocking::FileDescriptor&& fd);
@@ -33,8 +32,6 @@ class UnownedFdSink final : public FdSink {
 public:
     explicit UnownedFdSink(int fd);
     ~UnownedFdSink() override;
-
-    void Flush() override;
 };
 
 }  // namespace logging::impl

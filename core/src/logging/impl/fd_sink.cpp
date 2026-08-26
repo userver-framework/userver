@@ -8,13 +8,7 @@ FdSink::FdSink(fs::blocking::FileDescriptor fd)
     : fd_{std::move(fd)}
 {}
 
-void FdSink::Write(std::string_view log) { fd_.Write(log); }
-
-void FdSink::Flush() {
-    if (fd_.IsOpen()) {
-        fd_.FSync();
-    }
-}
+void FdSink::Write(std::span<const struct iovec> logs) { fd_.Write(logs); }
 
 FdSink::~FdSink() = default;
 
@@ -25,8 +19,6 @@ void FdSink::SetFd(fs::blocking::FileDescriptor&& fd) { std::swap(fd_, fd); }
 UnownedFdSink::UnownedFdSink(int fd)
     : FdSink(fs::blocking::FileDescriptor::AdoptFd(fd))
 {}
-
-void UnownedFdSink::Flush() {}
 
 UnownedFdSink::~UnownedFdSink() { std::move(GetFd()).Release(); }
 

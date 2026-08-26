@@ -577,6 +577,19 @@ UTEST_F(LoggingTestCoro, TpLoggerFlush) {
     EXPECT_EQ(GetRecordsCount(), 4);
 }
 
+UTEST_F(LoggingTestCoro, TpLoggerHugeIov) {
+    static constexpr std::size_t kMessagesCount = IOV_MAX * 8;
+    auto logger = StartAsyncLogger(kMessagesCount);
+
+    for (std::size_t i = 0; i < kMessagesCount; ++i) {
+        LOG_INFO_TO(logger) << "1";
+    }
+    logger->Flush();
+    logger->StopConsumerTask();
+
+    EXPECT_EQ(GetRecordsCount(), kMessagesCount);
+}
+
 UTEST_F(LoggingTestCoro, TpLoggerDeferredWakeup) {
     // Logging fewer than the default flush queue size never wakes the sleeping consumer eagerly.
     constexpr std::size_t kCount = 5;

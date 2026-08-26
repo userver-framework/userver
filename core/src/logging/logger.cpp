@@ -6,8 +6,8 @@
 
 #include <engine/task/task_context.hpp>
 #include <logging/config.hpp>
-#include <logging/impl/buffered_file_sink.hpp>
 #include <logging/impl/fd_sink.hpp>
+#include <logging/impl/file_sink.hpp>
 #include <logging/impl/unix_socket_sink.hpp>
 #include <logging/tp_logger.hpp>
 
@@ -32,9 +32,9 @@ LoggerPtr MakeSimpleLogger(const std::string& name, impl::SinkPtr sink, Level le
     return logger;
 }
 
-impl::SinkPtr MakeStderrSink() { return std::make_unique<impl::BufferedUnownedFileSink>(stderr); }
+impl::SinkPtr MakeStderrSink() { return std::make_unique<impl::UnownedFdSink>(STDERR_FILENO); }
 
-impl::SinkPtr MakeStdoutSink() { return std::make_unique<impl::BufferedUnownedFileSink>(stdout); }
+impl::SinkPtr MakeStdoutSink() { return std::make_unique<impl::UnownedFdSink>(STDOUT_FILENO); }
 
 }  // namespace
 
@@ -62,7 +62,7 @@ LoggerPtr MakeStdoutLogger(const std::string& name, Format format, Level level) 
 }
 
 LoggerPtr MakeFileLogger(const std::string& name, const std::string& path, Format format, Level level) {
-    return MakeSimpleLogger(name, std::make_unique<impl::BufferedFileSink>(path), level, format);
+    return MakeSimpleLogger(name, std::make_unique<impl::FileSink>(path), level, format);
 }
 
 namespace impl {

@@ -1,58 +1,41 @@
 #include "unix_socket_sink.hpp"
 
-#include <sys/socket.h>
-#include <sys/un.h>
-#include <unistd.h>
-
-#include <cstdio>
-
 #include <fmt/format.h>
 
 #include <userver/engine/io/sockaddr.hpp>
-#include <userver/utils/strerror.hpp>
-#include <utils/check_syscall.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace logging::impl {
 
 void UnixSocketClient::connect(std::string_view filename) {
-    const auto sockaddr = engine::io::Sockaddr::MakeUnixSocketAddress(filename);
-
-    socket_ = utils::CheckSyscall(::socket(AF_UNIX, SOCK_STREAM, 0), "create socket");
-
-    utils::CheckSyscall(::connect(socket_, sockaddr.Data(), sockaddr.Size()), "connect to server by unix-socket");
+    const auto addr = engine::io::Sockaddr::MakeUnixSocketAddress(filename);
+    socket_ = engine::io::Socket{engine::io::AddrDomain::kUnix, engine::io::SocketType::kStream};
+    socket_.Connect(addr, {});
 }
 
-void UnixSocketClient::send(std::string_view message) {
-    size_t bytes_sent = 0;
-    while (bytes_sent < message.size()) {
-        auto write_res = ::send(socket_, message.data() + bytes_sent, message.size() - bytes_sent, 0);
+void UnixSocketClient::send(std::span<const struct iovec> logs) {
+    if (logs.empty()) {
+        return;
+    }
 
-        if (write_res < 0) {
-            const auto old_errno = errno;
-            close();
-            errno = old_errno;
-            utils::CheckSyscall(write_res, "write to socket");
-        }
-
-        bytes_sent += static_cast<size_t>(write_res);
+    const auto send_result = socket_.SendAll(logs.data(), logs.size(), {});
+    std::size_t n_bytes = 0;
+    for (const auto& log : logs) {
+        n_bytes += log.iov_len;
+    }
+    if (n_bytes != send_result) {
+        throw std::runtime_error(
+            fmt::format("Failed to send {} bytes because the remote closed the connection", n_bytes)
+        );
     }
 }
 
-void UnixSocketClient::close() {
-    if (socket_ != -1) {
-        if (::close(socket_) == -1) {
-            std::perror("Error while closing socket");
-        }
+void UnixSocketClient::close() { socket_.Close(); }
 
-        socket_ = -1;
-    }
-}
+UnixSocketClient::~UnixSocketClient() { socket_.Close(); }
 
-UnixSocketClient::~UnixSocketClient() { close(); }
-
-void UnixSocketSink::Write(std::string_view log) { client_.send(log); }
+void UnixSocketSink::Write(std::span<const struct iovec> logs) { client_.send(logs); }
 
 void UnixSocketSink::Close() { client_.close(); }
 

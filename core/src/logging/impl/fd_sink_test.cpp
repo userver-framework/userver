@@ -19,7 +19,7 @@ UTEST(FdSink, UnownedSinkLog) {
         auto fd = fs::blocking::FileDescriptor::Open(file_scope.GetPath(), fs::blocking::OpenFlag::kWrite);
 
         auto sink = logging::impl::UnownedFdSink(fd.GetNative());
-        EXPECT_NO_THROW(sink.Log({"message\n", logging::Level::kWarning}));
+        EXPECT_NO_THROW(sink.Log("message\n"));
     }
 
     EXPECT_THAT(fs::blocking::ReadFileContents(file_scope.GetPath()), testing::HasSubstr("message"));
@@ -34,7 +34,7 @@ UTEST(FdSink, PipeSinkLog) {
     });
     {
         auto sink = logging::impl::FdSink{fs::blocking::FileDescriptor::AdoptFd(fd_pipe.writer.Release())};
-        EXPECT_NO_THROW(sink.Log({"message\n", logging::Level::kWarning}));
+        EXPECT_NO_THROW(sink.Log("message\n"));
     }
     read_task.Get();
 }
@@ -51,7 +51,7 @@ UTEST(FdSink, PipeSinkLogStringView) {
 
         const char* message = "BIG MESSAGE NO DATA";
         const std::string_view message_str{message, 11};
-        EXPECT_NO_THROW(sink.Log({message_str, logging::Level::kWarning}));
+        EXPECT_NO_THROW(sink.Log(message_str));
     }
     read_task.Get();
 }
@@ -65,9 +65,9 @@ UTEST(FdSink, PipeSinkLogMulti) {
     });
     {
         auto sink = logging::impl::FdSink{fs::blocking::FileDescriptor::AdoptFd(fd_pipe.writer.Release())};
-        EXPECT_NO_THROW(sink.Log({"message\n", logging::Level::kWarning}));
-        EXPECT_NO_THROW(sink.Log({"message 2\n", logging::Level::kInfo}));
-        EXPECT_NO_THROW(sink.Log({"message 3\n", logging::Level::kCritical}));
+        EXPECT_NO_THROW(sink.Log("message\n"));
+        EXPECT_NO_THROW(sink.Log("message 2\n"));
+        EXPECT_NO_THROW(sink.Log("message 3\n"));
     }
     read_task.Get();
 }

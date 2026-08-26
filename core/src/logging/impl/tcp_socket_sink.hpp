@@ -23,7 +23,7 @@ public:
     ~TcpSocketClient();
 
     void Connect();
-    void Send(const char* data, size_t n_bytes);
+    void Send(std::span<const struct iovec> logs);
     bool IsConnected();
     void Close();
 
@@ -37,13 +37,11 @@ public:
     explicit TcpSocketSink(std::vector<engine::io::Sockaddr> addr);
 
     TcpSocketSink() = delete;
+    ~TcpSocketSink() override = default;
 
     void Close();
 
-    ~TcpSocketSink() override = default;
-
-protected:
-    void Write(std::string_view log) final;
+    void Write(std::span<const struct iovec> logs) final;
 
 private:
     std::mutex mutex_;
