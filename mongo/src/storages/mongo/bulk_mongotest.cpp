@@ -23,14 +23,8 @@ UTEST_F(Bulk, Empty) {
     EXPECT_TRUE(bulk.IsEmpty());
     auto result = coll.Execute(std::move(bulk));
 
-    EXPECT_EQ(0, result.InsertedCount());
-    EXPECT_EQ(0, result.MatchedCount());
-    EXPECT_EQ(0, result.ModifiedCount());
-    EXPECT_EQ(0, result.UpsertedCount());
-    EXPECT_EQ(0, result.DeletedCount());
-    EXPECT_TRUE(result.UpsertedIds().empty());
-    EXPECT_TRUE(result.ServerErrors().empty());
-    EXPECT_TRUE(result.WriteConcernErrors().empty());
+    ExpectWriteCounts(result, {});
+    ExpectNoWriteErrors(result);
 }
 
 UTEST_F(Bulk, DISABLED_InsertOne) {  // TODO: TAXICOMMON-8662
@@ -42,14 +36,8 @@ UTEST_F(Bulk, DISABLED_InsertOne) {  // TODO: TAXICOMMON-8662
         EXPECT_FALSE(bulk.IsEmpty());
         auto result = coll.Execute(std::move(bulk));
 
-        EXPECT_EQ(1, result.InsertedCount());
-        EXPECT_EQ(0, result.MatchedCount());
-        EXPECT_EQ(0, result.ModifiedCount());
-        EXPECT_EQ(0, result.UpsertedCount());
-        EXPECT_EQ(0, result.DeletedCount());
-        EXPECT_TRUE(result.UpsertedIds().empty());
-        EXPECT_TRUE(result.ServerErrors().empty());
-        EXPECT_TRUE(result.WriteConcernErrors().empty());
+        ExpectWriteCounts(result, {.inserted = 1});
+        ExpectNoWriteErrors(result);
     }
     {
         auto bulk = coll.MakeUnorderedBulk(mongo::options::WriteConcern::kMajority);
@@ -57,14 +45,8 @@ UTEST_F(Bulk, DISABLED_InsertOne) {  // TODO: TAXICOMMON-8662
         EXPECT_FALSE(bulk.IsEmpty());
         auto result = coll.Execute(std::move(bulk));
 
-        EXPECT_EQ(1, result.InsertedCount());
-        EXPECT_EQ(0, result.MatchedCount());
-        EXPECT_EQ(0, result.ModifiedCount());
-        EXPECT_EQ(0, result.UpsertedCount());
-        EXPECT_EQ(0, result.DeletedCount());
-        EXPECT_TRUE(result.UpsertedIds().empty());
-        EXPECT_TRUE(result.ServerErrors().empty());
-        EXPECT_TRUE(result.WriteConcernErrors().empty());
+        ExpectWriteCounts(result, {.inserted = 1});
+        ExpectNoWriteErrors(result);
     }
     {
         auto bulk = coll.MakeOrderedBulk();
@@ -84,21 +66,15 @@ UTEST_F(Bulk, DISABLED_InsertOne) {  // TODO: TAXICOMMON-8662
         EXPECT_FALSE(bulk.IsEmpty());
         auto result = coll.Execute(std::move(bulk));
 
-        EXPECT_EQ(2, result.InsertedCount());
-        EXPECT_EQ(0, result.MatchedCount());
-        EXPECT_EQ(0, result.ModifiedCount());
-        EXPECT_EQ(0, result.UpsertedCount());
-        EXPECT_EQ(0, result.DeletedCount());
-        EXPECT_TRUE(result.UpsertedIds().empty());
+        ExpectWriteCounts(result, {.inserted = 2});
         EXPECT_TRUE(result.WriteConcernErrors().empty());
         const auto& operation_error = result.OperationError();
 
         EXPECT_TRUE(operation_error);
-        EXPECT_EQ(operation_error.Code(), 11000);
+        EXPECT_EQ(kDuplicateKeyErrorCode, operation_error.Code());
 
-        auto errors = result.ServerErrors();
-        ASSERT_EQ(1, errors.size());
-        EXPECT_EQ(11000, errors[2].Code());
+        ExpectSingleDuplicateKeyError(result);
+        EXPECT_EQ(1, result.ServerErrors().count(2));
     }
     coll.DeleteMany({});
     {
@@ -111,23 +87,18 @@ UTEST_F(Bulk, DISABLED_InsertOne) {  // TODO: TAXICOMMON-8662
         EXPECT_FALSE(bulk.IsEmpty());
         auto result = coll.Execute(std::move(bulk));
 
-        EXPECT_EQ(3, result.InsertedCount());
-        EXPECT_EQ(0, result.MatchedCount());
-        EXPECT_EQ(0, result.ModifiedCount());
-        EXPECT_EQ(0, result.UpsertedCount());
-        EXPECT_EQ(0, result.DeletedCount());
-        EXPECT_TRUE(result.UpsertedIds().empty());
+        ExpectWriteCounts(result, {.inserted = 3});
         EXPECT_TRUE(result.WriteConcernErrors().empty());
 
         const auto& operation_error = result.OperationError();
 
         EXPECT_TRUE(operation_error);
-        EXPECT_EQ(operation_error.Code(), 11000);
+        EXPECT_EQ(kDuplicateKeyErrorCode, operation_error.Code());
 
         auto errors = result.ServerErrors();
         ASSERT_EQ(2, errors.size());
-        EXPECT_EQ(11000, errors[2].Code());
-        EXPECT_EQ(11000, errors[4].Code());
+        EXPECT_EQ(kDuplicateKeyErrorCode, errors[2].Code());
+        EXPECT_EQ(kDuplicateKeyErrorCode, errors[4].Code());
     }
 }
 
@@ -141,14 +112,8 @@ UTEST_F(Bulk, ReplaceOne) {
         EXPECT_FALSE(bulk.IsEmpty());
         auto result = coll.Execute(std::move(bulk));
 
-        EXPECT_EQ(0, result.InsertedCount());
-        EXPECT_EQ(1, result.MatchedCount());
-        EXPECT_EQ(1, result.ModifiedCount());
-        EXPECT_EQ(0, result.UpsertedCount());
-        EXPECT_EQ(0, result.DeletedCount());
-        EXPECT_TRUE(result.UpsertedIds().empty());
-        EXPECT_TRUE(result.ServerErrors().empty());
-        EXPECT_TRUE(result.WriteConcernErrors().empty());
+        ExpectWriteCounts(result, {.matched = 1, .modified = 1});
+        ExpectNoWriteErrors(result);
     }
     {
         auto bulk =
@@ -158,21 +123,14 @@ UTEST_F(Bulk, ReplaceOne) {
         EXPECT_FALSE(bulk.IsEmpty());
         auto result = coll.Execute(std::move(bulk));
 
-        EXPECT_EQ(0, result.InsertedCount());
-        EXPECT_EQ(1, result.MatchedCount());
-        EXPECT_EQ(1, result.ModifiedCount());
-        EXPECT_EQ(0, result.UpsertedCount());
-        EXPECT_EQ(0, result.DeletedCount());
-        EXPECT_TRUE(result.UpsertedIds().empty());
+        ExpectWriteCounts(result, {.matched = 1, .modified = 1});
         EXPECT_TRUE(result.WriteConcernErrors().empty());
 
         const auto& operation_error = result.OperationError();
 
         EXPECT_TRUE(operation_error);
-        EXPECT_EQ(operation_error.Code(), 11000);
-        auto errors = result.ServerErrors();
-        ASSERT_EQ(1, errors.size());
-        EXPECT_EQ(11000, errors[0].Code());
+        EXPECT_EQ(kDuplicateKeyErrorCode, operation_error.Code());
+        ExpectSingleDuplicateKeyError(result);
     }
 }
 
@@ -189,17 +147,9 @@ UTEST_F(Bulk, Update) {
         EXPECT_FALSE(bulk.IsEmpty());
         auto result = coll.Execute(std::move(bulk));
 
-        EXPECT_EQ(0, result.InsertedCount());
-        EXPECT_EQ(0, result.MatchedCount());
-        EXPECT_EQ(0, result.ModifiedCount());
-        EXPECT_EQ(1, result.UpsertedCount());
-        EXPECT_EQ(0, result.DeletedCount());
-        EXPECT_TRUE(result.ServerErrors().empty());
-        EXPECT_TRUE(result.WriteConcernErrors().empty());
-
-        auto upserted_ids = result.UpsertedIds();
-        EXPECT_EQ(1, upserted_ids.size());
-        EXPECT_EQ(1, upserted_ids[0].As<int>());
+        ExpectWriteCounts(result, {.upserted = 1});
+        ExpectNoWriteErrors(result);
+        ExpectSingleUpsertedId(result, 1);
     }
     {
         auto bulk = coll.MakeUnorderedBulk(mongo::options::SuppressServerExceptions{});
@@ -219,21 +169,14 @@ UTEST_F(Bulk, Update) {
         const auto& operation_error = result.OperationError();
 
         EXPECT_TRUE(operation_error);
-        EXPECT_EQ(operation_error.Code(), 11000);
+        EXPECT_EQ(kDuplicateKeyErrorCode, operation_error.Code());
 
-        EXPECT_EQ(0, result.InsertedCount());
-        EXPECT_EQ(2, result.MatchedCount());
-        EXPECT_EQ(2, result.ModifiedCount());
-        EXPECT_EQ(1, result.UpsertedCount());
-        EXPECT_EQ(0, result.DeletedCount());
+        ExpectWriteCounts(result, {.matched = 2, .modified = 2, .upserted = 1});
         EXPECT_TRUE(result.WriteConcernErrors().empty());
 
-        auto errors = result.ServerErrors();
-        ASSERT_EQ(1, errors.size());
-        EXPECT_EQ(11000, errors[0].Code());
+        ExpectSingleDuplicateKeyError(result);
 
         auto upserted_ids = result.UpsertedIds();
-        EXPECT_EQ(1, upserted_ids.size());
         EXPECT_EQ(2, upserted_ids[1].As<int>());
     }
     {
@@ -245,13 +188,8 @@ UTEST_F(Bulk, Update) {
         EXPECT_FALSE(bulk.IsEmpty());
         auto result = coll.Execute(std::move(bulk));
 
-        EXPECT_EQ(0, result.InsertedCount());
-        EXPECT_EQ(1, result.MatchedCount());
-        EXPECT_EQ(1, result.ModifiedCount());
-        EXPECT_EQ(0, result.UpsertedCount());
-        EXPECT_EQ(0, result.DeletedCount());
-        EXPECT_TRUE(result.ServerErrors().empty());
-        EXPECT_TRUE(result.WriteConcernErrors().empty());
+        ExpectWriteCounts(result, {.matched = 1, .modified = 1});
+        ExpectNoWriteErrors(result);
     }
 }
 
@@ -266,7 +204,7 @@ UTEST_F(Bulk, UpdateWithArrayFilters) {
         EXPECT_FALSE(bulk.IsEmpty());
         auto result = coll.Execute(std::move(bulk));
 
-        EXPECT_EQ(3, result.InsertedCount());
+        ExpectWriteCounts(result, {.inserted = 3});
         EXPECT_TRUE(result.ServerErrors().empty());
     }
     {
@@ -285,13 +223,8 @@ UTEST_F(Bulk, UpdateWithArrayFilters) {
         EXPECT_FALSE(bulk.IsEmpty());
         auto result = coll.Execute(std::move(bulk));
 
-        EXPECT_EQ(0, result.InsertedCount());
-        EXPECT_EQ(2, result.MatchedCount());
-        EXPECT_EQ(2, result.ModifiedCount());
-        EXPECT_EQ(0, result.UpsertedCount());
-        EXPECT_EQ(0, result.DeletedCount());
-        EXPECT_TRUE(result.WriteConcernErrors().empty());
-        EXPECT_TRUE(result.ServerErrors().empty());
+        ExpectWriteCounts(result, {.matched = 2, .modified = 2});
+        ExpectNoWriteErrors(result);
     }
 }
 
@@ -315,14 +248,8 @@ UTEST_F(Bulk, Delete) {
     EXPECT_FALSE(bulk.IsEmpty());
     auto result = coll.Execute(std::move(bulk));
 
-    EXPECT_EQ(0, result.InsertedCount());
-    EXPECT_EQ(0, result.MatchedCount());
-    EXPECT_EQ(0, result.ModifiedCount());
-    EXPECT_EQ(0, result.UpsertedCount());
-    EXPECT_EQ(6, result.DeletedCount());
-    EXPECT_TRUE(result.UpsertedIds().empty());
-    EXPECT_TRUE(result.ServerErrors().empty());
-    EXPECT_TRUE(result.WriteConcernErrors().empty());
+    ExpectWriteCounts(result, {.deleted = 6});
+    ExpectNoWriteErrors(result);
 }
 
 UTEST_F(Bulk, Mixed) {
@@ -348,16 +275,10 @@ UTEST_F(Bulk, Mixed) {
     EXPECT_FALSE(bulk.IsEmpty());
     auto result = coll.Execute(std::move(bulk));
 
-    EXPECT_EQ(3, result.InsertedCount());
-    EXPECT_EQ(5, result.MatchedCount());
-    EXPECT_EQ(4, result.ModifiedCount());
-    EXPECT_EQ(1, result.UpsertedCount());
-    EXPECT_EQ(3, result.DeletedCount());
-    EXPECT_TRUE(result.ServerErrors().empty());
-    EXPECT_TRUE(result.WriteConcernErrors().empty());
+    ExpectWriteCounts(result, {.inserted = 3, .matched = 5, .modified = 4, .upserted = 1, .deleted = 3});
+    ExpectNoWriteErrors(result);
 
     auto upserted_ids = result.UpsertedIds();
-    EXPECT_EQ(1, upserted_ids.size());
     EXPECT_TRUE(upserted_ids[5].IsOid());
 }
 
@@ -388,13 +309,8 @@ UTEST_F(Bulk, UpdateOneWithAggregationPipeline) {
     EXPECT_FALSE(bulk.IsEmpty());
     auto result = coll.Execute(std::move(bulk));
 
-    EXPECT_EQ(0, result.InsertedCount());
-    EXPECT_EQ(1, result.MatchedCount());
-    EXPECT_EQ(1, result.ModifiedCount());
-    EXPECT_EQ(0, result.UpsertedCount());
-    EXPECT_EQ(0, result.DeletedCount());
-    EXPECT_TRUE(result.ServerErrors().empty());
-    EXPECT_TRUE(result.WriteConcernErrors().empty());
+    ExpectWriteCounts(result, {.matched = 1, .modified = 1});
+    ExpectNoWriteErrors(result);
 }
 
 UTEST_F(Bulk, UpdateManyWithAggregationPipeline) {
@@ -411,13 +327,8 @@ UTEST_F(Bulk, UpdateManyWithAggregationPipeline) {
     EXPECT_FALSE(bulk.IsEmpty());
     auto result = coll.Execute(std::move(bulk));
 
-    EXPECT_EQ(0, result.InsertedCount());
-    EXPECT_EQ(3, result.MatchedCount());
-    EXPECT_EQ(3, result.ModifiedCount());
-    EXPECT_EQ(0, result.UpsertedCount());
-    EXPECT_EQ(0, result.DeletedCount());
-    EXPECT_TRUE(result.ServerErrors().empty());
-    EXPECT_TRUE(result.WriteConcernErrors().empty());
+    ExpectWriteCounts(result, {.matched = 3, .modified = 3});
+    ExpectNoWriteErrors(result);
 }
 
 UTEST_F(Bulk, UpdateWithMultiStageAggregationPipeline) {
@@ -435,8 +346,7 @@ UTEST_F(Bulk, UpdateWithMultiStageAggregationPipeline) {
     EXPECT_FALSE(bulk.IsEmpty());
     auto result = coll.Execute(std::move(bulk));
 
-    EXPECT_EQ(1, result.MatchedCount());
-    EXPECT_EQ(1, result.ModifiedCount());
+    ExpectWriteCounts(result, {.matched = 1, .modified = 1});
     EXPECT_TRUE(result.ServerErrors().empty());
 }
 

@@ -11,6 +11,8 @@
 #include <userver/logging/log.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 
+#include <userver/formats/bson/value.hpp>
+#include <userver/storages/mongo/mongo_error.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -71,6 +73,69 @@ storages::mongo::PoolConfig MakeTestPoolConfig() {
     return config;
 }
 
+void ExpectWriteCounts(
+    const storages::mongo::WriteResult& result,
+    const ExpectedWriteCounts& expected,
+    const utils::impl::SourceLocation& source_location
+) {
+    const auto source_location_string = utils::impl::ToString(source_location);
+    EXPECT_EQ(expected.inserted, result.InsertedCount()) << " at " << source_location_string;
+    EXPECT_EQ(expected.matched, result.MatchedCount()) << " at " << source_location_string;
+    EXPECT_EQ(expected.modified, result.ModifiedCount()) << " at " << source_location_string;
+    EXPECT_EQ(expected.upserted, result.UpsertedCount()) << " at " << source_location_string;
+    EXPECT_EQ(expected.deleted, result.DeletedCount()) << " at " << source_location_string;
+    EXPECT_EQ(expected.upserted, result.UpsertedIds().size()) << " at " << source_location_string;
+}
+
+void ExpectNoWriteErrors(
+    const storages::mongo::WriteResult& result,
+    const utils::impl::SourceLocation& source_location
+) {
+    const auto source_location_string = utils::impl::ToString(source_location);
+    EXPECT_TRUE(result.ServerErrors().empty()) << " at " << source_location_string;
+    EXPECT_TRUE(result.WriteConcernErrors().empty()) << " at " << source_location_string;
+}
+
+void ExpectSameWriteCounts(
+    const storages::mongo::WriteResult& native,
+    const storages::mongo::WriteResult& bulk_write,
+    const utils::impl::SourceLocation& source_location
+) {
+    const auto source_location_string = utils::impl::ToString(source_location);
+    EXPECT_EQ(native.InsertedCount(), bulk_write.InsertedCount()) << " at " << source_location_string;
+    EXPECT_EQ(native.MatchedCount(), bulk_write.MatchedCount()) << " at " << source_location_string;
+    EXPECT_EQ(native.ModifiedCount(), bulk_write.ModifiedCount()) << " at " << source_location_string;
+    EXPECT_EQ(native.UpsertedCount(), bulk_write.UpsertedCount()) << " at " << source_location_string;
+    EXPECT_EQ(native.DeletedCount(), bulk_write.DeletedCount()) << " at " << source_location_string;
+}
+
+void ExpectSingleUpsertedId(
+    const storages::mongo::WriteResult& result,
+    int expected_id,
+    const utils::impl::SourceLocation& source_location
+) {
+    const auto source_location_string = utils::impl::ToString(source_location);
+    const auto upserted_ids = result.UpsertedIds();
+    ASSERT_EQ(std::size_t{1}, upserted_ids.size()) << " at " << source_location_string;
+    const auto it = upserted_ids.find(0);
+    ASSERT_NE(upserted_ids.end(), it) << " at " << source_location_string;
+    ASSERT_TRUE(it->second.IsInt32()) << " at " << source_location_string;
+    EXPECT_EQ(expected_id, it->second.As<int>()) << " at " << source_location_string;
+}
+
+void ExpectSingleDuplicateKeyError(
+    const storages::mongo::WriteResult& result,
+    const utils::impl::SourceLocation& source_location
+) {
+    const auto source_location_string = utils::impl::ToString(source_location);
+    const auto server_errors = result.ServerErrors();
+    ASSERT_EQ(std::size_t{1}, server_errors.size()) << " at " << source_location_string;
+    const auto& error = server_errors.begin()->second;
+    EXPECT_TRUE(error.IsServerError()) << " at " << source_location_string;
+    EXPECT_EQ(kDuplicateKeyErrorCode, error.Code()) << " at " << source_location_string;
+    EXPECT_EQ(storages::mongo::MongoError::Kind::kDuplicateKey, error.GetKind()) << " at " << source_location_string;
+}
+
 MongoPoolFixture::MongoPoolFixture()
     : default_resolver_(MakeDnsResolver()),
       dynamic_config_storage_(MakeDynamicConfig()),
@@ -112,6 +177,17 @@ storages::mongo::Pool MongoPoolFixture::MakePool(
     storages::mongo::Pool
         pool{*db_name, GetTestsuiteMongoUri(*db_name), *config, *dns_resolver, dynamic_config_storage_.GetSource()};
     return pool;
+}
+
+storages::mongo::Pool MongoPoolFixture::MakeUnacknowledgedPool(const std::string& db_name) {
+    used_db_names_.insert(db_name);
+    return storages::mongo::Pool{
+        db_name,
+        GetTestsuiteMongoUri(db_name) + "?w=0",
+        MakeTestPoolConfig(),
+        &default_resolver_,
+        dynamic_config_storage_.GetSource(),
+    };
 }
 
 void MongoPoolFixture::SetDynamicConfig(const std::vector<dynamic_config::KeyValue>& config) {
