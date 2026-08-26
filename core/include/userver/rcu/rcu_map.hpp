@@ -104,6 +104,15 @@ private:
 /// copied during keyset change. The map itself is implemented as @ref rcu::Variable, so every keyset change (e.g.
 /// insert or erase) triggers the whole map copying.
 ///
+/// @warning Inserting N elements one by one requires O(N^2) operations because each insertion copies the whole map.
+///
+/// Writer access is protected by `RcuMapTraits::MutexType`. The default @ref rcu::DefaultRcuMapTraits selects
+/// @ref engine::Mutex. With it and other regular mutex types, concurrent keyset changes are serialized for the whole
+/// map. Read-modify-write operations first acquire the mutex and then copy the latest committed map snapshot, so they
+/// include changes made by preceding writers. The mutex is held until the new snapshot is committed or discarded,
+/// while readers continue using an older snapshot without waiting. This guarantee concerns copying the map snapshot;
+/// preparation of a candidate Value is documented by each insertion method separately.
+///
 /// @note No synchronization is provided for value access, it must be implemented by Value when necessary.
 ///
 /// ## Example usage:
@@ -160,12 +169,20 @@ public:
 
     /// @brief Returns a modifiable value pointer by key if exists or default-creates one
     /// @note Copies the whole map if the key doesn't exist.
+    /// @note The decisive presence check and insertion are serialized with other writers. Concurrent calls for the
+    /// same missing key don't overwrite each other and return pointers to the same published value, unless another
+    /// writer removes or replaces the key in between.
     const utils::NotNull<ValuePtr> operator[](const Key&);
 
     /// @brief Inserts a new element into the container if there is no element with the key in the container.
     /// Returns a pair consisting of a pointer to the inserted element, or the
     /// already-existing element if no insertion happened, and a bool denoting whether the insertion took place.
     /// @note Copies the whole map if the key doesn't exist.
+    /// @note The supplied Value pointer may be discarded if another writer inserts an equivalent key before this
+    /// operation acquires the writer mutex.
+    /// @note The decisive presence check and insertion are serialized with other writers. Concurrent calls for
+    /// equivalent keys don't overwrite each other: at most one can return `inserted == true` while the key remains
+    /// present.
     InsertReturnType Insert(const Key& key, ValuePtr value);
 
     /// @brief Inserts a new element into the container constructed in-place with
@@ -173,20 +190,30 @@ public:
     /// Returns a pair consisting of a pointer to the inserted element, or the
     /// already-existing element if no insertion happened, and a bool denoting whether the insertion took place.
     /// @note Copies the whole map if the key doesn't exist.
+    /// @note The Value candidate is constructed before acquiring the writer mutex and may be discarded if another
+    /// writer inserts an equivalent key first. @ref rcu::RcuMap::TryEmplace avoids this extra construction.
+    /// @note The decisive presence check and insertion are serialized with other writers. Concurrent calls for
+    /// equivalent keys don't overwrite each other: at most one can return `inserted == true` while the key remains
+    /// present.
     template <typename... Args>
     InsertReturnType Emplace(const Key& key, Args&&... args);
 
-    /// @brief If a key equivalent to `key` already exists in the container, does nothing.
-    /// Otherwise, behaves like `Emplace` except that the element is constructed
-    /// as `std::make_shared<Value>(std::piecewise_construct,
-    /// std::forward_as_tuple(key), std::forward_as_tuple(std::forward<Args>(args)...))`.
+    /// @brief If a key equivalent to `key` already exists in the container, does nothing. Otherwise, constructs a
+    /// Value from the given args and inserts it into the map.
     /// Returns a pair consisting of a pointer to the inserted element, or the
     /// already-existing element if no insertion happened, and a bool denoting whether the insertion took place.
+    /// @note After acquiring the writer mutex, the final presence check uses the latest committed map snapshot. Value
+    /// construction happens only if this check succeeds, although function arguments are evaluated before the call.
+    /// For concurrent calls with equivalent keys, at most one call can commit the insertion and return
+    /// `inserted == true`; once it commits, the other calls return its value with `inserted == false`, unless another
+    /// writer removes or replaces the key.
     template <typename... Args>
     InsertReturnType TryEmplace(const Key& key, Args&&... args);
 
     /// @brief If a key equivalent to `key` already exists in the container,
     /// replaces the associated value. Otherwise, inserts a new pair into the map.
+    /// @note Serialized with other write operations by the writer mutex. Concurrent assignments are applied one by
+    /// one; the last committed assignment determines the value.
     template <typename RawKey>
     void InsertOrAssign(RawKey&& key, ValuePtr value);
 
@@ -214,7 +241,9 @@ public:
 
     /// @brief Starts a transaction, used to perform a series of arbitrary changes
     /// to the map.
-    /// @details The map is copied. Don't forget to `Commit` to apply the changes.
+    /// @details Acquires the same writer mutex as all other map writes, then copies the latest committed map. The
+    /// returned transaction owns the mutex until `Commit` or destruction, so concurrent write transactions proceed
+    /// one by one. Readers don't wait for the transaction. Don't forget to `Commit` to apply the changes.
     rcu::WritablePtr<RawMap, RcuTraits> StartWrite();
 
     /// @brief Returns a readonly copy of the map

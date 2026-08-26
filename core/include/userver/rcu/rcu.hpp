@@ -308,10 +308,15 @@ private:
 /// Smart pointer for rcu::Variable<T> for changing RCU value. It stores a
 /// reference to a to-be-changed value and allows one to mutate the value (e.g.
 /// add items to std::unordered_map). Changed value is not visible to readers
-/// until explicit store by Commit. Only a single writer may own a WritablePtr
-/// associated with the same Variable, so WritablePtr creates a critical
-/// section. This critical section doesn't affect readers, so a slow writer
-/// doesn't block readers.
+/// until explicit store by Commit.
+///
+/// Only a single writer may own a WritablePtr associated with the same
+/// Variable. With regular mutex traits, the writer mutex serializes concurrent
+/// write transactions and is held until Commit or WritablePtr destruction.
+/// StartWrite acquires the mutex and then copies the latest committed value into
+/// the transaction. In-place write APIs acquire the mutex before constructing
+/// the internal replacement value. This critical section doesn't affect
+/// readers, so a slow writer doesn't block readers.
 /// @note you may not pass WritablePtr between coroutines as it owns
 /// engine::Mutex, which must be unlocked in the same coroutine that was used to
 /// lock the mutex.
@@ -344,9 +349,9 @@ public:
         }
     }
 
-    /// Store the changed value in Variable. After Commit() the value becomes
-    /// visible to new readers (IOW, Variable::Read() returns ReadablePtr
-    /// referencing the stored value, not an old value).
+    /// Store the changed value in Variable and release the writer mutex. After
+    /// Commit() the value becomes visible to new readers (IOW, Variable::Read()
+    /// returns ReadablePtr referencing the stored value, not an old value).
     void Commit() {
         UASSERT(record_ != nullptr);
         var_.DoAssign(*std::exchange(record_, nullptr), lock_);
@@ -393,6 +398,27 @@ private:
 /// Read-Copy-Update). Old version of the value is not freed on update, it will
 /// be eventually freed when a subsequent writer identifies that nobody works
 /// with this version.
+///
+/// Write transactions on the same @ref rcu::Variable are mutually exclusive.
+/// With @ref rcu::DefaultRcuTraits, @ref rcu::SyncRcuTraits, and
+/// @ref rcu::BlockingRcuTraits, concurrent writers wait and proceed one by one.
+/// @ref rcu::Variable::StartWrite first acquires the writer mutex and then
+/// copies the latest committed value into its transaction, so a writer observes
+/// changes committed by preceding writers. The mutex is held until
+/// @ref rcu::WritablePtr::Commit or @ref rcu::WritablePtr destruction. The
+/// order in which concurrent writers acquire the mutex is unspecified. Readers
+/// don't acquire the writer mutex and may continue using older snapshots while
+/// a writer is active.
+///
+/// @note @ref rcu::ExclusiveRcuTraits requires the caller to guarantee that
+/// write operations on the same @ref rcu::Variable never overlap. If another
+/// writer starts while a write transaction is active, an invariant violation
+/// is reported instead of waiting: debug builds abort, while release builds
+/// throw @ref utils::InvariantError.
+///
+/// @note The writer mutex protects copying, construction, and publication of
+/// the internal RCU snapshot. It does not protect evaluation or copying of
+/// arguments before a write method is entered.
 ///
 /// @note There is no way to create a "null" `Variable`.
 ///
@@ -454,22 +480,32 @@ public:
         return *ptr;
     }
 
-    /// Obtain a smart pointer that will *copy* the current value. The pointer can
-    /// be used to make changes to the value and to set the `Variable` to the
-    /// changed value.
+    /// Obtain a smart pointer that will *copy* the current value. First acquires
+    /// the writer mutex, then copies the latest committed value into the
+    /// transaction. The pointer can be used to make changes to the value and to
+    /// set the `Variable` to the changed value. It owns the writer mutex until
+    /// Commit or destruction.
     WritablePtr<T, RcuTraits> StartWrite() { return WritablePtr<T, RcuTraits>(*this); }
 
     /// Obtain a smart pointer to a newly in-place constructed value, but does
     /// not replace the current one yet (in contrast with regular `Emplace`).
+    /// First acquires the writer mutex, then constructs the internal replacement
+    /// value. Owns the mutex until Commit or destruction. Function arguments are
+    /// evaluated before the call and are not protected by this mutex.
     template <typename... Args>
     WritablePtr<T, RcuTraits> StartWriteEmplace(Args&&... args) {
         return WritablePtr<T, RcuTraits>(*this, std::in_place, std::forward<Args>(args)...);
     }
 
-    /// Replaces the `Variable`'s value with the provided one.
+    /// Replaces the `Variable`'s value with the provided one. Construction of
+    /// the `new_value` parameter happens before the writer mutex is acquired;
+    /// moving it into the internal RCU snapshot and publishing it are serialized
+    /// with other write operations.
     void Assign(T new_value) { WritablePtr<T, RcuTraits>(*this, std::in_place, std::move(new_value)).Commit(); }
 
-    /// Replaces the `Variable`'s value with an in-place constructed one.
+    /// Replaces the `Variable`'s value with an in-place constructed one. Function
+    /// arguments are evaluated before the call; construction of the internal RCU
+    /// snapshot and its publication are serialized with other write operations.
     template <typename... Args>
     void Emplace(Args&&... args) {
         WritablePtr<T, RcuTraits>(*this, std::in_place, std::forward<Args>(args)...).Commit();

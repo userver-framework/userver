@@ -185,6 +185,8 @@ To work with a mutex, we recommend using `concurrent::Variable`. This reduces th
 
 A synchronization primitive with readers and writers that allows readers to work with the old version of the data while the writer fills in the new version of the data. Multiple versions of the protected data can exist at any given time. The old version is deleted when the RCU realizes that no one else is working with it. This can happen when writing a new version is finished if there are no active readers. If at least one reader holds an old version of the data, it will not be deleted.
 
+Write transactions on the same @ref rcu::Variable are mutually exclusive. With @ref rcu::DefaultRcuTraits, @ref rcu::SyncRcuTraits, and @ref rcu::BlockingRcuTraits, concurrent writers proceed one by one. @ref rcu::Variable::StartWrite first acquires the writer mutex and then copies the latest committed value into its private transaction. The mutex is held until @ref rcu::WritablePtr::Commit or transaction destruction, and its acquisition order is unspecified. Readers don't acquire this mutex and can continue using older snapshots while a writer is active. This guarantee concerns the internal RCU snapshot: arguments passed to a write method are evaluated and may be copied before the method acquires the mutex. @ref rcu::ExclusiveRcuTraits requires the caller to guarantee that write operations on the same variable never overlap. If another writer starts while a write transaction is active, an invariant violation is reported instead of waiting: debug builds abort, while release builds throw @ref utils::InvariantError.
+
 
 RCU should be the "default" synchronization primitive for the case of frequent readers and rare writers. Very poorly suited for frequent updates, because a copy of the data is created on update.
 
@@ -196,6 +198,8 @@ Comparison with SharedMutex is described in the `engine::SharedMutex` section of
 ### rcu::RcuMap
 
 `rcu::Variable` based map. This primitive is used when you need a concurrent dictionary. Well suited for the case of rarely added keys. Poorly suited to the case of a frequently changing set of keys.
+
+Keyset changes are write transactions on the underlying @ref rcu::Variable, so they are serialized by one writer mutex for the whole map. Read-modify-write operations first acquire the mutex and then copy the latest committed map snapshot, including changes made by preceding writers. This is separate from constructing the mapped Value: @ref rcu::RcuMap::operator[] and @ref rcu::RcuMap::Emplace may construct a candidate before acquiring the writer mutex and discard it if another writer wins, whereas @ref rcu::RcuMap::TryEmplace performs its final presence check under the mutex and constructs the Value only if that check succeeds. Thus, two concurrent calls to @ref rcu::RcuMap::TryEmplace may both initially observe that a key is missing, but at most one can commit the insertion and return `inserted == true`; after that, the other call returns the existing value with `inserted == false`, unless another writer removes or replaces the key.
 
 Note that RcuMap does not protect the value of the dictionary, it only protects the dictionary itself. If the values are non-atomic types, then they must be protected separately (for example, using `concurrent::Variable`).
 
