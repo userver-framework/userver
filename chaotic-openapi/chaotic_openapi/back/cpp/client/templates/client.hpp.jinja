@@ -21,9 +21,9 @@ public:
     {% endfor %}
 
     virtual {{ op.cpp_namespace() }}::Response {{ op.cpp_method_name() }}(
-      {%- if not op.empty_request() -%}
-          const {{ op.cpp_namespace() }}::Request& request ,
-      {%- endif %}
+      {% if not op.empty_request() %}
+          const {{ op.cpp_namespace() }}::Request& request,
+      {% endif %}
           const USERVER_NAMESPACE::chaotic::openapi::client::CommandControl& command_control = {}) = 0;
   {% endif %}
 {% endfor %}

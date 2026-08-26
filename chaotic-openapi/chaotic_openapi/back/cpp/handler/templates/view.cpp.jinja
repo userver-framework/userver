@@ -2,10 +2,7 @@
 
 namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }} {
 
-Response View::Handle(
-    Request&& /*request*/,
-    Deps&& /*deps*/,
-    RequestContext& /*context*/) {
+Response View::Handle(Request&& /*request*/, Deps&& /*deps*/, RequestContext& /*context*/) {
     // Handle request using dependencies from Deps (clients, caches, configs, databases...)
     return {};
 }
@@ -13,14 +10,12 @@ Response View::Handle(
 /*
 {% if op.request_bodies %}
 {% if op.request_bodies[0].content_type == 'application/json' %}
-std::string View::GetRequestBodyForLogging(
-    const {{ userver }}::formats::json::Value& body) {
+std::string View::GetRequestBodyForLogging(const {{ userver }}::formats::json::Value& body) {
     (void)body;
     return {};
 }
 
-std::string View::GetInvalidRequestBodyForLogging(
-    const {{ userver }}::server::http::HttpRequest& request) {
+std::string View::GetInvalidRequestBodyForLogging(const {{ userver }}::server::http::HttpRequest& request) {
     (void)request;
     return {};
 }
