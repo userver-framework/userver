@@ -8,7 +8,6 @@
 #include <engine/task/task_context.hpp>
 #include <userver/concurrent/impl/intrusive_thread_unsafe_slist.hpp>
 #include <userver/engine/async.hpp>
-#include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/logging/impl/tag_writer.hpp>
 #include <userver/logging/log.hpp>
@@ -368,12 +367,7 @@ void TpLogger::ConsumeQueueOnce(Queue::Consumer& consumer) noexcept {
 
         nodes_slist.EraseFromBegin(chunk_end);
 
-        if (!nodes_slist.empty()) {
-            // writev can consume a big CPU slice. Give other tasks time
-            if (engine::current_task::IsTaskProcessorThread()) {
-                engine::Yield();
-            }
-        } else {
+        if (nodes_slist.empty()) {
             break;
         }
     }
