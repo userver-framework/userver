@@ -50,8 +50,8 @@ endif()
 cpmaddpackage(
     NAME base64
     VERSION 0.5.2
-    GITHUB_REPOSITORY aklomp/base64
-    GIT_SHALLOW TRUE
+    URL https://github.com/aklomp/base64/archive/v0.5.2.tar.gz
+    URL_HASH SHA256=723a0f9f4cf44cf79e97bcc315ec8f85e52eb104c8882942c3f2fba95acc080d
     OPTIONS "CMAKE_SKIP_INSTALL_RULES ON"
 )
 write_package_stub(base64)
@@ -60,8 +60,8 @@ add_library(aklomp::base64 ALIAS base64)
 cpmaddpackage(
     NAME jwt-cpp
     VERSION 0.7.0
-    GITHUB_REPOSITORY Thalhammer/jwt-cpp
-    GIT_SHALLOW TRUE
+    URL https://github.com/Thalhammer/jwt-cpp/archive/v0.7.0.tar.gz
+    URL_HASH SHA256=b9eb270e3ba8221e4b2bc38723c9a1cb4fa6c241a42908b9a334daff31137406
     OPTIONS "JWT_BUILD_EXAMPLES OFF" "CMAKE_SKIP_INSTALL_RULES ON"
 )
 write_package_stub(jwt-cpp)
@@ -77,9 +77,9 @@ endif()
 
 cpmaddpackage(
     NAME ydb-cpp-sdk
-    GIT_TAG v${USERVER_YDBCPPSDK_VERSION}
-    GITHUB_REPOSITORY ydb-platform/ydb-cpp-sdk
-    GIT_SHALLOW TRUE
+    VERSION ${USERVER_YDBCPPSDK_VERSION}
+    URL https://github.com/ydb-platform/ydb-cpp-sdk/archive/v${USERVER_YDBCPPSDK_VERSION}.tar.gz
+    URL_HASH SHA256=13cedb6e8f730f5bf45e35b0b40c5d0ebee0f07e51ac7cf09f72495a2d389de2
     OPTIONS "Brotli_VERSION ${Brotli_VERSION}" "RAPIDJSON_INCLUDE_DIRS ${RAPIDJSON_INCLUDE_DIRS}"
             "YDB_SDK_GOOGLE_COMMON_PROTOS_TARGET ${YDB_SDK_GOOGLE_COMMON_PROTOS_TARGET}" "YDB_SDK_EXAMPLES OFF"
 )

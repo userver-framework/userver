@@ -25,8 +25,8 @@ include(DownloadUsingCPM)
 cpmaddpackage(
     NAME benchmark
     VERSION ${UserverGBench_VERSION}
-    GITHUB_REPOSITORY google/benchmark
-    GIT_SHALLOW TRUE
+    URL https://github.com/google/benchmark/archive/v${UserverGBench_VERSION}.tar.gz
+    URL_HASH SHA256=9631341c82bac4a288bef951f8b26b41f69021794184ece969f8473977eaa340
     OPTIONS "BENCHMARK_ENABLE_TESTING OFF" "BENCHMARK_ENABLE_WERROR OFF" "BENCHMARK_ENABLE_INSTALL OFF"
             "BENCHMARK_INSTALL_DOCS OFF" "BENCHMARK_ENABLE_GTEST_TESTS OFF"
 )

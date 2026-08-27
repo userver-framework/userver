@@ -4,9 +4,9 @@ _userver_module_begin(
     RPM_NAMES liburing-devel
     PACMAN_NAMES liburing
     CPM_NAME liburing
-    CPM_GITHUB_REPOSITORY axboe/liburing
     CPM_VERSION 2.9
-    CPM_GIT_TAG liburing-2.9
+    CPM_URL https://github.com/axboe/liburing/archive/liburing-2.9.tar.gz
+    CPM_URL_HASH SHA256=897b1153b55543e8b92a5a3eb9b906537a5fedcf8afaf241f8b8787940c79f8d
     CPM_DOWNLOAD_ONLY
 )
 
@@ -24,7 +24,9 @@ function(_userver_liburing_execute_process)
 endfunction()
 
 if(NOT TARGET liburing)
-    if(liburing_ADDED)
+    # CPM sets *_ADDED=YES only on the first CPMAddPackage in a configure; later
+    # find_package(liburing) (e.g. from rocks/) still has SOURCE_DIR but ADDED=NO.
+    if(liburing_SOURCE_DIR)
         # liburing ships with configure+Make, not CMake.
         if(NOT EXISTS ${liburing_BINARY_DIR}/.built)
             _userver_liburing_execute_process(
@@ -40,7 +42,7 @@ if(NOT TARGET liburing)
             _userver_liburing_execute_process(COMMAND ${CMAKE_COMMAND} -E touch ${liburing_BINARY_DIR}/.built)
         endif()
 
-        add_library(liburing STATIC IMPORTED)
+        add_library(liburing STATIC IMPORTED GLOBAL)
         target_include_directories(liburing INTERFACE ${liburing_BINARY_DIR}/src/include)
         set_target_properties(liburing PROPERTIES IMPORTED_LOCATION ${liburing_BINARY_DIR}/src/liburing.a)
     else()

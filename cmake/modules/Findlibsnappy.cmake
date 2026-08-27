@@ -6,8 +6,8 @@ _userver_module_begin(
     PACMAN_NAMES snappy
     CPM_NAME snappy
     CPM_VERSION 1.2.1
-    CPM_GITHUB_REPOSITORY google/snappy
-    CPM_GIT_TAG 1.2.1
+    CPM_URL https://github.com/google/snappy/archive/1.2.1.tar.gz
+    CPM_URL_HASH SHA256=736aeb64d86566d2236ddffa2865ee5d7a82d26c9016b36218fcc27ea4f09f86
     CPM_OPTIONS "SNAPPY_BUILD_TESTS OFF" "SNAPPY_BUILD_BENCHMARKS OFF" "SNAPPY_INSTALL OFF"
 )
 

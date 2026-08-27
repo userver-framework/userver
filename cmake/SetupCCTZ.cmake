@@ -19,8 +19,8 @@ include(DownloadUsingCPM)
 cpmaddpackage(
     NAME cctz
     VERSION 2.3
-    GITHUB_REPOSITORY google/cctz
-    GIT_SHALLOW TRUE
+    URL https://github.com/google/cctz/archive/v2.3.tar.gz
+    URL_HASH SHA256=8615b20d4e33e02a271c3b93a3b208e3d7d5d66880f5f6208b03426e448f32db
     OPTIONS "BUILD_TOOLS OFF" "BUILD_EXAMPLES OFF" "BUILD_TESTING OFF"
 )
 _userver_install_targets(COMPONENT universal TARGETS cctz)

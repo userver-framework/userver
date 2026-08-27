@@ -32,9 +32,8 @@ include(DownloadUsingCPM)
 cpmaddpackage(
     NAME abseil-cpp
     VERSION ${USERVER_ABSEIL_VERSION}
-    GIT_TAG ${USERVER_ABSEIL_VERSION}
-    GITHUB_REPOSITORY abseil/abseil-cpp
-    GIT_SHALLOW TRUE
+    URL https://github.com/abseil/abseil-cpp/archive/${USERVER_ABSEIL_VERSION}.tar.gz
+    URL_HASH SHA256=987ce98f02eefbaf930d6e38ab16aa05737234d7afbab2d5c4ea7adbe50c28ed
     SYSTEM
     PATCHES abseil_pr_1707.patch abseil_pr_1739.patch
     OPTIONS "ABSL_PROPAGATE_CXX_STD ON" "ABSL_ENABLE_INSTALL OFF"

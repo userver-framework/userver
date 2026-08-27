@@ -22,9 +22,8 @@ include(DownloadUsingCPM)
 cpmaddpackage(
     NAME re2
     VERSION 2023-03-01 # newest version without abseil requirements
-    GIT_TAG 2023-03-01
-    GITHUB_REPOSITORY google/re2
-    GIT_SHALLOW TRUE
+    URL https://github.com/google/re2/archive/2023-03-01.tar.gz
+    URL_HASH SHA256=7a9a4824958586980926a300b4717202485c4b4115ac031822e29aa4ef207e48
     SYSTEM
     OPTIONS "RE2_BUILD_TESTING OFF" "RE2_USE_ICU ON"
 )

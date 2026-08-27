@@ -6,6 +6,7 @@ _userver_module_begin(
     PACMAN_NAMES libev
     CPM_NAME libev
     CPM_URL http://dist.schmorp.de/libev/libev-4.33.tar.gz
+    CPM_URL_HASH SHA256=507eb7b8d1015fbec5b935f34ebed15bf346bed04a11ab82b8eee848c4205aea
     CPM_DOWNLOAD_ONLY
 )
 
@@ -25,9 +26,10 @@ endfunction()
 if(NOT TARGET libev::libev)
     if(TARGET libev)
         add_library(libev::libev ALIAS libev)
-    elseif(libev_ADDED)
+    elseif(libev_SOURCE_DIR)
         # nghttp2 doesn't use find_package(), but calls find_path() and find_library() so we have to provide libev.a at
         # the _configure_ time, not at build time, =(
+        # CPM *_ADDED is only YES on the first CPMAddPackage call; use SOURCE_DIR instead.
         if(NOT EXISTS ${libev_BINARY_DIR}/.built)
             _userver_execute_process(COMMAND ${CMAKE_COMMAND} -E copy_directory ${libev_SOURCE_DIR} ${libev_BINARY_DIR})
             _userver_execute_process(COMMAND ./configure WORKING_DIRECTORY ${libev_BINARY_DIR})
@@ -36,7 +38,7 @@ if(NOT TARGET libev::libev)
             _userver_execute_process(COMMAND touch ${libev_BINARY_DIR}/.built)
         endif()
 
-        add_library(libev STATIC IMPORTED)
+        add_library(libev STATIC IMPORTED GLOBAL)
         target_include_directories(libev INTERFACE ${libev_BINARY_DIR})
         set_target_properties(libev PROPERTIES IMPORTED_LOCATION ${libev_BINARY_DIR}/.libs/libev.a)
 

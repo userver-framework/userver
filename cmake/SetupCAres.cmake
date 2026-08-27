@@ -19,9 +19,8 @@ include(DownloadUsingCPM)
 cpmaddpackage(
     NAME c-ares
     VERSION 1.19.0
-    GITHUB_REPOSITORY c-ares/c-ares
-    GIT_TAG cares-1_19_0
-    GIT_SHALLOW TRUE
+    URL https://github.com/c-ares/c-ares/archive/cares-1_19_0.tar.gz
+    URL_HASH SHA256=948016368481b6c5063b849b6dec2a7fd659eee2174b7f3db22ff1b22055ed2a
     OPTIONS "CARES_INSTALL OFF" "CARES_BUILD_TOOLS OFF" "CARES_SHARED OFF" "CARES_STATIC ON"
 )
 

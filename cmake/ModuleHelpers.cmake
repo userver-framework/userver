@@ -23,11 +23,10 @@ macro(_userver_module_begin)
         # For CPM options
         CPM_NAME
         CPM_VERSION
-        CPM_GITHUB_REPOSITORY
         CPM_URL
+        CPM_URL_HASH
         CPM_OPTIONS
         CPM_SOURCE_SUBDIR
-        CPM_GIT_TAG
     )
 
     cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
@@ -377,22 +376,35 @@ endmacro()
 macro(_userver_cpm_addpackage name)
     include(DownloadUsingCPM)
 
-    set(EXTRA_ARGS)
-    if(ARG_CPM_DOWNLOAD_ONLY)
-        set(EXTRA_ARGS ${EXTRA_ARGS} DOWNLOAD_ONLY)
+    # Prefer release/source tarballs over git clones (faster, no submodule init).
+    if(NOT ARG_CPM_URL)
+        message(FATAL_ERROR "_userver_cpm_addpackage(${name}): CPM_URL is required (use a tarball URL)")
     endif()
-    cpmaddpackage(
-        NAME ${name}
-        VERSION ${ARG_CPM_VERSION}
-        GITHUB_REPOSITORY ${ARG_CPM_GITHUB_REPOSITORY}
-        GIT_SHALLOW TRUE
-        URL ${ARG_CPM_URL}
-        OPTIONS ${ARG_CPM_OPTIONS}
-        SOURCE_SUBDIR ${ARG_CPM_SOURCE_SUBDIR}
-        GIT_TAG ${ARG_CPM_GIT_TAG} ${EXTRA_ARGS}
-    )
+
+    set(_userver_cpm_args NAME ${name} VERSION ${ARG_CPM_VERSION} URL ${ARG_CPM_URL})
+    if(ARG_CPM_URL_HASH)
+        list(APPEND _userver_cpm_args URL_HASH ${ARG_CPM_URL_HASH})
+    endif()
+    if(ARG_CPM_OPTIONS)
+        list(APPEND _userver_cpm_args OPTIONS ${ARG_CPM_OPTIONS})
+    endif()
+    if(ARG_CPM_SOURCE_SUBDIR)
+        list(APPEND _userver_cpm_args SOURCE_SUBDIR ${ARG_CPM_SOURCE_SUBDIR})
+    endif()
+    if(ARG_CPM_DOWNLOAD_ONLY)
+        list(APPEND _userver_cpm_args DOWNLOAD_ONLY YES)
+    endif()
+    cpmaddpackage(${_userver_cpm_args})
+    unset(_userver_cpm_args)
+
     if(NOT ARG_CPM_DOWNLOAD_ONLY)
-        mark_targets_as_system("${${name}_SOURCE_DIR}")
+        # mark_targets_as_system needs the directory passed to add_subdirectory.
+        # With SOURCE_SUBDIR that is ${SOURCE_DIR}/${SOURCE_SUBDIR}, not the repo root.
+        if(ARG_CPM_SOURCE_SUBDIR)
+            mark_targets_as_system("${${name}_SOURCE_DIR}/${ARG_CPM_SOURCE_SUBDIR}")
+        else()
+            mark_targets_as_system("${${name}_SOURCE_DIR}")
+        endif()
     endif()
     set(${name}_FOUND 1)
 endmacro()

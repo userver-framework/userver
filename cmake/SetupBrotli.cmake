@@ -21,8 +21,8 @@ include(DownloadUsingCPM)
 cpmaddpackage(
     NAME Brotli
     VERSION ${USERVER_BROTLI_VERSION}
-    GITHUB_REPOSITORY google/brotli
-    GIT_SHALLOW TRUE
+    URL https://github.com/google/brotli/archive/v${USERVER_BROTLI_VERSION}.tar.gz
+    URL_HASH SHA256=e720a6ca29428b803f4ad165371771f5398faba397edf6778837a18599ea13ff
     OPTIONS "BROTLI_DISABLE_TESTS TRUE" "BUILD_SHARED_LIBS OFF"
 )
 

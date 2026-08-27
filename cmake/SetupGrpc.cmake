@@ -67,11 +67,13 @@ include(DownloadUsingCPM)
 
 set(USERVER_GPRC_BUILD_FROM_SOURCE ON)
 
+# Prefer a release tarball over a git clone: FetchContent would otherwise run
+# `git submodule update --recursive --init` on grpc's huge third_party tree.
 cpmaddpackage(
     NAME gRPC
     VERSION 1.59.1
-    GITHUB_REPOSITORY grpc/grpc
-    GIT_SHALLOW TRUE
+    URL https://github.com/grpc/grpc/archive/v1.59.1.tar.gz
+    URL_HASH SHA256=916f88a34f06b56432611aaa8c55befee96d0a7b7d7457733b9deeacbc016f99
     SYSTEM
     PATCHES grpc_pr_36805.patch
     OPTIONS "BUILD_SHARED_LIBS OFF"

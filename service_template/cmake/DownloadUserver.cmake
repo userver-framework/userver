@@ -27,11 +27,27 @@ function(download_userver)
         set(CPM_USE_NAMED_CACHE_DIRECTORIES ON)
     endif()
 
+    if(DEFINED ARG_VERSION)
+        set(_userver_download_url
+            "https://github.com/userver-framework/userver/archive/refs/tags/v${ARG_VERSION}.tar.gz"
+        )
+    elseif(ARG_GIT_TAG MATCHES "^[0-9a-fA-F]{7,40}$")
+        set(_userver_download_url
+            "https://github.com/userver-framework/userver/archive/${ARG_GIT_TAG}.tar.gz"
+        )
+    elseif(ARG_GIT_TAG MATCHES "^v?[0-9]")
+        set(_userver_download_url
+            "https://github.com/userver-framework/userver/archive/refs/tags/${ARG_GIT_TAG}.tar.gz"
+        )
+    else()
+        set(_userver_download_url
+            "https://github.com/userver-framework/userver/archive/refs/heads/${ARG_GIT_TAG}.tar.gz"
+        )
+    endif()
+
     cpmaddpackage(
         NAME userver
-        GITHUB_REPOSITORY userver-framework/userver
         VERSION ${ARG_VERSION}
-        GIT_TAG ${ARG_GIT_TAG}
-        GIT_SHALLOW TRUE ${ARG_UNPARSED_ARGUMENTS}
+        URL ${_userver_download_url} ${ARG_UNPARSED_ARGUMENTS}
     )
 endfunction()

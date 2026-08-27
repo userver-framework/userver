@@ -4,9 +4,9 @@ _userver_module_begin(
     FORMULA_NAMES nghttp2
     PACMAN_NAMES libnghttp2
     CPM_NAME libnghttp2
-    CPM_GITHUB_REPOSITORY nghttp2/nghttp2
     CPM_VERSION 1.66.0
-    CPM_GIT_TAG v1.66.0
+    CPM_URL https://github.com/nghttp2/nghttp2/archive/v1.66.0.tar.gz
+    CPM_URL_HASH SHA256=e2505d08aafac303ed8e3b94bf8caafa55ddcc198f89b254bb79a61a379498ea
     CPM_OPTIONS "BUILD_STATIC_LIBS ON" "BUILD_SHARED_LIBS OFF" "ENABLE_APP OFF" "ENABLE_EXAMPLES OFF"
 )
 

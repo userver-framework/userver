@@ -56,6 +56,9 @@ function(_list_subdirectories directory result_list)
     )
 endfunction()
 
+# Marks targets under a CMake-processed directory as SYSTEM and silences their
+# compile warnings. @param directory must be a path that was passed to
+# add_subdirectory (for CPM packages with SOURCE_SUBDIR, pass that subdir).
 function(mark_targets_as_system directory)
     if(NOT directory OR NOT EXISTS "${directory}")
         message(FATAL_ERROR "Trying to mark a non-existent subdirectory '${directory}' as SYSTEM")

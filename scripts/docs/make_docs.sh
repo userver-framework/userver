@@ -12,7 +12,7 @@ if [ -z "$BUILD_DIR" ]; then
 fi
 
 if [ ! -f "$BUILD_DIR/compile_commands.json" ]; then
-    echo "!!! Fully build userver before running this script."
+    echo "!!! Fully configure userver before running this script."
     echo "!!! See userver/scripts/docs/README.md"
     exit 2
 fi

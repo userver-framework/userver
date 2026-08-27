@@ -7,8 +7,9 @@ _userver_module_begin(
     PACMAN_NAMES c-ares
     PKG_CONFIG_NAMES libcares
     CPM_NAME c-ares
-    CPM_GITHUB_REPOSITORY c-ares/c-ares
     CPM_VERSION 1.34.5
+    CPM_URL https://github.com/c-ares/c-ares/archive/v1.34.5.tar.gz
+    CPM_URL_HASH SHA256=dcd919635f01b7c8c9c2f5fb38063cd86500f7c6d4d32ecf4deff5e3497fb157
     CPM_OPTIONS "CARES_STATIC ON" "CARES_SHARED OFF" "CARES_INSTALL OFF" "CARES_BUILD_TOOLS OFF" "CARES_STATIC_PIC ON"
 )
 

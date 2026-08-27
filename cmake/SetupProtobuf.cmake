@@ -78,11 +78,13 @@ endif()
 include(DownloadUsingCPM)
 include(SetupAbseil)
 
+# Use the official release tarball (same sources as tag v5.26.0 / v26.0).
+# Avoids a shallow git clone with --no-single-branch of the protobuf monorepo.
 cpmaddpackage(
     NAME Protobuf
     VERSION 5.26.0
-    GITHUB_REPOSITORY protocolbuffers/protobuf
-    GIT_SHALLOW TRUE
+    URL https://github.com/protocolbuffers/protobuf/releases/download/v26.0/protobuf-26.0.tar.gz
+    URL_HASH SHA256=e32100a8013870d24ffc37dad6781a61e5d0c99501bcb04d39c340a1c44a8e63
     SYSTEM
     OPTIONS "protobuf_BUILD_SHARED_LIBS OFF" "protobuf_BUILD_TESTS OFF" "protobuf_INSTALL OFF"
             "protobuf_MSVC_STATIC_RUNTIME OFF" "protobuf_ABSL_PROVIDER package"
