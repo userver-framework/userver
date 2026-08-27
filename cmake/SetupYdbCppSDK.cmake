@@ -1,7 +1,10 @@
 # @ingroup download
 option(USERVER_DOWNLOAD_PACKAGE_YDBCPPSDK "Download and setup ydb-cpp-sdk" ${USERVER_DOWNLOAD_PACKAGES})
 
-set(USERVER_YDBCPPSDK_VERSION 3.21.1)
+set(USERVER_YDBCPPSDK_VERSION
+    3.21.1
+    CACHE STRING "ydb-cpp-sdk version"
+)
 set(USERVER_YDBCPPSDK_COMPONENTS
     Coordination
     Driver
@@ -75,14 +78,45 @@ else()
     set(YDB_SDK_GOOGLE_COMMON_PROTOS_TARGET ${api-common-proto_LIBRARY})
 endif()
 
+set(_userver_ydb_cpp_sdk_options
+    "Brotli_VERSION ${Brotli_VERSION}" "RAPIDJSON_INCLUDE_DIRS ${RAPIDJSON_INCLUDE_DIRS}"
+    "YDB_SDK_GOOGLE_COMMON_PROTOS_TARGET ${YDB_SDK_GOOGLE_COMMON_PROTOS_TARGET}" "YDB_SDK_DEPENDENCY_MODE SYSTEM"
+    "YDB_SDK_EXAMPLES OFF"
+)
+set(_userver_ydb_google_proto_include_dir "${USERVER_GOOGLE_COMMON_PROTOS}")
+if(NOT _userver_ydb_google_proto_include_dir)
+    set(_userver_ydb_google_proto_include_dir "${api-common-protos_SOURCE_DIR}")
+endif()
+if(NOT _userver_ydb_google_proto_include_dir)
+    set(_userver_ydb_google_proto_include_dir "${CPM_PACKAGE_api-common-protos_SOURCE_DIR}")
+endif()
+if(_userver_ydb_google_proto_include_dir)
+    list(APPEND _userver_ydb_cpp_sdk_options
+         "YDB_SDK_GOOGLE_PROTO_INCLUDE_DIR ${_userver_ydb_google_proto_include_dir}"
+    )
+endif()
+
+set(_userver_ydb_grpc_version "${gRPC_VERSION}")
+if(NOT _userver_ydb_grpc_version
+   AND USERVER_FEATURE_GRPC
+   AND EXISTS "${USERVER_ROOT_DIR}/grpc/CMakeLists.txt"
+)
+    # The grpc directory is configured before ydb, but its gRPC_VERSION is directory-scoped.
+    get_directory_property(_userver_ydb_grpc_version DIRECTORY "${USERVER_ROOT_DIR}/grpc" DEFINITION gRPC_VERSION)
+endif()
+
+set(_userver_ydb_saved_cmake_module_path "${CMAKE_MODULE_PATH}")
+list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/ydb")
+
 cpmaddpackage(
     NAME ydb-cpp-sdk
     VERSION ${USERVER_YDBCPPSDK_VERSION}
     URL https://github.com/ydb-platform/ydb-cpp-sdk/archive/v${USERVER_YDBCPPSDK_VERSION}.tar.gz
     URL_HASH SHA256=13cedb6e8f730f5bf45e35b0b40c5d0ebee0f07e51ac7cf09f72495a2d389de2
-    OPTIONS "Brotli_VERSION ${Brotli_VERSION}" "RAPIDJSON_INCLUDE_DIRS ${RAPIDJSON_INCLUDE_DIRS}"
-            "YDB_SDK_GOOGLE_COMMON_PROTOS_TARGET ${YDB_SDK_GOOGLE_COMMON_PROTOS_TARGET}" "YDB_SDK_EXAMPLES OFF"
+    OPTIONS ${_userver_ydb_cpp_sdk_options}
 )
+
+set(CMAKE_MODULE_PATH "${_userver_ydb_saved_cmake_module_path}")
 
 list(APPEND ydb-cpp-sdk_INCLUDE_DIRS ${ydb-cpp-sdk_SOURCE_DIR} ${ydb-cpp-sdk_SOURCE_DIR}/include
      ${ydb-cpp-sdk_BINARY_DIR}
