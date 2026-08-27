@@ -30,13 +30,14 @@ public:
     ~ThreadUnsafeSlist() { EraseFromBegin(iterator{}); }
 
     iterator Adopt(iterator prev, SinglyLinkedBaseHook* new_node) noexcept {
+        auto* previous_node = prev.GetNodeRawPointer();
         if (empty()) {
             UASSERT(prev == end());
-            prev = iterator{&nodes_};
+            previous_node = &nodes_;
         }
-        UASSERT(prev != end());
+        UASSERT(previous_node);
 
-        prev->singly_linked_hook.next.store(new_node, std::memory_order_relaxed);  // Used in single thread
+        previous_node->singly_linked_hook.next.store(new_node, std::memory_order_relaxed);  // Used in single thread
         return iterator{new_node};
     }
 
