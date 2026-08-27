@@ -828,6 +828,20 @@ void Redis::RedisImpl::SetState(State state) {
             << log_extra_ << "skipped SetState() from " << StateToString(state_) << " to " << StateToString(state);
         return;
     }
+
+    auto self = shared_from_this();  // prevents deleting this in Disconnect()
+
+    // ev_async_start resets w->sent. Start the watcher before publishing
+    // kConnected, otherwise AsyncCommand can lose its wakeup and the command
+    // stays in commands_ forever (TPS-74509).
+    if (state == State::kConnected) {
+        ev_thread_control_.RunInEvLoopBlocking([this] {
+            ev_thread_control_.Start(watch_command_);
+            ev_thread_control_.Start(ping_timer_);
+            ev_thread_control_.Start(info_timer_);
+        });
+    }
+
     LOG(StateChangeToLogLevel(state_, state)
     ) << log_extra_
       << "Redis server connection state for server=" << GetServer() << " (server_id=" << GetServerId().GetId()
@@ -837,14 +851,7 @@ void Redis::RedisImpl::SetState(State state) {
         statistics_.AccountStateChanged(state);
     }
 
-    auto self = shared_from_this();  // prevents deleting this in Disconnect()
-    if (state == State::kConnected) {
-        ev_thread_control_.RunInEvLoopBlocking([this] {
-            ev_thread_control_.Start(watch_command_);
-            ev_thread_control_.Start(ping_timer_);
-            ev_thread_control_.Start(info_timer_);
-        });
-    } else if (state == State::kInitError || state == State::kDisconnectError || state == State::kDisconnected) {
+    if (state == State::kInitError || state == State::kDisconnectError || state == State::kDisconnected) {
         Disconnect();
     }
 

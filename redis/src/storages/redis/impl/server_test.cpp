@@ -1,5 +1,7 @@
 #include "mock_server_test.hpp"
 
+#include <atomic>
+#include <chrono>
 #include <thread>
 
 #include <userver/engine/single_consumer_event.hpp>
@@ -163,6 +165,48 @@ struct MockSentinelServers {
 };
 
 }  // namespace
+
+UTEST(Redis, CommandImmediatelyAfterConnected) {
+    MockRedisServer server{kDbName};
+    auto ping_handler = server.RegisterPingHandler();
+    auto get_handler = server.RegisterHandlerWithConstReply("GET", std::string{"value"});
+
+    auto pool = std::make_shared<storages::redis::impl::ThreadPools>(1, 1);
+    const storages::redis::RedisCreationSettings redis_settings;
+    storages::redis::impl::Statistics stats;
+    auto redis = std::make_shared<
+        storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
+
+    engine::SingleConsumerEvent connected;
+    redis->signal_state_change.connect([&connected](storages::redis::RedisState state) {
+        if (state == storages::redis::RedisState::kConnected) {
+            connected.Send();
+        }
+    });
+
+    redis->Connect(
+        {kLocalhost},
+        server.GetPort(),
+        storages::redis::Credentials{"", storages::redis::Password("")},
+        kDatabaseIndex
+    );
+    ASSERT_TRUE(connected.WaitForEventFor(kSuccessTimeout));
+
+    engine::SingleConsumerEvent got_reply;
+    std::atomic<bool> reply_ok{false};
+    auto command = storages::redis::impl::PrepareCommand(
+        {"GET", "key"},
+        [&](const storages::redis::impl::CommandPtr&, const storages::redis::ReplyPtr& reply) {
+            reply_ok = reply->IsOk() && reply->data.IsString() && reply->data.GetString() == "value";
+            got_reply.Send();
+        }
+    );
+    ASSERT_TRUE(redis->AsyncCommand(command));
+    ASSERT_TRUE(got_reply.WaitForEventFor(kSuccessTimeout));
+    EXPECT_TRUE(reply_ok.load());
+    EXPECT_TRUE(get_handler->WaitForFirstReply(kSuccessTimeout));
+    EXPECT_TRUE(ping_handler->WaitForFirstReply(kSuccessTimeout));
+}
 
 UTEST(Redis, NoPassword) {
     MockRedisServer server{kDbName};
