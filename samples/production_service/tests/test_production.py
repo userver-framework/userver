@@ -1,5 +1,8 @@
 import os
 import re
+import sys
+
+import pytest
 
 NUM_SYMBOLS_RE = re.compile(r'num_symbols: [1-9][0-9]*')
 
@@ -54,6 +57,10 @@ async def test_unknown_command_lists_the_supported_ones(monitor_client):
         assert command in response.text, response.text
 
 
+@pytest.mark.skipif(
+    sys.platform != 'linux',
+    reason="the 'cmdline' pprof command is only supported on Linux",
+)
 async def test_cmdline_get_returns_process_arguments(monitor_client, service_binary):
     response = await monitor_client.get('service/jemalloc/pprof/cmdline')
 
