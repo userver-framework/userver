@@ -20,6 +20,24 @@ set(USERVER_YDBCPPSDK_COMPONENTS
     Types
 )
 
+# GitHub archive SHA256 for
+# https://github.com/ydb-platform/ydb-cpp-sdk/archive/v<version>.tar.gz
+function(_userver_ydb_cpp_sdk_archive_sha256 version out_var)
+    if(version STREQUAL "3.21.0")
+        set(_hash 3a7b4e019753cece81d74db01a1a0fa9d317e60b79c7f19aeb4b5776af1cc33c)
+    elseif(version STREQUAL "3.21.1")
+        set(_hash 13cedb6e8f730f5bf45e35b0b40c5d0ebee0f07e51ac7cf09f72495a2d389de2)
+    else()
+        message(
+            FATAL_ERROR
+            "Unknown ydb-cpp-sdk version '${version}'. "
+            "Add its archive SHA256 to _userver_ydb_cpp_sdk_archive_sha256() in "
+            "cmake/SetupYdbCppSDK.cmake. Known versions: 3.21.0, 3.21.1."
+        )
+    endif()
+    set(${out_var} "${_hash}" PARENT_SCOPE)
+endfunction()
+
 set(USERVER_YDBCPPSDK_DEB_PREFIX /usr/share/yandex)
 if(EXISTS "${USERVER_YDBCPPSDK_DEB_PREFIX}/lib/cmake/ydb-cpp-sdk")
     list(PREPEND CMAKE_PREFIX_PATH "${USERVER_YDBCPPSDK_DEB_PREFIX}")
@@ -108,11 +126,13 @@ endif()
 set(_userver_ydb_saved_cmake_module_path "${CMAKE_MODULE_PATH}")
 list(PREPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/ydb")
 
+_userver_ydb_cpp_sdk_archive_sha256("${USERVER_YDBCPPSDK_VERSION}" _userver_ydb_cpp_sdk_url_hash)
+
 cpmaddpackage(
     NAME ydb-cpp-sdk
     VERSION ${USERVER_YDBCPPSDK_VERSION}
     URL https://github.com/ydb-platform/ydb-cpp-sdk/archive/v${USERVER_YDBCPPSDK_VERSION}.tar.gz
-    URL_HASH SHA256=13cedb6e8f730f5bf45e35b0b40c5d0ebee0f07e51ac7cf09f72495a2d389de2
+    URL_HASH SHA256=${_userver_ydb_cpp_sdk_url_hash}
     OPTIONS ${_userver_ydb_cpp_sdk_options}
 )
 

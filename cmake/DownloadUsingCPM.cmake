@@ -28,15 +28,18 @@ endif()
 # If A uses find_package(B), and we install A and B using CPM, then: 1. make sure to call write_package_stub in SetupB
 # 2. make sure to call SetupB at the beginning of SetupA
 function(write_package_stub PACKAGE_NAME)
-    if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.24.0")
-        if(CPM_DONT_UPDATE_MODULE_PATH)
-            message(FATAL_ERROR "userver does not support CPM_DONT_UPDATE_MODULE_PATH=TRUE")
-        endif()
-    else()
-        # CPM with cmake<3.24 behaves badly for packages normally found via find_package(... CONFIG).
-        # This is an ugly workaround.
-        file(WRITE "${CMAKE_BINARY_DIR}/package_stubs/${PACKAGE_NAME}Config.cmake" )
+    if(CPM_DONT_UPDATE_MODULE_PATH)
+        message(FATAL_ERROR "userver does not support CPM_DONT_UPDATE_MODULE_PATH=TRUE")
     endif()
+
+    # CPM package names often differ from find_package() names (e.g. abseil-cpp vs absl).
+    # A stub in CMAKE_PREFIX_PATH/package_stubs/ (see UserverSetupEnvironment.cmake)
+    # makes nested find_package() succeed without pulling a second copy from the system.
+    file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/package_stubs")
+    file(WRITE "${CMAKE_BINARY_DIR}/package_stubs/${PACKAGE_NAME}Config.cmake"
+         "# Stub: ${PACKAGE_NAME} is provided by CPM; targets are already defined.\n"
+         "set(${PACKAGE_NAME}_FOUND TRUE)\n"
+    )
 endfunction()
 
 function(_list_subdirectories directory result_list)
