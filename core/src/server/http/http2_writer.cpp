@@ -105,6 +105,20 @@ public:
     void WriteHttpResponse() {
         const auto& data = response_.GetData();
 
+        bool buffered_h1_stream = false;
+        if (response_.IsBodyStreamed() && response_.body_stream_.has_value()) {
+            // The handler streamed into the HTTP/1.1 queue because the stream
+            // id was assigned only now, at send time (h2c upgrade). The
+            // handler has already finished, so buffer the parts and send a
+            // regular response.
+            std::string body_part;
+            while (response_.body_stream_->Pop(body_part)) {
+                data.append(body_part);
+            }
+            response_.body_stream_.reset();
+            buffered_h1_stream = true;
+        }
+
         auto headers = GetHeaders();
         const bool is_body_forbidden = IsBodyForbiddenForStatus(response_.status_);
 
@@ -116,7 +130,7 @@ public:
 
         const auto stream_id = response_.GetStreamId().value();
         auto& stream = http2_session_.GetStreamChecked(Stream::Id{stream_id});
-        stream.SetStreaming(response_.IsBodyStreamed() && data.empty());
+        stream.SetStreaming(response_.IsBodyStreamed() && !buffered_h1_stream && data.empty());
 
         std::size_t bytes = headers.GetSize();
         nghttp2_data_provider* provider{nullptr};

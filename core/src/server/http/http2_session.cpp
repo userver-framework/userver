@@ -58,7 +58,6 @@ Http2Session::Http2Session(
       streaming_consumer_(streaming_queue_->GetConsumer())
 {
     UASSERT(streaming_queue_);
-    UASSERT(streaming_event_.IsAutoReset());
 
     nghttp2_session_callbacks* callbacks{nullptr};
     UINVARIANT(nghttp2_session_callbacks_new(&callbacks) == 0, "Failed to init callbacks for HTTP/2.0");
@@ -390,21 +389,25 @@ void Http2Session::WriteWhileWant() {
 
 engine::SingleConsumerEvent& Http2Session::GetStreamingEvent() { return streaming_event_; }
 
-void Http2Session::HandleStreamingEvents() {
-    impl::Http2StreamEvent event;
-    while (streaming_consumer_.PopNoblock(event)) {
-        UASSERT(event.stream_id != -1);
-        auto& stream = GetStreamChecked(Stream::Id{event.stream_id});
-        if (stream.IsDeferred()) {
-            const auto res = nghttp2_session_resume_data(session_.get(), static_cast<std::int32_t>(stream.GetId()));
-            ThrowIfErr(res, "Error while resume_data");
-            stream.SetDeferred(false);
-        }
-        stream.PushChunk(std::move(event.body_part));
-        stream.SetEnd(event.is_end);
-        event = {};
+bool Http2Session::PopStreamingEventNoblock(impl::Http2StreamEvent& event) {
+    return streaming_consumer_.PopNoblock(event);
+}
+
+void Http2Session::ApplyStreamingEvent(impl::Http2StreamEvent&& event) {
+    UASSERT(event.stream_id != -1);
+    auto* stream = static_cast<Stream*>(nghttp2_session_get_stream_user_data(session_.get(), event.stream_id));
+    if (stream == nullptr) {
+        // The stream is already closed (e.g. reset by the client) while the
+        // handler was still producing body parts. Drop the event.
+        return;
     }
-    WriteWhileWant();
+    if (stream->IsDeferred()) {
+        const auto res = nghttp2_session_resume_data(session_.get(), event.stream_id);
+        ThrowIfErr(res, "Error while resume_data");
+        stream->SetDeferred(false);
+    }
+    stream->PushChunk(std::move(event.body_part));
+    stream->SetEnd(event.is_end);
 }
 
 }  // namespace server::http
