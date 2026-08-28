@@ -878,6 +878,15 @@ RequestJsonMset MockTransaction::JsonMset(std::vector<JsonKeyPathValue> key_path
     return AddSubrequest(impl_->JsonMset(std::move(key_path_values)));
 }
 
+RequestGenericCommon MockTransaction::GenericCommon(
+    std::string command,
+    std::vector<std::string> args,
+    size_t key_index
+) {
+    UpdateShard(args.at(key_index));
+    return AddSubrequest(impl_->GenericCommon(std::move(command), std::move(args), key_index));
+}
+
 // end of redis commands
 
 void MockTransaction::UpdateShard(const std::string& key) {

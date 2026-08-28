@@ -1046,6 +1046,15 @@ RequestJsonMset TransactionImpl::JsonMset(std::vector<JsonKeyPathValue> key_path
     return AddCmd<RequestJsonMset>("json.mset", true, std::move(args));
 }
 
+RequestGenericCommon TransactionImpl::GenericCommon(
+    std::string command,
+    std::vector<std::string> args,
+    size_t key_index
+) {
+    UpdateShard(args.at(key_index));
+    return AddCmd<RequestGenericCommon>(std::move(command), true, std::move(args));
+}
+
 // end of redis commands
 
 void TransactionImpl::UpdateShard(const std::string& key) {

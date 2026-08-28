@@ -365,6 +365,8 @@ public:
 
     RequestJsonMset JsonMset(std::vector<JsonKeyPathValue> key_path_values) override;
 
+    RequestGenericCommon GenericCommon(std::string command, std::vector<std::string> args, size_t key_index) override;
+
     // end of redis commands
 
 private:

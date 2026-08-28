@@ -667,6 +667,14 @@ RequestJsonMset MockTransactionImplBase::JsonMset(std::vector<JsonKeyPathValue> 
     AbortWithStacktrace("Redis method not mocked");
 }
 
+RequestGenericCommon MockTransactionImplBase::GenericCommon(
+    std::string /*command*/,
+    std::vector<std::string> /*args*/,
+    size_t /*key_index*/
+) {
+    AbortWithStacktrace("Redis method not mocked");
+}
+
 // end of redis commands
 
 }  // namespace storages::redis
