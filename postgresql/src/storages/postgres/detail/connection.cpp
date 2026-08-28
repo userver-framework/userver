@@ -81,7 +81,7 @@ bool Connection::IsBroken() const { return pimpl_->IsBroken(); }
 
 bool Connection::IsExpired() const { return pimpl_->IsExpired(); }
 
-bool Connection::IsPipelineActive() const { return pimpl_->IsPipelineActive(); }
+void Connection::AssertPipelineActive() const { pimpl_->AssertPipelineActive(); }
 
 bool Connection::ArePreparedStatementsEnabled() const { return pimpl_->ArePreparedStatementsEnabled(); }
 

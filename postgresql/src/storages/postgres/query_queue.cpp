@@ -33,7 +33,7 @@ QueryQueue::QueryQueue(CommandControl default_cc, detail::ConnectionPtr&& conn)
     : default_cc_{default_cc},
       conn_{std::move(conn)}
 {
-    UINVARIANT(conn_->IsPipelineActive(), "QueryQueue usage requires pipelining to be enabled");
+    conn_->AssertPipelineActive();
 
     UINVARIANT(conn_->ArePreparedStatementsEnabled(), "QueryQueue usage requires prepared statements to be enabled");
 }

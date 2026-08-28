@@ -16,9 +16,7 @@ using QueryQueueResult = std::vector<pg::ResultSet>;
 
 UTEST_P(PostgreConnection, QueryQueueSelectOne) {
     CheckConnection(GetConn());
-    if (!GetConn()->IsPipelineActive()) {
-        return;
-    }
+    GetConn()->AssertPipelineActive();
 
     pg::QueryQueue query_queue{kDefaultCC, std::move(GetConn())};
 
@@ -32,9 +30,7 @@ UTEST_P(PostgreConnection, QueryQueueSelectOne) {
 
 UTEST_P(PostgreConnection, QueryQueueSelectMultiple) {
     CheckConnection(GetConn());
-    if (!GetConn()->IsPipelineActive()) {
-        return;
-    }
+    GetConn()->AssertPipelineActive();
 
     pg::QueryQueue query_queue{kDefaultCC, std::move(GetConn())};
 
@@ -53,9 +49,7 @@ UTEST_P(PostgreConnection, QueryQueueSelectMultiple) {
 
 UTEST_P(PostgreConnection, QueryQueueParametersStore) {
     CheckConnection(GetConn());
-    if (!GetConn()->IsPipelineActive()) {
-        return;
-    }
+    GetConn()->AssertPipelineActive();
 
     using RowTuple = std::tuple<int, std::string>;
     const auto values = RowTuple{1, "str"};
@@ -75,9 +69,7 @@ UTEST_P(PostgreConnection, QueryQueueParametersStore) {
 
 UTEST_P(PostgreConnection, QueryQueueTimeout) {
     CheckConnection(GetConn());
-    if (!GetConn()->IsPipelineActive()) {
-        return;
-    }
+    GetConn()->AssertPipelineActive();
 
     // Collect() timeout is the network deadline, QueryCancelled is provoked by statement timeout
     constexpr pg::CommandControl kTimeoutCC{std::chrono::seconds{2}, std::chrono::milliseconds{100}};
@@ -93,9 +85,7 @@ UTEST_P(PostgreConnection, QueryQueueTimeout) {
 
 UTEST_P(PostgreConnection, QueryQueueEmpty) {
     CheckConnection(GetConn());
-    if (!GetConn()->IsPipelineActive()) {
-        return;
-    }
+    GetConn()->AssertPipelineActive();
 
     const pg::QueryQueue query_queue{kDefaultCC, std::move(GetConn())};
     // Yes, that's it: just check the construction-destruction cycle
@@ -103,9 +93,7 @@ UTEST_P(PostgreConnection, QueryQueueEmpty) {
 
 UTEST_P(PostgreConnection, QueryQueueEmptyCollect) {
     CheckConnection(GetConn());
-    if (!GetConn()->IsPipelineActive()) {
-        return;
-    }
+    GetConn()->AssertPipelineActive();
 
     pg::QueryQueue query_queue{kDefaultCC, std::move(GetConn())};
 
@@ -117,9 +105,7 @@ UTEST_P(PostgreConnection, QueryQueueEmptyCollect) {
 
 UTEST_P(PostgreConnection, QueryQueueDestroyWithoutCollect) {
     CheckConnection(GetConn());
-    if (!GetConn()->IsPipelineActive()) {
-        return;
-    }
+    GetConn()->AssertPipelineActive();
 
     pg::QueryQueue query_queue{kDefaultCC, std::move(GetConn())};
 
@@ -129,9 +115,7 @@ UTEST_P(PostgreConnection, QueryQueueDestroyWithoutCollect) {
 
 UTEST_P(PostgreConnection, QueryQueueMoveCtor) {
     CheckConnection(GetConn());
-    if (!GetConn()->IsPipelineActive()) {
-        return;
-    }
+    GetConn()->AssertPipelineActive();
 
     pg::QueryQueue query_queue{kDefaultCC, std::move(GetConn())};
     query_queue.Push(kDefaultCC, "SELECT 1");
@@ -146,9 +130,7 @@ UTEST_P(PostgreConnection, QueryQueueMoveCtor) {
 
 UTEST_P(PostgreConnection, QueryQueueActuallyFifo) {
     CheckConnection(GetConn());
-    if (!GetConn()->IsPipelineActive()) {
-        return;
-    }
+    GetConn()->AssertPipelineActive();
 
     GetConn()->Execute("CREATE TEMP TABLE qq_fifo_test(id INT PRIMARY KEY, value INT)");
 

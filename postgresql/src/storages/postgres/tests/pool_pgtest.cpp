@@ -726,9 +726,7 @@ UTEST_P(PostgrePool, ForQueryQueueMoveAssign) {
 
     constexpr pg::CommandControl kDefaultCC{utest::kMaxTestWaitTime, utest::kMaxTestWaitTime};
     auto conn = pool->Acquire(MakeDeadline());
-    if (!conn->IsPipelineActive()) {
-        return;
-    }
+    conn->AssertPipelineActive();
 
     pg::QueryQueue query_queue{kDefaultCC, std::move(conn)};
     query_queue.Push(kDefaultCC, "SELECT 1");
@@ -769,9 +767,7 @@ UTEST_P(PostgrePool, ForQueryQueueBeingNonTransactional) {
     constexpr pg::CommandControl kDefaultCC{utest::kMaxTestWaitTime, utest::kMaxTestWaitTime};
 
     auto conn = pool->Acquire(MakeDeadline());
-    if (!conn->IsPipelineActive()) {
-        return;
-    }
+    conn->AssertPipelineActive();
     // We pool the same connection, so creating a temporary table is fine
     conn->Execute("CREATE TEMP TABLE qq_non_transactional_test(id INT PRIMARY KEY)");
 

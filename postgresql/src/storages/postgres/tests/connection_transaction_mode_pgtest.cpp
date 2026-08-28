@@ -395,9 +395,7 @@ UTEST_F(PostgreTransactionModeConnection, DuplicatePreparedStatementInUserTransa
     const DefaultCommandControlScope scope{kTransactionPoolerDefaultCmdCtl};
 
     const auto conn = MakeConn();
-    if (!conn->IsPipelineActive()) {
-        return;
-    }
+    conn->AssertPipelineActive();
 
     UEXPECT_NO_THROW(conn->Execute("PREPARE " + statement_name + " AS SELECT 42", {}, kTransactionPoolerNoPrepareCmdCtl)
     );

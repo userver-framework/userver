@@ -66,7 +66,7 @@ public:
     bool IsConnected() const;
     bool IsIdle() const;
     bool IsInTransaction() const;
-    bool IsPipelineActive() const;
+    void AssertPipelineActive() const;
     bool ArePreparedStatementsEnabled() const;
     bool IsBroken() const;
     bool IsExpired() const;
@@ -242,15 +242,6 @@ private:
     void ReportStatement(std::string_view name);
 
     bool ShouldWrapInAutoTransaction(std::string_view statement) const noexcept;
-
-    void TryRollbackAutoTransaction(engine::Deadline deadline);
-
-    ResultSet ExecuteCommandInAutoTransaction(
-        const Query& query,
-        const QueryParameters& params,
-        OptionalCommandControl statement_cmd_ctl,
-        engine::Deadline deadline
-    );
 
     bool IsOmitDescribeInExecuteEnabled() const;
 
