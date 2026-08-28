@@ -22,6 +22,7 @@ components_manager:
             max_pool_size: 1  # should be in sync with value in ./utils.py
             max_queue_size: 200
             min_pool_size: 1
+            connecting_interval_ms: 50  # should be in sync with value in ./utils.py
 
         testsuite-support:
 

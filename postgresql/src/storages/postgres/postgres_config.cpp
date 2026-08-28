@@ -9,7 +9,6 @@
 #include <storages/postgres/experiments.hpp>
 #include <userver/storages/postgres/component.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
-#include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/userver_info.hpp>
 
 #include <userver/formats/common/items.hpp>
@@ -228,12 +227,7 @@ PoolSettings Parse(const yaml_config::YamlConfig& config, formats::parse::To<Poo
     result.max_size = config["max_pool_size"].As<std::size_t>(result.max_size);
     result.max_queue_size = config["max_queue_size"].As<std::size_t>(result.max_queue_size);
     result.connecting_limit = config["connecting_limit"].As<std::size_t>(result.connecting_limit);
-
-    const std::size_t default_connecting_interval_ms =
-        USERVER_NAMESPACE::utils::impl::kPgConnectingRateLimitExperiment.IsEnabled()
-            ? kExperimentDefaultConnectingIntervalMs
-            : kDefaultConnectingIntervalMs;
-    result.connecting_interval_ms = config["connecting_interval_ms"].As<std::size_t>(default_connecting_interval_ms);
+    result.connecting_interval_ms = config["connecting_interval_ms"].As<std::size_t>(result.connecting_interval_ms);
 
     ValidatePoolSizes(result.min_size, result.max_size);
     return result;

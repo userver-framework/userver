@@ -181,10 +181,7 @@ inline constexpr std::size_t kDefaultPoolMaxQueueSize = 200;
 inline constexpr std::size_t kDefaultConnectingLimit = 0;
 
 /// Default minimum time between starting new connections per host in milliseconds
-inline constexpr std::size_t kDefaultConnectingIntervalMs = 0;
-
-/// Default connecting interval when pg-connecting-rate-limit experiment is enabled
-inline constexpr std::size_t kExperimentDefaultConnectingIntervalMs = 4000;
+inline constexpr std::size_t kDefaultConnectingIntervalMs = 4000;
 
 /// @brief PostgreSQL topology options
 ///
