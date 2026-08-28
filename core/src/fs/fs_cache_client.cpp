@@ -66,7 +66,12 @@ FsCacheClient::FsCacheClient(const Settings& settings)
 
 void FsCacheClient::UpdateCache() {
     auto map = fs::ReadRecursiveFilesInfoWithData(tp_, dir_, {fs::SettingsReadFile::kSkipHidden}, max_size_to_cache_);
-    data_.Assign(std::move(map));
+    rcu::RcuMap<std::string, const fs::FileInfoWithData, impl::FsCacheRcuMapTraits>::RawMap raw_map;
+    raw_map.reserve(map.size());
+    for (auto& [key, value] : map) {
+        raw_map.emplace(std::move(key), std::move(value));
+    }
+    data_.Assign(std::move(raw_map));
 }
 
 #ifdef __linux__
@@ -161,11 +166,7 @@ void FsCacheClient::HandleCreateDirectoryBlocking(engine::io::sys_linux::Inotify
 
 FileInfoWithDataConstPtr FsCacheClient::TryGetFile(std::string_view path) const {
     LOG_DEBUG() << "Find file " << path;
-    auto snap = data_.GetSnapshot();
-    if (auto it = snap.find(std::string{path}); it != snap.end()) {
-        return it->second;
-    }
-    return nullptr;
+    return data_.Get(path);
 }
 
 }  // namespace fs

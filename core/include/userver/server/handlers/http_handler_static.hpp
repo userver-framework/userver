@@ -58,19 +58,18 @@ public:
 
     HttpHandlerStatic(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-    std::string HandleRequestThrow(const http::HttpRequest& request, request::RequestContext& context) const override;
-
-    void HandleStreamRequest(
-        http::HttpRequest& request,
-        request::RequestContext& context,
-        http::ResponseBodyStream& stream
-    ) const override;
-
-    bool IsStreamed(const http::HttpRequest& request, request::RequestContext& context) const override;
+    void HandleMaybeStreamRequest(http::HttpRequest& request, request::RequestContext& context) const override;
 
     static yaml_config::Schema GetStaticConfigSchema();
 
 private:
+    struct ResolvedFile {
+        fs::FileInfoWithDataConstPtr file;
+        bool is_not_found{false};
+    };
+
+    ResolvedFile ResolveFile(const http::HttpRequest& request) const;
+
     dynamic_config::Source config_;
     const fs::FsCacheClient& storage_;
     const std::chrono::seconds cache_age_;

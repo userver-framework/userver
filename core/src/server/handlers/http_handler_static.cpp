@@ -1,7 +1,9 @@
 #include <userver/server/handlers/http_handler_static.hpp>
 
 #include <filesystem>
+#include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <variant>
 
@@ -17,6 +19,8 @@
 #include <userver/server/http/http_response_body_stream.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
+#include <userver/utils/overloaded.hpp>
+#include <userver/utils/small_string.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <dynamic_config/variables/USERVER_FILES_CONTENT_TYPE_MAP.hpp>
@@ -32,54 +36,18 @@ namespace server::handlers {
 namespace {
 
 using Queue = concurrent::SpscQueue<std::string>;
+using SearchPath = utils::SmallString<4096>;
 
 constexpr std::size_t kReadBufferSize = 8192;
-constexpr std::string_view kFileContextName = "static_file";
 
-struct FileResponseData {
-    fs::FileInfoWithDataConstPtr file;
-    bool is_not_found{false};
-};
-
-std::string GetSearchPath(const http::HttpRequest& request) {
-    std::string search_path;
+SearchPath BuildSearchPath(const http::HttpRequest& request) {
+    SearchPath search_path;
     search_path.reserve(request.GetRequestPath().size());
-
     for (std::size_t i = 0; i < request.PathArgCount(); ++i) {
-        auto& arg = request.GetPathArg(i);
-        search_path += "/";
-        search_path += arg;
+        search_path += '/';
+        search_path += request.GetPathArg(i);
     }
     return search_path;
-}
-
-FileResponseData ResolveFile(
-    const fs::FsCacheClient& storage,
-    const http::HttpRequest& request,
-    const std::string& directory_file,
-    const std::string& not_found_file
-) {
-    auto search_path = GetSearchPath(request);
-    LOG_DEBUG() << "search_path: " << search_path;
-
-    FileResponseData result;
-    result.file = storage.TryGetFile(search_path);
-    if (!result.file && !directory_file.empty()) {
-        if (directory_file.front() == '/') {
-            search_path = directory_file;
-        } else if (search_path.empty() || search_path.back() != '/') {
-            search_path += "/" + directory_file;
-        } else {
-            search_path += directory_file;
-        }
-        LOG_DEBUG() << "search_path 2: " << search_path;
-        result.file = storage.TryGetFile(search_path);
-    }
-    if (!result.file) {
-        result.file = storage.TryGetFile(not_found_file);
-        result.is_not_found = true;
-    }
-    return result;
 }
 
 void DoSendChunks(http::ResponseBodyStream& stream, Queue::Consumer consumer) {
@@ -113,6 +81,31 @@ void DoReadFile(std::filesystem::path path, Queue::Producer producer) {
 
 }  // namespace
 
+HttpHandlerStatic::ResolvedFile HttpHandlerStatic::ResolveFile(const http::HttpRequest& request) const {
+    auto search_path = BuildSearchPath(request);
+    LOG_DEBUG() << "search_path: " << std::string_view{search_path};
+
+    ResolvedFile result;
+    result.file = storage_.TryGetFile(search_path);
+    if (!result.file && !directory_file_.empty()) {
+        if (directory_file_.front() == '/') {
+            result.file = storage_.TryGetFile(directory_file_);
+        } else {
+            if (search_path.empty() || search_path.back() != '/') {
+                search_path += '/';
+            }
+            search_path += directory_file_;
+            LOG_DEBUG() << "search_path 2: " << std::string_view{search_path};
+            result.file = storage_.TryGetFile(search_path);
+        }
+    }
+    if (!result.file) {
+        result.file = storage_.TryGetFile(not_found_file_);
+        result.is_not_found = true;
+    }
+    return result;
+}
+
 HttpHandlerStatic::HttpHandlerStatic(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
@@ -133,69 +126,44 @@ HttpHandlerStatic::HttpHandlerStatic(
     }
 }
 
-bool HttpHandlerStatic::IsStreamed(const http::HttpRequest& request, request::RequestContext& context) const {
-    auto resolved = ResolveFile(storage_, request, directory_file_, not_found_file_);
-    const bool
-        should_stream = resolved.file && std::holds_alternative<std::filesystem::path>(resolved.file->data_or_path);
-    context.SetData(std::string{kFileContextName}, std::move(resolved));
-    return should_stream;
-}
-
-std::string HttpHandlerStatic::HandleRequestThrow(const http::HttpRequest& request, request::RequestContext& context)
-    const {
-    const auto& resolved = context.GetData<FileResponseData>(kFileContextName);
-
-    auto& response = request.GetHttpResponse();
-    if (resolved.is_not_found) {
-        response.SetStatusNotFound();
-    }
-
-    if (resolved.file) {
-        const auto config = config_.GetSnapshot();
-        response.SetHeader(USERVER_NAMESPACE::http::headers::kExpires, std::to_string(cache_age_.count()));
-        response.SetContentType(config[::dynamic_config::USERVER_FILES_CONTENT_TYPE_MAP][resolved.file->extension]);
-        UASSERT(std::holds_alternative<std::string>(resolved.file->data_or_path));
-        return std::get<std::string>(resolved.file->data_or_path);
-    }
-    response.SetStatusNotFound();
-    return "File not found";
-}
-
-void HttpHandlerStatic::HandleStreamRequest(
-    http::HttpRequest& request,
-    request::RequestContext& context,
-    http::ResponseBodyStream& stream
-) const {
-    const auto& resolved = context.GetData<FileResponseData>(kFileContextName);
-    auto& response = request.GetHttpResponse();
-
-    if (resolved.is_not_found) {
-        response.SetStatusNotFound();
-    }
-
+void HttpHandlerStatic::HandleMaybeStreamRequest(http::HttpRequest& http_request, request::RequestContext&) const {
+    const auto resolved = ResolveFile(http_request);
+    auto& response = http_request.GetHttpResponse();
     if (!resolved.file) {
         response.SetStatusNotFound();
-        stream.SetEndOfHeaders();
-        stream.PushBodyChunk("File not found\n", {});
+        response.SetData("File not found");
         return;
     }
 
-    UASSERT(std::holds_alternative<std::filesystem::path>(resolved.file->data_or_path));
-    const auto& path = std::get<std::filesystem::path>(resolved.file->data_or_path);
+    if (resolved.is_not_found) {
+        response.SetStatusNotFound();
+    }
 
-    response.SetHeader(USERVER_NAMESPACE::http::headers::kExpires, std::to_string(cache_age_.count()));
     {
         const auto config = config_.GetSnapshot();
+        response.SetHeader(USERVER_NAMESPACE::http::headers::kExpires, std::to_string(cache_age_.count()));
         response.SetContentType(config[::dynamic_config::USERVER_FILES_CONTENT_TYPE_MAP][resolved.file->extension]);
     }
 
-    stream.SetEndOfHeaders();
+    std::visit(
+        utils::Overloaded{
+            [&](const std::string& body) {
+                // Aliasing shared_ptr: keep FileInfoWithData alive, point at its string member — no body copy.
+                response.SetSharedData(std::shared_ptr<const std::string>{resolved.file, &body});
+            },
+            [&](const std::filesystem::path& path) {
+                http::ResponseBodyStream stream(response);
+                stream.SetEndOfHeaders();
 
-    constexpr std::size_t kMaxQueueSize = 32;  // up to ~0.25MB of data with kReadBufferSize
-    auto queue = Queue::Create(kMaxQueueSize);
-    auto send_task = engine::AsyncNoTracing(fs_task_processor_, DoReadFile, path, queue->GetProducer());
+                constexpr std::size_t kMaxQueueSize = 32;  // up to ~0.25MB with kReadBufferSize
+                auto queue = Queue::Create(kMaxQueueSize);
+                auto send_task = engine::AsyncNoTracing(fs_task_processor_, DoReadFile, path, queue->GetProducer());
 
-    DoSendChunks(stream, queue->GetConsumer());
+                DoSendChunks(stream, queue->GetConsumer());
+            },
+        },
+        resolved.file->data_or_path
+    );
 }
 
 yaml_config::Schema HttpHandlerStatic::GetStaticConfigSchema() {

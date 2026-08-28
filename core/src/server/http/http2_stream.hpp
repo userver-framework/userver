@@ -2,9 +2,11 @@
 
 #include <nghttp2/nghttp2.h>
 #include <boost/container/small_vector.hpp>
+#include <memory>
 
 #include <server/http/http_request_constructor.hpp>
 
+#include <userver/server/request/response_base.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -42,6 +44,7 @@ public:
 
     bool CheckUrlComplete();
     void PushChunk(std::string&& chunk);
+    void PushChunk(request::impl::ChunkStorage&& chunk);
     ssize_t GetMaxSize(std::size_t max_len, std::uint32_t* flags);
     void Send(engine::io::RwBase& socket, std::string_view data_frame_header, std::size_t max_len);
     nghttp2_data_provider* GetNativeProvider() { return &nghttp2_provider_; }
@@ -52,7 +55,7 @@ private:
     const Id id_;
     // Body sending
     nghttp2_data_provider nghttp2_provider_{};
-    boost::container::small_vector<std::string, 16> chunks_{};
+    boost::container::small_vector<request::impl::ChunkStorage, 16> chunks_{};
     std::size_t pos_in_first_chunk_{0};
     // for the streaming API
     bool is_streaming_{false};

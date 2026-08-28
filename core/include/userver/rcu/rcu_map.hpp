@@ -218,10 +218,13 @@ public:
     void InsertOrAssign(RawKey&& key, ValuePtr value);
 
     /// @brief Returns a readonly value pointer by its key; nullptr (a default constructed ConstValuePtr) if no such key
-    const ConstValuePtr Get(const Key& key) const;
+    /// Supports heterogeneous lookup when RcuMapTraits provide transparent Hash and KeyEqual.
+    template <typename CompatibleKey = Key>
+    const ConstValuePtr Get(const CompatibleKey& key) const;
 
     /// @brief Returns a modifiable value pointer by key; nullptr (a default constructed ValuePtr) if no such key
-    const ValuePtr Get(const Key& key);
+    template <typename CompatibleKey = Key>
+    const ValuePtr Get(const CompatibleKey& key);
 
     /// @brief Removes a key from the map
     /// @returns whether the key was present
@@ -312,11 +315,26 @@ const utils::NotNull<typename RcuMap<K, V, RcuMapTraits>::ConstValuePtr> RcuMap<
 }
 
 template <typename K, typename V, typename RcuMapTraits>
+template <typename CompatibleKey>
 // Protects from assignment to map[key]
 // NOLINTNEXTLINE(readability-const-return-type)
-const typename RcuMap<K, V, RcuMapTraits>::ConstValuePtr RcuMap<K, V, RcuMapTraits>::Get(const K& key) const {
+const typename RcuMap<K, V, RcuMapTraits>::ConstValuePtr RcuMap<K, V, RcuMapTraits>::Get(const CompatibleKey& key
+) const {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     return const_cast<RcuMap<K, V, RcuMapTraits>*>(this)->Get(key);
+}
+
+template <typename K, typename V, typename RcuMapTraits>
+template <typename CompatibleKey>
+// Protects from assignment to map[key]
+// NOLINTNEXTLINE(readability-const-return-type)
+const typename RcuMap<K, V, RcuMapTraits>::ValuePtr RcuMap<K, V, RcuMapTraits>::Get(const CompatibleKey& key) {
+    auto snapshot = rcu_.Read();
+    auto it = snapshot->find(key);
+    if (it == snapshot->end()) {
+        return {};
+    }
+    return it->second;
 }
 
 template <typename K, typename V, typename RcuMapTraits>
@@ -405,18 +423,6 @@ void RcuMap<Key, Value, RcuMapTraits>::InsertOrAssign(RawKey&& key, RcuMap::Valu
     auto txn = rcu_.StartWrite();
     txn->insert_or_assign(std::forward<RawKey>(key), std::move(value));
     txn.Commit();
-}
-
-template <typename K, typename V, typename RcuMapTraits>
-// Protects from assignment to map[key]
-// NOLINTNEXTLINE(readability-const-return-type)
-const typename RcuMap<K, V, RcuMapTraits>::ValuePtr RcuMap<K, V, RcuMapTraits>::Get(const K& key) {
-    auto snapshot = rcu_.Read();
-    auto it = snapshot->find(key);
-    if (it == snapshot->end()) {
-        return {};
-    }
-    return it->second;
 }
 
 template <typename K, typename V, typename RcuMapTraits>

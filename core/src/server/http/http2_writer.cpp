@@ -103,7 +103,7 @@ public:
     {}
 
     void WriteHttpResponse() {
-        auto data = response_.ExtractData();
+        const auto& data = response_.GetData();
 
         auto headers = GetHeaders();
         const bool is_body_forbidden = IsBodyForbiddenForStatus(response_.status_);
@@ -123,7 +123,7 @@ public:
         if (response_.request_.GetMethod() != HttpMethod::kHead && !is_body_forbidden) {
             if (!stream.IsStreaming()) {
                 bytes += data.size();
-                stream.PushChunk(std::move(data));
+                stream.PushChunk(response_.ExtractData());
             }
             provider = stream.GetNativeProvider();
         }

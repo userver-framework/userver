@@ -72,8 +72,10 @@ bool Stream::CheckUrlComplete() {
     return true;
 }
 
-void Stream::PushChunk(std::string&& chunk) {
-    if (chunk.empty()) {
+void Stream::PushChunk(std::string&& chunk) { PushChunk(request::impl::ChunkStorage{std::move(chunk)}); }
+
+void Stream::PushChunk(request::impl::ChunkStorage&& chunk) {
+    if (chunk.Empty()) {
         return;
     }
     chunks_.push_back(std::move(chunk));
@@ -85,9 +87,9 @@ ssize_t Stream::GetMaxSize(std::size_t max_len, std::uint32_t* flags) {
         *flags |= NGHTTP2_DATA_FLAG_EOF;
         return 0;
     }
-    const std::size_t
-        total = std::accumulate(chunks_.begin(), chunks_.end(), std::size_t{0}, [](std::size_t size, const auto& str) {
-            return size + str.size();
+    const std::size_t total =
+        std::accumulate(chunks_.begin(), chunks_.end(), std::size_t{0}, [](std::size_t size, const auto& chunk) {
+            return size + chunk.Size();
         });
     if (total == 0 && stream.is_streaming_ && !stream.is_end_) {
         stream.is_deferred_ = true;
@@ -95,10 +97,11 @@ ssize_t Stream::GetMaxSize(std::size_t max_len, std::uint32_t* flags) {
     }
     if (!stream.is_streaming_) {
         UASSERT(chunks_.size() == 1);
-        if (pos_in_first_chunk_ + max_len >= chunks_[0].size()) {
+        const auto chunk_size = chunks_[0].Size();
+        if (pos_in_first_chunk_ + max_len >= chunk_size) {
             *flags |= NGHTTP2_DATA_FLAG_EOF;
         }
-        return std::min(max_len, chunks_[0].size() - pos_in_first_chunk_);
+        return std::min(max_len, chunk_size - pos_in_first_chunk_);
     }
     UASSERT(total >= pos_in_first_chunk_);
     const auto remaining = total - pos_in_first_chunk_;
@@ -117,12 +120,13 @@ void Stream::Send(engine::io::RwBase& socket, std::string_view data_frame_header
         if (budget == 0) {
             break;
         }
-        UASSERT(chunk.size() > pos_in_first_chunk_);
-        const auto part =
-            std::string_view{chunk}.substr(pos_in_first_chunk_, std::min(chunk.size() - pos_in_first_chunk_, budget));
+        const auto chunk_view = chunk.View();
+        UASSERT(chunk_view.size() > pos_in_first_chunk_);
+        const auto
+            part = chunk_view.substr(pos_in_first_chunk_, std::min(chunk_view.size() - pos_in_first_chunk_, budget));
         parts.push_back({part.data(), part.size()});
         pos_in_first_chunk_ += part.size();
-        if (pos_in_first_chunk_ >= chunk.size()) {
+        if (pos_in_first_chunk_ >= chunk_view.size()) {
             pos_in_first_chunk_ = 0;
         }
         UASSERT(budget >= part.size());

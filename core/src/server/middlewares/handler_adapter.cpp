@@ -16,6 +16,7 @@
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/request/request_context.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/tracing/tracing.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/log.hpp>
 #include <userver/utils/not_null.hpp>

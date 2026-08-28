@@ -185,4 +185,31 @@ TEST(ResponseBase, IsLimitReached) {
     EXPECT_TRUE(exact.IsLimitReached());
 }
 
+TEST(ResponseBase, SetSharedDataAvoidsCopy) {
+    server::request::ResponseDataAccounter accounter;
+    TestResponse response{accounter};
+
+    auto body = std::make_shared<const std::string>("shared-payload");
+    const auto* data_ptr = body->data();
+    response.SetSharedData(body);
+
+    EXPECT_EQ(response.GetData(), "shared-payload");
+    EXPECT_EQ(response.GetData().data(), data_ptr);
+    EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), body->size());
+
+    auto extracted = response.ExtractData();
+    EXPECT_EQ(extracted.View(), "shared-payload");
+    EXPECT_EQ(extracted.View().data(), data_ptr);
+}
+
+TEST(ResponseBase, ExtractDataMovesOwnedBody) {
+    server::request::ResponseDataAccounter accounter;
+    TestResponse response{accounter};
+
+    response.SetData("owned-payload");
+    auto extracted = response.ExtractData();
+    EXPECT_EQ(extracted.View(), "owned-payload");
+    EXPECT_TRUE(response.GetData().empty());
+}
+
 USERVER_NAMESPACE_END

@@ -125,6 +125,11 @@ public:
     }
 
 protected:
+    /// @brief Override in handlers that set response body directly (e.g. via
+    /// @ref server::request::ResponseBase::SetSharedData) or to implement a more complex streaming logic than the
+    /// IsStreamed overloading allows.
+    virtual void HandleMaybeStreamRequest(http::HttpRequest& request, request::RequestContext& context) const;
+
     [[noreturn]] void ThrowUnsupportedHttpMethod(const http::HttpRequest& request) const;
 
     /// Same as `HandleRequest`.
@@ -192,8 +197,6 @@ private:
     friend class middlewares::Auth;
 
     void HandleHttpRequest(http::HttpRequest& request, request::RequestContext& context) const;
-
-    void HandleRequestStream(http::HttpRequest& http_request, request::RequestContext& context) const;
 
     std::string GetRequestBodyForLoggingChecked(
         const http::HttpRequest& request,

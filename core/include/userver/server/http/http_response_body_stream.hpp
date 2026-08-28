@@ -10,10 +10,6 @@
 
 USERVER_NAMESPACE_BEGIN
 
-namespace server::handlers {
-class HttpHandlerBase;
-}
-
 namespace server::http {
 
 /// @brief Streaming HTTP response body writer that is passed to
@@ -22,6 +18,9 @@ namespace server::http {
 /// @see @ref scripts/docs/en/userver/http_server.md
 class ResponseBodyStream final {
 public:
+    /// Constructor that can be used in @ref server::handlers::HttpHandlerBase::HandleHttpRequest
+    explicit ResponseBodyStream(HttpResponse& http_response);
+
     ResponseBodyStream(ResponseBodyStream&&) = default;
     ~ResponseBodyStream();
 
@@ -45,10 +44,6 @@ public:
     void SetStatusCode(HttpStatus status);
 
 private:
-    friend class server::handlers::HttpHandlerBase;
-
-    ResponseBodyStream(HttpResponse::Producer&& queue_producer, HttpResponse& http_response);
-
     bool headers_ended_{false};
     bool headers_end_sent_{false};
     HttpResponse::Producer queue_producer_;

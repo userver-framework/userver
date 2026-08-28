@@ -7,11 +7,17 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
 
-ResponseBodyStream::ResponseBodyStream(
-    server::http::HttpResponse::Producer&& queue_producer,
-    server::http::HttpResponse& http_response
-)
-    : queue_producer_(std::move(queue_producer)),
+namespace {
+
+auto TransferToStream(HttpResponse& response) {
+    response.SetStreamBody();
+    return response.GetBodyProducer();
+}
+
+}  // namespace
+
+ResponseBodyStream::ResponseBodyStream(HttpResponse& http_response)
+    : queue_producer_(TransferToStream(http_response)),
       http_response_(http_response)
 {}
 

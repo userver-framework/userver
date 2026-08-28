@@ -27,7 +27,6 @@
 #include <userver/server/http/http_status.hpp>
 #include <userver/server/middlewares/configuration.hpp>
 #include <userver/server/middlewares/http_middleware_base.hpp>
-#include <userver/tracing/tracing.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/from_string.hpp>
@@ -200,11 +199,14 @@ HttpHandlerBase::HttpHandlerBase(
 
 HttpHandlerBase::~HttpHandlerBase() = default;
 
-void HttpHandlerBase::HandleRequestStream(http::HttpRequest& http_request, request::RequestContext& context) const {
-    auto& http_response = http_request.GetHttpResponse();
-    server::http::ResponseBodyStream response_body_stream(http_response.GetBodyProducer(), http_response);
-
-    HandleStreamRequest(http_request, context, response_body_stream);
+void HttpHandlerBase::HandleMaybeStreamRequest(http::HttpRequest& request, request::RequestContext& context) const {
+    auto& response = request.GetHttpResponse();
+    if (IsStreamed(request, context)) {
+        server::http::ResponseBodyStream response_body_stream(response);
+        HandleStreamRequest(request, context, response_body_stream);
+    } else {
+        response.SetData(HandleRequest(request, context));
+    }
 }
 
 void HttpHandlerBase::HandleHttpRequest(http::HttpRequest& http_request, request::RequestContext& context) const {
@@ -215,12 +217,7 @@ void HttpHandlerBase::HandleHttpRequest(http::HttpRequest& http_request, request
     context.GetInternalContext().ResetConfigSnapshot();
 
     const auto scope_time = tracing::ScopeTime::CreateOptionalScopeTime("http_handle_request");
-    if (IsStreamed(http_request, context)) {
-        response.SetStreamBody();
-        HandleRequestStream(http_request, context);
-    } else {
-        response.SetData(HandleRequest(http_request, context));
-    }
+    HandleMaybeStreamRequest(http_request, context);
 }
 
 void HttpHandlerBase::PrepareAndHandleRequest(http::HttpRequest& http_request, request::RequestContext& context) const {
