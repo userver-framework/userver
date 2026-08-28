@@ -43,6 +43,16 @@ readonly MARIADB_MIRROR
 echo "deb [arch=amd64,arm64,ppc64el signed-by=${MARIADB_KEYRING}] ${MARIADB_MIRROR} ${MARIADB_CODENAME} main" \
     >"${MARIADB_LIST}"
 
+# MariaDB mirrors may change Release file metadata (Origin/Label):
+#     E: Repository 'https://mirror.kumi.systems/mariadb/repo/10.11/ubuntu jammy InRelease' changed its
+#     'Origin' value from 'ubuntu jammy' to 'MariaDB'
+#
+# Allow that on jammy so later apt update calls in derived images do not fail.
+if [[ "${MARIADB_CODENAME}" == "jammy" ]]; then
+    echo 'Acquire::AllowReleaseInfoChange "true";' \
+        >/etc/apt/apt.conf.d/99allow-mariadb-releaseinfo-change
+fi
+
 export DEBIAN_FRONTEND=noninteractive
 apt-get update
 apt-get install -y --no-install-recommends libmariadb-dev mariadb-server
