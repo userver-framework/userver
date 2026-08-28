@@ -20,6 +20,8 @@ namespace ydb::impl {
 Driver::Driver(std::string dbname, impl::DriverSettings settings)
     : dbname_(std::move(dbname)),
       dbpath_(settings.database),
+      grpc_compression_algorithm_(settings.grpc_compression_algorithm),
+      grpc_load_balancing_policy_(settings.grpc_load_balancing_policy),
       native_metrics_(std::make_unique<NMonitoring::TMetricRegistry>(NMonitoring::TLabels{})),
       retry_budget_(utils::RetryBudgetSettings{})
 {
@@ -73,6 +75,13 @@ Driver::Driver(std::string dbname, impl::DriverSettings settings)
         driver_config.SetGRpcKeepAlivePermitWithoutCalls(*settings.grpc_keepalive_permit_without_calls);
     }
 
+    if (settings.grpc_compression_algorithm.has_value()) {
+        driver_config.SetGRpcCompressionAlgorithm(*settings.grpc_compression_algorithm);
+    }
+    if (settings.grpc_load_balancing_policy.has_value()) {
+        driver_config.SetGRpcLoadBalancingPolicy(*settings.grpc_load_balancing_policy);
+    }
+
     AppendUserverYdbBuildInfo(driver_config);
 
     driver_ = std::make_unique<NYdb::TDriver>(driver_config);
@@ -89,7 +98,17 @@ const std::string& Driver::GetDbPath() const { return dbpath_; }
 
 utils::RetryBudget& Driver::GetRetryBudget() { return retry_budget_; }
 
-void DumpMetric(utils::statistics::Writer& writer, const Driver& driver) { writer["native"] = *driver.native_metrics_; }
+void DumpMetric(utils::statistics::Writer& writer, const Driver& driver) {
+    writer["native"] = *driver.native_metrics_;
+    if (driver.grpc_compression_algorithm_.has_value()) {
+        writer["grpc-compression-algorithm"].ValueWithLabels(
+            1, {{"algorithm", ToString(*driver.grpc_compression_algorithm_)}}
+        );
+    }
+    if (driver.grpc_load_balancing_policy_.has_value()) {
+        writer["grpc-load-balancing-policy"].ValueWithLabels(1, {{"policy", *driver.grpc_load_balancing_policy_}});
+    }
+}
 
 std::string JoinPath(std::string_view database_path, std::string_view path) {
     UASSERT(!database_path.ends_with("/"));

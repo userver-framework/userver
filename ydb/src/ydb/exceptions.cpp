@@ -15,6 +15,10 @@ YdbResponseError::YdbResponseError(std::string_view operation_name, NYdb::TStatu
 
 const NYdb::TStatus& YdbResponseError::GetStatus() const noexcept { return status_; }
 
+bool YdbResponseError::IsConstraintViolation() const noexcept {
+    return NYdb::NStatusHelpers::StatusContainsIssueWithCode(status_, NYdb::NIssue::CONSTRAINT_VIOLATION);
+}
+
 UndefinedDatabaseError::UndefinedDatabaseError(std::string error)
     : BaseError(std::move(error))
 {}

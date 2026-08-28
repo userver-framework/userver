@@ -15,6 +15,7 @@
 #include <userver/yaml_config/fwd.hpp>
 
 #include <userver/ydb/settings.hpp>
+#include <ydb-cpp-sdk/client/types/ydb.h>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -59,6 +60,9 @@ struct DriverSettings {
     std::optional<std::chrono::milliseconds> grpc_keepalive_timeout{};
     std::optional<bool> grpc_keepalive_permit_without_calls{};
 
+    std::optional<NYdb::EGrpcCompressionAlgorithm> grpc_compression_algorithm{};
+    std::optional<std::string> grpc_load_balancing_policy{};
+
     bool prefer_local_dc{false};
     std::optional<std::string> oauth_token;
     std::optional<std::string> iam_jwt_params;
@@ -67,6 +71,8 @@ struct DriverSettings {
     std::optional<std::string> password;
     std::shared_ptr<NYdb::ICredentialsProviderFactory> credentials_provider_factory;
 };
+
+std::string_view ToString(NYdb::EGrpcCompressionAlgorithm algorithm);
 
 TableSettings ParseTableSettings(const yaml_config::YamlConfig& dbconfig, const secdist::DatabaseSettings& dbsecdist);
 

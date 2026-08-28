@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 
@@ -8,6 +9,7 @@
 #include <userver/utils/statistics/fwd.hpp>
 
 #include <ydb-cpp-sdk/client/driver/fwd.h>
+#include <ydb-cpp-sdk/client/types/ydb.h>
 
 namespace NMonitoring {
 class TMetricRegistry;
@@ -44,6 +46,9 @@ public:
 private:
     const std::string dbname_;
     const std::string dbpath_;
+
+    const std::optional<NYdb::EGrpcCompressionAlgorithm> grpc_compression_algorithm_;
+    const std::optional<std::string> grpc_load_balancing_policy_;
 
     std::unique_ptr<NMonitoring::TMetricRegistry> native_metrics_;
     // The retry_budget_ is used in driver_ threads, so it must be before the

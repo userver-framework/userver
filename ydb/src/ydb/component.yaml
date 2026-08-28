@@ -117,6 +117,20 @@ properties:
                     type: boolean
                     description: |
                         NYdb::TDriverConfig::SetGRpcKeepAlivePermitWithoutCalls. If omitted, not set (SDK default).
+                grpc-compression-algorithm:
+                    type: string
+                    enum: [none, gzip, deflate]
+                    default: none
+                    description: |
+                        NYdb::TDriverConfig::SetGRpcCompressionAlgorithm. If omitted, not set (SDK default).
+                        Valid values: "gzip", "deflate", "none".
+                grpc-load-balancing-policy:
+                    type: string
+                    enum: [round_robin, pick_first]
+                    default: round_robin
+                    description: |
+                        NYdb::TDriverConfig::SetGRpcLoadBalancingPolicy. If omitted, not set (SDK default).
+                        Valid values: "round_robin", "pick_first"
                 prefer_local_dc:
                     type: boolean
                     default: true

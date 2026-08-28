@@ -18,6 +18,7 @@
 #include <userver/ydb/dist_lock/component_base.hpp>
 
 #include <views/describe-table/post/view.hpp>
+#include <views/insert-row/post/view.hpp>
 #include <views/select-list/post/view.hpp>
 #include <views/select-rows/post/view.hpp>
 #include <views/upsert-row-old/post/view.hpp>
@@ -100,6 +101,7 @@ int main(int argc, char* argv[]) {
             .Append<sample::SelectRowsHandler>()
             .Append<sample::DescribeTableHandler>()
             .Append<sample::SelectListHandler>()
+            .Append<sample::InsertRowHandler>()
             .Append<sample::UpsertRowHandler>()
             .Append<sample::UpsertRowOldHandler>()
             .Append<ydb::YdbComponent>()

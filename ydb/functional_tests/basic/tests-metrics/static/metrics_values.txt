@@ -43,6 +43,8 @@ ydb.by-transaction.success: ydb_database=sampledb, ydb_transaction=trx	RATE	3
 ydb.by-transaction.timings: ydb_database=sampledb, ydb_transaction=trx	HIST_RATE	[5]=3,[10]=0,[20]=0,[35]=0,[60]=0,[100]=0,[173]=0,[300]=0,[520]=0,[1000]=0,[3200]=0,[10000]=0,[32000]=0,[100000]=0,[inf]=0
 ydb.by-transaction.total: ydb_database=sampledb, ydb_transaction=trx	RATE	3
 ydb.by-transaction.transport-error: ydb_database=sampledb, ydb_transaction=trx	RATE	0
+ydb.grpc-compression-algorithm: algorithm=gzip, ydb_database=sampledb	GAUGE	1
+ydb.grpc-load-balancing-policy: policy=round_robin, ydb_database=sampledb	GAUGE	1
 ydb.native.Discovery/FailedTransportError: database=/local, ydb_database=sampledb	RATE	0
 ydb.native.Discovery/Regular: database=/local, ydb_database=sampledb	RATE	0
 ydb.native.Discovery/TooManyBadEndpoints: database=/local, ydb_database=sampledb	RATE	0
