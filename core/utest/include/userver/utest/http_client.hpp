@@ -39,6 +39,7 @@ std::shared_ptr<clients::http::Client> CreateHttpClient();
 
 std::shared_ptr<clients::http::Client> CreateHttpClient(engine::TaskProcessor& fs_task_processor);
 
+/// @brief Create an HTTP client with a single middleware installed (for tests)
 std::shared_ptr<clients::http::Client> CreateHttpClientWithMiddleware(clients::http::MiddlewareBase&);
 
 std::shared_ptr<clients::http::Client> CreateHttpClient(const tracing::TracingManagerBase& tracing_manager);

@@ -396,7 +396,7 @@ public:
     /// Perform request asynchronously.
     ///
     /// Works well with @ref engine::MakeWaitAny and @ref engine::WaitAnyContext::Wait /
-    /// @ref engine::WaitAnyContext::WaitFor / @ref engine::WaitAnyContext::WaitUntil:
+    /// @ref engine::WaitAnyContext::WaitFor / @ref engine::WaitAnyContext::WaitUntil :
     /// @snippet core/src/clients/http/client_wait_test.cpp HTTP Client - waitany
     ///
     /// Refrain from reusing the Request object.

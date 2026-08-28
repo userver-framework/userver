@@ -246,7 +246,10 @@ inline constexpr std::size_t kDefaultMaxPreparedCacheSize = 200;
 enum class OmitDescribeInExecuteMode { kDisabled, kEnabled };
 
 /// Connection pooler mode (e.g. Odyssey / PgBouncer)
-enum class PoolerMode { kSession, kTransaction };
+enum class PoolerMode {
+    kSession,      ///< One client connection maps to one server connection
+    kTransaction,  ///< Server connection is assigned for the duration of a transaction
+};
 
 /// PostgreSQL connection options
 ///

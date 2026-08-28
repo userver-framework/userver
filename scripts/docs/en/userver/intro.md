@@ -295,7 +295,7 @@ How some synchronization primitives react to cancellations:
   * @ref engine::TaskWithResult::Get and @ref engine::TaskBase::Wait throw @ref engine::WaitInterruptedException, which typically leads to the destruction of the child task during stack unwinding, cancelling and awaiting it;
   * @ref engine::ConditionVariable::Wait and @ref engine::Future::wait return a status code;
   * @ref engine::SingleConsumerEvent::WaitForEvent returns `false`;
-  * @ref engine::SingleConsumerEvent::WaitForEventFor returns `false` and needs an additional @ref engine::current_task::ShouldCancel check;
+  * @ref engine::SingleConsumerEvent::WaitForEvent "engine::SingleConsumerEvent::WaitForEventFor" returns `false` and needs an additional @ref engine::current_task::ShouldCancel check;
   * @ref engine::InterruptibleSleepFor needs an additional @ref engine::current_task::ShouldCancel check;
   * @ref engine::CancellableSemaphore returns `false` or throws engine::SemaphoreLockCancelledError.
 

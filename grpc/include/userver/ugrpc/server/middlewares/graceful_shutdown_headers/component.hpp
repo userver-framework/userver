@@ -11,7 +11,6 @@ USERVER_NAMESPACE_BEGIN
 
 /// Middleware populating graceful shutdown headers
 /// @see @ref scripts/docs/en/userver/grpc/server_middlewares.md
-/// @see @ref ugrpc::server::middlewares::graceful_shutdown_headers::Component
 namespace ugrpc::server::middlewares::graceful_shutdown_headers {
 
 /// @ingroup userver_components userver_base_classes
@@ -28,7 +27,7 @@ namespace ugrpc::server::middlewares::graceful_shutdown_headers {
 class Component final : public MiddlewareFactoryComponentBase {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of @ref ugrpc::server::middlewares::graceful_shutdown_headers::Component
+    /// @brief The default name of ugrpc::server::middlewares::graceful_shutdown_headers::Component
     static constexpr std::string_view kName = "grpc-server-graceful-shutdown-headers";
 
     Component(const components::ComponentConfig& config, const components::ComponentContext& context);

@@ -73,7 +73,7 @@ enum class UpdateType {
 /// ## Dumper Dynamic config
 /// * @ref USERVER_DUMPS
 ///
-/// ## Static config of @ref dump::Dumper :
+/// ## Static config of dump::Dumper :
 /// @include{doc} scripts/docs/en/components_schema/core/src/dump/dumper.md
 ///
 /// Options inherited from @ref components::ComponentBase :

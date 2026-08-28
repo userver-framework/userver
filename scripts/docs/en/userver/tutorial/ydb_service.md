@@ -42,7 +42,7 @@ threads and tasks.
 ### UpsertRowHandler
 
 The simplest way to execute a YQL query is to call
-@ref ydb::TableClient::ExecuteDataQuery() with a @ref ydb::Query object
+@ref ydb::TableClient::ExecuteDataQuery with a @ref ydb::Query object
 and bound parameters:
 
 @snippet samples/ydb_service/views/upsert-row/post/view.cpp  YDB service sample - upsert row
@@ -67,7 +67,7 @@ Then pass the vector of structs to `ExecuteDataQuery`:
 
 ### Upsert2RowsHandler
 
-To run several queries atomically, use @ref ydb::TableClient::RetryTx().
+To run several queries atomically, use @ref ydb::TableClient::RetryTx.
 The lambda receives a @ref ydb::TxActor and should return
 @ref ydb::TxAction::kCommit on success:
 

@@ -22,7 +22,7 @@ namespace fs {
 /// @param path to directory to traverse recursively
 /// @param flags settings read files
 /// @param max_size_to_cache files larger than this store a full path in
-/// @ref FileInfoWithData::data_or_path instead of contents
+/// @ref fs::FileInfoWithData::data_or_path instead of contents
 /// @returns map with relative to `path` filepaths and file info
 /// @throws std::runtime_error if read fails for any reason (e.g. no such file, read error, etc.),
 FileInfoWithDataMap ReadRecursiveFilesInfoWithData(

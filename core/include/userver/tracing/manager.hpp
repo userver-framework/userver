@@ -84,8 +84,8 @@ void FillResponseWithTracingContext(Format format, const Span& span, server::htt
 /// W3C trace-flags byte values from the @c traceparent header.
 /// @see https://www.w3.org/TR/trace-context/#trace-flags
 enum OtelTraceFlags : std::uint8_t {
-    kNoTracing = 0x00,
-    kSampled = 0x01,
+    kNoTracing = 0x00,  ///< Tracing disabled
+    kSampled = 0x01,    ///< Trace is sampled
 };
 
 /// @returns the W3C trace-flags byte from the incoming request, stored in

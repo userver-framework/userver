@@ -220,8 +220,8 @@ before invoking the @ref utils::DaemonMain, @ref components::Run or
 @ref components::RunOnce.
 
 Done! You've implemented your first component. Full sources:
-* @ref components/component_sample_test.hpp
-* @ref components/component_sample_test.cpp
+* @ref core/src/components/component_sample_test.hpp
+* @ref core/src/components/component_sample_test.cpp
 
 @note For info on writing HTTP handler components refer to
 the @ref scripts/docs/en/userver/tutorial/hello_service.md.

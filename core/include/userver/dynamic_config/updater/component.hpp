@@ -53,7 +53,7 @@ namespace components {
 /// will be sent to every dynamic config subscriber if *any* part of the config
 /// has updated, not if the interesting part has updated.
 ///
-/// ## Static options of @ref components::DynamicConfigClientUpdater :
+/// ## Static options of components::DynamicConfigClientUpdater :
 /// @include{doc} scripts/docs/en/components_schema/core/src/dynamic_config/updater/component.md
 ///
 /// Options inherited from @ref components::CachingComponentBase :

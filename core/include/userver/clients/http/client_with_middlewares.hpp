@@ -24,7 +24,7 @@ class ClientCore;
 /// CreateRequest() with applied middlewares.
 ///
 /// Usually retrieved from @ref components::HttpClient component.
-/// Can also be created in tests using @ref utest::CreateHttpClientWithMiddleware().
+/// Can also be created in tests using @ref utest::CreateHttpClientWithMiddleware.
 class ClientWithMiddlewares final : public Client {
 public:
     /// @cond

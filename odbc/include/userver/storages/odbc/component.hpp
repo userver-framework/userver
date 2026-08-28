@@ -44,7 +44,7 @@ namespace components {
 /// ## Static options of components::Odbc:
 /// @include{doc} scripts/docs/en/components_schema/odbc/src/storages/odbc/component.md
 ///
-/// Options inherited from @ref components::ComponentBase:
+/// Options inherited from @ref components::ComponentBase :
 /// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 class Odbc final : public ComponentBase {
 public:

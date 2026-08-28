@@ -30,6 +30,7 @@ enum class UrlTrailingSlashOption {
 };
 
 struct HandlerConfig {
+    /// Either a path pattern of the handler that may contain path-argument placeholders, or a fallback handler
     std::variant<std::string, FallbackHandler> path;
     std::optional<std::string> task_processor;
     std::string method;

@@ -69,6 +69,7 @@ public:
 
     void ReportMalformedRequest(http::HttpRequest& request) const final;
 
+    /// @brief Returns the name of this handler (static config section name)
     virtual const std::string& HandlerName() const;
 
     const std::vector<http::HttpMethod>& GetAllowedMethods() const;

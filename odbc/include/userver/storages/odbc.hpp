@@ -19,7 +19,7 @@ USERVER_NAMESPACE_BEGIN
 
 /// @brief Top namespace for uODBC driver.
 ///
-/// For more information see @ref odbc_driver
+/// For more information see @ref scripts/docs/en/userver/odbc.md
 namespace storages::odbc {}
 
 USERVER_NAMESPACE_END

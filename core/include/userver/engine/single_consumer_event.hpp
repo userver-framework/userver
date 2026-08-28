@@ -55,11 +55,11 @@ public:
     template <typename Clock, typename Duration>
     [[nodiscard]] bool WaitForEventUntil(std::chrono::time_point<Clock, Duration>);
 
-    /// @overload bool WaitForEvent()
+    /// @brief Waits until the event is signaled, the deadline is reached, or the task is cancelled
     [[nodiscard]] bool WaitForEventUntil(Deadline);
 
-    /// @brief Waits until the event is in a signaled state, same as @ref
-    /// engine::SingleConsumerEvent::WaitForEventUntil, but gives the precise reason of a failure instead of just
+    /// @brief Waits until the event is in a signaled state, same as
+    /// #WaitForEventUntil, but gives the precise reason of a failure instead of just
     /// `false`.
     ///
     /// If the event is auto-resetting, clears the signal flag upon waking up. If already in a signaled state,

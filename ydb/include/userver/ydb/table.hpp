@@ -109,7 +109,7 @@ public:
     /// client.ExecuteDataQuery(query, "name1", value1, "name2", value2, ...);
     /// @endcode
     ///
-    /// @warning ExecuteDataQuery returns no more than 1000 rows. Consider @ref ExecuteQuery() instead, but make sure
+    /// @warning ExecuteDataQuery returns no more than 1000 rows. Consider @ref #ExecuteQuery instead, but make sure
     ///          that it works for your case.
     ///
     /// Use ydb::PreparedArgsBuilder for storing a generic buffer of query params if needed.

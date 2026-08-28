@@ -14,7 +14,7 @@ namespace clients::http {
 ///
 /// @brief Component that provides list of common middlewares names for all @ref components::HttpClient instances
 ///
-/// ## Static options of @ref clients::http::MiddlewarePipelineComponent :
+/// ## Static options of clients::http::MiddlewarePipelineComponent :
 /// @include{doc} scripts/docs/en/components_schema/core/src/clients/http/middlewares/pipeline_component.md
 ///
 /// ## Static configuration example:

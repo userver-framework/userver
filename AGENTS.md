@@ -40,6 +40,8 @@ If asked to fix a flaky failure and the root cause is in production code (not in
 
 Usage and testing examples: `samples/`. Documentation pages: `scripts/docs/en/`.
 
+In Doxygen class docs, do **not** use `@ref` in `/// ## Static options of ...` (and similar self-referential headings like `/// ## Static config of ...`): write the fully qualified type name as plain text. Self-`@ref` causes "Potential recursion while resolving @ref" warnings.
+
 ## Build systems
 
 The project is built with both **CMake** and the internal **ya.make** build system. Always update `CMakeLists.txt`. Update `ya.make` **only if it already exists** for the affected target; otherwise change only CMake.

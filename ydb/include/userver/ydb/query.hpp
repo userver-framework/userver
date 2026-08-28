@@ -9,8 +9,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ydb {
 
-using Query = USERVER_NAMESPACE::storages::Query;
+/// @brief YDB SQL query type alias for @ref storages::Query
+using Query = storages::Query;
 
-}
+}  // namespace ydb
 
 USERVER_NAMESPACE_END

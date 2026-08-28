@@ -17,7 +17,7 @@ Let's write a simple chat server that echoes incoming messages as outgoing messa
 ### WebSocket handler component
 
 WebSocket handlers must derive from @ref server::handlers::WebsocketHandlerBase and have a name, that
-is obtainable at compile time via `kName` variable and is obtainable at runtime via @ref server::handlers::HandlerBase::HandlerName.
+is obtainable at compile time via `kName` variable and is obtainable at runtime via @ref server::handlers::HttpHandlerBase::HandlerName.
 
 @snippet samples/websocket_service/main.cpp  Websocket service sample - component
 

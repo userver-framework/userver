@@ -33,10 +33,8 @@ public:
 
     std::unordered_map<std::string, std::string> Auth(const Request& request) const override;
 
-    /// @note `expires` is an absolute unix timestamp of the moment the
-    /// presigned URL stops being valid, the same way as in
-    /// @ref AccessKey::Sign. It is converted to the `X-Amz-Expires` duration
-    /// relative to the current time.
+    /// @note `expires` is an absolute unix timestamp of the moment the presigned URL stops being valid.
+    /// It is converted to the `X-Amz-Expires` duration relative to the current time.
     std::unordered_map<std::string, std::string> Sign(const Request& request, std::time_t expires) const override;
 
 private:

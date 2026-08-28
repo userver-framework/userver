@@ -25,7 +25,7 @@ The service would have the following REST API:
 Like in @ref scripts/docs/en/userver/tutorial/hello_service.md we create a
 component for handling HTTP requests.
 The component holds references to @ref ydb::TopicWriterManager and
-@ref ydb::TopicWriter obtained from @ref ydb::TopicWriterComponent:
+@ref ydb::TopicWriter obtained from @ref ydb::TopicWriterComponent :
 
 @snippet samples/ydb_topic_writer_service/src/write_handler.hpp  topic writer handler decl
 

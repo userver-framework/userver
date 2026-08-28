@@ -136,8 +136,8 @@ public:
     Row GetFirstRow();
 
     /// @brief Extract first row
-    /// @throws EmptyResponseError if @ref Cursor::empty().
-    /// @throws IgnoreResultsError if @ref Cursor::size() > 1.
+    /// @throws EmptyResponseError if @ref Cursor::empty.
+    /// @throws IgnoreResultsError if @ref Cursor::size > 1.
     Row GetSingleRow() &&;
 
     /// @brief Extract data into a container. Each row is parsed using @ref Row::As.
@@ -145,7 +145,7 @@ public:
     Container AsContainer() &&;
 
     /// @brief Extract first row into user type using @ref Row::As.
-    /// @throws EmptyResponseError if @ref Cursor::empty().
+    /// @throws EmptyResponseError if @ref Cursor::empty.
     template <typename T>
     T AsSingleRow() &&;
 
@@ -158,7 +158,9 @@ public:
     /// (currently 1000 rows)
     bool IsTruncated() const;
 
+    /// @returns `true` if the cursor has no rows
     bool empty() const;
+    /// @returns the number of rows in the cursor
     std::size_t size() const;
 
     CursorIterator begin();

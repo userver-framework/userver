@@ -1,0 +1,66 @@
+/*!
+@file
+
+@brief Documentation stubs for yandex-taxi-testsuite fixtures referenced from userver docs.
+
+These fixtures live in the external `testsuite` package (not under
+`testsuite/pytest_plugins/`). Declaring them here makes `@ref` links resolve.
+
+See also the upstream docs: https://yandex.github.io/yandex-taxi-testsuite/
+
+@fn testsuite.databases.pgsql.pytest_plugin.pgsql()
+@brief Dictionary of PostgreSQL database wrappers for the test
+@see https://yandex.github.io/yandex-taxi-testsuite/postgresql/
+@ingroup userver_testsuite_fixtures
+
+@snippet samples/postgres_service/tests/test_postgres.py Functional test
+
+@fn testsuite.databases.mongo.pytest_plugin.mongodb()
+@brief MongoDB collections wrapper for the test
+@see https://yandex.github.io/yandex-taxi-testsuite/mongo/
+@ingroup userver_testsuite_fixtures
+
+@snippet samples/mongo_service/testsuite/test_mongo.py Functional test
+
+@fn testsuite.databases.redis.pytest_plugin.redis_store()
+@brief Redis client connected to the test Redis instance
+@see https://yandex.github.io/yandex-taxi-testsuite/redis/
+@ingroup userver_testsuite_fixtures
+
+@snippet samples/redis_service/testsuite/test_redis.py Functional test
+
+@fn testsuite.mockserver.pytest_plugin.mockserver()
+@brief HTTP mockserver fixture
+@see https://yandex.github.io/yandex-taxi-testsuite/mockserver/
+@ingroup userver_testsuite_fixtures
+
+@snippet samples/http_caching/tests/conftest.py mockserver
+
+@fn testsuite.plugins.mocked_time.mocked_time()
+@brief Controls mocked time in tests
+@see https://yandex.github.io/yandex-taxi-testsuite/other_plugins/#mocked-time
+@ingroup userver_testsuite_fixtures
+
+@snippet samples/testsuite-support/tests/test_mocked_time.py mocked_time
+
+@fn testsuite.plugins.testpoint.testpoint()
+@brief Registers testpoint handlers
+@see https://yandex.github.io/yandex-taxi-testsuite/testpoint/
+@ingroup userver_testsuite_fixtures
+
+@snippet samples/testsuite-support/tests/test_testpoint.py Testpoint - fixture
+
+@fn testsuite.plugins.common.load()
+@brief Loads a text file from the test data directory
+@see https://yandex.github.io/yandex-taxi-testsuite/staticfiles/#load
+@ingroup userver_testsuite_fixtures
+
+@snippet samples/s3api/testsuite/test_s3.py s3 mark
+
+@fn testsuite.plugins.common.load_binary()
+@brief Loads a binary file from the test data directory
+@see https://yandex.github.io/yandex-taxi-testsuite/staticfiles/#load-binary
+@ingroup userver_testsuite_fixtures
+
+@snippet samples/multipart_service/tests/test_multipart.py Functional test
+*/
