@@ -1,5 +1,7 @@
 #include <userver/storages/mongo/operations.hpp>
 
+#include <string_view>
+
 #include <mongoc/mongoc.h>
 
 #include <userver/formats/bson/bson_builder.hpp>
@@ -141,16 +143,6 @@ void AppendBatchSize(formats::bson::impl::BsonBuilder& builder, options::BatchSi
     AppendUint64Option(builder, kOptionName, batch_size.Value());
 }
 
-void AppendHint(formats::bson::impl::BsonBuilder& builder, const options::Hint& hint) {
-    static constexpr utils::StringLiteral kOptionName = "hint";
-    builder.Append(kOptionName, hint.Value());
-}
-
-void AppendArrayFilters(formats::bson::impl::BsonBuilder& builder, const options::ArrayFilters& filters) {
-    static constexpr utils::StringLiteral kOptionName = "arrayFilters";
-    builder.Append(kOptionName, filters.Value());
-}
-
 void EnableFlag(const impl::cdriver::FindAndModifyOptsPtr& fam_options, mongoc_find_and_modify_flags_t new_flag) {
     UASSERT(!!fam_options);
     const auto old_flags = mongoc_find_and_modify_opts_get_flags(fam_options.get());
@@ -161,6 +153,46 @@ void EnableFlag(const impl::cdriver::FindAndModifyOptsPtr& fam_options, mongoc_f
     {
         throw MongoException("Cannot set FAM flag ") << static_cast<std::int32_t>(new_flag);
     }
+}
+
+ATTRIBUTE_NO_SANITIZE_UNDEFINED
+void AppendToFamOptions(
+    const impl::cdriver::FindAndModifyOptsPtr& fam_options,
+    formats::bson::impl::BsonBuilder& builder,
+    std::string_view option_description
+) {
+    UASSERT(!!fam_options);
+    const auto option_bson = builder.Extract();
+    const bson_t* native_option_bson_ptr = option_bson.get();
+    if (!mongoc_find_and_modify_opts_append(fam_options.get(), native_option_bson_ptr)) {
+        throw MongoException("Cannot set ") << option_description;
+    }
+}
+
+void SetFamSort(const impl::cdriver::FindAndModifyOptsPtr& fam_options, const options::Sort& sort) {
+    UASSERT(!!fam_options);
+    if (!mongoc_find_and_modify_opts_set_sort(fam_options.get(), sort.GetSortBson())) {
+        throw MongoException("Cannot set sort");
+    }
+}
+
+void SetFamProjection(const impl::cdriver::FindAndModifyOptsPtr& fam_options, const options::Projection& projection) {
+    UASSERT(!!fam_options);
+    if (!mongoc_find_and_modify_opts_set_fields(fam_options.get(), projection.GetProjectionBson())) {
+        throw MongoException("Cannot set projection");
+    }
+}
+
+/// @tparam WriteConcernOption either options::WriteConcern::Level or options::WriteConcern
+template <typename WriteConcernOption>
+void SetFamWriteConcern(
+    const impl::cdriver::FindAndModifyOptsPtr& fam_options,
+    const WriteConcernOption& write_concern
+) {
+    static constexpr std::string_view kOptionDescription = "write concern";
+    formats::bson::impl::BsonBuilder wc_builder;
+    AppendWriteConcern(wc_builder, write_concern);
+    AppendToFamOptions(fam_options, wc_builder, kOptionDescription);
 }
 
 }  // namespace
@@ -191,7 +223,7 @@ void Count::SetOption(const options::MaxServerTime& max_server_time) {
     AppendMaxServerTime(impl_->max_server_time, max_server_time);
 }
 
-void Count::SetOption(const options::Hint& hint) { AppendHint(impl::EnsureBuilder(impl_->options), hint); }
+void Count::SetOption(const options::Hint& hint) { impl::AppendHint(impl::EnsureBuilder(impl_->options), hint); }
 
 CountApprox::CountApprox() = default;
 CountApprox::~CountApprox() = default;
@@ -267,7 +299,7 @@ void Find::SetOption(const options::Sort& sort) {
     impl::EnsureBuilder(impl_->options).Append(kOptionName, sort_bson);
 }
 
-void Find::SetOption(const options::Hint& hint) { AppendHint(impl::EnsureBuilder(impl_->options), hint); }
+void Find::SetOption(const options::Hint& hint) { impl::AppendHint(impl::EnsureBuilder(impl_->options), hint); }
 
 void Find::SetOption(options::AllowPartialResults) {
     static constexpr utils::StringLiteral kOptionName = "allowPartialResults";
@@ -413,10 +445,10 @@ void Update::SetOption(const options::WriteConcern& write_concern) {
 void Update::SetOption(options::SuppressServerExceptions) { impl_->should_throw = false; }
 
 void Update::SetOption(const options::ArrayFilters& filters) {
-    AppendArrayFilters(impl::EnsureBuilder(impl_->options), filters);
+    impl::AppendArrayFilters(impl::EnsureBuilder(impl_->options), filters);
 }
 
-void Update::SetOption(const options::Hint& hint) { AppendHint(impl::EnsureBuilder(impl_->options), hint); }
+void Update::SetOption(const options::Hint& hint) { impl::AppendHint(impl::EnsureBuilder(impl_->options), hint); }
 
 void Update::SetOption(const options::MaxServerTime& max_server_time) {
     AppendMaxServerTime(impl_->max_server_time, max_server_time);
@@ -443,7 +475,7 @@ void Delete::SetOption(const options::WriteConcern& write_concern) {
 
 void Delete::SetOption(options::SuppressServerExceptions) { impl_->should_throw = false; }
 
-void Delete::SetOption(const options::Hint& hint) { AppendHint(impl::EnsureBuilder(impl_->options), hint); }
+void Delete::SetOption(const options::Hint& hint) { impl::AppendHint(impl::EnsureBuilder(impl_->options), hint); }
 
 void Delete::SetOption(const options::MaxServerTime& max_server_time) {
     AppendMaxServerTime(impl_->max_server_time, max_server_time);
@@ -475,55 +507,25 @@ void FindAndModify::SetOption(options::Upsert) { EnableFlag(impl_->options, MONG
 
 void FindAndModify::SetOption(options::RetryDuplicateKey) { impl_->should_retry_dupkey = true; }
 
-void FindAndModify::SetOption(const options::Sort& sort) {
-    if (!mongoc_find_and_modify_opts_set_sort(impl_->options.get(), sort.GetSortBson())) {
-        throw MongoException("Cannot set sort");
-    }
-}
+void FindAndModify::SetOption(const options::Sort& sort) { SetFamSort(impl_->options, sort); }
 
-void FindAndModify::SetOption(options::Projection projection) {
-    if (!mongoc_find_and_modify_opts_set_fields(impl_->options.get(), projection.GetProjectionBson())) {
-        throw MongoException("Cannot set projection");
-    }
-}
+void FindAndModify::SetOption(options::Projection projection) { SetFamProjection(impl_->options, projection); }
 
-ATTRIBUTE_NO_SANITIZE_UNDEFINED
-void FindAndModify::SetOption(options::WriteConcern::Level level) {
-    formats::bson::impl::BsonBuilder wc_builder;
-    AppendWriteConcern(wc_builder, level);
-    const auto wc_bson = wc_builder.Extract();
-    const bson_t* native_wc_bson_ptr = wc_bson.get();
-    if (!mongoc_find_and_modify_opts_append(impl_->options.get(), native_wc_bson_ptr)) {
-        throw MongoException("Cannot set write concern");
-    }
-}
+void FindAndModify::SetOption(options::WriteConcern::Level level) { SetFamWriteConcern(impl_->options, level); }
 
-ATTRIBUTE_NO_SANITIZE_UNDEFINED
 void FindAndModify::SetOption(const options::WriteConcern& write_concern) {
-    formats::bson::impl::BsonBuilder wc_builder;
-    AppendWriteConcern(wc_builder, write_concern);
-    const auto wc_bson = wc_builder.Extract();
-    const bson_t* native_wc_bson_ptr = wc_bson.get();
-    if (!mongoc_find_and_modify_opts_append(impl_->options.get(), native_wc_bson_ptr)) {
-        throw MongoException("Cannot set write concern");
-    }
+    SetFamWriteConcern(impl_->options, write_concern);
 }
 
 void FindAndModify::SetOption(const options::MaxServerTime& max_server_time) {
     AppendMaxServerTime(impl_->max_server_time, max_server_time);
 }
 
-ATTRIBUTE_NO_SANITIZE_UNDEFINED
 void FindAndModify::SetOption(const options::ArrayFilters& filters) {
+    static constexpr std::string_view kOptionDescription = "arrayFilters";
     formats::bson::impl::BsonBuilder array_filters_builder;
-    AppendArrayFilters(array_filters_builder, filters);
-
-    const auto af_bson = array_filters_builder.Extract();
-    const bson_t* native_af_bson_ptr = af_bson.get();
-
-    if (!mongoc_find_and_modify_opts_append(impl_->options.get(), native_af_bson_ptr)) {
-        throw MongoException("Cannot set arrayFilters");
-    }
+    impl::AppendArrayFilters(array_filters_builder, filters);
+    AppendToFamOptions(impl_->options, array_filters_builder, kOptionDescription);
 }
 
 FindAndRemove::FindAndRemove(formats::bson::Document query)
@@ -542,38 +544,14 @@ FindAndRemove::~FindAndRemove() = default;
 FindAndRemove::FindAndRemove(FindAndRemove&&) noexcept = default;
 FindAndRemove& FindAndRemove::operator=(FindAndRemove&&) noexcept = default;
 
-void FindAndRemove::SetOption(const options::Sort& sort) {
-    if (!mongoc_find_and_modify_opts_set_sort(impl_->options.get(), sort.GetSortBson())) {
-        throw MongoException("Cannot set sort");
-    }
-}
+void FindAndRemove::SetOption(const options::Sort& sort) { SetFamSort(impl_->options, sort); }
 
-void FindAndRemove::SetOption(options::Projection projection) {
-    if (!mongoc_find_and_modify_opts_set_fields(impl_->options.get(), projection.GetProjectionBson())) {
-        throw MongoException("Cannot set projection");
-    }
-}
+void FindAndRemove::SetOption(options::Projection projection) { SetFamProjection(impl_->options, projection); }
 
-ATTRIBUTE_NO_SANITIZE_UNDEFINED
-void FindAndRemove::SetOption(options::WriteConcern::Level level) {
-    formats::bson::impl::BsonBuilder wc_builder;
-    AppendWriteConcern(wc_builder, level);
-    const auto wc_bson = wc_builder.Extract();
-    const bson_t* native_wc_bson_ptr = wc_bson.get();
-    if (!mongoc_find_and_modify_opts_append(impl_->options.get(), native_wc_bson_ptr)) {
-        throw MongoException("Cannot set write concern");
-    }
-}
+void FindAndRemove::SetOption(options::WriteConcern::Level level) { SetFamWriteConcern(impl_->options, level); }
 
-ATTRIBUTE_NO_SANITIZE_UNDEFINED
 void FindAndRemove::SetOption(const options::WriteConcern& write_concern) {
-    formats::bson::impl::BsonBuilder wc_builder;
-    AppendWriteConcern(wc_builder, write_concern);
-    const auto wc_bson = wc_builder.Extract();
-    const bson_t* native_wc_bson_ptr = wc_bson.get();
-    if (!mongoc_find_and_modify_opts_append(impl_->options.get(), native_wc_bson_ptr)) {
-        throw MongoException("Cannot set write concern");
-    }
+    SetFamWriteConcern(impl_->options, write_concern);
 }
 
 void FindAndRemove::SetOption(const options::MaxServerTime& max_server_time) {
@@ -614,7 +592,7 @@ void Aggregate::SetOption(options::WriteConcern::Level level) {
     AppendWriteConcern(impl::EnsureBuilder(impl_->options), level);
 }
 
-void Aggregate::SetOption(const options::Hint& hint) { AppendHint(impl::EnsureBuilder(impl_->options), hint); }
+void Aggregate::SetOption(const options::Hint& hint) { impl::AppendHint(impl::EnsureBuilder(impl_->options), hint); }
 
 void Aggregate::SetOption(const options::Comment& comment) {
     AppendComment(impl::EnsureBuilder(impl_->options), impl_->has_comment_option, comment);
