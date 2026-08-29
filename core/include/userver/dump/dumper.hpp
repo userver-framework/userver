@@ -13,7 +13,8 @@
 #include <userver/dump/operations.hpp>
 #include <userver/dynamic_config/fwd.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/box.hpp>
+#include <userver/utils/resource_scopes_fwd.hpp>
 #include <userver/yaml_config/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -145,8 +146,7 @@ public:
     /// On the other hand, it allows you to exactly control the dump expiration.
     void OnUpdateCompleted(TimePoint update_time, UpdateType update_type);
 
-    /// @brief Cancel and wait for the task running background writes. Also
-    /// disables operations via testsuite dump control.
+    /// @brief Cancel and wait for the task running background writes.
     ///
     /// CancelWriteTaskAndWait is automatically called in the destructor. This
     /// method must be called explicitly if the `DumpableEntity` may start its
@@ -163,7 +163,7 @@ private:
     Dumper(const Config& initial_config, const components::ComponentContext& context, DumpableEntity& dumpable);
 
     class Impl;
-    utils::FastPimpl<Impl, 1120, 16> impl_;
+    utils::Box<utils::WithResourceScopes<Impl>> impl_;
 };
 
 }  // namespace dump

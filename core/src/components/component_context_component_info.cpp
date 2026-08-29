@@ -43,12 +43,7 @@ void ComponentInfo::SetComponent(std::unique_ptr<RawComponentBase>&& component) 
     bool call_on_loading_cancelled = false;
     {
         // Calling user callback under no lock
-        try {
-            AfterConstruction();
-        } catch (...) {
-            BeforeDestruction();
-            throw;
-        }
+        AfterConstruction();
 
         const std::lock_guard lock{mutex_};
         component_ = std::move(component);

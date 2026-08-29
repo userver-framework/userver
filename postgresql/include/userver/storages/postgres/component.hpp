@@ -6,7 +6,6 @@
 #include <chrono>
 
 #include <userver/components/component_base.hpp>
-#include <userver/concurrent/async_event_source.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/engine/mutex.hpp>
 #include <userver/storages/postgres/database.hpp>
@@ -162,9 +161,6 @@ private:
     storages::postgres::ClusterSettings initial_settings_;
     storages::postgres::DatabasePtr database_;
 
-    // Subscriptions must be the last fields, because the fields above are used
-    // from callbacks.
-    concurrent::AsyncEventSubscriberScope secdist_subscription_;
     dynamic_config::Source config_source_;
 };
 

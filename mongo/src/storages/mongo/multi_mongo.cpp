@@ -80,6 +80,7 @@ bool MultiMongo::PoolSet::RemovePool(const std::string& dbalias) {
 void MultiMongo::PoolSet::Activate() { target_->pool_map_.Assign(*pool_map_ptr_); }
 
 MultiMongo::MultiMongo(
+    utils::ResourceScopeStorage& scopes,
     std::string name,
     storages::secdist::Secdist& secdist,
     storages::mongo::PoolConfig pool_config,
@@ -92,8 +93,8 @@ MultiMongo::MultiMongo(
       pool_config_(std::move(pool_config)),
       dns_resolver_(dns_resolver)
 {
-    config_subscriber_ = config_source_.UpdateAndListen(this, "multi_mongo", &MultiMongo::OnConfigUpdate);
-    secdist_subscriber_ = secdist.UpdateAndListen(this, "multi_mongo", &MultiMongo::OnSecdistUpdate);
+    config_source_.UpdateAndListen(scopes, this, "multi_mongo", &MultiMongo::OnConfigUpdate);
+    secdist.UpdateAndListen(scopes, this, "multi_mongo", &MultiMongo::OnSecdistUpdate);
 }
 
 storages::mongo::PoolPtr MultiMongo::GetPool(const std::string& dbalias) const {

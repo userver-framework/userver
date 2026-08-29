@@ -344,13 +344,14 @@ void CreateGlobalInitializer() {
 }  // namespace
 
 CDriverPoolImpl::CDriverPoolImpl(
+    utils::ResourceScopeStorage& scopes,
     std::string id,
     const std::string& uri_string,
     const PoolConfig& config,
     clients::dns::Resolver* dns_resolver,
     dynamic_config::Source config_source
 )
-    : PoolImpl(std::move(id), config, config_source),
+    : PoolImpl(scopes, std::move(id), config, config_source),
       app_name_(config.app_name),
       init_data_{dns_resolver, {}, {}},
       max_size_(config.pool_settings.max_size),
@@ -399,13 +400,9 @@ CDriverPoolImpl::CDriverPoolImpl(
         .Start(kMaintenanceTaskName, {config.maintenance_period, {utils::PeriodicTask::Flags::kStrong}}, [this] {
             DoMaintenance();
         });
-
-    Start();  // Must be the last line in the constructor
 }
 
 CDriverPoolImpl::~CDriverPoolImpl() {
-    Stop();  // Must be the first line in the destructor
-
     const tracing::Span span("mongo_destroy");
     maintenance_task_.Stop();
 }

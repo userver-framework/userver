@@ -4,11 +4,14 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
+#include <gmock/gmock.h>
 #include <boost/filesystem/operations.hpp>
 
 #include <userver/cache/cache_config.hpp>
 #include <userver/cache/cache_update_trait.hpp>
+#include <userver/cache/caching_component_base.hpp>
 #include <userver/components/component_base.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/dump/common.hpp>
@@ -21,6 +24,7 @@
 #include <userver/yaml_config/yaml_config.hpp>
 
 #include <userver/components/component_list.hpp>
+#include <userver/components/minimal_component_list.hpp>
 #include <userver/components/run.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/logging/component.hpp>
@@ -467,6 +471,105 @@ components::ComponentList MakeComponentList() {
 
 TEST_F(ComponentList, CacheControlConcurrentInvalidation) {
     components::RunOnce(components::InMemoryConfig{std::string{kStaticConfigBase}}, MakeComponentList());
+}
+
+bool record_testsuite_resets = false;
+std::vector<std::string> testsuite_reset_order;
+
+const auto kSequentialResetConfig = tests::MergeYaml(tests::kMinimalStaticConfig, R"(
+components_manager:
+    components:
+        testsuite-support:
+            cache-update-execution: sequential
+        producer-cache:
+            update-types: only-full
+            update-interval: 1h
+        consumer-cache:
+            update-types: only-full
+            update-interval: 1h
+        reset-driver: {}
+)");
+
+class ProducerCache final : public components::CachingComponentBase<int> {
+public:
+    static constexpr std::string_view kName = "producer-cache";
+
+    ProducerCache(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : CachingComponentBase(config, context)
+    {}
+
+private:
+    void Update(
+        cache::UpdateType /*type*/,
+        const std::chrono::system_clock::time_point& /*last_update*/,
+        const std::chrono::system_clock::time_point& /*now*/,
+        cache::UpdateStatisticsScope& stats_scope
+    ) override {
+        if (record_testsuite_resets) {
+            testsuite_reset_order.emplace_back(kName);
+        }
+        Emplace(1);
+        stats_scope.Finish(1);
+    }
+};
+
+class ConsumerCache final : public components::CachingComponentBase<int> {
+public:
+    static constexpr std::string_view kName = "consumer-cache";
+
+    ConsumerCache(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : CachingComponentBase(config, context)
+    {
+        context.FindComponent<ProducerCache>();
+    }
+
+private:
+    void Update(
+        cache::UpdateType /*type*/,
+        const std::chrono::system_clock::time_point& /*last_update*/,
+        const std::chrono::system_clock::time_point& /*now*/,
+        cache::UpdateStatisticsScope& stats_scope
+    ) override {
+        if (record_testsuite_resets) {
+            testsuite_reset_order.emplace_back(kName);
+        }
+        Emplace(1);
+        stats_scope.Finish(1);
+    }
+};
+
+class ResetDriver final : public components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "reset-driver";
+
+    ResetDriver(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : ComponentBase(config, context),
+          cache_control_(testsuite::FindCacheControl(context))
+    {}
+
+    void OnAllComponentsLoaded() override {
+        record_testsuite_resets = true;
+        cache_control_.ResetAllCaches(cache::UpdateType::kFull, {}, {});
+    }
+
+private:
+    testsuite::CacheControl& cache_control_;
+};
+
+TEST_F(ComponentList, SequentialResetUpdatesDependencyBeforeDependent) {
+    record_testsuite_resets = false;
+    testsuite_reset_order = {};
+
+    components::RunOnce(
+        components::InMemoryConfig{kSequentialResetConfig},
+        components::MinimalComponentList()
+            .Append<components::TestsuiteSupport>()
+            .Append<ProducerCache>()
+            .Append<ConsumerCache>()
+            .Append<ResetDriver>()
+    );
+
+    EXPECT_THAT(testsuite_reset_order, ::testing::ElementsAre("producer-cache", "consumer-cache"));
 }
 
 }  // namespace

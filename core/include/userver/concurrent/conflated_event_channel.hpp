@@ -37,6 +37,19 @@ public:
 
     /// Subscribes to updates using a member function. Also immediately invokes
     /// the function with the current config snapshot.
+    ///
+    /// Further updates are delivered after @ref utils::ResourceScopeStorage::AfterConstruction, including those updates
+    /// that arrived before it. Unsubscribe runs in @ref utils::ResourceScopeStorage::BeforeDestruction.
+    ///
+    /// @param scopes storage that owns the subscription lifetime. In a component constructor pass `context.Scopes()`
+    /// or @ref components::GetResourceScopes.
+    template <typename Class>
+    void UpdateAndListen(utils::ResourceScopeStorage& scopes, Class* obj, std::string_view name, void (Class::*func)());
+
+    /// @overload
+    /// @deprecated Use the overload that takes @ref utils::ResourceScopeStorage.
+    ///
+    /// Store the returned scope as a member and call `Unsubscribe` explicitly.
     template <typename Class>
     concurrent::AsyncEventSubscriberScope UpdateAndListen(Class* obj, std::string_view name, void (Class::*func)());
 
@@ -55,6 +68,16 @@ private:
 template <typename... Args>
 void ConflatedEventChannel::AddChannel(concurrent::AsyncEventSource<Args...>& channel) {
     subscriptions_.push_back(channel.AddListener(this, Name(), &ConflatedEventChannel::OnChannelEvent<Args...>));
+}
+
+template <typename Class>
+void ConflatedEventChannel::UpdateAndListen(
+    utils::ResourceScopeStorage& scopes,
+    Class* obj,
+    std::string_view name,
+    void (Class::*func)()
+) {
+    DoUpdateAndListenScoped(scopes, obj, name, func, [this, obj, func] { (obj->*func)(); });
 }
 
 template <typename Class>

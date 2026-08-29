@@ -99,6 +99,50 @@ TEST_F(ResourceScopeStorage, HappyPathOrder)
     /// [ResourceScopeStorage - HappyPathOrder]
 }
 
+TEST_F(ResourceScopeStorage, DependencyAfterConstructionBeforeDependentCtor)
+{
+    static std::vector<int> trace;
+
+    // Reset static variables for --gtest_repeat.
+    trace = {};
+
+    class Dependency final : public components::ComponentBase {
+    public:
+        Dependency(const components::ComponentConfig& config, const components::ComponentContext& context)
+            : components::ComponentBase(config, context)
+        {
+            trace.push_back(0);
+            context.Scopes().Register([] {
+                trace.push_back(1);
+                return utils::FastScopeGuard([]() noexcept { trace.push_back(4); });
+            });
+        }
+    };
+
+    class Dependent final : public components::ComponentBase {
+    public:
+        Dependent(const components::ComponentConfig& config, const components::ComponentContext& context)
+            : components::ComponentBase(config, context)
+        {
+            context.FindComponent<Dependency>("dependency");
+            trace.push_back(2);
+        }
+
+        ~Dependent() override { trace.push_back(3); }
+    };
+
+    auto component_list =
+        components::MinimalComponentList().Append<Dependency>("dependency").Append<Dependent>("component");
+    components::RunOnce(
+        components::InMemoryConfig{
+            tests::MergeYaml(tests::MergeYaml(tests::kMinimalStaticConfig, kConfig), kConfigWithDependency)
+        },
+        component_list
+    );
+
+    EXPECT_THAT(trace, ::testing::ElementsAre(0, 1, 2, 3, 4));
+}
+
 TEST_F(ResourceScopeStorage, CtrThrow)
 {
     static std::vector<int> trace;
@@ -342,6 +386,25 @@ TEST(ResourceScopeStorageUnit, PriorityOnUnusedFactories)
 
     scopes.BeforeDestruction();
     EXPECT_THAT(before, ::testing::ElementsAre(1, -1));
+}
+
+TEST(ResourceScopeStorageUnit, AfterConstructionThrowRunsBeforeDestruction)
+{
+    utils::ResourceScopeStorage scopes;
+    std::vector<int> trace;
+
+    scopes.Register([&trace] {
+        trace.push_back(1);
+        return utils::FastScopeGuard([&trace]() noexcept { trace.push_back(2); });
+    });
+    scopes.Register([&trace] {
+        trace.push_back(3);
+        throw std::runtime_error("1");
+        return utils::FastScopeGuard([&trace]() noexcept { trace.push_back(4); });
+    });
+
+    UEXPECT_THROW_MSG(scopes.AfterConstruction(), std::runtime_error, "1");
+    EXPECT_THAT(trace, ::testing::ElementsAre(1, 3, 2));
 }
 
 USERVER_NAMESPACE_END

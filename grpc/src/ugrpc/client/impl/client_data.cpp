@@ -9,7 +9,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
 
-ClientData::~ClientData() { config_subscription_.Unsubscribe(); }
+ClientData::~ClientData() {
+    // BeforeDestruction() call must be the first line of the destructor.
+    config_scopes_.BeforeDestruction();
+}
 
 grpc::CompletionQueue& ClientData::NextQueue() const { return internals_.completion_queues.NextQueue(); }
 

@@ -11,12 +11,9 @@
 #include <userver/concurrent/async_event_source.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/resource_scopes_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-namespace utils {
-class ResourceScopeStorage;
-}
 
 namespace dynamic_config {
 

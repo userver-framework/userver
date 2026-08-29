@@ -4,7 +4,7 @@ import logging
 
 SELECT_URL = '/chaos/postgres?type=select'
 MAX_POOL_SIZE = 1  # should be in sync with ./static_config.yaml
-DEAD_CONNECTION_RECOVERY_DELAY = 0.1
+DEAD_CONNECTION_RECOVERY_DELAY = 0.1  # pool connecting_interval_ms is 0 in static_config.yaml
 
 
 logger = logging.getLogger(__name__)

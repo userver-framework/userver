@@ -1383,6 +1383,7 @@
   "core/include/userver/utils/log.hpp":"taxi/uservices/userver/core/include/userver/utils/log.hpp",
   "core/include/userver/utils/periodic_task.hpp":"taxi/uservices/userver/core/include/userver/utils/periodic_task.hpp",
   "core/include/userver/utils/resource_scopes.hpp":"taxi/uservices/userver/core/include/userver/utils/resource_scopes.hpp",
+  "core/include/userver/utils/resource_scopes_fwd.hpp":"taxi/uservices/userver/core/include/userver/utils/resource_scopes_fwd.hpp",
   "core/include/userver/utils/retry_budget.hpp":"taxi/uservices/userver/core/include/userver/utils/retry_budget.hpp",
   "core/include/userver/utils/statistics/busy.hpp":"taxi/uservices/userver/core/include/userver/utils/statistics/busy.hpp",
   "core/include/userver/utils/statistics/by_label_storage.hpp":"taxi/uservices/userver/core/include/userver/utils/statistics/by_label_storage.hpp",

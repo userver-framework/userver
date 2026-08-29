@@ -8,6 +8,7 @@
 #include <grpcpp/completion_queue.h>
 
 #include <userver/dynamic_config/snapshot.hpp>
+#include <userver/dynamic_config/source.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/testsuite/grpc_control.hpp>
 #include <userver/utils/assert.hpp>
@@ -23,6 +24,7 @@
 #include <userver/ugrpc/impl/async_service.hpp>
 #include <userver/ugrpc/impl/static_service_metadata.hpp>
 #include <userver/ugrpc/impl/statistics.hpp>
+#include <userver/utils/resource_scopes.hpp>
 
 #include <dynamic_config/variables/EGRESS_GRPC_PROXY_ENABLED.hpp>
 #include <dynamic_config/variables/EGRESS_NO_PROXY_TARGETS.hpp>
@@ -68,6 +70,9 @@ public:
             SubscribeOnConfigUpdate<
                 Service>(::dynamic_config::EGRESS_GRPC_PROXY_ENABLED, ::dynamic_config::EGRESS_NO_PROXY_TARGETS);
         }
+
+        // AfterConstruction() call must be the last line of the constructor.
+        config_scopes_.AfterConstruction();
     }
 
     template <typename Service>
@@ -76,6 +81,9 @@ public:
     {
         SubscribeOnConfigUpdate<
             Service>(::dynamic_config::EGRESS_GRPC_PROXY_ENABLED, ::dynamic_config::EGRESS_NO_PROXY_TARGETS);
+
+        // AfterConstruction() call must be the last line of the constructor.
+        config_scopes_.AfterConstruction();
     }
 
     ~ClientData();
@@ -158,9 +166,13 @@ private:
 
     template <typename Service, typename... Keys>
     void SubscribeOnConfigUpdate(const Keys&... keys) {
-        config_subscription_ =
-            internals_.config_source
-                .UpdateAndListen(this, internals_.client_name, &ClientData::OnConfigUpdate<Service>, keys...);
+        internals_.config_source.UpdateAndListen(
+            config_scopes_,
+            this,
+            internals_.client_name,
+            &ClientData::OnConfigUpdate<Service>,
+            keys...
+        );
     }
 
     template <typename Service>
@@ -207,6 +219,8 @@ private:
     ClientInternals internals_;
     std::optional<ugrpc::impl::StaticServiceMetadata> metadata_;
     ugrpc::impl::ServiceStatistics* service_statistics_{nullptr};
+    // Member instead of WithResourceScopes to simplify generated gRPC client types.
+    utils::ResourceScopeStorage config_scopes_;
 
     std::optional<compat::ChannelArgumentsBuilder> channel_arguments_builder_;
 
@@ -214,9 +228,6 @@ private:
 
     // RetryLimiter instances per method
     utils::FixedArray<std::unique_ptr<RetryLimiter>> method_retry_limiters_;
-
-    // These fields must be the last ones
-    concurrent::AsyncEventSubscriberScope config_subscription_;
 };
 
 }  // namespace ugrpc::client::impl

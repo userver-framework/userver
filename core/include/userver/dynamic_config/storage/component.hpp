@@ -14,6 +14,7 @@
 #include <userver/dynamic_config/source.hpp>
 #include <userver/dynamic_config/updates_sink/component.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/resource_scopes_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -122,13 +123,15 @@ public:
     NoblockSubscriber(NoblockSubscriber&&) = delete;
     NoblockSubscriber& operator=(NoblockSubscriber&&) = delete;
 
-    /// @brief Subscribes to dynamic-config updates with information about the
-    /// current and previous states.
+    /// @brief Subscribes to dynamic-config updates without waiting for the first update.
     ///
-    /// Subscribes to dynamic-config updates using a member function, named
-    /// `OnConfigUpdate` by convention. actual configs values are already loaded, also constructs @ref
-    /// dynamic_config::Diff object using `std::nullopt` and current config snapshot, then immediately invokes the
-    /// function with it (this invocation will be executed synchronously).
+    /// If a config snapshot is already loaded when the scope is entered, constructs
+    /// @ref dynamic_config::Diff from `std::nullopt` and the current snapshot and
+    /// invokes the listener. Otherwise only subscribes; the listener is first invoked
+    /// when a snapshot arrives.
+    ///
+    /// Further updates are delivered after @ref utils::ResourceScopeStorage::AfterConstruction.
+    /// Unsubscribe runs in @ref utils::ResourceScopeStorage::BeforeDestruction.
     ///
     /// @note Callbacks occur in full accordance with
     /// @ref components::DynamicConfigClientUpdater options.
@@ -136,27 +139,25 @@ public:
     /// @warning In debug mode the last notification for any subscriber will be
     /// called with `std::nullopt` and current config snapshot.
     ///
-    /// Example usage:
-    /// @snippet core/src/dynamic_config/config_test.cpp Custom subscription for dynamic config update
-    ///
+    /// @param scopes storage that owns the subscription lifetime. In a component constructor pass `context.Scopes()`
+    /// or @ref components::GetResourceScopes.
     /// @param obj the subscriber, which is the owner of the listener method, and
     /// is also used as the unique identifier of the subscription
     /// @param name the name of the subscriber, for diagnostic purposes
     /// @param func the listener method, named `OnConfigUpdate` by convention.
-    /// @returns a @ref concurrent::AsyncEventSubscriberScope controlling the
-    /// subscription, which should be stored as a member in the subscriber;
-    /// `Unsubscribe` should be called explicitly
     ///
     /// @see based on @ref concurrent::AsyncEventSource engine
     ///
     /// @see dynamic_config::Diff
     template <typename Class>
-    concurrent::AsyncEventSubscriberScope UpdateIfHasConfigAndListen(
+    void UpdateIfHasConfigAndListen(
+        utils::ResourceScopeStorage& scopes,
         Class* obj,
         std::string_view name,
         void (Class::*func)(const dynamic_config::Diff& diff)
     ) {
-        return DoUpdateIfHasConfigAndListen(
+        DoUpdateIfHasConfigAndListen(
+            scopes,
             concurrent::FunctionId(obj),
             name,
             [obj, func](const dynamic_config::Diff& diff) { (obj->*func)(diff); }
@@ -164,7 +165,8 @@ public:
     }
 
 private:
-    concurrent::AsyncEventSubscriberScope DoUpdateIfHasConfigAndListen(
+    void DoUpdateIfHasConfigAndListen(
+        utils::ResourceScopeStorage& scopes,
         concurrent::FunctionId id,
         std::string_view name,
         concurrent::AsyncEventSource<const dynamic_config::Diff&>::Function&& func

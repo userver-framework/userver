@@ -1,6 +1,7 @@
 #include <userver/utest/utest.hpp>
 
 #include <atomic>
+#include <utility>
 #include <vector>
 
 #include <gmock/gmock.h>
@@ -141,6 +142,18 @@ public:
     concurrent::AsyncEventSource<WeatherKind>& GetSource() { return channel_; }
 
     template <typename Class>
+    void UpdateAndListen(
+        utils::ResourceScopeStorage& scopes,
+        Class* obj,
+        std::string_view name,
+        void (Class::*func)(WeatherKind)
+    ) {
+        channel_.DoUpdateAndListenScoped(scopes, obj, name, func, [this, obj, func] { (obj->*func)(Get()); });
+    }
+
+    /// @overload
+    /// @deprecated Use the overload that takes @ref utils::ResourceScopeStorage.
+    template <typename Class>
     concurrent::AsyncEventSubscriberScope UpdateAndListen(
         Class* obj,
         std::string_view name,
@@ -163,11 +176,9 @@ enum class CoatKind { kJacket, kRaincoat };
 
 class CoatStorage final {
 public:
-    explicit CoatStorage(WeatherStorage& weather_storage) {
-        weather_subscriber_ = weather_storage.UpdateAndListen(this, "coats", &CoatStorage::OnWeatherUpdate);
+    explicit CoatStorage(utils::ResourceScopeStorage& scopes, WeatherStorage& weather_storage) {
+        weather_storage.UpdateAndListen(scopes, this, "coats", &CoatStorage::OnWeatherUpdate);
     }
-
-    ~CoatStorage() { weather_subscriber_.Unsubscribe(); }
 
     CoatKind Get() const { return value_.load(); }
 
@@ -177,15 +188,14 @@ private:
     static CoatKind ComputeCoat(WeatherKind weather);
 
     std::atomic<CoatKind> value_{};
-    concurrent::AsyncEventSubscriberScope weather_subscriber_;
 };
 
 UTEST(AsyncEventChannel, UpdateAndListenSample) {
     WeatherStorage weather_storage(WeatherKind::kSunny);
-    const CoatStorage coat_storage(weather_storage);
-    EXPECT_EQ(coat_storage.Get(), CoatKind::kJacket);
+    const utils::WithResourceScopes<CoatStorage> coat_storage(std::in_place, weather_storage);
+    EXPECT_EQ(coat_storage->Get(), CoatKind::kJacket);
     weather_storage.Set(WeatherKind::kRainy);
-    EXPECT_EQ(coat_storage.Get(), CoatKind::kRaincoat);
+    EXPECT_EQ(coat_storage->Get(), CoatKind::kRaincoat);
 }
 /// [AsyncEventChannel sample]
 

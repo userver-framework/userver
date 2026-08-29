@@ -11,6 +11,7 @@
 #include <userver/storages/secdist/exceptions.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/periodic_task.hpp>
+#include <userver/utils/resource_scopes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -81,6 +82,13 @@ public:
         EventSource::Function&& func
     );
 
+    void DoUpdateAndListen(
+        utils::ResourceScopeStorage& scopes,
+        concurrent::FunctionId id,
+        std::string_view name,
+        EventSource::Function&& func
+    );
+
 private:
     void StartUpdateTask();
 
@@ -137,6 +145,19 @@ concurrent::AsyncEventSubscriberScope Secdist::Impl::DoUpdateAndListen(
     });
 }
 
+void Secdist::Impl::DoUpdateAndListen(
+    utils::ResourceScopeStorage& scopes,
+    concurrent::FunctionId id,
+    std::string_view name,
+    EventSource::Function&& func
+) {
+    auto updater = [this, func_copy = func] {
+        const auto snapshot = GetSnapshot();
+        func_copy(*snapshot);
+    };
+    channel_.DoUpdateAndListenScoped(scopes, id, name, std::move(func), std::move(updater));
+}
+
 void Secdist::Impl::StartUpdateTask() {
     LOG_INFO() << "Start task for secdist periodic updates";
     const utils::PeriodicTask::Settings periodic_settings{settings_.update_period};
@@ -169,6 +190,15 @@ concurrent::AsyncEventSubscriberScope Secdist::DoUpdateAndListen(
     EventSource::Function&& func
 ) {
     return impl_->DoUpdateAndListen(id, name, std::move(func));
+}
+
+void Secdist::DoUpdateAndListen(
+    utils::ResourceScopeStorage& scopes,
+    concurrent::FunctionId id,
+    std::string_view name,
+    EventSource::Function&& func
+) {
+    impl_->DoUpdateAndListen(scopes, id, name, std::move(func));
 }
 
 }  // namespace storages::secdist

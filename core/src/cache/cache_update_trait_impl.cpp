@@ -16,6 +16,7 @@
 #include <userver/utils/atomic.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/rand.hpp>
+#include <userver/utils/resource_scopes.hpp>
 
 #include <cache/cache_dependencies.hpp>
 #include <dump/dump_locator.hpp>
@@ -130,15 +131,22 @@ CacheUpdateTrait::Impl::Impl(CacheDependencies&& dependencies, CacheUpdateTrait&
         );
     }
 
-    statistics_holder_ =
-        dependencies.statistics_storage.RegisterWriter("cache", [this](utils::statistics::Writer& writer) {
-            writer.ValueWithLabels(statistics_, {"cache_name", Name()});
-        });
+    utils::statistics::RegisterWriterScope(
+        dependencies.scopes,
+        dependencies.statistics_storage,
+        "cache",
+        [this](utils::statistics::Writer& writer) { writer.ValueWithLabels(statistics_, {"cache_name", Name()}); }
+    );
 
     if (dependencies.config.config_updates_enabled) {
         CheckNotNull(dependencies.config_source)
             ->UpdateAndListen(dependencies.scopes, this, "cache." + Name(), &Impl::OnConfigUpdate);
     }
+
+    // AfterConstruction follows component dependencies, so sequential testsuite
+    // reset updates this cache before caches that FindComponent it. See
+    // ComponentList.SequentialResetUpdatesDependencyBeforeDependent.
+    dependencies.scopes.Register([this] { return cache_control_.RegisterPeriodicCache(customized_trait_); });
 }
 
 CacheUpdateTrait::Impl::~Impl() {
@@ -162,18 +170,6 @@ void CacheUpdateTrait::Impl::StartPeriodicUpdates(utils::Flags<CacheUpdateTrait:
     if (is_running_.exchange(true)) {
         return;
     }
-
-    // CacheResetRegistration is created here to achieve that cache invalidators
-    // are registered in the order of cache component dependency.
-    // We exploit the fact that StartPeriodicUpdates is called at the end
-    // of all concrete cache component constructors.
-    //
-    // Registration is performed *before* the first update so that caches,
-    // which indirectly wait for the artifacts of this update, are always
-    // registered after this cache. This allows e.g. DynamicConfigClientUpdater
-    // to always be CacheControl-updated before the caches that use
-    // DynamicConfig::GetSource in their constructor.
-    cache_reset_registration_ = cache_control_.RegisterPeriodicCache(customized_trait_);
 
     try {
         const auto config = GetConfig();
@@ -255,9 +251,6 @@ void CacheUpdateTrait::Impl::StopPeriodicUpdates() {
 
     // All of the following cleanup operations are idempotent. Do not gate them on the previous is_running_ value:
     // StartPeriodicUpdates may have partially completed, so we need to clean up even if it failed.
-    cache_reset_registration_.Unregister();
-    statistics_holder_.Unregister();
-
     try {
         update_task_.Stop();
     } catch (const std::exception& ex) {

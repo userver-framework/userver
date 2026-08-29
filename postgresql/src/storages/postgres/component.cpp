@@ -201,13 +201,13 @@ Postgres::Postgres(const ComponentConfig& config, const ComponentContext& contex
     config_source_.UpdateAndListen(context.Scopes(), this, "postgres", &Postgres::OnConfigUpdate);
     if (!dbalias_.empty()) {
         auto& secdist = context.FindComponent<Secdist>();
-        secdist_subscription_ = secdist.GetStorage().UpdateAndListen(this, db_name_, &Postgres::OnSecdistUpdate);
+        secdist.GetStorage().UpdateAndListen(context.Scopes(), this, db_name_, &Postgres::OnSecdistUpdate);
     }
 
     LOG_DEBUG() << "Component ready";
 }
 
-Postgres::~Postgres() { secdist_subscription_.Unsubscribe(); }
+Postgres::~Postgres() = default;
 
 storages::postgres::ClusterPtr Postgres::GetCluster() const { return database_->GetCluster(); }
 

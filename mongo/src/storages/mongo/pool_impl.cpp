@@ -1,6 +1,8 @@
 #include <storages/mongo/pool_impl.hpp>
 
 #include <userver/dynamic_config/value.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
+#include <userver/utils/resource_scopes.hpp>
 
 #include <dynamic_config/variables/MONGO_CONGESTION_CONTROL_DATABASES_SETTINGS.hpp>
 #include <dynamic_config/variables/MONGO_CONGESTION_CONTROL_ENABLED.hpp>
@@ -11,7 +13,12 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::impl {
 
-PoolImpl::PoolImpl(std::string&& id, const PoolConfig& static_config, dynamic_config::Source config_source)
+PoolImpl::PoolImpl(
+    utils::ResourceScopeStorage& scopes,
+    std::string&& id,
+    const PoolConfig& static_config,
+    dynamic_config::Source config_source
+)
     : id_(std::move(id)),
       stats_verbosity_(static_config.stats_verbosity),
       config_source_(config_source),
@@ -29,16 +36,12 @@ PoolImpl::PoolImpl(std::string&& id, const PoolConfig& static_config, dynamic_co
               return congestion_control::v2::ConvertConfig(cfg);
           }
       )
-{}
-
-void PoolImpl::Start() {
-    config_subscriber_ = config_source_.UpdateAndListen(this, "mongo_pool", &PoolImpl::OnConfigUpdate);
-    cc_controller_.Start();
-}
-
-void PoolImpl::Stop() noexcept {
-    cc_controller_.Stop();
-    config_subscriber_.Unsubscribe();
+{
+    config_source_.UpdateAndListen(scopes, this, "mongo_pool", &PoolImpl::OnConfigUpdate);
+    scopes.Register([this] {
+        cc_controller_.Start();
+        return utils::FastScopeGuard([this]() noexcept { cc_controller_.Stop(); });
+    });
 }
 
 void PoolImpl::OnConfigUpdate(const dynamic_config::Snapshot& config) {

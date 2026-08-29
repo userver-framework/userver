@@ -97,6 +97,8 @@ public:
     // Writes pool statistics
     friend void DumpMetric(utils::statistics::Writer& writer, const Pool& pool);
 
+    friend std::shared_ptr<impl::PoolImpl> GetPoolImpl(const Pool& pool) { return pool.impl_; }
+
     // Sets new dynamic pool settings
     void SetPoolSettings(const PoolSettings& pool_settings);
 

@@ -84,6 +84,12 @@ using ScopePtr = std::unique_ptr<impl::ScopeBase>;
 /// The same storage is available from @ref components::ComponentContext::Scopes in
 /// components, or as a standalone helper in unit tests and @ref WithResourceScopes.
 ///
+/// @warning Do not store @ref ResourceScopeStorage as a field of the object that
+/// registers subscriptions on it. The storage would share that object's constructor
+/// and destructor, so @ref AfterConstruction cannot run after the object is complete
+/// and @ref BeforeDestruction cannot run before its members are destroyed. Wrap the
+/// object in @ref WithResourceScopes instead.
+///
 /// @snippet core/src/components/resource_scopes_test.cpp ResourceScopeStorage - HappyPathOrder
 class ResourceScopeStorage final {
 public:
@@ -125,13 +131,16 @@ public:
     /// @endcond
 
     /// @brief Call all registered functors.
+    ///
+    /// If a functor throws, already constructed resources are unregistered via
+    /// @ref BeforeDestruction and the exception is rethrown.
     void AfterConstruction();
 
     /// @brief Unregister all previously registered resources.
     ///
     /// Also drops factories that have not run @ref AfterConstruction yet,
     /// so captured RAII handles unregister immediately.
-    void BeforeDestruction();
+    void BeforeDestruction() noexcept;
 
 private:
     struct ScopeWithPriority {
@@ -140,7 +149,7 @@ private:
     };
 
     void DoRegister(impl::ScopePtr resource_scope, Priority priority);
-    static void SortByPriority(std::vector<ScopeWithPriority>& scopes);
+    static void SortByPriority(std::vector<ScopeWithPriority>& scopes) noexcept;
 
     std::vector<ScopeWithPriority> registered_scopes_;
     std::vector<impl::ScopePtr> initialized_scopes_;
@@ -150,6 +159,7 @@ private:
 /// @brief A wrapper that provides @ref utils::ResourceScopeStorage for the wrapped object.
 ///
 /// The wrapped object is passed `utils::ResourceScopeStorage&` as the first argument to the constructor.
+/// Prefer this over storing @ref ResourceScopeStorage as a field of the wrapped object itself.
 template <typename Wrapped>
 class WithResourceScopes final {
 public:

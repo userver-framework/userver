@@ -23,6 +23,7 @@
 #include <userver/utils/async.hpp>
 #include <userver/utils/atomic.hpp>
 #include <userver/utils/datetime.hpp>
+#include <userver/utils/resource_scopes.hpp>
 #include <userver/utils/statistics/storage.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 #include <userver/yaml_config/schema.hpp>
@@ -107,28 +108,28 @@ engine::Deadline GetCooldown(const DynamicConfig& config, engine::Deadline::Time
 
 }  // namespace
 
-class Dumper::Impl {
+class Dumper::Impl final : public testsuite::Dumper {
 public:
     Impl(
+        utils::ResourceScopeStorage& scopes,
         const Config& initial_config,
         std::unique_ptr<OperationsFactory> rw_factory,
         engine::TaskProcessor& fs_task_processor,
         dynamic_config::Source config_source,
         utils::statistics::Storage& statistics_storage,
         testsuite::DumpControl& dump_control,
-        DumpableEntity& dumpable,
-        Dumper& self
+        DumpableEntity& dumpable
     );
 
-    ~Impl();
+    ~Impl() override;
 
-    const std::string& Name() const;
+    const std::string& Name() const override;
 
     std::optional<TimePoint> ReadDump();
 
-    void WriteDumpSyncDebug();
+    void WriteDumpSyncDebug() override;
 
-    void ReadDumpDebug();
+    void ReadDumpDebug() override;
 
     void OnUpdateCompleted();
 
@@ -161,6 +162,7 @@ private:
     const std::string read_span_name_;
     rcu::Variable<DynamicConfig> dynamic_config_;
     engine::TaskProcessor& fs_task_processor_;
+    testsuite::DumpControl& dump_control_;
     Statistics statistics_;
     std::atomic<bool> tried_to_read_dump_{false};
 
@@ -174,46 +176,41 @@ private:
 
     // Must go after all the fields it uses.
     engine::TaskWithResult<void> periodic_task_;
-
-    utils::statistics::Entry statistics_holder_;
-    concurrent::AsyncEventSubscriberScope config_subscription_;
-    std::optional<testsuite::DumperRegistrationHolder> testsuite_registration_;
 };
 
 Dumper::Impl::Impl(
+    utils::ResourceScopeStorage& scopes,
     const Config& initial_config,
     std::unique_ptr<OperationsFactory> rw_factory,
     engine::TaskProcessor& fs_task_processor,
     dynamic_config::Source config_source,
     utils::statistics::Storage& statistics_storage,
     testsuite::DumpControl& dump_control,
-    DumpableEntity& dumpable,
-    Dumper& self
+    DumpableEntity& dumpable
 )
     : static_config_(initial_config),
       write_span_name_("write-dump/" + Name()),
       read_span_name_("read-dump/" + Name()),
       dynamic_config_(static_config_, ConfigPatch{}),
       fs_task_processor_(fs_task_processor),
+      dump_control_(dump_control),
       dump_data_(static_config_, std::move(rw_factory), dumpable),
-      update_data_(statistics_),
-      testsuite_registration_(std::in_place, dump_control, self)
+      update_data_(statistics_)
 {
-    statistics_holder_ =
-        statistics_storage.RegisterWriter(fmt::format("cache.dump"), [this](utils::statistics::Writer& writer) {
-            writer.ValueWithLabels(statistics_, {{"cache_name", Name()}});
-        });
-    config_subscription_ = config_source.UpdateAndListen(this, "dump." + Name(), &Impl::OnConfigUpdate);
-    if (dump_control.GetPeriodicsMode() == testsuite::DumpControl::PeriodicsMode::kEnabled) {
+    utils::statistics::RegisterWriterScope(
+        scopes,
+        statistics_storage,
+        fmt::format("cache.dump"),
+        [this](utils::statistics::Writer& writer) { writer.ValueWithLabels(statistics_, {{"cache_name", Name()}}); }
+    );
+    config_source.UpdateAndListen(scopes, this, "dump." + Name(), &Impl::OnConfigUpdate);
+    dump_control_.RegisterScope(scopes, *this);
+    if (dump_control_.GetPeriodicsMode() == testsuite::DumpControl::PeriodicsMode::kEnabled) {
         periodic_task_ = engine::CriticalAsyncNoTracing(fs_task_processor_, [this] { PeriodicWriteTask(); });
     }
 }
 
-Dumper::Impl::~Impl() {
-    CancelWriteTaskAndWait();
-    config_subscription_.Unsubscribe();
-    statistics_holder_.Unregister();
-}
+Dumper::Impl::~Impl() { CancelWriteTaskAndWait(); }
 
 const std::string& Dumper::Impl::Name() const { return static_config_.name; }
 
@@ -412,7 +409,6 @@ void Dumper::Impl::OnConfigUpdate(const dynamic_config::Snapshot& config) {
 }
 
 void Dumper::Impl::CancelWriteTaskAndWait() noexcept {
-    testsuite_registration_.reset();
     if (periodic_task_.IsValid()) {
         periodic_task_.SyncCancel();
     }
@@ -499,14 +495,14 @@ Dumper::Dumper(
     DumpableEntity& dumpable
 )
     : impl_(
+          std::in_place,
           initial_config,
           std::move(rw_factory),
           fs_task_processor,
           config_source,
           statistics_storage,
           dump_control,
-          dumpable,
-          *this
+          dumpable
       )
 {}
 
@@ -520,6 +516,7 @@ Dumper::Dumper(
 
 Dumper::Dumper(const Config& initial_config, const components::ComponentContext& context, DumpableEntity& dumpable)
     : impl_(
+          std::in_place,
           initial_config,
           CreateOperationsFactory(initial_config, context),
           initial_config.fs_task_processor
@@ -528,28 +525,27 @@ Dumper::Dumper(const Config& initial_config, const components::ComponentContext&
           context.FindComponent<components::DynamicConfig>().GetSource(),
           context.FindComponent<components::StatisticsStorage>().GetStorage(),
           context.FindComponent<components::TestsuiteSupport>().GetDumpControl(),
-          dumpable,
-          *this
+          dumpable
       )
 {}
 
 Dumper::~Dumper() = default;
 
-const std::string& Dumper::Name() const { return impl_->Name(); }
+const std::string& Dumper::Name() const { return (*impl_)->Name(); }
 
-std::optional<TimePoint> Dumper::ReadDump() { return impl_->ReadDump(); }
+std::optional<TimePoint> Dumper::ReadDump() { return (*impl_)->ReadDump(); }
 
-void Dumper::WriteDumpSyncDebug() { impl_->WriteDumpSyncDebug(); }
+void Dumper::WriteDumpSyncDebug() { (*impl_)->WriteDumpSyncDebug(); }
 
-void Dumper::ReadDumpDebug() { impl_->ReadDumpDebug(); }
+void Dumper::ReadDumpDebug() { (*impl_)->ReadDumpDebug(); }
 
-void Dumper::OnUpdateCompleted() { impl_->OnUpdateCompleted(); }
+void Dumper::OnUpdateCompleted() { (*impl_)->OnUpdateCompleted(); }
 
 void Dumper::OnUpdateCompleted(TimePoint update_time, UpdateType update_type) {
-    impl_->OnUpdateCompleted(update_time, update_type);
+    (*impl_)->OnUpdateCompleted(update_time, update_type);
 }
 
-void Dumper::CancelWriteTaskAndWait() { impl_->CancelWriteTaskAndWait(); }
+void Dumper::CancelWriteTaskAndWait() { (*impl_)->CancelWriteTaskAndWait(); }
 
 yaml_config::Schema Dumper::GetStaticConfigSchema() {
     return yaml_config::MergeSchemasFromResource<components::ComponentBase>("src/dump/dumper.yaml");

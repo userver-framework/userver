@@ -96,7 +96,7 @@ Redis::Redis(const ComponentConfig& config, const ComponentContext& component_co
     config_.UpdateAndListen(component_context.Scopes(), this, "redis", &Redis::OnConfigUpdate);
 
     auto& secdist = component_context.FindComponent<Secdist>();
-    secdist_subscription_ = secdist.GetStorage().UpdateAndListen(this, "redis", &Redis::OnSecdistUpdate);
+    secdist.GetStorage().UpdateAndListen(component_context.Scopes(), this, "redis", &Redis::OnSecdistUpdate);
 
     utils::statistics::RegisterWriterScope(
         component_context,

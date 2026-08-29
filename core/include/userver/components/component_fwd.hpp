@@ -7,12 +7,9 @@
 #include <string_view>
 
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/utils/resource_scopes_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-namespace utils {
-class ResourceScopeStorage;
-}
 
 namespace components {
 

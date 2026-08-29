@@ -7,7 +7,6 @@
 #include <mongoc/mongoc.h>
 
 #include <storages/mongo/cdriver/collection_impl.hpp>
-#include <storages/mongo/cdriver/pool_impl.hpp>
 #include <storages/mongo/features.hpp>
 #include <storages/mongo/util_mongotest.hpp>
 #include <userver/formats/bson.hpp>
@@ -137,14 +136,18 @@ UTEST(CollectionReadPreference, DefaultMaxReplicationLagIsApplied) {
     auto pool_config = MakeTestPoolConfig();
     pool_config.max_replication_lag = kPoolMaxReplicationLag;
 
-    auto pool_impl = std::make_shared<mongo::impl::cdriver::CDriverPoolImpl>(
+    mongo::Pool pool{
         "max-replication-lag-test",
         GetTestsuiteMongoUri(kTestDatabaseDefaultName),
         pool_config,
         &dns_resolver,
-        dynamic_config.GetSource()
-    );
-    const InspectableCollectionImpl collection_impl{pool_impl, kTestDatabaseDefaultName, "max_replication_lag"};
+        dynamic_config.GetSource(),
+    };
+    const InspectableCollectionImpl collection_impl{
+        GetPoolImpl(pool),
+        kTestDatabaseDefaultName,
+        "max_replication_lag",
+    };
 
     EXPECT_EQ(kPoolMaxReplicationLag.count(), collection_impl.GetEffectiveMaxStaleness(MONGOC_READ_SECONDARY));
 }

@@ -19,8 +19,7 @@ void ResourceScopeStorage::DoRegister(impl::ScopePtr resource_scope, Priority pr
     });
 }
 
-void ResourceScopeStorage::SortByPriority(std::vector<ScopeWithPriority>& scopes)
-{
+void ResourceScopeStorage::SortByPriority(std::vector<ScopeWithPriority>& scopes) noexcept {
     std::ranges::stable_sort(scopes, {}, &ScopeWithPriority::priority);
 }
 
@@ -29,17 +28,21 @@ void ResourceScopeStorage::AfterConstruction()
     scope_registration_finished_ = true;
     SortByPriority(registered_scopes_);
 
-    // A tweak to be sure in case of partial initialization only
-    // already initialized scopes' before_dtr() are called
-    for (auto& resource_scope : registered_scopes_) {
-        resource_scope.scope->AfterConstruction();
+    try {
+        // A tweak to be sure in case of partial initialization only
+        // already initialized scopes' before_dtr() are called
+        for (auto& resource_scope : registered_scopes_) {
+            resource_scope.scope->AfterConstruction();
 
-        initialized_scopes_.push_back(std::move(resource_scope.scope));
+            initialized_scopes_.push_back(std::move(resource_scope.scope));
+        }
+    } catch (...) {
+        BeforeDestruction();
+        throw;
     }
 }
 
-void ResourceScopeStorage::BeforeDestruction()
-{
+void ResourceScopeStorage::BeforeDestruction() noexcept {
     SortByPriority(registered_scopes_);
 
     // Call Scopes' pre-destruction callbacks in reverse order

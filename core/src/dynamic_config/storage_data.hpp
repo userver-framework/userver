@@ -6,12 +6,9 @@
 #include <userver/engine/shared_mutex.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/utils/function_ref.hpp>
+#include <userver/utils/resource_scopes_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-namespace utils {
-class ResourceScopeStorage;
-}
 
 namespace dynamic_config::impl {
 

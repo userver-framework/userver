@@ -8,16 +8,13 @@
 #include <userver/concurrent/variable.hpp>
 #include <userver/engine/shared_mutex.hpp>
 #include <userver/utils/impl/transparent_hash.hpp>
+#include <userver/utils/resource_scopes_fwd.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 #include <userver/utils/statistics/striped_rate_counter.hpp>
 
 #include <userver/ugrpc/impl/statistics.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-namespace utils {
-class ResourceScopeStorage;
-}  // namespace utils
 
 namespace ugrpc::impl {
 

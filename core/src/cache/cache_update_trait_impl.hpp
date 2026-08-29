@@ -124,12 +124,6 @@ private:
     // `force_full_update_` is true, the `kIncremental` update will be performed.
     std::optional<UpdateType> dump_first_update_type_;
     std::atomic<bool> force_full_update_{false};
-
-    // Subscriptions must be the last fields. They need to be destroyed first to
-    // ensure that callbacks don't use fields above after their destruction.
-    utils::statistics::Entry statistics_holder_;
-    testsuite::CacheResetRegistration cache_reset_registration_;
-    // See the comment above before adding new fields.
 };
 
 }  // namespace cache

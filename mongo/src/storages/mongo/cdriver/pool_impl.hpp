@@ -117,6 +117,7 @@ public:
     };
 
     CDriverPoolImpl(
+        utils::ResourceScopeStorage& scopes,
         std::string id,
         const std::string& uri_string,
         const PoolConfig& config,

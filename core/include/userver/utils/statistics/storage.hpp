@@ -12,15 +12,12 @@
 #include <userver/engine/shared_mutex.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/resource_scopes_fwd.hpp>
 #include <userver/utils/statistics/entry.hpp>
 #include <userver/utils/statistics/request.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-namespace utils {
-class ResourceScopeStorage;
-}
 
 namespace utils::statistics {
 

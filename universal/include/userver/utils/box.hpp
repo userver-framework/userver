@@ -59,6 +59,9 @@ public:
     {}
 
     /// Allocate a `T`, copying or moving @a arg.
+    ///
+    /// `explicit` if and only if `T`'s constructor is `explicit`.
+    /// Split into `explicit` / `explicit(false)` overloads due to limitations of clang-16.
     template <typename U = T>
     // Protect against hiding special constructors.
     requires(!std::same_as<std::remove_cvref_t<U>, Box>) &&
@@ -67,8 +70,22 @@ public:
             // Prevent infinite recursion.
             (std::same_as<std::remove_cvref_t<U>, T> || !std::is_constructible_v<T, Box>) &&
             // Normal requirement.
-            std::is_constructible_v<T, U>
-    explicit(!std::convertible_to<U, T>) Box(U&& arg)
+            std::is_convertible_v<U, T>
+    explicit(false) Box(U&& arg)
+        : data_(std::make_unique<T>(std::forward<U>(arg)))
+    {}
+
+    /// @overload
+    template <typename U = T>
+    // Protect against hiding special constructors.
+    requires(!std::same_as<std::remove_cvref_t<U>, Box>) &&
+            // Prevent infinite recursion from constructible_from in the next check.
+            (!impl::IsBox<std::remove_cvref_t<U>>::value) &&
+            // Prevent infinite recursion.
+            (std::same_as<std::remove_cvref_t<U>, T> || !std::is_constructible_v<T, Box>) &&
+            // Normal requirement.
+            std::is_constructible_v<T, U> && (!std::is_convertible_v<U, T>)
+    explicit Box(U&& arg)
         : data_(std::make_unique<T>(std::forward<U>(arg)))
     {}
 

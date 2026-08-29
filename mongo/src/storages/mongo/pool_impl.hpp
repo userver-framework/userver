@@ -11,6 +11,7 @@
 
 #include <userver/congestion_control/controllers/linear.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
+#include <userver/utils/resource_scopes_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -44,10 +45,12 @@ public:
     virtual void SetConnectionString(const std::string& connection_string) = 0;
 
 protected:
-    PoolImpl(std::string&& id, const PoolConfig& static_config, dynamic_config::Source config_source);
-
-    void Start();
-    void Stop() noexcept;
+    PoolImpl(
+        utils::ResourceScopeStorage& scopes,
+        std::string&& id,
+        const PoolConfig& static_config,
+        dynamic_config::Source config_source
+    );
 
 private:
     void OnConfigUpdate(const dynamic_config::Snapshot& config);
@@ -61,9 +64,6 @@ private:
     cc::Sensor cc_sensor_;
     cc::Limiter cc_limiter_;
     congestion_control::v2::LinearController cc_controller_;
-
-    // Must be the last field due to fields' RAII destruction order
-    concurrent::AsyncEventSubscriberScope config_subscriber_;
 };
 
 using PoolImplPtr = std::shared_ptr<PoolImpl>;
