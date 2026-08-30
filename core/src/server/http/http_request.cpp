@@ -291,6 +291,8 @@ HttpResponse& HttpRequest::GetHttpResponse() const noexcept { return pimpl_->res
 
 std::chrono::steady_clock::time_point HttpRequest::GetStartTime() const { return pimpl_->start_time; }
 
+bool HttpRequest::IsWebsocketExtendedConnect() const { return pimpl_->is_websocket_extended_connect; }
+
 bool HttpRequest::IsUpgradeWebsocket() const { return static_cast<bool>(pimpl_->upgrade_websocket_cb); }
 
 void HttpRequest::SetUpgradeWebsocket(UpgradeCallback cb) const { pimpl_->upgrade_websocket_cb = std::move(cb); }

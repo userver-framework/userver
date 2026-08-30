@@ -1,5 +1,7 @@
 #pragma once
 
+#include <memory>
+
 #include <nghttp2/nghttp2.h>
 #include <boost/container/small_vector.hpp>
 #include <memory>
@@ -16,6 +18,8 @@ class Socket;
 }
 
 namespace server::http {
+
+class Http2StreamReadPipe;
 
 class Stream final {
 public:
@@ -42,6 +46,22 @@ public:
     bool IsStreaming() const;
     void SetStreaming(bool streaming);
 
+    /// @name RFC 8441 extended CONNECT
+    /// The `:method` and the `:protocol` pseudo-headers may arrive in any order, so the
+    /// effective method of a CONNECT stream is only known once the header block is complete.
+    /// @{
+    void SetConnect();
+    bool IsConnect() const;
+    void SetUpgradeProtocol(std::string_view protocol);
+    std::string_view GetUpgradeProtocol() const;
+
+    /// @brief Hands the stream over to a tunnelled protocol: from now on DATA frames
+    /// are its incoming bytes rather than a request body.
+    void SetReadPipe(std::shared_ptr<Http2StreamReadPipe> pipe);
+    /// @returns nullptr unless the stream was handed over to a tunnelled protocol.
+    const std::shared_ptr<Http2StreamReadPipe>& GetReadPipe() const;
+    /// @}
+
     bool CheckUrlComplete();
     void PushChunk(std::string&& chunk);
     void PushChunk(request::impl::ChunkStorage&& chunk);
@@ -53,6 +73,10 @@ private:
     bool url_complete_{false};
     HttpRequestConstructor constructor_;
     const Id id_;
+    // Extended CONNECT
+    bool is_connect_{false};
+    std::string upgrade_protocol_{};
+    std::shared_ptr<Http2StreamReadPipe> read_pipe_{};
     // Body sending
     nghttp2_data_provider nghttp2_provider_{};
     boost::container::small_vector<request::impl::ChunkStorage, 16> chunks_{};
