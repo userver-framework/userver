@@ -70,11 +70,26 @@ public:
     /// @brief Add a writer function @b func. Note that `func` is called concurrently with
     /// other code, so it should be thread-safe.
     ///
+    /// Registration runs after construction via @ref ResourceScopeStorage::AfterConstruction.
+    /// Unregister runs in @ref ResourceScopeStorage::BeforeDestruction.
+    ///
+    /// In a component constructor prefer @ref RegisterWriterScope with @ref components::ComponentContext.
+    ///
+    /// @param scopes storage that owns the writer lifetime. In a component constructor pass `context.Scopes()`
+    /// or @ref components::GetResourceScopes.
     /// @param common_prefix prefix for the metric, for example "my.metric_name"
     /// @param func function that writes metrics to @ref utils::statistics::Writer
     /// @param add_labels common labels for the metric, for example {"database", "dbname"}
+    void RegisterWriter(
+        ResourceScopeStorage& scopes,
+        std::string common_prefix,
+        WriterFunc func,
+        std::vector<Label> add_labels = {}
+    );
+
+    /// @overload
     ///
-    /// @note Prefer using @ref RegisterWriterScope instead.
+    /// Store the returned @ref Entry as a member.
     Entry RegisterWriter(std::string common_prefix, WriterFunc func, std::vector<Label> add_labels = {});
 
     /// @deprecated Use RegisterWriter instead.
@@ -90,12 +105,8 @@ private:
     mutable engine::SharedMutex mutex_;
 };
 
-/// @brief Add a writer function to @ref Storage (usually obtained from @ref components::StatisticsStorage).
-/// It automatically calls @ref utils::statistics::Storage::RegisterWriter() just after the component
-/// construction and @ref utils::statistics::Entry::Unregister() just before the component
-/// destructor.
-///
-/// @see @ref Storage::RegisterWriter.
+/// @deprecated Use @ref Storage::RegisterWriter that takes @ref ResourceScopeStorage.
+[[deprecated("Use Storage::RegisterWriter instead")]]
 void RegisterWriterScope(
     ResourceScopeStorage& scope_storage,
     Storage& storage,

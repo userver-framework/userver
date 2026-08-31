@@ -160,12 +160,10 @@ void Logging::Init(const ComponentConfig& config, const ComponentContext& contex
 
     auto* const statistics_storage = context.FindComponentOptional<components::StatisticsStorage>();
     if (statistics_storage) {
-        RegisterWriterScope(
-            context.Scopes(),
-            statistics_storage->GetStorage(),
-            "logger",
-            [this](utils::statistics::Writer& writer) { WriteStatistics(writer); }
-        );
+        statistics_storage->GetStorage()
+            .RegisterWriter(context.Scopes(), "logger", [this](utils::statistics::Writer& writer) {
+                WriteStatistics(writer);
+            });
     }
 }
 

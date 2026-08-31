@@ -131,12 +131,10 @@ CacheUpdateTrait::Impl::Impl(CacheDependencies&& dependencies, CacheUpdateTrait&
         );
     }
 
-    utils::statistics::RegisterWriterScope(
-        dependencies.scopes,
-        dependencies.statistics_storage,
-        "cache",
-        [this](utils::statistics::Writer& writer) { writer.ValueWithLabels(statistics_, {"cache_name", Name()}); }
-    );
+    dependencies.statistics_storage
+        .RegisterWriter(dependencies.scopes, "cache", [this](utils::statistics::Writer& writer) {
+            writer.ValueWithLabels(statistics_, {"cache_name", Name()});
+        });
 
     if (dependencies.config.config_updates_enabled) {
         CheckNotNull(dependencies.config_source)

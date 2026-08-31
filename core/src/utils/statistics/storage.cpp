@@ -138,6 +138,20 @@ void Storage::VisitMetrics(BaseFormatBuilder& out, const Request& request) const
 
 void Storage::StopRegisteringExtenders() { may_register_extenders_ = false; }
 
+void Storage::RegisterWriter(
+    ResourceScopeStorage& scopes,
+    std::string common_prefix,
+    WriterFunc func,
+    std::vector<Label> add_labels
+) {
+    scopes.Register([&storage = *this,
+                     common_prefix = std::move(common_prefix),
+                     func = std::move(func),
+                     add_labels = std::move(add_labels)] {
+        return storage.RegisterWriter(std::move(common_prefix), std::move(func), std::move(add_labels));
+    });
+}
+
 Entry Storage::RegisterWriter(std::string prefix, WriterFunc func, std::vector<Label> add_labels) {
     return DoRegisterExtender(impl::MetricsSource{std::move(prefix), {}, {}, std::move(func), std::move(add_labels)});
 }
@@ -180,15 +194,8 @@ void RegisterWriterScope(
     std::string common_prefix,
     WriterFunc func,
     std::vector<Label> add_labels
-)
-{
-    scope_storage
-        .Register([&storage,
-                   common_prefix = std::move(common_prefix),
-                   func = std::move(func),
-                   add_labels = std::move(add_labels)] {
-            return storage.RegisterWriter(common_prefix, std::move(func), std::move(add_labels));
-        });
+) {
+    storage.RegisterWriter(scope_storage, std::move(common_prefix), std::move(func), std::move(add_labels));
 }
 
 }  // namespace utils::statistics

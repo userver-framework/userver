@@ -197,12 +197,9 @@ Dumper::Impl::Impl(
       dump_data_(static_config_, std::move(rw_factory), dumpable),
       update_data_(statistics_)
 {
-    utils::statistics::RegisterWriterScope(
-        scopes,
-        statistics_storage,
-        fmt::format("cache.dump"),
-        [this](utils::statistics::Writer& writer) { writer.ValueWithLabels(statistics_, {{"cache_name", Name()}}); }
-    );
+    statistics_storage.RegisterWriter(scopes, fmt::format("cache.dump"), [this](utils::statistics::Writer& writer) {
+        writer.ValueWithLabels(statistics_, {{"cache_name", Name()}});
+    });
     config_source.UpdateAndListen(scopes, this, "dump." + Name(), &Impl::OnConfigUpdate);
     dump_control_.RegisterScope(scopes, *this);
     if (dump_control_.GetPeriodicsMode() == testsuite::DumpControl::PeriodicsMode::kEnabled) {
