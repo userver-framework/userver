@@ -24,6 +24,7 @@ static-analyzer-report
 .changelog
 scripts/docs/en/components_schema
 scripts/docs/en/dynamic_configs
+scripts/docs/en/testsuite
 scripts/docs/en/versions.md
 scripts/docs/scripts/versions.js
 universal/include/userver/version.hpp

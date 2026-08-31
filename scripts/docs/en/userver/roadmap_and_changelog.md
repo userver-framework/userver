@@ -454,7 +454,7 @@ Detailed diff against v2.16 could be found below.
     became more accurate.
   * Added @ref pytest_userver.plugins.service.service_start_timeout "service_start_timeout" fixture into testsuite.
     Many thanks to [DmitriyH](https://github.com/DmitriyH) for the PR!
-  * Added multipart methods support for testsuite @ref pytest_userver.plugins.s3api "s3api plugin".
+  * Added multipart methods support for testsuite @ref pytest_userver.plugins.s3api._s3_mock_storage "s3api plugin".
   * @ref utils::FromString() now reports if input sequence of chars to convert contains '\0' character.
   * Improved diagnostics for PostgreSQL composite types related errors, including nested composite types.
   * Fixed typo in third party. Many thanks to [shuric80](https://github.com/shuric80) for the PR!

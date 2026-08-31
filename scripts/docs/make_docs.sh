@@ -56,6 +56,39 @@ rm -rf scripts/docs/en/dynamic_configs
 mkdir scripts/docs/en/dynamic_configs
 cp $BUILD_DIR/docs-dynamic-configs/* scripts/docs/en/dynamic_configs/
 
+# Fetch yandex-taxi-testsuite sources so Doxygen can resolve @ref to its fixtures.
+download_yandex_taxi_testsuite() {
+    TESTSUITE_CLONE="$BUILD_DIR/yandex-taxi-testsuite"
+    TESTSUITE_ARCHIVE="$BUILD_DIR/yandex-taxi-testsuite.tar.gz"
+
+    echo "Downloading yandex-taxi-testsuite (develop) for documentation..."
+    wget --no-verbose -O "$TESTSUITE_ARCHIVE" \
+        "https://github.com/yandex/yandex-taxi-testsuite/archive/refs/heads/develop.tar.gz"
+
+    rm -rf "$TESTSUITE_CLONE"
+    # Remove any previous partial extract dirs, keep the archive.
+    find "$BUILD_DIR" -maxdepth 1 -type d -name 'yandex-taxi-testsuite-*' -exec rm -rf {} +
+    tar -xzf "$TESTSUITE_ARCHIVE" -C "$BUILD_DIR"
+    EXTRACTED="$(find "$BUILD_DIR" -maxdepth 1 -type d -name 'yandex-taxi-testsuite-*' | head -n 1)"
+    if [ -z "$EXTRACTED" ]; then
+        echo "!!! Failed to extract yandex-taxi-testsuite archive."
+        exit 1
+    fi
+    mv "$EXTRACTED" "$TESTSUITE_CLONE"
+    echo "yandex-taxi-testsuite (develop) has been downloaded to $TESTSUITE_CLONE."
+}
+
+download_yandex_taxi_testsuite
+
+# Place the package at scripts/docs/en/testsuite so it is picked up via INPUT
+# `scripts/docs/en/` (Python modules keep the `testsuite.*` prefix).
+TESTSUITE_DOCS_ROOT="scripts/docs/en/testsuite"
+rm -rf "$TESTSUITE_DOCS_ROOT"
+cp -a "$BUILD_DIR/yandex-taxi-testsuite/testsuite" "$TESTSUITE_DOCS_ROOT"
+find "$TESTSUITE_DOCS_ROOT" -type d -name '__pycache__' -prune -exec rm -rf {} +
+rm -rf "$TESTSUITE_DOCS_ROOT/tests"
+python3 scripts/docs/prepare_testsuite_for_doxygen.py "$TESTSUITE_DOCS_ROOT"
+
 # Run doxygen.
 rm -rf "$BUILD_DIR/docs" || :
 
@@ -64,12 +97,10 @@ if [ -z "$NO_DEFAULT_HTML_CLEANUP" ]; then
     python3 scripts/docs/generate_versions.py
 fi
 
-DOXYFILE_OVERRIDES="${DOXYFILE_OVERRIDES:-}"
-
 echo "Running doxygen..."
 (
     cat scripts/docs/doxygen.conf;
-    echo "$DOXYFILE_OVERRIDES";
+    echo "${DOXYFILE_OVERRIDES:-}";
 ) | $DOXYGEN - 2>&1 | python3 scripts/docs/clean_doxygen_logs.py | tee "$BUILD_DIR/doxygen.err.log"
 echo "A copy of doxygen logs is in: $BUILD_DIR/doxygen.err.log"
 
@@ -82,3 +113,4 @@ fi
 
 # Cleanup
 rm -rf scripts/docs/en/dynamic_configs || :
+rm -rf "$TESTSUITE_DOCS_ROOT" || :
