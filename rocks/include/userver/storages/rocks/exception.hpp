@@ -4,6 +4,7 @@
 /// @brief rocks-specific exceptions
 
 #include <stdexcept>
+#include <string>
 #include <string_view>
 
 USERVER_NAMESPACE_BEGIN
@@ -24,7 +25,20 @@ public:
     std::string_view GetStatusString() const;
 
 private:
-    std::string_view status_;
+    std::string status_;
+};
+
+/// Thrown by Transaction::Commit() when an optimistic conflict is detected.
+/// The transaction must be rolled back; the operation should be retried.
+class WriteConflictException : public Exception {
+public:
+    using Exception::Exception;
+};
+
+/// Thrown by Transaction::GetForUpdate() when a pessimistic lock times out.
+class LockTimeoutException : public Exception {
+public:
+    using Exception::Exception;
 };
 
 }  // namespace storages::rocks

@@ -130,9 +130,9 @@ export POSTGRESQL_VERSION=${POSTGRESQL_VERSION:=14}
 # Installing RocksDB client libraries from sources
 git clone --depth 1 -b ${ROCKSDB_VERSION} https://github.com/facebook/rocksdb
 (cd rocksdb && mkdir build && cd build && \
-  cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DROCKSDB_BUILD_SHARED=OFF -DWITH_TESTS=OFF -DWITH_BENCHMARK_TOOLS=OFF -DWITH_TOOLS=OFF -DUSE_RTTI=ON .. && make -j $(nproc) && make install)
+  cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Release -DROCKSDB_BUILD_SHARED=OFF -DWITH_TESTS=OFF -DWITH_BENCHMARK_TOOLS=OFF -DWITH_TOOLS=OFF -DUSE_RTTI=ON -DPORTABLE=ON .. && make -j $(nproc) && make install)
 (cd rocksdb && mkdir build-debug && cd build-debug && \
-  cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug -DROCKSDB_BUILD_SHARED=OFF -DWITH_TESTS=OFF -DWITH_BENCHMARK_TOOLS=OFF -DWITH_TOOLS=OFF  -DUSE_RTTI=ON .. && make -j $(nproc) && make install)
+  cmake -DCMAKE_INSTALL_PREFIX=/usr -DCMAKE_BUILD_TYPE=Debug -DROCKSDB_BUILD_SHARED=OFF -DWITH_TESTS=OFF -DWITH_BENCHMARK_TOOLS=OFF -DWITH_TOOLS=OFF -DUSE_RTTI=ON -DPORTABLE=ON .. && make -j $(nproc) && make install)
 
 # Installing Kafka
 ./ubuntu_install_kafka.sh

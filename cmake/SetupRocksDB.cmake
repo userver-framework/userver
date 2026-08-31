@@ -37,6 +37,7 @@ cpmaddpackage(
     URL https://github.com/facebook/rocksdb/archive/v10.4.2.tar.gz
     URL_HASH SHA256=afccfab496556904900afacf7d99887f1d50cb893e5d2288bd502db233adacac
     OPTIONS "ROCKSDB_BUILD_SHARED OFF"
+            "PORTABLE ON"
             "WITH_SNAPPY ON"
             "WITH_BZ2 ON"
             "WITH_ZSTD ON"
