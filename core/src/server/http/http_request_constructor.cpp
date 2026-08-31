@@ -183,6 +183,10 @@ void HttpRequestConstructor::SetStreamProducer(impl::Http2StreamEventProducer&& 
     builder_.SetStreamProducer(std::move(producer));
 }
 
+void HttpRequestConstructor::SetWebsocketExtendedConnect(bool is_websocket_extended_connect) {
+    builder_.SetWebsocketExtendedConnect(is_websocket_extended_connect);
+}
+
 std::shared_ptr<http::HttpRequest> HttpRequestConstructor::Finalize() {
     FinalizeImpl();
 

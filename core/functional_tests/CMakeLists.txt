@@ -61,6 +61,9 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-cache-update)
 add_subdirectory(websocket)
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-websocket)
 
+add_subdirectory(websocket_http2)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-websocket-http2)
+
 # WebSocket client requires curl >= 7.86 with WebSocket support
 if(CURL_VERSION_STRING VERSION_GREATER_EQUAL "7.86")
     add_subdirectory(websocket_client)

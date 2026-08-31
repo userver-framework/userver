@@ -1,7 +1,10 @@
 #include <server/http/http2_session.hpp>
 
+#include <server/http/http2_stream_rw.hpp>
 #include <server/http/http_request_parser.hpp>
 #include <server/net/connection_config.hpp>
+
+#include <boost/container/small_vector.hpp>
 
 #include <userver/crypto/base64.hpp>
 #include <userver/engine/io/socket.hpp>
@@ -15,6 +18,9 @@ namespace server::http {
 namespace {
 
 constexpr std::size_t kFrameHeaderSize = 9;
+
+// The only `:protocol` we bootstrap with the extended CONNECT method of RFC 8441.
+constexpr std::string_view kWebsocketProtocol = "websocket";
 
 void ThrowIfErr(int error_code, std::string_view msg) {
     if (error_code != 0) {
@@ -58,7 +64,6 @@ Http2Session::Http2Session(
       streaming_consumer_(streaming_queue_->GetConsumer())
 {
     UASSERT(streaming_queue_);
-    UASSERT(streaming_event_.IsAutoReset());
 
     nghttp2_session_callbacks* callbacks{nullptr};
     UINVARIANT(nghttp2_session_callbacks_new(&callbacks) == 0, "Failed to init callbacks for HTTP/2.0");
@@ -79,11 +84,15 @@ Http2Session::Http2Session(
     UASSERT(session);
     session_ = SessionPtr(session, nghttp2_session_del);
 
-    std::array<nghttp2_settings_entry, 3> settings{
+    boost::container::small_vector<nghttp2_settings_entry, 4> settings{
         nghttp2_settings_entry{NGHTTP2_SETTINGS_MAX_CONCURRENT_STREAMS, config.max_concurrent_streams},
         nghttp2_settings_entry{NGHTTP2_SETTINGS_MAX_FRAME_SIZE, config.max_frame_size},
         nghttp2_settings_entry{NGHTTP2_SETTINGS_INITIAL_WINDOW_SIZE, config.initial_window_size}
     };
+    if (config.enable_connect_protocol) {
+        // Without this setting nghttp2 rejects any `:protocol` pseudo-header on our behalf.
+        settings.push_back(nghttp2_settings_entry{NGHTTP2_SETTINGS_ENABLE_CONNECT_PROTOCOL, 1});
+    }
 
     auto rv = nghttp2_submit_settings(session_.get(), NGHTTP2_FLAG_NONE, settings.data(), settings.size());
     ThrowIfErr(rv, "Error when submit settings");
@@ -97,17 +106,33 @@ int Http2Session::OnFrameRecv(nghttp2_session* session, const nghttp2_frame* fra
     auto& parser = GetParser(user_data);
 
     switch (frame->hd.type) {
-        case NGHTTP2_DATA:
         case NGHTTP2_HEADERS: {
+            // The stream may have been rejected and reset already, e.g. on a full stream pool.
+            auto* stream = parser.FindStream(Stream::Id{frame->hd.stream_id});
+            if (stream == nullptr) {
+                break;
+            }
+            if (stream->GetReadPipe() != nullptr) {
+                // Trailers on an upgraded stream carry nothing we could act upon.
+                break;
+            }
+            if (stream->IsConnect()) {
+                // A CONNECT stream is half-closed only when the tunnelled protocol ends,
+                // so its request is finalized at the end of the header block instead.
+                parser.FinalizeConnectRequest(*stream);
+            } else if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
+                parser.FinalizeCompleteRequest(*stream);
+            }
+        } break;
+        case NGHTTP2_DATA: {
             if (frame->hd.flags & NGHTTP2_FLAG_END_STREAM) {
                 auto& stream = parser.GetStreamChecked(Stream::Id{frame->hd.stream_id});
-                try {
-                    stream.RequestConstructor().AppendHeaderField(std::string_view{});
-                } catch (const std::exception& e) {
-                    IncStat(parser.stats_.http2_stats.streams_parse_error);
-                    LOG_LIMITED_WARNING() << "can't append header field: " << e;
+                if (const auto& pipe = stream.GetReadPipe()) {
+                    // A half-close of an upgraded stream is an EOF for the tunnelled protocol.
+                    pipe->Close();
+                } else {
+                    parser.FinalizeCompleteRequest(stream);
                 }
-                parser.FinalizeRequest(stream);
             }
         } break;
         case NGHTTP2_RST_STREAM: {
@@ -171,8 +196,17 @@ int Http2Session::OnHeader(
     auto& stream = parser.GetStreamChecked(Stream::Id{frame->hd.stream_id});
     auto& ctor = stream.RequestConstructor();
     if (hname == USERVER_NAMESPACE::http::headers::k2::kMethod) {
-        ctor.SetMethod(HttpMethodFromString(hvalue));
-        stream.CheckUrlComplete();
+        const auto method = HttpMethodFromString(hvalue);
+        if (method == HttpMethod::kConnect) {
+            // The effective method depends on `:protocol`, which may arrive later in the
+            // header block. Leaving the method unset defers the url parsing until then.
+            stream.SetConnect();
+        } else {
+            ctor.SetMethod(method);
+            stream.CheckUrlComplete();
+        }
+    } else if (hname == USERVER_NAMESPACE::http::headers::k2::kProtocol) {
+        stream.SetUpgradeProtocol(hvalue);
     } else if (hname == USERVER_NAMESPACE::http::headers::k2::kPath) {
         try {
             ctor.AppendUrl(hvalue);
@@ -195,7 +229,14 @@ int Http2Session::OnHeader(
 
 int Http2Session::OnStreamClose(nghttp2_session*, int32_t id, uint32_t error_code, void* user_data) {
     auto& parser = GetParser(user_data);
-    parser.RemoveStream(parser.GetStreamChecked(Stream::Id{id}));
+    // The stream is already gone if we rejected it ourselves and reset it right away.
+    if (auto* stream = parser.FindStream(Stream::Id{id})) {
+        if (const auto& pipe = stream->GetReadPipe()) {
+            // The pipe outlives the stream, so the tunnelled protocol still unwinds cleanly.
+            pipe->Close();
+        }
+        parser.RemoveStream(*stream);
+    }
 
     IncStat(parser.stats_.http2_stats.streams_close);
     LOG_LIMITED_TRACE("The stream {} was closed with code {}", id, error_code);
@@ -226,8 +267,13 @@ int Http2Session::OnDataChunkRecv(
 ) {
     auto& parser = GetParser(user_data);
     auto& stream = parser.GetStreamChecked(Stream::Id{id});
+    const auto chunk = ToStringView(data, len);
+    if (const auto& pipe = stream.GetReadPipe()) {
+        pipe->Push(chunk);
+        return 0;
+    }
     try {
-        stream.RequestConstructor().AppendBody(std::string_view{reinterpret_cast<const char*>(data), len});
+        stream.RequestConstructor().AppendBody(chunk);
     } catch (const std::exception& e) {
         LOG_LIMITED_WARNING() << "can't append body: " << e;
     }
@@ -311,9 +357,12 @@ void Http2Session::RemoveStream(Stream& stream) {
     stats_.parsing_request_count.Subtract(1);
 }
 
+Stream* Http2Session::FindStream(Stream::Id id) {
+    return static_cast<Stream*>(nghttp2_session_get_stream_user_data(session_.get(), static_cast<std::int32_t>(id)));
+}
+
 Stream& Http2Session::GetStreamChecked(Stream::Id id) {
-    auto* stream = static_cast<
-        Stream*>(nghttp2_session_get_stream_user_data(session_.get(), static_cast<std::int32_t>(id)));
+    auto* stream = FindStream(id);
     if (stream == nullptr) {
         throw std::runtime_error{fmt::format("The stream {} does not exist", id)};
     }
@@ -358,6 +407,62 @@ void Http2Session::UpgradeToHttp2(std::string_view client_magic) {
     RegisterStream(kStreamIdAfterUpgradeResponse);
 }
 
+std::unique_ptr<engine::io::RwBase> Http2Session::UpgradeStream(Stream::Id id) {
+    const auto& pipe = GetStreamChecked(id).GetReadPipe();
+    UINVARIANT(pipe, "Only a stream that was accepted for an upgrade can be upgraded");
+    return std::make_unique<Http2StreamRw>(
+        static_cast<std::int32_t>(id), pipe, impl::Http2StreamEventProducer{*streaming_queue_, streaming_event_}
+    );
+}
+
+void Http2Session::CloseUpgradedStream(Stream::Id id) {
+    auto* stream = FindStream(id);
+    if (stream == nullptr) {
+        // The peer has already closed the stream.
+        return;
+    }
+    stream->SetEnd(true);
+    if (stream->IsDeferred()) {
+        const auto res = nghttp2_session_resume_data(session_.get(), static_cast<std::int32_t>(id));
+        ThrowIfErr(res, "Error while resume_data");
+        stream->SetDeferred(false);
+    }
+    WriteWhileWant();
+}
+
+void Http2Session::FinalizeCompleteRequest(Stream& stream) {
+    try {
+        stream.RequestConstructor().AppendHeaderField(std::string_view{});
+    } catch (const std::exception& e) {
+        IncStat(stats_.http2_stats.streams_parse_error);
+        LOG_LIMITED_WARNING() << "can't append header field: " << e;
+    }
+    FinalizeRequest(stream);
+}
+
+void Http2Session::FinalizeConnectRequest(Stream& stream) {
+    const auto protocol = stream.GetUpgradeProtocol();
+    if (!config_.enable_connect_protocol || protocol != kWebsocketProtocol) {
+        // Plain CONNECT tunnels of RFC 9110 are not supported, and RFC 8441 is
+        // implemented for websockets only.
+        LOG_LIMITED_WARNING() << fmt::format(
+            "Rejecting the CONNECT stream {}: unsupported ':protocol' value '{}'", stream.GetId(), protocol
+        );
+        IncStat(stats_.http2_stats.streams_parse_error);
+        SubmitRstStream(stream.GetId(), NGHTTP2_CONNECT_ERROR);
+        RemoveStream(stream);
+        return;
+    }
+    // Route as a GET so that path-registered websocket handlers match, the same way
+    // reverse proxies do when converting an HTTP/1.1 upgrade into an extended CONNECT.
+    stream.RequestConstructor().SetMethod(HttpMethod::kGet);
+    stream.RequestConstructor().SetWebsocketExtendedConnect(true);
+    // Buffer the incoming bytes from now on: a client may start sending them before the
+    // handler has had a chance to accept the stream.
+    stream.SetReadPipe(std::make_shared<Http2StreamReadPipe>());
+    FinalizeCompleteRequest(stream);
+}
+
 void Http2Session::FinalizeRequest(Stream& stream) {
     if (!stream.CheckUrlComplete()) {
         IncStat(stats_.http2_stats.streams_parse_error);
@@ -390,21 +495,25 @@ void Http2Session::WriteWhileWant() {
 
 engine::SingleConsumerEvent& Http2Session::GetStreamingEvent() { return streaming_event_; }
 
-void Http2Session::HandleStreamingEvents() {
-    impl::Http2StreamEvent event;
-    while (streaming_consumer_.PopNoblock(event)) {
-        UASSERT(event.stream_id != -1);
-        auto& stream = GetStreamChecked(Stream::Id{event.stream_id});
-        if (stream.IsDeferred()) {
-            const auto res = nghttp2_session_resume_data(session_.get(), static_cast<std::int32_t>(stream.GetId()));
-            ThrowIfErr(res, "Error while resume_data");
-            stream.SetDeferred(false);
-        }
-        stream.PushChunk(std::move(event.body_part));
-        stream.SetEnd(event.is_end);
-        event = {};
+bool Http2Session::PopStreamingEventNoblock(impl::Http2StreamEvent& event) {
+    return streaming_consumer_.PopNoblock(event);
+}
+
+void Http2Session::ApplyStreamingEvent(impl::Http2StreamEvent&& event) {
+    UASSERT(event.stream_id != -1);
+    auto* stream = FindStream(Stream::Id{event.stream_id});
+    if (stream == nullptr) {
+        // The stream is already closed (e.g. reset by the client) while the
+        // handler was still producing body parts. Drop the event.
+        return;
     }
-    WriteWhileWant();
+    if (stream->IsDeferred()) {
+        const auto res = nghttp2_session_resume_data(session_.get(), event.stream_id);
+        ThrowIfErr(res, "Error while resume_data");
+        stream->SetDeferred(false);
+    }
+    stream->PushChunk(std::move(event.body_part));
+    stream->SetEnd(event.is_end);
 }
 
 }  // namespace server::http

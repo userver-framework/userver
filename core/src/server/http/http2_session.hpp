@@ -59,10 +59,23 @@ public:
 
     void UpgradeToHttp2(std::string_view client_magic);
 
+    /// @brief Hands an already answered stream over to a tunnelled protocol.
+    /// @returns the stream presented as a stream-like object for that protocol.
+    std::unique_ptr<engine::io::RwBase> UpgradeStream(Stream::Id id);
+
+    /// @brief Half-closes an upgraded stream once its tunnelled protocol is over.
+    void CloseUpgradedStream(Stream::Id id);
+
     engine::SingleConsumerEvent& GetStreamingEvent();
 
     void WriteWhileWant();
-    void HandleStreamingEvents();
+
+    // Returns false if there are no pending streaming events.
+    [[nodiscard]] bool PopStreamingEventNoblock(impl::Http2StreamEvent& event);
+
+    // Applies a body-streaming event to its stream. Events for streams that
+    // are already closed (e.g. reset by the client) are dropped.
+    void ApplyStreamingEvent(impl::Http2StreamEvent&& event);
 
     bool ConnectionIsOk() const;
 
@@ -112,11 +125,14 @@ private:
 
     void RegisterStream(Stream::Id id);
     void RemoveStream(Stream& stream);
+    Stream* FindStream(Stream::Id id);
     Stream& GetStreamChecked(Stream::Id id);
 
     void SubmitRstStream(Stream::Id stream_id, std::uint32_t error_code = NGHTTP2_INTERNAL_ERROR);
 
     void FinalizeRequest(Stream& stream);
+    void FinalizeCompleteRequest(Stream& stream);
+    void FinalizeConnectRequest(Stream& stream);
 
     const net::Http2SessionConfig& config_;
 
@@ -133,7 +149,9 @@ private:
     engine::io::RwBase* socket_;
 
     std::shared_ptr<impl::Http2StreamEventQueue> streaming_queue_{nullptr};
-    engine::SingleConsumerEvent streaming_event_;
+    // No-auto-reset: the event is awaited through WaitAny in the connection
+    // loop, which resets it manually before draining the queue.
+    engine::SingleConsumerEvent streaming_event_{engine::SingleConsumerEvent::NoAutoReset{}};
     impl::Http2StreamEventQueue::Consumer streaming_consumer_;
     std::int32_t max_client_stream_id_{0};
     bool peer_goaway_received_{false};

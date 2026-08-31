@@ -478,7 +478,6 @@ void SetThrottleReason(http::HttpResponse& http_response, std::string log_reason
 void HttpResponse::SetStreamBody() {
     UASSERT(body_stream_producer_.index() == 0);
     if (GetStreamId().has_value()) {
-        UINVARIANT(false, "Streaming in HTTP/2.0 is not supported currently.");
         body_stream_producer_.emplace<impl::Http2StreamEventProducer>(GetStreamProducer());
     } else {
         UASSERT(!body_stream_);

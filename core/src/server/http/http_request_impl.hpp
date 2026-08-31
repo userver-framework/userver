@@ -47,6 +47,9 @@ struct HttpRequest::Impl {
     HeadersMap headers;
     CookiesMap cookies;
     bool is_final{false};
+    // The request arrived as an RFC 8441 extended CONNECT with `:protocol: websocket`,
+    // and is routed as a GET so that ordinary websocket handlers match it.
+    bool is_websocket_extended_connect{false};
 #ifndef NDEBUG
     mutable bool args_referenced{false};
 #endif
