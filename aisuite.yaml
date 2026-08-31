@@ -3,4 +3,4 @@ extends:
   - techplatform/backend/common
 rules:
   - ai/artifacts/rules/techplatform/ai-mindset.md
-  - taxi/uservices/ai/rules/arcadia-development.md
+  - taxi/uservices/ai/rules/uservices-build-and-test.md
