@@ -21,6 +21,7 @@
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/fs/blocking/file_descriptor.hpp>
 #include <userver/server/component.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
@@ -44,11 +45,17 @@ std::string GetHeader(const clients::http::Response& response, std::string_view 
     return response.headers().at(name);
 }
 
-std::uint16_t FindFreePort() {
-    std::uint16_t result{};
+struct ListenerReservation final {
+    std::uint16_t port{};
+    fs::blocking::FileDescriptor fd;
+};
+
+ListenerReservation ReserveListener() {
+    ListenerReservation result;
     engine::RunStandalone([&result] {
-        const engine::io::tests::TcpListener listener{engine::io::tests::IpVersion::kV4};
-        result = listener.Port();
+        const engine::io::tests::TcpListener listener;
+        result.port = listener.Port();
+        result.fd = fs::blocking::FileDescriptor::DupFd(listener.socket.Fd());
     });
     return result;
 }
@@ -197,7 +204,7 @@ properties:
 private:
     std::shared_ptr<clients::http::Response> Get(std::string_view mode) const {
         return client_->CreateRequest()
-            .get(fmt::format("http://127.0.0.1:{}/stream?mode={}", port_, mode))
+            .get(fmt::format("http://[::1]:{}/stream?mode={}", port_, mode))
             .timeout(kClientTimeout)
             .retry(1)
             .perform();
@@ -211,7 +218,7 @@ private:
     clients::http::StreamedResponse StartStream(std::string_view mode) const {
         auto queue = concurrent::StringStreamQueue::Create();
         return client_->CreateRequest()
-            .get(fmt::format("http://127.0.0.1:{}/stream?mode={}", port_, mode))
+            .get(fmt::format("http://[::1]:{}/stream?mode={}", port_, mode))
             .timeout(kClientTimeout)
             .retry(1)
             .async_perform_stream_body(queue);
@@ -379,7 +386,7 @@ template <>
 inline constexpr bool components::kHasValidate<HttpStreamTester> = true;
 
 TEST_F(ComponentList, HttpStreaming) {
-    const auto port = FindFreePort();
+    const auto listener = ReserveListener();
     const auto config = tests::MergeYaml(
         tests::kMinimalStaticConfig,
         fmt::format(
@@ -391,17 +398,17 @@ components_manager:
   components:
     server:
       listener:
-        port: {0}
-        address: 127.0.0.1
+        listen-socket-fd: {0}
         task_processor: main-task-processor
     handler-http-stream:
       path: /stream
       method: GET
       task_processor: main-task-processor
     http-stream-tester:
-      port: {0}
+      port: {1}
 )",
-            port
+            listener.fd.GetNative(),
+            listener.port
         )
     );
 
@@ -428,7 +435,7 @@ public:
         auto queue = concurrent::StringStreamQueue::Create();
         auto streamed =
             client->CreateRequest()
-                .get(fmt::format("http://127.0.0.1:{}/stream?mode=abort-check-delay", port_))
+                .get(fmt::format("http://[::1]:{}/stream?mode=abort-check-delay", port_))
                 .timeout(kClientTimeout)
                 .retry(1)
                 .async_perform_stream_body(queue);
@@ -464,7 +471,7 @@ template <>
 inline constexpr bool components::kHasValidate<AbortCheckDelayTester> = true;
 
 TEST_F(ComponentList, HttpStreamingHeadersAfterAbortCheckDelay) {
-    const auto port = FindFreePort();
+    const auto listener = ReserveListener();
     const auto config = tests::MergeYaml(
         tests::kMinimalStaticConfig,
         fmt::format(
@@ -476,17 +483,17 @@ components_manager:
   components:
     server:
       listener:
-        port: {0}
-        address: 127.0.0.1
+        listen-socket-fd: {0}
         task_processor: main-task-processor
     handler-http-stream:
       path: /stream
       method: GET
       task_processor: main-task-processor
     abort-check-delay-tester:
-      port: {0}
+      port: {1}
 )",
-            port
+            listener.fd.GetNative(),
+            listener.port
         )
     );
 
@@ -537,7 +544,7 @@ public:
         const auto client = utest::CreateHttpClient();
         const auto response =
             client->CreateRequest()
-                .get(fmt::format("http://127.0.0.1:{}/stream", port_))
+                .get(fmt::format("http://[::1]:{}/stream", port_))
                 .timeout(kClientTimeout)
                 .retry(1)
                 .perform();
@@ -569,7 +576,7 @@ using ComponentListDeathTest = ComponentList;
 TEST_F(ComponentListDeathTest, HttpStreamingPushChunkWithoutSetEndOfHeaders) {
     testing::FLAGS_gtest_death_test_style = "threadsafe";
 
-    const auto port = FindFreePort();
+    const auto listener = ReserveListener();
     const auto config = tests::MergeYaml(
         tests::kMinimalStaticConfig,
         fmt::format(
@@ -581,17 +588,17 @@ components_manager:
   components:
     server:
       listener:
-        port: {0}
-        address: 127.0.0.1
+        listen-socket-fd: {0}
         task_processor: main-task-processor
     handler-push-chunk-without-eoh:
       path: /stream
       method: GET
       task_processor: main-task-processor
     push-chunk-without-eoh-trigger:
-      port: {0}
+      port: {1}
 )",
-            port
+            listener.fd.GetNative(),
+            listener.port
         )
     );
 
