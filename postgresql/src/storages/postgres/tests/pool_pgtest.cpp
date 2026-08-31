@@ -40,8 +40,8 @@ std::shared_ptr<pg::detail::ConnectionPool> CreateCleanupPool(
     const pg::Dsn& dsn,
     engine::TaskProcessor& task_processor,
     pg::InitMode init_mode,
-    pg::PoolSettings pool_settings = pg::PoolSettings{1, 1, 10},
-    pg::CommandControl command_control = pg::CommandControl{std::chrono::milliseconds{100}, std::chrono::seconds{1}}
+    pg::CommandControl command_control,
+    pg::PoolSettings pool_settings = pg::PoolSettings{1, 1, 10}
 ) {
     return pg::detail::ConnectionPool::Create(
         dsn,
@@ -468,7 +468,14 @@ UTEST_P(PostgrePool, CleanupTaskUseBackgroundFlagAffectsInheritedDeadlinePropaga
         return;
     }
 
-    auto background_pool = CreateCleanupPool(GetDsnFromEnv(), GetTaskProcessor(), GetParam());
+    // statement_timeout must be shorter than network_timeout so pg_sleep hits
+    // QueryCancelled (server-side) rather than ConnectionTimeoutError (client).
+    auto background_pool = CreateCleanupPool(
+        GetDsnFromEnv(),
+        GetTaskProcessor(),
+        GetParam(),
+        pg::CommandControl{utest::kMaxTestWaitTime, std::chrono::milliseconds{10}}
+    );
     const auto background_behavior_errors = TriggerCleanupWithExpiredInheritedDeadline(background_pool);
     EXPECT_EQ(background_behavior_errors, 0) << "Background cleanup task should not inherit expired request deadline";
 }
@@ -852,8 +859,8 @@ UTEST_P(PostgrePool, ConnectionRateLimitThrottlesAfterFailedCleanup) {
         GetDsnFromEnv(),
         GetTaskProcessor(),
         GetParam(),
-        pg::PoolSettings{0, 3, 10, 0, kHugeConnectingIntervalMs},
-        pg::CommandControl{std::chrono::seconds{5}, std::chrono::seconds{30}}
+        pg::CommandControl{std::chrono::seconds{5}, std::chrono::seconds{30}},
+        pg::PoolSettings{0, 3, 10, 0, kHugeConnectingIntervalMs}
     );
 
     const auto errors_before = pool->GetStatistics().connection.error_total.Load();

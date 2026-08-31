@@ -15,7 +15,10 @@ env:
     CC: clang-22
     CCACHE_DIR: /home/runner/.cache/ccache
     CCACHE_NOHASHDIR: true
-    CPM_SOURCE_CACHE: /home/runner/.cache/CPM
+    # Keep CPM cache on the same filesystem as the build tree. gRPC's
+    # download_archive uses file(RENAME) from build_debug/ into the CPM cache;
+    # a separate bind-mount for CPM_SOURCE_CACHE causes "Cross-device link".
+    CPM_SOURCE_CACHE: ${{ github.workspace }}/.cpm
 
 jobs:
     posix:
@@ -73,7 +76,6 @@ jobs:
             with:
                 volumes: |
                     ${{env.CCACHE_DIR}}:${{env.CCACHE_DIR}}
-                    ${{env.CPM_SOURCE_CACHE}}:${{env.CPM_SOURCE_CACHE}}
 
           - name: Install dependencies
             shell: alpine.sh --root {0}
