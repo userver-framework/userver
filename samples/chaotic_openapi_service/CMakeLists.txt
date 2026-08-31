@@ -7,7 +7,17 @@ find_package(
     REQUIRED
 )
 
-add_library(${PROJECT_NAME}_objs OBJECT src/auth_bearer.hpp src/auth_bearer.cpp src/say_hello.hpp src/say_hello.cpp src/hello_handler.hpp src/hello_handler.cpp)
+add_library(
+    ${PROJECT_NAME}_objs OBJECT
+    src/auth_bearer.hpp
+    src/auth_bearer.cpp
+    src/auth_digest.hpp
+    src/auth_digest.cpp
+    src/say_hello.hpp
+    src/say_hello.cpp
+    src/hello_handler.hpp
+    src/hello_handler.cpp
+)
 target_link_libraries(${PROJECT_NAME}_objs userver::core)
 target_include_directories(${PROJECT_NAME}_objs PUBLIC src)
 
@@ -25,6 +35,16 @@ userver_target_generate_openapi_client(
 target_link_libraries(${PROJECT_NAME}_objs ${PROJECT_NAME}-client-test_objs)
 # /// [chaotic]
 
+# /// [digest-client-cmake] cmake
+userver_target_generate_openapi_client(
+    ${PROJECT_NAME}-client-secure_objs
+    NAME secure
+    OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/clients/secure"
+    SCHEMAS ${CMAKE_CURRENT_SOURCE_DIR}/clients/secure.yaml
+)
+target_link_libraries(${PROJECT_NAME}_objs ${PROJECT_NAME}-client-secure_objs)
+# /// [digest-client-cmake]
+
 # /// [chaotic-handler] cmake
 userver_target_generate_openapi_handlers(
     ${PROJECT_NAME}-handler-insecure_objs
@@ -34,7 +54,10 @@ userver_target_generate_openapi_handlers(
     SCHEMAS "${CMAKE_CURRENT_SOURCE_DIR}/handlers/insecure/openapi.yaml"
 )
 target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-handler-insecure_objs)
+target_link_libraries(${PROJECT_NAME}-handler-insecure_objs ${PROJECT_NAME}-client-secure_objs)
+# /// [chaotic-handler]
 
+# /// [digest-handler-cmake] cmake
 userver_target_generate_openapi_handlers(
     ${PROJECT_NAME}-handler-secure_objs
     NAME secure
@@ -43,7 +66,7 @@ userver_target_generate_openapi_handlers(
     SCHEMAS "${CMAKE_CURRENT_SOURCE_DIR}/handlers/secure/openapi.yaml"
 )
 target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-handler-secure_objs)
-# /// [chaotic-handler]
+# /// [digest-handler-cmake]
 
 # /// [generate-config]
 userver_generate_config_yaml(
@@ -54,4 +77,3 @@ userver_generate_config_yaml(
 # /// [generate-config]
 
 userver_testsuite_add_simple(CONFIG_PATH "${CMAKE_CURRENT_BINARY_DIR}/config.yaml")
-

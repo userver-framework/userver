@@ -3,6 +3,16 @@ info:
     title: Insecure handler
     version: '1.0'
 paths:
+    /call-secret:
+        get:
+            operationId: CallSecretGet
+            responses:
+                '200':
+                    description: Greeting returned by the digest-protected API
+                    content:
+                        text/plain:
+                            schema:
+                                type: string
     /insecure/secret:
         post:
             operationId: insecureSecretPost

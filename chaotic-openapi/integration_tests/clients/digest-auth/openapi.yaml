@@ -1,0 +1,20 @@
+openapi: 3.0.0
+info:
+    title: digest-auth client
+    version: '1.0'
+
+components:
+    securitySchemes:
+        myDigestScheme:
+            type: http
+            scheme: digest
+
+paths:
+    /api/resource:
+        get:
+            operationId: GetResource
+            security:
+              - myDigestScheme: []
+            responses:
+                '200':
+                    description: OK

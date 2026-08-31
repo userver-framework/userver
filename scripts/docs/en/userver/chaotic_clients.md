@@ -32,6 +32,22 @@ Third, register the client component in the component system:
 
 @snippet samples/chaotic_openapi_service/main.cpp register-client
 
+Generated client components also register their public `Client&` in the
+Chaotic handler dependency repository. If the service does not add a generated
+`ChaoticHandlersList()`, register the repository explicitly in `main.cpp`:
+
+```cpp
+component_list.Append<USERVER_NAMESPACE::components::Container<
+    USERVER_NAMESPACE::chaotic::openapi::server::dependencies::Factories>>();
+```
+
+A generated handler can obtain the client through the generated dependency
+tag:
+
+```cpp
+auto& client = deps[clients::test::kDependency];
+```
+
 Fourth, get a reference to the client...
 
 @snippet samples/chaotic_openapi_service/src/hello_handler.cpp get
@@ -112,6 +128,61 @@ If you want to follow redirects, use `follow-redirects` middleware:
       middlewares:
         follow-redirects: {}
 ```
+
+
+# Authentication
+
+## HTTP Digest Authentication
+
+If an operation in the OpenAPI schema is annotated with a `securityScheme` of type `http` and scheme `digest`,
+the generated client will automatically apply HTTP Digest authentication for that operation.
+
+### OpenAPI schema
+
+Declare the security scheme in `components.securitySchemes` and reference it on the operation:
+
+@snippet samples/chaotic_openapi_service/clients/secure.yaml security scheme
+
+@snippet samples/chaotic_openapi_service/clients/secure.yaml security requirement
+
+Generate and register the client in the same way as an unauthenticated client:
+
+@snippet samples/chaotic_openapi_service/CMakeLists.txt digest-client-cmake
+
+@snippet samples/chaotic_openapi_service/main.cpp register-digest-client
+
+### Credentials in secdist
+
+Credentials are loaded from the `Secdist` component at service startup.
+The required JSON layout is:
+
+```json
+{
+  "http_digest": {
+    "<client-name>": {
+      "<scheme-name>": { "username": "alice", "password": "secret" }
+    }
+  }
+}
+```
+
+`<scheme-name>` is the `securitySchemes` key, `<client-name>` is the `NAME` of
+`userver_target_generate_openapi_client()`. A missing entry is reported at service start
+with the exact key that was looked up.
+
+A runnable example is part of `chaotic_openapi_service`:
+
+@include samples/chaotic_openapi_service/secure_data.json
+
+Configure the client URL as usual; the testsuite may redirect it to mockserver:
+
+@snippet samples/chaotic_openapi_service/static_config.user.yaml digest-client-config
+
+@snippet samples/chaotic_openapi_service/testsuite/conftest.py digest-client-url
+
+No credentials are passed at the call site—the generated client performs the challenge/response exchange:
+
+@snippet samples/chaotic_openapi_service/src/handlers/insecure/callsecretget/view.cpp client-use
 
 
 # Direct CLI reference

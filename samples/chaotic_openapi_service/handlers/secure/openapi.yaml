@@ -13,7 +13,23 @@ paths:
                         application/json:
                             schema:
                                 $ref: '#/components/schemas/GreetingResponse'
+    /secure/secret:
+        get:
+            operationId: SecretGet
+            security:
+              - myDigestScheme: []
+            responses:
+                '200':
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GreetingResponse'
 components:
+    securitySchemes:
+        myDigestScheme:
+            type: http
+            scheme: digest
     schemas:
         GreetingResponse:
             type: object

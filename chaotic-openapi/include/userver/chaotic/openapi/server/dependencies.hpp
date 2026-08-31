@@ -136,13 +136,13 @@ template <typename ForHandlerTag>
 using Builders = std::vector<utils::move_only_function<void(Factories&, utils::AnyStorage<ForHandlerTag>&)>>;
 
 template <typename ForHandlerTag>
-static Builders<ForHandlerTag>& GetBuilders() {
+inline Builders<ForHandlerTag>& GetBuilders() {
     static Builders<ForHandlerTag> builders;
     return builders;
 }
 
 template <typename AnyTag, typename T, typename Tag>
-const utils::AnyStorageDataTag<AnyTag, WithTag<T, Tag>> kTag;
+inline const utils::AnyStorageDataTag<AnyTag, WithTag<T, Tag>> kTag;
 
 template <typename T, typename Tag, typename ForHandlerTag>
 void BuildAndStore(Factories& f, utils::AnyStorage<ForHandlerTag>& storage)
@@ -185,7 +185,8 @@ struct BuilderRegistrar final {
 };
 
 template <typename ForHandlerTag, typename T, typename Tag>
-const bool BuilderRegistrar<ForHandlerTag, T, Tag>::kRegistered = BuilderRegistrar<ForHandlerTag, T, Tag>::Register();
+inline const bool
+    BuilderRegistrar<ForHandlerTag, T, Tag>::kRegistered = BuilderRegistrar<ForHandlerTag, T, Tag>::Register();
 
 }  // namespace impl
 

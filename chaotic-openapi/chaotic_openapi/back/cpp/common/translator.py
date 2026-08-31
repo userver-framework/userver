@@ -89,6 +89,76 @@ class BaseTranslator(abc.ABC):
         self._raw_responses = {f'{name}': response for name, response in service.responses.items()}
         self._raw_request_bodies = {f'{name}': body for name, body in service.requestBodies.items()}
 
+    def _translate_security(
+        self,
+        front_security: model.SecurityOr,
+        op_path: str,
+        op_method: str,
+    ) -> common_types.Security | None:
+        if not front_security.or_items:
+            return None
+
+        if len(front_security.or_items) > 1:
+            raise chaotic_error.BaseError(
+                full_filepath=op_path,
+                infile_path=f'/{op_method}/security',
+                schema_type='openapi/swagger',
+                msg=(
+                    f'Operation "{op_method} {op_path}" uses alternative security requirements '
+                    f'(OR semantics). This is not yet supported by chaotic-openapi. '
+                    f'Use exactly one security requirement per operation.'
+                ),
+            )
+
+        requirement = front_security.or_items[0]
+        if not requirement.and_items:
+            return None
+        if len(requirement.and_items) > 1:
+            raise chaotic_error.BaseError(
+                full_filepath=op_path,
+                infile_path=f'/{op_method}/security/0',
+                schema_type='openapi/swagger',
+                msg=(
+                    f'Operation "{op_method} {op_path}" combines multiple security schemes '
+                    f'(AND semantics). This is not yet supported by chaotic-openapi. '
+                    f'Use exactly one security scheme in the requirement.'
+                ),
+            )
+
+        sec = requirement.and_items[0]
+
+        if isinstance(sec, model.HttpSecurity):
+            if sec.scheme == 'digest':
+                return common_types.HttpDigestSecurity(auth_type=sec.name)
+            raise chaotic_error.BaseError(
+                full_filepath=op_path,
+                infile_path=f'/{op_method}/security/0/{sec.name}/scheme',
+                schema_type='openapi/swagger',
+                msg=(
+                    f'Operation "{op_method} {op_path}" uses security scheme '
+                    f'"http/{sec.scheme}" which is not yet supported by chaotic-openapi. '
+                    f'Only "http/digest" is currently supported.'
+                ),
+            )
+
+        _OPENAPI_TYPE_NAMES: dict[type, str] = {
+            model.ApiKeySecurity: 'apiKey',
+            model.OAuthSecurity: 'oauth2',
+            model.OpenIdConnectSecurity: 'openIdConnect',
+            model.HttpSecurity: 'http',
+        }
+        openapi_type = _OPENAPI_TYPE_NAMES.get(type(sec), type(sec).__name__)
+        raise chaotic_error.BaseError(
+            full_filepath=op_path,
+            infile_path=f'/{op_method}/security/0/{sec.name}/type',
+            schema_type='openapi/swagger',
+            msg=(
+                f'Operation "{op_method} {op_path}" uses security type '
+                f'"{openapi_type}" which is not yet supported by chaotic-openapi. '
+                f'Only "type: http, scheme: digest" is currently supported.'
+            ),
+        )
+
     def _translate(self, service: model.Service) -> None:
         self._init_schemas(service)
         for op in service.operations:
@@ -113,6 +183,7 @@ class BaseTranslator(abc.ABC):
                 middlewares=self._translate_middlewares(op.x_middlewares),
                 client_generate=op.x_client_codegen,
                 handler_generate=op.x_handler_codegen,
+                security=self._translate_security(op.security_requirements, op.path, op.method),
             )
 
             self.validate_operation(translated_op)

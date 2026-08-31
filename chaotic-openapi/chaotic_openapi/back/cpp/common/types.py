@@ -1,10 +1,41 @@
 from collections.abc import Generator
 import dataclasses
+from typing import Literal
 
 from chaotic import cpp_names
 from chaotic import error
 from chaotic.back.cpp import types as cpp_types
 from chaotic_openapi.back.cpp.client import middleware
+
+
+@dataclasses.dataclass
+class Security:
+    auth_type: str
+
+
+@dataclasses.dataclass
+class HttpDigestSecurity(Security):
+    """``type: http, scheme: digest`` (RFC 7616)."""
+
+
+@dataclasses.dataclass
+class HttpBasicSecurity(Security):
+    """``type: http, scheme: basic``."""
+
+
+@dataclasses.dataclass
+class HttpBearerSecurity(Security):
+    """``type: http, scheme: bearer``."""
+
+    bearer_format: str | None = None
+
+
+@dataclasses.dataclass
+class ApiKeySecurity(Security):
+    """``type: apiKey``."""
+
+    api_key_name: str
+    in_: Literal['query', 'header', 'cookie']
 
 
 class SpecBase:
@@ -148,6 +179,8 @@ class Operation:
 
     middlewares: list[middleware.Middleware] = dataclasses.field(default_factory=list)
 
+    security: Security | None = None
+
     def cpp_namespace(self) -> str:
         if self.operation_id:
             return cpp_names.namespace(self.operation_id)
@@ -192,6 +225,14 @@ class Operation:
 
     def destination_metric_name(self) -> str:
         return self.path.replace('{', '_').replace('}', '_')
+
+    def uses_digest_security(self) -> bool:
+        return isinstance(self.security, HttpDigestSecurity)
+
+    def digest_scheme_name(self) -> str:
+        assert self.uses_digest_security(), 'Operation does not use digest security'
+        assert self.security is not None
+        return self.security.auth_type
 
     def requests_declaration_includes(self) -> list[str]:
         includes: set[str] = set()

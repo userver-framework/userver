@@ -4,6 +4,7 @@
 #include "responses.hpp"
 
 #include <userver/chaotic/openapi/client/command_control.hpp>
+#include <userver/chaotic/openapi/server/dependencies.hpp>
 
 namespace {{ namespace }} {
 
@@ -15,6 +16,11 @@ public:
   {% if op.client_generate %}
     /// {{ op.method }} {{ op.path }}
     {{ op.description | cpp_comment }}
+    {% if op.uses_digest_security() %}
+    /// @note Requires HTTP Digest authentication. The credentials for security
+    ///       scheme '{{ op.digest_scheme_name() }}' must be present in secdist
+    ///       under http_digest.{{ spec.client_name }}.{{ op.digest_scheme_name() }}.
+    {% endif %}
     /// @throw {{ op.cpp_namespace() }}::Exception
     {% for response in op.responses if response.is_error() %}
     /// @throw {{ op.cpp_namespace() }}::Response{{ response.status }}
@@ -30,6 +36,9 @@ public:
 
   virtual ~Client();
 };
+
+/// @brief Dependency tag for obtaining this client from a generated handler.
+inline constexpr USERVER_NAMESPACE::chaotic::openapi::server::dependencies::FactoryTag<Client&> kDependency;
 
 {% endfilter %}
 

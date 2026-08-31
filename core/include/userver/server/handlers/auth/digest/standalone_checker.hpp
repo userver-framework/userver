@@ -17,6 +17,7 @@
 #include <userver/server/handlers/auth/digest/auth_checker_base.hpp>
 #include <userver/server/handlers/auth/digest/auth_checker_settings.hpp>
 #include <userver/server/handlers/auth/digest/directives_parser.hpp>
+#include <userver/server/handlers/auth/digest/nonce_cache_settings_component.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/http/http_response.hpp>
 #include <userver/server/http/http_status.hpp>
@@ -40,6 +41,14 @@ struct NonceInfo final {
 /// digest-authentication logic.
 class AuthStandaloneCheckerBase : public AuthCheckerBase {
 public:
+    AuthStandaloneCheckerBase(
+        const AuthCheckerSettings& digest_settings,
+        std::string&& realm,
+        const SecdistConfig& secdist_config,
+        const NonceCacheSettings& nonce_cache_settings
+    );
+
+    /// @brief Compatibility overload accepting nonce-cache geometry directly.
     AuthStandaloneCheckerBase(
         const AuthCheckerSettings& digest_settings,
         std::string&& realm,

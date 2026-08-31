@@ -3,6 +3,7 @@
 /// @file userver/server/handlers/auth/auth_checker_factory.hpp
 /// @brief Authorization factory registration and base classes.
 
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -48,12 +49,22 @@ utils::UniqueRef<AuthCheckerFactoryBase> MakeAuthCheckerFactory(const components
 ///
 /// @tparam AuthCheckerFactory must:
 /// 1) inherit from @ref server::handlers::auth::AuthCheckerFactoryBase;
-/// 2) have a constructor from `const components::ComponentContext&`;
-/// 3) have `static constexpr std::string_view kAuthType = "..."` member.
+/// 2) have a constructor from `const components::ComponentContext&`.
+/// @param auth_type Handler auth type to associate with the factory.
+template <typename AuthCheckerFactory>
+void RegisterAuthCheckerFactory(std::string_view auth_type) {
+    if (auth_type.empty()) {
+        throw std::invalid_argument("Auth checker type must not be empty; pass the handler auth type to register");
+    }
+    impl::DoRegisterAuthCheckerFactory(auth_type, &impl::MakeAuthCheckerFactory<AuthCheckerFactory>);
+}
+
+/// @brief Registers an authorization checker using its `kAuthType` member.
+/// @tparam AuthCheckerFactory additionally must have a
+/// `static constexpr std::string_view kAuthType = "..."` member.
 template <typename AuthCheckerFactory>
 void RegisterAuthCheckerFactory() {
-    const auto auth_type = std::string_view{AuthCheckerFactory::kAuthType};
-    impl::DoRegisterAuthCheckerFactory(auth_type, &impl::MakeAuthCheckerFactory<AuthCheckerFactory>);
+    RegisterAuthCheckerFactory<AuthCheckerFactory>(std::string_view{AuthCheckerFactory::kAuthType});
 }
 
 }  // namespace server::handlers::auth

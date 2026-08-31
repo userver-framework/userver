@@ -58,6 +58,7 @@ def _get_template_includes(
             'requests.hpp',
             'responses.hpp',
             'userver/chaotic/openapi/client/command_control.hpp',
+            'userver/chaotic/openapi/server/dependencies.hpp',
         ],
         'client_fwd.hpp': [],
         'client_impl.cpp': [
@@ -91,8 +92,10 @@ def _get_template_includes(
             f'clients/{client_name}/component.hpp',
             'userver/chaotic/openapi/client/config.hpp',
             'userver/chaotic/openapi/client/middleware_factory.hpp',
+            'userver/chaotic/openapi/server/dependencies.hpp',
             'userver/clients/http/middlewares/base.hpp',
             'userver/clients/http/middlewares/component.hpp',
+            'userver/components/container.hpp',
             'userver/components/component_context.hpp',
             'userver/yaml_config/merge_schemas.hpp',
             'userver/clients/http/component.hpp',

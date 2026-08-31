@@ -233,7 +233,8 @@ SecuritySchemes = dict[str, SecurityScheme | Ref]
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#security-requirement-object
-Security = dict[str, list[str]]
+SecurityRequirement = dict[str, list[str]]
+Security = list[SecurityRequirement]
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#components-object
@@ -320,7 +321,7 @@ class OpenApi(base_model.BaseModel):
     servers: list[Server] = pydantic.Field(default_factory=list)
     paths: dict[str, Path] = pydantic.Field(default_factory=dict)
     components: Components = Components()
-    security: Security = pydantic.Field(default_factory=dict)
+    security: Security = pydantic.Field(default_factory=list)
     tags: list[Any] = pydantic.Field(default_factory=list)
     externalDocs: Any = None
 
@@ -337,21 +338,26 @@ class OpenApi(base_model.BaseModel):
         if not security:
             return
 
-        for name, values in security.items():
-            if name not in self.components.securitySchemes:
-                raise ValueError(
-                    f'Undefined security name="{name}". Expected on of: {self.components.securitySchemes.keys()}',
-                )
-            sec_scheme = self.components.securitySchemes[name]
-
-            if isinstance(sec_scheme, Ref):
-                if sec_scheme not in self.components.securitySchemes:
+        for requirement in security:
+            for name, values in requirement.items():
+                if name not in self.components.securitySchemes:
                     raise ValueError(
-                        f'Invalid reference "{sec_scheme}". Expected one of: "{self.components.securitySchemes.keys()}"',
+                        f'Undefined security name="{name}". Expected one of: {self.components.securitySchemes.keys()}',
                     )
-            elif isinstance(sec_scheme, SecurityScheme):
-                if sec_scheme.type not in [SecurityType.oauth2, SecurityType.openIdConnect]:
-                    if len(values) != 0:
+                sec_scheme = self.components.securitySchemes[name]
+
+                if isinstance(sec_scheme, Ref):
+                    prefix = '#/components/securitySchemes/'
+                    if (
+                        not sec_scheme.ref.startswith(prefix)
+                        or sec_scheme.ref.removeprefix(prefix) not in self.components.securitySchemes
+                    ):
+                        raise ValueError(
+                            f'Invalid security reference "{sec_scheme.ref}". '
+                            f'Expected one of: {self.components.securitySchemes.keys()}',
+                        )
+                elif isinstance(sec_scheme, SecurityScheme):
+                    if sec_scheme.type not in [SecurityType.oauth2, SecurityType.openIdConnect] and values:
                         raise ValueError(f'For security "{name}" the array must be empty')
 
     def model_post_init(self, context: Any, /) -> None:

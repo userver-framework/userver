@@ -33,6 +33,37 @@ components_manager:
             fs-task-processor: fs-task-processor
             user-agent: 'sample'
 
+        # /// [digest-secdist-config]
+        default-secdist-provider:
+            config: secure_data.json
+            missing-ok: false
+        # /// [digest-secdist-config]
+
+        # /// [digest-settings]
+        nonce-cache-settings:
+            algorithm: MD5
+            qops:
+              - auth
+            is-proxy: false
+            is-session: false
+            domains:
+              - /secure/secret
+            nonce-ttl: 1000s
+            ways: 4
+            size: 100000
+        # /// [digest-settings]
+
+        # /// [digest-handler-auth-config]
+        handler-secret-get:
+            auth:
+                realm: 'chaotic@userver.com'
+        # /// [digest-handler-auth-config]
+
+        # /// [digest-client-config]
+        secure-client:
+            base-url: 'http://localhost:8080/'
+        # /// [digest-client-config]
+
         # /// [qos-config]
         test-client:
             middlewares:

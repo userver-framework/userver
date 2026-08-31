@@ -105,4 +105,3 @@ See the full example at:
 @example samples/websocket_service/CMakeLists.txt
 @example samples/websocket_service/tests/conftest.py
 @example samples/websocket_service/tests/test_websocket.py
-

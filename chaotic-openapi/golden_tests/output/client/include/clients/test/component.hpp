@@ -12,6 +12,10 @@ class Component final : public USERVER_NAMESPACE::components::ComponentBase {
 public:
     static constexpr std::string_view kName = "test-client";
 
+    /// @brief Constructs the client and registers it as `kDependency`.
+    ///
+    /// The service component list must contain
+    /// `components::Container<chaotic::openapi::server::dependencies::Factories>`.
     Component(const USERVER_NAMESPACE::components::ComponentConfig& config, const USERVER_NAMESPACE::components::ComponentContext& context);
 
     Client& GetClient();

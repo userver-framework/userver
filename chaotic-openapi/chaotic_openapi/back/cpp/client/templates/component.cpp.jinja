@@ -2,8 +2,10 @@
 
 #include <userver/chaotic/openapi/client/config.hpp>
 #include <userver/chaotic/openapi/client/middleware_factory.hpp>
+#include <userver/chaotic/openapi/server/dependencies.hpp>
 #include <userver/clients/http/middlewares/base.hpp>
 #include <userver/clients/http/middlewares/component.hpp>
+#include <userver/components/container.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -16,8 +18,44 @@
 #define USERVER_TVM2_HTTP_CLIENT
 {% endif %}
 
+{% if spec.uses_digest_security() %}
+#include <userver/chaotic/openapi/client/digest_auth.hpp>
+#include <userver/storages/secdist/component.hpp>
+#include <userver/utils/assert.hpp>
+{% endif %}
 
 namespace {{ namespace }} {
+
+namespace {
+
+USERVER_NAMESPACE::chaotic::openapi::client::Config MakeConfig(
+    const USERVER_NAMESPACE::components::ComponentConfig& config,
+    const USERVER_NAMESPACE::components::ComponentContext&{% if spec.uses_digest_security() %} context{% endif %}
+) {
+    auto cfg = USERVER_NAMESPACE::chaotic::openapi::client::ParseConfig(config, ClientImpl::kDefaultBaseUrl);
+    {% if spec.uses_digest_security() %}
+    const auto& secdist = context.FindComponent<USERVER_NAMESPACE::components::Secdist>().Get();
+    const auto& digest_cfg = secdist.Get<USERVER_NAMESPACE::chaotic::openapi::client::DigestAuthSecdistConfig>();
+
+    {% for scheme_name in spec.digest_scheme_names() %}
+    {
+        const auto [it, inserted] = cfg.digest_auth_credentials.emplace(
+            "{{ scheme_name }}",
+            digest_cfg.GetCredentialsOrThrow("{{ spec.client_name }}", "{{ scheme_name }}")
+        );
+        UINVARIANT(
+            inserted,
+            "Duplicate digest auth scheme '{{ scheme_name }}' for client '{{ spec.client_name }}'; "
+            "scheme names must be unique — this is a chaotic-openapi codegen bug, please report it"
+        );
+    }
+    {% endfor %}
+    {% endif %}
+
+    return cfg;
+}
+
+}  // namespace
 
 {% filter indent(width=8, first=True) %}
 
@@ -27,7 +65,7 @@ Component::Component(
 )
     : USERVER_NAMESPACE::components::ComponentBase(config, context),
       client_(
-          USERVER_NAMESPACE::chaotic::openapi::client::ParseConfig(config, ClientImpl::kDefaultBaseUrl),
+          MakeConfig(config, context),
           context.FindComponent<USERVER_NAMESPACE::components::HttpClient>().GetHttpClient()
       ) 
 {
@@ -53,6 +91,10 @@ Component::Component(
         }
         client_.SetCoreMiddlewares(std::move(core_middlewares));
     }
+
+    using Factories = USERVER_NAMESPACE::chaotic::openapi::server::dependencies::Factories;
+    auto& factories = context.FindComponent<USERVER_NAMESPACE::components::Container<Factories>>().Get();
+    factories.Register([&client = client_]() -> Client& { return client; });
 }
 
 Client& Component::GetClient() { return client_; }

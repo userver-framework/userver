@@ -7,6 +7,7 @@ SET_APPEND(
     CODEGEN_CONFIG_FILES
     ${ARCADIA_ROOT}/taxi/uservices/userver/chaotic-openapi/include/userver/chaotic/openapi/client/command_control.hpp
     ${ARCADIA_ROOT}/taxi/uservices/userver/chaotic-openapi/include/userver/chaotic/openapi/client/config.hpp
+    ${ARCADIA_ROOT}/taxi/uservices/userver/chaotic-openapi/include/userver/chaotic/openapi/client/digest_auth.hpp
     ${ARCADIA_ROOT}/taxi/uservices/userver/chaotic-openapi/include/userver/chaotic/openapi/client/exceptions.hpp
     ${ARCADIA_ROOT}/taxi/uservices/userver/chaotic-openapi/include/userver/chaotic/openapi/client/middleware.hpp
     ${ARCADIA_ROOT}/taxi/uservices/userver/chaotic-openapi/include/userver/chaotic/openapi/client/middleware_factory.hpp

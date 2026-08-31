@@ -53,7 +53,7 @@ def test_openapi_body_schema(simple_parser):
                     ),
                 ],
                 responses={},
-                security=[],
+                security_requirements=model.SecurityOr(or_items=[]),
                 x_middlewares=base_model.XMiddlewares(tvm=True),
                 x_client_codegen=True,
             ),
@@ -90,11 +90,11 @@ def test_openapi_security(simple_parser):
                 'oauth_other': {'$ref': '#/components/securitySchemes/oauth'},
             },
         },
-        'security': {'api_key': [], 'oauth': ['write', 'read']},
+        'security': [{'api_key': [], 'oauth': ['write', 'read']}],
         'paths': {
             '/': {
-                'get': {'responses': {}, 'security': {'api_key': [], 'oauth': ['read']}},
-                'post': {'responses': {}, 'security': {'api_key': [], 'oauth': ['write']}},
+                'get': {'responses': {}, 'security': [{'api_key': [], 'oauth': ['read']}]},
+                'post': {'responses': {}, 'security': [{'api_key': [], 'oauth': ['write']}]},
                 'put': {'responses': {}},
             },
         },
@@ -103,11 +103,13 @@ def test_openapi_security(simple_parser):
         description='',
         security={
             '<inline>#/components/securitySchemes/api_key': model.ApiKeySecurity(
-                description='',
                 name='api_key',
+                description='',
+                api_key_name='api_key',
                 in_=model.SecurityIn.header,
             ),
             '<inline>#/components/securitySchemes/oauth': model.OAuthSecurity(
+                name='oauth',
                 description='',
                 flows=[
                     model.ImplicitFlow(
@@ -124,6 +126,7 @@ def test_openapi_security(simple_parser):
                 ],
             ),
             '<inline>#/components/securitySchemes/oauth_other': model.OAuthSecurity(
+                name='oauth_other',
                 description='',
                 flows=[
                     model.ImplicitFlow(
@@ -149,25 +152,34 @@ def test_openapi_security(simple_parser):
                 parameters=[],
                 responses={},
                 requestBody=[],
-                security=[
-                    model.ApiKeySecurity(description='', name='api_key', in_=model.SecurityIn.header),
-                    model.OAuthSecurity(
-                        description='',
-                        flows=[
-                            model.ImplicitFlow(
-                                refreshUrl='https://example.com/api/oauth/dialog',
-                                scopes={'read': 'read data'},
-                                authorizationUrl='https://example.com/api/oauth/dialog',
-                            ),
-                            model.AuthCodeFlow(
-                                refreshUrl='',
-                                scopes={'read': 'read data'},
-                                authorizationUrl='https://example.com/api/oauth/dialog',
-                                tokenUrl='https://example.com/api/oauth/token',
-                            ),
-                        ],
-                    ),
-                ],
+                security_requirements=model.SecurityOr(
+                    or_items=[
+                        model.SecurityAnd(
+                            and_items=[
+                                model.ApiKeySecurity(
+                                    name='api_key', description='', api_key_name='api_key', in_=model.SecurityIn.header
+                                ),
+                                model.OAuthSecurity(
+                                    name='oauth',
+                                    description='',
+                                    flows=[
+                                        model.ImplicitFlow(
+                                            refreshUrl='https://example.com/api/oauth/dialog',
+                                            scopes={'read': 'read data'},
+                                            authorizationUrl='https://example.com/api/oauth/dialog',
+                                        ),
+                                        model.AuthCodeFlow(
+                                            refreshUrl='',
+                                            scopes={'read': 'read data'},
+                                            authorizationUrl='https://example.com/api/oauth/dialog',
+                                            tokenUrl='https://example.com/api/oauth/token',
+                                        ),
+                                    ],
+                                ),
+                            ]
+                        )
+                    ]
+                ),
                 x_middlewares=base_model.XMiddlewares(tvm=True),
                 x_client_codegen=True,
             ),
@@ -179,25 +191,34 @@ def test_openapi_security(simple_parser):
                 parameters=[],
                 responses={},
                 requestBody=[],
-                security=[
-                    model.ApiKeySecurity(description='', name='api_key', in_=model.SecurityIn.header),
-                    model.OAuthSecurity(
-                        description='',
-                        flows=[
-                            model.ImplicitFlow(
-                                refreshUrl='https://example.com/api/oauth/dialog',
-                                scopes={},
-                                authorizationUrl='https://example.com/api/oauth/dialog',
-                            ),
-                            model.AuthCodeFlow(
-                                refreshUrl='',
-                                scopes={'write': 'modify data'},
-                                authorizationUrl='https://example.com/api/oauth/dialog',
-                                tokenUrl='https://example.com/api/oauth/token',
-                            ),
-                        ],
-                    ),
-                ],
+                security_requirements=model.SecurityOr(
+                    or_items=[
+                        model.SecurityAnd(
+                            and_items=[
+                                model.ApiKeySecurity(
+                                    name='api_key', description='', api_key_name='api_key', in_=model.SecurityIn.header
+                                ),
+                                model.OAuthSecurity(
+                                    name='oauth',
+                                    description='',
+                                    flows=[
+                                        model.ImplicitFlow(
+                                            refreshUrl='https://example.com/api/oauth/dialog',
+                                            scopes={},
+                                            authorizationUrl='https://example.com/api/oauth/dialog',
+                                        ),
+                                        model.AuthCodeFlow(
+                                            refreshUrl='',
+                                            scopes={'write': 'modify data'},
+                                            authorizationUrl='https://example.com/api/oauth/dialog',
+                                            tokenUrl='https://example.com/api/oauth/token',
+                                        ),
+                                    ],
+                                ),
+                            ]
+                        )
+                    ]
+                ),
                 x_middlewares=base_model.XMiddlewares(tvm=True),
                 x_client_codegen=True,
             ),
@@ -209,30 +230,122 @@ def test_openapi_security(simple_parser):
                 parameters=[],
                 responses={},
                 requestBody=[],
-                security=[
-                    model.ApiKeySecurity(description='', name='api_key', in_=model.SecurityIn.header),
-                    model.OAuthSecurity(
-                        description='',
-                        flows=[
-                            model.ImplicitFlow(
-                                refreshUrl='https://example.com/api/oauth/dialog',
-                                scopes={'read': 'read data'},
-                                authorizationUrl='https://example.com/api/oauth/dialog',
-                            ),
-                            model.AuthCodeFlow(
-                                refreshUrl='',
-                                scopes={'write': 'modify data', 'read': 'read data'},
-                                authorizationUrl='https://example.com/api/oauth/dialog',
-                                tokenUrl='https://example.com/api/oauth/token',
-                            ),
-                        ],
-                    ),
-                ],
+                security_requirements=model.SecurityOr(
+                    or_items=[
+                        model.SecurityAnd(
+                            and_items=[
+                                model.ApiKeySecurity(
+                                    name='api_key', description='', api_key_name='api_key', in_=model.SecurityIn.header
+                                ),
+                                model.OAuthSecurity(
+                                    name='oauth',
+                                    description='',
+                                    flows=[
+                                        model.ImplicitFlow(
+                                            refreshUrl='https://example.com/api/oauth/dialog',
+                                            scopes={'read': 'read data'},
+                                            authorizationUrl='https://example.com/api/oauth/dialog',
+                                        ),
+                                        model.AuthCodeFlow(
+                                            refreshUrl='',
+                                            scopes={'write': 'modify data', 'read': 'read data'},
+                                            authorizationUrl='https://example.com/api/oauth/dialog',
+                                            tokenUrl='https://example.com/api/oauth/token',
+                                        ),
+                                    ],
+                                ),
+                            ]
+                        )
+                    ]
+                ),
                 x_middlewares=base_model.XMiddlewares(tvm=True),
                 x_client_codegen=True,
             ),
         ],
     )
+
+
+def test_openapi_http_digest_security(simple_parser):
+    """http/digest scheme: name is threaded, scheme is lowercased."""
+    result = simple_parser({
+        'openapi': '3.0.0',
+        'info': {'title': '', 'version': '1.0'},
+        'components': {
+            'securitySchemes': {
+                'digestAuth': {
+                    'type': 'http',
+                    'scheme': 'Digest',  # mixed-case must be normalised to 'digest'
+                    'description': 'HTTP Digest',
+                },
+                'digestAlias': {'$ref': '#/components/securitySchemes/digestAuth'},
+            },
+        },
+        'paths': {
+            '/protected': {
+                'get': {
+                    'responses': {},
+                    'security': [{'digestAuth': []}],
+                },
+                'post': {
+                    'responses': {},
+                    'security': [{'digestAlias': []}],
+                },
+            },
+        },
+    })
+
+    expected_digest = model.HttpSecurity(
+        name='digestAuth',
+        description='HTTP Digest',
+        scheme='digest',
+        bearerFormat=None,
+    )
+    expected_alias = model.HttpSecurity(
+        name='digestAlias',
+        description='HTTP Digest',
+        scheme='digest',
+        bearerFormat=None,
+    )
+
+    assert result.security['<inline>#/components/securitySchemes/digestAuth'] == expected_digest
+    assert result.security['<inline>#/components/securitySchemes/digestAlias'] == expected_alias
+
+    assert [op.security_requirements for op in result.operations] == [
+        model.SecurityOr(or_items=[model.SecurityAnd(and_items=[expected_digest])]),
+        model.SecurityOr(or_items=[model.SecurityAnd(and_items=[expected_alias])]),
+    ]
+
+
+def test_openapi_security_requires_array(simple_parser):
+    with pytest.raises(error.BaseError, match=r'Input should be a valid list'):
+        simple_parser({
+            'openapi': '3.0.0',
+            'info': {'title': '', 'version': '1.0'},
+            'components': {'securitySchemes': {'digestAuth': {'type': 'http', 'scheme': 'digest'}}},
+            'paths': {
+                '/': {
+                    'get': {
+                        'responses': {},
+                        'security': {'digestAuth': []},
+                    },
+                },
+            },
+        })
+
+
+def test_openapi_security_rejects_invalid_reference(simple_parser):
+    with pytest.raises(error.BaseError, match=r'Invalid security reference.*missingDigest.*digestAuth'):
+        simple_parser({
+            'openapi': '3.0.0',
+            'info': {'title': '', 'version': '1.0'},
+            'components': {
+                'securitySchemes': {
+                    'digestAuth': {'type': 'http', 'scheme': 'digest'},
+                    'digestAlias': {'$ref': '#/components/securitySchemes/missingDigest'},
+                },
+            },
+            'paths': {'/': {'get': {'responses': {}, 'security': [{'digestAlias': []}]}}},
+        })
 
 
 def test_openapi_parameters(simple_parser):
@@ -332,7 +445,7 @@ def test_openapi_parameters(simple_parser):
                 operationId=None,
                 responses={},
                 requestBody=[],
-                security=[],
+                security_requirements=model.SecurityOr(or_items=[]),
                 x_middlewares=base_model.XMiddlewares(tvm=True),
                 x_client_codegen=True,
                 parameters=[
