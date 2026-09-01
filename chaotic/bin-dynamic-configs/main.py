@@ -15,12 +15,14 @@ else:
 def make_compiler():
     try:
         from util.dynamic_configs import dynamic_configs as taxi_dynamic_config
-
-        return taxi_dynamic_config.Compiler(strict_parsing_default=False)
-    except ImportError:
+    except ModuleNotFoundError as error:
+        if error.name not in {'util', 'util.dynamic_configs'}:
+            raise
         from chaotic.compilers import dynamic_config
 
         return dynamic_config.Compiler(strict_parsing_default=False)
+
+    return taxi_dynamic_config.Compiler(strict_parsing_default=False)
 
 
 def parse_args() -> argparse.Namespace:
