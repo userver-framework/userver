@@ -4,7 +4,7 @@ This folder contains the
 [JSON schema codegen functionality - userver chaotic](https://userver.tech/d8/d43/md_en_2userver_2chaotic.html)
 
 
-## Implmentation details introduction
+## Implementation details introduction
 
 * `userver/chaotic/chaotic/` contains the program that generates C++ code from JSON schema.
 * `userver/chaotic/chaotic/front/` contains the code for YAML to Python-representation transformation
