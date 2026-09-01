@@ -52,6 +52,10 @@ protected:
         dynamic_config::Source config_source
     );
 
+    // Must not be called from PoolImpl's constructor: UpdateAndListen runs
+    // OnConfigUpdate synchronously, and that dispatches to virtual SetPoolSettings.
+    void SubscribeToConfig(utils::ResourceScopeStorage& scopes);
+
 private:
     void OnConfigUpdate(const dynamic_config::Snapshot& config);
 

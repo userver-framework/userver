@@ -37,11 +37,14 @@ PoolImpl::PoolImpl(
           }
       )
 {
-    config_source_.UpdateAndListen(scopes, this, "mongo_pool", &PoolImpl::OnConfigUpdate);
     scopes.Register([this] {
         cc_controller_.Start();
         return utils::FastScopeGuard([this]() noexcept { cc_controller_.Stop(); });
     });
+}
+
+void PoolImpl::SubscribeToConfig(utils::ResourceScopeStorage& scopes) {
+    config_source_.UpdateAndListen(scopes, this, "mongo_pool", &PoolImpl::OnConfigUpdate);
 }
 
 void PoolImpl::OnConfigUpdate(const dynamic_config::Snapshot& config) {

@@ -400,6 +400,9 @@ CDriverPoolImpl::CDriverPoolImpl(
         .Start(kMaintenanceTaskName, {config.maintenance_period, {utils::PeriodicTask::Flags::kStrong}}, [this] {
             DoMaintenance();
         });
+
+    // Must be the last line: UpdateAndListen synchronously calls virtual SetPoolSettings.
+    SubscribeToConfig(scopes);
 }
 
 CDriverPoolImpl::~CDriverPoolImpl() {
