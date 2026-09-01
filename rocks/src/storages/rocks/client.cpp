@@ -1,10 +1,10 @@
 #include <userver/storages/rocks/client.hpp>
 
 #include <fmt/format.h>
+#include <rocksdb/utilities/checkpoint.h>
 #include <rocksdb/utilities/optimistic_transaction_db.h>
 #include <rocksdb/utilities/transaction_db.h>
-
-#include <rocksdb/utilities/checkpoint.h>
+#include <rocksdb/version.h>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/task/current_task.hpp>
@@ -18,16 +18,22 @@ namespace storages::rocks {
 
 namespace {
 
+#if ROCKSDB_MAJOR > 9
+using RawDbPointerType = std::unique_ptr<rocksdb::DB>;
+#else
+using RawDbPointerType = rocksdb::DB*;
+#endif
+
 std::shared_ptr<rocksdb::DB> OpenPlain(const std::string& db_path) {
     rocksdb::Options options;
     options.create_if_missing = true;
 
-    rocksdb::DB* db_raw{};
+    RawDbPointerType db_raw{};
     const rocksdb::Status status = rocksdb::DB::Open(options, db_path, &db_raw);
     if (!status.ok()) {
         throw RequestFailedException("Create client", status.ToString());
     }
-    return std::shared_ptr<rocksdb::DB>(db_raw);
+    return std::shared_ptr<rocksdb::DB>(std::move(db_raw));
 }
 
 }  // namespace
