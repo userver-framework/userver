@@ -1,12 +1,11 @@
 #pragma once
 
-#include <chrono>
 #include <memory>
-#include <optional>
 
 #include <storages/mongo/cdriver/request_helpers.hpp>
 #include <storages/mongo/cdriver/wrappers.hpp>
 #include <storages/mongo/collection_impl.hpp>
+#include <storages/mongo/stats.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -49,19 +48,6 @@ private:
 
     WriteResult ExecuteReplaceNative(const operations::ReplaceOne& operation, CollectionRequestContext& context);
     WriteResult ExecuteUpdateNative(const operations::Update& operation, CollectionRequestContext& context);
-
-#ifdef MONGOC_BULKWRITE_H
-    std::optional<WriteResult> ExecuteReplaceBulkWrite(
-        const operations::ReplaceOne& operation,
-        CollectionRequestContext& context,
-        std::chrono::milliseconds effective
-    );
-    std::optional<WriteResult> ExecuteUpdateBulkWrite(
-        const operations::Update& operation,
-        CollectionRequestContext& context,
-        std::chrono::milliseconds effective
-    );
-#endif
 
     cdriver::CDriverPoolImpl& GetPool() const;
 
