@@ -202,11 +202,10 @@ UTEST(Subprocess, CheckLogClosesFds) {
     engine::subprocess::ProcessStarter starter(engine::current_task::GetTaskProcessor());
 
 #if defined(__APPLE__)
-    std::string self;
-    uint32_t self_len = 0;
-    ASSERT_EQ(_NSGetExecutablePath(self.data(), &self_len), -1);
-    self.resize(self_len);
-    ASSERT_EQ(_NSGetExecutablePath(self.data(), &self_len), 0);
+    char path[PATH_MAX];
+    uint32_t path_size = sizeof(path);
+    ASSERT_EQ(_NSGetExecutablePath(path, &path_size), 0);
+    std::string self(path);
 #elif defined(BSD)
     int mib[4];
     mib[0] = CTL_KERN;
