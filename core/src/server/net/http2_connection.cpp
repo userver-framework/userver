@@ -153,7 +153,6 @@ void Http2Connection::OnRequestTaskFinished(std::uint64_t event_id) noexcept {
 void Http2Connection::SendResponse(http::HttpRequest& request) noexcept {
     auto& response = request.GetHttpResponse();
     UASSERT(!response.IsSent());
-    request.SetStartSendResponseTime();
     if (IsResponseChainValid()) {
         try {
             // Might be a stream reading or a fully constructed response
@@ -169,15 +168,14 @@ void Http2Connection::SendResponse(http::HttpRequest& request) noexcept {
         } catch (const engine::io::IoSystemError& ex) {
             auto log_level = ex.Code().value() == EPIPE ? logging::Level::kWarning : logging::Level::kError;
             LOG(log_level) << "I/O error while sending data: " << ex;
-            response.SetSendFailed(std::chrono::steady_clock::now());
+            response.SetSendFailed();
         } catch (const std::exception& ex) {
             LOG_ERROR() << "Error while sending data: " << ex;
-            response.SetSendFailed(std::chrono::steady_clock::now());
+            response.SetSendFailed();
         }
     } else {
-        response.SetSendFailed(std::chrono::steady_clock::now());
+        response.SetSendFailed();
     }
-    request.SetFinishSendResponseTime();
     stats_.active_request_count.Subtract(1);
     ++stats_.requests_processed_count;
 

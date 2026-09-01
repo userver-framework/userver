@@ -73,6 +73,11 @@ std::string EscapeForAccessTskvLog(std::string_view str) {
     return encoded_str;
 }
 
+std::chrono::duration<double> GetRequestTime(std::chrono::steady_clock::time_point start_time) {
+    // Measure time from request start to the current time
+    return std::chrono::steady_clock::now() - start_time;
+}
+
 const std::string kEmptyString{};
 const std::vector<std::string> kEmptyVector{};
 
@@ -98,12 +103,8 @@ const std::string& HttpRequest::GetUrl() const { return pimpl_->url; }
 
 const std::string& HttpRequest::GetRequestPath() const { return pimpl_->request_path; }
 
-std::chrono::duration<double> HttpRequest::GetRequestTime() const {
-    return GetHttpResponse().SentTime() - GetStartTime();
-}
-
 std::chrono::duration<double> HttpRequest::GetResponseTime() const {
-    return GetHttpResponse().ReadyTime() - GetStartTime();
+    return GetHttpResponse().GetReadyTime() - GetStartTime();
 }
 
 const std::string& HttpRequest::GetHost() const { return GetHeader(USERVER_NAMESPACE::http::headers::kHost); }
@@ -337,22 +338,6 @@ void HttpRequest::SetStreamProducer(impl::Http2StreamEventProducer&& producer) {
     pimpl_->response.SetStreamProdicer(std::move(producer));
 }
 
-void HttpRequest::SetTaskCreateTime() { pimpl_->task_create_time = std::chrono::steady_clock::now(); }
-
-void HttpRequest::SetTaskStartTime() { pimpl_->task_start_time = std::chrono::steady_clock::now(); }
-
-void HttpRequest::SetResponseNotifyTime() { SetResponseNotifyTime(std::chrono::steady_clock::now()); }
-
-void HttpRequest::SetResponseNotifyTime(std::chrono::steady_clock::time_point now) {
-    pimpl_->response_notify_time = now;
-}
-
-void HttpRequest::SetStartSendResponseTime() noexcept {
-    pimpl_->start_send_response_time = std::chrono::steady_clock::now();
-}
-
-void HttpRequest::SetFinishSendResponseTime() { pimpl_->finish_send_response_time = std::chrono::steady_clock::now(); }
-
 void HttpRequest::WriteAccessLogs(
     const logging::TextLoggerPtr& logger_access,
     const logging::TextLoggerPtr& logger_access_tskv,
@@ -390,8 +375,8 @@ void HttpRequest::WriteAccessLog(
             EscapeForAccessLog(GetHeader("Referer")),
             EscapeForAccessLog(GetHeader("User-Agent")),
             EscapeForAccessLog(GetHeader("Cookie")),
-            GetRequestTime().count(),
-            GetHttpResponse().BytesSent(),
+            GetRequestTime(GetStartTime()).count(),
+            GetHttpResponse().GetBytesSent(),
             GetResponseTime().count()
         ),
     };
@@ -443,7 +428,7 @@ void HttpRequest::WriteAccessTskvLog(
         EscapeForAccessTskvLog(GetHeader("X-YaRequestId")),
         EscapeForAccessTskvLog(GetHost()),
         EscapeForAccessTskvLog(remote_address),
-        GetRequestTime().count(),
+        GetRequestTime(GetStartTime()).count(),
         GetResponseTime().count(),
         EscapeForAccessTskvLog(RequestBody())
     )};

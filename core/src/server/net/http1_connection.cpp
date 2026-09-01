@@ -97,7 +97,6 @@ void Http1Connection::ProcessRequest(std::shared_ptr<http::HttpRequest>&& reques
 void Http1Connection::SendResponse(http::HttpRequest& request) {
     auto& response = request.GetHttpResponse();
     UASSERT(!response.IsSent());
-    request.SetStartSendResponseTime();
     if (IsResponseChainValid() && IsValid()) {
         try {
             // Might be a stream reading or a fully constructed response
@@ -105,15 +104,14 @@ void Http1Connection::SendResponse(http::HttpRequest& request) {
         } catch (const engine::io::IoSystemError& ex) {
             auto log_level = ex.Code().value() == EPIPE ? logging::Level::kWarning : logging::Level::kError;
             LOG(log_level) << "I/O error while sending data: " << ex;
-            response.SetSendFailed(std::chrono::steady_clock::now());
+            response.SetSendFailed();
         } catch (const std::exception& ex) {
             LOG_ERROR() << "Error while sending data: " << ex;
-            response.SetSendFailed(std::chrono::steady_clock::now());
+            response.SetSendFailed();
         }
     } else {
-        response.SetSendFailed(std::chrono::steady_clock::now());
+        response.SetSendFailed();
     }
-    request.SetFinishSendResponseTime();
     stats_.active_request_count.Subtract(1);
     ++stats_.requests_processed_count;
 

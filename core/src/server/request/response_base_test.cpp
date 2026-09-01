@@ -124,26 +124,22 @@ TEST(ResponseBase, AccounterStopsOnSetSent) {
     ASSERT_EQ(accounter.GetPendingResponsesSizeInBytes(), body.size());
     ASSERT_EQ(accounter.GetPendingResponsesCount(), 1);
 
-    response.SetSent(body.size(), std::chrono::steady_clock::now());
+    response.SetSent(body.size());
 
     EXPECT_TRUE(response.IsSent());
-    EXPECT_EQ(response.BytesSent(), body.size());
+    EXPECT_EQ(response.GetBytesSent(), body.size());
     EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), 0);
     EXPECT_EQ(accounter.GetPendingResponsesCount(), 0);
 }
 
 TEST(ResponseBase, AccounterStopsOnSetSendFailed) {
     server::request::ResponseDataAccounter accounter;
-    TestResponse response{accounter};
-
-    response.SetData("payload");
-    ASSERT_EQ(accounter.GetPendingResponsesCount(), 1);
-    ASSERT_EQ(accounter.GetPendingResponsesSizeInBytes(), 7);
-
-    response.SetSendFailed(std::chrono::steady_clock::now());
-
-    EXPECT_TRUE(response.IsSent());
-    EXPECT_EQ(response.BytesSent(), 0);
+    {
+        TestResponse response{accounter};
+        response.SetData("payload");
+        ASSERT_EQ(accounter.GetPendingResponsesCount(), 1);
+        ASSERT_EQ(accounter.GetPendingResponsesSizeInBytes(), 7);
+    }
     EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), 0);
     EXPECT_EQ(accounter.GetPendingResponsesCount(), 0);
 }
@@ -161,7 +157,7 @@ TEST(ResponseBase, AccounterMultipleResponses) {
     EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), 7);
     EXPECT_EQ(accounter.GetPendingResponsesCount(), 2);
 
-    first->SetSent(3, std::chrono::steady_clock::now());
+    first->SetSent(3);
     EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), 4);
     EXPECT_EQ(accounter.GetPendingResponsesCount(), 1);
 
@@ -178,7 +174,7 @@ TEST(ResponseBase, IsLimitReached) {
     EXPECT_FALSE(small.IsLimitReached());
     small.SetData(std::string(9, 'x'));
     EXPECT_FALSE(small.IsLimitReached());
-    small.SetSent(9, std::chrono::steady_clock::now());
+    small.SetSent(9);
 
     TestResponse exact{accounter};
     exact.SetData(std::string(10, 'x'));

@@ -120,7 +120,7 @@ ResponseBase::ResponseBase(ResponseDataAccounter& data_account, std::chrono::ste
 }
 
 ResponseBase::~ResponseBase() noexcept {
-    if (sent_time_ == kUnset) {
+    if (!IsSent()) {
         accounter_.StopRequest(accounted_size_, create_time_);
     }
 }
@@ -133,7 +133,7 @@ void ResponseBase::SetSharedData(std::shared_ptr<const std::string> data) {
 }
 
 void ResponseBase::StoreData(impl::ChunkStorage data) {
-    if (sent_time_ != kUnset) {
+    if (IsSent()) {
         UASSERT(IsBodyStreamed());
         LOG_LIMITED_WARNING()
             << "Attempt to set response body after it was already sent by streaming. Probably an "
@@ -163,14 +163,13 @@ bool ResponseBase::IsLimitReached() const {
     return accounter_.GetPendingResponsesSizeInBytes() >= accounter_.GetMaxPendingResponsesSizeInBytes();
 }
 
-void ResponseBase::SetSendFailed(std::chrono::steady_clock::time_point failure_time) { SetSent(0, failure_time); }
+void ResponseBase::SetSendFailed() { SetSent(0); }
 
-void ResponseBase::SetSent(std::size_t bytes_sent, std::chrono::steady_clock::time_point sent_time) {
-    UASSERT(sent_time_ == kUnset);
-    UASSERT(sent_time != kUnset);
+void ResponseBase::SetSent(std::size_t bytes_sent) {
+    UASSERT(!IsSent());
     accounter_.StopRequest(accounted_size_, create_time_);
     bytes_sent_ = bytes_sent;
-    sent_time_ = sent_time;
+    is_sent_ = true;
 }
 
 void ResponseBase::SetStreamId(std::int32_t stream_id) {

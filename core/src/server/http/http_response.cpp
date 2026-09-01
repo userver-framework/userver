@@ -165,9 +165,9 @@ HttpResponse::HttpResponse(
 
 HttpResponse::~HttpResponse() = default;
 
-void HttpResponse::SetSendFailed(std::chrono::steady_clock::time_point failure_time) {
+void HttpResponse::SetSendFailed() {
     SetStatus(HttpStatus::kClientClosedRequest);
-    request::ResponseBase::SetSendFailed(failure_time);
+    request::ResponseBase::SetSendFailed();
 }
 
 bool HttpResponse::SetHeader(std::string name, std::string value) {
@@ -382,7 +382,7 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
         sent_bytes = SetBodyNotStreamed(socket, header);
     }
 
-    SetSent(sent_bytes, std::chrono::steady_clock::now());
+    SetSent(sent_bytes);
 }
 
 std::size_t HttpResponse::SetBodyNotStreamed(

@@ -138,7 +138,7 @@ public:
         }
 
         http2_session_.WriteWhileWant();
-        response_.SetSent(bytes, std::chrono::steady_clock::now());
+        response_.SetSent(bytes);
     }
 
 private:

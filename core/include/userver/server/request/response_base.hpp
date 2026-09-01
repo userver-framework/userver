@@ -138,14 +138,12 @@ public:
     // TODO: server internals. remove from a public interface
     void SetReady();
     void SetReady(std::chrono::steady_clock::time_point now);
-    virtual void SetSendFailed(std::chrono::steady_clock::time_point failure_time);
     bool IsLimitReached() const;
 
-    bool IsReady() const { return ready_time_ != kUnset; }
-    bool IsSent() const noexcept { return sent_time_ != kUnset; }
-    size_t BytesSent() const { return bytes_sent_; }
-    std::chrono::steady_clock::time_point ReadyTime() const { return ready_time_; }
-    std::chrono::steady_clock::time_point SentTime() const { return sent_time_; }
+    bool IsReady() const noexcept { return ready_time_ != kUnset; }
+    bool IsSent() const noexcept { return is_sent_; }
+    std::size_t GetBytesSent() const noexcept { return bytes_sent_; }
+    std::chrono::steady_clock::time_point GetReadyTime() const noexcept { return ready_time_; }
     virtual void SendResponse(engine::io::RwBase& socket) = 0;
 
     virtual void SetStatusServiceUnavailable() = 0;
@@ -162,7 +160,8 @@ public:
 protected:
     ResponseBase(ResponseDataAccounter& data_account, std::chrono::steady_clock::time_point now);
 
-    void SetSent(std::size_t bytes_sent, std::chrono::steady_clock::time_point sent_time);
+    void SetSendFailed();
+    void SetSent(std::size_t bytes_sent);
 
 private:
     void StoreData(impl::ChunkStorage data);
@@ -173,9 +172,9 @@ private:
     impl::ChunkStorage data_;
     std::chrono::steady_clock::time_point create_time_;
     std::chrono::steady_clock::time_point ready_time_{kUnset};
-    std::chrono::steady_clock::time_point sent_time_{kUnset};
     std::size_t accounted_size_ = 0;
-    size_t bytes_sent_ = 0;
+    std::size_t bytes_sent_ = 0;
+    bool is_sent_ = false;
     std::optional<std::int32_t> stream_id_;
     std::optional<http::impl::Http2StreamEventProducer> producer_{};
 };

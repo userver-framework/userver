@@ -84,7 +84,7 @@ public:
     );
     ~HttpResponse() override;
 
-    void SetSendFailed(std::chrono::steady_clock::time_point failure_time) override;
+    void SetSendFailed();
     /// @endcond
 
     /// @brief Add a new response header or rewrite an existing one.
