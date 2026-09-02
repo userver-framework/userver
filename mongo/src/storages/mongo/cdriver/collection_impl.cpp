@@ -51,9 +51,9 @@ private:
 
 void WarnIfBulkWriteMaxServerTimeUnsupported(
     std::string_view operation_name,
-    std::chrono::milliseconds max_server_time
+    std::chrono::milliseconds user_max_server_time
 ) {
-    if (max_server_time == operations::kNoMaxServerTime) {
+    if (user_max_server_time == operations::kNoMaxServerTime) {
         return;
     }
 
@@ -904,9 +904,9 @@ WriteResult CDriverCollectionImpl::Execute(const operations::InsertMany& operati
 
 WriteResult CDriverCollectionImpl::Execute(const operations::ReplaceOne& operation) {
     auto context = MakeRequestContext("mongo_replace_one", operation);
-    const auto adjusted_max_server_time = ComputeAdjustedMaxServerTime(operation.impl_->max_server_time, context);
 
 #ifdef MONGOC_BULKWRITE_H
+    const auto adjusted_max_server_time = ComputeAdjustedMaxServerTime(operation.impl_->max_server_time, context);
     if (CanUseSingleBulkWrite(GetPool(), context, adjusted_max_server_time)) {
         const bson_t* native_selector_bson_ptr = operation.impl_->selector.GetBson().get();
         const bson_t* native_replacement_bson_ptr = operation.impl_->replacement.GetBson().get();
@@ -929,7 +929,7 @@ WriteResult CDriverCollectionImpl::Execute(const operations::ReplaceOne& operati
     }
 #endif
 
-    WarnIfBulkWriteMaxServerTimeUnsupported("ReplaceOne", adjusted_max_server_time);
+    WarnIfBulkWriteMaxServerTimeUnsupported("ReplaceOne", operation.impl_->max_server_time);
     return ExecuteReplaceNative(operation, context);
 }
 
@@ -965,9 +965,9 @@ WriteResult CDriverCollectionImpl::Execute(const operations::Update& operation) 
     UASSERT(!operation.impl_->should_retry_dupkey || operation.impl_->mode == operations::Update::Mode::kSingle);
 
     auto context = MakeRequestContext("mongo_update", operation);
-    const auto adjusted_max_server_time = ComputeAdjustedMaxServerTime(operation.impl_->max_server_time, context);
 
 #ifdef MONGOC_BULKWRITE_H
+    const auto adjusted_max_server_time = ComputeAdjustedMaxServerTime(operation.impl_->max_server_time, context);
     if (CanUseSingleBulkWrite(GetPool(), context, adjusted_max_server_time)) {
         const bson_t* native_selector_bson_ptr = operation.impl_->selector.GetBson().get();
         const bson_t* native_update_bson_ptr = operation.impl_->update.GetBson().get();
@@ -992,7 +992,7 @@ WriteResult CDriverCollectionImpl::Execute(const operations::Update& operation) 
     }
 #endif
 
-    WarnIfBulkWriteMaxServerTimeUnsupported("Update", adjusted_max_server_time);
+    WarnIfBulkWriteMaxServerTimeUnsupported("Update", operation.impl_->max_server_time);
     return ExecuteUpdateNative(operation, context);
 }
 
