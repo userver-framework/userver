@@ -1,94 +1,26 @@
 #include <userver/s3api/authenticators/signature_v4.hpp>
 
 #include <algorithm>
-#include <chrono>
-#include <map>
+#include <cctype>
 #include <optional>
 #include <stdexcept>
+#include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
 
 #include <fmt/format.h>
-#include <boost/algorithm/string.hpp>
 
-#include <userver/crypto/hash.hpp>
+#include <userver/clients/http/request.hpp>
+#include <userver/crypto/aws.hpp>
 #include <userver/http/common_headers.hpp>
-#include <userver/s3api/authenticators/utils.hpp>
 #include <userver/s3api/models/request.hpp>
-#include <userver/utils/datetime_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace s3api::authenticators {
 
 namespace {
-
-constexpr std::string_view kAlgorithm = "AWS4-HMAC-SHA256";
-constexpr std::string_view kAws4Request = "aws4_request";
-constexpr std::string_view kUnsignedPayload = "UNSIGNED-PAYLOAD";
-
-bool IsUnreservedChar(char c) {
-    if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) {
-        return true;
-    }
-    return c == '-' || c == '_' || c == '.' || c == '~';
-}
-
-void PercentEncodeByteTo(unsigned char byte, std::string& result) {
-    static constexpr char kHexDigits[] = "0123456789ABCDEF";
-    result.push_back('%');
-    result.push_back(kHexDigits[byte >> 4]);
-    result.push_back(kHexDigits[byte & 0x0F]);
-}
-
-std::string UriEncode(std::string_view value, bool encode_slash) {
-    std::string result;
-    result.reserve(value.size());
-
-    for (auto c : value) {
-        if (IsUnreservedChar(c) || (c == '/' && !encode_slash)) {
-            result.push_back(c);
-        } else {
-            PercentEncodeByteTo(static_cast<unsigned char>(c), result);
-        }
-    }
-
-    return result;
-}
-
-std::optional<int> ParseHexDigit(char c) {
-    if (c >= '0' && c <= '9') {
-        return c - '0';
-    }
-    if (c >= 'A' && c <= 'F') {
-        return c - 'A' + 10;
-    }
-    if (c >= 'a' && c <= 'f') {
-        return c - 'a' + 10;
-    }
-    return std::nullopt;
-}
-
-std::string PercentDecode(std::string_view value) {
-    std::string result;
-    result.reserve(value.size());
-
-    for (std::size_t i = 0; i < value.size(); ++i) {
-        if (value[i] == '%' && i + 2 < value.size()) {
-            const auto high = ParseHexDigit(value[i + 1]);
-            const auto low = ParseHexDigit(value[i + 2]);
-            if (high && low) {
-                result.push_back(static_cast<char>((*high * 16) + *low));
-                i += 2;
-                continue;
-            }
-        }
-        result.push_back(value[i]);
-    }
-
-    return result;
-}
 
 std::string TrimAndCollapseSpaces(std::string_view value) {
     std::string result;
@@ -107,6 +39,68 @@ std::string TrimAndCollapseSpaces(std::string_view value) {
         }
 
         result.push_back(c);
+    }
+
+    return result;
+}
+
+bool IsUnreservedChar(char c) {
+    if ((c >= '0' && c <= '9') || (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z')) {
+        return true;
+    }
+    return c == '-' || c == '_' || c == '.' || c == '~';
+}
+
+void PercentEncodeByteTo(unsigned char byte, std::string& result) {
+    static constexpr char kHexDigits[] = "0123456789ABCDEF";
+    result.push_back('%');
+    result.push_back(kHexDigits[byte >> 4]);
+    result.push_back(kHexDigits[byte & 0x0F]);
+}
+
+std::optional<int> ParseHexDigit(char c) {
+    if (c >= '0' && c <= '9') {
+        return c - '0';
+    }
+    if (c >= 'A' && c <= 'F') {
+        return c - 'A' + 10;
+    }
+    if (c >= 'a' && c <= 'f') {
+        return c - 'a' + 10;
+    }
+    return std::nullopt;
+}
+
+std::string UriEncode(std::string_view value, bool encode_slash) {
+    std::string result;
+    result.reserve(value.size());
+
+    for (auto c : value) {
+        if (IsUnreservedChar(c) || (c == '/' && !encode_slash)) {
+            result.push_back(c);
+        } else {
+            PercentEncodeByteTo(static_cast<unsigned char>(c), result);
+        }
+    }
+
+    return result;
+}
+
+std::string UriDecode(std::string_view value) {
+    std::string result;
+    result.reserve(value.size());
+
+    for (std::size_t i = 0; i < value.size(); ++i) {
+        if (value[i] == '%' && i + 2 < value.size()) {
+            const auto high = ParseHexDigit(value[i + 1]);
+            const auto low = ParseHexDigit(value[i + 2]);
+            if (high && low) {
+                result.push_back(static_cast<char>((*high * 16) + *low));
+                i += 2;
+                continue;
+            }
+        }
+        result.push_back(value[i]);
     }
 
     return result;
@@ -151,7 +145,7 @@ std::string MakeCanonicalUri(const Request& request, std::string_view host, std:
         raw_path = request.bucket + "/";
     }
 
-    raw_path += PercentDecode(path);
+    raw_path += UriDecode(path);
 
     return "/" + UriEncode(raw_path, /*encode_slash=*/false);
 }
@@ -171,9 +165,9 @@ QueryParams ParseQuery(std::string_view query) {
 
         const auto eq_pos = param.find('=');
         if (eq_pos == std::string_view::npos) {
-            result.emplace_back(PercentDecode(param), std::string{});
+            result.emplace_back(UriDecode(param), std::string{});
         } else {
-            result.emplace_back(PercentDecode(param.substr(0, eq_pos)), PercentDecode(param.substr(eq_pos + 1)));
+            result.emplace_back(UriDecode(param.substr(0, eq_pos)), UriDecode(param.substr(eq_pos + 1)));
         }
     }
 
@@ -201,98 +195,6 @@ std::string MakeCanonicalQueryString(QueryParams params) {
     return result;
 }
 
-struct CanonicalHeaders {
-    // "name1:value1\nname2:value2\n" with lowercase names sorted alphabetically
-    std::string headers;
-    // "name1;name2"
-    std::string signed_headers;
-};
-
-CanonicalHeaders MakeCanonicalHeaders(const std::map<std::string, std::string>& headers) {
-    CanonicalHeaders result;
-
-    for (const auto& [name, value] : headers) {
-        result.headers += fmt::format("{}:{}\n", name, value);
-        if (!result.signed_headers.empty()) {
-            result.signed_headers.push_back(';');
-        }
-        result.signed_headers += name;
-    }
-
-    return result;
-}
-
-std::string MakeCanonicalRequest(
-    const Request& request,
-    std::string_view host,
-    const CanonicalHeaders& canonical_headers,
-    QueryParams extra_query_params,
-    std::string_view payload_hash
-) {
-    const auto target = SplitRequestTarget(request.req);
-
-    auto query_params = ParseQuery(target.query);
-    std::ranges::move(extra_query_params, std::back_inserter(query_params));
-
-    return fmt::format(
-        "{}\n{}\n{}\n{}\n{}\n{}",
-        ToStringView(request.method),
-        MakeCanonicalUri(request, host, target.path),
-        MakeCanonicalQueryString(std::move(query_params)),
-        canonical_headers.headers,
-        canonical_headers.signed_headers,
-        payload_hash
-    );
-}
-
-struct SigningScope {
-    std::time_t now{};
-    std::string amz_date;
-    std::string date_stamp;
-    std::string credential_scope;
-};
-
-SigningScope MakeSigningScope(std::string_view region, std::string_view service) {
-    const auto now = utils::datetime::Now();
-
-    SigningScope scope;
-    scope.now = std::chrono::system_clock::to_time_t(now);
-    scope.amz_date = utils::datetime::UtcTimestring(now, "%Y%m%dT%H%M%SZ");
-    scope.date_stamp = scope.amz_date.substr(0, 8);  // 4 - year, 2 - month, 2 - day
-    scope.credential_scope = fmt::format("{}/{}/{}/{}", scope.date_stamp, region, service, kAws4Request);
-
-    return scope;
-}
-
-std::string MakeStringToSign(std::string_view canonical_request, const SigningScope& scope) {
-    return fmt::format(
-        "{}\n{}\n{}\n{}",
-        kAlgorithm,
-        scope.amz_date,
-        scope.credential_scope,
-        crypto::hash::Sha256(canonical_request, crypto::hash::OutputEncoding::kHex)
-    );
-}
-
-std::string MakeSignature(
-    std::string_view string_to_sign,
-    const SigningScope& scope,
-    std::string_view region,
-    std::string_view service,
-    const Secret& secret_key
-) {
-    // https://docs.aws.amazon.com/AmazonS3/latest/developerguide/sigv4-query-string-auth.html#query-string-auth-v4-signing
-
-    static constexpr auto kBinary = crypto::hash::OutputEncoding::kBinary;
-
-    auto key = crypto::hash::HmacSha256("AWS4" + secret_key.GetUnderlying(), scope.date_stamp, kBinary);
-    key = crypto::hash::HmacSha256(key, region, kBinary);
-    key = crypto::hash::HmacSha256(key, service, kBinary);
-    key = crypto::hash::HmacSha256(key, kAws4Request, kBinary);
-
-    return crypto::hash::HmacSha256(key, string_to_sign, crypto::hash::OutputEncoding::kHex);
-}
-
 std::string GetHostHeaderValue(const Request& request) {
     const auto it = request.headers.find(USERVER_NAMESPACE::http::headers::kHost);
     if (it == request.headers.end() || it->second.empty()) {
@@ -306,71 +208,67 @@ std::string GetHostHeaderValue(const Request& request) {
 std::unordered_map<std::string, std::string> SignatureV4::Auth(const Request& request) const {
     // https://docs.aws.amazon.com/AmazonS3/latest/developerguide/sig-v4-header-based-auth.html
 
-    const auto scope = MakeSigningScope(region_, service_);
     const auto host = GetHostHeaderValue(request);
-    auto payload_hash = crypto::hash::Sha256(request.body, crypto::hash::OutputEncoding::kHex);
+    const auto target = SplitRequestTarget(request.req);
+    const auto canonical_uri = MakeCanonicalUri(request, host, target.path);
+    const auto canonical_query = MakeCanonicalQueryString(ParseQuery(target.query));
 
-    std::map<std::string, std::string> headers_to_sign;
-    for (const auto& [name, value] : request.headers) {
-        headers_to_sign[boost::algorithm::to_lower_copy(name)] = TrimAndCollapseSpaces(value);
-    }
-    headers_to_sign["host"] = host;
-    headers_to_sign["x-amz-date"] = scope.amz_date;
-    headers_to_sign["x-amz-content-sha256"] = payload_hash;
-
-    const auto canonical_headers = MakeCanonicalHeaders(headers_to_sign);
-    const auto canonical_request = MakeCanonicalRequest(request, host, canonical_headers, {}, payload_hash);
-    const auto string_to_sign = MakeStringToSign(canonical_request, scope);
-    const auto signature = MakeSignature(string_to_sign, scope, region_, service_, secret_key_);
-
-    auto authorization = fmt::format(
-        "{} Credential={}/{}, SignedHeaders={}, Signature={}",
-        kAlgorithm,
-        access_key_,
-        scope.credential_scope,
-        canonical_headers.signed_headers,
-        signature
+    auto headers = request.headers;
+    crypto::aws::SignRequestV4(
+        headers,
+        {
+            .http_method = ToStringView(request.method),
+            .canonical_uri = canonical_uri,
+            .canonical_query = canonical_query,
+            .payload = request.body,
+            .access_key = access_key_,
+            .secret_key = secret_key_.GetUnderlying(),
+            .region = region_,
+            .service = service_,
+        }
     );
 
     return {
-        {"Authorization", std::move(authorization)},
-        {"X-Amz-Date", scope.amz_date},
-        {"X-Amz-Content-Sha256", std::move(payload_hash)},
+        {"Authorization", headers[USERVER_NAMESPACE::http::headers::kAuthorization]},
+        {"X-Amz-Date", headers[crypto::aws::kAmzDate]},
+        {"X-Amz-Content-Sha256", headers[crypto::aws::kAmzContentSha256]},
     };
 }
 
 std::unordered_map<std::string, std::string> SignatureV4::Sign(const Request& request, std::time_t expires) const {
     // https://docs.aws.amazon.com/AmazonS3/latest/developerguide/sigv4-query-string-auth.html
 
-    const auto scope = MakeSigningScope(region_, service_);
+    const auto scope = crypto::aws::MakeV4TimeScope(region_, service_);
     const auto host = GetHostHeaderValue(request);
+    const auto target = SplitRequestTarget(request.req);
 
     const auto expires_in = std::max<std::time_t>(expires - scope.now, 1);
 
     std::unordered_map<std::string, std::string> sign_params{
-        {"X-Amz-Algorithm", std::string{kAlgorithm}},
+        {"X-Amz-Algorithm", std::string{crypto::aws::kAws4HmacSha256}},
         {"X-Amz-Credential", fmt::format("{}/{}", access_key_, scope.credential_scope)},
         {"X-Amz-Date", scope.amz_date},
         {"X-Amz-Expires", std::to_string(expires_in)},
         {"X-Amz-SignedHeaders", "host"},
     };
 
-    const CanonicalHeaders canonical_headers{
-        .headers = fmt::format("host:{}\n", host),
-        .signed_headers = "host",
-    };
+    QueryParams query_params = ParseQuery(target.query);
+    query_params.insert(query_params.end(), sign_params.begin(), sign_params.end());
 
-    const auto canonical_request = MakeCanonicalRequest(
-        request,
-        host,
-        canonical_headers,
-        QueryParams{sign_params.begin(), sign_params.end()},
-        kUnsignedPayload
+    const auto canonical_request = crypto::aws::MakeCanonicalRequest(
+        ToStringView(request.method),
+        MakeCanonicalUri(request, host, target.path),
+        MakeCanonicalQueryString(std::move(query_params)),
+        fmt::format("host:{}\n", host),
+        "host",
+        crypto::aws::kUnsignedPayload
     );
 
-    const auto string_to_sign = MakeStringToSign(canonical_request, scope);
-
-    sign_params.emplace("X-Amz-Signature", MakeSignature(string_to_sign, scope, region_, service_, secret_key_));
+    const auto string_to_sign = crypto::aws::MakeV4StringToSign(canonical_request, scope);
+    sign_params.emplace(
+        "X-Amz-Signature",
+        crypto::aws::MakeV4Signature(string_to_sign, scope, region_, service_, secret_key_.GetUnderlying())
+    );
 
     return sign_params;
 }

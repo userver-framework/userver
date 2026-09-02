@@ -37,6 +37,15 @@ if("ydb" IN_LIST userver_FIND_COMPONENTS)
     endif()
 endif()
 
+if("sqs" IN_LIST userver_FIND_COMPONENTS)
+    set(USERVER_SQS_CONFIG_PHASE deps)
+    include("${USERVER_CMAKE_DIR}/userver-sqs-config.cmake")
+    unset(USERVER_SQS_CONFIG_PHASE)
+    if(NOT _USERVER_SQS_DEPS_LOADED)
+        return()
+    endif()
+endif()
+
 if(CMAKE_BUILD_TYPE MATCHES "^.*Rel.*$") # same as in UserverSetupEnvironment
     include("${CMAKE_CURRENT_LIST_DIR}/release/userver-targets.cmake")
 else()

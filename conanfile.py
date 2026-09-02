@@ -45,6 +45,7 @@ class UserverConan(ConanFile):
         'with_sqlite': [True, False],
         'with_easy': [True, False],
         'with_s3api': [True, False],
+        'with_sqs': [True, False],
         'with_grpc_reflection': [True, False],
         'with_grpc_protovalidate': [True, False],
         'with_phdr_cache': [True, False],
@@ -68,6 +69,7 @@ class UserverConan(ConanFile):
         'with_sqlite': True,
         'with_easy': True,
         'with_s3api': True,
+        'with_sqs': False,
         'with_grpc_reflection': True,
         'with_grpc_protovalidate': False,
         'with_phdr_cache': True,
@@ -101,6 +103,23 @@ class UserverConan(ConanFile):
 
     def layout(self):
         cmake_layout(self)
+
+    def configure(self):
+        if self.options.with_sqs:
+            aws_options = self.options['aws-sdk-cpp']
+            # The aws-sdk-cpp recipe enables these umbrella modules by default.
+            # Keep the SQS component opt-in narrow and avoid building unrelated SDKs.
+            for module in (
+                'access-management',
+                'identity-management',
+                'monitoring',
+                'queues',
+                's3-encryption',
+                'text-to-speech',
+                'transfer',
+            ):
+                setattr(aws_options, module, False)
+            aws_options.sqs = True
 
     def requirements(self):
         self.requires('boost/[>=1.83 <1.88]', transitive_headers=True)
@@ -180,6 +199,12 @@ class UserverConan(ConanFile):
             self.requires('sqlite3/[>=3.46.1 <5]')
         if self.options.with_s3api:
             self.requires('pugixml/[^1.14]')
+        if self.options.with_sqs:
+            self.requires(
+                'aws-sdk-cpp/1.11.692',
+                transitive_headers=True,
+                transitive_libs=True,
+            )
         if self.options.with_otlp:
             self.requires('opentelemetry-proto/[^1.3]')
 
@@ -225,6 +250,7 @@ class UserverConan(ConanFile):
         tool_ch.cache_variables['USERVER_FEATURE_SQLITE'] = self.options.with_sqlite
         tool_ch.cache_variables['USERVER_FEATURE_EASY'] = self.options.with_easy
         tool_ch.cache_variables['USERVER_FEATURE_S3API'] = self.options.with_s3api
+        tool_ch.cache_variables['USERVER_FEATURE_SQS'] = self.options.with_sqs
         tool_ch.cache_variables['USERVER_FEATURE_GRPC_REFLECTION'] = self.options.with_grpc_reflection
         tool_ch.cache_variables['USERVER_FEATURE_GRPC_PROTOVALIDATE'] = self.options.with_grpc_protovalidate
         tool_ch.cache_variables['USERVER_DISABLE_PHDR_CACHE'] = not self.options.with_phdr_cache

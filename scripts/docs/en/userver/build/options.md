@@ -29,6 +29,7 @@ userver is split into multiple CMake libraries.
 | `userver::sqlite`          | `USERVER_FEATURE_SQLITE`                          | `sqlite`              | @ref scripts/docs/en/userver/sqlite/sqlite_driver.md      |
 | `userver::odbc`            | `USERVER_FEATURE_ODBC`                            | `odbc`                | @ref scripts/docs/en/userver/odbc.md                      |
 | `userver::ydb`             | `USERVER_FEATURE_YDB`                             | `ydb`                 | @ref scripts/docs/en/userver/ydb.md                       |
+| `userver::sqs`             | `USERVER_FEATURE_SQS`                             | `sqs`                 | @ref scripts/docs/en/userver/libraries/sqs.md             |
 | `userver::otlp`            | `USERVER_FEATURE_OTLP`                            | `otlp`                | @ref opentelemetry "OpenTelemetry Protocol"               |
 | `userver::s3api`           | `USERVER_FEATURE_S3API`                           | `s3api`               | @ref scripts/docs/en/userver/libraries/s3api.md           |
 | `userver::multi_index_lru` | `USERVER_FEATURE_MULTI_INDEX_LRU`                 | `multi_index_lru`     | @ref scripts/docs/en/userver/libraries/multi_index_lru.md |
@@ -83,6 +84,7 @@ The exact format of setting cmake options varies depending on the method of buil
 | `USERVER_FEATURE_SQLITE`          | Provide asynchronous driver for SQLite                                            | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
 | `USERVER_FEATURE_ODBC`            | Provide asynchronous driver for ODBC                                              | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
 | `USERVER_FEATURE_YDB`             | Provide asynchronous driver for YDB                                               | `${USERVER_BUILD_ALL_COMPONENTS}` AND C++ standard >= 20    |
+| `USERVER_FEATURE_SQS`             | Provide SQS JSON client                                                           | `OFF`                                                       |
 | `USERVER_FEATURE_OTLP`            | Provide Logger for OpenTelemetry protocol                                         | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
 | `USERVER_FEATURE_GRPC_REFLECTION` | Provide reflection service for gRPC                                               | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
 | `USERVER_FEATURE_S3API`           | Provide S3 client for gRPC                                                        | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
@@ -141,6 +143,7 @@ The exact format of setting cmake options varies depending on the method of buil
 | `USERVER_DOWNLOAD_PACKAGE_KAFKA`         | Download and setup librdkafka if no librdkafka matching version was found               | `${USERVER_DOWNLOAD_PACKAGES}`       |
 | `USERVER_DOWNLOAD_PACKAGE_YDBCPPSDK`     | Download and setup ydb-cpp-sdk if no ydb-cpp-sdk of matching version was found          | `${USERVER_DOWNLOAD_PACKAGES}`       |
 | `USERVER_YDBCPPSDK_VERSION`              | ydb-cpp-sdk version to find or download                                                  | `3.21.1`                             |
+| `USERVER_DOWNLOAD_PACKAGE_AWSSDK`        | Download and setup AWS SDK for C++ if no AWS SDK of matching version was found          | `${USERVER_DOWNLOAD_PACKAGES}`       |
 | `USERVER_DOWNLOAD_PACKAGE_C_ARES`        | Download and setup libc-ares if no libc-ares of matching version was found              | `${USERVER_DOWNLOAD_PACKAGES}`       |
 | `USERVER_DOWNLOAD_PACKAGE_LIBEV`         | Download and setup libev if no libev of matching version was found                      | `${USERVER_DOWNLOAD_PACKAGES}`       |
 | `USERVER_DOWNLOAD_PACKAGE_LIBNGHTTP2`    | Download and setup libnghttp2 if no libnghttp2 of matching version was found            | `${USERVER_DOWNLOAD_PACKAGES}`       |

@@ -1,3 +1,4 @@
+aws-sdk-cpp-dev
 benchmark-dev
 boost1.84-dev
 boost1.84-static

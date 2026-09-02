@@ -4,6 +4,7 @@
 /// @brief Include-all header for crypto routines
 
 #include <userver/crypto/algorithm.hpp>
+#include <userver/crypto/aws.hpp>
 #include <userver/crypto/base64.hpp>
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/exception.hpp>

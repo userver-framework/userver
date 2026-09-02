@@ -1,3 +1,4 @@
+aws-sdk-cpp
 benchmark
 boost
 c-ares

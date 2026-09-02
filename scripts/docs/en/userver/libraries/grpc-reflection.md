@@ -48,5 +48,5 @@ components_manager:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/libraries/s3api.md | @ref scripts/docs/en/userver/libraries/multi_index_lru.md ⇨
+⇦ @ref scripts/docs/en/userver/libraries/sqs.md | @ref scripts/docs/en/userver/libraries/multi_index_lru.md ⇨
 @htmlonly </div> @endhtmlonly
