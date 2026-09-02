@@ -43,11 +43,12 @@ std::string DecompressStream(std::string_view compressed, size_t max_size) {
                 throw ErrWithCode(ZSTD_getErrorName(ret));
             }
 
-            decompressed.append(static_cast<char*>(output.dst), output.pos);
-        }
+            // Must check before append: one input chunk may expand far past max_size.
+            if (decompressed.size() + output.pos > max_size) {
+                throw TooBigError();
+            }
 
-        if (decompressed.size() > max_size) {
-            throw TooBigError();
+            decompressed.append(static_cast<char*>(output.dst), output.pos);
         }
 
         cur_pos += input.size;
