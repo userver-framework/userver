@@ -31,7 +31,7 @@ if(NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
                       OpenSSL::SSL
                       OpenSSL::Crypto
                       SASL2::SASL2
-                      zstd::zstd
+                      zstd::libzstd
         )
         return()
     endif()

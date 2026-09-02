@@ -254,7 +254,7 @@ else()
     target_link_libraries(
         ${PROJECT_NAME}
         PUBLIC fmt cctz userver-stacktrace
-        PRIVATE yaml-cpp zstd::zstd cryptopp::cryptopp
+        PRIVATE yaml-cpp::yaml-cpp zstd::libzstd cryptopp::cryptopp
     )
 
     if(CMAKE_SYSTEM_NAME MATCHES "Darwin"
