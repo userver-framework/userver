@@ -327,20 +327,6 @@ void TopologyClosed(const mongoc_apm_topology_closed_t*) {
     LOG_DEBUG() << "The driver stops monitoring a server topology and destroys it";
 }
 
-void CreateGlobalInitializer() {
-    // Initialize static variable, and wait not on std::mutex, but on engine::Mutex.
-    // Otherwise, CPU will burn.
-    static engine::Mutex mutex;
-    const std::lock_guard lock(mutex);
-
-    static std::optional<GlobalInitializer> init_mongoc;
-    engine::CriticalAsyncNoTracing(engine::current_task::GetBlockingTaskProcessor(), [] {
-        if (!init_mongoc) {
-            init_mongoc.emplace();
-        }
-    }).Get();
-}
-
 }  // namespace
 
 CDriverPoolImpl::CDriverPoolImpl(
@@ -364,7 +350,7 @@ CDriverPoolImpl::CDriverPoolImpl(
       // FP?: pointer magic in boost.lockfree
       // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
       queue_(config.pool_settings.max_size) {
-    CreateGlobalInitializer();
+    (void)&kInitMongoc;
     GlobalInitializer::LogInitWarningsOnce();
 
     SetConnectionString(uri_string);
