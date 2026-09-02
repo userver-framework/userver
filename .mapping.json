@@ -4228,7 +4228,6 @@
   "redis/benchmark/redis_fixture.hpp":"taxi/uservices/userver/redis/benchmark/redis_fixture.hpp",
   "redis/benchmark/ya.make":"taxi/uservices/userver/redis/benchmark/ya.make",
   "redis/dynamic_configs/REDIS_COMMANDS_BUFFERING_SETTINGS.yaml":"taxi/uservices/userver/redis/dynamic_configs/REDIS_COMMANDS_BUFFERING_SETTINGS.yaml",
-  "redis/dynamic_configs/REDIS_DEADLINE_PROPAGATION_VERSION.yaml":"taxi/uservices/userver/redis/dynamic_configs/REDIS_DEADLINE_PROPAGATION_VERSION.yaml",
   "redis/dynamic_configs/REDIS_DEFAULT_COMMAND_CONTROL.yaml":"taxi/uservices/userver/redis/dynamic_configs/REDIS_DEFAULT_COMMAND_CONTROL.yaml",
   "redis/dynamic_configs/REDIS_IGNORE_HEALTH_CHECK.yaml":"taxi/uservices/userver/redis/dynamic_configs/REDIS_IGNORE_HEALTH_CHECK.yaml",
   "redis/dynamic_configs/REDIS_METRICS_SETTINGS.yaml":"taxi/uservices/userver/redis/dynamic_configs/REDIS_METRICS_SETTINGS.yaml",

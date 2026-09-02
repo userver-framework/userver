@@ -27,8 +27,6 @@
 #include <storages/redis/impl/standalone_topology_holder.hpp>
 #include <storages/redis/impl/topology_holder_base.hpp>
 
-#include <dynamic_config/variables/REDIS_DEADLINE_PROPAGATION_VERSION.hpp>
-
 #include "command_control_impl.hpp"
 
 USERVER_NAMESPACE_BEGIN
@@ -69,17 +67,10 @@ enum class DeadlineAdjustResult : std::uint8_t {
 // including those issued by subscribe_sentinel, cluster_topology_holder,
 // cluster_slots_query, cluster_shards_query, and sentinel_query, which bypass
 // Request entirely. Moving the capping to Request would leave those paths
-// uncapped and would require duplicating the dynamic-config gate check.
-DeadlineAdjustResult AdjustDeadline(
-    const SentinelImpl::SentinelCommand& scommand,
-    const dynamic_config::Snapshot& config
-) {
+// uncapped.
+DeadlineAdjustResult AdjustDeadline(const SentinelImpl::SentinelCommand& scommand) {
     const auto inherited_deadline = GetDeadlineTimeLeft();
     if (!inherited_deadline) {
-        return DeadlineAdjustResult::kNotAdjusted;
-    }
-
-    if (config[::dynamic_config::REDIS_DEADLINE_PROPAGATION_VERSION] != kDeadlinePropagationExperimentVersion) {
         return DeadlineAdjustResult::kNotAdjusted;
     }
 
@@ -385,7 +376,7 @@ void SentinelImpl::Init() {
 }
 
 void SentinelImpl::AsyncCommand(const SentinelCommand& scommand, size_t prev_instance_idx) {
-    const auto deadline_adjust_result = AdjustDeadline(scommand, dynamic_config_source_.GetSnapshot());
+    const auto deadline_adjust_result = AdjustDeadline(scommand);
     if (deadline_adjust_result == DeadlineAdjustResult::kExpired) {
         server::request::MarkTaskInheritedDeadlineExpired();
         auto reply = std::make_shared<
