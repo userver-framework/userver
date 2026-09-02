@@ -243,6 +243,22 @@ void HeartbeatFailed(const mongoc_apm_server_heartbeat_failed_t* event) {
     HeartbeatFinished(stats);
 }
 
+bool HasReadableServer(const mongoc_topology_description_t* td, mongoc_read_prefs_t* prefs) {
+#if MONGOC_CHECK_VERSION(1, 17, 0)
+    return mongoc_topology_description_has_readable_server(td, prefs);
+#else
+    return mongoc_topology_description_has_readable_server(const_cast<mongoc_topology_description_t*>(td), prefs);
+#endif
+}
+
+bool HasWritableServer(const mongoc_topology_description_t* td) {
+#if MONGOC_CHECK_VERSION(1, 17, 0)
+    return mongoc_topology_description_has_writable_server(td);
+#else
+    return mongoc_topology_description_has_writable_server(const_cast<mongoc_topology_description_t*>(td));
+#endif
+}
+
 std::string CreateTopologyChangeMessage(const mongoc_apm_topology_changed_t* event) {
     const mongoc_topology_description_t* prev_td = mongoc_apm_topology_changed_get_previous_description(event);
     const mongoc_topology_description_t* new_td = mongoc_apm_topology_changed_get_new_description(event);
@@ -289,21 +305,13 @@ std::string CreateTopologyChangeMessage(const mongoc_apm_topology_changed_t* eve
     mongoc_read_prefs_t* prefs = mongoc_read_prefs_new(MONGOC_READ_SECONDARY);
     const utils::FastScopeGuard prefs_guard{[&prefs]() noexcept { mongoc_read_prefs_destroy(prefs); }};
 
-#if MONGOC_CHECK_VERSION(1, 17, 0)
-    if (mongoc_topology_description_has_readable_server(new_td, prefs)) {
-#else
-    if (mongoc_topology_description_has_readable_server(const_cast<mongoc_topology_description_t*>(new_td), prefs)) {
-#endif
+    if (HasReadableServer(new_td, prefs)) {
         topology_msg.append("\nSecondary AVAILABLE\n");
     } else {
         topology_msg.append("\nSecondary UNAVAILABLE\n");
     }
 
-#if MONGOC_CHECK_VERSION(1, 17, 0)
-    if (mongoc_topology_description_has_writable_server(new_td)) {
-#else
-    if (mongoc_topology_description_has_writable_server(const_cast<mongoc_topology_description_t*>(new_td))) {
-#endif
+    if (HasWritableServer(new_td)) {
         topology_msg.append("Primary AVAILABLE");
     } else {
         topology_msg.append("Primary UNAVAILABLE");

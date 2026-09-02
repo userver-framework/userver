@@ -21,10 +21,12 @@ constexpr std::string_view kTestFilePart = "test_files_listing_of_current_proc";
 // non-closed file descriptors.
 #if defined(BSD)
 // /dev/fd/* are not symlinks
-TEST(DISABLED_CurrentProcessOpenFiles, Basic) {
+#define USERVER_IMPL_CURRENT_PROCESS_OPEN_FILES DISABLED_CurrentProcessOpenFiles
 #else
-TEST(CurrentProcessOpenFiles, Basic) {
+#define USERVER_IMPL_CURRENT_PROCESS_OPEN_FILES CurrentProcessOpenFiles
 #endif
+
+TEST(USERVER_IMPL_CURRENT_PROCESS_OPEN_FILES, Basic) {
     const auto file_guard = fs::blocking::TempFile::Create("/tmp", kTestFilePart);
     const auto& path = file_guard.GetPath();
 

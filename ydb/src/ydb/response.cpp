@@ -27,14 +27,22 @@ ParseState::ParseState(const NYdb::TResultSet& result_set)
 
 ////////////////////////////////////////////////////////////////////////////////
 
-Row::Row(impl::ParseState& parse_state)
-    : parse_state_(parse_state)
+namespace {
+
+std::vector<bool> MakeConsumedColumns(impl::ParseState& parse_state) {
 #ifndef NDEBUG
-      ,
-      consumed_columns_(parse_state_.parser.ColumnsCount(), false)
+    return std::vector<bool>(parse_state.parser.ColumnsCount(), false);
+#else
+    (void)parse_state;
+    return {};
 #endif
-{
 }
+
+}  // namespace
+
+Row::Row(impl::ParseState& parse_state)
+    : parse_state_(parse_state),
+      consumed_columns_(MakeConsumedColumns(parse_state_)) {}
 
 NYdb::TValueParser& Row::GetColumn(std::size_t index) { return parse_state_.parser.ColumnParser(index); }
 

@@ -15,11 +15,15 @@
 extern "C" {
 #endif
 
-extern int* __errno_location(void)
 #ifdef __THROW
-    __THROW
+#define USERVER_IMPL_LIBC_INCLUDE_FIXES_THROW __THROW
+#else
+#define USERVER_IMPL_LIBC_INCLUDE_FIXES_THROW
 #endif
-    ;
+
+extern int* __errno_location(void) USERVER_IMPL_LIBC_INCLUDE_FIXES_THROW;
+
+#undef USERVER_IMPL_LIBC_INCLUDE_FIXES_THROW
 
 #ifdef __cplusplus
 }

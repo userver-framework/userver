@@ -9,6 +9,12 @@
 
 USERVER_NAMESPACE_BEGIN
 
+#if defined(BSD) && !defined(__APPLE__)
+#define USERVER_IMPL_HTTP_COOKIE_TIMEZONE "UTC; "
+#else
+#define USERVER_IMPL_HTTP_COOKIE_TIMEZONE "GMT; "
+#endif
+
 TEST(HttpCookie, Simple) {
     server::http::Cookie cookie{"name1", "value1"};
     EXPECT_EQ(cookie.ToString(), "name1=value1");
@@ -29,11 +35,7 @@ TEST(HttpCookie, Simple) {
     const auto* const expected =
         "name1=value1; Domain=domain.com; Path=/; Expires=Wed, 12 Jun 2019 "
         "16:51:45 "
-#if defined(BSD) && !defined(__APPLE__)
-        "UTC; "
-#else
-        "GMT; "
-#endif
+        USERVER_IMPL_HTTP_COOKIE_TIMEZONE
         "Max-Age=3600; Secure; HttpOnly";
     EXPECT_EQ(cookie.ToString(), expected);
 
@@ -41,11 +43,7 @@ TEST(HttpCookie, Simple) {
     const auto* const expected2 =
         "name1=value1; Domain=domain.com; Path=/; Expires=Wed, 12 Jun 2019 "
         "16:51:45 "
-#if defined(BSD) && !defined(__APPLE__)
-        "UTC; "
-#else
-        "GMT; "
-#endif
+        USERVER_IMPL_HTTP_COOKIE_TIMEZONE
         "Max-Age=3600; Secure; SameSite=None; HttpOnly";
     EXPECT_EQ(cookie.ToString(), expected2);
 

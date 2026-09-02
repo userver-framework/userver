@@ -26,17 +26,41 @@ namespace {
 constexpr size_t kMaxStackSizeVector = 32;
 
 // MAC_COMPAT: does not accept flags in type
+constexpr int kSockNonblockFlag =
+#ifdef SOCK_NONBLOCK
+    SOCK_NONBLOCK;
+#else
+    0;
+#endif
+
+constexpr int kSockCloexecFlag =
+#ifdef SOCK_CLOEXEC
+    SOCK_CLOEXEC;
+#else
+    0;
+#endif
+
+// MAC_COMPAT: does not support MSG_NOSIGNAL
+constexpr int kMsgNosignalFlag =
+#ifdef MSG_NOSIGNAL
+    MSG_NOSIGNAL;
+#else
+    0;
+#endif
+
+bool IsWouldBlock() noexcept {
+#if EAGAIN != EWOULDBLOCK
+    return errno == EAGAIN || errno == EWOULDBLOCK;
+#else
+    return errno == EAGAIN;
+#endif
+}
+
 impl::FdControlHolder MakeSocket(AddrDomain domain, SocketType type) {
     return impl::FdControl::Adopt(utils::CheckSyscallCustomException<IoSystemError>(
         ::socket(
             static_cast<int>(domain),
-#ifdef SOCK_NONBLOCK
-            SOCK_NONBLOCK |
-#endif
-#ifdef SOCK_CLOEXEC
-                SOCK_CLOEXEC |
-#endif
-                static_cast<int>(type),
+            kSockNonblockFlag | kSockCloexecFlag | static_cast<int>(type),
             /* protocol=*/0
         ),
         "creating socket"
@@ -68,11 +92,7 @@ Sockaddr& MemoizeAddr(
         fd,
         buf,
         len,
-// MAC_COMPAT: does not support MSG_NOSIGNAL
-#ifdef MSG_NOSIGNAL
-        MSG_NOSIGNAL |
-#endif
-            0
+        kMsgNosignalFlag
     );
 }
 
@@ -106,11 +126,7 @@ public:
             fd,
             buf,
             len,
-// MAC_COMPAT: does not support MSG_NOSIGNAL
-#ifdef MSG_NOSIGNAL
-            MSG_NOSIGNAL |
-#endif
-                0,
+            kMsgNosignalFlag,
             dest_addr_.Data(),
             dest_addr_.Size()
         );
@@ -275,14 +291,9 @@ std::optional<size_t> Socket::RecvNoblock(void* buf, size_t len) {
     const auto bytes_read = RecvWrapper(fd_control_->Fd(), buf, len);
     if (bytes_read >= 0) {
         return {bytes_read};
-    } else if (
-#if EAGAIN != EWOULDBLOCK
-        EWOULDBLOCK == errno
-#else
-        EAGAIN == errno
-#endif
-    )
+    } else if (IsWouldBlock()) {
         return {};
+    }
 
     throw IoException("Attempt to RecvNoblock from closed socket");
 }

@@ -10,10 +10,12 @@
 USERVER_NAMESPACE_BEGIN
 
 #if defined(BSD) && !defined(__APPLE__)
-UTEST(IoWatcher, DISABLED_DevNull) {
+#define USERVER_IMPL_IO_WATCHER_DEV_NULL DISABLED_DevNull
 #else
-UTEST(IoWatcher, DevNull) {
+#define USERVER_IMPL_IO_WATCHER_DEV_NULL DevNull
 #endif
+
+UTEST(IoWatcher, USERVER_IMPL_IO_WATCHER_DEV_NULL) {
     LOG_DEBUG() << "Opening /dev/null";
     engine::ev::Thread thread{"test_thread"};
     engine::ev::ThreadControl thread_control(thread);

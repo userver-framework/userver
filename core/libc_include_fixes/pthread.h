@@ -15,11 +15,15 @@
 extern "C" {
 #endif
 
-extern pthread_t pthread_self(void)
 #ifdef __THROW
-    __THROW
+#define USERVER_IMPL_LIBC_INCLUDE_FIXES_THROW __THROW
+#else
+#define USERVER_IMPL_LIBC_INCLUDE_FIXES_THROW
 #endif
-    ;
+
+extern pthread_t pthread_self(void) USERVER_IMPL_LIBC_INCLUDE_FIXES_THROW;
+
+#undef USERVER_IMPL_LIBC_INCLUDE_FIXES_THROW
 
 #ifdef __cplusplus
 }
