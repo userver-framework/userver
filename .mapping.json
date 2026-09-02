@@ -1463,6 +1463,7 @@
   "core/src/cache/nway_lru_cache_test.cpp":"taxi/uservices/userver/core/src/cache/nway_lru_cache_test.cpp",
   "core/src/cache/update_type.cpp":"taxi/uservices/userver/core/src/cache/update_type.cpp",
   "core/src/clients/config/client.cpp":"taxi/uservices/userver/core/src/clients/config/client.cpp",
+  "core/src/clients/config/client_test.cpp":"taxi/uservices/userver/core/src/clients/config/client_test.cpp",
   "core/src/clients/dns/component.cpp":"taxi/uservices/userver/core/src/clients/dns/component.cpp",
   "core/src/clients/dns/component_test.cpp":"taxi/uservices/userver/core/src/clients/dns/component_test.cpp",
   "core/src/clients/dns/file_resolver.cpp":"taxi/uservices/userver/core/src/clients/dns/file_resolver.cpp",

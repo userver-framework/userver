@@ -6,6 +6,7 @@
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -17,7 +18,13 @@ constexpr std::string_view kConfigsValues = "/configs/values";
 Client::Client(clients::http::Client& http_client, const ClientConfig& config)
     : config_(config),
       http_client_(http_client)
-{}
+{
+    UINVARIANT(
+        config_.service_overrides.empty() || !config_.get_configs_overrides_for_service,
+        "dynamic_config::ClientConfig cannot use 'service' and 'service_overrides' together; "
+        "set get_configs_overrides_for_service to false when service_overrides is non-empty"
+    );
+}
 
 Client::~Client() = default;
 
@@ -86,7 +93,10 @@ formats::json::Value Client::FetchConfigs(
             WriteToStream(config_.stage_name, body);
         }
 
-        if (config_.get_configs_overrides_for_service) {
+        if (!config_.service_overrides.empty()) {
+            body.Key("service_overrides");
+            WriteToStream(config_.service_overrides, body);
+        } else if (config_.get_configs_overrides_for_service) {
             body.Key("service");
             WriteToStream(config_.service_name, body);
         }
