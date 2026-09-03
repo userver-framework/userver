@@ -172,8 +172,9 @@ public:
         resource_scope_storage_.AfterConstruction();
     }
 
-    WithResourceScopes(WithResourceScopes&& other) noexcept = default;
-    WithResourceScopes& operator=(WithResourceScopes&& other) noexcept = default;
+    // Not movable: scopes pin a reference to the wrapped object.
+    WithResourceScopes(WithResourceScopes&&) = delete;
+    WithResourceScopes& operator=(WithResourceScopes&&) = delete;
 
     ~WithResourceScopes() { resource_scope_storage_.BeforeDestruction(); }
 
