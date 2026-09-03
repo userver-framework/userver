@@ -3,9 +3,7 @@ import os
 import pytest
 
 
-async def test_expired(service_client, dynamic_config):
-    assert dynamic_config.get('POSTGRES_DEADLINE_PROPAGATION_VERSION') == 1
-
+async def test_expired(service_client):
     async with service_client.capture_logs() as capture:
         response = await service_client.post(
             '/chaos/postgres?sleep_ms=1000&type=select',
@@ -20,9 +18,7 @@ async def test_expired(service_client, dynamic_config):
     assert 'storages::postgres::ConnectionInterrupted' in text, text
 
 
-async def test_timeout(service_client, dynamic_config):
-    assert dynamic_config.get('POSTGRES_DEADLINE_PROPAGATION_VERSION') == 1
-
+async def test_timeout(service_client):
     if os.environ.get('POSTGRES_PIPELINE_DISABLED'):
         pytest.skip('Pipeline mode is not supported by libpq')
 
@@ -38,21 +34,3 @@ async def test_timeout(service_client, dynamic_config):
     assert len(logs) == 1
     text = logs[0]['text']
     assert 'was cancelled by deadline propagation' in text, text
-
-
-@pytest.mark.config(POSTGRES_DEADLINE_PROPAGATION_VERSION=0)
-async def test_expired_dp_disabled(service_client):
-    async with service_client.capture_logs() as capture:
-        response = await service_client.post(
-            '/chaos/postgres?sleep_ms=1000&type=select',
-            headers={'X-YaTaxi-Client-TimeoutMs': '500'},
-        )
-        assert response.status == 498
-        assert response.text == 'Deadline expired'
-
-    logs = capture.select(_type='response', meta_type='/chaos/postgres')
-    assert len(logs) == 1, logs
-    if os.environ.get('POSTGRES_PIPELINE_DISABLED'):
-        pytest.skip('Pipeline mode is not supported by libpq')
-
-    assert not logs[0].get('dp_original_body', None), logs

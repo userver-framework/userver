@@ -77,10 +77,7 @@ ResultSet Transaction::DoExecute(
     if (!statement_cmd_ctl) {
         statement_cmd_ctl = conn_->GetQueryCmdCtl(query.GetOptionalNameView());
     }
-    auto source = conn_.GetConfigSource();
-    if (source) {
-        CheckDeadlineIsExpired(source->GetSnapshot());
-    }
+    CheckDeadlineIsExpired();
 
     detail::StatementStats stats{query, conn_};
     try {

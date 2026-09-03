@@ -256,11 +256,10 @@ ConnectionPtr ConnectionPool::Acquire(engine::Deadline deadline) {
     // Obtain smart pointer first to prolong lifetime of this object
     auto shared_this = shared_from_this();
 
-    auto config = GetConfigSource().GetSnapshot();
-    CheckDeadlineIsExpired(config);
+    CheckDeadlineIsExpired();
     ConnectionPtr connection{Pop(deadline), std::move(shared_this)};
     ++stats_.connection.used;
-    CheckDeadlineIsExpired(config);
+    CheckDeadlineIsExpired();
 
     return connection;
 }

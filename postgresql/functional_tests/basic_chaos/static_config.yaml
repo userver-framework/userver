@@ -76,7 +76,6 @@ components_manager:
                     __default__:
                         user-types-enabled: false
                         recent-errors-threshold: 100000
-                POSTGRES_DEADLINE_PROPAGATION_VERSION: 1
 
         dns-client:
             fs-task-processor: fs-task-processor
