@@ -381,6 +381,25 @@ public:
         const CommandControl& command_control
     ) = 0;
 
+    /// @brief Atomically set multiple key-value pairs, without an expiration clause.
+    ///
+    /// Available since Valkey 9.1.0 and Redis 8.4.0. In cluster mode all keys
+    /// must belong to the same hash slot; use a common hash tag to ensure that.
+    virtual RequestMsetex Msetex(
+        std::vector<std::pair<std::string, std::string>> key_values,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Atomically set multiple key-value pairs with optional existence and TTL conditions.
+    ///
+    /// Available since Valkey 9.1.0 and Redis 8.4.0. In cluster mode all keys
+    /// must belong to the same hash slot; use a common hash tag to ensure that.
+    virtual RequestMsetex Msetex(
+        std::vector<std::pair<std::string, std::string>> key_values,
+        MsetexOptions options,
+        const CommandControl& command_control
+    ) = 0;
+
     virtual TransactionPtr Multi() = 0;
 
     virtual TransactionPtr Multi(Transaction::CheckShards check_shards) = 0;

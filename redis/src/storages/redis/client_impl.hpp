@@ -254,6 +254,17 @@ public:
     RequestMset Mset(std::vector<std::pair<std::string, std::string>> key_values, const CommandControl& command_control)
         override;
 
+    RequestMsetex Msetex(
+        std::vector<std::pair<std::string, std::string>> key_values,
+        const CommandControl& command_control
+    ) override;
+
+    RequestMsetex Msetex(
+        std::vector<std::pair<std::string, std::string>> key_values,
+        MsetexOptions options,
+        const CommandControl& command_control
+    ) override;
+
     TransactionPtr Multi() override;
 
     TransactionPtr Multi(Transaction::CheckShards check_shards) override;

@@ -750,6 +750,32 @@ RequestMset ClientImpl::Mset(
     );
 }
 
+RequestMsetex ClientImpl::Msetex(
+    std::vector<std::pair<std::string, std::string>> key_values,
+    const CommandControl& command_control
+) {
+    return Msetex(std::move(key_values), MsetexOptions::NoTtl(), command_control);
+}
+
+RequestMsetex ClientImpl::Msetex(
+    std::vector<std::pair<std::string, std::string>> key_values,
+    MsetexOptions options,
+    const CommandControl& command_control
+) {
+    if (key_values.empty()) {
+        return CreateDummyRequest<RequestMsetex>(std::make_shared<Reply>("msetex", 1));
+    }
+
+    const auto shard = ShardByKey(key_values.front().first, command_control);
+    const auto numkeys = key_values.size();
+    return CreateRequest<RequestMsetex>(MakeRequest(
+        CmdArgs{"msetex", numkeys, std::move(key_values), options},
+        shard,
+        true,
+        GetCommandControl(command_control)
+    ));
+}
+
 TransactionPtr ClientImpl::Multi() { return std::make_unique<TransactionImpl>(shared_from_this()); }
 
 TransactionPtr ClientImpl::Multi(Transaction::CheckShards check_shards) {

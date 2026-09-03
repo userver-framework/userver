@@ -215,6 +215,70 @@ struct SetOptions {
     Exist exist = Exist::kSetAlways;
 };
 
+/// @brief Options for MSETEX (NX/XX combined with EX/PX/EXAT/PXAT/KEEPTTL).
+struct MsetexOptions {
+    /// Existence precondition for the affected keys.
+    enum class Exist : std::uint8_t {
+        /// No precondition (default).
+        kSetAlways,
+        /// NX — set only if none of the affected keys currently exists.
+        kSetIfNoneExist,
+        /// XX — set only if all of the affected keys currently exist.
+        kSetIfAllExist,
+    };
+    /// What TTL clause to attach to the new values.
+    enum class TtlAction : std::uint8_t {
+        /// No TTL clause on the wire — server applies default behavior.
+        kNone,
+        /// EX seconds.
+        kSetSeconds,
+        /// PX milliseconds.
+        kSetMilliseconds,
+        /// EXAT unix-ts-sec.
+        kSetAtSeconds,
+        /// PXAT unix-ts-ms.
+        kSetAtMilliseconds,
+        /// KEEPTTL — keep the existing TTL of each key if any; @c ttl is ignored.
+        kKeepTtl,
+    };
+
+    Exist exist{Exist::kSetAlways};
+    TtlAction ttl_action{TtlAction::kNone};
+    std::chrono::milliseconds ttl{0};
+
+    /// @brief No TTL clause on the wire — server applies default behavior.
+    static MsetexOptions NoTtl();
+    /// @brief KEEPTTL — keep the existing TTL of each key if any.
+    static MsetexOptions KeepTtl();
+    /// @brief Set TTL to a relative duration. Posted on the wire as PX (ms-precision).
+    static MsetexOptions Expire(std::chrono::milliseconds ttl);
+    /// @brief Set TTL to an absolute deadline. Posted on the wire as PXAT (ms-precision).
+    static MsetexOptions ExpireAt(std::chrono::system_clock::time_point deadline);
+
+    /// @brief Chainable modifier — NX: write only if **none** of the affected
+    /// keys currently exist.
+    MsetexOptions& OnlyIfNoneOfKeysExist() & {
+        exist = Exist::kSetIfNoneExist;
+        return *this;
+    }
+    /// @brief Chainable modifier — XX: write only if **all** of the affected
+    /// keys currently exist.
+    MsetexOptions& OnlyIfAllKeysExist() & {
+        exist = Exist::kSetIfAllExist;
+        return *this;
+    }
+    /// @brief NX (rvalue overload).
+    MsetexOptions OnlyIfNoneOfKeysExist() && {
+        exist = Exist::kSetIfNoneExist;
+        return std::move(*this);
+    }
+    /// @brief XX (rvalue overload).
+    MsetexOptions OnlyIfAllKeysExist() && {
+        exist = Exist::kSetIfAllExist;
+        return std::move(*this);
+    }
+};
+
 struct ExpireOptions {
     enum class Exist { kSetAlways, kSetIfNotExist, kSetIfExist };
     enum class Compare { kNone, kGreaterThan, kLessThan };

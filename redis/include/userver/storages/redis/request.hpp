@@ -228,6 +228,7 @@ using RequestLrem = Request<size_t>;
 using RequestLtrim = Request<StatusOk, void>;
 using RequestMget = Request<std::vector<std::optional<std::string>>>;
 using RequestMset = Request<StatusOk, void>;
+using RequestMsetex = Request<MsetexReply>;
 using RequestPersist = Request<PersistReply>;
 using RequestPexpire = Request<ExpireReply>;
 using RequestPing = Request<StatusPong, void>;

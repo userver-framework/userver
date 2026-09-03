@@ -17,6 +17,8 @@ const storages::redis::CommandControl kMasterCC = [] {
 
 using storages::redis::ExpireOptions;
 using storages::redis::ExpireReply;
+using storages::redis::MsetexOptions;
+using storages::redis::MsetexReply;
 
 class RedisClientTransactionTest : public RedisClientTest {
 public:
@@ -649,6 +651,40 @@ UTEST_F(RedisClientTransactionTest, Mset) {
     auto result = Get(client->Get("key1"), kMasterCC);
     EXPECT_TRUE(result.has_value());
     EXPECT_EQ(result.value(), "value1");
+}
+
+UTEST_F(RedisClientTransactionTest, Msetex) {
+    if (!HasMsetexCommand()) {
+        GTEST_SKIP() << SkipMsgMsetexUnsupported();
+    }
+
+    auto& client = GetTransactionClient();
+    constexpr auto kTtl = std::chrono::seconds{60};
+    const std::vector<std::pair<std::string, std::string>> key_values{
+        {"{transaction-msetex}:1", "value1"},
+        {"{transaction-msetex}:2", "value2"},
+    };
+
+    EXPECT_EQ(Get(client->Msetex(key_values, MsetexOptions::Expire(kTtl))), MsetexReply::kKeysSet);
+
+    for (const auto& [key, expected_value] : key_values) {
+        const auto value = Get(client->Get(key), kMasterCC);
+        ASSERT_TRUE(value.has_value());
+        EXPECT_EQ(*value, expected_value);
+
+        const auto ttl = Get(client->Ttl(key), kMasterCC);
+        ASSERT_TRUE(ttl.KeyHasExpiration());
+        EXPECT_GT(ttl.GetExpire().count(), 0);
+        EXPECT_LE(ttl.GetExpire().count(), kTtl.count());
+    }
+}
+
+UTEST_F(RedisClientTransactionTest, MsetexEmptyInput) {
+    auto& client = GetTransactionClient();
+    using KeyValues = std::vector<std::pair<std::string, std::string>>;
+
+    EXPECT_NO_THROW((void)client->Msetex(KeyValues{}));
+    EXPECT_NO_THROW((void)client->Msetex(KeyValues{}, MsetexOptions::NoTtl()));
 }
 
 // multi

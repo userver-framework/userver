@@ -106,6 +106,8 @@ HsetReply Parse(ReplyData&& reply_data, const std::string& request_description, 
 
 HsetexReply Parse(ReplyData&& reply_data, const std::string& request_description, To<HsetexReply>);
 
+MsetexReply Parse(ReplyData&& reply_data, const std::string& request_description, To<MsetexReply>);
+
 PersistReply Parse(ReplyData&& reply_data, const std::string& request_description, To<PersistReply>);
 
 HexpireReply Parse(ReplyData&& reply_data, const std::string& request_description, To<HexpireReply>);

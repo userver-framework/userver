@@ -231,6 +231,22 @@ public:
         (override)
     );
 
+    MOCK_METHOD(
+        RequestMsetex,
+        Msetex,
+        ((std::vector<std::pair<std::string, std::string>>)key_values, const CommandControl& command_control),
+        (override)
+    );
+
+    MOCK_METHOD(
+        RequestMsetex,
+        Msetex,
+        ((std::vector<std::pair<std::string, std::string>>)key_values,
+         MsetexOptions options,
+         const CommandControl& command_control),
+        (override)
+    );
+
     MOCK_METHOD(RequestPersist, Persist, (std::string key, const CommandControl& command_control), (override));
 
     MOCK_METHOD(

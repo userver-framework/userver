@@ -4384,6 +4384,7 @@
   "redis/src/storages/redis/impl/cluster_topology_holder.hpp":"taxi/uservices/userver/redis/src/storages/redis/impl/cluster_topology_holder.hpp",
   "redis/src/storages/redis/impl/cmd_args.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/cmd_args.cpp",
   "redis/src/storages/redis/impl/cmd_args.hpp":"taxi/uservices/userver/redis/src/storages/redis/impl/cmd_args.hpp",
+  "redis/src/storages/redis/impl/cmd_args_test.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/cmd_args_test.cpp",
   "redis/src/storages/redis/impl/command.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/command.cpp",
   "redis/src/storages/redis/impl/command.hpp":"taxi/uservices/userver/redis/src/storages/redis/impl/command.hpp",
   "redis/src/storages/redis/impl/command_control_impl.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/command_control_impl.cpp",

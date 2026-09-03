@@ -254,6 +254,17 @@ public:
     RequestMset Mset(std::vector<std::pair<std::string, std::string>> key_values, const CommandControl& command_control)
         override;
 
+    RequestMsetex Msetex(
+        std::vector<std::pair<std::string, std::string>> key_values,
+        const CommandControl& command_control
+    ) override;
+
+    RequestMsetex Msetex(
+        std::vector<std::pair<std::string, std::string>> key_values,
+        MsetexOptions options,
+        const CommandControl& command_control
+    ) override;
+
     RequestPersist Persist(std::string key, const CommandControl& command_control) override;
 
     RequestPexpire Pexpire(std::string key, std::chrono::milliseconds ttl, const CommandControl& command_control)

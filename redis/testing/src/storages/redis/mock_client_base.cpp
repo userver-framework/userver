@@ -452,6 +452,21 @@ RequestMset MockClientBase::Mset(
     AbortWithStacktrace(kNotMocked);
 }
 
+RequestMsetex MockClientBase::Msetex(
+    std::vector<std::pair<std::string, std::string>> /*key_values*/,
+    const CommandControl& /*command_control*/
+) {
+    AbortWithStacktrace(kNotMocked);
+}
+
+RequestMsetex MockClientBase::Msetex(
+    std::vector<std::pair<std::string, std::string>> /*key_values*/,
+    MsetexOptions /*options*/,
+    const CommandControl& /*command_control*/
+) {
+    AbortWithStacktrace(kNotMocked);
+}
+
 RequestPersist MockClientBase::Persist(std::string /*key*/, const CommandControl& /*command_control*/) {
     AbortWithStacktrace(kNotMocked);
 }

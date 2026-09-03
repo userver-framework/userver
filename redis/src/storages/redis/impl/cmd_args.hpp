@@ -140,6 +140,7 @@ private:
     void PutArg(const GeoradiusOptions& arg);
     void PutArg(const GeosearchOptions& arg);
     void PutArg(const SetOptions& arg);
+    void PutArg(const MsetexOptions& arg);
     void PutArg(const ZaddOptions& arg);
     void PutArg(const ScanOptions& arg);
 

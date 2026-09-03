@@ -156,6 +156,43 @@ void CmdWithArgs::PutArg(const SetOptions& arg) {
     }
 }
 
+void CmdWithArgs::PutArg(const MsetexOptions& arg) {
+    switch (arg.exist) {
+        case MsetexOptions::Exist::kSetAlways:
+            break;
+        case MsetexOptions::Exist::kSetIfNoneExist:
+            args_.emplace_back("NX");
+            break;
+        case MsetexOptions::Exist::kSetIfAllExist:
+            args_.emplace_back("XX");
+            break;
+    }
+
+    switch (arg.ttl_action) {
+        case MsetexOptions::TtlAction::kNone:
+            break;
+        case MsetexOptions::TtlAction::kSetSeconds:
+            args_.emplace_back("EX");
+            args_.emplace_back(std::to_string(std::chrono::duration_cast<std::chrono::seconds>(arg.ttl).count()));
+            break;
+        case MsetexOptions::TtlAction::kSetMilliseconds:
+            args_.emplace_back("PX");
+            args_.emplace_back(std::to_string(arg.ttl.count()));
+            break;
+        case MsetexOptions::TtlAction::kSetAtSeconds:
+            args_.emplace_back("EXAT");
+            args_.emplace_back(std::to_string(std::chrono::duration_cast<std::chrono::seconds>(arg.ttl).count()));
+            break;
+        case MsetexOptions::TtlAction::kSetAtMilliseconds:
+            args_.emplace_back("PXAT");
+            args_.emplace_back(std::to_string(arg.ttl.count()));
+            break;
+        case MsetexOptions::TtlAction::kKeepTtl:
+            args_.emplace_back("KEEPTTL");
+            break;
+    }
+}
+
 void CmdWithArgs::PutArg(const ExpireOptions& arg) {
     switch (arg.exist) {
         case ExpireOptions::Exist::kSetIfExist:

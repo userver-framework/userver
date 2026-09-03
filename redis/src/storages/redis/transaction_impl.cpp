@@ -381,6 +381,19 @@ RequestMset TransactionImpl::Mset(std::vector<std::pair<std::string, std::string
     return AddCmd<RequestMset>("mset", true, std::move(key_values));
 }
 
+RequestMsetex TransactionImpl::Msetex(std::vector<std::pair<std::string, std::string>> key_values) {
+    return Msetex(std::move(key_values), MsetexOptions::NoTtl());
+}
+
+RequestMsetex TransactionImpl::Msetex(
+    std::vector<std::pair<std::string, std::string>> key_values,
+    MsetexOptions options
+) {
+    UpdateShard(key_values);
+    const auto key_count = key_values.size();
+    return AddCmd<RequestMsetex>("msetex", true, key_count, std::move(key_values), options);
+}
+
 RequestPersist TransactionImpl::Persist(std::string key) {
     UpdateShard(key);
     return AddCmd<RequestPersist>("persist", true, std::move(key));

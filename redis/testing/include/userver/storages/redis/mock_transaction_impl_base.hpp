@@ -143,6 +143,10 @@ public:
 
     virtual RequestMset Mset(std::vector<std::pair<std::string, std::string>> key_values);
 
+    virtual RequestMsetex Msetex(std::vector<std::pair<std::string, std::string>> key_values);
+
+    virtual RequestMsetex Msetex(std::vector<std::pair<std::string, std::string>> key_values, MsetexOptions options);
+
     virtual RequestPersist Persist(std::string key);
 
     virtual RequestPexpire Pexpire(std::string key, std::chrono::milliseconds ttl);
