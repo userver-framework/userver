@@ -407,4 +407,260 @@ TEST(ResourceScopeStorageUnit, AfterConstructionThrowRunsBeforeDestruction)
     EXPECT_THAT(trace, ::testing::ElementsAre(1, 3, 2));
 }
 
+TEST(ResourceScopeStorageUnit, NestedRegisterDuringAfterConstruction)
+{
+    utils::ResourceScopeStorage scopes;
+    std::vector<int> trace;
+
+    scopes.Register([&scopes, &trace] {
+        trace.push_back(1);
+        scopes.Register([&trace] {
+            trace.push_back(2);
+            return utils::FastScopeGuard([&trace]() noexcept { trace.push_back(3); });
+        });
+        return utils::FastScopeGuard([&trace]() noexcept { trace.push_back(4); });
+    });
+
+    scopes.AfterConstruction();
+    EXPECT_THAT(trace, ::testing::ElementsAre(1, 2));
+
+    scopes.BeforeDestruction();
+    EXPECT_THAT(trace, ::testing::ElementsAre(1, 2, 4, 3));
+}
+
+TEST(ResourceScopeStorageUnit, NestedRegisterThrowSwallowed)
+{
+    utils::ResourceScopeStorage scopes;
+    std::vector<int> trace;
+
+    scopes.Register([&scopes, &trace] {
+        trace.push_back(1);
+        try {
+            scopes.Register([&trace] {
+                trace.push_back(2);
+                throw std::runtime_error("nested");
+                return utils::FastScopeGuard([&trace]() noexcept { trace.push_back(3); });
+            });
+        } catch (const std::runtime_error&) {
+            trace.push_back(4);
+        }
+        return utils::FastScopeGuard([&trace]() noexcept { trace.push_back(5); });
+    });
+
+    UEXPECT_NO_THROW(scopes.AfterConstruction());
+    EXPECT_THAT(trace, ::testing::ElementsAre(1, 2, 4));
+
+    scopes.BeforeDestruction();
+    EXPECT_THAT(trace, ::testing::ElementsAre(1, 2, 4, 5));
+}
+
+TEST(ResourceScopeStorageUnit, NestedRegisterThrowPropagates)
+{
+    utils::ResourceScopeStorage scopes;
+    std::vector<int> trace;
+
+    scopes.Register([&scopes, &trace] {
+        trace.push_back(1);
+        scopes.Register([&trace] {
+            trace.push_back(2);
+            throw std::runtime_error("nested");
+            return utils::FastScopeGuard([&trace]() noexcept { trace.push_back(3); });
+        });
+        return utils::FastScopeGuard([&trace]() noexcept { trace.push_back(4); });
+    });
+
+    UEXPECT_THROW_MSG(scopes.AfterConstruction(), std::runtime_error, "nested");
+    EXPECT_THAT(trace, ::testing::ElementsAre(1, 2));
+}
+
+TEST(ResourceScopeStorageUnit, NestedRegisterCleansUpOnLaterThrow)
+{
+    utils::ResourceScopeStorage scopes;
+    std::vector<int> trace;
+
+    scopes.Register([&scopes, &trace] {
+        trace.push_back(1);
+        scopes.Register([&trace] {
+            trace.push_back(2);
+            return utils::FastScopeGuard([&trace]() noexcept { trace.push_back(3); });
+        });
+        return utils::FastScopeGuard([&trace]() noexcept { trace.push_back(4); });
+    });
+    scopes.Register([&trace] {
+        trace.push_back(5);
+        throw std::runtime_error("1");
+        return utils::FastScopeGuard([&trace]() noexcept { trace.push_back(6); });
+    });
+
+    UEXPECT_THROW_MSG(scopes.AfterConstruction(), std::runtime_error, "1");
+    EXPECT_THAT(trace, ::testing::ElementsAre(1, 2, 5, 4, 3));
+}
+
+TEST(ResourceScopeStorageUnit, RegisterAfterReady)
+{
+    utils::ResourceScopeStorage scopes;
+    std::vector<int> trace;
+
+    scopes.Register([&trace] {
+        trace.push_back(1);
+        return utils::FastScopeGuard([&trace]() noexcept { trace.push_back(2); });
+    });
+    scopes.AfterConstruction();
+
+    scopes.Register([&trace] {
+        trace.push_back(3);
+        return utils::FastScopeGuard([&trace]() noexcept { trace.push_back(4); });
+    });
+    EXPECT_THAT(trace, ::testing::ElementsAre(1, 3));
+
+    scopes.BeforeDestruction();
+    EXPECT_THAT(trace, ::testing::ElementsAre(1, 3, 4, 2));
+}
+
+TEST(ResourceScopeStorageUnit, NestedRegisterDuringReady)
+{
+    utils::ResourceScopeStorage scopes;
+    std::vector<int> trace;
+
+    scopes.AfterConstruction();
+    scopes.Register([&scopes, &trace] {
+        trace.push_back(1);
+        scopes.Register([&trace] {
+            trace.push_back(2);
+            return utils::FastScopeGuard([&trace]() noexcept { trace.push_back(3); });
+        });
+        return utils::FastScopeGuard([&trace]() noexcept { trace.push_back(4); });
+    });
+    EXPECT_THAT(trace, ::testing::ElementsAre(1, 2));
+
+    scopes.BeforeDestruction();
+    EXPECT_THAT(trace, ::testing::ElementsAre(1, 2, 4, 3));
+}
+
+TEST(ResourceScopeStorageUnit, NestedRegisterDuringReadyThrowSwallowed)
+{
+    utils::ResourceScopeStorage scopes;
+    std::vector<int> trace;
+
+    scopes.AfterConstruction();
+    scopes.Register([&scopes, &trace] {
+        trace.push_back(1);
+        try {
+            scopes.Register([&trace] {
+                trace.push_back(2);
+                throw std::runtime_error("nested");
+                return utils::FastScopeGuard([&trace]() noexcept { trace.push_back(3); });
+            });
+        } catch (const std::runtime_error&) {
+            trace.push_back(4);
+        }
+        return utils::FastScopeGuard([&trace]() noexcept { trace.push_back(5); });
+    });
+    EXPECT_THAT(trace, ::testing::ElementsAre(1, 2, 4));
+
+    scopes.BeforeDestruction();
+    EXPECT_THAT(trace, ::testing::ElementsAre(1, 2, 4, 5));
+}
+
+TEST(ResourceScopeStorageUnit, RegisterDuringReadyThrowDoesNotCloseOthers)
+{
+    utils::ResourceScopeStorage scopes;
+    std::vector<int> trace;
+
+    scopes.Register([&trace] {
+        trace.push_back(1);
+        return utils::FastScopeGuard([&trace]() noexcept { trace.push_back(2); });
+    });
+    scopes.AfterConstruction();
+
+    UEXPECT_THROW_MSG(
+        scopes.Register([&trace] {
+            trace.push_back(3);
+            throw std::runtime_error("ready");
+            return utils::FastScopeGuard([&trace]() noexcept { trace.push_back(4); });
+        }),
+        std::runtime_error,
+        "ready"
+    );
+    EXPECT_THAT(trace, ::testing::ElementsAre(1, 3));
+
+    scopes.BeforeDestruction();
+    EXPECT_THAT(trace, ::testing::ElementsAre(1, 3, 2));
+}
+
+TEST(ResourceScopeStorageUnit, RegisterDuringBeforeDestruction)
+{
+    utils::ResourceScopeStorage scopes;
+    std::vector<int> trace;
+
+    scopes.Register([&scopes, &trace] {
+        trace.push_back(1);
+        return utils::FastScopeGuard([&scopes, &trace]() noexcept {
+            trace.push_back(2);
+            scopes.Register([&trace] {
+                trace.push_back(3);
+                return utils::FastScopeGuard([&trace]() noexcept { trace.push_back(4); });
+            });
+            trace.push_back(5);
+        });
+    });
+
+    scopes.AfterConstruction();
+    scopes.BeforeDestruction();
+    EXPECT_THAT(trace, ::testing::ElementsAre(1, 2, 3, 4, 5));
+}
+
+TEST(ResourceScopeStorageUnit, NestedRegisterDuringBeforeDestruction)
+{
+    utils::ResourceScopeStorage scopes;
+    std::vector<int> trace;
+
+    scopes.Register([&scopes, &trace] {
+        return utils::FastScopeGuard([&scopes, &trace]() noexcept {
+            trace.push_back(1);
+            scopes.Register([&scopes, &trace] {
+                trace.push_back(2);
+                scopes.Register([&trace] {
+                    trace.push_back(3);
+                    return utils::FastScopeGuard([&trace]() noexcept { trace.push_back(4); });
+                });
+                return utils::FastScopeGuard([&trace]() noexcept { trace.push_back(5); });
+            });
+            trace.push_back(6);
+        });
+    });
+
+    scopes.AfterConstruction();
+    scopes.BeforeDestruction();
+    EXPECT_THAT(trace, ::testing::ElementsAre(1, 2, 3, 4, 5, 6));
+}
+
+TEST(ResourceScopeStorageUnit, RegisterDuringDestructionOpensAndCloses) {
+#ifndef NDEBUG
+    GTEST_SKIP() << "UASSERT aborts in debug builds";
+#endif
+
+    utils::ResourceScopeStorage scopes;
+    std::vector<int> trace;
+
+    scopes.AfterConstruction();
+    scopes.BeforeDestruction();
+    scopes.Register([&trace] {
+        trace.push_back(1);
+        return utils::FastScopeGuard([&trace]() noexcept { trace.push_back(2); });
+    });
+    EXPECT_THAT(trace, ::testing::ElementsAre(1, 2));
+}
+
+TEST(ResourceScopeStorageDeathTest, RegisterDuringDestructionAborts) {
+#ifdef NDEBUG
+    GTEST_SKIP() << "UASSERT is a no-op in release builds";
+#endif
+
+    utils::ResourceScopeStorage scopes;
+    scopes.AfterConstruction();
+    scopes.BeforeDestruction();
+    UEXPECT_DEATH(scopes.Register([] { return utils::FastScopeGuard([]() noexcept {}); }), "partially destroyed");
+}
+
 USERVER_NAMESPACE_END

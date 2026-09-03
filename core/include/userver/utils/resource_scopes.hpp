@@ -105,7 +105,12 @@ public:
     /// that unregisters the previously registered resource. The returned handle's
     /// destructor is called just before the component destructor is called.
     ///
-    /// @note callback is not called if the component is not created OR
+    /// During construction the callback is queued and runs from @ref AfterConstruction.
+    /// If @ref Register is called from another scope's opening callback, or after
+    /// @ref AfterConstruction has completed, the new scope is opened immediately.
+    /// Its destructor runs in reverse opening-completion order.
+    ///
+    /// @note A queued callback is not called if the component is not created OR
     /// any previously registered callback throws an exception.
     /// @note if you don't have an existing RAII-ish class, but still want
     /// to do a cleanup, you might want to use @ref utils::FastScopeGuard
@@ -143,17 +148,27 @@ public:
     void BeforeDestruction() noexcept;
 
 private:
+    enum class State {
+        kConstruction,
+        kAfterConstruction,
+        kReady,
+        kBeforeDestruction,
+        kDestruction,
+    };
+
     struct ScopeWithPriority {
         Priority priority{0};
         impl::ScopePtr scope;
     };
 
     void DoRegister(impl::ScopePtr resource_scope, Priority priority);
+    void OpenAndKeep(impl::ScopePtr resource_scope);
+    void OpenAndClose(impl::ScopePtr resource_scope);
     static void SortByPriority(std::vector<ScopeWithPriority>& scopes) noexcept;
 
     std::vector<ScopeWithPriority> registered_scopes_;
     std::vector<impl::ScopePtr> initialized_scopes_;
-    bool scope_registration_finished_{false};
+    State state_{State::kConstruction};
 };
 
 /// @brief A wrapper that provides @ref utils::ResourceScopeStorage for the wrapped object.
