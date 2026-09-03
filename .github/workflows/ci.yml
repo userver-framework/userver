@@ -152,6 +152,13 @@ jobs:
             run: |
                 ./scripts/rabbitmq/ubuntu_install_rabbitmq_server.sh
 
+          - name: Install ScyllaDB cpp-rs-driver
+            run: |
+                sudo ./scripts/scylla/ubuntu-install-scylla.sh
+
+          - name: Run ScyllaDB for tests
+            run: docker run -d -p 9042:9042 scylladb/scylla:2025.1 --smp 1 --memory 750M
+
           - name: Install gdb and pytest
             run: |
                 sudo apt install -y gdb python3-pytest

@@ -38,6 +38,7 @@ jobs:
                         -DUSERVER_YDBCPPSDK_VERSION=3.21.0
                         -DCMAKE_DISABLE_FIND_PACKAGE_ydb-cpp-sdk=1
                         -DUSERVER_FEATURE_ROCKS=0
+                        -DUSERVER_FEATURE_SCYLLADB=0
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
                         -DCMAKE_BUILD_TYPE=Release
@@ -54,6 +55,7 @@ jobs:
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_FEATURE_ROCKS=0
+                        -DUSERVER_FEATURE_SCYLLADB=0
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
                         -DCMAKE_BUILD_TYPE=Release
@@ -70,6 +72,7 @@ jobs:
                         -DUSERVER_NO_WERROR=1
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_FEATURE_ROCKS=0
+                        -DUSERVER_FEATURE_SCYLLADB=0
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
                         -DCMAKE_BUILD_TYPE=Release

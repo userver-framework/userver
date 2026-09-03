@@ -158,6 +158,8 @@ option(USERVER_FEATURE_MYSQL "Provide asynchronous driver for MariaDB/MySQL" "${
 # @ingroup libraries
 option(USERVER_FEATURE_ROCKS "Provide asynchronous driver for Rocks" "${USERVER_LIB_ENABLED_DEFAULT}")
 # @ingroup libraries
+option(USERVER_FEATURE_SCYLLADB "Provide asynchronous driver for ScyllaDB" "${USERVER_LIB_ENABLED_DEFAULT}")
+# @ingroup libraries
 option(USERVER_FEATURE_YDB "Provide asynchronous driver for YDB" "${USERVER_YDB_DEFAULT}")
 # @ingroup libraries
 option(USERVER_FEATURE_OTLP "Provide asynchronous OTLP exporters" "${USERVER_LIB_ENABLED_DEFAULT}")
