@@ -66,7 +66,20 @@ void SerializeRequest(const Request& request, const std::string& base_url, USERV
 
   {# body #}
   {% if len(op.request_bodies) == 1 %}
-    http_request.data(ToString(USERVER_NAMESPACE::formats::json::ValueBuilder(request.body).ExtractValue()));
+    {% set body = op.request_bodies[0] %}
+    {% if body.content_type != 'multipart/form-data' %}
+        sink.SetHeader(USERVER_NAMESPACE::http::headers::kContentType, "{{ body.content_type }}");
+    {% endif %}
+
+    {% if body.content_type == 'application/json' %}
+        {{ application_json.serialize("request.body", "http_request") }}
+    {% elif body.content_type == 'multipart/form-data' %}
+        {{ application_multipartformdata.serialize(body, "request.body", "http_request") }}
+    {% elif body.content_type == 'application/x-www-form-urlencoded' %}
+        {{ application_xwwwformurlencoded.serialize(body, "request.body", "http_request") }}
+    {% else %}
+        {{ application_octetstream.serialize("request.body", "http_request", wrapped=False) }}
+    {% endif %}
   {% elif len(op.request_bodies) > 1 %}
     switch (request.body.index()) {
     {%- for num, body in enumerate(op.request_bodies) -%}

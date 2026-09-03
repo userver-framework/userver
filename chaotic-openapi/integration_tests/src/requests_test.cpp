@@ -61,111 +61,127 @@ UTEST(Requests, RegexDestinationName) {
 }
 
 UTEST(RequestsMultipleContentTypes, Json) {
-    const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest& request) {
-        EXPECT_EQ(request.body, R"({"foo":"a"})");
-        EXPECT_EQ(request.headers.at(std::string{"Content-Type"}), "application/json");
-        utest::HttpServerMock::HttpResponse response{};
-        response.response_status = 200;
-        return response;
-    });
+    auto test = []<typename Request, typename Body>() {
+        const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest& request) {
+            EXPECT_EQ(request.body, R"({"foo":"a"})");
+            EXPECT_EQ(request.headers.at(std::string{"Content-Type"}), "application/json");
+            utest::HttpServerMock::HttpResponse response{};
+            response.response_status = 200;
+            return response;
+        });
 
-    auto http_client_ptr = utest::CreateHttpClient();
-    auto request = http_client_ptr->CreateRequest();
+        auto http_client_ptr = utest::CreateHttpClient();
+        auto request = http_client_ptr->CreateRequest();
 
-    client::SerializeRequest({client::RequestBodyApplicationJson{"a"}}, http_server.GetBaseUrl(), request);
+        SerializeRequest(Request{Body{"a"}}, http_server.GetBaseUrl(), request);
 
-    auto response = request.perform();
-    EXPECT_EQ(response->status_code(), 200);
+        auto response = request.perform();
+        EXPECT_EQ(response->status_code(), 200);
+    };
+
+    namespace single = ::clients::multiple_content_types::test_single_json::post;
+    test.operator()<client::Request, client::RequestBodyApplicationJson>();
+    test.operator()<single::Request, single::Body>();
 }
 
 UTEST(RequestsMultipleContentTypes, XWwwFormUrlencoded) {
-    const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest& request) {
-        // x-www-form-urlencoded field order is unspecified (serialized from a
-        // std::unordered_map), so compare the '&'-separated parts order-independently.
-        const auto parts = utils::text::Split(request.body, "&");
-        EXPECT_THAT(
-            parts,
-            ::testing::UnorderedElementsAre(
-                "name=abc",
-                "password=123%20456",
-                "age=30",
-                "salary=1000.500000",
-                "is_smoking=true"
-            )
-        );
-        EXPECT_EQ(request.headers.at(std::string{"Content-Type"}), "application/x-www-form-urlencoded");
-        utest::HttpServerMock::HttpResponse response{};
-        response.response_status = 200;
-        return response;
-    });
+    auto test = []<typename Request, typename Body>() {
+        const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest& request) {
+            // x-www-form-urlencoded field order is unspecified (serialized from a
+            // std::unordered_map), so compare the '&'-separated parts order-independently.
+            const auto parts = utils::text::Split(request.body, "&");
+            EXPECT_THAT(
+                parts,
+                ::testing::UnorderedElementsAre(
+                    "name=abc",
+                    "password=123%20456",
+                    "age=30",
+                    "salary=1000.500000",
+                    "is_smoking=true"
+                )
+            );
+            EXPECT_EQ(request.headers.at(std::string{"Content-Type"}), "application/x-www-form-urlencoded");
+            utest::HttpServerMock::HttpResponse response{};
+            response.response_status = 200;
+            return response;
+        });
 
-    auto http_client_ptr = utest::CreateHttpClient();
-    auto request = http_client_ptr->CreateRequest();
+        auto http_client_ptr = utest::CreateHttpClient();
+        auto request = http_client_ptr->CreateRequest();
 
-    client::SerializeRequest(
-        {client::RequestBodyApplicationXWwwFormUrlencoded{"abc", "123 456", 30, 1000.5, true}},
-        http_server.GetBaseUrl(),
-        request
-    );
+        SerializeRequest(Request{Body{"abc", "123 456", 30, 1000.5, true}}, http_server.GetBaseUrl(), request);
 
-    auto response = request.perform();
-    EXPECT_EQ(response->status_code(), 200);
+        auto response = request.perform();
+        EXPECT_EQ(response->status_code(), 200);
+    };
+
+    namespace single = ::clients::multiple_content_types::test_single_form_urlen::post;
+    test.operator()<client::Request, client::RequestBodyApplicationXWwwFormUrlencoded>();
+    test.operator()<single::Request, single::Body>();
 }
 
 UTEST(RequestsMultipleContentTypes, MultipartFormData) {
-    const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest& request) {
-        const auto& raw_content_type = request.headers.at(std::string{"Content-Type"});
-        const http::ContentType content_type(raw_content_type);
-        EXPECT_EQ(content_type.MediaType(), "multipart/form-data");
-        const auto& boundary = content_type.Boundary();
-        EXPECT_THAT(raw_content_type, ::testing::HasSubstr("boundary="));
-        EXPECT_FALSE(boundary.empty());
-        EXPECT_EQ(
-            request.body,
-            "--" + boundary +
-                "\r\n"
-                "Content-Disposition: form-data; name=\"filename\"\r\n"
-                "\r\nfilename\r\n" +
+    auto test = []<typename Request, typename Body>() {
+        const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest& request) {
+            const auto& raw_content_type = request.headers.at(std::string{"Content-Type"});
+            const http::ContentType content_type(raw_content_type);
+            EXPECT_EQ(content_type.MediaType(), "multipart/form-data");
+            const auto& boundary = content_type.Boundary();
+            EXPECT_THAT(raw_content_type, ::testing::HasSubstr("boundary="));
+            EXPECT_FALSE(boundary.empty());
+            EXPECT_EQ(
+                request.body,
                 "--" + boundary +
-                "\r\n"
-                "Content-Disposition: form-data; name=\"content\"\r\n"
-                "\r\nfile\ncontent\r\n" +
-                "--" + boundary + "--\r\n"
-        );
-        utest::HttpServerMock::HttpResponse response{};
-        response.response_status = 200;
-        return response;
-    });
+                    "\r\n"
+                    "Content-Disposition: form-data; name=\"filename\"\r\n"
+                    "\r\nfilename\r\n" +
+                    "--" + boundary +
+                    "\r\n"
+                    "Content-Disposition: form-data; name=\"content\"\r\n"
+                    "\r\nfile\ncontent\r\n" +
+                    "--" + boundary + "--\r\n"
+            );
+            utest::HttpServerMock::HttpResponse response{};
+            response.response_status = 200;
+            return response;
+        });
 
-    auto http_client_ptr = utest::CreateHttpClient();
-    auto request = http_client_ptr->CreateRequest();
+        auto http_client_ptr = utest::CreateHttpClient();
+        auto request = http_client_ptr->CreateRequest();
 
-    client::SerializeRequest(
-        {client::RequestBodyMultipartFormData{"filename", "file\ncontent"}},
-        http_server.GetBaseUrl(),
-        request
-    );
+        SerializeRequest(Request{Body{"filename", "file\ncontent"}}, http_server.GetBaseUrl(), request);
 
-    auto response = request.perform();
-    EXPECT_EQ(response->status_code(), 200);
+        auto response = request.perform();
+        EXPECT_EQ(response->status_code(), 200);
+    };
+
+    namespace single = ::clients::multiple_content_types::test_single_form_data::post;
+    test.operator()<client::Request, client::RequestBodyMultipartFormData>();
+    test.operator()<single::Request, single::Body>();
 }
 
 UTEST(RequestsMultipleContentTypes, OctetStream) {
-    const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest& request) {
-        EXPECT_EQ(request.body, "blabla");
-        EXPECT_EQ(request.headers.at(std::string{"Content-Type"}), "application/octet-stream");
-        utest::HttpServerMock::HttpResponse response{};
-        response.response_status = 200;
-        return response;
-    });
+    auto test = []<typename Request, typename Body>() {
+        const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest& request) {
+            EXPECT_EQ(request.body, "blabla");
+            EXPECT_EQ(request.headers.at(std::string{"Content-Type"}), "application/octet-stream");
+            utest::HttpServerMock::HttpResponse response{};
+            response.response_status = 200;
+            return response;
+        });
 
-    auto http_client_ptr = utest::CreateHttpClient();
-    auto request = http_client_ptr->CreateRequest();
+        auto http_client_ptr = utest::CreateHttpClient();
+        auto request = http_client_ptr->CreateRequest();
 
-    client::SerializeRequest({client::RequestBodyApplicationOctetStream{"blabla"}}, http_server.GetBaseUrl(), request);
+        SerializeRequest(Request{Body{"blabla"}}, http_server.GetBaseUrl(), request);
 
-    auto response = request.perform();
-    EXPECT_EQ(response->status_code(), 200);
+        auto response = request.perform();
+        EXPECT_EQ(response->status_code(), 200);
+    };
+
+    namespace single = ::clients::multiple_content_types::test_single_octet::post;
+    test.operator()<client::Request, client::RequestBodyApplicationOctetStream>();
+    test.operator()<single::Request, single::Body>();
 }
 
 class RequestsQueryLogMode : public utest::LogCaptureFixture<> {};
