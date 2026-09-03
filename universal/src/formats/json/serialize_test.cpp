@@ -1,6 +1,10 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <array>
+#include <bit>
+#include <cstdint>
+#include <limits>
 #include <map>
 #include <ranges>
 
@@ -308,6 +312,150 @@ TEST(JsonToSortedString, NonASCII) {
     const formats::json::Value escaped = formats::json::FromString(R"({"\u5143":1})");
     const formats::json::Value unescaped = formats::json::FromString(R"({"元":1})");
     ASSERT_EQ(formats::json::ToStableString(escaped), formats::json::ToStableString(unescaped));
+}
+
+TEST(JsonToSortedString, DoubleFormatting) {
+    const auto value = formats::json::FromString("1e-5");
+    EXPECT_EQ(formats::json::ToStableString(value), "0.00001");
+}
+
+TEST(JsonToSortedString, StringEscaping) {
+    const auto value = formats::json::ValueBuilder(std::string{"\"/\\\v\x1e"}).ExtractValue();
+    EXPECT_EQ(formats::json::ToStableString(value), R"("\"/\\\u000B\u001E")");
+}
+
+TEST(JsonToPythonCompatibleStableString, ConstAndRvalueOverloads) {
+    const auto value = formats::json::FromString(R"({"b":[3,{"b":2,"a":1}],"a":0})");
+    EXPECT_EQ(formats::json::ToPythonCompatibleStableString(value), R"({"a":0,"b":[3,{"a":1,"b":2}]})");
+
+    auto movable_value = value.Clone();
+    EXPECT_EQ(
+        formats::json::ToPythonCompatibleStableString(std::move(movable_value)),
+        R"({"a":0,"b":[3,{"a":1,"b":2}]})"
+    );
+}
+
+TEST(JsonToPythonCompatibleStableString, SortsByUnicodeCodePointsRecursively) {
+    const auto value = formats::json::FromString(R"({"😀":{"😀":2,"":1},"":0})");
+    EXPECT_EQ(formats::json::ToPythonCompatibleStableString(value), R"({"":0,"😀":{"":1,"😀":2}})");
+}
+
+TEST(JsonToPythonCompatibleStableString, PythonStringEscaping) {
+    std::string source{"\"/\\\b\t\n\f\r"};
+    source.append("\0\1\v\x1f", 4);
+    source += "\x7f元";
+
+    const auto value = formats::json::ValueBuilder(source).ExtractValue();
+    EXPECT_EQ(
+        formats::json::ToPythonCompatibleStableString(value),
+        "\"\\\"/\\\\\\b\\t\\n\\f\\r\\u0000\\u0001\\u000b\\u001f\x7f元\""
+    );
+}
+
+TEST(JsonToPythonCompatibleStableString, AcceptsValidUtf8BoundaryCodePoints) {
+    const std::string source{
+        "\xc2\x80"          // U+0080, first two-byte scalar value
+        "\xdf\xbf"          // U+07FF, last two-byte scalar value
+        "\xe0\xa0\x80"      // U+0800, first three-byte scalar value
+        "\xed\x9f\xbf"      // U+D7FF, immediately before surrogates
+        "\xee\x80\x80"      // U+E000, immediately after surrogates
+        "\xef\xbf\xbf"      // U+FFFF, valid UTF-8 noncharacter
+        "\xf0\x90\x80\x80"  // U+10000, first four-byte scalar value
+        "\xf4\x8f\xbf\xbf"  // U+10FFFF, last Unicode scalar value
+    };
+    const auto value = formats::json::ValueBuilder(source).ExtractValue();
+    EXPECT_EQ(formats::json::ToPythonCompatibleStableString(value), '"' + source + '"');
+}
+
+TEST(JsonToPythonCompatibleStableString, DoesNotNormalizeUnicode) {
+    const auto value = formats::json::FromString(R"(["é","é"])");
+    EXPECT_EQ(formats::json::ToPythonCompatibleStableString(value), R"(["é","é"])");
+}
+
+TEST(JsonToPythonCompatibleStableString, ExactIntegers) {
+    EXPECT_EQ(
+        formats::json::ToPythonCompatibleStableString(
+            formats::json::ValueBuilder(std::numeric_limits<std::int64_t>::min()).ExtractValue()
+        ),
+        "-9223372036854775808"
+    );
+    EXPECT_EQ(
+        formats::json::ToPythonCompatibleStableString(
+            formats::json::ValueBuilder(std::numeric_limits<std::uint64_t>::max()).ExtractValue()
+        ),
+        "18446744073709551615"
+    );
+}
+
+TEST(JsonToPythonCompatibleStableString, PythonDoubleFormatting) {
+    struct TestCase final {
+        std::uint64_t bits;
+        std::string_view expected;
+    };
+    static constexpr std::array kTestCases{
+        TestCase{0x0000000000000000, "0.0"},
+        TestCase{0x8000000000000000, "-0.0"},
+        TestCase{0x3ff0000000000000, "1.0"},
+        TestCase{0x3ff8000000000000, "1.5"},
+        TestCase{0x3f1a36e2eb1c432d, "0.0001"},
+        TestCase{0x3ee4f8b588e368f1, "1e-05"},
+        TestCase{0x430c6bf526340000, "1000000000000000.0"},
+        TestCase{0x4341c37937e08000, "1e+16"},
+        TestCase{0x0000000000000001, "5e-324"},
+        TestCase{0x0010000000000000, "2.2250738585072014e-308"},
+        TestCase{0x7fefffffffffffff, "1.7976931348623157e+308"},
+        TestCase{0x41b3de4355555555, "333333333.3333333"},
+        TestCase{0x3ff3c0ca428c59fb, "1.2345678901234567"},
+        TestCase{0x3eb0c6f7a0b5ed8d, "1e-06"},
+        TestCase{0x3eb0c6f7a0b5ed8c, "9.999999999999997e-07"},
+        TestCase{0x3f1a36e2eb1c432c, "9.999999999999999e-05"},
+        TestCase{0x3f1a36e2eb1c432e, "0.00010000000000000002"},
+        TestCase{0x4341c37937e07fff, "9999999999999998.0"},
+        TestCase{0x4341c37937e08001, "1.0000000000000002e+16"},
+        TestCase{0xbf1a36e2eb1c432d, "-0.0001"},
+        TestCase{0xbee4f8b588e368f1, "-1e-05"},
+        TestCase{0xc30c6bf526340000, "-1000000000000000.0"},
+        TestCase{0xc341c37937e08000, "-1e+16"},
+        TestCase{0x0010000000000001, "2.225073858507202e-308"},
+        TestCase{0x000fffffffffffff, "2.225073858507201e-308"},
+        TestCase{0x7feffffffffffffe, "1.7976931348623155e+308"},
+        TestCase{0x0123456789abcdef, "3.512700564088504e-303"},
+        TestCase{0x400921fb54442d18, "3.141592653589793"},
+        TestCase{0x2b2bff2ee48e0530, "1e-100"},
+        TestCase{0x59a3d89f129165e9, "6.55971696577832e+123"},
+        TestCase{0x0941858a7c65480a, "4.347190509248525e-264"},
+        TestCase{0xc319c2427df2aecd, "-1812616313613235.2"},
+        TestCase{0xc2b517c30a8f1250, "-23191800680210.312"},
+        TestCase{0x4319c2427df2aecd, "1812616313613235.2"},
+    };
+
+    for (const auto& test : kTestCases) {
+        const auto value = formats::json::ValueBuilder(std::bit_cast<double>(test.bits)).ExtractValue();
+        EXPECT_EQ(formats::json::ToPythonCompatibleStableString(value), test.expected)
+            << fmt::format("bits={:#018x}", test.bits);
+    }
+}
+
+TEST(JsonToPythonCompatibleStableString, RejectsInvalidUtf8) {
+    const std::array<std::string_view, 9> invalid_values{
+        std::string_view{"\x80", 1},
+        std::string_view{"\xff", 1},
+        std::string_view{"\xc0\xaf", 2},
+        std::string_view{"\xe0\x80\x80", 3},
+        std::string_view{"\xe2\x28\xa1", 3},
+        std::string_view{"\xed\xa0\x80", 3},
+        std::string_view{"\xf0\x9f\x98", 3},
+        std::string_view{"\xf0\x28\x8c\xbc", 4},
+        std::string_view{"\xf4\x90\x80\x80", 4},
+    };
+    for (const auto invalid : invalid_values) {
+        const auto value = formats::json::ValueBuilder(invalid).ExtractValue();
+        EXPECT_THROW(formats::json::ToPythonCompatibleStableString(value), formats::json::Exception);
+    }
+
+    formats::json::ValueBuilder object(formats::common::Type::kObject);
+    object.EmplaceNocheck(std::string_view{"\xed\xa0\x80", 3}, formats::json::ValueBuilder{1});
+    EXPECT_THROW(formats::json::ToPythonCompatibleStableString(object.ExtractValue()), formats::json::Exception);
 }
 
 TEST(JsonToPrettyStringCycle, IsPretty) {

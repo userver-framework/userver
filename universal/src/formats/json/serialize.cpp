@@ -1,9 +1,9 @@
 #include <userver/formats/json/serialize.hpp>
 
 #include <algorithm>
-#include <array>
 #include <fstream>
 #include <memory>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -17,6 +17,7 @@
 
 #include <formats/json/impl/accept.hpp>
 #include <formats/json/impl/json_tree.hpp>
+#include <formats/json/impl/python_compatible_writer.hpp>
 #include <formats/json/impl/types_impl.hpp>
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/value.hpp>
@@ -27,11 +28,40 @@ USERVER_NAMESPACE_BEGIN
 
 namespace formats::json {
 
+namespace impl {
+
+class StableSerializer final {
+public:
+    template <typename Writer>
+    static std::string Serialize(formats::json::Value&& doc);
+};
+
+}  // namespace impl
+
 namespace {
 
 ::rapidjson::CrtAllocator g_allocator;
 
 std::string_view AsStringView(const impl::Value& jval) { return {jval.GetString(), jval.GetStringLength()}; }
+
+}  // namespace
+
+template <typename Writer>
+std::string impl::StableSerializer::Serialize(formats::json::Value&& doc) {
+    if (!doc.IsUniqueReference()) {
+        return Serialize<Writer>(doc.Clone());
+    }
+
+    formats::json::Value value = std::move(doc);
+    rapidjson::StringBuffer buffer;
+    Writer writer(buffer);
+    if (!AcceptNoRecursion<ObjectProcessing::kInplaceSorting>(value.GetNative(), writer)) {
+        throw Exception("Failed to serialize JSON");
+    }
+    return std::string{buffer.GetString(), buffer.GetLength()};
+}
+
+namespace {
 
 void CheckKeyUniqueness(const impl::Value* root) {
     using KeysStack = boost::container::small_vector<std::string_view, impl::kInitialStackDepth>;
@@ -177,18 +207,20 @@ std::string ToString(const Value& doc) {
     return std::string{buffer.GetString(), buffer.GetLength()};
 }
 
-std::string ToStableString(const Value& doc) { return ToStableString(doc.Clone()); }
+std::string ToStableString(const Value& doc) {
+    return impl::StableSerializer::Serialize<rapidjson::Writer<rapidjson::StringBuffer>>(doc.Clone());
+}
 
 std::string ToStableString(Value&& doc) {
-    if (doc.IsUniqueReference()) {
-        Value value = std::move(doc);
+    return impl::StableSerializer::Serialize<rapidjson::Writer<rapidjson::StringBuffer>>(std::move(doc));
+}
 
-        rapidjson::StringBuffer buffer;
-        rapidjson::Writer writer(buffer);
-        AcceptNoRecursion<ObjectProcessing::kInplaceSorting>(value.GetNative(), writer);
-        return std::string{buffer.GetString(), buffer.GetLength()};
-    }
-    return ToStableString(doc.Clone());
+std::string ToPythonCompatibleStableString(const Value& doc) {
+    return impl::StableSerializer::Serialize<impl::PythonCompatibleWriter>(doc.Clone());
+}
+
+std::string ToPythonCompatibleStableString(Value&& doc) {
+    return impl::StableSerializer::Serialize<impl::PythonCompatibleWriter>(std::move(doc));
 }
 
 std::string ToPrettyString(const formats::json::Value& doc, PrettyFormat format) {
