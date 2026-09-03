@@ -26,7 +26,7 @@ UTEST(TopicProducer, WriteForwardsQueued) {
     ydb::TopicProducer producer{native_producer};
 
     EXPECT_CALL(*native_producer, Write(_))
-        .WillOnce(Return(NYdb::NTopic::TWriteResult{.Status = NYdb::NTopic::EWriteStatus::Queued}));
+        .WillOnce(Return(NYdb::NTopic::TWriteResult{.Status = NYdb::NTopic::EWriteStatus::Queued, .ClosedDescription = {}}));
 
     EXPECT_TRUE(producer.Write(NYdb::NTopic::TWriteMessage{std::string{"payload"}}).IsQueued());
 }
@@ -36,7 +36,7 @@ UTEST(TopicProducer, WriteForwardsOverloaded) {
     ydb::TopicProducer producer{native_producer};
 
     EXPECT_CALL(*native_producer, Write(_))
-        .WillOnce(Return(NYdb::NTopic::TWriteResult{.Status = NYdb::NTopic::EWriteStatus::Timeout}));
+        .WillOnce(Return(NYdb::NTopic::TWriteResult{.Status = NYdb::NTopic::EWriteStatus::Timeout, .ClosedDescription = {}}));
 
     EXPECT_TRUE(producer.Write(NYdb::NTopic::TWriteMessage{std::string{"payload"}}).IsTimeout());
 }
