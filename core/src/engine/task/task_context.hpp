@@ -7,6 +7,8 @@
 
 #include <ev.h>
 
+#include <boost/intrusive/slist_hook.hpp>
+
 #include <engine/coro/pool.hpp>
 #include <engine/ev/thread_control.hpp>
 #include <engine/task/context_timer.hpp>
@@ -26,6 +28,7 @@
 #include <userver/engine/task/task.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/flags.hpp>
+#include <userver/utils/impl/intrusive_link_mode.hpp>
 #include <userver/utils/impl/intrusive_ref_counter_one.hpp>
 #include <userver/utils/impl/wrapped_call_base.hpp>
 
@@ -57,12 +60,15 @@ struct TaskContextDeleter {
     void operator()(TaskContext* task_context) noexcept;
 };
 
+using TaskContextGlobalQueueHook = boost::intrusive::slist_base_hook<utils::impl::IntrusiveLinkMode>;
+
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class TaskContext final
     : public utils::impl::IntrusiveRefCounterOne<TaskContext, TaskContextDeleter>,
       public AwaitableBase,
       public Awaiter,
-      public deadlock_detector::Actor {
+      public deadlock_detector::Actor,
+      public TaskContextGlobalQueueHook {
 public:
     using TaskPipe = coro::Pool::TaskPipe;
     using TaskId = uint64_t;

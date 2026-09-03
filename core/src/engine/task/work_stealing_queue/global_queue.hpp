@@ -1,74 +1,95 @@
 #pragma once
 
+#include <algorithm>
 #include <cstddef>
-#include <optional>
+#include <mutex>
+#include <span>
 
-#include <moodycamel/concurrentqueue.h>
+#include <boost/intrusive/slist.hpp>
+#include <boost/smart_ptr/intrusive_ptr.hpp>
 
-#include <userver/concurrent/impl/interference_shield.hpp>
-#include <userver/utils/fixed_array.hpp>
-#include <userver/utils/span.hpp>
+#include <engine/task/task_context.hpp>
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace engine {
+namespace engine::fast {
 
-namespace impl {
-class TaskContext;
-}  // namespace impl
-
-class GlobalQueue final {
+class GlobalIntrusiveQueue final {
 public:
-    struct Token {
-    private:
-        friend GlobalQueue;
-        Token(moodycamel::ConsumerToken&& moodycamel_token, const std::size_t index)
-            : index_(index),
-              moodycamel_token_(std::move(moodycamel_token))
-        {}
+    using TaskContextList = boost::intrusive::slist<
+        impl::TaskContext,
+        boost::intrusive::base_hook<impl::TaskContextGlobalQueueHook>,
+        boost::intrusive::constant_time_size<true>,
+        boost::intrusive::cache_last<true>>;
 
-        const std::size_t index_;
-        moodycamel::ConsumerToken moodycamel_token_;
-    };
+    GlobalIntrusiveQueue() = default;
 
-    explicit GlobalQueue(std::size_t consumers_count);
+    void Push(boost::intrusive_ptr<impl::TaskContext>&& context) {
+        UASSERT(context);
+        impl::TaskContext* const task = context.detach();
 
-    std::size_t GetSizeApproximateDelayed() const noexcept { return size_; }
+        const std::lock_guard lock{mutex_};
+        queue_.push_back(*task);
+    }
 
-    std::size_t GetSizeApproximate() const noexcept { return queue_.size_approx(); }
+    void Offload(std::span<impl::TaskContext* const> buffer) {
+        if (buffer.empty()) {
+            return;
+        }
 
-    void Push(impl::TaskContext* ctx);
+        TaskContextList batch;
+        for (impl::TaskContext* task : buffer) {
+            batch.push_back(*task);
+        }
 
-    void PushBulk(utils::span<impl::TaskContext*> buffer);
+        const std::lock_guard lock{mutex_};
+        queue_.splice_after(LastPosition(queue_), batch);
+    }
 
-    void Push(Token& token, impl::TaskContext* ctx);
+    boost::intrusive_ptr<impl::TaskContext> TryPop() noexcept {
+        const std::lock_guard lock{mutex_};
+        if (queue_.empty()) {
+            return nullptr;
+        }
 
-    void PushBulk(Token& token, utils::span<impl::TaskContext*> buffer);
+        impl::TaskContext& task = queue_.front();
+        queue_.pop_front();
+        return boost::intrusive_ptr<impl::TaskContext>{&task, /* add_ref= */ false};
+    }
 
-    impl::TaskContext* TryPop(Token& token);
+    std::size_t Grab(std::span<impl::TaskContext*> buffer, std::size_t workers) noexcept {
+        const std::lock_guard lock{mutex_};
+        const std::size_t size = queue_.size();
+        if (size == 0) {
+            return 0;
+        }
 
-    std::size_t PopBulk(Token& token, utils::span<impl::TaskContext*> buffer);
+        const std::size_t share = std::max(size / workers, std::size_t{1});
+        const std::size_t to_grab = std::min(buffer.size(), share);
 
-    Token CreateConsumerToken();
+        std::size_t count = 0;
+        while (count < to_grab && !queue_.empty()) {
+            buffer[count++] = &queue_.front();
+            queue_.pop_front();
+        }
+        return count;
+    }
+
+    std::size_t GetSize() const noexcept {
+        const std::lock_guard lock{mutex_};
+        return queue_.size();
+    }
 
 private:
-    void DoPush(std::size_t index, utils::span<impl::TaskContext*> buffer);
+    static TaskContextList::const_iterator LastPosition(TaskContextList& list) noexcept {
+        return list.previous(list.end());
+    }
 
-    std::int64_t GetCountersSum() const noexcept;
-
-    std::int64_t GetCountersSumAndUpdateSize();
-
-    void UpdateSize(std::optional<std::size_t> size);
-
-    std::size_t GetRandomIndex();
-
-    const std::size_t consumers_count_;
-    moodycamel::ConcurrentQueue<impl::TaskContext*> queue_;
-    utils::FixedArray<concurrent::impl::InterferenceShield<std::atomic<std::int64_t>>> shared_counters_;
-    std::atomic<std::size_t> token_order_{0};
-    std::atomic<std::size_t> size_{0};
+    mutable std::mutex mutex_;
+    TaskContextList queue_;
 };
 
-}  // namespace engine
+}  // namespace engine::fast
 
 USERVER_NAMESPACE_END

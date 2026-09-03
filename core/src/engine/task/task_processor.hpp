@@ -17,7 +17,7 @@
 #include <engine/task/task_queue.hpp>
 #include <engine/task/task_queue_pull_pin.hpp>
 #include <engine/task/task_queue_tsan.hpp>
-#include <engine/task/work_stealing_queue/task_queue.hpp>
+#include <engine/task/work_stealing_queue/queue.hpp>
 #include <engine/trace_state_transition_plugin.hpp>
 #include <engine/tracer_plugin.hpp>
 #include <userver/concurrent/impl/interference_shield.hpp>
@@ -43,7 +43,7 @@ class ThreadPool;
 
 class TaskProcessor final {
 public:
-    using TaskQueueVariant = std::variant<TaskQueue, WorkStealingTaskQueue, TaskQueuePullPin, TaskQueueTSan>;
+    using TaskQueueVariant = std::variant<TaskQueue, fast::Queue, TaskQueuePullPin, TaskQueueTSan>;
 
     TaskProcessor(TaskProcessorConfig, std::shared_ptr<impl::TaskProcessorPools>);
     ~TaskProcessor();

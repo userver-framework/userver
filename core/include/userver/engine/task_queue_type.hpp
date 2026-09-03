@@ -12,7 +12,7 @@ namespace engine {
 /// @brief Scheduler types
 enum class TaskQueueType {
     kGlobalTaskQueue,        /// < Global `moodycamel` queue from which each thread gets tasks
-    kWorkStealingTaskQueue,  /// < Global+thread-specific queues with interqueues work stealing (experimental queue)
+    kWorkStealingTaskQueue,  /// < Intrusive global queue + work stealing (experimental queue)
     kPullPinTaskQueue,  /// < Global+thread-specific queues. Each task gets pinned to a thread-specific queue and is
                         /// executed only in that thread (experimental queue)
     kTSanTaskQueue,  /// < Queue for TSan runs. Each task gets pinned to a thread-specific queue and is executed only in
