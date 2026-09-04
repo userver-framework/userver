@@ -23,7 +23,6 @@
 
 #include <storages/postgres/deadline.hpp>
 #include <storages/postgres/detail/tracing_tags.hpp>
-#include <storages/postgres/experiments.hpp>
 #include <storages/postgres/io/pg_type_parsers.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 
@@ -332,10 +331,6 @@ ConnectionImpl::ConnectionImpl(
         auto ttl = (*settings_.max_ttl).count();
         ttl -= RandRange(ttl / 2);
         expires_at_ = SteadyNow() + std::chrono::seconds{ttl};
-    }
-
-    if (IsOmitDescribeInExecuteEnabled()) {
-        LOG_DEBUG() << "Userver experiment pg-omit-describe-in-execute is enabled";
     }
 }
 
@@ -1087,12 +1082,9 @@ ResultSet ConnectionImpl::ExecuteCommand(
 
         const auto& prepared_info = DoPrepareStatement(query, params, deadline, span, scope);
 
-        const ResultSet* description_ptr_to_read = nullptr;
-        PGresult* description_ptr_to_send = nullptr;
-        if (IsOmitDescribeInExecuteEnabled()) {
-            description_ptr_to_read = &prepared_info.description;
-            description_ptr_to_send = description_ptr_to_read->pimpl_->handle.get();
-        }
+        const ResultSet& description = prepared_info.description;
+        const ResultSet* description_ptr_to_read = &description;
+        PGresult* description_ptr_to_send = description.pimpl_->handle.get();
 
         scope.Reset(scopes::kExec);
         conn_wrapper_.SendPreparedQuery(prepared_info.meta_statement_name, params, scope, description_ptr_to_send);
@@ -1144,7 +1136,7 @@ void ConnectionImpl::AddIntoPipeline(
 
     SetStatementTimeout(cc);
 
-    PGresult* description_to_send = IsOmitDescribeInExecuteEnabled() ? description.pimpl_->handle.get() : nullptr;
+    PGresult* description_to_send = description.pimpl_->handle.get();
     conn_wrapper_.SendPreparedQuery(meta_statement_name, params, scope, description_to_send);
 
     conn_wrapper_.PutPipelineSync();
@@ -1157,11 +1149,10 @@ std::vector<ResultSet> ConnectionImpl::GatherPipeline(
     const auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(timeout);
     CheckDeadlineReached(deadline);
 
-    std::vector<const PGresult*> native_descriptions(descriptions.size(), nullptr);
-    if (IsOmitDescribeInExecuteEnabled()) {
-        for (std::size_t i = 0; i < descriptions.size(); ++i) {
-            native_descriptions[i] = descriptions[i].pimpl_->handle.get();
-        }
+    std::vector<const PGresult*> native_descriptions;
+    native_descriptions.reserve(descriptions.size());
+    for (const auto& description : descriptions) {
+        native_descriptions.push_back(description.pimpl_->handle.get());
     }
 
     auto result = conn_wrapper_.GatherPipeline(deadline, native_descriptions);
@@ -1371,10 +1362,6 @@ void ConnectionImpl::ReportStatement(std::string_view name) {
     } catch (const std::exception& e) {
         LOG_WARNING() << e;
     }
-}
-
-bool ConnectionImpl::IsOmitDescribeInExecuteEnabled() const {
-    return settings_.omit_describe_mode == OmitDescribeInExecuteMode::kEnabled;
 }
 
 }  // namespace storages::postgres::detail

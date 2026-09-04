@@ -243,8 +243,6 @@ private:
 
     bool ShouldWrapInAutoTransaction(std::string_view statement) const noexcept;
 
-    bool IsOmitDescribeInExecuteEnabled() const;
-
     const std::string uuid_;
     Connection::Statistics stats_;
     PGConnectionWrapper conn_wrapper_;

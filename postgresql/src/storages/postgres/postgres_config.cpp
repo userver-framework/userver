@@ -6,7 +6,6 @@
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/logging/log.hpp>
 
-#include <storages/postgres/experiments.hpp>
 #include <userver/storages/postgres/component.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/utils/userver_info.hpp>

@@ -27,10 +27,6 @@
 #include <userver/utils/enumerate.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
-#include <storages/postgres/experiments.hpp>
-
-#include <dynamic_config/variables/POSTGRES_OMIT_DESCRIBE_IN_EXECUTE.hpp>
-
 #ifndef ARCADIA_ROOT
 #include "generated/src/storages/postgres/component.yaml.hpp"  // Y_IGNORE
 #endif
@@ -51,13 +47,6 @@ storages::postgres::ConnlimitMode ParseConnlimitMode(std::string_view value) {
     }
 
     UINVARIANT(false, std::string("Unknown connlimit mode: ").append(value));
-}
-
-storages::postgres::OmitDescribeInExecuteMode ParseOmitDescribe(const dynamic_config::Snapshot& snapshot) {
-    return snapshot[::dynamic_config::POSTGRES_OMIT_DESCRIBE_IN_EXECUTE] ==
-                   storages::postgres::kOmitDescribeExperimentVersion
-               ? storages::postgres::OmitDescribeInExecuteMode::kEnabled
-               : storages::postgres::OmitDescribeInExecuteMode::kDisabled;
 }
 
 template <typename T>
@@ -146,7 +135,6 @@ Postgres::Postgres(const ComponentConfig& config, const ComponentContext& contex
     initial_settings_.conn_settings.statement_log_mode =
         config["statement-log-mode"].As<storages::postgres::ConnectionSettings::StatementLogMode>();
 
-    initial_settings_.conn_settings.omit_describe_mode = ParseOmitDescribe(initial_config);
     initial_settings_.statement_metrics_settings =
         pg_config.statement_metrics_settings.GetOptional(name_)
             .value_or(config.As<storages::postgres::StatementMetricsSettings>());
@@ -239,7 +227,6 @@ void Postgres::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
     auto connection_settings = initial_settings_.conn_settings;
     MergeConnectionSettings(pg_config.connection_settings.GetOptional(name_), connection_settings);
 
-    connection_settings.omit_describe_mode = ParseOmitDescribe(cfg);
     const auto statement_metrics_settings =
         pg_config.statement_metrics_settings.GetOptional(name_).value_or(initial_settings_.statement_metrics_settings);
 

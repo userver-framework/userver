@@ -236,12 +236,6 @@ inline constexpr std::size_t kMinPreparedStatementsCacheSize = 3;
 /// Default size limit for prepared statements cache
 inline constexpr std::size_t kDefaultMaxPreparedCacheSize = 200;
 
-/// Whether to omit excessive D(escribe) message
-/// when executing prepared statements
-///
-/// Dynamic option @ref POSTGRES_OMIT_DESCRIBE_IN_EXECUTE
-enum class OmitDescribeInExecuteMode { kDisabled, kEnabled };
-
 /// Connection pooler mode (e.g. Odyssey / PgBouncer)
 enum class PoolerMode {
     kSession,      ///< One client connection maps to one server connection
@@ -287,9 +281,6 @@ struct ConnectionSettings {
     /// Limits the size or prepared statements cache
     std::size_t max_prepared_cache_size = kDefaultMaxPreparedCacheSize;
 
-    /// Enables protocol-level optimization when executing prepared statements
-    OmitDescribeInExecuteMode omit_describe_mode = OmitDescribeInExecuteMode::kDisabled;
-
     /// This many connection errors in 15 seconds block new connections opening
     std::size_t recent_errors_threshold = 30;
 
@@ -321,8 +312,8 @@ struct ConnectionSettings {
         return prepared_statements != rhs.prepared_statements || user_types != rhs.user_types ||
                ignore_unused_query_params != rhs.ignore_unused_query_params ||
                max_prepared_cache_size != rhs.max_prepared_cache_size || max_ttl != rhs.max_ttl ||
-               discard_on_connect != rhs.discard_on_connect || omit_describe_mode != rhs.omit_describe_mode ||
-               application_name != rhs.application_name || pooler_mode != rhs.pooler_mode;
+               discard_on_connect != rhs.discard_on_connect || application_name != rhs.application_name ||
+               pooler_mode != rhs.pooler_mode;
     }
 };
 

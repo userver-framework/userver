@@ -833,7 +833,7 @@ UTEST_P(PostgrePool, ForQueryQueueBeingNonTransactional) {
         "",
         GetParam(),
         {1, 1, 10},
-        kOmitDescribe,
+        kCachePreparedStatements,
         {},
         GetTestCmdCtls(),
         {},
