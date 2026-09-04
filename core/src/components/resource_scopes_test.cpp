@@ -1,5 +1,7 @@
 #include <gmock/gmock.h>
 
+#include <memory>
+
 #include <userver/components/component_base.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/components/minimal_component_list.hpp>
@@ -307,6 +309,55 @@ TEST_F(ResourceScopeStorage, WithResourceScopes) {
         utils::WithResourceScopes<Client> client(std::in_place, std::make_unique<std::string>("data"));
     }
     EXPECT_EQ(data_on_construction, "data");
+    EXPECT_EQ(data_on_destruction, "data");
+}
+
+TEST_F(ResourceScopeStorage, MakeWithResourceScopes) {
+    static std::string data_on_construction;
+    static std::string data_on_destruction;
+
+    // Reset static variables for --gtest_repeat.
+    data_on_construction = {};
+    data_on_destruction = {};
+
+    /// [MakeWithResourceScopes]
+    class Client final {
+    public:
+        Client(utils::ResourceScopeStorage& resource_scope_storage, std::string data)
+            : data_(std::make_unique<std::string>(std::move(data)))
+        {
+            resource_scope_storage.Register([this] {
+                data_on_construction = *data_;
+                return utils::FastScopeGuard([this]() noexcept { data_on_destruction = *data_; });
+            });
+        }
+
+        ~Client() { data_ = nullptr; }
+
+        const std::string& GetData() const { return *data_; }
+
+    private:
+        // We check that it does not happen that ~Client already dropped the
+        // string while BeforeDestruction still reads it.
+        std::unique_ptr<std::string> data_;
+    };
+
+    std::shared_ptr<Client> client = utils::MakeWithResourceScopes<Client>("data");
+    EXPECT_EQ(client->GetData(), "data");
+    /// [MakeWithResourceScopes]
+    EXPECT_EQ(data_on_construction, "data");
+    EXPECT_TRUE(data_on_destruction.empty());
+
+    {
+        auto copy = client;
+        EXPECT_EQ(copy.use_count(), 2);
+        EXPECT_EQ(copy.get(), client.get());
+        copy.reset();
+        EXPECT_EQ(client.use_count(), 1);
+        EXPECT_TRUE(data_on_destruction.empty());
+    }
+
+    client.reset();
     EXPECT_EQ(data_on_destruction, "data");
 }
 

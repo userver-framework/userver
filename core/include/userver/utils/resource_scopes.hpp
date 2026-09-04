@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include <userver/compiler/impl/lifetime.hpp>
@@ -175,6 +176,7 @@ private:
 ///
 /// The wrapped object is passed `utils::ResourceScopeStorage&` as the first argument to the constructor.
 /// Prefer this over storing @ref ResourceScopeStorage as a field of the wrapped object itself.
+/// Use @ref MakeWithResourceScopes when the caller needs a `std::shared_ptr` to the wrapped object.
 template <typename Wrapped>
 class WithResourceScopes final {
 public:
@@ -207,6 +209,20 @@ private:
     ResourceScopeStorage resource_scope_storage_;
     Wrapped wrapped_;
 };
+
+/// @brief Constructs @ref WithResourceScopes and returns an aliasing `std::shared_ptr` to the wrapped object.
+///
+/// The returned pointer shares ownership of the wrapper. @ref WithResourceScopes is not movable
+/// and stays at a stable heap address, so scoped registrations remain valid for the lifetime
+/// of any copy of the `shared_ptr`.
+///
+/// @snippet core/src/components/resource_scopes_test.cpp MakeWithResourceScopes
+template <typename Wrapped, typename... Args>
+std::shared_ptr<Wrapped> MakeWithResourceScopes(Args&&... args) {
+    auto holder = std::make_shared<WithResourceScopes<Wrapped>>(std::in_place, std::forward<Args>(args)...);
+    auto* const wrapped = std::addressof(**holder);
+    return std::shared_ptr<Wrapped>(std::move(holder), wrapped);
+}
 
 ResourceScopeStorage&
 LocateDependency(components::WithType<ResourceScopeStorage>, const components::ComponentConfig& config, const components::ComponentContext&);
