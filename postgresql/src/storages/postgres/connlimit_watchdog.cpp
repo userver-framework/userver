@@ -11,7 +11,6 @@ namespace storages::postgres {
 
 namespace {
 constexpr CommandControl kCommandControl{std::chrono::seconds(2), std::chrono::seconds(2)};
-constexpr std::size_t kTestsuiteConnlimit = 100;
 constexpr std::size_t kMinReservedConnections = 2;
 constexpr std::size_t kMaxReservedConnections = 10;
 constexpr double kReservedConnectionsPercentage = 0.05;
@@ -84,7 +83,6 @@ void ConnlimitWatchdog::Start() {
     }
 
     if (testsuite_tasks_.IsEnabled()) {
-        connlimit_ = kTestsuiteConnlimit;
         testsuite_tasks_
             .RegisterTask(fmt::format("connlimit_watchdog_{}_{}", cluster_.GetDbName(), shard_number_), [this] {
                 StepV1();

@@ -77,6 +77,21 @@ void WaitCleanupFinished(const std::shared_ptr<pg::detail::ConnectionPool>& pool
     FAIL() << "Timed out waiting for cleanup task completion";
 }
 
+void WaitForPoolSize(const std::shared_ptr<pg::detail::ConnectionPool>& pool, std::size_t expected_size) {
+    constexpr auto kWaitTimeout = std::chrono::seconds{5};
+    constexpr auto kStep = std::chrono::milliseconds{20};
+
+    const auto deadline = engine::Deadline::FromDuration(kWaitTimeout);
+    while (!deadline.IsReached()) {
+        if (pool->GetStatistics().connection.open_total.Load().value >= expected_size) {
+            return;
+        }
+        engine::SleepFor(kStep);
+    }
+
+    FAIL() << "Timed out waiting for pool size " << expected_size;
+}
+
 pg::Rate TriggerCleanupWithExpiredInheritedDeadline(const std::shared_ptr<pg::detail::ConnectionPool>& pool) {
     // Start a transaction and leave it in an "invalid" state
     {
@@ -412,6 +427,64 @@ UTEST_P(PostgrePool, MinPool) {
     EXPECT_EQ(stats.connection.open_total.Load(), GetParam() == pg::InitMode::kAsync ? 0 : 1);
     EXPECT_EQ(1, stats.connection.active);
     EXPECT_EQ(stats.connection.error_total.Load(), 0);
+}
+
+UTEST_P(PostgrePool, WarmUp) {
+    constexpr std::size_t kMinPoolSize = 3;
+    auto pool = pg::detail::ConnectionPool::Create(
+        GetDsnFromEnv(),
+        nullptr,
+        GetTaskProcessor(),
+        "",
+        pg::InitMode::kSync,
+        {kMinPoolSize, kMinPoolSize, 10},
+        kCachePreparedStatements,
+        {},
+        GetTestCmdCtls(),
+        {},
+        {},
+        {},
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
+    );
+
+    {
+        auto connection = pool->Acquire(MakeDeadline());
+        connection->Close();
+    }
+    ASSERT_EQ(pool->GetStatistics().connection.active, kMinPoolSize - 1);
+
+    pool->WarmUp(pg::InitMode::kSync);
+    EXPECT_EQ(pool->GetStatistics().connection.active, kMinPoolSize);
+    EXPECT_EQ(pool->GetStatistics().connection.open_total.Load().value, kMinPoolSize + 1);
+
+    pool->WarmUp(pg::InitMode::kSync);
+    EXPECT_EQ(pool->GetStatistics().connection.open_total.Load().value, kMinPoolSize + 1);
+}
+
+UTEST_P(PostgrePool, SetSettingsWarmsUpAfterMinSizeIncrease) {
+    constexpr std::size_t kMinPoolSize = 3;
+    auto pool = pg::detail::ConnectionPool::Create(
+        GetDsnFromEnv(),
+        nullptr,
+        GetTaskProcessor(),
+        "",
+        GetParam(),
+        {0, kMinPoolSize, 10},
+        kCachePreparedStatements,
+        {},
+        GetTestCmdCtls(),
+        {},
+        {},
+        {},
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
+    );
+
+    pool->SetSettings({kMinPoolSize, kMinPoolSize, 10});
+    WaitForPoolSize(pool, kMinPoolSize);
+
+    EXPECT_EQ(pool->GetStatistics().connection.active, kMinPoolSize);
 }
 
 UTEST_P(PostgrePool, ConnectionCleanup) {
