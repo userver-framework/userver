@@ -10,80 +10,40 @@ paths:
                 content:
                     application/json:
                         schema:
-                            type: object
-                            properties:
-                                foo:
-                                    type: string
-                            additionalProperties: false
+                            $ref: '#/components/schemas/single-json'
                     multipart/form-data:
                         schema:
-                            type: object
-                            required:
-                              - filename
-                            properties:
-                                filename:
-                                    type: string
-                                content:
-                                    type: string
-                            additionalProperties: false
+                            $ref: '#/components/schemas/single-form-data'
                     application/x-www-form-urlencoded:
                         schema:
-                            type: object
-                            required:
-                              - name
-                              - age
-                            properties:
-                                name:
-                                    type: string
-                                password:
-                                    type: string
-                                age:
-                                    type: integer
-                                salary:
-                                    type: number
-                                is_smoking:
-                                    type: boolean
-                            additionalProperties: false
+                            $ref: '#/components/schemas/single-form-urlen'
                     application/octet-stream:
                         schema:
-                            type: string
+                            $ref: '#/components/schemas/single-octet'
             responses:
                 '200':
                     description: OK
                     content:
                         application/json:
                             schema:
-                                type: object
-                                properties:
-                                    bar:
-                                        type: string
-                                additionalProperties: false
+                                $ref: '#/components/schemas/common-response'
                         application/octet-stream:
                             schema:
                                 type: string
-#   TODO: declare common components per content type in order to reuse in /test1
     /test-single-json:
         post:
             requestBody:
                 content:
                     application/json:
                         schema:
-                            type: object
-                            properties:
-                                foo:
-                                    type: string
-                            additionalProperties: false
+                            $ref: '#/components/schemas/single-json'
             responses:
                 '200':
                     description: OK
                     content:
                         application/json:
                             schema:
-                                type: object
-                                properties:
-                                    bar:
-                                        type: string
-                                additionalProperties: false
+                                $ref: '#/components/schemas/common-response'
 
     /test-single-form-data:
         post:
@@ -91,26 +51,14 @@ paths:
                 content:
                     multipart/form-data:
                         schema:
-                            type: object
-                            required:
-                              - filename
-                            properties:
-                                filename:
-                                    type: string
-                                content:
-                                    type: string
-                            additionalProperties: false
+                            $ref: '#/components/schemas/single-form-data'
             responses:
                 '200':
                     description: OK
                     content:
                         application/json:
                             schema:
-                                type: object
-                                properties:
-                                    bar:
-                                        type: string
-                                additionalProperties: false
+                                $ref: '#/components/schemas/common-response'
 
     /test-single-form-urlen:
         post:
@@ -118,33 +66,14 @@ paths:
                 content:
                     application/x-www-form-urlencoded:
                         schema:
-                            type: object
-                            required:
-                              - name
-                              - age
-                            properties:
-                                name:
-                                    type: string
-                                password:
-                                    type: string
-                                age:
-                                    type: integer
-                                salary:
-                                    type: number
-                                is_smoking:
-                                    type: boolean
-                            additionalProperties: false
+                            $ref: '#/components/schemas/single-form-urlen'
             responses:
                 '200':
                     description: OK
                     content:
                         application/json:
                             schema:
-                                type: object
-                                properties:
-                                    bar:
-                                        type: string
-                                additionalProperties: false
+                                $ref: '#/components/schemas/common-response'
 
     /test-single-octet:
         post:
@@ -152,7 +81,7 @@ paths:
                 content:
                     application/octet-stream:
                         schema:
-                            type: string
+                            $ref: '#/components/schemas/single-octet'
             responses:
                 '200':
                     description: OK
@@ -160,3 +89,46 @@ paths:
                         application/octet-stream:
                             schema:
                                 type: string                                
+components:
+    schemas:
+        single-json:
+            type: object
+            properties:
+                foo:
+                    type: string
+            additionalProperties: false
+        single-form-data:
+            type: object
+            required:
+                - filename
+            properties:
+                filename:
+                    type: string
+                content:
+                    type: string
+            additionalProperties: false
+        single-form-urlen:
+            type: object
+            required:
+                - name
+                - age
+            properties:
+                name:
+                    type: string
+                password:
+                    type: string
+                age:
+                    type: integer
+                salary:
+                    type: number
+                is_smoking:
+                    type: boolean
+            additionalProperties: false
+        single-octet:
+            type: string
+        common-response:
+            type: object
+            properties:
+                bar:
+                    type: string
+            additionalProperties: false
