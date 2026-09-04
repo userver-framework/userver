@@ -58,9 +58,9 @@ public:
             server_kind_ = ServerKind::kRedis;
         }
 
-        json_supported_ = ProbeJsonSupport();
-        hash_expire_supported_ = ProbeHashExpireSupport();
-        msetex_supported_ = ProbeMsetexSupport();
+        json_supported_ = ProbeCommandSupport("json.set");
+        hash_expire_supported_ = ProbeCommandSupport("hexpire");
+        msetex_supported_ = ProbeCommandSupport("msetex");
     }
 
     bool CheckRedisVersion(Version since) const {
@@ -113,36 +113,8 @@ public:
     }
 
 private:
-    bool ProbeJsonSupport() {
-        auto reply = this->GetSentinel()->MakeRequest({"command", "info", "json.set"}, "none", false).Get();
-        if (!reply->IsOk() || !reply->data.IsArray()) {
-            return false;
-        }
-        const auto arr = reply->data.GetArray();
-        // COMMAND INFO returns array of size N (one entry per requested command)
-        // nil when command is unknown, and a non-empty array describing the command otherwise
-        if (arr.empty()) {
-            return false;
-        }
-        return !arr[0].IsNil();
-    }
-
-    bool ProbeHashExpireSupport() {
-        auto reply = this->GetSentinel()->MakeRequest({"command", "info", "hexpire"}, "none", false).Get();
-        if (!reply->IsOk() || !reply->data.IsArray()) {
-            return false;
-        }
-        const auto arr = reply->data.GetArray();
-        // COMMAND INFO returns array of size N (one entry per requested command)
-        // nil when command is unknown, and a non-empty array describing the command otherwise
-        if (arr.empty()) {
-            return false;
-        }
-        return !arr[0].IsNil();
-    }
-
-    bool ProbeMsetexSupport() {
-        auto reply = this->GetSentinel()->MakeRequest({"command", "info", "msetex"}, "none", false).Get();
+    bool ProbeCommandSupport(std::string command) {
+        auto reply = this->GetSentinel()->MakeRequest({"command", "info", std::move(command)}, "none", false).Get();
         if (!reply->IsOk() || !reply->data.IsArray()) {
             return false;
         }

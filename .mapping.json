@@ -4417,6 +4417,7 @@
   "redis/src/storages/redis/impl/redis_info.hpp":"taxi/uservices/userver/redis/src/storages/redis/impl/redis_info.hpp",
   "redis/src/storages/redis/impl/redis_stats.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/redis_stats.cpp",
   "redis/src/storages/redis/impl/redis_stats.hpp":"taxi/uservices/userver/redis/src/storages/redis/impl/redis_stats.hpp",
+  "redis/src/storages/redis/impl/redis_stats_test.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/redis_stats_test.cpp",
   "redis/src/storages/redis/impl/reply.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/reply.cpp",
   "redis/src/storages/redis/impl/reply/scan_reply.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/reply/scan_reply.cpp",
   "redis/src/storages/redis/impl/reply/scan_reply.hpp":"taxi/uservices/userver/redis/src/storages/redis/impl/reply/scan_reply.hpp",
