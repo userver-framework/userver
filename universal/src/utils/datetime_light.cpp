@@ -3,10 +3,12 @@
 #include <array>
 #include <ctime>
 #include <optional>
+#include <stdexcept>
 
 #include <sys/param.h>
 
 #include <cctz/time_zone.h>
+#include <fmt/format.h>
 
 #include <userver/utils/assert.hpp>
 #include <userver/utils/from_string.hpp>
@@ -199,10 +201,24 @@ std::string TimestampToString(const time_t timestamp) {
     static constexpr size_t kStringLen = 24;  // "YYYY-MM-DDTHH:MM:SS+0000"
 
     std::tm ptm{};
-    gmtime_r(&timestamp, &ptm);
+    if (gmtime_r(&timestamp, &ptm) == nullptr) {
+        throw std::range_error("Timestamp cannot be converted to a broken-down UTC time for ISO8601 format");
+    }
+
+    constexpr int kIso8601MaxYear = 9999;
+    constexpr int kIso8601MinYear = 1583;
+    constexpr int kTmYearOffset = 1900;
+    if (ptm.tm_year < kIso8601MinYear - kTmYearOffset || ptm.tm_year > kIso8601MaxYear - kTmYearOffset) {
+        throw std::range_error(fmt::format(
+            "Year of the timestamp does not fit into [{},{}] range for ISO8601 format",
+            kIso8601MinYear,
+            kIso8601MaxYear
+        ));
+    }
+
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init): performance
     std::array<char, kStringLen + 1> buffer;
-    auto ret = strftime(buffer.data(), buffer.size(), "%Y-%m-%dT%H:%M:%S+0000", &ptm);
+    const auto ret = strftime(buffer.data(), buffer.size(), "%Y-%m-%dT%H:%M:%S+0000", &ptm);
     UASSERT(ret == kStringLen);
     return {buffer.data(), kStringLen};
 }

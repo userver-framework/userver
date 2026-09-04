@@ -1,10 +1,14 @@
-#include <gtest/gtest.h>
-
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/datetime/date.hpp>
 #include <userver/utils/datetime/from_string_saturating.hpp>
 
+#include <limits>
+#include <stdexcept>
+
 #include <cctz/time_zone.h>
+#include <gtest/gtest.h>
+
+#include <userver/utest/assert_macros.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -51,6 +55,36 @@ TEST(Datetime, UtcTimestringCTime) {
     EXPECT_EQ(utils::datetime::UtcTimestring(c_time), "2014-03-17T02:47:07+0000");
     EXPECT_EQ(utils::datetime::TimestampToString(c_time), "2014-03-17T02:47:07+0000");
     /// [UtcTimestring C time example]
+}
+
+TEST(Datetime, TimestampToStringRangeError) {
+    if constexpr (sizeof(std::time_t) > sizeof(std::int32_t)) {
+        constexpr std::time_t kYear10000 = 253402300800LL;  // 10000-01-01T00:00:00Z
+        UEXPECT_THROW(utils::datetime::TimestampToString(kYear10000), std::range_error);
+        EXPECT_EQ(utils::datetime::TimestampToString(kYear10000 - 1), "9999-12-31T23:59:59+0000");
+        EXPECT_EQ(utils::datetime::TimestampToString(kYear10000 - 2), "9999-12-31T23:59:58+0000");
+        EXPECT_EQ(utils::datetime::TimestampToString(kYear10000 - 60), "9999-12-31T23:59:00+0000");
+        EXPECT_EQ(utils::datetime::TimestampToString(kYear10000 - 61), "9999-12-31T23:58:59+0000");
+
+        constexpr std::time_t kFuture = std::numeric_limits<std::time_t>::max();
+        UEXPECT_THROW(utils::datetime::TimestampToString(kFuture), std::range_error);
+
+        if constexpr (std::is_signed_v<std::time_t>) {
+            constexpr std::time_t kYear1583 = -12212553600LL;
+            EXPECT_EQ(utils::datetime::TimestampToString(kYear1583), "1583-01-01T00:00:00+0000");
+            UEXPECT_THROW(utils::datetime::TimestampToString(kYear1583 - 1), std::range_error);
+
+            constexpr std::time_t kYear0 = -62167219200LL;  // 0000-01-01T00:00:00+0000
+            UEXPECT_THROW(utils::datetime::TimestampToString(kYear0), std::range_error);
+            UEXPECT_THROW(utils::datetime::TimestampToString(kYear0 - 1), std::range_error);
+
+            constexpr std::time_t kYear42 = -60841756800LL;  // 0042-01-01T00:00:00+0000
+            UEXPECT_THROW(utils::datetime::TimestampToString(kYear42), std::range_error);
+
+            constexpr std::time_t kPast = std::numeric_limits<std::time_t>::min();
+            UEXPECT_THROW(utils::datetime::TimestampToString(kPast), std::range_error);
+        }
+    }
 }
 
 TEST(Datetime, GuessStringtime) {
