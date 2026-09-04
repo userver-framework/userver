@@ -22,7 +22,34 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
-namespace client = ::clients::multiple_content_types::test1::post;
+using namespace ::clients::multiple_content_types;
+
+class RequestsMultipleContentTypes : public ::testing::Test {
+protected: 
+    template <typename Callback>
+    void SetupCallback(Callback&& callback){
+        mock_server_ = std::make_unique<utest::HttpServerMock>(
+            [hook = std::move(callback)](const utest::HttpServerMock::HttpRequest& request) {
+                hook(request);
+                utest::HttpServerMock::HttpResponse response{};
+                response.response_status = 200;
+                return response;
+            });
+    }
+
+    template <typename Request>
+    void PerformRequest(Request&& request_obj) {
+        EXPECT_NE(mock_server_.get(), nullptr);
+        auto http_client_ptr = utest::CreateHttpClient();
+        auto request = http_client_ptr->CreateRequest();
+        SerializeRequest(std::move(request_obj), mock_server_->GetBaseUrl(), request);
+        auto response = request.perform();
+        EXPECT_EQ(response->status_code(), 200);
+    }
+
+private:
+    std::unique_ptr<utest::HttpServerMock> mock_server_;
+};
 
 UTEST(Requests, RegexDestinationName) {
     const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest&) {
@@ -60,33 +87,18 @@ UTEST(Requests, RegexDestinationName) {
     );
 }
 
-UTEST(RequestsMultipleContentTypes, Json) {
-    auto test = []<typename Request, typename Body>() {
-        const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest& request) {
+UTEST_F(RequestsMultipleContentTypes, Json) {
+    SetupCallback([](const utest::HttpServerMock::HttpRequest& request) {
             EXPECT_EQ(request.body, R"({"foo":"a"})");
             EXPECT_EQ(request.headers.at(std::string{"Content-Type"}), "application/json");
-            utest::HttpServerMock::HttpResponse response{};
-            response.response_status = 200;
-            return response;
         });
-
-        auto http_client_ptr = utest::CreateHttpClient();
-        auto request = http_client_ptr->CreateRequest();
-
-        SerializeRequest(Request{Body{"a"}}, http_server.GetBaseUrl(), request);
-
-        auto response = request.perform();
-        EXPECT_EQ(response->status_code(), 200);
-    };
-
-    namespace single = ::clients::multiple_content_types::test_single_json::post;
-    test.operator()<client::Request, client::RequestBodyApplicationJson>();
-    test.operator()<single::Request, single::Body>();
+    const auto& json_obj = single_json{"a"};
+    PerformRequest(test1::post::Request{json_obj});
+    PerformRequest(test_single_json::post::Request{json_obj});
 }
 
-UTEST(RequestsMultipleContentTypes, XWwwFormUrlencoded) {
-    auto test = []<typename Request, typename Body>() {
-        const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest& request) {
+UTEST_F(RequestsMultipleContentTypes, XWwwFormUrlencoded) {
+    SetupCallback([](const utest::HttpServerMock::HttpRequest& request) {
             // x-www-form-urlencoded field order is unspecified (serialized from a
             // std::unordered_map), so compare the '&'-separated parts order-independently.
             const auto parts = utils::text::Split(request.body, "&");
@@ -101,28 +113,15 @@ UTEST(RequestsMultipleContentTypes, XWwwFormUrlencoded) {
                 )
             );
             EXPECT_EQ(request.headers.at(std::string{"Content-Type"}), "application/x-www-form-urlencoded");
-            utest::HttpServerMock::HttpResponse response{};
-            response.response_status = 200;
-            return response;
         });
-
-        auto http_client_ptr = utest::CreateHttpClient();
-        auto request = http_client_ptr->CreateRequest();
-
-        SerializeRequest(Request{Body{"abc", "123 456", 30, 1000.5, true}}, http_server.GetBaseUrl(), request);
-
-        auto response = request.perform();
-        EXPECT_EQ(response->status_code(), 200);
-    };
-
-    namespace single = ::clients::multiple_content_types::test_single_form_urlen::post;
-    test.operator()<client::Request, client::RequestBodyApplicationXWwwFormUrlencoded>();
-    test.operator()<single::Request, single::Body>();
+    const auto& form_urlen_obj = single_form_urlen{"abc", "123 456", 30, 1000.5, true};        
+    PerformRequest(test1::post::Request{form_urlen_obj});
+    PerformRequest(test_single_form_urlen::post::Request{form_urlen_obj});
 }
 
-UTEST(RequestsMultipleContentTypes, MultipartFormData) {
-    auto test = []<typename Request, typename Body>() {
-        const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest& request) {
+
+UTEST_F(RequestsMultipleContentTypes, MultipartFormData) {
+    SetupCallback([](const utest::HttpServerMock::HttpRequest& request) {
             const auto& raw_content_type = request.headers.at(std::string{"Content-Type"});
             const http::ContentType content_type(raw_content_type);
             EXPECT_EQ(content_type.MediaType(), "multipart/form-data");
@@ -141,47 +140,20 @@ UTEST(RequestsMultipleContentTypes, MultipartFormData) {
                     "\r\nfile\ncontent\r\n" +
                     "--" + boundary + "--\r\n"
             );
-            utest::HttpServerMock::HttpResponse response{};
-            response.response_status = 200;
-            return response;
         });
-
-        auto http_client_ptr = utest::CreateHttpClient();
-        auto request = http_client_ptr->CreateRequest();
-
-        SerializeRequest(Request{Body{"filename", "file\ncontent"}}, http_server.GetBaseUrl(), request);
-
-        auto response = request.perform();
-        EXPECT_EQ(response->status_code(), 200);
-    };
-
-    namespace single = ::clients::multiple_content_types::test_single_form_data::post;
-    test.operator()<client::Request, client::RequestBodyMultipartFormData>();
-    test.operator()<single::Request, single::Body>();
+    const auto& form_data_obj = single_form_data{"filename", "file\ncontent"};
+    PerformRequest(test1::post::Request{form_data_obj});
+    PerformRequest(test_single_form_data::post::Request{form_data_obj});
 }
 
-UTEST(RequestsMultipleContentTypes, OctetStream) {
-    auto test = []<typename Request, typename Body>() {
-        const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest& request) {
+UTEST_F(RequestsMultipleContentTypes, OctetStream) {
+    SetupCallback([](const utest::HttpServerMock::HttpRequest& request) {
             EXPECT_EQ(request.body, "blabla");
             EXPECT_EQ(request.headers.at(std::string{"Content-Type"}), "application/octet-stream");
-            utest::HttpServerMock::HttpResponse response{};
-            response.response_status = 200;
-            return response;
-        });
-
-        auto http_client_ptr = utest::CreateHttpClient();
-        auto request = http_client_ptr->CreateRequest();
-
-        SerializeRequest(Request{Body{"blabla"}}, http_server.GetBaseUrl(), request);
-
-        auto response = request.perform();
-        EXPECT_EQ(response->status_code(), 200);
-    };
-
-    namespace single = ::clients::multiple_content_types::test_single_octet::post;
-    test.operator()<client::Request, client::RequestBodyApplicationOctetStream>();
-    test.operator()<single::Request, single::Body>();
+    });
+    const auto& single_octet_obj = single_octet("blabla");
+    PerformRequest(test1::post::Request{test1::post::RequestBodyApplicationOctetStream{single_octet_obj}});
+    PerformRequest(test_single_octet::post::Request{single_octet_obj});
 }
 
 class RequestsQueryLogMode : public utest::LogCaptureFixture<> {};
