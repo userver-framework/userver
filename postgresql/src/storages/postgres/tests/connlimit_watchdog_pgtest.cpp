@@ -5,11 +5,7 @@
 #include <fmt/format.h>
 #include <gtest/gtest.h>
 #include <algorithm>
-#include <array>
-#include <utility>
 
-#include <userver/engine/deadline.hpp>
-#include <userver/engine/sleep.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/statistics/metrics_storage.hpp>
@@ -20,8 +16,6 @@
 
 #include <userver/dynamic_config/test_helpers.hpp>
 
-#include <dynamic_config/variables/POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace pg = storages::postgres;
@@ -30,27 +24,24 @@ namespace pgd = storages::postgres::detail;
 namespace {
 
 constexpr std::size_t kShardNumber = 0;
-constexpr std::size_t kConfiguredMinPoolSize = 4;
-constexpr std::size_t kConfiguredMaxPoolSize = 20;
-const std::string kWatchdogTaskName = fmt::format("connlimit_watchdog_{}_{}", "", kShardNumber);
 
 pgd::ClusterImpl CreateClusterImpl(
     const pg::DsnList& dsns,
     engine::TaskProcessor& bg_task_processor,
+    size_t max_size,
     testsuite::TestsuiteTasks& testsuite_tasks,
-    dynamic_config::Source config_source,
-    pg::ConnectionSettings conn_settings = kCachePreparedStatements,
-    pg::InitMode init_mode = pg::InitMode::kAsync
+    pg::ConnectionSettings conn_settings = kCachePreparedStatements
 ) {
+    auto source = dynamic_config::GetDefaultSource();
     return pgd::ClusterImpl(
         dsns,
         nullptr,
         bg_task_processor,
         {{},
          {utest::kMaxTestWaitTime},
-         {kConfiguredMinPoolSize, kConfiguredMaxPoolSize, kConfiguredMaxPoolSize},
+         {0, max_size, max_size},
          conn_settings,
-         init_mode,
+         pg::InitMode::kAsync,
          "",
          pg::ConnlimitMode::kAuto,
          {}},
@@ -58,69 +49,24 @@ pgd::ClusterImpl CreateClusterImpl(
         {},
         {},
         testsuite_tasks,
-        std::move(config_source),
+        source,
         std::make_shared<USERVER_NAMESPACE::utils::statistics::MetricsStorage>(),
         kShardNumber
     );
 }
 
-pgd::ClusterImpl CreateClusterImplForStartupTest(
-    const pg::DsnList& dsns,
-    engine::TaskProcessor& bg_task_processor,
-    testsuite::TestsuiteTasks& testsuite_tasks,
-    dynamic_config::Source config_source,
-    std::size_t min_pool_size,
-    std::size_t max_pool_size,
-    pg::ConnlimitMode connlimit_mode
-) {
-    return pgd::ClusterImpl(
-        dsns,
-        nullptr,
-        bg_task_processor,
-        {{},
-         {utest::kMaxTestWaitTime},
-         {min_pool_size, max_pool_size, max_pool_size},
-         kCachePreparedStatements,
-         pg::InitMode::kSync,
-         "",
-         connlimit_mode,
-         {}},
-        {kTestCmdCtl, {}, {}},
-        {},
-        {},
-        testsuite_tasks,
-        std::move(config_source),
-        std::make_shared<USERVER_NAMESPACE::utils::statistics::MetricsStorage>(),
-        kShardNumber
-    );
-}
+const std::string kWatchdogTaskName = fmt::format("connlimit_watchdog_{}_{}", "", kShardNumber);
 
 constexpr std::string_view kRawInsert = R"(
         INSERT INTO u_clients (hostname, updated, max_connections, cur_user) VALUES
         ($1, NOW(), $2, {}) ON CONFLICT (hostname) DO UPDATE SET updated = NOW(), max_connections = $2, cur_user = {}
     )";
 
+constexpr std::size_t kHostsCount = 10;
+
 pg::Transaction GetTransaction(pgd::ClusterImpl& cluster) {
     static pg::CommandControl command_control{std::chrono::seconds(2), std::chrono::seconds(2)};
     return cluster.Begin({pg::ClusterHostType::kMaster}, {}, command_control);
-}
-
-void ClearWatchdogTable(pgd::ClusterImpl& cluster) {
-    auto trx = GetTransaction(cluster);
-    trx.Execute("DELETE FROM u_clients");
-    trx.Commit();
-}
-
-void WaitForActiveConnections(pgd::ClusterImpl& cluster, std::size_t expected) {
-    const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
-    while (!deadline.IsReached()) {
-        if (cluster.GetStatistics()->master.stats.connection.active == expected) {
-            return;
-        }
-        engine::SleepFor(std::chrono::milliseconds{20});
-    }
-
-    FAIL() << "Timed out waiting for " << expected << " active PostgreSQL connections";
 }
 
 constexpr size_t kReservedConn = 5;
@@ -141,11 +87,12 @@ public:
     );
 
     Watchdog()
-        : cluster_(
-              CreateClusterImpl(GetDsnListFromEnv(), GetTaskProcessor(), testsuite_tasks_, config_storage_.GetSource())
-          )
+        : cluster_(CreateClusterImpl(GetDsnListFromEnv(), GetTaskProcessor(), kHostsCount * 2, testsuite_tasks_))
     {
-        ClearWatchdogTable(cluster_);
+        // Do the step of ConnlimitWatchdog to create the table.
+        testsuite_tasks_.RunTask(kWatchdogTaskName);
+
+        ClearTable();
     }
 
     std::size_t DoStepV1() {
@@ -179,12 +126,13 @@ public:
 
     pgd::ClusterImpl& GetCluster() { return cluster_; }
 
-    void RunWatchdogStep() { testsuite_tasks_.RunTask(kWatchdogTaskName); }
-
 private:
-    dynamic_config::StorageMock config_storage_{
-        dynamic_config::MakeDefaultStorage({{::dynamic_config::POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED, true}})
-    };
+    void ClearTable() {
+        auto t = GetTransaction(cluster_);
+        t.Execute("DELETE FROM u_clients");
+        t.Commit();
+    }
+
     testsuite::TestsuiteTasks testsuite_tasks_{true};
     pgd::ClusterImpl cluster_;
     utils::impl::UserverExperimentsScope scope_;
@@ -203,56 +151,6 @@ static_assert(
     !HasNewVersion<pg::ConnlimitWatchdog>,
     "Please update the following test for StepV* and increment the version check in above concept"
 );
-
-// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class WatchdogWarmup : public PostgreSQLBase, public ::testing::WithParamInterface<pg::InitMode> {};
-
-UTEST_P(WatchdogWarmup, BootstrapsAndWarmsUpAfterRegistration) {
-    dynamic_config::StorageMock config_storage{
-        dynamic_config::MakeDefaultStorage({{::dynamic_config::POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED, true}})
-    };
-    testsuite::TestsuiteTasks testsuite_tasks{true};
-    utils::impl::UserverExperimentsScope experiments_scope;
-    auto cluster = CreateClusterImpl(
-        GetDsnListFromEnv(),
-        GetTaskProcessor(),
-        testsuite_tasks,
-        config_storage.GetSource(),
-        kCachePreparedStatements,
-        GetParam()
-    );
-    ClearWatchdogTable(cluster);
-
-    {
-        const auto statistics = cluster.GetStatistics();
-        EXPECT_EQ(1, statistics->master.stats.connection.maximum);
-        EXPECT_LE(statistics->master.stats.connection.active, 1);
-    }
-
-    testsuite_tasks.RunTask(kWatchdogTaskName);
-    WaitForActiveConnections(cluster, kConfiguredMinPoolSize);
-
-    const auto statistics = cluster.GetStatistics();
-    EXPECT_EQ(kTestsuiteConnlimit, statistics->master.stats.connection.maximum);
-    EXPECT_EQ(kConfiguredMinPoolSize, statistics->master.stats.connection.active);
-}
-
-INSTANTIATE_UTEST_SUITE_P(
-    InitModes,
-    WatchdogWarmup,
-    ::testing::Values(pg::InitMode::kSync, pg::InitMode::kAsync),
-    [](const testing::TestParamInfo<WatchdogWarmup::ParamType>& info) {
-        return info.param == pg::InitMode::kSync ? "Sync" : "Async";
-    }
-);
-
-UTEST_F(Watchdog, ZeroConnlimitDoesNotDisablePool) {
-    GetCluster().SetDsnList({GetUnavailableDsn()});
-    EXPECT_NO_THROW(RunWatchdogStep());
-
-    const auto statistics = GetCluster().GetStatistics();
-    EXPECT_EQ(1, statistics->master.stats.connection.maximum);
-}
 
 // We check different combinations of queries order with table 'u_clients', because
 // services can be deployed on different versions of userver and rolled back to random version
@@ -375,129 +273,6 @@ UTEST_F(Watchdog, AccountsForNonPoolConnections) {
     second_watchdog.StepV2();
 
     EXPECT_EQ(kTestsuiteConnlimit / 2 - kTopologyConnectionsPerInstance, second_watchdog.GetConnlimit());
-}
-
-UTEST_F(Watchdog, AutoModeDoesNotExhaustConnectionsOnSimultaneousStart) {
-    constexpr std::size_t kStartupMinPoolSize = kTestsuiteConnlimit;
-
-    auto config_storage = dynamic_config::MakeDefaultStorage({
-        {::dynamic_config::POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED, true},
-    });
-    testsuite::TestsuiteTasks first_tasks{true};
-    testsuite::TestsuiteTasks second_tasks{true};
-    testsuite::TestsuiteTasks third_tasks{true};
-    auto first_cluster = CreateClusterImplForStartupTest(
-        GetDsnListFromEnv(),
-        GetTaskProcessor(),
-        first_tasks,
-        config_storage.GetSource(),
-        kStartupMinPoolSize,
-        kStartupMinPoolSize,
-        pg::ConnlimitMode::kAuto
-    );
-    auto second_cluster = CreateClusterImplForStartupTest(
-        GetDsnListFromEnv(),
-        GetTaskProcessor(),
-        second_tasks,
-        config_storage.GetSource(),
-        kStartupMinPoolSize,
-        kStartupMinPoolSize,
-        pg::ConnlimitMode::kAuto
-    );
-    auto third_cluster = CreateClusterImplForStartupTest(
-        GetDsnListFromEnv(),
-        GetTaskProcessor(),
-        third_tasks,
-        config_storage.GetSource(),
-        kStartupMinPoolSize,
-        kStartupMinPoolSize,
-        pg::ConnlimitMode::kAuto
-    );
-
-    const std::array clusters{&first_cluster, &second_cluster, &third_cluster};
-    const std::array tasks{&first_tasks, &second_tasks, &third_tasks};
-    for (const auto* cluster : clusters) {
-        const auto statistics = cluster->GetStatistics();
-        EXPECT_EQ(statistics->master.stats.connection.maximum, 1);
-        EXPECT_LE(statistics->master.stats.connection.active, 1);
-    }
-
-    for (std::size_t i = 0; i < clusters.size(); ++i) {
-        auto watchdog = pg::ConnlimitWatchdog{
-            *clusters[i],
-            *tasks[i],
-            kShardNumber,
-            kStartupMinPoolSize,
-            [] {},
-            0,
-            fmt::format("simultaneous-start-host-{}", i),
-        };
-        watchdog.StepV2();
-        EXPECT_GT(watchdog.GetConnlimit(), 0);
-    }
-
-    auto trx = GetTransaction(GetCluster());
-    EXPECT_EQ(trx.Execute("SELECT count(*) FROM u_clients").AsSingleRow<int>(), static_cast<int>(clusters.size()));
-}
-
-UTEST_F(Watchdog, AutoModeStartsFromReservedConnectionsBelowMinPoolSize) {
-    constexpr std::size_t kStartupMinPoolSize = 10;
-
-    const auto already_open_connections = GetCluster().GetStatistics()->master.stats.connection.active;
-    ASSERT_LT(already_open_connections, kTestsuiteConnlimit);
-
-    testsuite::TestsuiteTasks occupying_tasks{true};
-    auto occupying_cluster = CreateClusterImplForStartupTest(
-        GetDsnListFromEnv(),
-        GetTaskProcessor(),
-        occupying_tasks,
-        dynamic_config::GetDefaultSource(),
-        kTestsuiteConnlimit - already_open_connections,
-        kTestsuiteConnlimit - already_open_connections,
-        pg::ConnlimitMode::kManual
-    );
-    EXPECT_EQ(
-        occupying_cluster.GetStatistics()->master.stats.connection.active,
-        kTestsuiteConnlimit - already_open_connections
-    );
-
-    auto config_storage = dynamic_config::MakeDefaultStorage({
-        {::dynamic_config::POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED, true},
-    });
-    testsuite::TestsuiteTasks new_instance_tasks{true};
-    auto new_instance = CreateClusterImplForStartupTest(
-        GetDsnListFromEnv(),
-        GetTaskProcessor(),
-        new_instance_tasks,
-        config_storage.GetSource(),
-        kStartupMinPoolSize,
-        kStartupMinPoolSize,
-        pg::ConnlimitMode::kAuto
-    );
-
-    {
-        const auto statistics = new_instance.GetStatistics();
-        EXPECT_EQ(statistics->master.stats.connection.maximum, 1);
-        EXPECT_LE(statistics->master.stats.connection.active, 1);
-    }
-
-    auto watchdog = pg::ConnlimitWatchdog{
-        new_instance,
-        new_instance_tasks,
-        kShardNumber,
-        kStartupMinPoolSize,
-        [] {},
-        0,
-        "reserved-connection-host",
-    };
-    watchdog.StepV2();
-    EXPECT_GT(watchdog.GetConnlimit(), 0);
-
-    auto trx = GetTransaction(GetCluster());
-    EXPECT_EQ(
-        trx.Execute("SELECT count(*) FROM u_clients WHERE hostname = 'reserved-connection-host'").AsSingleRow<int>(),
-        1
-    );
 }
 
 USERVER_NAMESPACE_END

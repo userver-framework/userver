@@ -4,6 +4,7 @@
 #include <algorithm>
 
 #include <userver/dynamic_config/value.hpp>
+#include <userver/engine/async.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
@@ -23,9 +24,6 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::postgres::detail {
 
 namespace {
-
-// One connection per host is enough to register a new instance in u_clients.
-constexpr std::size_t kBootstrapPoolSize = 1;
 
 ClusterHostType Fallback(ClusterHostType ht) {
     switch (ht) {
@@ -116,7 +114,10 @@ ClusterImpl::ClusterImpl(
     // Do not use IsConnlimitModeAuto() here because we don't care about
     // the current dynamic config value
     if (cluster_settings.connlimit_mode == ConnlimitMode::kAuto) {
+        connlimit_mode_auto_enabled_ = true;
         connlimit_watchdog_.Start();
+    } else {
+        connlimit_mode_auto_enabled_ = false;
     }
 }
 
@@ -163,7 +164,6 @@ void ClusterImpl::CreateTopology(const DsnList& dsns) {
 
     LOG_DEBUG() << "Starting pools initialization";
     const auto& dsn_list = data.topology->GetDsnList();
-    const auto startup_pool_settings = MakeEffectivePoolSettings(*cluster_settings);
     UASSERT(!dsn_list.empty());
     data.host_pools.reserve(dsn_list.size());
     for (const auto& dsn : dsn_list) {
@@ -177,7 +177,7 @@ void ClusterImpl::CreateTopology(const DsnList& dsns) {
                 bg_task_processor_,
                 cluster_settings->db_name,
                 cluster_settings->init_mode,
-                startup_pool_settings,
+                cluster_settings->pool_settings,
                 cluster_settings->conn_settings,
                 cluster_settings->statement_metrics_settings,
                 default_cmd_ctls_,
@@ -199,10 +199,7 @@ ClusterImpl::~ClusterImpl() { connlimit_watchdog_.Stop(); }
 ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
     auto cluster_stats = std::make_unique<ClusterStatistics>();
 
-    {
-        const auto cluster_settings = cluster_settings_.Read();
-        cluster_stats->connlimit_mode_auto_on = IsConnlimitModeAuto(*cluster_settings);
-    }
+    cluster_stats->connlimit_mode_auto_on = connlimit_mode_auto_enabled_.load();
 
     auto topology_data = topology_data_.SharedLock();
     auto* topology = &*topology_data->topology;
@@ -392,36 +389,29 @@ void ClusterImpl::SetPoolSettings(const PoolSettings& new_settings) {
 
         cluster->original_min_pool_size = new_settings.min_size;
         cluster->pool_settings = new_settings;
+        if (IsConnlimitModeAuto(*cluster)) {
+            auto connlimit = connlimit_watchdog_.GetConnlimit();
+            if (connlimit > 0) {
+                AdjustPoolSettings(*cluster, connlimit);
+            }
+        }
+
         cluster.Commit();
     }
 
     PropagateSettingsToPools();
 }
 
-PoolSettings ClusterImpl::MakeEffectivePoolSettings(const ExtendedClusterSettings& cluster) const {
-    auto pool_settings = cluster.pool_settings;
-    if (!IsConnlimitModeAuto(cluster)) {
-        return pool_settings;
-    }
-
-    const auto connlimit = connlimit_watchdog_.GetConnlimit();
-    if (connlimit == 0) {
-        pool_settings.min_size = kBootstrapPoolSize;
-        pool_settings.max_size = kBootstrapPoolSize;
-        return pool_settings;
-    }
-
-    pool_settings.min_size = std::min(cluster.original_min_pool_size, connlimit);
-    pool_settings.max_size = connlimit;
-    return pool_settings;
+void ClusterImpl::AdjustPoolSettings(ExtendedClusterSettings& cluster, std::size_t max_size) {
+    cluster.pool_settings.max_size = max_size;
+    cluster.pool_settings.min_size = std::min(cluster.original_min_pool_size, max_size);
 }
 
 void ClusterImpl::PropagateSettingsToPools() {
     auto td = topology_data_.SharedLock();
     auto cluster_settings = cluster_settings_.Read();
-    const auto effective_pool_settings = MakeEffectivePoolSettings(*cluster_settings);
     for (const auto& pool : td->host_pools) {
-        pool->SetSettings(effective_pool_settings);
+        pool->SetSettings(cluster_settings->pool_settings);
     }
 }
 
@@ -431,23 +421,37 @@ void ClusterImpl::SetTopologySettings(const TopologySettings& settings) {
 }
 
 void ClusterImpl::OnConnlimitChanged() {
-    {
-        auto cluster = cluster_settings_.Read();
-        if (!IsConnlimitModeAuto(*cluster)) {
-            return;
-        }
+    auto max_size = connlimit_watchdog_.GetConnlimit();
+    auto cluster = cluster_settings_.StartWrite();
+
+    if (!IsConnlimitModeAuto(*cluster)) {
+        return;
     }
+
+    if (cluster->pool_settings.max_size == max_size) {
+        return;
+    }
+    AdjustPoolSettings(*cluster, max_size);
+
+    cluster.Commit();
 
     PropagateSettingsToPools();
 }
 
-bool ClusterImpl::IsConnlimitModeAuto(const ClusterSettings& settings) const {
+bool ClusterImpl::IsConnlimitModeAuto(const ClusterSettings& settings) {
+    bool on = true;
     if (settings.connlimit_mode == ConnlimitMode::kManual) {
-        return false;
+        on = false;
     }
 
-    const auto snapshot = config_source_.GetSnapshot();
-    return snapshot[::dynamic_config::POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED];
+    auto snapshot = config_source_.GetSnapshot();
+    // NOLINTNEXTLINE(readability-simplify-boolean-expr)
+    if (!snapshot[::dynamic_config::POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED]) {
+        on = false;
+    }
+
+    connlimit_mode_auto_enabled_ = on;
+    return on;
 }
 
 void ClusterImpl::SetStatementMetricsSettings(const StatementMetricsSettings& settings) {

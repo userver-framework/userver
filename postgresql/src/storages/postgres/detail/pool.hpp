@@ -91,8 +91,6 @@ public:
 
     CommandControl GetDefaultCommandControl() const;
 
-    void WarmUp(InitMode mode);
-
     void SetSettings(const PoolSettings& settings);
 
     void SetConnectionSettings(const ConnectionSettings& settings);

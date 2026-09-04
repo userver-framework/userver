@@ -8,7 +8,7 @@ components_manager:
             sync-start: true
             user-types-enabled: false  # Not used in chaos tests
             max_queue_size: 200
-            min_pool_size: 15
+            min_pool_size: 1
 
         testsuite-support:
 
@@ -51,8 +51,6 @@ components_manager:
 
         dynamic-config:
             updates-enabled: true
-            defaults:
-                POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED: true
         dynamic-config-client:
             config-url: $config-server-url
             http-retries: 5

@@ -89,9 +89,9 @@ private:
 
     void OnConnlimitChanged();
 
-    bool IsConnlimitModeAuto(const ClusterSettings& settings) const;
+    bool IsConnlimitModeAuto(const ClusterSettings& settings);
 
-    PoolSettings MakeEffectivePoolSettings(const ExtendedClusterSettings& cluster) const;
+    void AdjustPoolSettings(ExtendedClusterSettings& cluster, std::size_t max_size);
 
     void PropagateSettingsToPools();
 
@@ -117,6 +117,7 @@ private:
     USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics_;
 
     std::atomic<uint32_t> rr_host_idx_;
+    std::atomic<bool> connlimit_mode_auto_enabled_;
     ConnlimitWatchdog connlimit_watchdog_;
 };
 
