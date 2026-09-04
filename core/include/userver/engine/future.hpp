@@ -45,6 +45,10 @@ class Promise;
 ///
 /// engine::Future can only be used from coroutine threads.
 ///
+/// @warning This class supports only a single concurrent awaiter. Use
+/// @ref engine::SharedTaskWithResult to await and retrieve the same result from
+/// multiple coroutines.
+///
 /// ## Example usage:
 ///
 /// @snippet core/src/engine/future_test.cpp  Sample engine::Future usage

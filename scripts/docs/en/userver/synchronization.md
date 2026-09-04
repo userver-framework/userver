@@ -45,9 +45,55 @@ For parallel independent calculations the simplest, and most reliable way to tra
 
 @snippet core/src/engine/task/task_with_result_test.cpp  Sample TaskWithResult usage
 
+@warning @ref engine::Task and @ref engine::TaskWithResult support only a
+single concurrent awaiter. Do not await the same task from multiple coroutines
+simultaneously. Use @ref engine::SharedTaskWithResult for that use case, even
+when the callable returns `void`.
+
 A less convenient and more complicated way to solve the same problem is to create a data structure shared between tasks, where the tasks themselves will record the result. This requires protecting the data through atomic variables or engine::Mutex, as well as passing this data structure to the subtasks. In this case, engine::Future may be useful (see below).
 
 Note that when programming tasks, you need to take into account the lifetime of objects. If you pass a closure to a task with a reference to a variable, then you must ensure that the lifetime of the task is strictly less than the lifetime of the variable. This must also be guaranteed for the case of throwing an exception from any function used. If this cannot be guaranteed, then either pass the data to the closure via shared_ptr, or pass it over the copy.
+
+
+### engine::SharedTaskWithResult
+
+Use @ref engine::SharedTaskWithResult when multiple tasks need the result of a
+single asynchronous computation. Create it with @ref utils::SharedAsync.
+
+Multiple coroutines can safely await the same @ref engine::SharedTaskWithResult
+and call @ref engine::SharedTaskWithResult::Get "Get" concurrently, even when
+the coroutines run on different @ref engine::TaskProcessor threads. All copies
+of @ref engine::SharedTaskWithResult refer to the same underlying task.
+
+Unlike @ref engine::TaskWithResult::Get, calling
+@ref engine::SharedTaskWithResult::Get "SharedTaskWithResult::Get" does not
+invalidate the object. The result can therefore be retrieved multiple times.
+For non-`void` results, the method returns a `const` reference.
+
+@warning Use @ref engine::SharedTaskWithResult "SharedTaskWithResult<void>"
+instead of @ref engine::SharedTask even when no result is needed.
+@ref engine::SharedTask has no `Get`, so it can wait for completion but cannot
+report an exception thrown by the task payload.
+@ref engine::SharedTaskWithResult::Get "SharedTaskWithResult<void>::Get"
+rethrows such an exception.
+
+@snippet core/src/engine/task/shared_task_with_result_test.cpp Sample SharedTaskWithResult usage
+
+
+### concurrent::LazyValue
+
+Use @ref concurrent::LazyValue when a value should be computed only on first
+access and it is acceptable for the first caller to perform the computation.
+Its @ref concurrent::LazyValue::operator() "operator()" can be called
+concurrently from multiple coroutines. The callable is invoked exactly once;
+other callers wait for it to finish, then all callers receive a `const`
+reference to the cached result. If the callable throws, the exception is cached
+and rethrown on subsequent calls without retrying the computation.
+
+Unlike @ref engine::SharedTaskWithResult, @ref concurrent::LazyValue does not
+start the computation in the background before the first access. Use
+@ref engine::SharedTaskWithResult when the computation should start
+independently of the consumers.
 
 
 ### engine::Future
@@ -55,6 +101,10 @@ Note that when programming tasks, you need to take into account the lifetime of 
 Sometimes calculations could not decomposed easily and a single engine::Task should return many results. At the same time, it is not efficient to collect them into one structure and return them at one (the results are used as inputs for several tasks, etc.).
 For such cases, you can use the engine::Promise and engine::Future. They provide a synchronized channel for transmitting the value between tasks.
 The interface and contracts of these classes are as close as possible to similar types from the standard library. The main differences are related to the support for the cancellation mechanism.
+
+@warning @ref engine::Future supports only a single concurrent awaiter. To
+share a single asynchronously computed result among multiple tasks, use
+@ref engine::SharedTaskWithResult instead.
 
 @snippet core/src/engine/future_test.cpp  Sample engine::Future usage
 
@@ -220,6 +270,27 @@ The semaphore is used to limit the number of users that run inside a critical se
 You don't need to use a semaphore if you need to limit the number of threads that perform CPU-heavy operations. For these purposes, create a separate TaskProcessor and perform other operations on it, it is cheaper in terms of synchronization.
 
 If you need a counter, but do not need to wait for the counter to change, then you need to use `std::atomic` instead of a semaphore.
+
+### engine::MultiConsumerEvent
+
+A single-producer, multiple-consumers event for notifying multiple tasks of a
+one-time condition without transmitting a value. Multiple coroutines can call
+@ref engine::MultiConsumerEvent::Wait "Wait" or
+@ref engine::MultiConsumerEvent::WaitUntil "WaitUntil" concurrently.
+@ref engine::MultiConsumerEvent::Send "Send" wakes all current waiters, and the
+event remains signaled forever, so future waiters return immediately. Waiting
+supports task cancellation and deadlines, and the event is compatible with
+@ref engine::WaitAny and friends.
+
+@ref engine::MultiConsumerEvent::Send "Send" must be called only once and can
+be called outside a coroutine. Unlike @ref engine::SingleConsumerEvent,
+@ref engine::MultiConsumerEvent cannot be reset or reused for another
+notification. Use @ref engine::SharedTaskWithResult or
+@ref concurrent::LazyValue if consumers need a value rather than a signal.
+
+@warning A consumer must not destroy the event after waking, because other
+consumers may still be using it. The producer should own the event and destroy
+it only after all consumers have finished.
 
 ### engine::SingleUseEvent
 
