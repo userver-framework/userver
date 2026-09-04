@@ -23,9 +23,13 @@ impl::ResponseAwaiter ConnectionHelper::DeclareQueue(
     const ConnectionPtr& connection,
     const Queue& queue,
     utils::Flags<Queue::Flags> flags,
+    const std::unordered_map<std::string, HeaderValue>& headers,
+    QueueDeclareResponse& response,
     engine::Deadline deadline
 ) {
-    return WithSpan("declare_queue", [&] { return connection->GetChannel().DeclareQueue(queue, flags, deadline); });
+    return WithSpan("declare_queue", [&] {
+        return connection->GetChannel().DeclareQueue(queue, flags, headers, response, deadline);
+    });
 }
 
 impl::ResponseAwaiter ConnectionHelper::BindQueue(

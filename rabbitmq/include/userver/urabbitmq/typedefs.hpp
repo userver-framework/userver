@@ -72,6 +72,17 @@ enum class MessageType {
 /// This is not JSON, but a convenient tree representation for AMQP field values.
 using HeaderValue = formats::json::Value;
 
+/// @brief Result of a `DeclareQueue` call, mirroring the broker's
+/// `queue.declare-ok` response.
+struct QueueDeclareResponse {
+    /// name of the declared queue (useful for server-named queues)
+    std::string name;
+    /// number of messages ready for delivery in the queue at the time of the reply
+    std::uint32_t message_count{0};
+    /// number of consumers subscribed to the queue at the time of the reply
+    std::uint32_t consumer_count{0};
+};
+
 /// @brief Structure holding an AMQP message body along with some of its
 /// metadata fields. This struct is used to pass messages to the end user,
 /// hiding the actual AMQP message object implementation.
