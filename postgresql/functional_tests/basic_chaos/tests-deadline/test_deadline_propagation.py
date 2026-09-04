@@ -1,8 +1,3 @@
-import os
-
-import pytest
-
-
 async def test_expired(service_client):
     async with service_client.capture_logs() as capture:
         response = await service_client.post(
@@ -19,9 +14,6 @@ async def test_expired(service_client):
 
 
 async def test_timeout(service_client):
-    if os.environ.get('POSTGRES_PIPELINE_DISABLED'):
-        pytest.skip('Pipeline mode is not supported by libpq')
-
     async with service_client.capture_logs() as capture:
         response = await service_client.post(
             '/chaos/postgres?type=sleep',
