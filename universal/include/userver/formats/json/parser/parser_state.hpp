@@ -27,7 +27,7 @@ public:
 
     void PushParser(BaseParser& parser);
 
-    void ProcessInput(std::string_view sw);
+    void ProcessInput(std::string_view input);
 
     void PopMe(BaseParser& parser);
 

@@ -5,6 +5,7 @@
 #include <userver/compiler/demangle.hpp>
 #include <userver/formats/json/parser/parser.hpp>
 #include <userver/formats/json/serialize.hpp>
+#include <userver/utils/assert.hpp>
 
 // NOLINTNEXTLINE(cppcoreguidelines-macro-usage)
 #define EXPECT_THROW_TEXT(code, exception_type, exc_text) UEXPECT_THROW_MSG(code, exception_type, exc_text)
@@ -124,6 +125,36 @@ TEST(JsonStringParser, EmptyObjectKey) {
     );
 }
 
+class PopsOnObjectStartParser final : public fjp::BaseParser {
+protected:
+    void StartObject() override { parser_state_->PopMe(*this); }
+
+    std::string Expected() const override { return "object"; }
+    std::string GetPathItem() const override { return {}; }
+};
+
+TEST(JsonStringParser, ParserFinishesBeforeJsonDocument) {
+    PopsOnObjectStartParser parser;
+    fjp::ParserState parser_state;
+    parser_state.PushParser(parser);
+
+    EXPECT_THROW_TEXT(
+        parser_state.ProcessInput("{}"),
+        fjp::ParseError,
+        "Parse error at pos 1, path '': Symbols after end of document, the latest token was {"
+    );
+}
+
+TEST(JsonStringParser, EmptyParserStack) {
+    fjp::ParserState parser_state;
+
+    EXPECT_THROW_TEXT(
+        parser_state.ProcessInput("null"),
+        fjp::ParseError,
+        "Parse error at pos 0, path '': Symbols after end of document"
+    );
+}
+
 struct IntObject final {
     int64_t field{0};
 };
@@ -172,6 +203,15 @@ private:
 TEST(JsonStringParser, IntObject) {
     const std::string input("{\"field\": 234}");
     EXPECT_EQ((fjp::ParseToType<IntObject, IntObjectParser>(input)), IntObject({234}));
+}
+
+TEST(JsonStringParser, IntObjectWrongFieldType) {
+    EXPECT_THROW_TEXT(
+        (fjp::ParseToType<IntObject, IntObjectParser>(R"({"field": "wrong"})")),
+        fjp::ParseError,
+        "Parse error at pos 17, path 'field': integer was expected, but string found, "
+        "the latest token was : \"wrong\""
+    );
 }
 
 TEST(JsonStringParser, IntObjectNoField) {
@@ -386,6 +426,27 @@ std::string GenerateNestedJson(std::size_t depth) {
 
     return result;
 }
+
+class SingleFrameNestedArrayParser final : public fjp::BaseParser {
+protected:
+    void Null() override {}
+
+    void StartArray() override { ++open_array_count_; }
+
+    void EndArray() override {
+        UASSERT(open_array_count_ > 0);
+        --open_array_count_;
+        if (open_array_count_ == 0) {
+            parser_state_->PopMe(*this);
+        }
+    }
+
+    std::string Expected() const override { return "array"; }
+    std::string GetPathItem() const override { return {}; }
+
+private:
+    std::size_t open_array_count_{0};
+};
 }  // namespace
 
 TEST(JsonStringParser, JsonValueDepth) {
@@ -398,6 +459,21 @@ TEST(JsonStringParser, JsonValueDepth) {
             "Exceeded maximum allowed JSON depth of: 128"
         );
     }
+}
+
+TEST(JsonStringParser, JsonDepthLimitDoesNotDependOnParserStack) {
+    const std::string input =
+        std::string(formats::json::kDepthParseLimit + 1, '[') + "null" +
+        std::string(formats::json::kDepthParseLimit + 1, ']');
+    SingleFrameNestedArrayParser parser;
+    fjp::ParserState parser_state;
+    parser_state.PushParser(parser);
+
+    UEXPECT_THROW_MSG(
+        parser_state.ProcessInput(input),
+        formats::json::parser::BaseError,
+        fmt::format("Exceeded maximum allowed JSON depth of: {}", formats::json::kDepthParseLimit)
+    );
 }
 
 TEST(JsonStringParser, JsonValueLeak) {
@@ -426,6 +502,26 @@ TEST(JsonStringParser, JsonValueBad) {
     };
     for (const auto& input : inputs) {
         EXPECT_THROW((fjp::ParseToType<formats::json::Value, fjp::JsonValueParser>(input)), fjp::ParseError);
+    }
+}
+
+TEST(JsonStringParser, NestedInvalidDelimiterError) {
+    EXPECT_THROW_TEXT(
+        (fjp::ParseToType<formats::json::Value, fjp::JsonValueParser>("[}]")),
+        fjp::ParseError,
+        "Parse error at pos 1, path '': Invalid value."
+    );
+}
+
+TEST(JsonStringParser, InvalidDocumentStartDelimiterError) {
+    constexpr std::string_view kInputs[] = {"]", "}", ",", ":"};
+
+    for (const auto input : kInputs) {
+        EXPECT_THROW_TEXT(
+            (fjp::ParseToType<formats::json::Value, fjp::JsonValueParser>(input)),
+            fjp::ParseError,
+            "Parse error at pos 0, path '': The document is empty."
+        );
     }
 }
 
