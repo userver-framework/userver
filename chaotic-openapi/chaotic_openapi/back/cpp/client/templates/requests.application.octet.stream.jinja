@@ -1,5 +1,8 @@
-{% macro serialize(request, http_request) %}
-  {{ http_request }}.data({{ request }}.data);
+{# An operation with a single content type stores the body as a bare std::string,
+   while multiple content types are wrapped into distinct structs (see define_body_cpp_name)
+   to make the std::variant alternatives unambiguous. #}
+{% macro serialize(request, http_request, wrapped) %}
+  {{ http_request }}.data({{ request }}{% if wrapped %}.data{% endif %});
 {% endmacro %}
 
 

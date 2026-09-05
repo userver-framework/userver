@@ -182,15 +182,20 @@ class Parser:
                     msg='"consumes" must be either "multipart/form-data" or "application/x-www-form-urlencoded" for "type: file"',
                 )
 
-        schema = self._parse_schema(
-            request_body.model_dump(
-                by_alias=True,
-                exclude={'name', 'in_', 'description', 'required', 'allowEmptyValue', 'collectionFormat'},
-                exclude_unset=True,
-            ),
-            infile_path,
-            allow_file=True,
+        field_schema = request_body.model_dump(
+            by_alias=True,
+            exclude={'name', 'in_', 'description', 'required', 'allowEmptyValue', 'collectionFormat'},
+            exclude_unset=True,
         )
+        object_schema: dict[str, Any] = {
+            'type': 'object',
+            'properties': {request_body.name: field_schema},
+            'additionalProperties': False,
+        }
+        if request_body.required:
+            object_schema['required'] = [request_body.name]
+
+        schema = self._parse_schema(object_schema, infile_path, allow_file=True)
         return [
             model.RequestBody(
                 content_type=mime,
