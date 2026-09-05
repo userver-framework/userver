@@ -34,9 +34,7 @@ jobs:
                         -DCPM_SOURCE_CACHE=/userver/.cpm
                         -DUSERVER_NO_WERROR=0
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
-                        -DUSERVER_DOWNLOAD_PACKAGE_YDBCPPSDK=1
-                        -DUSERVER_YDBCPPSDK_VERSION=3.21.0
-                        -DCMAKE_DISABLE_FIND_PACKAGE_ydb-cpp-sdk=1
+                        -DUSERVER_FEATURE_YDB=0
                         -DUSERVER_FEATURE_ROCKS=0
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
