@@ -1,0 +1,22 @@
+swagger: '2.0'
+description: |
+    Swagger "in: formData" request body.
+
+    Such a parameter describes a single form field, not the whole body, so it is
+    wrapped into a one-property object schema (see
+    Parser._convert_swagger_request_body). Only one "in: formData" parameter per
+    operation is supported for now, the rest are silently dropped by the parser.
+
+paths:
+    /form-urlencoded:
+        post:
+            consumes:
+              - application/x-www-form-urlencoded
+            parameters:
+              - in: formData
+                name: name
+                required: true
+                type: string
+            responses:
+                '200':
+                    description: OK
