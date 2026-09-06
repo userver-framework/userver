@@ -13,6 +13,8 @@ _userver_module_find_library(NAMES brotlidec)
 
 _userver_module_find_library(NAMES brotlienc)
 
+_userver_module_find_library(NAMES brotlicommon)
+
 _userver_module_end()
 
 if(NOT TARGET brotlidec)
