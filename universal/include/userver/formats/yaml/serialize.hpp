@@ -24,6 +24,12 @@ formats::json::Value Parse(const formats::yaml::Value& yaml, formats::parse::To<
 ///         an unknown node type that cannot be converted to YAML
 formats::yaml::Value Parse(const formats::json::Value& json, formats::parse::To<formats::yaml::Value>);
 
+/// @brief Converts a YAML value to JSON string format
+///
+/// @throws formats::yaml::Exception if the YAML value is missing or contains
+///         an unknown node type that cannot be converted to JSON
+formats::json::RawString Parse(const formats::yaml::Value& value, formats::parse::To<formats::json::RawString>);
+
 }  // namespace formats::parse
 
 namespace formats::yaml {

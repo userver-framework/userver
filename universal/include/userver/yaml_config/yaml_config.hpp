@@ -274,6 +274,10 @@ std::chrono::milliseconds Parse(const YamlConfig& value, formats::parse::To<std:
 /// @throws yaml_config::YamlConfig::Exception if `value.IsMissing()`
 formats::json::Value Parse(const YamlConfig& value, formats::parse::To<formats::json::Value>);
 
+/// @brief Converts YAML to JSON string
+/// @throws yaml_config::YamlConfig::Exception if `value.IsMissing()`
+formats::json::RawString Parse(const YamlConfig& value, formats::parse::To<formats::json::RawString>);
+
 /// @brief Converts YAML to YAML. Returns self
 inline YamlConfig Parse(const YamlConfig& value, formats::parse::To<YamlConfig>) { return value; }
 

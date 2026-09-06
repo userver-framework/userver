@@ -276,7 +276,7 @@ class Generator:
             raw_cpp_type=type_name.TypeName(
                 'USERVER_NAMESPACE::formats::json::Value',
             ),
-            user_cpp_type=None,
+            user_cpp_type=self._extract_user_cpp_type(schema),
         )
 
     def _gen_boolean(

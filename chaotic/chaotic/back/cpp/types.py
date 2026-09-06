@@ -365,16 +365,24 @@ class CppPrimitiveType(CppType):
 # any JSON value ({})
 @dataclasses.dataclass
 class CppAnyValue(CppType):
+    KNOWN_X_PROPERTIES = ['x-usrv-cpp-type', 'x-taxi-cpp-type']
+
     __hash__ = CppType.__hash__
 
+    def __post_init__(self) -> None:
+        if self._is_raw_json_string():
+            self.raw_cpp_type = type_name.TypeName('USERVER_NAMESPACE::formats::json::RawString')
+
     def declaration_includes(self) -> list[str]:
+        if self._is_raw_json_string():
+            return ['userver/formats/json/raw_string.hpp']
         return ['userver/formats/json/value.hpp']
 
     def definition_includes(self) -> list[str]:
         return []
 
     def parser_type(self, ns: str, name: str) -> str:
-        return 'USERVER_NAMESPACE::formats::json::Value'
+        return self.cpp_global_name()
 
     def need_using_type(self) -> bool:
         return True
@@ -383,6 +391,12 @@ class CppAnyValue(CppType):
         return False
 
     def needs_new_type(self) -> bool:
+        return False
+
+    def _is_raw_json_string(self) -> bool:
+        if self.user_cpp_type:
+            sanitized_type = self.user_cpp_type.removeprefix('::').removeprefix(USERVER_COLONCOLON)
+            return sanitized_type == 'formats::json::RawString'
         return False
 
 

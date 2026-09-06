@@ -408,6 +408,43 @@ TEST(JsonStringParser, JsonValue) {
     }
 }
 
+TEST(JsonStringParser, RawString) {
+    const std::string inputs[] = {
+        R"(null)",
+        R"(true)",
+        R"(-42)",
+        R"(56.411117000000004)",
+        R"("string\nvalue")",
+        R"([1, "two", false])",
+        R"({"key": 1, "nested": {"array": [null]}})",
+    };
+
+    for (const auto& input : inputs) {
+        const auto raw_string = fjp::ParseToType<formats::json::RawString, fjp::JsonRawStringParser>(input);
+        EXPECT_EQ(raw_string.GetView(), formats::json::ToString(formats::json::FromString(input)))
+            << "input: " << input;
+    }
+}
+
+TEST(JsonStringParser, RawStringArray) {
+    fjp::JsonRawStringParser item_parser;
+    fjp::ArrayParser<formats::json::RawString, fjp::JsonRawStringParser> parser{item_parser};
+
+    const auto result = fjp::impl::ParseSingle(parser, R"([{"key": 1}, [2, 3], "four"])");
+
+    ASSERT_EQ(result.size(), 3);
+    EXPECT_EQ(result[0].GetView(), R"({"key":1})");
+    EXPECT_EQ(result[1].GetView(), R"([2,3])");
+    EXPECT_EQ(result[2].GetView(), R"("four")");
+}
+
+TEST(JsonStringParser, RawStringInvalid) {
+    fjp::JsonRawStringParser parser;
+
+    EXPECT_THROW((fjp::impl::ParseSingle(parser, R"({"key":})")), fjp::ParseError);
+    EXPECT_EQ(fjp::impl::ParseSingle(parser, R"({"key": 1})").GetView(), R"({"key":1})");
+}
+
 namespace {
 std::string GenerateNestedJson(std::size_t depth) {
     std::string result{};
@@ -459,6 +496,12 @@ TEST(JsonStringParser, JsonValueDepth) {
             "Exceeded maximum allowed JSON depth of: 128"
         );
     }
+
+    UEXPECT_THROW_MSG(
+        (fjp::ParseToType<formats::json::RawString, fjp::JsonRawStringParser>(input)),
+        formats::json::parser::BaseError,
+        "Exceeded maximum allowed JSON depth of: 128"
+    );
 }
 
 TEST(JsonStringParser, JsonDepthLimitDoesNotDependOnParserStack) {

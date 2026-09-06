@@ -15,6 +15,7 @@
 
 #include <userver/formats/common/conversion_stack.hpp>
 #include <userver/formats/common/path.hpp>
+#include <userver/formats/json/raw_string.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/yaml/exception.hpp>
@@ -33,6 +34,10 @@ formats::json::Value Parse(const formats::yaml::Value& yaml, parse::To<json::Val
 
 formats::yaml::Value Parse(const formats::json::Value& json, formats::parse::To<formats::yaml::Value>) {
     return formats::common::PerformMinimalFormatConversion<yaml::Value>(json);
+}
+
+formats::json::RawString Parse(const formats::yaml::Value& value, formats::parse::To<formats::json::RawString>) {
+    return formats::json::RawString(value.As<formats::json::Value>());
 }
 
 }  // namespace formats::parse

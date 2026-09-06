@@ -6,3 +6,13 @@ components:
             additionalProperties: false
             properties:
                 payload: {}
+        ObjectWithRawJsonField:
+            type: object
+            additionalProperties: false
+            required:
+              - inner_object
+            properties:
+                inner_object:
+                    x-usrv-cpp-type: userver::formats::json::RawString
+        RawJsonStringObject:
+            x-usrv-cpp-type: userver::formats::json::RawString

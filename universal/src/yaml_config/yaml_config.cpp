@@ -4,6 +4,7 @@
 #include <boost/filesystem/operations.hpp>
 
 #include <userver/formats/common/conversion_stack.hpp>
+#include <userver/formats/json/raw_string.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/yaml/serialize.hpp>
@@ -312,6 +313,10 @@ std::chrono::milliseconds Parse(const YamlConfig& value, formats::parse::To<std:
 
 formats::json::Value Parse(const YamlConfig& value, formats::parse::To<formats::json::Value>) {
     return formats::common::PerformMinimalFormatConversion<formats::json::Value>(value);
+}
+
+formats::json::RawString Parse(const YamlConfig& value, formats::parse::To<formats::json::RawString>) {
+    return formats::json::RawString(value.As<formats::json::Value>());
 }
 
 formats::yaml::Value Parse(const YamlConfig& value, formats::parse::To<formats::yaml::Value>) {
