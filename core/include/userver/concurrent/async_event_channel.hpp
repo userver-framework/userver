@@ -34,8 +34,6 @@ void WaitForTask(std::string_view name, engine::TaskWithResult<void>& task);
 
 void ReportNotSubscribed(std::string_view channel_name) noexcept;
 
-void ReportUnsubscribingAutomatically(std::string_view channel_name, std::string_view listener_name) noexcept;
-
 void ReportErrorWhileUnsubscribing(
     std::string_view channel_name,
     std::string_view listener_name,
@@ -46,11 +44,10 @@ std::string MakeAsyncChannelName(std::string_view base, std::string_view name);
 
 inline constexpr bool kCheckSubscriptionUB = utils::impl::kEnableAssert;
 
-// During the `AsyncEventSubscriberScope::Unsubscribe` call or destruction of
-// `AsyncEventSubscriberScope`, all variables used by callback must be valid
-// (must not be destroyed). A common cause of crashes in this place: there is no
-// manual call to `Unsubscribe`. In this case check the declaration order of the
-// struct fields.
+// During `AsyncEventSubscriberScope::Unsubscribe` or automatic teardown
+// (scope destructor / ResourceScopeStorage::BeforeDestruction), all variables
+// used by the callback must still be valid. A common cause of crashes here:
+// the subscription is removed after the captured data is destroyed.
 template <typename Func>
 void CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing(
     std::function<void(const Func&)>& on_listener_removal,
@@ -93,9 +90,10 @@ public:
 
     /// @brief The constructor with `AsyncEventSubscriberScope` usage checking.
     ///
-    /// The constructor with a callback that is called on listener removal. The
-    /// callback takes a reference to `Function` as input. This is useful for
-    /// checking the lifetime of data captured by the listener update function.
+    /// The constructor with a callback that is called on listener removal,
+    /// both on `Unsubscribe` and on automatic teardown. The callback takes a
+    /// reference to `Function` as input. This is useful for checking the lifetime
+    /// of data captured by the listener update function.
     ///
     /// @note Works only in debug mode.
     ///
@@ -300,7 +298,7 @@ private:
         OnRemoveCallback on_listener_removal;
     };
 
-    void RemoveListener(FunctionId id, UnsubscribingKind kind) noexcept final {
+    void RemoveListener(FunctionId id, [[maybe_unused]] UnsubscribingKind kind) noexcept final {
         const engine::TaskCancellationBlocker blocker;
         const std::shared_lock lock(event_mutex_);
         std::shared_ptr<const Listener> listener;
@@ -329,20 +327,14 @@ private:
         // Unlock data_ here to be able to (un)subscribe to *this in listener->callback (in debug)
         // without deadlock
 
-        if (kind == UnsubscribingKind::kAutomatic) {
-            if (!on_listener_removal) {
-                impl::ReportUnsubscribingAutomatically(name_, listener->name);
-            }
-
-            if constexpr (impl::kCheckSubscriptionUB) {
-                // Fake listener call to check
-                impl::CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing(
-                    on_listener_removal,
-                    listener->callback,
-                    name_,
-                    listener->name
-                );
-            }
+        if constexpr (impl::kCheckSubscriptionUB) {
+            // Fake listener call to check
+            impl::CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing(
+                on_listener_removal,
+                listener->callback,
+                name_,
+                listener->name
+            );
         }
     }
 

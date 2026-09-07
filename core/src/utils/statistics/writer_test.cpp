@@ -389,7 +389,7 @@ UTEST(MetricsWriter, CustomTypesOptimization) {
     const auto* const expected = "a_dump{} 42\n";
     EXPECT_EQ(expected, ToPrometheusFormatUntyped(storage, Request::MakeWithPath("a.dump")));
 
-    // Manual unregister to avoid fake writer call when destroying a `Entry`
+    // Unregister before the holders go out of scope.
     holder3.Unregister();
     holder2.Unregister();
     holder1.Unregister();
@@ -422,7 +422,7 @@ UTEST(MetricsWriter, CustomizationPointChecks) {
     EXPECT_TRUE(utils::statistics::HasWriterSupport<some::Dumpable3>);
 }
 
-UTEST(MetricsWriter, AutomaticUnsubscribingCheckWriterData) {
+UTEST(MetricsWriter, UnsubscribingCheckWriterData) {
     Storage storage;
     int counter = 0;
     auto writer_func = [&counter](Writer& writer) {
@@ -434,16 +434,20 @@ UTEST(MetricsWriter, AutomaticUnsubscribingCheckWriterData) {
     auto holder1 = storage.RegisterWriter("prefix1", writer_func);
     {
         auto holder2 = storage.RegisterWriter("prefix2", writer_func);
+        holder2.Unregister();
+    }
+    {
+        auto holder3 = storage.RegisterWriter("prefix3", writer_func);
     }
 
     if constexpr (utils::statistics::impl::kCheckSubscriptionUB) {
-        EXPECT_EQ(counter, 3);
+        EXPECT_EQ(counter, 5);
     } else {
         EXPECT_EQ(counter, 0);
     }
 }
 
-UTEST(MetricsWriter, AutomaticUnsubscribingCheckExtenderData) {
+UTEST(MetricsWriter, UnsubscribingCheckExtenderData) {
     Storage storage;
     int counter = 0;
     auto extender_func = [&counter](const utils::statistics::StatisticsRequest&) {
@@ -454,10 +458,14 @@ UTEST(MetricsWriter, AutomaticUnsubscribingCheckExtenderData) {
     auto holder1 = storage.RegisterExtender("prefix1", extender_func);
     {
         auto holder2 = storage.RegisterExtender("prefix2", extender_func);
+        holder2.Unregister();
+    }
+    {
+        auto holder3 = storage.RegisterExtender("prefix3", extender_func);
     }
 
     if constexpr (utils::statistics::impl::kCheckSubscriptionUB) {
-        EXPECT_EQ(counter, 3);
+        EXPECT_EQ(counter, 5);
     } else {
         EXPECT_EQ(counter, 0);
     }
