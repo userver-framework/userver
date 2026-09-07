@@ -34,7 +34,6 @@ jobs:
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
-                        -DUSERVER_FEATURE_YDB=0
                         -DUSERVER_NAMESPACE=userver_ns
                         -DUSERVER_NAMESPACE_BEGIN="namespace userver_ns { inline namespace
                         v1 {"
@@ -60,8 +59,6 @@ jobs:
                         -DUSERVER_BUILD_ALL_COMPONENTS=1
                         -DUSERVER_BUILD_SAMPLES=1
                         -DUSERVER_BUILD_TESTS=1
-                        -DUSERVER_DOWNLOAD_PACKAGE_YDBCPPSDK=OFF
-                        -DUSERVER_FORCE_DOWNLOAD_ABSEIL=OFF
                     os: ubuntu-24.04
                     info: gcc-13 + release
                     id: ubuntu24_gcc13_release
