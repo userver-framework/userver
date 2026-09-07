@@ -390,6 +390,7 @@ RequestMsetex TransactionImpl::Msetex(
     MsetexOptions options
 ) {
     UpdateShard(key_values);
+    client_->CheckMsetexKeysInSameSlot(key_values);
     const auto key_count = key_values.size();
     return AddCmd<RequestMsetex>("msetex", true, key_count, std::move(key_values), options);
 }

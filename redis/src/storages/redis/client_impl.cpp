@@ -1,8 +1,13 @@
 #include "client_impl.hpp"
 
+#include <iterator>
+
+#include <fmt/format.h>
+
 #include <userver/formats/json/serialize.hpp>
 #include <userver/utils/assert.hpp>
 
+#include <storages/redis/impl/keyshard.hpp>
 #include <storages/redis/impl/sentinel.hpp>
 
 #include "impl/command_control_impl.hpp"
@@ -765,6 +770,7 @@ RequestMsetex ClientImpl::Msetex(
     if (key_values.empty()) {
         return CreateDummyRequest<RequestMsetex>(std::make_shared<Reply>("msetex", 1));
     }
+    CheckMsetexKeysInSameSlot(key_values);
 
     const auto shard = ShardByKey(key_values.front().first, command_control);
     const auto numkeys = key_values.size();
@@ -2001,6 +2007,33 @@ size_t ClientImpl::ShardByKey(const std::string& key, const CommandControl& cc) 
 }
 
 void ClientImpl::CheckShard(size_t shard, const CommandControl& cc) const { DoCheckShard(shard, cc.force_shard_idx); }
+
+// Valkey 9.1 answers no CROSSSLOT to an MSETEX whose keys belong to different cluster hash slots:
+// it writes such keys into the node that happened to receive the command, even if that node does
+// not serve their slots, so the values silently become invisible to the rest of the cluster.
+void ClientImpl::CheckMsetexKeysInSameSlot(const std::vector<std::pair<std::string, std::string>>& key_values) const {
+    if (key_values.empty() || !IsInClusterMode()) {
+        return;
+    }
+
+    const auto& first_key = key_values.front().first;
+    const auto first_slot = impl::HashSlot(first_key);
+    for (auto it = std::next(key_values.begin()); it != key_values.end(); ++it) {
+        const auto slot = impl::HashSlot(it->first);
+        if (slot != first_slot) {
+            throw InvalidArgumentException(fmt::format(
+                "Msetex requires all the keys to belong to a single cluster hash slot, but key '{}' belongs to "
+                "slot {} while key '{}' belongs to slot {}. To fix, wrap the shared part of the keys into a hash "
+                "tag (e.g. '{{user:42}}:name') so that they hash to a single slot, or write the keys by separate "
+                "requests",
+                first_key,
+                first_slot,
+                it->first,
+                slot
+            ));
+        }
+    }
+}
 
 template Request<ScanReplyTmpl<ScanTag::kSscan>> ClientImpl::MakeScanRequestWithKey(
     std::string key,

@@ -697,6 +697,10 @@ private:
 
     void CheckShard(size_t shard, const CommandControl& cc) const;
 
+    /// @throws InvalidArgumentException in cluster mode if the keys of a single MSETEX belong to
+    /// different hash slots. Unlike MSET/MGET, MSETEX is not rejected by the server in that case.
+    void CheckMsetexKeysInSameSlot(const std::vector<std::pair<std::string, std::string>>& key_values) const;
+
     std::shared_ptr<impl::Sentinel> redis_client_;
 };
 

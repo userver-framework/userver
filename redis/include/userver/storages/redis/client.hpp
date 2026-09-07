@@ -385,6 +385,7 @@ public:
     ///
     /// Available since Valkey 9.1.0 and Redis 8.4.0. In cluster mode all keys
     /// must belong to the same hash slot; use a common hash tag to ensure that.
+    /// @throws InvalidArgumentException in cluster mode if the keys belong to different hash slots
     virtual RequestMsetex Msetex(
         std::vector<std::pair<std::string, std::string>> key_values,
         const CommandControl& command_control
@@ -394,6 +395,7 @@ public:
     ///
     /// Available since Valkey 9.1.0 and Redis 8.4.0. In cluster mode all keys
     /// must belong to the same hash slot; use a common hash tag to ensure that.
+    /// @throws InvalidArgumentException in cluster mode if the keys belong to different hash slots
     virtual RequestMsetex Msetex(
         std::vector<std::pair<std::string, std::string>> key_values,
         MsetexOptions options,

@@ -173,8 +173,10 @@ public:
 
     virtual RequestMset Mset(std::vector<std::pair<std::string, std::string>> key_values) = 0;
 
+    /// @throws InvalidArgumentException in cluster mode if the keys belong to different hash slots
     virtual RequestMsetex Msetex(std::vector<std::pair<std::string, std::string>> key_values) = 0;
 
+    /// @throws InvalidArgumentException in cluster mode if the keys belong to different hash slots
     virtual RequestMsetex Msetex(
         std::vector<std::pair<std::string, std::string>> key_values,
         MsetexOptions options

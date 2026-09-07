@@ -5,7 +5,6 @@
 
 #include <fmt/format.h>
 #include <boost/container_hash/hash.hpp>
-#include <boost/crc.hpp>
 
 #include <userver/concurrent/variable.hpp>
 #include <userver/logging/log.hpp>
@@ -93,13 +92,6 @@ DeadlineAdjustResult AdjustDeadline(const SentinelImpl::SentinelCommand& scomman
     }
 
     return DeadlineAdjustResult::kNotAdjusted;
-}
-
-size_t HashSlot(const std::string& key) {
-    size_t start = 0;
-    size_t len = 0;
-    GetRedisKey(key, &start, &len);
-    return std::for_each(key.data() + start, key.data() + start + len, boost::crc_optimal<16, 0x1021>())() & 0x3fff;
 }
 
 std::string ParseMovedShard(const std::string& err_string) {

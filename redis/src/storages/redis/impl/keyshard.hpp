@@ -11,6 +11,10 @@ namespace storages::redis::impl {
 
 void GetRedisKey(const std::string& key, size_t* key_start, size_t* key_len);
 
+/// Redis Cluster hash slot of the key: CRC16 of its hash tag modulo the slots count.
+/// Multi-key commands are only allowed to touch a single slot.
+size_t HashSlot(const std::string& key);
+
 class KeyShard {
 public:
     virtual ~KeyShard() = default;
