@@ -28,6 +28,7 @@ private:
     fs::blocking::FileDescriptor fd_;
 };
 
+/// Unowned fd sink for `@stdout` / `@stderr` (and tests).
 class UnownedFdSink final : public FdSink {
 public:
     explicit UnownedFdSink(int fd);

@@ -11,6 +11,8 @@
 #include <logging/impl/unix_socket_sink.hpp>
 #include <logging/tp_logger.hpp>
 
+#include <unistd.h>
+
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/impl/tag_writer.hpp>
 #include <userver/tracing/span.hpp>

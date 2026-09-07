@@ -2004,6 +2004,7 @@
   "core/src/logging/impl/sink_helper_test.cpp":"taxi/uservices/userver/core/src/logging/impl/sink_helper_test.cpp",
   "core/src/logging/impl/sink_helper_test.hpp":"taxi/uservices/userver/core/src/logging/impl/sink_helper_test.hpp",
   "core/src/logging/impl/stderr_sinks_benchmark.cpp":"taxi/uservices/userver/core/src/logging/impl/stderr_sinks_benchmark.cpp",
+  "core/src/logging/impl/synchronized_sink.hpp":"taxi/uservices/userver/core/src/logging/impl/synchronized_sink.hpp",
   "core/src/logging/impl/tcp_socket_sink.cpp":"taxi/uservices/userver/core/src/logging/impl/tcp_socket_sink.cpp",
   "core/src/logging/impl/tcp_socket_sink.hpp":"taxi/uservices/userver/core/src/logging/impl/tcp_socket_sink.hpp",
   "core/src/logging/impl/tcp_socket_sink_test.cpp":"taxi/uservices/userver/core/src/logging/impl/tcp_socket_sink_test.cpp",

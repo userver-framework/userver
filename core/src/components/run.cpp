@@ -2,8 +2,11 @@
 
 #include <unistd.h>
 
+#include <algorithm>
 #include <csignal>
 #include <cstring>
+#include <memory>
+#include <mutex>
 #include <variant>
 
 #include <fmt/format.h>
@@ -144,6 +147,31 @@ struct ConfigToManagerVisitor {
     }
 };
 
+logging::LoggerPtr MakeDefaultLogger(const ManagerConfig& manager_config) {
+    const auto logger_configs = logging::impl::ExtractLoggerConfigs(manager_config);
+
+    // NOLINTNEXTLINE(readability-qualified-auto)
+    const auto default_logger_config = std::ranges::find_if(logger_configs, [](const auto& logger_config) {
+        return logger_config.logger_name == "default";
+    });
+    if (default_logger_config == logger_configs.end()) {
+        return {};
+    }
+
+    std::shared_ptr<std::mutex> write_mutex;
+    if (default_logger_config->file_path != "@null") {
+        const auto& default_path = default_logger_config->file_path;
+        const bool has_shared_writer = std::ranges::any_of(logger_configs, [&](const auto& logger_config) {
+            return logger_config.logger_name != "default" && logger_config.file_path == default_path;
+        });
+        if (has_shared_writer) {
+            write_mutex = std::make_shared<std::mutex>();
+        }
+    }
+
+    return logging::impl::MakeTpLogger(*default_logger_config, std::move(write_mutex));
+}
+
 ManagerConfig ParseManagerConfigAndSetupLogging(
     LogScope& log_scope,
     const PathOrConfig& config,
@@ -168,10 +196,7 @@ ManagerConfig ParseManagerConfigAndSetupLogging(
     try {
         auto manager_config = std::visit(ConfigToManagerVisitor{config_vars_path, config_vars_override_path}, config);
 
-        const auto default_logger_config = logging::impl::ExtractDefaultLoggerConfig(manager_config);
-        if (default_logger_config) {
-            auto default_logger = logging::impl::MakeTpLogger(*default_logger_config);
-
+        if (auto default_logger = MakeDefaultLogger(manager_config)) {
             // This line enables basic logging. Any logging before would go to
             // MemLogger and be transferred to the logger in the cycle below.
             log_scope.SetLogger(default_logger);

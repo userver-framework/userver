@@ -2,18 +2,25 @@
 
 #include <algorithm>
 #include <exception>
+#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <utility>
 
 #include <boost/filesystem/operations.hpp>
 
+#include <logging/impl/fd_sink.hpp>
 #include <logging/impl/file_sink.hpp>
+#include <logging/impl/synchronized_sink.hpp>
 #include <logging/impl/tcp_socket_sink.hpp>
 #include <logging/impl/unix_socket_sink.hpp>
 #include <userver/logging/format.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/net/blocking/get_addr_info.hpp>
+#include <userver/utils/assert.hpp>
+#include <userver/yaml_config/map_to_array.hpp>
+
+#include <unistd.h>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,6 +30,7 @@ namespace {
 
 constexpr std::string_view kUnixSocketPrefix = "unix:";
 constexpr std::string_view kDefaultLoggerName = "default";
+constexpr std::string_view kNullPath = "@null";
 
 void LogAndThrow(std::string msg) {
     LOG_ERROR() << msg;
@@ -56,26 +64,41 @@ SinkPtr GetSinkFromFilename(const std::string& file_path) {
     }
 }
 
-SinkPtr MakeOptionalSink(const LoggerConfig& config) {
-    if (config.file_path == "@null") {
+SinkPtr MakeOptionalSink(const LoggerConfig& config, std::shared_ptr<std::mutex> write_mutex) {
+    if (config.file_path == kNullPath) {
         return nullptr;
-    } else if (config.file_path == "@stderr") {
-        return std::make_unique<logging::impl::UnownedFdSink>(STDERR_FILENO);
-    } else if (config.file_path == "@stdout") {
-        return std::make_unique<logging::impl::UnownedFdSink>(STDOUT_FILENO);
-    } else {
-        CreateLogDirectory(config.logger_name, config.file_path);
-        if (config.truncate_on_start) {
-            if (config.file_path.starts_with(kUnixSocketPrefix)) {
-                LogAndThrow(
-                    "truncate-on-start cannot be combined with unix socket path for logger '" + config.logger_name +
-                    "': "
-                );
-            }
-            RemoveOldFile(config.logger_name, config.file_path);
+    }
+
+    if (config.file_path == "@stderr") {
+        if (write_mutex) {
+            return MakeSynchronizedSink<UnownedFdSink>(std::move(write_mutex), STDERR_FILENO);
         }
+        return std::make_unique<UnownedFdSink>(STDERR_FILENO);
+    }
+    if (config.file_path == "@stdout") {
+        if (write_mutex) {
+            return MakeSynchronizedSink<UnownedFdSink>(std::move(write_mutex), STDOUT_FILENO);
+        }
+        return std::make_unique<UnownedFdSink>(STDOUT_FILENO);
+    }
+
+    CreateLogDirectory(config.logger_name, config.file_path);
+    if (config.truncate_on_start) {
+        if (config.file_path.starts_with(kUnixSocketPrefix)) {
+            LogAndThrow(
+                "truncate-on-start cannot be combined with unix socket path for logger '" + config.logger_name + "': "
+            );
+        }
+        RemoveOldFile(config.logger_name, config.file_path);
+    }
+
+    if (config.file_path.starts_with(kUnixSocketPrefix)) {
         return GetSinkFromFilename(config.file_path);
     }
+    if (write_mutex) {
+        return MakeSynchronizedSink<FileSink>(std::move(write_mutex), config.file_path);
+    }
+    return std::make_unique<FileSink>(config.file_path);
 }
 
 auto MakeTestsuiteSink(const TestsuiteCaptureConfig& config) {
@@ -85,12 +108,55 @@ auto MakeTestsuiteSink(const TestsuiteCaptureConfig& config) {
 
 }  // namespace
 
+SharedPathMutexes MakeSharedPathMutexes(const std::vector<LoggerConfig>& logger_configs) {
+    std::unordered_map<std::string, std::size_t> path_counts;
+    std::string default_logger_path;
+    for (const auto& logger_config : logger_configs) {
+        if (logger_config.logger_name == kDefaultLoggerName && default_logger_path.empty()) {
+            default_logger_path = logger_config.file_path;
+        }
+        if (logger_config.file_path != kNullPath) {
+            ++path_counts[logger_config.file_path];
+        }
+    }
+
+    SharedPathMutexes result;
+    for (const auto& [path, count] : path_counts) {
+        if (count <= 1) {
+            continue;
+        }
+        if (path == default_logger_path) {
+            auto* const default_tp_logger = dynamic_cast<TpLogger*>(&logging::GetDefaultLogger());
+            UINVARIANT(default_tp_logger, "default logger must be a TpLogger set up by components::Run");
+            UINVARIANT(
+                !default_tp_logger->GetSinks().empty(),
+                "default logger for a shared log path must already have a primary sink"
+            );
+            const auto* synchronized_sink = dynamic_cast<
+                const SynchronizedSinkBase*>(default_tp_logger->GetSinks().front().get());
+            UINVARIANT(
+                synchronized_sink,
+                "default logger for a shared log path must use SynchronizedSink (set up in components::Run)"
+            );
+            result.emplace(path, synchronized_sink->GetMutex());
+        } else {
+            result.emplace(path, std::make_shared<std::mutex>());
+        }
+    }
+
+    return result;
+}
+
 std::shared_ptr<TpLogger> MakeTpLogger(const LoggerConfig& config) {
+    return MakeTpLogger(config, std::shared_ptr<std::mutex>{});
+}
+
+std::shared_ptr<TpLogger> MakeTpLogger(const LoggerConfig& config, std::shared_ptr<std::mutex> write_mutex) {
     auto logger = std::make_shared<TpLogger>(config.format, config.logger_name);
     logger->SetLevel(config.level);
     logger->SetFlushOn(config.flush_level);
 
-    if (auto basic_sink = MakeOptionalSink(config)) {
+    if (auto basic_sink = MakeOptionalSink(config, std::move(write_mutex))) {
         logger->AddSink(std::move(basic_sink));
     }
 
@@ -107,18 +173,25 @@ std::shared_ptr<TpLogger> MakeTpLogger(const LoggerConfig& config) {
     return logger;
 }
 
-std::shared_ptr<TpLogger> GetDefaultLoggerOrMakeTpLogger(const LoggerConfig& config) {
-    if (config.logger_name == kDefaultLoggerName) {
-        auto* const default_tp_logger = dynamic_cast<logging::impl::TpLogger*>(&logging::GetDefaultLogger());
-        UINVARIANT(
-            default_tp_logger,
-            "components::Run should set up the default logger using "
-            "component_manager.components.logging.loggers.default section"
-        );
-        // Aliasing constructor, the resulting shared_ptr does not own the logger.
-        return std::shared_ptr<TpLogger>(std::shared_ptr<TpLogger>(), default_tp_logger);
+std::shared_ptr<TpLogger> MakeTpLogger(const LoggerConfig& config, const SharedPathMutexes& shared_path_mutexes) {
+    std::shared_ptr<std::mutex> write_mutex;
+    if (const auto mutex_it = shared_path_mutexes.find(config.file_path); mutex_it != shared_path_mutexes.end()) {
+        write_mutex = mutex_it->second;
     }
-    return MakeTpLogger(config);
+    return MakeTpLogger(config, std::move(write_mutex));
+}
+
+std::shared_ptr<TpLogger> GetNonOwningDefaultLogger(const LoggerConfig& config) {
+    UASSERT(config.logger_name == kDefaultLoggerName);
+
+    auto* const default_tp_logger = dynamic_cast<TpLogger*>(&logging::GetDefaultLogger());
+    UINVARIANT(
+        default_tp_logger,
+        "components::Run should set up the default logger using "
+        "component_manager.components.logging.loggers.default section"
+    );
+    // Aliasing constructor, the resulting shared_ptr does not own the logger.
+    return std::shared_ptr<TpLogger>(std::shared_ptr<TpLogger>(), default_tp_logger);
 }
 
 TcpSocketSink* GetTcpSocketSink(TpLogger& logger) {
@@ -130,31 +203,22 @@ TcpSocketSink* GetTcpSocketSink(TpLogger& logger) {
     return nullptr;
 }
 
-std::optional<LoggerConfig> ExtractDefaultLoggerConfig(const components::ManagerConfig& config) {
-    // Note: this is a slight violation of separation of concerns. The component
-    // system itself should not specifically care about 'logging' component, but
-    // in this case it does. This is required to seamlessly enable logs coming
-    // from the engine, from the component system, and from the core components.
-
+std::vector<LoggerConfig> ExtractLoggerConfigs(const components::ManagerConfig& config) {
     // NOLINTNEXTLINE(readability-qualified-auto)
-    const auto iter = std::ranges::find_if(config.components, [](const auto& config) {
-        return config.Name() == "logging";
+    const auto logging_config = std::ranges::find_if(config.components, [](const auto& component_config) {
+        return component_config.Name() == "logging";
     });
-    if (iter == config.components.end()) {
+    if (logging_config == config.components.end()) {
         throw NoLoggerComponent(
             "No component config found for 'logging', which is a required "
             "component"
         );
     }
 
-    const auto logger_config_yaml = (*iter)["loggers"][kDefaultLoggerName];
-    if (logger_config_yaml.IsMissing()) {
+    if ((*logging_config)["loggers"].IsMissing()) {
         return {};
     }
-    auto logger_config = logger_config_yaml.As<LoggerConfig>();
-
-    logger_config.SetName(std::string{kDefaultLoggerName});
-    return logger_config;
+    return yaml_config::ParseMapToArray<LoggerConfig>((*logging_config)["loggers"]);
 }
 
 }  // namespace logging::impl
