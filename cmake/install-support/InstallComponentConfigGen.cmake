@@ -172,6 +172,7 @@ endfunction()
 #   [find_package(userver REQUIRED COMPONENTS ...) — from link-graph]
 #   <body>
 #   _userver_include_component_targets(<comp>)
+#   set(userver_<comp>_FOUND TRUE)
 #
 # If the body fragment already contains _userver_include_component_targets
 # (e.g. universal, which must load targets mid-body before calling
@@ -230,7 +231,9 @@ function(_userver_generate_and_install_configs)
             set(_ts_include "")
         endif()
 
-        set(_content "include_guard(GLOBAL)\n\n${_find_pkg}${_body}${_ts_include}${_trailer}")
+        set(_content
+            "include_guard(GLOBAL)\n\n${_find_pkg}${_body}${_ts_include}${_trailer}\nset(userver_${_comp}_FOUND TRUE)\n"
+        )
 
         set(_generated "${_gen_dir}/userver-${_comp}-config.cmake")
         file(WRITE "${_generated}" "${_content}")
