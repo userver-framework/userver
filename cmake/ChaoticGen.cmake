@@ -53,6 +53,20 @@ endfunction()
 
 _userver_prepare_chaotic()
 
+macro(_userver_require_chaotic_openapi CALLER)
+    if(NOT TARGET userver::chaotic-openapi)
+        find_package(userver QUIET COMPONENTS chaotic-openapi)
+    endif()
+    if(NOT TARGET userver::chaotic-openapi)
+        message(
+            FATAL_ERROR
+                "${CALLER} requires the 'chaotic-openapi' userver component, " "which is not currently available.\n"
+                "  * If you are using installed packages: install libuserver-chaotic-openapi-dev.\n"
+                "  * Add 'chaotic-openapi' to find_package(userver COMPONENTS ...) in your CMakeLists.txt."
+        )
+    endif()
+endmacro()
+
 # Generates ${TARGET} cmake target for C++ types, parsers, serializers from JSONSchema file(s).
 #
 # @arg TARGET smth
@@ -200,6 +214,8 @@ endfunction()
 # @multiparam SCHEMAS - OpenAPI/Swagger YAML source files
 # @multiparam ARGS - extra arguments passed to chaotic-openapi-gen
 function(userver_target_generate_openapi_client TARGET)
+    _userver_require_chaotic_openapi("userver_target_generate_openapi_client")
+
     set(OPTIONS)
     set(ONE_VALUE_ARGS OUTPUT_DIR NAME FORMAT)
     set(MULTI_VALUE_ARGS SCHEMAS ARGS)
@@ -300,6 +316,8 @@ endfunction()
 # @multiparam SCHEMAS - OpenAPI YAML source files
 # @multiparam ARGS - extra arguments passed to chaotic-openapi-gen
 function(userver_target_generate_openapi_handlers TARGET)
+    _userver_require_chaotic_openapi("userver_target_generate_openapi_handlers")
+
     set(OPTIONS)
     set(ONE_VALUE_ARGS NAME OUTPUT_DIR SRC_DIR FORMAT)
     set(MULTI_VALUE_ARGS SCHEMAS ARGS)

@@ -65,6 +65,18 @@ function(userver_module MODULE)
         message(FATAL_ERROR "Invalid arguments: ${ARG_UNPARSED_ARGUMENTS}")
     endif()
 
+    # Auto-include this module's testsuite DB fragment, if one exists, so its DB
+    # is registered (names / pip module / FEATURE_VAR / TARGET) before the dbtest
+    # and functional-test consumers run. Keyed on module name (1:1 with the
+    # fragment filename); guarded by EXISTS because non-DB modules and downstream
+    # userver_module() users have no fragment. The fragment's include_guard(GLOBAL)
+    # makes repeat inclusion a no-op.
+    set(_userver_ts_db_fragment "${USERVER_ROOT_DIR}/cmake/testsuite/UserverTestsuiteDb-${MODULE}.cmake")
+    if(EXISTS "${_userver_ts_db_fragment}")
+        include("${_userver_ts_db_fragment}")
+    endif()
+    unset(_userver_ts_db_fragment)
+
     # 1. userver-${MODULE}
     file(GLOB_RECURSE SOURCES "${ARG_SOURCE_DIR}/src/*.cpp" "${ARG_SOURCE_DIR}/src/*.hpp"
          "${ARG_SOURCE_DIR}/include/*.hpp"
@@ -121,19 +133,11 @@ function(userver_module MODULE)
         )
         _userver_install_targets(COMPONENT ${INSTALL_COMPONENT} TARGETS userver-${MODULE})
         if(NOT ARG_INSTALL_COMPONENT)
-            # Main module of the component.
-            set(install_config_file "${USERVER_ROOT_DIR}/cmake/install/userver-${INSTALL_COMPONENT}-config.cmake")
-            if(NOT EXISTS ${install_config_file})
-                message(
-                    FATAL_ERROR "Can not install ${INSTALL_COMPONENT}, no installation config in ${install_config_file}"
-                )
-            endif()
-
-            _userver_directory_install(
-                COMPONENT ${INSTALL_COMPONENT}
-                FILES "${install_config_file}"
-                DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
-            )
+            # Main module of the component: register the config template for
+            # generation.  The actual configure_file() + install(FILES) happen
+            # later in _userver_generate_and_install_configs(), called once at
+            # the top level after the full link-graph is available.
+            _userver_install_component_config(${INSTALL_COMPONENT})
 
             _userver_install_component(COMPONENT ${INSTALL_COMPONENT} DEPENDS ${ARG_COMPONENT_DEPENDS})
         endif()

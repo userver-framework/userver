@@ -3,7 +3,7 @@ project(userver-samples-chaotic-openapi_service CXX)
 
 find_package(
     userver
-    COMPONENTS core chaotic
+    COMPONENTS core chaotic chaotic-openapi
     REQUIRED
 )
 

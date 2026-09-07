@@ -333,10 +333,12 @@ _userver_directory_install(
 )
 _userver_directory_install(
     COMPONENT core
-    FILES "${USERVER_ROOT_DIR}/cmake/UserverTestsuite.cmake" "${USERVER_ROOT_DIR}/cmake/TargetIteration.cmake"
-          "${USERVER_ROOT_DIR}/cmake/install/userver-core-config.cmake"
+    FILES "${USERVER_ROOT_DIR}/cmake/UserverTestsuite.cmake"
+          "${USERVER_ROOT_DIR}/cmake/UserverTestsuiteDbRegistry.cmake"
+          "${USERVER_ROOT_DIR}/cmake/UserverTestsuiteVenv.cmake" "${USERVER_ROOT_DIR}/cmake/TargetIteration.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
+_userver_install_component_config(core)
 _userver_directory_install(
     COMPONENT core
     FILES "${USERVER_ROOT_DIR}/cmake/modules/Findc-ares.cmake" "${USERVER_ROOT_DIR}/cmake/modules/Findlibnghttp2.cmake"

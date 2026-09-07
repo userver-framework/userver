@@ -1,8 +1,11 @@
 #include <userver/utils/string_literal.hpp>
 
 #include <concepts>
+#include <iterator>
+#include <ranges>
 #include <type_traits>
 
+#include <fmt/ranges.h>
 #include <gtest/gtest.h>
 
 USERVER_NAMESPACE_BEGIN
@@ -63,6 +66,16 @@ TEST(StringLiteral, Swap) {
 
     EXPECT_EQ(v1, kLongString);
     EXPECT_EQ(v2, kShortString);
+}
+
+TEST(StringLiteral, FormatRange) {
+    constexpr utils::StringLiteral kValues[] = {"first", "second"};
+    const auto values =
+        std::views::iota(std::size_t{0}, std::size(kValues)) |
+        std::views::transform([&](std::size_t index) { return kValues[index]; });
+
+    EXPECT_EQ(fmt::format("{}", kValues[0]), "first");
+    EXPECT_EQ(fmt::format("{}", fmt::join(values, ", ")), "first, second");
 }
 
 template <typename T, typename U>

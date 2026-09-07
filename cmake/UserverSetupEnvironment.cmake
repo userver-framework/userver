@@ -27,6 +27,7 @@ function(_userver_setup_environment_impl)
     )
 
     get_property(USERVER_CMAKE_DIR GLOBAL PROPERTY userver_cmake_dir)
+    include("${USERVER_CMAKE_DIR}/ModuleHelpers.cmake")
 
     message(STATUS "C compiler: ${CMAKE_C_COMPILER}")
     message(STATUS "C++ compiler: ${CMAKE_CXX_COMPILER}")
@@ -151,7 +152,8 @@ function(_userver_setup_environment_impl)
     endif()
 
     # Build type specific
-    if(CMAKE_BUILD_TYPE MATCHES "^.*Rel.*$") # same as in install/Config.cmake
+    _userver_is_release_build(_userver_setup_is_release)
+    if(_userver_setup_is_release)
         message(STATUS "Release build: CMAKE_BUILD_TYPE == '${CMAKE_BUILD_TYPE}'")
 
         add_compile_definitions(NDEBUG)

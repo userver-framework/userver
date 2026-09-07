@@ -2,6 +2,14 @@ FROM ghcr.io/userver-framework/ubuntu-22.04-userver-base:latest
 
 COPY scripts/clickhouse/ubuntu-install-clickhouse.sh /userver_tmp/
 
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl \
+    && mkdir -p /usr/local/share/ca-certificates/Yandex \
+    && curl -fsSL https://crls.yandex.net/YandexInternalRootCA.crt \
+       -o /usr/local/share/ca-certificates/Yandex/YandexInternalRootCA.crt \
+    && update-ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # Apply the following:
 # * fix for porto layers
 # * set up ramdisk symlink for working tmpfs directory in tests

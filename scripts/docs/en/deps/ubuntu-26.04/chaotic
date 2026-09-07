@@ -1,0 +1,5 @@
+python3-jinja2
+python3-pydantic
+python3-yaml
+python3-transliterate
+clang-format

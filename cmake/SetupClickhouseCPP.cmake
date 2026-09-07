@@ -22,6 +22,18 @@ if(NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
 endif()
 
 include(DownloadUsingCPM)
+
+if(USERVER_INSTALL)
+    message(
+        FATAL_ERROR
+            "userver-clickhouse cannot be built with USERVER_INSTALL=ON: clickhouse-cpp "
+            "was not found as a system package and would be downloaded via CPM, which "
+            "cannot be added to a CMake install export set.\n"
+            "Install a system clickhouse-cpp (so find_package(clickhouse-cpp) succeeds), "
+            "or disable this component for install builds: -DUSERVER_FEATURE_CLICKHOUSE=OFF."
+    )
+endif()
+
 include(SetupAbseil)
 
 cpmaddpackage(

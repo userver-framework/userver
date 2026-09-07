@@ -31,3 +31,9 @@ universal/include/userver/version.hpp
 /debian/
 /.opencode/
 /.claude/
+/.agents/
+/scripts/build-and-upload-ppa/build-and-upload-ppa
+/scripts/build-and-upload-ppa/libpy3build-and-upload-ppa.global.a
+/scripts/build-and-upload-ppa/pyrightconfig.json
+/scripts/build-and-upload-ppa/tests/scripts-build-and-upload-ppa-tests
+/scripts/build-and-upload-ppa/tests/test-results
