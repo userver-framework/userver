@@ -10,63 +10,369 @@ have our in-house feature requests, those could be also found in Roadmap.
 Important or interesting features go to the changelog as they get implemented.
 Note that there's also a @ref scripts/docs/en/userver/security_changelog.md.
 
-Changelog news also go to the
-[userver framework news channel](https://t.me/userver_news).
+Changelog news also go to the [userver framework news channel](https://t.me/userver_news).
 
 
 ## Roadmap
 
 * 👨‍💻 gRPC simplification and functionality improvement.
 * gRPC: @ref scripts/docs/en/userver/deadline_propagation.md "Deadline propagation" support for absolute
-  deadline metadata (`x-request-deadline`) in addition to duration deadlines (`grpc-timeout`); see @ref
-  scripts/docs/en/userver/grpc/grpc.md.
+  deadline metadata (`x-request-deadline`) in addition to duration deadlines (`grpc-timeout`); see
+  @ref scripts/docs/en/userver/grpc/grpc.md.
 * Keep improving the @ref scripts/docs/en/userver/chaotic.md
 
 
 ## Changelog
+
+### Release v3.2
+
+Cool features:
+
+* Improved async logging performance under load in @ref components::Logging: the writer task is no longer woken on every
+  log line. Notifications between periodic flushes are batched, which cuts most of the `futex_wake` syscalls. For
+  example, grpc load-testing service, with server logs enabled, `fs-task-processor` CPU usage dropped from ~5% to ~0.5%.
+* Added recommended @ref utils::ResourceScopeStorage overloads for @ref dynamic_config::Source::UpdateAndListen and
+  @ref utils::statistics::Storage::RegisterWriter — safer than keeping subscription handles as class fields. Pass
+  `context.Scopes()` (or @ref components::GetResourceScopes); manual lifetime via `RegisterWriter` `Entry` and
+  `RegisterWriterScope` is deprecated.
+* Extended testsuite @ref pytest_userver.metrics.MetricsSnapshot with `sliced`, `common_prefix`/`common_labels`, and
+  `from_layered_dict` for compact metric assertions (see @ref scripts/docs/en/userver/metrics_migration.md);
+  @ref pytest_userver.client.ClientMonitor.metrics also accepts `sliced`.
+* Named PostgreSQL queries no longer log full statement text (see @ref storages::Query).
+* Added @ref storages::postgres::PoolerMode `pooler-mode` option to PostgreSQL `ConnectionSettings`.
+* @ref server::handlers::Jemalloc now supports binary-free heap profiling via `jeprof`.
+* Added @ref scripts/docs/en/userver/libraries/sqs.md.
+* @ref formats::json::RawString can pass JSON without creating a DOM representation.
+
+
+Breaking Change:
+
+* Added @ref server::request::RequestContext as a mandatory third `Handler` attribute in
+  @ref scripts/docs/en/userver/chaotic_handlers.md "chaotic-openapi". Many thanks to [Lemit](https://github.com/lemito)
+  for the PR!
+  * Migration: Update all handlers to include `RequestContext` as the third argument when calling the `Handler`
+    template. The sample service in `samples/chaotic_openapi_service` provides a reference implementation showing the
+    correct usage.
+
+* Renamed `CloseAndWaitDebug` to @ref concurrent::BackgroundTaskStorage::WaitAndDisposeSlow to mark that the method is
+  ready for production, but creating a simple container like `std::vector<Task>` in handlers is much more performant
+  than creating and destroying an instance of `BackgroundTaskStorage` in a handler.
+  * Migration: Update your code to use the new method name `WaitAndDisposeSlow` instead of `CloseAndWaitDebug`. The
+    method signature and behavior remain unchanged.
+
+* Removed the `GetThreadCount()` API from UTEST macros and tests. Use @ref engine::current_task::GetWorkerCount()
+  instead.
+  * Migration: Replace all calls to `GetThreadCount()` with `engine::current_task::GetWorkerCount()`.
+
+* Removed legacy `dynamic_config::Snapshot::Get` method, use `operator[]` instead.
+  * Migration: Replace all calls to `dynamic_config::Snapshot::Get` with `operator[]`.
+
+* @ref engine::SingleConsumerEvent::WaitUntil now returns @ref engine::FutureStatus instead of `bool`, allowing to
+  distinguish failure reason precisely.
+  * Migration: Update code that calls `SingleConsumerEvent::WaitUntil` to check the return value. The method now returns
+    `engine::FutureStatus` which can be `kReady`, `kCancelled`, or `kTimeout`.
+
+* Monotonic counter metrics in `postgresql`, `mysql`, `clickhouse`, `kafka`, `rabbitmq`, `redis`, core `dist_lock`,
+  `congestion_control` and the `websocket` handler are now reported as `RATE` instead of `GAUGE`
+  (see @ref scripts/docs/en/userver/metrics.md); a few metrics keep their legacy `GAUGE` value and additionally
+  report a new `.v2` `RATE` metric until dashboards/alerts are migrated.
+  * Migration: If your dashboards or alerts rely on the legacy GAUGE values, update them to use the new `.v2` RATE
+    metrics or adjust the query logic accordingly.
+
+* New @ref storages::postgres::DistLockComponentBase constructor that enables automatic distlock startup and shutdown.
+  * Migration: Remove `AutostartDistlock()` and `StopDistlock()` calls from derived class constructors. If manual
+    control is still needed, pass `DisableAutostartAtBase{}` to the `DistLockComponentBase` constructor.
+
+* Dropped support for libpq versions prior to `14.0`.
+
+* Removed legacy `monitor_client.get_metric` and `monitor_client.get_metrics` methods from testsuite.
+  * Migration: Please follow @ref scripts/docs/en/userver/metrics_migration.md for migration steps.
+
+* Changed @ref ydb::TopicProducer `Write` behavior from potentially blocking to immediately failing when the buffer is
+  overloaded.
+  * Migration: Update your code to handle `EWriteStatus::Timeout` when writing to YDB `TopicProducer`. Ensure proper
+    error handling for timeout conditions in your application logic. Do not retry this error: buffering data beyond the
+    configured limit while the producer is overloaded will lead to OOM.
+
+Features:
+
+* chaotic
+  * Added HTTP digest authentication to chaotic clients and handlers (see
+    @ref scripts/docs/en/userver/chaotic_handlers.md and @ref scripts/docs/en/userver/chaotic_clients.md).
+  * Added support for response headers in HTTP handlers generated by @ref userver::chaotic::openapi.
+  * Fixed compilation error when using `oneOf` with discriminator and `x-usrv-cpp-indirect: true` on variant references
+    in @ref userver::chaotic. Many thanks to [Tnirpps](https://github.com/Tnirpps) for the PR!
+
+* core & universal
+  * Allowed to mark any @ref engine::TaskInheritedVariable as @ref engine::TaskInheritedVariablePriority::kBackground,
+    which means that it spills even into @ref utils::AsyncBackground tasks. Previously, only baggage inherited variable
+    had this quality. Added @ref engine::TaskLocalVariable::GetOrEmplace, which allows to perform essentially
+    non-default initialization of variables, and more.
+  * Changed @ref engine::WaitAnyContext::Wait, `WaitUntil` and `WaitFor` to return
+    `utils::expected<std::uint64_t, engine::WaitAnyError>` (@ref engine::WaitAnyError) instead of
+    `std::optional<std::uint64_t>`, distinguishing cancellation, timeout and empty-context cases.
+  * Added @ref formats::json::ToPythonCompatibleStableString for stable JSON serialization compatible with Python
+    `json.dumps`.
+  * Added support for @ref engine::SharedTask as an @ref engine::Awaitable, making it usable with
+    @ref engine::MakeWaitAny and related utilities.
+  * Added `Reserve` to @ref formats::json::ValueBuilder
+  * Added detection of the best default for `USERVER_DISABLE_PHDR_CACHE`. The option is now set to ON when sanitizers
+    are enabled or when GCC ≥ 12 (or Clang ≥ 15) and the runtime unwinder supports `_dl_find_object`.
+  * Allowed streaming of static files via @ref server::handlers::HttpHandlerStatic to reduce memory consumption when
+    serving large files. Many thanks to [Alexey Mednyy](https://github.com/swex) for the PR!
+  * Added @ref clients::http::WebSocketResponse::MakeWebSocketConnectionWithConfig
+    for WebSocket client connections, allowing customization of
+    parameters like `max_remote_payload`. Many thanks to [seriouscoder43](https://github.com/seriouscoder43) for the PR!
+  * Added @ref components::State::GetUnhealthyComponents to allow applying a custom service-wide fallback logic if some
+    specific subset of components is failing.
+  * Fixed idle HTTP/2 connections to be closed on `keepalive_timeout`. Many thanks to [SSE4](https://github.com/SSE4)
+    for the PR!
+  * Fixed WebSocket client to use the peer address for remote connection detection. Many thanks to
+    [seriouscoder43](https://github.com/seriouscoder43) for the PR!
+  * Converted `SystemStatisticsCollector` to use PIMPL to avoid internal header inclusion. Many thanks to
+    [seriouscoder43](https://github.com/seriouscoder43) for the PR!
+  * Validated address size in @ref userver::universal::CidrNetworkFromInetNetwork. Many thanks to
+    [netliomax25-code](https://github.com/netliomax25-code) for the PR!
+  * Added adaptive AIMD (Additive Increase Multiplicative Decrease) limiter in @ref userver::utils::AimdLimiter.
+  * Added unchecked access operators @ref utils::expected::operator* and @ref utils::expected::operator-> for direct
+    access to the contained value, and implemented comparison operators including `operator==`.
+  * Fixed initialization of default values in @ref userver::utils::FindOrDefault. Many thanks to
+    [Artyom Kolpakov](https://github.com/ddvamp) for the PR!
+  * Fixed incorrect initializer-list constructor of @ref userver::utils::AtomicFlags. Many thanks to
+    [Artyom Kolpakov](https://github.com/ddvamp) for the PR!
+  * Made `enumerate` function consistent with respect to `const` in @ref userver::utils::enumerate. Many thanks to
+    [Artyom Kolpakov](https://github.com/ddvamp) for the PR!
+  * Throw if `TimestampToString` produced a year that is not in `[1583, 9999]` range. Many thanks to
+    [netliomax25-code](https://github.com/netliomax25-code) for the initial fix.
+  * Different loggers that write to the same file now do not "tear" logs.
+
+* dist_lock
+  * Added @ref dist_lock::DistLockStrategyBase::Prolong to distributed lock strategy for cheaper TTL refresh.
+
+* grpc
+  * Added `use-constant-dynamic-configs` option to @ref ugrpc::client::ClientFactoryComponent, allowing gRPC clients
+    that do not block on @ref components::DynamicConfig startup —useful e.g. for a client that itself delivers dynamic
+    config updates to the service, avoiding a bootstrap cycle.
+  * Added @ref ugrpc::ToStringView for `grpc::StatusCode` next to `ToString`.
+  * @ref ugrpc::client::SpecialCaseCompletionType::kNetworkError is now retried by default. This fixes (or at least
+    masks) cases where flaky infrastructure for a specific host sends unparseable responses.
+
+* http2
+  * Added support for handling HTTP/2 GOAWAY frames, including proper handling of follow-up PING frames after a client
+    sends a GOAWAY frame.
+  * Added validation of client HTTP/2 stream IDs to prevent protocol violations. If a client sends a stream with an ID
+    less than or equal to the highest used ID, the server responds with a GOAWAY frame.
+  * Added validation to ensure HTTP/2 request URLs are fully parsed before sending headers. This prevents sending
+    incomplete or malformed requests when headers are shuffled.
+
+* kafka
+  * Fixed a Use-After-Free in Kafka Producer API during task cancellation. Many thanks to
+    [Dmitry Isaikin](https://github.com/disaykin) for the PR!
+
+* mongo
+  * Added @ref storages::mongo::operations::Bulk write path for MongoDB storage driver, allowing a single bulk write
+    instead of multiple ones.
+  * Added database-level @ref storages::mongo::Pool::Aggregate API for MongoDB (e.g. pipelines starting with
+    `$documents`).
+  * Added `autostart` configuration option for @ref storages::mongo::DistLockComponentBase distributed locks.
+  * Preserved max replication lag setting for MongoDB read operations.
+  * Added @ref storages::mongo::options::MaxServerTime for update, delete, insert, and `ReplaceOne` operations (see
+    @ref scripts/docs/en/userver/mongodb.md).
+  * Added runtime query override support in @ref cache::BaseMongoCache MongoDB caches.
+  * Added MongoDB operator constants and replaced raw literals with constant references for improved code clarity and
+    consistency.
+  * Added aggregation pipeline support to @ref storages::mongo::Collection::UpdateOne and `UpdateMany` in MongoDB
+    storages.
+  * Split acquire and prolong operations in @ref mongo::DistLockStrategy, adding a new
+    @ref mongo::DistLockStrategy::Prolong method.
+  * Avoided deprecated `bson_append_array_begin` in libbson 2.3.0+ by using `bson_append_array_unsafe_begin` instead.
+    Many thanks to [Georgij Tsarin](https://github.com/crystarm) for the PR!
+
+* ODBC
+  * @ref scripts/docs/en/userver/odbc.md: pass query parameters separately from SQL text, configure operation timeouts
+    via command control, reload DSNs through secdist, and rely on documented schemas and metrics. Many thanks to
+    [Andrey Balabekyan](https://github.com/V0S7ER) for the PR!
+
+* PostgreSQL
+  * Enabled connection rate limiting for PostgreSQL by default.
+  * PostgreSQL now always pipelines when possible, reducing round-trips.
+  * Added accounting for topology connections in PostgreSQL connection limit calculation
+    (see @ref scripts/docs/en/userver/pg/connlimit_mode_auto.md).
+  * Enabled connection pipeline mode unconditionally for PostgreSQL connections.
+  * Updated PostgreSQL connection settings: enabled `pg-connecting-rate-limit` for all services and increased
+    `recent_errors_threshold` default to 30.
+  * Fixed `POSTGRES_CONNECTION_POOL_SETTINGS` resetting static `connecting_limit` and `connecting_interval_ms` when
+    those fields are omitted from the dynamic config.
+  * Removed experimental dynamic config `POSTGRES_DEADLINE_PROPAGATION_VERSION`. Use
+    @ref USERVER_DEADLINE_PROPAGATION_ENABLED instead.
+
+* prometheus
+  * Fixed escaping of backslash and newline characters in Prometheus label values. Many thanks to
+    [netliomax25-code](https://github.com/netliomax25-code) for the PR!
+
+* protobuf
+  * Added @ref protobuf::json::ParseOptions::nonportable_raw_any and
+    @ref protobuf::json::PrintOptions::nonportable_raw_any that allow to pack arbitrary unknown
+    `protobuf::Any` into JSON without looking up the payload descriptor in the descriptor pool.
+
+* redis
+  * Fixed Redis command timeout handling: command callbacks are now released on timeout, preventing stale topology
+    update contexts and ensuring proper failover detection.
+  * Fixed dynamic Redis linkage issue.
+  * Added @ref storages::redis::Client::Getdel, which atomically gets a key value and deletes the key.
+  * Added Redis health check configuration options via @ref storages::redis::HealthCheckParams: `required`,
+    `max_failed_shards`, and `max_disconnect_time`.
+  * Guarded against empty array replies in the Redis `OnPsubscribeReply` handler to prevent out-of-bounds access. Many
+    thanks to [netliomax25-code](https://github.com/netliomax25-code) for the PR!
+  * Added a check to ensure the Redis GEORADIUS/GEOSEARCH reply member is a string before attempting to read it. Many
+    thanks to [netliomax25-code](https://github.com/netliomax25-code) for the PR!
+  * Switched to `utils::FromString<double>` for parsing floating-point Redis reply values to avoid locale-dependent
+    issues and reject trailing junk. Many thanks to [netliomax25-code](https://github.com/netliomax25-code) for the PR!
+  * Removed experimental dynamic config `REDIS_DEADLINE_PROPAGATION_VERSION`. Use
+    @ref USERVER_DEADLINE_PROPAGATION_ENABLED instead.
+  * Added @ref storages::redis::Client::Msetex for atomic multi-set with TTL.
+
+* rocks
+  * Added @ref storages::rocks::Client RocksDB backend with @ref storages::rocks::Map support, transactions, snapshots,
+    and streaming cursors.
+  * Added @ref storages::rocks::Client::CreateSnapshot for RocksDB checkpoints and point-in-time recovery. Many thanks
+    to [Kirill](https://github.com/Shuba-Buba) for the PR!
+
+* s3api
+  * Added @ref s3api::SignatureV4 support (see @ref scripts/docs/en/userver/libraries/s3api.md).
+
+* testing
+  * Added automatic ctest `RESOURCE_LOCK` assignment for test targets, enabling parallel test execution without
+    database races.
+  * Extended testsuite @ref pytest_userver.metrics.MetricsSnapshot with `sliced`, `common_prefix`/`common_labels`, and
+    `from_layered_dict` for compact metric assertions (see @ref scripts/docs/en/userver/metrics_migration.md);
+    @ref pytest_userver.client.ClientMonitor.metrics also accepts `sliced`.
+  * Fixed YDB test startup scripts to handle database creation and added a timeout for YDB startup. Many thanks to
+    [Lemit](https://github.com/lemito) for the PR!
+
+* websocket
+  * Applied control frame length limit to ping and pong frames. Many thanks to
+    [netliomax25-code](https://github.com/netliomax25-code) for the PR!
+  * Fixed WebSocket handling via @ref engine::io::PrefixedRw for bytes buffered by libcurl after the HTTP upgrade.
+
+* YDB
+  * Added support for source builds of the ydb-cpp-sdk (see @ref scripts/docs/en/userver/build/options.md). Many thanks
+    to [Ermoshkin Artem](https://github.com/Shfdis) for the PR!
+  * Extended @ref ydb::CoordinationSession::CreateSemaphore and @ref ydb::CoordinationSession::DeleteSemaphore with
+    metadata and force deletion. Many thanks to [Ilya Repin](https://github.com/Ilya-Repin) for the PR!
+  * Use YDB C++ SDK Debian packages on Ubuntu 24.04 (see @ref scripts/docs/en/userver/build/options.md).
+  * Added a static configuration option to defer Query API session creation after a get-session timeout (see
+    @ref scripts/docs/en/userver/tutorial/ydb_service.md).
+  * Added @ref ydb::TopicSimpleWriteSession, a simple write session for writing messages to YDB topics without handling
+    acknowledgements (see @ref scripts/docs/en/userver/tutorial/ydb_topic_writer_service.md).
+  * Added @ref scripts/docs/en/userver/tutorial/ydb_service.md with sample code, tests, and documentation.
+  * Fixed implementation of using installed instance of ydb-cpp-sdk for @ref userver::storages::ydb::Cluster. Many
+    thanks to [Vasily Sviridov](https://github.com/vasily-sviridov) for the PR!
+
+Optimizations:
+
+* Optimized HTTP response body handling by allowing direct use of `std::shared_ptr<const std::string>` instead of
+  copying data, improving performance by up to 32% in RPS.
+* Optimized logging to use bulk writes via `struct iovec` arrays, achieving up to ~10× sink throughput improvement
+  compared to single-message writes.
+* Optimized HTTP request handling and streaming by improving response header and body management, leading to better
+  performance (e.g., increased RPS from 111382 to 120256).
+* Reduced `ResponseBase` size from 160 bytes to 128 bytes by removing atomic operations and `StripedCounter`
+  operations on hot path of request.
+* Added minimal middleware pipeline with only exceptions handling, improved handler logging efficiency by moving
+  logging to lambda, and tuned benchmark service resulting in up to 64.9% performance improvement on pipelined
+  benchmarks.
+* Increased default flush queue size from 32 to 128 to improve CPU usage and maintain stable latencies when processing
+  log batches.
+* Limited logs batch size to 32 by default. This avoids latency spikes when the logger accumulates thousands of log
+  records, then starts writing them all at once, consuming 100% of 1 vCPU for hundreds of milliseconds. This behavior
+  can be controlled using the new `flush_queue_size` option of @ref components::Logging.
+* Optimized @ref concurrent::LazyValue with @ref engine::MultiConsumerEvent internally.
+* Lowered ALPN log level to debug as it's called frequently (every handshake). Many thanks to
+  [SSE4](https://github.com/SSE4) for the PR!
+* Optimized PostgreSQL distlock prolongation via @ref storages::postgres::DistLockStrategy::Prolong, reducing database
+  round trips.
+* Reused string buffer in `ProtoMessageVisitor` to reduce allocations and improve performance.
+* Refactored Redis parsing to avoid copying GeoPoint additional information. Many thanks to
+  [Mikhail Sychev](https://github.com/mishasychev) for the PR!
+* `task-processor-queue: work-stealing-task-queue` was optimized. Latency is now 15-20% smaller and
+  TaskProcessor::ProcessTasks is 3% smaller on flamegraphs.
+* Removed the `POSTGRES_OMIT_DESCRIBE_IN_EXECUTE` experiment and turned it on. This gives +1% mean RPS, ~+2% best RPS
+  for `samples/benchmark_service/bench.sh async-db DATABASE_MAX_CONN=64` and saves ut to 50% of network bandwidth.
+* Parse typed JSON in a single RapidJSON SAX pass. 8%-18% speedup in JSON SAX parsing
+
+Build:
+* Fixed typo in service_template config. Many thanks to [Desfirit](https://github.com/Desfirit) for the PR!
+* Added support for building without Boost in the ubuntu-minimal CI workflow. Many thanks to
+  [Vasiliy Kulikov](https://github.com/segoon) for the PR!
+* Added `typing-extensions >= 4.4.0` requirement to the testsuite. Many thanks to
+  [Georgij Tsarin](https://github.com/crystarm) for the PR!
+* Added missing build dependencies for Debian 13 (trixie) to fix a build issue with the `boost_context` component.
+  Many thanks to Anton Artyushin for the PR!
+* Marked `fmt::formatter<>::parse` as constexpr in protobuf code and adjusted test exclusion list. Many thanks to
+  [oigolovanova](https://github.com/oigolovanova) for the PR!
+* Made `fmt::formatter::parse()` methods constexpr to fix compile errors with new fmt library versions. Many thanks to
+  [Ivan Skriabin](https://github.com/Malevrovich) for the PR!
+* Added optional support for using `uv` instead of `venv + pip` to create Python virtual environments, speeding up the
+  CMake Configure step.
+
+Documentation:
+* Documentation was ported to Doxygen 1.17. jQuery and a bunch of other helper libraries were removed, images are now
+  SVG by default.
+* Testsuite docs for fixtures are now embedded into the userver docs leading to a more generic and useful
+  documentation.
+* Clarified the license attribution for the Decimal64 library in the third-party documentation. Many thanks to
+  [Georgij Tsarin](https://github.com/crystarm) for the PR!
+* Fixed Doxygen documentation in multiple components and handlers. Many thanks to
+  [Ivan Skriabin](https://github.com/Malevrovich) for the PR!
+* Added benchmarking sample service using HttpArena for performance testing. Added script for quick benchmarking and
+  flame graph building.
+* Fixed a typo in "implementation". Many thanks to [Vaibhav Srivastava](https://github.com/vaibhav8a) for the PR!
+
+
 
 ### Release v3.1
 
 Breaking Change:
 
 * Renamed `testsuite::RegisterCacheScoped` to @ref testsuite::RegisterCacheScope.
-</br> Migration: Replace `RegisterCacheScoped` with `RegisterCacheScope`.
+  * Migration: Replace `RegisterCacheScoped` with `RegisterCacheScope`.
 
 * Removed `concurrent::AsyncEventSubscriberScope::Scoped`.
-</br> Migration: Store the subscriber scope as a class member and call `Unsubscribe` in the destructor.
+  * Migration: Store the subscriber scope as a class member and call `Unsubscribe` in the destructor.
 
 * Changed `X-Request-Deadline` header format from ISO timestamp to Unix epoch microseconds.
-</br> Migration: Update clients to send deadlines as `uint64_t` microseconds since Unix epoch instead of ISO strings.
+  * Migration: Update clients to send deadlines as `uint64_t` microseconds since Unix epoch instead of ISO strings.
 
 * Renamed @ref engine::AsyncNoSpan to @ref engine::AsyncNoTracing.
-</br> Migration: Update all references from `AsyncNoSpan` to `AsyncNoTracing`.
+  * Migration: Update all references from `AsyncNoSpan` to `AsyncNoTracing`.
 
 * Removed obscure overloads of @ref engine::Async and @ref utils::Async variants.
-</br> Migration: Use @ref utils::TaskBuilder for complex task settings instead of the removed overloads.
+  * Migration: Use @ref utils::TaskBuilder for complex task settings instead of the removed overloads.
 
 * Changed @ref ugrpc::tests::Service constructor signature.
-</br> Migration: Pass server config, middlewares, and client settings through @ref ugrpc::tests::ServiceConfigs instead of direct constructor parameters.
+  * Migration: Pass server config, middlewares, and client settings through @ref ugrpc::tests::ServiceConfigs instead of direct constructor parameters.
 
 * Replaced @ref utils::void_t with C++20 requires constraints in PostgreSQL type traits.
-</br> Migration: Update custom type trait specializations to use requires clauses instead of `std::enable_if` conditions.
+  * Migration: Update custom type trait specializations to use requires clauses instead of `std::enable_if` conditions.
 
 * Raised minimum GCC version from 11.1 to 11.2 and minimum Clang version from 14 to 16 to enable C++20 heterogeneous lookup in hash containers.
-</br> Migration: Update your GCC compiler to version 11.2 or newer and Clang to version 16 or newer.
+  * Migration: Update your GCC compiler to version 11.2 or newer and Clang to version 16 or newer.
 
 * Changed YDB topic API: `GetNativeTopicReadSession/GetNativeTopicWriteSession` now return references instead of `std::shared_ptr`.
-</br> Migration: Remove dereference operator `(*)` or `->` when calling methods on the returned native session objects.
+  * Migration: Remove dereference operator `(*)` or `->` when calling methods on the returned native session objects.
 
 * Added a second stage to graceful shutdown for server http and ugrpc: after failing health checks, listeners are now closed to stop accepting new connections while allowing in-flight requests to complete.
-</br> Migration: replace deprecated `graceful_shutdown_interval` with `graceful_shutdown_continue_accepting_requests_interval` and `graceful_shutdown_pending_requests_completion_interval`; the old option is currently only a fallback and will be removed in the future.
+  * Migration: replace deprecated `graceful_shutdown_interval` with `graceful_shutdown_continue_accepting_requests_interval` and `graceful_shutdown_pending_requests_completion_interval`; the old option is currently only a fallback and will be removed in the future.
 
 * Refactored meta utilities: replaced `meta::DetectedType` and `meta::DetectedOr` with C++20 template constraints and type aliases; replaced `meta::IsVector` with `meta::IsVectorLike` and removed `meta::IsIterator` (use `std::input_or_output_iterator` instead); removed transitive `<vector>` include from @ref userver/utils/meta.hpp. These changes improve compile times and reduce header dependencies.
-</br> Migration: Replace `meta::DetectedType` with plain type aliases and C++20 `requires` constraints; replace `meta::DetectedOr` with template specialization using `std::type_identity`; replace `meta::IsVector` with `meta::IsVectorLike`; replace `meta::IsIterator` with `std::input_or_output_iterator`; add `#include <vector>` if you were relying on the transitive include from `userver/utils/meta.hpp`.
+  * Migration: Replace `meta::DetectedType` with plain type aliases and C++20 `requires` constraints; replace `meta::DetectedOr` with template specialization using `std::type_identity`; replace `meta::IsVector` with `meta::IsVectorLike`; replace `meta::IsIterator` with `std::input_or_output_iterator`; add `#include <vector>` if you were relying on the transitive include from `userver/utils/meta.hpp`.
 
 * Switched from `date` library to C++20 `std::chrono` for date/time operations, reducing preprocessed file size by ~641KB and include count by 162 for @ref userver/utils/datetime/cpp_20_calendar.hpp.
-</br> Migration: Replace `date::make_time` with `std::chrono::hh_mm_ss`; replace `date::` with `std::chrono::`; replace `using namespace utils::datetime::date::literals` and `using namespace date::literals` with `using namespace std::literals::chrono_literals;`; if your standard library does not support `std::chrono::parse`, use `utils::datetime::UtcStringtime` from userver; if your standard library does not support `std::chrono::format`, use `utils::datetime::UtcTimestring` from userver.
+  * Migration: Replace `date::make_time` with `std::chrono::hh_mm_ss`; replace `date::` with `std::chrono::`; replace `using namespace utils::datetime::date::literals` and `using namespace date::literals` with `using namespace std::literals::chrono_literals;`; if your standard library does not support `std::chrono::parse`, use `utils::datetime::UtcStringtime` from userver; if your standard library does not support `std::chrono::format`, use `utils::datetime::UtcTimestring` from userver.
 
 * Changed @ref ugrpc::server::ContextBase::GetServerContext return type from `grpc::ServerContext&` to `grpc::ServerContextBase&` to allow future internal implementation changes (e.g., using grpc++ Callback API).
-</br> Migration: Update any code that stores the return value of `GetServerContext()` or passes it to functions to use `grpc::ServerContextBase&` instead of `grpc::ServerContext&`.
+  * Migration: Update any code that stores the return value of `GetServerContext()` or passes it to functions to use `grpc::ServerContextBase&` instead of `grpc::ServerContext&`.
 
 Features:
 
