@@ -25,6 +25,7 @@ enum class KeyType {
     kExpires,
     kHttpOnly,
     kMaxAge,
+    kPartitioned,
     kPath,
     kSecure,
     kUnknown,
@@ -38,6 +39,7 @@ KeyType GetKeyType(std::string_view type) {
             .Case("expires", KeyType::kExpires)
             .Case("httponly", KeyType::kHttpOnly)
             .Case("max-age", KeyType::kMaxAge)
+            .Case("partitioned", KeyType::kPartitioned)
             .Case("path", KeyType::kPath)
             .Case("secure", KeyType::kSecure)
             .Case("samesite", KeyType::kSameSite);
@@ -181,6 +183,9 @@ std::optional<Cookie> ParseSingleCookie(std::string_view data) {
             case KeyType::kHttpOnly:
                 cookie->SetHttpOnly();
                 break;
+            case KeyType::kPartitioned:
+                cookie->SetPartitioned();
+                break;
             case KeyType::kSecure:
                 cookie->SetSecure();
                 break;
@@ -214,6 +219,9 @@ public:
     [[nodiscard]] bool IsHttpOnly() const noexcept;
     void SetHttpOnly() noexcept;
 
+    [[nodiscard]] bool IsPartitioned() const noexcept;
+    void SetPartitioned() noexcept;
+
     [[nodiscard]] const std::string& Path() const noexcept;
     void SetPath(std::string&& value);
 
@@ -240,6 +248,7 @@ private:
 
     bool secure_{false};
     bool http_only_{false};
+    bool partitioned_{false};
     std::optional<std::chrono::system_clock::time_point> expires_{};
     std::optional<std::chrono::seconds> max_age_{};
 };
@@ -273,6 +282,10 @@ void Cookie::CookieData::SetPermanent() { expires_ = std::chrono::system_clock::
 bool Cookie::CookieData::IsHttpOnly() const noexcept { return http_only_; }
 
 void Cookie::CookieData::SetHttpOnly() noexcept { http_only_ = true; }
+
+bool Cookie::CookieData::IsPartitioned() const noexcept { return partitioned_; }
+
+void Cookie::CookieData::SetPartitioned() noexcept { partitioned_ = true; }
 
 const std::string& Cookie::CookieData::Path() const noexcept { return path_; }
 
@@ -308,13 +321,14 @@ void Cookie::CookieData::AppendToString(USERVER_NAMESPACE::http::headers::Header
     constexpr std::string_view kSecure = "; Secure";
     constexpr std::string_view kSameSite = "; SameSite=";
     constexpr std::string_view kHttpOnly = "; HttpOnly";
+    constexpr std::string_view kPartitioned = "; Partitioned";
 
     const std::size_t old_size = os.size();
 
     std::size_t new_size =
         old_size + name_.size() + value_.size() + domain_.size() + path_.size() + same_site_.size() + kEquals.size() +
         kDomain.size() + kPath.size() + kExpires.size() + kMaxAge.size() + kSecure.size() + kSameSite.size() +
-        kHttpOnly.size();
+        kHttpOnly.size() + kPartitioned.size();
     std::string time_string{};
     std::string age_string{};
     if (expires_.has_value()) {
@@ -361,6 +375,9 @@ void Cookie::CookieData::AppendToString(USERVER_NAMESPACE::http::headers::Header
         }
         if (http_only_) {
             append(kHttpOnly);
+        }
+        if (partitioned_) {
+            append(kPartitioned);
         }
         return data - old_data_pointer;
     });
@@ -475,6 +492,13 @@ bool Cookie::IsHttpOnly() const noexcept { return data_->IsHttpOnly(); }
 
 Cookie& Cookie::SetHttpOnly() noexcept {
     data_->SetHttpOnly();
+    return *this;
+}
+
+bool Cookie::IsPartitioned() const noexcept { return data_->IsPartitioned(); }
+
+Cookie& Cookie::SetPartitioned() noexcept {
+    data_->SetPartitioned();
     return *this;
 }
 

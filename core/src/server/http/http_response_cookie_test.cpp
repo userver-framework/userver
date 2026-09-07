@@ -1,3 +1,4 @@
+#include <fmt/format.h>
 #include <gmock/gmock.h>
 
 #include <userver/utest/utest.hpp>
@@ -12,17 +13,29 @@ USERVER_NAMESPACE_BEGIN
 TEST(HttpCookie, Simple) {
     server::http::Cookie cookie{"name1", "value1"};
     EXPECT_EQ(cookie.ToString(), "name1=value1");
+
+    EXPECT_FALSE(cookie.IsPartitioned());
+    cookie.SetPartitioned();
+    EXPECT_TRUE(cookie.IsPartitioned());
+    EXPECT_FALSE(cookie.IsSecure());
+    EXPECT_TRUE(cookie.SameSite().empty());
+    EXPECT_TRUE(cookie.Domain().empty());
+    EXPECT_EQ(cookie.ToString(), "name1=value1; Partitioned");
+
+    cookie.SetPartitioned();
+    EXPECT_EQ(cookie.ToString(), "name1=value1; Partitioned");
+
     cookie.SetSecure().SetHttpOnly();
-    EXPECT_EQ(cookie.ToString(), "name1=value1; Secure; HttpOnly");
+    EXPECT_EQ(cookie.ToString(), "name1=value1; Secure; HttpOnly; Partitioned");
     cookie.SetMaxAge(std::chrono::seconds{3600});
-    EXPECT_EQ(cookie.ToString(), "name1=value1; Max-Age=3600; Secure; HttpOnly");
+    EXPECT_EQ(cookie.ToString(), "name1=value1; Max-Age=3600; Secure; HttpOnly; Partitioned");
     cookie.SetPath("/");
-    EXPECT_EQ(cookie.ToString(), "name1=value1; Path=/; Max-Age=3600; Secure; HttpOnly");
+    EXPECT_EQ(cookie.ToString(), "name1=value1; Path=/; Max-Age=3600; Secure; HttpOnly; Partitioned");
     cookie.SetDomain("domain.com");
     EXPECT_EQ(
         cookie.ToString(),
         "name1=value1; Domain=domain.com; Path=/; Max-Age=3600; Secure; "
-        "HttpOnly"
+        "HttpOnly; Partitioned"
     );
     cookie.SetExpires(std::chrono::system_clock::time_point{std::chrono::seconds{1560358305}});
 
@@ -34,7 +47,7 @@ TEST(HttpCookie, Simple) {
 #else
         "GMT; "
 #endif
-        "Max-Age=3600; Secure; HttpOnly";
+        "Max-Age=3600; Secure; HttpOnly; Partitioned";
     EXPECT_EQ(cookie.ToString(), expected);
 
     cookie.SetSameSite("None");
@@ -46,7 +59,7 @@ TEST(HttpCookie, Simple) {
 #else
         "GMT; "
 #endif
-        "Max-Age=3600; Secure; SameSite=None; HttpOnly";
+        "Max-Age=3600; Secure; SameSite=None; HttpOnly; Partitioned";
     EXPECT_EQ(cookie.ToString(), expected2);
 
     EXPECT_EQ(cookie.Name(), "name1");
@@ -170,9 +183,17 @@ TEST(HttpCookie, FromString) {
         "SameSite=None; HttpOnly",
         "name=",
         "-|0|||-=",
+        "name=value; Partitioned",
+        "name=value; Path=/; Max-Age=3600; Secure; SameSite=None; HttpOnly; Partitioned",
+        "name=value; Domain=domain.com; Path=/; Expires=Wed, 12 Jun 2019 "
+        "16:51:45 GMT; Max-Age=3600; Secure; SameSite=None; HttpOnly; Partitioned",
+        "name=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; Max-Age=0; "
+        "Secure; SameSite=None; HttpOnly; Partitioned",
     };
     for (const auto& cookie_as_str : good_cookies_as_str) {
+        SCOPED_TRACE(cookie_as_str);
         auto cookie = server::http::Cookie::FromString(cookie_as_str);
+        ASSERT_TRUE(cookie.has_value());
         EXPECT_EQ(cookie.value().ToString(), cookie_as_str);
     }
 
@@ -200,6 +221,19 @@ TEST(HttpCookie, FromString) {
     for (const auto& cookie_as_str : cookies_as_str_icase) {
         auto cookie = server::http::Cookie::FromString(cookie_as_str);
         EXPECT_TRUE(equal(cookie.value().ToString(), cookie_as_str));
+    }
+
+    const std::vector<std::string> partitioned_cookies_as_str = {
+        "name=value; partitioned; Secure",
+        "name=value; Secure; PaRtItIoNeD",
+        "name=value; Partitioned; Secure; partitioned",
+    };
+    for (const auto& cookie_as_str : partitioned_cookies_as_str) {
+        SCOPED_TRACE(cookie_as_str);
+        const auto cookie = server::http::Cookie::FromString(cookie_as_str);
+        ASSERT_TRUE(cookie.has_value());
+        EXPECT_TRUE(cookie->IsPartitioned());
+        EXPECT_EQ(cookie->ToString(), "name=value; Secure; Partitioned");
     }
 
     const std::vector<std::string> bad_cookies_as_str = {
@@ -254,18 +288,28 @@ TEST(HttpCookie, AppendToString) {
     );
     str.clear();
     const std::string large_name(2048, 'a');
-    cookie = server::http::Cookie::FromString(
-        "name1=" + large_name +
-        "; Domain=domain.com; Path=/; Expires=Wed, 12 Jun 2019 "
-        "16:51:45 GMT; Max-Age=3600; Secure; SameSite=None; HttpOnly"
+    const auto large_cookie_as_str = fmt::format(
+        "name1={}; Domain=domain.com; Path=/; Expires=Wed, 12 Jun 2019 "
+        "16:51:45 GMT; Max-Age=3600; Secure; SameSite=None; HttpOnly",
+        large_name
     );
+    cookie = server::http::Cookie::FromString(large_cookie_as_str);
+    ASSERT_TRUE(cookie.has_value());
     cookie->AppendToString(str);
-    EXPECT_EQ(
-        str,
-        "name1=" + large_name +
-            "; Domain=domain.com; Path=/; Expires=Wed, 12 Jun 2019 "
-            "16:51:45 GMT; Max-Age=3600; Secure; SameSite=None; HttpOnly"
-    );
+    EXPECT_EQ(str, large_cookie_as_str);
+
+    const auto partitioned_cookie_as_str =
+        fmt::format("name={}; Path=/; Secure; SameSite=None; HttpOnly; Partitioned", large_name);
+    cookie = server::http::Cookie::FromString(partitioned_cookie_as_str);
+    ASSERT_TRUE(cookie.has_value());
+
+    utils::SmallString<http::headers::kTypicalHeadersSize> partitioned_str{"previous content: "};
+    cookie->AppendToString(partitioned_str);
+    EXPECT_EQ(partitioned_str, fmt::format("previous content: {}", partitioned_cookie_as_str));
+
+    partitioned_str.clear();
+    cookie->AppendToString(partitioned_str);
+    EXPECT_EQ(partitioned_str, partitioned_cookie_as_str);
 }
 
 USERVER_NAMESPACE_END
