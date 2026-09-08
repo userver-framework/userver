@@ -1,8 +1,11 @@
 #include <ugrpc/server/middlewares/log/middleware.hpp>
 
+#include <utility>
+
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
+#include <userver/logging/log.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/algo.hpp>
@@ -36,6 +39,14 @@ public:
             return;
         }
         LOG(level) << message << std::move(extra);
+    }
+
+    template <typename LogBuilder>
+    void Log(logging::Level level, LogBuilder&& log_builder) const {
+        if (level < log_level_threshold_) {
+            return;
+        }
+        LOG(level) << std::forward<LogBuilder>(log_builder);
     }
 
 private:
@@ -76,34 +87,38 @@ void Middleware::OnCallStart(MiddlewareCallContext& context) const {
 
 void Middleware::PostRecvMessage(MiddlewareCallContext& context, google::protobuf::Message& request) const {
     const Logger logger{settings_.log_level};
-    logging::LogExtra extra{
-        {ugrpc::impl::kTypeTag, "request"},
-        {ugrpc::impl::kBodyTag, GetMessageForLogging(request, settings_)},
-        {ugrpc::impl::kMessageMarshalledLenTag, request.ByteSizeLong()},
-    };
-    if (IsSingleRequestMethod(context.GetRpcType())) {
-        extra.Extend("type", "request");
-        AppendOriginMetadata(context, extra);
-        logger.Log(settings_.msg_log_level, "gRPC request", std::move(extra));
-    } else {
-        logger.Log(settings_.msg_log_level, "gRPC request stream message", std::move(extra));
-    }
+    logger.Log(settings_.msg_log_level, [&](auto& log_helper) {
+        logging::LogExtra extra{
+            {ugrpc::impl::kTypeTag, "request"},
+            {ugrpc::impl::kBodyTag, GetMessageForLogging(request, settings_)},
+            {ugrpc::impl::kMessageMarshalledLenTag, request.ByteSizeLong()},
+        };
+        if (IsSingleRequestMethod(context.GetRpcType())) {
+            extra.Extend("type", "request");
+            AppendOriginMetadata(context, extra);
+            log_helper << "gRPC request" << std::move(extra);
+        } else {
+            log_helper << "gRPC request stream message" << std::move(extra);
+        }
+    });
 }
 
 void Middleware::PreSendMessage(MiddlewareCallContext& context, google::protobuf::Message& response) const {
     const Logger logger{settings_.log_level};
-    logging::LogExtra extra{
-        {ugrpc::impl::kTypeTag, "response"},
-        {"grpc_code", "OK"},  // TODO: revert
-        {ugrpc::impl::kBodyTag, GetMessageForLogging(response, settings_)},
-        {ugrpc::impl::kMessageMarshalledLenTag, response.ByteSizeLong()},
-    };
-    if (IsSingleResponseMethod(context.GetRpcType())) {
-        extra.Extend("type", "response");
-        logger.Log(settings_.msg_log_level, "gRPC response", std::move(extra));
-    } else {
-        logger.Log(settings_.msg_log_level, "gRPC response stream message", std::move(extra));
-    }
+    logger.Log(settings_.msg_log_level, [&](auto& log_helper) {
+        logging::LogExtra extra{
+            {ugrpc::impl::kTypeTag, "response"},
+            {"grpc_code", "OK"},  // TODO: revert
+            {ugrpc::impl::kBodyTag, GetMessageForLogging(response, settings_)},
+            {ugrpc::impl::kMessageMarshalledLenTag, response.ByteSizeLong()},
+        };
+        if (IsSingleResponseMethod(context.GetRpcType())) {
+            extra.Extend("type", "response");
+            log_helper << "gRPC response" << std::move(extra);
+        } else {
+            log_helper << "gRPC response stream message" << std::move(extra);
+        }
+    });
 }
 
 void Middleware::OnCallFinish(MiddlewareCallContext& context, const std::optional<grpc::Status>& status) const {
