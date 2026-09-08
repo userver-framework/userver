@@ -60,7 +60,8 @@ ObjectType ParseObject(const Value& value, ExtractFunc extract_func) {
     value.CheckObjectOrNull();
     ObjectType result;
 
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    const auto end = value.end();
+    for (auto it = value.begin(); it != end; ++it) {
         if constexpr (std::is_constructible_v<KeyType, std::string>) {
             result.emplace(it.GetName(), extract_func(*it));
         } else {
