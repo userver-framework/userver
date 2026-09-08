@@ -1,5 +1,6 @@
 #include <userver/websocket/impl/protocol.hpp>
 
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 
@@ -111,12 +112,12 @@ boost::container::small_vector<char, impl::kMaxFrameHeaderSize> DataFrameHeader(
 
     if (payload_len <= 125) {
         hdr->bits.payload_len = payload_len;
-    } else if (payload_len <= INT16_MAX) {
+    } else if (payload_len <= UINT16_MAX) {
         hdr->bits.payload_len = 126;
-        PushRaw(boost::endian::native_to_big(static_cast<std::int16_t>(payload_len)), frame);
+        PushRaw(boost::endian::native_to_big(static_cast<std::uint16_t>(payload_len)), frame);
     } else {
         hdr->bits.payload_len = 127;
-        PushRaw(boost::endian::native_to_big(payload_len), frame);
+        PushRaw(boost::endian::native_to_big(static_cast<std::uint64_t>(payload_len)), frame);
     }
 
     return frame;
