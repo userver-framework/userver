@@ -192,6 +192,8 @@
   "chaotic-openapi/integration_tests/src/handlers/simple/octetget/view.hpp":"taxi/uservices/userver/chaotic-openapi/integration_tests/src/handlers/simple/octetget/view.hpp",
   "chaotic-openapi/integration_tests/src/handlers/simple/secretget/view.cpp":"taxi/uservices/userver/chaotic-openapi/integration_tests/src/handlers/simple/secretget/view.cpp",
   "chaotic-openapi/integration_tests/src/handlers/simple/secretget/view.hpp":"taxi/uservices/userver/chaotic-openapi/integration_tests/src/handlers/simple/secretget/view.hpp",
+  "chaotic-openapi/integration_tests/src/handlers/simple/serializeget/view.cpp":"taxi/uservices/userver/chaotic-openapi/integration_tests/src/handlers/simple/serializeget/view.cpp",
+  "chaotic-openapi/integration_tests/src/handlers/simple/serializeget/view.hpp":"taxi/uservices/userver/chaotic-openapi/integration_tests/src/handlers/simple/serializeget/view.hpp",
   "chaotic-openapi/integration_tests/src/middleware_test.cpp":"taxi/uservices/userver/chaotic-openapi/integration_tests/src/middleware_test.cpp",
   "chaotic-openapi/integration_tests/src/operation_test.cpp":"taxi/uservices/userver/chaotic-openapi/integration_tests/src/operation_test.cpp",
   "chaotic-openapi/integration_tests/src/parameters_test.cpp":"taxi/uservices/userver/chaotic-openapi/integration_tests/src/parameters_test.cpp",

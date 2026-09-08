@@ -17,6 +17,7 @@
 #include <handlers/simple/octetget/handler.hpp>
 #include <handlers/simple/octetget/requests.hpp>
 #include <handlers/simple/octetget/responses.hpp>
+#include <handlers/simple/serializeget/responses.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -26,6 +27,7 @@ namespace headersget = ::handlers::simple::headersget;
 namespace octetget = ::handlers::simple::octetget;
 namespace formpost = ::handlers::simple::formpost;
 namespace multipartpost = ::handlers::simple::multipartpost;
+namespace serializeget = ::handlers::simple::serializeget;
 
 // --- octet-stream request body ---
 
@@ -163,6 +165,33 @@ UTEST(HandlerResponseHeaders, OptionalHeaderAbsentWhenNotSet) {
     headersget::SerializeResponse(r, *request);
 
     EXPECT_EQ(builder.GetHttpResponse().GetHeader("X-Count"), "");
+}
+
+UTEST(HandlerResponseSerializationDom, GeneratedObjectExactBody) {
+    auto builder = server::http::HttpRequestBuilder{};
+    auto request = builder.Build();
+
+    serializeget::Response200 response;
+    response.body.required_field = "response";
+    response.body.optional_field = 42;
+    response.X_Serialization_Test = "characterization";
+
+    const auto body = serializeget::SerializeResponse(response, *request);
+
+    EXPECT_EQ(body, R"({"required-field":"response","optional-field":42})");
+    EXPECT_EQ(builder.GetHttpResponse().GetStatus(), server::http::HttpStatus::kOk);
+    EXPECT_EQ(builder.GetHttpResponse().GetHeader("X-Serialization-Test"), "characterization");
+}
+
+UTEST(HandlerResponseSerializationDom, OptionalFieldIsOmitted) {
+    auto builder = server::http::HttpRequestBuilder{};
+    auto request = builder.Build();
+
+    serializeget::Response200 response;
+    response.body.required_field = "response";
+    response.X_Serialization_Test = "characterization";
+
+    EXPECT_EQ(serializeget::SerializeResponse(response, *request), R"({"required-field":"response"})");
 }
 
 }  // namespace

@@ -153,4 +153,31 @@ paths:
                             schema:
                                 type: integer
 
-components: {}
+    /serialize:
+        get:
+            operationId: serializeGet
+            responses:
+                200:
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/SerializationResponse'
+                    headers:
+                        X-Serialization-Test:
+                            required: true
+                            schema:
+                                type: string
+
+components:
+    schemas:
+        SerializationResponse:
+            type: object
+            additionalProperties: false
+            required:
+              - required-field
+            properties:
+                required-field:
+                    type: string
+                optional-field:
+                    type: integer
