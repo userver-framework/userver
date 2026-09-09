@@ -39,7 +39,8 @@ Cool features:
   `from_layered_dict` for compact metric assertions (see @ref scripts/docs/en/userver/metrics_migration.md);
   @ref pytest_userver.client.ClientMonitor.metrics also accepts `sliced`.
 * Named PostgreSQL queries no longer log full statement text (see @ref storages::Query).
-* Added @ref storages::postgres::PoolerMode `pooler-mode` option to PostgreSQL `ConnectionSettings`.
+* Added @ref postgres_transaction_poolin_balancer "transaction pooling with a PostgreSQL balancer" via
+  @ref storages::postgres::PoolerMode `pooler-mode` option for @ref components::Postgres.
 * @ref server::handlers::Jemalloc now supports binary-free heap profiling via `jeprof`.
 * Added @ref scripts/docs/en/userver/libraries/sqs.md.
 * @ref formats::json::RawString can pass JSON without creating a DOM representation.
@@ -205,6 +206,8 @@ Features:
     those fields are omitted from the dynamic config.
   * Removed experimental dynamic config `POSTGRES_DEADLINE_PROPAGATION_VERSION`. Use
     @ref USERVER_DEADLINE_PROPAGATION_ENABLED instead.
+  * Startup logic changed for @ref POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED to improve start times on services with
+    multiple instances.
 
 * prometheus
   * Fixed escaping of backslash and newline characters in Prometheus label values. Many thanks to
@@ -271,22 +274,18 @@ Features:
 
 Optimizations:
 
-* Optimized HTTP response body handling by allowing direct use of `std::shared_ptr<const std::string>` instead of
-  copying data, improving performance by up to 32% in RPS.
+* Optimized HTTP response body handling by allowing direct use of `std::shared_ptr<const std::string>` in
+  @ref server::http::HttpResponse instead of copying data, improving performance by up to 32% RPS.
+* Skip log message construction when logging is disabled in gRPC. Up to x2239 speedup in gRPC usage
 * Optimized logging to use bulk writes via `struct iovec` arrays, achieving up to ~10× sink throughput improvement
-  compared to single-message writes.
+  compared to single-message writes. ~2% improved CPU efficiency for the whole container
 * Optimized HTTP request handling and streaming by improving response header and body management, leading to better
   performance (e.g., increased RPS from 111382 to 120256).
 * Reduced `ResponseBase` size from 160 bytes to 128 bytes by removing atomic operations and `StripedCounter`
-  operations on hot path of request.
-* Added minimal middleware pipeline with only exceptions handling, improved handler logging efficiency by moving
-  logging to lambda, and tuned benchmark service resulting in up to 64.9% performance improvement on pipelined
-  benchmarks.
-* Increased default flush queue size from 32 to 128 to improve CPU usage and maintain stable latencies when processing
-  log batches.
-* Limited logs batch size to 32 by default. This avoids latency spikes when the logger accumulates thousands of log
-  records, then starts writing them all at once, consuming 100% of 1 vCPU for hundreds of milliseconds. This behavior
-  can be controlled using the new `flush_queue_size` option of @ref components::Logging.
+  operations on hot path of request. Up to 5% improved RPS for small handlers.
+* Added @ref server_side_middleware_pipeline "minimal-server-middleware-pipeline-builder" with only exceptions handling,
+  improved handler logging efficiency by moving logging to lambda, and tuned benchmark service resulting in up to
+  64.9% performance improvement on pipelined benchmarks.
 * Optimized @ref concurrent::LazyValue with @ref engine::MultiConsumerEvent internally.
 * Lowered ALPN log level to debug as it's called frequently (every handshake). Many thanks to
   [SSE4](https://github.com/SSE4) for the PR!
@@ -297,9 +296,12 @@ Optimizations:
   [Mikhail Sychev](https://github.com/mishasychev) for the PR!
 * `task-processor-queue: work-stealing-task-queue` was optimized. Latency is now 15-20% smaller and
   TaskProcessor::ProcessTasks is 3% smaller on flamegraphs.
-* Removed the `POSTGRES_OMIT_DESCRIBE_IN_EXECUTE` experiment and turned it on. This gives +1% mean RPS, ~+2% best RPS
+* Removed the `POSTGRES_OMIT_DESCRIBE_IN_EXECUTE` experiment and turned it on. PostgreSQL now always avoids sending
+  excessive D(escribe) messages. This gives +1% mean RPS, ~+2% best RPS
   for `samples/benchmark_service/bench.sh async-db DATABASE_MAX_CONN=64` and saves ut to 50% of network bandwidth.
 * Parse typed JSON in a single RapidJSON SAX pass. 8%-18% speedup in JSON SAX parsing
+* @ref formats::bson::ValueBuilder now avoids allocation for existing keys.
+* Optimized DOM maps parsing by caching the `end()` iterator. Gives a 30%-46% speedup.
 
 Build:
 * Fixed typo in service_template config. Many thanks to [Desfirit](https://github.com/Desfirit) for the PR!

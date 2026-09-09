@@ -138,6 +138,8 @@ pipeline.
 🐙 **userver** provides two interfaces for configuring middleware pipelines: one for a server-wide configuration,
 and one for a more granular per-handler configuration.
 
+
+@anchor server_side_middleware_pipeline
 ### Server-wide middleware pipeline
 
 The server-wide pipeline is server::middlewares::PipelineBuilder. In its simple form, it takes
