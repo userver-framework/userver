@@ -389,6 +389,7 @@ class BaseTranslator(abc.ABC):
         assert schema.json_schema
         source_location = schema.json_schema.source_location()
 
+        schema = common_types.resolve_ref(schema)
         if not isinstance(schema, cpp_types.CppStruct):
             raise chaotic_error.BaseError(
                 full_filepath=source_location.filepath,
@@ -397,7 +398,7 @@ class BaseTranslator(abc.ABC):
                 msg='"application/x-www-form-urlencoded" body allows only "type: object"',
             )
         for field in schema.fields.values():
-            if not isinstance(field.schema, cpp_types.CppPrimitiveType):
+            if not isinstance(common_types.resolve_ref(field.schema), cpp_types.CppPrimitiveType):
                 raise chaotic_error.BaseError(
                     full_filepath=source_location.filepath,
                     infile_path=source_location.location,
