@@ -2955,6 +2955,7 @@
   "grpc/tests/generic_client_test.cpp":"taxi/uservices/userver/grpc/tests/generic_client_test.cpp",
   "grpc/tests/generic_server_test.cpp":"taxi/uservices/userver/grpc/tests/generic_server_test.cpp",
   "grpc/tests/logging/access_log_test.cpp":"taxi/uservices/userver/grpc/tests/logging/access_log_test.cpp",
+  "grpc/tests/logging/delay_test.cpp":"taxi/uservices/userver/grpc/tests/logging/delay_test.cpp",
   "grpc/tests/logging/origin_metadata_test.cpp":"taxi/uservices/userver/grpc/tests/logging/origin_metadata_test.cpp",
   "grpc/tests/logging/protobuf_logging_test.cpp":"taxi/uservices/userver/grpc/tests/logging/protobuf_logging_test.cpp",
   "grpc/tests/metadata_test.cpp":"taxi/uservices/userver/grpc/tests/metadata_test.cpp",
