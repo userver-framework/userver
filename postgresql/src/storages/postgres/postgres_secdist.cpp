@@ -3,13 +3,14 @@
 #include <ranges>
 #include <set>
 
-#include <userver/storages/secdist/exceptions.hpp>
-#include <userver/storages/secdist/helpers.hpp>
-
-#include <userver/logging/log.hpp>
-
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+
+#include <userver/formats/common/items.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/storages/secdist/exceptions.hpp>
+#include <userver/storages/secdist/helpers.hpp>
+#include <userver/utils/enumerate.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,11 +22,11 @@ DsnList DsnListFromJson(const formats::json::Value& elem) {
     auto hosts = elem["hosts"];
     storages::secdist::CheckIsArray(hosts, "hosts");
     std::set<Dsn> dsn_set;
-    for (auto host_it = hosts.begin(); host_it != hosts.end(); ++host_it) {
-        if (!host_it->IsString()) {
-            storages::secdist::ThrowInvalidSecdistType(*host_it, "a string");
+    for (const auto& host : hosts) {
+        if (!host.IsString()) {
+            storages::secdist::ThrowInvalidSecdistType(host, "a string");
         }
-        const Dsn dsn{host_it->As<std::string>()};
+        const Dsn dsn{host.As<std::string>()};
         auto multihost = storages::postgres::SplitByHost(dsn);
         if (multihost.empty()) {
             throw storages::secdist::SecdistError(DsnMaskPassword(dsn) + " doesn't seem as a valid PostgreSQL Dsn");
@@ -49,28 +50,24 @@ PostgresSettings::PostgresSettings(const formats::json::Value& doc) {
     const formats::json::Value& databases = postgresql_settings["databases"];
     storages::secdist::CheckIsObject(databases, "databases");
 
-    for (auto db_it = databases.begin(); db_it != databases.end(); ++db_it) {
-        const std::string& dbalias = db_it.GetName();
-        const formats::json::Value& cluster_array = *db_it;
+    for (const auto& [dbalias, cluster_array] : formats::common::Items(databases)) {
         storages::secdist::CheckIsArray(cluster_array, dbalias);
 
         auto& sharded_cluster_for_db = sharded_cluster_descs_[dbalias];
         sharded_cluster_for_db.reserve(cluster_array.GetSize());
 
-        size_t shard_num_expect = 0;
         try {
-            for (auto shard_it = cluster_array.begin(); shard_it != cluster_array.end(); ++shard_it) {
-                storages::secdist::CheckIsObject(*shard_it, dbalias + '[' + std::to_string(shard_it.GetIndex() + ']'));
+            for (auto [shard_index, shard] : utils::enumerate(cluster_array)) {
+                storages::secdist::CheckIsObject(shard, dbalias + '[' + std::to_string(shard_index) + ']');
                 // Legacy check, expect shard_num to be in order
-                const auto shard_num = (*shard_it)["shard_number"].As<uint64_t>();
-                if (shard_num != shard_num_expect) {
+                const auto shard_num = shard["shard_number"].As<uint64_t>();
+                if (shard_num != shard_index) {
                     throw storages::secdist::SecdistError(
                         "shard_number " + std::to_string(shard_num) + " is out of order. Should equal to " +
-                        std::to_string(shard_num_expect)
+                        std::to_string(shard_index)
                     );
                 }
-                ++shard_num_expect;
-                sharded_cluster_for_db.push_back(DsnListFromJson(*shard_it));
+                sharded_cluster_for_db.push_back(DsnListFromJson(shard));
             }
         } catch (storages::secdist::SecdistError& e) {
             LOG_WARNING() << "Secdist for " << dbalias << " contains unsupported formats: " << e;

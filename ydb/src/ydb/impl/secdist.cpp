@@ -1,5 +1,6 @@
 #include "secdist.hpp"
 
+#include <userver/formats/common/items.hpp>
 #include <userver/formats/json.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/logging/log.hpp>
@@ -35,8 +36,8 @@ YdbSettings::YdbSettings(const formats::json::Value& secdist_doc) {
         LOG_DEBUG() << "'ydb_settings' secdist section is empty";
         return;
     }
-    for (auto it = ydb_settings.begin(); it != ydb_settings.end(); ++it) {
-        settings[it.GetName()] = GetDatabaseSettings(*it);
+    for (const auto& [name, db_settings] : formats::common::Items(ydb_settings)) {
+        settings[name] = GetDatabaseSettings(db_settings);
     }
 }
 

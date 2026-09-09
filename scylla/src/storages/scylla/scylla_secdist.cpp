@@ -3,6 +3,7 @@
 #include <functional>
 #include <unordered_map>
 
+#include <userver/formats/common/items.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/storages/scylla/exception.hpp>
 #include <userver/storages/secdist/exceptions.hpp>
@@ -63,9 +64,7 @@ ScyllaSettings::ScyllaSettings(const formats::json::Value& doc) {
 
     storages::secdist::CheckIsObject(scylla_settings, "scylla_settings");
 
-    for (auto it = scylla_settings.begin(); it != scylla_settings.end(); ++it) {
-        const std::string& dbalias = it.GetName();
-        const formats::json::Value& dbsettings = *it;
+    for (const auto& [dbalias, dbsettings] : formats::common::Items(scylla_settings)) {
         storages::secdist::CheckIsObject(dbsettings, "dbsettings");
 
         ScyllaDbSettings entry;
