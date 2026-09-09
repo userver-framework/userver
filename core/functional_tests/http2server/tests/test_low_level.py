@@ -524,3 +524,75 @@ async def test_client_goaway_ping_ack(create_connection, monitor_client, service
             assert utils.is_ping_ack(receive, ping_data)
 
     assert differ.value_at('goaway') == 1
+
+
+async def test_window_update_overflow_on_stream(create_connection, service_client):
+    # http2/6.9.1 case 3: stream WINDOW_UPDATE past 2^31-1 → RST FLOW_CONTROL_ERROR.
+    # The connection is closed right after the reset, see Http2Session::OnInvalidFrame.
+    await service_client.update_server_state()
+
+    async with create_connection() as (sock, conn):
+        payload = b''.join(utils.encode_header(k, v) for k, v in DEFAULT_HEADERS)
+        max_window = (1 << 31) - 1
+        await sock.sendall(
+            utils.create_frame(utils.HEADERS_FRAME, utils.END_HEADERS, 1, payload)
+            + utils.create_frame(
+                utils.WINDOW_UPDATE_FRAME,
+                utils.EMPTY_FLAGS,
+                1,
+                struct.pack('>I', max_window),  # overflow
+            )
+        )
+        receive = await sock.recv(utils.RECEIVE_SIZE, timeout=2.0)
+        _, frame_type, _, stream_id, frame_payload = utils.parse_frame_header(receive)
+        assert frame_type == utils.RST_STREAM_FRAME
+        assert stream_id == 1
+        assert int.from_bytes(frame_payload[:4], byteorder='big') == utils.FLOW_CONTROL_ERROR_CODE
+
+        # The session cannot be used after the reset, so the connection must not stay half-alive.
+        assert not await sock.recv(utils.RECEIVE_SIZE, timeout=2.0)
+
+
+async def test_accepted_request_is_answered_after_stream_reset(create_connection, service_client):
+    # The connection dies after a flow control error, but a request accepted before it is still
+    # answered, see Http2Session::session_is_broken_.
+    await service_client.update_server_state()
+
+    async with create_connection() as (sock, conn):
+        slow_headers = [(':path', f'{DEFAULT_PATH}?type=sleep') if k == ':path' else (k, v) for k, v in DEFAULT_HEADERS]
+        max_window = (1 << 31) - 1
+        await sock.sendall(
+            # A whole request, its handler sleeps and answers long after the connection is broken.
+            utils.create_frame(
+                utils.HEADERS_FRAME,
+                utils.END_HEADER_AND_STREAM,
+                1,
+                b''.join(utils.encode_header(k, v) for k, v in slow_headers),
+            )
+            # The stream has to stay open, a WINDOW_UPDATE for a closed one is ignored.
+            + utils.create_frame(
+                utils.HEADERS_FRAME,
+                utils.END_HEADERS,
+                3,
+                b''.join(utils.encode_header(k, v) for k, v in DEFAULT_HEADERS),
+            )
+            + utils.create_frame(
+                utils.WINDOW_UPDATE_FRAME,
+                utils.EMPTY_FLAGS,
+                3,
+                struct.pack('>I', max_window),  # overflow
+            )
+        )
+
+        frames = []
+        while True:
+            receive = await sock.recv(utils.RECEIVE_SIZE, timeout=5.0)
+            if not receive:  # the connection is closed by the server
+                break
+            frames += utils.parse_frame_types_and_streams(receive)
+
+        assert (utils.RST_STREAM_FRAME, 3) in frames
+        assert (utils.HEADERS_FRAME, 1) in frames
+        assert (utils.DATA_FRAME, 1) in frames
+        # The response was written when the session had already been broken by the reset.
+        assert frames.index((utils.RST_STREAM_FRAME, 3)) < frames.index((utils.HEADERS_FRAME, 1))
