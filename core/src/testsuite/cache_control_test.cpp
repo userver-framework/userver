@@ -572,6 +572,51 @@ TEST_F(ComponentList, SequentialResetUpdatesDependencyBeforeDependent) {
     EXPECT_THAT(testsuite_reset_order, ::testing::ElementsAre("producer-cache", "consumer-cache"));
 }
 
+class UpdateTypeResetter final : public components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "update-type-resetter";
+
+    static inline std::vector<cache::UpdateType> update_types;
+
+    UpdateTypeResetter(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::ComponentBase(config, context),
+          cache_control_(testsuite::FindCacheControl(context))
+    {
+        testsuite::RegisterCacheScope(context, this, &UpdateTypeResetter::ResetCache);
+    }
+
+    void ResetCache(cache::UpdateType update_type) { update_types.push_back(update_type); }
+
+    void OnAllComponentsLoaded() override {
+        cache_control_.ResetAllCaches(cache::UpdateType::kFull, {}, {});
+        cache_control_.ResetAllCaches(cache::UpdateType::kIncremental, {}, {});
+    }
+
+private:
+    testsuite::CacheControl& cache_control_;
+};
+
+constexpr std::string_view kUpdateTypeResetterConfig = R"(
+components_manager:
+    components:
+        testsuite-support: {}
+        update-type-resetter: {}
+)";
+
+TEST_F(ComponentList, ResetterReceivesUpdateType) {
+    UpdateTypeResetter::update_types.clear();
+
+    components::RunOnce(
+        components::InMemoryConfig{tests::MergeYaml(tests::kMinimalStaticConfig, kUpdateTypeResetterConfig)},
+        components::MinimalComponentList().Append<components::TestsuiteSupport>().Append<UpdateTypeResetter>()
+    );
+
+    EXPECT_THAT(
+        UpdateTypeResetter::update_types,
+        ::testing::ElementsAre(cache::UpdateType::kFull, cache::UpdateType::kIncremental)
+    );
+}
+
 }  // namespace
 
 USERVER_NAMESPACE_END
