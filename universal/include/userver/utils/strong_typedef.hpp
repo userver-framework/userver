@@ -22,6 +22,10 @@
 #include <boost/functional/hash_fwd.hpp>
 // clang-format on
 
+namespace boost::uuids {
+struct uuid;
+}
+
 /// @brief GoogleTest-related helpers used from headers in test-only paths.
 namespace testing {
 
@@ -96,7 +100,9 @@ const auto& UnwrapIfStrongTypedef(const T& value) {
 // For 'std::string', begin-end methods are not forwarded, because otherwise
 // it might get serialized as an array.
 template <typename T>
-concept Range = meta::kIsRange<T> && !meta::kIsInstantiationOf<std::basic_string, std::remove_const_t<T>>;
+concept Range =
+    meta::kIsRange<T> && !meta::kIsInstantiationOf<std::basic_string, std::remove_const_t<T>> &&
+    !meta::IsRecursiveRange<T> && !std::is_same_v<boost::uuids::uuid, std::remove_const_t<T>>;
 
 template <typename T>
 constexpr void CheckIfAllowsLogging() {
@@ -137,7 +143,7 @@ constexpr bool IsStrongToStrongConversion() noexcept {
 /// * comparison (see "Operators" below)
 /// * hashing
 /// * streaming operators
-/// * optimizaed logging for LOG_XXX()
+/// * optimized logging for LOG_XXX()
 ///
 /// If used with container-like type also has common STL functions:
 /// * begin()
@@ -421,6 +427,7 @@ struct std::hash<USERVER_NAMESPACE::utils::StrongTypedef<Tag, T, Ops>> : std::ha
 
 // fmt::format support
 template <USERVER_NAMESPACE::utils::impl::strong_typedef::IsStrongTypedef T, class Char>
+requires(!USERVER_NAMESPACE::utils::impl::strong_typedef::Range<T>)
 struct fmt::formatter<T, Char> : fmt::formatter<typename T::UnderlyingType, Char> {
     template <typename FormatContext>
     auto format(const T& v, FormatContext& ctx) USERVER_FMT_CONST {
