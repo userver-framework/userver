@@ -71,11 +71,17 @@ void OnSubscribeImpl(
         return;
     }
     if (!strcasecmp(reply_array[0].GetString().c_str(), subscribe_type.data())) {
-        subscribe_callback(reply->server_id, reply_array[1].GetString(), reply_array[2].GetInt());
+        if (reply_array[1].IsString() && reply_array[2].IsInt()) {
+            subscribe_callback(reply->server_id, reply_array[1].GetString(), reply_array[2].GetInt());
+        }
     } else if (!strcasecmp(reply_array[0].GetString().c_str(), unsubscribe_type.data())) {
-        unsubscribe_callback(reply->server_id, reply_array[1].GetString(), reply_array[2].GetInt());
+        if (reply_array[1].IsString() && reply_array[2].IsInt()) {
+            unsubscribe_callback(reply->server_id, reply_array[1].GetString(), reply_array[2].GetInt());
+        }
     } else if (!strcasecmp(reply_array[0].GetString().c_str(), message_type.data())) {
-        message_callback(reply->server_id, reply_array[1].GetString(), reply_array[2].GetString());
+        if (reply_array[1].IsString() && reply_array[2].IsString()) {
+            message_callback(reply->server_id, reply_array[1].GetString(), reply_array[2].GetString());
+        }
     }
 }
 
@@ -359,15 +365,16 @@ void Sentinel::OnPsubscribeReply(
         return;
     }
     if (!strcasecmp(reply_array[0].GetString().c_str(), "PSUBSCRIBE")) {
-        if (reply_array.size() == 3) {
+        if (reply_array.size() == 3 && reply_array[1].IsString() && reply_array[2].IsInt()) {
             subscribe_callback(reply->server_id, reply_array[1].GetString(), reply_array[2].GetInt());
         }
     } else if (!strcasecmp(reply_array[0].GetString().c_str(), "PUNSUBSCRIBE")) {
-        if (reply_array.size() == 3) {
+        if (reply_array.size() == 3 && reply_array[1].IsString() && reply_array[2].IsInt()) {
             unsubscribe_callback(reply->server_id, reply_array[1].GetString(), reply_array[2].GetInt());
         }
     } else if (!strcasecmp(reply_array[0].GetString().c_str(), "PMESSAGE")) {
-        if (reply_array.size() == 4) {
+        if (reply_array.size() == 4 && reply_array[1].IsString() && reply_array[2].IsString() &&
+            reply_array[3].IsString()) {
             pmessage_callback(
                 reply->server_id,
                 reply_array[1].GetString(),
