@@ -739,9 +739,12 @@ void ConnectionPool::MaintainConnections() {
     LOG_DEBUG() << "Ping connection pool " << DsnCutPassword(dsn_);
     auto stale_connection = true;
     auto count = size_semaphore_.UsedApprox();
-    auto drop_left = kIdleDropLimit;
+    auto idle_drop_left = kIdleDropLimit;
     auto settings = settings_.Read();
-    while (count > 0 && stale_connection) {
+
+    // A max_size reduction bypasses the regular idle-drop limit to shrink the pool promptly
+    auto force_drop_left = count > settings->max_size ? count - settings->max_size : 0;
+    while (count > 0 && (force_drop_left > 0 || stale_connection)) {
         try {
             auto deleter = [this](Connection* c) { DeleteConnection(c); };
             std::unique_ptr<Connection, decltype(deleter)> conn(AcquireImmediate(), deleter);
@@ -750,8 +753,12 @@ void ConnectionPool::MaintainConnections() {
                 break;
             }
             stale_connection = conn->GetIdleDuration() >= kMaxIdleDuration;
-            if (count > settings->min_size && drop_left > 0) {
-                --drop_left;
+            if (count > settings->min_size && (force_drop_left > 0 || idle_drop_left > 0)) {
+                if (force_drop_left > 0) {
+                    --force_drop_left;
+                } else {
+                    --idle_drop_left;
+                }
                 --stats_.connection.used;
                 LOG_DEBUG() << "Drop idle connection to `" << DsnCutPassword(dsn_) << '`';
                 // Close synchronously

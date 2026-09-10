@@ -39,6 +39,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::detail {
 
+class ConnectionPoolTestHelper;
+
 class ConnectionPool : public std::enable_shared_from_this<ConnectionPool> {
     class EmplaceEnabler;
 
@@ -108,6 +110,8 @@ public:
     const Dsn& GetDsn() const;
 
 private:
+    friend class ConnectionPoolTestHelper;
+
     using SizeGuard = postgres::SizeGuard<std::atomic<size_t>>;
 
     void Init(InitMode mode);

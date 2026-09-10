@@ -20,6 +20,17 @@ USERVER_NAMESPACE_BEGIN
 
 namespace pg = storages::postgres;
 
+namespace storages::postgres::detail {
+
+class ConnectionPoolTestHelper final {
+public:
+    static void MaintainConnections(ConnectionPool& pool) { pool.MaintainConnections(); }
+
+    static std::size_t GetCancelLimit(ConnectionPool& pool) { return pool.cancel_limit_.GetMaxSizeApprox(); }
+};
+
+}  // namespace storages::postgres::detail
+
 namespace {
 
 void PoolTransaction(const std::shared_ptr<pg::detail::ConnectionPool>& pool) {
@@ -488,6 +499,84 @@ UTEST_P(PostgrePool, SetSettingsWarmsUpAfterMinSizeIncrease) {
     WaitForPoolSize(pool, kMinPoolSize);
 
     EXPECT_EQ(pool->GetStatistics().connection.active, kMinPoolSize);
+}
+
+UTEST_P(PostgrePool, SetSettingsRefreshesCancelLimit) {
+    constexpr std::size_t kInitialMaxPoolSize = 6;
+    constexpr std::size_t kUpdatedMaxPoolSize = 2;
+    auto pool = pg::detail::ConnectionPool::Create(
+        GetDsnFromEnv(),
+        nullptr,
+        GetTaskProcessor(),
+        "",
+        GetParam(),
+        {0, kInitialMaxPoolSize, 10},
+        kCachePreparedStatements,
+        {},
+        GetTestCmdCtls(),
+        {},
+        {},
+        {},
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
+    );
+
+    EXPECT_EQ(pg::detail::ConnectionPoolTestHelper::GetCancelLimit(*pool), kInitialMaxPoolSize / 2);
+
+    pool->SetSettings({0, kUpdatedMaxPoolSize, 10});
+
+    EXPECT_EQ(pg::detail::ConnectionPoolTestHelper::GetCancelLimit(*pool), 1);
+}
+
+UTEST_P(PostgrePool, ShrinksOverLimitSurplus) {
+    constexpr std::size_t kInitialPoolSize = 4;
+    constexpr std::size_t kUpdatedMaxPoolSize = 1;
+    auto pool = pg::detail::ConnectionPool::Create(
+        GetDsnFromEnv(),
+        nullptr,
+        GetTaskProcessor(),
+        "",
+        pg::InitMode::kSync,
+        {kInitialPoolSize, kInitialPoolSize, 10},
+        kCachePreparedStatements,
+        {},
+        GetTestCmdCtls(),
+        {},
+        {},
+        {},
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
+    );
+
+    pool->SetSettings({0, kUpdatedMaxPoolSize, 10});
+    pg::detail::ConnectionPoolTestHelper::MaintainConnections(*pool);
+
+    EXPECT_EQ(pool->GetStatistics().connection.active, kUpdatedMaxPoolSize);
+}
+
+UTEST_P(PostgrePool, KeepsIdleDropLimitWithinMaxSize) {
+    constexpr std::size_t kPoolSize = 4;
+    auto pool = pg::detail::ConnectionPool::Create(
+        GetDsnFromEnv(),
+        nullptr,
+        GetTaskProcessor(),
+        "",
+        pg::InitMode::kSync,
+        {kPoolSize, kPoolSize, 10},
+        kCachePreparedStatements,
+        {},
+        GetTestCmdCtls(),
+        {},
+        {},
+        {},
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
+    );
+
+    pool->SetSettings({0, kPoolSize, 10});
+    pg::detail::ConnectionPoolTestHelper::MaintainConnections(*pool);
+
+    EXPECT_EQ(pool->GetStatistics().connection.active, kPoolSize - 1);
 }
 
 UTEST_P(PostgrePool, ConnectionCleanup) {
