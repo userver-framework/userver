@@ -69,6 +69,11 @@ public:
 
     /// @brief Reset caches with the specified @a names.
     ///
+    /// Every registered resetter whose name is in @a reset_only_names is
+    /// invoked. Several resetters may share a name: for example a periodic
+    /// @ref cache::CacheUpdateTrait resetter and a later custom
+    /// @ref RegisterCacheScope.
+    ///
     /// @a update_type is used by caches derived from
     /// @a component::CachingComponentBase.
     void ResetCaches(
@@ -131,14 +136,15 @@ private:
 
     void DoResetCaches(
         cache::UpdateType update_type,
-        std::unordered_set<std::string>* reset_only_names,
+        const std::unordered_set<std::string>* reset_only_names,
         const std::unordered_set<std::string>& force_incremental_names,
         const std::unordered_set<std::string>* exclude_names
     );
 
     void DoResetCachesConcurrently(
         cache::UpdateType update_type,
-        std::unordered_set<std::string>* reset_only_names,
+        const std::unordered_set<std::string>* reset_only_names,
+        std::unordered_set<std::string>& names_left_to_encounter,
         const std::unordered_set<std::string>& force_incremental_names,
         const std::unordered_set<std::string>* exclude_names
     );
@@ -219,6 +225,9 @@ std::function<void(cache::UpdateType)> BindCacheResetter(
 /// The resetter is registered after the component constructor finishes
 /// and is unregistered just before the destructor runs.
 ///
+/// Several cache resetters for the same component are invoked sequentially
+/// in registration order.
+///
 /// Typical usage:
 /// @code
 /// testsuite::RegisterCacheScope(context, this, &MyCache::ResetCache);
@@ -238,6 +247,14 @@ void RegisterCacheScope(
 
 /// @overload The resetter additionally receives the requested
 /// @ref cache::UpdateType.
+///
+/// Use this when the hook must distinguish a full invalidation from an
+/// incremental one. Typical cases:
+/// - a cache that supports both update types but is not periodic, so it is
+///   not a @ref components::CachingComponentBase: values are pushed in,
+///   for example by a handler called from a sidecar;
+/// - an extra resetter on a @ref components::CachingComponentBase cache that
+///   must know the requested update type to adjust incoming data for testsuite.
 template <typename Component>
 void RegisterCacheScope(
     const components::ComponentContext& context,

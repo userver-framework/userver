@@ -1,8 +1,10 @@
 #include <userver/utest/utest.hpp>
 
+#include <atomic>
 #include <chrono>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -16,6 +18,8 @@
 #include <userver/concurrent/variable.hpp>
 #include <userver/dump/common.hpp>
 #include <userver/dump/unsafe.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/engine/sleep.hpp>
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/fs/blocking/write.hpp>
@@ -162,6 +166,53 @@ UTEST(CacheControl, Smoke) {
     );
     env.dump_control.WriteCacheDumps({kCacheName});
     EXPECT_EQ(dump::FilenamesInDirectory(env.dump_root, kCacheName).size(), 1);
+}
+
+UTEST(CacheControl, AllResettersForNameAreCalled) {
+    testsuite::CacheControl cache_control{
+        testsuite::impl::PeriodicUpdatesMode::kDisabled,
+        testsuite::CacheControl::UnitTests{},
+    };
+
+    std::vector<std::string> call_order;
+
+    testsuite::CacheControl::CacheInfo first{
+        .name = "dup-cache",
+        .reset = [&call_order](cache::UpdateType) { call_order.emplace_back("first"); },
+        .needs_span = false,
+    };
+    const auto
+        first_reg = testsuite::CacheResetRegistration(cache_control, cache_control.DoRegisterCache(std::move(first)));
+
+    testsuite::CacheControl::CacheInfo last{
+        .name = "dup-cache",
+        .reset = [&call_order](cache::UpdateType) { call_order.emplace_back("last"); },
+        .needs_span = false,
+    };
+    const auto
+        last_reg = testsuite::CacheResetRegistration(cache_control, cache_control.DoRegisterCache(std::move(last)));
+
+    testsuite::CacheControl::CacheInfo other{
+        .name = "other-cache",
+        .reset = [&call_order](cache::UpdateType) { call_order.emplace_back("other"); },
+        .needs_span = false,
+    };
+    const auto
+        other_reg = testsuite::CacheResetRegistration(cache_control, cache_control.DoRegisterCache(std::move(other)));
+
+    cache_control.ResetCaches(
+        cache::UpdateType::kFull,
+        {"dup-cache"},
+        /*force_incremental_names=*/{}
+    );
+    EXPECT_THAT(call_order, ::testing::ElementsAre("first", "last"));
+
+    cache_control.ResetAllCaches(
+        cache::UpdateType::kFull,
+        /*force_incremental_names=*/{},
+        /*exclude_names=*/{}
+    );
+    EXPECT_THAT(call_order, ::testing::ElementsAre("first", "last", "first", "last", "other"));
 }
 
 UTEST_DEATH(CacheControlDeathTest, MissingCache) {
@@ -570,6 +621,82 @@ TEST_F(ComponentList, SequentialResetUpdatesDependencyBeforeDependent) {
     );
 
     EXPECT_THAT(testsuite_reset_order, ::testing::ElementsAre("producer-cache", "consumer-cache"));
+}
+
+constexpr std::string_view kConcurrentSameNameResetConfig = R"(
+components_manager:
+    task_processors:
+        main-task-processor:
+            worker_threads: 2
+    components:
+        testsuite-support:
+            cache-update-execution: concurrent
+        dup-resetters: {}
+        same-name-reset-driver: {}
+)";
+
+concurrent::Variable<std::vector<std::string>> same_name_reset_log;
+
+void RecordSameNameReset(std::string_view name) {
+    {
+        auto log = same_name_reset_log.Lock();
+        log->emplace_back(std::string{name} + "-start");
+    }
+    engine::SleepFor(std::chrono::milliseconds{10});
+    {
+        auto log = same_name_reset_log.Lock();
+        log->emplace_back(std::string{name} + "-end");
+    }
+}
+
+class DupResetters final : public components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "dup-resetters";
+
+    DupResetters(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::ComponentBase(config, context)
+    {
+        testsuite::RegisterCacheScope(context, this, &DupResetters::ResetFirst);
+        testsuite::RegisterCacheScope(context, this, &DupResetters::ResetSecond);
+    }
+
+    void ResetFirst() { RecordSameNameReset("first"); }
+
+    void ResetSecond() { RecordSameNameReset("second"); }
+};
+
+class SameNameResetDriver final : public components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "same-name-reset-driver";
+
+    SameNameResetDriver(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::ComponentBase(config, context),
+          cache_control_(testsuite::FindCacheControl(context))
+    {}
+
+    void OnAllComponentsLoaded() override {
+        cache_control_.ResetCaches(cache::UpdateType::kFull, {std::string{DupResetters::kName}}, {});
+    }
+
+private:
+    testsuite::CacheControl& cache_control_;
+};
+
+TEST_F(ComponentList, ConcurrentSameNameResettersWaitInOrder) {
+    same_name_reset_log.GetDataUnsafe().clear();
+
+    components::RunOnce(
+        components::InMemoryConfig{tests::MergeYaml(tests::kMinimalStaticConfig, kConcurrentSameNameResetConfig)},
+        components::MinimalComponentList()
+            .Append<components::TestsuiteSupport>()
+            .Append<DupResetters>()
+            .Append<SameNameResetDriver>()
+    );
+
+    EXPECT_THAT(
+        same_name_reset_log.GetDataUnsafe(),
+        ::testing::ElementsAre("first-start", "first-end", "second-start", "second-end")
+    );
 }
 
 class UpdateTypeResetter final : public components::ComponentBase {
