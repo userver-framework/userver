@@ -318,8 +318,7 @@ std::string HttpHandlerBase::GetRequestBodyForLogging(
     request::RequestContext&,
     const std::string& request_body
 ) const {
-    const std::size_t limit = GetConfig().request_body_size_log_limit;
-    return utils::log::ToLimitedUtf8(request_body, limit);
+    return request_body;
 }
 
 std::string HttpHandlerBase::GetResponseDataForLogging(
@@ -327,8 +326,7 @@ std::string HttpHandlerBase::GetResponseDataForLogging(
     request::RequestContext&,
     const std::string& response_data
 ) const {
-    const std::size_t limit = GetConfig().response_data_size_log_limit;
-    return utils::log::ToLimitedUtf8(response_data, limit);
+    return response_data;
 }
 
 std::string HttpHandlerBase::GetUrlForLogging(const http::HttpRequest& request, request::RequestContext&) const {
