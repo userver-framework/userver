@@ -207,12 +207,13 @@ UTEST(CacheControl, AllResettersForNameAreCalled) {
     );
     EXPECT_THAT(call_order, ::testing::ElementsAre("first", "last"));
 
+    call_order.clear();
     cache_control.ResetAllCaches(
         cache::UpdateType::kFull,
         /*force_incremental_names=*/{},
         /*exclude_names=*/{}
     );
-    EXPECT_THAT(call_order, ::testing::ElementsAre("first", "last", "first", "last", "other"));
+    EXPECT_THAT(call_order, ::testing::ElementsAre("first", "last", "other"));
 }
 
 UTEST_DEATH(CacheControlDeathTest, MissingCache) {

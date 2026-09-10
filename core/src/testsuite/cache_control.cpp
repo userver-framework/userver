@@ -240,10 +240,10 @@ void CacheControl::DoResetCaches(
         case ExecPolicy::kSequential: {
             auto caches = impl_->caches.Lock();
             for (auto& node : *caches) {
-                if (exclude_names && exclude_names->count(node.info.name)) {
+                if (exclude_names && exclude_names->contains(node.info.name)) {
                     continue;
                 }
-                if (reset_only_names && !reset_only_names->count(node.info.name)) {
+                if (reset_only_names && !reset_only_names->contains(node.info.name)) {
                     continue;
                 }
                 names_left_to_encounter.erase(node.info.name);
@@ -287,10 +287,10 @@ void CacheControl::DoResetCachesConcurrently(
     last_job_by_name.reserve(async_jobs.capacity());
     UASSERT(!(exclude_names && reset_only_names));
     for (auto& node : *caches) {
-        if (exclude_names && exclude_names->count(node.info.name)) {
+        if (exclude_names && exclude_names->contains(node.info.name)) {
             continue;
         }
-        if (reset_only_names && !reset_only_names->count(node.info.name)) {
+        if (reset_only_names && !reset_only_names->contains(node.info.name)) {
             continue;
         }
         names_left_to_encounter.erase(node.info.name);
