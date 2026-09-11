@@ -2,6 +2,8 @@
 #include <storages/postgres/connlimit_watchdog.hpp>
 
 #include <storages/postgres/detail/cluster_impl.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
 
@@ -60,26 +62,37 @@ ConnlimitWatchdog::ConnlimitWatchdog(
       host_name_(std::move(host_name))
 {}
 
+void ConnlimitWatchdog::TrySetupTable() {
+    auto trx = BeginTransaction();
+    trx.Execute(R"(
+      CREATE TABLE IF NOT EXISTS u_clients (
+          hostname TEXT PRIMARY KEY,
+          updated TIMESTAMPTZ NOT NULL,
+          max_connections INTEGER NOT NULL
+      );
+    )");
+    trx.Execute("ALTER TABLE u_clients ADD COLUMN IF NOT EXISTS cur_user TEXT");
+    trx.Execute("ALTER TABLE u_clients SET UNLOGGED");
+    trx.Commit();
+    table_is_ready_ = true;
+}
+
 void ConnlimitWatchdog::Start() {
     try {
-        auto trx = BeginTransaction();
-        trx.Execute(R"(
-          CREATE TABLE IF NOT EXISTS u_clients (
-              hostname TEXT PRIMARY KEY,
-              updated TIMESTAMPTZ NOT NULL,
-              max_connections INTEGER NOT NULL
-          );
-        )");
-        trx.Execute("ALTER TABLE u_clients ADD COLUMN IF NOT EXISTS cur_user TEXT");
-        trx.Execute("ALTER TABLE u_clients SET UNLOGGED");
-        // Beware! Do **not** change queries in StepV*, but rather provide a new StepV* to avoid migration issues.
-        trx.Commit();
+        TrySetupTable();
     } catch (const storages::postgres::AccessRuleViolation& e) {
         // Possible in some CREATE TABLE IF NOT EXISTS races with other services
+        table_is_ready_ = true;
         LOG_WARNING() << "Table already exists (not a fatal error): " << e;
     } catch (const storages::postgres::UniqueViolation& e) {
         // Possible in some CREATE TABLE IF NOT EXISTS races with other services
+        table_is_ready_ = true;
         LOG_WARNING() << "Table already exists (not a fatal error): " << e;
+    } catch (const storages::postgres::ClusterUnavailable& e) {
+        if (!cluster_.HasAliveHosts()) {
+            throw;
+        }
+        LOG_WARNING() << "Can't create u_clients, there is no writable master: will try later..." << e;
     }
 
     if (testsuite_tasks_.IsEnabled()) {
@@ -94,6 +107,7 @@ void ConnlimitWatchdog::Start() {
 }
 
 void ConnlimitWatchdog::StepV1() {
+    // Beware! Do **not** change queries in StepV*, but rather provide a new StepV* to avoid migration issues.
     static const Query kUpsertClientMaxConnections{
         R"(
         INSERT INTO u_clients (hostname, updated, max_connections)
@@ -116,6 +130,7 @@ void ConnlimitWatchdog::StepV1() {
 }
 
 void ConnlimitWatchdog::StepV2() {
+    // Beware! Do **not** change queries in StepV*, but rather provide a new StepV* to avoid migration issues.
     static const Query kUpsertClientMaxConnections{
         R"(
               INSERT INTO u_clients (hostname, updated, max_connections, cur_user)
@@ -145,6 +160,10 @@ void ConnlimitWatchdog::DoStep(
     const Query& select_instances_query
 ) {
     try {
+        if (!table_is_ready_) {
+            TrySetupTable();
+        }
+
         auto trx = BeginTransaction();
 
         const auto max_connections = GetMaxConnections(trx);
@@ -156,23 +175,44 @@ void ConnlimitWatchdog::DoStep(
 
         trx.Commit();
         steps_with_errors_ = 0;
-    } catch (const Error& e) {
-        if (++steps_with_errors_ > kMaxStepsWithError) {
-            /*
-             * Something's wrong with PG server. Try to lower the load by lowering
-             * max connection to a small value. Active connections will be gracefully
-             * closed. When the server returns the response, we'll get the real
-             * connlimit value. The period with "too low max_connections" should be
-             * relatively small.
-             */
-            const auto previous_connlimit = connlimit_.load();
-            connlimit_ = std::max(previous_connlimit / 2, min_fallback_connections_);
-            steps_with_errors_ = 0;
+    } catch (const ClusterUnavailable& e) {
+        if (cluster_.HasAliveHosts()) {
+            KeepConnlimitOnUnwritableMaster(e);
+        } else {
+            ReduceConnlimitOnError(e);
         }
-        LOG_WARNING() << fmt::format("Can't connect to u_clients. Fallback max_size to {}. ", connlimit_.load()) << e;
+    } catch (const Error& e) {
+        ReduceConnlimitOnError(e);
     }
 
     on_new_connlimit_();
+}
+
+void ConnlimitWatchdog::ReduceConnlimitOnError(const Error& e) {
+    if (++steps_with_errors_ > kMaxStepsWithError) {
+        /*
+         * Something's wrong with PG server. Try to lower the load by lowering
+         * max connection to a small value. Active connections will be gracefully
+         * closed. When the server returns the response, we'll get the real
+         * connlimit value. The period with "too low max_connections" should be
+         * relatively small.
+         */
+        const auto previous_connlimit = connlimit_.load();
+        connlimit_ = std::max(previous_connlimit / 2, min_fallback_connections_);
+        steps_with_errors_ = 0;
+    }
+    LOG_WARNING() << fmt::format("Can't connect to u_clients. Fallback max_size to {}. ", connlimit_.load()) << e;
+}
+
+void ConnlimitWatchdog::KeepConnlimitOnUnwritableMaster(const Error& e) {
+    if (connlimit_.load() == 0) {
+        connlimit_ = min_fallback_connections_;
+    }
+    LOG_LIMITED_WARNING(
+        "Can't write to u_clients, the master does not accept writes while the cluster is "
+        "alive. Keeping max_size at {}. ",
+        connlimit_.load()
+    ) << e;
 }
 
 Transaction ConnlimitWatchdog::BeginTransaction() {

@@ -78,6 +78,8 @@ public:
 
     std::string GetDbName() const;
 
+    bool HasAliveHosts() const;
+
     void SetDsnList(const DsnList&);
 
 private:

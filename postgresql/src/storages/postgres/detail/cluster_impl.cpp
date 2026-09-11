@@ -408,6 +408,13 @@ std::string ClusterImpl::GetDbName() const {
     return cluster_settings->db_name;
 }
 
+bool ClusterImpl::HasAliveHosts() const {
+    auto td = topology_data_.SharedLock();
+    auto& topology = td->topology;
+    auto alive_dsn_indices = topology->GetAliveDsnIndices();
+    return !alive_dsn_indices->indices.empty();
+}
+
 void ClusterImpl::SetDsnList(const DsnList& dsn) {
     {
         auto td = topology_data_.SharedLock();

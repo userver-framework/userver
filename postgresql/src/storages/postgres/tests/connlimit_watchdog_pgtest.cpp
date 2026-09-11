@@ -12,6 +12,7 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
+#include <userver/utils/scope_guard.hpp>
 #include <userver/utils/statistics/metrics_storage.hpp>
 
 #include <storages/postgres/detail/cluster_impl.hpp>
@@ -105,6 +106,11 @@ pg::Transaction GetTransaction(pgd::ClusterImpl& cluster) {
     return cluster.Begin({pg::ClusterHostType::kMaster}, {}, command_control);
 }
 
+pg::Transaction GetReadOnlyTransaction(pgd::ClusterImpl& cluster) {
+    static pg::CommandControl command_control{std::chrono::seconds(2), std::chrono::seconds(2)};
+    return cluster.Begin({pg::ClusterHostType::kSlave}, pg::Transaction::RO, command_control);
+}
+
 void ClearWatchdogTable(pgd::ClusterImpl& cluster) {
     auto trx = GetTransaction(cluster);
     trx.Execute("DELETE FROM u_clients");
@@ -128,6 +134,8 @@ constexpr size_t kTestsuiteServerConnlimit = 100;
 constexpr size_t kTestsuiteConnlimit = kTestsuiteServerConnlimit - kReservedConn;
 constexpr size_t kFallbackConnlimit = 17;
 constexpr size_t kMaxStepsWithError = 3;
+
+bool HasMasterInTopology(pgd::ClusterImpl& cluster) { return !cluster.GetStatistics()->master.host_port.empty(); }
 
 enum class MigrationVersion { kV1 = 0, kV2 = 1, kCount };
 
@@ -181,7 +189,34 @@ public:
 
     void RunWatchdogStep() { testsuite_tasks_.RunTask(kWatchdogTaskName); }
 
+    // Emulates the master is switched to read-only.
+    void SetRoleReadOnly() { ExecuteDirect("ALTER ROLE current_user SET default_transaction_read_only = on"); }
+
+    void ResetRoleReadOnly() { ExecuteDirect("ALTER ROLE current_user RESET default_transaction_read_only"); }
+
+    void DropUClients() { ExecuteDirect("DROP TABLE IF EXISTS u_clients"); }
+
+    bool UClientIsExists() {
+        auto conn = MakeConnection(GetDsnFromEnv(), GetTaskProcessor());
+        const auto res = conn->Execute(R"(
+            SELECT EXISTS (
+                SELECT 1
+                FROM pg_tables
+                WHERE tablename = 'u_clients'
+            );
+        )");
+        FinalizeConnection(std::move(conn));
+        return res.AsSingleRow<bool>();
+    }
+
 private:
+    void ExecuteDirect(const std::string& statement) {
+        auto conn = MakeConnection(GetDsnFromEnv(), GetTaskProcessor());
+        conn->Execute("SET default_transaction_read_only = off");
+        conn->Execute(statement);
+        FinalizeConnection(std::move(conn));
+    }
+
     dynamic_config::StorageMock config_storage_{
         dynamic_config::MakeDefaultStorage({{::dynamic_config::POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED, true}})
     };
@@ -366,6 +401,109 @@ UTEST_F(Watchdog, FallbackConnlimit) {
     }
 
     ASSERT_EQ(kFallbackConnlimit, watchdog.GetConnlimit());
+}
+
+UTEST_F(Watchdog, ReadOnlyMasterKeepsConnlimit) {
+    dynamic_config::StorageMock config_storage{
+        dynamic_config::MakeDefaultStorage({{::dynamic_config::POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED, true}})
+    };
+    testsuite::TestsuiteTasks readonly_cluster_tasks{true};
+    const auto dsn = GetDsnFromEnv();
+    const auto unavailable_dsn = GetUnavailableDsn();
+    auto cluster = CreateClusterImpl(
+        pg::DsnList{dsn, unavailable_dsn},
+        GetTaskProcessor(),
+        readonly_cluster_tasks,
+        config_storage.GetSource()
+    );
+
+    auto watchdog = pg::ConnlimitWatchdog{
+        cluster,
+        readonly_cluster_tasks,
+        kShardNumber,
+        kFallbackConnlimit,
+        [] {},
+        0,
+        "readonly-master-host",
+    };
+    watchdog.StepV2();
+    const auto connlimit = watchdog.GetConnlimit();
+    ASSERT_GT(connlimit, kFallbackConnlimit);
+
+    SetRoleReadOnly();
+    const USERVER_NAMESPACE::utils::ScopeGuard reset_role{[this] { ResetRoleReadOnly(); }};
+    // The new topology detects the roles synchronously.
+    cluster.SetDsnList(pg::DsnList{unavailable_dsn, dsn});
+
+    ASSERT_FALSE(HasMasterInTopology(cluster));
+    ASSERT_TRUE(cluster.HasAliveHosts()) << "the demoted master still serves reads";
+
+    {
+        // Read-only transaction works.
+        auto ro_trx = GetReadOnlyTransaction(cluster);
+        EXPECT_EQ(1, ro_trx.Execute("SELECT 1").AsSingleRow<int>());
+        UEXPECT_NO_THROW(ro_trx.Commit());
+    }
+
+    for (std::size_t i = 0; i < kMaxStepsWithError + 1; ++i) {
+        watchdog.StepV2();
+        ASSERT_EQ(connlimit, watchdog.GetConnlimit());
+    }
+
+    cluster.SetDsnList(pg::DsnList{unavailable_dsn, unavailable_dsn});
+    ASSERT_FALSE(cluster.HasAliveHosts());
+
+    for (std::size_t i = 0; i < kMaxStepsWithError + 1; ++i) {
+        ASSERT_EQ(connlimit, watchdog.GetConnlimit());
+        watchdog.StepV2();
+    }
+    ASSERT_EQ(std::max(connlimit / 2, kFallbackConnlimit), watchdog.GetConnlimit());
+}
+
+UTEST_F(Watchdog, ReadOnlyMasterOnStartupKeepsPoolUsable) {
+    DropUClients();
+    SetRoleReadOnly();
+    const USERVER_NAMESPACE::utils::ScopeGuard reset_role{[this] { ResetRoleReadOnly(); }};
+
+    dynamic_config::StorageMock config_storage{
+        dynamic_config::MakeDefaultStorage({{::dynamic_config::POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED, true}})
+    };
+    testsuite::TestsuiteTasks readonly_cluster_tasks{true};
+    auto cluster = CreateClusterImpl(
+        pg::DsnList{GetDsnFromEnv(), GetUnavailableDsn()},
+        GetTaskProcessor(),
+        readonly_cluster_tasks,
+        config_storage.GetSource()
+    );
+
+    auto watchdog = pg::ConnlimitWatchdog{
+        cluster,
+        readonly_cluster_tasks,
+        kShardNumber,
+        kFallbackConnlimit,
+        [] {},
+        0,
+        "readonly-master-startup-host",
+    };
+    watchdog.StepV2();
+
+    EXPECT_FALSE(UClientIsExists());
+
+    EXPECT_EQ(kFallbackConnlimit, watchdog.GetConnlimit());
+
+    // Read-only transaction works.
+    auto ro_trx = GetReadOnlyTransaction(cluster);
+    EXPECT_EQ(1, ro_trx.Execute("SELECT 1").AsSingleRow<int>());
+    ro_trx.Commit();
+
+    ResetRoleReadOnly();
+    cluster.SetDsnList(pg::DsnList{GetUnavailableDsn(), GetDsnFromEnv()});
+    ASSERT_TRUE(HasMasterInTopology(cluster));
+
+    watchdog.StepV2();
+
+    EXPECT_TRUE(UClientIsExists());
+    EXPECT_EQ(kTestsuiteConnlimit, watchdog.GetConnlimit());
 }
 
 UTEST_F(Watchdog, CheckLimit) {
