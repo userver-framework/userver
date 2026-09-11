@@ -1,8 +1,14 @@
 #include <userver/utest/utest.hpp>
 
+#include <initializer_list>
+
+#include <userver/engine/task/current_task.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/tracing/manager.hpp>
+#include <userver/tracing/opentelemetry.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/async.hpp>
 
 #include <ugrpc/impl/rpc_metadata.hpp>
 
@@ -28,6 +34,8 @@ const grpc::string kServerParentLink = "server-parent-link";
 const grpc::string kClientTraceIdEcho = "client-trace-id-echo";
 const grpc::string kClientSpanIdEcho = "client-span-id-echo";
 const grpc::string kClientLinkEcho = "client-link-echo";
+const grpc::string kClientTraceparentEcho = "client-traceparent-echo";
+const grpc::string kClientTracestateEcho = "client-tracestate-echo";
 
 class UnitTestServiceWithTracingChecks final : public sample::ugrpc::UnitTestServiceBase {
 public:
@@ -69,6 +77,8 @@ private:
         context.AddInitialMetadata(kClientTraceIdEcho, GetMetadataValue(client_meta, ugrpc::impl::kXYaTraceId));
         context.AddInitialMetadata(kClientSpanIdEcho, GetMetadataValue(client_meta, ugrpc::impl::kXYaSpanId));
         context.AddInitialMetadata(kClientLinkEcho, GetMetadataValue(client_meta, ugrpc::impl::kXYaRequestId));
+        context.AddInitialMetadata(kClientTraceparentEcho, GetMetadataValue(client_meta, ugrpc::impl::kTraceParent));
+        context.AddInitialMetadata(kClientTracestateEcho, GetMetadataValue(client_meta, ugrpc::impl::kTraceState));
     }
 };
 
@@ -154,6 +164,44 @@ UTEST_F(GrpcTracing, SpansInDifferentRPCs) {
     EXPECT_NE(GetMetadataValue(metadata1, kServerParentSpanId), GetMetadataValue(metadata2, kServerParentSpanId));
     EXPECT_NE(GetMetadataValue(metadata1, kServerLink), GetMetadataValue(metadata2, kServerLink));
     EXPECT_EQ(GetMetadataValue(metadata1, kServerParentLink), GetMetadataValue(metadata2, kServerParentLink));
+}
+
+UTEST_F(GrpcTracing, BackgroundTaskPreservesOtelContext) {
+    for (const auto flags : {"00", "02", "01", "03"}) {
+        for (const bool sampled : {false, true}) {
+            SCOPED_TRACE(flags);
+            SCOPED_TRACE(sampled);
+            tracing::Span span("parent");
+            span.SetSampled(sampled);
+            tracing::SetInheritedOtelTracingData("vendor=abc,foo=bar", flags);
+
+            utils::AsyncBackground("background-rpc", engine::current_task::GetTaskProcessor(), [this, flags, sampled] {
+                EXPECT_EQ(tracing::Span::CurrentSpan().IsSampled(), sampled);
+                auto future = GetClient().AsyncSayHello(sample::ugrpc::GreetingRequest{});
+                future.Get();
+                const auto& metadata = future.GetContext().GetClientContext().GetServerInitialMetadata();
+                const auto traceparent = GetMetadataValue(metadata, kClientTraceparentEcho);
+                const auto parsed = tracing::opentelemetry::ExtractTraceParentDataView(traceparent);
+                ASSERT_TRUE(parsed.has_value()) << parsed.error();
+                EXPECT_EQ(parsed->trace_id, tracing::Span::CurrentSpan().GetTraceId());
+                EXPECT_EQ(parsed->trace_flags, flags);
+                EXPECT_EQ(GetMetadataValue(metadata, kClientTracestateEcho), "vendor=abc,foo=bar");
+            }).Get();
+        }
+    }
+}
+
+UTEST_F(GrpcTracing, BackgroundTaskWithoutOtelContextDefaultsToSampled) {
+    utils::AsyncBackground("background-rpc", engine::current_task::GetTaskProcessor(), [this] {
+        auto future = GetClient().AsyncSayHello(sample::ugrpc::GreetingRequest{});
+        future.Get();
+        const auto& metadata = future.GetContext().GetClientContext().GetServerInitialMetadata();
+        const auto traceparent = GetMetadataValue(metadata, kClientTraceparentEcho);
+        const auto parsed = tracing::opentelemetry::ExtractTraceParentDataView(traceparent);
+        ASSERT_TRUE(parsed.has_value()) << parsed.error();
+        EXPECT_EQ(parsed->trace_flags, "01");
+        EXPECT_TRUE(GetMetadataValue(metadata, kClientTracestateEcho).empty());
+    }).Get();
 }
 
 USERVER_NAMESPACE_END

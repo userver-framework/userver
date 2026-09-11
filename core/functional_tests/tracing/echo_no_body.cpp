@@ -1,15 +1,21 @@
 #include <userver/utils/assert.hpp>
 
+#include <utility>
+
 #include <userver/clients/dns/component.hpp>
 #include <userver/clients/http/component.hpp>
 #include <userver/clients/http/component_list.hpp>
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
+#include <userver/concurrent/background_task_storage.hpp>
+#include <userver/engine/future.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/http/url.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
+#include <userver/utils/async.hpp>
 #include <userver/utils/daemon_run.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -25,10 +31,31 @@ public:
           http_client_(context.FindComponent<components::HttpClient>().GetHttpClient())
     {}
 
-    std::string HandleRequestThrow(const server::http::HttpRequest&, server::request::RequestContext&) const override {
+    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
+        const override {
         LOG_INFO() << "echo-no-body handler called";
-        auto response = http_client_.CreateRequest().get(echo_url_).retry(2).timeout(std::chrono::seconds{5}).perform();
-        response->raise_for_status();
+        const auto make_request = [this] {
+            auto response =
+                http_client_.CreateRequest().get(echo_url_).retry(2).timeout(std::chrono::seconds{5}).perform();
+            response->raise_for_status();
+        };
+
+        const auto& task_mode = request.GetArg("task_mode");
+        if (task_mode == "async") {
+            utils::Async("echo-request", make_request).Get();
+        } else if (task_mode == "background") {
+            utils::AsyncBackground("echo-request", engine::current_task::GetTaskProcessor(), make_request).Get();
+        } else if (task_mode == "detached") {
+            engine::Promise<void> completion;
+            auto future = completion.get_future();
+            background_tasks_.AsyncDetach("echo-request", [make_request, completion = std::move(completion)]() mutable {
+                make_request();
+                completion.set_value();
+            });
+            future.get();
+        } else {
+            make_request();
+        }
         return {};
     }
 
@@ -47,6 +74,7 @@ public:
 private:
     const std::string echo_url_;
     clients::http::Client& http_client_;
+    mutable concurrent::BackgroundTaskStorage background_tasks_;
 };
 
 int main(int argc, char* argv[]) {

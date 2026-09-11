@@ -273,10 +273,11 @@ template <typename Function, typename... Args>
 
 /// @ingroup userver_concurrency
 ///
-/// Starts an asynchronous task without propagating
-/// engine::TaskInheritedVariable. tracing::Span and baggage::Baggage are
-/// inherited. Task execution may be cancelled before the function starts
-/// execution in case of engine::TaskProcessor overload.
+/// Starts an asynchronous task that inherits tracing::Span and only the
+/// engine::TaskInheritedVariable instances with
+/// engine::TaskInheritedVariablePriority::kBackground, including baggage::Baggage
+/// and OpenTelemetry tracing headers. Task execution may be cancelled before the
+/// function starts execution in case of engine::TaskProcessor overload.
 ///
 /// Typically used from a request handler to launch tasks that outlive the
 /// request and do not effect its completion.
