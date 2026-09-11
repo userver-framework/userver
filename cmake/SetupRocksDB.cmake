@@ -12,10 +12,13 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 
 if(NOT USERVER_FORCE_DOWNLOAD_PACKAGES)
-    if(USERVER_DOWNLOAD_PACKAGE_ROCKS)
-        find_package(RocksDB QUIET CONFIG)
-    else()
-        find_package(RocksDB REQUIRED CONFIG)
+    find_package(RocksDB QUIET CONFIG)
+    if(NOT RocksDB_FOUND)
+        if(USERVER_DOWNLOAD_PACKAGE_ROCKS)
+            find_package(RocksDB QUIET MODULE)
+        else()
+            find_package(RocksDB REQUIRED MODULE)
+        endif()
     endif()
 
     if(RocksDB_FOUND)
@@ -34,8 +37,8 @@ include(DownloadUsingCPM)
 cpmaddpackage(
     NAME RocksDB
     VERSION 10.4.2
-    URL https://github.com/facebook/rocksdb/archive/v10.4.2.tar.gz
-    URL_HASH SHA256=afccfab496556904900afacf7d99887f1d50cb893e5d2288bd502db233adacac
+    URL https://github.com/facebook/rocksdb/archive/v10.4.2.tar.gz URL_HASH
+        SHA256=afccfab496556904900afacf7d99887f1d50cb893e5d2288bd502db233adacac
     OPTIONS "ROCKSDB_BUILD_SHARED OFF"
             "PORTABLE ON"
             "WITH_SNAPPY ON"

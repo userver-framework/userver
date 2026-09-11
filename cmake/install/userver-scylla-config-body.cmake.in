@@ -1,0 +1,1 @@
+include("${USERVER_CMAKE_DIR}/SetupScyllaDeps.cmake")

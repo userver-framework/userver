@@ -11,28 +11,40 @@ CMAKE_OPTS = \
 	     -DUSERVER_BUILD_ALL_COMPONENTS=1 \
 	     -DUSERVER_FEATURE_UTEST=ON \
 
-# These features have no apt package for their C++ client libraries and are
-# not shipped as libuserver-*-dev packages in this PPA
+# These features have no suitable apt package for their C++ client libraries
+# and are not shipped as libuserver-*-dev packages in this PPA.
 CMAKE_OPTS += \
 	     -DUSERVER_FEATURE_YDB=OFF \
 	     -DUSERVER_FEATURE_CLICKHOUSE=OFF \
 	     -DUSERVER_FEATURE_RABBITMQ=OFF \
 	     -DUSERVER_FEATURE_PATCH_LIBPQ=OFF \
 
+# Ubuntu 22.04 provides librdkafka 1.8 and gRPC 1.30, which are too old for userver.
+DEB_DISTRIBUTION ?= $(shell dpkg-parsechangelog -S Distribution)
+ifeq ($(DEB_DISTRIBUTION),jammy)
+CMAKE_OPTS += \
+	     -DUSERVER_FEATURE_KAFKA=OFF \
+	     -DUSERVER_FEATURE_GRPC=OFF \
+	     -DUSERVER_FEATURE_GRPC_REFLECTION=OFF \
+	     -DUSERVER_FEATURE_OTLP=OFF
+endif
 
 # Disable testsuite on userver package build,
 # but a user may still fetch testsuite via cmake
 CMAKE_OPTS += -DUSERVER_FEATURE_TESTSUITE=OFF
 
-# Launchpad builders are offline. The chaotic venv installs pydantic2 from vendored wheels
-# (debian/vendor-wheels, populated by gen-debian-directory); jinja2, pyyaml and
-# transliterate come from apt (USERVER_PIP_USE_SYSTEM_PACKAGES=ON, Build-Depends).
+# Launchpad builders are offline. The chaotic venv uses system packages where
+# available; Jammy and Noble additionally use wheels from debian/vendor-wheels.
 # USERVER_PIP_USE_UV=OFF is mandatory: uv ignores --system-site-packages under --no-index
-# and declares jinja2/pyyaml/transliterate unsatisfiable. pip handles them correctly.
+# and declares system dependencies unsatisfiable. pip handles them correctly.
 CMAKE_OPTS += \
 	     -DUSERVER_PIP_USE_SYSTEM_PACKAGES=ON \
-	     -DUSERVER_PIP_USE_UV=OFF \
-	     "-DUSERVER_PIP_OPTIONS=--no-index;--find-links=$(CURDIR)/debian/vendor-wheels"
+	     -DUSERVER_PIP_USE_UV=OFF
+ifeq ($(DEB_DISTRIBUTION),resolute)
+CMAKE_OPTS += -DUSERVER_PIP_OPTIONS=--no-index
+else
+CMAKE_OPTS += "-DUSERVER_PIP_OPTIONS=--no-index;--find-links=$(CURDIR)/debian/vendor-wheels"
+endif
 
 # Launchpad builders are offline; disable all CPM/GitHub source downloads.
 # All third-party deps resolve via apt Build-Depends.
@@ -84,23 +96,23 @@ override_dh_cpack_generate:
 override_dh_cpack_install:
 	dh_cpack_install --builddirectory=$(BUILD_DIR_RELEASE)
 	dh_cpack_install --builddirectory=$(BUILD_DIR_DEBUG)
-	# Ship pydantic2 (+ closure: pydantic_core, annotated_types, typing_extensions,
-	# typing_inspection) inside libuserver-chaotic-dev so that the installed chaotic-gen
-	# tool works out-of-the-box. Noble/jammy apt only ship pydantic 1.10; chaotic needs
-	# pydantic 2 (TypeAdapter, ConfigDict). The wheels are pre-downloaded by
-	# generate-debian-directory.sh into debian/vendor-wheels/.
+	# Ship Pydantic 2 and PyYAML wheels on Jammy and Noble. Their native
+	# Pydantic is too old for chaotic, and Jammy's PyYAML is also too old.
+	# Resolute uses native packages.
 	#
 	# The chaotic-gen launcher sets PYTHONPATH=<libdir>/userver, so unpacking the wheels
 	# directly there makes all packages importable with no launcher changes.
 	#
 	# These files bypass debian/tmp, so dh_missing does not see them.
 	set -e; \
-	dest=debian/libuserver-chaotic-dev/usr/lib/$(DEB_HOST_MULTIARCH)/userver; \
-	mkdir -p $$dest; \
-	for whl in $(CURDIR)/debian/vendor-wheels/*.whl; do \
-		unzip -o -q $$whl -d $$dest; \
-	done; \
-	rm -rf $$dest/*.dist-info
+	if [ -d $(CURDIR)/debian/vendor-wheels ]; then \
+		dest=debian/libuserver-chaotic-dev/usr/lib/$(DEB_HOST_MULTIARCH)/userver; \
+		mkdir -p $$dest; \
+		for whl in $(CURDIR)/debian/vendor-wheels/*.whl; do \
+			unzip -o -q $$whl -d $$dest; \
+		done; \
+		rm -rf $$dest/*.dist-info; \
+	fi
 
 override_dh_auto_install:
 	dh_auto_install --builddirectory=$(BUILD_DIR_RELEASE)

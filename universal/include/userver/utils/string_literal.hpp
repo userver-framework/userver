@@ -77,4 +77,9 @@ void WriteToStream(StringLiteral literal, StringBuilder& sw) {
 USERVER_NAMESPACE_END
 
 template <>
-struct fmt::formatter<USERVER_NAMESPACE::utils::StringLiteral, char> : fmt::formatter<std::string_view> {};
+struct fmt::formatter<USERVER_NAMESPACE::utils::StringLiteral, char> : fmt::formatter<std::string_view> {
+    template <typename FormatContext>
+    constexpr auto format(USERVER_NAMESPACE::utils::StringLiteral value, FormatContext& ctx) const {
+        return fmt::formatter<std::string_view>::format(std::string_view{value}, ctx);
+    }
+};

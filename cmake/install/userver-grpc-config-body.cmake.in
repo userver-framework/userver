@@ -1,0 +1,3 @@
+set(USERVER_GRPC_SCRIPTS_PATH "${USERVER_CMAKE_DIR}/grpc")
+
+include("${USERVER_CMAKE_DIR}/UserverGrpcTargets.cmake")

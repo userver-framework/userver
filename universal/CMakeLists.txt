@@ -377,9 +377,9 @@ _userver_directory_install(
           "${USERVER_ROOT_DIR}/cmake/UserverEmbedFile.cmake"
           "${USERVER_ROOT_DIR}/cmake/UserverPreferStaticLibs.cmake"
           "${USERVER_ROOT_DIR}/cmake/embedded_config.cmake"
-          "${USERVER_ROOT_DIR}/cmake/install/userver-universal-config.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
+_userver_install_component_config(universal)
 _userver_directory_install(
     COMPONENT universal
     FILES "${USERVER_ROOT_DIR}/cmake/modules/Findcryptopp.cmake"

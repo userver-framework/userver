@@ -4,15 +4,20 @@
 set -euo pipefail
 
 VERSION=${VERSION:-$(cat version.txt)}
+VERSION=${VERSION//-/\~}
 DISTRO=${DISTRO:-ubuntu-24.04}
 
-# Modules whose C++ client libraries have no apt package and whose cmake feature
-# flag is set to OFF in scripts/debian-rules.
-# Keep this list in sync with the *_FEATURE_*=OFF flags in scripts/debian-rules.
+# Modules whose C++ client libraries are unavailable in a suitable version and
+# whose CMake feature flag is set to OFF in scripts/debian-rules.
+# Keep this list in sync with the *_FEATURE_*=OFF flags in scripts/debian-rules,
+# including distro-specific flags.
 DISABLED_MODULES="clickhouse rabbitmq ydb"
 
 case "$DISTRO" in
-    ubuntu-22.04) SUITE=jammy ;;
+    ubuntu-22.04)
+        SUITE=jammy
+        DISABLED_MODULES+=" kafka grpc grpc-reflection otlp"
+        ;;
     ubuntu-24.04) SUITE=noble ;;
     ubuntu-26.04) SUITE=resolute ;;
     *)
@@ -22,17 +27,19 @@ case "$DISTRO" in
         ;;
 esac
 
-# Map DISTRO to the target CPython ABI for vendored wheel downloads.
+# Map distros that need vendored wheels to their target CPython ABI.
+PYVER=
 case "$DISTRO" in
-    ubuntu-22.04) PYVER=3.10 ;;
-    ubuntu-24.04) PYVER=3.12 ;;
-    ubuntu-26.04)
-        echo "ERROR: ubuntu-26.04 pydantic wheel vendoring not yet configured." >&2
-        echo "Add PYVER for resolute and re-run." >&2
-        exit 1
+    ubuntu-22.04)
+        PYVER=3.10
+        PKG_CONFIG_PACKAGE=pkg-config
         ;;
+    ubuntu-24.04)
+        PYVER=3.12
+        PKG_CONFIG_PACKAGE=pkg-config
+        ;;
+    ubuntu-26.04) PKG_CONFIG_PACKAGE=pkgconf ;;
 esac
-PYABI="cp${PYVER//./}"
 
 # pinned to main HEAD commit 3332dec5 (2022-08-01).
 # WARNING: the auto-generated 1.xx.0 release tags (e.g. 1.50.0) do NOT track the
@@ -48,7 +55,7 @@ OPENTELEMETRY_PROTO_TAG=v1.3.2
 SPECIAL_MODULES="examples"
 ALL_MODULES=$(ls scripts/docs/en/deps/$DISTRO | grep -vxFf <(printf '%s\n' $DISABLED_MODULES $SPECIAL_MODULES))
 ALL_PACKAGES=$(echo $ALL_MODULES | xargs -n1 | sed 's/.*/libuserver-\0-dev/')
-BUILD_DEPENDENCIES=$(cat scripts/docs/en/deps/$DISTRO.md | sed 's/$/,/' | xargs | sed 's/,$//')
+BUILD_DEPENDENCIES=$(sed '/^build-essential$/d; s/$/,/' scripts/docs/en/deps/$DISTRO.md | xargs | sed 's/,$//')
 
 
 rm -rf debian/
@@ -69,7 +76,7 @@ EOF
         line="${line%/}"
         # Skip debian/ (must ship in source tarball)
         [[ "$line" == "/debian" || "$line" == "debian" ]] && continue
-        # Convert leading / to ./
+        # Preserve root-anchored .gitignore patterns for tar exclusions.
         if [[ "$line" == /* ]]; then
             line=".${line}"
         fi
@@ -77,19 +84,33 @@ EOF
     done < .gitignore
 } >debian/source/options
 
-# Vendor pydantic2 wheels (offline Launchpad builder cannot reach PyPI).
-WHEEL_DIR=debian/vendor-wheels
-mkdir -p "$WHEEL_DIR"
-echo "Downloading pydantic>=2.5.3,<3 wheels for ${DISTRO} (Python ${PYVER}, ${PYABI}, manylinux2014_x86_64)..."
-python3 -m pip download 'pydantic>=2.5.3,<3' \
-    --only-binary=:all: \
-    --implementation cp \
-    --python-version "$PYVER" \
-    --abi "$PYABI" \
-    --platform manylinux2014_x86_64 \
-    -d "$WHEEL_DIR"
-echo "Vendored wheels:"
-ls "$WHEEL_DIR"
+cat >debian/source/lintian-overrides <<'EOF'
+# The JSON-licensed jsonchecker sources are not vendored, but RapidJSON's license notice must be retained.
+userver source: license-problem-json-evil [third_party/rapidjson/license.txt]
+# This intentionally minified HTML file is the source fixture used by the benchmark service.
+userver source: source-is-missing [samples/benchmark_service/data/static/footer.html]
+EOF
+
+# Jammy and Noble lack a sufficiently recent Pydantic package, and Jammy's
+# PyYAML is also too old. Vendor wheels because Launchpad builders cannot reach
+# PyPI. Resolute uses its native Pydantic 2 and PyYAML packages instead.
+if [ -n "$PYVER" ]; then
+    PYABI="cp${PYVER//./}"
+    WHEEL_DIR=debian/vendor-wheels
+    mkdir -p "$WHEEL_DIR"
+    echo "Downloading Python wheels for ${DISTRO} (Python ${PYVER}, ${PYABI}, manylinux2014_x86_64)..."
+    python3 -m pip download \
+        'pydantic>=2.5.3,<3' \
+        'PyYAML>=6.0.1' \
+        --only-binary=:all: \
+        --implementation cp \
+        --python-version "$PYVER" \
+        --abi "$PYABI" \
+        --platform manylinux2014_x86_64 \
+        -d "$WHEEL_DIR"
+    echo "Vendored wheels:"
+    ls "$WHEEL_DIR"
+fi
 
 # Vendor proto sources (offline Launchpad builder cannot reach GitHub).
 PROTO_DIR=debian/vendor-protos
@@ -125,8 +146,7 @@ Build-Depends: debhelper-compat (= 13),
                dh-sequence-ctest,
                dh-sequence-cpack,
                cmake (>= 3.14),
-               pkg-config,
-               libc6-dev,
+	       $PKG_CONFIG_PACKAGE,
 	       $BUILD_DEPENDENCIES
 Standards-Version: 4.6.2
 Homepage: https://userver.tech
@@ -135,7 +155,7 @@ Vcs-Browser: https://github.com/userver-framework/userver
 
 Package: libuserver-all-dev
 Architecture: any
-Depends: $(echo $ALL_PACKAGES | sed 's/ /, /g' | xargs), libuserver-examples
+Depends: $(echo $ALL_PACKAGES | sed 's/ /, /g' | xargs), libuserver-examples, \${misc:Depends}
 Description:
  userver is the modern open source asynchronous framework with a rich set
  of abstractions for fast and comfortable creation of C++ microservices,
@@ -146,6 +166,7 @@ Description:
 
 Package: libuserver-examples
 Architecture: any
+Depends: \${misc:Depends}
 Description:
  userver is the modern open source asynchronous framework with a rich set
  of abstractions for fast and comfortable creation of C++ microservices,
@@ -164,10 +185,13 @@ for MODULE in $ALL_MODULES; do
     MODULE_APT_DEPS=$(sed '/^\s*\(#\|$\)/d' "scripts/docs/en/deps/$DISTRO/$MODULE" 2>/dev/null \
         | tr '\n' ',' | sed 's/,$//' | sed 's/,/, /g')
 
+    MODULE_DEPENDS="\${cpack:Depends}"
+    if [ "$MODULE" = chaotic ]; then
+        MODULE_DEPENDS="$MODULE_DEPENDS, \${shlibs:Depends}"
+    fi
+    MODULE_DEPENDS="$MODULE_DEPENDS, \${misc:Depends}"
     if [ -n "$MODULE_APT_DEPS" ]; then
-        MODULE_DEPENDS="\${cpack:Depends}, \${misc:Depends}, $MODULE_APT_DEPS"
-    else
-        MODULE_DEPENDS="\${cpack:Depends}, \${misc:Depends}"
+        MODULE_DEPENDS="$MODULE_DEPENDS, $MODULE_APT_DEPS"
     fi
 
     cat >>debian/control <<EOF
@@ -183,6 +207,19 @@ Description:
 
 EOF
 done
+
+# The manylinux wheels link to the dynamic loader, libc.so.6, libdl.so.2,
+# libgcc_s.so.1, libpthread.so.0, and librt.so.1. In merged-/usr environments,
+# dpkg-shlibdeps may resolve them through diversions and fail to map them back
+# to Ubuntu packages. Keep scanning the binaries, but provide the mappings.
+cat >debian/shlibs.local <<EOF
+ld-linux-x86-64 2 libc6
+libc 6 libc6
+libdl 2 libc6
+libgcc_s 1 libgcc-s1
+libpthread 0 libc6
+librt 1 libc6
+EOF
 
 # 'examples' component is installed by USERVER_BUILD_SAMPLES=ON; its package is
 # 'libuserver-examples' (non-dev, sample sources only). Write its .cpack-components
