@@ -240,8 +240,8 @@ public:
         }
         // ...
 
-        // RegisterCacheScope must be called at the end of the constructor.
-        testsuite::RegisterCacheScope(context, this, &MyCache::ResetCache);
+        // RegisterCacheResetter must be called at the end of the constructor.
+        testsuite::RegisterCacheResetter(context, this, &MyCache::ResetCache);
     }
 
     std::string GetToken() {
@@ -280,7 +280,7 @@ public:
 
     Component1(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
-        testsuite::RegisterCacheScope(context, this, &Component1::ResetCache);
+        testsuite::RegisterCacheResetter(context, this, &Component1::ResetCache);
     }
 
     void ResetCache() {
@@ -297,7 +297,7 @@ public:
 
     Component1a(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
-        testsuite::RegisterCacheScope(context, this, &Component1a::ResetCache);
+        testsuite::RegisterCacheResetter(context, this, &Component1a::ResetCache);
     }
 
     void ResetCache() {
@@ -314,7 +314,7 @@ public:
 
     Component1b(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
-        testsuite::RegisterCacheScope(context, this, &Component1b::ResetCache);
+        testsuite::RegisterCacheResetter(context, this, &Component1b::ResetCache);
     }
 
     void ResetCache() {
@@ -331,7 +331,7 @@ public:
 
     Component1c(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
-        testsuite::RegisterCacheScope(context, this, &Component1c::ResetCache);
+        testsuite::RegisterCacheResetter(context, this, &Component1c::ResetCache);
     }
 
     void ResetCache() {
@@ -349,7 +349,7 @@ public:
     Component2(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
         context.FindComponent<Component1>();
-        testsuite::RegisterCacheScope(context, this, &Component2::ResetCache);
+        testsuite::RegisterCacheResetter(context, this, &Component2::ResetCache);
     }
 
     void ResetCache() {
@@ -367,7 +367,7 @@ public:
     ComponentNotLoaded(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
         context.FindComponent<Component1>();
-        testsuite::RegisterCacheScope(context, this, &ComponentNotLoaded::ResetCache);
+        testsuite::RegisterCacheResetter(context, this, &ComponentNotLoaded::ResetCache);
     }
 
     void ResetCache() { UASSERT(false); }
@@ -388,7 +388,7 @@ public:
         context.FindComponent<Component1b>();
         context.FindComponent<Component1c>();
 
-        testsuite::RegisterCacheScope(context, this, &Component3::ResetCache);
+        testsuite::RegisterCacheResetter(context, this, &Component3::ResetCache);
     }
 
     void ResetCache() {
@@ -657,8 +657,8 @@ public:
     DupResetters(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context)
     {
-        testsuite::RegisterCacheScope(context, this, &DupResetters::ResetFirst);
-        testsuite::RegisterCacheScope(context, this, &DupResetters::ResetSecond);
+        testsuite::RegisterCacheResetter(context, this, &DupResetters::ResetFirst);
+        testsuite::RegisterCacheResetter(context, this, &DupResetters::ResetSecond);
     }
 
     void ResetFirst() { RecordSameNameReset("first"); }
@@ -710,7 +710,7 @@ public:
         : components::ComponentBase(config, context),
           cache_control_(testsuite::FindCacheControl(context))
     {
-        testsuite::RegisterCacheScope(context, this, &UpdateTypeResetter::ResetCache);
+        testsuite::RegisterCacheResetter(context, this, &UpdateTypeResetter::ResetCache);
     }
 
     void ResetCache(cache::UpdateType update_type) { update_types.push_back(update_type); }

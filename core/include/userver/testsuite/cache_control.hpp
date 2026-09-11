@@ -72,7 +72,7 @@ public:
     /// Every registered resetter whose name is in @a reset_only_names is
     /// invoked. Several resetters may share a name: for example a periodic
     /// @ref cache::CacheUpdateTrait resetter and a later custom
-    /// @ref RegisterCacheScope.
+    /// @ref RegisterCacheResetter.
     ///
     /// @a update_type is used by caches derived from
     /// @a component::CachingComponentBase.
@@ -111,7 +111,7 @@ public:
     // For internal use only.
     CacheResetRegistration RegisterPeriodicCache(cache::CacheUpdateTrait& cache);
 
-    // For internal use only. Use testsuite::RegisterCacheScope instead
+    // For internal use only. Use testsuite::RegisterCacheResetter instead
     CacheResetRegistration RegisterCache(
         utils::impl::InternalTag,
         std::string_view name,
@@ -165,7 +165,7 @@ private:
 ///
 /// Removes the associated resetter automatically on destruction.
 ///
-/// Prefer @ref RegisterCacheScope so that the resetter is registered after
+/// Prefer @ref RegisterCacheResetter so that the resetter is registered after
 /// the component constructor and unregistered just before the destructor.
 /// Otherwise store the registration as a member after the rest of
 /// the component's fields.
@@ -194,7 +194,7 @@ private:
 
 /// The method for acquiring testsuite::CacheControl in the component system.
 ///
-/// @see testsuite::RegisterCacheScope
+/// @see testsuite::RegisterCacheResetter
 CacheControl& FindCacheControl(const components::ComponentContext& context);
 
 namespace impl {
@@ -230,14 +230,14 @@ std::function<void(cache::UpdateType)> BindCacheResetter(
 ///
 /// Typical usage:
 /// @code
-/// testsuite::RegisterCacheScope(context, this, &MyCache::ResetCache);
+/// testsuite::RegisterCacheResetter(context, this, &MyCache::ResetCache);
 /// @endcode
 ///
 /// @warning The function should be called in the component's constructor
 /// *after* all FindComponent calls. This ensures that reset will first be
 /// called for dependencies, then for dependent components.
 template <typename Component>
-void RegisterCacheScope(
+void RegisterCacheResetter(
     const components::ComponentContext& context,
     Component* self,
     void (Component::*reset_method)()
@@ -256,7 +256,7 @@ void RegisterCacheScope(
 /// - an extra resetter on a @ref components::CachingComponentBase cache that
 ///   must know the requested update type to adjust incoming data for testsuite.
 template <typename Component>
-void RegisterCacheScope(
+void RegisterCacheResetter(
     const components::ComponentContext& context,
     Component* self,
     void (Component::*reset_method)(cache::UpdateType)
@@ -264,7 +264,20 @@ void RegisterCacheScope(
     impl::DoRegisterCacheScope(context, impl::BindCacheResetter(self, reset_method));
 }
 
-/// @deprecated Use @ref RegisterCacheScope instead.
+/// @deprecated Use @ref RegisterCacheResetter instead.
+///
+/// Same as @ref RegisterCacheResetter for a `void()` hook. The testsuite
+/// `update_type` is ignored.
+template <typename Component>
+void RegisterCacheScope(
+    const components::ComponentContext& context,
+    Component* self,
+    void (Component::*reset_method)()
+) {
+    RegisterCacheResetter(context, self, reset_method);
+}
+
+/// @deprecated Use @ref RegisterCacheResetter instead.
 /// The returned handle must be kept alive to keep supporting cache resetting.
 ///
 /// @warning The function should be called in the component's constructor
