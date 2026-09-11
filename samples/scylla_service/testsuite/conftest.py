@@ -10,7 +10,7 @@ pytest_plugins = ['pytest_userver.plugins.scylla']
 
 @pytest.fixture(scope='session')
 def scylla_connection_info(pytestconfig) -> ConnectionInfo:
-    host = pytestconfig.option.scylla_host or os.environ.get('TESTSUITE_SCYLLA_HOST') or 'scylla'
+    host = pytestconfig.option.scylla_host or os.environ.get('TESTSUITE_SCYLLA_HOST') or 'localhost'
     port = pytestconfig.option.scylla_port or int(os.environ.get('TESTSUITE_SCYLLA_PORT') or 9042)
 
     return ConnectionInfo(host=host, port=port)
