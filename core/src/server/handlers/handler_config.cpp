@@ -12,6 +12,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers {
 
+namespace {
+const std::string kFallbackHandlerPath{"<fallback>"};
+}
+
 UrlTrailingSlashOption Parse(const yaml_config::YamlConfig& yaml, formats::parse::To<UrlTrailingSlashOption>) {
     const auto& value = yaml.As<std::string>();
     if (value == "both") {
@@ -105,6 +109,14 @@ HandlerConfig ParseHandlerConfigsWithDefaults(
     config.enable_write_statistics = value["enable_write_statistics"].As<bool>(config.enable_write_statistics);
 
     return config;
+}
+
+const std::string& HandlerConfig::GetLowCardinalityRequestPath() const {
+    return utils::Visit(
+        path,
+        [](const std::string& path) -> const std::string& { return path; },
+        [](const FallbackHandler&) -> const std::string& { return kFallbackHandlerPath; }
+    );
 }
 
 }  // namespace server::handlers

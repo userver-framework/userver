@@ -1,5 +1,7 @@
 #include <userver/server/handlers/http_handler_base.hpp>
 
+#include <utility>
+
 #include <fmt/format.h>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/container/small_vector.hpp>
@@ -28,6 +30,7 @@
 #include <userver/server/middlewares/configuration.hpp>
 #include <userver/server/middlewares/http_middleware_base.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/graphite.hpp>
@@ -37,6 +40,8 @@
 #include <userver/utils/scope_guard.hpp>
 #include <userver/utils/text_light.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
+
+#include <dynamic_config/variables/USERVER_HTTP_SERVER_LOGS.hpp>
 
 #ifndef ARCADIA_ROOT
 #include "generated/src/server/handlers/http_handler_base.yaml.hpp"  // Y_IGNORE
@@ -120,6 +125,38 @@ void ValidateMiddlewaresConfiguration(
             )};
         }
     }
+}
+
+enum class LogLimitFor : std::uint8_t { kRequest = 0, kResponse = 1 };
+
+std::size_t GetLoggingLimit(
+    const dynamic_config::Snapshot& config_snapshot,
+    const std::string& request_path,
+    std::size_t static_limit,
+    LogLimitFor type
+) {
+    const auto& config = config_snapshot[::dynamic_config::USERVER_HTTP_SERVER_LOGS];
+    const auto settings = utils::FindOrNullptr(config.extra, request_path);
+    if (settings) {
+        switch (type) {
+            case LogLimitFor::kRequest: {
+                if (settings->request_body_size_log_limit) {
+                    return *settings->request_body_size_log_limit;
+                }
+                break;
+            }
+            case LogLimitFor::kResponse: {
+                if (settings->response_body_size_log_limit) {
+                    return *settings->response_body_size_log_limit;
+                }
+                break;
+            }
+            default: {
+                UINVARIANT(false, fmt::format("Unsupported LogLimitFor: {}", static_cast<std::uint8_t>(type)));
+            }
+        }
+    }
+    return static_limit;
 }
 
 }  // namespace
@@ -318,8 +355,7 @@ std::string HttpHandlerBase::GetRequestBodyForLogging(
     request::RequestContext&,
     const std::string& request_body
 ) const {
-    const std::size_t limit = GetConfig().request_body_size_log_limit;
-    return utils::log::ToLimitedUtf8(request_body, limit);
+    return request_body;
 }
 
 std::string HttpHandlerBase::GetResponseDataForLogging(
@@ -327,8 +363,7 @@ std::string HttpHandlerBase::GetResponseDataForLogging(
     request::RequestContext&,
     const std::string& response_data
 ) const {
-    const std::size_t limit = GetConfig().response_data_size_log_limit;
-    return utils::log::ToLimitedUtf8(response_data, limit);
+    return response_data;
 }
 
 std::string HttpHandlerBase::GetUrlForLogging(const http::HttpRequest& request, request::RequestContext&) const {
@@ -343,7 +378,12 @@ std::string HttpHandlerBase::GetRequestBodyForLoggingChecked(
     const std::string& request_body
 ) const {
     try {
-        const auto limit = GetConfig().request_body_size_log_limit;
+        const auto limit = GetLoggingLimit(
+            config_source_.GetSnapshot(),
+            GetConfig().GetLowCardinalityRequestPath(),
+            GetConfig().request_body_size_log_limit,
+            LogLimitFor::kRequest
+        );
         if (limit == 0) {
             return utils::log::ToLimitedUtf8(request_body, 0);
         }
@@ -361,7 +401,12 @@ std::string HttpHandlerBase::GetResponseDataForLoggingChecked(
     const std::string& response_data
 ) const {
     try {
-        const auto limit = GetConfig().response_data_size_log_limit;
+        const auto limit = GetLoggingLimit(
+            config_source_.GetSnapshot(),
+            GetConfig().GetLowCardinalityRequestPath(),
+            GetConfig().response_data_size_log_limit,
+            LogLimitFor::kResponse
+        );
         if (limit == 0) {
             return utils::log::ToLimitedUtf8(response_data, 0);
         }

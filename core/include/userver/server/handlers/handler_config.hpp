@@ -12,6 +12,7 @@
 #include <userver/server/handlers/fallback_handlers.hpp>
 #include <userver/server/http/http_status.hpp>
 #include <userver/server/request/request_config.hpp>
+#include <userver/utils/overloaded.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -51,6 +52,8 @@ struct HandlerConfig {
     bool deadline_propagation_prefer_timestamp{false};
     bool enable_write_statistics{true};
     http::HttpStatus deadline_expired_status_code{498};
+
+    const std::string& GetLowCardinalityRequestPath() const;
 };
 
 HandlerConfig ParseHandlerConfigsWithDefaults(

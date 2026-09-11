@@ -1,0 +1,36 @@
+default: {}
+description: |
+    Controls request and response body logging in HTTP handlers. Map from a handler path to logging settings.
+    The key is the low cardinality request path. Query parameters are not included.
+    Path parameters are included in their raw form as written in the handler config.
+    Example of key: `/v1/orders/{order_id}`.
+    The value is an object containing `request_body_size_log_limit` and `response_body_size_log_limit`.
+schema:
+    type: object
+    description: |
+        Controls request and response body logging in HTTP handlers. Map from a handler path to logging settings.
+        The key is the low cardinality request path. Query parameters are not included.
+        Path parameters are included in their raw form as written in the handler config.
+        Example of key: `/v1/orders/{order_id}`.
+        The value is an object containing `request_body_size_log_limit` and `response_body_size_log_limit`.
+    example:
+        /v1/orders/{order_id}:
+            request_body_size_log_limit: 128
+            response_body_size_log_limit: 256
+        /v1/profile:
+            request_body_size_log_limit: 0
+            response_body_size_log_limit: 512
+    additionalProperties:
+        type: object
+        additionalProperties: false
+        properties:
+            request_body_size_log_limit:
+                type: integer
+                minimum: 0
+                description: |
+                    Maximum request body size in bytes.
+            response_body_size_log_limit:
+                type: integer
+                minimum: 0
+                description: |-
+                    Maximum response body size in bytes.
