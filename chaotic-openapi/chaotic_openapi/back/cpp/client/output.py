@@ -80,6 +80,7 @@ def _get_template_includes(
         ],
         'qos.hpp': [
             'userver/chaotic/openapi/client/command_control.hpp',
+            'userver/dynamic_config/snapshot.hpp',
         ],
         'exceptions.cpp': [
             f'clients/{client_name}/exceptions.hpp',

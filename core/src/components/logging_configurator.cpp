@@ -13,6 +13,7 @@
 #include <logging/rate_limit.hpp>
 #include <logging/split_location.hpp>
 
+#include <dynamic_config/variables/USERVER_LOG_DYNAMIC_DEBUG.hpp>
 #include <dynamic_config/variables/USERVER_NO_LOG_SPANS.hpp>
 
 #ifndef ARCADIA_ROOT
@@ -25,13 +26,16 @@ namespace components {
 
 namespace {
 
-const dynamic_config::Key<logging::DynamicDebugConfig>
-    kDynamicDebugConfig{"USERVER_LOG_DYNAMIC_DEBUG", dynamic_config::DefaultAsJsonString{R"(
+const dynamic_config::Key<logging::DynamicDebugConfig> kDynamicDebugConfig{
+    "USERVER_LOG_DYNAMIC_DEBUG",
+    dynamic_config::DefaultAsJsonString{R"(
   {
     "force-disabled": [],
     "force-enabled": []
   }
-)"}};
+)"},
+    ::dynamic_config::userver_log_dynamic_debug::GetSchemaHash()
+};
 
 alerts::Source kDynamicDebugInvalidLocation{"dynamic_debug_invalid_location"};
 

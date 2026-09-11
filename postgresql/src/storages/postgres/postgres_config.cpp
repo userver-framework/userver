@@ -5,6 +5,14 @@
 
 #include <fmt/format.h>
 
+#include <dynamic_config/variables/POSTGRES_CONNECTION_POOL_SETTINGS.hpp>
+#include <dynamic_config/variables/POSTGRES_CONNECTION_SETTINGS.hpp>
+#include <dynamic_config/variables/POSTGRES_DEFAULT_COMMAND_CONTROL.hpp>
+#include <dynamic_config/variables/POSTGRES_HANDLERS_COMMAND_CONTROL.hpp>
+#include <dynamic_config/variables/POSTGRES_QUERIES_COMMAND_CONTROL.hpp>
+#include <dynamic_config/variables/POSTGRES_STATEMENT_METRICS_SETTINGS.hpp>
+#include <dynamic_config/variables/POSTGRES_TOPOLOGY_SETTINGS.hpp>
+
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/logging/log.hpp>
 
@@ -321,13 +329,41 @@ using JsonString = dynamic_config::DefaultAsJsonString;
 const dynamic_config::Key<Config> kConfig{
     Config::Parse,
     {
-        {"POSTGRES_DEFAULT_COMMAND_CONTROL", JsonString{"{}"}},
-        {"POSTGRES_HANDLERS_COMMAND_CONTROL", JsonString{"{}"}},
-        {"POSTGRES_QUERIES_COMMAND_CONTROL", JsonString{"{}"}},
-        {"POSTGRES_CONNECTION_POOL_SETTINGS", JsonString{"{}"}},
-        {"POSTGRES_TOPOLOGY_SETTINGS", JsonString{"{}"}},
-        {"POSTGRES_CONNECTION_SETTINGS", JsonString{"{}"}},
-        {"POSTGRES_STATEMENT_METRICS_SETTINGS", JsonString{"{}"}},
+        {
+            "POSTGRES_DEFAULT_COMMAND_CONTROL",
+            JsonString{"{}"},
+            ::dynamic_config::postgres_default_command_control::GetSchemaHash(),
+        },
+        {
+            "POSTGRES_HANDLERS_COMMAND_CONTROL",
+            JsonString{"{}"},
+            ::dynamic_config::postgres_handlers_command_control::GetSchemaHash(),
+        },
+        {
+            "POSTGRES_QUERIES_COMMAND_CONTROL",
+            JsonString{"{}"},
+            ::dynamic_config::postgres_queries_command_control::GetSchemaHash(),
+        },
+        {
+            "POSTGRES_CONNECTION_POOL_SETTINGS",
+            JsonString{"{}"},
+            ::dynamic_config::postgres_connection_pool_settings::GetSchemaHash(),
+        },
+        {
+            "POSTGRES_TOPOLOGY_SETTINGS",
+            JsonString{"{}"},
+            ::dynamic_config::postgres_topology_settings::GetSchemaHash(),
+        },
+        {
+            "POSTGRES_CONNECTION_SETTINGS",
+            JsonString{"{}"},
+            ::dynamic_config::postgres_connection_settings::GetSchemaHash(),
+        },
+        {
+            "POSTGRES_STATEMENT_METRICS_SETTINGS",
+            JsonString{"{}"},
+            ::dynamic_config::postgres_statement_metrics_settings::GetSchemaHash(),
+        },
     },
 };
 

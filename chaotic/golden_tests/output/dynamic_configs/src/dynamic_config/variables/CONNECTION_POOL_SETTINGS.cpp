@@ -32,6 +32,10 @@
 
 namespace dynamic_config {
 
+USERVER_NAMESPACE::dynamic_config::SchemaHash connection_pool_settings::GetSchemaHash() {
+    return USERVER_NAMESPACE::dynamic_config::SchemaHash{"1b31f8984adb341bee5b51b53e44117a8fda141ee6fc89bc4eb910392a3bed37"};
+}
+
 namespace {
 
 auto DoParse(const USERVER_NAMESPACE::formats::json::Value& value) {
@@ -48,7 +52,7 @@ const USERVER_NAMESPACE::dynamic_config::Key<
     USERVER_NAMESPACE::dynamic_config::DefaultAsJsonString{R"~(
         {}
     )~"},
-    "1b31f8984adb341bee5b51b53e44117a8fda141ee6fc89bc4eb910392a3bed37",
+    connection_pool_settings::GetSchemaHash(),
 };
 
 }  // namespace dynamic_config

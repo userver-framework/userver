@@ -13,6 +13,7 @@ class Translator(BaseTranslator):
         *,
         cpp_namespace: str,
         dynamic_config: str,
+        dynamic_config_schema_hash: str = '',
         include_dirs: list[str] | None,
         middleware_plugins: list[middleware.MiddlewarePlugin],
     ) -> None:
@@ -24,6 +25,7 @@ class Translator(BaseTranslator):
                 description=service.description,
                 cpp_namespace=cpp_namespace,
                 dynamic_config=dynamic_config,
+                dynamic_config_schema_hash=dynamic_config_schema_hash,
                 operations=[],
                 schemas={},
             ),

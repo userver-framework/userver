@@ -8,6 +8,10 @@
 
 namespace {{ namespace }} {
 
+USERVER_NAMESPACE::dynamic_config::SchemaHash {{ name.lower() }}::GetSchemaHash() {
+    return USERVER_NAMESPACE::dynamic_config::SchemaHash{"{{ schema_hash }}"};
+}
+
 {% filter indent(width=4, first=True) %} 
     namespace {
 
@@ -25,9 +29,9 @@ namespace {{ namespace }} {
         USERVER_NAMESPACE::dynamic_config::DefaultAsJsonString{R"~(
             {{ default_value }}
         )~"},
-        "{{ schema_hash }}",
+        {{ name.lower() }}::GetSchemaHash(),
     };
 {% endfilter %}
 
 }  // namespace {{ namespace }}
-
+{# Keep a trailing newline in the generated file. #}

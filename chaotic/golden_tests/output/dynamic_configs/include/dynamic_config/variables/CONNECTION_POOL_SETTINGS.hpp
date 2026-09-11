@@ -14,6 +14,8 @@ namespace connection_pool_settings {
 using VariableType = USERVER_NAMESPACE::utils::DefaultDict<::dynamic_config::connection_pool_settings::PoolSettings>;
 using ConnectionPoolSettings = USERVER_NAMESPACE::utils::DefaultDict<::dynamic_config::connection_pool_settings::PoolSettings>;
 
+USERVER_NAMESPACE::dynamic_config::SchemaHash GetSchemaHash();
+
 }  // namespace connection_pool_settings
 
 extern const USERVER_NAMESPACE::dynamic_config::Key<

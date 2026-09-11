@@ -2,6 +2,8 @@
 
 #include <stdexcept>
 
+#include <dynamic_config/variables/USERVER_LRU_CACHES.hpp>
+
 #include <userver/components/component_config.hpp>
 #include <userver/dump/config.hpp>
 #include <userver/dynamic_config/value.hpp>
@@ -76,8 +78,11 @@ LruCacheConfigStatic::LruCacheConfigStatic(const components::ComponentConfig& co
 
 std::size_t LruCacheConfigStatic::GetWaySize() const { return config.GetWaySize(ways); }
 
-const dynamic_config::Key<std::unordered_map<std::string, LruCacheConfig>>
-    kLruCacheConfigSet{"USERVER_LRU_CACHES", dynamic_config::DefaultAsJsonString{"{}"}};
+const dynamic_config::Key<std::unordered_map<std::string, LruCacheConfig>> kLruCacheConfigSet{
+    "USERVER_LRU_CACHES",
+    dynamic_config::DefaultAsJsonString{"{}"},
+    ::dynamic_config::userver_lru_caches::GetSchemaHash(),
+};
 
 std::optional<LruCacheConfig> GetLruConfig(const dynamic_config::Snapshot& config, const std::string& cache_name) {
     return utils::FindOptional(config[kLruCacheConfigSet], cache_name);

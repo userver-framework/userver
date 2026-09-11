@@ -1,5 +1,16 @@
 #include <userver/storages/redis/redis_config.hpp>
 
+#include <dynamic_config/variables/REDIS_COMMANDS_BUFFERING_SETTINGS.hpp>
+#include <dynamic_config/variables/REDIS_DEFAULT_COMMAND_CONTROL.hpp>
+#include <dynamic_config/variables/REDIS_IGNORE_HEALTH_CHECK.hpp>
+#include <dynamic_config/variables/REDIS_METRICS_SETTINGS.hpp>
+#include <dynamic_config/variables/REDIS_PUBSUB_METRICS_SETTINGS.hpp>
+#include <dynamic_config/variables/REDIS_REPLICA_MONITORING_SETTINGS.hpp>
+#include <dynamic_config/variables/REDIS_RETRY_BUDGET_SETTINGS.hpp>
+#include <dynamic_config/variables/REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL.hpp>
+#include <dynamic_config/variables/REDIS_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS.hpp>
+#include <dynamic_config/variables/REDIS_WAIT_CONNECTED.hpp>
+
 #include <userver/logging/log.hpp>
 #include <userver/storages/redis/exception.hpp>
 
@@ -149,33 +160,56 @@ using JsonString = dynamic_config::DefaultAsJsonString;
 const dynamic_config::Key<Config> kConfig{
     Config::Parse,
     {
-        {"REDIS_DEFAULT_COMMAND_CONTROL", JsonString{"{}"}},
-        {"REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL", JsonString{"{}"}},
-        {"REDIS_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS", 30},
-        {"REDIS_WAIT_CONNECTED", JsonString{R"(
+        {
+            "REDIS_DEFAULT_COMMAND_CONTROL",
+            JsonString{"{}"},
+            ::dynamic_config::redis_default_command_control::GetSchemaHash(),
+        },
+        {
+            "REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL",
+            JsonString{"{}"},
+            ::dynamic_config::redis_subscriber_default_command_control::GetSchemaHash(),
+        },
+        {
+            "REDIS_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS",
+            JsonString{"30"},
+            ::dynamic_config::redis_subscriptions_rebalance_min_interval_seconds::GetSchemaHash(),
+        },
+        {"REDIS_WAIT_CONNECTED",
+         JsonString{R"(
           {
             "mode": "master_or_slave",
             "throw_on_fail": false,
             "timeout-ms": 11000
           }
-        )"}},
-        {"REDIS_COMMANDS_BUFFERING_SETTINGS", JsonString{R"(
+        )"},
+         ::dynamic_config::redis_wait_connected::GetSchemaHash()},
+        {"REDIS_COMMANDS_BUFFERING_SETTINGS",
+         JsonString{R"(
           {
             "buffering_enabled": false,
             "watch_command_timer_interval_us": 0
           }
-        )"}},
-        {"REDIS_METRICS_SETTINGS", JsonString{"{}"}},
-        {"REDIS_PUBSUB_METRICS_SETTINGS", JsonString{"{}"}},
-        {"REDIS_REPLICA_MONITORING_SETTINGS", JsonString{R"(
+        )"},
+         ::dynamic_config::redis_commands_buffering_settings::GetSchemaHash()},
+        {"REDIS_METRICS_SETTINGS", JsonString{"{}"}, ::dynamic_config::redis_metrics_settings::GetSchemaHash()},
+        {
+            "REDIS_PUBSUB_METRICS_SETTINGS",
+            JsonString{"{}"},
+            ::dynamic_config::redis_pubsub_metrics_settings::GetSchemaHash(),
+        },
+        {"REDIS_REPLICA_MONITORING_SETTINGS",
+         JsonString{R"(
           {
             "__default__": {
               "enable-monitoring": false,
               "forbid-requests-to-syncing-replicas": false
             }
           }
-        )"}},
-        {"REDIS_RETRY_BUDGET_SETTINGS", JsonString{R"(
+        )"},
+         ::dynamic_config::redis_replica_monitoring_settings::GetSchemaHash()},
+        {"REDIS_RETRY_BUDGET_SETTINGS",
+         JsonString{R"(
           {
             "__default__" : {
               "max-tokens": 100.0,
@@ -183,8 +217,13 @@ const dynamic_config::Key<Config> kConfig{
               "enabled": true
             }
           }
-        )"}},
-        {"REDIS_IGNORE_HEALTH_CHECK", false},
+        )"},
+         ::dynamic_config::redis_retry_budget_settings::GetSchemaHash()},
+        {
+            "REDIS_IGNORE_HEALTH_CHECK",
+            JsonString{"false"},
+            ::dynamic_config::redis_ignore_health_check::GetSchemaHash(),
+        },
     },
 };
 

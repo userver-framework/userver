@@ -3,18 +3,26 @@ file emission introduced to fix the missing-file error when a schema has no
 C++ types (e.g. empty components section)."""
 
 import pathlib
+import re
 
+from chaotic_openapi.back.cpp.client import output as client_output
 from chaotic_openapi.back.cpp.client import renderer
 from chaotic_openapi.back.cpp.client import translator
 from chaotic_openapi.front import parser as front_parser
 
 
-def _make_spec(schema: dict, name: str = 'test_client'):
+def _make_spec(
+    schema: dict,
+    name: str = 'test_client',
+    dynamic_config: str = '',
+    dynamic_config_schema_hash: str = '',
+):
     p = front_parser.Parser(name)
     p.parse_schema(schema, '<inline>', '<inline>')
     tr = translator.Translator(
         p.service(),
-        dynamic_config='',
+        dynamic_config=dynamic_config,
+        dynamic_config_schema_hash=dynamic_config_schema_hash,
         cpp_namespace=f'clients::{name}',
         include_dirs=[],
         middleware_plugins=[],
@@ -123,3 +131,63 @@ def test_schema_files_none_preserves_old_behavior():
 
     assert f'include/clients/{client}/openapi_fwd.hpp' not in rel_paths
     assert f'src/clients/{client}/openapi.cpp' not in rel_paths
+
+
+def test_qos_header_does_not_register_empty_config():
+    spec = _make_spec(EMPTY_SCHEMA)
+    outputs = renderer.render(spec, _make_context())
+    paths = {output.rel_path for output in outputs}
+    assert 'include/clients/test_client/qos.hpp' not in paths
+
+
+def test_qos_config_without_schema_hash_uses_legacy_constructor():
+    spec = _make_spec(EMPTY_SCHEMA, dynamic_config='TEST_CLIENT_QOS')
+    outputs = renderer.render(spec, _make_context())
+    by_path = {output.rel_path: output for output in outputs}
+
+    qos = by_path['include/clients/test_client/qos.hpp'].content
+    assert '"TEST_CLIENT_QOS"' in qos
+    assert 'DefaultAsJsonString{"{}"},' in qos
+    assert 'SchemaHash{' not in qos
+
+
+def test_qos_config_preserves_opaque_schema_hash():
+    spec = _make_spec(
+        EMPTY_SCHEMA,
+        dynamic_config='TEST_CLIENT_QOS',
+        dynamic_config_schema_hash='opaque-schema-hash',
+    )
+    outputs = renderer.render(spec, _make_context())
+    by_path = {output.rel_path: output for output in outputs}
+
+    qos = by_path['include/clients/test_client/qos.hpp'].content
+    assert '"TEST_CLIENT_QOS"' in qos
+    assert 'SchemaHash{"opaque-schema-hash"}' in qos
+
+
+def test_qos_header_direct_includes_are_declared_in_build_metadata():
+    include_pattern = re.compile(r'^#include [<"]([^>"]+)[>"]$')
+
+    for schema_hash in ('', 'opaque-schema-hash'):
+        spec = _make_spec(
+            EMPTY_SCHEMA,
+            dynamic_config='TEST_CLIENT_QOS',
+            dynamic_config_schema_hash=schema_hash,
+        )
+        outputs = renderer.render(spec, _make_context())
+        by_path = {output.rel_path: output for output in outputs}
+        qos_path = 'include/clients/test_client/qos.hpp'
+        qos = by_path[qos_path].content
+
+        rendered_includes = {match.group(1) for line in qos.splitlines() if (match := include_pattern.fullmatch(line))}
+        declared_includes = set(
+            client_output._get_template_includes(
+                'qos.hpp',
+                spec.client_name,
+                graph={},
+                external=client_output.External(libraries=[], userver_modules=[]),
+            ),
+        )
+
+        assert rendered_includes
+        assert rendered_includes <= declared_includes, rendered_includes - declared_includes

@@ -6,6 +6,7 @@ userver_module(
     scylla
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
     LINK_LIBRARIES scylla_cpp_driver
+    GENERATE_DYNAMIC_CONFIGS
     COMPONENT_DEPENDS core
     EMBED_FILES src/storages/scylla/component.yaml
 )

@@ -1,5 +1,6 @@
 #include <userver/utest/utest.hpp>
 
+#include <string_view>
 #include <vector>
 
 #include <userver/dynamic_config/snapshot.hpp>

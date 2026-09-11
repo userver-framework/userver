@@ -91,6 +91,7 @@ def render(
         'namespace': spec.cpp_namespace,
         'name': spec.client_name,
         'config': spec.dynamic_config,
+        'qos_config_schema_hash': spec.dynamic_config_schema_hash,
         'base_url': 'http://example.com',  # TODO
         'operations': spec.operations,
         'tvm_hack': context.uservices_library_tvm_guard_hack,
@@ -98,7 +99,8 @@ def render(
 
     # client* files
     output = []
-    for name in TEMPLATE_NAMES:
+    template_names = TEMPLATE_NAMES if spec.dynamic_config else [name for name in TEMPLATE_NAMES if name != 'qos.hpp']
+    for name in template_names:
         tpl = JINJA_ENV.get_template(f'templates/{name}.jinja')
         pp = tpl.render(**env)
         pp = cpp_format.format_pp(pp, binary=context.clang_format_bin)

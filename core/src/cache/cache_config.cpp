@@ -4,6 +4,8 @@
 
 #include <fmt/format.h>
 
+#include <dynamic_config/variables/USERVER_CACHES.hpp>
+
 #include <userver/dump/config.hpp>
 #include <userver/dynamic_config/value.hpp>
 #include <userver/logging/log.hpp>
@@ -258,8 +260,11 @@ Config Config::MergeWith(const ConfigPatch& patch) const {
     return copy;
 }
 
-const dynamic_config::Key<std::unordered_map<std::string, ConfigPatch>>
-    kCacheConfigSet{"USERVER_CACHES", dynamic_config::DefaultAsJsonString{"{}"}};
+const dynamic_config::Key<std::unordered_map<std::string, ConfigPatch>> kCacheConfigSet{
+    "USERVER_CACHES",
+    dynamic_config::DefaultAsJsonString{"{}"},
+    ::dynamic_config::userver_caches::GetSchemaHash(),
+};
 
 }  // namespace cache
 

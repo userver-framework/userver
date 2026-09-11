@@ -14,6 +14,8 @@ namespace feature_flags {
 using VariableType = VariableTypeRaw;
 using FeatureFlags = VariableTypeRaw;
 
+USERVER_NAMESPACE::dynamic_config::SchemaHash GetSchemaHash();
+
 }  // namespace feature_flags
 
 extern const USERVER_NAMESPACE::dynamic_config::Key<

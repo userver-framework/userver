@@ -1,5 +1,6 @@
 import argparse
 import os
+import pathlib
 import sys
 from typing import NoReturn
 
@@ -60,6 +61,9 @@ def do_main():
         ).spec()
         outputs = client_renderer.render(spec, ctx, schema_files=[os.path.basename(f) for f in args.files])
         client_renderer.CppOutput.save(outputs, args.output_dir)
+        if not args.dynamic_config:
+            qos_header = pathlib.Path(args.output_dir) / 'include' / 'clients' / args.name / 'qos.hpp'
+            qos_header.unlink(missing_ok=True)
 
     elif args.gen in ('handlers', 'handlers+views', 'views'):
         if args.gen != 'views' and not args.output_dir:

@@ -3,7 +3,6 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/parse/common_containers.hpp>
-#include <userver/utils/retry_budget.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 #include <ydb/impl/secdist.hpp>
@@ -99,11 +98,6 @@ DriverSettings ParseDriverSettings(
 
     return result;
 }
-
-const dynamic_config::Key<std::unordered_map<std::string, utils::RetryBudgetSettings>> kRetryBudgetSettings(
-    "YDB_RETRY_BUDGET",
-    dynamic_config::DefaultAsJsonString("{}")
-);
 
 }  // namespace ydb::impl
 
