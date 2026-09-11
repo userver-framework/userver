@@ -39,10 +39,12 @@ enum class ClusterHostType {
     /// @name Host selection strategies
     /// @{
 
-    /// Chooses a host using the round-robin algorithm
+    /// Chooses a host using the round-robin algorithm. When RTT preference is enabled, prefers hosts within the
+    /// configured threshold of the fastest eligible host and falls back to all alive hosts when no eligible host has
+    /// a known RTT.
     kRoundRobin = 0x08,
 
-    /// Chooses a host with the lowest RTT
+    /// Chooses the alive host with the lowest exponentially weighted moving-average RTT.
     kNearest = 0x10,
     /// @}
 };

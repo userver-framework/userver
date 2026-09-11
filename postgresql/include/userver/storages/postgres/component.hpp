@@ -31,6 +31,7 @@ namespace components {
 /// * @ref POSTGRES_CONNECTION_SETTINGS
 /// * @ref POSTGRES_STATEMENT_METRICS_SETTINGS
 /// * @ref POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED
+/// * @ref POSTGRES_RTT_THRESHOLD_ENABLED
 ///
 /// ## Static configuration example:
 ///
@@ -60,6 +61,13 @@ namespace components {
 /// Once the replica lag exceeds this value it will be automatically disabled.
 /// Note, however, that client-size lag detection is not precise in nature
 /// and can only provide the precision of couple seconds.
+///
+/// `rtt_threshold` limits how much slower than the fastest eligible host a host may be to remain preferred when no
+/// selection strategy is specified or when `kRoundRobin` is requested. It defaults to 20ms. Slower hosts remain
+/// available and are used when no eligible host has a known RTT. Zero is a valid threshold, and the maximum is one
+/// minute. @ref POSTGRES_RTT_THRESHOLD_ENABLED is enabled by default and controls whether the preference is applied.
+/// RTT is an exponentially weighted moving average with latest-sample weight 0.2, and the same RTT estimate is used
+/// by nearest selection and metrics.
 ///
 /// ## Secdist format
 ///

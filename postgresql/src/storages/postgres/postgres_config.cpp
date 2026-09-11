@@ -1,7 +1,9 @@
 #include <storages/postgres/postgres_config.hpp>
 
-#include <fmt/format.h>
+#include <chrono>
 #include <optional>
+
+#include <fmt/format.h>
 
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/logging/log.hpp>
@@ -53,6 +55,8 @@ CommandControl Parse(const formats::json::Value& elem, formats::parse::To<Comman
 }
 
 namespace {
+
+constexpr std::chrono::minutes kMaxRttThreshold{1};
 
 constexpr USERVER_NAMESPACE::utils::TrivialBiMap kPoolerModes = [](auto&& selector) {
     return selector().Case(PoolerMode::kSession, "session").Case(PoolerMode::kTransaction, "transaction");
@@ -250,9 +254,26 @@ TopologySettings Parse(const formats::json::Value& config, formats::parse::To<To
     result.max_replication_lag =
         config["max_replication_lag_ms"].template As<std::chrono::milliseconds>(result.max_replication_lag);
     result.disabled_replicas = config["disabled_replicas"].template As<decltype(result.disabled_replicas)>({});
+    result.rtt_threshold = config["rtt_threshold_ms"].template As<std::chrono::milliseconds>(kDefaultRttThreshold);
 
     if (result.max_replication_lag < std::chrono::milliseconds{0}) {
         throw InvalidConfig{"max_replication_lag cannot be less than 0"};
+    }
+
+    return result;
+}
+
+TopologySettings Parse(const yaml_config::YamlConfig& config, formats::parse::To<TopologySettings>) {
+    TopologySettings result{};
+
+    result.max_replication_lag = config["max_replication_lag"].As<std::chrono::milliseconds>(result.max_replication_lag
+    );
+    result.rtt_threshold = config["rtt_threshold"].As<std::chrono::milliseconds>(kDefaultRttThreshold);
+    if (result.rtt_threshold > kMaxRttThreshold) {
+        throw InvalidConfig{
+            "Invalid PostgreSQL topology rtt_threshold: value must not exceed 60s. Set static 'rtt_threshold' to a "
+            "duration of at most '60s'."
+        };
     }
 
     return result;

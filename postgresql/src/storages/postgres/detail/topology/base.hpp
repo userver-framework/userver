@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstddef>
 #include <memory>
+#include <optional>
 #include <unordered_map>
 #include <vector>
 
@@ -10,6 +12,7 @@
 #include <userver/concurrent/background_task_storage.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/error_injection/settings.hpp>
+#include <userver/rcu/rcu.hpp>
 #include <userver/storages/postgres/cluster_types.hpp>
 #include <userver/storages/postgres/dsn.hpp>
 #include <userver/storages/postgres/options.hpp>
@@ -27,8 +30,15 @@ public:
         // all alive indices
         std::vector<DsnIndex> indices{};
 
-        // index with lowest rrt
+        // index with lowest RTT
         std::optional<DsnIndex> nearest{};
+
+        // alive indices within the configured EWMA RTT threshold of the fastest host
+        std::vector<DsnIndex> acceptable_indices{};
+
+        const std::vector<DsnIndex>& GetRoundRobinIndices() const noexcept {
+            return acceptable_indices.empty() ? indices : acceptable_indices;
+        }
     };
     using DsnIndicesByType = std::unordered_map<ClusterHostType, DsnIndices, ClusterHostTypeHash>;
 
@@ -51,7 +61,7 @@ public:
     const TopologySettings& GetTopologySettings() const;
     const testsuite::PostgresControl& GetTestsuiteControl() const;
 
-    /// Currently determined host types, ordered by rtt
+    /// Currently determined host types and their accessible DSN indices
     virtual rcu::ReadablePtr<DsnIndicesByType> GetDsnIndicesByType() const = 0;
 
     /// Currently accessible hosts

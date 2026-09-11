@@ -7,7 +7,9 @@ description: |
     (**not database name!**) or `__default__`. The latter configuration is applied for every non-matching
     PostgreSQL component of the service.
 
-    Take note that it overrides the static configuration values of the service!
+    Take note that a matching object replaces all static topology settings rather than merging individual fields!
+    In particular, omitting `rtt_threshold_ms` from a matching object uses the 20ms default, even if static
+    `rtt_threshold` has a different value.
 schema:
     type: object
     example: |
@@ -15,6 +17,7 @@ schema:
             // settings for a specific component
             "postgresql-orders": {
                 "max_replication_lag_ms": 0,
+                "rtt_threshold_ms": 15,
                 "disabled_replicas": ["sas-01.db.yandex.net", "vla-02.db.yandex.net"]
             },
             // settings for all other components
@@ -35,6 +38,18 @@ schema:
                     description: |
                         Replication lag limit in milliseconds for usable replicas. If a replica's lag exceeds this
                         value, it stops receiving new requests.
+                rtt_threshold_ms:
+                    type: integer
+                    minimum: 0
+                    maximum: 60000
+                    default: 20
+                    description: |
+                        Maximum EWMA RTT difference in milliseconds from the fastest alive host. It is used to prefer
+                        hosts when no selection strategy is specified or when `kRoundRobin` is requested. Values must
+                        not exceed one minute. Zero is valid and prefers only hosts tied for the lowest RTT. Slower
+                        hosts remain available and are used when no eligible host has a known RTT. The same EWMA RTT
+                        estimate is used by nearest selection and RTT metrics. RTT preference is enabled by default
+                        and controlled by the `POSTGRES_RTT_THRESHOLD_ENABLED` dynamic config.
                 disabled_replicas:
                     type: array
                     x-taxi-cpp-type: std::unordered_set

@@ -1,6 +1,5 @@
 #include <storages/postgres/detail/cluster_impl.hpp>
 
-#include <fmt/format.h>
 #include <algorithm>
 
 #include <userver/dynamic_config/value.hpp>
@@ -8,9 +7,9 @@
 #include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
 
+#include <storages/postgres/detail/host_selection.hpp>
 #include <storages/postgres/detail/topology/hot_standby.hpp>
 #include <storages/postgres/detail/topology/standalone.hpp>
-#include <storages/postgres/postgres_config.hpp>
 #include <userver/storages/postgres/dsn.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/testsuite/testpoint.hpp>
@@ -26,57 +25,6 @@ namespace {
 
 // One connection per host is enough to register a new instance in u_clients.
 constexpr std::size_t kBootstrapPoolSize = 1;
-
-ClusterHostType Fallback(ClusterHostType ht) {
-    switch (ht) {
-        case ClusterHostType::kMaster:
-            throw ClusterError("Cannot fallback from master");
-        case ClusterHostType::kSyncSlave:
-        case ClusterHostType::kSlave:
-            return ClusterHostType::kMaster;
-        case ClusterHostType::kSlaveOrMaster:
-        case ClusterHostType::kNone:
-        case ClusterHostType::kRoundRobin:
-        case ClusterHostType::kNearest:
-            throw ClusterError("Invalid ClusterHostType value for fallback " + ToString(ht));
-    }
-    UINVARIANT(false, "Unexpected cluster host type");
-}
-
-size_t SelectDsnIndex(
-    const topology::TopologyBase::DsnIndices& dsn_indices,
-    ClusterHostTypeFlags flags,
-    std::atomic<uint32_t>& rr_host_idx
-) {
-    UASSERT(!dsn_indices.indices.empty());
-    UASSERT(dsn_indices.nearest.has_value());
-
-    const auto& indices = dsn_indices.indices;
-
-    if (indices.empty()) {
-        throw ClusterError("Cannot select host from an empty list");
-    }
-
-    const auto strategy_flags = flags & kClusterHostStrategyMask;
-    LOG_TRACE() << "Applying " << strategy_flags << " strategy";
-
-    if (!strategy_flags || strategy_flags == ClusterHostType::kRoundRobin) {
-        size_t idx_pos = 0;
-        if (indices.size() != 1) {
-            idx_pos = rr_host_idx.fetch_add(1, std::memory_order_relaxed) % indices.size();
-        }
-        return indices[idx_pos];
-    }
-
-    if (strategy_flags == ClusterHostType::kNearest) {
-        if (!dsn_indices.nearest.has_value()) {
-            throw ClusterError("Nearest host is unknown");
-        }
-        return dsn_indices.nearest.value();
-    }
-
-    throw LogicError(fmt::format("Invalid strategy requested: {}, ensure only one is used", ToString(strategy_flags)));
-}
 
 }  // namespace
 
@@ -300,24 +248,10 @@ ClusterImpl::ConnectionPoolPtr ClusterImpl::FindPool(ClusterHostTypeFlags flags)
         }
         dsn_index = SelectDsnIndex(*alive_dsn_indices, flags, rr_host_idx_);
     } else {
-        auto host_role = static_cast<ClusterHostType>(role_flags.GetValue());
+        const auto requested_role = static_cast<ClusterHostType>(role_flags.GetValue());
         auto dsn_indices_by_type = topology->GetDsnIndicesByType();
-        auto dsn_indices_it = dsn_indices_by_type->find(host_role);
-        while (host_role != ClusterHostType::kMaster &&
-               (dsn_indices_it == dsn_indices_by_type->end() || dsn_indices_it->second.indices.empty()))
-        {
-            auto fb = Fallback(host_role);
-            LOG_WARNING() << "There is no pool for " << host_role << ", falling back to " << fb;
-            host_role = fb;
-            dsn_indices_it = dsn_indices_by_type->find(host_role);
-        }
-
-        if (dsn_indices_it == dsn_indices_by_type->end() || dsn_indices_it->second.indices.empty()) {
-            throw ClusterUnavailable(
-                fmt::format("Pool for {} (requested: {}) is not available", ToString(host_role), ToString(role_flags))
-            );
-        }
-        LOG_TRACE() << "Starting transaction on " << host_role;
+        const auto dsn_indices_it = ResolveHostRole(*dsn_indices_by_type, requested_role);
+        LOG_TRACE() << "Starting transaction on " << dsn_indices_it->first;
         dsn_index = SelectDsnIndex(dsn_indices_it->second, flags, rr_host_idx_);
     }
 

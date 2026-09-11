@@ -27,6 +27,29 @@ After the initial check we know about master presence and RTT for each host.
 Master host is queried about synchronous replication status. We use this
 info to identify synchronous slaves and to detect "quorum commit" presence.
 
+@par RTT-based host selection
+The static `rtt_threshold` setting and its dynamic `rtt_threshold_ms`
+counterpart define a latency window relative to the fastest alive host eligible
+for selection. Both default to 20 milliseconds. A zero threshold is valid and
+prefers only hosts tied for the lowest RTT. The
+`POSTGRES_RTT_THRESHOLD_ENABLED` dynamic config defaults to `true`; disable it
+to turn off RTT preference. When no selection strategy is specified, or when
+`kRoundRobin` is requested, hosts whose RTT is less than or equal to the minimum
+RTT plus the threshold are preferred.
+
+RTT is tracked using the same exponentially weighted moving average as MongoDB
+SDAM. The first sample initializes the estimate; subsequent samples use
+`0.2 * latest_rtt + 0.8 * previous_rtt`. This estimate is used for threshold
+preference, nearest selection, topology debug logs, and `roundtrip-time`
+metrics.
+
+The RTT threshold is a soft preference, not an availability check. A host
+outside the latency window remains alive and keeps its detected role. If no
+eligible host has a known RTT, the driver falls back to all alive hosts matching
+the requested role. In particular, a slow replica is still used before the
+existing replica-to-master role fallback is considered. The nearest strategy
+always chooses the alive host with the lowest EWMA RTT; it does not apply the
+threshold filter.
 
 ----------
 

@@ -171,6 +171,9 @@ inline constexpr std::size_t kDefaultPoolMinSize = 4;
 /// Default maximum replication lag
 inline constexpr auto kDefaultMaxReplicationLag = std::chrono::seconds{60};
 
+/// Default RTT threshold for preferred hosts
+inline constexpr auto kDefaultRttThreshold = std::chrono::milliseconds{20};
+
 /// Default pool connections limit
 inline constexpr std::size_t kDefaultPoolMaxSize = 15;
 
@@ -193,6 +196,22 @@ struct TopologySettings {
     /// List of manually disabled replicas (FQDNs).
     std::unordered_set<std::string, USERVER_NAMESPACE::utils::StrIcaseHash, USERVER_NAMESPACE::utils::StrIcaseEqual>
         disabled_replicas{};
+
+    /// Maximum EWMA RTT difference from the fastest host in the candidate set. Hosts outside this threshold are used
+    /// only if no host has a known RTT. Zero is a valid threshold. Static and dynamic configuration values are limited
+    /// to one minute.
+    std::chrono::milliseconds rtt_threshold{kDefaultRttThreshold};
+
+    /// Controlled by @ref POSTGRES_RTT_THRESHOLD_ENABLED; enabled by default.
+    bool rtt_threshold_enabled{true};
+
+    /// Returns the configured RTT threshold, or `std::nullopt` when RTT-based preference is disabled.
+    std::optional<std::chrono::milliseconds> GetEffectiveRttThreshold() const noexcept {
+        if (!rtt_threshold_enabled) {
+            return std::nullopt;
+        }
+        return rtt_threshold;
+    }
 };
 
 /// @brief PostgreSQL connection pool options
