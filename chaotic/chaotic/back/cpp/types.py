@@ -204,6 +204,9 @@ class CppType:
     def need_stream_writer(self) -> bool:
         return False
 
+    def need_to_json_string(self) -> bool:
+        return False
+
     def need_add_hiding_args(self) -> bool:
         return False
 
@@ -945,6 +948,9 @@ class CppStruct(CppType):
     def need_stream_writer(self) -> bool:
         return True
 
+    def need_to_json_string(self) -> bool:
+        return True
+
     def need_add_hiding_args(self) -> bool:
         return True
 
@@ -1085,6 +1091,9 @@ class CppStructAllOf(CppType):
         return True
 
     def need_stream_writer(self) -> bool:
+        return True
+
+    def need_to_json_string(self) -> bool:
         return True
 
     def need_add_hiding_args(self) -> bool:

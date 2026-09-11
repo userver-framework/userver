@@ -223,7 +223,7 @@
 {% endmacro %}
 
 {% macro _generate_to_json_string_declaration(type) %}
-    {% if type.get_py_type() in ('CppStruct', 'CppStructAllOf') %}
+    {% if type.need_to_json_string() %}
         std::string ToJsonString(const {{ type.cpp_local_name() }}& value);
     {% endif %}
 {% endmacro %}
