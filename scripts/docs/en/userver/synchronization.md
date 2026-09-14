@@ -292,6 +292,26 @@ notification. Use @ref engine::SharedTaskWithResult or
 consumers may still be using it. The producer should own the event and destroy
 it only after all consumers have finished.
 
+@anchor engine_pulse_event
+### engine::PulseEvent
+
+@ref engine::PulseEvent is a multiple-producers, multiple-consumers notification.
+
+@ref engine::PulseEvent::WaitUntil "WaitUntil" with a predicate waits for an
+atomic condition, the same way as @ref engine::SingleConsumerEvent::WaitUntil.
+
+**Example.** Tasks wait until a gate opens. The parent publishes `closed = false`
+and notifies everyone.
+
+Initialization:
+@snippet core/src/engine/pulse_event_test.cpp  CV init
+
+Notifier side:
+@snippet core/src/engine/pulse_event_test.cpp  CV notifier
+
+Waiter side:
+@snippet core/src/engine/pulse_event_test.cpp  CV waiter
+
 ### engine::SingleUseEvent
 
 A single-producer, single-consumer event without task cancellation support. Must not be awaited or signaled multiple times in the same waiting session.
