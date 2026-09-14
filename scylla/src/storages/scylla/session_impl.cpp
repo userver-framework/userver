@@ -5,7 +5,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::scylla::impl {
 
-SessionImpl::SessionImpl(std::string&& id, const SessionConfig session_config, dynamic_config::Source config_source)
+SessionImpl::SessionImpl(std::string&& id, dynamic_config::Source config_source)
     : id_(std::move(id)),
       config_source_(config_source)
 {};

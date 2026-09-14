@@ -1,6 +1,5 @@
 #include <userver/storages/scylla/session_config.hpp>
 
-#include <gmock/internal/gmock-internal-utils.h>
 #include <netinet/in.h>
 
 #include <userver/utils/text.hpp>
@@ -31,10 +30,10 @@ void IsValidDuration(const std::chrono::milliseconds& timeout, const char* field
     }
 }
 
-constexpr Consistency kDefaultConsistency = Consistency::kLocalQuorum;
-constexpr SerialConsistency kDefaultSerialConsistency = SerialConsistency::kLocalSerial;
+[[maybe_unused]] constexpr Consistency kDefaultConsistency = Consistency::kLocalQuorum;
+[[maybe_unused]] constexpr SerialConsistency kDefaultSerialConsistency = SerialConsistency::kLocalSerial;
 
-std::optional<Consistency> ConsistencyFromRaw(uint16_t value) {
+[[maybe_unused]] std::optional<Consistency> ConsistencyFromRaw(uint16_t value) {
     switch (value) {
         case 0x0000:
             return Consistency::kAny;

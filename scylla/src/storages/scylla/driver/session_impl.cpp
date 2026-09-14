@@ -181,7 +181,7 @@ DriverSessionImpl::DriverSessionImpl(
     clients::dns::Resolver*,
     std::optional<SslSecrets> ssl_secrets
 )
-    : SessionImpl(std::move(id), session_config, config_source),
+    : SessionImpl(std::move(id), config_source),
       session_config_(session_config),
       ssl_secrets_(std::move(ssl_secrets)),
       default_keyspace_(session_config.default_keyspace),
