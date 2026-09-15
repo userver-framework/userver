@@ -421,7 +421,9 @@ std::size_t HttpResponse::SetBodyStreamed(
 ) {
     const bool is_body_forbidden = IsBodyForbiddenForStatus(status_);
 
-    impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kTransferEncoding, "chunked");
+    if (!is_body_forbidden) {
+        impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kTransferEncoding, "chunked");
+    }
 
     // headers end marker
     header.append(kCrlf);
