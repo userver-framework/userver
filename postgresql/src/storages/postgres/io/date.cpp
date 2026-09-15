@@ -1,7 +1,5 @@
 #include <userver/storages/postgres/io/date.hpp>
 
-#include <chrono>
-
 #include <userver/storages/postgres/io/type_mapping.hpp>
 
 USERVER_NAMESPACE_BEGIN

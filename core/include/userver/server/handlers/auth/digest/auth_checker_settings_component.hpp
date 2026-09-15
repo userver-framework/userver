@@ -3,7 +3,6 @@
 /// @file userver/server/handlers/auth/digest/auth_checker_settings_component.hpp
 /// @brief @copybrief server::handlers::auth::digest::AuthCheckerSettingsComponent
 
-#include <chrono>
 #include <optional>
 #include <string>
 

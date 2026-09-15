@@ -3,7 +3,6 @@
 /// @file userver/dump/dumper.hpp
 /// @brief @copybrief dump::Dumper
 
-#include <chrono>
 #include <memory>
 #include <optional>
 #include <string>

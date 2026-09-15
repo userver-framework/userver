@@ -1,6 +1,5 @@
 #pragma once
 
-#include <chrono>
 #include <optional>
 
 #include <userver/storages/odbc/query.hpp>

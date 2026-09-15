@@ -3,7 +3,6 @@
 /// @file userver/server/handlers/auth/digest/nonce_cache_settings_component.hpp
 /// @brief @copybrief server::handlers::auth::digest::NonceCacheSettingsComponent
 
-#include <chrono>
 #include <cstddef>
 #include <optional>
 #include <string>

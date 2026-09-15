@@ -1,6 +1,5 @@
 #include <userver/utest/utest.hpp>
 
-#include <chrono>
 #include <string>
 #include <string_view>
 #include <vector>

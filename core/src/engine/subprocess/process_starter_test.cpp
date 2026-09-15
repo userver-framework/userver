@@ -3,7 +3,6 @@
 #include <sys/param.h>
 #include <unistd.h>
 
-#include <chrono>
 #include <string>
 #include <thread>
 #include <utility>
