@@ -34,7 +34,7 @@ use ❌ and ❓ respectively.
 | Async Mongo                            | ✔️ @ref scripts/docs/en/userver/mongodb.md "[↗]"            | ± third-party driver   | ✔️ [[↗]][dapr-mongo]                      | ❌ [manual offloading][acti-db] | ❌ [[↗]][drog-db]                 | ❓                       |
 | Async ClickHouse                       | ✔️ @ref scripts/docs/en/userver/clickhouse/driver.md "[↗]"  | ± third-party driver   | ❌                                         | ± third-party libs             | ❌ [[↗]][drog-db]                 | ❓                       |
 | Async MySQL                            | ✔️ @ref scripts/docs/en/userver/mysql/mysql_driver.md       | ± third-party driver   | ✔️ [[↗]][dapr-mysql]                      | ❌ [[↗]][acti-db]               | ✔️ [[↗]][drog-db]                | ✔️ [[↗]][poco-db]       |
-| Async ODBC                             | ❌                                                           | ❓                      | ❓                                         | ❓                              | ❓                                | ✔️ [[↗]][poco-db]       |
+| Async ODBC                             | ✔️ @ref scripts/docs/en/userver/odbc.md                     | ❓                      | ❓                                         | ❓                              | ❓                                | ✔️ [[↗]][poco-db]       |
 | Metrics                                | ✔️ @ref scripts/docs/en/userver/service_monitor.md "[↗]"    | ± third-party driver   | ✔️ [[↗]][dapr-configs]                    | ❌                              | ❌                                | ❓                       |
 | No args evaluation for disabled logs   | ✔️ @ref scripts/docs/en/userver/logging.md "[↗]"            | ❌                      | ❌                                         | ± third-party libs             | ❌                                | ❌                       |
 | Secrets Management                     | ± @ref storages::secdist::SecdistConfig "[↗]"               | ❓                      | ✔️                                        | ❓                              | ❓                                | ❓                       |
@@ -80,7 +80,9 @@ use ❌ and ❓ respectively.
 [poco-streams]: https://pocoproject.org/slides/100-Streams.pdf
 [poco-db]: https://docs.pocoproject.org/current/Poco.Data.html
 
-The table above shows the well-developed functionality of userver. Additionally userver is highly effective which is proven by the results of the Techempower benchmark run. Userver comes ahead of its competitors from the table. @ref bnchrs "[3]", see [[↗]][techempower-run]
+The table above shows the well-developed functionality of userver. Additionally userver is highly effective which is
+proven by the results of the Techempower benchmark run. Userver comes ahead of its competitors from the
+table. @ref bnchrs "[3]", see [[↗]][techempower-run]
 
 ![top15](/top15.png)
 

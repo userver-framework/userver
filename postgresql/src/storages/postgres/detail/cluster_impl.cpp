@@ -1,17 +1,15 @@
 #include <storages/postgres/detail/cluster_impl.hpp>
 
-#include <fmt/format.h>
 #include <algorithm>
 
 #include <userver/dynamic_config/value.hpp>
-#include <userver/engine/async.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
 
+#include <storages/postgres/detail/host_selection.hpp>
 #include <storages/postgres/detail/topology/hot_standby.hpp>
 #include <storages/postgres/detail/topology/standalone.hpp>
-#include <storages/postgres/postgres_config.hpp>
 #include <userver/storages/postgres/dsn.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/testsuite/testpoint.hpp>
@@ -25,56 +23,8 @@ namespace storages::postgres::detail {
 
 namespace {
 
-ClusterHostType Fallback(ClusterHostType ht) {
-    switch (ht) {
-        case ClusterHostType::kMaster:
-            throw ClusterError("Cannot fallback from master");
-        case ClusterHostType::kSyncSlave:
-        case ClusterHostType::kSlave:
-            return ClusterHostType::kMaster;
-        case ClusterHostType::kSlaveOrMaster:
-        case ClusterHostType::kNone:
-        case ClusterHostType::kRoundRobin:
-        case ClusterHostType::kNearest:
-            throw ClusterError("Invalid ClusterHostType value for fallback " + ToString(ht));
-    }
-    UINVARIANT(false, "Unexpected cluster host type");
-}
-
-size_t SelectDsnIndex(
-    const topology::TopologyBase::DsnIndices& dsn_indices,
-    ClusterHostTypeFlags flags,
-    std::atomic<uint32_t>& rr_host_idx
-) {
-    UASSERT(!dsn_indices.indices.empty());
-    UASSERT(dsn_indices.nearest.has_value());
-
-    const auto& indices = dsn_indices.indices;
-
-    if (indices.empty()) {
-        throw ClusterError("Cannot select host from an empty list");
-    }
-
-    const auto strategy_flags = flags & kClusterHostStrategyMask;
-    LOG_TRACE() << "Applying " << strategy_flags << " strategy";
-
-    if (!strategy_flags || strategy_flags == ClusterHostType::kRoundRobin) {
-        size_t idx_pos = 0;
-        if (indices.size() != 1) {
-            idx_pos = rr_host_idx.fetch_add(1, std::memory_order_relaxed) % indices.size();
-        }
-        return indices[idx_pos];
-    }
-
-    if (strategy_flags == ClusterHostType::kNearest) {
-        if (!dsn_indices.nearest.has_value()) {
-            throw ClusterError("Nearest host is unknown");
-        }
-        return dsn_indices.nearest.value();
-    }
-
-    throw LogicError(fmt::format("Invalid strategy requested: {}, ensure only one is used", ToString(strategy_flags)));
-}
+// One connection per host is enough to register a new instance in u_clients.
+constexpr std::size_t kBootstrapPoolSize = 1;
 
 }  // namespace
 
@@ -114,10 +64,7 @@ ClusterImpl::ClusterImpl(
     // Do not use IsConnlimitModeAuto() here because we don't care about
     // the current dynamic config value
     if (cluster_settings.connlimit_mode == ConnlimitMode::kAuto) {
-        connlimit_mode_auto_enabled_ = true;
         connlimit_watchdog_.Start();
-    } else {
-        connlimit_mode_auto_enabled_ = false;
     }
 }
 
@@ -164,6 +111,7 @@ void ClusterImpl::CreateTopology(const DsnList& dsns) {
 
     LOG_DEBUG() << "Starting pools initialization";
     const auto& dsn_list = data.topology->GetDsnList();
+    const auto startup_pool_settings = MakeEffectivePoolSettings(*cluster_settings);
     UASSERT(!dsn_list.empty());
     data.host_pools.reserve(dsn_list.size());
     for (const auto& dsn : dsn_list) {
@@ -177,7 +125,7 @@ void ClusterImpl::CreateTopology(const DsnList& dsns) {
                 bg_task_processor_,
                 cluster_settings->db_name,
                 cluster_settings->init_mode,
-                cluster_settings->pool_settings,
+                startup_pool_settings,
                 cluster_settings->conn_settings,
                 cluster_settings->statement_metrics_settings,
                 default_cmd_ctls_,
@@ -199,7 +147,10 @@ ClusterImpl::~ClusterImpl() { connlimit_watchdog_.Stop(); }
 ClusterStatisticsPtr ClusterImpl::GetStatistics() const {
     auto cluster_stats = std::make_unique<ClusterStatistics>();
 
-    cluster_stats->connlimit_mode_auto_on = connlimit_mode_auto_enabled_.load();
+    {
+        const auto cluster_settings = cluster_settings_.Read();
+        cluster_stats->connlimit_mode_auto_on = IsConnlimitModeAuto(*cluster_settings);
+    }
 
     auto topology_data = topology_data_.SharedLock();
     auto* topology = &*topology_data->topology;
@@ -297,24 +248,10 @@ ClusterImpl::ConnectionPoolPtr ClusterImpl::FindPool(ClusterHostTypeFlags flags)
         }
         dsn_index = SelectDsnIndex(*alive_dsn_indices, flags, rr_host_idx_);
     } else {
-        auto host_role = static_cast<ClusterHostType>(role_flags.GetValue());
+        const auto requested_role = static_cast<ClusterHostType>(role_flags.GetValue());
         auto dsn_indices_by_type = topology->GetDsnIndicesByType();
-        auto dsn_indices_it = dsn_indices_by_type->find(host_role);
-        while (host_role != ClusterHostType::kMaster &&
-               (dsn_indices_it == dsn_indices_by_type->end() || dsn_indices_it->second.indices.empty()))
-        {
-            auto fb = Fallback(host_role);
-            LOG_WARNING() << "There is no pool for " << host_role << ", falling back to " << fb;
-            host_role = fb;
-            dsn_indices_it = dsn_indices_by_type->find(host_role);
-        }
-
-        if (dsn_indices_it == dsn_indices_by_type->end() || dsn_indices_it->second.indices.empty()) {
-            throw ClusterUnavailable(
-                fmt::format("Pool for {} (requested: {}) is not available", ToString(host_role), ToString(role_flags))
-            );
-        }
-        LOG_TRACE() << "Starting transaction on " << host_role;
+        const auto dsn_indices_it = ResolveHostRole(*dsn_indices_by_type, requested_role);
+        LOG_TRACE() << "Starting transaction on " << dsn_indices_it->first;
         dsn_index = SelectDsnIndex(dsn_indices_it->second, flags, rr_host_idx_);
     }
 
@@ -389,29 +326,36 @@ void ClusterImpl::SetPoolSettings(const PoolSettings& new_settings) {
 
         cluster->original_min_pool_size = new_settings.min_size;
         cluster->pool_settings = new_settings;
-        if (IsConnlimitModeAuto(*cluster)) {
-            auto connlimit = connlimit_watchdog_.GetConnlimit();
-            if (connlimit > 0) {
-                AdjustPoolSettings(*cluster, connlimit);
-            }
-        }
-
         cluster.Commit();
     }
 
     PropagateSettingsToPools();
 }
 
-void ClusterImpl::AdjustPoolSettings(ExtendedClusterSettings& cluster, std::size_t max_size) {
-    cluster.pool_settings.max_size = max_size;
-    cluster.pool_settings.min_size = std::min(cluster.original_min_pool_size, max_size);
+PoolSettings ClusterImpl::MakeEffectivePoolSettings(const ExtendedClusterSettings& cluster) const {
+    auto pool_settings = cluster.pool_settings;
+    if (!IsConnlimitModeAuto(cluster)) {
+        return pool_settings;
+    }
+
+    const auto connlimit = connlimit_watchdog_.GetConnlimit();
+    if (connlimit == 0) {
+        pool_settings.min_size = kBootstrapPoolSize;
+        pool_settings.max_size = kBootstrapPoolSize;
+        return pool_settings;
+    }
+
+    pool_settings.min_size = std::min(cluster.original_min_pool_size, connlimit);
+    pool_settings.max_size = connlimit;
+    return pool_settings;
 }
 
 void ClusterImpl::PropagateSettingsToPools() {
     auto td = topology_data_.SharedLock();
     auto cluster_settings = cluster_settings_.Read();
+    const auto effective_pool_settings = MakeEffectivePoolSettings(*cluster_settings);
     for (const auto& pool : td->host_pools) {
-        pool->SetSettings(cluster_settings->pool_settings);
+        pool->SetSettings(effective_pool_settings);
     }
 }
 
@@ -421,37 +365,23 @@ void ClusterImpl::SetTopologySettings(const TopologySettings& settings) {
 }
 
 void ClusterImpl::OnConnlimitChanged() {
-    auto max_size = connlimit_watchdog_.GetConnlimit();
-    auto cluster = cluster_settings_.StartWrite();
-
-    if (!IsConnlimitModeAuto(*cluster)) {
-        return;
+    {
+        auto cluster = cluster_settings_.Read();
+        if (!IsConnlimitModeAuto(*cluster)) {
+            return;
+        }
     }
-
-    if (cluster->pool_settings.max_size == max_size) {
-        return;
-    }
-    AdjustPoolSettings(*cluster, max_size);
-
-    cluster.Commit();
 
     PropagateSettingsToPools();
 }
 
-bool ClusterImpl::IsConnlimitModeAuto(const ClusterSettings& settings) {
-    bool on = true;
+bool ClusterImpl::IsConnlimitModeAuto(const ClusterSettings& settings) const {
     if (settings.connlimit_mode == ConnlimitMode::kManual) {
-        on = false;
+        return false;
     }
 
-    auto snapshot = config_source_.GetSnapshot();
-    // NOLINTNEXTLINE(readability-simplify-boolean-expr)
-    if (!snapshot[::dynamic_config::POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED]) {
-        on = false;
-    }
-
-    connlimit_mode_auto_enabled_ = on;
-    return on;
+    const auto snapshot = config_source_.GetSnapshot();
+    return snapshot[::dynamic_config::POSTGRES_CONNLIMIT_MODE_AUTO_ENABLED];
 }
 
 void ClusterImpl::SetStatementMetricsSettings(const StatementMetricsSettings& settings) {
@@ -476,6 +406,13 @@ OptionalCommandControl ClusterImpl::GetTaskDataHandlersCommandControl() const {
 std::string ClusterImpl::GetDbName() const {
     auto cluster_settings = cluster_settings_.Read();
     return cluster_settings->db_name;
+}
+
+bool ClusterImpl::HasAliveHosts() const {
+    auto td = topology_data_.SharedLock();
+    auto& topology = td->topology;
+    auto alive_dsn_indices = topology->GetAliveDsnIndices();
+    return !alive_dsn_indices->indices.empty();
 }
 
 void ClusterImpl::SetDsnList(const DsnList& dsn) {

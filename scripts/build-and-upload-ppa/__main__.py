@@ -2,11 +2,12 @@
 """Build and upload userver source package to Launchpad PPA.
 
 Orchestrates:
-  1. scripts/generate-debian-directory.sh  (generates debian/ + vendors pydantic wheels)
+  1. scripts/generate-debian-directory.sh  (generates debian/ and vendors dependencies)
   2. debuild -S -sa                         (builds signed source package)
-  3. dput ppa:userver-framework/userver    (uploads to Launchpad)
+  3. dput ssh-ppa:userver-framework/userver (uploads to Launchpad over SFTP)
 
 Usage:
+  scripts/build-and-upload-ppa --distro ubuntu-26.04 --version-kind nightly
   scripts/build-and-upload-ppa --distro ubuntu-24.04 --version-kind nightly
   scripts/build-and-upload-ppa --distro ubuntu-22.04 --version-kind release
 """
@@ -19,21 +20,29 @@ import re
 import subprocess
 import sys
 
-PPA = 'ppa:userver-framework/userver'
+PPA = 'ssh-ppa:userver-framework/userver'
 
-SUPPORTED_DISTROS = ['ubuntu-22.04', 'ubuntu-24.04']
+SUPPORTED_DISTROS = ['ubuntu-22.04', 'ubuntu-24.04', 'ubuntu-26.04']
 
 
 def find_repo_root() -> pathlib.Path:
-    root = pathlib.Path(__file__).resolve().parent.parent.parent
-    missing = [p for p in ['version.txt', 'scripts/generate-debian-directory.sh'] if not (root / p).exists()]
-    if missing:
-        sys.exit(f'ERROR: repo root {root} is missing expected files: ' + ', '.join(missing))
+    start = pathlib.Path.cwd().resolve()
+    root = next((candidate for candidate in (start, *start.parents) if (candidate / 'version.txt').is_file()), None)
+    if root is None:
+        sys.exit(
+            f'ERROR: cannot find the userver repository root from {start}: version.txt is missing.\n'
+            'Run this command from the userver checkout or one of its subdirectories.'
+        )
+
+    generator = root / 'scripts/generate-debian-directory.sh'
+    if not generator.is_file():
+        sys.exit(f'ERROR: repository root {root} is missing expected file: {generator.relative_to(root)}')
+
     return root
 
 
 def compute_version(root: pathlib.Path, version_kind: str) -> str:
-    base = (root / 'version.txt').read_text().strip()
+    base = (root / 'version.txt').read_text().strip().replace('-', '~')
     if version_kind == 'release':
         return base
     timestamp = datetime.datetime.now(datetime.timezone.utc).strftime('%Y%m%d%H%M')
@@ -153,6 +162,10 @@ def main() -> None:
 
     root = find_repo_root()
     os.chdir(root)
+    run(
+        'Cleaning generated build artifacts',
+        ['arc', 'clean', '-x', '.'],
+    )
 
     version = compute_version(root, args.version_kind)
     keyid, debfullname, debemail = discover_signing_key()
@@ -172,7 +185,7 @@ def main() -> None:
         debemail=debemail,
     )
 
-    # Step 1: generate debian/ and vendor pydantic wheels
+    # Step 1: generate debian/ and vendor external dependencies
     run(
         'Generating debian directory',
         ['scripts/generate-debian-directory.sh'],
@@ -182,7 +195,7 @@ def main() -> None:
     # Step 2: build signed source package
     run(
         'Building source package',
-        ['debuild', '-S', '-sa', f'-k{keyid}'],
+        ['debuild', '-S', '-sa', '-d', f'-k{keyid}'],
         env=env,
     )
 

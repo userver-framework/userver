@@ -39,6 +39,17 @@ endif()
 
 include(DownloadUsingCPM)
 
+if(USERVER_INSTALL)
+    message(
+        FATAL_ERROR
+            "userver-kafka cannot be built with USERVER_INSTALL=ON: librdkafka was "
+            "not found as a system package and would be downloaded via CPM, which "
+            "cannot be added to a CMake install export set.\n"
+            "Install a system librdkafka (so find_package(RdKafka) succeeds), or "
+            "disable this component for install builds: -DUSERVER_FEATURE_KAFKA=OFF."
+    )
+endif()
+
 message(STATUS "Downloading librdkafka v${USERVER_KAFKA_VERSION}")
 cpmaddpackage(
     NAME RdKafka

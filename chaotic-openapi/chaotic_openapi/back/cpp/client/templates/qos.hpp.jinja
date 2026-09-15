@@ -1,10 +1,17 @@
 #pragma once
 
 #include <userver/chaotic/openapi/client/command_control.hpp>
+#include <userver/dynamic_config/snapshot.hpp>
 
 namespace {{ namespace }} {
 
 inline const USERVER_NAMESPACE::dynamic_config::Key<USERVER_NAMESPACE::chaotic::openapi::client::CommandControlDict>
-    kQosConfig{"{{ config }}", USERVER_NAMESPACE::dynamic_config::DefaultAsJsonString{"{}"}};
+            kQosConfig{
+                "{{ config }}",
+                USERVER_NAMESPACE::dynamic_config::DefaultAsJsonString{"{}"},
+                {% if qos_config_schema_hash %}
+                USERVER_NAMESPACE::dynamic_config::SchemaHash{"{{ qos_config_schema_hash }}"},
+                {% endif %}
+            };
 
 }  // namespace {{ namespace }}

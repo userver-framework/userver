@@ -1,5 +1,6 @@
 #include "redis_secdist.hpp"
 
+#include <userver/formats/common/items.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/storages/secdist/exceptions.hpp>
 #include <userver/storages/secdist/helpers.hpp>
@@ -28,9 +29,7 @@ RedisMapSettings::RedisMapSettings(const formats::json::Value& doc) {
 
     CheckIsObject(redis_settings, "redis_settings");
 
-    for (auto it = redis_settings.begin(); it != redis_settings.end(); ++it) {
-        auto client_name = it.GetName();
-        const auto& client_settings = *it;
+    for (auto [client_name, client_settings] : formats::common::Items(redis_settings)) {
         CheckIsObject(client_settings, "client_settings");
 
         USERVER_NAMESPACE::secdist::RedisSettings settings;

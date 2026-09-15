@@ -3,14 +3,11 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
+#include <type_traits>
 
 #include <userver/formats/json_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
-
-namespace dynamic_config {
-struct ConfigDefault;
-}  // namespace dynamic_config
 
 namespace dynamic_config::impl {
 
@@ -45,15 +42,6 @@ std::string ToJsonString(const T& value) {
     } else {
         return ToString(Serialize(value, formats::serialize::To<Value>{}));
     }
-}
-
-std::string SingleToDocsMapString(std::string_view name, std::string_view value);
-
-std::string MultipleToDocsMapString(const ConfigDefault* data, std::size_t size);
-
-template <typename T>
-std::string ValueToDocsMapString(std::string_view name, const T& value) {
-    return impl::SingleToDocsMapString(name, impl::ToJsonString(value));
 }
 
 }  // namespace dynamic_config::impl

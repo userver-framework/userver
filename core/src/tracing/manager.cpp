@@ -4,6 +4,7 @@
 #include <ranges>
 
 #include <userver/engine/task/inherited_variable.hpp>
+#include <userver/engine/task/inherited_variable_options.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/logging/level.hpp>
 #include <userver/server/http/http_request.hpp>
@@ -40,7 +41,9 @@ struct OTelTracingHeadersInheritedData final {
 };
 
 /// @see TracingHeadersInheritedData for details on the contents.
-engine::TaskInheritedVariable<OTelTracingHeadersInheritedData> kOtelTracingHeadersInheritedData;
+engine::TaskInheritedVariable<OTelTracingHeadersInheritedData> kOtelTracingHeadersInheritedData{
+    engine::TaskInheritedVariablePriority::kBackground,
+};
 
 /// @see TracingHeadersInheritedData for details on the contents.
 engine::TaskInheritedVariable<std::string> kB3TracingSampledInheritedData;

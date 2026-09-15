@@ -88,8 +88,9 @@ public:
     );
 
     /// @overload
+    /// @deprecated Use the overload that takes @ref utils::ResourceScopeStorage.
     ///
-    /// Store the returned @ref Entry as a member.
+    /// Store the returned @ref Entry as a member and call `Unregister` explicitly.
     Entry RegisterWriter(std::string common_prefix, WriterFunc func, std::vector<Label> add_labels = {});
 
     /// @deprecated Use RegisterWriter instead.

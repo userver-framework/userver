@@ -27,9 +27,7 @@
 #include <userver/utils/enumerate.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
-#include <storages/postgres/experiments.hpp>
-
-#include <dynamic_config/variables/POSTGRES_OMIT_DESCRIBE_IN_EXECUTE.hpp>
+#include <dynamic_config/variables/POSTGRES_RTT_THRESHOLD_ENABLED.hpp>
 
 #ifndef ARCADIA_ROOT
 #include "generated/src/storages/postgres/component.yaml.hpp"  // Y_IGNORE
@@ -51,13 +49,6 @@ storages::postgres::ConnlimitMode ParseConnlimitMode(std::string_view value) {
     }
 
     UINVARIANT(false, std::string("Unknown connlimit mode: ").append(value));
-}
-
-storages::postgres::OmitDescribeInExecuteMode ParseOmitDescribe(const dynamic_config::Snapshot& snapshot) {
-    return snapshot[::dynamic_config::POSTGRES_OMIT_DESCRIBE_IN_EXECUTE] ==
-                   storages::postgres::kOmitDescribeExperimentVersion
-               ? storages::postgres::OmitDescribeInExecuteMode::kEnabled
-               : storages::postgres::OmitDescribeInExecuteMode::kDisabled;
 }
 
 template <typename T>
@@ -134,8 +125,9 @@ Postgres::Postgres(const ComponentConfig& config, const ComponentContext& contex
     initial_settings_.db_name = db_name_;
     initial_settings_.connlimit_mode = ParseConnlimitMode(config["connlimit_mode"].As<std::string>("auto"));
 
-    initial_settings_.topology_settings.max_replication_lag =
-        config["max_replication_lag"].As<std::chrono::milliseconds>(storages::postgres::kDefaultMaxReplicationLag);
+    initial_settings_.topology_settings = config.As<storages::postgres::TopologySettings>();
+    initial_settings_.topology_settings
+        .rtt_threshold_enabled = initial_config[::dynamic_config::POSTGRES_RTT_THRESHOLD_ENABLED];
 
     initial_settings_.pool_settings = config.As<storages::postgres::PoolSettings>();
     storages::postgres::MergePoolSettings(pg_config.pool_settings.GetOptional(name_), initial_settings_.pool_settings);
@@ -146,7 +138,6 @@ Postgres::Postgres(const ComponentConfig& config, const ComponentContext& contex
     initial_settings_.conn_settings.statement_log_mode =
         config["statement-log-mode"].As<storages::postgres::ConnectionSettings::StatementLogMode>();
 
-    initial_settings_.conn_settings.omit_describe_mode = ParseOmitDescribe(initial_config);
     initial_settings_.statement_metrics_settings =
         pg_config.statement_metrics_settings.GetOptional(name_)
             .value_or(config.As<storages::postgres::StatementMetricsSettings>());
@@ -233,13 +224,13 @@ void Postgres::OnConfigUpdate(const dynamic_config::Snapshot& cfg) {
     const auto& pg_config = cfg[storages::postgres::kConfig];
     auto pool_settings = initial_settings_.pool_settings;
     storages::postgres::MergePoolSettings(pg_config.pool_settings.GetOptional(name_), pool_settings);
-    const auto topology_settings =
-        pg_config.topology_settings.GetOptional(name_).value_or(initial_settings_.topology_settings);
+    auto topology_settings = pg_config.topology_settings.GetOptional(name_).value_or(initial_settings_.topology_settings
+    );
+    topology_settings.rtt_threshold_enabled = cfg[::dynamic_config::POSTGRES_RTT_THRESHOLD_ENABLED];
 
     auto connection_settings = initial_settings_.conn_settings;
     MergeConnectionSettings(pg_config.connection_settings.GetOptional(name_), connection_settings);
 
-    connection_settings.omit_describe_mode = ParseOmitDescribe(cfg);
     const auto statement_metrics_settings =
         pg_config.statement_metrics_settings.GetOptional(name_).value_or(initial_settings_.statement_metrics_settings);
 

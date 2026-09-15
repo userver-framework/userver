@@ -1,5 +1,7 @@
 ## ODBC Driver
 
+**Quality:** @ref QUALITY_TIERS "Silver Tier".
+
 🐙 **userver** provides an asynchronous client for SQL databases that expose an
 ODBC interface. The driver integrates connection pools, transactions,
 deadlines, tracing, metrics, dynamic configuration, secdist and DNS resolution

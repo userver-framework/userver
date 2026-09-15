@@ -3,6 +3,7 @@
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/engine/subprocess/environment_variables.hpp>
+#include <userver/formats/common/items.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/yaml/serialize.hpp>
@@ -85,9 +86,9 @@ void MergeJsonObj(formats::json::ValueBuilder& builder, const formats::json::Val
         return;
     }
 
-    for (auto it = update.begin(); it != update.end(); ++it) {
-        auto sub_node = builder[it.GetName()];
-        MergeJsonObj(sub_node, *it);
+    for (const auto& [name, sub_value] : formats::common::Items(update)) {
+        auto sub_node = builder[name];
+        MergeJsonObj(sub_node, sub_value);
     }
 }
 

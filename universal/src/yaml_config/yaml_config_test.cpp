@@ -8,6 +8,7 @@
 
 #include <formats/common/value_test.hpp>
 #include <userver/formats/common/utils.hpp>
+#include <userver/formats/json/raw_string.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>

@@ -51,11 +51,13 @@ TaskProcessorHolder::~TaskProcessorHolder() = default;
 
 void RunOnTaskProcessorSync(TaskProcessor& tp, utils::function_ref<void()> user_cb) {
     UASSERT(!current_task::IsTaskProcessorThread());
-    engine::AsyncNoTracing(tp, [user_cb] {
+    auto task = engine::AsyncNoTracing(tp, [user_cb] {
         tracing::Span span("span");
         span.SetLogLevel(logging::Level::kNone);
         user_cb();
-    }).BlockingWait();
+    });
+    task.BlockingWait();
+    task.Get();
 }
 
 }  // namespace engine::impl

@@ -1,12 +1,21 @@
 #include <storages/postgres/postgres_config.hpp>
 
-#include <fmt/format.h>
+#include <chrono>
 #include <optional>
+
+#include <fmt/format.h>
+
+#include <dynamic_config/variables/POSTGRES_CONNECTION_POOL_SETTINGS.hpp>
+#include <dynamic_config/variables/POSTGRES_CONNECTION_SETTINGS.hpp>
+#include <dynamic_config/variables/POSTGRES_DEFAULT_COMMAND_CONTROL.hpp>
+#include <dynamic_config/variables/POSTGRES_HANDLERS_COMMAND_CONTROL.hpp>
+#include <dynamic_config/variables/POSTGRES_QUERIES_COMMAND_CONTROL.hpp>
+#include <dynamic_config/variables/POSTGRES_STATEMENT_METRICS_SETTINGS.hpp>
+#include <dynamic_config/variables/POSTGRES_TOPOLOGY_SETTINGS.hpp>
 
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/logging/log.hpp>
 
-#include <storages/postgres/experiments.hpp>
 #include <userver/storages/postgres/component.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/utils/userver_info.hpp>
@@ -54,6 +63,8 @@ CommandControl Parse(const formats::json::Value& elem, formats::parse::To<Comman
 }
 
 namespace {
+
+constexpr std::chrono::minutes kMaxRttThreshold{1};
 
 constexpr USERVER_NAMESPACE::utils::TrivialBiMap kPoolerModes = [](auto&& selector) {
     return selector().Case(PoolerMode::kSession, "session").Case(PoolerMode::kTransaction, "transaction");
@@ -251,9 +262,26 @@ TopologySettings Parse(const formats::json::Value& config, formats::parse::To<To
     result.max_replication_lag =
         config["max_replication_lag_ms"].template As<std::chrono::milliseconds>(result.max_replication_lag);
     result.disabled_replicas = config["disabled_replicas"].template As<decltype(result.disabled_replicas)>({});
+    result.rtt_threshold = config["rtt_threshold_ms"].template As<std::chrono::milliseconds>(kDefaultRttThreshold);
 
     if (result.max_replication_lag < std::chrono::milliseconds{0}) {
         throw InvalidConfig{"max_replication_lag cannot be less than 0"};
+    }
+
+    return result;
+}
+
+TopologySettings Parse(const yaml_config::YamlConfig& config, formats::parse::To<TopologySettings>) {
+    TopologySettings result{};
+
+    result.max_replication_lag = config["max_replication_lag"].As<std::chrono::milliseconds>(result.max_replication_lag
+    );
+    result.rtt_threshold = config["rtt_threshold"].As<std::chrono::milliseconds>(kDefaultRttThreshold);
+    if (result.rtt_threshold > kMaxRttThreshold) {
+        throw InvalidConfig{
+            "Invalid PostgreSQL topology rtt_threshold: value must not exceed 60s. Set static 'rtt_threshold' to a "
+            "duration of at most '60s'."
+        };
     }
 
     return result;
@@ -301,13 +329,41 @@ using JsonString = dynamic_config::DefaultAsJsonString;
 const dynamic_config::Key<Config> kConfig{
     Config::Parse,
     {
-        {"POSTGRES_DEFAULT_COMMAND_CONTROL", JsonString{"{}"}},
-        {"POSTGRES_HANDLERS_COMMAND_CONTROL", JsonString{"{}"}},
-        {"POSTGRES_QUERIES_COMMAND_CONTROL", JsonString{"{}"}},
-        {"POSTGRES_CONNECTION_POOL_SETTINGS", JsonString{"{}"}},
-        {"POSTGRES_TOPOLOGY_SETTINGS", JsonString{"{}"}},
-        {"POSTGRES_CONNECTION_SETTINGS", JsonString{"{}"}},
-        {"POSTGRES_STATEMENT_METRICS_SETTINGS", JsonString{"{}"}},
+        {
+            "POSTGRES_DEFAULT_COMMAND_CONTROL",
+            JsonString{"{}"},
+            ::dynamic_config::postgres_default_command_control::GetSchemaHash(),
+        },
+        {
+            "POSTGRES_HANDLERS_COMMAND_CONTROL",
+            JsonString{"{}"},
+            ::dynamic_config::postgres_handlers_command_control::GetSchemaHash(),
+        },
+        {
+            "POSTGRES_QUERIES_COMMAND_CONTROL",
+            JsonString{"{}"},
+            ::dynamic_config::postgres_queries_command_control::GetSchemaHash(),
+        },
+        {
+            "POSTGRES_CONNECTION_POOL_SETTINGS",
+            JsonString{"{}"},
+            ::dynamic_config::postgres_connection_pool_settings::GetSchemaHash(),
+        },
+        {
+            "POSTGRES_TOPOLOGY_SETTINGS",
+            JsonString{"{}"},
+            ::dynamic_config::postgres_topology_settings::GetSchemaHash(),
+        },
+        {
+            "POSTGRES_CONNECTION_SETTINGS",
+            JsonString{"{}"},
+            ::dynamic_config::postgres_connection_settings::GetSchemaHash(),
+        },
+        {
+            "POSTGRES_STATEMENT_METRICS_SETTINGS",
+            JsonString{"{}"},
+            ::dynamic_config::postgres_statement_metrics_settings::GetSchemaHash(),
+        },
     },
 };
 

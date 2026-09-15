@@ -5,7 +5,6 @@
 
 #include <fmt/format.h>
 #include <boost/container_hash/hash.hpp>
-#include <boost/crc.hpp>
 
 #include <userver/concurrent/variable.hpp>
 #include <userver/logging/log.hpp>
@@ -26,8 +25,6 @@
 #include <storages/redis/impl/sentinel_topology_holder.hpp>
 #include <storages/redis/impl/standalone_topology_holder.hpp>
 #include <storages/redis/impl/topology_holder_base.hpp>
-
-#include <dynamic_config/variables/REDIS_DEADLINE_PROPAGATION_VERSION.hpp>
 
 #include "command_control_impl.hpp"
 
@@ -69,17 +66,10 @@ enum class DeadlineAdjustResult : std::uint8_t {
 // including those issued by subscribe_sentinel, cluster_topology_holder,
 // cluster_slots_query, cluster_shards_query, and sentinel_query, which bypass
 // Request entirely. Moving the capping to Request would leave those paths
-// uncapped and would require duplicating the dynamic-config gate check.
-DeadlineAdjustResult AdjustDeadline(
-    const SentinelImpl::SentinelCommand& scommand,
-    const dynamic_config::Snapshot& config
-) {
+// uncapped.
+DeadlineAdjustResult AdjustDeadline(const SentinelImpl::SentinelCommand& scommand) {
     const auto inherited_deadline = GetDeadlineTimeLeft();
     if (!inherited_deadline) {
-        return DeadlineAdjustResult::kNotAdjusted;
-    }
-
-    if (config[::dynamic_config::REDIS_DEADLINE_PROPAGATION_VERSION] != kDeadlinePropagationExperimentVersion) {
         return DeadlineAdjustResult::kNotAdjusted;
     }
 
@@ -102,13 +92,6 @@ DeadlineAdjustResult AdjustDeadline(
     }
 
     return DeadlineAdjustResult::kNotAdjusted;
-}
-
-size_t HashSlot(const std::string& key) {
-    size_t start = 0;
-    size_t len = 0;
-    GetRedisKey(key, &start, &len);
-    return std::for_each(key.data() + start, key.data() + start + len, boost::crc_optimal<16, 0x1021>())() & 0x3fff;
 }
 
 std::string ParseMovedShard(const std::string& err_string) {
@@ -385,7 +368,7 @@ void SentinelImpl::Init() {
 }
 
 void SentinelImpl::AsyncCommand(const SentinelCommand& scommand, size_t prev_instance_idx) {
-    const auto deadline_adjust_result = AdjustDeadline(scommand, dynamic_config_source_.GetSnapshot());
+    const auto deadline_adjust_result = AdjustDeadline(scommand);
     if (deadline_adjust_result == DeadlineAdjustResult::kExpired) {
         server::request::MarkTaskInheritedDeadlineExpired();
         auto reply = std::make_shared<

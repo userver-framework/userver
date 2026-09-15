@@ -9,6 +9,7 @@
 #include <userver/formats/bson/bson_builder.hpp>
 #include <userver/formats/bson/exception.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/lazy_prvalue.hpp>
 #include <userver/utils/text.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -446,11 +447,14 @@ ValueImplPtr ValueImpl::GetOrInsert(const std::string& key) {
     }
     CheckIsDocument();
     EnsureParsed();
-    return std::get<ParsedDocument>(*parsed_value_.load())
-        .emplace(
+    auto& parsed_document = std::get<ParsedDocument>(*parsed_value_.load());
+    return parsed_document
+        .try_emplace(
             key,
-            std::make_shared<
-                ValueImpl>(EmplaceEnabler{}, nullptr, path_, kDefaultBsonValue, duplicate_fields_policy_, key)
+            utils::LazyPrvalue([this, &key] {
+                return std::make_shared<
+                    ValueImpl>(EmplaceEnabler{}, nullptr, path_, kDefaultBsonValue, duplicate_fields_policy_, key);
+            })
         )
         .first->second;
 }

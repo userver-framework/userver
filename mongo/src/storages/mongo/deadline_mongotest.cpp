@@ -5,13 +5,16 @@
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/testsuite/testpoint_control.hpp>
+#include <userver/utest/log_capture_fixture.hpp>
 
+#include <storages/mongo/cdriver/request_helpers.hpp>
 #include <storages/mongo/features.hpp>
 #include <storages/mongo/util_mongotest.hpp>
 #include <userver/formats/bson.hpp>
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/operators.hpp>
+#include <userver/storages/mongo/options.hpp>
 #include <userver/storages/mongo/pool.hpp>
 #include <userver/tracing/span.hpp>
 
@@ -24,7 +27,7 @@ namespace mongo = storages::mongo;
 
 namespace {
 
-class DeadlinePropagation : public MongoPoolFixture {};
+using DeadlinePropagation = utest::LogCaptureFixture<MongoPoolFixture>;
 
 server::request::TaskInheritedData MakeRequestData(engine::Deadline deadline) {
     return {{}, "dummy-method", {}, deadline};
@@ -91,6 +94,27 @@ UTEST_F(DeadlinePropagation, ReplaceOneCancelledByDeadline) {
         coll.ReplaceOne(bson::MakeDoc("_id", 1), bson::MakeDoc("_id", 1, "foo", 42)),
         mongo::CancelledException
     );
+}
+
+UTEST_F(DeadlinePropagation, BulkWriteFallbackWarnsOnlyForUserTimeout) {
+    auto& pool = GetDefaultPool();
+    mongo::impl::cdriver::GetCDriverPool(GetPoolImpl(pool)).MarkBulkWriteUnsupported();
+    auto coll = pool.GetCollection("dp_bulk_write_fallback");
+
+    server::request::kTaskInheritedData.Set(MakeRequestData(engine::Deadline::FromDuration(utest::kMaxTestWaitTime)));
+
+    UEXPECT_NO_THROW(coll.ReplaceOne(bson::MakeDoc("_id", 1), bson::MakeDoc("_id", 1, "foo", 42)));
+    UEXPECT_NO_THROW(
+        coll.UpdateOne(bson::MakeDoc("_id", 1), bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("foo", 43)))
+    );
+    EXPECT_TRUE(GetLogCapture().Filter("max_server_time for").empty());
+
+    UEXPECT_NO_THROW(coll.UpdateOne(
+        bson::MakeDoc("_id", 1),
+        bson::MakeDoc(mongo::operators::kSet, bson::MakeDoc("foo", 44)),
+        mongo::options::MaxServerTime{utest::kMaxTestWaitTime}
+    ));
+    EXPECT_EQ(GetLogCapture().Filter("max_server_time for Update").size(), 1);
 }
 
 #ifdef USERVER_FEATURE_MONGO_BULKWRITE

@@ -36,7 +36,9 @@ public:
 
     ~SubscriptionToken();
 
-    void Unsubscribe();
+    /// Drops the callback and asks Redis to unsubscribe. A rejected Redis command is only
+    /// logged: the token is released from destructors, where throwing kills the process.
+    void Unsubscribe() noexcept;
 
 private:
     SubscriptionStorageBase& storage_;

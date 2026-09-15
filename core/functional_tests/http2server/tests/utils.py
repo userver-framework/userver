@@ -16,6 +16,7 @@ HEADERS_FRAME = 0x01
 RST_STREAM_FRAME = 0x03
 GOAWAY_FRAME = 0x07
 PING_FRAME = 0x06
+WINDOW_UPDATE_FRAME = 0x08
 CONTINUATION_FRAME = 0x09
 EMPTY_FLAGS = 0x0
 ACK_FLAG = 0x01
@@ -23,8 +24,10 @@ END_STREAM = 0x01
 END_HEADERS = 0x04
 END_HEADER_AND_STREAM = 0x05
 PROTOCOL_ERROR_CODE = 0x01
+FLOW_CONTROL_ERROR_CODE = 0x03
 
 FRAME_TYPE_INDEX = 3
+FRAME_HEADER_SIZE = 9
 
 EVENTS_COUNT_IN_COMPLETED_STREAM = 3
 
@@ -45,7 +48,7 @@ def create_frame(frame_type: int, flags: int, stream_id: int, payload: bytes) ->
         + struct.pack('B', flags)
         + struct.pack('>I', stream_id & 0x7FFFFFFF)
     )
-    assert len(header) == 9
+    assert len(header) == FRAME_HEADER_SIZE
     return header + payload
 
 
@@ -54,6 +57,17 @@ def parse_frame_header(frame: bytes) -> tuple[int, int, int, int, bytes]:
     stream_id = int.from_bytes(frame[5:9], byteorder='big') & 0x7FFFFFFF
     payload = frame[9 : 9 + payload_size]
     return payload_size, frame[3], frame[4], stream_id, payload
+
+
+def parse_frame_types_and_streams(data: bytes) -> list[tuple[int, int]]:
+    """Splits a byte stream into (frame_type, stream_id) pairs."""
+    result = []
+    pos = 0
+    while pos + FRAME_HEADER_SIZE <= len(data):
+        payload_size, frame_type, _, stream_id, _ = parse_frame_header(data[pos:])
+        result.append((frame_type, stream_id))
+        pos += FRAME_HEADER_SIZE + payload_size
+    return result
 
 
 def is_ping_ack(frame: bytes, opaque_data: bytes) -> bool:

@@ -56,18 +56,17 @@ void WriteWithFakeFormat(impl::MetricsSource& source)
     }
 }
 
-// During the `Entry::Unregister` call or destruction of `Entry`, all variables
-// used by the writer or extender callback must be valid (must not be
-// destroyed). A common cause of crashes in this place: there is no manual call
-// to `Unregister`. In this case, check the lifetime of the data used by the
-// callback.
+// During `Entry::Unregister` or automatic teardown (Entry destructor /
+// ResourceScopeStorage::BeforeDestruction), all variables used by the writer
+// or extender callback must still be valid. A common cause of crashes here:
+// the holder is removed after the captured data is destroyed.
 [[maybe_unused]] void CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnregistering(impl::MetricsSource& source
 ) noexcept {
     try {
         WriteWithFakeFormat(source);
     } catch (const std::exception& e) {
         utils::AbortWithStacktrace(fmt::format(
-            "Unhandled exception while statistics holder {} is unregistering automatically: {}",
+            "Unhandled exception while statistics holder {} is unregistering: {}",
             source.prefix_path,
             e.what()
         ));
@@ -180,10 +179,8 @@ void Storage::UnregisterExtender(impl::StorageIterator iterator, [[maybe_unused]
     noexcept {
     const std::lock_guard lock(mutex_);
     if constexpr (impl::kCheckSubscriptionUB) {
-        if (kind == impl::UnregisteringKind::kAutomatic) {
-            // fake writer and extender call to check
-            CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnregistering(*iterator);
-        }
+        // fake writer and extender call to check
+        CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnregistering(*iterator);
     }
     metrics_sources_.erase(iterator);
 }

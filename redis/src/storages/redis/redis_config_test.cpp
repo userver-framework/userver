@@ -1,10 +1,64 @@
+#include <userver/utest/utest.hpp>
+
+#include <chrono>
+#include <ranges>
+#include <string_view>
+#include <vector>
+
+#include <gmock/gmock.h>
+
+#include <userver/dynamic_config/impl/snapshot.hpp>
+#include <userver/dynamic_config/registered_config_meta.hpp>
+#include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
 #include <userver/storages/redis/redis_config.hpp>
+#include <userver/utils/algo.hpp>
 
 #include <gtest/gtest.h>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace {
+
+constexpr std::string_view kRedisConfigNames[]{
+    "REDIS_DEFAULT_COMMAND_CONTROL",
+    "REDIS_SUBSCRIBER_DEFAULT_COMMAND_CONTROL",
+    "REDIS_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS",
+    "REDIS_WAIT_CONNECTED",
+    "REDIS_COMMANDS_BUFFERING_SETTINGS",
+    "REDIS_METRICS_SETTINGS",
+    "REDIS_PUBSUB_METRICS_SETTINGS",
+    "REDIS_REPLICA_MONITORING_SETTINGS",
+    "REDIS_RETRY_BUDGET_SETTINGS",
+    "REDIS_IGNORE_HEALTH_CHECK",
+};
+
+UTEST(RedisConfig, CompositeConfigDefaultsAndMetadata) {
+    const auto& config = dynamic_config::GetDefaultSnapshot()[storages::redis::kConfig];
+    EXPECT_EQ(config.subscriptions_rebalance_min_interval, std::chrono::seconds{30});
+    EXPECT_FALSE(config.ignore_health_check);
+
+    const auto registered_configs = dynamic_config::impl::GetRegisteredConfigsMeta();
+    for (const auto expected_name : kRedisConfigNames) {
+        SCOPED_TRACE(expected_name);
+        auto matching_configs =
+            registered_configs |
+            std::views::filter([expected_name](const auto& metadata) { return metadata.name == expected_name; });
+        const auto metadata = utils::AsContainer<std::vector<dynamic_config::RegisteredConfigMeta>>(matching_configs);
+        EXPECT_THAT(metadata, testing::Not(testing::IsEmpty()));
+        EXPECT_THAT(
+            metadata,
+            testing::Each(testing::Field(
+                "schema_hash",
+                &dynamic_config::RegisteredConfigMeta::schema_hash,
+                testing::Not(testing::IsEmpty())
+            ))
+        );
+    }
+}
+
+}  // namespace
 
 TEST(RedisCommandControlConfig, AllFieldsAreFilled) {
     formats::json::ValueBuilder builder{formats::common::Type::kObject};

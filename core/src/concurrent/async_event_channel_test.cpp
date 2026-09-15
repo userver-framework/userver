@@ -108,19 +108,27 @@ UTEST(AsyncEventChannel, OnListenerRemoval) {
 
     int value1{0};
     int value2{0};
+    int value3{0};
     Subscriber s1(value1);
     auto sub1 = channel.AddListener(&s1, "", &Subscriber::OnEvent);
     {
         Subscriber s2(value2);
         auto sub2 = channel.AddListener(&s2, "", &Subscriber::OnEvent);
+        sub2.Unsubscribe();
+    }
+    {
+        Subscriber s3(value3);
+        auto sub3 = channel.AddListener(&s3, "", &Subscriber::OnEvent);
     }
 
     EXPECT_EQ(value1, 0);
     if constexpr (concurrent::impl::kCheckSubscriptionUB) {
         EXPECT_EQ(value2, 1);
-        EXPECT_EQ(counter, 1);
+        EXPECT_EQ(value3, 1);
+        EXPECT_EQ(counter, 2);
     } else {
         EXPECT_EQ(value2, 0);
+        EXPECT_EQ(value3, 0);
         EXPECT_EQ(counter, 0);
     }
 }
@@ -239,6 +247,7 @@ UTEST(AsyncEventChannel, OnListenerRemovalSample) {
     {
         concurrent::AsyncEventSubscriberScope sub =
             channel.AddListener(concurrent::FunctionId(&sub), "sub", [&value](int new_value) { value = new_value; });
+        sub.Unsubscribe();
     }
 
     if constexpr (concurrent::impl::kCheckSubscriptionUB) {

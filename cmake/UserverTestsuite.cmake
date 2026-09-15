@@ -1,5 +1,5 @@
 # Functions for running testsuite tests.
-#
+
 # Provides:
 #
 # * USERVER_FEATURE_TESTSUITE option
@@ -11,6 +11,13 @@
 # Implementation note: public functions here should be usable even without a direct include of this script, so the
 # functions should not rely on non-cache variables being present.
 include_guard(GLOBAL)
+
+# Pull in DB registry (userver_testsuite_register_database + query helpers).
+include("${CMAKE_CURRENT_LIST_DIR}/UserverTestsuiteDbRegistry.cmake")
+
+# Pull in venv / requirements assembly (_userver_testsuite_*_requirements,
+# _userver_ensure_testsuite_venv_for_databases, userver_testsuite_requirements).
+include("${CMAKE_CURRENT_LIST_DIR}/UserverTestsuiteVenv.cmake")
 
 # Pack initialization into a function to avoid non-cache variable leakage.
 function(_userver_prepare_testsuite)
@@ -38,107 +45,48 @@ function(_userver_prepare_testsuite)
     endif()
     set_property(GLOBAL PROPERTY userver_testsuite_dir "${USERVER_TESTSUITE_DIR}")
 
+    # Eagerly register all in-tree DB fragments so the DB registry is fully
+    # populated before the shared testsuite venv is built (userver_testsuite_requirements
+    # in testsuite/SetupUserverTestsuiteEnv.cmake runs before the DB add_subdirectory
+    # calls that would otherwise register them lazily via userver_module()).
+    # Each fragment has include_guard(GLOBAL), so the later userver_module() include
+    # is a no-op. Guarded by NOT USERVER_INSTALL because registration has an install
+    # side effect (ships the fragment for its component); install builds disable the
+    # internal testsuite and must keep packaging unchanged.
+    if(USERVER_FEATURE_TESTSUITE AND NOT USERVER_INSTALL)
+        file(GLOB _userver_ts_db_fragments "${CMAKE_CURRENT_LIST_DIR}/testsuite/UserverTestsuiteDb-*.cmake")
+        foreach(_userver_ts_db_fragment IN LISTS _userver_ts_db_fragments)
+            include("${_userver_ts_db_fragment}")
+        endforeach()
+    endif()
+
     if(USERVER_FEATURE_TESTSUITE)
-        userver_testsuite_requirements(REQUIREMENTS_FILES_VAR requirements_files TESTSUITE_ONLY)
-        userver_venv_setup(
-            NAME utest
-            # TESTSUITE_PYTHON_BINARY is used in `env.in`
-            PYTHON_OUTPUT_VAR TESTSUITE_PYTHON_BINARY
-            REQUIREMENTS ${requirements_files}
-            UNIQUE
+        # Create the base utest venv (no DB extras) for tests with no DATABASES.
+        # Tests that declare DATABASES get a separate per-database-set venv provisioned
+        # lazily in userver_add_utest, where all component targets already exist.
+        _userver_ensure_testsuite_venv_for_databases(
+            _userver_base_env_script TESTSUITE_PYTHON_BINARY VENV_PREFIX utest
+            # No DATABASES: base venv only.
         )
-        configure_file("${USERVER_TESTSUITE_DIR}/env.in" "${CMAKE_BINARY_DIR}/testsuite/env" @ONLY)
     endif()
 endfunction()
 
-# @option TESTSUITE_ONLY
-# @param REQUIREMENTS_FILES_VAR @required Cmake variable name to store path to `requirements.txt` file
-function(userver_testsuite_requirements)
-    set(options TESTSUITE_ONLY)
-    set(oneValueArgs REQUIREMENTS_FILES_VAR)
-    set(multiValueArgs)
-
-    cmake_parse_arguments(ARG "${options}" "${oneValueArgs}" "${multiValueArgs}" "${ARGN}")
-
-    get_property(USERVER_CMAKE_DIR GLOBAL PROPERTY userver_cmake_dir)
-    get_property(USERVER_TESTSUITE_DIR GLOBAL PROPERTY userver_testsuite_dir)
-
-    list(APPEND requirements_files "${USERVER_TESTSUITE_DIR}/requirements.txt")
-
-    if(USERVER_FEATURE_GRPC OR TARGET userver::grpc)
-        get_property(protobuf_category GLOBAL PROPERTY userver_protobuf_version_category)
-        if(NOT protobuf_category)
-            include("${USERVER_CMAKE_DIR}/SetupProtobuf.cmake")
-            get_property(protobuf_category GLOBAL PROPERTY userver_protobuf_version_category)
+# Returns the first path from PATHS that exists on the filesystem.
+# Sets OUT_VAR to that path, or leaves it unset if none exists.
+# Used by userver_testsuite_add_simple to probe for optional config files.
+#
+# @param OUT_VAR  Variable to set to the first existing path.
+# @param ARGN     Candidate paths to probe in order.
+function(_userver_find_first_existing OUT_VAR)
+    foreach(_ffe_path IN LISTS ARGN)
+        if(EXISTS "${_ffe_path}")
+            set("${OUT_VAR}"
+                "${_ffe_path}"
+                PARENT_SCOPE
+            )
+            return()
         endif()
-        list(APPEND requirements_files "${USERVER_TESTSUITE_DIR}/requirements-grpc-${protobuf_category}.txt")
-    endif()
-
-    if(USERVER_FEATURE_MONGODB OR TARGET userver::mongo)
-        list(APPEND requirements_files "${USERVER_TESTSUITE_DIR}/requirements-mongo.txt")
-        list(APPEND testsuite_modules mongodb)
-    endif()
-
-    if(USERVER_FEATURE_POSTGRESQL OR TARGET userver::postgresql)
-        list(APPEND requirements_files "${USERVER_TESTSUITE_DIR}/requirements-postgres.txt")
-        if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
-            list(APPEND testsuite_modules postgresql-binary)
-        else()
-            list(APPEND testsuite_modules postgresql)
-        endif()
-    endif()
-
-    if(USERVER_FEATURE_YDB OR TARGET userver::ydb)
-        list(APPEND requirements_files "${USERVER_TESTSUITE_DIR}/requirements-ydb.txt")
-    endif()
-
-    if(USERVER_FEATURE_REDIS OR TARGET userver::redis)
-        list(APPEND requirements_files "${USERVER_TESTSUITE_DIR}/requirements-redis.txt")
-        list(APPEND testsuite_modules redis)
-    endif()
-
-    if(USERVER_FEATURE_CLICKHOUSE OR TARGET userver::clickhouse)
-        list(APPEND testsuite_modules clickhouse)
-    endif()
-
-    if(USERVER_FEATURE_RABBITMQ OR TARGET userver::rabbitmq)
-        list(APPEND testsuite_modules rabbitmq)
-    endif()
-
-    if(USERVER_FEATURE_KAFKA OR TARGET userver::kafka)
-        list(APPEND testsuite_modules kafka)
-    endif()
-
-    if(USERVER_FEATURE_MYSQL OR TARGET userver::mysql)
-        list(APPEND testsuite_modules mysql)
-    endif()
-
-    # This function returns "public" dependencies for userver-based services. For private dependencies that only
-    # userver's own tests need, see SetupUserverTestsuiteEnv.cmake
-
-    file(READ "${USERVER_TESTSUITE_DIR}/requirements-testsuite.txt" requirements_testsuite_text)
-    if(testsuite_modules)
-        list(JOIN testsuite_modules "," testsuite_modules_str)
-        string(REPLACE "yandex-taxi-testsuite[]" "yandex-taxi-testsuite[${testsuite_modules_str}]"
-                       requirements_testsuite_text "${requirements_testsuite_text}"
-        )
-    endif()
-
-    set(requirements_testsuite_file "${CMAKE_BINARY_DIR}/requirements-userver-testsuite.txt")
-    file(WRITE "${requirements_testsuite_file}" "${requirements_testsuite_text}")
-    list(APPEND requirements_files "${requirements_testsuite_file}")
-
-    if(NOT ARG_TESTSUITE_ONLY)
-        set("${ARG_REQUIREMENTS_FILES_VAR}"
-            ${requirements_files}
-            PARENT_SCOPE
-        )
-    else()
-        set("${ARG_REQUIREMENTS_FILES_VAR}"
-            ${requirements_testsuite_file}
-            PARENT_SCOPE
-        )
-    endif()
+    endforeach()
 endfunction()
 
 # TODO
@@ -192,9 +140,21 @@ function(userver_testsuite_add)
             PYTHON_OUTPUT_VAR python_binary
         )
     else()
-        userver_testsuite_requirements(REQUIREMENTS_FILES_VAR requirements_files)
+        _userver_testsuite_active_databases(active_dbs TARGET "${ARG_SERVICE_TARGET}")
+        _userver_testsuite_base_requirements(base_req_files)
+        # Auto-detected DB set (link-graph, never user-supplied): NON_STRICT.
+        _userver_testsuite_env_requirements(db_req_files db_key NON_STRICT ${active_dbs})
+
+        set(requirements_files ${base_req_files} ${db_req_files})
+
+        if(db_key)
+            set(venv_name "userver-default-${db_key}")
+        else()
+            set(venv_name "userver-default")
+        endif()
+
         userver_venv_setup(
-            NAME userver-default
+            NAME "${venv_name}"
             REQUIREMENTS ${requirements_files}
             PYTHON_OUTPUT_VAR python_binary
             UNIQUE
@@ -335,6 +295,8 @@ function(userver_testsuite_add_simple)
             )
         endif()
     else()
+        # Probe the standard test-directory candidates; keep both ARG_WORKING_DIRECTORY
+        # (absolute dir) and tests_relative_path (relative name) in sync.
         foreach(probable_tests_path IN ITEMS "testsuite" "tests" ".")
             if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/${probable_tests_path}/conftest.py")
                 set(ARG_WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/${probable_tests_path}")
@@ -367,18 +329,11 @@ function(userver_testsuite_add_simple)
     elseif(ARG_DUMP_CONFIG)
         set(config_path "${CMAKE_CURRENT_BINARY_DIR}/Testing/Temporary/static_config.yaml")
     else()
-        foreach(
-            probable_config_path IN
-            ITEMS "${CMAKE_CURRENT_SOURCE_DIR}/configs/static_config.yaml"
-                  "${CMAKE_CURRENT_SOURCE_DIR}/configs/config.yaml" "${CMAKE_CURRENT_SOURCE_DIR}/static_config.yaml"
-                  "${CMAKE_CURRENT_SOURCE_DIR}/config.yaml"
+        _userver_find_first_existing(
+            config_path "${CMAKE_CURRENT_SOURCE_DIR}/configs/static_config.yaml"
+            "${CMAKE_CURRENT_SOURCE_DIR}/configs/config.yaml" "${CMAKE_CURRENT_SOURCE_DIR}/static_config.yaml"
+            "${CMAKE_CURRENT_SOURCE_DIR}/config.yaml"
         )
-            if(EXISTS "${probable_config_path}")
-                set(config_path "${probable_config_path}")
-                break()
-            endif()
-        endforeach()
-
         if(NOT config_path)
             message(FATAL_ERROR "Failed to find service static config for testsuite. "
                                 "Please pass it to ${CMAKE_CURRENT_FUNCTION} as CONFIG_PATH arg."
@@ -391,20 +346,15 @@ function(userver_testsuite_add_simple)
             config_vars_path "${ARG_CONFIG_VARS_PATH}" REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
         )
     else()
-        foreach(
-            probable_config_vars_path IN
-            ITEMS "${CMAKE_CURRENT_SOURCE_DIR}/configs/config_vars.testsuite.yaml"
-                  "${CMAKE_CURRENT_SOURCE_DIR}/configs/config_vars.testing.yaml"
-                  "${CMAKE_CURRENT_SOURCE_DIR}/configs/config_vars.yaml"
-                  "${CMAKE_CURRENT_SOURCE_DIR}/config_vars.testsuite.yaml"
-                  "${CMAKE_CURRENT_SOURCE_DIR}/config_vars.testing.yaml"
-                  "${CMAKE_CURRENT_SOURCE_DIR}/config_vars.yaml"
+        _userver_find_first_existing(
+            config_vars_path
+            "${CMAKE_CURRENT_SOURCE_DIR}/configs/config_vars.testsuite.yaml"
+            "${CMAKE_CURRENT_SOURCE_DIR}/configs/config_vars.testing.yaml"
+            "${CMAKE_CURRENT_SOURCE_DIR}/configs/config_vars.yaml"
+            "${CMAKE_CURRENT_SOURCE_DIR}/config_vars.testsuite.yaml"
+            "${CMAKE_CURRENT_SOURCE_DIR}/config_vars.testing.yaml"
+            "${CMAKE_CURRENT_SOURCE_DIR}/config_vars.yaml"
         )
-            if(EXISTS "${probable_config_vars_path}")
-                set(config_vars_path "${probable_config_vars_path}")
-                break()
-            endif()
-        endforeach()
     endif()
     if(config_vars_path)
         list(APPEND pytest_additional_args "--service-config-vars=${config_vars_path}")
@@ -416,34 +366,25 @@ function(userver_testsuite_add_simple)
             "${CMAKE_CURRENT_SOURCE_DIR}"
         )
     else()
-        foreach(probable_dynamic_config_fallback_path IN
-                ITEMS "${CMAKE_CURRENT_SOURCE_DIR}/configs/dynamic_config_fallback.json"
-                      "${CMAKE_CURRENT_SOURCE_DIR}/dynamic_config_fallback.json"
+        _userver_find_first_existing(
+            dynamic_config_fallback_path "${CMAKE_CURRENT_SOURCE_DIR}/configs/dynamic_config_fallback.json"
+            "${CMAKE_CURRENT_SOURCE_DIR}/dynamic_config_fallback.json"
         )
-            if(EXISTS "${probable_dynamic_config_fallback_path}")
-                set(dynamic_config_fallback_path "${probable_dynamic_config_fallback_path}")
-                break()
-            endif()
-        endforeach()
     endif()
     if(dynamic_config_fallback_path)
         list(APPEND pytest_additional_args "--config-fallback=${dynamic_config_fallback_path}")
     endif()
 
     if(ARG_SECDIST_PATH)
-        get_filename_component(secdist_path "${ARG_CONFIG_VARS_PATH}" REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
+        # BUG FIX (was: ARG_CONFIG_VARS_PATH — copy-paste from the config_vars branch above).
+        # The helper extraction structurally prevents this class of error from recurring.
+        get_filename_component(secdist_path "${ARG_SECDIST_PATH}" REALPATH BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
     else()
-        foreach(
-            probable_secdist_path IN
-            ITEMS "${CMAKE_CURRENT_SOURCE_DIR}/configs/secdist.json"
-                  "${CMAKE_CURRENT_SOURCE_DIR}/configs/secure_data.json" "${CMAKE_CURRENT_SOURCE_DIR}/secdist.json"
-                  "${CMAKE_CURRENT_SOURCE_DIR}/secure_data.json"
+        _userver_find_first_existing(
+            secdist_path "${CMAKE_CURRENT_SOURCE_DIR}/configs/secdist.json"
+            "${CMAKE_CURRENT_SOURCE_DIR}/configs/secure_data.json" "${CMAKE_CURRENT_SOURCE_DIR}/secdist.json"
+            "${CMAKE_CURRENT_SOURCE_DIR}/secure_data.json"
         )
-            if(EXISTS "${probable_secdist_path}")
-                set(secdist_path "${probable_secdist_path}")
-                break()
-            endif()
-        endforeach()
     endif()
     if(secdist_path)
         list(APPEND pytest_additional_args "--service-secdist=${secdist_path}")
@@ -489,20 +430,35 @@ function(userver_add_utest)
         message(FATAL_ERROR "userver_add_utest requires 'USERVER_FEATURE_TESTSUITE=ON'")
     endif()
 
-    set(additional_args)
+    get_property(USERVER_TESTSUITE_DIR GLOBAL PROPERTY userver_testsuite_dir)
+
     if(ARG_DATABASES)
+        # Provision a per-database-set venv so that the testsuite environment can start
+        # the required DB daemons. The venv is named "utest-<sorted-dbs>" and is UNIQUE,
+        # meaning tests with the same database set share one venv and it is built only once.
+        #
+        # This is done here, at userver_add_utest time, rather than eagerly in
+        # _userver_prepare_testsuite, because all userver::<db> targets are guaranteed to
+        # exist by the time userver_add_utest is called (find_package has completed), while
+        # _userver_prepare_testsuite runs during the core component config load, before any
+        # DB component targets are created.
+        _userver_ensure_testsuite_venv_for_databases(
+            env_script utest_db_python VENV_PREFIX utest DATABASES ${ARG_DATABASES}
+        )
+
         list(JOIN ARG_DATABASES "," databases_value)
-        list(APPEND additional_args "--databases=${databases_value}")
+        set(additional_args "--databases=${databases_value}")
     else()
-        list(APPEND additional_args "--databases=")
+        set(env_script "${CMAKE_BINARY_DIR}/testsuite/env")
+        set(additional_args "--databases=")
     endif()
 
     if(NOT ARG_DISABLE_GTEST_XML_OUTPUT)
         list(APPEND ARG_TEST_ARGS "--gtest_output=xml:${CMAKE_BINARY_DIR}/test-results/${ARG_NAME}.xml")
     endif()
 
-    add_test(NAME "${ARG_NAME}" COMMAND "${CMAKE_BINARY_DIR}/testsuite/env" ${additional_args} run --
-                                        $<TARGET_FILE:${ARG_NAME}> ${ARG_TEST_ARGS}
+    add_test(NAME "${ARG_NAME}" COMMAND "${env_script}" ${additional_args} run -- $<TARGET_FILE:${ARG_NAME}>
+                                        ${ARG_TEST_ARGS}
     )
     if(ARG_TEST_ENV)
         set_tests_properties("${ARG_NAME}" PROPERTIES ENVIRONMENT "${ARG_TEST_ENV}")
@@ -553,31 +509,18 @@ endfunction()
 # Tests that share a lock are never run concurrently by ctest, which protects the
 # per-engine database daemons started by testsuite (each on a fixed port/data-dir)
 # from races during parallel `ctest -j`. Lock name for an engine is "userver_<engine>".
+#
+# The set of engines is driven entirely by the DI registry populated via
+# userver_testsuite_register_database (called from each UserverTestsuiteDb-<mod>.cmake
+# fragment). Embedded engines without a shared daemon (e.g. sqlite, rocksdb) are
+# naturally omitted because they are never registered.
 function(_userver_get_test_resource_locks_for_target target output_var)
-    # userver database modules backed by a shared daemon. Embedded engines without a
-    # daemon (e.g. sqlite, rocks) are intentionally omitted.
-    set(db_engines
-        postgresql
-        mongo
-        redis
-        clickhouse
-        rabbitmq
-        kafka
-        mysql
-        ydb
-    )
-
     set(resource_locks "")
-    if(TARGET "${target}")
-        _userver_collect_linked_targets("${target}" linked_targets)
-        foreach(engine IN LISTS db_engines)
-            list(FIND linked_targets "userver-${engine}" index_dash)
-            list(FIND linked_targets "userver::${engine}" index_colons)
-            if(NOT index_dash EQUAL -1 OR NOT index_colons EQUAL -1)
-                list(APPEND resource_locks "userver_${engine}")
-            endif()
-        endforeach()
-    endif()
+
+    _userver_testsuite_active_databases(active_dbs TARGET "${target}")
+    foreach(db IN LISTS active_dbs)
+        list(APPEND resource_locks "userver_${db}")
+    endforeach()
 
     set(${output_var}
         "${resource_locks}"

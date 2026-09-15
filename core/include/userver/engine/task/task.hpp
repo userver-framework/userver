@@ -13,7 +13,11 @@ namespace engine {
 
 /// @brief Asynchronous task that has a unique ownership of the payload.
 ///
-/// See engine::TaskWithResult for a type that could return a value or
+/// @warning This class supports only a single concurrent awaiter. Use
+/// @ref engine::SharedTaskWithResult "SharedTaskWithResult<void>" to await the
+/// same task from multiple coroutines and report exceptions from the payload.
+///
+/// See @ref engine::TaskWithResult for a type that could return a value or
 /// report an exception from the payload.
 class [[nodiscard]] Task : public TaskBase {
 public:

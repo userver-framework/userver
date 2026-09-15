@@ -20,6 +20,10 @@ double ParseDouble(std::string value) {
     );
 }
 
+storages::redis::MsetexReply ParseMsetexReply(storages::redis::ReplyData reply_data) {
+    return storages::redis::Parse(std::move(reply_data), "MSETEX", storages::redis::To<storages::redis::MsetexReply>{});
+}
+
 }  // namespace
 
 TEST(ParseReply, DoubleValid) {
@@ -41,6 +45,27 @@ TEST(ParseReply, DoubleTrailingJunk) {
     EXPECT_THROW(ParseDouble("3.14garbage"), storages::redis::ParseReplyException);
     EXPECT_THROW(ParseDouble("nonsense"), storages::redis::ParseReplyException);
     EXPECT_THROW(ParseDouble(""), storages::redis::ParseReplyException);
+}
+
+TEST(ParseReply, MsetexReplyConditionNotMet) {
+    EXPECT_EQ(ParseMsetexReply(storages::redis::ReplyData{0}), storages::redis::MsetexReply::kConditionNotMet);
+}
+
+TEST(ParseReply, MsetexReplyKeysSet) {
+    EXPECT_EQ(ParseMsetexReply(storages::redis::ReplyData{1}), storages::redis::MsetexReply::kKeysSet);
+}
+
+TEST(ParseReply, MsetexReplyUnexpectedInteger) {
+    EXPECT_THROW(ParseMsetexReply(storages::redis::ReplyData{-1}), storages::redis::ParseReplyException);
+    EXPECT_THROW(ParseMsetexReply(storages::redis::ReplyData{2}), storages::redis::ParseReplyException);
+}
+
+TEST(ParseReply, MsetexReplyWrongType) {
+    EXPECT_THROW(
+        ParseMsetexReply(storages::redis::ReplyData::CreateStatus("OK")),
+        storages::redis::ParseReplyException
+    );
+    EXPECT_THROW(ParseMsetexReply(storages::redis::ReplyData{std::string{"1"}}), storages::redis::ParseReplyException);
 }
 
 // A GEORADIUS/GEOSEARCH reply with WITHDIST/WITHCOORD/WITHHASH is an array of

@@ -29,6 +29,7 @@ class InlineObjectBuilder;
 class InlineArrayBuilder;
 class MutableValueWrapper;
 class StringBuffer;
+class StableSerializer;
 
 // do not make a copy of string
 impl::Value MakeJsonStringViewValue(std::string_view view);
@@ -327,6 +328,7 @@ private:
     friend class impl::MutableValueWrapper;
     friend class parser::JsonValueParser;
     friend class impl::StringBuffer;
+    friend class impl::StableSerializer;
 
     friend bool Parse(const Value& value, parse::To<bool>);
     friend std::int64_t Parse(const Value& value, parse::To<std::int64_t>);

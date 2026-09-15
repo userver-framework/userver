@@ -425,6 +425,35 @@ function(_userver_macos_set_default_dir variable command_args)
     )
 endfunction()
 
+macro(_userver_is_release_build out_var)
+    if(CMAKE_BUILD_TYPE MATCHES "^.*Rel.*$")
+        set(${out_var} TRUE)
+    else()
+        set(${out_var} FALSE)
+    endif()
+endmacro()
+
+# Maps the current CMAKE_BUILD_TYPE to the export subdirectory ("release"/"debug")
+# and the exported targets-file suffix (""/"_d").
+macro(_userver_build_type_export_subdir_and_suffix out_subdir out_suffix)
+    _userver_is_release_build(_userver_btes_is_release)
+    if(_userver_btes_is_release)
+        set(${out_subdir} "release")
+        set(${out_suffix} "")
+    else()
+        set(${out_subdir} "debug")
+        set(${out_suffix} "_d")
+    endif()
+endmacro()
+
+macro(_userver_include_component_targets component)
+    _userver_build_type_export_subdir_and_suffix(_userver_ict_subdir _userver_ict_suffix)
+    include(
+        "${USERVER_CMAKE_DIR}/${_userver_ict_subdir}/${component}/userver-targets-${component}${_userver_ict_suffix}.cmake"
+        OPTIONAL
+    )
+endmacro()
+
 function(_userver_print_features_list)
     get_cmake_property(variable_names CACHE_VARIABLES)
     list(SORT variable_names)

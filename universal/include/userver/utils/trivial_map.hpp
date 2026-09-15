@@ -722,7 +722,7 @@ public:
         Second second;
     };
 
-    /// Returns Second if T is convertible to First, otherwise returns Second type.
+    /// Returns Second if T is convertible to First, otherwise returns First type.
     template <class T>
     using MappedTypeFor = std::conditional_t<std::is_convertible_v<T, DecayToStringView<First>>, Second, First>;
 

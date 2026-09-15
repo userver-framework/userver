@@ -17,7 +17,12 @@ namespace engine {
 
 /// @brief Asynchronous task that has a shared ownership of the payload.
 ///
-/// See engine::SharedTaskWithResult for a type that could return a value or
+/// @warning This class has no `Get` and cannot report exceptions thrown by the
+/// task payload. Prefer
+/// @ref engine::SharedTaskWithResult "SharedTaskWithResult<void>" even when no
+/// result is needed.
+///
+/// See @ref engine::SharedTaskWithResult for a type that could return a value or
 /// report an exception from the payload.
 class [[nodiscard]] SharedTask : public TaskBase {
 public:

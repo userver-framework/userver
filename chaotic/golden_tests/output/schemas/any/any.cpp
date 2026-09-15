@@ -8,6 +8,91 @@
 
 namespace ns {
 
+ObjectWithRawJsonField FromJsonString(
+    std::string_view json,
+    USERVER_NAMESPACE::formats::parse::To<ObjectWithRawJsonField>)
+{
+    return USERVER_NAMESPACE::formats::json::parser::ParseToType<
+        ObjectWithRawJsonField,
+        USERVER_NAMESPACE::chaotic::sax::impl::RemoveUserTypeParser<
+            USERVER_NAMESPACE::chaotic::sax::Parser<ObjectWithRawJsonField>
+        >
+    >(json);
+}
+
+std::string ToJsonString(const ObjectWithRawJsonField& value) {
+    USERVER_NAMESPACE::formats::json::StringBuilder builder;
+    WriteToStream(value, builder);
+    return builder.GetString();
+}
+
+bool operator==(const ObjectWithRawJsonField & lhs,const ObjectWithRawJsonField & rhs) {
+    return true
+        && lhs.inner_object == rhs.inner_object
+    ;
+}
+
+USERVER_NAMESPACE::logging::LogHelper& operator<<(
+    USERVER_NAMESPACE::logging::LogHelper& lh,
+    const ObjectWithRawJsonField& value)
+{
+    return lh << ToString(USERVER_NAMESPACE::formats::json::ValueBuilder(value).ExtractValue());
+}
+
+ObjectWithRawJsonField Parse(
+    USERVER_NAMESPACE::formats::json::Value json,
+    USERVER_NAMESPACE::formats::parse::To<ObjectWithRawJsonField> to)
+{
+    return Parse<USERVER_NAMESPACE::formats::json::Value>(json, to);
+}
+
+ObjectWithRawJsonField Parse(
+    USERVER_NAMESPACE::formats::yaml::Value json,
+    USERVER_NAMESPACE::formats::parse::To<ObjectWithRawJsonField> to)
+{
+    return Parse<USERVER_NAMESPACE::formats::yaml::Value>(json, to);
+}
+
+ObjectWithRawJsonField Parse(
+    USERVER_NAMESPACE::yaml_config::Value json,
+    USERVER_NAMESPACE::formats::parse::To<ObjectWithRawJsonField> to)
+{
+    return Parse<USERVER_NAMESPACE::yaml_config::Value>(json, to);
+}
+
+USERVER_NAMESPACE::formats::json::Value Serialize(
+    [[maybe_unused]] const ObjectWithRawJsonField& value,
+    USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>)
+{
+    USERVER_NAMESPACE::formats::json::ValueBuilder vb
+            = USERVER_NAMESPACE::formats::common::Type::kObject;
+    vb["inner_object"] =
+        USERVER_NAMESPACE::formats::json::RawString{
+            value.inner_object
+        };
+
+    return vb.ExtractValue();
+}
+
+void WriteToStream(
+    [[maybe_unused]] const ObjectWithRawJsonField& value,
+    USERVER_NAMESPACE::formats::json::StringBuilder& sw,
+    [[maybe_unused]] bool hide_brackets,
+    [[maybe_unused]] std::string_view hide_field_name)
+{
+    std::optional<USERVER_NAMESPACE::formats::json::StringBuilder::ObjectGuard> guard;
+    if (!hide_brackets) {
+        guard.emplace(sw);
+    }
+
+    if (hide_field_name != "inner_object") {
+        sw.Key("inner_object");
+        WriteToStream(USERVER_NAMESPACE::formats::json::RawString{
+            value.inner_object
+        }, sw);
+    }
+}
+
 WithAnyField FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<WithAnyField>)
@@ -96,4 +181,3 @@ void WriteToStream(
 }
 
 }  // namespace ns
-

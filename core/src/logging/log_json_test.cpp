@@ -89,7 +89,7 @@ TEST_F(LoggingJsonTest, LogExtraJsonString) {
         {"int43", 43},
     });
     extra.Extend({"object6", object});
-    extra.Extend("null_object", logging::JsonString());
+    extra.Extend("empty_object", logging::JsonString());
 
     LOG_CRITICAL() << extra;
 
@@ -112,7 +112,8 @@ TEST_F(LoggingJsonTest, LogExtraJsonString) {
         EXPECT_EQ(json[object]["inner"]["number"].As<int>(), 10);
     }
 
-    EXPECT_TRUE(json["null_object"].IsNull());
+    EXPECT_TRUE(json["empty_object"].IsObject());
+    EXPECT_TRUE(json["empty_object"].IsEmpty());
 }
 
 USERVER_NAMESPACE_END

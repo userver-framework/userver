@@ -24,7 +24,7 @@ TxActor::TxActor(
     NYdb::NQuery::TTxSettings&& tx_settings,
     engine::Deadline deadline,
     std::uint32_t attempt
-) noexcept
+)
     : table_client_(table_client),
       deadline_(deadline),
       attempt_(attempt),

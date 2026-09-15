@@ -48,6 +48,9 @@ public:
     bool IsHttpOnly() const noexcept;
     Cookie& SetHttpOnly() noexcept;
 
+    bool IsPartitioned() const noexcept;
+    Cookie& SetPartitioned() noexcept;
+
     const std::string& Path() const noexcept;
     Cookie& SetPath(std::string value);
 

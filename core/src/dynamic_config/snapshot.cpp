@@ -10,8 +10,13 @@ USERVER_NAMESPACE_BEGIN
 namespace dynamic_config {
 
 ConfigDefault::ConfigDefault(std::string_view name, DefaultAsJsonString default_json)
+    : ConfigDefault(name, default_json, SchemaHash{})
+{}
+
+ConfigDefault::ConfigDefault(std::string_view name, DefaultAsJsonString default_json, SchemaHash schema_hash)
     : name(name),
-      default_json(default_json.json_string)
+      default_json(default_json.json_string),
+      schema_hash(schema_hash.value)
 {}
 
 struct Snapshot::Impl final {

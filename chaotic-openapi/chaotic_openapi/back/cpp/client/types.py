@@ -24,6 +24,7 @@ class ClientSpec(common_types.SpecBase):
     client_name: str
     cpp_namespace: str
     dynamic_config: str
+    dynamic_config_schema_hash: str = ''
     description: str = ''
     operations: list[Operation] = dataclasses.field(default_factory=list)
 

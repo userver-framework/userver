@@ -20,6 +20,17 @@ USERVER_NAMESPACE_BEGIN
 
 namespace pg = storages::postgres;
 
+namespace storages::postgres::detail {
+
+class ConnectionPoolTestHelper final {
+public:
+    static void MaintainConnections(ConnectionPool& pool) { pool.MaintainConnections(); }
+
+    static std::size_t GetCancelLimit(ConnectionPool& pool) { return pool.cancel_limit_.GetMaxSizeApprox(); }
+};
+
+}  // namespace storages::postgres::detail
+
 namespace {
 
 void PoolTransaction(const std::shared_ptr<pg::detail::ConnectionPool>& pool) {
@@ -75,6 +86,21 @@ void WaitCleanupFinished(const std::shared_ptr<pg::detail::ConnectionPool>& pool
     }
 
     FAIL() << "Timed out waiting for cleanup task completion";
+}
+
+void WaitForPoolSize(const std::shared_ptr<pg::detail::ConnectionPool>& pool, std::size_t expected_size) {
+    constexpr auto kWaitTimeout = std::chrono::seconds{5};
+    constexpr auto kStep = std::chrono::milliseconds{20};
+
+    const auto deadline = engine::Deadline::FromDuration(kWaitTimeout);
+    while (!deadline.IsReached()) {
+        if (pool->GetStatistics().connection.open_total.Load().value >= expected_size) {
+            return;
+        }
+        engine::SleepFor(kStep);
+    }
+
+    FAIL() << "Timed out waiting for pool size " << expected_size;
 }
 
 pg::Rate TriggerCleanupWithExpiredInheritedDeadline(const std::shared_ptr<pg::detail::ConnectionPool>& pool) {
@@ -412,6 +438,145 @@ UTEST_P(PostgrePool, MinPool) {
     EXPECT_EQ(stats.connection.open_total.Load(), GetParam() == pg::InitMode::kAsync ? 0 : 1);
     EXPECT_EQ(1, stats.connection.active);
     EXPECT_EQ(stats.connection.error_total.Load(), 0);
+}
+
+UTEST_P(PostgrePool, WarmUp) {
+    constexpr std::size_t kMinPoolSize = 3;
+    auto pool = pg::detail::ConnectionPool::Create(
+        GetDsnFromEnv(),
+        nullptr,
+        GetTaskProcessor(),
+        "",
+        pg::InitMode::kSync,
+        {kMinPoolSize, kMinPoolSize, 10},
+        kCachePreparedStatements,
+        {},
+        GetTestCmdCtls(),
+        {},
+        {},
+        {},
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
+    );
+
+    {
+        auto connection = pool->Acquire(MakeDeadline());
+        connection->Close();
+    }
+    ASSERT_EQ(pool->GetStatistics().connection.active, kMinPoolSize - 1);
+    ASSERT_EQ(pool->GetStatistics().connection.open_total.Load().value, kMinPoolSize);
+
+    pool->WarmUp(pg::InitMode::kSync);
+    EXPECT_EQ(pool->GetStatistics().connection.active, kMinPoolSize);
+    EXPECT_EQ(pool->GetStatistics().connection.open_total.Load().value, kMinPoolSize + 1);
+
+    pool->WarmUp(pg::InitMode::kSync);
+    EXPECT_EQ(pool->GetStatistics().connection.open_total.Load().value, kMinPoolSize + 1);
+}
+
+UTEST_P(PostgrePool, SetSettingsWarmsUpAfterMinSizeIncrease) {
+    constexpr std::size_t kMinPoolSize = 3;
+    auto pool = pg::detail::ConnectionPool::Create(
+        GetDsnFromEnv(),
+        nullptr,
+        GetTaskProcessor(),
+        "",
+        GetParam(),
+        {0, kMinPoolSize, 10},
+        kCachePreparedStatements,
+        {},
+        GetTestCmdCtls(),
+        {},
+        {},
+        {},
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
+    );
+
+    EXPECT_EQ(pool->GetStatistics().connection.active, 0);
+
+    pool->SetSettings({kMinPoolSize, kMinPoolSize, 10});
+    WaitForPoolSize(pool, kMinPoolSize);
+
+    EXPECT_EQ(pool->GetStatistics().connection.active, kMinPoolSize);
+}
+
+UTEST_P(PostgrePool, SetSettingsRefreshesCancelLimit) {
+    constexpr std::size_t kInitialMaxPoolSize = 6;
+    constexpr std::size_t kUpdatedMaxPoolSize = 2;
+    auto pool = pg::detail::ConnectionPool::Create(
+        GetDsnFromEnv(),
+        nullptr,
+        GetTaskProcessor(),
+        "",
+        GetParam(),
+        {0, kInitialMaxPoolSize, 10},
+        kCachePreparedStatements,
+        {},
+        GetTestCmdCtls(),
+        {},
+        {},
+        {},
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
+    );
+
+    EXPECT_EQ(pg::detail::ConnectionPoolTestHelper::GetCancelLimit(*pool), kInitialMaxPoolSize / 2);
+
+    pool->SetSettings({0, kUpdatedMaxPoolSize, 10});
+
+    EXPECT_EQ(pg::detail::ConnectionPoolTestHelper::GetCancelLimit(*pool), 1);
+}
+
+UTEST_P(PostgrePool, ShrinksOverLimitSurplus) {
+    constexpr std::size_t kInitialPoolSize = 4;
+    constexpr std::size_t kUpdatedMaxPoolSize = 1;
+    auto pool = pg::detail::ConnectionPool::Create(
+        GetDsnFromEnv(),
+        nullptr,
+        GetTaskProcessor(),
+        "",
+        pg::InitMode::kSync,
+        {kInitialPoolSize, kInitialPoolSize, 10},
+        kCachePreparedStatements,
+        {},
+        GetTestCmdCtls(),
+        {},
+        {},
+        {},
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
+    );
+
+    pool->SetSettings({0, kUpdatedMaxPoolSize, 10});
+    pg::detail::ConnectionPoolTestHelper::MaintainConnections(*pool);
+
+    EXPECT_EQ(pool->GetStatistics().connection.active, kUpdatedMaxPoolSize);
+}
+
+UTEST_P(PostgrePool, KeepsIdleDropLimitWithinMaxSize) {
+    constexpr std::size_t kPoolSize = 4;
+    auto pool = pg::detail::ConnectionPool::Create(
+        GetDsnFromEnv(),
+        nullptr,
+        GetTaskProcessor(),
+        "",
+        pg::InitMode::kSync,
+        {kPoolSize, kPoolSize, 10},
+        kCachePreparedStatements,
+        {},
+        GetTestCmdCtls(),
+        {},
+        {},
+        {},
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
+    );
+
+    pool->SetSettings({0, kPoolSize, 10});
+    pg::detail::ConnectionPoolTestHelper::MaintainConnections(*pool);
+
+    EXPECT_EQ(pool->GetStatistics().connection.active, kPoolSize - 1);
 }
 
 UTEST_P(PostgrePool, ConnectionCleanup) {
@@ -760,7 +925,7 @@ UTEST_P(PostgrePool, ForQueryQueueBeingNonTransactional) {
         "",
         GetParam(),
         {1, 1, 10},
-        kOmitDescribe,
+        kCachePreparedStatements,
         {},
         GetTestCmdCtls(),
         {},

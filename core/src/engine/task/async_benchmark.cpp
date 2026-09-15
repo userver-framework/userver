@@ -8,6 +8,7 @@
 #include <userver/engine/run_standalone.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/fixed_array.hpp>
+#include <utils/impl/parallelize_benchmark.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -53,6 +54,37 @@ void AsyncComparisonsCoroPullPin(benchmark::State& state) {
     AsyncComparisonsCoro<engine::TaskQueueType::kPullPinTaskQueue>(state);
 }
 BENCHMARK(AsyncComparisonsCoroPullPin)->RangeMultiplier(2)->Range(1, 32);
+
+void AsyncComparisonsCoroWorkStealing(benchmark::State& state) {
+    AsyncComparisonsCoro<engine::TaskQueueType::kWorkStealingTaskQueue>(state);
+}
+BENCHMARK(AsyncComparisonsCoroWorkStealing)->RangeMultiplier(2)->Range(1, 32);
+
+template <engine::TaskQueueType Scheduler>
+void AsyncComparisonsCoroMultiThread(benchmark::State& state) {
+    engine::TaskProcessorPoolsConfig config{};
+    config.queue_type = Scheduler;
+    engine::RunStandalone(state.range(0), config, [&] {
+        RunParallelBenchmark(state, [&](auto& range) {
+            std::uint64_t constructed_joined_count = 0;
+            for ([[maybe_unused]] auto _ : range) {
+                engine::AsyncNoTracing([] {}).Wait();
+                ++constructed_joined_count;
+            }
+            benchmark::DoNotOptimize(constructed_joined_count);
+        });
+    });
+}
+
+void AsyncComparisonsCoroMultiThreadWorkStealing(benchmark::State& state) {
+    AsyncComparisonsCoroMultiThread<engine::TaskQueueType::kWorkStealingTaskQueue>(state);
+}
+BENCHMARK(AsyncComparisonsCoroMultiThreadWorkStealing)->RangeMultiplier(2)->Range(1, 32);
+
+void AsyncComparisonsCoroMultiThreadGlobal(benchmark::State& state) {
+    AsyncComparisonsCoroMultiThread<engine::TaskQueueType::kGlobalTaskQueue>(state);
+}
+BENCHMARK(AsyncComparisonsCoroMultiThreadGlobal)->RangeMultiplier(2)->Range(1, 32);
 
 template <engine::TaskQueueType Scheduler>
 void WrapCallSingle(benchmark::State& state) {
@@ -145,5 +177,10 @@ void AsyncComparisonsCoroSpannedPullPin(benchmark::State& state) {
     AsyncComparisonsCoroSpanned<engine::TaskQueueType::kPullPinTaskQueue>(state);
 }
 BENCHMARK(AsyncComparisonsCoroSpannedPullPin)->RangeMultiplier(2)->Range(1, 32);
+
+void AsyncComparisonsCoroSpannedWorkStealing(benchmark::State& state) {
+    AsyncComparisonsCoroSpanned<engine::TaskQueueType::kWorkStealingTaskQueue>(state);
+}
+BENCHMARK(AsyncComparisonsCoroSpannedWorkStealing)->RangeMultiplier(2)->Range(1, 32);
 
 USERVER_NAMESPACE_END

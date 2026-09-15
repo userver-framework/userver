@@ -99,7 +99,7 @@ struct ConnectionStatistics {
 /// @brief Template instance topology statistics storage
 template <typename MmaAccumulator>
 struct InstanceTopologyStatistics {
-    /// Roundtrip time min-max-avg
+    /// Exponentially weighted moving-average roundtrip time min-max-avg
     MmaAccumulator roundtrip_time;
     /// Replication lag min-max-avg
     MmaAccumulator replication_lag;

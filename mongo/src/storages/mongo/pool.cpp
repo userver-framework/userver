@@ -20,13 +20,6 @@ const PoolConfig& ValidateConfig(const PoolConfig& config, const std::string& id
     return config;
 }
 
-template <typename Impl, typename... Args>
-std::shared_ptr<impl::PoolImpl> MakePoolImpl(Args&&... args) {
-    auto owner = std::make_shared<utils::WithResourceScopes<Impl>>(std::in_place, std::forward<Args>(args)...);
-    impl::PoolImpl* const pool_impl = &**owner;
-    return std::shared_ptr<impl::PoolImpl>(std::move(owner), pool_impl);
-}
-
 }  // namespace
 
 Pool::Pool(
@@ -36,7 +29,7 @@ Pool::Pool(
     clients::dns::Resolver* dns_resolver,
     dynamic_config::Source config_source
 )
-    : impl_(MakePoolImpl<impl::cdriver::CDriverPoolImpl>(
+    : impl_(utils::MakeWithResourceScopes<impl::cdriver::CDriverPoolImpl>(
           std::move(id),
           uri,
           ValidateConfig(pool_config, id),

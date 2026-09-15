@@ -19,6 +19,10 @@ namespace engine {
 
 /// Asynchronous task with result
 ///
+/// @warning This class supports only a single concurrent awaiter. Use
+/// @ref engine::SharedTaskWithResult to await and retrieve the same result from
+/// multiple coroutines.
+///
 /// ## Example usage:
 ///
 /// @snippet core/src/engine/task/task_with_result_test.cpp  Sample TaskWithResult usage

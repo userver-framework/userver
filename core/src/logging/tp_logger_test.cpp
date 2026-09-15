@@ -56,7 +56,8 @@ public:
 
         auto logger = GetStreamLogger();
 
-        stats_holder_ = stats_storage_.RegisterWriter("logger", [&logger](utils::statistics::Writer& writer) {
+        // Keep a copy: Unregister invokes the writer after TestBody locals are gone.
+        stats_holder_ = stats_storage_.RegisterWriter("logger", [logger](utils::statistics::Writer& writer) {
             writer = logger->GetStatistics();
         });
 

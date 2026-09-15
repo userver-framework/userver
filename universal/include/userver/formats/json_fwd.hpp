@@ -19,6 +19,8 @@ class Value;
 // NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
 class ValueBuilder;
 
+class RawString;
+
 }  // namespace formats::json
 
 USERVER_NAMESPACE_END

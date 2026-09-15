@@ -28,6 +28,9 @@ const storages::redis::CommandControl kMasterCC = [] {
     return cc;
 }();
 
+using storages::redis::MsetexOptions;
+using storages::redis::MsetexReply;
+
 }  // namespace
 
 UTEST_F(RedisClusterClientTest, SetGet) {
@@ -153,6 +156,78 @@ UTEST_F(RedisClusterClientTest, MgetCrossSlot) {
     }
 }
 
+UTEST_F(RedisClusterClientTest, MsetexSameSlot) {
+    if (!HasMsetexCommand()) {
+        GTEST_SKIP() << SkipMsgMsetexUnsupported();
+    }
+
+    auto client = GetClient();
+    constexpr auto kTtl = std::chrono::seconds{60};
+    const std::vector<std::pair<std::string, std::string>> key_values{
+        {"{cluster-msetex}:1", "value1"},
+        {"{cluster-msetex}:2", "value2"},
+    };
+
+    EXPECT_EQ(client->Msetex(key_values, MsetexOptions::Expire(kTtl), kDefaultCc).Get(), MsetexReply::kKeysSet);
+
+    for (const auto& [key, expected_value] : key_values) {
+        const auto value = client->Get(key, kMasterCC).Get();
+        ASSERT_TRUE(value.has_value());
+        EXPECT_EQ(*value, expected_value);
+
+        const auto ttl = client->Ttl(key, kMasterCC).Get();
+        ASSERT_TRUE(ttl.KeyHasExpiration());
+        EXPECT_GT(ttl.GetExpire().count(), 0);
+        EXPECT_LE(ttl.GetExpire().count(), kTtl.count());
+    }
+}
+
+UTEST_F(RedisClusterClientTest, MsetexCrossSlot) {
+    if (!HasMsetexCommand()) {
+        GTEST_SKIP() << SkipMsgMsetexUnsupported();
+    }
+
+    auto client = GetClient();
+    // Keys of the same shard but of different hash slots: unlike MSET/MGET, such an MSETEX
+    // is happily executed by the server, so the client is the only one to reject it.
+    size_t idx[2] = {0, 1};
+    const auto shard = client->ShardByKey(MakeKey(idx[0]));
+    while (client->ShardByKey(MakeKey(idx[1])) != shard) {
+        ++idx[1];
+    }
+
+    UASSERT_THROW(
+        (void)client->Msetex({{MakeKey(idx[0]), "value1"}, {MakeKey(idx[1]), "value2"}}, kDefaultCc),
+        storages::redis::InvalidArgumentException
+    );
+    EXPECT_FALSE(client->Get(MakeKey(idx[0]), kMasterCC).Get().has_value());
+    EXPECT_FALSE(client->Get(MakeKey(idx[1]), kMasterCC).Get().has_value());
+}
+
+UTEST_F(RedisClusterClientTest, MsetexCrossShard) {
+    if (!HasMsetexCommand()) {
+        GTEST_SKIP() << SkipMsgMsetexUnsupported();
+    }
+
+    auto client = GetClient();
+    if (client->ShardsCount() < 2) {
+        GTEST_SKIP() << "MsetexCrossShard requires a cluster of at least 2 shards";
+    }
+
+    size_t idx[2] = {0, 1};
+    const auto shard = client->ShardByKey(MakeKey(idx[0]));
+    while (client->ShardByKey(MakeKey(idx[1])) == shard) {
+        ++idx[1];
+    }
+
+    UASSERT_THROW(
+        (void)client->Msetex({{MakeKey(idx[0]), "value1"}, {MakeKey(idx[1]), "value2"}}, kDefaultCc),
+        storages::redis::InvalidArgumentException
+    );
+    EXPECT_FALSE(client->Get(MakeKey(idx[0]), kMasterCC).Get().has_value());
+    EXPECT_FALSE(client->Get(MakeKey(idx[1]), kMasterCC).Get().has_value());
+}
+
 UTEST_F(RedisClusterClientTest, Transaction) {
     auto client = GetClient();
     auto transaction = client->Multi();
@@ -218,6 +293,30 @@ UTEST_F(RedisClusterClientTest, TransactionCrossSlot) {
         auto get = transaction->Get(MakeKey(idx[i]));
     }
     UASSERT_THROW(transaction->Exec(kDefaultCc).Get(), storages::redis::RequestFailedException);
+}
+
+UTEST_F(RedisClusterClientTest, TransactionMsetexCrossSlot) {
+    if (!HasMsetexCommand()) {
+        GTEST_SKIP() << SkipMsgMsetexUnsupported();
+    }
+
+    auto client = GetClient();
+    auto transaction = client->Multi();
+
+    // Same shard, so the transaction shard check passes, but the hash slots differ and the server
+    // executes such an MSETEX instead of rejecting it.
+    size_t idx[2] = {0, 1};
+    const auto shard = client->ShardByKey(MakeKey(idx[0]));
+    while (client->ShardByKey(MakeKey(idx[1])) != shard) {
+        ++idx[1];
+    }
+
+    UASSERT_THROW(
+        (void)transaction->Msetex({{MakeKey(idx[0]), "value1"}, {MakeKey(idx[1]), "value2"}}),
+        storages::redis::InvalidArgumentException
+    );
+    EXPECT_FALSE(client->Get(MakeKey(idx[0]), kMasterCC).Get().has_value());
+    EXPECT_FALSE(client->Get(MakeKey(idx[1]), kMasterCC).Get().has_value());
 }
 
 UTEST_F(RedisClusterClientTest, TransactionDistinctShards) {

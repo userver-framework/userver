@@ -161,7 +161,7 @@ private:
 };
 
 /// @brief Specifies the number of documents per wire-protocol batch.
-/// Controls both the initial find batch and subsequent getMore batches.
+/// Controls both the initial find or aggregate batch and subsequent getMore batches.
 /// @note The value of `0` means "use server default".
 class BatchSize {
 public:

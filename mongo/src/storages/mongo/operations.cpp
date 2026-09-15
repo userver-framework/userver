@@ -576,6 +576,10 @@ Aggregate::Aggregate(Aggregate&&) noexcept = default;
 Aggregate& Aggregate::operator=(const Aggregate& rhs) = default;
 Aggregate& Aggregate::operator=(Aggregate&&) noexcept = default;
 
+void Aggregate::SetOption(options::BatchSize batch_size) {
+    AppendBatchSize(impl::EnsureBuilder(impl_->options), batch_size);
+}
+
 void Aggregate::SetOption(const options::ReadPreference& read_prefs) {
     impl_->read_prefs = MakeCDriverReadPrefs(read_prefs);
 }

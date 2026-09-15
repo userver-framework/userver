@@ -79,7 +79,7 @@ private:
         NYdb::NQuery::TTxSettings&& tx_settings,
         engine::Deadline deadline,
         std::uint32_t attempt
-    ) noexcept;
+    );
 
     NYdb::NQuery::TTransaction BeginTx(NYdb::NQuery::TSession& session, NYdb::NQuery::TTxSettings&& tx_settings);
 

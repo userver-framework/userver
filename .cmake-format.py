@@ -313,6 +313,16 @@ with section('parse'):  # noqa: F821
                 'SQL_FILES': '*',
             },
         },
+        'userver_testsuite_register_database': {
+            'kwargs': {
+                'PIP_MODULE': '*',
+                'PIP_MODULE_DARWIN': '*',
+                'REQUIREMENTS_FILE': '*',
+                'FEATURE_VAR': '*',
+                'TARGET': '*',
+                'NAMES': '*',
+            },
+        },
     }
 
 # -----------------------------

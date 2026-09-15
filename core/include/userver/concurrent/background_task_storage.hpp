@@ -153,9 +153,9 @@ public:
     /// destructor.
     ///
     /// The task is started as non-Critical, it may be cancelled due to
-    /// `TaskProcessor` overload. engine::TaskInheritedVariable instances are not
-    /// inherited from the caller except baggage::Baggage. See
-    /// utils::AsyncBackground for details.
+    /// `TaskProcessor` overload. Only engine::TaskInheritedVariable instances with
+    /// engine::TaskInheritedVariablePriority::kBackground are inherited from the caller.
+    /// See utils::AsyncBackground for details.
     ///
     /// Can be called from a coroutine or a non-coroutine thread.
     template <typename... Args>
@@ -168,9 +168,9 @@ public:
     ///
     /// Execution of function is guaranteed to start regardless
     /// of engine::TaskProcessor load limits.
-    /// engine::TaskInheritedVariable instances are not
-    /// inherited from the caller except baggage::Baggage. See
-    /// utils::CriticalAsyncBackground for details.
+    /// Only engine::TaskInheritedVariable instances with
+    /// engine::TaskInheritedVariablePriority::kBackground are inherited from the caller.
+    /// See utils::CriticalAsyncBackground for details.
     ///
     /// Can be called from a coroutine or a non-coroutine thread.
     template <typename... Args>

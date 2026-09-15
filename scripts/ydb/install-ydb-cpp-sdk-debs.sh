@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-readonly YDB_CPP_SDK_VERSION="${YDB_CPP_SDK_VERSION:-3.21.1}"
+readonly YDB_CPP_SDK_VERSION="${YDB_CPP_SDK_VERSION:-3.22.0}"
 readonly YDB_CPP_SDK_RELEASE_URL="https://github.com/ydb-platform/ydb-cpp-sdk/releases/download/v${YDB_CPP_SDK_VERSION}"
 YDB_CPP_SDK_ARCHITECTURE="$(dpkg --print-architecture)"
 readonly YDB_CPP_SDK_ARCHITECTURE

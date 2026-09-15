@@ -5,6 +5,7 @@
 #include <string_view>
 #include <vector>
 
+#include <storages/mongo/pool_impl.hpp>
 #include <storages/mongo/util_mongotest.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/engine/async.hpp>
@@ -13,11 +14,14 @@
 #include <userver/engine/task/task.hpp>
 #include <userver/formats/bson/document.hpp>
 #include <userver/formats/bson/inline.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/operators.hpp>
 #include <userver/storages/mongo/pool.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
+
+#include <dynamic_config/variables/MONGO_CONNECTION_POOL_SETTINGS.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -72,6 +76,33 @@ UTEST(NonexistentPool, ConnectionFailure) {
     // constructor should not throw
     mongo::Pool bad_pool("bad", "mongodb://%2Fnonexistent.sock/bad", {}, &dns_resolver, dynamic_config.GetSource());
     UEXPECT_THROW(bad_pool.HasCollection("test"), mongo::ClusterUnavailableException);
+}
+
+UTEST_F(Pool, DynamicPoolSettingsDoesNotAbort) {
+    constexpr std::size_t kDynamicMaxSize = 32;
+    const auto pool_settings = formats::json::FromString(R"({
+        "userver_mongotest_dyn_named": {
+            "max_size": 32,
+            "idle_limit": 4,
+            "initial_size": 1,
+            "connecting_limit": 8
+        },
+        "__default__": {
+            "max_size": 32,
+            "idle_limit": 4,
+            "initial_size": 1,
+            "connecting_limit": 8
+        }
+    })");
+    SetDynamicConfig({
+        {::dynamic_config::MONGO_CONNECTION_POOL_SETTINGS, pool_settings},
+    });
+
+    auto named_pool = MakePool("userver_mongotest_dyn_named", {});
+    EXPECT_EQ(kDynamicMaxSize, GetPoolImpl(named_pool)->MaxSize());
+
+    auto fallback_pool = MakePool("userver_mongotest_dyn_fallback", {});
+    EXPECT_EQ(kDynamicMaxSize, GetPoolImpl(fallback_pool)->MaxSize());
 }
 
 UTEST_F(Pool, Limits) {

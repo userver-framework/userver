@@ -108,6 +108,26 @@ For per-handle limiting of the request body or response data logging you can use
 server::handlers::HttpHandlerBase::GetRequestBodyForLogging and
 server::handlers::HttpHandlerBase::GetResponseDataForLogging functions.
 
+The limits can be reduced at runtime for individual handlers using the
+@ref USERVER_HTTP_SERVER_LOGS dynamic config. It maps an exact handler path to request and
+response body limits in bytes:
+
+```json
+{
+  "/v1/orders/{order_id}": {
+    "request_body_size_log_limit": 1024,
+    "response_body_size_log_limit": 2048
+  }
+}
+```
+
+The key is the handler path as written in the static config, with path parameters in their raw form
+(`/v1/orders/{order_id}`, not `/v1/orders/42`); query parameters are not included. A path that matches no handler
+of the service is reported at config update via a warning in the logs and the `invalid_request_path` alert.
+
+A dynamic value of `0` disables logging of the corresponding body. Handlers not listed in the config continue using
+their static limits.
+
 ### Limiting the log frequency
 
 If some line of code generates too many logs and a small number of them is enough, then `LOG_*` should be

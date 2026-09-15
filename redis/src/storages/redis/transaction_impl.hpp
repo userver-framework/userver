@@ -203,6 +203,10 @@ public:
 
     RequestMset Mset(std::vector<std::pair<std::string, std::string>> key_values) override;
 
+    RequestMsetex Msetex(std::vector<std::pair<std::string, std::string>> key_values) override;
+
+    RequestMsetex Msetex(std::vector<std::pair<std::string, std::string>> key_values, MsetexOptions options) override;
+
     RequestPersist Persist(std::string key) override;
 
     RequestPexpire Pexpire(std::string key, std::chrono::milliseconds ttl) override;

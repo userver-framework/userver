@@ -3,6 +3,7 @@
 #include <ranges>
 #include <unordered_map>
 
+#include <userver/formats/common/items.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/secdist/exceptions.hpp>
@@ -35,9 +36,7 @@ MongoSettings::MongoSettings(const formats::json::Value& doc) {
 
     storages::secdist::CheckIsObject(mongo_settings, "mongo_settings");
 
-    for (auto it = mongo_settings.begin(); it != mongo_settings.end(); ++it) {
-        const std::string& dbalias = it.GetName();
-        const formats::json::Value& dbsettings = *it;
+    for (const auto& [dbalias, dbsettings] : formats::common::Items(mongo_settings)) {
         storages::secdist::CheckIsObject(dbsettings, "dbsettings");
         settings_[dbalias] = storages::secdist::GetString(dbsettings, "uri");
     }

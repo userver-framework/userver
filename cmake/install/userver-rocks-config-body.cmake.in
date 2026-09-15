@@ -1,0 +1,4 @@
+find_package(RocksDB QUIET CONFIG)
+if(NOT RocksDB_FOUND)
+    find_package(RocksDB REQUIRED MODULE)
+endif()

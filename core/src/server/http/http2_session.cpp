@@ -73,6 +73,7 @@ Http2Session::Http2Session(
     nghttp2_session_callbacks_set_on_begin_headers_callback(callbacks, OnBeginHeaders);
     nghttp2_session_callbacks_set_on_begin_frame_callback(callbacks, OnBeginFrame);
     nghttp2_session_callbacks_set_on_data_chunk_recv_callback(callbacks, OnDataChunkRecv);
+    nghttp2_session_callbacks_set_on_invalid_frame_recv_callback(callbacks, OnInvalidFrame);
 
     nghttp2_session* session{nullptr};
     UINVARIANT(nghttp2_session_server_new(&session, callbacks, this) == 0, "Failed to init session for HTTP/2.0");
@@ -142,6 +143,25 @@ int Http2Session::OnBeginFrame(nghttp2_session* session, const nghttp2_frame_hd*
         if (rv != 0) {
             return NGHTTP2_ERR_CALLBACK_FAILURE;
         }
+    }
+    return 0;
+}
+
+int Http2Session::OnInvalidFrame(nghttp2_session*, const nghttp2_frame* frame, int lib_error_code, void* user_data) {
+    UASSERT(frame);
+    const auto stream_id = frame->hd.stream_id;
+    if (lib_error_code == NGHTTP2_ERR_FLOW_CONTROL && frame->hd.type == NGHTTP2_WINDOW_UPDATE && stream_id != 0) {
+        // A WINDOW_UPDATE overflowing the window of a stream is a stream error (RFC 9113 6.9.1),
+        // but nghttp2 answers it with a connection-wide GOAWAY. The error cannot be downgraded to
+        // a stream one from here => submits an RST_STREAM and only then aborts the parsing, and
+        // the peer must see that RST_STREAM before the connection is closed.
+        GetParser(user_data).SubmitRstStream(Stream::Id{stream_id}, NGHTTP2_FLOW_CONTROL_ERROR);
+        LOG_LIMITED_WARNING() << fmt::format(
+            "WINDOW_UPDATE overflows the window of the stream {}: the stream is reset, "
+            "the connection will be closed",
+            stream_id
+        );
+        return NGHTTP2_ERR_CALLBACK_FAILURE;
     }
     return 0;
 }
@@ -328,21 +348,28 @@ void Http2Session::SubmitRstStream(Stream::Id id, std::uint32_t error_code) {
     UASSERT(res == 0);
 }
 
-bool Http2Session::Parse(std::string_view req) {
+bool Http2Session::MemRecv(std::string_view data) {
     const int
-        readlen = nghttp2_session_mem_recv(session_.get(), reinterpret_cast<const uint8_t*>(req.data()), req.size());
+        readlen = nghttp2_session_mem_recv(session_.get(), reinterpret_cast<const uint8_t*>(data.data()), data.size());
     if (readlen < 0) {
-        LOG_LIMITED_ERROR("Error in Parse: {}", nghttp2_strerror(readlen));
+        LOG_LIMITED_ERROR("Error in nghttp2_session_mem_recv: {}", nghttp2_strerror(readlen));
+        session_is_broken_ = true;
         return false;
     }
-    if (static_cast<std::size_t>(readlen) != req.size()) {
-        LOG_LIMITED_ERROR() << fmt::format("Parsed = {} but expected {}", readlen, req.size());
+    if (static_cast<std::size_t>(readlen) != data.size()) {
+        LOG_LIMITED_ERROR() << fmt::format("Parsed = {} but expected {}", readlen, data.size());
+        session_is_broken_ = true;
         return false;
     }
+    return true;
+}
+
+bool Http2Session::Parse(std::string_view req) {
+    const bool parsed = MemRecv(req);
     if (socket_ != nullptr) {
         WriteWhileWant();
     }
-    return ConnectionIsOk();
+    return parsed && ConnectionIsOk();
 }
 
 void Http2Session::UpgradeToHttp2(std::string_view client_magic) {
@@ -377,6 +404,9 @@ void Http2Session::FinalizeRequest(Stream& stream) {
 }
 
 bool Http2Session::ConnectionIsOk() const {
+    if (session_is_broken_) {
+        return false;
+    }
     return nghttp2_session_want_read(session_.get()) != 0 || nghttp2_session_want_write(session_.get()) != 0;
 }
 

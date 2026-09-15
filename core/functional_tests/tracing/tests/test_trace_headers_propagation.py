@@ -1,3 +1,7 @@
+import pytest
+
+from testsuite import logcapture
+
 B3_HEADERS = {
     'X-B3-TraceId': '10e1afed08e019fc1110464cfa66635c',
     'X-B3-SpanId': '7a085853722dc6d2',
@@ -188,6 +192,32 @@ async def test_priority_otel_tracing_headers(service_client, mockserver):
     )
     assert _handler.times_called >= 1
     assert response.status_code == 200
+
+
+async def test_capture_logs_select(service_client, mockserver):
+    trace_id = OPENTELEMETRY_TRACE_ID
+
+    @mockserver.json_handler('/test-service/echo-no-body')
+    async def _handler(request):
+        return mockserver.make_response()
+
+    async with service_client.capture_logs() as capture:
+        response = await service_client.get(
+            '/echo-no-body',
+            headers={**TAXI_HEADERS, **OPENTELEMETRY_HEADERS},
+        )
+        assert response.status_code == 200
+
+        with pytest.raises(logcapture.IncorrectUsageError):
+            capture.select(trace_id=trace_id)
+
+    records = capture.select(
+        trace_id=trace_id,
+        text='echo-no-body handler called',
+    )
+    assert len(records) >= 1, capture.select(trace_id=trace_id)
+
+    assert _handler.times_called >= 1
 
 
 async def test_priority_b3_tracing_headers(service_client, mockserver):

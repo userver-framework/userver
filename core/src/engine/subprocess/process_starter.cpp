@@ -65,6 +65,16 @@ public:
         );
     }
 
+#ifdef POSIX_SPAWN_CLOEXEC_DEFAULT
+    void AddInherit(int fd) {
+        CheckPosixSpawn(
+            posix_spawn_file_actions_addinherit_np(&actions_, fd),
+            "posix_spawn_file_actions_addinherit_np fd={}",
+            fd
+        );
+    }
+#endif
+
 private:
     posix_spawn_file_actions_t actions_{};
 };
@@ -129,7 +139,15 @@ pid_t DoPosixSpawn(
     PosixSpawnAttr attr;
 #ifdef POSIX_SPAWN_CLOEXEC_DEFAULT
     // macOS: do not inherit non-stdio fds (e.g. logger files) into the child.
+    // With CLOEXEC_DEFAULT stdio is not inherited either unless explicitly marked.
     attr.SetFlags(POSIX_SPAWN_CLOEXEC_DEFAULT);
+    file_actions.AddInherit(STDIN_FILENO);
+    if (!stdout_file) {
+        file_actions.AddInherit(STDOUT_FILENO);
+    }
+    if (!stderr_file) {
+        file_actions.AddInherit(STDERR_FILENO);
+    }
 #endif
 
     pid_t pid = -1;

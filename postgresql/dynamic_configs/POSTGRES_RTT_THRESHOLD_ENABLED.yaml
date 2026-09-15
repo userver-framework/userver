@@ -1,0 +1,6 @@
+default: true
+description: |
+    Dynamic config that enables RTT-threshold preference for PostgreSQL host selection. Enabled by default. If
+    disabled, all alive hosts of the selected role participate in round-robin selection.
+schema:
+    type: boolean

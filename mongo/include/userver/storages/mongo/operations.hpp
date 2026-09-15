@@ -350,6 +350,7 @@ public:
     Aggregate& operator=(const Aggregate&);
     Aggregate& operator=(Aggregate&&) noexcept;
 
+    void SetOption(options::BatchSize);
     void SetOption(const options::ReadPreference&);
     void SetOption(options::ReadPreference::Mode);
     void SetOption(options::ReadConcern);

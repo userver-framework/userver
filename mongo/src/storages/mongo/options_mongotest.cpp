@@ -210,7 +210,7 @@ UTEST_F(Options, DISABLED_SkipLimit) {  // TODO: TAXICOMMON-8662
     );
 }
 
-UTEST_F(Options, BatchSize) {
+UTEST_F(Options, FindBatchSize) {
     auto coll = GetDefaultPool().GetCollection("batch_size");
 
     coll.InsertOne(bson::MakeDoc("x", 0));
@@ -218,6 +218,16 @@ UTEST_F(Options, BatchSize) {
     coll.InsertOne(bson::MakeDoc("x", 2));
 
     auto cursor = coll.Find({}, mongo::options::BatchSize{2});
+    EXPECT_EQ(3, std::distance(cursor.begin(), cursor.end()));
+}
+
+UTEST_F(Options, AggregateBatchSize) {
+    auto coll = GetDefaultPool().GetCollection("aggregate_batch_size");
+    coll.InsertMany({bson::MakeDoc("x", 0), bson::MakeDoc("x", 1), bson::MakeDoc("x", 2)});
+
+    auto cursor =
+        coll.Aggregate(bson::MakeArray(bson::MakeDoc("$match", bson::MakeDoc())), mongo::options::BatchSize{2});
+    EXPECT_EQ(2, cursor.GetBatchSize());
     EXPECT_EQ(3, std::distance(cursor.begin(), cursor.end()));
 }
 

@@ -1,8 +1,11 @@
 #include <userver/websocket/impl/protocol.hpp>
 
+#include <array>
+#include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <vector>
 
 #include <boost/endian/conversion.hpp>
 
@@ -174,6 +177,36 @@ TEST(WebsocketProtocol, ControlFrameHeaderKeepsPayloadLength) {
     EXPECT_EQ(hdr.bits.opcode, WSOpcodes::kPong);
     EXPECT_EQ(hdr.bits.fin, 1);
     EXPECT_EQ(hdr.bits.mask, 0);
+}
+
+TEST(WebsocketProtocol, DataFrameHeaderUsesMinimalPayloadLengthEncoding) {
+    struct TestCase {
+        std::size_t payload_size;
+        std::vector<unsigned char> expected_header;
+    };
+    const std::array<TestCase, 8> cases = {{
+        {.payload_size = 0, .expected_header = {0x81, 0x00}},
+        {.payload_size = 125, .expected_header = {0x81, 0x7d}},
+        {.payload_size = 126, .expected_header = {0x81, 0x7e, 0x00, 0x7e}},
+        {.payload_size = 32767, .expected_header = {0x81, 0x7e, 0x7f, 0xff}},
+        {.payload_size = 32768, .expected_header = {0x81, 0x7e, 0x80, 0x00}},
+        {.payload_size = 38874, .expected_header = {0x81, 0x7e, 0x97, 0xda}},
+        {.payload_size = 65535, .expected_header = {0x81, 0x7e, 0xff, 0xff}},
+        {.payload_size = 65536, .expected_header = {0x81, 0x7f, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00}},
+    }};
+
+    for (const auto& test_case : cases) {
+        SCOPED_TRACE(test_case.payload_size);
+        for (const auto masked : {Masked::kNo, Masked::kYes}) {
+            SCOPED_TRACE(masked == Masked::kYes);
+            const auto header = DataFrameHeader(test_case.payload_size, true, Continuation::kNo, Final::kYes, masked);
+            auto expected_header = test_case.expected_header;
+            if (masked == Masked::kYes) {
+                expected_header[1] |= 0x80;
+            }
+            EXPECT_EQ(std::vector<unsigned char>(header.begin(), header.end()), expected_header);
+        }
+    }
 }
 
 USERVER_NAMESPACE_END
