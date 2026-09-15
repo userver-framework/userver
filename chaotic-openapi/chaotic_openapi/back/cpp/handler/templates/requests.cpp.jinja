@@ -24,7 +24,7 @@ namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }} {
 {% endmacro %}
 
 {% macro _parse_urlencoded(body, prefix) %}
-    {% for field_name, field in body.schema.fields.items() %}
+    {% for field_name, field in body.fields().items() %}
         {% if field.required %}
             if (!http_request.HasArg("{{ field_name }}")) {
                 throw {{ userver }}::server::handlers::ClientError(
@@ -49,7 +49,7 @@ namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }} {
 {% endmacro %}
 
 {% macro _parse_multipart(body, prefix) %}
-    {% for field_name, field in body.schema.fields.items() %}
+    {% for field_name, field in body.fields().items() %}
         {% if field.required %}
             if (!http_request.HasFormDataArg("{{ field_name }}")) {
                 throw {{ userver }}::server::handlers::ClientError(
