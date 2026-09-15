@@ -14,8 +14,12 @@
 #include <userver/storages/postgres/io/type_traits.hpp>
 #include <userver/storages/postgres/io/user_types.hpp>
 
-#include <userver/formats/json.hpp>
+#include <userver/formats/json/raw_string.hpp>
+#include <userver/formats/json/value.hpp>
 #include <userver/utils/strong_typedef.hpp>
+
+// TODO: remove this include
+#include <userver/formats/json.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -33,6 +37,13 @@ inline constexpr char kJsonbVersion = 1;
 
 struct JsonParser : BufferParserBase<formats::json::Value> {
     using BaseType = BufferParserBase<formats::json::Value>;
+    using BaseType::BaseType;
+
+    void operator()(const FieldBuffer& buffer);
+};
+
+struct JsonRawStringParser : BufferParserBase<formats::json::RawString> {
+    using BaseType = BufferParserBase<formats::json::RawString>;
     using BaseType::BaseType;
 
     void operator()(const FieldBuffer& buffer);
@@ -57,6 +68,38 @@ struct JsonFormatter : BufferFormatterBase<JsonValue> {
     }
 };
 
+struct JsonRawStringFormatter : BufferFormatterBase<formats::json::RawString> {
+    using BaseType = BufferFormatterBase<formats::json::RawString>;
+    using BaseType::BaseType;
+
+    template <typename Buffer>
+    void operator()(const UserTypes&, Buffer& buffer) const {
+        WriteAsJsonb(buffer);
+    }
+
+    template <typename Buffer>
+    void operator()(const UserTypes&, Buffer& buffer, Oid replace_oid) const {
+        if (replace_oid == static_cast<Oid>(PredefinedOids::kJson)) {
+            throw InvalidInputFormat{
+                "formats::json::RawString binds as jsonb and cannot be written to a PostgreSQL json "
+                "field; explicitly cast to the expected type in SQL query (e.g. `$1::json`)"
+            };
+        }
+        WriteAsJsonb(buffer);
+    }
+
+private:
+    template <typename Buffer>
+    void WriteAsJsonb(Buffer& buffer) const {
+        const auto view = this->value.GetView();
+        if constexpr (traits::CanReserve<Buffer>) {
+            buffer.reserve(buffer.size() + 1 + view.size());
+        }
+        buffer.push_back(kJsonbVersion);
+        buffer.insert(buffer.end(), view.begin(), view.end());
+    }
+};
+
 }  // namespace detail
 
 namespace traits {
@@ -67,7 +110,16 @@ struct Input<formats::json::Value> {
 };
 
 template <>
+struct Input<formats::json::RawString> {
+    using type = io::detail::JsonRawStringParser;
+};
+
+template <>
 struct ParserBufferCategory<io::detail::JsonParser>
+    : std::integral_constant<BufferCategory, BufferCategory::kPlainBuffer> {};
+
+template <>
+struct ParserBufferCategory<io::detail::JsonRawStringParser>
     : std::integral_constant<BufferCategory, BufferCategory::kPlainBuffer> {};
 
 template <>
@@ -80,10 +132,18 @@ struct Output<PlainJson> {
     using type = io::detail::JsonFormatter<PlainJson>;
 };
 
+template <>
+struct Output<formats::json::RawString> {
+    using type = io::detail::JsonRawStringFormatter;
+};
+
 }  // namespace traits
 
 template <>
 struct CppToSystemPg<formats::json::Value> : PredefinedOid<PredefinedOids::kJsonb> {};
+
+template <>
+struct CppToSystemPg<formats::json::RawString> : PredefinedOid<PredefinedOids::kJsonb> {};
 
 template <>
 struct CppToSystemPg<PlainJson> : PredefinedOid<PredefinedOids::kJson> {};
