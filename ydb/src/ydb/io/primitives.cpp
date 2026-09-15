@@ -145,6 +145,46 @@ NYdb::TType PrimitiveTraits<PrimitiveTrait>::MakeType() {
     return builder.Build();
 }
 
+template <typename DecimalLikeTrait>
+typename DecimalLikeTrait::Type DecimalTraits<
+    DecimalLikeTrait>::Parse(NYdb::TValueParser& parser, const ParseContext& /*context*/) {
+    const bool is_optional = IsOptional(parser);
+
+    if (is_optional) {
+        parser.OpenOptional();
+    }
+
+    auto value = DecimalLikeTrait::Parse(parser);
+    if (is_optional) {
+        parser.CloseOptional();
+    }
+
+    return value;
+}
+
+template <typename DecimalLikeTrait>
+void DecimalTraits<DecimalLikeTrait>::Write(
+    NYdb::TValueBuilderBase<NYdb::TValueBuilder>& builder,
+    const typename DecimalLikeTrait::Type& value
+) {
+    DecimalLikeTrait::Write(builder, value);
+}
+
+template <typename DecimalLikeTrait>
+void DecimalTraits<DecimalLikeTrait>::Write(
+    NYdb::TValueBuilderBase<NYdb::TParamValueBuilder>& builder,
+    const typename DecimalLikeTrait::Type& value
+) {
+    DecimalLikeTrait::Write(builder, value);
+}
+
+template <typename DecimalLikeTrait>
+NYdb::TType DecimalTraits<DecimalLikeTrait>::MakeType() {
+    NYdb::TTypeBuilder builder;
+    builder.Decimal(NYdb::TDecimalType{Decimal::kDefaultPrecision, Decimal::kDefaultScale});
+    return builder.Build();
+}
+
 template struct OptionalPrimitiveTraits<BoolTrait>;
 template struct PrimitiveTraits<BoolTrait>;
 
@@ -332,6 +372,42 @@ JsonDocumentTrait::Type JsonDocumentTrait::Parse(const NYdb::TValueParser& value
 template <typename Builder>
 void JsonDocumentTrait::Write(NYdb::TValueBuilderBase<Builder>& builder, const Type& value) {
     builder.JsonDocument(formats::json::ToString(value.GetUnderlying()));
+}
+
+template struct DecimalTraits<DecimalTrait>;
+
+DecimalTrait::Type DecimalTrait::Parse(const NYdb::TValueParser& value_parser) {
+    const auto decimal = value_parser.GetDecimal();
+    return Decimal{decimal.ToString(), decimal.DecimalType_.Precision, decimal.DecimalType_.Scale};
+}
+
+std::optional<DecimalTrait::Type>
+ValueTraits<std::optional<DecimalTrait::Type>>::Parse(NYdb::TValueParser& parser, const ParseContext& context) {
+    const bool is_optional = IsOptional(parser);
+    if (is_optional) {
+        parser.OpenOptional();
+
+        if (parser.IsNull()) {
+            parser.CloseOptional();
+            return {};
+        }
+    } else {
+        LOG_WARNING() << "Trying to parse " << context.column_name << " as "
+                      << compiler::GetTypeName<std::optional<DecimalTrait::Type>>()
+                      << " while actual type is not Optional";
+    }
+
+    auto value = DecimalTrait::Parse(parser);
+    if (is_optional) {
+        parser.CloseOptional();
+    }
+
+    return value;
+}
+
+template <typename Builder>
+void DecimalTrait::Write(NYdb::TValueBuilderBase<Builder>& builder, const Type& value) {
+    builder.Decimal(NYdb::TDecimalValue(impl::ToString(value.value), value.precision, value.scale));
 }
 
 }  // namespace ydb
