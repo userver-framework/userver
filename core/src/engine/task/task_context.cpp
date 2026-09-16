@@ -414,8 +414,6 @@ bool TaskContext::ShouldSchedule(SleepState::Flags prev_flags, WakeupSource sour
          * 2) Other WakeupSource is already triggered
          */
         return prev_flags == SleepFlags::kSleeping;
-    } else if (source == WakeupSource::kBootstrap) {
-        return true;
     } else {
         if (prev_flags & SleepFlags::kNonCancellable) {
             /* If there was a cancellation request, but cancellation is blocked,
