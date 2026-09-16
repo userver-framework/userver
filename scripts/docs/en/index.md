@@ -82,7 +82,6 @@ and make sure that it builds and passes tests.
 * @ref scripts/docs/en/userver/component_system.md
     * @ref userver_clients "Clients"
     * @ref userver_http_handlers "HTTP Handlers"
-    * @ref userver_middlewares "HTTP Middlewares"
     * @ref userver_components "Other components"
 * @ref scripts/docs/en/userver/synchronization.md
 * @ref scripts/docs/en/userver/formats.md
@@ -120,6 +119,7 @@ and make sure that it builds and passes tests.
 * HTTP:
     * @ref clients::http::Client "Client"
     * @ref scripts/docs/en/userver/http_server.md
+    * @ref scripts/docs/en/userver/http_server_middlewares.md
 * @ref scripts/docs/en/userver/rabbitmq_driver.md
 * Low level:
     * @ref engine::io::TlsWrapper "TLS client and server socket"
