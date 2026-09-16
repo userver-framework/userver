@@ -34,9 +34,13 @@ void Client::DeclareExchange(
     awaiter.Wait(deadline);
 }
 
-void Client::DeclareQueue(const Queue& queue, utils::Flags<Queue::Flags> flags, engine::Deadline deadline) {
-    auto awaiter = ConnectionHelper::DeclareQueue(impl_->GetConnection(deadline), queue, flags, deadline);
+QueueDeclareResponse Client::DeclareQueue(const Queue& queue, utils::Flags<Queue::Flags> flags,
+    const std::unordered_map<std::string, HeaderValue>& headers, engine::Deadline deadline) {
+    QueueDeclareResponse response;
+    auto awaiter =
+        ConnectionHelper::DeclareQueue(impl_->GetConnection(deadline), queue, flags, headers, response, deadline);
     awaiter.Wait(deadline);
+    return response;
 }
 
 void Client::BindQueue(
