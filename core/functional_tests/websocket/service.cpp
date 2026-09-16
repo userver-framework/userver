@@ -146,10 +146,24 @@ public:
     }
 };
 
+/// Only configured by the HTTP/2.0 variant of this service, to check what an extended
+/// CONNECT of RFC 8441 aimed at an ordinary handler answers.
+class PlainHandler final : public server::handlers::HttpHandlerBase {
+public:
+    static constexpr std::string_view kName = "plain-handler";
+
+    using HttpHandlerBase::HttpHandlerBase;
+
+    std::string HandleRequestThrow(const server::http::HttpRequest&, server::request::RequestContext&) const override {
+        return "Not a websocket handler";
+    }
+};
+
 int main(int argc, char* argv[]) {
     const auto component_list =
         components::MinimalServerComponentList()
             .Append<WebsocketsHandler>()
+            .Append<PlainHandler>()
             .Append<WebsocketsHandlerAlt>()
             .Append<WebsocketsFullDuplexHandler>()
             .Append<WebsocketsPingPongHandler>()

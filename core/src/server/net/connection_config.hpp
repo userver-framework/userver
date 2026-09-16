@@ -22,6 +22,9 @@ struct Http2SessionConfig final {
     std::uint32_t max_concurrent_streams = 100;
     std::uint32_t max_frame_size = 1 << 14;
     std::uint32_t initial_window_size = 1 << 16;
+    // Advertises SETTINGS_ENABLE_CONNECT_PROTOCOL, which allows clients to bootstrap
+    // websockets over HTTP/2.0 with the extended CONNECT method of RFC 8441.
+    bool enable_connect_protocol = false;
 };
 
 struct ConnectionConfig {
