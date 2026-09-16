@@ -284,6 +284,8 @@ macro(_userver_module_end)
         endif()
     endif()
 
+    # Macros share the caller's scope, so reset state that may leak from a previous _userver_module_end run.
+    set(NEED_CPM FALSE)
     set(required_vars)
     # Important to check this way, because NOTFOUND still means that this kind of dependencies exist.
     if(NOT "${${libraries_variable}}" STREQUAL "")
