@@ -73,6 +73,19 @@ async def test_headers(http2_client):
     assert hval == r.text
 
 
+async def test_trace_is_routed(http2_client):
+    # TRACE arrives as a ':method' pseudo-header, so unlike HTTP/1.1 it never
+    # goes through llhttp; the handler must be reached over HTTP/2 as well.
+    hval = 'traced'
+    r = await http2_client.trace(
+        DEFAULT_PATH,
+        params={'type': 'echo-header'},
+        headers={'echo-header': hval},
+    )
+    assert 200 == r.status_code
+    assert hval == r.text
+
+
 async def test_head_response_has_no_body(http2_client):
     r = await http2_client.head(
         DEFAULT_PATH,

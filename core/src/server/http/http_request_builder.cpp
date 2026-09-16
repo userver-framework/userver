@@ -86,6 +86,11 @@ HttpRequestBuilder& HttpRequestBuilder::SetIsFinal(bool is_final) {
     return *this;
 }
 
+HttpRequestBuilder& HttpRequestBuilder::SetWebsocketExtendedConnect(bool is_websocket_extended_connect) {
+    request_->pimpl_->is_websocket_extended_connect = is_websocket_extended_connect;
+    return *this;
+}
+
 HttpRequestBuilder& HttpRequestBuilder::SetFormDataArgs(
     utils::impl::TransparentMap<std::string, std::vector<FormDataArg>, utils::StrCaseHash>&& form_data_args
 ) {

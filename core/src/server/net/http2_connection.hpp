@@ -57,12 +57,17 @@ private:
     struct RequestTaskContext final {
         RequestTask task;
         HttpRequestPtr request;
+        // Set for the task that runs a protocol tunnelled over an already answered
+        // stream; such a task must not produce a response of its own.
+        bool is_upgraded{false};
     };
 
     void ListenForRequests();
     RequestTaskContext StartRequestTask(std::shared_ptr<http::HttpRequest>&& request_ptr) noexcept;
     void StartAllRequestTasks(engine::WaitAnyContext& wait_any);
-    void OnRequestTaskFinished(std::uint64_t event_id) noexcept;
+    void OnRequestTaskFinished(std::uint64_t event_id, engine::WaitAnyContext& wait_any) noexcept;
+    void StartUpgradedTask(HttpRequestPtr&& request_ptr, engine::WaitAnyContext& wait_any) noexcept;
+    void FinishUpgradedStream(const http::HttpRequest& request) noexcept;
     void SendResponse(http::HttpRequest& request) noexcept;
 
     std::unique_ptr<http::Http2Session> MakeParser();
