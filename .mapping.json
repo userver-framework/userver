@@ -4501,6 +4501,7 @@
   "redis/src/storages/redis/impl/tcp_socket.hpp":"taxi/uservices/userver/redis/src/storages/redis/impl/tcp_socket.hpp",
   "redis/src/storages/redis/impl/thread_pools.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/thread_pools.cpp",
   "redis/src/storages/redis/impl/thread_pools.hpp":"taxi/uservices/userver/redis/src/storages/redis/impl/thread_pools.hpp",
+  "redis/src/storages/redis/impl/thread_pools_test.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/thread_pools_test.cpp",
   "redis/src/storages/redis/impl/topology_holder_base.hpp":"taxi/uservices/userver/redis/src/storages/redis/impl/topology_holder_base.hpp",
   "redis/src/storages/redis/impl/transaction_subrequest_data.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/transaction_subrequest_data.cpp",
   "redis/src/storages/redis/json_cluster_redistest.cpp":"taxi/uservices/userver/redis/src/storages/redis/json_cluster_redistest.cpp",
