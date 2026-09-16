@@ -620,4 +620,12 @@ UTEST_F(PostgreCustomConnection, SessionModeSetsStatementTimeoutOnConnect) {
     EXPECT_EQ(kTestCmdCtl.statement_timeout_ms, conn->GetStatementTimeout());
 }
 
+UTEST_P(PostgreConnection, VacuumKeepsPipelineActive) {
+    CheckConnection(GetConn());
+
+    UEXPECT_NO_THROW(GetConn()->Execute("CREATE TEMP TABLE vacuum_pipeline_test(id INT)"));
+    UEXPECT_NO_THROW(GetConn()->Execute("VACUUM vacuum_pipeline_test"));
+    GetConn()->AssertPipelineActive();
+}
+
 USERVER_NAMESPACE_END

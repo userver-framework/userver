@@ -17,6 +17,8 @@ const storages::redis::CommandControl kMasterCC = [] {
 
 using storages::redis::ExpireOptions;
 using storages::redis::ExpireReply;
+using storages::redis::MsetexOptions;
+using storages::redis::MsetexReply;
 
 /// [Sample Redis Client usage]
 void RedisClientSampleUsage(storages::redis::Client& client) {
@@ -689,6 +691,148 @@ UTEST_F(RedisClientTest, Mset) {
     auto result = client->Get("key1", kMasterCC).Get();
     EXPECT_TRUE(result.has_value());
     EXPECT_EQ(result.value(), "value1");
+}
+
+UTEST_F(RedisClientTest, MsetexSharedTtl) {
+    if (!HasMsetexCommand()) {
+        GTEST_SKIP() << SkipMsgMsetexUnsupported();
+    }
+
+    auto client = GetClient();
+    constexpr auto kTtl = std::chrono::seconds{60};
+    const std::vector<std::pair<std::string, std::string>> key_values{
+        {"{msetex-shared-ttl}:1", "value1"},
+        {"{msetex-shared-ttl}:2", "value2"},
+    };
+
+    EXPECT_EQ(client->Msetex(key_values, MsetexOptions::Expire(kTtl), {}).Get(), MsetexReply::kKeysSet);
+
+    for (const auto& [key, expected_value] : key_values) {
+        const auto value = client->Get(key, kMasterCC).Get();
+        ASSERT_TRUE(value.has_value());
+        EXPECT_EQ(*value, expected_value);
+
+        const auto ttl = client->Ttl(key, kMasterCC).Get();
+        ASSERT_TRUE(ttl.KeyHasExpiration());
+        EXPECT_GT(ttl.GetExpire().count(), 0);
+        EXPECT_LE(ttl.GetExpire().count(), kTtl.count());
+    }
+}
+
+UTEST_F(RedisClientTest, MsetexNoExpiryRemovesTtl) {
+    if (!HasMsetexCommand()) {
+        GTEST_SKIP() << SkipMsgMsetexUnsupported();
+    }
+
+    auto client = GetClient();
+    constexpr auto kTtl = std::chrono::seconds{60};
+    const std::vector<std::pair<std::string, std::string>> key_values{
+        {"{msetex-no-expiry}:1", "new-value1"},
+        {"{msetex-no-expiry}:2", "new-value2"},
+    };
+
+    for (const auto& [key, value] : key_values) {
+        client->Set(key, "old-" + value, kTtl, {}).Get();
+        ASSERT_TRUE(client->Ttl(key, kMasterCC).Get().KeyHasExpiration());
+    }
+
+    EXPECT_EQ(client->Msetex(key_values, {}).Get(), MsetexReply::kKeysSet);
+
+    for (const auto& [key, expected_value] : key_values) {
+        const auto value = client->Get(key, kMasterCC).Get();
+        ASSERT_TRUE(value.has_value());
+        EXPECT_EQ(*value, expected_value);
+        EXPECT_FALSE(client->Ttl(key, kMasterCC).Get().KeyHasExpiration());
+    }
+}
+
+UTEST_F(RedisClientTest, MsetexKeepTtl) {
+    if (!HasMsetexCommand()) {
+        GTEST_SKIP() << SkipMsgMsetexUnsupported();
+    }
+
+    auto client = GetClient();
+    constexpr auto kTtl = std::chrono::seconds{60};
+    const std::vector<std::pair<std::string, std::string>> key_values{
+        {"{msetex-keep-ttl}:1", "new-value1"},
+        {"{msetex-keep-ttl}:2", "new-value2"},
+    };
+
+    for (const auto& [key, value] : key_values) {
+        client->Set(key, "old-" + value, kTtl, {}).Get();
+    }
+
+    EXPECT_EQ(client->Msetex(key_values, MsetexOptions::KeepTtl(), {}).Get(), MsetexReply::kKeysSet);
+
+    for (const auto& [key, expected_value] : key_values) {
+        const auto value = client->Get(key, kMasterCC).Get();
+        ASSERT_TRUE(value.has_value());
+        EXPECT_EQ(*value, expected_value);
+
+        const auto ttl = client->Ttl(key, kMasterCC).Get();
+        ASSERT_TRUE(ttl.KeyHasExpiration());
+        EXPECT_GT(ttl.GetExpire().count(), 0);
+        EXPECT_LE(ttl.GetExpire().count(), kTtl.count());
+    }
+}
+
+UTEST_F(RedisClientTest, MsetexNxIsAllOrNothing) {
+    if (!HasMsetexCommand()) {
+        GTEST_SKIP() << SkipMsgMsetexUnsupported();
+    }
+
+    auto client = GetClient();
+    const std::string key1 = "{msetex-nx}:1";
+    const std::string key2 = "{msetex-nx}:2";
+    const auto options = MsetexOptions::NoTtl().OnlyIfNoneOfKeysExist();
+
+    client->Set(key1, "original", {}).Get();
+    EXPECT_EQ(client->Msetex({{key1, "updated"}, {key2, "created"}}, options, {}).Get(), MsetexReply::kConditionNotMet);
+
+    const auto original = client->Get(key1, kMasterCC).Get();
+    ASSERT_TRUE(original.has_value());
+    EXPECT_EQ(*original, "original");
+    EXPECT_FALSE(client->Get(key2, kMasterCC).Get().has_value());
+
+    EXPECT_EQ(client->Del(key1, {}).Get(), 1);
+    EXPECT_EQ(client->Msetex({{key1, "updated"}, {key2, "created"}}, options, {}).Get(), MsetexReply::kKeysSet);
+    EXPECT_EQ(client->Get(key1, kMasterCC).Get(), "updated");
+    EXPECT_EQ(client->Get(key2, kMasterCC).Get(), "created");
+}
+
+UTEST_F(RedisClientTest, MsetexXxIsAllOrNothing) {
+    if (!HasMsetexCommand()) {
+        GTEST_SKIP() << SkipMsgMsetexUnsupported();
+    }
+
+    auto client = GetClient();
+    const std::string key1 = "{msetex-xx}:1";
+    const std::string key2 = "{msetex-xx}:2";
+    const auto options = MsetexOptions::NoTtl().OnlyIfAllKeysExist();
+
+    client->Set(key1, "original1", {}).Get();
+    EXPECT_EQ(
+        client->Msetex({{key1, "updated1"}, {key2, "updated2"}}, options, {}).Get(),
+        MsetexReply::kConditionNotMet
+    );
+
+    const auto original = client->Get(key1, kMasterCC).Get();
+    ASSERT_TRUE(original.has_value());
+    EXPECT_EQ(*original, "original1");
+    EXPECT_FALSE(client->Get(key2, kMasterCC).Get().has_value());
+
+    client->Set(key2, "original2", {}).Get();
+    EXPECT_EQ(client->Msetex({{key1, "updated1"}, {key2, "updated2"}}, options, {}).Get(), MsetexReply::kKeysSet);
+    EXPECT_EQ(client->Get(key1, kMasterCC).Get(), "updated1");
+    EXPECT_EQ(client->Get(key2, kMasterCC).Get(), "updated2");
+}
+
+UTEST_F(RedisClientTest, MsetexEmptyInput) {
+    auto client = GetClient();
+    using KeyValues = std::vector<std::pair<std::string, std::string>>;
+
+    EXPECT_EQ(client->Msetex(KeyValues{}, {}).Get(), MsetexReply::kKeysSet);
+    EXPECT_EQ(client->Msetex(KeyValues{}, MsetexOptions::NoTtl(), {}).Get(), MsetexReply::kKeysSet);
 }
 
 // multi

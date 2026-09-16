@@ -32,7 +32,7 @@ namespace components {
 ///
 /// ## Static configuration example:
 ///
-/// @snippet components/common_component_list_test.cpp  Sample system statistics component config
+/// @snippet core/src/components/common_component_list_test.cpp  Sample system statistics component config
 class SystemStatisticsCollector final : public ComponentBase {
 public:
     /// @ingroup userver_component_names

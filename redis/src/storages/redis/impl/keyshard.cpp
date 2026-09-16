@@ -62,6 +62,13 @@ void GetRedisKey(const std::string& key, size_t* key_start, size_t* key_len) {
     *key_len = end - start - 1;
 }
 
+size_t HashSlot(const std::string& key) {
+    size_t start = 0;
+    size_t len = 0;
+    GetRedisKey(key, &start, &len);
+    return std::for_each(key.data() + start, key.data() + start + len, boost::crc_optimal<16, 0x1021>())() & 0x3fff;
+}
+
 KeyShardTaximeterCrc32::KeyShardTaximeterCrc32(size_t shard_count)
     : shard_count_(shard_count),
       converter_(kRawKeyEncoding, kTaximeterCrcKeyEncoding)

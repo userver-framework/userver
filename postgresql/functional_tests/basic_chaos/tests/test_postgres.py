@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import socket
 
@@ -23,12 +22,12 @@ logger = logging.getLogger(__name__)
 
 
 # /// [restore]
-async def _check_that_restores(service_client, gate):
+async def _check_that_restores(service_client, gate, mocked_time):
     await gate.to_server_pass()
     await gate.to_client_pass()
     gate.start_accepting()
 
-    await utils.consume_dead_db_connections(service_client)
+    await utils.consume_dead_db_connections(service_client, mocked_time)
 
     logger.debug('Starting "_check_that_restores" wait for 200')
     response = await service_client.get(SELECT_URL)
@@ -55,7 +54,7 @@ async def test_pg_overload_no_accepts(service_client, gate):
 
 
 # /// [test cc]
-async def test_pg_congestion_control(service_client, gate):
+async def test_pg_congestion_control(service_client, gate, mocked_time):
     await gate.to_server_close_on_data()
     await gate.to_client_close_on_data()
 
@@ -63,45 +62,45 @@ async def test_pg_congestion_control(service_client, gate):
         response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
         assert response.status == 500
 
-    await _check_that_restores(service_client, gate)
+    await _check_that_restores(service_client, gate, mocked_time)
     # /// [test cc]
 
 
-async def test_close_to_client_limit(service_client, gate):
+async def test_close_to_client_limit(service_client, gate, mocked_time):
     for i in range(100, 250, 50):
         await gate.to_client_limit_bytes(i)
         response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
         assert response.status == 500, i
 
     await gate.to_client_pass()
-    await _check_that_restores(service_client, gate)
+    await _check_that_restores(service_client, gate, mocked_time)
 
 
-async def test_close_to_server_limit(service_client, gate):
+async def test_close_to_server_limit(service_client, gate, mocked_time):
     for i in range(100, 250, 50):
         await gate.to_server_limit_bytes(i)
         response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
         assert response.status == 500
 
     await gate.to_server_pass()
-    await _check_that_restores(service_client, gate)
+    await _check_that_restores(service_client, gate, mocked_time)
 
 
 @pytest.mark.skip(
     reason='Rarely breaks the server, and corrupted data can still be valid',
 )
-async def test_pg_corrupted_response(service_client, gate):
+async def test_pg_corrupted_response(service_client, gate, mocked_time):
     await gate.to_client_corrupt_data()
 
     for _ in range(gate.connections_count()):
         response = await service_client.get(SELECT_URL)
         assert response.status == 500
 
-    await _check_that_restores(service_client, gate)
+    await _check_that_restores(service_client, gate, mocked_time)
 
 
 @pytest.mark.skip(reason='response.status == 200')
-async def test_network_delay_sends(service_client, gate):
+async def test_network_delay_sends(service_client, gate, mocked_time):
     await gate.to_server_delay(DATA_TRANSMISSION_DELAY)
 
     logger.debug('Starting "test_network_delay_sends" check for 500')
@@ -109,20 +108,20 @@ async def test_network_delay_sends(service_client, gate):
     assert response.status == 500
     logger.debug('End of "test_network_delay_sends" check for 500')
 
-    await _check_that_restores(service_client, gate)
+    await _check_that_restores(service_client, gate, mocked_time)
 
 
 @pytest.mark.skip(reason='response.status == 200')
-async def test_network_delay_recv(service_client, gate):
+async def test_network_delay_recv(service_client, gate, mocked_time):
     await gate.to_client_delay(DATA_TRANSMISSION_DELAY)
 
     response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
     assert response.status == 500
 
-    await _check_that_restores(service_client, gate)
+    await _check_that_restores(service_client, gate, mocked_time)
 
 
-async def test_network_delay(service_client, gate):
+async def test_network_delay(service_client, gate, mocked_time):
     await gate.to_server_delay(DATA_TRANSMISSION_DELAY)
     await gate.to_client_delay(DATA_TRANSMISSION_DELAY)
 
@@ -131,10 +130,10 @@ async def test_network_delay(service_client, gate):
     assert response.status == 500
     logger.debug('End of "test_network_delay" check for 500')
 
-    await _check_that_restores(service_client, gate)
+    await _check_that_restores(service_client, gate, mocked_time)
 
 
-async def test_network_limit_bps_sends(service_client, gate):
+async def test_network_limit_bps_sends(service_client, gate, mocked_time):
     await gate.to_server_limit_bps(BYTES_PER_SECOND_LIMIT)
 
     logger.debug('Starting "test_network_limit_bps_sends" check for 500')
@@ -142,10 +141,10 @@ async def test_network_limit_bps_sends(service_client, gate):
     assert response.status == 500
     logger.debug('End of "test_network_limit_bps_sends" check for 500')
 
-    await _check_that_restores(service_client, gate)
+    await _check_that_restores(service_client, gate, mocked_time)
 
 
-async def test_network_limit_bps_recv(service_client, gate):
+async def test_network_limit_bps_recv(service_client, gate, mocked_time):
     await gate.to_client_limit_bps(BYTES_PER_SECOND_LIMIT)
 
     logger.debug('Starting "test_network_limit_bps_recv" check for 500')
@@ -153,10 +152,10 @@ async def test_network_limit_bps_recv(service_client, gate):
     assert response.status == 500
     logger.debug('End of "test_network_limit_bps_recv" check for 500')
 
-    await _check_that_restores(service_client, gate)
+    await _check_that_restores(service_client, gate, mocked_time)
 
 
-async def test_network_limit_bps(service_client, gate):
+async def test_network_limit_bps(service_client, gate, mocked_time):
     await gate.to_server_limit_bps(BYTES_PER_SECOND_LIMIT)
     await gate.to_client_limit_bps(BYTES_PER_SECOND_LIMIT)
 
@@ -165,11 +164,11 @@ async def test_network_limit_bps(service_client, gate):
     assert response.status == 500
     logger.debug('End of "test_network_limit_bps" check for 500')
 
-    await _check_that_restores(service_client, gate)
+    await _check_that_restores(service_client, gate, mocked_time)
 
 
 @pytest.mark.skip(reason='flaky')
-async def test_network_limit_time_sends(service_client, gate):
+async def test_network_limit_time_sends(service_client, gate, mocked_time):
     await gate.to_server_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
 
     logger.debug('Starting "test_network_limit_time_sends" check for 500')
@@ -183,11 +182,11 @@ async def test_network_limit_time_sends(service_client, gate):
 
     assert got_error, 'Previous steps unexpectedly finished with success'
 
-    await _check_that_restores(service_client, gate)
+    await _check_that_restores(service_client, gate, mocked_time)
 
 
 @pytest.mark.skip(reason='flaky')
-async def test_network_limit_time_recv(service_client, gate):
+async def test_network_limit_time_recv(service_client, gate, mocked_time):
     await gate.to_client_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
 
     logger.debug('Starting "test_network_limit_time_recv" check for 500')
@@ -201,11 +200,11 @@ async def test_network_limit_time_recv(service_client, gate):
 
     assert got_error, 'Previous steps unexpectedly finished with success'
 
-    await _check_that_restores(service_client, gate)
+    await _check_that_restores(service_client, gate, mocked_time)
 
 
 @pytest.mark.skip(reason='flaky')
-async def test_network_limit_time(service_client, gate):
+async def test_network_limit_time(service_client, gate, mocked_time):
     await gate.to_server_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
     await gate.to_client_limit_time(CONNECTION_TIME_LIMIT, CONNECTION_LIMIT_JITTER)
 
@@ -220,7 +219,7 @@ async def test_network_limit_time(service_client, gate):
 
     assert got_error, 'Previous steps unexpectedly finished with success'
 
-    await _check_that_restores(service_client, gate)
+    await _check_that_restores(service_client, gate, mocked_time)
 
 
 async def test_network_smaller_parts_sends(service_client, gate):
@@ -246,7 +245,7 @@ async def test_network_smaller_parts(service_client, gate):
 
 
 # TODO: timeout does not work!
-async def test_network_limit_bytes_sends(service_client, gate):
+async def test_network_limit_bytes_sends(service_client, gate, mocked_time):
     await gate.to_server_limit_bytes(BYTES_TRANSMISSION_LIMIT)
 
     logger.debug('Starting "test_network_limit_bytes_sends" check for 500')
@@ -260,10 +259,10 @@ async def test_network_limit_bytes_sends(service_client, gate):
 
     assert got_error, 'Previous steps unexpectedly finished with success'
 
-    await _check_that_restores(service_client, gate)
+    await _check_that_restores(service_client, gate, mocked_time)
 
 
-async def test_network_limit_bytes_recv(service_client, gate):
+async def test_network_limit_bytes_recv(service_client, gate, mocked_time):
     await gate.to_client_limit_bytes(BYTES_TRANSMISSION_LIMIT)
 
     logger.debug('Starting "test_network_limit_bytes_recv" check for 500')
@@ -277,10 +276,10 @@ async def test_network_limit_bytes_recv(service_client, gate):
 
     assert got_error, 'Previous steps unexpectedly finished with success'
 
-    await _check_that_restores(service_client, gate)
+    await _check_that_restores(service_client, gate, mocked_time)
 
 
-async def test_network_limit_bytes(service_client, gate):
+async def test_network_limit_bytes(service_client, gate, mocked_time):
     await gate.to_server_limit_bytes(BYTES_TRANSMISSION_LIMIT)
     await gate.to_client_limit_bytes(BYTES_TRANSMISSION_LIMIT)
 
@@ -295,7 +294,7 @@ async def test_network_limit_bytes(service_client, gate):
 
     assert got_error, 'Previous steps unexpectedly finished with success'
 
-    await _check_that_restores(service_client, gate)
+    await _check_that_restores(service_client, gate, mocked_time)
 
 
 async def _intercept_server_terminated(
@@ -326,7 +325,7 @@ async def _intercept_server_terminated(
     raise chaos.GateInterceptException('Closing socket after error')
 
 
-async def test_close_with_error(service_client, gate, testpoint):
+async def test_close_with_error(service_client, gate, testpoint, mocked_time):
     should_close = False
 
     @testpoint('after_trx_begin')
@@ -344,22 +343,20 @@ async def test_close_with_error(service_client, gate, testpoint):
     assert response.status == 500
 
     should_close = False
-    await _check_that_restores(service_client, gate)
+    await _check_that_restores(service_client, gate, mocked_time)
 
 
+@pytest.mark.uservice_oneshot
 @pytest.mark.config(
     POSTGRES_CONNECTION_POOL_SETTINGS={
         '__default__': {'max_pool_size': 1, 'min_pool_size': 1},
-    },
-    # Force a fresh connection with an empty local prepared statements cache.
-    POSTGRES_CONNECTION_SETTINGS={
-        '__default__': {'max-prepared-cache-size': 201},
     },
 )
 async def test_prepared_statement_already_exists(
     service_client,
     gate,
     testpoint,
+    mocked_time,
 ):
     first = {1: True}
 
@@ -378,16 +375,12 @@ async def test_prepared_statement_already_exists(
 
     logger.debug('after slow select')
 
-    await gate.to_client_pass()
-    await asyncio.sleep(2)
-
-    logger.debug('after sleep')
+    await pg_cleanup_hook.wait_call()
 
     response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
     assert response.status == 500
 
-    response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
-    assert response.status == 200
+    await _check_that_restores(service_client, gate, mocked_time)
 
     response = await service_client.get(SELECT_SMALL_TIMEOUT_URL)
     assert response.status == 200

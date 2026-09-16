@@ -12,6 +12,7 @@
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/testsuite/cache_control.hpp>
 #include <userver/testsuite/dump_control.hpp>
+#include <userver/utils/resource_scopes.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -30,6 +31,7 @@ struct CacheDependencies final {
     std::unique_ptr<dump::OperationsFactory> dump_rw_factory;
     engine::TaskProcessor& fs_task_processor;
     testsuite::DumpControl& dump_control;
+    utils::ResourceScopeStorage& scopes;
 
     static CacheDependencies Make(
         const components::ComponentConfig& config,

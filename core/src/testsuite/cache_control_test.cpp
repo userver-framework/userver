@@ -1,24 +1,34 @@
 #include <userver/utest/utest.hpp>
 
+#include <atomic>
 #include <chrono>
 #include <optional>
 #include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
 
+#include <gmock/gmock.h>
 #include <boost/filesystem/operations.hpp>
 
 #include <userver/cache/cache_config.hpp>
 #include <userver/cache/cache_update_trait.hpp>
+#include <userver/cache/caching_component_base.hpp>
 #include <userver/components/component_base.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/dump/common.hpp>
 #include <userver/dump/unsafe.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/engine/sleep.hpp>
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/fs/blocking/write.hpp>
 #include <userver/testsuite/cache_control.hpp>
+#include <userver/utils/resource_scopes.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 #include <userver/components/component_list.hpp>
+#include <userver/components/minimal_component_list.hpp>
 #include <userver/components/run.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/logging/component.hpp>
@@ -40,8 +50,13 @@ constexpr std::size_t kDummyDocumentsCount = 42;
 
 class FakeCache final : public cache::CacheMockBase {
 public:
-    FakeCache(std::string_view name, const yaml_config::YamlConfig& config, cache::MockEnvironment& environment)
-        : cache::CacheMockBase(name, config, environment)
+    FakeCache(
+        utils::ResourceScopeStorage& scopes,
+        std::string_view name,
+        const yaml_config::YamlConfig& config,
+        cache::MockEnvironment& environment
+    )
+        : cache::CacheMockBase(scopes, name, config, environment)
     {
         EarlyStartPeriodicUpdates(cache::CacheUpdateTrait::Flag::kNoFirstUpdate);
     }
@@ -96,51 +111,52 @@ UTEST(CacheControl, Smoke) {
     const yaml_config::YamlConfig config{formats::yaml::FromString(kConfigContents), {}};
     cache::MockEnvironment env;
 
-    const FakeCache test_cache(kCacheName, config, env);
+    const utils::WithResourceScopes<FakeCache> test_cache(std::in_place, kCacheName, config, env);
 
-    const FakeCache test_cache_alternative(kCacheNameAlternative, config, env);
+    const utils::WithResourceScopes<FakeCache>
+        test_cache_alternative(std::in_place, kCacheNameAlternative, config, env);
 
     // Periodic updates are disabled, so a synchronous update will be performed
-    EXPECT_EQ(1, test_cache.UpdatesCount());
+    EXPECT_EQ(1, test_cache->UpdatesCount());
 
     env.cache_control.ResetCaches(
         cache::UpdateType::kFull,
         {kCacheName},
         /*force_incremental_names=*/{}
     );
-    EXPECT_EQ(2, test_cache.UpdatesCount());
-    EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
+    EXPECT_EQ(2, test_cache->UpdatesCount());
+    EXPECT_EQ(cache::UpdateType::kFull, test_cache->LastUpdateType());
 
     env.cache_control.ResetCaches(
         cache::UpdateType::kIncremental,
         {kCacheNameAlternative},
         /*force_incremental_names=*/{}
     );
-    EXPECT_EQ(2, test_cache.UpdatesCount());
-    EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
+    EXPECT_EQ(2, test_cache->UpdatesCount());
+    EXPECT_EQ(cache::UpdateType::kFull, test_cache->LastUpdateType());
 
     env.cache_control.ResetCaches(
         cache::UpdateType::kIncremental,
         {},
         /*force_incremental_names=*/{}
     );
-    EXPECT_EQ(2, test_cache.UpdatesCount());
-    EXPECT_EQ(cache::UpdateType::kFull, test_cache.LastUpdateType());
+    EXPECT_EQ(2, test_cache->UpdatesCount());
+    EXPECT_EQ(cache::UpdateType::kFull, test_cache->LastUpdateType());
 
     env.cache_control.ResetAllCaches(
         cache::UpdateType::kIncremental,
         /*force_incremental_names=*/{},
         /*exclude_names=*/{}
     );
-    EXPECT_EQ(3, test_cache.UpdatesCount());
-    EXPECT_EQ(cache::UpdateType::kIncremental, test_cache.LastUpdateType());
+    EXPECT_EQ(3, test_cache->UpdatesCount());
+    EXPECT_EQ(cache::UpdateType::kIncremental, test_cache->LastUpdateType());
 
-    EXPECT_EQ(test_cache.Get(), "foo");
+    EXPECT_EQ(test_cache->Get(), "foo");
 
     boost::filesystem::remove_all(env.dump_root.GetPath());
     dump::CreateDumps({kDumpToRead}, env.dump_root, kCacheName);
     env.dump_control.ReadCacheDumps({kCacheName});
-    EXPECT_EQ(test_cache.Get(), kDumpToRead);
+    EXPECT_EQ(test_cache->Get(), kDumpToRead);
 
     boost::filesystem::remove_all(env.dump_root.GetPath());
     env.cache_control.ResetCaches(
@@ -152,10 +168,58 @@ UTEST(CacheControl, Smoke) {
     EXPECT_EQ(dump::FilenamesInDirectory(env.dump_root, kCacheName).size(), 1);
 }
 
+UTEST(CacheControl, AllResettersForNameAreCalled) {
+    testsuite::CacheControl cache_control{
+        testsuite::impl::PeriodicUpdatesMode::kDisabled,
+        testsuite::CacheControl::UnitTests{},
+    };
+
+    std::vector<std::string> call_order;
+
+    testsuite::CacheControl::CacheInfo first{
+        .name = "dup-cache",
+        .reset = [&call_order](cache::UpdateType) { call_order.emplace_back("first"); },
+        .needs_span = false,
+    };
+    const auto
+        first_reg = testsuite::CacheResetRegistration(cache_control, cache_control.DoRegisterCache(std::move(first)));
+
+    testsuite::CacheControl::CacheInfo last{
+        .name = "dup-cache",
+        .reset = [&call_order](cache::UpdateType) { call_order.emplace_back("last"); },
+        .needs_span = false,
+    };
+    const auto
+        last_reg = testsuite::CacheResetRegistration(cache_control, cache_control.DoRegisterCache(std::move(last)));
+
+    testsuite::CacheControl::CacheInfo other{
+        .name = "other-cache",
+        .reset = [&call_order](cache::UpdateType) { call_order.emplace_back("other"); },
+        .needs_span = false,
+    };
+    const auto
+        other_reg = testsuite::CacheResetRegistration(cache_control, cache_control.DoRegisterCache(std::move(other)));
+
+    cache_control.ResetCaches(
+        cache::UpdateType::kFull,
+        {"dup-cache"},
+        /*force_incremental_names=*/{}
+    );
+    EXPECT_THAT(call_order, ::testing::ElementsAre("first", "last"));
+
+    call_order.clear();
+    cache_control.ResetAllCaches(
+        cache::UpdateType::kFull,
+        /*force_incremental_names=*/{},
+        /*exclude_names=*/{}
+    );
+    EXPECT_THAT(call_order, ::testing::ElementsAre("first", "last", "other"));
+}
+
 UTEST_DEATH(CacheControlDeathTest, MissingCache) {
     const yaml_config::YamlConfig config{formats::yaml::FromString(kConfigContents), {}};
     cache::MockEnvironment env;
-    const FakeCache test_cache(kCacheName, config, env);
+    const utils::WithResourceScopes<FakeCache> test_cache(std::in_place, kCacheName, config, env);
 
     EXPECT_UINVARIANT_FAILURE(env.dump_control.WriteCacheDumps({"missing"}));
     EXPECT_UINVARIANT_FAILURE(env.dump_control.ReadCacheDumps({"missing"}));
@@ -176,8 +240,8 @@ public:
         }
         // ...
 
-        // RegisterCacheScoped must be called at the end of the constructor.
-        testsuite::RegisterCacheScoped(context, this, &MyCache::ResetCache);
+        // RegisterCacheResetter must be called at the end of the constructor.
+        testsuite::RegisterCacheResetter(context, this, &MyCache::ResetCache);
     }
 
     std::string GetToken() {
@@ -216,7 +280,7 @@ public:
 
     Component1(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
-        testsuite::RegisterCacheScoped(context, this, &Component1::ResetCache);
+        testsuite::RegisterCacheResetter(context, this, &Component1::ResetCache);
     }
 
     void ResetCache() {
@@ -233,7 +297,7 @@ public:
 
     Component1a(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
-        testsuite::RegisterCacheScoped(context, this, &Component1a::ResetCache);
+        testsuite::RegisterCacheResetter(context, this, &Component1a::ResetCache);
     }
 
     void ResetCache() {
@@ -250,7 +314,7 @@ public:
 
     Component1b(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
-        testsuite::RegisterCacheScoped(context, this, &Component1b::ResetCache);
+        testsuite::RegisterCacheResetter(context, this, &Component1b::ResetCache);
     }
 
     void ResetCache() {
@@ -267,7 +331,7 @@ public:
 
     Component1c(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
-        testsuite::RegisterCacheScoped(context, this, &Component1c::ResetCache);
+        testsuite::RegisterCacheResetter(context, this, &Component1c::ResetCache);
     }
 
     void ResetCache() {
@@ -285,7 +349,7 @@ public:
     Component2(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
         context.FindComponent<Component1>();
-        testsuite::RegisterCacheScoped(context, this, &Component2::ResetCache);
+        testsuite::RegisterCacheResetter(context, this, &Component2::ResetCache);
     }
 
     void ResetCache() {
@@ -303,7 +367,7 @@ public:
     ComponentNotLoaded(const components::ComponentConfig& config, const components::ComponentContext& context)
         : components::ComponentBase(config, context) {
         context.FindComponent<Component1>();
-        testsuite::RegisterCacheScoped(context, this, &ComponentNotLoaded::ResetCache);
+        testsuite::RegisterCacheResetter(context, this, &ComponentNotLoaded::ResetCache);
     }
 
     void ResetCache() { UASSERT(false); }
@@ -324,7 +388,7 @@ public:
         context.FindComponent<Component1b>();
         context.FindComponent<Component1c>();
 
-        testsuite::RegisterCacheScoped(context, this, &Component3::ResetCache);
+        testsuite::RegisterCacheResetter(context, this, &Component3::ResetCache);
     }
 
     void ResetCache() {
@@ -459,6 +523,226 @@ components::ComponentList MakeComponentList() {
 
 TEST_F(ComponentList, CacheControlConcurrentInvalidation) {
     components::RunOnce(components::InMemoryConfig{std::string{kStaticConfigBase}}, MakeComponentList());
+}
+
+bool record_testsuite_resets = false;
+std::vector<std::string> testsuite_reset_order;
+
+const auto kSequentialResetConfig = tests::MergeYaml(tests::kMinimalStaticConfig, R"(
+components_manager:
+    components:
+        testsuite-support:
+            cache-update-execution: sequential
+        producer-cache:
+            update-types: only-full
+            update-interval: 1h
+        consumer-cache:
+            update-types: only-full
+            update-interval: 1h
+        reset-driver: {}
+)");
+
+class ProducerCache final : public components::CachingComponentBase<int> {
+public:
+    static constexpr std::string_view kName = "producer-cache";
+
+    ProducerCache(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : CachingComponentBase(config, context)
+    {}
+
+private:
+    void Update(
+        cache::UpdateType /*type*/,
+        const std::chrono::system_clock::time_point& /*last_update*/,
+        const std::chrono::system_clock::time_point& /*now*/,
+        cache::UpdateStatisticsScope& stats_scope
+    ) override {
+        if (record_testsuite_resets) {
+            testsuite_reset_order.emplace_back(kName);
+        }
+        Emplace(1);
+        stats_scope.Finish(1);
+    }
+};
+
+class ConsumerCache final : public components::CachingComponentBase<int> {
+public:
+    static constexpr std::string_view kName = "consumer-cache";
+
+    ConsumerCache(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : CachingComponentBase(config, context)
+    {
+        context.FindComponent<ProducerCache>();
+    }
+
+private:
+    void Update(
+        cache::UpdateType /*type*/,
+        const std::chrono::system_clock::time_point& /*last_update*/,
+        const std::chrono::system_clock::time_point& /*now*/,
+        cache::UpdateStatisticsScope& stats_scope
+    ) override {
+        if (record_testsuite_resets) {
+            testsuite_reset_order.emplace_back(kName);
+        }
+        Emplace(1);
+        stats_scope.Finish(1);
+    }
+};
+
+class ResetDriver final : public components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "reset-driver";
+
+    ResetDriver(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : ComponentBase(config, context),
+          cache_control_(testsuite::FindCacheControl(context))
+    {}
+
+    void OnAllComponentsLoaded() override {
+        record_testsuite_resets = true;
+        cache_control_.ResetAllCaches(cache::UpdateType::kFull, {}, {});
+    }
+
+private:
+    testsuite::CacheControl& cache_control_;
+};
+
+TEST_F(ComponentList, SequentialResetUpdatesDependencyBeforeDependent) {
+    record_testsuite_resets = false;
+    testsuite_reset_order = {};
+
+    components::RunOnce(
+        components::InMemoryConfig{kSequentialResetConfig},
+        components::MinimalComponentList()
+            .Append<components::TestsuiteSupport>()
+            .Append<ProducerCache>()
+            .Append<ConsumerCache>()
+            .Append<ResetDriver>()
+    );
+
+    EXPECT_THAT(testsuite_reset_order, ::testing::ElementsAre("producer-cache", "consumer-cache"));
+}
+
+constexpr std::string_view kConcurrentSameNameResetConfig = R"(
+components_manager:
+    task_processors:
+        main-task-processor:
+            worker_threads: 2
+    components:
+        testsuite-support:
+            cache-update-execution: concurrent
+        dup-resetters: {}
+        same-name-reset-driver: {}
+)";
+
+concurrent::Variable<std::vector<std::string>> same_name_reset_log;
+
+void RecordSameNameReset(std::string_view name) {
+    {
+        auto log = same_name_reset_log.Lock();
+        log->emplace_back(std::string{name} + "-start");
+    }
+    engine::SleepFor(std::chrono::milliseconds{10});
+    {
+        auto log = same_name_reset_log.Lock();
+        log->emplace_back(std::string{name} + "-end");
+    }
+}
+
+class DupResetters final : public components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "dup-resetters";
+
+    DupResetters(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::ComponentBase(config, context)
+    {
+        testsuite::RegisterCacheResetter(context, this, &DupResetters::ResetFirst);
+        testsuite::RegisterCacheResetter(context, this, &DupResetters::ResetSecond);
+    }
+
+    void ResetFirst() { RecordSameNameReset("first"); }
+
+    void ResetSecond() { RecordSameNameReset("second"); }
+};
+
+class SameNameResetDriver final : public components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "same-name-reset-driver";
+
+    SameNameResetDriver(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::ComponentBase(config, context),
+          cache_control_(testsuite::FindCacheControl(context))
+    {}
+
+    void OnAllComponentsLoaded() override {
+        cache_control_.ResetCaches(cache::UpdateType::kFull, {std::string{DupResetters::kName}}, {});
+    }
+
+private:
+    testsuite::CacheControl& cache_control_;
+};
+
+TEST_F(ComponentList, ConcurrentSameNameResettersWaitInOrder) {
+    same_name_reset_log.GetDataUnsafe().clear();
+
+    components::RunOnce(
+        components::InMemoryConfig{tests::MergeYaml(tests::kMinimalStaticConfig, kConcurrentSameNameResetConfig)},
+        components::MinimalComponentList()
+            .Append<components::TestsuiteSupport>()
+            .Append<DupResetters>()
+            .Append<SameNameResetDriver>()
+    );
+
+    EXPECT_THAT(
+        same_name_reset_log.GetDataUnsafe(),
+        ::testing::ElementsAre("first-start", "first-end", "second-start", "second-end")
+    );
+}
+
+class UpdateTypeResetter final : public components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "update-type-resetter";
+
+    static inline std::vector<cache::UpdateType> update_types;
+
+    UpdateTypeResetter(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::ComponentBase(config, context),
+          cache_control_(testsuite::FindCacheControl(context))
+    {
+        testsuite::RegisterCacheResetter(context, this, &UpdateTypeResetter::ResetCache);
+    }
+
+    void ResetCache(cache::UpdateType update_type) { update_types.push_back(update_type); }
+
+    void OnAllComponentsLoaded() override {
+        cache_control_.ResetAllCaches(cache::UpdateType::kFull, {}, {});
+        cache_control_.ResetAllCaches(cache::UpdateType::kIncremental, {}, {});
+    }
+
+private:
+    testsuite::CacheControl& cache_control_;
+};
+
+constexpr std::string_view kUpdateTypeResetterConfig = R"(
+components_manager:
+    components:
+        testsuite-support: {}
+        update-type-resetter: {}
+)";
+
+TEST_F(ComponentList, ResetterReceivesUpdateType) {
+    UpdateTypeResetter::update_types.clear();
+
+    components::RunOnce(
+        components::InMemoryConfig{tests::MergeYaml(tests::kMinimalStaticConfig, kUpdateTypeResetterConfig)},
+        components::MinimalComponentList().Append<components::TestsuiteSupport>().Append<UpdateTypeResetter>()
+    );
+
+    EXPECT_THAT(
+        UpdateTypeResetter::update_types,
+        ::testing::ElementsAre(cache::UpdateType::kFull, cache::UpdateType::kIncremental)
+    );
 }
 
 }  // namespace

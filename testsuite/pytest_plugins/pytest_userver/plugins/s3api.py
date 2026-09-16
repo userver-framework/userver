@@ -13,6 +13,11 @@ def pytest_configure(config):
 
 @pytest.fixture(name='s3_mock_storage')
 def _s3_mock_storage():
+    """
+    In-memory S3 bucket storage for tests.
+
+    @ingroup userver_testsuite_fixtures
+    """
     buckets = collections.defaultdict(s3api.S3MockBucketStorage)
     return buckets
 

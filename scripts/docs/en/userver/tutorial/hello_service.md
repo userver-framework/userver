@@ -3,7 +3,7 @@
 
 ## Before you start
 
-@warning Note that you can start with a ready to use opensourse [service template](scripts/docs/en/userver/build/build.md)
+@warning Note that you can start with a ready to use open-source [service template](scripts/docs/en/userver/build/build.md)
 to ease the development of your userver based services. The template already has
 a preconfigured CI, build and install scripts, testsuite and unit-tests setups.
 

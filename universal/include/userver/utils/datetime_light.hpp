@@ -19,18 +19,18 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::datetime {
-/// @snippet utils/datetime/from_string_saturating_test.cpp  kRfc3339Format
+/// @snippet universal/src/utils/datetime/from_string_saturating_test.cpp  kRfc3339Format
 inline const std::string kRfc3339Format = "%Y-%m-%dT%H:%M:%E*S%Ez";
-/// @snippet utils/datetime/from_string_saturating_test.cpp  kTaximeterFormat
+/// @snippet universal/src/utils/datetime/from_string_saturating_test.cpp  kTaximeterFormat
 inline const std::string kTaximeterFormat = "%Y-%m-%dT%H:%M:%E6SZ";
 inline constexpr std::time_t kStartOfTheEpoch = 0;
-/// @snippet utils/datetime_test.cpp  kDefaultDriverTimezone
+/// @snippet core/src/utils/datetime_test.cpp  kDefaultDriverTimezone
 inline const std::string kDefaultDriverTimezone = "Europe/Moscow";
-/// @snippet utils/datetime_test.cpp  kDefaultTimezone
+/// @snippet core/src/utils/datetime_test.cpp  kDefaultTimezone
 inline const std::string kDefaultTimezone = "UTC";
-/// @snippet utils/datetime/from_string_saturating_test.cpp  kDefaultFormat
+/// @snippet universal/src/utils/datetime/from_string_saturating_test.cpp  kDefaultFormat
 inline const std::string kDefaultFormat = "%Y-%m-%dT%H:%M:%E*S%z";
-/// @snippet utils/datetime/from_string_saturating_test.cpp  kIsoFormat
+/// @snippet universal/src/utils/datetime/from_string_saturating_test.cpp  kIsoFormat
 inline const std::string kIsoFormat = "%Y-%m-%dT%H:%M:%SZ";
 inline const std::string kFractionFormat = "%Y-%m-%dT%H:%M:%S.%E*f%z";
 
@@ -186,7 +186,7 @@ std::chrono::system_clock::time_point GuessLocalTimezoneStringtime(const std::st
 ///
 /// Example:
 ///
-/// @snippet utils/datetime_test.cpp  UtcTimestring C time example
+/// @snippet core/src/utils/datetime_test.cpp  UtcTimestring C time example
 std::time_t Timestamp(std::chrono::system_clock::time_point tp) noexcept;
 
 /// @brief Returned current time as std::time_t; could be mocked
@@ -214,7 +214,7 @@ std::string TimestampToString(std::time_t timestamp);
 ///
 /// Example:
 ///
-/// @snippet utils/datetime_test.cpp  TimePointToTicks example
+/// @snippet core/src/utils/datetime_test.cpp  TimePointToTicks example
 std::int64_t TimePointToTicks(const std::chrono::system_clock::time_point& tp) noexcept;
 
 /// @brief Convert DotNet ticks to a time point

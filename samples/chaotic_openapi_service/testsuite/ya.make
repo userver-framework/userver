@@ -13,6 +13,7 @@ PEERDIR(
 
 DEPENDS(
     taxi/uservices/userver/samples/chaotic_openapi_service
+    taxi/uservices/userver/samples/chaotic_openapi_service/config
 )
 
 DATA(
@@ -20,6 +21,9 @@ DATA(
 )
 
 CONFTEST_LOAD_POLICY_LOCAL()
+ENV(
+    PYTEST_ADDOPTS=--service-config=taxi/uservices/userver/samples/chaotic_openapi_service/config/config.yaml
+)
 TEST_CWD(/)
 
 END()

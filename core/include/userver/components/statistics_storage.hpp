@@ -23,7 +23,7 @@ namespace components {
 ///
 /// ## Static configuration example:
 ///
-/// @snippet components/common_component_list_test.cpp  Sample statistics storage component config
+/// @snippet core/src/components/common_component_list_test.cpp  Sample statistics storage component config
 class StatisticsStorage final : public RawComponentBase {
 public:
     /// @ingroup userver_component_names

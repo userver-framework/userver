@@ -154,7 +154,14 @@ void TokenBucket::Update() {
     const auto update_tp = last_update_.load();
     const auto now = utils::datetime::MockSteadyNow();
     if (now < update_tp) {
-        last_update_ = now;  // overflow
+        // Clock went backwards: mock time rewind (testsuite often truncates
+        // mock_now to seconds) or a rare steady_clock overflow. Real time no
+        // longer advances MockSteadyNow, so without a refill the bucket stays
+        // empty forever.
+        auto tmp = update_tp;
+        if (last_update_.compare_exchange_strong(tmp, now)) {
+            tokens_ = max_size;
+        }
         return;
     }
     if (now == update_tp) {

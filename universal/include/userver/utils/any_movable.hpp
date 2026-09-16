@@ -18,7 +18,7 @@ namespace utils {
 
 /// @ingroup userver_universal userver_containers
 ///
-/// @brief Replacement for `std::any` that is not copyable. It allows to store
+/// @brief Replacement for `std::any` that is not copyable. It allows you to store
 /// non-copyable and even non-movable types.
 ///
 /// Usage example:
@@ -208,7 +208,7 @@ template <typename ValueType>
 // NOLINTNEXTLINE(readability-const-return-type)
 ValueType AnyCast(AnyMovable& operand) {
     using NonRef = std::remove_cv_t<std::remove_reference_t<ValueType>>;
-    auto* result = AnyCast<NonRef>(&operand);
+    auto* result = USERVER_NAMESPACE::utils::AnyCast<NonRef>(&operand);
     if (!result) {
         throw BadAnyMovableCast();
     }
@@ -220,7 +220,7 @@ template <typename ValueType>
 // NOLINTNEXTLINE(readability-const-return-type)
 ValueType AnyCast(const AnyMovable& operand) {
     using NonRef = std::remove_cv_t<std::remove_reference_t<ValueType>>;
-    auto* result = AnyCast<NonRef>(&operand);
+    auto* result = USERVER_NAMESPACE::utils::AnyCast<NonRef>(&operand);
     if (!result) {
         throw BadAnyMovableCast();
     }
@@ -230,7 +230,7 @@ ValueType AnyCast(const AnyMovable& operand) {
 template <typename ValueType>
 ValueType AnyCast(AnyMovable&& operand) {
     using NonRef = std::remove_cv_t<std::remove_reference_t<ValueType>>;
-    auto* result = AnyCast<NonRef>(&operand);
+    auto* result = USERVER_NAMESPACE::utils::AnyCast<NonRef>(&operand);
     if (!result) {
         throw BadAnyMovableCast();
     }

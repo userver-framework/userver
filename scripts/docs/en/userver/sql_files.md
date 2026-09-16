@@ -35,7 +35,7 @@ Each variable is statically initialized (has no dynamic|runtime initialization),
 initialization order fiasco when those variables are used.
 
 You may use it as usual by passing to @ref storages::postgres::Cluster::Execute() or @ref storages::clickhouse::Cluster
-for SQL files or @ref ydb::TableClient::ExecuteDataQuery() for YQL files:
+for SQL files or @ref ydb::TableClient::ExecuteDataQuery for YQL files:
 
 @code{.cpp}
 #include <samples_postgres_service/sql_queries.hpp>

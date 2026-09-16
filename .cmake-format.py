@@ -57,6 +57,7 @@ with section('parse'):  # noqa: F821
                 'EMBED_FILES': '*',
             },
         },
+        '_userver_detect_phdr_cache_default': {},
         '_userver_directory_install': {
             'kwargs': {
                 'COMPONENT': '*',
@@ -196,6 +197,7 @@ with section('parse'):  # noqa: F821
             'kwargs': {
                 'NAME': '*',
                 'VERSION': '*',
+                'TARGET_NAME': '*',
                 'DEBIAN_NAMES': '*',
                 'FORMULA_NAMES': '*',
                 'RPM_NAMES': '*',
@@ -309,6 +311,16 @@ with section('parse'):  # noqa: F821
                 'MIGRATIONS_DIR': '*',
                 'DUMP_DIR': '*',
                 'SQL_FILES': '*',
+            },
+        },
+        'userver_testsuite_register_database': {
+            'kwargs': {
+                'PIP_MODULE': '*',
+                'PIP_MODULE_DARWIN': '*',
+                'REQUIREMENTS_FILE': '*',
+                'FEATURE_VAR': '*',
+                'TARGET': '*',
+                'NAMES': '*',
             },
         },
     }

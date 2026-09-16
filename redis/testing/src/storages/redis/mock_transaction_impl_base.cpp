@@ -227,6 +227,18 @@ RequestMset MockTransactionImplBase::Mset(std::vector<std::pair<std::string, std
     AbortWithStacktrace("Redis method not mocked");
 }
 
+RequestMsetex MockTransactionImplBase::Msetex(std::vector<std::pair<std::string, std::string>> /*key_values*/
+) {
+    AbortWithStacktrace("Redis method not mocked");
+}
+
+RequestMsetex MockTransactionImplBase::Msetex(
+    std::vector<std::pair<std::string, std::string>> /*key_values*/,
+    MsetexOptions /*options*/
+) {
+    AbortWithStacktrace("Redis method not mocked");
+}
+
 RequestPersist MockTransactionImplBase::Persist(std::string /*key*/) { AbortWithStacktrace("Redis method not mocked"); }
 
 RequestPexpire MockTransactionImplBase::Pexpire(std::string /*key*/, std::chrono::milliseconds /*ttl*/) {

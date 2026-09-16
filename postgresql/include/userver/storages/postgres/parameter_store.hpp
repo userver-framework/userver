@@ -18,11 +18,11 @@ namespace storages::postgres {
 ///
 /// Typical use case for this container is to keep parameters around while the
 /// query is being constructed on the fly:
-/// @snippet storages/postgres/tests/interval_pgtest.cpp Parameters store sample
+/// @snippet postgresql/src/storages/postgres/tests/interval_pgtest.cpp Parameters store sample
 ///
 /// Note that storages::postgres::Cluster::Execute with explicitly provided
 /// arguments works slightly faster:
-/// @snippet storages/postgres/tests/landing_test.cpp Exec sample
+/// @snippet postgresql/src/storages/postgres/tests/landing_test.cpp Exec sample
 class ParameterStore {
 public:
     ParameterStore() = default;

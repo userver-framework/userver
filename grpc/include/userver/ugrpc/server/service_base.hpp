@@ -30,7 +30,7 @@ struct ServiceConfig final {
     Middlewares middlewares;
 
     /// map of "status_code": log_level items to override span log level for specific status codes
-    /// see @ref ugrpc::kStatusCodesMap for available statuses
+    /// see @ref ugrpc::StatusCodeFromString for available statuses
     boost::container::flat_map<grpc::StatusCode, logging::Level> status_codes_log_level;
 
     /// The @ref dynamic_config::Source used to serve RPCs for this service.

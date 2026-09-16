@@ -50,7 +50,10 @@ bit varying(n)    | utils::Flags                            |         |
 ^                 | std::array<bool, N>                     |         |
 uuid              | boost::uuids::uuid                      | +       |
 json              | formats::json::Value                    |         |
+^                 | formats::json::RawString                |         |
+^                 | storages::postgres::PlainJson           | +       |
 jsonb             | formats::json::Value                    | +       |
+^                 | formats::json::RawString                |         |
 int4range         | storages::postgres::IntegerRange        |         |
 ^                 | storages::postgres::BoundedIntegerRange |         |
 int8range         | storages::postgres::BigintRange         |         |
@@ -108,6 +111,21 @@ Otherwise, you'll get skewed times in database:
 There is no way to detect that issue on the userver side, as the implicit
 conversion is performed by the database itself and it provides no information
 that the conversion happened.
+
+
+@anchor pg_json
+## JSON and JSONB in PostgreSQL
+
+`formats::json::Value` is the default type for reading and writing JSON. Query
+parameters bind as **jsonb** by default; use `storages::postgres::PlainJson`
+to bind as **json**.
+
+`formats::json::RawString` forwards JSON from the database without parsing or
+re-serialization. Reading from both `json` and `jsonb` columns is supported.
+Query parameters bind as **jsonb**. To store the value in a `json` column or
+bind it as `json`, explicitly cast in SQL (e.g. `INSERT INTO t (data) VALUES ($1::json)`).
+
+@snippet postgresql/src/storages/postgres/tests/json_types_pgtest.cpp json_raw_string_as_set_of
 
 
 @anchor pg_arrays
@@ -189,7 +207,7 @@ Parsing and formatting is implemented for integral values
 and `std::bitset<N>`.
 
 Example of using the bit types from tests:
-@snippet storages/postgres/tests/bitstring_pgtest.cpp Bit string sample
+@snippet postgresql/src/storages/postgres/tests/bitstring_pgtest.cpp Bit string sample
 
 
 ## PostgreSQL types not covered above

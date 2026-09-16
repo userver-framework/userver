@@ -52,7 +52,7 @@ private:
     concurrent::LockedPtr<std::lock_guard<std::mutex>, TaskMap> LockForTask(const impl::TaskContext& task);
 
     // alive_tasks_ is a TaskMap sharded into task processor worker threads count shards.
-    // It allows to reduce contention on std::mutex on average.
+    // It allows reducing contention on std::mutex on average.
     std::vector<concurrent::Variable<TaskMap, std::mutex>> alive_tasks_;
 };
 

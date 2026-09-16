@@ -31,7 +31,21 @@ find_package(Iconv REQUIRED)
 
 find_package(libev REQUIRED)
 find_package(libnghttp2 REQUIRED)
-find_package(liburing REQUIRED)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    if(USERVER_CONAN)
+        find_package(liburing REQUIRED CONFIG)
+        # Conan exports liburing::liburing. CMake forbids ALIAS-of-ALIAS, so
+        # both convenience names must alias the real imported target.
+        if(NOT TARGET liburing::uring)
+            add_library(liburing::uring ALIAS liburing::liburing)
+        endif()
+        if(NOT TARGET uring::uring)
+            add_library(uring::uring ALIAS liburing::liburing)
+        endif()
+    else()
+        find_package(liburing REQUIRED)
+    endif()
+endif()
 
 if(USERVER_CONAN)
     find_package(c-ares REQUIRED)
@@ -201,8 +215,12 @@ endif()
 target_link_libraries(
     ${PROJECT_NAME}
     PUBLIC c-ares::cares
-    PRIVATE cryptopp::cryptopp libev::libev libnghttp2::nghttp2 liburing::uring
+    PRIVATE cryptopp::cryptopp libev::libev libnghttp2::nghttp2
 )
+
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_link_libraries(${PROJECT_NAME} PRIVATE liburing::uring)
+endif()
 
 if(USERVER_CONAN)
     target_link_libraries(${PROJECT_NAME} PUBLIC concurrentqueue::concurrentqueue)
@@ -315,10 +333,12 @@ _userver_directory_install(
 )
 _userver_directory_install(
     COMPONENT core
-    FILES "${USERVER_ROOT_DIR}/cmake/UserverTestsuite.cmake" "${USERVER_ROOT_DIR}/cmake/TargetIteration.cmake"
-          "${USERVER_ROOT_DIR}/cmake/install/userver-core-config.cmake"
+    FILES "${USERVER_ROOT_DIR}/cmake/UserverTestsuite.cmake"
+          "${USERVER_ROOT_DIR}/cmake/UserverTestsuiteDbRegistry.cmake"
+          "${USERVER_ROOT_DIR}/cmake/UserverTestsuiteVenv.cmake" "${USERVER_ROOT_DIR}/cmake/TargetIteration.cmake"
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver
 )
+_userver_install_component_config(core)
 _userver_directory_install(
     COMPONENT core
     FILES "${USERVER_ROOT_DIR}/cmake/modules/Findc-ares.cmake" "${USERVER_ROOT_DIR}/cmake/modules/Findlibnghttp2.cmake"

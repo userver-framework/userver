@@ -15,7 +15,7 @@ UTEST(BufferedFileSink, UnownedSinkLog) {
         fs::blocking::CFile file_stream{file_scope.GetPath(), fs::blocking::OpenFlag::kWrite};
 
         auto sink = logging::impl::BufferedUnownedFileSink(file_stream.GetNative());
-        EXPECT_NO_THROW(sink.Log({"message\n", logging::Level::kWarning}));
+        EXPECT_NO_THROW(sink.Log("message\n"));
     }
 
     EXPECT_EQ(test::ReadFromFile(file_scope.GetPath()), test::Messages("message"));

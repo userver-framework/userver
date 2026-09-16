@@ -2,7 +2,13 @@
 
 #include <chrono>
 #include <cstdio>
+#include <memory>
+#include <mutex>
 #include <stdexcept>
+#include <string>
+#include <string_view>
+#include <unordered_map>
+#include <vector>
 
 #include <fmt/chrono.h>
 #include <fmt/ranges.h>
@@ -26,7 +32,6 @@
 
 #include <logging/config.hpp>
 #include <logging/impl/tcp_socket_sink.hpp>
-#include <logging/tp_logger.hpp>
 #include <logging/tp_logger_utils.hpp>
 
 #ifndef ARCADIA_ROOT
@@ -105,6 +110,8 @@ void Logging::Init(const ComponentConfig& config, const ComponentContext& contex
         return;
     }
 
+    const auto shared_path_mutexes = logging::impl::MakeSharedPathMutexes(logger_configs);
+
     for (const auto& logger_config : logger_configs) {
         const bool is_default_logger = (logger_config.logger_name == "default");
 
@@ -115,7 +122,10 @@ void Logging::Init(const ComponentConfig& config, const ComponentContext& contex
             );
         }
 
-        auto logger = logging::impl::GetDefaultLoggerOrMakeTpLogger(logger_config);
+        auto logger =
+            is_default_logger
+                ? logging::impl::GetNonOwningDefaultLogger(logger_config)
+                : logging::impl::MakeTpLogger(logger_config, shared_path_mutexes);
 
         if (is_default_logger) {
             if (logger_config.queue_overflow_behavior == logging::QueueOverflowBehavior::kBlock) {
@@ -160,12 +170,10 @@ void Logging::Init(const ComponentConfig& config, const ComponentContext& contex
 
     auto* const statistics_storage = context.FindComponentOptional<components::StatisticsStorage>();
     if (statistics_storage) {
-        RegisterWriterScope(
-            context.Scopes(),
-            statistics_storage->GetStorage(),
-            "logger",
-            [this](utils::statistics::Writer& writer) { WriteStatistics(writer); }
-        );
+        statistics_storage->GetStorage()
+            .RegisterWriter(context.Scopes(), "logger", [this](utils::statistics::Writer& writer) {
+                WriteStatistics(writer);
+            });
     }
 }
 

@@ -55,9 +55,9 @@ public:
     /// at once if TLS is used. Consider using Send()+TryRecv() from the same coroutine instead.
     virtual void Recv(Message& message) = 0;
 
-    /// @brief Behaves in the same way as Recv(), but in case of first bytes of
-    /// message are not yet ready to receive gives the control up to a client.
-    /// @returns false in case of messages absence, otherwise true and behaves
+    /// @brief Behaves in the same way as Recv(), but if the first bytes of the
+    /// message are not yet ready to receive, yields control to the client.
+    /// @returns false if no message is available, otherwise true and behaves
     /// like Recv()
     virtual bool TryRecv(Message& message) = 0;
 

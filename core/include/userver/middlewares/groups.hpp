@@ -20,7 +20,7 @@ namespace middlewares::groups {
 /// @details There are:
 ///
 /// gRPC-server:
-/// * @ref ugrpc::client::middlewares::graceful_shutdown_headers::Component
+/// * @ref ugrpc::server::middlewares::graceful_shutdown_headers::Component
 struct PreCore final {
     static constexpr std::string_view kName = "pre-core";
     static inline const auto kDependency = middlewares::MiddlewareDependencyBuilder();

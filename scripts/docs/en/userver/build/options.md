@@ -29,6 +29,7 @@ userver is split into multiple CMake libraries.
 | `userver::sqlite`          | `USERVER_FEATURE_SQLITE`                          | `sqlite`              | @ref scripts/docs/en/userver/sqlite/sqlite_driver.md      |
 | `userver::odbc`            | `USERVER_FEATURE_ODBC`                            | `odbc`                | @ref scripts/docs/en/userver/odbc.md                      |
 | `userver::ydb`             | `USERVER_FEATURE_YDB`                             | `ydb`                 | @ref scripts/docs/en/userver/ydb.md                       |
+| `userver::sqs`             | `USERVER_FEATURE_SQS`                             | `sqs`                 | @ref scripts/docs/en/userver/libraries/sqs.md             |
 | `userver::otlp`            | `USERVER_FEATURE_OTLP`                            | `otlp`                | @ref opentelemetry "OpenTelemetry Protocol"               |
 | `userver::s3api`           | `USERVER_FEATURE_S3API`                           | `s3api`               | @ref scripts/docs/en/userver/libraries/s3api.md           |
 | `userver::multi_index_lru` | `USERVER_FEATURE_MULTI_INDEX_LRU`                 | `multi_index_lru`     | @ref scripts/docs/en/userver/libraries/multi_index_lru.md |
@@ -83,6 +84,7 @@ The exact format of setting cmake options varies depending on the method of buil
 | `USERVER_FEATURE_SQLITE`          | Provide asynchronous driver for SQLite                                            | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
 | `USERVER_FEATURE_ODBC`            | Provide asynchronous driver for ODBC                                              | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
 | `USERVER_FEATURE_YDB`             | Provide asynchronous driver for YDB                                               | `${USERVER_BUILD_ALL_COMPONENTS}` AND C++ standard >= 20    |
+| `USERVER_FEATURE_SQS`             | Provide SQS JSON client                                                           | `OFF`                                                       |
 | `USERVER_FEATURE_OTLP`            | Provide Logger for OpenTelemetry protocol                                         | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
 | `USERVER_FEATURE_GRPC_REFLECTION` | Provide reflection service for gRPC                                               | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
 | `USERVER_FEATURE_S3API`           | Provide S3 client for gRPC                                                        | `${USERVER_BUILD_ALL_COMPONENTS}`                           |
@@ -110,12 +112,12 @@ The exact format of setting cmake options varies depending on the method of buil
 | `USERVER_FEATURE_PATCH_LIBPQ`          | Apply patches to the libpq (add portals support), requires `libpq.a`                                              | `ON`                                        |
 | `USERVER_FEATURE_CRYPTOPP_BASE64_URL`  | Provide wrappers for Base64 URL decoding and encoding algorithms of crypto++                                      | `ON`                                        |
 | `USERVER_FEATURE_REDIS_TLS`            | SSL/TLS support for Redis driver. Use with `"secure_connection": true` secdist option for @ref components::Redis  | `OFF`                                       |
-| `USERVER_FEATURE_STACKTRACE`           | Allow capturing stacktraces using `boost::stacktrace`                                                             | `ON` except for macOS, `*BSD` and old Boost |
+| `USERVER_FEATURE_STACKTRACE`           | Allow capturing stacktraces using `boost::stacktrace`                                                             | `ON` except for macOS, `*BSD`, old Boost, or when `Boost::stacktrace_backtrace` is missing |
 | `USERVER_FEATURE_JEMALLOC`             | Use jemalloc memory allocator                                                                                     | `ON`                                        |
 | `USERVER_FEATURE_DWCAS`                | Require double-width compare-and-swap                                                                             | `ON`                                        |
 | `USERVER_FEATURE_GRPC_CHANNELZ`        | Enable Channelz for gRPC                                                                                          | `ON` for "sufficiently new" gRPC versions   |
 | `USERVER_MYSQL_ALLOW_BUGGY_LIBMARIADB` | Allows mysql driver to leak memory instead of aborting in some rare cases when linked against `libmariadb3<3.3.4` | `OFF`                                       |
-| `USERVER_DISABLE_PHDR_CACHE`           | Disable caching of `dl_phdr_info` items, which interferes with `dlopen`                                           | `OFF`                                       |
+| `USERVER_DISABLE_PHDR_CACHE`           | Disable caching of `dl_phdr_info` items, which interferes with `dlopen`. Does not disable `mlock` of the main binary | `ON` with sanitizers, or when GCC ≥ 12 (or Clang ≥ 15) **and** the runtime unwinder references `_dl_find_object`; otherwise `OFF` |
 | `USERVER_DISABLE_RSEQ_ACCELERATION`    | Disable rseq-based optimizations, which may not work depending on kernel/glibc/distro/etc version                 | `OFF` for x86 Linux, `ON` otherwise         |
 | `USERVER_FEATURE_UBOOST_CORO`          | Build with vendored version of Boost.context and Boost.coroutine2, is needed for sanitizers builds                | `OFF` for arm64 macOS, `ON` otherwise       |
 | `USERVER_FEATURE_STACK_USAGE_MONITOR`  | Enable coroutine stack usage monitor if available                                                                 | `ON`                                        |
@@ -140,6 +142,8 @@ The exact format of setting cmake options varies depending on the method of buil
 | `USERVER_DOWNLOAD_PACKAGE_PROTOBUF`      | Download and setup Protobuf if no Protobuf of matching version was found                | `${USERVER_DOWNLOAD_PACKAGE_GRPC}`   |
 | `USERVER_DOWNLOAD_PACKAGE_KAFKA`         | Download and setup librdkafka if no librdkafka matching version was found               | `${USERVER_DOWNLOAD_PACKAGES}`       |
 | `USERVER_DOWNLOAD_PACKAGE_YDBCPPSDK`     | Download and setup ydb-cpp-sdk if no ydb-cpp-sdk of matching version was found          | `${USERVER_DOWNLOAD_PACKAGES}`       |
+| `USERVER_YDBCPPSDK_VERSION`              | ydb-cpp-sdk version to find or download                                                  | `3.21.1`                             |
+| `USERVER_DOWNLOAD_PACKAGE_AWSSDK`        | Download and setup AWS SDK for C++ if no AWS SDK of matching version was found          | `${USERVER_DOWNLOAD_PACKAGES}`       |
 | `USERVER_DOWNLOAD_PACKAGE_C_ARES`        | Download and setup libc-ares if no libc-ares of matching version was found              | `${USERVER_DOWNLOAD_PACKAGES}`       |
 | `USERVER_DOWNLOAD_PACKAGE_LIBEV`         | Download and setup libev if no libev of matching version was found                      | `${USERVER_DOWNLOAD_PACKAGES}`       |
 | `USERVER_DOWNLOAD_PACKAGE_LIBNGHTTP2`    | Download and setup libnghttp2 if no libnghttp2 of matching version was found            | `${USERVER_DOWNLOAD_PACKAGES}`       |
@@ -170,7 +174,7 @@ The exact format of setting cmake options varies depending on the method of buil
 | Option                                 | Description                                                                                                | Default                                                     |
 |----------------------------------------|------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------|
 | `USERVER_CHECK_PACKAGE_VERSIONS`       | Check package versions                                                                                     | `ON`                                                        |
-| `USERVER_SANITIZE`                     | Build with sanitizers. Combine values via 'val1 val2'. Available: `addr`, `mem`, `ub`, and [thread][tsan]  | (no sanitizers)                                             |
+| `USERVER_SANITIZE`                     | Build with sanitizers. Combine values via 'val1 val2'. Available: `addr`, `mem`, `ub`, and [thread][tsan]. Not supported on macOS (silently disabled) | (no sanitizers)                                             |
 | `USERVER_SANITIZE_BLACKLIST`           | Path to file that is passed to the -fsanitize-blacklist option                                             | (no blacklist)                                              |
 | `USERVER_USE_LD`                       | Linker to use, e.g. `gold` or `lld`                                                                        | `lld` for Clang, system linker otherwise (typically GNU ld) |
 | `USERVER_USE_STATIC_LIBS`              | Tries to find all dependencies as static libraries                                                         | `ON` for `Clang` not older than `14` version                |

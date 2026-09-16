@@ -42,7 +42,7 @@ namespace engine {
 ///
 /// ## Example usage
 ///
-/// @snippet engine/single_use_event_test.cpp  Wait and destroy
+/// @snippet core/src/engine/single_use_event_test.cpp  Wait and destroy
 ///
 /// @see @ref scripts/docs/en/userver/synchronization.md
 class SingleUseEvent final : private impl::AwaitableBase {

@@ -164,8 +164,6 @@ private:
     bool testsuite_enabled_{false};
     AutostartDistlock enable_autostart_at_base_;
     dist_lock::DistLockSettings default_settings_;
-
-    concurrent::AsyncEventSubscriberScope subscription_token_;
 };
 
 }  // namespace storages::postgres

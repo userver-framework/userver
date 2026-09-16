@@ -47,7 +47,7 @@ struct ExecOptions final {
 /// @brief Creates a new OS subprocess and executes a command in it.
 class ProcessStarter {
 public:
-    /// @param task_processor will be used for executing asynchronous fork + exec.
+    /// @param task_processor will be used for executing asynchronous posix_spawn.
     /// `main-task-processor` is OK for this purpose.
     explicit ProcessStarter(TaskProcessor& task_processor);
 

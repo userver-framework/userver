@@ -9,7 +9,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
 
-ClientData::~ClientData() { config_subscription_.Unsubscribe(); }
+ClientData::~ClientData() {
+    // BeforeDestruction() call must be the first line of the destructor.
+    config_scopes_.BeforeDestruction();
+}
 
 grpc::CompletionQueue& ClientData::NextQueue() const { return internals_.completion_queues.NextQueue(); }
 
@@ -54,7 +57,7 @@ utils::FixedArray<std::unique_ptr<RetryLimiter>> ClientData::CreateRetryLimiters
 
     return utils::GenerateFixedArray(GetMethodsCount(metadata), [&](std::size_t method_id) {
         return factory->CreateRetryLimiter(RetryLimiterSettings{
-            GetMethodFullName(metadata, method_id),
+            GetMethodFullNameWithoutSlash(metadata, method_id),
             std::string(destination_prefix_in_metrics)
         });
     });

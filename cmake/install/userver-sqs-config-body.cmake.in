@@ -1,0 +1,5 @@
+if(USERVER_CONAN)
+    find_package(AWSSDK REQUIRED CONFIG COMPONENTS core sqs)
+else()
+    include("${USERVER_CMAKE_DIR}/SetupAwsSdkCpp.cmake")
+endif()

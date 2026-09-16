@@ -240,7 +240,7 @@ properties:
         defaultDescription: true
     disable_phdr_cache:
         type: boolean
-        description: whether to disable caching of phdr_info objects
+        description: whether to disable caching of phdr_info objects (does not affect mlock_debug_info)
         defaultDescription: false
     preheat_stacktrace_collector:
         type: boolean

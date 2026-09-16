@@ -6,6 +6,7 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
 
+#include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -181,6 +182,26 @@ void JsonObjectFromUnorderedStrongTypedef(benchmark::State& state) {
     }
 }
 BENCHMARK(JsonObjectFromUnorderedStrongTypedef)->RangeMultiplier(2)->Range(1, 1024);
+
+using StringDoubleMap = std::unordered_map<std::string, double>;
+
+formats::json::Value MakeDoubleObject(std::size_t size) {
+    formats::json::ValueBuilder builder{formats::json::Type::kObject};
+    for (std::size_t i = 0; i < size; ++i) {
+        builder.EmplaceNocheck(std::to_string(i), static_cast<double>(i));
+    }
+    return builder.ExtractValue();
+}
+
+void JsonObjectParseToUnorderedMap(benchmark::State& state) {
+    const auto json = MakeDoubleObject(state.range(0));
+
+    for ([[maybe_unused]] auto _ : state) {
+        benchmark::DoNotOptimize(json.As<StringDoubleMap>());
+    }
+    state.SetItemsProcessed(state.iterations() * state.range(0));
+}
+BENCHMARK(JsonObjectParseToUnorderedMap)->RangeMultiplier(4)->Range(1, 1024);
 
 void JsonObjectWideObjectOperatorEquals(benchmark::State& state) {
     const std::size_t size = state.range(0);

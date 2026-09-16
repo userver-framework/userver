@@ -1,0 +1,37 @@
+openapi: 3.0.0
+info:
+    title: Digest-protected API
+    version: '1.0'
+
+components:
+    # /// [security scheme]
+    securitySchemes:
+        myDigestScheme:
+            type: http
+            scheme: digest
+    # /// [security scheme]
+    schemas:
+        GreetingResponse:
+            type: object
+            additionalProperties: false
+            required:
+              - greeting
+            properties:
+                greeting:
+                    type: string
+
+paths:
+    /secure/secret:
+        get:
+            operationId: SecretGet
+            # /// [security requirement]
+            security:
+              - myDigestScheme: []
+            # /// [security requirement]
+            responses:
+                '200':
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/GreetingResponse'

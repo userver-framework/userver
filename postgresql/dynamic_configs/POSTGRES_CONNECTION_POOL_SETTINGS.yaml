@@ -64,15 +64,16 @@ schema:
                 connecting_limit:
                     type: integer
                     minimum: 0
-                    default: 0
                     description: |
-                        Limit for concurrent establishing connections number per PostgreSQL host (0 - unlimited).
+                        Limit for concurrent establishing connections number per PostgreSQL host.
+                        `0` means unlimited. If the field is omitted, the static configuration value is kept.
                 connecting_interval_ms:
                     type: integer
                     minimum: 0
                     x-usrv-cpp-type: std::size_t
                     description: |
-                        Minimum time in milliseconds between starting new connections to each PostgreSQL host (0 - unlimited).
+                        Minimum time in milliseconds between starting new connections to each PostgreSQL host.
+                        `0` means unlimited. If the field is omitted, the static configuration value is kept.
             required:
               - min_pool_size
               - max_pool_size

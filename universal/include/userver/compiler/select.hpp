@@ -21,7 +21,7 @@ namespace impl {
 /// generic x32/x64 values.
 ///
 /// ## Example usage:
-/// @snippet utils/widget_fast_pimpl_test.hpp  FastPimpl - header
+/// @snippet universal/src/utils/widget_fast_pimpl_test.hpp  FastPimpl - header
 template <typename T>
 class SelectValue final {
 public:

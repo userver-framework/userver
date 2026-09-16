@@ -10,6 +10,7 @@
 #include <userver/dynamic_config/source.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/storages/secdist/fwd.hpp>
+#include <userver/utils/resource_scopes_fwd.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 
 #include <userver/storages/mongo/pool.hpp>
@@ -56,6 +57,7 @@ public:
 
     /// @cond
     MultiMongo(
+        utils::ResourceScopeStorage& scopes,
         std::string name,
         storages::secdist::Secdist& secdist,
         storages::mongo::PoolConfig pool_config,
@@ -103,10 +105,6 @@ private:
     const storages::mongo::PoolConfig pool_config_;
     clients::dns::Resolver* dns_resolver_;
     rcu::Variable<PoolMap> pool_map_;
-
-    // Subscriptions (config_subscriber_ and secdist_subscriber_) must be the last fields.
-    concurrent::AsyncEventSubscriberScope config_subscriber_;
-    concurrent::AsyncEventSubscriberScope secdist_subscriber_;
 };
 
 }  // namespace storages::mongo

@@ -2,9 +2,19 @@ type: object
 description: Rocks client component
 additionalProperties: false
 properties:
-    task-processor:
-        type: string
-        description: name of the task processor to run the blocking file operations
     db-path:
         type: string
         description: path to database file
+    transaction-type:
+        type: string
+        enum:
+          - none
+          - pessimistic
+          - optimistic
+        defaultDescription: none
+        description: |-
+            Transaction backend. Determines how the database file is opened at
+            startup. This is a static decision — changing it requires recreating
+            the database. 'none' opens a plain DB with no transaction support.
+            'pessimistic' uses TransactionDB (lock-based).
+            'optimistic' uses OptimisticTransactionDB (OCC, conflicts at Commit).

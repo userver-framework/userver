@@ -41,7 +41,7 @@ For server responses:
   Client <- chaos.TcpGate <- Server
 ```
 
-Gates allows you to simulate various network conditions on `client`
+Gates allow you to simulate various network conditions on `client`
 and `server` parts independently. For example, if you wish to corrupt data from
 Client to Server, you should use `gate.to_server_corrupt_data()`. If you wish
 to corrupt data that goes from Server to Client, you should use

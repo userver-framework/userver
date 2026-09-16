@@ -39,8 +39,7 @@ protected:
     logging::impl::BaseSink& Sink() { return *sink_; }
 
     void LogSingleMessageAndCheck() {
-        EXPECT_NO_THROW(Sink().Log({"message\n", logging::Level::kWarning}));
-        EXPECT_NO_THROW(Sink().Flush());
+        EXPECT_NO_THROW(Sink().Log("message\n"));
         EXPECT_EQ(test::ReadFromFile(Filename()), test::Messages("message"));
     }
 
@@ -60,7 +59,7 @@ UTEST_P(FileSinks, TestCreateFileMultiDir) {
     EXPECT_EQ(test::ReadFromFile(subdir_filename), test::Messages());
 }
 
-UTEST_P(FileSinks, TestWriteInFile) { EXPECT_NO_THROW(Sink().Log({"message\n", logging::Level::kCritical})); }
+UTEST_P(FileSinks, TestWriteInFile) { EXPECT_NO_THROW(Sink().Log("message\n")); }
 
 UTEST_P(FileSinks, CheckPermissionsFile) {
     const auto stat = boost::filesystem::status(Filename());
@@ -161,23 +160,20 @@ UTEST_P(FileSinks, TestReopenMoveFile) {
     ASSERT_TRUE(Filename() != filename_2);
     fs::blocking::Rename(Filename(), filename_2);
 
-    EXPECT_NO_THROW(Sink().Log({"message 2\n", logging::Level::kInfo}));
-    EXPECT_NO_THROW(Sink().Flush());
+    EXPECT_NO_THROW(Sink().Log("message 2\n"));
     EXPECT_EQ(test::ReadFromFile(filename_2), test::Messages("message", "message 2"));
 
     EXPECT_NO_THROW(Sink().Reopen(logging::impl::ReopenMode::kAppend));
     EXPECT_EQ(test::ReadFromFile(Filename()), test::Messages());
 
-    EXPECT_NO_THROW(Sink().Log({"message\n", logging::Level::kWarning}));
-    EXPECT_NO_THROW(Sink().Flush());
+    EXPECT_NO_THROW(Sink().Log("message\n"));
     EXPECT_EQ(test::ReadFromFile(Filename()), test::Messages("message"));
 }
 
 UTEST_P(FileSinks, TestValidWriteMultiInFile) {
-    EXPECT_NO_THROW(Sink().Log({"message\n", logging::Level::kWarning}));
-    EXPECT_NO_THROW(Sink().Log({"message 2\n", logging::Level::kInfo}));
-    EXPECT_NO_THROW(Sink().Log({"message 3\n", logging::Level::kCritical}));
-    EXPECT_NO_THROW(Sink().Flush());
+    EXPECT_NO_THROW(Sink().Log("message\n"));
+    EXPECT_NO_THROW(Sink().Log("message 2\n"));
+    EXPECT_NO_THROW(Sink().Log("message 3\n"));
 
     EXPECT_EQ(test::ReadFromFile(Filename()), test::Messages("message", "message 2", "message 3"));
 }

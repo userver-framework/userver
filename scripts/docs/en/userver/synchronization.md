@@ -43,11 +43,57 @@ For a practical assessment of the effectiveness of a particular tool for your ca
 
 For parallel independent calculations the simplest, and most reliable way to transmit data is through the result of the engine::TaskWithResult execution.
 
-@snippet engine/task/task_with_result_test.cpp  Sample TaskWithResult usage
+@snippet core/src/engine/task/task_with_result_test.cpp  Sample TaskWithResult usage
+
+@warning @ref engine::Task and @ref engine::TaskWithResult support only a
+single concurrent awaiter. Do not await the same task from multiple coroutines
+simultaneously. Use @ref engine::SharedTaskWithResult for that use case, even
+when the callable returns `void`.
 
 A less convenient and more complicated way to solve the same problem is to create a data structure shared between tasks, where the tasks themselves will record the result. This requires protecting the data through atomic variables or engine::Mutex, as well as passing this data structure to the subtasks. In this case, engine::Future may be useful (see below).
 
 Note that when programming tasks, you need to take into account the lifetime of objects. If you pass a closure to a task with a reference to a variable, then you must ensure that the lifetime of the task is strictly less than the lifetime of the variable. This must also be guaranteed for the case of throwing an exception from any function used. If this cannot be guaranteed, then either pass the data to the closure via shared_ptr, or pass it over the copy.
+
+
+### engine::SharedTaskWithResult
+
+Use @ref engine::SharedTaskWithResult when multiple tasks need the result of a
+single asynchronous computation. Create it with @ref utils::SharedAsync.
+
+Multiple coroutines can safely await the same @ref engine::SharedTaskWithResult
+and call @ref engine::SharedTaskWithResult::Get "Get" concurrently, even when
+the coroutines run on different @ref engine::TaskProcessor threads. All copies
+of @ref engine::SharedTaskWithResult refer to the same underlying task.
+
+Unlike @ref engine::TaskWithResult::Get, calling
+@ref engine::SharedTaskWithResult::Get "SharedTaskWithResult::Get" does not
+invalidate the object. The result can therefore be retrieved multiple times.
+For non-`void` results, the method returns a `const` reference.
+
+@warning Use @ref engine::SharedTaskWithResult "SharedTaskWithResult<void>"
+instead of @ref engine::SharedTask even when no result is needed.
+@ref engine::SharedTask has no `Get`, so it can wait for completion but cannot
+report an exception thrown by the task payload.
+@ref engine::SharedTaskWithResult::Get "SharedTaskWithResult<void>::Get"
+rethrows such an exception.
+
+@snippet core/src/engine/task/shared_task_with_result_test.cpp Sample SharedTaskWithResult usage
+
+
+### concurrent::LazyValue
+
+Use @ref concurrent::LazyValue when a value should be computed only on first
+access and it is acceptable for the first caller to perform the computation.
+Its @ref concurrent::LazyValue::operator() "operator()" can be called
+concurrently from multiple coroutines. The callable is invoked exactly once;
+other callers wait for it to finish, then all callers receive a `const`
+reference to the cached result. If the callable throws, the exception is cached
+and rethrown on subsequent calls without retrying the computation.
+
+Unlike @ref engine::SharedTaskWithResult, @ref concurrent::LazyValue does not
+start the computation in the background before the first access. Use
+@ref engine::SharedTaskWithResult when the computation should start
+independently of the consumers.
 
 
 ### engine::Future
@@ -56,7 +102,11 @@ Sometimes calculations could not decomposed easily and a single engine::Task sho
 For such cases, you can use the engine::Promise and engine::Future. They provide a synchronized channel for transmitting the value between tasks.
 The interface and contracts of these classes are as close as possible to similar types from the standard library. The main differences are related to the support for the cancellation mechanism.
 
-@snippet engine/future_test.cpp  Sample engine::Future usage
+@warning @ref engine::Future supports only a single concurrent awaiter. To
+share a single asynchronously computed result among multiple tasks, use
+@ref engine::SharedTaskWithResult instead.
+
+@snippet core/src/engine/future_test.cpp  Sample engine::Future usage
 
 In this case, the main mechanism for transmitting data remains the return of values from TaskWithResult.
 
@@ -66,12 +116,12 @@ In this case, the main mechanism for transmitting data remains the return of val
 The most effective way to wait for one of the asynchronous operations is to use
 engine::WaitAny, engine::WaitAnyFor or engine::WaitAnyUntil:
 
-@snippet src/engine/wait_any_test.cpp sample waitany
+@snippet core/src/engine/wait_any_test.cpp sample waitany
 
 It works with different types of tasks and futures. For example could be used
 to get the ready HTTP requests ASAP:
 
-@snippet src/clients/http/client_wait_test.cpp HTTP Client - waitany
+@snippet core/src/clients/http/client_wait_test.cpp HTTP Client - waitany
 
 See also engine::WaitAllChecked and engine::GetAll for a way to wait for all
 of the asynchronous operations, rethrowing exceptions immediately.
@@ -82,7 +132,7 @@ of the asynchronous operations, rethrowing exceptions immediately.
 
 userver provides coroutine-friendly concurrent queues. Basic usage example:
 
-@snippet concurrent/mpsc_queue_test.cpp  Sample concurrent::MpscQueue usage
+@snippet core/src/concurrent/mpsc_queue_test.cpp  Sample concurrent::MpscQueue usage
 
 Consumers wait in for elements in @ref concurrent::Consumer::Pop "Pop". If you set max size for the queue @ref concurrent::GenericQueue::Create "at creation" or @ref concurrent::GenericQueue::SetSoftMaxSize "dynamically", then producers will also wait for non-fullness in @ref concurrent::Producer::Push "Push". There are also @ref concurrent::Producer::PushNoblock "PushNoblock" and @ref concurrent::Consumer::PopNoblock "PopNoblock" that can be called outside of coroutines and used for communicating between coroutine and non-coroutine (typically, driver) threads.
 
@@ -118,7 +168,7 @@ When all @ref concurrent::Producer "producers" of a queue are destroyed, and all
 
 This mechanic can be used to process all the remaining items during shutdown. Here is an example of how you can organize the queue processing correctly:
 
-@snippet concurrent/mpsc_queue_test.cpp  close sample
+@snippet core/src/concurrent/mpsc_queue_test.cpp  close sample
 
 #### Using queue closing mechanic to stop the producers
 
@@ -162,7 +212,7 @@ instead of `thread_local`.
 
 A classic mutex. It allows you to work with standard `std::unique_lock` and `std::lock_guard`.
 
-@snippet engine/mutex_test.cpp  Sample engine::Mutex usage
+@snippet core/src/engine/mutex_test.cpp  Sample engine::Mutex usage
 
 
 Prefer using `concurrent::Variable` instead of an `engine::Mutex`.
@@ -172,7 +222,7 @@ Prefer using `concurrent::Variable` instead of an `engine::Mutex`.
 
 A mutex that has readers and writers. It allows you to work with standard `std::unique_lock`,`std::lock_guard` and `std::shared_lock`.
 
-@snippet engine/shared_mutex_test.cpp  Sample engine::SharedMutex usage
+@snippet core/src/engine/shared_mutex_test.cpp  Sample engine::SharedMutex usage
 
 engine::SharedMutex is a much more complex and heavier synchronization primitive than a regular engine::Mutex. The fact of the existence of readers and writers does not mean that engine::SharedMutex will be faster than an  engine::Mutex. For example, if the critical section is small (2-3 integer variables), then the SharedMutex overhead can outweigh all the gain from concurrent reads. Therefore, you should not mindlessly use SharedMutex without benchmarks. Also, the "frequent reads, rare writes" scenario in most cases is solved much more efficiently through RCU - `rcu::Variable`.
 
@@ -185,10 +235,12 @@ To work with a mutex, we recommend using `concurrent::Variable`. This reduces th
 
 A synchronization primitive with readers and writers that allows readers to work with the old version of the data while the writer fills in the new version of the data. Multiple versions of the protected data can exist at any given time. The old version is deleted when the RCU realizes that no one else is working with it. This can happen when writing a new version is finished if there are no active readers. If at least one reader holds an old version of the data, it will not be deleted.
 
+Write transactions on the same @ref rcu::Variable are mutually exclusive. With @ref rcu::DefaultRcuTraits, @ref rcu::SyncRcuTraits, and @ref rcu::BlockingRcuTraits, concurrent writers proceed one by one. @ref rcu::Variable::StartWrite first acquires the writer mutex and then copies the latest committed value into its private transaction. The mutex is held until @ref rcu::WritablePtr::Commit or transaction destruction, and its acquisition order is unspecified. Readers don't acquire this mutex and can continue using older snapshots while a writer is active. This guarantee concerns the internal RCU snapshot: arguments passed to a write method are evaluated and may be copied before the method acquires the mutex. @ref rcu::ExclusiveRcuTraits requires the caller to guarantee that write operations on the same variable never overlap. If another writer starts while a write transaction is active, an invariant violation is reported instead of waiting: debug builds abort, while release builds throw @ref utils::InvariantError.
+
 
 RCU should be the "default" synchronization primitive for the case of frequent readers and rare writers. Very poorly suited for frequent updates, because a copy of the data is created on update.
 
-@snippet rcu/rcu_test.cpp  Sample rcu::Variable usage
+@snippet core/src/rcu/rcu_test.cpp  Sample rcu::Variable usage
 
 Comparison with SharedMutex is described in the `engine::SharedMutex` section of this page.
 
@@ -197,25 +249,68 @@ Comparison with SharedMutex is described in the `engine::SharedMutex` section of
 
 `rcu::Variable` based map. This primitive is used when you need a concurrent dictionary. Well suited for the case of rarely added keys. Poorly suited to the case of a frequently changing set of keys.
 
+Keyset changes are write transactions on the underlying @ref rcu::Variable, so they are serialized by one writer mutex for the whole map. Read-modify-write operations first acquire the mutex and then copy the latest committed map snapshot, including changes made by preceding writers. This is separate from constructing the mapped Value: @ref rcu::RcuMap::operator[] and @ref rcu::RcuMap::Emplace may construct a candidate before acquiring the writer mutex and discard it if another writer wins, whereas @ref rcu::RcuMap::TryEmplace performs its final presence check under the mutex and constructs the Value only if that check succeeds. Thus, two concurrent calls to @ref rcu::RcuMap::TryEmplace may both initially observe that a key is missing, but at most one can commit the insertion and return `inserted == true`; after that, the other call returns the existing value with `inserted == false`, unless another writer removes or replaces the key.
+
 Note that RcuMap does not protect the value of the dictionary, it only protects the dictionary itself. If the values are non-atomic types, then they must be protected separately (for example, using `concurrent::Variable`).
 
-@snippet rcu/rcu_map_test.cpp  Sample rcu::RcuMap usage
+@snippet core/src/rcu/rcu_map_test.cpp  Sample rcu::RcuMap usage
 
 ### concurrent::Variable
 
 A proxy class that combines user data and a synchronization primitive that protects that data. Its use can greatly reduce the number of bugs associated with incorrect use of the critical section - taking the wrong mutex, forgetting to take the mutex, taking SharedMutex in the wrong mode, etc.
 
-@snippet concurrent/variable_test.cpp  Sample concurrent::Variable usage
+@snippet core/src/concurrent/variable_test.cpp  Sample concurrent::Variable usage
 
 ### engine::Semaphore
 
 The semaphore is used to limit the number of users that run inside a critical section. For example, a semaphore can be used to limit the number of simultaneous concurrent attempts to connect to a resource.
 
-@snippet engine/semaphore_test.cpp  Sample engine::Semaphore usage
+@snippet core/src/engine/semaphore_test.cpp  Sample engine::Semaphore usage
 
 You don't need to use a semaphore if you need to limit the number of threads that perform CPU-heavy operations. For these purposes, create a separate TaskProcessor and perform other operations on it, it is cheaper in terms of synchronization.
 
 If you need a counter, but do not need to wait for the counter to change, then you need to use `std::atomic` instead of a semaphore.
+
+### engine::MultiConsumerEvent
+
+A single-producer, multiple-consumers event for notifying multiple tasks of a
+one-time condition without transmitting a value. Multiple coroutines can call
+@ref engine::MultiConsumerEvent::Wait "Wait" or
+@ref engine::MultiConsumerEvent::WaitUntil "WaitUntil" concurrently.
+@ref engine::MultiConsumerEvent::Send "Send" wakes all current waiters, and the
+event remains signaled forever, so future waiters return immediately. Waiting
+supports task cancellation and deadlines, and the event is compatible with
+@ref engine::WaitAny and friends.
+
+@ref engine::MultiConsumerEvent::Send "Send" must be called only once and can
+be called outside a coroutine. Unlike @ref engine::SingleConsumerEvent,
+@ref engine::MultiConsumerEvent cannot be reset or reused for another
+notification. Use @ref engine::SharedTaskWithResult or
+@ref concurrent::LazyValue if consumers need a value rather than a signal.
+
+@warning A consumer must not destroy the event after waking, because other
+consumers may still be using it. The producer should own the event and destroy
+it only after all consumers have finished.
+
+@anchor engine_pulse_event
+### engine::PulseEvent
+
+@ref engine::PulseEvent is a multiple-producers, multiple-consumers notification.
+
+@ref engine::PulseEvent::WaitUntil "WaitUntil" with a predicate waits for an
+atomic condition, the same way as @ref engine::SingleConsumerEvent::WaitUntil.
+
+**Example.** Tasks wait until a gate opens. The parent publishes `closed = false`
+and notifies everyone.
+
+Initialization:
+@snippet core/src/engine/pulse_event_test.cpp  CV init
+
+Notifier side:
+@snippet core/src/engine/pulse_event_test.cpp  CV notifier
+
+Waiter side:
+@snippet core/src/engine/pulse_event_test.cpp  CV waiter
 
 ### engine::SingleUseEvent
 
@@ -223,7 +318,7 @@ A single-producer, single-consumer event without task cancellation support. Must
 
 For multiple producers and cancellation support, use `engine::SingleConsumerEvent` instead.
 
-@snippet engine/single_use_event_test.cpp  Wait and destroy
+@snippet core/src/engine/single_use_event_test.cpp  Wait and destroy
 
 ### utils::SwappingSmart
 

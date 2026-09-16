@@ -199,6 +199,7 @@ and make sure that it builds and passes tests.
 ## Libraries
 * @ref scripts/docs/en/userver/libraries/easy.md
 * @ref scripts/docs/en/userver/libraries/s3api.md
+* @ref scripts/docs/en/userver/libraries/sqs.md
 * @ref scripts/docs/en/userver/libraries/grpc-reflection.md
 * @ref scripts/docs/en/userver/libraries/multi_index_lru.md
 

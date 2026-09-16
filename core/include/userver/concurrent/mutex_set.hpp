@@ -81,7 +81,7 @@ private:
 /// in runtime.
 ///
 /// Example:
-/// @snippet src/concurrent/mutex_set_test.cpp  Sample mutex set usage
+/// @snippet core/src/concurrent/mutex_set_test.cpp  Sample mutex set usage
 template <typename Key = std::string, typename Hash = std::hash<Key>, typename Equal = std::equal_to<Key>>
 class MutexSet final : Hash {
 public:

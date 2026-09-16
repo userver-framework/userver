@@ -174,7 +174,7 @@ struct EncoderStd final {
     // may intentionally wander to uninitialized memory. The loads never touch
     // memory outside "our" cache lines, though.
     USERVER_IMPL_DISABLE_ASAN inline static auto LoadBlock(const char* block) noexcept {
-        block = AssumeAligned<kBlockSize>(block);
+        block = impl::tskv::AssumeAligned<kBlockSize>(block);
         return *reinterpret_cast<const Block*>(block);
     }
 
@@ -205,7 +205,7 @@ struct EncoderSse2 {
     // may intentionally wander to uninitialized memory. The loads never touch
     // memory outside "our" cache lines, though.
     USERVER_IMPL_DISABLE_ASAN inline static Block LoadBlock(const char* block) noexcept {
-        block = AssumeAligned<kBlockSize>(block);
+        block = impl::tskv::AssumeAligned<kBlockSize>(block);
         return _mm_load_si128(reinterpret_cast<const Block*>(block));
     }
 
@@ -250,7 +250,7 @@ struct EncoderAvx2 final {
     // may intentionally wander to uninitialized memory. The loads never touch
     // memory outside "our" cache lines, though.
     USERVER_IMPL_DISABLE_ASAN inline static Block LoadBlock(const char* block) noexcept {
-        block = AssumeAligned<kBlockSize>(block);
+        block = impl::tskv::AssumeAligned<kBlockSize>(block);
         return _mm256_load_si256(reinterpret_cast<const Block*>(block));
     }
 
@@ -318,7 +318,7 @@ template <typename Encoder>
     std::string_view str
 ) {
     for (const char c : str) {
-        destination.current = encoding::EncodeTskv(destination.current, c, EncodeTskvMode::kValue);
+        destination.current = utils::encoding::EncodeTskv(destination.current, c, EncodeTskvMode::kValue);
     }
     return destination;
 }
@@ -332,14 +332,14 @@ template <typename Encoder>
 ) {
     UASSERT(offset < Encoder::kBlockSize);
     UASSERT(offset + count <= Encoder::kBlockSize);
-    block = AssumeAligned<Encoder::kBlockSize>(block);
+    block = impl::tskv::AssumeAligned<Encoder::kBlockSize>(block);
     const auto block_contents = Encoder::LoadBlock(block);
 
     if (__builtin_expect(Encoder::MayNeedValueEscaping(block_contents, offset, count), false)) {
-        destination = tskv::EncodeValueEach(destination, std::string_view(block + offset, count));
+        destination = impl::tskv::EncodeValueEach(destination, std::string_view(block + offset, count));
     } else {
         // happy path: the whole block does not need escaping
-        destination = tskv::AppendBlock(destination, block_contents, offset, count);
+        destination = impl::tskv::AppendBlock(destination, block_contents, offset, count);
     }
 
     return destination;
@@ -355,24 +355,24 @@ template <typename Encoder>
         return destination;
     }
 
-    const char* const first_block = AlignDown<Encoder::kBlockSize>(str.data());
+    const char* const first_block = impl::tskv::AlignDown<Encoder::kBlockSize>(str.data());
     const auto first_block_offset = static_cast<std::size_t>(str.data() - first_block);
     const auto first_block_count = std::min(Encoder::kBlockSize - first_block_offset, str.size());
 
-    destination = tskv::EncodeValueBlock(destination, first_block, first_block_offset, first_block_count);
+    destination = impl::tskv::EncodeValueBlock(destination, first_block, first_block_offset, first_block_count);
 
-    const char* const last_block = AlignDown<Encoder::kBlockSize>(str.data() + str.size());
+    const char* const last_block = impl::tskv::AlignDown<Encoder::kBlockSize>(str.data() + str.size());
 
     if (last_block != first_block) {
         for (const char* current_block = first_block + Encoder::kBlockSize; current_block < last_block;
              current_block += Encoder::kBlockSize)
         {
-            destination = tskv::EncodeValueBlock(destination, current_block, 0, Encoder::kBlockSize);
+            destination = impl::tskv::EncodeValueBlock(destination, current_block, 0, Encoder::kBlockSize);
         }
 
         const auto last_block_count = static_cast<std::size_t>(str.data() + str.size() - last_block);
         if (last_block_count != 0) {
-            destination = tskv::EncodeValueBlock(destination, last_block, 0, last_block_count);
+            destination = impl::tskv::EncodeValueBlock(destination, last_block, 0, last_block_count);
         }
     }
 
@@ -382,10 +382,10 @@ template <typename Encoder>
 template <typename Encoder>
 [[nodiscard]] BufferPtr<Encoder> DoEncode(BufferPtr<Encoder> destination, std::string_view str, EncodeTskvMode mode) {
     if (mode == EncodeTskvMode::kValue) {
-        return tskv::EncodeValue(destination, str);
+        return impl::tskv::EncodeValue(destination, str);
     } else {
         for (const char c : str) {
-            destination.current = encoding::EncodeTskv(destination.current, c, mode);
+            destination.current = utils::encoding::EncodeTskv(destination.current, c, mode);
         }
         return destination;
     }
@@ -396,10 +396,10 @@ inline std::size_t MaxEncodedSize(std::size_t source_size) noexcept { return sou
 template <typename Encoder, typename Container>
 void EncodeFullyBuffered(Container& container, std::string_view str, EncodeTskvMode mode) {
     const auto old_size = container.size();
-    container.resize(old_size + MaxEncodedSize(str.size()) + PaddingSize<Encoder>());
+    container.resize(old_size + impl::tskv::MaxEncodedSize(str.size()) + impl::tskv::PaddingSize<Encoder>());
     BufferPtr<Encoder> buffer_ptr{container.data() + old_size};
 
-    buffer_ptr = tskv::DoEncode(buffer_ptr, str, mode);
+    buffer_ptr = impl::tskv::DoEncode(buffer_ptr, str, mode);
 
     container.resize(buffer_ptr.current - container.data());
 }

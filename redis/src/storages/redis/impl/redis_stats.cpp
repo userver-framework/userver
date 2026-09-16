@@ -83,6 +83,7 @@ const std::string_view kCommandTypes[] = {
     "ltrim",
     "mget",
     "mset",
+    "msetex",
     "multi",
     "persist",
     "pexpire",

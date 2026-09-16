@@ -1,6 +1,5 @@
 #pragma once
 
-#include <chrono>
 #include <string>
 
 #include <userver/storages/postgres/io/chrono.hpp>

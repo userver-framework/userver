@@ -82,6 +82,115 @@ VfX6aXy77rZ1efGfLaWZD1yADp+bg033FkqpOf4PtZpixzbZyDmbh6hrvTuX/y4w
 VsNtFCX7LLH/W4mSvkvIws1tm8OtphLn3A==
 -----END CERTIFICATE-----)";
 
+// Certificate with iPAddress SAN 127.0.0.1, no DNS name:
+// openssl req -x509 -sha256 -nodes -newkey rsa:2048
+//    -days 3650 -subj '/CN=tlswrapper_ip_test'
+//    -addext 'subjectAltName=IP:127.0.0.1'
+//    -keyout testing_ip.key -out testing_ip.crt
+constexpr auto kIpKey = R"(-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCkQTWwH/Loc3vH
+JpeOVWFzT5PLvA6A0udof94hOHTTBlG/l9GVhoLRliTpH+i8b8zzUvnWbXn+wH8x
+iPydFt38vij4UQFs60cTqKvZ1YfIe0ppENcky9VSSoHjJPLbiuP5FDNTbwPKkFOy
+UR7m9M3GePg/tcCR8c/SPZccy4sFtFM3JyDkTXDV1xa+YOX3YMo+WspkLJrSPfBm
+SZVZWggk+NVU1kH3WAeNXq8XFg/dP+Cj5/+lxTV1HI8Uxux3II3VjZia+VwRvROw
+hEq3vWGueCz7aJ+908vDFUXfosgaywigc2vuVBQZxlxlijZp+Ed1yotAh0/IV8Yl
+nLianoRDAgMBAAECggEAAzh4GgT2WVJyWdxK2nKYH4+u4S7FxgbcnLLtIw+dUsnr
+7mrGpDzn8b4U6TFD+fXjOd4loeuxmaoilFEQSvA42AzOdtf3xC/0y9Dh1bqXF/o6
+4kZ/QWxxuVRWqaJ+1IkroSWhQACMPXuI+JUYmwSvyDV1AKLKrNHl9kRY4yqmhi0T
+3sl1oeMhoZmFEMhRS/hyoJuCuK+Hc0gsrOrvE/mBzh7oqk8o/d2bX0Q9jj8A4DK3
+N5zl57lFfjvHUYgDmePp+kDfLljg1RNivIT15gNEax+5J/EqpNIYf0GrMSXGQyxR
+4rm0Z+/T0dqTOV263H+plOaMypSH+OsCVngO1nhniQKBgQDnkpSeBOLOAvwthoR0
+5nwWKE2+kXblsbEtRV7mTxfcJGEMGzvOEwmcgNmDRJSuiOVZjBlbplFifttVN8SP
+1vn5pFBoplZARMbciA4L6EAXPtsVOVlnH/eAUlcGOHlyg9PnoPMrqz842m0zYw7e
+Y+sEzImRZQ/524XudBUQmqUQLwKBgQC1lMShrtp+0W4z3byM5k+RAxjvGJY0Ea7W
+b0npoSbsIFN+3zEBIosiKLAKDo8aKswzWrkFfh9Pkvz7cfX70qaBbqEcMGRRZoSy
+S8jW0nHZZjjUFt0ZimOAwv0dBmVq6rjCwdLm4gOSmFJfArCwob0oQG/awLTI/FzZ
+MSb4+lkULQKBgA7i8GTcIYxmyrlOfXNaYb2255CJn2AStTYY0InzqbAAMrDpi0Wr
+GaIS8miq3vf9WukPxY2Luo2fZBAtXph0lGtE8dpYXxEQmswQfv6q9nvIEaNipWmo
+t2trX6bJuJzw9o1cXmV/Q7gu6ng0NP984t3THEDZg1Znk0uJ8NS5bEUHAoGAbC4+
+2+j1qdqSYno3rGZGfymuQDyQuGLUnFLfYT6ulr1HoW3Nn1R6OhatksBLx5Y55Fqn
+orsaYmk7KX8iwy4kHzbO66F1Ev4WDreR51Knm5MIRmt8vIuzbnI9JH68C2/eNcIO
+KZn78OmpIYvTwtgJfyKswVJQIvIfSxK6mllkmt0CgYEA3uuDn3QcswKYmPFoeCZj
+/F4LP0z5Tuey6g92q5ywEuEh1BI+R9rGIJ6DFgWy4Hfx7HVurYnbqWo8ghcgV6PJ
+Equ5BmvItOQj6pmIAEBfZ5GaTCn31CuoivhfdQjGYsJaLRfUjj5AGTiE/AGt3/hq
+fVy5YWwystjUtJ+x75/Q1S4=
+-----END PRIVATE KEY-----)";
+
+constexpr auto kIpCert = R"(-----BEGIN CERTIFICATE-----
+MIIDLDCCAhSgAwIBAgIUI83BWf9UHgt8Q63C3CU5GlqMTLwwDQYJKoZIhvcNAQEL
+BQAwHTEbMBkGA1UEAwwSdGxzd3JhcHBlcl9pcF90ZXN0MB4XDTI2MDgxODE5MDY0
+MVoXDTM2MDgxNTE5MDY0MVowHTEbMBkGA1UEAwwSdGxzd3JhcHBlcl9pcF90ZXN0
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApEE1sB/y6HN7xyaXjlVh
+c0+Ty7wOgNLnaH/eITh00wZRv5fRlYaC0ZYk6R/ovG/M81L51m15/sB/MYj8nRbd
+/L4o+FEBbOtHE6ir2dWHyHtKaRDXJMvVUkqB4yTy24rj+RQzU28DypBTslEe5vTN
+xnj4P7XAkfHP0j2XHMuLBbRTNycg5E1w1dcWvmDl92DKPlrKZCya0j3wZkmVWVoI
+JPjVVNZB91gHjV6vFxYP3T/go+f/pcU1dRyPFMbsdyCN1Y2YmvlcEb0TsIRKt71h
+rngs+2ifvdPLwxVF36LIGssIoHNr7lQUGcZcZYo2afhHdcqLQIdPyFfGJZy4mp6E
+QwIDAQABo2QwYjAdBgNVHQ4EFgQUwtEHb/VNUSNfHGRdtz4t2XUqLAcwHwYDVR0j
+BBgwFoAUwtEHb/VNUSNfHGRdtz4t2XUqLAcwDwYDVR0TAQH/BAUwAwEB/zAPBgNV
+HREECDAGhwR/AAABMA0GCSqGSIb3DQEBCwUAA4IBAQAWXqRDJKtjxtlmc9EN5ZSn
+gi6wPiyemvkfx5gnj1BXzIMrryvFAKQhk/CqYLEhpL4r0Gw3qEIjGtLxMfVtElKW
+4Ho3Tp5GAxF3JFiHepwxeghvurFEUfdRtLfMWuKxU2c2IlGxdyOz0OILHe0hxzc/
+mIDQ8uJ4H/+vVlQP6xuGJygShI9/OjnXtiqKMWi0rQW97Ad3HK7lEJEgOmnk/B95
+d22pybozdK81o9NNzKKBItpfA9CEhtWyhrk55FGNLUw6D+TBNm06Di6ytXtFZa3g
+lgiIEycj6F2WyG4y8N2nsWm68CiDZ67PY2DtLYKc0tDhCZE0qe/2FX8L3erixzEJ
+-----END CERTIFICATE-----)";
+
+// Certificate with iPAddress SAN 127.0.0.2 (wrong IP for IpAddressMismatchIsRejected):
+// openssl req -x509 -sha256 -nodes -newkey rsa:2048
+//    -days 3650 -subj '/CN=tlswrapper_ip_other'
+//    -addext 'subjectAltName=IP:127.0.0.2'
+//    -keyout testing_ip_other.key -out testing_ip_other.crt
+constexpr auto kOtherIpKey = R"(-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC1nVzL/13Vcwz3
+NQQ54TXH9SPwZSNPdt5IenUDH3TIyphQ1qjWwn1VRmrelYOamWMqVzw2Y6sAnCR2
+YMm2YqbdiGEeeUoCIJgG33+I3ydo2mTPKcLcByLkSuCUvQsYmaM34rg58OP4dtwp
+KkAZ9Zcj6DzRP3OBpleBo+AxMGMiLOJ42hWFHBo1Wfls349vw+ELq+ckqRwfmUvf
+iKvbYSI9GPApf2Em4Wdkn8CkKjjiIIppnmxFiiXlT+M+Y7uq3tOSsgWKEGOnrRbd
+3hQl7dLj89DxhBseL9Uiuw6FVg0GcVrkOkGdFPiPwueNfn4M1rM7VyvLCVjPbwui
+12BPQxwlAgMBAAECggEAGA3068cRvlL7+WUh/2mLFkYrgaxfoieIFvjzNRvuO6cL
+yA86cyF0+L24K22JrgkZZ5MA1GJclJrZwH0e0mOcHtTwqhjd+sym3igti+sknOBq
+QD8TglGGp06cks68IMC+q8kBZhk4FKFnlSM1tMqAv36DyaI6Ega+adsS92jlhHHM
+1pPq3P/NSxmMBJ8XOjqP0kYm1CdgvPVrmt7wNUp7GvCwwgo0t/SbVoe/19VMPWzI
+9tloAQY8vTUw5Ta2cCaO/83WcahPwRwI9vKtRJy2oEcZqZ2bs6j+ibpaZv9VIzRk
+vyOhdYmUIdnGJF3U6X1htwJq1ubdo+9SVu55b7f6IQKBgQDcP4Xg0/2unHWwjEik
+HDhqbjq/SER8mY+HI3OZP1TU3iZ/2UvMhZ3dufk3botrAwdCWigwT1zKk6lgU3pd
+/z4GxlrWKrZ/Nb4sj+hJTrDS4pWfbs4ewqeTwpC4bI9hDOGyf20L6LGfbtL+W+yW
+O4z3z0sCvaZLTINQVneAmUo6IQKBgQDTGGpZTxbRQodHBY4KBpVoenNEzGyeZJi+
+t5GYDiA2aduZODfOGwUyf41rcSVxBBayYiHl64nBaG9smiidaiA/DD2E/RNR7hCf
+aNSsbuFrapULGROR7UjTk61BghuoNMQTBaBbR7kKTElAIA9ImB2zmFdIE3p35zXW
+aLMtuC/JhQKBgQCebpd4ZiY6/9Ns/0yVuLMgZFCgHnUdiD0Fwgu6tiLoyTC6kO4E
+ni00PT43kK57eP80zLPSJJSkKFoTr5j7msrchrz7CFik41z8ozw913w9Br8Io+Vj
+nTR8ht4hu/3bmy+TfjRL98Ql4sumKyvh2c6KyDO2MgQ4cD6ZgMmP2TTa4QKBgGkT
+aCyYb7UuNoQlwbQ/3rMo8KO4VgDp9hZI7dIQhfxP6R11nGGdlZKzZ0OqCIcfD+Uv
+b8ww2FtLjtsySTFCGFcJ0r2V873+kIuo9OP4NYDwhswFaXZj9LJMeht3lii+SzNk
+w5NsOjFkE7o1uyXZgj9Zf2jDOVzh3Cyj5TzGyBK5AoGAHaf9Y146TfXq5s7c+sDn
+frXKTZ0oyrMfutSii2Uo/fecxG7m+ZBrhoxQLt6MjjrpGERAsCJmLe66uzLRhVNY
+TcjK8iBoNXhBkjBqgJPrcw+sTrPBrlAptINweJ0yrMXyyIp3wSaohbmB73bcYyZt
+IjG31+U0AUQ8Cun7B8G7ZhQ=
+-----END PRIVATE KEY-----)";
+
+constexpr auto kOtherIpCert = R"(-----BEGIN CERTIFICATE-----
+MIIDLjCCAhagAwIBAgIUVxOyekbQ0lXE/3RygdK7L6xAWU8wDQYJKoZIhvcNAQEL
+BQAwHjEcMBoGA1UEAwwTdGxzd3JhcHBlcl9pcF9vdGhlcjAeFw0yNjA4MTgxOTE0
+MjhaFw0zNjA4MTUxOTE0MjhaMB4xHDAaBgNVBAMME3Rsc3dyYXBwZXJfaXBfb3Ro
+ZXIwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC1nVzL/13Vcwz3NQQ5
+4TXH9SPwZSNPdt5IenUDH3TIyphQ1qjWwn1VRmrelYOamWMqVzw2Y6sAnCR2YMm2
+YqbdiGEeeUoCIJgG33+I3ydo2mTPKcLcByLkSuCUvQsYmaM34rg58OP4dtwpKkAZ
+9Zcj6DzRP3OBpleBo+AxMGMiLOJ42hWFHBo1Wfls349vw+ELq+ckqRwfmUvfiKvb
+YSI9GPApf2Em4Wdkn8CkKjjiIIppnmxFiiXlT+M+Y7uq3tOSsgWKEGOnrRbd3hQl
+7dLj89DxhBseL9Uiuw6FVg0GcVrkOkGdFPiPwueNfn4M1rM7VyvLCVjPbwui12BP
+QxwlAgMBAAGjZDBiMB0GA1UdDgQWBBSC4KdSHqzu68gfUGNAFK0ug15vfDAfBgNV
+HSMEGDAWgBSC4KdSHqzu68gfUGNAFK0ug15vfDAPBgNVHRMBAf8EBTADAQH/MA8G
+A1UdEQQIMAaHBH8AAAIwDQYJKoZIhvcNAQELBQADggEBABjousHzLAwMVismF4nS
+9owuKnHwa+tmNXASnyeEnKYZIJs2RNUdUPlP1byulzkS+bM0jfGBAodrOpYYsexU
+T7ngozdO6wWG2KVsqnHIFtVHPt57VdFKSHDOB6a+VaXpbkNbMP5qUnn0WgZwrCPb
+/3CDcwhYjFwQhfuZOcWrbf7gV6718GfpYR07hBCyKlHFNKJYaSA4qfnh9pVKdW9X
+Ghdn1qWjXmgw5g5CrIn+oyWuhuaZAlJ05b/w4NYAZP6MvKaGjHnyyP/h8zMQPShU
+3jr5ILQRWpyw+hcwJQW3q/mwWUOr8AfFc75cYGd20ctVBxkmkUHuAX7AGj7aique
+D8w=
+-----END CERTIFICATE-----)";
+
 // Certificates for testing were generated via the following command:
 // openssl req -x509 -sha256 -nodes -newkey rsa:2048
 //    -days 3650 -subj '/CN=tlswrapper_test_other'
@@ -724,6 +833,115 @@ UTEST_MT(TlsWrapper, SmokeSameCtxTorture, 4) {
     }
 
     engine::GetAll(tasks);
+}
+
+UTEST(TlsWrapper, IpAddressAsServerName) {
+    const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+    TcpListener tcp_listener;
+    auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
+
+    auto server_task = engine::AsyncNoTracing(
+        [test_deadline](auto&& server) {
+            crypto::SslCtx ssl_ctx = crypto::SslCtx::CreateServerTlsContext(
+                crypto::LoadCertificatesChainFromString(kIpCert),
+                crypto::PrivateKey::LoadFromString(kIpKey)
+            );
+            auto tls_server =
+                io::TlsWrapper::StartTlsServer(std::forward<decltype(server)>(server), ssl_ctx, test_deadline);
+            char c = 0;
+            EXPECT_EQ(1, tls_server.RecvSome(&c, 1, test_deadline));
+            EXPECT_EQ('1', c);
+        },
+        std::move(server)
+    );
+
+    const auto client_cert = crypto::Certificate::LoadFromString(kIpCert);
+    const auto client_key = crypto::PrivateKey::LoadFromString(kIpKey);
+    // Trusted cert with iPAddress SAN 127.0.0.1 and no DNS name. set1_host(IP)
+    // would reject it; set1_ip_asc must accept it.
+    auto tls_client = io::TlsWrapper::StartTlsClient(
+        std::move(client),
+        "127.0.0.1",
+        client_cert,
+        client_key,
+        test_deadline,
+        {client_cert}
+    );
+    EXPECT_EQ(1, tls_client.SendAll("1", 1, test_deadline));
+    server_task.Get();
+}
+
+UTEST(TlsWrapper, IpAddressMismatchIsRejected) {
+    const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+    TcpListener tcp_listener;
+    auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
+
+    auto server_task = engine::AsyncNoTracing(
+        [test_deadline](auto&& server) {
+            crypto::SslCtx ssl_ctx = crypto::SslCtx::CreateServerTlsContext(
+                crypto::LoadCertificatesChainFromString(kOtherIpCert),
+                crypto::PrivateKey::LoadFromString(kOtherIpKey)
+            );
+            static_cast<
+                void>(io::TlsWrapper::StartTlsServer(std::forward<decltype(server)>(server), ssl_ctx, test_deadline));
+        },
+        std::move(server)
+    );
+
+    const auto client_cert = crypto::Certificate::LoadFromString(kOtherIpCert);
+    const auto client_key = crypto::PrivateKey::LoadFromString(kOtherIpKey);
+    // Trusted cert with iPAddress SAN 127.0.0.2: handshake must fail because
+    // the client verifies 127.0.0.1 (SSL_VERIFY_PEER + set1_ip_asc).
+    UEXPECT_THROW(
+        static_cast<void>(io::TlsWrapper::StartTlsClient(
+            std::move(client),
+            "127.0.0.1",
+            client_cert,
+            client_key,
+            test_deadline,
+            {client_cert}
+        )),
+        io::TlsException
+    );
+    UEXPECT_THROW(server_task.Get(), io::TlsException);
+}
+
+UTEST(TlsWrapper, HostnameMismatchIsRejected) {
+    const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+    TcpListener tcp_listener;
+    auto [server, client] = tcp_listener.MakeSocketPair(test_deadline);
+
+    auto server_task = engine::AsyncNoTracing(
+        [test_deadline](auto&& server) {
+            crypto::SslCtx ssl_ctx = crypto::SslCtx::CreateServerTlsContext(
+                crypto::LoadCertificatesChainFromString(cert),
+                crypto::PrivateKey::LoadFromString(key)
+            );
+            static_cast<
+                void>(io::TlsWrapper::StartTlsServer(std::forward<decltype(server)>(server), ssl_ctx, test_deadline));
+        },
+        std::move(server)
+    );
+
+    const auto client_cert = crypto::Certificate::LoadFromString(cert);
+    const auto client_key = crypto::PrivateKey::LoadFromString(key);
+    // Trusted cert with DNS CN tlswrapper_test: handshake must fail because
+    // the DNS name is checked (SSL_VERIFY_PEER + set1_host).
+    UEXPECT_THROW(
+        static_cast<void>(io::TlsWrapper::StartTlsClient(
+            std::move(client),
+            "clickhouse.example.com",
+            client_cert,
+            client_key,
+            test_deadline,
+            {client_cert}
+        )),
+        io::TlsException
+    );
+    UEXPECT_THROW(server_task.Get(), io::TlsException);
 }
 
 UTEST(TlsWrapper, InvalidSocket) {

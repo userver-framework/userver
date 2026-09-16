@@ -1,7 +1,10 @@
 #include <userver/utest/utest.hpp>
 
+#include <type_traits>
+
 #include <gmock/gmock.h>
 
+#include <clients/empty_openapi/client.hpp>
 #include <userver/server/http/http_request_builder.hpp>
 
 #include <handlers/simple/secretget/handler.hpp>
@@ -12,6 +15,10 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 namespace secretget = ::handlers::simple::secretget;
+
+static_assert(std::is_same_v<
+              std::remove_cv_t<decltype(::clients::empty_openapi::kDependency)>,
+              chaotic::openapi::server::dependencies::FactoryTag<::clients::empty_openapi::Client&>>);
 
 UTEST(HandlerHiddenArgs, ContainsHiddenParam) { EXPECT_TRUE(secretget::HiddenQueryArguments::Contains("token")); }
 

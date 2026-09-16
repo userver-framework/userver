@@ -54,14 +54,14 @@ class DestinationStatistics;
 
 /// @ingroup userver_clients
 ///
-/// @brief HTTP client that returns a HTTP request builder from
+/// @brief HTTP client that returns an HTTP request builder from
 /// CreateRequest().
 ///
 /// Usually retrieved from @ref components::HttpClientCore component.
 ///
 /// ## Example usage:
 ///
-/// @snippet clients/http/client_test.cpp  Sample HTTP Client usage
+/// @snippet core/src/clients/http/client_test.cpp  Sample HTTP Client usage
 class ClientCore final : public Client {
 public:
     /// @cond
@@ -71,7 +71,7 @@ public:
 
     ~ClientCore() override;
 
-    /// @brief Returns a HTTP request builder type with preset values of
+    /// @brief Returns an HTTP request builder type with preset values of
     /// User-Agent and some of the Testsuite stuff (if any).
     ///
     /// @note This method does not apply middlewares, they could be applied

@@ -9,9 +9,9 @@ if(NOT USERVER_OPENTELEMETRY_PROTO)
     include(DownloadUsingCPM)
     cpmaddpackage(
         NAME opentelemetry_proto
-        GITHUB_REPOSITORY open-telemetry/opentelemetry-proto
-        GIT_SHALLOW TRUE
         VERSION 1.3.2
+        URL https://github.com/open-telemetry/opentelemetry-proto/archive/v1.3.2.tar.gz
+        URL_HASH SHA256=c069c0d96137cf005d34411fa67dd3b6f1f8c64af1e7fb2fe0089a41c425acd7
         DOWNLOAD_ONLY
     )
 else()

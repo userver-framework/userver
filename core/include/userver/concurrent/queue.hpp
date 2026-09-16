@@ -31,7 +31,7 @@ enum class QueueMaxSizeMode {
     kNone,
 
     /// Supports dynamically changing max size; supports awaiting non-fullness
-    /// in producers. Slightly slower than @ref kNone.
+    /// in producers. Slightly slower than @ref concurrent::QueueMaxSizeMode::kNone.
     kDynamicSync,
 };
 

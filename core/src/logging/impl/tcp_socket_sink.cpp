@@ -37,8 +37,12 @@ void TcpSocketClient::Connect() {
     socket_.SetOption(IPPROTO_TCP, TCP_NODELAY, 1);
 }
 
-void TcpSocketClient::Send(const char* data, size_t n_bytes) {
-    auto send_result = socket_.SendAll(data, n_bytes, {});
+void TcpSocketClient::Send(std::span<const struct iovec> logs) {
+    auto send_result = socket_.SendAll(logs.data(), logs.size(), {});
+    std::size_t n_bytes = 0;
+    for (const auto& log : logs) {
+        n_bytes += log.iov_len;
+    }
     if (n_bytes != send_result) {
         throw std::runtime_error(
             fmt::format("Failed to send {} bytes because the remote closed the connection", n_bytes)
@@ -61,12 +65,12 @@ void TcpSocketSink::Close() {
     client_.Close();
 }
 
-void TcpSocketSink::Write(std::string_view log) {
+void TcpSocketSink::Write(std::span<const struct iovec> logs) {
     const std::lock_guard lock{mutex_};
     if (!client_.IsConnected()) {
         client_.Connect();
     }
-    client_.Send(log.data(), log.size());
+    client_.Send(logs);
 }
 
 }  // namespace logging::impl

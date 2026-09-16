@@ -16,19 +16,17 @@ public:
     explicit BufferedFileSink(const std::string& filename);
     ~BufferedFileSink() override;
 
-    void Reopen(ReopenMode mode) override;
+    void Write(std::span<const struct iovec> logs) final;
 
-    void Flush() override;
+    void Reopen(ReopenMode mode) override;
 
 protected:
     explicit BufferedFileSink(fs::blocking::CFile&& file);
 
-    void Write(std::string_view log) final;
-
     fs::blocking::CFile& GetFile();
 
 private:
-    std::string filename_;
+    const std::string filename_;
     fs::blocking::CFile file_;
 };
 
@@ -37,7 +35,6 @@ public:
     explicit BufferedUnownedFileSink(std::FILE* c_file);
     ~BufferedUnownedFileSink() override;
     void Reopen(ReopenMode) override;
-    void Flush() override;
 };
 
 }  // namespace logging::impl

@@ -34,9 +34,22 @@ _userver_directory_install(
     FILES "${USERVER_ROOT_DIR}/cmake/SetupYdbCppSDK.cmake"
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
 )
+_userver_directory_install(
+    COMPONENT ydb
+    FILES "${USERVER_ROOT_DIR}/cmake/ydb/FindgRPC.cmake"
+    DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver/ydb"
+)
 
 add_subdirectory(utest)
 
 if(USERVER_BUILD_TESTS)
+    add_test(
+        NAME userver-cmake-find-ydb-grpc
+        COMMAND
+            ${CMAKE_COMMAND} -S "${CMAKE_CURRENT_SOURCE_DIR}/tests/cmake/find_grpc" -B
+            "${CMAKE_CURRENT_BINARY_DIR}/tests/cmake/find_grpc"
+            "-DUSERVER_YDB_CMAKE_MODULE_DIR=${USERVER_ROOT_DIR}/cmake/ydb"
+    )
+
     add_subdirectory(functional_tests)
 endif()

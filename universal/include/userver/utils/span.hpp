@@ -62,6 +62,7 @@ span<std::byte> as_writable_bytes(span<T> s) noexcept {  // NOLINT(readability-i
 
 USERVER_NAMESPACE_END
 
+/// @cond
 // std::span must implement std::ranges::enable_borrowed_range, so <span> will pull it in.
 template <typename T>
 inline constexpr bool std::ranges::enable_borrowed_range<USERVER_NAMESPACE::utils::span<T>> = true;
@@ -69,3 +70,4 @@ inline constexpr bool std::ranges::enable_borrowed_range<USERVER_NAMESPACE::util
 // std::span must implement std::ranges::enable_view, so <span> will pull it in.
 template <typename T>
 inline constexpr bool std::ranges::enable_view<USERVER_NAMESPACE::utils::span<T>> = true;
+/// @endcond

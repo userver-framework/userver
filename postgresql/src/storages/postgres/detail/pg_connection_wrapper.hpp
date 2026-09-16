@@ -79,8 +79,8 @@ public:
     /// mode that might not be the case.
     bool IsSyncingPipeline() const;
 
-    /// Check if pipeline mode is currently enabled
-    bool IsPipelineActive() const;
+    /// Check that pipeline mode is currently enabled
+    void AssertPipelineActive() const;
 
     /// @brief Close the connection on a background task processor.
     [[nodiscard]] engine::Task Close();

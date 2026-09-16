@@ -17,8 +17,8 @@ include(DownloadUsingCPM)
 cpmaddpackage(
     NAME amqp-cpp
     VERSION 4.3.18
-    GITHUB_REPOSITORY CopernicaMarketingSoftware/AMQP-CPP
-    GIT_SHALLOW TRUE
+    URL https://github.com/CopernicaMarketingSoftware/AMQP-CPP/archive/v4.3.18.tar.gz
+    URL_HASH SHA256=cc2c1fc5da00a1778c2804306e06bdedc782a5f74762b9d9b442d3a498dd0c4f
 )
 
 target_compile_options(amqpcpp PRIVATE "-Wno-unused-parameter")

@@ -1,7 +1,7 @@
 import asyncio
 
 
-# /// [YDB topic writer service sample - functional test]
+# /// [topic writer functional test]
 async def test_topic_writer_cycle(service_client, ydb, ydb_topic_path, ydb_topic_consumer_name):
     message = 'hello topic writer'
 
@@ -58,4 +58,4 @@ async def test_topic_writer_cycle(service_client, ydb, ydb_topic_path, ydb_topic
             data = data()
         rendered.append(data)
     raise AssertionError(f'Message `{message}` was not found in topic messages: {rendered}')
-    # /// [YDB topic writer service sample - functional test]
+    # /// [topic writer functional test]

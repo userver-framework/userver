@@ -12,10 +12,14 @@
 
 namespace ns {
 
+constexpr inline USERVER_NAMESPACE::utils::StringLiteral k_ns_ObjectWithRawJsonFieldFieldNameinner_object = "inner_object";
+
+[[maybe_unused]] USERVER_NAMESPACE::chaotic::sax::Parser<USERVER_NAMESPACE::chaotic::Object<::ns::ObjectWithRawJsonField, USERVER_NAMESPACE::chaotic::UnknownFields::Forbid, USERVER_NAMESPACE::chaotic::Field<::ns::ObjectWithRawJsonField, USERVER_NAMESPACE::chaotic::Required<USERVER_NAMESPACE::formats::json::RawString>, &::ns::ObjectWithRawJsonField::inner_object, k_ns_ObjectWithRawJsonFieldFieldNameinner_object>>>
+    ParserOf(USERVER_NAMESPACE::chaotic::sax::Type<ObjectWithRawJsonField>);
+
 constexpr inline USERVER_NAMESPACE::utils::StringLiteral k_ns_WithAnyFieldFieldNamepayload = "payload";
 
 [[maybe_unused]] USERVER_NAMESPACE::chaotic::sax::Parser<USERVER_NAMESPACE::chaotic::Object<::ns::WithAnyField, USERVER_NAMESPACE::chaotic::UnknownFields::Forbid, USERVER_NAMESPACE::chaotic::Field<::ns::WithAnyField, USERVER_NAMESPACE::chaotic::Optional<USERVER_NAMESPACE::formats::json::Value>, &::ns::WithAnyField::payload, k_ns_WithAnyFieldFieldNamepayload>>>
     ParserOf(USERVER_NAMESPACE::chaotic::sax::Type<WithAnyField>);
 
 }  // namespace ns
-

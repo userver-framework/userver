@@ -155,3 +155,63 @@ async def test_otel_trace_sampling_disabled_ignores_trace_flags(service_client, 
         'Trace spans must be written when otel-trace-sampling-enabled is false, '
         f'even if trace-flags is 00, got: {written_spans}'
     )
+
+
+@pytest.mark.parametrize('task_mode', ['async', 'background', 'detached'])
+@pytest.mark.parametrize(
+    'sampling_enabled',
+    [
+        pytest.param(True, id='sampling-enabled'),
+        pytest.param(
+            False,
+            id='sampling-disabled',
+            marks=pytest.mark.uservice_oneshot(config_hooks=['disable_otel_trace_sampling']),
+        ),
+    ],
+)
+@pytest.mark.parametrize('trace_flags', ['00', '02', '01', '03', None, 'invalid'])
+async def test_otel_task_propagation(
+    service_client,
+    mockserver,
+    task_mode,
+    sampling_enabled,
+    trace_flags,
+):
+    trace_id = '80e1afed08e019fc1110464cfa66635c'
+    headers = {}
+    expected_flags = '01'
+    expected_tracestate = ''
+    if trace_flags is not None:
+        headers['traceparent'] = f'00-{trace_id}-7a085853722dc6d2-{trace_flags}'
+        headers['tracestate'] = 'vendor=abc,foo=bar'
+        if trace_flags != 'invalid':
+            expected_flags = trace_flags
+            expected_tracestate = headers['tracestate']
+
+    @mockserver.json_handler('/test-service/echo-no-body')
+    async def _handler(request):
+        outgoing = request.headers['traceparent'].split('-')
+        assert outgoing[3] == expected_flags
+        if expected_tracestate:
+            assert outgoing[1] == trace_id
+        assert request.headers.get('tracestate', '') == expected_tracestate
+        return mockserver.make_response()
+
+    async with service_client.capture_logs() as capture:
+        response = await service_client.get(
+            '/echo-no-body',
+            params={'task_mode': task_mode},
+            headers=headers,
+        )
+        assert response.status_code == 200
+
+    assert _handler.times_called == 1
+    handler_logs = capture.select(text='echo-no-body handler called')
+    assert len(handler_logs) == 1
+    actual_trace_id = handler_logs[0]['trace_id']
+    if expected_tracestate:
+        assert actual_trace_id == trace_id
+    trace_logs = capture.select(trace_id=actual_trace_id)
+    written_spans = [entry for entry in trace_logs if 'stopwatch_name' in entry]
+    expected_sampled = not sampling_enabled or bool(int(expected_flags, 16) & 1)
+    assert bool(written_spans) == expected_sampled

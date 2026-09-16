@@ -3,18 +3,30 @@
 /// @file userver/testsuite/dump_control.hpp
 /// @brief @copybrief testsuite::DumpControl
 
-#include <functional>
+#include <string>
 #include <unordered_map>
 #include <vector>
 
 #include <userver/components/component_fwd.hpp>
 #include <userver/concurrent/variable.hpp>
-#include <userver/dump/dumper.hpp>
 #include <userver/utils/not_null.hpp>
+#include <userver/utils/resource_scopes_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace testsuite {
+
+/// @brief Testsuite-facing API of a dump manager.
+class Dumper {
+public:
+    virtual ~Dumper();
+
+    virtual const std::string& Name() const = 0;
+
+    virtual void WriteDumpSyncDebug() = 0;
+
+    virtual void ReadDumpDebug() = 0;
+};
 
 /// @brief Dumper control interface for testsuite
 /// @details All methods are coro-safe.
@@ -30,31 +42,21 @@ public:
 
     void ReadCacheDumps(const std::vector<std::string>& dumper_names);
 
+    /// @brief Registers a dumper bound to @a scopes.
+    ///
+    /// The dumper is registered after construction of the object that owns
+    /// @a scopes and is unregistered just before that object is destroyed.
+    void RegisterScope(utils::ResourceScopeStorage& scopes, Dumper& dumper);
+
 private:
-    friend class DumperRegistrationHolder;
+    void RegisterDumper(Dumper& dumper);
 
-    void RegisterDumper(dump::Dumper& dumper);
+    void UnregisterDumper(Dumper& dumper) noexcept;
 
-    void UnregisterDumper(dump::Dumper& dumper);
-
-    dump::Dumper& FindDumper(const std::string& name) const;
+    Dumper& FindDumper(const std::string& name) const;
 
     PeriodicsMode periodics_mode_;
-    concurrent::Variable<std::unordered_map<std::string, utils::NotNull<dump::Dumper*>>> dumpers_;
-};
-
-/// RAII helper for testsuite registration
-class DumperRegistrationHolder final {
-public:
-    DumperRegistrationHolder(DumpControl&, dump::Dumper&);
-
-    DumperRegistrationHolder(DumperRegistrationHolder&&) = delete;
-    DumperRegistrationHolder& operator=(DumperRegistrationHolder&&) = delete;
-    ~DumperRegistrationHolder();
-
-private:
-    DumpControl& control_;
-    dump::Dumper& dumper_;
+    concurrent::Variable<std::unordered_map<std::string, utils::NotNull<Dumper*>>> dumpers_;
 };
 
 }  // namespace testsuite

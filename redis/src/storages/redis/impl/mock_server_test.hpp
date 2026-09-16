@@ -16,6 +16,7 @@
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/io/socket.hpp>
 #include <userver/engine/mutex.hpp>
+#include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/logging/log.hpp>
 
@@ -107,6 +108,11 @@ public:
     HandlerPtr RegisterNilReplyHandler(const std::string& command, const std::vector<std::string>& args_prefix);
     HandlerPtr RegisterPingHandler();
 
+    class PausedReply;
+    using PausedReplyPtr = std::shared_ptr<PausedReply>;
+
+    PausedReplyPtr RegisterPausedReplyHandler(const std::string& command, storages::redis::ReplyData reply_data);
+
     template <typename Rep, typename Period>
     HandlerPtr RegisterTimeoutHandler(const std::string& command, const std::chrono::duration<Rep, Period>& duration);
     template <typename Rep, typename Period>
@@ -197,6 +203,29 @@ private:
     size_t reply_count_{0};
 };
 
+class MockRedisServer::PausedReply {
+public:
+    explicit PausedReply(storages::redis::ReplyData reply_data);
+
+    template <typename Rep, typename Period>
+    bool WaitForRequest(const std::chrono::duration<Rep, Period>& duration);
+
+    template <typename Rep, typename Period>
+    bool WaitForReplySent(const std::chrono::duration<Rep, Period>& duration);
+
+    void ReleaseReply();
+
+private:
+    friend class MockRedisServer;
+
+    void OnRequest(MockRedisServerBase& server, ConnectionPtr connection);
+
+    storages::redis::ReplyData reply_data_;
+    engine::SingleConsumerEvent request_received_;
+    engine::SingleConsumerEvent reply_released_;
+    engine::SingleConsumerEvent reply_sent_;
+};
+
 struct MockRedisServer::CommonMasterSlaveInfo {
     std::string name;
     std::string ip;
@@ -234,6 +263,16 @@ bool MockRedisServer::WaitForFirstPingReply(const std::chrono::duration<Rep, Per
         throw std::runtime_error("Ping handler not found for server " + description_);
     }
     return ping_handler_->WaitForFirstReply(duration);
+}
+
+template <typename Rep, typename Period>
+bool MockRedisServer::PausedReply::WaitForRequest(const std::chrono::duration<Rep, Period>& duration) {
+    return request_received_.WaitForEventFor(duration);
+}
+
+template <typename Rep, typename Period>
+bool MockRedisServer::PausedReply::WaitForReplySent(const std::chrono::duration<Rep, Period>& duration) {
+    return reply_sent_.WaitForEventFor(duration);
 }
 
 USERVER_NAMESPACE_END

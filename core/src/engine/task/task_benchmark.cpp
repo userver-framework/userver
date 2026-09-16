@@ -11,7 +11,7 @@
 #include <engine/impl/standalone.hpp>
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_processor_config.hpp>
-#include <engine/task/work_stealing_queue/task_queue.hpp>
+#include <engine/task/work_stealing_queue/queue.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/sleep.hpp>
@@ -56,6 +56,11 @@ void EngineTaskYieldSingleThreadPullPin(benchmark::State& state) {
     EngineTaskYieldSingleThread<engine::TaskQueueType::kPullPinTaskQueue>(state);
 }
 BENCHMARK(EngineTaskYieldSingleThreadPullPin)->RangeMultiplier(2)->Range(1, 128);
+
+void EngineTaskYieldSingleThreadFast(benchmark::State& state) {
+    EngineTaskYieldSingleThread<engine::TaskQueueType::kWorkStealingTaskQueue>(state);
+}
+BENCHMARK(EngineTaskYieldSingleThreadFast)->RangeMultiplier(2)->Range(1, 128);
 
 void EngineTaskYieldSingleThreadTraced(benchmark::State& state) {
     engine::RunStandalone([&] {
@@ -106,6 +111,11 @@ void EngineTaskYieldMultipleThreadsPullPin(benchmark::State& state) {
     EngineTaskYieldMultipleThreads<engine::TaskQueueType::kPullPinTaskQueue>(state);
 }
 BENCHMARK(EngineTaskYieldMultipleThreadsPullPin)->RangeMultiplier(2)->Range(1, 32)->Arg(6)->Arg(12);
+
+void EngineTaskYieldMultipleThreadsFast(benchmark::State& state) {
+    EngineTaskYieldMultipleThreads<engine::TaskQueueType::kWorkStealingTaskQueue>(state);
+}
+BENCHMARK(EngineTaskYieldMultipleThreadsFast)->RangeMultiplier(2)->Range(1, 32)->Arg(6)->Arg(12);
 
 void EngineTaskYieldMultipleTaskProcessors(benchmark::State& state) {
     engine::RunStandalone([&] {

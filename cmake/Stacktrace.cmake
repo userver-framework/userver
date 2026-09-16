@@ -17,6 +17,13 @@ function(_make_stacktrace_target TARGET Boost_VERSION_STRING)
         set(USERVER_FEATURE_STACKTRACE OFF)
     endif()
 
+    if(USERVER_FEATURE_STACKTRACE AND NOT TARGET Boost::stacktrace_backtrace)
+        message(WARNING "Boost::stacktrace_backtrace was not found. " "Falling back to Boost::stacktrace_basic. "
+                        "Install Boost.Stacktrace with libbacktrace, " "or set -DUSERVER_FEATURE_STACKTRACE=OFF."
+        )
+        set(USERVER_FEATURE_STACKTRACE OFF)
+    endif()
+
     add_library(userver-stacktrace INTERFACE)
     if(WIN32)
         target_link_libraries("${TARGET}" INTERFACE Boost::stacktrace_windbg)

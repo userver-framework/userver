@@ -16,10 +16,9 @@ void CheckFileSink(benchmark::State& state) {
     auto sink = logging::impl::FileSink(filename);
     for ([[maybe_unused]] auto _ : state) {
         for (auto i = 0; i < kCountLogs; ++i) {
-            sink.Log({"message\n", logging::Level::kWarning});
+            sink.Log("message\n");
         }
     }
-    sink.Flush();
 }
 BENCHMARK(CheckFileSink);
 
@@ -29,10 +28,9 @@ void CheckBufferedFileSink(benchmark::State& state) {
     auto sink = logging::impl::BufferedFileSink(filename);
     for ([[maybe_unused]] auto _ : state) {
         for (auto i = 0; i < kCountLogs; ++i) {
-            sink.Log({"message\n", logging::Level::kWarning});
+            sink.Log("message\n");
         }
     }
-    sink.Flush();
 }
 BENCHMARK(CheckBufferedFileSink);
 

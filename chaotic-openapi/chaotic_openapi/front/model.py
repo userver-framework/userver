@@ -2,6 +2,7 @@ from collections.abc import Callable
 import dataclasses
 import enum
 from typing import Any
+from typing import Literal
 
 from chaotic.front import types
 from chaotic_openapi.front import base_model
@@ -76,12 +77,13 @@ class SecurityIn(str, enum.Enum):
 
 @dataclasses.dataclass
 class Security:
+    name: str
     description: str
 
 
 @dataclasses.dataclass
 class ApiKeySecurity(Security):
-    name: str
+    api_key_name: str
     in_: SecurityIn
 
 
@@ -119,13 +121,23 @@ class OAuthSecurity(Security):
 
 @dataclasses.dataclass
 class HttpSecurity(Security):
-    scheme: str
+    scheme: Literal['digest', 'bearer', 'basic']
     bearerFormat: str | None = None
 
 
 @dataclasses.dataclass
 class OpenIdConnectSecurity(Security):
     openIdConnectUrl: str
+
+
+@dataclasses.dataclass
+class SecurityAnd:
+    and_items: list[Security]
+
+
+@dataclasses.dataclass
+class SecurityOr:
+    or_items: list[SecurityAnd]
 
 
 @dataclasses.dataclass
@@ -137,7 +149,7 @@ class Operation:
     parameters: list[Parameter]
     requestBody: list[RequestBody] | Ref
     responses: dict[int, Response | Ref]
-    security: list[Security]
+    security_requirements: SecurityOr
 
     x_client_codegen: bool
     x_middlewares: base_model.XMiddlewares

@@ -31,7 +31,7 @@ class CollectionImpl;
 ///
 /// ## Example:
 ///
-/// @snippet storages/mongo/collection_mongotest.hpp  Sample Mongo usage
+/// @snippet mongo/src/storages/mongo/collection_mongotest.hpp  Sample Mongo usage
 class Collection {
 public:
     /// @cond

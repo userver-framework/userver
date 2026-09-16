@@ -6,6 +6,7 @@
 #include <userver/engine/shared_mutex.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/utils/function_ref.hpp>
+#include <userver/utils/resource_scopes_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -35,6 +36,20 @@ public:
     );
 
     concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
+        concurrent::FunctionId id,
+        std::string_view name,
+        DiffChannel::Function&& func
+    );
+
+    void DoUpdateAndListenScoped(
+        utils::ResourceScopeStorage& scopes,
+        concurrent::FunctionId id,
+        std::string_view name,
+        SnapshotChannel::Function&& func
+    );
+
+    void DoUpdateAndListenScoped(
+        utils::ResourceScopeStorage& scopes,
         concurrent::FunctionId id,
         std::string_view name,
         DiffChannel::Function&& func

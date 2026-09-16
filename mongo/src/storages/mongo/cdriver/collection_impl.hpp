@@ -1,26 +1,18 @@
 #pragma once
 
-#include <chrono>
 #include <memory>
-#include <optional>
 
-#include <storages/mongo/cdriver/pool_impl.hpp>
+#include <storages/mongo/cdriver/request_helpers.hpp>
+#include <storages/mongo/cdriver/wrappers.hpp>
 #include <storages/mongo/collection_impl.hpp>
 #include <storages/mongo/stats.hpp>
-#include <userver/dynamic_config/snapshot.hpp>
-#include <userver/tracing/span.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::impl::cdriver {
 
-struct RequestContext final {
-    std::shared_ptr<stats::OperationStatisticsItem> stats;
-    dynamic_config::Snapshot dynamic_config;
-    CDriverPoolImpl::BoundClientPtr client;
+struct CollectionRequestContext : RequestContextBase {
     CollectionPtr collection;
-    tracing::Span span;
-    std::optional<std::chrono::milliseconds> inherited_deadline;
 };
 
 class CDriverCollectionImpl : public CollectionImpl {
@@ -49,26 +41,13 @@ protected:
     ReadPrefsPtr MakeEffectiveReadPrefs(const ReadPrefsPtr& operation_read_prefs) const;
 
 private:
-    RequestContext MakeRequestContext(std::string&& span_name, const stats::OperationKey& stats_key) const;
+    CollectionRequestContext MakeRequestContext(std::string&& span_name, const stats::OperationKey& stats_key) const;
 
     template <typename Operation>
-    RequestContext MakeRequestContext(std::string&& span_name, const Operation& operation) const;
+    CollectionRequestContext MakeRequestContext(std::string&& span_name, const Operation& operation) const;
 
-    WriteResult ExecuteReplaceNative(const operations::ReplaceOne& operation, RequestContext& context);
-    WriteResult ExecuteUpdateNative(const operations::Update& operation, RequestContext& context);
-
-#ifdef MONGOC_BULKWRITE_H
-    std::optional<WriteResult> ExecuteReplaceBulkWrite(
-        const operations::ReplaceOne& operation,
-        RequestContext& context,
-        std::chrono::milliseconds effective
-    );
-    std::optional<WriteResult> ExecuteUpdateBulkWrite(
-        const operations::Update& operation,
-        RequestContext& context,
-        std::chrono::milliseconds effective
-    );
-#endif
+    WriteResult ExecuteReplaceNative(const operations::ReplaceOne& operation, CollectionRequestContext& context);
+    WriteResult ExecuteUpdateNative(const operations::Update& operation, CollectionRequestContext& context);
 
     cdriver::CDriverPoolImpl& GetPool() const;
 

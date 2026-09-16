@@ -16,7 +16,7 @@ namespace engine::io {
 
 /// @ingroup userver_base_classes
 ///
-/// @brief @ref RwBase adapter that returns a fixed byte prefix before reading
+/// @brief @ref engine::io::RwBase adapter that returns a fixed byte prefix before reading
 /// from the underlying stream.
 ///
 /// Useful when some already-received bytes must be replayed as if they were
@@ -28,7 +28,7 @@ namespace engine::io {
 /// if the underlying socket has no data yet); afterwards it follows the
 /// underlying stream.
 ///
-/// @snippet engine/io/prefixed_rw_test.cpp  Sample PrefixedRw
+/// @snippet core/src/engine/io/prefixed_rw_test.cpp  Sample PrefixedRw
 class PrefixedRw final : public RwBase {
 public:
     /// @param prefix Bytes returned by read APIs before touching @a underlying.

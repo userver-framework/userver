@@ -21,7 +21,7 @@ namespace server::handlers {
 ///
 /// ## Static configuration example:
 ///
-/// @snippet components/common_server_component_list_test.cpp  Sample handler dynamic debug log component config
+/// @snippet core/src/components/common_server_component_list_test.cpp  dynamic-debug-log config
 ///
 /// ## Scheme
 ///

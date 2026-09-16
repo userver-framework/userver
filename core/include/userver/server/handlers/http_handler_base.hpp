@@ -69,6 +69,7 @@ public:
 
     void ReportMalformedRequest(http::HttpRequest& request) const final;
 
+    /// @brief Returns the name of this handler (static config section name)
     virtual const std::string& HandlerName() const;
 
     const std::vector<http::HttpMethod>& GetAllowedMethods() const;
@@ -119,42 +120,45 @@ public:
     /// Override it if you need a custom streamed logic based on request and context.
     /// @note The default implementation returns the cached value of
     /// "response-body-streamed" value from static config.
-    virtual bool IsStreamed(const http::HttpRequest&, server::request::RequestContext&) const { return IsStreamed(); }
+    virtual bool IsStreamed(const http::HttpRequest&, server::request::RequestContext&) const {
+        return IsBodyStreamingEnabledInConfig();
+    }
 
 protected:
+    /// @brief Override in handlers that set response body directly (e.g. via
+    /// @ref server::request::ResponseBase::SetSharedData) or to implement a more complex streaming logic than the
+    /// IsStreamed overloading allows.
+    virtual void HandleMaybeStreamRequest(http::HttpRequest& request, request::RequestContext& context) const;
+
     [[noreturn]] void ThrowUnsupportedHttpMethod(const http::HttpRequest& request) const;
 
     /// Same as `HandleRequest`.
     virtual std::string HandleRequestThrow(const http::HttpRequest& request, request::RequestContext& context) const;
 
     /// The core method for HTTP request handling.
-    /// `request` arg contains HTTP headers, full body, etc.
-    /// The method should return response body.
+    /// `request` arg contains HTTP headers, full body, etc. The method should return response body.
     /// @note It is used only if IsStreamed() returned `false`.
     virtual std::string HandleRequest(http::HttpRequest& request, request::RequestContext& context) const;
 
-    /// The core method for HTTP request handling.
+    /// The core method for HTTP request handling, that is used only if @ref IsStreamed() returned `true`.
     /// `request` arg contains HTTP headers, full body, etc.
     /// The response body is passed in parts to `ResponseBodyStream`.
     /// Stream transmission is useful when:
     /// 1) The body size is unknown beforehand.
-    /// 2) The client may take advantage of early body transmission
-    ///    (e.g. a Web Browser may start rendering the HTML page
-    ///     or downloading dependant resources).
-    /// 3) The body size is huge and we want to have only a part of it
-    ///    in memory.
-    /// @note It is used only if IsStreamed() returned `true`.
+    /// 2) The client may take advantage of early body transmission (e.g. a Web Browser may start rendering the HTML
+    ///    page or downloading dependent resources).
+    /// 3) The body size is huge and we want to have only a part of it in memory.
+    ///
+    /// Example usage:
+    /// @snippet core/functional_tests/basic_chaos/httpclient_handlers.hpp HandleStreamRequest
+    ///
+    /// @see @ref scripts/docs/en/userver/http_server.md
     virtual void
     HandleStreamRequest(server::http::HttpRequest&, server::request::RequestContext&, server::http::ResponseBodyStream&)
         const;
 
-    /// If IsStreamed() returns `true`, call HandleStreamRequest()
-    /// for request handling, HandleRequest() is not called.
-    /// If it returns `false`, HandleRequest() is called instead,
-    /// and HandleStreamRequest() is not called.
-    /// @note The default implementation returns the cached value of
-    /// "response-body-streamed" value from static config.
-    virtual bool IsStreamed() const { return is_body_streamed_; }
+    /// @returns the cached value of "response-body-streamed" value from static config.
+    bool IsBodyStreamingEnabledInConfig() const noexcept { return is_body_streamed_; }
 
     /// Override it to show per HTTP-method statistics besides statistics for all
     /// methods
@@ -193,8 +197,6 @@ private:
     friend class middlewares::Auth;
 
     void HandleHttpRequest(http::HttpRequest& request, request::RequestContext& context) const;
-
-    void HandleRequestStream(http::HttpRequest& http_request, request::RequestContext& context) const;
 
     std::string GetRequestBodyForLoggingChecked(
         const http::HttpRequest& request,

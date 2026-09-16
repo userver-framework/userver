@@ -641,7 +641,13 @@ void Redis::RedisImpl::OnCommandTimeoutImpl(ev_timer* w) {
         UASSERT(w == &command.timer);
         reply_privdata_rev_.erase(&command.timer);
         command.invoke_disabled = true;
-        InvokeCommandError(command.meta, command.cmd, ReplyStatus::kTimeoutError, "Command timeout");
+
+        // Moving out command callback captures as the `command` is now logically
+        // complete and the late reply should not invoke its callbacks.
+        const auto redis_impl = command.redis_impl;
+        const auto command_name = command.cmd;
+        auto command_meta = std::move(command.meta);
+        redis_impl->InvokeCommandError(command_meta, command_name, ReplyStatus::kTimeoutError, "Command timeout");
     }
 }
 
@@ -822,6 +828,20 @@ void Redis::RedisImpl::SetState(State state) {
             << log_extra_ << "skipped SetState() from " << StateToString(state_) << " to " << StateToString(state);
         return;
     }
+
+    auto self = shared_from_this();  // prevents deleting this in Disconnect()
+
+    // ev_async_start resets w->sent. Start the watcher before publishing
+    // kConnected, otherwise AsyncCommand can lose its wakeup and the command
+    // stays in commands_ forever (TPS-74509).
+    if (state == State::kConnected) {
+        ev_thread_control_.RunInEvLoopBlocking([this] {
+            ev_thread_control_.Start(watch_command_);
+            ev_thread_control_.Start(ping_timer_);
+            ev_thread_control_.Start(info_timer_);
+        });
+    }
+
     LOG(StateChangeToLogLevel(state_, state)
     ) << log_extra_
       << "Redis server connection state for server=" << GetServer() << " (server_id=" << GetServerId().GetId()
@@ -831,14 +851,7 @@ void Redis::RedisImpl::SetState(State state) {
         statistics_.AccountStateChanged(state);
     }
 
-    auto self = shared_from_this();  // prevents deleting this in Disconnect()
-    if (state == State::kConnected) {
-        ev_thread_control_.RunInEvLoopBlocking([this] {
-            ev_thread_control_.Start(watch_command_);
-            ev_thread_control_.Start(ping_timer_);
-            ev_thread_control_.Start(info_timer_);
-        });
-    } else if (state == State::kInitError || state == State::kDisconnectError || state == State::kDisconnected) {
+    if (state == State::kInitError || state == State::kDisconnectError || state == State::kDisconnected) {
         Disconnect();
     }
 

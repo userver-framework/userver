@@ -457,6 +457,21 @@ HsetexReply Parse(ReplyData&& reply_data, const std::string& request_description
     }
 }
 
+MsetexReply Parse(ReplyData&& reply_data, const std::string& request_description, To<MsetexReply>) {
+    reply_data.ExpectInt(request_description);
+    const auto value = reply_data.GetInt();
+    switch (value) {
+        case 0:
+            return MsetexReply::kConditionNotMet;
+        case 1:
+            return MsetexReply::kKeysSet;
+        default:
+            throw ParseReplyException(
+                "Unexpected reply to '" + request_description + "' request: " + std::to_string(value)
+            );
+    }
+}
+
 KeyType Parse(ReplyData&& reply_data, const std::string& request_description, To<KeyType>) {
     reply_data.ExpectStatus(request_description);
     const auto& status = reply_data.GetStatus();

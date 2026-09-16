@@ -46,7 +46,7 @@ UTEST(HttpResponse, Smoke) {
 UTEST(HttpResponse, AccounterLifetimeIfNotSent) {
     auto accounter = std::make_unique<server::request::ResponseDataAccounter>();
     const auto request = server::http::HttpRequestBuilder{*accounter}.Build();
-    request->GetHttpResponse().SetSendFailed(std::chrono::steady_clock::now());
+    request->GetHttpResponse().SetSendFailed();
     accounter.reset();
     // Now we just should not crash
 }

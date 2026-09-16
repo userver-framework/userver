@@ -5,6 +5,7 @@
 #include <string_view>
 
 #include <userver/hostinfo/blocking/get_hostname.hpp>
+#include <userver/storages/postgres/exceptions.hpp>
 #include <userver/storages/postgres/postgres_fwd.hpp>
 #include <userver/storages/postgres/query.hpp>
 #include <userver/testsuite/tasks.hpp>
@@ -43,7 +44,13 @@ public:
 private:
     Transaction BeginTransaction();
 
+    void TrySetupTable();
+
     void UpdateConnectionsLimit(std::size_t max_connections, std::size_t instances);
+
+    void ReduceConnlimitOnError(const Error& e);
+
+    void KeepConnlimitOnUnwritableMaster(const Error& e);
 
     void DoStep(
         std::string_view hostname,
@@ -56,6 +63,7 @@ private:
     std::function<void()> on_new_connlimit_;
     testsuite::TestsuiteTasks& testsuite_tasks_;
     int steps_with_errors_{0};
+    bool table_is_ready_{false};
     USERVER_NAMESPACE::utils::PeriodicTask periodic_;
     int shard_number_;
     std::size_t min_fallback_connections_;

@@ -12,4 +12,9 @@ async def _asyncio_loop():
 
 @pytest.fixture(name='asyncio_socket')
 async def _asyncio_socket(asyncio_loop):
+    """
+    Factory for asyncio-compatible sockets used in TCP tests.
+
+    @ingroup userver_testsuite_fixtures
+    """
     return asyncio_socket.AsyncioSocketsFactory(loop=asyncio_loop)

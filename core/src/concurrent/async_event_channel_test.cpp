@@ -1,18 +1,16 @@
 #include <userver/utest/utest.hpp>
 
 #include <atomic>
-#include <stdexcept>
+#include <utility>
+#include <vector>
 
-#include <userver/components/component_base.hpp>
-#include <userver/components/component_context.hpp>
-#include <userver/components/minimal_component_list.hpp>
-#include <userver/components/run.hpp>
+#include <gmock/gmock.h>
+
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
-
-#include <components/component_list_test.hpp>
+#include <userver/utils/resource_scopes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -110,19 +108,27 @@ UTEST(AsyncEventChannel, OnListenerRemoval) {
 
     int value1{0};
     int value2{0};
+    int value3{0};
     Subscriber s1(value1);
     auto sub1 = channel.AddListener(&s1, "", &Subscriber::OnEvent);
     {
         Subscriber s2(value2);
         auto sub2 = channel.AddListener(&s2, "", &Subscriber::OnEvent);
+        sub2.Unsubscribe();
+    }
+    {
+        Subscriber s3(value3);
+        auto sub3 = channel.AddListener(&s3, "", &Subscriber::OnEvent);
     }
 
     EXPECT_EQ(value1, 0);
     if constexpr (concurrent::impl::kCheckSubscriptionUB) {
         EXPECT_EQ(value2, 1);
-        EXPECT_EQ(counter, 1);
+        EXPECT_EQ(value3, 1);
+        EXPECT_EQ(counter, 2);
     } else {
         EXPECT_EQ(value2, 0);
+        EXPECT_EQ(value3, 0);
         EXPECT_EQ(counter, 0);
     }
 }
@@ -143,6 +149,18 @@ public:
 
     concurrent::AsyncEventSource<WeatherKind>& GetSource() { return channel_; }
 
+    template <typename Class>
+    void UpdateAndListen(
+        utils::ResourceScopeStorage& scopes,
+        Class* obj,
+        std::string_view name,
+        void (Class::*func)(WeatherKind)
+    ) {
+        channel_.DoUpdateAndListenScoped(scopes, obj, name, func, [this, obj, func] { (obj->*func)(Get()); });
+    }
+
+    /// @overload
+    /// @deprecated Use the overload that takes @ref utils::ResourceScopeStorage.
     template <typename Class>
     concurrent::AsyncEventSubscriberScope UpdateAndListen(
         Class* obj,
@@ -166,11 +184,9 @@ enum class CoatKind { kJacket, kRaincoat };
 
 class CoatStorage final {
 public:
-    explicit CoatStorage(WeatherStorage& weather_storage) {
-        weather_subscriber_ = weather_storage.UpdateAndListen(this, "coats", &CoatStorage::OnWeatherUpdate);
+    explicit CoatStorage(utils::ResourceScopeStorage& scopes, WeatherStorage& weather_storage) {
+        weather_storage.UpdateAndListen(scopes, this, "coats", &CoatStorage::OnWeatherUpdate);
     }
-
-    ~CoatStorage() { weather_subscriber_.Unsubscribe(); }
 
     CoatKind Get() const { return value_.load(); }
 
@@ -180,15 +196,14 @@ private:
     static CoatKind ComputeCoat(WeatherKind weather);
 
     std::atomic<CoatKind> value_{};
-    concurrent::AsyncEventSubscriberScope weather_subscriber_;
 };
 
 UTEST(AsyncEventChannel, UpdateAndListenSample) {
     WeatherStorage weather_storage(WeatherKind::kSunny);
-    const CoatStorage coat_storage(weather_storage);
-    EXPECT_EQ(coat_storage.Get(), CoatKind::kJacket);
+    const utils::WithResourceScopes<CoatStorage> coat_storage(std::in_place, weather_storage);
+    EXPECT_EQ(coat_storage->Get(), CoatKind::kJacket);
     weather_storage.Set(WeatherKind::kRainy);
-    EXPECT_EQ(coat_storage.Get(), CoatKind::kRaincoat);
+    EXPECT_EQ(coat_storage->Get(), CoatKind::kRaincoat);
 }
 /// [AsyncEventChannel sample]
 
@@ -232,6 +247,7 @@ UTEST(AsyncEventChannel, OnListenerRemovalSample) {
     {
         concurrent::AsyncEventSubscriberScope sub =
             channel.AddListener(concurrent::FunctionId(&sub), "sub", [&value](int new_value) { value = new_value; });
+        sub.Unsubscribe();
     }
 
     if constexpr (concurrent::impl::kCheckSubscriptionUB) {
@@ -308,6 +324,91 @@ UTEST(AsyncEventChannel, SendEventConcurrent2) {
     EXPECT_EQ(calls.load(), 3);
 }
 
+UTEST(AsyncEventChannel, DoUpdateAndListenScopedCallsUpdaterOnceWithoutEvents) {
+    concurrent::AsyncEventChannel<int> channel("channel");
+    utils::ResourceScopeStorage scopes;
+
+    std::vector<int> updates;
+    auto updater = [&] { updates.push_back(1); };
+
+    channel.DoUpdateAndListenScoped(
+        scopes,
+        concurrent::FunctionId(&updates),
+        "sub",
+        [&](int value) { updates.push_back(value); },
+        updater
+    );
+    EXPECT_THAT(updates, ::testing::ElementsAre(1));
+
+    scopes.AfterConstruction();
+    // When the subscription is really activated, no extra notifications should be delivered,
+    // because there are no new events.
+    EXPECT_THAT(updates, ::testing::ElementsAre(1));
+
+    channel.SendEvent(2);
+    EXPECT_THAT(updates, ::testing::ElementsAre(1, 2));
+
+    scopes.BeforeDestruction();
+    channel.SendEvent(3);
+    EXPECT_THAT(updates, ::testing::ElementsAre(1, 2));
+}
+
+UTEST(AsyncEventChannel, DoUpdateAndListenScopedReplaysUpdaterIfEventSkipped) {
+    concurrent::AsyncEventChannel<int> channel("channel");
+    utils::ResourceScopeStorage scopes;
+
+    std::atomic<int> current{0};
+    std::vector<int> updates;
+    auto updater = [&] { updates.push_back(current.load()); };
+
+    channel.DoUpdateAndListenScoped(
+        scopes,
+        concurrent::FunctionId(&updates),
+        "sub",
+        [&](int value) { updates.push_back(value); },
+        updater
+    );
+    EXPECT_THAT(updates, ::testing::ElementsAre(0));
+
+    current = 5;
+    channel.SendEvent(5);
+    // After scope registration and before AfterConstruction, it would be unsafe to deliver the update.
+    EXPECT_THAT(updates, ::testing::ElementsAre(0));
+
+    scopes.AfterConstruction();
+    EXPECT_THAT(updates, ::testing::ElementsAre(0, 5));
+
+    current = 7;
+    channel.SendEvent(7);
+    EXPECT_THAT(updates, ::testing::ElementsAre(0, 5, 7));
+
+    scopes.BeforeDestruction();
+}
+
+UTEST(AsyncEventChannel, DoUpdateAndListenScopedUnsubscribesIfConstructionFailed) {
+    std::vector<int> updates;
+    {
+        concurrent::AsyncEventChannel<int> channel("channel");
+        utils::ResourceScopeStorage scopes;
+
+        channel.DoUpdateAndListenScoped(
+            scopes,
+            concurrent::FunctionId(&updates),
+            "sub",
+            [&](int value) { updates.push_back(value); },
+            [&] { updates.push_back(1); }
+        );
+        EXPECT_THAT(updates, ::testing::ElementsAre(1));
+
+        channel.SendEvent(2);
+        EXPECT_THAT(updates, ::testing::ElementsAre(1));
+
+        scopes.BeforeDestruction();
+        channel.SendEvent(3);
+    }
+    EXPECT_THAT(updates, ::testing::ElementsAre(1));
+}
+
 UTEST(AsyncEventChannel, UnsibscribeWhileHandling) {
     engine::SingleConsumerEvent started;
     std::atomic<bool> unsubscribe_has_finished{false};
@@ -327,80 +428,5 @@ UTEST(AsyncEventChannel, UnsibscribeWhileHandling) {
 }
 
 }  // namespace
-
-namespace {
-
-const auto kComponentConfig = tests::MergeYaml(tests::kMinimalStaticConfig, R"(
-components_manager:
-    components:
-        component: {}
-)");
-
-}  // namespace
-
-TEST_F(ComponentList, SubscriberScope)
-{
-    static int value = 0;
-    static concurrent::AsyncEventChannel<int> channel{"test-channel"};
-
-    // Reset static variables for --gtest_repeat.
-    value = 0;
-
-    class ComponentWithSubscription final : public components::ComponentBase {
-    public:
-        ComponentWithSubscription(
-            const components::ComponentConfig& config,
-            const components::ComponentContext& context
-        )
-            : components::ComponentBase(config, context)
-        {
-            channel.AddListener(this, "component", &ComponentWithSubscription::OnEvent).Scoped(context);
-            channel.SendEvent(1);
-        }
-
-    private:
-        void OnEvent(int x) { value = x; }
-    };
-
-    auto component_list = components::MinimalComponentList().Append<ComponentWithSubscription>("component");
-    components::RunOnce(components::InMemoryConfig{kComponentConfig}, component_list);
-
-    EXPECT_EQ(value, 1);
-}
-
-TEST_F(ComponentList, SubscriberScopeCtrThrow)
-{
-    static int value = 0;
-    static concurrent::AsyncEventChannel<int> channel{"test-channel-throw"};
-
-    // Reset static variables for --gtest_repeat.
-    value = 0;
-
-    class ComponentWithSubscription final : public components::ComponentBase {
-    public:
-        ComponentWithSubscription(
-            const components::ComponentConfig& config,
-            const components::ComponentContext& context
-        )
-            : components::ComponentBase(config, context)
-        {
-            channel.AddListener(this, "component", &ComponentWithSubscription::OnEvent).Scoped(context);
-            channel.SendEvent(1);
-            throw std::runtime_error("1");
-        }
-
-    private:
-        void OnEvent(int x) { value = x; }
-    };
-
-    auto component_list = components::MinimalComponentList().Append<ComponentWithSubscription>("component");
-    UEXPECT_THROW_MSG(
-        components::RunOnce(components::InMemoryConfig{kComponentConfig}, component_list),
-        std::runtime_error,
-        "1"
-    );
-
-    EXPECT_EQ(value, 1);
-}
 
 USERVER_NAMESPACE_END

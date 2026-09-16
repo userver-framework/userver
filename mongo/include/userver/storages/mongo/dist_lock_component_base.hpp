@@ -38,6 +38,7 @@ namespace storages::mongo {
 ///            lockname: master
 ///            mongo-timeout: 1s
 ///            lock-ttl: 10s
+///            autostart: true
 /// ```
 ///
 /// ## Static options of storages::mongo::DistLockComponentBase :
@@ -98,13 +99,15 @@ protected:
     /// Override this function to provide custom testsuite handler.
     virtual void DoWorkTestsuite() { DoWork(); }
 
-    /// Must be called in constructor
+    /// Must be called in constructor. Does not start the worker if static
+    /// configuration option `autostart` is `false`.
     void Start();
 
     /// Must be called in destructor
     void Stop();
 
 private:
+    const bool autostart_;
     std::unique_ptr<dist_lock::DistLockedWorker> worker_;
     bool testsuite_enabled_{false};
 };

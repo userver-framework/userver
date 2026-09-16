@@ -179,7 +179,7 @@ public:
 private:
     void ProcessCall() {
         const auto& metadata = method_data_.service_data.metadata;
-        std::string_view call_name = GetMethodFullName(metadata, method_data_.method_id);
+        std::string_view call_name = GetMethodFullNameWithoutSlash(metadata, method_data_.method_id);
         std::string_view service_name = metadata.service_full_name;
         std::string_view method_name = GetMethodName(metadata, method_data_.method_id);
         if constexpr (std::is_same_v<typename CallTraits::Context, GenericCallContext>) {

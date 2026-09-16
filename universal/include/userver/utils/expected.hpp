@@ -116,7 +116,8 @@ public:
     const S& value() const& USERVER_IMPL_LIFETIME_BOUND;
 
     /// @brief Unchecked access to the contained value.
-    /// @warning The behavior is undefined if `*this` does not contain a value; use @ref value for checked access.
+    /// @warning The behavior is undefined if `*this` does not contain a value; use @ref expected::value() for checked
+    /// access.
     S& operator*() & noexcept USERVER_IMPL_LIFETIME_BOUND;
 
     /// @overload
@@ -126,7 +127,8 @@ public:
     const S& operator*() const& noexcept USERVER_IMPL_LIFETIME_BOUND;
 
     /// @brief Unchecked access to the members of the contained value.
-    /// @warning The behavior is undefined if `*this` does not contain a value; use @ref value for checked access.
+    /// @warning The behavior is undefined if `*this` does not contain a value; use @ref expected::value() for checked
+    /// access.
     S* operator->() noexcept USERVER_IMPL_LIFETIME_BOUND;
 
     /// @overload

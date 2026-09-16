@@ -70,6 +70,7 @@ public:
     constexpr AtomicFlags()
         : AtomicFlags(Enum::kNone)
     {}
+    constexpr explicit AtomicFlags(Flags<Enum>);
     constexpr explicit AtomicFlags(Enum);
     constexpr AtomicFlags(std::initializer_list<Enum>);
 
@@ -218,13 +219,18 @@ constexpr bool operator!=(Enum lhs, Flags<Enum> rhs) {
 }
 
 template <typename Enum>
+constexpr AtomicFlags<Enum>::AtomicFlags(Flags<Enum> flags)
+    : value_(flags.GetValue())
+{}
+
+template <typename Enum>
 constexpr AtomicFlags<Enum>::AtomicFlags(Enum value)
-    : value_(static_cast<ValueType>(value))
+    : AtomicFlags(Flags<Enum>(value))
 {}
 
 template <typename Enum>
 constexpr AtomicFlags<Enum>::AtomicFlags(std::initializer_list<Enum> values)
-    : AtomicFlags(Enum(values))
+    : AtomicFlags(Flags<Enum>(values))
 {}
 
 template <typename Enum>

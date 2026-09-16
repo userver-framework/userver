@@ -29,6 +29,11 @@ GlobalInitializer::GlobalInitializer() {
 
 GlobalInitializer::~GlobalInitializer() { mongoc_cleanup(); }
 
+// mongoc_init uses pthread_once and calls getenv. getenv is not ASan-safe on a
+// ucontext coroutine stack (including the blocking task processor). Initialize
+// before main, while other threads do not exist yet.
+const GlobalInitializer kInitMongoc;
+
 void GlobalInitializer::LogInitWarningsOnce() {
     static std::once_flag once_flag;
     std::call_once(once_flag, [] {

@@ -56,18 +56,17 @@ void WriteWithFakeFormat(impl::MetricsSource& source)
     }
 }
 
-// During the `Entry::Unregister` call or destruction of `Entry`, all variables
-// used by the writer or extender callback must be valid (must not be
-// destroyed). A common cause of crashes in this place: there is no manual call
-// to `Unregister`. In this case, check the lifetime of the data used by the
-// callback.
+// During `Entry::Unregister` or automatic teardown (Entry destructor /
+// ResourceScopeStorage::BeforeDestruction), all variables used by the writer
+// or extender callback must still be valid. A common cause of crashes here:
+// the holder is removed after the captured data is destroyed.
 [[maybe_unused]] void CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnregistering(impl::MetricsSource& source
 ) noexcept {
     try {
         WriteWithFakeFormat(source);
     } catch (const std::exception& e) {
         utils::AbortWithStacktrace(fmt::format(
-            "Unhandled exception while statistics holder {} is unregistering automatically: {}",
+            "Unhandled exception while statistics holder {} is unregistering: {}",
             source.prefix_path,
             e.what()
         ));
@@ -138,6 +137,20 @@ void Storage::VisitMetrics(BaseFormatBuilder& out, const Request& request) const
 
 void Storage::StopRegisteringExtenders() { may_register_extenders_ = false; }
 
+void Storage::RegisterWriter(
+    ResourceScopeStorage& scopes,
+    std::string common_prefix,
+    WriterFunc func,
+    std::vector<Label> add_labels
+) {
+    scopes.Register([&storage = *this,
+                     common_prefix = std::move(common_prefix),
+                     func = std::move(func),
+                     add_labels = std::move(add_labels)] {
+        return storage.RegisterWriter(std::move(common_prefix), std::move(func), std::move(add_labels));
+    });
+}
+
 Entry Storage::RegisterWriter(std::string prefix, WriterFunc func, std::vector<Label> add_labels) {
     return DoRegisterExtender(impl::MetricsSource{std::move(prefix), {}, {}, std::move(func), std::move(add_labels)});
 }
@@ -166,10 +179,8 @@ void Storage::UnregisterExtender(impl::StorageIterator iterator, [[maybe_unused]
     noexcept {
     const std::lock_guard lock(mutex_);
     if constexpr (impl::kCheckSubscriptionUB) {
-        if (kind == impl::UnregisteringKind::kAutomatic) {
-            // fake writer and extender call to check
-            CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnregistering(*iterator);
-        }
+        // fake writer and extender call to check
+        CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnregistering(*iterator);
     }
     metrics_sources_.erase(iterator);
 }
@@ -180,15 +191,8 @@ void RegisterWriterScope(
     std::string common_prefix,
     WriterFunc func,
     std::vector<Label> add_labels
-)
-{
-    scope_storage
-        .Register([&storage,
-                   common_prefix = std::move(common_prefix),
-                   func = std::move(func),
-                   add_labels = std::move(add_labels)] {
-            return storage.RegisterWriter(common_prefix, std::move(func), std::move(add_labels));
-        });
+) {
+    storage.RegisterWriter(scope_storage, std::move(common_prefix), std::move(func), std::move(add_labels));
 }
 
 }  // namespace utils::statistics

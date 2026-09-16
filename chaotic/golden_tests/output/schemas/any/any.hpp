@@ -4,6 +4,7 @@
 
 #include <optional>
 #include <userver/chaotic/object.hpp>
+#include <userver/formats/json/raw_string.hpp>
 #include <userver/formats/json/value.hpp>
 
 #include <userver/chaotic/type_bundle_hpp.hpp>
@@ -11,6 +12,44 @@
 namespace ns {
 
 using AnyValue = USERVER_NAMESPACE::formats::json::Value;
+
+struct ObjectWithRawJsonField {
+    USERVER_NAMESPACE::formats::json::RawString inner_object{};
+};
+
+bool operator==(const ObjectWithRawJsonField & lhs,const ObjectWithRawJsonField & rhs);
+
+USERVER_NAMESPACE::logging::LogHelper& operator<<(USERVER_NAMESPACE::logging::LogHelper& lh, const ObjectWithRawJsonField& value);
+
+ObjectWithRawJsonField Parse(
+    USERVER_NAMESPACE::formats::json::Value json,
+    USERVER_NAMESPACE::formats::parse::To<ObjectWithRawJsonField>);
+
+ObjectWithRawJsonField Parse(
+    USERVER_NAMESPACE::formats::yaml::Value json,
+    USERVER_NAMESPACE::formats::parse::To<ObjectWithRawJsonField>);
+
+ObjectWithRawJsonField Parse(
+    USERVER_NAMESPACE::yaml_config::Value json,
+    USERVER_NAMESPACE::formats::parse::To<ObjectWithRawJsonField>);
+
+ObjectWithRawJsonField FromJsonString(
+    std::string_view json,
+    USERVER_NAMESPACE::formats::parse::To<ObjectWithRawJsonField>);
+
+std::string ToJsonString(const ObjectWithRawJsonField& value);
+
+USERVER_NAMESPACE::formats::json::Value Serialize(
+    const ObjectWithRawJsonField& value,
+    USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
+
+void WriteToStream(
+    const ObjectWithRawJsonField& value,
+    USERVER_NAMESPACE::formats::json::StringBuilder& sw,
+    bool hide_brackets = false,
+    std::string_view hide_field_name = {});
+
+using RawJsonStringObject = USERVER_NAMESPACE::formats::json::RawString;
 
 struct WithAnyField {
     std::optional<USERVER_NAMESPACE::formats::json::Value> payload{};
@@ -49,4 +88,3 @@ void WriteToStream(
     std::string_view hide_field_name = {});
 
 }  // namespace ns
-

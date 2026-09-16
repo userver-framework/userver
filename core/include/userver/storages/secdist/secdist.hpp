@@ -20,6 +20,7 @@
 #include <userver/rcu/rcu.hpp>
 #include <userver/storages/secdist/provider.hpp>
 #include <userver/utils/fast_pimpl.hpp>
+#include <userver/utils/resource_scopes_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -57,15 +58,15 @@ enum class SecdistFormat {
 ///
 /// Declare a type that would work with the credentials:
 ///
-/// @snippet storages/secdist/secdist_test.cpp UserPasswords
+/// @snippet core/src/storages/secdist/secdist_test.cpp UserPasswords
 ///
 /// Fill the components::Secdist `config` from file with the secure data:
 ///
-/// @snippet storages/secdist/secdist_test.cpp Secdist Usage Sample - json
+/// @snippet core/src/storages/secdist/secdist_test.cpp Secdist Usage Sample - json
 ///
 /// Retrieve SecdistConfig from components::Secdist and get the type from it:
 ///
-/// @snippet storages/secdist/secdist_test.cpp Secdist Usage Sample - SecdistConfig
+/// @snippet core/src/storages/secdist/secdist_test.cpp Secdist Usage Sample - SecdistConfig
 ///
 /// Json with secure data can also be loaded from environment variable with name defined in `environment_secrets_key`.
 /// Sample variable value: `{"user-passwords":{"username":"password","another username":"another password"}}`.
@@ -124,6 +125,24 @@ public:
     /// Subscribes to secdist updates using a member function, named
     /// `OnSecdistUpdate` by convention. Also immediately invokes the function
     /// with the current secdist data.
+    ///
+    /// Further updates are delivered after @ref utils::ResourceScopeStorage::AfterConstruction, including those updates
+    /// that arrived before it. Unsubscribe runs in @ref utils::ResourceScopeStorage::BeforeDestruction.
+    ///
+    /// @param scopes storage that owns the subscription lifetime. In a component constructor pass `context.Scopes()`
+    /// or @ref components::GetResourceScopes.
+    template <typename Class>
+    void UpdateAndListen(
+        utils::ResourceScopeStorage& scopes,
+        Class* obj,
+        std::string_view name,
+        void (Class::*func)(const storages::secdist::SecdistConfig& secdist)
+    );
+
+    /// @overload
+    /// @deprecated Use the overload that takes @ref utils::ResourceScopeStorage.
+    ///
+    /// Store the returned scope as a member and call `Unsubscribe` explicitly.
     template <typename Class>
     concurrent::AsyncEventSubscriberScope UpdateAndListen(
         Class* obj,
@@ -142,9 +161,28 @@ private:
         EventSource::Function&& func
     );
 
+    void DoUpdateAndListen(
+        utils::ResourceScopeStorage& scopes,
+        concurrent::FunctionId id,
+        std::string_view name,
+        EventSource::Function&& func
+    );
+
     class Impl;
     utils::FastPimpl<Impl, 1280, 16> impl_;
 };
+
+template <typename Class>
+void Secdist::UpdateAndListen(
+    utils::ResourceScopeStorage& scopes,
+    Class* obj,
+    std::string_view name,
+    void (Class::*func)(const storages::secdist::SecdistConfig& secdist)
+) {
+    DoUpdateAndListen(scopes, concurrent::FunctionId(obj), name, [obj, func](const SecdistConfig& config) {
+        (obj->*func)(config);
+    });
+}
 
 template <typename Class>
 concurrent::AsyncEventSubscriberScope Secdist::UpdateAndListen(

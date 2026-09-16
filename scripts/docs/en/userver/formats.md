@@ -11,7 +11,7 @@ and formats::yaml::Value are intended for non-modifying work with formats
 
 Usage Example:
 
-@snippet formats/json/value_test.cpp  Sample formats::json::Value usage
+@snippet universal/src/formats/json/value_test.cpp  Sample formats::json::Value usage
 
 
 ### Iterate over formats
@@ -29,11 +29,11 @@ be located in the namespace of the type or may be located in the
 `formats::common` namespace if the type comes from third-party library that you
 have no control of:
 
-@snippet formats/json/value_test.cpp  Sample formats::json::Value::As<T>() usage
+@snippet universal/src/formats/json/value_test.cpp  Sample formats::json::Value::As<T>() usage
 
 You can write a single parser for all formats, just make it a template:
 
-@snippet formats/common/value_test.cpp  Sample formats::*::Value::As<T>() usage
+@snippet universal/src/formats/common/value_test.cpp  Sample formats::*::Value::As<T>() usage
 
 
 ### Inline helpers `formats::*::Make*`
@@ -41,11 +41,11 @@ You can write a single parser for all formats, just make it a template:
 To build objects of trivial types some of the formats provide inline helpers,
 like formats::json::MakeArray(), formats::json::MakeObject():
 
-@snippet formats/json/member_access_test.cpp Sample json inline construction functions
+@snippet universal/src/formats/json/member_access_test.cpp Sample json inline construction functions
 
 Or formats::bson::MakeDoc(), formats::bson::MakeArray():
 
-@snippet formats/bson/extraction_test.cpp Sample bson inline construction functions
+@snippet mongo/src/formats/bson/extraction_test.cpp Sample bson inline construction functions
 
 Those inline helper functions usually work slightly faster than `formats::*::ValueBuilder`.
 However, if you need a `std::string` with JSON the fastest way would be to use
@@ -63,7 +63,7 @@ are designed for building objects of a given format.
 
 Usage Example:
 
-@snippet formats/json/value_builder_test.cpp  Sample formats::json::ValueBuilder usage
+@snippet universal/src/formats/json/value_builder_test.cpp  Sample formats::json::ValueBuilder usage
 
 
 ### Customization of `formats::*::ValueBuilder`
@@ -73,11 +73,11 @@ C++ type. `Serialize` should be located in the namespace of the type or may be
 located in the `formats::common` namespace if the type comes from third-party
 library that you have no control of:
 
-@snippet formats/json/value_builder_test.cpp  Sample Customization formats::json::ValueBuilder usage
+@snippet universal/src/formats/json/value_builder_test.cpp  Sample Customization formats::json::ValueBuilder usage
 
 You can write a single serializer for all formats, for make it a template:
 
-@snippet formats/common/value_builder_test.cpp  Sample Customization formats::*::ValueBuilder usage
+@snippet universal/src/formats/common/value_builder_test.cpp  Sample Customization formats::*::ValueBuilder usage
 
 
 @anchor formats_streaming_serialization
@@ -90,7 +90,7 @@ At the moment, **stream serialization is implemented only for JSON** via the `fo
 
 In order for stream serialization to work with your data type, you need to define the `WriteToStream` function in the namespace of your type:
 
-@snippet formats/json/string_builder_test.cpp  Sample formats::json::StringBuilder usage
+@snippet universal/src/formats/json/string_builder_test.cpp  Sample formats::json::StringBuilder usage
 
 
 Note that you may get **invalid** JSON, since:

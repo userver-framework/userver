@@ -1,3 +1,4 @@
+aws-sdk-cpp
 boost
 c-ares
 ccache

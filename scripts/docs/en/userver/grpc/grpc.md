@@ -201,7 +201,7 @@ Each method receives:
 * A request (for single-request RPCs only)
 
 Read the documentation on gRPC streams:
-* Single request, single response @ref ugrpc::server::Response
+* Single request, single response @ref ugrpc::server::Result
 * Request stream, single response @ref ugrpc::server::Reader + @ref ugrpc::server::Result
 * Single request, response stream @ref ugrpc::server::Writer + @ref ugrpc::server::StreamingResult
 * Request stream, response stream @ref ugrpc::server::ReaderWriter + @ref ugrpc::server::StreamingResult
@@ -380,12 +380,12 @@ See details in:
 
 Full example showing the usage of both:
 
-* @ref grpc-generic-proxy/src/proxy_service.hpp
-* @ref grpc-generic-proxy/src/proxy_service.cpp
-* @ref grpc-generic-proxy/main.cpp
-* @ref grpc-generic-proxy/static_config.yaml
-* @ref grpc-generic-proxy/config_vars.yaml
-* @ref grpc-generic-proxy/CMakeLists.txt
+* @ref samples/grpc-generic-proxy/src/proxy_service.hpp
+* @ref samples/grpc-generic-proxy/src/proxy_service.cpp
+* @ref samples/grpc-generic-proxy/main.cpp
+* @ref samples/grpc-generic-proxy/static_config.yaml
+* @ref samples/grpc-generic-proxy/config_vars.yaml
+* @ref samples/grpc-generic-proxy/CMakeLists.txt
 
 Based on:
 
@@ -477,10 +477,10 @@ These are the metrics provided for each gRPC method:
 ⇦ @ref scripts/docs/en/userver/gdb_debugging.md | @ref scripts/docs/en/userver/grpc/timeouts_retries.md ⇨
 @htmlonly </div> @endhtmlonly
 
-@example grpc-generic-proxy/src/proxy_service.hpp
-@example grpc-generic-proxy/src/proxy_service.cpp
-@example grpc-generic-proxy/main.cpp
-@example grpc-generic-proxy/static_config.yaml
-@example grpc-generic-proxy/config_vars.yaml
-@example grpc-generic-proxy/CMakeLists.txt
+@example samples/grpc-generic-proxy/src/proxy_service.hpp
+@example samples/grpc-generic-proxy/src/proxy_service.cpp
+@example samples/grpc-generic-proxy/main.cpp
+@example samples/grpc-generic-proxy/static_config.yaml
+@example samples/grpc-generic-proxy/config_vars.yaml
+@example samples/grpc-generic-proxy/CMakeLists.txt
 @example grpc/functional_tests/metrics/tests/static/metrics_values.txt

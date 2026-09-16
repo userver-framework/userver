@@ -199,6 +199,17 @@ MockRedisServer::HandlerPtr MockRedisServer::RegisterPingHandler() {
     return ping_handler_;
 }
 
+MockRedisServer::PausedReplyPtr MockRedisServer::RegisterPausedReplyHandler(
+    const std::string& command,
+    storages::redis::ReplyData reply_data
+) {
+    auto paused_reply = std::make_shared<PausedReply>(std::move(reply_data));
+    RegisterHandlerFunc(command, {}, [this, paused_reply](auto connection, const std::vector<std::string>&) {
+        paused_reply->OnRequest(*this, std::move(connection));
+    });
+    return paused_reply;
+}
+
 MockRedisServer::HandlerPtr MockRedisServer::RegisterSentinelMastersHandler(const std::vector<MasterInfo>& masters) {
     std::vector<storages::redis::ReplyData> reply_data;
     reply_data.reserve(masters.size());
@@ -404,6 +415,22 @@ void MockRedisServer::Handler::AccountReply() {
     }
     cv_.NotifyOne();
 }
+
+MockRedisServer::PausedReply::PausedReply(storages::redis::ReplyData reply_data)
+    : reply_data_(std::move(reply_data))
+{}
+
+void MockRedisServer::PausedReply::OnRequest(MockRedisServerBase& server, ConnectionPtr connection) {
+    request_received_.Send();
+    if (!reply_released_.WaitForEvent()) {
+        return;
+    }
+
+    server.SendReplyData(std::move(connection), reply_data_);
+    reply_sent_.Send();
+}
+
+void MockRedisServer::PausedReply::ReleaseReply() { reply_released_.Send(); }
 
 MockRedisServer::CommonMasterSlaveInfo::CommonMasterSlaveInfo(
     std::string name,

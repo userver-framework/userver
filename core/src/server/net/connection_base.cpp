@@ -5,6 +5,7 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/wait_any.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/server/http/http_response.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -151,37 +152,47 @@ engine::TaskWithResult<void> ConnectionBase::HandleQueueItem(const std::shared_p
 
     try {
         auto& response = request->GetHttpResponse();
-        if (response.IsBodyStreamed()) {
-            // TODO: wait for TCP connection closure too
-            response.WaitForHeadersEnd();
-        } else {
-            // We must wait for one of the following events:
-            // a) socket is ready - maybe it is closed and the handler task must be
-            //    cancelled;
-            // b) handler task is finished - the response must be written into the
-            //    socket.
-            // It would be wasteful to call WaitAny() each time for quick HTTP
-            // handlers as it would setup-and-remove IO watcher with no real effect.
-            // So avoid it for the first N microseconds; after that IO watcher
-            // overhead is not too expensive compared to the await time and we can
-            // tolerate its cost.
+        // Streaming vs not is decided later in HandleHttpRequest. Waiting only
+        // on the handler task would deadlock once the handler starts producing
+        // chunks into a bounded queue. Waiting only on headers would hang mock
+        // handlers that never call SetHeadersEnd.
+        //
+        // We must wait for one of the following events:
+        // a) socket is ready - maybe it is closed and the handler task must be
+        //    cancelled;
+        // b) handler task is finished - a buffered response must be written;
+        // c) headers are ready - a streamed response can start being written.
+        // It would be wasteful to call WaitAny() each time for quick HTTP
+        // handlers as it would setup-and-remove IO watcher with no real effect.
+        // So avoid it for the first N microseconds; after that IO watcher
+        // overhead is not too expensive compared to the await time and we can
+        // tolerate its cost.
 
-            request_task.WaitFor(config_.abort_check_delay);
-            if (!request_task.IsFinished()) {
-                // Slow path for not-so-fast handlers
-                engine::io::ReadableBase& peer_read = GetSocket();
-                const auto task_num = engine::WaitAny(peer_read, request_task);
+        request_task.WaitFor(config_.abort_check_delay);
+        auto headers_end_event = response.FinishedSendingHeadersEvent();
+        if (!request_task.IsFinished()) {
+            engine::io::ReadableBase& peer_read = GetSocket();
+            const auto task_num = engine::WaitAny(peer_read, request_task, headers_end_event);
 
-                if (task_num == 0) {
-                    if (!ReadSome()) {
-                        // TCP connection is closed, cancel the user task
-                        LOG_DEBUG() << "Cancelling request due to closed socket";
-                        request_task.RequestCancel();
-                    }
+            if (task_num == 0) {
+                if (!ReadSome()) {
+                    LOG_DEBUG() << "Cancelling request due to closed socket";
+                    request_task.RequestCancel();
                 }
-            } else {
-                // Fast path for quick handlers, no socket awaiting
+                if (!request_task.IsFinished() && !response.IsBodyStreamed()) {
+                    engine::WaitAny(request_task, headers_end_event);
+                }
             }
+        }
+
+        if (response.IsBodyStreamed()) {
+            if (!headers_end_event.Wait()) {
+                LOG_DEBUG() << "Request processing interrupted";
+                request_task.SyncCancel();
+                is_response_chain_valid_ = false;
+                return request_task;
+            }
+        } else {
             request_task.Get();
         }
     } catch (const engine::TaskCancelledException& e) {

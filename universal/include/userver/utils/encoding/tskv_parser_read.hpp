@@ -33,7 +33,7 @@ inline compiler::ThreadLocal tskv_parser_kv_storage = [] { return TskvParserKvSt
 /// can return `false` to skip the record and return immediately
 ///
 /// Usage example:
-/// @snippet utils/encoding/tskv_parser_test.cpp  sample
+/// @snippet universal/src/utils/encoding/tskv_parser_test.cpp  sample
 template <typename TagConsumer>
 TskvParser::RecordStatus TskvReadRecord(TskvParser& parser, TagConsumer consumer) {
     using RecordStatus = TskvParser::RecordStatus;

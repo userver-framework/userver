@@ -34,13 +34,13 @@ Options inherited from @ref components::ComponentBase :
 Cache policy is the template argument of components::PostgreCache component.
 Please see the following code snippet for documentation.
 
-@snippet cache/postgres_cache_test.cpp Pg Cache Policy Example
+@snippet postgresql/src/cache/postgres_cache_test.cpp Pg Cache Policy Example
 
 The query can be a std::string. But due to non-guaranteed order of static
 data members initialization, std::string should be returned from a static
 member function, please see the following code snippet.
 
-@snippet cache/postgres_cache_test.cpp Pg Cache Policy GetQuery Example
+@snippet postgresql/src/cache/postgres_cache_test.cpp Pg Cache Policy GetQuery Example
 
 Policy may have static function GetLastKnownUpdated. It should be used
 when new entries from database are taken via revision, identifier, or
@@ -51,9 +51,9 @@ Otherwise, condition is
 'WHERE kUpdatedField > last_update - correction_'.
 See the following code snippet for an example of usage
 
-@snippet cache/postgres_cache_test.cpp Pg Cache Policy Custom Updated Example
+@snippet postgresql/src/cache/postgres_cache_test.cpp Pg Cache Policy Custom Updated Example
 
-Cache can also store only subset of data. For example for the database that is is defined in the following way:
+Cache can also store only a subset of data. For example, for the database that is defined in the following way:
 
 @include samples/postgres_cache_order_by/schemas/postgresql/key_value.sql
 
@@ -69,7 +69,7 @@ to one defined in namespace utils::impl::projected_set (i.e. used for
 utils::ProjectedUnorderedSet).
 See the following code snippet for an example of usage:
 
-@snippet cache/postgres_cache_test.cpp Pg Cache Policy Custom Container With Write Notification Example
+@snippet postgresql/src/cache/postgres_cache_test.cpp Pg Cache Policy Custom Container With Write Notification Example
 
 @section pg_cc_forward_declaration Forward Declaration
 
@@ -77,7 +77,7 @@ To forward declare a cache you can forward declare a trait and
 include userver/cache/base_postgres_cache_fwd.hpp header. It is also useful to
 forward declare the cache value type.
 
-@snippet cache/postgres_cache_test_fwd.hpp Pg Cache Fwd Example
+@snippet postgresql/src/cache/postgres_cache_test_fwd.hpp Pg Cache Fwd Example
 
 ----------
 

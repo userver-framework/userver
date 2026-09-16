@@ -1,0 +1,27 @@
+default: {}
+description: |
+    Dynamic config for per-HTTP-handler ODBC timeouts. Keys are handler paths,
+    then HTTP methods. Values override only their specified fields from
+    USERVER_ODBC_DEFAULT_COMMAND_CONTROL and are overridden by named-query and
+    explicit per-call command controls.
+schema:
+    type: object
+    additionalProperties:
+        $ref: "#/definitions/CommandControlByMethodMap"
+    definitions:
+        CommandControlByMethodMap:
+            type: object
+            additionalProperties:
+                $ref: "#/definitions/CommandControl"
+        CommandControl:
+            type: object
+            additionalProperties: false
+            properties:
+                network_timeout_ms:
+                    type: integer
+                    minimum: 1
+                    x-usrv-cpp-type: std::chrono::milliseconds
+                statement_timeout_ms:
+                    type: integer
+                    minimum: 1
+                    x-usrv-cpp-type: std::chrono::milliseconds

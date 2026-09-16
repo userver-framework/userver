@@ -8,6 +8,7 @@
 #include <tests/server_middleware_base_gmock.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/server/exceptions.hpp>
+#include <userver/ugrpc/server/generic_service_base.hpp>
 #include <userver/ugrpc/server/middlewares/base.hpp>
 #include <userver/ugrpc/server/middlewares/deadline_propagation/middleware.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
@@ -369,5 +370,48 @@ INSTANTIATE_UTEST_SUITE_P(
     ServerMiddlewareHooksUnaryTest,
     testing::Values(Flags{.set_error = true}, Flags{.set_error = false})
 );
+
+namespace {
+
+class ResponseLifetimeService final : public ugrpc::server::GenericServiceBase {
+public:
+    std::atomic<bool> response_destroyed{false};
+
+    GenericResult Handle(GenericCallContext&, GenericReaderWriter&) override {
+        static std::string payload = [] {
+            sample::ugrpc::GreetingResponse response;
+            response.set_name("hello");
+            return response.SerializeAsString();
+        }();
+        grpc::Slice slice{
+            payload.data(),
+            payload.size(),
+            [](void* user_data) { static_cast<std::atomic<bool>*>(user_data)->store(true); },
+            &response_destroyed
+        };
+        return grpc::ByteBuffer{&slice, 1};
+    }
+};
+
+using ResponseLifetimeTest = tests::MiddlewaresFixture<
+    tests::server::ServerMiddlewareBaseMock,
+    ResponseLifetimeService,
+    sample::ugrpc::UnitTestServiceClient,
+    1>;
+
+}  // namespace
+
+UTEST_F(ResponseLifetimeTest, OnCallFinishBeforeResponseDestruction) {
+    auto& response_destroyed = Service().response_destroyed;
+    EXPECT_CALL(Middleware(), OnCallFinish)
+        .WillOnce([&response_destroyed](ugrpc::server::MiddlewareCallContext&, const std::optional<grpc::Status>&) {
+            EXPECT_FALSE(response_destroyed.load());
+        });
+
+    EXPECT_EQ(Client().SayHello(sample::ugrpc::GreetingRequest{}).name(), "hello");
+
+    GetServer().StopServing();
+    EXPECT_TRUE(response_destroyed.load());
+}
 
 USERVER_NAMESPACE_END

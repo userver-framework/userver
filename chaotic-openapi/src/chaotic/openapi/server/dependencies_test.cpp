@@ -23,6 +23,21 @@ TEST(ChaoticServerDependencies, Smoke) {
     SUCCEED();
 }
 
+struct ReferenceDep {};
+struct ReferenceHandlerTag {};
+
+const dependencies::FactoryTag<ReferenceDep&> kReferenceDep;
+
+TEST(ChaoticServerDependencies, Reference) {
+    ReferenceDep expected;
+    dependencies::Factories factories;
+    factories.Register([&expected]() -> ReferenceDep& { return expected; });
+
+    auto handler = factories.Make<ReferenceHandlerTag>();
+
+    EXPECT_EQ(&handler[kReferenceDep], &expected);
+}
+
 // [same type]
 // Register the same dependency types in FactoryTag
 // with different 'Tag' template parameters as global variables

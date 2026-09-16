@@ -10,7 +10,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::impl::cdriver {
 
-// driver cannot be reinitialized after cleanup!
+// Constructed once before main in wrappers.cpp. mongoc_init calls getenv,
+// which is not ASan-safe on a coroutine stack. The driver cannot be
+// reinitialized after cleanup.
 class GlobalInitializer {
 public:
     GlobalInitializer();
@@ -19,6 +21,9 @@ public:
     // Call when it's safe to use logger, will only log once.
     static void LogInitWarningsOnce();
 };
+
+// ODR-use from CDriverPoolImpl so the linker keeps this TU when the pool is used.
+extern const GlobalInitializer kInitMongoc;
 
 struct BulkOperationDeleter {
     void operator()(mongoc_bulk_operation_t* bulk) const noexcept { mongoc_bulk_operation_destroy(bulk); }

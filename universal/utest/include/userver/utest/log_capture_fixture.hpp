@@ -139,7 +139,7 @@ private:
 
 /// @ingroup userver_utest
 ///
-/// @brief Fixture that allows to capture and extract log written into the default logger.
+/// @brief Fixture that allows you to capture and extract log written into the default logger.
 ///
 /// @snippet grpc/tests/cancel_test.cpp  Sample of LogCaptureFixture
 ///

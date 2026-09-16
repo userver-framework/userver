@@ -23,6 +23,7 @@
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
+#include <userver/utils/resource_scopes.hpp>
 #include <userver/utils/statistics/rate_counter.hpp>
 #include <userver/utils/statistics/writer.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
@@ -79,7 +80,8 @@ public:
     void SetConfig(std::string_view updater, dynamic_config::DocsMap&& value);
     void NotifyLoadingFailed(std::string_view updater, std::string_view error);
 
-    concurrent::AsyncEventSubscriberScope UpdateIfHasConfigAndListen(
+    void UpdateIfHasConfigAndListen(
+        utils::ResourceScopeStorage& scopes,
         concurrent::FunctionId id,
         std::string_view name,
         concurrent::AsyncEventSource<const dynamic_config::Diff&>::Function&& func
@@ -367,28 +369,31 @@ void DynamicConfig::Impl::WriteStatistics(utils::statistics::Writer& writer) con
     writer["parse-errors"] = stats_.parse_errors;
 }
 
-concurrent::AsyncEventSubscriberScope DynamicConfig::Impl::UpdateIfHasConfigAndListen(
+void DynamicConfig::Impl::UpdateIfHasConfigAndListen(
+    utils::ResourceScopeStorage& scopes,
     concurrent::FunctionId id,
     std::string_view name,
     concurrent::AsyncEventSource<const dynamic_config::Diff&>::Function&& func
 ) {
-    std::lock_guard lock{loaded_mutex_};
-    if (is_loaded_) {
-        return cache_.DoUpdateAndListen(id, name, std::move(func));
-    } else {
+    scopes.Register([this, id, name = std::string(name), func = std::move(func)]() mutable {
+        const std::lock_guard lock{loaded_mutex_};
+        if (is_loaded_) {
+            return cache_.DoUpdateAndListen(id, name, std::move(func));
+        }
         return GetDiffChannel().AddListener(id, name, std::move(func));
-    }
+    });
 }
 
 DynamicConfig::NoblockSubscriber::NoblockSubscriber(DynamicConfig& config_component) noexcept
     : config_component_(config_component) {}
 
-concurrent::AsyncEventSubscriberScope DynamicConfig::NoblockSubscriber::DoUpdateIfHasConfigAndListen(
+void DynamicConfig::NoblockSubscriber::DoUpdateIfHasConfigAndListen(
+    utils::ResourceScopeStorage& scopes,
     concurrent::FunctionId id,
     std::string_view name,
     concurrent::AsyncEventSource<const dynamic_config::Diff&>::Function&& func
 ) {
-    return config_component_.impl_->UpdateIfHasConfigAndListen(id, name, std::move(func));
+    config_component_.impl_->UpdateIfHasConfigAndListen(scopes, id, name, std::move(func));
 }
 
 DynamicConfig::DynamicConfig(const ComponentConfig& config, const ComponentContext& context)

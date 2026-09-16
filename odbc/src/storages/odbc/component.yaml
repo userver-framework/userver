@@ -2,26 +2,52 @@ type: object
 description: ODBC client component
 additionalProperties: false
 properties:
+    blocking_task_processor:
+        type: string
+        description: |
+            Task processor used for synchronous ODBC driver-manager and driver calls.
+            Defaults to the global blocking task processor.
     secdist_alias:
         type: string
         description: |
             name of the database in secdist config.
+            Must not be empty.
             If specified, DSN will be read from secdist instead of static config.
+            Mutually exclusive with `dsn` and `pools`.
     dsn:
         type: string
-        description: connection DSN string (used for single-pool configuration)
+        description: |
+            connection DSN string (used for single-pool configuration).
+            Must not be empty.
+            Mutually exclusive with `secdist_alias` and `pools`.
     min_pool_size:
         type: integer
+        minimum: 0
         description: |
             number of connections created initially by this component instance.
             Connections are kept even without requests
         default: 1
     max_pool_size:
         type: integer
+        minimum: 1
         description: |
             maximum number of connections that can be created by this component instance.
             Should not be less than `min_pool_size`
         default: 10
+    max_statement_metrics:
+        type: integer
+        minimum: 0
+        description: |
+            maximum number of named query-name entries retained per ODBC pool.
+            Each entry exports three metric series. Zero disables named query metrics
+        default: 0
+    max_prepared_cache_size:
+        type: integer
+        minimum: 0
+        description: |
+            maximum number of prepared parameterized SQL statements retained by each
+            physical ODBC connection. Zero disables the prepared statement cache
+        default: 0
     dns_resolver:
         type: string
         description: server hostname resolver type (getaddrinfo or async)
@@ -31,7 +57,10 @@ properties:
           - async
     pools:
         type: array
-        description: list of connection pools (used for multi-pool configuration)
+        minItems: 1
+        description: |
+            list of connection pools (used for multi-pool configuration).
+            Mutually exclusive with `secdist_alias` and `dsn`.
         items:
             type: object
             description: connection pool configuration
@@ -39,12 +68,16 @@ properties:
             properties:
                 dsn:
                     type: string
-                    description: connection DSN string for this pool
+                    description: non-empty connection DSN string for this pool
                 min_pool_size:
                     type: integer
+                    minimum: 0
                     description: minimum number of connections in this pool
                     default: 1
                 max_pool_size:
                     type: integer
+                    minimum: 1
                     description: maximum number of connections in this pool
                     default: 10
+            required:
+              - dsn

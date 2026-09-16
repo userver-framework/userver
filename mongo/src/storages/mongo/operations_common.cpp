@@ -81,6 +81,11 @@ void AppendHint(formats::bson::impl::BsonBuilder& builder, const options::Hint& 
     builder.Append(kOptionName, hint.Value());
 }
 
+void AppendArrayFilters(formats::bson::impl::BsonBuilder& builder, const options::ArrayFilters& filters) {
+    static constexpr utils::StringLiteral kOptionName = "arrayFilters";
+    builder.Append(kOptionName, filters.Value());
+}
+
 }  // namespace storages::mongo::impl
 
 USERVER_NAMESPACE_END

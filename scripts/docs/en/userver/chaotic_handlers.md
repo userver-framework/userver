@@ -106,6 +106,35 @@ view.cpp    # view stub — implement this
 ```
 
 
+### Authentication
+
+When the OpenAPI schema declares a `securityScheme` on a handler operation,
+the generated `config.chaotic.yaml` includes the scheme name in `auth.types`:
+
+@snippet samples/chaotic_openapi_service/clients/secure.yaml security requirement
+
+Generate the handler and merge its generated config with the service config:
+
+@snippet samples/chaotic_openapi_service/CMakeLists.txt digest-handler-cmake
+
+Register an auth checker factory under the same security-scheme name:
+
+@snippet samples/chaotic_openapi_service/main.cpp digest-auth-checker-registration
+
+@snippet samples/chaotic_openapi_service/src/auth_digest.hpp auth checker factory
+
+The reusable standalone Digest factory obtains the nonce-cache settings from the component list:
+
+@snippet samples/chaotic_openapi_service/main.cpp digest-settings-component
+
+Options that code generation cannot know, such as the Digest realm, stay in the service config:
+
+@snippet samples/chaotic_openapi_service/static_config.user.yaml digest-handler-auth-config
+
+See @ref scripts/docs/en/userver/tutorial/digest_auth_postgres.md for a database-backed
+Digest auth checker. The `chaotic_openapi_service` sample contains a complete in-memory example.
+
+
 ### Direct CLI reference
 
 `chaotic-openapi-gen` is the underlying executable. Handler-relevant flags:

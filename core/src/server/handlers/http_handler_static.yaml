@@ -20,3 +20,9 @@ properties:
         type: string
         description: File to return for missing files
         default: /404.html
+    fs-task-processor:
+        type: string
+        description: |-
+            Task processor to do filesystem operations for streamed responses
+
+            Default: engine::current_task::GetBlockingTaskProcessor()

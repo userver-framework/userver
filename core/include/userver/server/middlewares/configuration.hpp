@@ -69,7 +69,7 @@ public:
     /// pipeline
     ///
     /// @note We recommend against omitting/modifying default userver pipeline,
-    /// but leave a possibility to do so.
+    /// but leave the option to do so.
     virtual MiddlewaresList BuildPipeline(MiddlewaresList userver_middleware_pipeline) const {
         auto& resulting_pipeline = userver_middleware_pipeline;
         const auto& middlewares_to_append = GetMiddlewaresToAppend();

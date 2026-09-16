@@ -76,7 +76,7 @@ private:
 /// @brief map-like heterogeneous data storage
 ///
 /// ## Usage example
-/// @snippet utils/any_storage_test.cpp  AnyStorage
+/// @snippet universal/src/utils/any_storage_test.cpp  AnyStorage
 template <typename StorageTag>
 class AnyStorage final {
 public:

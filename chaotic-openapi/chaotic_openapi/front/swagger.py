@@ -153,7 +153,8 @@ class SecurityDef(base_model.BaseModel):
 
 
 # https://spec.openapis.org/oas/v2.0.html#security-requirement-object
-Security = dict[str, list[str]]
+SecurityRequirement = dict[str, list[str]]
+Security = list[SecurityRequirement]
 
 Parameters = list[Parameter | Ref]
 
@@ -216,17 +217,19 @@ class Swagger(base_model.BaseModel):
     parameters: dict[str, Parameter] = pydantic.Field(default_factory=dict)
     responses: dict[str, Response] = pydantic.Field(default_factory=dict)
     securityDefinitions: dict[str, SecurityDef] = pydantic.Field(default_factory=dict)
-    security: Security = pydantic.Field(default_factory=dict)
+    security: Security = pydantic.Field(default_factory=list)
 
     def validate_security(self, security: Security | None) -> None:
         if not security:
             return
 
-        for name, values in security.items():
-            if name not in self.securityDefinitions.keys():
-                raise ValueError(f'Undefined security name="{name}". Expected on of: {self.securityDefinitions.keys()}')
-            if self.securityDefinitions[name].type != SecurityType.oauth2:
-                if len(values) != 0:
+        for requirement in security:
+            for name, values in requirement.items():
+                if name not in self.securityDefinitions:
+                    raise ValueError(
+                        f'Undefined security name="{name}". Expected one of: {self.securityDefinitions.keys()}'
+                    )
+                if self.securityDefinitions[name].type != SecurityType.oauth2 and values:
                     raise ValueError(f'For security "{name}" the array must be empty')
 
     def model_post_init(self, context: Any, /) -> None:

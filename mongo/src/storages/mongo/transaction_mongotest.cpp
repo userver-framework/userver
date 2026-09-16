@@ -266,10 +266,8 @@ UTEST_F(MongoTransaction, UpdateWithMaxServerTime) {
             bson::MakeDoc(operators::kSet, bson::MakeDoc("x", 2)),
             k_max_server_time
         );
-        EXPECT_EQ(result.MatchedCount(), 1);
-        EXPECT_EQ(result.ModifiedCount(), 1);
-        EXPECT_TRUE(result.ServerErrors().empty());
-        EXPECT_TRUE(result.WriteConcernErrors().empty());
+        ExpectWriteCounts(result, {.matched = 1, .modified = 1});
+        ExpectNoWriteErrors(result);
     }
 
     auto uncommitted_doc = regular_collection.FindOne(bson::MakeDoc("_id", 1));
@@ -291,10 +289,8 @@ UTEST_F(MongoTransaction, UpdateWithMaxServerTime) {
             options::Upsert{},
             k_max_server_time
         );
-        EXPECT_EQ(result.UpsertedCount(), 1);
-        auto upserted_ids = result.UpsertedIds();
-        ASSERT_EQ(upserted_ids.size(), 1);
-        EXPECT_EQ(upserted_ids[0].As<int>(), 3);
+        ExpectWriteCounts(result, {.upserted = 1});
+        ExpectSingleUpsertedId(result, 3);
     }
 
     txn.Commit();

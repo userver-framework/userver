@@ -22,9 +22,9 @@ namespace storages::clickhouse {
 ///
 /// ## Usage example:
 ///
-/// @snippet storages/tests/execute_chtest.cpp  Sample CppToClickhouse specialization
+/// @snippet clickhouse/src/storages/tests/execute_chtest.cpp  Sample CppToClickhouse specialization
 ///
-/// @snippet storages/tests/execute_chtest.cpp  Sample ExecutionResult usage
+/// @snippet clickhouse/src/storages/tests/execute_chtest.cpp  Sample ExecutionResult usage
 class ExecutionResult final {
 public:
     explicit ExecutionResult(impl::BlockWrapperPtr);

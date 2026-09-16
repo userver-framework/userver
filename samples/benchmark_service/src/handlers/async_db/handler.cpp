@@ -6,8 +6,8 @@
 
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
+#include <userver/formats/json/raw_string.hpp>
 #include <userver/formats/json/string_builder.hpp>
-#include <userver/formats/json/value.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/component.hpp>
@@ -22,7 +22,7 @@ struct ItemRow {
     int64_t price;
     int64_t quantity;
     bool active;
-    formats::json::Value tags;
+    formats::json::RawString tags;
     int64_t rating_score;
     int64_t rating_count;
 };
@@ -89,7 +89,7 @@ std::string Handler::HandleRequestThrow(const server::http::HttpRequest& request
                 sb.Key("active");
                 sb.WriteBool(row.active);
                 sb.Key("tags");
-                sb.WriteValue(row.tags);
+                formats::json::WriteToStream(row.tags, sb);
                 sb.Key("rating");
                 {
                     formats::json::StringBuilder::ObjectGuard rating_guard(sb);

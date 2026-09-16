@@ -204,7 +204,7 @@ brew install $(wget -q -O - ${DEPS_FILE})
 ```
 
 Some Homebrew packages are keg-only (they are not symlinked to Homebrew prefix path e.g. `/opt/homebrew`),
-therefore they can not be found by CMake in configure phase.
+therefore they cannot be found by CMake in configure phase.
 
 It is possible to symlink the libraries using `brew link --force`.
 

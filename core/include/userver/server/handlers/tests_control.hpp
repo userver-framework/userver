@@ -20,7 +20,7 @@ namespace server::handlers {
 
 /// @ingroup userver_components userver_http_handlers
 ///
-/// @brief Handler that allows to control the behavior of server from tests,
+/// @brief Handler that allows you to control the behavior of server from tests,
 /// and @ref scripts/docs/en/userver/functional_testing.md "functional tests with testsuite" in particular.
 ///
 /// It is highly recommended to disable this handle in production via the
@@ -42,7 +42,7 @@ namespace server::handlers {
 ///
 /// ## Static configuration example:
 ///
-/// @snippet components/common_server_component_list_test.cpp  Sample tests control component config
+/// @snippet core/src/components/common_server_component_list_test.cpp  Sample tests control component config
 ///
 /// ## Scheme
 /// Main user of the scheme is the pytest_userver.client.Client python class.

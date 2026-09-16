@@ -72,7 +72,7 @@ public:
 /// Although one can used it by itself,
 /// it mostly for use with MockSubscribeClient. Here is a small example on
 /// how to use this class
-/// @snippet storages/redis/test/subscribe_client_mock_test.cpp SbTknExmpl1
+/// @snippet redis/src/storages/redis/test/subscribe_client_mock_test.cpp SbTknExmpl1
 class MockSubscriptionTokenImpl : public impl::SubscriptionTokenImplBase {
 public:
     ~MockSubscriptionTokenImpl() override = default;

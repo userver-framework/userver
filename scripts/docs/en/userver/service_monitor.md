@@ -21,8 +21,8 @@ The simplest way to experiment with metrics is to start a sample by running
 make some requests from another terminal window, for example
 `curl http://localhost:8086/service/monitor?format=prometheus`.
 
-Note that the @ref server::handlers::ServerMonitor handler lives at the separate
-`components.server.listener-monitor` address, so you have to request them using the
+Note that the @ref server::handlers::ServerMonitor handler lives on the separate
+`components.server.listener-monitor` address, so you have to request it using the
 `listener-monitor` credentials. See @ref scripts/docs/en/userver/tutorial/production_service.md
 for more info on configuration and ideas on how to change the `/service/monitor` handle path.
 

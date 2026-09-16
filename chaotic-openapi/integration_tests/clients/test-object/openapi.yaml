@@ -10,11 +10,7 @@ paths:
                 content:
                     application/json:
                         schema:
-                            type: object
-                            properties:
-                                foo:
-                                    type: string
-                            additionalProperties: false
+                            $ref: '#/components/schemas/SerializationObject'
             responses:
                 '200':
                     description: OK
@@ -34,6 +30,112 @@ paths:
                     description: Some error
 components:
     schemas:
+        NestedObject:
+            type: object
+            additionalProperties: false
+            required:
+              - label
+            properties:
+                label:
+                    type: string
+        SerializationObject:
+            type: object
+            additionalProperties: false
+            required:
+              - required-field
+              - nullable-field
+              - nested
+              - numbers
+              - custom-number
+            properties:
+                required-field:
+                    type: string
+                optional-field:
+                    type: integer
+                nullable-field:
+                    type: string
+                    nullable: true
+                defaulted-field:
+                    type: integer
+                    default: 7
+                nested:
+                    $ref: '#/components/schemas/NestedObject'
+                numbers:
+                    type: array
+                    items:
+                        type: integer
+                custom-number:
+                    type: integer
+                    x-usrv-cpp-type: unsigned
+        AdditionalPropertiesJson:
+            type: object
+            additionalProperties: true
+            x-taxi-extra-member: true
+            required:
+              - required-field
+            properties:
+                required-field:
+                    type: string
+                optional-field:
+                    type: string
+        AdditionalPropertiesTyped:
+            type: object
+            additionalProperties:
+                type: integer
+            required:
+              - required-field
+            properties:
+                required-field:
+                    type: integer
+                optional-field:
+                    type: integer
+        SafeAllOfBase:
+            type: object
+            additionalProperties: false
+            required:
+              - base-field
+            properties:
+                base-field:
+                    type: string
+        SafeAllOfPart:
+            type: object
+            additionalProperties: false
+            required:
+              - child-field
+            properties:
+                child-field:
+                    type: integer
+        SafeAllOf:
+            allOf:
+              - $ref: '#/components/schemas/SafeAllOfBase'
+              - $ref: '#/components/schemas/SafeAllOfPart'
+        RiskyAllOfBase:
+            type: object
+            additionalProperties: false
+            required:
+              - overlapping-field
+            properties:
+                overlapping-field:
+                    type: string
+        RiskyAllOf:
+            allOf:
+              - $ref: '#/components/schemas/RiskyAllOfBase'
+              - type: object
+                additionalProperties: false
+                required:
+                  - overlapping-field
+                properties:
+                    overlapping-field:
+                        type: string
+        ValidatedObject:
+            type: object
+            additionalProperties: false
+            required:
+              - count
+            properties:
+                count:
+                    type: integer
+                    minimum: 1
         Type:
             type: object
             properties:

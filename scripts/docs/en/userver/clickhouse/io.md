@@ -26,4 +26,4 @@ explicit mapping is required by the driver - explicit specialization of
 
 ## Example usage:
 
-@snippet storages/tests/execute_chtest.cpp  Sample CppToClickhouse specialization
+@snippet clickhouse/src/storages/tests/execute_chtest.cpp  Sample CppToClickhouse specialization

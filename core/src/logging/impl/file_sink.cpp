@@ -16,9 +16,11 @@ FileSink::FileSink(const std::string& filename)
 }
 
 void FileSink::Reopen(ReopenMode mode) {
-    GetFd().FSync();
+    // We do not do the `GetFd().FSync()` as it makes no sense
+
+    auto new_file = OpenFile<fs::blocking::FileDescriptor>(filename_, mode);
     std::move(GetFd()).Close();
-    SetFd(OpenFile<fs::blocking::FileDescriptor>(filename_, mode));
+    SetFd(std::move(new_file));
 }
 
 }  // namespace logging::impl

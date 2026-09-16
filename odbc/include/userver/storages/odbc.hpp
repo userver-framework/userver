@@ -4,15 +4,22 @@
 /// This file is mainly for documentation purposes and inclusion of all headers
 /// that are required for working with ODBC µserver component.
 
+#include <userver/storages/odbc/bulk.hpp>
 #include <userver/storages/odbc/cluster.hpp>
+#include <userver/storages/odbc/command_control.hpp>
 #include <userver/storages/odbc/component.hpp>
+#include <userver/storages/odbc/cursor.hpp>
 #include <userver/storages/odbc/exception.hpp>
+#include <userver/storages/odbc/io/type_mapping.hpp>
+#include <userver/storages/odbc/parameter_store.hpp>
+#include <userver/storages/odbc/transaction_options.hpp>
+#include <userver/storages/odbc/types.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 /// @brief Top namespace for uODBC driver.
 ///
-/// For more information see @ref odbc_driver
+/// For more information see @ref scripts/docs/en/userver/odbc.md
 namespace storages::odbc {}
 
 USERVER_NAMESPACE_END

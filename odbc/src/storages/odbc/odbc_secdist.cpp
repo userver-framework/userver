@@ -34,9 +34,16 @@ OdbcSettings::OdbcSettings(const formats::json::Value& doc) {
         storages::secdist::CheckIsObject(db_config, dbalias);
 
         std::vector<OdbcConnectionInfo> connections;
+        const auto has_dsn = db_config.HasMember("dsn");
+        const auto has_hosts = db_config.HasMember("hosts");
+        if (has_dsn == has_hosts) {
+            throw storages::secdist::SecdistError(
+                fmt::format("Database '{}' must have exactly one of 'dsn' or 'hosts'", dbalias)
+            );
+        }
 
         // Support both single DSN and array of DSNs
-        if (db_config.HasMember("dsn")) {
+        if (has_dsn) {
             // Single DSN format
             OdbcConnectionInfo info;
             info.dsn = db_config["dsn"].As<std::string>();
@@ -46,29 +53,37 @@ OdbcSettings::OdbcSettings(const formats::json::Value& doc) {
             const auto& hosts = db_config["hosts"];
             storages::secdist::CheckIsArray(hosts, dbalias + ".hosts");
 
-            for (auto host_it = hosts.begin(); host_it != hosts.end(); ++host_it) {
-                if (host_it->IsString()) {
+            for (const auto& host : hosts) {
+                if (host.IsString()) {
                     // Simple DSN string
                     OdbcConnectionInfo info;
-                    info.dsn = host_it->As<std::string>();
+                    info.dsn = host.As<std::string>();
                     connections.push_back(std::move(info));
-                } else if (host_it->IsObject()) {
+                } else if (host.IsObject()) {
                     // Object with dsn field
+                    if (host.GetSize() != 1 || !host.HasMember("dsn")) {
+                        throw storages::secdist::SecdistError(
+                            fmt::format("Database '{}': each host object must contain exactly one 'dsn' field", dbalias)
+                        );
+                    }
                     OdbcConnectionInfo info;
-                    info.dsn = (*host_it)["dsn"].As<std::string>();
+                    info.dsn = host["dsn"].As<std::string>();
                     connections.push_back(std::move(info));
                 } else {
-                    storages::secdist::ThrowInvalidSecdistType(*host_it, "a string or object");
+                    storages::secdist::ThrowInvalidSecdistType(host, "a string or object");
                 }
             }
-        } else {
-            throw storages::secdist::SecdistError(
-                fmt::format("Database '{}' must have either 'dsn' or 'hosts' field", dbalias)
-            );
         }
 
         if (connections.empty()) {
             throw storages::secdist::SecdistError(fmt::format("Database '{}' has no connection info", dbalias));
+        }
+        for (std::size_t index = 0; index < connections.size(); ++index) {
+            if (connections[index].dsn.empty()) {
+                throw storages::secdist::SecdistError(
+                    fmt::format("Database '{}' has an empty DSN at connection {}", dbalias, index)
+                );
+            }
         }
 
         databases_[dbalias] = std::move(connections);

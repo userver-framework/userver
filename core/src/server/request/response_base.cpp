@@ -1,6 +1,8 @@
 #include <userver/server/request/response_base.hpp>
 
+#include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/overloaded.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -24,6 +26,40 @@ void Http2StreamEventProducer::CloseStream(std::int32_t id) {
 }  // namespace server::http::impl
 
 namespace server::request {
+
+bool impl::ChunkStorage::Empty() const noexcept { return Size() == 0; }
+
+std::size_t impl::ChunkStorage::Size() const noexcept {
+    return std::visit(
+        utils::Overloaded{
+            [](const std::string& owned) noexcept { return owned.size(); },
+            [](const std::shared_ptr<const std::string>& shared) noexcept { return shared->size(); },
+        },
+        storage_
+    );
+}
+
+std::string_view impl::ChunkStorage::View() const noexcept { return AsString(); }
+
+const std::string& impl::ChunkStorage::AsString() const {
+    return std::visit(
+        utils::Overloaded{
+            [](const std::string& owned) -> const std::string& { return owned; },
+            [](const std::shared_ptr<const std::string>& shared) -> const std::string& { return *shared; },
+        },
+        storage_
+    );
+}
+
+impl::ChunkStorage::ChunkStorage(std::string data)
+    : storage_{std::move(data)}
+{}
+
+impl::ChunkStorage::ChunkStorage(std::shared_ptr<const std::string> data)
+    : storage_{std::move(data)}
+{
+    UASSERT(std::get<std::shared_ptr<const std::string>>(storage_));
+}
 
 namespace {
 const auto kStartTime = std::chrono::steady_clock::now();
@@ -79,25 +115,42 @@ ResponseBase::ResponseBase(ResponseDataAccounter& data_account, std::chrono::ste
       create_time_{now}
 {
     UASSERT(accounted_size_ == 0);
-    UASSERT(data_.empty());
+    UASSERT(data_.Empty());
     accounter_.StartRequest(create_time_);
 }
 
 ResponseBase::~ResponseBase() noexcept {
-    if (sent_time_ == kUnset) {
+    if (!IsSent()) {
         accounter_.StopRequest(accounted_size_, create_time_);
     }
 }
 
-void ResponseBase::SetData(std::string data) {
-    UASSERT(sent_time_ == kUnset);
+void ResponseBase::SetData(std::string data) { StoreData(impl::ChunkStorage{std::move(data)}); }
+
+void ResponseBase::SetSharedData(std::shared_ptr<const std::string> data) {
+    UASSERT(data);
+    StoreData(impl::ChunkStorage{std::move(data)});
+}
+
+void ResponseBase::StoreData(impl::ChunkStorage data) {
+    if (IsSent()) {
+        UASSERT(IsBodyStreamed());
+        LOG_LIMITED_WARNING()
+            << "Attempt to set response body after it was already sent by streaming. Probably an "
+               "exception was thrown after streaming started";
+        return;
+    }
     data_ = std::move(data);
     const auto old_size = accounted_size_;
     const auto old_create_time = create_time_;
     create_time_ = std::chrono::steady_clock::now();
-    accounted_size_ = data_.size();
+    accounted_size_ = data_.Size();
     accounter_.ReaccountRequest(old_size, old_create_time, accounted_size_, create_time_);
 }
+
+const std::string& ResponseBase::GetData() const { return data_.AsString(); }
+
+impl::ChunkStorage ResponseBase::ExtractData() { return std::move(data_); }
 
 void ResponseBase::SetReady() { SetReady(std::chrono::steady_clock::now()); }
 
@@ -110,14 +163,13 @@ bool ResponseBase::IsLimitReached() const {
     return accounter_.GetPendingResponsesSizeInBytes() >= accounter_.GetMaxPendingResponsesSizeInBytes();
 }
 
-void ResponseBase::SetSendFailed(std::chrono::steady_clock::time_point failure_time) { SetSent(0, failure_time); }
+void ResponseBase::SetSendFailed() { SetSent(0); }
 
-void ResponseBase::SetSent(std::size_t bytes_sent, std::chrono::steady_clock::time_point sent_time) {
-    UASSERT(sent_time_ == kUnset);
-    UASSERT(sent_time != kUnset);
+void ResponseBase::SetSent(std::size_t bytes_sent) {
+    UASSERT(!IsSent());
     accounter_.StopRequest(accounted_size_, create_time_);
     bytes_sent_ = bytes_sent;
-    sent_time_ = sent_time;
+    is_sent_ = true;
 }
 
 void ResponseBase::SetStreamId(std::int32_t stream_id) {

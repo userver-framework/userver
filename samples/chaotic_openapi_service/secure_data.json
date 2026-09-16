@@ -1,0 +1,17 @@
+{
+  "tokens": {
+    "user-1-token": 123
+  },
+  "http_server_digest_auth_secret": "some-private-key",
+  "digest_auth_users": {
+    "alice": "alice-password"
+  },
+  "http_digest": {
+    "secure": {
+      "myDigestScheme": {
+        "username": "alice",
+        "password": "alice-password"
+      }
+    }
+  }
+}

@@ -5,6 +5,7 @@
 
 #include <userver/components/fs_cache.hpp>
 #include <userver/dynamic_config/source.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/fs/fs_cache_client.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 
@@ -24,6 +25,8 @@ namespace server::handlers {
 /// @endcode
 /// the `handler-static` with `path: /handler-static-path/*` on request to `/handler-static-path/some/file.html`
 /// would return file at path `/fs-cache-main-path/some/file.html`.
+///
+/// Files larger than @ref components::FsCache `max-size-to-cache` are streamed from disk.
 ///
 /// ## HttpHandlerStatic Dynamic config
 /// * @ref USERVER_FILES_CONTENT_TYPE_MAP
@@ -55,16 +58,24 @@ public:
 
     HttpHandlerStatic(const components::ComponentConfig& config, const components::ComponentContext& context);
 
-    std::string HandleRequestThrow(const http::HttpRequest& request, request::RequestContext&) const override;
+    void HandleMaybeStreamRequest(http::HttpRequest& request, request::RequestContext& context) const override;
 
     static yaml_config::Schema GetStaticConfigSchema();
 
 private:
+    struct ResolvedFile {
+        fs::FileInfoWithDataConstPtr file;
+        bool is_not_found{false};
+    };
+
+    ResolvedFile ResolveFile(const http::HttpRequest& request) const;
+
     dynamic_config::Source config_;
     const fs::FsCacheClient& storage_;
     const std::chrono::seconds cache_age_;
     const std::string directory_file_;
     const std::string not_found_file_;
+    engine::TaskProcessor& fs_task_processor_;
 };
 
 }  // namespace server::handlers

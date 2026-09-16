@@ -11,7 +11,18 @@ if (BINDIR / '..' / 'chaotic' / 'main.py').exists():
 else:
     sys.path.append(str(BINDIR.parent / 'lib' / 'userver'))
 
-from chaotic.compilers import dynamic_config  # noqa: E402
+
+def make_compiler():
+    try:
+        from util.dynamic_configs import dynamic_configs as taxi_dynamic_config
+    except ModuleNotFoundError as error:
+        if error.name not in {'util', 'util.dynamic_configs'}:
+            raise
+        from chaotic.compilers import dynamic_config
+
+        return dynamic_config.Compiler(strict_parsing_default=False)
+
+    return taxi_dynamic_config.Compiler(strict_parsing_default=False)
 
 
 def parse_args() -> argparse.Namespace:
@@ -58,7 +69,7 @@ def parse_args() -> argparse.Namespace:
 def main():
     args = parse_args()
     for file in args.file:
-        compiler = dynamic_config.Compiler(strict_parsing_default=False)
+        compiler = make_compiler()
         name = pathlib.Path(file).stem
         compiler.parse_variable(
             file,

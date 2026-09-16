@@ -4,6 +4,7 @@
 /// @brief @copybrief concurrent::AsyncEventChannel
 
 #include <functional>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <typeindex>
@@ -19,6 +20,7 @@
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
+#include <userver/utils/resource_scopes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -32,8 +34,6 @@ void WaitForTask(std::string_view name, engine::TaskWithResult<void>& task);
 
 void ReportNotSubscribed(std::string_view channel_name) noexcept;
 
-void ReportUnsubscribingAutomatically(std::string_view channel_name, std::string_view listener_name) noexcept;
-
 void ReportErrorWhileUnsubscribing(
     std::string_view channel_name,
     std::string_view listener_name,
@@ -44,11 +44,10 @@ std::string MakeAsyncChannelName(std::string_view base, std::string_view name);
 
 inline constexpr bool kCheckSubscriptionUB = utils::impl::kEnableAssert;
 
-// During the `AsyncEventSubscriberScope::Unsubscribe` call or destruction of
-// `AsyncEventSubscriberScope`, all variables used by callback must be valid
-// (must not be destroyed). A common cause of crashes in this place: there is no
-// manual call to `Unsubscribe`. In this case check the declaration order of the
-// struct fields.
+// During `AsyncEventSubscriberScope::Unsubscribe` or automatic teardown
+// (scope destructor / ResourceScopeStorage::BeforeDestruction), all variables
+// used by the callback must still be valid. A common cause of crashes here:
+// the subscription is removed after the captured data is destroyed.
 template <typename Func>
 void CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing(
     std::function<void(const Func&)>& on_listener_removal,
@@ -75,7 +74,7 @@ void CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing(
 /// processing, same listener is never called concurrently.
 ///
 /// Example usage:
-/// @snippet concurrent/async_event_channel_test.cpp  AsyncEventChannel sample
+/// @snippet core/src/concurrent/async_event_channel_test.cpp  AsyncEventChannel sample
 template <typename... Args>
 class AsyncEventChannel : public AsyncEventSource<Args...> {
 public:
@@ -91,9 +90,10 @@ public:
 
     /// @brief The constructor with `AsyncEventSubscriberScope` usage checking.
     ///
-    /// The constructor with a callback that is called on listener removal. The
-    /// callback takes a reference to `Function` as input. This is useful for
-    /// checking the lifetime of data captured by the listener update function.
+    /// The constructor with a callback that is called on listener removal,
+    /// both on `Unsubscribe` and on automatic teardown. The callback takes a
+    /// reference to `Function` as input. This is useful for checking the lifetime
+    /// of data captured by the listener update function.
     ///
     /// @note Works only in debug mode.
     ///
@@ -101,7 +101,7 @@ public:
     /// until the `AsyncEventChannel` object is completely destroyed.
     ///
     /// Example usage:
-    /// @snippet concurrent/async_event_channel_test.cpp OnListenerRemoval sample
+    /// @snippet core/src/concurrent/async_event_channel_test.cpp OnListenerRemoval sample
     ///
     /// @param name used for diagnostic purposes and is also accessible with Name
     /// @param on_listener_removal the callback used for check
@@ -144,6 +144,69 @@ public:
         UpdaterFunc&& updater
     ) {
         return DoUpdateAndListen(
+            FunctionId(obj),
+            name,
+            [obj, func](Args... args) { (obj->*func)(args...); },
+            std::forward<UpdaterFunc>(updater)
+        );
+    }
+
+    /// @brief Like @ref DoUpdateAndListen, but binds the subscription to @a scopes.
+    ///
+    /// Synchronously calls @a updater and subscribes with a stub that only records whether an event arrived during
+    /// construction. When the scope is entered, @a updater is called again if an event was skipped, and the stub is
+    /// replaced with @a func. Unsubscribe runs in @ref utils::ResourceScopeStorage::BeforeDestruction.
+    ///
+    /// @warning @a updater is not only invoked inline. It is stored and may run again after this call returns,
+    /// when the scope is entered. Do not capture locals by reference: copy the pointers and values the updater
+    /// needs (for example @c obj and @c func) and capture @c this explicitly.
+    template <typename UpdaterFunc>
+    void DoUpdateAndListenScoped(
+        utils::ResourceScopeStorage& scopes,
+        FunctionId id,
+        std::string_view name,
+        Function&& func,
+        UpdaterFunc&& updater
+    ) {
+        auto state = std::make_unique<ResourceScopeState>();
+
+        {
+            const std::shared_lock lock(event_mutex_);
+            updater();
+            state->scope = DoAddListener(id, name, [&state_ref = *state](Args...) { state_ref.event_skipped = true; });
+            auto data = data_.Lock();
+            state->listener = data->listeners.at(id);
+        }
+
+        // The first callback runs synchronously in the constructor, so the subscription
+        // lifetime must be longer than that of other scope types.
+        constexpr utils::ResourceScopeStorage::Priority kPriority{-1};
+        scopes.Register(
+            utils::impl::InternalTag{},
+            kPriority,
+            [state = std::move(state), func = std::move(func), updater = std::forward<UpdaterFunc>(updater)]() mutable {
+                const std::shared_lock sema_lock(state->listener->sema);
+                // listener callback cannot run in parallel here.
+                if (state->event_skipped) {
+                    updater();
+                }
+                state->listener->callback = std::move(func);
+                return std::move(state->scope);
+            }
+        );
+    }
+
+    /// @overload
+    template <typename Class, typename UpdaterFunc>
+    void DoUpdateAndListenScoped(
+        utils::ResourceScopeStorage& scopes,
+        Class* obj,
+        std::string_view name,
+        void (Class::*func)(Args...),
+        UpdaterFunc&& updater
+    ) {
+        DoUpdateAndListenScoped(
+            scopes,
             FunctionId(obj),
             name,
             [obj, func](Args... args) { (obj->*func)(args...); },
@@ -212,7 +275,7 @@ private:
         mutable engine::Semaphore sema;
 
         std::string name;
-        Function callback;
+        mutable Function callback;
         std::string task_name;
 
         Listener(std::string name, Function callback, std::string task_name)
@@ -223,12 +286,19 @@ private:
         {}
     };
 
+    struct ResourceScopeState {
+        bool event_skipped{false};
+        std::shared_ptr<const Listener> listener;
+        // Must be the last field: while the subscription is alive, the fields above remain valid for the stub callback.
+        AsyncEventSubscriberScope scope;
+    };
+
     struct ListenersData final {
         std::unordered_map<FunctionId, std::shared_ptr<const Listener>, FunctionId::Hash> listeners;
         OnRemoveCallback on_listener_removal;
     };
 
-    void RemoveListener(FunctionId id, UnsubscribingKind kind) noexcept final {
+    void RemoveListener(FunctionId id, [[maybe_unused]] UnsubscribingKind kind) noexcept final {
         const engine::TaskCancellationBlocker blocker;
         const std::shared_lock lock(event_mutex_);
         std::shared_ptr<const Listener> listener;
@@ -257,20 +327,14 @@ private:
         // Unlock data_ here to be able to (un)subscribe to *this in listener->callback (in debug)
         // without deadlock
 
-        if (kind == UnsubscribingKind::kAutomatic) {
-            if (!on_listener_removal) {
-                impl::ReportUnsubscribingAutomatically(name_, listener->name);
-            }
-
-            if constexpr (impl::kCheckSubscriptionUB) {
-                // Fake listener call to check
-                impl::CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing(
-                    on_listener_removal,
-                    listener->callback,
-                    name_,
-                    listener->name
-                );
-            }
+        if constexpr (impl::kCheckSubscriptionUB) {
+            // Fake listener call to check
+            impl::CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnsubscribing(
+                on_listener_removal,
+                listener->callback,
+                name_,
+                listener->name
+            );
         }
     }
 

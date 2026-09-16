@@ -39,12 +39,23 @@ endif()
 
 include(DownloadUsingCPM)
 
+if(USERVER_INSTALL)
+    message(
+        FATAL_ERROR
+            "userver-kafka cannot be built with USERVER_INSTALL=ON: librdkafka was "
+            "not found as a system package and would be downloaded via CPM, which "
+            "cannot be added to a CMake install export set.\n"
+            "Install a system librdkafka (so find_package(RdKafka) succeeds), or "
+            "disable this component for install builds: -DUSERVER_FEATURE_KAFKA=OFF."
+    )
+endif()
+
 message(STATUS "Downloading librdkafka v${USERVER_KAFKA_VERSION}")
 cpmaddpackage(
     NAME RdKafka
-    GITHUB_REPOSITORY confluentinc/librdkafka
-    GIT_SHALLOW TRUE
     VERSION ${USERVER_KAFKA_VERSION}
+    URL https://github.com/confluentinc/librdkafka/archive/v${USERVER_KAFKA_VERSION}.tar.gz
+    URL_HASH SHA256=3dc62de731fd516dfb1032861d9a580d4d0b5b0856beb0f185d06df8e6c26259
     OPTIONS "RDKAFKA_BUILD_STATIC ON"
             "RDKAFKA_BUILD_EXAMPLES OFF"
             "RDKAFKA_BUILD_TESTS OFF"
@@ -55,6 +66,9 @@ cpmaddpackage(
             "WITH_ZSTD ON"
             "WITH_LIBDL OFF"
             "ENABLE_LZ4_EXT ON"
+            # RdKafka PUBLIC-links LZ4::LZ4 (CPM lz4_static); skip install so
+            # install(EXPORT RdKafkaTargets) does not require exporting lz4_static.
+            "CMAKE_SKIP_INSTALL_RULES ON"
 )
 
 set(KAFKA_CPM TRUE)

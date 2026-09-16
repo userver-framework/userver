@@ -44,9 +44,8 @@ include(DownloadUsingCPM)
 cpmaddpackage(
     NAME googletest
     VERSION 1.14.0
-    GIT_TAG v1.14.0
-    GITHUB_REPOSITORY google/googletest
-    GIT_SHALLOW TRUE
+    URL https://github.com/google/googletest/archive/v1.14.0.tar.gz
+    URL_HASH SHA256=8ad598c73ad796e0d8280b082cebd82a630d73e73cd3c70057938a6501bba5d7
     OPTIONS "INSTALL_GTEST OFF"
 )
 

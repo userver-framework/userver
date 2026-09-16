@@ -19,8 +19,8 @@ GET /service/log-level/
 PUT /service/log-level/{level} (possible values {level}: trace, debug, info, warning, error, critical, none)
 PUT /service/log-level/reset
 ```
-Note that the server::handlers::LogLevel handler lives at the separate
-`components.server.listener-monitor` port, so you have to request them using the
+Note that the server::handlers::LogLevel handler lives on the separate
+`components.server.listener-monitor` port, so you have to request it using the
 `listener-monitor` credentials. See @ref scripts/docs/en/userver/tutorial/production_service.md
 for more info on configuration and ideas on how to change the
 `/service/log-level/` handle path.
@@ -56,8 +56,8 @@ GET /service/log-level/?logger={logger}
 PUT /service/log-level/{level}?logger={logger} (possible values {level}: trace, debug, info, warning, error, critical, none)
 PUT /service/log-level/reset?logger={logger}
 ```
-Note that the server::handlers::LogLevel handler lives at the separate
-`components.server.listener-monitor` port, so you have to request them using the
+Note that the server::handlers::LogLevel handler lives on the separate
+`components.server.listener-monitor` port, so you have to request it using the
 `listener-monitor` credentials. See @ref scripts/docs/en/userver/tutorial/production_service.md
 for more info on configuration.
 
@@ -99,8 +99,8 @@ PUT /service/log/dynamic-debug?location=LOCATION_FROM_GET
 DELETE /service/log/dynamic-debug?location=LOCATION_FROM_GET
 ```
 
-Note that the server::handlers::DynamicDebugLog handler lives at the separate
-`components.server.listener-monitor` port, so you have to request them using the
+Note that the server::handlers::DynamicDebugLog handler lives on the separate
+`components.server.listener-monitor` port, so you have to request it using the
 `listener-monitor` credentials. See @ref scripts/docs/en/userver/tutorial/production_service.md
 for more info on configuration and ideas on how to change the
 `/service/log/dynamic-debug` handle path.

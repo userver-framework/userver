@@ -103,7 +103,7 @@ public:
     {}
 
     void WriteHttpResponse() {
-        auto data = response_.ExtractData();
+        const auto& data = response_.GetData();
 
         bool buffered_h1_stream = false;
         if (response_.IsBodyStreamed() && response_.body_stream_.has_value()) {
@@ -142,7 +142,7 @@ public:
         if (response_.request_.GetMethod() != HttpMethod::kHead && !is_body_forbidden) {
             if (!stream.IsStreaming()) {
                 bytes += data.size();
-                stream.PushChunk(std::move(data));
+                stream.PushChunk(response_.ExtractData());
             }
             provider = stream.GetNativeProvider();
         }
@@ -157,7 +157,7 @@ public:
         }
 
         http2_session_.WriteWhileWant();
-        response_.SetSent(bytes, std::chrono::steady_clock::now());
+        response_.SetSent(bytes);
     }
 
 private:

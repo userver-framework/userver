@@ -69,7 +69,7 @@
 ///
 /// ## Static configuration example:
 /// Here's an example of the full config for the server::handlers::Ping handle.
-/// @snippet components/common_server_component_list_test.cpp  Sample handler ping component config
+/// @snippet core/src/components/common_server_component_list_test.cpp  Sample handler ping component config
 ///
 /// ----------
 ///

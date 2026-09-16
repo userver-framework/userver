@@ -60,7 +60,7 @@ To mock the S3 in testsuite adjust path to the S3 mocked URL in static service c
 @include samples/s3api/testsuite/conftest.py
 
 Changes from the service would be visible in the
-@ref pytest_userver.s3api.s3_mock_storage "s3_mock_storage":
+@ref pytest_userver.plugins.s3api._s3_mock_storage "s3_mock_storage":
 
 @snippet samples/s3api/testsuite/test_s3.py  s3 mock
 
@@ -69,7 +69,7 @@ To fill the mocked S3 with data either a `@pytest.mark.s3` can be used with the
 
 @snippet samples/s3api/testsuite/test_s3.py  s3 mark
 
-or it can be done directly via the @ref pytest_userver.s3api.s3_mock_storage "s3_mock_storage"
+or it can be done directly via the @ref pytest_userver.plugins.s3api._s3_mock_storage "s3_mock_storage"
 and @ref pytest_userver.plugins.service_client.service_client "service_client" fixtures.
 
 

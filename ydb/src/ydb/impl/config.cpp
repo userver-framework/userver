@@ -3,7 +3,6 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/parse/common_containers.hpp>
-#include <userver/utils/retry_budget.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
 #include <ydb/impl/secdist.hpp>
@@ -70,6 +69,7 @@ DriverSettings ParseDriverSettings(
 
     result.prefer_local_dc = dbconfig["prefer_local_dc"].As<bool>(result.prefer_local_dc);
     result.network_threads_num = dbconfig["network-threads-num"].As<std::optional<std::size_t>>();
+    result.client_threads_num = dbconfig["client-threads-num"].As<std::optional<std::size_t>>();
 
     if (!dbconfig["tcp-keepalive"].IsMissing()) {
         const auto tcp = dbconfig["tcp-keepalive"];
@@ -98,11 +98,6 @@ DriverSettings ParseDriverSettings(
 
     return result;
 }
-
-const dynamic_config::Key<std::unordered_map<std::string, utils::RetryBudgetSettings>> kRetryBudgetSettings(
-    "YDB_RETRY_BUDGET",
-    dynamic_config::DefaultAsJsonString("{}")
-);
 
 }  // namespace ydb::impl
 

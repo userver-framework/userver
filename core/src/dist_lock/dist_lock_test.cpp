@@ -381,7 +381,7 @@ UTEST_MT(LockedTask, Fail, 3) {
     EXPECT_TRUE(work.WaitForLocked(true, kAttemptTimeout));
     locked_task.WaitFor(settings.prolong_interval + kAttemptTimeout);
     EXPECT_FALSE(locked_task.IsFinished());
-    EXPECT_TRUE(work.WaitForLocked(true, kAttemptTimeout));
+    EXPECT_TRUE(work.WaitForLocked(true, utest::kMaxTestWaitTime));
     EXPECT_TRUE(work.WaitForLocked(false, utest::kMaxTestWaitTime));
 
     EXPECT_LE(1U, work.GetStartedWorkCount());

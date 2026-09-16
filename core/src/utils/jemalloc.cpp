@@ -64,6 +64,8 @@ std::error_code ProfDeactivate() { return MallCtl<bool>("prof.active", false); }
 
 std::error_code ProfDump() { return MallCtl("prof.dump"); }
 
+std::error_code ProfDumpTo(utils::zstring_view path) { return MallCtl<const char*>("prof.dump", path.c_str()); }
+
 std::error_code SetMaxBgThreads(size_t max_bg_threads) {
     return MallCtl<size_t>("max_background_threads", max_bg_threads);
 }

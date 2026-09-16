@@ -52,6 +52,7 @@ struct DriverSettings {
     std::string database;
 
     std::optional<std::size_t> network_threads_num{};
+    std::optional<std::size_t> client_threads_num{};
 
     std::optional<TcpKeepaliveSettings> tcp_keepalive{};
 

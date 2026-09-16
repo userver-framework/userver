@@ -76,7 +76,7 @@ namespace components {
 ///
 /// Advanced configuration showing options for access logs and a custom opentracing logger:
 ///
-/// @snippet components/common_component_list_test.cpp Sample logging component config
+/// @snippet core/src/components/common_component_list_test.cpp Sample logging component config
 
 // clang-format on
 

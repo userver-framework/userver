@@ -20,6 +20,7 @@
 #include <userver/storages/mongo/pool_config.hpp>
 #include <userver/storages/secdist/provider_component.hpp>
 #include <userver/storages/secdist/secdist.hpp>
+#include <userver/utils/resource_scopes.hpp>
 #include <userver/utils/string_literal.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -86,7 +87,8 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
     EXPECT_EQ(storage.updates_counter.load(), 1);
 
     const auto dynamic_config = MakeDynamicConfig();
-    mongo::MultiMongo multi_mongo(
+    utils::WithResourceScopes<mongo::MultiMongo> multi_mongo(
+        std::in_place,
         "userver_multimongo_test",
         secdist,
         MakeTestPoolConfig(),
@@ -94,8 +96,8 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
         dynamic_config.GetSource()
     );
 
-    UEXPECT_THROW(multi_mongo.AddPool("admin"), storages::mongo::InvalidConfigException);
-    UEXPECT_THROW(multi_mongo.GetPool("admin"), storages::mongo::PoolNotFoundException);
+    UEXPECT_THROW(multi_mongo->AddPool("admin"), storages::mongo::InvalidConfigException);
+    UEXPECT_THROW(multi_mongo->GetPool("admin"), storages::mongo::PoolNotFoundException);
 
     fs::blocking::RewriteFileContents(
         temp_file.GetPath(),
@@ -105,8 +107,8 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
     storage.file_updated.Send();
     EXPECT_TRUE(storage.updated_twice.WaitForEventFor(utest::kMaxTestWaitTime));
 
-    UEXPECT_NO_THROW(multi_mongo.AddPool("admin"));
-    auto admin_pool = multi_mongo.GetPool("admin");
+    UEXPECT_NO_THROW(multi_mongo->AddPool("admin"));
+    auto admin_pool = multi_mongo->GetPool("admin");
 
     static constexpr utils::StringLiteral kSysVerCollName = "system.version";
 

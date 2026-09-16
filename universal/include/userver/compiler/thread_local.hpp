@@ -84,12 +84,12 @@ private:
 ///
 /// `ThreadLocal` should be passed a factory function that constructs the variable. Example usage:
 ///
-/// @snippet compiler/thread_local_test.cpp  sample definition
-/// @snippet compiler/thread_local_test.cpp  sample
+/// @snippet universal/src/compiler/thread_local_test.cpp  sample definition
+/// @snippet universal/src/compiler/thread_local_test.cpp  sample
 ///
 /// An example with slightly more complex initialization for the variable:
 ///
-/// @snippet compiler/thread_local_test.cpp  sample factory
+/// @snippet universal/src/compiler/thread_local_test.cpp  sample factory
 ///
 /// Once acquired through @a Use, the reference to the thread-local variable
 /// should not be returned or otherwise escape the scope

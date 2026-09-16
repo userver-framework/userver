@@ -22,7 +22,7 @@ You can find a detailed manual for configuring how logs are written in @ref comp
 
 Macros are used for logging:
 
-@snippet logging/log_test.cpp Sample logging usage
+@snippet core/src/logging/log_test.cpp Sample logging usage
 
 The right part of the expression is calculated only if the logging level is less or equal to the macro log level.
 I.e., the right part of the expression `LOG_DEBUG() << ...` is calculated only in the case of the `DEBUG`
@@ -30,7 +30,7 @@ or `TRACE` logging level.
 
 Sometimes it is useful to set the logging level of a given log entry dynamically:
 
-@snippet logging/log_test.cpp Example set custom logging usage
+@snippet core/src/logging/log_test.cpp Example set custom logging usage
 
 ### Guidelines for choosing log level
 
@@ -108,6 +108,26 @@ For per-handle limiting of the request body or response data logging you can use
 server::handlers::HttpHandlerBase::GetRequestBodyForLogging and
 server::handlers::HttpHandlerBase::GetResponseDataForLogging functions.
 
+The limits can be reduced at runtime for individual handlers using the
+@ref USERVER_HTTP_SERVER_LOGS dynamic config. It maps an exact handler path to request and
+response body limits in bytes:
+
+```json
+{
+  "/v1/orders/{order_id}": {
+    "request_body_size_log_limit": 1024,
+    "response_body_size_log_limit": 2048
+  }
+}
+```
+
+The key is the handler path as written in the static config, with path parameters in their raw form
+(`/v1/orders/{order_id}`, not `/v1/orders/42`); query parameters are not included. A path that matches no handler
+of the service is reported at config update via a warning in the logs and the `invalid_request_path` alert.
+
+A dynamic value of `0` disables logging of the corresponding body. Handlers not listed in the config continue using
+their static limits.
+
 ### Limiting the log frequency
 
 If some line of code generates too many logs and a small number of them is enough, then `LOG_*` should be
@@ -169,11 +189,11 @@ LOG_LIMITED_WARNING_TO(logger, <format-string>, <args>...);
 **Basic Usage**
 Instead of:
 
-@snippet logging/log_test.cpp Example format bad logging usage
+@snippet core/src/logging/log_test.cpp Example format bad logging usage
 
 Use:
 
-@snippet logging/log_test.cpp Example format-based logging usage
+@snippet core/src/logging/log_test.cpp Example format-based logging usage
 
 This writes the formatted message directly to the log buffer.
 
@@ -231,7 +251,7 @@ LOG_INFO() << [<capture>](auto& out) {
 
 #### Examples
 
-@snippet logging/log_test.cpp Example lambda-based logging usage
+@snippet core/src/logging/log_test.cpp Example lambda-based logging usage
 
 **Logging Container Element Fields**
 
@@ -246,7 +266,7 @@ LOG_INFO() << ss.str();
 
 Use:
 
-@snippet logging/log_test.cpp Example Logging Container Element Fields
+@snippet core/src/logging/log_test.cpp Example Logging Container Element Fields
 
 This streams the foo and bar fields of each item in the list directly to the log buffer.
 
@@ -259,7 +279,7 @@ Output example (for list = {{foo=1, bar="x"}, {foo=2, bar="y"}}):
 
 You can include additional formatting logic in the lambda, such as delimiters or conditional formatting:
 
-@snippet logging/log_test.cpp Example Adding Custom Formatting
+@snippet core/src/logging/log_test.cpp Example Adding Custom Formatting
 
 Output example (for list = {{foo=1, bar="x"}, {foo=2, bar="y"}}):
 ```
@@ -272,7 +292,7 @@ Items: 1:x; 2:y
 
 For more complex data, the lambda can handle nested structures:
 
-@snippet logging/log_test.cpp Example Logging Nested Structures
+@snippet core/src/logging/log_test.cpp Example Logging Nested Structures
 
 Output example (for list = {{foo=1, bar="x"}, {foo=2, bar="y"}}):
 ```
@@ -293,7 +313,7 @@ default container streaming.
 If you want to add tags to as single log record, then you can create an object of type `logging::LogExtra`, add the
 necessary tags to it and output the `LogExtra` object to the log:
 
-@snippet logging/log_extra_test.cpp Example using LogExtra
+@snippet core/src/logging/log_extra_test.cpp Example using LogExtra
 
 If the same fields must be added to each log in a code block, it is recommended
 to use `tracing::Span`, which implicitly adds tags to the log.
@@ -303,7 +323,7 @@ to use `tracing::Span`, which implicitly adds tags to the log.
 Sometimes it is useful to write a full stacktrace to the log. Typical use case is for logging a "never should happen
 happened" situation. Use logging::LogExtra::Stacktrace() for such cases:
 
-@snippet logging/log_extra_test.cpp Example using stacktrace in log
+@snippet core/src/logging/log_extra_test.cpp Example using stacktrace in log
 
 Important: getting a text representation of a stacktrace is an **expensive operation**. In addition, the stacktrace
 itself increases the log record size several times. Therefore, you do not need to use a stack trace for all errors. Use
@@ -380,7 +400,7 @@ whose objects can be passed between tasks is not supported.
 In addition to `trace_id`, `span_id`, `parent_id` and other tags specific to opentracing, the `tracing::Span` class can
 store arbitrary custom tags. To do this, Span implicitly contains LogExtra. You can add tags like this:
 
-@snippet tracing/span_test.cpp Example using Span tracing
+@snippet core/src/tracing/span_test.cpp Example using Span tracing
 
 Unlike simple `LogExtra`, tags from `Span` are automatically logged when using `LOG_XXX()`. If you create a `Span`, and
 you already have a `Span`, then `LogExtra` is copied from the old one to the new one (except for the tags added via
@@ -403,7 +423,7 @@ to them (trace_id, span_id, etc.). All `Span` in the current task are implicitly
 similar `Span`, the last created One (i.e., located at the top of the `Span` stack of the current task) will be used for
 logging.
 
-@snippet tracing/span_test.cpp Example span hierarchy
+@snippet core/src/tracing/span_test.cpp Example span hierarchy
 
 If you want to get the current `Span` (for example, you want to write something to `LogExtra`, but do not want to create
 an additional `Span`), then you can use the following approach:
@@ -487,7 +507,7 @@ After the service start you'll see the following in stderr:
 
 It means the logger is successfully initialized and is ready to process the logs.
 
-If somethings goes wrong (e.g. OTLP collector agent is not available), you'll see errors in stderr.
+If something goes wrong (e.g. OTLP collector agent is not available), you'll see errors in stderr.
 The service buffers not-yet-sent logs and traces in memory, but drops them on overflow.
 
 ### Separate Sinks for Logs and Tracing

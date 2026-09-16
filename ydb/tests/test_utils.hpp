@@ -4,7 +4,6 @@
 #include <ydb-cpp-sdk/client/topic/client.h>
 
 #include <userver/dynamic_config/test_helpers.hpp>
-#include <userver/engine/task/current_task.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/enumerate.hpp>
 #include <userver/utils/statistics/storage.hpp>
@@ -81,8 +80,7 @@ protected:
             kMaxYdbBootTimeout,                     // get_session_timeout_ms
         };
 
-        driver_ = std::make_shared<
-            ydb::impl::Driver>(database, driver_settings, engine::current_task::GetTaskProcessor());
+        driver_ = std::make_shared<ydb::impl::Driver>(database, driver_settings);
 
         table_client_ = std::make_shared<
             ydb::TableClient>(table_settings, query_params, dynamic_config::GetDefaultSource(), driver_);

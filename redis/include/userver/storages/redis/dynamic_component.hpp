@@ -100,7 +100,6 @@ private:
     storages::redis::DynamicRedis dynamic_redis_;
     testsuite::RedisControl testsuite_redis_control_;
     dynamic_config::Source config_;
-    concurrent::AsyncEventSubscriberScope config_subscription_;
 
     rcu::Variable<storages::redis::MetricsSettings> metrics_settings_;
 };

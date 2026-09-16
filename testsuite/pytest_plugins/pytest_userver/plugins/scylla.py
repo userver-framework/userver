@@ -109,7 +109,11 @@ def _scylla_tcp_ready(scylla_connection_info, scylla_wait_timeout) -> None:
 
 @pytest.fixture
 def scylla(_scylla_tcp_ready, scylla_connection_info) -> ConnectionInfo:
-    """@ingroup userver_testsuite_fixtures"""
+    """
+    ScyllaDB connection info for the test.
+
+    @ingroup userver_testsuite_fixtures
+    """
     return scylla_connection_info
 
 

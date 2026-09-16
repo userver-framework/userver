@@ -1,0 +1,6 @@
+project-name: userver-sqs
+project-alt-names:
+  - yandex-userver-sqs
+maintainers:
+  - Common components
+description: Amazon SQS JSON client for YDB/YMQ using userver HTTP

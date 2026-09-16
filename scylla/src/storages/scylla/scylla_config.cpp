@@ -1,5 +1,7 @@
 #include <storages/scylla/scylla_config.hpp>
 
+#include <dynamic_config/variables/SCYLLA_DEFAULT_COMMAND_CONTROL.hpp>
+
 #include <userver/dynamic_config/value.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/algo.hpp>
@@ -79,6 +81,7 @@ CommandControl Parse(const formats::json::Value& value, formats::parse::To<Comma
 const dynamic_config::Key<utils::DefaultDict<CommandControl>> kScyllaDefaultCommandControl{
     "SCYLLA_DEFAULT_COMMAND_CONTROL",
     dynamic_config::DefaultAsJsonString{"{}"},
+    ::dynamic_config::scylla_default_command_control::GetSchemaHash(),
 };
 
 }  // namespace storages::scylla

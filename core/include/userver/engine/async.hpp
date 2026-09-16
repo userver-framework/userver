@@ -22,7 +22,7 @@ namespace engine {
 ///
 /// @warning To hide a spammy span from traces, use @ref utils::AsyncHideSpan instead.
 /// Logs will then be linked to the nearest span that is written out.
-/// For complex cases, use @ref engine::TaskBuilder with @ref engine::TaskBuilder::HideSpan.
+/// For complex cases, use @ref utils::TaskBuilder with @ref utils::TaskBuilder::HideSpan.
 ///
 /// @warning Some clients may call tracing::Span::CurrentSpan unconditionally, so don't be too surprised
 /// if they won't work without a span scope. Do write tests.
@@ -34,7 +34,7 @@ namespace engine {
 /// * breaking traces e.g. this is (rarely) wanted for some background tasks.
 ///
 /// @see @ref utils::Async for main documentation on `Async` function family.
-/// @see @ref engine::TaskBuilder for more `Async` variants.
+/// @see @ref utils::TaskBuilder for more `Async` variants.
 template <typename Function, typename... Args>
 [[nodiscard]] auto AsyncNoTracing(TaskProcessor& task_processor, Function&& f, Args&&... args) {
     return impl::MakeTaskWithResult<TaskWithResult>(

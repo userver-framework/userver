@@ -68,14 +68,14 @@ components_manager:
                     min_pool_size: 5
         # /// [YDB topic writer service sample - static config ydb]
 
-        # /// [YDB topic writer service sample - static config topic writer]
+        # /// [topic writer static config]
         # yaml
         ydb-topic-writer:
             topics:
                 messages:
                     topic: messages
                     database: sampledb
-        # /// [YDB topic writer service sample - static config topic writer]
+        # /// [topic writer static config]
 
         # /// [YDB topic writer service sample - static config handler]
         # yaml

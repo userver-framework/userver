@@ -26,6 +26,12 @@ enum class HsetexReply : std::int8_t {
     kFieldsSet = 1,        ///< Fields written
 };
 
+/// @brief Result of MSETEX.
+enum class MsetexReply : std::int8_t {
+    kConditionNotMet = 0,  ///< NX/XX condition failed; no keys written
+    kKeysSet = 1,          ///< Keys written
+};
+
 struct Point {
     double lon;
     double lat;

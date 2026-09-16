@@ -201,30 +201,42 @@ void ConnectionPool::Init(InitMode mode) {
         throw InvalidConfig("PostgreSQL pool max size is less than requested initial size");
     }
 
+    WarmUp(mode);
+
+    if (conn_settings_.ReadCopy().user_types == ConnectionSettings::kUserTypesEnforced) {
+        CheckUserTypes();
+    }
+
+    StartMaintainTask();
+}
+
+void ConnectionPool::WarmUp(InitMode mode) {
+    const auto settings = settings_.Read();
+    const auto current_size = size_semaphore_.UsedApprox();
+    if (current_size >= settings->min_size) {
+        return;
+    }
+
+    const auto connections_to_create = settings->min_size - current_size;
     LOG_INFO()
         << (mode == InitMode::kAsync ? "Asynchronously" : "Synchronously")
-        << " initializing PostgreSQL connection pool, creating up to " << settings->min_size << " connections to "
-        << DsnCutPassword(dsn_);
+        << " warming up PostgreSQL connection pool, creating up to " << connections_to_create << " connections to "
+        << DsnCutPassword(dsn_) << " to reach min_size " << settings->min_size;
 
     std::vector<engine::TaskWithResult<bool>> tasks;
-    tasks.reserve(settings->min_size);
+    tasks.reserve(connections_to_create);
     const auto conn_settings = conn_settings_.ReadCopy();
-    for (std::size_t i = 0; i < settings->min_size; ++i) {
+    for (std::size_t i = 0; i < connections_to_create; ++i) {
         tasks.push_back(
             Connect(engine::SemaphoreLock{size_semaphore_, std::try_to_lock}, ConnectionSettings{conn_settings})
         );
-    }
-
-    if (conn_settings.user_types == ConnectionSettings::kUserTypesEnforced) {
-        CheckUserTypes();
     }
 
     if (mode == InitMode::kAsync) {
         for (auto& task : tasks) {
             connect_task_storage_.Detach(std::move(task));
         }
-        LOG_INFO() << "Pool initialization is ongoing";
-        StartMaintainTask();
+        LOG_INFO() << "Pool warm-up is ongoing";
         return;
     }
 
@@ -243,24 +255,21 @@ void ConnectionPool::Init(InitMode mode) {
     const auto connections_count = size_semaphore_.UsedApprox();
     if (connections_count < settings->min_size) {
         LOG_WARNING()
-            << "Pool is poorly initialized, " << settings->min_size - connections_count
+            << "Pool warm-up is incomplete, " << settings->min_size - connections_count
             << " connections have not been opened, " << connections_count << " connections are ready to use";
     } else {
-        LOG_INFO() << "Pool initialized, " << connections_count << " connections are ready to use";
+        LOG_INFO() << "Pool warm-up completed, " << connections_count << " connections are ready to use";
     }
-
-    StartMaintainTask();
 }
 
 ConnectionPtr ConnectionPool::Acquire(engine::Deadline deadline) {
     // Obtain smart pointer first to prolong lifetime of this object
     auto shared_this = shared_from_this();
 
-    auto config = GetConfigSource().GetSnapshot();
-    CheckDeadlineIsExpired(config);
+    CheckDeadlineIsExpired();
     ConnectionPtr connection{Pop(deadline), std::move(shared_this)};
     ++stats_.connection.used;
-    CheckDeadlineIsExpired(config);
+    CheckDeadlineIsExpired();
 
     return connection;
 }
@@ -386,17 +395,18 @@ void ConnectionPool::SetSettings(const PoolSettings& settings) {
         max_connections = cc_max_connections;
     }
 
-    auto reader = settings_.Read();
-    if (*reader == settings) {
+    const auto old_settings = settings_.ReadCopy();
+    if (old_settings == settings) {
         return;
     }
-    if (reader->max_size != max_connections) {
+    if (old_settings.max_size != max_connections) {
         size_semaphore_.SetCapacity(max_connections);
+        cancel_limit_.SetMaxSize(std::max(std::size_t{1}, max_connections / kCancelRatio));
     }
-    if (reader->connecting_limit != settings.connecting_limit) {
+    if (old_settings.connecting_limit != settings.connecting_limit) {
         connecting_semaphore_.SetCapacity(settings.connecting_limit ? settings.connecting_limit : kUnlimitedConnecting);
     }
-    if (reader->connecting_interval_ms != settings.connecting_interval_ms) {
+    if (old_settings.connecting_interval_ms != settings.connecting_interval_ms) {
         connecting_rate_limiter_.SetRefillPolicy(MakeConnectingRateLimiterRefillPolicy(settings.connecting_interval_ms)
         );
     }
@@ -405,6 +415,10 @@ void ConnectionPool::SetSettings(const PoolSettings& settings) {
     *writer = settings;
     writer->max_size = max_connections;
     writer.Commit();
+
+    if (old_settings.min_size < settings.min_size) {
+        WarmUp(InitMode::kAsync);
+    }
 }
 
 void ConnectionPool::SetConnectionSettings(const ConnectionSettings& settings) {
@@ -503,9 +517,7 @@ void ConnectionPool::TryCreateConnectionAsync() {
     // check it only if we can start a new connection.
     const auto recent_errors = recent_conn_errors_.GetStatsForPeriod(kRecentErrorPeriod, true);
     if (recent_errors < conn_settings.recent_errors_threshold) {
-        if (recent_errors > 0 && !connecting_rate_limiter_.Obtain() &&
-            USERVER_NAMESPACE::utils::impl::kPgConnectingRateLimitExperiment.IsEnabled())
-        {
+        if (recent_errors > 0 && !connecting_rate_limiter_.Obtain()) {
             ++stats_.connection.rate_limit_throttled;
             LOG_LIMITED_WARNING()
                 << "Connection rate limit exceeded, skipping new connection attempt"
@@ -727,9 +739,12 @@ void ConnectionPool::MaintainConnections() {
     LOG_DEBUG() << "Ping connection pool " << DsnCutPassword(dsn_);
     auto stale_connection = true;
     auto count = size_semaphore_.UsedApprox();
-    auto drop_left = kIdleDropLimit;
+    auto idle_drop_left = kIdleDropLimit;
     auto settings = settings_.Read();
-    while (count > 0 && stale_connection) {
+
+    // A max_size reduction bypasses the regular idle-drop limit to shrink the pool promptly
+    auto force_drop_left = count > settings->max_size ? count - settings->max_size : 0;
+    while (count > 0 && (force_drop_left > 0 || stale_connection)) {
         try {
             auto deleter = [this](Connection* c) { DeleteConnection(c); };
             std::unique_ptr<Connection, decltype(deleter)> conn(AcquireImmediate(), deleter);
@@ -738,8 +753,12 @@ void ConnectionPool::MaintainConnections() {
                 break;
             }
             stale_connection = conn->GetIdleDuration() >= kMaxIdleDuration;
-            if (count > settings->min_size && drop_left > 0) {
-                --drop_left;
+            if (count > settings->min_size && (force_drop_left > 0 || idle_drop_left > 0)) {
+                if (force_drop_left > 0) {
+                    --force_drop_left;
+                } else {
+                    --idle_drop_left;
+                }
                 --stats_.connection.used;
                 LOG_DEBUG() << "Drop idle connection to `" << DsnCutPassword(dsn_) << '`';
                 // Close synchronously

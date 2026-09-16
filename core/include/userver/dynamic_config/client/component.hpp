@@ -27,7 +27,7 @@ namespace components {
 ///
 /// ## Static configuration example:
 ///
-/// @snippet components/common_component_list_test.cpp  Sample dynamic configs client component config
+/// @snippet core/src/components/common_component_list_test.cpp  Sample dynamic configs client component config
 class DynamicConfigClient : public ComponentBase {
 public:
     /// @ingroup userver_component_names

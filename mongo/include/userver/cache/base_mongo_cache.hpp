@@ -35,33 +35,26 @@ namespace impl {
 
 std::chrono::milliseconds GetMongoCacheUpdateCorrection(const ComponentConfig&);
 
-/// @brief Declares components::MongoCache::MakeFindOperation.
+template <class MongoCacheTraits>
+storages::mongo::operations::Find MakeDefaultFindOperation(
+    cache::UpdateType type,
+    const std::chrono::system_clock::time_point& last_update,
+    const std::chrono::system_clock::time_point& now,
+    const std::chrono::system_clock::duration& correction
+);
+
+}  // namespace impl
+
+/// @ingroup userver_base_classes
 ///
-/// The traits define the query (`GetFindOperation` or
-/// `kUseDefaultFindOperation`), so the method has a default implementation.
-template <
-    class MongoCacheTraits,
-    bool kHasFindOperationInTraits = mongo_cache::impl::HasFindOperationInTraits<MongoCacheTraits>>
-class MongoCacheFindOperationBase : public CachingComponentBase<typename MongoCacheTraits::DataType> {
-protected:
-    MongoCacheFindOperationBase(const ComponentConfig& config, const ComponentContext& context)
-        : CachingComponentBase<typename MongoCacheTraits::DataType>(config, context)
-    {}
-
-    virtual storages::mongo::operations::Find MakeFindOperation(
-        cache::UpdateType type,
-        const std::chrono::system_clock::time_point& last_update,
-        const std::chrono::system_clock::time_point& now,
-        const std::chrono::system_clock::duration& correction
-    );
-};
-
-/// @brief The traits define no query, so it can only be built from the runtime
+/// @brief Intermediate base of components::MongoCache that declares
+/// components::MongoCache::MakeFindOperation.
+///
+/// The traits define no query, so it can only be built from the runtime
 /// state of a specific cache. The method is pure virtual, which makes the
 /// compiler require an implementation in a derived component.
 template <class MongoCacheTraits>
-class MongoCacheFindOperationBase<MongoCacheTraits, /*kHasFindOperationInTraits=*/false>
-    : public CachingComponentBase<typename MongoCacheTraits::DataType> {
+class MongoCacheFindOperationBase : public CachingComponentBase<typename MongoCacheTraits::DataType> {
 protected:
     MongoCacheFindOperationBase(const ComponentConfig& config, const ComponentContext& context)
         : CachingComponentBase<typename MongoCacheTraits::DataType>(config, context)
@@ -75,32 +68,27 @@ protected:
     ) = 0;
 };
 
-template <class MongoCacheTraits, bool kHasFindOperationInTraits>
-storages::mongo::operations::Find
-MongoCacheFindOperationBase<MongoCacheTraits, kHasFindOperationInTraits>::MakeFindOperation(
-    cache::UpdateType type,
-    const std::chrono::system_clock::time_point& last_update,
-    const std::chrono::system_clock::time_point& now,
-    const std::chrono::system_clock::duration& correction
-) {
-    namespace bson = formats::bson;
-    namespace sm = storages::mongo;
+/// @ingroup userver_base_classes
+///
+/// @brief The traits define the query (`GetFindOperation` or
+/// `kUseDefaultFindOperation`), so the method has a default implementation.
+template <class MongoCacheTraits>
+requires mongo_cache::impl::HasFindOperationInTraits<MongoCacheTraits>
+class MongoCacheFindOperationBase<MongoCacheTraits> : public CachingComponentBase<typename MongoCacheTraits::DataType> {
+protected:
+    MongoCacheFindOperationBase(const ComponentConfig& config, const ComponentContext& context)
+        : CachingComponentBase<typename MongoCacheTraits::DataType>(config, context)
+    {}
 
-    if constexpr (mongo_cache::impl::HasFindOperation<MongoCacheTraits>) {
-        return MongoCacheTraits::GetFindOperation(type, last_update, now, correction);
-    } else {
-        bson::ValueBuilder query_builder(bson::ValueBuilder::Type::kObject);
-        if constexpr (mongo_cache::impl::HasUpdateFieldName<MongoCacheTraits>) {
-            if (type == cache::UpdateType::kIncremental) {
-                query_builder[MongoCacheTraits::kMongoUpdateFieldName] =
-                    bson::MakeDoc(storages::mongo::operators::kGt, last_update - correction);
-            }
-        }
-        return sm::operations::Find(query_builder.ExtractValue());
+    virtual storages::mongo::operations::Find MakeFindOperation(
+        cache::UpdateType type,
+        const std::chrono::system_clock::time_point& last_update,
+        const std::chrono::system_clock::time_point& now,
+        const std::chrono::system_clock::duration& correction
+    ) {
+        return impl::MakeDefaultFindOperation<MongoCacheTraits>(type, last_update, now, correction);
     }
-}
-
-}  // namespace impl
+};
 
 /// @ingroup userver_components
 ///
@@ -197,48 +185,12 @@ MongoCacheFindOperationBase<MongoCacheTraits, kHasFindOperationInTraits>::MakeFi
 /// Traits with neither `GetFindOperation` nor `kUseDefaultFindOperation` make
 /// `MakeFindOperation` pure virtual, so you must override it in a derived component.
 ///
-/// ```
-/// struct MyCacheTraits {
-///   // ... all the mandatory fields, but neither GetFindOperation
-///   // nor kUseDefaultFindOperation ...
-/// };
-///
-/// class MyCache final : public components::MongoCache<MyCacheTraits> {
-///  public:
-///   MyCache(const components::ComponentConfig& config,
-///           const components::ComponentContext& context)
-///       : MongoCache(config, context),
-///         config_source_(context.FindComponent<components::DynamicConfig>()
-///                            .GetSource()) {}
-///
-///  protected:
-///   storages::mongo::operations::Find MakeFindOperation(
-///       cache::UpdateType type,
-///       const std::chrono::system_clock::time_point& last_update,
-///       const std::chrono::system_clock::time_point& now,
-///       const std::chrono::system_clock::duration& correction) override {
-///     formats::bson::ValueBuilder query_builder(
-///         formats::bson::ValueBuilder::Type::kObject);
-///
-///     query_builder["example_field"] =
-///         config_source_.GetSnapshot()[kExampleFieldFilter];
-///
-///     if (type == cache::UpdateType::kIncremental) {
-///       query_builder[MyCacheTraits::kMongoUpdateFieldName] =
-///           formats::bson::MakeDoc(storages::mongo::operators::kGt, last_update - correction);
-///     }
-///
-///     return storages::mongo::operations::Find(query_builder.ExtractValue());
-///   }
-///
-///  private:
-///   const dynamic_config::Source config_source_;
-/// };
-/// ```
+/// @snippet mongo/functional_tests/cache/src/runtime_query_cache.hpp RuntimeQueryCache traits
+/// @snippet mongo/functional_tests/cache/src/runtime_query_cache.hpp RuntimeQueryCache
 template <class MongoCacheTraits>
-class MongoCache : public impl::MongoCacheFindOperationBase<MongoCacheTraits> {
+class MongoCache : public MongoCacheFindOperationBase<MongoCacheTraits> {
     using CollectionsType = mongo_cache::impl::CollectionsType<decltype(MongoCacheTraits::kMongoCollectionsField)>;
-    using FindOperationBase = impl::MongoCacheFindOperationBase<MongoCacheTraits>;
+    using FindOperationBase = MongoCacheFindOperationBase<MongoCacheTraits>;
 
 public:
     static constexpr std::string_view kName = MongoCacheTraits::kName;
@@ -274,6 +226,30 @@ private:
 
 template <class MongoCacheTraits>
 inline constexpr bool kHasValidate<MongoCache<MongoCacheTraits>> = true;
+
+template <class MongoCacheTraits>
+storages::mongo::operations::Find impl::MakeDefaultFindOperation(
+    cache::UpdateType type,
+    const std::chrono::system_clock::time_point& last_update,
+    const std::chrono::system_clock::time_point& now,
+    const std::chrono::system_clock::duration& correction
+) {
+    namespace bson = formats::bson;
+    namespace sm = storages::mongo;
+
+    if constexpr (mongo_cache::impl::HasFindOperation<MongoCacheTraits>) {
+        return MongoCacheTraits::GetFindOperation(type, last_update, now, correction);
+    } else {
+        bson::ValueBuilder query_builder(bson::ValueBuilder::Type::kObject);
+        if constexpr (mongo_cache::impl::HasUpdateFieldName<MongoCacheTraits>) {
+            if (type == cache::UpdateType::kIncremental) {
+                query_builder[MongoCacheTraits::kMongoUpdateFieldName] =
+                    bson::MakeDoc(storages::mongo::operators::kGt, last_update - correction);
+            }
+        }
+        return sm::operations::Find(query_builder.ExtractValue());
+    }
+}
 
 template <class MongoCacheTraits>
 MongoCache<MongoCacheTraits>::MongoCache(const ComponentConfig& config, const ComponentContext& context)

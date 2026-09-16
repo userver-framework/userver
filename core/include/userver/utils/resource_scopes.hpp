@@ -4,12 +4,16 @@
 /// @brief @copybrief utils::ResourceScopeStorage
 
 #include <concepts>
+#include <cstdint>
 #include <memory>
 #include <optional>
+#include <utility>
+#include <vector>
 
 #include <userver/compiler/impl/lifetime.hpp>
 #include <userver/components/component_fwd.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 #include <userver/utils/move_only_function.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -81,6 +85,12 @@ using ScopePtr = std::unique_ptr<impl::ScopeBase>;
 /// The same storage is available from @ref components::ComponentContext::Scopes in
 /// components, or as a standalone helper in unit tests and @ref WithResourceScopes.
 ///
+/// @warning Do not store @ref ResourceScopeStorage as a field of the object that
+/// registers subscriptions on it. The storage would share that object's constructor
+/// and destructor, so @ref AfterConstruction cannot run after the object is complete
+/// and @ref BeforeDestruction cannot run before its members are destroyed. Wrap the
+/// object in @ref WithResourceScopes instead.
+///
 /// @snippet core/src/components/resource_scopes_test.cpp ResourceScopeStorage - HappyPathOrder
 class ResourceScopeStorage final {
 public:
@@ -96,7 +106,12 @@ public:
     /// that unregisters the previously registered resource. The returned handle's
     /// destructor is called just before the component destructor is called.
     ///
-    /// @note callback is not called if the component is not created OR
+    /// During construction the callback is queued and runs from @ref AfterConstruction.
+    /// If @ref Register is called from another scope's opening callback, or after
+    /// @ref AfterConstruction has completed, the new scope is opened immediately.
+    /// Its destructor runs in reverse opening-completion order.
+    ///
+    /// @note A queued callback is not called if the component is not created OR
     /// any previously registered callback throws an exception.
     /// @note if you don't have an existing RAII-ish class, but still want
     /// to do a cleanup, you might want to use @ref utils::FastScopeGuard
@@ -104,31 +119,64 @@ public:
     template <std::invocable<> AfterConstructionCallback>
     void Register(AfterConstructionCallback after_construction)
     {
-        using Handle = std::invoke_result_t<AfterConstructionCallback>;
-        auto scope = std::make_unique<impl::Scope<Handle>>(std::move(after_construction));
-        DoRegister(std::move(scope));
+        Register(utils::impl::InternalTag{}, Priority{0}, std::move(after_construction));
     }
 
+    /// @cond
+    // For internal use only.
+    // Lower values run earlier in AfterConstruction and later in BeforeDestruction.
+    using Priority = std::int32_t;
+
+    template <std::invocable<> AfterConstructionCallback>
+    void Register(utils::impl::InternalTag, Priority priority, AfterConstructionCallback after_construction)
+    {
+        using Handle = std::invoke_result_t<AfterConstructionCallback>;
+        auto scope = std::make_unique<impl::Scope<Handle>>(std::move(after_construction));
+        DoRegister(std::move(scope), priority);
+    }
+    /// @endcond
+
     /// @brief Call all registered functors.
+    ///
+    /// If a functor throws, already constructed resources are unregistered via
+    /// @ref BeforeDestruction and the exception is rethrown.
     void AfterConstruction();
 
     /// @brief Unregister all previously registered resources.
     ///
     /// Also drops factories that have not run @ref AfterConstruction yet,
     /// so captured RAII handles unregister immediately.
-    void BeforeDestruction();
+    void BeforeDestruction() noexcept;
 
 private:
-    void DoRegister(impl::ScopePtr resource_scope);
+    enum class State {
+        kConstruction,
+        kAfterConstruction,
+        kReady,
+        kBeforeDestruction,
+        kDestruction,
+    };
 
-    std::vector<impl::ScopePtr> registered_scopes_;
+    struct ScopeWithPriority {
+        Priority priority{0};
+        impl::ScopePtr scope;
+    };
+
+    void DoRegister(impl::ScopePtr resource_scope, Priority priority);
+    void OpenAndKeep(impl::ScopePtr resource_scope);
+    void OpenAndClose(impl::ScopePtr resource_scope);
+    static void SortByPriority(std::vector<ScopeWithPriority>& scopes) noexcept;
+
+    std::vector<ScopeWithPriority> registered_scopes_;
     std::vector<impl::ScopePtr> initialized_scopes_;
-    bool scope_registration_finished_{false};
+    State state_{State::kConstruction};
 };
 
 /// @brief A wrapper that provides @ref utils::ResourceScopeStorage for the wrapped object.
 ///
 /// The wrapped object is passed `utils::ResourceScopeStorage&` as the first argument to the constructor.
+/// Prefer this over storing @ref ResourceScopeStorage as a field of the wrapped object itself.
+/// Use @ref MakeWithResourceScopes when the caller needs a `std::shared_ptr` to the wrapped object.
 template <typename Wrapped>
 class WithResourceScopes final {
 public:
@@ -141,8 +189,9 @@ public:
         resource_scope_storage_.AfterConstruction();
     }
 
-    WithResourceScopes(WithResourceScopes&& other) noexcept = default;
-    WithResourceScopes& operator=(WithResourceScopes&& other) noexcept = default;
+    // Not movable: scopes pin a reference to the wrapped object.
+    WithResourceScopes(WithResourceScopes&&) = delete;
+    WithResourceScopes& operator=(WithResourceScopes&&) = delete;
 
     ~WithResourceScopes() { resource_scope_storage_.BeforeDestruction(); }
 
@@ -160,6 +209,20 @@ private:
     ResourceScopeStorage resource_scope_storage_;
     Wrapped wrapped_;
 };
+
+/// @brief Constructs @ref WithResourceScopes and returns an aliasing `std::shared_ptr` to the wrapped object.
+///
+/// The returned pointer shares ownership of the wrapper. @ref WithResourceScopes is not movable
+/// and stays at a stable heap address, so scoped registrations remain valid for the lifetime
+/// of any copy of the `shared_ptr`.
+///
+/// @snippet core/src/components/resource_scopes_test.cpp MakeWithResourceScopes
+template <typename Wrapped, typename... Args>
+std::shared_ptr<Wrapped> MakeWithResourceScopes(Args&&... args) {
+    auto holder = std::make_shared<WithResourceScopes<Wrapped>>(std::in_place, std::forward<Args>(args)...);
+    auto* const wrapped = std::addressof(**holder);
+    return std::shared_ptr<Wrapped>(std::move(holder), wrapped);
+}
 
 ResourceScopeStorage&
 LocateDependency(components::WithType<ResourceScopeStorage>, const components::ComponentConfig& config, const components::ComponentContext&);

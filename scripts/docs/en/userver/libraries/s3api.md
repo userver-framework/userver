@@ -23,5 +23,5 @@ See also:
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/libraries/easy.md | @ref scripts/docs/en/userver/libraries/grpc-reflection.md ⇨
+⇦ @ref scripts/docs/en/userver/libraries/easy.md | @ref scripts/docs/en/userver/libraries/sqs.md ⇨
 @htmlonly </div> @endhtmlonly

@@ -24,7 +24,7 @@ components::ComponentHealth HealthCheckManager::GetComponentHealth(
     const std::unordered_map<std::string, std::shared_ptr<storages::redis::SubscribeClientImpl>>& subscribe_clients
 ) const {
     static const auto kCheckInterval = std::chrono::seconds(1);
-    auto calcluate_health = [&] {
+    auto calculate_health = [&] {
         for (const auto& [db_name, params] : clients_) {
             const auto client_it = clients.find(db_name);
             if (client_it == clients.end()) {
@@ -51,13 +51,20 @@ components::ComponentHealth HealthCheckManager::GetComponentHealth(
         return components::ComponentHealth::kOk;
     };
 
-    const auto now = std::chrono::system_clock::now();
-    if (now - last_time_checked_ < kCheckInterval) {
-        return last_health_value_;
+    const auto last_time_checked = last_time_checked_.load(std::memory_order_acquire);
+    const auto now = std::chrono::steady_clock::now();
+    if (now - last_time_checked < kCheckInterval) {
+        return last_health_value_.load(std::memory_order_relaxed);
     }
 
-    last_health_value_ = calcluate_health();
-    return last_health_value_;
+    const auto health = calculate_health();
+    last_health_value_.store(health, std::memory_order_relaxed);
+    // Publish the timestamp after the health value. A reader that observes it
+    // with acquire ordering also observes a valid cached health value. Parallel
+    // refreshes may mix a timestamp and a health value from different calls;
+    // this is acceptable because those calls happen close together.
+    last_time_checked_.store(std::chrono::steady_clock::now(), std::memory_order_release);
+    return health;
 }
 
 void HealthCheckManager::WriteHealthStatistics(

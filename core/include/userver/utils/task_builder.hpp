@@ -147,7 +147,7 @@ using TaskBuilderBase = TaskBuilder<impl::TaskBuilderWithoutSelectedSpanOptions>
 /// * @ref TaskBuilder::BuildShared
 ///
 /// Example:
-/// @snippet core/src/utils/task_builder_test.cpp  snippet
+/// @snippet core/src/utils/task_builder_test.cpp  sample
 ///
 /// @see @ref intro_tasks
 template <typename OptionsImpl>

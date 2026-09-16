@@ -34,7 +34,7 @@ namespace net::blocking {
 /// @note For async/cached DNS resolution use @ref net::ConnectTcpByName with
 /// @ref clients::dns::Resolver.
 ///
-/// @snippet src/net/blocking/connect_tcp_by_name_test.cpp ConnectTcpByName blocking localhost
+/// @snippet core/src/net/blocking/connect_tcp_by_name_test.cpp ConnectTcpByName blocking localhost
 engine::io::Socket ConnectTcpByName(std::string_view host, std::uint16_t port, engine::Deadline deadline);
 
 }  // namespace net::blocking

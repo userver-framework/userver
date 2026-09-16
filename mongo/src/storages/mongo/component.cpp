@@ -56,7 +56,7 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
         storages::mongo::Pool>(config.Name(), connection_string, pool_config, dns_resolver, config_source);
 
     if (!dbalias_.empty()) {
-        secdist_subscriber_ = secdist->UpdateAndListen(this, dbalias_, &Mongo::OnSecdistUpdate);
+        secdist->UpdateAndListen(context.Scopes(), this, dbalias_, &Mongo::OnSecdistUpdate);
     }
 
     auto section_name = config.Name();
@@ -76,7 +76,7 @@ Mongo::Mongo(const ComponentConfig& config, const ComponentContext& context)
     );
 }
 
-Mongo::~Mongo() { secdist_subscriber_.Unsubscribe(); }
+Mongo::~Mongo() = default;
 
 storages::mongo::PoolPtr Mongo::GetPool() const { return pool_; }
 
@@ -92,6 +92,7 @@ yaml_config::Schema Mongo::GetStaticConfigSchema() {
 MultiMongo::MultiMongo(const ComponentConfig& config, const ComponentContext& context)
     : ComponentBase(config, context),
       multi_mongo_(
+          context.Scopes(),
           config.Name(),
           context.FindComponent<Secdist>().GetStorage(),
           ParsePoolConfig(config),

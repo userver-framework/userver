@@ -13,6 +13,7 @@
 #include <logging/rate_limit.hpp>
 #include <logging/split_location.hpp>
 
+#include <dynamic_config/variables/USERVER_LOG_DYNAMIC_DEBUG.hpp>
 #include <dynamic_config/variables/USERVER_NO_LOG_SPANS.hpp>
 
 #ifndef ARCADIA_ROOT
@@ -25,13 +26,16 @@ namespace components {
 
 namespace {
 
-const dynamic_config::Key<logging::DynamicDebugConfig>
-    kDynamicDebugConfig{"USERVER_LOG_DYNAMIC_DEBUG", dynamic_config::DefaultAsJsonString{R"(
+const dynamic_config::Key<logging::DynamicDebugConfig> kDynamicDebugConfig{
+    "USERVER_LOG_DYNAMIC_DEBUG",
+    dynamic_config::DefaultAsJsonString{R"(
   {
     "force-disabled": [],
     "force-enabled": []
   }
-)"}};
+)"},
+    ::dynamic_config::userver_log_dynamic_debug::GetSchemaHash()
+};
 
 alerts::Source kDynamicDebugInvalidLocation{"dynamic_debug_invalid_location"};
 
@@ -43,7 +47,8 @@ LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config, const Co
     logging::impl::SetLogLimitedEnable(config["limited-logging-enable"].As<bool>());
     logging::impl::SetLogLimitedInterval(config["limited-logging-interval"].As<std::chrono::milliseconds>());
 
-    config_subscription_ = context.FindComponent<components::DynamicConfig>().GetSource().UpdateAndListen(
+    context.FindComponent<components::DynamicConfig>().GetSource().UpdateAndListen(
+        context.Scopes(),
         this,
         kName,
         &LoggingConfigurator::OnConfigUpdate,
@@ -51,8 +56,6 @@ LoggingConfigurator::LoggingConfigurator(const ComponentConfig& config, const Co
         kDynamicDebugConfig
     );
 }
-
-LoggingConfigurator::~LoggingConfigurator() { config_subscription_.Unsubscribe(); }
 
 void LoggingConfigurator::OnConfigUpdate(const dynamic_config::Snapshot& config) {
     (void)this;  // silence clang-tidy

@@ -29,9 +29,8 @@ StatisticsStorage::StatisticsStorage(
 )
     : domain_(domain)
 {
-    utils::statistics::RegisterWriterScope(
+    statistics_storage.RegisterWriter(
         scope_storage,
-        statistics_storage,
         fmt::format("grpc.{}", ToString(domain)),
         [this](utils::statistics::Writer& writer) { ExtendStatistics(writer); }
     );

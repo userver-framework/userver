@@ -138,7 +138,7 @@ A metric type is any class for which `DumpMetric` is defined. Such types can be 
   For `HIST_RATE` metrics (statistics for events, e.g., timings).
   - @ref utils::statistics::Histogram : an atomic counter.
   - @ref utils::statistics::HistogramAggregator : Non-atomic metric value. Aggregates multiple
-    @ref utils::statistics::Histograms.
+    @ref utils::statistics::Histogram.
   - Bucket configuration required (max 50 buckets, per monitoring docs). Exponential buckets can achieve ~10% error
     for timings.
   @warning Creating histograms consumes `~50` metrics each. Consider the quota impact of your metrics storage!

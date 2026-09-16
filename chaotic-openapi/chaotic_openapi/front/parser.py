@@ -360,49 +360,66 @@ class Parser:
 
     def _convert_openapi_security(
         self,
+        scheme_name: str,
         security_scheme: openapi.SecurityScheme | openapi.Ref,
         flows_scopes: list[str] | None = None,
     ) -> model.Security:
         if isinstance(security_scheme, openapi.Ref):
-            return self._state.service.security[self._locate_ref(security_scheme.ref)]
+            resolved = self._state.service.security[self._locate_ref(security_scheme.ref)]
+            return dataclasses.replace(resolved, name=scheme_name)
 
         description = security_scheme.description or ''
         match security_scheme.type:
             case openapi.SecurityType.http:
                 assert security_scheme.scheme_
-                return model.HttpSecurity(description, security_scheme.scheme_, security_scheme.bearerFormat)
+                scheme = security_scheme.scheme_.lower()
+                supported_schemes = ('digest', 'bearer', 'basic')
+                if scheme not in supported_schemes:
+                    raise chaotic_error.BaseError(
+                        full_filepath=self._state.full_filepath,
+                        infile_path='',
+                        schema_type='openapi',
+                        msg=(f'Unsupported HTTP security scheme "{scheme}". Supported schemes: {supported_schemes}'),
+                    )
+                return model.HttpSecurity(
+                    scheme_name,
+                    description,
+                    typing.cast(typing.Literal['digest', 'bearer', 'basic'], scheme),
+                    security_scheme.bearerFormat,
+                )
             case openapi.SecurityType.apiKey:
                 assert security_scheme.name
                 assert security_scheme.in_
                 security_in = model.SecurityIn(security_scheme.in_.name)
-                return model.ApiKeySecurity(description, security_scheme.name, security_in)
+                return model.ApiKeySecurity(scheme_name, description, security_scheme.name, security_in)
             case openapi.SecurityType.oauth2:
                 assert security_scheme.flows
                 flows = self._convert_openapi_flows(security_scheme.flows)
                 if flows_scopes:
                     for flow in flows:
                         flow.scopes = {key: flow.scopes[key] for key in flows_scopes if key in flow.scopes}
-                return model.OAuthSecurity(description, flows)
+                return model.OAuthSecurity(scheme_name, description, flows)
             case openapi.SecurityType.openIdConnect:
                 assert security_scheme.openIdConnectUrl
-                return model.OpenIdConnectSecurity(description, security_scheme.openIdConnectUrl)
+                return model.OpenIdConnectSecurity(scheme_name, description, security_scheme.openIdConnectUrl)
             case _:
                 assert False
 
     def _convert_swagger_security(
         self,
+        scheme_name: str,
         security_def: swagger.SecurityDef,
         flows_scopes: list[str] | None = None,
     ) -> model.Security:
         description = security_def.description or ''
         match security_def.type:
             case swagger.SecurityType.basic:
-                return model.Security(description)
+                return model.Security(scheme_name, description)
             case swagger.SecurityType.apiKey:
                 assert security_def.name
                 assert security_def.in_
                 security_in = model.SecurityIn(security_def.in_.name)
-                return model.ApiKeySecurity(description, security_def.name, security_in)
+                return model.ApiKeySecurity(scheme_name, description, security_def.name, security_in)
             case swagger.SecurityType.oauth2:
                 flow: model.Flow
                 match security_def.flow:
@@ -426,7 +443,7 @@ class Parser:
 
                 if flows_scopes:
                     flow.scopes = {key: flow.scopes[key] for key in flows_scopes if key in flow.scopes}
-                return model.OAuthSecurity(description, [flow])
+                return model.OAuthSecurity(scheme_name, description, [flow])
             case _:
                 assert False
 
@@ -455,20 +472,26 @@ class Parser:
             # components/securitySchemes
             default_security = parsed.security
             security_schemas = parsed.components.securitySchemes
-            for name, sec_scheme in security_schemas.items():
-                infile_path = f'/components/securitySchemes/{name}'
-                security_scheme = self._convert_openapi_security(sec_scheme)
+            for scheme_name, sec_scheme in security_schemas.items():
+                infile_path = f'/components/securitySchemes/{scheme_name}'
+                security_scheme = self._convert_openapi_security(scheme_name, sec_scheme)
                 self._state.service.security[self._state.full_filepath + '#' + infile_path] = security_scheme
 
-            def _convert_op_security(security: openapi.Security | None) -> list[model.Security]:
-                if not security:
+            def _convert_op_security(security: openapi.Security | None) -> model.SecurityOr:
+                if security is None:
                     security = default_security
 
-                securities: list[model.Security] = []
-                for name, scopes in security.items():
-                    securities.append(self._convert_openapi_security(security_schemas[name], scopes))
-
-                return securities
+                return model.SecurityOr(
+                    or_items=[
+                        model.SecurityAnd(
+                            and_items=[
+                                self._convert_openapi_security(scheme_name, security_schemas[scheme_name], scopes)
+                                for scheme_name, scopes in requirement.items()
+                            ]
+                        )
+                        for requirement in security
+                    ]
+                )
 
             # components/requestBodies
             for name, requestBody in parsed.components.requestBodies.items():
@@ -547,20 +570,26 @@ class Parser:
             # securityDefinitions
             default_security = parsed.security
             security_defs = parsed.securityDefinitions
-            for name, sec_def in security_defs.items():
-                infile_path = f'/securityDefinitions/{name}'
-                security_def = self._convert_swagger_security(sec_def)
+            for scheme_name, sec_def in security_defs.items():
+                infile_path = f'/securityDefinitions/{scheme_name}'
+                security_def = self._convert_swagger_security(scheme_name, sec_def)
                 self._state.service.security[self._state.full_filepath + '#' + infile_path] = security_def
 
-            def _convert_op_security(security: swagger.Security | None) -> list[model.Security]:
-                if not security:
+            def _convert_op_security(security: swagger.Security | None) -> model.SecurityOr:
+                if security is None:
                     security = default_security
 
-                securities: list[model.Security] = []
-                for name, scopes in security.items():
-                    securities.append(self._convert_swagger_security(security_defs[name], scopes))
-
-                return securities
+                return model.SecurityOr(
+                    or_items=[
+                        model.SecurityAnd(
+                            and_items=[
+                                self._convert_swagger_security(scheme_name, security_defs[scheme_name], scopes)
+                                for scheme_name, scopes in requirement.items()
+                            ]
+                        )
+                        for requirement in security
+                    ]
+                )
 
             # paths
             for sw_path, sw_path_item in parsed.paths.items():
@@ -701,7 +730,7 @@ class Parser:
         path: str,
         method: str,
         operation: openapi.Operation | None,
-        security_converter: Callable[[openapi.Security | None], list[model.Security]],
+        security_converter: Callable[[openapi.Security | None], model.SecurityOr],
         path_params: dict[tuple[str, model.In], model.Parameter],
     ) -> None:
         if not operation:
@@ -734,7 +763,7 @@ class Parser:
                     int(status): self._convert_openapi_response(response, infile_path + f'/responses/{status}')
                     for status, response in operation.responses.items()
                 },
-                security=security_converter(operation.security),
+                security_requirements=security_converter(operation.security),
                 x_middlewares=operation.x_taxi_middlewares or base_model.XMiddlewares(tvm=True),
                 x_client_codegen=operation.x_client_codegen,
                 x_handler_codegen=operation.x_taxi_handler_codegen,
@@ -746,7 +775,7 @@ class Parser:
         path: str,
         method: str,
         operation: swagger.Operation | None,
-        security_converter: Callable[[swagger.Security | None], list[model.Security]],
+        security_converter: Callable[[swagger.Security | None], model.SecurityOr],
         params_converter: Callable[
             [swagger.Parameters, str, list[str]],
             tuple[list[model.Parameter], list[model.RequestBody] | model.Ref],
@@ -775,7 +804,7 @@ class Parser:
                     )
                     for status, response in operation.responses.items()
                 },
-                security=security_converter(operation.security),
+                security_requirements=security_converter(operation.security),
                 x_middlewares=operation.x_taxi_middlewares or base_model.XMiddlewares(tvm=True),
                 x_client_codegen=operation.x_client_codegen,
                 x_handler_codegen=operation.x_taxi_handler_codegen,

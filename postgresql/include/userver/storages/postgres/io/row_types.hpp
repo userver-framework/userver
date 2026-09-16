@@ -18,14 +18,14 @@ namespace storages::postgres {
 /// @brief Tag type to disambiguate reading the row to a user's row type
 /// (values of the row initialize user's type data members).
 ///
-/// @snippet storages/postgres/tests/typed_rows_pgtest.cpp RowTagSippet
+/// @snippet postgresql/src/storages/postgres/tests/typed_rows_pgtest.cpp RowTagSippet
 struct RowTag {};
 
 /// @brief Tag type to disambiguate reading the first value of a row to a
 /// user's composite type (PostgreSQL composite type in the row initializes
 /// user's type).
 ///
-/// @snippet storages/postgres/tests/composite_types_pgtest.cpp FieldTagSippet
+/// @snippet postgresql/src/storages/postgres/tests/composite_types_pgtest.cpp FieldTagSippet
 struct FieldTag {};
 
 inline constexpr RowTag kRowTag{};

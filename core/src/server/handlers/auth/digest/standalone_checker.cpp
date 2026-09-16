@@ -3,12 +3,28 @@
 #include <memory>
 #include <optional>
 #include <string_view>
+#include <utility>
 
 #include <userver/server/handlers/auth/digest/auth_checker_settings.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace server::handlers::auth::digest {
+
+AuthStandaloneCheckerBase::AuthStandaloneCheckerBase(
+    const AuthCheckerSettings& digest_settings,
+    std::string&& realm,
+    const SecdistConfig& secdist_config,
+    const NonceCacheSettings& nonce_cache_settings
+)
+    : AuthStandaloneCheckerBase(
+          digest_settings,
+          std::move(realm),
+          secdist_config,
+          nonce_cache_settings.ways,
+          nonce_cache_settings.way_size
+      )
+{}
 
 NonceInfo::NonceInfo()
     : expiration_time(utils::datetime::Now()),

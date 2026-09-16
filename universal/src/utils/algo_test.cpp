@@ -1,6 +1,8 @@
 #include <userver/utils/algo.hpp>
 
+#include <initializer_list>
 #include <map>
+#include <set>
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -62,21 +64,26 @@ TEST(UtilsAlgo, FindOrNullptrSetAddressof) {
 
 TEST(UtilsAlgo, FindOrDefaultMaps) {
     constexpr int kFallback = 42;
+    constexpr int kDefault = int();
     std::map<std::string, int> m = {{"1", 2}};
     std::unordered_map<std::string, int> um = {{"1", 2}};
 
     EXPECT_EQ(utils::FindOrDefault(m, "2", kFallback), kFallback);
     EXPECT_EQ(utils::FindOrDefault(um, "2", kFallback), kFallback);
 
-    ASSERT_EQ(utils::FindOrDefault(m, "1", kFallback), 2);
-    ASSERT_EQ(utils::FindOrDefault(um, "1", kFallback), 2);
-
     EXPECT_EQ(utils::FindOrDefault(m, "1", kFallback), 2);
     EXPECT_EQ(utils::FindOrDefault(um, "1", kFallback), 2);
+
+    EXPECT_EQ(utils::FindOrDefault(m, "2"), kDefault);
+    EXPECT_EQ(utils::FindOrDefault(um, "2"), kDefault);
+
+    EXPECT_EQ(utils::FindOrDefault(m, "1"), 2);
+    EXPECT_EQ(utils::FindOrDefault(um, "1"), 2);
 }
 
 TEST(UtilsAlgo, FindOrDefaultSets) {
     constexpr int kFallback = 42;
+    constexpr int kDefault = int();
     std::set<int> s = {1};
     std::unordered_set<int> us = {1};
 
@@ -85,6 +92,68 @@ TEST(UtilsAlgo, FindOrDefaultSets) {
 
     EXPECT_EQ(utils::FindOrDefault(s, 1, kFallback), 1);
     EXPECT_EQ(utils::FindOrDefault(us, 1, kFallback), 1);
+
+    EXPECT_EQ(utils::FindOrDefault(s, 2), kDefault);
+    EXPECT_EQ(utils::FindOrDefault(us, 2), kDefault);
+
+    EXPECT_EQ(utils::FindOrDefault(s, 1), 1);
+    EXPECT_EQ(utils::FindOrDefault(us, 1), 1);
+}
+
+TEST(UtilsAlgo, FindOrDefaultNoList) {
+    struct List {
+        int val = 0;
+
+        List() = default;
+        List(const List&) = default;
+        explicit List(int v)
+            : val(v)
+        {}
+        List(std::initializer_list<int>)
+            : val(-1)
+        {}
+
+        auto operator<=>(const List&) const = default;
+    };
+
+    constexpr int kFallback = 42;
+    constexpr int kDefault = List().val;
+
+    std::map<int, List> m;
+    std::set<List> s;
+
+    EXPECT_TRUE(m.empty());
+    EXPECT_EQ(utils::FindOrDefault(m, 0, kFallback).val, kFallback);
+    EXPECT_EQ(utils::FindOrDefault(m, 0).val, kDefault);
+
+    EXPECT_TRUE(s.empty());
+    EXPECT_EQ(utils::FindOrDefault(s, List(1), kFallback).val, kFallback);
+    EXPECT_EQ(utils::FindOrDefault(s, List(1)).val, kDefault);
+}
+
+TEST(UtilsAlgo, FindOrDefaultNoExtraCopies) {
+    struct NoCopies {
+        bool copy = false;
+
+        NoCopies() = default;
+        NoCopies(const NoCopies&)
+            : copy(true)
+        {}
+        NoCopies(NoCopies&& that) noexcept : copy(that.copy) {}
+
+        auto operator<=>(const NoCopies&) const = default;
+    };
+
+    std::map<int, NoCopies> m;
+    std::set<NoCopies> s;
+
+    EXPECT_TRUE(m.empty());
+    EXPECT_FALSE(utils::FindOrDefault(m, 0, NoCopies()).copy);
+    EXPECT_FALSE(utils::FindOrDefault(m, 0).copy);
+
+    EXPECT_TRUE(s.empty());
+    EXPECT_FALSE(utils::FindOrDefault(s, NoCopies(), NoCopies()).copy);
+    EXPECT_FALSE(utils::FindOrDefault(s, NoCopies()).copy);
 }
 
 TEST(UtilsAlgo, FindOptionalMaps) {

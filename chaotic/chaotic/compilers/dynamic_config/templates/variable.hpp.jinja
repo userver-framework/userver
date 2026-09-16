@@ -4,6 +4,8 @@
 
 #include <{{ types_hpp }}>
 
+{# New static includes MUST go inside the bundle to avoid regenerating existing headers.
+   Keep snapshot.hpp for compatibility with older bundle headers. #}
 #include <userver/chaotic/dynamic_config_variable_bundle.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 
@@ -32,6 +34,8 @@ namespace {{ name.lower() }} {
 
 {% endif %}
 
+USERVER_NAMESPACE::dynamic_config::SchemaHash GetSchemaHash();
+
 }  // namespace {{ name.lower() }}
 
 
@@ -42,4 +46,4 @@ namespace {{ name.lower() }} {
 {% endfilter %}
 
 }  // namespace {{ namespace }}
-
+{# Keep a trailing newline in the generated file. #}

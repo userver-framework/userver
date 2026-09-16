@@ -29,8 +29,8 @@ class TxActor;
 
 /// Action to take after the retry function completes.
 enum class TxAction {
-    kCommit,
-    kRollback,
+    kCommit,    ///< Commit the transaction
+    kRollback,  ///< Roll back the transaction
 };
 
 /// Signature for the function passed to TableClient::RetryTx.
@@ -79,7 +79,7 @@ private:
         NYdb::NQuery::TTxSettings&& tx_settings,
         engine::Deadline deadline,
         std::uint32_t attempt
-    ) noexcept;
+    );
 
     NYdb::NQuery::TTransaction BeginTx(NYdb::NQuery::TSession& session, NYdb::NQuery::TTxSettings&& tx_settings);
 

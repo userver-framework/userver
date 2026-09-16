@@ -26,6 +26,15 @@ properties:
             replication lag limit for usable replicas. If a replica's lag exceeds this value, it stops receiving
             new requests
         default: 60s
+    rtt_threshold:
+        type: string
+        description: |
+            maximum EWMA RTT difference from the fastest alive host. It is used to prefer hosts when no selection
+            strategy is specified or when `kRoundRobin` is requested. Must not exceed one minute. Zero is valid and
+            prefers only hosts tied for the lowest RTT. Slower hosts remain available and are used when no eligible
+            host has a known RTT. The same EWMA RTT estimate is used by nearest selection and RTT metrics. RTT
+            preference is enabled by default and controlled by the `POSTGRES_RTT_THRESHOLD_ENABLED` dynamic config
+        default: 20ms
     min_pool_size:
         type: integer
         description: |

@@ -4,8 +4,12 @@
 #include <stdexcept>
 #include <string>
 #include <type_traits>
+#include <utility>
 
+#include <userver/engine/task/cancel.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/server/request/task_inherited_data.hpp>
 
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/subscription_rebalance_scheduler.hpp>
@@ -15,6 +19,26 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis::impl {
+
+namespace {
+
+// Both blockers keep the UNSUBSCRIBE command itself alive: a cancelled task or an expired
+// inherited deadline stops it in Sentinel before it reaches Redis.
+void UnsubscribeNothrow(SubscriptionStorageBase& storage, SubscriptionId subscription_id) noexcept {
+    try {
+        if (!engine::current_task::IsTaskProcessorThread()) {
+            storage.Unsubscribe(subscription_id);
+            return;
+        }
+        const engine::TaskCancellationBlocker cancel_blocker;
+        const server::request::DeadlinePropagationBlocker deadline_blocker;
+        storage.Unsubscribe(subscription_id);
+    } catch (const std::exception& e) {
+        LOG_WARNING() << "Failed to unsubscribe id=" << subscription_id << ": " << e;
+    }
+}
+
+}  // namespace
 
 SubscriptionToken::SubscriptionToken(SubscriptionStorageBase& storage, SubscriptionId subscription_id)
     : storage_(storage),
@@ -34,12 +58,12 @@ SubscriptionToken& SubscriptionToken::operator=(SubscriptionToken&& token) noexc
     return *this;
 }
 
-void SubscriptionToken::Unsubscribe() {
-    if (subscription_id_ > 0) {
-        LOG_DEBUG() << "Unsubscribe id=" << subscription_id_;
-        storage_.Unsubscribe(subscription_id_);
-        subscription_id_ = 0;
+void SubscriptionToken::Unsubscribe() noexcept {
+    if (subscription_id_ == 0) {
+        return;
     }
+    LOG_DEBUG() << "Unsubscribe id=" << subscription_id_;
+    UnsubscribeNothrow(storage_, std::exchange(subscription_id_, SubscriptionId{0}));
 }
 
 SubscriptionToken::~SubscriptionToken() { Unsubscribe(); }

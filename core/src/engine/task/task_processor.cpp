@@ -119,7 +119,7 @@ auto MakeTaskQueue(TaskProcessorConfig config) {
         case TaskQueueType::kGlobalTaskQueue:
             return TaskQueueVariant{std::in_place_type<TaskQueue>, std::move(config)};
         case TaskQueueType::kWorkStealingTaskQueue:
-            return TaskQueueVariant{std::in_place_type<WorkStealingTaskQueue>, std::move(config)};
+            return TaskQueueVariant{std::in_place_type<fast::Queue>, std::move(config)};
         case TaskQueueType::kPullPinTaskQueue:
             return TaskQueueVariant{std::in_place_type<TaskQueuePullPin>, std::move(config)};
         case TaskQueueType::kTSanTaskQueue:

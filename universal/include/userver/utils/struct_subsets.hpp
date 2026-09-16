@@ -110,8 +110,8 @@ USERVER_NAMESPACE_END
 /// or it contains @ref USERVER_ALLOW_CONVERSIONS_TO_SUBSET.
 ///
 /// Usage example:
-/// @snippet utils/struct_subsets_test.cpp  deps definitions
-/// @snippet utils/struct_subsets_test.cpp  deps usage
+/// @snippet universal/src/utils/struct_subsets_test.cpp  deps definitions
+/// @snippet universal/src/utils/struct_subsets_test.cpp  deps usage
 ///
 /// @param SubsetStruct the name of the subset struct to define
 /// @param OriginalStruct the name of the superset struct, including its
@@ -147,8 +147,8 @@ USERVER_NAMESPACE_END
 /// copying non-reference data members.
 ///
 /// Usage example:
-/// @snippet utils/struct_subsets_test.cpp  ref definitions
-/// @snippet utils/struct_subsets_test.cpp  ref usage
+/// @snippet universal/src/utils/struct_subsets_test.cpp  ref definitions
+/// @snippet universal/src/utils/struct_subsets_test.cpp  ref usage
 ///
 /// @param SubsetStructRef the name of the subset struct to define, it should
 /// typically contain `*Ref` suffix to underline that it needs the original

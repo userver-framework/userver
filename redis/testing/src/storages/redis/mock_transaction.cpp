@@ -394,6 +394,19 @@ RequestMset MockTransaction::Mset(std::vector<std::pair<std::string, std::string
     return AddSubrequest(impl_->Mset(std::move(key_values)));
 }
 
+RequestMsetex MockTransaction::Msetex(std::vector<std::pair<std::string, std::string>> key_values) {
+    UpdateShard(key_values);
+    return AddSubrequest(impl_->Msetex(std::move(key_values)));
+}
+
+RequestMsetex MockTransaction::Msetex(
+    std::vector<std::pair<std::string, std::string>> key_values,
+    MsetexOptions options
+) {
+    UpdateShard(key_values);
+    return AddSubrequest(impl_->Msetex(std::move(key_values), options));
+}
+
 RequestPersist MockTransaction::Persist(std::string key) {
     UpdateShard(key);
     return AddSubrequest(impl_->Persist(std::move(key)));

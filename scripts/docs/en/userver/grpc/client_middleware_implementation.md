@@ -85,7 +85,7 @@ digraph Pipeline {
   ReceiveMessages -> SecondMiddlewarePostFinish;
   SecondMiddlewarePostFinish -> FirstMiddlewarePostFinish;
 
-  Pipeline[label = "PreStartCall/PostFinish middlewares hooks order", shape=plaintext, rank="main"];
+  Pipeline[label = "PreStartCall/PostFinish middleware hooks order", shape=plaintext, rank="main"];
 }
 @enddot
 
@@ -106,7 +106,7 @@ This means the completion can be one of:
 #### Per-call (RPC) hooks implementation example
 
 @snippet samples/grpc_middleware_service/src/middlewares/client/auth.hpp Middleware declaration
-@snippet samples/grpc_middleware_service/src/middlewares/client/auth.cpp gRPC middleware sample - Middleware implementation
+@snippet samples/grpc_middleware_service/src/middlewares/client/auth.cpp grpc client auth middleware
 
 Register the Middleware component in the component system.
 
@@ -166,7 +166,7 @@ digraph Pipeline {
   CreateMessage -> FirstMiddlewareCallRequestHook -> SecondMiddlewareCallRequestHook -> SendMessageToNetwork
   ReceiveMessageFromNetwork -> SecondMiddlewareCallResponseHook -> FirstMiddlewareCallResponseHook -> RecvMessage
 
-  Pipeline[label = "PreSendMessage/PostRecvMessage middlewares hooks order", shape=plaintext, rank="main"];
+  Pipeline[label = "PreSendMessage/PostRecvMessage middleware hooks order", shape=plaintext, rank="main"];
 }
 @enddot
 
@@ -197,16 +197,16 @@ To declare static config options of your middleware see @ref scripts/docs/en/use
 
 ## Exceptions and errors in middlewares
 
-To fully understand what happens when middlewares hooks are failed, you should understand the middlewares order:
+To fully understand what happens when middleware hooks fail, you should understand the middlewares order:
 @see @ref grpc_client_middlewares_order.
 
 All exceptions are rethrown to the user code from client's RPC creating methods, `Read` / `Write` (for streaming), and from methods that return the RPC status.
 
-Note that in case of exception middleware pipeline is stopped and subsequent middlewares hooks are not called.
+Note that if an exception occurs, the middleware pipeline is stopped and subsequent middleware hooks are not called.
 
 ## Using static config options in middlewares
 
-There are two ways to implement a middleware component. You can see above @ref ugrpc::client::SimpleMiddlewareFactoryComponent. This component is need
+There are two ways to implement a middleware component. You can see above @ref ugrpc::client::SimpleMiddlewareFactoryComponent. This component is needed
 for simple cases without static config options of a middleware.
 
 @note In that case, `kName` and `kDependency` (@ref middlewares::MiddlewareDependencyBuilder) must be in a middleware class (as shown above).

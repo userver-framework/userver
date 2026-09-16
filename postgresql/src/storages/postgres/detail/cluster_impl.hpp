@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <cstddef>
 #include <memory>
 #include <vector>
 
@@ -77,6 +78,8 @@ public:
 
     std::string GetDbName() const;
 
+    bool HasAliveHosts() const;
+
     void SetDsnList(const DsnList&);
 
 private:
@@ -89,9 +92,9 @@ private:
 
     void OnConnlimitChanged();
 
-    bool IsConnlimitModeAuto(const ClusterSettings& settings);
+    bool IsConnlimitModeAuto(const ClusterSettings& settings) const;
 
-    void AdjustPoolSettings(ExtendedClusterSettings& cluster, std::size_t max_size);
+    PoolSettings MakeEffectivePoolSettings(const ExtendedClusterSettings& cluster) const;
 
     void PropagateSettingsToPools();
 
@@ -117,7 +120,6 @@ private:
     USERVER_NAMESPACE::utils::statistics::MetricsStoragePtr metrics_;
 
     std::atomic<uint32_t> rr_host_idx_;
-    std::atomic<bool> connlimit_mode_auto_enabled_;
     ConnlimitWatchdog connlimit_watchdog_;
 };
 

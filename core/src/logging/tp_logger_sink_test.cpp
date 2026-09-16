@@ -16,17 +16,14 @@ namespace {
 class NonThreadSafeSink final : public logging::impl::BaseSink {
 public:
     void CheckOperationsWerePerformed() {
-        EXPECT_GE(flush_count_, 2);
         EXPECT_GE(reopen_count_, 2);
         EXPECT_GE(write_count_, 2);
     }
 
 protected:
-    void Flush() override { Use(flush_count_); }
-
     void Reopen(logging::impl::ReopenMode) override { Use(reopen_count_); }
 
-    void Write(std::string_view) override { Use(write_count_); }
+    void Write(std::span<const struct iovec> /*logs*/) override { Use(write_count_); }
 
 private:
     void Use(std::atomic<std::uint64_t>& counter) {
@@ -36,7 +33,6 @@ private:
     }
 
     std::atomic<bool> is_used_{false};
-    std::atomic<std::uint64_t> flush_count_{0};
     std::atomic<std::uint64_t> reopen_count_{0};
     std::atomic<std::uint64_t> write_count_{0};
 };

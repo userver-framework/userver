@@ -1,5 +1,7 @@
 #include <userver/server/handlers/http_handler_base.hpp>
 
+#include <utility>
+
 #include <fmt/format.h>
 #include <boost/algorithm/string/split.hpp>
 #include <boost/container/small_vector.hpp>
@@ -27,8 +29,8 @@
 #include <userver/server/http/http_status.hpp>
 #include <userver/server/middlewares/configuration.hpp>
 #include <userver/server/middlewares/http_middleware_base.hpp>
-#include <userver/tracing/tracing.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/graphite.hpp>
@@ -38,6 +40,8 @@
 #include <userver/utils/scope_guard.hpp>
 #include <userver/utils/text_light.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
+
+#include <dynamic_config/variables/USERVER_HTTP_SERVER_LOGS.hpp>
 
 #ifndef ARCADIA_ROOT
 #include "generated/src/server/handlers/http_handler_base.yaml.hpp"  // Y_IGNORE
@@ -69,6 +73,10 @@ void SetFormattedErrorResponse(http::HttpResponse& http_response, FormattedError
     if (formatted_error_data.content_type) {
         http_response.SetContentType(*std::move(formatted_error_data.content_type));
     }
+}
+
+bool CanOverwriteResponse(const http::HttpResponse& response) noexcept {
+    return !response.IsHeadersEnd() && !response.IsSent();
 }
 
 std::unordered_map<int, logging::Level> ParseStatusCodesLogLevel(
@@ -117,6 +125,38 @@ void ValidateMiddlewaresConfiguration(
             )};
         }
     }
+}
+
+enum class LogLimitFor : std::uint8_t { kRequest = 0, kResponse = 1 };
+
+std::size_t GetLoggingLimit(
+    const dynamic_config::Snapshot& config_snapshot,
+    const std::string& request_path,
+    std::size_t static_limit,
+    LogLimitFor type
+) {
+    const auto& config = config_snapshot[::dynamic_config::USERVER_HTTP_SERVER_LOGS];
+    const auto settings = utils::FindOrNullptr(config.extra, request_path);
+    if (settings) {
+        switch (type) {
+            case LogLimitFor::kRequest: {
+                if (settings->request_body_size_log_limit) {
+                    return *settings->request_body_size_log_limit;
+                }
+                break;
+            }
+            case LogLimitFor::kResponse: {
+                if (settings->response_body_size_log_limit) {
+                    return *settings->response_body_size_log_limit;
+                }
+                break;
+            }
+            default: {
+                UINVARIANT(false, fmt::format("Unsupported LogLimitFor: {}", static_cast<std::uint8_t>(type)));
+            }
+        }
+    }
+    return static_limit;
 }
 
 }  // namespace
@@ -196,11 +236,14 @@ HttpHandlerBase::HttpHandlerBase(
 
 HttpHandlerBase::~HttpHandlerBase() = default;
 
-void HttpHandlerBase::HandleRequestStream(http::HttpRequest& http_request, request::RequestContext& context) const {
-    auto& http_response = http_request.GetHttpResponse();
-    server::http::ResponseBodyStream response_body_stream(http_response.GetBodyProducer(), http_response);
-
-    HandleStreamRequest(http_request, context, response_body_stream);
+void HttpHandlerBase::HandleMaybeStreamRequest(http::HttpRequest& request, request::RequestContext& context) const {
+    auto& response = request.GetHttpResponse();
+    if (IsStreamed(request, context)) {
+        server::http::ResponseBodyStream response_body_stream(response);
+        HandleStreamRequest(request, context, response_body_stream);
+    } else {
+        response.SetData(HandleRequest(request, context));
+    }
 }
 
 void HttpHandlerBase::HandleHttpRequest(http::HttpRequest& http_request, request::RequestContext& context) const {
@@ -211,12 +254,7 @@ void HttpHandlerBase::HandleHttpRequest(http::HttpRequest& http_request, request
     context.GetInternalContext().ResetConfigSnapshot();
 
     const auto scope_time = tracing::ScopeTime::CreateOptionalScopeTime("http_handle_request");
-    if (IsStreamed(http_request, context)) {
-        HandleRequestStream(http_request, context);
-    } else {
-        // !IsBodyStreamed()
-        response.SetData(HandleRequest(http_request, context));
-    }
+    HandleMaybeStreamRequest(http_request, context);
 }
 
 void HttpHandlerBase::PrepareAndHandleRequest(http::HttpRequest& http_request, request::RequestContext& context) const {
@@ -317,8 +355,7 @@ std::string HttpHandlerBase::GetRequestBodyForLogging(
     request::RequestContext&,
     const std::string& request_body
 ) const {
-    const std::size_t limit = GetConfig().request_body_size_log_limit;
-    return utils::log::ToLimitedUtf8(request_body, limit);
+    return request_body;
 }
 
 std::string HttpHandlerBase::GetResponseDataForLogging(
@@ -326,8 +363,7 @@ std::string HttpHandlerBase::GetResponseDataForLogging(
     request::RequestContext&,
     const std::string& response_data
 ) const {
-    const std::size_t limit = GetConfig().response_data_size_log_limit;
-    return utils::log::ToLimitedUtf8(response_data, limit);
+    return response_data;
 }
 
 std::string HttpHandlerBase::GetUrlForLogging(const http::HttpRequest& request, request::RequestContext&) const {
@@ -342,7 +378,12 @@ std::string HttpHandlerBase::GetRequestBodyForLoggingChecked(
     const std::string& request_body
 ) const {
     try {
-        const auto limit = GetConfig().request_body_size_log_limit;
+        const auto limit = GetLoggingLimit(
+            config_source_.GetSnapshot(),
+            GetConfig().GetLowCardinalityRequestPath(),
+            GetConfig().request_body_size_log_limit,
+            LogLimitFor::kRequest
+        );
         if (limit == 0) {
             return utils::log::ToLimitedUtf8(request_body, 0);
         }
@@ -360,7 +401,12 @@ std::string HttpHandlerBase::GetResponseDataForLoggingChecked(
     const std::string& response_data
 ) const {
     try {
-        const auto limit = GetConfig().response_data_size_log_limit;
+        const auto limit = GetLoggingLimit(
+            config_source_.GetSnapshot(),
+            GetConfig().GetLowCardinalityRequestPath(),
+            GetConfig().response_data_size_log_limit,
+            LogLimitFor::kResponse
+        );
         if (limit == 0) {
             return utils::log::ToLimitedUtf8(response_data, 0);
         }
@@ -392,6 +438,12 @@ void HttpHandlerBase::HandleCustomHandlerException(
     LOG(level) << "custom handler exception in '" << HandlerName() << "' handler: msg=" << ex;
 
     auto& response = request.GetHttpResponse();
+    if (!CanOverwriteResponse(response)) {
+        LOG_LIMITED_WARNING()
+            << "Cannot convert custom handler exception into an HTTP error: the response streaming has already "
+               "started";
+        return;
+    }
     response.SetStatus(http_status);
     if (ex.IsExternalErrorBodyFormatted()) {
         response.SetData(ex.GetExternalErrorBody());
@@ -411,6 +463,12 @@ void HttpHandlerBase::HandleUnknownException(
     LogUnknownException(ex);
 
     auto& response = request.GetHttpResponse();
+    if (!CanOverwriteResponse(response)) {
+        LOG_LIMITED_WARNING()
+            << "Cannot convert exception into an HTTP error: the response streaming has already "
+               "started";
+        return;
+    }
     if (engine::current_task::ShouldCancel()) {
         response.SetStatus(http::HttpStatus::kClientClosedRequest);
     } else {

@@ -64,7 +64,7 @@ Move the heavy request out from the transaction.
 If the behavior is understood and it is fine to have a long transaction in that particular case, the check could be
 disabled for a scope via @ref utils::trx_tracker::CheckDisabler :
 
-@snippet utils/trx_tracker_test.cpp Sample CheckDisabler usage
+@snippet core/src/utils/trx_tracker_test.cpp Sample CheckDisabler usage
 
 To disable the check for the whole service use the `enable_trx_tracker` static configuration option of
 @ref components::ManagerControllerComponent. Note that this is **not** recommended.

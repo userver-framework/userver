@@ -23,9 +23,9 @@ namespace utils {
 ///
 /// ## Example usage
 ///
-/// @snippet utils/required_test.cpp  sample
+/// @snippet universal/src/utils/required_test.cpp  sample
 ///
-/// @snippet utils/required_test.cpp  sample usage
+/// @snippet universal/src/utils/required_test.cpp  sample usage
 template <typename T>
 class Required final {
 public:

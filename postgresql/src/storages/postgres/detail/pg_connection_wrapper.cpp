@@ -437,7 +437,7 @@ void PGConnectionWrapper::ExitPipelineMode() {
 
 bool PGConnectionWrapper::IsSyncingPipeline() const { return pipeline_sync_counter_ > 0; }
 
-bool PGConnectionWrapper::IsPipelineActive() const { return PQpipelineStatus(conn_) != PQ_PIPELINE_OFF; }
+void PGConnectionWrapper::AssertPipelineActive() const { UASSERT(PQpipelineStatus(conn_) != PQ_PIPELINE_OFF); }
 
 void PGConnectionWrapper::RefreshSocket(const Dsn& dsn) {
     const auto fd = PQsocket(conn_);

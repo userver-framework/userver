@@ -3,7 +3,6 @@
 #include <sys/param.h>
 #include <unistd.h>
 
-#include <chrono>
 #include <string>
 #include <thread>
 #include <utility>
@@ -93,8 +92,8 @@ UTEST(Subprocess, ExecvExecvFailure) {
 
 UTEST(Subprocess, ExecvFileNotFound) {
     engine::subprocess::ProcessStarter starter(engine::current_task::GetTaskProcessor());
-    const auto status = starter.Exec("myawesomebinary", {}).Get();
-    ASSERT_FALSE(status.IsExited());
+    // posix_spawn reports ENOENT to the parent instead of creating a child that aborts after a failed exec.
+    UEXPECT_THROW((void)starter.Exec("myawesomebinary", {}), std::system_error);
 }
 
 UTEST(Subprocess, EnvironmentVariablesScope) {
@@ -202,11 +201,10 @@ UTEST(Subprocess, CheckLogClosesFds) {
     engine::subprocess::ProcessStarter starter(engine::current_task::GetTaskProcessor());
 
 #if defined(__APPLE__)
-    std::string self;
-    uint32_t self_len = 0;
-    ASSERT_EQ(_NSGetExecutablePath(self.data(), &self_len), -1);
-    self.resize(self_len);
-    ASSERT_EQ(_NSGetExecutablePath(self.data(), &self_len), 0);
+    char path[PATH_MAX];
+    uint32_t path_size = sizeof(path);
+    ASSERT_EQ(_NSGetExecutablePath(path, &path_size), 0);
+    std::string self(path);
 #elif defined(BSD)
     int mib[4];
     mib[0] = CTL_KERN;

@@ -327,30 +327,17 @@ void TopologyClosed(const mongoc_apm_topology_closed_t*) {
     LOG_DEBUG() << "The driver stops monitoring a server topology and destroys it";
 }
 
-void CreateGlobalInitializer() {
-    // Initialize static variable, and wait not on std::mutex, but on engine::Mutex.
-    // Otherwise, CPU will burn.
-    static engine::Mutex mutex;
-    const std::lock_guard lock(mutex);
-
-    static std::optional<GlobalInitializer> init_mongoc;
-    engine::CriticalAsyncNoTracing(engine::current_task::GetBlockingTaskProcessor(), [] {
-        if (!init_mongoc) {
-            init_mongoc.emplace();
-        }
-    }).Get();
-}
-
 }  // namespace
 
 CDriverPoolImpl::CDriverPoolImpl(
+    utils::ResourceScopeStorage& scopes,
     std::string id,
     const std::string& uri_string,
     const PoolConfig& config,
     clients::dns::Resolver* dns_resolver,
     dynamic_config::Source config_source
 )
-    : PoolImpl(std::move(id), config, config_source),
+    : PoolImpl(scopes, std::move(id), config, config_source),
       app_name_(config.app_name),
       init_data_{dns_resolver, {}, {}},
       max_size_(config.pool_settings.max_size),
@@ -363,7 +350,7 @@ CDriverPoolImpl::CDriverPoolImpl(
       // FP?: pointer magic in boost.lockfree
       // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
       queue_(config.pool_settings.max_size) {
-    CreateGlobalInitializer();
+    (void)&kInitMongoc;
     GlobalInitializer::LogInitWarningsOnce();
 
     SetConnectionString(uri_string);
@@ -400,12 +387,11 @@ CDriverPoolImpl::CDriverPoolImpl(
             DoMaintenance();
         });
 
-    Start();  // Must be the last line in the constructor
+    // Must be the last line: UpdateAndListen synchronously calls virtual SetPoolSettings.
+    SubscribeToConfig(scopes);
 }
 
 CDriverPoolImpl::~CDriverPoolImpl() {
-    Stop();  // Must be the first line in the destructor
-
     const tracing::Span span("mongo_destroy");
     maintenance_task_.Stop();
 }

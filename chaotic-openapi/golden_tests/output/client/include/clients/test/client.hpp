@@ -5,6 +5,7 @@
 #include "responses.hpp"
 
 #include <userver/chaotic/openapi/client/command_control.hpp>
+#include <userver/chaotic/openapi/server/dependencies.hpp>
 
 namespace clients::test {
 
@@ -14,9 +15,14 @@ public:
     /// A testing method to call
     /// @throw testme::post::Exception
 
-    virtual testme::post::Response TestmePost(const testme::post::Request& request ,          const USERVER_NAMESPACE::chaotic::openapi::client::CommandControl& command_control = {}) = 0;
+    virtual testme::post::Response TestmePost(
+          const testme::post::Request& request,
+          const USERVER_NAMESPACE::chaotic::openapi::client::CommandControl& command_control = {}) = 0;
 
   virtual ~Client();
 };
+
+/// @brief Dependency tag for obtaining this client from a generated handler.
+inline constexpr USERVER_NAMESPACE::chaotic::openapi::server::dependencies::FactoryTag<Client&> kDependency;
 
 }  // namespace clients::test

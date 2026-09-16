@@ -19,7 +19,10 @@ void CheckDeadlineNotExpired(const engine::Deadline& deadline) {
         return;
     }
     if (deadline.IsReached()) {
-        server::request::MarkTaskInheritedDeadlineExpired();
+        const auto inherited = server::request::GetTaskInheritedDeadline();
+        if (inherited.IsReachable() && inherited.IsReached()) {
+            server::request::MarkTaskInheritedDeadlineExpired();
+        }
         throw OperationInterrupted("Cancelled by deadline");
     }
 }

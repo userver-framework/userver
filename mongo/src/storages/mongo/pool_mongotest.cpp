@@ -1,9 +1,10 @@
 #include <userver/utest/utest.hpp>
 
-#include <chrono>
 #include <string>
+#include <string_view>
 #include <vector>
 
+#include <storages/mongo/pool_impl.hpp>
 #include <storages/mongo/util_mongotest.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/engine/async.hpp>
@@ -12,10 +13,14 @@
 #include <userver/engine/task/task.hpp>
 #include <userver/formats/bson/document.hpp>
 #include <userver/formats/bson/inline.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/exception.hpp>
+#include <userver/storages/mongo/operators.hpp>
 #include <userver/storages/mongo/pool.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
+
+#include <dynamic_config/variables/MONGO_CONNECTION_POOL_SETTINGS.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -72,6 +77,33 @@ UTEST(NonexistentPool, ConnectionFailure) {
     UEXPECT_THROW(bad_pool.HasCollection("test"), mongo::ClusterUnavailableException);
 }
 
+UTEST_F(Pool, DynamicPoolSettingsDoesNotAbort) {
+    constexpr std::size_t kDynamicMaxSize = 32;
+    const auto pool_settings = formats::json::FromString(R"({
+        "userver_mongotest_dyn_named": {
+            "max_size": 32,
+            "idle_limit": 4,
+            "initial_size": 1,
+            "connecting_limit": 8
+        },
+        "__default__": {
+            "max_size": 32,
+            "idle_limit": 4,
+            "initial_size": 1,
+            "connecting_limit": 8
+        }
+    })");
+    SetDynamicConfig({
+        {::dynamic_config::MONGO_CONNECTION_POOL_SETTINGS, pool_settings},
+    });
+
+    auto named_pool = MakePool("userver_mongotest_dyn_named", {});
+    EXPECT_EQ(kDynamicMaxSize, GetPoolImpl(named_pool)->MaxSize());
+
+    auto fallback_pool = MakePool("userver_mongotest_dyn_fallback", {});
+    EXPECT_EQ(kDynamicMaxSize, GetPoolImpl(fallback_pool)->MaxSize());
+}
+
 UTEST_F(Pool, Limits) {
     auto limited_config = MakeTestPoolConfig();
     limited_config.pool_settings.initial_size = 1;
@@ -126,6 +158,127 @@ UTEST_F(Pool, ListCollectionNames) {
         EXPECT_EQ(1, list_collections.size());
         EXPECT_EQ(kCollBName, list_collections[0]);
     }
+}
+
+UTEST_F(Pool, AggregateDocuments) {
+    using formats::bson::MakeArray;
+    using formats::bson::MakeDoc;
+
+    auto& pool = GetDefaultPool();
+
+    /// [Sample Mongo database aggregate]
+    auto cursor =
+        pool.Aggregate(MakeArray(MakeDoc(mongo::operators::kDocuments, MakeArray(MakeDoc("x", 1), MakeDoc("x", 2)))));
+
+    std::vector<int> values;
+    for (const auto& doc : cursor) {
+        values.push_back(doc["x"].As<int>());
+    }
+    /// [Sample Mongo database aggregate]
+
+    ASSERT_EQ(2, values.size());
+    EXPECT_EQ(1, values[0]);
+    EXPECT_EQ(2, values[1]);
+}
+
+UTEST_F(Pool, AggregateDocumentsGroup) {
+    using formats::bson::MakeArray;
+    using formats::bson::MakeDoc;
+
+    auto cursor = GetDefaultPool().Aggregate(MakeArray(
+        MakeDoc(
+            mongo::operators::kDocuments,
+            MakeArray(MakeDoc("x", 1, "y", 10), MakeDoc("x", 2, "y", 20), MakeDoc("x", 1, "y", 30))
+        ),
+        MakeDoc(mongo::operators::kMatch, MakeDoc("x", 1)),
+        MakeDoc(mongo::operators::kGroup, MakeDoc("_id", "$x", "sum", MakeDoc(mongo::operators::kSum, "$y")))
+    ));
+
+    auto it = cursor.begin();
+    ASSERT_NE(it, cursor.end());
+    const auto doc = *it;
+    EXPECT_EQ(++it, cursor.end());
+    EXPECT_EQ(1, doc["_id"].As<int>());
+    EXPECT_EQ(40, doc["sum"].As<int>());
+}
+
+UTEST_F(Pool, AggregateDocumentsLookup) {
+    using formats::bson::MakeArray;
+    using formats::bson::MakeDoc;
+
+    static const std::string kCollName = "aggregate_documents_lookup";
+    auto& pool = GetDefaultPool();
+    auto coll = pool.GetCollection(kCollName);
+    coll.InsertMany({
+        MakeDoc("qc_id", "1", "exam", "e1", "status", "ok"),
+        MakeDoc("qc_id", "1", "exam", "e2", "status", "skip"),
+        MakeDoc("qc_id", "2", "exam", "e1", "status", "ok"),
+    });
+
+    const auto pipeline = MakeArray(
+        MakeDoc(mongo::operators::kDocuments, MakeArray(MakeDoc("qc_id", "1", "exam", "e1"))),
+        MakeDoc(
+            mongo::operators::kLookup,
+            MakeDoc(
+                "from",
+                kCollName,
+                "let",
+                MakeDoc("qc_id", "$qc_id", "exam", "$exam"),
+                "pipeline",
+                MakeArray(MakeDoc(
+                    mongo::operators::kMatch,
+                    MakeDoc(
+                        mongo::operators::kExpr,
+                        MakeDoc(
+                            mongo::operators::kAnd,
+                            MakeArray(
+                                MakeDoc(mongo::operators::kEq, MakeArray("$qc_id", "$$qc_id")),
+                                MakeDoc(mongo::operators::kEq, MakeArray("$exam", "$$exam"))
+                            )
+                        )
+                    )
+                )),
+                "as",
+                "passes"
+            )
+        )
+    );
+
+    try {
+        auto cursor = pool.Aggregate(pipeline);
+        auto it = cursor.begin();
+        ASSERT_NE(it, cursor.end());
+        const auto doc = *it;
+        EXPECT_EQ(++it, cursor.end());
+        EXPECT_EQ("1", doc["qc_id"].As<std::string>());
+        EXPECT_EQ("e1", doc["exam"].As<std::string>());
+        ASSERT_EQ(1, doc["passes"].GetSize());
+        EXPECT_EQ("ok", doc["passes"][0]["status"].As<std::string>());
+    } catch (const mongo::ServerException& ex) {
+        // Sharded MongoDB 6 cannot combine $documents (mongos-only) with $lookup (shard-only).
+        const std::string_view message{ex.what()};
+        if (message.find("$documents must run on mongoS") != std::string_view::npos) {
+            GTEST_SKIP() << "Sharded MongoDB cannot combine $documents with $lookup: " << message;
+        }
+        throw;
+    }
+}
+
+UTEST_F(Pool, AggregateDocumentsOnCollectionRejected) {
+    using formats::bson::MakeArray;
+    using formats::bson::MakeDoc;
+
+    auto coll = GetDefaultPool().GetCollection("aggregate_documents_rejected");
+    UEXPECT_THROW(
+        coll.Aggregate(MakeArray(MakeDoc(mongo::operators::kDocuments, MakeArray(MakeDoc("x", 1))))),
+        mongo::MongoException
+    );
+}
+
+UTEST_F(Pool, AggregateInvalidPipeline) {
+    auto& pool = GetDefaultPool();
+    UEXPECT_THROW(pool.Aggregate(formats::bson::MakeArray()), mongo::InvalidQueryArgumentException);
+    UEXPECT_THROW(pool.Aggregate(formats::bson::MakeDoc("x", 1)), mongo::InvalidQueryArgumentException);
 }
 
 USERVER_NAMESPACE_END

@@ -48,6 +48,7 @@ struct JsonStringViewForInitializerList {
 /// Extra tskv fields storage
 class LogExtra final {
 public:
+    /// @brief Stored tag value type
     using Value = std::variant<
         std::string,
         int,

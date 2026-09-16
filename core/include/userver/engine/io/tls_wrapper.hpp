@@ -25,7 +25,7 @@ namespace engine::io {
 /// coroutines.
 ///
 /// Usage example:
-/// @snippet src/engine/io/tls_wrapper_test.cpp TLS wrapper usage
+/// @snippet core/src/engine/io/tls_wrapper_test.cpp TLS wrapper usage
 class [[nodiscard]] TlsWrapper final : public RwBase {
 public:
     /// Starts a TLS client on an opened socket

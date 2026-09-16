@@ -11,7 +11,7 @@ std::optional<std::size_t> FindMethod(
     std::string_view method_full_name
 ) {
     for (std::size_t method_id = 0; method_id < GetMethodsCount(metadata); ++method_id) {
-        if (GetMethodFullName(metadata, method_id) == method_full_name) {
+        if (GetMethodFullNameWithoutSlash(metadata, method_id) == method_full_name) {
             return method_id;
         }
     }

@@ -3,9 +3,11 @@
 /// @file userver/fs/file_info_with_data.hpp
 /// @brief data structures to store file info with load data
 
+#include <filesystem>
 #include <memory>
 #include <string>
 #include <unordered_map>
+#include <variant>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -13,8 +15,11 @@ USERVER_NAMESPACE_BEGIN
 namespace fs {
 
 /// @brief Struct file with load data
+///
+/// `data_or_path` holds either file contents (`std::string`) or a full path to the file
+/// (`std::filesystem::path`) when the file is too large to cache in memory.
 struct FileInfoWithData {
-    std::string data;
+    std::variant<std::string, std::filesystem::path> data_or_path;
     std::string extension;
 };
 

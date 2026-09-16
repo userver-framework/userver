@@ -22,7 +22,7 @@ public:
 class Socket;
 
 /// Native ip multicast request wrapper
-/// @snippet src/engine/io/socket_test.cpp multicast socket creation sample
+/// @snippet core/src/engine/io/socket_test.cpp multicast socket creation sample
 class IpMreq final {
 public:
     /// @brief Creates a structure storing multicast group membership request information. The resulting object may be

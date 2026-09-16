@@ -22,11 +22,11 @@ namespace formats::yaml {
 ///
 /// ## Example usage:
 ///
-/// @snippet formats/yaml/value_builder_test.cpp  Sample formats::yaml::ValueBuilder usage
+/// @snippet universal/src/formats/yaml/value_builder_test.cpp  Sample formats::yaml::ValueBuilder usage
 ///
 /// ## Customization example:
 ///
-/// @snippet formats/json/value_builder_test.cpp  Sample Customization formats::json::ValueBuilder usage
+/// @snippet universal/src/formats/json/value_builder_test.cpp  Sample Customization formats::json::ValueBuilder usage
 ///
 /// @see @ref scripts/docs/en/userver/formats.md
 class ValueBuilder final {

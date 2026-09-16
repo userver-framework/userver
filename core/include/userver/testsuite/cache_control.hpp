@@ -6,13 +6,12 @@
 #include <functional>
 #include <memory>
 #include <string>
-#include <type_traits>
 #include <unordered_set>
 
 #include <userver/cache/update_type.hpp>
 #include <userver/components/component_fwd.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/move_only_function.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,7 +21,6 @@ struct Config;
 }  // namespace cache
 
 namespace components {
-class RawComponentBase;
 class State;
 }  // namespace components
 
@@ -45,7 +43,7 @@ class CacheResetRegistration;
 /// or stores caches that may become stale, then it should register its resetter
 /// here. Example:
 ///
-/// @snippet testsuite/cache_control_test.cpp  sample
+/// @snippet core/src/testsuite/cache_control_test.cpp  sample
 ///
 /// Testsuite will then call this hook in the beginning of each test.
 /// You can also reset a specific cache in testsuite explicitly as follows:
@@ -70,6 +68,11 @@ public:
     );
 
     /// @brief Reset caches with the specified @a names.
+    ///
+    /// Every registered resetter whose name is in @a reset_only_names is
+    /// invoked. Several resetters may share a name: for example a periodic
+    /// @ref cache::CacheUpdateTrait resetter and a later custom
+    /// @ref RegisterCacheResetter.
     ///
     /// @a update_type is used by caches derived from
     /// @a component::CachingComponentBase.
@@ -108,9 +111,12 @@ public:
     // For internal use only.
     CacheResetRegistration RegisterPeriodicCache(cache::CacheUpdateTrait& cache);
 
-    // For internal use only. Use testsuite::RegisterCacheScoped instead
-    template <typename Component>
-    CacheResetRegistration RegisterCache(Component* self, std::string_view name, void (Component::*reset_method)());
+    // For internal use only. Use testsuite::RegisterCacheResetter instead
+    CacheResetRegistration RegisterCache(
+        utils::impl::InternalTag,
+        std::string_view name,
+        std::function<void(cache::UpdateType)> reset
+    );
 
     struct CacheInfo final {
         std::string name;
@@ -130,14 +136,15 @@ private:
 
     void DoResetCaches(
         cache::UpdateType update_type,
-        std::unordered_set<std::string>* reset_only_names,
+        const std::unordered_set<std::string>* reset_only_names,
         const std::unordered_set<std::string>& force_incremental_names,
         const std::unordered_set<std::string>* exclude_names
     );
 
     void DoResetCachesConcurrently(
         cache::UpdateType update_type,
-        std::unordered_set<std::string>* reset_only_names,
+        const std::unordered_set<std::string>* reset_only_names,
+        std::unordered_set<std::string>& names_left_to_encounter,
         const std::unordered_set<std::string>& force_incremental_names,
         const std::unordered_set<std::string>* exclude_names
     );
@@ -158,7 +165,7 @@ private:
 ///
 /// Removes the associated resetter automatically on destruction.
 ///
-/// Prefer @ref RegisterCacheScoped so that the resetter is registered after
+/// Prefer @ref RegisterCacheResetter so that the resetter is registered after
 /// the component constructor and unregistered just before the destructor.
 /// Otherwise store the registration as a member after the rest of
 /// the component's fields.
@@ -187,15 +194,29 @@ private:
 
 /// The method for acquiring testsuite::CacheControl in the component system.
 ///
-/// @see testsuite::RegisterCacheScoped
+/// @see testsuite::RegisterCacheResetter
 CacheControl& FindCacheControl(const components::ComponentContext& context);
 
 namespace impl {
 
-void DoRegisterCacheScoped(
-    const components::ComponentContext& context,
-    utils::move_only_function<CacheResetRegistration()> factory
-);
+void DoRegisterCacheScope(const components::ComponentContext& context, std::function<void(cache::UpdateType)> reset);
+
+template <typename Component>
+std::function<void(cache::UpdateType)> BindCacheResetter(Component* self, void (Component::*reset_method)()) {
+    UASSERT(self);
+    UASSERT(reset_method);
+    return [self, reset_method]([[maybe_unused]] cache::UpdateType update_type) { (self->*reset_method)(); };
+}
+
+template <typename Component>
+std::function<void(cache::UpdateType)> BindCacheResetter(
+    Component* self,
+    void (Component::*reset_method)(cache::UpdateType)
+) {
+    UASSERT(self);
+    UASSERT(reset_method);
+    return [self, reset_method](cache::UpdateType update_type) { (self->*reset_method)(update_type); };
+}
 
 }  // namespace impl
 
@@ -204,28 +225,59 @@ void DoRegisterCacheScoped(
 /// The resetter is registered after the component constructor finishes
 /// and is unregistered just before the destructor runs.
 ///
+/// Several cache resetters for the same component are invoked sequentially
+/// in registration order.
+///
 /// Typical usage:
 /// @code
-/// testsuite::RegisterCacheScoped(context, this, &MyCache::ResetCache);
+/// testsuite::RegisterCacheResetter(context, this, &MyCache::ResetCache);
 /// @endcode
 ///
 /// @warning The function should be called in the component's constructor
 /// *after* all FindComponent calls. This ensures that reset will first be
 /// called for dependencies, then for dependent components.
 template <typename Component>
-void RegisterCacheScoped(
+void RegisterCacheResetter(
     const components::ComponentContext& context,
     Component* self,
     void (Component::*reset_method)()
 ) {
-    auto& cc = testsuite::FindCacheControl(context);
-    auto name = std::string{components::GetCurrentComponentName(context)};
-    impl::DoRegisterCacheScoped(context, [&cc, self, name = std::move(name), reset_method] {
-        return cc.RegisterCache(self, name, reset_method);
-    });
+    impl::DoRegisterCacheScope(context, impl::BindCacheResetter(self, reset_method));
 }
 
-/// @deprecated Use @ref RegisterCacheScoped instead.
+/// @overload The resetter additionally receives the requested
+/// @ref cache::UpdateType.
+///
+/// Use this when the hook must distinguish a full invalidation from an
+/// incremental one. Typical cases:
+/// - a cache that supports both update types but is not periodic, so it is
+///   not a @ref components::CachingComponentBase: values are pushed in,
+///   for example by a handler called from a sidecar;
+/// - an extra resetter on a @ref components::CachingComponentBase cache that
+///   must know the requested update type to adjust incoming data for testsuite.
+template <typename Component>
+void RegisterCacheResetter(
+    const components::ComponentContext& context,
+    Component* self,
+    void (Component::*reset_method)(cache::UpdateType)
+) {
+    impl::DoRegisterCacheScope(context, impl::BindCacheResetter(self, reset_method));
+}
+
+/// @deprecated Use @ref RegisterCacheResetter instead.
+///
+/// Same as @ref RegisterCacheResetter for a `void()` hook. The testsuite
+/// `update_type` is ignored.
+template <typename Component>
+void RegisterCacheScope(
+    const components::ComponentContext& context,
+    Component* self,
+    void (Component::*reset_method)()
+) {
+    RegisterCacheResetter(context, self, reset_method);
+}
+
+/// @deprecated Use @ref RegisterCacheResetter instead.
 /// The returned handle must be kept alive to keep supporting cache resetting.
 ///
 /// @warning The function should be called in the component's constructor
@@ -238,32 +290,12 @@ CacheResetRegistration RegisterCache(
     void (Component::*reset_method)()
 ) {
     auto& cc = testsuite::FindCacheControl(context);
-    return cc.RegisterCache(self, components::GetCurrentComponentName(context), reset_method);
-}
-
-/// @cond
-template <typename Component>
-CacheResetRegistration CacheControl::RegisterCache(
-    Component* self,
-    std::string_view name,
-    void (Component::*reset_method)()
-) {
-    static_assert(
-        std::is_base_of_v<components::RawComponentBase, Component>,
-        "CacheControl can only be used with components"
+    return cc.RegisterCache(
+        utils::impl::InternalTag{},
+        components::GetCurrentComponentName(context),
+        impl::BindCacheResetter(self, reset_method)
     );
-    UASSERT(self);
-    UASSERT(reset_method);
-
-    CacheInfo info;
-    info.name = std::string{name};
-    info.reset = [self, reset_method]([[maybe_unused]] cache::UpdateType) { (self->*reset_method)(); };
-    info.needs_span = true;
-
-    auto iter = DoRegisterCache(std::move(info));
-    return CacheResetRegistration(*this, std::move(iter));
 }
-/// @endcond
 
 }  // namespace testsuite
 

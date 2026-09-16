@@ -170,6 +170,7 @@ TEST(SerializeStrongTypedef, Fmt) {
     EXPECT_EQ("42", fmt::format("{}", IntTypedef{42}));
     EXPECT_EQ("f", fmt::format("{:x}", IntTypedef{15}));
     EXPECT_EQ("!!!", fmt::format("{}", MyNonStreamable{}));
+    EXPECT_EQ("[10, 11]", fmt::format("{}", VectorStructTypedef{std::vector{10, 11}}));
 }
 
 TEST(SerializeStrongTypedef, FmtJoin) {

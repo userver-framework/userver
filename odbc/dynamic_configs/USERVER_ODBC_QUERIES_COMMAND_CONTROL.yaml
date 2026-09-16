@@ -1,0 +1,23 @@
+default: {}
+description: |
+    Dynamic config for named ODBC query timeouts. Keys are
+    storages::odbc::Query names. Values override only their specified fields
+    from default and handler command controls and are overridden by explicit
+    per-call command controls. Unnamed queries do not use this config.
+schema:
+    type: object
+    additionalProperties:
+        $ref: "#/definitions/CommandControl"
+    definitions:
+        CommandControl:
+            type: object
+            additionalProperties: false
+            properties:
+                network_timeout_ms:
+                    type: integer
+                    minimum: 1
+                    x-usrv-cpp-type: std::chrono::milliseconds
+                statement_timeout_ms:
+                    type: integer
+                    minimum: 1
+                    x-usrv-cpp-type: std::chrono::milliseconds

@@ -28,7 +28,7 @@ namespace engine {
 ///
 /// The class's API is the same as of engine::Mutex:
 ///
-/// @snippet engine/mutex_test.cpp  Sample engine::Mutex usage
+/// @snippet core/src/engine/mutex_test.cpp  Sample engine::Mutex usage
 ///
 /// @see @ref scripts/docs/en/userver/synchronization.md
 class SingleWaitingTaskMutex final {

@@ -3,8 +3,10 @@
 
 #include <userver/chaotic/openapi/client/config.hpp>
 #include <userver/chaotic/openapi/client/middleware_factory.hpp>
+#include <userver/chaotic/openapi/server/dependencies.hpp>
 #include <userver/clients/http/middlewares/base.hpp>
 #include <userver/clients/http/middlewares/component.hpp>
+#include <userver/components/container.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -12,13 +14,25 @@
 
 namespace clients::test {
 
+namespace {
+
+USERVER_NAMESPACE::chaotic::openapi::client::Config MakeConfig(
+const USERVER_NAMESPACE::components::ComponentConfig& config,
+const USERVER_NAMESPACE::components::ComponentContext&) {
+auto cfg = USERVER_NAMESPACE::chaotic::openapi::client::ParseConfig(config, ClientImpl::kDefaultBaseUrl);
+
+return cfg;
+}
+
+}  // namespace
+
 Component::Component(
     const USERVER_NAMESPACE::components::ComponentConfig& config,
     const USERVER_NAMESPACE::components::ComponentContext& context
 )
     : USERVER_NAMESPACE::components::ComponentBase(config, context),
       client_(
-          USERVER_NAMESPACE::chaotic::openapi::client::ParseConfig(config, ClientImpl::kDefaultBaseUrl),
+          MakeConfig(config, context),
           context.FindComponent<USERVER_NAMESPACE::components::HttpClient>().GetHttpClient()
       )
 {
@@ -44,6 +58,10 @@ Component::Component(
         }
         client_.SetCoreMiddlewares(std::move(core_middlewares));
     }
+
+    using Factories = USERVER_NAMESPACE::chaotic::openapi::server::dependencies::Factories;
+    auto& factories = context.FindComponent<USERVER_NAMESPACE::components::Container<Factories>>().Get();
+    factories.Register([&client = client_]() -> Client& { return client; });
 }
 
 Client& Component::GetClient() { return client_; }

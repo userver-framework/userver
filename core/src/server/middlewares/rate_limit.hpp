@@ -1,6 +1,6 @@
 #pragma once
 
-#include <optional>
+#include <limits>
 
 #include <userver/server/middlewares/builtin.hpp>
 #include <userver/server/middlewares/http_middleware_base.hpp>
@@ -21,6 +21,8 @@ public:
     explicit RateLimit(const handlers::HttpHandlerBase&);
 
 private:
+    static constexpr std::size_t kUnlimited = std::numeric_limits<std::size_t>::max();
+
     void HandleRequest(http::HttpRequest& request, request::RequestContext& context) const override;
 
     bool CheckRateLimit(const http::HttpRequest& request, request::RequestContext& context) const;
@@ -30,8 +32,10 @@ private:
     mutable utils::TokenBucket rate_limit_;
     handlers::HttpHandlerStatisticsAggregate& statistics_;
 
-    std::optional<std::size_t> max_requests_per_second_;
-    std::optional<std::size_t> max_requests_in_flight_;
+    const std::size_t max_requests_per_second_;
+    const std::size_t max_requests_in_flight_;
+    // False when neither RPS nor in-flight limits are configured — HandleRequest is a no-op.
+    const bool checks_enabled_;
 
     const handlers::HttpHandlerBase& handler_;
 };

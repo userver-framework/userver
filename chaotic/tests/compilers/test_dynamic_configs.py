@@ -139,3 +139,30 @@ def test_variable_name_invalid_symbols():
         varname='kebab-case',
     )
     assert var.cpp_user_name() == '::taxi_config::kebab_case::VariableTypeRaw'
+
+
+def test_schema_hash_is_exposed_via_function(tmp_path):
+    variable = tmp_path / 'BOOL_FLAG.yaml'
+    variable.write_text(json.dumps({'schema': {'type': 'boolean'}, 'default': False}), encoding='utf-8')
+    compiler = dynamic_config.Compiler(strict_parsing_default=False)
+    compiler.parse_variable(str(variable), 'BOOL_FLAG', namespace='dynamic_config')
+    output = tmp_path / 'generated'
+    compiler.generate_variable('BOOL_FLAG', str(output), parse_extra_formats=False, namespace='dynamic_config')
+
+    header = (output / 'include/dynamic_config/variables/BOOL_FLAG.hpp').read_text(encoding='utf-8')
+    source = (output / 'src/dynamic_config/variables/BOOL_FLAG.cpp').read_text(encoding='utf-8')
+    schema_hash = '7cb541e84f226754a46c21c79f131fa2898354e1242456e6fd1c162bce319553'
+    assert 'USERVER_NAMESPACE::dynamic_config::SchemaHash GetSchemaHash();' in header
+    assert header.count('GetSchemaHash') == 1
+    assert '#include <userver/dynamic_config/snapshot.hpp>' in header
+    assert schema_hash not in header
+    assert 'kSchemaHash' not in header
+    normalized_source = ''.join(source.split())
+    assert (
+        'USERVER_NAMESPACE::dynamic_config::SchemaHashbool_flag::GetSchemaHash(){'
+        f'returnUSERVER_NAMESPACE::dynamic_config::SchemaHash{{"{schema_hash}"}};'
+        '}'
+    ) in normalized_source
+    assert 'bool_flag::GetSchemaHash(),' in source
+    assert source.count('GetSchemaHash') == 2
+    assert 'kSchemaHash' not in source

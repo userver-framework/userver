@@ -128,7 +128,10 @@ public:
             RunOnCallStart();
         }
 
+        std::optional<Response> response;
+
         bool finished = false;
+        // Should be executed before response destruction.
         const utils::FastScopeGuard post_finish_hooks_guard([this, &finished]() noexcept {
             RunOnCallFinish(finished ? std::make_optional(std::move(status_)) : std::nullopt);
         });
@@ -138,7 +141,6 @@ public:
 
         scope_time.Reset("call");
 
-        std::optional<Response> response;
         if (!engine::current_task::ShouldCancel() && status_.ok()) {
             RunWithCatch([this, &response] {
                 auto result = CallHandler();

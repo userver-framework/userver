@@ -1,51 +1,80 @@
 #pragma once
 
-#include <sql.h>
-#include <sqlext.h>
-#include <sqltypes.h>
-
+#include <cstddef>
 #include <cstdint>
-#include <memory>
+#include <optional>
 #include <string>
+#include <variant>
+#include <vector>
+
+#include <sqlext.h>
+
+#include <userver/storages/odbc/types.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::odbc::detail {
 
-class ResultWrapper {
+/// Fully materialized ODBC result. No ODBC handle is retained: this makes a
+/// ResultSet independent from the connection and safe to read after the
+/// connection has returned to its pool.
+class ResultWrapper final {
 public:
-    using ResultHandle = std::unique_ptr<std::remove_pointer_t<SQLHSTMT>, void (*)(SQLHSTMT)>;
+    struct Column final {
+        std::string name;
+        SQLSMALLINT type{};
+        SQLULEN size{};
+        SQLSMALLINT decimal_digits{};
+    };
 
-    ResultWrapper(ResultHandle&& res);
-    ~ResultWrapper();
+    struct DecimalValue final {
+        std::string representation;
+        std::uint8_t precision{};
+        std::uint8_t scale{};
+    };
 
-    ResultWrapper(const ResultWrapper&) = delete;
-    ResultWrapper(ResultWrapper&& other) noexcept;
+    struct Cell final {
+        using Value = std::variant<std::string, Bytes, Date, Time, Timestamp, DecimalValue>;
+        std::optional<Value> value;
+    };
 
-    void Fetch();
+    using Row = std::vector<Cell>;
 
-    SQLRETURN GetStatus() const;
+    ResultWrapper(std::vector<Column> columns, std::vector<Row> rows, std::size_t rows_affected);
 
-    std::size_t RowCount() const;
-    std::size_t FieldCount() const;
-    std::size_t RowsAffected() const;
+    std::size_t RowCount() const noexcept;
+    std::size_t FieldCount() const noexcept;
+    std::size_t RowsAffected() const noexcept;
 
-    std::string GetFieldName(std::size_t col) const;
+    const std::string& GetFieldName(std::size_t col) const;
     SQLSMALLINT GetColumnType(std::size_t col) const;
 
-    // Data access methods
     std::string GetString(std::size_t row, std::size_t col) const;
     std::int32_t GetInt32(std::size_t row, std::size_t col) const;
     std::int64_t GetInt64(std::size_t row, std::size_t col) const;
     double GetDouble(std::size_t row, std::size_t col) const;
     bool GetBool(std::size_t row, std::size_t col) const;
-
     bool IsFieldNull(std::size_t row, std::size_t col) const;
 
-    ResultHandle handle;
-};
+    std::int64_t GetSignedIntegerStrict(std::size_t row, std::size_t col) const;
+    std::uint64_t GetUnsignedIntegerStrict(std::size_t row, std::size_t col) const;
+    double GetFloatingPointStrict(std::size_t row, std::size_t col) const;
+    std::string GetStringStrict(std::size_t row, std::size_t col) const;
+    bool GetBoolStrict(std::size_t row, std::size_t col) const;
+    Bytes GetBytesStrict(std::size_t row, std::size_t col) const;
+    Date GetDateStrict(std::size_t row, std::size_t col) const;
+    Time GetTimeStrict(std::size_t row, std::size_t col) const;
+    Timestamp GetTimestampStrict(std::size_t row, std::size_t col) const;
+    std::string GetDecimalStrict(std::size_t row, std::size_t col, std::size_t precision, std::size_t scale) const;
 
-ResultWrapper::ResultHandle MakeResultHandle(SQLHDBC);
+private:
+    const Cell& GetCell(std::size_t row, std::size_t col) const;
+    const Cell::Value& GetValue(std::size_t row, std::size_t col) const;
+
+    std::vector<Column> columns_;
+    std::vector<Row> rows_;
+    std::size_t rows_affected_{0};
+};
 
 }  // namespace storages::odbc::detail
 

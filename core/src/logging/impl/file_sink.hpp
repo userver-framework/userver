@@ -13,7 +13,7 @@ public:
     void Reopen(ReopenMode mode) final;
 
 private:
-    std::string filename_;
+    const std::string filename_;
 };
 
 }  // namespace logging::impl

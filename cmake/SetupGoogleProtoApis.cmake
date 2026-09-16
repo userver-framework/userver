@@ -20,9 +20,8 @@ if(NOT EXISTS ${api-common-protos_SOURCE_DIR})
     include(DownloadUsingCPM)
     cpmaddpackage(
         NAME api-common-protos
-        GITHUB_REPOSITORY googleapis/api-common-protos
-        GIT_TAG main
-        GIT_SHALLOW TRUE
+        URL https://github.com/googleapis/api-common-protos/archive/3332dec527759859840a3a2ff108c67a54708130.tar.gz
+        URL_HASH SHA256=87e7426a92d252e01123be3b714a4f0cb711e5cb9b9477c099f653dc072a7321
         DOWNLOAD_ONLY YES
     )
 endif()

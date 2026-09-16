@@ -8,7 +8,6 @@
 #include <userver/cache/expirable_lru_cache.hpp>
 #include <userver/cache/lru_cache_config.hpp>
 #include <userver/components/component_base.hpp>
-#include <userver/concurrent/async_event_source.hpp>
 #include <userver/dump/dumper.hpp>
 #include <userver/dump/meta.hpp>
 #include <userver/dump/operations.hpp>
@@ -59,13 +58,13 @@ yaml_config::Schema GetLruCacheComponentBaseSchema();
 ///
 /// ## Example usage:
 ///
-/// @snippet cache/lru_cache_component_base_test.hpp  Sample lru cache component
+/// @snippet core/src/cache/lru_cache_component_base_test.hpp  Sample lru cache component
 ///
 /// Do not forget to @ref userver_components "add the component to component list":
-/// @snippet cache/lru_cache_component_base_test.cpp  Sample lru cache component registration
+/// @snippet core/src/cache/lru_cache_component_base_test.cpp  Sample lru cache component registration
 ///
 /// ## Example config:
-/// @snippet cache/lru_cache_component_base_test.cpp  Sample lru cache component config
+/// @snippet core/src/cache/lru_cache_component_base_test.cpp  Sample lru cache component config
 template <typename Key, typename Value, typename Hash = std::hash<Key>, typename Equal = std::equal_to<Key>>
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class LruCacheComponent : public components::ComponentBase, private dump::DumpableEntity {
@@ -104,9 +103,6 @@ private:
     const LruCacheConfigStatic static_config_;
     const std::shared_ptr<Cache> cache_;
     std::shared_ptr<dump::Dumper> dumper_;
-
-    // Subscriptions must be the last fields.
-    concurrent::AsyncEventSubscriberScope config_subscription_;
 };
 
 template <typename Key, typename Value, typename Hash, typename Equal>
@@ -135,22 +131,23 @@ LruCacheComponent<
                "dynamic-config updates, cache="
             << name_;
 
-        config_subscription_ =
-            impl::FindDynamicConfigSource(context)
-                .UpdateAndListen(this, "cache." + name_, &LruCacheComponent::OnConfigUpdate);
+        impl::FindDynamicConfigSource(context).UpdateAndListen(
+            components::GetResourceScopes(context),
+            this,
+            "cache." + name_,
+            &LruCacheComponent::OnConfigUpdate
+        );
     } else {
         LOG_INFO() << "Dynamic LRU cache config is disabled, cache=" << name_;
     }
 
     impl::RegisterOnStatisticsStorage(context, name_, [this](utils::statistics::Writer& writer) { writer = *cache_; });
 
-    testsuite::RegisterCacheScoped(context, this, &LruCacheComponent::DropCache);
+    testsuite::RegisterCacheResetter(context, this, &LruCacheComponent::DropCache);
 }
 
 template <typename Key, typename Value, typename Hash, typename Equal>
 LruCacheComponent<Key, Value, Hash, Equal>::~LruCacheComponent() {
-    config_subscription_.Unsubscribe();
-
     if (dumper_) {
         dumper_->CancelWriteTaskAndWait();
     }

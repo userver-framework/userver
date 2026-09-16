@@ -123,6 +123,13 @@ private:
 
     static int OnBeginFrame(nghttp2_session* session, const nghttp2_frame_hd* hd, void* user_data);
 
+    static int OnInvalidFrame(
+        nghttp2_session* session,
+        const nghttp2_frame* frame,
+        int lib_error_code,
+        void* user_data
+    );
+
     void RegisterStream(Stream::Id id);
     void RemoveStream(Stream& stream);
     Stream* FindStream(Stream::Id id);
@@ -133,6 +140,8 @@ private:
     void FinalizeRequest(Stream& stream);
     void FinalizeCompleteRequest(Stream& stream);
     void FinalizeConnectRequest(Stream& stream);
+
+    bool MemRecv(std::string_view data);
 
     const net::Http2SessionConfig& config_;
 
@@ -155,6 +164,9 @@ private:
     impl::Http2StreamEventQueue::Consumer streaming_consumer_;
     std::int32_t max_client_stream_id_{0};
     bool peer_goaway_received_{false};
+    // nghttp2 failed to parse the input: the session must not be used anymore, so the connection
+    // is closed as soon as the already accepted requests are answered.
+    bool session_is_broken_{false};
 };
 
 }  // namespace server::http

@@ -7,8 +7,11 @@
 #include <chrono>
 #include <functional>
 #include <limits>
+#include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
+#include <variant>
 
 #include <userver/concurrent/queue.hpp>
 #include <userver/concurrent/striped_counter.hpp>
@@ -53,6 +56,30 @@ class RwBase;
 
 namespace server::request {
 
+namespace impl {
+
+class ChunkStorage final {
+public:
+    ChunkStorage() = default;
+    explicit ChunkStorage(std::string data);
+    explicit ChunkStorage(std::shared_ptr<const std::string> data);
+
+    ChunkStorage(const ChunkStorage&) = delete;
+    ChunkStorage(ChunkStorage&&) noexcept = default;
+    ChunkStorage& operator=(const ChunkStorage&) = delete;
+    ChunkStorage& operator=(ChunkStorage&&) noexcept = default;
+
+    bool Empty() const noexcept;
+    std::size_t Size() const noexcept;
+    std::string_view View() const noexcept;
+    const std::string& AsString() const;
+
+private:
+    std::variant<std::string, std::shared_ptr<const std::string>> storage_{};
+};
+
+}  // namespace impl
+
 class ResponseDataAccounter final {
 public:
     void StartRequest(std::chrono::steady_clock::time_point create_time);
@@ -94,8 +121,14 @@ public:
     virtual ~ResponseBase() noexcept;
 
     void SetData(std::string data);
-    const std::string& GetData() const { return data_; }
-    std::string&& ExtractData() { return std::move(data_); }
+    /// @brief Sets response body without copying, keeping @a data alive.
+    /// Useful for serving cached static content.
+    void SetSharedData(std::shared_ptr<const std::string> data);
+    const std::string& GetData() const;
+    /// @cond
+    // For internal use only.
+    impl::ChunkStorage ExtractData();
+    /// @endcond
 
     virtual bool IsBodyStreamed() const = 0;
     virtual bool WaitForHeadersEnd() = 0;
@@ -105,14 +138,12 @@ public:
     // TODO: server internals. remove from a public interface
     void SetReady();
     void SetReady(std::chrono::steady_clock::time_point now);
-    virtual void SetSendFailed(std::chrono::steady_clock::time_point failure_time);
     bool IsLimitReached() const;
 
-    bool IsReady() const { return ready_time_ != kUnset; }
-    bool IsSent() const noexcept { return sent_time_ != kUnset; }
-    size_t BytesSent() const { return bytes_sent_; }
-    std::chrono::steady_clock::time_point ReadyTime() const { return ready_time_; }
-    std::chrono::steady_clock::time_point SentTime() const { return sent_time_; }
+    bool IsReady() const noexcept { return ready_time_ != kUnset; }
+    bool IsSent() const noexcept { return is_sent_; }
+    std::size_t GetBytesSent() const noexcept { return bytes_sent_; }
+    std::chrono::steady_clock::time_point GetReadyTime() const noexcept { return ready_time_; }
     virtual void SendResponse(engine::io::RwBase& socket) = 0;
 
     virtual void SetStatusServiceUnavailable() = 0;
@@ -129,18 +160,21 @@ public:
 protected:
     ResponseBase(ResponseDataAccounter& data_account, std::chrono::steady_clock::time_point now);
 
-    void SetSent(std::size_t bytes_sent, std::chrono::steady_clock::time_point sent_time);
+    void SetSendFailed();
+    void SetSent(std::size_t bytes_sent);
 
 private:
+    void StoreData(impl::ChunkStorage data);
+
     static constexpr auto kUnset = std::chrono::steady_clock::time_point::min();
 
     ResponseDataAccounter& accounter_;
-    std::string data_;
+    impl::ChunkStorage data_;
     std::chrono::steady_clock::time_point create_time_;
     std::chrono::steady_clock::time_point ready_time_{kUnset};
-    std::chrono::steady_clock::time_point sent_time_{kUnset};
     std::size_t accounted_size_ = 0;
-    size_t bytes_sent_ = 0;
+    std::size_t bytes_sent_ = 0;
+    bool is_sent_ = false;
     std::optional<std::int32_t> stream_id_;
     std::optional<http::impl::Http2StreamEventProducer> producer_{};
 };

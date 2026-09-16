@@ -14,9 +14,16 @@ std::string ReadFileContents(engine::TaskProcessor& async_tp, const std::string&
 FileInfoWithDataMap ReadRecursiveFilesInfoWithData(
     engine::TaskProcessor& async_tp,
     const std::string& path,
-    SettingReadFileFlags flags
+    SettingReadFileFlags flags,
+    std::size_t max_size_to_cache
 ) {
-    return engine::AsyncNoTracing(async_tp, &fs::blocking::ReadRecursiveFilesInfoWithData, std::cref(path), flags)
+    return engine::AsyncNoTracing(
+               async_tp,
+               &fs::blocking::ReadRecursiveFilesInfoWithData,
+               std::cref(path),
+               flags,
+               max_size_to_cache
+    )
         .Get();
 }
 

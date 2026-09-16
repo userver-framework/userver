@@ -10,8 +10,7 @@ class NullSink final : public BaseSink {
 public:
     NullSink() = default;
 
-protected:
-    void Write(std::string_view /*log*/) override {}
+    void Write(std::span<const struct iovec> /*log*/) override {}
 };
 
 }  // namespace logging::impl

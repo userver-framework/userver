@@ -89,7 +89,7 @@ private:
 ///
 /// ## Usage synopsis
 ///
-/// @snippet concurrent/background_task_storage_test.cpp  Sample
+/// @snippet core/src/concurrent/background_task_storage_test.cpp  Sample
 ///
 /// ## Lifetime of task's captures
 ///
@@ -99,12 +99,12 @@ private:
 /// launched inside it (or moved inside it, for BackgroundTaskStorageCore)
 /// can safely access fields declared before it, but not after it:
 ///
-/// @snippet concurrent/background_task_storage_test.cpp  BtsLifetimeCapturesPitfalls
+/// @snippet core/src/concurrent/background_task_storage_test.cpp  BtsLifetimeCapturesPitfalls
 ///
 /// Generally, it's a good idea to declare `bts_` after most other fields
 /// to avoid lifetime bugs. An example of fool-proof code:
 ///
-/// @snippet concurrent/background_task_storage_test.cpp  Bts field ordering
+/// @snippet core/src/concurrent/background_task_storage_test.cpp  Bts field ordering
 ///
 /// Components and their clients can always be safely captured by reference:
 ///
@@ -153,9 +153,9 @@ public:
     /// destructor.
     ///
     /// The task is started as non-Critical, it may be cancelled due to
-    /// `TaskProcessor` overload. engine::TaskInheritedVariable instances are not
-    /// inherited from the caller except baggage::Baggage. See
-    /// utils::AsyncBackground for details.
+    /// `TaskProcessor` overload. Only engine::TaskInheritedVariable instances with
+    /// engine::TaskInheritedVariablePriority::kBackground are inherited from the caller.
+    /// See utils::AsyncBackground for details.
     ///
     /// Can be called from a coroutine or a non-coroutine thread.
     template <typename... Args>
@@ -168,9 +168,9 @@ public:
     ///
     /// Execution of function is guaranteed to start regardless
     /// of engine::TaskProcessor load limits.
-    /// engine::TaskInheritedVariable instances are not
-    /// inherited from the caller except baggage::Baggage. See
-    /// utils::CriticalAsyncBackground for details.
+    /// Only engine::TaskInheritedVariable instances with
+    /// engine::TaskInheritedVariablePriority::kBackground are inherited from the caller.
+    /// See utils::CriticalAsyncBackground for details.
     ///
     /// Can be called from a coroutine or a non-coroutine thread.
     template <typename... Args>

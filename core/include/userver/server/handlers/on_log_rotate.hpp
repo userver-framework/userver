@@ -22,7 +22,7 @@ namespace server::handlers {
 ///
 /// ## Static configuration example:
 ///
-/// @snippet components/common_server_component_list_test.cpp  Sample handler log level component config
+/// @snippet core/src/components/common_server_component_list_test.cpp  Sample handler log level component config
 ///
 /// ## Scheme
 /// POST request reopens log file for all loggers.

@@ -14,7 +14,8 @@ namespace {
 CacheDependencies MakeDependencies(
     std::string_view name,
     const yaml_config::YamlConfig& config,
-    MockEnvironment& environment
+    MockEnvironment& environment,
+    utils::ResourceScopeStorage& scopes
 ) {
     const std::optional<dump::Config> dump_config =
         config.HasMember(dump::kDump)
@@ -34,13 +35,19 @@ CacheDependencies MakeDependencies(
         dump_config ? dump::CreateDefaultOperationsFactory(*dump_config) : nullptr,
         engine::current_task::GetTaskProcessor(),
         environment.dump_control,
+        scopes,
     };
 }
 
 }  // namespace
 
-CacheMockBase::CacheMockBase(std::string_view name, const yaml_config::YamlConfig& config, MockEnvironment& environment)
-    : CacheUpdateTrait(MakeDependencies(name, config, environment))
+CacheMockBase::CacheMockBase(
+    utils::ResourceScopeStorage& scopes,
+    std::string_view name,
+    const yaml_config::YamlConfig& config,
+    MockEnvironment& environment
+)
+    : CacheUpdateTrait(MakeDependencies(name, config, environment, scopes))
 {}
 
 void CacheMockBase::Cleanup() {}

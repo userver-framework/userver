@@ -207,6 +207,102 @@ TEST(OptionalRef, ValueOr) {
     EXPECT_FALSE(opt.has_value());
 }
 
+TEST(OptionalRef, AndThen) {
+    {
+        int value = 1;
+        const utils::OptionalRef<int> opt(value);
+        const auto result = opt.and_then([](int& item) {
+            ++item;
+            return std::optional{item * 2};
+        });
+
+        static_assert(std::is_same_v<decltype(result), const std::optional<int>>);
+        EXPECT_EQ(result, 4);
+        EXPECT_EQ(value, 2);
+    }
+
+    {
+        bool fallback_called = false;
+        const utils::OptionalRef<int> empty;
+        EXPECT_EQ(
+            empty.and_then([&fallback_called](int&) {
+                fallback_called = true;
+                return std::optional{1};
+            }),
+            std::nullopt
+        );
+        EXPECT_FALSE(fallback_called);
+    }
+
+    {
+        int value = 1;
+        const utils::OptionalRef<int> opt(value);
+        const auto ref_result = opt.and_then([](int& item) { return utils::OptionalRef<int>{item}; });
+        static_assert(std::is_same_v<decltype(ref_result), const utils::OptionalRef<int>>);
+        EXPECT_EQ(std::addressof(*ref_result), std::addressof(value));
+    }
+
+    {
+        bool fallback_called = false;
+        const utils::OptionalRef<int> empty;
+        const auto empty_ref_result = empty.and_then([&fallback_called](int& item) {
+            fallback_called = true;
+            return utils::OptionalRef<int>{item};
+        });
+        static_assert(std::is_same_v<decltype(empty_ref_result), const utils::OptionalRef<int>>);
+        EXPECT_FALSE(empty_ref_result);
+        EXPECT_FALSE(fallback_called);
+    }
+}
+
+TEST(OptionalRef, Transform) {
+    {
+        const int value = 2;
+        const utils::OptionalRef<const int> opt(value);
+        const auto result = opt.transform([](const int& item) { return item * 2; });
+
+        static_assert(std::is_same_v<decltype(result), const std::optional<int>>);
+        EXPECT_EQ(result, 4);
+    }
+
+    {
+        bool called = false;
+        const utils::OptionalRef<const int> empty;
+        EXPECT_EQ(
+            empty.transform([&called](const int&) {
+                called = true;
+                return 1;
+            }),
+            std::nullopt
+        );
+        EXPECT_FALSE(called);
+    }
+}
+
+TEST(OptionalRef, OrElse) {
+    {
+        int value = 1;
+        const utils::OptionalRef<int> opt(value);
+        int fallback = 2;
+        bool fallback_called = false;
+        const auto ref_result = opt.or_else([&fallback_called, &fallback] {
+            fallback_called = true;
+            return utils::OptionalRef<int>{fallback};
+        });
+        static_assert(std::is_same_v<decltype(ref_result), const utils::OptionalRef<int>>);
+        EXPECT_EQ(std::addressof(*ref_result), std::addressof(value));
+        EXPECT_FALSE(fallback_called);
+    }
+
+    {
+        int fallback = 2;
+        const utils::OptionalRef<int> empty;
+        const auto empty_ref_result = empty.or_else([&fallback] { return utils::OptionalRef<int>{fallback}; });
+        static_assert(std::is_same_v<decltype(empty_ref_result), const utils::OptionalRef<int>>);
+        EXPECT_EQ(std::addressof(*empty_ref_result), std::addressof(fallback));
+    }
+}
+
 TEST(OptionalRef, ArrowOperator) {
     struct Object {
         const Object* GetThis() const noexcept { return this; }

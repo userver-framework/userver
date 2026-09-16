@@ -2,6 +2,7 @@
 alerts.cache_update_error:	GAUGE	0
 alerts.config_parse_error:	GAUGE	0
 alerts.dynamic_debug_invalid_location:	GAUGE	0
+alerts.invalid_request_path:	GAUGE	0
 alerts.log_reopening_error:	GAUGE	0
 
 # Info on caches
@@ -228,7 +229,7 @@ http.by-fallback.implicit-http-options.handler.too-many-requests-in-flight: http
 http.handler.cancelled-by-deadline: http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_, version=2	RATE	0
 http.handler.cancelled-by-deadline: http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug, version=2	RATE	0
 http.handler.cancelled-by-deadline: http_handler=handler-inspect-requests, http_path=/service/inspect-requests, version=2	RATE	0
-http.handler.cancelled-by-deadline: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, version=2	RATE	0
+http.handler.cancelled-by-deadline: http_handler=handler-jemalloc, http_path=/service/jemalloc/pprof/_command_, version=2	RATE	0
 http.handler.cancelled-by-deadline: http_handler=handler-log-level, http_path=/service/log-level/_level_, version=2	RATE	0
 http.handler.cancelled-by-deadline: http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/, version=2	RATE	0
 http.handler.cancelled-by-deadline: http_handler=handler-ping, http_path=/ping, version=2	RATE	0
@@ -237,7 +238,7 @@ http.handler.cancelled-by-deadline: http_handler=tests-control, http_path=/tests
 http.handler.deadline-received: http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_, version=2	RATE	0
 http.handler.deadline-received: http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug, version=2	RATE	0
 http.handler.deadline-received: http_handler=handler-inspect-requests, http_path=/service/inspect-requests, version=2	RATE	0
-http.handler.deadline-received: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, version=2	RATE	0
+http.handler.deadline-received: http_handler=handler-jemalloc, http_path=/service/jemalloc/pprof/_command_, version=2	RATE	0
 http.handler.deadline-received: http_handler=handler-log-level, http_path=/service/log-level/_level_, version=2	RATE	0
 http.handler.deadline-received: http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/, version=2	RATE	0
 http.handler.deadline-received: http_handler=handler-ping, http_path=/ping, version=2	RATE	0
@@ -246,7 +247,7 @@ http.handler.deadline-received: http_handler=tests-control, http_path=/tests/_ac
 http.handler.in-flight: http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_, version=2	GAUGE	0
 http.handler.in-flight: http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug, version=2	GAUGE	0
 http.handler.in-flight: http_handler=handler-inspect-requests, http_path=/service/inspect-requests, version=2	GAUGE	0
-http.handler.in-flight: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, version=2	GAUGE	0
+http.handler.in-flight: http_handler=handler-jemalloc, http_path=/service/jemalloc/pprof/_command_, version=2	GAUGE	0
 http.handler.in-flight: http_handler=handler-log-level, http_path=/service/log-level/_level_, version=2	GAUGE	0
 http.handler.in-flight: http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/, version=2	GAUGE	0
 http.handler.in-flight: http_handler=handler-ping, http_path=/ping, version=2	GAUGE	0
@@ -255,7 +256,7 @@ http.handler.in-flight: http_handler=tests-control, http_path=/tests/_action_, v
 http.handler.rate-limit-reached: http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_, version=2	RATE	0
 http.handler.rate-limit-reached: http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug, version=2	RATE	0
 http.handler.rate-limit-reached: http_handler=handler-inspect-requests, http_path=/service/inspect-requests, version=2	RATE	0
-http.handler.rate-limit-reached: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, version=2	RATE	0
+http.handler.rate-limit-reached: http_handler=handler-jemalloc, http_path=/service/jemalloc/pprof/_command_, version=2	RATE	0
 http.handler.rate-limit-reached: http_handler=handler-log-level, http_path=/service/log-level/_level_, version=2	RATE	0
 http.handler.rate-limit-reached: http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/, version=2	RATE	0
 http.handler.rate-limit-reached: http_handler=handler-ping, http_path=/ping, version=2	RATE	0
@@ -267,7 +268,7 @@ http.handler.reply-codes: http_code=200, http_handler=tests-control, http_path=/
 http.handler.reply-codes: http_code=300, http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_, version=2	RATE	0
 http.handler.reply-codes: http_code=300, http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug, version=2	RATE	0
 http.handler.reply-codes: http_code=300, http_handler=handler-inspect-requests, http_path=/service/inspect-requests, version=2	RATE	0
-http.handler.reply-codes: http_code=300, http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, version=2	RATE	0
+http.handler.reply-codes: http_code=300, http_handler=handler-jemalloc, http_path=/service/jemalloc/pprof/_command_, version=2	RATE	0
 http.handler.reply-codes: http_code=300, http_handler=handler-log-level, http_path=/service/log-level/_level_, version=2	RATE	0
 http.handler.reply-codes: http_code=300, http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/, version=2	RATE	0
 http.handler.reply-codes: http_code=300, http_handler=handler-ping, http_path=/ping, version=2	RATE	0
@@ -276,7 +277,7 @@ http.handler.reply-codes: http_code=300, http_handler=tests-control, http_path=/
 http.handler.reply-codes: http_code=500, http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_, version=2	RATE	0
 http.handler.reply-codes: http_code=500, http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug, version=2	RATE	0
 http.handler.reply-codes: http_code=500, http_handler=handler-inspect-requests, http_path=/service/inspect-requests, version=2	RATE	0
-http.handler.reply-codes: http_code=500, http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, version=2	RATE	0
+http.handler.reply-codes: http_code=500, http_handler=handler-jemalloc, http_path=/service/jemalloc/pprof/_command_, version=2	RATE	0
 http.handler.reply-codes: http_code=500, http_handler=handler-log-level, http_path=/service/log-level/_level_, version=2	RATE	0
 http.handler.reply-codes: http_code=500, http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/, version=2	RATE	0
 http.handler.reply-codes: http_code=500, http_handler=handler-ping, http_path=/ping, version=2	RATE	0
@@ -285,7 +286,7 @@ http.handler.reply-codes: http_code=500, http_handler=tests-control, http_path=/
 http.handler.reply-codes: http_code=501, http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_, version=2	RATE	0
 http.handler.reply-codes: http_code=501, http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug, version=2	RATE	0
 http.handler.reply-codes: http_code=501, http_handler=handler-inspect-requests, http_path=/service/inspect-requests, version=2	RATE	0
-http.handler.reply-codes: http_code=501, http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, version=2	RATE	0
+http.handler.reply-codes: http_code=501, http_handler=handler-jemalloc, http_path=/service/jemalloc/pprof/_command_, version=2	RATE	0
 http.handler.reply-codes: http_code=501, http_handler=handler-log-level, http_path=/service/log-level/_level_, version=2	RATE	0
 http.handler.reply-codes: http_code=501, http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/, version=2	RATE	0
 http.handler.reply-codes: http_code=501, http_handler=handler-ping, http_path=/ping, version=2	RATE	0
@@ -294,7 +295,7 @@ http.handler.reply-codes: http_code=501, http_handler=tests-control, http_path=/
 http.handler.rps: http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_, version=2	RATE	0
 http.handler.rps: http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug, version=2	RATE	0
 http.handler.rps: http_handler=handler-inspect-requests, http_path=/service/inspect-requests, version=2	RATE	0
-http.handler.rps: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, version=2	RATE	0
+http.handler.rps: http_handler=handler-jemalloc, http_path=/service/jemalloc/pprof/_command_, version=2	RATE	0
 http.handler.rps: http_handler=handler-log-level, http_path=/service/log-level/_level_, version=2	RATE	0
 http.handler.rps: http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/, version=2	RATE	0
 http.handler.rps: http_handler=handler-ping, http_path=/ping, version=2	RATE	0
@@ -327,15 +328,15 @@ http.handler.timings: http_handler=handler-inspect-requests, http_path=/service/
 http.handler.timings: http_handler=handler-inspect-requests, http_path=/service/inspect-requests, percentile=p99, version=2	GAUGE	0
 http.handler.timings: http_handler=handler-inspect-requests, http_path=/service/inspect-requests, percentile=p99_6, version=2	GAUGE	0
 http.handler.timings: http_handler=handler-inspect-requests, http_path=/service/inspect-requests, percentile=p99_9, version=2	GAUGE	0
-http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, percentile=p0, version=2	GAUGE	0
-http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, percentile=p100, version=2	GAUGE	0
-http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, percentile=p50, version=2	GAUGE	0
-http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, percentile=p90, version=2	GAUGE	0
-http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, percentile=p95, version=2	GAUGE	0
-http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, percentile=p98, version=2	GAUGE	0
-http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, percentile=p99, version=2	GAUGE	0
-http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, percentile=p99_6, version=2	GAUGE	0
-http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, percentile=p99_9, version=2	GAUGE	0
+http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/pprof/_command_, percentile=p0, version=2	GAUGE	0
+http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/pprof/_command_, percentile=p100, version=2	GAUGE	0
+http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/pprof/_command_, percentile=p50, version=2	GAUGE	0
+http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/pprof/_command_, percentile=p90, version=2	GAUGE	0
+http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/pprof/_command_, percentile=p95, version=2	GAUGE	0
+http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/pprof/_command_, percentile=p98, version=2	GAUGE	0
+http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/pprof/_command_, percentile=p99, version=2	GAUGE	0
+http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/pprof/_command_, percentile=p99_6, version=2	GAUGE	0
+http.handler.timings: http_handler=handler-jemalloc, http_path=/service/jemalloc/pprof/_command_, percentile=p99_9, version=2	GAUGE	0
 http.handler.timings: http_handler=handler-log-level, http_path=/service/log-level/_level_, percentile=p0, version=2	GAUGE	0
 http.handler.timings: http_handler=handler-log-level, http_path=/service/log-level/_level_, percentile=p100, version=2	GAUGE	0
 http.handler.timings: http_handler=handler-log-level, http_path=/service/log-level/_level_, percentile=p50, version=2	GAUGE	0
@@ -384,7 +385,7 @@ http.handler.timings: http_handler=tests-control, http_path=/tests/_action_, per
 http.handler.too-many-requests-in-flight: http_handler=handler-dns-client-control, http_path=/service/dnsclient/_command_, version=2	RATE	0
 http.handler.too-many-requests-in-flight: http_handler=handler-dynamic-debug-log, http_path=/service/log/dynamic-debug, version=2	RATE	0
 http.handler.too-many-requests-in-flight: http_handler=handler-inspect-requests, http_path=/service/inspect-requests, version=2	RATE	0
-http.handler.too-many-requests-in-flight: http_handler=handler-jemalloc, http_path=/service/jemalloc/prof/_command_, version=2	RATE	0
+http.handler.too-many-requests-in-flight: http_handler=handler-jemalloc, http_path=/service/jemalloc/pprof/_command_, version=2	RATE	0
 http.handler.too-many-requests-in-flight: http_handler=handler-log-level, http_path=/service/log-level/_level_, version=2	RATE	0
 http.handler.too-many-requests-in-flight: http_handler=handler-on-log-rotate, http_path=/service/on-log-rotate/, version=2	RATE	0
 http.handler.too-many-requests-in-flight: http_handler=handler-ping, http_path=/ping, version=2	RATE	0

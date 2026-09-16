@@ -85,6 +85,26 @@ TEST(UtilsBox, Explicit) {
     static_assert(!std::is_convertible_v<int, utils::Box<NonDefaulted>>);
 }
 
+namespace {
+
+template <typename T>
+struct ValueWrapper {
+    T value;
+};
+
+class IncompleteForBox;
+
+struct BoxOfIncompleteWrapper {
+    utils::Box<ValueWrapper<IncompleteForBox>> field;
+};
+
+}  // namespace
+
+TEST(UtilsBox, IncompleteWrappedType) {
+    // NOLINTNEXTLINE(bugprone-sizeof-expression)
+    static_assert(sizeof(BoxOfIncompleteWrapper) > 0);
+}
+
 TEST(UtilsBox, Assignment) {
     {
         utils::Box<std::string> was_normal = "foo";

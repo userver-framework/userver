@@ -68,6 +68,7 @@ public:
     ///
     /// @param name the name of the client
     /// @param settings the dynamic settings for the client
+    /// @param config dynamic config source used by the client
     /// @return true if the client was added, false if a client with the same name already exists
     bool AddClient(const std::string& name, const DynamicSettings& settings, dynamic_config::Source& config);
 
@@ -96,6 +97,7 @@ public:
     /// @brief Writes statistics for all dynamic clients.
     ///
     /// @param writer statistics writer
+    /// @param settings metrics settings
     void WriteStatistics(utils::statistics::Writer& writer, const MetricsSettings& settings) const;
 
     void OnConfigUpdate(const dynamic_config::Snapshot& cfg);

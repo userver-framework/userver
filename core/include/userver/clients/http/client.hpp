@@ -15,7 +15,7 @@ namespace clients::http {
 
 /// @ingroup userver_clients
 ///
-/// @brief HTTP client interface that returns a HTTP request builder from
+/// @brief HTTP client interface that returns an HTTP request builder from
 /// CreateRequest().
 ///
 /// Usually retrieved from @ref components::HttpClient component.
@@ -23,7 +23,7 @@ namespace clients::http {
 ///
 /// ## Example usage:
 ///
-/// @snippet clients/http/client_test.cpp  Sample HTTP Client usage
+/// @snippet core/src/clients/http/client_test.cpp  Sample HTTP Client usage
 class Client {
 public:
     Client() = default;
@@ -35,7 +35,7 @@ public:
 
     virtual ~Client();
 
-    /// @brief Returns a HTTP request builder type with some preset values.
+    /// @brief Returns an HTTP request builder type with some preset values.
     ///
     /// @note This method is thread-safe despite being non-const.
     virtual Request CreateRequest() = 0;

@@ -43,7 +43,7 @@ To use MongoDB you have to add the component components::Mongo and configure it
 according to the documentation. After that you can work with a collection via
 storages::mongo::Collection:
 
-@snippet storages/mongo/collection_mongotest.hpp  Sample Mongo usage
+@snippet mongo/src/storages/mongo/collection_mongotest.hpp  Sample Mongo usage
 
 Methods and options correspond to [the standard MongoDB Collections API](https://docs.mongodb.com/manual/reference/method/#collection).
 
@@ -64,7 +64,7 @@ current implementation.
 Methods that modify a collection return an object storages::mongo::WriteResult
 containing information about the result of the operation:
 
-@snippet storages/mongo/collection_mongotest.hpp  Sample Mongo write result
+@snippet mongo/src/storages/mongo/collection_mongotest.hpp  Sample Mongo write result
 
 
 ### Packaging operations
@@ -73,7 +73,7 @@ In cases where the same operation is performed with the same arguments many
 times, it can be stored into a variable and reused. The finished operation
 can be passed to the collection method `Execute()`.
 
-@snippet storages/mongo/collection_mongotest.hpp  Sample Mongo packaged operation
+@snippet mongo/src/storages/mongo/collection_mongotest.hpp  Sample Mongo packaged operation
 
 
 ### BSON

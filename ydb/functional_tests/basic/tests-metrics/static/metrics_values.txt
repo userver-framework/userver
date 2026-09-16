@@ -1,4 +1,4 @@
-# SDK 3.21.0 uses unprefixed Query operation labels and reports BeginTransaction.
+# SDK 3.21.1 uses unprefixed Query operation labels and reports BeginTransaction.
 distlock.cancel-task-time-limit-exceeded: distlock_name=sample-dist-lock	RATE	0
 distlock.lock-failures: distlock_name=sample-dist-lock	RATE	0
 distlock.lock-successes: distlock_name=sample-dist-lock	RATE	0

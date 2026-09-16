@@ -13,7 +13,7 @@ namespace crypto::algorithm {
 
 /// Performs constant-time string comparison if the strings are of equal size
 ///
-/// @snippet storages/secdist/secdist_test.cpp UserPasswords
+/// @snippet core/src/storages/secdist/secdist_test.cpp UserPasswords
 bool AreStringsEqualConstTime(std::string_view str1, std::string_view str2) noexcept;
 
 /// Performs constant-time string comparison comparator

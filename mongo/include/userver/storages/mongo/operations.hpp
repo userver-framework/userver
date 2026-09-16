@@ -10,6 +10,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace storages::mongo::impl {
+class Database;
+}  // namespace storages::mongo::impl
+
 namespace storages::mongo::impl::cdriver {
 class CDriverCollectionImpl;
 class CDriverTransactionCollectionImpl;
@@ -346,6 +350,7 @@ public:
     Aggregate& operator=(const Aggregate&);
     Aggregate& operator=(Aggregate&&) noexcept;
 
+    void SetOption(options::BatchSize);
     void SetOption(const options::ReadPreference&);
     void SetOption(options::ReadPreference::Mode);
     void SetOption(options::ReadConcern);
@@ -356,6 +361,7 @@ public:
     void SetOption(const options::MaxServerTime&);
 
 private:
+    friend class storages::mongo::impl::Database;
     friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
     friend class storages::mongo::impl::cdriver::CDriverTransactionCollectionImpl;
 

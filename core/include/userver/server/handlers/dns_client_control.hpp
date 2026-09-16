@@ -22,7 +22,7 @@ namespace server::handlers {
 ///
 /// ## Static configuration example:
 ///
-/// @snippet components/common_server_component_list_test.cpp Sample handler dns client control component config
+/// @snippet core/src/components/common_server_component_list_test.cpp dns-client-control config
 ///
 /// ## Schema
 /// Set an URL path argument `command` to one of the following values:

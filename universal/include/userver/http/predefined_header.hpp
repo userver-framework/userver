@@ -165,7 +165,7 @@ class Map;
 /// @brief A struct to represent compile-time known header name.
 ///
 /// Calculates the hash value at compile time with the same hasher
-/// HeaderMap uses, which allows to speed things up greatly.
+/// HeaderMap uses, which speeds things up greatly.
 ///
 /// Although it's possible to construct PredefinedHeader at runtime
 /// it makes little sense and is error-prone, since it

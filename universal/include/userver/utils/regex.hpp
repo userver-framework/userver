@@ -43,7 +43,7 @@ class RegexError : public std::exception {};
 ///
 /// ## An example of complex string parsing using `utils::regex`
 ///
-/// @snippet utils/regex_test.cpp  split text
+/// @snippet universal/src/utils/regex_test.cpp  split text
 class regex final {
 public:
     /// Constructs a null regex, any usage except for copy/move is UB.

@@ -105,7 +105,7 @@ public:
     /// @note You may write a query in `.sql` file and generate a header file with Query from it.
     ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
     ///
-    /// @snippet storages/postgres/tests/landing_test.cpp TransacExec
+    /// @snippet postgresql/src/storages/postgres/tests/landing_test.cpp TransacExec
     template <typename... Args>
     ResultSet Execute(const Query& query, const Args&... args) {
         return Execute(OptionalCommandControl{}, query, args...);
@@ -169,7 +169,7 @@ public:
     /// @note You may write a query in `.sql` file and generate a header file with Query from it.
     ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
     ///
-    /// @snippet storages/postgres/tests/arrays_pgtest.cpp ExecuteDecomposeTrx
+    /// @snippet postgresql/src/storages/postgres/tests/arrays_pgtest.cpp ExecuteDecomposeTrx
     template <typename Container>
     ResultSet ExecuteDecompose(const Query& query, const Container& args);
 
@@ -186,7 +186,7 @@ public:
     /// @note You may write a query in `.sql` file and generate a header file with Query from it.
     ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
     ///
-    /// @snippet storages/postgres/tests/arrays_pgtest.cpp ExecuteDecomposeTrx
+    /// @snippet postgresql/src/storages/postgres/tests/arrays_pgtest.cpp ExecuteDecomposeTrx
     template <typename Container>
     ResultSet ExecuteDecompose(OptionalCommandControl statement_cmd_ctl, const Query& query, const Container& args);
 
@@ -230,7 +230,7 @@ public:
     /// @note You may write a query in `.sql` file and generate a header file with Query from it.
     ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
     ///
-    /// @snippet storages/postgres/tests/arrays_pgtest.cpp ExecuteDecomposeBulk
+    /// @snippet postgresql/src/storages/postgres/tests/arrays_pgtest.cpp ExecuteDecomposeBulk
     template <typename Container>
     void ExecuteDecomposeBulk(const Query& query, const Container& args, std::size_t chunk_rows = kDefaultRowsInChunk);
 
@@ -247,7 +247,7 @@ public:
     /// @note You may write a query in `.sql` file and generate a header file with Query from it.
     ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
     ///
-    /// @snippet storages/postgres/tests/arrays_pgtest.cpp ExecuteDecomposeBulk
+    /// @snippet postgresql/src/storages/postgres/tests/arrays_pgtest.cpp ExecuteDecomposeBulk
     template <typename Container>
     void ExecuteDecomposeBulk(
         OptionalCommandControl statement_cmd_ctl,

@@ -81,6 +81,12 @@ std::string AddressV4ToString(const AddressV4& address);
 /// @brief Get the address as a string in dotted decimal format.
 std::string AddressV6ToString(const AddressV6& address);
 
+/// @brief Returns true if `host` is an IPv4 or IPv6 address.
+bool IsIpAddress(std::string_view host) noexcept;
+
+/// @brief Same as @ref IsIpAddress, but slightly faster.
+bool IsNulTerminatedIpAddress(utils::zstring_view host) noexcept;
+
 /// @ingroup userver_containers
 ///
 /// @brief Base class for IPv4/IPv6 network

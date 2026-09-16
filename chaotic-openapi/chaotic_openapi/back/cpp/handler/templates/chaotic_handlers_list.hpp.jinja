@@ -18,8 +18,6 @@ namespace {{ spec.cpp_namespace }} {
 /// @endcode
 inline {{ userver }}::components::ComponentList ChaoticHandlersList() {
     return {{ userver }}::components::ComponentList()
-        .Append<{{ userver }}::components::Container<
-            {{ userver }}::chaotic::openapi::server::dependencies::Factories>>()
 {% for op in spec.operations %}
         .Append<{{ spec.cpp_namespace }}::{{ op.cpp_namespace() }}::Handler>()
 {% endfor %}

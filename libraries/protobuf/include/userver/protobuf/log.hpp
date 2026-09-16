@@ -28,11 +28,11 @@ logging::LogHelper& operator<<(logging::LogHelper& h, const google::protobuf::Me
 /// @warning The constraint must actually restrict @a T to `google::protobuf::Message` and its derived types.
 /// `std::is_base_of_v<::google::protobuf::Message, T>` alone is both necessary and sufficient (it is already
 /// `true` for `T = google::protobuf::Message` itself, since `is_base_of` treats a type as its own base). Do not
-/// widen it (e.g. by `|| !std::is_same_v<...>`, as used for @ref JsonToMessage, where it is vestigial but
-/// harmless): unlike `JsonToMessage`, this template competes with `LogHelper`'s unconstrained member
-/// `operator<<`, and C++20 partial ordering picks the *more constrained* candidate without evaluating whether the
-/// constraint is actually restrictive — a tautological constraint (`true` for every `T`) would still "win", then
-/// hijack `h << x` for values unrelated to protobuf (e.g. plain `std::string`, as produced by
+/// widen it (e.g. by `|| !std::is_same_v<...>`, as used for @ref protobuf::json::JsonToMessage, where it is vestigial
+/// but harmless): unlike `JsonToMessage`, this template competes with `LogHelper`'s unconstrained member `operator<<`,
+/// and C++20 partial ordering picks the *more constrained* candidate without evaluating whether the constraint is
+/// actually restrictive — a tautological constraint (`true` for every `T`) would still "win", then hijack `h << x` for
+/// values unrelated to protobuf (e.g. plain `std::string`, as produced by
 /// @ref protobuf::json::MessageToDebugString below) and fail to compile on the `static_cast` in the body.
 ///
 /// The `static_cast` in the body changes the argument's static type to exactly `google::protobuf::Message`, so on

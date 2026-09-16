@@ -11,8 +11,10 @@ namespace storages::odbc {
 
 class ResultSet;
 class Row;
+class Cursor;
 
 class Cluster;
+class Transaction;
 
 /// @brief Smart pointer to the storages::odbc::Cluster
 using ClusterPtr = std::shared_ptr<Cluster>;

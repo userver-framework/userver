@@ -21,7 +21,7 @@ TESTPOINT_NAMES = ('after_make_portal', 'after_fetch')
 
 
 @pytest.mark.parametrize('tp_name', TESTPOINT_NAMES)
-async def test_sockets_close(service_client, gate, testpoint, tp_name):
+async def test_sockets_close(service_client, gate, testpoint, tp_name, mocked_time):
     should_close_sockets = True
 
     @testpoint(tp_name)
@@ -35,7 +35,7 @@ async def test_sockets_close(service_client, gate, testpoint, tp_name):
     logger.debug('End of "test_sockets_close" check for 500')
 
     should_close_sockets = False
-    await utils.consume_dead_db_connections(service_client)
+    await utils.consume_dead_db_connections(service_client, mocked_time)
 
     logger.debug('Starting "test_sockets_close" check for 500')
     response = await service_client.get(PORTAL_URL)
@@ -48,7 +48,7 @@ DELAY_SECS = 4.0
 
 
 @pytest.mark.parametrize('tp_name', TESTPOINT_NAMES)
-async def test_timeout(service_client, gate, testpoint, tp_name):
+async def test_timeout(service_client, gate, testpoint, tp_name, mocked_time):
     should_delay = True
 
     @testpoint(tp_name)
@@ -63,7 +63,7 @@ async def test_timeout(service_client, gate, testpoint, tp_name):
 
     should_delay = False
     await gate.to_client_pass()
-    await utils.consume_dead_db_connections(service_client)
+    await utils.consume_dead_db_connections(service_client, mocked_time)
 
     logger.debug('Starting "test_timeout" check for 200')
     response = await service_client.get(PORTAL_URL)

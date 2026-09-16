@@ -273,23 +273,24 @@ template <typename Function, typename... Args>
 
 /// @ingroup userver_concurrency
 ///
-/// Starts an asynchronous task without propagating
-/// engine::TaskInheritedVariable. tracing::Span and baggage::Baggage are
-/// inherited. Task execution may be cancelled before the function starts
-/// execution in case of engine::TaskProcessor overload.
+/// Starts an asynchronous task that inherits tracing::Span and only the
+/// engine::TaskInheritedVariable instances with
+/// engine::TaskInheritedVariablePriority::kBackground, including baggage::Baggage
+/// and OpenTelemetry tracing headers. Task execution may be cancelled before the
+/// function starts execution in case of engine::TaskProcessor overload.
 ///
 /// Typically used from a request handler to launch tasks that outlive the
 /// request and do not effect its completion.
 ///
 /// ## Usage example
 /// Suppose you have some component that runs asynchronous tasks:
-/// @snippet utils/async_test.cpp  AsyncBackground component
-/// @snippet utils/async_test.cpp  AsyncBackground handler
+/// @snippet core/src/utils/async_test.cpp  AsyncBackground component
+/// @snippet core/src/utils/async_test.cpp  AsyncBackground handler
 ///
 /// If the tasks logically belong to the component itself (not to the method
 /// caller), then they should be launched using utils::AsyncBackground instead
 /// of the regular utils::Async
-/// @snippet utils/async_test.cpp  AsyncBackground FooAsync
+/// @snippet core/src/utils/async_test.cpp  AsyncBackground FooAsync
 ///
 /// ## Arguments
 /// By default, arguments are copied or moved inside the resulting

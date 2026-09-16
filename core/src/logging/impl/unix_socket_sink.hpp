@@ -1,9 +1,10 @@
 #pragma once
 
-#include <mutex>
+#include <span>
 #include <string>
 
 #include <logging/impl/base_sink.hpp>
+#include <userver/engine/io/socket.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -20,11 +21,11 @@ public:
     ~UnixSocketClient();
 
     void connect(std::string_view filename);
-    void send(std::string_view message);
+    void send(std::span<const struct iovec> logs);
     void close();
 
 private:
-    int socket_{-1};
+    engine::io::Socket socket_;
 };
 
 class UnixSocketSink final : public BaseSink {
@@ -35,10 +36,9 @@ public:
         client_.connect(filename_);
     }
 
-    void Close();
+    void Write(std::span<const struct iovec> logs) final;
 
-protected:
-    void Write(std::string_view log) final;
+    void Close();
 
 private:
     const std::string filename_;

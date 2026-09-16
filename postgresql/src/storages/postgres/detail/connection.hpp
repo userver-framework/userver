@@ -1,7 +1,6 @@
 #pragma once
 
 #include <atomic>
-#include <chrono>
 #include <string>
 #include <string_view>
 
@@ -168,8 +167,8 @@ public:
     bool IsBroken() const;
     /// Check if the connection lived past its ttl
     bool IsExpired() const;
-    /// Check is the connection is in pipeline mode
-    bool IsPipelineActive() const;
+    /// Check that the connection is in pipeline mode
+    void AssertPipelineActive() const;
     /// Check if prepared statements are enabled
     bool ArePreparedStatementsEnabled() const;
 

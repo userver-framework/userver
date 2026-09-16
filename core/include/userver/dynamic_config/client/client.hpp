@@ -5,6 +5,8 @@
 
 #include <chrono>
 #include <optional>
+#include <string>
+#include <vector>
 
 #include <userver/dynamic_config/value.hpp>
 
@@ -18,6 +20,7 @@ namespace dynamic_config {
 
 struct ClientConfig {
     std::string service_name;
+    /// When true, sends `service`. Mutually exclusive with non-empty `service_overrides`.
     bool get_configs_overrides_for_service{true};
     std::chrono::milliseconds timeout{0};
     int retries{1};
@@ -26,6 +29,8 @@ struct ClientConfig {
     std::string stage_name;
     bool is_prestable{false};
     std::string circuit;
+    /// Ordered service names sent as `service_overrides`. Mutually exclusive with `service`.
+    std::vector<std::string> service_overrides;
 };
 
 /// @ingroup userver_clients

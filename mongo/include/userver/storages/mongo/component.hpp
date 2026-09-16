@@ -99,9 +99,6 @@ private:
 
     std::string dbalias_;
     storages::mongo::PoolPtr pool_;
-
-    // Subscriptions must be the last fields.
-    concurrent::AsyncEventSubscriberScope secdist_subscriber_;
 };
 
 template <>

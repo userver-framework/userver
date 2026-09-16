@@ -10,8 +10,8 @@ server::handlers::InspectRequests provides the following REST API:
 GET /service/inspect-requests
 GET /service/inspect-requests?body=1
 ```
-Note that the server::handlers::InspectRequests handler lives at the separate
-`components.server.listener-monitor` address, so you have to request them using the
+Note that the server::handlers::InspectRequests handler lives on the separate
+`components.server.listener-monitor` address, so you have to request it using the
 `listener-monitor` credentials. See @ref scripts/docs/en/userver/tutorial/production_service.md
 for more info on configuration and ideas on how to change the
 `/service/inspect-requests` handle path.

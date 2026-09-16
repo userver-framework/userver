@@ -40,7 +40,7 @@ async def wait_until(
         await wait_until(try_to_connect_db)
 
     @throws TimeoutError after `total_wait_seconds` of unsuccessful checks
-    @note If possible, use @ref testpoint instead. @ref testpoint is
+    @note If possible, use @ref testsuite.plugins.testpoint.testpoint "testpoint" instead. @ref testsuite.plugins.testpoint.testpoint "testpoint" is
     an explicit message from the server "I'm ready", while wait_until()
     uses an implicit idea "A condition is met, so I can continue".
 
@@ -84,7 +84,7 @@ async def wait(
         await wait_until(try_to_connect_db)
 
     @throws TimeoutError after `total_wait_seconds` of unsuccessful checks
-    @note If possible, use @ref testpoint instead. @ref testpoint is
+    @note If possible, use @ref testsuite.plugins.testpoint.testpoint "testpoint" instead. @ref testsuite.plugins.testpoint.testpoint "testpoint" is
     an explicit message from the server "I'm ready", while wait_until()
     uses an implicit idea "A condition is met, so I can continue".
 

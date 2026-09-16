@@ -1,19 +1,27 @@
 #include <storages/postgres/postgres_config.hpp>
 
+#include <chrono>
+#include <optional>
+
 #include <fmt/format.h>
 
+#include <dynamic_config/variables/POSTGRES_CONNECTION_POOL_SETTINGS.hpp>
+#include <dynamic_config/variables/POSTGRES_CONNECTION_SETTINGS.hpp>
+#include <dynamic_config/variables/POSTGRES_DEFAULT_COMMAND_CONTROL.hpp>
+#include <dynamic_config/variables/POSTGRES_HANDLERS_COMMAND_CONTROL.hpp>
+#include <dynamic_config/variables/POSTGRES_QUERIES_COMMAND_CONTROL.hpp>
+#include <dynamic_config/variables/POSTGRES_STATEMENT_METRICS_SETTINGS.hpp>
+#include <dynamic_config/variables/POSTGRES_TOPOLOGY_SETTINGS.hpp>
+
+#include <userver/formats/parse/common_containers.hpp>
 #include <userver/logging/log.hpp>
 
-#include <storages/postgres/experiments.hpp>
 #include <userver/storages/postgres/component.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
-#include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/userver_info.hpp>
 
 #include <userver/formats/common/items.hpp>
 #include <userver/utils/trivial_map.hpp>
-
-#include <type_traits>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -55,6 +63,8 @@ CommandControl Parse(const formats::json::Value& elem, formats::parse::To<Comman
 }
 
 namespace {
+
+constexpr std::chrono::minutes kMaxRttThreshold{1};
 
 constexpr USERVER_NAMESPACE::utils::TrivialBiMap kPoolerModes = [](auto&& selector) {
     return selector().Case(PoolerMode::kSession, "session").Case(PoolerMode::kTransaction, "transaction");
@@ -188,57 +198,62 @@ ConnectionSettings Parse(const yaml_config::YamlConfig& config, formats::parse::
 
 namespace {
 
-template <typename T>
-std::string ToString(const std::optional<T>& v) {
-    if (v.has_value()) {
-        return std::to_string(*v);
-    }
-    return "std::nullopt";
-}
-
-std::string ToString(std::size_t v) { return std::to_string(v); }
-
-template <typename T, typename ConfigType>
-T GetField(const ConfigType& config, std::string_view name, T default_val) {
-    return config[name].template As<T>(default_val);
-}
-
-template <typename Settings, typename ConfigType>
-Settings ParsePoolSettings(const ConfigType& config) {
-    Settings result{};
-    result.min_size = GetField(config, "min_pool_size", result.min_size);
-    result.max_size = GetField(config, "max_pool_size", result.max_size);
-    result.max_queue_size = GetField(config, "max_queue_size", result.max_queue_size);
-    result.connecting_limit = GetField(config, "connecting_limit", result.connecting_limit);
-
-    const std::size_t default_connecting_interval_ms =
-        USERVER_NAMESPACE::utils::impl::kPgConnectingRateLimitExperiment.IsEnabled()
-            ? kExperimentDefaultConnectingIntervalMs
-            : kDefaultConnectingIntervalMs;
-    result.connecting_interval_ms = GetField(config, "connecting_interval_ms", default_connecting_interval_ms);
-
-    if (result.max_size == 0) {
+void ValidatePoolSizes(const std::optional<std::size_t>& min_size, const std::optional<std::size_t>& max_size) {
+    if (max_size == 0) {
         throw InvalidConfig{"max_pool_size must be greater than 0"};
     }
-    if (result.max_size < result.min_size) {
+    if (max_size.has_value() && min_size.has_value() && *max_size < *min_size) {
         throw InvalidConfig{fmt::format(
             "max_pool_size cannot be less than min_pool_size. max_pool_size={}, min_pool_size={}",
-            ToString(result.max_size),
-            ToString(result.min_size)
+            *max_size,
+            *min_size
         )};
     }
+}
 
-    return result;
+template <typename T>
+void MergeField(T& field, const std::optional<T>& opt) {
+    if (opt) {
+        field = *opt;
+    }
 }
 
 }  // namespace
 
 PoolSettingsDynamic Parse(const formats::json::Value& config, formats::parse::To<PoolSettingsDynamic>) {
-    return ParsePoolSettings<PoolSettingsDynamic>(config);
+    PoolSettingsDynamic result{
+        .min_size = config["min_pool_size"].As<std::optional<std::size_t>>(),
+        .max_size = config["max_pool_size"].As<std::optional<std::size_t>>(),
+        .max_queue_size = config["max_queue_size"].As<std::optional<std::size_t>>(),
+        .connecting_limit = config["connecting_limit"].As<std::optional<std::size_t>>(),
+        .connecting_interval_ms = config["connecting_interval_ms"].As<std::optional<std::size_t>>(),
+    };
+    ValidatePoolSizes(result.min_size, result.max_size);
+    return result;
 }
 
 PoolSettings Parse(const yaml_config::YamlConfig& config, formats::parse::To<PoolSettings>) {
-    return ParsePoolSettings<PoolSettings>(config);
+    PoolSettings result{};
+    result.min_size = config["min_pool_size"].As<std::size_t>(result.min_size);
+    result.max_size = config["max_pool_size"].As<std::size_t>(result.max_size);
+    result.max_queue_size = config["max_queue_size"].As<std::size_t>(result.max_queue_size);
+    result.connecting_limit = config["connecting_limit"].As<std::size_t>(result.connecting_limit);
+    result.connecting_interval_ms = config["connecting_interval_ms"].As<std::size_t>(result.connecting_interval_ms);
+
+    ValidatePoolSizes(result.min_size, result.max_size);
+    return result;
+}
+
+void MergePoolSettings(const std::optional<PoolSettingsDynamic>& dynamic_settings, PoolSettings& static_settings) {
+    if (!dynamic_settings.has_value()) {
+        return;
+    }
+    const auto& dynamic = *dynamic_settings;
+    MergeField(static_settings.max_size, dynamic.max_size);
+    MergeField(static_settings.min_size, dynamic.min_size);
+    MergeField(static_settings.max_queue_size, dynamic.max_queue_size);
+    MergeField(static_settings.connecting_limit, dynamic.connecting_limit);
+    MergeField(static_settings.connecting_interval_ms, dynamic.connecting_interval_ms);
 }
 
 TopologySettings Parse(const formats::json::Value& config, formats::parse::To<TopologySettings>) {
@@ -247,9 +262,26 @@ TopologySettings Parse(const formats::json::Value& config, formats::parse::To<To
     result.max_replication_lag =
         config["max_replication_lag_ms"].template As<std::chrono::milliseconds>(result.max_replication_lag);
     result.disabled_replicas = config["disabled_replicas"].template As<decltype(result.disabled_replicas)>({});
+    result.rtt_threshold = config["rtt_threshold_ms"].template As<std::chrono::milliseconds>(kDefaultRttThreshold);
 
     if (result.max_replication_lag < std::chrono::milliseconds{0}) {
         throw InvalidConfig{"max_replication_lag cannot be less than 0"};
+    }
+
+    return result;
+}
+
+TopologySettings Parse(const yaml_config::YamlConfig& config, formats::parse::To<TopologySettings>) {
+    TopologySettings result{};
+
+    result.max_replication_lag = config["max_replication_lag"].As<std::chrono::milliseconds>(result.max_replication_lag
+    );
+    result.rtt_threshold = config["rtt_threshold"].As<std::chrono::milliseconds>(kDefaultRttThreshold);
+    if (result.rtt_threshold > kMaxRttThreshold) {
+        throw InvalidConfig{
+            "Invalid PostgreSQL topology rtt_threshold: value must not exceed 60s. Set static 'rtt_threshold' to a "
+            "duration of at most '60s'."
+        };
     }
 
     return result;
@@ -297,13 +329,41 @@ using JsonString = dynamic_config::DefaultAsJsonString;
 const dynamic_config::Key<Config> kConfig{
     Config::Parse,
     {
-        {"POSTGRES_DEFAULT_COMMAND_CONTROL", JsonString{"{}"}},
-        {"POSTGRES_HANDLERS_COMMAND_CONTROL", JsonString{"{}"}},
-        {"POSTGRES_QUERIES_COMMAND_CONTROL", JsonString{"{}"}},
-        {"POSTGRES_CONNECTION_POOL_SETTINGS", JsonString{"{}"}},
-        {"POSTGRES_TOPOLOGY_SETTINGS", JsonString{"{}"}},
-        {"POSTGRES_CONNECTION_SETTINGS", JsonString{"{}"}},
-        {"POSTGRES_STATEMENT_METRICS_SETTINGS", JsonString{"{}"}},
+        {
+            "POSTGRES_DEFAULT_COMMAND_CONTROL",
+            JsonString{"{}"},
+            ::dynamic_config::postgres_default_command_control::GetSchemaHash(),
+        },
+        {
+            "POSTGRES_HANDLERS_COMMAND_CONTROL",
+            JsonString{"{}"},
+            ::dynamic_config::postgres_handlers_command_control::GetSchemaHash(),
+        },
+        {
+            "POSTGRES_QUERIES_COMMAND_CONTROL",
+            JsonString{"{}"},
+            ::dynamic_config::postgres_queries_command_control::GetSchemaHash(),
+        },
+        {
+            "POSTGRES_CONNECTION_POOL_SETTINGS",
+            JsonString{"{}"},
+            ::dynamic_config::postgres_connection_pool_settings::GetSchemaHash(),
+        },
+        {
+            "POSTGRES_TOPOLOGY_SETTINGS",
+            JsonString{"{}"},
+            ::dynamic_config::postgres_topology_settings::GetSchemaHash(),
+        },
+        {
+            "POSTGRES_CONNECTION_SETTINGS",
+            JsonString{"{}"},
+            ::dynamic_config::postgres_connection_settings::GetSchemaHash(),
+        },
+        {
+            "POSTGRES_STATEMENT_METRICS_SETTINGS",
+            JsonString{"{}"},
+            ::dynamic_config::postgres_statement_metrics_settings::GetSchemaHash(),
+        },
     },
 };
 

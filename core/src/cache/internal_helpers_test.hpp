@@ -11,6 +11,7 @@
 #include <userver/testsuite/cache_control.hpp>
 #include <userver/testsuite/dump_control.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/resource_scopes.hpp>
 #include <userver/utils/statistics/metrics_storage.hpp>
 #include <userver/utils/statistics/storage.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
@@ -38,7 +39,12 @@ struct MockEnvironment final {
 
 class CacheMockBase : public CacheUpdateTrait {
 public:
-    CacheMockBase(std::string_view name, const yaml_config::YamlConfig& config, MockEnvironment& environment);
+    CacheMockBase(
+        utils::ResourceScopeStorage& scopes,
+        std::string_view name,
+        const yaml_config::YamlConfig& config,
+        MockEnvironment& environment
+    );
 
 private:
     void Cleanup() override;

@@ -3,7 +3,6 @@
 /// @file userver/server/handlers/auth/digest/nonce_cache_settings_component.hpp
 /// @brief @copybrief server::handlers::auth::digest::NonceCacheSettingsComponent
 
-#include <chrono>
 #include <cstddef>
 #include <optional>
 #include <string>
@@ -41,7 +40,7 @@ struct NonceCacheSettings {
 class NonceCacheSettingsComponent final : public AuthCheckerSettingsComponent {
 public:
     /// @ingroup userver_component_names
-    /// @brief The default name of @ref server::handlers::auth::NonceCacheSettingsComponent
+    /// @brief The default name of @ref server::handlers::auth::digest::NonceCacheSettingsComponent
     static constexpr std::string_view kName = "nonce-cache-settings";
 
     NonceCacheSettingsComponent(const components::ComponentConfig& config, const components::ComponentContext& context);

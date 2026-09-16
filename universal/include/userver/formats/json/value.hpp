@@ -29,6 +29,7 @@ class InlineObjectBuilder;
 class InlineArrayBuilder;
 class MutableValueWrapper;
 class StringBuffer;
+class StableSerializer;
 
 // do not make a copy of string
 impl::Value MakeJsonStringViewValue(std::string_view view);
@@ -52,7 +53,7 @@ class JsonValueParser;
 ///
 /// ## Example usage:
 ///
-/// @snippet formats/json/value_test.cpp  Sample formats::json::Value usage
+/// @snippet universal/src/formats/json/value_test.cpp  Sample formats::json::Value usage
 ///
 /// @see @ref scripts/docs/en/userver/formats.md
 ///
@@ -176,7 +177,7 @@ public:
     ///
     /// ## Example usage:
     ///
-    /// @snippet formats/json/value_test.cpp  Sample formats::json::Value::As<T>() usage
+    /// @snippet universal/src/formats/json/value_test.cpp  Sample formats::json::Value::As<T>() usage
     ///
     /// @see @ref scripts/docs/en/userver/formats.md
     template <typename T>
@@ -327,6 +328,7 @@ private:
     friend class impl::MutableValueWrapper;
     friend class parser::JsonValueParser;
     friend class impl::StringBuffer;
+    friend class impl::StableSerializer;
 
     friend bool Parse(const Value& value, parse::To<bool>);
     friend std::int64_t Parse(const Value& value, parse::To<std::int64_t>);

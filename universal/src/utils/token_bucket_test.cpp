@@ -231,6 +231,20 @@ TEST(TokenBucket, Reconfig) {
     EXPECT_TRUE(tb.ObtainAll(10));
 }
 
+TEST(TokenBucket, MockTimeRewindRefills) {
+    const auto second = std::chrono::system_clock::time_point{} + std::chrono::seconds{10};
+    utils::datetime::MockNowSet(second + std::chrono::milliseconds{100});
+
+    utils::TokenBucket tb{1, {1, std::chrono::seconds{4}}};
+    EXPECT_TRUE(tb.Obtain());
+    EXPECT_FALSE(tb.Obtain());
+
+    // Testsuite mock_now is often truncated to seconds, which rewinds MockSteadyNow
+    // behind last_update.
+    utils::datetime::MockNowSet(second);
+    EXPECT_TRUE(tb.Obtain());
+}
+
 TEST(TokenBucket, MultiTokenRefill) {
     utils::datetime::MockNowSet({});
 

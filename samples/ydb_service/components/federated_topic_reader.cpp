@@ -180,7 +180,7 @@ private:
 
 }  // namespace
 
-/// [YDB service sample - federated topic reader component]
+/// [federated topic reader]
 FederatedTopicReaderComponent::FederatedTopicReaderComponent(
     const components::ComponentConfig& config,
     const components::ComponentContext& context
@@ -200,7 +200,7 @@ FederatedTopicReaderComponent::FederatedTopicReaderComponent(
         topic_reader->Run();
     });
 }
-/// [YDB service sample - federated topic reader component]
+/// [federated topic reader]
 
 yaml_config::Schema FederatedTopicReaderComponent::GetStaticConfigSchema() {
     return yaml_config::MergeSchemas<components::ComponentBase>(R"(

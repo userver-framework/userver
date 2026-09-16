@@ -12,6 +12,9 @@ namespace storages::odbc::detail {
 /// Milliseconds so defaults and settings can be sub-second; pool wait / @ref engine::Deadline use full resolution.
 inline constexpr std::chrono::milliseconds kDefaultStatementTimeout{10000};
 
+/// Cleanup must remain possible after a request/statement deadline expires.
+inline constexpr std::chrono::milliseconds kDefaultCleanupTimeout{5000};
+
 /// Combines task-inherited request deadline (if any) with \a operation_deadline, returning the
 /// earlier of the two (like storages::postgres::AdjustTimeout).
 engine::Deadline MergeWithInheritedDeadline(engine::Deadline operation_deadline) noexcept;

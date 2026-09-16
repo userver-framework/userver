@@ -55,7 +55,7 @@ _userver_directory_install(
 )
 _userver_directory_install(
     COMPONENT chaotic
-    FILES "${USERVER_ROOT_DIR}/cmake/ChaoticGen.cmake" "${USERVER_ROOT_DIR}/cmake/install/userver-chaotic-config.cmake"
+    FILES "${USERVER_ROOT_DIR}/cmake/ChaoticGen.cmake"
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/cmake/userver"
 )
 _userver_directory_install(

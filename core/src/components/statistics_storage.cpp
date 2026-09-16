@@ -45,13 +45,7 @@ void RegisterWriterScope(
 )
 {
     auto& storage = context.FindComponent<components::StatisticsStorage>().GetStorage();
-    context.Scopes()
-        .Register([&storage,
-                   common_prefix = std::move(common_prefix),
-                   func = std::move(func),
-                   add_labels = std::move(add_labels)] {
-            return storage.RegisterWriter(std::move(common_prefix), std::move(func), std::move(add_labels));
-        });
+    storage.RegisterWriter(context.Scopes(), std::move(common_prefix), std::move(func), std::move(add_labels));
 }
 
 }  // namespace utils::statistics

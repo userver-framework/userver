@@ -11,6 +11,33 @@
 
 namespace ns {
 
+constexpr USERVER_NAMESPACE::utils::TrivialSet k__ns__ObjectWithRawJsonField_PropertiesNames = [](auto selector) {
+    return selector().template Type<std::string_view>()
+        .Case("inner_object")
+    ;
+};
+
+template <USERVER_NAMESPACE::formats::common::IsFormatValue Value>
+ObjectWithRawJsonField Parse(
+    Value value,
+    USERVER_NAMESPACE::formats::parse::To<ObjectWithRawJsonField>)
+{
+    value.CheckNotMissing();
+    value.CheckObjectOrNull();
+
+    ObjectWithRawJsonField res{
+        .inner_object = value["inner_object"].template As<
+            USERVER_NAMESPACE::formats::json::RawString
+        >(),
+    };
+
+    USERVER_NAMESPACE::chaotic::ValidateNoAdditionalProperties(
+        value, k__ns__ObjectWithRawJsonField_PropertiesNames
+    );
+
+    return res;
+}
+
 constexpr USERVER_NAMESPACE::utils::TrivialSet k__ns__WithAnyField_PropertiesNames = [](auto selector) {
     return selector().template Type<std::string_view>()
         .Case("payload")
@@ -39,4 +66,3 @@ WithAnyField Parse(
 }
 
 }  // namespace ns
-

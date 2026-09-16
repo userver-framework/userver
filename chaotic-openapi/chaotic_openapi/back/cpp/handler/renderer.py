@@ -137,13 +137,12 @@ def render(spec: ServerSpec, context: Context, userver_namespace: str) -> list[C
 
 
 def render_config_yaml(spec: ServerSpec) -> str:
-    components = {
-        component_name(op): {
-            'path': op.path,
-            'method': op.method.upper(),
-        }
-        for op in spec.operations
-    }
+    components = {}
+    for op in spec.operations:
+        entry: dict = {'path': op.path, 'method': op.method.upper()}
+        if op.security:
+            entry['auth'] = {'types': [op.security.auth_type]}
+        components[component_name(op)] = entry
     config = {
         'components_manager': {
             'components': components,

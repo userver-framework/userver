@@ -34,6 +34,7 @@ current coroutine for carrying out network I/O.
 - `LISTEN`/`NOTIFY` support via @ref storages::postgres::Cluster::Listen();
 - @ref scripts/docs/en/userver/deadline_propagation.md .
 
+@anchor postgres_transaction_poolin_balancer
 ## Transaction pooling with a PostgreSQL balancer
 
 In session pooling mode, a PostgreSQL backend connection is assigned to a

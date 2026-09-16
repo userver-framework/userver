@@ -56,7 +56,8 @@ public:
 
         auto logger = GetStreamLogger();
 
-        stats_holder_ = stats_storage_.RegisterWriter("logger", [&logger](utils::statistics::Writer& writer) {
+        // Keep a copy: Unregister invokes the writer after TestBody locals are gone.
+        stats_holder_ = stats_storage_.RegisterWriter("logger", [logger](utils::statistics::Writer& writer) {
             writer = logger->GetStatistics();
         });
 
@@ -575,6 +576,19 @@ UTEST_F(LoggingTestCoro, TpLoggerFlush) {
     EXPECT_THAT(GetStreamString(), testing::HasSubstr("text=4"));
 
     EXPECT_EQ(GetRecordsCount(), 4);
+}
+
+UTEST_F(LoggingTestCoro, TpLoggerHugeIov) {
+    static constexpr std::size_t kMessagesCount = IOV_MAX * 8;
+    auto logger = StartAsyncLogger(kMessagesCount);
+
+    for (std::size_t i = 0; i < kMessagesCount; ++i) {
+        LOG_INFO_TO(logger) << "1";
+    }
+    logger->Flush();
+    logger->StopConsumerTask();
+
+    EXPECT_EQ(GetRecordsCount(), kMessagesCount);
 }
 
 UTEST_F(LoggingTestCoro, TpLoggerDeferredWakeup) {

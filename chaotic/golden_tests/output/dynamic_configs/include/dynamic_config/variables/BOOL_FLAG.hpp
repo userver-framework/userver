@@ -14,6 +14,8 @@ namespace bool_flag {
 using VariableType = VariableTypeRaw;
 using BoolFlag = VariableTypeRaw;
 
+USERVER_NAMESPACE::dynamic_config::SchemaHash GetSchemaHash();
+
 }  // namespace bool_flag
 
 extern const USERVER_NAMESPACE::dynamic_config::Key<

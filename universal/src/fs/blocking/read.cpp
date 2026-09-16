@@ -2,6 +2,7 @@
 #include <userver/fs/path_utils.hpp>
 #include <userver/utils/assert.hpp>
 
+#include <filesystem>
 #include <fstream>
 #include <sstream>
 
@@ -39,7 +40,11 @@ boost::filesystem::file_type GetFileType(utils::zstring_view path) {
     return boost::filesystem::status(path.c_str()).type();
 }
 
-FileInfoWithDataMap ReadRecursiveFilesInfoWithData(utils::zstring_view path, utils::Flags<SettingsReadFile> flags) {
+FileInfoWithDataMap ReadRecursiveFilesInfoWithData(
+    utils::zstring_view path,
+    utils::Flags<SettingsReadFile> flags,
+    std::size_t max_size_to_cache
+) {
     FileInfoWithDataMap data{};
     for (auto it = boost::filesystem::recursive_directory_iterator(path.c_str());
          it != boost::filesystem::recursive_directory_iterator();
@@ -54,7 +59,12 @@ FileInfoWithDataMap ReadRecursiveFilesInfoWithData(utils::zstring_view path, uti
         }
         FileInfoWithData info{};
         info.extension = it->path().extension().string();
-        info.data = ReadFileContents(it->path().string());
+        const auto file_size = boost::filesystem::file_size(it->path());
+        if (file_size > max_size_to_cache) {
+            info.data_or_path = std::filesystem::absolute(std::filesystem::path{it->path().string()});
+        } else {
+            info.data_or_path = ReadFileContents(it->path().string());
+        }
         data[GetLexicallyRelative(it->path().string(), path)] = std::make_shared<const FileInfoWithData>(std::move(info)
         );
     }

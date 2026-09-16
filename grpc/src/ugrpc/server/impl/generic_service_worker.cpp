@@ -12,7 +12,7 @@ namespace {
 constexpr utils::StringLiteral kGenericServiceFullNameFake = "Generic";
 
 constexpr std::array kGenericMethodsFake = {ugrpc::impl::MethodDescriptor{
-    /*method_full_name*/ utils::StringLiteral{"Generic/Generic"},
+    /*method_full_name*/ utils::StringLiteral{"/Generic/Generic"},
     /*method_type*/ RpcType::kBidiStreaming,
 }};
 

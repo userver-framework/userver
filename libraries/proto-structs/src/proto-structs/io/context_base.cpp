@@ -71,6 +71,7 @@ std::string Context::GetCurrentPathImpl(const ::google::protobuf::Descriptor*& l
 }
 
 template <typename TError>
+/// @cond
 const std::vector<TError>& ContextWithErrors<TError>::GetErrors(utils::impl::InternalTag) const& noexcept {
     return errors_;
 }
@@ -79,6 +80,7 @@ template <typename TError>
 std::vector<TError>&& ContextWithErrors<TError>::GetErrors(utils::impl::InternalTag) && noexcept {
     return std::move(errors_);
 }
+/// @endcond
 
 template <typename TError>
 void ContextWithErrors<TError>::AddError(int field_number, std::string_view reason) {

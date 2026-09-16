@@ -17,7 +17,7 @@ namespace tracing {
 /// in constructor and reverts these actions in destructor.
 ///
 /// ## Example usage:
-/// @snippet tracing/tag_scope_test.cpp  TagScope - sample
+/// @snippet core/src/tracing/tag_scope_test.cpp  TagScope - sample
 class TagScope {
 public:
     explicit TagScope(

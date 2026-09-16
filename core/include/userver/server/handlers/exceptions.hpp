@@ -215,7 +215,7 @@ public:
     /// - a message builder, see below
     ///
     /// Example:
-    /// @snippet server/handlers/exceptions_test.cpp  Sample direct construction
+    /// @snippet core/src/server/handlers/exceptions_test.cpp  Sample direct construction
     ///
     /// ## Message builders
     ///
@@ -232,7 +232,7 @@ public:
     /// these args go *after* the message builder.
     ///
     /// Example:
-    /// @snippet server/handlers/exceptions_test.cpp  Sample custom error builder
+    /// @snippet core/src/server/handlers/exceptions_test.cpp  Sample custom error builder
     template <typename... Args>
     CustomHandlerException(HandlerErrorCode handler_code, Args&&... args)
         : CustomHandlerException(impl::CustomHandlerExceptionData{handler_code, std::forward<Args>(args)...})

@@ -37,12 +37,6 @@ if("ydb" IN_LIST userver_FIND_COMPONENTS)
     endif()
 endif()
 
-if(CMAKE_BUILD_TYPE MATCHES "^.*Rel.*$") # same as in UserverSetupEnvironment
-    include("${CMAKE_CURRENT_LIST_DIR}/release/userver-targets.cmake")
-else()
-    include("${CMAKE_CURRENT_LIST_DIR}/debug/userver-targets_d.cmake")
-endif()
-
 message(STATUS "Userver components: ${userver_FIND_COMPONENTS}")
 
 set(USERVER_DOWNLOAD_PACKAGES OFF)

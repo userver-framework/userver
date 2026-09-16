@@ -58,9 +58,8 @@ include(DownloadUsingCPM)
 cpmaddpackage(
     NAME CURL
     VERSION 7.81
-    GITHUB_REPOSITORY curl/curl
-    GIT_TAG curl-7_81_0
-    GIT_SHALLOW TRUE
+    URL https://github.com/curl/curl/archive/curl-7_81_0.tar.gz
+    URL_HASH SHA256=389aadc5ffb0e801683a62ba6d4eb6fc61c808276a915189cd2470825046ddae
     OPTIONS "BUILD_CURL_EXE OFF"
             "BUILD_SHARED_LIBS OFF"
             "CURL_DISABLE_TESTS ON"

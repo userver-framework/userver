@@ -16,6 +16,7 @@ class Baggage;
 class BaggageEntry;
 class BaggageEntryProperty;
 
+/// @brief Alias for a list of baggage properties
 using BaggageProperties = std::vector<std::pair<std::string, std::optional<std::string>>>;
 
 }  // namespace baggage

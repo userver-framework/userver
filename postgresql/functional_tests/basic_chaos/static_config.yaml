@@ -22,6 +22,9 @@ components_manager:
             max_pool_size: 1  # should be in sync with value in ./utils.py
             max_queue_size: 200
             min_pool_size: 1
+            # 0 = unlimited. A positive interval plus mocked time can leave the
+            # single pool connection unable to reopen after sockets_close.
+            connecting_interval_ms: 0
 
         testsuite-support:
 
@@ -73,7 +76,6 @@ components_manager:
                     __default__:
                         user-types-enabled: false
                         recent-errors-threshold: 100000
-                POSTGRES_DEADLINE_PROPAGATION_VERSION: 1
 
         dns-client:
             fs-task-processor: fs-task-processor

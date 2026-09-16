@@ -37,6 +37,11 @@ The build was tested on Ubuntu 22.04 (and macOS Ventura 13.5 for development pur
 
 4. docs will appear in `$BUILD_DIR/docs`, warnings will be printed to `$BUILD_DIR/doxygen.err.log`
 
+   The docs build always downloads the `develop` branch of
+   [yandex-taxi-testsuite](https://github.com/yandex/yandex-taxi-testsuite)
+   into `scripts/docs/en/testsuite` and feeds it to Doxygen so that
+   `@ref testsuite...` fixture links resolve.
+
 ## How to develop? 🛠️
 
 After building the documentation, you can add hard links to the files to be changed. For example, I'm going to change `customdoxygen.css`:

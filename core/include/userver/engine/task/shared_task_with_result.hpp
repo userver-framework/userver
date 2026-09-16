@@ -21,9 +21,13 @@ namespace engine {
 
 /// @brief Asynchronous task with result that has a shared ownership of payload
 ///
+/// Multiple coroutines may safely await the task and call
+/// @ref engine::SharedTaskWithResult::Get "Get" concurrently. This includes
+/// coroutines running on different @ref engine::TaskProcessor threads.
+///
 /// ## Example usage:
 ///
-/// @snippet engine/task/shared_task_with_result_test.cpp Sample SharedTaskWithResult usage
+/// @snippet core/src/engine/task/shared_task_with_result_test.cpp Sample SharedTaskWithResult usage
 ///
 /// @see @ref scripts/docs/en/userver/synchronization.md
 template <typename T>

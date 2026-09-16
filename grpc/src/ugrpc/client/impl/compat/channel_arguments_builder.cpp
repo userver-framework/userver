@@ -109,7 +109,7 @@ public:
 
     bool HasMethodConfiguration(size_t method_id) {
         // method Qos exists and has non empty 'attempts' value
-        const auto method_full_name = GetMethodFullName(metadata_, method_id);
+        const auto method_full_name = GetMethodFullNameWithoutSlash(metadata_, method_id);
         if (client_qos_.methods.HasValue(method_full_name)) {
             const auto& qos = client_qos_.methods.Get(method_full_name);
             if (qos.attempts.has_value()) {
@@ -124,7 +124,7 @@ public:
     bool HasDefaultConfiguration() { return GetDefaultAttempts().has_value(); }
 
     std::optional<int> GetAttempts(size_t method_id) {
-        const auto method_full_name = GetMethodFullName(metadata_, method_id);
+        const auto method_full_name = GetMethodFullNameWithoutSlash(metadata_, method_id);
         const auto qos = client_qos_.methods.GetOptional(method_full_name);
         if (qos.has_value() && qos->attempts.has_value()) {
             return qos->attempts;

@@ -1,12 +1,17 @@
 #include <userver/storages/odbc/transaction.hpp>
 
+#include <algorithm>
+#include <storages/odbc/detail/bulk.hpp>
 #include <storages/odbc/detail/conn_ptr.hpp>
 #include <storages/odbc/detail/connection.hpp>
+#include <storages/odbc/detail/cursor_impl.hpp>
 #include <storages/odbc/detail/deadline.hpp>
 #include <storages/odbc/detail/pool.hpp>
+#include <storages/odbc/detail/statement_stats.hpp>
 #include <userver/storages/odbc/exception.hpp>
 #include <userver/storages/odbc/impl/tracing_tags.hpp>
 
+#include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/datetime/steady_coarse_clock.hpp>
@@ -16,16 +21,39 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::odbc {
 
-Transaction::Transaction(detail::ConnectionPtr&& connection, detail::Pool& pool, engine::Deadline deadline)
+Transaction::Transaction(
+    detail::ConnectionPtr&& connection,
+    detail::Pool& pool,
+    std::chrono::milliseconds network_timeout,
+    std::chrono::milliseconds statement_timeout
+)
+    : Transaction{
+          std::move(connection),
+          pool,
+          TransactionOptions{},
+          network_timeout,
+          statement_timeout,
+      } {}
+
+Transaction::Transaction(
+    detail::ConnectionPtr&& connection,
+    detail::Pool& pool,
+    const TransactionOptions& options,
+    std::chrono::milliseconds network_timeout,
+    std::chrono::milliseconds statement_timeout
+)
     : connection_{std::move(connection)},
       pool_{&pool},
-      deadline_{deadline},
+      network_timeout_{network_timeout},
+      statement_timeout_{statement_timeout},
       start_time_{utils::datetime::SteadyCoarseClock::now()},
       busy_time_{0},
       span_{storages::odbc::impl::tracing::kTransactionSpan}
 {
-    detail::CheckDeadlineNotExpired(deadline_);
-    (*connection_)->Begin(deadline_);
+    const auto deadline =
+        std::min(detail::GetExecuteDeadline(network_timeout_), detail::GetExecuteDeadline(statement_timeout_));
+    detail::CheckDeadlineNotExpired(deadline);
+    (*connection_)->Begin(options, deadline);
     trx_lock_.Lock();
     pool_->AccountTransactionStarted();
 }
@@ -34,22 +62,102 @@ Transaction::Transaction(Transaction&& other) noexcept = default;
 
 Transaction::~Transaction() {
     if (connection_->IsValid()) {
+        const engine::TaskCancellationBlocker cancellation_blocker;
+        (*connection_)->InvalidateActiveCursor();
         try {
-            (*connection_)->Rollback(deadline_);
+            (*connection_)->Rollback(engine::Deadline::FromDuration(detail::kDefaultCleanupTimeout));
             pool_->AccountTransactionRollback();
         } catch (const std::exception& ex) {
+            (*connection_)->NotifyBroken();
             LOG_ERROR() << "Failed to auto rollback a transaction: " << ex.what();
+        } catch (...) {
+            (*connection_)->NotifyBroken();
+            LOG_ERROR() << "Failed to auto rollback a transaction with an unknown exception";
         }
         trx_lock_.Unlock();
     }
 }
 
-void Transaction::Commit() {
-    const utils::FastScopeGuard unlock_guard([this]() noexcept { trx_lock_.Unlock(); });
+ResultSet Transaction::Execute(const Query& query, const ParameterStore& store) {
+    return Execute(std::nullopt, query, store);
+}
+
+ResultSet Transaction::Execute(
+    OptionalCommandControl command_control,
+    const Query& query,
+    const ParameterStore& store
+) {
+    return DoExecute(command_control, query, store.GetParameters());
+}
+
+Cursor Transaction::ExecuteCursor(const Query& query, const ParameterStore& store) {
+    return ExecuteCursor(std::nullopt, query, store);
+}
+
+Cursor Transaction::ExecuteCursor(
+    OptionalCommandControl command_control,
+    const Query& query,
+    const ParameterStore& store
+) {
+    return DoExecuteCursor(command_control, query, store.GetParameters());
+}
+
+Cursor Transaction::DoExecuteCursor(
+    OptionalCommandControl command_control,
+    const Query& query,
+    const impl::ParameterList& parameters
+) {
     AssertValid();
-    detail::CheckDeadlineNotExpired(deadline_);
+    const auto resolved =
+        (*connection_)
+            ->ResolveTransactionCommandControl(
+                CommandControl{.network_timeout = network_timeout_, .statement_timeout = statement_timeout_},
+                query,
+                command_control
+            );
+    const auto network_timeout = resolved.network_timeout.value_or(network_timeout_);
+    const auto statement_timeout = resolved.statement_timeout.value_or(statement_timeout_);
+    return Cursor{detail::CursorImpl::Create(
+        **connection_,
+        connection_->GetPool(),
+        query,
+        parameters,
+        network_timeout,
+        statement_timeout,
+        true
+    )};
+}
+
+BulkResult Transaction::ExecuteBulk(const Query& query, const BulkParameterStore& rows, std::size_t chunk_rows) {
+    return ExecuteBulk(std::nullopt, query, rows, chunk_rows);
+}
+
+BulkResult Transaction::ExecuteBulk(
+    OptionalCommandControl command_control,
+    const Query& query,
+    const BulkParameterStore& rows,
+    std::size_t chunk_rows
+) {
+    AssertValid();
+    if (chunk_rows == 0) {
+        throw LogicError("ODBC bulk chunk size must be greater than zero");
+    }
+    if (rows.IsEmpty()) {
+        return {};
+    }
+    const auto layout = detail::ValidateBulkRows(rows.GetRows());
+    return DoExecuteBulk(command_control, query, rows.GetRows(), layout, chunk_rows);
+}
+
+void Transaction::Commit() {
+    AssertValid();
+    const utils::FastScopeGuard unlock_guard([this]() noexcept { trx_lock_.Unlock(); });
+    busy_time_ += (*connection_)->TakeCursorTransactionBusyTime();
+    const auto deadline =
+        std::min(detail::GetExecuteDeadline(network_timeout_), detail::GetExecuteDeadline(statement_timeout_));
+    detail::CheckDeadlineNotExpired(deadline);
     auto connection = std::move(*connection_);
-    connection->Commit(deadline_);
+    connection->Commit(deadline);
 
     const auto total_duration = std::chrono::duration_cast<
         std::chrono::microseconds>(utils::datetime::SteadyCoarseClock::now() - start_time_);
@@ -57,32 +165,103 @@ void Transaction::Commit() {
 }
 
 void Transaction::Rollback() {
-    const utils::FastScopeGuard unlock_guard([this]() noexcept { trx_lock_.Unlock(); });
     AssertValid();
-    detail::CheckDeadlineNotExpired(deadline_);
+    const utils::FastScopeGuard unlock_guard([this]() noexcept { trx_lock_.Unlock(); });
+    busy_time_ += (*connection_)->TakeCursorTransactionBusyTime();
+    const auto deadline = engine::Deadline::FromDuration(detail::kDefaultCleanupTimeout);
     auto connection = std::move(*connection_);
-    connection->Rollback(deadline_);
+    connection->Rollback(deadline);
     pool_->AccountTransactionRollback();
 }
 
-ResultSet Transaction::Execute(const Query& query) {
+ResultSet Transaction::DoExecute(
+    OptionalCommandControl command_control,
+    const Query& query,
+    const impl::ParameterList& parameters
+) {
     AssertValid();
-    detail::CheckDeadlineNotExpired(deadline_);
     tracing::Span span{storages::odbc::impl::tracing::kExecuteSpan};
 
+    const auto resolved =
+        (*connection_)
+            ->ResolveTransactionCommandControl(
+                CommandControl{.network_timeout = network_timeout_, .statement_timeout = statement_timeout_},
+                query,
+                command_control
+            );
+    const auto network_timeout = resolved.network_timeout.value_or(network_timeout_);
+    const auto statement_timeout = resolved.statement_timeout.value_or(statement_timeout_);
+    const auto statement_deadline =
+        std::min(detail::GetExecuteDeadline(network_timeout), detail::GetExecuteDeadline(statement_timeout));
+
     const auto start = utils::datetime::SteadyCoarseClock::now();
+    detail::StatementStats statement_stats{query, pool_->GetStatementStatsStorage()};
     try {
-        auto result = (*connection_)->Query(query.GetStatementView(), deadline_);
+        detail::CheckDeadlineNotExpired(statement_deadline);
+        auto result = (*connection_)->Query(query, parameters, statement_deadline);
         const auto elapsed = std::chrono::duration_cast<
             std::chrono::microseconds>(utils::datetime::SteadyCoarseClock::now() - start);
         busy_time_ += elapsed;
         pool_->AccountQueryExecuted(elapsed);
+        statement_stats.AccountSuccess();
         return result;
     } catch (const OperationInterrupted&) {
+        statement_stats.AccountError();
         pool_->AccountQueryTimeout();
         throw;
     } catch (const Error&) {
+        statement_stats.AccountError();
         pool_->AccountQueryError();
+        throw;
+    } catch (const std::exception&) {
+        statement_stats.AccountError();
+        throw;
+    }
+}
+
+BulkResult Transaction::DoExecuteBulk(
+    OptionalCommandControl command_control,
+    const Query& query,
+    const impl::ParameterRows& rows,
+    const detail::BulkLayout& layout,
+    std::size_t chunk_rows
+) {
+    AssertValid();
+    tracing::Span span{storages::odbc::impl::tracing::kExecuteSpan};
+
+    const auto resolved =
+        (*connection_)
+            ->ResolveTransactionCommandControl(
+                CommandControl{.network_timeout = network_timeout_, .statement_timeout = statement_timeout_},
+                query,
+                command_control
+            );
+    const auto network_timeout = resolved.network_timeout.value_or(network_timeout_);
+    const auto statement_timeout = resolved.statement_timeout.value_or(statement_timeout_);
+    const auto statement_deadline =
+        std::min(detail::GetExecuteDeadline(network_timeout), detail::GetExecuteDeadline(statement_timeout));
+
+    const auto start = utils::datetime::SteadyCoarseClock::now();
+    detail::StatementStats statement_stats{query, pool_->GetStatementStatsStorage()};
+    try {
+        detail::CheckDeadlineNotExpired(statement_deadline);
+        auto result = (*connection_)->QueryBulk(query, rows, layout, chunk_rows, statement_deadline);
+        const auto elapsed = std::chrono::duration_cast<
+            std::chrono::microseconds>(utils::datetime::SteadyCoarseClock::now() - start);
+        busy_time_ += elapsed;
+        pool_->AccountQueryExecuted(elapsed);
+        statement_stats.AccountSuccess();
+        return result;
+    } catch (const OperationInterrupted&) {
+        statement_stats.AccountError();
+        pool_->AccountQueryTimeout();
+        throw;
+    } catch (const Error&) {
+        statement_stats.AccountError();
+        pool_->AccountQueryError();
+        throw;
+    } catch (const std::exception&) {
+        statement_stats.AccountError();
         throw;
     }
 }
@@ -90,6 +269,9 @@ ResultSet Transaction::Execute(const Query& query) {
 void Transaction::AssertValid() const {
     if (!connection_->IsValid()) {
         throw TransactionException("Transaction accessed after it's been committed (or rolled back)");
+    }
+    if ((*connection_)->HasActiveCursor()) {
+        throw TransactionException("Transaction operation attempted while an ODBC cursor is active");
     }
 }
 

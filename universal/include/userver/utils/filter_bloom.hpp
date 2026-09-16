@@ -32,7 +32,7 @@ namespace utils {
 /// @param Hash2 the second callable hash struct
 ///
 /// Example:
-/// @snippet src/utils/filter_bloom_test.cpp  Sample filter bloom usage
+/// @snippet universal/src/utils/filter_bloom_test.cpp  Sample filter bloom usage
 template <typename T, typename Counter = unsigned, typename Hash1 = boost::hash<T>, typename Hash2 = std::hash<T>>
 class FilterBloom final {
 public:

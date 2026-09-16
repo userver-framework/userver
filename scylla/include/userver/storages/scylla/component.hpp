@@ -25,8 +25,6 @@ private:
 
     std::string dbalias_;
     storages::scylla::SessionPtr session_;
-
-    concurrent::AsyncEventSubscriberScope secdist_subscriber_;
 };
 
 }  // namespace components

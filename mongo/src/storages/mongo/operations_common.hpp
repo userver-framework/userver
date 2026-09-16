@@ -20,6 +20,7 @@ cdriver::WriteConcernPtr MakeCDriverWriteConcern(const options::WriteConcern&);
 
 void AppendUpsert(formats::bson::impl::BsonBuilder&);
 void AppendHint(formats::bson::impl::BsonBuilder&, const options::Hint& hint);
+void AppendArrayFilters(formats::bson::impl::BsonBuilder&, const options::ArrayFilters& filters);
 
 }  // namespace storages::mongo::impl
 

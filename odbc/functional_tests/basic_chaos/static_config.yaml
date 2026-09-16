@@ -10,10 +10,25 @@ components_manager:
             task_processor: main-task-processor
             method: GET,POST,DELETE
 
+        handler-command-control:
+            path: /command-control
+            task_processor: main-task-processor
+            method: GET
+
+        handler-statement-metrics:
+            path: /statement-metrics
+            task_processor: main-task-processor
+            method: GET
+
+        # [ODBC component config]
         key-value-db:
+            blocking_task_processor: fs-task-processor
             secdist_alias: key-value-db
             min_pool_size: 1
             max_pool_size: 1
+            max_statement_metrics: 2
+            max_prepared_cache_size: 2
+        # [ODBC component config]
 
         secdist: {}
         default-secdist-provider:
@@ -25,6 +40,44 @@ components_manager:
             listener:
                 port: 8097
                 task_processor: main-task-processor
+            listener-monitor:
+                port: $monitor-server-port
+                port#fallback: 8098
+                task_processor: main-task-processor
+
+        handler-server-monitor:
+            path: /service/monitor
+            method: GET
+            task_processor: main-task-processor
+
+        testsuite-support:
+
+        dynamic-config-client:
+            config-url: $config-server-url
+            http-retries: 5
+            http-timeout: 20s
+            service-name: testsuite-support
+        dynamic-config-client-updater:
+            config-settings: false
+            first-update-fail-ok: true
+            full-update-interval: 1m
+            update-interval: 5s
+        dynamic-config:
+            updates-enabled: true
+
+        http-client: {}
+        http-client-core:
+            destination-metrics-auto-max-size: 0
+            fs-task-processor: fs-task-processor
+
+        tests-control:
+            method: POST
+            path: /tests/{action}
+            task_processor: main-task-processor
+            testpoint-url: $mockserver/testpoint
+            testpoint-timeout: 10s
+            skip-unregistered-testpoints: true
+            throttling_enabled: false
         logging:
             fs-task-processor: fs-task-processor
             loggers:

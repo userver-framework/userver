@@ -7,6 +7,7 @@
 #include <string>
 #include <variant>
 
+#include <userver/compiler/impl/lifetime.hpp>
 #include <userver/concurrent/queue.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/http/content_type.hpp>
@@ -36,6 +37,28 @@ namespace impl {
 
 void OutputHeader(USERVER_NAMESPACE::http::headers::HeadersString& header, std::string_view key, std::string_view val);
 
+/// @brief Event-like helper for waiting until HTTP headers can be sent.
+///
+/// For streamed responses this happens on the first body chunk (or when the
+/// handler finishes). It does not wait for the full response body.
+class HeadersEndEvent final {
+public:
+    explicit HeadersEndEvent(engine::SingleConsumerEvent& event) noexcept : event_(event) {}
+
+    [[nodiscard]] bool IsReady() const noexcept { return event_.IsReady(); }
+
+    /// @brief Satisfies @ref engine::Awaitable, for use with @ref engine::WaitAny.
+    [[nodiscard]] engine::AwaitableToken GetAwaitableToken() noexcept USERVER_IMPL_LIFETIME_BOUND {
+        return event_.GetAwaitableToken();
+    }
+
+    /// @returns whether headers became ready before deadline or cancellation.
+    [[nodiscard]] bool Wait() { return event_.WaitForEvent(); }
+
+private:
+    engine::SingleConsumerEvent& event_;
+};
+
 }  // namespace impl
 
 class HttpRequest;
@@ -61,7 +84,7 @@ public:
     );
     ~HttpResponse() override;
 
-    void SetSendFailed(std::chrono::steady_clock::time_point failure_time) override;
+    void SetSendFailed();
     /// @endcond
 
     /// @brief Add a new response header or rewrite an existing one.
@@ -136,6 +159,11 @@ public:
 
     /// @cond
     // TODO: server internals. remove from public interface
+
+    [[nodiscard]] impl::HeadersEndEvent FinishedSendingHeadersEvent() noexcept USERVER_IMPL_LIFETIME_BOUND {
+        return impl::HeadersEndEvent{headers_end_};
+    }
+
     void SendResponse(engine::io::RwBase& socket) override;
     /// @endcond
 
@@ -145,6 +173,9 @@ public:
 
     bool WaitForHeadersEnd() override;
     void SetHeadersEnd() override;
+
+    /// @returns true if response headers were committed and cannot be changed.
+    [[nodiscard]] bool IsHeadersEnd() const noexcept { return headers_end_.IsReady(); }
 
     using Queue = concurrent::StringStreamQueue;
     using Producer = std::variant<std::monostate, Queue::Producer, impl::Http2StreamEventProducer>;

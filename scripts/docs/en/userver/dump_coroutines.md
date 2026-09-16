@@ -54,7 +54,7 @@ components_manager:
 The service with coroutine tracer is VERY slow, benchmarks show up to 0.5ms slowdown on context switch.
 Too high load might overload the process.
 
-5) Make a HTTP request to `service/dump-coroutines` handler:
+5) Make an HTTP request to `service/dump-coroutines` handler:
 
 ```
 bash

@@ -151,4 +151,100 @@ TEST_F(ComponentList, CustomLogger) {
     EXPECT_THAT(custom_log, testing::HasSubstr("destructor custom"));
 }
 
+namespace {
+
+class SharedPathLoggersComponent final : public components::ComponentBase {
+public:
+    static constexpr std::string_view kName = "shared-path-loggers";
+
+    SharedPathLoggersComponent(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : components::ComponentBase(config, context),
+          custom_logger_(context.FindComponent<components::Logging>().GetLogger("custom"))
+    {
+        LOG_TRACE() << "trace default";
+        LOG_DEBUG() << "debug default";
+        LOG_INFO() << "info default";
+        LOG_WARNING() << "warning default";
+        LOG_ERROR() << "error default";
+
+        LOG_TRACE_TO(custom_logger_) << "trace custom";
+        LOG_DEBUG_TO(custom_logger_) << "debug custom";
+        LOG_INFO_TO(custom_logger_) << "info custom";
+        LOG_WARNING_TO(custom_logger_) << "warning custom";
+        LOG_ERROR_TO(custom_logger_) << "error custom";
+    }
+
+private:
+    logging::LoggerPtr custom_logger_;
+};
+
+constexpr std::string_view kSharedPathLoggersConfig = R"(
+components_manager:
+  coro_pool:
+    initial_size: 50
+    max_size: 500
+  default_task_processor: main-task-processor
+  fs_task_processor: main-task-processor
+  event_thread_pool:
+    threads: 1
+  task_processors:
+    main-task-processor:
+      worker_threads: 1
+  components:
+    logging:
+      fs-task-processor: main-task-processor
+      loggers:
+        default:
+          file_path: $shared-logger-path
+          format: tskv
+          level: debug
+        custom:
+          file_path: $shared-logger-path
+          format: tskv
+          level: info
+    shared-path-loggers:
+)";
+
+constexpr std::string_view kSharedPathLoggersConfigVars = R"(
+shared-logger-path: {0}
+)";
+
+components::ComponentList MakeSharedPathLoggersComponentList() {
+    return components::ComponentList()
+        .Append<os_signals::ProcessorComponent>()
+        .Append<components::Logging>()
+        .Append<components::StatisticsStorage>()
+        .Append<SharedPathLoggersComponent>();
+}
+
+}  // namespace
+
+TEST_F(ComponentList, SharedPathLoggers) {
+    const auto temp_root = fs::blocking::TempDirectory::Create();
+    const auto shared_logger_path = temp_root.GetPath() + "/shared_log.txt";
+    const auto config_path = temp_root.GetPath() + "/config.yaml";
+    const auto config_vars_path = temp_root.GetPath() + "/config_vars.yaml";
+
+    fs::blocking::RewriteFileContents(config_path, kSharedPathLoggersConfig);
+    fs::blocking::RewriteFileContents(config_vars_path, fmt::format(kSharedPathLoggersConfigVars, shared_logger_path));
+
+    UASSERT_NO_THROW(
+        components::RunOnce(config_path, config_vars_path, std::nullopt, MakeSharedPathLoggersComponentList())
+    );
+
+    const auto shared_log = fs::blocking::ReadFileContents(shared_logger_path);
+
+    EXPECT_THAT(shared_log, testing::Not(testing::HasSubstr("trace default")));
+    EXPECT_THAT(shared_log, testing::HasSubstr("debug default"));
+    EXPECT_THAT(shared_log, testing::HasSubstr("info default"));
+    EXPECT_THAT(shared_log, testing::HasSubstr("warning default"));
+    EXPECT_THAT(shared_log, testing::HasSubstr("error default"));
+
+    EXPECT_THAT(shared_log, testing::Not(testing::HasSubstr("trace custom")));
+    EXPECT_THAT(shared_log, testing::Not(testing::HasSubstr("debug custom")));
+    EXPECT_THAT(shared_log, testing::HasSubstr("info custom"));
+    EXPECT_THAT(shared_log, testing::HasSubstr("warning custom"));
+    EXPECT_THAT(shared_log, testing::HasSubstr("error custom"));
+}
+
 USERVER_NAMESPACE_END

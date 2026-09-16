@@ -86,11 +86,11 @@ The congestion control state machine has 5 states:
 
 @dot
 digraph A {
-  no_limit [shape = "roundedbox"];
-  is_now [shape = "roundedbox", label="is_overloaded\nis_overloaded_now\n(RPS limit decreases)"];
-  no_is_no_now [shape = "roundedbox", label="!is_overloaded\n!is_overloaded_now\n(RPS limit increases)"];
-  no_is_now [shape = "roundedbox", label="!is_overloaded\nis_overloaded_now"];
-  is_no_now  [shape = "roundedbox", label="is_overloaded\n!is_overloaded_now"];
+  no_limit [shape = "box", style = "rounded"];
+  is_now [shape = "box", style = "rounded", label="is_overloaded\nis_overloaded_now\n(RPS limit decreases)"];
+  no_is_no_now [shape = "box", style = "rounded", label="!is_overloaded\n!is_overloaded_now\n(RPS limit increases)"];
+  no_is_now [shape = "box", style = "rounded", label="!is_overloaded\nis_overloaded_now"];
+  is_no_now  [shape = "box", style = "rounded", label="is_overloaded\n!is_overloaded_now"];
 
   no_limit -> is_now;
   no_is_no_now -> no_limit;

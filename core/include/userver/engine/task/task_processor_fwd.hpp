@@ -11,6 +11,7 @@ USERVER_NAMESPACE_BEGIN
 /// Asynchronous engine primitives
 namespace engine {
 
+/// @class engine::TaskProcessor
 /// @brief Manages tasks execution on OS threads.
 ///
 /// To create a task processor add its configuration to the "task_processors"

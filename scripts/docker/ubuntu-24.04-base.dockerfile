@@ -11,6 +11,8 @@ FROM ubuntu:24.04
 
 COPY scripts/docs/en/deps/ubuntu-24.04.md /userver_tmp/
 COPY scripts/postgres/ubuntu-install-postgresql-includes.sh /userver_tmp/
+# ydb-cpp-sdk .debs are not in Ubuntu archives; install them separately
+# rather than listing them in ubuntu-24.04.md.
 COPY scripts/ydb/install-ydb-cpp-sdk-debs.sh /userver_tmp/
 
 RUN apt update \

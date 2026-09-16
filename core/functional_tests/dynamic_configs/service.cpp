@@ -22,11 +22,12 @@ public:
     static constexpr std::string_view kName = "dynamic-config-forwarder";
 
     DynamicConfigForwarder(const components::ComponentConfig& config, const components::ComponentContext& context)
-        : components::ComponentBase(config, context),
-          config_subscription_(context.FindComponent<components::DynamicConfig>()
-                                   .GetSource()
-                                   .UpdateAndListen(this, kName, &DynamicConfigForwarder::OnConfigUpdate))
-    {};
+        : components::ComponentBase(config, context)
+    {
+        context.FindComponent<components::DynamicConfig>()
+            .GetSource()
+            .UpdateAndListen(context.Scopes(), this, kName, &DynamicConfigForwarder::OnConfigUpdate);
+    }
 
 private:
     void OnConfigUpdate(const dynamic_config::Snapshot& config) {
@@ -34,8 +35,6 @@ private:
             return formats::json::ValueBuilder{config[kTestConfig]}.ExtractValue();
         }());
     }
-
-    concurrent::AsyncEventSubscriberScope config_subscription_;
 };
 
 }  // namespace functional_tests

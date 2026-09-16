@@ -1,0 +1,6 @@
+librdkafka-dev
+libzstd-dev
+liblz4-dev
+libzstd-dev
+libsasl2-dev
+zlib1g-dev

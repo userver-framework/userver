@@ -19,7 +19,13 @@ namespace tests {
 constexpr auto kShortTimeout = std::chrono::milliseconds{500};
 constexpr auto kLongTimeout = std::chrono::milliseconds{1000} + kShortTimeout;
 
-constexpr auto kAddSleep = std::chrono::milliseconds{200};
+// Extra wait after the deadline so grpc-core's background timer can cancel the ClientContext.
+constexpr auto kAddSleep = std::chrono::milliseconds{700};
+
+static_assert(
+    kShortTimeout + kAddSleep < kLongTimeout,
+    "Must keep kShortTimeout + kAddSleep well below kLongTimeout (used by fixtures)."
+);
 
 const std::string kGrpcMethod = "grpc_method";
 

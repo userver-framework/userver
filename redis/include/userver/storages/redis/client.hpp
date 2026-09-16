@@ -36,7 +36,7 @@ enum class PubShard {
 ///
 /// ## Example usage:
 ///
-/// @snippet storages/redis/client_redistest.cpp  Sample Redis Client usage
+/// @snippet redis/src/storages/redis/client_redistest.cpp  Sample Redis Client usage
 class Client {
 public:
     virtual ~Client() = default;
@@ -150,7 +150,10 @@ public:
     }
 
     /// @brief Execute a custom Redis command.
+    /// @param command Redis command name
+    /// @param args command arguments
     /// @param key_index Index of the key in the args vector used to determine the shard
+    /// @param command_control per-command execution options
     ///
     /// Sample usage:
     /// @snippet redis/src/storages/redis/client_cluster_redistest.cpp  Sample generic command usage
@@ -375,6 +378,27 @@ public:
 
     virtual RequestMset Mset(
         std::vector<std::pair<std::string, std::string>> key_values,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Atomically set multiple key-value pairs, without an expiration clause.
+    ///
+    /// Available since Valkey 9.1.0 and Redis 8.4.0. In cluster mode all keys
+    /// must belong to the same hash slot; use a common hash tag to ensure that.
+    /// @throws InvalidArgumentException in cluster mode if the keys belong to different hash slots
+    virtual RequestMsetex Msetex(
+        std::vector<std::pair<std::string, std::string>> key_values,
+        const CommandControl& command_control
+    ) = 0;
+
+    /// @brief Atomically set multiple key-value pairs with optional existence and TTL conditions.
+    ///
+    /// Available since Valkey 9.1.0 and Redis 8.4.0. In cluster mode all keys
+    /// must belong to the same hash slot; use a common hash tag to ensure that.
+    /// @throws InvalidArgumentException in cluster mode if the keys belong to different hash slots
+    virtual RequestMsetex Msetex(
+        std::vector<std::pair<std::string, std::string>> key_values,
+        MsetexOptions options,
         const CommandControl& command_control
     ) = 0;
 

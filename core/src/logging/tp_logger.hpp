@@ -22,7 +22,9 @@
 #include <logging/impl/reopen_mode.hpp>
 #include <userver/concurrent/impl/interference_shield.hpp>
 #include <userver/concurrent/impl/intrusive_hooks.hpp>
+#include <userver/concurrent/impl/intrusive_thread_unsafe_slist.hpp>
 #include <userver/logging/impl/log_stats.hpp>
+#include <userver/utils/fixed_array.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -34,8 +36,9 @@ namespace async {
 
 struct Log {
     Level level{};
-    std::string payload{};
-    std::chrono::system_clock::time_point time{std::chrono::system_clock::now()};
+    utils::FixedArray<char> payload{};
+
+    static_assert(sizeof(utils::FixedArray<char>) < sizeof(std::string));
 };
 
 struct FlushCoro {
@@ -104,19 +107,18 @@ private:
 
     using Queue = engine::impl::AsyncFlatCombiningQueue;
     using QueueSize = std::int64_t;
+    using ActionNodesSlist = concurrent::impl::ThreadUnsafeSlist<impl::async::ActionNode>;
 
     void ProcessingLoop();
     bool HasFreeQueueCapacity() noexcept;
     bool TryWaitFreeQueueCapacity();
     void Push(impl::async::Action&& action, Queue::NotificationMode notify);
     void DoPush(concurrent::impl::SinglyLinkedBaseHook& node, Queue::NotificationMode notify) noexcept;
-    void ConsumeNode(concurrent::impl::SinglyLinkedBaseHook& node) noexcept;
+    void PopActionNodes(Queue::Consumer& consumer, ActionNodesSlist& nodes_slist) noexcept;
     void ConsumeQueueOnce(Queue::Consumer& consumer) noexcept;
     void CleanUpQueue(Queue::Consumer&& consumer) noexcept;
-    void AccountLogConsumed() noexcept;
+    void AccountLogConsumed(std::size_t count) noexcept;
     void BackendPerform(impl::async::Action&& action) noexcept;
-    void BackendLog(impl::async::Log&& action) const;
-    void BackendFlush() const;
     void BackendReopen(ReopenMode reopen_mode) const;
 
     const std::string logger_name_;

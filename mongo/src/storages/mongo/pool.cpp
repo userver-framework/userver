@@ -1,10 +1,13 @@
 #include <userver/storages/mongo/pool.hpp>
 
+#include <utility>
+
 #include <storages/mongo/cdriver/collection_impl.hpp>
 #include <storages/mongo/cdriver/pool_impl.hpp>
 #include <storages/mongo/database.hpp>
 #include <storages/mongo/stats_serialize.hpp>
 #include <storages/mongo/transaction_impl.hpp>
+#include <userver/utils/resource_scopes.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -26,7 +29,7 @@ Pool::Pool(
     clients::dns::Resolver* dns_resolver,
     dynamic_config::Source config_source
 )
-    : impl_(std::make_shared<impl::cdriver::CDriverPoolImpl>(
+    : impl_(utils::MakeWithResourceScopes<impl::cdriver::CDriverPoolImpl>(
           std::move(id),
           uri,
           ValidateConfig(pool_config, id),
@@ -61,6 +64,10 @@ std::vector<std::string> Pool::ListCollectionNames() const {
 Transaction Pool::BeginTransaction() const {
     auto transaction_impl = std::make_unique<impl::TransactionImpl>(impl_);
     return Transaction{std::move(transaction_impl)};
+}
+
+Cursor Pool::Execute(const operations::Aggregate& aggregate_op) {
+    return impl::Database(impl_, impl_->DefaultDatabaseName()).Aggregate(aggregate_op);
 }
 
 void DumpMetric(utils::statistics::Writer& writer, const Pool& pool) {

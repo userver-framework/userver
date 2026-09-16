@@ -142,7 +142,7 @@ public:
     auto As() const;
 
     /// @brief Returns T initialized with values of the row.
-    /// @snippet storages/postgres/tests/typed_rows_pgtest.cpp RowTagSippet
+    /// @snippet postgresql/src/storages/postgres/tests/typed_rows_pgtest.cpp RowTagSippet
     template <typename T>
     T As(RowTag) const {
         T val{};
@@ -151,7 +151,7 @@ public:
     }
 
     /// @brief Returns T initialized with a single column value of the row.
-    /// @snippet storages/postgres/tests/composite_types_pgtest.cpp FieldTagSippet
+    /// @snippet postgresql/src/storages/postgres/tests/composite_types_pgtest.cpp FieldTagSippet
     template <typename T>
     T As(FieldTag) const {
         T val{};
@@ -339,6 +339,7 @@ constexpr void AssertRowTypeIsMappedToPgOrIsCompositeType() {
 
 }  // namespace detail
 
+/// @cond
 template <typename T>
 void Row::To(T&& val) const {
     To(std::forward<T>(val), kFieldTag);
@@ -437,6 +438,7 @@ std::tuple<T...> Row::As(const std::initializer_list<size_type>& indexes) const 
     detail::RowDataExtractor<T...>::ExtractTuple(*this, indexes, res);
     return res;
 }
+/// @endcond
 
 }  // namespace storages::postgres
 

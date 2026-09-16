@@ -1,6 +1,8 @@
 #include <userver/server/http/http_response.hpp>
 
 #include <array>
+#include <charconv>
+#include <limits>
 
 #include <cctz/time_zone.h>
 #include <fmt/compile.h>
@@ -25,6 +27,23 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace {
+
+struct DecimalString final {
+    static constexpr std::size_t kMaxSize = std::numeric_limits<std::size_t>::digits10 + 1;
+
+    char data[kMaxSize]{};
+    std::size_t size{0};
+
+    std::string_view ToStringView() const noexcept { return {data, size}; }
+};
+
+DecimalString FormatDecimal(const std::size_t value) noexcept {
+    DecimalString result;
+    const auto to_chars_result = std::to_chars(result.data, result.data + sizeof(result.data), value);
+    UASSERT(to_chars_result.ec == std::errc{});
+    result.size = static_cast<std::size_t>(to_chars_result.ptr - result.data);
+    return result;
+}
 
 constexpr std::string_view kCrlf = "\r\n";
 constexpr std::string_view kKeyValueHeaderSeparator = ": ";
@@ -146,9 +165,9 @@ HttpResponse::HttpResponse(
 
 HttpResponse::~HttpResponse() = default;
 
-void HttpResponse::SetSendFailed(std::chrono::steady_clock::time_point failure_time) {
+void HttpResponse::SetSendFailed() {
     SetStatus(HttpStatus::kClientClosedRequest);
-    request::ResponseBase::SetSendFailed(failure_time);
+    request::ResponseBase::SetSendFailed();
 }
 
 bool HttpResponse::SetHeader(std::string name, std::string value) {
@@ -363,7 +382,7 @@ void HttpResponse::SendResponse(engine::io::RwBase& socket) {
         sent_bytes = SetBodyNotStreamed(socket, header);
     }
 
-    SetSent(sent_bytes, std::chrono::steady_clock::now());
+    SetSent(sent_bytes);
 }
 
 std::size_t HttpResponse::SetBodyNotStreamed(
@@ -375,11 +394,8 @@ std::size_t HttpResponse::SetBodyNotStreamed(
     const auto& data = GetData();
 
     if (!is_body_forbidden) {
-        impl::OutputHeader(
-            header,
-            USERVER_NAMESPACE::http::headers::kContentLength,
-            fmt::format(FMT_COMPILE("{}"), data.size())
-        );
+        const auto content_length = FormatDecimal(data.size());
+        impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kContentLength, content_length.ToStringView());
     }
     header.append(kCrlf);
 
@@ -405,7 +421,9 @@ std::size_t HttpResponse::SetBodyStreamed(
 ) {
     const bool is_body_forbidden = IsBodyForbiddenForStatus(status_);
 
-    impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kTransferEncoding, "chunked");
+    if (!is_body_forbidden) {
+        impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kTransferEncoding, "chunked");
+    }
 
     // headers end marker
     header.append(kCrlf);

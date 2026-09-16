@@ -206,7 +206,7 @@ INSTANTIATE_UTEST_SUITE_P(
     ConnectionSettings,
     PostgreConnection,
     ::testing::Combine(
-        ::testing::Values(kCachePreparedStatements, kOmitDescribe, kMaxPreparedCacheSize3),
+        ::testing::Values(kCachePreparedStatements, kMaxPreparedCacheSize3),
         ::testing::Values(ConnectionMode::kDirect, ConnectionMode::kChaosProxy)
     ),
     [](const testing::TestParamInfo<PostgreConnection::ParamType>& info) {
@@ -217,12 +217,8 @@ INSTANTIATE_UTEST_SUITE_P(
 
         if (connection_params.max_prepared_cache_size == storages::postgres::kMinPreparedStatementsCacheSize) {
             name = "MinPreparedCacheSize_";
-        }
-
-        if (connection_params.omit_describe_mode == pg::OmitDescribeInExecuteMode::kEnabled) {
-            name.append("DontSendDescribe");
         } else {
-            name.append("SendDescribe");
+            name = "CachePreparedStatements";
         }
 
         if (connection_mode == ConnectionMode::kChaosProxy) {

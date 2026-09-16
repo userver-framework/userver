@@ -1,7 +1,10 @@
 #include "mock_server_test.hpp"
 
+#include <atomic>
+#include <chrono>
 #include <thread>
 
+#include <userver/engine/single_consumer_event.hpp>
 #include <userver/storages/redis/base.hpp>
 
 #include <storages/redis/impl/command.hpp>
@@ -162,6 +165,48 @@ struct MockSentinelServers {
 };
 
 }  // namespace
+
+UTEST(Redis, CommandImmediatelyAfterConnected) {
+    MockRedisServer server{kDbName};
+    auto ping_handler = server.RegisterPingHandler();
+    auto get_handler = server.RegisterHandlerWithConstReply("GET", std::string{"value"});
+
+    auto pool = std::make_shared<storages::redis::impl::ThreadPools>(1, 1);
+    const storages::redis::RedisCreationSettings redis_settings;
+    storages::redis::impl::Statistics stats;
+    auto redis = std::make_shared<
+        storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
+
+    engine::SingleConsumerEvent connected;
+    redis->signal_state_change.connect([&connected](storages::redis::RedisState state) {
+        if (state == storages::redis::RedisState::kConnected) {
+            connected.Send();
+        }
+    });
+
+    redis->Connect(
+        {kLocalhost},
+        server.GetPort(),
+        storages::redis::Credentials{"", storages::redis::Password("")},
+        kDatabaseIndex
+    );
+    ASSERT_TRUE(connected.WaitForEventFor(kSuccessTimeout));
+
+    engine::SingleConsumerEvent got_reply;
+    std::atomic<bool> reply_ok{false};
+    auto command = storages::redis::impl::PrepareCommand(
+        {"GET", "key"},
+        [&](const storages::redis::impl::CommandPtr&, const storages::redis::ReplyPtr& reply) {
+            reply_ok = reply->IsOk() && reply->data.IsString() && reply->data.GetString() == "value";
+            got_reply.Send();
+        }
+    );
+    ASSERT_TRUE(redis->AsyncCommand(command));
+    ASSERT_TRUE(got_reply.WaitForEventFor(kSuccessTimeout));
+    EXPECT_TRUE(reply_ok.load());
+    EXPECT_TRUE(get_handler->WaitForFirstReply(kSuccessTimeout));
+    EXPECT_TRUE(ping_handler->WaitForFirstReply(kSuccessTimeout));
+}
 
 UTEST(Redis, NoPassword) {
     MockRedisServer server{kDbName};
@@ -721,6 +766,86 @@ UTEST(Redis, PingFail) {
 
     EXPECT_TRUE(ping_error_handler->WaitForFirstReply(kSuccessTimeout));
     PeriodicWait([&] { return !IsConnected(*redis); });
+}
+
+UTEST(Redis, TimedOutCommandReleasesCallback) {
+    MockRedisServer server{kDbName};
+    auto ping_handler = server.RegisterPingHandler();
+    auto get_reply = server.RegisterPausedReplyHandler("GET", storages::redis::ReplyData::CreateStatus("OK"));
+    auto set_handler = server.RegisterStatusReplyHandler("SET", "OK");
+
+    std::atomic<bool> timeout_seen{false};
+    std::atomic<bool> follow_up_ok{false};
+    std::atomic<std::size_t> callback_count{0};
+    engine::SingleConsumerEvent timeout_event;
+    engine::SingleConsumerEvent lifetime_destroyed;
+    engine::SingleConsumerEvent follow_up_received;
+
+    auto pool = std::make_shared<storages::redis::impl::ThreadPools>(1, 1);
+    const storages::redis::RedisCreationSettings redis_settings;
+    storages::redis::impl::Statistics stats;
+    auto redis = std::make_shared<
+        storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
+    redis->Connect({kLocalhost}, server.GetPort(), {}, kDatabaseIndex);
+
+    EXPECT_TRUE(ping_handler->WaitForFirstReply(kSuccessTimeout));
+    PeriodicWait([&] { return IsConnected(*redis); });
+
+    struct LifetimeNotifier {
+        explicit LifetimeNotifier(engine::SingleConsumerEvent& destroyed)
+            : destroyed(destroyed)
+        {}
+
+        ~LifetimeNotifier() { destroyed.Send(); }
+
+        engine::SingleConsumerEvent& destroyed;
+    };
+
+    auto lifetime = std::make_shared<LifetimeNotifier>(lifetime_destroyed);
+    const std::weak_ptr<LifetimeNotifier> weak_lifetime = lifetime;
+    storages::redis::CommandControl command_control;
+    command_control.timeout_single = std::chrono::milliseconds{100};
+    auto command = storages::redis::impl::PrepareCommand(
+        {"GET", "key"},
+        [lifetime = std::move(lifetime),
+         &timeout_seen,
+         &callback_count,
+         &timeout_event](const storages::redis::impl::CommandPtr&, const storages::redis::ReplyPtr& reply) {
+            static_cast<void>(lifetime);
+            ++callback_count;
+            timeout_seen = reply->status == storages::redis::ReplyStatus::kTimeoutError;
+            timeout_event.Send();
+        },
+        command_control
+    );
+    ASSERT_TRUE(redis->AsyncCommand(command));
+    command.reset();
+
+    ASSERT_TRUE(get_reply->WaitForRequest(kSuccessTimeout));
+    EXPECT_TRUE(timeout_event.WaitForEventFor(kSuccessTimeout));
+    EXPECT_TRUE(lifetime_destroyed.WaitForEventFor(kSuccessTimeout));
+    EXPECT_TRUE(timeout_seen.load());
+    EXPECT_TRUE(weak_lifetime.expired());
+
+    get_reply->ReleaseReply();
+    ASSERT_TRUE(get_reply->WaitForReplySent(kSuccessTimeout));
+
+    storages::redis::CommandControl follow_up_control;
+    follow_up_control.timeout_single = kSuccessTimeout;
+    auto follow_up = storages::redis::impl::PrepareCommand(
+        {"SET", "key", "ready"},
+        [&follow_up_ok,
+         &follow_up_received](const storages::redis::impl::CommandPtr&, const storages::redis::ReplyPtr& reply) {
+            follow_up_ok = reply->status == storages::redis::ReplyStatus::kOk;
+            follow_up_received.Send();
+        },
+        follow_up_control
+    );
+    ASSERT_TRUE(redis->AsyncCommand(follow_up));
+    ASSERT_TRUE(follow_up_received.WaitForEventFor(kSuccessTimeout));
+    EXPECT_TRUE(follow_up_ok.load());
+    EXPECT_TRUE(set_handler->WaitForFirstReply(kSuccessTimeout));
+    EXPECT_EQ(callback_count.load(), 1);
 }
 
 class RedisDisconnectingReplies : public ::testing::TestWithParam<const char*> {};

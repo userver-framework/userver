@@ -3,6 +3,8 @@
 #include <string>
 #include <system_error>
 
+#include <userver/utils/zstring_view.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::jemalloc {
@@ -16,6 +18,8 @@ std::error_code ProfActivate();
 std::error_code ProfDeactivate();
 
 std::error_code ProfDump();
+
+std::error_code ProfDumpTo(utils::zstring_view path);
 
 std::error_code SetMaxBgThreads(size_t max_bg_threads);
 

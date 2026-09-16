@@ -56,7 +56,7 @@ def test_swagger_body_schema(simple_parser):
                     ),
                 ],
                 responses={},
-                security=[],
+                security_requirements=model.SecurityOr(or_items=[]),
                 x_middlewares=base_model.XMiddlewares(tvm=True),
                 x_client_codegen=True,
             ),
@@ -191,7 +191,7 @@ def test_swagger_responses(simple_parser):
                     ),
                     500: model.Ref('<inline>#/responses/500'),
                 },
-                security=[],
+                security_requirements=model.SecurityOr(or_items=[]),
                 x_middlewares=base_model.XMiddlewares(tvm=True),
                 x_client_codegen=True,
             ),
@@ -224,30 +224,36 @@ def test_swagger_securuty(simple_parser):
                     'scopes': {'write': 'modify data', 'read': 'read data', 'other': '-'},
                 },
             },
-            'security': {
-                'api_key': [],
-                'oauth_implicit': ['read'],
-                'oauth_code': ['read', 'write'],
-            },
+            'security': [
+                {
+                    'api_key': [],
+                    'oauth_implicit': ['read'],
+                    'oauth_code': ['read', 'write'],
+                }
+            ],
             'paths': {
                 '/': {
                     'get': {
                         'parameters': [],
                         'responses': {},
-                        'security': {
-                            'api_key': [],
-                            'oauth_implicit': ['read'],
-                            'oauth_code': ['read'],
-                        },
+                        'security': [
+                            {
+                                'api_key': [],
+                                'oauth_implicit': ['read'],
+                                'oauth_code': ['read'],
+                            }
+                        ],
                     },
                     'post': {
                         'parameters': [],
                         'responses': {},
-                        'security': {
-                            'api_key': [],
-                            'oauth_implicit': ['write'],
-                            'oauth_code': ['write'],
-                        },
+                        'security': [
+                            {
+                                'api_key': [],
+                                'oauth_implicit': ['write'],
+                                'oauth_code': ['write'],
+                            }
+                        ],
                     },
                     'put': {'parameters': [], 'responses': {}},
                 },
@@ -258,11 +264,13 @@ def test_swagger_securuty(simple_parser):
         description='',
         security={
             '<inline>#/securityDefinitions/api_key': model.ApiKeySecurity(
-                description='',
                 name='api_key',
+                description='',
+                api_key_name='api_key',
                 in_=model.SecurityIn.header,
             ),
             '<inline>#/securityDefinitions/oauth_implicit': model.OAuthSecurity(
+                name='oauth_implicit',
                 description='',
                 flows=[
                     model.ImplicitFlow(
@@ -273,6 +281,7 @@ def test_swagger_securuty(simple_parser):
                 ],
             ),
             '<inline>#/securityDefinitions/oauth_code': model.OAuthSecurity(
+                name='oauth_code',
                 description='',
                 flows=[
                     model.AuthCodeFlow(
@@ -293,30 +302,40 @@ def test_swagger_securuty(simple_parser):
                 parameters=[],
                 responses={},
                 requestBody=[],
-                security=[
-                    model.ApiKeySecurity(description='', name='api_key', in_=model.SecurityIn.header),
-                    model.OAuthSecurity(
-                        description='',
-                        flows=[
-                            model.ImplicitFlow(
-                                refreshUrl='',
-                                scopes={'read': 'read data'},
-                                authorizationUrl='https://example.com/api/oauth/dialog',
-                            ),
-                        ],
-                    ),
-                    model.OAuthSecurity(
-                        description='',
-                        flows=[
-                            model.AuthCodeFlow(
-                                refreshUrl='',
-                                scopes={'read': 'read data'},
-                                authorizationUrl='https://example.com/api/oauth/dialog',
-                                tokenUrl='https://example.com/api/oauth/token',
-                            ),
-                        ],
-                    ),
-                ],
+                security_requirements=model.SecurityOr(
+                    or_items=[
+                        model.SecurityAnd(
+                            and_items=[
+                                model.ApiKeySecurity(
+                                    name='api_key', description='', api_key_name='api_key', in_=model.SecurityIn.header
+                                ),
+                                model.OAuthSecurity(
+                                    name='oauth_implicit',
+                                    description='',
+                                    flows=[
+                                        model.ImplicitFlow(
+                                            refreshUrl='',
+                                            scopes={'read': 'read data'},
+                                            authorizationUrl='https://example.com/api/oauth/dialog',
+                                        ),
+                                    ],
+                                ),
+                                model.OAuthSecurity(
+                                    name='oauth_code',
+                                    description='',
+                                    flows=[
+                                        model.AuthCodeFlow(
+                                            refreshUrl='',
+                                            scopes={'read': 'read data'},
+                                            authorizationUrl='https://example.com/api/oauth/dialog',
+                                            tokenUrl='https://example.com/api/oauth/token',
+                                        ),
+                                    ],
+                                ),
+                            ]
+                        )
+                    ]
+                ),
                 x_middlewares=base_model.XMiddlewares(tvm=True),
                 x_client_codegen=True,
             ),
@@ -328,30 +347,40 @@ def test_swagger_securuty(simple_parser):
                 parameters=[],
                 responses={},
                 requestBody=[],
-                security=[
-                    model.ApiKeySecurity(description='', name='api_key', in_=model.SecurityIn.header),
-                    model.OAuthSecurity(
-                        description='',
-                        flows=[
-                            model.ImplicitFlow(
-                                refreshUrl='',
-                                scopes={},
-                                authorizationUrl='https://example.com/api/oauth/dialog',
-                            ),
-                        ],
-                    ),
-                    model.OAuthSecurity(
-                        description='',
-                        flows=[
-                            model.AuthCodeFlow(
-                                refreshUrl='',
-                                scopes={'write': 'modify data'},
-                                authorizationUrl='https://example.com/api/oauth/dialog',
-                                tokenUrl='https://example.com/api/oauth/token',
-                            ),
-                        ],
-                    ),
-                ],
+                security_requirements=model.SecurityOr(
+                    or_items=[
+                        model.SecurityAnd(
+                            and_items=[
+                                model.ApiKeySecurity(
+                                    name='api_key', description='', api_key_name='api_key', in_=model.SecurityIn.header
+                                ),
+                                model.OAuthSecurity(
+                                    name='oauth_implicit',
+                                    description='',
+                                    flows=[
+                                        model.ImplicitFlow(
+                                            refreshUrl='',
+                                            scopes={},
+                                            authorizationUrl='https://example.com/api/oauth/dialog',
+                                        ),
+                                    ],
+                                ),
+                                model.OAuthSecurity(
+                                    name='oauth_code',
+                                    description='',
+                                    flows=[
+                                        model.AuthCodeFlow(
+                                            refreshUrl='',
+                                            scopes={'write': 'modify data'},
+                                            authorizationUrl='https://example.com/api/oauth/dialog',
+                                            tokenUrl='https://example.com/api/oauth/token',
+                                        ),
+                                    ],
+                                ),
+                            ]
+                        )
+                    ]
+                ),
                 x_middlewares=base_model.XMiddlewares(tvm=True),
                 x_client_codegen=True,
             ),
@@ -363,30 +392,40 @@ def test_swagger_securuty(simple_parser):
                 parameters=[],
                 responses={},
                 requestBody=[],
-                security=[
-                    model.ApiKeySecurity(description='', name='api_key', in_=model.SecurityIn.header),
-                    model.OAuthSecurity(
-                        description='',
-                        flows=[
-                            model.ImplicitFlow(
-                                refreshUrl='',
-                                scopes={'read': 'read data'},
-                                authorizationUrl='https://example.com/api/oauth/dialog',
-                            ),
-                        ],
-                    ),
-                    model.OAuthSecurity(
-                        description='',
-                        flows=[
-                            model.AuthCodeFlow(
-                                refreshUrl='',
-                                scopes={'write': 'modify data', 'read': 'read data'},
-                                authorizationUrl='https://example.com/api/oauth/dialog',
-                                tokenUrl='https://example.com/api/oauth/token',
-                            ),
-                        ],
-                    ),
-                ],
+                security_requirements=model.SecurityOr(
+                    or_items=[
+                        model.SecurityAnd(
+                            and_items=[
+                                model.ApiKeySecurity(
+                                    name='api_key', description='', api_key_name='api_key', in_=model.SecurityIn.header
+                                ),
+                                model.OAuthSecurity(
+                                    name='oauth_implicit',
+                                    description='',
+                                    flows=[
+                                        model.ImplicitFlow(
+                                            refreshUrl='',
+                                            scopes={'read': 'read data'},
+                                            authorizationUrl='https://example.com/api/oauth/dialog',
+                                        ),
+                                    ],
+                                ),
+                                model.OAuthSecurity(
+                                    name='oauth_code',
+                                    description='',
+                                    flows=[
+                                        model.AuthCodeFlow(
+                                            refreshUrl='',
+                                            scopes={'write': 'modify data', 'read': 'read data'},
+                                            authorizationUrl='https://example.com/api/oauth/dialog',
+                                            tokenUrl='https://example.com/api/oauth/token',
+                                        ),
+                                    ],
+                                ),
+                            ]
+                        )
+                    ]
+                ),
                 x_middlewares=base_model.XMiddlewares(tvm=True),
                 x_client_codegen=True,
             ),
@@ -476,7 +515,7 @@ def test_swagger_parameters(simple_parser):
                     model.RequestBody(content_type='text/plain; charset=utf-8', required=True, schema=types.Number()),
                     model.RequestBody(content_type='application/json', required=True, schema=types.Number()),
                 ],
-                security=[],
+                security_requirements=model.SecurityOr(or_items=[]),
                 x_middlewares=base_model.XMiddlewares(tvm=True),
                 x_client_codegen=True,
                 parameters=[

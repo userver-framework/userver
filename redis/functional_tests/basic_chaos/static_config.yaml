@@ -47,7 +47,6 @@ components_manager:
         dynamic-config:
             updates-enabled: true
             defaults:
-                REDIS_DEADLINE_PROPAGATION_VERSION: 1
                 REDIS_METRICS_SETTINGS:
                     command-timings-enabled: true
                     reply-sizes-enabled: true

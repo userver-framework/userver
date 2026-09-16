@@ -2,7 +2,6 @@
 
 #include <storages/postgres/detail/connection.hpp>
 #include <storages/postgres/detail/topology/hot_standby.hpp>
-#include <userver/storages/postgres/exceptions.hpp>
 #include <userver/utils/statistics/metrics_storage.hpp>
 
 #include <storages/postgres/tests/util_pgtest.hpp>
@@ -55,7 +54,9 @@ UTEST_F(HotStandby, ReplicationLag) {
     EXPECT_EQ(0, hosts->count(pg::ClusterHostType::kSlave));
 }
 
-UTEST_F(HotStandby, SetReplicationLag) {
+UTEST_F(HotStandby, SetTopologySettings) {
+    constexpr auto kRttThreshold = std::chrono::milliseconds{15};
+
     pg::detail::topology::HotStandby
         qcc(GetTaskProcessor(),
             GetDsnListFromEnv(),
@@ -66,8 +67,18 @@ UTEST_F(HotStandby, SetReplicationLag) {
             testsuite::PostgresControl{},
             error_injection::Settings{},
             std::make_shared<utils::statistics::MetricsStorage>());
-    qcc.SetTopologySettings(pg::TopologySettings{std::chrono::milliseconds{60}});
-    EXPECT_TRUE(qcc.GetTopologySettings().max_replication_lag == std::chrono::milliseconds(60));
+    auto settings = pg::TopologySettings{std::chrono::milliseconds{60}};
+    settings.rtt_threshold = kRttThreshold;
+    qcc.SetTopologySettings(settings);
+
+    EXPECT_EQ(qcc.GetTopologySettings().max_replication_lag, std::chrono::milliseconds{60});
+    EXPECT_EQ(qcc.GetTopologySettings().rtt_threshold, kRttThreshold);
+    EXPECT_TRUE(qcc.GetTopologySettings().GetEffectiveRttThreshold());
+
+    settings.rtt_threshold_enabled = false;
+    qcc.SetTopologySettings(settings);
+    EXPECT_EQ(qcc.GetTopologySettings().rtt_threshold, kRttThreshold);
+    EXPECT_FALSE(qcc.GetTopologySettings().GetEffectiveRttThreshold());
 }
 
 USERVER_NAMESPACE_END

@@ -89,7 +89,7 @@ StructMemberNames(CustomMemberName (&&)[N]) -> StructMemberNames<N>;
 /// In order to get serialization for a struct, you need to define
 /// `kYdbMemberNames` inside it:
 ///
-/// @snippet ydb/small_table.hpp  struct sample
+/// @snippet ydb/tests/small_table.hpp  struct sample
 ///
 /// Field names can be overridden:
 ///

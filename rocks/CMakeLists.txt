@@ -10,3 +10,9 @@ userver_module(
     COMPONENT_DEPENDS core
     EMBED_FILES src/storages/rocks/component.yaml
 )
+
+_userver_directory_install(
+    COMPONENT rocks
+    FILES "${USERVER_ROOT_DIR}/cmake/modules/FindRocksDB.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/userver/modules
+)
