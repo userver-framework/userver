@@ -290,13 +290,13 @@ void Logger::SendingLoop(Queue::Consumer& consumer, LogClient& log_client, Trace
         do {
             std::visit(
                 utils::Overloaded{
-                    [&scope_spans](const opentelemetry::proto::trace::v1::Span& action) {
+                    [&scope_spans](opentelemetry::proto::trace::v1::Span& action) {
                         auto span = scope_spans->add_spans();
-                        *span = action;
+                        *span = std::move(action);
                     },
-                    [&scope_logs](const opentelemetry::proto::logs::v1::LogRecord& action) {
+                    [&scope_logs](opentelemetry::proto::logs::v1::LogRecord& action) {
                         auto log_records = scope_logs->add_log_records();
-                        *log_records = action;
+                        *log_records = std::move(action);
                     }
                 },
                 action
