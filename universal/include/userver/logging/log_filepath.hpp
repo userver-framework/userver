@@ -9,7 +9,6 @@
 // TODO remove extra includes.
 #include <fmt/format.h>
 #include <concepts>
-#include <string>
 #include <userver/formats/serialize/to.hpp>
 
 USERVER_NAMESPACE_BEGIN

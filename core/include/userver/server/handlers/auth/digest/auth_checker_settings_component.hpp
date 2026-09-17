@@ -4,7 +4,7 @@
 /// @brief @copybrief server::handlers::auth::digest::AuthCheckerSettingsComponent
 
 #include <optional>
-#include <string>
+#include <string_view>
 
 #include <userver/components/component_base.hpp>
 #include <userver/dynamic_config/source.hpp>

@@ -3,7 +3,7 @@
 /// @file userver/testsuite/testpoint.hpp
 /// @brief @copybrief TESTPOINT
 
-#include <string>
+#include <string_view>
 
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/formats/json/serialize.hpp>

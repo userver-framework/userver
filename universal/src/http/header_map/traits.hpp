@@ -1,7 +1,8 @@
 #pragma once
 
+#include <cstddef>
+#include <cstdint>
 #include <limits>
-#include <string>
 
 USERVER_NAMESPACE_BEGIN
 

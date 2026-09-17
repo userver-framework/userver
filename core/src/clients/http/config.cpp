@@ -1,6 +1,6 @@
 #include <userver/clients/http/config.hpp>
 
-#include <string_view>
+#include <string>
 
 #include <userver/dynamic_config/value.hpp>
 #include <userver/formats/json/value.hpp>

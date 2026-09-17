@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string>
-
 #include <userver/storages/mysql/exceptions.hpp>
 
 USERVER_NAMESPACE_BEGIN

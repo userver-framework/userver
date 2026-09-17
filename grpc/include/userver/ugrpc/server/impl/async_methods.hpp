@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string_view>
-
 #include <grpcpp/support/async_stream.h>
 #include <grpcpp/support/status.h>
 

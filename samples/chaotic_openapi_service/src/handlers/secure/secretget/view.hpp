@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string>
-
 #include <userver/chaotic/openapi/server/dependencies.hpp>
 #include <userver/server/http/http_request.hpp>
 #include <userver/server/request/request_context.hpp>

@@ -16,7 +16,6 @@
 // TODO remove extra includes
 #include <functional>
 #include <memory>
-#include <string>
 #include <vector>
 
 USERVER_NAMESPACE_BEGIN

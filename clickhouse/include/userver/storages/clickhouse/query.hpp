@@ -3,8 +3,6 @@
 /// @file userver/storages/clickhouse/query.hpp
 /// @brief @copybrief storages::clickhouse::Query
 
-#include <string>
-
 #include <fmt/format.h>
 
 #include <userver/storages/query.hpp>

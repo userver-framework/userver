@@ -3,7 +3,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <string>
-#include <string_view>
 #include <vector>
 
 #include <userver/storages/scylla/row.hpp>

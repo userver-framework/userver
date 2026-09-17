@@ -6,7 +6,6 @@
 #include <unistd.h>
 
 #include <cerrno>
-#include <string>
 #include <vector>
 
 #include <userver/engine/io/exception.hpp>

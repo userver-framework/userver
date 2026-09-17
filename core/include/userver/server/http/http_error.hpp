@@ -4,7 +4,6 @@
 /// @brief @copybrief server::http::GetHttpStatus
 
 #include <stdexcept>
-#include <string>
 
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/http/http_status.hpp>

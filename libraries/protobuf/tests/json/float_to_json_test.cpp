@@ -2,7 +2,6 @@
 
 #include <limits>
 #include <ostream>
-#include <string>
 
 #include <fmt/format.h>
 

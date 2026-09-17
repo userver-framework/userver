@@ -5,7 +5,6 @@
 #include <cstdint>
 #include <cstring>
 #include <stdexcept>
-#include <string>
 #include <system_error>
 
 #include <server/net/create_socket.hpp>

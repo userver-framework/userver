@@ -1,7 +1,7 @@
 #pragma once
 
 #include <stdexcept>
-#include <string>
+#include <string_view>
 
 #include <userver/utils/regex.hpp>
 

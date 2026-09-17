@@ -4,7 +4,7 @@
 /// @brief @copybrief otlp::LoggerComponent
 
 #include <memory>
-#include <string>
+#include <string_view>
 
 #include <userver/components/component_fwd.hpp>
 #include <userver/components/raw_component_base.hpp>

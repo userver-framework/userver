@@ -2,7 +2,7 @@
 
 #include <cstdio>
 #include <mutex>
-#include <string_view>
+#include <string>
 
 #include <logging/impl/base_sink.hpp>
 #include <userver/fs/blocking/c_file.hpp>

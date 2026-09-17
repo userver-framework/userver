@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include <string_view>
+#include <string>
 
 #include <userver/baggage/baggage_manager.hpp>
 #include <userver/engine/async.hpp>

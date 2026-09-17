@@ -4,7 +4,7 @@
 #include <sys/socket.h>
 
 #include <stdexcept>
-#include <string_view>
+#include <string>
 #include <vector>
 
 #include <engine/io/tests/net_listener.hpp>

@@ -3,7 +3,6 @@
 #include <chrono>
 #include <optional>
 #include <string>
-#include <string_view>
 
 #include <userver/dump/config.hpp>
 #include <userver/dump/helpers.hpp>

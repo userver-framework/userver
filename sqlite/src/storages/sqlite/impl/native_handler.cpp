@@ -1,6 +1,6 @@
 #include <userver/storages/sqlite/impl/native_handler.hpp>
 
-#include <string_view>
+#include <string>
 
 #include <sqlite3.h>
 

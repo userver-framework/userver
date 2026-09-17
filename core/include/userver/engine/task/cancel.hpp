@@ -3,7 +3,7 @@
 /// @file userver/engine/task/cancel.hpp
 /// @brief Task cancellation helpers
 
-#include <string>
+#include <string_view>
 
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 

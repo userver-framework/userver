@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <string>
 
 #include <userver/http/http_version.hpp>
 #include <userver/yaml_config/yaml_config.hpp>

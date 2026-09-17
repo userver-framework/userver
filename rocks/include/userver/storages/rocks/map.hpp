@@ -4,7 +4,6 @@
 /// @brief @copybrief storages::rocks::Map
 
 #include <optional>
-#include <string>
 #include <string_view>
 
 #include <userver/formats/parse/to.hpp>

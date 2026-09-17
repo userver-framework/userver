@@ -3,7 +3,6 @@
 /// @file userver/storages/mysql/query.hpp
 
 #include <optional>
-#include <string>
 
 #include <userver/storages/query.hpp>
 

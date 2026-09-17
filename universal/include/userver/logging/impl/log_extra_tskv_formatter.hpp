@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string_view>
-
 #include <userver/logging/format.hpp>
 #include <userver/logging/impl/formatters/base.hpp>
 #include <userver/logging/impl/logger_base.hpp>
