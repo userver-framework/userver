@@ -3,6 +3,9 @@
 #include <thread>
 
 #include <userver/engine/sleep.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/storages/redis/reply.hpp>
+#include <userver/utils/scope_guard.hpp>
 
 #include <storages/redis/impl/keyshard_impl.hpp>
 #include <storages/redis/impl/server_common_sentinel_test.hpp>
@@ -37,7 +40,38 @@ bool CheckMasterChanged(storages::redis::impl::Sentinel& sentinel, const size_t 
     return false;
 }
 
+template <typename RedisTest>
+void CheckStopCompletesPendingRequest(RedisTest& redis_test) {
+    const logging::DefaultLoggerLevelScope log_level{logging::Level::kDebug};
+    auto& master = redis_test.Master();
+    const auto paused_reply = master.RegisterPausedReplyHandler("GET", storages::redis::ReplyData::CreateNil());
+    const utils::ScopeGuard close_masters{[&redis_test] { redis_test.Masters().clear(); }};
+    storages::redis::CommandControl command_control;
+    command_control.timeout_single = kSuccessTimeout * 2;
+    command_control.timeout_all = kSuccessTimeout * 2;
+    command_control.max_retries = 1;
+    command_control.force_request_to_master = true;
+
+    auto request = MakeGetRequest(redis_test.SentinelClient(), "pending-on-stop", command_control);
+    ASSERT_TRUE(paused_reply->WaitForRequest(kSuccessTimeout));
+
+    redis_test.ResetSentinelClient();
+
+    const auto reply = request.Get();
+    EXPECT_EQ(reply->status, storages::redis::ReplyStatus::kEndOfFileError);
+}
+
 }  // namespace
+
+UTEST(Redis, ClusterStopCompletesPendingRequest) {
+    ClusterTest cluster_test(1);
+    CheckStopCompletesPendingRequest(cluster_test);
+}
+
+UTEST(Redis, SentinelStopCompletesPendingRequest) {
+    SentinelTest sentinel_test(1, 1, 0);
+    CheckStopCompletesPendingRequest(sentinel_test);
+}
 
 UTEST(Redis, SentinelSingleMaster) {
     const size_t master_count = 1;

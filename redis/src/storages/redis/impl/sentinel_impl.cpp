@@ -300,6 +300,7 @@ SentinelImpl::SentinelImpl(
 SentinelImpl::~SentinelImpl() {
     delete_started_ = true;
     Stop();
+    topology_holder_.reset();
 }
 
 std::unordered_map<ServerId, size_t, ServerIdHasher> SentinelImpl::GetAvailableServersWeighted(
