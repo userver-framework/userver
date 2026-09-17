@@ -5,3 +5,7 @@ description: ScyllaDB serialization helpers
 
 libraries:
   - userver-core
+
+configs:
+    names:
+      - SCYLLA_DEFAULT_COMMAND_CONTROL
