@@ -2,9 +2,29 @@
 
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
-#include <compression/gzip.hpp>
+#include <userver/compression/gzip.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+TEST(Gzip, CompressEmpty) {
+    const std::string original;
+
+    const auto compressed = compression::gzip::Compress(original);
+    const auto decompressed = compression::gzip::Decompress(compressed, 1);
+
+    EXPECT_EQ(decompressed, original);
+}
+
+TEST(Gzip, CompressLargeRepetitive) {
+    const std::string original(1024 * 1024, 'a');
+
+    const auto compressed = compression::gzip::Compress(original);
+    const auto decompressed = compression::gzip::Decompress(compressed, original.size());
+
+    EXPECT_EQ(decompressed, original);
+    // Repetitive data should compress well
+    EXPECT_LT(compressed.size(), original.size());
+}
 
 TEST(Gzip, TestOverflow) {
     const std::string big_msg("This is a \"Very long\" msg!");

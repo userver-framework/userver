@@ -12,6 +12,9 @@ namespace compression::gzip {
 /// @throws DecompressionError
 std::string Decompress(std::string_view compressed, size_t max_size);
 
+/// @brief Compresses the string.
+std::string Compress(std::string_view data);
+
 }  // namespace compression::gzip
 
 USERVER_NAMESPACE_END

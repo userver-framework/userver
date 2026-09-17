@@ -2,7 +2,7 @@
 
 #include <fmt/format.h>
 
-#include <compression/gzip.hpp>
+#include <userver/compression/gzip.hpp>
 #include <userver/compression/zstd.hpp>
 
 #include <userver/http/common_headers.hpp>

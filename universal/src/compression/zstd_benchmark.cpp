@@ -10,6 +10,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace {
 std::string GenerateRandomData(std::size_t size) {
     std::mt19937 random_device(std::chrono::steady_clock::now().time_since_epoch().count());
     std::uniform_int_distribution dist(0, 25);
@@ -22,7 +23,7 @@ std::string GenerateRandomData(std::size_t size) {
     return output;
 }
 
-static void ZstdDecompress(benchmark::State& state) {
+void ZstdDecompress(benchmark::State& state) {
     for ([[maybe_unused]] auto _ : state) {
         state.PauseTiming();
         const auto size = state.range(0);
@@ -42,6 +43,7 @@ static void ZstdDecompress(benchmark::State& state) {
         auto decompressed = compression::zstd::Decompress(std::string_view(comp_buf.data(), comp_size), size);
     }
 }
+}  // namespace
 BENCHMARK(ZstdDecompress)->RangeMultiplier(2)->Range(1 << 10, 1 << 15);
 
 USERVER_NAMESPACE_END

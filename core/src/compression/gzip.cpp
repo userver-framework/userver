@@ -1,5 +1,7 @@
-#include <compression/gzip.hpp>
+#include <userver/compression/gzip.hpp>
 
+#include <boost/iostreams/copy.hpp>
+#include <boost/iostreams/device/back_inserter.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
 
@@ -8,8 +10,9 @@ USERVER_NAMESPACE_BEGIN
 namespace compression::gzip {
 
 namespace {
+namespace bio = boost::iostreams;
 constexpr auto kDecompressBufferSize = 1024;
-}
+}  // namespace
 
 std::string Decompress(std::string_view compressed, size_t max_size) {
     std::string decompressed;
@@ -18,8 +21,6 @@ std::string Decompress(std::string_view compressed, size_t max_size) {
     // "-1" is required to avoid memory fragmentation
     // (stdlibc++ allocates capacity+1 bytes).
     decompressed.reserve(kDecompressBufferSize - 1);
-
-    namespace bio = boost::iostreams;
 
     bio::filtering_istream stream;
     stream.push(bio::gzip_decompressor());
@@ -41,6 +42,16 @@ std::string Decompress(std::string_view compressed, size_t max_size) {
     }
 
     return decompressed;
+}
+
+std::string Compress(std::string_view data) {
+    std::string compressed;
+    bio::filtering_ostream stream;
+    stream.push(bio::gzip_compressor{});
+    stream.push(bio::back_inserter(compressed));
+    stream.write(data.data(), static_cast<std::streamsize>(data.size()));
+    bio::close(stream);  // flush the gzip footer
+    return compressed;
 }
 
 }  // namespace compression::gzip

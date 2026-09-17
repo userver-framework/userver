@@ -5,10 +5,11 @@
 
 #include <boost/iostreams/filter/gzip.hpp>
 #include <boost/iostreams/filtering_stream.hpp>
-#include <compression/gzip.hpp>
+#include <userver/compression/gzip.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
+namespace {
 std::string GenerateRandomData(std::size_t size) {
     std::mt19937 random_device(std::chrono::steady_clock::now().time_since_epoch().count());
     std::uniform_int_distribution dist(0, 25);
@@ -22,7 +23,7 @@ std::string GenerateRandomData(std::size_t size) {
     return output;
 }
 
-static void GzipDecompress(benchmark::State& state) {
+void GzipDecompress(benchmark::State& state) {
     constexpr int kCompBufSize = 1024;
 
     for ([[maybe_unused]] auto _ : state) {
@@ -49,6 +50,7 @@ static void GzipDecompress(benchmark::State& state) {
         auto decompressed = compression::gzip::Decompress(compressed, 1 << 30);
     }
 }
+}  // namespace
 BENCHMARK(GzipDecompress)->RangeMultiplier(2)->Range(1 << 10, 1 << 15);
 
 USERVER_NAMESPACE_END

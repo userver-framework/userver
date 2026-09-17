@@ -1,5 +1,6 @@
 #include <clients/{{ name }}/client_impl.hpp>
 
+#include <userver/chaotic/openapi/client/content_encoding.hpp>
 #include <userver/components/component_context.hpp>
 #include <userver/components/component_base.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
@@ -48,6 +49,7 @@ ClientImpl::ClientImpl(
             {{ op.cpp_namespace() }}::Request request;
         {%- endif %}
         SerializeRequest(request, config_.base_url, r);
+        EncodeRequest(r, command_control);
 
         {% if op.uses_digest_security() %}
         // Apply digest auth credentials for scheme '{{ op.digest_scheme_name() }}'
