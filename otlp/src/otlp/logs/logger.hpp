@@ -39,7 +39,9 @@ struct LoggerConfig {
 };
 
 struct Item final : logging::impl::formatters::LoggerItemBase {
-    std::variant<::opentelemetry::proto::logs::v1::LogRecord, ::opentelemetry::proto::trace::v1::Span> otlp;
+    // std::monostate when the sink of this log class excludes OTLP: nothing is built or enqueued
+    std::variant<std::monostate, ::opentelemetry::proto::logs::v1::LogRecord, ::opentelemetry::proto::trace::v1::Span>
+        otlp;
     double total_time{};
     double start_timestamp{};
 

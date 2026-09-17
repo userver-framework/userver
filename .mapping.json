@@ -3872,6 +3872,7 @@
   "otlp/src/otlp/logs/logger.cpp":"taxi/uservices/userver/otlp/src/otlp/logs/logger.cpp",
   "otlp/src/otlp/logs/logger.hpp":"taxi/uservices/userver/otlp/src/otlp/logs/logger.hpp",
   "otlp/tests/service_test.cpp":"taxi/uservices/userver/otlp/tests/service_test.cpp",
+  "otlp/tests/sink_test.cpp":"taxi/uservices/userver/otlp/tests/sink_test.cpp",
   "postgresql/CMakeLists.txt":"taxi/uservices/userver/postgresql/CMakeLists.txt",
   "postgresql/README.md":"taxi/uservices/userver/postgresql/README.md",
   "postgresql/dynamic_configs/POSTGRES_CONGESTION_CONTROL_SETTINGS.yaml":"taxi/uservices/userver/postgresql/dynamic_configs/POSTGRES_CONGESTION_CONTROL_SETTINGS.yaml",
