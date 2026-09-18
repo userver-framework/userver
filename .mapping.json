@@ -4132,6 +4132,7 @@
   "postgresql/src/storages/postgres/sql_state.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/sql_state.cpp",
   "postgresql/src/storages/postgres/statistics.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/statistics.cpp",
   "postgresql/src/storages/postgres/tests/arrays_pgtest.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/arrays_pgtest.cpp",
+  "postgresql/src/storages/postgres/tests/bitstring_buffer_test.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/bitstring_buffer_test.cpp",
   "postgresql/src/storages/postgres/tests/bitstring_pgtest.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/bitstring_pgtest.cpp",
   "postgresql/src/storages/postgres/tests/bytea_pgtest.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/bytea_pgtest.cpp",
   "postgresql/src/storages/postgres/tests/cancel_pgtest.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/cancel_pgtest.cpp",
