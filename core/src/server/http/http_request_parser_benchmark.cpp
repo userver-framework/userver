@@ -2,6 +2,7 @@
 
 #include <benchmark/benchmark.h>
 
+#include <server/request/response_data_accounter.hpp>
 #include <userver/engine/run_standalone.hpp>
 #include <userver/http/http_version.hpp>
 

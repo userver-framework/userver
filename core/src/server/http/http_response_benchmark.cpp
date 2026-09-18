@@ -8,8 +8,9 @@
 #include <userver/server/http/http_status.hpp>
 #include <userver/utils/small_string.hpp>
 
+#include <server/http/http_response_storage.hpp>
+#include <server/request/response_data_accounter.hpp>
 #include <userver/server/http/http_request_builder.hpp>
-#include <userver/server/request/response_base.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -117,7 +118,7 @@ void HttpHeadersSerializationOstreams(benchmark::State& state) {
 void HttpResponseSetHeaderBenchmark(benchmark::State& state) {
     server::request::ResponseDataAccounter accounter{};
     const auto request = server::http::HttpRequestBuilder{accounter}.Build();
-    server::http::HttpResponse response{*request, accounter};
+    auto& response = request->GetHttpResponse();
 
     namespace Headers = USERVER_NAMESPACE::http::headers;
 

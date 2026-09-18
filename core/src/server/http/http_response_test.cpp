@@ -1,3 +1,6 @@
+#include <chrono>
+#include <memory>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -11,14 +14,214 @@
 #include <userver/server/http/http_response.hpp>
 #include <userver/utest/utest.hpp>
 
+#include <server/request/response_data_accounter.hpp>
+
+#include <server/http/http_response_impl.hpp>
+
 USERVER_NAMESPACE_BEGIN
+
+namespace {
+
+struct ResponseContext final {
+    std::shared_ptr<server::http::HttpRequest> request;
+    server::http::HttpResponseImpl& response;
+
+    explicit ResponseContext(server::request::ResponseDataAccounter& accounter)
+        : request(server::http::HttpRequestBuilder{accounter}.Build()),
+          response(server::http::GetHttpResponseImpl(*request))
+    {}
+};
+
+}  // namespace
+
+TEST(ResponseDataAccounter, StartAndStopRequest) {
+    server::request::ResponseDataAccounter accounter;
+    const auto now = std::chrono::steady_clock::now();
+
+    EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), 0);
+    EXPECT_EQ(accounter.GetPendingResponsesCount(), 0);
+
+    accounter.StartRequest(now);
+    EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), 0);
+    EXPECT_EQ(accounter.GetPendingResponsesCount(), 1);
+
+    accounter.StartRequest(now);
+    EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), 0);
+    EXPECT_EQ(accounter.GetPendingResponsesCount(), 2);
+
+    accounter.StopRequest(0, now);
+    EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), 0);
+    EXPECT_EQ(accounter.GetPendingResponsesCount(), 1);
+
+    accounter.StopRequest(0, now);
+    EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), 0);
+    EXPECT_EQ(accounter.GetPendingResponsesCount(), 0);
+}
+
+TEST(ResponseDataAccounter, ReaccountRequestKeepsCount) {
+    server::request::ResponseDataAccounter accounter;
+    const auto t0 = std::chrono::steady_clock::now();
+    const auto t1 = t0 + std::chrono::milliseconds{5};
+
+    accounter.StartRequest(t0);
+    ASSERT_EQ(accounter.GetPendingResponsesCount(), 1);
+    ASSERT_EQ(accounter.GetPendingResponsesSizeInBytes(), 0);
+
+    accounter.ReaccountRequest(0, t0, 40, t1);
+    EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), 40);
+    EXPECT_EQ(accounter.GetPendingResponsesCount(), 1);
+
+    accounter.ReaccountRequest(40, t1, 7, t1);
+    EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), 7);
+    EXPECT_EQ(accounter.GetPendingResponsesCount(), 1);
+
+    accounter.StopRequest(7, t1);
+    EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), 0);
+    EXPECT_EQ(accounter.GetPendingResponsesCount(), 0);
+}
+
+TEST(HttpResponse, AccounterStartsOnConstruction) {
+    server::request::ResponseDataAccounter accounter;
+
+    {
+        const ResponseContext context{accounter};
+        EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), 0);
+        EXPECT_EQ(accounter.GetPendingResponsesCount(), 1);
+        EXPECT_TRUE(context.response.GetData().empty());
+    }
+
+    EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), 0);
+    EXPECT_EQ(accounter.GetPendingResponsesCount(), 0);
+}
+
+TEST(HttpResponse, AccounterTracksSetData) {
+    server::request::ResponseDataAccounter accounter;
+    ResponseContext context{accounter};
+
+    const std::string body = "test data";
+    context.response.SetData(body);
+
+    EXPECT_EQ(context.response.GetData(), body);
+    EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), body.size());
+    EXPECT_EQ(accounter.GetPendingResponsesCount(), 1);
+}
+
+TEST(HttpResponse, AccounterSetDataReplacesPendingSize) {
+    server::request::ResponseDataAccounter accounter;
+    ResponseContext context{accounter};
+
+    context.response.SetData("hi");
+    EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), 2);
+    EXPECT_EQ(accounter.GetPendingResponsesCount(), 1);
+
+    context.response.SetData("hello world");
+    EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), 11);
+    EXPECT_EQ(accounter.GetPendingResponsesCount(), 1);
+
+    context.response.SetData("");
+    EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), 0);
+    EXPECT_EQ(accounter.GetPendingResponsesCount(), 1);
+}
+
+TEST(HttpResponse, AccounterStopsOnSetSent) {
+    server::request::ResponseDataAccounter accounter;
+    ResponseContext context{accounter};
+
+    const std::string body = "payload";
+    context.response.SetData(body);
+    ASSERT_EQ(accounter.GetPendingResponsesSizeInBytes(), body.size());
+    ASSERT_EQ(accounter.GetPendingResponsesCount(), 1);
+
+    context.response.SetSent(body.size());
+
+    EXPECT_TRUE(context.response.IsSent());
+    EXPECT_EQ(context.response.GetBytesSent(), body.size());
+    EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), 0);
+    EXPECT_EQ(accounter.GetPendingResponsesCount(), 0);
+}
+
+TEST(HttpResponse, AccounterStopsOnSetSendFailed) {
+    server::request::ResponseDataAccounter accounter;
+    {
+        ResponseContext context{accounter};
+        context.response.SetData("payload");
+        ASSERT_EQ(accounter.GetPendingResponsesCount(), 1);
+        ASSERT_EQ(accounter.GetPendingResponsesSizeInBytes(), 7);
+    }
+    EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), 0);
+    EXPECT_EQ(accounter.GetPendingResponsesCount(), 0);
+}
+
+TEST(HttpResponse, AccounterMultipleResponses) {
+    server::request::ResponseDataAccounter accounter;
+
+    auto first = std::make_unique<ResponseContext>(accounter);
+    first->response.SetData("aaa");
+    EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), 3);
+    EXPECT_EQ(accounter.GetPendingResponsesCount(), 1);
+
+    auto second = std::make_unique<ResponseContext>(accounter);
+    second->response.SetData("bbbb");
+    EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), 7);
+    EXPECT_EQ(accounter.GetPendingResponsesCount(), 2);
+
+    first->response.SetSent(3);
+    EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), 4);
+    EXPECT_EQ(accounter.GetPendingResponsesCount(), 1);
+
+    second.reset();
+    EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), 0);
+    EXPECT_EQ(accounter.GetPendingResponsesCount(), 0);
+}
+
+TEST(HttpResponse, IsLimitReached) {
+    server::request::ResponseDataAccounter accounter;
+    accounter.SetMaxPendingResponsesSizeInBytes(10);
+
+    ResponseContext small{accounter};
+    EXPECT_FALSE(small.response.IsLimitReached());
+    small.response.SetData(std::string(9, 'x'));
+    EXPECT_FALSE(small.response.IsLimitReached());
+    small.response.SetSent(9);
+
+    ResponseContext exact{accounter};
+    exact.response.SetData(std::string(10, 'x'));
+    EXPECT_TRUE(exact.response.IsLimitReached());
+}
+
+TEST(HttpResponse, SetSharedDataAvoidsCopy) {
+    server::request::ResponseDataAccounter accounter;
+    ResponseContext context{accounter};
+
+    auto body = std::make_shared<const std::string>("shared-payload");
+    const auto* data_ptr = body->data();
+    context.response.SetSharedData(body);
+
+    EXPECT_EQ(context.response.GetData(), "shared-payload");
+    EXPECT_EQ(context.response.GetData().data(), data_ptr);
+    EXPECT_EQ(accounter.GetPendingResponsesSizeInBytes(), body->size());
+
+    auto extracted = context.response.ExtractData();
+    EXPECT_EQ(extracted.View(), "shared-payload");
+    EXPECT_EQ(extracted.View().data(), data_ptr);
+}
+
+TEST(HttpResponse, ExtractDataMovesOwnedBody) {
+    server::request::ResponseDataAccounter accounter;
+    ResponseContext context{accounter};
+
+    context.response.SetData("owned-payload");
+    auto extracted = context.response.ExtractData();
+    EXPECT_EQ(extracted.View(), "owned-payload");
+    EXPECT_TRUE(context.response.GetData().empty());
+}
 
 UTEST(HttpResponse, Smoke) {
     const auto test_deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
     server::request::ResponseDataAccounter accounter;
     auto request = server::http::HttpRequestBuilder{accounter}.Build();
-    server::http::HttpResponse response{*request, accounter};
+    auto& response = server::http::GetHttpResponseImpl(*request);
 
     constexpr std::string_view kBody = "test data";
     response.SetData(std::string{kBody});
@@ -46,7 +249,7 @@ UTEST(HttpResponse, Smoke) {
 UTEST(HttpResponse, AccounterLifetimeIfNotSent) {
     auto accounter = std::make_unique<server::request::ResponseDataAccounter>();
     const auto request = server::http::HttpRequestBuilder{*accounter}.Build();
-    request->GetHttpResponse().SetSendFailed();
+    server::http::GetHttpResponseImpl(*request).SetSendFailed();
     accounter.reset();
     // Now we just should not crash
 }
@@ -56,7 +259,7 @@ UTEST(HttpResponse, AccounterLifetimeIfSent) {
     auto accounter = std::make_unique<server::request::ResponseDataAccounter>();
 
     const auto request = server::http::HttpRequestBuilder{*accounter}.Build();
-    auto& response = request->GetHttpResponse();
+    auto& response = server::http::GetHttpResponseImpl(*request);
 
     const std::string body = "test data";
     response.SetData(body);
@@ -86,7 +289,7 @@ UTEST_P(HttpResponseBody, ForbiddenBody) {
 
     server::request::ResponseDataAccounter accounter;
     auto request = server::http::HttpRequestBuilder{accounter}.Build();
-    server::http::HttpResponse response{*request, accounter};
+    auto& response = server::http::GetHttpResponseImpl(*request);
 
     response.SetData("test data");
     response.SetStatus(static_cast<server::http::HttpStatus>(GetParam()));
@@ -113,7 +316,7 @@ INSTANTIATE_UTEST_SUITE_P(HttpResponseForbiddenBody, HttpResponseBody, testing::
 TEST(HttpResponse, GetHeaderDoesntThrow) {
     server::request::ResponseDataAccounter accounter{};
     auto request = server::http::HttpRequestBuilder{accounter}.Build();
-    const server::http::HttpResponse response{*request, accounter};
+    const auto& response = request->GetHttpResponse();
 
     const auto& header = response.GetHeader("nonexistent-header");
     EXPECT_TRUE(header.empty());

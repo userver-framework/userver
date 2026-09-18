@@ -7,6 +7,7 @@
 #include <boost/container/small_vector.hpp>
 
 #include <server/handlers/http_handler_base_statistics.hpp>
+#include <server/http/http_response_impl.hpp>
 #include <server/middlewares/handler_adapter.hpp>
 #include <server/request/internal_request_context.hpp>
 #include <server/server_config.hpp>
@@ -248,7 +249,7 @@ void HttpHandlerBase::HandleMaybeStreamRequest(http::HttpRequest& request, reque
 
 void HttpHandlerBase::HandleHttpRequest(http::HttpRequest& http_request, request::RequestContext& context) const {
     auto& response = http_request.GetHttpResponse();
-    response.SetSystemHeadersEnd();
+    GetHttpResponseImpl(response).SetSystemHeadersEnd();
 
     // Don't hold the config snapshot for too long, especially with streaming.
     context.GetInternalContext().ResetConfigSnapshot();

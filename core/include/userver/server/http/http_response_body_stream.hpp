@@ -6,7 +6,7 @@
 #include <string>
 
 #include <userver/server/http/http_response.hpp>
-#include <userver/server/request/response_base.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -44,9 +44,11 @@ public:
     void SetStatusCode(HttpStatus status);
 
 private:
+    struct BodyProducer;
+
     bool headers_ended_{false};
     bool headers_end_sent_{false};
-    HttpResponse::Producer queue_producer_;
+    utils::FastPimpl<BodyProducer, 40, 8> body_producer_;
     HttpResponse& http_response_;
 };
 

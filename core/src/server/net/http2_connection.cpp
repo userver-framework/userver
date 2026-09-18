@@ -3,6 +3,7 @@
 #include <server/http/http2_session.hpp>
 #include <server/http/http2_writer.hpp>
 #include <server/http/http_request_parser.hpp>
+#include <server/http/http_response_impl.hpp>
 #include <server/http/request_handler_base.hpp>
 
 #include <userver/engine/async.hpp>
@@ -151,20 +152,18 @@ void Http2Connection::OnRequestTaskFinished(std::uint64_t event_id) noexcept {
 }
 
 void Http2Connection::SendResponse(http::HttpRequest& request) noexcept {
-    auto& response = request.GetHttpResponse();
+    auto& response = http::GetHttpResponseImpl(request);
     UASSERT(!response.IsSent());
     if (IsResponseChainValid()) {
         try {
             // Might be a stream reading or a fully constructed response
-            // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-            auto& http_response = static_cast<http::HttpResponse&>(response);
             if (const auto& h = request.GetHeader(USERVER_NAMESPACE::http::headers::k2::kHttp2SettingsHeader);
                 !h.empty())
             {
                 parser_->UpgradeToHttp2(h);
-                http_response.SetStreamId(static_cast<std::int32_t>(http::kStreamIdAfterUpgradeResponse));
+                response.SetStreamId(static_cast<std::int32_t>(http::kStreamIdAfterUpgradeResponse));
             }
-            http::WriteHttp2ResponseToSocket(http_response, *parser_);
+            http::WriteHttp2ResponseToSocket(response, *parser_);
         } catch (const engine::io::IoSystemError& ex) {
             auto log_level = ex.Code().value() == EPIPE ? logging::Level::kWarning : logging::Level::kError;
             LOG(log_level) << "I/O error while sending data: " << ex;

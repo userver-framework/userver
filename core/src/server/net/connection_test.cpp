@@ -8,6 +8,7 @@
 #include <server/handlers/http_handler_base_statistics.hpp>
 #include <server/http/request_handler_base.hpp>
 #include <server/net/create_socket.hpp>
+#include <server/request/response_data_accounter.hpp>
 #include <userver/clients/http/client_core.hpp>
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/sleep.hpp>

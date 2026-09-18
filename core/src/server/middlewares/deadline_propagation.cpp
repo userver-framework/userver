@@ -4,6 +4,7 @@
 #include <server/request/internal_request_context.hpp>
 
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/task/cancel.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>

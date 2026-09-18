@@ -1,6 +1,7 @@
 #include <server/http/handler_info_index.hpp>
 #include <server/http/http2_session.hpp>
 #include <server/http/http_request_parser.hpp>
+#include <server/http/http_response_impl.hpp>
 #include <server/net/stats.hpp>
 
 #include <fmt/format.h>
@@ -78,8 +79,8 @@ private:
             dynamic_cast<Http2Session*>(parser_http2_.get())->UpgradeToHttp2(h);
             return;
         }
-        UASSERT(request->GetHttpResponse().GetStreamId().has_value());
-        cur_stream_id_ = *request->GetHttpResponse().GetStreamId();
+        UASSERT(GetHttpResponseImpl(*request).GetStreamId().has_value());
+        cur_stream_id_ = *GetHttpResponseImpl(*request).GetStreamId();
         EXPECT_TRUE(producer_.Push(std::move(request)));
     }
 

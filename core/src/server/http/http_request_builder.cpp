@@ -1,6 +1,7 @@
 #include <userver/server/http/http_request_builder.hpp>
 
 #include <server/http/http_request_impl.hpp>
+#include <server/request/response_data_accounter.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/logging/log.hpp>
 
@@ -38,6 +39,7 @@ HttpRequestBuilder& HttpRequestBuilder::SetRemoteAddress(engine::io::Sockaddr re
 
 HttpRequestBuilder& HttpRequestBuilder::SetMethod(HttpMethod method) {
     request_->pimpl_->method = method;
+    GetHttpResponseImpl(*request_).SetHeadRequest(method == HttpMethod::kHead);
     return *this;
 }
 

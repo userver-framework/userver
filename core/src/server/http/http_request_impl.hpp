@@ -2,6 +2,8 @@
 
 #include <userver/server/http/http_request.hpp>
 
+#include <server/http/http_response_impl.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
@@ -48,7 +50,7 @@ struct HttpRequest::Impl {
     // TODO
     mutable UpgradeCallback upgrade_websocket_cb;
 
-    mutable HttpResponse response;
+    mutable HttpResponseImpl response;
     engine::io::Sockaddr remote_address;
     engine::TaskProcessor* task_processor{nullptr};
     const handlers::HttpHandlerBase* handler{nullptr};

@@ -1,0 +1,5 @@
+tskv	timestamp=2026-09-16T14:41:21.612089	level=CRITICAL	module=TestBody ( taxi/uservices/userver/core/src/components/common_server_component_list_test.cpp:319 )	text=some text
+taxi/uservices/userver/core/src/components/resource_scopes_test.cpp:691: Skipped
+UASSERT aborts in debug builds
+
+EXIT:143

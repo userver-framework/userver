@@ -4,22 +4,32 @@
 /// @brief @copybrief server::http::HttpResponse
 
 #include <chrono>
+#include <limits>
+#include <memory>
 #include <string>
+#include <string_view>
 #include <variant>
 
-#include <userver/compiler/impl/lifetime.hpp>
-#include <userver/concurrent/queue.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/http/content_type.hpp>
 #include <userver/http/header_map.hpp>
 #include <userver/server/http/http_response_cookie.hpp>
-#include <userver/server/request/response_base.hpp>
 #include <userver/utils/impl/projecting_view.hpp>
 #include <userver/utils/str_icase.hpp>
 
 #include "http_status.hpp"
 
+// TODO remove extra include.
+#include <userver/compiler/impl/lifetime.hpp>
+#include <userver/concurrent/queue.hpp>
+#include <userver/concurrent/striped_counter.hpp>
+#include <userver/utils/fast_pimpl.hpp>
+
 USERVER_NAMESPACE_BEGIN
+
+namespace server::request {
+class ResponseDataAccounter;
+}  // namespace server::request
 
 namespace server::http {
 
@@ -32,31 +42,28 @@ namespace server::http {
 inline constexpr std::string_view kDefaultContentType = "application/octet-stream";
 
 class Http2ResponseWriter;
+class HttpResponseImpl;
 
 namespace impl {
 
-void OutputHeader(USERVER_NAMESPACE::http::headers::HeadersString& header, std::string_view key, std::string_view val);
-
-/// @brief Event-like helper for waiting until HTTP headers can be sent.
-///
-/// For streamed responses this happens on the first body chunk (or when the
-/// handler finishes). It does not wait for the full response body.
-class HeadersEndEvent final {
+class ChunkStorage final {
 public:
-    explicit HeadersEndEvent(engine::SingleConsumerEvent& event) noexcept : event_(event) {}
+    ChunkStorage() = default;
+    explicit ChunkStorage(std::string data);
+    explicit ChunkStorage(std::shared_ptr<const std::string> data);
 
-    [[nodiscard]] bool IsReady() const noexcept { return event_.IsReady(); }
+    ChunkStorage(const ChunkStorage&) = delete;
+    ChunkStorage(ChunkStorage&&) noexcept = default;
+    ChunkStorage& operator=(const ChunkStorage&) = delete;
+    ChunkStorage& operator=(ChunkStorage&&) noexcept = default;
 
-    /// @brief Satisfies @ref engine::Awaitable, for use with @ref engine::WaitAny.
-    [[nodiscard]] engine::AwaitableToken GetAwaitableToken() noexcept USERVER_IMPL_LIFETIME_BOUND {
-        return event_.GetAwaitableToken();
-    }
-
-    /// @returns whether headers became ready before deadline or cancellation.
-    [[nodiscard]] bool Wait() { return event_.WaitForEvent(); }
+    bool Empty() const noexcept;
+    std::size_t Size() const noexcept;
+    std::string_view View() const noexcept;
+    const std::string& AsString() const;
 
 private:
-    engine::SingleConsumerEvent& event_;
+    std::variant<std::string, std::shared_ptr<const std::string>> storage_{};
 };
 
 }  // namespace impl
@@ -64,8 +71,11 @@ private:
 class HttpRequest;
 
 /// @brief HTTP Response data
-class HttpResponse final : public request::ResponseBase {
+class HttpResponse {
 public:
+    HttpResponse(const HttpResponse&) = delete;
+    HttpResponse(HttpResponse&&) = delete;
+
     using HeadersMap = USERVER_NAMESPACE::http::headers::HeaderMap;
 
     using HeadersMapKeys = decltype(utils::impl::MakeKeysView(HeadersMap()));
@@ -74,18 +84,11 @@ public:
 
     using CookiesMapKeys = decltype(utils::impl::MakeKeysView(CookiesMap()));
 
-    /// @cond
-    HttpResponse(const HttpRequest& request, request::ResponseDataAccounter& data_accounter);
-    HttpResponse(
-        const HttpRequest& request,
-        request::ResponseDataAccounter& data_accounter,
-        std::chrono::steady_clock::time_point now,
-        utils::StrCaseHash hasher
-    );
-    ~HttpResponse() override;
-
-    void SetSendFailed();
-    /// @endcond
+    void SetData(std::string data);
+    /// @brief Sets response body without copying, keeping @a data alive.
+    /// Useful for serving cached static content.
+    void SetSharedData(std::shared_ptr<const std::string> data);
+    const std::string& GetData() const;
 
     /// @brief Add a new response header or rewrite an existing one.
     /// @returns true if the header was set. Returns false if headers
@@ -113,11 +116,6 @@ public:
     /// were already sent for stream'ed response and the new status was not set.
     bool SetStatus(HttpStatus status) noexcept;
 
-    /// @brief Set the end of system headers.
-    /// All headers written before this call are considered system; after - user.
-    /// User headers can't overwrite system headers.
-    void SetSystemHeadersEnd();
-
     /// @brief Remove all headers from response, except system headers.
     /// @returns true if the headers were cleared. Returns false if headers
     /// were already sent for stream'ed response and the headers were not cleared.
@@ -130,7 +128,7 @@ public:
     void ClearCookies();
 
     /// @return HTTP response status
-    HttpStatus GetStatus() const { return status_; }
+    HttpStatus GetStatus() const noexcept { return status_; }
 
     /// @return List of HTTP system headers names.
     HeadersMapKeys GetSystemHeaderNames() const;
@@ -157,54 +155,60 @@ public:
     /// empty string if no such cookie exists.
     const Cookie& GetCookie(std::string_view cookie_name) const;
 
-    /// @cond
-    // TODO: server internals. remove from public interface
+    void SetStatusServiceUnavailable() { SetStatus(HttpStatus::kServiceUnavailable); }
+    void SetStatusOk() { SetStatus(HttpStatus::kOk); }
+    void SetStatusNotFound() { SetStatus(HttpStatus::kNotFound); }
 
-    [[nodiscard]] impl::HeadersEndEvent FinishedSendingHeadersEvent() noexcept USERVER_IMPL_LIFETIME_BOUND {
-        return impl::HeadersEndEvent{headers_end_};
-    }
-
-    void SendResponse(engine::io::RwBase& socket) override;
-    /// @endcond
-
-    void SetStatusServiceUnavailable() override { SetStatus(HttpStatus::kServiceUnavailable); }
-    void SetStatusOk() override { SetStatus(HttpStatus::kOk); }
-    void SetStatusNotFound() override { SetStatus(HttpStatus::kNotFound); }
-
-    bool WaitForHeadersEnd() override;
-    void SetHeadersEnd() override;
+    bool WaitForHeadersEnd();
+    void SetHeadersEnd();
 
     /// @returns true if response headers were committed and cannot be changed.
     [[nodiscard]] bool IsHeadersEnd() const noexcept { return headers_end_.IsReady(); }
 
-    using Queue = concurrent::StringStreamQueue;
-    using Producer = std::variant<std::monostate, Queue::Producer, impl::Http2StreamEventProducer>;
+    [[nodiscard]] bool IsBodyStreamed() const noexcept { return is_stream_body_; }
 
-    void SetStreamBody();
-    bool IsBodyStreamed() const override;
-    // Can be called only once
-    Producer GetBodyProducer();
+    [[nodiscard]] bool IsSent() const noexcept { return is_sent_; }
+
+protected:
+    HttpResponse(const HttpRequest& request, request::ResponseDataAccounter& data_accounter);
+    HttpResponse(
+        const HttpRequest& request,
+        request::ResponseDataAccounter& data_accounter,
+        std::chrono::steady_clock::time_point now,
+        utils::StrCaseHash hasher
+    );
+    ~HttpResponse() noexcept;
 
 private:
+    friend class HttpResponseImpl;
     friend class Http2ResponseWriter;
 
-    // Returns total size of the response
-    std::size_t SetBodyStreamed(engine::io::RwBase& socket, USERVER_NAMESPACE::http::headers::HeadersString& header);
+    void StoreData(impl::ChunkStorage data);
 
-    // Returns total size of the response
-    std::size_t SetBodyNotStreamed(engine::io::RwBase& socket, USERVER_NAMESPACE::http::headers::HeadersString& header);
+    [[nodiscard]] bool IsHeadersMutable() const noexcept { return !headers_end_.IsReady(); }
 
-    const HttpRequest& request_;
+    static constexpr auto kUnset = std::chrono::steady_clock::time_point::min();
+
+    request::ResponseDataAccounter& accounter_;
+    impl::ChunkStorage data_;
+    std::chrono::steady_clock::time_point create_time_;
+    std::chrono::steady_clock::time_point ready_time_{kUnset};
+    std::size_t accounted_size_ = 0;
+    std::size_t bytes_sent_ = 0;
+    bool is_sent_ = false;
+
+    const bool is_final_;
+    bool is_head_request_;
+    const std::uint8_t http_major_;
+    const std::uint8_t http_minor_;
     HttpStatus status_ = HttpStatus::kOk;
     HeadersMap system_headers_;
     HeadersMap user_headers_;
     CookiesMap cookies_;
 
+    bool is_stream_body_{false};
     bool system_headers_ended_ = false;
     engine::SingleConsumerEvent headers_end_{engine::SingleConsumerEvent::NoAutoReset()};
-    std::optional<Queue::Consumer> body_stream_;
-    Producer body_stream_producer_;
-    bool is_stream_body_{false};
 };
 
 void SetThrottleReason(http::HttpResponse& http_response, std::string log_reason, std::string http_header_reason);

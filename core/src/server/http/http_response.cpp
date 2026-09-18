@@ -4,11 +4,8 @@
 #include <charconv>
 #include <limits>
 
-#include <cctz/time_zone.h>
-#include <fmt/compile.h>
+#include <fmt/format.h>
 
-#include <userver/engine/deadline.hpp>
-#include <userver/engine/io/socket.hpp>
 #include <userver/hostinfo/blocking/get_hostname.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/http/content_type.hpp>
@@ -16,40 +13,23 @@
 #include <userver/tracing/set_throttle_reason.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/datetime/wall_coarse_clock.hpp>
 #include <userver/utils/overloaded.hpp>
-#include <userver/utils/small_string.hpp>
-
-#include <server/http/http_cached_date.hpp>
 
 #include <userver/server/http/http_request.hpp>
 
+#include <server/request/response_data_accounter.hpp>
+
 USERVER_NAMESPACE_BEGIN
+
+namespace server::http {
+
+namespace impl {
 
 namespace {
 
-struct DecimalString final {
-    static constexpr std::size_t kMaxSize = std::numeric_limits<std::size_t>::digits10 + 1;
-
-    char data[kMaxSize]{};
-    std::size_t size{0};
-
-    std::string_view ToStringView() const noexcept { return {data, size}; }
-};
-
-DecimalString FormatDecimal(const std::size_t value) noexcept {
-    DecimalString result;
-    const auto to_chars_result = std::to_chars(result.data, result.data + sizeof(result.data), value);
-    UASSERT(to_chars_result.ec == std::errc{});
-    result.size = static_cast<std::size_t>(to_chars_result.ptr - result.data);
-    return result;
-}
-
-constexpr std::string_view kCrlf = "\r\n";
-constexpr std::string_view kKeyValueHeaderSeparator = ": ";
-
-constexpr std::string_view kClose = "close";
-constexpr std::string_view kKeepAlive = "keep-alive";
+// Guarantees that time_point::min() / kUnset can be used as a sentinel (before the epoch).
+static_assert(std::chrono::steady_clock::duration::min() < std::chrono::steady_clock::duration::zero());
+static_assert(std::chrono::steady_clock::time_point::min() < std::chrono::steady_clock::time_point{});
 
 const std::string kHostname = hostinfo::blocking::GetRealHostName();
 
@@ -112,38 +92,42 @@ void CheckHeaderValue(std::string_view value) {
     }
 }
 
-bool IsBodyForbiddenForStatus(server::http::HttpStatus status) {
-    return status == server::http::HttpStatus::kNoContent || status == server::http::HttpStatus::kNotModified ||
-           (static_cast<int>(status) >= 100 && static_cast<int>(status) < 200);
-}
-
-void AppendToCharArray(char*& data, const std::string_view what) {
-    std::memcpy(data, what.begin(), what.size());
-    data += what.size();
-}
-
 const std::string kEmptyString{};
 
 }  // namespace
 
-namespace server::http {
+bool ChunkStorage::Empty() const noexcept { return Size() == 0; }
 
-namespace impl {
-
-void OutputHeader(USERVER_NAMESPACE::http::headers::HeadersString& header, std::string_view key, std::string_view val) {
-    const auto old_size = header.size();
-
-    header.resize_and_overwrite(
-        old_size + key.size() + kKeyValueHeaderSeparator.size() + val.size() + kCrlf.size(),
-        [&](char* data, std::size_t size) {
-            data += old_size;
-            AppendToCharArray(data, key);
-            AppendToCharArray(data, kKeyValueHeaderSeparator);
-            AppendToCharArray(data, val);
-            AppendToCharArray(data, kCrlf);
-            return size;
-        }
+std::size_t ChunkStorage::Size() const noexcept {
+    return std::visit(
+        utils::Overloaded{
+            [](const std::string& owned) noexcept { return owned.size(); },
+            [](const std::shared_ptr<const std::string>& shared) noexcept { return shared->size(); },
+        },
+        storage_
     );
+}
+
+std::string_view ChunkStorage::View() const noexcept { return AsString(); }
+
+const std::string& ChunkStorage::AsString() const {
+    return std::visit(
+        utils::Overloaded{
+            [](const std::string& owned) -> const std::string& { return owned; },
+            [](const std::shared_ptr<const std::string>& shared) -> const std::string& { return *shared; },
+        },
+        storage_
+    );
+}
+
+ChunkStorage::ChunkStorage(std::string data)
+    : storage_{std::move(data)}
+{}
+
+ChunkStorage::ChunkStorage(std::shared_ptr<const std::string> data)
+    : storage_{std::move(data)}
+{
+    UASSERT(std::get<std::shared_ptr<const std::string>>(storage_));
 }
 
 }  // namespace impl
@@ -158,26 +142,58 @@ HttpResponse::HttpResponse(
     std::chrono::steady_clock::time_point now,
     utils::StrCaseHash hasher
 )
-    : ResponseBase{data_accounter, now},
-      request_{request},
+    : accounter_{data_accounter},
+      create_time_{now},
+      is_final_(request.IsFinal()),
+      is_head_request_(request.GetMethod() == HttpMethod::kHead),
+      http_major_(request.GetHttpMajor()),
+      http_minor_(request.GetHttpMinor()),
       cookies_{0, hasher}
-{}
-
-HttpResponse::~HttpResponse() = default;
-
-void HttpResponse::SetSendFailed() {
-    SetStatus(HttpStatus::kClientClosedRequest);
-    request::ResponseBase::SetSendFailed();
+{
+    UASSERT(accounted_size_ == 0);
+    UASSERT(data_.Empty());
+    accounter_.StartRequest(create_time_);
 }
 
+HttpResponse::~HttpResponse() noexcept {
+    if (!is_sent_) {
+        accounter_.StopRequest(accounted_size_, create_time_);
+    }
+}
+
+void HttpResponse::SetData(std::string data) { StoreData(impl::ChunkStorage{std::move(data)}); }
+
+void HttpResponse::SetSharedData(std::shared_ptr<const std::string> data) {
+    UASSERT(data);
+    StoreData(impl::ChunkStorage{std::move(data)});
+}
+
+void HttpResponse::StoreData(impl::ChunkStorage data) {
+    if (is_sent_) {
+        UASSERT(is_stream_body_);
+        LOG_LIMITED_WARNING()
+            << "Attempt to set response body after it was already sent by streaming. Probably an "
+               "exception was thrown after streaming started";
+        return;
+    }
+    data_ = std::move(data);
+    const auto old_size = accounted_size_;
+    const auto old_create_time = create_time_;
+    create_time_ = std::chrono::steady_clock::now();
+    accounted_size_ = data_.Size();
+    accounter_.ReaccountRequest(old_size, old_create_time, accounted_size_, create_time_);
+}
+
+const std::string& HttpResponse::GetData() const { return data_.AsString(); }
+
 bool HttpResponse::SetHeader(std::string name, std::string value) {
-    if (headers_end_.IsReady()) {
+    if (!IsHeadersMutable()) {
         // Attempt to set headers for Stream'ed response after it is already set
         return false;
     }
 
-    CheckHeaderName(name);
-    CheckHeaderValue(value);
+    impl::CheckHeaderName(name);
+    impl::CheckHeaderValue(value);
 
     if (system_headers_ended_) {
         if (system_headers_.contains(name)) {
@@ -197,12 +213,12 @@ bool HttpResponse::SetHeader(std::string_view name, std::string value) {
 }
 
 bool HttpResponse::SetHeader(const USERVER_NAMESPACE::http::headers::PredefinedHeader& header, std::string value) {
-    if (headers_end_.IsReady()) {
+    if (!IsHeadersMutable()) {
         // Attempt to set headers for Stream'ed response after it is already set
         return false;
     }
 
-    CheckHeaderValue(value);
+    impl::CheckHeaderValue(value);
 
     if (system_headers_ended_) {
         if (system_headers_.contains(header)) {
@@ -227,7 +243,7 @@ void HttpResponse::SetContentEncoding(std::string encoding) {
 }
 
 bool HttpResponse::SetStatus(HttpStatus status) noexcept {
-    if (headers_end_.IsReady()) {
+    if (!IsHeadersMutable()) {
         // Attempt to set headers for Stream'ed response after it is already set
         return false;
     }
@@ -237,7 +253,7 @@ bool HttpResponse::SetStatus(HttpStatus status) noexcept {
 }
 
 bool HttpResponse::ClearUserHeaders() {
-    if (headers_end_.IsReady()) {
+    if (!IsHeadersMutable()) {
         // Attempt to set headers for Stream'ed response after it is already set
         return false;
     }
@@ -247,8 +263,8 @@ bool HttpResponse::ClearUserHeaders() {
 }
 
 void HttpResponse::SetCookie(Cookie cookie) {
-    CheckHeaderValue(cookie.Name());
-    CheckHeaderValue(cookie.Value());
+    impl::CheckHeaderValue(cookie.Name());
+    impl::CheckHeaderValue(cookie.Value());
     UASSERT(!cookie.Name().empty());
     auto [it, ok] = cookies_.emplace(std::string_view{}, std::move(cookie));
     UASSERT(ok);
@@ -278,7 +294,7 @@ const std::string& HttpResponse::GetHeader(std::string_view header_name) const {
     if (it != system_headers_.end()) {
         return it->second;
     }
-    return kEmptyString;
+    return impl::kEmptyString;
 }
 
 const std::string& HttpResponse::GetHeader(const USERVER_NAMESPACE::http::headers::PredefinedHeader& header_name
@@ -291,7 +307,7 @@ const std::string& HttpResponse::GetHeader(const USERVER_NAMESPACE::http::header
     if (it != system_headers_.end()) {
         return it->second;
     }
-    return kEmptyString;
+    return impl::kEmptyString;
 }
 
 bool HttpResponse::HasHeader(std::string_view header_name) const {
@@ -310,204 +326,15 @@ const Cookie& HttpResponse::GetCookie(std::string_view cookie_name) const { retu
 
 void HttpResponse::SetHeadersEnd() { headers_end_.Send(); }
 
-void HttpResponse::SetSystemHeadersEnd() { system_headers_ended_ = true; }
-
 bool HttpResponse::WaitForHeadersEnd() { return headers_end_.WaitForEvent(); }
 
-void HttpResponse::SendResponse(engine::io::RwBase& socket) {
-    utils::SmallString<USERVER_NAMESPACE::http::headers::kTypicalHeadersSize> header;
-
-    header.resize_and_overwrite(USERVER_NAMESPACE::http::headers::kTypicalHeadersSize, [&](char* data, std::size_t) {
-        char* old_data_pointer = data;
-        AppendToCharArray(data, "HTTP/");
-        data = fmt::format_to(
-            data,
-            FMT_COMPILE("{}.{} {} "),
-            request_.GetHttpMajor(),
-            request_.GetHttpMinor(),
-            static_cast<int>(status_)
-        );
-        AppendToCharArray(data, StatusCodeString(status_));
-        AppendToCharArray(data, kCrlf);
-        return data - old_data_pointer;
-    });
-
-    system_headers_.erase(USERVER_NAMESPACE::http::headers::kContentLength);
-    user_headers_.erase(USERVER_NAMESPACE::http::headers::kContentLength);
-    if (!HasHeader(USERVER_NAMESPACE::http::headers::kDate)) {
-        impl::OutputHeader(
-            header,
-            USERVER_NAMESPACE::http::headers::kDate,
-            // impl::GetCachedDate() must not cross thread boundaries
-            impl::GetCachedDate()
-        );
-    }
-    if (!HasHeader(USERVER_NAMESPACE::http::headers::kContentType)) {
-        impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kContentType, kDefaultContentType);
-    }
-    system_headers_.OutputInHttpFormat(header);
-    user_headers_.OutputInHttpFormat(header);
-    if (!HasHeader(USERVER_NAMESPACE::http::headers::kConnection)) {
-        impl::OutputHeader(
-            header,
-            USERVER_NAMESPACE::http::headers::kConnection,
-            (request_.IsFinal() ? kClose : kKeepAlive)
-        );
-    }
-    for (const auto& cookie : cookies_) {
-        const std::size_t old_size = header.size();
-
-        header.resize_and_overwrite(
-            old_size + static_cast<std::string_view>(USERVER_NAMESPACE::http::headers::kSetCookie).size() +
-                kKeyValueHeaderSeparator.size(),
-            [&](char* data, std::size_t size) {
-                data += old_size;
-                AppendToCharArray(data, USERVER_NAMESPACE::http::headers::kSetCookie);
-                AppendToCharArray(data, kKeyValueHeaderSeparator);
-                return size;
-            }
-        );
-
-        cookie.second.AppendToString(header);
-
-        header.append(kCrlf);
-    }
-
-    std::size_t sent_bytes{};
-
-    if (IsBodyStreamed() && GetData().empty()) {
-        sent_bytes = SetBodyStreamed(socket, header);
-    } else {
-        // e.g. a CustomHandlerException
-        sent_bytes = SetBodyNotStreamed(socket, header);
-    }
-
-    SetSent(sent_bytes);
-}
-
-std::size_t HttpResponse::SetBodyNotStreamed(
-    engine::io::RwBase& socket,
-    USERVER_NAMESPACE::http::headers::HeadersString& header
-) {
-    const bool is_body_forbidden = IsBodyForbiddenForStatus(status_);
-    const bool is_head_request = request_.GetMethod() == HttpMethod::kHead;
-    const auto& data = GetData();
-
-    if (!is_body_forbidden) {
-        const auto content_length = FormatDecimal(data.size());
-        impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kContentLength, content_length.ToStringView());
-    }
-    header.append(kCrlf);
-
-    if (is_body_forbidden && !data.empty()) {
-        LOG_LIMITED_WARNING()
-            << "Non-empty body provided for response with HTTP code " << static_cast<int>(status_)
-            << " which does not allow one, it will be dropped";
-    }
-
-    ssize_t sent_bytes = 0;
-    if (!is_head_request && !is_body_forbidden) {
-        sent_bytes = socket.WriteAll({{header.data(), header.size()}, {data.data(), data.size()}}, engine::Deadline{});
-    } else {
-        sent_bytes = socket.WriteAll(header.data(), header.size(), engine::Deadline{});
-    }
-
-    return sent_bytes;
-}
-
-std::size_t HttpResponse::SetBodyStreamed(
-    engine::io::RwBase& socket,
-    USERVER_NAMESPACE::http::headers::HeadersString& header
-) {
-    const bool is_body_forbidden = IsBodyForbiddenForStatus(status_);
-
-    if (!is_body_forbidden) {
-        impl::OutputHeader(header, USERVER_NAMESPACE::http::headers::kTransferEncoding, "chunked");
-    }
-
-    // headers end marker
-    header.append(kCrlf);
-
-    // send HTTP headers
-    size_t sent_bytes = socket.WriteAll(header.data(), header.size(), {});
-    header.clear();
-    header.shrink_to_fit();  // free memory before time-consuming operation
-
-    if (is_body_forbidden) {
-        return sent_bytes;
-    }
-
-    // Transmit HTTP response body
-    std::string body_part;
-    // First chunk must be sent without kCrlf
-    // because kCrlf was sent with headers
-    bool first_chunk_processed = false;
-    while (body_stream_->Pop(body_part)) {
-        if (body_part.empty()) {
-            LOG_DEBUG() << "Zero size body_part in http_response.cpp";
-            continue;
-        }
-
-        auto size =
-            first_chunk_processed
-                ? fmt::format("\r\n{:x}\r\n", body_part.size())
-                : fmt::format("{:x}\r\n", body_part.size());
-        sent_bytes +=
-            socket.WriteAll({{size.data(), size.size()}, {body_part.data(), body_part.size()}}, engine::Deadline{});
-
-        first_chunk_processed = true;
-    }
-
-    const std::string_view terminating_chunk{first_chunk_processed ? "\r\n0\r\n\r\n" : "0\r\n\r\n"};
-    sent_bytes += socket.WriteAll(terminating_chunk.data(), terminating_chunk.size(), {});
-
-    // TODO: exceptions?
-    body_stream_producer_.emplace<std::monostate>();
-    body_stream_.reset();
-
-    return sent_bytes;
-}
-
 void SetThrottleReason(http::HttpResponse& http_response, std::string log_reason, std::string http_header_reason) {
-    http_response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaTaxiRatelimitedBy, kHostname);
+    http_response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaTaxiRatelimitedBy, impl::kHostname);
     http_response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaTaxiRatelimitReason, std::move(http_header_reason));
 
     if (auto* span = tracing::Span::CurrentSpanUnchecked()) {
         tracing::SetThrottleReason(*span, std::move(log_reason));
     }
-}
-
-void HttpResponse::SetStreamBody() {
-    UASSERT(body_stream_producer_.index() == 0);
-    if (GetStreamId().has_value()) {
-        UINVARIANT(false, "Streaming in HTTP/2.0 is not supported currently.");
-        body_stream_producer_.emplace<impl::Http2StreamEventProducer>(GetStreamProducer());
-    } else {
-        UASSERT(!body_stream_);
-        const auto body_queue = Queue::Create();
-        body_stream_.emplace(body_queue->GetConsumer());
-        body_stream_producer_.emplace<Queue::Producer>(body_queue->GetProducer());
-    }
-    is_stream_body_ = true;
-}
-
-bool HttpResponse::IsBodyStreamed() const { return is_stream_body_; }
-
-HttpResponse::Producer HttpResponse::GetBodyProducer() {
-    Producer res{};
-    std::visit(
-        utils::Overloaded{
-            [&res](Queue::Producer& p) mutable { res = std::move(p); },
-            [&res](impl::Http2StreamEventProducer& p) mutable {
-                res.emplace<impl::Http2StreamEventProducer>(std::move(p));
-            },
-            [](const std::monostate) mutable { UINVARIANT(false, "GetBodyProducer() is called twice"); },
-
-        },
-        body_stream_producer_
-    );
-    body_stream_producer_.emplace<std::monostate>();
-    return res;
 }
 
 }  // namespace server::http

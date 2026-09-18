@@ -2,6 +2,7 @@
 
 #include <userver/engine/io/tls_wrapper.hpp>
 
+#include <server/http/http_response_impl.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/wait_any.hpp>
 #include <userver/logging/log.hpp>
@@ -151,7 +152,7 @@ engine::TaskWithResult<void> ConnectionBase::HandleQueueItem(const std::shared_p
     }
 
     try {
-        auto& response = request->GetHttpResponse();
+        auto& response = http::GetHttpResponseImpl(*request);
         // Streaming vs not is decided later in HandleHttpRequest. Waiting only
         // on the handler task would deadlock once the handler starts producing
         // chunks into a bounded queue. Waiting only on headers would hang mock
@@ -200,7 +201,7 @@ engine::TaskWithResult<void> ConnectionBase::HandleQueueItem(const std::shared_p
         auto lvl =
             reason == engine::TaskCancellationReason::kUserRequest ? logging::Level::kWarning : logging::Level::kError;
         LOG_LIMITED(lvl) << "Handler task was cancelled with reason: " << ToString(reason);
-        auto& response = request->GetHttpResponse();
+        auto& response = http::GetHttpResponseImpl(*request);
         if (!response.IsReady()) {
             response.SetReady();
             response.SetStatusServiceUnavailable();
