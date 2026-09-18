@@ -10,12 +10,12 @@ import "simple/subdirectory/subdirectory.proto";
 import "simple/subdirectory/separate_enum.proto";
 
 service MyService {
-    // We should include SeparateEnumMessage in hpp, despite it is not used in structs.
-    rpc SayHello(simple.subdirectory.SubdirStruct) returns(simple.subdirectory.SeparateEnumMessage) {}
-    // rpc SayGoodby(SomeMessage) returns(google.protobuf.Empty) {}
-    rpc Goodbye(SomeMessage) returns(SomeMessage) {}
+  // We should include SeparateEnumMessage in hpp, despite it is not used in structs.
+  rpc SayHello(simple.subdirectory.SubdirStruct) returns (simple.subdirectory.SeparateEnumMessage) {}
+  // rpc SayGoodby(SomeMessage) returns(google.protobuf.Empty) {}
+  rpc Goodbye(SomeMessage) returns (SomeMessage) {}
 }
 
 message SomeMessage {
-    simple.subdirectory.MyEnum subdir_enum = 1;
+  simple.subdirectory.MyEnum subdir_enum = 1;
 }
