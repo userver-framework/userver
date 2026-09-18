@@ -4,6 +4,7 @@
 #include <ostream>
 #include <ranges>
 #include <sstream>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 
@@ -35,6 +36,15 @@ struct SnapshotDataEntry final {
     boost::container::flat_set<Label> labels;
     MetricValue value;
 };
+
+constexpr std::string_view kTestPrefix = "test";
+
+std::string MakeRequestPrefix(std::string prefix) {
+    if (prefix.empty()) {
+        return std::string{kTestPrefix};
+    }
+    return fmt::format("{}.{}", kTestPrefix, prefix);
+}
 
 }  // namespace
 namespace impl {
@@ -75,6 +85,20 @@ utils::SharedRef<const impl::SnapshotData> BuildSnapshotData(const Storage& stor
     auto data = utils::MakeSharedRef<impl::SnapshotData>();
     SnapshotVisitor visitor{*data};
     storage.VisitMetrics(visitor, request);
+    return data;
+}
+
+utils::SharedRef<const impl::SnapshotData> BuildSnapshotData(WriterFuncRef writer_func, const Request& request) {
+    auto data = utils::MakeSharedRef<impl::SnapshotData>();
+    SnapshotVisitor visitor{*data};
+    utils::statistics::VisitMetrics(
+        [&writer_func](Writer& writer) {
+            auto prefixed = writer[kTestPrefix];
+            writer_func(prefixed);
+        },
+        visitor,
+        request
+    );
     return data;
 }
 
@@ -119,6 +143,11 @@ std::optional<Metric> GetSingleOptional(
 Snapshot::Snapshot(const Storage& storage, std::string prefix, std::vector<Label> require_labels)
     : request_(Request::MakeWithPrefix(std::move(prefix), {}, std::move(require_labels))),
       data_(BuildSnapshotData(storage, request_))
+{}
+
+Snapshot::Snapshot(WriterFuncRef writer, std::string prefix, std::vector<Label> require_labels)
+    : request_(Request::MakeWithPrefix(MakeRequestPrefix(std::move(prefix)), {}, std::move(require_labels))),
+      data_(BuildSnapshotData(writer, request_))
 {}
 
 MetricValue Snapshot::SingleMetric(std::string path, std::vector<Label> require_labels) const {

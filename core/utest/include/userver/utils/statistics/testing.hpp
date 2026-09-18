@@ -13,6 +13,7 @@
 #include <userver/utils/statistics/labels.hpp>
 #include <userver/utils/statistics/metric_value.hpp>
 #include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -28,13 +29,27 @@ public:
     using std::runtime_error::runtime_error;
 };
 
-/// @brief A snapshot of metrics from utils::statistics::Storage.
+/// @brief A snapshot of metrics from utils::statistics::Storage or a single metric.
 class Snapshot final {
 public:
     /// @brief Create a new snapshot of metrics with paths starting with @a prefix
     /// and labels containing @a require_labels.
     /// @throws std::exception if a metric writer throws.
     explicit Snapshot(const Storage& storage, std::string prefix = {}, std::vector<Label> require_labels = {});
+
+    /// @brief Create a snapshot by dumping @a metric via Writer.
+    ///
+    /// Use this in unit tests instead of registering a writer in @ref Storage.
+    /// Keeps metrics whose path starts with @a prefix and labels containing
+    /// @a require_labels.
+    /// @throws std::exception if DumpMetric throws.
+    explicit Snapshot(
+        const HasWriterSupport auto& metric,
+        std::string prefix = {},
+        std::vector<Label> require_labels = {}
+    )
+        : Snapshot([&metric](Writer& writer) { writer = metric; }, std::move(prefix), std::move(require_labels))
+    {}
 
     Snapshot(const Snapshot& other) = default;
     Snapshot(Snapshot&& other) noexcept = default;
@@ -52,6 +67,8 @@ public:
 
 private:
     friend void PrintTo(const Snapshot& data, std::ostream*);
+
+    explicit Snapshot(WriterFuncRef writer, std::string prefix, std::vector<Label> require_labels);
 
     Request request_;
     utils::SharedRef<const impl::SnapshotData> data_;

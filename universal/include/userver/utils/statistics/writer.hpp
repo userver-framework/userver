@@ -7,10 +7,12 @@
 #include <string_view>
 #include <type_traits>
 
+#include <userver/utils/function_ref.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 #include <userver/utils/statistics/histogram_view.hpp>
 #include <userver/utils/statistics/labels.hpp>
 #include <userver/utils/statistics/rate.hpp>
+#include <userver/utils/statistics/request.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -209,10 +211,41 @@ private:
     LabelsSizeType current_labels_size_;
 };
 
+/// Non-owning reference to a function that writes metrics via @ref Writer.
+using WriterFuncRef = utils::function_ref<void(Writer&) const>;
+
 template <class Metric>
 void DumpMetric(Writer& writer, const std::atomic<Metric>& m) {
     static_assert(std::atomic<Metric>::is_always_lock_free, "std::atomic misuse");
     writer = m.load();
+}
+
+/// @brief Low-level connecting function that dumps metrics from @a func into @a out.
+///
+/// Calls @a func with a @ref Writer. Each metric written through that `Writer`
+/// is forwarded to `out.HandleMetric`. @a request filters the metrics and may
+/// attach extra labels; `request.prefix` is a match filter, not a path to write
+/// under.
+///
+/// @ref utils::statistics::Storage::VisitMetrics uses this function to dump
+/// Writer-based metrics. It is used to implement formats such as:
+/// - @ref utils::statistics::ToPrometheusFormat "Prometheus"
+/// - @ref utils::statistics::ToGraphiteFormat "Graphite"
+/// - @ref utils::statistics::ToJsonFormat "JSON"
+/// - @ref utils::statistics::ToPrettyFormat "pretty format"
+/// - @ref utils::statistics::ToSolomonFormat "Solomon"
+/// - @ref utils::statistics::GetPortabilityWarnings "portability info"
+///
+/// @param func writes metrics to the provided @ref Writer
+/// @param out receives each written metric via @ref BaseFormatBuilder::HandleMetric
+/// @param request metric filter and extra labels
+void VisitMetrics(WriterFuncRef func, BaseFormatBuilder& out, const Request& request = {});
+
+/// @overload
+///
+/// Dumps @a metric via `writer = metric` (`DumpMetric` / built-in Writer support).
+void VisitMetrics(const HasWriterSupport auto& metric, BaseFormatBuilder& out, const Request& request = {}) {
+    utils::statistics::VisitMetrics([&metric](Writer& writer) { writer = metric; }, out, request);
 }
 
 }  // namespace utils::statistics

@@ -1,9 +1,11 @@
 #include <userver/utils/statistics/writer.hpp>
 
 #include <algorithm>
+#include <ranges>
 
 #include <fmt/format.h>
 
+#include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/numeric_cast.hpp>
 
@@ -284,6 +286,20 @@ void Writer::AppendLabelsSpan(LabelsSpan labels) {
 
     state_->add_labels.insert(state_->add_labels.end(), labels.begin(), labels.end());
     current_labels_size_ = state_->add_labels.size();
+}
+
+void VisitMetrics(WriterFuncRef func, BaseFormatBuilder& out, const Request& request) {
+    impl::WriterState state{
+        .builder = out,
+        .request = request,
+        .path = {},
+        .add_labels = utils::AsContainer<std::vector<
+            LabelView>>(request.add_labels | std::views::transform([](const auto& label) {
+                            return LabelView{label.first, label.second};
+                        })),
+    };
+    Writer writer{&state};
+    func(writer);
 }
 
 }  // namespace utils::statistics

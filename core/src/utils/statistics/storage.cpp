@@ -1,5 +1,6 @@
 #include <userver/utils/statistics/storage.hpp>
 
+#include <optional>
 #include <utility>
 
 #include <boost/container/small_vector.hpp>
@@ -7,6 +8,8 @@
 #include <userver/formats/common/utils.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
+#include <userver/utils/lazy_prvalue.hpp>
 #include <userver/utils/resource_scopes.hpp>
 #include <userver/utils/text_light.hpp>
 
@@ -79,45 +82,42 @@ Storage::Storage()
     : may_register_extenders_(true)
 {}
 
-void Storage::VisitMetrics(BaseFormatBuilder& out, const Request& request) const {
-    {
-        impl::WriterState state{out, request, {}, {}};
-        for (const auto& [name, value] : request.add_labels) {
-            state.add_labels.emplace_back(name, value);
+void DumpMetric(Writer& writer, const Storage& storage) {
+    boost::container::small_vector<LabelView, 16> labels_vector;
+
+    const std::shared_lock lock(storage.mutex_);
+    for (const auto& entry : storage.metrics_sources_) {
+        if (!entry.writer) {
+            continue;
         }
 
-        boost::container::small_vector<LabelView, 16> labels_vector;
+        labels_vector.clear();
+        labels_vector.reserve(entry.writer_labels.size());
+        for (const auto& l : entry.writer_labels) {
+            labels_vector.emplace_back(l);
+        }
 
-        const std::shared_lock lock(mutex_);
-        for (const auto& entry : metrics_sources_) {
-            if (!entry.writer) {
-                continue;
-            }
-
-            labels_vector.clear();
-            labels_vector.reserve(entry.writer_labels.size());
-            for (const auto& l : entry.writer_labels) {
-                labels_vector.emplace_back(l);
-            }
-
-            try {
-                auto writer =
-                    (entry.prefix_path.empty()
-                         ? Writer{state, labels_vector}
-                         : Writer{state, labels_vector}[entry.prefix_path]);
+        try {
+            writer.WithLabels(utils::impl::InternalTag{}, labels_vector, [&entry](Writer& labeled) {
+                std::optional<Writer> prefixed;
+                if (!entry.prefix_path.empty()) {
+                    prefixed.emplace(utils::LazyPrvalue([&] { return labeled[entry.prefix_path]; }));
+                }
+                Writer& writer = prefixed ? *prefixed : labeled;
                 if (writer) {
                     LOG_DEBUG() << "Getting statistics for prefix=" << entry.prefix_path;
                     entry.writer(writer);
                 }
-            } catch (const std::exception& e) {
-                UASSERT_MSG(
-                    false,
-                    fmt::format("Failed to write metrics for prefix '{}': {}", entry.prefix_path, e.what())
-                );
-                LOG_ERROR() << "Failed to write metrics for prefix '" << entry.prefix_path << "': " << e;
-            }
+            });
+        } catch (const std::exception& e) {
+            UASSERT_MSG(false, fmt::format("Failed to write metrics for prefix '{}': {}", entry.prefix_path, e.what()));
+            LOG_ERROR() << "Failed to write metrics for prefix '" << entry.prefix_path << "': " << e;
         }
     }
+}
+
+void Storage::VisitMetrics(BaseFormatBuilder& out, const Request& request) const {
+    statistics::VisitMetrics(*this, out, request);
 
     formats::json::ValueBuilder legacy_metrics;
     legacy_metrics[kVersionField] = kVersion;

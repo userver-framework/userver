@@ -99,12 +99,20 @@ public:
     void UnregisterExtender(impl::StorageIterator iterator, impl::UnregisteringKind kind) noexcept;
 
 private:
+    friend void DumpMetric(Writer& writer, const Storage& storage);
+
     Entry DoRegisterExtender(impl::MetricsSource&& source);
 
     std::atomic<bool> may_register_extenders_;
     impl::StorageData metrics_sources_;
     mutable engine::SharedMutex mutex_;
 };
+
+/// @brief Dumps Writer-based metrics registered in @a storage.
+///
+/// Legacy JSON extenders are skipped; @ref Storage::VisitMetrics dumps those
+/// as well.
+void DumpMetric(Writer& writer, const Storage& storage);
 
 /// @deprecated Use @ref Storage::RegisterWriter that takes @ref ResourceScopeStorage.
 [[deprecated("Use Storage::RegisterWriter instead")]]
