@@ -143,3 +143,45 @@ async def test_grpc_sampling_disabled_ignores_trace_flags(grpc_client, service_c
         'Trace spans must be written when otel-trace-sampling-enabled is false, '
         f'even if trace-flags is 00, got: {written_spans}'
     )
+
+
+@pytest.mark.parametrize(
+    'sampling_enabled',
+    [
+        pytest.param(True, id='sampling-enabled'),
+        pytest.param(
+            False,
+            id='sampling-disabled',
+            marks=pytest.mark.uservice_oneshot(config_hooks=['disable_otel_trace_sampling']),
+        ),
+    ],
+)
+@pytest.mark.parametrize('trace_flags', ['00', '02', '01', '03'])
+async def test_grpc_trace_sampled_log_field(
+    grpc_client,
+    service_client,
+    mockserver,
+    sampling_enabled,
+    trace_flags,
+):
+    traceparent = f'00-{UNSAMPLED_TRACE_ID}-7a085853722dc6d2-{trace_flags}'
+
+    @mockserver.json_handler('/test-service/echo-no-body')
+    async def _handler(request):
+        assert request.headers['traceparent'].split('-')[3] == trace_flags
+        return mockserver.make_response()
+
+    async with service_client.capture_logs() as capture:
+        response = await grpc_client.CallEchoNobody(
+            greeter_pb2.GreetingRequest(name='test'),
+            metadata=[('traceparent', traceparent)],
+        )
+        assert response.greeting == 'Call Echo Nobody'
+
+    assert _handler.times_called == 1
+    trace_logs = capture.select(trace_id=UNSAMPLED_TRACE_ID)
+    assert capture.select(trace_id=UNSAMPLED_TRACE_ID, text='CallEchoNobody handler called')
+    expected_sampled = not sampling_enabled or bool(int(trace_flags, 16) & 1)
+    expected_log_flag = str(int(expected_sampled))
+    assert all(entry.get('trace_sampled') == expected_log_flag for entry in trace_logs)
+    assert any('stopwatch_name' in entry for entry in trace_logs) == expected_sampled

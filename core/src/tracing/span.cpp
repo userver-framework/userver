@@ -29,6 +29,7 @@ namespace {
 using RealMilliseconds = std::chrono::duration<double, std::milli>;
 
 constexpr std::string_view kTraceIdTag = "trace_id";
+constexpr std::string_view kTraceSampledTag = "trace_sampled";
 constexpr std::string_view kSpanIdTag = "span_id";
 constexpr std::string_view kParentIdTag = "parent_id";
 constexpr std::string_view kLinkTag = "link";
@@ -165,6 +166,7 @@ void Span::Impl::PutIntoLogger(logging::impl::TagWriter writer) && {
 
     writer.PutTag(kTraceIdTag, GetTraceId());
     writer.PutTag(kSpanIdTag, GetSpanId());
+    writer.PutTag(kTraceSampledTag, is_sampled_);
     writer.PutTag(kParentIdTag, GetParentId());
     writer.PutTag(kLinkTag, GetLink());
     if (!GetParentLink().empty()) {
@@ -199,6 +201,7 @@ void Span::Impl::PutIntoLogger(logging::impl::TagWriter writer) && {
 
 void Span::Impl::LogTo(logging::impl::TagWriter writer) const {
     writer.PutLogExtra(log_extra_inheritable_);
+    writer.PutTag(kTraceSampledTag, is_sampled_);
 
     if (const auto span_id = GetSpanIdForChildLogs()) {
         writer.PutTag(kTraceIdTag, GetTraceId());

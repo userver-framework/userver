@@ -18,6 +18,19 @@ For information on controlling log level in unit tests see @ref scripts/docs/en/
 
 You can find a detailed manual for configuring how logs are written in @ref components::Logging.
 
+### Trace sampling in logs
+
+Logs written with an active tracing::Span include `trace_sampled`, the value of
+tracing::Span::IsSampled() at the time of logging. TSKV represents this boolean as
+`1` or `0`; JSON uses `true` or `false`. Without an active span the field is absent.
+Span completion records also include the field.
+
+The field describes the local sampling decision, not successful export or storage
+of the span. Other logging filters and delivery failures can still prevent a span
+from appearing in storage. Incoming W3C flags may differ from the local decision,
+for example when honoring the sampled flag is disabled in the service.
+Unsampled spans do not suppress application logs.
+
 ### Log level
 
 Macros are used for logging:
