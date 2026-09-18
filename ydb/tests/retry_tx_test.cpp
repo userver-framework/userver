@@ -1,6 +1,10 @@
 #include "test_utils.hpp"
 
+#include <cstddef>
+
 #include <ydb-cpp-sdk/library/issue/yql_issue.h>
+
+#include <userver/utils/retry_budget.hpp>
 
 #include <ydb/impl/future.hpp>
 #include <ydb/impl/retry_tx.hpp>
@@ -113,5 +117,42 @@ UTEST_F(RetryTxFixture, Exception) {
         "error"
     );
 };
+
+UTEST_F(RetryTxFixture, RetryBudgetExhaustionAndRecovery) {
+    constexpr std::size_t kBudgetCapacity = 6;
+    constexpr std::size_t kAttemptsUntilExhausted = 2;
+    constexpr std::size_t kMaxRetries = 5;
+    static_assert(kAttemptsUntilExhausted > 0 && kAttemptsUntilExhausted <= kBudgetCapacity / 2);
+    constexpr std::size_t kInitialTokens = kBudgetCapacity / 2 + kAttemptsUntilExhausted;
+    auto& budget = GetTableClient().GetRetryBudget();
+    // Refill tokens spent during client startup, then use one token per success.
+    budget.SetSettings({.max_tokens = kBudgetCapacity, .token_ratio = kBudgetCapacity});
+    budget.AccountOk();
+    budget.SetSettings({.max_tokens = kBudgetCapacity, .token_ratio = 1});
+    for (std::size_t i = 0; i + kInitialTokens < kBudgetCapacity; ++i) {
+        budget.AccountFail();
+    }
+    ASSERT_TRUE(budget.CanRetry());
+
+    std::size_t attempts = 0;
+    try {
+        RetryTx(kMaxRetries, [&](NYdb::NQuery::TSession, engine::Deadline) {
+            ++attempts;
+            MakeErrorResponse(kRetryableStatus);
+        });
+        FAIL() << "Expected YdbResponseError";
+    } catch (const ydb::YdbResponseError& error) {
+        EXPECT_EQ(error.GetStatus().GetStatus(), kRetryableStatus);
+    }
+    EXPECT_EQ(attempts, kAttemptsUntilExhausted);
+    EXPECT_FALSE(budget.CanRetry());
+
+    attempts = 0;
+    ASSERT_NO_THROW(RetryTx(kMaxRetries, [&](NYdb::NQuery::TSession, engine::Deadline) { ++attempts; }));
+    EXPECT_EQ(attempts, 1);
+    EXPECT_TRUE(budget.CanRetry());
+    budget.AccountFail();
+    EXPECT_FALSE(budget.CanRetry());
+}
 
 USERVER_NAMESPACE_END

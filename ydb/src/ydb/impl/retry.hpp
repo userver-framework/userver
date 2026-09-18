@@ -1,9 +1,13 @@
 #pragma once
 
 #include <memory>
+#include <optional>
+#include <type_traits>
+#include <utility>
 
-#include <fmt/format.h>
-
+#include <library/cpp/threading/future/core/future.h>
+#include <util/datetime/base.h>
+#include <ydb-cpp-sdk/client/query/client.h>
 #include <ydb-cpp-sdk/client/retry/retry.h>
 #include <ydb-cpp-sdk/client/table/table.h>
 
@@ -58,11 +62,20 @@ public:
     {}
 
     AsyncResultType Execute() {
+        return Execute([](TClient& client, auto operation, const auto& settings) {
+            return RetryOperation(client, std::move(operation), settings);
+        });
+    }
+
+    // The injected attempt lets tests simulate session acquisition failures before the operation callback.
+    template <typename ExecuteAttempt>
+    AsyncResultType Execute(ExecuteAttempt execute_attempt) {
+        const auto deadline = TInstant::Now() + retry_settings_.MaxTimeout_;
         auto internal_retry_status = RetryOperation(
             client_,
-            [handler = this->shared_from_this()](ArgType arg) {
-                return handler->InternalRetryIteration(std::forward<ArgType>(arg));
-            },
+            [handler = this->shared_from_this(),
+             execute_attempt = std::move(execute_attempt),
+             deadline](TClient&) mutable { return handler->InternalRetryIteration(execute_attempt, deadline); },
             retry_settings_
         );
 
@@ -73,7 +86,35 @@ public:
     }
 
 private:
-    NYdb::TAsyncStatus InternalRetryIteration(ArgType arg) {
+    NYdb::NRetry::TRetryOperationSettings MakeSingleAttemptSettings(TInstant deadline) const {
+        auto settings = retry_settings_;
+        settings.MaxRetries(0);
+        settings.MaxTimeout(deadline - TInstant::Now());
+        return settings;
+    }
+
+    template <typename ExecuteAttempt>
+    NYdb::TAsyncStatus InternalRetryIteration(ExecuteAttempt& execute_attempt, TInstant deadline) {
+        if (last_status_ && !retry_budget_.CanRetry()) {
+            return NThreading::MakeFuture(MakeNonRetryableStatus());
+        }
+
+        result_.reset();
+        const auto settings = MakeSingleAttemptSettings(deadline);
+        // Budget the whole SDK attempt, including session acquisition failures.
+        auto attempt = execute_attempt(
+            client_,
+            [handler = this->shared_from_this()](ArgType arg) {
+                return handler->InvokeOperation(std::forward<ArgType>(arg));
+            },
+            settings
+        );
+        return attempt.Apply([handler = this->shared_from_this()](const NYdb::TAsyncStatus& status) {
+            return handler->HandleAttempt(status);
+        });
+    }
+
+    NYdb::TAsyncStatus InvokeOperation(ArgType arg) {
         const auto async_result = fn_(std::forward<ArgType>(arg));
 
         return async_result.Apply([handler = this->shared_from_this()](const auto& async_result) {
@@ -89,29 +130,33 @@ private:
         // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
         result_.emplace(const_cast<AsyncResultType&>(async_result).ExtractValue());
 
-        if (result_->IsSuccess()) {
+        // NOLINTNEXTLINE(cppcoreguidelines-slicing)
+        return NYdb::TStatus{*result_};
+    }
+
+    NYdb::TStatus HandleAttempt(const NYdb::TAsyncStatus& async_status) {
+        last_status_ = async_status.GetValue();
+
+        if (last_status_->IsSuccess()) {
             retry_budget_.AccountOk();
-        } else if (IsRetryableStatus(result_->GetStatus())) {
-            if (retry_budget_.CanRetry()) {
-                retry_budget_.AccountFail();
-            } else {
+        } else if (IsRetryableStatus(last_status_->GetStatus())) {
+            retry_budget_.AccountFail();
+            if (!retry_budget_.CanRetry()) {
                 return MakeNonRetryableStatus();
             }
         }
 
-        // NOLINTNEXTLINE(cppcoreguidelines-slicing)
-        return NYdb::TStatus{*result_};
+        return *last_status_;
     }
 
     ResultType TransformInternalRetryStatus(const NYdb::TAsyncStatus& internal_retry_status) {
         internal_retry_status.TryRethrow();
 
         if (!result_.has_value()) {
-            throw DeadlineExceededError(fmt::format(
-                "Timed out before the initial attempt in RetryOperation, internal status {}: {}",
-                static_cast<std::underlying_type_t<NYdb::EStatus>>(internal_retry_status.GetValue().GetStatus()),
-                internal_retry_status.GetValue().GetIssues().ToOneLineString()
-            ));
+            throw YdbResponseError{
+                "RetryOperation",
+                last_status_ ? std::move(*last_status_) : NYdb::TStatus{internal_retry_status.GetValue()}
+            };
         }
 
         return std::move(*result_);
@@ -123,6 +168,7 @@ private:
     Fn fn_;
 
     std::optional<ResultType> result_;
+    std::optional<NYdb::TStatus> last_status_;
 };
 
 // Fn: (NYdb::NTable::TSession) -> NThreading::TFuture<T>
