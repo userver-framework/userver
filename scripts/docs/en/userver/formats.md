@@ -5,8 +5,8 @@ data formats. Classes for different formats have an almost identical interface.
 There are common points for customizing parsers and serializers of custom types.
 
 ### `formats::*::Value`
-Classes formats::json::Value, formats::bson::Value, yaml_config::YamlConfig
-and formats::yaml::Value are intended for non-modifying work with formats
+Classes @ref formats::json::Value, @ref formats::bson::Value, @ref yaml_config::YamlConfig
+and @ref formats::yaml::Value are intended for non-modifying work with formats
 (in other words, for reading data).
 
 Usage Example:
@@ -39,11 +39,15 @@ You can write a single parser for all formats, just make it a template:
 ### Inline helpers `formats::*::Make*`
 
 To build objects of trivial types some of the formats provide inline helpers,
-like formats::json::MakeArray(), formats::json::MakeObject():
+like @ref formats::json::MakeArray, @ref formats::json::MakeObject:
 
 @snippet universal/src/formats/json/member_access_test.cpp Sample json inline construction functions
 
-Or formats::bson::MakeDoc(), formats::bson::MakeArray():
+@ref formats::yaml::MakeArray, and @ref formats::yaml::MakeObject:
+
+@snippet universal/src/formats/yaml/inline_test.cpp Sample yaml inline construction functions
+
+Or @ref formats::bson::MakeDoc, @ref formats::bson::MakeArray:
 
 @snippet mongo/src/formats/bson/extraction_test.cpp Sample bson inline construction functions
 
@@ -58,8 +62,8 @@ for example a key uniqueness check.
 
 ### `formats::*::ValueBuilder`
 
-Classes `formats::json::ValueBuilder`, `formats::bson::ValueBuilder` and `formats::yaml::ValueBuilder`
-are designed for building objects of a given format.
+Classes @ref formats::json::ValueBuilder, @ref formats::bson::ValueBuilder
+and @ref formats::yaml::ValueBuilder are designed for building objects of a given format.
 
 Usage Example:
 
@@ -83,20 +87,20 @@ You can write a single serializer for all formats, for make it a template:
 @anchor formats_streaming_serialization
 ### Streaming Serialization
 
-For runtime-critical code, it is possible to use streaming serializers. They allow you to serialize several times faster than `formats::json::ValueBuilder`, but should be used carefully because may produce broken format.
+For runtime-critical code, it is possible to use streaming serializers. They allow you to serialize several times faster than @ref formats::json::ValueBuilder, but should be used carefully because may produce broken format.
 
 
-At the moment, **stream serialization is implemented only for JSON** via the `formats::json::StringBuilder`.
+At the moment, **stream serialization is implemented only for JSON** via the @ref formats::json::StringBuilder.
 
 In order for stream serialization to work with your data type, you need to define the `WriteToStream` function in the namespace of your type:
 
-@snippet universal/src/formats/json/string_builder_test.cpp  Sample formats::json::StringBuilder usage
+@snippet universal/src/formats/json/string_builder_test.cpp  Sample @ref formats::json::StringBuilder usage
 
 
 Note that you may get **invalid** JSON, since:
 * methods `format::json methods::StringBuilder::Key` **do not** check the uniqueness of keys
-* `StringBuilder` itself does not put curly brackets, you need to use formats::json::StringBuilder::ObjectGuard
-* `StringBuilder` itself does not put square brackets, you need to use formats::json::StringBuilder::ArrayGuard
+* `StringBuilder` itself does not put curly brackets, you need to use @ref formats::json::StringBuilder::ObjectGuard
+* `StringBuilder` itself does not put square brackets, you need to use @ref formats::json::StringBuilder::ArrayGuard
 * You can write any nonsense in JSON using `StringBuilder` methods
 * etc.
 
