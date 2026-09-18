@@ -2,7 +2,9 @@
 
 #include <stdlib.h>
 
+#include <chrono>
 #include <cstdlib>
+#include <thread>
 
 #include <fmt/format.h>
 
@@ -36,15 +38,31 @@ void DoCreateTestDatabase(std::uint32_t port) {
 
     // There definitely won't be any shell injection here, trust me.
     // Also, this hack is run in tests only.
-    // NOLINTNEXTLINE(cert-env33-c,concurrency-mt-unsafe)
-    const auto status = std::system(
-        fmt::format(R"(mysql -u root -h 127.0.0.1 -P {} -e "CREATE DATABASE IF NOT EXISTS userver_mysql_test")", port)
-            .c_str()
-    );
+    constexpr auto kRetryCount = 30;
+    constexpr auto kRetryDelay = std::chrono::milliseconds{200};
 
-    if (!WIFEXITED(status) || WEXITSTATUS(status) != 0) {
-        throw std::runtime_error("Failed to create test database");
+    for (int attempt = 0; attempt < kRetryCount; ++attempt) {
+        // NOLINTNEXTLINE(cert-env33-c,concurrency-mt-unsafe)
+        const auto status = std::system(
+            fmt::format(R"(mysql -u root -h 127.0.0.1 -P {} -e "CREATE DATABASE IF NOT EXISTS userver_mysql_test")", port)
+                .c_str()
+        );
+
+        if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+            return;
+        }
+
+        std::this_thread::sleep_for(kRetryDelay);
     }
+
+    throw std::runtime_error(
+        fmt::format(
+            "Failed to create test database on port {} after {} attempts. "
+            "Ensure MySQL is running and the `mysql` CLI is available in PATH",
+            port,
+            kRetryCount
+        )
+    );
 }
 
 std::uint32_t GetTestDatabasePort() {
