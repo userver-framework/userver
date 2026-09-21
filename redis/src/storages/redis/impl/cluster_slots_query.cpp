@@ -171,12 +171,14 @@ ClusterSlotsResponseStatus ParseClusterSlotsResponse(
 }
 
 void GetClusterSlotsContext::ProcessRequest(
+    engine::ev::ThreadControl thread_control,
     std::shared_ptr<const std::vector<std::string>> shard_names,
     GetClusterSlotsRequest request,
     ProcessGetClusterHostsRequestCb callback
 ) {
     auto ids = request.sentinel_shard.GetAllInstancesServerId();
     auto context = std::make_shared<GetClusterSlotsContext>(
+        thread_control,
         request.credentials,
         std::move(shard_names),
         request.shard_group_name,
@@ -193,16 +195,19 @@ void GetClusterSlotsContext::ProcessRequest(
             context->OnAsyncCommandFailed();
         }
     }
+    context->ProcessResponses();
 }
 
 GetClusterSlotsContext::GetClusterSlotsContext(
+    engine::ev::ThreadControl thread_control,
     Credentials credentials,
     std::shared_ptr<const std::vector<std::string>> shard_names,
     std::string shard_group_name,
     ProcessGetClusterHostsRequestCb&& callback,
     size_t expected_responses_cnt
 )
-    : shard_group_name_(std::move(shard_group_name)),
+    : thread_control_(thread_control),
+      shard_group_name_(std::move(shard_group_name)),
       credentials_(std::move(credentials)),
       shard_names_(std::move(shard_names)),
       callback_(std::move(callback)),
@@ -210,6 +215,7 @@ GetClusterSlotsContext::GetClusterSlotsContext(
 {}
 
 void GetClusterSlotsContext::OnAsyncCommandFailed() {
+    UASSERT(thread_control_.IsInEvThread());
     --expected_responses_cnt_;
 
     ProcessResponses();
@@ -217,13 +223,33 @@ void GetClusterSlotsContext::OnAsyncCommandFailed() {
 
 void GetClusterSlotsContext::OnResponse(const CommandPtr&, const ReplyPtr& reply) {
     ClusterSlotsResponse response;
-    switch (ParseClusterSlotsResponse(reply, response, shard_group_name_)) {
-        case ClusterSlotsResponseStatus::kOk: {
-            {
-                const std::lock_guard<std::mutex> lock(mutex_);
-                responses_by_id_[reply->server_id] = std::move(response);
+    const auto status = ParseClusterSlotsResponse(reply, response, shard_group_name_);
+    thread_control_.RunInEvLoopAsync(
+        [self = shared_from_this(), server_id = reply->server_id, status, response = std::move(response)]() mutable
+        noexcept {
+            try {
+                self->OnParsedResponse(server_id, status, std::move(response));
+            } catch (const std::exception& ex) {
+                LOG_ERROR() << "Failed to process CLUSTER SLOTS response: " << ex;
             }
-            responses_parsed_++;
+        }
+    );
+}
+
+void GetClusterSlotsContext::OnParsedResponse(
+    ServerId server_id,
+    ClusterSlotsResponseStatus status,
+    ClusterSlotsResponse response
+) {
+    UASSERT(thread_control_.IsInEvThread());
+    if (process_responses_started_) {
+        return;
+    }
+
+    switch (status) {
+        case ClusterSlotsResponseStatus::kOk: {
+            responses_by_id_[server_id] = std::move(response);
+            ++responses_parsed_;
             break;
         }
         case ClusterSlotsResponseStatus::kFail:
@@ -233,16 +259,19 @@ void GetClusterSlotsContext::OnResponse(const CommandPtr&, const ReplyPtr& reply
             break;
     }
 
-    response_got_++;
+    ++response_got_;
 
     ProcessResponses();
 }
 
 void GetClusterSlotsContext::ProcessResponses() {
+    UASSERT(thread_control_.IsInEvThread());
+    if (process_responses_started_) {
+        return;
+    }
     if (response_got_ >= expected_responses_cnt_ || is_non_cluster_) {
-        if (!process_responses_started_.test_and_set()) {
-            ProcessResponsesOnce();
-        }
+        process_responses_started_ = true;
+        ProcessResponsesOnce();
     }
 }
 
@@ -374,9 +403,9 @@ void GetClusterSlotsContext::ProcessResponsesOnce() {
         shard_group_name_,
         *shard_names_,
         credentials_,
-        expected_responses_cnt_.load(),
-        responses_parsed_.load(),
-        is_non_cluster_.load()
+        expected_responses_cnt_,
+        responses_parsed_,
+        is_non_cluster_
     );
 }
 

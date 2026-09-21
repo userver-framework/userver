@@ -297,12 +297,14 @@ GetClusterShardsRequest::GetClusterShardsRequest(
 {}
 
 void GetClusterShardsContext::ProcessRequest(
+    engine::ev::ThreadControl thread_control,
     std::shared_ptr<const std::vector<std::string>> shard_names,
     GetClusterShardsRequest request,
     ProcessGetClusterHostsRequestCb callback
 ) {
     auto ids = request.sentinel_shard.GetAllInstancesServerId();
     auto context = std::make_shared<GetClusterShardsContext>(
+        thread_control,
         request.credentials,
         std::move(shard_names),
         request.shard_group_name,
@@ -318,16 +320,19 @@ void GetClusterShardsContext::ProcessRequest(
             context->OnAsyncCommandFailed();
         }
     }
+    context->ProcessResponses();
 }
 
 GetClusterShardsContext::GetClusterShardsContext(
+    engine::ev::ThreadControl thread_control,
     Credentials credentials,
     std::shared_ptr<const std::vector<std::string>> shard_names,
     std::string shard_group_name,
     ProcessGetClusterHostsRequestCb&& callback,
     size_t expected_responses_cnt
 )
-    : shard_group_name_(std::move(shard_group_name)),
+    : thread_control_(thread_control),
+      shard_group_name_(std::move(shard_group_name)),
       credentials_(std::move(credentials)),
       shard_names_(std::move(shard_names)),
       callback_(std::move(callback)),
@@ -335,18 +340,39 @@ GetClusterShardsContext::GetClusterShardsContext(
 {}
 
 void GetClusterShardsContext::OnAsyncCommandFailed() {
+    UASSERT(thread_control_.IsInEvThread());
     --expected_responses_cnt_;
     ProcessResponses();
 }
 
 void GetClusterShardsContext::OnResponse(const CommandPtr&, const ReplyPtr& reply) {
     ClusterShardsResponse response;
-    switch (ParseClusterShardsResponse(reply, response, shard_group_name_)) {
-        case ClusterShardsResponseStatus::kOk: {
-            {
-                const std::lock_guard<std::mutex> lock(mutex_);
-                responses_by_id_[reply->server_id] = std::move(response);
+    const auto status = ParseClusterShardsResponse(reply, response, shard_group_name_);
+    thread_control_.RunInEvLoopAsync(
+        [self = shared_from_this(), server_id = reply->server_id, status, response = std::move(response)]() mutable
+        noexcept {
+            try {
+                self->OnParsedResponse(server_id, status, std::move(response));
+            } catch (const std::exception& ex) {
+                LOG_ERROR() << "Failed to process CLUSTER SHARDS response: " << ex;
             }
+        }
+    );
+}
+
+void GetClusterShardsContext::OnParsedResponse(
+    ServerId server_id,
+    ClusterShardsResponseStatus status,
+    ClusterShardsResponse response
+) {
+    UASSERT(thread_control_.IsInEvThread());
+    if (process_responses_started_) {
+        return;
+    }
+
+    switch (status) {
+        case ClusterShardsResponseStatus::kOk: {
+            responses_by_id_[server_id] = std::move(response);
             ++responses_parsed_;
             break;
         }
@@ -361,10 +387,13 @@ void GetClusterShardsContext::OnResponse(const CommandPtr&, const ReplyPtr& repl
 }
 
 void GetClusterShardsContext::ProcessResponses() {
+    UASSERT(thread_control_.IsInEvThread());
+    if (process_responses_started_) {
+        return;
+    }
     if (response_got_ >= expected_responses_cnt_ || is_non_cluster_) {
-        if (!process_responses_started_.test_and_set()) {
-            ProcessResponsesOnce();
-        }
+        process_responses_started_ = true;
+        ProcessResponsesOnce();
     }
 }
 
@@ -419,9 +448,9 @@ void GetClusterShardsContext::ProcessResponsesOnce() {
         shard_group_name_,
         *shard_names_,
         credentials_,
-        expected_responses_cnt_.load(),
-        responses_parsed_.load(),
-        is_non_cluster_.load()
+        expected_responses_cnt_,
+        responses_parsed_,
+        is_non_cluster_
     );
 }
 

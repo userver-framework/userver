@@ -24,7 +24,11 @@ std::string Event::TypeToDebugString(Type type) {
 }
 
 std::string Event::ToDebugString() const {
-    return "Event(" + TypeToDebugString(type) + ", server_id=" + std::to_string(server_id.GetId()) + ")";
+    auto result = "Event(" + TypeToDebugString(type) + ", server_id=" + std::to_string(server_id.GetId());
+    if (type == Type::kRebalanceRequested) {
+        result += ", current_server_available=" + std::to_string(current_server_available);
+    }
+    return result + ')';
 }
 
 std::string Action::TypeToDebugString(Type type) {
@@ -205,9 +209,18 @@ void Fsm::HandleSubscribed(const Event& event) {
 
         case Event::Type::kRebalanceRequested:
             if (event.server_id != current_server_id_) {
-                rebalancing_server_id_ = event.server_id;
-                ChangeState(State::kRebalancingWaitSubscribe);
-                EmitAction(Action(Action::Type::kSubscribe, rebalancing_server_id_));
+                if (event.current_server_available) {
+                    rebalancing_server_id_ = event.server_id;
+                    ChangeState(State::kRebalancingWaitSubscribe);
+                    EmitAction(Action(Action::Type::kSubscribe, rebalancing_server_id_));
+                } else {
+                    LOG_INFO()
+                        << "Recover subscription from unavailable server_id=" << current_server_id_.GetId()
+                        << " via server_id=" << event.server_id.GetId();
+                    current_server_id_ = ServerId();
+                    ChangeState(State::kSubscribing);
+                    EmitAction(Action(Action::Type::kSubscribe, event.server_id));
+                }
             } else {
                 LOG_WARNING() << "Requested rebalance to the same server_id=" << event.server_id.GetId();
             }

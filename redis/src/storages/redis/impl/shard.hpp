@@ -1,15 +1,18 @@
 #pragma once
 
-#include <shared_mutex>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
 
-#include <userver/utils/swappingsmart.hpp>
+#include <engine/ev/thread_control.hpp>
+#include <userver/rcu/rcu.hpp>
 
 #include <storages/redis/impl/redis.hpp>
 #include <storages/redis/impl/redis_stats.hpp>
+
+#include "command_admission.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -69,7 +72,7 @@ public:
         std::vector<ConnectionInfo> connection_infos;
     };
 
-    explicit Shard(Options options);
+    Shard(Options options, const engine::ev::ThreadControl& sentinel_thread);
 
     std::unordered_map<ServerId, size_t, ServerIdHasher> GetAvailableServersWeighted(
         bool with_master,
@@ -79,15 +82,6 @@ public:
     std::vector<ServerId> GetAllInstancesServerId() const;
 
     bool AsyncCommand(CommandPtr command);
-    std::shared_ptr<Redis> GetInstance(
-        const std::vector<unsigned char>& available_servers,
-        bool is_retry,
-        bool may_fallback_to_any,
-        size_t skip_idx,
-        bool read_only,
-        bool consider_ping,
-        size_t* pinstance_idx
-    );
     void Clean();
     bool ProcessCreation(const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool);
     bool ProcessStateUpdate();
@@ -104,19 +98,37 @@ public:
     void SetRetryBudgetSettings(const utils::RetryBudgetSettings& retry_budget_settings);
 
 private:
+    struct ReadState {
+        std::vector<ConnectionStatus> instances;
+        std::chrono::steady_clock::time_point last_ready_time{std::chrono::steady_clock::now()};
+    };
+
     std::vector<unsigned char> GetAvailableServers(
+        const ReadState& state,
         const CommandControl& command_control,
         bool with_masters,
         bool with_slaves
     ) const;
     std::vector<unsigned char> GetNearestServersPing(
+        const ReadState& state,
         const CommandControl& command_control,
         bool with_masters,
         bool with_slaves
     ) const;
+    std::shared_ptr<Redis> GetInstance(
+        const ReadState& state,
+        const std::vector<unsigned char>& available_servers,
+        bool is_retry,
+        bool may_fallback_to_any,
+        size_t skip_idx,
+        bool read_only,
+        bool consider_ping,
+        size_t* pinstance_idx
+    );
 
     std::vector<ConnectionInfoInt> GetConnectionInfosToCreate() const;
     bool UpdateCleanWaitQueue(std::vector<ConnectionStatus>&& add_clean_wait);
+    void PublishReadState();
 
     struct InstanceStatistics {
         std::unique_ptr<Statistics> ptr_to_store;
@@ -126,16 +138,18 @@ private:
 
     const std::string shard_name_;
     const std::string shard_group_name_;
+    engine::ev::ThreadControl ev_thread_;
     std::atomic_size_t current_{0};
     std::unique_ptr<Statistics> shared_statistics_;
 
-    mutable std::shared_mutex mutex_;
     std::vector<ConnectionInfoInt> connection_infos_;
     std::vector<ConnectionStatus> instances_;
     std::vector<ConnectionStatus> clean_wait_;
     std::chrono::steady_clock::time_point last_connected_time_;
     std::chrono::steady_clock::time_point last_ready_time_ = std::chrono::steady_clock::now();
-    bool destroying_ = false;
+    rcu::Variable<ReadState, rcu::ExclusiveRcuTraits> read_state_;
+
+    CommandAdmission command_admission_;
 
     const std::function<void(bool ready)> ready_change_callback_;
 
@@ -143,8 +157,8 @@ private:
     boost::signals2::signal<void()> signal_not_in_cluster_mode_;
     boost::signals2::signal<void(ServerId, bool)> signal_instance_ready_;
 
-    utils::SwappingSmart<CommandsBufferingSettings> commands_buffering_settings_;
-    utils::SwappingSmart<utils::RetryBudgetSettings> retry_budget_settings_;
+    std::optional<CommandsBufferingSettings> commands_buffering_settings_;
+    std::optional<utils::RetryBudgetSettings> retry_budget_settings_;
 
     bool prev_connected_ = false;
     const bool cluster_mode_ = false;

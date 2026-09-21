@@ -1,14 +1,19 @@
 #pragma once
 
+#include <functional>
 #include <map>
 #include <memory>
-#include <mutex>
 #include <string>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
+#include <engine/ev/thread_control.hpp>
 #include <storages/redis/impl/sentinel.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/utils/rand.hpp>
 
+#include "command_admission.hpp"
 #include "redis.hpp"
 #include "shard_subscription_fsm.hpp"
 #include "subscription_statistics.hpp"
@@ -174,10 +179,24 @@ protected:
     template <typename CallbackMap, typename PcallbackMap>
     class SubscriptionStorageImpl {
     public:
-        SubscriptionStorageImpl(size_t shards_count, SubscriptionStorageBase& implemented)
-            : shards_count_(shards_count),
+        SubscriptionStorageImpl(
+            const engine::ev::ThreadControl& thread_control,
+            size_t shards_count,
+            SubscriptionStorageBase& implemented
+        )
+            : thread_control_(thread_control),
+              shards_count_(shards_count),
               implemented_(implemented)
         {}
+
+        template <typename Func>
+        auto RunSync(Func&& func) const -> std::invoke_result_t<Func&> {
+            return thread_control_.RunInEvLoopSyncWithResult(std::forward<Func>(func));
+        }
+
+        void Stop();
+        void AssertInEvThread() const { UASSERT(thread_control_.IsInEvThread()); }
+
         void Unsubscribe(SubscriptionId subscription_id);
 
         void ReadActions(FsmPtr fsm, const ChannelName& channel_name);
@@ -212,9 +231,8 @@ protected:
             size_t shard_idx
         );
         void OnSmessage(ServerId server_id, const std::string& channel, const std::string& message, size_t shard_idx);
-        size_t GetChannelsCountApprox(const std::lock_guard<std::mutex>& /*held_lock*/) const;
-        PubsubShardStatistics GetShardStatistics(size_t shard_idx, const std::lock_guard<std::mutex>& /*held_lock*/)
-            const;
+        size_t GetChannelsCountApprox() const;
+        PubsubShardStatistics GetShardStatistics(size_t shard_idx) const;
         RawPubsubClusterStatistics GetStatistics() const;
 
         template <typename Map>
@@ -224,7 +242,7 @@ protected:
         void RebalanceMoveSubscriptions(RebalanceState& state);
 
         void SetCommandControl(const CommandControl& control);
-        void DoRebalance(size_t shard_idx, ServerWeights weights, const std::lock_guard<std::mutex>& /*held_lock*/);
+        void DoRebalance(size_t shard_idx, ServerWeights weights);
         SubscriptionToken Subscribe(
             const std::string& channel,
             Sentinel::UserMessageCallback cb,
@@ -241,27 +259,27 @@ protected:
             CommandControl control
         );
 
-        SubscriptionId GetNextSubscriptionId(const std::lock_guard<std::mutex>& /*held_lock*/);
+        SubscriptionId GetNextSubscriptionId();
 
         const CommandControl& GetCommandControl(const ChannelName& channel_name) const;
 
-        std::size_t GetShardsCount(const std::lock_guard<std::mutex>& /*held_lock*/) const noexcept {
+        std::size_t GetShardsCount() const noexcept {
+            AssertInEvThread();
             return shards_count_;
         }
         void SetShardsCount(std::size_t shards_count) {
-            const std::lock_guard lock{mutex};
+            AssertInEvThread();
             shards_count_ = shards_count;
         }
 
         void ClearCallbackMaps() {
-            const std::lock_guard lock{mutex};
+            AssertInEvThread();
             callback_map.clear();
             pattern_callback_map.clear();
             sharded_callback_map.clear();
         }
 
         // NOLINTBEGIN(misc-non-private-member-variables-in-classes)
-        mutable std::mutex mutex;
         CommandCb subscribe_callback;
         CommandCb unsubscribe_callback;
         ShardedCommandCb sharded_subscribe_callback;
@@ -273,6 +291,23 @@ protected:
         // NOLINTEND(misc-non-private-member-variables-in-classes)
 
     private:
+        template <typename Func>
+        void RunAsync(Func&& func) {
+            auto admission_permit = callback_admission_.TryAcquire();
+            if (!admission_permit) {
+                return;
+            }
+            thread_control_.RunInEvLoopAsync([func = std::forward<Func>(func)]() mutable noexcept {
+                try {
+                    std::invoke(func);
+                } catch (const std::exception& ex) {
+                    LOG_ERROR() << "Failed to process asynchronous subscription event: " << ex;
+                }
+            });
+        }
+
+        mutable engine::ev::ThreadControl thread_control_;
+        CommandAdmission callback_admission_;
         CommandControl common_command_control_;
         std::size_t shards_count_{0};
         SubscriptionStorageBase& implemented_;
@@ -283,12 +318,7 @@ protected:
 class SubscriptionStorage : public SubscriptionStorageBase {
 public:
     SubscriptionStorage(
-        const std::shared_ptr<ThreadPools>& thread_pools,
-        size_t shards_count,
-        bool is_cluster_mode,
-        std::shared_ptr<const std::vector<std::string>> shard_names
-    );
-    SubscriptionStorage(
+        const engine::ev::ThreadControl& thread_control,
         size_t shards_count,
         bool is_cluster_mode,
         std::shared_ptr<const std::vector<std::string>> shard_names

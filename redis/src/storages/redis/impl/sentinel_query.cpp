@@ -257,26 +257,54 @@ std::function<void(const CommandPtr&, const ReplyPtr&)> GetHostsContext::Generat
     };
 }
 
-void GetHostsContext::OnResponse(const CommandPtr& command, const ReplyPtr& reply) {
-    bool need_process_responses = false;
-    {
-        const std::lock_guard<std::mutex> lock(mutex_);
-        response_got_++;
-
+std::function<void(const CommandPtr&, const ReplyPtr&)> GetHostsContext::GenerateCallback(
+    engine::ev::ThreadControl thread_control
+) {
+    return [self = shared_from_this(), thread_control](const CommandPtr& command, const ReplyPtr& reply) mutable {
         SentinelResponse response;
-        if (ParseSentinelResponse(command, reply, allow_empty_, response)) {
-            responses_parsed_++;
-            for (auto& instance_response : response) {
-                const auto& name = instance_response["name"];
-                responses_by_name_[name].push_back(std::move(instance_response));
+        const bool parsed = ParseSentinelResponse(command, reply, self->allow_empty_, response);
+        thread_control.RunInEvLoopAsync([self, response = std::move(response), parsed]() mutable noexcept {
+            try {
+                self->OnParsedResponse(std::move(response), parsed);
+            } catch (const std::exception& ex) {
+                LOG_ERROR() << "Failed to process SENTINEL response: " << ex;
             }
-        }
+        });
+    };
+}
 
-        if (response_got_ >= expected_responses_cnt_) {
-            need_process_responses = !process_responses_started_.test_and_set();
+void GetHostsContext::OnResponse(const CommandPtr& command, const ReplyPtr& reply) {
+    SentinelResponse response;
+    const bool parsed = ParseSentinelResponse(command, reply, allow_empty_, response);
+    OnParsedResponse(std::move(response), parsed);
+}
+
+void GetHostsContext::OnParsedResponse(SentinelResponse response, bool parsed) {
+    if (process_responses_started_) {
+        return;
+    }
+    ++response_got_;
+
+    if (parsed) {
+        ++responses_parsed_;
+        for (auto& instance_response : response) {
+            const auto& name = instance_response["name"];
+            responses_by_name_[name].push_back(std::move(instance_response));
         }
     }
-    if (need_process_responses) {
+
+    ProcessResponses();
+}
+
+void GetHostsContext::OnAsyncCommandFailed() {
+    UASSERT(expected_responses_cnt_ > 0);
+    --expected_responses_cnt_;
+    ProcessResponses();
+}
+
+void GetHostsContext::ProcessResponses() {
+    if (!process_responses_started_ && response_got_ >= expected_responses_cnt_) {
+        process_responses_started_ = true;
         ProcessResponsesOnce();
     }
 }
@@ -327,17 +355,24 @@ void GetHostsContext::ProcessResponsesOnce() {
     callback_(res, expected_responses_cnt_, responses_parsed_);
 }
 
-void ProcessGetHostsRequest(GetHostsRequest request, ProcessGetHostsRequestCb callback) {
+void ProcessGetHostsRequest(
+    engine::ev::ThreadControl thread_control,
+    GetHostsRequest request,
+    ProcessGetHostsRequestCb callback
+) {
     const auto allow_empty = !request.master;
 
     auto ids = request.sentinel_shard.GetAllInstancesServerId();
     auto context = std::make_shared<GetHostsContext>(allow_empty, request.credentials, std::move(callback), ids.size());
 
     for (const auto& id : ids) {
-        auto cmd = PrepareCommand(request.command.Clone(), context->GenerateCallback());
+        auto cmd = PrepareCommand(request.command.Clone(), context->GenerateCallback(thread_control));
         cmd->control.force_server_id = id;
-        request.sentinel_shard.AsyncCommand(cmd);
+        if (!request.sentinel_shard.AsyncCommand(cmd)) {
+            context->OnAsyncCommandFailed();
+        }
     }
+    context->ProcessResponses();
 }
 
 }  // namespace storages::redis::impl

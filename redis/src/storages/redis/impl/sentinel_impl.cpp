@@ -168,10 +168,9 @@ void InvokeCommand(CommandPtr command, ReplyPtr&& reply, const logging::LogExtra
 
 void SentinelImpl::ProcessWaitingCommands() {
     std::vector<SentinelCommand> waiting_commands;
-
-    {
-        const std::lock_guard<std::mutex> lock(command_mutex_);
-        waiting_commands.swap(commands_);
+    SentinelCommand command;
+    while (commands_consumer_.PopNoblock(command)) {
+        waiting_commands.push_back(std::move(command));
     }
     if (!waiting_commands.empty()) {
         LOG_INFO()
@@ -201,10 +200,9 @@ void SentinelImpl::ProcessWaitingCommands() {
 
 void SentinelImpl::ProcessWaitingCommandsOnStop() {
     std::vector<SentinelCommand> waiting_commands;
-
-    {
-        const std::lock_guard<std::mutex> lock(command_mutex_);
-        waiting_commands.swap(commands_);
+    SentinelCommand command;
+    while (commands_consumer_.PopNoblock(command)) {
+        waiting_commands.push_back(std::move(command));
     }
 
     for (const SentinelCommand& scommand : waiting_commands) {
@@ -236,6 +234,9 @@ SentinelImpl::SentinelImpl(
 )
     : sentinel_obj_(sentinel),
       ev_thread_(sentinel_thread_control),
+      commands_queue_(CommandQueue::Create()),
+      commands_producer_(commands_queue_->GetMultiProducer()),
+      commands_consumer_(commands_queue_->GetConsumer()),
       process_waiting_commands_timer_(std::make_unique<engine::ev::PeriodicWatcher>(
           ev_thread_,
           [this] { ProcessWaitingCommands(); },
@@ -541,29 +542,39 @@ void SentinelImpl::AsyncCommandFailed(const SentinelCommand& scommand) {
 
 void SentinelImpl::Stop() {
     UASSERT(engine::current_task::IsTaskProcessorThread());
-    topology_holder_->Stop();
-    ev_thread_.RunInEvLoopBlocking([this] {
+    if (!StartClosingCommandQueue()) {
+        return;
+    }
+    ev_thread_.RunInEvLoopSyncWithResult([this] {
+        WaitForCommandProducers();
+        topology_holder_->Stop();
         process_waiting_commands_timer_->Stop();
         ProcessWaitingCommandsOnStop();
     });
 }
 
 void SentinelImpl::SetCommandsBufferingSettings(CommandsBufferingSettings commands_buffering_settings) {
-    if (topology_holder_) {
-        topology_holder_->SetCommandsBufferingSettings(commands_buffering_settings);
-    }
+    ev_thread_.RunInEvLoopAsync([this, commands_buffering_settings] {
+        if (topology_holder_) {
+            topology_holder_->SetCommandsBufferingSettings(commands_buffering_settings);
+        }
+    });
 }
 
 void SentinelImpl::SetReplicationMonitoringSettings(const ReplicationMonitoringSettings& monitoring_settings) {
-    if (topology_holder_) {
-        topology_holder_->SetReplicationMonitoringSettings(monitoring_settings);
-    }
+    ev_thread_.RunInEvLoopAsync([this, monitoring_settings] {
+        if (topology_holder_) {
+            topology_holder_->SetReplicationMonitoringSettings(monitoring_settings);
+        }
+    });
 }
 
 void SentinelImpl::SetRetryBudgetSettings(const utils::RetryBudgetSettings& settings) {
-    if (topology_holder_) {
-        topology_holder_->SetRetryBudgetSettings(settings);
-    }
+    ev_thread_.RunInEvLoopAsync([this, settings] {
+        if (topology_holder_) {
+            topology_holder_->SetRetryBudgetSettings(settings);
+        }
+    });
 }
 
 std::unique_ptr<SentinelStatistics> SentinelImpl::GetStatistics(const MetricsSettings& settings) const {
@@ -576,9 +587,22 @@ std::unique_ptr<SentinelStatistics> SentinelImpl::GetStatistics(const MetricsSet
     return stats;
 }
 
-void SentinelImpl::EnqueueCommand(const SentinelCommand& command) {
-    const std::lock_guard<std::mutex> lock(command_mutex_);
-    commands_.push_back(command);
+bool SentinelImpl::StartClosingCommandQueue() {
+    delete_started_ = true;
+    return command_admission_.Close();
+}
+
+void SentinelImpl::WaitForCommandProducers() const noexcept {
+    UASSERT(ev_thread_.IsInEvThread());
+    command_admission_.WaitForNoActivePermits();
+}
+
+bool SentinelImpl::EnqueueCommand(SentinelCommand command) {
+    auto admission_permit = command_admission_.TryAcquire();
+    if (!admission_permit) {
+        return false;
+    }
+    return commands_producer_.PushNoblock(std::move(command));
 }
 
 size_t SentinelImpl::ShardsCount() const {
@@ -591,11 +615,11 @@ size_t SentinelImpl::ShardsCount() const {
 size_t SentinelImpl::GetClusterSlotsCalledCounter() { return ClusterTopologyHolder::GetClusterSlotsCalledCounter(); }
 
 void SentinelImpl::SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) {
-    topology_holder_->SetConnectionInfo(info_array);
+    ev_thread_.RunInEvLoopAsync([this, info_array] { topology_holder_->SetConnectionInfo(info_array); });
 }
 
 void SentinelImpl::UpdateCredentials(const Credentials& credentials) {
-    topology_holder_->UpdateCredentials(credentials);
+    ev_thread_.RunInEvLoopAsync([this, credentials] { topology_holder_->UpdateCredentials(credentials); });
 }
 
 PublishSettings SentinelImpl::GetPublishSettings() {

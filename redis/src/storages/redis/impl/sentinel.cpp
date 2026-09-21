@@ -117,7 +117,7 @@ Sentinel::Sentinel(
         !creation_config.key_shard_factory.IsClusterStrategy() || database_index == 0,
         "Database index other than 0 now supported in cluster and standalone modes"
     );
-    sentinel_thread_control_->RunInEvLoopBlocking([&]() {
+    sentinel_thread_control_->RunInEvLoopSyncWithResult([&]() {
         impl_ = std::make_unique<SentinelImpl>(
             *sentinel_thread_control_,
             thread_pools_->GetRedisThreadPool(),
@@ -137,7 +137,7 @@ Sentinel::Sentinel(
 Sentinel::~Sentinel() { Stop(); }
 
 void Sentinel::Start() {
-    sentinel_thread_control_->RunInEvLoopBlocking([this] { impl_->Start(); });
+    sentinel_thread_control_->RunInEvLoopSyncWithResult([this] { impl_->Start(); });
 }
 
 void Sentinel::WaitConnectedDebug(bool allow_empty_slaves) { impl_->WaitConnectedDebug(allow_empty_slaves); }
@@ -197,6 +197,11 @@ void Sentinel::Stop() noexcept {
         impl_.reset();
     }
     UASSERT(!impl_);
+}
+
+const engine::ev::ThreadControl& Sentinel::GetSentinelThreadControl() const {
+    UASSERT(sentinel_thread_control_);
+    return *sentinel_thread_control_;
 }
 
 std::unordered_map<ServerId, size_t, ServerIdHasher> Sentinel::GetAvailableServersWeighted(

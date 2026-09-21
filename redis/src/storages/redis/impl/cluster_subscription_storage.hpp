@@ -7,9 +7,7 @@ namespace storages::redis::impl {
 
 class ClusterSubscriptionStorage : public SubscriptionStorageBase {
 public:
-    ClusterSubscriptionStorage(const std::shared_ptr<ThreadPools>& thread_pools, size_t shards_count);
-    /// For tests only
-    ClusterSubscriptionStorage(size_t shards_count);
+    ClusterSubscriptionStorage(const engine::ev::ThreadControl& thread_control, size_t shards_count);
 
     ~ClusterSubscriptionStorage() override;
 
@@ -90,7 +88,6 @@ private:
 
     SubscriptionStorageImpl<CallbackMap, PcallbackMap> storage_impl_;
 
-    std::shared_ptr<ThreadPools> thread_pools_;
     std::unique_ptr<SubscriptionRebalanceScheduler> rebalance_scheduler_;
 };
 

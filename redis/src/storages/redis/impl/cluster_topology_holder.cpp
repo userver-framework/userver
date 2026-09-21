@@ -1,6 +1,7 @@
 #include "cluster_topology_holder.hpp"
 
 #include <ranges>
+#include <utility>
 
 #include <boost/container_hash/hash.hpp>
 #include <engine/ev/thread_control.hpp>
@@ -223,7 +224,6 @@ ClusterTopologyHolder::ClusterTopologyHolder(
           }
       ),
       is_topology_received_(false),
-      update_cluster_slots_flag_(false),
       connection_security_(connection_security),
       hysteresis_config_(hysteresis_config),
       max_disconnect_time_(max_disconnect_time)
@@ -233,29 +233,39 @@ ClusterTopologyHolder::ClusterTopologyHolder(
 }
 
 void ClusterTopologyHolder::Init() {
+    const auto callback_token = GetCallbackToken();
     const constexpr bool kClusterMode = true;
     Shard::Options shard_options;
     shard_options.shard_name = "(sentinel)";
     shard_options.shard_group_name = shard_group_name_;
     shard_options.cluster_mode = kClusterMode;
     shard_options.connection_infos = conns_;
-    shard_options.ready_change_callback = [this](bool ready) {
+    shard_options.ready_change_callback = [this, callback_token](bool ready) {
+        if (!AreCallbacksEnabled(callback_token)) {
+            return;
+        }
         if (ready) {
             sentinels_process_creation_watch_.Send();
             SendUpdateClusterTopology();
         }
     };
 
-    sentinels_ = std::make_shared<Shard>(std::move(shard_options));
+    sentinels_ = std::make_shared<Shard>(std::move(shard_options), ev_thread_);
 
-    sentinels_->SignalInstanceStateChange().connect([this](ServerId id, Redis::State state) {
+    sentinels_->SignalInstanceStateChange().connect([this, callback_token](ServerId id, Redis::State state) {
+        if (!AreCallbacksEnabled(callback_token)) {
+            return;
+        }
         LOG_TRACE() << log_extra_ << "Signaled server " << id.GetDescription() << " state=" << StateToString(state);
         if (state != Redis::State::kInit) {
             sentinels_process_state_update_watch_.Send();
         }
     });
-    sentinels_->SignalInstanceReady().connect([this](ServerId, bool /*readonly*/) {
-        if (!first_entry_point_connected_.exchange(true)) {
+    sentinels_->SignalInstanceReady().connect([this, callback_token](ServerId, bool /*readonly*/) {
+        if (!AreCallbacksEnabled(callback_token)) {
+            return;
+        }
+        if (!std::exchange(first_entry_point_connected_, true)) {
             explore_nodes_watch_.Send();
         }
     });
@@ -275,28 +285,28 @@ void ClusterTopologyHolder::Start() {
 }
 
 void ClusterTopologyHolder::Stop() {
+    DisableCallbacks();
     signal_node_state_change_.disconnect_all_slots();
     signal_topology_changed_.disconnect_all_slots();
 
-    ev_thread_.RunInEvLoopBlocking([this] {
-        update_topology_watch_.Stop();
-        create_nodes_watch_.Stop();
-        explore_nodes_watch_.Stop();
+    update_topology_watch_.Stop();
+    create_nodes_watch_.Stop();
+    explore_nodes_watch_.Stop();
 
-        update_topology_timer_.Stop();
-        explore_nodes_timer_.Stop();
-        delete_expired_nodes_timer_.Stop();
-        sentinels_process_creation_timer_.Stop();
-    });
+    update_topology_timer_.Stop();
+    explore_nodes_timer_.Stop();
+    delete_expired_nodes_timer_.Stop();
+    sentinels_process_creation_timer_.Stop();
 
     sentinels_->Clean();
-    topology_.Cleanup();
+    topology_.Assign(ClusterTopology{});
     nodes_.Clear();
 }
 
 bool ClusterTopologyHolder::WaitReadyOnce(engine::Deadline deadline, WaitConnectedMode mode) {
-    std::unique_lock lock{mutex_};
-    return cv_.WaitUntil(lock, deadline, [this, mode]() { return IsReady(HealthCheckParams{mode, 0, 0}); });
+    return readiness_event_.WaitUntil(deadline, [this, mode] {
+        return IsReady(HealthCheckParams{mode, 0, 0});
+    }) == engine::FutureStatus::kReady;
 }
 
 bool ClusterTopologyHolder::IsReady(const HealthCheckParams& params) const {
@@ -311,7 +321,7 @@ bool ClusterTopologyHolder::IsReady(const HealthCheckParams& params) const {
     return ptr->IsReady(params);
 }
 
-rcu::ReadablePtr<ClusterTopology, rcu::BlockingRcuTraits> ClusterTopologyHolder::GetTopology() const {
+rcu::ReadablePtr<ClusterTopology, rcu::ExclusiveRcuTraits> ClusterTopologyHolder::GetTopology() const {
     return topology_.Read();
 }
 
@@ -333,33 +343,27 @@ std::shared_ptr<Redis> ClusterTopologyHolder::GetRedisInstance(const HostPort& h
 }
 
 void ClusterTopologyHolder::SetCommandsBufferingSettings(CommandsBufferingSettings settings) {
-    {
-        auto settings_ptr = commands_buffering_settings_.Lock();
-        if (*settings_ptr == settings) {
-            return;
-        }
-        *settings_ptr = settings;
+    UASSERT(ev_thread_.IsInEvThread());
+    if (commands_buffering_settings_ == settings) {
+        return;
     }
+    commands_buffering_settings_ = settings;
     for (const auto& node : nodes_) {
         node.second->SetCommandsBufferingSettings(settings);
     }
 }
 
 void ClusterTopologyHolder::SetReplicationMonitoringSettings(ReplicationMonitoringSettings settings) {
-    {
-        auto settings_ptr = monitoring_settings_.Lock();
-        *settings_ptr = settings;
-    }
+    UASSERT(ev_thread_.IsInEvThread());
+    monitoring_settings_ = settings;
     for (const auto& node : nodes_) {
         node.second->SetReplicationMonitoringSettings(settings);
     }
 }
 
 void ClusterTopologyHolder::SetRetryBudgetSettings(const utils::RetryBudgetSettings& settings) {
-    {
-        auto settings_ptr = retry_budget_settings_.Lock();
-        *settings_ptr = settings;
-    }
+    UASSERT(ev_thread_.IsInEvThread());
+    retry_budget_settings_ = settings;
     for (const auto& node : nodes_) {
         node.second->SetRetryBudgetSettings(settings);
     }
@@ -378,13 +382,13 @@ boost::signals2::signal<void(size_t)>& ClusterTopologyHolder::GetSignalTopologyC
 }
 
 void ClusterTopologyHolder::UpdateCredentials(const Credentials& credentials) {
-    auto lock = credentials_.UniqueLock();
-    *lock = credentials;
+    UASSERT(ev_thread_.IsInEvThread());
+    credentials_ = credentials;
 }
 
 Credentials ClusterTopologyHolder::GetCredentials() {
-    const auto lock = credentials_.Lock();
-    return *lock;
+    UASSERT(ev_thread_.IsInEvThread());
+    return credentials_;
 }
 
 std::string ClusterTopologyHolder::GetReadinessInfo() const {
@@ -401,70 +405,81 @@ void ClusterTopologyHolder::ExploreNodes() {
         return;
     }
 
-    const auto cmd = PrepareCommand({"CLUSTER", "NODES"}, [this](const CommandPtr& /*cmd*/, ReplyPtr reply) {
-        NodesAddressesSet host_ports;
-        std::unordered_set<HostPort> host_ports_to_create;
-
-        if (ParseClusterNodesResponse(reply, host_ports) != ClusterNodesResponseStatus::kOk) {
-            LOG_WARNING() << log_extra_ << "Failed to parse CLUSTER NODES response";
-            return;
-        }
-
-        for (const auto& host_port : host_ports) {
-            auto& node = nodes_.Get(host_port.ip);
-            if (!node) {
-                host_ports_to_create.insert(host_port.ip);
-            } else {
-                node->AccountFail(host_port.failed);
-            }
-        }
-        if (!host_ports.empty()) {
-            for (const auto& [ip, fqdn, failed] : host_ports) {
-                if (!fqdn.has_value()) {
-                    continue;
-                }
-                auto ptr = ip_by_fqdn_.Get(*fqdn);
-                if (!ptr || *ptr != ip) {
-                    ip_by_fqdn_.InsertOrAssign(*fqdn, std::make_shared<std::string>(ip));
-                }
+    const auto callback_token = GetCallbackToken();
+    const auto log_extra = log_extra_;
+    const auto cmd = PrepareCommand(
+        {"CLUSTER", "NODES"},
+        [this,
+         callback_token,
+         thread_control = ev_thread_,
+         log_extra](const CommandPtr& /*cmd*/, ReplyPtr reply) mutable {
+            NodesAddressesSet host_ports;
+            if (ParseClusterNodesResponse(reply, host_ports) != ClusterNodesResponseStatus::kOk) {
+                LOG_WARNING() << log_extra << "Failed to parse CLUSTER NODES response";
+                return;
             }
 
-            std::unordered_set<HostPort> ips;
-            {
-                for (auto& addr : host_ports) {
-                    ips.insert(std::move(addr.ip));
-                }
-                auto ptr = actual_nodes_.Lock();
-                ptr->merge(std::move(ips));
-            }
-        }
+            thread_control
+                .RunInEvLoopAsync([this, callback_token, host_ports = std::move(host_ports)]() mutable noexcept {
+                    if (!AreCallbacksEnabled(callback_token)) {
+                        return;
+                    }
+                    try {
+                        std::unordered_set<HostPort> host_ports_to_create;
+                        for (const auto& host_port : host_ports) {
+                            const auto node = nodes_.Get(host_port.ip);
+                            if (!node) {
+                                host_ports_to_create.insert(host_port.ip);
+                            } else {
+                                node->AccountFail(host_port.failed);
+                            }
+                        }
+                        if (!host_ports.empty()) {
+                            for (const auto& address : host_ports) {
+                                if (!address.fqdn_name.has_value()) {
+                                    continue;
+                                }
+                                const auto ptr = ip_by_fqdn_.Get(*address.fqdn_name);
+                                if (!ptr || *ptr != address.ip) {
+                                    ip_by_fqdn_
+                                        .InsertOrAssign(*address.fqdn_name, std::make_shared<std::string>(address.ip));
+                                }
+                            }
 
-        if (!host_ports_to_create.empty()) {
-            {
-                auto ptr = nodes_to_create_.Lock();
-                std::swap(*ptr, host_ports_to_create);
-            }
-            create_nodes_watch_.Send();
+                            std::unordered_set<HostPort> ips;
+                            for (auto& address : host_ports) {
+                                ips.insert(std::move(address.ip));
+                            }
+                            actual_nodes_.merge(std::move(ips));
+                        }
+
+                        if (!host_ports_to_create.empty()) {
+                            std::swap(nodes_to_create_, host_ports_to_create);
+                            create_nodes_watch_.Send();
+                        }
+                    } catch (const std::exception& ex) {
+                        LOG_ERROR() << log_extra_ << "Failed to apply CLUSTER NODES response: " << ex;
+                    }
+                });
         }
-    });
+    );
     sentinels_->AsyncCommand(cmd);
 }
 
 void ClusterTopologyHolder::CreateNodes() {
+    UASSERT(ev_thread_.IsInEvThread());
     std::unordered_set<HostPort> host_ports_to_create;
-    {
-        auto ptr = nodes_to_create_.Lock();
-        std::swap(*ptr, host_ports_to_create);
-    }
+    std::swap(nodes_to_create_, host_ports_to_create);
 
     for (auto&& host_port : host_ports_to_create) {
         auto instance = CreateRedisInstance(host_port);
-        instance->signal_state_change.connect([host_port, this](redis::RedisState state) {
+        const auto callback_token = GetCallbackToken();
+        instance->signal_state_change.connect([host_port, this, callback_token](redis::RedisState state) {
+            if (!AreCallbacksEnabled(callback_token)) {
+                return;
+            }
             GetSignalNodeStateChanged()(host_port, state);
-            {
-                const std::lock_guard lock{mutex_};
-            }  // do not lose the notify
-            cv_.NotifyAll();
+            readiness_event_.Send();
         });
         nodes_.Insert(std::move(host_port), std::move(instance));
     }
@@ -475,11 +490,9 @@ void ClusterTopologyHolder::CreateNodes() {
 }
 
 void ClusterTopologyHolder::DeleteNodes() {
+    UASSERT(ev_thread_.IsInEvThread());
     std::unordered_set<HostPort> actual_nodes;
-    {
-        auto ptr = actual_nodes_.Lock();
-        std::swap(*ptr, actual_nodes);
-    }
+    std::swap(actual_nodes_, actual_nodes);
     const auto now = utils::datetime::SteadyCoarseClock::now();
     for (auto& node : actual_nodes) {
         nodes_last_seen_time_[node] = now;
@@ -495,14 +508,12 @@ void ClusterTopologyHolder::DeleteNodes() {
 }
 
 std::shared_ptr<RedisConnectionHolder> ClusterTopologyHolder::CreateRedisInstance(const std::string& host_port) {
+    UASSERT(ev_thread_.IsInEvThread());
     const auto port_it = host_port.rfind(':');
     UINVARIANT(port_it != std::string::npos, "port must be delimited by ':'");
     const auto port_str = host_port.substr(port_it + 1);
     const auto port = std::stoi(port_str);
     const auto host = host_port.substr(0, port_it);
-    const auto buffering_settings_ptr = commands_buffering_settings_.Lock();
-    const auto replication_monitoring_settings_ptr = monitoring_settings_.Lock();
-    const auto retry_budget_settings_ptr = retry_budget_settings_.Lock();
     LOG_DEBUG() << log_extra_ << "Create new redis instance " << host_port;
     auto creation_settings = RedisConnectionHolder::makeClusterNodeRedisCreationSettings();
     creation_settings.connection_security = connection_security_;
@@ -514,9 +525,9 @@ std::shared_ptr<RedisConnectionHolder> ClusterTopologyHolder::CreateRedisInstanc
         port,
         GetCredentials(),
         kClusterDatabaseIndex,
-        buffering_settings_ptr->value_or(CommandsBufferingSettings{}),
-        *replication_monitoring_settings_ptr,
-        *retry_budget_settings_ptr,
+        commands_buffering_settings_.value_or(CommandsBufferingSettings{}),
+        monitoring_settings_,
+        retry_budget_settings_,
         statistics_holder_.MakeInstanceStats(),
         creation_settings,
         hysteresis_config_,
@@ -525,29 +536,38 @@ std::shared_ptr<RedisConnectionHolder> ClusterTopologyHolder::CreateRedisInstanc
 }
 
 void ClusterTopologyHolder::UpdateClusterTopology() {
+    UASSERT(ev_thread_.IsInEvThread());
     if (!is_nodes_received_) {
         LOG_DEBUG() << log_extra_ << "Skip updating cluster topology: no nodes yet";
         return;
     };
-    if (update_cluster_slots_flag_.exchange(true)) {
+    if (update_cluster_slots_flag_->exchange(true)) {
         return;
     }
-    auto reset_update_cluster_slots = MakeSharedScopeGuard([&]() noexcept { update_cluster_slots_flag_ = false; });
+    const auto callback_token = GetCallbackToken();
+    auto reset_update_cluster_slots = MakeSharedScopeGuard([flag = update_cluster_slots_flag_]() noexcept {
+        flag->store(false);
+    });
     /// Update sentinel
     sentinels_->ProcessCreation(redis_thread_pool_);
 
     auto callback =
         [this,
+         callback_token,
          reset{std::move(reset_update_cluster_slots)
          }](ClusterShardHostInfos shard_infos, size_t requests_sent, size_t responses_parsed, bool is_non_cluster_error
         ) {
+            if (!AreCallbacksEnabled(callback_token)) {
+                return;
+            }
             LOG_DEBUG()
                 << log_extra_ << "Parsing response from cluster shards: shard_infos.size(): " << shard_infos.size()
                 << ", requests_sent=" << requests_sent << ", responses_parsed=" << responses_parsed;
             const auto deferred = utils::FastScopeGuard([&]() noexcept { ++cluster_slots_call_counter; });
             if (is_non_cluster_error) {
-                LOG_DEBUG() << log_extra_ << "Non cluster error: shard_infos.size(): " << shard_infos.size();
-                throw std::runtime_error("Redis must be in cluster mode");
+                LOG_ERROR()
+                    << log_extra_ << "Redis must be in cluster mode; shard_infos.size(): " << shard_infos.size();
+                return;
             }
             if (shard_infos.empty()) {
                 LOG_WARNING() << log_extra_ << "Received empty topology";
@@ -609,31 +629,24 @@ void ClusterTopologyHolder::UpdateClusterTopology() {
                 }
             };
 
-            /// Run in ev_thread because topology_.Assign can free some old
-            /// topologies with their related redis connections, and these
-            /// connections must be freed on "sentinel" thread.
-            ev_thread_.RunInEvLoopAsync([this, topology{std::move(topology)}]() mutable {
-                try {
-                    const auto new_shards_count = topology.GetShardsCount();
-                    topology_.Assign(std::move(topology));
-                    signal_topology_changed_(new_shards_count);
-                } catch (const rcu::MissingKeyException& e) {
-                    LOG_WARNING() << log_extra_ << "Failed to update cluster topology: " << e;
-                    return;
-                }
-                is_topology_received_ = true;
-                {
-                    const std::lock_guard lock{mutex_};
-                }  // do not lose the notify
-                cv_.NotifyAll();
+            try {
+                const auto new_shards_count = topology.GetShardsCount();
+                topology_.Assign(std::move(topology));
+                signal_topology_changed_(new_shards_count);
+            } catch (const rcu::MissingKeyException& e) {
+                LOG_WARNING() << log_extra_ << "Failed to update cluster topology: " << e;
+                return;
+            }
+            is_topology_received_ = true;
+            readiness_event_.Send();
 
-                LOG_DEBUG() << log_extra_ << "Cluster topology updated to version" << current_topology_version_.load();
-            });
+            LOG_DEBUG() << log_extra_ << "Cluster topology updated to version" << current_topology_version_.load();
         };
 
     switch (topology_update_method_) {
         case TopologyUpdateMethod::kClusterShards:
             GetClusterShardsContext::ProcessRequest(
+                ev_thread_,
                 shards_names_,
                 GetClusterShardsRequest(*sentinels_, GetCredentials(), shard_group_name_),
                 std::move(callback)
@@ -641,6 +654,7 @@ void ClusterTopologyHolder::UpdateClusterTopology() {
             break;
         case TopologyUpdateMethod::kClusterSlots:
             GetClusterSlotsContext::ProcessRequest(
+                ev_thread_,
                 shards_names_,
                 GetClusterSlotsRequest(*sentinels_, GetCredentials(), shard_group_name_),
                 std::move(callback)

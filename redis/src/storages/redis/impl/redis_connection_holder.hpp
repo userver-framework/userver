@@ -7,7 +7,6 @@
 #include <storages/redis/impl/sentinel.hpp>
 #include <storages/redis/impl/sentinel_impl.hpp>
 #include <storages/redis/impl/statistics_holder.hpp>
-#include <userver/concurrent/variable.hpp>
 #include <userver/rcu/rcu.hpp>
 
 #include "hysteresis.hpp"
@@ -91,14 +90,19 @@ public:
     boost::signals2::signal<void(Redis::State)> signal_state_change;
 
 private:
+    struct ReadinessState {
+        bool was_ever_connected{false};
+        std::chrono::steady_clock::time_point disconnected_time;
+    };
+
     void CreateConnection();
     /// Checks if redis connected. If not recreate connection
     void EnsureConnected();
     void OnStateChanged(Redis::State state);
 
-    concurrent::Variable<std::optional<CommandsBufferingSettings>, std::mutex> commands_buffering_settings_;
-    concurrent::Variable<ReplicationMonitoringSettings, std::mutex> replication_monitoring_settings_;
-    concurrent::Variable<utils::RetryBudgetSettings, std::mutex> retry_budget_settings_;
+    std::optional<CommandsBufferingSettings> commands_buffering_settings_;
+    ReplicationMonitoringSettings replication_monitoring_settings_;
+    utils::RetryBudgetSettings retry_budget_settings_;
     engine::ev::ThreadControl ev_thread_;
     std::shared_ptr<engine::ev::ThreadPool> redis_thread_pool_;
     const std::string shard_group_name_;
@@ -107,16 +111,15 @@ private:
     const Credentials credentials_;
     const std::size_t database_index_;
     Statistics& statistics_;
-    rcu::Variable<std::shared_ptr<Redis>, rcu::BlockingRcuTraits> redis_;
+    rcu::Variable<std::shared_ptr<Redis>, rcu::ExclusiveRcuTraits> redis_;
+    rcu::Variable<ReadinessState, rcu::ExclusiveRcuTraits> readiness_state_;
     engine::ev::PeriodicWatcher connection_check_timer_;
     const RedisCreationSettings redis_creation_settings_;
 
     /// Responsible for tracking the failed state of the host we are connecting to.
     /// This information is obtained from an external source - from other connections.
     Hysteresis failed_hysteresis_;
-    std::chrono::steady_clock::time_point disconnected_time_;
     const std::chrono::seconds max_disconnect_time_{35};
-    bool was_ever_connected_{false};
 };
 
 }  // namespace storages::redis::impl

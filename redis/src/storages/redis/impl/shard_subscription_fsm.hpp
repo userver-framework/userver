@@ -32,6 +32,9 @@ struct Event {
 
     Type type{Type::kSubscribeRequested};
     ServerId server_id;
+    // Only used for kRebalanceRequested. If false, keeping the current
+    // subscription after a failed rebalance is not a valid fallback.
+    bool current_server_available{true};
 };
 
 struct Action {

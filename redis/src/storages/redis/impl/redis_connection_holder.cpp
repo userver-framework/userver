@@ -1,5 +1,7 @@
 #include "redis_connection_holder.hpp"
 
+#include <userver/logging/log.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis::impl {
@@ -40,9 +42,7 @@ RedisConnectionHolder::RedisConnectionHolder(
       max_disconnect_time_(max_disconnect_time)
 {}
 
-RedisConnectionHolder::~RedisConnectionHolder() {
-    ev_thread_.RunInEvLoopBlocking([this] { connection_check_timer_.Stop(); });
-}
+RedisConnectionHolder::~RedisConnectionHolder() { connection_check_timer_.Stop(); }
 
 std::shared_ptr<RedisConnectionHolder> RedisConnectionHolder::Create(
     const engine::ev::ThreadControl& sentinel_thread_control,
@@ -81,7 +81,7 @@ std::shared_ptr<RedisConnectionHolder> RedisConnectionHolder::Create(
     // https://github.com/boostorg/signals2/issues/59
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDelete)
     holder->CreateConnection();
-    holder->ev_thread_.RunInEvLoopAsync([holder] { holder->connection_check_timer_.Start(); });
+    holder->connection_check_timer_.Start();
 
     return holder;
 }
@@ -99,42 +99,48 @@ void RedisConnectionHolder::EnsureConnected() {
 }
 
 void RedisConnectionHolder::CreateConnection() {
+    UASSERT(ev_thread_.IsInEvThread());
     auto instance = std::make_shared<
         Redis>(redis_thread_pool_, redis_creation_settings_, shard_group_name_, statistics_);
     UASSERT(weak_from_this().lock());
-    instance->signal_state_change.connect([weak_ptr{weak_from_this()}](Redis::State state) {
-        const auto ptr = weak_ptr.lock();
-        if (!ptr) {
-            return;
-        }
+    instance->signal_state_change
+        .connect([weak_holder{weak_from_this()}, weak_instance{std::weak_ptr{instance}}](Redis::State state) {
+            const auto holder = weak_holder.lock();
+            if (!holder) {
+                return;
+            }
 
-        ptr->OnStateChanged(state);
-    });
+            holder->ev_thread_.RunInEvLoopAsync([weak_holder, weak_instance, state]() noexcept {
+                const auto holder = weak_holder.lock();
+                const auto instance = weak_instance.lock();
+                if (!holder || !instance || holder->redis_.ReadCopy() != instance) {
+                    return;
+                }
+                try {
+                    holder->OnStateChanged(state);
+                } catch (const std::exception& ex) {
+                    LOG_ERROR() << "Failed to process Redis state change: " << ex;
+                }
+            });
+        });
 
-    {
-        auto settings_ptr = commands_buffering_settings_.Lock();
-        if (settings_ptr->has_value()) {
-            instance->SetCommandsBufferingSettings(settings_ptr->value());
-        }
+    if (commands_buffering_settings_.has_value()) {
+        instance->SetCommandsBufferingSettings(*commands_buffering_settings_);
     }
-    {
-        auto settings_ptr = replication_monitoring_settings_.Lock();
-        instance->SetReplicationMonitoringSettings(*settings_ptr);
-    }
-    {
-        auto settings_ptr = retry_budget_settings_.Lock();
-        instance->SetRetryBudgetSettings(*settings_ptr);
-    }
+    instance->SetReplicationMonitoringSettings(replication_monitoring_settings_);
+    instance->SetRetryBudgetSettings(retry_budget_settings_);
 
     instance->Connect({host_}, port_, credentials_, database_index_);
     redis_.Assign(std::move(instance));
 }
 
 void RedisConnectionHolder::OnStateChanged(Redis::State state) {
+    UASSERT(ev_thread_.IsInEvThread());
+    auto readiness = readiness_state_.ReadCopy();
     switch (state) {
         case RedisState::kConnected: {
-            disconnected_time_ = std::chrono::steady_clock::time_point();
-            was_ever_connected_ = true;
+            readiness.disconnected_time = std::chrono::steady_clock::time_point();
+            readiness.was_ever_connected = true;
             break;
         }
         case RedisState::kInit:
@@ -142,31 +148,32 @@ void RedisConnectionHolder::OnStateChanged(Redis::State state) {
         case RedisState::kDisconnected:
         case RedisState::kDisconnecting:
         case RedisState::kDisconnectError: {
-            if (disconnected_time_ == std::chrono::steady_clock::time_point()) {
-                disconnected_time_ = std::chrono::steady_clock::now();
+            if (readiness.disconnected_time == std::chrono::steady_clock::time_point()) {
+                readiness.disconnected_time = std::chrono::steady_clock::now();
             }
             break;
         }
     }
 
+    readiness_state_.Assign(std::move(readiness));
     signal_state_change(state);
 }
 
 void RedisConnectionHolder::SetReplicationMonitoringSettings(ReplicationMonitoringSettings settings) {
-    auto ptr = replication_monitoring_settings_.Lock();
-    *ptr = settings;
+    UASSERT(ev_thread_.IsInEvThread());
+    replication_monitoring_settings_ = settings;
     redis_.ReadCopy()->SetReplicationMonitoringSettings(std::move(settings));
 }
 
 void RedisConnectionHolder::SetCommandsBufferingSettings(CommandsBufferingSettings settings) {
-    auto ptr = commands_buffering_settings_.Lock();
-    *ptr = settings;
+    UASSERT(ev_thread_.IsInEvThread());
+    commands_buffering_settings_ = settings;
     redis_.ReadCopy()->SetCommandsBufferingSettings(std::move(settings));
 }
 
 void RedisConnectionHolder::SetRetryBudgetSettings(utils::RetryBudgetSettings settings) {
-    auto ptr = retry_budget_settings_.Lock();
-    *ptr = settings;
+    UASSERT(ev_thread_.IsInEvThread());
+    retry_budget_settings_ = settings;
     redis_.ReadCopy()->SetRetryBudgetSettings(std::move(settings));
 }
 
@@ -175,14 +182,16 @@ bool RedisConnectionHolder::IsReady() const noexcept {
         return true;
     }
 
+    const auto readiness = readiness_state_.Read();
+
     // workaround to allow WaitConnectedOnce to work
-    if (!was_ever_connected_ && GetState() != RedisState::kConnected) {
+    if (!readiness->was_ever_connected && GetState() != RedisState::kConnected) {
         return false;
     }
 
     const auto now = std::chrono::steady_clock::now();
-    if (disconnected_time_ != std::chrono::steady_clock::time_point() &&
-        (now - disconnected_time_) > max_disconnect_time_)
+    if (readiness->disconnected_time != std::chrono::steady_clock::time_point() &&
+        (now - readiness->disconnected_time) > max_disconnect_time_)
     {
         return false;
     }

@@ -3,6 +3,7 @@
 #include <engine/ev/watcher.hpp>
 #include <engine/ev/watcher/async_watcher.hpp>
 #include <engine/ev/watcher/periodic_watcher.hpp>
+#include <userver/engine/pulse_event.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/datetime/steady_coarse_clock.hpp>
 
@@ -43,7 +44,7 @@ public:
     bool WaitReadyOnce(engine::Deadline deadline, WaitConnectedMode mode) override;
     bool IsReady(const HealthCheckParams& params) const override;
 
-    rcu::ReadablePtr<ClusterTopology, rcu::BlockingRcuTraits> GetTopology() const override;
+    rcu::ReadablePtr<ClusterTopology, rcu::ExclusiveRcuTraits> GetTopology() const override;
     void SendUpdateClusterTopology() override;
     std::shared_ptr<Redis> GetRedisInstance(const HostPort& host_port) const override;
     void GetStatistics(SentinelStatistics& stats, const MetricsSettings& settings) const override;
@@ -67,7 +68,7 @@ private:
 
     const std::string shard_group_name_;
     logging::LogExtra log_extra_;
-    concurrent::Variable<Credentials, std::mutex> credentials_;
+    Credentials credentials_;
     std::shared_ptr<const std::vector<std::string>> shards_names_;
     const std::vector<ConnectionInfo> conns_;
     const TopologyUpdateMethod topology_update_method_;
@@ -76,7 +77,7 @@ private:
     StatisticsHolder statistics_holder_;
 
     std::atomic_size_t current_topology_version_{0};
-    rcu::Variable<ClusterTopology, rcu::BlockingRcuTraits> topology_;
+    rcu::Variable<ClusterTopology, rcu::ExclusiveRcuTraits> topology_;
 
     /// Update cluster topology
     /// @{
@@ -88,7 +89,7 @@ private:
     /// Discover actual nodes in cluster
     engine::ev::AsyncWatcher explore_nodes_watch_;
     engine::ev::PeriodicWatcher explore_nodes_timer_;
-    std::atomic<bool> first_entry_point_connected_{false};
+    bool first_entry_point_connected_{false};
     void ExploreNodes();
 
     /// Create connections to discovered nodes
@@ -104,25 +105,24 @@ private:
     engine::ev::AsyncWatcher sentinels_process_state_update_watch_;
 
     ///{ Wait ready
-    std::mutex mutex_;
-    engine::impl::ConditionVariableAny<std::mutex> cv_;
+    engine::PulseEvent readiness_event_;
     std::atomic<bool> is_topology_received_{false};
     std::atomic<bool> is_nodes_received_{false};
-    std::atomic<bool> update_cluster_slots_flag_{false};
+    std::shared_ptr<std::atomic<bool>> update_cluster_slots_flag_{std::make_shared<std::atomic<bool>>(false)};
     ///}
 
     boost::signals2::signal<void(HostPort, Redis::State)> signal_node_state_change_;
     boost::signals2::signal<void(size_t shards_count)> signal_topology_changed_;
     NodesStorage nodes_;
 
-    concurrent::Variable<std::optional<CommandsBufferingSettings>, std::mutex> commands_buffering_settings_;
-    concurrent::Variable<ReplicationMonitoringSettings, std::mutex> monitoring_settings_;
-    concurrent::Variable<utils::RetryBudgetSettings, std::mutex> retry_budget_settings_;
-    concurrent::Variable<std::unordered_set<HostPort>, std::mutex> nodes_to_create_;
-    concurrent::Variable<std::unordered_set<HostPort>, std::mutex> actual_nodes_;
+    std::optional<CommandsBufferingSettings> commands_buffering_settings_;
+    ReplicationMonitoringSettings monitoring_settings_;
+    utils::RetryBudgetSettings retry_budget_settings_;
+    std::unordered_set<HostPort> nodes_to_create_;
+    std::unordered_set<HostPort> actual_nodes_;
     // work only from sentinel thread so no need to synchronize it
     std::unordered_map<HostPort, utils::datetime::SteadyCoarseClock::time_point> nodes_last_seen_time_;
-    rcu::RcuMap<std::string, std::string, StdMutexRcuMapTraits<std::string>> ip_by_fqdn_;
+    rcu::RcuMap<std::string, std::string, SingleWriterRcuMapTraits<std::string>> ip_by_fqdn_;
 
     static std::atomic<size_t> cluster_slots_call_counter;
 

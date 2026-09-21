@@ -3,6 +3,8 @@
 #include "subscription_storage.hpp"
 
 #include <gtest/gtest.h>
+#include <engine/ev/thread_pool.hpp>
+#include <engine/ev/thread_pool_config.hpp>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -50,7 +52,8 @@ public:
     static void TearDownTestSuite() {}
 
     void SetUp() override {
-        storage_ = std::make_shared<storages::redis::impl::ClusterSubscriptionStorage>(kShardsCount_);
+        storage_ = std::make_shared<
+            storages::redis::impl::ClusterSubscriptionStorage>(thread_pool_.NextThread(), kShardsCount_);
         auto sharded_subscribe_callback = [&](const std::string& /*channel*/, storages::redis::impl::CommandPtr cmd) {
             ASSERT_TRUE(cmd->control.force_server_id);
             const auto& host = cmd->control.force_server_id->GetDescription();
@@ -111,31 +114,48 @@ public:
         auto token = storage_->Ssubscribe(channel_name, message_callback, {});
         tokens_.push_back(std::move(token));
     }
-    void ProcessCommands() {
-        for (auto& cmd : cmds_) {
+    void ProcessCommands() { ProcessCommands(server_ids_[0], true); }
+    void ProcessCommands(const storages::redis::ServerId& server_id, bool success) {
+        std::vector<storages::redis::impl::CommandPtr> commands;
+        commands.swap(cmds_);
+        for (auto& cmd : commands) {
             const auto& [command, channel] = cmd->args.GetCommandAndChannel();
-            storages::redis::ReplyData reply_data(storages::redis::ReplyData::Array{
-                storages::redis::ReplyData(command),
-                storages::redis::ReplyData(channel),
-                storages::redis::ReplyData(1)
-            });
-            const storages::redis::ReplyPtr
+            storages::redis::ReplyPtr reply;
+            if (success) {
+                storages::redis::ReplyData reply_data(storages::redis::ReplyData::Array{
+                    storages::redis::ReplyData(command),
+                    storages::redis::ReplyData(channel),
+                    storages::redis::ReplyData(1)
+                });
                 reply = std::make_shared<storages::redis::Reply>(command, std::move(reply_data));
-            reply->server_id = server_ids_[0];
+            } else {
+                reply = std::make_shared<storages::redis::Reply>(
+                    command,
+                    storages::redis::ReplyData::CreateError("network unavailable"),
+                    storages::redis::ReplyStatus::kEndOfFileError
+                );
+            }
+            reply->server_id = server_id;
             cmd->callback({}, reply);
         }
-        cmds_.clear();
     }
 
     void Rebalance(size_t shard) { storage_->DoRebalance(shard, weights_); }
+    void Rebalance(size_t shard, storages::redis::impl::SubscriptionStorageBase::ServerWeights weights) {
+        storage_->DoRebalance(shard, std::move(weights));
+    }
+    void Flush() { static_cast<void>(storage_->GetStatistics()); }
 
     void ResetTokens() { tokens_.clear(); }
 
     const auto& GetSubscriptionsByHost() const { return subscriptions_by_host_; }
     const auto& GetShardedSubscriptionsByHost() const { return ssubscriptions_by_host_; }
     const auto& GetSunsubscribedChannels() const { return sunsubscribed_channels_; }
+    const auto& GetPendingCommands() const { return cmds_; }
+    const auto& GetServerId(std::size_t index) const { return server_ids_.at(index); }
 
 private:
+    engine::ev::ThreadPool thread_pool_{engine::ev::ThreadPoolConfig{1, "redis_subscription_test"}};
     const std::vector<storages::redis::ServerId> server_ids_ = std::vector{
         MakeServerId("host0"),
         MakeServerId("host1"),
@@ -171,7 +191,7 @@ class SubscriptionCancellationTest : public SubscriptionTest {};
 }  // namespace
 
 /// Test subscriptions are evenly distributed between connections
-TEST_F(SubscriptionTest, Base) {
+UTEST_F(SubscriptionTest, Base) {
     const std::unordered_map<std::string, size_t> expected = {
         /// {"host0", 1}, - no need to resubscribe host0  because it should be
         /// already have enough subscriptions.
@@ -201,7 +221,7 @@ TEST_F(SubscriptionTest, Base) {
 }
 
 /// Test subscriptions are evenly distributed between connections
-TEST_F(SubscriptionTest, Sharded) {
+UTEST_F(SubscriptionTest, Sharded) {
     const std::unordered_map<std::string, size_t> expected = {
         /// {"host0", 1}, - no need to resubscribe host0  because it should be
         /// already have enough subscriptions.
@@ -256,6 +276,28 @@ UTEST_F(SubscriptionCancellationTest, ShardedUnsubscribeWithExpiredDeadline) {
     ResetTokens();
 
     EXPECT_EQ(GetSunsubscribedChannels(), std::vector<std::string>{"channel0"});
+}
+
+UTEST_F(SubscriptionTest, FailedRecoveryRetriesAnyServer) {
+    Subscribe("channel");
+    ProcessCommands();
+    Flush();
+
+    const auto& target_server = GetServerId(1);
+    Rebalance(0, {{target_server, 1}});
+    ASSERT_EQ(GetPendingCommands().size(), 1);
+    ASSERT_TRUE(GetPendingCommands().front()->control.force_server_id);
+    EXPECT_EQ(*GetPendingCommands().front()->control.force_server_id, target_server);
+
+    ProcessCommands(target_server, false);
+    Flush();
+    ASSERT_EQ(GetPendingCommands().size(), 1);
+    ASSERT_TRUE(GetPendingCommands().front()->control.force_server_id);
+    EXPECT_TRUE(GetPendingCommands().front()->control.force_server_id->IsAny());
+
+    ProcessCommands(target_server, true);
+    Flush();
+    EXPECT_TRUE(GetPendingCommands().empty());
 }
 
 USERVER_NAMESPACE_END
