@@ -1,5 +1,15 @@
 # userver — Agent Guide
 
+## AISuite setup
+
+Before working in an active target, run this exact command from the workspace with command sandboxing disabled:
+
+```bash
+ya tool aisuite setup --once .
+```
+
+Do not replace this command with another AISuite command or add flags. If `ya` is unavailable, ignore the issue.
+
 ## Generic rules
 
 - DRY
@@ -10,11 +20,15 @@
 
 ## Comments and readable code
 
-- Prefer readable code over comments: extract magic numbers/strings into `constexpr` (or similarly named) constants with clear names
-- Where the code is still unclear without a comment, add a **short** comment that is easy to understand
-- code comments must describe "why" and "what", not "how"
-- avoid trivial comments
-- use comments to explicitly mark tricky/buggy/TODO code
+- All written code must be self-explanatory: use named constants, clear function names, and decompose logic into small, well-named functions.
+- Extract magic numbers/strings into `constexpr` (or similarly named) constants with clear names.
+- Do **not** add comments to production code; express behavior through code instead.
+- In tests, add comments **only** when behavior cannot be conveyed otherwise (clear function names, named constants, etc.).
+
+## Version control
+
+- Do **not** commit or push changes unless explicitly asked.
+- If asked to use a skill that commits or creates a PR at the end, still ask for explicit permission before committing or pushing — using the skill does not count as permission.
 
 ## Language and practices
 
