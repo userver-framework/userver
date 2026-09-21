@@ -1,7 +1,7 @@
 #include "collection_mongotest.hpp"
 
 #include <userver/storages/mongo/operators.hpp>
-#include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/statistics/rate.hpp>
 #include <userver/utils/statistics/testing.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -500,24 +500,17 @@ UTEST_F(Collection, UpdateMaxServerTimeRetryDuplicateKey) {
     ExpectSingleDuplicateKeyError(result);
     EXPECT_EQ(1, coll.CountApprox());
 
-    utils::statistics::Storage statistics_storage;
-    [[maybe_unused]] const auto
-        statistics_holder = statistics_storage.RegisterWriter("mongo", [&pool](utils::statistics::Writer& writer) {
-            DumpMetric(writer, pool);
-        });
-    const utils::statistics::Snapshot snapshot{statistics_storage};
+    const utils::statistics::Snapshot snapshot{pool};
     EXPECT_EQ(
-        snapshot
-            .SingleMetric(
-                "mongo.by-operation.errors",
-                {
-                    {"mongo_collection", "update_bulk_write_retry_dupkey"},
-                    {"mongo_operation", "update-one"},
-                    {"mongo_direction", "write"},
-                    {"mongo_error", "duplicate-key"},
-                }
-            )
-            .AsRate(),
+        snapshot.SingleMetric(
+            "by-operation.errors",
+            {
+                {"mongo_collection", "update_bulk_write_retry_dupkey"},
+                {"mongo_operation", "update-one"},
+                {"mongo_direction", "write"},
+                {"mongo_error", "duplicate-key"},
+            }
+        ),
         utils::statistics::Rate{2}
     );
 }

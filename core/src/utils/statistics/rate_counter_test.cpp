@@ -3,7 +3,6 @@
 
 #include <userver/utest/utest.hpp>
 #include <userver/utils/statistics/rate.hpp>
-#include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/statistics/testing.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -53,16 +52,12 @@ TYPED_UTEST(RateCounterTest, Basic) {
 }
 
 TYPED_UTEST(RateCounterTest, DumpMetric) {
-    Storage storage;
     TypeParam rate_counter{Rate{10}};
-    const auto rate_counter_scope = storage.RegisterWriter("test", [&rate_counter](Writer& writer) {
-        writer = rate_counter;
-    });
 
-    EXPECT_EQ(Snapshot{storage}.SingleMetric("test").AsRate(), 10);
+    EXPECT_EQ(Snapshot{rate_counter}.SingleMetric({}), Rate{10});
 
     ResetMetric(rate_counter);
-    EXPECT_EQ(Snapshot{storage}.SingleMetric("test").AsRate(), 0);
+    EXPECT_EQ(Snapshot{rate_counter}.SingleMetric({}), Rate{0});
 }
 
 }  // namespace utils::statistics

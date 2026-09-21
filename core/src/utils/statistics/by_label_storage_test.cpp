@@ -1,6 +1,7 @@
 #include <userver/utils/statistics/by_label_storage.hpp>
 
 #include <atomic>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -13,7 +14,6 @@
 #include <userver/utils/statistics/metric_tag.hpp>
 #include <userver/utils/statistics/metrics_storage.hpp>
 #include <userver/utils/statistics/rate_counter.hpp>
-#include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/statistics/testing.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -49,11 +49,7 @@ struct CompositeMetric {
 
 template <typename Labels, typename Metric>
 utils::statistics::Snapshot MakeSnapshot(const utils::statistics::MonotonicByLabelStorage<Labels, Metric>& storage) {
-    utils::statistics::Storage stat_storage;
-    auto holder = stat_storage.RegisterWriter("metric", [&storage](utils::statistics::Writer& writer) {
-        writer = storage;
-    });
-    return utils::statistics::Snapshot{stat_storage, "metric"};
+    return utils::statistics::Snapshot{storage};
 }
 
 }  // namespace
@@ -88,7 +84,7 @@ UTEST(MonotonicByLabelStorage, EmptyVisitAllVisitsNothing) {
 UTEST(MonotonicByLabelStorage, EmptyDumpMetricProducesNoOutput) {
     utils::statistics::MonotonicByLabelStorage<SingleLabel, RateCounter> storage;
     const auto snapshot = MakeSnapshot(storage);
-    EXPECT_FALSE(snapshot.SingleMetricOptional("").has_value());
+    EXPECT_EQ(snapshot.SingleMetricOptional(""), std::nullopt);
 }
 
 UTEST(MonotonicByLabelStorage, SubscriptCreatesEntry) {
@@ -271,7 +267,7 @@ UTEST(MonotonicByLabelStorage, DumpMetricMultipleEntries) {
 UTEST(MonotonicByLabelStorage, DumpMetricEmptyStorageProducesNoMetrics) {
     utils::statistics::MonotonicByLabelStorage<TwoLabels, RateCounter> storage;
     const auto snapshot = MakeSnapshot(storage);
-    EXPECT_FALSE(snapshot.SingleMetricOptional("").has_value());
+    EXPECT_EQ(snapshot.SingleMetricOptional(""), std::nullopt);
 }
 
 UTEST(MonotonicByLabelStorage, CompositeMetricEmplaceAndDumpMetric) {

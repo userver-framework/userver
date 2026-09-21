@@ -1,6 +1,8 @@
 #include <userver/utils/statistics/testing.hpp>
 
 #include <atomic>
+#include <cstdint>
+#include <optional>
 
 #include <userver/utest/utest.hpp>
 #include <userver/utils/statistics/storage.hpp>
@@ -45,31 +47,31 @@ UTEST(Snapshot, FromMetric) {
     const utils::statistics::Snapshot snapshot{metrics};
 
     EXPECT_EQ(metrics.dump_count, 1);
-    EXPECT_EQ(snapshot.SingleMetric("foo").AsInt(), 1);
-    EXPECT_EQ(snapshot.SingleMetric("bar", {{"kind", "x"}}).AsInt(), 2);
-    EXPECT_FALSE(snapshot.SingleMetricOptional("missing").has_value());
+    EXPECT_EQ(snapshot.SingleMetric("foo"), std::int64_t{1});
+    EXPECT_EQ(snapshot.SingleMetric("bar", {{"kind", "x"}}), std::int64_t{2});
+    EXPECT_EQ(snapshot.SingleMetricOptional("missing"), std::nullopt);
 }
 
 UTEST(Snapshot, FromLeafMetric) {
     const utils::statistics::Snapshot snapshot{LeafMetric{}};
 
-    EXPECT_EQ(snapshot.SingleMetric({}, {{"kind", "x"}}).AsInt(), 7);
+    EXPECT_EQ(snapshot.SingleMetric({}, {{"kind", "x"}}), std::int64_t{7});
 }
 
 UTEST(Snapshot, FromMetricPrefix) {
     const SampleMetrics metrics;
     const utils::statistics::Snapshot snapshot{metrics, "foo"};
 
-    EXPECT_EQ(snapshot.SingleMetric({}).AsInt(), 1);
-    EXPECT_FALSE(snapshot.SingleMetricOptional("bar", {{"kind", "x"}}).has_value());
+    EXPECT_EQ(snapshot.SingleMetric({}), std::int64_t{1});
+    EXPECT_EQ(snapshot.SingleMetricOptional("bar", {{"kind", "x"}}), std::nullopt);
 }
 
 UTEST(Snapshot, FromMetricRequireLabels) {
     const SampleMetrics metrics;
     const utils::statistics::Snapshot snapshot{metrics, {}, {{"kind", "x"}}};
 
-    EXPECT_EQ(snapshot.SingleMetric("bar").AsInt(), 2);
-    EXPECT_FALSE(snapshot.SingleMetricOptional("foo").has_value());
+    EXPECT_EQ(snapshot.SingleMetric("bar"), std::int64_t{2});
+    EXPECT_EQ(snapshot.SingleMetricOptional("foo"), std::nullopt);
 }
 
 USERVER_NAMESPACE_END

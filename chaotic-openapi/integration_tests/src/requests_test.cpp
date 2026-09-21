@@ -15,7 +15,7 @@
 #include <userver/utest/http_client.hpp>
 #include <userver/utest/http_server_mock.hpp>
 #include <userver/utest/log_capture_fixture.hpp>
-#include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/statistics/rate.hpp>
 #include <userver/utils/statistics/testing.hpp>
 #include <userver/utils/text_light.hpp>
 
@@ -65,24 +65,11 @@ UTEST(Requests, RegexDestinationName) {
 
     client.WithRegex({"123"});
 
-    utils::statistics::Storage stat_storage;
-    auto stat_holder = stat_storage.RegisterWriter(
-        "test",
-        [&http_client_ptr](utils::statistics::Writer& writer) {
-            DumpMetric(writer, http_client_ptr->GetDestinationStatistics());
-        },
-        {}
-    );
-    utils::statistics::Snapshot stats(stat_storage);
+    const utils::statistics::Snapshot stats{http_client_ptr->GetDestinationStatistics()};
     auto expected_destination_name = config.base_url + "/path/with/_regex_/";
     EXPECT_EQ(
-        stats
-            .SingleMetric(
-                "test.reply-statuses",
-                {{"http_destination", expected_destination_name}, {"http_code", "200"}}
-            )
-            .AsRate(),
-        1
+        stats.SingleMetric("reply-statuses", {{"http_destination", expected_destination_name}, {"http_code", "200"}}),
+        utils::statistics::Rate{1}
     );
 }
 
