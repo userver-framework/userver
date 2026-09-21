@@ -10,6 +10,7 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utest/assert_macros.hpp>
+#include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/statistics/testing.hpp>
 
 #include <userver/storages/sqlite/infra/pool.hpp>

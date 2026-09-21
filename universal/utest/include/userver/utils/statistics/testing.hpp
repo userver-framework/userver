@@ -12,7 +12,6 @@
 #include <userver/utils/not_null.hpp>
 #include <userver/utils/statistics/labels.hpp>
 #include <userver/utils/statistics/metric_value.hpp>
-#include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -29,20 +28,22 @@ public:
     using std::runtime_error::runtime_error;
 };
 
-/// @brief A snapshot of metrics from utils::statistics::Storage or a single metric.
+/// @brief A snapshot of metrics dumped via Writer.
 class Snapshot final {
 public:
-    /// @brief Create a new snapshot of metrics with paths starting with @a prefix
-    /// and labels containing @a require_labels.
-    /// @throws std::exception if a metric writer throws.
-    explicit Snapshot(const Storage& storage, std::string prefix = {}, std::vector<Label> require_labels = {});
-
     /// @brief Create a snapshot by dumping @a metric via Writer.
     ///
-    /// Use this in unit tests instead of registering a writer in @ref Storage.
+    /// @a metric is any type with Writer support. For simple metrics prefer
+    /// a type with `DumpMetric` and pass it directly:
+    /// @snippet universal/src/utils/statistics/testing_test.cpp  metrics Snapshot DumpMetric sample
+    ///
+    /// @ref utils::statistics::Storage also works — passing Storage is still
+    /// a common usage when writers are registered there:
+    /// @snippet core/src/utils/statistics/testing_test.cpp  metrics Snapshot sample
+    ///
     /// Keeps metrics whose path starts with @a prefix and labels containing
     /// @a require_labels.
-    /// @throws std::exception if DumpMetric throws.
+    /// @throws std::exception if the Writer dump throws.
     explicit Snapshot(
         const HasWriterSupport auto& metric,
         std::string prefix = {},

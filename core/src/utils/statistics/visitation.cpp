@@ -223,13 +223,6 @@ void ProcessLeaf(
 
 }  // namespace
 
-Label::Label(std::string name, std::string value)
-    : name_(std::move(name)),
-      value_(std::move(value))
-{
-    UASSERT(!name_.empty());
-}
-
 void VisitMetrics(BaseFormatBuilder& out, const formats::json::Value& statistics_storage_json, const Request& request) {
     SensorPath path;
     DfsLabelsBag labels;

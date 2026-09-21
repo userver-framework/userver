@@ -15,7 +15,6 @@
 
 #include <userver/utils/assert.hpp>
 #include <userver/utils/statistics/fmt.hpp>
-#include <userver/utils/statistics/histogram.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -51,7 +50,6 @@ namespace impl {
 
 struct SnapshotData final {
     std::unordered_multimap<std::string, SnapshotDataEntry> metrics;
-    std::vector<Histogram> histogram_storage;
 };
 
 }  // namespace impl
@@ -69,24 +67,12 @@ public:
         for (const auto& l : labels) {
             labels_owned.emplace(std::string{l.Name()}, std::string{l.Value()});
         }
-        SnapshotDataEntry entry{std::move(labels_owned), value};
-        if (value.IsHistogram()) {
-            data_.histogram_storage.emplace_back(value.AsHistogram());
-            entry.value = MetricValue{data_.histogram_storage.back().GetView()};
-        }
-        data_.metrics.emplace(std::string{path}, std::move(entry));
+        data_.metrics.emplace(std::string{path}, SnapshotDataEntry{std::move(labels_owned), value});
     }
 
 private:
     impl::SnapshotData& data_;
 };
-
-utils::SharedRef<const impl::SnapshotData> BuildSnapshotData(const Storage& storage, const Request& request) {
-    auto data = utils::MakeSharedRef<impl::SnapshotData>();
-    SnapshotVisitor visitor{*data};
-    storage.VisitMetrics(visitor, request);
-    return data;
-}
 
 utils::SharedRef<const impl::SnapshotData> BuildSnapshotData(WriterFuncRef writer_func, const Request& request) {
     auto data = utils::MakeSharedRef<impl::SnapshotData>();
@@ -139,11 +125,6 @@ std::optional<Metric> GetSingleOptional(
 }
 
 }  // namespace
-
-Snapshot::Snapshot(const Storage& storage, std::string prefix, std::vector<Label> require_labels)
-    : request_(Request::MakeWithPrefix(std::move(prefix), {}, std::move(require_labels))),
-      data_(BuildSnapshotData(storage, request_))
-{}
 
 Snapshot::Snapshot(WriterFuncRef writer, std::string prefix, std::vector<Label> require_labels)
     : request_(Request::MakeWithPrefix(MakeRequestPrefix(std::move(prefix)), {}, std::move(require_labels))),

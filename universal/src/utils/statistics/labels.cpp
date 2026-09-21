@@ -34,6 +34,13 @@ Label::Label(LabelView view)
       value_{view.Value()}
 {}
 
+Label::Label(std::string name, std::string value)
+    : name_(std::move(name)),
+      value_(std::move(value))
+{
+    UASSERT(!name_.empty());
+}
+
 bool operator<(const Label& x, const Label& y) noexcept {
     return x.Name() < y.Name() || (x.Name() == y.Name() && x.Value() < y.Value());
 }

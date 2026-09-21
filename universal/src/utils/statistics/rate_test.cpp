@@ -2,9 +2,9 @@
 
 #include <type_traits>
 
+#include <gtest/gtest.h>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
-#include <userver/utest/utest.hpp>
 #include <userver/utils/statistics/fmt.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -17,7 +17,7 @@ static_assert(
     "copy constructible to be returned in CPU registers."
 );
 
-UTEST(Rate, Basic) {
+TEST(Rate, Basic) {
     EXPECT_EQ(Rate{5}, Rate{2} + Rate{3});
 
     {
@@ -27,7 +27,7 @@ UTEST(Rate, Basic) {
     }
 }
 
-UTEST(Rate, Fmt) { EXPECT_EQ("10", fmt::format("{}", Rate{10})); }
+TEST(Rate, Fmt) { EXPECT_EQ("10", fmt::format("{}", Rate{10})); }
 
 }  // namespace utils::statistics
 

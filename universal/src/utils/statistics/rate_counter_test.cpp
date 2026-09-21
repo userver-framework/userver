@@ -1,6 +1,7 @@
-#include <userver/utils/statistics/striped_rate_counter.hpp>
+#include <userver/utils/statistics/rate_counter.hpp>
 
-#include <userver/utest/utest.hpp>
+#include <gtest/gtest.h>
+
 #include <userver/utils/statistics/rate.hpp>
 #include <userver/utils/statistics/testing.hpp>
 
@@ -8,39 +9,39 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
-UTEST(StripedRateCounter, Basic) {
+TEST(RateCounter, Basic) {
     {
-        StripedRateCounter test1;
+        RateCounter test1;
         test1.Store(Rate{10});
         EXPECT_EQ(Rate{10}, test1.Load());
     }
 
     {
-        StripedRateCounter test1;
+        RateCounter test1;
         test1.Store(Rate{10});
         ++test1;
         EXPECT_EQ(Rate{11}, test1.Load());
     }
 
     {
-        StripedRateCounter test1;
+        RateCounter test1;
         test1.Store(Rate{10});
         test1 += Rate{10};
         EXPECT_EQ(Rate{20}, test1.Load());
     }
 
     {
-        StripedRateCounter test1;
+        RateCounter test1;
         test1.Store(Rate{10});
-        StripedRateCounter test2;
+        RateCounter test2;
         test2.Store(Rate{20});
         test1 += test2;
         EXPECT_EQ(Rate{30}, test1.Load());
     }
 }
 
-UTEST(StripedRateCounter, DumpMetric) {
-    StripedRateCounter rate_counter{Rate{10}};
+TEST(RateCounter, DumpMetric) {
+    RateCounter rate_counter{Rate{10}};
 
     EXPECT_EQ(Snapshot{rate_counter}.SingleMetric({}), Rate{10});
 
