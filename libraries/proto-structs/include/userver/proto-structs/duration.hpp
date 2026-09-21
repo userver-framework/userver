@@ -82,7 +82,7 @@ public:
     /// @warning If stored value does not fit in the `std::chrono::duration` type it is capped at
     ///          `std::chrono::duration` min/max value.
     template <typename TDuration>
-    requires ::meta::kIsInstantiationOf<std::chrono::duration, TDuration>
+    requires ::meta::IsInstantiationOf<TDuration, std::chrono::duration>
     [[nodiscard]] constexpr TDuration ToChronoDuration() const noexcept {
         if (FitsInChronoDuration<TDuration>()) {
             return std::chrono::duration_cast<TDuration>(seconds_) + std::chrono::duration_cast<TDuration>(nanos_);
@@ -119,7 +119,7 @@ public:
     /// @brief Returns `true` if duration value fits in to the `std::chrono::duration` type.
     /// @tparam TDuration `std::chrono::duration` type
     template <typename TDuration>
-    requires ::meta::kIsInstantiationOf<std::chrono::duration, TDuration>
+    requires ::meta::IsInstantiationOf<TDuration, std::chrono::duration>
     [[nodiscard]] constexpr bool FitsInChronoDuration() const noexcept {
         using Ratio = std::ratio_divide<std::nano, typename TDuration::period>;
         static_assert(
@@ -152,7 +152,7 @@ public:
     /// @warning If stored value does not fit in the `std::chrono::duration` type it is capped at
     ///          `std::chrono::duration` min/max value.
     template <typename TDuration>
-    requires ::meta::kIsInstantiationOf<std::chrono::duration, TDuration>
+    requires ::meta::IsInstantiationOf<TDuration, std::chrono::duration>
     [[nodiscard]] constexpr operator TDuration() const noexcept {
         return ToChronoDuration<TDuration>();
     }

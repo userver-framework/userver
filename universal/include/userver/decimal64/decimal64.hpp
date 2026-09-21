@@ -207,7 +207,7 @@ constexpr int64_t Ceil(T value) {
 
 template <typename Int>
 constexpr int64_t ToInt64(Int value) {
-    static_assert(meta::kIsInteger<Int>);
+    static_assert(meta::IsInteger<Int>);
     static_assert(sizeof(Int) <= sizeof(int64_t));
 
     if constexpr (sizeof(Int) == sizeof(int64_t)) {
@@ -461,7 +461,7 @@ public:
     constexpr Decimal() noexcept = default;
 
     /// @brief Convert from an integer
-    template <meta::kIsInteger Int>
+    template <meta::IsInteger Int>
     constexpr explicit Decimal(Int value)
         : Decimal(FromDecimal(Decimal<0>::FromUnbiased(impl::ToInt64(value))))
     {}
@@ -560,7 +560,7 @@ public:
     }
 
     /// @brief Assignment from an integer
-    template <meta::kIsInteger Int>
+    template <meta::IsInteger Int>
     constexpr Decimal& operator=(Int rhs) {
         *this = Decimal{rhs};
         return *this;
@@ -592,12 +592,12 @@ public:
         }
     }
 
-    template <meta::kIsInteger Int>
+    template <meta::IsInteger Int>
     constexpr Decimal operator+(Int rhs) const {
         return *this + Decimal{rhs};
     }
 
-    template <meta::kIsInteger Int>
+    template <meta::IsInteger Int>
     friend constexpr Decimal operator+(Int lhs, Decimal rhs) {
         return Decimal{lhs} + rhs;
     }
@@ -609,7 +609,7 @@ public:
         return *this;
     }
 
-    template <meta::kIsInteger Int>
+    template <meta::IsInteger Int>
     constexpr Decimal& operator+=(Int rhs) {
         *this = *this + rhs;
         return *this;
@@ -630,12 +630,12 @@ public:
         }
     }
 
-    template <meta::kIsInteger Int>
+    template <meta::IsInteger Int>
     constexpr Decimal operator-(Int rhs) const {
         return *this - Decimal{rhs};
     }
 
-    template <meta::kIsInteger Int>
+    template <meta::IsInteger Int>
     friend constexpr Decimal operator-(Int lhs, Decimal rhs) {
         return Decimal{lhs} - rhs;
     }
@@ -647,13 +647,13 @@ public:
         return *this;
     }
 
-    template <meta::kIsInteger Int>
+    template <meta::IsInteger Int>
     constexpr Decimal& operator-=(Int rhs) {
         *this = *this - rhs;
         return *this;
     }
 
-    template <meta::kIsInteger Int>
+    template <meta::IsInteger Int>
     constexpr Decimal operator*(Int rhs) const {
         int64_t result{};
         if (rhs > impl::kMaxInt64 || __builtin_mul_overflow(value_, static_cast<int64_t>(rhs), &result)) {
@@ -662,12 +662,12 @@ public:
         return FromUnbiased(result);
     }
 
-    template <meta::kIsInteger Int>
+    template <meta::IsInteger Int>
     friend constexpr Decimal operator*(Int lhs, Decimal rhs) {
         return rhs * lhs;
     }
 
-    template <meta::kIsInteger Int>
+    template <meta::IsInteger Int>
     constexpr Decimal& operator*=(Int rhs) {
         *this = *this * rhs;
         return *this;
@@ -684,17 +684,17 @@ public:
         return *this;
     }
 
-    template <meta::kIsInteger Int>
+    template <meta::IsInteger Int>
     constexpr Decimal operator/(Int rhs) const {
         return FromUnbiased(impl::Div<RoundPolicy>(AsUnbiased(), rhs));
     }
 
-    template <meta::kIsInteger Int>
+    template <meta::IsInteger Int>
     friend constexpr Decimal operator/(Int lhs, Decimal rhs) {
         return Decimal{lhs} / rhs;
     }
 
-    template <meta::kIsInteger Int>
+    template <meta::IsInteger Int>
     constexpr Decimal& operator/=(Int rhs) {
         *this = *this / rhs;
         return *this;

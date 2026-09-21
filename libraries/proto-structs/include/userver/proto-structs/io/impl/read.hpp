@@ -20,7 +20,7 @@ TField ReadFieldWithGetter(
     const FieldGetter<TMessage, TReturn>& getter
 ) {
     static_assert(
-        !meta::kIsCvInstantiationOf<std::optional, TField>,
+        !meta::IsCvInstantiationOf<TField, std::optional>,
         "'FieldGetterWithPresence' should be used for optional field"
     );
     return ctx.ReadField<TField>(getter.GetFieldNumber(), getter.GetValue());

@@ -290,14 +290,14 @@ TEST(StrongTypedef, StrongCast) {
 
 TEST(StrongTypedef, StrongTypedefForStringIsNotARange) {
     // Range methods are forwarded
-    EXPECT_TRUE(meta::kIsRange<MySpecialVector>);
-    EXPECT_FALSE(meta::kIsRange<MySpecialInt>);
+    EXPECT_TRUE(meta::IsRange<MySpecialVector>);
+    EXPECT_FALSE(meta::IsRange<MySpecialInt>);
 
     // Except for 'std::string', to avoid giving serialization facilities
     // a potential for seeing "some custom range type" and silently serializing
     // 'std::string' as an array.
-    EXPECT_FALSE(meta::kIsRange<MyString>);
-    EXPECT_FALSE(meta::kIsRange<MyString2>);
+    EXPECT_FALSE(meta::IsRange<MyString>);
+    EXPECT_FALSE(meta::IsRange<MyString2>);
 }
 
 TEST(StrongTypedef, ToString) {

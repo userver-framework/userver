@@ -21,7 +21,7 @@ namespace storages::clickhouse::io::impl {
 
 template <typename T>
 constexpr void EnsureInstantiationOfVector([[maybe_unused]] const T& t) {
-    static_assert(meta::kIsInstantiationOf<std::vector, T>);
+    static_assert(meta::IsInstantiationOf<T, std::vector>);
 }
 
 template <typename T>

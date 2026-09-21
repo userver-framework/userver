@@ -258,7 +258,7 @@ std::vector<T> StatementResultSet::AsVector(FieldTag) && {
 
 template <typename Container>
 Container StatementResultSet::AsContainer() && {
-    static_assert(meta::kIsRange<Container>, "The type isn't actually a container");
+    static_assert(meta::IsRange<Container>, "The type isn't actually a container");
     using Row = typename Container::value_type;
 
     return std::move(*this).DoAsContainerMapped<Container, Row, RowTag>();
@@ -266,7 +266,7 @@ Container StatementResultSet::AsContainer() && {
 
 template <typename Container>
 Container StatementResultSet::AsContainer(FieldTag) && {
-    static_assert(meta::kIsRange<Container>, "The type isn't actually a container");
+    static_assert(meta::IsRange<Container>, "The type isn't actually a container");
     using Row = typename Container::value_type;
 
     return std::move(*this).DoAsContainerMapped<Container, Row, FieldTag>();
@@ -306,7 +306,7 @@ std::optional<T> StatementResultSet::AsOptionalSingleField() && {
 
 template <typename Container, typename MapFromType, typename ExtractionTag>
 Container StatementResultSet::DoAsContainerMapped() && {
-    static_assert(meta::kIsRange<Container>, "The type isn't actually a container");
+    static_assert(meta::IsRange<Container>, "The type isn't actually a container");
     using Extractor = impl::io::TypedExtractor<Container, MapFromType, ExtractionTag>;
 
     Extractor extractor{};

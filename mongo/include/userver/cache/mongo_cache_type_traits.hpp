@@ -31,7 +31,7 @@ template <typename T>
 concept HasKeyField = requires { T::kKeyField; };
 
 template <typename T>
-concept HasValidDataType = meta::kIsMap<typename T::DataType>;
+concept HasValidDataType = meta::IsMap<typename T::DataType>;
 
 template <typename T>
 concept HasSecondaryPreferred = requires { T::kIsSecondaryPreferred; };
