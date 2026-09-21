@@ -185,16 +185,6 @@ void Storage::UnregisterExtender(impl::StorageIterator iterator, [[maybe_unused]
     metrics_sources_.erase(iterator);
 }
 
-void RegisterWriterScope(
-    ResourceScopeStorage& scope_storage,
-    Storage& storage,
-    std::string common_prefix,
-    WriterFunc func,
-    std::vector<Label> add_labels
-) {
-    storage.RegisterWriter(scope_storage, std::move(common_prefix), std::move(func), std::move(add_labels));
-}
-
 }  // namespace utils::statistics
 
 USERVER_NAMESPACE_END

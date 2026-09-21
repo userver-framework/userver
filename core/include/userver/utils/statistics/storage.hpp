@@ -114,16 +114,6 @@ private:
 /// as well.
 void DumpMetric(Writer& writer, const Storage& storage);
 
-/// @deprecated Use @ref Storage::RegisterWriter that takes @ref ResourceScopeStorage.
-[[deprecated("Use Storage::RegisterWriter instead")]]
-void RegisterWriterScope(
-    ResourceScopeStorage& scope_storage,
-    Storage& storage,
-    std::string common_prefix,
-    WriterFunc func,
-    std::vector<Label> add_labels = {}
-);
-
 }  // namespace utils::statistics
 
 USERVER_NAMESPACE_END
