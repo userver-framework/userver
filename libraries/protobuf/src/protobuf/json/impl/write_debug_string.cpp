@@ -10,14 +10,14 @@ USERVER_NAMESPACE_BEGIN
 namespace protobuf::json::impl {
 
 std::string WriteMessageToDebugString(const ::google::protobuf::Message& message, std::size_t limit) {
-    // Debug/logging tweaks on top of plain ProtoJSON: expand `google.protobuf.Any` but fall back to its raw
-    // representation instead of failing, and redact `[debug_redact = true]` fields.
+    // Debug/logging tweaks on top of plain ProtoJSON: expand `google.protobuf.Any`, replace Any failures with
+    // {"@type","@error"} stubs instead of raw bytes, and redact `[debug_redact = true]` fields.
     StringWriter string_writer{limit};
 
     ProtoMessageVisitor visitor{string_writer};
     visitor.SetPreserveProtoFieldNames(true);
     visitor.SetExpandAny(true);
-    visitor.SetExpandAnyFallbackToRaw(true);
+    visitor.SetExpandAnyAllowErrors(true);
     visitor.SetRedactDebugString(true);
 
     try {

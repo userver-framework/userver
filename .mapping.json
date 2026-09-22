@@ -3357,6 +3357,7 @@
   "libraries/protobuf/tests/json/complex_from_json_test.cpp":"taxi/uservices/userver/libraries/protobuf/tests/json/complex_from_json_test.cpp",
   "libraries/protobuf/tests/json/complex_to_json_test.cpp":"taxi/uservices/userver/libraries/protobuf/tests/json/complex_to_json_test.cpp",
   "libraries/protobuf/tests/json/custom_name_test.cpp":"taxi/uservices/userver/libraries/protobuf/tests/json/custom_name_test.cpp",
+  "libraries/protobuf/tests/json/debug_string_any_test.cpp":"taxi/uservices/userver/libraries/protobuf/tests/json/debug_string_any_test.cpp",
   "libraries/protobuf/tests/json/double_from_json_test.cpp":"taxi/uservices/userver/libraries/protobuf/tests/json/double_from_json_test.cpp",
   "libraries/protobuf/tests/json/double_to_json_test.cpp":"taxi/uservices/userver/libraries/protobuf/tests/json/double_to_json_test.cpp",
   "libraries/protobuf/tests/json/duration_from_json_test.cpp":"taxi/uservices/userver/libraries/protobuf/tests/json/duration_from_json_test.cpp",

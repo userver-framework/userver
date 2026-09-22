@@ -348,6 +348,12 @@ message Creds {
 }
 ```
 
+If a `google.protobuf.Any` cannot be expanded, the log keeps the other fields and does not write the raw `value`
+bytes: until the payload is parsed, `debug_redact` cannot be applied to them. An unknown type is written as
+`{"@type":"<type_url>","@error":"unresolved_any_type"}`, and a known type whose payload fails to parse as
+`{"@type":"<type_url>","@error":"invalid_payload"}`. This is a diagnostic representation for logs, not standard
+ProtoJSON. Link the payload type into the binary to see its fields.
+
 ### grpc-core logs
 
 grpc-core is a lower level library, its logs are forwarded to the userver default logger. In this process only error

@@ -20,6 +20,10 @@ inline constexpr std::size_t kDefaultLoggingStringLimit = 1024;
 /// The message is serialized to [ProtoJSON](https://protobuf.dev/programming-guides/json/) with the following
 /// debugging tweaks:
 /// - Fields marked with the `[debug_redact]` option are hidden: their value is replaced with a `[REDACTED]` marker.
+/// - A `google.protobuf.Any` that cannot be expanded is written without its raw value, so those bytes cannot bypass
+///   `[debug_redact]`. An unknown payload type becomes `{"@type":"<type_url>","@error":"unresolved_any_type"}`.
+///   A payload that fails to parse becomes `{"@type":"<type_url>","@error":"invalid_payload"}`. The rest of the
+///   message is still serialized.
 /// - Serialization stops early once `limit` bytes have been produced instead of serializing the whole message and
 /// only then truncating, which saves CPU on large messages. The already-open JSON containers are closed, so the
 /// truncated part before the marker stays a well-formed JSON document.

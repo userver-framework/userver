@@ -104,8 +104,11 @@ std::string MessageToJsonString(const ::google::protobuf::Message& message, cons
 ///   `.proto` definition.
 /// - Fields marked with the `[debug_redact = true]` option are hidden: their value is replaced with a `"[REDACTED]"`
 ///   marker.
-/// - `google.protobuf.Any` is expanded (like @ref MessageToJsonString with default options), but falls back to the
-///   raw representation instead of failing when the payload type can't be resolved in the descriptor pool or parsed.
+/// - `google.protobuf.Any` is expanded (like @ref MessageToJsonString with default options). Failures are replaced
+///   with a diagnostic object so the rest of the message is still serialized, and the raw value bytes are omitted:
+///   an unknown payload type becomes `{"@type":"<type_url>","@error":"unresolved_any_type"}`, and a payload that
+///   fails to parse becomes `{"@type":"<type_url>","@error":"invalid_payload"}`. A missing `type_url` still fails
+///   the conversion.
 /// - Serialization stops early once `limit` bytes have been produced instead of serializing the whole message and
 ///   only then truncating, which saves CPU on large messages. The already-open JSON containers are closed, so the
 ///   truncated part before the marker stays a well-formed JSON document.

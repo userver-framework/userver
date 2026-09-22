@@ -106,6 +106,13 @@ message AnyMessage {
   google.protobuf.Any field1 = 1;
 }
 
+message AnyContainer {
+  string keep = 1;
+  google.protobuf.Any any = 2;
+  repeated google.protobuf.Any items = 3;
+  map<string, google.protobuf.Any> entries = 4;
+}
+
 message OneofMessage {
   oneof test {
     int32 field1 = 1;
