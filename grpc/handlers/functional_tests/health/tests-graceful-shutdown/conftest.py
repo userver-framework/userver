@@ -7,6 +7,11 @@ except ImportError:
 
 pytest_plugins = ['pytest_userver.plugins.grpc']
 
+# During the first graceful shutdown stage the service reports NOT_SERVING, but still serves
+# requests. Afterwards the gRPC server stops accepting new calls, so everything the test checks
+# must happen within this interval.
+FIRST_STAGE_SECONDS = 3
+
 
 @pytest.fixture
 def grpc_client(grpc_channel):
@@ -19,10 +24,17 @@ def _userver_config_testsuite(userver_config_testsuite):
         userver_config_testsuite(config, config_vars)
         # Restore the option after it's deleted by the base fixture.
         # Don't do this in your testsuite tests! For userver tests only.
-        config['components_manager']['graceful_shutdown_continue_accepting_requests_interval'] = '3s'
+        config['components_manager']['graceful_shutdown_continue_accepting_requests_interval'] = (
+            f'{FIRST_STAGE_SECONDS}s'
+        )
         config['components_manager']['graceful_shutdown_pending_requests_completion_interval'] = '6s'
 
     return patch_config
+
+
+@pytest.fixture(scope='session')
+def graceful_shutdown_first_stage_seconds() -> int:
+    return FIRST_STAGE_SECONDS
 
 
 @pytest.fixture(scope='session')
