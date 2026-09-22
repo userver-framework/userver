@@ -585,6 +585,33 @@ async def test_substitute(
     assert data == b'die'
 
 
+def _probe_fresh_fds_are_not_registered_in_loop(count: int) -> None:
+    # A new socket reuses a just freed fd, so a registration left by the gate
+    # makes add_writer() fail with ENOENT from epoll.
+    loop = asyncio.get_running_loop()
+    sockets = [socket.socket() for _ in range(count)]
+    try:
+        for sock in sockets:
+            loop.add_writer(sock.fileno(), lambda: None)
+            loop.remove_writer(sock.fileno())
+    finally:
+        for sock in sockets:
+            sock.close()
+
+
+async def test_closed_connection_does_not_leak_fd_registration(
+    tcp_client,
+    gate,
+    server_connection,
+):
+    server_connection.close()
+    for _ in range(100):
+        await asyncio.sleep(0)
+        _probe_fresh_fds_are_not_registered_in_loop(count=4)
+
+    await _assert_connection_dead(tcp_client)
+
+
 async def test_wait_for_connections(
     tcp_client,
     gate,
