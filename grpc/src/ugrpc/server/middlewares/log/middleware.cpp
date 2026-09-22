@@ -5,11 +5,13 @@
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+#include <google/protobuf/message.h>
 
 #include <userver/logging/log.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/not_null.hpp>
 
 #include <ugrpc/impl/logging.hpp>
 #include <ugrpc/impl/rpc_metadata.hpp>
@@ -24,7 +26,8 @@ namespace ugrpc::server::middlewares::log {
 
 namespace {
 
-const utils::AnyStorageDataTag<StorageContext, logging::LogExtra> kUnaryResponseLogExtraTag{};
+// Unary response stays alive until after OnCallFinish; see CallProcessor.
+const utils::AnyStorageDataTag<StorageContext, utils::NotNull<const google::protobuf::Message*>> kUnaryResponseTag{};
 
 std::string GetMessageForLogging(const google::protobuf::Message& message, const Settings& settings) {
     if (settings.msg_log_level < settings.log_level || !logging::ShouldLog(settings.msg_log_level)) {
@@ -54,8 +57,6 @@ public:
         LOG(level) << std::forward<LogBuilder>(log_builder);
     }
 
-    bool ShouldLog(logging::Level level) const { return level >= log_level_threshold_ && logging::ShouldLog(level); }
-
 private:
     logging::Level log_level_threshold_;
 };
@@ -79,13 +80,13 @@ void AppendDelay(MiddlewareCallContext& context, logging::LogExtra& extra) {
     extra.Extend("delay", fmt::format("{}.{:06}", delay_s.count(), delay_us.count()));
 }
 
-logging::LogExtra MakeResponseLogExtra(const google::protobuf::Message& response, const Settings& settings) {
-    return {
+void AppendResponse(const google::protobuf::Message& response, const Settings& settings, logging::LogExtra& extra) {
+    extra.Extend({
         {ugrpc::impl::kTypeTag, "response"},
         {"grpc_code", "OK"},  // TODO: revert
         {ugrpc::impl::kBodyTag, GetMessageForLogging(response, settings)},
         {ugrpc::impl::kMessageMarshalledLenTag, response.ByteSizeLong()},
-    };
+    });
 }
 
 }  // namespace
@@ -128,16 +129,14 @@ void Middleware::PostRecvMessage(MiddlewareCallContext& context, google::protobu
 }
 
 void Middleware::PreSendMessage(MiddlewareCallContext& context, google::protobuf::Message& response) const {
-    const Logger logger{settings_.log_level};
     if (IsSingleResponseMethod(context.GetRpcType())) {
-        if (logger.ShouldLog(settings_.msg_log_level)) {
-            auto extra = MakeResponseLogExtra(response, settings_);
-            extra.Extend("type", "response");
-            context.GetStorageContext().Set(kUnaryResponseLogExtraTag, std::move(extra));
-        }
+        context.GetStorageContext().Emplace(kUnaryResponseTag, response);
     } else {
+        const Logger logger{settings_.log_level};
         logger.Log(settings_.msg_log_level, [&](auto& log_helper) {
-            log_helper << "gRPC response stream message" << MakeResponseLogExtra(response, settings_);
+            logging::LogExtra extra;
+            AppendResponse(response, settings_, extra);
+            log_helper << "gRPC response stream message" << std::move(extra);
         });
     }
 }
@@ -148,13 +147,10 @@ void Middleware::OnCallFinish(MiddlewareCallContext& context, const std::optiona
     if (status.has_value()) {
         if (status->ok()) {
             if (IsSingleResponseMethod(context.GetRpcType())) {
-                auto* const response_extra = context.GetStorageContext().GetOptional(kUnaryResponseLogExtraTag);
-                if (response_extra) {
-                    logger.Log(settings_.msg_log_level, [&](auto& log_helper) {
-                        AppendDelay(context, *response_extra);
-                        log_helper << "gRPC response" << std::move(*response_extra);
-                    });
-                }
+                const auto& response = *context.GetStorageContext().Get(kUnaryResponseTag);
+                AppendResponse(response, settings_, extra);
+                AppendDelay(context, extra);
+                logger.Log(settings_.msg_log_level, "gRPC response", std::move(extra));
             } else {
                 AppendDelay(context, extra);
                 logger.Log(settings_.msg_log_level, "gRPC response stream finished", std::move(extra));
