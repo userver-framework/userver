@@ -23,6 +23,10 @@ namespace {
 
 const pg::UserTypes types;
 
+// Under sanitizer CI load the default 500ms statement timeout is occasionally
+// hit while the prepared statement is being cached.
+constexpr pg::CommandControl kRelaxedTimeoutCmdCtl{std::chrono::seconds{10}, std::chrono::seconds{10}};
+
 template <typename Duration>
 std::string FormatToTZ(
     const std::chrono::time_point<std::chrono::system_clock, Duration>& tp,
@@ -289,6 +293,8 @@ void CheckInTimezone(pg::detail::ConnectionPtr& conn, const std::string& tz_name
 UTEST_P(PostgreConnection, Timestamp) {
     CheckConnection(GetConn());
 
+    const DefaultCommandControlScope relaxed_timeout{kRelaxedTimeoutCmdCtl};
+
     pg::ResultSet res{nullptr};
     auto now = std::chrono::system_clock::now();
     pg::TimePointWithoutTz tp;
@@ -345,11 +351,7 @@ UTEST_P(PostgreConnection, TimestampTz) {
     pg::TimePointTz now{std::chrono::system_clock::now()};
     pg::ResultSet res{nullptr};
 
-    // Under sanitizer CI load the default 500ms statement timeout is occasionally
-    // hit while the prepared statement is being cached.
-    const DefaultCommandControlScope relaxed_timeout{
-        pg::CommandControl{std::chrono::seconds{10}, std::chrono::seconds{10}}
-    };
+    const DefaultCommandControlScope relaxed_timeout{kRelaxedTimeoutCmdCtl};
     UEXPECT_NO_THROW(res = GetConn()->Execute("select $1, $1::text", now));
 
     auto [tptz, str] = res.Front().As<pg::TimePointTz, std::string>();
