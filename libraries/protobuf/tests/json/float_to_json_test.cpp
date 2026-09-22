@@ -5,6 +5,7 @@
 
 #include <fmt/format.h>
 
+#include <userver/formats/json/serialize.hpp>
 #include <userver/protobuf/json/convert.hpp>
 #include <userver/utest/assert_macros.hpp>
 
@@ -55,10 +56,8 @@ TEST_P(FloatToJsonSuccessTest, Test) {
     UASSERT_NO_THROW((json = MessageToJson(input, param.options)));
     UASSERT_NO_THROW((sample_json = CreateSampleJson(input, param.options)));
 
-    // Can't compare 'formats::json::Value' using 'operator==' because protobuf json writer outputs
-    // distinct number of fractional digits than usever's one. Still after converting to target
-    // type values should be equal.
-
+    // We don't compare 'formats::json::Value' directly using 'operator==' to avoid running into
+    // different implementations of float output reduction. After converting to target type values should be equal.
     EXPECT_LE(json.GetSize(), std::size_t{1});
     EXPECT_EQ(json.GetSize(), sample_json.GetSize());
 
@@ -68,6 +67,20 @@ TEST_P(FloatToJsonSuccessTest, Test) {
 
     EXPECT_EQ(json["field1"].As<float>(), param.input.field1);
     EXPECT_EQ(json["field1"].As<float>(), sample_json["field1"].As<float>());
+}
+
+TEST(FloatToJsonAdditionalTest, ShortestRepresentation) {
+    const auto input = PrepareTestData(FloatMessageData{0.1f});
+
+    EXPECT_EQ(MessageToJsonString(input, {}), R"({"field1":0.1})");
+    EXPECT_EQ(MessageToDebugString(input, 1000), R"({"field1":0.1})");
+
+    const auto json = MessageToJson(input, {});
+    EXPECT_EQ(json["field1"].As<double>(), 0.1);
+    EXPECT_EQ(formats::json::ToString(json), R"({"field1":0.1})");
+
+    const auto sample_json = CreateSampleJson(input, {});
+    EXPECT_EQ(json, sample_json);
 }
 
 }  // namespace protobuf::json::tests

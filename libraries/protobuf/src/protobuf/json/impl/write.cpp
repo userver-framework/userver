@@ -78,7 +78,7 @@ public:
     // ProtoJSON represents 64-bit integers as strings.
     void Int64(std::int64_t value) { WriteScalar(formats::json::ValueBuilder{std::to_string(value)}); }
     void UInt64(std::uint64_t value) { WriteScalar(formats::json::ValueBuilder{std::to_string(value)}); }
-    void Float(float value) { WriteScalar(GetFloatJsonValue(value)); }
+    void Float(float value) { WriteScalar(GetFloatJsonValue(WidenFloatToDouble(value))); }
     void Double(double value) { WriteScalar(GetFloatJsonValue(value)); }
     void String(std::string_view value) { WriteScalar(formats::json::ValueBuilder{value}); }
     void Bytes(std::string_view bytes) {
