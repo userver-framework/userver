@@ -1,5 +1,6 @@
 #include <userver/storages/redis/sharding_strategies.hpp>
 
+#include <stdexcept>
 #include <string>
 
 #include <userver/utils/assert.hpp>

@@ -3,6 +3,8 @@
 #include <stdexcept>
 #include <string_view>
 
+#include <userver/utils/assert.hpp>
+
 #ifdef __SSSE3__
 #include <tmmintrin.h>
 #endif

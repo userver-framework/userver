@@ -345,6 +345,11 @@ UTEST_P(PostgreConnection, TimestampTz) {
     pg::TimePointTz now{std::chrono::system_clock::now()};
     pg::ResultSet res{nullptr};
 
+    // Under sanitizer CI load the default 500ms statement timeout is occasionally
+    // hit while the prepared statement is being cached.
+    const DefaultCommandControlScope relaxed_timeout{
+        pg::CommandControl{std::chrono::seconds{10}, std::chrono::seconds{10}}
+    };
     UEXPECT_NO_THROW(res = GetConn()->Execute("select $1, $1::text", now));
 
     auto [tptz, str] = res.Front().As<pg::TimePointTz, std::string>();
