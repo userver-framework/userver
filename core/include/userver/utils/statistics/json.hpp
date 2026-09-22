@@ -5,7 +5,9 @@
 
 #include <string>
 
+#include <userver/utils/statistics/request.hpp>
 #include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -33,10 +35,9 @@ namespace utils::statistics {
 ///   ]
 /// }
 /// @endcode
-std::string ToJsonFormat(
-    const utils::statistics::Storage& statistics,
-    const utils::statistics::Request& statistics_request = {}
-);
+std::string ToJsonFormat(const Storage& statistics, const Request& statistics_request = {});
+
+std::string ToJsonFormat(WriterFuncRef writer, const Request& statistics_request = {});
 
 }  // namespace utils::statistics
 

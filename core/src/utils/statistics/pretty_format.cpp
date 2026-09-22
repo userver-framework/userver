@@ -61,9 +61,15 @@ private:
 
 }  // namespace
 
-std::string ToPrettyFormat(const utils::statistics::Storage& statistics, const utils::statistics::Request& request) {
+std::string ToPrettyFormat(const Storage& statistics, const Request& request) {
     FormatBuilder builder;
     statistics.VisitMetrics(builder, request);
+    return std::move(builder).Release();
+}
+
+std::string ToPrettyFormat(WriterFuncRef writer, const Request& request) {
+    FormatBuilder builder;
+    VisitMetrics(writer, builder, request);
     return std::move(builder).Release();
 }
 

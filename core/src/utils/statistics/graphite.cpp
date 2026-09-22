@@ -68,9 +68,15 @@ private:
 
 }  // namespace
 
-std::string ToGraphiteFormat(const utils::statistics::Storage& statistics, const utils::statistics::Request& request) {
+std::string ToGraphiteFormat(const Storage& statistics, const Request& request) {
     FormatBuilder builder{};
     statistics.VisitMetrics(builder, request);
+    return builder.Release();
+}
+
+std::string ToGraphiteFormat(WriterFuncRef writer, const Request& request) {
+    FormatBuilder builder{};
+    VisitMetrics(writer, builder, request);
     return builder.Release();
 }
 

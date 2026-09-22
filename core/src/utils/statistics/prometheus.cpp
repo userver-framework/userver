@@ -217,21 +217,27 @@ std::string ToPrometheusLabel(std::string_view name) {
 
 }  // namespace impl
 
-std::string ToPrometheusFormat(
-    const utils::statistics::Storage& statistics,
-    const utils::statistics::Request& request
-) {
+std::string ToPrometheusFormat(const Storage& statistics, const Request& request) {
     impl::FormatBuilder<impl::Typed::kYes> builder{};
     statistics.VisitMetrics(builder, request);
     return builder.Release();
 }
 
-std::string ToPrometheusFormatUntyped(
-    const utils::statistics::Storage& statistics,
-    const utils::statistics::Request& request
-) {
+std::string ToPrometheusFormat(WriterFuncRef writer, const Request& request) {
+    impl::FormatBuilder<impl::Typed::kYes> builder{};
+    VisitMetrics(writer, builder, request);
+    return builder.Release();
+}
+
+std::string ToPrometheusFormatUntyped(const Storage& statistics, const Request& request) {
     impl::FormatBuilder<impl::Typed::kNo> builder{};
     statistics.VisitMetrics(builder, request);
+    return builder.Release();
+}
+
+std::string ToPrometheusFormatUntyped(WriterFuncRef writer, const Request& request) {
+    impl::FormatBuilder<impl::Typed::kNo> builder{};
+    VisitMetrics(writer, builder, request);
     return builder.Release();
 }
 

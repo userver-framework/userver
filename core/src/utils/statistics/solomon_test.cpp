@@ -1,13 +1,10 @@
 #include <algorithm>
 
 #include <userver/formats/json/serialize.hpp>
-#include <userver/formats/json/string_builder.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/utest/utest.hpp>
-
-#include <userver/utils/statistics/metadata.hpp>
+#include <userver/utils/statistics/pretty_format.hpp>
 #include <userver/utils/statistics/solomon.hpp>
-#include <userver/utils/statistics/storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -34,72 +31,43 @@ formats::json::Value Sorted(const formats::json::Value& array) {
     return builder.ExtractValue();
 }
 
-void TestToMetricsSolomon(const utils::statistics::Storage& statistics, std::string_view raw_expected) {
-    const auto expected = Sorted(formats::json::FromString(raw_expected));
+void TestToMetricsSolomon(WriterFuncRef writer, std::string_view pretty_expected, std::string_view solomon_expected) {
+    EXPECT_EQ(ToPrettyFormat(writer), pretty_expected);
 
-    const auto raw_result = ToSolomonFormat(statistics, {{"application", "processing"}});
+    const auto raw_result = ToSolomonFormat(writer, {{"application", "processing"}});
     const auto result_json = formats::json::FromString(raw_result);
     EXPECT_TRUE(result_json.IsObject());
     EXPECT_TRUE(result_json.HasMember("metrics"));
 
-    const auto result = Sorted(result_json["metrics"]);
-
-    EXPECT_EQ(expected, result);
+    EXPECT_EQ(Sorted(formats::json::FromString(solomon_expected)), Sorted(result_json["metrics"]));
 }
 
 }  // namespace
 
 UTEST(MetricsSolomon, Tvm2TicketsCache) {
-    auto producer = [](const utils::statistics::StatisticsRequest&) {
-        formats::json::ValueBuilder result;
-        utils::statistics::SolomonLabelValue(result, "cache_name");
-        result["full"]["update"]["attempts_count"] = 56;
-        result["full"]["update"]["no_changes_count"] = 0;
-        result["full"]["update"]["failures_count"] = 0;
-
-        result["full"]["documents"]["read_count"] = 432;
-        result["full"]["documents"]["parse_failures"] = 0;
-
-        result["full"]["time"]["time-from-last-update-start-ms"] = 2521742;
-        result["full"]["time"]["time-from-last-successful-start-ms"] = 2521742;
-        result["full"]["time"]["last-update-duration-ms"] = 58;
-
-        result["current-documents-count"] = 8;
-
-        return result;
+    auto producer = [](Writer& writer) {
+        const LabelView cache_name{"cache_name", "tvm2-tickets-cache"};
+        writer["cache"]["full"]["update"]["attempts_count"].ValueWithLabels(56, cache_name);
+        writer["cache"]["full"]["update"]["no_changes_count"].ValueWithLabels(0, cache_name);
+        writer["cache"]["full"]["update"]["failures_count"].ValueWithLabels(0, cache_name);
+        writer["cache"]["full"]["documents"]["read_count"].ValueWithLabels(432, cache_name);
+        writer["cache"]["full"]["documents"]["parse_failures"].ValueWithLabels(0, cache_name);
+        writer["cache"]["full"]["time"]["time-from-last-update-start-ms"].ValueWithLabels(2521742, cache_name);
+        writer["cache"]["full"]["time"]["time-from-last-successful-start-ms"].ValueWithLabels(2521742, cache_name);
+        writer["cache"]["full"]["time"]["last-update-duration-ms"].ValueWithLabels(58, cache_name);
+        writer["cache"]["current-documents-count"].ValueWithLabels(8, cache_name);
     };
 
-    const auto* const statistics = R"({
-    "cache": {
-      "tvm2-tickets-cache": {
-        "$meta": {
-          "solomon_label": "cache_name"
-        },
-        "full": {
-          "update": {
-            "attempts_count": 56,
-            "no_changes_count": 0,
-            "failures_count": 0
-          },
-          "documents": {
-            "read_count": 432,
-            "parse_failures": 0
-          },
-          "time": {
-            "time-from-last-update-start-ms": 2521742,
-            "time-from-last-successful-start-ms": 2521742,
-            "last-update-duration-ms": 58
-          }
-        },
-        "current-documents-count": 8
-      }
-    }
-  })";
-
-    EXPECT_EQ(producer({}).ExtractValue(), formats::json::FromString(statistics)["cache"]["tvm2-tickets-cache"]);
-
-    utils::statistics::Storage statistics_storage;
-    auto statistics_holder = statistics_storage.RegisterExtender("cache.tvm2-tickets-cache", producer);
+    constexpr std::string_view pretty =  //
+        "cache.full.update.attempts_count: cache_name=tvm2-tickets-cache\tGAUGE\t56\n"
+        "cache.full.update.no_changes_count: cache_name=tvm2-tickets-cache\tGAUGE\t0\n"
+        "cache.full.update.failures_count: cache_name=tvm2-tickets-cache\tGAUGE\t0\n"
+        "cache.full.documents.read_count: cache_name=tvm2-tickets-cache\tGAUGE\t432\n"
+        "cache.full.documents.parse_failures: cache_name=tvm2-tickets-cache\tGAUGE\t0\n"
+        "cache.full.time.time-from-last-update-start-ms: cache_name=tvm2-tickets-cache\tGAUGE\t2521742\n"
+        "cache.full.time.time-from-last-successful-start-ms: cache_name=tvm2-tickets-cache\tGAUGE\t2521742\n"
+        "cache.full.time.last-update-duration-ms: cache_name=tvm2-tickets-cache\tGAUGE\t58\n"
+        "cache.current-documents-count: cache_name=tvm2-tickets-cache\tGAUGE\t8\n";
 
     const auto* const expected = R"([
     {"labels": {"sensor": "cache.current-documents-count", "cache_name": "tvm2-tickets-cache"}, "value": 8, "type": "IGAUGE"},
@@ -112,55 +80,25 @@ UTEST(MetricsSolomon, Tvm2TicketsCache) {
     {"labels": {"sensor": "cache.full.update.no_changes_count", "cache_name": "tvm2-tickets-cache"}, "value": 0, "type": "IGAUGE"},
     {"labels": {"sensor": "cache.full.update.failures_count", "cache_name": "tvm2-tickets-cache"}, "value": 0, "type": "IGAUGE"}
   ])";
-    TestToMetricsSolomon(statistics_storage, expected);
+    TestToMetricsSolomon(producer, pretty, expected);
 }
 
 UTEST(MetricsSolomon, SolomonChildrenLabel) {
-    auto producer = [](const utils::statistics::StatisticsRequest&) {
-        formats::json::ValueBuilder result;
-        utils::statistics::SolomonChildrenAreLabelValues(result, "child_label_name");
-        result["label_value_1"]["ag"]["test"] = 76;
-        result["label_value_1"]["ag"]["test1"] = 90;
-
-        result["label_value_2"]["field1"] = 3;
-        result["label_value_2"]["field2"] = 6.67;
-
-        utils::statistics::SolomonLabelValue(result["overridden_label_value"], "overridden_label_name");
-        result["overridden_label_value"]["field3"] = 9999;
-
-        return result;
+    auto producer = [](Writer& writer) {
+        auto some_key = writer["base_key"]["some_key"];
+        some_key["ag"]["test"].ValueWithLabels(76, {"child_label_name", "label_value_1"});
+        some_key["ag"]["test1"].ValueWithLabels(90, {"child_label_name", "label_value_1"});
+        some_key["field1"].ValueWithLabels(3, {"child_label_name", "label_value_2"});
+        some_key["field2"].ValueWithLabels(6.67, {"child_label_name", "label_value_2"});
+        some_key["field3"].ValueWithLabels(9999, {"overridden_label_name", "overridden_label_value"});
     };
 
-    const auto* const statistics = R"({
-    "base_key": {
-      "some_key": {
-        "$meta": {
-          "solomon_children_labels": "child_label_name"
-        },
-        "label_value_1": {
-          "ag": {
-            "test": 76,
-            "test1": 90
-          }
-        },
-        "label_value_2": {
-          "field1": 3,
-          "field2": 6.67
-        },
-        "overridden_label_value": {
-          "$meta": {
-            "solomon_label": "overridden_label_name"
-          },
-          "field3": 9999
-        }
-      }
-    }
-  })";
-
-    EXPECT_EQ(producer({}).ExtractValue(), formats::json::FromString(statistics)["base_key"]["some_key"]);
-
-    utils::statistics::Storage statistics_storage;
-    auto statistics_holder = statistics_storage.RegisterExtender("base_key.some_key", producer);
+    constexpr std::string_view pretty =  //
+        "base_key.some_key.ag.test: child_label_name=label_value_1\tGAUGE\t76\n"
+        "base_key.some_key.ag.test1: child_label_name=label_value_1\tGAUGE\t90\n"
+        "base_key.some_key.field1: child_label_name=label_value_2\tGAUGE\t3\n"
+        "base_key.some_key.field2: child_label_name=label_value_2\tGAUGE\t6.67\n"
+        "base_key.some_key.field3: overridden_label_name=overridden_label_value\tGAUGE\t9999\n";
 
     const auto* const expected = R"([
     {"labels": {"child_label_name": "label_value_1", "sensor": "base_key.some_key.ag.test"}, "value": 76, "type": "IGAUGE"},
@@ -169,209 +107,95 @@ UTEST(MetricsSolomon, SolomonChildrenLabel) {
     {"labels": {"child_label_name": "label_value_2", "sensor": "base_key.some_key.field2"}, "value": 6.67},
     {"labels": {"overridden_label_name": "overridden_label_value", "sensor": "base_key.some_key.field3"}, "value": 9999, "type": "IGAUGE"}
   ])";
-    TestToMetricsSolomon(statistics_storage, expected);
+    TestToMetricsSolomon(producer, pretty, expected);
 }
 
 UTEST(MetricsSolomon, SolomonChildrenLabelEscaping) {
-    auto producer = [](const utils::statistics::StatisticsRequest&) {
-        formats::json::ValueBuilder result;
-        utils::statistics::SolomonChildrenAreLabelValues(result, R"(child.label.#$/\ _{}'"=name)");
-        result[R"(label.value.#$/\ _{}'"1)"]["a.#$/\\ _{}g"]["test"] = 76;
-        result[R"(label.value.#$/\ _{}'"1)"]["a.#$/\\ _{}g"]["test1"] = 90;
-
-        result["label.value.#$/\\ _{}2"]["field1"] = 3;
-        result["label.value.#$/\\ _{}2"]["field2"] = 6.67;
-
-        utils::statistics::SolomonLabelValue(result[R"(overridden.#$/\ _{}'"value)"], R"(overridden.#$/\ _{}'"=name)");
-        result[R"(overridden.#$/\ _{}'"value)"]["field3"] = 9999;
-
-        return result;
+    auto producer = [](Writer& writer) {
+        auto some_key = writer["base_key"]["some_key"];
+        some_key[R"(a.#$/\ _{}g)"]["test"]
+            .ValueWithLabels(76, {R"(child.label.#$/\ _{}'"=name)", R"(label.value.#$/\ _{}'"1)"});
+        some_key[R"(a.#$/\ _{}g)"]["test1"]
+            .ValueWithLabels(90, {R"(child.label.#$/\ _{}'"=name)", R"(label.value.#$/\ _{}'"1)"});
+        some_key["field1"].ValueWithLabels(3, {R"(child.label.#$/\ _{}'"=name)", R"(label.value.#$/\ _{}2)"});
+        some_key["field2"].ValueWithLabels(6.67, {R"(child.label.#$/\ _{}'"=name)", R"(label.value.#$/\ _{}2)"});
+        some_key["field3"].ValueWithLabels(9999, {R"(overridden.#$/\ _{}'"=name)", R"(overridden.#$/\ _{}'"value)"});
     };
 
-    const auto* const statistics = R"({
-    "base_key": {
-      "some_key": {
-        "$meta": {
-          "solomon_children_labels": "child.label.#$/\\ _{}'\"=name"
-        },
-        "label.value.#$/\\ _{}'\"1": {
-          "a.#$/\\ _{}g": {
-            "test": 76,
-            "test1": 90
-          }
-        },
-        "label.value.#$/\\ _{}2": {
-          "field1": 3,
-          "field2": 6.67
-        },
-        "overridden.#$/\\ _{}'\"value": {
-          "$meta": {
-            "solomon_label": "overridden.#$/\\ _{}'\"=name"
-          },
-          "field3": 9999
-        }
-      }
-    }
-  })";
-
-    EXPECT_EQ(producer({}).ExtractValue(), formats::json::FromString(statistics)["base_key"]["some_key"]);
-
-    utils::statistics::Storage statistics_storage;
-    auto statistics_holder = statistics_storage.RegisterExtender("base_key.some_key", producer);
+    constexpr std::string_view pretty =  //
+        "base_key.some_key.a.#$/\\ _{}g.test: child.label.#$/\\ _{}'\"=name=label.value.#$/\\ _{}'\"1\tGAUGE\t76\n"
+        "base_key.some_key.a.#$/\\ _{}g.test1: child.label.#$/\\ _{}'\"=name=label.value.#$/\\ _{}'\"1\tGAUGE\t90\n"
+        "base_key.some_key.field1: child.label.#$/\\ _{}'\"=name=label.value.#$/\\ _{}2\tGAUGE\t3\n"
+        "base_key.some_key.field2: child.label.#$/\\ _{}'\"=name=label.value.#$/\\ _{}2\tGAUGE\t6.67\n"
+        "base_key.some_key.field3: overridden.#$/\\ _{}'\"=name=overridden.#$/\\ _{}'\"value\tGAUGE\t9999\n";
 
     const auto* const expected = R"([
-    {"labels": {"child.label.#$/\\ _{}'\"=name": "label.value.#$/\\ _{}'\"1", "sensor": "base_key.some_key.a_#$/\\ _{}g.test"}, "value": 76, "type": "IGAUGE"},
-    {"labels": {"child.label.#$/\\ _{}'\"=name": "label.value.#$/\\ _{}'\"1", "sensor": "base_key.some_key.a_#$/\\ _{}g.test1"}, "value": 90, "type": "IGAUGE"},
+    {"labels": {"child.label.#$/\\ _{}'\"=name": "label.value.#$/\\ _{}'\"1", "sensor": "base_key.some_key.a.#$/\\ _{}g.test"}, "value": 76, "type": "IGAUGE"},
+    {"labels": {"child.label.#$/\\ _{}'\"=name": "label.value.#$/\\ _{}'\"1", "sensor": "base_key.some_key.a.#$/\\ _{}g.test1"}, "value": 90, "type": "IGAUGE"},
     {"labels": {"child.label.#$/\\ _{}'\"=name": "label.value.#$/\\ _{}2", "sensor": "base_key.some_key.field1"}, "value": 3, "type": "IGAUGE"},
     {"labels": {"child.label.#$/\\ _{}'\"=name": "label.value.#$/\\ _{}2", "sensor": "base_key.some_key.field2"}, "value": 6.67},
     {"labels": {"overridden.#$/\\ _{}'\"=name": "overridden.#$/\\ _{}'\"value", "sensor": "base_key.some_key.field3"}, "value": 9999, "type": "IGAUGE"}
   ])";
-    TestToMetricsSolomon(statistics_storage, expected);
+    TestToMetricsSolomon(producer, pretty, expected);
 }
 
 UTEST(MetricsSolomon, SimpleStatistics) {
-    auto producer1 = [](const utils::statistics::StatisticsRequest&) {
-        formats::json::ValueBuilder result;
-        result["child1"] = 1;
-        result["child2"] = 2;
-        return result;
+    auto producer = [](Writer& writer) {
+        writer["parent"]["child1"] = 1;
+        writer["parent"]["child2"] = 2;
     };
 
-    const auto* const statistics = R"({
-    "parent": {
-      "child1": 1,
-      "child2": 2
-    }
-  })";
-
-    EXPECT_EQ(producer1({}).ExtractValue(), formats::json::FromString(statistics)["parent"]);
-
-    auto producer2 = [producer1](const utils::statistics::StatisticsRequest&) {
-        formats::json::ValueBuilder result;
-        result["parent"] = producer1({});
-        return result;
-    };
-    EXPECT_EQ(producer2({}).ExtractValue(), formats::json::FromString(statistics));
+    constexpr std::string_view pretty =  //
+        "parent.child1:\tGAUGE\t1\n"
+        "parent.child2:\tGAUGE\t2\n";
 
     const auto* const expected = R"([
     {"labels": {"sensor": "parent.child1"}, "value": 1, "type": "IGAUGE"},
     {"labels": {"sensor": "parent.child2"}, "value": 2, "type": "IGAUGE"}
   ])";
-    {
-        utils::statistics::Storage statistics_storage;
-        auto statistics_holder = statistics_storage.RegisterExtender("parent", producer1);
-        TestToMetricsSolomon(statistics_storage, expected);
-    }
-    {
-        utils::statistics::Storage statistics_storage;
-        auto statistics_holder = statistics_storage.RegisterExtender({}, producer2);
-        TestToMetricsSolomon(statistics_storage, expected);
-    }
+    TestToMetricsSolomon(producer, pretty, expected);
 }
 
 UTEST(MetricsSolomon, SimpleParentRenamed) {
-    auto producer1 = [](const utils::statistics::StatisticsRequest&) {
-        formats::json::ValueBuilder result;
-        utils::statistics::SolomonRename(result, "parent");
-        result["child"] = 8;
-        return result;
-    };
+    auto producer = [](Writer& writer) { writer["parent"]["child"] = 8; };
 
-    const auto* const statistics = R"({
-    "parent_renamed": {
-      "$meta": {
-        "solomon_rename": "parent"
-      },
-      "child": 8
-    }
-  })";
-
-    EXPECT_EQ(producer1({}).ExtractValue(), formats::json::FromString(statistics)["parent_renamed"]);
-
-    auto producer2 = [](const utils::statistics::StatisticsRequest&) {
-        formats::json::ValueBuilder result;
-        utils::statistics::SolomonRename(result["parent_renamed"], "parent");
-        result["parent_renamed"]["child"] = 8;
-        return result;
-    };
-
-    EXPECT_EQ(producer2({}).ExtractValue(), formats::json::FromString(statistics));
+    constexpr std::string_view pretty = "parent.child:\tGAUGE\t8\n";
 
     const auto* const expected = R"([
     {"labels": {"sensor": "parent.child"}, "value": 8, "type": "IGAUGE"}
   ])";
-    {
-        utils::statistics::Storage statistics_storage;
-        auto statistics_holder = statistics_storage.RegisterExtender("parent_renamed", producer1);
-        TestToMetricsSolomon(statistics_storage, expected);
-    }
-    {
-        utils::statistics::Storage statistics_storage;
-        auto statistics_holder = statistics_storage.RegisterExtender({}, producer2);
-        TestToMetricsSolomon(statistics_storage, expected);
-    }
+    TestToMetricsSolomon(producer, pretty, expected);
 }
 
 UTEST(MetricsSolomon, SimpleParentSkipped) {
-    auto producer1 = [](const utils::statistics::StatisticsRequest&) {
-        formats::json::ValueBuilder result;
-        utils::statistics::SolomonSkip(result);
-        result["child"] = 8;
-        return result;
-    };
+    auto producer = [](Writer& writer) { writer["child"] = 8; };
 
-    const auto* const statistics = R"({
-    "parent_skipped": {
-      "$meta": {
-        "solomon_skip": true
-      },
-      "child": 8
-    }
-  })";
-
-    EXPECT_EQ(producer1({}).ExtractValue(), formats::json::FromString(statistics)["parent_skipped"]);
-
-    auto producer2 = [](const utils::statistics::StatisticsRequest&) {
-        formats::json::ValueBuilder result;
-        utils::statistics::SolomonSkip(result["parent_skipped"]);
-        result["parent_skipped"]["child"] = 8;
-        return result;
-    };
-
-    EXPECT_EQ(producer2({}).ExtractValue(), formats::json::FromString(statistics));
+    constexpr std::string_view pretty = "child:\tGAUGE\t8\n";
 
     const auto* const expected = R"([
     {"labels": {"sensor": "child"}, "value": 8, "type": "IGAUGE"}
   ])";
-
-    {
-        utils::statistics::Storage statistics_storage;
-        auto statistics_holder = statistics_storage.RegisterExtender("parent_skipped", producer1);
-        TestToMetricsSolomon(statistics_storage, expected);
-    }
-    {
-        utils::statistics::Storage statistics_storage;
-        auto statistics_holder = statistics_storage.RegisterExtender({}, producer2);
-        TestToMetricsSolomon(statistics_storage, expected);
-    }
+    TestToMetricsSolomon(producer, pretty, expected);
 }
 
 UTEST(MetricsSolomon, MetricTypes) {
     auto producer = [](Writer& writer) {
-        writer["rate-metric"] = Rate{5};
-        writer["igauge-metric"] = 6;
-        writer["dgauge-metric"] = 6.5;
+        writer["test_metric_types"]["rate-metric"] = Rate{5};
+        writer["test_metric_types"]["igauge-metric"] = 6;
+        writer["test_metric_types"]["dgauge-metric"] = 6.5;
     };
 
-    utils::statistics::Storage statistics_storage;
-    auto statistics_holder = statistics_storage.RegisterWriter("test_metric_types", producer);
+    constexpr std::string_view pretty =  //
+        "test_metric_types.rate-metric:\tRATE\t5\n"
+        "test_metric_types.igauge-metric:\tGAUGE\t6\n"
+        "test_metric_types.dgauge-metric:\tGAUGE\t6.5\n";
 
     const auto* const expected = R"([
     {"labels": {"sensor": "test_metric_types.rate-metric"}, "value": 5, "type": "RATE"},
     {"labels": {"sensor": "test_metric_types.igauge-metric"}, "value": 6, "type": "IGAUGE"},
     {"labels": {"sensor": "test_metric_types.dgauge-metric"}, "value": 6.5}
   ])";
-    TestToMetricsSolomon(statistics_storage, expected);
+    TestToMetricsSolomon(producer, pretty, expected);
 }
 
 }  // namespace utils::statistics::impl
