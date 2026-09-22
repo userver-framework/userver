@@ -7,6 +7,7 @@
 #include <vector>
 
 #include <userver/engine/async.hpp>
+#include <userver/engine/deadline.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/current_task.hpp>
@@ -385,7 +386,8 @@ UTEST_MT(Redis, ConcurrentAsyncCommandPreservesProducerOrder, 8) {
 UTEST_MT(Redis, DisconnectRaceCompletesEveryAcceptedCommand, 8) {
     constexpr std::size_t kProducers = 4;
     constexpr std::size_t kEnqueuesBeforeDisconnect = 20;
-    constexpr std::size_t kMaxCommandsPerProducer = 10000;
+    constexpr std::size_t kBurstCommandsPerProducer = 10000;
+    constexpr std::chrono::milliseconds kThrottledEnqueueInterval{1};
 
     MockRedisServer server{kDbName};
     auto ping_handler = server.RegisterPingHandler();
@@ -424,7 +426,8 @@ UTEST_MT(Redis, DisconnectRaceCompletesEveryAcceptedCommand, 8) {
 
     for (std::size_t producer_idx = 0; producer_idx < kProducers; ++producer_idx) {
         producers.push_back(engine::AsyncNoTracing([&, producer_idx] {
-            for (std::size_t command_idx = 0; command_idx < kMaxCommandsPerProducer; ++command_idx) {
+            const auto deadline = engine::Deadline::FromDuration(kSuccessTimeout);
+            for (std::size_t command_idx = 0; !deadline.IsReached(); ++command_idx) {
                 storages::redis::CommandControl control;
                 control.timeout_single = kSuccessTimeout;
                 auto command = storages::redis::impl::PrepareCommand(
@@ -440,7 +443,14 @@ UTEST_MT(Redis, DisconnectRaceCompletesEveryAcceptedCommand, 8) {
                     return;
                 }
                 ++accepted_commands;
-                engine::Yield();
+                if (command_idx < kBurstCommandsPerProducer) {
+                    engine::Yield();
+                } else {
+                    // The ev thread processes the READONLY reply (and thus the disconnect) only after
+                    // the commands enqueued before it, so the burst may outrun the disconnect.
+                    // Keep producing, but slower, until the disconnect is processed.
+                    engine::SleepFor(kThrottledEnqueueInterval);
+                }
             }
             ADD_FAILURE() << "Redis did not stop accepting commands";
         }));
