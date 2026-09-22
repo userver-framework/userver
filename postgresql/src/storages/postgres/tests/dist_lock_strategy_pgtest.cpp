@@ -11,6 +11,7 @@
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/dist_lock_strategy.hpp>
 #include <userver/storages/postgres/io/chrono.hpp>
+#include <userver/storages/postgres/options.hpp>
 #include <userver/storages/postgres/utest/cluster_local.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -22,6 +23,11 @@ using namespace std::chrono_literals;
 namespace {
 
 constexpr std::string_view kLockName = "lock";
+
+constexpr pg::CommandControl kLockCommandControl{
+    std::chrono::seconds{2},
+    std::chrono::milliseconds{500},
+};
 
 void RecreateTable(const pg::ClusterPtr& cluster, std::string_view table) {
     cluster->Execute(pg::ClusterHostType::kMaster, fmt::format("DROP TABLE IF EXISTS {}", table));
@@ -55,6 +61,7 @@ UTEST(PostgreDistLockStrategy, AcquireProlongRelease) {
     RecreateTable(cluster, kTable);
 
     pg::DistLockStrategy strategy{cluster, kTable, kLockName, dist_lock::DistLockSettings{}};
+    strategy.UpdateCommandControl(kLockCommandControl);
     UEXPECT_NO_THROW(strategy.Acquire(10s, "owner"));
     UEXPECT_NO_THROW(strategy.Prolong(10s, "owner"));
     UEXPECT_NO_THROW(strategy.Release("owner"));
@@ -67,6 +74,7 @@ UTEST(PostgreDistLockStrategy, ProlongExtendsTtl) {
     RecreateTable(cluster, kTable);
 
     pg::DistLockStrategy strategy{cluster, kTable, kLockName, dist_lock::DistLockSettings{}};
+    strategy.UpdateCommandControl(kLockCommandControl);
     UEXPECT_NO_THROW(strategy.Acquire(1s, "owner"));
     const auto before = ReadExpiration(cluster, kTable);
 
@@ -83,6 +91,7 @@ UTEST(PostgreDistLockStrategy, ProlongForeignOwnerThrows) {
     RecreateTable(cluster, kTable);
 
     pg::DistLockStrategy strategy{cluster, kTable, kLockName, dist_lock::DistLockSettings{}};
+    strategy.UpdateCommandControl(kLockCommandControl);
     UEXPECT_NO_THROW(strategy.Acquire(100s, "owner1"));
     const auto before = ReadExpiration(cluster, kTable);
 
@@ -100,6 +109,7 @@ UTEST(PostgreDistLockStrategy, ProlongWithoutAcquireThrows) {
     RecreateTable(cluster, kTable);
 
     pg::DistLockStrategy strategy{cluster, kTable, kLockName, dist_lock::DistLockSettings{}};
+    strategy.UpdateCommandControl(kLockCommandControl);
     UEXPECT_THROW(strategy.Prolong(100s, "owner"), dist_lock::LockIsAcquiredByAnotherHostException);
 }
 
