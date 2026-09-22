@@ -12,7 +12,6 @@
 #include <userver/storages/odbc.hpp>
 #include <userver/storages/odbc/tests/utils.hpp>
 #include <userver/utest/utest.hpp>
-#include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/statistics/testing.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -402,11 +401,6 @@ UTEST(OdbcBulkIntegration, ReusesPreparedCacheAfterCompleteCleanup) {
     cluster.SetPreparedStatementCacheSettings({.max_size = 1});
     cluster.Execute(ClusterHostType::kMaster, "CREATE TEMP TABLE odbc_bulk_cache(id BIGINT PRIMARY KEY)");
 
-    utils::statistics::Storage statistics_storage;
-    auto entry = statistics_storage.RegisterWriter("odbc", [&cluster](utils::statistics::Writer& writer) {
-        cluster.WriteStatistics(writer);
-    });
-
     auto transaction = cluster.Begin(ClusterHostType::kMaster);
     const Query insert{"INSERT INTO odbc_bulk_cache VALUES (?)"};
     transaction.Execute(insert, 0);
@@ -422,12 +416,15 @@ UTEST(OdbcBulkIntegration, ReusesPreparedCacheAfterCompleteCleanup) {
     transaction.ExecuteBulk(insert, second);
     transaction.Commit();
 
-    const utils::statistics::Snapshot snapshot{statistics_storage, "odbc", {{"odbc_pool", "0"}}};
+    const utils::statistics::Snapshot snapshot{
+        [&cluster](utils::statistics::Writer& writer) { cluster.WriteStatistics(writer); },
+        {},
+        {{"odbc_pool", "0"}},
+    };
     EXPECT_EQ(snapshot.SingleMetric("queries.prepared-cache-misses").AsRate(), 2);
     EXPECT_EQ(snapshot.SingleMetric("queries.prepared-cache-hits").AsRate(), 3);
     const auto count = cluster.Execute(ClusterHostType::kMaster, "SELECT COUNT(*) FROM odbc_bulk_cache");
     EXPECT_EQ(count[0][0].GetInt64(), 6);
-    entry.Unregister();
 }
 
 UTEST(OdbcBulkIntegration, TimeoutDoesNotRetryAndPoolRecovers) {

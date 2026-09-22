@@ -52,6 +52,13 @@ public:
         : Snapshot([&metric](Writer& writer) { writer = metric; }, std::move(prefix), std::move(require_labels))
     {}
 
+    /// @brief Create a snapshot by invoking @a writer.
+    ///
+    /// @a prefix and @a require_labels select metrics the same way as for the
+    /// metric constructor. The callback writes paths relative to an internal
+    /// test prefix; @a prefix is not prepended to what the callback writes.
+    explicit Snapshot(WriterFuncRef writer, std::string prefix = {}, std::vector<Label> require_labels = {});
+
     Snapshot(const Snapshot& other) = default;
     Snapshot(Snapshot&& other) noexcept = default;
 
@@ -68,8 +75,6 @@ public:
 
 private:
     friend void PrintTo(const Snapshot& data, std::ostream*);
-
-    explicit Snapshot(WriterFuncRef writer, std::string prefix, std::vector<Label> require_labels);
 
     Request request_;
     utils::SharedRef<const impl::SnapshotData> data_;

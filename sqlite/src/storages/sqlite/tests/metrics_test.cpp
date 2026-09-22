@@ -10,7 +10,6 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utest/assert_macros.hpp>
-#include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/statistics/testing.hpp>
 
 #include <userver/storages/sqlite/infra/pool.hpp>
@@ -29,22 +28,17 @@ public:
         std::string prefix,
         std::vector<utils::statistics::Label> require_labels = {}
     ) {
-        return utils::statistics::Snapshot{statistics_storage_, std::move(prefix), std::move(require_labels)};
+        return utils::statistics::Snapshot{
+            [this](utils::statistics::Writer& writer) { client_->WriteStatistics(writer); },
+            std::move(prefix),
+            std::move(require_labels),
+        };
     }
-
-    ~SQLiteMetricsTest() override { statistics_holder_.Unregister(); }
 
 private:
-    void PreInitialize(const ClientPtr& client) final {
-        client_ = std::move(client);
-        statistics_holder_ = statistics_storage_.RegisterWriter("sqlite", [this](utils::statistics::Writer& writer) {
-            client_->WriteStatistics(writer);
-        });
-    }
+    void PreInitialize(const ClientPtr& client) final { client_ = std::move(client); }
 
     ClientPtr client_;
-    utils::statistics::Storage statistics_storage_;
-    utils::statistics::Entry statistics_holder_;
 };
 
 class SQLiteMetricsPoolTest : public SQLiteFixture {
@@ -80,14 +74,14 @@ UTEST_F(SQLiteMetricsTest, PoolBasic) {
                           .AsVector<RowTuple>()));
     UEXPECT_NO_THROW((client->Execute(storages::sqlite::OperationType::kReadWrite, "SELECT * FROM test")
                           .AsVector<RowTuple>()));
-    const auto write_connection_stats = GetStatistics("sqlite.connections", {{"connection_pool", "write"}});
+    const auto write_connection_stats = GetStatistics("connections", {{"connection_pool", "write"}});
     EXPECT_EQ(write_connection_stats.SingleMetric("overload").AsRate(), 0);
     EXPECT_EQ(write_connection_stats.SingleMetric("created").AsRate(), 1);
     EXPECT_EQ(write_connection_stats.SingleMetric("closed").AsRate(), 0);
     EXPECT_EQ(write_connection_stats.SingleMetric("active").AsInt(), 1);
     EXPECT_EQ(write_connection_stats.SingleMetric("busy").AsInt(), 0);
 
-    const auto read_connection_stats = GetStatistics("sqlite.connections", {{"connection_pool", "read"}});
+    const auto read_connection_stats = GetStatistics("connections", {{"connection_pool", "read"}});
     EXPECT_EQ(read_connection_stats.SingleMetric("overload").AsRate(), 0);
     EXPECT_EQ(read_connection_stats.SingleMetric("created").AsRate(), 5);
     EXPECT_EQ(read_connection_stats.SingleMetric("closed").AsRate(), 0);
@@ -141,7 +135,7 @@ UTEST_F_MT(SQLiteMetricsTest, PoolWriteInProcess, 10) {
 
     EXPECT_TRUE(client->Execute(OperationType::kReadOnly, "SELECT * FROM test").AsVector<RowTuple>().empty());
 
-    const auto write_connection_stats = GetStatistics("sqlite.connections", {{"connection_pool", "write"}});
+    const auto write_connection_stats = GetStatistics("connections", {{"connection_pool", "write"}});
     EXPECT_EQ(write_connection_stats.SingleMetric("overload").AsRate(), 0);
     EXPECT_EQ(write_connection_stats.SingleMetric("created").AsRate(), 1);
     EXPECT_EQ(write_connection_stats.SingleMetric("closed").AsRate(), 0);
@@ -156,7 +150,7 @@ UTEST_F_MT(SQLiteMetricsTest, PoolWriteInProcess, 10) {
     blocked_writer.Get();
     engine::GetAll(tasks);
 
-    const auto after_write_connection_stats = GetStatistics("sqlite.connections", {{"connection_pool", "write"}});
+    const auto after_write_connection_stats = GetStatistics("connections", {{"connection_pool", "write"}});
     EXPECT_EQ(after_write_connection_stats.SingleMetric("overload").AsRate(), 0);
     EXPECT_EQ(after_write_connection_stats.SingleMetric("created").AsRate(), 1);
     EXPECT_EQ(after_write_connection_stats.SingleMetric("closed").AsRate(), 0);
@@ -206,7 +200,7 @@ UTEST_F_MT(SQLiteMetricsTest, PoolReadsInProcess, 10) {
     EXPECT_TRUE(blocked_readers_cv.Wait(lock, [&] { return read_trx_start == settings.pool_settings.max_pool_size; }));
     lock.unlock();
 
-    const auto read_connection_stats = GetStatistics("sqlite.connections", {{"connection_pool", "read"}});
+    const auto read_connection_stats = GetStatistics("connections", {{"connection_pool", "read"}});
     EXPECT_EQ(read_connection_stats.SingleMetric("overload").AsRate(), 0);
     EXPECT_EQ(read_connection_stats.SingleMetric("created").AsRate(), settings.pool_settings.max_pool_size);
     EXPECT_EQ(read_connection_stats.SingleMetric("closed").AsRate(), 0);
@@ -220,7 +214,7 @@ UTEST_F_MT(SQLiteMetricsTest, PoolReadsInProcess, 10) {
 
     engine::GetAll(tasks);
 
-    const auto after_read_connection_stats = GetStatistics("sqlite.connections", {{"connection_pool", "read"}});
+    const auto after_read_connection_stats = GetStatistics("connections", {{"connection_pool", "read"}});
     EXPECT_EQ(after_read_connection_stats.SingleMetric("overload").AsRate(), 0);
     EXPECT_EQ(after_read_connection_stats.SingleMetric("created").AsRate(), settings.pool_settings.max_pool_size);
     EXPECT_EQ(after_read_connection_stats.SingleMetric("closed").AsRate(), 0);
@@ -266,9 +260,9 @@ UTEST_F(SQLiteMetricsTest, NoOp) {
     ClientPtr client;
     UEXPECT_NO_THROW(client = CreateClient(settings));
 
-    const auto write_queries_stats = GetStatistics("sqlite.queries", {{"connection_pool", "write"}});
-    const auto read_queries_stats = GetStatistics("sqlite.queries", {{"connection_pool", "read"}});
-    const auto transactions = GetStatistics("sqlite.transactions");
+    const auto write_queries_stats = GetStatistics("queries", {{"connection_pool", "write"}});
+    const auto read_queries_stats = GetStatistics("queries", {{"connection_pool", "read"}});
+    const auto transactions = GetStatistics("transactions");
 
     EXPECT_EQ(write_queries_stats.SingleMetric("total").AsRate(), 0);
     EXPECT_EQ(write_queries_stats.SingleMetric("executed").AsRate(), 0);
@@ -303,9 +297,9 @@ UTEST_F(SQLiteMetricsTest, QueriesBasic) {
     UEXPECT_NO_THROW((client->Execute(storages::sqlite::OperationType::kReadWrite, "SELECT * FROM test")
                           .AsVector<RowTuple>()));
 
-    const auto write_snapshot = GetStatistics("sqlite.connections", {{"connection_pool", "write"}});
+    const auto write_snapshot = GetStatistics("connections", {{"connection_pool", "write"}});
     EXPECT_EQ(write_snapshot.SingleMetric("active").AsInt(), 1);
-    const auto read_snapshot = GetStatistics("sqlite.connections", {{"connection_pool", "read"}});
+    const auto read_snapshot = GetStatistics("connections", {{"connection_pool", "read"}});
     EXPECT_EQ(write_snapshot.SingleMetric("active").AsInt(), 1);
 
     // unsuccessful mutation in prepare time
@@ -326,10 +320,10 @@ UTEST_F(SQLiteMetricsTest, QueriesBasic) {
     // unsuccessful select
     UEXPECT_THROW(client->Execute(OperationType::kReadOnly, "SELECT * FROM unknown_table"), SQLiteException);
 
-    const auto write_connection_stats = GetStatistics("sqlite.connections", {{"connection_pool", "write"}});
-    const auto read_connection_stats = GetStatistics("sqlite.connections", {{"connection_pool", "read"}});
-    const auto write_queries_stats = GetStatistics("sqlite.queries", {{"connection_pool", "write"}});
-    const auto read_queries_stats = GetStatistics("sqlite.queries", {{"connection_pool", "read"}});
+    const auto write_connection_stats = GetStatistics("connections", {{"connection_pool", "write"}});
+    const auto read_connection_stats = GetStatistics("connections", {{"connection_pool", "read"}});
+    const auto write_queries_stats = GetStatistics("queries", {{"connection_pool", "write"}});
+    const auto read_queries_stats = GetStatistics("queries", {{"connection_pool", "read"}});
 
     EXPECT_EQ(write_connection_stats.SingleMetric("closed").AsRate(), 0);
     EXPECT_EQ(read_connection_stats.SingleMetric("closed").AsRate(), 0);
@@ -392,7 +386,7 @@ UTEST_F(SQLiteMetricsTest, TransactionsBasic) {
         trx.Rollback();
     }
 
-    const auto transactions_stats = GetStatistics("sqlite.transactions");
+    const auto transactions_stats = GetStatistics("transactions");
 
     EXPECT_EQ(transactions_stats.SingleMetric("total").AsRate(), kTotalTransactions);
     EXPECT_EQ(transactions_stats.SingleMetric("commit").AsRate(), kTotalCommittedTransactions);
