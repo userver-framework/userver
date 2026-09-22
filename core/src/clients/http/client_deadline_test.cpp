@@ -1,9 +1,11 @@
 #include <userver/utest/utest.hpp>
 
+#include <cstdint>
 #include <ranges>
 
 #include <userver/clients/http/client.hpp>
 #include <userver/concurrent/queue.hpp>
+#include <userver/engine/deadline.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
 #include <userver/utest/http_client.hpp>
@@ -55,6 +57,14 @@ protected:
     clients::http::Client& GetClient() { return *http_client_; }
 
     const utest::HttpServerMock& GetServer() { return http_server_; }
+
+    // Server accepts connections asynchronously, so the count may lag behind the client
+    void WaitForConnectionsOpenedCount(std::uint64_t expected) {
+        const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+        while (GetServer().GetConnectionsOpenedCount() < expected && !deadline.IsReached()) {
+            engine::Yield();
+        }
+    }
 
 private:
     const std::shared_ptr<clients::http::Client> http_client_ = utest::CreateHttpClient();
@@ -111,13 +121,15 @@ UTEST_F(HttpClientDeadline, ConnectionIsReused) {
 }
 
 UTEST_F(HttpClientDeadline, ConnectionIsBrokenAfterTimeout) {
-    for ([[maybe_unused]] const auto _ : std::views::iota(0, 3)) {
+    constexpr std::uint64_t kRequestsCount = 3;
+
+    for (const auto request_index : std::views::iota(std::uint64_t{0}, kRequestsCount)) {
         auto request = GetClient().CreateRequest().get().url(GetServer().GetBaseUrl()).timeout(10ms);
         UEXPECT_THROW((void)request.perform(), clients::http::TimeoutException);
-        engine::SleepFor(50ms);
+        WaitForConnectionsOpenedCount(request_index + 1);
     }
 
-    EXPECT_EQ(GetServer().GetConnectionsOpenedCount(), 3);
+    EXPECT_EQ(GetServer().GetConnectionsOpenedCount(), kRequestsCount);
 }
 
 UTEST_F(HttpClientDeadline, ConnectionIsKeptAfterDeadlineExpires) {
