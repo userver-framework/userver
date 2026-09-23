@@ -53,9 +53,9 @@ void WaitListLightWithEpoch::GetSignalOrAppend(AwaiterPtr& awaiter, std::uintptr
     // Expect either {nullptr, epoch} or {kSignaled, epoch}.
     AwaiterWithContextPtrAndEpoch expected{nullptr, epoch};
 
-    // seq_cst is important for the "Append-Check-Wakeup" sequence.
+    // seq_cst is important for "Append-Check-Wakeup"; failure acquires an already published signal.
     bool success =
-        state_.compare_exchange_strong<std::memory_order_seq_cst, std::memory_order_relaxed>(expected, new_state);
+        state_.compare_exchange_strong<std::memory_order_seq_cst, std::memory_order_acquire>(expected, new_state);
 
     if (!success) {
         // CAS failed - new_awaiter_with_context will clean up.

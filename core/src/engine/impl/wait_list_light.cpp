@@ -53,9 +53,9 @@ void WaitListLight::GetSignalOrAppend(AwaiterPtr& awaiter, std::uintptr_t contex
     const AwaiterWithContext new_awaiter{awaiter.get(), context};
 
     AwaiterWithContext expected{};
-    // seq_cst is important for the "Append-Check-Wakeup" sequence.
+    // seq_cst is important for "Append-Check-Wakeup"; failure acquires an already published signal.
     const bool success =
-        state_.compare_exchange_strong<std::memory_order_seq_cst, std::memory_order_relaxed>(expected, new_awaiter);
+        state_.compare_exchange_strong<std::memory_order_seq_cst, std::memory_order_acquire>(expected, new_awaiter);
     if (!success) {
         UASSERT_MSG(
             expected.awaiter == kSignaled,
