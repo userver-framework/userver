@@ -1,8 +1,7 @@
 import pytest
+import pytest_userver.config
 
 pytest_plugins = ['pytest_userver.plugins.core', 'pytest_userver.plugins']
-
-USERVER_CONFIG_HOOKS = ['_userver_config_dns_link']
 
 
 @pytest.fixture(scope='session')
@@ -26,6 +25,7 @@ def _for_dns_gate_port2(choose_free_port) -> int:
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def _userver_config_dns_link(for_dns_gate_port, for_dns_gate_port2):
     def patch_config(config, _config_vars) -> None:
         components = config['components_manager']['components']

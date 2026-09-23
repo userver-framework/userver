@@ -9,14 +9,12 @@ from enum import Enum
 import pytest
 
 from pytest_userver import sql
+import pytest_userver.config
 
 pytest_plugins = [
     'testsuite.databases.pgsql.pytest_plugin',
     'pytest_userver.plugins.core',
 ]
-
-
-USERVER_CONFIG_HOOKS = ['userver_pg_config']
 
 
 class RegisteredNtrxFailureType(Enum):
@@ -69,6 +67,7 @@ class RegisteredNtrx:
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_pg_config(pgsql_local):
     """
     Returns a function that adjusts the static configuration file for

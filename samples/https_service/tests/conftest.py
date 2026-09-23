@@ -1,16 +1,17 @@
 import pathlib
 
 import pytest
+import pytest_userver.config
 
 # /// [registration]
 pytest_plugins = ['pytest_userver.plugins.core']
 # /// [registration]
 
-USERVER_CONFIG_HOOKS = ['prepare_service_config']
 SERVICE_SOURCE_DIR = pathlib.Path(__file__).parent.parent
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def prepare_service_config():
     def patch_config(config, config_vars):
         components = config['components_manager']['components']

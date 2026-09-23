@@ -12,6 +12,8 @@ import yaml
 from testsuite.environment import shell
 
 from pytest_userver import sql
+import pytest_userver.config
+import pytest_userver.service
 from . import client
 from . import discover
 from . import service
@@ -21,13 +23,14 @@ if hasattr(yaml, 'CLoader'):
 else:
     _YamlLoader = yaml.Loader  # type: ignore
 
-USERVER_CONFIG_HOOKS = ['userver_config_ydb']
-
 
 @pytest.fixture
+@pytest_userver.service.dependency
 def ydb(_ydb_client, _ydb_init) -> client.YdbClient:
     """
-    YDB client fixture
+    YDB client fixture.
+
+    Also automatically prepares YDB server before the userver service is started.
 
     @ingroup userver_testsuite_fixtures
     """
@@ -339,6 +342,7 @@ def userver_ydb_trx(testpoint) -> sql.RegisteredTrx:
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_config_ydb(ydb_service_settings):
     """
     Returns a function that adjusts the static configuration file for testsuite.

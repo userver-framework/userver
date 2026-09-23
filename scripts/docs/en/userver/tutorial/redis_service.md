@@ -170,9 +170,8 @@ implemented using the testsuite. To do that you have to:
   @snippet samples/redis_service/testsuite/conftest.py service_env
   The @ref pytest_userver.plugins.service.auto_client_deps "auto_client_deps"
   fixture already knows about the @ref testsuite.databases.redis.pytest_plugin.redis_store "redis_store"
-  fixture, so there's no need to override
-  the @ref pytest_userver.plugins.service.extra_client_deps "extra_client_deps"
-  fixture.
+  fixture, so there's no need to register it manually (for custom startup
+  dependencies prefer @ref pytest_userver.service.dependency "dependency").
 
   For details on Redis Secdist format, see @ref components::Redis.
 

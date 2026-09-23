@@ -1,14 +1,15 @@
+# /// [patch configs]
 import pytest
+import pytest_userver.config
+import pytest_userver.service
 
 from testsuite import utils
 
-# /// [patch configs]
 pytest_plugins = ['pytest_userver.plugins.core']
-
-USERVER_CONFIG_HOOKS = ['userver_config_translations']
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_config_translations(mockserver_info):
     def do_patch(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']
@@ -18,8 +19,9 @@ def userver_config_translations(mockserver_info):
     # /// [patch configs]
 
 
-# /// [mockserver]
-@pytest.fixture(autouse=True)
+# /// [service dependency]
+@pytest.fixture
+@pytest_userver.service.dependency
 def mock_translations(mockserver, translations, mocked_time):
     @mockserver.json_handler('/v1/translations')
     def mock(request):
@@ -29,7 +31,7 @@ def mock_translations(mockserver, translations, mocked_time):
         }
 
     return mock
-    # /// [mockserver]
+    # /// [service dependency]
 
 
 # /// [translations]

@@ -198,9 +198,8 @@ implemented using the testsuite. To do that you have to:
   @snippet samples/postgres_service/tests/conftest.py psql prepare
   The @ref pytest_userver.plugins.service.auto_client_deps "auto_client_deps"
   fixture already knows about the @ref testsuite.databases.pgsql.pytest_plugin.pgsql "pgsql"
-  fixture, so there's no need to override
-  the @ref pytest_userver.plugins.service.extra_client_deps "extra_client_deps"
-  fixture.
+  fixture, so there's no need to register it manually (for custom startup
+  dependencies prefer @ref pytest_userver.service.dependency "dependency").
 
 * Write the test using the @ref pytest_userver.plugins.service_client.service_client "service_client" fixture and the
   @ref testsuite.databases.pgsql.pytest_plugin.pgsql "pgsql" fixture:

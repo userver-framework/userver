@@ -366,8 +366,8 @@ implemented using the testsuite. To do that you have to:
   @snippet samples/scylla_service/testsuite/conftest.py scylla setup
   The @ref pytest_userver.plugins.service.auto_client_deps "auto_client_deps" fixture
   already knows about the @ref pytest_userver.plugins.scylla.scylla "scylla" fixture,
-  so there's no need to override the
-  @ref pytest_userver.plugins.service.extra_client_deps "extra_client_deps" fixture.
+  so there's no need to register it manually (for custom startup dependencies
+  prefer @ref pytest_userver.service.dependency "dependency").
   The sample's `conftest.py` additionally calls
   `/v1/schema/init` and truncates both tables before every test so each case
   starts from a clean slate.

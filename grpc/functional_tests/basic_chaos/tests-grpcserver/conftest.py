@@ -3,6 +3,7 @@ import logging
 
 import pytest
 from pytest_userver import chaos
+import pytest_userver.config
 
 import samples.greeter_pb2_grpc as greeter_pb2_grpc
 
@@ -64,6 +65,7 @@ def grpc_client(grpc_channel, service_client, gate):
 
 # Overrides userver fixture.
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_config_grpc_endpoint(uservice_grpc_server_port):
     def patch_config(config, config_vars):
         components = config['components_manager']['components']

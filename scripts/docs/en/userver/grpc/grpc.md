@@ -228,7 +228,8 @@ components_manager:
 
 SSL has to be disabled in tests, because it
 requires the server to have a public domain name, which it does not in tests.
-In testsuite, SSL in gRPC server can be disabled manually using @ref SERVICE_CONFIG_HOOKS "config hooks".
+In testsuite, SSL in gRPC server can be disabled manually using
+@ref SERVICE_CONFIG_HOOKS "service config patches".
 
 
 ### Custom server credentials

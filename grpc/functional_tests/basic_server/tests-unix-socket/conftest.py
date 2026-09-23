@@ -3,6 +3,7 @@ import pathlib
 import tempfile
 
 import pytest
+import pytest_userver.config
 
 import samples.greeter_pb2_grpc as greeter_services
 
@@ -30,6 +31,7 @@ def unix_socket_path(tmp_path_factory) -> Iterator[pathlib.Path]:
 
 # Overrides userver fixture.
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_config_grpc_endpoint(unix_socket_path):
     def patch_config(config, config_vars):
         components = config['components_manager']['components']
