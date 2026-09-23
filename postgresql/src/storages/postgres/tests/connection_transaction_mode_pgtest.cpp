@@ -414,6 +414,78 @@ UTEST_F(PostgreTransactionModeConnection, DuplicatePreparedStatementInUserTransa
     EXPECT_EQ(1, stats.duplicate_prepared_statements);
 }
 
+UTEST_F(PostgreTransactionModeConnection, TransactionPoolerRunsNonTransactionalStatementsWithoutTransaction) {
+    const auto conn = MakeConn();
+
+    const DefaultCommandControlScope scope{kTransactionPoolerDefaultCmdCtl};
+
+    UEXPECT_NO_THROW(conn->Execute("CREATE TEMP TABLE non_trx_test(id INT)"));
+    GetLogCapture().Clear();
+
+    UEXPECT_NO_THROW(conn->Execute(
+        kTransactionPoolerCmdCtl,
+        pg::Query{"CREATE INDEX CONCURRENTLY non_trx_idx ON non_trx_test(id)"},
+        pg::ParameterStore{}
+    ));
+    UEXPECT_NO_THROW(conn->Execute(kTransactionPoolerCmdCtl, pg::Query{"VACUUM non_trx_test"}, pg::ParameterStore{}));
+
+    conn->AssertPipelineActive();
+    EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+    EXPECT_THAT(GetTransactionControlLogs(), ::testing::IsEmpty());
+}
+
+UTEST_F(PostgreTransactionModeConnection, TransactionPoolerRetriesNonTransactionalStatementOnce) {
+    const auto conn = MakeConn();
+
+    const DefaultCommandControlScope scope{kTransactionPoolerDefaultCmdCtl};
+
+    UEXPECT_NO_THROW(conn->Execute("CREATE TEMP TABLE non_trx_test(id INT)"));
+    GetLogCapture().Clear();
+
+    UEXPECT_NO_THROW(conn->Execute(kTransactionPoolerCmdCtl, pg::Query{"VACUUM non_trx_test"}, pg::ParameterStore{}));
+    EXPECT_THAT(GetLogCapture().Filter("retrying it outside of pipeline"), ::testing::SizeIs(1));
+
+    conn->AssertPipelineActive();
+    EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+}
+
+UTEST_F(PostgreTransactionModeConnection, TransactionPoolerRethrowsErrorOfRetriedStatement) {
+    const auto conn = MakeConn();
+
+    const DefaultCommandControlScope scope{kTransactionPoolerDefaultCmdCtl};
+    GetLogCapture().Clear();
+
+    UEXPECT_THROW(
+        conn->Execute(kTransactionPoolerCmdCtl, pg::Query{"VACUUM non_trx_missing_table"}, pg::ParameterStore{}),
+        pg::AccessRuleViolation
+    );
+    EXPECT_THAT(GetLogCapture().Filter("retrying it outside of pipeline"), ::testing::SizeIs(1));
+
+    conn->AssertPipelineActive();
+    EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+    EXPECT_FALSE(conn->IsBroken());
+    UEXPECT_NO_THROW(conn->Execute("SELECT 1"));
+}
+
+UTEST_F(PostgreTransactionModeConnection, NonTransactionalStatementInUserTransactionIsNotRetried) {
+    const auto conn = MakeConn();
+
+    const DefaultCommandControlScope scope{kTransactionPoolerDefaultCmdCtl};
+
+    UEXPECT_NO_THROW(conn->Execute("CREATE TEMP TABLE non_trx_test(id INT)"));
+    GetLogCapture().Clear();
+
+    UEXPECT_NO_THROW(conn->Begin({}, {}));
+    UEXPECT_THROW(conn->Execute("VACUUM non_trx_test"), pg::InvalidTransactionState);
+    EXPECT_EQ(pg::ConnectionState::kTranError, conn->GetState());
+    EXPECT_THAT(GetLogCapture().Filter("retrying it outside of pipeline"), ::testing::IsEmpty());
+
+    UEXPECT_NO_THROW(conn->Rollback());
+    conn->AssertPipelineActive();
+    EXPECT_EQ(pg::ConnectionState::kIdle, conn->GetState());
+    EXPECT_FALSE(conn->IsBroken());
+}
+
 }  // namespace
 
 USERVER_NAMESPACE_END

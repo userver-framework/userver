@@ -628,4 +628,40 @@ UTEST_P(PostgreConnection, VacuumKeepsPipelineActive) {
     GetConn()->AssertPipelineActive();
 }
 
+UTEST_P(PostgreConnection, NonTransactionalStatementsAfterStatementTimeoutChange) {
+    CheckConnection(GetConn());
+
+    UEXPECT_NO_THROW(GetConn()->Execute("CREATE TEMP TABLE non_trx_test(id INT)"));
+    UEXPECT_NO_THROW(GetConn()->Execute("CREATE TEMP TABLE non_trx_parent(id INT) PARTITION BY RANGE (id)"));
+
+    const char* const statements[] = {
+        "CREATE INDEX CONCURRENTLY non_trx_idx ON non_trx_test(id)",
+        "REINDEX INDEX CONCURRENTLY non_trx_idx",
+        "DROP INDEX CONCURRENTLY non_trx_idx",
+        "VACUUM non_trx_test",
+        "ALTER TABLE non_trx_parent DETACH PARTITION non_trx_partition CONCURRENTLY",
+    };
+
+    auto statement_timeout = kTestCmdCtl.statement_timeout_ms;
+    for (const auto prepared_statements : {
+             pg::CommandControl::PreparedStatementsOptionOverride::kDisabled,
+             pg::CommandControl::PreparedStatementsOptionOverride::kEnabled,
+         })
+    {
+        UEXPECT_NO_THROW(GetConn()
+                             ->Execute("CREATE TEMP TABLE non_trx_partition PARTITION OF non_trx_parent FOR VALUES "
+                                       "FROM (0) TO (10)"));
+
+        for (const auto* statement : statements) {
+            statement_timeout += std::chrono::milliseconds{1};
+            const pg::CommandControl cmd_ctl{kTestCmdCtl.network_timeout_ms, statement_timeout, prepared_statements};
+            UEXPECT_NO_THROW(GetConn()->Execute(cmd_ctl, pg::Query{statement}, pg::ParameterStore{})) << statement;
+            GetConn()->AssertPipelineActive();
+            EXPECT_EQ(statement_timeout, GetConn()->GetStatementTimeout()) << statement;
+        }
+
+        UEXPECT_NO_THROW(GetConn()->Execute("DROP TABLE non_trx_partition"));
+    }
+}
+
 USERVER_NAMESPACE_END
