@@ -15,6 +15,7 @@
 
 #include <userver/utils/assert.hpp>
 #include <userver/utils/statistics/fmt.hpp>
+#include <userver/utils/statistics/histogram.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -50,6 +51,9 @@ namespace impl {
 
 struct SnapshotData final {
     std::unordered_multimap<std::string, SnapshotDataEntry> metrics;
+    // A HistogramView written by a metric writer refers to the writer's memory, which may be freed
+    // right after the dump, so the snapshot owns its own copies.
+    std::vector<Histogram> histogram_storage;
 };
 
 }  // namespace impl
@@ -67,7 +71,12 @@ public:
         for (const auto& l : labels) {
             labels_owned.emplace(std::string{l.Name()}, std::string{l.Value()});
         }
-        data_.metrics.emplace(std::string{path}, SnapshotDataEntry{std::move(labels_owned), value});
+        SnapshotDataEntry entry{std::move(labels_owned), value};
+        if (value.IsHistogram()) {
+            data_.histogram_storage.emplace_back(value.AsHistogram());
+            entry.value = MetricValue{data_.histogram_storage.back().GetView()};
+        }
+        data_.metrics.emplace(std::string{path}, std::move(entry));
     }
 
 private:

@@ -3,9 +3,13 @@
 #include <atomic>
 #include <cstdint>
 #include <optional>
+#include <string>
+#include <string_view>
+#include <unordered_map>
 
 #include <gtest/gtest.h>
 
+#include <userver/utils/statistics/histogram.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -68,6 +72,45 @@ TEST(Snapshot, FromMetricRequireLabels) {
 
     EXPECT_EQ(snapshot.SingleMetric("bar"), std::int64_t{2});
     EXPECT_EQ(snapshot.SingleMetricOptional("foo"), std::nullopt);
+}
+
+namespace {
+
+constexpr double kHistogramBounds[] = {5, 10, 20, 35, 60, 100, 173, 300, 520, 1000, 3200, 10000, 32000, 100000};
+
+constexpr std::string_view kQueryNames[] = {"a", "b", "c", "d", "e", "f", "g", "h"};
+
+struct QueryMetrics {
+    std::unordered_map<std::string, utils::statistics::Histogram> timings;
+};
+
+void DumpMetric(utils::statistics::Writer& writer, const QueryMetrics& metrics) {
+    for (const auto& [name, histogram] : metrics.timings) {
+        writer["timings"].ValueWithLabels(histogram, {"query", name});
+    }
+}
+
+// Mimics drivers that build a metrics snapshot on the fly and free it once the dump is over.
+struct TemporaryQueryMetrics {};
+
+void DumpMetric(utils::statistics::Writer& writer, const TemporaryQueryMetrics&) {
+    QueryMetrics metrics;
+    for (const auto name : kQueryNames) {
+        auto [it, _] = metrics.timings.try_emplace(std::string{name}, kHistogramBounds);
+        it->second.Account(42);
+    }
+    writer = metrics;
+}
+
+}  // namespace
+
+TEST(Snapshot, HistogramOutlivesItsWriter) {
+    const utils::statistics::Snapshot snapshot{TemporaryQueryMetrics{}};
+
+    for (const auto name : kQueryNames) {
+        EXPECT_EQ(snapshot.SingleMetric("timings", {{"query", std::string{name}}}).AsHistogram().GetTotalCount(), 1)
+            << name;
+    }
 }
 
 USERVER_NAMESPACE_END
