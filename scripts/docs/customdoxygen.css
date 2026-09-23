@@ -423,11 +423,42 @@ html.dark-mode .sm.sm-dox li:last-child ul li a {
 #links {
   order: 3;
   display: flex;
+  align-items: center;
   margin-left: 10px;
 }
 
-#telegram_channel {
+#links > a.titlelink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: 32px;
+  height: 32px;
   margin-left: 5px;
+}
+
+#yc_header svg,
+#telegram_channel img,
+#github_header img.gh-logo {
+  display: block;
+  width: 32px;
+  height: 32px;
+}
+
+#links #wiki_menu_link svg {
+  display: block;
+  width: 32px;
+  height: 32px;
+  transform: scale(1.1875);
+  transform-origin: center;
+}
+
+#links #wiki_menu_link svg path {
+  fill: rgb(255, 255, 255);
+}
+
+#links #wiki_menu_link:hover svg path {
+  fill: var(--primary-color);
 }
 
 #MSearchBox {

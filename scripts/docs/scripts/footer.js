@@ -4,6 +4,8 @@ import { init_all_results_button, init_search_hotkey, init_search_observer, init
 import { highlight_code } from "./codeHighlight.js";
 import { styleNavButtons } from "./styledBtn.js";
 import { LandingFeedback, PageFeedback } from "./feedback.js";
+import { evaluateInternalDocsMode } from "./wikiAvailability.js";
+import { configureInternalDocsLinks } from "./internalDocsLinks.js";
 
 const addLink = (container, href, { id, className, imgSrc, imgAlt, imgClass } = {}) => {
     const link = document.createElement('a');
@@ -23,19 +25,21 @@ const addLink = (container, href, { id, className, imgSrc, imgAlt, imgClass } = 
     container.appendChild(link);
 };
 
-const addLinks = () => {
+const addLinks = (includeGithubLink) => {
     const links = document.createElement('div');
     links.id = 'links';
     const logo_path = document.getElementById('projectlogo').getElementsByTagName('img')[0].src;
     const path = logo_path.substring(0, logo_path.lastIndexOf('/'));
 
-    addLink(links, 'https://github.com/userver-framework/', {
-        id: 'github_header',
-        className: 'titlelink',
-        imgSrc: `${path}/github_logo.svg`,
-        imgAlt: 'Github',
-        imgClass: 'gh-logo',
-    });
+    if (includeGithubLink) {
+        addLink(links, 'https://github.com/userver-framework/', {
+            id: 'github_header',
+            className: 'titlelink',
+            imgSrc: `${path}/github_logo.svg`,
+            imgAlt: 'Github',
+            imgClass: 'gh-logo',
+        });
+    }
     addLink(links, 'https://t.me/userver_en', {
         id: 'telegram_channel',
         className: 'titlelink generic_tg_link',
@@ -79,8 +83,12 @@ waitForElm('#MSearchField').then(() => {
     waitForElm('#main-menu > li > a').then(() => {
         init_header();
 
-        addLinks();
+        const isInternalDocsMode = evaluateInternalDocsMode();
+        addLinks(!isInternalDocsMode);
         changeTelegramChannelLanguageForRussianSpeakingUser();
+        if (isInternalDocsMode) {
+            configureInternalDocsLinks();
+        }
     });
 });
 
