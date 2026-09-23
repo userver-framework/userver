@@ -51,6 +51,7 @@ UTEST(TestMiddleware, FollowRedirectsMiddleware) {
     auto request = http_client_ptr->CreateRequest();
 
     request.url(http_server.GetBaseUrl() + "/test");
+    request.timeout(utest::kMaxTestWaitTime);
 
     chaotic::openapi::FollowRedirectsMiddleware follow_redirects_middleware(true);
     follow_redirects_middleware.OnRequest(request);
