@@ -3,6 +3,7 @@
 /// @file userver/engine/task/cancel.hpp
 /// @brief Task cancellation helpers
 
+#include <cstdint>
 #include <string_view>
 
 #include <boost/smart_ptr/intrusive_ptr.hpp>
@@ -17,7 +18,7 @@ class TaskContext;
 }  // namespace impl
 
 /// Task cancellation reason
-enum class TaskCancellationReason {
+enum class TaskCancellationReason : std::uint8_t {
     kNone,         ///< Not cancelled
     kUserRequest,  ///< User request
     kDeadline,     ///< Deadline

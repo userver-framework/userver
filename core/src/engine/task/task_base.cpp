@@ -1,14 +1,13 @@
 #include <userver/engine/task/task_base.hpp>
 
-#include <future>
+#include <atomic>
 
-#include <engine/impl/generic_wait_list.hpp>
-#include <engine/impl/non_cancellable_awaiter.hpp>
 #include <engine/task/task_base_impl.hpp>
 #include <engine/task/task_context.hpp>
 #include <engine/task/task_processor.hpp>
 #include <engine/task/task_processor_pools.hpp>
 #include <userver/engine/async.hpp>
+#include <userver/engine/impl/awaiter.hpp>
 #include <userver/engine/impl/epoch.hpp>
 #include <userver/engine/impl/task_context_holder.hpp>
 #include <userver/engine/task/cancel.hpp>
@@ -17,6 +16,31 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
+
+namespace {
+
+class BlockingWaitAwaiter final : public impl::PolymorphicAwaiter {
+public:
+    explicit BlockingWaitAwaiter(impl::TaskContext& context) noexcept
+        : context_(context)
+    {}
+
+    void NotifyAndDispose(std::uintptr_t context) noexcept override {
+        UASSERT(context == 0);
+        auto& finish_flag = context_.BlockingWaitFinishFlag();
+        finish_flag.store(true, std::memory_order_release);
+        finish_flag.notify_all();
+    }
+
+    void DisposeWithoutNotification() noexcept override {
+        utils::AbortWithStacktrace("BlockingWaitAwaiter should never be removed without notification");
+    }
+
+private:
+    impl::TaskContext& context_;
+};
+
+}  // namespace
 
 static_assert(
     !std::is_destructible_v<TaskBase>,
@@ -82,23 +106,25 @@ void TaskBase::SyncCancel() noexcept { Terminate(TaskCancellationReason::kUserRe
 
 TaskCancellationReason TaskBase::CancellationReason() const { return GetContext().CancellationReason(); }
 
-void TaskBase::BlockingWait() const {
+void TaskBase::BlockingWait() const noexcept {
     UASSERT(pimpl_->context);
     UASSERT(!current_task::IsTaskProcessorThread());
 
     auto& context = *pimpl_->context;
-    if (context.IsFinished()) {
-        return;
+    auto& finish_flag = context.BlockingWaitFinishFlag();
+
+    // Do not store the flag in BlockingWaitAwaiter: that object is a local of BlockingWait and is destroyed as soon as
+    // wait() returns. wait() may return after seeing the store while the other thread is still inside notify_all().
+    // Destroying the atomic at that point causes UB (P2616 / [basic.life]). TaskContext outlives BlockingWait, so the
+    // flag stays alive until notify_all() finishes.
+    BlockingWaitAwaiter awaiter{context};
+    impl::AwaiterPtr awaiter_ptr{&awaiter};
+    context.TryAppendAwaiter(awaiter_ptr, 0);
+    if (awaiter_ptr != nullptr) {
+        impl::NotifyAndDispose(std::move(awaiter_ptr), 0);
     }
+    finish_flag.wait(false);
 
-    std::promise<void> promise;
-    auto future = promise.get_future();
-
-    impl::AppendNonCancellableAwaiter(context, [promise = std::move(promise)]() mutable noexcept {
-        promise.set_value();
-    });
-
-    future.get();
     UASSERT(context.IsFinished());
 }
 

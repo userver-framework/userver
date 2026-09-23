@@ -167,6 +167,8 @@ bool TaskContext::IsSharedWaitAllowed() const { return finish_awaiters_->IsShare
 
 bool TaskContext::IsFinished() const noexcept { return finish_awaiters_->IsSignaled(); }
 
+std::atomic<bool>& TaskContext::BlockingWaitFinishFlag() noexcept { return blocking_wait_finish_flag_; }
+
 FutureStatus TaskContext::WaitUntil(Deadline deadline) const noexcept {
     // try to avoid ctx switch if possible
     static_assert(noexcept(IsFinished()));
