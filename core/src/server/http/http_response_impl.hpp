@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -9,6 +10,7 @@
 #include <userver/concurrent/queue.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/single_consumer_event.hpp>
+#include <userver/tracing/span_log_context.hpp>
 
 #include <server/http/http_response_storage.hpp>
 
@@ -59,6 +61,9 @@ public:
 
     void SetSendFailed();
 
+    void SetTracingContext(const tracing::Span& span);
+    const tracing::SpanLogContext& GetTracingContext() const noexcept USERVER_IMPL_LIFETIME_BOUND;
+
     impl::ChunkStorage ExtractData();
 
     [[nodiscard]] impl::HeadersEndEvent FinishedSendingHeadersEvent() noexcept USERVER_IMPL_LIFETIME_BOUND {
@@ -102,6 +107,7 @@ private:
     std::size_t SetBodyNotStreamed(engine::io::RwBase& socket, USERVER_NAMESPACE::http::headers::HeadersString& header);
 
     std::optional<std::int32_t> stream_id_;
+    tracing::SpanLogContext tracing_context_;
     std::optional<impl::Http2StreamEventProducer> producer_{};
 
     std::optional<concurrent::StringStreamQueue::Consumer> body_stream_;

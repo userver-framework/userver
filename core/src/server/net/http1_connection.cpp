@@ -104,10 +104,10 @@ void Http1Connection::SendResponse(http::HttpRequest& request) {
             response.SendResponse(GetSocket());
         } catch (const engine::io::IoSystemError& ex) {
             auto log_level = ex.Code().value() == EPIPE ? logging::Level::kWarning : logging::Level::kError;
-            LOG(log_level) << "I/O error while sending data: " << ex;
+            LOG(log_level) << "I/O error while sending data: " << ex << response.GetTracingContext().GetLogExtra();
             response.SetSendFailed();
         } catch (const std::exception& ex) {
-            LOG_ERROR() << "Error while sending data: " << ex;
+            LOG_ERROR() << "Error while sending data: " << ex << response.GetTracingContext().GetLogExtra();
             response.SetSendFailed();
         }
     } else {

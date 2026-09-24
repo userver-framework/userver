@@ -3,6 +3,7 @@
 #include <charconv>
 #include <cstring>
 #include <limits>
+#include <string_view>
 
 #include <fmt/compile.h>
 #include <fmt/format.h>
@@ -98,6 +99,14 @@ void Http2StreamEventProducer::CloseStream(std::int32_t id) {
 HttpResponseImpl::HttpResponseImpl(const HttpRequest& request, request::ResponseDataAccounter& data_accounter)
     : HttpResponse{request, data_accounter}
 {}
+
+void HttpResponseImpl::SetTracingContext(const tracing::Span& span) {
+    UASSERT(!IsReady());
+    UASSERT(tracing_context_.IsEmpty());
+    tracing_context_.SetFromSpan(span);
+}
+
+const tracing::SpanLogContext& HttpResponseImpl::GetTracingContext() const noexcept { return tracing_context_; }
 
 HttpResponseImpl::HttpResponseImpl(
     const HttpRequest& request,

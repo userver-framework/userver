@@ -1,20 +1,35 @@
 #include <server/net/http1_connection.hpp>
 #include <server/net/http2_connection.hpp>
 
+#include <cerrno>
+#include <cstddef>
+#include <memory>
+#include <stdexcept>
+#include <string>
+#include <tuple>
 #include <type_traits>
 
 #include <fmt/format.h>
+#include <gmock/gmock.h>
 
 #include <server/handlers/http_handler_base_statistics.hpp>
+#include <server/http/http_response_impl.hpp>
 #include <server/http/request_handler_base.hpp>
 #include <server/net/create_socket.hpp>
 #include <server/request/response_data_accounter.hpp>
 #include <userver/clients/http/client_core.hpp>
+#include <userver/engine/io/common.hpp>
+#include <userver/engine/io/exception.hpp>
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/server/http/http_request.hpp>
+#include <userver/server/http/http_request_builder.hpp>
+#include <userver/tracing/span.hpp>
+#include <userver/tracing/span_log_context.hpp>
 
 #include <userver/utest/http_client.hpp>
+#include <userver/utest/log_capture_fixture.hpp>
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -129,7 +144,89 @@ class ServerNetConnection : public ::testing::Test {};
 
 using ConnectionTypes = ::testing::Types<net::Http1Connection, net::Http2Connection>;
 
+constexpr char kResponseWriteError[] = "response write failed";
+
+class FailingResponseSocket final : public engine::io::RwBase {
+public:
+    MOCK_METHOD(bool, IsValid, (), (const, override));
+    MOCK_METHOD(bool, WaitReadable, (Deadline), (override));
+    MOCK_METHOD(bool, WaitWriteable, (Deadline), (override));
+    MOCK_METHOD(std::size_t, ReadSome, (void*, std::size_t, Deadline), (override));
+    MOCK_METHOD(std::size_t, ReadAll, (void*, std::size_t, Deadline), (override));
+    MOCK_METHOD(std::size_t, WriteAll, (const void*, std::size_t, Deadline), (override));
+};
+
+class TracedResponseHandler final : public TestHttprequestHandler {
+public:
+    explicit TracedResponseHandler(bool enable_tracing)
+        : enable_tracing_(enable_tracing)
+    {}
+
+    engine::TaskWithResult<void> StartRequestTask(std::shared_ptr<server::http::HttpRequest> request) const override {
+        return engine::AsyncNoTracing([request = std::move(request), enable_tracing = enable_tracing_] {
+            tracing::SpanLogContext expected_context;
+            auto& response = server::http::GetHttpResponseImpl(*request);
+            if (enable_tracing) {
+                const tracing::Span handler_span{"response-handler"};
+                response.SetTracingContext(handler_span);
+                expected_context.SetFromSpan(handler_span);
+            }
+            ASSERT_EQ(response.GetTracingContext(), expected_context);
+            LOG_INFO() << "response prepared" << expected_context.GetLogExtra();
+            response.SetReady();
+        });
+    }
+
+private:
+    const bool enable_tracing_;
+};
+
+using ServerResponseSendError = utest::LogCaptureFixture<testing::TestWithParam<std::tuple<bool, int>>>;
+
 }  // namespace
+
+UTEST_P(ServerResponseSendError, TracingContext) {
+    const auto [enable_tracing, error_code] = GetParam();
+    GetLogCapture().Clear();
+    auto socket = std::make_unique<FailingResponseSocket>();
+    EXPECT_CALL(*socket, WriteAll(testing::_, testing::_, testing::_))
+        .WillOnce([error_code](const void*, std::size_t, Deadline) -> std::size_t {
+            if (error_code != 0) {
+                throw engine::io::IoSystemError(error_code, kResponseWriteError);
+            }
+            throw std::runtime_error(kResponseWriteError);
+        });
+
+    const net::ConnectionConfig config{
+        .abort_check_delay = utest::kMaxTestWaitTime,
+        .http2_session_config = {},
+    };
+    const server::request::HttpRequestConfig request_config;
+    net::Stats stats{};
+    server::request::ResponseDataAccounter accounter;
+    const TracedResponseHandler handler{enable_tracing};
+    net::Http1Connection connection{config, request_config, std::move(socket), {}, handler, stats, accounter};
+    auto request = server::http::HttpRequestBuilder{accounter}.Build();
+    engine::AsyncNoTracing([&connection, request = std::move(request)]() mutable {
+        connection.ProcessRequest(std::move(request));
+    }).Get();
+
+    const auto prepared = utest::GetSingleLog(GetLogCapture().Filter("response prepared"));
+    const auto failed = utest::GetSingleLog(GetLogCapture().Filter(kResponseWriteError));
+    for (const auto tag : {"trace_id", "span_id", "link", "trace_sampled"}) {
+        SCOPED_TRACE(tag);
+        const auto expected_tag = prepared.GetTagOptional(tag);
+        ASSERT_EQ(expected_tag.has_value(), enable_tracing);
+        EXPECT_EQ(failed.GetTagOptional(tag), expected_tag);
+    }
+    EXPECT_EQ(failed.GetLevel(), error_code == EPIPE ? logging::Level::kWarning : logging::Level::kError);
+}
+
+INSTANTIATE_UTEST_SUITE_P(
+    TracingAndWriteErrors,
+    ServerResponseSendError,
+    testing::Combine(testing::Bool(), testing::Values(ECONNRESET, EPIPE, 0))
+);
 
 TYPED_UTEST_SUITE(ServerNetConnection, ConnectionTypes);
 
