@@ -43,23 +43,25 @@ async def test_graceful_shutdown_headers(
     call = grpc_client.Check(request)
     response = await call
     assert response.status == health_pb2.HealthCheckResponse.NOT_SERVING
-    check_present(await call.initial_metadata(), graceful_shutdown_headers)
-    check_not_present(await call.trailing_metadata(), graceful_shutdown_headers)
+    check_graceful_shutdown_headers(
+        await call.initial_metadata(),
+        await call.trailing_metadata(),
+        graceful_shutdown_headers,
+    )
 
     service_daemon_instance.process.wait()
 
 
-def check_present(metadata, headers: dict[str, list[str]]):
-    metadata_dict = to_dict(metadata)
-    for k, v in headers.items():
-        assert k in metadata_dict
-        assert metadata_dict[k] == v
-
-
-def check_not_present(metadata, headers: dict[str, list[str]]):
-    metadata_dict = to_dict(metadata)
-    for k in headers.keys():
-        assert k not in metadata_dict
+def check_graceful_shutdown_headers(initial, trailing, headers: dict[str, list[str]]) -> None:
+    initial_dict = to_dict(initial)
+    trailing_dict = to_dict(trailing)
+    for key, values in headers.items():
+        in_initial = key in initial_dict and initial_dict[key] == values
+        in_trailing = key in trailing_dict and trailing_dict[key] == values
+        assert in_initial != in_trailing, (
+            f'header {key!r} must be present in exactly one of initial or trailing metadata, '
+            f'got initial={initial_dict!r}, trailing={trailing_dict!r}'
+        )
 
 
 def to_dict(metadata) -> dict[str, list[str]]:
