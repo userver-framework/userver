@@ -21,6 +21,8 @@ struct CommandControl {
     std::chrono::milliseconds timeout{};
     int attempts{};
     ContentEncoding encoding{ContentEncoding::kAuto};
+
+    bool operator==(const CommandControl&) const = default;
 };
 
 CommandControl Parse(const formats::json::Value& value, formats::parse::To<CommandControl>);

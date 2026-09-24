@@ -217,6 +217,7 @@
   "chaotic-openapi/src/chaotic/openapi/middlewares/manager.cpp":"taxi/uservices/userver/chaotic-openapi/src/chaotic/openapi/middlewares/manager.cpp",
   "chaotic-openapi/src/chaotic/openapi/middlewares/proxy_middleware.cpp":"taxi/uservices/userver/chaotic-openapi/src/chaotic/openapi/middlewares/proxy_middleware.cpp",
   "chaotic-openapi/src/chaotic/openapi/middlewares/qos_middleware.cpp":"taxi/uservices/userver/chaotic-openapi/src/chaotic/openapi/middlewares/qos_middleware.cpp",
+  "chaotic-openapi/src/chaotic/openapi/middlewares/qos_middleware_test.cpp":"taxi/uservices/userver/chaotic-openapi/src/chaotic/openapi/middlewares/qos_middleware_test.cpp",
   "chaotic-openapi/src/chaotic/openapi/middlewares/ssl_middleware.cpp":"taxi/uservices/userver/chaotic-openapi/src/chaotic/openapi/middlewares/ssl_middleware.cpp",
   "chaotic-openapi/src/chaotic/openapi/middlewares_test.cpp":"taxi/uservices/userver/chaotic-openapi/src/chaotic/openapi/middlewares_test.cpp",
   "chaotic-openapi/src/chaotic/openapi/parameters.cpp":"taxi/uservices/userver/chaotic-openapi/src/chaotic/openapi/parameters.cpp",
