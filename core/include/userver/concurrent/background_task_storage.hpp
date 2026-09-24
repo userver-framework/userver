@@ -55,6 +55,10 @@ public:
     /// will be cancelled and waited for on BTS destruction.
     /// @note After detach, Task becomes invalid
     ///
+    /// If this function throws (due to OOM), the task is cancelled and waited for before the exception
+    /// is rethrown. The task may already have started; its side effects are not rolled back.
+    /// After the exception, the task does not keep running.
+    ///
     /// Can be called from a coroutine or a non-coroutine thread.
     /// Cannot be called after @ref CancelAndWait or @ref WaitAndDisposeSlow has been called.
     void Detach(engine::Task&& task);
@@ -157,6 +161,10 @@ public:
     /// engine::TaskInheritedVariablePriority::kBackground are inherited from the caller.
     /// See utils::AsyncBackground for details.
     ///
+    /// If this function throws (due to OOM), the launched task is cancelled and waited for before
+    /// the exception is rethrown. The task may already have started; its side effects
+    /// are not rolled back. After the exception, the task does not keep running.
+    ///
     /// Can be called from a coroutine or a non-coroutine thread.
     template <typename... Args>
     void AsyncDetach(std::string name, Args&&... args) {
@@ -171,6 +179,10 @@ public:
     /// Only engine::TaskInheritedVariable instances with
     /// engine::TaskInheritedVariablePriority::kBackground are inherited from the caller.
     /// See utils::CriticalAsyncBackground for details.
+    ///
+    /// If this function throws (due to OOM), the launched task is cancelled and waited for before
+    /// the exception is rethrown. The task may already have started; its side effects
+    /// are not rolled back. After the exception, the task does not keep running.
     ///
     /// Can be called from a coroutine or a non-coroutine thread.
     template <typename... Args>
