@@ -5,6 +5,8 @@
 
 #include <sys/socket.h>
 
+#include <cstddef>
+#include <optional>
 #include <span>
 
 #include <userver/engine/deadline.hpp>
@@ -95,7 +97,50 @@ public:
     /// - optional{0} if socket is closed by peer.
     /// - optional{data_bytes_available} otherwise,
     ///    1 <= data_bytes_available <= len
+    /// @throws IoException if the socket is closed
+    /// @throws IoSystemError on a failed syscall, EINTR is retried transparently
     [[nodiscard]] std::optional<size_t> RecvNoblock(void* buf, size_t len);
+
+    /// @brief Receives into a buffer list from the stream without waiting.
+    /// @returns
+    /// - nullopt on data absence
+    /// - optional{0} if socket is closed by peer, or if the buffers hold no space at all
+    /// - optional{data_bytes_available} otherwise
+    /// @note The iovec descriptors are not modified. The result counts bytes, not buffers, so
+    /// utils::IovIter and utils::Advance should be used to resume from it.
+    /// @warning At most IOV_MAX buffers are passed to the kernel per call, the rest are filled
+    /// by subsequent calls. Leading empty buffers are skipped and do not count towards that
+    /// limit.
+    /// @note An empty buffer list never reaches the kernel, so on a datagram socket it does not
+    /// consume a datagram.
+    /// @throws IoException if the socket is closed
+    /// @throws IoSystemError on a failed syscall, EINTR is retried transparently
+    [[nodiscard]] std::optional<std::size_t> RecvNoblock(std::span<const struct iovec> list);
+
+    /// @brief Sends up to len bytes to the socket without waiting.
+    /// @returns
+    /// - nullopt on backpressure
+    /// - optional{0} if len is 0
+    /// - optional{bytes_sent} otherwise, 1 <= bytes_sent <= len
+    /// @throws IoException if the socket is closed
+    /// @throws IoSystemError on a failed syscall, EINTR is retried transparently
+    [[nodiscard]] std::optional<std::size_t> SendNoblock(const void* buf, std::size_t len);
+
+    /// @brief Sends a buffer list to the socket without waiting.
+    /// @returns
+    /// - nullopt on backpressure
+    /// - optional{0} if the buffers hold no bytes at all
+    /// - optional{bytes_sent} otherwise
+    /// @note The iovec descriptors are not modified. The result counts bytes, not buffers, so
+    /// utils::IovIter and utils::Advance should be used to resume from it.
+    /// @warning At most IOV_MAX buffers are passed to the kernel per call, the rest have to be
+    /// sent by subsequent calls. Leading empty buffers are skipped and do not count towards
+    /// that limit.
+    /// @note An empty buffer list never reaches the kernel, so on a datagram socket it does not
+    /// send an empty datagram.
+    /// @throws IoException if the socket is closed
+    /// @throws IoSystemError on a failed syscall, EINTR is retried transparently
+    [[nodiscard]] std::optional<std::size_t> SendNoblock(std::span<const struct iovec> list);
 
     /// @brief Sends a buffer vector to the socket.
     /// @note Can return less than len if socket is closed by peer.

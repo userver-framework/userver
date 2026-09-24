@@ -5,7 +5,11 @@
 #include <sys/uio.h>
 #include <unistd.h>
 
+#include <array>
 #include <cerrno>
+#include <cstddef>
+#include <optional>
+#include <span>
 #include <vector>
 
 #include <userver/engine/io/exception.hpp>
@@ -23,6 +27,13 @@ namespace engine::io {
 namespace {
 
 constexpr size_t kMaxStackSizeVector = 32;
+
+// MAC_COMPAT: does not support MSG_NOSIGNAL
+#ifdef MSG_NOSIGNAL
+constexpr int kSendFlagsCompat = MSG_NOSIGNAL;
+#else
+constexpr int kSendFlagsCompat = 0;
+#endif
 
 // MAC_COMPAT: does not accept flags in type
 impl::FdControlHolder MakeSocket(AddrDomain domain, SocketType type) {
@@ -63,16 +74,7 @@ Sockaddr& MemoizeAddr(
 [[nodiscard]] ssize_t RecvWrapper(int fd, void* buf, size_t len) { return ::recv(fd, buf, len, 0); }
 
 [[nodiscard]] ssize_t SendWrapper(int fd, const void* buf, size_t len) {
-    return ::send(
-        fd,
-        buf,
-        len,
-// MAC_COMPAT: does not support MSG_NOSIGNAL
-#ifdef MSG_NOSIGNAL
-        MSG_NOSIGNAL |
-#endif
-            0
-    );
+    return ::send(fd, buf, len, kSendFlagsCompat);
 }
 
 class RecvFromWrapper {
@@ -101,18 +103,7 @@ public:
     {}
 
     [[nodiscard]] ssize_t operator()(int fd, const void* buf, size_t len) const {
-        return ::sendto(
-            fd,
-            buf,
-            len,
-// MAC_COMPAT: does not support MSG_NOSIGNAL
-#ifdef MSG_NOSIGNAL
-            MSG_NOSIGNAL |
-#endif
-                0,
-            dest_addr_.Data(),
-            dest_addr_.Size()
-        );
+        return ::sendto(fd, buf, len, kSendFlagsCompat, dest_addr_.Data(), dest_addr_.Size());
     }
 
 private:
@@ -270,20 +261,45 @@ std::optional<size_t> Socket::RecvNoblock(void* buf, size_t len) {
     }
     auto& dir = fd_control_->Read();
     dir.ResetReady();
-    const impl::Direction::SingleUserGuard guard(dir);
-    const auto bytes_read = RecvWrapper(fd_control_->Fd(), buf, len);
-    if (bytes_read >= 0) {
-        return {bytes_read};
-    } else if (
-#if EAGAIN != EWOULDBLOCK
-        EWOULDBLOCK == errno
-#else
-        EAGAIN == errno
-#endif
-    )
-        return {};
+    impl::Direction::SingleUserGuard guard(dir);
+    return dir.PerformNoblockIo(guard, &RecvWrapper, buf, len, "RecvNoblock from ", peername_);
+}
 
-    throw IoException("Attempt to RecvNoblock from closed socket");
+std::optional<std::size_t> Socket::RecvNoblock(std::span<const iovec> list) {
+    if (!IsValid()) {
+        throw IoException("Attempt to RecvNoblock from closed socket");
+    }
+    auto& dir = fd_control_->Read();
+    dir.ResetReady();
+    impl::Direction::SingleUserGuard guard(dir);
+    return dir.PerformNoblockIoV(guard, &readv, list.data(), list.size(), "RecvNoblock from ", peername_);
+}
+
+std::optional<std::size_t> Socket::SendNoblock(const void* buf, std::size_t len) {
+    if (!IsValid()) {
+        throw IoException("Attempt to SendNoblock to closed socket");
+    }
+    auto& dir = fd_control_->Write();
+    dir.ResetReady();
+    impl::Direction::SingleUserGuard guard(dir);
+    return dir.PerformNoblockIo(
+        guard,
+        &SendWrapper,
+        const_cast<void*>(buf),  // NOLINT(cppcoreguidelines-pro-type-const-cast)
+        len,
+        "SendNoblock to ",
+        peername_
+    );
+}
+
+std::optional<std::size_t> Socket::SendNoblock(std::span<const iovec> list) {
+    if (!IsValid()) {
+        throw IoException("Attempt to SendNoblock to closed socket");
+    }
+    auto& dir = fd_control_->Write();
+    dir.ResetReady();
+    impl::Direction::SingleUserGuard guard(dir);
+    return dir.PerformNoblockIoV(guard, &writev, list.data(), list.size(), "SendNoblock to ", peername_);
 }
 
 size_t Socket::SendAll(std::span<const IoData> list, Deadline deadline) {
