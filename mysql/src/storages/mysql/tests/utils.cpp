@@ -1,16 +1,15 @@
 #include <userver/storages/mysql/tests/utils.hpp>
 
-#include <stdlib.h>
+#include <cstdlib>
 
 #include <chrono>
-#include <cstdlib>
 #include <thread>
 
 #include <fmt/format.h>
 
 #include <userver/components/component_config.hpp>
-#include <userver/engine/subprocess/process_starter.hpp>
-#include <userver/engine/task/task.hpp>
+#include <userver/engine/deadline.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/formats/json.hpp>
 #include <userver/formats/yaml.hpp>
 #include <userver/fs/blocking/read.hpp>
@@ -29,40 +28,47 @@ namespace {
 constexpr const char* kTestsuiteMysqlPort = "TESTSUITE_MYSQL_PORT";
 constexpr std::uint32_t kDefaultTestsuiteMysqlPort = 13307;
 
-void DoCreateTestDatabase(std::uint32_t port) {
+settings::ConnectionSettings MakeTestConnectionSettings() {
+    settings::ConnectionSettings connection_settings{};
+    connection_settings.statements_cache_size = 20;
+    connection_settings.use_secure_connection = false;
+    connection_settings.use_compression = false;
+    connection_settings.ip_mode = settings::IpMode::kIpV4;
+    return connection_settings;
+}
+
+void DoCreateTestDatabase(clients::dns::Resolver& resolver, std::uint32_t port) {
     // TODO provide an in-framework API for MySQL database creation.
-
-    // engine::subprocess::ProcessStarter is not available here, because
-    // the default ev loop is disabled due to death-tests.
-    // Also, we want to avoid having a dependency on Boost.Process.
-
-    // There definitely won't be any shell injection here, trust me.
-    // Also, this hack is run in tests only.
     constexpr auto kRetryCount = 30;
     constexpr auto kRetryDelay = std::chrono::milliseconds{200};
+    constexpr auto kConnectTimeout = std::chrono::seconds{5};
+
+    settings::EndpointInfo endpoint{"127.0.0.1", port};
+    settings::AuthSettings auth{};
+    auth.user = "root";
+    auth.password = decltype(auth.password){""};
+    auth.database.clear();
+
+    const auto connection_settings = MakeTestConnectionSettings();
+    const auto deadline = engine::Deadline::FromDuration(kConnectTimeout);
 
     for (int attempt = 0; attempt < kRetryCount; ++attempt) {
-        // NOLINTNEXTLINE(cert-env33-c,concurrency-mt-unsafe)
-        const auto status = std::system(
-            fmt::format(R"(mysql -u root -h 127.0.0.1 -P {} -e "CREATE DATABASE IF NOT EXISTS userver_mysql_test")", port)
-                .c_str()
-        );
-
-        if (WIFEXITED(status) && WEXITSTATUS(status) == 0) {
+        try {
+            impl::Connection connection(resolver, endpoint, auth, connection_settings, deadline);
+            connection.ExecuteQuery("CREATE DATABASE IF NOT EXISTS userver_mysql_test", deadline);
             return;
+        } catch (const std::exception&) {
         }
 
         std::this_thread::sleep_for(kRetryDelay);
     }
 
-    throw std::runtime_error(
-        fmt::format(
-            "Failed to create test database on port {} after {} attempts. "
-            "Ensure MySQL is running and the `mysql` CLI is available in PATH",
-            port,
-            kRetryCount
-        )
-    );
+    throw std::runtime_error(fmt::format(
+        "Failed to create test database on port {} after {} attempts. "
+        "Ensure MySQL is running and accepts connections from 127.0.0.1",
+        port,
+        kRetryCount
+    ));
 }
 
 std::uint32_t GetTestDatabasePort() {
@@ -73,10 +79,10 @@ std::uint32_t GetTestDatabasePort() {
     return kDefaultTestsuiteMysqlPort;
 }
 
-void CreateTestDatabase() {
+void CreateTestDatabase(clients::dns::Resolver& resolver) {
     static bool created = false;
     if (!created) {
-        DoCreateTestDatabase(GetTestDatabasePort());
+        DoCreateTestDatabase(resolver, GetTestDatabasePort());
         created = true;
     }
 }
@@ -96,7 +102,7 @@ std::string GenerateTableName() {
 }
 
 std::shared_ptr<Cluster> CreateCluster(clients::dns::Resolver& resolver) {
-    CreateTestDatabase();
+    CreateTestDatabase(resolver);
 
     formats::json::ValueBuilder secdist_json_builder = formats::json::FromString(R"(
     {
