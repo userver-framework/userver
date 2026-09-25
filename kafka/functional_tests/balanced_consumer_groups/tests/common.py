@@ -2,6 +2,9 @@ CONSUME_BASE_ROUTE = '/consume'
 CONSUMERS = ['kafka-consumer-first', 'kafka-consumer-second']
 TOPIC = 'test-topic'
 
+# Join, rebalance and stop notifications may exceed the default testpoint timeout under CI load.
+KAFKA_SYNC_TESTPOINT_TIMEOUT_SECONDS = 120
+
 
 async def start_consumers(
     service_client,
