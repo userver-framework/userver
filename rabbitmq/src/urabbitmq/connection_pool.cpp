@@ -63,7 +63,9 @@ ConnectionPool::ConnectionPool(
         // Already logged in base class
     }
 
-    monitor_.Start("connection_pool_monitor", {{kPoolMonitorInterval}}, [this] { RunMonitor(); });
+    monitor_.Start("connection_pool_monitor", {{kPoolMonitorInterval}, {}, logging::Level::kDebug}, [this] {
+        RunMonitor();
+    });
 }
 
 ConnectionPool::~ConnectionPool() {
