@@ -246,6 +246,30 @@ UTEST(HttpResponse, Smoke) {
     EXPECT_EQ(reply.substr(reply.size() - 4 - kBody.size()), fmt::format("\r\n\r\n{}", kBody));
 }
 
+UTEST(HttpResponse, FollowsRequestFieldsSetAfterConstruction) {
+    const auto test_deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+
+    server::request::ResponseDataAccounter accounter;
+    auto request = server::http::HttpRequestBuilder{accounter}.SetHttpMajor(1).SetHttpMinor(0).SetIsFinal(true).Build();
+    auto& response = server::http::GetHttpResponseImpl(*request);
+    response.SetStatus(server::http::HttpStatus::kOk);
+
+    auto [server, client] = engine::io::tests::TcpListener{}.MakeSocketPair(test_deadline);
+    auto send_task = engine::AsyncNoTracing(
+        [](auto&& response, auto&& socket) { response.SendResponse(socket); },
+        std::ref(response),
+        std::move(server)
+    );
+
+    std::vector<char> buffer(4096, '\0');
+    const auto reply_size = client.RecvAll(buffer.data(), buffer.size(), test_deadline);
+
+    const std::string_view reply{buffer.data(), reply_size};
+    constexpr std::string_view expected_header = "HTTP/1.0 200 OK\r\n";
+    ASSERT_EQ(reply.substr(0, expected_header.size()), expected_header);
+    EXPECT_THAT(reply, testing::HasSubstr(fmt::format("\r\n{}: close\r\n", http::headers::kConnection)));
+}
+
 UTEST(HttpResponse, AccounterLifetimeIfNotSent) {
     auto accounter = std::make_unique<server::request::ResponseDataAccounter>();
     const auto request = server::http::HttpRequestBuilder{*accounter}.Build();

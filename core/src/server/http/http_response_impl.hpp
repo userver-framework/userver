@@ -101,6 +101,12 @@ public:
 
     void SetHeadRequest(bool is_head_request) noexcept { is_head_request_ = is_head_request; }
 
+    void SetIsFinal(bool is_final) noexcept { is_final_ = is_final; }
+
+    void SetHttpMajor(std::uint8_t http_major) noexcept { http_major_ = http_major; }
+
+    void SetHttpMinor(std::uint8_t http_minor) noexcept { http_minor_ = http_minor; }
+
 private:
     std::size_t SetBodyStreamed(engine::io::RwBase& socket, USERVER_NAMESPACE::http::headers::HeadersString& header);
 

@@ -197,10 +197,10 @@ private:
     std::size_t bytes_sent_ = 0;
     bool is_sent_ = false;
 
-    const bool is_final_;
+    bool is_final_;
     bool is_head_request_;
-    const std::uint8_t http_major_;
-    const std::uint8_t http_minor_;
+    std::uint8_t http_major_;
+    std::uint8_t http_minor_;
     HttpStatus status_ = HttpStatus::kOk;
     HeadersMap system_headers_;
     HeadersMap user_headers_;
