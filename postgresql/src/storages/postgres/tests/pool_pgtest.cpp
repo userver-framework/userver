@@ -607,6 +607,7 @@ UTEST_P(PostgrePool, ConnectionCleanup) {
         EXPECT_EQ(1, stats.connection.active);
         EXPECT_EQ(stats.connection.error_total.Load(), 0);
     }
+    WaitForPoolSize(pool, 1);
     {
         pg::Transaction trx{pg::detail::ConnectionPtr(nullptr)};
         UEXPECT_NO_THROW(trx = pool->Begin({})) << "Start transaction in a pool";
@@ -666,6 +667,7 @@ UTEST_P(PostgrePool, QueryCancel) {
         dynamic_config::GetDefaultSource(),
         std::make_shared<utils::statistics::MetricsStorage>()
     );
+    WaitForPoolSize(pool, 1);
     {
         pg::Transaction trx{pg::detail::ConnectionPtr(nullptr)};
         UEXPECT_NO_THROW(trx = pool->Begin({})) << "Start transaction in a pool";
