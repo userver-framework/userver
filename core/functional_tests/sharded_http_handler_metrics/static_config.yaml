@@ -18,6 +18,13 @@ components_manager:
             task_processor: main-task-processor
             url_trailing_slash: strict-match
 
+        handler-very-important-product-upstream:
+            upstream-url: $upstream-url
+            path: /very-important-product-upstream
+            method: GET
+            task_processor: main-task-processor
+            url_trailing_slash: strict-match
+
         server:
             listener:
                 port: 8089

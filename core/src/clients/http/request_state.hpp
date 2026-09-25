@@ -217,6 +217,7 @@ private:
     impl::EasyWrapper easy_;
     RequestStats stats_;
     std::optional<RequestStats> dest_req_stats_;
+    std::optional<RequestStats> sharded_dest_req_stats_;
     CancellationPolicy cancellation_policy_{CancellationPolicy::kCancel};
 
     DestinationStatistics& dest_stats_;

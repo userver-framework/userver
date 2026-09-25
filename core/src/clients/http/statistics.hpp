@@ -145,7 +145,13 @@ struct DestinationStatisticsView {
     const InstanceStatistics& stats;
 };
 
+struct ShardedDestinationStatisticsView {
+    const InstanceStatistics& stats;
+};
+
 void DumpMetric(utils::statistics::Writer& writer, const DestinationStatisticsView& view);
+
+void DumpMetric(utils::statistics::Writer& writer, const ShardedDestinationStatisticsView& view);
 
 void DumpMetric(utils::statistics::Writer& writer, const InstanceStatistics& stats);
 

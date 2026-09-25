@@ -12,6 +12,7 @@
 #include <userver/utils/daemon_run.hpp>
 
 #include <handler.hpp>
+#include <upstream_handler.hpp>
 
 int main(int argc, const char* const argv[]) {
     auto component_list =
@@ -23,6 +24,7 @@ int main(int argc, const char* const argv[]) {
             .Append<server::handlers::ServerMonitor>()
             .Append<server::handlers::Ping>()
             .Append<handler::HandlerVeryImportantProduct>()
+            .Append<handler::HandlerVeryImportantProductUpstream>()
             .AppendComponentList(clients::http::ComponentList())
             .AppendComponentList(server::middlewares::DefaultMiddlewareComponents());
 

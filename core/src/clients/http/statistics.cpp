@@ -167,7 +167,7 @@ void Statistics::AccountError(ErrorGroup error) { ++error_count_[static_cast<int
 
 void Statistics::AccountStatus(int code) { reply_status_.Account(code); }
 
-void DumpMetric(utils::statistics::Writer& writer, const DestinationStatisticsView& view) {
+void DumpMetric(utils::statistics::Writer& writer, const ShardedDestinationStatisticsView& view) {
     const auto& stats = view.stats;
 
     writer["timings"] = stats.timings_percentile;
@@ -178,6 +178,12 @@ void DumpMetric(utils::statistics::Writer& writer, const DestinationStatisticsVi
     }
 
     writer["reply-statuses"] = stats.reply_status;
+}
+
+void DumpMetric(utils::statistics::Writer& writer, const DestinationStatisticsView& view) {
+    const auto& stats = view.stats;
+
+    writer = ShardedDestinationStatisticsView{stats};
 
     writer["retries"] = stats.retries;
     writer["pending-requests"] = stats.easy_handles;
