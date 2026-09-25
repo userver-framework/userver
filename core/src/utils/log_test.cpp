@@ -44,86 +44,107 @@ TEST(TestToLimitedHex, TruncatedNegative) { EXPECT_EQ(utils::log::ToLimitedHex(k
 
 TEST(TestToLimitedHex, Empty) { EXPECT_EQ(utils::log::ToLimitedHex("", 0), ""); }
 
-TEST(TestToLimitedUtf8, ValidNonTruncated) { EXPECT_EQ(utils::log::ToLimitedUtf8(kValidUtf8Data, 30), kValidUtf8Data); }
+TEST(TestToLimitedUtf8, ValidNonTruncated) {
+    EXPECT_EQ(utils::log::ToLimitedUtf8(kValidUtf8Data, 30), kValidUtf8Data);
+    EXPECT_EQ(utils::log::ToLimitedUtf8(std::string{kValidUtf8Data}, 30), kValidUtf8Data);
+}
 
 TEST(TestToLimitedUtf8, ValidTruncated) {
     auto data = utils::log::ToLimitedUtf8(kValidUtf8Data, 3);
     auto correct_data = TruncatedMsg(kValidUtf8Data.substr(0, 3), kValidUtf8Data.size());
     EXPECT_EQ(data, correct_data);
+    EXPECT_EQ(utils::log::ToLimitedUtf8(std::string{kValidUtf8Data}, 3), correct_data);
 }
 
 TEST(TestToLimitedUtf8, ValidTruncatedAll) {
     auto data = utils::log::ToLimitedUtf8(kValidUtf8Data, 0);
     auto correct_data = TruncatedMsg("", kValidUtf8Data.size());
     EXPECT_EQ(data, correct_data);
+    EXPECT_EQ(utils::log::ToLimitedUtf8(std::string{kValidUtf8Data}, 0), correct_data);
 }
 
 TEST(TestToLimitedUtf8, ValidTruncatedNegative) {
     EXPECT_EQ(utils::log::ToLimitedUtf8(kValidUtf8Data, -1), kValidUtf8Data);
+    EXPECT_EQ(utils::log::ToLimitedUtf8(std::string{kValidUtf8Data}, -1), kValidUtf8Data);
 }
 
 TEST(TestToLimitedUtf8, BrokenNonTruncated) {
     auto data = utils::log::ToLimitedUtf8(kBrokenUtf8Data, 30);
     auto correct_data = NonUtf8Msg(kBrokenUtf8Data.size());
     EXPECT_EQ(data, correct_data);
+    EXPECT_EQ(utils::log::ToLimitedUtf8(std::string{kBrokenUtf8Data}, 30), correct_data);
 }
 
 TEST(TestToLimitedUtf8, BrokenTruncatedBad) {
     auto data = utils::log::ToLimitedUtf8(kBrokenUtf8Data, 4);
     auto correct_data = NonUtf8Msg(kBrokenUtf8Data.size());
     EXPECT_EQ(data, correct_data);
+    EXPECT_EQ(utils::log::ToLimitedUtf8(std::string{kBrokenUtf8Data}, 4), correct_data);
 }
 
 TEST(TestToLimitedUtf8, BrokenTruncatedGood) {
     auto data = utils::log::ToLimitedUtf8(kBrokenUtf8Data, 3);
     auto correct_data = TruncatedMsg(kBrokenUtf8Data.substr(0, 3), kBrokenUtf8Data.size());
     EXPECT_EQ(data, correct_data);
+    EXPECT_EQ(utils::log::ToLimitedUtf8(std::string{kBrokenUtf8Data}, 3), correct_data);
 }
 
 TEST(TestToLimitedUtf8, BrokenTruncatedAll) {
     auto data = utils::log::ToLimitedUtf8(kBrokenUtf8Data, 0);
     auto correct_data = TruncatedMsg("", kBrokenUtf8Data.size());
     EXPECT_EQ(data, correct_data);
+    EXPECT_EQ(utils::log::ToLimitedUtf8(std::string{kBrokenUtf8Data}, 0), correct_data);
 }
 
 TEST(TestToLimitedUtf8, BrokenTruncatedNegative) {
     auto data = utils::log::ToLimitedUtf8(kBrokenUtf8Data, -1);
     auto correct_data = NonUtf8Msg(kBrokenUtf8Data.size());
     EXPECT_EQ(data, correct_data);
+    EXPECT_EQ(utils::log::ToLimitedUtf8(std::string{kBrokenUtf8Data}, -1), correct_data);
 }
 
 TEST(TestToLimitedUtf8, MultibyteNonTruncated) {
     EXPECT_EQ(utils::log::ToLimitedUtf8(kMultibyteUtf8Data, 30), kMultibyteUtf8Data);
+    EXPECT_EQ(utils::log::ToLimitedUtf8(std::string{kMultibyteUtf8Data}, 30), kMultibyteUtf8Data);
 }
 
 TEST(TestToLimitedUtf8, MultibyteTruncatedSingle) {
     auto data = utils::log::ToLimitedUtf8(kMultibyteUtf8Data, 3);
     auto correct_data = TruncatedMsg(kMultibyteUtf8Data.substr(0, 3), kMultibyteUtf8Data.size());
     EXPECT_EQ(data, correct_data);
+    EXPECT_EQ(utils::log::ToLimitedUtf8(std::string{kMultibyteUtf8Data}, 3), correct_data);
 }
 
 TEST(TestToLimitedUtf8, MultibyteTruncatedFullCodePoint) {
     auto data = utils::log::ToLimitedUtf8(kMultibyteUtf8Data, 7);
     auto correct_data = TruncatedMsg(kMultibyteUtf8Data.substr(0, 7), kMultibyteUtf8Data.size());
     EXPECT_EQ(data, correct_data);
+    EXPECT_EQ(utils::log::ToLimitedUtf8(std::string{kMultibyteUtf8Data}, 7), correct_data);
 }
 
 TEST(TestToLimitedUtf8, MultibyteTruncatedHalfCodePoint) {
     auto data = utils::log::ToLimitedUtf8(kMultibyteUtf8Data, 6);
     auto correct_data = TruncatedMsg(kMultibyteUtf8Data.substr(0, 5), kMultibyteUtf8Data.size());
     EXPECT_EQ(data, correct_data);
+    EXPECT_EQ(utils::log::ToLimitedUtf8(std::string{kMultibyteUtf8Data}, 6), correct_data);
 }
 
 TEST(TestToLimitedUtf8, MultibyteTruncatedAll) {
     auto data = utils::log::ToLimitedUtf8(kMultibyteUtf8Data, 0);
     auto correct_data = TruncatedMsg("", kMultibyteUtf8Data.size());
     EXPECT_EQ(data, correct_data);
+    EXPECT_EQ(utils::log::ToLimitedUtf8(std::string{kMultibyteUtf8Data}, 0), correct_data);
 }
 
 TEST(TestToLimitedUtf8, MultibyteTruncatedNegative) {
     EXPECT_EQ(utils::log::ToLimitedUtf8(kMultibyteUtf8Data, -1), kMultibyteUtf8Data);
+    EXPECT_EQ(utils::log::ToLimitedUtf8(std::string{kMultibyteUtf8Data}, -1), kMultibyteUtf8Data);
 }
 
-TEST(TestToLimitedUtf8, Empty) { EXPECT_EQ(utils::log::ToLimitedUtf8("", 0), ""); }
+TEST(TestToLimitedUtf8, Empty) {
+    const std::string empty;
+    EXPECT_EQ(utils::log::ToLimitedUtf8(empty, 0), "");
+    EXPECT_EQ(utils::log::ToLimitedUtf8(std::string{empty}, 0), "");
+}
 
 USERVER_NAMESPACE_END
