@@ -35,6 +35,8 @@ public:
     ~ResponseFuture();
 
     /// @brief Cancel the request in flight
+    /// @warning Not thread-safe with respect to @ref clients::http::ResponseFuture::Wait.
+    /// Do not call Cancel() and Wait() concurrently on the same object.
     void Cancel();
 
     /// @brief Keep executing the request but do not care any more about the result. It is fine to destroy this future
@@ -61,6 +63,7 @@ public:
 
 private:
     void CancelOrDetach();
+    bool IsDetached() const noexcept;
 
     engine::Future<std::shared_ptr<Response>> future_;
     engine::Deadline deadline_;
