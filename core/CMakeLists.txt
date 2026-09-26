@@ -194,7 +194,9 @@ if(CMAKE_SYSTEM_NAME MATCHES "Darwin" AND CMAKE_SYSTEM_PROCESSOR MATCHES "arm64"
     endif()
 endif()
 
-if("${Boost_VERSION_STRING}" VERSION_GREATER_EQUAL "1.88.0")
+# Boost.Context 1.88 through 1.91 conflict with userver's task-local exception state.
+# The upstream fix was merged after Boost 1.91.
+if("${Boost_VERSION_STRING}" VERSION_GREATER_EQUAL "1.92.0")
     set(USERVER_UBOOST_CORO_DEFAULT OFF)
 endif()
 
