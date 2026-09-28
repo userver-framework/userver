@@ -5501,6 +5501,7 @@
   "scripts/grpc/requirements-4.txt":"taxi/uservices/userver/scripts/grpc/requirements-4.txt",
   "scripts/grpc/requirements-5.txt":"taxi/uservices/userver/scripts/grpc/requirements-5.txt",
   "scripts/grpc/requirements-6.txt":"taxi/uservices/userver/scripts/grpc/requirements-6.txt",
+  "scripts/grpc/templates/README.md":"taxi/uservices/userver/scripts/grpc/templates/README.md",
   "scripts/grpc/templates/client.usrv.cpp.jinja":"taxi/uservices/userver/scripts/grpc/templates/client.usrv.cpp.jinja",
   "scripts/grpc/templates/client.usrv.hpp.jinja":"taxi/uservices/userver/scripts/grpc/templates/client.usrv.hpp.jinja",
   "scripts/grpc/templates/service.usrv.cpp.jinja":"taxi/uservices/userver/scripts/grpc/templates/service.usrv.cpp.jinja",
