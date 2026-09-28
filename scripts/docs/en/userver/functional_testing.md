@@ -99,10 +99,16 @@ Basic `requirements.txt` file may look like this:
 yandex-taxi-testsuite[mongodb]
 ```
 
-Creating per-testsuite virtual environment is a recommended way to go.
-It creates Python venv in the current binary directory:
+Passing `REQUIREMENTS` is the recommended way to add Python dependencies.
+The venv is created at the top of the build directory and is **shared by every
+testsuite that asks for the same requirements**:
 
-`${CMAKE_CURRENT_BINARY_DIR}/venv-testsuite-${SERVICE_TARGET}`
+`${CMAKE_BINARY_DIR}/venv-userver-testsuite-<key>`
+
+where `<key>` is derived from the requirements files. Suites asking for
+different requirements get different venvs; suites asking for the same ones
+share, so a project that builds many services in a single CMake project
+installs those dependencies once rather than once per suite.
 
 ### Run with ctest
 
