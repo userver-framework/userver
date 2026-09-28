@@ -1,5 +1,6 @@
 #include <userver/compression/gzip.hpp>
 
+#include <zlib.h>
 #include <boost/iostreams/copy.hpp>
 #include <boost/iostreams/device/back_inserter.hpp>
 #include <boost/iostreams/filter/gzip.hpp>
@@ -13,6 +14,8 @@ namespace {
 namespace bio = boost::iostreams;
 constexpr auto kDecompressBufferSize = 1024;
 }  // namespace
+
+const int kDefaultCompressionLevel = Z_DEFAULT_COMPRESSION;
 
 std::string Decompress(std::string_view compressed, size_t max_size) {
     std::string decompressed;
@@ -44,10 +47,10 @@ std::string Decompress(std::string_view compressed, size_t max_size) {
     return decompressed;
 }
 
-std::string Compress(std::string_view data) {
+std::string Compress(std::string_view data, int compression_level) {
     std::string compressed;
     bio::filtering_ostream stream;
-    stream.push(bio::gzip_compressor{});
+    stream.push(bio::gzip_compressor{bio::gzip_params{compression_level}});
     stream.push(bio::back_inserter(compressed));
     stream.write(data.data(), static_cast<std::streamsize>(data.size()));
     bio::close(stream);  // flush the gzip footer

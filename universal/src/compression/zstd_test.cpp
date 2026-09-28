@@ -16,6 +16,9 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
+constexpr int kFastCompressionLevel = -2;
+constexpr int kSlowCompressionLevel = 10;
+
 // Streaming compression without a pledged size yields ZSTD_CONTENTSIZE_UNKNOWN,
 // which forces Decompress() to use DecompressStream().
 std::string CompressZerosStreamUnknownSize(std::size_t zero_bytes) {
@@ -58,6 +61,28 @@ std::string CompressZerosStreamUnknownSize(std::size_t zero_bytes) {
 }
 
 }  // namespace
+
+TEST(Zstd, CompressEmpty) {
+    const std::string original;
+
+    const auto compressed = compression::zstd::Compress(original);
+    const auto decompressed = compression::zstd::Decompress(compressed, 1);
+
+    EXPECT_EQ(compressed, compression::zstd::Compress(original, compression::zstd::kDefaultCompressionLevel));
+    EXPECT_EQ(decompressed, original);
+}
+
+TEST(Zstd, CompressLargeRepetitive) {
+    const std::string original(1024 * 1024, 'a');
+
+    const auto fast = compression::zstd::Compress(original, kFastCompressionLevel);
+    const auto slow = compression::zstd::Compress(original, kSlowCompressionLevel);
+
+    EXPECT_EQ(compression::zstd::Decompress(fast, original.size()), original);
+    EXPECT_EQ(compression::zstd::Decompress(slow, original.size()), original);
+    EXPECT_NE(fast, slow);
+    EXPECT_LT(slow.size(), original.size());
+}
 
 TEST(Zstd, DecompressSmall) {
     const std::string str("abcdefgh");

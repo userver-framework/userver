@@ -14,6 +14,8 @@ namespace {
 const size_t kDecompressBufferSize = ZSTD_DStreamOutSize();
 }  // namespace
 
+const int kDefaultCompressionLevel = ZSTD_CLEVEL_DEFAULT;
+
 std::string DecompressStream(std::string_view compressed, size_t max_size) {
     std::string decompressed;
     std::string buf(kDecompressBufferSize, '\0');
@@ -80,6 +82,16 @@ std::string Decompress(std::string_view compressed, size_t max_size) {
     }
 
     return decompressed;
+}
+
+std::string Compress(std::string_view data, int compression_level) {
+    const auto capacity = ZSTD_compressBound(data.size());
+    const auto buffer = std::make_unique_for_overwrite<char[]>(capacity);
+    const auto compressed_size = ZSTD_compress(buffer.get(), capacity, data.data(), data.size(), compression_level);
+    if (ZSTD_isError(compressed_size)) {
+        throw std::runtime_error(ZSTD_getErrorName(compressed_size));
+    }
+    return std::string(buffer.get(), compressed_size);
 }
 
 }  // namespace compression::zstd
