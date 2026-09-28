@@ -64,9 +64,6 @@ add_library(${PROJECT_NAME} STATIC ${SOURCES})
 # thread_local usage in Moodycamel is incompatible with userver scheduler that migrates coroutines between threads.
 target_compile_definitions(${PROJECT_NAME} PUBLIC MOODYCAMEL_NO_THREAD_LOCAL)
 
-include(GenGdbPrinters)
-gen_gdb_cmd(${PROJECT_NAME} "cmd/utask")
-
 if(USERVER_DISABLE_PHDR_CACHE)
     target_compile_definitions(${PROJECT_NAME} PRIVATE USERVER_DISABLE_PHDR_CACHE)
 endif()

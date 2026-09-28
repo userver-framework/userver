@@ -202,7 +202,7 @@ components::ManagerControllerComponent, or disable it entirely at build time usi
 ## Adding new pretty-printers and commands
 
 If you need a new pretty-printer or a GDB command, you can always implement it yourself in `userver/scripts/gdb` and
-bring us a PR!
+bring us a PR! (see `userver/scripts/gdb/DEVELOPMENT.md`).
 
 
 ----------

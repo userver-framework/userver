@@ -1,2 +1,5 @@
+if(USERVER_FEATURE_CORE)
+    add_subdirectory(cmd)
+endif()
 add_subdirectory(formats)
-add_subdirectory(cmd)
+add_subdirectory(utils)

@@ -337,6 +337,8 @@ endif()
 
 add_subdirectory(libraries)
 
+add_subdirectory(scripts/gdb)
+userver_link_gdb_scripts(userver-universal)
 if(USERVER_BUILD_TESTS)
     add_subdirectory(cmake/tests)
     add_subdirectory(scripts/gdb/tests)

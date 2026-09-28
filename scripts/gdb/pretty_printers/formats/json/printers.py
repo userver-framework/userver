@@ -3,9 +3,11 @@ import dataclasses
 import gdb
 import gdb.printing
 
+# @see (gdb) info types -q formats::json::Value
+
 
 @dataclasses.dataclass
-class Constants:
+class FormatsJsonContants:
     # @see RAPIDJSON_UINT64_C2 at rapidjson/rapidjson.h
     RJ_UINT64_C2 = (0x0000FFFF << 32) | 0xFFFFFFFF
 
@@ -73,12 +75,12 @@ class Constants:
     RJFlag_kTypeMask = 0x07
 
 
-def rj_get_pointer(ptr, rj_type):
+def formats_json_rj_get_pointer(ptr, rj_type):
     # FIXME: support native pointer in case of w/o 48bit optimization
     # @see RAPIDJSON_48BITPOINTER_OPTIMIZATION,
     #      RAPIDJSON_GETPOINTER,
     #      RAPIDJSON_UINT64_C2 at rapidjson/rapidjson.h
-    newptr = int(ptr) & Constants.RJ_UINT64_C2
+    newptr = int(ptr) & FormatsJsonContants.RJ_UINT64_C2
     # just check rj_type is known or throw
     gdb.lookup_type(rj_type)
     return gdb.parse_and_eval(f'({rj_type}*){newptr}\n')
@@ -95,16 +97,16 @@ class RJObjectType(RJBaseType):
         super().__init__(val, flags)
         data = val['data_']['o']
         self.size = int(data['size'])
-        self.members = rj_get_pointer(
+        self.members = formats_json_rj_get_pointer(
             data['members'],
-            Constants.RJ_GENERIC_MEMBER,
+            FormatsJsonContants.RJ_GENERIC_MEMBER,
         )
         if self.size:
-            self.children = self.children_impl
+            self.children = self._children_impl
         else:
             self.to_string = lambda: r'{}'
 
-    def children_impl(self):
+    def _children_impl(self):
         for i in range(self.size):
             member = self.members[i]
             name, value = member['name'], member['value']
@@ -120,16 +122,16 @@ class RJArrayType(RJBaseType):
         super().__init__(val, flags)
         data = self.val['data_']['a']
         self.size = int(data['size'])
-        self.elements = rj_get_pointer(
+        self.elements = formats_json_rj_get_pointer(
             data['elements'],
-            Constants.RJ_GENERIC_VALUE,
+            FormatsJsonContants.RJ_GENERIC_VALUE,
         )
         if self.size:
-            self.children = self.children_impl
+            self.children = self._children_impl
         if not self.size:
             self.to_string = lambda: r'[]'
 
-    def children_impl(self):
+    def _children_impl(self):
         for i in range(self.size):
             yield (f'[{i}]', self.elements[i])
 
@@ -143,15 +145,15 @@ class RJNumberType(RJBaseType):
 
     def to_string(self):
         data = self.val['data_']['n']
-        if self._is(Constants.RJFlag_kNumberIntFlag):
+        if self._is(FormatsJsonContants.RJFlag_kNumberIntFlag):
             res = data['i']['i']
-        elif self._is(Constants.RJFlag_kNumberUintFlag):
+        elif self._is(FormatsJsonContants.RJFlag_kNumberUintFlag):
             res = data['u']['u']
-        elif self._is(Constants.RJFlag_kNumberInt64Flag):
+        elif self._is(FormatsJsonContants.RJFlag_kNumberInt64Flag):
             res = data['i64']
-        elif self._is(Constants.RJFlag_kNumberUint64Flag):
+        elif self._is(FormatsJsonContants.RJFlag_kNumberUint64Flag):
             res = data['u64']
-        elif self._is(Constants.RJFlag_kNumberDoubleFlag):
+        elif self._is(FormatsJsonContants.RJFlag_kNumberDoubleFlag):
             res = data['d']
         else:
             res = data
@@ -164,14 +166,14 @@ class RJStringType(RJBaseType):
 
     def to_string(self):
         data = self.val['data_']
-        if (self.flags & Constants.RJFlag_kInlineStrFlag) != 0:
+        if (self.flags & FormatsJsonContants.RJFlag_kInlineStrFlag) != 0:
             # FIXME: support other architectures
             # @see definition of LenPos in rapidjson/document.h
             return data['ss']['str'].string()
         else:
-            str_ptr = rj_get_pointer(
+            str_ptr = formats_json_rj_get_pointer(
                 data['s']['str'],
-                Constants.RG_ENCODING_CH,
+                FormatsJsonContants.RG_ENCODING_CH,
             )
             length = int(data['s']['length'])
             return str_ptr.string(length=length)
@@ -179,11 +181,11 @@ class RJStringType(RJBaseType):
 
 class RJBoolType(RJBaseType):
     def to_string(self):
-        if (self.flags & Constants.RJFlag_kBoolFlag) == 0:
+        if (self.flags & FormatsJsonContants.RJFlag_kBoolFlag) == 0:
             return '<bad-bool>'
-        if self.flags == Constants.RJFlag_kFalseFlag:
+        if self.flags == FormatsJsonContants.RJFlag_kFalseFlag:
             return 'false'
-        if self.flags == Constants.RJFlag_kTrueFlag:
+        if self.flags == FormatsJsonContants.RJFlag_kTrueFlag:
             return 'true'
         return str(self.val)
 
@@ -193,18 +195,18 @@ class RJNullType(RJBaseType):
         return 'null'
 
 
-def rj_get_type(flags):
-    if flags == Constants.RJFlag_kArrayFlag:
+def formats_json_rj_get_type(flags):
+    if flags == FormatsJsonContants.RJFlag_kArrayFlag:
         return RJArrayType
-    if flags == Constants.RJFlag_kObjectFlag:
+    if flags == FormatsJsonContants.RJFlag_kObjectFlag:
         return RJObjectType
-    if (flags & Constants.RJFlag_kNumberFlag) == Constants.RJFlag_kNumberFlag:
+    if (flags & FormatsJsonContants.RJFlag_kNumberFlag) == FormatsJsonContants.RJFlag_kNumberFlag:
         return RJNumberType
-    if (flags & Constants.RJFlag_kStringFlag) == Constants.RJFlag_kStringFlag:
+    if (flags & FormatsJsonContants.RJFlag_kStringFlag) == FormatsJsonContants.RJFlag_kStringFlag:
         return RJStringType
-    if (flags & Constants.RJFlag_kBoolFlag) == Constants.RJFlag_kBoolFlag:
+    if (flags & FormatsJsonContants.RJFlag_kBoolFlag) == FormatsJsonContants.RJFlag_kBoolFlag:
         return RJBoolType
-    if flags == Constants.RJFlag_kNullFlag:
+    if flags == FormatsJsonContants.RJFlag_kNullFlag:
         return RJNullType
     raise Exception(f'Unsupported rapidjson flag assigning to type: {flags}')
 
@@ -214,7 +216,7 @@ class RapidJsonValue:
 
     def __init__(self, val: gdb.Value):
         flags = val['data_']['f']['flags']
-        data_type = rj_get_type(flags)
+        data_type = formats_json_rj_get_type(flags)
         self.data = data_type(val, flags)
         if hasattr(self.data, 'to_string'):
             self.to_string = self.data.to_string
@@ -235,7 +237,7 @@ class FormatsJsonValue(RapidJsonValue):
             self.to_string = lambda: 'null'
 
 
-def register_printers(
+def formats_json_register_printers(
     pp_collection: gdb.printing.RegexpCollectionPrettyPrinter,
 ):
     pp_collection.add_printer(
@@ -248,9 +250,15 @@ def register_printers(
         r'(^.*::|^)rapidjson::GenericValue<.*>$',
         RapidJsonValue,
     )
+    return pp_collection
 
 
 if __name__ == '__main__':
-    pp = gdb.printing.RegexpCollectionPrettyPrinter('userver.formats.json')
-    register_printers(pp)
-    gdb.printing.register_pretty_printer(gdb.current_objfile(), pp)
+    assert hasattr(gdb, 'printing'), (
+        "userver's gdb pretty-printer formats::json::Value cannot be initialized"
+        ' because of module gdb.printing does not found'
+    )
+    gdb.printing.register_pretty_printer(
+        gdb.current_objfile(),
+        formats_json_register_printers(gdb.printing.RegexpCollectionPrettyPrinter('userver.formats.json')),
+    )

@@ -13,8 +13,12 @@
 
 USERVER_NAMESPACE_BEGIN
 
+// [RE_DQSP] and [RE_DQNSP] are replaced within gen_gdb_printers_tests.py
+
 __attribute__((noinline)) static void TestNonCoroutineCtx() {
-    TEST_COMMAND("assert_matches('Task ID\\s+State\\s+Span name', gdb.execute('utask list', to_string=True))");
+    TEST_COMMAND(
+        "assert_matches('Task ID[RE_DQSP]+State[RE_DQSP]+Span name', gdb.execute('utask list', to_string=True))"
+    );
     TEST_COMMAND("assert_matches('No tasks found', gdb.execute('utask apply all bt', to_string=True))");
 }
 
@@ -26,7 +30,7 @@ __attribute__((noinline)) static void TestSingleCoroutine() {
             "current_task = str(gdb.parse_and_eval('current_task'))\n"
             "span_name = re.escape(str(gdb.parse_and_eval('span_name')).strip('\"'))\n"
             "assert_matches(\n"
-            "   f'Task ID\\\\s+State\\\\s+Span name\\n{current_task}\\\\s+running\\\\s+{span_name}',\n"
+            "   f'Task ID[RE_DQSP]+State[RE_DQSP]+Span name\\n{current_task}[RE_DQSP]+running[RE_DQSP]+{span_name}',\n"
             "   gdb.execute('utask list', to_string=True)\n"
             ")"
         );
@@ -76,9 +80,9 @@ __attribute__((noinline)) static void TestSleepingCoroutine(bool no_span = false
                 "no_span = bool(gdb.parse_and_eval('no_span_not_optimized'))\n"
                 "new_coro_span = 'new_coro' if not no_span else ''\n"
                 "assert_matches(\n"
-                "   'Task ID\\\\s+State\\\\s+Span name\\n'\n"
-                "   f'{gdb.parse_and_eval(\"root_coro_addr\")}\\\\s+suspended\\\\s+span\\n'\n"
-                "   f'{gdb.parse_and_eval(\"new_coro\")}\\\\s+running\\\\s+{new_coro_span}',\n"
+                "   'Task ID[RE_DQSP]+State[RE_DQSP]+Span name\\n'\n"
+                "   f'{gdb.parse_and_eval(\"root_coro_addr\")}[RE_DQSP]+suspended[RE_DQSP]+span\\n'\n"
+                "   f'{gdb.parse_and_eval(\"new_coro\")}[RE_DQSP]+running[RE_DQSP]+{new_coro_span}',\n"
                 "   gdb.execute('utask list', to_string=True)\n"
                 ")"
             );
@@ -139,23 +143,25 @@ __attribute__((noinline)) static void TestMultipleCoroutines(int tasks_cnt = 11,
                         "   gdb.default_visualizer(gdb.parse_and_eval('tasks_ref')).children()\n"
                         "):\n"
                         "   task_ctx = task['pimpl_'].cast(\n"
-                        "      gdb.lookup_type(f'{USERVER_NAMESPACE}engine::TaskBase::Impl')\n"
-                        "   )['context']['px']\n"
-                        "   if gdb.parse_and_eval('threads_ref') == 1:\n"
-                        "      if int(task_ctx) == int(gdb.parse_and_eval('current_task')): state = 'running'\n"
-                        "      else: state = '(suspended|queued)'\n"
-                        "   else: state = '(running|suspended|queued)'\n"
-                        "   assert_matches(f'{task_ctx}\\\\s+{state}\\\\s+task_{i}', tasks_list_output)\n"
-                        "if gdb.parse_and_eval('threads_ref') != 1:\n"
-                        "   assert_matches('(running.*){1,4}', tasks_list_output)\n",
+                        "      gdb.lookup_type(f'" +
+                            USERVER_NAMESPACE +
+                            "engine::TaskBase::Impl')\n"
+                            "   )['context']['px']\n"
+                            "   if gdb.parse_and_eval('threads_ref') == 1:\n"
+                            "      if int(task_ctx) == int(gdb.parse_and_eval('current_task')): state = 'running'\n"
+                            "      else: state = '(suspended|queued)'\n"
+                            "   else: state = '(running|suspended|queued)'\n"
+                            "   assert_matches(f'{task_ctx}[RE_DQSP]+{state}[RE_DQSP]+task_{i}', tasks_list_output)\n"
+                            "if gdb.parse_and_eval('threads_ref') != 1:\n"
+                            "   assert_matches('(running.*){1,4}', tasks_list_output)\n",
                         test_in_coredump = True,
                     );
                     TEST_COMMAND(
                         "task_id = gdb.parse_and_eval('current_task')\n"
                         "expected_tasks_cnt = gdb.parse_and_eval('expected_tasks_cnt')\n"
                         "task_name = re.search('\"(.*)\"', str(gdb.parse_and_eval('current_task_name'))).group(1)\n"
-                        "current_task_regex = f'^Task ID\\\\s+State\\\\s+Span "
-                        "name\\\\s+{task_id}\\\\s+running\\\\s+{task_name}\\\\s*$'\n"
+                        "current_task_regex = f'^Task ID[RE_DQSP]+State[RE_DQSP]+Span "
+                        "name[RE_DQNSP]+{task_id}[RE_DQSP]+running[RE_DQSP]+{task_name}[RE_DQSP]*$'\n"
 
                         "tasks_list_by_id = gdb.execute(f'utask list -i {task_id}', to_string=True)\n"
                         "assert_matches(current_task_regex, tasks_list_by_id)\n"
@@ -165,8 +171,8 @@ __attribute__((noinline)) static void TestMultipleCoroutines(int tasks_cnt = 11,
 
                         "tasks_list_by_backtrace = gdb.execute(f'utask list -b engine::WaitAllChecked', "
                         "to_string=True)\n"
-                        "root_task_regex = f'^Task ID\\\\s+State\\\\s+Span "
-                        "name\\\\s+0x[0-9a-fA-F]+\\\\s+suspended\\\\s+span\\\\s*$'\n"
+                        "root_task_regex = f'^Task ID[RE_DQSP]+State[RE_DQSP]+Span "
+                        "name[RE_DQNSP]+0x[0-9a-fA-F]+[RE_DQSP]+suspended[RE_DQSP]+span[RE_DQSP]*$'\n"
                         "assert_matches(root_task_regex, tasks_list_by_backtrace)\n"
 
                         "running_tasks = gdb.execute('utask list -s running', to_string=True)\n"

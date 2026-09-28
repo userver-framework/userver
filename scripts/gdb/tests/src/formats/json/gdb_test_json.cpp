@@ -14,7 +14,6 @@ __attribute__((noinline)) static void TestGdbPrinters() {
     };
 
     formats::json::Value value{};
-    TEST_INIT(value);
     DoNotOptimize(value);
 
     TEST_EXPR('value', 'null');

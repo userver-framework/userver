@@ -1,1 +1,1 @@
-add_gdb_test_program(json "gdb_test_json.cpp" userver-universal)
+add_gdb_test_program(universal json "gdb_test_json.cpp" userver-universal)

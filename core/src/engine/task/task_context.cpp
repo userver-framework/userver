@@ -28,8 +28,6 @@
 #include <engine/task/cxxabi_eh_globals.hpp>
 #include <engine/task/task_processor.hpp>
 
-#include <gdb_autogen/cmd/utask/cmd.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
