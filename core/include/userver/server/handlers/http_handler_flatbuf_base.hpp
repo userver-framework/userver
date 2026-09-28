@@ -9,7 +9,7 @@
 
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/http/http_error.hpp>
-#include <userver/utils/log.hpp>
+#include <userver/utils/encoding/hex.hpp>
 #include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -128,8 +128,7 @@ std::string HttpHandlerFlatbufBase<InputType, ReturnType>::GetRequestBodyForLogg
     request::RequestContext&,
     const std::string& request_body
 ) const {
-    const size_t limit = GetConfig().request_body_size_log_limit;
-    return utils::log::ToLimitedHex(request_body, limit);
+    return utils::encoding::ToHex(request_body);
 }
 
 template <typename InputType, typename ReturnType>
@@ -138,8 +137,7 @@ std::string HttpHandlerFlatbufBase<InputType, ReturnType>::GetResponseDataForLog
     request::RequestContext&,
     const std::string& response_data
 ) const {
-    const size_t limit = GetConfig().response_data_size_log_limit;
-    return utils::log::ToLimitedHex(response_data, limit);
+    return utils::encoding::ToHex(response_data);
 }
 
 template <typename InputType, typename ReturnType>

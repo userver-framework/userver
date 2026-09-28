@@ -168,14 +168,18 @@ protected:
     /// condition
     virtual bool NeedCheckAuth() const { return true; }
 
-    /// Override it if you need a custom request body logging.
+    /// Override it if you need a custom request body logging. The returned
+    /// string is automatically truncated to the `request_body_size_log_limit`
+    /// before logging.
     virtual std::string GetRequestBodyForLogging(
         const http::HttpRequest& request,
         request::RequestContext& context,
         const std::string& request_body
     ) const;
 
-    /// Override it if you need a custom response data logging.
+    /// Override it if you need a custom response data logging. The returned
+    /// string is automatically truncated to the `response_data_size_log_limit`
+    /// before logging.
     virtual std::string GetResponseDataForLogging(
         const http::HttpRequest& request,
         request::RequestContext& context,
