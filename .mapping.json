@@ -6589,6 +6589,7 @@
   "universal/src/formats/json/utils_test.cpp":"taxi/uservices/userver/universal/src/formats/json/utils_test.cpp",
   "universal/src/formats/json/value.cpp":"taxi/uservices/userver/universal/src/formats/json/value.cpp",
   "universal/src/formats/json/value_builder.cpp":"taxi/uservices/userver/universal/src/formats/json/value_builder.cpp",
+  "universal/src/formats/json/value_builder_benchmark.cpp":"taxi/uservices/userver/universal/src/formats/json/value_builder_benchmark.cpp",
   "universal/src/formats/json/value_builder_test.cpp":"taxi/uservices/userver/universal/src/formats/json/value_builder_test.cpp",
   "universal/src/formats/json/value_test.cpp":"taxi/uservices/userver/universal/src/formats/json/value_test.cpp",
   "universal/src/formats/serialize/boost_uuid.cpp":"taxi/uservices/userver/universal/src/formats/serialize/boost_uuid.cpp",

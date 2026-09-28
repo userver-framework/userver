@@ -1,5 +1,7 @@
 #include <userver/formats/json/value_builder.hpp>
 
+#include <utility>
+
 #include <rapidjson/allocators.h>
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
@@ -43,7 +45,7 @@ ValueBuilder::ValueBuilder(Type type)
 
 ValueBuilder::ValueBuilder(const ValueBuilder& other) { Copy(value_->GetNative(), other); }
 
-// NOLINTNEXTLINE(performance-noexcept-move-constructor)
+// NOLINTNEXTLINE(cppcoreguidelines-noexcept-move-operations, performance-noexcept-move-constructor)
 ValueBuilder::ValueBuilder(ValueBuilder&& other) { Move(value_->GetNative(), std::move(other)); }
 
 ValueBuilder::ValueBuilder(bool t)
@@ -105,7 +107,7 @@ ValueBuilder& ValueBuilder::operator=(const ValueBuilder& other) {
     return *this;
 }
 
-// NOLINTNEXTLINE(performance-noexcept-move-constructor)
+// NOLINTNEXTLINE(cppcoreguidelines-noexcept-move-operations, performance-noexcept-move-constructor)
 ValueBuilder& ValueBuilder::operator=(ValueBuilder&& other) {
     if ((value_->IsArray() || value_->IsObject()) && value_->GetSize() != 0) {
         value_.OnMembersChange();
@@ -247,29 +249,90 @@ void ValueBuilder::Resize(std::size_t size) {
     }
 }
 
-void ValueBuilder::PushBack(ValueBuilder&& bld) {
+template <typename Appender>
+USERVER_IMPL_NODEBUG_INLINE_FUNC inline void ValueBuilder::PushBackNative(Appender&& append) {
     value_->CheckArrayOrNull();
     auto& native = value_->GetNative();
     if (native.IsNull()) {
         native.SetArray();
     }
 
-    // notify wrapper when elements capacity (and thus location) changes
-    const auto checked_push_back = [this, &native](auto&& value) {
-        const auto old_capacity = native.Capacity();
-        native.PushBack(value, g_allocator);
-        if (old_capacity && old_capacity != native.Capacity()) {
-            value_.OnMembersChange();
-        }
-    };
-
-    if (bld.value_->IsRoot()) {
-        // PushBack is moving value via RawAssign
-        checked_push_back(bld.value_->GetNative());
-    } else {
-        checked_push_back(impl::Value{});
-        Copy(*std::prev(native.End()), bld);
+    const auto old_capacity = native.Capacity();
+    std::forward<Appender>(append)(native);
+    if (old_capacity && old_capacity != native.Capacity()) {
+        value_.OnMembersChange();
     }
+}
+
+void ValueBuilder::PushBack(std::nullptr_t) {
+    PushBackNative([](auto& native) { native.PushBack(impl::Value{}, g_allocator); });
+}
+
+void ValueBuilder::PushBack(const std::string& value) { PushBack(std::string_view{value}); }
+
+void ValueBuilder::PushBack(std::string_view value) {
+    impl::Value native_value;
+    native_value.SetString(rapidjson::StringRef(value.data(), value.size()), g_allocator);
+    PushBackNative([&native_value](auto& native) { native.PushBack(std::move(native_value), g_allocator); });
+}
+
+template <typename T>
+void ValueBuilder::PushBackArithmeticImpl(T value) {
+    PushBackNative([value](auto& native) { native.PushBack(impl::Value{value}, g_allocator); });
+}
+
+void ValueBuilder::PushBackArithmetic(bool value) { PushBackArithmeticImpl(value); }
+
+void ValueBuilder::PushBackArithmetic(int value) { PushBackArithmeticImpl(value); }
+
+void ValueBuilder::PushBackArithmetic(unsigned int value) { PushBackArithmeticImpl(value); }
+
+void ValueBuilder::PushBackArithmetic(std::uint64_t value) { PushBackArithmeticImpl(value); }
+
+void ValueBuilder::PushBackArithmetic(std::int64_t value) { PushBackArithmeticImpl(value); }
+
+void ValueBuilder::PushBackArithmetic(float value) {
+    PushBackArithmeticImpl(formats::common::ValidateFloat<Exception>(value));
+}
+
+void ValueBuilder::PushBackArithmetic(double value) {
+    PushBackArithmeticImpl(formats::common::ValidateFloat<Exception>(value));
+}
+
+void ValueBuilder::CheckSingleElementInitializerList(std::size_t size) {
+    if (size != 1) {
+        throw Exception(
+            "ValueBuilder::PushBack accepts exactly one element in a braced initializer; call PushBack "
+            "separately for each value"
+        );
+    }
+}
+
+void ValueBuilder::PushBack(ValueBuilder&& bld) {
+    PushBackNative([&bld](auto& native) {
+        if (bld.value_->IsRoot()) {
+            native.PushBack(std::move(bld.value_->GetNative()), g_allocator);
+        } else {
+            native.PushBack(impl::Value{bld.value_->GetNative(), g_allocator}, g_allocator);
+        }
+    });
+}
+
+void ValueBuilder::PushBack(const formats::json::Value& value) {
+    const auto append = [&value](auto& native) {
+        native.PushBack(impl::Value{value.GetNative(), g_allocator}, g_allocator);
+    };
+    PushBackNative(append);
+}
+
+void ValueBuilder::PushBack(formats::json::Value&& value) {
+    PushBackNative([&value](auto& native) {
+        if (value.IsUniqueReference()) {
+            native.PushBack(std::move(value.GetNative()), g_allocator);
+        } else {
+            native.PushBack(impl::Value{value.GetNative(), g_allocator}, g_allocator);
+        }
+    });
 }
 
 formats::json::Value ValueBuilder::ExtractValue() {
