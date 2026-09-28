@@ -27,7 +27,7 @@ struct DatabaseRequestContext : RequestContextBase {
 
 class Database {
 public:
-    Database(PoolImplPtr pool, std::string database_name);
+    explicit Database(PoolImplPtr pool);
 
     void DropDatabase();
 
@@ -47,7 +47,6 @@ private:
     cdriver::DatabaseRequestContext MakeRequestContext(std::string&& span_name, const Operation& operation) const;
 
     PoolImplPtr pool_;
-    std::string database_name_;
 };
 
 }  // namespace storages::mongo::impl

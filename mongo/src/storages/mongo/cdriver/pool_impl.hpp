@@ -127,7 +127,6 @@ public:
 
     ~CDriverPoolImpl() override;
 
-    const std::string& DefaultDatabaseName() const override;
     const std::optional<std::chrono::seconds>& GetMaxReplicationLag() const;
 
     void Ping() override;
@@ -163,7 +162,6 @@ private:
     void DoMaintenance();
 
     const std::string app_name_;
-    std::string default_database_;
 
     std::string orig_connection_string_;
     std::atomic<std::int64_t> epoch_{0};

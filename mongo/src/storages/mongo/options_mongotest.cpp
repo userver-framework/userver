@@ -144,7 +144,6 @@ UTEST(CollectionReadPreference, DefaultMaxReplicationLagIsApplied) {
     };
     const InspectableCollectionImpl collection_impl{
         GetPoolImpl(pool),
-        kTestDatabaseDefaultName,
         "max_replication_lag",
     };
 

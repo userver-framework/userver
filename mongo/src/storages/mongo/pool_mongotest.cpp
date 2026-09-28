@@ -1,7 +1,9 @@
 #include <userver/utest/utest.hpp>
 
+#include <cstddef>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include <storages/mongo/pool_impl.hpp>
@@ -14,9 +16,12 @@
 #include <userver/formats/bson/document.hpp>
 #include <userver/formats/bson/inline.hpp>
 #include <userver/formats/json/serialize.hpp>
+#include <userver/storages/mongo/bulk.hpp>
 #include <userver/storages/mongo/collection.hpp>
+#include <userver/storages/mongo/cursor.hpp>
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/operators.hpp>
+#include <userver/storages/mongo/options.hpp>
 #include <userver/storages/mongo/pool.hpp>
 #include <userver/storages/mongo/pool_config.hpp>
 
@@ -66,6 +71,129 @@ UTEST_F(Pool, DropDatabase) {
 
     UEXPECT_NO_THROW(coll.InsertOne(formats::bson::MakeDoc("_id", 42)));
     EXPECT_TRUE(pool.HasCollection(kCollName));
+}
+
+UTEST_F(Pool, ConnectionStringChangesDatabase) {
+    using formats::bson::MakeDoc;
+    const std::string k_other_database = kTestDatabaseNamePrefix + "uri_reload";
+    const std::string k_collection = "uri_reload";
+    auto old_pool = MakePool({}, {});
+    auto new_pool = MakePool(k_other_database, {});
+    auto pool = MakePool({}, {});
+    auto collection = pool.GetCollection(k_collection);
+    collection.InsertOne(MakeDoc("_id", 1));
+
+    pool.SetConnectionString(GetTestsuiteMongoUri(k_other_database));
+    EXPECT_FALSE(pool.HasCollection(k_collection));
+    EXPECT_TRUE(pool.ListCollectionNames().empty());
+    EXPECT_EQ(0, collection.Count({}));
+    EXPECT_EQ(0, pool.GetCollection(k_collection).Count({}));
+
+    collection.InsertOne(MakeDoc("_id", 2));
+    collection.ReplaceOne(MakeDoc("_id", 2), MakeDoc("_id", 2, "value", 1));
+    collection.UpdateOne(MakeDoc("_id", 2), MakeDoc("$set", MakeDoc("value", 2)));
+    collection.ReplaceOne(
+        MakeDoc("_id", 2),
+        MakeDoc("_id", 2, "value", 1),
+        mongo::options::MaxServerTime{utest::kMaxTestWaitTime}
+    );
+    collection.UpdateOne(
+        MakeDoc("_id", 2),
+        MakeDoc("$set", MakeDoc("value", 2)),
+        mongo::options::MaxServerTime{utest::kMaxTestWaitTime}
+    );
+    mongo::operations::Bulk bulk(mongo::operations::Bulk::Mode::kOrdered);
+    bulk.InsertOne(MakeDoc("_id", 3));
+    collection.Execute(std::move(bulk));
+
+    EXPECT_TRUE(pool.HasCollection(k_collection));
+    EXPECT_EQ(std::vector<std::string>{k_collection}, pool.ListCollectionNames());
+    EXPECT_EQ(1, old_pool.GetCollection(k_collection).Count({}));
+    EXPECT_EQ(2, new_pool.GetCollection(k_collection).Count({}));
+    EXPECT_EQ(1, new_pool.GetCollection(k_collection).Count(MakeDoc("value", 2)));
+
+    pool.DropDatabase();
+    EXPECT_FALSE(new_pool.HasCollection(k_collection));
+    EXPECT_TRUE(old_pool.HasCollection(k_collection));
+
+    pool.SetConnectionString(GetTestsuiteMongoUri(kTestDatabaseDefaultName));
+    EXPECT_EQ(1, collection.Count({}));
+}
+
+UTEST_F(Pool, ConnectionStringChangesDatabaseWithMultipleConnections) {
+    using formats::bson::MakeDoc;
+    constexpr std::size_t k_initial_connections = 3;
+    constexpr std::size_t k_busy_connections = 2;
+    constexpr std::size_t k_max_connections = k_initial_connections + k_busy_connections;
+    const std::string k_other_database = kTestDatabaseNamePrefix + "uri_reload_multiple_connections";
+    const std::string k_collection = "uri_reload_multiple_connections";
+    auto old_pool = MakePool({}, {});
+    auto new_pool = MakePool(k_other_database, {});
+    old_pool.GetCollection(k_collection).InsertMany({MakeDoc("database", "old"), MakeDoc("database", "old")});
+    new_pool.GetCollection(k_collection).InsertMany({MakeDoc("database", "new"), MakeDoc("database", "new")});
+
+    auto config = MakeTestPoolConfig();
+    config.pool_settings.initial_size = k_initial_connections;
+    config.pool_settings.max_size = k_max_connections;
+    config.pool_settings.idle_limit = k_max_connections;
+    auto pool = MakePool({}, config);
+    auto collection = pool.GetCollection(k_collection);
+    const auto pool_impl = GetPoolImpl(pool);
+    std::vector<mongo::Cursor> old_cursors;
+    old_cursors.reserve(k_busy_connections);
+    for (std::size_t i = 0; i < k_busy_connections; ++i) {
+        old_cursors.push_back(collection.Find({}, mongo::options::BatchSize{1}));
+    }
+    ASSERT_EQ(k_initial_connections, pool_impl->SizeApprox());
+    ASSERT_EQ(k_busy_connections, pool_impl->InUseApprox());
+
+    pool.SetConnectionString(GetTestsuiteMongoUri(k_other_database));
+    std::vector<mongo::Cursor> new_cursors;
+    new_cursors.reserve(k_initial_connections);
+    for (std::size_t i = 0; i < k_initial_connections; ++i) {
+        new_cursors.push_back(collection.Find({}, mongo::options::BatchSize{1}));
+        ASSERT_EQ("new", (*new_cursors.back().begin())["database"].As<std::string>());
+    }
+    ASSERT_EQ(k_max_connections, pool_impl->InUseApprox());
+
+    for (auto& cursor : old_cursors) {
+        std::size_t count = 0;
+        for (const auto& doc : cursor) {
+            EXPECT_EQ("old", doc["database"].As<std::string>());
+            ++count;
+        }
+        EXPECT_EQ(2, count);
+    }
+    old_cursors.clear();
+    EXPECT_EQ(k_initial_connections, pool_impl->InUseApprox());
+    EXPECT_EQ(k_initial_connections, pool_impl->SizeApprox());
+
+    for (auto& cursor : new_cursors) {
+        std::size_t count = 0;
+        for (const auto& doc : cursor) {
+            EXPECT_EQ("new", doc["database"].As<std::string>());
+            ++count;
+        }
+        EXPECT_EQ(2, count);
+    }
+    new_cursors.clear();
+    EXPECT_EQ(0, pool_impl->InUseApprox());
+    EXPECT_EQ(2, collection.Count(MakeDoc("database", "new")));
+    EXPECT_EQ(0, collection.Count(MakeDoc("database", "old")));
+}
+
+UTEST_F(Pool, InvalidConnectionStringKeepsDatabase) {
+    using formats::bson::MakeDoc;
+    auto& pool = GetDefaultPool();
+    auto collection = pool.GetCollection("uri_validation");
+    collection.InsertOne(MakeDoc("_id", 1));
+
+    for (const auto& uri : {std::string{"invalid-uri"}, GetTestsuiteMongoUri("")}) {
+        for (int attempt = 0; attempt < 2; ++attempt) {
+            UEXPECT_THROW(pool.SetConnectionString(uri), mongo::InvalidConfigException);
+            EXPECT_EQ(1, collection.Count({}));
+        }
+    }
 }
 
 UTEST(NonexistentPool, ConnectionFailure) {

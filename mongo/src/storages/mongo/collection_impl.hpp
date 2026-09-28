@@ -17,7 +17,6 @@ class CollectionImpl {
 public:
     virtual ~CollectionImpl() = default;
 
-    const std::string& GetDatabaseName() const;
     const std::string& GetCollectionName() const;
 
     virtual size_t Execute(const operations::Count&) const = 0;
@@ -36,12 +35,11 @@ public:
     virtual void Execute(const operations::Drop&) = 0;
 
 protected:
-    CollectionImpl(std::string database_name, std::string collection_name);
+    explicit CollectionImpl(std::string collection_name);
 
     tracing::Span MakeSpan(std::string&& name) const;
 
 private:
-    const std::string database_name_;
     const std::string collection_name_;
 };
 

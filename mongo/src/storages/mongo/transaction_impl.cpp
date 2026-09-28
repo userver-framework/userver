@@ -44,9 +44,6 @@ TransactionImpl::TransactionImpl(std::shared_ptr<PoolImpl> pool_impl)
       data_{std::make_shared<TransactionData>(Transaction::State::kNone, nullptr)}
 {
     UASSERT(pool_impl_);
-
-    // Get database name from pool
-    database_name_ = pool_impl_->DefaultDatabaseName();
 }
 
 TransactionImpl::~TransactionImpl() {
@@ -66,7 +63,7 @@ Collection TransactionImpl::GetCollection(std::string name) {
     data_->EnsureActive();
 
     auto collection_impl = std::make_shared<
-        cdriver::CDriverTransactionCollectionImpl>(pool_impl_, database_name_, std::move(name), data_);
+        cdriver::CDriverTransactionCollectionImpl>(pool_impl_, std::move(name), data_);
     return Collection{std::move(collection_impl), /*transactional=*/true};
 }
 

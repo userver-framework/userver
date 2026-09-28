@@ -355,11 +355,6 @@ CDriverPoolImpl::CDriverPoolImpl(
 
     SetConnectionString(uri_string);
     auto uri = uri_.Read();
-    const char* uri_database = mongoc_uri_get_database(&**uri);
-    if (!uri_database) {
-        throw InvalidConfigException("MongoDB uri for pool '") << Id() << "' must include database name";
-    }
-    default_database_ = uri_database;
 
     init_data_.ssl_opt = MakeSslOpt(&**uri);
 
@@ -413,8 +408,6 @@ size_t CDriverPoolImpl::MaxSize() const { return max_size_.load(); }
 const stats::ApmStats& CDriverPoolImpl::GetApmStats() const { return apm_stats_; }
 
 void CDriverPoolImpl::SetMaxSize(size_t max_size) { max_size_ = max_size; }
-
-const std::string& CDriverPoolImpl::DefaultDatabaseName() const { return default_database_; }
 
 const std::optional<std::chrono::seconds>& CDriverPoolImpl::GetMaxReplicationLag() const {
     return pool_config_.max_replication_lag;
@@ -474,13 +467,17 @@ void CDriverPoolImpl::SetConnectionString(const std::string& connection_string) 
         // not changed
         return;
     }
+    auto uri = MakeUri(Id(), connection_string, pool_config_);
+    if (!mongoc_uri_get_database(uri.get())) {
+        throw InvalidConfigException("MongoDB uri for pool '") << Id() << "' must include database name";
+    }
     orig_connection_string_ = connection_string;
     bulk_write_support_.store(BulkWriteSupport::kUnknown, std::memory_order_relaxed);
     LOG_WARNING()
         << "New connection string for " << Id() << " found in secdist, all old sockets will be eventually closed";
 
     // sync: store uri_ before epoch_
-    uri_.Assign(MakeUri(Id(), connection_string, pool_config_));
+    uri_.Assign(std::move(uri));
     epoch_++;
 
     TESTPOINT("mongo-new-connection-string", {});
@@ -598,8 +595,11 @@ void CDriverPoolImpl::Drop(ConnPtr conn) noexcept {
 
 CDriverPoolImpl::ConnPtr CDriverPoolImpl::TryGetIdle() {
     ConnPtr conn{};
-    if (queue_.try_dequeue(conn)) {
-        return conn;
+    while (queue_.try_dequeue(conn)) {
+        if (conn->GetEpoch() == epoch_.load()) {
+            return conn;
+        }
+        Drop(std::move(conn));
     }
     return nullptr;
 }

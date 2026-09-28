@@ -15,7 +15,6 @@ class CDriverTransactionCollectionImpl : public CDriverCollectionImpl {
 public:
     CDriverTransactionCollectionImpl(
         PoolImplPtr pool_impl,
-        std::string database_name,
         std::string collection_name,
         std::shared_ptr<TransactionData> data
     );
