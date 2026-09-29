@@ -234,6 +234,8 @@ Format FormatFromString(std::string_view format) {
 
 bool TryFillSpanBuilderFromRequest(Format format, const server::http::HttpRequest& request, SpanBuilder& span_builder) {
     switch (format) {
+        case Format::kNone:
+            return false;
         case Format::kYandexTaxi:
             return YandexTaxiTryFillSpanBuilderFromRequest(request, span_builder);
         case Format::kYandex:
@@ -248,6 +250,8 @@ bool TryFillSpanBuilderFromRequest(Format format, const server::http::HttpReques
 
 void FillRequestWithTracingContext(Format format, const tracing::Span& span, clients::http::MiddlewareRequest request) {
     switch (format) {
+        case Format::kNone:
+            return;
         case Format::kYandexTaxi:
             YandexTaxiFillWithTracingContext(span, request);
             return;
@@ -268,6 +272,8 @@ void FillRequestWithTracingContext(Format format, const tracing::Span& span, cli
 
 void FillResponseWithTracingContext(Format format, const Span& span, server::http::HttpResponse& response) {
     switch (format) {
+        case Format::kNone:
+            return;
         case Format::kYandexTaxi:
             YandexTaxiFillWithTracingContext(span, response);
             return;

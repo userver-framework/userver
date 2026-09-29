@@ -91,6 +91,17 @@ Use `CRITICAL` optionally for service-scale critical errors.
 Not all logs get into the log file, but only those that are not lower than the logger's log level. The logger log level
 is set in static config (see components::Logging).
 
+The `span-log-level` option of components::Logging sets the minimum log level for span completion records independently
+of application logs. When omitted, spans use the default logger's level. The option applies before components derived
+from components::ComponentBase are constructed, including when `loggers` is empty.
+
+```yaml
+components_manager:
+    components:
+        logging:
+            span-log-level: info
+```
+
 The log level can be changed in the static config for a particular handle. In this case, the log level of the logger
 is changed only for the request handling task of the handle and for all the subtasks:
 

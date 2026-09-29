@@ -44,6 +44,8 @@ public:
 
 // clang-format off
 enum class Format : short {
+  kNone = 0,
+
   /// Yandex Taxi/Lavka/Eda/... tracing:
   /// @code
   /// http::headers::kXYaTraceId -> tracing::Span::GetTraceId() -> http::headers::kXYaTraceId

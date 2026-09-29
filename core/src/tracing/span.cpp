@@ -240,6 +240,10 @@ bool Span::Impl::ShouldLog() const {
     if (local_log_level_.has_value()) {
         return true;
     }
+    const auto span_log_level = GetSpanLogLevel();
+    if (span_log_level.has_value()) {
+        return span_log_level.value() <= log_level_;
+    }
     return logging::impl::ShouldLogNoSpan(logging::GetDefaultLogger(), log_level_);
 }
 

@@ -6,6 +6,7 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/tracing/manager.hpp>
 #include <userver/tracing/opentelemetry.hpp>
 #include <userver/tracing/span.hpp>
@@ -295,6 +296,32 @@ UTEST_F(Span, SpanLogLevelLowerThanGlobal) {
 
     EXPECT_THAT(GetStreamString(), Not(HasSubstr("not_logged_span")));
     EXPECT_THAT(GetStreamString(), HasSubstr("parent_span"));
+}
+
+UTEST_F(Span, GlobalSpanLogLevelOverridesDefaultLogger) {
+    const logging::DefaultLoggerLevelScope default_logger_level{logging::Level::kWarning};
+    tracing::SetSpanLogLevel(logging::Level::kInfo);
+
+    {
+        const tracing::Span span{"info_span"};
+        LOG_INFO() << "info_message";
+    }
+    logging::LogFlush();
+
+    EXPECT_THAT(GetStreamString(), HasSubstr("stopwatch_name=info_span"));
+    EXPECT_THAT(GetStreamString(), Not(HasSubstr("text=info_message")));
+}
+
+UTEST_F(Span, GlobalSpanLogLevelCanSuppressSpan) {
+    tracing::SetSpanLogLevel(logging::Level::kWarning);
+
+    {
+        const tracing::Span span{"info_span"};
+        EXPECT_FALSE(span.GetSpanIdForChildLogs().has_value());
+    }
+    logging::LogFlush();
+
+    EXPECT_THAT(GetStreamString(), Not(HasSubstr("stopwatch_name=info_span")));
 }
 
 UTEST_F(Span, NoLogNames) {

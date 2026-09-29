@@ -12,6 +12,7 @@
 
 #include <userver/logging/format.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/tracing/tracer.hpp>
 #include <userver/utest/default_logger_fixture.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -78,7 +79,9 @@ inline std::string ParseLoggedText(std::string_view log_record, logging::Format 
     return std::string{log_record};
 }
 
-using DefaultLoggerFixture = utest::DefaultLoggerFixture< ::testing::Test>;
+class DefaultLoggerFixture : public utest::DefaultLoggerFixture< ::testing::Test> {
+    tracing::TracingStateGuard tracing_state_guard_;
+};
 
 class LoggingTestBase : public DefaultLoggerFixture {
 protected:

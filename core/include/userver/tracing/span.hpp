@@ -183,8 +183,9 @@ public:
     /// This (mostly) does not affect logs written within the span,
     /// unlike @ref tracing::Span::SetLocalLogLevel.
     ///
-    /// If `Span`'s log level is less than the global logger's log level, then the span is
-    /// not written out. In that case:
+    /// If `Span`'s log level is less than the global span log level, then the span is not
+    /// written out. By default, the global span log level is inherited from the default
+    /// logger. In that case:
     /// * nested logs are still written to the logging system;
     /// * they inherit `trace_id`, `link` and `span_id` of the nearest *written* `Span` object;
     /// * tags are still inherited from the *nearest* `Span` even if it is hidden;
@@ -198,8 +199,8 @@ public:
 
     /// @brief Sets the log level for the scope of this `Span` and nested scopes recursively.
     ///
-    /// Overrides the global log level in both directions: can raise the threshold
-    /// (suppress logs) or lower it (enable debug logs even if the global level is higher).
+    /// Overrides the global log level for nested logs and the global span log level for
+    /// the span itself in both directions: can raise or lower either threshold.
     ///
     /// For example, if the global log level is `info`, and the current `Span` has
     /// local log level `debug`, then all `LOG_DEBUG`s within the current scope will be written.
@@ -255,7 +256,7 @@ public:
     std::string_view GetName() const noexcept;
 
     /// @returns true if this span would be logged with the current local and
-    /// global log levels to the default logger.
+    /// global span log levels to the default logger.
     bool ShouldLogDefault() const noexcept;
 
     /// @returns true if this span is sampled. Defaults to true for root spans

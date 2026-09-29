@@ -4,6 +4,7 @@
 #include <cstdio>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -19,10 +20,12 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/logging/format.hpp>
+#include <userver/logging/level_serialization.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
 #include <userver/os_signals/component.hpp>
 #include <userver/testsuite/testpoint.hpp>
+#include <userver/tracing/tracer.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/resource_scopes.hpp>
 #include <userver/utils/statistics/writer.hpp>
@@ -103,6 +106,8 @@ Logging::Logging(const ComponentConfig& config, const ComponentContext& context)
 }
 
 void Logging::Init(const ComponentConfig& config, const ComponentContext& context) {
+    tracing::SetSpanLogLevel(config["span-log-level"].As<std::optional<logging::Level>>());
+
     const auto logger_configs = yaml_config::ParseMapToArray<logging::LoggerConfig>(config["loggers"]);
 
     if (logger_configs.empty()) {
