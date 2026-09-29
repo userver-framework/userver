@@ -61,6 +61,15 @@ TaskCancellationReason CancellationReason() noexcept;
 /// @see @ref task_cancellation_intro
 void CancellationPoint();
 
+/// @brief Throw a standard exception if cancellation is pending and not blocked.
+///
+/// Unlike @ref engine::current_task::CancellationPoint, the exception can be handled
+/// by `catch (const std::exception&)` without rethrowing. The cancellation request
+/// remains pending; this function does not disable cancellation.
+/// @throws engine::WaitInterruptedException If @ref engine::current_task::ShouldCancel returns true.
+/// @see engine::TaskCancellationBlocker
+void CancellationPointWeak();
+
 /// Set deadline for the current task.
 /// The task will be cancelled when the deadline is reached.
 void SetDeadline(Deadline deadline);

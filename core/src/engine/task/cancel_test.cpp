@@ -7,6 +7,7 @@
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/exception.hpp>
 #include <userver/engine/future.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/single_use_event.hpp>
@@ -21,6 +22,33 @@
 using namespace std::chrono_literals;
 
 USERVER_NAMESPACE_BEGIN
+
+UTEST(Cancel, WeakCancellationPointWithoutRequest) {
+    EXPECT_NO_THROW(engine::current_task::CancellationPointWeak());
+    EXPECT_FALSE(engine::current_task::IsCancelRequested());
+}
+
+UTEST(Cancel, WeakCancellationPointCanBeCaughtAsStandardException) {
+    engine::current_task::RequestCancel();
+    EXPECT_THROW(engine::current_task::CancellationPointWeak(), std::exception);
+    EXPECT_TRUE(engine::current_task::ShouldCancel());
+    try {
+        engine::current_task::CancellationPointWeak();
+        FAIL() << "Expected a cancellation exception";
+    } catch (const engine::WaitInterruptedException& e) {
+        EXPECT_EQ(e.Reason(), engine::TaskCancellationReason::kUserRequest);
+    }
+}
+
+UTEST(Cancel, WeakCancellationPointRespectsBlocker) {
+    engine::current_task::RequestCancel();
+    {
+        const engine::TaskCancellationBlocker blocker;
+        EXPECT_TRUE(engine::current_task::IsCancelRequested());
+        EXPECT_NO_THROW(engine::current_task::CancellationPointWeak());
+    }
+    EXPECT_THROW(engine::current_task::CancellationPointWeak(), engine::WaitInterruptedException);
+}
 
 // Functors defined in dtors should unwind though
 UTEST(Cancel, UnwindWorksInDtorSubtask) {
