@@ -63,7 +63,7 @@ int main(int argc, char* argv[]) {
 
 As a result, with the framework you get straightforward source code,
 avoid CPU-consuming context switches from OS, efficiently
-utilize the CPU with a small amount of execution threads.
+utilize the CPU with a small number of execution threads.
 
 
 You can learn more about history and key features of userver from our
