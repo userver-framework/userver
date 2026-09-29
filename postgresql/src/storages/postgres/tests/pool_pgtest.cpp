@@ -963,6 +963,53 @@ UTEST_P(PostgrePool, ForQueryQueueBeingNonTransactional) {
     EXPECT_EQ(inserted_values.front(), 1);
 }
 
+UTEST_P(PostgrePool, QueryQueueFailedCollectReleasesPoolSlotSynchronously) {
+    if (GetParam() != pg::InitMode::kSync) {
+        return;
+    }
+
+    auto pool = pg::detail::ConnectionPool::Create(
+        GetDsnFromEnv(),
+        nullptr,
+        GetTaskProcessor(),
+        "",
+        GetParam(),
+        {1, 1, 10},
+        kCachePreparedStatements,
+        {},
+        GetTestCmdCtls(),
+        {},
+        {},
+        {},
+        dynamic_config::GetDefaultSource(),
+        std::make_shared<utils::statistics::MetricsStorage>()
+    );
+
+    constexpr pg::CommandControl kDefaultCC{utest::kMaxTestWaitTime, utest::kMaxTestWaitTime};
+
+    auto conn = pool->Acquire(MakeDeadline());
+    conn->Execute("CREATE TEMP TABLE qq_sync_release_test(id INT PRIMARY KEY)");
+
+    {
+        pg::QueryQueue query_queue{kDefaultCC, std::move(conn)};
+        query_queue.Push(kDefaultCC, "SELECT $1/$2", 1, 0);
+        query_queue.Push(kDefaultCC, "INSERT INTO qq_sync_release_test(id) VALUES($1)", 1);
+
+        std::vector<pg::ResultSet> result{};
+        EXPECT_ANY_THROW(result = query_queue.Collect(kDefaultCC.network_timeout_ms));
+    }
+
+    EXPECT_EQ(pool->GetStatistics().connection.used, 0)
+        << "QueryQueue::Collect must reset the connection before returning it to the pool. "
+           "Otherwise Release() schedules async pg_cleanup and keeps connection.used > 0 until "
+           "background cleanup finishes, which races with the next Acquire().";
+
+    const auto inserted_values =
+        pool->Acquire(MakeDeadline())->Execute("SELECT id FROM qq_sync_release_test").AsContainer<std::vector<int>>();
+    ASSERT_EQ(inserted_values.size(), 1);
+    EXPECT_EQ(inserted_values.front(), 1);
+}
+
 UTEST_P(PostgrePool, ConnectionRateLimitSkipsHealthyPool) {
     constexpr std::size_t kHugeConnectingIntervalMs = 60'000;
 

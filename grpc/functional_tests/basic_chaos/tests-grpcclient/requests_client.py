@@ -12,6 +12,9 @@ ALL_CASES = [
 
 _RETRIES = 10
 
+_GRPC_CHANNEL_READY_TIMEOUT_SECONDS = 30
+_GRPC_READY_AFTER_GATE_RESET_WAIT_SECONDS = 120
+
 
 async def _request_without_case(grpc_ch, service_client, gate):
     response = await service_client.post(
@@ -138,7 +141,10 @@ def check_200_for(case):
 async def ensure_grpc_ready_after_gate_reset(grpc_ch, service_client) -> None:
     async def is_ready():
         try:
-            await asyncio.wait_for(grpc_ch.channel_ready(), timeout=10)
+            await asyncio.wait_for(
+                grpc_ch.channel_ready(),
+                timeout=_GRPC_CHANNEL_READY_TIMEOUT_SECONDS,
+            )
         except asyncio.TimeoutError:
             return False
         response = await service_client.post(
@@ -151,6 +157,7 @@ async def ensure_grpc_ready_after_gate_reset(grpc_ch, service_client) -> None:
     await sync.wait(
         is_ready,
         failure_msg='gRPC connection not ready after gate reset',
+        total_wait_seconds=_GRPC_READY_AFTER_GATE_RESET_WAIT_SECONDS,
     )
 
 

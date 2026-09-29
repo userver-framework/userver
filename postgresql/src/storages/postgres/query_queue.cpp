@@ -1,12 +1,15 @@
 #include <userver/storages/postgres/query_queue.hpp>
 
+#include <type_traits>
+
 #include <fmt/format.h>
 
 #include <storages/postgres/detail/connection.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/scope_guard.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -57,7 +60,8 @@ std::vector<ResultSet> QueryQueue::Collect(TimeoutDuration timeout) {
     tracing::Span collect_span{"query_queue_collect"};
     auto scope = collect_span.CreateScopeTime();
 
-    const USERVER_NAMESPACE::utils::ScopeGuard reset_guard{[this] {
+    const USERVER_NAMESPACE::utils::FastScopeGuard reset_guard{[this]() noexcept {
+        static_assert(std::is_nothrow_move_constructible_v<detail::ConnectionPtr>);
         [[maybe_unused]] const detail::ConnectionPtr tmp{std::move(conn_)};
     }};
 
@@ -66,6 +70,17 @@ std::vector<ResultSet> QueryQueue::Collect(TimeoutDuration timeout) {
     }
 
     UASSERT(queries_storage_->queries.size() == queries_storage_->descriptions.size());
+
+    USERVER_NAMESPACE::utils::FastScopeGuard cancel_on_failure{[this]() noexcept {
+        if (!conn_) {
+            return;
+        }
+        try {
+            conn_->CancelAndCleanup(detail::kCleanupTimeout);
+        } catch (const std::exception& e) {
+            LOG_WARNING() << "Exception while cleaning up query queue pipeline: " << e;
+        }
+    }};
 
     for (std::size_t i = 0; i < queries_storage_->queries.size(); ++i) {
         const auto& meta = queries_storage_->queries[i];
@@ -85,6 +100,7 @@ std::vector<ResultSet> QueryQueue::Collect(TimeoutDuration timeout) {
             result.size()
         )};
     }
+    cancel_on_failure.Release();
     return result;
 }
 
