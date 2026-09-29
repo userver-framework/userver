@@ -27,7 +27,7 @@ void Unwind() {
         return;
     }
 
-    if (ctx.SetCancellable(false)) {
+    if (ctx.IsCancellable()) {
         LOG_TRACE() << "Cancelling current task" << logging::LogExtra::Stacktrace();
         // NOLINTNEXTLINE(hicpp-exception-baseclass)
         throw impl::CoroUnwinder{};
