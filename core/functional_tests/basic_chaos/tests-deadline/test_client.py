@@ -3,6 +3,7 @@ import datetime
 
 import pytest
 import pytest_userver.client
+from pytest_userver.utils import sync
 
 DP_TIMEOUT_MS = 'X-YaTaxi-Client-TimeoutMs'
 DP_DEADLINE_EXPIRED = 'X-YaTaxi-Deadline-Expired'
@@ -84,18 +85,20 @@ def get_handler_exception_logs(capture):
 async def _wait_for_timeout_error_metrics(
     client_metrics: pytest_userver.client.MetricsDiffer,
     expected_count: int,
-    *,
-    max_wait: float = 2.0,
 ) -> None:
     """httpclient timeout counters are written asynchronously."""
-    poll_interval = 0.05
-    attempts = int(max_wait / poll_interval)
-    for _ in range(attempts):
+
+    async def has_expected_timeout_errors() -> bool:
         client_metrics.current = await client_metrics.fetch()
         count = client_metrics.value_at('errors', {'http_error': 'timeout', **VERSION}, default=0)
-        if count == expected_count:
-            return
-        await asyncio.sleep(poll_interval)
+        return count == expected_count
+
+    await sync.wait(
+        has_expected_timeout_errors,
+        failure_msg=f'Expected {expected_count} httpclient timeout errors in metrics',
+        relax_period_seconds=0.05,
+        total_wait_seconds=10,
+    )
 
 
 @pytest.mark.parametrize(
