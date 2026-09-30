@@ -63,9 +63,13 @@ std::chrono::time_point<std::chrono::system_clock, Duration> ToTimePoint(const g
     }
 
     const std::chrono::seconds seconds(grpc_ts.seconds());
-    // Equality is important here. Otherwise, grpc_duration.seconds() == std::chrono::seconds::max()
-    // will lead to overflow if grpc_duration.nanos() != 0.
-    if (seconds >= std::chrono::duration_cast<std::chrono::seconds>(Duration::max())) {
+    // Equality is important here. Otherwise, grpc_ts.seconds() == std::chrono::seconds::max()
+    // will lead to overflow if grpc_ts.nanos() != 0. The same reasoning applies to the lower bound:
+    // IsValid accepts seconds far outside the range representable by a fine-grained Duration
+    // (e.g. nanoseconds), so the negative side must be rejected too before the conversion below.
+    if (seconds >= std::chrono::duration_cast<std::chrono::seconds>(Duration::max()) ||
+        seconds <= std::chrono::duration_cast<std::chrono::seconds>(Duration::min()))
+    {
         throw TimestampConversionError("grpc_ts does not fit the output type");
     }
 
@@ -158,8 +162,12 @@ Duration ToDuration(const google::protobuf::Duration& grpc_duration) {
 
     const std::chrono::seconds seconds(grpc_duration.seconds());
     // Equality is important here. Otherwise, grpc_duration.seconds() == std::chrono::seconds::max()
-    // will lead to overflow if grpc_duration.nanos() != 0.
-    if (seconds >= std::chrono::duration_cast<std::chrono::seconds>(Duration::max())) {
+    // will lead to overflow if grpc_duration.nanos() != 0. The same reasoning applies to the lower
+    // bound: IsValid accepts seconds far outside the range representable by a fine-grained Duration
+    // (e.g. nanoseconds), so the negative side must be rejected too before the conversion below.
+    if (seconds >= std::chrono::duration_cast<std::chrono::seconds>(Duration::max()) ||
+        seconds <= std::chrono::duration_cast<std::chrono::seconds>(Duration::min()))
+    {
         throw DurationConversionError("grpc_duration does not fit the output type");
     }
     return std::chrono::duration_cast<
