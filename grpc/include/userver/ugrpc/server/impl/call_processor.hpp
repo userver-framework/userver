@@ -8,6 +8,7 @@
 
 #include <google/protobuf/message.h>
 
+#include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
@@ -29,6 +30,8 @@ grpc::Status ReportCustomError(const USERVER_NAMESPACE::server::handlers::Custom
     noexcept;
 
 grpc::Status ReportHandlerError(const std::exception& ex, CallState& state) noexcept;
+
+grpc::Status ReportUnexpectedError(CallState& state) noexcept;
 
 void ReportFinished(const grpc::Status& status, CallState& state) noexcept;
 
@@ -238,6 +241,8 @@ private:
                 middleware->OnCallFinish(middleware_call_context_, status);
             } catch (const std::exception& ex) {
                 LOG_WARNING() << "Error in OnCallFinish: " << ex;
+            } catch (...) {
+                LOG_WARNING() << "Uncaught unexpected exception in OnCallFinish";
             }
         }
     }
@@ -257,6 +262,8 @@ private:
             // RPC interruption will be reported below.
         } catch (const std::exception& ex) {
             status_ = impl::ReportHandlerError(ex, state_);
+        } catch (...) {
+            status_ = impl::ReportUnexpectedError(state_);
         }
     }
 

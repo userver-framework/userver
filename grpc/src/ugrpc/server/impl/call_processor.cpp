@@ -1,5 +1,8 @@
 #include <userver/ugrpc/server/impl/call_processor.hpp>
 
+#include <fmt/format.h>
+
+#include <userver/engine/task/cancel.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/algo.hpp>
 
@@ -51,6 +54,24 @@ grpc::Status ReportHandlerError(const std::exception& ex, CallState& state) noex
         return kUnknownErrorStatus;
     } catch (const std::exception& new_ex) {
         LOG_ERROR() << "Error in ReportHandlerError: " << new_ex;
+        return grpc::Status{grpc::StatusCode::INTERNAL, ""};
+    }
+}
+
+grpc::Status ReportUnexpectedError(CallState& state) noexcept {
+    try {
+        auto& span = state.GetSpan();
+        const auto log_level = AdjustLogLevelForCancellations(logging::Level::kError);
+        LOG(log_level) << "Uncaught unexpected exception in '" << state.call_name << "'";
+        span.AddNonInheritableTag(tracing::kErrorFlag, true);
+        span.AddNonInheritableTag(
+            tracing::kErrorMessage,
+            fmt::format("Unexpected exception in '{}' (task cancellation?)", state.call_name)
+        );
+        span.SetLogLevel(log_level);
+        return engine::current_task::ShouldCancel() ? grpc::Status::CANCELLED : kUnknownErrorStatus;
+    } catch (const std::exception& new_ex) {
+        LOG_ERROR() << "Error in ReportUnexpectedError: " << new_ex;
         return grpc::Status{grpc::StatusCode::INTERNAL, ""};
     }
 }
