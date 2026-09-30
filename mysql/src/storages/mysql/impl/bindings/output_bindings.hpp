@@ -10,6 +10,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace storages::mysql::tests {
+struct OutputBindingsFetchedLengthTestPeer;
+}  // namespace storages::mysql::tests
+
 namespace storages::mysql::impl::bindings {
 
 class OutputBindings : public NativeBindsHelper {
@@ -88,6 +92,7 @@ private:
         io::DecimalWrapper decimal{};  // for un-templated decimals
         MYSQL_TIME time{};             // for dates and the likes
         std::string string{};          // for json and what not
+        std::size_t max_fetched_byte_length{0};
     };
 
     // The special problem of binding primitive optionals: we don't know whether
@@ -173,7 +178,7 @@ private:
     static void OptionalDecimalBeforeFetch(void* value, MYSQL_BIND& bind, FieldIntermediateBuffer& buffer);
     static void OptionalDecimalAfterFetch(void* value, MYSQL_BIND& bind, FieldIntermediateBuffer& buffer);
 
-    static void ValidateBind(std::size_t pos, const MYSQL_BIND& bind, const MYSQL_FIELD& field);
+    void ValidateBind(std::size_t pos, const MYSQL_BIND& bind, const MYSQL_FIELD& field);
 
     // We use this to perform some kind of type erasure: every instance knows how
     // to restore its type via typed callbacks
@@ -192,6 +197,8 @@ private:
     // This is either pointing to owned_binds_.data()
     // or to binds array stored inside mysql internals
     MYSQL_BIND* binds_ptr_{nullptr};
+
+    friend struct storages::mysql::tests::OutputBindingsFetchedLengthTestPeer;
 };
 
 static_assert(std::is_nothrow_move_constructible_v<OutputBindings>);
