@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include <userver/rcu/rcu_map.hpp>
 #include <userver/utils/span.hpp>
 #include <userver/utils/statistics/fwd.hpp>
