@@ -129,13 +129,6 @@ std::string MessageToDebugString(const ::google::protobuf::Message& message, std
 
 }  // namespace protobuf::json
 
-/* NOTE !
-   Currently this breaks linkage because similar functions are defined in the
-   userver/grpc/include/userver/ugrpc/proto_json.hpp . When those functions are
-   removed as legacy, uncomment this code (and do not forget to uncomment tests
-   in the userver/libraries/protobuf/tests/json/complex_from_json_test.cpp and
-   taxi/uservices/userver/libraries/protobuf/tests/json/complex_to_json_test.cpp).
-
 namespace formats::serialize {
 
 /// @brief Conversion from any `google::protobuf::Message` to @ref formats::json::Value.
@@ -168,7 +161,5 @@ TMessage Parse(const json::Value& value, To<TMessage>) {
 }
 
 }  // namespace formats::parse
-
-*/
 
 USERVER_NAMESPACE_END

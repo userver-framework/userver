@@ -1,12 +1,11 @@
 #include <userver/ugrpc/proto_json.hpp>
 
+#include <userver/protobuf/json/convert.hpp>
 #include <userver/utest/parameter_names.hpp>
 #include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-// TODO: enable with protobuf Serialize/Parse from libraries/protobuf
-#if 0
 namespace {
 constexpr std::string_view kEmpty{};
 constexpr std::string_view kInt = R"(12)";
@@ -177,6 +176,5 @@ INSTANTIATE_TEST_SUITE_P(
     testing::ValuesIn(TestParams()),
     utest::PrintTestName()
 );
-#endif
 
 USERVER_NAMESPACE_END
