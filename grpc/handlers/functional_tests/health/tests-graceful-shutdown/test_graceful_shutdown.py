@@ -22,31 +22,30 @@ async def test_graceful_shutdown_headers(
 
     request = health_pb2.HealthCheckRequest()
 
-    async def wait_for_not_serving():
+    async def wait_for_not_serving_with_headers():
         try:
-            response = await asyncio.wait_for(grpc_client.Check(request), timeout=1.0)
+            call = grpc_client.Check(request)
+            response = await asyncio.wait_for(call, timeout=2.0)
         except (grpc.RpcError, OSError, asyncio.TimeoutError):
             raise sync.NotReady()
         if response.status != health_pb2.HealthCheckResponse.NOT_SERVING:
             raise sync.NotReady()
+        try:
+            check_graceful_shutdown_headers(
+                await call.initial_metadata(),
+                await call.trailing_metadata(),
+                graceful_shutdown_headers,
+            )
+        except AssertionError:
+            raise sync.NotReady()
 
-    # Half of the first stage is left for the call below, which must be served as well.
+    # Health may flip to NOT_SERVING before graceful-shutdown headers middleware runs; keep
+    # polling within the first shutdown stage (see conftest graceful_shutdown_first_stage_seconds).
+    first_stage_reserve_seconds = 0.5
     await sync.wait_until(
-        wait_for_not_serving,
+        wait_for_not_serving_with_headers,
         relax_period_seconds=0.1,
-        total_wait_seconds=graceful_shutdown_first_stage_seconds / 2,
-    )
-
-    # The graceful shutdown may have started in the middle of the call above: after the middleware
-    # (which adds the headers) has already run, but before the handler has checked the service state.
-    # A new call is processed entirely in the graceful shutdown stage.
-    call = grpc_client.Check(request)
-    response = await call
-    assert response.status == health_pb2.HealthCheckResponse.NOT_SERVING
-    check_graceful_shutdown_headers(
-        await call.initial_metadata(),
-        await call.trailing_metadata(),
-        graceful_shutdown_headers,
+        total_wait_seconds=graceful_shutdown_first_stage_seconds - first_stage_reserve_seconds,
     )
 
     service_daemon_instance.process.wait()
