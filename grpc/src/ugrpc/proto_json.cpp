@@ -111,28 +111,4 @@ std::string ToJsonString(
 
 }  // namespace ugrpc
 
-namespace formats::serialize {
-
-json::Value Serialize(const google::protobuf::Message& message, To<json::Value>) {
-    return ugrpc::MessageToJson(message);
-}
-
-}  // namespace formats::serialize
-
-namespace formats::parse {
-
-google::protobuf::Value Parse(const json::Value& value, To<google::protobuf::Value>) {
-    return ugrpc::JsonToMessage<google::protobuf::Value>(value);
-}
-
-google::protobuf::Struct Parse(const json::Value& value, To<google::protobuf::Struct>) {
-    return ugrpc::JsonToMessage<google::protobuf::Struct>(value);
-}
-
-google::protobuf::ListValue Parse(const json::Value& value, To<google::protobuf::ListValue>) {
-    return ugrpc::JsonToMessage<google::protobuf::ListValue>(value);
-}
-
-}  // namespace formats::parse
-
 USERVER_NAMESPACE_END

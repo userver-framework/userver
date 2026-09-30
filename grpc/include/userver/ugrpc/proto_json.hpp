@@ -6,7 +6,6 @@
 
 #include <string>
 #include <string_view>
-#include <type_traits>
 
 #include <google/protobuf/message.h>
 #include <google/protobuf/struct.pb.h>
@@ -15,8 +14,6 @@
 #include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/serialize.hpp>  // kept: legacy users rely on this transitive include
 #include <userver/formats/json/value.hpp>
-#include <userver/formats/parse/to.hpp>
-#include <userver/formats/serialize/to.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -113,51 +110,5 @@ Message FromJsonString(std::string_view json_string, const google::protobuf::uti
 }
 
 }  // namespace ugrpc
-
-namespace formats::serialize {
-
-/// @brief Conversion from any `google::protobuf::Message` to @ref formats::json::Value.
-/// Uses the same format as @ref ugrpc::MessageToJson with its default options.
-///
-/// Works for `google::protobuf::Value`, `google::protobuf::Struct`, `google::protobuf::ListValue`
-/// (top-level and nested) as well, converts them without extra objects in JSON representation.
-///
-/// Use as:
-/// @code{.cpp}
-/// auto json = formats::json::ValueBuilder{message}.ExtractValue();
-/// @endcode
-json::Value Serialize(const google::protobuf::Message& message, To<json::Value>);
-
-}  // namespace formats::serialize
-
-namespace formats::parse {
-
-/// @brief Conversion from @ref formats::json::Value to `google::protobuf::Message`.
-/// Uses the same format as @ref ugrpc::JsonToMessage with its default options.
-///
-/// Works for `google::protobuf::Value`, `google::protobuf::Struct`, `google::protobuf::ListValue`
-/// (top-level and nested) as well, converts them without extra objects in JSON representation.
-///
-/// Use as:
-/// @code{.cpp}
-/// auto value = json.As<google::protobuf::Value>();
-/// @endcode
-template <typename Message>
-requires std::is_base_of_v<google::protobuf::Message, Message>
-Message Parse(const json::Value& value, To<Message>) {
-    return ugrpc::JsonToMessage<Message>(value);
-}
-
-/// @cond
-// Non-template overloads are kept for compatibility with the legacy implementation, which had hand-written parsers
-// for these well-known types. Now they behave exactly like the generic overload above.
-google::protobuf::Value Parse(const json::Value& value, To<google::protobuf::Value>);
-
-google::protobuf::Struct Parse(const json::Value& value, To<google::protobuf::Struct>);
-
-google::protobuf::ListValue Parse(const json::Value& value, To<google::protobuf::ListValue>);
-/// @endcond
-
-}  // namespace formats::parse
 
 USERVER_NAMESPACE_END

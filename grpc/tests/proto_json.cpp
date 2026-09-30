@@ -79,6 +79,8 @@ UTEST(ProtoJson, FromJsonStringOptions) {
     EXPECT_EQ(message.greeting(), "hi");
 }
 
+// TODO: enable with protobuf Serialize/Parse from libraries/protobuf
+#if 0
 namespace {
 
 google::protobuf::Struct MakeTestStruct() {
@@ -202,5 +204,6 @@ UTEST(ProtoJson, JsonToProtobufListValue) {
       << "\nActual:\n"
       << json_as_protobuf_list_value.Utf8DebugString();
 }
+#endif
 
 USERVER_NAMESPACE_END
