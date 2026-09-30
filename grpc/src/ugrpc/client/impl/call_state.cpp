@@ -112,6 +112,10 @@ std::string_view CallState::GetClientName() const noexcept { return client_name_
 
 std::string_view CallState::GetCallName() const noexcept { return call_name_.Get(); }
 
+std::string_view CallState::GetEndpoint() const noexcept { return method_stubs_.GetEndpoint(); }
+
+AuthType CallState::GetAuthType() const noexcept { return method_stubs_.GetAuthType(); }
+
 RpcType CallState::GetRpcType() const noexcept { return rpc_type_; }
 
 tracing::Span& CallState::GetSpan() noexcept {

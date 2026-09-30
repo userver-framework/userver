@@ -47,6 +47,10 @@ ugrpc::impl::StubAny& MethodStubs::GetStub() const {
     return stubs_.stubs[*last_];
 }
 
+std::string_view MethodStubs::GetEndpoint() const noexcept { return stub_state_->endpoint; }
+
+AuthType MethodStubs::GetAuthType() const noexcept { return stub_state_->auth_type; }
+
 }  // namespace ugrpc::client::impl
 
 USERVER_NAMESPACE_END

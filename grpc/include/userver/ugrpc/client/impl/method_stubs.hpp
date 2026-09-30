@@ -1,9 +1,11 @@
 #pragma once
 
 #include <optional>
+#include <string_view>
 
 #include <userver/rcu/rcu.hpp>
 
+#include <userver/ugrpc/client/auth_type.hpp>
 #include <userver/ugrpc/impl/stub_any.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -24,6 +26,10 @@ public:
     MethodStubs& operator=(const MethodStubs&) = delete;
 
     ugrpc::impl::StubAny& GetStub() const;
+
+    std::string_view GetEndpoint() const noexcept;
+
+    AuthType GetAuthType() const noexcept;
 
 private:
     const rcu::ReadablePtr<StubState> stub_state_;
