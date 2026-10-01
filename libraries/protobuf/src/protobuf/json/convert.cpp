@@ -37,7 +37,7 @@ std::string MessageToDebugString(const ::google::protobuf::Message& message, std
 namespace formats::serialize {
 
 json::Value Serialize(const ::google::protobuf::Message& message, To<json::Value>) {
-    return protobuf::json::MessageToJson(message, {});
+    return protobuf::json::MessageToJson(message);
 }
 
 }  // namespace formats::serialize

@@ -32,7 +32,7 @@ namespace protobuf::json {
 /// @warning The `proto2` syntax is not fully supported and tested (at least extension fields are not supported).
 [[nodiscard]] formats::json::ValueBuilder MessageToJsonBuilder(
     const ::google::protobuf::Message& message,
-    const PrintOptions& options
+    const PrintOptions& options = {}
 );
 
 /// @brief Converts protobuf @a message to JSON `Value`.
@@ -46,7 +46,7 @@ namespace protobuf::json {
 /// @warning The `proto2` syntax is not fully supported and tested (at least extension fields are not supported).
 [[nodiscard]] inline formats::json::Value MessageToJson(
     const ::google::protobuf::Message& message,
-    const PrintOptions& options
+    const PrintOptions& options = {}
 ) {
     return protobuf::json::MessageToJsonBuilder(message, options).ExtractValue();
 }
@@ -94,7 +94,7 @@ requires(std::is_base_of_v<::google::protobuf::Message, T> || !std::is_same_v<::
 /// @param options Same conversion options as for @ref MessageToJson / @ref MessageToJsonBuilder.
 /// @returns ProtoJSON representation of @a message.
 /// @throws PrintError if conversion has failed
-std::string MessageToJsonString(const ::google::protobuf::Message& message, const PrintOptions& options);
+std::string MessageToJsonString(const ::google::protobuf::Message& message, const PrintOptions& options = {});
 
 /// @brief Serializes protobuf @a message to a JSON string for debugging/logging, stopping early once @a limit bytes
 /// have been produced.
