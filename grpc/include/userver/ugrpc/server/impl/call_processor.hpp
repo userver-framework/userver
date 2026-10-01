@@ -18,7 +18,7 @@
 #include <userver/ugrpc/server/impl/call_state.hpp>
 #include <userver/ugrpc/server/impl/call_traits.hpp>
 #include <userver/ugrpc/server/impl/exceptions.hpp>
-#include <userver/ugrpc/server/impl/rpc.hpp>
+#include <userver/ugrpc/server/impl/responder.hpp>
 #include <userver/ugrpc/server/middlewares/base.hpp>
 #include <userver/ugrpc/server/result.hpp>
 
@@ -161,6 +161,8 @@ public:
             scope_time.Reset("finish");
             impl::FinishInterrupted(responder_);
         }
+        // In Callback API, as soon as Finish completes, OnDone is called, and unary request & response are destroyed.
+        // Reactor retains RawContext until processing, including post-finish hooks, is complete.
 
         scope_time.Reset("post_finish");
 

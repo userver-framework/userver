@@ -1,4 +1,4 @@
-#include <userver/ugrpc/server/impl/rpc.hpp>
+#include <userver/ugrpc/server/impl/responder.hpp>
 
 #include <ranges>
 

@@ -17,6 +17,7 @@
 #include <userver/utils/statistics/storage.hpp>
 
 #include <userver/ugrpc/client/client_factory.hpp>
+#include <userver/ugrpc/client/impl/completion_queue_pool.hpp>
 #include <userver/ugrpc/impl/statistics_storage.hpp>
 #include <userver/ugrpc/server/server.hpp>
 #include <userver/ugrpc/server/service_base.hpp>
@@ -106,6 +107,7 @@ private:
     testsuite::GrpcControl testsuite_;
     std::optional<std::string> endpoint_;
     utils::WithResourceScopes<ugrpc::impl::StatisticsStorage> client_statistics_storage_;
+    std::optional<client::impl::CompletionQueuePool> client_completion_queues_;
     std::optional<client::ClientFactory> client_factory_;
 };
 

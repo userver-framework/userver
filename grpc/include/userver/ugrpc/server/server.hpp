@@ -56,6 +56,9 @@ struct ServerConfig final {
     /// A server can listen to both port and unix socket simultaneously.
     std::optional<std::string> unix_socket_path{std::nullopt};
 
+    /// Use gRPC callback/reactor API for accepting RPCs.
+    bool use_callback_api{false};
+
     /// Number of completion queues to create. Should be ~2 times less than number
     /// of worker threads for best RPS.
     std::size_t completion_queue_num{2};
@@ -72,7 +75,7 @@ struct ServerConfig final {
     bool enable_channelz{false};
 
     /// TLS settings
-    TlsConfig tls;
+    TlsConfig tls{};
 
     /// Whether to apply OpenTelemetry trace-sampling to incoming gRPC requests.
     bool otel_trace_sampling_enabled{false};
@@ -136,7 +139,7 @@ public:
     std::uint64_t GetTotalRequests() const override;
 
     // For internal use only.
-    ugrpc::impl::CompletionQueuePoolBase& GetCompletionQueues(utils::impl::InternalTag);
+    ugrpc::impl::CompletionQueuePoolBase* GetCompletionQueues(utils::impl::InternalTag);
     /// @endcond
 
 private:

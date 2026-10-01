@@ -23,7 +23,9 @@ public:
     GenericServiceWorker& operator=(GenericServiceWorker&&) noexcept;
     ~GenericServiceWorker();
 
-    grpc::AsyncGenericService& GetService();
+    grpc::AsyncGenericService& GetAsyncService();
+
+    grpc::CallbackGenericService& GetCallbackService();
 
     void Start();
 

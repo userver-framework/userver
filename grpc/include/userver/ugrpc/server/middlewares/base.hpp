@@ -154,7 +154,8 @@ public:
     /// This is useful for cleanup operations, logging, or metrics collection that should
     /// happen after the RPC is completely processed.
     /// @param context The middleware call context containing call information
-    /// @param status The final status of the call, if available
+    /// @param status The final status, or std::nullopt if the RPC was interrupted.
+    /// Its presence does not guarantee delivery to the client.
     virtual void OnCallFinish(MiddlewareCallContext& context, const std::optional<grpc::Status>& status) const;
 };
 

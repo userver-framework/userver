@@ -24,27 +24,18 @@ void ValidateResponseIsInitialized(const google::protobuf::Message& response);
 
 template <typename Message>
 grpc::Status DeserializeMessage(grpc::ByteBuffer&& buffer, Message& message) {
-    if constexpr (std::is_same_v<Message, grpc::ByteBuffer>) {
-        message.Swap(&buffer);
-        return grpc::Status::OK;
-    } else {
-        const auto status = grpc::SerializationTraits<Message>::Deserialize(&buffer, &message);
-        if (!status.ok()) {
-            return {grpc::StatusCode::INTERNAL, "Unable to parse request"};
-        }
-        return grpc::Status::OK;
+    const auto status = grpc::SerializationTraits<Message>::Deserialize(&buffer, &message);
+    buffer.Release();
+    if (!status.ok()) {
+        return {grpc::StatusCode::INTERNAL, "Unable to parse request"};
     }
+    return grpc::Status::OK;
 }
 
 template <typename Message>
 grpc::Status SerializeMessage(const Message& message, grpc::ByteBuffer& buffer) {
-    if constexpr (std::is_same_v<Message, grpc::ByteBuffer>) {
-        buffer = message;
-        return grpc::Status::OK;
-    } else {
-        bool own_buffer = false;
-        return grpc::SerializationTraits<Message>::Serialize(message, &buffer, &own_buffer);
-    }
+    bool own_buffer = false;
+    return grpc::SerializationTraits<Message>::Serialize(message, &buffer, &own_buffer);
 }
 
 /// @brief A non-typed base class for any gRPC call.
@@ -82,9 +73,15 @@ private:
 ///
 /// If any method throws, further methods must not be called on the same stream,
 /// except for `GetContext`.
+///
+/// The Finish methods initiate completion even for cancelled RPCs. With completion
+/// queues, they return the final completion event's `ok`. With Callback API, they
+/// check IsCancelled immediately after the underlying Finish/WriteAndFinish call
+/// returns and report whether the RPC is not cancelled at that point.
+/// Neither result guarantees delivery to the client.
 template <typename CallTraits>
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
-class Responder final : public ResponderBase, public CallTraits::StreamAdapter {
+class Responder final : public ResponderBase, public CallTraits::template StreamAdapterFor<CallTraits> {
     using Request = typename CallTraits::Request;
     using Response = typename CallTraits::Response;
     using RawResponder = typename CallTraits::RawResponder;
@@ -120,7 +117,7 @@ public:
     /// `Finish` must not be called multiple times.
     ///
     /// @param status error details. Whitespaces may be trimmed in the status message.
-    /// @returns `true` if the status is going to the wire, `false` if the RPC is dead.
+    /// @returns Whether the backend classified the RPC as finished; see the class description.
     [[nodiscard]] bool FinishWithError(grpc::Status& status);
 
     /// @brief Complete the RPC successfully, sending the given response message to the client.
@@ -130,14 +127,14 @@ public:
     /// `Finish` must not be called multiple times for the same RPC.
     ///
     /// @param response the final `Response` message to send to the client
-    /// @returns `true` if the response is going to the wire, `false` if the RPC is dead.
+    /// @returns Whether the backend classified the RPC as finished; see the class description.
     [[nodiscard]] bool Finish(const Response& response);
 
     /// @brief Complete the RPC with `OK` status, without a final response. Only makes sense for server-streaming RPCs.
     ///
     /// `Finish` must not be called multiple times.
     ///
-    /// @returns `true` if the status is going to the wire, `false` if the RPC is dead.
+    /// @returns Whether the backend classified the RPC as finished; see the class description.
     [[nodiscard]] bool Finish();
 
 private:
@@ -192,8 +189,11 @@ void Responder<CallTraits>::DoWrite(Response& response, const grpc::WriteOptions
         ApplyResponseHook(response);
     }
 
-    if constexpr (CallTraits::kRpcType == RpcType::kServerStreaming) {
+    if constexpr (CallTraits::kRpcType == RpcType::kServerStreaming &&
+                  !std::is_same_v<CallbackResponder<CallTraits>, RawResponder>)
+    {
         // For some reason, gRPC requires explicit 'SendInitialMetadata' in output streams.
+        // This is only required for the Completion Queue API.
         if (!are_reads_done_) {
             are_reads_done_ = true;
             if (!impl::SendInitialMetadata(raw_responder_)) {
@@ -204,10 +204,10 @@ void Responder<CallTraits>::DoWrite(Response& response, const grpc::WriteOptions
     }
 
     grpc::ByteBuffer buffer;
-    const auto serialization_status = impl::SerializeMessage(response, buffer);
+    auto serialization_status = impl::SerializeMessage(response, buffer);
     if (!serialization_status.ok()) {
         is_interrupted_ = true;
-        throw ErrorWithStatus(serialization_status);
+        throw ErrorWithStatus{std::move(serialization_status)};
     }
 
     if (!impl::Write(raw_responder_, buffer, options)) {
@@ -254,12 +254,12 @@ template <typename CallTraits>
     is_finished_ = true;
 
     if constexpr (IsSingleResponseMethod(CallTraits::kRpcType)) {
-        return impl::Finish(raw_responder_, buffer, grpc::Status::OK);
+        return impl::Finish(raw_responder_, std::move(buffer), grpc::Status::OK);
     } else {
         // Don't buffer writes, optimize for ping-pong-style interaction.
         const grpc::WriteOptions write_options{};
 
-        return impl::WriteAndFinish(raw_responder_, buffer, write_options, grpc::Status::OK);
+        return impl::WriteAndFinish(raw_responder_, std::move(buffer), write_options, grpc::Status::OK);
     }
 }
 

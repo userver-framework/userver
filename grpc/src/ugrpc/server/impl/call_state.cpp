@@ -6,6 +6,7 @@
 #include <userver/tracing/opentelemetry.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/from_string.hpp>
 #include <userver/utils/impl/source_location.hpp>
 
@@ -22,7 +23,7 @@ namespace {
 void ConstructSpan(
     std::optional<tracing::InPlaceSpan>& span_storage,
     std::string_view call_name,
-    const grpc::ServerContext& server_context,
+    const grpc::ServerContextBase& server_context,
     bool otel_sampling_enabled
 ) {
     const auto& client_metadata = server_context.client_metadata();

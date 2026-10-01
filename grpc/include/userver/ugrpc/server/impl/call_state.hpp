@@ -30,7 +30,7 @@ namespace ugrpc::server::impl {
 
 // Non-templated dependencies of CallProcessor. Must be movable.
 struct CallParams {
-    grpc::ServerContext& server_context;
+    grpc::ServerContextBase& server_context;
     RpcType rpc_type{};
     const std::string_view call_name;
     const std::string_view service_name;

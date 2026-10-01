@@ -193,6 +193,25 @@ To register your service:
 * Call @ref ugrpc::server::ServiceComponentBase::RegisterService in the component's constructor
 * Don't forget to register your service component.
 
+### Callback API
+
+Server services use completion queues by default. Set `grpc-server.use-callback-api`
+to `true` to enable the gRPC callback/reactor API for a particular server:
+
+```yaml
+grpc-server:
+    use-callback-api: true
+```
+
+The corresponding C++ option is `ugrpc::server::ServerConfig::use_callback_api`.
+Both backends support typed and generic services. User handlers and middlewares run
+in userver coroutine tasks in either mode.
+
+With completion queues, `grpc-server.completion-queue-count` configures the server
+queues that clients can also use. With the callback API and registered services,
+clients have their own queues, configured through `grpc-client-common.completion-queue-count`.
+An empty callback server still creates fallback completion queues.
+
 ### Service method handling
 
 Each method receives:
@@ -252,6 +271,14 @@ By default, gRPC server uses `grpc::InsecureServerCredentials`. To pass a custom
 Main page: @ref scripts/docs/en/userver/grpc/server_middlewares.md.
 
 Use ugrpc::server::MiddlewareBase to implement new middlewares.
+
+For an uninterrupted handler, completion queues classify the RPC as finished when the final completion
+event has `ok=true`. The callback backend samples `IsCancelled()` immediately after the
+`Finish`/`WriteAndFinish` call returns. These calls initiate completion without waiting for `OnDone`.
+If cancellation is observed, the RPC is classified as interrupted, and `OnCallFinish` receives `std::nullopt`.
+Otherwise, the RPC is accounted with its final gRPC status, including error statuses.
+Cancellation concurrent with or after this snapshot may still leave the RPC classified as finished.
+Neither backend guarantees delivery of the final status to the client.
 
 #### List of standard server middlewares:
 

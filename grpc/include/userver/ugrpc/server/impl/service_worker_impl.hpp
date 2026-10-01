@@ -1,20 +1,29 @@
 #pragma once
 
 #include <array>
+#include <atomic>
+#include <cstddef>
+#include <exception>
 #include <functional>
+#include <memory>
 #include <optional>
 #include <string_view>
 #include <type_traits>
 #include <utility>
 
 #include <grpcpp/server_context.h>
+#include <grpcpp/support/server_callback.h>
 #include <boost/smart_ptr/intrusive_ref_counter.hpp>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/impl/detach.hpp>
 #include <userver/engine/task/cancel.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 #include <userver/utils/impl/wait_token_storage.hpp>
 #include <userver/utils/lazy_prvalue.hpp>
 #include <userver/utils/make_intrusive_ptr.hpp>
@@ -30,7 +39,9 @@
 #include <userver/ugrpc/server/impl/call_processor.hpp>
 #include <userver/ugrpc/server/impl/call_state.hpp>
 #include <userver/ugrpc/server/impl/call_traits.hpp>
+#include <userver/ugrpc/server/impl/callback_responder.hpp>
 #include <userver/ugrpc/server/impl/completion_queue_pool.hpp>
+#include <userver/ugrpc/server/impl/context_allocator.hpp>
 #include <userver/ugrpc/server/impl/error_code.hpp>
 #include <userver/ugrpc/server/impl/ratelimit_metadata.hpp>
 #include <userver/ugrpc/server/impl/request_async_call.hpp>
@@ -97,7 +108,9 @@ struct ServiceData final {
     ServiceData(ServiceInternals&& internals, const ugrpc::impl::StaticServiceMetadata& metadata)
         : internals(std::move(internals)),
           metadata(metadata)
-    {}
+    {
+        UASSERT(this->internals.use_callback_api == (this->internals.completion_queues == nullptr));
+    }
 
     ~ServiceData() { wait_tokens.WaitForAllTokens(); }
 
@@ -114,7 +127,6 @@ struct ServiceData final {
 template <typename GrpcppService, typename CallTraits>
 struct MethodData final {
     ServiceData<GrpcppService>& service_data;
-    const std::size_t queue_id{};
     const std::size_t method_id{};
     typename CallTraits::ServiceBase& service;
     const typename CallTraits::ServiceMethod service_method;
@@ -131,41 +143,45 @@ public:
     AsyncCallProcessor(
         MethodData<GrpcppService, CallTraits>& method_data,
         ServerContext& server_context,
-        SerializedInitialRequest& request,
+        SerializedInitialRequest& serialized_initial_request,
         Responder& responder
     )
         : method_data_{method_data},
           server_context_{server_context},
-          request_{request},
+          serialized_initial_request_{serialized_initial_request},
           responder_{responder}
     {}
 
     template <typename Call>
-    void ProcessAsync(Call& call) {
-        intrusive_ptr_add_ref(&call);
+    void ProcessAsync(Call& call) noexcept {
+        try {
+            intrusive_ptr_add_ref(&call);
 
-        utils::FastScopeGuard overloaded_guard([this, &call]() noexcept {
-            ProcessRatelimited(call);
-            intrusive_ptr_release(&call);
-        });
-
-        auto process_call_task = engine::AsyncNoTracing(
-            method_data_.service_data.internals.task_processor,
-            [this, &call, overloaded_guard = std::move(overloaded_guard)]() mutable {
-                overloaded_guard.Release();
-
-                SetCancellationToken(engine::current_task::GetCancellationToken());
-
-                ProcessCall();
-
+            utils::FastScopeGuard overloaded_guard([this, &call]() noexcept {
+                ProcessRatelimited(call);
                 intrusive_ptr_release(&call);
-            }
-        );
+            });
 
-        engine::impl::DetachUnscopedUnsafeNoCancellationOnShutdown(
-            utils::impl::InternalTag{},
-            std::move(process_call_task)
-        );
+            auto process_call_task = engine::AsyncNoTracing(
+                method_data_.service_data.internals.task_processor,
+                [this, &call, overloaded_guard = std::move(overloaded_guard)]() mutable {
+                    overloaded_guard.Release();
+
+                    SetCancellationToken(engine::current_task::GetCancellationToken());
+
+                    ProcessCall();
+
+                    intrusive_ptr_release(&call);
+                }
+            );
+
+            engine::impl::DetachUnscopedUnsafeNoCancellationOnShutdown(
+                utils::impl::InternalTag{},
+                std::move(process_call_task)
+            );
+        } catch (const std::exception& ex) {
+            LOG_ERROR() << "Failed to start a gRPC handler task: " << ex;
+        }
     }
 
     void RequestCancel() {
@@ -204,7 +220,7 @@ private:
                 method_data_.service_data.internals.otel_trace_sampling_enabled,
             },
             responder_,
-            request_,
+            serialized_initial_request_,
             method_data_.service,
             method_data_.service_method,
         };
@@ -226,7 +242,7 @@ private:
 
         const auto rpc_cancelled = cancellation_flag_.exchange(true, std::memory_order_acq_rel);
         if (rpc_cancelled) {
-            // `OnDoneEvent::Notify` already happened and RPC is cancelled, so cancel task manually
+            // Cancellation was requested before the handler registered its cancellation token.
             cancellation_token_.RequestCancel();
         }
     }
@@ -234,7 +250,7 @@ private:
     MethodData<GrpcppService, CallTraits>& method_data_;
 
     ServerContext& server_context_;
-    SerializedInitialRequest& request_;
+    SerializedInitialRequest& serialized_initial_request_;
     Responder& responder_;
 
     engine::TaskCancellationToken cancellation_token_;
@@ -247,8 +263,8 @@ private:
 template <typename GrpcppService, typename CallTraits>
 class CallData final : public boost::intrusive_ref_counter<CallData<GrpcppService, CallTraits>> {
 public:
-    static void AcceptCall(const MethodData<GrpcppService, CallTraits>& method_data) {
-        auto calld = utils::make_intrusive_ptr<CallData>(method_data);
+    static void AcceptCall(const MethodData<GrpcppService, CallTraits>& method_data, std::size_t queue_id) {
+        auto calld = utils::make_intrusive_ptr<CallData>(method_data, queue_id);
 
         // Based on the tensorflow code, we must first call AsyncNotifyWhenDone
         // and only then RequestCall<>
@@ -260,12 +276,13 @@ public:
         calld->RequestAsyncCall();
     }
 
-    explicit CallData(const MethodData<GrpcppService, CallTraits>& method_data)
+    CallData(const MethodData<GrpcppService, CallTraits>& method_data, std::size_t queue_id)
         : wait_token_(method_data.service_data.wait_tokens.GetToken()),
-          method_data_(method_data)
+          method_data_(method_data),
+          queue_id_(queue_id)
     {}
 
-    void OnAccept(bool ok) {
+    void OnAccept(bool ok) noexcept {
         if (!ok) {
             // the CompletionQueue is shutting down
 
@@ -277,13 +294,13 @@ public:
         }
 
         // request for another call immediately, as advised by gRPC docs
-        CallData::AcceptCall(method_data_);
+        CallData::AcceptCall(method_data_, queue_id_);
 
         UASSERT(!engine::current_task::IsTaskProcessorThread());
         async_call_processor_.ProcessAsync(*this);
     }
 
-    void OnDone() {
+    void OnDone() noexcept {
         if (server_context_.IsCancelled()) {
             async_call_processor_.RequestCancel();
         }
@@ -340,7 +357,7 @@ private:
     };
 
     void RequestAsyncCall() {
-        auto& cq = method_data_.service_data.internals.completion_queues.GetQueue(method_data_.queue_id);
+        auto& cq = method_data_.service_data.internals.completion_queues->GetQueue(queue_id_);
 
         impl::RequestAsyncCall<CallTraits>(
             method_data_.service_data.async_service,
@@ -358,6 +375,7 @@ private:
     const utils::impl::WaitTokenStorageLock wait_token_;
 
     MethodData<GrpcppService, CallTraits> method_data_;
+    const std::size_t queue_id_;
 
     ServerContext server_context_;
     SerializedInitialRequest serialized_initial_request_{};
@@ -371,20 +389,153 @@ private:
     Event on_done_{*this, Event::EventType::kDone};
 };
 
+template <typename GrpcppService, typename CallbackTraits>
+// NOLINTNEXTLINE(fuchsia-multiple-inheritance)
+class Reactor final
+    : public boost::intrusive_ref_counter<Reactor<GrpcppService, CallbackTraits>>,
+      public CallbackTraits::ReactorBase {
+    using ServerContext = typename CallbackTraits::RawContext;
+    using SerializedInitialRequest = typename CallbackTraits::SerializedInitialRequest;
+    using SerializedFinalResponse = typename CallbackTraits::SerializedFinalResponse;
+
+public:
+    Reactor(
+        const MethodData<GrpcppService, CallbackTraits>& method_data,
+        ServerContext& server_context,
+        const SerializedInitialRequest& serialized_initial_request,
+        SerializedFinalResponse& serialized_final_response
+    )
+        : wait_token_{method_data.service_data.wait_tokens.GetToken()},
+          method_data_{method_data},
+          server_context_{ContextAddRef(server_context)},
+          callback_responder_{*this, *server_context_, serialized_final_response},
+          async_call_processor_{
+              method_data_,
+              *server_context_,
+              // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
+              const_cast<SerializedInitialRequest&>(serialized_initial_request),
+              callback_responder_
+          }
+    {
+        intrusive_ptr_add_ref(this);
+        async_call_processor_.ProcessAsync(*this);
+    }
+
+    // NOLINTNEXTLINE(modernize-use-override,cppcoreguidelines-explicit-virtual-functions,hicpp-use-override)
+    virtual void OnCancel() { async_call_processor_.RequestCancel(); }
+
+    // NOLINTNEXTLINE(modernize-use-override,cppcoreguidelines-explicit-virtual-functions,hicpp-use-override)
+    virtual void OnDone() { intrusive_ptr_release(this); }
+
+    // NOLINTNEXTLINE(modernize-use-override,cppcoreguidelines-explicit-virtual-functions,hicpp-use-override)
+    virtual bool InternalInlineable() { return true; }
+
+    // NOLINTNEXTLINE(modernize-use-override,cppcoreguidelines-explicit-virtual-functions,hicpp-use-override)
+    void OnReadDone(bool ok) { callback_responder_.NotifyRead(ok); }
+
+    // NOLINTNEXTLINE(modernize-use-override,cppcoreguidelines-explicit-virtual-functions,hicpp-use-override)
+    void OnWriteDone(bool ok) { callback_responder_.NotifyWrite(ok); }
+
+    void FinishWithError(grpc::Status status) { callback_responder_.FinishWithError(status); }
+
+private:
+    const utils::impl::WaitTokenStorageLock wait_token_;
+
+    MethodData<GrpcppService, CallbackTraits> method_data_;
+
+    // Keep the context alive for OnCallFinish hooks after gRPC's OnDone.
+    const ContextIntrusiveRef<ServerContext> server_context_;
+
+    CallbackResponder<CallbackTraits> callback_responder_;
+
+    AsyncCallProcessor<GrpcppService, CallbackTraits> async_call_processor_;
+};
+
+template <typename GrpcppService, typename CallbackTraits>
+class ReactorGetter final {
+public:
+    explicit ReactorGetter(const MethodData<GrpcppService, CallbackTraits>& method_data)
+        : method_data_{method_data}
+    {}
+
+    grpc::ServerUnaryReactor* operator()(
+        typename CallbackTraits::RawContext* server_context,
+        const typename CallbackTraits::SerializedInitialRequest* request,
+        typename CallbackTraits::SerializedFinalResponse* response
+    ) const
+    requires(CallbackTraits::kRpcType == RpcType::kUnary)
+    {
+        UASSERT(server_context);
+        UASSERT(request);
+        UASSERT(response);
+        return new Reactor{method_data_, *server_context, *request, *response};
+    }
+
+    grpc::ServerWriteReactor<grpc::ByteBuffer>* operator()(
+        typename CallbackTraits::RawContext* server_context,
+        const typename CallbackTraits::SerializedInitialRequest* request
+    ) const
+    requires(CallbackTraits::kRpcType == RpcType::kServerStreaming)
+    {
+        UASSERT(server_context);
+        UASSERT(request);
+        return new Reactor{method_data_, *server_context, *request, no_final_response};
+    }
+
+    grpc::ServerReadReactor<grpc::ByteBuffer>* operator()(
+        typename CallbackTraits::RawContext* server_context,
+        typename CallbackTraits::SerializedFinalResponse* response
+    ) const
+    requires(CallbackTraits::kRpcType == RpcType::kClientStreaming)
+    {
+        UASSERT(server_context);
+        UASSERT(response);
+        return new Reactor{method_data_, *server_context, no_serialized_initial_request, *response};
+    }
+
+    grpc::ServerBidiReactor<grpc::ByteBuffer, grpc::ByteBuffer>* operator()(
+        typename CallbackTraits::RawContext* server_context
+    ) const
+    requires(CallbackTraits::kRpcType == RpcType::kBidiStreaming)
+    {
+        return new Reactor{method_data_, *server_context, no_serialized_initial_request, no_final_response};
+    }
+
+private:
+    MethodData<GrpcppService, CallbackTraits> method_data_;
+};
+
 template <typename GrpcppService, typename ServiceMethod>
-void StartProcessing(const MethodData<GrpcppService, CallTraits<ServiceMethod>>& method_data) {
-    CallData<GrpcppService, CallTraits<ServiceMethod>>::AcceptCall(method_data);
+void StartProcessing(const MethodData<GrpcppService, CallTraits<ServiceMethod>>& method_data, std::size_t queue_id) {
+    CallData<GrpcppService, CallTraits<ServiceMethod>>::AcceptCall(method_data, queue_id);
 }
 
 template <typename GrpcppService, typename Service, typename... ServiceMethods>
 void StartProcessing(ServiceData<GrpcppService>& service_data, Service& service, ServiceMethods... service_methods) {
-    for (std::size_t queue_id = 0; queue_id < service_data.internals.completion_queues.GetSize(); ++queue_id) {
+    UASSERT(service_data.internals.completion_queues);
+    for (std::size_t queue_id = 0; queue_id < service_data.internals.completion_queues->GetSize(); ++queue_id) {
         std::size_t method_id = 0;
         (impl::StartProcessing<
              GrpcppService,
-             ServiceMethods>({service_data, queue_id, method_id++, service, service_methods}),
+             ServiceMethods>({service_data, method_id++, service, service_methods}, queue_id),
          ...);
     }
+}
+
+template <typename GrpcppService, typename ServiceMethod>
+void SetupCallback(const MethodData<GrpcppService, CallbackCallTraits<CallTraits<ServiceMethod>>>& method_data) {
+    using CallTraits = CallbackCallTraits<CallTraits<ServiceMethod>>;
+
+    method_data.service_data.async_service.MarkMethodCallback(
+        method_data.method_id,
+        new typename CallTraits::CallbackMethodHandler(ReactorGetter<GrpcppService, CallTraits>{method_data})
+    );
+}
+
+template <typename GrpcppService, typename Service, typename... ServiceMethods>
+void SetupCallbacks(ServiceData<GrpcppService>& service_data, Service& service, ServiceMethods... service_methods) {
+    std::size_t method_id = 0;
+    (impl::SetupCallback<GrpcppService, ServiceMethods>({service_data, method_id++, service, service_methods}), ...);
 }
 
 template <typename GrpcppService>
@@ -397,11 +548,16 @@ public:
         Service& service,
         ServiceMethods... service_methods
     )
-        : service_data_(std::move(internals), std::move(metadata)),
-          start_([this, &service, service_methods...] {
-              impl::StartProcessing(service_data_, service, service_methods...);
-          })
-    {}
+        : service_data_(std::move(internals), std::move(metadata))
+    {
+        if (service_data_.internals.use_callback_api) {
+            impl::SetupCallbacks(service_data_, service, service_methods...);
+        } else {
+            start_ = [this, &service, service_methods...] {
+                impl::StartProcessing(service_data_, service, service_methods...);
+            };
+        }
+    }
 
     grpc::Service& GetService() override { return service_data_.async_service; }
 
