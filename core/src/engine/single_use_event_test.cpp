@@ -178,12 +178,16 @@ UTEST_MT(SingleUseEvent, SendCancelRace, 3) {
     GTEST_SKIP() << "The race relies on scheduler behavior that is not stable under TSan";
 #endif
 
-    const auto test_deadline = engine::Deadline::FromDuration(100ms);
+    const auto overall_deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
     bool is_ready_status_achieved = false;
     bool is_cancel_status_achieved = false;
 
-    while (!test_deadline.IsReached() || !is_ready_status_achieved || !is_cancel_status_achieved) {
+    while (!is_ready_status_achieved || !is_cancel_status_achieved) {
+        UASSERT_MSG(
+            !overall_deadline.IsReached(),
+            "Timed out waiting for both kReady and kCancelled in SendCancelRace"
+        );
         engine::SingleUseEvent event;
 
         auto waiter = engine::CriticalAsyncNoTracing([&event] {
@@ -271,12 +275,16 @@ UTEST_P_MT(SingleUseEventWaitAny, SendCancelRace, 3) {
 #endif
 
     const auto event_to_notify = GetParam();
-    const auto test_deadline = engine::Deadline::FromDuration(50ms);
+    const auto overall_deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
     bool is_ready_status_achieved = false;
     bool is_cancel_status_achieved = false;
 
-    while (!test_deadline.IsReached() || !is_ready_status_achieved || !is_cancel_status_achieved) {
+    while (!is_ready_status_achieved || !is_cancel_status_achieved) {
+        UASSERT_MSG(
+            !overall_deadline.IsReached(),
+            "Timed out waiting for both ready and cancelled WaitAny outcomes in SendCancelRace"
+        );
         auto events = utils::FixedArray<engine::SingleUseEvent>(kEventCount);
 
         auto waiter = engine::CriticalAsyncNoTracing([&events] {
