@@ -4,10 +4,15 @@
 
 /// [auth checker factory decl]
 #include <userver/server/handlers/auth/auth_checker_factory.hpp>
+#include <userver/server/request/storage_context.hpp>
 
 #include "user_info_cache.hpp"
 
 namespace samples::pg {
+
+/// [request context tag]
+inline const utils::AnyStorageDataTag<server::request::StorageContext, std::string> kUsername;
+/// [request context tag]
 
 class CheckerFactory final : public server::handlers::auth::AuthCheckerFactoryBase {
 public:

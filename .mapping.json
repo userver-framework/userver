@@ -1375,6 +1375,7 @@
   "core/include/userver/server/request/json_data.hpp":"taxi/uservices/userver/core/include/userver/server/request/json_data.hpp",
   "core/include/userver/server/request/request_config.hpp":"taxi/uservices/userver/core/include/userver/server/request/request_config.hpp",
   "core/include/userver/server/request/request_context.hpp":"taxi/uservices/userver/core/include/userver/server/request/request_context.hpp",
+  "core/include/userver/server/request/storage_context.hpp":"taxi/uservices/userver/core/include/userver/server/request/storage_context.hpp",
   "core/include/userver/server/request/task_inherited_data.hpp":"taxi/uservices/userver/core/include/userver/server/request/task_inherited_data.hpp",
   "core/include/userver/server/request/task_inherited_request.hpp":"taxi/uservices/userver/core/include/userver/server/request/task_inherited_request.hpp",
   "core/include/userver/server/server.hpp":"taxi/uservices/userver/core/include/userver/server/server.hpp",

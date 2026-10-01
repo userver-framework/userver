@@ -11,7 +11,7 @@ namespace server::auth {
 
 namespace {
 
-const std::string kRequestContextKeyUserAuthInfo = "auth::user_info";
+const utils::AnyStorageDataTag<server::request::StorageContext, UserAuthInfo> kUserAuthInfo;
 
 }  // namespace
 
@@ -63,11 +63,11 @@ const std::optional<UserScopes>& UserAuthInfo::GetUserScopesOptional() const { r
 const std::optional<UserAuthInfo::Ticket>& UserAuthInfo::GetTicketOptional() const { return user_ticket_; }
 
 void UserAuthInfo::Set(server::request::RequestContext& request_context, UserAuthInfo&& info) {
-    request_context.SetData(kRequestContextKeyUserAuthInfo, std::move(info));
+    request_context.EmplaceData(kUserAuthInfo, std::move(info));
 }
 
 const UserAuthInfo& GetUserAuthInfo(const server::request::RequestContext& request_context) {
-    const auto* pauth_info = request_context.GetDataOptional<UserAuthInfo>(kRequestContextKeyUserAuthInfo);
+    const auto* pauth_info = request_context.GetDataOptional(kUserAuthInfo);
 
     UASSERT_MSG(
         pauth_info,
@@ -82,7 +82,7 @@ const UserAuthInfo& GetUserAuthInfo(const server::request::RequestContext& reque
 }
 
 std::optional<UserAuthInfo> GetUserAuthInfoOpt(const server::request::RequestContext& request_context) {
-    const auto* pauth_info = request_context.GetDataOptional<UserAuthInfo>(kRequestContextKeyUserAuthInfo);
+    const auto* pauth_info = request_context.GetDataOptional(kUserAuthInfo);
 
     if (!pauth_info) {
         return std::nullopt;

@@ -6,6 +6,7 @@
 
 USERVER_NAMESPACE_BEGIN
 
+#ifndef ARCADIA_ROOT
 constexpr std::string_view kKey = "key";
 constexpr std::string_view kOtherKey = "other_key";
 
@@ -156,6 +157,77 @@ TEST(RequestContext, MoveOnlyByConst) {
 
     context.SetData(std::string{kKey}, std::move(value));
     EXPECT_EQ(*context.GetData<std::unique_ptr<int>>(kKey), 42);
+}
+
+#endif
+
+namespace {
+
+using server::request::RequestContext;
+using server::request::StorageContext;
+
+const utils::AnyStorageDataTag<StorageContext, int> kNumber;
+const utils::AnyStorageDataTag<StorageContext, int> kOtherNumber;
+
+struct NonMovableData final {
+    explicit NonMovableData(int value)
+        : value(value)
+    {}
+    NonMovableData(const NonMovableData&) = delete;
+    NonMovableData(NonMovableData&&) = delete;
+
+    int value;
+};
+
+const utils::AnyStorageDataTag<StorageContext, std::unique_ptr<int>> kOwnedNumber;
+const utils::AnyStorageDataTag<StorageContext, NonMovableData> kNonMovable;
+
+}  // namespace
+
+TEST(RequestContext, TaggedData) {
+    server::request::RequestContext context;
+    const auto& const_context = context;
+    static_assert(std::is_same_v<decltype(context.GetData(kNumber)), int&>);
+    static_assert(std::is_same_v<decltype(const_context.GetData(kNumber)), const int&>);
+    static_assert(std::is_same_v<decltype(context.GetDataOptional(kNumber)), int*>);
+    static_assert(std::is_same_v<decltype(const_context.GetDataOptional(kNumber)), const int*>);
+    static_assert(noexcept(context.GetDataOptional(kNumber)));
+    static_assert(noexcept(const_context.GetDataOptional(kNumber)));
+    static_assert(noexcept(context.EraseData(kNumber)));
+
+    EXPECT_EQ(context.GetDataOptional(kNumber), nullptr);
+    EXPECT_EQ(const_context.GetDataOptional(kNumber), nullptr);
+    UEXPECT_THROW(context.GetData(kNumber), std::runtime_error);
+
+    auto& number = context.SetData(kNumber, 42);
+    context.EmplaceData(kOtherNumber, 7);
+    EXPECT_EQ(&number, context.GetDataOptional(kNumber));
+    EXPECT_EQ(const_context.GetData(kNumber), 42);
+    EXPECT_EQ(const_context.GetData(kOtherNumber), 7);
+    UEXPECT_THROW(context.SetData(kNumber, 8), std::runtime_error);
+    UEXPECT_THROW(context.EmplaceData(kOtherNumber, 8), std::runtime_error);
+    EXPECT_EQ(const_context.GetData(kNumber), 42);
+    EXPECT_EQ(const_context.GetData(kOtherNumber), 7);
+    number = 84;
+    EXPECT_EQ(const_context.GetData(kNumber), 84);
+
+    context.EraseData(kNumber);
+    context.EraseData(kNumber);
+    EXPECT_EQ(const_context.GetDataOptional(kNumber), nullptr);
+    EXPECT_EQ(const_context.GetData(kOtherNumber), 7);
+    context.EmplaceData(kNumber, 21);
+    EXPECT_EQ(const_context.GetData(kNumber), 21);
+}
+
+TEST(RequestContext, TaggedConstructionAndMove) {
+    RequestContext context;
+    context.SetData(kOwnedNumber, std::make_unique<int>(42));
+    auto& data = context.EmplaceData(kNonMovable, 21);
+
+    RequestContext moved(std::move(context));
+    EXPECT_EQ(&data, moved.GetDataOptional(kNonMovable));
+    EXPECT_EQ(std::as_const(moved).GetData(kNonMovable).value, 21);
+    EXPECT_EQ(*moved.GetData(kOwnedNumber), 42);
 }
 
 USERVER_NAMESPACE_END
