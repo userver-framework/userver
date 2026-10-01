@@ -31,8 +31,8 @@ void SetSpanLogLevel(std::optional<logging::Level> log_level) noexcept;
 std::optional<logging::Level> GetSpanLogLevel() noexcept;
 
 /// Isolates tests and benchmarks by resetting span logging configuration on
-/// construction and destruction: no suppressed spans and no span log level override.
-/// Does not restore the previous configuration.
+/// construction: no suppressed spans and no span log level override.
+/// Restores the previous configuration on destruction.
 class TracingStateGuard final {
 public:
     TracingStateGuard();
@@ -42,6 +42,10 @@ public:
     TracingStateGuard(TracingStateGuard&&) = delete;
     TracingStateGuard& operator=(const TracingStateGuard&) = delete;
     TracingStateGuard& operator=(TracingStateGuard&&) = delete;
+
+private:
+    NoLogSpans previous_no_log_spans_;
+    std::optional<logging::Level> previous_span_log_level_;
 };
 
 }  // namespace tracing

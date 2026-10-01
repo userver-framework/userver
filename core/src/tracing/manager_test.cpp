@@ -1,5 +1,6 @@
 #include <atomic>
 #include <barrier>
+#include <exception>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -96,28 +97,91 @@ TEST(TracingConfiguration, ConcurrentSpanLogLevelAccess) {
     EXPECT_FALSE(has_unexpected_level.load());
 }
 
-UTEST(TracingConfiguration, StateGuardResetsState) {
+UTEST(TracingConfiguration, StateGuardResetsAndRestoresState) {
     constexpr const char* kInitiallyIgnoredSpan = "initially-ignored-span";
+    constexpr const char* kInitiallyIgnoredPrefix = "initially-ignored-prefix/";
+    constexpr const char* kInitiallyIgnoredPrefixedSpan = "initially-ignored-prefix/child";
     constexpr const char* kScopedIgnoredSpan = "scoped-ignored-span";
+    constexpr const char* kScopedIgnoredPrefix = "scoped-ignored-prefix/";
+    constexpr const char* kScopedIgnoredPrefixedSpan = "scoped-ignored-prefix/child";
 
+    const TracingStateGuard test_state_guard;
     NoLogSpans no_log_spans;
     no_log_spans.names.emplace(kInitiallyIgnoredSpan);
+    no_log_spans.prefixes.emplace(kInitiallyIgnoredPrefix);
     SetNoLogSpans(std::move(no_log_spans));
     SetSpanLogLevel(logging::Level::kWarning);
 
     {
         const TracingStateGuard tracing_state_guard;
         EXPECT_FALSE(IsNoLogSpan(kInitiallyIgnoredSpan));
+        EXPECT_FALSE(IsNoLogSpan(kInitiallyIgnoredPrefixedSpan));
         EXPECT_EQ(GetSpanLogLevel(), std::nullopt);
 
         NoLogSpans scoped_no_log_spans;
         scoped_no_log_spans.names.emplace(kScopedIgnoredSpan);
+        scoped_no_log_spans.prefixes.emplace(kScopedIgnoredPrefix);
         SetNoLogSpans(std::move(scoped_no_log_spans));
+        SetSpanLogLevel(logging::Level::kNone);
+
+        {
+            const TracingStateGuard nested_state_guard;
+            EXPECT_FALSE(IsNoLogSpan(kScopedIgnoredSpan));
+            EXPECT_FALSE(IsNoLogSpan(kScopedIgnoredPrefixedSpan));
+            EXPECT_EQ(GetSpanLogLevel(), std::nullopt);
+            SetSpanLogLevel(logging::Level::kInfo);
+        }
+
+        EXPECT_TRUE(IsNoLogSpan(kScopedIgnoredSpan));
+        EXPECT_TRUE(IsNoLogSpan(kScopedIgnoredPrefixedSpan));
+        EXPECT_FALSE(IsNoLogSpan(kInitiallyIgnoredSpan));
+        EXPECT_FALSE(IsNoLogSpan(kInitiallyIgnoredPrefixedSpan));
+        EXPECT_EQ(GetSpanLogLevel(), logging::Level::kNone);
+    }
+
+    EXPECT_TRUE(IsNoLogSpan(kInitiallyIgnoredSpan));
+    EXPECT_TRUE(IsNoLogSpan(kInitiallyIgnoredPrefixedSpan));
+    EXPECT_FALSE(IsNoLogSpan(kScopedIgnoredSpan));
+    EXPECT_FALSE(IsNoLogSpan(kScopedIgnoredPrefixedSpan));
+    EXPECT_EQ(GetSpanLogLevel(), logging::Level::kWarning);
+}
+
+UTEST(TracingConfiguration, StateGuardRestoresEmptyState) {
+    constexpr const char* kScopedIgnoredSpan = "scoped-ignored-span";
+    const TracingStateGuard test_state_guard;
+
+    {
+        const TracingStateGuard tracing_state_guard;
+        NoLogSpans no_log_spans;
+        no_log_spans.names.emplace(kScopedIgnoredSpan);
+        SetNoLogSpans(std::move(no_log_spans));
         SetSpanLogLevel(logging::Level::kInfo);
     }
 
     EXPECT_FALSE(IsNoLogSpan(kScopedIgnoredSpan));
     EXPECT_EQ(GetSpanLogLevel(), std::nullopt);
+}
+
+UTEST(TracingConfiguration, StateGuardRestoresStateOnException) {
+    constexpr const char* kInitiallyIgnoredSpan = "initially-ignored-span";
+    struct TestException final : std::exception {};
+    const TracingStateGuard test_state_guard;
+    NoLogSpans no_log_spans;
+    no_log_spans.names.emplace(kInitiallyIgnoredSpan);
+    SetNoLogSpans(std::move(no_log_spans));
+    SetSpanLogLevel(logging::Level::kWarning);
+
+    EXPECT_THROW(
+        {
+            const TracingStateGuard tracing_state_guard;
+            SetSpanLogLevel(logging::Level::kInfo);
+            throw TestException{};
+        },
+        TestException
+    );
+
+    EXPECT_TRUE(IsNoLogSpan(kInitiallyIgnoredSpan));
+    EXPECT_EQ(GetSpanLogLevel(), logging::Level::kWarning);
 }
 
 }  // namespace tracing

@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <optional>
+#include <utility>
 
 #include <userver/logging/impl/tag_writer.hpp>
 #include <userver/rcu/rcu.hpp>
@@ -19,11 +20,6 @@ constexpr int kInheritDefaultLoggerLevel = -1;
 
 constinit std::atomic<int> span_log_level{kInheritDefaultLoggerLevel};
 static_assert(decltype(span_log_level)::is_always_lock_free);
-
-void ResetTracingState() {
-    SetNoLogSpans({});
-    SetSpanLogLevel(std::nullopt);
-}
 
 auto& GlobalNoLogSpans() {
     static rcu::Variable<NoLogSpans, rcu::ExclusiveRcuTraits> spans{};
@@ -75,9 +71,18 @@ std::optional<logging::Level> GetSpanLogLevel() noexcept {
     return static_cast<logging::Level>(log_level);
 }
 
-TracingStateGuard::TracingStateGuard() { ResetTracingState(); }
+TracingStateGuard::TracingStateGuard()
+    : previous_no_log_spans_(GlobalNoLogSpans().ReadCopy()),
+      previous_span_log_level_(GetSpanLogLevel())
+{
+    SetNoLogSpans({});
+    SetSpanLogLevel(std::nullopt);
+}
 
-TracingStateGuard::~TracingStateGuard() { ResetTracingState(); }
+TracingStateGuard::~TracingStateGuard() {
+    SetNoLogSpans(std::move(previous_no_log_spans_));
+    SetSpanLogLevel(previous_span_log_level_);
+}
 
 }  // namespace tracing
 
