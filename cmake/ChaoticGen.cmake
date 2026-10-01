@@ -556,7 +556,6 @@ function(userver_target_generate_chaotic_dynamic_configs TARGET SCHEMAS_REGEX)
             ${OUTPUT_DIR}/include/dynamic_config/variables/${SCHEMA}.types.hpp
             ${OUTPUT_DIR}/include/dynamic_config/variables/${SCHEMA}.types_parsers.ipp
             ${OUTPUT_DIR}/include/dynamic_config/variables/${SCHEMA}.hpp
-            ${OUTPUT_DIR}/src/dynamic_config/variables/${SCHEMA}.types.cpp
             ${OUTPUT_DIR}/src/dynamic_config/variables/${SCHEMA}.cpp
         )
     endforeach()
