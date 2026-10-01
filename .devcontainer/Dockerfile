@@ -1,4 +1,4 @@
-FROM ghcr.io/userver-framework/ubuntu-24.04-userver-base:latest
+FROM --platform=linux/amd64 ghcr.io/userver-framework/ubuntu-24.04-userver-base:latest
 
 # Setup clang toolchain, add "user" user
 COPY scripts/docker/setup-dev.sh /userver_tmp/
