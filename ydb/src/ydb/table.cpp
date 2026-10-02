@@ -437,7 +437,7 @@ ExecuteResponse TableClient::ExecuteQuery(
             const auto tx_settings = MakeTxSettings(settings.tx_mode.value());
             const auto tx =
                 tx_settings ? NYdb::NQuery::TTxControl::BeginTx(*tx_settings).CommitTx()
-                            : NYdb::NQuery::TTxControl::NoTx().CommitTx();
+                            : NYdb::NQuery::TTxControl::NoTx();
             return session.ExecuteQuery(impl::ToString(query.GetStatementView()), tx, params, exec_settings);
         }
     );
