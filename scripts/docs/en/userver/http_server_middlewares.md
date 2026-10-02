@@ -143,7 +143,9 @@ and one for a more granular per-handler configuration.
 ### Server-wide middleware pipeline
 
 The server-wide pipeline is server::middlewares::PipelineBuilder. In its simple form, it takes
-server::middlewares::DefaultPipeline and appends the given middlewares to it, which looks like this:
+server::middlewares::DefaultPipeline and adds the middlewares from `prepend` before it and
+those from `append` after it. Both lists preserve their configured order and default to empty.
+For example, appending middlewares looks like this:
 @snippet samples/http_middleware_service/static_config.yaml  Middlewares sample - pipeline builder configuration
 
 To use the minimal built-in pipeline instead, set `middleware-pipeline-builder` to
@@ -164,7 +166,8 @@ Remember that messing with the default userver-provided pipeline is error-prone 
 ### Custom per-handler middleware pipelines
 
 To configure the pipeline at a per-handler basis 🐙 **userver** provides server::middlewares::HandlerPipelineBuilder interface.
-By default, it returns the server-wide pipeline without any modifications to it. To change the behavior one should
+Configure `prepend` and `append` on a handler pipeline builder to add middlewares before and after the server-wide
+pipeline. Both lists preserve their configured order and default to empty. For other changes, one should
 derive from it, override the `BuildPipeline` method and specify the builder as the pipeline-builder for the handler.
 For example:
 @snippet samples/http_middleware_service/main.cpp  Middlewares sample - custom handler pipeline builder

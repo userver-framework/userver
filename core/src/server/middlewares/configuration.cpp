@@ -99,8 +99,11 @@ components::ComponentList MinimalMiddlewareComponents() {
 
 PipelineBuilder::PipelineBuilder(const components::ComponentConfig& config, const components::ComponentContext& context)
     : components::ComponentBase{config, context},
+      middlewares_to_prepend_{config["prepend"].As<MiddlewaresList>({})},
       middlewares_to_append_{config["append"].As<MiddlewaresList>({})}
 {}
+
+const MiddlewaresList& PipelineBuilder::GetMiddlewaresToPrepend() const { return middlewares_to_prepend_; }
 
 const MiddlewaresList& PipelineBuilder::GetMiddlewaresToAppend() const { return middlewares_to_append_; }
 
@@ -114,13 +117,6 @@ MiddlewaresList MinimalPipelineBuilder::BuildPipeline(MiddlewaresList /*userver_
 }
 
 yaml_config::Schema MinimalPipelineBuilder::GetStaticConfigSchema() { return PipelineBuilder::GetStaticConfigSchema(); }
-
-HandlerPipelineBuilder::HandlerPipelineBuilder(
-    const components::ComponentConfig& config,
-    const components::ComponentContext& context
-)
-    : components::ComponentBase{config, context}
-{}
 
 }  // namespace server::middlewares
 

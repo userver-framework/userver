@@ -2,6 +2,13 @@ type: object
 description: Base class for a component to configure server middlewares
 additionalProperties: false
 properties:
+    prepend:
+        type: array
+        items:
+            type: string
+            description: name of a middleware to prepend
+        description: list of middlewares to prepend by default
+        default: an empty list
     append:
         type: array
         items:
