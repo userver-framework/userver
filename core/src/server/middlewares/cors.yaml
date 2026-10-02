@@ -3,7 +3,9 @@ description: Http service headers propagator middleware
 additionalProperties: false
 properties:
     allowed-origins:
-        description: Allowed 'Origin' header values
+        description: |
+            Allowed 'Origin' header values.
+            The '*' wildcard can not be combined with 'allow-credentials: true'.
         type: array
         items:
             description: "'Origin' header value"
@@ -14,6 +16,7 @@ properties:
             Whether credentials sending is allowed.
             Credentials include cookies, Transport Layer Security (TLS) client certificates,
             or authentication headers containing a username and password.
+            Requires 'allowed-origins' to list concrete origins rather than the '*' wildcard.
         type: boolean
 
     max-age-seconds:
