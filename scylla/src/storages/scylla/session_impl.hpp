@@ -46,7 +46,7 @@ public:
     virtual void ExecuteRawVoid(std::string_view query, const std::vector<Value>& params) = 0;
 
 protected:
-    SessionImpl(std::string&& id, const SessionConfig session_config, dynamic_config::Source config_source);
+    SessionImpl(std::string&& id, dynamic_config::Source config_source);
 
 private:
     const std::string id_;
