@@ -13,11 +13,6 @@
 #include <userver/utils/impl/internal_tag.hpp>
 #include <userver/utils/resource_scopes_fwd.hpp>
 
-// TODO remove extra includes
-#include <functional>
-#include <memory>
-#include <vector>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace engine::impl {

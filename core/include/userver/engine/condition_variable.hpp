@@ -4,7 +4,6 @@
 /// @brief @copybrief engine::ConditionVariable
 
 #include <chrono>
-#include <memory>
 
 #include <userver/engine/condition_variable_status.hpp>
 #include <userver/engine/deadline.hpp>

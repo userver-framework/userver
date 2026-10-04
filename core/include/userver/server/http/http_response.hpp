@@ -19,12 +19,6 @@
 
 #include "http_status.hpp"
 
-// TODO remove extra include.
-#include <userver/compiler/impl/lifetime.hpp>
-#include <userver/concurrent/queue.hpp>
-#include <userver/concurrent/striped_counter.hpp>
-#include <userver/utils/fast_pimpl.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace server::request {
