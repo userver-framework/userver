@@ -560,19 +560,37 @@ UTEST_F(RedisClusterClientTest, Subscribe) {
     const std::string channel2 = "channel02";
     const std::string msg1 = "test message1";
     const std::string msg2 = "test message2";
+    const std::string readiness_probe = "subscription readiness probe";
 
+    engine::SingleConsumerEvent subscribed1;
+    engine::SingleConsumerEvent subscribed2;
     engine::SingleConsumerEvent event1;
     engine::SingleConsumerEvent event2;
     size_t msg_counter = 0;
     const auto waiting_time = std::chrono::milliseconds(50);
 
+    const auto wait_for_subscription = [&](const std::string& channel, engine::SingleConsumerEvent& subscribed) {
+        const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+        while (!deadline.IsReached()) {
+            client->Publish(channel, readiness_probe, kDefaultCc);
+            if (subscribed.WaitForEventFor(waiting_time)) {
+                return true;
+            }
+        }
+        return false;
+    };
+
     auto token1 = subscribe_client->Subscribe(channel1, [&](const std::string& channel, const std::string& message) {
         EXPECT_EQ(channel, channel1);
+        if (message == readiness_probe) {
+            subscribed1.Send();
+            return;
+        }
         EXPECT_EQ(message, msg1);
         ++msg_counter;
         event1.Send();
     });
-    engine::SleepFor(waiting_time);
+    ASSERT_TRUE(wait_for_subscription(channel1, subscribed1));
 
     client->Publish(channel1, msg1, kDefaultCc);
     ASSERT_TRUE(event1.WaitForEventFor(utest::kMaxTestWaitTime));
@@ -580,11 +598,15 @@ UTEST_F(RedisClusterClientTest, Subscribe) {
 
     auto token2 = subscribe_client->Subscribe(channel2, [&](const std::string& channel, const std::string& message) {
         EXPECT_EQ(channel, channel2);
+        if (message == readiness_probe) {
+            subscribed2.Send();
+            return;
+        }
         EXPECT_EQ(message, msg2);
         ++msg_counter;
         event2.Send();
     });
-    engine::SleepFor(waiting_time);
+    ASSERT_TRUE(wait_for_subscription(channel2, subscribed2));
 
     client->Publish(channel2, msg2, kDefaultCc);
     ASSERT_TRUE(event2.WaitForEventFor(utest::kMaxTestWaitTime));

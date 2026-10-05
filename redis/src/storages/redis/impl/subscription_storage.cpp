@@ -282,15 +282,25 @@ void SubscriptionStorageBase::SubscriptionStorageImpl<
              * Use weak ptr as Fsm may be destroyed by unsubscribe() earlier
              * than SUBSCRIBE reply is received.
              */
-            auto subscribe_cb = [this, weak_fsm, channel_name](ServerId server_id, SubscriberEvent event) {
-                auto fsm = weak_fsm.lock();
-                if (!fsm) {
-                    // possible after Stop() only
-                    return;
-                }
+            auto subscribe_cb =
+                [this,
+                 weak_fsm,
+                 channel_name,
+                 subscribe_request_id = action.subscribe_request_id](ServerId server_id, SubscriberEvent event) {
+                    auto fsm = weak_fsm.lock();
+                    if (!fsm) {
+                        // possible after Stop() only
+                        return;
+                    }
 
-                HandleServerStateChanged(fsm, channel_name, server_id, EventTypeFromSubscriberEvent(event));
-            };
+                    HandleServerStateChanged(
+                        fsm,
+                        channel_name,
+                        server_id,
+                        EventTypeFromSubscriberEvent(event),
+                        subscribe_request_id
+                    );
+                };
             cmd = PrepareSubscribeCommand(channel_name, std::move(subscribe_cb), shard);
             cmd->control.force_server_id = action.server_id;
             if (channel_name.sharded) {
@@ -328,13 +338,15 @@ void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>
     const std::shared_ptr<shard_subscriber::Fsm>& fsm,
     const ChannelName& channel_name,
     ServerId server_id,
-    shard_subscriber::Event::Type event_type
+    shard_subscriber::Event::Type event_type,
+    std::size_t subscribe_request_id
 ) {
-    RunAsync([this, fsm, channel_name, server_id, event_type] {
+    RunAsync([this, fsm, channel_name, server_id, event_type, subscribe_request_id] {
         try {
             shard_subscriber::Event event;
             event.type = event_type;
             event.server_id = server_id;
+            event.subscribe_request_id = subscribe_request_id;
             fsm->OnEvent(event);
             ReadActions(fsm, channel_name);
         } catch (const std::exception& ex) {

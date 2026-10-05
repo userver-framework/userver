@@ -3,7 +3,10 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <memory>
+#include <string>
 #include <thread>
+#include <utility>
 #include <vector>
 
 #include <userver/engine/async.hpp>
@@ -13,6 +16,7 @@
 #include <userver/engine/task/current_task.hpp>
 #include <userver/storages/redis/base.hpp>
 
+#include <storages/redis/impl/cmd_args.hpp>
 #include <storages/redis/impl/command.hpp>
 #include <storages/redis/impl/redis_group.hpp>
 #include <storages/redis/impl/secdist_redis.hpp>
@@ -44,6 +48,57 @@ constexpr std::size_t kDatabaseIndex = 0;
 
 const std::string kDbName = "redis_db";
 const std::string kLocalhost = "127.0.0.1";
+const std::string kPendingUnsubscribeChannel = "pending-unsubscribe";
+
+class RedisServerWithPendingUnsubscribe : public MockRedisServer {
+public:
+    RedisServerWithPendingUnsubscribe()
+        : MockRedisServer(kDbName)
+    {
+        using storages::redis::ReplyData;
+        RegisterPingHandler();
+        RegisterHandlerWithConstReply(
+            "SUBSCRIBE",
+            {kPendingUnsubscribeChannel},
+            ReplyData::Array{ReplyData("subscribe"), ReplyData(kPendingUnsubscribeChannel), ReplyData(1)}
+        );
+        const std::string ping_channel{storages::redis::impl::CmdWithArgs::kSubscriberPingChannelName};
+        RegisterHandlerWithConstReply(
+            "SUBSCRIBE",
+            {ping_channel},
+            ReplyData::Array{ReplyData("subscribe"), ReplyData(ping_channel), ReplyData(2)}
+        );
+    }
+
+    ~RedisServerWithPendingUnsubscribe() override { Stop(); }
+
+    bool WaitForUnsubscribe() { return unsubscribe_received_.WaitForEventFor(kSuccessTimeout); }
+    bool WaitForHeartbeatUnsubscribe() { return heartbeat_unsubscribe_received_.WaitForEventFor(kSuccessTimeout); }
+    bool WaitForDisconnect() { return disconnected_.WaitForEventFor(kSuccessTimeout); }
+
+protected:
+    void OnCommand(ConnectionPtr connection, storages::redis::ReplyPtr command) override {
+        const auto& args = command->data.GetArray();
+        if (args.front().GetString() != "UNSUBSCRIBE") {
+            MockRedisServer::OnCommand(std::move(connection), std::move(command));
+            return;
+        }
+        ASSERT_EQ(args.size(), 2);
+        if (args[1].GetString() == kPendingUnsubscribeChannel) {
+            unsubscribe_received_.Send();
+        } else {
+            EXPECT_EQ(args[1].GetString(), storages::redis::impl::CmdWithArgs::kSubscriberPingChannelName);
+            heartbeat_unsubscribe_received_.Send();
+        }
+    }
+
+    void OnDisconnected(ConnectionPtr) override { disconnected_.Send(); }
+
+private:
+    engine::SingleConsumerEvent unsubscribe_received_;
+    engine::SingleConsumerEvent heartbeat_unsubscribe_received_;
+    engine::SingleConsumerEvent disconnected_;
+};
 
 template <typename Predicate>
 void PeriodicCheck(Predicate predicate) {
@@ -231,6 +286,52 @@ UTEST(Redis, NoPassword) {
     );
 
     EXPECT_TRUE(ping_handler->WaitForFirstReply(kSuccessTimeout));
+}
+
+UTEST(Redis, PendingUnsubscribeDisconnectsOnHeartbeatFailure) {
+    RedisServerWithPendingUnsubscribe server;
+    engine::SingleConsumerEvent subscribed;
+    engine::SingleConsumerEvent subscription_finished;
+    std::atomic<storages::redis::ReplyStatus> final_status{storages::redis::ReplyStatus::kOk};
+    auto pool = std::make_shared<storages::redis::impl::ThreadPools>(1, 1);
+    const storages::redis::RedisCreationSettings redis_settings;
+    storages::redis::impl::Statistics stats;
+    auto redis = std::make_shared<
+        storages::redis::impl::Redis>(pool->GetRedisThreadPool(), redis_settings, kDbName, stats);
+    redis->Connect(
+        {kLocalhost},
+        server.GetPort(),
+        storages::redis::Credentials{"", storages::redis::Password("")},
+        kDatabaseIndex
+    );
+    ASSERT_TRUE(server.WaitForFirstPingReply(kSuccessTimeout));
+
+    auto subscribe = storages::redis::impl::PrepareCommand(
+        {"SUBSCRIBE", kPendingUnsubscribeChannel},
+        [&](const storages::redis::impl::CommandPtr&, const storages::redis::ReplyPtr& reply) {
+            if (reply->IsOk()) {
+                subscribed.Send();
+            } else {
+                final_status = reply->status;
+                subscription_finished.Send();
+            }
+        },
+        storages::redis::CommandControl{kSuccessTimeout, kSuccessTimeout, 1}
+    );
+    ASSERT_TRUE(redis->AsyncCommand(subscribe));
+    ASSERT_TRUE(subscribed.WaitForEventFor(kSuccessTimeout));
+
+    ASSERT_TRUE(redis->AsyncCommand(storages::redis::impl::PrepareCommand(
+        {"UNSUBSCRIBE", kPendingUnsubscribeChannel},
+        storages::redis::impl::ReplyCallback{}
+    )));
+    ASSERT_TRUE(server.WaitForUnsubscribe());
+    // The heartbeat SUBSCRIBE succeeded too: its command timeout cannot cause this disconnect.
+    ASSERT_TRUE(server.WaitForHeartbeatUnsubscribe());
+    ASSERT_TRUE(subscription_finished.WaitForEventFor(kSuccessTimeout));
+    EXPECT_EQ(final_status.load(), storages::redis::ReplyStatus::kEndOfFileError);
+    EXPECT_TRUE(server.WaitForDisconnect());
+    EXPECT_FALSE(IsConnected(*redis));
 }
 
 UTEST(Redis, CommandQueuedBeforeConnect) {

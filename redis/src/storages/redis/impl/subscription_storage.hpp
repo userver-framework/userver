@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <functional>
 #include <map>
 #include <memory>
@@ -205,7 +206,8 @@ protected:
             const std::shared_ptr<shard_subscriber::Fsm>& fsm,
             const ChannelName& channel_name,
             ServerId server_id,
-            shard_subscriber::Event::Type event_type
+            shard_subscriber::Event::Type event_type,
+            std::size_t subscribe_request_id
         );
 
         template <class Map>

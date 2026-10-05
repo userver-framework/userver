@@ -4525,6 +4525,7 @@
   "redis/src/storages/redis/impl/subscribe_sentinel.hpp":"taxi/uservices/userver/redis/src/storages/redis/impl/subscribe_sentinel.hpp",
   "redis/src/storages/redis/impl/subscription_rebalance_scheduler.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/subscription_rebalance_scheduler.cpp",
   "redis/src/storages/redis/impl/subscription_rebalance_scheduler.hpp":"taxi/uservices/userver/redis/src/storages/redis/impl/subscription_rebalance_scheduler.hpp",
+  "redis/src/storages/redis/impl/subscription_recovery_test.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/subscription_recovery_test.cpp",
   "redis/src/storages/redis/impl/subscription_statistics.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/subscription_statistics.cpp",
   "redis/src/storages/redis/impl/subscription_statistics.hpp":"taxi/uservices/userver/redis/src/storages/redis/impl/subscription_statistics.hpp",
   "redis/src/storages/redis/impl/subscription_storage.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/subscription_storage.cpp",

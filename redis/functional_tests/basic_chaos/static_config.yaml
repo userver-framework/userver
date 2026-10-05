@@ -9,6 +9,10 @@ components_manager:
             path: /chaos-many-requests
             task_processor: main-task-processor
             method: GET
+        handler-chaos-pubsub:
+            path: /chaos-pubsub
+            task_processor: main-task-processor
+            method: GET,DELETE
         handler-server-monitor:
             path: /service/monitor
             method: GET
@@ -19,6 +23,9 @@ components_manager:
               - config_name: test
                 db: test
             subscribe_groups:
+              - config_name: pubsub
+                db: pubsub
+                sharding_strategy: RedisStandalone
             thread_pools:
                 redis_thread_pool_size: 8
                 sentinel_thread_pool_size: 1
@@ -54,6 +61,7 @@ components_manager:
                     timings-enabled: true
                 REDIS_PUBSUB_METRICS_SETTINGS:
                     per-shard-stats-enabled: true
+                REDIS_SUBSCRIPTIONS_REBALANCE_MIN_INTERVAL_SECONDS: 1
 
         dynamic-config-client:
             config-url: $config-server-url
