@@ -4,6 +4,7 @@
 /// @brief Logging helpers, see @ref scripts/docs/en/userver/logging.md for more info.
 
 #include <chrono>
+#include <optional>
 
 #include <userver/compiler/select.hpp>
 #include <userver/logging/fwd.hpp>
@@ -79,6 +80,21 @@ private:
 /// @brief Sets new log level for the default logger
 /// @note Prefer using logging::DefaultLoggerLevelScope if possible
 void SetDefaultLoggerLevel(Level);
+
+/// @brief Sets the probability with which log records with level below
+/// @ref logging::Level::kWarning are written. Intended for service degradation
+/// under high load. Passing `std::nullopt` disables the sampling, values are
+/// clamped to [0.0, 1.0] and rounded down to a multiple of 2^-32.
+/// NaN disables sampling.
+///
+/// Records of warning level and above, span records
+/// (see @ref tracing::SetTraceSamplingProbability for their sampling) and
+/// locations force-enabled via dynamic debug log are always written.
+void SetLogSamplingProbability(std::optional<double> probability) noexcept;
+
+/// @brief Returns the current log sampling probability, `std::nullopt` means
+/// the sampling is disabled.
+std::optional<double> GetLogSamplingProbability() noexcept;
 
 /// Returns log level for the default logger
 Level GetDefaultLoggerLevel() noexcept;
