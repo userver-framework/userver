@@ -1,12 +1,13 @@
 #include <userver/engine/single_use_event.hpp>
 
 #include <atomic>
+#include <chrono>
+#include <cstddef>
 #include <thread>
 #include <vector>
 
 #include <boost/lockfree/queue.hpp>
 
-#include <userver/compiler/impl/tsan.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/current_task.hpp>
@@ -19,6 +20,12 @@
 using namespace std::chrono_literals;
 
 USERVER_NAMESPACE_BEGIN
+
+namespace {
+
+constexpr std::size_t kSendCancelRaceIterations = 100;
+
+}  // namespace
 
 TEST(SingleUseEvent, UnusedEvent) { const engine::SingleUseEvent event; }
 
@@ -173,21 +180,34 @@ UTEST_MT(SingleUseEvent, SendWaitRace, 2) {
     }
 }
 
+UTEST(SingleUseEvent, SendBeforeCancel) {
+    engine::SingleUseEvent event;
+    auto waiter = engine::CriticalAsyncNoTracing([&event] {
+        return event.WaitUntil(engine::Deadline::FromDuration(utest::kMaxTestWaitTime));
+    });
+
+    event.Send();
+    waiter.WaitFor(utest::kMaxTestWaitTime);
+    ASSERT_TRUE(waiter.IsFinished());
+    waiter.RequestCancel();
+
+    EXPECT_EQ(waiter.Get(), engine::FutureStatus::kReady);
+}
+
+UTEST(SingleUseEvent, CancelBeforeSend) {
+    engine::SingleUseEvent event;
+    auto waiter = engine::CriticalAsyncNoTracing([&event] {
+        return event.WaitUntil(engine::Deadline::FromDuration(utest::kMaxTestWaitTime));
+    });
+
+    waiter.SyncCancel();
+    event.Send();
+
+    EXPECT_EQ(waiter.Get(), engine::FutureStatus::kCancelled);
+}
+
 UTEST_MT(SingleUseEvent, SendCancelRace, 3) {
-#if USERVER_IMPL_HAS_TSAN
-    GTEST_SKIP() << "The race relies on scheduler behavior that is not stable under TSan";
-#endif
-
-    const auto overall_deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
-
-    bool is_ready_status_achieved = false;
-    bool is_cancel_status_achieved = false;
-
-    while (!is_ready_status_achieved || !is_cancel_status_achieved) {
-        UASSERT_MSG(
-            !overall_deadline.IsReached(),
-            "Timed out waiting for both kReady and kCancelled in SendCancelRace"
-        );
+    for (std::size_t iteration = 0; iteration < kSendCancelRaceIterations; ++iteration) {
         engine::SingleUseEvent event;
 
         auto waiter = engine::CriticalAsyncNoTracing([&event] {
@@ -206,16 +226,7 @@ UTEST_MT(SingleUseEvent, SendCancelRace, 3) {
         UASSERT_NO_THROW(canceller.Get());
 
         const auto status = waiter.Get();
-        switch (status) {
-            case engine::FutureStatus::kReady:
-                is_ready_status_achieved = true;
-                break;
-            case engine::FutureStatus::kCancelled:
-                is_cancel_status_achieved = true;
-                break;
-            default:
-                GTEST_FAIL();
-        }
+        ASSERT_TRUE(status == engine::FutureStatus::kReady || status == engine::FutureStatus::kCancelled);
     }
 }
 
@@ -269,22 +280,40 @@ UTEST_P_MT(SingleUseEventWaitAny, WaitSendRace, 2) {
     }
 }
 
-UTEST_P_MT(SingleUseEventWaitAny, SendCancelRace, 3) {
-#if USERVER_IMPL_HAS_TSAN
-    GTEST_SKIP() << "The race relies on scheduler behavior that is not stable under TSan";
-#endif
-
+UTEST_P(SingleUseEventWaitAny, SendBeforeCancel) {
     const auto event_to_notify = GetParam();
-    const auto overall_deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+    auto events = utils::FixedArray<engine::SingleUseEvent>(kEventCount);
+    auto waiter = engine::CriticalAsyncNoTracing([&events] {
+        return engine::WaitAnyFor(utest::kMaxTestWaitTime, events);
+    });
 
-    bool is_ready_status_achieved = false;
-    bool is_cancel_status_achieved = false;
+    events[event_to_notify].Send();
+    waiter.WaitFor(utest::kMaxTestWaitTime);
+    ASSERT_TRUE(waiter.IsFinished());
+    waiter.RequestCancel();
 
-    while (!is_ready_status_achieved || !is_cancel_status_achieved) {
-        UASSERT_MSG(
-            !overall_deadline.IsReached(),
-            "Timed out waiting for both ready and cancelled WaitAny outcomes in SendCancelRace"
-        );
+    EXPECT_EQ(waiter.Get(), event_to_notify);
+}
+
+UTEST_P(SingleUseEventWaitAny, CancelBeforeSend) {
+    const auto event_to_notify = GetParam();
+    auto events = utils::FixedArray<engine::SingleUseEvent>(kEventCount);
+    auto waiter = engine::CriticalAsyncNoTracing([&events] {
+        const auto result = engine::WaitAnyFor(utest::kMaxTestWaitTime, events);
+        EXPECT_TRUE(engine::current_task::ShouldCancel());
+        return result;
+    });
+
+    waiter.SyncCancel();
+    events[event_to_notify].Send();
+
+    EXPECT_FALSE(waiter.Get().has_value());
+}
+
+UTEST_P_MT(SingleUseEventWaitAny, SendCancelRace, 3) {
+    const auto event_to_notify = GetParam();
+
+    for (std::size_t iteration = 0; iteration < kSendCancelRaceIterations; ++iteration) {
         auto events = utils::FixedArray<engine::SingleUseEvent>(kEventCount);
 
         auto waiter = engine::CriticalAsyncNoTracing([&events] {
@@ -303,13 +332,7 @@ UTEST_P_MT(SingleUseEventWaitAny, SendCancelRace, 3) {
         UASSERT_NO_THROW(canceller.Get());
 
         const auto status = waiter.Get();
-        if (status == event_to_notify) {
-            is_ready_status_achieved = true;
-        } else if (status == std::nullopt) {
-            is_cancel_status_achieved = true;
-        } else {
-            GTEST_FAIL();
-        }
+        ASSERT_TRUE(!status.has_value() || status == event_to_notify);
     }
 }
 
