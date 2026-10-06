@@ -31,3 +31,40 @@ async def test_bad_content_type(service_client):
     response = await service_client.post('/v1/multipart', data='{}')
     assert response.status == 400
     assert response.content == b"Expected 'multipart/form-data' content type"
+
+
+MULTIPART_CONTENT_TYPE = 'multipart/form-data; boundary=zzz'
+PNG_MAGIC_BYTES = b'\x89PNG\r\n\x1a\n'
+
+
+async def test_malformed_body_is_rejected_by_the_handler(service_client):
+    response = await service_client.post(
+        '/v1/multipart',
+        data=b'this is not a multipart/form-data body',
+        headers={'Content-Type': MULTIPART_CONTENT_TYPE},
+    )
+
+    assert response.status == 400
+    assert response.content == b'Expecting PNG image format'
+
+
+async def test_partially_parsed_body_exposes_no_args(service_client):
+    # The parser fills in 'profileImage' from the first part and only then fails
+    # on the truncated second one, so this pins that a partially parsed form is
+    # never handed to the handler.
+    body = (
+        b'--zzz\r\n'
+        b'Content-Disposition: form-data; name="profileImage"; filename="x.png"\r\n'
+        b'\r\n' + PNG_MAGIC_BYTES + b'\r\n'
+        b'--zzz\r\n'
+        b'Content-Disposition: form-data; name="address"\r\n'
+    )
+
+    response = await service_client.post(
+        '/v1/multipart',
+        data=body,
+        headers={'Content-Type': MULTIPART_CONTENT_TYPE},
+    )
+
+    assert response.status == 400
+    assert response.content == b'Expecting PNG image format'

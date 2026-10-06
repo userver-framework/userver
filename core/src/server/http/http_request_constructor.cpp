@@ -11,6 +11,7 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/encoding/hex.hpp>
 #include <userver/utils/exception.hpp>
+#include <userver/utils/string_literal.hpp>
 
 #include "multipart_form_data_parser.hpp"
 
@@ -19,6 +20,11 @@ USERVER_NAMESPACE_BEGIN
 namespace server::http {
 
 namespace {
+
+constexpr utils::StringLiteral kMultipartParseFailureWarning =
+    "Failed to parse the multipart/form-data body of this request, the handler will see no form arguments. "
+    "Whether that is an error is up to the handler: check GetFormDataArg() and answer with a status that "
+    "describes the handler's own contract.";
 
 void StripDuplicateStartingSlashes(std::string& s) {
     if (s.empty() || s[0] != '/') {
@@ -223,10 +229,10 @@ void HttpRequestConstructor::FinalizeImpl() {
     const auto& content_type = request.GetHeader(USERVER_NAMESPACE::http::headers::kContentType);
     if (IsMultipartFormDataContentType(content_type)) {
         utils::impl::TransparentMap<std::string, std::vector<FormDataArg>, utils::StrCaseHash> form_data_args;
-        if (!ParseMultipartFormData(content_type, request.RequestBody(), form_data_args)) {
-            SetStatus(Status::kParseMultipartFormDataError);
-        } else {
+        if (ParseMultipartFormData(content_type, request.RequestBody(), form_data_args)) {
             builder_.SetFormDataArgs(std::move(form_data_args));
+        } else {
+            LOG_LIMITED_WARNING() << kMultipartParseFailureWarning;
         }
     }
 
@@ -349,11 +355,6 @@ void HttpRequestConstructor::CheckStatus() {
         case Status::kParseCookiesError:
             builder_.SetResponseStatus(HttpStatus::kBadRequest);
             builder_.GetHttpResponse().SetData("invalid cookies");
-            GetHttpResponseImpl(builder_.GetHttpResponse()).SetReady();
-            break;
-        case Status::kParseMultipartFormDataError:
-            builder_.SetResponseStatus(HttpStatus::kBadRequest);
-            builder_.GetHttpResponse().SetData("invalid body of multipart/form-data request");
             GetHttpResponseImpl(builder_.GetHttpResponse()).SetReady();
             break;
     }
