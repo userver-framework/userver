@@ -11,21 +11,36 @@ except ImportError:
     from health.v1 import health_pb2
 
 
+HEALTH_CHECK_TIMEOUT_SECONDS = 2.0
+
+
 @pytest.mark.uservice_oneshot
 async def test_graceful_shutdown_headers(
     service_daemon_instance,
+    service_start_timeout,
     grpc_client,
     graceful_shutdown_headers,
     graceful_shutdown_first_stage_seconds,
 ):
-    service_daemon_instance.process.send_signal(SIGTERM)
-
     request = health_pb2.HealthCheckRequest()
+
+    async def is_serving():
+        response = await grpc_client.Check(request, timeout=HEALTH_CHECK_TIMEOUT_SECONDS)
+        return response.status == health_pb2.HealthCheckResponse.SERVING
+
+    await sync.wait(
+        is_serving,
+        catch=grpc.RpcError,
+        total_wait_seconds=service_start_timeout,
+        failure_msg='Service did not become SERVING before initiating graceful shutdown',
+    )
+
+    service_daemon_instance.process.send_signal(SIGTERM)
 
     async def wait_for_not_serving_with_headers():
         try:
             call = grpc_client.Check(request)
-            response = await asyncio.wait_for(call, timeout=2.0)
+            response = await asyncio.wait_for(call, timeout=HEALTH_CHECK_TIMEOUT_SECONDS)
         except (grpc.RpcError, OSError, asyncio.TimeoutError):
             raise sync.NotReady()
         if response.status != health_pb2.HealthCheckResponse.NOT_SERVING:
