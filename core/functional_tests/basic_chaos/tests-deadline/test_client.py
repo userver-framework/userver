@@ -9,6 +9,12 @@ DP_TIMEOUT_MS = 'X-YaTaxi-Client-TimeoutMs'
 DP_DEADLINE_EXPIRED = 'X-YaTaxi-Deadline-Expired'
 DP_ABSOLUTE_DEADLINE = 'X-Request-Deadline'
 VERSION = {'version': '2'}
+TIMEOUT_OR_CANCELLED_ERROR_MESSAGES = {
+    'timeout': 'Timeout was reached',
+    'cancelled': 'Operation canceled',
+}
+METRICS_POLL_INTERVAL_SECONDS = 0.05
+METRICS_WAIT_TIMEOUT_SECONDS = 10
 
 
 def _make_deadline_epoch_us(offset_seconds: float) -> str:
@@ -82,22 +88,24 @@ def get_handler_exception_logs(capture):
     return [log for log in capture.select() if log['text'].startswith("exception in 'handler-chaos-httpclient'")]
 
 
-async def _wait_for_timeout_error_metrics(
+async def _wait_for_error_metrics(
     client_metrics: pytest_userver.client.MetricsDiffer,
     expected_count: int,
+    error_types: tuple[str, ...],
 ) -> None:
-    """httpclient timeout counters are written asynchronously."""
-
-    async def has_expected_timeout_errors() -> bool:
+    async def has_expected_errors() -> bool:
         client_metrics.current = await client_metrics.fetch()
-        count = client_metrics.value_at('errors', {'http_error': 'timeout', **VERSION}, default=0)
-        return count == expected_count
+        counts = {
+            error: client_metrics.value_at('errors', {'http_error': error, **VERSION}, default=0)
+            for error in error_types
+        }
+        return sum(counts.values()) == expected_count
 
     await sync.wait(
-        has_expected_timeout_errors,
-        failure_msg=f'Expected {expected_count} httpclient timeout errors in metrics',
-        relax_period_seconds=0.05,
-        total_wait_seconds=10,
+        has_expected_errors,
+        failure_msg=f'Expected {expected_count} httpclient errors of types {error_types} in metrics',
+        relax_period_seconds=METRICS_POLL_INTERVAL_SECONDS,
+        total_wait_seconds=METRICS_WAIT_TIMEOUT_SECONDS,
     )
 
 
@@ -124,7 +132,7 @@ async def test_timeout_expired(
             assert response.status == 500
             assert response.text == ''
 
-            await _wait_for_timeout_error_metrics(client_metrics, attempts)
+            await _wait_for_error_metrics(client_metrics, attempts, ('timeout',))
 
     assert client_metrics.value_at('cancelled-by-deadline', VERSION) == 0
     assert client_metrics.value_at('errors', {'http_error': 'ok', **VERSION}) == 0
@@ -169,23 +177,29 @@ async def test_timeout_expired_with_reuse(
             assert response.status == 500
             assert response.text == ''
 
-            await _wait_for_timeout_error_metrics(client_metrics, reuse_attempts)
+            await _wait_for_error_metrics(
+                client_metrics,
+                reuse_attempts,
+                tuple(TIMEOUT_OR_CANCELLED_ERROR_MESSAGES),
+            )
 
     assert client_metrics.value_at('cancelled-by-deadline', VERSION) == 0
     assert client_metrics.value_at('errors', {'http_error': 'ok', **VERSION}) == 0
-    assert client_metrics.value_at('errors', {'http_error': 'timeout', **VERSION}) == reuse_attempts
 
     logs = capture.select(stopwatch_name='GET localhost')
     assert len(logs) == reuse_attempts
-    for i in range(reuse_attempts):
-        log = logs[i]
+    for log in logs:
         assert log['error'] == '1'
         assert log['http.request.resend_count'] == '1'
         assert log['http.request.max_resend_count'] == '1'
         assert log.get('cancelled_by_deadline', '0') == '0'
-        assert log['error_msg'] == 'Timeout was reached'
+        assert log['error_msg'] in TIMEOUT_OR_CANCELLED_ERROR_MESSAGES.values()
         assert log['timeout_ms'] == str(timeout)
         assert log['propagated_timeout_ms'] == str(timeout)
+
+    for error_type, error_message in TIMEOUT_OR_CANCELLED_ERROR_MESSAGES.items():
+        expected_count = sum(log['error_msg'] == error_message for log in logs)
+        assert client_metrics.value_at('errors', {'http_error': error_type, **VERSION}) == expected_count
 
     logs = get_handler_exception_logs(capture)
     assert len(logs) == 1
