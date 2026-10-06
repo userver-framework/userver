@@ -46,6 +46,7 @@ struct LruCacheConfigStatic final {
     LruCacheConfig config;
     std::size_t ways;
     bool use_dynamic_config;
+    bool wait_for_dynamic_configs;
 };
 
 extern const dynamic_config::Key<std::unordered_map<std::string, LruCacheConfig>> kLruCacheConfigSet;

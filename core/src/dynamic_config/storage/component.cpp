@@ -384,18 +384,6 @@ void DynamicConfig::Impl::UpdateIfHasConfigAndListen(
     });
 }
 
-DynamicConfig::NoblockSubscriber::NoblockSubscriber(DynamicConfig& config_component) noexcept
-    : config_component_(config_component) {}
-
-void DynamicConfig::NoblockSubscriber::DoUpdateIfHasConfigAndListen(
-    utils::ResourceScopeStorage& scopes,
-    concurrent::FunctionId id,
-    std::string_view name,
-    concurrent::AsyncEventSource<const dynamic_config::Diff&>::Function&& func
-) {
-    config_component_.impl_->UpdateIfHasConfigAndListen(scopes, id, name, std::move(func));
-}
-
 DynamicConfig::DynamicConfig(const ComponentConfig& config, const ComponentContext& context)
     : DynamicConfigUpdatesSinkBase(config, context),
       impl_(std::make_unique<Impl>(config, context))
@@ -450,5 +438,21 @@ dynamic_config::Source LocateDependency(
 /// [LocateDependency example]
 
 }  // namespace components
+
+namespace dynamic_config {
+
+NoblockSubscriber::NoblockSubscriber(components::DynamicConfig& config_component) noexcept
+    : config_component_(config_component) {}
+
+void NoblockSubscriber::DoUpdateIfHasConfigAndListen(
+    utils::ResourceScopeStorage& scopes,
+    concurrent::FunctionId id,
+    std::string_view name,
+    concurrent::AsyncEventSource<const dynamic_config::Diff&>::Function&& func
+) {
+    config_component_.impl_->UpdateIfHasConfigAndListen(scopes, id, name, std::move(func));
+}
+
+}  // namespace dynamic_config
 
 USERVER_NAMESPACE_END

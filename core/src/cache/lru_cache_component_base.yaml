@@ -20,3 +20,10 @@ properties:
         type: boolean
         description: enables dynamic reconfiguration with CacheConfigSet
         default: true
+    wait-for-dynamic-configs:
+        type: boolean
+        description: >-
+            wait for the first dynamic config before constructing the cache.
+            If false, use static settings until dynamic config arrives, then apply
+            dynamic updates normally. Has no effect when config-settings is false.
+        default: true

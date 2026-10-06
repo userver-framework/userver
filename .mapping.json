@@ -1498,6 +1498,7 @@
   "core/src/cache/lru_cache_component_base.yaml":"taxi/uservices/userver/core/src/cache/lru_cache_component_base.yaml",
   "core/src/cache/lru_cache_component_base_test.cpp":"taxi/uservices/userver/core/src/cache/lru_cache_component_base_test.cpp",
   "core/src/cache/lru_cache_component_base_test.hpp":"taxi/uservices/userver/core/src/cache/lru_cache_component_base_test.hpp",
+  "core/src/cache/lru_cache_component_explicit_admission_test.cpp":"taxi/uservices/userver/core/src/cache/lru_cache_component_explicit_admission_test.cpp",
   "core/src/cache/lru_cache_config.cpp":"taxi/uservices/userver/core/src/cache/lru_cache_config.cpp",
   "core/src/cache/lru_cache_statistics.cpp":"taxi/uservices/userver/core/src/cache/lru_cache_statistics.cpp",
   "core/src/cache/nway_lru_cache_test.cpp":"taxi/uservices/userver/core/src/cache/nway_lru_cache_test.cpp",

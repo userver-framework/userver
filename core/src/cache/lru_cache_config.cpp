@@ -65,7 +65,8 @@ LruCacheConfig Parse(const formats::json::Value& value, formats::parse::To<LruCa
 LruCacheConfigStatic::LruCacheConfigStatic(const yaml_config::YamlConfig& config)
     : config(config),
       ways(config[kWays].As<std::size_t>()),
-      use_dynamic_config(config["config-settings"].As<bool>(true))
+      use_dynamic_config(config["config-settings"].As<bool>(true)),
+      wait_for_dynamic_configs(config["wait-for-dynamic-configs"].As<bool>(true))
 {
     if (ways <= 0) {
         throw std::runtime_error("cache-ways is non-positive");
