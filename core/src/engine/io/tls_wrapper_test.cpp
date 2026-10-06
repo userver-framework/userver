@@ -3,7 +3,10 @@
 #include <openssl/opensslv.h>
 #include <sys/socket.h>
 
+#include <chrono>
+#include <cstddef>
 #include <stdexcept>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -995,6 +998,40 @@ UTEST(TlsWrapper, PeerShutdown) {
     }
 
     server_task.Get();
+}
+
+UTEST(TlsWrapper, WriteOnlyClientShutdownSmoke) {
+    constexpr std::size_t kPayloadSize = 64 * 1024;
+    const std::string payload(kPayloadSize, 'x');
+    const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+    TcpListener listener;
+    auto [server, client] = listener.MakeSocketPair(deadline);
+    engine::SingleConsumerEvent server_connected;
+    engine::SingleConsumerEvent client_finished;
+    auto server_task = engine::AsyncNoTracing([&] {
+        const auto ssl_ctx = crypto::SslCtx::CreateServerTlsContext(
+            crypto::LoadCertificatesChainFromString(cert),
+            crypto::PrivateKey::LoadFromString(key)
+        );
+        auto tls_server = io::TlsWrapper::StartTlsServer(std::move(server), ssl_ctx, deadline);
+        server_connected.Send();
+        ASSERT_TRUE(client_finished.WaitForEventUntil(deadline));
+        std::string received(payload.size(), '\0');
+        [[maybe_unused]] const auto bytes_received = tls_server.RecvAll(received.data(), received.size(), deadline);
+        char trailing_byte{};
+        [[maybe_unused]] const auto
+            trailing_bytes_received = tls_server.RecvSome(&trailing_byte, sizeof(trailing_byte), deadline);
+    });
+    {
+        auto tls_client = io::TlsWrapper::StartTlsClient(std::move(client), {}, deadline);
+        ASSERT_TRUE(server_connected.WaitForEventUntil(deadline));
+        [[maybe_unused]] const auto bytes_sent = tls_client.SendAll(payload.data(), payload.size(), deadline);
+    }
+    client_finished.Send();
+    try {
+        server_task.Get();
+    } catch (const io::IoException&) {
+    }
 }
 
 UTEST(TlsWrapper, PeerDisconnect) {
