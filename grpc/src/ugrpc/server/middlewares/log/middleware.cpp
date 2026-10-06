@@ -5,11 +5,13 @@
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+#include <google/protobuf/message.h>
 
 #include <userver/logging/log.hpp>
 #include <userver/logging/log_extra.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/not_null.hpp>
 
 #include <ugrpc/impl/logging.hpp>
 #include <ugrpc/impl/rpc_metadata.hpp>
@@ -24,7 +26,8 @@ namespace ugrpc::server::middlewares::log {
 
 namespace {
 
-const utils::AnyStorageDataTag<StorageContext, logging::LogExtra> kUnaryResponseLogExtraTag{};
+// Unary response stays alive until after OnCallFinish; see CallProcessor.
+const utils::AnyStorageDataTag<StorageContext, utils::NotNull<const google::protobuf::Message*>> kUnaryResponseTag{};
 
 std::string GetMessageForLogging(const google::protobuf::Message& message, const Settings& settings) {
     if (settings.msg_log_level < settings.log_level || !logging::ShouldLog(settings.msg_log_level)) {
@@ -39,13 +42,6 @@ public:
         : log_level_threshold_(log_level)
     {}
 
-    void Log(logging::Level level, std::string_view message, logging::LogExtra&& extra) const {
-        if (level < log_level_threshold_) {
-            return;
-        }
-        LOG(level) << message << std::move(extra);
-    }
-
     template <typename LogBuilder>
     void Log(logging::Level level, LogBuilder&& log_builder) const {
         if (level < log_level_threshold_) {
@@ -53,8 +49,6 @@ public:
         }
         LOG(level) << std::forward<LogBuilder>(log_builder);
     }
-
-    bool ShouldLog(logging::Level level) const { return level >= log_level_threshold_ && logging::ShouldLog(level); }
 
 private:
     logging::Level log_level_threshold_;
@@ -79,13 +73,13 @@ void AppendDelay(MiddlewareCallContext& context, logging::LogExtra& extra) {
     extra.Extend("delay", fmt::format("{}.{:06}", delay_s.count(), delay_us.count()));
 }
 
-logging::LogExtra MakeResponseLogExtra(const google::protobuf::Message& response, const Settings& settings) {
-    return {
+void AppendResponse(const google::protobuf::Message& response, const Settings& settings, logging::LogExtra& extra) {
+    extra.Extend({
         {ugrpc::impl::kTypeTag, "response"},
         {"grpc_code", "OK"},  // TODO: revert
         {ugrpc::impl::kBodyTag, GetMessageForLogging(response, settings)},
         {ugrpc::impl::kMessageMarshalledLenTag, response.ByteSizeLong()},
-    };
+    });
 }
 
 }  // namespace
@@ -103,9 +97,11 @@ void Middleware::OnCallStart(MiddlewareCallContext& context) const {
 
     const Logger logger{settings_.log_level};
     if (!IsSingleRequestMethod(context.GetRpcType())) {
-        logging::LogExtra extra{{"type", "request"}};
-        AppendOriginMetadata(context, extra);
-        logger.Log(settings_.msg_log_level, "gRPC request stream started", std::move(extra));
+        logger.Log(settings_.msg_log_level, [&](auto& log_helper) {
+            logging::LogExtra extra{{"type", "request"}};
+            AppendOriginMetadata(context, extra);
+            log_helper << "gRPC request stream started" << std::move(extra);
+        });
     }
 }
 
@@ -128,60 +124,67 @@ void Middleware::PostRecvMessage(MiddlewareCallContext& context, google::protobu
 }
 
 void Middleware::PreSendMessage(MiddlewareCallContext& context, google::protobuf::Message& response) const {
-    const Logger logger{settings_.log_level};
     if (IsSingleResponseMethod(context.GetRpcType())) {
-        if (logger.ShouldLog(settings_.msg_log_level)) {
-            auto extra = MakeResponseLogExtra(response, settings_);
-            extra.Extend("type", "response");
-            context.GetStorageContext().Set(kUnaryResponseLogExtraTag, std::move(extra));
-        }
+        context.GetStorageContext().Emplace(kUnaryResponseTag, response);
     } else {
+        const Logger logger{settings_.log_level};
         logger.Log(settings_.msg_log_level, [&](auto& log_helper) {
-            log_helper << "gRPC response stream message" << MakeResponseLogExtra(response, settings_);
+            logging::LogExtra extra;
+            AppendResponse(response, settings_, extra);
+            log_helper << "gRPC response stream message" << std::move(extra);
         });
     }
 }
 
 void Middleware::OnCallFinish(MiddlewareCallContext& context, const std::optional<grpc::Status>& status) const {
     const Logger logger{settings_.log_level};
-    logging::LogExtra extra{{"type", "response"}};
     if (status.has_value()) {
         if (status->ok()) {
             if (IsSingleResponseMethod(context.GetRpcType())) {
-                auto* const response_extra = context.GetStorageContext().GetOptional(kUnaryResponseLogExtraTag);
-                if (response_extra) {
-                    logger.Log(settings_.msg_log_level, [&](auto& log_helper) {
-                        AppendDelay(context, *response_extra);
-                        log_helper << "gRPC response" << std::move(*response_extra);
-                    });
-                }
+                logger.Log(settings_.msg_log_level, [&](auto& log_helper) {
+                    logging::LogExtra extra{{"type", "response"}};
+                    const auto& response = *context.GetStorageContext().Get(kUnaryResponseTag);
+                    AppendResponse(response, settings_, extra);
+                    AppendDelay(context, extra);
+                    log_helper << "gRPC response" << std::move(extra);
+                });
             } else {
-                AppendDelay(context, extra);
-                logger.Log(settings_.msg_log_level, "gRPC response stream finished", std::move(extra));
+                logger.Log(settings_.msg_log_level, [&](auto& log_helper) {
+                    logging::LogExtra extra{{"type", "response"}};
+                    AppendDelay(context, extra);
+                    log_helper << "gRPC response stream finished" << std::move(extra);
+                });
             }
         } else {
-            auto error_details = ugrpc::ToLimitedLoggingString(*status, settings_.max_msg_size);
-            extra.Extend({
-                {ugrpc::impl::kCodeTag, std::string(ugrpc::ToStringView(status->error_code()))},
-                {ugrpc::impl::kTypeTag, "error_status"},
-                {ugrpc::impl::kBodyTag, std::move(error_details)},
-            });
             const auto default_error_log_level =
                 IsServerError(status->error_code()) ? logging::Level::kError : logging::Level::kWarning;
             const auto error_log_level =
                 utils::FindOrDefault(settings_.status_codes_log_level, status->error_code(), default_error_log_level);
-            AppendDelay(context, extra);
-            logger.Log(error_log_level, "gRPC error", std::move(extra));
+            logger.Log(error_log_level, [&](auto& log_helper) {
+                logging::LogExtra extra{{"type", "response"}};
+                auto error_details = ugrpc::ToLimitedLoggingString(*status, settings_.max_msg_size);
+                extra.Extend({
+                    {ugrpc::impl::kCodeTag, std::string(ugrpc::ToStringView(status->error_code()))},
+                    {ugrpc::impl::kTypeTag, "error_status"},
+                    {ugrpc::impl::kBodyTag, std::move(error_details)},
+                });
+                AppendDelay(context, extra);
+                log_helper << "gRPC error" << std::move(extra);
+            });
         }
     } else {
-        extra.Extend({
-            {ugrpc::impl::kTypeTag, "error_status"},
-            {ugrpc::impl::kBodyTag,
-             "Call is interrupted before it was finished and response with status code was sent (it is not a server "
-             "error, most likely client cancelled the call because the result is not needed anymore)"},
+        logger.Log(logging::Level::kWarning, [&](auto& log_helper) {
+            logging::LogExtra extra{{"type", "response"}};
+            extra.Extend({
+                {ugrpc::impl::kTypeTag, "error_status"},
+                {ugrpc::impl::kBodyTag,
+                 "Call is interrupted before it was finished and response with status code was sent (it is not a "
+                 "server "
+                 "error, most likely client cancelled the call because the result is not needed anymore)"},
+            });
+            AppendDelay(context, extra);
+            log_helper << "gRPC error" << std::move(extra);
         });
-        AppendDelay(context, extra);
-        logger.Log(logging::Level::kWarning, "gRPC error", std::move(extra));
     }
 }
 

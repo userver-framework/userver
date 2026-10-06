@@ -24,7 +24,9 @@ public:
 
     std::string HandleRequest(server::http::HttpRequest& request, server::request::RequestContext& ctx) const override {
         request.GetHttpResponse().SetContentType(http::content_type::kTextPlain);
-        return "Hello world, " + ctx.GetData<std::string>("name") + "!\n";
+        /// [request context read]
+        return "Hello world, " + ctx.GetData(kUsername) + "!\n";
+        /// [request context read]
     }
 };
 /// [request context]

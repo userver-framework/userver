@@ -3,6 +3,20 @@ import asyncio
 import pytest
 import pytest_userver.utils.sync as sync
 
+PUBSUB_CHANNEL = 'chaos_pubsub_recovery'
+PUBSUB_URL = '/chaos-pubsub'
+
+
+async def _wait_for_pubsub_message(redis_store, service_client, message):
+    async def check_received():
+        redis_store.publish(PUBSUB_CHANNEL, message)
+        response = await service_client.get(PUBSUB_URL)
+        assert response.status == 200
+        if message not in response.json()['data']:
+            raise sync.NotReady()
+
+    await sync.wait_until(check_received, total_wait_seconds=60)
+
 
 async def _check_that_restores(client, gate):
     try:
@@ -68,3 +82,27 @@ async def test_redis_close_connections(service_client, sentinel_gate, gate):
 
     await gate.sockets_close()
     await _check_that_restores(service_client, gate)
+
+
+async def test_pubsub_recovers_after_network_outage(service_client, redis_store, sentinel_gate, pubsub_gate):
+    response = await service_client.delete(PUBSUB_URL)
+    assert response.status == 200
+    await _wait_for_pubsub_message(redis_store, service_client, 'before_outage')
+
+    response = await service_client.delete(PUBSUB_URL)
+    assert response.status == 200
+
+    await pubsub_gate.stop_accepting()
+    try:
+        await pubsub_gate.sockets_close()
+        assert pubsub_gate.connections_count() == 0
+
+        redis_store.publish(PUBSUB_CHANNEL, 'during_outage')
+        response = await service_client.get(PUBSUB_URL)
+        assert response.status == 200
+        assert response.json()['data'] == []
+    finally:
+        pubsub_gate.start_accepting()
+
+    await pubsub_gate.wait_for_connections(timeout=10.0)
+    await _wait_for_pubsub_message(redis_store, service_client, 'after_outage')

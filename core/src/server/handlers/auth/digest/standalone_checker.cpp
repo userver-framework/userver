@@ -2,7 +2,7 @@
 
 #include <memory>
 #include <optional>
-#include <string_view>
+#include <string>
 #include <utility>
 
 #include <userver/server/handlers/auth/digest/auth_checker_settings.hpp>

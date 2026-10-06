@@ -145,7 +145,7 @@ public:
             // may throw a non std::exception based exception
             Stream() << value;
             FlushStream();
-        } else if constexpr (meta::kIsRange<T> && !formats::common::IsFormatValue<T>) {
+        } else if constexpr (meta::IsRange<T> && !formats::common::IsFormatValue<T>) {
             // may throw a non std::exception based exception
             PutRange(value);
         } else {
@@ -326,7 +326,7 @@ void LogHelper::PutMapElement(const std::pair<const T, U>& value) {
 
 template <typename T>
 void LogHelper::PutRange(const T& range) {
-    static_assert(meta::kIsRange<T>);
+    static_assert(meta::IsRange<T>);
     using std::begin;
     using std::end;
 
@@ -354,7 +354,7 @@ void LogHelper::PutRange(const T& range) {
             *this << kSeparator;
         }
 
-        if constexpr (meta::kIsMap<T>) {
+        if constexpr (meta::IsMap<T>) {
             PutMapElement(*curr);
         } else {
             PutRangeElement(*curr);

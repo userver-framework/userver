@@ -3,7 +3,7 @@
 /// @file userver/tracing/manager_component.hpp
 /// @brief TracingManager base and default components
 
-#include <string>
+#include <string_view>
 
 #include <userver/components/component_base.hpp>
 #include <userver/tracing/manager.hpp>

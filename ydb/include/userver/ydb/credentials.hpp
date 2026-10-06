@@ -4,7 +4,6 @@
 /// @brief @copybrief ydb::CredentialsProviderComponent
 
 #include <memory>
-#include <string>
 
 #include <userver/components/component_base.hpp>
 #include <userver/yaml_config/fwd.hpp>

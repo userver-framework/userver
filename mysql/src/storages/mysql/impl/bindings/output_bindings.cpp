@@ -179,13 +179,14 @@ void OutputBindings::BindString(std::size_t pos, std::string& val) {
     cb.before_fetch_cb = &StringBeforeFetch;
 }
 
-void OutputBindings::StringBeforeFetch(void* value, MYSQL_BIND& bind, FieldIntermediateBuffer&) {
+void OutputBindings::StringBeforeFetch(void* value, MYSQL_BIND& bind, FieldIntermediateBuffer& buffer) {
     auto* string = static_cast<std::string*>(value);
     UASSERT(string);
 
-    string->resize(bind.length_value);
+    const std::size_t length = ValidateFetchedByteLength(bind.length_value, buffer.max_fetched_byte_length);
+    string->resize(length);
     bind.buffer = string->data();
-    bind.buffer_length = bind.length_value;
+    bind.buffer_length = length;
 }
 
 void OutputBindings::BindOptionalString(std::size_t pos, std::optional<std::string>& val) {
@@ -205,14 +206,15 @@ void OutputBindings::BindOptionalString(std::size_t pos, std::optional<std::stri
     cb.before_fetch_cb = &OptionalStringBeforeFetch;
 }
 
-void OutputBindings::OptionalStringBeforeFetch(void* value, MYSQL_BIND& bind, FieldIntermediateBuffer&) {
+void OutputBindings::OptionalStringBeforeFetch(void* value, MYSQL_BIND& bind, FieldIntermediateBuffer& buffer) {
     auto* optional = static_cast<std::optional<std::string>*>(value);
     UASSERT(optional);
 
     if (!bind.is_null_value) {
-        optional->emplace(bind.length_value, 0);
+        const std::size_t length = ValidateFetchedByteLength(bind.length_value, buffer.max_fetched_byte_length);
+        optional->emplace(length, 0);
         bind.buffer = (*optional)->data();
-        bind.buffer_length = bind.length_value;
+        bind.buffer_length = length;
     }
 }
 
@@ -383,9 +385,10 @@ void OutputBindings::BindJson(std::size_t pos, formats::json::Value& val) {
 void OutputBindings::JsonBeforeFetch(void*, MYSQL_BIND& bind, FieldIntermediateBuffer& buffer) {
     auto& string = buffer.string;
 
-    string.resize(bind.length_value);
+    const std::size_t length = ValidateFetchedByteLength(bind.length_value, buffer.max_fetched_byte_length);
+    string.resize(length);
     bind.buffer = string.data();
-    bind.buffer_length = bind.length_value;
+    bind.buffer_length = length;
 }
 
 void OutputBindings::JsonAfterFetch(void* value, MYSQL_BIND&, FieldIntermediateBuffer& buffer) {
@@ -415,9 +418,10 @@ void OutputBindings::BindOptionalJson(std::size_t pos, std::optional<formats::js
 void OutputBindings::OptionalJsonBeforeFetch(void*, MYSQL_BIND& bind, FieldIntermediateBuffer& buffer) {
     auto& string = buffer.string;
     if (!bind.is_null_value) {
-        string.resize(bind.length_value);
+        const std::size_t length = ValidateFetchedByteLength(bind.length_value, buffer.max_fetched_byte_length);
+        string.resize(length);
         bind.buffer = string.data();
-        bind.buffer_length = bind.length_value;
+        bind.buffer_length = length;
     }
 }
 
@@ -452,9 +456,10 @@ void OutputBindings::BindDecimal(std::size_t pos, io::DecimalWrapper& val) {
 void OutputBindings::DecimalBeforeFetch(void*, MYSQL_BIND& bind, FieldIntermediateBuffer& buffer) {
     auto& string = buffer.string;
 
-    string.resize(bind.length_value);
+    const std::size_t length = ValidateFetchedByteLength(bind.length_value, buffer.max_fetched_byte_length);
+    string.resize(length);
     bind.buffer = string.data();
-    bind.buffer_length = bind.length_value;
+    bind.buffer_length = length;
 }
 
 void OutputBindings::DecimalAfterFetch(void* value, MYSQL_BIND&, FieldIntermediateBuffer& buffer) {
@@ -490,9 +495,10 @@ void OutputBindings::BindOptionalDecimal(std::size_t pos, O<io::DecimalWrapper>&
 void OutputBindings::OptionalDecimalBeforeFetch(void*, MYSQL_BIND& bind, FieldIntermediateBuffer& buffer) {
     auto& string = buffer.string;
     if (!bind.is_null_value) {
-        string.resize(bind.length_value);
+        const std::size_t length = ValidateFetchedByteLength(bind.length_value, buffer.max_fetched_byte_length);
+        string.resize(length);
         bind.buffer = string.data();
-        bind.buffer_length = bind.length_value;
+        bind.buffer_length = length;
     }
 }
 
@@ -583,7 +589,11 @@ void OutputBindings::ValidateBind(std::size_t pos, const MYSQL_BIND& bind, const
         );
     }
 
-    // TODO : validate decimal somehow
+    if (bind.buffer_type == MYSQL_TYPE_STRING || bind.buffer_type == MYSQL_TYPE_JSON ||
+        bind.buffer_type == MYSQL_TYPE_DECIMAL)
+    {
+        intermediate_buffers_[pos].max_fetched_byte_length = GetMaxFetchedByteLength(field);
+    }
 }
 
 }  // namespace storages::mysql::impl::bindings

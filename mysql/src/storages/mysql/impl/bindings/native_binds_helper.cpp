@@ -1,5 +1,12 @@
 #include <storages/mysql/impl/bindings/native_binds_helper.hpp>
 
+#include <limits>
+#include <stdexcept>
+
+#include <fmt/format.h>
+
+#include <userver/utils/assert.hpp>
+
 #include <storages/mysql/impl/time_utils.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -29,6 +36,8 @@ constexpr std::string_view kTypeVarStringStr{"MYSQL_TYPE_VAR_STRING"};
 constexpr std::string_view kTypeStringStr{"MYSQL_TYPE_STRING"};
 constexpr std::string_view kTypeUnknown{"UNKNOWN"};
 
+constexpr std::size_t kMySqlMaxFetchedByteLength = std::numeric_limits<std::uint32_t>::max();
+
 // clang-format off
 std::string_view FieldTypeToString(enum_field_types type) {
   using Type = enum_field_types;
@@ -56,9 +65,54 @@ std::string_view FieldTypeToString(enum_field_types type) {
     default: return kTypeUnknown;
   }
 }
+std::size_t CapFetchedByteLengthFromMetadata(unsigned long metadata_length) {
+    return std::min(static_cast<std::size_t>(metadata_length), kMySqlMaxFetchedByteLength);
+}
+
 // clang-format on
 
 }  // namespace
+
+std::size_t GetMaxFetchedByteLength(const MYSQL_FIELD& field) {
+    if (field.max_length != 0) {
+        return CapFetchedByteLengthFromMetadata(field.max_length);
+    }
+
+    switch (field.type) {
+        case MYSQL_TYPE_TINY_BLOB:
+            return 255;
+        case MYSQL_TYPE_BLOB:
+            return 65535;
+        case MYSQL_TYPE_MEDIUM_BLOB:
+            return 16777215;
+        case MYSQL_TYPE_LONG_BLOB:
+            return kMySqlMaxFetchedByteLength;
+        default:
+            break;
+    }
+
+    if (field.length != 0) {
+        return CapFetchedByteLengthFromMetadata(field.length);
+    }
+
+    return kMySqlMaxFetchedByteLength;
+}
+
+std::size_t ValidateFetchedByteLength(unsigned long reported_length, std::size_t field_max_byte_length) {
+    UASSERT_MSG(
+        field_max_byte_length != 0,
+        "Fetched column byte length limit is unset: ValidateAgainstStatement must run before fetch"
+    );
+    UASSERT(field_max_byte_length <= kMySqlMaxFetchedByteLength);
+
+    if (reported_length > field_max_byte_length) {
+        throw std::runtime_error{
+            fmt::format("Fetched column length {} exceeds allowed maximum {}", reported_length, field_max_byte_length)
+        };
+    }
+
+    return std::size_t{reported_length};
+}
 
 bool NativeBindsHelper::IsFieldNumeric(enum_field_types type) {
     return type == MYSQL_TYPE_DECIMAL || type == MYSQL_TYPE_NEWDECIMAL || type == MYSQL_TYPE_TINY ||

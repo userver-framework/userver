@@ -139,9 +139,9 @@ private:
 }  // namespace
 
 std::string ToSolomonFormat(
-    const utils::statistics::Storage& statistics,
+    const Storage& statistics,
     const std::unordered_map<std::string, std::string>& common_labels,
-    const utils::statistics::Request& request
+    const Request& request
 ) {
     formats::json::StringBuilder builder;
     SolomonJsonBuilder solomon_json_builder(builder);
@@ -152,6 +152,24 @@ std::string ToSolomonFormat(
         builder.Key("metrics");
         const formats::json::StringBuilder::ArrayGuard array_guard(builder);
         statistics.VisitMetrics(solomon_json_builder, request);
+    }
+    return builder.GetString();
+}
+
+std::string ToSolomonFormat(
+    WriterFuncRef writer,
+    const std::unordered_map<std::string, std::string>& common_labels,
+    const Request& request
+) {
+    formats::json::StringBuilder builder;
+    SolomonJsonBuilder solomon_json_builder(builder);
+    {
+        const formats::json::StringBuilder::ObjectGuard object_guard(builder);
+        solomon_json_builder.AddCommonLabels(common_labels);
+
+        builder.Key("metrics");
+        const formats::json::StringBuilder::ArrayGuard array_guard(builder);
+        VisitMetrics(writer, solomon_json_builder, request);
     }
     return builder.GetString();
 }

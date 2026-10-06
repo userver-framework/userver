@@ -6,6 +6,7 @@
 #include <concepts>
 #include <cstddef>
 #include <deque>
+#include <limits>
 #include <ranges>
 #include <utility>
 #include <variant>

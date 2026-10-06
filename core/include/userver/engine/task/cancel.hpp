@@ -3,7 +3,8 @@
 /// @file userver/engine/task/cancel.hpp
 /// @brief Task cancellation helpers
 
-#include <string>
+#include <cstdint>
+#include <string_view>
 
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 
@@ -17,7 +18,7 @@ class TaskContext;
 }  // namespace impl
 
 /// Task cancellation reason
-enum class TaskCancellationReason {
+enum class TaskCancellationReason : std::uint8_t {
     kNone,         ///< Not cancelled
     kUserRequest,  ///< User request
     kDeadline,     ///< Deadline
@@ -59,6 +60,15 @@ TaskCancellationReason CancellationReason() noexcept;
 /// to undefined behavior.
 /// @see @ref task_cancellation_intro
 void CancellationPoint();
+
+/// @brief Throw a standard exception if cancellation is pending and not blocked.
+///
+/// Unlike @ref engine::current_task::CancellationPoint, the exception can be handled
+/// by `catch (const std::exception&)` without rethrowing. The cancellation request
+/// remains pending; this function does not disable cancellation.
+/// @throws engine::WaitInterruptedException If @ref engine::current_task::ShouldCancel returns true.
+/// @see engine::TaskCancellationBlocker
+void CancellationPointWeak();
 
 /// Set deadline for the current task.
 /// The task will be cancelled when the deadline is reached.

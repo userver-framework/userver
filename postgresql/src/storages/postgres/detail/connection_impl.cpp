@@ -17,7 +17,6 @@
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/rand.hpp>
 #include <userver/utils/scope_guard.hpp>
-#include <userver/utils/text_light.hpp>
 #include <userver/utils/trivial_map.hpp>
 #include <userver/utils/uuid4.hpp>
 
@@ -25,13 +24,13 @@
 #include <storages/postgres/detail/tracing_tags.hpp>
 #include <storages/postgres/io/pg_type_parsers.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/sql_state.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 using USERVER_NAMESPACE::utils::RandRange;
 using USERVER_NAMESPACE::utils::ScopeGuard;
 using USERVER_NAMESPACE::utils::datetime::SteadyNow;
-using USERVER_NAMESPACE::utils::text::ICaseStartsWith;
 
 namespace storages::postgres::detail {
 
@@ -40,7 +39,7 @@ namespace {
 constexpr std::string_view kStatementTimeoutParameter = "statement_timeout";
 
 constexpr TimeoutDuration kStatementTimeoutNetworkMargin{std::chrono::milliseconds{5}};
-constexpr std::string_view kStatementVacuum = "vacuum";
+constexpr TimeoutDuration kUnknownStatementTimeout{-1};
 constexpr std::string_view kStatementListen = "listen {}";
 constexpr std::string_view kStatementUnlisten = "unlisten {}";
 
@@ -464,8 +463,8 @@ Connection::Statistics ConnectionImpl::GetStatsAndReset() {
     return std::exchange(stats_, Connection::Statistics{});
 }
 
-bool ConnectionImpl::ShouldWrapInAutoTransaction(const std::string_view statement) const noexcept {
-    return IsTransactionPooler() && !IsInTransaction() && !ICaseStartsWith(statement, kStatementVacuum);
+bool ConnectionImpl::ShouldWrapInAutoTransaction() const noexcept {
+    return IsTransactionPooler() && !IsInTransaction();
 }
 
 ResultSet ConnectionImpl::ExecuteCommand(
@@ -477,8 +476,35 @@ ResultSet ConnectionImpl::ExecuteCommand(
 
     const auto deadline = testsuite_pg_ctl_.MakeExecuteDeadline(NetworkTimeout(statement_cmd_ctl));
 
-    if (ShouldWrapInAutoTransaction(query.GetStatementView())) {
-        AssertPipelineActive();
+    try {
+        return ExecuteCommandInPipeline(query, params, statement_cmd_ctl, deadline);
+    } catch (const InvalidTransactionState& e) {
+        if (IsInTransaction() || e.GetSqlState() != SqlState::kActiveSqlTransaction) {
+            throw;
+        }
+
+        conn_wrapper_.DiscardInput(deadline);
+        if (IsBroken() || GetConnectionState() != ConnectionState::kIdle) {
+            throw;
+        }
+
+        LOG_INFO()
+            << "Statement can not run inside of a transaction block or a pipeline, retrying it outside of "
+               "pipeline: "
+            << e;
+        return ExecuteCommandOutsideOfPipeline(query, params, statement_cmd_ctl, deadline);
+    }
+}
+
+ResultSet ConnectionImpl::ExecuteCommandInPipeline(
+    const Query& query,
+    const QueryParameters& params,
+    OptionalCommandControl statement_cmd_ctl,
+    engine::Deadline deadline
+) {
+    AssertPipelineActive();
+
+    if (ShouldWrapInAutoTransaction()) {
         const bool prepared_statements_enabled = PreparedStatementsEnabled(statement_cmd_ctl);
         if (prepared_statements_enabled) {
             DiscardOldPreparedStatements(deadline);
@@ -494,21 +520,42 @@ ResultSet ConnectionImpl::ExecuteCommand(
         SetStatementTimeout(effective_timeout, effective_network_timeout, deadline);
         const ResetTransactionCommandControl transaction_guard{*this};
 
-        return prepared_statements_enabled
-                   ? ExecuteCommand(query, params, deadline, logging::Level::kInfo, true)
-                   : ExecuteCommandNoPrepare(query, params, deadline);
+        return ExecuteStatement(query, params, statement_cmd_ctl, deadline);
     }
 
     UASSERT(IsSessionPooler() || IsInTransaction());
     SetStatementTimeout(statement_cmd_ctl);
+    return ExecuteStatement(query, params, statement_cmd_ctl, deadline);
+}
 
-    auto pipeline_guard = std::optional<ScopeGuard>{};
-    if (ICaseStartsWith(query.GetStatementView(), kStatementVacuum)) {
-        conn_wrapper_.DiscardInput(deadline);
-        conn_wrapper_.ExitPipelineMode();
-        pipeline_guard.emplace([this]() { conn_wrapper_.EnterPipelineMode(); });
+ResultSet ConnectionImpl::ExecuteCommandOutsideOfPipeline(
+    const Query& query,
+    const QueryParameters& params,
+    OptionalCommandControl statement_cmd_ctl,
+    engine::Deadline deadline
+) {
+    UASSERT(!IsInTransaction());
+
+    if (IsSessionPooler()) {
+        // The failed statement shared an implicit transaction with the statement timeout change, so the change
+        // could have been rolled back
+        current_statement_timeout_ = kUnknownStatementTimeout;
     }
+    SetStatementTimeout(statement_cmd_ctl);
 
+    conn_wrapper_.DiscardInput(deadline);
+    conn_wrapper_.ExitPipelineMode();
+    const ScopeGuard pipeline_guard([this]() { conn_wrapper_.EnterPipelineMode(); });
+
+    return ExecuteStatement(query, params, statement_cmd_ctl, deadline);
+}
+
+ResultSet ConnectionImpl::ExecuteStatement(
+    const Query& query,
+    const QueryParameters& params,
+    OptionalCommandControl statement_cmd_ctl,
+    engine::Deadline deadline
+) {
     return PreparedStatementsEnabled(statement_cmd_ctl)
                ? ExecuteCommand(query, params, deadline, logging::Level::kInfo, true)
                : ExecuteCommandNoPrepare(query, params, deadline);

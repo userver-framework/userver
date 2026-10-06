@@ -213,7 +213,13 @@ private:
                   )
                 : utils::FixedArray<StubArray>{};
 
-        stub_state_.Assign({client_qos, std::move(stubs), std::move(dedicated_stubs)});
+        stub_state_.Assign({
+            .client_qos = client_qos,
+            .endpoint = internals_.endpoint,
+            .auth_type = internals_.channel_factory.GetAuthType(),
+            .stubs = std::move(stubs),
+            .dedicated_stubs = std::move(dedicated_stubs),
+        });
     }
 
     ClientInternals internals_;

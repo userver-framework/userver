@@ -1,6 +1,6 @@
 #pragma once
 
-#include <string>
+#include <string_view>
 
 #include <storages/mysql/impl/query_result.hpp>
 #include <userver/engine/deadline.hpp>

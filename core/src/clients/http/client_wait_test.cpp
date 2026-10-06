@@ -1,5 +1,7 @@
 #include <userver/clients/http/client.hpp>
 
+#include <chrono>
+
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/engine/wait_any.hpp>
@@ -174,6 +176,59 @@ UTEST(HttpClient, WaitAnyMany) {
     const std::size_t processed = ProcessReadyRequests(async_requests, deadline);
     EXPECT_EQ(processed, async_requests.size());
     EXPECT_EQ(processed, kRepetitions);
+}
+
+UTEST(HttpClient, WaitAnyRetainsTokenAcrossCancelBeforeSubscription) {
+    const auto client = utest::CreateHttpClient();
+    const utest::SimpleServer server{&EchoSimpleCallback};
+    auto future = client->CreateRequest().get(server.GetBaseUrl()).retry(1).async_perform();
+    const auto token = future.GetAwaitableToken();
+    ASSERT_FALSE(token.IsEmpty());
+    engine::WaitAnyContext wait_any;
+    wait_any.Append(17, future);
+    future.Cancel();
+
+    EXPECT_EQ(future.GetAwaitableToken(), token);
+    const auto ready = wait_any.WaitFor(utest::kMaxTestWaitTime);
+    ASSERT_TRUE(ready.has_value());
+    EXPECT_EQ(ready.value(), 17);
+    EXPECT_EQ(wait_any.GetSize(), 0);
+}
+
+UTEST(HttpClient, WaitAnyRetainsTokenAcrossCancelAfterSubscription) {
+    const auto client = utest::CreateHttpClient();
+    const utest::SimpleServer server{&SleepCallback};
+    auto future =
+        client->CreateRequest().get(server.GetBaseUrl()).retry(1).timeout(utest::kMaxTestWaitTime).async_perform();
+    const auto token = future.GetAwaitableToken();
+    engine::WaitAnyContext wait_any;
+    wait_any.Append(future);
+    const auto initial = wait_any.WaitFor(std::chrono::milliseconds{20});
+    ASSERT_FALSE(initial.has_value());
+    ASSERT_EQ(initial.error(), engine::WaitAnyError::kTimeout);
+
+    future.Cancel();
+    EXPECT_EQ(future.GetAwaitableToken(), token);
+    const auto ready = wait_any.WaitFor(utest::kMaxTestWaitTime);
+    ASSERT_TRUE(ready.has_value());
+    EXPECT_EQ(ready.value(), 0);
+    EXPECT_EQ(wait_any.GetSize(), 0);
+}
+
+UTEST(HttpClient, WaitAnyRetainsTokenAcrossDetach) {
+    const auto client = utest::CreateHttpClient();
+    const utest::SimpleServer server{&EchoSimpleCallback};
+    auto future = client->CreateRequest().get(server.GetBaseUrl()).retry(1).async_perform();
+    const auto token = future.GetAwaitableToken();
+    ASSERT_FALSE(token.IsEmpty());
+    engine::WaitAnyContext wait_any;
+    wait_any.Append(future);
+    future.Detach();
+
+    EXPECT_EQ(future.GetAwaitableToken(), token);
+    const auto ready = wait_any.WaitFor(utest::kMaxTestWaitTime);
+    ASSERT_TRUE(ready.has_value());
+    EXPECT_EQ(ready.value(), 0);
 }
 
 // Catches heap-use-after-free when handle_completion runs before

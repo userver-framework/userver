@@ -7,7 +7,6 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/current_task.hpp>
 #include <userver/utest/utest.hpp>
-#include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/statistics/testing.hpp>
 
 #include <logging/logging_test.hpp>
@@ -55,11 +54,7 @@ public:
         );
 
         auto logger = GetStreamLogger();
-
-        // Keep a copy: Unregister invokes the writer after TestBody locals are gone.
-        stats_holder_ = stats_storage_.RegisterWriter("logger", [logger](utils::statistics::Writer& writer) {
-            writer = logger->GetStatistics();
-        });
+        logger_ = logger;
 
         logger->StartConsumerTask(
             engine::current_task::GetTaskProcessor(),
@@ -79,8 +74,8 @@ public:
         if (!label.Name().empty()) {
             labels.push_back(label);
         }
-        const auto snapshot = utils::statistics::Snapshot(stats_storage_, "logger", labels);
-        return snapshot.SingleMetric(metric).AsRate();
+        const auto snapshot = utils::statistics::Snapshot{logger_->GetStatistics()};
+        return snapshot.SingleMetric(std::move(metric), std::move(labels)).AsRate();
     }
 
     void LogTestMT(std::shared_ptr<logging::impl::TpLogger> logger, std::size_t thread_count, LogTestMTMode mode)
@@ -148,11 +143,8 @@ protected:
         SetDefaultLoggerLevel(logging::Level::kError);
     }
 
-    ~LoggingTestCoro() override { stats_holder_.Unregister(); }
-
 private:
-    utils::statistics::Storage stats_storage_{};
-    utils::statistics::Entry stats_holder_;
+    std::shared_ptr<logging::impl::TpLogger> logger_;
 };
 
 }  // namespace

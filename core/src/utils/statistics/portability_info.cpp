@@ -243,12 +243,15 @@ formats::json::Value Serialize(const PortabilityWarnings& info, formats::seriali
     return builder.ExtractValue();
 }
 
-PortabilityWarnings GetPortabilityWarnings(
-    const utils::statistics::Storage& statistics,
-    const utils::statistics::Request& request
-) {
+PortabilityWarnings GetPortabilityWarnings(const Storage& statistics, const Request& request) {
     PortabilityInfoCollector builder{};
     statistics.VisitMetrics(builder, request);
+    return std::move(builder).Extract();
+}
+
+PortabilityWarnings GetPortabilityWarnings(WriterFuncRef writer, const Request& request) {
+    PortabilityInfoCollector builder{};
+    VisitMetrics(writer, builder, request);
     return std::move(builder).Extract();
 }
 

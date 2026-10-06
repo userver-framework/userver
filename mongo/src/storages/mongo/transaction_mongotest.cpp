@@ -20,6 +20,60 @@ using namespace storages::mongo;
 
 class MongoTransaction : public MongoPoolFixture {};
 
+UTEST_F(MongoTransaction, ConnectionStringChangesDatabaseBeforeTransactionStarts) {
+    const std::string k_other_database = kTestDatabaseNamePrefix + "pending_transaction_uri_reload";
+    const std::string k_collection = "pending_transaction_uri_reload";
+    auto old_pool = MakePool({}, {});
+    auto new_pool = MakePool(k_other_database, {});
+    auto pool = MakePool({}, {});
+    old_pool.GetCollection(k_collection).InsertOne(bson::MakeDoc("_id", 1));
+    new_pool.GetCollection(k_collection).InsertOne(bson::MakeDoc("_id", 2));
+
+    auto transaction = pool.BeginTransaction();
+    pool.SetConnectionString(GetTestsuiteMongoUri(k_other_database));
+    auto collection = transaction.GetCollection(k_collection);
+    EXPECT_EQ(1, collection.Count(bson::MakeDoc("_id", 2)));
+    EXPECT_EQ(0, collection.Count(bson::MakeDoc("_id", 1)));
+    collection.InsertOne(bson::MakeDoc("_id", 3));
+    transaction.Commit();
+
+    EXPECT_EQ(1, new_pool.GetCollection(k_collection).Count(bson::MakeDoc("_id", 3)));
+    EXPECT_EQ(0, old_pool.GetCollection(k_collection).Count(bson::MakeDoc("_id", 3)));
+}
+
+UTEST_F(MongoTransaction, ConnectionStringKeepsDatabaseForActiveTransaction) {
+    const std::string k_other_database = kTestDatabaseNamePrefix + "active_transaction_uri_reload";
+    const std::string k_collection = "active_transaction_uri_reload";
+    auto old_pool = MakePool({}, {});
+    auto new_pool = MakePool(k_other_database, {});
+    auto pool = MakePool({}, {});
+    old_pool.GetCollection(k_collection).InsertOne(bson::MakeDoc("_id", 1));
+    new_pool.GetCollection(k_collection).InsertOne(bson::MakeDoc("_id", 2));
+
+    auto transaction = pool.BeginTransaction();
+    auto collection = transaction.GetCollection(k_collection);
+    ASSERT_EQ(1, collection.Count(bson::MakeDoc("_id", 1)));
+    ASSERT_TRUE(transaction.IsActive());
+
+    pool.SetConnectionString(GetTestsuiteMongoUri(k_other_database));
+    EXPECT_EQ(1, pool.GetCollection(k_collection).Count(bson::MakeDoc("_id", 2)));
+    EXPECT_EQ(0, pool.GetCollection(k_collection).Count(bson::MakeDoc("_id", 1)));
+    EXPECT_EQ(1, collection.Count(bson::MakeDoc("_id", 1)));
+    EXPECT_EQ(0, collection.Count(bson::MakeDoc("_id", 2)));
+    collection.InsertOne(bson::MakeDoc("_id", 3));
+    auto another_collection = transaction.GetCollection(k_collection);
+    EXPECT_EQ(1, another_collection.Count(bson::MakeDoc("_id", 1)));
+    EXPECT_EQ(0, another_collection.Count(bson::MakeDoc("_id", 2)));
+    another_collection.InsertOne(bson::MakeDoc("_id", 4));
+    transaction.Commit();
+
+    for (const auto id : {3, 4}) {
+        EXPECT_EQ(1, old_pool.GetCollection(k_collection).Count(bson::MakeDoc("_id", id)));
+        EXPECT_EQ(0, new_pool.GetCollection(k_collection).Count(bson::MakeDoc("_id", id)));
+    }
+    EXPECT_EQ(1, pool.GetCollection(k_collection).Count(bson::MakeDoc("_id", 2)));
+}
+
 UTEST_F(MongoTransaction, BasicTransactionCommit) {
     static const std::string kCollectionName = "test_transactions";
 

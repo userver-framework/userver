@@ -1,6 +1,7 @@
 #include <userver/server/http/http_request_builder.hpp>
 
 #include <server/http/http_request_impl.hpp>
+#include <server/request/response_data_accounter.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/logging/log.hpp>
 
@@ -38,16 +39,19 @@ HttpRequestBuilder& HttpRequestBuilder::SetRemoteAddress(engine::io::Sockaddr re
 
 HttpRequestBuilder& HttpRequestBuilder::SetMethod(HttpMethod method) {
     request_->pimpl_->method = method;
+    GetHttpResponseImpl(*request_).SetHeadRequest(method == HttpMethod::kHead);
     return *this;
 }
 
 HttpRequestBuilder& HttpRequestBuilder::SetHttpMajor(int http_major) {
     request_->pimpl_->http_major = http_major;
+    GetHttpResponseImpl(*request_).SetHttpMajor(static_cast<std::uint8_t>(http_major));
     return *this;
 }
 
 HttpRequestBuilder& HttpRequestBuilder::SetHttpMinor(int http_minor) {
     request_->pimpl_->http_minor = http_minor;
+    GetHttpResponseImpl(*request_).SetHttpMinor(static_cast<std::uint8_t>(http_minor));
     return *this;
 }
 
@@ -83,6 +87,7 @@ HttpRequestBuilder& HttpRequestBuilder::SetRequestPath(std::string&& path) {
 
 HttpRequestBuilder& HttpRequestBuilder::SetIsFinal(bool is_final) {
     request_->pimpl_->is_final = is_final;
+    GetHttpResponseImpl(*request_).SetIsFinal(is_final);
     return *this;
 }
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <utility>
+
 #include <grpcpp/channel.h>
 #include <grpcpp/generic/async_generic_service.h>
 #include <grpcpp/generic/generic_stub.h>
@@ -14,6 +16,7 @@ namespace ugrpc::impl {
 template <typename Service>
 class AsyncService final : public Service::AsyncService {
 public:
+    using grpc::Service::MarkMethodCallback;
     using grpc::Service::RequestAsyncBidiStreaming;
     using grpc::Service::RequestAsyncClientStreaming;
     using grpc::Service::RequestAsyncServerStreaming;

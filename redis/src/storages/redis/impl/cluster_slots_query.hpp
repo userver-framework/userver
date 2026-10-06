@@ -1,13 +1,12 @@
 #pragma once
 
-#include <atomic>
 #include <compare>
 #include <map>
 #include <memory>
-#include <mutex>
 #include <set>
 #include <vector>
 
+#include <engine/ev/thread_control.hpp>
 #include <userver/storages/redis/base.hpp>
 #include <userver/utils/assert.hpp>
 
@@ -78,9 +77,16 @@ struct MasterSlavesConnInfos {
 
 using ClusterSlotsResponse = std::map<SlotInterval, MasterSlavesConnInfos>;
 
-class GetClusterSlotsContext {
+enum class ClusterSlotsResponseStatus {
+    kOk,
+    kFail,
+    kNonCluster,
+};
+
+class GetClusterSlotsContext : public std::enable_shared_from_this<GetClusterSlotsContext> {
 public:
     GetClusterSlotsContext(
+        engine::ev::ThreadControl thread_control,
         Credentials credentials,
         std::shared_ptr<const std::vector<std::string>> shard_names,
         std::string shard_group_name,
@@ -89,6 +95,7 @@ public:
     );
 
     static void ProcessRequest(
+        engine::ev::ThreadControl thread_control,
         std::shared_ptr<const std::vector<std::string>> shard_names,
         GetClusterSlotsRequest request,
         ProcessGetClusterHostsRequestCb callback
@@ -97,20 +104,20 @@ public:
 private:
     void OnAsyncCommandFailed();
     void OnResponse(const CommandPtr&, const ReplyPtr& reply);
+    void OnParsedResponse(ServerId server_id, ClusterSlotsResponseStatus status, ClusterSlotsResponse response);
     void ProcessResponses();
     void ProcessResponsesOnce();
 
+    engine::ev::ThreadControl thread_control_;
     const std::string shard_group_name_;
     const Credentials credentials_;
     const std::shared_ptr<const std::vector<std::string>> shard_names_;
     const ProcessGetClusterHostsRequestCb callback_;
-    std::atomic<size_t> response_got_{0};
-    std::atomic<size_t> responses_parsed_{0};
-    std::atomic_flag process_responses_started_ ATOMIC_FLAG_INIT;
-    std::atomic<size_t> expected_responses_cnt_{0};
-    std::atomic<bool> is_non_cluster_{false};
-
-    std::mutex mutex_;
+    size_t response_got_{0};
+    size_t responses_parsed_{0};
+    bool process_responses_started_{false};
+    size_t expected_responses_cnt_{0};
+    bool is_non_cluster_{false};
     std::map<ServerId, ClusterSlotsResponse> responses_by_id_;
 };
 
@@ -124,12 +131,6 @@ void ProceResponseOnceImpl(
     size_t responses_parsed,
     bool is_non_cluster
 );
-
-enum class ClusterSlotsResponseStatus {
-    kOk,
-    kFail,
-    kNonCluster,
-};
 
 ClusterSlotsResponseStatus ParseClusterSlotsResponse(
     const ReplyPtr& reply,

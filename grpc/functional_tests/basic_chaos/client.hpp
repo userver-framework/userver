@@ -112,13 +112,12 @@ std::string GreeterClient::SayHelloResponseStream(std::string name, bool is_smal
 }
 
 std::string GreeterClient::SayHelloRequestStream(const std::vector<std::string>& names, bool is_small_timeout) {
-    const std::string result{};
     auto stream = client_.SayHelloRequestStream(CreateCallOptions(is_small_timeout));
     for (const auto& name : names) {
         api::GreetingRequest request;
         request.set_name(grpc::string(name));
         if (!stream.Write(request)) {
-            return "Error write";
+            break;
         }
     }
     auto response = stream.Finish();

@@ -1,6 +1,5 @@
 #include <gtest/gtest.h>
 
-#include <chrono>
 #include <memory>
 
 #include <grpcpp/client_context.h>

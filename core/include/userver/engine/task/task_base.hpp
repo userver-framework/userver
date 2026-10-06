@@ -4,6 +4,7 @@
 /// @brief @copybrief engine::TaskBase
 
 #include <chrono>
+#include <cstdint>
 #include <memory>
 #include <string_view>
 
@@ -45,7 +46,7 @@ public:
     };
 
     /// Task state
-    enum class State {
+    enum class State : std::uint8_t {
         kInvalid,    ///< Unusable
         kNew,        ///< just created, not registered with task processor
         kQueued,     ///< awaits execution
@@ -165,7 +166,7 @@ public:
 
     /// Waits for the task in non-coroutine context
     /// (e.g. non-TaskProcessor's std::thread).
-    void BlockingWait() const;
+    void BlockingWait() const noexcept;
 
 protected:
     /// @cond

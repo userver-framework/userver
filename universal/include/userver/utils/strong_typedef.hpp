@@ -101,7 +101,7 @@ const auto& UnwrapIfStrongTypedef(const T& value) {
 // it might get serialized as an array.
 template <typename T>
 concept Range =
-    meta::kIsRange<T> && !meta::kIsInstantiationOf<std::basic_string, std::remove_const_t<T>> &&
+    meta::IsRange<T> && !meta::IsInstantiationOf<std::remove_const_t<T>, std::basic_string> &&
     !meta::IsRecursiveRange<T> && !std::is_same_v<boost::uuids::uuid, std::remove_const_t<T>>;
 
 template <typename T>
@@ -239,7 +239,7 @@ public:
     }
 
     auto size() const
-    requires meta::kIsSizable<T>
+    requires meta::IsSizable<T>
     {
         return std::size(data_);
     }
@@ -355,7 +355,7 @@ std::string ToString(const StrongTypedef<Tag, std::string, Ops>& object) {
     return object.GetUnderlying();
 }
 
-template <typename Tag, meta::kIsInteger T, StrongTypedefOps Ops>
+template <typename Tag, meta::IsInteger T, StrongTypedefOps Ops>
 std::string ToString(const StrongTypedef<Tag, T, Ops>& object) {
     impl::strong_typedef::CheckIfAllowsLogging<StrongTypedef<Tag, std::string, Ops>>();
     return std::to_string(object.GetUnderlying());

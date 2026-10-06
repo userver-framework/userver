@@ -10,7 +10,6 @@
 #include <userver/dynamic_config/source.hpp>
 #include <userver/dynamic_config/updater/component.hpp>
 #include <userver/http/url.hpp>
-#include <userver/logging/log.hpp>
 #include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -18,6 +17,15 @@ USERVER_NAMESPACE_BEGIN
 namespace chaotic::openapi {
 
 using ConfigKey = const dynamic_config::Key<client::CommandControlDict>;
+
+namespace impl {
+
+void WarnOnInvalidQosConfig(
+    const dynamic_config::Snapshot& snapshot,
+    const dynamic_config::Key<client::CommandControlDict>& key
+);
+
+}  // namespace impl
 
 class QosMiddleware final : public client::Middleware {
 public:
@@ -43,6 +51,8 @@ public:
     std::string GetStaticConfigSchemaStr() override;
 
 private:
+    void OnConfigUpdate(const dynamic_config::Snapshot& config);
+
     dynamic_config::Source config_source_;
 };
 
@@ -51,7 +61,14 @@ QosMiddlewareFactory<
     Key>::QosMiddlewareFactory(const components::ComponentConfig& config, const components::ComponentContext& context)
     : client::MiddlewareFactory(config, context),
       config_source_(context.FindComponent<components::DynamicConfig>().GetSource())
-{}
+{
+    config_source_.UpdateAndListen(context.Scopes(), this, Key.GetName(), &QosMiddlewareFactory::OnConfigUpdate, Key);
+}
+
+template <ConfigKey& Key>
+void QosMiddlewareFactory<Key>::OnConfigUpdate(const dynamic_config::Snapshot& config) {
+    impl::WarnOnInvalidQosConfig(config, Key);
+}
 
 template <ConfigKey& Key>
 std::shared_ptr<client::Middleware> QosMiddlewareFactory<Key>::Create(const yaml_config::YamlConfig&) {

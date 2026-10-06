@@ -87,18 +87,19 @@ void ResponseFuture::CancelOrDetach() {
 }
 
 void ResponseFuture::Cancel() {
-    if (request_state_) {
-        request_state_->Cancel();
+    if (IsDetached()) {
+        return;
     }
+    request_state_->Cancel();
     Detach();
 }
 
-void ResponseFuture::Detach() {
-    future_ = {};
-    request_state_.reset();
-}
+void ResponseFuture::Detach() { request_state_.reset(); }
 
 std::future_status ResponseFuture::Wait(utils::impl::SourceLocation location) {
+    if (IsDetached()) {
+        throw std::logic_error("ResponseFuture is detached");
+    }
     utils::trx_tracker::CheckNoTransactions(location);
 
     switch (future_.wait_until(deadline_)) {
@@ -147,6 +148,8 @@ std::shared_ptr<Response> ResponseFuture::Get(utils::impl::SourceLocation locati
 engine::AwaitableToken ResponseFuture::GetAwaitableToken() noexcept USERVER_IMPL_LIFETIME_BOUND {
     return future_.GetAwaitableToken();
 }
+
+bool ResponseFuture::IsDetached() const noexcept { return !request_state_; }
 
 }  // namespace clients::http
 

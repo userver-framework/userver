@@ -2,7 +2,7 @@
 
 #include <atomic>
 #include <memory>
-#include <string>
+#include <string_view>
 
 #include <userver/rcu/rcu.hpp>
 

@@ -437,7 +437,7 @@ ExecuteResponse TableClient::ExecuteQuery(
             const auto tx_settings = MakeTxSettings(settings.tx_mode.value());
             const auto tx =
                 tx_settings ? NYdb::NQuery::TTxControl::BeginTx(*tx_settings).CommitTx()
-                            : NYdb::NQuery::TTxControl::NoTx().CommitTx();
+                            : NYdb::NQuery::TTxControl::NoTx();
             return session.ExecuteQuery(impl::ToString(query.GetStatementView()), tx, params, exec_settings);
         }
     );
@@ -505,6 +505,13 @@ void TableClient::RetryTx(DynamicTransactionName transaction_name, RetryTxSettin
 
             try {
                 action = fn(tx_actor);
+            } catch (const YdbResponseError& e) {
+                if (e.GetStatus().GetStatus() == NYdb::EStatus::ABORTED) {
+                    // We don't rollback a transaction when ABORTED => retry it.
+                    throw;
+                }
+                LOG_WARNING() << "Transaction rollback due to exception: " << e;
+                exception = std::current_exception();
             } catch (const std::exception& e) {
                 LOG_WARNING() << "Transaction rollback due to exception: " << e;
                 exception = std::current_exception();

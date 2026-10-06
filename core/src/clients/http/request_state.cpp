@@ -415,6 +415,7 @@ void RequestState::SetDestinationMetricNameAuto(std::string destination) {
 
 void RequestState::SetDestinationMetricName(const std::string& destination) {
     dest_req_stats_ = dest_stats_.GetStatisticsForDestination(destination);
+    sharded_dest_req_stats_ = dest_stats_.GetShardedStatisticsForDestination(destination);
 }
 
 void RequestState::SetTestsuiteConfig(const std::shared_ptr<const TestsuiteConfig>& config) {
@@ -1233,6 +1234,9 @@ void RequestState::StartNewSpan(utils::impl::SourceLocation location) {
 void RequestState::StartStats() {
     if (!dest_req_stats_) {
         dest_req_stats_ = dest_stats_.GetStatisticsForDestinationAuto(destination_metric_name_);
+        if (dest_req_stats_) {
+            sharded_dest_req_stats_ = dest_stats_.GetShardedStatisticsForDestination(destination_metric_name_);
+        }
     }
 
     WithRequestStats([](RequestStats& stats) { stats.Start(); });
@@ -1244,6 +1248,9 @@ void RequestState::WithRequestStats(const Func& func) {
     func(stats_);
     if (dest_req_stats_) {
         func(*dest_req_stats_);
+    }
+    if (sharded_dest_req_stats_) {
+        func(*sharded_dest_req_stats_);
     }
 }
 

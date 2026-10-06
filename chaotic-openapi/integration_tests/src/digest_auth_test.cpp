@@ -1,5 +1,6 @@
 #include <userver/utest/utest.hpp>
 
+#include <chrono>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -149,6 +150,7 @@ UTEST(DigestAuth, CredentialsPassedAndServerValidatesDigest) {
 
     chaotic::openapi::client::Config config;
     config.base_url = http_server.GetBaseUrl() + "/";
+    config.timeout = std::chrono::duration_cast<std::chrono::milliseconds>(utest::kMaxTestWaitTime);
     config.digest_auth_credentials["myDigestScheme"] = chaotic::openapi::client::DigestAuthCredentials{
         std::string{kUsername},
         chaotic::openapi::client::DigestAuthCredentials::Password{std::string{kPassword}},

@@ -23,7 +23,11 @@ public:
     ~DetachedTasksSyncBlock();
 
     void Add(TaskContext& context);
-    void Add(Task&& task);
+
+    /// @brief Registers `task` and invalidates it only on success.
+    ///
+    /// If this function throws, `task` remains valid so the caller can cancel and wait.
+    void Add(Task& task);
 
     void RequestCancellation(TaskCancellationReason reason) noexcept;
 

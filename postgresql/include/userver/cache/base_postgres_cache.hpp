@@ -172,7 +172,7 @@ using DataCacheContainerType = typename DataCacheContainer<T>::type;
 // copying, because it's not correct for certain custom containers.
 template <typename T>
 inline constexpr bool kIsContainerCopiedByElement =
-    meta::kIsInstantiationOf<std::unordered_map, T> || meta::kIsInstantiationOf<std::map, T>;
+    meta::IsInstantiationOf<T, std::unordered_map> || meta::IsInstantiationOf<T, std::map>;
 
 template <typename T>
 std::unique_ptr<T> CopyContainer(
@@ -182,7 +182,7 @@ std::unique_ptr<T> CopyContainer(
 ) {
     if constexpr (kIsContainerCopiedByElement<T>) {
         auto copy = std::make_unique<T>();
-        if constexpr (meta::kIsReservable<T>) {
+        if constexpr (meta::IsReservable<T>) {
             copy->reserve(container.size());
         }
 

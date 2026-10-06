@@ -1,5 +1,7 @@
 import pytest
 from pytest_userver import chaos
+import pytest_userver.config
+import pytest_userver.service
 
 from testsuite.databases.pgsql import connection
 from testsuite.databases.pgsql import discover
@@ -23,6 +25,7 @@ def _pgsql_local(service_source_dir, pgsql_local_create):
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.service.dependency
 async def _gate_started(pgsql_local):
     gate_config = chaos.GateRoute(
         name='postgres proxy',
@@ -31,11 +34,6 @@ async def _gate_started(pgsql_local):
     )
     async with chaos.TcpGate(gate_config) as proxy:
         yield proxy
-
-
-@pytest.fixture
-def extra_client_deps(_gate_started):
-    pass
 
 
 @pytest.fixture(name='userver_config_testsuite', scope='session')
@@ -53,6 +51,7 @@ def _userver_config_testsuite(userver_config_testsuite):
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_pg_config(pgsql_local, _gate_started):
     def _hook_db_config(config_yaml, config_vars):
         host, port = _gate_started.get_sockname_for_clients()

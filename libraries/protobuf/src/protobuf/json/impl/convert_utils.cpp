@@ -1,12 +1,24 @@
 #include <protobuf/json/impl/convert_utils.hpp>
 
+#include <cmath>
+
 #include <fmt/format.h>
 
 #include <userver/utils/assert.hpp>
+#include <userver/utils/from_string.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace protobuf::json::impl {
+
+double WidenFloatToDouble(float value) {
+    if (!std::isfinite(value)) {
+        return static_cast<double>(value);
+    }
+    // fmt prints the shortest decimal that round-trips for 'float', parsing it back as 'double' gives the closest
+    // double to that decimal.
+    return utils::FromString<double>(fmt::to_string(value));
+}
 
 MessageType ClassifyMessage(std::string_view name) noexcept {
     // can't use simple dynamic_cast to determiine message types with special

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string>
-
 #include <userver/storages/postgres/options.hpp>
 #include <userver/storages/postgres/parameter_store.hpp>
 #include <userver/storages/postgres/postgres_fwd.hpp>

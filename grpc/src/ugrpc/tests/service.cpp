@@ -51,11 +51,16 @@ void ServiceBase::StartServer(client::ClientFactorySettings&& client_factory_set
     } else {
         endpoint_ = fmt::format("localhost:{}", server_->GetPort());
     }
+    ugrpc::impl::CompletionQueuePoolBase* completion_queues = server_->GetCompletionQueues(utils::impl::InternalTag{});
+    if (!completion_queues) {
+        completion_queues = &client_completion_queues_.emplace(1);
+    }
+
     client_factory_.emplace(
         std::move(client_factory_settings),
         engine::current_task::GetTaskProcessor(),
         simple_client_middleware_pipeline_,
-        server_->GetCompletionQueues(utils::impl::InternalTag{}),
+        *completion_queues,
         *client_statistics_storage_,
         metrics_storage_,
         testsuite_,
@@ -65,6 +70,7 @@ void ServiceBase::StartServer(client::ClientFactorySettings&& client_factory_set
 
 void ServiceBase::StopServer() noexcept {
     client_factory_.reset();
+    client_completion_queues_.reset();
     endpoint_.reset();
     server_->Stop();
 }

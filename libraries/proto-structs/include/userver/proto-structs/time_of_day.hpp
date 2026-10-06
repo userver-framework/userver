@@ -146,21 +146,21 @@ public:
 
     /// @brief Converts time of the day to `std::chrono::hh_mm_ss`.
     template <typename TDuration = std::chrono::nanoseconds>
-    requires ::meta::kIsInstantiationOf<std::chrono::duration, TDuration>
+    requires ::meta::IsInstantiationOf<TDuration, std::chrono::duration>
     [[nodiscard]] constexpr std::chrono::hh_mm_ss<TDuration> ToChronoTimeOfDay() const noexcept {
         return std::chrono::hh_mm_ss<TDuration>{ToChronoDuration<TDuration>()};
     }
 
     /// @brief Converts time of the day to `std::chrono::duration`.
     template <typename TDuration = std::chrono::nanoseconds>
-    requires ::meta::kIsInstantiationOf<std::chrono::duration, TDuration>
+    requires ::meta::IsInstantiationOf<TDuration, std::chrono::duration>
     [[nodiscard]] constexpr TDuration ToChronoDuration() const noexcept {
         return std::chrono::duration_cast<TDuration>(hours_ + minutes_ + seconds_ + nanos_);
     }
 
     /// @brief Converts time of the day to `userver::utils::datetime::TimeOfDay`.
     template <typename TDuration = std::chrono::nanoseconds>
-    requires ::meta::kIsInstantiationOf<std::chrono::duration, TDuration>
+    requires ::meta::IsInstantiationOf<TDuration, std::chrono::duration>
     [[nodiscard]] constexpr utils::datetime::TimeOfDay<TDuration> ToUserverTimeOfDay() const noexcept {
         return utils::datetime::TimeOfDay<TDuration>{ToChronoDuration<TDuration>()};
     }
@@ -172,21 +172,21 @@ public:
 
     /// @brief Explicit conversion to `std::chrono::hh_mm_ss`.
     template <typename TTimeOfDay>
-    requires ::meta::kIsInstantiationOf<std::chrono::hh_mm_ss, TTimeOfDay>
+    requires ::meta::IsInstantiationOf<TTimeOfDay, std::chrono::hh_mm_ss>
     [[nodiscard]] constexpr explicit operator TTimeOfDay() const noexcept {
         return ToChronoTimeOfDay<typename impl::ChronoTimeOfDayDuration<TTimeOfDay>::type>();
     }
 
     /// @brief Explicit conversion to `std::chrono::duration`.
     template <typename TDuration = std::chrono::nanoseconds>
-    requires ::meta::kIsInstantiationOf<std::chrono::duration, TDuration>
+    requires ::meta::IsInstantiationOf<TDuration, std::chrono::duration>
     [[nodiscard]] constexpr explicit operator TDuration() const noexcept {
         return ToChronoDuration<TDuration>();
     }
 
     /// @brief Explicit conversion to `userver::utils::datetime::TimeOfDay`.
     template <typename TTimeOfDay>
-    requires ::meta::kIsInstantiationOf<utils::datetime::TimeOfDay, TTimeOfDay>
+    requires ::meta::IsInstantiationOf<TTimeOfDay, utils::datetime::TimeOfDay>
     [[nodiscard]] constexpr explicit operator TTimeOfDay() const noexcept {
         return ToUserverTimeOfDay<typename TTimeOfDay::DurationType>();
     }

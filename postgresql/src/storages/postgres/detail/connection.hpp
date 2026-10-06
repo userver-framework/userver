@@ -1,7 +1,8 @@
 #pragma once
 
-#include <atomic>
 #include <chrono>
+
+#include <atomic>
 #include <string>
 #include <string_view>
 
@@ -320,6 +321,8 @@ private:
 
     std::unique_ptr<ConnectionImpl> pimpl_;
 };
+
+inline constexpr std::chrono::seconds kCleanupTimeout{2};
 
 }  // namespace detail
 }  // namespace storages::postgres

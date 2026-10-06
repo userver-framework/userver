@@ -277,7 +277,7 @@ template <typename Container>
 Container Cursor::AsContainer() && {
     using ValueType = typename Container::value_type;
     Container c;
-    if constexpr (meta::kIsReservable<Container>) {
+    if constexpr (meta::IsReservable<Container>) {
         c.reserve(size());
     }
 

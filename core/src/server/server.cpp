@@ -18,6 +18,7 @@
 #include <server/net/endpoint_info.hpp>
 #include <server/net/listener.hpp>
 #include <server/net/stats.hpp>
+#include <server/request/response_data_accounter.hpp>
 #include <server/requests_view.hpp>
 #include <server/server_config.hpp>
 #include <userver/dynamic_config/storage/component.hpp>

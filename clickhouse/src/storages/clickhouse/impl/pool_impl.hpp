@@ -1,7 +1,6 @@
 #pragma once
 
 #include <atomic>
-#include <chrono>
 #include <memory>
 
 #include <boost/lockfree/queue.hpp>

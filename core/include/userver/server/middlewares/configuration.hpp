@@ -72,8 +72,11 @@ public:
     /// but leave the option to do so.
     virtual MiddlewaresList BuildPipeline(MiddlewaresList userver_middleware_pipeline) const {
         auto& resulting_pipeline = userver_middleware_pipeline;
+        const auto& middlewares_to_prepend = GetMiddlewaresToPrepend();
         const auto& middlewares_to_append = GetMiddlewaresToAppend();
 
+        resulting_pipeline
+            .insert(resulting_pipeline.begin(), middlewares_to_prepend.begin(), middlewares_to_prepend.end());
         resulting_pipeline.insert(resulting_pipeline.end(), middlewares_to_append.begin(), middlewares_to_append.end());
 
         return resulting_pipeline;
@@ -82,9 +85,11 @@ public:
     static yaml_config::Schema GetStaticConfigSchema();
 
 protected:
+    const MiddlewaresList& GetMiddlewaresToPrepend() const;
     const MiddlewaresList& GetMiddlewaresToAppend() const;
 
 private:
+    MiddlewaresList middlewares_to_prepend_;
     MiddlewaresList middlewares_to_append_;
 };
 
@@ -93,7 +98,7 @@ private:
 /// @brief Server-wide middleware pipeline builder based on @ref MinimalPipeline.
 ///
 /// Set `server.middleware-pipeline-builder` to
-/// `minimal-server-middleware-pipeline-builder` to use it. Same `append` config
+/// `minimal-server-middleware-pipeline-builder` to use it. Same `prepend` and `append` config
 /// as @ref PipelineBuilder is supported.
 class MinimalPipelineBuilder : public PipelineBuilder {
 public:
@@ -110,12 +115,13 @@ public:
 ///
 /// @brief Base class to build a per-handler middleware pipeline.
 /// One may inherit from it and implement any custom logic, if desired.
-/// By default the behavior is to use the server-wide pipeline.
-class HandlerPipelineBuilder : public components::ComponentBase {
+/// By default the behavior is to use the server-wide pipeline with configured
+/// `prepend` and `append` middlewares.
+class HandlerPipelineBuilder : public PipelineBuilder {
 public:
     static constexpr std::string_view kName{"default-handler-middleware-pipeline-builder"};
 
-    HandlerPipelineBuilder(const components::ComponentConfig&, const components::ComponentContext&);
+    using PipelineBuilder::PipelineBuilder;
 
     /// @brief The method to configure build a per-handler middleware pipeline,
     /// one may override it if custom behavior is desired.
@@ -124,8 +130,8 @@ public:
     /// related functionality, and could use just MinimalPipeline() for itself.
     ///
     /// @param server_middleware_pipeline the server-wide middleware pipeline
-    virtual MiddlewaresList BuildPipeline(MiddlewaresList server_middleware_pipeline) const {
-        return server_middleware_pipeline;
+    MiddlewaresList BuildPipeline(MiddlewaresList server_middleware_pipeline) const override {
+        return PipelineBuilder::BuildPipeline(server_middleware_pipeline);
     }
 };
 

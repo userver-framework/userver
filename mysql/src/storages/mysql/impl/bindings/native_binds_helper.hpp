@@ -39,6 +39,10 @@ struct NativeBindsHelper {
     static constexpr std::size_t kOnStackBindsCount = 8;
 };
 
+std::size_t GetMaxFetchedByteLength(const MYSQL_FIELD& field);
+
+std::size_t ValidateFetchedByteLength(unsigned long reported_length, std::size_t field_max_byte_length);
+
 template <typename U>
 constexpr enum_field_types NativeBindsHelper::GetNativeType() {
     using T = std::remove_const_t<U>;

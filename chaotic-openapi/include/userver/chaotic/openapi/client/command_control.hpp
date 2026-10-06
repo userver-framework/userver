@@ -13,8 +13,24 @@ USERVER_NAMESPACE_BEGIN
 namespace chaotic::openapi::client {
 
 struct CommandControl {
+    enum class ContentEncoding {
+        kAuto,
+        kGzip,
+        kZstd,
+    };
+
+    enum class ContentEncodingLevel {
+        kAuto,
+        kFast,
+        kSlow,
+    };
+
     std::chrono::milliseconds timeout{};
     int attempts{};
+    ContentEncoding encoding{ContentEncoding::kAuto};
+    ContentEncodingLevel encoding_level{ContentEncodingLevel::kAuto};
+
+    bool operator==(const CommandControl&) const = default;
 };
 
 CommandControl Parse(const formats::json::Value& value, formats::parse::To<CommandControl>);

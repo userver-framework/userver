@@ -165,7 +165,12 @@ struct BufferParser<postgres::detail::BitStringRefWrapper<
     void operator()(FieldBuffer buffer) {
         Integer bit_count{0};
         buffer.Read(bit_count, BufferCategory::kPlainBuffer);
-        if (static_cast<std::size_t>((bit_count + 7) / 8) > buffer.length) {
+        if (bit_count < 0) {
+            throw InvalidBitStringRepresentation{};
+        }
+
+        static_assert(sizeof(bit_count) < sizeof(std::size_t) || std::is_signed_v<decltype(bit_count)>);
+        if ((static_cast<std::size_t>(bit_count) + 7) / 8 > buffer.length) {
             throw InvalidBitStringRepresentation{};
         }
 

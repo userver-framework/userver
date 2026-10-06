@@ -98,9 +98,10 @@ void DetachedTasksSyncBlock::Add(TaskContext& context) {
     }
 }
 
-void DetachedTasksSyncBlock::Add(Task&& task) {
-    const auto context = TaskContextAccessor::ExtractContext(std::move(task));
-    Add(*context);
+void DetachedTasksSyncBlock::Add(Task& task) {
+    Add(TaskContextAccessor::GetContextRef(task));
+    // Invalidate only after successful registration so that `task` stays valid if Add throws.
+    [[maybe_unused]] const auto extracted = TaskContextAccessor::ExtractContext(std::move(task));
 }
 
 void DetachedTasksSyncBlock::Dispose(Token& token) noexcept {

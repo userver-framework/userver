@@ -99,10 +99,16 @@ Basic `requirements.txt` file may look like this:
 yandex-taxi-testsuite[mongodb]
 ```
 
-Creating per-testsuite virtual environment is a recommended way to go.
-It creates Python venv in the current binary directory:
+Passing `REQUIREMENTS` is the recommended way to add Python dependencies.
+The venv is created at the top of the build directory and is **shared by every
+testsuite that asks for the same requirements**:
 
-`${CMAKE_CURRENT_BINARY_DIR}/venv-testsuite-${SERVICE_TARGET}`
+`${CMAKE_BINARY_DIR}/venv-userver-testsuite-<key>`
+
+where `<key>` is derived from the requirements files. Suites asking for
+different requirements get different venvs; suites asking for the same ones
+share, so a project that builds many services in a single CMake project
+installs those dependencies once rather than once per suite.
 
 ### Run with ctest
 
@@ -223,20 +229,21 @@ with a running service.
 Testsuite functions reference could be found at @ref userver_testsuite.
 
 @anchor SERVICE_CONFIG_HOOKS
-#### Service config generation
+#### Service config patches
 
 `pytest_userver` modifies static configs `config.yaml` and `config_vars.yaml`
 passed to pytest before starting the userver based service.
 
-To apply additional modifications to the static config files
-declare `USERVER_CONFIG_HOOKS` variable in your pytest-plugin with a list of
-functions or pytest-fixtures that should be run before config is written to disk.
-USERVER_CONFIG_HOOKS values are collected across different files and all the
-collected functions and fixtures are applied.
+To apply additional modifications, mark a fixture with
+@ref pytest_userver.config.patch "pytest_userver.config.patch".
 
 Example usage:
 
-@snippet samples/http_caching/tests/conftest.py  patch configs
+@snippet samples/static_service/testsuite/conftest.py  static config patch
+
+@warning Prefer @ref pytest_userver.config.patch "config.patch" for new code.
+Declaring `USERVER_CONFIG_HOOKS = ['fixture_name', ...]` in a pytest plugin or
+`conftest.py` is a legacy way to register the same fixtures.
 
 #### Service client
 
@@ -261,18 +268,18 @@ to provide extra environment variables for your service:
 
 #### Extra client dependencies
 
-Use @ref pytest_userver.plugins.service.extra_client_deps "extra_client_deps"
-fixture to provide extra fixtures that your service depends on:
+To make sure a fixture runs before the service starts, mark it with
+@ref pytest_userver.service.dependency "pytest_userver.service.dependency":
 
-@code{.py}
-@pytest.fixture
-def extra_client_deps(some_fixture_that_required_by_service, some_other_fixture):
-    pass
-@endcode
+@snippet samples/http_caching/tests/conftest.py  service dependency
 
-Note that @ref pytest_userver.plugins.service.auto_client_deps "auto_client_deps"
-fixture already knows about the userver supported databases and clients, so
-usually you do not need to manually register any dependencies.
+@ref pytest_userver.plugins.service.auto_client_deps "auto_client_deps"
+already knows about the userver supported databases and clients, so usually
+you do not need to register those manually.
+
+@warning Prefer @ref pytest_userver.service.dependency "dependency" for new code.
+Overriding @ref pytest_userver.plugins.service.extra_client_deps "extra_client_deps"
+is a legacy way to register the same dependencies.
 
 #### Mockserver
 
@@ -284,7 +291,7 @@ In order to use it all HTTP clients must be pointed to mockserver address.
 
 Mockserver usage example:
 
-@snippet samples/http_caching/tests/conftest.py mockserver
+@snippet samples/http_caching/tests/conftest.py service dependency
 
 * Testcase: @ref samples/http_caching/tests/conftest.py
 
@@ -292,7 +299,7 @@ To connect your HTTP client to the mockserver make the HTTP client use a base
 URL of the form **http://{mockserver}/{service_name}/**.
 
 This could be achieved by patching static config as described in
-@ref SERVICE_CONFIG_HOOKS "config hooks" and providing a mockserver address using
+@ref SERVICE_CONFIG_HOOKS "service config patches" and providing a mockserver address using
 [mockserver_info.url(path)](https://yandex.github.io/yandex-taxi-testsuite/mockserver/#testsuite.mockserver.classes.MockserverInfo.url):
 
 @snippet samples/http_caching/tests/conftest.py patch configs

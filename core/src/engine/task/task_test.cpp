@@ -3,6 +3,7 @@
 #include <array>
 #include <atomic>
 #include <chrono>
+#include <thread>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/condition_variable.hpp>
@@ -24,6 +25,47 @@ TEST(Task, Ctr) { const engine::Task task; }
 UTEST(Task, Wait) {
     auto task = engine::AsyncNoTracing([] {});
     task.Wait();
+    EXPECT_TRUE(task.IsFinished());
+    EXPECT_EQ(engine::Task::State::kCompleted, task.GetState());
+}
+
+UTEST(Task, BlockingWait) {
+    engine::SingleConsumerEvent started;
+    engine::SingleConsumerEvent allow_finish;
+    engine::SingleConsumerEvent waiter_done;
+    auto task = engine::AsyncNoTracing([&started, &allow_finish] {
+        started.Send();
+        EXPECT_TRUE(allow_finish.WaitForEvent());
+    });
+    EXPECT_TRUE(started.WaitForEvent());
+
+    std::thread waiter{[&task, &waiter_done] {
+        task.BlockingWait();
+        waiter_done.Send();
+    }};
+    // Give the waiter thread a chance to go to sleep. If it does not make it in
+    // time, that is fine — there will be no flake.
+    engine::SleepFor(10ms);
+    allow_finish.Send();
+    EXPECT_TRUE(waiter_done.WaitForEvent());
+    waiter.join();
+
+    EXPECT_TRUE(task.IsFinished());
+    EXPECT_EQ(engine::Task::State::kCompleted, task.GetState());
+}
+
+UTEST(Task, BlockingWaitAlreadyFinished) {
+    auto task = engine::AsyncNoTracing([] {});
+    task.Wait();
+
+    engine::SingleConsumerEvent waiter_done;
+    std::thread waiter{[&task, &waiter_done] {
+        task.BlockingWait();
+        waiter_done.Send();
+    }};
+    EXPECT_TRUE(waiter_done.WaitForEvent());
+    waiter.join();
+
     EXPECT_TRUE(task.IsFinished());
     EXPECT_EQ(engine::Task::State::kCompleted, task.GetState());
 }

@@ -149,9 +149,14 @@ public:
     );
 
     Watchdog()
-        : cluster_(
-              CreateClusterImpl(GetDsnListFromEnv(), GetTaskProcessor(), testsuite_tasks_, config_storage_.GetSource())
-          )
+        : cluster_(CreateClusterImpl(
+              GetDsnListFromEnv(),
+              GetTaskProcessor(),
+              testsuite_tasks_,
+              config_storage_.GetSource(),
+              kCachePreparedStatements,
+              pg::InitMode::kSync
+          ))
     {
         ClearWatchdogTable(cluster_);
     }

@@ -5,7 +5,6 @@
 /// @ingroup userver_universal
 
 #include <cstdint>
-#include <string>
 #include <string_view>
 
 USERVER_NAMESPACE_BEGIN

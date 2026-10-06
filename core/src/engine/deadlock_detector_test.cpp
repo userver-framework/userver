@@ -1,3 +1,4 @@
+#include <userver/compiler/impl/asan.hpp>
 #include <userver/utest/utest.hpp>
 
 #include <engine/deadlock_detector.hpp>
@@ -9,6 +10,9 @@
 USERVER_NAMESPACE_BEGIN
 
 TEST(DeadlockDetectorDeathTest, Smoke) {
+#if USERVER_IMPL_HAS_ASAN
+    GTEST_SKIP() << "Death tests with fork() are unstable under ASan";
+#endif
     testing::FLAGS_gtest_death_test_style = "threadsafe";
 
     engine::TaskProcessorPoolsConfig config;

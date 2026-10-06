@@ -1,13 +1,9 @@
 #include <algorithm>
 
 #include <userver/utest/utest.hpp>
-
-#include <userver/formats/json/serialize.hpp>
-#include <userver/utils/statistics/metadata.hpp>
-#include <userver/utils/statistics/storage.hpp>
-#include <userver/utils/text.hpp>
-
+#include <userver/utils/statistics/pretty_format.hpp>
 #include <userver/utils/statistics/prometheus.hpp>
+#include <userver/utils/text.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,16 +18,18 @@ std::string Sorted(const std::string_view raw) {
 }
 
 void TestToMetricsPrometheus(
-    const utils::statistics::Storage& statistics,
-    const std::string_view expected,
-    const bool sorted = false
+    WriterFuncRef writer,
+    std::string_view pretty_expected,
+    std::string_view prometheus_expected,
+    bool sorted = false
 ) {
-    const auto result =
-        ToPrometheusFormat(statistics, utils::statistics::Request::MakeWithPrefix({}, {{"application", "processing"}}));
+    EXPECT_EQ(ToPrettyFormat(writer), pretty_expected);
+
+    const auto result = ToPrometheusFormat(writer, Request::MakeWithPrefix({}, {{"application", "processing"}}));
     if (sorted) {
-        EXPECT_EQ(Sorted(expected), Sorted(result));
+        EXPECT_EQ(Sorted(prometheus_expected), Sorted(result));
     } else {
-        EXPECT_EQ(expected, result);
+        EXPECT_EQ(prometheus_expected, result);
     }
 }
 
@@ -62,126 +60,69 @@ TEST(MetricsPrometheus, ToPrometheusLabel) {
 }
 
 UTEST(MetricsPrometheus, Tvm2TicketsCache) {
-    auto producer = [](const utils::statistics::StatisticsRequest&) {
-        formats::json::ValueBuilder result;
-        utils::statistics::SolomonLabelValue(result, "cache_name");
-        result["full"]["update"]["attempts_count"] = 56;
-        result["full"]["update"]["no_changes_count"] = 0;
-        result["full"]["update"]["failures_count"] = 0;
-
-        result["full"]["documents"]["read_count"] = 432;
-        result["full"]["documents"]["parse_failures"] = 0;
-
-        result["full"]["time"]["time-from-last-update-start-ms"] = 2521742;
-        result["full"]["time"]["time-from-last-successful-start-ms"] = 2521742;
-        result["full"]["time"]["last-update-duration-ms"] = 58;
-
-        result["current-documents-count"] = 8;
-
-        return result;
+    auto producer = [](Writer& writer) {
+        const LabelView cache_name{"cache_name", "tvm2-tickets-cache"};
+        writer["cache"]["full"]["update"]["attempts_count"].ValueWithLabels(56, cache_name);
+        writer["cache"]["full"]["update"]["no_changes_count"].ValueWithLabels(0, cache_name);
+        writer["cache"]["full"]["update"]["failures_count"].ValueWithLabels(0, cache_name);
+        writer["cache"]["full"]["documents"]["read_count"].ValueWithLabels(432, cache_name);
+        writer["cache"]["full"]["documents"]["parse_failures"].ValueWithLabels(0, cache_name);
+        writer["cache"]["full"]["time"]["time-from-last-update-start-ms"].ValueWithLabels(2521742, cache_name);
+        writer["cache"]["full"]["time"]["time-from-last-successful-start-ms"].ValueWithLabels(2521742, cache_name);
+        writer["cache"]["full"]["time"]["last-update-duration-ms"].ValueWithLabels(58, cache_name);
+        writer["cache"]["current-documents-count"].ValueWithLabels(8, cache_name);
     };
 
-    utils::statistics::Storage statistics_storage;
-    auto statistics_holder = statistics_storage.RegisterExtender("cache.tvm2-tickets-cache", producer);
-
-    const auto* const statistics = R"({
-    "cache": {
-      "tvm2-tickets-cache": {
-        "$meta": {
-          "solomon_label": "cache_name"
-        },
-        "full": {
-          "update": {
-            "attempts_count": 56,
-            "no_changes_count": 0,
-            "failures_count": 0
-          },
-          "documents": {
-            "read_count": 432,
-            "parse_failures": 0
-          },
-          "time": {
-            "time-from-last-update-start-ms": 2521742,
-            "time-from-last-successful-start-ms": 2521742,
-            "last-update-duration-ms": 58
-          }
-        },
-        "current-documents-count": 8
-      }
-    }
-  })";
-
-    EXPECT_EQ(producer({}).ExtractValue(), formats::json::FromString(statistics)["cache"]["tvm2-tickets-cache"]);
+    constexpr std::string_view pretty =  //
+        "cache.full.update.attempts_count: cache_name=tvm2-tickets-cache\tGAUGE\t56\n"
+        "cache.full.update.no_changes_count: cache_name=tvm2-tickets-cache\tGAUGE\t0\n"
+        "cache.full.update.failures_count: cache_name=tvm2-tickets-cache\tGAUGE\t0\n"
+        "cache.full.documents.read_count: cache_name=tvm2-tickets-cache\tGAUGE\t432\n"
+        "cache.full.documents.parse_failures: cache_name=tvm2-tickets-cache\tGAUGE\t0\n"
+        "cache.full.time.time-from-last-update-start-ms: cache_name=tvm2-tickets-cache\tGAUGE\t2521742\n"
+        "cache.full.time.time-from-last-successful-start-ms: cache_name=tvm2-tickets-cache\tGAUGE\t2521742\n"
+        "cache.full.time.last-update-duration-ms: cache_name=tvm2-tickets-cache\tGAUGE\t58\n"
+        "cache.current-documents-count: cache_name=tvm2-tickets-cache\tGAUGE\t8\n";
 
     constexpr std::string_view expected = R"(
-# TYPE cache_current_documents_count gauge
-cache_current_documents_count{application="processing",cache_name="tvm2-tickets-cache"} 8
-# TYPE cache_full_time_time_from_last_update_start_ms gauge
-cache_full_time_time_from_last_update_start_ms{application="processing",cache_name="tvm2-tickets-cache"} 2521742
-# TYPE cache_full_time_time_from_last_successful_start_ms gauge
-cache_full_time_time_from_last_successful_start_ms{application="processing",cache_name="tvm2-tickets-cache"} 2521742
-# TYPE cache_full_time_last_update_duration_ms gauge
-cache_full_time_last_update_duration_ms{application="processing",cache_name="tvm2-tickets-cache"} 58
-# TYPE cache_full_documents_read_count gauge
-cache_full_documents_read_count{application="processing",cache_name="tvm2-tickets-cache"} 432
-# TYPE cache_full_documents_parse_failures gauge
-cache_full_documents_parse_failures{application="processing",cache_name="tvm2-tickets-cache"} 0
 # TYPE cache_full_update_attempts_count gauge
 cache_full_update_attempts_count{application="processing",cache_name="tvm2-tickets-cache"} 56
 # TYPE cache_full_update_no_changes_count gauge
 cache_full_update_no_changes_count{application="processing",cache_name="tvm2-tickets-cache"} 0
 # TYPE cache_full_update_failures_count gauge
 cache_full_update_failures_count{application="processing",cache_name="tvm2-tickets-cache"} 0
+# TYPE cache_full_documents_read_count gauge
+cache_full_documents_read_count{application="processing",cache_name="tvm2-tickets-cache"} 432
+# TYPE cache_full_documents_parse_failures gauge
+cache_full_documents_parse_failures{application="processing",cache_name="tvm2-tickets-cache"} 0
+# TYPE cache_full_time_time_from_last_update_start_ms gauge
+cache_full_time_time_from_last_update_start_ms{application="processing",cache_name="tvm2-tickets-cache"} 2521742
+# TYPE cache_full_time_time_from_last_successful_start_ms gauge
+cache_full_time_time_from_last_successful_start_ms{application="processing",cache_name="tvm2-tickets-cache"} 2521742
+# TYPE cache_full_time_last_update_duration_ms gauge
+cache_full_time_last_update_duration_ms{application="processing",cache_name="tvm2-tickets-cache"} 58
+# TYPE cache_current_documents_count gauge
+cache_current_documents_count{application="processing",cache_name="tvm2-tickets-cache"} 8
 )";
-    TestToMetricsPrometheus(statistics_storage, expected.substr(1));
+    TestToMetricsPrometheus(producer, pretty, expected.substr(1));
 }
 
 UTEST(Converter, SolomonChildrenLabel) {
-    auto producer = [](const utils::statistics::StatisticsRequest&) {
-        formats::json::ValueBuilder result;
-        utils::statistics::SolomonChildrenAreLabelValues(result, "child_label_name");
-        result["label_value_1"]["ag"]["test"] = 76;
-        result["label_value_1"]["ag"]["test1"] = 90;
-
-        result["label_value_2"]["field1"] = 3;
-        result["label_value_2"]["field2"] = 6.67;
-
-        utils::statistics::SolomonLabelValue(result["overridden_label_value"], "overridden_label_name");
-        result["overridden_label_value"]["field3"] = 9999;
-
-        return result;
+    auto producer = [](Writer& writer) {
+        auto some_key = writer["base_key"]["some_key"];
+        some_key["ag"]["test"].ValueWithLabels(76, {"child_label_name", "label_value_1"});
+        some_key["ag"]["test1"].ValueWithLabels(90, {"child_label_name", "label_value_1"});
+        some_key["field1"].ValueWithLabels(3, {"child_label_name", "label_value_2"});
+        some_key["field2"].ValueWithLabels(6.67, {"child_label_name", "label_value_2"});
+        some_key["field3"].ValueWithLabels(9999, {"overridden_label_name", "overridden_label_value"});
     };
 
-    const auto* const statistics = R"({
-    "base_key": {
-      "some_key": {
-        "$meta": {
-          "solomon_children_labels": "child_label_name"
-        },
-        "label_value_1": {
-          "ag": {
-            "test": 76,
-            "test1": 90
-          }
-        },
-        "label_value_2": {
-          "field1": 3,
-          "field2": 6.67
-        },
-        "overridden_label_value": {
-          "$meta": {
-            "solomon_label": "overridden_label_name"
-          },
-          "field3": 9999
-        }
-      }
-    }
-  })";
-
-    EXPECT_EQ(producer({}).ExtractValue(), formats::json::FromString(statistics)["base_key"]["some_key"]);
-
-    utils::statistics::Storage statistics_storage;
-    auto statistics_holder = statistics_storage.RegisterExtender("base_key.some_key", producer);
+    constexpr std::string_view pretty =  //
+        "base_key.some_key.ag.test: child_label_name=label_value_1\tGAUGE\t76\n"
+        "base_key.some_key.ag.test1: child_label_name=label_value_1\tGAUGE\t90\n"
+        "base_key.some_key.field1: child_label_name=label_value_2\tGAUGE\t3\n"
+        "base_key.some_key.field2: child_label_name=label_value_2\tGAUGE\t6.67\n"
+        "base_key.some_key.field3: overridden_label_name=overridden_label_value\tGAUGE\t9999\n";
 
     constexpr std::string_view expected = R"(
 # TYPE base_key_some_key_ag_test gauge
@@ -195,58 +136,31 @@ base_key_some_key_field2{application="processing",child_label_name="label_value_
 # TYPE base_key_some_key_field3 gauge
 base_key_some_key_field3{application="processing",overridden_label_name="overridden_label_value"} 9999
 )";
-    TestToMetricsPrometheus(statistics_storage, expected.substr(1), true);
+    TestToMetricsPrometheus(producer, pretty, expected.substr(1));
 }
 
 UTEST(Converter, SolomonChildrenLabelEscaping) {
-    auto producer = [](const utils::statistics::StatisticsRequest&) {
-        formats::json::ValueBuilder result;
-        utils::statistics::SolomonChildrenAreLabelValues(result, R"~(child.label.#$/\ _{}'"=name)~");
-        result[R"~(label.value.#$/\ _{}'"1)~"][R"~(a.#$/\ _{}g)~"]["test"] = 76;
-        result[R"~(label.value.#$/\ _{}'"1)~"][R"~(a.#$/\ _{}g)~"]["test1"] = 90;
-
-        result[R"~(label.value.#$/\ _{}2)~"]["field1"] = 3;
-        result[R"~(label.value.#$/\ _{}2)~"]["field2"] = 6.67;
-
-        utils::statistics::SolomonLabelValue(
-            result[R"~(overridden.label.#$/\ _{}'"value)~"],
-            R"~(overridden.label.#$/\ _{}'"=name)~"
-        );
-        result[R"~(overridden.label.#$/\ _{}'"value)~"]["field3"] = 9999;
-
-        return result;
+    auto producer = [](Writer& writer) {
+        auto some_key = writer["base_key"]["some_key"];
+        some_key[R"(a.#$/\ _{}g)"]["test"]
+            .ValueWithLabels(76, {R"(child.label.#$/\ _{}'"=name)", R"(label.value.#$/\ _{}'"1)"});
+        some_key[R"(a.#$/\ _{}g)"]["test1"]
+            .ValueWithLabels(90, {R"(child.label.#$/\ _{}'"=name)", R"(label.value.#$/\ _{}'"1)"});
+        some_key["field1"].ValueWithLabels(3, {R"(child.label.#$/\ _{}'"=name)", R"(label.value.#$/\ _{}2)"});
+        some_key["field2"].ValueWithLabels(6.67, {R"(child.label.#$/\ _{}'"=name)", R"(label.value.#$/\ _{}2)"});
+        some_key["field3"]
+            .ValueWithLabels(9999, {R"(overridden.label.#$/\ _{}'"=name)", R"(overridden.label.#$/\ _{}'"value)"});
     };
 
-    const auto* const statistics = R"({
-    "base_key": {
-      "some_key": {
-        "$meta": {
-          "solomon_children_labels": "child.label.#$/\\ _{}'\"=name"
-        },
-        "label.value.#$/\\ _{}'\"1": {
-          "a.#$/\\ _{}g": {
-            "test": 76,
-            "test1": 90
-          }
-        },
-        "label.value.#$/\\ _{}2": {
-          "field1": 3,
-          "field2": 6.67
-        },
-        "overridden.label.#$/\\ _{}'\"value": {
-          "$meta": {
-            "solomon_label": "overridden.label.#$/\\ _{}'\"=name"
-          },
-          "field3": 9999
-        }
-      }
-    }
-  })";
-
-    EXPECT_EQ(producer({}).ExtractValue(), formats::json::FromString(statistics)["base_key"]["some_key"]);
-
-    utils::statistics::Storage statistics_storage;
-    auto statistics_holder = statistics_storage.RegisterExtender("base_key.some_key", producer);
+    constexpr std::string_view pretty =  //
+        "base_key.some_key.a.#$/\\ _{}g.test: "
+        "child.label.#$/\\ _{}'\"=name=label.value.#$/\\ _{}'\"1\tGAUGE\t76\n"
+        "base_key.some_key.a.#$/\\ _{}g.test1: "
+        "child.label.#$/\\ _{}'\"=name=label.value.#$/\\ _{}'\"1\tGAUGE\t90\n"
+        "base_key.some_key.field1: child.label.#$/\\ _{}'\"=name=label.value.#$/\\ _{}2\tGAUGE\t3\n"
+        "base_key.some_key.field2: child.label.#$/\\ _{}'\"=name=label.value.#$/\\ _{}2\tGAUGE\t6.67\n"
+        "base_key.some_key.field3: "
+        "overridden.label.#$/\\ _{}'\"=name=overridden.label.#$/\\ _{}'\"value\tGAUGE\t9999\n";
 
     constexpr std::string_view expected = R"(
 # TYPE base_key_some_key_a_________g_test gauge
@@ -260,23 +174,19 @@ base_key_some_key_field2{application="processing",child_label____________name="l
 # TYPE base_key_some_key_field3 gauge
 base_key_some_key_field3{application="processing",overridden_label____________name="overridden.label.#$/\\ _{}''value"} 9999
 )";
-    TestToMetricsPrometheus(statistics_storage, expected.substr(1), true);
+    TestToMetricsPrometheus(producer, pretty, expected.substr(1));
 }
 
 UTEST(MetricsPrometheus, LabelValueBackslashAndNewlineEscaped) {
-    auto producer = [](const utils::statistics::StatisticsRequest&) {
-        formats::json::ValueBuilder result;
-        utils::statistics::SolomonChildrenAreLabelValues(result, "label_name");
+    auto producer = [](Writer& writer) {
         // A label value with an embedded line feed and a trailing backslash.
-        result["a\nb\\"]["value"] = 1;
-        return result;
+        writer["root"]["value"].ValueWithLabels(1, {"label_name", "a\nb\\"});
     };
 
-    utils::statistics::Storage statistics_storage;
-    auto statistics_holder = statistics_storage.RegisterExtender("root", producer);
+    constexpr std::string_view pretty = "root.value: label_name=a\nb\\\tGAUGE\t1\n";
+    EXPECT_EQ(ToPrettyFormat(producer), pretty);
 
-    const auto request = utils::statistics::Request::MakeWithPrefix({}, {{"application", "processing"}});
-    const auto result = ToPrometheusFormat(statistics_storage, request);
+    const auto result = ToPrometheusFormat(producer, Request::MakeWithPrefix({}, {{"application", "processing"}}));
 
     // The line feed must be written as `\n` and the trailing backslash doubled.
     // Otherwise the raw backslash escapes the closing quote and the raw line
@@ -288,28 +198,14 @@ UTEST(MetricsPrometheus, LabelValueBackslashAndNewlineEscaped) {
 }
 
 UTEST(MetricsPrometheus, SimpleStatistics) {
-    auto producer1 = [](const utils::statistics::StatisticsRequest&) {
-        formats::json::ValueBuilder result;
-        result["child1"] = 1;
-        result["child2"] = 2;
-        return result;
+    auto producer = [](Writer& writer) {
+        writer["parent"]["child1"] = 1;
+        writer["parent"]["child2"] = 2;
     };
 
-    const auto* const statistics = R"({
-    "parent": {
-      "child1": 1,
-      "child2": 2
-    }
-  })";
-
-    EXPECT_EQ(producer1({}).ExtractValue(), formats::json::FromString(statistics)["parent"]);
-
-    auto producer2 = [producer1](const utils::statistics::StatisticsRequest&) {
-        formats::json::ValueBuilder result;
-        result["parent"] = producer1({});
-        return result;
-    };
-    EXPECT_EQ(producer2({}).ExtractValue(), formats::json::FromString(statistics));
+    constexpr std::string_view pretty =  //
+        "parent.child1:\tGAUGE\t1\n"
+        "parent.child2:\tGAUGE\t2\n";
 
     constexpr std::string_view expected = R"(
 # TYPE parent_child1 gauge
@@ -317,104 +213,54 @@ parent_child1{application="processing"} 1
 # TYPE parent_child2 gauge
 parent_child2{application="processing"} 2
 )";
-    {
-        utils::statistics::Storage statistics_storage;
-        auto statistics_holder = statistics_storage.RegisterExtender("parent", producer1);
-        TestToMetricsPrometheus(statistics_storage, expected.substr(1));
-    }
-    {
-        utils::statistics::Storage statistics_storage;
-        auto statistics_holder = statistics_storage.RegisterExtender({}, producer2);
-        TestToMetricsPrometheus(statistics_storage, expected.substr(1));
-    }
+    TestToMetricsPrometheus(producer, pretty, expected.substr(1));
 }
 
 UTEST(MetricsPrometheus, SimpleParentRenamed) {
-    auto producer1 = [](const utils::statistics::StatisticsRequest&) {
-        formats::json::ValueBuilder result;
-        utils::statistics::SolomonRename(result, "parent");
-        result["child"] = 8;
-        return result;
-    };
+    auto producer = [](Writer& writer) { writer["parent"]["child"] = 8; };
 
-    const auto* statistics = R"({
-    "parent_renamed": {
-      "$meta": {
-        "solomon_rename": "parent"
-      },
-      "child": 8
-    }
-  })";
-
-    EXPECT_EQ(producer1({}).ExtractValue(), formats::json::FromString(statistics)["parent_renamed"]);
-
-    auto producer2 = [](const utils::statistics::StatisticsRequest&) {
-        formats::json::ValueBuilder result;
-        utils::statistics::SolomonRename(result["parent_renamed"], "parent");
-        result["parent_renamed"]["child"] = 8;
-        return result;
-    };
-
-    EXPECT_EQ(producer2({}).ExtractValue(), formats::json::FromString(statistics));
+    constexpr std::string_view pretty = "parent.child:\tGAUGE\t8\n";
 
     constexpr std::string_view expected = R"(
 # TYPE parent_child gauge
 parent_child{application="processing"} 8
 )";
-    {
-        utils::statistics::Storage statistics_storage;
-        auto statistics_holder = statistics_storage.RegisterExtender("parent", producer1);
-        TestToMetricsPrometheus(statistics_storage, expected.substr(1));
-    }
-    {
-        utils::statistics::Storage statistics_storage;
-        auto statistics_holder = statistics_storage.RegisterExtender({}, producer2);
-        TestToMetricsPrometheus(statistics_storage, expected.substr(1));
-    }
+    TestToMetricsPrometheus(producer, pretty, expected.substr(1));
 }
 
 UTEST(MetricsPrometheus, SimpleParentSkipped) {
-    auto producer1 = [](const utils::statistics::StatisticsRequest&) {
-        formats::json::ValueBuilder result;
-        utils::statistics::SolomonSkip(result);
-        result["child"] = 8;
-        return result;
-    };
+    auto producer = [](Writer& writer) { writer["child"] = 8; };
 
-    const auto* statistics = R"({
-    "parent_skipped": {
-      "$meta": {
-        "solomon_skip": true
-      },
-      "child": 8
-    }
-  })";
-
-    EXPECT_EQ(producer1({}).ExtractValue(), formats::json::FromString(statistics)["parent_skipped"]);
-
-    auto producer2 = [](const utils::statistics::StatisticsRequest&) {
-        formats::json::ValueBuilder result;
-        utils::statistics::SolomonSkip(result["parent_skipped"]);
-        result["parent_skipped"]["child"] = 8;
-        return result;
-    };
-
-    EXPECT_EQ(producer2({}).ExtractValue(), formats::json::FromString(statistics));
+    constexpr std::string_view pretty = "child:\tGAUGE\t8\n";
 
     constexpr std::string_view expected = R"(
 # TYPE child gauge
 child{application="processing"} 8
 )";
-    {
-        utils::statistics::Storage statistics_storage;
-        auto statistics_holder = statistics_storage.RegisterExtender("parent_skipped", producer1);
-        TestToMetricsPrometheus(statistics_storage, expected.substr(1));
-    }
-    {
-        utils::statistics::Storage statistics_storage;
-        auto statistics_holder = statistics_storage.RegisterExtender({}, producer2);
-        TestToMetricsPrometheus(statistics_storage, expected.substr(1));
-    }
+    TestToMetricsPrometheus(producer, pretty, expected.substr(1));
+}
+
+UTEST(MetricsPrometheus, MetricTypes) {
+    auto producer = [](Writer& writer) {
+        writer["test_metric_types"]["rate-metric"] = Rate{5};
+        writer["test_metric_types"]["igauge-metric"] = 6;
+        writer["test_metric_types"]["dgauge-metric"] = 6.5;
+    };
+
+    constexpr std::string_view pretty =  //
+        "test_metric_types.rate-metric:\tRATE\t5\n"
+        "test_metric_types.igauge-metric:\tGAUGE\t6\n"
+        "test_metric_types.dgauge-metric:\tGAUGE\t6.5\n";
+
+    constexpr std::string_view expected = R"(
+# TYPE test_metric_types_rate_metric counter
+test_metric_types_rate_metric{application="processing"} 5
+# TYPE test_metric_types_igauge_metric gauge
+test_metric_types_igauge_metric{application="processing"} 6
+# TYPE test_metric_types_dgauge_metric gauge
+test_metric_types_dgauge_metric{application="processing"} 6.5
+)";
+    TestToMetricsPrometheus(producer, pretty, expected.substr(1));
 }
 
 }  // namespace utils::statistics::impl

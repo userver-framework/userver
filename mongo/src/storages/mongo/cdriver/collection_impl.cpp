@@ -14,6 +14,7 @@
 #include <userver/storages/mongo/exception.hpp>
 #include <userver/storages/mongo/mongo_error.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/tracing/tags.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
@@ -36,6 +37,12 @@ namespace {
 
 constexpr utils::StringLiteral kReplaceErrorMessage = "Error replacing document";
 constexpr utils::StringLiteral kUpdateErrorMessage = "Error updating documents";
+
+const char* GetDatabaseName(mongoc_client_t* client) {
+    const auto* database_name = mongoc_uri_get_database(mongoc_client_get_uri(client));
+    UASSERT(database_name);
+    return database_name;
+}
 
 class WriteResultHelper {
 public:
@@ -696,12 +703,8 @@ private:
 
 }  // namespace
 
-CDriverCollectionImpl::CDriverCollectionImpl(
-    PoolImplPtr pool_impl,
-    std::string database_name,
-    std::string collection_name
-)
-    : CollectionImpl(std::move(database_name), std::move(collection_name)),
+CDriverCollectionImpl::CDriverCollectionImpl(PoolImplPtr pool_impl, std::string collection_name)
+    : CollectionImpl(std::move(collection_name)),
       pool_impl_(std::move(pool_impl)),
       statistics_(pool_impl_->GetStatistics().collections[GetCollectionName()])
 {
@@ -915,7 +918,7 @@ WriteResult CDriverCollectionImpl::Execute(const operations::ReplaceOne& operati
                 .pool = GetPool(),
                 .context = context,
                 .session = GetSession(),
-                .collection_namespace = utils::StrCat(GetDatabaseName(), ".", GetCollectionName()),
+                .collection_namespace = utils::StrCat(GetDatabaseName(context.client.get()), ".", GetCollectionName()),
                 .max_server_time = adjusted_max_server_time,
                 .error_message = kReplaceErrorMessage,
                 .should_throw = operation.impl_->should_throw,
@@ -976,7 +979,7 @@ WriteResult CDriverCollectionImpl::Execute(const operations::Update& operation) 
                 .pool = GetPool(),
                 .context = context,
                 .session = GetSession(),
-                .collection_namespace = utils::StrCat(GetDatabaseName(), ".", GetCollectionName()),
+                .collection_namespace = utils::StrCat(GetDatabaseName(context.client.get()), ".", GetCollectionName()),
                 .max_server_time = adjusted_max_server_time,
                 .error_message = kUpdateErrorMessage,
                 .should_throw = operation.impl_->should_throw,
@@ -1160,7 +1163,7 @@ WriteResult CDriverCollectionImpl::Execute(operations::Bulk&& operation) {
     auto context = MakeRequestContext("mongo_bulk", operation);
 
     UASSERT(operation.impl_->bulk);
-    mongoc_bulk_operation_set_database(operation.impl_->bulk.get(), GetDatabaseName().c_str());
+    mongoc_bulk_operation_set_database(operation.impl_->bulk.get(), GetDatabaseName(context.client.get()));
     mongoc_bulk_operation_set_collection(operation.impl_->bulk.get(), GetCollectionName().c_str());
 
     mongoc_bulk_operation_set_client(operation.impl_->bulk.get(), context.client.get());
@@ -1242,8 +1245,9 @@ CollectionRequestContext CDriverCollectionImpl::MakeRequestContext(
         pool_impl_->GetConfig(),
         [this](stats::OperationStatisticsItem& stats) { return GetClient(stats); }
     );
-    CollectionPtr collection(
-        mongoc_client_get_collection(base.client.get(), GetDatabaseName().c_str(), GetCollectionName().c_str())
+    const auto* database_name = GetDatabaseName(base.client.get());
+    base.span.AddTag(tracing::kDatabaseInstance, database_name);
+    CollectionPtr collection(mongoc_client_get_collection(base.client.get(), database_name, GetCollectionName().c_str())
     );
     return CollectionRequestContext{std::move(base), std::move(collection)};
 }

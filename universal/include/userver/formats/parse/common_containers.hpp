@@ -74,7 +74,7 @@ ObjectType ParseObject(const Value& value, ExtractFunc extract_func) {
 
 template <typename T>
 concept RangeNotMap =
-    meta::kIsRange<T> && !meta::kIsMap<T> && !std::is_same_v<T, boost::uuids::uuid> &&
+    meta::IsRange<T> && !meta::IsMap<T> && !std::is_same_v<T, boost::uuids::uuid> &&
     !std::is_convertible_v<T&, utils::impl::strong_typedef::StrongTypedefTag&>;
 
 }  // namespace impl
@@ -84,7 +84,7 @@ T Parse(const Value& value, To<T>) {
     return impl::ParseArray<T>(value, &impl::AsExtractor<meta::RangeValueType<T>, Value>);
 }
 
-template <meta::kIsMap T, common::IsFormatValue Value>
+template <meta::IsMap T, common::IsFormatValue Value>
 T Parse(const Value& value, To<T>) {
     return impl::ParseObject<T>(value, &impl::AsExtractor<typename T::mapped_type, Value>);
 }
@@ -111,7 +111,7 @@ T Convert(const Value& value, To<T>) {
     return impl::ParseArray<T>(value, &impl::ConvertToExtractor<meta::RangeValueType<T>, Value>);
 }
 
-template <meta::kIsMap T, typename Value>
+template <meta::IsMap T, typename Value>
 T Convert(const Value& value, To<T>) {
     if (value.IsMissing()) {
         return {};

@@ -198,7 +198,7 @@ ProxyingStorage<Container, MapFrom>::ProxyingStorage(ResultBinder& binder)
 
 template <typename Container, typename MapFrom>
 void ProxyingStorage<Container, MapFrom>::Reserve([[maybe_unused]] std::size_t size) {
-    if constexpr (meta::kIsReservable<Container>) {
+    if constexpr (meta::IsReservable<Container>) {
         data_.reserve(size);
     }
 }

@@ -146,7 +146,7 @@ public:
         using TargetType = decltype(s.extra);
         if constexpr (std::is_same_v<TargetType, MapType>) {
             s.extra = std::move(map_);
-        } else if constexpr (meta::kIsMap<TargetType>) {
+        } else if constexpr (meta::IsMap<TargetType>) {
             s.extra.clear();
             s.extra.insert(std::move_iterator(map_.begin()), std::move_iterator(map_.end()));
         } else {
@@ -213,7 +213,7 @@ public:
     void DoValidateSeen() {
         using ModeDescriptorType = typename FieldType::ModeDescriptorType;
 
-        if constexpr (meta::kIsInstantiationOf<Required, ModeDescriptorType>) {
+        if constexpr (meta::IsInstantiationOf<ModeDescriptorType, Required>) {
             static_assert(Idx < Count);
             if (!seen_[Idx]) {
                 throw formats::json::parser::InternalParseError(

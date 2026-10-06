@@ -11,9 +11,14 @@
 namespace AMQP {
 class Deferred;
 class DeferredGet;
+class DeferredQueue;
 }  // namespace AMQP
 
 USERVER_NAMESPACE_BEGIN
+
+namespace urabbitmq {
+struct QueueDeclareResponse;
+}  // namespace urabbitmq
 
 namespace urabbitmq::impl {
 
@@ -30,6 +35,8 @@ public:
     void Wrap(AMQP::Deferred& deferred);
 
     void WrapGet(AMQP::DeferredGet& deferred, std::string& message);
+
+    void WrapDeclareQueue(AMQP::DeferredQueue& deferred, QueueDeclareResponse& response);
 
     static std::shared_ptr<DeferredWrapper> Create();
 

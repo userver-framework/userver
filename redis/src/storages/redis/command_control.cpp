@@ -1,12 +1,13 @@
 #include <userver/storages/redis/command_control.hpp>
 
-#include <mutex>
+#include <atomic>
 #include <sstream>
 #include <unordered_map>
 
 #include <fmt/chrono.h>
 #include <fmt/format.h>
 
+#include <userver/rcu/rcu.hpp>
 #include <userver/testsuite/redis_control.hpp>
 #include <userver/utils/optionals.hpp>
 #include <userver/utils/trivial_map.hpp>
@@ -18,30 +19,38 @@ namespace {
 
 class ServerIdDescriptionMap {
 public:
-    ServerIdDescriptionMap() { SetDescription(ServerId::Invalid().GetId(), "invalid_server_id"); }
+    ServerIdDescriptionMap()
+        : descriptions_(Descriptions{{ServerId::Invalid().GetId(), "invalid_server_id"}})
+    {}
 
     void SetDescription(size_t server_id, std::string description) {
-        const std::lock_guard<std::mutex> lock(mutex_);
-        descriptions_.emplace(std::piecewise_construct, std::tie(server_id), std::tie(description));
+        auto descriptions = descriptions_.StartWrite();
+        if (descriptions->emplace(server_id, std::move(description)).second) {
+            descriptions.Commit();
+        }
     }
 
     void RemoveDescription(size_t server_id) {
-        const std::lock_guard<std::mutex> lock(mutex_);
-        descriptions_.erase(server_id);
+        auto descriptions = descriptions_.StartWrite();
+        if (descriptions->erase(server_id)) {
+            descriptions.Commit();
+        }
     }
 
     std::string GetDescription(size_t server_id) const {
-        const std::lock_guard<std::mutex> lock(mutex_);
-        auto it = descriptions_.find(server_id);
-        if (it != descriptions_.end()) {
+        const auto descriptions = descriptions_.Read();
+        const auto it = descriptions->find(server_id);
+        if (it != descriptions->end()) {
             return it->second;
         }
         return {};
     }
 
 private:
-    mutable std::mutex mutex_;
-    std::unordered_map<size_t, std::string> descriptions_;
+    using Descriptions = std::unordered_map<size_t, std::string>;
+
+    // Writers are Redis ev threads in production and raw threads in tests, never coroutines.
+    rcu::Variable<Descriptions, rcu::BlockingRcuTraits> descriptions_;
 };
 
 ServerIdDescriptionMap& GetServerIdDescriptionMap() {

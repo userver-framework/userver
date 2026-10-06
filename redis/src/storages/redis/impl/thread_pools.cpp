@@ -1,8 +1,11 @@
 #include <storages/redis/impl/thread_pools.hpp>
 
 #include <chrono>
+#include <string>
 #include <thread>
 
+#include <userver/engine/sleep.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/logging/log.hpp>
 
 #include <engine/ev/thread_pool.hpp>
@@ -16,6 +19,14 @@ const std::chrono::milliseconds kThreadPoolWaitingSleepTime{20};
 
 const std::string kSentinelThreadName = "redis_sentinel";
 const std::string kRedisThreadName = "redis_client";
+
+void SleepWhileWaitingForThreadPool() {
+    if (engine::current_task::IsTaskProcessorThread()) {
+        engine::SleepFor(kThreadPoolWaitingSleepTime);
+    } else {
+        std::this_thread::sleep_for(kThreadPoolWaitingSleepTime);
+    }
+}
 
 }  // namespace
 
@@ -32,7 +43,7 @@ ThreadPools::ThreadPools(size_t sentinel_thread_pool_size, size_t redis_thread_p
 ThreadPools::~ThreadPools() {
     LOG_INFO() << "Stopping redis thread pools";
     while (redis_thread_pool_.use_count() > 1) {
-        std::this_thread::sleep_for(kThreadPoolWaitingSleepTime);
+        SleepWhileWaitingForThreadPool();
     }
     LOG_INFO() << "Stopped redis thread pools";
 }

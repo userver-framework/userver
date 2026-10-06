@@ -31,24 +31,21 @@ namespace {
 // Database-level commands are accounted under MongoDB's reserved `$cmd` collection.
 constexpr std::string_view kDatabaseStatsCollection = "$cmd";
 
-cdriver::DatabasePtr GetNativeDatabase(mongoc_client_t* client, const std::string& name) {
-    return cdriver::DatabasePtr(mongoc_client_get_database(client, name.c_str()));
+cdriver::DatabasePtr GetNativeDatabase(mongoc_client_t* client) {
+    cdriver::DatabasePtr database(mongoc_client_get_default_database(client));
+    UASSERT(database);
+    return database;
 }
 
 }  // namespace
 
-Database::Database(PoolImplPtr pool, std::string database_name)
-    : pool_(std::move(pool)),
-      database_name_(std::move(database_name))
-{
-    if (!utils::text::IsCString(database_name_)) {
-        throw MongoException("Invalid database name: '" + database_name_);
-    }
-}
+Database::Database(PoolImplPtr pool)
+    : pool_(std::move(pool))
+{}
 
 void Database::DropDatabase() {
     auto client = cdriver::GetCDriverPool(pool_).Acquire();
-    const auto database = GetNativeDatabase(client.get(), database_name_);
+    const auto database = GetNativeDatabase(client.get());
 
     MongoError error;
     mongoc_database_drop(database.get(), error.GetNative());
@@ -63,7 +60,7 @@ bool Database::HasCollection(utils::zstring_view collection_name) const {
     }
 
     auto client = cdriver::GetCDriverPool(pool_).Acquire();
-    const auto database = GetNativeDatabase(client.get(), database_name_);
+    const auto database = GetNativeDatabase(client.get());
 
     MongoError error;
     const bool
@@ -75,13 +72,12 @@ bool Database::HasCollection(utils::zstring_view collection_name) const {
 }
 
 Collection Database::GetCollection(std::string collection_name) const {
-    return Collection(std::make_shared<
-                      cdriver::CDriverCollectionImpl>(pool_, database_name_, std::move(collection_name)));
+    return Collection(std::make_shared<cdriver::CDriverCollectionImpl>(pool_, std::move(collection_name)));
 }
 
 std::vector<std::string> Database::ListCollectionNames() const {
     auto client = cdriver::GetCDriverPool(pool_).Acquire();
-    const auto database = GetNativeDatabase(client.get(), database_name_);
+    const auto database = GetNativeDatabase(client.get());
 
     MongoError error;
     const formats::bson::impl::RawPtr<char*>
@@ -109,7 +105,6 @@ cdriver::DatabaseRequestContext Database::MakeRequestContext(
 ) const {
     tracing::Span span(std::move(span_name));
     span.AddTag(tracing::kDatabaseType, tracing::kDatabaseMongoType);
-    span.AddTag(tracing::kDatabaseInstance, database_name_);
 
     auto& pool = cdriver::GetCDriverPool(pool_);
     auto collection_stats = pool_->GetStatistics().collections[std::string{kDatabaseStatsCollection}];
@@ -119,7 +114,8 @@ cdriver::DatabaseRequestContext Database::MakeRequestContext(
         pool_->GetConfig(),
         [&pool](stats::OperationStatisticsItem& stats) { return cdriver::AcquireClient(pool, stats); }
     );
-    auto database = GetNativeDatabase(base.client.get(), database_name_);
+    auto database = GetNativeDatabase(base.client.get());
+    base.span.AddTag(tracing::kDatabaseInstance, mongoc_database_get_name(database.get()));
     return cdriver::DatabaseRequestContext{std::move(base), std::move(database)};
 }
 

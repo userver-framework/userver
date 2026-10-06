@@ -203,10 +203,14 @@ Key scenarios where such metrics are useful:
 
 @snippet core/src/utils/statistics/metrics_storage_test.cpp unit testing metrics
 
-If you need to unit test (gtest) classes that use
-@ref utils::statistics::Storage, you can use @ref utils::statistics::Snapshot :
+To unit test (gtest) simple metrics, implement `DumpMetric` and pass the
+struct to @ref utils::statistics::Snapshot :
 
-@snippet core/src/utils/statistics/histogram_test.cpp  sample
+@snippet universal/src/utils/statistics/testing_test.cpp  metrics Snapshot DumpMetric sample
+
+If the class registers writers in @ref utils::statistics::Storage, pass Storage:
+
+@snippet core/src/utils/statistics/testing_test.cpp  metrics Snapshot sample
 
 Prefer testing metrics in unit tests if possible. Otherwise, metrics could be tested in testsuite, see
 @ref TESTSUITE_METRICS_TESTING "Metrics testing in testsuite".

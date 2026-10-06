@@ -3,7 +3,6 @@
 #include <sql.h>
 #include <sqlext.h>
 #include <string>
-#include <string_view>
 #include <vector>
 
 #include <userver/storages/odbc/exception.hpp>

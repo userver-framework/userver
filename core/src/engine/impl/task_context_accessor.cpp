@@ -13,6 +13,8 @@ boost::intrusive_ptr<TaskContext> TaskContextAccessor::GetContext(TaskBase& task
     return task.pimpl_->context;
 }
 
+TaskContext& TaskContextAccessor::GetContextRef(TaskBase& task) noexcept { return task.GetContext(); }
+
 boost::intrusive_ptr<TaskContext> TaskContextAccessor::ExtractContext(TaskBase&& task) noexcept {
     return std::move(task.pimpl_->context);
 }

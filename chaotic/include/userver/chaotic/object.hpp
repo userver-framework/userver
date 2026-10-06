@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string>
-
 #include <userver/chaotic/exception.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/utils/string_literal.hpp>

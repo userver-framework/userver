@@ -73,7 +73,7 @@ requires(!proto_structs::traits::Oneof<std::remove_cvref_t<TField>>) && traits::
 void WriteField(proto_structs::io::WriteContext& ctx, TField&& value, const TSetter& setter) {
     using FieldType = std::remove_cvref_t<TField>;
 
-    if constexpr (meta::kIsCvInstantiationOf<std::optional, FieldType>) {
+    if constexpr (meta::IsCvInstantiationOf<FieldType, std::optional>) {
         if (value) {
             impl::WriteFieldWithSetter(ctx, std::forward<TField>(value).value(), setter);
         } else {

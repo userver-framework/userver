@@ -1,6 +1,15 @@
 #include "test_utils.hpp"
 
+#include <cstddef>
+
 #include <ydb-cpp-sdk/library/issue/yql_issue.h>
+
+#include <userver/utils/statistics/testing.hpp>
+#include <userver/ydb/exceptions.hpp>
+#include <userver/ydb/table.hpp>
+#include <userver/ydb/transaction.hpp>
+
+#include <userver/utils/retry_budget.hpp>
 
 #include <ydb/impl/future.hpp>
 #include <ydb/impl/retry_tx.hpp>
@@ -113,5 +122,77 @@ UTEST_F(RetryTxFixture, Exception) {
         "error"
     );
 };
+
+UTEST_F(RetryTxFixture, RetryBudgetExhaustionAndRecovery) {
+    constexpr std::size_t kBudgetCapacity = 6;
+    constexpr std::size_t kAttemptsUntilExhausted = 2;
+    constexpr std::size_t kMaxRetries = 5;
+    static_assert(kAttemptsUntilExhausted > 0 && kAttemptsUntilExhausted <= kBudgetCapacity / 2);
+    constexpr std::size_t kInitialTokens = kBudgetCapacity / 2 + kAttemptsUntilExhausted;
+    auto& budget = GetTableClient().GetRetryBudget();
+    // Refill tokens spent during client startup, then use one token per success.
+    budget.SetSettings({.max_tokens = kBudgetCapacity, .token_ratio = kBudgetCapacity});
+    budget.AccountOk();
+    budget.SetSettings({.max_tokens = kBudgetCapacity, .token_ratio = 1});
+    for (std::size_t i = 0; i + kInitialTokens < kBudgetCapacity; ++i) {
+        budget.AccountFail();
+    }
+    ASSERT_TRUE(budget.CanRetry());
+
+    std::size_t attempts = 0;
+    try {
+        RetryTx(kMaxRetries, [&](NYdb::NQuery::TSession, engine::Deadline) {
+            ++attempts;
+            MakeErrorResponse(kRetryableStatus);
+        });
+        FAIL() << "Expected YdbResponseError";
+    } catch (const ydb::YdbResponseError& error) {
+        EXPECT_EQ(error.GetStatus().GetStatus(), kRetryableStatus);
+    }
+    EXPECT_EQ(attempts, kAttemptsUntilExhausted);
+    EXPECT_FALSE(budget.CanRetry());
+
+    attempts = 0;
+    ASSERT_NO_THROW(RetryTx(kMaxRetries, [&](NYdb::NQuery::TSession, engine::Deadline) { ++attempts; }));
+    EXPECT_EQ(attempts, 1);
+    EXPECT_TRUE(budget.CanRetry());
+    budget.AccountFail();
+    EXPECT_FALSE(budget.CanRetry());
+}
+
+UTEST_F(RetryTxFixture, AbortedCallbackRetriesWithoutRollback) {
+    std::size_t attempts = 0;
+    GetTableClient().RetryTx("retry_tx_aborted", ydb::RetryTxSettings{.retries = 1}, [&attempts](ydb::TxActor&) {
+        if (++attempts == 1) {
+            MakeErrorResponse(kRetryableStatus);
+        }
+        return ydb::TxAction::kCommit;
+    });
+
+    EXPECT_EQ(attempts, 2);
+    EXPECT_FALSE(GetMetrics().SingleMetricOptional("ydb.by-query.total", {{"ydb_query", "Rollback"}}).has_value());
+}
+
+UTEST_F(RetryTxFixture, NonRetryableCallbackRollsBackAndRethrows) {
+    const ydb::YdbResponseError error{"retry_tx_error", NYdb::TStatus{kNonRetryableStatus, NYdb::NIssue::TIssues{}}};
+    std::size_t attempts = 0;
+    try {
+        GetTableClient().RetryTx(
+            "retry_tx_error",
+            ydb::RetryTxSettings{.retries = 1},
+            [&attempts, &error](ydb::TxActor&) -> ydb::TxAction {
+                ++attempts;
+                throw ydb::YdbResponseError{error};
+            }
+        );
+        FAIL() << "Expected YdbResponseError";
+    } catch (const ydb::YdbResponseError& e) {
+        EXPECT_EQ(e.GetStatus().GetStatus(), kNonRetryableStatus);
+        EXPECT_STREQ(e.what(), error.what());
+    }
+
+    EXPECT_EQ(attempts, 1);
+    EXPECT_EQ(GetMetrics().SingleMetric("ydb.by-query.success", {{"ydb_query", "Rollback"}}).AsRate().value, 1);
+}
 
 USERVER_NAMESPACE_END

@@ -1,6 +1,7 @@
 #include <server/middlewares/tracing.hpp>
 
 #include <server/handlers/http_server_settings.hpp>
+#include <server/http/http_response_impl.hpp>
 #include <server/middlewares/misc.hpp>
 #include <server/request/internal_request_context.hpp>
 
@@ -78,6 +79,7 @@ Tracing::Tracing(const tracing::TracingManagerBase& tracing_manager, const handl
 void Tracing::HandleRequest(http::HttpRequest& request, request::RequestContext& context) const {
     const auto meta_type = misc::CutTrailingSlash(request.GetRequestPath(), handler_.GetConfig().url_trailing_slash);
     auto span = MakeSpan(request, meta_type);
+    http::GetHttpResponseImpl(request).SetTracingContext(span);
     LogYandexHeaders(request);
     FillResponseWithTracingContext(span, request.GetHttpResponse());
 

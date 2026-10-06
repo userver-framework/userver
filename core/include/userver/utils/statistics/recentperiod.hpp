@@ -21,7 +21,8 @@ namespace utils::statistics {
  *
  * At any time current Counter is accessible for modification via
  * GetCurrentCounter().
- * Counter can provide a Reset() member function to clear contents.
+ * Counter can provide a Reset() member function or an ADL-found ResetMetric
+ * function to clear contents.
  * @see utils::statistics::Percentile
  */
 template <typename Counter, typename Result, typename Timer = utils::datetime::SteadyClock>
@@ -160,7 +161,6 @@ private:
     }
 
     struct EpochBucket {
-        static constexpr bool kUseReset = detail::CanReset<Counter>;
         std::atomic<Duration> epoch;
         Counter counter;
 
@@ -168,7 +168,9 @@ private:
 
         void Reset(Duration epoch_duration) {
             epoch = epoch_duration;
-            if constexpr (kUseReset) {
+            if constexpr (detail::CanResetMetric<Counter>) {
+                ResetMetric(counter);
+            } else if constexpr (detail::CanReset<Counter>) {
                 counter.Reset();
             } else {
                 counter = 0;

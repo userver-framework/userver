@@ -72,9 +72,9 @@ bool Stream::CheckUrlComplete() {
     return true;
 }
 
-void Stream::PushChunk(std::string&& chunk) { PushChunk(request::impl::ChunkStorage{std::move(chunk)}); }
+void Stream::PushChunk(std::string&& chunk) { PushChunk(http::impl::ChunkStorage{std::move(chunk)}); }
 
-void Stream::PushChunk(request::impl::ChunkStorage&& chunk) {
+void Stream::PushChunk(http::impl::ChunkStorage&& chunk) {
     if (chunk.Empty()) {
         return;
     }

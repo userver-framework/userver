@@ -53,7 +53,7 @@ public:
     // ProtoJSON represents 64-bit integers as strings.
     void Int64(std::int64_t value) { sb_.WriteString(std::to_string(value)); }
     void UInt64(std::uint64_t value) { sb_.WriteString(std::to_string(value)); }
-    void Float(float value) { WriteDouble(static_cast<double>(value)); }
+    void Float(float value) { WriteDouble(WidenFloatToDouble(value)); }
     void Double(double value) { WriteDouble(value); }
     void String(std::string_view value) { sb_.WriteString(Cap(value)); }
     void Bytes(std::string_view bytes) { sb_.WriteString(crypto::base64::Base64Encode(CapBytes(bytes))); }

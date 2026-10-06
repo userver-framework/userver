@@ -2,6 +2,7 @@
 
 #include <server/handlers/http_handler_base_statistics.hpp>
 #include <server/http/http_request_impl.hpp>
+#include <server/http/http_response_impl.hpp>
 #include <userver/engine/io/socket.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/http/common_headers.hpp>
@@ -104,7 +105,7 @@ const std::string& HttpRequest::GetUrl() const { return pimpl_->url; }
 const std::string& HttpRequest::GetRequestPath() const { return pimpl_->request_path; }
 
 std::chrono::duration<double> HttpRequest::GetResponseTime() const {
-    return GetHttpResponse().GetReadyTime() - GetStartTime();
+    return GetHttpResponseImpl(*this).GetReadyTime() - GetStartTime();
 }
 
 const std::string& HttpRequest::GetHost() const { return GetHeader(USERVER_NAMESPACE::http::headers::kHost); }
@@ -376,7 +377,7 @@ void HttpRequest::WriteAccessLog(
             EscapeForAccessLog(GetHeader("User-Agent")),
             EscapeForAccessLog(GetHeader("Cookie")),
             GetRequestTime(GetStartTime()).count(),
-            GetHttpResponse().GetBytesSent(),
+            GetHttpResponseImpl(*this).GetBytesSent(),
             GetResponseTime().count()
         ),
     };

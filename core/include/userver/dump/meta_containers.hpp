@@ -50,7 +50,7 @@ void Insert(std::unordered_set<T, Hash, Eq, Alloc>& cont, T&& elem) {
 /// Check if a range is a container
 template <typename T>
 concept IsContainer =
-    meta::kIsRange<T> && std::is_default_constructible_v<T> && meta::kIsSizable<T> &&
+    meta::IsRange<T> && std::is_default_constructible_v<T> && meta::IsSizable<T> &&
     requires(T& t, meta::RangeValueType<T>&& v) { dump::Insert(t, std::move(v)); };
 
 }  // namespace dump

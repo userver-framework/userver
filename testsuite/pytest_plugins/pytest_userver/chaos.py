@@ -434,8 +434,11 @@ class _SocketsPaired:
         await self._task_to_client.set_interceptor(interceptor)
 
     async def shutdown(self) -> None:
-        for task in self._interceptor_tasks:
-            await _cancel_and_join(task)
+        # An interceptor cannot join itself, self._run() shuts down anyway.
+        if asyncio.current_task() in self._interceptor_tasks:
+            return
+
+        # A second cancel would interrupt the join in self._run().
         await _cancel_and_join(self._task)
 
     def is_active(self) -> bool:
@@ -464,14 +467,17 @@ class _SocketsPaired:
         finally:
             for task in self._interceptor_tasks:
                 task.cancel()
-
-            # Closing the sockets here so that the self.shutdown()
-            # returns only when the sockets are actually closed
-            for sock in self._server, self._client:
-                try:
-                    sock.close()
-                except OSError:
-                    logger.exception('Exception in "%s" on closing %s:', self._proxy_name, sock)
+            try:
+                # Cancelled interceptors unregister the fds from the event loop.
+                # Closing before that leaves a stale registration, which breaks
+                # any new socket that reuses the fd.
+                await asyncio.gather(*self._interceptor_tasks, return_exceptions=True)
+            finally:
+                for sock in self._server, self._client:
+                    try:
+                        sock.close()
+                    except OSError:
+                        logger.exception('Exception in "%s" on closing %s:', self._proxy_name, sock)
 
 
 # @endcond

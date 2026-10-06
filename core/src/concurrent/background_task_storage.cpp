@@ -1,12 +1,29 @@
 #include <userver/concurrent/background_task_storage.hpp>
 
 #include <userver/engine/task/cancel.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace concurrent {
+
+namespace {
+
+void CancelAndWaitUnregistered(engine::Task& task) noexcept {
+    if (!task.IsValid()) {
+        return;
+    }
+    if (engine::current_task::IsTaskProcessorThread()) {
+        task.SyncCancel();
+    } else {
+        task.RequestCancel();
+        task.BlockingWait();
+    }
+}
+
+}  // namespace
 
 BackgroundTaskStorageCore::BackgroundTaskStorageCore()
     : sync_block_(std::in_place, engine::impl::DetachedTasksSyncBlock::StopMode::kCancelAndWait)
@@ -37,7 +54,12 @@ void BackgroundTaskStorageCore::WaitAndDisposeSlow() noexcept {
 
 void BackgroundTaskStorageCore::Detach(engine::Task&& task) {
     UINVARIANT(sync_block_, "Trying to launch a task on a dead BTS");
-    sync_block_->Add(std::move(task));
+    try {
+        sync_block_->Add(task);
+    } catch (...) {
+        CancelAndWaitUnregistered(task);
+        throw;
+    }
 }
 
 std::int64_t BackgroundTaskStorageCore::ActiveTasksApprox() const noexcept {

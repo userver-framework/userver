@@ -1,9 +1,20 @@
 #include <engine/task/task_processor.hpp>
 
+#include <atomic>
+#include <chrono>
+#include <thread>
+#include <utility>
+#include <vector>
+
+#include <engine/task/task_context.hpp>
 #include <engine/task/task_processor_config.hpp>
 #include <userver/engine/async.hpp>
+#include <userver/engine/impl/task_context_factory.hpp>
+#include <userver/engine/impl/task_context_holder.hpp>
 #include <userver/engine/run_standalone.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/task/cancel.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/engine/task/task_base.hpp>
 #include <userver/engine/task/task_with_result.hpp>
 #include <userver/utest/utest.hpp>
@@ -77,6 +88,33 @@ UTEST_MT(TaskProcessor, MetricsAliveAndRunning, 2) {
     }
 
     EXPECT_EQ(task_counter.GetRunningTasks(), 1);
+}
+
+UTEST(TaskProcessor, CancellationBeforeBootstrapQueuesOnlyOnce) {
+    auto& processor = engine::current_task::GetTaskProcessor();
+    const auto queued_before = processor.GetTaskQueueSize();
+    auto holder = engine::impl::MakeTask({}, [] { FAIL() << "Cancelled task ran"; });
+    auto context = std::move(holder).Extract();
+    context->RequestCancel(engine::TaskCancellationReason::kUserRequest);
+    auto task = engine::TaskWithResult<void>{engine::impl::TaskContextHolder{std::move(context)}};
+
+    EXPECT_EQ(processor.GetTaskQueueSize(), queued_before + 1);
+    UEXPECT_THROW(task.Get(), engine::TaskCancelledException);
+}
+
+UTEST(TaskProcessor, CriticalTaskCancelledBeforeBootstrapQueuesOnlyOnce) {
+    auto& processor = engine::current_task::GetTaskProcessor();
+    const auto queued_before = processor.GetTaskQueueSize();
+    auto holder = engine::impl::MakeTask({.importance = engine::Task::Importance::kCritical}, [] {
+        EXPECT_TRUE(engine::current_task::ShouldCancel());
+        return 42;
+    });
+    auto context = std::move(holder).Extract();
+    context->RequestCancel(engine::TaskCancellationReason::kUserRequest);
+    auto task = engine::TaskWithResult<int>{engine::impl::TaskContextHolder{std::move(context)}};
+
+    EXPECT_EQ(processor.GetTaskQueueSize(), queued_before + 1);
+    EXPECT_EQ(task.Get(), 42);
 }
 
 USERVER_NAMESPACE_END

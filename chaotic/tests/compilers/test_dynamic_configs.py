@@ -166,3 +166,5 @@ def test_schema_hash_is_exposed_via_function(tmp_path):
     assert 'bool_flag::GetSchemaHash(),' in source
     assert source.count('GetSchemaHash') == 2
     assert 'kSchemaHash' not in source
+    assert '#include "dynamic_config/variables/BOOL_FLAG.types_parsers.ipp"' in source
+    assert not (output / 'src/dynamic_config/variables/BOOL_FLAG.types.cpp').exists()

@@ -49,7 +49,10 @@ void MockRedisServerBase::SendReplyData(ConnectionPtr connection, const storages
 
 int MockRedisServerBase::GetPort() const { return port_; }
 
-void MockRedisServerBase::Stop() { listener_task_.SyncCancel(); }
+void MockRedisServerBase::Stop() {
+    listener_task_.SyncCancel();
+    client_tasks_.CancelAndWait();
+}
 
 void MockRedisServerBase::SendReply(ConnectionPtr connection, const std::string& reply) {
     LOG_DEBUG() << "reply: " << reply;

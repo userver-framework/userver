@@ -29,6 +29,7 @@ namespace {
 using RealMilliseconds = std::chrono::duration<double, std::milli>;
 
 constexpr std::string_view kTraceIdTag = "trace_id";
+constexpr std::string_view kTraceSampledTag = "trace_sampled";
 constexpr std::string_view kSpanIdTag = "span_id";
 constexpr std::string_view kParentIdTag = "parent_id";
 constexpr std::string_view kLinkTag = "link";
@@ -126,6 +127,7 @@ Span::Impl::Impl(
 )
     : name_(std::move(name)),
       is_no_log_span_(IsNoLogSpan(name_)),
+      is_root_span_(parent == nullptr),
       log_level_(is_no_log_span_ ? logging::Level::kNone : logging::Level::kInfo),
       reference_type_(reference_type),
       source_location_(source_location),
@@ -141,6 +143,8 @@ Span::Impl::Impl(
         log_extra_inheritable_ = parent->log_extra_inheritable_;
         local_log_level_ = parent->local_log_level_;
         is_sampled_ = parent->is_sampled_;
+    } else {
+        is_sampled_ = impl::ShouldSampleTrace(trace_id_);
     }
 }
 
@@ -165,6 +169,7 @@ void Span::Impl::PutIntoLogger(logging::impl::TagWriter writer) && {
 
     writer.PutTag(kTraceIdTag, GetTraceId());
     writer.PutTag(kSpanIdTag, GetSpanId());
+    writer.PutTag(kTraceSampledTag, is_sampled_);
     writer.PutTag(kParentIdTag, GetParentId());
     writer.PutTag(kLinkTag, GetLink());
     if (!GetParentLink().empty()) {
@@ -199,6 +204,7 @@ void Span::Impl::PutIntoLogger(logging::impl::TagWriter writer) && {
 
 void Span::Impl::LogTo(logging::impl::TagWriter writer) const {
     writer.PutLogExtra(log_extra_inheritable_);
+    writer.PutTag(kTraceSampledTag, is_sampled_);
 
     if (const auto span_id = GetSpanIdForChildLogs()) {
         writer.PutTag(kTraceIdTag, GetTraceId());
@@ -236,6 +242,10 @@ bool Span::Impl::ShouldLog() const {
     }
     if (local_log_level_.has_value()) {
         return true;
+    }
+    const auto span_log_level = GetSpanLogLevel();
+    if (span_log_level.has_value()) {
+        return span_log_level.value() <= log_level_;
     }
     return logging::impl::ShouldLogNoSpan(logging::GetDefaultLogger(), log_level_);
 }

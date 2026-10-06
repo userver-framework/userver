@@ -1,5 +1,6 @@
 #pragma once
 #include <chrono>
+#include <limits>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -8,6 +9,7 @@
 
 #include <engine/ev/thread_control.hpp>
 #include <engine/ev/thread_pool.hpp>
+#include <userver/concurrent/mpsc_queue.hpp>
 #include <userver/concurrent/variable.hpp>
 #include <userver/dynamic_config/source.hpp>
 #include <userver/engine/deadline.hpp>
@@ -23,6 +25,7 @@
 #include <userver/storages/redis/health_check_param.hpp>
 #include <userver/storages/redis/topology_update_method.hpp>
 
+#include "command_admission.hpp"
 #include "shard.hpp"
 
 USERVER_NAMESPACE_BEGIN
@@ -106,14 +109,24 @@ public:
     void UpdateCredentials(const Credentials& credentials);
 
 private:
+    using CommandQueue = concurrent::MpscQueue<SentinelCommand>;
+
     void Init();  // used from constructor
 
     void AsyncCommandFailed(const SentinelCommand& scommand);
-    void EnqueueCommand(const SentinelCommand& command);
+    bool EnqueueCommand(SentinelCommand command);
+    bool StartClosingCommandQueue();
+    void WaitForCommandProducers() const noexcept;
 
     Sentinel& sentinel_obj_;
     engine::ev::ThreadControl ev_thread_;
     std::atomic_bool delete_started_{false};
+
+    std::shared_ptr<CommandQueue> commands_queue_;
+    CommandQueue::MultiProducer commands_producer_;
+    CommandQueue::Consumer commands_consumer_;
+
+    CommandAdmission command_admission_;
 
     std::unique_ptr<engine::ev::PeriodicWatcher> process_waiting_commands_timer_;
     void ProcessWaitingCommands();
@@ -131,9 +144,6 @@ private:
     std::shared_ptr<engine::ev::ThreadPool> redis_thread_pool_;
 
     const std::string client_name_;
-
-    std::vector<SentinelCommand> commands_;
-    std::mutex command_mutex_;
 
     SentinelStatisticsInternal statistics_internal_;
 

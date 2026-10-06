@@ -169,6 +169,7 @@ public:
 
 protected:
     void Stop() noexcept;
+    const engine::ev::ThreadControl& GetSentinelThreadControl() const;
 
     std::unordered_map<ServerId, size_t, ServerIdHasher> GetAvailableServersWeighted(
         size_t shard_idx,

@@ -84,7 +84,7 @@ std::string Read(Reader& reader, To<std::string>);
 void Write(Writer& writer, const char* value);
 
 /// @brief Integral types serialization support
-template <meta::kIsInteger T>
+template <meta::IsInteger T>
 void Write(Writer& writer, T value) {
     if constexpr (sizeof(T) == 1) {
         impl::WriteTrivial(writer, value);
@@ -94,7 +94,7 @@ void Write(Writer& writer, T value) {
 }
 
 /// @brief Integral types deserialization support
-template <meta::kIsInteger T>
+template <meta::IsInteger T>
 T Read(Reader& reader, To<T>) {
     if constexpr (sizeof(T) == 1) {
         return impl::ReadTrivial<T>(reader);

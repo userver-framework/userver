@@ -1,7 +1,5 @@
 #include <logging/impl/formatters/struct.hpp>
 
-#include <chrono>
-
 #include <fmt/compile.h>
 #include <fmt/format.h>
 

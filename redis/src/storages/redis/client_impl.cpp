@@ -1,6 +1,7 @@
 #include "client_impl.hpp"
 
 #include <iterator>
+#include <ranges>
 
 #include <fmt/format.h>
 
@@ -2018,8 +2019,8 @@ void ClientImpl::CheckMsetexKeysInSameSlot(const std::vector<std::pair<std::stri
 
     const auto& first_key = key_values.front().first;
     const auto first_slot = impl::HashSlot(first_key);
-    for (auto it = std::next(key_values.begin()); it != key_values.end(); ++it) {
-        const auto slot = impl::HashSlot(it->first);
+    for (const auto& [key, _] : key_values | std::views::drop(1)) {
+        const auto slot = impl::HashSlot(key);
         if (slot != first_slot) {
             throw InvalidArgumentException(fmt::format(
                 "Msetex requires all the keys to belong to a single cluster hash slot, but key '{}' belongs to "
@@ -2028,7 +2029,7 @@ void ClientImpl::CheckMsetexKeysInSameSlot(const std::vector<std::pair<std::stri
                 "requests",
                 first_key,
                 first_slot,
-                it->first,
+                key,
                 slot
             ));
         }

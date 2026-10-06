@@ -128,6 +128,7 @@ Formatter::Formatter(
 void Formatter::AddTag(std::string_view key, const logging::LogExtra::Value& value) {
     std::visit(
         utils::Overloaded{
+            [](std::monostate) {},
             [&](opentelemetry::proto::trace::v1::Span& span) {
                 if (key == "trace_id") {
                     span.set_trace_id(utils::encoding::FromHex(std::get<std::string>(value)));
@@ -242,13 +243,19 @@ void Logger::Log(logging::Level level, logging::impl::formatters::LoggerItemRef 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
     auto& log = static_cast<Item&>(item);
 
-    if (!log.otlp.valueless_by_exception()) {
-        const bool ok = queue_producer_.PushNoblock(std::move(log.otlp));
-        if (!ok) {
-            // Drop a log/trace if overflown
-            ++stats_.dropped;
-        }
-    }
+    std::visit(
+        utils::Overloaded{
+            [](std::monostate) {},
+            [this](auto& record) {
+                const bool ok = queue_producer_.PushNoblock(Action{std::move(record)});
+                if (!ok) {
+                    // Drop a log/trace if overflown
+                    ++stats_.dropped;
+                }
+            },
+        },
+        log.otlp
+    );
 
     if (default_logger_ && log.forwarded_formatter) {
         auto& fwd_item = log.forwarded_formatter->ExtractLoggerItem();
@@ -290,13 +297,13 @@ void Logger::SendingLoop(Queue::Consumer& consumer, LogClient& log_client, Trace
         do {
             std::visit(
                 utils::Overloaded{
-                    [&scope_spans](const opentelemetry::proto::trace::v1::Span& action) {
+                    [&scope_spans](opentelemetry::proto::trace::v1::Span& action) {
                         auto span = scope_spans->add_spans();
-                        *span = action;
+                        *span = std::move(action);
                     },
-                    [&scope_logs](const opentelemetry::proto::logs::v1::LogRecord& action) {
+                    [&scope_logs](opentelemetry::proto::logs::v1::LogRecord& action) {
                         auto log_records = scope_logs->add_log_records();
-                        *log_records = action;
+                        *log_records = std::move(action);
                     }
                 },
                 action

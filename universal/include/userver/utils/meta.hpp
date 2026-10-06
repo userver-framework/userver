@@ -85,7 +85,7 @@ template <typename T>
 concept IsRecursiveRange = IsRange<T> && std::same_as<impl::RangeValueType<T>, T>;
 
 template <typename T>
-concept IsOptional = kIsInstantiationOf<std::optional, T>;
+concept IsOptional = IsInstantiationOf<T, std::optional>;
 
 template <typename T>
 concept IsOstreamWritable = requires(std::ostream& os, const std::remove_reference_t<T>& val) {
@@ -135,36 +135,6 @@ auto Inserter(T& container) {
         return std::inserter(container, container.end());
     }
 }
-
-/// @deprecated Use @ref meta::IsVectorLike instead.
-template <typename T>
-// NOLINTNEXTLINE(readability-identifier-naming)
-concept kIsVector = IsVectorLike<T>;
-
-/// @deprecated Use @ref meta::IsRange instead.
-template <typename T>
-// NOLINTNEXTLINE(readability-identifier-naming)
-concept kIsRange = IsRange<T>;
-
-/// @deprecated Use @ref meta::IsMap instead.
-template <typename T>
-// NOLINTNEXTLINE(readability-identifier-naming)
-concept kIsMap = IsMap<T>;
-
-/// @deprecated Use @ref meta::IsOptional instead.
-template <typename T>
-// NOLINTNEXTLINE(readability-identifier-naming)
-concept kIsOptional = IsOptional<T>;
-
-/// @deprecated Use @ref meta::IsSizable instead.
-template <typename T>
-// NOLINTNEXTLINE(readability-identifier-naming)
-concept kIsSizable = IsSizable<T>;
-
-/// @deprecated Use @ref meta::IsReservable instead.
-template <typename T>
-// NOLINTNEXTLINE(readability-identifier-naming)
-concept kIsReservable = IsReservable<T>;
 
 }  // namespace meta
 

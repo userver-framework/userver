@@ -1,14 +1,25 @@
 #include <userver/utest/utest.hpp>
 
+#include <memory>
+#include <utility>
+
+#include <fmt/format.h>
 #include <google/rpc/error_details.pb.h>
 #include <google/rpc/status.pb.h>
+#include <grpc/grpc.h>
 
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/io/socket.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/server/handlers/exceptions.hpp>
+#include <userver/ugrpc/client/call_options.hpp>
+#include <userver/ugrpc/client/client_factory_settings.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/status_utils.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
+#include <userver/utest/log_capture_fixture.hpp>
+
+#include <ugrpc/client/middlewares/log/middleware.hpp>
 
 #include <tests/unit_test_client.usrv.pb.hpp>
 #include <tests/unit_test_service.usrv.pb.hpp>
@@ -18,6 +29,13 @@ using namespace std::chrono_literals;
 USERVER_NAMESPACE_BEGIN
 
 namespace {
+
+constexpr std::string_view kTlsEndpoint = "tls-hint-test.example.com:443";
+#ifdef ARCADIA_ROOT
+constexpr std::string_view kTlsConfigurationHintNeedle = "https://nda.ya.ru/t/1JSu04VF7sMFra";
+#else
+constexpr std::string_view kTlsConfigurationHintNeedle = "set 'auth-type: ssl'";
+#endif
 
 class UnitTestServiceWithError final : public sample::ugrpc::UnitTestServiceBase {
 public:
@@ -42,10 +60,54 @@ public:
     }
 };
 
+class UnitTestServiceUnavailable final : public sample::ugrpc::UnitTestServiceBase {
+public:
+    SayHelloResult SayHello(CallContext& /*context*/, sample::ugrpc::GreetingRequest&& /*request*/) override {
+        return grpc::Status{grpc::StatusCode::UNAVAILABLE, "transport failure with arbitrary upstream wording"};
+    }
+};
+
 }  // namespace
 
 using GrpcClientErrorTest =
     ugrpc::tests::ServiceWithClientFixture<UnitTestServiceWithError, sample::ugrpc::UnitTestServiceClient>;
+
+using GrpcClientLoggingTest = utest::LogCaptureFixture<>;
+
+UTEST_F(GrpcClientLoggingTest, AddsTlsHintForUnavailableInsecurePort443) {
+    engine::io::Socket proxy_listener{engine::io::AddrDomain::kInet6, engine::io::SocketType::kStream};
+    auto proxy_address = engine::io::Sockaddr::MakeLoopbackAddress();
+    proxy_address.SetPort(0);
+    proxy_listener.Bind(proxy_address);
+    proxy_listener.Listen();
+
+    ugrpc::client::ClientFactorySettings client_factory_settings;
+    client_factory_settings.channel_args
+        .SetString(GRPC_ARG_HTTP_PROXY, fmt::format("http://[::1]:{}", proxy_listener.Getsockname().Port()));
+    ugrpc::tests::Service<UnitTestServiceUnavailable> service{{
+        .client_factory_settings = std::move(client_factory_settings),
+        .client_middlewares = {std::make_shared<
+            ugrpc::client::middlewares::log::Middleware>(ugrpc::client::middlewares::log::Settings{})},
+    }};
+    auto client =
+        service.GetClientFactory()
+            .MakeClient<sample::ugrpc::UnitTestServiceClient>("tls-hint-test", std::string{kTlsEndpoint});
+
+    const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+    ugrpc::client::CallOptions call_options;
+    call_options.SetDeadline(deadline);
+    auto call = client.AsyncSayHello({}, std::move(call_options));
+
+    auto proxy_connection = proxy_listener.Accept(deadline);
+    proxy_listener.Close();
+    proxy_connection.Close();
+    UEXPECT_THROW(call.Get(), ugrpc::client::UnavailableError);
+
+    const auto error_logs =
+        GetLogCapture()
+            .Filter("gRPC error", {{"grpc_code", "UNAVAILABLE"}, {"error_msg", kTlsConfigurationHintNeedle}});
+    EXPECT_EQ(error_logs.size(), 1) << error_logs;
+}
 
 UTEST_F(GrpcClientErrorTest, UnaryRPC) {
     sample::ugrpc::GreetingRequest out;

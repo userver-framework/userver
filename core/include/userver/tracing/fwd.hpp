@@ -12,6 +12,7 @@ enum class ReferenceType { kChild, kReference };
 class SpanBuilder;
 struct SpanEvent;
 class Span;
+class SpanLogContext;
 class AnyValue;
 
 }  // namespace tracing

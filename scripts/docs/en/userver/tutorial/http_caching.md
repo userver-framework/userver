@@ -229,7 +229,7 @@ implemented using the testsuite. To do that you have to:
 
 * Mock the translations service API using the
   @ref testsuite.mockserver.pytest_plugin.mockserver "mockserver" fixture:
-  @snippet samples/http_caching/tests/conftest.py mockserver
+  @snippet samples/http_caching/tests/conftest.py service dependency
 
 * Import the pytest_userver.plugins.core plugin and teach testsuite how to
   patch the service config to use the mocked URL:

@@ -17,7 +17,7 @@ struct CollectionRequestContext : RequestContextBase {
 
 class CDriverCollectionImpl : public CollectionImpl {
 public:
-    CDriverCollectionImpl(PoolImplPtr pool_impl, std::string database_name, std::string collection_name);
+    CDriverCollectionImpl(PoolImplPtr pool_impl, std::string collection_name);
 
     size_t Execute(const operations::Count&) const override;
     size_t Execute(const operations::CountApprox&) const override;

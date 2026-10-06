@@ -12,6 +12,7 @@
 #include <userver/engine/single_waiting_task_mutex.hpp>
 #include <userver/tracing/in_place_span.hpp>
 
+#include <userver/ugrpc/client/auth_type.hpp>
 #include <userver/ugrpc/client/fwd.hpp>
 #include <userver/ugrpc/client/impl/method_stubs.hpp>
 #include <userver/ugrpc/client/impl/middleware_pipeline.hpp>
@@ -57,6 +58,10 @@ public:
     std::string_view GetClientName() const noexcept;
 
     std::string_view GetCallName() const noexcept;
+
+    std::string_view GetEndpoint() const noexcept;
+
+    AuthType GetAuthType() const noexcept;
 
     RpcType GetRpcType() const noexcept;
 

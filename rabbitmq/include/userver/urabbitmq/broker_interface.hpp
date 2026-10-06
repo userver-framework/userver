@@ -42,11 +42,22 @@ public:
     ///
     /// @param queue name of the queue
     /// @param flags queue flags
+    /// @param headers metadata table of the queue
     /// @param deadline execution deadline
-    virtual void DeclareQueue(const Queue& queue, utils::Flags<Queue::Flags> flags, engine::Deadline deadline) = 0;
+    /// @returns the broker's `queue.declare-ok` reply (queue name, message and
+    /// consumer counts)
+    virtual QueueDeclareResponse DeclareQueue(
+        const Queue& queue,
+        utils::Flags<Queue::Flags> flags,
+        const std::unordered_map<std::string, HeaderValue>& headers,
+        engine::Deadline deadline) = 0;
 
     /// @brief overload of DeclareQueue
-    virtual void DeclareQueue(const Queue& queue, engine::Deadline deadline) = 0;
+    virtual QueueDeclareResponse
+    DeclareQueue(const Queue& queue, utils::Flags<Queue::Flags> flags, engine::Deadline deadline) = 0;
+
+    /// @brief overload of DeclareQueue
+    virtual QueueDeclareResponse DeclareQueue(const Queue& queue, engine::Deadline deadline) = 0;
 
     /// @brief Bind a queue to an exchange.
     ///

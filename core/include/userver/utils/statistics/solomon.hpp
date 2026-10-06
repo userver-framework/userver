@@ -4,8 +4,11 @@
 /// @brief Statistics output in Solomon format.
 
 #include <string>
+#include <unordered_map>
 
+#include <userver/utils/statistics/request.hpp>
 #include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -57,9 +60,15 @@ namespace utils::statistics {
 /// @endcode
 
 std::string ToSolomonFormat(
-    const utils::statistics::Storage& statistics,
+    const Storage& statistics,
     const std::unordered_map<std::string, std::string>& common_labels,
-    const utils::statistics::Request& statistics_request = {}
+    const Request& statistics_request = {}
+);
+
+std::string ToSolomonFormat(
+    WriterFuncRef writer,
+    const std::unordered_map<std::string, std::string>& common_labels,
+    const Request& statistics_request = {}
 );
 
 }  // namespace utils::statistics

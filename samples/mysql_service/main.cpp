@@ -1,3 +1,5 @@
+#include <algorithm>
+
 #include <userver/clients/dns/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utest/using_namespace_userver.hpp>

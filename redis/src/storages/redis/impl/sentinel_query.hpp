@@ -1,8 +1,8 @@
 #pragma once
 
-#include <atomic>
 #include <set>
 
+#include <engine/ev/thread_control.hpp>
 #include <userver/storages/redis/base.hpp>
 #include <userver/utils/assert.hpp>
 #include "shard.hpp"
@@ -55,7 +55,11 @@ public:
 using ProcessGetHostsRequestCb = std::function<
     void(const ConnInfoByShard& info, size_t requests_sent, size_t responses_parsed)>;
 
-void ProcessGetHostsRequest(GetHostsRequest request, ProcessGetHostsRequestCb callback);
+void ProcessGetHostsRequest(
+    engine::ev::ThreadControl thread_control,
+    GetHostsRequest request,
+    ProcessGetHostsRequestCb callback
+);
 
 using SentinelInstanceResponse = std::map<std::string, std::string>;
 
@@ -71,19 +75,25 @@ public:
     );
 
     std::function<void(const CommandPtr&, const ReplyPtr& reply)> GenerateCallback();
+    std::function<void(const CommandPtr&, const ReplyPtr& reply)> GenerateCallback(
+        engine::ev::ThreadControl thread_control
+    );
+
+    void OnAsyncCommandFailed();
+    void ProcessResponses();
 
 private:
     void OnResponse(const CommandPtr&, const ReplyPtr& reply);
+    void OnParsedResponse(SentinelResponse response, bool parsed);
     void ProcessResponsesOnce();
 
-    std::mutex mutex_;
     const bool allow_empty_;
     const Credentials credentials_;
     const ProcessGetHostsRequestCb callback_;
     size_t response_got_{0};
     size_t responses_parsed_{0};
-    std::atomic_flag process_responses_started_ ATOMIC_FLAG_INIT;
-    const size_t expected_responses_cnt_{0};
+    bool process_responses_started_{false};
+    size_t expected_responses_cnt_{0};
 
     std::map<std::string, SentinelResponse> responses_by_name_;
 };

@@ -14,6 +14,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/datetime.hpp>
+#include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/mock_now.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -37,7 +38,7 @@ public:
 
     void Acquire(std::chrono::milliseconds, const std::string& locker_id) override {
         UASSERT(!locker_id.empty());
-        attempts_++;
+        const utils::FastScopeGuard count_attempt([this]() noexcept { attempts_++; });
         auto locked_by = locked_by_var_.Lock();
         if (!locked_by->empty() && *locked_by != locker_id) {
             throw dist_lock::LockIsAcquiredByAnotherHostException();

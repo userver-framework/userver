@@ -5,8 +5,6 @@
 /// from components::CachingComponentBase.
 
 #include <memory>
-#include <string>
-#include <string_view>
 
 #include <userver/dump/common.hpp>
 #include <userver/dump/operations.hpp>

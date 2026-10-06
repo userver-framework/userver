@@ -56,7 +56,15 @@ public:
     std::string_view GetParentLink() const noexcept { return parent_link_; }
     std::string_view GetName() const noexcept { return name_; }
 
-    void SetTraceId(std::string_view id) noexcept { trace_id_ = std::move(id); }
+    void SetTraceId(std::string_view id) noexcept {
+        trace_id_ = id;
+        if (is_root_span_) {
+            // the sampling decision is deterministic by trace id, so it is
+            // recomputed for the trace id from the incoming request; an explicit
+            // SetSampled call afterwards still overrides it
+            is_sampled_ = impl::ShouldSampleTrace(trace_id_);
+        }
+    }
     void SetSpanId(std::string_view id) noexcept { span_id_ = std::move(id); }
     void SetParentId(std::string_view id) noexcept { parent_id_ = std::move(id); }
     void SetLink(std::string_view id) noexcept { link_ = std::move(id); }
@@ -75,6 +83,7 @@ private:
 
     const std::string name_;
     const bool is_no_log_span_;
+    const bool is_root_span_;
     logging::Level log_level_;
     std::optional<logging::Level> local_log_level_;
     bool is_sampled_{true};

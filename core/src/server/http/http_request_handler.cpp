@@ -7,6 +7,7 @@
 
 #include <server/handlers/http_handler_base_statistics.hpp>
 #include <server/handlers/http_server_settings.hpp>
+#include <server/http/http_response_impl.hpp>
 #include <server/request/task_inherited_request_impl.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
@@ -61,7 +62,7 @@ engine::TaskWithResult<void> HttpRequestHandler::StartFailsafeTask(std::shared_p
         if (handler) {
             handler->ReportMalformedRequest(*request);
         }
-        auto& response = request->GetHttpResponse();
+        auto& response = GetHttpResponseImpl(*request);
         response.SetHeadersEnd();
         response.SetReady();
     });
@@ -77,7 +78,7 @@ utils::statistics::MetricTag<std::atomic<size_t>> kCcStatusCodeIsCustom{
 
 engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(std::shared_ptr<http::HttpRequest> http_request
 ) const {
-    auto& http_response = http_request->GetHttpResponse();
+    auto& http_response = GetHttpResponseImpl(*http_request);
     http_response.SetHeader(USERVER_NAMESPACE::http::headers::kServer, server_name_);
     if (http_response.IsReady()) {
         // Request is broken somehow, user handler must not be called
@@ -105,7 +106,7 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(std::shared_pt
         );
 
         http_request->SetResponseStatus(HttpStatus::kTooManyRequests);
-        http_request->GetHttpResponse().SetReady();
+        GetHttpResponseImpl(*http_request).SetReady();
         LOG_LIMITED_ERROR()
             << "Request throttled (too many pending responses, "
                "limit via 'server.max_response_size_in_flight')";
@@ -151,7 +152,7 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(std::shared_pt
         handler->PrepareAndHandleRequest(*request, context);
 
         const auto now = std::chrono::steady_clock::now();
-        request->GetHttpResponse().SetReady(now);
+        GetHttpResponseImpl(*request).SetReady(now);
     };
 
     if (!is_monitor_ && throttling_enabled) {

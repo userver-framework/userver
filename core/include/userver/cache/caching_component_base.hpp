@@ -358,7 +358,7 @@ void CachingComponentBase<T>::GetAndWrite(dump::Writer& writer) const {
 template <typename T>
 void CachingComponentBase<T>::ReadAndSet(dump::Reader& reader) {
     auto data = ReadContents(reader);
-    if constexpr (meta::kIsSizable<T>) {
+    if constexpr (meta::IsSizable<T>) {
         if (data) {
             SetDataSizeStatistic(std::size(*data));
         }
@@ -419,7 +419,7 @@ yaml_config::Schema CachingComponentBase<T>::GetStaticConfigSchema() {
 template <typename T>
 void CachingComponentBase<T>::PreAssignCheck(const T*, [[maybe_unused]] const T* new_value_ptr) const {
     UINVARIANT(
-        meta::kIsSizable<T>,
+        meta::IsSizable<T>,
         fmt::format(
             "{} type does not support std::size(), add implementation of "
             "the method size() for this type or "
@@ -428,7 +428,7 @@ void CachingComponentBase<T>::PreAssignCheck(const T*, [[maybe_unused]] const T*
         )
     );
 
-    if constexpr (meta::kIsSizable<T>) {
+    if constexpr (meta::IsSizable<T>) {
         if (!new_value_ptr || std::size(*new_value_ptr) == 0) {
             throw cache::EmptyDataError(Name());
         }

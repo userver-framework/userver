@@ -241,7 +241,28 @@ private:
 
     void ReportStatement(std::string_view name);
 
-    bool ShouldWrapInAutoTransaction(std::string_view statement) const noexcept;
+    bool ShouldWrapInAutoTransaction() const noexcept;
+
+    ResultSet ExecuteCommandInPipeline(
+        const Query& query,
+        const detail::QueryParameters& params,
+        OptionalCommandControl statement_cmd_ctl,
+        engine::Deadline deadline
+    );
+
+    ResultSet ExecuteCommandOutsideOfPipeline(
+        const Query& query,
+        const detail::QueryParameters& params,
+        OptionalCommandControl statement_cmd_ctl,
+        engine::Deadline deadline
+    );
+
+    ResultSet ExecuteStatement(
+        const Query& query,
+        const detail::QueryParameters& params,
+        OptionalCommandControl statement_cmd_ctl,
+        engine::Deadline deadline
+    );
 
     const std::string uuid_;
     Connection::Statistics stats_;

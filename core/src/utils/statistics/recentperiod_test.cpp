@@ -1,3 +1,4 @@
+#include <userver/utils/statistics/rate_counter.hpp>
 #include <userver/utils/statistics/recentperiod.hpp>
 
 #include <gtest/gtest.h>
@@ -81,6 +82,56 @@ TEST(RecentPeriod, IntegralResult) {
     stat.GetCurrentCounter() += 1;
     EXPECT_EQ(0, stat.GetStatsForPeriod());
     EXPECT_EQ(1, stat.GetStatsForPeriod(std::chrono::seconds{60}, true));
+}
+
+namespace custom {
+
+struct AdlCounter {
+    unsigned long value{0};
+};
+
+void ResetMetric(AdlCounter& counter) { counter.value = 0; }
+
+}  // namespace custom
+
+struct AdlResult {
+    unsigned long counter{0};
+
+    AdlResult& operator+=(const custom::AdlCounter& value) {
+        counter += value.value;
+        return *this;
+    }
+};
+
+TEST(RecentPeriod, AdlResetMetric) {
+    utils::statistics::RecentPeriod<custom::AdlCounter, AdlResult, TestTimer>
+        stat(std::chrono::seconds(10), std::chrono::seconds(60));
+
+    stat.GetCurrentCounter().value += 5;
+    EXPECT_EQ(stat.GetStatsForPeriod(std::chrono::seconds{60}, true).counter, 5U);
+
+    stat.Reset();
+    EXPECT_EQ(stat.GetStatsForPeriod(std::chrono::seconds{60}, true).counter, 0U);
+}
+
+struct RateCounterResult {
+    utils::statistics::Rate value{};
+
+    RateCounterResult& operator+=(const utils::statistics::RateCounter& counter) {
+        value += counter.Load();
+        return *this;
+    }
+};
+
+TEST(RecentPeriod, RateCounterResetMetric) {
+    utils::statistics::RecentPeriod<utils::statistics::RateCounter, RateCounterResult, TestTimer>
+        stat(std::chrono::seconds(10), std::chrono::seconds(60));
+
+    stat.GetCurrentCounter() += utils::statistics::Rate{7};
+    EXPECT_EQ(stat.GetStatsForPeriod(std::chrono::seconds{60}, true).value, utils::statistics::Rate{7});
+
+    stat.Reset();
+    EXPECT_EQ(stat.GetStatsForPeriod(std::chrono::seconds{60}, true).value, utils::statistics::Rate{0});
 }
 
 USERVER_NAMESPACE_END

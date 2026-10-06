@@ -1,13 +1,13 @@
 # /// [service_non_http_health_checker]
 import pytest
+import pytest_userver.config
 from pytest_userver.utils import net
 
 pytest_plugins = ['pytest_userver.plugins.core']
 
-USERVER_CONFIG_HOOKS = ['userver_config_tcp_port']
-
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_config_tcp_port(choose_free_port):
     def patch_config(config, _config_vars) -> None:
         components = config['components_manager']['components']

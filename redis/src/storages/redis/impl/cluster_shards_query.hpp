@@ -34,9 +34,16 @@ struct ClusterShardsShard {
 
 using ClusterShardsResponse = std::vector<ClusterShardsShard>;
 
-class GetClusterShardsContext {
+enum class ClusterShardsResponseStatus {
+    kOk,
+    kFail,
+    kNonCluster,
+};
+
+class GetClusterShardsContext : public std::enable_shared_from_this<GetClusterShardsContext> {
 public:
     GetClusterShardsContext(
+        engine::ev::ThreadControl thread_control,
         Credentials credentials,
         std::shared_ptr<const std::vector<std::string>> shard_names,
         std::string shard_group_name,
@@ -45,6 +52,7 @@ public:
     );
 
     static void ProcessRequest(
+        engine::ev::ThreadControl thread_control,
         std::shared_ptr<const std::vector<std::string>> shard_names,
         GetClusterShardsRequest request,
         ProcessGetClusterHostsRequestCb callback
@@ -53,32 +61,26 @@ public:
 private:
     void OnAsyncCommandFailed();
     void OnResponse(const CommandPtr&, const ReplyPtr& reply);
+    void OnParsedResponse(ServerId server_id, ClusterShardsResponseStatus status, ClusterShardsResponse response);
     void ProcessResponses();
     void ProcessResponsesOnce();
 
+    engine::ev::ThreadControl thread_control_;
     const std::string shard_group_name_;
     const Credentials credentials_;
     const std::shared_ptr<const std::vector<std::string>> shard_names_;
     const ProcessGetClusterHostsRequestCb callback_;
-    std::atomic<size_t> response_got_{0};
-    std::atomic<size_t> responses_parsed_{0};
-    std::atomic_flag process_responses_started_ ATOMIC_FLAG_INIT;
-    std::atomic<size_t> expected_responses_cnt_{0};
-    std::atomic<bool> is_non_cluster_{false};
-
-    std::mutex mutex_;
+    size_t response_got_{0};
+    size_t responses_parsed_{0};
+    bool process_responses_started_{false};
+    size_t expected_responses_cnt_{0};
+    bool is_non_cluster_{false};
     std::unordered_map<ServerId, ClusterShardsResponse, ServerIdHasher> responses_by_id_;
 };
 
 std::map<ServerId, ClusterSlotsResponse> ConvertToClusterSlotsResponse(
     const std::unordered_map<ServerId, ClusterShardsResponse, ServerIdHasher>& responses_by_id
 );
-
-enum class ClusterShardsResponseStatus {
-    kOk,
-    kFail,
-    kNonCluster,
-};
 
 ClusterShardsResponseStatus ParseClusterShardsResponse(
     const ReplyPtr& reply,

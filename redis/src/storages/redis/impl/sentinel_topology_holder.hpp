@@ -1,6 +1,6 @@
 #pragma once
 #include <storages/redis/impl/topology_holder_base.hpp>
-#include <userver/concurrent/variable.hpp>
+#include <userver/engine/pulse_event.hpp>
 #include <userver/rcu/rcu.hpp>
 #include <userver/storages/redis/redis_state.hpp>
 #include <userver/utils/datetime/steady_coarse_clock.hpp>
@@ -42,7 +42,7 @@ public:
     bool WaitReadyOnce(engine::Deadline deadline, WaitConnectedMode mode) override;
     bool IsReady(const HealthCheckParams& params) const override;
 
-    rcu::ReadablePtr<ClusterTopology, rcu::BlockingRcuTraits> GetTopology() const override;
+    rcu::ReadablePtr<ClusterTopology, rcu::ExclusiveRcuTraits> GetTopology() const override;
 
     void SendUpdateClusterTopology() override;
 
@@ -75,13 +75,13 @@ private:
     std::shared_ptr<engine::ev::ThreadPool> redis_thread_pool_;
     const std::string shard_group_name_;
     logging::LogExtra log_extra_;
-    concurrent::Variable<Credentials, std::mutex> credentials_;
+    Credentials credentials_;
     const std::size_t database_index_;
 
     // maps shard_name to shard_idx
     std::unordered_map<std::string, size_t> shard_by_name_;
     std::vector<std::string> name_by_shard_;
-    rcu::Variable<std::vector<ConnectionInfo>> conns_;
+    const std::vector<ConnectionInfo> conns_;
     StatisticsHolder statistics_holder_;
 
     /// Update cluster topology
@@ -97,33 +97,32 @@ private:
     engine::ev::PeriodicWatcher sentinels_process_creation_timer_;
     engine::ev::AsyncWatcher sentinels_process_creation_watch_;
     engine::ev::AsyncWatcher sentinels_process_state_update_watch_;
-    std::atomic<bool> first_entry_point_connected_{false};
+    bool first_entry_point_connected_{false};
 
     ///{ Wait ready
-    std::mutex mutex_;
-    engine::impl::ConditionVariableAny<std::mutex> cv_;
+    engine::PulseEvent readiness_event_;
     std::atomic<bool> is_topology_received_{false};
     ///}
 
-    concurrent::Variable<std::optional<CommandsBufferingSettings>, std::mutex> commands_buffering_settings_;
-    concurrent::Variable<ReplicationMonitoringSettings, std::mutex> monitoring_settings_;
-    concurrent::Variable<utils::RetryBudgetSettings, std::mutex> retry_budget_settings_;
+    std::optional<CommandsBufferingSettings> commands_buffering_settings_;
+    ReplicationMonitoringSettings monitoring_settings_;
+    utils::RetryBudgetSettings retry_budget_settings_;
 
     boost::signals2::signal<void(HostPort, Redis::State)> signal_node_state_change_;
     boost::signals2::signal<void(size_t shards_count)> signal_topology_changed_;
-    std::atomic<bool> update_topology_flag_{false};
+    std::shared_ptr<std::atomic<bool>> update_topology_flag_{std::make_shared<std::atomic<bool>>(false)};
     std::shared_ptr<utils::ScopeGuard> update_topology_guard_;
-    concurrent::Variable<ClusterShardHostInfos, std::mutex> new_shard_host_info_;
+    ClusterShardHostInfos new_shard_host_info_;
     NodesStorage nodes_;
 
     std::shared_ptr<Shard> sentinels_;
     std::unordered_map<HostPort, utils::datetime::SteadyCoarseClock::time_point> nodes_last_seen_time_;
-    rcu::RcuMap<std::string, std::string, StdMutexRcuMapTraits<std::string>> ip_by_fqdn_;
+    rcu::RcuMap<std::string, std::string, SingleWriterRcuMapTraits<std::string>> ip_by_fqdn_;
 
     /// TODO: replace with relaxed counters
     std::atomic_size_t current_topology_version_{0};
     std::atomic_size_t cluster_slots_call_counter_{0};
-    rcu::Variable<ClusterTopology, rcu::BlockingRcuTraits> topology_;
+    rcu::Variable<ClusterTopology, rcu::ExclusiveRcuTraits> topology_;
 
     const ConnectionSecurity connection_security_;
 };

@@ -126,7 +126,7 @@ public:
 
 protected:
     /// @brief Override in handlers that set response body directly (e.g. via
-    /// @ref server::request::ResponseBase::SetSharedData) or to implement a more complex streaming logic than the
+    /// @ref server::http::HttpResponse::SetSharedData) or to implement a more complex streaming logic than the
     /// IsStreamed overloading allows.
     virtual void HandleMaybeStreamRequest(http::HttpRequest& request, request::RequestContext& context) const;
 

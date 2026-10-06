@@ -26,13 +26,16 @@ ugrpc::impl::CompletionQueuePoolBase& FindOrEmplaceCompletionQueues(
     const components::ComponentContext& context
 ) {
     if (auto* const server = context.FindComponentOptional<server::ServerComponent>()) {
-        UINVARIANT(
-            queue_count == kDefaultCompletionQueueCount,
-            "grpc-client-common.completion-queue-count option is "
-            "meaningless and should not be specified if the service has a "
-            "grpc-server. Use grpc-server.completion-queue-count instead"
-        );
-        return server->GetServer().GetCompletionQueues(utils::impl::InternalTag{});
+        if (auto* const server_completion_queues = server->GetServer().GetCompletionQueues(utils::impl::InternalTag{}))
+        {
+            UINVARIANT(
+                queue_count == kDefaultCompletionQueueCount,
+                "grpc-client-common.completion-queue-count option is "
+                "meaningless and should not be specified if the service has a "
+                "grpc-server. Use grpc-server.completion-queue-count instead"
+            );
+            return *server_completion_queues;
+        }
     }
     holder.emplace(queue_count);
     return *holder;

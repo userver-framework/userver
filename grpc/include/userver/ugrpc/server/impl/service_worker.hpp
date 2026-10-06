@@ -12,7 +12,8 @@ namespace ugrpc::server::impl {
 /// user-provided service implementation. ServiceWorker instances are
 /// created and owned by `Server`; services, on the other hand, are created
 /// and owned by the user.
-/// @note Must be destroyed after the corresponding `CompletionQueue`
+/// @note Must be destroyed after the corresponding `CompletionQueue` (Completion Queue API)
+/// or after gRPC stops delivering callbacks (Callback API).
 class ServiceWorker {
 public:
     ServiceWorker& operator=(ServiceWorker&&) = delete;
@@ -24,7 +25,8 @@ public:
     /// Get the static per-gRPC-service metadata provided by codegen
     virtual const ugrpc::impl::StaticServiceMetadata& GetMetadata() const = 0;
 
-    /// Start serving requests. Should be called after the grpcpp server starts.
+    /// Start serving requests in Completion Queue mode only.
+    /// Should be called after the grpcpp server starts.
     virtual void Start() = 0;
 };
 

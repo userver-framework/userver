@@ -6,12 +6,6 @@
 #include <cstddef>
 #include <string_view>
 
-// TODO remove extra includes.
-#include <fmt/format.h>
-#include <concepts>
-#include <string>
-#include <userver/formats/serialize/to.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 #if !defined(USERVER_LOG_PREFIX_PATH_BASE) && !defined(USERVER_LOG_SOURCE_PATH_BASE) && \

@@ -50,9 +50,15 @@ private:
 
 }  // namespace
 
-std::string ToJsonFormat(const utils::statistics::Storage& statistics, const utils::statistics::Request& request) {
+std::string ToJsonFormat(const Storage& statistics, const Request& request) {
     JsonFormat builder{};
     statistics.VisitMetrics(builder, request);
+    return std::move(builder).GetString();
+}
+
+std::string ToJsonFormat(WriterFuncRef writer, const Request& request) {
+    JsonFormat builder{};
+    VisitMetrics(writer, builder, request);
     return std::move(builder).GetString();
 }
 

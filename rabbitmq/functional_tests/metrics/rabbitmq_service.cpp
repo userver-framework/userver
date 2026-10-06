@@ -1,5 +1,6 @@
 #include <userver/utest/using_namespace_userver.hpp>
 
+#include <algorithm>
 #include <string_view>
 #include <vector>
 

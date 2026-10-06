@@ -1,5 +1,7 @@
 #include <userver/utils/log.hpp>
 
+#include <iterator>
+
 #include <fmt/compile.h>
 #include <fmt/format.h>
 
@@ -38,6 +40,21 @@ std::string ToLimitedUtf8(std::string_view data, size_t limit) {
     } else {
         return fmt::format(FMT_COMPILE("<Non utf-8, total {} bytes>"), data.size());
     }
+}
+
+std::string ToLimitedUtf8(std::string&& data, size_t limit) {
+    const auto size = data.size();
+    if (size > limit) {
+        data.resize(limit);
+        utils::text::utf8::TrimTruncatedEnding(data);
+    }
+    if (!utils::text::IsUtf8(data)) {
+        return fmt::format(FMT_COMPILE("<Non utf-8, total {} bytes>"), size);
+    }
+    if (size > limit) {
+        fmt::format_to(std::back_inserter(data), FMT_COMPILE("...(truncated, total {} bytes)"), size);
+    }
+    return std::move(data);
 }
 
 }  // namespace utils::log

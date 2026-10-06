@@ -24,9 +24,7 @@ __attribute__((noinline)) void DoSomeStuff() {
     std::atomic_signal_fence(std::memory_order_acq_rel);
 }
 
-#define TEST_INIT(value) DoSomeStuff()
-
-#define TEST_EXPR(value, expected) DoSomeStuff()
+#define TEST_EXPR(value, expected, ...) DoSomeStuff()
 
 #define TEST_DEINIT(value) DoSomeStuff()
 

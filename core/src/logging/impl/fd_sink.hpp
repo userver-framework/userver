@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string_view>
-
 #include <userver/fs/blocking/file_descriptor.hpp>
 
 #include "base_sink.hpp"

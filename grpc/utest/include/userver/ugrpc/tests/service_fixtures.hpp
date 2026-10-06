@@ -20,6 +20,8 @@ namespace ugrpc::tests {
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)
 class ServiceFixtureBase : protected ServiceBase, public ::testing::Test {
 protected:
+    using ServiceBase::ServiceBase;
+
     /// @returns the statistics of the server and clients.
     utils::statistics::Snapshot GetStatistics(
         std::string prefix,

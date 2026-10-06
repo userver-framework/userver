@@ -95,7 +95,7 @@ float Parse(const Value& value, To<float>) {
     return impl::NarrowToFloat(value.template As<double>(), value);
 }
 
-template <common::IsFormatValue Value, meta::kIsInteger T>
+template <common::IsFormatValue Value, meta::IsInteger T>
 T Parse(const Value& value, To<T>) {
     using IntT = std::conditional_t<std::is_signed<T>::value, int64_t, uint64_t>;
     return impl::NarrowToInt<T>(value.template As<IntT>(), value);
@@ -123,7 +123,7 @@ float Convert(const Value& value, To<float>) {
     return impl::NarrowToFloat(value.template ConvertTo<double>(), value);
 }
 
-template <typename Value, meta::kIsInteger T>
+template <typename Value, meta::IsInteger T>
 T Convert(const Value& value, To<T>) {
     using IntT = std::conditional_t<std::is_signed<T>::value, int64_t, uint64_t>;
     return impl::NarrowToInt<T>(value.template ConvertTo<IntT>(), value);

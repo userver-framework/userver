@@ -78,7 +78,9 @@ AuthCheckerBearer::AuthCheckResult AuthCheckerBearer::CheckAuth(
     /// [auth checker definition 4]
 
     /// [auth checker definition 5]
-    request_context.SetData("name", info.name);
+    /// [request context store]
+    request_context.EmplaceData(kUsername, info.name);
+    /// [request context store]
     return {};
 }
 /// [auth checker definition 5]

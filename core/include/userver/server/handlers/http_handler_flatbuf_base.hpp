@@ -9,6 +9,8 @@
 
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/http/http_error.hpp>
+#include <userver/server/request/request_context.hpp>
+#include <userver/utils/any_movable.hpp>
 #include <userver/utils/log.hpp>
 #include <userver/yaml_config/schema.hpp>
 
@@ -18,8 +20,8 @@ namespace server::handlers {
 
 namespace impl {
 
-inline constexpr std::string_view kFlatbufRequestDataName = "__request_flatbuf";
-inline constexpr std::string_view kFlatbufResponseDataName = "__response_flatbuf";
+inline const utils::AnyStorageDataTag<request::StorageContext, utils::AnyMovable> kFlatbufRequestData;
+inline const utils::AnyStorageDataTag<request::StorageContext, utils::AnyMovable> kFlatbufResponseData;
 
 }  // namespace impl
 
@@ -96,11 +98,13 @@ template <typename InputType, typename ReturnType>
 std::string HttpHandlerFlatbufBase<
     InputType,
     ReturnType>::HandleRequestThrow(const http::HttpRequest& request, request::RequestContext& context) const {
-    const auto& input = context.GetData<const typename InputType::NativeTableType&>(impl::kFlatbufRequestDataName);
+    const auto&
+        input = utils::AnyCast<const typename InputType::NativeTableType&>(context.GetData(impl::kFlatbufRequestData));
 
-    const auto& ret =
-        context
-            .SetData(std::string{impl::kFlatbufResponseDataName}, HandleRequestFlatbufThrow(request, input, context));
+    const auto&
+        output = context.EmplaceData(impl::kFlatbufResponseData, HandleRequestFlatbufThrow(request, input, context));
+
+    const auto& ret = utils::AnyCast<const typename ReturnType::NativeTableType&>(output);
 
     flatbuffers::FlatBufferBuilder fbb;
     auto ret_fbb = ReturnType::Pack(fbb, &ret);
@@ -112,14 +116,16 @@ template <typename InputType, typename ReturnType>
 const typename InputType::NativeTableType* HttpHandlerFlatbufBase<
     InputType,
     ReturnType>::GetInputData(const request::RequestContext& context) const {
-    return context.GetDataOptional<const typename InputType::NativeTableType>(impl::kFlatbufRequestDataName);
+    const auto* data = context.GetDataOptional(impl::kFlatbufRequestData);
+    return data ? &utils::AnyCast<const typename InputType::NativeTableType&>(*data) : nullptr;
 }
 
 template <typename InputType, typename ReturnType>
 const typename ReturnType::NativeTableType* HttpHandlerFlatbufBase<
     InputType,
     ReturnType>::GetOutputData(const request::RequestContext& context) const {
-    return context.GetDataOptional<const typename ReturnType::NativeTableType>(impl::kFlatbufResponseDataName);
+    const auto* data = context.GetDataOptional(impl::kFlatbufResponseData);
+    return data ? &utils::AnyCast<const typename ReturnType::NativeTableType&>(*data) : nullptr;
 }
 
 template <typename InputType, typename ReturnType>
@@ -156,7 +162,7 @@ void HttpHandlerFlatbufBase<
     typename InputType::NativeTableType input;
     input_fbb->UnPackTo(&input);
 
-    context.SetData(std::string{impl::kFlatbufRequestDataName}, std::move(input));
+    context.EmplaceData(impl::kFlatbufRequestData, std::move(input));
 }
 
 template <typename InputType, typename ReturnType>

@@ -1,13 +1,16 @@
 #include <userver/engine/task/cancel.hpp>
 
 #include <chrono>
+#include <exception>
 #include <stdexcept>
 
 #include <fmt/format.h>
 
 #include <userver/engine/async.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/exception.hpp>
 #include <userver/engine/future.hpp>
+#include <userver/engine/future_status.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/single_use_event.hpp>
 #include <userver/engine/sleep.hpp>
@@ -21,6 +24,33 @@
 using namespace std::chrono_literals;
 
 USERVER_NAMESPACE_BEGIN
+
+UTEST(Cancel, WeakCancellationPointWithoutRequest) {
+    EXPECT_NO_THROW(engine::current_task::CancellationPointWeak());
+    EXPECT_FALSE(engine::current_task::IsCancelRequested());
+}
+
+UTEST(Cancel, WeakCancellationPointCanBeCaughtAsStandardException) {
+    engine::current_task::RequestCancel();
+    EXPECT_THROW(engine::current_task::CancellationPointWeak(), std::exception);
+    EXPECT_TRUE(engine::current_task::ShouldCancel());
+    try {
+        engine::current_task::CancellationPointWeak();
+        FAIL() << "Expected a cancellation exception";
+    } catch (const engine::WaitInterruptedException& e) {
+        EXPECT_EQ(e.Reason(), engine::TaskCancellationReason::kUserRequest);
+    }
+}
+
+UTEST(Cancel, WeakCancellationPointRespectsBlocker) {
+    engine::current_task::RequestCancel();
+    {
+        const engine::TaskCancellationBlocker blocker;
+        EXPECT_TRUE(engine::current_task::IsCancelRequested());
+        EXPECT_NO_THROW(engine::current_task::CancellationPointWeak());
+    }
+    EXPECT_THROW(engine::current_task::CancellationPointWeak(), engine::WaitInterruptedException);
+}
 
 // Functors defined in dtors should unwind though
 UTEST(Cancel, UnwindWorksInDtorSubtask) {
@@ -54,6 +84,37 @@ UTEST(Cancel, UnwindWorksInDtorSubtask) {
     detached_task.WaitFor(10ms);
     ASSERT_FALSE(detached_task.IsFinished());
     detached_task.SyncCancel();
+}
+
+UTEST(Cancel, UnwindPreservesCancellation) {
+    bool cleanup_ran = false;
+
+    auto task = engine::AsyncNoTracing([&cleanup_ran] {
+        engine::Promise<void> promise;
+        auto future = promise.get_future();
+        const utils::FastScopeGuard cleanup([&]() noexcept {
+            EXPECT_TRUE(std::uncaught_exceptions());
+            EXPECT_TRUE(engine::current_task::ShouldCancel());
+            UEXPECT_NO_THROW(engine::current_task::CancellationPoint());
+            EXPECT_EQ(future.wait_for(utest::kMaxTestWaitTime), engine::FutureStatus::kCancelled);
+
+            {
+                const engine::TaskCancellationBlocker blocker;
+                EXPECT_FALSE(engine::current_task::ShouldCancel());
+                EXPECT_EQ(future.wait_until(engine::Deadline::Passed()), engine::FutureStatus::kTimeout);
+            }
+
+            EXPECT_TRUE(engine::current_task::ShouldCancel());
+            cleanup_ran = true;
+        });
+
+        engine::current_task::RequestCancel();
+        engine::current_task::CancellationPoint();
+        ADD_FAILURE() << "Cancelled task ran past cancellation point";
+    });
+
+    UEXPECT_THROW(task.Get(), engine::TaskCancelledException);
+    EXPECT_TRUE(cleanup_ran);
 }
 
 UTEST(Cancel, CancelDuringInterruptibleSleep) {

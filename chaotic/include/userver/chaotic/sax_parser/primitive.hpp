@@ -36,7 +36,7 @@ formats::json::parser::JsonValueParser ParserOf(Type<formats::json::Value>);
 formats::json::parser::JsonRawStringParser ParserOf(Type<formats::json::RawString>);
 
 template <typename Array>
-requires(meta::kIsRange<Array> && !meta::kIsMap<Array>)
+requires(meta::IsRange<Array> && !meta::IsMap<Array>)
 auto ParserOf(Type<Array>)
 {
     using Value = typename Array::value_type;

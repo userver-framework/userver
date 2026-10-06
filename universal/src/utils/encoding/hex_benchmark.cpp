@@ -2,7 +2,7 @@
 
 #include <userver/utils/encoding/hex.hpp>
 
-#include <string_view>
+#include <string>
 
 USERVER_NAMESPACE_BEGIN
 

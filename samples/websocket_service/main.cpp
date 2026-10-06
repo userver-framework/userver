@@ -2,6 +2,7 @@
 
 /// [Websocket service sample - component]
 #include <userver/components/minimal_server_component_list.hpp>
+#include <userver/engine/task/cancel.hpp>
 #include <userver/server/handlers/websocket_handler.hpp>
 #include <userver/utils/daemon_run.hpp>
 

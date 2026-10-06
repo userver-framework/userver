@@ -322,10 +322,12 @@ public:
     /// * `always_print_enums_as_ints` — print enum values as integers instead of their string names (default false);
     /// * `preserve_proto_field_names` — use proto field names instead of `json_name` (default false);
     /// * `expand_any` — parse and expand `google.protobuf.Any` into `{"@type": ..., ...}`; when false `Any` is emitted
-    ///   raw as `{"typeUrl"|"type_url": ..., "value": "<base64>"}` (default false, explicit opt-in);
-    /// * `expand_any_fallback_to_raw` — when `Any` expansion fails (payload type not found in the descriptor pool, or
-    ///   payload failed to parse), fall back to the same raw representation instead of throwing `FieldError`; only
-    ///   takes effect when `expand_any` is true (default false);
+    ///   raw as `{"typeUrl"|"type_url": ..., "value": "<base64>"}`, and `redact_debug_string` omits `value`
+    ///   (default false, explicit opt-in);
+    /// * `expand_any_allow_errors` — when `expand_any` is true, replace Any failures with a diagnostic object and
+    ///   continue, without the raw value bytes (default false). An unknown payload type becomes
+    ///   `{"@type":"<type_url>","@error":"unresolved_any_type"}`; a payload that fails to parse becomes
+    ///   `{"@type":"<type_url>","@error":"invalid_payload"}`. A missing `type_url` still throws `FieldError`;
     /// * `redact_debug_string` — replace `[debug_redact = true]` field values with a `"[REDACTED]"` marker
     ///   (default false).
     explicit ProtoMessageVisitor(Handler& handler)
@@ -340,7 +342,7 @@ public:
 
     void SetExpandAny(bool value) { expand_any_ = value; }
 
-    void SetExpandAnyFallbackToRaw(bool value) { expand_any_fallback_to_raw_ = value; }
+    void SetExpandAnyAllowErrors(bool value) { expand_any_allow_errors_ = value; }
 
     void SetRedactDebugString(bool value) { redact_debug_string_ = value; }
 
@@ -669,8 +671,10 @@ private:
 
         const auto payload_desc = FindMessageDescByTypeUrl(*message.GetDescriptor()->file()->pool(), type_url);
         if (!payload_desc) {
-            if (expand_any_fallback_to_raw_) {
-                VisitAnyRaw(type_url, value);
+            // An empty type_url is a malformed Any, not an unresolved type. Do not emit the value bytes: they have
+            // not been parsed, so [debug_redact] cannot apply.
+            if (expand_any_allow_errors_ && !type_url.empty()) {
+                VisitAnyExpandError(type_url, "unresolved_any_type");
                 return;
             }
             throw FieldError(PrintErrorCode::kInvalidValue, "can't find 'google.protobuf.Any' payload descriptor");
@@ -682,8 +686,9 @@ private:
             std::unique_ptr<::google::protobuf::Message> payload_message(factory.GetPrototype(payload_desc)->New());
 
             if (!payload_message->ParsePartialFromString(value)) {
-                if (expand_any_fallback_to_raw_) {
-                    VisitAnyRaw(type_url, value);
+                // Do not emit the raw bytes: they have not been parsed, so [debug_redact] cannot apply.
+                if (expand_any_allow_errors_) {
+                    VisitAnyExpandError(type_url, "invalid_payload");
                     return;
                 }
                 throw FieldError(PrintErrorCode::kInvalidValue, "failed to parse 'google.protobuf.Any' payload");
@@ -707,13 +712,22 @@ private:
         }
     }
 
-    // Raw representation without payload descriptor lookup: {"typeUrl"|"type_url": ..., "value": "<base64>"}.
-    // Both fields are emitted unconditionally (even when empty), matching the original WriteAnyMessage.
+    // Raw Any without descriptor lookup. Unparsed bytes are omitted from debug logs.
     void VisitAnyRaw(std::string_view type_url, std::string_view value) {
         handler_.Key(preserve_proto_field_names_ ? "type_url" : "typeUrl");
         handler_.String(type_url);
-        handler_.Key("value");
-        handler_.Bytes(value);  // Handler base64-encodes the raw bytes.
+        if (!redact_debug_string_) {
+            handler_.Key("value");
+            handler_.Bytes(value);
+        }
+    }
+
+    // Diagnostic stub: {"@type":"<type_url>","@error":"<error>"}. The value bytes are omitted.
+    void VisitAnyExpandError(std::string_view type_url, std::string_view error) {
+        handler_.Key("@type");
+        handler_.String(type_url);
+        handler_.Key("@error");
+        handler_.String(error);
     }
 
     void VisitDuration(const ::google::protobuf::Message& message) {
@@ -1056,7 +1070,7 @@ private:
     bool always_print_enums_as_ints_{false};
     bool preserve_proto_field_names_{false};
     bool expand_any_{false};
-    bool expand_any_fallback_to_raw_{false};
+    bool expand_any_allow_errors_{false};
     bool redact_debug_string_{false};
 
     // Reusable buffer for extracting string/bytes field values, avoiding a fresh allocation per field. It is shared

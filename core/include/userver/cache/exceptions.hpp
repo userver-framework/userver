@@ -4,7 +4,6 @@
 /// @brief Exceptions thrown by components::CachingComponentBase
 
 #include <stdexcept>
-#include <string>
 #include <string_view>
 
 USERVER_NAMESPACE_BEGIN

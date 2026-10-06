@@ -3,7 +3,7 @@
 /// @file userver/storages/secdist/component.hpp
 /// @brief @copybrief components::Secdist
 
-#include <string>
+#include <string_view>
 
 #include <userver/components/component_base.hpp>
 #include <userver/storages/secdist/secdist.hpp>

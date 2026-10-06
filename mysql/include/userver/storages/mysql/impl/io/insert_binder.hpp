@@ -45,7 +45,7 @@ public:
           current_row_it_{container_.begin()}
     {
         static_assert(kColumnsCount != 0, "Rows to insert have zero columns");
-        static_assert(meta::kIsSizable<Container>, "Container should be sizeable for batch insertion");
+        static_assert(meta::IsSizable<Container>, "Container should be sizeable for batch insertion");
 
         UASSERT(!container_.empty());
 

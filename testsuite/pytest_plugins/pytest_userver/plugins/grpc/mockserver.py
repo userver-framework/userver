@@ -10,14 +10,14 @@ from collections.abc import Iterator
 import grpc
 import pytest
 
+import pytest_userver.config
 import pytest_userver.grpc
+import pytest_userver.service
 
 # @cond
 
 
 DEFAULT_PORT = 8091
-
-USERVER_CONFIG_HOOKS = ['userver_config_grpc_mockserver']
 
 
 # @endcond
@@ -62,6 +62,7 @@ async def grpc_mockserver_session(grpc_mockserver_endpoint) -> AsyncIterator[pyt
 
 
 @pytest.fixture
+@pytest_userver.service.dependency
 def grpc_mockserver(grpc_mockserver_session, asyncexc_append) -> Iterator[pytest_userver.grpc.Mockserver]:
     """
     Returns the gRPC mocking server.
@@ -79,8 +80,8 @@ def grpc_mockserver(grpc_mockserver_session, asyncexc_append) -> Iterator[pytest
     @snippet grpc/functional_tests/metrics/tests/test_metrics.py  grpc client test
 
     Mocks are only active within tests after their respective handler functions are created, not between tests.
-    If the service needs the mock during startup, add the fixture that defines your mock to
-    @ref pytest_userver.plugins.service.extra_client_deps "extra_client_deps".
+    If the service needs the mock during startup, decorate the fixture that defines your mock with
+    @ref pytest_userver.service.dependency "dependency".
 
     To return an error status instead of response, use `context` (see
     [ServicerContext](https://grpc.github.io/grpc/python/grpc_asyncio.html#grpc.aio.ServicerContext)
@@ -104,6 +105,7 @@ def grpc_mockserver(grpc_mockserver_session, asyncexc_append) -> Iterator[pytest
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_config_grpc_mockserver():
     """
     Returns a function that adjusts the static config for testsuite.

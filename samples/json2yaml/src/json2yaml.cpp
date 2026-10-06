@@ -1,7 +1,5 @@
 #include <json2yaml.hpp>
 
-#include <string>
-
 #include <userver/formats/common/conversion_stack.hpp>
 
 /// [json2yaml - convert cpp]

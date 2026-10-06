@@ -107,8 +107,8 @@ public:
 {% if method.client_streaming and method.server_streaming %}
     using {{method.name}}ReaderWriter =
         USERVER_NAMESPACE::grpc_proto_structs::client::ReaderWriter<
-            {{ method.input_type | grpc_to_structs_name }},
-            {{ method.output_type | grpc_to_structs_name }}>;
+        {{ method.input_type | grpc_to_structs_name }},
+        {{ method.output_type | grpc_to_structs_name }}>;
 
     {{method.name}}ReaderWriter {{method.name}}(
         USERVER_NAMESPACE::ugrpc::client::CallOptions call_options = {}
@@ -116,8 +116,8 @@ public:
 {% elif method.client_streaming %}
     using {{method.name}}Writer =
         USERVER_NAMESPACE::grpc_proto_structs::client::Writer<
-            {{ method.input_type | grpc_to_structs_name }},
-            {{ method.output_type | grpc_to_structs_name }}>;
+        {{ method.input_type | grpc_to_structs_name }},
+        {{ method.output_type | grpc_to_structs_name }}>;
     {{method.name}}Writer {{method.name}}(
         USERVER_NAMESPACE::ugrpc::client::CallOptions call_options = {}
     ) const;

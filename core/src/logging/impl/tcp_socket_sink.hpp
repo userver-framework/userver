@@ -1,7 +1,6 @@
 #pragma once
 
 #include <mutex>
-#include <string_view>
 #include <vector>
 
 #include <logging/impl/base_sink.hpp>

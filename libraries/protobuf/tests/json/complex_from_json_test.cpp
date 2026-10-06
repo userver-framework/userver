@@ -12,8 +12,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace protobuf::json::tests {
 
-/* NOTE: Uncomment when linkage is fixed (see comment in the convert.hpp)
-
 using ProtobufStringType =
     decltype(std::declval<::google::protobuf::Reflection>()
                  .GetString(std::declval<const ::google::protobuf::Message&>(), nullptr));
@@ -106,7 +104,6 @@ TEST(ComplexFromJsonFailureTest, Test) {
         "field2"
     );
 }
-*/
 
 }  // namespace protobuf::json::tests
 

@@ -23,7 +23,7 @@ DefaultDict<T> Convert(U&& value, chaotic::convert::To<DefaultDict<T>>) {
         decltype(extra.begin())>;
     auto dict = DefaultDict<T>{{IteratorType{extra.begin()}, IteratorType{extra.end()}}};
 
-    if constexpr (meta::kIsOptional<decltype(value.__default__)>) {
+    if constexpr (meta::IsOptional<decltype(value.__default__)>) {
         if (value.__default__) {
             dict.SetDefault(*std::forward<U>(value).__default__);
         }

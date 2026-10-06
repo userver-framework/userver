@@ -22,6 +22,7 @@
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/fs/blocking/file_descriptor.hpp>
+#include <userver/http/common_headers.hpp>
 #include <userver/server/component.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
@@ -105,6 +106,12 @@ public:
         }
         if (mode == "throw-client-before-headers") {
             throw server::handlers::ClientError(server::handlers::ExternalBody{"before-headers-client"});
+        }
+
+        if (mode == "no-content") {
+            stream.SetStatusCode(server::http::HttpStatus::kNoContent);
+            stream.SetEndOfHeaders();
+            return;
         }
 
         if (mode == "slow-headers") {
@@ -231,6 +238,7 @@ private:
         TestNotStreamed();
         TestSetBody();
         TestHeadersOnly();
+        TestNoContent();
         TestSlowHeaders();
         TestHeadersArriveBeforeHandlerFinishes();
         TestThrowInIsStreamed();
@@ -269,6 +277,16 @@ private:
         EXPECT_EQ(response->status_code(), clients::http::Status::kOk);
         EXPECT_TRUE(response->body().empty());
         EXPECT_EQ(GetHeader(*response, "X-Stream-Test"), "1");
+        EXPECT_EQ(GetHeader(*response, http::headers::kTransferEncoding), "chunked");
+        EXPECT_FALSE(response->headers().contains(http::headers::kContentLength));
+    }
+
+    void TestNoContent() {
+        const auto response = Get("no-content");
+        EXPECT_EQ(response->status_code(), clients::http::Status::kNoContent);
+        EXPECT_FALSE(response->headers().contains(http::headers::kTransferEncoding));
+        EXPECT_FALSE(response->headers().contains(http::headers::kContentLength));
+        EXPECT_TRUE(response->body().empty());
     }
 
     void TestSlowHeaders() {

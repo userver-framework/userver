@@ -54,9 +54,10 @@ bool operator==(const ConnectionInfoInt& lhs, const ConnectionInfoInt& rhs) { re
 
 bool operator<(const ConnectionInfoInt& lhs, const ConnectionInfoInt& rhs) { return lhs.Fulltext() < rhs.Fulltext(); }
 
-Shard::Shard(Options options)
+Shard::Shard(Options options, const engine::ev::ThreadControl& sentinel_thread)
     : shard_name_(std::move(options.shard_name)),
       shard_group_name_(std::move(options.shard_group_name)),
+      ev_thread_(sentinel_thread),
       shared_statistics_(std::make_unique<Statistics>()),
       ready_change_callback_(std::move(options.ready_change_callback)),
       cluster_mode_(options.cluster_mode)
@@ -70,12 +71,12 @@ std::unordered_map<ServerId, size_t, ServerIdHasher> Shard::GetAvailableServersW
     bool with_master,
     const CommandControl& command_control
 ) const {
+    const auto state = read_state_.Read();
     std::unordered_map<ServerId, size_t, ServerIdHasher> server_weights;
-    const std::shared_lock lock(mutex_);
-    auto available = GetAvailableServers(command_control, with_master, true);
-    for (size_t i = 0; i < instances_.size(); i++) {
-        const auto& instance = *instances_[i].instance;
-        const auto& info = instances_[i].info;
+    auto available = GetAvailableServers(*state, command_control, with_master, true);
+    for (size_t i = 0; i < state->instances.size(); i++) {
+        const auto& instance = *state->instances[i].instance;
+        const auto& info = state->instances[i].info;
         if (available.at(i) && instance.IsAvailable() && (with_master || info.IsReadOnly())) {
             server_weights.emplace(instance.GetServerId(), 1);
         }
@@ -84,16 +85,17 @@ std::unordered_map<ServerId, size_t, ServerIdHasher> Shard::GetAvailableServersW
 }
 
 bool Shard::IsConnectedToAllServersDebug(bool allow_empty) const {
-    const std::shared_lock lock{mutex_};
-    for (const auto& inst : instances_) {
+    const auto state = read_state_.Read();
+    for (const auto& inst : state->instances) {
         if (inst.instance->GetState() != Redis::State::kConnected) {
             return false;
         }
     }
-    return allow_empty || !instances_.empty();
+    return allow_empty || !state->instances.empty();
 }
 
 std::vector<unsigned char> Shard::GetAvailableServers(
+    const ReadState& state,
     const CommandControl& command_control,
     bool with_masters,
     bool with_slaves
@@ -102,9 +104,9 @@ std::vector<unsigned char> Shard::GetAvailableServers(
 
     const auto id = cc.force_server_id;
     if (!id.IsAny()) {
-        std::vector<unsigned char> result(instances_.size(), 0);
-        for (size_t i = 0; i < instances_.size(); i++) {
-            if (instances_[i].instance->GetServerId() == id) {
+        std::vector<unsigned char> result(state.instances.size(), 0);
+        for (size_t i = 0; i < state.instances.size(); i++) {
+            if (state.instances[i].instance->GetServerId() == id) {
                 result[i] = 1;
                 return result;
             }
@@ -118,16 +120,16 @@ std::vector<unsigned char> Shard::GetAvailableServers(
     switch (cc.strategy) {
         case CommandControl::Strategy::kEveryDc:
         case CommandControl::Strategy::kDefault: {
-            std::vector<unsigned char> result(instances_.size(), 0);
-            for (size_t i = 0; i < instances_.size(); i++) {
-                result[i] = instances_[i].info.IsReadOnly() ? with_slaves : with_masters;
+            std::vector<unsigned char> result(state.instances.size(), 0);
+            for (size_t i = 0; i < state.instances.size(); i++) {
+                result[i] = state.instances[i].info.IsReadOnly() ? with_slaves : with_masters;
             }
             return result;
         }
 
         case CommandControl::Strategy::kLocalDcConductor:
         case CommandControl::Strategy::kNearestServerPing:
-            return GetNearestServersPing(command_control, with_masters, with_slaves);
+            return GetNearestServersPing(state, command_control, with_masters, with_slaves);
     }
 
     /* never reachable */
@@ -136,36 +138,37 @@ std::vector<unsigned char> Shard::GetAvailableServers(
 }
 
 std::vector<unsigned char> Shard::GetNearestServersPing(
+    const ReadState& state,
     const CommandControl& command_control,
     bool with_masters,
     bool with_slaves
 ) const {
     auto count = CommandControlImpl{command_control}.best_dc_count;
     if (count == 0) {
-        count = instances_.size();
+        count = state.instances.size();
     }
 
     using PairPingNum = std::pair<size_t, size_t>;
     std::vector<PairPingNum> sorted_by_ping;
 
-    sorted_by_ping.reserve(instances_.size());
-    for (size_t i = 0; i < instances_.size(); i++) {
-        const auto& cur_inst = instances_[i].instance;
+    sorted_by_ping.reserve(state.instances.size());
+    for (size_t i = 0; i < state.instances.size(); i++) {
+        const auto& cur_inst = state.instances[i].instance;
         const size_t ping = cur_inst->GetPingLatency().count();
         sorted_by_ping.emplace_back(ping, i);
     }
 
     std::ranges::sort(sorted_by_ping);
 
-    auto result = std::vector<unsigned char>(instances_.size(), 0);
+    auto result = std::vector<unsigned char>(state.instances.size(), 0);
     for (size_t i = 0; i < sorted_by_ping.size() && count > 0; ++i) {
         const int num = sorted_by_ping[i].second;
-        const auto& info = instances_[num].info;
+        const auto& info = state.instances[num].info;
         if ((with_slaves && info.IsReadOnly()) || (with_masters && !info.IsReadOnly())) {
             result[num] = 1;
             LOG_DEBUG()
-                << "Trying redis server with acceptable ping, server=" << instances_[num].instance->GetServerHost()
-                << ", ping=" << instances_[num].instance->GetPingLatency().count();
+                << "Trying redis server with acceptable ping, server=" << state.instances[num].instance->GetServerHost()
+                << ", ping=" << state.instances[num].instance->GetPingLatency().count();
             --count;
         }
     }
@@ -173,6 +176,7 @@ std::vector<unsigned char> Shard::GetNearestServersPing(
 }
 
 std::shared_ptr<Redis> Shard::GetInstance(
+    const ReadState& state,
     const std::vector<unsigned char>& available_servers,
     bool is_retry,
     bool may_fallback_to_any,
@@ -183,18 +187,18 @@ std::shared_ptr<Redis> Shard::GetInstance(
 ) {
     std::shared_ptr<Redis> instance;
 
-    auto end = instances_.size();
+    auto end = state.instances.size();
     const size_t cur = ++current_;
     for (size_t i = 0; i < end; i++) {
         const size_t instance_idx = (cur + i) % end;
 
-        if ((instance_idx == skip_idx) || (!read_only && instances_[instance_idx].info.IsReadOnly()) ||
+        if ((instance_idx == skip_idx) || (!read_only && state.instances[instance_idx].info.IsReadOnly()) ||
             (!may_fallback_to_any && !available_servers[instance_idx]))
         {
             continue;
         }
 
-        const auto& cur_inst = instances_[instance_idx].instance;
+        const auto& cur_inst = state.instances[instance_idx].instance;
         if (cur_inst && cur_inst->IsAvailable() && (!is_retry || cur_inst->CanRetry()) &&
             (!instance || instance->IsDestroying() ||
              (consider_ping && cur_inst->GetRunningCommands() < instance->GetRunningCommands())))
@@ -211,10 +215,10 @@ std::shared_ptr<Redis> Shard::GetInstance(
 }
 
 std::vector<ServerId> Shard::GetAllInstancesServerId() const {
+    const auto state = read_state_.Read();
     std::vector<ServerId> ids;
-    const std::shared_lock lock(mutex_);  // protects instances_
 
-    for (const auto& conn_status : instances_) {
+    for (const auto& conn_status : state->instances) {
         auto instance = conn_status.instance;
         if (instance && instance->IsAvailable()) {
             ids.push_back(instance->GetServerId());
@@ -224,21 +228,25 @@ std::vector<ServerId> Shard::GetAllInstancesServerId() const {
 }
 
 bool Shard::AsyncCommand(CommandPtr command) {
+    auto admission_permit = command_admission_.TryAcquire();
+    if (!admission_permit) {
+        return false;
+    }
+    const auto state = read_state_.Read();
     std::shared_ptr<Redis> instance;
     size_t idx = 0;
     const auto is_retry = command->counter != 0;
 
-    const std::shared_lock lock(mutex_);  // protects instances_ and destroying_
-    if (destroying_) {
-        return false;
-    }
-
     const CommandControlImpl cc{command->control};
     const bool consider_ping = cc.consider_ping;
-    const auto& available_servers =
-        GetAvailableServers(command->control, !command->read_only || cc.allow_reads_from_master, command->read_only);
+    const auto& available_servers = GetAvailableServers(
+        *state,
+        command->control,
+        !command->read_only || cc.allow_reads_from_master,
+        command->read_only
+    );
 
-    auto max_attempts = instances_.size() + 1;
+    auto max_attempts = state->instances.size() + 1;
     for (size_t attempt = 0; attempt < max_attempts; attempt++) {
         const size_t skip_idx = (attempt == 0) ? command->instance_idx : -1;
 
@@ -250,6 +258,7 @@ bool Shard::AsyncCommand(CommandPtr command) {
         const bool may_fallback_to_any = (attempt != 0 && cc.force_server_id.IsAny());
 
         instance = GetInstance(
+            *state,
             available_servers,
             is_retry,
             may_fallback_to_any,
@@ -282,25 +291,23 @@ bool Shard::AsyncCommand(CommandPtr command) {
 }
 
 void Shard::Clean() {
-    // clear 'instances_' and 'clean_wait_' when mutex_ locked
-    // destroy ConnectionStatus objects from them when mutex_ unlocked
+    UASSERT(ev_thread_.IsInEvThread());
+    if (!command_admission_.Close()) {
+        return;
+    }
+    command_admission_.WaitForNoActivePermits();
+
+    // Publish an empty state before destroying connections.
     std::vector<ConnectionStatus> local_instances;
     std::vector<ConnectionStatus> local_clean_wait;
-
-    {
-        const std::lock_guard lock(mutex_);
-        destroying_ = true;
-        local_instances.swap(instances_);
-        local_clean_wait.swap(clean_wait_);
-    }
+    local_instances.swap(instances_);
+    local_clean_wait.swap(clean_wait_);
+    PublishReadState();
 }
 
 bool Shard::ProcessCreation(const std::shared_ptr<engine::ev::ThreadPool>& redis_thread_pool) {
+    UASSERT(ev_thread_.IsInEvThread());
     auto need_to_create = GetConnectionInfosToCreate();
-    // All methods that modify mutex_-protected fields are called from
-    // SentinelImpl's event thread.
-    // So if we unlock mutex_ after GetConnectionInfosToCreate() and lock it
-    // again in UpdateCleanWaitQueue() these fields will remain unchanged.
 
     std::vector<ConnectionStatus> add_clean_wait;
     add_clean_wait.reserve(need_to_create.size());
@@ -320,11 +327,11 @@ bool Shard::ProcessCreation(const std::shared_ptr<engine::ev::ThreadPool>& redis
                 StatisticsForInstance()
             )
         };
-        if (auto commands_buffering_settings = commands_buffering_settings_.Get()) {
-            entry.instance->SetCommandsBufferingSettings(*commands_buffering_settings);
+        if (commands_buffering_settings_) {
+            entry.instance->SetCommandsBufferingSettings(*commands_buffering_settings_);
         }
-        if (auto retry_budget_settings = retry_budget_settings_.Get()) {
-            entry.instance->SetRetryBudgetSettings(*retry_budget_settings);
+        if (retry_budget_settings_) {
+            entry.instance->SetRetryBudgetSettings(*retry_budget_settings_);
         }
         auto server_id = entry.instance->GetServerId();
         entry.instance->signal_state_change.connect([this, server_id](Redis::State state) {
@@ -340,55 +347,54 @@ bool Shard::ProcessCreation(const std::shared_ptr<engine::ev::ThreadPool>& redis
 }
 
 bool Shard::ProcessStateUpdate() {
+    UASSERT(ev_thread_.IsInEvThread());
     std::vector<ConnectionStatus> erase_clean_wait;
     bool instances_changed = false;
     bool new_connected = false;
-    {
-        const std::lock_guard lock(mutex_);
-        // NOLINTNEXTLINE(readability-qualified-auto)
-        for (auto info = instances_.begin(); info != instances_.end();) {
-            if (info->instance->GetState() != Redis::State::kConnected) {
-                clean_wait_.emplace_back(std::move(*info));
-                info = instances_.erase(info);
+    bool read_state_changed = false;
+    // NOLINTNEXTLINE(readability-qualified-auto)
+    for (auto info = instances_.begin(); info != instances_.end();) {
+        if (info->instance->GetState() != Redis::State::kConnected) {
+            clean_wait_.emplace_back(std::move(*info));
+            info = instances_.erase(info);
+            instances_changed = true;
+        } else {
+            ++info;
+        }
+    }
+    // NOLINTNEXTLINE(readability-qualified-auto)
+    for (auto info = clean_wait_.begin(); info != clean_wait_.end();) {
+        switch (info->instance->GetState()) {
+            case Redis::State::kConnected:
+                LOG_TRACE() << "Found kConnected instance: " << info->instance->GetServerId().GetDescription();
+                instances_.emplace_back(std::move(*info));
                 instances_changed = true;
-            } else {
+                info = clean_wait_.erase(info);
+                last_connected_time_ = std::chrono::steady_clock::now();
+                signal_instance_ready_(instances_.back().instance->GetServerId(), instances_.back().info.IsReadOnly());
+                break;
+            case Redis::State::kDisconnecting:
+            case Redis::State::kDisconnected:
+            case Redis::State::kDisconnectError:
+            case Redis::State::kInitError:
+                erase_clean_wait.emplace_back(std::move(*info));
+                info = clean_wait_.erase(info);
+                break;
+            case Redis::State::kInit:
+            default:
                 ++info;
-            }
+                break;
         }
-        // NOLINTNEXTLINE(readability-qualified-auto)
-        for (auto info = clean_wait_.begin(); info != clean_wait_.end();) {
-            switch (info->instance->GetState()) {
-                case Redis::State::kConnected:
-                    LOG_TRACE() << "Found kConnected instance: " << info->instance->GetServerId().GetDescription();
-                    instances_.emplace_back(std::move(*info));
-                    instances_changed = true;
-                    info = clean_wait_.erase(info);
-                    last_connected_time_ = std::chrono::steady_clock::now();
-                    signal_instance_ready_(
-                        instances_.back().instance->GetServerId(),
-                        instances_.back().info.IsReadOnly()
-                    );
-                    break;
-                case Redis::State::kDisconnecting:
-                case Redis::State::kDisconnected:
-                case Redis::State::kDisconnectError:
-                case Redis::State::kInitError:
-                    /// elements will be destructed later outside of mutex scope
-                    erase_clean_wait.emplace_back(std::move(*info));
-                    info = clean_wait_.erase(info);
-                    break;
-                case Redis::State::kInit:
-                default:
-                    ++info;
-                    break;
-            }
-        }
-        new_connected = !instances_.empty();
+    }
+    new_connected = !instances_.empty();
 
-        if (!erase_clean_wait.empty() && last_connected_time_ > last_ready_time_) {
-            // we were ready, but have just become not ready
-            last_ready_time_ = std::chrono::steady_clock::now();
-        }
+    if (!erase_clean_wait.empty() && last_connected_time_ > last_ready_time_) {
+        // we were ready, but have just become not ready
+        last_ready_time_ = std::chrono::steady_clock::now();
+        read_state_changed = true;
+    }
+    if (instances_changed || read_state_changed) {
+        PublishReadState();
     }
 
     erase_clean_wait.clear();
@@ -407,7 +413,7 @@ bool Shard::ProcessStateUpdate() {
 }
 
 bool Shard::SetConnectionInfo(std::vector<ConnectionInfoInt> info_array) {
-    const std::lock_guard lock(mutex_);
+    UASSERT(ev_thread_.IsInEvThread());
     if (info_array == connection_infos_) {
         return false;
     }
@@ -416,12 +422,12 @@ bool Shard::SetConnectionInfo(std::vector<ConnectionInfoInt> info_array) {
 }
 
 void Shard::GetStatistics(bool master, ShardStatistics& stats) const {
-    const std::shared_lock lock(mutex_);
+    const auto state = read_state_.Read();
 
     UASSERT(shared_statistics_);
     stats.shard_total.Fill(*shared_statistics_);
-    stats.instances_count = instances_.size();
-    for (const auto& instance : instances_) {
+    stats.instances_count = state->instances.size();
+    for (const auto& instance : state->instances) {
         const bool is_master = !instance.info.IsReadOnly();
         if (!instance.instance || is_master != master) {
             continue;
@@ -432,12 +438,12 @@ void Shard::GetStatistics(bool master, ShardStatistics& stats) const {
             stats.is_ready = true;
         }
     }
-    stats.last_ready_time = last_ready_time_;
+    stats.last_ready_time = state->last_ready_time;
 }
 
 size_t Shard::InstancesSize() const {
-    const std::shared_lock lock(mutex_);
-    return instances_.size();
+    const auto state = read_state_.Read();
+    return state->instances.size();
 }
 
 const std::string& Shard::ShardName() const { return shard_name_; }
@@ -449,7 +455,7 @@ boost::signals2::signal<void(ServerId, Redis::State)>& Shard::SignalInstanceStat
 boost::signals2::signal<void(ServerId, bool)>& Shard::SignalInstanceReady() { return signal_instance_ready_; }
 
 void Shard::SetCommandsBufferingSettings(CommandsBufferingSettings commands_buffering_settings) {
-    const std::shared_lock lock(mutex_);
+    UASSERT(ev_thread_.IsInEvThread());
 
     for (const auto& instance : instances_) {
         instance.instance->SetCommandsBufferingSettings(commands_buffering_settings);
@@ -458,11 +464,11 @@ void Shard::SetCommandsBufferingSettings(CommandsBufferingSettings commands_buff
         instance.instance->SetCommandsBufferingSettings(commands_buffering_settings);
     }
 
-    commands_buffering_settings_.Set(std::make_shared<CommandsBufferingSettings>(commands_buffering_settings));
+    commands_buffering_settings_ = commands_buffering_settings;
 }
 
 void Shard::SetReplicationMonitoringSettings(const ReplicationMonitoringSettings& replication_monitoring_settings) {
-    const std::shared_lock lock(mutex_);
+    UASSERT(ev_thread_.IsInEvThread());
 
     for (const auto& instance : instances_) {
         instance.instance->SetReplicationMonitoringSettings(replication_monitoring_settings);
@@ -474,7 +480,7 @@ void Shard::SetReplicationMonitoringSettings(const ReplicationMonitoringSettings
 }
 
 void Shard::SetRetryBudgetSettings(const utils::RetryBudgetSettings& retry_budget_settings) {
-    const std::shared_lock lock(mutex_);
+    UASSERT(ev_thread_.IsInEvThread());
 
     for (const auto& instance : instances_) {
         instance.instance->SetRetryBudgetSettings(retry_budget_settings);
@@ -484,11 +490,11 @@ void Shard::SetRetryBudgetSettings(const utils::RetryBudgetSettings& retry_budge
         instance.instance->SetRetryBudgetSettings(retry_budget_settings);
     }
 
-    retry_budget_settings_.Set(std::make_shared<utils::RetryBudgetSettings>(retry_budget_settings));
+    retry_budget_settings_ = retry_budget_settings;
 }
 
 std::vector<ConnectionInfoInt> Shard::GetConnectionInfosToCreate() const {
-    const std::shared_lock lock(mutex_);
+    UASSERT(ev_thread_.IsInEvThread());
 
     auto need_to_create = connection_infos_;
 
@@ -503,33 +509,39 @@ std::vector<ConnectionInfoInt> Shard::GetConnectionInfosToCreate() const {
 }
 
 bool Shard::UpdateCleanWaitQueue(std::vector<ConnectionStatus>&& add_clean_wait) {
+    UASSERT(ev_thread_.IsInEvThread());
     bool instances_changed = false;
     std::vector<ConnectionStatus> erase_instance;
 
-    {
-        const std::lock_guard lock(mutex_);
-        for (auto& instance : add_clean_wait) {
-            clean_wait_.push_back(std::move(instance));
-        }
+    for (auto& instance : add_clean_wait) {
+        clean_wait_.push_back(std::move(instance));
+    }
 
+    // NOLINTNEXTLINE(readability-qualified-auto)
+    for (auto instance_iterator = instances_.begin(); instance_iterator != instances_.end();) {
         // NOLINTNEXTLINE(readability-qualified-auto)
-        for (auto instance_iterator = instances_.begin(); instance_iterator != instances_.end();) {
-            // NOLINTNEXTLINE(readability-qualified-auto)
-            auto conn_info = std::ranges::find(connection_infos_, instance_iterator->info);
-            if (conn_info == connection_infos_.end()) {
-                erase_instance.emplace_back(std::move(*instance_iterator));
-                instance_iterator = instances_.erase(instance_iterator);
+        auto conn_info = std::ranges::find(connection_infos_, instance_iterator->info);
+        if (conn_info == connection_infos_.end()) {
+            erase_instance.emplace_back(std::move(*instance_iterator));
+            instance_iterator = instances_.erase(instance_iterator);
+            instances_changed = true;
+        } else {
+            if (conn_info->IsReadOnly() != instance_iterator->info.IsReadOnly()) {
+                instance_iterator->info.SetReadOnly(conn_info->IsReadOnly());
                 instances_changed = true;
-            } else {
-                if (conn_info->IsReadOnly() != instance_iterator->info.IsReadOnly()) {
-                    instance_iterator->info.SetReadOnly(conn_info->IsReadOnly());
-                    instances_changed = true;
-                }
-                ++instance_iterator;
             }
+            ++instance_iterator;
         }
     }
+    if (instances_changed) {
+        PublishReadState();
+    }
     return instances_changed;
+}
+
+void Shard::PublishReadState() {
+    UASSERT(ev_thread_.IsInEvThread());
+    read_state_.Assign(ReadState{instances_, last_ready_time_});
 }
 
 Statistics& Shard::StatisticsForInstance() { return *shared_statistics_; }

@@ -2,6 +2,9 @@ type: object
 description: Logging component
 additionalProperties: false
 properties:
+    span-log-level:
+        type: string
+        description: Minimum log level for spans; defaults to the default logger's level
     fs-task-processor:
         type: string
         description: task processor for disk I/O operations

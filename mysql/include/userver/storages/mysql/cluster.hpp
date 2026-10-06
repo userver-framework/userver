@@ -5,7 +5,6 @@
 
 #include <memory>
 #include <optional>
-#include <string>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/components/component_fwd.hpp>

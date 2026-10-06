@@ -1,7 +1,5 @@
 #pragma once
 
-#include <string>
-
 #include <handlers/secure/greetingget/requests.hpp>
 #include <handlers/secure/greetingget/responses.hpp>
 #include <userver/chaotic/openapi/server/dependencies.hpp>

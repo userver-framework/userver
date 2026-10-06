@@ -1,5 +1,6 @@
 #include <chrono>
 #include <string>
+#include <string_view>
 
 #include <gmock/gmock.h>
 
@@ -22,6 +23,7 @@ using ServiceType = testing::StrictMock<tests::UnitTestServiceGmock>;
 using ClientType = sample::ugrpc::UnitTestServiceClient;
 
 constexpr std::chrono::milliseconds kFinishDelay{20};
+constexpr std::string_view kGreetingName = "response-body-name";
 
 class FinishDelayMiddleware final : public ugrpc::server::MiddlewareBase {
 public:
@@ -70,7 +72,11 @@ class GrpcLoggingDisabledTest : public utest::LogCaptureFixture<GrpcLoggingDisab
 }  // namespace
 
 UTEST_F(GrpcLoggingTest, UnaryDelayIncludesFinishingHooks) {
-    EXPECT_CALL(GetService(), SayHello).WillOnce([](auto&&...) { return sample::ugrpc::GreetingResponse{}; });
+    EXPECT_CALL(GetService(), SayHello).WillOnce([](auto&&...) {
+        sample::ugrpc::GreetingResponse response;
+        response.set_name(std::string{kGreetingName});
+        return response;
+    });
 
     [[maybe_unused]] auto response = GetClient().SayHello({});
 
@@ -83,6 +89,10 @@ UTEST_F(GrpcLoggingTest, UnaryDelayIncludesFinishingHooks) {
     EXPECT_THAT(*delay, testing::MatchesRegex(R"([0-9]+\.[0-9]{6})"));
     EXPECT_GE(std::stod(*delay), std::chrono::duration<double>{kFinishDelay}.count());
     EXPECT_FALSE(response_log.GetTagOptional("stopwatch_units").has_value());
+
+    const auto body = response_log.GetTagOptional("body");
+    ASSERT_TRUE(body.has_value());
+    EXPECT_THAT(*body, testing::HasSubstr(kGreetingName));
 }
 
 UTEST_F(GrpcLoggingDisabledTest, UnaryResponseDoesNotProduceEmptyLog) {

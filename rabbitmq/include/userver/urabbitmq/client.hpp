@@ -53,9 +53,21 @@ public:
         DeclareExchange(exchange, Exchange::Type::kFanOut, {}, deadline);
     }
 
-    void DeclareQueue(const Queue& queue, utils::Flags<Queue::Flags> flags, engine::Deadline deadline) override;
+    QueueDeclareResponse DeclareQueue(
+        const Queue& queue,
+        utils::Flags<Queue::Flags> flags,
+        const std::unordered_map<std::string, HeaderValue>& headers,
+        engine::Deadline deadline
+    ) override;
 
-    void DeclareQueue(const Queue& queue, engine::Deadline deadline) override { DeclareQueue(queue, {}, deadline); }
+    QueueDeclareResponse
+    DeclareQueue(const Queue& queue, utils::Flags<Queue::Flags> flags, engine::Deadline deadline) override {
+        return DeclareQueue(queue, flags, {}, deadline);
+    }
+
+    QueueDeclareResponse DeclareQueue(const Queue& queue, engine::Deadline deadline) override {
+        return DeclareQueue(queue, {}, {}, deadline);
+    }
 
     void BindQueue(
         const Exchange& exchange,

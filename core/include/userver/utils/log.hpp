@@ -3,6 +3,8 @@
 /// @file userver/utils/log.hpp
 /// @brief Algorithms to aid logging
 
+#include <cstddef>
+#include <string>
 #include <string_view>
 
 USERVER_NAMESPACE_BEGIN
@@ -16,6 +18,10 @@ std::string ToLimitedHex(std::string_view data, size_t limit);
 /// @brief if `data` in utf-8, returns `data` truncated to `limit`
 /// otherwise returns stub
 std::string ToLimitedUtf8(std::string_view data, size_t limit);
+
+/// @overload
+/// Does not copy `data` if it is returned as is
+std::string ToLimitedUtf8(std::string&& data, size_t limit);
 
 }  // namespace utils::log
 

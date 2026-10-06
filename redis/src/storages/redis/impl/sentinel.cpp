@@ -71,11 +71,17 @@ void OnSubscribeImpl(
         return;
     }
     if (!strcasecmp(reply_array[0].GetString().c_str(), subscribe_type.data())) {
-        subscribe_callback(reply->server_id, reply_array[1].GetString(), reply_array[2].GetInt());
+        if (reply_array[1].IsString() && reply_array[2].IsInt()) {
+            subscribe_callback(reply->server_id, reply_array[1].GetString(), reply_array[2].GetInt());
+        }
     } else if (!strcasecmp(reply_array[0].GetString().c_str(), unsubscribe_type.data())) {
-        unsubscribe_callback(reply->server_id, reply_array[1].GetString(), reply_array[2].GetInt());
+        if (reply_array[1].IsString() && reply_array[2].IsInt()) {
+            unsubscribe_callback(reply->server_id, reply_array[1].GetString(), reply_array[2].GetInt());
+        }
     } else if (!strcasecmp(reply_array[0].GetString().c_str(), message_type.data())) {
-        message_callback(reply->server_id, reply_array[1].GetString(), reply_array[2].GetString());
+        if (reply_array[1].IsString() && reply_array[2].IsString()) {
+            message_callback(reply->server_id, reply_array[1].GetString(), reply_array[2].GetString());
+        }
     }
 }
 
@@ -111,7 +117,7 @@ Sentinel::Sentinel(
         !creation_config.key_shard_factory.IsClusterStrategy() || database_index == 0,
         "Database index other than 0 now supported in cluster and standalone modes"
     );
-    sentinel_thread_control_->RunInEvLoopBlocking([&]() {
+    sentinel_thread_control_->RunInEvLoopSyncWithResult([&]() {
         impl_ = std::make_unique<SentinelImpl>(
             *sentinel_thread_control_,
             thread_pools_->GetRedisThreadPool(),
@@ -131,7 +137,7 @@ Sentinel::Sentinel(
 Sentinel::~Sentinel() { Stop(); }
 
 void Sentinel::Start() {
-    sentinel_thread_control_->RunInEvLoopBlocking([this] { impl_->Start(); });
+    sentinel_thread_control_->RunInEvLoopSyncWithResult([this] { impl_->Start(); });
 }
 
 void Sentinel::WaitConnectedDebug(bool allow_empty_slaves) { impl_->WaitConnectedDebug(allow_empty_slaves); }
@@ -191,6 +197,11 @@ void Sentinel::Stop() noexcept {
         impl_.reset();
     }
     UASSERT(!impl_);
+}
+
+const engine::ev::ThreadControl& Sentinel::GetSentinelThreadControl() const {
+    UASSERT(sentinel_thread_control_);
+    return *sentinel_thread_control_;
 }
 
 std::unordered_map<ServerId, size_t, ServerIdHasher> Sentinel::GetAvailableServersWeighted(
@@ -359,15 +370,17 @@ void Sentinel::OnPsubscribeReply(
         return;
     }
     if (!strcasecmp(reply_array[0].GetString().c_str(), "PSUBSCRIBE")) {
-        if (reply_array.size() == 3) {
+        if (reply_array.size() == 3 && reply_array[1].IsString() && reply_array[2].IsInt()) {
             subscribe_callback(reply->server_id, reply_array[1].GetString(), reply_array[2].GetInt());
         }
     } else if (!strcasecmp(reply_array[0].GetString().c_str(), "PUNSUBSCRIBE")) {
-        if (reply_array.size() == 3) {
+        if (reply_array.size() == 3 && reply_array[1].IsString() && reply_array[2].IsInt()) {
             unsubscribe_callback(reply->server_id, reply_array[1].GetString(), reply_array[2].GetInt());
         }
     } else if (!strcasecmp(reply_array[0].GetString().c_str(), "PMESSAGE")) {
-        if (reply_array.size() == 4) {
+        if (reply_array.size() == 4 && reply_array[1].IsString() && reply_array[2].IsString() &&
+            reply_array[3].IsString())
+        {
             pmessage_callback(
                 reply->server_id,
                 reply_array[1].GetString(),

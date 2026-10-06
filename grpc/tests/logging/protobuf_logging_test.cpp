@@ -1,6 +1,7 @@
 #include <userver/ugrpc/protobuf_logging.hpp>
 
 #include <gmock/gmock.h>
+#include <google/protobuf/any.pb.h>
 #include <google/protobuf/empty.pb.h>
 #include <google/protobuf/wrappers.pb.h>
 #include <google/rpc/status.pb.h>
@@ -43,6 +44,40 @@ UTEST(ProtobufLogging, GetMessageSizeLimit) {
     EXPECT_GT(large_result.size(), small_result.size());
     EXPECT_THAT(large_result, testing::HasSubstr("test string with some content"));
     EXPECT_THAT(large_result, testing::Not(testing::HasSubstr(kTruncateMarker)));
+}
+
+UTEST(ProtobufLogging, UnresolvedAnyOmitsValue) {
+    constexpr std::string_view kSecret = "sensitive-payload";
+
+    google::rpc::Status status;
+    status.set_code(static_cast<int>(grpc::StatusCode::INVALID_ARGUMENT));
+    status.set_message("keep");
+    auto* detail = status.add_details();
+    detail->set_type_url("type.googleapis.com/testing.unregistered.Message");
+    detail->set_value(std::string{kSecret});
+
+    const auto result = ugrpc::ToUnlimitedLoggingString(status);
+
+    EXPECT_EQ(
+        result,
+        R"({"code":3,"message":"keep","details":[{"@type":"type.googleapis.com/testing.unregistered.Message","@error":"unresolved_any_type"}]})"
+    );
+    EXPECT_THAT(result, testing::Not(testing::HasSubstr(kSecret)));
+    EXPECT_THAT(result, testing::Not(testing::HasSubstr("c2Vuc2l0aXZlLXBheWxvYWQ=")));
+}
+
+UTEST(ProtobufLogging, CorruptAnyDoesNotLeakValue) {
+    constexpr std::string_view kSecret = "sensitive-payload";
+
+    google::protobuf::Any any;
+    any.set_type_url("type.googleapis.com/google.protobuf.StringValue");
+    any.set_value(std::string{"\xff"} + std::string{kSecret});
+
+    const auto result = ugrpc::ToUnlimitedLoggingString(any);
+
+    EXPECT_EQ(result, R"({"@type":"type.googleapis.com/google.protobuf.StringValue","@error":"invalid_payload"})");
+    EXPECT_THAT(result, testing::Not(testing::HasSubstr(kSecret)));
+    EXPECT_THAT(result, testing::Not(testing::HasSubstr("c2Vuc2l0aXZlLXBheWxvYWQ=")));
 }
 
 UTEST(ProtobufLogging, OkStatus) {

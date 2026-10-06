@@ -5,6 +5,7 @@
 #include <fmt/format.h>
 #include <boost/algorithm/string/replace.hpp>
 
+#include <userver/engine/exception.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
@@ -26,7 +27,7 @@ void Unwind() {
         return;
     }
 
-    if (ctx.SetCancellable(false)) {
+    if (ctx.IsCancellable()) {
         LOG_TRACE() << "Cancelling current task" << logging::LogExtra::Stacktrace();
         // NOLINTNEXTLINE(hicpp-exception-baseclass)
         throw impl::CoroUnwinder{};
@@ -54,6 +55,12 @@ TaskCancellationReason CancellationReason() noexcept { return GetCurrentTaskCont
 void CancellationPoint() {
     if (current_task::ShouldCancel()) {
         Unwind();
+    }
+}
+
+void CancellationPointWeak() {
+    if (current_task::ShouldCancel()) {
+        throw WaitInterruptedException(current_task::CancellationReason());
     }
 }
 

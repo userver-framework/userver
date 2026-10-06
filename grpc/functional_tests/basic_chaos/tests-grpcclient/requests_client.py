@@ -1,5 +1,7 @@
 import asyncio
 
+import pytest_userver.utils.sync as sync
+
 ALL_CASES = [
     'say_hello',
     'say_hello_response_stream',
@@ -9,6 +11,9 @@ ALL_CASES = [
 ]
 
 _RETRIES = 10
+
+_GRPC_CHANNEL_READY_TIMEOUT_SECONDS = 30
+_GRPC_READY_AFTER_GATE_RESET_WAIT_SECONDS = 120
 
 
 async def _request_without_case(grpc_ch, service_client, gate):
@@ -131,6 +136,29 @@ async def unavailable_request(service_client, gate, case):
 
 def check_200_for(case):
     return _REQUESTS[case]
+
+
+async def ensure_grpc_ready_after_gate_reset(grpc_ch, service_client) -> None:
+    async def is_ready():
+        try:
+            await asyncio.wait_for(
+                grpc_ch.channel_ready(),
+                timeout=_GRPC_CHANNEL_READY_TIMEOUT_SECONDS,
+            )
+        except asyncio.TimeoutError:
+            return False
+        response = await service_client.post(
+            '/hello?case=say_hello',
+            data='Python',
+            headers={'Content-type': 'text/plain'},
+        )
+        return response.status == 200
+
+    await sync.wait(
+        is_ready,
+        failure_msg='gRPC connection not ready after gate reset',
+        total_wait_seconds=_GRPC_READY_AFTER_GATE_RESET_WAIT_SECONDS,
+    )
 
 
 async def close_connection(gate, grpc_ch, service_client):

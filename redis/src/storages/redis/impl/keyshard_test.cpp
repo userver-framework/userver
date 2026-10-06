@@ -1,7 +1,6 @@
 #include "keyshard_impl.hpp"
 
 #include <atomic>
-#include <mutex>
 #include <thread>
 #include <vector>
 
@@ -60,29 +59,29 @@ TEST(KeyShardTaximeterCrc32, Multithreads) {
     static constexpr std::size_t kThreadCount = 32;
     storages::redis::impl::KeyShardTaximeterCrc32 key_shard(kShards);
 
-    std::mutex mutex;
     std::vector<size_t> counts(kShards, 0);
+    std::vector<std::vector<size_t>> thread_counts(kThreadCount, std::vector<size_t>(kShards, 0));
     std::atomic<size_t> count(0);
 
     std::vector<std::thread> threads;
     threads.reserve(kThreadCount);
-    for (size_t i = 0; i < kThreadCount; ++i) {
-        threads.emplace_back([&]() -> void {
-            std::vector<size_t> tcounts(kShards, 0);
+    for (size_t thread_idx = 0; thread_idx < kThreadCount; ++thread_idx) {
+        threads.emplace_back([&, thread_idx]() -> void {
+            auto& tcounts = thread_counts[thread_idx];
             while (count++ < kCount) {
                 size_t idx = 0;
                 UASSERT_NO_THROW(idx = key_shard.ShardByKey(kKey));
                 ++tcounts[idx];
             }
-
-            const std::scoped_lock guard(mutex);
-            for (size_t i = 0; i < kShards; ++i) {
-                counts[i] += tcounts[i];
-            }
         });
     }
     for (auto& thread : threads) {
         thread.join();
+    }
+    for (const auto& tcounts : thread_counts) {
+        for (size_t shard_idx = 0; shard_idx < kShards; ++shard_idx) {
+            counts[shard_idx] += tcounts[shard_idx];
+        }
     }
 
     EXPECT_EQ(kCount, counts[key_shard.ShardByKey(kKey)]);

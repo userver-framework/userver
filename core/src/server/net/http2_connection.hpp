@@ -2,7 +2,6 @@
 
 #include <exception>
 #include <memory>
-#include <string>
 #include <vector>
 
 #include <server/http/request_handler_base.hpp>

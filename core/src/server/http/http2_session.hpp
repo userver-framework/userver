@@ -6,6 +6,7 @@
 #include <server/http/http2_stream.hpp>
 #include <server/http/http2_writer.hpp>
 #include <server/http/http_request_constructor.hpp>
+#include <server/http/http_response_impl.hpp>
 #include <server/net/stats.hpp>
 #include <server/request/request_parser.hpp>
 

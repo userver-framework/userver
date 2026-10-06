@@ -1,8 +1,13 @@
 #pragma once
 
 #include <sys/uio.h>
+#include <algorithm>
 #include <atomic>
 #include <cerrno>
+#include <climits>
+#include <cstddef>
+#include <optional>
+#include <string_view>
 
 #include <boost/container/small_vector.hpp>
 
@@ -43,6 +48,12 @@ enum class TransferMode {
 enum class ErrorMode {
     kProcessed,  ///< continue execute operation
     kFatal,      ///< break execute operation
+};
+
+/// Return TryHandleNoblockError in PerformNoblockIo
+enum class NoblockErrorMode {
+    kRetry,       ///< repeat the interrupted syscall
+    kWouldBlock,  ///< no progress is possible without waiting
 };
 
 class FdControl;
@@ -103,6 +114,25 @@ public:
         const Context&... context
     );
 
+    // (IoFunc*)(int, void*, size_t), e.g. read
+    template <typename IoFunc, typename... Context>
+    std::optional<size_t> PerformNoblockIo(
+        SingleUserGuard& guard,
+        IoFunc&& io_func,
+        void* buf,
+        size_t len,
+        const Context&... context
+    );
+
+    template <typename IoFunc, typename... Context>
+    std::optional<size_t> PerformNoblockIoV(
+        SingleUserGuard& guard,
+        IoFunc&& io_func,
+        const struct iovec* list,
+        std::size_t list_size,
+        const Context&... context
+    );
+
     engine::AwaitableToken GetAwaitableToken() noexcept USERVER_IMPL_LIFETIME_BOUND {
         return poller_.GetAwaitableToken();
     }
@@ -146,6 +176,12 @@ private:
         Deadline deadline,
         Context&... context
     );
+
+    template <typename... Context>
+    NoblockErrorMode TryHandleNoblockError(int error_code, Context&... context);
+
+    template <typename... Context>
+    [[noreturn]] void HandleIoSystemError(int error_code, std::string_view operation, Context&... context);
 
     FdPoller poller_;
 };
@@ -256,6 +292,53 @@ size_t Direction::PerformIoV(
 }
 
 template <typename IoFunc, typename... Context>
+std::optional<size_t> Direction::PerformNoblockIo(
+    SingleUserGuard&,
+    IoFunc&& io_func,
+    void* buf,
+    size_t len,
+    const Context&... context
+) {
+    for (;;) {
+        const auto chunk_size = io_func(Fd(), buf, len);
+        if (chunk_size >= 0) {
+            return static_cast<size_t>(chunk_size);
+        }
+        if (TryHandleNoblockError(errno, context...) == NoblockErrorMode::kWouldBlock) {
+            return std::nullopt;
+        }
+    }
+}
+
+template <typename IoFunc, typename... Context>
+std::optional<size_t> Direction::PerformNoblockIoV(
+    SingleUserGuard&,
+    IoFunc&& io_func,
+    const struct iovec* list,
+    std::size_t list_size,
+    const Context&... context
+) {
+    const auto* const first_nonempty = std::find_if(list, list + list_size, [](const struct iovec& buffer) {
+        return buffer.iov_len != 0;
+    });
+    list_size -= static_cast<std::size_t>(first_nonempty - list);
+    list = first_nonempty;
+    if (list_size == 0) {
+        return 0;
+    }
+
+    for (;;) {
+        const auto chunk_size = io_func(Fd(), list, (list_size < IOV_MAX ? list_size : IOV_MAX));
+        if (chunk_size >= 0) {
+            return static_cast<size_t>(chunk_size);
+        }
+        if (TryHandleNoblockError(errno, context...) == NoblockErrorMode::kWouldBlock) {
+            return std::nullopt;
+        }
+    }
+}
+
+template <typename IoFunc, typename... Context>
 size_t Direction::PerformIoVMutatingTrampoline(
     IoFunc&& io_func,
     utils::IovIter iter,
@@ -323,9 +406,10 @@ ErrorMode Direction::TryHandleError(
 ) {
     if (error_code == EINTR) {
         return ErrorMode::kProcessed;
-    } else if (error_code == EWOULDBLOCK
+    }
+    if (error_code == EWOULDBLOCK
 #if EWOULDBLOCK != EAGAIN
-               || error_code == EAGAIN
+        || error_code == EAGAIN
 #endif
     )
     {
@@ -346,21 +430,42 @@ ErrorMode Direction::TryHandleError(
             throw((IoException() << "Fd closed during ") << ... << context);
         }
     } else {
-        IoSystemError ex(error_code, "Direction::PerformIo");
-        ex << "Error while ";
-        (ex << ... << context);
-        ex << ", fd=" << Fd();
-        auto log_level = logging::Level::kError;
-        if (error_code == ECONNRESET || error_code == EPIPE) {
-            log_level = logging::Level::kInfo;
-        }
-        LOG(log_level) << ex;
         if (processed_bytes != 0) {
             return ErrorMode::kFatal;
         }
-        throw std::move(ex);
+        HandleIoSystemError(error_code, "Direction::PerformIo", context...);
     }
     return ErrorMode::kProcessed;
+}
+
+template <typename... Context>
+NoblockErrorMode Direction::TryHandleNoblockError(int error_code, Context&... context) {
+    if (error_code == EINTR) {
+        return NoblockErrorMode::kRetry;
+    }
+    if (error_code == EWOULDBLOCK
+#if EWOULDBLOCK != EAGAIN
+        || error_code == EAGAIN
+#endif
+    )
+    {
+        return NoblockErrorMode::kWouldBlock;
+    }
+    HandleIoSystemError(error_code, "Direction::PerformNoblockIo", context...);
+}
+
+template <typename... Context>
+void Direction::HandleIoSystemError(int error_code, std::string_view operation, Context&... context) {
+    IoSystemError ex(error_code, operation);
+    ex << "Error while ";
+    (ex << ... << context);
+    ex << ", fd=" << Fd();
+    auto log_level = logging::Level::kError;
+    if (error_code == ECONNRESET || error_code == EPIPE) {
+        log_level = logging::Level::kInfo;
+    }
+    LOG(log_level) << ex;
+    throw std::move(ex);
 }
 
 }  // namespace engine::io::impl

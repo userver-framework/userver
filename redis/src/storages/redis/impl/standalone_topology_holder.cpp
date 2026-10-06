@@ -44,20 +44,22 @@ void StandaloneTopologyHolder::Start() {
 }
 
 void StandaloneTopologyHolder::Stop() {
+    DisableCallbacks();
     // prevent concurrent CreateNode() calls
     create_node_watch_.Stop();
 
     signal_node_state_change_.disconnect_all_slots();
     signal_topology_changed_.disconnect_all_slots();
 
-    node_.Cleanup();
-    topology_.Cleanup();
+    topology_.Assign(ClusterTopology{});
+    node_.Assign(std::nullopt);
 }
 
 bool StandaloneTopologyHolder::WaitReadyOnce(engine::Deadline deadline, WaitConnectedMode mode) {
     LOG_DEBUG() << "WaitReadyOnce in mode " << ToString(mode);
-    std::unique_lock lock{mutex_};
-    return cv_.WaitUntil(lock, deadline, [this, mode]() { return IsReady(HealthCheckParams{mode, 0, 0}); });
+    return readiness_event_.WaitUntil(deadline, [this, mode] {
+        return IsReady(HealthCheckParams{mode, 0, 0});
+    }) == engine::FutureStatus::kReady;
 }
 
 bool StandaloneTopologyHolder::IsReady(const HealthCheckParams& params) const {
@@ -68,7 +70,7 @@ bool StandaloneTopologyHolder::IsReady(const HealthCheckParams& params) const {
     return ptr->IsReady(params);
 }
 
-rcu::ReadablePtr<ClusterTopology, rcu::BlockingRcuTraits> StandaloneTopologyHolder::GetTopology() const {
+rcu::ReadablePtr<ClusterTopology, rcu::ExclusiveRcuTraits> StandaloneTopologyHolder::GetTopology() const {
     return topology_.Read();
 }
 
@@ -97,13 +99,11 @@ void StandaloneTopologyHolder::GetStatistics(SentinelStatistics& stats, const Me
 }
 
 void StandaloneTopologyHolder::SetCommandsBufferingSettings(CommandsBufferingSettings settings) {
-    {
-        auto settings_ptr = commands_buffering_settings_.Lock();
-        if (*settings_ptr == settings) {
-            return;
-        }
-        *settings_ptr = settings;
+    UASSERT(ev_thread_.IsInEvThread());
+    if (commands_buffering_settings_ == settings) {
+        return;
     }
+    commands_buffering_settings_ = settings;
     auto node = node_.Read();
     if (node->has_value()) {
         node->value().node->SetCommandsBufferingSettings(settings);
@@ -111,10 +111,8 @@ void StandaloneTopologyHolder::SetCommandsBufferingSettings(CommandsBufferingSet
 }
 
 void StandaloneTopologyHolder::SetReplicationMonitoringSettings(ReplicationMonitoringSettings settings) {
-    {
-        auto settings_ptr = monitoring_settings_.Lock();
-        *settings_ptr = settings;
-    }
+    UASSERT(ev_thread_.IsInEvThread());
+    monitoring_settings_ = settings;
     auto node = node_.Read();
     if (node->has_value()) {
         node->value().node->SetReplicationMonitoringSettings(settings);
@@ -122,10 +120,8 @@ void StandaloneTopologyHolder::SetReplicationMonitoringSettings(ReplicationMonit
 }
 
 void StandaloneTopologyHolder::SetRetryBudgetSettings(const utils::RetryBudgetSettings& settings) {
-    {
-        auto settings_ptr = retry_budget_settings_.Lock();
-        *settings_ptr = settings;
-    }
+    UASSERT(ev_thread_.IsInEvThread());
+    retry_budget_settings_ = settings;
     auto node = node_.Read();
     if (node->has_value()) {
         node->value().node->SetRetryBudgetSettings(settings);
@@ -133,6 +129,7 @@ void StandaloneTopologyHolder::SetRetryBudgetSettings(const utils::RetryBudgetSe
 }
 
 void StandaloneTopologyHolder::SetConnectionInfo(const std::vector<ConnectionInfoInt>& info_array) {
+    UASSERT(ev_thread_.IsInEvThread());
     if (info_array.size() != 1) {
         throw std::runtime_error("Single connection configuration is supported only");
     }
@@ -140,11 +137,8 @@ void StandaloneTopologyHolder::SetConnectionInfo(const std::vector<ConnectionInf
     auto& new_conn = info_array.front();
     LOG_DEBUG() << "Update connection info to " << new_conn.Fulltext();
 
-    {
-        const std::lock_guard<std::mutex> lock(mutex_);
-        conn_to_create_ = new_conn;
-        is_nodes_received_.store(false);
-    }
+    conn_to_create_ = new_conn;
+    is_nodes_received_.store(false);
     create_node_watch_.Send();
 }
 
@@ -158,9 +152,7 @@ boost::signals2::signal<void(size_t)>& StandaloneTopologyHolder::GetSignalTopolo
 }
 
 std::shared_ptr<RedisConnectionHolder> StandaloneTopologyHolder::CreateRedisInstance(const ConnectionInfoInt& info) {
-    const auto buffering_settings_ptr = commands_buffering_settings_.Lock();
-    const auto replication_monitoring_settings_ptr = monitoring_settings_.Lock();
-    const auto retry_budget_settings_ptr = retry_budget_settings_.Lock();
+    UASSERT(ev_thread_.IsInEvThread());
     LOG_DEBUG() << "Create new redis instance " << info.Fulltext();
     return RedisConnectionHolder::Create(
         ev_thread_,
@@ -170,66 +162,67 @@ std::shared_ptr<RedisConnectionHolder> StandaloneTopologyHolder::CreateRedisInst
         info.HostPort().second,
         GetCredentials(),
         database_index_,
-        buffering_settings_ptr->value_or(CommandsBufferingSettings{}),
-        *replication_monitoring_settings_ptr,
-        *retry_budget_settings_ptr,
+        commands_buffering_settings_.value_or(CommandsBufferingSettings{}),
+        monitoring_settings_,
+        retry_budget_settings_,
         statistics_holder_.MakeInstanceStats(),
         redis::RedisCreationSettings{info.GetConnectionSecurity(), false}
     );
 }
 
 void StandaloneTopologyHolder::CreateNode() {
+    UASSERT(ev_thread_.IsInEvThread());
     LOG_DEBUG() << "Create node started";
 
-    {
-        const std::lock_guard lock{mutex_};
-        // one shard
-        ClusterShardHostInfos shard_infos{
-            // only master, no slaves
-            ClusterShardHostInfo{conn_to_create_, {}, {}}
-        };
+    // one shard
+    ClusterShardHostInfos shard_infos{
+        // only master, no slaves
+        ClusterShardHostInfo{conn_to_create_, {}, {}}
+    };
 
-        if (auto topology_ptr = topology_.Read(); topology_ptr->HasSameInfos(shard_infos)) {
-            LOG_INFO() << "Current topology has the same shard";
-            is_nodes_received_.store(true);
+    if (auto topology_ptr = topology_.Read(); topology_ptr->HasSameInfos(shard_infos)) {
+        LOG_INFO() << "Current topology has the same shard";
+        is_nodes_received_.store(true);
+        readiness_event_.Send();
+        return;
+    }
+
+    auto host_port = conn_to_create_.Fulltext();
+    auto redis_connection = CreateRedisInstance(conn_to_create_);
+    const auto callback_token = GetCallbackToken();
+    redis_connection->signal_state_change.connect([host_port, this, callback_token](redis::RedisState state) {
+        if (!AreCallbacksEnabled(callback_token)) {
             return;
         }
+        GetSignalNodeStateChanged()(host_port, state);
+        readiness_event_.Send();
+    });
 
-        auto& host_port = conn_to_create_.Fulltext();
-        auto redis_connection = CreateRedisInstance(conn_to_create_);
-        redis_connection->signal_state_change.connect([host_port, this](redis::RedisState state) {
-            GetSignalNodeStateChanged()(host_port, state);
-            {
-                const std::lock_guard lock{mutex_};
-            }
-            cv_.NotifyAll();
-        });
+    NodesStorage nodes;
+    nodes.Insert(host_port, redis_connection);
+    topology_.Emplace(
+        ++current_topology_version_,
+        std::chrono::steady_clock::now(),
+        std::move(shard_infos),
+        redis_thread_pool_,
+        nodes
+    );
 
-        NodesStorage nodes;
-        nodes.Insert(host_port, redis_connection);
-        topology_.Emplace(
-            ++current_topology_version_,
-            std::chrono::steady_clock::now(),
-            std::move(shard_infos),
-            redis_thread_pool_,
-            nodes
-        );
-
-        node_.Emplace(Node{std::move(host_port), redis_connection});
-        is_nodes_received_.store(true);
-    }
+    node_.Emplace(Node{std::move(host_port), redis_connection});
+    is_nodes_received_.store(true);
+    readiness_event_.Send();
 
     signal_topology_changed_(1);
 }
 
 void StandaloneTopologyHolder::UpdateCredentials(const Credentials& credentials) {
-    auto lock = credentials_.UniqueLock();
-    *lock = credentials;
+    UASSERT(ev_thread_.IsInEvThread());
+    credentials_ = credentials;
 }
 
 Credentials StandaloneTopologyHolder::GetCredentials() {
-    const auto lock = credentials_.Lock();
-    return *lock;
+    UASSERT(ev_thread_.IsInEvThread());
+    return credentials_;
 }
 
 std::string StandaloneTopologyHolder::GetReadinessInfo() const {

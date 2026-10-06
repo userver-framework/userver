@@ -71,8 +71,7 @@ For each variable file `NAME.yaml` the following files are generated under
 | `include/dynamic_config/variables/NAME.types.hpp` | Type definitions |
 | `include/dynamic_config/variables/NAME.types_parsers.ipp` | DOM / YAML parsers |
 | `include/dynamic_config/variables/NAME.hpp` | Variable wrapper (`dynamic_config::Variable<T>`) |
-| `src/dynamic_config/variables/NAME.types.cpp` | Type definitions source |
-| `src/dynamic_config/variables/NAME.cpp` | Variable initializer (registers default value) |
+| `src/dynamic_config/variables/NAME.cpp` | Variable initializer (registers default value) and the type parsers/serializers, one translation unit per variable |
 
 Include `dynamic_config/variables/NAME.hpp` to use the variable in C++:
 

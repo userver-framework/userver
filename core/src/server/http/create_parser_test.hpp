@@ -11,6 +11,7 @@
 #include <server/http/http2_session.hpp>
 #include <server/http/http_request_parser.hpp>
 #include <server/net/connection_config.hpp>
+#include <server/request/response_data_accounter.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

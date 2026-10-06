@@ -9,6 +9,7 @@
 #include <functional>
 #include <string>
 #include <string_view>
+#include <vector>
 
 #include <boost/container_hash/hash.hpp>
 #include <boost/pfr/core.hpp>

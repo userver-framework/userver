@@ -27,11 +27,10 @@ void AppendSessionId(const TransactionData& data, bson_t* opts) {
 
 CDriverTransactionCollectionImpl::CDriverTransactionCollectionImpl(
     PoolImplPtr pool_impl,
-    std::string database_name,
     std::string collection_name,
     std::shared_ptr<TransactionData> data
 )
-    : CDriverCollectionImpl(std::move(pool_impl), std::move(database_name), std::move(collection_name)),
+    : CDriverCollectionImpl(std::move(pool_impl), std::move(collection_name)),
       data_(std::move(data))
 {
     UASSERT(data_);

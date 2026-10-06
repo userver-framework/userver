@@ -1,10 +1,9 @@
 import pytest
 
 
-# forced port is required for embedded config
 @pytest.fixture(scope='session')
-def service_port() -> int:
-    return 8096
+def service_port(get_free_port) -> int:
+    return get_free_port()
 
 
 # /// [Functional test]

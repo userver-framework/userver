@@ -1,6 +1,5 @@
 #pragma once
 
-#include <chrono>
 #include <unordered_set>
 
 #include <userver/dynamic_config/snapshot.hpp>

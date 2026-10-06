@@ -215,3 +215,6 @@ async def test_otel_task_propagation(
     written_spans = [entry for entry in trace_logs if 'stopwatch_name' in entry]
     expected_sampled = not sampling_enabled or bool(int(expected_flags, 16) & 1)
     assert bool(written_spans) == expected_sampled
+    assert trace_logs
+    expected_log_flag = str(int(expected_sampled))
+    assert all(entry.get('trace_sampled') == expected_log_flag for entry in trace_logs)

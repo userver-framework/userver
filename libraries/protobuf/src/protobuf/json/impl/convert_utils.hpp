@@ -23,6 +23,11 @@ constexpr inline char ascii_tolower(const char c) noexcept { return (c >= 'A' &&
 
 constexpr inline char ascii_toupper(const char c) noexcept { return (c >= 'a' && c <= 'z') ? (c - 'a' + 'A') : c; }
 
+// Widens 'float' to 'double' keeping the shortest decimal representation of the float ('0.1f' -> '0.1' instead of
+// '0.10000000149011612'), so that JSON output for float fields matches other ProtoJSON implementations.
+// Non-finite values are widened as is.
+[[nodiscard]] double WidenFloatToDouble(float value);
+
 enum class MessageType {
     kGeneral = 1,
     kAny = 2,

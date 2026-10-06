@@ -11,6 +11,7 @@
 #include <userver/ugrpc/client/impl/call_state.hpp>
 #include <userver/ugrpc/protobuf_logging.hpp>
 #include <userver/ugrpc/status_codes.hpp>
+#include <userver/utils/impl/internal_tag.hpp>
 
 #include <ugrpc/impl/logging.hpp>
 
@@ -19,6 +20,34 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::client::middlewares::log {
 
 namespace {
+
+constexpr std::string_view kTlsConfigurationHint =
+    "The gRPC client uses an insecure channel for an endpoint on port 443. "
+#ifdef ARCADIA_ROOT
+    "For Yandex-internal builds, see https://nda.ya.ru/t/1JSu04VF7sMFra for TLS configuration.";
+#else
+    "If the endpoint requires TLS, set 'auth-type: ssl' in the gRPC client factory component.";
+#endif
+
+bool HasPort443(std::string_view endpoint) {
+    if (endpoint.starts_with("unix:") || endpoint.starts_with("unix-abstract:")) {
+        return false;
+    }
+
+    const auto query_or_fragment = endpoint.find_first_of("?#");
+    endpoint = endpoint.substr(0, query_or_fragment);
+    return endpoint.ends_with(":443");
+}
+
+std::string MakeErrorDetailsForLogging(const grpc::Status& status, std::string_view endpoint, AuthType auth_type) {
+    auto error_details = ugrpc::ToUnlimitedLoggingString(status);
+    if (status.error_code() == grpc::StatusCode::UNAVAILABLE && auth_type == AuthType::kInsecure &&
+        HasPort443(endpoint))
+    {
+        error_details += fmt::format(" Hint: {}", kTlsConfigurationHint);
+    }
+    return error_details;
+}
 
 std::string GetMessageForLogging(const google::protobuf::Message& message, const Settings& settings) {
     if (settings.msg_log_level < settings.log_level || !logging::ShouldLog(settings.msg_log_level)) {
@@ -119,7 +148,8 @@ void Middleware::PostFinish(MiddlewareCallContext& context, const CompletionStat
                 logger.Log(settings_.msg_log_level, "gRPC response stream finished", logging::LogExtra{});
             }
         } else {
-            auto error_details = ugrpc::ToUnlimitedLoggingString(status);
+            const auto& state = context.GetState(utils::impl::InternalTag{});
+            auto error_details = MakeErrorDetailsForLogging(status, state.GetEndpoint(), state.GetAuthType());
             logging::LogExtra extra{
                 {ugrpc::impl::kTypeTag, "error_status"},
                 {ugrpc::impl::kCodeTag, ugrpc::ToStringView(status.error_code())},

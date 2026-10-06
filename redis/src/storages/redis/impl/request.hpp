@@ -1,7 +1,5 @@
 #pragma once
 
-#include <chrono>
-
 #include <userver/compiler/impl/lifetime.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/future.hpp>

@@ -80,7 +80,7 @@ using InsertRow = std::vector<InsertColumn>;
 /// @endcond
 
 template <typename T>
-requires meta::kIsRange<T> && (!meta::kIsMap<T>)
+requires meta::IsRange<T> && (!meta::IsMap<T>)
 struct ValueTraits<T> {
     using ValueType = meta::RangeValueType<T>;
 
@@ -130,7 +130,7 @@ struct ValueTraits<T> {
 };
 
 template <typename T>
-requires meta::kIsRange<T> && (!meta::kIsMap<T>)
+requires meta::IsRange<T> && (!meta::IsMap<T>)
 struct ValueTraits<std::optional<T>> : impl::GenericOptionalValueTraits<T> {};
 
 }  // namespace ydb

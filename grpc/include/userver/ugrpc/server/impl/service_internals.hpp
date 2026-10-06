@@ -22,13 +22,14 @@ class CompletionQueuePool;
 
 /// Config for a `ServiceWorker`, provided by `ugrpc::server::Server`
 struct ServiceInternals final {
-    CompletionQueuePool& completion_queues;
+    CompletionQueuePool* completion_queues;
     engine::TaskProcessor& task_processor;
     ugrpc::impl::StatisticsStorage& statistics_storage;
     Middlewares middlewares;
     const dynamic_config::Source config_source;
     boost::container::flat_map<grpc::StatusCode, logging::Level> status_codes_log_level;
     bool otel_trace_sampling_enabled;
+    bool use_callback_api;
 };
 
 }  // namespace ugrpc::server::impl

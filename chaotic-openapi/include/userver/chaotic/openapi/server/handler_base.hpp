@@ -26,6 +26,8 @@ namespace chaotic::openapi::server {
 
 namespace impl {
 
+inline const utils::AnyStorageDataTag<USERVER_NAMESPACE::server::request::StorageContext, std::string> kResponseLog;
+
 template <typename V>
 concept ViewHasGetRequestBodyForLoggingJson = requires(const USERVER_NAMESPACE::formats::json::Value& body) {
     {
@@ -178,8 +180,7 @@ private:
         auto response = View::Handle(std::move(request), std::move(deps), context);
         auto serialized = SerializeResponse(response, http_request);
         if constexpr (impl::ViewHasGetResponseForLogging<View, Response>) {
-            context.SetData<
-                std::string>(std::string{kResponseLogKey}, View::GetResponseForLogging(response, serialized, context));
+            context.EmplaceData(impl::kResponseLog, View::GetResponseForLogging(response, serialized, context));
         }
         return serialized;
     }
@@ -245,7 +246,7 @@ private:
         const std::string& response_data
     ) const override {
         if constexpr (impl::ViewHasGetResponseForLogging<View, Response>) {
-            if (auto* s = context.GetDataOptional<std::string>(kResponseLogKey)) {
+            if (auto* s = context.GetDataOptional(impl::kResponseLog)) {
                 return *s;
             }
         }
@@ -255,8 +256,6 @@ private:
             response_data
         );
     }
-
-    static constexpr std::string_view kResponseLogKey = "chaotic_openapi_response_log";
 
     FactoriesContainer& factories_;
 };

@@ -16,6 +16,8 @@ struct HandshakeData {
     std::string origin;
 };
 
+const utils::AnyStorageDataTag<server::request::StorageContext, HandshakeData> kHandshakeData;
+
 class WebsocketsHandler final : public server::handlers::WebsocketHandlerBase {
 public:
     static constexpr std::string_view kName = "websocket-handler";
@@ -23,12 +25,12 @@ public:
     using WebsocketHandlerBase::WebsocketHandlerBase;
 
     bool HandleHandshake(server::http::HttpRequest& request, server::request::RequestContext& context) const override {
-        context.SetUserData(HandshakeData{request.GetHeader("Origin")});
+        context.EmplaceData(kHandshakeData, request.GetHeader("Origin"));
         return true;
     }
 
     void Handle(websocket::WebSocketConnection& chat, server::request::RequestContext& context) const override {
-        const auto& origin = context.GetUserData<HandshakeData>().origin;
+        const auto& origin = context.GetData(kHandshakeData).origin;
         if (!origin.empty()) {
             chat.Send({origin, {}, true});
         }

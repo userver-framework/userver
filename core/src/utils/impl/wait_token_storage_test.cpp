@@ -1,6 +1,9 @@
 #include <userver/utils/impl/wait_token_storage.hpp>
 
+#include <userver/concurrent/impl/asymmetric_fence.hpp>
+
 #include <atomic>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <thread>
@@ -139,6 +142,61 @@ UTEST_MT(WaitTokenStorage, TokenReleaseRace, 3) {
             task.Get();
         }
     }
+}
+
+UTEST_MT(WaitTokenStorage, WaitForAllTokensHeavySleepMigration, 4) {
+    // Concurrent WaitForAllTokens + AsymmetricThreadFenceHeavy.
+    // Invalid implementations of AsymmetricThreadFenceHeavy may cause deadlocks here.
+    static constexpr auto kTestDuration = 300ms;
+    static constexpr std::size_t kParallel = 8;
+    static constexpr std::size_t kTokenOwners = 4;
+    const auto test_deadline = engine::Deadline::FromDuration(kTestDuration);
+
+    while (!test_deadline.IsReached()) {
+        auto tasks = utils::GenerateFixedArray(kParallel, [](std::size_t) {
+            return engine::AsyncNoTracing([] {
+                utils::impl::WaitTokenStorage wts;
+
+                auto owners = utils::GenerateFixedArray(kTokenOwners, [&](std::size_t) {
+                    return engine::AsyncNoTracing([token = wts.GetToken()] {
+                        // Contends with WaitForAllTokens' AsymmetricThreadFenceHeavy.
+                        concurrent::impl::AsymmetricThreadFenceHeavy();
+                    });
+                });
+
+                wts.WaitForAllTokens();
+
+                for (auto& owner : owners) {
+                    owner.Get();
+                }
+            });
+        });
+
+        for (auto& task : tasks) {
+            task.Get();
+        }
+    }
+}
+
+UTEST(WaitTokenStorage, UnlockFromNonCoroutineThread) {
+    // DoUnlock after shutdown_started must take shutdown_mutex from an OS thread
+    // (HTTP curl IO / gRPC CQ). engine::Mutex would be invalid here.
+    utils::impl::WaitTokenStorage wts;
+    std::optional<utils::impl::WaitTokenStorageLock> token{wts.GetToken()};
+
+    auto waiter = engine::AsyncNoTracing([&] { wts.WaitForAllTokens(); });
+
+    // WaitForAllTokens publishes shutdown_started and blocks until our token dies.
+    engine::SleepFor(50ms);
+    ASSERT_FALSE(waiter.IsFinished());
+
+    std::thread os_thread([&] {
+        UASSERT(!engine::current_task::IsTaskProcessorThread());
+        token.reset();  // locks std::mutex in DoUnlock
+    });
+    os_thread.join();
+
+    UEXPECT_NO_THROW(waiter.Get());
 }
 
 UTEST(WaitTokenStorage, AcquireTokenWhileWaiting) {

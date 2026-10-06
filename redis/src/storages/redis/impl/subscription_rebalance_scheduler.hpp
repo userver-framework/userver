@@ -2,11 +2,13 @@
 
 #include <atomic>
 #include <chrono>
-#include <mutex>
+#include <cstdint>
+#include <memory>
 #include <vector>
 
 #include <engine/ev/thread_control.hpp>
 #include <engine/ev/thread_pool.hpp>
+#include <userver/concurrent/mpsc_queue.hpp>
 
 #include <userver/storages/redis/base.hpp>
 #include "subscription_storage.hpp"
@@ -18,7 +20,7 @@ namespace storages::redis::impl {
 class SubscriptionRebalanceScheduler {
 public:
     SubscriptionRebalanceScheduler(
-        engine::ev::ThreadPool& thread_pool,
+        const engine::ev::ThreadControl& thread_control,
         SubscriptionStorageBase& storage,
         size_t shard_idx
     );
@@ -35,7 +37,10 @@ public:
     std::chrono::milliseconds GetRebalanceMinInterval() const;
 
 private:
+    using RebalanceQueue = concurrent::MpscQueue<ServerWeights>;
+
     void DoRebalance();
+    bool TryTakeLatestWeights(ServerWeights& weights);
 
     static void OnRebalanceRequested(struct ev_loop*, ev_async* w, int) noexcept;
     static void OnTimer(struct ev_loop*, ev_timer* w, int) noexcept;
@@ -47,10 +52,12 @@ private:
     ev_timer timer_{};
     ev_async rebalance_request_watcher_{};
 
-    mutable std::mutex mutex_;
-    ServerWeights weights_;
-    bool next_rebalance_scheduled_{false};
-    std::chrono::milliseconds rebalance_min_interval_;
+    std::shared_ptr<RebalanceQueue> rebalance_queue_;
+    RebalanceQueue::MultiProducer rebalance_producer_;
+    RebalanceQueue::Consumer rebalance_consumer_;
+    std::atomic<bool> rebalance_scheduled_{false};
+    std::atomic<bool> stopped_{false};
+    std::atomic<std::int64_t> rebalance_min_interval_ms_;
 };
 
 }  // namespace storages::redis::impl

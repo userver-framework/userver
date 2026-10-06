@@ -18,6 +18,9 @@ public:
     /// leaving the task valid.
     static boost::intrusive_ptr<TaskContext> GetContext(TaskBase& task) noexcept;
 
+    /// @brief Returns a reference to the TaskContext of `task`, leaving the task valid.
+    static TaskContext& GetContextRef(TaskBase& task) noexcept;
+
     /// @brief Moves the owning reference to the TaskContext out of `task`,
     /// leaving the task invalid. The task is NOT cancelled or waited for.
     static boost::intrusive_ptr<TaskContext> ExtractContext(TaskBase&& task) noexcept;

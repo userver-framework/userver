@@ -1,9 +1,12 @@
 #pragma once
 
+#include <string>
+
 #include <grpcpp/channel.h>
 
 #include <userver/utils/fixed_array.hpp>
 
+#include <userver/ugrpc/client/auth_type.hpp>
 #include <userver/ugrpc/client/client_qos.hpp>
 #include <userver/ugrpc/impl/stub_any.hpp>
 
@@ -18,6 +21,8 @@ struct StubArray {
 
 struct StubState {
     ClientQos client_qos;
+    std::string endpoint;
+    AuthType auth_type{};
 
     StubArray stubs;
     // method_id -> stub_pool

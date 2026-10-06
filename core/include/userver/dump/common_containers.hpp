@@ -108,7 +108,7 @@ requires(IsContainer<T> && kIsReadable<meta::RangeValueType<T>>)
 T Read(Reader& reader, To<T>) {
     const auto size = reader.Read<std::size_t>();
     T result{};
-    if constexpr (meta::kIsReservable<T>) {
+    if constexpr (meta::IsReservable<T>) {
         result.reserve(size);
     }
     for (std::size_t i = 0; i < size; ++i) {
@@ -293,7 +293,7 @@ boost::multi_index_container<T, Index, Alloc> Read(Reader& reader, To<boost::mul
     boost::multi_index_container<T, Index, Alloc> container;
 
     // boost::multi_index_container has reserve() with some, but not all, configs
-    if constexpr (meta::kIsReservable<boost::multi_index_container<T, Index, Alloc>>) {
+    if constexpr (meta::IsReservable<boost::multi_index_container<T, Index, Alloc>>) {
         container.reserve(size);
     }
 

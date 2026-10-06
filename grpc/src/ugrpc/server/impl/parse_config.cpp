@@ -90,6 +90,7 @@ ServerConfig ParseServerConfig(const yaml_config::YamlConfig& value, const compo
     ServerConfig config;
     config.unix_socket_path = value["unix-socket-path"].As<std::optional<std::string>>();
     config.port = value["port"].As<std::optional<int>>();
+    config.use_callback_api = value["use-callback-api"].As<bool>(config.use_callback_api);
     config.completion_queue_num = value["completion-queue-count"].As<std::size_t>(2);
     config.channel_args = value["channel-args"].As<decltype(config.channel_args)>({});
     config.native_log_level = value["native-log-level"].As<logging::Level>(logging::Level::kError);

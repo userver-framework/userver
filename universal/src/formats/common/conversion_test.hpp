@@ -1,7 +1,6 @@
 #include <gtest/gtest.h>
 
 #include <array>
-#include <chrono>
 #include <optional>
 #include <unordered_map>
 

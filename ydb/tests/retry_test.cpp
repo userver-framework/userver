@@ -1,6 +1,22 @@
 #include "test_utils.hpp"
 
+#include <chrono>
+#include <cstddef>
+#include <memory>
+#include <string>
+#include <type_traits>
+#include <utility>
+
+#include <library/cpp/threading/future/core/future.h>
+#include <util/datetime/base.h>
+#include <ydb-cpp-sdk/client/query/client.h>
+#include <ydb-cpp-sdk/client/retry/retry.h>
+#include <ydb-cpp-sdk/client/table/table.h>
 #include <ydb-cpp-sdk/library/issue/yql_issue.h>
+
+#include <userver/engine/sleep.hpp>
+#include <userver/utest/utest.hpp>
+#include <userver/utils/retry_budget.hpp>
 
 #include <ydb/impl/future.hpp>
 #include <ydb/impl/retry.hpp>
@@ -53,6 +69,38 @@ public:
 
 private:
     std::string data_;
+};
+
+template <typename TClient>
+class RetryHandlerFixture : public ydb::ClientFixtureBase {
+public:
+    static constexpr std::size_t kBudgetCapacity = 6;
+
+    template <typename Func>
+    auto MakeHandler(Func func) {
+        constexpr std::size_t kMaxRetries = 5;
+        NYdb::NRetry::TRetryOperationSettings settings;
+        settings.MaxRetries(kMaxRetries);
+        settings.MaxTimeout(TDuration::Seconds(5));
+        settings.SlowBackoffSettings(NYdb::NRetry::TBackoffSettings{}.SlotDuration(TDuration::Zero()));
+        return std::make_shared<ydb::impl::RetryHandler<TClient, Func>>(GetClient(), budget, settings, std::move(func));
+    }
+
+    template <typename Func>
+    auto Execute(Func func) {
+        return ydb::impl::GetFutureValueUnchecked(MakeHandler(std::move(func))->Execute());
+    }
+
+    utils::RetryBudget budget{{.max_tokens = kBudgetCapacity, .token_ratio = 1}};
+
+private:
+    TClient& GetClient() {
+        if constexpr (std::is_same_v<TClient, NYdb::NTable::TTableClient>) {
+            return GetNativeTableClient();
+        } else {
+            return GetNativeQueryClient();
+        }
+    }
 };
 
 }  // namespace
@@ -149,5 +197,78 @@ UTEST_F(RetryOperationFixture, Exception) {
         "error"
     );
 };
+
+using RetryHandlerClients = testing::Types<NYdb::NTable::TTableClient, NYdb::NQuery::TQueryClient>;
+TYPED_UTEST_SUITE(RetryHandlerFixture, RetryHandlerClients);
+
+TYPED_UTEST(RetryHandlerFixture, SessionAndQueryFailuresShareBudget) {
+    constexpr auto kFirstAttemptDuration = std::chrono::milliseconds{20};
+    std::size_t attempts = 0;
+    std::size_t queries = 0;
+    TDuration first_timeout;
+    auto handler = this->MakeHandler([&](typename TypeParam::TSession) {
+        ++queries;
+        return MakeStatusFuture(kRetryableStatus);
+    });
+
+    try {
+        auto future = handler->Execute([&](auto& client, auto operation, const auto& settings) {
+            EXPECT_EQ(settings.MaxRetries_, 0);
+            if (++attempts == 1) {
+                first_timeout = settings.MaxTimeout_;
+                engine::SleepFor(kFirstAttemptDuration);
+            } else {
+                EXPECT_LE(settings.MaxTimeout_, first_timeout - TDuration::MilliSeconds(kFirstAttemptDuration.count()));
+            }
+            if (attempts == 2) {
+                return ydb::impl::RetryOperation(client, std::move(operation), settings);
+            }
+            return NThreading::MakeFuture(NYdb::TStatus{
+                NYdb::EStatus::OVERLOADED,
+                NYdb::NIssue::TIssues{NYdb::NIssue::TIssue{"session overloaded"}}
+            });
+        });
+        ydb::impl::GetFutureValueUnchecked(std::move(future));
+        FAIL() << "Expected the final session acquisition failure";
+    } catch (const ydb::YdbResponseError& error) {
+        EXPECT_EQ(error.GetStatus().GetStatus(), NYdb::EStatus::OVERLOADED);
+        EXPECT_NE(error.GetStatus().GetIssues().ToOneLineString().find("session overloaded"), std::string::npos);
+    }
+
+    EXPECT_EQ(attempts, this->kBudgetCapacity / 2);
+    EXPECT_EQ(queries, 1);
+    EXPECT_FALSE(this->budget.CanRetry());
+}
+
+TYPED_UTEST(RetryHandlerFixture, EmptyBudgetAccountsInitialAttemptsAndRecovery) {
+    for (std::size_t i = 0; i < this->kBudgetCapacity / 2; ++i) {
+        this->budget.AccountFail();
+    }
+    ASSERT_FALSE(this->budget.CanRetry());
+
+    std::size_t attempts = 0;
+    const auto failure = this->Execute([&](TypeParam&) {
+        ++attempts;
+        return MakeStatusFuture(kRetryableStatus);
+    });
+    EXPECT_EQ(failure.GetStatus(), kRetryableStatus);
+    EXPECT_EQ(attempts, 1);
+    EXPECT_FALSE(this->budget.CanRetry());
+
+    constexpr std::size_t kSuccessesToRecover = 2;
+    for (std::size_t successes = 1; successes <= kSuccessesToRecover; ++successes) {
+        SCOPED_TRACE(successes);
+        attempts = 0;
+        const auto result = this->Execute([&](TypeParam&) {
+            ++attempts;
+            return NThreading::MakeFuture(TestOperationResults{NYdb::TStatus{kSuccess, {}}, "payload"});
+        });
+        EXPECT_EQ(result.GetData(), "payload");
+        EXPECT_EQ(attempts, 1);
+        EXPECT_EQ(this->budget.CanRetry(), successes == kSuccessesToRecover);
+    }
+    this->budget.AccountFail();
+    EXPECT_FALSE(this->budget.CanRetry());
+}
 
 USERVER_NAMESPACE_END

@@ -6,7 +6,7 @@
 
 #include <algorithm>
 #include <optional>
-#include <string_view>
+#include <string>
 
 #include <userver/http/common_headers.hpp>
 #include <userver/server/handlers/auth/digest/auth_checker_base.hpp>

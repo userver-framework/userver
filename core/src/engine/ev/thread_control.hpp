@@ -1,6 +1,8 @@
 #pragma once
 
 #include <condition_variable>
+#include <exception>
+#include <functional>
 #include <memory>
 #include <mutex>
 #include <type_traits>
@@ -12,7 +14,10 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/single_use_event.hpp>
 #include <userver/engine/task/cancel.hpp>
+#include <userver/engine/task/current_task.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
+#include <userver/utils/result_store.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -138,6 +143,14 @@ public:
     template <typename Func>
     void RunInEvLoopSync(Func&& func) noexcept(noexcept(func()));
 
+    /// Runs `func` in EvLoop and returns its result to the caller.
+    /// Exceptions thrown by `func` are rethrown in the caller.
+    ///
+    /// Runs inline when called from the target ev thread. Calling from any
+    /// other non-coroutine thread is an invariant violation.
+    template <typename Func>
+    auto RunInEvLoopSyncWithResult(Func&& func) -> std::invoke_result_t<Func&>;
+
     template <typename Func>
     void RunInEvLoopBlocking(Func&& func);
 
@@ -194,6 +207,43 @@ void ThreadControlBase::RunInEvLoopSync(Func&& func) noexcept(noexcept(func())) 
         "RunInEvLoopSync() is used in destructors. It should be noexcept if the "
         "`func` invocation is noexcept"
     );
+}
+
+template <typename Func>
+auto ThreadControlBase::RunInEvLoopSyncWithResult(Func&& func) -> std::invoke_result_t<Func&> {
+    using Result = std::invoke_result_t<Func&>;
+    static_assert(!std::is_reference_v<Result>);
+
+    if (IsInEvThread()) {
+        if constexpr (std::is_void_v<Result>) {
+            std::invoke(func);
+            return;
+        } else {
+            return std::invoke(func);
+        }
+    }
+
+    UINVARIANT(
+        engine::current_task::IsTaskProcessorThread(),
+        "RunInEvLoopSyncWithResult cannot be called from a non-userver thread"
+    );
+
+    utils::ResultStore<Result> result;
+    const auto wrapped = [&func, &result]() noexcept {
+        try {
+            if constexpr (std::is_void_v<Result>) {
+                std::invoke(func);
+                result.SetValue();
+            } else {
+                result.SetValue(std::invoke(func));
+            }
+        } catch (...) {
+            result.SetException(std::current_exception());
+        }
+    };
+
+    RunInEvLoopSync(wrapped);
+    return result.Retrieve();
 }
 
 template <typename Func>

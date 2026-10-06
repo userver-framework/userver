@@ -7,16 +7,24 @@
 #include <sys/uio.h>
 #include <unistd.h>
 
+#include <algorithm>
 #include <array>
-#include <cerrno>
+#include <climits>
+#include <cstddef>
 #include <cstdlib>
 #include <memory>
+#include <optional>
+#include <span>
+#include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include <engine/io/tests/net_listener.hpp>
+#include <userver/compiler/thread_local.hpp>
 #include <userver/engine/async.hpp>
 #include <userver/engine/condition_variable.hpp>
+#include <userver/engine/io/exception.hpp>
 #include <userver/engine/io/multicast_membership.hpp>
 #include <userver/engine/io/sockaddr.hpp>
 #include <userver/engine/io/socket.hpp>
@@ -35,6 +43,120 @@ using TcpListener = engine::io::tests::TcpListener;
 using UdpListener = engine::io::tests::UdpListener;
 
 }  // namespace
+
+UTEST(Socket, NoblockScalarAndVector) {
+    const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+    auto [sender, receiver] = TcpListener{}.MakeSocketPair(deadline);
+    std::string first = "hello";
+    std::string second = " world";
+    const std::string payload = first + second;
+    const std::array<iovec, 2> outgoing{{{first.data(), first.size()}, {second.data(), second.size()}}};
+    std::string received(payload.size(), '\0');
+    const std::array<iovec, 2> incoming{
+        {{received.data(), first.size()}, {received.data() + first.size(), second.size()}}
+    };
+    {
+        const compiler::CoroutineSwitchBanScope no_switch;
+        EXPECT_FALSE(receiver.RecvNoblock(incoming));
+        ASSERT_EQ(sender.SendNoblock(payload.data(), payload.size()), payload.size());
+    }
+    ASSERT_EQ(receiver.RecvAll(received.data(), received.size(), deadline), received.size());
+    EXPECT_EQ(received, payload);
+    std::fill(received.begin(), received.end(), '\0');
+    {
+        const compiler::CoroutineSwitchBanScope no_switch;
+        ASSERT_EQ(sender.SendNoblock(outgoing), payload.size());
+    }
+    ASSERT_TRUE(receiver.WaitReadable(deadline));
+    {
+        const compiler::CoroutineSwitchBanScope no_switch;
+        ASSERT_EQ(receiver.RecvNoblock(incoming), received.size());
+    }
+    EXPECT_EQ(received, payload);
+    sender.Close();
+    ASSERT_TRUE(receiver.WaitReadable(deadline));
+    EXPECT_EQ(receiver.RecvNoblock(incoming), 0);
+    receiver.Close();
+    UEXPECT_THROW((void)receiver.RecvNoblock(incoming), io::IoException);
+    UEXPECT_THROW((void)sender.SendNoblock(outgoing), io::IoException);
+}
+
+UTEST(Socket, SendNoblockBackpressureAndClosedPeer) {
+    constexpr int kSendBufferSize = 4096;
+    constexpr std::size_t kPayloadSize = 1024 * 1024;
+    const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+    auto [sender, receiver] = TcpListener{}.MakeSocketPair(deadline);
+    sender.SetOption(SOL_SOCKET, SO_SNDBUF, kSendBufferSize);
+    std::string payload(kPayloadSize, 'x');
+    const std::array<iovec, 1> outgoing{{{payload.data(), payload.size()}}};
+    {
+        const compiler::CoroutineSwitchBanScope no_switch;
+        while (const auto sent = sender.SendNoblock(payload.data(), payload.size())) {
+            ASSERT_GT(*sent, 0);
+            ASSERT_FALSE(deadline.IsReached());
+        }
+        while (const auto sent = sender.SendNoblock(outgoing)) {
+            ASSERT_GT(*sent, 0);
+            ASSERT_FALSE(deadline.IsReached());
+        }
+    }
+    const linger reset_on_close{.l_onoff = 1, .l_linger = 0};
+    receiver.SetOption(SOL_SOCKET, SO_LINGER, &reset_on_close, sizeof(reset_on_close));
+    receiver.Close();
+    ASSERT_TRUE(sender.WaitReadable(deadline));
+    UEXPECT_THROW((void)sender.SendNoblock(payload.data(), payload.size()), io::IoSystemError);
+    UEXPECT_THROW((void)sender.SendNoblock(outgoing), io::IoSystemError);
+}
+
+UTEST(Socket, NoblockEmptyBuffers) {
+    constexpr std::size_t kLeadingEmptyBuffers = IOV_MAX + 1;
+    const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+    auto [sender, receiver] = TcpListener{}.MakeSocketPair(deadline);
+    std::string payload = "data";
+    std::string received(payload.size(), '\0');
+    std::vector<iovec> outgoing(kLeadingEmptyBuffers);
+    std::vector<iovec> incoming(kLeadingEmptyBuffers);
+
+    {
+        const compiler::CoroutineSwitchBanScope no_switch;
+        EXPECT_EQ(sender.SendNoblock(payload.data(), 0), 0);
+        EXPECT_EQ(sender.SendNoblock({}), 0);
+        EXPECT_EQ(receiver.RecvNoblock({}), 0);
+        EXPECT_EQ(sender.SendNoblock(outgoing), 0);
+        EXPECT_EQ(receiver.RecvNoblock(incoming), 0);
+        outgoing.push_back({payload.data(), payload.size()});
+        ASSERT_EQ(sender.SendNoblock(outgoing), payload.size());
+    }
+    incoming.push_back({received.data(), received.size()});
+    ASSERT_TRUE(receiver.WaitReadable(deadline));
+    ASSERT_EQ(receiver.RecvNoblock(incoming), payload.size());
+    EXPECT_EQ(received, payload);
+}
+
+UTEST(Socket, NoblockIovecLimit) {
+    constexpr std::size_t kBufferCount = IOV_MAX + 1;
+    const auto deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);
+    auto [sender, receiver] = TcpListener{}.MakeSocketPair(deadline);
+    char byte = 'x';
+    const std::vector<iovec> outgoing(kBufferCount, iovec{&byte, sizeof(byte)});
+    std::string received(kBufferCount, '\0');
+    std::vector<iovec> incoming(kBufferCount);
+    for (std::size_t i = 0; i < incoming.size(); ++i) {
+        incoming[i] = {received.data() + i, sizeof(byte)};
+    }
+
+    {
+        const compiler::CoroutineSwitchBanScope no_switch;
+        ASSERT_EQ(sender.SendNoblock(outgoing), IOV_MAX);
+        ASSERT_EQ(sender.SendNoblock(std::span{outgoing}.last(1)), 1);
+    }
+    ASSERT_TRUE(receiver.WaitReadable(deadline));
+    ASSERT_EQ(receiver.RecvNoblock(incoming), IOV_MAX);
+    EXPECT_EQ(received, std::string(IOV_MAX, byte) + '\0');
+    ASSERT_TRUE(receiver.WaitReadable(deadline));
+    ASSERT_EQ(receiver.RecvNoblock(std::span{incoming}.last(1)), 1);
+    EXPECT_EQ(received, std::string(kBufferCount, byte));
+}
 
 UTEST(Socket, ConnectFail) {
     const auto test_deadline = Deadline::FromDuration(utest::kMaxTestWaitTime);

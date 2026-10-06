@@ -26,8 +26,16 @@ namespace server::handlers {
 class HttpHandlerBase;
 }  // namespace server::handlers
 
+namespace engine::io {
+class RwBase;
+}
+
 /// Server parts of the HTTP protocol implementation.
 namespace server::http {
+
+namespace impl {
+class Http2StreamEventProducer;
+}
 
 /// @brief HTTP Request data.
 /// @note do not create HttpRequest by hand in tests,
@@ -301,7 +309,7 @@ private:
     friend class HttpRequestHandler;
 
     struct Impl;
-    utils::FastPimpl<Impl, 1936, 16> pimpl_;
+    utils::FastPimpl<Impl, 2096, 16> pimpl_;
 };
 
 }  // namespace server::http

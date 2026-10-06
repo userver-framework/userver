@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <string>
 
 #include <server/http/http_request_parser.hpp>
 #include <server/http/request_handler_base.hpp>

@@ -11,8 +11,25 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::request {
 
+namespace {
+
+struct LegacyStorage final {
+    utils::AnyMovable user_data;
+    utils::impl::TransparentMap<std::string, utils::AnyMovable> named_data;
+};
+
+}  // namespace
+
 class RequestContext::Impl final {
 public:
+    utils::AnyStorage<StorageContext>& GetStorageContext() noexcept USERVER_IMPL_LIFETIME_BOUND {
+        return storage_context_;
+    }
+    const utils::AnyStorage<StorageContext>& GetStorageContext() const noexcept USERVER_IMPL_LIFETIME_BOUND {
+        return storage_context_;
+    }
+
+#ifndef ARCADIA_ROOT
     utils::AnyMovable& SetUserAnyData(utils::AnyMovable&& data);
     utils::AnyMovable& GetUserAnyData();
     utils::AnyMovable* GetUserAnyDataOptional() noexcept;
@@ -23,40 +40,47 @@ public:
     utils::AnyMovable* GetAnyDataOptional(std::string_view name) noexcept;
     void EraseAnyData(std::string_view name) noexcept;
 
+#endif
+
     impl::InternalRequestContext& GetInternalContext() noexcept;
 
 private:
-    utils::AnyMovable user_data_;
-    utils::impl::TransparentMap<std::string, utils::AnyMovable> named_datum_;
+    utils::AnyStorage<StorageContext> storage_context_;
     impl::InternalRequestContext internal_context_;
+#ifndef ARCADIA_ROOT
+    LegacyStorage legacy_storage_;
+#endif
 };
 
+#ifndef ARCADIA_ROOT
 utils::AnyMovable& RequestContext::Impl::SetUserAnyData(utils::AnyMovable&& data) {
-    if (user_data_.HasValue()) {
+    auto& user_data = legacy_storage_.user_data;
+    if (user_data.HasValue()) {
         throw std::runtime_error("UserData is already stored in RequestContext");
     }
-    user_data_ = std::move(data);
-    return user_data_;
+    user_data = std::move(data);
+    return user_data;
 }
 
 utils::AnyMovable& RequestContext::Impl::GetUserAnyData() {
-    if (!user_data_.HasValue()) {
+    auto* data = GetUserAnyDataOptional();
+    if (!data) {
         throw std::runtime_error("No data stored in RequestContext");
     }
-    return user_data_;
+    return *data;
 }
 
 utils::AnyMovable* RequestContext::Impl::GetUserAnyDataOptional() noexcept {
-    if (!user_data_.HasValue()) {
+    if (!legacy_storage_.user_data.HasValue()) {
         return nullptr;
     }
-    return &user_data_;
+    return &legacy_storage_.user_data;
 }
 
-void RequestContext::Impl::EraseUserAnyData() noexcept { user_data_.Reset(); }
+void RequestContext::Impl::EraseUserAnyData() noexcept { legacy_storage_.user_data.Reset(); }
 
 utils::AnyMovable& RequestContext::Impl::SetAnyData(std::string&& name, utils::AnyMovable&& data) {
-    auto res = named_datum_.emplace(std::move(name), std::move(data));
+    auto res = legacy_storage_.named_data.emplace(std::move(name), std::move(data));
     if (!res.second) {
         throw std::runtime_error("Data with name '" + res.first->first + "' is already registered in RequestContext");
     }
@@ -72,16 +96,18 @@ utils::AnyMovable& RequestContext::Impl::GetAnyData(std::string_view name) {
 }
 
 utils::AnyMovable* RequestContext::Impl::GetAnyDataOptional(std::string_view name) noexcept {
-    return utils::FindOrNullptr(named_datum_, name);
+    return utils::FindOrNullptr(legacy_storage_.named_data, name);
 }
 
 void RequestContext::Impl::EraseAnyData(std::string_view name) noexcept {
-    auto it = named_datum_.find(name);
-    if (it == named_datum_.end()) {
+    auto it = legacy_storage_.named_data.find(name);
+    if (it == legacy_storage_.named_data.end()) {
         return;
     }
-    named_datum_.erase(it);
+    legacy_storage_.named_data.erase(it);
 }
+
+#endif
 
 impl::InternalRequestContext& RequestContext::Impl::GetInternalContext() noexcept { return internal_context_; }
 
@@ -91,6 +117,16 @@ RequestContext::RequestContext(RequestContext&&) noexcept = default;
 
 RequestContext::~RequestContext() = default;
 
+utils::AnyStorage<StorageContext>& RequestContext::GetStorageContext() noexcept USERVER_IMPL_LIFETIME_BOUND {
+    return impl_->GetStorageContext();
+}
+
+const utils::AnyStorage<StorageContext>& RequestContext::GetStorageContext() const
+    noexcept USERVER_IMPL_LIFETIME_BOUND {
+    return impl_->GetStorageContext();
+}
+
+#ifndef ARCADIA_ROOT
 utils::AnyMovable& RequestContext::SetUserAnyData(utils::AnyMovable&& data) {
     return impl_->SetUserAnyData(std::move(data));
 }
@@ -112,6 +148,8 @@ utils::AnyMovable* RequestContext::GetAnyDataOptional(std::string_view name) noe
 }
 
 void RequestContext::EraseAnyData(std::string_view name) noexcept { impl_->EraseAnyData(name); }
+
+#endif
 
 void RequestContext::SetHandlerMetricsShard(std::string_view path, utils::statistics::LabelsSpan labels) {
     impl_->GetInternalContext().SetHandlerMetricsShard(path, labels);

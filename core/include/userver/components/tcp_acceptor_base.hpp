@@ -3,6 +3,8 @@
 /// @file userver/components/tcp_acceptor_base.hpp
 /// @brief @copybrief components::TcpAcceptorBase
 
+#include <vector>
+
 #include <userver/components/component_base.hpp>
 #include <userver/concurrent/background_task_storage.hpp>
 #include <userver/engine/io/socket.hpp>

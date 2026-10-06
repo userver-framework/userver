@@ -18,6 +18,19 @@ For information on controlling log level in unit tests see @ref scripts/docs/en/
 
 You can find a detailed manual for configuring how logs are written in @ref components::Logging.
 
+### Trace sampling in logs
+
+Logs written with an active tracing::Span include `trace_sampled`, the value of
+tracing::Span::IsSampled() at the time of logging. TSKV represents this boolean as
+`1` or `0`; JSON uses `true` or `false`. Without an active span the field is absent.
+Span completion records also include the field.
+
+The field describes the local sampling decision, not successful export or storage
+of the span. Other logging filters and delivery failures can still prevent a span
+from appearing in storage. Incoming W3C flags may differ from the local decision,
+for example when honoring the sampled flag is disabled in the service.
+Unsampled spans do not suppress application logs.
+
 ### Log level
 
 Macros are used for logging:
@@ -77,6 +90,17 @@ Use `CRITICAL` optionally for service-scale critical errors.
 
 Not all logs get into the log file, but only those that are not lower than the logger's log level. The logger log level
 is set in static config (see components::Logging).
+
+The `span-log-level` option of components::Logging sets the minimum log level for span completion records independently
+of application logs. When omitted, spans use the default logger's level. The option applies before components derived
+from components::ComponentBase are constructed, including when `loggers` is empty.
+
+```yaml
+components_manager:
+    components:
+        logging:
+            span-log-level: info
+```
 
 The log level can be changed in the static config for a particular handle. In this case, the log level of the logger
 is changed only for the request handling task of the handle and for all the subtasks:

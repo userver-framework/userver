@@ -1,0 +1,51 @@
+components_manager:
+    components:
+        server:
+            listener:
+                port: 8089
+                task_processor: main-task-processor
+        default-server-middleware-pipeline-builder:
+            prepend:
+              - server-prepend-first
+              - server-prepend-second
+            append:
+              - server-append-first
+              - server-append-second
+        default-handler-middleware-pipeline-builder:
+            prepend:
+              - handler-prepend-first
+              - handler-prepend-second
+            append:
+              - handler-append-first
+              - handler-append-second
+        server-only-pipeline: {}
+        handler-server-only:
+            path: /server-only
+            method: GET
+            task_processor: main-task-processor
+            middlewares:
+                pipeline-builder: server-only-pipeline
+        handler-combined:
+            path: /combined
+            method: GET
+            task_processor: main-task-processor
+        server-prepend-first: {}
+        server-prepend-second: {}
+        server-append-first: {}
+        server-append-second: {}
+        handler-prepend-first: {}
+        handler-prepend-second: {}
+        handler-append-first: {}
+        handler-append-second: {}
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: info
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+        fs-task-processor:
+            worker_threads: 4
+    default_task_processor: main-task-processor

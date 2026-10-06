@@ -18,13 +18,13 @@ auto Inserter(T& container) {
 }
 
 template <typename T>
-inline constexpr bool kIsReservable = meta::kIsReservable<T>;
+inline constexpr bool kIsReservable = meta::IsReservable<T>;
 
 template <typename T>
-inline constexpr bool kIsSizeable = meta::kIsSizable<T>;
+inline constexpr bool kIsSizeable = meta::IsSizable<T>;
 
 template <typename T>
-inline constexpr bool kIsRange = meta::kIsRange<T>;
+inline constexpr bool kIsRange = meta::IsRange<T>;
 
 }  // namespace storages::clickhouse::io::traits
 

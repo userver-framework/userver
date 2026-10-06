@@ -24,7 +24,7 @@ UserType Parse(const Value& value, formats::parse::To<Array<ItemType, UserType, 
     value.CheckArrayOrNull();
 
     UserType arr;
-    if constexpr (meta::kIsReservable<UserType>) {
+    if constexpr (meta::IsReservable<UserType>) {
         arr.reserve(value.GetSize());
     }
     // Note: call arr.end() *after* reserve() as the latter may invalidate end()

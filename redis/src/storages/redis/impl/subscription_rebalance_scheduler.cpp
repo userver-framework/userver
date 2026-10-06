@@ -11,14 +11,18 @@ namespace storages::redis::impl {
 const std::chrono::seconds kRebalanceMinIntervalDefault{30};
 
 SubscriptionRebalanceScheduler::SubscriptionRebalanceScheduler(
-    engine::ev::ThreadPool& thread_pool,
+    const engine::ev::ThreadControl& thread_control,
     SubscriptionStorageBase& storage,
     size_t shard_idx
 )
-    : thread_control_(thread_pool.NextThread()),
+    : thread_control_(thread_control),
       storage_(storage),
       shard_idx_(shard_idx),
-      rebalance_min_interval_{kRebalanceMinIntervalDefault}
+      rebalance_queue_(RebalanceQueue::Create()),
+      rebalance_producer_(rebalance_queue_->GetMultiProducer()),
+      rebalance_consumer_(rebalance_queue_->GetConsumer()),
+      rebalance_min_interval_ms_(std::chrono::duration_cast<std::chrono::milliseconds>(kRebalanceMinIntervalDefault)
+                                     .count())
 {
     timer_.data = this;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
@@ -27,52 +31,56 @@ SubscriptionRebalanceScheduler::SubscriptionRebalanceScheduler(
     rebalance_request_watcher_.data = this;
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
     ev_async_init(&rebalance_request_watcher_, OnRebalanceRequested);
-    thread_control_.RunInEvLoopBlocking([this] { thread_control_.Start(rebalance_request_watcher_); });
+    thread_control_.RunInEvLoopSyncWithResult([this] { thread_control_.Start(rebalance_request_watcher_); });
 }
 
 SubscriptionRebalanceScheduler::~SubscriptionRebalanceScheduler() { Stop(); }
 
 void SubscriptionRebalanceScheduler::RequestRebalance(ServerWeights weights) {
-    bool need_notify = false;
-    {
-        const std::lock_guard<std::mutex> lock(mutex_);
-        weights_ = std::move(weights);
-        if (!next_rebalance_scheduled_) {
-            next_rebalance_scheduled_ = true;
-            need_notify = true;
-        }
+    if (stopped_.load(std::memory_order_acquire) || !rebalance_producer_.PushNoblock(std::move(weights))) {
+        return;
     }
-    if (need_notify) {
+    if (!rebalance_scheduled_.exchange(true, std::memory_order_acq_rel)) {
         thread_control_.Send(rebalance_request_watcher_);
     }
 }
 
 void SubscriptionRebalanceScheduler::Stop() {
-    thread_control_.RunInEvLoopBlocking([this] {
+    if (stopped_.exchange(true, std::memory_order_acq_rel)) {
+        return;
+    }
+    thread_control_.RunInEvLoopSyncWithResult([this] {
         thread_control_.Stop(rebalance_request_watcher_);
         thread_control_.Stop(timer_);
     });
 }
 
 void SubscriptionRebalanceScheduler::SetRebalanceMinInterval(std::chrono::milliseconds interval) {
-    const std::lock_guard<std::mutex> lock(mutex_);
-    rebalance_min_interval_ = interval;
+    rebalance_min_interval_ms_.store(interval.count(), std::memory_order_relaxed);
 }
 
 std::chrono::milliseconds SubscriptionRebalanceScheduler::GetRebalanceMinInterval() const {
-    const std::lock_guard<std::mutex> lock(mutex_);
-    return rebalance_min_interval_;
+    return std::chrono::milliseconds{rebalance_min_interval_ms_.load(std::memory_order_relaxed)};
+}
+
+bool SubscriptionRebalanceScheduler::TryTakeLatestWeights(ServerWeights& weights) {
+    ServerWeights next_weights;
+    bool has_weights = false;
+    while (rebalance_consumer_.PopNoblock(next_weights)) {
+        weights = std::move(next_weights);
+        has_weights = true;
+    }
+    return has_weights;
 }
 
 void SubscriptionRebalanceScheduler::DoRebalance() {
     ServerWeights weights;
-    {
-        const std::lock_guard<std::mutex> lock(mutex_);
-        weights.swap(weights_);
-        if (weights.empty()) {
-            next_rebalance_scheduled_ = false;
+    if (!TryTakeLatestWeights(weights) || weights.empty()) {
+        rebalance_scheduled_.store(false, std::memory_order_release);
+        if (!TryTakeLatestWeights(weights) || weights.empty()) {
             return;
         }
+        rebalance_scheduled_.exchange(true, std::memory_order_acq_rel);
     }
     try {
         storage_.DoRebalance(shard_idx_, std::move(weights));

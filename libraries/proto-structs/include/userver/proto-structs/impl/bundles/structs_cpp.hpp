@@ -1,5 +1,7 @@
 #pragma once
 
+#include <fmt/format.h>
+
 #include <userver/proto-structs/io/impl/field_accessor.hpp>
 #include <userver/proto-structs/io/impl/read.hpp>
 #include <userver/proto-structs/io/impl/write.hpp>

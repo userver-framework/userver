@@ -46,7 +46,7 @@ protected:
     }
 
 private:
-    impl::AwaitableBase* ca_{nullptr};
+    engine::impl::AwaitableBase* ca_{nullptr};
 };
 
 /// @ingroup userver_base_classes
@@ -98,7 +98,7 @@ protected:
     }
 
 private:
-    impl::AwaitableBase* ca_{nullptr};
+    engine::impl::AwaitableBase* ca_{nullptr};
 };
 
 /// IoData for vector send

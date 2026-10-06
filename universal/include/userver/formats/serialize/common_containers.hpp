@@ -28,7 +28,7 @@ namespace impl {
 
 template <typename T>
 concept RangeNotMap =
-    meta::kIsRange<T> && !meta::kIsMap<T> && !std::is_same_v<T, boost::uuids::uuid> &&
+    meta::IsRange<T> && !meta::IsMap<T> && !std::is_same_v<T, boost::uuids::uuid> &&
     !std::is_convertible_v<T&, utils::impl::strong_typedef::StrongTypedefTag&>;
 
 }

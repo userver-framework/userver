@@ -9,7 +9,6 @@
 // NOLINTBEGIN(readability-identifier-naming)
 
 #include <cstring>
-#include <string_view>
 #include <system_error>
 
 #include <curl-ev/easy.hpp>

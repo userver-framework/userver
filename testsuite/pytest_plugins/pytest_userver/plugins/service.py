@@ -14,8 +14,10 @@ from typing import Any
 
 import pytest
 
+import testsuite.fixture_markers
 from testsuite.utils import url_util
 
+import pytest_userver.service
 from pytest_userver.utils import net
 
 logger = logging.getLogger(__name__)
@@ -215,7 +217,13 @@ async def service_daemon_scope(
 @pytest.fixture
 def extra_client_deps() -> None:
     """
-    Service client dependencies hook. Feel free to override, e.g.:
+    Legacy service client dependencies hook.
+
+    Prefer marking fixtures with
+    @ref pytest_userver.service.dependency "pytest_userver.service.dependency"
+    instead of overriding this fixture.
+
+    Example of the legacy override:
 
     @code
     @pytest.fixture
@@ -225,6 +233,13 @@ def extra_client_deps() -> None:
 
     @ingroup userver_testsuite_fixtures
     """
+
+
+@pytest.fixture
+def _mark_service_deps(request: pytest.FixtureRequest) -> None:
+    infos = testsuite.fixture_markers.get_infos(request, pytest_userver.service._ServiceDependencyInfo)
+    for fixture_name in infos:
+        request.getfixturevalue(fixture_name)
 
 
 @pytest.fixture
@@ -239,13 +254,13 @@ def auto_client_deps(request) -> None:
     * kafka (`kafka_producer`, `kafka_consumer`)
     * `redis_store`
     * `mysql`
-    * @ref pytest_userver.plugins.ydb.ydbsupport.ydb "ydb"
     * @ref pytest_userver.plugins.scylla.scylla "scylla"
-    * @ref pytest_userver.plugins.grpc.mockserver.grpc_mockserver "grpc_mockserver"
 
-    To add other dependencies prefer overriding the
+    To add other dependencies prefer
+    @ref pytest_userver.service.dependency "dependency".
+    Overriding
     @ref pytest_userver.plugins.service.extra_client_deps "extra_client_deps"
-    fixture.
+    is a legacy alternative.
 
     @ingroup userver_testsuite_fixtures
     """
@@ -258,9 +273,7 @@ def auto_client_deps(request) -> None:
         'kafka_consumer',
         'redis_store',
         'mysql',
-        'ydb',
         'scylla',
-        'grpc_mockserver',
     }
 
     try:
@@ -315,11 +328,14 @@ def builtin_client_deps(
 async def service_daemon_instance(
     ensure_daemon_started,
     service_daemon_scope,
+    # Lists of various fixtures required for the service to start. Fixtures are requested top-to-bottom.
+    # Lower fixtures can indirectly use the environment setup by the upper fixtures (although not recommended).
+    # {
     builtin_client_deps,
     auto_client_deps,
-    # User defined client deps must be last in order to use
-    # fixtures defined above.
+    _mark_service_deps,
     extra_client_deps,
+    # }
 ):
     """
     Calls `ensure_daemon_started` on
@@ -327,9 +343,12 @@ async def service_daemon_instance(
     to actually start the service. Makes sure that all the dependencies are prepared
     before the service starts.
 
-    @see @ref pytest_userver.plugins.service.extra_client_deps "extra_client_deps"
-    @see @ref pytest_userver.plugins.service.auto_client_deps "auto_client_deps"
-    @see @ref pytest_userver.plugins.service.builtin_client_deps "builtin_client_deps"
+    Requests service dependency fixtures from the following groups:
+    * @ref pytest_userver.plugins.service.builtin_client_deps "builtin_client_deps"
+    * @ref pytest_userver.plugins.service.auto_client_deps "auto_client_deps"
+    * fixtures marked with @ref pytest_userver.service.dependency "dependency"
+    * @ref pytest_userver.plugins.service.extra_client_deps "extra_client_deps"
+
     @ingroup userver_testsuite_fixtures
     """
     # TODO also run userver_client_cleanup here

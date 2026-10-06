@@ -2,8 +2,6 @@
 
 #include "say_hello.hpp"
 
-#include <string_view>
-
 #include <benchmark/benchmark.h>
 #include <userver/engine/run_standalone.hpp>
 

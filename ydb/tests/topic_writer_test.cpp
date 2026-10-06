@@ -15,7 +15,7 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/overloaded.hpp>
-#include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/statistics/rate.hpp>
 #include <userver/utils/statistics/testing.hpp>
 #include <userver/ydb/impl/cast.hpp>
 
@@ -86,22 +86,10 @@ void ExpectWriterStatistics(
     std::size_t expected_event_acks_written,
     std::size_t expected_write_issues
 ) {
-    EXPECT_EQ(
-        snapshot.SingleMetric("topic_writer.messages.received").AsRate(),
-        utils::statistics::Rate{expected_messages_received}
-    );
-    EXPECT_EQ(
-        snapshot.SingleMetric("topic_writer.messages.handled").AsRate(),
-        utils::statistics::Rate{expected_messages_handled}
-    );
-    EXPECT_EQ(
-        snapshot.SingleMetric("topic_writer.event_acks.written").AsRate(),
-        utils::statistics::Rate{expected_event_acks_written}
-    );
-    EXPECT_EQ(
-        snapshot.SingleMetric("topic_writer.write_issues").AsRate(),
-        utils::statistics::Rate{expected_write_issues}
-    );
+    EXPECT_EQ(snapshot.SingleMetric("messages.received"), utils::statistics::Rate{expected_messages_received});
+    EXPECT_EQ(snapshot.SingleMetric("messages.handled"), utils::statistics::Rate{expected_messages_handled});
+    EXPECT_EQ(snapshot.SingleMetric("event_acks.written"), utils::statistics::Rate{expected_event_acks_written});
+    EXPECT_EQ(snapshot.SingleMetric("write_issues"), utils::statistics::Rate{expected_write_issues});
 }
 
 void ExpectManagerStatistics(
@@ -112,23 +100,13 @@ void ExpectManagerStatistics(
     std::size_t expected_event_acks_written,
     std::size_t expected_write_issues
 ) {
-    const auto prefix = std::string{"topic_writer_manager"};
     std::vector<utils::statistics::Label> labels{
         utils::statistics::Label{std::string{"writer"}, std::string{writer_name}}
     };
-    EXPECT_EQ(
-        snapshot.SingleMetric(prefix + ".messages.received", labels).AsRate(),
-        utils::statistics::Rate{expected_messages_received}
-    );
-    EXPECT_EQ(
-        snapshot.SingleMetric(prefix + ".messages.handled").AsRate(),
-        utils::statistics::Rate{expected_messages_handled}
-    );
-    EXPECT_EQ(
-        snapshot.SingleMetric(prefix + ".event_acks.written").AsRate(),
-        utils::statistics::Rate{expected_event_acks_written}
-    );
-    EXPECT_EQ(snapshot.SingleMetric(prefix + ".write_issues").AsRate(), utils::statistics::Rate{expected_write_issues});
+    EXPECT_EQ(snapshot.SingleMetric("messages.received", labels), utils::statistics::Rate{expected_messages_received});
+    EXPECT_EQ(snapshot.SingleMetric("messages.handled"), utils::statistics::Rate{expected_messages_handled});
+    EXPECT_EQ(snapshot.SingleMetric("event_acks.written"), utils::statistics::Rate{expected_event_acks_written});
+    EXPECT_EQ(snapshot.SingleMetric("write_issues"), utils::statistics::Rate{expected_write_issues});
 }
 
 /// Fixture that creates a standalone YDB topic (not a changefeed) for
@@ -229,11 +207,7 @@ UTEST_F(TopicWriterFixture, WriteMessageReturnsOk) {
 UTEST_F(TopicWriterFixture, WrittenMessageIsReadable) {
     const auto topic = CreateTopic();
 
-    utils::statistics::Storage storage;
     ydb::TopicWriter writer("test-writer", MakeWriterSettings(topic));
-    auto holder = storage.RegisterWriter("topic_writer", [&writer](utils::statistics::Writer& w) {
-        DumpMetric(w, writer);
-    });
     auto read_session = OpenReadSession(topic);
 
     // Give the writer time to establish its session with YDB.
@@ -249,7 +223,7 @@ UTEST_F(TopicWriterFixture, WrittenMessageIsReadable) {
     EXPECT_GE(received, 1u);
 
     engine::SleepFor(std::chrono::milliseconds{500});
-    const auto snapshot = utils::statistics::Snapshot{storage};
+    const auto snapshot = utils::statistics::Snapshot{writer};
     ExpectWriterStatistics(snapshot, 1, 1, 1, 0);
 
     read_session.Close(std::chrono::milliseconds{1000});
@@ -259,11 +233,7 @@ UTEST_F(TopicWriterFixture, WrittenMessageIsReadable) {
 UTEST_F(TopicWriterFixture, MultipleMessagesAreDelivered) {
     const auto topic = CreateTopic();
 
-    utils::statistics::Storage storage;
     ydb::TopicWriter writer("test-writer", MakeWriterSettings(topic));
-    auto holder = storage.RegisterWriter("topic_writer", [&writer](utils::statistics::Writer& w) {
-        DumpMetric(w, writer);
-    });
     auto read_session = OpenReadSession(topic);
 
     engine::SleepFor(std::chrono::milliseconds{500});
@@ -280,7 +250,7 @@ UTEST_F(TopicWriterFixture, MultipleMessagesAreDelivered) {
     EXPECT_GE(received, kMessageCount);
 
     engine::SleepFor(std::chrono::milliseconds{500});
-    const auto snapshot = utils::statistics::Snapshot{storage};
+    const auto snapshot = utils::statistics::Snapshot{writer};
     ExpectWriterStatistics(snapshot, kMessageCount, kMessageCount, kMessageCount, 0);
 
     read_session.Close(std::chrono::milliseconds{1000});
@@ -333,14 +303,9 @@ UTEST_F(TopicWriterFixture, MultipleWorkersDeliverMessages) {
 UTEST_F(TopicWriterFixture, StatisticsAreExported) {
     const auto topic = CreateTopic();
 
-    utils::statistics::Storage storage;
     ydb::TopicWriter writer("stats-writer", MakeWriterSettings(topic));
 
-    auto holder = storage.RegisterWriter("topic_writer", [&writer](utils::statistics::Writer& w) {
-        DumpMetric(w, writer);
-    });
-
-    const auto snapshot = utils::statistics::Snapshot{storage};
+    const auto snapshot = utils::statistics::Snapshot{writer};
     ExpectWriterStatistics(snapshot, 0, 0, 0, 0);
 }
 
@@ -381,12 +346,7 @@ UTEST_F(TopicWriterFixture, ManagerStatisticsAreExported) {
 
     ydb::TopicWriterManager manager(std::move(settings_map));
 
-    utils::statistics::Storage storage;
-    auto holder = storage.RegisterWriter("topic_writer_manager", [&manager](utils::statistics::Writer& w) {
-        DumpMetric(w, manager);
-    });
-
-    const auto snapshot = utils::statistics::Snapshot{storage};
+    const auto snapshot = utils::statistics::Snapshot{manager};
     ExpectManagerStatistics(snapshot, "stats-writer", 0, 0, 0, 0);
 }
 

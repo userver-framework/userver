@@ -7,6 +7,7 @@
 #include <boost/container/small_vector.hpp>
 
 #include <server/handlers/http_handler_base_statistics.hpp>
+#include <server/http/http_response_impl.hpp>
 #include <server/middlewares/handler_adapter.hpp>
 #include <server/request/internal_request_context.hpp>
 #include <server/server_config.hpp>
@@ -248,7 +249,7 @@ void HttpHandlerBase::HandleMaybeStreamRequest(http::HttpRequest& request, reque
 
 void HttpHandlerBase::HandleHttpRequest(http::HttpRequest& http_request, request::RequestContext& context) const {
     auto& response = http_request.GetHttpResponse();
-    response.SetSystemHeadersEnd();
+    GetHttpResponseImpl(response).SetSystemHeadersEnd();
 
     // Don't hold the config snapshot for too long, especially with streaming.
     context.GetInternalContext().ResetConfigSnapshot();
@@ -388,7 +389,7 @@ std::string HttpHandlerBase::GetRequestBodyForLoggingChecked(
             return utils::log::ToLimitedUtf8(request_body, 0);
         }
         auto logging_request_body = GetRequestBodyForLogging(request, context, request_body);
-        return utils::log::ToLimitedUtf8(logging_request_body, limit);
+        return utils::log::ToLimitedUtf8(std::move(logging_request_body), limit);
     } catch (const std::exception& ex) {
         LOG_LIMITED_ERROR() << "failed to get request body for logging: " << ex;
         return "<error in GetRequestBodyForLogging>";
@@ -411,7 +412,7 @@ std::string HttpHandlerBase::GetResponseDataForLoggingChecked(
             return utils::log::ToLimitedUtf8(response_data, 0);
         }
         auto logging_response_data = GetResponseDataForLogging(request, context, response_data);
-        return utils::log::ToLimitedUtf8(logging_response_data, limit);
+        return utils::log::ToLimitedUtf8(std::move(logging_response_data), limit);
     } catch (const std::exception& ex) {
         LOG_LIMITED_ERROR() << "failed to get response data for logging: " << ex;
         return "<error in GetResponseDataForLogging>";

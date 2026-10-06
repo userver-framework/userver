@@ -1,6 +1,7 @@
 #include <userver/ugrpc/server/server.hpp>
 
 #include <algorithm>
+#include <cstdint>
 #include <cstdlib>
 #include <exception>
 #include <limits>
@@ -28,6 +29,7 @@
 #include <userver/ugrpc/impl/statistics_storage.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 #include <userver/ugrpc/server/impl/completion_queue_pool.hpp>
+#include <userver/ugrpc/server/impl/context_allocator.hpp>
 #include <userver/ugrpc/server/impl/service_internals.hpp>
 #include <userver/ugrpc/server/impl/service_worker.hpp>
 #include <userver/ugrpc/time_utils.hpp>
@@ -95,7 +97,7 @@ public:
 
     void WithServerBuilder(SetupHook setup);
 
-    ugrpc::impl::CompletionQueuePoolBase& GetCompletionQueues() noexcept;
+    ugrpc::impl::CompletionQueuePoolBase* GetCompletionQueues() noexcept;
 
     void Start();
 
@@ -108,7 +110,7 @@ public:
     std::uint64_t GetTotalRequests() const;
 
 private:
-    enum class State {
+    enum class State : std::uint8_t {
         kConfiguration,
         kActive,
         kServingStopped,
@@ -137,6 +139,8 @@ private:
     mutable engine::Mutex configuration_mutex_;
 
     ugrpc::impl::StatisticsStorage statistics_storage_;
+    const std::size_t completion_queue_num_;
+    const bool use_callback_api_;
     const bool otel_trace_sampling_enabled_;
 };
 
@@ -146,6 +150,8 @@ Server::Impl::Impl(
     utils::statistics::Storage& statistics_storage
 )
     : statistics_storage_(scope_storage, statistics_storage, ugrpc::impl::StatisticsDomain::kServer),
+      completion_queue_num_(config.completion_queue_num),
+      use_callback_api_(config.use_callback_api),
       otel_trace_sampling_enabled_(config.otel_trace_sampling_enabled)
 {
     LOG_INFO() << "Configuring the gRPC server";
@@ -160,7 +166,11 @@ Server::Impl::Impl(
     }
     server_builder_.emplace();
     AddChannelArguments(*server_builder_, config.channel_args);
-    completion_queues_.emplace(config.completion_queue_num, *server_builder_);
+    if (use_callback_api_) {
+        server_builder_->SetContextAllocator(std::make_unique<impl::ContextAllocator>());
+    } else {
+        completion_queues_.emplace(completion_queue_num_, *server_builder_);
+    }
 
     if (config.unix_socket_path) {
         AddListeningUnixSocket(*config.unix_socket_path, config.tls);
@@ -210,13 +220,14 @@ void Server::Impl::AddListeningUnixSocket(std::string_view path, const TlsConfig
 
 impl::ServiceInternals Server::Impl::MakeServiceInternals(ServiceConfig&& config) {
     return impl::ServiceInternals{
-        completion_queues_.value(),  //
+        completion_queues_ ? &*completion_queues_ : nullptr,
         config.task_processor,
         statistics_storage_,
         std::move(config.middlewares),
         config.config_source,
         std::move(config.status_codes_log_level),
         otel_trace_sampling_enabled_,
+        use_callback_api_,
     };
 }
 
@@ -251,9 +262,9 @@ void Server::Impl::WithServerBuilder(SetupHook setup) {
     setup(*server_builder_);
 }
 
-ugrpc::impl::CompletionQueuePoolBase& Server::Impl::GetCompletionQueues() noexcept {
+ugrpc::impl::CompletionQueuePoolBase* Server::Impl::GetCompletionQueues() noexcept {
     UASSERT(state_ == State::kConfiguration || state_ == State::kActive || state_ == State::kServingStopped);
-    return completion_queues_.value();
+    return completion_queues_ ? &*completion_queues_ : nullptr;
 }
 
 void Server::Impl::Start() {
@@ -343,7 +354,15 @@ void Server::Impl::DoStart() {
         server_builder_->RegisterService(&worker->GetService());
     }
     for (auto& worker : generic_service_workers_) {
-        server_builder_->RegisterAsyncGenericService(&worker.GetService());
+        if (use_callback_api_) {
+            server_builder_->RegisterCallbackGenericService(&worker.GetCallbackService());
+        } else {
+            server_builder_->RegisterAsyncGenericService(&worker.GetAsyncService());
+        }
+    }
+    if (!completion_queues_ && service_workers_.empty() && generic_service_workers_.empty()) {
+        // gRPC requires at least one frequently-polled CQ if no Callback API services are registered.
+        completion_queues_.emplace(completion_queue_num_, *server_builder_);
     }
 
     server_ =
@@ -353,11 +372,13 @@ void Server::Impl::DoStart() {
     UINVARIANT(server_, "See grpcpp logs for details");
     server_builder_.reset();
 
-    for (auto& worker : service_workers_) {
-        worker->Start();
-    }
-    for (auto& worker : generic_service_workers_) {
-        worker.Start();
+    if (!use_callback_api_) {
+        for (auto& worker : service_workers_) {
+            worker->Start();
+        }
+        for (auto& worker : generic_service_workers_) {
+            worker.Start();
+        }
     }
 
     if (port_) {
@@ -403,7 +424,7 @@ std::vector<std::string_view> Server::GetServiceNames() const { return impl_->Ge
 
 void Server::WithServerBuilder(SetupHook setup) { impl_->WithServerBuilder(setup); }
 
-ugrpc::impl::CompletionQueuePoolBase& Server::GetCompletionQueues(utils::impl::InternalTag) {
+ugrpc::impl::CompletionQueuePoolBase* Server::GetCompletionQueues(utils::impl::InternalTag) {
     return impl_->GetCompletionQueues();
 }
 

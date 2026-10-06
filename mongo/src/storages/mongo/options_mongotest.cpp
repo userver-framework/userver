@@ -2,7 +2,6 @@
 #include <chrono>
 #include <cstdint>
 #include <memory>
-#include <string>
 
 #include <mongoc/mongoc.h>
 
@@ -145,7 +144,6 @@ UTEST(CollectionReadPreference, DefaultMaxReplicationLagIsApplied) {
     };
     const InspectableCollectionImpl collection_impl{
         GetPoolImpl(pool),
-        kTestDatabaseDefaultName,
         "max_replication_lag",
     };
 

@@ -8,6 +8,7 @@
 
 #include <google/protobuf/message.h>
 
+#include <userver/engine/task/cancel.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
@@ -17,7 +18,7 @@
 #include <userver/ugrpc/server/impl/call_state.hpp>
 #include <userver/ugrpc/server/impl/call_traits.hpp>
 #include <userver/ugrpc/server/impl/exceptions.hpp>
-#include <userver/ugrpc/server/impl/rpc.hpp>
+#include <userver/ugrpc/server/impl/responder.hpp>
 #include <userver/ugrpc/server/middlewares/base.hpp>
 #include <userver/ugrpc/server/result.hpp>
 
@@ -29,6 +30,8 @@ grpc::Status ReportCustomError(const USERVER_NAMESPACE::server::handlers::Custom
     noexcept;
 
 grpc::Status ReportHandlerError(const std::exception& ex, CallState& state) noexcept;
+
+grpc::Status ReportUnexpectedError(CallState& state) noexcept;
 
 void ReportFinished(const grpc::Status& status, CallState& state) noexcept;
 
@@ -128,7 +131,10 @@ public:
             RunOnCallStart();
         }
 
+        std::optional<Response> response;
+
         bool finished = false;
+        // Should be executed before response destruction.
         const utils::FastScopeGuard post_finish_hooks_guard([this, &finished]() noexcept {
             RunOnCallFinish(finished ? std::make_optional(std::move(status_)) : std::nullopt);
         });
@@ -138,7 +144,6 @@ public:
 
         scope_time.Reset("call");
 
-        std::optional<Response> response;
         if (!engine::current_task::ShouldCancel() && status_.ok()) {
             RunWithCatch([this, &response] {
                 auto result = CallHandler();
@@ -156,6 +161,8 @@ public:
             scope_time.Reset("finish");
             impl::FinishInterrupted(responder_);
         }
+        // In Callback API, as soon as Finish completes, OnDone is called, and unary request & response are destroyed.
+        // Reactor retains RawContext until processing, including post-finish hooks, is complete.
 
         scope_time.Reset("post_finish");
 
@@ -236,6 +243,8 @@ private:
                 middleware->OnCallFinish(middleware_call_context_, status);
             } catch (const std::exception& ex) {
                 LOG_WARNING() << "Error in OnCallFinish: " << ex;
+            } catch (...) {
+                LOG_WARNING() << "Uncaught unexpected exception in OnCallFinish";
             }
         }
     }
@@ -255,6 +264,8 @@ private:
             // RPC interruption will be reported below.
         } catch (const std::exception& ex) {
             status_ = impl::ReportHandlerError(ex, state_);
+        } catch (...) {
+            status_ = impl::ReportUnexpectedError(state_);
         }
     }
 

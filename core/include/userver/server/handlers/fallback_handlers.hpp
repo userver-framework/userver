@@ -3,7 +3,8 @@
 /// @file userver/server/handlers/fallback_handlers.hpp
 /// @brief Fallback HTTP handler identifiers and string conversion
 
-#include <string>
+#include <cstddef>
+#include <string_view>
 
 USERVER_NAMESPACE_BEGIN
 

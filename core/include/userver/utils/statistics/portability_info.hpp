@@ -4,8 +4,15 @@
 /// @brief Portability reports.
 
 #include <string>
+#include <string_view>
+#include <unordered_map>
+#include <vector>
 
+#include <userver/formats/json/value.hpp>
+#include <userver/utils/statistics/labels.hpp>
+#include <userver/utils/statistics/request.hpp>
 #include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -73,10 +80,9 @@ formats::json::Value Serialize(const PortabilityWarnings& info, formats::seriali
 
 /// Output portability info for `statistics`.
 /// @see @ref scripts/docs/en/userver/functional_testing.md
-PortabilityWarnings GetPortabilityWarnings(
-    const utils::statistics::Storage& statistics,
-    const utils::statistics::Request& request
-);
+PortabilityWarnings GetPortabilityWarnings(const Storage& statistics, const Request& request);
+
+PortabilityWarnings GetPortabilityWarnings(WriterFuncRef writer, const Request& request);
 
 }  // namespace utils::statistics
 

@@ -1,5 +1,6 @@
 #include <userver/server/http/http_response_body_stream.hpp>
 
+#include <server/http/http_response_impl.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/overloaded.hpp>
 
@@ -7,24 +8,30 @@ USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
 
+struct ResponseBodyStream::BodyProducer {
+    HttpResponseImpl::Producer producer;
+};
+
 namespace {
 
 auto TransferToStream(HttpResponse& response) {
-    response.SetStreamBody();
-    return response.GetBodyProducer();
+    auto& http_response = GetHttpResponseImpl(response);
+    http_response.SetStreamBody();
+    return http_response.GetBodyProducer();
 }
 
 }  // namespace
 
 ResponseBodyStream::ResponseBodyStream(HttpResponse& http_response)
-    : queue_producer_(TransferToStream(http_response)),
+    : body_producer_(BodyProducer{TransferToStream(http_response)}),
       http_response_(http_response)
 {}
 
 ResponseBodyStream::~ResponseBodyStream() {
-    if (http_response_.GetStreamId().has_value()) {
-        UASSERT(queue_producer_.index() == 2);
-        std::get<impl::Http2StreamEventProducer>(queue_producer_).CloseStream(*http_response_.GetStreamId());
+    const auto& http_response = GetHttpResponseImpl(http_response_);
+    if (http_response.GetStreamId().has_value()) {
+        UASSERT(body_producer_->producer.index() == 2);
+        std::get<impl::Http2StreamEventProducer>(body_producer_->producer).CloseStream(*http_response.GetStreamId());
     }
 }
 
@@ -38,17 +45,18 @@ void ResponseBodyStream::PushBodyChunk(std::string&& chunk, engine::Deadline dea
     }
     std::visit(
         utils::Overloaded{
-            [&chunk, &deadline](HttpResponse::Queue::Producer& queue_producer) mutable {
+            [&chunk, &deadline](concurrent::StringStreamQueue::Producer& queue_producer) mutable {
                 const bool success = queue_producer.Push(std::move(chunk), deadline);
                 UASSERT(success);
             },
             [this, &chunk, &deadline](impl::Http2StreamEventProducer& queue_producer) mutable {
-                UASSERT(http_response_.GetStreamId().has_value());
-                queue_producer.PushEvent({*http_response_.GetStreamId(), std::move(chunk)}, deadline);
+                const auto& http_response = GetHttpResponseImpl(http_response_);
+                UASSERT(http_response.GetStreamId().has_value());
+                queue_producer.PushEvent({*http_response.GetStreamId(), std::move(chunk)}, deadline);
             },
             [](std::monostate) { UINVARIANT(false, "unreachable"); }
         },
-        queue_producer_
+        body_producer_->producer
     );
 }
 

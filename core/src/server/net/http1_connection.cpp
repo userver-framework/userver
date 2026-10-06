@@ -4,6 +4,7 @@
 #include <system_error>
 #include <vector>
 
+#include <server/http/http_response_impl.hpp>
 #include <server/http/request_handler_base.hpp>
 
 #include <userver/engine/async.hpp>
@@ -95,7 +96,7 @@ void Http1Connection::ProcessRequest(std::shared_ptr<http::HttpRequest>&& reques
 }
 
 void Http1Connection::SendResponse(http::HttpRequest& request) {
-    auto& response = request.GetHttpResponse();
+    auto& response = http::GetHttpResponseImpl(request);
     UASSERT(!response.IsSent());
     if (IsResponseChainValid() && IsValid()) {
         try {
@@ -103,10 +104,10 @@ void Http1Connection::SendResponse(http::HttpRequest& request) {
             response.SendResponse(GetSocket());
         } catch (const engine::io::IoSystemError& ex) {
             auto log_level = ex.Code().value() == EPIPE ? logging::Level::kWarning : logging::Level::kError;
-            LOG(log_level) << "I/O error while sending data: " << ex;
+            LOG(log_level) << "I/O error while sending data: " << ex << response.GetTracingContext().GetLogExtra();
             response.SetSendFailed();
         } catch (const std::exception& ex) {
-            LOG_ERROR() << "Error while sending data: " << ex;
+            LOG_ERROR() << "Error while sending data: " << ex << response.GetTracingContext().GetLogExtra();
             response.SetSendFailed();
         }
     } else {

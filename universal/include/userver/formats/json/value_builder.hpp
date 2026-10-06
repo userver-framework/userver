@@ -4,6 +4,9 @@
 /// @brief @copybrief formats::json::ValueBuilder
 
 #include <chrono>
+#include <cstdint>
+#include <initializer_list>
+#include <string>
 #include <string_view>
 #include <type_traits>
 
@@ -56,10 +59,10 @@ public:
     ValueBuilder(common::TransferTag, ValueBuilder&&) noexcept;
 
     ValueBuilder(const ValueBuilder& other);
-    // NOLINTNEXTLINE(performance-noexcept-move-constructor)
+    // NOLINTNEXTLINE(cppcoreguidelines-noexcept-move-operations, performance-noexcept-move-constructor)
     ValueBuilder(ValueBuilder&& other);
     ValueBuilder& operator=(const ValueBuilder& other);
-    // NOLINTNEXTLINE(performance-noexcept-move-constructor)
+    // NOLINTNEXTLINE(cppcoreguidelines-noexcept-move-operations, performance-noexcept-move-constructor)
     ValueBuilder& operator=(ValueBuilder&& other);
 
     ValueBuilder(const formats::json::Value& other);
@@ -172,9 +175,73 @@ public:
     /// @throw `TypeMismatchException` if not an array or null.
     void Resize(std::size_t size);
 
+    /// @brief Appends a JSON `null` directly, without constructing a temporary `ValueBuilder`, converting this builder
+    /// from null to an array if necessary.
+    /// @throw `TypeMismatchException` if the builder contains neither an array nor null.
+    void PushBack(std::nullptr_t);
+
+    /// @brief Appends a string directly, without constructing a temporary `ValueBuilder`.
+    /// @throw `TypeMismatchException` if the builder contains neither an array nor null.
+    void PushBack(const std::string& value);
+
+    /// @overload
+    void PushBack(std::string_view value);
+
+    /// @brief Appends a string-like value directly, without constructing a temporary `ValueBuilder`.
+    /// @throw `TypeMismatchException` if the builder contains neither an array nor null.
+    template <typename T>
+    requires(!std::is_same_v<std::remove_cvref_t<T>, std::nullptr_t> && std::is_convertible_v<const T&, std::string_view>)
+    void PushBack(const T& value) {
+        PushBack(std::string_view{value});
+    }
+
+    /// @brief Appends an arithmetic value directly, without constructing a temporary `ValueBuilder`.
+    /// @throw `TypeMismatchException` if the builder contains neither an array nor null.
+    template <typename T>
+    requires std::is_arithmetic_v<T>
+    void PushBack(T value) {
+        using Type = std::remove_cv_t<T>;
+        if constexpr (std::is_same_v<Type, bool> || std::is_same_v<Type, int> || std::is_same_v<Type, unsigned int> ||
+                      std::is_same_v<Type, std::int64_t> || std::is_same_v<Type, std::uint64_t> ||
+                      std::is_same_v<Type, float> || std::is_same_v<Type, double>)
+        {
+            PushBackArithmetic(value);
+        } else if constexpr (std::is_integral_v<Type> && std::is_signed_v<Type>) {
+            PushBackArithmetic(static_cast<std::int64_t>(value));
+        } else if constexpr (std::is_integral_v<Type>) {
+            PushBackArithmetic(static_cast<std::uint64_t>(value));
+        } else {
+            PushBackArithmetic(static_cast<double>(value));
+        }
+    }
+
+    /// @brief Appends the single element of a braced initializer.
+    /// The element is forwarded to the matching `PushBack` overload, avoiding a temporary `ValueBuilder` when a direct
+    /// overload is available.
+    /// @throw `Exception` if the initializer does not contain exactly one element.
+    /// @throw `TypeMismatchException` if the builder contains neither an array nor null.
+    template <typename T>
+    void PushBack(std::initializer_list<T> initializer) {
+        CheckSingleElementInitializerList(initializer.size());
+        if constexpr (std::is_same_v<T, ValueBuilder>) {
+            PushBack(ValueBuilder{*initializer.begin()});
+        } else {
+            PushBack(*initializer.begin());
+        }
+    }
+
     /// @brief Add element into the last position of array.
     /// @throw `TypeMismatchException` if not an array or null.
     void PushBack(ValueBuilder&& bld);
+
+    /// @brief Copy an existing JSON value into the last position of array.
+    /// @throw `TypeMismatchException` if not an array or null.
+    void PushBack(const formats::json::Value& value);
+
+    /// @brief Move an existing JSON value into the last position of array when
+    /// it is uniquely owned, otherwise copy it.
+    /// @throw `TypeMismatchException` if not an array or null.
+    void PushBack(formats::json::Value&& value);
 
     /// @brief Take out the resulting `Value` object.
     /// After calling this method the object is in unspecified
@@ -197,6 +264,21 @@ private:
 
     static void Copy(impl::Value& to, const ValueBuilder& from);
     static void Move(impl::Value& to, ValueBuilder&& from);
+
+    void PushBackArithmetic(bool value);
+    void PushBackArithmetic(int value);
+    void PushBackArithmetic(unsigned int value);
+    void PushBackArithmetic(std::uint64_t value);
+    void PushBackArithmetic(std::int64_t value);
+    void PushBackArithmetic(float value);
+    void PushBackArithmetic(double value);
+
+    template <typename T>
+    void PushBackArithmeticImpl(T value);
+
+    template <typename Appender>
+    USERVER_IMPL_NODEBUG_INLINE_FUNC inline void PushBackNative(Appender&& append);
+    static void CheckSingleElementInitializerList(std::size_t size);
 
     impl::Value& AddMember(std::string_view key, CheckMemberExists);
 

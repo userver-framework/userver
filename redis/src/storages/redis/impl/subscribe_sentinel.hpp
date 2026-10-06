@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <mutex>
 #include <vector>
 
 #include <userver/testsuite/testsuite_support.hpp>

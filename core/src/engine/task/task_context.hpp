@@ -123,6 +123,8 @@ public:
     // whether user code finished executing, coroutine may still be running
     bool IsFinished() const noexcept;
 
+    std::atomic<bool>& BlockingWaitFinishFlag() noexcept;
+
     // wait for this to become finished
     // should only be called from other context
     [[nodiscard]] FutureStatus WaitUntil(Deadline) const noexcept;
@@ -247,6 +249,7 @@ private:
 
     std::atomic<Task::State> state_{Task::State::kNew};
     std::atomic<TaskCancellationReason> cancellation_reason_{TaskCancellationReason::kNone};
+    std::atomic<bool> blocking_wait_finish_flag_{false};
     FastPimplGenericWaitList finish_awaiters_;
 
     ContextTimer deadline_timer_;

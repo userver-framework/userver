@@ -5,7 +5,9 @@
 
 #include <string>
 
+#include <userver/utils/statistics/request.hpp>
 #include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,10 +23,9 @@ namespace utils::statistics {
 /// @code
 /// metric-path: some-label=label-value, other-label=other-label-value\tRATE\t42
 /// @endcode
-std::string ToPrettyFormat(
-    const utils::statistics::Storage& statistics,
-    const utils::statistics::Request& statistics_request = {}
-);
+std::string ToPrettyFormat(const Storage& statistics, const Request& statistics_request = {});
+
+std::string ToPrettyFormat(WriterFuncRef writer, const Request& statistics_request = {});
 
 }  // namespace utils::statistics
 

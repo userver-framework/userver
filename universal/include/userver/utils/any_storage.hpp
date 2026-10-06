@@ -205,6 +205,7 @@ Data& AnyStorage<StorageTag>::Emplace(const AnyStorageDataTag<StorageTag, Data>&
     auto& record = GetRecords()[number];
     if (record.deleter) {
         record.deleter(&raw_data_[tag.offset_]);
+        record.deleter = nullptr;
     }
 
     auto offset = tag.offset_;
@@ -249,6 +250,16 @@ const Data* AnyStorage<StorageTag>::GetOptional(const AnyStorageDataTag<StorageT
 ) const noexcept USERVER_IMPL_LIFETIME_BOUND {
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-const-cast)
     return const_cast<AnyStorage*>(this)->GetOptional<Data>(tag);
+}
+
+template <typename StorageTag>
+template <typename Data>
+void AnyStorage<StorageTag>::Erase(const AnyStorageDataTag<StorageTag, Data>& tag) {
+    auto& record = GetRecords()[tag.number_];
+    if (record.deleter) {
+        record.deleter(&raw_data_[record.offset]);
+        record.deleter = nullptr;
+    }
 }
 
 template <typename StorageTag>

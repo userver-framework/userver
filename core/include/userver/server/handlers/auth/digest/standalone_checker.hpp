@@ -3,7 +3,6 @@
 /// @file userver/server/handlers/auth/digest/standalone_checker.hpp
 /// @brief @copybrief server::handlers::auth::digest::AuthStandaloneCheckerBase
 
-#include <chrono>
 #include <cstdint>
 #include <functional>
 #include <random>

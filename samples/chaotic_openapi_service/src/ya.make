@@ -91,7 +91,6 @@ RUN_PROGRAM(
         include/clients/secure/responses.hpp
         include/clients/secure/exceptions.hpp
         include/clients/secure/component.hpp
-        include/clients/secure/qos.hpp
 
         src/clients/secure/secure.cpp
         include/clients/secure/secure.hpp

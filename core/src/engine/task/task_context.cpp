@@ -28,8 +28,6 @@
 #include <engine/task/cxxabi_eh_globals.hpp>
 #include <engine/task/task_processor.hpp>
 
-#include <gdb_autogen/cmd/utask/cmd.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace engine {
@@ -166,6 +164,8 @@ bool TaskContext::IsCritical() const {
 bool TaskContext::IsSharedWaitAllowed() const { return finish_awaiters_->IsShared(); }
 
 bool TaskContext::IsFinished() const noexcept { return finish_awaiters_->IsSignaled(); }
+
+std::atomic<bool>& TaskContext::BlockingWaitFinishFlag() noexcept { return blocking_wait_finish_flag_; }
 
 FutureStatus TaskContext::WaitUntil(Deadline deadline) const noexcept {
     // try to avoid ctx switch if possible
@@ -414,8 +414,6 @@ bool TaskContext::ShouldSchedule(SleepState::Flags prev_flags, WakeupSource sour
          * 2) Other WakeupSource is already triggered
          */
         return prev_flags == SleepFlags::kSleeping;
-    } else if (source == WakeupSource::kBootstrap) {
-        return true;
     } else {
         if (prev_flags & SleepFlags::kNonCancellable) {
             /* If there was a cancellation request, but cancellation is blocked,

@@ -1,6 +1,5 @@
 #pragma once
 
-#include <string>
 #include <vector>
 
 #include <storages/clickhouse/impl/wrap_clickhouse_cpp.hpp>

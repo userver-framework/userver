@@ -30,7 +30,7 @@ public:
         state_ = State::kStart;
         storage_.clear();
 
-        if constexpr (meta::kIsVector<Array>) {
+        if constexpr (meta::IsVectorLike<Array>) {
             /*
              * Heuristics:
              * STL impls have a small initial capacity of vector.
@@ -105,7 +105,7 @@ protected:
     }
 
     void OnSend(Item&& item) override {
-        if constexpr (!meta::kIsVector<Array>) {
+        if constexpr (!meta::IsVectorLike<Array>) {
             this->storage_.insert(std::move(item));
         } else {
             this->storage_.push_back(std::move(item));

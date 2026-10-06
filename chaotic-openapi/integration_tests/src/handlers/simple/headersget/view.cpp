@@ -2,10 +2,8 @@
 
 namespace handlers::simple::headersget {
 
-Response View::Handle(Request&& /*request*/, Deps&& /*deps*/, RequestContext& context) {
+Response View::Handle(Request&& /*request*/, Deps&& /*deps*/, RequestContext&) {
     Response200 response;
-    const auto* user_id = context.GetDataOptional<std::string>("x-user-id");
-    response.X_String = user_id ? *user_id : "";
     response.body = response.X_String;
     return response;
 }

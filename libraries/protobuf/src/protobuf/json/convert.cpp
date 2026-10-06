@@ -1,5 +1,7 @@
 #include <userver/protobuf/json/convert.hpp>
 
+#include <userver/formats/json/serialize.hpp>
+
 #include <protobuf/json/impl/read.hpp>
 #include <protobuf/json/impl/write.hpp>
 #include <protobuf/json/impl/write_debug_string.hpp>
@@ -24,6 +26,14 @@ void JsonToMessage(
     impl::ReadMessage(json, message, options);
 }
 
+void JsonStringToMessage(
+    std::string_view json_string,
+    ::google::protobuf::Message& message,
+    const ParseOptions& options
+) {
+    JsonToMessage(formats::json::FromString(json_string), message, options);
+}
+
 std::string MessageToJsonString(const ::google::protobuf::Message& message, const PrintOptions& options) {
     return impl::WriteMessageToJsonString(message, options);
 }
@@ -34,7 +44,6 @@ std::string MessageToDebugString(const ::google::protobuf::Message& message, std
 
 }  // namespace protobuf::json
 
-/*
 namespace formats::serialize {
 
 json::Value Serialize(const ::google::protobuf::Message& message, To<json::Value>) {
@@ -42,6 +51,5 @@ json::Value Serialize(const ::google::protobuf::Message& message, To<json::Value
 }
 
 }  // namespace formats::serialize
-*/
 
 USERVER_NAMESPACE_END

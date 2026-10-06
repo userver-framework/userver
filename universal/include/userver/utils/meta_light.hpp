@@ -22,19 +22,6 @@ struct IsInstantiationOf<Template, Template<Args...>> : std::true_type {};
 
 }  // namespace impl
 
-#ifndef ARCADIA_ROOT
-
-/// @brief Checks whether a trait is correct for the given template args
-///
-/// @deprecated Use a `requires` expression directly:
-/// @code
-/// if constexpr (requires { typename T::ValueType; }) { ... }
-/// @endcode
-template <template <typename...> typename Trait, typename... Args>
-concept IsDetected = requires { typename Trait<Args...>; };
-
-#endif
-
 /// @brief Returns `true` if the type is an instantiation of the specified template.
 template <typename T, template <typename...> typename Template>
 concept IsInstantiationOf = impl::IsInstantiationOf<Template, T>::value;
@@ -53,25 +40,6 @@ concept IsCharacter =
 /// `signed char` and `unsigned char` are integer types
 template <typename T>
 concept IsInteger = std::is_integral_v<T> && !IsCharacter<T> && !std::is_same_v<T, bool>;
-
-/// @brief Returns `true` if the type is an instantiation of the specified template.
-/// @deprecated Use @ref meta::IsInstantiationOf instead.
-template <template <typename...> typename Template, typename T>
-// NOLINTNEXTLINE(readability-identifier-naming)
-concept kIsInstantiationOf = IsInstantiationOf<T, Template>;
-
-/// @brief Returns `true` if the type (with remove cv-qualifiers) is an instantiation of the specified template.
-/// @deprecated Use @ref meta::IsCvInstantiationOf instead.
-template <template <typename...> typename Template, typename T>
-// NOLINTNEXTLINE(readability-identifier-naming)
-concept kIsCvInstantiationOf = IsCvInstantiationOf<T, Template>;
-
-/// @brief Returns `true` if the type is a true integer type (not `*char*` or `bool`)
-/// `signed char` and `unsigned char` are integer types
-/// @deprecated Use @ref meta::IsInteger instead.
-template <typename T>
-// NOLINTNEXTLINE(readability-identifier-naming)
-concept kIsInteger = IsInteger<T>;
 
 }  // namespace meta
 

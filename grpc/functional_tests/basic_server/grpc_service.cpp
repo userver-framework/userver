@@ -11,6 +11,7 @@
 #include <userver/components/component.hpp>
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/congestion_control/component.hpp>
+#include <userver/logging/log.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/server/middlewares/headers_propagator.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
@@ -63,6 +64,7 @@ GreeterServiceComponent::CallEchoNobodyResult GreeterServiceComponent::CallEchoN
 ) {
     api::GreetingResponse response;
     response.set_greeting("Call Echo Nobody");
+    LOG_INFO() << "CallEchoNobody handler called";
     auto
         http_response = http_client_.CreateRequest().get(echo_url_).retry(1).timeout(std::chrono::seconds{5}).perform();
     http_response->raise_for_status();

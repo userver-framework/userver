@@ -4,6 +4,7 @@
 
 #include <algorithm>
 
+#include <server/http/http_response_impl.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/server/http/http_status.hpp>
@@ -312,48 +313,48 @@ void HttpRequestConstructor::CheckStatus() {
         case Status::kBadRequest:
             builder_.SetResponseStatus(HttpStatus::kBadRequest);
             builder_.GetHttpResponse().SetData("bad request");
-            builder_.GetHttpResponse().SetReady();
+            GetHttpResponseImpl(builder_.GetHttpResponse()).SetReady();
             break;
         case Status::kUriTooLong:
             builder_.SetResponseStatus(HttpStatus::kUriTooLong);
-            builder_.GetHttpResponse().SetReady();
+            GetHttpResponseImpl(builder_.GetHttpResponse()).SetReady();
             break;
         case Status::kParseUrlError:
             builder_.SetResponseStatus(HttpStatus::kBadRequest);
             builder_.GetHttpResponse().SetData("invalid url");
-            builder_.GetHttpResponse().SetReady();
+            GetHttpResponseImpl(builder_.GetHttpResponse()).SetReady();
             break;
         case Status::kHandlerNotFound:
             builder_.SetResponseStatus(HttpStatus::kNotFound);
-            builder_.GetHttpResponse().SetReady();
+            GetHttpResponseImpl(builder_.GetHttpResponse()).SetReady();
             break;
         case Status::kMethodNotAllowed:
             builder_.SetResponseStatus(HttpStatus::kMethodNotAllowed);
-            builder_.GetHttpResponse().SetReady();
+            GetHttpResponseImpl(builder_.GetHttpResponse()).SetReady();
             break;
         case Status::kHeadersTooLarge:
             builder_.SetResponseStatus(HttpStatus::kRequestHeaderFieldsTooLarge);
-            builder_.GetHttpResponse().SetReady();
+            GetHttpResponseImpl(builder_.GetHttpResponse()).SetReady();
             break;
         case Status::kRequestTooLarge:
             builder_.SetResponseStatus(HttpStatus::kPayloadTooLarge);
             builder_.GetHttpResponse().SetData("too large request");
-            builder_.GetHttpResponse().SetReady();
+            GetHttpResponseImpl(builder_.GetHttpResponse()).SetReady();
             break;
         case Status::kParseArgsError:
             builder_.SetResponseStatus(HttpStatus::kBadRequest);
             builder_.GetHttpResponse().SetData("invalid args");
-            builder_.GetHttpResponse().SetReady();
+            GetHttpResponseImpl(builder_.GetHttpResponse()).SetReady();
             break;
         case Status::kParseCookiesError:
             builder_.SetResponseStatus(HttpStatus::kBadRequest);
             builder_.GetHttpResponse().SetData("invalid cookies");
-            builder_.GetHttpResponse().SetReady();
+            GetHttpResponseImpl(builder_.GetHttpResponse()).SetReady();
             break;
         case Status::kParseMultipartFormDataError:
             builder_.SetResponseStatus(HttpStatus::kBadRequest);
             builder_.GetHttpResponse().SetData("invalid body of multipart/form-data request");
-            builder_.GetHttpResponse().SetReady();
+            GetHttpResponseImpl(builder_.GetHttpResponse()).SetReady();
             break;
     }
 }

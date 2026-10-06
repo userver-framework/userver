@@ -44,22 +44,17 @@ Pool& Pool::operator=(Pool&&) noexcept = default;
 
 Pool::~Pool() = default;
 
-void Pool::DropDatabase() { impl::Database(impl_, impl_->DefaultDatabaseName()).DropDatabase(); }
+void Pool::DropDatabase() { impl::Database(impl_).DropDatabase(); }
 
 void Pool::Ping() { impl_->Ping(); }
 
-bool Pool::HasCollection(utils::zstring_view name) const {
-    return impl::Database(impl_, impl_->DefaultDatabaseName()).HasCollection(name);
-}
+bool Pool::HasCollection(utils::zstring_view name) const { return impl::Database(impl_).HasCollection(name); }
 
 Collection Pool::GetCollection(std::string name) const {
-    return Collection(std::make_shared<
-                      impl::cdriver::CDriverCollectionImpl>(impl_, impl_->DefaultDatabaseName(), std::move(name)));
+    return Collection(std::make_shared<impl::cdriver::CDriverCollectionImpl>(impl_, std::move(name)));
 }
 
-std::vector<std::string> Pool::ListCollectionNames() const {
-    return impl::Database(impl_, impl_->DefaultDatabaseName()).ListCollectionNames();
-}
+std::vector<std::string> Pool::ListCollectionNames() const { return impl::Database(impl_).ListCollectionNames(); }
 
 Transaction Pool::BeginTransaction() const {
     auto transaction_impl = std::make_unique<impl::TransactionImpl>(impl_);
@@ -67,7 +62,7 @@ Transaction Pool::BeginTransaction() const {
 }
 
 Cursor Pool::Execute(const operations::Aggregate& aggregate_op) {
-    return impl::Database(impl_, impl_->DefaultDatabaseName()).Aggregate(aggregate_op);
+    return impl::Database(impl_).Aggregate(aggregate_op);
 }
 
 void DumpMetric(utils::statistics::Writer& writer, const Pool& pool) {

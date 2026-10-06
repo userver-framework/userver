@@ -62,9 +62,6 @@ private:
 
     std::shared_ptr<PoolImpl> pool_impl_;
     std::shared_ptr<TransactionData> data_;
-
-    // Database name for this transaction
-    std::string database_name_;
 };
 
 }  // namespace storages::mongo::impl

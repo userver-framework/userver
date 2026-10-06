@@ -9,4 +9,5 @@ DATA_PARTS_MAX_SIZE = 40
 async def test_network_smaller_parts(grpc_ch, service_client, gate, case):
     await gate.to_client_smaller_parts(DATA_PARTS_MAX_SIZE)
     await gate.to_server_smaller_parts(DATA_PARTS_MAX_SIZE)
+    await requests_client.ensure_grpc_ready_after_gate_reset(grpc_ch, service_client)
     await requests_client.check_200_for(case)(grpc_ch, service_client, gate)

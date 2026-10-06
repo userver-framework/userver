@@ -63,6 +63,7 @@ def _get_template_includes(
         'client_fwd.hpp': [],
         'client_impl.cpp': [
             f'clients/{client_name}/client_impl.hpp',
+            'userver/chaotic/openapi/client/content_encoding.hpp',
             'userver/chaotic/openapi/middlewares/follow_redirects_middleware.hpp',
             'userver/chaotic/openapi/middlewares/qos_middleware.hpp',
             'userver/components/component_context.hpp',

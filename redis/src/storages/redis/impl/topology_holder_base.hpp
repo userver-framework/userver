@@ -1,5 +1,8 @@
 #pragma once
 
+#include <atomic>
+#include <memory>
+
 #include <storages/redis/impl/cluster_topology.hpp>
 #include <storages/redis/impl/redis.hpp>
 #include <storages/redis/impl/redis_stats.hpp>
@@ -24,7 +27,7 @@ public:
     virtual void Stop() = 0;
     virtual bool WaitReadyOnce(engine::Deadline deadline, WaitConnectedMode mode) = 0;
     virtual bool IsReady(const HealthCheckParams& params) const = 0;
-    virtual rcu::ReadablePtr<ClusterTopology, rcu::BlockingRcuTraits> GetTopology() const = 0;
+    virtual rcu::ReadablePtr<ClusterTopology, rcu::ExclusiveRcuTraits> GetTopology() const = 0;
     virtual void SendUpdateClusterTopology() = 0;
     virtual std::shared_ptr<Redis> GetRedisInstance(const HostPort& host_port) const = 0;
     virtual void GetStatistics(SentinelStatistics& stats, const MetricsSettings& settings) const = 0;
@@ -41,6 +44,18 @@ public:
 
     virtual std::string GetReadinessInfo() const = 0;
     virtual ~TopologyHolderBase() = default;
+
+protected:
+    using CallbackToken = std::shared_ptr<std::atomic<bool>>;
+
+    CallbackToken GetCallbackToken() const { return callbacks_enabled_; }
+    void DisableCallbacks() noexcept { callbacks_enabled_->store(false, std::memory_order_release); }
+    static bool AreCallbacksEnabled(const CallbackToken& token) noexcept {
+        return token->load(std::memory_order_acquire);
+    }
+
+private:
+    CallbackToken callbacks_enabled_{std::make_shared<std::atomic<bool>>(true)};
 };
 
 }  // namespace storages::redis::impl

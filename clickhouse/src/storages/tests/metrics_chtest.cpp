@@ -36,7 +36,7 @@ UTEST(Metrics, Basic) {
     // successful insert
     cluster->Insert("tmp", {"value"}, data);
 
-    const auto snapshot = cluster.GetStatistics("clickhouse.connections");
+    const auto snapshot = cluster.GetStatistics("connections");
     EXPECT_EQ(snapshot.SingleMetric("active").AsInt(), 1);
 
     // unsuccessful query
@@ -44,10 +44,10 @@ UTEST(Metrics, Basic) {
     // unsuccessful insert
     EXPECT_ANY_THROW(cluster->Insert("nonexistent", {"value"}, data));
 
-    const auto connection_stats = cluster.GetStatistics("clickhouse.connections");
-    const auto queries_stats = cluster.GetStatistics("clickhouse.queries");
+    const auto connection_stats = cluster.GetStatistics("connections");
+    const auto queries_stats = cluster.GetStatistics("queries");
 
-    const auto insert_stats = cluster.GetStatistics("clickhouse.inserts");
+    const auto insert_stats = cluster.GetStatistics("inserts");
 
     EXPECT_EQ(connection_stats.SingleMetric("closed"), utils::statistics::Rate{2});
 

@@ -45,43 +45,91 @@ _check_clang_and_gdb_compatibility()
 project(userver-gdb-tests)
 
 set(GDB_TESTS_DIR ${CMAKE_CURRENT_LIST_DIR})
-set_directory_properties(PROPERTIES TEST_PROGRAMS "" TEST_SOURCES "")
+set_directory_properties(
+    PROPERTIES TEST_PROGRAMS_core ""
+               TEST_PROGRAMS_universal ""
+               TEST_SOURCES_core ""
+               TEST_SOURCES_universal ""
+               TEST_TARGETS_core ""
+               TEST_TARGETS_universal ""
+)
 
-macro(add_gdb_test_program NAME SOURCE DEPS)
+macro(add_gdb_test_program GROUP NAME SOURCE DEPS)
     project(userver-gdb-test-${NAME})
 
     add_executable(${PROJECT_NAME} "${SOURCE}")
-    target_link_libraries(${PROJECT_NAME} userver-gdb-tests-include ${DEPS})
+    target_link_libraries(${PROJECT_NAME} PUBLIC userver-gdb-tests-include ${DEPS})
     target_include_directories(
         ${PROJECT_NAME}
         PRIVATE "${USERVER_ROOT_DIR}/scripts/gdb/tests/include"
         PRIVATE "${USERVER_ROOT_DIR}/scripts/gdb/include"
     )
 
-    get_directory_property(TEST_PROGRAMS DIRECTORY "${GDB_TESTS_DIR}" TEST_PROGRAMS)
-    get_directory_property(TEST_SOURCES DIRECTORY "${GDB_TESTS_DIR}" TEST_SOURCES)
+    get_directory_property(TEST_PROGRAMS DIRECTORY "${GDB_TESTS_DIR}" TEST_PROGRAMS_${GROUP})
+    get_directory_property(TEST_SOURCES DIRECTORY "${GDB_TESTS_DIR}" TEST_SOURCES_${GROUP})
 
-    set_property(DIRECTORY "${GDB_TESTS_DIR}" PROPERTY TEST_PROGRAMS "${TEST_PROGRAMS}:$<TARGET_FILE:${PROJECT_NAME}>")
     set_property(
-        DIRECTORY "${GDB_TESTS_DIR}" PROPERTY TEST_SOURCES "${TEST_SOURCES}:${CMAKE_CURRENT_LIST_DIR}/${SOURCE}"
+        DIRECTORY "${GDB_TESTS_DIR}"
+        PROPERTY TEST_PROGRAMS_${GROUP} "${TEST_PROGRAMS}:$<TARGET_FILE:${PROJECT_NAME}>"
     )
+    set_property(
+        DIRECTORY "${GDB_TESTS_DIR}"
+        PROPERTY TEST_SOURCES_${GROUP} "${TEST_SOURCES}:${CMAKE_CURRENT_LIST_DIR}/${SOURCE}"
+    )
+    set_property(DIRECTORY "${GDB_TESTS_DIR}" APPEND PROPERTY TEST_TARGETS_${GROUP} ${PROJECT_NAME})
 endmacro()
 
 add_subdirectory(include)
 add_subdirectory(src)
 
-add_test(
-    NAME ${PROJECT_NAME}
-    COMMAND "${TESTSUITE_PYTHON_BINARY}" -m pytest
-    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-)
+get_target_property(USERVER_GDB_NAMESPACE userver-universal USERVER_GDB_NAMESPACE)
 
-get_directory_property(TEST_PROGRAMS TEST_PROGRAMS)
-get_directory_property(TEST_SOURCES TEST_SOURCES)
+function(add_gdb_test_suite GROUP)
+    get_directory_property(TEST_PROGRAMS TEST_PROGRAMS_${GROUP})
+    get_directory_property(TEST_SOURCES TEST_SOURCES_${GROUP})
+    get_directory_property(TEST_TARGETS TEST_TARGETS_${GROUP})
 
-set_tests_properties(
-    ${PROJECT_NAME}
-    PROPERTIES
-        ENVIRONMENT
-        "TEST_PROGRAMS=${TEST_PROGRAMS};TEST_SOURCES=${TEST_SOURCES};GDB_BIN=${GDB_EXECUTABLE};TESTS_COREDUMP=userver-gdb-test-utask"
-)
+    if(GROUP STREQUAL "core")
+        set(TESTS_IN_RELEASE gdb_test_utask)
+    elseif(GROUP STREQUAL "universal")
+        set(TESTS_IN_RELEASE gdb_test_json:gdb_test_yaml:gdb_test_fast_pimpl)
+    else()
+        message(FATAL_ERROR "Unknown GDB test suite group '${GROUP}'")
+    endif()
+
+    set(COMPONENT_UNITTEST_TARGET userver-${GROUP}-unittest)
+    if(TARGET ${COMPONENT_UNITTEST_TARGET})
+        add_dependencies(${COMPONENT_UNITTEST_TARGET} ${TEST_TARGETS})
+    endif()
+
+    set(TEST_FILES "${CMAKE_CURRENT_SOURCE_DIR}/test_printers.py")
+    if(GROUP STREQUAL "universal")
+        list(APPEND TEST_FILES "${CMAKE_CURRENT_SOURCE_DIR}/test_gen_gdb_printers_tests.py")
+    endif()
+
+    set(TEST_NAME userver-${GROUP}-gdb-tests)
+    add_test(
+        NAME ${TEST_NAME}
+        COMMAND "${TESTSUITE_PYTHON_BINARY}" -m pytest ${TEST_FILES}
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+    )
+
+    set(
+        TEST_ENVIRONMENT
+        "TEST_PROGRAMS=${TEST_PROGRAMS}"
+        "TEST_SOURCES=${TEST_SOURCES}"
+        "BUILD_TYPE=$<CONFIG>"
+        "GDB_BIN=${GDB_EXECUTABLE}"
+        "TESTS_IN_RELEASE=${TESTS_IN_RELEASE}"
+        "USERVER_NAMESPACE=${USERVER_GDB_NAMESPACE}"
+    )
+    if(GROUP STREQUAL "core")
+        list(APPEND TEST_ENVIRONMENT "TESTS_COREDUMP=gdb_test_utask")
+    endif()
+    set_tests_properties(${TEST_NAME} PROPERTIES ENVIRONMENT "${TEST_ENVIRONMENT}")
+endfunction()
+
+add_gdb_test_suite(universal)
+if(USERVER_FEATURE_CORE)
+    add_gdb_test_suite(core)
+endif()

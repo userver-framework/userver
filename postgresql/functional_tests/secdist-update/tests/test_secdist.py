@@ -2,6 +2,7 @@ import json
 import os
 
 import pytest
+import pytest_userver.config
 
 
 def fix_secdist(service_tmpdir, pgsql_local):
@@ -48,6 +49,7 @@ def broken_secdist(service_tmpdir):
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_pg_config(broken_secdist):
     def _hook_db_config(config_yaml, config_vars):
         components = config_yaml['components_manager']['components']

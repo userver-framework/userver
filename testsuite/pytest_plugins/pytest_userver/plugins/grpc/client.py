@@ -23,11 +23,11 @@ import pytest
 from typing_extensions import override
 
 import pytest_userver.client
+import pytest_userver.config
 import pytest_userver.grpc
 from . import _hookspec
 
 DEFAULT_TIMEOUT = 15.0
-USERVER_CONFIG_HOOKS = ['userver_config_grpc_endpoint']
 
 _AsyncExcCheck: TypeAlias = Callable[[], None]
 
@@ -142,6 +142,7 @@ def grpc_socket_path() -> Generator[pathlib.Path, None, None]:
 
 
 @pytest.fixture(scope='session')
+@pytest_userver.config.patch
 def userver_config_grpc_endpoint(
     pytestconfig,
     grpc_service_port_fallback,

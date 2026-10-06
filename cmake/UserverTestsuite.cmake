@@ -134,10 +134,32 @@ function(userver_testsuite_add)
     elseif(ARG_REQUIREMENTS)
         userver_testsuite_requirements(REQUIREMENTS_FILES_VAR requirements_files)
         list(APPEND requirements_files ${ARG_REQUIREMENTS})
+
+        # Keyed by the requirements rather than by the test, so suites asking for
+        # the same extras share one venv — as the branch below shares
+        # `userver-default-<db_key>` among the suites that ask for nothing.
+        #
+        # Naming it after the test gave every suite a private copy under its own
+        # CMAKE_CURRENT_BINARY_DIR. That is free when a build tree holds one
+        # service, which is the usual shape, and not free when one project holds
+        # many: a project with thirteen services and seventeen suites, all passing
+        # the same one-line requirements file, got seventeen identical 107 MB
+        # venvs — 1.8 GB per build directory — for one extra package.
+        #
+        # The key is over the requirements file *paths*. That is the granularity
+        # that matters: userver_venv_setup already reinstalls when a listed file's
+        # contents change, so the name only has to keep apart suites that ask for
+        # different things. Two files with identical contents get two venvs, which
+        # is a missed share rather than a fault.
+        string(REPLACE ";" "\n" venv_key "${requirements_files}")
+        string(SHA256 venv_key "${venv_key}")
+        string(SUBSTRING "${venv_key}" 0 12 venv_key)
+
         userver_venv_setup(
-            NAME "${testsuite_test_name}"
+            NAME "userver-testsuite-${venv_key}"
             REQUIREMENTS ${requirements_files}
             PYTHON_OUTPUT_VAR python_binary
+            UNIQUE
         )
     else()
         _userver_testsuite_active_databases(active_dbs TARGET "${ARG_SERVICE_TARGET}")

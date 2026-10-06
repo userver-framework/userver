@@ -9,6 +9,11 @@ before_pattern_insert_once() {
 }
 
 update_files_to_process() {
+    if [ -z "${FILES_TO_PROCESS}" ]; then
+        echo "Done"
+        exit 0
+    fi
+
     FILES_TO_PROCESS=`grep -L "<${HEADER}>" ${FILES_TO_PROCESS}`
     if [ -z "${FILES_TO_PROCESS}" ]; then
         echo "Done"

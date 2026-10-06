@@ -129,8 +129,8 @@ implemented using the testsuite. To do that you have to:
   @snippet samples/mongo_service/testsuite/conftest.py mongodb settings
   The @ref pytest_userver.plugins.service.auto_client_deps "auto_client_deps"
   fixture already knows about the @ref testsuite.databases.mongo.pytest_plugin.mongodb "mongodb"
-  fixture, so there's no need to override the
-  @ref pytest_userver.plugins.service.extra_client_deps "extra_client_deps" fixture.
+  fixture, so there's no need to register it manually (for custom startup
+  dependencies prefer @ref pytest_userver.service.dependency "dependency").
 
 * Write the test using the @ref pytest_userver.plugins.service_client.service_client "service_client" fixture and the
   @ref testsuite.databases.mongo.pytest_plugin.mongodb "mongodb" fixture:

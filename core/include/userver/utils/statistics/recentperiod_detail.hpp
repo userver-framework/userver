@@ -19,6 +19,10 @@ concept ResultCanUseAddAssign = requires(Result& r, const Counter& c) { r += c; 
 template <typename Counter>
 concept CanReset = requires(Counter& c) { c.Reset(); };
 
+// Detect if a Counter can be reset via ADL-found ResetMetric
+template <typename Counter>
+concept CanResetMetric = requires(Counter& c) { ResetMetric(c); };
+
 }  // namespace utils::statistics::detail
 
 USERVER_NAMESPACE_END

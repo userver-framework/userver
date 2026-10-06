@@ -2,7 +2,6 @@
 
 #include <atomic>
 #include <chrono>
-#include <string>
 
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/serialize/to.hpp>

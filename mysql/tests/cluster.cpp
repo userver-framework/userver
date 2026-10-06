@@ -20,6 +20,8 @@ struct Id final {
     std::int32_t id{};
 };
 
+constexpr CommandControl kTestCommandControl{utest::kMaxTestWaitTime};
+
 }  // namespace
 
 UTEST(StreamedResult, Works) {
@@ -35,6 +37,7 @@ UTEST(StreamedResult, Works) {
         rows_to_insert.push_back({static_cast<std::int32_t>(i), utils::generators::GenerateUuid()});
 
         cluster->ExecuteDecompose(
+            kTestCommandControl,
             ClusterHostType::kPrimary,
             table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
             rows_to_insert.back()
@@ -44,7 +47,7 @@ UTEST(StreamedResult, Works) {
     std::vector<Row> db_rows;
     db_rows.reserve(kRowsCount);
 
-    cluster->GetCursor<Row>(kPrimaryHost, 3, table.FormatWithTableName("SELECT Id, Value FROM {}"))
+    cluster->GetCursor<Row>(kTestCommandControl, kPrimaryHost, 3, table.FormatWithTableName("SELECT Id, Value FROM {}"))
         .ForEach([&db_rows](Row&& row) { db_rows.push_back(std::move(row)); }, cluster.GetDeadline());
 
     auto select_as_vector = table.DefaultExecute("SELECT Id, Value FROM {}").AsVector<Row>();
@@ -69,6 +72,7 @@ UTEST(Cluster, InsertMany) {
     }
 
     cluster->ExecuteBulk(
+        kTestCommandControl,
         ClusterHostType::kPrimary,
         table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
         rows_to_insert
@@ -94,6 +98,7 @@ UTEST(Cluster, UpdateMany) {
     }
 
     cluster->ExecuteBulk(
+        kTestCommandControl,
         ClusterHostType::kPrimary,
         table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?)"),
         rows_to_insert
@@ -108,6 +113,7 @@ UTEST(Cluster, UpdateMany) {
         row.value = another_long_string;
     }
     cluster->ExecuteBulk(
+        kTestCommandControl,
         ClusterHostType::kPrimary,
         table.FormatWithTableName("INSERT INTO {}(Id, Value) VALUES(?, ?) ON "
                                   "DUPLICATE KEY UPDATE Value=VALUES(Value)"),
