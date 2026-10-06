@@ -437,6 +437,8 @@ void PGConnectionWrapper::ExitPipelineMode() {
 
 bool PGConnectionWrapper::IsSyncingPipeline() const { return pipeline_sync_counter_ > 0; }
 
+bool PGConnectionWrapper::IsPipelineActive() const { return PQpipelineStatus(conn_) != PQ_PIPELINE_OFF; }
+
 void PGConnectionWrapper::AssertPipelineActive() const { UASSERT(PQpipelineStatus(conn_) != PQ_PIPELINE_OFF); }
 
 void PGConnectionWrapper::RefreshSocket(const Dsn& dsn) {
@@ -836,6 +838,16 @@ void PGConnectionWrapper::SendPrepare(
 void PGConnectionWrapper::SendDescribePrepared(USERVER_NAMESPACE::utils::zstring_view name, tracing::ScopeTime& scope) {
     scope.Reset(scopes::kLibpqSendDescribePrepared);
     CheckError<CommandError>("PQsendDescribePrepared", PQsendDescribePrepared(conn_, name.c_str()));
+    UpdateLastUse();
+}
+
+void PGConnectionWrapper::SendDeallocate(USERVER_NAMESPACE::utils::zstring_view name, tracing::ScopeTime& scope) {
+    scope.Reset(scopes::kLibpqSendDeallocate);
+    const std::string statement = "DEALLOCATE " + EscapeIdentifier(name);
+    CheckError<CommandError>(
+        "PQsendQueryParams",
+        PQsendQueryParams(conn_, statement.c_str(), 0, nullptr, nullptr, nullptr, nullptr, io::kPgBinaryDataFormat)
+    );
     UpdateLastUse();
 }
 
