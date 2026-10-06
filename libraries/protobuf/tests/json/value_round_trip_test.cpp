@@ -1,10 +1,19 @@
-#include <userver/ugrpc/proto_json.hpp>
+#include <gtest/gtest.h>
 
+#include <string>
+#include <string_view>
+#include <vector>
+
+#include <google/protobuf/struct.pb.h>
+
+#include <userver/formats/json/serialize.hpp>
+#include <userver/formats/json/value.hpp>
 #include <userver/protobuf/json/convert.hpp>
 #include <userver/utest/parameter_names.hpp>
-#include <userver/utest/utest.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace protobuf::json::tests {
 
 namespace {
 constexpr std::string_view kEmpty{};
@@ -160,9 +169,9 @@ std::vector<Param> TestParams() {
 
 }  // namespace
 
-class SerializationTest : public testing::TestWithParam<Param> {};
+class ValueRoundTripTest : public testing::TestWithParam<Param> {};
 
-TEST_P(SerializationTest, JsonTest) {
+TEST_P(ValueRoundTripTest, Test) {
     const auto& param = GetParam();
 
     auto proto_struct = formats::parse::Parse(param.to_cast, formats::parse::To<google::protobuf::Value>{});
@@ -172,9 +181,11 @@ TEST_P(SerializationTest, JsonTest) {
 
 INSTANTIATE_TEST_SUITE_P(
     /*no prefix*/,
-    SerializationTest,
+    ValueRoundTripTest,
     testing::ValuesIn(TestParams()),
     utest::PrintTestName()
 );
+
+}  // namespace protobuf::json::tests
 
 USERVER_NAMESPACE_END
