@@ -1,21 +1,31 @@
 import asyncio
+import uuid
 
 import pytest
 import pytest_userver.utils.sync as sync
 
 PUBSUB_CHANNEL = 'chaos_pubsub_recovery'
 PUBSUB_URL = '/chaos-pubsub'
+PUBSUB_MESSAGE_WAIT_SECONDS = 1
 
 
 async def _wait_for_pubsub_message(redis_store, service_client, message):
-    async def check_received():
-        redis_store.publish(PUBSUB_CHANNEL, message)
-        response = await service_client.get(PUBSUB_URL)
-        assert response.status == 200
-        if message not in response.json()['data']:
-            raise sync.NotReady()
+    async def publish_and_wait():
+        unique_message = f'{message}:{uuid.uuid4()}'
+        redis_store.publish(PUBSUB_CHANNEL, unique_message)
 
-    await sync.wait_until(check_received, total_wait_seconds=60)
+        async def check_received():
+            response = await service_client.get(PUBSUB_URL)
+            assert response.status == 200
+            if unique_message not in response.json()['data']:
+                raise sync.NotReady()
+
+        try:
+            await sync.wait_until(check_received, total_wait_seconds=PUBSUB_MESSAGE_WAIT_SECONDS)
+        except TimeoutError:
+            raise sync.NotReady() from None
+
+    await sync.wait_until(publish_and_wait, total_wait_seconds=60)
 
 
 async def _check_that_restores(client, gate):
