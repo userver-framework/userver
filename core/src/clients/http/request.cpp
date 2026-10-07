@@ -43,7 +43,8 @@ constexpr utils::TrivialBiMap kHttpMethodMap([](auto selector) {
         .Case(HttpMethod::kPut, "PUT")
         .Case(HttpMethod::kPatch, "PATCH")
         .Case(HttpMethod::kDelete, "DELETE")
-        .Case(HttpMethod::kOptions, "OPTIONS");
+        .Case(HttpMethod::kOptions, "OPTIONS")
+        .Case(HttpMethod::kTrace, "TRACE");
 });
 
 curl::easy::http_version_t ToNative(HttpVersion version) {
