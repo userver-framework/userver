@@ -10,12 +10,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres {
 
-template <typename T, typename ExtractionTag>
-class TypedResultSet;
-
 namespace detail {
 
-template <typename T, typename ExtractionTag, IteratorDirection Direction = IteratorDirection::kForward>
+template <
+    typename T,
+    typename ExtractionTag,
+    typename AsType = T,
+    IteratorDirection Direction = IteratorDirection::kForward>
 class ConstTypedRowIterator : private Row {
 public:
     //@{
@@ -29,13 +30,14 @@ public:
     /// iterator.
     using iterator_category = std::input_iterator_tag;
     //@}
+    using CastType = AsType;
     static constexpr ExtractionTag kExtractTag{};
 
     //@{
     /** @name Iterator dereferencing */
     /// Read typed value from underlying postgres buffers and return it.
     /// Please note there is no operator ->.
-    value_type operator*() const { return As<value_type>(kExtractTag); }
+    value_type operator*() const { return As<CastType>(kExtractTag); }
     //@}
     //@{
     /** @name Iterator validity */
@@ -92,11 +94,9 @@ public:
     bool operator>=(const ConstTypedRowIterator& rhs) const { return this->Compare(rhs) >= 0; }
     //@}
 private:
-    friend class TypedResultSet<T, ExtractionTag>;
+    friend class TypedResultSet<T, ExtractionTag, AsType>;
 
-    ConstTypedRowIterator(detail::ResultWrapperPtr res, size_type row)
-        : Row{std::move(res), row}
-    {}
+    ConstTypedRowIterator(detail::ResultWrapperPtr res, size_type row) : Row{std::move(res), row} {}
     ConstTypedRowIterator& DoAdvance(difference_type distance) {
         this->Advance(distance * static_cast<int>(Direction));
         return *this;

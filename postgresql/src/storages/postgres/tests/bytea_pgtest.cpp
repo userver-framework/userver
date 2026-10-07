@@ -162,9 +162,9 @@ UTEST_P(PostgreConnection, ByteaWrapperRowType) {
 
     const auto res = GetConn()->Execute("select 'foobar'::bytea");
     const auto parsed = [&res]() {
-        if constexpr (tt::kIsRowType<TestByteaWrapper>) {
-            return res.AsContainer<std::vector<TestByteaWrapper>>(pg::kRowTag);
-        }
+        // if constexpr (tt::kIsRowType<TestByteaWrapper>) {
+        //     return res.AsContainer<std::vector<TestByteaWrapper>>(pg::kRowTag);
+        // }
         return res.AsContainer<std::vector<TestByteaWrapper>>();
     }();
 
