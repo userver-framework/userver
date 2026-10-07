@@ -160,7 +160,12 @@ def _get_port(
     if not listener:
         return -1
 
-    port = listener.get('port', None) or listener.get('ports', [None])[0]
+    port = listener.get('port')
+    if not port:
+        ports = listener.get('ports', [])
+        if ports:
+            listener = ports[0]
+            port = listener.get('port')
     if isinstance(port, str) and port.startswith('$'):
         port = config_vars.get(port[1:], None) or listener.get(
             'port#fallback',

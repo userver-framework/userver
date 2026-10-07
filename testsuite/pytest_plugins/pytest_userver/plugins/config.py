@@ -487,7 +487,7 @@ def userver_config_substitutions(_service_config_substitution_vars) -> ServiceCo
 
 
 @pytest.fixture(scope='session')
-def userver_config_http_server(service_port, monitor_port) -> ServiceConfigPatch:
+def userver_config_http_server(service_port, monitor_port, choose_free_port) -> ServiceConfigPatch:
     """
     Returns a function that adjusts the static configuration file for testsuite.
     Sets the `server.listener.port` to listen on
@@ -507,6 +507,12 @@ def userver_config_http_server(service_port, monitor_port) -> ServiceConfigPatch
                     ports = listener.get('ports')
                     if ports and 'port' in ports[0]:
                         ports[0]['port'] = new_port
+                        for entry in ports[1:]:
+                            if 'port' in entry and 'unix-socket' not in entry and 'listen-socket-fd' not in entry:
+                                port_hint = entry['port']
+                                if isinstance(port_hint, str) and port_hint.startswith('$'):
+                                    port_hint = config_vars.get(port_hint[1:]) or entry.get('port#fallback')
+                                entry['port'] = choose_free_port(port_hint)
                     else:
                         listener['port'] = new_port
 

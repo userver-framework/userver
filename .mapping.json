@@ -5969,6 +5969,7 @@
   "testsuite/tests/config/CMakeLists.txt":"taxi/uservices/userver/testsuite/tests/config/CMakeLists.txt",
   "testsuite/tests/config/conftest.py":"taxi/uservices/userver/testsuite/tests/config/conftest.py",
   "testsuite/tests/config/test_config_substitutions.py":"taxi/uservices/userver/testsuite/tests/config/test_config_substitutions.py",
+  "testsuite/tests/config/test_listener_ports.py":"taxi/uservices/userver/testsuite/tests/config/test_listener_ports.py",
   "testsuite/tests/metrics/CMakeLists.txt":"taxi/uservices/userver/testsuite/tests/metrics/CMakeLists.txt",
   "testsuite/tests/metrics/conftest.py":"taxi/uservices/userver/testsuite/tests/metrics/conftest.py",
   "testsuite/tests/metrics/test_differ.py":"taxi/uservices/userver/testsuite/tests/metrics/test_differ.py",
