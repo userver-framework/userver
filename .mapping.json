@@ -4529,6 +4529,7 @@
   "redis/src/storages/redis/impl/subscription_statistics.hpp":"taxi/uservices/userver/redis/src/storages/redis/impl/subscription_statistics.hpp",
   "redis/src/storages/redis/impl/subscription_storage.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/subscription_storage.cpp",
   "redis/src/storages/redis/impl/subscription_storage.hpp":"taxi/uservices/userver/redis/src/storages/redis/impl/subscription_storage.hpp",
+  "redis/src/storages/redis/impl/subscription_storage_test.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/subscription_storage_test.cpp",
   "redis/src/storages/redis/impl/tcp_socket.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/tcp_socket.cpp",
   "redis/src/storages/redis/impl/tcp_socket.hpp":"taxi/uservices/userver/redis/src/storages/redis/impl/tcp_socket.hpp",
   "redis/src/storages/redis/impl/thread_pools.cpp":"taxi/uservices/userver/redis/src/storages/redis/impl/thread_pools.cpp",

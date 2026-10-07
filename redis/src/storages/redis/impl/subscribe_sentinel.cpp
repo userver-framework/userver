@@ -28,7 +28,7 @@ std::unique_ptr<SubscriptionStorageBase> CreateSubscriptionStorage(
         return std::make_unique<ClusterSubscriptionStorage>(thread_control, shards_count);
     }
 
-    return std::make_unique<SubscriptionStorage>(thread_control, shards_count, is_cluster_mode, std::move(shard_names));
+    return std::make_unique<SubscriptionStorage>(thread_control, shards_count, std::move(shard_names));
 }
 
 }  // namespace

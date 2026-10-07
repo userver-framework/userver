@@ -57,13 +57,6 @@ public:
     using CommandCb = std::function<void(size_t shard, CommandPtr command)>;
     using ShardedCommandCb = std::function<void(const std::string& channel, CommandPtr command)>;
     struct ChannelName {
-        ChannelName() = default;
-        ChannelName(std::string channel, bool pattern, bool sharded)
-            : channel(std::move(channel)),
-              pattern(pattern),
-              sharded(sharded)
-        {}
-
         std::string channel;
         bool pattern{false};
         bool sharded{false};
@@ -135,17 +128,14 @@ public:
     using FsmPtr = std::shared_ptr<shard_subscriber::Fsm>;
 
     struct ShardChannelInfo {
-        explicit ShardChannelInfo(size_t shard_idx, bool fake = false)
-            : fsm(fake ? nullptr : std::make_shared<shard_subscriber::Fsm>(shard_idx))
+        explicit ShardChannelInfo(size_t shard_idx)
+            : fsm(std::make_shared<shard_subscriber::Fsm>(shard_idx))
         {}
 
         FsmPtr fsm;
         PubsubChannelStatistics statistics;
 
         PubsubChannelStatistics GetStatistics() const {
-            if (!fsm) {
-                return {};
-            }
             PubsubChannelStatistics stats(statistics);
             stats.server_id = fsm->GetCurrentServerId();
             stats.subscription_timestamp = fsm->GetCurrentServerTimePoint();
@@ -293,6 +283,16 @@ protected:
         // NOLINTEND(misc-non-private-member-variables-in-classes)
 
     private:
+        template <typename Map, typename... Args>
+        void DispatchMessage(
+            Map& subscriptions,
+            const std::string& name,
+            ServerId server_id,
+            size_t shard_idx,
+            const std::string& message,
+            const Args&... args
+        );
+
         template <typename Func>
         void RunAsync(Func&& func) {
             auto admission_permit = callback_admission_.TryAcquire();
@@ -322,7 +322,6 @@ public:
     SubscriptionStorage(
         const engine::ev::ThreadControl& thread_control,
         size_t shards_count,
-        bool is_cluster_mode,
         std::shared_ptr<const std::vector<std::string>> shard_names
     );
     ~SubscriptionStorage() override;
@@ -375,6 +374,15 @@ public:
     ) override;
 
 private:
+    template <typename Map, typename Callback>
+    void SubscribeToAllShards(
+        Map& subscriptions,
+        const ChannelName& channel_name,
+        Callback cb,
+        CommandControl control,
+        SubscriptionId id
+    );
+
     /* We could use Fsm per shard (single Fsm for all channels), but in
      * this case it would be hard to create new subscriptions for shards
      * with Fsms in transition states (e.g. previous subscription
@@ -408,10 +416,6 @@ private:
 
     SubscriptionStorageImpl<CallbackMap, PcallbackMap> storage_impl_;
     std::shared_ptr<const std::vector<std::string>> shard_names_;
-    bool is_cluster_mode_;
-
-    size_t shard_rotate_counter_;
-
     std::vector<std::unique_ptr<SubscriptionRebalanceScheduler>> rebalance_schedulers_;
 };
 

@@ -19,7 +19,8 @@ public:
         impl::SubscribeSentinel& subscribe_sentinel,
         std::vector<std::string> channels,
         OnMessageCb on_message_cb,
-        const CommandControl& command_control
+        const CommandControl& command_control,
+        ChannelSubscriptionMode mode
     );
 
     ~SubscriptionTokenImpl() override;
@@ -58,31 +59,6 @@ private:
 
     SubscriptionQueue<PatternSubscriptionQueueItem> queue_;
     OnPmessageCb on_pmessage_cb_;
-    engine::TaskWithResult<void> subscriber_task_;
-};
-
-class SsubscriptionTokenImpl final : public impl::SubscriptionTokenImplBase {
-public:
-    using OnMessageCb = SubscriptionToken::OnMessageCb;
-
-    SsubscriptionTokenImpl(
-        impl::SubscribeSentinel& subscribe_sentinel,
-        std::vector<std::string> channels,
-        OnMessageCb on_message_cb,
-        const CommandControl& command_control
-    );
-
-    ~SsubscriptionTokenImpl() override;
-
-    void SetMaxQueueLength(size_t length) override;
-
-    void Unsubscribe() override;
-
-private:
-    void ProcessMessages();
-
-    SubscriptionQueue<ShardedSubscriptionQueueItem> queue_;
-    OnMessageCb on_message_cb_;
     engine::TaskWithResult<void> subscriber_task_;
 };
 

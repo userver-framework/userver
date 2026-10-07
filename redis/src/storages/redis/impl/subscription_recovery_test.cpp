@@ -46,7 +46,6 @@ protected:
             storage_ = std::make_shared<SubscriptionStorage>(
                 thread_pool_.NextThread(),
                 kShardsCount,
-                false,
                 std::make_shared<const std::vector<std::string>>(std::vector<std::string>{"shard0"})
             );
         }

@@ -211,27 +211,21 @@ PubsubShardStatistics SubscriptionStorageBase::SubscriptionStorageImpl<
         const auto& info = channel_info.GetInfo(shard_idx);
 
         const auto& name = channel_item.first;
-        if (info.fsm) {
-            shard_stats.by_channel.emplace(name, info.GetStatistics());
-        }
+        shard_stats.by_channel.emplace(name, info.GetStatistics());
     }
     for (const auto& pattern_item : pattern_callback_map) {
         const auto& pattern_info = pattern_item.second;
         const auto& info = pattern_info.GetInfo(shard_idx);
 
         const auto& name = pattern_item.first;
-        if (info.fsm) {
-            shard_stats.by_channel.emplace(name, info.GetStatistics());
-        }
+        shard_stats.by_channel.emplace(name, info.GetStatistics());
     }
     for (const auto& pattern_item : sharded_callback_map) {
         const auto& pattern_info = pattern_item.second;
         const auto& info = pattern_info.GetInfo(shard_idx);
 
         const auto& name = pattern_item.first;
-        if (info.fsm) {
-            shard_stats.by_channel.emplace(name, info.GetStatistics());
-        }
+        shard_stats.by_channel.emplace(name, info.GetStatistics());
     }
     return shard_stats;
 }
@@ -403,16 +397,14 @@ bool SubscriptionStorageBase::SubscriptionStorageImpl<
                     shard_subscriber::Event event;
                     event.type = shard_subscriber::Event::Type::kUnsubscribeRequested;
 
-                    ChannelName channel_name;
-                    channel_name.channel = key;
-                    channel_name.pattern = std::is_same_v<Map, PcallbackMap>;
-                    channel_name.sharded = sharded;
+                    const ChannelName channel_name{
+                        .channel = key,
+                        .pattern = std::is_same_v<Map, PcallbackMap>,
+                        .sharded = sharded,
+                    };
 
                     for (size_t i = 0; i < shards_count_; ++i) {
                         auto& fsm = m.GetInfo(i).fsm;
-                        if (!fsm) {
-                            continue;
-                        }
                         fsm->OnEvent(event);
 
                         ReadActions(fsm, channel_name);
@@ -509,6 +501,56 @@ CommandPtr SubscriptionStorageBase::SubscriptionStorageImpl<
 }
 
 template <typename CallbackMap, typename PcallbackMap>
+template <typename Map, typename... Args>
+void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>::DispatchMessage(
+    Map& subscriptions,
+    const std::string& name,
+    ServerId server_id,
+    size_t shard_idx,
+    const std::string& message,
+    const Args&... args
+) {
+    AssertInEvThread();
+    const auto map_it = subscriptions.find(name);
+    if (map_it == subscriptions.end()) {
+        LOG_ERROR() << "Got message while not subscribed, channel or pattern=" << name;
+        return;
+    }
+
+    using Callback = typename std::decay_t<decltype(map_it->second.callbacks)>::mapped_type;
+    std::vector<Callback> callbacks;
+    callbacks.reserve(map_it->second.callbacks.size());
+    for (const auto& [_, callback] : map_it->second.callbacks) {
+        callbacks.push_back(callback);
+    }
+
+    size_t discarded{0};
+    for (const auto& callback : callbacks) {
+        try {
+            switch (callback(args..., message)) {
+                case SubscribedCallbackOutcome::kOk:
+                    break;
+                case SubscribedCallbackOutcome::kOverflowDiscarded:
+                    ++discarded;
+                    break;
+            }
+        } catch (const std::exception& e) {
+            LOG_ERROR() << "Unhandled exception in subscriber: " << e.what();
+        }
+    }
+
+    // A callback can unsubscribe and erase this entry, invalidating map_it.
+    // Look it up again before accounting for the message.
+    const auto current = subscriptions.find(name);
+    if (current == subscriptions.end()) {
+        return;
+    }
+    auto& info = current->second.GetInfo(shard_idx);
+    info.AccountMessage(server_id, message.size());
+    info.AccountDiscardedByOverflow(discarded);
+}
+
+template <typename CallbackMap, typename PcallbackMap>
 void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>::OnMessage(
     ServerId server_id,
     const std::string& channel,
@@ -516,41 +558,7 @@ void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>
     size_t shard_idx
 ) {
     RunAsync([this, server_id, channel, message, shard_idx] {
-        const auto map_it = callback_map.find(channel);
-        if (map_it == callback_map.end()) {
-            LOG_ERROR() << "Got MESSAGE while not subscribed on it, channel=" << channel;
-            return;
-        }
-
-        std::vector<Sentinel::UserMessageCallback> callbacks;
-        callbacks.reserve(map_it->second.callbacks.size());
-        for (const auto& [_, callback] : map_it->second.callbacks) {
-            callbacks.push_back(callback);
-        }
-
-        size_t discarded{0};
-        for (const auto& callback : callbacks) {
-            try {
-                const auto result = callback(channel, message);
-                switch (result) {
-                    case SubscribedCallbackOutcome::kOk:
-                        break;  // do nothing
-                    case SubscribedCallbackOutcome::kOverflowDiscarded:
-                        discarded++;
-                        break;
-                }
-            } catch (const std::exception& e) {
-                LOG_ERROR() << "Unhandled exception in subscriber: " << e.what();
-            }
-        }
-
-        const auto current = callback_map.find(channel);
-        if (current == callback_map.end()) {
-            return;
-        }
-        auto& info = current->second.GetInfo(shard_idx);
-        info.AccountMessage(server_id, message.size());
-        info.AccountDiscardedByOverflow(discarded);
+        DispatchMessage(callback_map, channel, server_id, shard_idx, message, channel);
     });
 }
 
@@ -563,41 +571,7 @@ void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>
     size_t shard_idx
 ) {
     RunAsync([this, server_id, pattern, channel, message, shard_idx] {
-        const auto map_it = pattern_callback_map.find(pattern);
-        if (map_it == pattern_callback_map.end()) {
-            LOG_ERROR() << "Got PMESSAGE while not subscribed on it, channel=" << channel;
-            return;
-        }
-
-        std::vector<Sentinel::UserPmessageCallback> callbacks;
-        callbacks.reserve(map_it->second.callbacks.size());
-        for (const auto& [_, callback] : map_it->second.callbacks) {
-            callbacks.push_back(callback);
-        }
-
-        size_t discarded{0};
-        for (const auto& callback : callbacks) {
-            try {
-                const auto result = callback(pattern, channel, message);
-                switch (result) {
-                    case SubscribedCallbackOutcome::kOk:
-                        break;  // do nothing
-                    case SubscribedCallbackOutcome::kOverflowDiscarded:
-                        discarded++;
-                        break;
-                }
-            } catch (const std::exception& e) {
-                LOG_ERROR() << "Unhandled exception in subscriber: " << e.what();
-            }
-        }
-
-        const auto current = pattern_callback_map.find(pattern);
-        if (current == pattern_callback_map.end()) {
-            return;
-        }
-        auto& info = current->second.GetInfo(shard_idx);
-        info.AccountMessage(server_id, message.size());
-        info.AccountDiscardedByOverflow(discarded);
+        DispatchMessage(pattern_callback_map, pattern, server_id, shard_idx, message, pattern, channel);
     });
 }
 
@@ -609,41 +583,7 @@ void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>
     size_t shard_idx
 ) {
     RunAsync([this, server_id, channel, message, shard_idx] {
-        const auto map_it = sharded_callback_map.find(channel);
-        if (map_it == sharded_callback_map.end()) {
-            LOG_ERROR() << "Got SMESSAGE while not subscribed on it, channel=" << channel;
-            return;
-        }
-
-        std::vector<Sentinel::UserMessageCallback> callbacks;
-        callbacks.reserve(map_it->second.callbacks.size());
-        for (const auto& [_, callback] : map_it->second.callbacks) {
-            callbacks.push_back(callback);
-        }
-
-        size_t discarded{0};
-        for (const auto& callback : callbacks) {
-            try {
-                const auto result = callback(channel, message);
-                switch (result) {
-                    case SubscribedCallbackOutcome::kOk:
-                        break;  // do nothing
-                    case SubscribedCallbackOutcome::kOverflowDiscarded:
-                        discarded++;
-                        break;
-                }
-            } catch (const std::exception& e) {
-                LOG_ERROR() << "Unhandled exception in subscriber: " << e.what();
-            }
-        }
-
-        const auto current = sharded_callback_map.find(channel);
-        if (current == sharded_callback_map.end()) {
-            return;
-        }
-        auto& info = current->second.GetInfo(shard_idx);
-        info.AccountMessage(server_id, message.size());
-        info.AccountDiscardedByOverflow(discarded);
+        DispatchMessage(sharded_callback_map, channel, server_id, shard_idx, message, channel);
     });
 }
 
@@ -735,12 +675,12 @@ void SubscriptionStorageBase::SubscriptionStorageImpl<CallbackMap, PcallbackMap>
     for (const auto& channel_item : callback_map) {
         const auto& channel_info = channel_item.second;
         const auto& fsm = channel_info.GetInfo(shard_idx).fsm;
-        if (!fsm || !fsm->CanBeRebalanced()) {
+        if (!fsm->CanBeRebalanced()) {
             continue;
         }
         ++total_connections;
         subscriptions_by_server[fsm->GetCurrentServerId()]
-            .emplace_back(ChannelName(channel_item.first, pattern, sharded), fsm);
+            .emplace_back(ChannelName{.channel = channel_item.first, .pattern = pattern, .sharded = sharded}, fsm);
     }
 }
 
@@ -816,15 +756,11 @@ template class SubscriptionStorageBase::SubscriptionStorageImpl<
 SubscriptionStorage::SubscriptionStorage(
     const engine::ev::ThreadControl& thread_control,
     size_t shards_count,
-    bool is_cluster_mode,
     std::shared_ptr<const std::vector<std::string>> shard_names
 )
     : storage_impl_(thread_control, shards_count, *this),
-      shard_names_(std::move(shard_names)),
-      is_cluster_mode_(is_cluster_mode),
-      shard_rotate_counter_(utils::RandRange(shards_count))
+      shard_names_(std::move(shard_names))
 {
-    UINVARIANT(!is_cluster_mode_, "Internal logic error with cluster mode setup");
     for (size_t shard_idx = 0; shard_idx < shards_count; shard_idx++) {
         rebalance_schedulers_
             .emplace_back(std::make_unique<SubscriptionRebalanceScheduler>(thread_control, *this, shard_idx));
@@ -922,50 +858,31 @@ RawPubsubClusterStatistics SubscriptionStorage::GetStatistics() const {
     return storage_impl_.RunSync([this] { return storage_impl_.GetStatistics(); });
 }
 
-void SubscriptionStorage::SubscribeImpl(
-    const std::string& channel,
-    Sentinel::UserMessageCallback cb,
+template <typename Map, typename Callback>
+void SubscriptionStorage::SubscribeToAllShards(
+    Map& subscriptions,
+    const ChannelName& channel_name,
+    Callback cb,
     CommandControl control,
     SubscriptionId id
 ) {
     storage_impl_.AssertInEvThread();
-    /// In non cluster mode we are using our pubsub in specific environment
-    /// where we actually use multiple non-clustered redises to prevent full
-    /// connected network and save network bandwidth consumption (we do it so
-    /// because ssubscribe/spublish was not available before redis 7.0). So we
-    /// have to subscribe to every shard to be able to receive published message.
-    /// In cluster mode subscribe to only one shard because we do not use
-    /// previously mentioned workaround. So each instance in cluster is connected
-    auto insert_res = storage_impl_.callback_map.emplace(channel, ChannelInfo());
-    auto& map_iter = *insert_res.first;
-    auto& channel_info = map_iter.second;
+    const auto& channel = channel_name.channel;
+    auto [it, inserted] = subscriptions.try_emplace(channel);
+    auto& channel_info = it->second;
     auto& infos = channel_info.info;
     const auto shards_count = storage_impl_.GetShardsCount();
-    /// 1 fsm for cluster and shards_count fsms for non cluster
-    channel_info.active_fsm_count = is_cluster_mode_ ? 1 : shards_count;
+    channel_info.active_fsm_count = shards_count;
 
-    ChannelName channel_name;
-    channel_name.channel = channel;
-    channel_name.pattern = false;
-
-    if (insert_res.second) {
-        // new channel
-        channel_info.control = control;
-
-        const size_t selected_shard_idx = is_cluster_mode_ ? shard_rotate_counter_++ % shards_count : 0;
+    if (inserted) {
+        channel_info.control = std::move(control);
         infos.reserve(shards_count);
-        for (size_t i = 0; i < shards_count; ++i) {
-            const bool fake = is_cluster_mode_ && i != selected_shard_idx;
-            infos.emplace_back(i, fake);
-            if (!fake) {
-                storage_impl_.ReadActions(infos.back().fsm, channel_name);
-            }
+        for (size_t shard = 0; shard < shards_count; ++shard) {
+            infos.emplace_back(shard);
+            storage_impl_.ReadActions(infos.back().fsm, channel_name);
         }
     } else {
         for (auto& info : infos) {
-            if (!info.fsm) {
-                continue;
-            }
             shard_subscriber::Event event;
             event.type = shard_subscriber::Event::Type::kSubscribeRequested;
             info.fsm->OnEvent(event);
@@ -973,7 +890,22 @@ void SubscriptionStorage::SubscribeImpl(
         }
     }
 
-    storage_impl_.callback_map[channel].callbacks[id] = std::move(cb);
+    subscriptions[channel].callbacks[id] = std::move(cb);
+}
+
+void SubscriptionStorage::SubscribeImpl(
+    const std::string& channel,
+    Sentinel::UserMessageCallback cb,
+    CommandControl control,
+    SubscriptionId id
+) {
+    SubscribeToAllShards(
+        storage_impl_.callback_map,
+        ChannelName{.channel = channel, .pattern = false, .sharded = false},
+        std::move(cb),
+        std::move(control),
+        id
+    );
 }
 
 void SubscriptionStorage::SsubscribeImpl(
@@ -991,45 +923,13 @@ void SubscriptionStorage::PsubscribeImpl(
     CommandControl control,
     SubscriptionId id
 ) {
-    storage_impl_.AssertInEvThread();
-    auto insert_res = storage_impl_.pattern_callback_map.emplace(pattern, PChannelInfo());
-    auto& map_iter = *insert_res.first;
-    auto& channel_info = map_iter.second;
-    auto& infos = channel_info.info;
-    const auto shards_count = storage_impl_.GetShardsCount();
-    /// 1 fsm for cluster and shards_count fsms for non cluster
-    channel_info.active_fsm_count = is_cluster_mode_ ? 1 : shards_count;
-
-    ChannelName channel_name;
-    channel_name.channel = pattern;
-    channel_name.pattern = true;
-
-    if (insert_res.second) {
-        // new channel
-        channel_info.control = control;
-
-        const size_t selected_shard_idx = is_cluster_mode_ ? shard_rotate_counter_++ % shards_count : 0;
-        infos.reserve(shards_count);
-        for (size_t i = 0; i < shards_count; ++i) {
-            const bool fake = is_cluster_mode_ && i != selected_shard_idx;
-            infos.emplace_back(i, fake);
-            if (!fake) {
-                storage_impl_.ReadActions(infos.back().fsm, channel_name);
-            }
-        }
-    } else {
-        for (auto& info : infos) {
-            if (!info.fsm) {
-                continue;
-            }
-            shard_subscriber::Event event;
-            event.type = shard_subscriber::Event::Type::kSubscribeRequested;
-            info.fsm->OnEvent(event);
-            storage_impl_.ReadActions(info.fsm, channel_name);
-        }
-    }
-
-    storage_impl_.pattern_callback_map[pattern].callbacks[id] = std::move(cb);
+    SubscribeToAllShards(
+        storage_impl_.pattern_callback_map,
+        ChannelName{.channel = pattern, .pattern = true, .sharded = false},
+        std::move(cb),
+        std::move(control),
+        id
+    );
 }
 
 const std::string& SubscriptionStorage::GetShardName(size_t shard_idx) const {

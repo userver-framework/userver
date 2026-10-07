@@ -19,9 +19,10 @@ SubscriptionTokenImpl::SubscriptionTokenImpl(
     impl::SubscribeSentinel& subscribe_sentinel,
     std::vector<std::string> channels,
     OnMessageCb on_message_cb,
-    const CommandControl& command_control
+    const CommandControl& command_control,
+    ChannelSubscriptionMode mode
 )
-    : queue_(subscribe_sentinel, channels, command_control),
+    : queue_(subscribe_sentinel, channels, command_control, mode),
       on_message_cb_(std::move(on_message_cb)),
       subscriber_task_(utils::CriticalAsync("redis-channel-subscriber-" + channels.at(0), [this] { ProcessMessages(); })
       )
@@ -73,37 +74,6 @@ void PsubscriptionTokenImpl::ProcessMessages() {
         const tracing::Span span(std::string{kProcessRedisSubscriptionMessage});
         if (on_pmessage_cb_) {
             on_pmessage_cb_(msg.pattern, msg.channel, msg.message);
-        }
-    }
-}
-
-SsubscriptionTokenImpl::SsubscriptionTokenImpl(
-    impl::SubscribeSentinel& subscribe_sentinel,
-    std::vector<std::string> channels,
-    OnMessageCb on_message_cb,
-    const CommandControl& command_control
-)
-    : queue_(subscribe_sentinel, channels, command_control),
-      on_message_cb_(std::move(on_message_cb)),
-      subscriber_task_(utils::CriticalAsync("redis-channel-subscriber-" + channels.at(0), [this] { ProcessMessages(); })
-      )
-{}
-
-SsubscriptionTokenImpl::~SsubscriptionTokenImpl() { Unsubscribe(); }
-
-void SsubscriptionTokenImpl::SetMaxQueueLength(size_t length) { queue_.SetMaxLength(length); }
-
-void SsubscriptionTokenImpl::Unsubscribe() {
-    queue_.Unsubscribe();
-    subscriber_task_.SyncCancel();
-}
-
-void SsubscriptionTokenImpl::ProcessMessages() {
-    ShardedSubscriptionQueueItem msg;
-    while (queue_.PopMessage(msg)) {
-        const tracing::Span span(std::string{kProcessRedisSubscriptionMessage});
-        if (on_message_cb_) {
-            on_message_cb_(msg.channel, msg.message);
         }
     }
 }

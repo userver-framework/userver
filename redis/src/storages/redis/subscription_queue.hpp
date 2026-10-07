@@ -2,6 +2,9 @@
 
 #include <memory>
 #include <string>
+#include <type_traits>
+#include <utility>
+#include <vector>
 
 #include <storages/redis/impl/subscribe_sentinel.hpp>
 #include <userver/concurrent/queue.hpp>
@@ -9,6 +12,8 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
+
+enum class ChannelSubscriptionMode { kSubscribe, kSsubscribe };
 
 struct ChannelSubscriptionQueueItem {
     std::string channel;
@@ -34,26 +39,23 @@ struct PatternSubscriptionQueueItem {
     {}
 };
 
-struct ShardedSubscriptionQueueItem {
-    std::string channel;
-    std::string message;
-
-    ShardedSubscriptionQueueItem() = default;
-    explicit ShardedSubscriptionQueueItem(std::string channel, std::string message)
-        : channel(std::move(channel)),
-          message(std::move(message))
-    {}
-};
-
 template <typename Item>
 class SubscriptionQueue {
 public:
-    template <typename T = Item>
     SubscriptionQueue(
         impl::SubscribeSentinel& subscribe_sentinel,
-        std::vector<std::string> channel,
+        std::vector<std::string> patterns,
         const CommandControl& command_control
-    );
+    )
+    requires std::is_same_v<Item, PatternSubscriptionQueueItem>;
+
+    SubscriptionQueue(
+        impl::SubscribeSentinel& subscribe_sentinel,
+        std::vector<std::string> channels,
+        const CommandControl& command_control,
+        ChannelSubscriptionMode mode
+    )
+    requires std::is_same_v<Item, ChannelSubscriptionQueueItem>;
 
     ~SubscriptionQueue();
 
@@ -67,6 +69,8 @@ public:
     void Unsubscribe();
 
 private:
+    SubscriptionQueue();
+
     using TokenType = std::vector<impl::SubscriptionToken>;
     struct MultiToken {
         TokenType token;
@@ -77,29 +81,20 @@ private:
         }
     };
 
-    template <typename T = Item>
-    requires std::is_same_v<T, ChannelSubscriptionQueueItem>
     TokenType GetSubscriptionToken(
         impl::SubscribeSentinel& subscribe_sentinel,
         std::vector<std::string> channels,
-        const CommandControl& command_control
-    );
+        const CommandControl& command_control,
+        ChannelSubscriptionMode mode
+    )
+    requires std::is_same_v<Item, ChannelSubscriptionQueueItem>;
 
-    template <typename T = Item>
-    requires std::is_same_v<T, PatternSubscriptionQueueItem>
     TokenType GetSubscriptionToken(
         impl::SubscribeSentinel& subscribe_sentinel,
         std::vector<std::string> patterns,
         const CommandControl& command_control
-    );
-
-    template <typename T = Item>
-    requires std::is_same_v<T, ShardedSubscriptionQueueItem>
-    TokenType GetSubscriptionToken(
-        impl::SubscribeSentinel& subscribe_sentinel,
-        std::vector<std::string> channels,
-        const CommandControl& command_control
-    );
+    )
+    requires std::is_same_v<Item, PatternSubscriptionQueueItem>;
 
     // Messages could come out-of-order due to Redis limitations. Non FIFO is fine
     using Queue = concurrent::NonFifoMpscQueue<Item>;
@@ -113,7 +108,6 @@ private:
 
 extern template class SubscriptionQueue<ChannelSubscriptionQueueItem>;
 extern template class SubscriptionQueue<PatternSubscriptionQueueItem>;
-extern template class SubscriptionQueue<ShardedSubscriptionQueueItem>;
 
 }  // namespace storages::redis
 
