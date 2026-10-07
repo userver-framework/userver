@@ -245,6 +245,7 @@ UTEST(Poller, DISABLED_IN_MAC_OS_TEST_NAME(AwaitedEventsChange)) {
 
     poller.Add(socket_pair.first.Fd(), Poller::Event::kWrite);
     WriteOne(socket_pair.second.Fd());
+    ASSERT_TRUE(socket_pair.first.WaitReadable(engine::Deadline::FromDuration(kReadTimeout)));
     poller.Add(socket_pair.first.Fd(), {Poller::Event::kRead, Poller::Event::kWrite});
     ASSERT_EQ(poller.NextEvent(event, engine::Deadline::FromDuration(kReadTimeout)), Poller::Status::kSuccess);
     EXPECT_TRUE(event.type & Poller::Event::kRead);

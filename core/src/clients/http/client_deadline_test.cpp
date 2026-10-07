@@ -8,6 +8,7 @@
 #include <fmt/format.h>
 
 #include <userver/clients/http/client.hpp>
+#include <userver/clients/http/response_future.hpp>
 #include <userver/concurrent/queue.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/io/exception.hpp>
