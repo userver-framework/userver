@@ -169,13 +169,13 @@ BENCHMARK(TlsWriteAllBuffered)->RangeMultiplier(2)->Range(1 << 6, 1 << 12)->Unit
                 }
                 benchmark::DoNotOptimize(send_bytes);
             }
+            [[maybe_unused]] auto raw_client = tls_client.StopTls(deadline);
         }
 
         server_task.Get();
     });
 }
 
-// TODO: https://st.yandex-team.ru/TAXICOMMON-11429
-// BENCHMARK(TlsWriteAllDefault)->RangeMultiplier(2)->Range(1 << 6, 1 << 12)->Unit(benchmark::kNanosecond);
+BENCHMARK(TlsWriteAllDefault)->RangeMultiplier(2)->Range(1 << 6, 1 << 12)->Unit(benchmark::kNanosecond);
 
 USERVER_NAMESPACE_END
