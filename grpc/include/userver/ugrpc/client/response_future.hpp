@@ -66,16 +66,9 @@ public:
 
     /// @cond
     // For internal use only
-    template <typename Stub, typename Request>
-    ResponseFuture(
-        impl::CallParams&& params,
-        impl::PrepareUnaryCallProxy<Stub, Request, Response>&& prepare_unary_call,
-        const Request& request
-    )
-        : impl_{std::make_unique<impl::AsyncUnaryCallAdapter<
-              Stub,
-              Request,
-              Response>>(std::move(params), std::move(prepare_unary_call), request)}
+    template <typename Request>
+    ResponseFuture(impl::CallParams&& params, const Request& request)
+        : impl_{std::make_unique<impl::AsyncUnaryCallAdapter<Request, Response>>(std::move(params), request)}
     {}
     /// @endcond
 

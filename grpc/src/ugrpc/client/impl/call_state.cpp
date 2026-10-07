@@ -17,6 +17,7 @@
 #include <userver/ugrpc/client/impl/call_params.hpp>
 #include <userver/ugrpc/client/impl/tracing.hpp>
 #include <userver/ugrpc/client/middlewares/base.hpp>
+#include <userver/ugrpc/impl/static_service_metadata.hpp>
 #include <userver/ugrpc/impl/to_string.hpp>
 
 #include <ugrpc/client/impl/call_options_accessor.hpp>
@@ -77,8 +78,8 @@ RpcConfigValues::RpcConfigValues(const dynamic_config::Snapshot& config)
 CallState::CallState(CallParams&& params)
     : method_stubs_(std::move(params.method_stubs)),
       client_name_(params.client_name),
-      call_name_(std::move(params.call_name)),
       rpc_type_(params.rpc_type),
+      method_path_(std::move(params.method_path)),
       stats_scope_(params.statistics),
       queue_(params.queue),
       config_values_(params.config),
@@ -88,11 +89,14 @@ CallState::CallState(CallParams&& params)
 {
     UINVARIANT(!client_name_.empty(), "client name should not be empty");
 
-    ConstructSpan(span_, call_name_.Get());
-    AddServiceMethodTags(span_->Get(), params.endpoint, params.service_name, params.method_name);
+    ConstructSpan(span_, GetCallName());
+    const auto method_name_parts = ugrpc::impl::ParseMethodName(GetMethodPath());
+    AddServiceMethodTags(span_->Get(), params.endpoint, method_name_parts.service_name, method_name_parts.method_name);
 }
 
 ugrpc::impl::StubAny& CallState::GetStub() const noexcept { return method_stubs_.GetStub(); }
+
+grpc::GenericStub& CallState::GetGenericStub() const noexcept { return method_stubs_.GetGenericStub(); }
 
 void CallState::SetClientContext(std::unique_ptr<grpc::ClientContext> client_context) noexcept {
     client_context_ = std::move(client_context);
@@ -110,13 +114,15 @@ grpc::ClientContext& CallState::GetClientContext() noexcept {
 
 std::string_view CallState::GetClientName() const noexcept { return client_name_; }
 
-std::string_view CallState::GetCallName() const noexcept { return call_name_.Get(); }
+std::string_view CallState::GetCallName() const noexcept { return ugrpc::impl::GetCallName(GetMethodPath()); }
 
 std::string_view CallState::GetEndpoint() const noexcept { return method_stubs_.GetEndpoint(); }
 
 AuthType CallState::GetAuthType() const noexcept { return method_stubs_.GetAuthType(); }
 
 RpcType CallState::GetRpcType() const noexcept { return rpc_type_; }
+
+const grpc::string& CallState::GetMethodPath() const noexcept { return method_path_; }
 
 tracing::Span& CallState::GetSpan() noexcept {
     UASSERT(span_);

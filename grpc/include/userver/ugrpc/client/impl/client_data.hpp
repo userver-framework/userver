@@ -138,7 +138,10 @@ private:
         auto stubs = utils::GenerateFixedArray(channels.size(), [&channels](std::size_t index) {
             return ugrpc::impl::AsyncService<Service>::NewStub(channels[index]);
         });
-        return StubArray{std::move(channels), std::move(stubs)};
+        auto generic_stubs = utils::GenerateFixedArray(channels.size(), [&channels](std::size_t index) {
+            return grpc::GenericStub(channels[index]);
+        });
+        return StubArray{std::move(channels), std::move(stubs), std::move(generic_stubs)};
     }
 
     template <typename Service>

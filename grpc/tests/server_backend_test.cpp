@@ -364,7 +364,7 @@ UTEST(GrpcServerDeserialization, ByteBufferOutlivesSource) {
     grpc::ByteBuffer request_bytes;
     {
         auto buffer = MakeTrackedBuffer(payload, destruction_count);
-        EXPECT_TRUE(ugrpc::server::impl::DeserializeMessage(std::move(buffer), request_bytes).ok());
+        EXPECT_TRUE(ugrpc::impl::DeserializeMessage(std::move(buffer), request_bytes).ok());
     }
 
     ReleaseDanglingBuffer(request_bytes, destruction_count);
@@ -387,7 +387,7 @@ UTEST(GrpcServerDeserialization, ByteBufferReplacesPreviousPayload) {
     auto request_bytes = MakeTrackedBuffer(previous_payload, previous_destruction_count);
     {
         auto buffer = MakeTrackedBuffer(payload, destruction_count);
-        EXPECT_TRUE(ugrpc::server::impl::DeserializeMessage(std::move(buffer), request_bytes).ok());
+        EXPECT_TRUE(ugrpc::impl::DeserializeMessage(std::move(buffer), request_bytes).ok());
     }
 
     ReleaseDanglingBuffer(request_bytes, destruction_count);
@@ -410,7 +410,7 @@ UTEST(GrpcServerDeserialization, ProtobufReleasesPayload) {
     {
         auto buffer = MakeTrackedBuffer(payload, destruction_count);
         sample::ugrpc::StreamGreetingRequest request;
-        ASSERT_TRUE(ugrpc::server::impl::DeserializeMessage(std::move(buffer), request).ok());
+        ASSERT_TRUE(ugrpc::impl::DeserializeMessage(std::move(buffer), request).ok());
         EXPECT_EQ(request.name(), kMessageName);
         EXPECT_EQ(request.number(), kMessageCount);
         EXPECT_EQ(destruction_count, 1);
@@ -424,7 +424,7 @@ UTEST(GrpcServerDeserialization, MalformedProtobufReleasesPayload) {
     {
         auto buffer = MakeTrackedBuffer(payload, destruction_count);
         sample::ugrpc::StreamGreetingRequest request;
-        const auto status = ugrpc::server::impl::DeserializeMessage(std::move(buffer), request);
+        const auto status = ugrpc::impl::DeserializeMessage(std::move(buffer), request);
         EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
         EXPECT_EQ(destruction_count, 1);
     }
@@ -434,7 +434,7 @@ UTEST(GrpcServerDeserialization, MalformedProtobufReleasesPayload) {
 UTEST(GrpcServerDeserialization, InvalidProtobufBufferReturnsInternal) {
     grpc::ByteBuffer buffer;
     sample::ugrpc::StreamGreetingRequest request;
-    const auto status = ugrpc::server::impl::DeserializeMessage(std::move(buffer), request);
+    const auto status = ugrpc::impl::DeserializeMessage(std::move(buffer), request);
     EXPECT_EQ(status.error_code(), grpc::StatusCode::INTERNAL);
 }
 

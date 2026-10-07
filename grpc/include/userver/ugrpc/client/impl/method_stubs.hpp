@@ -3,6 +3,8 @@
 #include <optional>
 #include <string_view>
 
+#include <grpcpp/generic/generic_stub.h>
+
 #include <userver/rcu/rcu.hpp>
 
 #include <userver/ugrpc/client/auth_type.hpp>
@@ -26,6 +28,7 @@ public:
     MethodStubs& operator=(const MethodStubs&) = delete;
 
     ugrpc::impl::StubAny& GetStub() const;
+    grpc::GenericStub& GetGenericStub() const;
 
     std::string_view GetEndpoint() const noexcept;
 

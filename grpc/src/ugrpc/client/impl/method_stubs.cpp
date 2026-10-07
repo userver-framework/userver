@@ -47,6 +47,11 @@ ugrpc::impl::StubAny& MethodStubs::GetStub() const {
     return stubs_.stubs[*last_];
 }
 
+grpc::GenericStub& MethodStubs::GetGenericStub() const {
+    last_ = Select(stubs_.channels, last_);
+    return stubs_.generic_stubs[*last_];
+}
+
 std::string_view MethodStubs::GetEndpoint() const noexcept { return stub_state_->endpoint; }
 
 AuthType MethodStubs::GetAuthType() const noexcept { return stub_state_->auth_type; }

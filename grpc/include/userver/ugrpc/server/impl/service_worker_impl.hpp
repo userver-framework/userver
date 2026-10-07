@@ -56,13 +56,6 @@ namespace ugrpc::server::impl {
 
 constexpr grpc::StatusCode kRatelimitedStatusCode{grpc::StatusCode::RESOURCE_EXHAUSTED};
 
-struct GenericMethodParseResults {
-    std::string_view call_name;
-    std::string_view service_name;
-    std::string_view method_name;
-};
-GenericMethodParseResults ParseGenericMethodName(std::string_view generic_method_name);
-
 template <typename CallTraits, typename AsyncService>
 void RequestAsyncCall(
     AsyncService& async_service,
@@ -199,10 +192,10 @@ private:
         std::string_view service_name = metadata.service_full_name;
         std::string_view method_name = GetMethodName(metadata, method_data_.method_id);
         if constexpr (std::is_same_v<typename CallTraits::Context, GenericCallContext>) {
-            auto parse_results = ParseGenericMethodName(server_context_.method());
-            call_name = parse_results.call_name;
-            service_name = parse_results.service_name;
-            method_name = parse_results.method_name;
+            const auto method_name_parts = ugrpc::impl::ParseMethodName(server_context_.method());
+            call_name = method_name_parts.call_name;
+            service_name = method_name_parts.service_name;
+            method_name = method_name_parts.method_name;
         }
 
         CallProcessor<CallTraits> call_processor{

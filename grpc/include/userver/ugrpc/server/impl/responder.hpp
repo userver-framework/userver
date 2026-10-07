@@ -9,6 +9,7 @@
 #include <userver/engine/task/cancel.hpp>
 #include <userver/utils/assert.hpp>
 
+#include <userver/ugrpc/impl/message_serialization.hpp>
 #include <userver/ugrpc/server/exceptions.hpp>
 #include <userver/ugrpc/server/impl/async_methods.hpp>
 #include <userver/ugrpc/server/impl/call_state.hpp>
@@ -21,22 +22,6 @@ namespace ugrpc::server::impl {
 grpc::Status MakeUninitializedResponseStatus(const google::protobuf::Message& response);
 
 void ValidateResponseIsInitialized(const google::protobuf::Message& response);
-
-template <typename Message>
-grpc::Status DeserializeMessage(grpc::ByteBuffer&& buffer, Message& message) {
-    const auto status = grpc::SerializationTraits<Message>::Deserialize(&buffer, &message);
-    buffer.Release();
-    if (!status.ok()) {
-        return {grpc::StatusCode::INTERNAL, "Unable to parse request"};
-    }
-    return grpc::Status::OK;
-}
-
-template <typename Message>
-grpc::Status SerializeMessage(const Message& message, grpc::ByteBuffer& buffer) {
-    bool own_buffer = false;
-    return grpc::SerializationTraits<Message>::Serialize(message, &buffer, &own_buffer);
-}
 
 /// @brief A non-typed base class for any gRPC call.
 class ResponderBase {
@@ -167,7 +152,7 @@ bool Responder<CallTraits>::DoRead(Request& request) {
         return false;
     }
 
-    const auto parse_status = impl::DeserializeMessage(std::move(buffer), request);
+    const auto parse_status = ugrpc::impl::DeserializeMessage(std::move(buffer), request);
     if (!parse_status.ok()) {
         are_reads_done_ = true;
         return false;
@@ -204,7 +189,7 @@ void Responder<CallTraits>::DoWrite(Response& response, const grpc::WriteOptions
     }
 
     grpc::ByteBuffer buffer;
-    auto serialization_status = impl::SerializeMessage(response, buffer);
+    auto serialization_status = ugrpc::impl::SerializeMessage(response, buffer);
     if (!serialization_status.ok()) {
         is_interrupted_ = true;
         throw ErrorWithStatus{std::move(serialization_status)};
@@ -246,7 +231,7 @@ template <typename CallTraits>
     }
 
     grpc::ByteBuffer buffer;
-    auto serialization_status = impl::SerializeMessage(response, buffer);
+    auto serialization_status = ugrpc::impl::SerializeMessage(response, buffer);
     if (!serialization_status.ok()) {
         return FinishWithError(serialization_status);
     }

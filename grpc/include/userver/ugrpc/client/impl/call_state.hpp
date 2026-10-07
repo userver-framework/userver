@@ -18,7 +18,6 @@
 #include <userver/ugrpc/client/impl/middleware_pipeline.hpp>
 #include <userver/ugrpc/client/retry_limiter.hpp>
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
-#include <userver/ugrpc/impl/maybe_owned_string.hpp>
 #include <userver/ugrpc/impl/statistics_scope.hpp>
 #include <userver/ugrpc/rpc_type.hpp>
 
@@ -49,6 +48,8 @@ public:
 
     ugrpc::impl::StubAny& GetStub() const noexcept;
 
+    grpc::GenericStub& GetGenericStub() const noexcept;
+
     void SetClientContext(std::unique_ptr<grpc::ClientContext> client_context) noexcept;
 
     const grpc::ClientContext& GetClientContext() const noexcept;
@@ -64,6 +65,8 @@ public:
     AuthType GetAuthType() const noexcept;
 
     RpcType GetRpcType() const noexcept;
+
+    const grpc::string& GetMethodPath() const noexcept;
 
     tracing::Span& GetSpan() noexcept;
 
@@ -93,13 +96,13 @@ public:
 private:
     MethodStubs method_stubs_;
 
-    std::unique_ptr<grpc::ClientContext> client_context_;
-
     std::string client_name_;
 
-    ugrpc::impl::MaybeOwnedString call_name_;
-
     RpcType rpc_type_{};
+
+    grpc::string method_path_;
+
+    std::unique_ptr<grpc::ClientContext> client_context_;
 
     bool is_deadline_propagated_{false};
 

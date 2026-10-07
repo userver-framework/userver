@@ -2,20 +2,19 @@
 
 #include <utility>
 
+#include <userver/utils/trx_tracker.hpp>
+
 #include <userver/ugrpc/client/impl/unary_call.hpp>
+#include <userver/ugrpc/impl/static_service_metadata.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
 
-template <typename Stub, typename Request, typename Response>
-Response PerformUnaryCall(
-    CallParams&& params,
-    PrepareUnaryCallProxy<Stub, Request, Response>&& prepare_unary_call,
-    const Request& request
-) {
-    utils::trx_tracker::CheckNoTransactions(params.call_name.Get());
-    UnaryCall unary_call{std::move(params), std::move(prepare_unary_call), request};
+template <typename Response, typename Request>
+Response PerformUnaryCall(CallParams&& params, const Request& request) {
+    utils::trx_tracker::CheckNoTransactions(ugrpc::impl::GetCallName(params.method_path));
+    UnaryCall<Request, Response> unary_call{std::move(params), request};
     return unary_call.Perform();
 }
 

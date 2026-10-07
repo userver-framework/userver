@@ -3,6 +3,7 @@
 #include <string>
 
 #include <grpcpp/channel.h>
+#include <grpcpp/generic/generic_stub.h>
 
 #include <userver/utils/fixed_array.hpp>
 
@@ -17,6 +18,7 @@ namespace ugrpc::client::impl {
 struct StubArray {
     utils::FixedArray<std::shared_ptr<grpc::Channel>> channels;
     mutable utils::FixedArray<ugrpc::impl::StubAny> stubs;
+    mutable utils::FixedArray<grpc::GenericStub> generic_stubs;
 };
 
 struct StubState {
