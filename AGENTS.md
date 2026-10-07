@@ -29,6 +29,7 @@ Do not replace this command with another AISuite command or add flags. If `ya` i
 
 - Do **not** commit or push changes unless explicitly asked.
 - If asked to use a skill that commits or creates a PR at the end, still ask for explicit permission before committing or pushing — using the skill does not count as permission.
+- Do **not** add agent attribution: no `Generated with ...` lines in PR descriptions and no `Co-Authored-By: <agent>` trailers in commit messages.
 
 ## Language and practices
 
