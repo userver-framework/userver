@@ -198,6 +198,11 @@ properties:
                                 type: integer
                                 description: the initial window size of the server
                                 default: 65536
+                            enable_connect_protocol:
+                                type: boolean
+                                description: set to true to accept websockets bootstrapped over HTTP/2.0 with the extended
+                                    CONNECT method of RFC 8441
+                                default: false
             shards:
                 type: integer
                 description: how many concurrent tasks harvest data from a single socket; do not set if not sure what it is doing
