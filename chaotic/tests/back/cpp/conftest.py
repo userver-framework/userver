@@ -1,4 +1,4 @@
-from collections import OrderedDict
+import collections
 
 import pytest
 
@@ -33,7 +33,7 @@ def simple_gen(simple_parse, clean, cpp_name_func):
 
 @pytest.fixture(name='clean')
 def _clean():
-    def func(ordered_dict: OrderedDict) -> dict[str, cpp_types.CppType]:
+    def func(ordered_dict: collections.OrderedDict) -> dict[str, cpp_types.CppType]:
         res = {}
 
         def visit(child: cpp_types.CppType, parent: cpp_types.CppType):
