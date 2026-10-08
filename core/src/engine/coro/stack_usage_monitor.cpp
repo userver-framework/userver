@@ -97,6 +97,11 @@ const auto kAltStackSize = MINSIGSTKSZ * 2 + 16384;
 // is ~15% of the stack.
 constexpr std::uint16_t kStackUsagePctThresholdToLogStacktrace = 70;
 
+bool IsAltStackNotSetYet(const stack_t& stack) noexcept {
+    // Sanitizers may have already installed an alternate signal stack, which is suitable for us as well.
+    return (stack.ss_flags & SS_DISABLE) != 0;
+}
+
 std::uintptr_t RoundDownToPageSize(std::uintptr_t address) noexcept { return address & ~(kPageSize - 1); }
 
 std::uintptr_t RoundUpToPageSize(std::uintptr_t address) noexcept {
@@ -408,11 +413,9 @@ public:
     }
 
     void RegisterThread() {
-        void* alt_stack = ::mmap(nullptr, kAltStackSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-        if (alt_stack == MAP_FAILED) {
-            // Don't register the thread at all, since we don't have a stack to handle
-            // a potential StackOverflow.
-            // This shouldn't really happen.
+        stack_t original_stack{};
+        if (sigaltstack(nullptr, &original_stack) == -1) {
+            LogWarningWithErrno("Failed to query the alternate signal stack");
             return;
         }
 
@@ -423,18 +426,29 @@ public:
             usage_info->actionable = false;
         }
 
-        // Now we inform the kernel about the alt-stack presence ...
-        stack_t ss{};
-        ss.ss_sp = alt_stack;
-        ss.ss_size = kAltStackSize;
-        ss.ss_flags = 0;
-        if (sigaltstack(&ss, nullptr) == -1) {
-            LogWarningWithErrno(
-                "Failed to set up an alt-stack for TaskProcessor "
-                "thread(sigaltstack)"
-            );
-            ::munmap(alt_stack, kAltStackSize);
-            return;
+        void* new_alt_stack = nullptr;
+        if (IsAltStackNotSetYet(original_stack)) {
+            new_alt_stack = ::mmap(nullptr, kAltStackSize, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+            if (new_alt_stack == MAP_FAILED) {
+                // Don't register the thread at all, since we don't have a stack to handle
+                // a potential StackOverflow.
+                // This shouldn't really happen.
+                return;
+            }
+
+            // Now we inform the kernel about the alt-stack presence ...
+            stack_t ss{};
+            ss.ss_sp = new_alt_stack;
+            ss.ss_size = kAltStackSize;
+            ss.ss_flags = 0;
+            if (sigaltstack(&ss, nullptr) == -1) {
+                LogWarningWithErrno(
+                    "Failed to set up an alt-stack for TaskProcessor "
+                    "thread(sigaltstack)"
+                );
+                ::munmap(new_alt_stack, kAltStackSize);
+                return;
+            }
         }
 
         // ... and use the alt-stack to handle our monitoring signal.
@@ -446,7 +460,10 @@ public:
                 "Failed to set up an alt-stack for TaskProcessor "
                 "thread(sigaction)"
             );
-            ::munmap(alt_stack, kAltStackSize);
+            if (new_alt_stack) {
+                sigaltstack(&original_stack, nullptr);
+                ::munmap(new_alt_stack, kAltStackSize);
+            }
             return;
         }
 
@@ -462,7 +479,9 @@ public:
 
             const std::lock_guard lock{tid_to_pthread_initialization_mutex_};
             thread_id_to_pthread_id_.emplace_back(tid, thread_id);
-            threads_alt_stacks_.push_back(alt_stack);
+            if (new_alt_stack) {
+                threads_alt_stacks_.push_back(new_alt_stack);
+            }
         }
     }
 

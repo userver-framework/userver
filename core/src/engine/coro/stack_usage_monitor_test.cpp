@@ -2,6 +2,9 @@
 
 #include <algorithm>
 #include <array>
+#include <csignal>
+#include <thread>
+#include <vector>
 
 #include <gmock/gmock.h>
 
@@ -46,6 +49,34 @@ __attribute__((noinline)) std::uint64_t SelfLimitingRecursiveFunction() {
 }
 
 }  // namespace
+
+#if defined(__linux__) && defined(__x86_64__)
+TEST(StackUsageMonitor, PreservesExistingAlternateSignalStack) {
+    if (!engine::coro::StackUsageMonitor::DebugCanUseUserfaultfd()) {
+        GTEST_SKIP() << "userfaultfd is unavailable";
+    }
+
+    constexpr std::size_t kStackSize = 64 * 1024;
+    engine::coro::StackUsageMonitor monitor{kStackSize};
+    std::thread thread([&monitor] {
+        std::vector<char> stack(kStackSize);
+        stack_t original{};
+        stack_t installed{};
+        installed.ss_sp = stack.data();
+        installed.ss_size = stack.size();
+        ASSERT_EQ(sigaltstack(&installed, &original), 0);
+
+        monitor.RegisterThread();
+
+        stack_t actual{};
+        EXPECT_EQ(sigaltstack(nullptr, &actual), 0);
+        EXPECT_EQ(actual.ss_sp, installed.ss_sp);
+        EXPECT_EQ(actual.ss_size, installed.ss_size);
+        EXPECT_EQ(sigaltstack(&original, nullptr), 0);
+    });
+    thread.join();
+}
+#endif
 
 class StackUsageMonitorTest : public LoggingTest {};
 
