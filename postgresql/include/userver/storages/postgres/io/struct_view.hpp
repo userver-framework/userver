@@ -38,10 +38,12 @@ namespace detail {
 
 template <auto... Members>
 auto PartialTie(auto&& value) {
+    using OwnerType = std::remove_cvref_t<decltype(value)>;
     if constexpr (sizeof...(Members) > 0) {
-        using OwnerType = std::remove_cvref_t<decltype(value)>;
         static_assert(traits::kAllMembersOf<OwnerType, Members...>, "All members must be members of the same class");
         return std::tie(std::forward<decltype(value)>(value).*Members...);
+    } else if constexpr (traits::kRowCategory<OwnerType> == traits::RowCategoryType::kIntrusiveIntrospection) {
+        return RowType<OwnerType>::GetTuple(std::forward<decltype(value)>(value));
     } else {
         return boost::pfr::structure_tie(std::forward<decltype(value)>(value));
     }
