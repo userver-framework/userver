@@ -38,7 +38,7 @@ namespace detail {
 
 template <auto... Members>
 auto PartialTie(auto&& value) {
-    if constexpr (sizeof...(Members) > 1) {
+    if constexpr (sizeof...(Members) > 0) {
         using OwnerType = std::remove_cvref_t<decltype(value)>;
         static_assert(traits::kAllMembersOf<OwnerType, Members...>, "All members must be members of the same class");
         return std::tie(std::forward<decltype(value)>(value).*Members...);

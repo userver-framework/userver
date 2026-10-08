@@ -16,6 +16,7 @@ constexpr const char* const kSchemaName = "__pgtest";
 const std::string kCreateTestSchema = "create schema if not exists __pgtest";
 const std::string kDropTestSchema = "drop schema if exists __pgtest cascade";
 const boost::uuids::uuid kNilUuid = boost::uuids::string_generator()("00000000-0000-0000-0000-000000000000");
+const std::string kSelectFullUserInput = "select $1::uuid, $2::text, $3::text";
 
 struct User {
     boost::uuids::uuid id;
@@ -138,29 +139,38 @@ UTEST_P(PostgreConnection, StructViewWrite) {
 
     User user{.id = kNilUuid, .name = "foo", .email = "foo@bar.baz"};
     {
-        UASSERT_NO_THROW((res = GetConn()->Execute("select $1:uuid, $2:text, $3:text"), io::StructView<User>{user}));
+        UASSERT_NO_THROW(res = GetConn()->Execute(kSelectFullUserInput, io::StructView<User>{user}));
         auto u = res.AsSingleRow<User>(pg::kRowTag);
         EXPECT_EQ(u.id, user.id);
         EXPECT_EQ(u.name, user.name);
         EXPECT_EQ(u.email, user.email);
     }
     {
-        UASSERT_NO_THROW((res = GetConn()->Execute("select $1:uuid, $2:text, $3:text"), FullView{user}));
+        UASSERT_NO_THROW(res = GetConn()->Execute(kSelectFullUserInput, FullView{user}));
         auto u = res.AsSingleRow<User>(pg::kRowTag);
         EXPECT_EQ(u.id, user.id);
         EXPECT_EQ(u.name, user.name);
         EXPECT_EQ(u.email, user.email);
     }
     {
-        UASSERT_NO_THROW((res = GetConn()->Execute("select $1:uuid, $2:text, $3:text"), FullViewExplicit{user}));
+        UASSERT_NO_THROW(res = GetConn()->Execute(kSelectFullUserInput, FullViewExplicit{user}));
         auto u = res.AsSingleRow<User>(pg::kRowTag);
         EXPECT_EQ(u.id, user.id);
         EXPECT_EQ(u.name, user.name);
         EXPECT_EQ(u.email, user.email);
     }
     {
-        UASSERT_NO_THROW((res = GetConn()->Execute("select $1:uuid, $2:text"), NoEmailView{user}));
-        auto u = res.AsSingleRow<FullView>(pg::kRowTag);
+        // The pack is the order, not the struct's layout: name and email go out
+        // swapped, so they come back swapped.
+        UASSERT_NO_THROW(res = GetConn()->Execute(kSelectFullUserInput, MessedNameEmailView{user}));
+        auto u = res.AsSingleRow<User>(pg::kRowTag);
+        EXPECT_EQ(u.id, user.id);
+        EXPECT_EQ(u.name, user.email);
+        EXPECT_EQ(u.email, user.name);
+    }
+    {
+        UASSERT_NO_THROW(res = GetConn()->Execute("select $1::uuid, $2::text", NoEmailView{user}));
+        auto u = res.AsSingleRow<NoEmailView>(pg::kRowTag);
         EXPECT_EQ(u.id, user.id);
         EXPECT_EQ(u.name, user.name);
         EXPECT_EQ(u.email, "");
