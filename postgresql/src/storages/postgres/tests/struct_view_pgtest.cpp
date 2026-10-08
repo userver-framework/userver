@@ -15,6 +15,7 @@ namespace {
 constexpr const char* const kSchemaName = "__pgtest";
 const std::string kCreateTestSchema = "create schema if not exists __pgtest";
 const std::string kDropTestSchema = "drop schema if exists __pgtest cascade";
+const boost::uuids::uuid kNilUuid = boost::uuids::string_generator()("00000000-0000-0000-0000-000000000000");
 
 struct User {
     boost::uuids::uuid id;
@@ -28,6 +29,10 @@ using MessedNameEmailView = io::StructView<User, &User::id, &User::email, &User:
 using NoEmailView = io::StructView<User, &User::id, &User::name>;
 
 using NoEmailVector = std::vector<NoEmailView>;
+static_assert(FullView::size == 3);
+static_assert(FullViewExplicit::size == 3);
+static_assert(MessedNameEmailView::size == 3);
+static_assert(NoEmailView::size == 2);
 static_assert(io::traits::IsStructView<NoEmailVector::value_type>::value);
 static_assert(std::is_same_v<io::detail::RebindContainer<NoEmailVector, User>::type::value_type, User>);
 static_assert(std::is_same_v<io::detail::RebindContainer<NoEmailVector, User>::type, std::vector<User>>);
@@ -71,37 +76,37 @@ UTEST_P(PostgreConnection, StructViewRead) {
 
     {
         auto user = res.Front().As<FullView>(pg::kRowTag);
-        EXPECT_EQ(user.id, boost::uuids::string_generator()("00000000-0000-0000-0000-000000000000"));
+        EXPECT_EQ(user.id, kNilUuid);
         EXPECT_EQ(user.name, "foo");
         EXPECT_EQ(user.email, "foo@bar.baz");
     }
     {
         auto user = res.AsSingleRow<FullView>(pg::kRowTag);
-        EXPECT_EQ(user.id, boost::uuids::string_generator()("00000000-0000-0000-0000-000000000000"));
+        EXPECT_EQ(user.id, kNilUuid);
         EXPECT_EQ(user.name, "foo");
         EXPECT_EQ(user.email, "foo@bar.baz");
     }
     {
         auto user = res.Front().As<FullViewExplicit>(pg::kRowTag);
-        EXPECT_EQ(user.id, boost::uuids::string_generator()("00000000-0000-0000-0000-000000000000"));
+        EXPECT_EQ(user.id, kNilUuid);
         EXPECT_EQ(user.name, "foo");
         EXPECT_EQ(user.email, "foo@bar.baz");
     }
     {
         auto user = res.AsSingleRow<FullViewExplicit>(pg::kRowTag);
-        EXPECT_EQ(user.id, boost::uuids::string_generator()("00000000-0000-0000-0000-000000000000"));
+        EXPECT_EQ(user.id, kNilUuid);
         EXPECT_EQ(user.name, "foo");
         EXPECT_EQ(user.email, "foo@bar.baz");
     }
     {
         auto user = res.Front().As<MessedNameEmailView>(pg::kRowTag);
-        EXPECT_EQ(user.id, boost::uuids::string_generator()("00000000-0000-0000-0000-000000000000"));
+        EXPECT_EQ(user.id, kNilUuid);
         EXPECT_EQ(user.email, "foo");
         EXPECT_EQ(user.name, "foo@bar.baz");
     }
     {
         auto user = res.AsSingleRow<MessedNameEmailView>(pg::kRowTag);
-        EXPECT_EQ(user.id, boost::uuids::string_generator()("00000000-0000-0000-0000-000000000000"));
+        EXPECT_EQ(user.id, kNilUuid);
         EXPECT_EQ(user.email, "foo");
         EXPECT_EQ(user.name, "foo@bar.baz");
     }
@@ -109,7 +114,7 @@ UTEST_P(PostgreConnection, StructViewRead) {
         auto set = res.AsSetOf<FullView>(pg::kRowTag);
         EXPECT_EQ(set.Size(), 1);
         auto user = *set.begin();
-        EXPECT_EQ(user.id, boost::uuids::string_generator()("00000000-0000-0000-0000-000000000000"));
+        EXPECT_EQ(user.id, kNilUuid);
         EXPECT_EQ(user.name, "foo");
         EXPECT_EQ(user.email, "foo@bar.baz");
     }
@@ -117,9 +122,48 @@ UTEST_P(PostgreConnection, StructViewRead) {
         auto vec = res.AsContainer<std::vector<FullView>>(pg::kRowTag);
         EXPECT_EQ(vec.size(), 1);
         auto user = vec.front();
-        EXPECT_EQ(user.id, boost::uuids::string_generator()("00000000-0000-0000-0000-000000000000"));
+        EXPECT_EQ(user.id, kNilUuid);
         EXPECT_EQ(user.name, "foo");
         EXPECT_EQ(user.email, "foo@bar.baz");
+    }
+}
+
+UTEST_P(PostgreConnection, StructViewWrite) {
+    CheckConnection(GetConn());
+    ASSERT_FALSE(GetConn()->IsReadOnly()) << "Expect a read-write connection";
+
+    pg::ResultSet res{nullptr};
+    UASSERT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
+    UASSERT_NO_THROW(GetConn()->Execute(kCreateTestSchema)) << "Create schema";
+
+    User user{.id = kNilUuid, .name = "foo", .email = "foo@bar.baz"};
+    {
+        UASSERT_NO_THROW((res = GetConn()->Execute("select $1:uuid, $2:text, $3:text"), io::StructView<User>{user}));
+        auto u = res.AsSingleRow<User>(pg::kRowTag);
+        EXPECT_EQ(u.id, user.id);
+        EXPECT_EQ(u.name, user.name);
+        EXPECT_EQ(u.email, user.email);
+    }
+    {
+        UASSERT_NO_THROW((res = GetConn()->Execute("select $1:uuid, $2:text, $3:text"), FullView{user}));
+        auto u = res.AsSingleRow<User>(pg::kRowTag);
+        EXPECT_EQ(u.id, user.id);
+        EXPECT_EQ(u.name, user.name);
+        EXPECT_EQ(u.email, user.email);
+    }
+    {
+        UASSERT_NO_THROW((res = GetConn()->Execute("select $1:uuid, $2:text, $3:text"), FullViewExplicit{user}));
+        auto u = res.AsSingleRow<User>(pg::kRowTag);
+        EXPECT_EQ(u.id, user.id);
+        EXPECT_EQ(u.name, user.name);
+        EXPECT_EQ(u.email, user.email);
+    }
+    {
+        UASSERT_NO_THROW((res = GetConn()->Execute("select $1:uuid, $2:text"), NoEmailView{user}));
+        auto u = res.AsSingleRow<FullView>(pg::kRowTag);
+        EXPECT_EQ(u.id, user.id);
+        EXPECT_EQ(u.name, user.name);
+        EXPECT_EQ(u.email, "");
     }
 }
 

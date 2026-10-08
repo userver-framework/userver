@@ -129,6 +129,24 @@ public:
         return DoExecute(query, detail::QueryParameters{params}, statement_cmd_ctl);
     }
 
+    /// Execute statement with structured parameters and per-statement command
+    /// control.
+    ///
+    /// Suspends coroutine for execution.
+    ///
+    /// @note You may write a query in `.sql` file and generate a header file with Query from it.
+    ///       See @ref scripts/docs/en/userver/sql_files.md for more information.
+    ///
+    /// @warning Do NOT create a query string manually by embedding arguments!
+    /// It leads to vulnerabilities and bad performance. Either pass arguments
+    /// separately, or use storages::postgres::ParameterScope.
+    template <io::traits::RequiresStructView T>
+    ResultSet Execute(OptionalCommandControl statement_cmd_ctl, const Query& query, const T& struct_arg) {
+        detail::StaticQueryParameters<T::size> params;
+        params.WriteTuple(GetConnectionUserTypes(), struct_arg.Params());
+        return DoExecute(query, detail::QueryParameters{params}, statement_cmd_ctl);
+    }
+
     /// Execute statement with stored parameters.
     ///
     /// Suspends coroutine for execution.

@@ -82,7 +82,14 @@ struct RebindContainer<Container<OldT, Args...>, NewT> {
 template <typename T, auto... Members>
 struct StructView {
     using UnderlyingType = std::remove_cvref_t<T>;
-    static auto Tie(auto&& value) { return detail::PartialTie<Members...>(std::forward<decltype(value)>(value)); }
+
+    template <typename U>
+    requires std::is_convertible_v<U, UnderlyingType>
+    static auto Tie(U&& value) {
+        return detail::PartialTie<Members...>(std::forward<U>(value));
+    }
+
+    static constexpr auto size = std::tuple_size_v<decltype(Tie(std::declval<const UnderlyingType&>()))>;
 
     StructView() = delete;
     StructView(StructView&&) = default;
@@ -90,10 +97,10 @@ struct StructView {
 
     StructView(const UnderlyingType& val) : value_(&val) {}
 
-    auto Tie() const { return Tie(*value_); }
+    auto Params() const { return Tie(*value_); }
 
 private:
-    UnderlyingType value_{nullptr};
+    const UnderlyingType* value_{nullptr};
 };
 
 namespace traits {
