@@ -342,7 +342,6 @@ class CompilerBase:
         generate_stream_writer: bool = False,
         namespace: str = 'taxi_config',
         generate_taxi_aliases: bool = True,
-        merge_types_cpp: bool = True,
     ) -> None:
         types = self._variables_types[name]
         outputs = self.renderer_for_variable(name, parse_extra_formats, generate_stream_writer, namespace).render(
@@ -357,7 +356,7 @@ class CompilerBase:
         types_cpp = ''
         assert len(outputs) == 1
         for file in outputs[0].files:
-            if merge_types_cpp and file.ext == '.cpp':
+            if file.ext == '.cpp':
                 assert not types_cpp, f'Several .cpp files are rendered for dynamic config variable {name}'
                 types_cpp = file.content
                 continue
@@ -368,7 +367,7 @@ class CompilerBase:
                 ),
                 file.content,
             )
-        assert types_cpp or not merge_types_cpp, f'No .cpp file is rendered for dynamic config variable {name}'
+        assert types_cpp, f'No .cpp file is rendered for dynamic config variable {name}'
 
         # variable.{hpp,cpp}
         schema_hash = self._schema_hashes[name]

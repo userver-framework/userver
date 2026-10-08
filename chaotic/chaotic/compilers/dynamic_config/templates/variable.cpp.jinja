@@ -6,9 +6,7 @@
     #include <{{ file }}>
 {%- endfor %}
 
-{% if types_cpp -%}
 {{ types_cpp }}
-{% endif -%}
 namespace {{ namespace }} {
 
 USERVER_NAMESPACE::dynamic_config::SchemaHash {{ name.lower() }}::GetSchemaHash() {
