@@ -1,9 +1,12 @@
 #include <userver/storages/redis/mock_transaction.hpp>
 
+#include <exception>
+#include <utility>
 #include <vector>
 
 #include <userver/utils/assert.hpp>
 
+#include <userver/storages/redis/exception.hpp>
 #include <userver/storages/redis/impl/transaction_subrequest_data.hpp>
 #include <userver/storages/redis/mock_client_base.hpp>
 
@@ -21,6 +24,7 @@ public:
     ResultPromise(ResultPromise&& other) = default;
 
     void ProcessReply(const std::string& request_description) { impl_->ProcessReply(request_description); }
+    void SetException(std::exception_ptr exception) { impl_->SetException(std::move(exception)); }
 
 private:
     class ResultPromiseImplBase {
@@ -28,6 +32,7 @@ private:
         virtual ~ResultPromiseImplBase() = default;
 
         virtual void ProcessReply(const std::string& request_description) = 0;
+        virtual void SetException(std::exception_ptr exception) = 0;
     };
 
     template <typename Result, typename ReplyType>
@@ -53,6 +58,8 @@ private:
             }
         }
 
+        void SetException(std::exception_ptr exception) override { promise_.set_exception(std::move(exception)); }
+
     private:
         engine::Promise<ReplyType> promise_;
         Request<Result, ReplyType> subrequest_;
@@ -63,13 +70,22 @@ private:
 
 class MockTransaction::MockRequestExecDataImpl final : public RequestDataBase<void> {
 public:
-    MockRequestExecDataImpl(std::vector<std::unique_ptr<ResultPromise>>&& result_promises)
-        : result_promises_(std::move(result_promises))
+    MockRequestExecDataImpl(std::vector<std::unique_ptr<ResultPromise>>&& result_promises, ExecResult result)
+        : result_promises_(std::move(result_promises)),
+          result_(result)
     {}
 
     void Wait() override {}
 
     void Get(const std::string& request_description) override {
+        if (result_ == ExecResult::kAborted) {
+            auto exception = std::make_exception_ptr(TransactionAbortedException("Transaction conditions did not match")
+            );
+            for (auto& promise : result_promises_) {
+                promise->SetException(exception);
+            }
+            std::rethrow_exception(std::move(exception));
+        }
         for (auto& result_promise : result_promises_) {
             result_promise->ProcessReply(request_description);
         }
@@ -87,6 +103,7 @@ public:
 
 private:
     std::vector<std::unique_ptr<ResultPromise>> result_promises_;
+    const ExecResult result_;
 };
 
 MockTransaction::MockTransaction(
@@ -101,7 +118,12 @@ MockTransaction::MockTransaction(
 
 MockTransaction::~MockTransaction() = default;
 
-RequestExec MockTransaction::Exec(const CommandControl& command_control) {
+RequestExec MockTransaction::Exec(const CommandControl& command_control) { return Exec(command_control, {}); }
+
+RequestExec MockTransaction::Exec(const CommandControl& command_control, ExecOptions options) {
+    for (const auto& condition : options) {
+        UpdateShard(condition.GetKey());
+    }
     if (!shard_) {
         throw EmptyTransactionException("Can't determine shard. Empty transaction?");
     }
@@ -109,7 +131,7 @@ RequestExec MockTransaction::Exec(const CommandControl& command_control) {
         shard_ = *command_control.force_shard_idx;
     }
     client_->CheckShardIdx(*shard_);
-    return CreateMockExecRequest();
+    return CreateMockExecRequest(impl_->Exec(options));
 }
 
 // redis commands:
@@ -939,8 +961,8 @@ Request<Result, ReplyType> MockTransaction::AddSubrequest(Request<Result, ReplyT
     return request;
 }
 
-RequestExec MockTransaction::CreateMockExecRequest() {
-    return RequestExec(std::make_unique<MockRequestExecDataImpl>(std::move(result_promises_)));
+RequestExec MockTransaction::CreateMockExecRequest(ExecResult result) {
+    return RequestExec(std::make_unique<MockRequestExecDataImpl>(std::move(result_promises_), result));
 }
 
 }  // namespace storages::redis

@@ -1,8 +1,28 @@
 #include <userver/storages/redis/command_options.hpp>
 
+#include <utility>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis {
+
+ExecCondition::ExecCondition(Type type, std::string key, std::string value)
+    : type_(type),
+      key_(std::move(key)),
+      value_(std::move(value))
+{}
+
+ExecCondition ExecCondition::IfEq(std::string key, std::string value) {
+    return ExecCondition{Type::kIfEq, std::move(key), std::move(value)};
+}
+
+ExecCondition ExecCondition::IfNe(std::string key, std::string value) {
+    return ExecCondition{Type::kIfNe, std::move(key), std::move(value)};
+}
+
+ExecCondition ExecCondition::Nx(std::string key) { return ExecCondition{Type::kNx, std::move(key), {}}; }
+
+ExecCondition ExecCondition::Xx(std::string key) { return ExecCondition{Type::kXx, std::move(key), {}}; }
 
 MsetexOptions MsetexOptions::NoTtl() {
     return MsetexOptions{Exist::kSetAlways, TtlAction::kNone, std::chrono::milliseconds{0}};

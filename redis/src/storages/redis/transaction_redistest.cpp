@@ -1,5 +1,9 @@
 #include <userver/utest/utest.hpp>
 
+#include <userver/storages/redis/command_options.hpp>
+#include <userver/storages/redis/exception.hpp>
+#include <userver/storages/redis/transaction.hpp>
+
 #include <storages/redis/client_redistest.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -1109,5 +1113,123 @@ UTEST_F(RedisClientTransactionTest, NotStartedTransactionTransactionNoGet) {
     EXPECT_THROW(set_req.Get(), storages::redis::NotStartedTransactionException);
 }
 #endif
+
+namespace {
+
+class OptimisticTransactionRedisTest : public RedisClientTest {
+public:
+    void SetUp() override {
+        RedisClientTest::SetUp();
+        constexpr Version kMinimumVersion{9, 2, 0};
+        if (!IsValkey() || !CheckValkeyVersion(kMinimumVersion)) {
+            GTEST_SKIP() << "Conditional EXEC requires Valkey 9.2 or newer";
+        }
+    }
+};
+
+}  // namespace
+
+UTEST_F(OptimisticTransactionRedisTest, AllConditionKinds) {
+    using storages::redis::ExecCondition;
+    using storages::redis::ExecOptions;
+    enum class ExpectedResult { kExecuted, kAborted };
+    auto client = GetClient();
+    client->Set("{transaction}present", "value", kDefaultCc).Get();
+    const std::vector<std::pair<ExecCondition, ExpectedResult>> cases{
+        {ExecCondition::IfEq("{transaction}present", "value"), ExpectedResult::kExecuted},
+        {ExecCondition::IfEq("{transaction}present", "different"), ExpectedResult::kAborted},
+        {ExecCondition::IfEq("{transaction}missing", ""), ExpectedResult::kAborted},
+        {ExecCondition::IfNe("{transaction}present", "different"), ExpectedResult::kExecuted},
+        {ExecCondition::IfNe("{transaction}present", "value"), ExpectedResult::kAborted},
+        {ExecCondition::IfNe("{transaction}missing", "value"), ExpectedResult::kExecuted},
+        {ExecCondition::Nx("{transaction}missing"), ExpectedResult::kExecuted},
+        {ExecCondition::Nx("{transaction}present"), ExpectedResult::kAborted},
+        {ExecCondition::Xx("{transaction}present"), ExpectedResult::kExecuted},
+        {ExecCondition::Xx("{transaction}missing"), ExpectedResult::kAborted},
+    };
+    for (const auto& [condition, expected_result] : cases) {
+        client->Del("{transaction}result", kDefaultCc).Get();
+        auto transaction = client->Multi();
+        auto set = transaction->Set("{transaction}result", "written");
+        auto exec = transaction->Exec(kDefaultCc, ExecOptions{condition});
+        if (expected_result == ExpectedResult::kExecuted) {
+            UEXPECT_NO_THROW(exec.Get());
+            UEXPECT_NO_THROW(set.Get());
+            EXPECT_EQ(client->Get("{transaction}result", kMasterCC).Get(), "written");
+        } else {
+            UEXPECT_THROW(exec.Get(), storages::redis::TransactionAbortedException);
+            UEXPECT_THROW(set.Get(), storages::redis::TransactionAbortedException);
+            EXPECT_FALSE(client->Get("{transaction}result", kMasterCC).Get());
+        }
+    }
+}
+
+UTEST_F(OptimisticTransactionRedisTest, ConditionsAreCheckedBeforeWritesAndCombinedWithAnd) {
+    using storages::redis::ExecCondition;
+    using storages::redis::ExecOptions;
+    auto client = GetClient();
+    client->Set("{transaction}version", "old", kDefaultCc).Get();
+    auto transaction = client->Multi();
+    auto set = transaction->Set("{transaction}version", "new");
+    auto exec = transaction->Exec(
+        kDefaultCc,
+        ExecOptions{
+            ExecCondition::IfEq("{transaction}version", "old"),
+            ExecCondition::Nx("{transaction}missing"),
+            ExecCondition::Xx("{transaction}version"),
+        }
+    );
+    exec.Get();
+    set.Get();
+    EXPECT_EQ(client->Get("{transaction}version", kMasterCC).Get(), "new");
+
+    auto rejected = client->Multi();
+    auto rejected_set = rejected->Set("{transaction}version", "unexpected");
+    UEXPECT_THROW(
+        rejected
+            ->Exec(
+                kDefaultCc,
+                ExecOptions{
+                    ExecCondition::Xx("{transaction}version"),
+                    ExecCondition::IfEq("{transaction}version", "old"),
+                }
+            )
+            .Get(),
+        storages::redis::TransactionAbortedException
+    );
+    UEXPECT_THROW(rejected_set.Get(), storages::redis::TransactionAbortedException);
+    EXPECT_EQ(client->Get("{transaction}version", kMasterCC).Get(), "new");
+}
+
+UTEST_F(OptimisticTransactionRedisTest, BinaryComparisonAndWrongType) {
+    using storages::redis::ExecCondition;
+    using storages::redis::ExecOptions;
+    auto client = GetClient();
+    const std::string binary_value{"value\0suffix", 12};
+    client->Set("{transaction}string", binary_value, kDefaultCc).Get();
+    auto transaction = client->Multi();
+    auto get = transaction->Get("{transaction}string");
+    transaction->Exec(kDefaultCc, ExecOptions{ExecCondition::IfEq("{transaction}string", binary_value)}).Get();
+    EXPECT_EQ(get.Get(), binary_value);
+
+    client->Lpush("{transaction}list", "value", kDefaultCc).Get();
+    for (const auto& condition : {
+             ExecCondition::IfEq("{transaction}list", "value"),
+             ExecCondition::IfNe("{transaction}list", "value"),
+         })
+    {
+        auto rejected = client->Multi();
+        auto set = rejected->Set("{transaction}result", "unexpected");
+        UEXPECT_THROW(
+            rejected->Exec(kDefaultCc, ExecOptions{condition}).Get(),
+            storages::redis::RequestFailedException
+        );
+        EXPECT_FALSE(client->Get("{transaction}result", kMasterCC).Get());
+    }
+    auto exists = client->Multi();
+    auto list_size = exists->Llen("{transaction}list");
+    exists->Exec(kDefaultCc, ExecOptions{ExecCondition::Xx("{transaction}list")}).Get();
+    EXPECT_EQ(list_size.Get(), 1);
+}
 
 USERVER_NAMESPACE_END

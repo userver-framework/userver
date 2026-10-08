@@ -319,6 +319,62 @@ UTEST_F(RedisClusterClientTest, TransactionMsetexCrossSlot) {
     EXPECT_FALSE(client->Get(MakeKey(idx[1]), kMasterCC).Get().has_value());
 }
 
+UTEST_F(RedisClusterClientTest, ConditionalTransactionExecAndCrossSlot) {
+    using storages::redis::ExecCondition;
+    using storages::redis::ExecOptions;
+    constexpr Version kMinimumVersion{9, 2, 0};
+    if (!IsValkey() || !CheckValkeyVersion(kMinimumVersion)) {
+        GTEST_SKIP() << "Conditional EXEC requires Valkey 9.2 or newer";
+    }
+    auto client = GetClient();
+    const std::string version_key = "{transaction}version";
+    const std::string result_key = "{transaction}result";
+    client->Set(version_key, "old", kDefaultCc).Get();
+    auto transaction = client->Multi();
+    auto set = transaction->Set(result_key, "written");
+    transaction->Exec(kDefaultCc, ExecOptions{ExecCondition::IfEq(version_key, "old")}).Get();
+    set.Get();
+    EXPECT_EQ(client->Get(result_key, kMasterCC).Get(), "written");
+
+    auto rejected = client->Multi();
+    auto rejected_set = rejected->Set(result_key, "unexpected");
+    UEXPECT_THROW(
+        rejected->Exec(kDefaultCc, ExecOptions{ExecCondition::IfEq(version_key, "new")}).Get(),
+        storages::redis::TransactionAbortedException
+    );
+    UEXPECT_THROW(rejected_set.Get(), storages::redis::TransactionAbortedException);
+    EXPECT_EQ(client->Get(result_key, kMasterCC).Get(), "written");
+
+    auto condition_index = 0;
+    while (client->ShardByKey(MakeKey(condition_index)) != client->ShardByKey(result_key)) {
+        ++condition_index;
+    }
+    auto cross_slot = client->Multi();
+    auto cross_slot_set = cross_slot->Set(result_key, "unexpected");
+    UEXPECT_THROW(
+        cross_slot->Exec(kDefaultCc, ExecOptions{ExecCondition::Nx(MakeKey(condition_index))}).Get(),
+        storages::redis::RequestFailedException
+    );
+    EXPECT_EQ(client->Get(result_key, kMasterCC).Get(), "written");
+}
+
+UTEST_F(RedisClusterClientTest, ConditionalTransactionRejectsDifferentShard) {
+    using storages::redis::ExecCondition;
+    using storages::redis::ExecOptions;
+    auto client = GetClient();
+    const auto key = MakeKey(0);
+    auto condition_index = 1;
+    while (client->ShardByKey(MakeKey(condition_index)) == client->ShardByKey(key)) {
+        ++condition_index;
+    }
+    auto transaction = client->Multi();
+    auto get = transaction->Get(key);
+    UEXPECT_THROW(
+        (void)transaction->Exec(kDefaultCc, ExecOptions{ExecCondition::Xx(MakeKey(condition_index))}),
+        storages::redis::InvalidArgumentException
+    );
+}
+
 UTEST_F(RedisClusterClientTest, TransactionDistinctShards) {
     auto client = GetClient();
     auto transaction = client->Multi(storages::redis::Transaction::CheckShards::kNo);

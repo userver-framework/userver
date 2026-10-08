@@ -9,6 +9,29 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis::impl {
 
+void CmdWithArgs::PutArg(ExecOptions options) {
+    for (const auto& condition : options) {
+        switch (condition.GetType()) {
+            case ExecCondition::Type::kIfEq:
+                PutArg("IFEQ");
+                break;
+            case ExecCondition::Type::kIfNe:
+                PutArg("IFNE");
+                break;
+            case ExecCondition::Type::kNx:
+                PutArg("NX");
+                break;
+            case ExecCondition::Type::kXx:
+                PutArg("XX");
+                break;
+        }
+        PutArg(condition.GetKey());
+        if (condition.GetType() == ExecCondition::Type::kIfEq || condition.GetType() == ExecCondition::Type::kIfNe) {
+            PutArg(condition.GetValue());
+        }
+    }
+}
+
 void CmdWithArgs::PutArg(const char* arg) {
     UASSERT(arg);
     UASSERT(arg[0] != '\0');

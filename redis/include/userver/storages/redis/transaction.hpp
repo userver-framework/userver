@@ -34,12 +34,24 @@ public:
 
     virtual ~Transaction() = default;
 
+    /// @overload
+    virtual RequestExec Exec(const CommandControl& command_control) = 0;
+
     /// Finish current atomic sequence of commands and send it to a server.
     /// Returns 'future-like' request object.
     /// The data will not be set for the future-like objects for subcommands if
     /// `Get()` method of the returned object is not called or redis did not return an array with command responses.
     /// In the last case `Get()` will throw a corresponding exception.
-    virtual RequestExec Exec(const CommandControl& command_control) = 0;
+    /// @param options Conditions checked atomically before execution. An empty span performs an ordinary transaction.
+    /// Non-empty conditions require Valkey 9.2 or newer. A failed condition causes the returned request and all
+    /// subcommand requests to throw @ref TransactionAbortedException when their Get() method is called.
+    virtual RequestExec Exec(const CommandControl& command_control, ExecOptions options) = 0;
+
+    /// @overload
+    RequestExec Exec(const CommandControl& command_control, const ExecCondition& condition) {
+        constexpr auto kSingleConditionCount = 1;
+        return Exec(command_control, ExecOptions{&condition, kSingleConditionCount});
+    }
 
     // redis commands:
 

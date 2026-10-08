@@ -70,6 +70,30 @@ storages::redis::Client:
 Also see @ref scripts/docs/en/userver/tutorial/redis_service.md for a complete example.
 
 
+### Optimistic transactions
+
+Valkey 9.2 and newer support optimistic transactions with conditional `EXEC`.
+Pass @ref storages::redis::ExecOptions to @ref storages::redis::Transaction::Exec:
+
+@snippet redis/src/storages/redis/optimistic_transaction_test.cpp optimistic transaction sample
+
+See the [Valkey EXEC documentation](https://valkey.io/commands/exec/) for the supported conditions
+and the [Valkey transaction documentation](https://valkey.io/topics/transactions/) for their semantics.
+
+If a condition fails, `Exec().Get()` and the subcommand requests throw
+@ref storages::redis::TransactionAbortedException. Read the current values again before
+constructing a new transaction to retry. Server and transport errors retain their usual exception types.
+
+Conditional transactions run on the master. Keys in commands and conditions
+must belong to the same shard, and to the same hash slot in cluster mode.
+An empty @ref storages::redis::ExecOptions is equivalent to ordinary `Exec` and works with older
+servers. The conditions are consumed during `Exec`, so an initializer list can be passed directly.
+
+To mock conditional transactions, override @ref storages::redis::MockTransactionImplBase::Exec:
+return @ref storages::redis::MockTransactionImplBase::ExecResult::kExecuted to execute the mocked
+subrequests, or @ref storages::redis::MockTransactionImplBase::ExecResult::kAborted to report a
+transaction abort. The default mock rejects non-empty conditions so that they cannot be silently ignored.
+
 ### Timeouts
 
 Request timeout can be set for a single request via storages::redis::CommandControl

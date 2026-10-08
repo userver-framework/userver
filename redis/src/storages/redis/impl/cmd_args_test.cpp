@@ -1,5 +1,6 @@
 #include <storages/redis/impl/cmd_args.hpp>
 
+#include <array>
 #include <chrono>
 #include <string>
 #include <vector>
@@ -22,6 +23,27 @@ std::vector<std::string> GetWireArgs(const CmdArgs& command) {
         args.emplace_back(pointers[i], sizes[i]);
     }
     return args;
+}
+
+TEST(CmdArgsExec, EmptyConditions) {
+    EXPECT_EQ(GetWireArgs(CmdArgs{"EXEC", ExecOptions{}}), (std::vector<std::string>{"EXEC"}));
+}
+
+TEST(CmdArgsExec, MixedConditionsAndBinaryValues) {
+    const std::string binary_key{"key\0NX", 6};
+    const std::string binary_value{"value\0XX", 8};
+    const std::array conditions{
+        ExecCondition::IfEq(binary_key, binary_value),
+        ExecCondition::IfNe("same key", ""),
+        ExecCondition::Nx("same key"),
+        ExecCondition::Xx("XX"),
+    };
+    EXPECT_EQ(
+        GetWireArgs(CmdArgs{"EXEC", ExecOptions{conditions}}),
+        (std::vector<
+            std::string>{"EXEC", "IFEQ", binary_key, binary_value, "IFNE", "same key", "", "NX", "same key", "XX", "XX"}
+        )
+    );
 }
 
 using KeyValues = std::vector<std::pair<std::string, std::string>>;

@@ -12,6 +12,7 @@
 #include <userver/storages/redis/command_control.hpp>
 #include <userver/storages/redis/exception.hpp>
 #include <userver/storages/redis/scan_tag.hpp>
+#include <userver/utils/span.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -21,6 +22,52 @@ using Longitude = utils::StrongTypedef<struct LongitudeTag, double>;
 using Latitude = utils::StrongTypedef<struct LatitudeTag, double>;
 using BoxWidth = utils::StrongTypedef<struct BoxWidthTag, double>;
 using BoxHeight = utils::StrongTypedef<struct BoxHeightTag, double>;
+
+/// A key condition for optimistic transaction execution with Valkey 9.2 or newer.
+class ExecCondition {
+public:
+    /// The comparison performed before executing the queued commands.
+    enum class Type {
+        /// The key contains a string equal to the expected value.
+        kIfEq,
+        /// The key is absent or contains a string different from the expected value.
+        kIfNe,
+        /// The key does not exist.
+        kNx,
+        /// The key exists, regardless of its value type.
+        kXx,
+    };
+
+    /// Creates a string equality condition; see @ref Type::kIfEq.
+    static ExecCondition IfEq(std::string key, std::string value);
+    /// Creates a string inequality condition; see @ref Type::kIfNe.
+    static ExecCondition IfNe(std::string key, std::string value);
+    /// Creates a key absence condition; see @ref Type::kNx.
+    static ExecCondition Nx(std::string key);
+    /// Creates a key existence condition; see @ref Type::kXx.
+    static ExecCondition Xx(std::string key);
+
+    /// Returns the comparison to perform.
+    Type GetType() const { return type_; }
+    /// Returns the key to check.
+    const std::string& GetKey() const { return key_; }
+    /// Returns the comparison value for IfEq and IfNe, or an empty string for Nx and Xx.
+    const std::string& GetValue() const { return value_; }
+
+private:
+    ExecCondition(Type type, std::string key, std::string value);
+
+    Type type_;
+    std::string key_;
+    std::string value_;
+};
+
+/// Conditions for @ref Transaction::Exec. All conditions must match to execute the transaction.
+/// The conditions are consumed during @ref Transaction::Exec and are not retained by the returned request.
+/// The referenced conditions must stay alive until @ref Transaction::Exec returns.
+/// A temporary initializer list may be passed directly to Exec, but must not be used to initialize a stored
+/// ExecOptions.
+using ExecOptions = utils::span<const ExecCondition>;
 
 struct RangeOptions {
     std::optional<size_t> offset;
