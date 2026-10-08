@@ -12,8 +12,6 @@
 #include <userver/utils/encoding/hex.hpp>
 #include <userver/utils/exception.hpp>
 
-#include "multipart_form_data_parser.hpp"
-
 USERVER_NAMESPACE_BEGIN
 
 namespace server::http {
@@ -219,14 +217,9 @@ void HttpRequestConstructor::FinalizeImpl() {
         return;
     }
 
-    // TODO: split logic
-    const auto& content_type = request.GetHeader(USERVER_NAMESPACE::http::headers::kContentType);
-    if (IsMultipartFormDataContentType(content_type)) {
-        utils::impl::TransparentMap<std::string, std::vector<FormDataArg>, utils::StrCaseHash> form_data_args;
-        if (!ParseMultipartFormData(content_type, request.RequestBody(), form_data_args)) {
+    if (!config_.decompress_request || !request.IsBodyCompressed()) {
+        if (!builder_.ParseFormDataArgsFromBody()) {
             SetStatus(Status::kParseMultipartFormDataError);
-        } else {
-            builder_.SetFormDataArgs(std::move(form_data_args));
         }
     }
 
