@@ -2,6 +2,7 @@
 
 #include <unistd.h>
 
+#include <atomic>
 #include <chrono>
 #include <mutex>
 #include <utility>
@@ -9,34 +10,86 @@
 #include <mongoc/mongoc.h>
 
 #include <userver/crypto/openssl.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/engine/task/task.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/storages/mongo/exception.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/userver_info.hpp>
 
 #include <storages/mongo/cdriver/logger.hpp>
+#include <storages/mongo/features.hpp>
+
+#ifdef USERVER_FEATURE_MONGO_EXPERIMENTAL
+#include <storages/mongo/cdriver_experimental/thread.hpp>
+#endif
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::impl::cdriver {
 
+namespace {
+
+std::atomic<bool> mongoc_initialized{false};
+bool thread_backend_requested{false};
+
+class InitMongocRegistrator final {
+public:
+    InitMongocRegistrator() {
+        engine::RegisterThreadStartedHook([] { static const GlobalInitializer kInitializer; });
+    }
+};
+
+[[maybe_unused]] const InitMongocRegistrator init_mongoc_registrator;
+
+}  // namespace
+
 GlobalInitializer::GlobalInitializer() {
+    UINVARIANT(!engine::current_task::IsTaskProcessorThread(), "MongoDB initialization requires a native stack");
+    thread_backend_requested = utils::impl::kMongoThreadBackendExperiment.IsEnabled();
+#ifdef USERVER_FEATURE_MONGO_EXPERIMENTAL
+    const cdriver_experimental::MongocGlobalLifecycleScope lifecycle;
+    if (thread_backend_requested) {
+        UINVARIANT(
+            mongoc_set_thread_backend(&cdriver_experimental::GetThreadBackend()),
+            "MongoDB thread backend must be set before mongoc_init"
+        );
+    }
+#endif
     crypto::Openssl::Init();
     mongoc_log_set_handler(&LogMongocMessage, nullptr);
     mongoc_init();
     mongoc_handshake_data_append("userver", utils::GetUserverVcsRevision(), nullptr);
+    mongoc_initialized.store(true, std::memory_order_release);
 }
 
-GlobalInitializer::~GlobalInitializer() { mongoc_cleanup(); }
+GlobalInitializer::~GlobalInitializer() {
+#ifdef USERVER_FEATURE_MONGO_EXPERIMENTAL
+    const cdriver_experimental::MongocGlobalLifecycleScope lifecycle;
+#endif
+    mongoc_cleanup();
+}
 
-// mongoc_init uses pthread_once and calls getenv. getenv is not ASan-safe on a
-// ucontext coroutine stack (including the blocking task processor). Initialize
-// before main, while other threads do not exist yet.
-const GlobalInitializer kInitMongoc;
+void GlobalInitializer::CheckInitialized() {
+    UINVARIANT(mongoc_initialized.load(std::memory_order_acquire), "MongoDB must initialize before running tasks");
+    if (thread_backend_requested != utils::impl::kMongoThreadBackendExperiment.IsEnabled()) {
+        throw InvalidConfigException(
+            "MongoDB thread backend mode differs from the process initialization mode; "
+            "restart the process with a consistent components_manager.userver_experiments.mongo-thread-backend setting"
+        );
+    }
+}
 
 void GlobalInitializer::LogInitWarningsOnce() {
     static std::once_flag once_flag;
     std::call_once(once_flag, [] {
+#ifndef USERVER_FEATURE_MONGO_EXPERIMENTAL
+        if (thread_backend_requested) {
+            LOG_WARNING() << "MongoDB thread backend is unavailable in this build; using native threading primitives";
+        }
+#endif
 #if !MONGOC_CHECK_VERSION(1, 26, 0)
         LOG_WARNING()
             << "Cannot use coro-friendly usleep in mongo driver, "

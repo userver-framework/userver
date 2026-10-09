@@ -4,7 +4,7 @@
 #include <memory>
 #include <optional>
 
-#include <storages/mongo/cdriver/pool_impl.hpp>
+#include <storages/mongo/cdriver/pool_access.hpp>
 #include <storages/mongo/pool_impl.hpp>
 #include <storages/mongo/stats.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
@@ -19,20 +19,20 @@ namespace storages::mongo::impl::cdriver {
 struct RequestContextBase {
     std::shared_ptr<stats::OperationStatisticsItem> stats;
     dynamic_config::Snapshot dynamic_config;
-    CDriverPoolImpl::BoundClientPtr client;
+    BoundClient client;
     tracing::Span span;
     std::optional<std::chrono::milliseconds> inherited_deadline;
 };
 
-CDriverPoolImpl& GetCDriverPool(const PoolImplPtr& pool_impl);
+PoolAccess GetCDriverPool(const PoolImplPtr& pool_impl);
 
-CDriverPoolImpl::BoundClientPtr AcquireClient(CDriverPoolImpl& pool, stats::OperationStatisticsItem& stats);
+BoundClient AcquireClient(PoolAccess pool, stats::OperationStatisticsItem& stats);
 
 RequestContextBase MakeRequestContextBase(
     tracing::Span span,
     std::shared_ptr<stats::OperationStatisticsItem> stats,
     dynamic_config::Snapshot dynamic_config,
-    utils::function_ref<CDriverPoolImpl::BoundClientPtr(stats::OperationStatisticsItem&)> get_client
+    utils::function_ref<BoundClient(stats::OperationStatisticsItem&)> get_client
 );
 
 std::chrono::milliseconds ComputeAdjustedMaxServerTime(

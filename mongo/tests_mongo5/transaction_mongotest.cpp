@@ -15,7 +15,7 @@ using namespace storages::mongo;
 
 class Mongo5Transaction : public MongoPoolFixture {};
 
-UTEST_F(Mongo5Transaction, TimedReplaceOneIsFirstOperation) {
+UTEST_P(Mongo5Transaction, TimedReplaceOneIsFirstOperation) {
     static const std::string kCollectionName = "test_txn_first_timed_replace";
 
     auto regular_collection = GetDefaultPool().GetCollection(kCollectionName);
@@ -48,7 +48,7 @@ UTEST_F(Mongo5Transaction, TimedReplaceOneIsFirstOperation) {
     EXPECT_EQ((*committed_doc)["x"].As<int>(), 2);
 }
 
-UTEST_F(Mongo5Transaction, TimedUpdateIsFirstOperation) {
+UTEST_P(Mongo5Transaction, TimedUpdateIsFirstOperation) {
     static const std::string kCollectionName = "test_txn_first_timed_update";
 
     auto regular_collection = GetDefaultPool().GetCollection(kCollectionName);
@@ -80,5 +80,12 @@ UTEST_F(Mongo5Transaction, TimedUpdateIsFirstOperation) {
     ASSERT_TRUE(committed_doc);
     EXPECT_EQ((*committed_doc)["x"].As<int>(), 2);
 }
+
+INSTANTIATE_UTEST_SUITE_P(
+    Driver,
+    Mongo5Transaction,
+    ::testing::ValuesIn(GetMongoPoolImplementations()),
+    GetMongoPoolImplementationName
+);
 
 USERVER_NAMESPACE_END

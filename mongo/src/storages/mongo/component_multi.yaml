@@ -2,6 +2,13 @@ type: object
 description: Dynamically configurable MongoDB client component
 additionalProperties: false
 properties:
+    driver:
+        type: string
+        description: MongoDB driver implementation
+        defaultDescription: mongo-c-driver-experimental with a patched driver, mongo-c-driver otherwise
+        enum:
+          - mongo-c-driver
+          - mongo-c-driver-experimental
     appname:
         type: string
         description: application name for the DB server

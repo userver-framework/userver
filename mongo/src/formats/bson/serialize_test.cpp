@@ -64,6 +64,16 @@ const auto kArray = formats::bson::MakeArray("test", int64_t{1}, 1.0, kTimePoint
 
 }  // namespace
 
+TEST(Serialize, BinaryFromJson) {
+    const auto doc = formats::bson::FromJsonString(R"({"value": {"$binary": {"base64": "AAEC/w==", "subType": "00"}}})"
+    );
+    EXPECT_EQ(doc["value"].As<formats::bson::Binary>(), formats::bson::Binary(std::string("\0\1\2\xff", 4)));
+    UEXPECT_THROW(
+        formats::bson::FromJsonString(R"({"value": {"$binary": {"base64": "!!!!", "subType": "00"}}})"),
+        formats::bson::BsonException
+    );
+}
+
 TEST(Serialize, FromJson) {
     UEXPECT_THROW(formats::bson::FromJsonString(""), formats::bson::ParseException);
     UEXPECT_THROW(formats::bson::FromJsonString("[]"), formats::bson::ParseException);

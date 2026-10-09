@@ -35,7 +35,7 @@ public:
     void Execute(const operations::Drop&) override;
 
 protected:
-    CDriverPoolImpl::BoundClientPtr GetClient(stats::OperationStatisticsItem& stats) const override;
+    BoundClient GetClient(stats::OperationStatisticsItem& stats) const override;
 
     mongoc_client_session_t* GetSession() const override;
 

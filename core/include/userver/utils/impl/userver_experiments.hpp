@@ -13,7 +13,7 @@ namespace utils::impl {
 
 class UserverExperiment final {
 public:
-    explicit UserverExperiment(std::string name);
+    explicit UserverExperiment(std::string name, bool enabled_by_default = false);
 
     UserverExperiment(UserverExperiment&&) = delete;
     UserverExperiment& operator=(UserverExperiment&&) = delete;
@@ -56,6 +56,7 @@ private:
 // for all services, no matter whether a specific userver library is used in a given service.
 extern UserverExperiment kJemallocBgThread;
 extern UserverExperiment kServerSelectionTimeoutExperiment;
+extern UserverExperiment kMongoThreadBackendExperiment;
 extern UserverExperiment kPgCcExperiment;
 extern UserverExperiment kYdbDeadlinePropagationExperiment;
 

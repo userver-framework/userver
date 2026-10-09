@@ -24,7 +24,7 @@
 #include <formats/bson/wrappers.hpp>
 #include <storages/mongo/cdriver/cursor_impl.hpp>
 #include <storages/mongo/cdriver/find_and_modify.hpp>
-#include <storages/mongo/cdriver/pool_impl.hpp>
+#include <storages/mongo/cdriver/pool_access.hpp>
 #include <storages/mongo/cdriver/request_helpers.hpp>
 #include <storages/mongo/cdriver/wrappers.hpp>
 #include <storages/mongo/operations_common.hpp>
@@ -510,19 +510,19 @@ WriteResult FinishBulkWrite(const BulkWriteResultPtr& result, const BulkWriteExc
 }
 
 bool CanUseSingleBulkWrite(
-    CDriverPoolImpl& pool,
+    PoolAccess pool,
     CollectionRequestContext& context,
     std::chrono::milliseconds max_server_time
 ) {
     if (max_server_time == operations::kNoMaxServerTime) {
         return false;
     }
-    pool.RecheckBulkWriteSupport(context.client.get());
-    return pool.IsBulkWriteSupported();
+    pool.RecheckBulkWriteSupport(context.client);
+    return pool.IsBulkWriteSupported(context.client);
 }
 
 struct SingleBulkWriteParams final {
-    CDriverPoolImpl& pool;
+    PoolAccess pool;
     CollectionRequestContext& context;
     mongoc_client_session_t* session;
     std::string collection_namespace;
@@ -573,7 +573,7 @@ public:
 
             const MongoError& error = write_result.OperationError();
             if (IsBulkWriteUnsupportedError(error)) {
-                params_.pool.MarkBulkWriteUnsupported();
+                params_.pool.MarkBulkWriteUnsupported(params_.context.client);
 
                 if (is_in_transaction) {
                     stopwatch.AccountError(error.GetKind());
@@ -708,7 +708,7 @@ CDriverCollectionImpl::CDriverCollectionImpl(PoolImplPtr pool_impl, std::string 
       pool_impl_(std::move(pool_impl)),
       statistics_(pool_impl_->GetStatistics().collections[GetCollectionName()])
 {
-    UASSERT(dynamic_cast<cdriver::CDriverPoolImpl*>(pool_impl_.get()));
+    [[maybe_unused]] const auto pool = GetPool();
 }
 
 size_t CDriverCollectionImpl::Execute(const operations::Count& operation) const {
@@ -1223,13 +1223,9 @@ void CDriverCollectionImpl::Execute(const operations::Drop& operation) {
     }
 }
 
-cdriver::CDriverPoolImpl& CDriverCollectionImpl::GetPool() const {
-    // uasserted in ctor
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-    return *static_cast<cdriver::CDriverPoolImpl*>(pool_impl_.get());
-}
+PoolAccess CDriverCollectionImpl::GetPool() const { return GetCDriverPool(pool_impl_); }
 
-cdriver::CDriverPoolImpl::BoundClientPtr CDriverCollectionImpl::GetClient(stats::OperationStatisticsItem& stats) const {
+cdriver::BoundClient CDriverCollectionImpl::GetClient(stats::OperationStatisticsItem& stats) const {
     return AcquireClient(GetPool(), stats);
 }
 
@@ -1259,9 +1255,7 @@ CollectionRequestContext CDriverCollectionImpl::MakeRequestContext(std::string&&
 }
 
 ReadPrefsPtr CDriverCollectionImpl::MakeEffectiveReadPrefs(const ReadPrefsPtr& operation_read_prefs) const {
-    // Uasserted in ctor.
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-    const auto& pool = static_cast<const CDriverPoolImpl&>(*pool_impl_);
+    const auto pool = GetPool();
     return MakeReadPrefsWithDefaultMaxStaleness(operation_read_prefs, pool.GetMaxReplicationLag());
 }
 

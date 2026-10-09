@@ -29,6 +29,8 @@ public:
     dynamic_config::Snapshot GetConfig() const;
     StatsVerbosity GetStatsVerbosity() const;
 
+    virtual std::string DefaultDatabaseName() const = 0;
+
     virtual void Ping() = 0;
 
     virtual size_t InUseApprox() const = 0;

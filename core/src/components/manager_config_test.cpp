@@ -4,6 +4,7 @@
 #include <userver/server/handlers/handler_config.hpp>
 
 #include <algorithm>
+#include <string_view>
 
 #include <userver/utest/utest.hpp>
 
@@ -221,6 +222,26 @@ TEST(ManagerConfig, Basic) {
     EXPECT_TRUE(std::ranges::any_of(mc.components, [](const auto& conf) {
         return conf.Name() == "logging-configurator";
     }));
+}
+
+TEST(ManagerConfig, MongoBackendDefaultAndOverride) {
+    for (const auto* experiments :
+         {"",
+          "userver_experiments: {}",
+          "userver_experiments: {jemalloc-bg-thread: true}",
+          "userver_experiments: {mongo-thread-backend: true}",
+          "userver_experiments: {mongo-thread-backend: false}"})
+    {
+        SCOPED_TRACE(experiments);
+        const auto config = yaml_config::YamlConfig{
+            formats::yaml::FromString(std::string{"task_processors: {}\ncomponents: {}\n"} + experiments),
+            formats::yaml::Value{}
+        }.As<components::ManagerConfig>();
+        EXPECT_EQ(
+            config.enabled_experiments.count("mongo-thread-backend"),
+            std::string_view{experiments}.find("false") == std::string_view::npos ? 1 : 0
+        );
+    }
 }
 
 TEST(ManagerConfig, HandlerConfig) {

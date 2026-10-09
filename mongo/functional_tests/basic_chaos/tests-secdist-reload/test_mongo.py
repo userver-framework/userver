@@ -2,13 +2,13 @@ import json
 import os
 
 
-async def rewrite_secdist(broken_secdist, mongo_connection_info):
+async def rewrite_secdist(broken_secdist, mongo_connection_info, database='admin'):
     with open(broken_secdist + '.tmp', 'w') as ofile:
         ofile.write(
             json.dumps({
                 'mongo_settings': {
                     'mongo-test': {
-                        'uri': f'mongodb://{mongo_connection_info.host}:{mongo_connection_info.port}/admin',
+                        'uri': f'mongodb://{mongo_connection_info.host}:{mongo_connection_info.port}/{database}',
                     },
                 },
             }),
@@ -36,3 +36,20 @@ async def test_secdist_update(
 
     response = await service_client.put('/v1/key-value?key=foo&value=bar')
     assert response.status == 200
+
+    await rewrite_secdist(broken_secdist, mongo_connection_info, 'userver_secdist_reload')
+    await tp.wait_call()
+    response = await service_client.get('/v1/key-value?key=foo')
+    assert response.status == 404
+
+    response = await service_client.put('/v1/key-value?key=foo&value=new-database')
+    assert response.status == 200
+    response = await service_client.get('/v1/key-value?key=foo')
+    assert response.status == 200
+    assert response.text == 'new-database'
+
+    await rewrite_secdist(broken_secdist, mongo_connection_info)
+    await tp.wait_call()
+    response = await service_client.get('/v1/key-value?key=foo')
+    assert response.status == 200
+    assert response.text == 'bar'

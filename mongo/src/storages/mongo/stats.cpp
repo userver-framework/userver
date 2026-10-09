@@ -5,12 +5,16 @@
 
 #include <boost/functional/hash.hpp>
 
+#include <userver/engine/task/current_task.hpp>
+#include <userver/engine/task/local_variable.hpp>
 #include <userver/tracing/span.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::stats {
 namespace {
+
+engine::TaskLocalVariable<EventStats> task_event_stats;
 
 ErrorType ToErrorType(MongoError::Kind mongo_error_kind) {
     switch (mongo_error_kind) {
@@ -150,6 +154,22 @@ std::string_view ToString(OpType type) {
 }
 
 bool OperationKey::operator==(const OperationKey& other) const noexcept { return op_type == other.op_type; }
+
+EventStats GetTaskEventStats() { return *task_event_stats; }
+void AccountTaskCommandSuccess() {
+    if (engine::current_task::IsTaskProcessorThread()) {
+        if (auto* events = task_event_stats.GetOptional()) {
+            events->success += Rate{1};
+        }
+    }
+}
+void AccountTaskCommandFailure() {
+    if (engine::current_task::IsTaskProcessorThread()) {
+        if (auto* events = task_event_stats.GetOptional()) {
+            events->failed += Rate{1};
+        }
+    }
+}
 
 PoolConnectStatistics::PoolConnectStatistics()
     : ping(utils::MakeSharedRef<OperationStatisticsItem>())

@@ -106,6 +106,7 @@ public:
     /// @endcond
 
 private:
+    PoolConfig::DriverImpl driver_impl_;
     std::shared_ptr<impl::PoolImpl> impl_;
 };
 

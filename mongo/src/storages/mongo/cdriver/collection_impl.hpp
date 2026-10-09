@@ -35,7 +35,7 @@ public:
     void Execute(const operations::Drop&) override;
 
 protected:
-    virtual cdriver::CDriverPoolImpl::BoundClientPtr GetClient(stats::OperationStatisticsItem& stats) const;
+    virtual cdriver::BoundClient GetClient(stats::OperationStatisticsItem& stats) const;
 
     [[maybe_unused]] virtual mongoc_client_session_t* GetSession() const;
     ReadPrefsPtr MakeEffectiveReadPrefs(const ReadPrefsPtr& operation_read_prefs) const;
@@ -49,7 +49,7 @@ private:
     WriteResult ExecuteReplaceNative(const operations::ReplaceOne& operation, CollectionRequestContext& context);
     WriteResult ExecuteUpdateNative(const operations::Update& operation, CollectionRequestContext& context);
 
-    cdriver::CDriverPoolImpl& GetPool() const;
+    PoolAccess GetPool() const;
 
     PoolImplPtr pool_impl_;
     std::shared_ptr<stats::CollectionStatistics> statistics_;

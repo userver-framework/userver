@@ -12,12 +12,20 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo::impl {
 class Database;
+namespace experimental {
+class Database;
+}
 }  // namespace storages::mongo::impl
 
 namespace storages::mongo::impl::cdriver {
 class CDriverCollectionImpl;
 class CDriverTransactionCollectionImpl;
 }  // namespace storages::mongo::impl::cdriver
+
+namespace storages::mongo::impl::cdriver_experimental {
+class CDriverCollectionImpl;
+class CDriverTransactionCollectionImpl;
+}  // namespace storages::mongo::impl::cdriver_experimental
 
 /// Collection operations
 namespace storages::mongo::operations {
@@ -43,7 +51,9 @@ public:
 
 private:
     friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverCollectionImpl;
     friend class storages::mongo::impl::cdriver::CDriverTransactionCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverTransactionCollectionImpl;
 
     class Impl;
     static constexpr size_t kSize = 96;
@@ -72,7 +82,9 @@ public:
 
 private:
     friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverCollectionImpl;
     friend class storages::mongo::impl::cdriver::CDriverTransactionCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverTransactionCollectionImpl;
 
     class Impl;
     static constexpr size_t kSize = 72;
@@ -108,7 +120,9 @@ public:
 
 private:
     friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverCollectionImpl;
     friend class storages::mongo::impl::cdriver::CDriverTransactionCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverTransactionCollectionImpl;
 
     class Impl;
     static constexpr size_t kSize = 96;
@@ -135,7 +149,9 @@ public:
 
 private:
     friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverCollectionImpl;
     friend class storages::mongo::impl::cdriver::CDriverTransactionCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverTransactionCollectionImpl;
 
     class Impl;
     static constexpr size_t kSize = 88;
@@ -166,7 +182,9 @@ public:
 
 private:
     friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverCollectionImpl;
     friend class storages::mongo::impl::cdriver::CDriverTransactionCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverTransactionCollectionImpl;
 
     class Impl;
     static constexpr size_t kSize = 96;
@@ -194,7 +212,9 @@ public:
 
 private:
     friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverCollectionImpl;
     friend class storages::mongo::impl::cdriver::CDriverTransactionCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverTransactionCollectionImpl;
 
     class Impl;
     static constexpr size_t kSize = 104;
@@ -235,7 +255,9 @@ public:
 
 private:
     friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverCollectionImpl;
     friend class storages::mongo::impl::cdriver::CDriverTransactionCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverTransactionCollectionImpl;
 
     class Impl;
     static constexpr size_t kSize = 104;
@@ -268,7 +290,9 @@ public:
 
 private:
     friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverCollectionImpl;
     friend class storages::mongo::impl::cdriver::CDriverTransactionCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverTransactionCollectionImpl;
 
     class Impl;
     static constexpr size_t kSize = 88;
@@ -300,7 +324,9 @@ public:
 
 private:
     friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverCollectionImpl;
     friend class storages::mongo::impl::cdriver::CDriverTransactionCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverTransactionCollectionImpl;
 
     class Impl;
     FindAndModify(Impl&&);
@@ -329,7 +355,9 @@ public:
 
 private:
     friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverCollectionImpl;
     friend class storages::mongo::impl::cdriver::CDriverTransactionCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverTransactionCollectionImpl;
 
     class Impl;
     FindAndRemove(Impl&&);
@@ -362,8 +390,11 @@ public:
 
 private:
     friend class storages::mongo::impl::Database;
+    friend class storages::mongo::impl::experimental::Database;
     friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverCollectionImpl;
     friend class storages::mongo::impl::cdriver::CDriverTransactionCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverTransactionCollectionImpl;
 
     class Impl;
     static constexpr size_t kSize = 120;
@@ -393,7 +424,9 @@ public:
 
 private:
     friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverCollectionImpl;
     friend class storages::mongo::impl::cdriver::CDriverTransactionCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverTransactionCollectionImpl;
 
     class Impl;
     static constexpr size_t kSize = 104;
@@ -417,7 +450,9 @@ public:
 
 private:
     friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverCollectionImpl;
     friend class storages::mongo::impl::cdriver::CDriverTransactionCollectionImpl;
+    friend class storages::mongo::impl::cdriver_experimental::CDriverTransactionCollectionImpl;
 
     class Impl;
     static constexpr size_t kSize = 56;

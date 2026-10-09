@@ -1,8 +1,13 @@
 # yaml
 components_manager:
+    userver_experiments:
+        mongo-thread-backend: $mongo-thread-backend
+        mongo-thread-backend#fallback: true
     components:
         key-value-database:
             dbconnection: mongodb://localhost:27217/admin
+            driver: $mongo-driver
+            driver#fallback: mongo-c-driver-experimental
             conn_timeout: 15s
             so_timeout: 20s
             queue_timeout: 7s

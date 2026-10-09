@@ -28,6 +28,9 @@ namespace mongo = storages::mongo;
 namespace {
 
 using DeadlinePropagation = utest::LogCaptureFixture<MongoPoolFixture>;
+#ifdef USERVER_FEATURE_MONGO_EXPERIMENTAL
+class ExperimentalDeadlinePropagation : public DeadlinePropagation {};
+#endif
 
 server::request::TaskInheritedData MakeRequestData(engine::Deadline deadline) {
     return {{}, "dummy-method", {}, deadline};
@@ -35,7 +38,7 @@ server::request::TaskInheritedData MakeRequestData(engine::Deadline deadline) {
 
 }  // namespace
 
-UTEST_F(DeadlinePropagation, PoolOverload) {
+UTEST_P(DeadlinePropagation, PoolOverload) {
     auto pool_config = MakeTestPoolConfig();
     pool_config.pool_settings.initial_size = 1;
     pool_config.pool_settings.idle_limit = 1;
@@ -55,7 +58,7 @@ UTEST_F(DeadlinePropagation, PoolOverload) {
     EXPECT_FALSE(deadline.IsReached());
 }
 
-UTEST_F(DeadlinePropagation, PoolOverloadDeadlinePropagation) {
+UTEST_P(DeadlinePropagation, PoolOverloadDeadlinePropagation) {
     auto pool_config = MakeTestPoolConfig();
     pool_config.pool_settings.initial_size = 1;
     pool_config.pool_settings.idle_limit = 1;
@@ -77,7 +80,7 @@ UTEST_F(DeadlinePropagation, PoolOverloadDeadlinePropagation) {
     EXPECT_FALSE(deadline.IsReached());
 }
 
-UTEST_F(DeadlinePropagation, CancelledByDeadline) {
+UTEST_P(DeadlinePropagation, CancelledByDeadline) {
     auto coll = GetDefaultPool().GetCollection("dp");
 
     server::request::kTaskInheritedData.Set(MakeRequestData(engine::Deadline::FromDuration(-1s)));
@@ -85,7 +88,7 @@ UTEST_F(DeadlinePropagation, CancelledByDeadline) {
     UEXPECT_THROW(coll.InsertOne(bson::MakeDoc("_id", 2)), mongo::CancelledException);
 }
 
-UTEST_F(DeadlinePropagation, ReplaceOneCancelledByDeadline) {
+UTEST_P(DeadlinePropagation, ReplaceOneCancelledByDeadline) {
     auto coll = GetDefaultPool().GetCollection("dp_replace_one");
 
     server::request::kTaskInheritedData.Set(MakeRequestData(engine::Deadline::FromDuration(-1s)));
@@ -96,9 +99,13 @@ UTEST_F(DeadlinePropagation, ReplaceOneCancelledByDeadline) {
     );
 }
 
-UTEST_F(DeadlinePropagation, BulkWriteFallbackWarnsOnlyForUserTimeout) {
+UTEST_P(DeadlinePropagation, BulkWriteFallbackWarnsOnlyForUserTimeout) {
     auto& pool = GetDefaultPool();
-    mongo::impl::cdriver::GetCDriverPool(GetPoolImpl(pool)).MarkBulkWriteUnsupported();
+    {
+        auto driver_pool = mongo::impl::cdriver::GetCDriverPool(GetPoolImpl(pool));
+        auto client = driver_pool.Acquire();
+        driver_pool.MarkBulkWriteUnsupported(client);
+    }
     auto coll = pool.GetCollection("dp_bulk_write_fallback");
 
     server::request::kTaskInheritedData.Set(MakeRequestData(engine::Deadline::FromDuration(utest::kMaxTestWaitTime)));
@@ -118,7 +125,7 @@ UTEST_F(DeadlinePropagation, BulkWriteFallbackWarnsOnlyForUserTimeout) {
 }
 
 #ifdef USERVER_FEATURE_MONGO_BULKWRITE
-UTEST_F(DeadlinePropagation, ReplaceOneDeadlineBecomesMaxServerTime) {
+UTEST_P(DeadlinePropagation, ReplaceOneDeadlineBecomesMaxServerTime) {
     auto coll = GetDefaultPool().GetCollection("dp_replace_one_max_server_time");
 
     UASSERT_NO_THROW(coll.InsertOne(bson::MakeDoc("_id", 1, "foo", 42)));
@@ -133,7 +140,7 @@ UTEST_F(DeadlinePropagation, ReplaceOneDeadlineBecomesMaxServerTime) {
     );
 }
 #endif
-UTEST_F(DeadlinePropagation, CancelledByDeadlineUpdate) {
+UTEST_P(DeadlinePropagation, CancelledByDeadlineUpdate) {
     auto coll = GetDefaultPool().GetCollection("dp_update");
 
     static const auto kSelector = bson::MakeDoc("_id", 1);
@@ -146,7 +153,7 @@ UTEST_F(DeadlinePropagation, CancelledByDeadlineUpdate) {
 }
 
 #ifdef USERVER_FEATURE_MONGO_BULKWRITE
-UTEST_F(DeadlinePropagation, UpdateDeadlineBecomesMaxServerTime) {
+UTEST_P(DeadlinePropagation, UpdateDeadlineBecomesMaxServerTime) {
     auto coll = GetDefaultPool().GetCollection("dp_update_max_server_time");
 
     static const auto kSelector = bson::MakeDoc("_id", 1);
@@ -167,7 +174,7 @@ UTEST_F(DeadlinePropagation, UpdateDeadlineBecomesMaxServerTime) {
 }
 #endif
 
-UTEST_F(DeadlinePropagation, AlreadyCancelled) {
+UTEST_P(DeadlinePropagation, AlreadyCancelled) {
     auto coll = GetDefaultPool().GetCollection("dp");
 
     engine::current_task::RequestCancel();
@@ -175,7 +182,8 @@ UTEST_F(DeadlinePropagation, AlreadyCancelled) {
     UEXPECT_THROW(coll.InsertOne(bson::MakeDoc("_id", 2)), mongo::CancelledException);
 }
 
-UTEST_F(DeadlinePropagation, CancelledByDeadlineAfterGetClient) {
+#ifdef USERVER_FEATURE_MONGO_EXPERIMENTAL
+UTEST_P(ExperimentalDeadlinePropagation, CancelledByDeadlineAfterGetClient) {
     auto pool_config = MakeTestPoolConfig();
     pool_config.pool_settings.initial_size = 0;
     pool_config.pool_settings.idle_limit = 1;
@@ -183,7 +191,7 @@ UTEST_F(DeadlinePropagation, CancelledByDeadlineAfterGetClient) {
     pool_config.queue_timeout = utest::kMaxTestWaitTime;
 
     {
-        // check positive case, connection creation is fast
+        // check positive case, client acquisition is fast
         auto pool = MakePool({}, pool_config);
         auto coll = pool.GetCollection("dp");
         server::request::kTaskInheritedData.Set(MakeRequestData(engine::Deadline::FromDuration(utest::kMaxTestWaitTime))
@@ -191,10 +199,10 @@ UTEST_F(DeadlinePropagation, CancelledByDeadlineAfterGetClient) {
         UASSERT_NO_THROW(coll.InsertOne(bson::MakeDoc("_id", 1)));
     }
     {
-        // check negative case, connection creation is too slow
+        // check negative case, client acquisition is too slow
         auto pool = MakePool({}, pool_config);
         auto coll = pool.GetCollection("dp");
-        // delay in connection create
+        // delay in client acquisition
         testsuite::TestpointControl testpoint_control;
         class SlowConnectionClient final : public testsuite::TestpointClientBase {
         public:
@@ -206,12 +214,23 @@ UTEST_F(DeadlinePropagation, CancelledByDeadlineAfterGetClient) {
             }
         } slow_client;
         testpoint_control.SetClient(slow_client);
-        testpoint_control.SetEnabledNames({"mongo-connection-created"});
+        testpoint_control.SetEnabledNames({"mongo-client-acquired"});
 
         server::request::kTaskInheritedData.Set(MakeRequestData(engine::Deadline::FromDuration(100ms)));
         UEXPECT_THROW(coll.InsertOne(bson::MakeDoc("_id", 2)), mongo::CancelledException);
         EXPECT_EQ(slow_client.times_called, 1);
     }
 }
+#endif
+
+INSTANTIATE_UTEST_SUITE_P(
+    Driver,
+    DeadlinePropagation,
+    ::testing::ValuesIn(GetMongoPoolImplementations()),
+    GetMongoPoolImplementationName
+);
+#ifdef USERVER_FEATURE_MONGO_EXPERIMENTAL
+INSTANTIATE_UTEST_SUITE_P(Driver, ExperimentalDeadlinePropagation, ::testing::Values(true));
+#endif
 
 USERVER_NAMESPACE_END

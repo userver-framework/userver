@@ -1,7 +1,9 @@
 #pragma once
 
 #include <array>
+#include <atomic>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <functional>
 #include <string>
@@ -105,6 +107,7 @@ struct CollectionStatistics final {
 struct PoolConnectStatistics final {
     PoolConnectStatistics();
 
+    std::atomic<std::size_t> current_size{0};
     Counter requested;
     Counter created;
     Counter closed;
@@ -141,6 +144,10 @@ struct EventStats final {
 
     bool operator==(const EventStats& o) const { return success == o.success && failed == o.failed; }
 };
+
+EventStats GetTaskEventStats();
+void AccountTaskCommandSuccess();
+void AccountTaskCommandFailure();
 
 struct ConnStats final {
     EventStats event_stats;  // per-connection

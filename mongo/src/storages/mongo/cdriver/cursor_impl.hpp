@@ -5,7 +5,7 @@
 
 #include <userver/formats/bson/document.hpp>
 
-#include <storages/mongo/cdriver/pool_impl.hpp>
+#include <storages/mongo/cdriver/pool_access.hpp>
 #include <storages/mongo/cdriver/wrappers.hpp>
 #include <storages/mongo/collection_impl.hpp>
 #include <storages/mongo/cursor_impl.hpp>
@@ -17,11 +17,7 @@ namespace storages::mongo::impl::cdriver {
 
 class CDriverCursorImpl final : public CursorImpl {
 public:
-    CDriverCursorImpl(
-        cdriver::CDriverPoolImpl::BoundClientPtr,
-        cdriver::CursorPtr,
-        std::shared_ptr<stats::OperationStatisticsItem> find_stats
-    );
+    CDriverCursorImpl(BoundClient, cdriver::CursorPtr, std::shared_ptr<stats::OperationStatisticsItem> find_stats);
 
     bool IsValid() const override;
     bool HasMore() const override;
@@ -33,7 +29,7 @@ public:
 
 private:
     std::optional<formats::bson::Document> current_;
-    cdriver::CDriverPoolImpl::BoundClientPtr client_;
+    BoundClient client_;
     cdriver::CursorPtr cursor_;
     const std::shared_ptr<stats::OperationStatisticsItem> find_stats_;
 };

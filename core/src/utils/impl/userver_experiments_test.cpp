@@ -10,10 +10,21 @@ namespace {
 
 utils::impl::UserverExperiment foo_experiment{"foo"};
 utils::impl::UserverExperiment bar_experiment{"bar"};
+utils::impl::UserverExperiment enabled_experiment{"enabled-by-default", true};
 
 }  // namespace
 
 TEST(UserverExperiments, DefaultDisabled) { EXPECT_FALSE(foo_experiment.IsEnabled()); }
+
+TEST(UserverExperiments, DefaultEnabledCanBeDisabled) {
+    EXPECT_TRUE(enabled_experiment.IsEnabled());
+    {
+        utils::impl::UserverExperimentsScope scope;
+        scope.Set(enabled_experiment, false);
+        EXPECT_FALSE(enabled_experiment.IsEnabled());
+    }
+    EXPECT_TRUE(enabled_experiment.IsEnabled());
+}
 
 TEST(UserverExperiments, SetScope) {
     {

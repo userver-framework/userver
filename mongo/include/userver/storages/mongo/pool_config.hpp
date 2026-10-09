@@ -51,9 +51,7 @@ PoolSettings Parse(const yaml_config::YamlConfig& config, formats::parse::To<Poo
 
 /// MongoDB connection pool configuration
 struct PoolConfig final {
-    enum class DriverImpl {
-        kMongoCDriver,
-    };
+    enum class DriverImpl { kMongoCDriver, kMongoCDriverExperimental };
 
     /// Default connection timeout
     static constexpr auto kDefaultConnTimeout = std::chrono::seconds{2};
@@ -88,7 +86,9 @@ struct PoolConfig final {
     std::optional<std::chrono::seconds> max_replication_lag;
 
     /// Driver implementation to use
-    DriverImpl driver_impl = DriverImpl::kMongoCDriver;
+    DriverImpl driver_impl = GetDefaultDriverImpl();
+
+    static DriverImpl GetDefaultDriverImpl() noexcept;
 
     /// Whether to write detailed stats
     StatsVerbosity stats_verbosity = StatsVerbosity::kTerse;

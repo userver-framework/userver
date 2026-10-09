@@ -17,7 +17,7 @@
 #include <formats/bson/wrappers.hpp>
 #include <storages/mongo/cdriver/collection_impl.hpp>
 #include <storages/mongo/cdriver/cursor_impl.hpp>
-#include <storages/mongo/cdriver/pool_impl.hpp>
+#include <storages/mongo/cdriver/pool_access.hpp>
 #include <storages/mongo/cdriver/request_helpers.hpp>
 #include <storages/mongo/cdriver/wrappers.hpp>
 #include <storages/mongo/operations_common.hpp>
@@ -106,7 +106,7 @@ cdriver::DatabaseRequestContext Database::MakeRequestContext(
     tracing::Span span(std::move(span_name));
     span.AddTag(tracing::kDatabaseType, tracing::kDatabaseMongoType);
 
-    auto& pool = cdriver::GetCDriverPool(pool_);
+    auto pool = cdriver::GetCDriverPool(pool_);
     auto collection_stats = pool_->GetStatistics().collections[std::string{kDatabaseStatsCollection}];
     auto base = cdriver::MakeRequestContextBase(
         std::move(span),
@@ -136,7 +136,7 @@ Cursor Database::Aggregate(const operations::Aggregate& operation) {
         context
     );
 
-    auto& pool = cdriver::GetCDriverPool(pool_);
+    auto pool = cdriver::GetCDriverPool(pool_);
     const auto read_prefs =
         cdriver::MakeReadPrefsWithDefaultMaxStaleness(operation.impl_->read_prefs, pool.GetMaxReplicationLag());
     auto pipeline_doc = operation.impl_->pipeline.GetInternalArrayDocument();

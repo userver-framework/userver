@@ -15,11 +15,18 @@ namespace {
 class Exception : public MongoPoolFixture {};
 }  // namespace
 
-UTEST_F(Exception, DuplicateKey) {
+UTEST_P(Exception, DuplicateKey) {
     auto coll = GetDefaultPool().GetCollection("duplicate_key");
 
     UASSERT_NO_THROW(coll.InsertOne(bson::MakeDoc("_id", 1)));
     UEXPECT_THROW(coll.InsertOne(bson::MakeDoc("_id", 1)), mongo::DuplicateKeyException);
 }
+
+INSTANTIATE_UTEST_SUITE_P(
+    Driver,
+    Exception,
+    ::testing::ValuesIn(GetMongoPoolImplementations()),
+    GetMongoPoolImplementationName
+);
 
 USERVER_NAMESPACE_END
