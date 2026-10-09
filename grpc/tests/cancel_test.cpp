@@ -223,7 +223,7 @@ UTEST_F_MT(GrpcServerEcho, DestroyServerDuringRequest, 2) {
         UEXPECT_NO_THROW(EXPECT_FALSE(call.Read(response)));
     });
 
-    GetServer().StopServing(engine::Deadline::FromDuration(std::chrono::seconds(1)));
+    GetServer().StopServing(engine::Deadline::FromDuration(utest::kMaxTestWaitTime));
     complete_rpc.Get();
 }
 
