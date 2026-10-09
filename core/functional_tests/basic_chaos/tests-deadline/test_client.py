@@ -15,6 +15,8 @@ TIMEOUT_OR_CANCELLED_ERROR_MESSAGES = {
 }
 METRICS_POLL_INTERVAL_SECONDS = 0.05
 METRICS_WAIT_TIMEOUT_SECONDS = 10
+RETRY_TEST_REQUEST_TIMEOUT_MS = 10000
+RETRY_TEST_PROPAGATED_DEADLINE_MS = 60000
 
 
 def _make_deadline_epoch_us(offset_seconds: float) -> str:
@@ -427,8 +429,8 @@ async def test_dp_timeout_not_retried(
     # deadline on the request, then userver HTTP client should retry
     # the request if and only if it should retry a timeout.
     response = await call(
-        headers={DP_TIMEOUT_MS: '500'},
-        timeout=100,
+        headers={DP_TIMEOUT_MS: str(RETRY_TEST_PROPAGATED_DEADLINE_MS)},
+        timeout=RETRY_TEST_REQUEST_TIMEOUT_MS,
         attempts=3,
         retry_network_errors=int(retry_network_errors),
     )
