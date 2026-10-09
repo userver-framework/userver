@@ -35,8 +35,8 @@ static_assert(FullViewExplicit::size == 3);
 static_assert(MessedNameEmailView::size == 3);
 static_assert(NoEmailView::size == 2);
 static_assert(io::traits::IsStructView<NoEmailVector::value_type>::value);
-static_assert(std::is_same_v<io::detail::RebindContainer<NoEmailVector, User>::type::value_type, User>);
-static_assert(std::is_same_v<io::detail::RebindContainer<NoEmailVector, User>::type, std::vector<User>>);
+static_assert(std::is_same_v<meta::RebindContainer<NoEmailVector, User>::value_type, User>);
+static_assert(std::is_same_v<meta::RebindContainer<NoEmailVector, User>, std::vector<User>>);
 
 static_assert(
     std::is_same_v<decltype(std::declval<pg::Row>().As<NoEmailView>(pg::kRowTag)), User>,
@@ -144,6 +144,19 @@ UTEST_P(PostgreConnection, StructViewWrite) {
         EXPECT_EQ(u.id, user.id);
         EXPECT_EQ(u.name, user.name);
         EXPECT_EQ(u.email, user.email);
+    }
+    {
+        // MakeStructView deduces the viewed class from its argument, so the members
+        // are the only thing written out. Nothing instantiated it before this.
+        UASSERT_NO_THROW(
+            res = GetConn()->Execute(
+                kSelectFullUserInput, io::MakeStructView<&User::id, &User::email, &User::name>(user)
+            )
+        );
+        auto u = res.AsSingleRow<User>(pg::kRowTag);
+        EXPECT_EQ(u.id, user.id);
+        EXPECT_EQ(u.name, user.email);
+        EXPECT_EQ(u.email, user.name);
     }
     {
         UASSERT_NO_THROW(res = GetConn()->Execute(kSelectFullUserInput, FullView{user}));

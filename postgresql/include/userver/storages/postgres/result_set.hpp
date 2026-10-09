@@ -210,7 +210,7 @@ auto ResultSet::AsContainer(RowTag) const {
     using ValueType = std::remove_cvref_t<typename Container::value_type>;
     if constexpr (io::traits::IsStructView<ValueType>::value) {
         using NewContainerType =
-            typename io::detail::RebindContainer<Container, typename ValueType::UnderlyingType>::type;
+            meta::RebindContainer<Container, typename ValueType::UnderlyingType>;
         return CopyToContainer<NewContainerType>(AsSetOf<ValueType>(kRowTag));
     } else {
         return CopyToContainer<Container>(AsSetOf<ValueType>(kRowTag));

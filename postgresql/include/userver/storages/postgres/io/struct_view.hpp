@@ -1,13 +1,16 @@
 #pragma once
 
-/// @file userver/storages/postgres/io/partial_struct.hpp
-/// @brief I/O support for partial struct read
+/// @file userver/storages/postgres/io/struct_view.hpp
+/// @brief Reading and writing a subset of a structure's members as a row
 /// @ingroup userver_postgres_parse_and_format
 
 #include <tuple>
 #include <type_traits>
 
 #include <boost/pfr.hpp>
+
+#include <userver/storages/postgres/io/row_types.hpp>
+#include <userver/utils/meta.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -48,29 +51,6 @@ auto PartialTie(auto&& value) {
         return boost::pfr::structure_tie(std::forward<decltype(value)>(value));
     }
 }
-
-template <typename Alloc, typename NewType>
-struct RebindAllocator {
-    using type = Alloc;  // No rebind for non-template allocators
-};
-
-template <template <typename, typename...> typename Alloc, typename OldT, typename NewT, typename... Args>
-struct RebindAllocator<Alloc<OldT, Args...>, NewT> {
-    using type = Alloc<NewT, Args...>;
-};
-
-template <typename Container, typename NewType>
-struct RebindContainer;
-
-template <template <typename, typename> typename Container, typename OldT, typename NewT, typename Alloc>
-struct RebindContainer<Container<OldT, Alloc>, NewT> {
-    using type = Container<NewT, typename RebindAllocator<Alloc, NewT>::type>;
-};
-
-template <template <typename, auto...> typename Container, typename OldT, typename NewT, auto... Args>
-struct RebindContainer<Container<OldT, Args...>, NewT> {
-    using type = Container<NewT, Args...>;
-};
 
 }  // namespace detail
 
@@ -117,6 +97,16 @@ template <typename T>
 concept RequiresStructView = IsStructView<T>::value;
 
 }  // namespace traits
+
+/// @brief A StructView over `obj`, deducing the viewed class from it.
+///
+/// Spares the caller naming the class twice: `MakeStructView<&User::id,
+/// &User::name>(user)` is `StructView<User, &User::id, &User::name>{user}`.
+/// The view borrows `obj`, so it must not outlive it.
+template <auto... Members>
+auto MakeStructView(auto&& obj) {
+    return StructView<std::remove_cvref_t<decltype(obj)>, Members...>{obj};
+}
 
 }  // namespace storages::postgres::io
 
