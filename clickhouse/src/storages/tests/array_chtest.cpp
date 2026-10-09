@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <userver/storages/clickhouse/cluster.hpp>
+#include <userver/storages/clickhouse/options.hpp>
 #include <userver/storages/clickhouse/query.hpp>
 
 #include "utils_test.hpp"
@@ -40,18 +41,21 @@ struct CppToClickhouse<DataOfArrays> {
 }  // namespace storages::clickhouse::io
 
 UTEST(Array, Works) {
+    constexpr storages::clickhouse::CommandControl kCommandControl{utest::kMaxTestWaitTime};
     ClusterWrapper cluster{};
     cluster->Execute(
+        kCommandControl,
         "CREATE TEMPORARY TABLE IF NOT EXISTS tmp_table "
         "(value Array(UInt64), key Int32)"
     );
 
     const auto insertion_data = DataWithArrays{{{1, 2, 3, 4}, {1}, {}}, {1, 2, 3}};
-    cluster->Insert("tmp_table", {"value", "key"}, insertion_data);
+    cluster->Insert(kCommandControl, "tmp_table", {"value", "key"}, insertion_data);
 
     const storages::clickhouse::Query q{"SELECT value, key FROM tmp_table ORDER BY key"};
-    const auto res = cluster->Execute(q).As<DataWithArrays>();
-    EXPECT_EQ(res.array_of_ints.size(), 3);
+    const auto res = cluster->Execute(kCommandControl, q).As<DataWithArrays>();
+    ASSERT_EQ(res.array_of_ints.size(), 3);
+    ASSERT_EQ(res.key.size(), 3);
     EXPECT_EQ(res.array_of_ints[0], std::vector<uint64_t>({1, 2, 3, 4}));
     EXPECT_EQ(res.key[0], 1);
     EXPECT_EQ(res.array_of_ints[1], std::vector<uint64_t>{1});
