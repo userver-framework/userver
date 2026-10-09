@@ -28,7 +28,7 @@ constexpr char kFileNameTxt[] = "file_name.txt";
 constexpr char kFileName2Bmp[] = "file_name2.bmp";
 
 constexpr char kOkCloseResponse[] =
-    "HTTP/1.1 200 OK\r\nConnection: close\r\rContent-Length: "
+    "HTTP/1.1 200 OK\r\nConnection: close\r\nContent-Length: "
     "0\r\n\r\n";
 
 bool ReceivedFull(const HttpRequest& request) {
@@ -119,7 +119,7 @@ UTEST(CurlFormTest, MultipartFileWithContentType) {
             .retry(1)
             .verify(true)
             .http_version(USERVER_NAMESPACE::http::HttpVersion::k11)
-            .timeout(std::chrono::milliseconds(100))
+            .timeout(utest::kMaxTestWaitTime)
             .perform();
 
     EXPECT_EQ(resp->status_code(), clients::http::Status::kOk);
@@ -140,7 +140,7 @@ UTEST(CurlFormTest, FilesWithContentType) {
             .retry(1)
             .verify(true)
             .http_version(USERVER_NAMESPACE::http::HttpVersion::k11)
-            .timeout(std::chrono::milliseconds(100))
+            .timeout(utest::kMaxTestWaitTime)
             .perform();
 
     EXPECT_EQ(resp->status_code(), clients::http::Status::kOk);
@@ -169,7 +169,7 @@ UTEST(CurlFormTest, FormMovable) {
             .retry(1)
             .verify(true)
             .http_version(USERVER_NAMESPACE::http::HttpVersion::k11)
-            .timeout(std::chrono::milliseconds(100))
+            .timeout(utest::kMaxTestWaitTime)
             .perform();
 
     EXPECT_EQ(resp->status_code(), clients::http::Status::kOk);
