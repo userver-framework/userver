@@ -38,7 +38,9 @@ bool IsValid(const google::type::Date& grpc_date) {
     return (grpc_date.year() >= 1 && grpc_date.year() < 10'000) &&
            (grpc_date.month() >= 1 && grpc_date.month() <= 12) &&
            (grpc_date.day() >= 1 &&
-            std::chrono::day(grpc_date.day()) <= utils::datetime::DaysInMonth(grpc_date.month(), grpc_date.year()));
+            grpc_date.day() <= static_cast<int>(static_cast<unsigned>(
+                                   utils::datetime::DaysInMonth(grpc_date.month(), grpc_date.year())
+                               )));
 }
 
 #if __cpp_lib_chrono >= 201907L
