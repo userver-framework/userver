@@ -80,6 +80,24 @@ void AddQueryParamsToPresignedUrl(
     }
 }
 
+std::string_view GetEndpointPath(std::string_view endpoint) {
+    const auto scheme_pos = endpoint.find("://");
+    if (scheme_pos != std::string_view::npos) {
+        endpoint.remove_prefix(scheme_pos + 3);
+    }
+
+    const auto path_pos = endpoint.find('/');
+    if (path_pos == std::string_view::npos) {
+        return {};
+    }
+
+    auto path = endpoint.substr(path_pos);
+    if (path.ends_with('/')) {
+        path.remove_suffix(1);
+    }
+    return path;
+}
+
 std::string GeneratePresignedUrl(
     Request& request,
     std::string_view host,
@@ -90,8 +108,9 @@ std::string GeneratePresignedUrl(
     std::ostringstream generated_url;
     // both internal (s3.mds(t)) and private (s3-private)
     // balancers support virtual host addressing and https
-    request.headers[USERVER_NAMESPACE::http::headers::kHost] = fmt::format("{}.{}", request.bucket, host);
-    generated_url << protocol << request.headers[USERVER_NAMESPACE::http::headers::kHost];
+    auto& host_header = request.headers[USERVER_NAMESPACE::http::headers::kHost];
+    host_header = S3Connection::MakeHostHeader(host, request.bucket);
+    generated_url << protocol << host_header << GetEndpointPath(host);
 
     const auto expires_at_time_t = std::chrono::system_clock::to_time_t(expires_at);
     AddQueryParamsToPresignedUrl(generated_url, expires_at_time_t, request, std::move(authenticator));
