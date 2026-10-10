@@ -29,7 +29,6 @@
 #include <userver/tracing/span.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/assert.hpp>
-#include <userver/utils/flags.hpp>
 
 #include <storages/mongo/cdriver/wrappers.hpp>
 #include <storages/mongo/tcp_connect_precheck.hpp>
@@ -58,19 +57,16 @@ static_assert(
 
 static_assert(std::size(mongoc_stream_t{}.padding) == 3, "Unexpected mongoc_stream_t structure layout");
 
-enum class PollMode { kLegacy, kNativePool };
-
 class AsyncStream : public mongoc_stream_t {
 public:
     static constexpr int kStreamType = 0x53755459;
 
-    static cdriver::StreamPtr Create(engine::io::Socket, PollMode);
-    static AsyncStream& FromBase(mongoc_stream_t*) noexcept;
+    static cdriver::StreamPtr Create(engine::io::Socket);
 
     void SetCreated() { is_created_ = true; }
 
 private:
-    AsyncStream(engine::io::Socket, PollMode) noexcept;
+    AsyncStream(engine::io::Socket) noexcept;
 
     // mongoc_stream_buffered resizes itself indiscriminately
     // NOTE: returns number of bytes stored to data, not buffered!
@@ -85,12 +81,10 @@ private:
     static int Setsockopt(mongoc_stream_t*, int, int, void*, mongoc_socklen_t) noexcept;
     static bool CheckClosed(mongoc_stream_t*) noexcept;
     static ssize_t Poll(mongoc_stream_poll_t*, size_t, int32_t) noexcept;
-    static ssize_t PollNativePool(mongoc_stream_poll_t*, size_t, int32_t) noexcept;
     static void Failed(mongoc_stream_t*) noexcept;
     static bool TimedOut(mongoc_stream_t*) noexcept;
     static bool ShouldRetry(mongoc_stream_t*) noexcept;
 
-    const PollMode poll_mode_;
     const uint64_t epoch_;
     engine::io::Socket socket_;
     bool is_timed_out_{false};
@@ -160,8 +154,7 @@ engine::io::Socket DoConnectTcpByName(
     const mongoc_host_list_t& host,
     int32_t timeout_ms,
     bson_error_t* error,
-    clients::dns::Resolver* dns_resolver,
-    bool report_tcp_state = true
+    clients::dns::Resolver* dns_resolver
 ) {
     const auto deadline = DeadlineFromTimeoutMs(timeout_ms);
     try {
@@ -172,9 +165,7 @@ engine::io::Socket DoConnectTcpByName(
         } else {
             socket = net::blocking::ConnectTcpByName(host.host, host.port, deadline);
         }
-        if (report_tcp_state) {
-            ReportTcpConnectSuccess(host.host_and_port);
-        }
+        ReportTcpConnectSuccess(host.host_and_port);
         return socket;
     } catch (const clients::dns::ResolverException& ex) {
         LOG_LIMITED_ERROR() << "Cannot resolve " << host.host << ": " << ex;
@@ -191,9 +182,7 @@ engine::io::Socket DoConnectTcpByName(
     } catch (const std::exception& ex) {
         LOG_LIMITED_ERROR() << "Cannot connect to " << host.host << ": " << ex;
     }
-    if (report_tcp_state) {
-        ReportTcpConnectError(host.host_and_port);
-    }
+    ReportTcpConnectError(host.host_and_port);
     bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_CONNECT, "Cannot connect to %s", host.host_and_port);
     return {};
 }
@@ -241,15 +230,14 @@ engine::io::Socket Connect(
     int32_t timeout_ms,
     bson_error_t* error,
     clients::dns::Resolver* dns_resolver,
-    concurrent::BackgroundTaskStorage* bts
+    concurrent::BackgroundTaskStorage& bts
 ) {
     UASSERT(host);
     switch (host->family) {
         case AF_UNSPEC:  // mongoc thinks this is okay
         case AF_INET:
         case AF_INET6:
-            return bts ? ConnectTcpByName(*host, timeout_ms, error, dns_resolver, *bts)
-                       : DoConnectTcpByName(*host, timeout_ms, error, dns_resolver, false);
+            return ConnectTcpByName(*host, timeout_ms, error, dns_resolver, bts);
 
         case AF_UNIX:
             return ConnectUnix(*host, timeout_ms, error);
@@ -314,21 +302,23 @@ private:
 
 engine::TaskLocalVariable<PollerDispenser> poller_dispenser;
 
-mongoc_stream_t* MakeStream(
+}  // namespace
+
+mongoc_stream_t* MakeAsyncStream(
     const mongoc_uri_t* uri,
     const mongoc_host_list_t* host,
-    clients::dns::Resolver* dns_resolver,
-    mongoc_ssl_opt_t& ssl_opt,
-    concurrent::BackgroundTaskStorage* bts,
+    void* user_data,
     bson_error_t* error
 ) noexcept {
+    auto* init_data = static_cast<AsyncStreamInitiatorData*>(user_data);
+
     const auto connect_timeout_ms = mongoc_uri_get_option_as_int32(uri, MONGOC_URI_CONNECTTIMEOUTMS, 5000);
-    auto socket = Connect(host, connect_timeout_ms, error, dns_resolver, bts);
+    auto socket = Connect(host, connect_timeout_ms, error, init_data->dns_resolver, init_data->bts);
     if (!socket) {
         return nullptr;
     }
 
-    auto stream = AsyncStream::Create(std::move(socket), bts ? PollMode::kLegacy : PollMode::kNativePool);
+    auto stream = AsyncStream::Create(std::move(socket));
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
     auto* const async_stream_ptr = static_cast<AsyncStream*>(stream.get());
 
@@ -338,7 +328,8 @@ mongoc_stream_t* MakeStream(
     if (mongoc_uri_get_tls(uri) || (mechanism && !std::strcmp(mechanism, "MONGODB-X509"))) {
         {
             cdriver::StreamPtr
-                wrapped_stream(mongoc_stream_tls_new_with_hostname(stream.get(), host->host, &ssl_opt, true));
+                wrapped_stream(mongoc_stream_tls_new_with_hostname(stream.get(), host->host, &init_data->ssl_opt, true)
+                );
             if (!wrapped_stream) {
                 bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_SOCKET, "Cannot initialize TLS stream");
                 return nullptr;
@@ -363,31 +354,9 @@ mongoc_stream_t* MakeStream(
     return stream.release();
 }
 
-}  // namespace
-
-mongoc_stream_t* MakeAsyncStream(
-    const mongoc_uri_t* uri,
-    const mongoc_host_list_t* host,
-    void* user_data,
-    bson_error_t* error
-) noexcept {
-    auto& data = *static_cast<AsyncStreamInitiatorData*>(user_data);
-    return MakeStream(uri, host, data.dns_resolver, data.ssl_opt, &data.bts, error);
-}
-
-mongoc_stream_t* MakeAsyncStreamForNativePool(
-    const mongoc_uri_t* uri,
-    const mongoc_host_list_t* host,
-    clients::dns::Resolver* dns_resolver,
-    mongoc_ssl_opt_t& ssl_opt,
-    bson_error_t* error
-) noexcept {
-    return MakeStream(uri, host, dns_resolver, ssl_opt, nullptr, error);
-}
-
 // NOLINTNEXTLINE(cppcoreguidelines-pro-type-member-init)
-AsyncStream::AsyncStream(engine::io::Socket socket, PollMode poll_mode) noexcept
-    : poll_mode_(poll_mode), epoch_(poll_mode == PollMode::kLegacy ? GetNextStreamEpoch() : 0), socket_(std::move(socket)) {
+AsyncStream::AsyncStream(engine::io::Socket socket) noexcept
+    : epoch_(GetNextStreamEpoch()), socket_(std::move(socket)) {
     type = kStreamType;
     destroy = &Destroy;
     close = &Close;
@@ -397,7 +366,7 @@ AsyncStream::AsyncStream(engine::io::Socket socket, PollMode poll_mode) noexcept
     setsockopt = &Setsockopt;
     get_base_stream = nullptr;
     check_closed = &CheckClosed;
-    poll = poll_mode == PollMode::kLegacy ? &Poll : &PollNativePool;
+    poll = &Poll;
     failed = &Failed;
     timed_out = &TimedOut;
     should_retry = &ShouldRetry;
@@ -406,7 +375,7 @@ AsyncStream::AsyncStream(engine::io::Socket socket, PollMode poll_mode) noexcept
 size_t AsyncStream::BufferedRecv(void* data, size_t size, size_t min_bytes, engine::Deadline deadline) {
     size_t bytes_stored = 0;
     size_t bytes_left = size;
-    auto* pos = static_cast<char*>(data);
+    char* pos = static_cast<char*>(data);
     try {
         while ((bytes_stored < min_bytes || !bytes_stored) && bytes_left) {
             size_t iter_bytes_stored = 0;
@@ -455,16 +424,9 @@ size_t AsyncStream::BufferedRecv(void* data, size_t size, size_t min_bytes, engi
     return bytes_stored;
 }
 
-cdriver::StreamPtr AsyncStream::Create(engine::io::Socket socket, PollMode poll_mode) {
+cdriver::StreamPtr AsyncStream::Create(engine::io::Socket socket) {
     // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
-    return cdriver::StreamPtr(new AsyncStream(std::move(socket), poll_mode));
-}
-
-AsyncStream& AsyncStream::FromBase(mongoc_stream_t* stream) noexcept {
-    UASSERT(stream);
-    UASSERT(stream->type == kStreamType);
-    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
-    return *static_cast<AsyncStream*>(stream);
+    return cdriver::StreamPtr(new AsyncStream(std::move(socket)));
 }
 
 void AsyncStream::Destroy(mongoc_stream_t* stream) noexcept {
@@ -483,7 +445,7 @@ int AsyncStream::Close(mongoc_stream_t* stream) noexcept {
     LOG_TRACE() << "Closing async stream " << self;
     self->is_timed_out_ = false;
 
-    if (self->poll_mode_ == PollMode::kLegacy) {
+    {
         auto poller = poller_dispenser->Get(self->epoch_);
         poller->Remove(self->socket_.Fd());
     }
@@ -691,70 +653,6 @@ ssize_t AsyncStream::Poll(mongoc_stream_poll_t* streams, size_t nstreams, int32_
     }
 
     return ready;
-}
-
-ssize_t AsyncStream::PollNativePool(mongoc_stream_poll_t* streams, size_t nstreams, int32_t timeout_ms) noexcept {
-    LOG_TRACE() << "Polling " << nstreams << " async streams";
-    if (!nstreams) {
-        return 0;
-    }
-
-    const engine::TaskCancellationBlocker block_cancel{};
-
-    const auto deadline = DeadlineFromTimeoutMs(timeout_ms);
-
-    try {
-        engine::io::Poller poller;
-        std::vector<int> stream_fds(nstreams);
-        ssize_t ready = 0;
-        for (size_t i = 0; i < nstreams; ++i) {
-            const auto& stream = FromBase(streams[i].stream);
-            stream_fds[i] = stream.socket_.Fd();
-            streams[i].revents = 0;
-            if ((streams[i].events & POLLIN) && stream.recv_buffer_pos_ < stream.recv_buffer_bytes_used_) {
-                streams[i].revents |= POLLIN;
-                ++ready;
-            }
-            utils::Flags<engine::io::Poller::Event::Type> events;
-            if (streams[i].events & POLLIN) {
-                events |= engine::io::Poller::Event::kRead;
-            }
-            if (streams[i].events & POLLOUT) {
-                events |= engine::io::Poller::Event::kWrite;
-            }
-            if (events) {
-                poller.Add(stream_fds[i], events);
-            }
-        }
-
-        const auto poll_deadline = ready ? engine::Deadline::Passed() : deadline;
-        engine::io::Poller::Event event;
-        for (auto status = poller.NextEvent(event, poll_deadline); status == engine::io::Poller::Status::kSuccess;
-             status = poller.NextEventNoblock(event))
-        {
-            for (size_t i = 0; i < nstreams; ++i) {
-                if (stream_fds[i] != event.fd) {
-                    continue;
-                }
-                const auto previous_events = streams[i].revents;
-                if (event.type & engine::io::Poller::Event::kError) {
-                    streams[i].revents |= POLLERR;
-                }
-                if (event.type & engine::io::Poller::Event::kRead) {
-                    streams[i].revents |= streams[i].events & POLLIN;
-                }
-                if (event.type & engine::io::Poller::Event::kWrite) {
-                    streams[i].revents |= streams[i].events & POLLOUT;
-                }
-                ready += !previous_events && streams[i].revents;
-            }
-        }
-        return ready;
-    } catch (const std::exception& ex) {
-        LOG_WARNING() << "MongoDB stream poll failed: " << ex;
-        errno = EINVAL;
-        return -1;
-    }
 }
 
 void AsyncStream::Failed(mongoc_stream_t* stream) noexcept {

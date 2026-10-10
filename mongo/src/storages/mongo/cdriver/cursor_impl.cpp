@@ -15,7 +15,7 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::mongo::impl::cdriver {
 
 CDriverCursorImpl::CDriverCursorImpl(
-    BoundClient client,
+    cdriver::CDriverPoolImpl::BoundClientPtr client,
     cdriver::CursorPtr cursor,
     std::shared_ptr<stats::OperationStatisticsItem> find_stats
 )
@@ -84,7 +84,7 @@ void CDriverCursorImpl::Next() {
             break;
         }
     }
-    if ((!client_.ShouldAccountErrorsWithoutEvents() || !error) && before_stats == client_.GetEventStatsSnapshot()) {
+    if (before_stats == client_.GetEventStatsSnapshot()) {
         cursor_next_sw.Discard();
     } else if (!error) {
         cursor_next_sw.AccountSuccess();

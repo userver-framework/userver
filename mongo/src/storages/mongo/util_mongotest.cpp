@@ -1,21 +1,15 @@
 #include <storages/mongo/util_mongotest.hpp>
 
 #include <cstdlib>
-#include <functional>
-#include <memory>
-#include <string_view>
 
 #include <fmt/format.h>
 
-#include <storages/mongo/features.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/server/request/task_inherited_data.hpp>
-#include <userver/utils/assert.hpp>
-#include <userver/utils/impl/userver_experiments.hpp>
 
 #include <userver/formats/bson/value.hpp>
 #include <userver/storages/mongo/mongo_error.hpp>
@@ -24,28 +18,6 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace {
-
-#ifdef USERVER_FEATURE_MONGO_EXPERIMENTAL
-class MongoBackendEnvironment final : public ::testing::Environment {
-public:
-    void SetUp() override {
-        scope_ = std::make_unique<utils::impl::UserverExperimentsScope>();
-        // The test environment is read before task processor threads are started.
-        // NOLINTNEXTLINE(concurrency-mt-unsafe)
-        if (const auto* backend = std::getenv("USERVER_MONGO_TEST_THREAD_BACKEND")) {
-            scope_->Set(utils::impl::kMongoThreadBackendExperiment, std::string_view{backend} != "0");
-        }
-    }
-
-    void TearDown() override { scope_.reset(); }
-
-private:
-    std::unique_ptr<utils::impl::UserverExperimentsScope> scope_;
-};
-
-[[maybe_unused]] const auto* const
-    mongo_backend_environment = ::testing::AddGlobalTestEnvironment(new MongoBackendEnvironment);
-#endif
 
 constexpr const char* kTestsuiteMongosPort = "TESTSUITE_MONGOS_PORT";
 constexpr const char* kDefaultMongoPort = "27217";
@@ -70,15 +42,8 @@ void DropDatabase(storages::mongo::Pool& pool, const std::string& name) {
 
 }  // namespace
 
-std::string GetTestDatabaseNamePrefix() {
-    const auto* test = ::testing::UnitTest::GetInstance()->current_test_info();
-    UASSERT(test);
-    // Test chunks and driver variants may run against the same MongoDB concurrently.
-    const auto test_name = fmt::format("{}.{}", test->test_suite_name(), test->name());
-    return fmt::format("mongo_test_{:016x}_", std::hash<std::string>{}(test_name));
-}
-
-std::string GetTestDatabaseDefaultName() { return GetTestDatabaseNamePrefix() + "default"; }
+const std::string kTestDatabaseNamePrefix = "userver_mongotest_";
+const std::string kTestDatabaseDefaultName = "userver_mongotest_default";
 
 std::string GetTestsuiteMongoUri(const std::string& database) {
     // NOLINTNEXTLINE(concurrency-mt-unsafe)
@@ -95,28 +60,8 @@ clients::dns::Resolver MakeDnsResolver() {
 
 dynamic_config::StorageMock MakeDynamicConfig() { return dynamic_config::MakeDefaultStorage({}); }
 
-std::vector<bool> GetMongoPoolImplementations() {
-#ifdef USERVER_FEATURE_MONGO_EXPERIMENTAL
-    return {false, true};
-#else
-    return {false};
-#endif
-}
-
-std::string GetMongoPoolImplementationName(const ::testing::TestParamInfo<bool>& info) {
-#ifdef USERVER_FEATURE_MONGO_EXPERIMENTAL
-    return info.param ? "Experimental" : "Legacy";
-#else
-    return std::to_string(info.index);
-#endif
-}
-
-storages::mongo::PoolConfig MakePoolConfigForTest(bool experimental) {
+storages::mongo::PoolConfig MakeTestPoolConfig() {
     storages::mongo::PoolConfig config;
-    config.driver_impl =
-        experimental
-            ? storages::mongo::PoolConfig::DriverImpl::kMongoCDriverExperimental
-            : storages::mongo::PoolConfig::DriverImpl::kMongoCDriver;
     config.conn_timeout = kTestConnTimeout;
     config.so_timeout = kTestSoTimeout;
     config.queue_timeout = kTestQueueTimeout;
@@ -201,11 +146,11 @@ MongoPoolFixture::~MongoPoolFixture() {
     const engine::TaskCancellationBlocker block_cancels;
     const server::request::DeadlinePropagationBlocker block_dp;
 
-    DropDatabase(default_pool_, GetTestDatabaseDefaultName());
-    used_db_names_.erase(GetTestDatabaseDefaultName());
+    DropDatabase(default_pool_, kTestDatabaseDefaultName);
+    used_db_names_.erase(kTestDatabaseDefaultName);
 
     for (const auto& db_name : used_db_names_) {
-        if (db_name.starts_with(GetTestDatabaseNamePrefix())) {
+        if (db_name.starts_with(kTestDatabaseNamePrefix)) {
             auto pool = MakePool(db_name, {});
             DropDatabase(pool, db_name);
         }
@@ -214,15 +159,13 @@ MongoPoolFixture::~MongoPoolFixture() {
 
 storages::mongo::Pool& MongoPoolFixture::GetDefaultPool() { return default_pool_; }
 
-storages::mongo::PoolConfig MongoPoolFixture::MakeTestPoolConfig() const { return MakePoolConfigForTest(GetParam()); }
-
 storages::mongo::Pool MongoPoolFixture::MakePool(
     std::optional<std::string> db_name,
     std::optional<storages::mongo::PoolConfig> config,
     std::optional<clients::dns::Resolver*> dns_resolver
 ) {
     if (!db_name) {
-        db_name.emplace(GetTestDatabaseDefaultName());
+        db_name.emplace(kTestDatabaseDefaultName);
     }
     if (!config) {
         config.emplace(MakeTestPoolConfig());

@@ -232,24 +232,3 @@ async def test_metrics_values(service_client, collect_metrics):
         )
         == 2
     )
-
-
-async def test_pool_metrics_values(service_client, monitor_client):
-    response = await service_client.get('/v1/key-value?key=pool-metrics')
-    assert response.status == 200
-    snapshot = await monitor_client.metrics(prefix='mongo.pool')
-    labels = {'mongo_database': 'key-value-database'}
-
-    def value(name):
-        return snapshot.value_at(path=f'mongo.pool.{name}', labels=labels)
-
-    created = value('conn-created')
-    closed = value('conn-closed')
-    size = value('current-size')
-    assert created >= 2
-    assert created - closed == size
-    assert 0 <= value('current-in-use') <= size <= value('max-size')
-    assert value('conn-requests') > 0
-    assert value('apm.heartbeats-start') > 0
-    assert value('apm.heartbeats-success') > 0
-    assert value('apm.topology-changed') > 0

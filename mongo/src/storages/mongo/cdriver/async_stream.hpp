@@ -20,9 +20,6 @@ struct AsyncStreamInitiatorData {
 
 mongoc_stream_t* MakeAsyncStream(const mongoc_uri_t*, const mongoc_host_list_t*, void*, bson_error_t*) noexcept;
 
-mongoc_stream_t*
-MakeAsyncStreamForNativePool(const mongoc_uri_t*, const mongoc_host_list_t*, clients::dns::Resolver*, mongoc_ssl_opt_t&, bson_error_t*) noexcept;
-
 }  // namespace storages::mongo::impl::cdriver
 
 USERVER_NAMESPACE_END

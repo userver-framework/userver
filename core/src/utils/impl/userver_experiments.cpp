@@ -47,9 +47,8 @@ auto GetEnabledUserverExperiments() {
 
 }  // namespace
 
-UserverExperiment::UserverExperiment(std::string name, bool enabled_by_default)
-    : name_(std::move(name)),
-      enabled_(enabled_by_default)
+UserverExperiment::UserverExperiment(std::string name)
+    : name_(std::move(name))
 {
     RegisterExperiment(*this);
 }
@@ -92,7 +91,6 @@ void UserverExperimentsScope::EnableOnly(const UserverExperimentSet& enabled_exp
 
 UserverExperiment kJemallocBgThread{"jemalloc-bg-thread"};
 UserverExperiment kServerSelectionTimeoutExperiment{"mongo-server-selection-timeout"};
-UserverExperiment kMongoThreadBackendExperiment{"mongo-thread-backend", true};
 UserverExperiment kPgCcExperiment{"pg-cc"};
 UserverExperiment kYdbDeadlinePropagationExperiment{"ydb-deadline-propagation"};
 

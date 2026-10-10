@@ -15,13 +15,13 @@ class Collection : public MongoPoolFixture {};
 const mongo::options::MaxServerTime kBulkWriteMaxServerTime{utest::kMaxTestWaitTime};
 }  // namespace
 
-UTEST_P(Collection, CollectionName) {
+UTEST_F(Collection, CollectionName) {
     static const std::string kCollectionName = "collection_name_test";
     auto coll = GetDefaultPool().GetCollection(kCollectionName);
     EXPECT_EQ(kCollectionName, coll.GetCollectionName());
 }
 
-UTEST_P(Collection, GetaddrinfoResolver) {
+UTEST_F(Collection, GetaddrinfoResolver) {
     clients::dns::Resolver* dns_resolver = nullptr;
     auto pool = MakePool({}, {}, dns_resolver);
     static const auto kFilter = bson::MakeDoc("x", 1);
@@ -33,7 +33,7 @@ UTEST_P(Collection, GetaddrinfoResolver) {
     EXPECT_EQ(0, coll.Count(kFilter));
 }
 
-UTEST_P(Collection, Read) {
+UTEST_F(Collection, Read) {
     static const auto kFilter = bson::MakeDoc("x", 1);
 
     auto coll = GetDefaultPool().GetCollection("read");
@@ -159,7 +159,7 @@ UTEST_P(Collection, Read) {
     EXPECT_EQ(0, other_coll.CountApprox());
 }
 
-UTEST_P(Collection, InsertOne) {
+UTEST_F(Collection, InsertOne) {
     auto coll = GetDefaultPool().GetCollection("insert_one");
 
     {
@@ -179,7 +179,7 @@ UTEST_P(Collection, InsertOne) {
     }
 }
 
-UTEST_P(Collection, InsertMany) {
+UTEST_F(Collection, InsertMany) {
     auto coll = GetDefaultPool().GetCollection("insert_many");
 
     {
@@ -205,7 +205,7 @@ UTEST_P(Collection, InsertMany) {
     }
 }
 
-UTEST_P(Collection, ReplaceOne) {
+UTEST_F(Collection, ReplaceOne) {
     auto coll = GetDefaultPool().GetCollection("replace_one");
 
     coll.InsertOne(bson::MakeDoc("_id", 1));
@@ -237,7 +237,7 @@ UTEST_P(Collection, ReplaceOne) {
     EXPECT_EQ(2, coll.CountApprox());
 }
 
-UTEST_P(Collection, ReplaceMaxServerTimeParity) {
+UTEST_F(Collection, ReplaceMaxServerTimeParity) {
     auto native_coll = GetDefaultPool().GetCollection("replace_one_parity_native");
     auto bulk_write_coll = GetDefaultPool().GetCollection("replace_one_parity_bulk_write");
 
@@ -276,7 +276,7 @@ UTEST_P(Collection, ReplaceMaxServerTimeParity) {
     EXPECT_EQ(native_coll.CountApprox(), bulk_write_coll.CountApprox());
 }
 
-UTEST_P(Collection, ReplaceMaxServerTimeDuplicateKey) {
+UTEST_F(Collection, ReplaceMaxServerTimeDuplicateKey) {
     auto coll = GetDefaultPool().GetCollection("replace_one_duplicate_key");
 
     coll.InsertOne(bson::MakeDoc("_id", 1, "x", 1));
@@ -303,7 +303,7 @@ UTEST_P(Collection, ReplaceMaxServerTimeDuplicateKey) {
     EXPECT_EQ(1, coll.CountApprox());
 }
 
-UTEST_P(Collection, ReplaceMaxServerTimeUnacknowledged) {
+UTEST_F(Collection, ReplaceMaxServerTimeUnacknowledged) {
     auto explicit_coll = GetDefaultPool().GetCollection("replace_one_unacknowledged_explicit");
     explicit_coll.InsertOne(bson::MakeDoc("_id", 1, "x", 1));
 
@@ -329,7 +329,7 @@ UTEST_P(Collection, ReplaceMaxServerTimeUnacknowledged) {
     ));
 }
 
-UTEST_P(Collection, Update) {
+UTEST_F(Collection, Update) {
     auto coll = GetDefaultPool().GetCollection("update");
 
     coll.InsertOne(bson::MakeDoc("_id", 1));
@@ -386,7 +386,7 @@ UTEST_P(Collection, Update) {
     EXPECT_EQ(3, coll.CountApprox());
 }
 
-UTEST_P(Collection, UpdateMaxServerTimeParity) {
+UTEST_F(Collection, UpdateMaxServerTimeParity) {
     auto native_coll = GetDefaultPool().GetCollection("update_native");
     auto bulk_write_coll = GetDefaultPool().GetCollection("update_bulk_write");
 
@@ -435,7 +435,7 @@ UTEST_P(Collection, UpdateMaxServerTimeParity) {
     EXPECT_EQ(native_coll.CountApprox(), bulk_write_coll.CountApprox());
 }
 
-UTEST_P(Collection, UpdateMaxServerTimeUpsertedIds) {
+UTEST_F(Collection, UpdateMaxServerTimeUpsertedIds) {
     auto coll = GetDefaultPool().GetCollection("update_bulk_write_upsert");
 
     {
@@ -452,7 +452,7 @@ UTEST_P(Collection, UpdateMaxServerTimeUpsertedIds) {
     EXPECT_EQ(1, coll.CountApprox());
 }
 
-UTEST_P(Collection, UpdateMaxServerTimeDuplicateKey) {
+UTEST_F(Collection, UpdateMaxServerTimeDuplicateKey) {
     auto coll = GetDefaultPool().GetCollection("update_bulk_write_dupkey");
 
     coll.InsertOne(bson::MakeDoc("_id", 1, "x", 1));
@@ -479,7 +479,7 @@ UTEST_P(Collection, UpdateMaxServerTimeDuplicateKey) {
     EXPECT_EQ(1, coll.CountApprox());
 }
 
-UTEST_P(Collection, UpdateMaxServerTimeRetryDuplicateKey) {
+UTEST_F(Collection, UpdateMaxServerTimeRetryDuplicateKey) {
     auto pool_config = MakeTestPoolConfig();
     pool_config.stats_verbosity = mongo::StatsVerbosity::kFull;
     auto pool = MakePool({}, pool_config);
@@ -515,7 +515,7 @@ UTEST_P(Collection, UpdateMaxServerTimeRetryDuplicateKey) {
     );
 }
 
-UTEST_P(Collection, UpdateMaxServerTimeUnacknowledged) {
+UTEST_F(Collection, UpdateMaxServerTimeUnacknowledged) {
     auto explicit_coll = GetDefaultPool().GetCollection("update_unacknowledged_explicit");
     explicit_coll.InsertOne(bson::MakeDoc("_id", 1, "x", 1));
 
@@ -541,7 +541,7 @@ UTEST_P(Collection, UpdateMaxServerTimeUnacknowledged) {
     ));
 }
 
-UTEST_P(Collection, Delete) {
+UTEST_F(Collection, Delete) {
     auto coll = GetDefaultPool().GetCollection("delete");
 
     {
@@ -578,7 +578,7 @@ UTEST_P(Collection, Delete) {
     EXPECT_EQ(4, coll.CountApprox());
 }
 
-UTEST_P(Collection, FindAndModify) {
+UTEST_F(Collection, FindAndModify) {
     auto coll = GetDefaultPool().GetCollection("find_and_modify");
 
     coll.InsertOne(bson::MakeDoc("_id", 1, "x", 10));
@@ -705,9 +705,9 @@ UTEST_P(Collection, FindAndModify) {
     EXPECT_EQ(1, coll.Count(bson::MakeDoc("_id", 1)));
 }
 
-UTEST_P(Collection, AggregateOut) { SampleMongoPool(GetDefaultPool()); }
+UTEST_F(Collection, AggregateOut) { SampleMongoPool(GetDefaultPool()); }
 
-UTEST_P(Collection, Drop) {
+UTEST_F(Collection, Drop) {
     const std::string collection_name = "drop";
     auto& pool = GetDefaultPool();
     auto coll = pool.GetCollection(collection_name);
@@ -749,7 +749,7 @@ UTEST_P(Collection, Drop) {
     }
 }
 
-UTEST_P(Collection, LargeDocRoundtrip) {
+UTEST_F(Collection, LargeDocRoundtrip) {
     auto coll = GetDefaultPool().GetCollection("large_doc");
 
     std::string large_string(12 * 1024 * 1024, '\0');
@@ -763,7 +763,7 @@ UTEST_P(Collection, LargeDocRoundtrip) {
     EXPECT_EQ(large_string, (*result)["s"].As<std::string>());
 }
 
-UTEST_P(Collection, ExecuteOps) {
+UTEST_F(Collection, ExecuteOps) {
     auto mongo_coll = GetDefaultPool().GetCollection("execute_ops");
 
     mongo_coll.InsertMany({
@@ -797,7 +797,7 @@ std::vector<formats::bson::Value> SortBsonValues(std::vector<formats::bson::Valu
     return values;
 }
 
-UTEST_P(Collection, Distinct) {
+UTEST_F(Collection, Distinct) {
     {
         auto coll = GetDefaultPool().GetCollection("distinct");
 
@@ -1027,12 +1027,5 @@ UTEST_P(Collection, Distinct) {
         EXPECT_EQ("user", sorted_result[2].As<std::string>());
     }
 }
-
-INSTANTIATE_UTEST_SUITE_P(
-    Driver,
-    Collection,
-    ::testing::ValuesIn(GetMongoPoolImplementations()),
-    GetMongoPoolImplementationName
-);
 
 USERVER_NAMESPACE_END

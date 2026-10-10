@@ -20,8 +20,8 @@ using namespace storages::mongo;
 
 class MongoTransaction : public MongoPoolFixture {};
 
-UTEST_P(MongoTransaction, ConnectionStringChangesDatabaseBeforeTransactionStarts) {
-    const std::string k_other_database = GetTestDatabaseNamePrefix() + "pending_transaction_uri_reload";
+UTEST_F(MongoTransaction, ConnectionStringChangesDatabaseBeforeTransactionStarts) {
+    const std::string k_other_database = kTestDatabaseNamePrefix + "pending_transaction_uri_reload";
     const std::string k_collection = "pending_transaction_uri_reload";
     auto old_pool = MakePool({}, {});
     auto new_pool = MakePool(k_other_database, {});
@@ -41,8 +41,8 @@ UTEST_P(MongoTransaction, ConnectionStringChangesDatabaseBeforeTransactionStarts
     EXPECT_EQ(0, old_pool.GetCollection(k_collection).Count(bson::MakeDoc("_id", 3)));
 }
 
-UTEST_P(MongoTransaction, ConnectionStringKeepsDatabaseForActiveTransaction) {
-    const std::string k_other_database = GetTestDatabaseNamePrefix() + "active_transaction_uri_reload";
+UTEST_F(MongoTransaction, ConnectionStringKeepsDatabaseForActiveTransaction) {
+    const std::string k_other_database = kTestDatabaseNamePrefix + "active_transaction_uri_reload";
     const std::string k_collection = "active_transaction_uri_reload";
     auto old_pool = MakePool({}, {});
     auto new_pool = MakePool(k_other_database, {});
@@ -74,7 +74,7 @@ UTEST_P(MongoTransaction, ConnectionStringKeepsDatabaseForActiveTransaction) {
     EXPECT_EQ(1, pool.GetCollection(k_collection).Count(bson::MakeDoc("_id", 2)));
 }
 
-UTEST_P(MongoTransaction, BasicTransactionCommit) {
+UTEST_F(MongoTransaction, BasicTransactionCommit) {
     static const std::string kCollectionName = "test_transactions";
 
     // Clean up collection before test
@@ -109,7 +109,7 @@ UTEST_P(MongoTransaction, BasicTransactionCommit) {
     EXPECT_EQ((*found_doc)["name"].As<std::string>(), "test_user");
 }
 
-UTEST_P(MongoTransaction, TransactionAbort) {
+UTEST_F(MongoTransaction, TransactionAbort) {
     static const std::string kCollectionName = "test_transaction_abort";
 
     // Clean up collection before test
@@ -142,7 +142,7 @@ UTEST_P(MongoTransaction, TransactionAbort) {
     EXPECT_FALSE(found_doc);
 }
 
-UTEST_P(MongoTransaction, TransactionAutoAbortOnDestruction) {
+UTEST_F(MongoTransaction, TransactionAutoAbortOnDestruction) {
     static const std::string kCollectionName = "test_auto_abort";
 
     // Clean up collection before test
@@ -170,7 +170,7 @@ UTEST_P(MongoTransaction, TransactionAutoAbortOnDestruction) {
     EXPECT_FALSE(found_doc);
 }
 
-UTEST_P(MongoTransaction, MultipleOperationsInTransaction) {
+UTEST_F(MongoTransaction, MultipleOperationsInTransaction) {
     static const std::string kCollectionName = "test_multi_ops";
 
     // Clean up collection before test
@@ -227,7 +227,7 @@ UTEST_P(MongoTransaction, MultipleOperationsInTransaction) {
 }
 
 #ifdef USERVER_FEATURE_MONGO_BULKWRITE
-UTEST_P(MongoTransaction, ReplaceOneWithMaxServerTime) {
+UTEST_F(MongoTransaction, ReplaceOneWithMaxServerTime) {
     static const std::string kCollectionName = "test_txn_replace_max_server_time";
 
     auto regular_collection = GetDefaultPool().GetCollection(kCollectionName);
@@ -261,7 +261,7 @@ UTEST_P(MongoTransaction, ReplaceOneWithMaxServerTime) {
     EXPECT_EQ((*committed_doc)["x"].As<int>(), 2);
 }
 
-UTEST_P(MongoTransaction, ReplaceOneWithMaxServerTimeRejectsWriteConcern) {
+UTEST_F(MongoTransaction, ReplaceOneWithMaxServerTimeRejectsWriteConcern) {
     static const std::string kCollectionName = "test_txn_replace_write_concern";
 
     auto regular_collection = GetDefaultPool().GetCollection(kCollectionName);
@@ -298,7 +298,7 @@ UTEST_P(MongoTransaction, ReplaceOneWithMaxServerTimeRejectsWriteConcern) {
 }
 #endif
 
-UTEST_P(MongoTransaction, UpdateWithMaxServerTime) {
+UTEST_F(MongoTransaction, UpdateWithMaxServerTime) {
     static const std::string kCollectionName = "test_txn_update_max_server_time";
     const options::MaxServerTime k_max_server_time{utest::kMaxTestWaitTime};
 
@@ -356,7 +356,7 @@ UTEST_P(MongoTransaction, UpdateWithMaxServerTime) {
     EXPECT_EQ(regular_collection.CountApprox(), 3);
 }
 
-UTEST_P(MongoTransaction, UpdateWithMaxServerTimeAbort) {
+UTEST_F(MongoTransaction, UpdateWithMaxServerTimeAbort) {
     static const std::string kCollectionName = "test_txn_update_max_server_time_abort";
 
     auto regular_collection = GetDefaultPool().GetCollection(kCollectionName);
@@ -385,7 +385,7 @@ UTEST_P(MongoTransaction, UpdateWithMaxServerTimeAbort) {
     EXPECT_EQ((*doc)["x"].As<int>(), 1);
 }
 
-UTEST_P(MongoTransaction, UpdateWithMaxServerTimeRejectsWriteConcern) {
+UTEST_F(MongoTransaction, UpdateWithMaxServerTimeRejectsWriteConcern) {
     static const std::string kCollectionName = "test_txn_update_max_server_time_wc";
 
     auto regular_collection = GetDefaultPool().GetCollection(kCollectionName);
@@ -421,7 +421,7 @@ UTEST_P(MongoTransaction, UpdateWithMaxServerTimeRejectsWriteConcern) {
     EXPECT_EQ((*doc)["x"].As<int>(), 1);
 }
 
-UTEST_P(MongoTransaction, Move) {
+UTEST_F(MongoTransaction, Move) {
     static const std::string kCollectionName = "test_transactions";
 
     // Clean up collection before test
@@ -460,7 +460,7 @@ UTEST_P(MongoTransaction, Move) {
     EXPECT_EQ((*found_doc)["name"].As<std::string>(), "test_user");
 }
 
-UTEST_P(MongoTransaction, InvalidStateOperations) {
+UTEST_F(MongoTransaction, InvalidStateOperations) {
     static const std::string kCollectionName = "test_invalid_state";
 
     // Clean up collection before test
@@ -488,7 +488,7 @@ UTEST_P(MongoTransaction, InvalidStateOperations) {
     UEXPECT_THROW(collection.InsertOne(doc), MongoException);
 }
 
-UTEST_P(MongoTransaction, ParallelTrancactions) {
+UTEST_F(MongoTransaction, ParallelTrancactions) {
     static const std::string kCollectionName = "test_parallel_transactions";
 
     // Clean up collection before test
@@ -524,7 +524,7 @@ UTEST_P(MongoTransaction, ParallelTrancactions) {
     EXPECT_THAT(found_docs, ::testing::ElementsAre(bson::MakeDoc("name", "test_user", "age", 30)));
 }
 
-UTEST_P(MongoTransaction, Isolation) {
+UTEST_F(MongoTransaction, Isolation) {
     static const std::string kCollectionName = "test_isolation";
 
     auto regular_collection = GetDefaultPool().GetCollection(kCollectionName);
@@ -550,7 +550,7 @@ UTEST_P(MongoTransaction, Isolation) {
     EXPECT_TRUE(regular_collection.Find({}).HasMore());
 }
 
-UTEST_P(MongoTransaction, InvalidSessionIdReproducer) {
+UTEST_F(MongoTransaction, InvalidSessionIdReproducer) {
     static const std::string kCollectionName = "test_invalid_session_id";
 
     auto config = MakeTestPoolConfig();
@@ -558,7 +558,7 @@ UTEST_P(MongoTransaction, InvalidSessionIdReproducer) {
     config.pool_settings.max_size = 3;
     config.pool_settings.idle_limit = 2;
 
-    auto pool = MakePool(GetTestDatabaseNamePrefix() + "invalid_session_id", config);
+    auto pool = MakePool("userver_mongotest_invalid_session_id", config);
 
     auto coll = pool.GetCollection(kCollectionName);
 
@@ -590,7 +590,7 @@ UTEST_P(MongoTransaction, InvalidSessionIdReproducer) {
     txn.Commit();
 }
 
-UTEST_P(MongoTransaction, TransactionOwnsItsClient) {
+UTEST_F(MongoTransaction, TransactionOwnsItsClient) {
     static const std::string kCollectionName = "test_txn_owns_client";
 
     auto config = MakeTestPoolConfig();
@@ -598,7 +598,7 @@ UTEST_P(MongoTransaction, TransactionOwnsItsClient) {
     config.pool_settings.max_size = 1;
     config.pool_settings.idle_limit = 1;
 
-    auto pool = MakePool(GetTestDatabaseNamePrefix() + "txn_owns_client", config);
+    auto pool = MakePool("userver_mongotest_txn_owns_client", config);
 
     auto regular_collection = pool.GetCollection(kCollectionName);
     regular_collection.InsertOne(bson::MakeDoc("foo", "bar"));
@@ -613,7 +613,7 @@ UTEST_P(MongoTransaction, TransactionOwnsItsClient) {
     UEXPECT_NO_THROW(regular_collection.InsertOne(bson::MakeDoc("foo", "baz")));
 }
 
-UTEST_P(MongoTransaction, OperationAfterEndThrows) {
+UTEST_F(MongoTransaction, OperationAfterEndThrows) {
     {
         static const std::string kCollectionName = "test_ops_after_commit";
 
@@ -646,7 +646,7 @@ UTEST_P(MongoTransaction, OperationAfterEndThrows) {
 }
 
 #ifdef NDEBUG
-UTEST_P(MongoTransaction, CursorOpsForbidden) {
+UTEST_F(MongoTransaction, CursorOpsForbidden) {
     {
         static const std::string kCollectionName = "test_cursor_ops_forbidden";
 
@@ -658,12 +658,5 @@ UTEST_P(MongoTransaction, CursorOpsForbidden) {
     }
 }
 #endif
-
-INSTANTIATE_UTEST_SUITE_P(
-    Driver,
-    MongoTransaction,
-    ::testing::ValuesIn(GetMongoPoolImplementations()),
-    GetMongoPoolImplementationName
-);
 
 USERVER_NAMESPACE_END

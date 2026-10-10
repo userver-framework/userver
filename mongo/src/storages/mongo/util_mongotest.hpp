@@ -18,12 +18,10 @@
 #include <userver/storages/mongo/pool_config.hpp>
 #include <userver/storages/mongo/write_result.hpp>
 
-#include <storages/mongo/features.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
-std::string GetTestDatabaseNamePrefix();
-std::string GetTestDatabaseDefaultName();
+extern const std::string kTestDatabaseNamePrefix;
+extern const std::string kTestDatabaseDefaultName;
 
 inline constexpr std::uint32_t kDuplicateKeyErrorCode = 11000;
 
@@ -33,10 +31,7 @@ clients::dns::Resolver MakeDnsResolver();
 
 dynamic_config::StorageMock MakeDynamicConfig();
 
-storages::mongo::PoolConfig MakePoolConfigForTest(bool experimental);
-
-std::vector<bool> GetMongoPoolImplementations();
-std::string GetMongoPoolImplementationName(const ::testing::TestParamInfo<bool>& info);
+storages::mongo::PoolConfig MakeTestPoolConfig();
 
 struct ExpectedWriteCounts final {
     std::size_t inserted{0};
@@ -74,14 +69,12 @@ void ExpectSingleDuplicateKeyError(
     const utils::impl::SourceLocation& source_location = utils::impl::SourceLocation::Current()
 );
 
-class MongoPoolFixture : public ::testing::TestWithParam<bool> {
+class MongoPoolFixture : public ::testing::Test {
 protected:
     MongoPoolFixture();
     ~MongoPoolFixture() override;
 
     storages::mongo::Pool& GetDefaultPool();
-
-    storages::mongo::PoolConfig MakeTestPoolConfig() const;
 
     storages::mongo::Pool MakePool(
         std::optional<std::string> db_name,
@@ -89,7 +82,7 @@ protected:
         std::optional<clients::dns::Resolver*> dns_resolver = {}
     );
 
-    storages::mongo::Pool MakeUnacknowledgedPool(const std::string& db_name = GetTestDatabaseDefaultName());
+    storages::mongo::Pool MakeUnacknowledgedPool(const std::string& db_name = kTestDatabaseDefaultName);
 
     void SetDynamicConfig(const std::vector<dynamic_config::KeyValue>& config);
 

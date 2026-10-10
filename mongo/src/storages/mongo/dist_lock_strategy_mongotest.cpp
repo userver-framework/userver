@@ -22,7 +22,7 @@ const auto kMockTime = std::chrono::system_clock::from_time_t(1567544400);
 
 }  // namespace
 
-UTEST_P(DistLockTest, DISABLED_AcquireAndRelease) {  // TODO: TAXICOMMON-8662
+UTEST_F(DistLockTest, DISABLED_AcquireAndRelease) {  // TODO: TAXICOMMON-8662
     utils::datetime::MockNowSet(kMockTime);
 
     auto collection = GetDefaultPool().GetCollection("test_acquire_and_release");
@@ -31,7 +31,7 @@ UTEST_P(DistLockTest, DISABLED_AcquireAndRelease) {  // TODO: TAXICOMMON-8662
     UEXPECT_NO_THROW(strategy.Release({}));
 }
 
-UTEST_P(DistLockTest, Prolong) {
+UTEST_F(DistLockTest, Prolong) {
     utils::datetime::MockNowSet(kMockTime);
 
     auto collection = GetDefaultPool().GetCollection("test_prolong");
@@ -52,7 +52,7 @@ UTEST_P(DistLockTest, Prolong) {
     UEXPECT_NO_THROW(strategy1.Release({}));
 }
 
-UTEST_P(DistLockTest, ProlongWithoutAcquire) {
+UTEST_F(DistLockTest, ProlongWithoutAcquire) {
     utils::datetime::MockNowSet(kMockTime);
 
     auto collection = GetDefaultPool().GetCollection("test_prolong_without_acquire");
@@ -61,7 +61,7 @@ UTEST_P(DistLockTest, ProlongWithoutAcquire) {
     UEXPECT_THROW(strategy.Prolong(1s, {}), dist_lock::LockIsAcquiredByAnotherHostException);
 }
 
-UTEST_P(DistLockTest, TestOwner) {
+UTEST_F(DistLockTest, TestOwner) {
     utils::datetime::MockNowSet(kMockTime);
 
     auto collection = GetDefaultPool().GetCollection("test_owner");
@@ -75,7 +75,7 @@ UTEST_P(DistLockTest, TestOwner) {
     UEXPECT_NO_THROW(strategy2.Release("first"));
 }
 
-UTEST_P(DistLockTest, Expire) {
+UTEST_F(DistLockTest, Expire) {
     utils::datetime::MockNowSet(kMockTime);
 
     auto collection = GetDefaultPool().GetCollection("test_expire");
@@ -89,7 +89,7 @@ UTEST_P(DistLockTest, Expire) {
     UEXPECT_THROW(strategy1.Acquire(1s, {}), dist_lock::LockIsAcquiredByAnotherHostException);
 }
 
-UTEST_P(DistLockTest, ReleaseAcquire) {
+UTEST_F(DistLockTest, ReleaseAcquire) {
     utils::datetime::MockNowSet(kMockTime);
 
     auto collection = GetDefaultPool().GetCollection("test_release_acquire");
@@ -103,12 +103,5 @@ UTEST_P(DistLockTest, ReleaseAcquire) {
     UEXPECT_NO_THROW(strategy1.Release({}));
     UEXPECT_NO_THROW(strategy2.Acquire(1s, {}));
 }
-
-INSTANTIATE_UTEST_SUITE_P(
-    Driver,
-    DistLockTest,
-    ::testing::ValuesIn(GetMongoPoolImplementations()),
-    GetMongoPoolImplementationName
-);
 
 USERVER_NAMESPACE_END

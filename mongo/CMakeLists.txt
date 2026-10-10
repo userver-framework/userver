@@ -9,40 +9,12 @@ else()
     include(SetupMongoDeps)
 endif()
 
-include(CheckCXXSourceCompiles)
-include(CMakePushCheckState)
-cmake_push_check_state(RESET)
-set(CMAKE_REQUIRED_LIBRARIES "${USERVER_MONGO_LIBMONGOC_NAME}" "${USERVER_MONGO_LIBBSON_NAME}")
-check_cxx_source_compiles(
-    "#include <mongoc/mongoc.h>
-     extern \"C\" const void* _mongoc_mcommon_thread_backend_get(void);
-     int main() {
-         static_assert(sizeof(MONGOC_URI_MAXCONNECTING) > 1);
-         mongoc_client_pool_stats_t stats{};
-         mongoc_client_pool_get_stats(nullptr, &stats);
-         mongoc_client_pool_set_stream_initiator(nullptr, nullptr, nullptr);
-         return _mongoc_mcommon_thread_backend_get() == nullptr;
-     }"
-    USERVER_MONGO_HAS_EXPERIMENTAL_DRIVER_API
-)
-cmake_pop_check_state()
-
-file(GLOB_RECURSE USERVER_MONGO_UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp")
-if(NOT USERVER_MONGO_HAS_EXPERIMENTAL_DRIVER_API)
-    file(GLOB USERVER_MONGO_EXPERIMENTAL_SOURCES
-         "${CMAKE_CURRENT_SOURCE_DIR}/src/storages/mongo/cdriver_experimental/*.cpp"
-    )
-    list(REMOVE_ITEM USERVER_MONGO_UTEST_SOURCES ${USERVER_MONGO_EXPERIMENTAL_SOURCES})
-    message(STATUS "MongoDB experimental pool disabled: required mongo-c-driver functions are unavailable")
-endif()
-
 userver_module(
     mongo
     SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}"
-    IGNORE_SOURCES ${USERVER_MONGO_EXPERIMENTAL_SOURCES}
     LINK_LIBRARIES "${USERVER_MONGO_LIBBSON_NAME}"
     LINK_LIBRARIES_PRIVATE "${USERVER_MONGO_LIBMONGOC_NAME}"
-    UTEST_SOURCES ${USERVER_MONGO_UTEST_SOURCES}
+    UTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp"
     DBTEST_SOURCES "${CMAKE_CURRENT_SOURCE_DIR}/src/*_mongotest.cpp"
     DBTEST_DATABASES mongo
     # Tests that use IsCollectionWriteConcernTimeout require multi-instance mongo
@@ -52,10 +24,6 @@ userver_module(
     GENERATE_DYNAMIC_CONFIGS
     EMBED_FILES src/cache/base_mongo_cache.yaml src/storages/mongo/component.yaml
                 src/storages/mongo/component_multi.yaml src/storages/mongo/dist_lock_component_base.yaml
-)
-
-target_compile_definitions(
-    userver-mongo PUBLIC USERVER_MONGO_HAS_EXPERIMENTAL_DRIVER_API=$<BOOL:${USERVER_MONGO_HAS_EXPERIMENTAL_DRIVER_API}>
 )
 
 _userver_directory_install(

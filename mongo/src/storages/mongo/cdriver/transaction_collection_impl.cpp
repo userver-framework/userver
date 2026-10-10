@@ -38,10 +38,10 @@ CDriverTransactionCollectionImpl::CDriverTransactionCollectionImpl(
     UASSERT(data_->client);
 }
 
-BoundClient CDriverTransactionCollectionImpl::GetClient(stats::OperationStatisticsItem& /*stats*/
+CDriverPoolImpl::BoundClientPtr CDriverTransactionCollectionImpl::GetClient(stats::OperationStatisticsItem& /*stats*/
 ) const {
     UASSERT(data_->client);
-    return BoundClient::Borrowed(data_->client.value());
+    return CDriverPoolImpl::BoundClientPtr::Borrowed(data_->client.value());
 }
 
 mongoc_client_session_t* CDriverTransactionCollectionImpl::GetSession() const {

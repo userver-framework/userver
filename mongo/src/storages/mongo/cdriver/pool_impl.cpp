@@ -350,7 +350,7 @@ CDriverPoolImpl::CDriverPoolImpl(
       // FP?: pointer magic in boost.lockfree
       // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
       queue_(config.pool_settings.max_size) {
-    GlobalInitializer::CheckInitialized();
+    (void)&kInitMongoc;
     GlobalInitializer::LogInitWarningsOnce();
 
     SetConnectionString(uri_string);
@@ -389,11 +389,6 @@ CDriverPoolImpl::CDriverPoolImpl(
 CDriverPoolImpl::~CDriverPoolImpl() {
     const tracing::Span span("mongo_destroy");
     maintenance_task_.Stop();
-}
-
-std::string CDriverPoolImpl::DefaultDatabaseName() const {
-    const auto uri = uri_.Read();
-    return mongoc_uri_get_database(&**uri);
 }
 
 size_t CDriverPoolImpl::InUseApprox() const {

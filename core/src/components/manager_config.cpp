@@ -256,8 +256,8 @@ properties:
                 description: if true, all components configs are validated
     userver_experiments:
         type: object
-        description: userver experiments to enable; mongo-thread-backend is enabled by default
-        defaultDescription: '{mongo-thread-backend: true}'
+        description: userver experiments to enable, `false` by default
+        defaultDescription: '{}'
         properties: {}
         additionalProperties:
             type: boolean
@@ -327,8 +327,7 @@ ManagerConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<Man
     config.preheat_stacktrace_collector =
         value["preheat_stacktrace_collector"].As<bool>(config.preheat_stacktrace_collector);
     config.validate_components_configs = value["static_config_validation"].As<ValidationMode>(ValidationMode::kAll);
-    auto experiments = value["userver_experiments"].As<std::unordered_map<std::string, bool>>({});
-    experiments.try_emplace(utils::impl::kMongoThreadBackendExperiment.GetName(), true);
+    const auto experiments = value["userver_experiments"].As<std::unordered_map<std::string, bool>>({});
     config.enabled_experiments = utils::impl::AsContainerViaInsert<utils::impl::UserverExperimentSet>(
         experiments | std::views::filter([](const auto& pair) { return pair.second; }) |
         std::views::transform([](const auto& pair) { return pair.first; })

@@ -14,11 +14,6 @@ class CDriverCollectionImpl;
 class CDriverTransactionCollectionImpl;
 }  // namespace storages::mongo::impl::cdriver
 
-namespace storages::mongo::impl::cdriver_experimental {
-class CDriverCollectionImpl;
-class CDriverTransactionCollectionImpl;
-}  // namespace storages::mongo::impl::cdriver_experimental
-
 namespace storages::mongo::operations {
 
 /// Efficiently executes a number of operations over a single collection
@@ -92,8 +87,6 @@ public:
 private:
     friend class storages::mongo::impl::cdriver::CDriverCollectionImpl;
     friend class storages::mongo::impl::cdriver::CDriverTransactionCollectionImpl;
-    friend class storages::mongo::impl::cdriver_experimental::CDriverCollectionImpl;
-    friend class storages::mongo::impl::cdriver_experimental::CDriverTransactionCollectionImpl;
 
     class Impl;
     static constexpr size_t kSize = 56;

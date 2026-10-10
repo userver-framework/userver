@@ -32,11 +32,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace mongo = storages::mongo;
 
-namespace {
-class MultiMongoPool : public MongoPoolFixture {};
-}  // namespace
-
-UTEST_P(MultiMongoPool, DynamicSecdistUpdate) {
+UTEST(MultiMongo, DynamicSecdistUpdate) {
     constexpr std::string_view kSecdistInitJson = R"~(
   {
       "mongo_settings": {
@@ -125,11 +121,15 @@ UTEST_P(MultiMongoPool, DynamicSecdistUpdate) {
     UEXPECT_NO_THROW(admin_pool->GetCollection(std::string{kSysVerCollName}));
 }
 
-UTEST_P(MultiMongoPool, DynamicSecdistUpdateAfterPoolCreation) {
+namespace {
+class MultiMongoPool : public MongoPoolFixture {};
+}  // namespace
+
+UTEST_F(MultiMongoPool, DynamicSecdistUpdateAfterPoolCreation) {
     constexpr std::string_view k_secdist_json_format = R"({{"mongo_settings":{{"test":{{"uri":"{}"}}}}}})";
     constexpr auto k_update_period = std::chrono::milliseconds{100};
     constexpr auto k_poll_interval = std::chrono::milliseconds{10};
-    const std::string k_other_database = GetTestDatabaseNamePrefix() + "multimongo_secdist_reload";
+    const std::string k_other_database = kTestDatabaseNamePrefix + "multimongo_secdist_reload";
     const std::string k_collection = "secdist_reload";
     auto& old_pool = GetDefaultPool();
     auto new_pool = MakePool(k_other_database, {});
@@ -141,7 +141,7 @@ UTEST_P(MultiMongoPool, DynamicSecdistUpdateAfterPoolCreation) {
     auto temp_file = fs::blocking::TempFile::Create();
     fs::blocking::RewriteFileContents(
         temp_file.GetPath(),
-        fmt::format(k_secdist_json_format, GetTestsuiteMongoUri(GetTestDatabaseDefaultName()))
+        fmt::format(k_secdist_json_format, GetTestsuiteMongoUri(kTestDatabaseDefaultName))
     );
     storages::secdist::DefaultLoader provider{
         {temp_file.GetPath(),
@@ -183,12 +183,5 @@ UTEST_P(MultiMongoPool, DynamicSecdistUpdateAfterPoolCreation) {
     EXPECT_EQ(1, new_pool.GetCollection(k_collection).Count(formats::bson::MakeDoc("_id", 3)));
     EXPECT_EQ(0, old_pool.GetCollection(k_collection).Count(formats::bson::MakeDoc("_id", 3)));
 }
-
-INSTANTIATE_UTEST_SUITE_P(
-    Driver,
-    MultiMongoPool,
-    ::testing::ValuesIn(GetMongoPoolImplementations()),
-    GetMongoPoolImplementationName
-);
 
 USERVER_NAMESPACE_END

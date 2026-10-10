@@ -3,7 +3,7 @@
 #include <mongoc/mongoc.h>
 
 #include <formats/bson/wrappers.hpp>
-#include <storages/mongo/cdriver/pool_access.hpp>
+#include <storages/mongo/cdriver/pool_impl.hpp>
 #include <storages/mongo/cdriver/transaction_collection_impl.hpp>
 #include <storages/mongo/cdriver/wrappers.hpp>
 #include <userver/logging/log.hpp>
@@ -119,13 +119,16 @@ void TransactionImpl::EnsureTransactionStarted() {
         return;
     }
 
-    const cdriver::PoolAccess pool{pool_impl_};
+    // Cast to CDriverPoolImpl to access Acquire method
+    UASSERT(dynamic_cast<cdriver::CDriverPoolImpl*>(pool_impl_.get()));
+    // NOLINTNEXTLINE(cppcoreguidelines-pro-type-static-cast-downcast)
+    auto* cdriver_pool = static_cast<cdriver::CDriverPoolImpl*>(pool_impl_.get());
 
     // Acquire a client and keep it alive for the entire transaction: the
     // mongoc_client_session_t created below stores an internal raw pointer to
     // this client, so it must not be returned to the pool until the session is
     // destroyed.
-    data_->client.emplace(pool.Acquire());
+    data_->client.emplace(cdriver_pool->Acquire());
 
     // Create session
     MongoError error;

@@ -76,9 +76,13 @@ void TagTimeout(tracing::Span& span, const std::optional<std::chrono::millisecon
 
 }  // namespace
 
-PoolAccess GetCDriverPool(const PoolImplPtr& pool_impl) { return PoolAccess{pool_impl}; }
+CDriverPoolImpl& GetCDriverPool(const PoolImplPtr& pool_impl) {
+    auto* pool = dynamic_cast<CDriverPoolImpl*>(pool_impl.get());
+    UASSERT(pool);
+    return *pool;
+}
 
-BoundClient AcquireClient(PoolAccess pool, stats::OperationStatisticsItem& stats) {
+CDriverPoolImpl::BoundClientPtr AcquireClient(CDriverPoolImpl& pool, stats::OperationStatisticsItem& stats) {
     try {
         return pool.Acquire();
     } catch (const CancelledException& ex) {
@@ -100,7 +104,7 @@ RequestContextBase MakeRequestContextBase(
     tracing::Span span,
     std::shared_ptr<stats::OperationStatisticsItem> stats,
     dynamic_config::Snapshot dynamic_config,
-    utils::function_ref<BoundClient(stats::OperationStatisticsItem&)> get_client
+    utils::function_ref<CDriverPoolImpl::BoundClientPtr(stats::OperationStatisticsItem&)> get_client
 ) {
     auto timeout_ms = GetTimeoutOrThrow(dynamic_config, *stats, span);
     TagTimeout(span, timeout_ms);

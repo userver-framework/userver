@@ -82,7 +82,7 @@ bool IsCollectionWriteConcernTimeout(mongo::Collection& collection, const mongo:
 
 }  // namespace
 
-UTEST_P(Options, ReadPreference) {
+UTEST_F(Options, ReadPreference) {
     auto coll = GetDefaultPool().GetCollection("read_preference");
 
     EXPECT_EQ(0, coll.Count({}, mongo::options::ReadPreference::kNearest));
@@ -129,7 +129,7 @@ UTEST_P(Options, ReadPreference) {
     );
 }
 
-UTEST_P(Options, DefaultMaxReplicationLagIsApplied) {
+UTEST(CollectionReadPreference, DefaultMaxReplicationLagIsApplied) {
     auto dns_resolver = MakeDnsResolver();
     auto dynamic_config = MakeDynamicConfig();
     auto pool_config = MakeTestPoolConfig();
@@ -137,7 +137,7 @@ UTEST_P(Options, DefaultMaxReplicationLagIsApplied) {
 
     mongo::Pool pool{
         "max-replication-lag-test",
-        GetTestsuiteMongoUri(GetTestDatabaseDefaultName()),
+        GetTestsuiteMongoUri(kTestDatabaseDefaultName),
         pool_config,
         &dns_resolver,
         dynamic_config.GetSource(),
@@ -150,14 +150,14 @@ UTEST_P(Options, DefaultMaxReplicationLagIsApplied) {
     EXPECT_EQ(kPoolMaxReplicationLag.count(), collection_impl.GetEffectiveMaxStaleness(MONGOC_READ_SECONDARY));
 }
 
-UTEST_P(Options, ReadConcern) {
+UTEST_F(Options, ReadConcern) {
     auto coll = GetDefaultPool().GetCollection("read_concern");
 
     EXPECT_EQ(0, coll.Count({}, mongo::options::ReadConcern::kLocal));
     EXPECT_EQ(0, coll.Count({}, mongo::options::ReadConcern::kLinearizable));
 }
 
-UTEST_P(Options, DISABLED_SkipLimit) {  // TODO: TAXICOMMON-8662
+UTEST_F(Options, DISABLED_SkipLimit) {  // TODO: TAXICOMMON-8662
     auto coll = GetDefaultPool().GetCollection("skip_limit");
 
     coll.InsertOne(bson::MakeDoc("x", 0));
@@ -208,7 +208,7 @@ UTEST_P(Options, DISABLED_SkipLimit) {  // TODO: TAXICOMMON-8662
     );
 }
 
-UTEST_P(Options, FindBatchSize) {
+UTEST_F(Options, FindBatchSize) {
     auto coll = GetDefaultPool().GetCollection("batch_size");
 
     coll.InsertOne(bson::MakeDoc("x", 0));
@@ -219,7 +219,7 @@ UTEST_P(Options, FindBatchSize) {
     EXPECT_EQ(3, std::distance(cursor.begin(), cursor.end()));
 }
 
-UTEST_P(Options, AggregateBatchSize) {
+UTEST_F(Options, AggregateBatchSize) {
     auto coll = GetDefaultPool().GetCollection("aggregate_batch_size");
     coll.InsertMany({bson::MakeDoc("x", 0), bson::MakeDoc("x", 1), bson::MakeDoc("x", 2)});
 
@@ -229,7 +229,7 @@ UTEST_P(Options, AggregateBatchSize) {
     EXPECT_EQ(3, std::distance(cursor.begin(), cursor.end()));
 }
 
-UTEST_P(Options, Projection) {
+UTEST_F(Options, Projection) {
     auto coll = GetDefaultPool().GetCollection("projection");
 
     coll.InsertOne(
@@ -344,7 +344,7 @@ UTEST_P(Options, Projection) {
     }
 }
 
-UTEST_P(Options, ProjectionTwo) {
+UTEST_F(Options, ProjectionTwo) {
     auto coll = GetDefaultPool().GetCollection("projection");
 
     coll.InsertOne(
@@ -412,7 +412,7 @@ UTEST_P(Options, ProjectionTwo) {
     }
 }
 
-UTEST_P(Options, ProjectionThree) {
+UTEST_F(Options, ProjectionThree) {
     auto coll = GetDefaultPool().GetCollection("projection");
 
     coll.InsertOne(
@@ -511,7 +511,7 @@ UTEST_P(Options, ProjectionThree) {
     }
 }
 
-UTEST_P(Options, Sort) {
+UTEST_F(Options, Sort) {
     auto coll = GetDefaultPool().GetCollection("sort");
 
     coll.InsertOne(bson::MakeDoc("a", 1, "b", 0));
@@ -620,7 +620,7 @@ UTEST_P(Options, Sort) {
     }
 }
 
-UTEST_P(Options, Hint) {
+UTEST_F(Options, Hint) {
     auto coll = GetDefaultPool().GetCollection("hint");
 
     UEXPECT_NO_THROW(coll.FindOne({}, mongo::options::Hint{"some_index"}));
@@ -651,25 +651,25 @@ UTEST_P(Options, Hint) {
 #endif
 }
 
-UTEST_P(Options, AllowPartialResults) {
+UTEST_F(Options, AllowPartialResults) {
     auto coll = GetDefaultPool().GetCollection("allow_partial_results");
 
     UEXPECT_NO_THROW(coll.FindOne({}, mongo::options::AllowPartialResults{}));
 }
 
-UTEST_P(Options, Tailable) {
+UTEST_F(Options, Tailable) {
     auto coll = GetDefaultPool().GetCollection("tailable");
 
     UEXPECT_NO_THROW(coll.FindOne({}, mongo::options::Tailable{}));
 }
 
-UTEST_P(Options, Comment) {
+UTEST_F(Options, Comment) {
     auto coll = GetDefaultPool().GetCollection("comment");
 
     UEXPECT_NO_THROW(coll.FindOne({}, mongo::options::Comment{"snarky comment"}));
 }
 
-UTEST_P(Options, MaxServerTime) {
+UTEST_F(Options, MaxServerTime) {
     auto coll = GetDefaultPool().GetCollection("max_server_time");
 
     coll.InsertOne(bson::MakeDoc("x", 1));
@@ -776,7 +776,7 @@ UTEST_P(Options, MaxServerTime) {
     UEXPECT_NO_THROW(coll.DeleteOne({}, mongo::options::MaxServerTime{utest::kMaxTestWaitTime}));
 }
 
-UTEST_P(Options, DefaultMaxServerTime) {
+UTEST_F(Options, DefaultMaxServerTime) {
     SetDynamicConfig({{::dynamic_config::MONGO_DEFAULT_MAX_TIME_MS, std::chrono::milliseconds{800}}});
     auto coll = GetDefaultPool().GetCollection("max_server_time");
 
@@ -825,7 +825,7 @@ UTEST_P(Options, DefaultMaxServerTime) {
 
 // Note: make sure to call SetTimeout on WriteConcern::kMajority, otherwise
 // the default timeout of 1 second will lead to the test being flaky.
-UTEST_P(Options, WriteConcern) {
+UTEST_F(Options, WriteConcern) {
     auto coll = GetDefaultPool().GetCollection("write_concern");
 
     UEXPECT_NO_THROW(coll.InsertOne(
@@ -871,7 +871,7 @@ UTEST_P(Options, WriteConcern) {
 
 // On modern hardware there is a chance that the server responds fast and the
 // test fails.
-UTEST_P(Options, DISABLED_WriteConcernTimeout) {
+UTEST_F(Options, DISABLED_WriteConcernTimeout) {
     auto coll = GetDefaultPool().GetCollection("write_timeout");
     auto conc = mongo::options::WriteConcern(2).SetTimeout(std::chrono::milliseconds{1});
 
@@ -880,7 +880,7 @@ UTEST_P(Options, DISABLED_WriteConcernTimeout) {
 
 // On modern hardware there is a chance that the server responds fast and the
 // test fails.
-UTEST_P(Options, DISABLED_WriteConcernMajorityTimeout) {
+UTEST_F(Options, DISABLED_WriteConcernMajorityTimeout) {
     auto coll = GetDefaultPool().GetCollection("write_majority_timeout");
     auto conc =
         mongo::options::WriteConcern(mongo::options::WriteConcern::kMajority).SetTimeout(std::chrono::milliseconds{1});
@@ -888,7 +888,7 @@ UTEST_P(Options, DISABLED_WriteConcernMajorityTimeout) {
     EXPECT_TRUE(IsCollectionWriteConcernTimeout(coll, conc));
 }
 
-UTEST_P(Options, Unordered) {
+UTEST_F(Options, Unordered) {
     auto coll = GetDefaultPool().GetCollection("unordered");
 
     coll.InsertOne(bson::MakeDoc("_id", 1));
@@ -911,7 +911,7 @@ UTEST_P(Options, Unordered) {
     }
 }
 
-UTEST_P(Options, Upsert) {
+UTEST_F(Options, Upsert) {
     auto coll = GetDefaultPool().GetCollection("upsert");
 
     coll.InsertOne(bson::MakeDoc("_id", 1));
@@ -942,7 +942,7 @@ UTEST_P(Options, Upsert) {
     EXPECT_EQ(3, coll.CountApprox());
 }
 
-UTEST_P(Options, ReturnNew) {
+UTEST_F(Options, ReturnNew) {
     auto coll = GetDefaultPool().GetCollection("return_new");
 
     coll.InsertOne(bson::MakeDoc("_id", 1, "x", 1));
@@ -966,7 +966,7 @@ UTEST_P(Options, ReturnNew) {
     }
 }
 
-UTEST_P(Options, ArrayFilters) {
+UTEST_F(Options, ArrayFilters) {
     auto coll = GetDefaultPool().GetCollection("array_filters");
     coll.InsertMany(
         {bson::MakeDoc("_id", 1, "grades", bson::MakeArray(95, 92, 90)),
@@ -1018,12 +1018,5 @@ UTEST_P(Options, ArrayFilters) {
     }
 #endif
 }
-
-INSTANTIATE_UTEST_SUITE_P(
-    Driver,
-    Options,
-    ::testing::ValuesIn(GetMongoPoolImplementations()),
-    GetMongoPoolImplementationName
-);
 
 USERVER_NAMESPACE_END

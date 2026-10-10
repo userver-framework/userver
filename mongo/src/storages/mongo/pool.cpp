@@ -4,20 +4,24 @@
 
 #include <storages/mongo/cdriver/collection_impl.hpp>
 #include <storages/mongo/cdriver/pool_impl.hpp>
-#include <storages/mongo/features.hpp>
-#ifdef USERVER_FEATURE_MONGO_EXPERIMENTAL
-#include <storages/mongo/cdriver_experimental/pool_impl.hpp>
-#endif
 #include <storages/mongo/database.hpp>
 #include <storages/mongo/stats_serialize.hpp>
 #include <storages/mongo/transaction_impl.hpp>
-#include <userver/logging/log.hpp>
 #include <userver/utils/resource_scopes.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::mongo {
+namespace {
+
+const PoolConfig& ValidateConfig(const PoolConfig& config, const std::string& id) {
+    config.Validate(id);
+    return config;
+}
+
+}  // namespace
+
 Pool::Pool(
     std::string id,
     const std::string& uri,
@@ -25,26 +29,14 @@ Pool::Pool(
     clients::dns::Resolver* dns_resolver,
     dynamic_config::Source config_source
 )
-    : driver_impl_(pool_config.driver_impl)
-{
-    pool_config.Validate(id);
-    LOG_INFO()
-        << "MongoDB pool '" << id << "' uses "
-        << (driver_impl_ == PoolConfig::DriverImpl::kMongoCDriverExperimental
-                ? "mongo-c-driver-experimental"
-                : "mongo-c-driver");
-#ifdef USERVER_FEATURE_MONGO_EXPERIMENTAL
-    if (driver_impl_ == PoolConfig::DriverImpl::kMongoCDriverExperimental) {
-        impl_ = utils::MakeWithResourceScopes<
-            impl::cdriver_experimental::CDriverPoolImpl>(std::move(id), uri, pool_config, dns_resolver, config_source);
-    } else {
-#endif
-        impl_ = utils::MakeWithResourceScopes<
-            impl::cdriver::CDriverPoolImpl>(std::move(id), uri, pool_config, dns_resolver, config_source);
-#ifdef USERVER_FEATURE_MONGO_EXPERIMENTAL
-    }
-#endif
-}
+    : impl_(utils::MakeWithResourceScopes<impl::cdriver::CDriverPoolImpl>(
+          std::move(id),
+          uri,
+          ValidateConfig(pool_config, id),
+          dns_resolver,
+          config_source
+      ))
+{}
 
 Pool::Pool(Pool&&) noexcept = default;
 

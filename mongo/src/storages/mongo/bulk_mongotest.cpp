@@ -16,7 +16,7 @@ namespace {
 class Bulk : public MongoPoolFixture {};
 }  // namespace
 
-UTEST_P(Bulk, Empty) {
+UTEST_F(Bulk, Empty) {
     auto coll = GetDefaultPool().GetCollection("empty");
 
     auto bulk = coll.MakeUnorderedBulk();
@@ -27,7 +27,7 @@ UTEST_P(Bulk, Empty) {
     ExpectNoWriteErrors(result);
 }
 
-UTEST_P(Bulk, DISABLED_InsertOne) {  // TODO: TAXICOMMON-8662
+UTEST_F(Bulk, DISABLED_InsertOne) {  // TODO: TAXICOMMON-8662
     auto coll = GetDefaultPool().GetCollection("insert_one");
 
     {
@@ -102,7 +102,7 @@ UTEST_P(Bulk, DISABLED_InsertOne) {  // TODO: TAXICOMMON-8662
     }
 }
 
-UTEST_P(Bulk, ReplaceOne) {
+UTEST_F(Bulk, ReplaceOne) {
     auto coll = GetDefaultPool().GetCollection("replace_one");
 
     coll.InsertOne(bson::MakeDoc("_id", 1));
@@ -134,7 +134,7 @@ UTEST_P(Bulk, ReplaceOne) {
     }
 }
 
-UTEST_P(Bulk, Update) {
+UTEST_F(Bulk, Update) {
     auto coll = GetDefaultPool().GetCollection("update");
 
     {
@@ -193,7 +193,7 @@ UTEST_P(Bulk, Update) {
     }
 }
 
-UTEST_P(Bulk, UpdateWithArrayFilters) {
+UTEST_F(Bulk, UpdateWithArrayFilters) {
     auto coll = GetDefaultPool().GetCollection("update_with_filter");
     {
         auto bulk = coll.MakeOrderedBulk();
@@ -228,7 +228,7 @@ UTEST_P(Bulk, UpdateWithArrayFilters) {
     }
 }
 
-UTEST_P(Bulk, Delete) {
+UTEST_F(Bulk, Delete) {
     auto coll = GetDefaultPool().GetCollection("delete");
 
     {
@@ -252,7 +252,7 @@ UTEST_P(Bulk, Delete) {
     ExpectNoWriteErrors(result);
 }
 
-UTEST_P(Bulk, Mixed) {
+UTEST_F(Bulk, Mixed) {
     auto coll = GetDefaultPool().GetCollection("mixed");
 
     auto bulk = coll.MakeOrderedBulk();
@@ -282,7 +282,7 @@ UTEST_P(Bulk, Mixed) {
     EXPECT_TRUE(upserted_ids[5].IsOid());
 }
 
-UTEST_P(Bulk, Hint) {
+UTEST_F(Bulk, Hint) {
     auto coll = GetDefaultPool().GetCollection("hint");
 
     auto bulk = coll.MakeUnorderedBulk();
@@ -297,7 +297,7 @@ UTEST_P(Bulk, Hint) {
     UEXPECT_NO_THROW(coll.Execute(std::move(bulk)));
 }
 
-UTEST_P(Bulk, UpdateOneWithAggregationPipeline) {
+UTEST_F(Bulk, UpdateOneWithAggregationPipeline) {
     auto coll = GetDefaultPool().GetCollection("update_pipeline_one");
     coll.InsertOne(bson::MakeDoc("_id", 1, "x", 1));
 
@@ -313,7 +313,7 @@ UTEST_P(Bulk, UpdateOneWithAggregationPipeline) {
     ExpectNoWriteErrors(result);
 }
 
-UTEST_P(Bulk, UpdateManyWithAggregationPipeline) {
+UTEST_F(Bulk, UpdateManyWithAggregationPipeline) {
     auto coll = GetDefaultPool().GetCollection("update_pipeline_many");
     coll.InsertOne(bson::MakeDoc("_id", 1, "x", 1));
     coll.InsertOne(bson::MakeDoc("_id", 2, "x", 2));
@@ -331,7 +331,7 @@ UTEST_P(Bulk, UpdateManyWithAggregationPipeline) {
     ExpectNoWriteErrors(result);
 }
 
-UTEST_P(Bulk, UpdateWithMultiStageAggregationPipeline) {
+UTEST_F(Bulk, UpdateWithMultiStageAggregationPipeline) {
     auto coll = GetDefaultPool().GetCollection("update_pipeline_multistage");
     coll.InsertOne(bson::MakeDoc("_id", 2, "x", 2));
 
@@ -350,7 +350,7 @@ UTEST_P(Bulk, UpdateWithMultiStageAggregationPipeline) {
     EXPECT_TRUE(result.ServerErrors().empty());
 }
 
-UTEST_P(Bulk, UpdateWithAggregationPipelineInvalidType) {
+UTEST_F(Bulk, UpdateWithAggregationPipelineInvalidType) {
     // Test: invalid update type (integer, not document or array) should throw on construction
     const bson::Value int_value = bson::ValueBuilder{42}.ExtractValue();
     UEXPECT_THROW(
@@ -358,12 +358,5 @@ UTEST_P(Bulk, UpdateWithAggregationPipelineInvalidType) {
         mongo::InvalidQueryArgumentException
     );
 }
-
-INSTANTIATE_UTEST_SUITE_P(
-    Driver,
-    Bulk,
-    ::testing::ValuesIn(GetMongoPoolImplementations()),
-    GetMongoPoolImplementationName
-);
 
 USERVER_NAMESPACE_END

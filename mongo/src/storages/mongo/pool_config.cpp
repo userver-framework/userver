@@ -1,20 +1,15 @@
 #include <userver/storages/mongo/pool_config.hpp>
 
-#include <cstdint>
-#include <limits>
 #include <optional>
 #include <string>
 
 #include <mongoc/mongoc.h>
 
-#include <storages/mongo/features.hpp>
 #include <userver/components/component.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/parse/to.hpp>
-#include <userver/logging/log.hpp>
 #include <userver/storages/mongo/exception.hpp>
-#include <userver/utils/impl/userver_experiments.hpp>
 #include <userver/utils/text.hpp>
 #include <userver/utils/trivial_map.hpp>
 
@@ -36,9 +31,7 @@ void CheckDuration(const std::chrono::milliseconds& timeout, const char* name, c
 }
 
 constexpr utils::TrivialBiMap kDriverImplMapping([](auto selector) {
-    return selector()
-        .Case(PoolConfig::DriverImpl::kMongoCDriver, "mongo-c-driver")
-        .Case(PoolConfig::DriverImpl::kMongoCDriverExperimental, "mongo-c-driver-experimental");
+    return selector().Case(PoolConfig::DriverImpl::kMongoCDriver, "mongo-c-driver");
 });
 
 constexpr utils::TrivialBiMap kStatsVerbosityMapping([](auto selector) {
@@ -100,7 +93,7 @@ PoolConfig Parse(const yaml_config::YamlConfig& config, formats::parse::To<PoolC
 }
 
 void PoolSettings::Validate(const std::string& pool_id) const {
-    if (!max_size || max_size > std::numeric_limits<std::uint32_t>::max()) {
+    if (!max_size) {
         throw InvalidConfigException("invalid max pool size in ") << pool_id << " pool config";
     }
 
@@ -117,27 +110,7 @@ void PoolSettings::Validate(const std::string& pool_id) const {
     }
 }
 
-PoolConfig::DriverImpl PoolConfig::GetDefaultDriverImpl() noexcept {
-#ifdef USERVER_FEATURE_MONGO_EXPERIMENTAL
-    return DriverImpl::kMongoCDriverExperimental;
-#else
-    return DriverImpl::kMongoCDriver;
-#endif
-}
-
 void PoolConfig::Validate(const std::string& pool_id) const {
-#ifndef USERVER_FEATURE_MONGO_EXPERIMENTAL
-    if (driver_impl == PoolConfig::DriverImpl::kMongoCDriverExperimental) {
-        throw InvalidConfigException("Experimental MongoDB pool is unavailable with this mongo-c-driver build");
-    }
-#endif
-    if (driver_impl == PoolConfig::DriverImpl::kMongoCDriverExperimental &&
-        !utils::impl::kMongoThreadBackendExperiment.IsEnabled())
-    {
-        LOG_WARNING()
-            << "Experimental MongoDB pool '" << pool_id
-            << "' is running with mongo-thread-backend disabled; native threads and blocking transport will be used";
-    }
     CheckDuration(conn_timeout, "connection timeout", pool_id);
     CheckDuration(so_timeout, "socket timeout", pool_id);
     CheckDuration(queue_timeout, "queue wait timeout", pool_id);
