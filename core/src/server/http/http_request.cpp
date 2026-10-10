@@ -13,6 +13,8 @@
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/encoding/tskv.hpp>
 
+#include "multipart_form_data_parser.hpp"
+
 USERVER_NAMESPACE_BEGIN
 
 namespace {
@@ -278,6 +280,23 @@ void HttpRequest::ParseArgsFromBody() {
             pimpl_->request_args[std::move(key)].push_back(std::move(value));
         }
     );
+}
+
+bool HttpRequest::ParseFormDataArgsFromBody() {
+    pimpl_->form_data_args.clear();
+
+    const auto& content_type = GetHeader(USERVER_NAMESPACE::http::headers::kContentType);
+    if (!IsMultipartFormDataContentType(content_type)) {
+        return true;
+    }
+
+    FormDataArgs form_data_args;
+    if (!ParseMultipartFormData(content_type, pimpl_->request_body, form_data_args)) {
+        return false;
+    }
+
+    pimpl_->form_data_args = std::move(form_data_args);
+    return true;
 }
 
 bool HttpRequest::IsFinal() const noexcept { return pimpl_->is_final; }
