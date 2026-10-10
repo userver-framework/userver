@@ -23,9 +23,6 @@ USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres {
 
-template <typename T, typename ExtractionTag>
-class TypedResultSet;
-
 /// @brief PostgreSQL result set
 ///
 /// Provides random access to rows via indexing operations
@@ -55,9 +52,7 @@ public:
     using pointer = const_iterator;
     //@}
 
-    explicit ResultSet(std::shared_ptr<detail::ResultWrapper> pimpl)
-        : pimpl_{std::move(pimpl)}
-    {}
+    explicit ResultSet(std::shared_ptr<detail::ResultWrapper> pimpl) : pimpl_{std::move(pimpl)} {}
 
     /// Number of rows in the result set
     size_type Size() const;
@@ -132,7 +127,7 @@ public:
     template <typename Container>
     Container AsContainer() const;
     template <typename Container>
-    Container AsContainer(RowTag) const;
+    auto AsContainer(RowTag) const;
 
     /// @brief Extract first row into user type.
     /// A single row result set is expected, will throw an exception when result
@@ -159,8 +154,10 @@ private:
     friend class detail::ConnectionImpl;
     void FillBufferCategories(const UserTypes& types);
     void SetBufferCategoriesFrom(const ResultSet&);
+    template <typename Container, typename ResultSetT>
+    auto CopyToContainer(ResultSetT const&) const;
 
-    template <typename T, typename Tag>
+    template <typename T, typename Tag, typename AsType>
     friend class TypedResultSet;
     friend class ConnectionImpl;
 
@@ -174,14 +171,22 @@ auto ResultSet::AsSetOf() const {
 
 template <typename T>
 auto ResultSet::AsSetOf(RowTag) const {
-    detail::AssertSaneTypeToDeserialize<T>();
-    using ValueType = std::remove_cvref_t<T>;
-    io::traits::AssertIsValidRowType<ValueType>();
-    return TypedResultSet<T, RowTag>{*this};
+    if constexpr (io::traits::IsStructView<T>::value) {
+        using ValueType = typename T::UnderlyingType;
+        detail::AssertSaneTypeToDeserialize<ValueType>();
+        io::traits::AssertIsValidRowType<ValueType>();
+        return TypedResultSet<ValueType, RowTag, T>{*this};
+    } else {
+        detail::AssertSaneTypeToDeserialize<T>();
+        using ValueType = std::remove_cvref_t<T>;
+        io::traits::AssertIsValidRowType<ValueType>();
+        return TypedResultSet<T, RowTag>{*this};
+    }
 }
 
 template <typename T>
 auto ResultSet::AsSetOf(FieldTag) const {
+    static_assert(!io::traits::IsStructView<T>::value, "Reading struct views from fields is not supported yet");
     detail::AssertSaneTypeToDeserialize<T>();
     using ValueType = std::remove_cvref_t<T>;
     detail::AssertRowTypeIsMappedToPgOrIsCompositeType<ValueType>();
@@ -194,31 +199,30 @@ auto ResultSet::AsSetOf(FieldTag) const {
 template <typename Container>
 Container ResultSet::AsContainer() const {
     detail::AssertSaneTypeToDeserialize<Container>();
-    using ValueType = typename Container::value_type;
-    Container c;
-    if constexpr (io::traits::CanReserve<Container>) {
-        c.reserve(Size());
-    }
-    auto res = AsSetOf<ValueType>();
-
-    auto inserter = io::traits::Inserter(c);
-    auto row_it = res.begin();
-    for (std::size_t i = 0; i < res.Size(); ++i, ++row_it, ++inserter) {
-        *inserter = *row_it;
-    }
-
-    return c;
+    using ValueType = std::remove_cvref_t<typename Container::value_type>;
+    static_assert(!io::traits::IsStructView<ValueType>::value, "Reading struct views from fields is not supported yet");
+    return CopyToContainer<Container>(AsSetOf<ValueType>(kFieldTag));
 }
 
 template <typename Container>
-Container ResultSet::AsContainer(RowTag) const {
+auto ResultSet::AsContainer(RowTag) const {
     detail::AssertSaneTypeToDeserialize<Container>();
-    using ValueType = typename Container::value_type;
+    using ValueType = std::remove_cvref_t<typename Container::value_type>;
+    if constexpr (io::traits::IsStructView<ValueType>::value) {
+        using NewContainerType =
+            meta::RebindContainer<Container, typename ValueType::UnderlyingType>;
+        return CopyToContainer<NewContainerType>(AsSetOf<ValueType>(kRowTag));
+    } else {
+        return CopyToContainer<Container>(AsSetOf<ValueType>(kRowTag));
+    }
+}
+
+template <typename Container, typename ResultSetT>
+auto ResultSet::CopyToContainer(ResultSetT const& res) const {
     Container c;
     if constexpr (io::traits::CanReserve<Container>) {
         c.reserve(Size());
     }
-    auto res = AsSetOf<ValueType>(kRowTag);
 
     auto inserter = io::traits::Inserter(c);
     auto row_it = res.begin();
@@ -267,7 +271,7 @@ std::optional<T> ResultSet::AsOptionalSingleRow(FieldTag) const {
     return IsEmpty() ? std::nullopt : std::optional<T>{AsSingleRow<T>(kFieldTag)};
 }
 
-template <typename T, typename ExtractionTag>
+template <typename T, typename ExtractionTag, typename AsType>
 class TypedResultSet {
 public:
     using size_type = ResultSet::size_type;
@@ -277,8 +281,9 @@ public:
 
     //@{
     /** @name Row container concept */
-    using const_iterator = detail::ConstTypedRowIterator<T, ExtractionTag, detail::IteratorDirection::kForward>;
-    using const_reverse_iterator = detail::ConstTypedRowIterator<T, ExtractionTag, detail::IteratorDirection::kReverse>;
+    using const_iterator = detail::ConstTypedRowIterator<T, ExtractionTag, AsType, detail::IteratorDirection::kForward>;
+    using const_reverse_iterator =
+        detail::ConstTypedRowIterator<T, ExtractionTag, AsType, detail::IteratorDirection::kReverse>;
 
     using value_type = T;
     using pointer = const_iterator;
@@ -292,9 +297,7 @@ public:
 #endif
 
     //@}
-    explicit TypedResultSet(ResultSet result)
-        : result_{std::move(result)}
-    {}
+    explicit TypedResultSet(ResultSet result) : result_{std::move(result)} {}
 
     /// Number of rows in the result set
     size_type Size() const { return result_.Size(); }

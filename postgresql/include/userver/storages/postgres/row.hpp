@@ -11,6 +11,7 @@
 #include <variant>
 
 #include <userver/storages/postgres/field.hpp>
+#include <userver/storages/postgres/io/struct_view.hpp>
 #include <userver/storages/postgres/io/supported_types.hpp>
 #include <userver/utils/zstring_view.hpp>
 
@@ -21,15 +22,13 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::postgres {
 
 class ResultSet;
-template <typename T, typename ExtractionTag>
+template <typename T, typename ExtractionTag, typename AsType = T>
 class TypedResultSet;
 
 /// @brief A wrapper for PGresult to access field descriptions.
 class RowDescription {
 public:
-    RowDescription(detail::ResultWrapperPtr res)
-        : res_{std::move(res)}
-    {}
+    RowDescription(detail::ResultWrapperPtr res) : res_{std::move(res)} {}
 
     /// Check that all fields can be read in binary format
     /// @throw NoBinaryParser if any of the fields doesn't have a binary parser
@@ -144,16 +143,23 @@ public:
     /// @brief Returns T initialized with values of the row.
     /// @snippet postgresql/src/storages/postgres/tests/typed_rows_pgtest.cpp RowTagSippet
     template <typename T>
-    T As(RowTag) const {
-        T val{};
-        To(val, kRowTag);
-        return val;
+    auto As(RowTag) const {
+        if constexpr (io::traits::IsStructView<T>::value) {
+            typename T::UnderlyingType val{};
+            auto data = T::Tie(val);
+            To(data, kRowTag);
+            return val;
+        } else {
+            T val{};
+            To(val, kRowTag);
+            return val;
+        }
     }
 
     /// @brief Returns T initialized with a single column value of the row.
     /// @snippet postgresql/src/storages/postgres/tests/composite_types_pgtest.cpp FieldTagSippet
     template <typename T>
-    T As(FieldTag) const {
+    auto As(FieldTag) const {
         T val{};
         To(val, kFieldTag);
         return val;
@@ -180,15 +186,12 @@ public:
 protected:
     friend class ResultSet;
 
-    template <typename T, typename Tag>
+    template <typename T, typename Tag, typename AsType>
     friend class TypedResultSet;
 
     Row() = default;
 
-    Row(detail::ResultWrapperPtr res, size_type row)
-        : res_{std::move(res)},
-          row_index_{row}
-    {}
+    Row(detail::ResultWrapperPtr res, size_type row) : res_{std::move(res)}, row_index_{row} {}
 
     //@{
     /** @name Iteration support */
@@ -210,9 +213,7 @@ public:
 private:
     friend class ResultSet;
 
-    ConstRowIterator(detail::ResultWrapperPtr res, size_type row)
-        : ConstDataIterator(std::move(res), row)
-    {}
+    ConstRowIterator(detail::ResultWrapperPtr res, size_type row) : ConstDataIterator(std::move(res), row) {}
 };
 
 /// @name Reverse iterator over rows in a result set
@@ -224,9 +225,7 @@ public:
 private:
     friend class ResultSet;
 
-    ReverseConstRowIterator(detail::ResultWrapperPtr res, size_type row)
-        : ConstDataIterator(std::move(res), row)
-    {}
+    ReverseConstRowIterator(detail::ResultWrapperPtr res, size_type row) : ConstDataIterator(std::move(res), row) {}
 };
 
 namespace detail {
@@ -347,6 +346,10 @@ void Row::To(T&& val) const {
 
 template <typename T>
 void Row::To(T&& val, RowTag) const {
+    static_assert(
+        !io::traits::IsStructView<T>::value,
+        "Struct views are not supported for reading to. Use As<StructView<T>>"
+    );
     detail::AssertSaneTypeToDeserialize<T>();
     // Convert the val into a writable tuple and extract the data
     using ValueType = std::remove_cvref_t<T>;
@@ -368,6 +371,7 @@ void Row::To(T&& val, RowTag) const {
 
 template <typename T>
 void Row::To(T&& val, FieldTag) const {
+    static_assert(!io::traits::IsStructView<T>::value, "Struct views are not supported for reading as field values");
     detail::AssertSaneTypeToDeserialize<T>();
     using ValueType = std::remove_cvref_t<T>;
     detail::AssertRowTypeIsMappedToPgOrIsCompositeType<ValueType>();
