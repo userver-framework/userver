@@ -112,6 +112,12 @@ public:
 
     virtual void DeleteObject(std::string_view path) const = 0;
 
+    virtual void PutObjectConditional(
+        std::string_view path,
+        std::string data,
+        const std::optional<std::string>& expected_etag
+    ) const;
+
     virtual std::optional<std::string> GetObject(
         std::string_view path,
         std::optional<std::string> version = std::nullopt,

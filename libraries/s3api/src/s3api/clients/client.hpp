@@ -58,6 +58,9 @@ public:
 
     void DeleteObject(std::string_view path) const final;
 
+    void PutObjectConditional(std::string_view path, std::string data, const std::optional<std::string>& expected_etag)
+        const final;
+
     std::optional<std::string> GetObject(
         std::string_view path,
         std::optional<std::string> versiong,

@@ -40,6 +40,46 @@ public:
     mutable std::string signed_host;
 };
 
+class ConditionalHeadersAuthenticator final : public authenticators::Authenticator {
+public:
+    std::unordered_map<std::string, std::string> Auth(const Request& request) const override {
+        const auto match = request.headers.find(http::headers::kIfMatch);
+        const auto none_match = request.headers.find(http::headers::kIfNoneMatch);
+        if_match = match == request.headers.end() ? "" : match->second;
+        if_none_match = none_match == request.headers.end() ? "" : none_match->second;
+        throw std::runtime_error("Authentication captured the conditional request");
+    }
+
+    std::unordered_map<std::string, std::string> Sign(const Request&, std::time_t) const override {
+        throw std::logic_error("Presigning is not expected");
+    }
+
+    mutable std::string if_match;
+    mutable std::string if_none_match;
+};
+
+UTEST(S3ConditionalWrite, SignsCreationAndReplacementPreconditions) {
+    UnusedHttpClient http_client;
+    auto connection = std::make_shared<S3Connection>(
+        http_client,
+        S3ConnectionType::kHttps,
+        "s3.example.com",
+        ConnectionCfg{std::chrono::milliseconds{1000}}
+    );
+    auto authenticator = std::make_shared<ConditionalHeadersAuthenticator>();
+    ClientImpl client{std::move(connection), authenticator, "bucket"};
+
+    EXPECT_THROW(client.PutObjectConditional("head", "data", std::nullopt), std::runtime_error);
+    EXPECT_EQ(authenticator->if_none_match, "*");
+    EXPECT_TRUE(authenticator->if_match.empty());
+
+    EXPECT_THROW(client.PutObjectConditional("head", "data", "\"previous\""), std::runtime_error);
+    EXPECT_EQ(authenticator->if_match, "\"previous\"");
+    EXPECT_TRUE(authenticator->if_none_match.empty());
+
+    EXPECT_THROW(client.PutObjectConditional("head", "data", ""), std::invalid_argument);
+}
+
 TEST(S3PresignedUrl, NormalizesEndpointHostForDownloadAndUpload) {
     UnusedHttpClient http_client;
     const auto expires_at = std::chrono::system_clock::time_point{std::chrono::seconds{1'700'000'000}};

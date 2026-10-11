@@ -1,6 +1,7 @@
 #include <s3api/clients/client.hpp>
 
 #include <sstream>
+#include <stdexcept>
 
 #include <fmt/format.h>
 #include <boost/algorithm/string.hpp>
@@ -239,6 +240,27 @@ std::string ClientImpl::PutObject(
 void ClientImpl::DeleteObject(std::string_view path) const {
     auto req = api_methods::DeleteObject(bucket_, path);
     RequestApi(req, "delete_object");
+}
+
+void Client::PutObjectConditional(std::string_view, std::string, const std::optional<std::string>&) const {
+    throw std::logic_error("This S3 client does not implement conditional writes");
+}
+
+void ClientImpl::PutObjectConditional(
+    std::string_view path,
+    std::string data,
+    const std::optional<std::string>& expected_etag
+) const {
+    auto request = api_methods::PutObject(bucket_, path, std::move(data), "application/json", std::nullopt);
+    if (expected_etag) {
+        if (expected_etag.value().empty()) {
+            throw std::invalid_argument("An S3 conditional-write ETag must not be empty");
+        }
+        request.headers[http::headers::kIfMatch] = expected_etag.value();
+    } else {
+        request.headers[http::headers::kIfNoneMatch] = "*";
+    }
+    RequestApi(request, "put_object_conditional");
 }
 
 std::optional<std::string> ClientImpl::GetObject(
