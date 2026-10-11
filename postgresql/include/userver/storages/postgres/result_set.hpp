@@ -127,7 +127,7 @@ public:
     template <typename Container>
     Container AsContainer() const;
     template <typename Container>
-    auto AsContainer(RowTag) const;
+    io::traits::ContainerRowExtractionT<Container> AsContainer(RowTag) const;
 
     /// @brief Extract first row into user type.
     /// A single row result set is expected, will throw an exception when result
@@ -155,7 +155,7 @@ private:
     void FillBufferCategories(const UserTypes& types);
     void SetBufferCategoriesFrom(const ResultSet&);
     template <typename Container, typename ResultSetT>
-    auto CopyToContainer(ResultSetT const&) const;
+    Container CopyToContainer(const ResultSetT&) const;
 
     template <typename T, typename Tag, typename AsType>
     friend class TypedResultSet;
@@ -205,20 +205,14 @@ Container ResultSet::AsContainer() const {
 }
 
 template <typename Container>
-auto ResultSet::AsContainer(RowTag) const {
+io::traits::ContainerRowExtractionT<Container> ResultSet::AsContainer(RowTag) const {
     detail::AssertSaneTypeToDeserialize<Container>();
     using ValueType = std::remove_cvref_t<typename Container::value_type>;
-    if constexpr (io::traits::IsStructView<ValueType>::value) {
-        using NewContainerType =
-            meta::RebindContainer<Container, typename ValueType::UnderlyingType>;
-        return CopyToContainer<NewContainerType>(AsSetOf<ValueType>(kRowTag));
-    } else {
-        return CopyToContainer<Container>(AsSetOf<ValueType>(kRowTag));
-    }
+    return CopyToContainer<io::traits::ContainerRowExtractionT<Container>>(AsSetOf<ValueType>(kRowTag));
 }
 
 template <typename Container, typename ResultSetT>
-auto ResultSet::CopyToContainer(ResultSetT const& res) const {
+Container ResultSet::CopyToContainer(const ResultSetT& res) const {
     Container c;
     if constexpr (io::traits::CanReserve<Container>) {
         c.reserve(Size());

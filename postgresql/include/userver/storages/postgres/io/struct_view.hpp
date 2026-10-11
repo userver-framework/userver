@@ -4,6 +4,7 @@
 /// @brief Reading and writing a subset of a structure's members as a row
 /// @ingroup userver_postgres_parse_and_format
 
+#include <concepts>
 #include <tuple>
 #include <type_traits>
 
@@ -66,9 +67,10 @@ struct StructView {
     using UnderlyingType = std::remove_cvref_t<T>;
 
     template <typename U>
-    requires std::is_convertible_v<U, UnderlyingType>
-    static auto Tie(U&& value) {
-        return detail::PartialTie<Members...>(std::forward<U>(value));
+    requires std::derived_from<std::remove_cvref_t<U>, UnderlyingType>
+    static auto Tie(U& value) {
+        using UnderlyingRef = std::conditional_t<std::is_const_v<U>, const UnderlyingType&, UnderlyingType&>;
+        return detail::PartialTie<Members...>(static_cast<UnderlyingRef>(value));
     }
 
     static constexpr auto size = std::tuple_size_v<decltype(Tie(std::declval<const UnderlyingType&>()))>;
@@ -96,7 +98,94 @@ struct IsStructView<StructView<T, Members...>> : std::true_type {};
 template <typename T>
 concept RequiresStructView = IsStructView<T>::value;
 
+template <typename T>
+struct RowExtraction {
+    using type = T;
+};
+
+template <typename T, auto... Members>
+struct RowExtraction<StructView<T, Members...>> {
+    using type = typename StructView<T, Members...>::UnderlyingType;
+};
+
+/// The type a row read as `T` yields: `T` itself, or the viewed structure for a StructView.
+template <typename T>
+using RowExtractionT = typename RowExtraction<T>::type;
+
+template <typename Container>
+struct ContainerRowExtraction {
+    using type = Container;
+};
+
+template <typename Container>
+requires IsStructView<std::remove_cvref_t<typename Container::value_type>>::value
+struct ContainerRowExtraction<Container> {
+    using type = meta::RebindContainer<Container, RowExtractionT<std::remove_cvref_t<typename Container::value_type>>>;
+};
+
+/// The container a result read as `Container` yields: `Container` itself, or
+/// the container rebound to the viewed structure for a container of StructView.
+template <typename Container>
+using ContainerRowExtractionT = typename ContainerRowExtraction<Container>::type;
+
 }  // namespace traits
+
+namespace detail {
+
+template <typename View, typename Container>
+class ViewContainer {
+public:
+    static_assert(traits::IsStructView<View>::value, "The view of a ViewContainer must be a StructView");
+    static_assert(
+        std::is_same_v<typename View::UnderlyingType, std::remove_cvref_t<typename Container::value_type>>,
+        "The container's elements must be the structure the view is over. "
+        "Use MakeViewContainer to deduce the structure from the container"
+    );
+
+    using ViewType = View;
+    using ContainerType = Container;
+
+    explicit ViewContainer(const Container& container) : container_(&container) {}
+
+    const Container& GetContainer() const { return *container_; }
+
+private:
+    const Container* container_;
+};
+
+}  // namespace detail
+
+namespace traits {
+
+template <typename T>
+struct IsViewContainer : std::false_type {};
+
+template <typename View, typename Container>
+struct IsViewContainer<io::detail::ViewContainer<View, Container>> : std::true_type {};
+
+}  // namespace traits
+
+/// @brief A container of structures, decomposed into columns through `View`.
+///
+/// For ExecuteDecompose and ExecuteDecomposeBulk: each member the view names
+/// becomes one array parameter, in the view's order, and the members it does
+/// not name are not sent.
+/// The result borrows `container`, so it must not outlive it.
+template <typename View, typename Container>
+detail::ViewContainer<View, Container> StructViewContainer(const Container& container) {
+    return detail::ViewContainer<View, Container>{container};
+}
+
+/// @brief A StructViewContainer over `container`, deducing the viewed class
+/// from its elements.
+///
+/// `MakeViewContainer<&User::id, &User::name>(users)` is
+/// `StructViewContainer<StructView<User, &User::id, &User::name>>(users)`.
+template <auto... Members, typename Container>
+auto MakeViewContainer(const Container& container) {
+    using ValueType = std::remove_cvref_t<typename Container::value_type>;
+    return StructViewContainer<StructView<ValueType, Members...>>(container);
+}
 
 /// @brief A StructView over `obj`, deducing the viewed class from it.
 ///

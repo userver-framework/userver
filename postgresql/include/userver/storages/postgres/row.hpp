@@ -143,23 +143,21 @@ public:
     /// @brief Returns T initialized with values of the row.
     /// @snippet postgresql/src/storages/postgres/tests/typed_rows_pgtest.cpp RowTagSippet
     template <typename T>
-    auto As(RowTag) const {
+    io::traits::RowExtractionT<T> As(RowTag) const {
+        io::traits::RowExtractionT<T> val{};
         if constexpr (io::traits::IsStructView<T>::value) {
-            typename T::UnderlyingType val{};
             auto data = T::Tie(val);
             To(data, kRowTag);
-            return val;
         } else {
-            T val{};
             To(val, kRowTag);
-            return val;
         }
+        return val;
     }
 
     /// @brief Returns T initialized with a single column value of the row.
     /// @snippet postgresql/src/storages/postgres/tests/composite_types_pgtest.cpp FieldTagSippet
     template <typename T>
-    auto As(FieldTag) const {
+    T As(FieldTag) const {
         T val{};
         To(val, kFieldTag);
         return val;

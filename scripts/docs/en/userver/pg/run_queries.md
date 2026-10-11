@@ -110,6 +110,39 @@ intended shape.
 @see @ref scripts/docs/en/userver/pg/user_row_types.md for reading a row back
      through the same view.
 
+@par Passing a container of structures column by column
+
+storages::postgres::Transaction::ExecuteDecompose,
+storages::postgres::Transaction::ExecuteDecomposeBulk and
+storages::postgres::Cluster::ExecuteDecompose send a container of structures as
+one array parameter per member. To send only some of the members, or to send
+them in the order the statement expects, wrap the container in a view: each
+element stays the structure, and the view picks its columns.
+
+@code
+std::vector<User> users{/* ... */};
+
+// The view type is named explicitly.
+using UserIdName = pg::io::StructView<User, &User::id, &User::name>;
+trx.ExecuteDecompose("insert into users(id, name) select * from unnest($1, $2)",
+                     pg::io::StructViewContainer<UserIdName>(users));
+
+// The structure is deduced from the container, only the members are named.
+trx.ExecuteDecomposeBulk("insert into users(email, id) select * from unnest($1, $2)",
+                         pg::io::MakeViewContainer<&User::email, &User::id>(users));
+@endcode
+
+`MakeViewContainer<>(users)` with no members sends every member in declaration
+order, which also works for structures with an intrusive `Introspect()`.
+
+@warning A view container is accepted by the decomposing calls only.
+storages::postgres::Transaction::ExecuteBulk sends each chunk as a single array
+of the element type, and a subset of a structure's members has no PostgreSQL
+type to map to, so passing a view container there fails to compile with a hint
+to use ExecuteDecomposeBulk.
+
+@warning The view container borrows the container, so it must not outlive it.
+
 @note You may write a query in `.sql` file and generate a header file with Query from it.
       See @ref scripts/docs/en/userver/sql_files.md for more information.
 @see Transaction
