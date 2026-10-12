@@ -43,3 +43,10 @@ jobs:
                     -f scripts/docker/ubuntu-24.04-userver.dockerfile \
                     --output type=image,name=ghcr.io/userver-framework/ubuntu-24.04-userver:${USERVER_IMAGE_TAG},oci-mediatypes=true,compression=zstd,force-compression=true,compression-level=20,push=true \
                     .
+          - name: Build the ubuntu-24.04-userver-clang-dev Docker image
+            run: |-
+                docker buildx use my-builder
+                docker buildx build \
+                    -f scripts/docker/ubuntu-24.04-userver-clang-dev.dockerfile \
+                    --output type=image,name=ghcr.io/userver-framework/ubuntu-24.04-userver-clang-dev:${USERVER_IMAGE_TAG},oci-mediatypes=true,compression=zstd,force-compression=true,compression-level=20,push=true \
+                    .
