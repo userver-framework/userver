@@ -17,6 +17,7 @@ UTEST(ClientHttpMethodTest, Convert) {
     EXPECT_EQ(ch::ToStringView(ch::HttpMethod::kPut), "PUT");
     EXPECT_EQ(ch::ToStringView(ch::HttpMethod::kDelete), "DELETE");
     EXPECT_EQ(ch::ToStringView(ch::HttpMethod::kOptions), "OPTIONS");
+    EXPECT_EQ(ch::ToStringView(ch::HttpMethod::kTrace), "TRACE");
 
     EXPECT_EQ(ch::HttpMethodFromString("GET"), ch::HttpMethod::kGet);
     EXPECT_EQ(ch::HttpMethodFromString("HEAD"), ch::HttpMethod::kHead);
@@ -25,6 +26,7 @@ UTEST(ClientHttpMethodTest, Convert) {
     EXPECT_EQ(ch::HttpMethodFromString("PUT"), ch::HttpMethod::kPut);
     EXPECT_EQ(ch::HttpMethodFromString("DELETE"), ch::HttpMethod::kDelete);
     EXPECT_EQ(ch::HttpMethodFromString("OPTIONS"), ch::HttpMethod::kOptions);
+    EXPECT_EQ(ch::HttpMethodFromString("TRACE"), ch::HttpMethod::kTrace);
 
     UEXPECT_THROW(ch::HttpMethodFromString("123"), std::runtime_error);
 }

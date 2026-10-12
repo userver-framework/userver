@@ -40,6 +40,7 @@ INSTANTIATE_UTEST_SUITE_P(
         MethodsData{"CONNECT", HttpMethod::kConnect},
         MethodsData{"PATCH", HttpMethod::kPatch},
         MethodsData{"OPTIONS", HttpMethod::kOptions},
+        MethodsData{"TRACE", HttpMethod::kTrace},
         MethodsData{"GE", HttpMethod::kUnknown},
         MethodsData{"GETT", HttpMethod::kUnknown},
         MethodsData{"get", HttpMethod::kUnknown},

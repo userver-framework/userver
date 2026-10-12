@@ -16,6 +16,7 @@ inline constexpr HttpMethod kHandlerMethods[] = {
     HttpMethod::kDelete,
     HttpMethod::kPatch,
     HttpMethod::kOptions,
+    HttpMethod::kTrace,
     HttpMethod::kUnknown
 };
 
