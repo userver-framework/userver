@@ -1,6 +1,9 @@
 #include <userver/utest/assert_macros.hpp>
 
+#include <optional>
+#include <string>
 #include <unordered_map>
+#include <vector>
 
 #include <userver/compiler/demangle.hpp>
 #include <userver/formats/json/parser/parser.hpp>
@@ -277,6 +280,20 @@ TEST(JsonStringParser, ArrayInt) {
     state.PushParser(parser);
     state.ProcessInput(input);
     EXPECT_EQ(result, (std::vector<int64_t>{1, 2, 3}));
+}
+
+TEST(JsonStringParser, ArrayNullableItems) {
+    using Item = std::optional<std::string>;
+    using ItemParser = fjp::NullableItemParser<Item, fjp::StringParser>;
+
+    fjp::StringParser string_parser;
+    ItemParser item_parser(string_parser);
+    fjp::ArrayParser<Item, ItemParser> parser(item_parser);
+
+    EXPECT_EQ(
+        fjp::impl::ParseSingle(parser, R"(["id", null, null, "next"])"),
+        (std::vector<Item>{"id", std::nullopt, std::nullopt, "next"})
+    );
 }
 
 TEST(JsonStringParser, ArrayArrayInt) {

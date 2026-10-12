@@ -6289,6 +6289,7 @@
   "universal/include/userver/formats/json/parser/exception.hpp":"taxi/uservices/userver/universal/include/userver/formats/json/parser/exception.hpp",
   "universal/include/userver/formats/json/parser/int_parser.hpp":"taxi/uservices/userver/universal/include/userver/formats/json/parser/int_parser.hpp",
   "universal/include/userver/formats/json/parser/map_parser.hpp":"taxi/uservices/userver/universal/include/userver/formats/json/parser/map_parser.hpp",
+  "universal/include/userver/formats/json/parser/nullable_item_parser.hpp":"taxi/uservices/userver/universal/include/userver/formats/json/parser/nullable_item_parser.hpp",
   "universal/include/userver/formats/json/parser/number_parser.hpp":"taxi/uservices/userver/universal/include/userver/formats/json/parser/number_parser.hpp",
   "universal/include/userver/formats/json/parser/parser.hpp":"taxi/uservices/userver/universal/include/userver/formats/json/parser/parser.hpp",
   "universal/include/userver/formats/json/parser/parser_handler.hpp":"taxi/uservices/userver/universal/include/userver/formats/json/parser/parser_handler.hpp",
