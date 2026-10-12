@@ -15,6 +15,7 @@
 
 #include <userver/compiler/demangle.hpp>
 #include <userver/formats/common/type.hpp>
+#include <userver/formats/json_fwd.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -126,7 +127,15 @@ public:
         UASSERT(stack_.size() > 1);
         auto& current_docs = stack_[stack_.size() - 2];
         if (current_docs.from.IsObject()) {
-            current_docs.to.value()[current_docs.current_parsing_elem->GetName()] = std::move(stack_.back().to.value());
+            auto& builder = current_docs.to.value();
+            auto& child = stack_.back().to.value();
+            const auto key = current_docs.current_parsing_elem->GetName();
+            UASSERT_MSG(!builder.HasMember(key), "Duplicate object key during format conversion");
+            if constexpr (std::is_same_v<ValueToBuilder, json::ValueBuilder>) {
+                builder.EmplaceNocheck(key, std::move(child));
+            } else {
+                builder[key] = std::move(child);
+            }
         } else if (current_docs.from.IsArray()) {
             current_docs.to->PushBack(std::move(stack_.back().to.value()));
         } else {
