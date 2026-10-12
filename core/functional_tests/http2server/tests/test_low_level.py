@@ -422,6 +422,28 @@ async def test_request_without_path_resets_stream(create_connection, service_cli
         assert stream_id == 3
 
 
+async def test_unknown_method_is_a_bad_request(create_connection, service_client):
+    await service_client.update_server_state()
+    async with create_connection() as (sock, conn):
+        # An unsupported ':method' makes the request malformed; it must not
+        # affect the rest of the connection (RFC 9113, 8.1.1).
+        headers = [(':method', 'TRACE')] + PSEUDO_HEADERS[1:]
+        stream_id = conn.get_next_available_stream_id()
+        conn.send_headers(stream_id, headers, end_stream=True)
+        await sock.sendall(conn.data_to_send())
+
+        events = []
+        while not any(isinstance(event, h2.events.ResponseReceived) for event in events):
+            events += await utils.send_and_receive(sock, conn)
+        response = next(event for event in events if isinstance(event, h2.events.ResponseReceived))
+        assert dict(response.headers)[b':status'] == b'400'
+
+        stream_id = conn.get_next_available_stream_id()
+        conn.send_headers(stream_id, DEFAULT_HEADERS, end_stream=True)
+        await sock.sendall(conn.data_to_send())
+        await utils.receive_simple_response(sock, conn)
+
+
 async def test_single_reset_keeps_connection_usable(
     create_connection,
     monitor_client,
