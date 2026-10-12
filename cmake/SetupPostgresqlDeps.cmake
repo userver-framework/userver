@@ -5,9 +5,15 @@ _userver_macos_set_default_dir(USERVER_PG_LIBRARY_DIR "pg_config;--libdir")
 _userver_macos_set_default_dir(USERVER_PG_SERVER_INCLUDE_DIR "pg_config;--includedir-server")
 _userver_macos_set_default_dir(USERVER_PG_SERVER_LIBRARY_DIR "pg_config;--pkglibdir")
 
-# We need libldap to statically link with libpq There is no FindLdap.cmake and no package config files for ldap library,
-# so need to search for it by hand.
-find_library(LDAP_LIBRARY NAMES libldap.so libldap.dylib libldap.framework)
+find_package(OpenLDAP CONFIG QUIET)
+if(OpenLDAP_FOUND)
+    set(LDAP_LIBRARY openldap::openldap)
+endif()
+
+if(NOT LDAP_LIBRARY)
+    find_library(LDAP_LIBRARY NAMES libldap.so libldap.dylib libldap.framework)
+endif()
+
 if(NOT LDAP_LIBRARY)
     message(
         FATAL_ERROR
