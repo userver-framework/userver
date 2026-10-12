@@ -1,6 +1,9 @@
 #include <userver/server/middlewares/cors.hpp>
 
 #include <algorithm>
+#include <stdexcept>
+
+#include <fmt/format.h>
 
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
@@ -34,11 +37,31 @@ constexpr std::string_view kAccessControlAllowOrigin = "Access-Control-Allow-Ori
 constexpr std::string_view kAccessControlAllowCredentials = "Access-Control-Allow-Credentials";
 constexpr std::string_view kAccessControlExposeHeaders = "Access-Control-Expose-Headers";
 
+constexpr std::string_view kAnyOrigin = "*";
+
+void ValidateAllowCredentials(const Cors::Config& config) {
+    if (!config.allow_credentials || !utils::Contains(config.allowed_origins, kAnyOrigin)) {
+        return;
+    }
+
+    throw std::runtime_error(fmt::format(
+        "Invalid '{0}' static config: 'allow-credentials: true' must not be combined with the '{1}' wildcard in "
+        "'allowed-origins'. A response that exposes credentials has to name a single concrete origin, so the "
+        "wildcard is echoed back as the requesting origin and every origin ends up with credentialed access. "
+        "How to fix: either list the trusted origins in 'allowed-origins' explicitly, or set "
+        "'allow-credentials: false'.",
+        CorsFactory::kName,
+        kAnyOrigin
+    ));
+}
+
 }  // namespace
 
 Cors::Cors(const Config& config)
     : config_(config)
-{}
+{
+    ValidateAllowCredentials(config_);
+}
 
 void Cors::HandleRequest(http::HttpRequest& request, request::RequestContext& context) const {
     const auto& origin = GetOriginHeader(request);
@@ -131,7 +154,7 @@ bool Cors::IsOriginAllowed(const std::string& origin) const {
     }
 
     // Check if wildcard is allowed
-    if (utils::Contains(config_.allowed_origins, "*")) {
+    if (utils::Contains(config_.allowed_origins, kAnyOrigin)) {
         return true;
     }
 

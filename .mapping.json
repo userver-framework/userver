@@ -2246,6 +2246,7 @@
   "core/src/server/middlewares/configuration_test.cpp":"taxi/uservices/userver/core/src/server/middlewares/configuration_test.cpp",
   "core/src/server/middlewares/cors.cpp":"taxi/uservices/userver/core/src/server/middlewares/cors.cpp",
   "core/src/server/middlewares/cors.yaml":"taxi/uservices/userver/core/src/server/middlewares/cors.yaml",
+  "core/src/server/middlewares/cors_test.cpp":"taxi/uservices/userver/core/src/server/middlewares/cors_test.cpp",
   "core/src/server/middlewares/deadline_propagation.cpp":"taxi/uservices/userver/core/src/server/middlewares/deadline_propagation.cpp",
   "core/src/server/middlewares/deadline_propagation.hpp":"taxi/uservices/userver/core/src/server/middlewares/deadline_propagation.hpp",
   "core/src/server/middlewares/decompression.cpp":"taxi/uservices/userver/core/src/server/middlewares/decompression.cpp",
