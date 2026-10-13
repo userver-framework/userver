@@ -3,6 +3,7 @@
 #include <array>
 #include <ranges>
 #include <system_error>
+#include <utility>
 #include <vector>
 
 #include <fmt/format.h>
@@ -108,6 +109,19 @@ UTEST_F(HttpClientDeadline, DeadlineIsUsedByClient) {
 
     auto request = GetClient().CreateRequest().get().url(GetServer().GetBaseUrl()).timeout(utest::kMaxTestWaitTime);
     UEXPECT_THROW((void)request.perform(), clients::http::CancelException);
+}
+
+UTEST_F(HttpClientDeadline, MoveConstructorPreservesInheritedDeadline) {
+    constexpr auto kInheritedTimeout = 100ms;
+    auto request = GetClient().CreateRequest().get(GetServer().GetBaseUrl()).timeout(utest::kMaxTestWaitTime);
+    SetTaskInheritedDeadline(kInheritedTimeout);
+    auto original = request.async_perform();
+    ASSERT_FALSE(original.IsReady());
+
+    auto moved = std::move(original);
+    UEXPECT_THROW((void)moved.Get(), clients::http::CancelException);
+    EXPECT_TRUE(server::request::kTaskInheritedData.Get().deadline_signal.IsExpired());
+    PushResponseCode(200);
 }
 
 UTEST_F(HttpClientDeadline, DeadlineIsUsedByClientOldConnection) {
