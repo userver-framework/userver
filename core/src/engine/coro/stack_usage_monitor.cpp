@@ -364,6 +364,7 @@ public:
         for (auto* thread_alt_stack : threads_alt_stacks_) {
             ::munmap(thread_alt_stack, kAltStackSize);
         }
+        threads_alt_stacks_.clear();
 
         is_active_ = false;
     }
