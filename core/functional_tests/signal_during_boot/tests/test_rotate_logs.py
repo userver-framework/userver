@@ -1,20 +1,10 @@
+import asyncio
 import os
 import signal
 
 import pytest_userver.utils.sync as sync
 
 TIMEOUT = 60
-
-
-async def wait_for_logfile(fname: str):
-    async def check_ready():
-        with open(fname) as ifile:
-            for line in ifile.readlines():
-                if 'Starting to catch signals' in line:
-                    return
-        raise sync.NotReady()
-
-    await sync.wait_until(check_ready)
 
 
 def stderr_handler(line: str):
@@ -27,10 +17,17 @@ async def test_boot_logs(
     service_env,
     create_daemon_scope,
     ensure_daemon_started,
+    testpoint,
     _service_logfile_path,
 ):
+    component_loading = asyncio.Event()
+
+    @testpoint('slow-component-loading')
+    def on_component_loading(_data):
+        component_loading.set()
+
     async def _checker(*, session, process) -> bool:
-        return True
+        return component_loading.is_set()
 
     async with create_daemon_scope(
         args=[
@@ -43,8 +40,6 @@ async def test_boot_logs(
         stderr_handler=stderr_handler,
     ) as scope:
         daemon = await ensure_daemon_started(scope)
-
-        await wait_for_logfile(_service_logfile_path)
 
         os.remove(_service_logfile_path)
         assert not os.path.exists(_service_logfile_path)
