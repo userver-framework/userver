@@ -22,6 +22,9 @@ namespace {
 namespace fb = formats::bson;
 namespace fj = formats::json;
 
+static_assert(formats::common::impl::HasEmplaceNocheck<fb::ValueBuilder>);
+static_assert(formats::common::impl::HasEmplaceNocheck<fj::ValueBuilder>);
+
 const auto kTimePoint = std::chrono::system_clock::from_time_t(0) + std::chrono::milliseconds{1};
 
 const auto kSimpleJson = fj::MakeObject(

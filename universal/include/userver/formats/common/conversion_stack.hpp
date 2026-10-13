@@ -15,13 +15,21 @@
 
 #include <userver/compiler/demangle.hpp>
 #include <userver/formats/common/type.hpp>
-#include <userver/formats/json_fwd.hpp>
 #include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 /// @brief Shared types and helpers for JSON/YAML format layers.
 namespace formats::common {
+
+namespace impl {
+
+template <class ValueBuilder>
+concept HasEmplaceNocheck = requires(ValueBuilder builder, ValueBuilder value) {
+    builder.EmplaceNocheck("key", std::move(value));
+};
+
+}  // namespace impl
 
 /// @brief Used in the implementation of functions that convert between
 /// different formats, e.g. formats::yaml::Value to formats::json::Value, etc.
@@ -131,7 +139,7 @@ public:
             auto& child = stack_.back().to.value();
             const auto key = current_docs.current_parsing_elem->GetName();
             UASSERT_MSG(!builder.HasMember(key), "Duplicate object key during format conversion");
-            if constexpr (std::is_same_v<ValueToBuilder, json::ValueBuilder>) {
+            if constexpr (impl::HasEmplaceNocheck<ValueToBuilder>) {
                 builder.EmplaceNocheck(key, std::move(child));
             } else {
                 builder[key] = std::move(child);
