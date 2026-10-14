@@ -19,3 +19,9 @@ _userver_directory_install(
 if(USERVER_FEATURE_UTEST)
     add_subdirectory(utest)
 endif()
+
+add_subdirectory(tools/cli EXCLUDE_FROM_ALL)
+
+if(USERVER_BUILD_TESTS)
+    add_google_tests(userver-s3-cli-unittest)
+endif()
