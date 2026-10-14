@@ -55,6 +55,7 @@ async def create_multipart_upload(mockserver, bucket_name, key, content_type=Non
 async def upload_part(mockserver, bucket_name, key, upload_id, part_number, data):
     url = _create_s3_url(mockserver, key)
     headers = _create_s3_basic_heades(mockserver, bucket_name)
+    data_bytes: bytes | bytearray
     if isinstance(data, str):
         data_bytes = data.encode()
     elif isinstance(data, bytearray):

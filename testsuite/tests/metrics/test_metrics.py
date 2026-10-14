@@ -144,12 +144,12 @@ def test_metrics_list():
         metrics.Metric(labels={'label': 'b'}, value=2),
     }
 
-    values = values['test']
-    assert metrics.Metric({'label': 'a'}, value=1) in values
+    metric_values = values['test']
+    assert metrics.Metric({'label': 'a'}, value=1) in metric_values
 
-    assert metrics.Metric({}, value=1) not in values
-    assert metrics.Metric({'label': 'a'}, value=0) not in values
-    assert metrics.Metric({'label': 'c'}, value=1) not in values
+    assert metrics.Metric({}, value=1) not in metric_values
+    assert metrics.Metric({'label': 'a'}, value=0) not in metric_values
+    assert metrics.Metric({'label': 'c'}, value=1) not in metric_values
 
 
 def test_metrics_list_sample():
@@ -612,7 +612,7 @@ def test_compare_visitor_resolves_unspecified_type_from_other_side():
 
 def test_compare_visitor_keeps_type_unspecified_when_other_side_has_no_match():
     left = metrics.MetricsSnapshot({'only-left': {metrics.Metric(labels={'a': 'b'}, value=5)}})
-    right = {}
+    right: dict = {}
 
     with pytest.raises(AssertionError) as exc_info:
         assert left == right

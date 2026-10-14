@@ -29,7 +29,7 @@ def choose_free_port():
 @pytest.mark.parametrize('listener_name,first_port', [('listener', MAIN_PORT), ('listener-monitor', MONITOR_PORT)])
 def test_all_listener_ports_are_allocated(userver_config_http_server, listener_name, first_port):
     tls = {'cert': 'cert.crt', 'private-key': 'private_key.key'}
-    listener = {'ports': [{'port': PORT_HINTS[0]}, {'port': PORT_HINTS[1], 'tls': tls}, {'port': PORT_HINTS[2]}]}
+    listener: dict = {'ports': [{'port': PORT_HINTS[0]}, {'port': PORT_HINTS[1], 'tls': tls}, {'port': PORT_HINTS[2]}]}
     config = {'components_manager': {'components': {'server': {listener_name: listener}}}}
 
     userver_config_http_server(config, {})
@@ -57,7 +57,7 @@ def test_first_listener_port_is_an_integer_hint(choose_free_port):
 
 @pytest.mark.parametrize('config_vars', [{'tls-port': PORT_HINTS[1]}, {}])
 def test_extra_listener_port_resolves_variables(userver_config_http_server, config_vars):
-    listener = {
+    listener: dict = {
         'ports': [{'port': PORT_HINTS[0]}, {'port': '$tls-port', 'port#fallback': PORT_HINTS[1]}],
     }
     config = {'components_manager': {'components': {'server': {'listener': listener}}}}
@@ -70,6 +70,7 @@ def test_extra_listener_port_resolves_variables(userver_config_http_server, conf
 @pytest.mark.parametrize('config_vars', [{'main-port': PORT_HINTS[0]}, {}])
 def test_first_listener_port_resolves_variables(choose_free_port, config_vars):
     class OriginalConfig:
+        config_vars: dict
         config_yaml = {
             'components_manager': {
                 'components': {
