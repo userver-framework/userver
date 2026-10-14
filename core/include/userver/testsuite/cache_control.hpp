@@ -265,19 +265,6 @@ void RegisterCacheResetter(
 }
 
 /// @deprecated Use @ref RegisterCacheResetter instead.
-///
-/// Same as @ref RegisterCacheResetter for a `void()` hook. The testsuite
-/// `update_type` is ignored.
-template <typename Component>
-void RegisterCacheScope(
-    const components::ComponentContext& context,
-    Component* self,
-    void (Component::*reset_method)()
-) {
-    RegisterCacheResetter(context, self, reset_method);
-}
-
-/// @deprecated Use @ref RegisterCacheResetter instead.
 /// The returned handle must be kept alive to keep supporting cache resetting.
 ///
 /// @warning The function should be called in the component's constructor
