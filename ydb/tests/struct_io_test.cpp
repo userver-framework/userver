@@ -1,6 +1,14 @@
+#include <utility>
+#include <vector>
+
 #include <boost/pfr/ops_fields.hpp>
 
 #include <userver/utest/utest.hpp>
+#include <userver/utils/enumerate.hpp>
+#include <userver/ydb/io/list.hpp>
+#include <userver/ydb/io/primitives.hpp>
+#include <userver/ydb/io/structs.hpp>
+#include <userver/ydb/types.hpp>
 
 #include "small_table.hpp"
 #include "test_utils.hpp"
@@ -167,6 +175,116 @@ UTEST_F(YdbStructIO, WriteAndParseOptional) {
     for (auto row : result.GetSingleCursor()) {
         EXPECT_EQ(row.Get<std::optional<struct_test::MyStructExternalSpecialization>>(0), struct_opt_value);
     }
+}
+
+namespace struct_test {
+
+struct CampaignInput {
+    static constexpr ydb::StructMemberNames kYdbMemberNames{};
+
+    ydb::Utf8 current_place_id;
+    std::vector<ydb::Utf8> user_id_list;
+    std::vector<ydb::Utf8> user_tag_list;
+    std::vector<ydb::Utf8> place_id_list;
+    std::vector<ydb::Utf8> brand_id_list;
+
+    bool operator==(const CampaignInput&) const = default;
+};
+
+struct FlattenedCampaignInput {
+    static constexpr ydb::StructMemberNames kYdbMemberNames{};
+
+    ydb::Utf8 current_place_id;
+    ydb::Utf8 user_id;
+    ydb::Utf8 user_tag;
+    ydb::Utf8 place_id;
+    ydb::Utf8 brand_id;
+
+    bool operator==(const FlattenedCampaignInput&) const = default;
+};
+
+}  // namespace struct_test
+
+UTEST_F(YdbStructIO, ListOfStructsWithUtf8Lists) {
+    const ydb::Query query{R"(
+        DECLARE $input AS List<Struct<
+            current_place_id: Utf8,
+            user_id_list: List<Utf8>,
+            user_tag_list: List<Utf8>,
+            place_id_list: List<Utf8>,
+            brand_id_list: List<Utf8>
+        >>;
+        SELECT $input AS input;
+    )"};
+
+    const struct_test::CampaignInput empty_lists{
+        .current_place_id = ydb::Utf8{"empty"},
+        .user_id_list = {},
+        .user_tag_list = {},
+        .place_id_list = {},
+        .brand_id_list = {},
+    };
+    const struct_test::CampaignInput filled_lists{
+        .current_place_id = ydb::Utf8{"current"},
+        .user_id_list = {ydb::Utf8{"uid1"}, ydb::Utf8{"uid2"}},
+        .user_tag_list = {ydb::Utf8{"Schlüsselwort"}},
+        .place_id_list = {ydb::Utf8{"place1"}, ydb::Utf8{"place2"}},
+        .brand_id_list = {ydb::Utf8{"Marke"}},
+    };
+
+    const std::vector<std::vector<struct_test::CampaignInput>> inputs{
+        {},
+        {empty_lists},
+        {empty_lists, filled_lists, empty_lists},
+    };
+    for (const auto& [index, input] : utils::enumerate(inputs)) {
+        SCOPED_TRACE(index);
+        auto result = GetTableClient().ExecuteDataQuery(ydb::OperationSettings{}, query, "$input", input);
+        auto cursor = result.GetSingleCursor();
+        ASSERT_FALSE(cursor.IsTruncated());
+        ASSERT_EQ(cursor.size(), 1);
+        EXPECT_EQ(cursor.GetFirstRow().Get<std::vector<struct_test::CampaignInput>>("input"), input);
+    }
+}
+
+UTEST_F(YdbStructIO, FlattenListOfStructsWithUtf8Lists) {
+    const ydb::Query query{R"(
+        DECLARE $input AS List<Struct<
+            current_place_id: Utf8,
+            user_id_list: List<Utf8>,
+            user_tag_list: List<Utf8>,
+            place_id_list: List<Utf8>,
+            brand_id_list: List<Utf8>
+        >>;
+        SELECT current_place_id, user_id, user_tag, place_id, brand_id
+        FROM AS_TABLE($input)
+        FLATTEN LIST BY (
+            user_id_list AS user_id,
+            user_tag_list AS user_tag,
+            place_id_list AS place_id,
+            brand_id_list AS brand_id
+        )
+        ORDER BY current_place_id, user_id, user_tag, place_id, brand_id;
+    )"};
+
+    const std::vector input{struct_test::CampaignInput{
+        .current_place_id = ydb::Utf8{"current"},
+        .user_id_list = {ydb::Utf8{"uid1"}, ydb::Utf8{"uid2"}},
+        .user_tag_list = {ydb::Utf8{"Schlüsselwort"}},
+        .place_id_list = {ydb::Utf8{"place"}},
+        .brand_id_list = {ydb::Utf8{"brand1"}, ydb::Utf8{"brand2"}},
+    }};
+    const std::vector<struct_test::FlattenedCampaignInput> expected{
+        {ydb::Utf8{"current"}, ydb::Utf8{"uid1"}, ydb::Utf8{"Schlüsselwort"}, ydb::Utf8{"place"}, ydb::Utf8{"brand1"}},
+        {ydb::Utf8{"current"}, ydb::Utf8{"uid1"}, ydb::Utf8{"Schlüsselwort"}, ydb::Utf8{"place"}, ydb::Utf8{"brand2"}},
+        {ydb::Utf8{"current"}, ydb::Utf8{"uid2"}, ydb::Utf8{"Schlüsselwort"}, ydb::Utf8{"place"}, ydb::Utf8{"brand1"}},
+        {ydb::Utf8{"current"}, ydb::Utf8{"uid2"}, ydb::Utf8{"Schlüsselwort"}, ydb::Utf8{"place"}, ydb::Utf8{"brand2"}},
+    };
+
+    auto result = GetTableClient().ExecuteDataQuery(ydb::OperationSettings{}, query, "$input", input);
+    auto cursor = result.GetSingleCursor();
+    ASSERT_FALSE(cursor.IsTruncated());
+    EXPECT_EQ(std::move(cursor).AsContainer<std::vector<struct_test::FlattenedCampaignInput>>(), expected);
 }
 
 USERVER_NAMESPACE_END
