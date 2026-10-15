@@ -11,16 +11,13 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::impl {
 
-class AsyncMethodInvocation : public EventBase {
+class AsyncMethodInvocation final {
 public:
-    ~AsyncMethodInvocation() override;
+    ~AsyncMethodInvocation();
 
     /// @brief For use from coroutines
     /// @return This object's `void* tag` for `grpc::CompletionQueue::Next`
     void* GetCompletionTag() noexcept;
-
-    /// @see EventBase::Notify
-    void Notify(bool ok) noexcept override;
 
     enum class WaitStatus {
         kOk,
@@ -51,9 +48,24 @@ public:
     engine::AwaitableToken GetAwaitableToken() noexcept USERVER_IMPL_LIFETIME_BOUND;
 
 private:
+    class CompletionEvent final : public EventBase {
+    public:
+        explicit CompletionEvent(AsyncMethodInvocation& invocation) noexcept
+            : invocation_{invocation}
+        {}
+
+        void Notify(bool ok) noexcept override { invocation_.OnComplete(ok); }
+
+    private:
+        AsyncMethodInvocation& invocation_;
+    };
+
+    void OnComplete(bool ok) noexcept;
+
     bool enqueued_{false};
     bool ok_{false};
     engine::SingleUseEvent event_;
+    CompletionEvent completion_event_{*this};
 };
 
 }  // namespace ugrpc::impl

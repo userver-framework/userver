@@ -14,7 +14,7 @@ AsyncMethodInvocation::~AsyncMethodInvocation() {
     }
 }
 
-void AsyncMethodInvocation::Notify(bool ok) noexcept {
+void AsyncMethodInvocation::OnComplete(bool ok) noexcept {
     ok_ = ok;
     event_.Send();
 }
@@ -22,7 +22,7 @@ void AsyncMethodInvocation::Notify(bool ok) noexcept {
 void* AsyncMethodInvocation::GetCompletionTag() noexcept {
     UASSERT(!enqueued_);
     enqueued_ = true;
-    return static_cast<EventBase*>(this);
+    return &completion_event_;
 }
 
 AsyncMethodInvocation::WaitStatus AsyncMethodInvocation::Wait() noexcept { return WaitUntil(engine::Deadline{}); }

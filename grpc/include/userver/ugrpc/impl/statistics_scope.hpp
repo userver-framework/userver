@@ -29,8 +29,6 @@ public:
 
     void OnNetworkError() noexcept;
 
-    void SetFinishTime(std::chrono::steady_clock::time_point finish_time) noexcept;
-
     void Flush() noexcept;
 
     // Not thread-safe with respect to Flush.
@@ -61,7 +59,6 @@ private:
 
     utils::NotNull<MethodStatistics*> statistics_;
     std::optional<std::chrono::steady_clock::time_point> start_time_;
-    std::optional<std::chrono::steady_clock::time_point> finish_time_;
     FinishKind finish_kind_{FinishKind::kAutomatic};
     grpc::StatusCode finish_code_{};
     bool is_deadline_propagated_{false};

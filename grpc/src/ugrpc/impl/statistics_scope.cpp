@@ -32,10 +32,6 @@ void RpcStatisticsScope::OnDeadlinePropagated() noexcept { is_deadline_propagate
 
 void RpcStatisticsScope::OnCancelled() noexcept { finish_kind_ = std::max(finish_kind_, FinishKind::kCancelled); }
 
-void RpcStatisticsScope::SetFinishTime(std::chrono::steady_clock::time_point finish_time) noexcept {
-    finish_time_ = finish_time;
-}
-
 void RpcStatisticsScope::Flush() noexcept {
     if (!start_time_) {
         return;
@@ -82,8 +78,9 @@ void RpcStatisticsScope::AccountTiming() noexcept {
         return;
     }
 
-    const auto finish_time = finish_time_.has_value() ? *finish_time_ : std::chrono::steady_clock::now();
-    statistics_->AccountTiming(std::chrono::duration_cast<std::chrono::milliseconds>(finish_time - *start_time_));
+    statistics_
+        ->AccountTiming(std::chrono::duration_cast<
+                        std::chrono::milliseconds>(std::chrono::steady_clock::now() - *start_time_));
     start_time_.reset();
 }
 

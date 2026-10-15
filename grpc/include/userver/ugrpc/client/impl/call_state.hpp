@@ -140,12 +140,8 @@ public:
 
     bool IsFinished() const noexcept;
 
-    // please read comments for 'invocation_' private member on why
-    // we use different invocation types
     void EmplaceAsyncMethodInvocation();
 
-    // please read comments for 'invocation_' private member on why
-    // we use different invocation types
     ugrpc::impl::AsyncMethodInvocation& GetAsyncMethodInvocation() noexcept;
 
     [[nodiscard]] std::unique_lock<engine::SingleWaitingTaskMutex> TakeMutexIfBidirectional() noexcept;
@@ -173,12 +169,6 @@ private:
 
     engine::SingleWaitingTaskMutex bidirectional_mutex_;
 
-    // We use FinishAsyncMethodInvocation that will correctly close all our
-    // tracing::Span objects and account everything in statistics.
-    // and AsyncMethodInvocation for every intermediate
-    // Read* call, because we don't need to close span and/or account stats
-    // when finishing Read* call.
-    //
     // This field must go after other fields to be destroyed first!
     std::optional<ugrpc::impl::AsyncMethodInvocation> invocation_;
 };

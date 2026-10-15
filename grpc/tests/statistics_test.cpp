@@ -1,11 +1,19 @@
 #include <userver/utest/utest.hpp>
 
+#include <chrono>
+
+#include <grpcpp/support/status.h>
+
 #include <userver/engine/get_all.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/mock_now.hpp>
+#include <userver/utils/statistics/striped_rate_counter.hpp>
+#include <userver/utils/statistics/testing.hpp>
 
 #include <userver/ugrpc/client/exceptions.hpp>
+#include <userver/ugrpc/impl/statistics.hpp>
+#include <userver/ugrpc/impl/statistics_scope.hpp>
 
 #include <tests/deadline_helpers.hpp>
 #include <tests/unit_test_client.usrv.pb.hpp>
@@ -14,11 +22,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
-using namespace std::chrono_literals;
-
 namespace {
 
 constexpr auto kSayHelloSleepTime = std::chrono::milliseconds{20};
+constexpr auto kStatisticsEpochAdvance = std::chrono::seconds{6};
 
 class UnitTestServiceForStatistics final : public sample::ugrpc::UnitTestServiceBase {
 public:
@@ -36,6 +43,35 @@ public:
 
 using GrpcStatistics =
     ugrpc::tests::ServiceWithClientFixture<UnitTestServiceForStatistics, sample::ugrpc::UnitTestServiceClient>;
+
+UTEST(GrpcStatisticsScope, ExplicitFinishAccountsTimingOnFlush) {
+    utils::datetime::MockNowSet({});
+    utils::statistics::StripedRateCounter global_started;
+    ugrpc::impl::MethodStatistics statistics{ugrpc::impl::StatisticsDomain::kClient, global_started};
+
+    {
+        ugrpc::impl::RpcStatisticsScope scope{statistics};
+        scope.OnDeadlinePropagated();
+        scope.OnExplicitFinish(grpc::StatusCode::OK);
+        utils::datetime::MockSleep(kStatisticsEpochAdvance);
+
+        const ugrpc::impl::MethodStatisticsSnapshot before_flush{statistics};
+        EXPECT_EQ(before_flush.timings.Count(), 0);
+
+        scope.OnExplicitFinish(grpc::StatusCode::OK);
+        scope.Flush();
+        scope.Flush();
+    }
+
+    utils::datetime::MockSleep(kStatisticsEpochAdvance);
+    const ugrpc::impl::MethodStatisticsSnapshot after_flush{statistics};
+    EXPECT_EQ(after_flush.timings.Count(), 1);
+    EXPECT_EQ(after_flush.deadline_updated, 1);
+
+    const utils::statistics::Snapshot metrics{statistics};
+    EXPECT_EQ(metrics.SingleMetric("status", {{"grpc_code", "OK"}}).AsRate(), 1);
+    EXPECT_EQ(metrics.SingleMetric("rps").AsRate(), 1);
+}
 
 UTEST_F(GrpcStatistics, LongRequest) {
     sample::ugrpc::GreetingRequest out;
@@ -94,10 +130,14 @@ UTEST_F(GrpcStatistics, DelayBeforeGet) {
     const auto delay_before_get = tests::kLongTimeout;
     engine::InterruptibleSleepFor(delay_before_get);
 
+    const auto stats_before_get = GetStatistics(metrics_path, metrics_labels);
+    EXPECT_EQ(stats_before_get.SingleMetric("status", {{"grpc_code", "INVALID_ARGUMENT"}}).AsRate(), 1);
+    EXPECT_EQ(stats_before_get.SingleMetric("rps").AsRate(), 1);
+
     UEXPECT_THROW(future.Get(), ugrpc::client::InvalidArgumentError);
 
     // So that RecentPeriod "timings" metric makes the current epoch readable.
-    utils::datetime::MockSleep(6s);
+    utils::datetime::MockSleep(kStatisticsEpochAdvance);
 
     const auto stats = GetStatistics(metrics_path, metrics_labels);
 

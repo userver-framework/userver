@@ -7,10 +7,10 @@
 #include <userver/utils/assert.hpp>
 
 #include <userver/ugrpc/client/exceptions.hpp>
-#include <userver/ugrpc/client/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/client/impl/async_methods.hpp>
 #include <userver/ugrpc/client/impl/call_state.hpp>
 #include <userver/ugrpc/client/impl/deadline_propagation_detect.hpp>
+#include <userver/ugrpc/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/impl/status_utils.hpp>
 #include <userver/ugrpc/time_utils.hpp>
 
@@ -67,14 +67,13 @@ void Finish(
     // `completion_status` must be destroyed not earlier than `invocation`,
     // because it couldn't be destroyed before request is finished
     CompletionStatus completion_status = grpc::Status{};
-    FinishAsyncMethodInvocation invocation;  // Calls WaitNonCancellable in the destructor
+    ugrpc::impl::AsyncMethodInvocation invocation;  // Calls WaitNonCancellable in the destructor
     stream.Finish(&completion_status.value(), invocation.GetCompletionTag());
     const auto wait_status = WaitAndTryCancelIfNeeded(invocation, state.GetClientContext());
 
     switch (wait_status) {
         case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kOk: {
             auto& status = completion_status.value();
-            state.GetStatsScope().SetFinishTime(invocation.GetNotifyTime());
 
             ugrpc::impl::ClampStatusCodeToValidRange(status);
             if (impl::IsRequestCancelledByDeadlinePropagation(status, state)) {
@@ -85,7 +84,6 @@ void Finish(
             return;
         }
         case ugrpc::impl::AsyncMethodInvocation::WaitStatus::kError:
-            state.GetStatsScope().SetFinishTime(invocation.GetNotifyTime());
             ProcessNetworkError(state, throw_on_error, "Finish");
             return;
 
@@ -116,11 +114,9 @@ void FinishAbandoned(GrpcStream& stream, StreamingCallState& state) noexcept try
     state.GetClientContext().TryCancel();
 
     grpc::Status status;
-    FinishAsyncMethodInvocation invocation;
+    ugrpc::impl::AsyncMethodInvocation invocation;
     stream.Finish(&status, invocation.GetCompletionTag());
     const auto ok = invocation.WaitNonCancellable();
-
-    state.GetStatsScope().SetFinishTime(invocation.GetNotifyTime());
 
     if (ok) {
         ugrpc::impl::ClampStatusCodeToValidRange(status);
