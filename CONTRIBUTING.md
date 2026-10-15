@@ -18,6 +18,12 @@ By adopting the CLA, you state the following:
 If you agree with these principles, please read and adopt our CLA. By providing us your contributions, you hereby declare that you have already read and adopt our CLA, and we may freely merge your contributions with our corresponding open source project and use it in further in accordance with terms and conditions of the CLA.
 
 
+## Pull request guidelines
+
+Use the [PR title and description conventions](scripts/docs/en/userver/development/code_review.md#pr-titles-and-descriptions)
+when preparing a contribution.
+
+
 ## Other questions
 
 If you have any questions, please mail us at opensource-support@yandex-team.ru.

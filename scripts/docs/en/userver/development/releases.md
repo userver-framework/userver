@@ -63,10 +63,12 @@ issue from a queue and avoid contention on features.
 Bugfixes and new features are not ported to older releases. To get the
 functionality you have to update to a new release with a fix.
 
+Follow @ref scripts/docs/en/userver/development/code_review.md
+for code review rules and PR title and description conventions.
+
 
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
 ⇦ @ref scripts/docs/en/userver/deploy_env.md | @ref scripts/docs/en/userver/roadmap_and_changelog.md ⇨
 @htmlonly </div> @endhtmlonly
-
