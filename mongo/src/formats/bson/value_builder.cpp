@@ -1,5 +1,7 @@
 #include <userver/formats/bson/value_builder.hpp>
 
+#include <utility>
+
 #include <formats/bson/int_utils.hpp>
 #include <formats/bson/value_impl.hpp>
 #include <formats/bson/wrappers.hpp>
@@ -170,7 +172,7 @@ ValueBuilder ValueBuilder::operator[](const std::string& name) { return ValueBui
 ValueBuilder ValueBuilder::operator[](uint32_t index) { return ValueBuilder((*impl_)[index]); }
 
 void ValueBuilder::EmplaceNocheck(std::string_view key, ValueBuilder value) {
-    (*this)[std::string{key.data(), key.size()}] = value;
+    (*this)[std::string{key.data(), key.size()}] = std::move(value);
 }
 
 void ValueBuilder::Remove(const std::string& key) { impl_->Remove(key); }

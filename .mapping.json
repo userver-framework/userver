@@ -3570,6 +3570,7 @@
   "mongo/src/formats/bson/inline.cpp":"taxi/uservices/userver/mongo/src/formats/bson/inline.cpp",
   "mongo/src/formats/bson/int_utils.hpp":"taxi/uservices/userver/mongo/src/formats/bson/int_utils.hpp",
   "mongo/src/formats/bson/iterator.cpp":"taxi/uservices/userver/mongo/src/formats/bson/iterator.cpp",
+  "mongo/src/formats/bson/json_conversion_benchmark.cpp":"taxi/uservices/userver/mongo/src/formats/bson/json_conversion_benchmark.cpp",
   "mongo/src/formats/bson/json_conversion_test.cpp":"taxi/uservices/userver/mongo/src/formats/bson/json_conversion_test.cpp",
   "mongo/src/formats/bson/member_access_benchmark.cpp":"taxi/uservices/userver/mongo/src/formats/bson/member_access_benchmark.cpp",
   "mongo/src/formats/bson/member_parse_benchmark.cpp":"taxi/uservices/userver/mongo/src/formats/bson/member_parse_benchmark.cpp",

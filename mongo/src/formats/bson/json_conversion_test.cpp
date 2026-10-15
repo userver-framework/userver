@@ -1,9 +1,11 @@
 #include <userver/formats/bson/serialize.hpp>
 
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <string>
+#include <utility>
 
 #include <fmt/format.h>
 
@@ -374,6 +376,22 @@ TEST(Convert, WideNestedBsonToJson) {
         expected[key] = fj::MakeArray(i, fj::MakeObject("nested", "value"), nullptr);
     }
     EXPECT_EQ(input.ExtractValue().ConvertTo<fj::Value>(), expected.ExtractValue());
+}
+
+TEST(Convert, DeepJsonBsonRoundTrip) {
+    constexpr int kDepth = 32;
+    constexpr std::size_t kPayloadSize = 1024;
+    fj::ValueBuilder input;
+    input["payload"] = std::string(kPayloadSize, 'x');
+    input["array"] = fj::MakeArray(fj::MakeObject("value", 42), nullptr, "text");
+    for (int i = 0; i < kDepth; ++i) {
+        fj::ValueBuilder parent;
+        parent["child"] = std::move(input);
+        input = std::move(parent);
+    }
+    const auto json = input.ExtractValue();
+    EXPECT_EQ(json.ConvertTo<fb::Value>().ConvertTo<fj::Value>(), json);
+    EXPECT_EQ(json.As<fb::Value>().As<fj::Value>(), json);
 }
 
 USERVER_NAMESPACE_END
