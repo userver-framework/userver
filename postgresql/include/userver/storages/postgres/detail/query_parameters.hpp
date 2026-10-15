@@ -25,8 +25,7 @@ public:
           types_(ph.ParamTypesBuffer()),
           values_(ph.ParamBuffers()),
           lengths_(ph.ParamLengthsBuffer()),
-          formats_(ph.ParamFormatsBuffer())
-    {}
+          formats_(ph.ParamFormatsBuffer()) {}
 
     bool Empty() const { return size_ == 0; }
     std::size_t Size() const { return size_; }
@@ -85,6 +84,12 @@ public:
         (Write(index++, types, args), ...);
     }
 
+    template <typename... T>
+    void WriteTuple(const UserTypes& types, const std::tuple<T...>& args) {
+        using TupleIndexes = std::make_index_sequence<sizeof...(T)>;
+        WriteTuple(types, args, TupleIndexes{});
+    }
+
 private:
     template <typename T>
     void WriteParamType(std::size_t index, const UserTypes& types, const T&) {
@@ -116,6 +121,11 @@ private:
         } else {
             param_buffers_[index] = buffer.data();
         }
+    }
+
+    template <typename... T, std::size_t... Indexes>
+    void WriteTuple(const UserTypes& types, const std::tuple<T...>& args, std::index_sequence<Indexes...>) {
+        (Write(Indexes, types, std::get<Indexes>(args)), ...);
     }
 
     using OidList = Oid[ParamsCount];

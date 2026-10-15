@@ -7,6 +7,7 @@
 #include <concepts>
 #include <iosfwd>
 #include <iterator>
+#include <memory>
 #include <optional>
 #include <type_traits>
 #include <utility>
@@ -49,6 +50,50 @@ struct IsFixedSizeContainer<Array<T, Size>> : std::bool_constant<sizeof(Array<T,
 
 template <typename... Args>
 concept IsSingleRange = (sizeof...(Args) == 1) && (impl::IsRange<Args> && ...);
+
+template <typename Arg, typename OldT>
+concept IsAllocatorFor = requires { typename Arg::value_type; } && std::same_as<typename Arg::value_type, OldT>;
+
+// A policy parameterised by the container's value type — std::less<OldT>,
+// std::hash<OldT>, std::equal_to<OldT> — takes the new type in its place.
+template <typename Arg, typename OldT, typename T>
+struct SubstituteFirst {
+    using type = Arg;
+};
+
+template <template <typename...> typename Tmpl, typename OldT, typename T, typename... Rest>
+struct SubstituteFirst<Tmpl<OldT, Rest...>, OldT, T> {
+    using type = Tmpl<T, Rest...>;
+};
+
+// An allocator is rebound by std::allocator_traits rather than by substitution,
+// because an allocator need not be a template over its value type at all; a
+// policy is substituted, and anything else is left alone.
+template <bool IsAllocator, typename Arg, typename OldT, typename T>
+struct RebindArgImpl {
+    using type = typename SubstituteFirst<Arg, OldT, T>::type;
+};
+
+template <typename Arg, typename OldT, typename T>
+struct RebindArgImpl<true, Arg, OldT, T> {
+    using type = typename std::allocator_traits<Arg>::template rebind_alloc<T>;
+};
+
+template <typename Arg, typename OldT, typename T>
+using RebindArg = typename RebindArgImpl<IsAllocatorFor<Arg, OldT>, Arg, OldT, T>::type;
+
+template <typename Container, typename T>
+struct RebindContainer;
+
+template <template <typename...> typename Container, typename OldT, typename... Rest, typename T>
+struct RebindContainer<Container<OldT, Rest...>, T> {
+    using type = Container<T, RebindArg<Rest, OldT, T>...>;
+};
+
+template <template <typename, auto...> typename Container, typename OldT, typename T, auto... Args>
+struct RebindContainer<Container<OldT, Args...>, T> {
+    using type = Container<T, Args...>;
+};
 
 }  // namespace impl
 
@@ -120,6 +165,23 @@ concept IsPushBackable = IsRange<T> && requires(T value, RangeValueType<T> eleme
 /// @brief Check if a container has fixed size (e.g. `std::array`)
 template <typename T>
 concept IsFixedSizeContainer = IsRange<T> && impl::IsFixedSizeContainer<T>::value;
+
+/// @brief The same container template holding `T`, with its allocator rebound to `T`.
+///
+/// For an allocator-aware container the allocator is **rebound** rather than carried over:
+/// `std::vector<U, Alloc>`'s `Alloc` allocates `U`, and a container of `T` needs one that
+/// allocates `T`. `std::allocator_traits` is what knows how to ask, so an allocator that
+/// provides its own `rebind`, or that is not a plain `Alloc<U>`, is handled too.
+///
+/// Every other type argument is carried across the same way: a policy parameterised by the
+/// value type — `std::less<U>`, `std::hash<U>`, `std::equal_to<U>` — takes `T` in its place,
+/// so an associative container keeps a comparator that matches what it now holds, and
+/// anything unrelated is left as it is.
+///
+/// For a container parameterised by values rather than types — `std::array<U, N>` — the
+/// values are kept: `RebindContainer<std::array<U, N>, T>` is `std::array<T, N>`.
+template <typename Container, typename T>
+using RebindContainer = typename impl::RebindContainer<Container, T>::type;
 
 template <typename T>
 concept IsVectorLike = IsRange<T> && std::default_initializable<T> && IsReservable<T> && IsPushBackable<T>;

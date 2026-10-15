@@ -8,7 +8,10 @@
 #include <array>
 #include <iterator>
 #include <set>
+#include <tuple>
+#include <type_traits>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include <boost/pfr/core.hpp>
@@ -19,6 +22,7 @@
 #include <userver/storages/postgres/io/buffer_io_base.hpp>
 #include <userver/storages/postgres/io/field_buffer.hpp>
 #include <userver/storages/postgres/io/row_types.hpp>
+#include <userver/storages/postgres/io/struct_view.hpp>
 #include <userver/storages/postgres/io/traits.hpp>
 #include <userver/storages/postgres/io/type_mapping.hpp>
 #include <userver/storages/postgres/io/type_traits.hpp>
@@ -489,6 +493,11 @@ template <typename Container>
 class ContainerSplitter {
 public:
     static_assert(
+        !traits::IsViewContainer<Container>::value,
+        "A struct view container is sent column by column, one array parameter per member. "
+        "Use ExecuteDecomposeBulk instead of ExecuteBulk"
+    );
+    static_assert(
         traits::IsCompatibleContainer<Container>{},
         "Only containers explicitly declared as compatible are supported"
     );
@@ -560,30 +569,45 @@ private:
     const std::size_t chunk_size_;
 };
 
-template <
-    typename Container,
-    typename Seq = std::make_index_sequence<boost::pfr::tuple_size_v<typename Container::value_type>>>
+template <typename View, std::size_t Index>
+struct ColumnProjection {
+    using RowType = typename View::UnderlyingType;
+
+    decltype(auto) operator()(const RowType& value) const noexcept { return std::get<Index>(View::Tie(value)); }
+};
+
+template <typename Container>
+struct ColumnsSource {
+    using ContainerType = Container;
+    using ViewType = StructView<std::remove_cvref_t<typename Container::value_type>>;
+
+    static const Container& GetContainer(const Container& container) noexcept { return container; }
+};
+
+template <typename View, typename Container>
+struct ColumnsSource<ViewContainer<View, Container>> {
+    using ContainerType = Container;
+    using ViewType = View;
+
+    static const Container& GetContainer(const ViewContainer<View, Container>& view_container) noexcept {
+        return view_container.GetContainer();
+    }
+};
+
+template <typename Container, typename View, std::size_t Index>
+using ColumnView = USERVER_NAMESPACE::utils::impl::ProjectingView<const Container, ColumnProjection<View, Index>>;
+
+template <typename Container, typename View, typename Seq = std::make_index_sequence<View::size>>
 struct ColumnsSplitterHelper;
 
 /// Utility helper to iterate chunks of input array in column-wise way
-template <typename Container, std::size_t... Indexes>
-struct ColumnsSplitterHelper<Container, std::index_sequence<Indexes...>> final {
+template <typename Container, typename View, std::size_t... Indexes>
+struct ColumnsSplitterHelper<Container, View, std::index_sequence<Indexes...>> final {
     static_assert(sizeof...(Indexes) > 0, "The aggregate having 0 fields doesn't make sense");
-
-    template <std::size_t Index>
-    struct FieldProjection {
-        using RowType = typename Container::value_type;
-        using FieldType = boost::pfr::tuple_element_t<Index, typename Container::value_type>;
-
-        const FieldType& operator()(const RowType& value) const noexcept { return boost::pfr::get<Index>(value); }
-    };
-
-    template <std::size_t Index>
-    using FieldView = USERVER_NAMESPACE::utils::impl::ProjectingView<const Container, FieldProjection<Index>>;
 
     template <typename Fn>
     static void Perform(const Container& container, std::size_t chunk_elements, const Fn& fn) {
-        DoSplitByChunks(chunk_elements, fn, FieldView<Indexes>{container}...);
+        DoSplitByChunks(chunk_elements, fn, ColumnView<Container, View, Indexes>{container}...);
     }
 
 private:
@@ -603,29 +627,16 @@ private:
     }
 };
 
-template <
-    typename Container,
-    typename Seq = std::make_index_sequence<boost::pfr::tuple_size_v<typename Container::value_type>>>
+template <typename Container, typename View, typename Seq = std::make_index_sequence<View::size>>
 struct ColumnsDecomposerHelper;
 
-template <typename Container, std::size_t... Indexes>
-struct ColumnsDecomposerHelper<Container, std::index_sequence<Indexes...>> final {
+template <typename Container, typename View, std::size_t... Indexes>
+struct ColumnsDecomposerHelper<Container, View, std::index_sequence<Indexes...>> final {
     static_assert(sizeof...(Indexes) > 0, "The aggregate having 0 fields doesn't make sense");
-
-    template <std::size_t Index>
-    struct FieldProjection {
-        using RowType = typename Container::value_type;
-        using FieldType = boost::pfr::tuple_element_t<Index, typename Container::value_type>;
-
-        const FieldType& operator()(const RowType& value) const noexcept { return boost::pfr::get<Index>(value); }
-    };
-
-    template <std::size_t Index>
-    using FieldView = USERVER_NAMESPACE::utils::impl::ProjectingView<const Container, FieldProjection<Index>>;
 
     template <typename Fn>
     static auto Perform(const Container& container, const Fn& fn) {
-        return fn(FieldView<Indexes>{container}...);
+        return fn(ColumnView<Container, View, Indexes>{container}...);
     }
 };
 
@@ -640,7 +651,12 @@ public:
 
     template <typename Fn>
     void Perform(const Fn& fn) {
-        ColumnsSplitterHelper<Container>::Perform(container_, chunk_elements_, fn);
+        using Source = ColumnsSource<Container>;
+        ColumnsSplitterHelper<typename Source::ContainerType, typename Source::ViewType>::Perform(
+            Source::GetContainer(container_),
+            chunk_elements_,
+            fn
+        );
     }
 
 private:
@@ -657,7 +673,11 @@ public:
 
     template <typename Fn>
     auto Perform(const Fn& fn) {
-        return ColumnsDecomposerHelper<Container>::Perform(container_, fn);
+        using Source = ColumnsSource<Container>;
+        return ColumnsDecomposerHelper<typename Source::ContainerType, typename Source::ViewType>::Perform(
+            Source::GetContainer(container_),
+            fn
+        );
     }
 
 private:

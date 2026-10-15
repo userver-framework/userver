@@ -10,6 +10,7 @@
 #include <userver/storages/postgres/cluster.hpp>
 #include <userver/storages/postgres/dsn.hpp>
 #include <userver/storages/postgres/exceptions.hpp>
+#include <userver/storages/postgres/io/struct_view.hpp>
 #include <userver/storages/postgres/utest/cluster_local.hpp>
 #include <userver/utils/statistics/metrics_storage.hpp>
 #include <userver/utils/trx_tracker.hpp>
@@ -25,6 +26,12 @@ struct IdAndValue final {
     std::string value;
 
     bool operator==(const IdAndValue& other) const { return std::tie(id, value) == std::tie(other.id, other.value); }
+};
+
+struct IdValueAndNote final {
+    int id{};
+    std::string value;
+    std::string note;
 };
 
 enum class CheckTxnType { kRw, kRo };
@@ -536,6 +543,25 @@ UTEST_F(PostgreCluster, DecomposeSingleQuery) {
     );
 
     EXPECT_EQ(rows, res.AsContainer<std::vector<IdAndValue>>(pg::kRowTag));
+}
+
+UTEST_F(PostgreCluster, DecomposeStructViewSingleQuery) {
+    testsuite::TestsuiteTasks testsuite_tasks{true};
+    auto cluster = CreateCluster(GetDsnListFromEnv(), GetTaskProcessor(), 1, testsuite_tasks);
+
+    const auto rows = std::vector<IdValueAndNote>{{1, "foo", "first"}, {2, "bar", "second"}};
+    const auto expected = std::vector<IdAndValue>{{1, "foo"}, {2, "bar"}};
+
+    pg::ResultSet res{nullptr};
+    UEXPECT_NO_THROW(
+        res = cluster.ExecuteDecompose(
+            pg::ClusterHostType::kMaster,
+            "select * from unnest($1, $2)",
+            pg::io::MakeViewContainer<&IdValueAndNote::id, &IdValueAndNote::value>(rows)
+        )
+    );
+
+    EXPECT_EQ(expected, res.AsContainer<std::vector<IdAndValue>>(pg::kRowTag));
 }
 
 USERVER_NAMESPACE_END
