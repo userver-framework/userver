@@ -1063,7 +1063,7 @@ void Redis::RedisImpl::OnConnectImpl(int status) {
     ev_thread_control_.Stop(connect_timer_);
 
     if (status != REDIS_OK) {
-        LOG_WARNING()
+        LOG_LIMITED_WARNING()
             << log_extra_ << "Connect to Redis failed. Status=" << status << ". Hiredis errstr='"
             << (status == REDIS_ERR ? context_->errstr : "") << '\'';
         SetState(State::kDisconnected);
