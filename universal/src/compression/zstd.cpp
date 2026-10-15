@@ -73,9 +73,14 @@ std::string Decompress(std::string_view compressed, size_t max_size) {
             }
     }
 
+    const auto first_frame_size = ZSTD_findFrameCompressedSize(compressed.data(), compressed.size());
+    if (!ZSTD_isError(first_frame_size) && first_frame_size != compressed.size()) {
+        return DecompressStream(compressed, max_size);
+    }
+
     std::string decompressed(decompressed_size, '\0');
     if (const auto
-            ret = ZSTD_decompress(decompressed.data(), decompressed.capacity(), compressed.data(), compressed.size());
+            ret = ZSTD_decompress(decompressed.data(), decompressed.size(), compressed.data(), compressed.size());
         ZSTD_isError(ret))
     {
         throw ErrWithCode(ZSTD_getErrorName(ret));
