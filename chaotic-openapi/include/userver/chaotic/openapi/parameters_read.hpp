@@ -96,11 +96,12 @@ struct ParameterParser {
     }
 };
 
-template <typename RawType, typename UserType>
-struct ParameterParser<TrivialParameterBase<RawType, UserType>> {
+template <typename RawType, typename UserType, typename FormatType>
+struct ParameterParser<TrivialParameterBase<RawType, UserType, FormatType>> {
     static UserType Parse(std::string&& str_value) {
-        auto raw_value = openapi::ParseParameter(std::move(str_value), parse::To<RawType>());
-        return Convert(std::move(raw_value), convert::To<UserType>());
+        return impl::RawToUser<TrivialParameterBase<RawType, UserType, FormatType>>(
+            openapi::ParseParameter(std::move(str_value), parse::To<RawType>())
+        );
     }
 };
 
@@ -110,10 +111,10 @@ void SplitByDelimiter(std::string_view str, char delimiter, utils::function_ref<
 
 }
 
-template <In kIn, char Delimiter, typename RawType, typename UserType>
-struct ParameterParser<ArrayParameterBase<kIn, Delimiter, RawType, UserType>> {
+template <In kIn, char Delimiter, typename RawType, typename UserType, typename FormatType>
+struct ParameterParser<ArrayParameterBase<kIn, Delimiter, RawType, UserType, FormatType>> {
     static auto Parse(std::string&& str_value) {
-        openapi::ParameterParser<TrivialParameterBase<RawType, UserType>> parser;
+        openapi::ParameterParser<TrivialParameterBase<RawType, UserType, FormatType>> parser;
 
         std::vector<UserType> result;
         impl::SplitByDelimiter(str_value, Delimiter, [&result, &parser](std::string str) {
@@ -123,10 +124,10 @@ struct ParameterParser<ArrayParameterBase<kIn, Delimiter, RawType, UserType>> {
     }
 };
 
-template <char Delimiter, typename RawType, typename UserType>
-struct ParameterParser<ArrayParameterBase<In::kQueryExplode, Delimiter, RawType, UserType>> {
+template <char Delimiter, typename RawType, typename UserType, typename FormatType>
+struct ParameterParser<ArrayParameterBase<In::kQueryExplode, Delimiter, RawType, UserType, FormatType>> {
     static auto Parse(std::vector<std::string>&& str_value) {
-        openapi::ParameterParser<TrivialParameterBase<RawType, UserType>> parser;
+        openapi::ParameterParser<TrivialParameterBase<RawType, UserType, FormatType>> parser;
 
         std::vector<UserType> result;
         result.reserve(str_value.size());

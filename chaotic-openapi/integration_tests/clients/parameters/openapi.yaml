@@ -137,8 +137,72 @@ paths:
                                 type: string
                                 format: uuid
 
+    /test1/strong/{account}:
+        get:
+            parameters:
+              - name: account
+                in: path
+                required: true
+                schema:
+                    $ref: '#/components/schemas/AccountId'
+              - name: station
+                in: query
+                required: true
+                schema:
+                    type: string
+                    format: uuid
+                    x-usrv-cpp-type: test::StationId
+              - name: accounts
+                in: query
+                required: true
+                schema:
+                    type: array
+                    items:
+                        $ref: '#/components/schemas/AccountId'
+              - name: count
+                in: query
+                required: true
+                schema:
+                    type: integer
+                    format: int64
+                    x-usrv-cpp-type: test::Count
+              - name: label
+                in: query
+                required: true
+                schema:
+                    type: string
+                    x-usrv-cpp-type: test::Label
+              - name: timeout
+                in: query
+                required: true
+                schema:
+                    type: integer
+                    x-usrv-cpp-type: std::chrono::milliseconds
+              - name: X-Account-Id
+                in: header
+                required: true
+                schema:
+                    $ref: '#/components/schemas/AccountId'
+            responses:
+                '200':
+                    description: OK
+                    headers:
+                        X-Account-Id:
+                            required: true
+                            schema:
+                                $ref: '#/components/schemas/AccountId'
+                        X-Retry-After:
+                            required: true
+                            schema:
+                                type: integer
+                                x-usrv-cpp-type: std::chrono::seconds
+
 components:
     schemas:
+        AccountId:
+            type: string
+            format: uuid
+            x-usrv-cpp-type: test::AccountId
         StationId:
             type: string
             x-usrv-cpp-type: boost::uuids::uuid

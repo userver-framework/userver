@@ -405,6 +405,18 @@ class BaseTranslator(abc.ABC):
                     msg='"application/x-www-form-urlencoded" body must contain only bool/integer/number/string fields',
                 )
 
+    @staticmethod
+    def _parameter_value_types(cpp_type: cpp_types.CppType) -> str:
+        raw_type = cpp_type.cpp_global_name()
+        user_type = cpp_type.cpp_user_name()
+
+        target = cpp_type
+        while isinstance(target, cpp_types.CppRef):
+            target = target.orig_cpp_type
+        if isinstance(target, cpp_types.CppStringWithFormat) and target.cpp_format_name() != user_type:
+            return f'{raw_type}, {user_type}, {target.cpp_format_name()}'
+        return f'{raw_type}, {user_type}'
+
     def _translate_parameter(self, parameter: model.Parameter) -> common_types.Parameter:
         in_ = parameter.in_
         in_str = in_[0].title() + in_[1:]
@@ -425,14 +437,14 @@ class BaseTranslator(abc.ABC):
             cpp_type = self._translate_single_schema(parameter.schema)
             cpp_type = typing.cast(cpp_types.CppArray, cpp_type)
 
-            raw_item_type = cpp_type.items.cpp_global_name()
-            user_item_type = cpp_type.items.cpp_user_name()
+            item_types = self._parameter_value_types(cpp_type.items)
 
-            parser = f"openapi::ArrayParameter<openapi::In::k{in_str}, k{cpp_name}, '{delimiter}', {raw_item_type}, {user_item_type}>"
+            parser = f"openapi::ArrayParameter<openapi::In::k{in_str}, k{cpp_name}, '{delimiter}', {item_types}>"
         else:
             cpp_type = self._translate_single_schema(parameter.schema)
+            value_types = self._parameter_value_types(cpp_type)
 
-            parser = f'openapi::TrivialParameter<openapi::In::k{in_str}, k{cpp_name}, {cpp_type.cpp_global_name()}, {cpp_type.cpp_user_name()}>'
+            parser = f'openapi::TrivialParameter<openapi::In::k{in_str}, k{cpp_name}, {value_types}>'
 
         if not parameter.required:
             cpp_type.nullable = True

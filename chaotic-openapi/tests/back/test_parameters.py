@@ -414,3 +414,33 @@ def test_parameter_string_format(translate_single_schema):
         'openapi::TrivialParameter<openapi::In::kPath, kparam, std::string, boost::uuids::uuid>'
     )
     assert 'userver/chaotic/io/boost/uuids/uuid.hpp' in parameter.declaration_includes()
+
+
+def test_parameter_user_cpp_type_over_string_format(translate_single_schema, user_type_include_dir):
+    schema = _single_parameter_schema(
+        {'in': 'query', 'name': 'param', 'schema': {'$ref': '#/components/schemas/AccountId'}},
+        components={
+            'schemas': {'AccountId': {'type': 'string', 'format': 'uuid', 'x-usrv-cpp-type': USER_TYPE}},
+        },
+    )
+
+    parameter = translate_single_schema(schema, [user_type_include_dir]).operations[0].parameters[0]
+
+    assert parameter.parser.endswith(f', {USER_TYPE}, boost::uuids::uuid>')
+
+
+def test_parameter_array_items_user_cpp_type_over_string_format(translate_single_schema, user_type_include_dir):
+    schema = _single_parameter_schema({
+        'in': 'query',
+        'name': 'param',
+        'schema': {
+            'type': 'array',
+            'items': {'type': 'string', 'format': 'uuid', 'x-usrv-cpp-type': USER_TYPE},
+        },
+    })
+
+    parameter = translate_single_schema(schema, [user_type_include_dir]).operations[0].parameters[0]
+
+    assert parameter.parser == (
+        f"openapi::ArrayParameter<openapi::In::kQuery, kparam, ',', std::string, {USER_TYPE}, boost::uuids::uuid>"
+    )
