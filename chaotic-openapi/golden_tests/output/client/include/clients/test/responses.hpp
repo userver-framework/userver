@@ -6,6 +6,7 @@
 #include <clients/test/exceptions.hpp>
 #include <userver/chaotic/openapi/client/exceptions.hpp>
 #include <optional>
+#include <string>
 
 #include <clients/test/openapi.hpp>
 

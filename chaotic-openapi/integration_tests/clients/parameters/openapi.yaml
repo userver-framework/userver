@@ -101,4 +101,44 @@ paths:
                 '200':
                     description: OK
 
-components: {}
+    /test1/typed/{id}:
+        get:
+            parameters:
+              - name: id
+                in: path
+                required: true
+                schema:
+                    type: string
+                    format: uuid
+              - name: account
+                in: query
+                required: true
+                schema:
+                    type: string
+                    x-usrv-cpp-type: boost::uuids::uuid
+              - name: station
+                in: query
+                required: false
+                schema:
+                    $ref: '#/components/schemas/StationId'
+              - name: X-Trace-Id
+                in: header
+                required: true
+                schema:
+                    type: string
+                    x-usrv-cpp-type: boost::uuids::uuid
+            responses:
+                '200':
+                    description: OK
+                    headers:
+                        X-Request-Id:
+                            required: true
+                            schema:
+                                type: string
+                                format: uuid
+
+components:
+    schemas:
+        StationId:
+            type: string
+            x-usrv-cpp-type: boost::uuids::uuid

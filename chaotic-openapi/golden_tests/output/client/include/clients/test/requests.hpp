@@ -5,6 +5,8 @@
 
 #include <userver/clients/http/request.hpp>
 #include <cstdint>
+#include <string>
+#include <userver/chaotic/io/std/vector.hpp>
 
 #include <clients/test/openapi.hpp>
 

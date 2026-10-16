@@ -431,9 +431,8 @@ class BaseTranslator(abc.ABC):
             parser = f"openapi::ArrayParameter<openapi::In::k{in_str}, k{cpp_name}, '{delimiter}', {raw_item_type}, {user_item_type}>"
         else:
             cpp_type = self._translate_single_schema(parameter.schema)
-            user_type = cpp_type
 
-            parser = f'openapi::TrivialParameter<openapi::In::k{in_str}, k{cpp_name}, {cpp_type.cpp_global_name()}, {user_type.cpp_global_name()}>'
+            parser = f'openapi::TrivialParameter<openapi::In::k{in_str}, k{cpp_name}, {cpp_type.cpp_global_name()}, {cpp_type.cpp_user_name()}>'
 
         if not parameter.required:
             cpp_type.nullable = True
