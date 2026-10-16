@@ -68,6 +68,8 @@ report unsuitable alternatives or request changes to unchanged code outside the 
 
 ## 3. Keep documentation complete and examples verifiable
 
+Keep documentation concise and easy to understand; use `@brief` where possible.
+
 Check that each new public method, including overloads, documents its contract,
 and each added or changed enum value documents its meaning. Update documentation
 when contracts change. Read declarations, implementations, tests, and documentation
@@ -240,6 +242,16 @@ add a test that reliably reproduces the bug without flakiness, then fix the code
 Do not use C++ standard library or libc synchronization or blocking I/O on the
 main task processor. Use userver primitives instead; see
 @ref scripts/docs/en/userver/intro.md and @ref scripts/docs/en/userver/synchronization.md.
+
+## 13. Keep production changes focused
+
+Check whether the production-code diff can be reduced without
+compromising functionality, performance, or readability. Exclude tests and
+documentation from this check.
+
+## 14. Use fmt for formatting
+
+Use the `fmt` library for formatting instead of `std::format` and similar APIs.
 
 ----------
 
