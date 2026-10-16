@@ -1,6 +1,9 @@
 #pragma once
 
 #include <atomic>
+#include <cstdint>
+#include <optional>
+#include <string_view>
 
 #include <boost/container/small_vector.hpp>
 
@@ -26,7 +29,7 @@ class LoggerBase;
 /// Base logger class
 class LoggerBase {
 public:
-    LoggerBase() = default;
+    LoggerBase() noexcept;
     LoggerBase(const LoggerBase&) = delete;
     LoggerBase(LoggerBase&&) = delete;
     LoggerBase& operator=(const LoggerBase&) = delete;
@@ -50,6 +53,28 @@ public:
 
     Level GetLevel() const noexcept;
 
+    /// Sets the fraction of this logger's records below @ref logging::Level::kWarning to retain.
+    /// Values are clamped to [0, 1] and rounded down to a multiple of 2^-32;
+    /// `std::nullopt` disables sampling. A provided probability must be finite.
+    ///
+    /// Warning and higher records are never dropped by sampling. Span records use
+    /// @ref tracing::SetTraceSamplingProbability instead. Locations force-enabled via
+    /// dynamic debug log bypass this sampling.
+    ///
+    /// @note Migration from global sampling: replace `SetLogSamplingProbability` and
+    /// `GetLogSamplingProbability` with this method and
+    /// @ref logging::impl::LoggerBase::GetSamplingProbability on @ref logging::GetDefaultLogger.
+    /// Each logger now has independent sampling state; replacing the default logger switches
+    /// to the replacement's state. To configure named loggers, use the `logging` section of
+    /// @ref USERVER_TELEMETRY_SETTINGS; `__default__` supplies the fallback for unspecified loggers.
+    void SetSamplingProbability(std::optional<double> probability) noexcept;
+
+    /// Returns this logger's quantized sampling probability, or `std::nullopt` when sampling is disabled.
+    /// @see @ref logging::impl::LoggerBase::SetSamplingProbability
+    std::optional<double> GetSamplingProbability() const noexcept;
+
+    bool ShouldDropBySampling(Level level) const noexcept;
+
     bool ShouldLog(Level level) const noexcept;
 
     void SetFlushOn(Level level);
@@ -60,6 +85,7 @@ public:
 
 private:
     std::atomic<Level> level_{Level::kNone};
+    std::atomic<std::uint64_t> sampling_threshold_;
     std::atomic<Level> flush_level_{Level::kWarning};
 };
 

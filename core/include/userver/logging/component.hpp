@@ -3,6 +3,7 @@
 /// @file userver/logging/component.hpp
 /// @brief @copybrief components::Logging
 
+#include <memory>
 #include <string>
 #include <unordered_map>
 
@@ -21,9 +22,19 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace logging {
+struct TelemetrySettings;
+}
+
+namespace utils {
+template <typename ValueType>
+class DefaultDict;
+}
+
 namespace logging::impl {
 class TpLogger;
 class TcpSocketSink;
+class TelemetrySettingsStorage;
 }  // namespace logging::impl
 
 namespace components {
@@ -106,7 +117,22 @@ public:
     /// @brief Sets a logger
     /// @param name Name of the logger
     /// @param logger Logger to set
+    ///
+    /// Captures the initial level and sampling rate and applies the current telemetry policy.
+    /// @throws std::runtime_error if logger is null, the name is already registered, or it is `default`.
     void SetLogger(const std::string& name, logging::LoggerPtr logger);
+
+    /// Replaces ordinary and external logger policies, resolving each name through
+    /// @ref utils::DefaultDict independently. Applies the stricter settings to existing
+    /// and subsequently registered loggers. Log levels never fall below their initial values.
+    /// @throws std::runtime_error for invalid sampling rates, without changing the policies.
+    void SetTelemetrySettings(
+        utils::DefaultDict<logging::TelemetrySettings> settings,
+        utils::DefaultDict<logging::TelemetrySettings> restrictions
+    );
+
+    /// Restores levels and sampling rates captured at logger registration and clears the policies.
+    void RestoreTelemetrySettings();
 
     /// @brief Returns a logger by its name
     /// @param name Name of the logger
@@ -133,6 +159,7 @@ private:
     engine::TaskProcessor& fs_task_processor_;
     std::unordered_map<std::string, std::shared_ptr<logging::impl::TpLogger>> loggers_;
     rcu::RcuMap<std::string, logging::LoggerPtr> extra_loggers_;
+    const std::unique_ptr<logging::impl::TelemetrySettingsStorage> telemetry_settings_;
     utils::PeriodicTask flush_task_;
     logging::impl::TcpSocketSink* socket_sink_{nullptr};
     utils::statistics::MetricsStoragePtr metrics_storage_;

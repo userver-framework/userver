@@ -4,7 +4,6 @@
 
 #include <logging/dynamic_debug.hpp>
 #include <logging/rate_limit.hpp>
-#include <logging/sampling.hpp>
 #include <userver/logging/impl/logger_base.hpp>
 #include <userver/logging/null_logger.hpp>
 #include <userver/utils/assert.hpp>
@@ -152,7 +151,7 @@ bool StaticLogEntry::ShouldNotLog(logging::LoggerRef logger, logging::Level leve
     if (force_enabled) {
         return false;
     }
-    return !LoggerShouldLog(logger, level) || force_disabled || ShouldDropBySampling(level);
+    return !LoggerShouldLog(logger, level) || force_disabled || logger.ShouldDropBySampling(level);
 }
 
 bool StaticLogEntry::ShouldNotLog(const logging::LoggerPtr& logger, logging::Level level) const noexcept {

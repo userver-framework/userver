@@ -9,6 +9,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include <fmt/chrono.h>
@@ -23,10 +24,12 @@
 #include <userver/logging/level_serialization.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/logger.hpp>
+#include <userver/logging/telemetry_settings.hpp>
 #include <userver/os_signals/component.hpp>
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/tracing/tracer.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/default_dict.hpp>
 #include <userver/utils/resource_scopes.hpp>
 #include <userver/utils/statistics/writer.hpp>
 #include <userver/utils/thread_name.hpp>
@@ -35,6 +38,7 @@
 
 #include <logging/config.hpp>
 #include <logging/impl/tcp_socket_sink.hpp>
+#include <logging/telemetry_settings_storage.hpp>
 #include <logging/tp_logger_utils.hpp>
 
 #ifndef ARCADIA_ROOT
@@ -48,6 +52,7 @@ namespace components {
 namespace {
 
 constexpr std::chrono::seconds kDefaultFlushInterval{2};
+constexpr auto kDefaultLoggerName = "default";
 
 void ReopenLoggerFile(const std::shared_ptr<logging::impl::TpLogger>& logger) {
     logger->Reopen(logging::impl::ReopenMode::kAppend);
@@ -80,6 +85,7 @@ void ReportReopeningErrorAndThrow(
 
 Logging::Logging(const ComponentConfig& config, const ComponentContext& context)
     : fs_task_processor_{GetFsTaskProcessor(config, context)},
+      telemetry_settings_(std::make_unique<logging::impl::TelemetrySettingsStorage>()),
       metrics_storage_(context.FindComponent<components::StatisticsStorage>().GetMetricsStorage())
 {
     try {
@@ -108,6 +114,9 @@ Logging::Logging(const ComponentConfig& config, const ComponentContext& context)
 void Logging::Init(const ComponentConfig& config, const ComponentContext& context) {
     tracing::SetSpanLogLevel(config["span-log-level"].As<std::optional<logging::Level>>());
 
+    telemetry_settings_
+        ->RegisterLogger(kDefaultLoggerName, logging::LoggerPtr{logging::LoggerPtr{}, &logging::GetDefaultLogger()});
+
     const auto logger_configs = yaml_config::ParseMapToArray<logging::LoggerConfig>(config["loggers"]);
 
     if (logger_configs.empty()) {
@@ -118,7 +127,7 @@ void Logging::Init(const ComponentConfig& config, const ComponentContext& contex
     const auto shared_path_mutexes = logging::impl::MakeSharedPathMutexes(logger_configs);
 
     for (const auto& logger_config : logger_configs) {
-        const bool is_default_logger = (logger_config.logger_name == "default");
+        const bool is_default_logger = (logger_config.logger_name == kDefaultLoggerName);
 
         if (logger_config.testsuite_capture && !is_default_logger) {
             throw std::runtime_error(
@@ -157,6 +166,9 @@ void Logging::Init(const ComponentConfig& config, const ComponentContext& contex
             logger_config.flush_queue_size
         );
 
+        if (!is_default_logger) {
+            telemetry_settings_->RegisterLogger(logger_config.logger_name, logger);
+        }
         auto insertion_result = loggers_.emplace(logger_config.logger_name, std::move(logger));
         if (!insertion_result.second) {
             throw std::runtime_error("duplicate logger '" + insertion_result.first->first + '\'');
@@ -195,11 +207,27 @@ void Logging::Stop() noexcept {
 }
 
 void Logging::SetLogger(const std::string& name, logging::LoggerPtr logger) {
-    auto [_, inserted] = extra_loggers_.Emplace(name, std::move(logger));
+    if (!logger) {
+        throw std::runtime_error("Cannot register a null logger; provide a valid LoggerPtr");
+    }
+    if (name == kDefaultLoggerName || loggers_.contains(name)) {
+        throw std::runtime_error(fmt::format("Duplicate logger name: {}", name));
+    }
+    auto [_, inserted] = extra_loggers_.Emplace(name, logger);
     if (!inserted) {
         throw std::runtime_error(fmt::format("Duplicate logger name: {}", name));
     }
+    telemetry_settings_->RegisterLogger(name, std::move(logger));
 }
+
+void Logging::SetTelemetrySettings(
+    utils::DefaultDict<logging::TelemetrySettings> settings,
+    utils::DefaultDict<logging::TelemetrySettings> restrictions
+) {
+    telemetry_settings_->Apply(std::move(settings), std::move(restrictions));
+}
+
+void Logging::RestoreTelemetrySettings() { telemetry_settings_->Restore(); }
 
 logging::LoggerPtr Logging::GetLogger(const std::string& name) {
     auto it = loggers_.find(name);

@@ -1,0 +1,57 @@
+default: {}
+description: |
+    Logging and tracing settings applied together by @ref components::LoggingConfigurator.
+    logging maps logger names to minimum levels and log sampling probabilities.
+    logging.__default__ is used only when a logger has no explicit entry; entries are not merged.
+    tracing configures process-wide trace sampling independently of log sampling.
+    Missing sections impose no restrictions. Logger entries require min_log_level and log_sample_rate;
+    tracing requires trace_sample_rate. Log sampling preserves warning and higher logs.
+schema:
+    type: object
+    additionalProperties: false
+    properties:
+        logging:
+            $ref: '#/definitions/LoggingSettings'
+        tracing:
+            $ref: '#/definitions/TracingSettings'
+    definitions:
+        LoggingSettings:
+            type: object
+            properties:
+                __default__:
+                    $ref: '#/definitions/LoggerSettings'
+            additionalProperties:
+                $ref: '#/definitions/LoggerSettings'
+        LoggerSettings:
+            type: object
+            additionalProperties: false
+            required: [min_log_level, log_sample_rate]
+            properties:
+                min_log_level:
+                    description: |
+                        Minimum log severity. The logger level is set to the stricter of this value
+                        and the level captured at logger registration. trace adds no restriction.
+                        Removing the policy restores the initial level. Runtime level changes may
+                        override this setting until the next telemetry configuration update.
+                    type: string
+                    enum: [trace, debug, info, warning, error, critical, none]
+                log_sample_rate:
+                    description: |
+                        Fraction of records below warning to retain, from 0 (drop all) to 1 (retain all).
+                        Warning and higher levels, span records and force-enabled dynamic debug
+                        records are not sampled. Sampling does not change the logger level.
+                    type: number
+                    minimum: 0
+                    maximum: 1
+        TracingSettings:
+            type: object
+            additionalProperties: false
+            required: [trace_sample_rate]
+            properties:
+                trace_sample_rate:
+                    description: |
+                        Fraction of traces to retain, from 0 (drop all) to 1 (retain all).
+                        Applies process-wide using the trace ID, independently of log sampling.
+                    type: number
+                    minimum: 0
+                    maximum: 1
