@@ -14,6 +14,7 @@
 #include <userver/crypto/hash.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/http/common_headers.hpp>
+#include <userver/http/url.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/server/handlers/auth/auth_checker_base.hpp>
 #include <userver/server/handlers/auth/digest/directives.hpp>
@@ -54,6 +55,16 @@ public:
 private:
     std::optional<ServerDigestAuthSecret> secret_key_;
 };
+
+// RFC 7616, 3.4.6: the request-line URI and the `uri` directive must designate the same resource.
+// RFC 7230, 5.3: a request target comes either in origin-form or in absolute-form.
+bool DoesUriDirectiveMatchRequestTarget(std::string_view request_target, std::string_view uri_directive) {
+    using USERVER_NAMESPACE::http::ExtractPathView;
+    using USERVER_NAMESPACE::http::ExtractQueryView;
+
+    return ExtractPathView(request_target) == ExtractPathView(uri_directive) &&
+           ExtractQueryView(request_target) == ExtractQueryView(uri_directive);
+}
 
 }  // namespace
 
@@ -167,6 +178,17 @@ AuthCheckResult AuthCheckerBase::CheckAuth(const http::HttpRequest& request, req
     } catch (const Exception& ex) {
         response.SetStatus(http::HttpStatus::kBadRequest);
         LOG_WARNING() << "Directives parser exception: " << ex;
+        throw handlers::ClientError();
+    }
+
+    if (!DoesUriDirectiveMatchRequestTarget(request.GetUrl(), client_context.uri)) {
+        response.SetStatus(http::HttpStatus::kBadRequest);
+        LOG_WARNING() << fmt::format(
+            "The '{}' directive '{}' does not designate the request target '{}'",
+            directives::kUri,
+            client_context.uri,
+            request.GetUrl()
+        );
         throw handlers::ClientError();
     }
 
