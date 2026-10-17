@@ -56,9 +56,9 @@ namespace {{ namespace }} {
         struct Request {
           {% for parameter in op.parameters %}
               {% if parameter.cpp_type.nullable %}
-                std::optional<{{ parameter.cpp_type.cpp_global_name() }}>
+                std::optional<{{ parameter.cpp_type.cpp_user_name() }}>
               {%- else -%}
-                {{ parameter.cpp_type.cpp_global_name() }}
+                {{ parameter.cpp_type.cpp_user_name() }}
               {% endif -%}
               {{ parameter.cpp_name }};
           {% endfor %}
