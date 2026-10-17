@@ -2,6 +2,8 @@
 
 #include <concepts>
 #include <optional>
+#include <string_view>
+#include <type_traits>
 
 #include <fmt/format.h>
 
@@ -80,6 +82,12 @@ struct To {};
 template <std::integral T>
 T ParseParameter(std::string&& s, parse::To<T>) {
     return utils::FromString<T>(s);
+}
+
+template <typename T>
+requires std::is_enum_v<T>
+T ParseParameter(std::string&& s, parse::To<T>) {
+    return Convert(std::string_view{s}, chaotic::convert::To<T>{});
 }
 
 std::string ParseParameter(std::string&& str_value, parse::To<std::string>);

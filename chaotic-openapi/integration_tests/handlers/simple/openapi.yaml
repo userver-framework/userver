@@ -217,6 +217,9 @@ paths:
             name: unit
             schema:
                 type: string
+                enum:
+                  - metric
+                  - imperial
         get:
             operationId: sharedGet
             responses:
@@ -229,6 +232,15 @@ paths:
                 name: extra
                 schema:
                     type: integer
+              - in: query
+                name: units
+                schema:
+                    type: array
+                    items:
+                        type: string
+                        enum:
+                          - metric
+                          - imperial
             responses:
                 200:
                     description: OK
