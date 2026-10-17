@@ -343,6 +343,14 @@ bool ParseMultipartFormDataBody(
     bool strict_cr_lf
 ) {
     LOG_TRACE() << "body=" << body << ", body.size()=" << body.size();
+    if (body.empty()) {
+        // A zero-length body does not match `multipart-body` from
+        // https://datatracker.ietf.org/doc/html/rfc2046#section-5.1.1, but it is a
+        // valid HTTP request body (`message-body = *OCTET`,
+        // https://www.rfc-editor.org/rfc/rfc9112#section-6), so it is reported as an
+        // empty form rather than as a parse failure
+        return true;
+    }
     std::string_view crlf = "\r\n";
     if (boundary.size() + 2 <= body.size() && body[0] == '-' && body[1] == '-' &&
         body.substr(2, boundary.size()) == boundary)
