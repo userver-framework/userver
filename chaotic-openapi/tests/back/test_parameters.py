@@ -444,3 +444,47 @@ def test_parameter_array_items_user_cpp_type_over_string_format(translate_single
     assert parameter.parser == (
         f"openapi::ArrayParameter<openapi::In::kQuery, kparam, ',', std::string, {USER_TYPE}, boost::uuids::uuid>"
     )
+
+
+def test_path_item_parameters(translate_single_schema):
+    """A parameter on the path item applies to every operation on that path.
+
+    OpenAPI puts shared parameters here rather than repeating them per
+    operation, and this used to reach `map_infile_path_to_cpp_type`'s closing
+    `assert False` with
+    `/paths/[/thing/{id}]/parameters/0/schema`: the pointer carries no method
+    segment, and `_PARAMETER_RE`'s second group is the method. Both operations
+    below must see the parameter, and both must name the **same** type — it is
+    one parameter shared by the path, not one per method, so its namespace is a
+    level shallower than the per-operation form in `test_parameters` above
+    (`root_::get` there, no method component here).
+    """
+    schema = {
+        'openapi': '3.0.0',
+        'info': {'title': '', 'version': '1.0'},
+        'paths': {
+            '/thing/{id}': {
+                'parameters': [
+                    {
+                        'in': 'path',
+                        'name': 'id',
+                        'required': True,
+                        'schema': {'type': 'integer'},
+                    },
+                ],
+                'get': {'responses': {}},
+                'put': {'responses': {}},
+            },
+        },
+    }
+    operations = translate_single_schema(schema).operations
+    assert len(operations) == 2
+
+    for operation in operations:
+        assert [p.raw_name for p in operation.parameters] == ['id']
+
+    namespaces = {
+        operation.parameters[0].cpp_type.validators.namespace
+        for operation in operations
+    }
+    assert namespaces == {'::test_namespace::thing_id'}

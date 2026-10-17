@@ -137,6 +137,37 @@ paths:
                                 type: string
                                 format: uuid
 
+    /test1/shared/{spot}:
+        parameters:
+          - name: spot
+            in: path
+            required: true
+            schema:
+                type: string
+                format: uuid
+          - name: unit
+            in: query
+            required: false
+            schema:
+                type: string
+                enum:
+                  - metric
+                  - imperial
+        get:
+            responses:
+                '200':
+                    description: OK
+        put:
+            parameters:
+              - name: extra
+                in: query
+                required: false
+                schema:
+                    type: integer
+            responses:
+                '200':
+                    description: OK
+
     /test1/strong/{account}:
         get:
             parameters:

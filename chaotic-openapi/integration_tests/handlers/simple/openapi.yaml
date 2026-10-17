@@ -205,6 +205,34 @@ paths:
                                 type: string
                                 format: uuid
 
+    /shared/{spot}:
+        parameters:
+          - in: path
+            name: spot
+            required: true
+            schema:
+                type: string
+                format: uuid
+          - in: query
+            name: unit
+            schema:
+                type: string
+        get:
+            operationId: sharedGet
+            responses:
+                200:
+                    description: OK
+        put:
+            operationId: sharedPut
+            parameters:
+              - in: query
+                name: extra
+                schema:
+                    type: integer
+            responses:
+                200:
+                    description: OK
+
     /strong/{account}:
         get:
             operationId: strongGet

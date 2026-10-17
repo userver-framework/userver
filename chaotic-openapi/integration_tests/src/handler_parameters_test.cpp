@@ -16,6 +16,10 @@
 #include <userver/chaotic/io/test/station_id.hpp>
 #include <userver/server/http/http_request_builder.hpp>
 
+#include <handlers/simple/sharedget/handler.hpp>
+#include <handlers/simple/sharedget/requests.hpp>
+#include <handlers/simple/sharedput/handler.hpp>
+#include <handlers/simple/sharedput/requests.hpp>
 #include <handlers/simple/strongget/handler.hpp>
 #include <handlers/simple/strongget/requests.hpp>
 #include <handlers/simple/strongget/responses.hpp>
@@ -27,6 +31,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
+namespace sharedget = ::handlers::simple::sharedget;
+namespace sharedput = ::handlers::simple::sharedput;
 namespace strongget = ::handlers::simple::strongget;
 namespace typedget = ::handlers::simple::typedget;
 
@@ -109,6 +115,26 @@ UTEST(HandlerParameters, StrongTypedefAndChronoHeadersAreSerialized) {
 
     EXPECT_EQ(builder.GetHttpResponse().GetHeader("X-Account-Id"), kAccount);
     EXPECT_EQ(builder.GetHttpResponse().GetHeader("X-Retry-After"), "30");
+}
+
+UTEST(HandlerParameters, PathItemParametersAreSharedByOperations) {
+    auto get_request = server::http::HttpRequestBuilder{}
+                           .SetPathArgs({{"spot", std::string{kId}}})
+                           .AddRequestArg("unit", "metric")
+                           .Build();
+    const auto get_parsed = sharedget::ParseRequest(*get_request, chaotic::openapi::To<sharedget::Request>{});
+    EXPECT_EQ(get_parsed.spot, ToUuid(kId));
+    EXPECT_EQ(get_parsed.unit, "metric");
+
+    auto put_request = server::http::HttpRequestBuilder{}
+                           .SetPathArgs({{"spot", std::string{kId}}})
+                           .AddRequestArg("unit", "imperial")
+                           .AddRequestArg("extra", "42")
+                           .Build();
+    const auto put_parsed = sharedput::ParseRequest(*put_request, chaotic::openapi::To<sharedput::Request>{});
+    EXPECT_EQ(put_parsed.spot, ToUuid(kId));
+    EXPECT_EQ(put_parsed.unit, "imperial");
+    EXPECT_EQ(put_parsed.extra, 42);
 }
 
 }  // namespace

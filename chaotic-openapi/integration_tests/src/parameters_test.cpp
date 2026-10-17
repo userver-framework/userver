@@ -25,6 +25,8 @@ namespace {
 namespace client = ::clients::parameters::test1::post;
 namespace typed_client = ::clients::parameters::test1_typed_id::get;
 namespace strong_client = ::clients::parameters::test1_strong_account::get;
+namespace shared_get_client = ::clients::parameters::test1_shared_spot::get;
+namespace shared_put_client = ::clients::parameters::test1_shared_spot::put;
 
 constexpr std::string_view kId = "6ba7b810-9dad-11d1-80b4-00c04fd430c8";
 constexpr std::string_view kAccount = "6ba7b811-9dad-11d1-80b4-00c04fd430c8";
@@ -161,6 +163,25 @@ UTEST(Parameters, StrongTypedefAndChronoHeadersAreParsed) {
 
     EXPECT_EQ(response.X_Account_Id, ::test::AccountId{ToUuid(kAccount)});
     EXPECT_EQ(response.X_Retry_After, std::chrono::seconds{30});
+}
+
+UTEST(Parameters, PathItemParametersAreSharedByOperations) {
+    auto http_client_ptr = utest::CreateHttpClient();
+
+    shared_get_client::Request get_request;
+    get_request.spot = ToUuid(kId);
+    get_request.unit = ::clients::parameters::test1_shared_spot::Parameter1::kMetric;
+    auto get_http_request = http_client_ptr->CreateRequest();
+    shared_get_client::SerializeRequest(get_request, "http://base", get_http_request);
+    EXPECT_EQ(get_http_request.GetUrl(), fmt::format("http://base/test1/shared/{}?unit=metric", kId));
+
+    shared_put_client::Request put_request;
+    put_request.spot = ToUuid(kId);
+    put_request.unit = get_request.unit;
+    put_request.extra = 42;
+    auto put_http_request = http_client_ptr->CreateRequest();
+    shared_put_client::SerializeRequest(put_request, "http://base", put_http_request);
+    EXPECT_EQ(put_http_request.GetUrl(), fmt::format("http://base/test1/shared/{}?extra=42&unit=metric", kId));
 }
 
 }  // namespace
