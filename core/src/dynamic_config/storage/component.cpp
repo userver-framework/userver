@@ -247,9 +247,10 @@ void DynamicConfig::Impl::DoSetConfig(const dynamic_config::DocsMap& value) {
 
 void DynamicConfig::Impl::SetConfig(std::string_view updater, dynamic_config::DocsMap&& value) {
     LOG_DEBUG() << "Setting new dynamic config value from '" << updater << "'";
+    auto value_with_defaults = value;
+    value_with_defaults.MergeMissing(fallback_config_);
+    DoSetConfig(value_with_defaults);
     WriteFsCache(value);
-    value.MergeMissing(fallback_config_);
-    DoSetConfig(value);
 }
 
 ComponentHealth DynamicConfig::Impl::GetComponentHealth() const {

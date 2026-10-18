@@ -1,6 +1,10 @@
 import json
 import pathlib
 
+import pytest
+
+from testsuite.utils import http
+
 
 def _load_dynamic_config_cache(service_config):
     cache_path = pathlib.Path(service_config['components_manager']['components']['dynamic-config']['fs-cache-path'])
@@ -27,3 +31,14 @@ async def test_inc_update(service_client, service_config, testpoint):
 
     cache = _load_dynamic_config_cache(service_config)
     assert cache == {'HTTP_CLIENT_CONNECTION_POOL_SIZE': 777}
+
+
+async def test_invalid_update_is_not_cached(service_client, service_config, dynamic_config):
+    await service_client.update_server_state()
+    cache_before = _load_dynamic_config_cache(service_config)
+
+    dynamic_config.set(HTTP_CLIENT_CONNECTION_POOL_SIZE='invalid')
+    with pytest.raises(http.HttpResponseError):
+        await service_client.update_server_state()
+
+    assert _load_dynamic_config_cache(service_config) == cache_before
