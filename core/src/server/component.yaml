@@ -151,6 +151,52 @@ properties:
                         description: whether to write handler statistics
                         default: true
 
+            error-pages:
+                type: array
+                description: |
+                    substitute responses for the errors that the server reports by itself, i.e. for the requests that
+                    never reach a handler (unknown path, method not allowed, malformed request, throttling); an analog
+                    of the nginx `error_page` directive. Responses produced by handlers are not affected.
+                default: '[] (the default server error responses are used)'
+                items:
+                    type: object
+                    description: substitute response for a set of error statuses
+                    additionalProperties: false
+                    required:
+                      - statuses
+                    properties:
+                        statuses:
+                            type: array
+                            description: error statuses to substitute the response for
+                            minItems: 1
+                            items:
+                                type: integer
+                                description: error status
+                                minimum: 400
+                                maximum: 599
+                        status:
+                            type: integer
+                            description: status to respond with instead of the original one
+                            default: the original status is kept
+                            minimum: 100
+                            maximum: 599
+                        body:
+                            type: string
+                            description: response body; mutually exclusive with 'body-path'
+                            default: the server-generated body is kept
+                        body-path:
+                            type: string
+                            description: path to a file with the response body, read at service start; mutually exclusive
+                                with 'body'
+                        headers:
+                            type: object
+                            description: headers to set on the response
+                            default: '{}'
+                            properties: {}
+                            additionalProperties:
+                                type: string
+                                description: header value
+
             connection:
                 type: object
                 description: connection options

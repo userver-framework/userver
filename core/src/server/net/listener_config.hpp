@@ -12,6 +12,8 @@
 #include <userver/storages/secdist/secdist.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
+#include <server/http/error_pages.hpp>
+
 #include "connection_config.hpp"
 
 USERVER_NAMESPACE_BEGIN
@@ -41,6 +43,7 @@ struct PortConfig {
 struct ListenerConfig {
     ConnectionConfig connection_config;
     request::HttpRequestConfig handler_defaults;
+    http::ErrorPages error_pages;
     int backlog = 1024;  // truncated to net.core.somaxconn
     size_t max_connections = 32768;
     std::optional<size_t> shards;

@@ -1,0 +1,41 @@
+components_manager:
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+
+        fs-task-processor:
+            worker_threads: 2
+
+    default_task_processor: main-task-processor
+
+    components:
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        server:
+            listener:
+                port: 8080
+                task_processor: main-task-processor
+                # [error pages]
+                error-pages:
+                  - statuses: [400, 404, 405]
+                    status: 200
+                    # A relative path is resolved against the working directory
+                    # of the service; the tests make this one absolute.
+                    body-path: index.html
+                    headers:
+                        Content-Type: text/html
+                        X-Powered-By: userver
+                  - statuses: [414]
+                    body: 'the URI is too long'
+                # [error pages]
+
+        handler-hello:
+            path: /hello
+            method: GET
+            task_processor: main-task-processor
