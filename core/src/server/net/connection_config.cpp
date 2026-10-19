@@ -11,6 +11,7 @@ Http2SessionConfig Parse(const yaml_config::YamlConfig& value, formats::parse::T
     conf.max_concurrent_streams = value["max_concurrent_streams"].As<std::uint32_t>(conf.max_concurrent_streams);
     conf.max_frame_size = value["max_frame_size"].As<std::uint32_t>(conf.max_frame_size);
     conf.initial_window_size = value["initial_window_size"].As<std::uint32_t>(conf.initial_window_size);
+    conf.enable_connect_protocol = value["enable_connect_protocol"].As<bool>(conf.enable_connect_protocol);
     return conf;
 }
 

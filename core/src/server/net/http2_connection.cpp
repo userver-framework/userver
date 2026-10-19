@@ -28,12 +28,16 @@ constexpr std::string_view kHttp2Preface = "PRI * HTTP/2.0\r\n\r\nSM\r\n\r\n";
 constexpr std::string_view kPrefaceBegin = kHttp2Preface.substr(0, kMinLenPrefaceToDetect);
 
 constexpr std::uint64_t kSocketId = std::numeric_limits<std::uint64_t>::max();
+constexpr std::uint64_t kStreamingId = std::numeric_limits<std::uint64_t>::max() - 1;
 
-enum class WakeupKind { kSocketReadable, kTaskComputedResponse };
+enum class WakeupKind { kSocketReadable, kStreamingReady, kTaskComputedResponse };
 
 WakeupKind GetWakeupKind(std::uint64_t id) {
     if (id == kSocketId) {
         return WakeupKind::kSocketReadable;
+    }
+    if (id == kStreamingId) {
+        return WakeupKind::kStreamingReady;
     }
     return WakeupKind::kTaskComputedResponse;
 }
@@ -93,6 +97,7 @@ void Http2Connection::ListenForRequests() {
 
     engine::WaitAnyContext wait_any{};
     wait_any.Append(kSocketId, GetSocket().GetReadableBase());
+    wait_any.Append(kStreamingId, parser_->GetStreamingEvent());
 
     while (!engine::current_task::ShouldCancel()) {
         StartAllRequestTasks(wait_any);
@@ -118,12 +123,23 @@ void Http2Connection::ListenForRequests() {
                 }
                 wait_any.Append(kSocketId, GetSocket().GetReadableBase());
                 break;
+            case WakeupKind::kStreamingReady:
+                // The completed awaitable was dropped out of `wait_any`, so the
+                // no-auto-reset event has no active awaiter and may be reset
+                // here. Resetting before the drain keeps a signal arriving
+                // mid-drain for the next round. `Reset()` is not allowed while
+                // the event is appended (active awaiter), which is why the
+                // drain in `OnRequestTaskFinished` leaves the signal alone.
+                parser_->GetStreamingEvent().Reset();
+                HandleStreamingEvents();
+                wait_any.Append(kStreamingId, parser_->GetStreamingEvent());
+                break;
             case WakeupKind::kTaskComputedResponse:
-                OnRequestTaskFinished(*ready_id);
+                OnRequestTaskFinished(*ready_id, wait_any);
                 break;
         }
 
-        UASSERT(wait_any.GetSize() <= config_.http2_session_config.max_concurrent_streams + 1);
+        UASSERT(wait_any.GetSize() <= config_.http2_session_config.max_concurrent_streams + 2);
     }
 }
 
@@ -143,15 +159,116 @@ Http2Connection::RequestTaskContext Http2Connection::StartRequestTask(std::share
 
     stats_.active_request_count.Add(1);
 
-    return {.task = ConnectionBase::StartRequestTask(request_ptr), .request = std::move(request_ptr)};
+    auto task = ConnectionBase::StartRequestTask(request_ptr);
+
+    // Whether the handler streams the response body becomes known only once it
+    // constructs its `ResponseBodyStream`, which happens in the handler task,
+    // so every stream is registered here: its first streaming event may need
+    // to submit the response long before the task finishes. Requests without a
+    // stream id (h2c upgrade) keep the buffered send path.
+    if (const auto stream_id = http::GetHttpResponseImpl(*request_ptr).GetStreamId()) {
+        pending_responses_.emplace(*stream_id, PendingResponseContext{request_ptr, false});
+    }
+
+    return {.task = std::move(task), .request = std::move(request_ptr)};
 }
 
-void Http2Connection::OnRequestTaskFinished(std::uint64_t event_id) noexcept {
-    SendResponse(*handler_tasks_[event_id].request);
+void Http2Connection::OnRequestTaskFinished(std::uint64_t event_id, engine::WaitAnyContext& wait_any) noexcept {
+    auto& task_context = handler_tasks_[event_id];
+    if (task_context.is_upgraded) {
+        FinishUpgradedStream(*task_context.request);
+        handler_tasks_.erase(event_id);
+        return;
+    }
+
+    auto& request = *task_context.request;
+    const bool is_upgrade = request.IsUpgradeWebsocket();
+    auto& response = http::GetHttpResponseImpl(request);
+    const auto stream_id = response.GetStreamId();
+    if (stream_id.has_value() && response.IsBodyStreamed()) {
+        // Drain the remaining body parts. `ResponseBodyStream` always pushes a
+        // final event before the handler task completes, so this also submits
+        // the response if no streaming event was processed for it yet.
+        try {
+            HandleStreamingEvents();
+        } catch (const std::exception& ex) {
+            LOG_ERROR() << "Error while sending streamed body parts: " << ex;
+            response.SetSendFailed();
+        }
+        SubmitStreamedResponseIfPending(*stream_id);
+        FinalizeResponse(request);
+    } else {
+        SendResponse(request);
+    }
+    if (stream_id.has_value()) {
+        pending_responses_.erase(*stream_id);
+    }
+
+    auto request_ptr = std::move(task_context.request);
     handler_tasks_.erase(event_id);
+    if (is_upgrade) {
+        StartUpgradedTask(std::move(request_ptr), wait_any);
+    }
+}
+
+void Http2Connection::StartUpgradedTask(HttpRequestPtr&& request_ptr, engine::WaitAnyContext& wait_any) noexcept {
+    UASSERT(parser_);
+    try {
+        const auto stream_id = http::Stream::Id{http::GetHttpResponseImpl(*request_ptr).GetStreamId().value()};
+        auto stream_rw = parser_->UpgradeStream(stream_id);
+        // The tunnelled protocol runs in its own task, so that the connection keeps
+        // multiplexing the other streams for as long as it lives.
+        auto task = engine::CriticalAsyncNoTracing(
+            [request = request_ptr, socket = std::move(stream_rw), peer_name = remote_address_]() mutable {
+                request->DoUpgrade(std::move(socket), std::move(peer_name));
+            }
+        );
+        const auto& [task_context, slot_id] = handler_tasks_.emplace(
+            RequestTaskContext{.task = std::move(task), .request = std::move(request_ptr), .is_upgraded = true}
+        );
+        wait_any.Append(slot_id, task_context.task);
+    } catch (const std::exception& ex) {
+        LOG_ERROR() << "Failed to upgrade a stream on fd " << GetFd() << ": " << ex;
+    }
+}
+
+void Http2Connection::FinishUpgradedStream(const http::HttpRequest& request) noexcept {
+    UASSERT(parser_);
+    try {
+        parser_->CloseUpgradedStream(http::Stream::Id{http::GetHttpResponseImpl(request).GetStreamId().value()});
+    } catch (const std::exception& ex) {
+        LOG_WARNING() << "Failed to close an upgraded stream on fd " << GetFd() << ": " << ex;
+    }
+}
+
+void Http2Connection::HandleStreamingEvents() {
+    http::impl::Http2StreamEvent event;
+    while (parser_->PopStreamingEventNoblock(event)) {
+        // The first event for a stream means its headers are complete
+        // (`SetHeadersEnd()` precedes the first `PushBodyChunk()`), so the
+        // response with its deferred body provider is submitted here.
+        SubmitStreamedResponseIfPending(event.stream_id);
+        parser_->ApplyStreamingEvent(std::move(event));
+        event = {};
+    }
+    parser_->WriteWhileWant();
+}
+
+void Http2Connection::SubmitStreamedResponseIfPending(std::int32_t stream_id) noexcept {
+    const auto it = pending_responses_.find(stream_id);
+    if (it == pending_responses_.end() || it->second.submit_attempted) {
+        return;
+    }
+    it->second.submit_attempted = true;
+    SubmitResponse(*it->second.request);
 }
 
 void Http2Connection::SendResponse(http::HttpRequest& request) noexcept {
+    SubmitResponse(request);
+    FinalizeResponse(request);
+}
+
+void Http2Connection::SubmitResponse(http::HttpRequest& request) noexcept {
     auto& response = http::GetHttpResponseImpl(request);
     UASSERT(!response.IsSent());
     if (IsResponseChainValid()) {
@@ -163,7 +280,7 @@ void Http2Connection::SendResponse(http::HttpRequest& request) noexcept {
                 parser_->UpgradeToHttp2(h);
                 response.SetStreamId(static_cast<std::int32_t>(http::kStreamIdAfterUpgradeResponse));
             }
-            http::WriteHttp2ResponseToSocket(response, *parser_);
+            http::WriteHttp2ResponseToSocket(request, *parser_);
         } catch (const engine::io::IoSystemError& ex) {
             auto log_level = ex.Code().value() == EPIPE ? logging::Level::kWarning : logging::Level::kError;
             LOG(log_level) << "I/O error while sending data: " << ex << response.GetTracingContext().GetLogExtra();
@@ -175,6 +292,9 @@ void Http2Connection::SendResponse(http::HttpRequest& request) noexcept {
     } else {
         response.SetSendFailed();
     }
+}
+
+void Http2Connection::FinalizeResponse(http::HttpRequest& request) noexcept {
     stats_.active_request_count.Subtract(1);
     ++stats_.requests_processed_count;
 

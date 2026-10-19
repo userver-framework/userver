@@ -1,2 +1,5 @@
 httpx >= 0.27.0
 h2 >= 4.1.0
+# RFC 6455 framing without a handshake, for the RFC 8441 websocket tests: the
+# frames travel inside the DATA frames of an HTTP/2.0 extended CONNECT stream.
+wsproto >= 1.2.0
