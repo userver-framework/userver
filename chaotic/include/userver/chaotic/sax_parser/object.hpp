@@ -52,6 +52,11 @@ struct FieldModeSubscriber<Defaulted<DescriptorType, T, Default>> {
     using Type = formats::json::parser::SubscriberSink<TypeOfDescriptor<DescriptorType>>;
 };
 
+template <typename DescriptorType, auto DefaultGetter>
+struct FieldModeSubscriber<DefaultedBy<DescriptorType, DefaultGetter>> {
+    using Type = formats::json::parser::SubscriberSink<TypeOfDescriptor<DescriptorType>>;
+};
+
 template <typename Field>
 using FieldSubscriber = typename FieldModeSubscriber<typename Field::ModeDescriptorType>::Type;
 
@@ -221,14 +226,17 @@ public:
                 );
             }
         } else if constexpr (IsDefaulted<ModeDescriptorType>::value) {
-            using TargetType = std::decay_t<decltype(object_.*FieldType::kField)>;
-            using DefaultType = std::decay_t<decltype(ModeDescriptorType::DefaultValue)>;
-            if constexpr (std::is_same_v<TargetType, DefaultType>) {
-                object_.*FieldType::kField = ModeDescriptorType::DefaultValue;
-            } else if constexpr (std::is_arithmetic_v<TargetType> && std::is_arithmetic_v<DefaultType>) {
-                object_.*FieldType::kField = TargetType{ModeDescriptorType::DefaultValue};
-            } else {
-                object_.*FieldType::kField = chaotic::ConvertTo<TargetType>(ModeDescriptorType::DefaultValue);
+            if (!seen_[Idx]) {
+                const auto& default_value = ModeDescriptorType::GetDefaultValue();
+                using TargetType = std::decay_t<decltype(object_.*FieldType::kField)>;
+                using DefaultType = std::decay_t<decltype(default_value)>;
+                if constexpr (std::is_same_v<TargetType, DefaultType>) {
+                    object_.*FieldType::kField = default_value;
+                } else if constexpr (std::is_arithmetic_v<TargetType> && std::is_arithmetic_v<DefaultType>) {
+                    object_.*FieldType::kField = TargetType{default_value};
+                } else {
+                    object_.*FieldType::kField = chaotic::ConvertTo<TargetType>(default_value);
+                }
             }
         }
     }

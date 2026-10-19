@@ -14,6 +14,17 @@ def test_int_array(simple_parse):
     simple_parse({'type': 'array', 'items': {'type': 'integer'}})
 
 
+def test_array_default(simple_parse):
+    simple_parse({'type': 'array', 'items': {'type': 'integer'}, 'default': [1, 2]})
+    simple_parse({'type': 'array', 'items': {'type': 'integer'}, 'default': []})
+
+
+def test_array_default_must_be_array(simple_parse):
+    with pytest.raises(front_parser.ParserError) as exc:
+        simple_parse({'type': 'array', 'items': {'type': 'integer'}, 'default': 'invalid'})
+    assert exc.value.infile_path == '/definitions/type/items/default'
+
+
 def test_full_array(simple_parse):
     simple_parse({
         'type': 'array',
