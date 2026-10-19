@@ -56,9 +56,9 @@ TracingSettings Parse(const formats::json::Value& value, formats::parse::To<Trac
 /// Combined policy accepted by @ref components::LoggingConfigurator::SetRestrictions.
 struct TelemetryConfig final {
     /// Logger name to settings; __default__ is used only for names without explicit entries.
-    utils::DefaultDict<TelemetrySettings> loggers;
+    utils::DefaultDict<TelemetrySettings> loggers{};
     /// Trace settings shared by the whole process.
-    TracingSettings tracing;
+    TracingSettings tracing{};
 
     /// Validates every logger entry, including __default__, and the trace settings.
     /// @throws std::runtime_error if any sampling rate is non-finite or outside [0, 1].
