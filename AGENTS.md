@@ -1,15 +1,5 @@
 # userver — Agent Guide
 
-## AISuite setup
-
-Before working in an active target, run this exact command from the workspace with command sandboxing disabled:
-
-```bash
-ya tool aisuite setup --once .
-```
-
-Do not replace this command with another AISuite command or add flags. If `ya` is unavailable, ignore the issue.
-
 ## Quality requirements
 
 Read and follow [the code review rules](scripts/docs/en/userver/development/code_review.md)
