@@ -183,7 +183,9 @@ TEST_F(ComponentList, TelemetryRestrictionsNeverIncreaseTelemetry) {
 
 TEST_F(ComponentList, TelemetryNeutralRestrictionValuesPreserveSampling) {
     RunScenario<[](TelemetryTestState& state) {
-        state.logging.SetRestrictions({.loggers = {{"__default__", {.min_log_level = logging::Level::kWarning}}}});
+        state.logging
+            .SetRestrictions({.loggers = {{"__default__", {.min_log_level = logging::Level::kWarning}}}, .tracing = {}}
+            );
         EXPECT_EQ(logging::GetDefaultLogger().GetSamplingProbability(), 0.25);
         EXPECT_EQ(tracing::GetTraceSamplingProbability(), 0.5);
     }>();
@@ -210,7 +212,9 @@ TEST_F(ComponentList, TelemetryConfigUpdatePreservesRestrictions) {
 
 TEST_F(ComponentList, TelemetryRemovingRestrictionsRestoresInitialLevel) {
     RunScenario<[](TelemetryTestState& state) {
-        state.logging.SetRestrictions({.loggers = {{"__default__", {.min_log_level = logging::Level::kWarning}}}});
+        state.logging
+            .SetRestrictions({.loggers = {{"__default__", {.min_log_level = logging::Level::kWarning}}}, .tracing = {}}
+            );
         EXPECT_EQ(logging::GetDefaultLoggerLevel(), logging::Level::kWarning);
         EXPECT_FALSE(logging::ShouldLog(logging::Level::kInfo));
         logging::SetDefaultLoggerLevel(logging::Level::kError);
@@ -260,7 +264,7 @@ TEST_F(ComponentList, TelemetryRemovingOrdinarySettingsKeepsEmergencyRestriction
 TEST_F(ComponentList, TelemetryInvalidUpdatesPreservePreviousSettings) {
     RunScenario<
         [](TelemetryTestState& state) {
-            state.logging.SetRestrictions({.tracing = {.trace_sample_rate = 0.125}});
+            state.logging.SetRestrictions({.loggers = {}, .tracing = {.trace_sample_rate = 0.125}});
             for (const double invalid :
                  {-0.1, 1.1, std::numeric_limits<double>::infinity(), std::numeric_limits<double>::quiet_NaN()})
             {
@@ -288,7 +292,8 @@ TEST_F(ComponentList, TelemetryInvalidUpdatesPreservePreviousSettings) {
 
 TEST_F(ComponentList, TelemetrySpanLocalLevelKeepsItsOverride) {
     RunScenario<[](TelemetryTestState& state) {
-        state.logging.SetRestrictions({.loggers = {{"__default__", {.min_log_level = logging::Level::kError}}}});
+        state.logging
+            .SetRestrictions({.loggers = {{"__default__", {.min_log_level = logging::Level::kError}}}, .tracing = {}});
         EXPECT_FALSE(logging::ShouldLog(logging::Level::kInfo));
         tracing::Span span{"local_override"};
         span.SetLocalLogLevel(logging::Level::kInfo);
@@ -375,7 +380,8 @@ TEST_F(ComponentList, TelemetryRestrictionsCombineWithEachLoggerPolicy) {
             }
         })");
         state.logging.SetRestrictions(
-            {.loggers = {{"__default__", {.min_log_level = logging::Level::kWarning, .log_sample_rate = 0.25}}}}
+            {.loggers = {{"__default__", {.min_log_level = logging::Level::kWarning, .log_sample_rate = 0.25}}},
+             .tracing = {}}
         );
         EXPECT_EQ(access->GetLevel(), logging::Level::kError);
         EXPECT_EQ(access->GetSamplingProbability(), 0.125);
