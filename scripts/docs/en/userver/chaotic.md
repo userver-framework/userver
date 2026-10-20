@@ -252,6 +252,32 @@ Example:
 
 @snippet chaotic/golden_tests/schemas/docs/docs.yaml chaotic docs - type array
 
+A non-required array property with `default` produces a plain container instead of `std::optional`, and an absent key
+yields the declared value. `default: null` is the same as no `default`. A non-empty `default` is supported for items
+of type boolean, integer, number, string and string enum without `x-usrv-cpp-type`, `x-usrv-cpp-typedef-tag` or
+`format`; `default: []` is supported for any items. E.g. the following properties:
+
+```yaml
+tags:
+    type: array
+    items:
+        type: string
+    default: []
+units:
+    type: array
+    items:
+        type: string
+    default:
+      - metric
+```
+
+produce the following C++ fields:
+
+```cpp
+  std::vector<std::string> tags{};
+  std::vector<std::string> units{"metric"};
+```
+
 
 #### JSON schema type: object
 

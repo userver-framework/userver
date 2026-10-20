@@ -1,0 +1,103 @@
+definitions:
+    Tags:
+        type: array
+        items:
+            type: string
+        default:
+          - tagged
+
+    Unit:
+        type: string
+        enum:
+          - metric
+          - imperial
+
+    ArrayDefaults:
+        type: object
+        additionalProperties: false
+        required:
+          - required_items
+        properties:
+            required_items:
+                type: array
+                items:
+                    type: string
+            optional_items:
+                type: array
+                items:
+                    type: string
+            null_default:
+                type: array
+                items:
+                    type: string
+                default: null
+            empty_default:
+                type: array
+                items:
+                    type: string
+                default: []
+            string_default:
+                type: array
+                items:
+                    type: string
+                default:
+                  - sports
+                  - "quoted \"news\"\n"
+            integer_default:
+                type: array
+                items:
+                    type: integer
+                default: [1, 2, 3]
+            number_default:
+                type: array
+                items:
+                    type: number
+                default: [1, 2.5]
+            boolean_default:
+                type: array
+                items:
+                    type: boolean
+                default: [true, false]
+            enum_default:
+                type: array
+                items:
+                    $ref: '#/definitions/Unit'
+                default:
+                  - imperial
+            set_default:
+                type: array
+                x-usrv-cpp-container: std::set
+                items:
+                    type: string
+                default:
+                  - b
+                  - a
+            ref_default:
+                $ref: '#/definitions/Tags'
+            indirect_default:
+                $ref: '#/definitions/Tags'
+                x-usrv-cpp-indirect: true
+            custom_empty_default:
+                type: array
+                x-usrv-cpp-type: my::CustomArray<std::string>
+                items:
+                    type: string
+                default: []
+            custom_default:
+                type: array
+                x-usrv-cpp-type: my::CustomArray<std::string>
+                items:
+                    type: string
+                default:
+                  - custom
+
+    ArrayDefaultsHolder:
+        type: object
+        additionalProperties: false
+        required:
+          - entries
+        properties:
+            entries:
+                type: array
+                items:
+                    $ref: '#/definitions/ArrayDefaults'
