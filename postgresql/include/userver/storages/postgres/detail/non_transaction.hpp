@@ -10,6 +10,8 @@
 #include <userver/storages/postgres/detail/query_parameters.hpp>
 #include <userver/storages/postgres/detail/time_types.hpp>
 
+#include <userver/storages/postgres/io/struct_view.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::postgres::detail {
@@ -44,6 +46,13 @@ public:
     ResultSet Execute(OptionalCommandControl statement_cmd_ctl, const Query& query, const Args&... args) {
         detail::StaticQueryParameters<sizeof...(args)> params;
         params.Write(GetConnectionUserTypes(), args...);
+        return DoExecute(query, detail::QueryParameters{params}, statement_cmd_ctl);
+    }
+
+    template <io::traits::RequiresStructView T>
+    ResultSet Execute(OptionalCommandControl statement_cmd_ctl, const Query& query, const T& struct_arg) {
+        detail::StaticQueryParameters<T::size> params;
+        params.WriteTuple(GetConnectionUserTypes(), struct_arg.Params());
         return DoExecute(query, detail::QueryParameters{params}, statement_cmd_ctl);
     }
 

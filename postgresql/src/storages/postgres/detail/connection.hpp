@@ -254,6 +254,20 @@ public:
         return Execute(query, params, OptionalCommandControl{statement_cmd_ctl});
     }
 
+    template <io::traits::RequiresStructView T>
+    ResultSet Execute(const Query& query, const T& struct_arg) {
+        detail::StaticQueryParameters<T::size> params;
+        params.WriteTuple(GetUserTypes(), struct_arg.Params());
+        return Execute(query, detail::QueryParameters{params});
+    }
+
+    template <io::traits::RequiresStructView T>
+    ResultSet Execute(CommandControl statement_cmd_ctl, const Query& query, const T& struct_arg) {
+        detail::StaticQueryParameters<T::size> params;
+        params.WriteTuple(GetUserTypes(), struct_arg.Params());
+        return Execute(query, params, OptionalCommandControl{statement_cmd_ctl});
+    }
+
     ResultSet Execute(const Query& query, const ParameterStore& store);
 
     ResultSet Execute(CommandControl statement_cmd_ctl, const Query& query, const ParameterStore& store);
