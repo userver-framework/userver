@@ -358,7 +358,6 @@ void NumericData::Parse(USERVER_NAMESPACE::utils::zstring_view str) {
 }
 
 IntegralRepresentation NumericData::ToInt64() const {
-    const std::uint64_t int64_t_max = std::numeric_limits<std::int64_t>::max();
     if (sign == kNumericNan) {
         throw ValueIsNaN{"PostgreSQL buffer for decimal/numeric contains a NaN value"};
     }
@@ -369,15 +368,15 @@ IntegralRepresentation NumericData::ToInt64() const {
     } else {
         for (bin_dig_pos = 0; bin_dig_pos <= weight; ++bin_dig_pos) {
             auto dig = (bin_dig_pos < ndigits) ? digits[bin_dig_pos] : 0;
-            const std::uint64_t new_val = (rep.value * kBinEncodingBase) + dig;
-            if (rep.value > static_cast<std::int64_t>(new_val) || new_val > int64_t_max) {
+            if (__builtin_mul_overflow(rep.value, kBinEncodingBase, &rep.value) ||
+                __builtin_add_overflow(rep.value, dig, &rep.value))
+            {
                 throw NumericOverflow{
                     "PosrgreSQL buffer contains a value that is too big to fit into "
                     "int64 + '" +
                     ToString() + "'"
                 };
             }
-            rep.value = static_cast<std::int64_t>(new_val);
         }
     }
 
@@ -392,15 +391,15 @@ IntegralRepresentation NumericData::ToInt64() const {
                 power = kBinEncodingBase / kPowersOfTen[truncate_count];
                 dig /= kPowersOfTen[truncate_count];
             }
-            const std::uint64_t new_val = (rep.value * power) + dig;
-            if (rep.value > static_cast<std::int64_t>(new_val) || new_val > int64_t_max) {
+            if (__builtin_mul_overflow(rep.value, power, &rep.value) ||
+                __builtin_add_overflow(rep.value, dig, &rep.value))
+            {
                 throw NumericOverflow{
                     "PosrgreSQL buffer contains a value that is too big to fit into "
                     "int64 + '" +
                     ToString() + "'"
                 };
             }
-            rep.value = static_cast<std::int64_t>(new_val);
         }
     }
     if (sign == kNumericNegative) {
