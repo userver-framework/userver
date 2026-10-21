@@ -5,6 +5,7 @@
 
 #include <functional>
 #include <string>
+#include <variant>
 
 #include <ydb-cpp-sdk/client/query/client.h>
 #include <ydb-cpp-sdk/client/table/table.h>
@@ -40,6 +41,10 @@ using RetryTxFunction = utils::function_ref<TxAction(TxActor&)>;
 ///
 /// Provides only query execution within a transaction. Commit and rollback
 /// are controlled by returning TxAction from the retry function.
+/// The first query starts the transaction in the same request. A callback
+/// that executes no queries does not start a transaction.
+/// The transaction deadline also applies to callbacks without queries.
+/// The actor is valid only for the duration of the retry callback.
 /// https://ydb.tech/docs/en/concepts/transactions
 class TxActor {
 public:
@@ -75,13 +80,11 @@ private:
 
     TxActor(
         TableClient& table_client,
-        NYdb::NQuery::TSession& session,
+        NYdb::NQuery::TSession session,
         NYdb::NQuery::TTxSettings&& tx_settings,
         engine::Deadline deadline,
         std::uint32_t attempt
     );
-
-    NYdb::NQuery::TTransaction BeginTx(NYdb::NQuery::TSession& session, NYdb::NQuery::TTxSettings&& tx_settings);
 
     template <TxAction Action>
     void FinishTx(const RequestSettings& settings);
@@ -90,7 +93,8 @@ private:
     engine::Deadline deadline_;
     std::uint32_t attempt_;
 
-    NYdb::NQuery::TTransaction ydb_tx_;
+    NYdb::NQuery::TTxSettings tx_settings_;
+    std::variant<NYdb::NQuery::TSession, NYdb::NQuery::TTransaction> session_or_tx_;
 };
 
 template <typename... Args>

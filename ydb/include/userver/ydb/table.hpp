@@ -140,6 +140,9 @@ public:
     /// The user-provided function receives a TxActor for executing queries
     /// and returns TxAction::kCommit or TxAction::kRollback. On transient
     /// errors the whole function is retried automatically.
+    /// An exception from the function is preserved even if rollback also fails.
+    /// A failed rollback discards the session before the next attempt.
+    /// Rollback errors propagate when the function returns @ref ydb::TxAction::kRollback.
     ///
     /// @code
     /// client.RetryTx("my_tx", {.retries = 3},

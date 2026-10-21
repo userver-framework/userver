@@ -531,6 +531,43 @@ UTEST_F(YdbExecute, RetryTxRollback) {
     ASSERT_EQ(cursor.size(), 0);
 }
 
+UTEST_F(YdbExecute, RetryTxReadWriteRetriesConflict) {
+    CreateTable("test_table", true);
+    const ydb::Query read_query{
+        "SELECT value_int FROM test_table WHERE key = 'key1';",
+        ydb::Query::Name{"retry_rw_read"},
+    };
+    const ydb::Query write_query{
+        "DECLARE $value AS Int32; UPSERT INTO test_table (key, value_int) VALUES ('key1', $value);",
+        ydb::Query::Name{"retry_rw_write"},
+    };
+    std::size_t attempts = 0;
+    GetTableClient().RetryTx(
+        "retry_rw",
+        ydb::RetryTxSettings{.retries = 1},
+        [this, &attempts, &read_query, &write_query](ydb::TxActor& tx) {
+            ++attempts;
+            auto response = tx.Execute(read_query);
+            auto cursor = response.GetSingleCursor();
+            auto row = std::move(cursor).GetSingleRow();
+            const auto value = row.Get<std::optional<std::int32_t>>("value_int").value();
+            if (attempts == 1) {
+                GetTableClient().ExecuteQuery(ydb::Query{
+                    "UPSERT INTO test_table (key, value_int) VALUES ('key1', 100);",
+                });
+            }
+            tx.Execute(write_query, "$value", value + 1);
+            return ydb::TxAction::kCommit;
+        }
+    );
+    EXPECT_EQ(attempts, 2);
+    auto response = GetTableClient().ExecuteQuery(read_query);
+    auto cursor = response.GetSingleCursor();
+    auto row = std::move(cursor).GetSingleRow();
+    EXPECT_EQ(row.Get<std::optional<std::int32_t>>("value_int"), 101);
+    EXPECT_FALSE(GetMetrics().SingleMetricOptional("ydb.by-query.total", {{"ydb_query", "Begin"}}).has_value());
+}
+
 TYPED_UTEST(YdbExecuteTpl, PrepareQueryError) {
     this->CreateTable("prepare_error", true);
 

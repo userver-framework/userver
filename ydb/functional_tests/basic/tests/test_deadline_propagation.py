@@ -10,7 +10,7 @@ JSON = {
     'channel': 123,
 }
 
-QUERY_NAMES = ('GetSession', 'Begin', 'upsert-row', 'Commit')
+QUERY_NAMES = ('GetSession', 'upsert-row', 'Commit')
 QUERY_NAMES_OLD = ('Begin', 'upsert-row', 'Commit')
 
 

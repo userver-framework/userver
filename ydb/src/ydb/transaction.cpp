@@ -3,7 +3,9 @@
 #include <userver/formats/json/inline.hpp>
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/tracing/tags.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
+#include <userver/utils/overloaded.hpp>
 
 #include <userver/ydb/impl/cast.hpp>
 #include <userver/ydb/table.hpp>
@@ -18,9 +20,18 @@ USERVER_NAMESPACE_BEGIN
 
 namespace ydb {
 
+namespace {
+
+struct TxQueryContext {
+    NYdb::NQuery::TSession session;
+    NYdb::NQuery::TTxControl control;
+};
+
+}  // namespace
+
 TxActor::TxActor(
     TableClient& table_client,
-    NYdb::NQuery::TSession& session,
+    NYdb::NQuery::TSession session,
     NYdb::NQuery::TTxSettings&& tx_settings,
     engine::Deadline deadline,
     std::uint32_t attempt
@@ -28,24 +39,9 @@ TxActor::TxActor(
     : table_client_(table_client),
       deadline_(deadline),
       attempt_(attempt),
-      ydb_tx_(BeginTx(session, std::move(tx_settings)))
+      tx_settings_(std::move(tx_settings)),
+      session_or_tx_(std::move(session))
 {}
-
-NYdb::NQuery::TTransaction TxActor::BeginTx(NYdb::NQuery::TSession& session, NYdb::NQuery::TTxSettings&& tx_settings) {
-    auto context = table_client_.MakeRequestContext(
-        Query{"", Query::Name{"Begin"}},
-        RequestSettings{},
-        impl::IsStreaming{false},
-        nullptr,
-        deadline_
-    );
-    context.span.AddTag("attempt", attempt_);
-
-    const auto ydb_settings = impl::PrepareRequestSettings<
-        NYdb::NQuery::TBeginTxSettings>(context.settings, context.deadline, context.span.GetTraceId());
-    auto future = session.BeginTransaction(tx_settings, ydb_settings);
-    return impl::GetFutureValueChecked(std::move(future), "BeginTransaction", context).GetTransaction();
-}
 
 ExecuteResponse TxActor::Execute(ExecuteSettings settings, const Query& query, PreparedArgsBuilder&& builder) {
     auto context =
@@ -58,18 +54,50 @@ ExecuteResponse TxActor::Execute(ExecuteSettings settings, const Query& query, P
         NYdb::NQuery::TExecuteQuerySettings,
         ExecuteSettings>(context.settings, context.deadline, context.span.GetTraceId());
 
-    const auto tx = NYdb::NQuery::TTxControl::Tx(ydb_tx_);
-    auto execute_fut =
-        ydb_tx_.GetSession()
-            .ExecuteQuery(impl::ToString(query.GetStatementView()), tx, std::move(internal_params), exec_settings);
+    auto query_context = std::visit(
+        utils::Overloaded{
+            [this](const NYdb::NQuery::TSession& session) {
+                return TxQueryContext{
+                    .session = session,
+                    .control = NYdb::NQuery::TTxControl::BeginTx(tx_settings_),
+                };
+            },
+            [](const NYdb::NQuery::TTransaction& transaction) {
+                return TxQueryContext{
+                    .session = transaction.GetSession(),
+                    .control = NYdb::NQuery::TTxControl::Tx(transaction),
+                };
+            },
+        },
+        session_or_tx_
+    );
+    auto execute_fut = query_context.session.ExecuteQuery(
+        impl::ToString(query.GetStatementView()),
+        query_context.control,
+        std::move(internal_params),
+        exec_settings
+    );
 
     auto status = impl::GetFutureValueChecked(std::move(execute_fut), "TxActor::Execute", context);
+    if (std::holds_alternative<NYdb::NQuery::TSession>(session_or_tx_)) {
+        auto transaction = status.GetTransaction();
+        UINVARIANT(transaction.has_value(), "YDB did not return the transaction started by the query");
+        session_or_tx_ = std::move(transaction).value();
+    }
 
     return ExecuteResponse(std::move(status));
 }
 
 template <TxAction Action>
 void TxActor::FinishTx(const RequestSettings& settings) {
+    auto* transaction_ptr = std::get_if<NYdb::NQuery::TTransaction>(&session_or_tx_);
+    if (!transaction_ptr) {
+        if (deadline_.IsReached()) {
+            throw DeadlineExceededError("Transaction deadline exceeded before completion");
+        }
+        return;
+    }
+    auto& transaction = *transaction_ptr;
     constexpr std::string_view action_name = Action == TxAction::kCommit ? "Commit" : "Rollback";
 
     auto context = table_client_.MakeRequestContext(
@@ -90,10 +118,10 @@ void TxActor::FinishTx(const RequestSettings& settings) {
         SettingsType>(context.settings, context.deadline, context.span.GetTraceId());
 
     if constexpr (Action == TxAction::kCommit) {
-        auto future = ydb_tx_.Commit(ydb_settings);
+        auto future = transaction.Commit(ydb_settings);
         impl::GetFutureValueChecked(std::move(future), action_name, context);
     } else {
-        auto future = ydb_tx_.Rollback(ydb_settings);
+        auto future = transaction.Rollback(ydb_settings);
         impl::GetFutureValueChecked(std::move(future), action_name, context);
     }
 }

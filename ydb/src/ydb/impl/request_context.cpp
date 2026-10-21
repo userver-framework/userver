@@ -168,6 +168,10 @@ void PrepareSettings(RetryTxSettings& rs, const OperationSettings& default_setti
     if (!rs.tx_mode.has_value()) {
         rs.tx_mode = default_settings.tx_mode;
     }
+
+    if (!rs.get_session_settings.client_timeout_ms.has_value()) {
+        rs.get_session_settings.client_timeout_ms = default_settings.get_session_timeout_ms;
+    }
 }
 
 engine::Deadline GetDeadline(tracing::Span& span, const dynamic_config::Snapshot& config_snapshot) {

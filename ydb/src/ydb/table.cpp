@@ -491,14 +491,14 @@ void TableClient::RetryTx(DynamicTransactionName transaction_name, RetryTxSettin
          &commit_settings = retry_settings.commit_settings,
          &rollback_settings = retry_settings.rollback_settings,
          &attempt,
-         &guard](NYdb::NQuery::TSession session, engine::Deadline deadline) mutable {
+         &guard](impl::RetryTxSession& retry_session, engine::Deadline deadline) mutable {
             ++attempt;
 
             auto tx_settings_opt = MakeTxSettings(tx_mode);
             if (!tx_settings_opt) {
                 throw std::runtime_error("ImplicitTx is meaningless for retry transaction");
             }
-            TxActor tx_actor{table_client, session, std::move(*tx_settings_opt), deadline, attempt};
+            TxActor tx_actor{table_client, retry_session.GetSession(), std::move(*tx_settings_opt), deadline, attempt};
 
             TxAction action = TxAction::kRollback;
             std::exception_ptr exception;
@@ -510,6 +510,7 @@ void TableClient::RetryTx(DynamicTransactionName transaction_name, RetryTxSettin
                     // We don't rollback a transaction when ABORTED => retry it.
                     throw;
                 }
+                retry_session.Reset();
                 LOG_WARNING() << "Transaction rollback due to exception: " << e;
                 exception = std::current_exception();
             } catch (const std::exception& e) {
@@ -543,7 +544,15 @@ void TableClient::RetryTx(DynamicTransactionName transaction_name, RetryTxSettin
                     break;
                 }
                 case TxAction::kRollback: {
-                    tx_actor.FinishTx<TxAction::kRollback>(rollback_settings);
+                    try {
+                        tx_actor.FinishTx<TxAction::kRollback>(rollback_settings);
+                    } catch (const std::exception& rollback_error) {
+                        retry_session.Reset();
+                        if (!exception) {
+                            throw;
+                        }
+                        LOG_WARNING() << "Failed to rollback transaction after callback error: " << rollback_error;
+                    }
                     break;
                 }
             }
