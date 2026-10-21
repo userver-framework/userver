@@ -63,6 +63,11 @@ A generated client sends the HTTP method its operation declares: `get`, `head`, 
 `options` are supported. A `get` with a `requestBody` sends the body with `GET`. `trace` is not supported yet, and
 `head` with a `requestBody` is rejected; set `x-usrv-client-codegen: false` on such an operation to skip it.
 
+An operation's `operationId` becomes the name of its client method, so it must be a valid C++ identifier and
+not a C++ keyword. Without an `operationId` the method is named after the path and the HTTP method, e.g.
+`GET /users/{id}` gives `UsersIdGet`. The generator rejects operations whose client methods or C++ namespaces clash,
+including `operationId`s that differ only in letter case.
+
 
 # Testing
 
