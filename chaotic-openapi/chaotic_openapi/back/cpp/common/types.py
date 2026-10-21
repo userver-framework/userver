@@ -156,6 +156,19 @@ class Response:
         )
 
 
+HTTP_METHOD_ENUMERATORS = {
+    'GET': 'kGet',
+    'HEAD': 'kHead',
+    'POST': 'kPost',
+    'PUT': 'kPut',
+    'PATCH': 'kPatch',
+    'DELETE': 'kDelete',
+    'OPTIONS': 'kOptions',
+}
+HTTP_METHOD_DROPPING_REQUEST_BODY = 'GET'
+HTTP_METHOD_WITHOUT_REQUEST_BODY = 'HEAD'
+
+
 def map_method(method: str) -> str:
     method = method.lower()
     if method == 'delete':
@@ -200,6 +213,14 @@ class Operation:
             if body.schema:
                 return False
         return True
+
+    def sends_request_body(self) -> bool:
+        return not self.empty_request() and bool(self.request_bodies)
+
+    def cpp_http_method(self) -> str | None:
+        if self.method == HTTP_METHOD_DROPPING_REQUEST_BODY and self.sends_request_body():
+            return None
+        return HTTP_METHOD_ENUMERATORS[self.method]
 
     def has_single_2xx_responses(self) -> bool:
         return len(list(self.iter_2xx_responses())) == 1
