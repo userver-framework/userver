@@ -1,5 +1,8 @@
 #include <userver/utest/utest.hpp>
 
+#include <string>
+#include <string_view>
+
 #include <server/http/multipart_form_data_parser.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -512,6 +515,69 @@ TEST(MultipartFormDataParser, ParseErrors) {
 
     ASSERT_FALSE(ParseMultipartFormData(content_type, no_data, form_data_args));
     EXPECT_TRUE(form_data_args.empty());
+}
+
+namespace {
+
+constexpr std::string_view kArgName = "arg";
+constexpr std::string_view kArgValue = "some text";
+
+std::string MakeSingleArgBody(std::string_view content_disposition) {
+    return "--zzz\r\nContent-Disposition: " + std::string{content_disposition} + "\r\n\r\n" + std::string{kArgValue} +
+           "\r\n--zzz--\r\n";
+}
+
+void ExpectSingleArgParsed(const std::string& content_type, const std::string& body) {
+    namespace sh = server::http;
+    sh::FormDataArgs form_data_args;
+    ASSERT_TRUE(ParseMultipartFormData(content_type, body, form_data_args))
+        << "content type: '" << content_type << "', body: '" << body << '\'';
+    ASSERT_EQ(form_data_args.size(), 1);
+    const auto arg = form_data_args.find(kArgName);
+    ASSERT_NE(arg, form_data_args.end());
+    ASSERT_EQ(arg->second.size(), 1);
+    EXPECT_EQ(arg->second.front().value, kArgValue);
+}
+
+void ExpectParseFails(const std::string& content_type, const std::string& body) {
+    namespace sh = server::http;
+    sh::FormDataArgs form_data_args;
+    EXPECT_FALSE(ParseMultipartFormData(content_type, body, form_data_args))
+        << "content type: '" << content_type << "', body: '" << body << '\'';
+}
+
+}  // namespace
+
+TEST(MultipartFormDataParser, ParseEmptyContentTypeParameter) {
+    const auto body = MakeSingleArgBody(R"(form-data; name="arg")");
+
+    ExpectSingleArgParsed("multipart/form-data; boundary=zzz;", body);
+    ExpectSingleArgParsed("multipart/form-data; boundary=zzz;;", body);
+    ExpectSingleArgParsed("multipart/form-data; boundary=zzz; ; ", body);
+    ExpectSingleArgParsed("multipart/form-data; ;boundary=zzz", body);
+    ExpectSingleArgParsed("multipart/form-data;;boundary=zzz", body);
+    ExpectSingleArgParsed("multipart/form-data; boundary=zzz; charset=utf-8;", body);
+    ExpectSingleArgParsed("multipart/form-data;boundary=zzz;charset=ISO-8859-1;", body);
+}
+
+TEST(MultipartFormDataParser, ParseEmptyContentDispositionParameter) {
+    const std::string content_type = "multipart/form-data; boundary=zzz";
+
+    ExpectSingleArgParsed(content_type, MakeSingleArgBody(R"(form-data; name="arg";)"));
+    ExpectSingleArgParsed(content_type, MakeSingleArgBody(R"(form-data; name="arg";;)"));
+    ExpectSingleArgParsed(content_type, MakeSingleArgBody(R"(form-data; ;name="arg")"));
+    ExpectSingleArgParsed(content_type, MakeSingleArgBody(R"(form-data; name="arg"; ; )"));
+}
+
+TEST(MultipartFormDataParser, ParseInvalidParametersStillFail) {
+    const auto valid_body = MakeSingleArgBody(R"(form-data; name="arg")");
+
+    ExpectParseFails("multipart/form-data; boundary=zzz; novalue", valid_body);
+    ExpectParseFails("multipart/form-data; novalue; boundary=zzz", valid_body);
+    ExpectParseFails("multipart/form-data; boundary=zzz", MakeSingleArgBody(R"(form-data; name="arg"; novalue)"));
+
+    ExpectParseFails("multipart/form-data;;", valid_body);
+    ExpectParseFails("multipart/form-data; boundary=zzz", MakeSingleArgBody("form-data;"));
 }
 
 USERVER_NAMESPACE_END

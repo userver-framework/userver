@@ -191,27 +191,28 @@ bool ParseContentDisposition(std::string_view content_disposition, FormDataArgIn
         }
         SkipOptionalSpaces(str);
         auto param_name = ReadToken(str);
-        if (!param_name.empty()) {
-            SkipOptionalSpaces(str);
-            if (!SkipSymbol(str, '=')) {
-                return false;
-            }
-            const bool is_name = IEquals(param_name, kName);
-            const bool is_filename = IEquals(param_name, kFilename);
-            const bool need_header_value = is_name || is_filename;
-            std::string value;
-            if (!ParseHeaderParamValue(str, need_header_value ? &value : nullptr)) {
-                return false;
-            }
-            SkipOptionalSpaces(str);
-            if (is_name) {
-                arg_info.name = std::move(value);
-            } else if (is_filename) {
-                arg_info.arg.filename = std::move(value);
-            }
-        } else {
-            LOG_WARNING() << "Bad Content-Disposition: empty attribute name";
+        if (param_name.empty()) {
+            // `parameters` from https://www.rfc-editor.org/rfc/rfc9110#section-5.6.6
+            // is `*( OWS ";" OWS [ parameter ] )`, so an empty parameter slot is
+            // valid and carries no information
+            continue;
+        }
+        SkipOptionalSpaces(str);
+        if (!SkipSymbol(str, '=')) {
             return false;
+        }
+        const bool is_name = IEquals(param_name, kName);
+        const bool is_filename = IEquals(param_name, kFilename);
+        const bool need_header_value = is_name || is_filename;
+        std::string value;
+        if (!ParseHeaderParamValue(str, need_header_value ? &value : nullptr)) {
+            return false;
+        }
+        SkipOptionalSpaces(str);
+        if (is_name) {
+            arg_info.name = std::move(value);
+        } else if (is_filename) {
+            arg_info.arg.filename = std::move(value);
         }
     }
 
@@ -462,29 +463,30 @@ bool ParseMultipartFormData(
         }
         SkipOptionalSpaces(unparsed);
         auto param_name = ReadToken(unparsed);
-        if (!param_name.empty()) {
-            SkipOptionalSpaces(unparsed);
-            if (!SkipSymbol(unparsed, '=')) {
-                return false;
-            }
-            const bool is_boundary = IEquals(param_name, kBoundary);
-            const bool is_charset = IEquals(param_name, kCharset);
-            const bool need_header_value = is_boundary || is_charset;
-            std::string value;
-            if (!ParseHeaderParamValue(unparsed, need_header_value ? &value : nullptr)) {
-                return false;
-            }
-            SkipOptionalSpaces(unparsed);
-            if (is_boundary) {
-                boundary = std::move(value);
-            } else if (is_charset) {
-                charset = std::move(value);
-            }
-            // else ignore other parameters
-        } else {
-            LOG_WARNING() << "Bad Content-Type: empty attribute name";
+        if (param_name.empty()) {
+            // `parameters` from https://www.rfc-editor.org/rfc/rfc9110#section-5.6.6
+            // is `*( OWS ";" OWS [ parameter ] )`, so an empty parameter slot is
+            // valid and carries no information
+            continue;
+        }
+        SkipOptionalSpaces(unparsed);
+        if (!SkipSymbol(unparsed, '=')) {
             return false;
         }
+        const bool is_boundary = IEquals(param_name, kBoundary);
+        const bool is_charset = IEquals(param_name, kCharset);
+        const bool need_header_value = is_boundary || is_charset;
+        std::string value;
+        if (!ParseHeaderParamValue(unparsed, need_header_value ? &value : nullptr)) {
+            return false;
+        }
+        SkipOptionalSpaces(unparsed);
+        if (is_boundary) {
+            boundary = std::move(value);
+        } else if (is_charset) {
+            charset = std::move(value);
+        }
+        // else ignore other parameters
     }
 
     if (boundary.empty()) {
