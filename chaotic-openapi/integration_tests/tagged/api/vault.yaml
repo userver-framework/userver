@@ -31,3 +31,21 @@ paths:
                         application/json:
                             schema:
                                 $ref: '../common/errors.yaml#/components/schemas/Error'
+    /api/credentials/{name}/use:
+        post:
+            operationId: useCredential
+            parameters:
+              - in: path
+                name: name
+                required: true
+                schema:
+                    type: string
+            requestBody:
+                required: true
+                content:
+                    application/json: {}
+            responses:
+                '200':
+                    description: The credential payload, its shape is the credential class's
+                    content:
+                        application/json: {}

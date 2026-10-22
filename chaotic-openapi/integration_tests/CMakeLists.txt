@@ -38,11 +38,12 @@ foreach(HANDLER ${HANDLERS})
     target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-handler-${HANDLER})
 endforeach()
 
-# Documents with x-usrv-cpp-namespace: every document is generated once, by the target it is an input of,
-# and included by the targets referring to it.
+# Documents with x-usrv-cpp-namespace: the types of every document, operation documents included, are generated
+# once, by the target it is an input of, and included by the targets referring to it.
 set(TAGGED_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tagged)
 userver_target_generate_chaotic(
     ${PROJECT_NAME}-tagged-schemas SCHEMAS ${TAGGED_DIR}/common/errors.yaml ${TAGGED_DIR}/schemas/credentials.yaml
+                                           ${TAGGED_DIR}/api/vault.yaml ${TAGGED_DIR}/admin/vault.yaml
 )
 userver_target_generate_openapi_client(
     ${PROJECT_NAME}-tagged-client

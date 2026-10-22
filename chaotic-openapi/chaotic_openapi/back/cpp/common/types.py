@@ -58,6 +58,16 @@ class SpecBase:
 
 
 @dataclasses.dataclass
+class TypesSpec(SpecBase):
+    """The types of documents with x-usrv-cpp-namespace, without the client or handlers code."""
+
+    closure: layout.Closure
+    operations: list['Operation'] = dataclasses.field(default_factory=list)
+    internal_schemas: dict[str, cpp_types.CppType] = dataclasses.field(default_factory=dict)
+    schemas: dict[str, cpp_types.CppType] = dataclasses.field(default_factory=dict)
+
+
+@dataclasses.dataclass
 class Parameter:
     description: str
     raw_name: str

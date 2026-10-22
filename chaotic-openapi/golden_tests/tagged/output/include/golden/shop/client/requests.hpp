@@ -11,7 +11,7 @@
 
 #include <golden/dto/shop/items.hpp>
 #include <golden/errors/errors.hpp>
-#include <golden/shop/client/shop.hpp>
+#include <golden/shop/shop.hpp>
 
 namespace golden::shop::client {
 

@@ -357,7 +357,8 @@ class BaseTranslator(abc.ABC):
             external_schemas={**self._dependency_types, **self._spec.schemas},
         )
         gen_type = list(gen_types.values())[0]
-        if not isinstance(gen_type, cpp_types.CppPrimitiveType):
+        # formats::json::Value of a schema-less body needs no declaration
+        if not isinstance(gen_type, (cpp_types.CppPrimitiveType, cpp_types.CppAnyValue)):
             assert str(gen_type.raw_cpp_type), gen_type
             self._spec.internal_schemas[str(gen_type.raw_cpp_type)] = gen_type
 
@@ -464,3 +465,27 @@ class BaseTranslator(abc.ABC):
             required=parameter.required,
             query_log_mode_hide=parameter.x_query_log_mode_hide,
         )
+
+
+class TypesTranslator(BaseTranslator):
+    """Translates the types of all operations, the client and the handlers share them."""
+
+    def __init__(
+        self,
+        service: model.Service,
+        *,
+        include_dirs: list[str] | None,
+        closure: layout.Closure,
+    ) -> None:
+        super().__init__(
+            service,
+            spec=common_types.TypesSpec(closure=closure),
+            include_dirs=include_dirs,
+            closure=closure,
+        )
+
+    def should_generate_operation(self, op: model.Operation) -> bool:
+        return True
+
+    def validate_operation(self, op: common_types.Operation) -> None:
+        pass

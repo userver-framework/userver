@@ -11,14 +11,14 @@
 #include <userver/chaotic/object.hpp>
 #include <golden/dto/shop/items.hpp>
 #include <golden/errors/errors.hpp>
-#include <golden/shop/handlers/shop.hpp>
+#include <golden/shop/shop.hpp>
 
 namespace golden::shop::handlers::putitem {
 
 struct Response200 final {
 static constexpr int kStatus = 200;
 
-    ::golden::shop::handlers::items_id::put::Response200BodyApplicationJson body;
+    ::golden::shop::items_id::put::Response200BodyApplicationJson body;
 
 };
 

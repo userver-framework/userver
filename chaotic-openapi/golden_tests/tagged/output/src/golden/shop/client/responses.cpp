@@ -67,7 +67,7 @@ switch (status_code) {
     Response200 r{};
           try {
             auto json = USERVER_NAMESPACE::formats::json::FromString(http_response.body());
-            r.body = json.As<USERVER_NAMESPACE::chaotic::Primitive<::golden::shop::client::items_id::put::Response200BodyApplicationJson>>();
+            r.body = json.As<USERVER_NAMESPACE::chaotic::Primitive<::golden::shop::items_id::put::Response200BodyApplicationJson>>();
           } catch (const std::exception& e) {
             LOG_ERROR() << "Failed to parse JSON response body: " << e;
             throw ExceptionWithStatusCode(200);

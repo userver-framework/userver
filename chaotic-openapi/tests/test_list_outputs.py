@@ -110,14 +110,20 @@ def tagged(tmp_path) -> list[str]:
     return [_write(tmp_path / 'api/api.yaml', TAGGED_API)]
 
 
-@pytest.mark.parametrize('documents', ['untagged', 'tagged'])
 @pytest.mark.parametrize(
-    'gen_args',
+    'documents,gen_args',
     [
-        ['--gen', 'client'],
-        ['--gen', 'client', '--dynamic-config', 'API_QOS'],
-        ['--gen', 'handlers'],
-        ['--gen', 'handlers+views'],
+        ('tagged', ['--gen', 'types']),
+        *(
+            (documents, gen_args)
+            for documents in ('untagged', 'tagged')
+            for gen_args in (
+                ['--gen', 'client'],
+                ['--gen', 'client', '--dynamic-config', 'API_QOS'],
+                ['--gen', 'handlers'],
+                ['--gen', 'handlers+views'],
+            )
+        ),
     ],
 )
 def test_list_outputs_match_generation(monkeypatch, capsys, request, tmp_path, documents, gen_args):

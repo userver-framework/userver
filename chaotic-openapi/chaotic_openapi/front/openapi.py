@@ -55,7 +55,8 @@ class Header(base_model.BaseModel):
 
 # https://spec.openapis.org/oas/v3.0.0.html#media-type-object
 class MediaType(base_model.BaseModel):
-    schema_: Schema = pydantic.Field(alias='schema', default=None)
+    # A media type without a schema carries any value
+    schema_: Schema = pydantic.Field(alias='schema', default_factory=dict)
     example: Any = None
     examples: dict[str, Any] = pydantic.Field(default_factory=dict)
     # encoding: dict[str, Encoding] = {}
@@ -77,11 +78,6 @@ class Response(base_model.BaseModel):
     headers: dict[str, Header | Ref] = pydantic.Field(default_factory=dict)
     content: dict[str, MediaType] = pydantic.Field(default_factory=dict)
     # TODO: links
-
-    def model_post_init(self, context: Any, /) -> None:
-        if 'application/json' in self.content and not self.content['application/json'].schema_:
-            # empty application/json means the same "no body"
-            del self.content['application/json']
 
 
 class In(str, enum.Enum):

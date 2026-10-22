@@ -12,7 +12,7 @@
 
 #include <golden/dto/shop/items.hpp>
 #include <golden/errors/errors.hpp>
-#include <golden/shop/client/shop.hpp>
+#include <golden/shop/shop.hpp>
 
 USERVER_NAMESPACE_BEGIN
 namespace clients::http {
@@ -39,7 +39,7 @@ Response ParseResponse(USERVER_NAMESPACE::clients::http::Response& response);
 }
 namespace putitem {
 
-  struct Response200{              ::golden::shop::client::items_id::put::Response200BodyApplicationJson body;
+  struct Response200{              ::golden::shop::items_id::put::Response200BodyApplicationJson body;
 
   };
 

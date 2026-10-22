@@ -12,7 +12,7 @@
 
 #include <golden/dto/shop/items.hpp>
 #include <golden/errors/errors.hpp>
-#include <golden/shop/handlers/shop.hpp>
+#include <golden/shop/shop.hpp>
 
 namespace golden::shop::handlers::putitem {
 
