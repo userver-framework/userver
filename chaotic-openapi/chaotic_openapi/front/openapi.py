@@ -1,4 +1,5 @@
 import enum
+from typing import Annotated
 from typing import Any
 
 import pydantic
@@ -254,7 +255,8 @@ class Operation(base_model.BaseModel):
     operationId: str | None = None
     parameters: list[Parameter | Ref] = pydantic.Field(default_factory=list)
     requestBody: RequestBody | Ref | None = None
-    responses: dict[str | int, Response | Ref]
+    # A Response validates any object with a description, a $ref must be tried first
+    responses: dict[str | int, Annotated[Ref | Response, pydantic.Field(union_mode='left_to_right')]]
     deprecated: bool = False
     security: Security | None = None
     servers: list[Server] = pydantic.Field(default_factory=list)
