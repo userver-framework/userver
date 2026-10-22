@@ -5,6 +5,9 @@
 #include <handlers/{{ spec.service_name }}/{{ make_op_relpath(op) }}/view.hpp>
 
 #include <userver/chaotic/openapi/server/handler_base.hpp>
+{% if spec.handler_policy %}
+#include <{{ spec.handler_policy_include }}>
+{% endif %}
 
 namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }} {
 
@@ -22,7 +25,8 @@ using Handler = {{ userver }}::chaotic::openapi::server::BaseHandler<
     Response,
     HandlerTag,
     View
-    {%- if op.has_any_hidden_query_parameters() %}, HiddenQueryArguments{% endif %}
+    {%- if op.has_any_hidden_query_parameters() %}, HiddenQueryArguments{% elif spec.handler_policy %}, void{% endif %}
+    {%- if spec.handler_policy %}, {{ spec.handler_policy }}{% endif %}
 >;
 
 }  // namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }}

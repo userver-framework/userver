@@ -11,10 +11,17 @@ class HandlerTranslator(BaseTranslator):
         *,
         cpp_namespace: str,
         include_dirs: list[str] | None,
+        handler_policy: str = '',
+        handler_policy_include: str = '',
     ) -> None:
         super().__init__(
             service,
-            spec=ServerSpec(service_name=service.name, cpp_namespace=cpp_namespace),
+            spec=ServerSpec(
+                service_name=service.name,
+                cpp_namespace=cpp_namespace,
+                handler_policy=handler_policy,
+                handler_policy_include=handler_policy_include,
+            ),
             include_dirs=include_dirs,
         )
 

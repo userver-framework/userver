@@ -285,6 +285,8 @@ with section('parse'):  # noqa: F821
         'userver_target_generate_openapi_handlers': {
             'pargs': 1,
             'kwargs': {
+                'POLICY': '*',
+                'POLICY_INCLUDE': '*',
                 'NAME': '*',
                 'OUTPUT_DIR': '*',
                 'SRC_DIR': '*',

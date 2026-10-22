@@ -1,6 +1,8 @@
 import pathlib
 import sys
 
+import pytest
+
 from chaotic_openapi import main
 
 _OPENAPI_SCHEMA = """\
@@ -105,3 +107,55 @@ def test_handler_codegen_preserves_client_qos_header(monkeypatch, tmp_path):
     _run_codegen(monkeypatch, schema_path, output_dir, gen='handlers')
 
     assert qos_header.read_text() == original_qos
+
+
+def _generate_handlers(monkeypatch, tmp_path: pathlib.Path, *extra: str) -> pathlib.Path:
+    output_dir = tmp_path / 'generated'
+    monkeypatch.setattr(
+        sys,
+        'argv',
+        [
+            'chaotic-openapi',
+            '--name',
+            'test_service',
+            '--gen',
+            'handlers',
+            '--output-dir',
+            str(output_dir),
+            '--clang-format',
+            '',
+            '--no-check-includes',
+            *extra,
+            str(_prepare_schema(tmp_path)),
+        ],
+    )
+    main.do_main()
+    return output_dir / 'include' / 'handlers' / 'test_service' / 'testget' / 'handler.hpp'
+
+
+def test_handler_policy(monkeypatch, tmp_path):
+    handler = _generate_handlers(
+        monkeypatch,
+        tmp_path,
+        '--handler-policy',
+        'service::HandlerPolicy',
+        '--handler-policy-include',
+        'service/handler_policy.hpp',
+    ).read_text()
+
+    assert '#include <service/handler_policy.hpp>' in handler
+    # No hidden query arguments: their slot is filled with void before the policy
+    assert 'View,void,service::HandlerPolicy>' in ''.join(handler.split())
+
+
+def test_handler_without_policy(monkeypatch, tmp_path):
+    handler = _generate_handlers(monkeypatch, tmp_path).read_text()
+
+    assert 'Policy' not in handler
+    assert 'View>' in ''.join(handler.split())
+
+
+def test_handler_policy_requires_include(monkeypatch, tmp_path, capsys):
+    with pytest.raises(SystemExit):
+        _generate_handlers(monkeypatch, tmp_path, '--handler-policy', 'service::HandlerPolicy')
+    assert '--handler-policy and --handler-policy-include must be passed together' in capsys.readouterr().err

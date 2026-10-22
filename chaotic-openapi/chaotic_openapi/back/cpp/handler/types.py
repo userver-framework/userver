@@ -11,6 +11,9 @@ class ServerSpec(common_types.SpecBase):
 
     service_name: str
     cpp_namespace: str
+    # C++ type of the project-wide handler policy and its header, see DefaultHandlerPolicy
+    handler_policy: str = ''
+    handler_policy_include: str = ''
     operations: list[Operation] = dataclasses.field(default_factory=list)
 
     # Internal types which cannot be referred to
