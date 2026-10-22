@@ -1,6 +1,7 @@
 #include <userver/utils/hedged_request.hpp>
 
 #include <chrono>
+#include <memory>
 #include <optional>
 #include <ostream>
 #include <string>
@@ -114,7 +115,39 @@ public:
     EventLog& event_log;
 };
 
+class MoveOnlyReplyStrategy : public TestStrategy {
+public:
+    using TestStrategy::TestStrategy;
+    using ReplyType = std::unique_ptr<std::string>;
+
+    std::optional<ReplyType> ExtractReply() {
+        if (!reply) {
+            return std::nullopt;
+        }
+        return std::make_unique<std::string>(std::move(*reply));
+    }
+};
+
 }  // namespace
+
+UTEST(HedgedRequest, MoveOnlyReply) {
+    const utils::hedging::HedgingSettings settings{1, 0ms, 1000ms};
+    EventLog event_log;
+    auto ret = utils::hedging::HedgeRequest(MoveOnlyReplyStrategy(event_log, {}), settings);
+    ASSERT_TRUE(ret.has_value());
+    ASSERT_NE(*ret, nullptr);
+    EXPECT_EQ(**ret, "Request0");
+}
+
+UTEST(HedgedRequest, MoveOnlyReplyAsync) {
+    const utils::hedging::HedgingSettings settings{1, 0ms, 1000ms};
+    EventLog event_log;
+    auto future = utils::hedging::HedgeRequestAsync(MoveOnlyReplyStrategy(event_log, {}), settings);
+    auto ret = future.Get();
+    ASSERT_TRUE(ret.has_value());
+    ASSERT_NE(*ret, nullptr);
+    EXPECT_EQ(**ret, "Request0");
+}
 
 UTEST(HedgedRequest, Base) {
     /// Test basic case:

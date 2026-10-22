@@ -450,7 +450,7 @@ std::optional<typename RequestTraits<RequestStrategy>::ReplyType> HedgeRequest(
     if (bulk_ret.size() != 1) {
         return std::nullopt;
     }
-    return bulk_ret[0];
+    return std::move(bulk_ret[0]);
 }
 
 /// Create future which perform hedged request described by RequestStrategy and
