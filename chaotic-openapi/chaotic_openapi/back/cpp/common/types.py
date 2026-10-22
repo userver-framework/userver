@@ -19,6 +19,14 @@ class HttpDigestSecurity(Security):
 
 
 @dataclasses.dataclass
+class UnsupportedSecurity(Security):
+    """A scheme the generated client does not apply; the caller supplies the credentials."""
+
+    # Human-readable scheme description, e.g. ``http/bearer`` or ``apiKey "X-Key" in header``
+    kind: str
+
+
+@dataclasses.dataclass
 class HttpBasicSecurity(Security):
     """``type: http, scheme: basic``."""
 
@@ -233,6 +241,9 @@ class Operation:
         assert self.uses_digest_security(), 'Operation does not use digest security'
         assert self.security is not None
         return self.security.auth_type
+
+    def unsupported_security(self) -> UnsupportedSecurity | None:
+        return self.security if isinstance(self.security, UnsupportedSecurity) else None
 
     def requests_declaration_includes(self) -> list[str]:
         includes: set[str] = set()

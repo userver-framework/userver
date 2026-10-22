@@ -31,6 +31,19 @@ _COMPONENTS_PARAMETER_RE = re.compile(r'/components/parameters/([-a-zA-Z0-9_]*)/
 _COMPONENTS_HEADER_RE = re.compile(r'/components/headers/([-a-zA-Z0-9]*)/schema')
 
 
+def _security_kind(sec: model.Security) -> str:
+    if isinstance(sec, model.HttpSecurity):
+        return f'http/{sec.scheme}'
+    if isinstance(sec, model.ApiKeySecurity):
+        return f'apiKey "{sec.api_key_name}" in {sec.in_.value}'
+    if isinstance(sec, model.OAuthSecurity):
+        return 'oauth2'
+    if isinstance(sec, model.OpenIdConnectSecurity):
+        return 'openIdConnect'
+    # Swagger 2.0 "basic"
+    return 'http/basic'
+
+
 class BaseTranslator(abc.ABC):
     def __init__(
         self,
@@ -126,38 +139,9 @@ class BaseTranslator(abc.ABC):
             )
 
         sec = requirement.and_items[0]
-
-        if isinstance(sec, model.HttpSecurity):
-            if sec.scheme == 'digest':
-                return common_types.HttpDigestSecurity(auth_type=sec.name)
-            raise chaotic_error.BaseError(
-                full_filepath=op_path,
-                infile_path=f'/{op_method}/security/0/{sec.name}/scheme',
-                schema_type='openapi/swagger',
-                msg=(
-                    f'Operation "{op_method} {op_path}" uses security scheme '
-                    f'"http/{sec.scheme}" which is not yet supported by chaotic-openapi. '
-                    f'Only "http/digest" is currently supported.'
-                ),
-            )
-
-        _OPENAPI_TYPE_NAMES: dict[type, str] = {
-            model.ApiKeySecurity: 'apiKey',
-            model.OAuthSecurity: 'oauth2',
-            model.OpenIdConnectSecurity: 'openIdConnect',
-            model.HttpSecurity: 'http',
-        }
-        openapi_type = _OPENAPI_TYPE_NAMES.get(type(sec), type(sec).__name__)
-        raise chaotic_error.BaseError(
-            full_filepath=op_path,
-            infile_path=f'/{op_method}/security/0/{sec.name}/type',
-            schema_type='openapi/swagger',
-            msg=(
-                f'Operation "{op_method} {op_path}" uses security type '
-                f'"{openapi_type}" which is not yet supported by chaotic-openapi. '
-                f'Only "type: http, scheme: digest" is currently supported.'
-            ),
-        )
+        if isinstance(sec, model.HttpSecurity) and sec.scheme == 'digest':
+            return common_types.HttpDigestSecurity(auth_type=sec.name)
+        return common_types.UnsupportedSecurity(auth_type=sec.name, kind=_security_kind(sec))
 
     def _translate(self, service: model.Service) -> None:
         self._init_schemas(service)

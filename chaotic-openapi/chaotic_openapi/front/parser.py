@@ -373,18 +373,10 @@ class Parser:
             case openapi.SecurityType.http:
                 assert security_scheme.scheme_
                 scheme = security_scheme.scheme_.lower()
-                supported_schemes = ('digest', 'bearer', 'basic')
-                if scheme not in supported_schemes:
-                    raise chaotic_error.BaseError(
-                        full_filepath=self._state.full_filepath,
-                        infile_path='',
-                        schema_type='openapi',
-                        msg=(f'Unsupported HTTP security scheme "{scheme}". Supported schemes: {supported_schemes}'),
-                    )
                 return model.HttpSecurity(
                     scheme_name,
                     description,
-                    typing.cast(typing.Literal['digest', 'bearer', 'basic'], scheme),
+                    scheme,
                     security_scheme.bearerFormat,
                 )
             case openapi.SecurityType.apiKey:

@@ -4,6 +4,8 @@
 #include <cstdint>
 #include <optional>
 #include <string>
+#include <string_view>
+#include <vector>
 
 #include <fmt/format.h>
 
@@ -171,6 +173,31 @@ UTEST(DigestAuth, CredentialsPassedAndServerValidatesDigest) {
     EXPECT_TRUE(state.last_auth_valid);
     EXPECT_EQ(state.last_nc, 1u);
     EXPECT_EQ(successful_auth_count, 2);
+}
+
+// Schemes the generated client does not implement are left to the caller:
+// the request goes out without credentials and without a digest challenge.
+UTEST(DigestAuth, UnsupportedSchemesSendNoCredentials) {
+    std::vector<std::string> received_paths;
+    const utest::HttpServerMock http_server{[&](const utest::HttpServerMock::HttpRequest& request) {
+        EXPECT_EQ(request.headers.find(http::headers::kAuthorization), request.headers.end());
+        EXPECT_EQ(request.headers.find(std::string_view{"X-Api-Key"}), request.headers.end());
+        received_paths.push_back(request.path);
+        utest::HttpServerMock::HttpResponse response;
+        response.response_status = 200;
+        return response;
+    }};
+
+    chaotic::openapi::client::Config config;
+    config.base_url = http_server.GetBaseUrl();
+    config.timeout = std::chrono::duration_cast<std::chrono::milliseconds>(utest::kMaxTestWaitTime);
+
+    auto http_client_ptr = utest::CreateHttpClient();
+    client_ns::ClientImpl client(config, *http_client_ptr);
+
+    client.GetBearerResource();
+    client.GetApiKeyResource();
+    EXPECT_EQ(received_paths, (std::vector<std::string>{"/api/bearer-resource", "/api/api-key-resource"}));
 }
 
 }  // namespace

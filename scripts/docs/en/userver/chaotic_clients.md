@@ -184,6 +184,16 @@ No credentials are passed at the call site—the generated client performs the c
 
 @snippet samples/chaotic_openapi_service/src/handlers/insecure/callsecretget/view.cpp client-use
 
+## Other security schemes
+
+HTTP Digest is the only scheme the generated client applies itself. An operation secured by any other scheme
+(`http` with a scheme other than `digest`, `apiKey`, `oauth2` or `openIdConnect`) is generated as well, but sends
+no credentials; the generated method's documentation names the scheme. Supply the credentials with a client
+middleware, see `chaotic::openapi::client::Middleware`.
+
+An operation must use at most one security requirement with at most one scheme in it; alternative (OR) and combined
+(AND) requirements are rejected.
+
 
 # Direct CLI reference
 

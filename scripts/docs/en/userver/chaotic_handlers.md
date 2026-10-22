@@ -109,7 +109,8 @@ view.cpp    # view stub — implement this
 ### Authentication
 
 When the OpenAPI schema declares a `securityScheme` on a handler operation,
-the generated `config.chaotic.yaml` includes the scheme name in `auth.types`:
+the generated `config.chaotic.yaml` includes the scheme name in `auth.types`, whatever the type of the scheme
+(`http`, `apiKey`, `oauth2` or `openIdConnect`):
 
 @snippet samples/chaotic_openapi_service/clients/secure.yaml security requirement
 

@@ -154,19 +154,47 @@ def test_anonymous_security_requirement_is_unsecured():
     assert _single_op_security(_openapi_with_scheme('digestAuth', _DIGEST_SCHEME, op_security=[{}])) is None
 
 
-def test_http_basic_rejected():
-    """http/basic raises a "not yet supported" error."""
-    with pytest.raises(chaotic_error.BaseError, match=r'.*http/basic.*not yet supported.*'):
-        _make_translator(_openapi_with_scheme('basicAuth', _BASIC_SCHEME))
+@pytest.mark.parametrize(
+    'scheme_def, kind',
+    [
+        pytest.param(_BASIC_SCHEME, 'http/basic', id='http-basic'),
+        pytest.param(_BEARER_SCHEME, 'http/bearer', id='http-bearer'),
+        pytest.param({'type': 'http', 'scheme': 'HOBA'}, 'http/hoba', id='http-unknown'),
+        pytest.param(_APIKEY_SCHEME, 'apiKey "X-Api-Key" in header', id='apikey'),
+        pytest.param(
+            {
+                'type': 'oauth2',
+                'flows': {'clientCredentials': {'tokenUrl': 'https://example.com/token', 'scopes': {}}},
+            },
+            'oauth2',
+            id='oauth2',
+        ),
+        pytest.param(
+            {'type': 'openIdConnect', 'openIdConnectUrl': 'https://example.com/.well-known'},
+            'openIdConnect',
+            id='openid-connect',
+        ),
+    ],
+)
+def test_unsupported_security_generates(scheme_def, kind):
+    """Schemes the client does not implement translate instead of failing the generation."""
+    sec = _single_op_security(_openapi_with_scheme('otherAuth', scheme_def))
+    assert sec == common_types.UnsupportedSecurity(auth_type='otherAuth', kind=kind)
 
 
-def test_http_bearer_rejected():
-    """http/bearer raises a "not yet supported" error."""
-    with pytest.raises(chaotic_error.BaseError, match=r'.*http/bearer.*not yet supported.*'):
-        _make_translator(_openapi_with_scheme('bearerAuth', _BEARER_SCHEME))
+def test_unsupported_security_does_not_use_digest():
+    spec = _make_translator(_openapi_with_scheme('bearerAuth', _BEARER_SCHEME)).spec()
+    assert not spec.uses_digest_security()
+    assert not spec.operations[0].uses_digest_security()
+    assert spec.operations[0].unsupported_security() is not None
 
 
-def test_apikey_rejected():
-    """apiKey raises a "not yet supported" error."""
-    with pytest.raises(chaotic_error.BaseError, match=r'.*apiKey.*not yet supported.*'):
-        _make_translator(_openapi_with_scheme('apiKeyAuth', _APIKEY_SCHEME))
+def test_swagger_basic_security_generates():
+    doc = {
+        'swagger': '2.0',
+        'info': {'title': '', 'version': '1.0'},
+        'securityDefinitions': {'basicAuth': {'type': 'basic'}},
+        'paths': {'/test': {'get': {'responses': {}, 'security': [{'basicAuth': []}]}}},
+    }
+    sec = _single_op_security(doc)
+    assert sec == common_types.UnsupportedSecurity(auth_type='basicAuth', kind='http/basic')
