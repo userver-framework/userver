@@ -7064,6 +7064,7 @@
   "ydb/tests/topic_writer_statistics_test.cpp":"taxi/uservices/userver/ydb/tests/topic_writer_statistics_test.cpp",
   "ydb/tests/topic_writer_test.cpp":"taxi/uservices/userver/ydb/tests/topic_writer_test.cpp",
   "ydb/tests/topic_writer_worker_test.cpp":"taxi/uservices/userver/ydb/tests/topic_writer_worker_test.cpp",
+  "ydb/tests/transaction_test.cpp":"taxi/uservices/userver/ydb/tests/transaction_test.cpp",
   "ydb/tests/tuple_io_test.cpp":"taxi/uservices/userver/ydb/tests/tuple_io_test.cpp",
   "ydb/tests/types_test.cpp":"taxi/uservices/userver/ydb/tests/types_test.cpp",
   "ydb/utest/CMakeLists.txt":"taxi/uservices/userver/ydb/utest/CMakeLists.txt",

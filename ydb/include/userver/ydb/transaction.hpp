@@ -119,7 +119,7 @@ ExecuteResponse TxActor::Execute(ExecuteSettings settings, const Query& query, A
 /// https://ydb.tech/docs/en/concepts/transactions
 class Transaction final {
 public:
-    Transaction(Transaction&&) noexcept = default;
+    Transaction(Transaction&& other) noexcept;
     Transaction(const Transaction&) = delete;
     Transaction& operator=(Transaction&&) = delete;
     Transaction& operator=(const Transaction&) = delete;
@@ -158,7 +158,8 @@ public:
     void Commit(OperationSettings settings = {});
 
     /// Rollback the transaction. The operation settings are taken from `Begin`
-    /// settings.
+    /// settings, with the client timeout limited to one second.
+    /// Task cancellation and inherited deadlines do not interrupt cleanup.
     void Rollback();
 
     PreparedArgsBuilder GetBuilder() const;

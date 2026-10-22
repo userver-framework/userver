@@ -1,6 +1,14 @@
 #include <userver/ydb/transaction.hpp>
 
+#include <algorithm>
+#include <chrono>
+#include <exception>
+#include <utility>
+
+#include <userver/engine/task/cancel.hpp>
 #include <userver/formats/json/inline.hpp>
+#include <userver/logging/log.hpp>
+#include <userver/server/request/task_inherited_data.hpp>
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/tracing/tags.hpp>
 #include <userver/utils/assert.hpp>
@@ -19,6 +27,32 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace ydb {
+namespace {
+
+template <typename Cleanup>
+void WaitForExecuteWithLateSuccessCleanup(const NYdb::NQuery::TAsyncExecuteQueryResult& future, Cleanup cleanup) {
+    try {
+        impl::WaitForFuture(future);
+    } catch (const OperationCancelledError&) {
+        future.Subscribe([cleanup = std::move(cleanup)](const auto& ready) mutable {
+            try {
+                if (ready.GetValue().IsSuccess()) {
+                    cleanup();
+                }
+            } catch (const std::exception& ex) {
+                LOG_WARNING() << "Late transaction cleanup failed: " << ex;
+            }
+        });
+        throw;
+    }
+}
+
+std::chrono::milliseconds GetRollbackTimeout(std::chrono::milliseconds timeout) {
+    constexpr std::chrono::milliseconds kMaxRollbackTimeout{std::chrono::seconds{1}};
+    return timeout > std::chrono::milliseconds::zero() ? std::min(timeout, kMaxRollbackTimeout) : kMaxRollbackTimeout;
+}
+
+}  // namespace
 
 namespace {
 
@@ -148,6 +182,16 @@ Transaction::Transaction(
     trx_lock_.Lock();
 }
 
+Transaction::Transaction(Transaction&& other) noexcept
+    : table_client_(other.table_client_),
+      name_(std::move(other.name_)),
+      stats_scope_(std::move(other.stats_scope_)),
+      span_(std::move(other.span_)),
+      ydb_tx_(std::move(other.ydb_tx_)),
+      rollback_settings_(std::move(other.rollback_settings_)),
+      is_active_(std::exchange(other.is_active_, false)),
+      trx_lock_(std::move(other.trx_lock_)) {}
+
 Transaction::~Transaction() {
     if (is_active_) {
         try {
@@ -163,7 +207,9 @@ void Transaction::MarkError() noexcept {
     is_active_ = false;
     stats_scope_.OnError();
     try {
-        if (engine::current_task::ShouldCancel()) {
+        // Rollback blocks cancellation while cleaning up. Check the request itself,
+        // since ShouldCancel() is false under TaskCancellationBlocker.
+        if (engine::current_task::IsCancelRequested()) {
             stats_scope_.OnCancelled();
             span_.AddTag("cancelled", true);
         }
@@ -192,7 +238,7 @@ void Transaction::Commit(OperationSettings settings) {
                     LOG_WARNING()
                         << "Doing Rollback instead of commit "
                            "due to Testpoint response";
-                    ydb_tx_.Rollback();
+                    Rollback();
                     throw TransactionForceRollback();
                 }
             }
@@ -214,21 +260,22 @@ void Transaction::Commit(OperationSettings settings) {
 void Transaction::Rollback() {
     EnsureActive();
 
+    const engine::TaskCancellationBlocker cancellation_blocker;
+    const server::request::DeadlinePropagationBlocker deadline_blocker;
+    const auto deadline = engine::Deadline::FromDuration(GetRollbackTimeout(rollback_settings_.client_timeout_ms));
     static const Query kQuery{"", Query::Name{"Rollback"}};
     auto settings = rollback_settings_;
-    auto context = table_client_.MakeRequestContext(kQuery, std::move(settings), impl::IsStreaming{false}, &span_);
+    auto context =
+        table_client_.MakeRequestContext(kQuery, std::move(settings), impl::IsStreaming{false}, &span_, deadline);
 
     const auto rollback_settings = impl::PrepareRequestSettings<
         NYdb::NQuery::TRollbackTxSettings>(context.settings, context.deadline);
 
     [[maybe_unused]] auto error_guard = ErrorGuard();
 
-    impl::GetFutureValueChecked(
-        ydb_tx_.Rollback(rollback_settings),
-        "Rollback",
-        table_client_.GetRetryBudget(),
-        context
-    );
+    auto future = ydb_tx_.Rollback(rollback_settings);
+    impl::WaitForFuture(future, deadline);
+    impl::GetFutureValueChecked(std::move(future), "Rollback", table_client_.GetRetryBudget(), context);
 
     trx_lock_.Unlock();
 
@@ -272,6 +319,23 @@ ExecuteResponse Transaction::Execute(
         exec_query_settings
     );
 
+    // SDK callbacks run detached and may outlive the cancelled task and this Transaction.
+    // Capture the SDK transaction by value so cleanup remains valid after their destruction.
+    WaitForExecuteWithLateSuccessCleanup(
+        execute_future,
+        [tx = ydb_tx_, timeout = GetRollbackTimeout(rollback_settings_.client_timeout_ms)]() mutable {
+            tx.Rollback(NYdb::NQuery::TRollbackTxSettings{}.ClientTimeout(timeout)).Subscribe([](const auto& future) {
+                try {
+                    const auto& status = future.GetValue();
+                    if (!status.IsSuccess()) {
+                        LOG_WARNING() << "Late ROLLBACK failed: " << status.GetIssues().ToString();
+                    }
+                } catch (const std::exception& ex) {
+                    LOG_WARNING() << "Late ROLLBACK failed: " << ex;
+                }
+            });
+        }
+    );
     auto status = impl::GetFutureValueChecked(
         std::move(execute_future),
         "Transaction::Execute",
