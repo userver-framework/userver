@@ -373,18 +373,10 @@ class Parser:
             case openapi.SecurityType.http:
                 assert security_scheme.scheme_
                 scheme = security_scheme.scheme_.lower()
-                supported_schemes = ('digest', 'bearer', 'basic')
-                if scheme not in supported_schemes:
-                    raise chaotic_error.BaseError(
-                        full_filepath=self._state.full_filepath,
-                        infile_path='',
-                        schema_type='openapi',
-                        msg=(f'Unsupported HTTP security scheme "{scheme}". Supported schemes: {supported_schemes}'),
-                    )
                 return model.HttpSecurity(
                     scheme_name,
                     description,
-                    typing.cast(typing.Literal['digest', 'bearer', 'basic'], scheme),
+                    scheme,
                     security_scheme.bearerFormat,
                 )
             case openapi.SecurityType.apiKey:
@@ -485,7 +477,10 @@ class Parser:
                     or_items=[
                         model.SecurityAnd(
                             and_items=[
-                                self._convert_openapi_security(scheme_name, security_schemas[scheme_name], scopes)
+                                dataclasses.replace(
+                                    self._convert_openapi_security(scheme_name, security_schemas[scheme_name], scopes),
+                                    scopes=scopes,
+                                )
                                 for scheme_name, scopes in requirement.items()
                             ]
                         )
@@ -583,7 +578,10 @@ class Parser:
                     or_items=[
                         model.SecurityAnd(
                             and_items=[
-                                self._convert_swagger_security(scheme_name, security_defs[scheme_name], scopes)
+                                dataclasses.replace(
+                                    self._convert_swagger_security(scheme_name, security_defs[scheme_name], scopes),
+                                    scopes=scopes,
+                                )
                                 for scheme_name, scopes in requirement.items()
                             ]
                         )

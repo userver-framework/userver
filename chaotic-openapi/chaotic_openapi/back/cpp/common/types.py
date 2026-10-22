@@ -11,11 +11,21 @@ from chaotic_openapi.back.cpp.client import middleware
 @dataclasses.dataclass
 class Security:
     auth_type: str
+    # Scopes (roles) the operation requires
+    scopes: list[str] = dataclasses.field(default_factory=list, kw_only=True)
 
 
 @dataclasses.dataclass
 class HttpDigestSecurity(Security):
     """``type: http, scheme: digest`` (RFC 7616)."""
+
+
+@dataclasses.dataclass
+class UnsupportedSecurity(Security):
+    """A scheme the generated client does not apply; the caller supplies the credentials."""
+
+    # Human-readable scheme description, e.g. ``http/bearer`` or ``apiKey "X-Key" in header``
+    kind: str
 
 
 @dataclasses.dataclass
@@ -233,6 +243,9 @@ class Operation:
         assert self.uses_digest_security(), 'Operation does not use digest security'
         assert self.security is not None
         return self.security.auth_type
+
+    def unsupported_security(self) -> UnsupportedSecurity | None:
+        return self.security if isinstance(self.security, UnsupportedSecurity) else None
 
     def requests_declaration_includes(self) -> list[str]:
         includes: set[str] = set()
