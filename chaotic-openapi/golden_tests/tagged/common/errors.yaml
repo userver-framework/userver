@@ -1,0 +1,12 @@
+x-usrv-cpp-namespace: golden::errors
+components:
+    schemas:
+        Error:
+            type: object
+            additionalProperties: false
+            required: [code]
+            properties:
+                code:
+                    type: string
+                message:
+                    type: string

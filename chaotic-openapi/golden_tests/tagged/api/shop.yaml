@@ -1,0 +1,54 @@
+openapi: 3.0.0
+info:
+    title: Golden tagged shop
+    version: '1.0'
+x-usrv-cpp-namespace: golden::shop
+
+paths:
+    /items/{id}:
+        get:
+            operationId: getItem
+            parameters:
+              - in: path
+                name: id
+                required: true
+                schema:
+                    type: integer
+            responses:
+                '200':
+                    description: The item
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '../schemas/items.yaml#/components/schemas/Item'
+                '404':
+                    description: No such item
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '../common/errors.yaml#/components/schemas/Error'
+        put:
+            operationId: putItem
+            parameters:
+              - in: path
+                name: id
+                required: true
+                schema:
+                    type: integer
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '../schemas/items.yaml#/components/schemas/Item'
+            responses:
+                '200':
+                    description: Stored
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                additionalProperties: false
+                                properties:
+                                    created:
+                                        type: boolean

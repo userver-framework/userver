@@ -1,0 +1,8 @@
+components_manager:
+  components:
+    golden-shop-handlers-get-item:
+      path: /items/{id}
+      method: GET
+    golden-shop-handlers-put-item:
+      path: /items/{id}
+      method: PUT
