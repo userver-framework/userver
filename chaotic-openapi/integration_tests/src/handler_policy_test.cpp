@@ -2,14 +2,15 @@
 
 #include <optional>
 #include <string>
+#include <type_traits>
 
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/http/http_request_builder.hpp>
 #include <userver/server/request/request_context.hpp>
 
+#include <handlers/policy/chaotic_handlers_list.hpp>
 #include <handlers/policy/hookedpost/handler.hpp>
 #include <handlers/policy/plainpost/handler.hpp>
-#include <handlers/simple/secretget/handler.hpp>
 #include <policy/handler_policy.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -25,6 +26,16 @@ using chaotic::openapi::server::impl::ViewHasGetResponseForLogging;
 constexpr std::string_view kBody = R"({"value":"secret"})";
 
 std::string Body() { return std::string{kBody}; }
+
+namespace plainpost = ::handlers::policy::plainpost;
+namespace hookedpost = ::handlers::policy::hookedpost;
+
+using PlainHandler = plainpost::HandlerFor<test::policy::HandlerPolicy>;
+using HookedHandler = hookedpost::HandlerFor<test::policy::HandlerPolicy>;
+
+// The policy is chosen where the handlers are registered, per handler or for a whole list
+static_assert(std::is_same_v<plainpost::Handler, plainpost::HandlerFor<>>);
+static_assert(!std::is_same_v<plainpost::Handler, PlainHandler>);
 
 // A near miss: BaseHandler refuses such a View instead of ignoring the hook
 struct ViewWithMistypedHook {
@@ -44,30 +55,21 @@ UTEST(HandlerPolicy, PolicyLogsRequestBody) {
     const auto request = server::http::HttpRequestBuilder{}.SetRequestPath("/plain").Build();
     server::request::RequestContext context;
 
-    EXPECT_EQ(
-        ::handlers::policy::plainpost::Handler::RequestBodyForLogging(*request, context, Body()),
-        "<request redacted by policy>"
-    );
+    EXPECT_EQ(PlainHandler::RequestBodyForLogging(*request, context, Body()), "<request redacted by policy>");
 }
 
 UTEST(HandlerPolicy, ViewHookTakesPrecedence) {
     const auto request = server::http::HttpRequestBuilder{}.SetRequestPath("/hooked").Build();
     server::request::RequestContext context;
 
-    EXPECT_EQ(
-        ::handlers::policy::hookedpost::Handler::RequestBodyForLogging(*request, context, Body()),
-        "view saw 1 field(s)"
-    );
+    EXPECT_EQ(HookedHandler::RequestBodyForLogging(*request, context, Body()), "view saw 1 field(s)");
 }
 
 UTEST(HandlerPolicy, PolicyLogsResponseData) {
     const auto request = server::http::HttpRequestBuilder{}.SetRequestPath("/plain").Build();
     server::request::RequestContext context;
 
-    EXPECT_EQ(
-        ::handlers::policy::plainpost::Handler::ResponseDataForLogging(*request, context, Body()),
-        "<response redacted by policy>"
-    );
+    EXPECT_EQ(PlainHandler::ResponseDataForLogging(*request, context, Body()), "<response redacted by policy>");
 }
 
 UTEST(HandlerPolicy, PolicyFormatsUndeclaredErrors) {
@@ -79,11 +81,18 @@ UTEST(HandlerPolicy, PolicyFormatsUndeclaredErrors) {
 }
 
 UTEST(HandlerPolicy, WithoutPolicyTheDefaultIsKept) {
-    const auto request = server::http::HttpRequestBuilder{}.SetRequestPath("/secret").Build();
+    const auto request = server::http::HttpRequestBuilder{}.SetRequestPath("/plain").Build();
     server::request::RequestContext context;
 
-    EXPECT_EQ(::handlers::simple::secretget::Handler::RequestBodyForLogging(*request, context, Body()), std::nullopt);
-    EXPECT_EQ(::handlers::simple::secretget::Handler::ResponseDataForLogging(*request, context, Body()), std::nullopt);
+    EXPECT_EQ(plainpost::Handler::RequestBodyForLogging(*request, context, Body()), std::nullopt);
+    EXPECT_EQ(plainpost::Handler::ResponseDataForLogging(*request, context, Body()), std::nullopt);
+}
+
+UTEST(HandlerPolicy, ListAcceptsPolicy) {
+    const auto with_policy = ::handlers::policy::ChaoticHandlersList<test::policy::HandlerPolicy>();
+    const auto without_policy = ::handlers::policy::ChaoticHandlersList();
+    EXPECT_TRUE(with_policy.Contains(PlainHandler::kName));
+    EXPECT_TRUE(without_policy.Contains(plainpost::Handler::kName));
 }
 
 USERVER_NAMESPACE_END

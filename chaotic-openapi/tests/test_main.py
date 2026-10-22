@@ -1,8 +1,6 @@
 import pathlib
 import sys
 
-import pytest
-
 from chaotic_openapi import main
 
 _OPENAPI_SCHEMA = """\
@@ -109,7 +107,7 @@ def test_handler_codegen_preserves_client_qos_header(monkeypatch, tmp_path):
     assert qos_header.read_text() == original_qos
 
 
-def _generate_handlers(monkeypatch, tmp_path: pathlib.Path, *extra: str) -> pathlib.Path:
+def _generate_handlers(monkeypatch, tmp_path: pathlib.Path) -> pathlib.Path:
     output_dir = tmp_path / 'generated'
     monkeypatch.setattr(
         sys,
@@ -125,7 +123,6 @@ def _generate_handlers(monkeypatch, tmp_path: pathlib.Path, *extra: str) -> path
             '--clang-format',
             '',
             '--no-check-includes',
-            *extra,
             str(_prepare_schema(tmp_path)),
         ],
     )
@@ -133,29 +130,14 @@ def _generate_handlers(monkeypatch, tmp_path: pathlib.Path, *extra: str) -> path
     return output_dir / 'include' / 'handlers' / 'test_service' / 'testget' / 'handler.hpp'
 
 
-def test_handler_policy(monkeypatch, tmp_path):
-    handler = _generate_handlers(
-        monkeypatch,
-        tmp_path,
-        '--handler-policy',
-        'service::HandlerPolicy',
-        '--handler-policy-include',
-        'service/handler_policy.hpp',
-    ).read_text()
+def test_handlers_take_policy_at_registration(monkeypatch, tmp_path):
+    handler_path = _generate_handlers(monkeypatch, tmp_path)
+    handler = ''.join(handler_path.read_text().split())
+    handlers_list = ''.join((handler_path.parent.parent / 'chaotic_handlers_list.hpp').read_text().split())
 
-    assert '#include <service/handler_policy.hpp>' in handler
+    assert 'template<typenamePolicy=USERVER_NAMESPACE::chaotic::openapi::server::DefaultHandlerPolicy>' in handler
     # No hidden query arguments: their slot is filled with void before the policy
-    assert 'View,void,service::HandlerPolicy>' in ''.join(handler.split())
-
-
-def test_handler_without_policy(monkeypatch, tmp_path):
-    handler = _generate_handlers(monkeypatch, tmp_path).read_text()
-
-    assert 'Policy' not in handler
-    assert 'View>' in ''.join(handler.split())
-
-
-def test_handler_policy_requires_include(monkeypatch, tmp_path, capsys):
-    with pytest.raises(SystemExit):
-        _generate_handlers(monkeypatch, tmp_path, '--handler-policy', 'service::HandlerPolicy')
-    assert '--handler-policy and --handler-policy-include must be passed together' in capsys.readouterr().err
+    assert 'View,void,Policy>;' in handler
+    assert 'usingHandler=HandlerFor<>;' in handler
+    assert '::ComponentListChaoticHandlersList(){' in handlers_list
+    assert '.templateAppend<handlers::test_service::testget::HandlerFor<Policy>>()' in handlers_list

@@ -56,8 +56,6 @@ Subsequent runs leave `view.cpp` untouched.
 | `SCHEMAS` | multi-value | **required** | OpenAPI YAML/JSON source files. |
 | `OUTPUT_DIR` | one-value | `${CMAKE_CURRENT_BINARY_DIR}/NAME` | Destination for generated `include/` and `src/` trees. |
 | `SRC_DIR` | one-value | — | If set, view stubs for new operations are written here under `handlers/NAME/OP/`. Omit to skip view-stub generation. |
-| `POLICY` | one-value | — | C++ type every generated handler of the target logs bodies and renders undeclared errors with, see @ref chaotic_handler_policy. |
-| `POLICY_INCLUDE` | one-value | — | Header declaring `POLICY`, required with it. |
 | `ARGS` | multi-value | — | Extra arguments forwarded verbatim to `chaotic-openapi-gen`. |
 
 The macro links the target against `userver::chaotic-openapi` and exposes the generated
@@ -139,14 +137,10 @@ Digest auth checker. The `chaotic_openapi_service` sample contains a complete in
 
 ### Handler policy {#chaotic_handler_policy}
 
-Some behaviour must hold for every handler of a service rather than be repeated, and possibly forgotten, in each
-view: keeping secrets out of the logged bodies, rendering errors in the service's own error envelope. A policy
-states it once for all the handlers of a target:
-
-@snippet samples/chaotic_openapi_service/CMakeLists.txt chaotic-handler
-
-The policy derives from `chaotic::openapi::server::DefaultHandlerPolicy` and redefines the hooks it needs. Each hook
-returns `std::nullopt` to keep the userver default:
+How a handler logs request and response bodies and renders the errors its operation does not declare may be set
+per handler or for a whole list of handlers, at the point the handlers are registered. A policy is a type deriving
+from `chaotic::openapi::server::DefaultHandlerPolicy` that redefines the hooks it needs; each hook returns
+`std::nullopt` to keep the userver default:
 
 @snippet samples/chaotic_openapi_service/src/handler_policy.hpp handler policy
 
@@ -156,9 +150,21 @@ returns `std::nullopt` to keep the userver default:
 | `GetResponseDataForLogging(request, context, response_data)` | The response body written to the logs. |
 | `GetFormattedExternalErrorBody(exc)` | The body of an error the operation does not declare: a request that fails to parse, a `server::handlers::CustomHandlerException` or any other exception escaping the view. Declared error responses are serialized as declared. |
 
+Every generated operation provides `HandlerFor<Policy>` beside `Handler`, which is `HandlerFor<>` without a policy,
+and the generated `ChaoticHandlersList<Policy>()` applies a policy to all the handlers of the list:
+
+@snippet samples/chaotic_openapi_service/main.cpp register-handlers
+
+To use different policies, append the handlers one by one:
+
+```cpp
+component_list
+    .Append<handlers::insecure::callsecretget::HandlerFor<LoudPolicy>>()
+    .Append<handlers::insecure::insecuresecretpost::HandlerFor<RedactingPolicy>>();
+```
+
 A View's own `GetRequestBodyForLogging`, `GetInvalidRequestBodyForLogging` and `GetResponseForLogging` take precedence
-over the policy, the policy over the userver default. Without `POLICY` the generated handlers behave exactly as
-before.
+over the policy, the policy over the userver default. Handlers registered without a policy behave exactly as before.
 
 A policy hook with a wrong signature does not compile, and neither does a View hook whose signature matches none of
 the supported ones: a mistyped hook is reported instead of being silently ignored.
@@ -176,8 +182,6 @@ the supported ones: a mistyped hook is reported instead of being silently ignore
 | `-o` / `--output-dir` | for `handlers`/`handlers+views` | Destination for generated `include/` and `src/`. |
 | `--src-dir` | for `views`/`handlers+views` | Directory where view stubs are written. |
 | `--namespace` | no | Override the C++ namespace (default: `handlers::NAME`). |
-| `--handler-policy` | no | C++ type of the @ref chaotic_handler_policy "handler policy". |
-| `--handler-policy-include` | with `--handler-policy` | Header declaring the handler policy. |
 | `-I` / `--include-dir` | no (repeatable) | Extra include path for `x-usrv-cpp-type` header lookup. |
 | `--clang-format` | no | clang-format binary; set to empty string to disable. |
 | `-u` / `--userver` | no | userver namespace macro name (default: `USERVER_NAMESPACE`). |

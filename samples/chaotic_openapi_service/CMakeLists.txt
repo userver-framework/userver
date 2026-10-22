@@ -17,7 +17,6 @@ add_library(
     src/say_hello.cpp
     src/hello_handler.hpp
     src/hello_handler.cpp
-    src/handler_policy.hpp
 )
 target_link_libraries(${PROJECT_NAME}_objs userver::core)
 target_include_directories(${PROJECT_NAME}_objs PUBLIC src)
@@ -53,9 +52,6 @@ userver_target_generate_openapi_handlers(
     OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/handlers/insecure"
     SRC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src"
     SCHEMAS "${CMAKE_CURRENT_SOURCE_DIR}/handlers/insecure/openapi.yaml"
-    # Logging and error rendering of every handler of the target, see src/handler_policy.hpp
-    POLICY samples::chaotic_openapi_service::HandlerPolicy
-    POLICY_INCLUDE handler_policy.hpp
 )
 target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-handler-insecure_objs)
 target_link_libraries(${PROJECT_NAME}-handler-insecure_objs ${PROJECT_NAME}-client-secure_objs)
