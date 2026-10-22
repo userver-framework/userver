@@ -1,4 +1,4 @@
-#include <handlers/{{ spec.service_name }}/{{ make_op_relpath(op) }}/requests.hpp>
+#include <{{ spec.include_dir }}/{{ make_op_relpath(op) }}/requests.hpp>
 
 #include <userver/chaotic/openapi/parameters_read.hpp>
 {% if op.request_bodies %}

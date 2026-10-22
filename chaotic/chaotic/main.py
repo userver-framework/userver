@@ -6,12 +6,16 @@ import pathlib
 import re
 import sys
 from typing import Any
+from typing import NoReturn
 
 import yaml
 
 from chaotic import error
+from chaotic import layout
 from chaotic.back.cpp import renderer
+from chaotic.back.cpp import tagged
 from chaotic.back.cpp import translator
+from chaotic.back.cpp import types as cpp_types
 from chaotic.front import parser as front_parser
 from chaotic.front import ref_resolver
 from chaotic.front import types
@@ -44,9 +48,11 @@ def parse_args() -> argparse.Namespace:
         '-n',
         '--name-map',
         type=NameMapItem,
-        required=True,
         action='append',
-        help='in-file path (e.g. /schemas/Type) to C++ type mapping',
+        help=(
+            'in-file path (e.g. /schemas/Type) to C++ type mapping, '
+            'required for documents without x-usrv-cpp-namespace and forbidden for tagged ones'
+        ),
     )
 
     parser.add_argument(
@@ -90,8 +96,26 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         '--relative-to',
         type=str,
-        required=True,
-        help='Directory for input files root',  # TODO: wording
+        help=(
+            'Directory for input files root, '
+            'required for documents without x-usrv-cpp-namespace and forbidden for tagged ones'
+        ),
+    )
+    parser.add_argument(
+        '--list-outputs',
+        action='store_true',
+        help=(
+            'Print the files to generate for documents with x-usrv-cpp-namespace, semicolon-separated, '
+            'and exit without generating'
+        ),
+    )
+    parser.add_argument(
+        '--list-dependencies',
+        action='store_true',
+        help=(
+            'Print the documents generated elsewhere that documents with x-usrv-cpp-namespace refer to, '
+            'semicolon-separated, and exit without generating'
+        ),
     )
     parser.add_argument(
         '-I',
@@ -251,8 +275,123 @@ def write_file(filepath: str, content: str) -> None:
         ofile.write(content)
 
 
+def read_tagged_schemas(
+    closure: layout.Closure,
+    include_dirs: list[str] | None,
+) -> dict[str, cpp_types.CppType]:
+    rr = ref_resolver.RefResolver()
+    type_roots = [NameMapItem(layout.TYPE_ROOTS_RE.pattern + '={0}')]
+
+    def parse(paths: list[str]) -> types.ParsedSchemas:
+        schemas = []
+        for path in paths:
+            parser = front_parser.SchemaParser(
+                config=front_parser.ParserConfig(erase_prefix=''),
+                full_filepath=path,
+                full_vfilepath=path,
+            )
+            scan_objects = extract_schemas_to_scan(closure.documents[path], type_roots)
+            for infile_path, obj in rr.sort_json_types(scan_objects).items():
+                parser.parse_schema(infile_path.rstrip('/'), obj)
+            schemas.append(parser.parsed_schemas())
+        return types.ParsedSchemas.merge(schemas)
+
+    def make_generator(include_dirs: list[str] | None) -> translator.Generator:
+        def name_func(infile_path: str, stem: str) -> str:
+            name = layout.type_name(infile_path)
+            assert name, infile_path
+            return name
+
+        return translator.Generator(
+            config=translator.GeneratorConfig(
+                include_dirs=include_dirs,
+                namespaces={path: document_layout.namespace for path, document_layout in closure.layouts.items()},
+                infile_to_name_func=name_func,
+            ),
+        )
+
+    # Dependencies are generated elsewhere, their types are only referred to
+    dependency_schemas = rr.sort_schemas(parse(closure.dependencies))
+    dependency_types = make_generator(None).generate_types(dependency_schemas)
+    input_schemas = rr.sort_schemas(parse(closure.inputs), external_schemas=dependency_schemas)
+    return make_generator(include_dirs).generate_types(input_schemas, external_schemas=dependency_types)
+
+
+def main_tagged(args: argparse.Namespace, closure: layout.Closure) -> None:
+    for name in ('name_map', 'relative_to'):
+        if getattr(args, name):
+            option = '--' + name.replace('_', '-')
+            die(f'{option} is forbidden for documents with {layout.NAMESPACE_TAG}')
+    if args.erase_path_prefix:
+        die(f'--erase-path-prefix is forbidden for documents with {layout.NAMESPACE_TAG}')
+    # Every generator renders a tagged document alike, see chaotic.layout
+    if (
+        args.generate_serializers
+        or args.parse_extra_formats
+        or not args.generate_sax_parser
+        or not args.generate_stream_writer
+    ):
+        die(
+            '--generate-serializers, --parse-extra-formats, --no-sax-parse and --no-stream-writer '
+            f'are forbidden for documents with {layout.NAMESPACE_TAG}'
+        )
+    for path in closure.inputs:
+        sections = layout.openapi_only_sections(closure.documents[path])
+        if sections:
+            die(f'{path}: {", ".join(sections)} can only be generated by chaotic-openapi-gen')
+
+    if args.list_outputs:
+        outputs = [
+            os.path.join(args.output_dir, file)
+            for path in closure.inputs
+            for file in layout.output_files(closure.layouts[path])
+        ]
+        print(';'.join(outputs))
+        return
+    if args.list_dependencies:
+        print(';'.join(closure.dependencies))
+        return
+
+    try:
+        types = read_tagged_schemas(closure, None if not args.check_includes else args.include_dir or [])
+    except error.BaseError as exc:
+        die(str(exc))
+
+    outputs = tagged.render(types, closure, args.clang_format)
+    for output in outputs:
+        for file in output.files:
+            filepath = os.path.join(args.output_dir, file.subdir, output.filepath_wo_ext + file.ext)
+            os.makedirs(os.path.dirname(filepath), exist_ok=True)
+            write_file(filepath, file.content)
+    print(
+        f'Handled {len(types)} schema types in {len(outputs)} file groups.',
+        file=sys.stderr,
+    )
+
+
+def die(msg: str) -> NoReturn:
+    print(msg, file=sys.stderr)
+    sys.exit(1)
+
+
 def main() -> None:
     args = parse_args()
+
+    inputs = {}
+    for file in map(os.path.normpath, args.file):
+        with open(file) as ifile:
+            inputs[file] = yaml.load(ifile, Loader=yaml.CLoader)
+    try:
+        closure = layout.load_closure(inputs)
+    except error.BaseError as exc:
+        die(str(exc))
+    if closure is not None:
+        main_tagged(args, closure)
+        return
+    if not args.name_map or not args.relative_to:
+        die(f'--name-map and --relative-to are required for documents without {layout.NAMESPACE_TAG}')
+    if args.list_outputs or args.list_dependencies:
+        die(f'--list-outputs and --list-dependencies require documents with {layout.NAMESPACE_TAG}')
 
     try:
         schemas = read_schemas(

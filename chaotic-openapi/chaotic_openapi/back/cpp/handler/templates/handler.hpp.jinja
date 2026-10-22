@@ -1,8 +1,8 @@
 #pragma once
 
-#include <handlers/{{ spec.service_name }}/{{ make_op_relpath(op) }}/requests.hpp>
-#include <handlers/{{ spec.service_name }}/{{ make_op_relpath(op) }}/responses.hpp>
-#include <handlers/{{ spec.service_name }}/{{ make_op_relpath(op) }}/view.hpp>
+#include <{{ spec.include_dir }}/{{ make_op_relpath(op) }}/requests.hpp>
+#include <{{ spec.include_dir }}/{{ make_op_relpath(op) }}/responses.hpp>
+#include <{{ spec.include_dir }}/{{ make_op_relpath(op) }}/view.hpp>
 
 #include <userver/chaotic/openapi/server/handler_base.hpp>
 
@@ -12,7 +12,7 @@ namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }} {
 struct HandlerTag final {};
 
 namespace impl {
-inline constexpr std::string_view kHandlerName = "{{ component_name(op) }}";
+inline constexpr std::string_view kHandlerName = "{{ component_name(op, spec) }}";
 }
 
 using Handler = {{ userver }}::chaotic::openapi::server::BaseHandler<

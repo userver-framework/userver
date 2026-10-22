@@ -7,6 +7,7 @@ import jinja2
 from chaotic import cpp_format
 from chaotic import jinja_env
 from chaotic.back.cpp import renderer as cpp_renderer
+from chaotic.back.cpp import tagged
 from chaotic_openapi.back.cpp.client import types
 
 PARENT_DIR = os.path.dirname(__file__)
@@ -106,11 +107,22 @@ def render(
         pp = cpp_format.format_pp(pp, binary=context.clang_format_bin)
 
         if name.endswith('.hpp'):
-            rel_path = f'include/clients/{spec.client_name}/{name}'
+            rel_path = f'include/{spec.include_dir}/{name}'
         else:
-            rel_path = f'src/clients/{spec.client_name}/{name}'
+            rel_path = f'src/{spec.include_dir}/{name}'
 
         output.append(CppOutput(rel_path=rel_path, content=pp))
+
+    if spec.closure:
+        for cpp_output in tagged.render(spec.extract_cpp_types(), spec.closure, context.clang_format_bin):
+            for file in cpp_output.files:
+                output.append(
+                    CppOutput(
+                        rel_path=os.path.join(file.subdir, cpp_output.filepath_wo_ext + file.ext),
+                        content=file.content,
+                    ),
+                )
+        return output
 
     vfilepath_map = {}
     for cpp_type in spec.extract_cpp_types().values():
@@ -118,7 +130,7 @@ def render(
         filepath = cpp_type.json_schema.source_location().filepath
         vfilepath_map[filepath] = 'clients/{}/{}'.format(
             spec.client_name,
-            filepath,
+            os.path.basename(filepath),
         )
 
     # C++ types files

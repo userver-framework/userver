@@ -67,10 +67,56 @@ macro(_userver_require_chaotic_openapi CALLER)
     endif()
 endmacro()
 
+# Runs a chaotic generator at configure time to list its outputs or dependencies.
+#
+# @arg RESULT_VAR variable to put the generator's output to
+# @arg GENERATOR generator executable, the rest of the arguments are passed to it
+function(_userver_chaotic_query RESULT_VAR GENERATOR)
+    get_property(USERVER_CHAOTIC_PYTHON_BINARY GLOBAL PROPERTY userver_chaotic_python_binary)
+    execute_process(
+        COMMAND ${CMAKE_COMMAND} -E env "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}" "${GENERATOR}" ${ARGN}
+        OUTPUT_VARIABLE RESULT
+        ERROR_VARIABLE ERROR
+        OUTPUT_STRIP_TRAILING_WHITESPACE
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        RESULT_VARIABLE EXIT_CODE
+    )
+    if(NOT EXIT_CODE EQUAL 0)
+        message(FATAL_ERROR "${GENERATOR} ${ARGN} failed:\n${ERROR}")
+    endif()
+    set(${RESULT_VAR}
+        "${RESULT}"
+        PARENT_SCOPE
+    )
+endfunction()
+
+# Detects whether the schemas declare x-usrv-cpp-namespace, the generators check the details.
+#
+# @arg RESULT_VAR variable to put TRUE or FALSE to, the rest of the arguments are the schemas
+function(_userver_chaotic_is_tagged RESULT_VAR)
+    list(GET ARGN 0 FIRST_SCHEMA)
+    file(READ "${FIRST_SCHEMA}" CONTENT)
+    if(CONTENT MATCHES "[\"']?x-usrv-cpp-namespace[\"']?[ \t]*:")
+        set(${RESULT_VAR}
+            TRUE
+            PARENT_SCOPE
+        )
+    else()
+        set(${RESULT_VAR}
+            FALSE
+            PARENT_SCOPE
+        )
+    endif()
+endfunction()
+
 # Generates ${TARGET} cmake target for C++ types, parsers, serializers from JSONSchema file(s).
 #
 # @arg TARGET smth
-# @param OUTPUT_DIR - where to put generated .cpp/.hpp/.ipp files, usually ${CMAKE_CURRENT_BINARY_DIR}/smth
+# Schemas either all declare x-usrv-cpp-namespace, which sets where their files are generated and LAYOUT,
+# RELATIVE_TO, OUTPUT_PREFIX, ERASE_PATH_PREFIX and the generation options are forbidden, or none of them do.
+#
+# @param OUTPUT_DIR - where to put generated .cpp/.hpp/.ipp files, usually ${CMAKE_CURRENT_BINARY_DIR}/smth;
+#                     the output root of x-usrv-cpp-namespace schemas, ${CMAKE_CURRENT_BINARY_DIR} by default
 # @param RELATIVE_TO - --relative-to option to chaotic-gen
 # @param FORMAT - can be ON/OFF, enable to format generated files, defaults to USERVER_CHAOTIC_FORMAT
 # @multiparam SCHEMAS - JSONSchema source files
@@ -98,10 +144,6 @@ function(userver_target_generate_chaotic TARGET)
         message(FATAL_ERROR "SCHEMAS is required")
     endif()
 
-    if(NOT PARSE_RELATIVE_TO)
-        message(FATAL_ERROR "RELATIVE_TO is required")
-    endif()
-
     if(PARSE_FORMAT OR (NOT DEFINED PARSE_FORMAT AND USERVER_CHAOTIC_FORMAT))
         if(NOT CLANG_FORMAT_BIN)
             message(FATAL_ERROR "clang-format is not found and FORMAT option is set. Please install clang-format.")
@@ -109,6 +151,16 @@ function(userver_target_generate_chaotic TARGET)
         set(CLANG_FORMAT "${CLANG_FORMAT_BIN}")
     else()
         set(CLANG_FORMAT "")
+    endif()
+
+    _userver_chaotic_is_tagged(TAGGED ${PARSE_SCHEMAS})
+    if(TAGGED)
+        _userver_generate_tagged_chaotic("${TARGET}")
+        return()
+    endif()
+
+    if(NOT PARSE_RELATIVE_TO)
+        message(FATAL_ERROR "RELATIVE_TO is required")
     endif()
 
     set(SCHEMAS)
@@ -205,6 +257,82 @@ function(userver_target_generate_chaotic TARGET)
     endif()
 endfunction()
 
+# userver_target_generate_chaotic() for schemas with x-usrv-cpp-namespace, reads the caller's variables.
+#
+# @arg TARGET target name
+function(_userver_generate_tagged_chaotic TARGET)
+    foreach(
+        ARG
+        LAYOUT
+        RELATIVE_TO
+        OUTPUT_PREFIX
+        ERASE_PATH_PREFIX
+        GENERATE_SERIALIZERS
+        PARSE_EXTRA_FORMATS
+        NO_SAX_PARSE
+        NO_STREAM_WRITER
+    )
+        if(PARSE_${ARG})
+            message(FATAL_ERROR "${ARG} is forbidden for schemas with x-usrv-cpp-namespace")
+        endif()
+    endforeach()
+
+    set(CHAOTIC_ARGS -o "${PARSE_OUTPUT_DIR}")
+    foreach(INCLUDE_DIR ${PARSE_INCLUDE_DIRS})
+        list(APPEND CHAOTIC_ARGS "-I" "${INCLUDE_DIR}")
+    endforeach()
+
+    _userver_chaotic_query(SCHEMAS "${CHAOTIC_BIN}" ${CHAOTIC_ARGS} --no-check-includes --list-outputs ${PARSE_SCHEMAS})
+    _userver_chaotic_query(
+        DEPENDENCIES "${CHAOTIC_BIN}" ${CHAOTIC_ARGS} --no-check-includes --list-dependencies ${PARSE_SCHEMAS}
+    )
+    # Outputs follow the documents' tags
+    set_property(
+        DIRECTORY
+        APPEND
+        PROPERTY CMAKE_CONFIGURE_DEPENDS ${PARSE_SCHEMAS} ${DEPENDENCIES}
+    )
+
+    _userver_initialize_codegen_flag()
+
+    add_library("${TARGET}" ${SCHEMAS})
+    target_link_libraries("${TARGET}" PUBLIC userver::chaotic ${PARSE_LINK_TARGETS})
+
+    get_target_property(TARGET_LIBRARIES "${TARGET}" LINK_LIBRARIES)
+    foreach(LIBRARY ${TARGET_LIBRARIES})
+        get_target_property(DIRS "${LIBRARY}" INTERFACE_INCLUDE_DIRECTORIES)
+        foreach(DIRECTORY ${DIRS})
+            list(APPEND CHAOTIC_ARGS -I ${DIRECTORY})
+        endforeach()
+    endforeach()
+
+    add_custom_command(
+        OUTPUT ${SCHEMAS}
+        COMMAND ${CMAKE_COMMAND} -E env "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}" "${CHAOTIC_BIN}"
+                ${CHAOTIC_EXTRA_ARGS} ${CHAOTIC_ARGS} ${PARSE_SCHEMAS} --clang-format "${CLANG_FORMAT}"
+        DEPENDS ${PARSE_SCHEMAS} ${DEPENDENCIES}
+        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
+        VERBATIM ${CODEGEN}
+    )
+    _userver_codegen_register_files("${SCHEMAS}")
+    target_include_directories("${TARGET}" PUBLIC "$<BUILD_INTERFACE:${PARSE_OUTPUT_DIR}/include>")
+
+    if(PARSE_INSTALL_INCLUDES_COMPONENT)
+        foreach(FILE ${SCHEMAS})
+            file(RELATIVE_PATH RELATIVE_FILE "${PARSE_OUTPUT_DIR}/include" "${FILE}")
+            if(RELATIVE_FILE MATCHES "^\\.\\./")
+                continue()
+            endif()
+            get_filename_component(RELATIVE_DIR "${RELATIVE_FILE}" DIRECTORY)
+            _userver_directory_install(
+                COMPONENT ${PARSE_INSTALL_INCLUDES_COMPONENT}
+                FILES "${FILE}"
+                DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${RELATIVE_DIR}"
+            )
+        endforeach()
+    endif()
+endfunction()
+
 # Generates ${TARGET} cmake target for a C++ HTTP client from OpenAPI/Swagger YAML file(s).
 #
 # @arg TARGET target name
@@ -226,11 +354,6 @@ function(userver_target_generate_openapi_client TARGET)
     get_property(USERVER_CHAOTIC_PYTHON_BINARY GLOBAL PROPERTY userver_chaotic_python_binary)
     get_property(CLANG_FORMAT_BIN GLOBAL PROPERTY userver_clang_format_bin)
 
-    if(NOT DEFINED PARSE_OUTPUT_DIR)
-        set(PARSE_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${PARSE_NAME}")
-    endif()
-    file(MAKE_DIRECTORY "${PARSE_OUTPUT_DIR}")
-
     if(NOT PARSE_SCHEMAS)
         message(FATAL_ERROR "SCHEMAS is required")
     endif()
@@ -238,6 +361,16 @@ function(userver_target_generate_openapi_client TARGET)
     if(NOT PARSE_NAME)
         message(FATAL_ERROR "NAME is required")
     endif()
+
+    _userver_chaotic_is_tagged(TAGGED ${PARSE_SCHEMAS})
+    if(NOT DEFINED PARSE_OUTPUT_DIR)
+        if(TAGGED)
+            set(PARSE_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+        else()
+            set(PARSE_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${PARSE_NAME}")
+        endif()
+    endif()
+    file(MAKE_DIRECTORY "${PARSE_OUTPUT_DIR}")
 
     if(PARSE_FORMAT OR (NOT DEFINED PARSE_FORMAT AND USERVER_CHAOTIC_FORMAT))
         if(NOT CLANG_FORMAT_BIN)
@@ -248,31 +381,27 @@ function(userver_target_generate_openapi_client TARGET)
         set(CLANG_FORMAT "")
     endif()
 
-    set(SCHEMAS
-        "${PARSE_OUTPUT_DIR}/include/clients/${PARSE_NAME}/client.hpp"
-        "${PARSE_OUTPUT_DIR}/include/clients/${PARSE_NAME}/client_impl.hpp"
-        "${PARSE_OUTPUT_DIR}/include/clients/${PARSE_NAME}/component.hpp"
-        "${PARSE_OUTPUT_DIR}/include/clients/${PARSE_NAME}/requests.hpp"
-        "${PARSE_OUTPUT_DIR}/include/clients/${PARSE_NAME}/responses.hpp"
-        "${PARSE_OUTPUT_DIR}/include/clients/${PARSE_NAME}/exceptions.hpp"
-        "${PARSE_OUTPUT_DIR}/src/clients/${PARSE_NAME}/client.cpp"
-        "${PARSE_OUTPUT_DIR}/src/clients/${PARSE_NAME}/client_impl.cpp"
-        "${PARSE_OUTPUT_DIR}/src/clients/${PARSE_NAME}/component.cpp"
-        "${PARSE_OUTPUT_DIR}/src/clients/${PARSE_NAME}/requests.cpp"
-        "${PARSE_OUTPUT_DIR}/src/clients/${PARSE_NAME}/responses.cpp"
-        "${PARSE_OUTPUT_DIR}/src/clients/${PARSE_NAME}/exceptions.cpp"
+    set(GEN_ARGS
+        ${CHAOTIC_EXTRA_ARGS}
+        --gen
+        client
+        ${PARSE_ARGS}
+        --name
+        "${PARSE_NAME}"
+        -o
+        "${PARSE_OUTPUT_DIR}"
     )
-    foreach(SCHEMA ${PARSE_SCHEMAS})
-        string(REGEX REPLACE "^.*/([^/]*)\\.([^.]*)\$" "\\1" SCHEMA "${SCHEMA}")
-        set(SCHEMAS
-            ${SCHEMAS}
-            "${PARSE_OUTPUT_DIR}/include/clients/${PARSE_NAME}/${SCHEMA}_fwd.hpp"
-            "${PARSE_OUTPUT_DIR}/include/clients/${PARSE_NAME}/${SCHEMA}.hpp"
-            "${PARSE_OUTPUT_DIR}/include/clients/${PARSE_NAME}/${SCHEMA}_parsers.ipp"
-            "${PARSE_OUTPUT_DIR}/include/clients/${PARSE_NAME}/${SCHEMA}_sax_parsers.hpp"
-            "${PARSE_OUTPUT_DIR}/src/clients/${PARSE_NAME}/${SCHEMA}.cpp"
-        )
-    endforeach()
+    _userver_chaotic_query(
+        SCHEMAS "${CHAOTIC_OPENAPI_BIN}" ${GEN_ARGS} --no-check-includes --list-outputs ${PARSE_SCHEMAS}
+    )
+    _userver_chaotic_query(
+        DEPENDENCIES "${CHAOTIC_OPENAPI_BIN}" ${GEN_ARGS} --no-check-includes --list-dependencies ${PARSE_SCHEMAS}
+    )
+    set_property(
+        DIRECTORY
+        APPEND
+        PROPERTY CMAKE_CONFIGURE_DEPENDS ${PARSE_SCHEMAS} ${DEPENDENCIES}
+    )
 
     _userver_initialize_codegen_flag()
 
@@ -292,12 +421,10 @@ function(userver_target_generate_openapi_client TARGET)
 
     add_custom_command(
         OUTPUT ${SCHEMAS}
-        COMMAND
-            ${CMAKE_COMMAND} -E env "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}" "${CHAOTIC_OPENAPI_BIN}"
-            ${CHAOTIC_EXTRA_ARGS} --gen client ${PARSE_ARGS} --name "${PARSE_NAME}" -o "${PARSE_OUTPUT_DIR}"
-            "--clang-format=${CLANG_FORMAT}" ${CHAOTIC_OPENAPI_INCLUDE_ARGS} ${PARSE_SCHEMAS}
+        COMMAND ${CMAKE_COMMAND} -E env "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}" "${CHAOTIC_OPENAPI_BIN}"
+                ${GEN_ARGS} "--clang-format=${CLANG_FORMAT}" ${CHAOTIC_OPENAPI_INCLUDE_ARGS} ${PARSE_SCHEMAS}
         COMMENT "Generating OpenAPI client ${PARSE_NAME}"
-        DEPENDS ${PARSE_SCHEMAS}
+        DEPENDS ${PARSE_SCHEMAS} ${DEPENDENCIES}
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
         VERBATIM ${CODEGEN}
     )
@@ -326,7 +453,6 @@ function(userver_target_generate_openapi_handlers TARGET)
     get_property(CHAOTIC_OPENAPI_BIN GLOBAL PROPERTY userver_chaotic_openapi_bin)
     get_property(CHAOTIC_EXTRA_ARGS GLOBAL PROPERTY userver_chaotic_extra_args)
     get_property(USERVER_CHAOTIC_PYTHON_BINARY GLOBAL PROPERTY userver_chaotic_python_binary)
-    get_property(USERVER_CHAOTIC_SCRIPTS_PATH GLOBAL PROPERTY userver_chaotic_scripts_path)
     get_property(CLANG_FORMAT_BIN GLOBAL PROPERTY userver_clang_format_bin)
 
     if(NOT PARSE_NAME)
@@ -337,74 +463,15 @@ function(userver_target_generate_openapi_handlers TARGET)
         message(FATAL_ERROR "SCHEMAS is required")
     endif()
 
+    _userver_chaotic_is_tagged(_TAGGED ${PARSE_SCHEMAS})
     if(NOT DEFINED PARSE_OUTPUT_DIR)
-        set(PARSE_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${PARSE_NAME}")
+        if(_TAGGED)
+            set(PARSE_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}")
+        else()
+            set(PARSE_OUTPUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/${PARSE_NAME}")
+        endif()
     endif()
     file(MAKE_DIRECTORY "${PARSE_OUTPUT_DIR}")
-
-    # Extract operation relpaths from YAML at configure time so we can enumerate output files.
-    execute_process(
-        COMMAND "${USERVER_CHAOTIC_PYTHON_BINARY}" "${USERVER_CHAOTIC_SCRIPTS_PATH}/openapi_operations.py"
-                ${PARSE_SCHEMAS}
-        OUTPUT_VARIABLE _OPERATIONS
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-        WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-        RESULT_VARIABLE _OPERATIONS_RESULT
-    )
-    if(NOT _OPERATIONS_RESULT EQUAL 0)
-        message(FATAL_ERROR "Failed to extract operation names from OpenAPI YAML: ${_OPERATIONS_RESULT}")
-    endif()
-
-    set(_HANDLER_FILES)
-    foreach(OP ${_OPERATIONS})
-        set(_OP_INC "${PARSE_OUTPUT_DIR}/include/handlers/${PARSE_NAME}/${OP}")
-        set(_OP_SRC "${PARSE_OUTPUT_DIR}/src/handlers/${PARSE_NAME}/${OP}")
-        list(
-            APPEND
-            _HANDLER_FILES
-            "${_OP_INC}/handler.hpp"
-            "${_OP_INC}/requests.hpp"
-            "${_OP_INC}/responses.hpp"
-            "${_OP_SRC}/handler.cpp"
-            "${_OP_SRC}/requests.cpp"
-            "${_OP_SRC}/responses.cpp"
-        )
-    endforeach()
-
-    set(_SCHEMA_TYPE_FILES)
-    foreach(SCHEMA ${PARSE_SCHEMAS})
-        string(REGEX REPLACE "^.*/([^/]*)\\.([^.]*)\$" "\\1" _SCHEMA_STEM "${SCHEMA}")
-        list(APPEND _SCHEMA_TYPE_FILES "${PARSE_OUTPUT_DIR}/include/handlers/${PARSE_NAME}/${_SCHEMA_STEM}.hpp"
-             "${PARSE_OUTPUT_DIR}/src/handlers/${PARSE_NAME}/${_SCHEMA_STEM}.cpp"
-        )
-    endforeach()
-
-    set(_GEN_MODE "handlers")
-    # New view stubs that don't exist yet — declared as outputs of the command.
-    set(_NEW_VIEW_FILES)
-    # All view sources (existing or new) — compiled into the library.
-    set(_ALL_VIEW_SRCS)
-    if(PARSE_SRC_DIR)
-        set(_GEN_MODE "handlers+views")
-        foreach(OP ${_OPERATIONS})
-            set(_OP_VIEW "${PARSE_SRC_DIR}/handlers/${PARSE_NAME}/${OP}")
-            set(_VIEW_HPP "${_OP_VIEW}/view.hpp")
-            set(_VIEW_CPP "${_OP_VIEW}/view.cpp")
-            # Only declare view stubs as outputs if they don't already exist.
-            # save_views() skips existing files; listing them as outputs for
-            # cmake causes a rebuild cycle when the generator leaves them intact.
-            if(NOT EXISTS "${_VIEW_HPP}")
-                list(APPEND _NEW_VIEW_FILES "${_VIEW_HPP}")
-            endif()
-            if(NOT EXISTS "${_VIEW_CPP}")
-                list(APPEND _NEW_VIEW_FILES "${_VIEW_CPP}")
-            endif()
-            list(APPEND _ALL_VIEW_SRCS "${_VIEW_CPP}")
-        endforeach()
-    endif()
-
-    set(_CONFIG_YAML_PATH "${PARSE_OUTPUT_DIR}/config.chaotic.yaml")
-    set(_ALL_OUTPUTS ${_HANDLER_FILES} ${_SCHEMA_TYPE_FILES} ${_NEW_VIEW_FILES} "${_CONFIG_YAML_PATH}")
 
     if(PARSE_FORMAT OR (NOT DEFINED PARSE_FORMAT AND USERVER_CHAOTIC_FORMAT))
         if(NOT CLANG_FORMAT_BIN)
@@ -415,23 +482,55 @@ function(userver_target_generate_openapi_handlers TARGET)
         set(CLANG_FORMAT "")
     endif()
 
-    set(_GEN_ARGS
-        --name
-        "${PARSE_NAME}"
-        --gen
-        "${_GEN_MODE}"
-        -o
-        "${PARSE_OUTPUT_DIR}"
-        "--clang-format=${CLANG_FORMAT}"
-        ${PARSE_ARGS}
-    )
+    set(_GEN_ARGS ${CHAOTIC_EXTRA_ARGS} --name "${PARSE_NAME}" -o "${PARSE_OUTPUT_DIR}" ${PARSE_ARGS})
     if(PARSE_SRC_DIR)
-        list(APPEND _GEN_ARGS --src-dir "${PARSE_SRC_DIR}/handlers/${PARSE_NAME}")
+        # Views of tagged schemas follow the namespace, untagged ones live in handlers/NAME/
+        if(_TAGGED)
+            set(_VIEWS_DIR "${PARSE_SRC_DIR}")
+        else()
+            set(_VIEWS_DIR "${PARSE_SRC_DIR}/handlers/${PARSE_NAME}")
+        endif()
+        list(APPEND _GEN_ARGS --gen handlers+views --src-dir "${_VIEWS_DIR}")
+    else()
+        list(APPEND _GEN_ARGS --gen handlers)
     endif()
+
+    _userver_chaotic_query(
+        _OUTPUTS "${CHAOTIC_OPENAPI_BIN}" ${_GEN_ARGS} --no-check-includes --list-outputs ${PARSE_SCHEMAS}
+    )
+    _userver_chaotic_query(
+        _DEPENDENCIES "${CHAOTIC_OPENAPI_BIN}" ${_GEN_ARGS} --no-check-includes --list-dependencies ${PARSE_SCHEMAS}
+    )
+    set_property(
+        DIRECTORY
+        APPEND
+        PROPERTY CMAKE_CONFIGURE_DEPENDS ${PARSE_SCHEMAS} ${_DEPENDENCIES}
+    )
+
+    set(_GENERATED_FILES)
+    set(_SOURCES)
+    # New view stubs that don't exist yet — declared as outputs of the command.
+    set(_NEW_VIEW_FILES)
+    foreach(_FILE ${_OUTPUTS})
+        if(_FILE MATCHES "/config\\.chaotic\\.yaml$")
+            set(_CONFIG_YAML_PATH "${_FILE}")
+        elseif(PARSE_SRC_DIR AND _FILE MATCHES "/view\\.(hpp|cpp)$")
+            # save_views() skips existing files; listing them as outputs for
+            # cmake causes a rebuild cycle when the generator leaves them intact.
+            if(NOT EXISTS "${_FILE}")
+                list(APPEND _NEW_VIEW_FILES "${_FILE}")
+            endif()
+            list(APPEND _SOURCES "${_FILE}")
+        else()
+            list(APPEND _GENERATED_FILES "${_FILE}")
+            list(APPEND _SOURCES "${_FILE}")
+        endif()
+    endforeach()
+    set(_ALL_OUTPUTS ${_GENERATED_FILES} ${_NEW_VIEW_FILES} "${_CONFIG_YAML_PATH}")
 
     _userver_initialize_codegen_flag()
 
-    add_library("${TARGET}" ${_HANDLER_FILES} ${_SCHEMA_TYPE_FILES} ${_ALL_VIEW_SRCS})
+    add_library("${TARGET}" ${_SOURCES})
     target_link_libraries("${TARGET}" userver::chaotic-openapi userver::chaotic)
 
     set(_CHAOTIC_OPENAPI_INCLUDE_ARGS)
@@ -448,9 +547,9 @@ function(userver_target_generate_openapi_handlers TARGET)
     add_custom_command(
         OUTPUT ${_ALL_OUTPUTS}
         COMMAND ${CMAKE_COMMAND} -E env "USERVER_PYTHON=${USERVER_CHAOTIC_PYTHON_BINARY}" "${CHAOTIC_OPENAPI_BIN}"
-                ${CHAOTIC_EXTRA_ARGS} ${_GEN_ARGS} ${_CHAOTIC_OPENAPI_INCLUDE_ARGS} ${PARSE_SCHEMAS}
+                ${_GEN_ARGS} "--clang-format=${CLANG_FORMAT}" ${_CHAOTIC_OPENAPI_INCLUDE_ARGS} ${PARSE_SCHEMAS}
         COMMENT "Generating OpenAPI handlers ${PARSE_NAME}"
-        DEPENDS ${PARSE_SCHEMAS}
+        DEPENDS ${PARSE_SCHEMAS} ${_DEPENDENCIES}
         WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
         VERBATIM ${CODEGEN}
     )

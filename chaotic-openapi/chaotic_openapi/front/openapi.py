@@ -333,6 +333,9 @@ class OpenApi(base_model.BaseModel):
         default=None,
         validation_alias=pydantic.AliasChoices('x-taxi-middlewares', 'x-usrv-middlewares'),
     )
+    # Read by chaotic.layout, see there
+    x_usrv_cpp_namespace: str | None = pydantic.Field(default=None, validation_alias='x-usrv-cpp-namespace')
+    x_usrv_cpp_path: str | None = pydantic.Field(default=None, validation_alias='x-usrv-cpp-path')
 
     def validate_security(self, security: Security | None) -> None:
         if not security:
