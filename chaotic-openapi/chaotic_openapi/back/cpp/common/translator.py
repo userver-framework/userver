@@ -140,8 +140,8 @@ class BaseTranslator(abc.ABC):
 
         sec = requirement.and_items[0]
         if isinstance(sec, model.HttpSecurity) and sec.scheme == 'digest':
-            return common_types.HttpDigestSecurity(auth_type=sec.name)
-        return common_types.UnsupportedSecurity(auth_type=sec.name, kind=_security_kind(sec))
+            return common_types.HttpDigestSecurity(auth_type=sec.name, scopes=sec.scopes)
+        return common_types.UnsupportedSecurity(auth_type=sec.name, kind=_security_kind(sec), scopes=sec.scopes)
 
     def _translate(self, service: model.Service) -> None:
         self._init_schemas(service)

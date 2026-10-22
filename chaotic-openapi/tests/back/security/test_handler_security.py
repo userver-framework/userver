@@ -109,3 +109,32 @@ def test_handler_config_yaml_with_unsupported_security():
     config = yaml.safe_load(handler_renderer.render_config_yaml(_translate_handler(doc)))
     (entry,) = config['components_manager']['components'].values()
     assert entry['auth'] == {'types': ['myApiKey']}
+
+
+def test_handler_config_yaml_with_scopes():
+    """Scopes named by the security requirement are passed to the auth checker config."""
+    doc = {
+        'openapi': '3.1.0',
+        'info': {'title': '', 'version': '1.0'},
+        'components': {
+            'securitySchemes': {
+                'permissions': {
+                    'type': 'apiKey',
+                    'name': 'X-Permissions',
+                    'in': 'header',
+                    'x-usrv-scopes': {'accounts:manage': 'Manage accounts'},
+                },
+            },
+        },
+        'paths': {
+            '/secure': {
+                'get': {
+                    'responses': {'200': {'description': 'OK'}},
+                    'security': [{'permissions': ['accounts:manage']}],
+                },
+            },
+        },
+    }
+    config = yaml.safe_load(handler_renderer.render_config_yaml(_translate_handler(doc)))
+    (entry,) = config['components_manager']['components'].values()
+    assert entry['auth'] == {'types': ['permissions'], 'scopes': ['accounts:manage']}

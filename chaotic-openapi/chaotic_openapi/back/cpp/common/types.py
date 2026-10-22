@@ -11,6 +11,8 @@ from chaotic_openapi.back.cpp.client import middleware
 @dataclasses.dataclass
 class Security:
     auth_type: str
+    # Scopes (roles) the operation requires
+    scopes: list[str] = dataclasses.field(default_factory=list, kw_only=True)
 
 
 @dataclasses.dataclass

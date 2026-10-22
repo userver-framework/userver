@@ -192,7 +192,8 @@ no credentials; the generated method's documentation names the scheme. Supply th
 middleware, see `chaotic::openapi::client::Middleware`.
 
 An operation must use at most one security requirement with at most one scheme in it; alternative (OR) and combined
-(AND) requirements are rejected.
+(AND) requirements are rejected. Scopes named by the requirement do not change the generated client: the credentials
+the caller supplies either grant them or not.
 
 
 # Direct CLI reference

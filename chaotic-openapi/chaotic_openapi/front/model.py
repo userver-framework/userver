@@ -78,6 +78,8 @@ class SecurityIn(str, enum.Enum):
 class Security:
     name: str
     description: str
+    # Scopes (roles) the operation's security requirement names
+    scopes: list[str] = dataclasses.field(default_factory=list, kw_only=True)
 
 
 @dataclasses.dataclass

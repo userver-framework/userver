@@ -198,3 +198,10 @@ def test_swagger_basic_security_generates():
     }
     sec = _single_op_security(doc)
     assert sec == common_types.UnsupportedSecurity(auth_type='basicAuth', kind='http/basic')
+
+
+def test_security_scopes_translated():
+    doc = _openapi_with_scheme('myDigest', _DIGEST_SCHEME, op_security=[{'myDigest': ['admin']}])
+    doc['openapi'] = '3.1.0'
+    sec = _single_op_security(doc)
+    assert sec == common_types.HttpDigestSecurity(auth_type='myDigest', scopes=['admin'])

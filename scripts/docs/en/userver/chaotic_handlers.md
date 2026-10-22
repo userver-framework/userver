@@ -135,6 +135,43 @@ Options that code generation cannot know, such as the Digest realm, stay in the 
 See @ref scripts/docs/en/userver/tutorial/digest_auth_postgres.md for a database-backed
 Digest auth checker. The `chaotic_openapi_service` sample contains a complete in-memory example.
 
+#### Scopes
+
+A security requirement may name the scopes an operation needs. OpenAPI 3.0 allows them only for `oauth2` and
+`openIdConnect` schemes; from OpenAPI 3.1 on any scheme may list role names. The scopes are passed to the auth
+checker in `auth.scopes`, the checker's factory reads them from the `HandlerAuthConfig` it receives:
+
+```yaml
+# openapi.yaml
+paths:
+  /accounts/{id}:
+    delete:
+      security:
+        - permissions: [accounts:manage]
+
+# config.chaotic.yaml
+handler-accounts-id-delete:
+  auth:
+    types: [permissions]
+    scopes: [accounts:manage]
+```
+
+`oauth2` schemes declare their scopes in `flows`. Any other scheme may declare them in `x-usrv-scopes`, a map of
+scope names to descriptions:
+
+```yaml
+components:
+  securitySchemes:
+    permissions:
+      type: apiKey
+      in: header
+      name: X-Permissions
+      x-usrv-scopes:
+        accounts:manage: Manage accounts
+```
+
+When the scopes are declared, the generator rejects a security requirement that names a scope missing from them.
+
 
 ### Direct CLI reference
 

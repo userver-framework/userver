@@ -477,7 +477,10 @@ class Parser:
                     or_items=[
                         model.SecurityAnd(
                             and_items=[
-                                self._convert_openapi_security(scheme_name, security_schemas[scheme_name], scopes)
+                                dataclasses.replace(
+                                    self._convert_openapi_security(scheme_name, security_schemas[scheme_name], scopes),
+                                    scopes=scopes,
+                                )
                                 for scheme_name, scopes in requirement.items()
                             ]
                         )
@@ -575,7 +578,10 @@ class Parser:
                     or_items=[
                         model.SecurityAnd(
                             and_items=[
-                                self._convert_swagger_security(scheme_name, security_defs[scheme_name], scopes)
+                                dataclasses.replace(
+                                    self._convert_swagger_security(scheme_name, security_defs[scheme_name], scopes),
+                                    scopes=scopes,
+                                )
                                 for scheme_name, scopes in requirement.items()
                             ]
                         )
