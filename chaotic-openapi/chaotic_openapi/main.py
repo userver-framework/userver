@@ -12,8 +12,10 @@ from chaotic import error as chaotic_error
 from chaotic import layout
 from chaotic_openapi.back.cpp.client import renderer as client_renderer
 from chaotic_openapi.back.cpp.client import translator as client_translator
+from chaotic_openapi.back.cpp.common import translator as common_translator
 from chaotic_openapi.back.cpp.handler import renderer as handler_renderer
 from chaotic_openapi.back.cpp.handler import translator as handler_translator
+from chaotic_openapi.front import model
 from chaotic_openapi.front import parser as front_parser
 from chaotic_openapi.front import ref_resolver
 
@@ -73,6 +75,45 @@ def with_role(closure: layout.Closure, role: str) -> tuple[layout.Closure, str, 
     return dataclasses.replace(closure, layouts=layouts_with_role), role_namespace, role_directory
 
 
+def list_outputs(
+    args: argparse.Namespace,
+    service: model.Service,
+    closure: layout.Closure | None,
+    include_dir: str | None,
+    schema_files: list[str],
+) -> list[str]:
+    """The files generation writes, inferred from the parsed documents without translating or rendering them."""
+    if args.gen == 'client':
+        include_dir = include_dir or f'clients/{args.name}'
+    else:
+        include_dir = include_dir or f'handlers/{args.name}'
+    if closure:
+        schema_paths = [closure.layouts[path].path for path in closure.inputs]
+    else:
+        schema_paths = client_renderer.schema_paths(include_dir, schema_files)
+
+    if args.gen == 'client':
+        files = client_renderer.output_files(include_dir, args.dynamic_config, schema_paths)
+        return [os.path.join(args.output_dir, file) for file in files]
+
+    op_relpaths = [
+        handler_renderer.op_relpath(op.operationId, common_translator.transform_path(op.path), op.method)
+        for op in service.operations
+        if op.x_handler_codegen
+    ]
+    files, view_files = handler_renderer.output_files(
+        include_dir,
+        closure is not None,
+        op_relpaths,
+        schema_paths,
+        handlers=args.gen in ('handlers', 'handlers+views'),
+        views=args.gen in ('handlers+views', 'views'),
+    )
+    return [os.path.join(args.output_dir, file) for file in files] + [
+        os.path.join(args.src_dir, file) for file in view_files
+    ]
+
+
 def do_main():
     args = parse_args()
 
@@ -93,11 +134,15 @@ def do_main():
         closure, cpp_namespace, include_dir = with_role(closure, 'client' if args.gen == 'client' else 'handlers')
     else:
         cpp_namespace, include_dir = None, None
-    clang_format = '' if args.list_outputs else args.clang_format
+    schema_files = [os.path.basename(f) for f in args.files]
+
+    if args.list_outputs:
+        print(';'.join(list_outputs(args, parser.service(), closure, include_dir, schema_files)))
+        return
 
     ctx = client_renderer.Context(
         generate_path='',
-        clang_format_bin=clang_format,
+        clang_format_bin=args.clang_format,
         uservices_library_tvm_guard_hack=False,
     )
 
@@ -116,7 +161,7 @@ def do_main():
             closure=closure,
             include_dir=include_dir,
         ).spec()
-        outputs = client_renderer.render(spec, ctx, schema_files=[os.path.basename(f) for f in args.files])
+        outputs = client_renderer.render(spec, ctx, schema_files=schema_files)
 
     elif args.gen in ('handlers', 'handlers+views', 'views'):
         if args.gen != 'views' and not args.output_dir:
@@ -133,21 +178,13 @@ def do_main():
         ).spec()
 
         if args.gen in ('handlers', 'handlers+views'):
-            outputs = handler_renderer.render(spec, ctx, args.userver)
+            outputs = handler_renderer.render(spec, ctx, args.userver, schema_files=schema_files)
             config_content = handler_renderer.render_config_yaml(spec)
         if args.gen in ('handlers+views', 'views'):
             views = handler_renderer.render_views(spec, ctx, args.userver)
 
     else:
         die(f'Unknown --gen value: {args.gen!r}')
-
-    if args.list_outputs:
-        files = [os.path.join(args.output_dir, output.rel_path) for output in outputs]
-        if config_content is not None:
-            files.append(os.path.join(args.output_dir, handler_renderer.config_yaml_path(spec)))
-        files += [os.path.join(args.src_dir, view.rel_path) for view in views]
-        print(';'.join(files))
-        return
 
     if outputs:
         client_renderer.CppOutput.save(outputs, args.output_dir)

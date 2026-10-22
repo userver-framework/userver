@@ -433,8 +433,8 @@ Calling it directly is useful for debugging schema parsing and output layout.
 | `-n` / `--name-map`          | untagged files (repeatable) | `regex=Ns::Type{0}` mapping from in-file YAML path to C++ type. |
 | `-o` / `--output-dir`        | yes              | Directory for generated files; for tagged files, the output root with `include/` and `src/` under it. |
 | `--relative-to`              | untagged files   | Root directory for computing output paths.                      |
-| `--list-outputs`             | no               | Print the files to generate for tagged files, `;`-separated, and exit. |
-| `--list-dependencies`        | no               | Print the tagged files generated elsewhere that the inputs refer to, `;`-separated, and exit. |
+| `--list-outputs`             | no               | Print the files to generate, `;`-separated, and exit. |
+| `--list-dependencies`        | no               | Print the tagged files generated elsewhere that the inputs refer to, `;`-separated, and exit; untagged inputs have none. |
 | `file …`                     | yes              | One or more YAML/JSON schema files.                             |
 | `--parse-extra-formats`      | no               | Also generate YAML and YAML-config parsers.                     |
 | `--generate-serializers`     | no               | Also generate JSON serializers.                                 |

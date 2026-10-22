@@ -310,6 +310,7 @@
   "chaotic-openapi/tests/front/test_openapi.py":"taxi/uservices/userver/chaotic-openapi/tests/front/test_openapi.py",
   "chaotic-openapi/tests/front/test_pydantic.py":"taxi/uservices/userver/chaotic-openapi/tests/front/test_pydantic.py",
   "chaotic-openapi/tests/front/test_swagger.py":"taxi/uservices/userver/chaotic-openapi/tests/front/test_swagger.py",
+  "chaotic-openapi/tests/test_list_outputs.py":"taxi/uservices/userver/chaotic-openapi/tests/test_list_outputs.py",
   "chaotic-openapi/tests/test_main.py":"taxi/uservices/userver/chaotic-openapi/tests/test_main.py",
   "chaotic-openapi/tests/test_tagged.py":"taxi/uservices/userver/chaotic-openapi/tests/test_tagged.py",
   "chaotic-openapi/ya.make.ext":"taxi/uservices/userver/chaotic-openapi/ya.make.ext",

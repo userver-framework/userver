@@ -210,3 +210,23 @@ def test_untagged_documents_require_mapping(tmp_path):
     result = _chaotic_gen('-o', str(tmp_path / 'out'), untagged)
     assert result.returncode == 1
     assert '--name-map and --relative-to are required' in result.stderr
+
+
+def test_untagged_list_outputs_match_generation(tmp_path):
+    schemas = tmp_path / 'schemas'
+    one = _write(schemas / 'one.yaml', 'definitions:\n  A: {type: string}\n')
+    two = _write(schemas / 'sub/two.yaml', 'definitions:\n  B: {type: integer}\n')
+    out = tmp_path / 'out'
+    mapping = ['-n', '/definitions/([^/]*)/=ns::{0}', '--relative-to', str(schemas)]
+
+    listed = _chaotic_gen('-o', str(out), *mapping, '--list-outputs', one, two)
+    assert listed.returncode == 0, listed.stderr
+    assert not out.exists()
+
+    generated = _chaotic_gen('-o', str(out), *mapping, '--clang-format=', one, two)
+    assert generated.returncode == 0, generated.stderr
+    assert sorted(listed.stdout.strip().split(';')) == sorted(str(path) for path in out.rglob('*') if path.is_file())
+
+    dependencies = _chaotic_gen('-o', str(out), *mapping, '--list-dependencies', one, two)
+    assert dependencies.returncode == 0, dependencies.stderr
+    assert dependencies.stdout.strip() == ''

@@ -33,6 +33,10 @@ _COMPONENTS_PARAMETER_RE = re.compile(r'/components/parameters/([-a-zA-Z0-9_]*)/
 _COMPONENTS_HEADER_RE = re.compile(r'/components/headers/([-a-zA-Z0-9]*)/schema')
 
 
+def transform_path(path: str) -> str:
+    return re.sub(DASH_IN_PATH_RE, '_', path)
+
+
 class BaseTranslator(abc.ABC):
     def __init__(
         self,
@@ -76,7 +80,7 @@ class BaseTranslator(abc.ABC):
         return []
 
     def _transform_path(self, path: str) -> str:
-        return re.sub(DASH_IN_PATH_RE, '_', path)
+        return transform_path(path)
 
     def _namespaces(self) -> dict[str, str]:
         if self._closure:

@@ -171,10 +171,15 @@ def load_closure(inputs: dict[str, Any]) -> Closure | None:
 
 def output_files(layout: DocumentLayout) -> list[str]:
     """Files generated for a tagged document, relative to the output root."""
+    return schema_output_files(layout.path)
+
+
+def schema_output_files(path: str) -> list[str]:
+    """Files generated for a document's types at path (without extension), relative to the output root."""
     return [
-        f'include/{layout.path}_fwd.hpp',
-        f'include/{layout.path}.hpp',
-        f'include/{layout.path}_parsers.ipp',
-        f'include/{layout.path}_sax_parsers.hpp',
-        f'src/{layout.path}.cpp',
+        f'include/{path}_fwd.hpp',
+        f'include/{path}.hpp',
+        f'include/{path}_parsers.ipp',
+        f'include/{path}_sax_parsers.hpp',
+        f'src/{path}.cpp',
     ]

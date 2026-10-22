@@ -104,17 +104,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         '--list-outputs',
         action='store_true',
-        help=(
-            'Print the files to generate for documents with x-usrv-cpp-namespace, semicolon-separated, '
-            'and exit without generating'
-        ),
+        help=('Print the files to generate, semicolon-separated, and exit without generating'),
     )
     parser.add_argument(
         '--list-dependencies',
         action='store_true',
         help=(
-            'Print the documents generated elsewhere that documents with x-usrv-cpp-namespace refer to, '
-            'semicolon-separated, and exit without generating'
+            'Print the documents generated elsewhere that the inputs refer to, semicolon-separated, '
+            'and exit without generating'
         ),
     )
     parser.add_argument(
@@ -369,6 +366,21 @@ def main_tagged(args: argparse.Namespace, closure: layout.Closure) -> None:
     )
 
 
+def untagged_output_files(args: argparse.Namespace) -> list[str]:
+    """The files main() writes for documents without x-usrv-cpp-namespace, inferred without parsing."""
+    extensions = ['.cpp', '.hpp', '_fwd.hpp', '_parsers.ipp']
+    if args.generate_sax_parser:
+        extensions.append('_sax_parsers.hpp')
+    files = []
+    for file in args.file:
+        # Mirrors the output paths of OneToOneFileRenderer below
+        filepath_wo_ext = renderer.OneToOneFileRenderer.filepath_wo_ext(str(pathlib.Path(file).with_suffix('')))
+        if filepath_wo_ext.startswith('/'):
+            filepath_wo_ext = os.path.relpath(filepath_wo_ext, args.relative_to)
+        files.extend(os.path.join(args.output_dir, filepath_wo_ext + extension) for extension in extensions)
+    return files
+
+
 def die(msg: str) -> NoReturn:
     print(msg, file=sys.stderr)
     sys.exit(1)
@@ -390,8 +402,13 @@ def main() -> None:
         return
     if not args.name_map or not args.relative_to:
         die(f'--name-map and --relative-to are required for documents without {layout.NAMESPACE_TAG}')
-    if args.list_outputs or args.list_dependencies:
-        die(f'--list-outputs and --list-dependencies require documents with {layout.NAMESPACE_TAG}')
+    if args.list_outputs:
+        print(';'.join(untagged_output_files(args)))
+        return
+    if args.list_dependencies:
+        # Documents without x-usrv-cpp-namespace refer only to the inputs
+        print('')
+        return
 
     try:
         schemas = read_schemas(

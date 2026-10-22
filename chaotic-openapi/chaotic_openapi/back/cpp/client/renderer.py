@@ -6,6 +6,7 @@ import jinja2
 
 from chaotic import cpp_format
 from chaotic import jinja_env
+from chaotic import layout
 from chaotic.back.cpp import renderer as cpp_renderer
 from chaotic.back.cpp import tagged
 from chaotic_openapi.back.cpp.client import types
@@ -81,6 +82,46 @@ def make_env() -> jinja2.Environment:
 JINJA_ENV = make_env()
 
 
+def template_names(dynamic_config: str) -> list[str]:
+    return TEMPLATE_NAMES if dynamic_config else [name for name in TEMPLATE_NAMES if name != 'qos.hpp']
+
+
+def template_path(include_dir: str, name: str) -> str:
+    if name.endswith('.hpp'):
+        return f'include/{include_dir}/{name}'
+    return f'src/{include_dir}/{name}'
+
+
+def schema_paths(include_dir: str, schema_files: list[str]) -> list[str]:
+    """Paths (without extension) of the types of untagged schema files, relative to the include root."""
+    return [f'{include_dir}/{schema_file.rsplit(".", 1)[0]}' for schema_file in schema_files]
+
+
+def empty_schema_outputs(paths: list[str], produced: set[str]) -> list[CppOutput]:
+    """Empty files of the schema files without types, so that the build can declare them unconditionally."""
+    output = []
+    for path in paths:
+        if path in produced:
+            continue
+        stem = path.rsplit('/', 1)[-1]
+        output.extend([
+            CppOutput(rel_path=f'include/{path}_fwd.hpp', content='#pragma once\n'),
+            CppOutput(rel_path=f'include/{path}.hpp', content=f'#pragma once\n\n#include "{stem}_fwd.hpp"\n'),
+            CppOutput(rel_path=f'include/{path}_parsers.ipp', content=''),
+            CppOutput(rel_path=f'include/{path}_sax_parsers.hpp', content='#pragma once\n'),
+            CppOutput(rel_path=f'src/{path}.cpp', content=f'#include "{path}.hpp"\n'),
+        ])
+    return output
+
+
+def output_files(include_dir: str, dynamic_config: str, schema_paths: list[str]) -> list[str]:
+    """Files render() generates, relative to the output root, derived without rendering."""
+    files = [template_path(include_dir, name) for name in template_names(dynamic_config)]
+    for path in schema_paths:
+        files.extend(layout.schema_output_files(path))
+    return files
+
+
 def render(
     spec: types.ClientSpec,
     context: Context,
@@ -100,18 +141,11 @@ def render(
 
     # client* files
     output = []
-    template_names = TEMPLATE_NAMES if spec.dynamic_config else [name for name in TEMPLATE_NAMES if name != 'qos.hpp']
-    for name in template_names:
+    for name in template_names(spec.dynamic_config):
         tpl = JINJA_ENV.get_template(f'templates/{name}.jinja')
         pp = tpl.render(**env)
         pp = cpp_format.format_pp(pp, binary=context.clang_format_bin)
-
-        if name.endswith('.hpp'):
-            rel_path = f'include/{spec.include_dir}/{name}'
-        else:
-            rel_path = f'src/{spec.include_dir}/{name}'
-
-        output.append(CppOutput(rel_path=rel_path, content=pp))
+        output.append(CppOutput(rel_path=template_path(spec.include_dir, name), content=pp))
 
     if spec.closure:
         for cpp_output in tagged.render(spec.extract_cpp_types(), spec.closure, context.clang_format_bin):
@@ -147,7 +181,7 @@ def render(
     )
     produced_stems: set[str] = set()
     for cpp_output in cpp_outputs:
-        produced_stems.add(cpp_output.filepath_wo_ext.split('/')[-1])
+        produced_stems.add(cpp_output.filepath_wo_ext)
         for file in cpp_output.files:
             output.append(
                 CppOutput(
@@ -160,19 +194,6 @@ def render(
     # so that both CMake and ya.make can unconditionally declare the full 5-file
     # set per schema without special-casing type-less schemas.
     if schema_files is not None:
-        client = spec.client_name
-        for schema_file in schema_files:
-            stem = schema_file.rsplit('.', 1)[0]
-            if stem in produced_stems:
-                continue
-            include_base = f'include/clients/{client}/{stem}'
-            src_base = f'src/clients/{client}/{stem}'
-            output.extend([
-                CppOutput(rel_path=f'{include_base}_fwd.hpp', content='#pragma once\n'),
-                CppOutput(rel_path=f'{include_base}.hpp', content=f'#pragma once\n\n#include "{stem}_fwd.hpp"\n'),
-                CppOutput(rel_path=f'{include_base}_parsers.ipp', content=''),
-                CppOutput(rel_path=f'{include_base}_sax_parsers.hpp', content='#pragma once\n'),
-                CppOutput(rel_path=f'{src_base}.cpp', content=f'#include "clients/{client}/{stem}.hpp"\n'),
-            ])
+        output.extend(empty_schema_outputs(schema_paths(spec.include_dir, schema_files), produced_stems))
 
     return output
