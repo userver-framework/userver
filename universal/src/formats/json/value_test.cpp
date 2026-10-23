@@ -277,4 +277,31 @@ TEST(FormatsJson, IsUint) {
     EXPECT_FALSE(json_bounds["below_min"].IsUInt());
 }
 
+TEST(FormatsJson, NegativeDoubleAsUint64) {
+    const auto json = formats::json::FromString(R"({
+      "negative": -1.0,
+      "negative_exp": -1e0,
+      "negative_int": -1,
+      "zero": 0.0,
+      "positive": 123.0
+    })");
+
+    EXPECT_FALSE(json["negative"].IsUInt64());
+    EXPECT_FALSE(json["negative_exp"].IsUInt64());
+    EXPECT_FALSE(json["negative_int"].IsUInt64());
+    EXPECT_TRUE(json["zero"].IsUInt64());
+    EXPECT_TRUE(json["positive"].IsUInt64());
+
+    EXPECT_THROW(
+        [[maybe_unused]] auto ret = json["negative"].As<std::uint64_t>(),
+        formats::json::TypeMismatchException
+    );
+    EXPECT_THROW(
+        [[maybe_unused]] auto ret = json["negative_exp"].As<std::size_t>(),
+        formats::json::TypeMismatchException
+    );
+    EXPECT_EQ(json["zero"].As<std::uint64_t>(), 0);
+    EXPECT_EQ(json["positive"].As<std::uint64_t>(), 123);
+}
+
 USERVER_NAMESPACE_END
