@@ -455,7 +455,7 @@ Status Convert(
     if (result.has_value()) {
         return *result;
     }
-    throw std::runtime_error(fmt::format("Invalid enum value ({}) for type ::ns::Status", value));
+    throw std::runtime_error(fmt::format("Invalid enum value ({}), expected one of: {}", value, k__ns__Status_Mapping.DescribeSecond()));
 }
 
 std::optional<Status> TryConvert(

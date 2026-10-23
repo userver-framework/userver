@@ -96,7 +96,7 @@ Enum::Foo Convert(
     if (result.has_value()) {
         return *result;
     }
-    throw std::runtime_error(fmt::format("Invalid enum value ({}) for type ::ns::Enum::Foo", value));
+    throw std::runtime_error(fmt::format("Invalid enum value ({}), expected one of: {}", value, k__ns__Enum__Foo_Mapping.DescribeSecond()));
 }
 
 std::optional<Enum::Foo> TryConvert(
