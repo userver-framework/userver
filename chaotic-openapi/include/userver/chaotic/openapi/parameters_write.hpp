@@ -131,34 +131,33 @@ struct SerializeParameter {
     }
 };
 
-template <typename T>
-struct SerializeParameter<TrivialParameterBase<T, T>> {
-    static auto Serialize(const T& value) { return ToStrParameter(T{value}); }
+template <typename RawType, typename UserType, typename FormatType>
+struct SerializeParameter<TrivialParameterBase<RawType, UserType, FormatType>> {
+    static auto Serialize(const UserType& value) {
+        return ToStrParameter(impl::UserToRaw<TrivialParameterBase<RawType, UserType, FormatType>>(value));
+    }
 };
 
-template <typename RawType, typename UserType>
-struct SerializeParameter<TrivialParameterBase<RawType, UserType>> {
-    static auto Serialize(const UserType& value) { return ToStrParameter(Convert(value, convert::To<RawType>{})); }
-};
-
-template <char Delimiter, typename T, typename U>
-struct SerializeParameter<ArrayParameterBase<In::kQueryExplode, Delimiter, T, U>> {
+template <char Delimiter, typename T, typename U, typename F>
+struct SerializeParameter<ArrayParameterBase<In::kQueryExplode, Delimiter, T, U, F>> {
     static std::vector<std::string> Serialize(const std::vector<U>& collection) {
         // Note: ignore Delimiter
         std::vector<std::string> result;
         result.reserve(collection.size());
         for (const auto& item : collection) {
-            result.emplace_back(SerializeParameter<TrivialParameterBase<T, U>>().Serialize(item));
+            result.emplace_back(SerializeParameter<TrivialParameterBase<T, U, F>>().Serialize(item));
         }
         return result;
     }
 };
 
-template <In TIn, char Delimiter, typename RawType, typename UserType>
-struct SerializeParameter<ArrayParameterBase<TIn, Delimiter, RawType, UserType>> {
+template <In TIn, char Delimiter, typename RawType, typename UserType, typename FormatType>
+struct SerializeParameter<ArrayParameterBase<TIn, Delimiter, RawType, UserType, FormatType>> {
     static_assert(TIn != In::kQueryExplode);
 
-    std::string operator()(const UserType& item) const { return ToStrParameter(Convert(item, convert::To<RawType>{})); }
+    std::string operator()(const UserType& item) const {
+        return SerializeParameter<TrivialParameterBase<RawType, UserType, FormatType>>::Serialize(item);
+    }
 
     static std::string Serialize(const std::vector<UserType>& value) {
         using ProjectingView = utils::impl::ProjectingView<const std::vector<UserType>, SerializeParameter>;

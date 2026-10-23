@@ -345,3 +345,146 @@ def test_regex_in_path(translate_single_schema):
     }
     spec = translate_single_schema(schema)
     assert spec.operations[0].cpp_namespace() == 'foo_a_b_c_bar::get'
+
+
+USER_TYPE = 'my::AccountId'
+USER_TYPE_INCLUDE = 'userver/chaotic/io/my/account_id.hpp'
+
+
+@pytest.fixture
+def user_type_include_dir(tmp_path):
+    header = tmp_path / USER_TYPE_INCLUDE
+    header.parent.mkdir(parents=True)
+    header.touch()
+    return str(tmp_path)
+
+
+def _single_parameter_schema(parameter: dict, components: dict | None = None) -> dict:
+    return {
+        'openapi': '3.1.0',
+        'info': {'title': '', 'version': '1.0'},
+        'paths': {'/{param}': {'get': {'parameters': [parameter], 'responses': {}}}},
+        'components': components or {},
+    }
+
+
+@pytest.mark.parametrize('in_', ['query', 'path', 'header'])
+def test_parameter_user_cpp_type(translate_single_schema, user_type_include_dir, in_):
+    schema = _single_parameter_schema({
+        'in': in_,
+        'name': 'param',
+        'required': True,
+        'schema': {'type': 'string', 'x-usrv-cpp-type': USER_TYPE},
+    })
+
+    parameter = translate_single_schema(schema, [user_type_include_dir]).operations[0].parameters[0]
+
+    assert parameter.cpp_type.cpp_user_name() == USER_TYPE
+    assert parameter.parser == (
+        f'openapi::TrivialParameter<openapi::In::k{in_.title()}, kparam, std::string, {USER_TYPE}>'
+    )
+    assert USER_TYPE_INCLUDE in parameter.declaration_includes()
+
+
+def test_parameter_ref_to_user_cpp_type(translate_single_schema, user_type_include_dir):
+    schema = _single_parameter_schema(
+        {'in': 'query', 'name': 'param', 'schema': {'$ref': '#/components/schemas/AccountId'}},
+        components={'schemas': {'AccountId': {'type': 'string', 'x-usrv-cpp-type': USER_TYPE}}},
+    )
+
+    parameter = translate_single_schema(schema, [user_type_include_dir]).operations[0].parameters[0]
+
+    assert parameter.cpp_type.cpp_user_name() == USER_TYPE
+    assert parameter.parser.endswith(f', {USER_TYPE}>')
+    assert USER_TYPE_INCLUDE in parameter.declaration_includes()
+    assert 'optional' in parameter.declaration_includes()
+
+
+def test_parameter_string_format(translate_single_schema):
+    schema = _single_parameter_schema({
+        'in': 'path',
+        'name': 'param',
+        'required': True,
+        'schema': {'type': 'string', 'format': 'uuid'},
+    })
+
+    parameter = translate_single_schema(schema).operations[0].parameters[0]
+
+    assert parameter.parser == (
+        'openapi::TrivialParameter<openapi::In::kPath, kparam, std::string, boost::uuids::uuid>'
+    )
+    assert 'userver/chaotic/io/boost/uuids/uuid.hpp' in parameter.declaration_includes()
+
+
+def test_parameter_user_cpp_type_over_string_format(translate_single_schema, user_type_include_dir):
+    schema = _single_parameter_schema(
+        {'in': 'query', 'name': 'param', 'schema': {'$ref': '#/components/schemas/AccountId'}},
+        components={
+            'schemas': {'AccountId': {'type': 'string', 'format': 'uuid', 'x-usrv-cpp-type': USER_TYPE}},
+        },
+    )
+
+    parameter = translate_single_schema(schema, [user_type_include_dir]).operations[0].parameters[0]
+
+    assert parameter.parser.endswith(f', {USER_TYPE}, boost::uuids::uuid>')
+
+
+def test_parameter_array_items_user_cpp_type_over_string_format(translate_single_schema, user_type_include_dir):
+    schema = _single_parameter_schema({
+        'in': 'query',
+        'name': 'param',
+        'schema': {
+            'type': 'array',
+            'items': {'type': 'string', 'format': 'uuid', 'x-usrv-cpp-type': USER_TYPE},
+        },
+    })
+
+    parameter = translate_single_schema(schema, [user_type_include_dir]).operations[0].parameters[0]
+
+    assert parameter.parser == (
+        f"openapi::ArrayParameter<openapi::In::kQuery, kparam, ',', std::string, {USER_TYPE}, boost::uuids::uuid>"
+    )
+
+
+def test_path_item_parameters(translate_single_schema):
+    """A parameter on the path item applies to every operation on that path.
+
+    OpenAPI puts shared parameters here rather than repeating them per
+    operation, and this used to reach `map_infile_path_to_cpp_type`'s closing
+    `assert False` with
+    `/paths/[/thing/{id}]/parameters/0/schema`: the pointer carries no method
+    segment, and `_PARAMETER_RE`'s second group is the method. Both operations
+    below must see the parameter, and both must name the **same** type — it is
+    one parameter shared by the path, not one per method, so its namespace is a
+    level shallower than the per-operation form in `test_parameters` above
+    (`root_::get` there, no method component here).
+    """
+    schema = {
+        'openapi': '3.0.0',
+        'info': {'title': '', 'version': '1.0'},
+        'paths': {
+            '/thing/{id}': {
+                'parameters': [
+                    {
+                        'in': 'path',
+                        'name': 'id',
+                        'required': True,
+                        'schema': {'type': 'integer'},
+                    },
+                ],
+                'get': {'responses': {}},
+                'put': {'responses': {}},
+            },
+        },
+    }
+    operations = translate_single_schema(schema).operations
+    assert len(operations) == 2
+
+    for operation in operations:
+        assert [p.raw_name for p in operation.parameters] == ['id']
+
+    namespaces = {
+        operation.parameters[0].cpp_type.validators.namespace
+        for operation in operations
+    }
+    assert namespaces == {'::test_namespace::thing_id'}

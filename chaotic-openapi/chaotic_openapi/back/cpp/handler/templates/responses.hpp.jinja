@@ -58,9 +58,9 @@ struct Response{{ response.status }} final {
         {% endif %}
 
         {% if header.cpp_type.nullable %}
-            std::optional<{{ header.cpp_type.cpp_global_name() }}> {{ header.cpp_name }};
+            std::optional<{{ header.cpp_type.cpp_user_name() }}> {{ header.cpp_name }};
         {% else %}
-            {{ header.cpp_type.cpp_global_name() }} {{ header.cpp_name }};
+            {{ header.cpp_type.cpp_user_name() }} {{ header.cpp_name }};
         {% endif %}
     {% endfor %}
 };

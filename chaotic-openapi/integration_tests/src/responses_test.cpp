@@ -1,5 +1,7 @@
 #include <userver/utest/utest.hpp>
 
+#include <chrono>
+
 #include <userver/clients/http/client.hpp>
 #include <userver/engine/sleep.hpp>
 #include <userver/utest/assert_macros.hpp>
@@ -202,7 +204,7 @@ UTEST(ResponsesMultipleContentType, HeaderParse) {
     auto response = client::ParseResponse(*http_response);
     EXPECT_EQ(response.X_Header, "string");
     EXPECT_EQ(response.X_Integer, 42);
-    EXPECT_EQ(response.X_Seconds, 100);
+    EXPECT_EQ(response.X_Seconds, std::chrono::seconds{100});
     EXPECT_EQ(response.X_Ref_Header, "ref-value");
 }
 

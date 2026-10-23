@@ -37,3 +37,13 @@ userver_target_generate_chaotic(
     RELATIVE_TO ${CMAKE_CURRENT_SOURCE_DIR}
 )
 target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-chgen-no-sax)
+
+userver_target_generate_chaotic(
+    ${PROJECT_NAME}-chgen-stem
+    GENERATE_SERIALIZERS
+    LAYOUT "/definitions/([^/]*)/=ns::{stem}::{0}"
+    OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/src
+    SCHEMAS ${CMAKE_CURRENT_SOURCE_DIR}/stem_schemas/station.internal.yaml
+    RELATIVE_TO ${CMAKE_CURRENT_SOURCE_DIR}
+)
+target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-chgen-stem)
