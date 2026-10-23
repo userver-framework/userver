@@ -478,12 +478,16 @@ public:
             const auto tid = ::syscall(SYS_gettid);
             const auto thread_id = ::pthread_self();
 
-            const std::lock_guard lock{tid_to_pthread_initialization_mutex_};
+            const std::lock_guard lock{thread_registration_mutex_};
             thread_id_to_pthread_id_.emplace_back(tid, thread_id);
             if (new_alt_stack) {
                 threads_alt_stacks_.push_back(new_alt_stack);
             }
         }
+    }
+
+    bool DebugIsCurrentThreadRegistered() const {
+        return PidToPthreadT(static_cast<int>(::syscall(SYS_gettid))).has_value();
     }
 
     void AccountStackUsage() {
@@ -603,6 +607,7 @@ private:
     }
 
     std::optional<pthread_t> PidToPthreadT(int ptid) const {
+        const std::lock_guard lock{thread_registration_mutex_};
         for (const auto& [pid, pthread_id] : thread_id_to_pthread_id_) {
             if (ptid == pid) {
                 return pthread_id;
@@ -612,9 +617,7 @@ private:
         return std::nullopt;
     }
 
-    // We only need to protect the initialization of the mapping, since it doesn't
-    // change at runtime.
-    std::mutex tid_to_pthread_initialization_mutex_;
+    mutable std::mutex thread_registration_mutex_;
     boost::container::small_vector<std::pair<int, pthread_t>, 32> thread_id_to_pthread_id_{};
     boost::container::small_vector<void*, 32> threads_alt_stacks_{};
 
@@ -640,6 +643,8 @@ public:
 
     void RegisterThread() {}
 
+    bool DebugIsCurrentThreadRegistered() const { return false; }
+
     void AccountStackUsage() {}
 
     std::uint16_t GetMaxStackUsagePct() const noexcept { return 0; }
@@ -663,6 +668,8 @@ void StackUsageMonitor::Register(const boost::coroutines2::coroutine<impl::TaskC
 }
 
 void StackUsageMonitor::RegisterThread() { impl_->RegisterThread(); }
+
+bool StackUsageMonitor::DebugIsCurrentThreadRegistered() const { return impl_->DebugIsCurrentThreadRegistered(); }
 
 impl::CountedCoroutinePtr* StackUsageMonitor::GetCurrentTaskCoroutine() noexcept {
     auto* current_task = current_task::GetCurrentTaskContextUnchecked();
