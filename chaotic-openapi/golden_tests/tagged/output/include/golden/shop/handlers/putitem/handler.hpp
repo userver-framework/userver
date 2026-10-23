@@ -18,7 +18,7 @@ inline constexpr std::string_view kHandlerName = "golden-shop-handlers-put-item"
 
 using Handler = USERVER_NAMESPACE::chaotic::openapi::server::BaseHandler<
 impl::kHandlerName,
-void,
+ErrorResponseBase,
 Request,
 Response,
 HandlerTag,

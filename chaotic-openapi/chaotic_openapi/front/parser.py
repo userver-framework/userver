@@ -523,9 +523,9 @@ class Parser:
             # components/responses
             for name, response in parsed.components.responses.items():
                 infile_path = f'/components/responses/{name}'
-                model_resp = self._convert_openapi_response(response, infile_path)
-                assert isinstance(model_resp, model.Response)
-                self._state.service.responses[self._state.full_filepath + '#' + infile_path] = model_resp
+                self._state.service.responses[self._state.full_filepath + '#' + infile_path] = (
+                    self._convert_openapi_response(response, infile_path)
+                )
 
             # paths
             for path, path_item in parsed.paths.items() if self._state.with_operations else ():

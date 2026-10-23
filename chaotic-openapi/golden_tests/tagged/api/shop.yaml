@@ -52,3 +52,11 @@ paths:
                                 properties:
                                     created:
                                         type: boolean
+                '409':
+                    $ref: '#/components/responses/Conflict'
+
+components:
+    responses:
+        # An alias of a response of another document, which generates its types
+        Conflict:
+            $ref: '../common/responses.yaml#/components/responses/Conflict'

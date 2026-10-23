@@ -12,6 +12,7 @@
 
 #include <golden/dto/shop/items.hpp>
 #include <golden/errors/errors.hpp>
+#include <golden/errors/responses.hpp>
 #include <golden/shop/shop.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -40,6 +41,11 @@ Response ParseResponse(USERVER_NAMESPACE::clients::http::Response& response);
 namespace putitem {
 
   struct Response200{              ::golden::shop::items_id::put::Response200BodyApplicationJson body;
+
+  };
+
+  struct Response409: public ExceptionWithStatusCode{Response409() : ExceptionWithStatusCode(409)
+        {}              ::golden::errors::ResponseConflictBodyApplicationJson body;
 
   };
 

@@ -7,13 +7,21 @@
 
 #include <userver/http/status_code.hpp>
 #include <userver/server/http/http_request.hpp>
+#include <cstdint>
 #include <optional>
 #include <userver/chaotic/object.hpp>
 #include <golden/dto/shop/items.hpp>
 #include <golden/errors/errors.hpp>
+#include <golden/errors/responses.hpp>
 #include <golden/shop/shop.hpp>
 
 namespace golden::shop::handlers::putitem {
+
+/// Base class for all error responses of this handler.
+/// May be caught to handle any error generically.
+struct ErrorResponseBase : public std::exception {
+virtual USERVER_NAMESPACE::http::StatusCode GetStatus() const noexcept = 0;
+};
 
 struct Response200 final {
 static constexpr int kStatus = 200;
@@ -22,9 +30,22 @@ static constexpr int kStatus = 200;
 
 };
 
+/// Error response — may be thrown from Handle() instead of returning via variant.
+struct Response409 final : public ErrorResponseBase {
+static constexpr USERVER_NAMESPACE::http::StatusCode kStatus{ 409 };
+USERVER_NAMESPACE::http::StatusCode GetStatus() const noexcept override { return kStatus; }
+const char* what() const noexcept override { return "Response409"; }
+
+    ::golden::errors::ResponseConflictBodyApplicationJson body;
+
+};
+
 /// All possible responses for this operation.
-using Response = Response200;
+/// Error types (4xx/5xx) may also be thrown from Handle().
+using Response = std::variant<
+    Response200,            Response409    >;
 
 std::string SerializeResponse(const Response& response, USERVER_NAMESPACE::server::http::HttpRequest& http_request);
+std::string SerializeResponse(ErrorResponseBase&& response, USERVER_NAMESPACE::server::http::HttpRequest& http_request);
 
 }  // namespace golden::shop::handlers::putitem

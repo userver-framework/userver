@@ -370,7 +370,16 @@ class BaseTranslator(abc.ABC):
         response: model.Response | model.Ref,
         status: int,
     ) -> common_types.Response:
-        if isinstance(response, model.Ref):
+        seen = set()
+        while isinstance(response, model.Ref):
+            if response.ref in seen:
+                raise chaotic_error.BaseError(
+                    full_filepath=response.ref.split('#', 1)[0],
+                    infile_path=response.ref.split('#', 1)[-1],
+                    schema_type='openapi/swagger',
+                    msg=f'Response aliases refer to each other in a cycle: {", ".join(sorted(seen))}',
+                )
+            seen.add(response.ref)
             response = self._raw_responses[response.ref]
 
         headers = []
@@ -489,3 +498,25 @@ class TypesTranslator(BaseTranslator):
 
     def validate_operation(self, op: common_types.Operation) -> None:
         pass
+
+    def _translate(self, service: model.Service) -> None:
+        super()._translate(service)
+
+        # The components of the inputs belong to their types whether an operation uses them or not
+        assert self._closure
+        inputs = set(self._closure.inputs)
+
+        def is_input(ref_: str) -> bool:
+            return ref_.split('#', 1)[0] in inputs
+
+        for name, response in service.responses.items():
+            # An alias generates nothing, the types are its referent's
+            if is_input(name) and isinstance(response, model.Response):
+                self._translate_response(response, 0)
+        for name, bodies in service.requestBodies.items():
+            if is_input(name):
+                for body in bodies:
+                    self._translate_request_body(body)
+        for name, parameter in [*service.parameters.items(), *service.headers.items()]:
+            if is_input(name):
+                self._translate_parameter(parameter)

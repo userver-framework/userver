@@ -76,6 +76,20 @@ switch (status_code) {
       return r;
 
   }
+  case 409:
+  {
+    Response409 r{};
+          try {
+            auto json = USERVER_NAMESPACE::formats::json::FromString(http_response.body());
+            r.body = json.As<USERVER_NAMESPACE::chaotic::Primitive<::golden::errors::ResponseConflictBodyApplicationJson>>();
+          } catch (const std::exception& e) {
+            LOG_ERROR() << "Failed to parse JSON response body: " << e;
+            throw ExceptionWithStatusCode(409);
+          }
+
+      throw r;
+
+  }
 
 default:
   throw ExceptionWithStatusCode(status_code);

@@ -291,3 +291,113 @@ def test_untagged_ref_to_a_file_not_among_inputs(monkeypatch, tmp_path, capsys):
         )
         main.main()
     assert 'credentials.yaml", which is not among the input files' in capsys.readouterr().err
+
+
+SHARED_RESPONSES = """\
+openapi: 3.0.0
+info: {title: responses, version: '1.0'}
+x-usrv-cpp-namespace: test::responses
+paths: {}
+components:
+  responses:
+    BadRequest:
+      description: Malformed request
+      content:
+        application/json:
+          schema:
+            type: object
+            additionalProperties: false
+            properties:
+              reason: {type: string}
+    NotFound:
+      description: No such thing
+      content:
+        application/json:
+          schema:
+            $ref: '../common/errors.yaml#/components/schemas/Error'
+"""
+
+ALIASING_API = """\
+openapi: 3.0.0
+info: {title: api, version: '1.0'}
+x-usrv-cpp-namespace: test::api
+paths:
+  /thing:
+    get:
+      operationId: getThing
+      responses:
+        '200': {description: OK}
+        '400': {$ref: '#/components/responses/BadRequest'}
+        '404': {$ref: '#/components/responses/Missing'}
+components:
+  responses:
+    BadRequest: {$ref: '../responses/responses.yaml#/components/responses/BadRequest'}
+    NotFound: {$ref: '../responses/responses.yaml#/components/responses/NotFound'}
+    Missing: {$ref: '#/components/responses/NotFound'}
+"""
+
+
+@pytest.fixture
+def aliasing(documents, tmp_path) -> dict[str, pathlib.Path]:
+    paths = {
+        'responses': tmp_path / 'responses/responses.yaml',
+        'api': tmp_path / 'openapi/aliasing.yaml',
+    }
+    for name, content in (('responses', SHARED_RESPONSES), ('api', ALIASING_API)):
+        paths[name].parent.mkdir(parents=True, exist_ok=True)
+        paths[name].write_text(content)
+    return paths
+
+
+def test_types_of_unused_components(monkeypatch, aliasing, tmp_path):
+    out = tmp_path / 'out'
+    _openapi_gen(monkeypatch, '--gen', 'types', '-o', str(out), str(aliasing['responses']))
+
+    # No operation of the document uses them, they are its types still
+    types = _files(out)['include/test/responses/responses.hpp']
+    assert 'struct ResponseBadRequestBodyApplicationJson {' in types
+    assert 'using ResponseNotFoundBodyApplicationJson = ::test::errors::Error;' in types
+
+
+def test_response_aliases(monkeypatch, aliasing, tmp_path):
+    out = tmp_path / 'out'
+    _openapi_gen(monkeypatch, '--gen', 'types', '-o', str(out), str(aliasing['api']))
+    _openapi_gen(monkeypatch, '--name', 'api', '--gen', 'client', '-o', str(out), str(aliasing['api']))
+    _openapi_gen(monkeypatch, '--name', 'api', '--gen', 'handlers', '-o', str(out), str(aliasing['api']))
+
+    files = _files(out)
+    # An alias generates nothing, the types are its referent's
+    assert 'Response' not in files['include/test/api/aliasing.hpp']
+    for responses in (
+        files['include/test/api/client/responses.hpp'],
+        files['include/test/api/handlers/getthing/responses.hpp'],
+    ):
+        assert '::test::responses::ResponseBadRequestBodyApplicationJson body;' in responses
+        assert '::test::errors::Error body;' in responses
+
+
+def test_response_alias_cycle(monkeypatch, aliasing, tmp_path, capsys):
+    aliasing['api'].write_text(
+        ALIASING_API.replace(
+            "{$ref: '../responses/responses.yaml#/components/responses/NotFound'}",
+            "{$ref: '#/components/responses/Missing'}",
+        )
+    )
+    with pytest.raises(SystemExit):
+        monkeypatch.setattr(
+            sys,
+            'argv',
+            [
+                'chaotic-openapi',
+                '--clang-format',
+                '',
+                '--no-check-includes',
+                '--gen',
+                'types',
+                '-o',
+                str(tmp_path / 'out'),
+                str(aliasing['api']),
+            ],
+        )
+        main.main()
+    assert 'Response aliases refer to each other in a cycle' in capsys.readouterr().err

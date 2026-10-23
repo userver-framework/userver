@@ -238,7 +238,10 @@ Security = list[SecurityRequirement]
 class Components(base_model.BaseModel):
     schemas: dict[str, Schema] = pydantic.Field(default_factory=dict)
     requests: dict[str, Any] = pydantic.Field(default_factory=dict)  # TODO
-    responses: dict[str, Response] = pydantic.Field(default_factory=dict)
+    # An entry may alias a response of another document
+    responses: dict[str, Annotated[Ref | Response, pydantic.Field(union_mode='left_to_right')]] = pydantic.Field(
+        default_factory=dict
+    )
     parameters: dict[str, Parameter] = pydantic.Field(default_factory=dict)
     headers: dict[str, Header] = pydantic.Field(default_factory=dict)
     requestBodies: dict[str, RequestBody] = pydantic.Field(default_factory=dict)

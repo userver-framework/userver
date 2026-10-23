@@ -7,6 +7,7 @@
 #include <userver/chaotic/additional_properties.hpp>
 #include <userver/chaotic/primitive.hpp>
 #include <userver/chaotic/sax_parser.hpp>
+#include <userver/chaotic/validators.hpp>
 #include <userver/chaotic/with_type.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
@@ -26,10 +27,33 @@ static_cast<USERVER_NAMESPACE::server::http::HttpStatus>(200)
     );
 }
 
+std::string SerializeSpecificResponse(const Response409& r,
+                              USERVER_NAMESPACE::server::http::HttpRequest& http_request) {
+http_request.GetHttpResponse().SetStatus(
+static_cast<USERVER_NAMESPACE::server::http::HttpStatus>(409)
+);
+    return USERVER_NAMESPACE::formats::json::ToString(
+        USERVER_NAMESPACE::formats::json::ValueBuilder(r.body).ExtractValue()
+    );
+}
+
 }  // namespace
 
 std::string SerializeResponse(const Response& response, USERVER_NAMESPACE::server::http::HttpRequest& http_request) {
-return SerializeSpecificResponse(response, http_request);
+return std::visit(
+    [&http_request](const auto& r) -> std::string {
+      return SerializeSpecificResponse(r, http_request);
+    },
+    response
+);
+}
+
+std::string SerializeResponse(ErrorResponseBase&& response, USERVER_NAMESPACE::server::http::HttpRequest& http_request) {
+if (response.GetStatus() == 409) {
+    return SerializeSpecificResponse(static_cast<Response409&&>(response), http_request);
+}
+
+return {};
 }
 
 }  // namespace golden::shop::handlers::putitem

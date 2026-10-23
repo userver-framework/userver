@@ -22,6 +22,7 @@ public:
     /// PUT /items/{id}
 
     /// @throw putitem::Exception
+    /// @throw putitem::Response409
 
     virtual putitem::Response putItem(
           const putitem::Request& request,

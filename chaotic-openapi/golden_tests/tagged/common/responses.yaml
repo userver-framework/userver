@@ -1,0 +1,19 @@
+openapi: 3.0.0
+info:
+    title: Golden shared responses
+    version: '1.0'
+x-usrv-cpp-namespace: golden::errors
+paths: {}
+components:
+    responses:
+        Conflict:
+            description: The item was changed meanwhile
+            content:
+                application/json:
+                    schema:
+                        type: object
+                        additionalProperties: false
+                        required: [version]
+                        properties:
+                            version:
+                                type: integer
