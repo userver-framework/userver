@@ -147,6 +147,16 @@ struct MaxLength final {
     }
 };
 
+/// A free-form object is a JSON value, which must still be an object
+struct IsObject final {
+    template <typename T, typename ErrorReporter>
+    static void Validate(const T& value, ErrorReporter report_error) {
+        if (!value.IsObject()) {
+            report_error("Invalid value, expected an object");
+        }
+    }
+};
+
 template <typename... Validators, typename Obj, typename Value>
 void Validate(const Obj& obj, const Value& value) {
     [[maybe_unused]] const auto error_reporter = [&value](std::string_view error) {

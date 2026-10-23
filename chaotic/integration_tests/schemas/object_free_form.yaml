@@ -1,0 +1,14 @@
+definitions:
+    ObjectFreeForm:
+        type: object
+        additionalProperties: true
+    ObjectWithFreeForm:
+        type: object
+        additionalProperties: false
+        required: [payload]
+        properties:
+            payload:
+                type: object
+                additionalProperties: true
+            ref:
+                $ref: '#/definitions/ObjectFreeForm'

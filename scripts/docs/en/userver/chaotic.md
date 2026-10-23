@@ -370,6 +370,10 @@ Any unknown field leads to a validation failure in case of `additionalProperties
 It can be overridden by setting `x-usrv-strict-parsing: false`.
 In this case unknown fields will be ignored.
 
+A free-form object, `type: object` with `additionalProperties: true` and no `properties`, produces
+`formats::json::Value` instead of a structure with the `extra` member only. Parsing still rejects a value which
+is not an object. `x-usrv-extra-member`, `x-usrv-cpp-extra-type` or `x-usrv-cpp-type` keep the structure.
+
 Use `x-usrv-cpp-name` to override the C++ field name for a property (the JSON key is unchanged):
 
 @snippet chaotic/golden_tests/schemas/docs/docs.yaml chaotic docs - object cpp name

@@ -705,6 +705,14 @@ class Generator:
         schema: types.SchemaObject,
     ) -> cpp_types.CppType:
         assert schema.properties is not None
+        if self._is_free_form_object(schema):
+            return cpp_types.CppAnyValue(
+                json_schema=schema,
+                nullable=schema.nullable,
+                raw_cpp_type=type_name.TypeName('USERVER_NAMESPACE::formats::json::Value'),
+                user_cpp_type=None,
+                object_only=True,
+            )
         required = schema.required or []
 
         fields = {
@@ -787,6 +795,17 @@ class Generator:
             autodiscover_default_dict=self._config.autodiscover_default_dict,
             strict_parsing=strict_parsing,
         )
+
+    @staticmethod
+    def _is_free_form_object(schema: types.SchemaObject) -> bool:
+        """An object of any fields only, its C++ type is formats::json::Value."""
+        if schema.properties or schema.additionalProperties is not True:
+            return False
+        # A user type converts from the struct, the extra member may be customised or turned off
+        for prop in ('cpp-type', 'cpp-extra-type', 'extra-member'):
+            if f'x-usrv-{prop}' in schema.x_properties or f'x-taxi-{prop}' in schema.x_properties:
+                return False
+        return True
 
     def _gen_const(
         self,

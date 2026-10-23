@@ -77,14 +77,11 @@ constexpr inline USERVER_NAMESPACE::utils::StringLiteral k_ns_V1ChannelNotificat
 [[maybe_unused]] USERVER_NAMESPACE::chaotic::sax::Parser<USERVER_NAMESPACE::chaotic::Object<::ns::V1ChannelNotificationNewResponse, USERVER_NAMESPACE::chaotic::UnknownFields::Forbid>>
     ParserOf(USERVER_NAMESPACE::chaotic::sax::Type<V1ChannelNotificationNewResponse>);
 
-[[maybe_unused]] USERVER_NAMESPACE::chaotic::sax::Parser<USERVER_NAMESPACE::chaotic::Object<::ns::V1Error::Details, USERVER_NAMESPACE::chaotic::UnknownFields::StoreJson>>
-    ParserOf(USERVER_NAMESPACE::chaotic::sax::Type<V1Error::Details>);
-
 constexpr inline USERVER_NAMESPACE::utils::StringLiteral k_ns_V1ErrorFieldNamecode = "code";
 constexpr inline USERVER_NAMESPACE::utils::StringLiteral k_ns_V1ErrorFieldNamemessage = "message";
 constexpr inline USERVER_NAMESPACE::utils::StringLiteral k_ns_V1ErrorFieldNamedetails = "details";
 
-[[maybe_unused]] USERVER_NAMESPACE::chaotic::sax::Parser<USERVER_NAMESPACE::chaotic::Object<::ns::V1Error, USERVER_NAMESPACE::chaotic::UnknownFields::Forbid, USERVER_NAMESPACE::chaotic::Field<::ns::V1Error, USERVER_NAMESPACE::chaotic::Required<USERVER_NAMESPACE::chaotic::Primitive<std::string>>, &::ns::V1Error::code, k_ns_V1ErrorFieldNamecode>, USERVER_NAMESPACE::chaotic::Field<::ns::V1Error, USERVER_NAMESPACE::chaotic::Required<USERVER_NAMESPACE::chaotic::Primitive<std::string>>, &::ns::V1Error::message, k_ns_V1ErrorFieldNamemessage>, USERVER_NAMESPACE::chaotic::Field<::ns::V1Error, USERVER_NAMESPACE::chaotic::Optional<USERVER_NAMESPACE::chaotic::Primitive<::ns::V1Error::Details>>, &::ns::V1Error::details, k_ns_V1ErrorFieldNamedetails>>>
+[[maybe_unused]] USERVER_NAMESPACE::chaotic::sax::Parser<USERVER_NAMESPACE::chaotic::Object<::ns::V1Error, USERVER_NAMESPACE::chaotic::UnknownFields::Forbid, USERVER_NAMESPACE::chaotic::Field<::ns::V1Error, USERVER_NAMESPACE::chaotic::Required<USERVER_NAMESPACE::chaotic::Primitive<std::string>>, &::ns::V1Error::code, k_ns_V1ErrorFieldNamecode>, USERVER_NAMESPACE::chaotic::Field<::ns::V1Error, USERVER_NAMESPACE::chaotic::Required<USERVER_NAMESPACE::chaotic::Primitive<std::string>>, &::ns::V1Error::message, k_ns_V1ErrorFieldNamemessage>, USERVER_NAMESPACE::chaotic::Field<::ns::V1Error, USERVER_NAMESPACE::chaotic::Optional<USERVER_NAMESPACE::chaotic::Primitive<USERVER_NAMESPACE::formats::json::Value, USERVER_NAMESPACE::chaotic::IsObject>>, &::ns::V1Error::details, k_ns_V1ErrorFieldNamedetails>>>
     ParserOf(USERVER_NAMESPACE::chaotic::sax::Type<V1Error>);
 
 constexpr inline USERVER_NAMESPACE::utils::StringLiteral k_ns_V1FileFieldNamelogin = "login";
@@ -135,9 +132,6 @@ constexpr inline USERVER_NAMESPACE::utils::StringLiteral k_ns_V1UserRegistration
 [[maybe_unused]] USERVER_NAMESPACE::chaotic::sax::Parser<USERVER_NAMESPACE::chaotic::Object<::ns::V1UserRegistrationRequest, USERVER_NAMESPACE::chaotic::UnknownFields::Forbid, USERVER_NAMESPACE::chaotic::Field<::ns::V1UserRegistrationRequest, USERVER_NAMESPACE::chaotic::Required<USERVER_NAMESPACE::chaotic::Primitive<std::string, USERVER_NAMESPACE::chaotic::MinLength<3>>>, &::ns::V1UserRegistrationRequest::login, k_ns_V1UserRegistrationRequestFieldNamelogin>, USERVER_NAMESPACE::chaotic::Field<::ns::V1UserRegistrationRequest, USERVER_NAMESPACE::chaotic::Required<USERVER_NAMESPACE::chaotic::Primitive<std::string, USERVER_NAMESPACE::chaotic::MinLength<1>>>, &::ns::V1UserRegistrationRequest::name, k_ns_V1UserRegistrationRequestFieldNamename>, USERVER_NAMESPACE::chaotic::Field<::ns::V1UserRegistrationRequest, USERVER_NAMESPACE::chaotic::Required<USERVER_NAMESPACE::chaotic::Primitive<std::string, USERVER_NAMESPACE::chaotic::MinLength<3>>>, &::ns::V1UserRegistrationRequest::email, k_ns_V1UserRegistrationRequestFieldNameemail>, USERVER_NAMESPACE::chaotic::Field<::ns::V1UserRegistrationRequest, USERVER_NAMESPACE::chaotic::Required<USERVER_NAMESPACE::chaotic::Primitive<std::string, USERVER_NAMESPACE::chaotic::MinLength<3>>>, &::ns::V1UserRegistrationRequest::phone, k_ns_V1UserRegistrationRequestFieldNamephone>, USERVER_NAMESPACE::chaotic::Field<::ns::V1UserRegistrationRequest, USERVER_NAMESPACE::chaotic::Required<USERVER_NAMESPACE::chaotic::Primitive<std::string, USERVER_NAMESPACE::chaotic::MinLength<6>>>, &::ns::V1UserRegistrationRequest::password, k_ns_V1UserRegistrationRequestFieldNamepassword>>>
     ParserOf(USERVER_NAMESPACE::chaotic::sax::Type<V1UserRegistrationRequest>);
 
-[[maybe_unused]] USERVER_NAMESPACE::chaotic::sax::Parser<USERVER_NAMESPACE::chaotic::Object<::ns::V1UserStatus, USERVER_NAMESPACE::chaotic::UnknownFields::StoreJson>>
-    ParserOf(USERVER_NAMESPACE::chaotic::sax::Type<V1UserStatus>);
-
 constexpr inline USERVER_NAMESPACE::utils::StringLiteral k_ns_V1UserStatusByLoginRequestFieldNamecurrent_user = "current_user";
 constexpr inline USERVER_NAMESPACE::utils::StringLiteral k_ns_V1UserStatusByLoginRequestFieldNamelogin = "login";
 
@@ -146,13 +140,13 @@ constexpr inline USERVER_NAMESPACE::utils::StringLiteral k_ns_V1UserStatusByLogi
 
 constexpr inline USERVER_NAMESPACE::utils::StringLiteral k_ns_V1UserStatusByLoginResponseFieldNamestatus = "status";
 
-[[maybe_unused]] USERVER_NAMESPACE::chaotic::sax::Parser<USERVER_NAMESPACE::chaotic::Object<::ns::V1UserStatusByLoginResponse, USERVER_NAMESPACE::chaotic::UnknownFields::Forbid, USERVER_NAMESPACE::chaotic::Field<::ns::V1UserStatusByLoginResponse, USERVER_NAMESPACE::chaotic::Required<USERVER_NAMESPACE::chaotic::Primitive<::ns::V1UserStatus>>, &::ns::V1UserStatusByLoginResponse::status, k_ns_V1UserStatusByLoginResponseFieldNamestatus>>>
+[[maybe_unused]] USERVER_NAMESPACE::chaotic::sax::Parser<USERVER_NAMESPACE::chaotic::Object<::ns::V1UserStatusByLoginResponse, USERVER_NAMESPACE::chaotic::UnknownFields::Forbid, USERVER_NAMESPACE::chaotic::Field<::ns::V1UserStatusByLoginResponse, USERVER_NAMESPACE::chaotic::Required<USERVER_NAMESPACE::chaotic::Primitive<USERVER_NAMESPACE::formats::json::Value, USERVER_NAMESPACE::chaotic::IsObject>>, &::ns::V1UserStatusByLoginResponse::status, k_ns_V1UserStatusByLoginResponseFieldNamestatus>>>
     ParserOf(USERVER_NAMESPACE::chaotic::sax::Type<V1UserStatusByLoginResponse>);
 
 constexpr inline USERVER_NAMESPACE::utils::StringLiteral k_ns_V1UserStatusUpdateRequestFieldNamecurrent_user = "current_user";
 constexpr inline USERVER_NAMESPACE::utils::StringLiteral k_ns_V1UserStatusUpdateRequestFieldNamestatus = "status";
 
-[[maybe_unused]] USERVER_NAMESPACE::chaotic::sax::Parser<USERVER_NAMESPACE::chaotic::Object<::ns::V1UserStatusUpdateRequest, USERVER_NAMESPACE::chaotic::UnknownFields::Forbid, USERVER_NAMESPACE::chaotic::Field<::ns::V1UserStatusUpdateRequest, USERVER_NAMESPACE::chaotic::Required<USERVER_NAMESPACE::chaotic::Primitive<::ns::V1CurrentUser>>, &::ns::V1UserStatusUpdateRequest::current_user, k_ns_V1UserStatusUpdateRequestFieldNamecurrent_user>, USERVER_NAMESPACE::chaotic::Field<::ns::V1UserStatusUpdateRequest, USERVER_NAMESPACE::chaotic::Required<USERVER_NAMESPACE::chaotic::Primitive<::ns::V1UserStatus>>, &::ns::V1UserStatusUpdateRequest::status, k_ns_V1UserStatusUpdateRequestFieldNamestatus>>>
+[[maybe_unused]] USERVER_NAMESPACE::chaotic::sax::Parser<USERVER_NAMESPACE::chaotic::Object<::ns::V1UserStatusUpdateRequest, USERVER_NAMESPACE::chaotic::UnknownFields::Forbid, USERVER_NAMESPACE::chaotic::Field<::ns::V1UserStatusUpdateRequest, USERVER_NAMESPACE::chaotic::Required<USERVER_NAMESPACE::chaotic::Primitive<::ns::V1CurrentUser>>, &::ns::V1UserStatusUpdateRequest::current_user, k_ns_V1UserStatusUpdateRequestFieldNamecurrent_user>, USERVER_NAMESPACE::chaotic::Field<::ns::V1UserStatusUpdateRequest, USERVER_NAMESPACE::chaotic::Required<USERVER_NAMESPACE::chaotic::Primitive<USERVER_NAMESPACE::formats::json::Value, USERVER_NAMESPACE::chaotic::IsObject>>, &::ns::V1UserStatusUpdateRequest::status, k_ns_V1UserStatusUpdateRequestFieldNamestatus>>>
     ParserOf(USERVER_NAMESPACE::chaotic::sax::Type<V1UserStatusUpdateRequest>);
 
 [[maybe_unused]] USERVER_NAMESPACE::chaotic::sax::Parser<USERVER_NAMESPACE::chaotic::Object<::ns::V1UserStatusUpdateResponse, USERVER_NAMESPACE::chaotic::UnknownFields::Forbid>>

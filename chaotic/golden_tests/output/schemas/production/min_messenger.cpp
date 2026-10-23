@@ -1015,14 +1015,6 @@ std::string ToJsonString(const V1Error& value) {
     return builder.GetString();
 }
 
-bool operator==(const V1Error::Details & lhs,const V1Error::Details & rhs) {
-    (void)lhs;
-    (void)rhs;
-    return true
-        && lhs.extra == rhs.extra
-    ;
-}
-
 bool operator==(const V1Error & lhs,const V1Error & rhs) {
     return true
         && lhs.code == rhs.code
@@ -1033,37 +1025,16 @@ bool operator==(const V1Error & lhs,const V1Error & rhs) {
 
 USERVER_NAMESPACE::logging::LogHelper& operator<<(
     USERVER_NAMESPACE::logging::LogHelper& lh,
-    const V1Error::Details& value)
-{
-    return lh << ToString(USERVER_NAMESPACE::formats::json::ValueBuilder(value).ExtractValue());
-}
-
-USERVER_NAMESPACE::logging::LogHelper& operator<<(
-    USERVER_NAMESPACE::logging::LogHelper& lh,
     const V1Error& value)
 {
     return lh << ToString(USERVER_NAMESPACE::formats::json::ValueBuilder(value).ExtractValue());
 }
 
-V1Error::Details Parse(
-    USERVER_NAMESPACE::formats::json::Value json,
-    USERVER_NAMESPACE::formats::parse::To<V1Error::Details> to)
-{
-    return Parse<USERVER_NAMESPACE::formats::json::Value>(json, to);
-}
-
 V1Error Parse(
     USERVER_NAMESPACE::formats::json::Value json,
     USERVER_NAMESPACE::formats::parse::To<V1Error> to)
 {
     return Parse<USERVER_NAMESPACE::formats::json::Value>(json, to);
-}
-
-V1Error::Details Parse(
-    USERVER_NAMESPACE::formats::yaml::Value json,
-    USERVER_NAMESPACE::formats::parse::To<V1Error::Details> to)
-{
-    return Parse<USERVER_NAMESPACE::formats::yaml::Value>(json, to);
 }
 
 V1Error Parse(
@@ -1073,28 +1044,11 @@ V1Error Parse(
     return Parse<USERVER_NAMESPACE::formats::yaml::Value>(json, to);
 }
 
-V1Error::Details Parse(
-    USERVER_NAMESPACE::yaml_config::Value json,
-    USERVER_NAMESPACE::formats::parse::To<V1Error::Details> to)
-{
-    return Parse<USERVER_NAMESPACE::yaml_config::Value>(json, to);
-}
-
 V1Error Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<V1Error> to)
 {
     return Parse<USERVER_NAMESPACE::yaml_config::Value>(json, to);
-}
-
-USERVER_NAMESPACE::formats::json::Value Serialize(
-    [[maybe_unused]] const V1Error::Details& value,
-    USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>)
-{
-    USERVER_NAMESPACE::formats::json::ValueBuilder vb
-            = value.extra;
-
-    return vb.ExtractValue();
 }
 
 USERVER_NAMESPACE::formats::json::Value Serialize(
@@ -1113,29 +1067,12 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
         };
     if (value.details) {
         vb["details"] =
-            USERVER_NAMESPACE::chaotic::Primitive<::ns::V1Error::Details>{
+            USERVER_NAMESPACE::chaotic::Primitive<USERVER_NAMESPACE::formats::json::Value, USERVER_NAMESPACE::chaotic::IsObject>{
                 *value.details
             };
     }
 
     return vb.ExtractValue();
-}
-
-void WriteToStream(
-    [[maybe_unused]] const V1Error::Details& value,
-    USERVER_NAMESPACE::formats::json::StringBuilder& sw,
-    [[maybe_unused]] bool hide_brackets,
-    [[maybe_unused]] std::string_view hide_field_name)
-{
-    std::optional<USERVER_NAMESPACE::formats::json::StringBuilder::ObjectGuard> guard;
-    if (!hide_brackets) {
-        guard.emplace(sw);
-    }
-
-    for (const auto& [field_key, field_value]: USERVER_NAMESPACE::formats::common::Items(value.extra)) {
-        sw.Key(field_key);
-        WriteToStream(field_value, sw);
-    }
 }
 
 void WriteToStream(
@@ -1163,7 +1100,7 @@ void WriteToStream(
     }
     if (value.details && hide_field_name != "details") {
         sw.Key("details");
-        WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<::ns::V1Error::Details>{
+        WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<USERVER_NAMESPACE::formats::json::Value, USERVER_NAMESPACE::chaotic::IsObject>{
             *value.details
         }, sw);
     }
@@ -1985,86 +1922,6 @@ void WriteToStream(
     }
 }
 
-V1UserStatus FromJsonString(
-    std::string_view json,
-    USERVER_NAMESPACE::formats::parse::To<V1UserStatus>)
-{
-    return USERVER_NAMESPACE::formats::json::parser::ParseToType<
-        V1UserStatus,
-        USERVER_NAMESPACE::chaotic::sax::impl::RemoveUserTypeParser<
-            USERVER_NAMESPACE::chaotic::sax::Parser<V1UserStatus>
-        >
-    >(json);
-}
-
-std::string ToJsonString(const V1UserStatus& value) {
-    USERVER_NAMESPACE::formats::json::StringBuilder builder;
-    WriteToStream(value, builder);
-    return builder.GetString();
-}
-
-bool operator==(const V1UserStatus & lhs,const V1UserStatus & rhs) {
-    (void)lhs;
-    (void)rhs;
-    return true
-        && lhs.extra == rhs.extra
-    ;
-}
-
-USERVER_NAMESPACE::logging::LogHelper& operator<<(
-    USERVER_NAMESPACE::logging::LogHelper& lh,
-    const V1UserStatus& value)
-{
-    return lh << ToString(USERVER_NAMESPACE::formats::json::ValueBuilder(value).ExtractValue());
-}
-
-V1UserStatus Parse(
-    USERVER_NAMESPACE::formats::json::Value json,
-    USERVER_NAMESPACE::formats::parse::To<V1UserStatus> to)
-{
-    return Parse<USERVER_NAMESPACE::formats::json::Value>(json, to);
-}
-
-V1UserStatus Parse(
-    USERVER_NAMESPACE::formats::yaml::Value json,
-    USERVER_NAMESPACE::formats::parse::To<V1UserStatus> to)
-{
-    return Parse<USERVER_NAMESPACE::formats::yaml::Value>(json, to);
-}
-
-V1UserStatus Parse(
-    USERVER_NAMESPACE::yaml_config::Value json,
-    USERVER_NAMESPACE::formats::parse::To<V1UserStatus> to)
-{
-    return Parse<USERVER_NAMESPACE::yaml_config::Value>(json, to);
-}
-
-USERVER_NAMESPACE::formats::json::Value Serialize(
-    [[maybe_unused]] const V1UserStatus& value,
-    USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>)
-{
-    USERVER_NAMESPACE::formats::json::ValueBuilder vb
-            = value.extra;
-
-    return vb.ExtractValue();
-}
-void WriteToStream(
-    [[maybe_unused]] const V1UserStatus& value,
-    USERVER_NAMESPACE::formats::json::StringBuilder& sw,
-    [[maybe_unused]] bool hide_brackets,
-    [[maybe_unused]] std::string_view hide_field_name)
-{
-    std::optional<USERVER_NAMESPACE::formats::json::StringBuilder::ObjectGuard> guard;
-    if (!hide_brackets) {
-        guard.emplace(sw);
-    }
-
-    for (const auto& [field_key, field_value]: USERVER_NAMESPACE::formats::common::Items(value.extra)) {
-        sw.Key(field_key);
-        WriteToStream(field_value, sw);
-    }
-}
-
 V1UserStatusByLoginRequest FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1UserStatusByLoginRequest>)
@@ -2220,7 +2077,7 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
     USERVER_NAMESPACE::formats::json::ValueBuilder vb
             = USERVER_NAMESPACE::formats::common::Type::kObject;
     vb["status"] =
-        USERVER_NAMESPACE::chaotic::Primitive<::ns::V1UserStatus>{
+        USERVER_NAMESPACE::chaotic::Primitive<USERVER_NAMESPACE::formats::json::Value, USERVER_NAMESPACE::chaotic::IsObject>{
             value.status
         };
 
@@ -2240,7 +2097,7 @@ void WriteToStream(
 
     if (hide_field_name != "status") {
         sw.Key("status");
-        WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<::ns::V1UserStatus>{
+        WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<USERVER_NAMESPACE::formats::json::Value, USERVER_NAMESPACE::chaotic::IsObject>{
             value.status
         }, sw);
     }
@@ -2310,7 +2167,7 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
             value.current_user
         };
     vb["status"] =
-        USERVER_NAMESPACE::chaotic::Primitive<::ns::V1UserStatus>{
+        USERVER_NAMESPACE::chaotic::Primitive<USERVER_NAMESPACE::formats::json::Value, USERVER_NAMESPACE::chaotic::IsObject>{
             value.status
         };
 
@@ -2336,7 +2193,7 @@ void WriteToStream(
     }
     if (hide_field_name != "status") {
         sw.Key("status");
-        WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<::ns::V1UserStatus>{
+        WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<USERVER_NAMESPACE::formats::json::Value, USERVER_NAMESPACE::chaotic::IsObject>{
             value.status
         }, sw);
     }
