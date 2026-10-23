@@ -521,7 +521,7 @@ V1LikeTriggerRequest::Animation Parse(
     if (result.has_value()) {
         return *result;
     }
-    USERVER_NAMESPACE::chaotic::ThrowForValue(fmt::format("Invalid enum value ({}) for type ::ns::V1LikeTriggerRequest::Animation", value), val);
+    USERVER_NAMESPACE::chaotic::ThrowForValue(fmt::format("Invalid enum value ({}), expected one of: {}", value, k__ns__V1LikeTriggerRequest__Animation_Mapping.DescribeSecond()), val);
 }
 
 template <USERVER_NAMESPACE::formats::common::IsFormatValue Value>

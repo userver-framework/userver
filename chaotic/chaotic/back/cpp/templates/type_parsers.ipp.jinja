@@ -111,7 +111,7 @@
             const auto value = val.template As<std::int64_t>();
             const auto converted_opt = TryConvert(value, {{ userver }}::chaotic::convert::To<{{ local_name }}>{});
             if (!converted_opt) {
-                {{ userver }}::chaotic::ThrowForValue(fmt::format("Invalid enum value ({}) for type {{ type.cpp_global_name() }}", value), val);
+                {{ userver }}::chaotic::ThrowForValue(fmt::format("Invalid enum value ({}), expected one of: {}", value, k{{ type.cpp_global_struct_field_name() }}_Mapping.DescribeSecond()), val);
             }
             return *converted_opt;
         }
@@ -126,7 +126,7 @@
             if (result.has_value()) {
                 return *result;
             }
-            {{ userver }}::chaotic::ThrowForValue(fmt::format("Invalid enum value ({}) for type {{ type.cpp_global_name() }}", value), val);
+            {{ userver }}::chaotic::ThrowForValue(fmt::format("Invalid enum value ({}), expected one of: {}", value, k{{ type.cpp_global_struct_field_name() }}_Mapping.DescribeSecond()), val);
         }
     {% elif type.get_py_type() == 'CppStructAllOf' %}
         template <{{ userver }}::formats::common::IsFormatValue Value>
