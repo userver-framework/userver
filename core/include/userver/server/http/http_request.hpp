@@ -246,6 +246,7 @@ public:
     /// @cond
     void SetRequestBody(std::string body);
     void ParseArgsFromBody();
+    bool ParseFormDataArgsFromBody();
     bool IsFinal() const noexcept;
     /// @endcond
 
