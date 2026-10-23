@@ -8,17 +8,16 @@ find_package(
 )
 
 # /// [schemas cmake]
-# The types of every document are generated once, into the namespace and path it declares, by its own target.
-# The types of the paths document are shared by its client and handlers.
+# Every schema file is generated once, into the namespace and path it declares, by its own target
 userver_target_generate_chaotic(
-    ${PROJECT_NAME}-schemas_objs
-    SCHEMAS "${CMAKE_CURRENT_SOURCE_DIR}/schemas/errors.yaml" "${CMAKE_CURRENT_SOURCE_DIR}/schemas/greetings.yaml"
-            "${CMAKE_CURRENT_SOURCE_DIR}/api/greeter.yaml"
+    ${PROJECT_NAME}-schemas_objs SCHEMAS "${CMAKE_CURRENT_SOURCE_DIR}/schemas/errors.yaml"
+                                         "${CMAKE_CURRENT_SOURCE_DIR}/schemas/greetings.yaml"
 )
 # /// [schemas cmake]
 
 # /// [api cmake]
-# The handlers and the client generated from one document include the schema headers instead of copying them
+# The handlers and the client generated from one document include the schema headers instead of copying them.
+# The first of them adds a target generating the types of the document, the other one links it.
 userver_target_generate_openapi_handlers(
     ${PROJECT_NAME}-handlers_objs
     NAME greeter

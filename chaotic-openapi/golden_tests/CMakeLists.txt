@@ -34,7 +34,7 @@ userver_target_generate_chaotic(
     ${PROJECT_NAME}-chgen-tagged-schemas
     OUTPUT_DIR "${TAGGED_OUTPUT_DIR}"
     FORMAT OFF
-    SCHEMAS "${TAGGED_DIR}/common/errors.yaml" "${TAGGED_DIR}/schemas/items.yaml" "${TAGGED_DIR}/api/shop.yaml"
+    SCHEMAS "${TAGGED_DIR}/common/errors.yaml" "${TAGGED_DIR}/schemas/items.yaml"
 )
 
 userver_target_generate_openapi_client(
