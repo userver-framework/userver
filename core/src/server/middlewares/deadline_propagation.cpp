@@ -28,6 +28,8 @@ namespace server::middlewares {
 
 namespace {
 
+constexpr std::chrono::milliseconds kMaxClientTimeout = std::chrono::hours{24 * 365 * 10};
+
 std::string GetHandlerPath(const handlers::HttpHandlerBase& handler) {
     return std::string{std::visit(
         utils::Overloaded{
@@ -45,21 +47,21 @@ std::optional<std::chrono::milliseconds> ParseTimeout(const http::HttpRequest& r
     }
 
     LOG_DEBUG() << "Got client timeout_ms=" << timeout_ms_str;
-    std::chrono::milliseconds timeout;
+    std::uint64_t timeout_ms{};
     try {
-        timeout = std::chrono::milliseconds{utils::FromString<std::uint64_t>(timeout_ms_str)};
+        timeout_ms = utils::FromString<std::uint64_t>(timeout_ms_str);
     } catch (const std::exception& ex) {
         LOG_LIMITED_WARNING() << "Can't parse client timeout from '" << timeout_ms_str << '\'';
         return std::nullopt;
     }
 
     // Very large timeouts may cause overflows.
-    if (timeout >= std::chrono::hours{24 * 365 * 10}) {
-        LOG_LIMITED_WARNING() << "Unreasonably large timeout: " << timeout;
+    if (timeout_ms >= static_cast<std::uint64_t>(kMaxClientTimeout.count())) {
+        LOG_LIMITED_WARNING() << "Unreasonably large timeout: " << timeout_ms << "ms";
         return std::nullopt;
     }
 
-    return timeout;
+    return std::chrono::milliseconds{timeout_ms};
 }
 
 void SetFormattedErrorResponse(http::HttpResponse& http_response, handlers::FormattedErrorData&& formatted_error_data) {
