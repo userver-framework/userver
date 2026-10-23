@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <optional>
 #include <string_view>
 
 #include <boost/algorithm/string/trim.hpp>
@@ -46,6 +47,19 @@ constexpr std::int64_t kPowersOfTen[]{
 };
 
 constexpr auto kMaxPowerOfTen = sizeof(kPowersOfTen) / sizeof(kPowersOfTen[0]) - 1;
+
+/// Returns value * multiplier + addend, or nullopt if the result does not fit
+/// into int64
+std::optional<std::int64_t> CheckedMulAdd(std::int64_t value, std::int64_t multiplier, std::int64_t addend) {
+    std::int64_t result = 0;
+    if (__builtin_mul_overflow(value, multiplier, &result)) {
+        return std::nullopt;
+    }
+    if (__builtin_add_overflow(result, addend, &result)) {
+        return std::nullopt;
+    }
+    return result;
+}
 
 constexpr std::uint16_t kDscaleMask = 0x3fff;
 
@@ -368,15 +382,15 @@ IntegralRepresentation NumericData::ToInt64() const {
     } else {
         for (bin_dig_pos = 0; bin_dig_pos <= weight; ++bin_dig_pos) {
             auto dig = (bin_dig_pos < ndigits) ? digits[bin_dig_pos] : 0;
-            if (__builtin_mul_overflow(rep.value, kBinEncodingBase, &rep.value) ||
-                __builtin_add_overflow(rep.value, dig, &rep.value))
-            {
+            const auto new_val = CheckedMulAdd(rep.value, kBinEncodingBase, dig);
+            if (!new_val) {
                 throw NumericOverflow{
                     "PosrgreSQL buffer contains a value that is too big to fit into "
                     "int64 + '" +
                     ToString() + "'"
                 };
             }
+            rep.value = *new_val;
         }
     }
 
@@ -391,15 +405,15 @@ IntegralRepresentation NumericData::ToInt64() const {
                 power = kBinEncodingBase / kPowersOfTen[truncate_count];
                 dig /= kPowersOfTen[truncate_count];
             }
-            if (__builtin_mul_overflow(rep.value, power, &rep.value) ||
-                __builtin_add_overflow(rep.value, dig, &rep.value))
-            {
+            const auto new_val = CheckedMulAdd(rep.value, power, dig);
+            if (!new_val) {
                 throw NumericOverflow{
                     "PosrgreSQL buffer contains a value that is too big to fit into "
                     "int64 + '" +
                     ToString() + "'"
                 };
             }
+            rep.value = *new_val;
         }
     }
     if (sign == kNumericNegative) {
