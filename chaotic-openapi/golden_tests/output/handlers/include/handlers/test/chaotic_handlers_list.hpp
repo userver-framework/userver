@@ -3,6 +3,7 @@
 
 #include <handlers/test/testme/post/handler.hpp>
 #include <userver/chaotic/openapi/server/dependencies.hpp>
+#include <userver/chaotic/openapi/server/handler_base.hpp>
 #include <userver/components/component_list.hpp>
 #include <userver/components/container.hpp>
 
@@ -15,9 +16,13 @@ namespace handlers::test {
 /// @code
 /// component_list.AppendComponentList(handlers::test::ChaoticHandlersList());
 /// @endcode
-inline USERVER_NAMESPACE::components::ComponentList ChaoticHandlersList() {
+///
+/// @tparam Policy logging and error rendering of all the handlers,
+/// see chaotic::openapi::server::DefaultHandlerPolicy
+template <typename Policy = USERVER_NAMESPACE::chaotic::openapi::server::DefaultHandlerPolicy>
+USERVER_NAMESPACE::components::ComponentList ChaoticHandlersList() {
 return USERVER_NAMESPACE::components::ComponentList()
-.Append<handlers::test::testme::post::Handler>()
+.template Append<handlers::test::testme::post::HandlerFor<Policy>>()
 ;
 }
 

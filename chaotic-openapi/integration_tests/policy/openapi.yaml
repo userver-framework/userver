@@ -1,0 +1,41 @@
+openapi: 3.0.0
+info:
+    title: Handlers with a policy
+    version: '1.0'
+paths:
+    /plain:
+        post:
+            operationId: plainPost
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Secret'
+            responses:
+                '200':
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '#/components/schemas/Secret'
+    /hooked:
+        post:
+            operationId: hookedPost
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Secret'
+            responses:
+                '200':
+                    description: OK
+components:
+    schemas:
+        Secret:
+            type: object
+            additionalProperties: false
+            properties:
+                value:
+                    type: string

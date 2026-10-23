@@ -37,3 +37,12 @@ foreach(HANDLER ${HANDLERS})
     )
     target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-handler-${HANDLER})
 endforeach()
+
+# Handlers the tests instantiate with a policy
+userver_target_generate_openapi_handlers(
+    ${PROJECT_NAME}-handler-policy
+    NAME policy
+    SCHEMAS ${CMAKE_CURRENT_SOURCE_DIR}/policy/openapi.yaml
+    SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src
+)
+target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-handler-policy)

@@ -19,6 +19,7 @@
 #include <clients/test/qos.hpp>
 
 #include <auth_digest.hpp>
+#include <handler_policy.hpp>
 #include <handlers/insecure/chaotic_handlers_list.hpp>
 #include <handlers/secure/chaotic_handlers_list.hpp>
 #include <hello_handler.hpp>
@@ -57,7 +58,9 @@ int main(int argc, char* argv[]) {
             /// [register-handlers]
             .Append<USERVER_NAMESPACE::components::Container<
                 USERVER_NAMESPACE::chaotic::openapi::server::dependencies::Factories>>()
-            .AppendComponentList(::handlers::insecure::ChaoticHandlersList())
+            // Logging and error rendering of every handler of the list, see src/handler_policy.hpp
+            .AppendComponentList(::handlers::insecure::ChaoticHandlersList<
+                                 samples::chaotic_openapi_service::HandlerPolicy>())
             .AppendComponentList(::handlers::secure::ChaoticHandlersList());
     /// [register-handlers]
 
