@@ -370,6 +370,9 @@ class CppPrimitiveType(CppType):
 class CppAnyValue(CppType):
     KNOWN_X_PROPERTIES = ['x-usrv-cpp-type', 'x-taxi-cpp-type']
 
+    # A free-form object: any JSON object, not any JSON value
+    object_only: bool = False
+
     __hash__ = CppType.__hash__
 
     def __post_init__(self) -> None:
@@ -382,9 +385,15 @@ class CppAnyValue(CppType):
         return ['userver/formats/json/value.hpp']
 
     def definition_includes(self) -> list[str]:
+        if self.object_only:
+            return ['userver/chaotic/primitive.hpp', 'userver/chaotic/validators.hpp']
         return []
 
     def parser_type(self, ns: str, name: str) -> str:
+        if self.object_only:
+            return (
+                f'USERVER_NAMESPACE::chaotic::Primitive<{self.cpp_global_name()}, USERVER_NAMESPACE::chaotic::IsObject>'
+            )
         return self.cpp_global_name()
 
     def need_using_type(self) -> bool:

@@ -4,6 +4,7 @@ from typing import Literal
 
 from chaotic import cpp_names
 from chaotic import error
+from chaotic import layout
 from chaotic.back.cpp import types as cpp_types
 from chaotic_openapi.back.cpp.client import middleware
 
@@ -41,11 +42,29 @@ class ApiKeySecurity(Security):
 class SpecBase:
     schemas: dict[str, cpp_types.CppType]
     internal_schemas: dict[str, cpp_types.CppType]
+    # Directory of the spec's own files, relative to the include root
+    include_dir: str
+    # Documents with x-usrv-cpp-namespace, None for untagged ones
+    closure: layout.Closure | None
+
+    def tagged_schema_includes(self) -> list[str]:
+        assert self.closure
+        return sorted(document_layout.path + '.hpp' for document_layout in self.closure.layouts.values())
 
     def extract_cpp_types(self) -> dict[str, cpp_types.CppType]:
         types = self.schemas.copy()
         types.update(self.internal_schemas)
         return types
+
+
+@dataclasses.dataclass
+class TypesSpec(SpecBase):
+    """The types of documents with x-usrv-cpp-namespace, without the client or handlers code."""
+
+    closure: layout.Closure
+    operations: list['Operation'] = dataclasses.field(default_factory=list)
+    internal_schemas: dict[str, cpp_types.CppType] = dataclasses.field(default_factory=dict)
+    schemas: dict[str, cpp_types.CppType] = dataclasses.field(default_factory=dict)
 
 
 @dataclasses.dataclass

@@ -60,6 +60,28 @@ def test_additional_properties_true(simple_gen):
         'properties': {},
         'additionalProperties': True,
     })
+    # A free-form object is any JSON object
+    assert schemas == {
+        '::type': cpp_types.CppAnyValue(
+            raw_cpp_type=type_name.TypeName('USERVER_NAMESPACE::formats::json::Value'),
+            json_schema=front_types.Schema(),
+            nullable=False,
+            user_cpp_type=None,
+            object_only=True,
+        ),
+    }, f'Generated schema is: {schemas}'
+    assert schemas['::type'].parser_type('', '') == (
+        'USERVER_NAMESPACE::chaotic::Primitive<USERVER_NAMESPACE::formats::json::Value, USERVER_NAMESPACE::chaotic::IsObject>'
+    )
+
+
+def test_additional_properties_true_with_extra_member(simple_gen):
+    schemas = simple_gen({
+        'type': 'object',
+        'properties': {},
+        'additionalProperties': True,
+        'x-usrv-extra-member': True,
+    })
     assert schemas == {
         '::type': cpp_types.CppStruct(
             raw_cpp_type=type_name.TypeName('::type'),

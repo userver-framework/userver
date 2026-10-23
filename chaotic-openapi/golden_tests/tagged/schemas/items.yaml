@@ -1,0 +1,15 @@
+x-usrv-cpp-namespace: golden::dto
+x-usrv-cpp-path: golden/dto/shop/items
+components:
+    schemas:
+        Item:
+            type: object
+            additionalProperties: false
+            required: [id]
+            properties:
+                id:
+                    type: integer
+                title:
+                    type: string
+                last_error:
+                    $ref: '../common/errors.yaml#/components/schemas/Error'

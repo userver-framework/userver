@@ -1,4 +1,5 @@
 import enum
+from typing import Annotated
 from typing import Any
 
 import pydantic
@@ -55,7 +56,8 @@ class Header(base_model.BaseModel):
 
 # https://spec.openapis.org/oas/v3.0.0.html#media-type-object
 class MediaType(base_model.BaseModel):
-    schema_: Schema = pydantic.Field(alias='schema', default=None)
+    # A media type without a schema carries any value
+    schema_: Schema = pydantic.Field(alias='schema', default_factory=dict)
     example: Any = None
     examples: dict[str, Any] = pydantic.Field(default_factory=dict)
     # encoding: dict[str, Encoding] = {}
@@ -77,11 +79,6 @@ class Response(base_model.BaseModel):
     headers: dict[str, Header | Ref] = pydantic.Field(default_factory=dict)
     content: dict[str, MediaType] = pydantic.Field(default_factory=dict)
     # TODO: links
-
-    def model_post_init(self, context: Any, /) -> None:
-        if 'application/json' in self.content and not self.content['application/json'].schema_:
-            # empty application/json means the same "no body"
-            del self.content['application/json']
 
 
 class In(str, enum.Enum):
@@ -241,7 +238,10 @@ Security = list[SecurityRequirement]
 class Components(base_model.BaseModel):
     schemas: dict[str, Schema] = pydantic.Field(default_factory=dict)
     requests: dict[str, Any] = pydantic.Field(default_factory=dict)  # TODO
-    responses: dict[str, Response] = pydantic.Field(default_factory=dict)
+    # An entry may alias a response of another document
+    responses: dict[str, Annotated[Ref | Response, pydantic.Field(union_mode='left_to_right')]] = pydantic.Field(
+        default_factory=dict
+    )
     parameters: dict[str, Parameter] = pydantic.Field(default_factory=dict)
     headers: dict[str, Header] = pydantic.Field(default_factory=dict)
     requestBodies: dict[str, RequestBody] = pydantic.Field(default_factory=dict)
@@ -258,7 +258,8 @@ class Operation(base_model.BaseModel):
     operationId: str | None = None
     parameters: list[Parameter | Ref] = pydantic.Field(default_factory=list)
     requestBody: RequestBody | Ref | None = None
-    responses: dict[str | int, Response | Ref]
+    # A Response validates any object with a description, a $ref must be tried first
+    responses: dict[str | int, Annotated[Ref | Response, pydantic.Field(union_mode='left_to_right')]]
     deprecated: bool = False
     security: Security | None = None
     servers: list[Server] = pydantic.Field(default_factory=list)
@@ -333,6 +334,9 @@ class OpenApi(base_model.BaseModel):
         default=None,
         validation_alias=pydantic.AliasChoices('x-taxi-middlewares', 'x-usrv-middlewares'),
     )
+    # Read by chaotic.layout, see there
+    x_usrv_cpp_namespace: str | None = pydantic.Field(default=None, validation_alias='x-usrv-cpp-namespace')
+    x_usrv_cpp_path: str | None = pydantic.Field(default=None, validation_alias='x-usrv-cpp-path')
 
     def validate_security(self, security: Security | None) -> None:
         if not security:

@@ -1,0 +1,45 @@
+# yaml
+components_manager:
+    task_processors:
+        main-task-processor:
+            worker_threads: 4
+        fs-task-processor:
+            worker_threads: 1
+
+    default_task_processor: main-task-processor
+
+    components:
+        server:
+            listener:
+                port: 8080
+                task_processor: main-task-processor
+        logging:
+            fs-task-processor: fs-task-processor
+            loggers:
+                default:
+                    file_path: '@stderr'
+                    level: debug
+                    overflow_behavior: discard
+
+        dns-client:
+            fs-task-processor: fs-task-processor
+        http-client-core:
+            fs-task-processor: fs-task-processor
+            user-agent: 'sample'
+
+        # The generated client, its component name comes from NAME
+        upstream-client:
+            base-url: 'http://localhost:8081/'
+        http-client:
+
+        testsuite-support:
+        tests-control:
+            path: /tests/{action}
+            method: POST
+            task_processor: main-task-processor
+            testpoint-timeout: 10s
+            testpoint-url: $mockserver/testpoint
+            throttling_enabled: false
+
+        # Dependencies of the generated handlers
+        chaotic-openapi-factories: {}
