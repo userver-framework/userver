@@ -2,6 +2,7 @@
 from collections.abc import Callable
 import dataclasses
 import itertools
+import json
 from typing import Any
 
 from chaotic.back.cpp import type_name
@@ -685,6 +686,15 @@ class CppStructField:
     def _default(self) -> Any | None:
         return getattr(self.schema, 'default', None)
 
+    def has_array_default(self) -> bool:
+        return isinstance(self.schema, CppArray) and self.schema.default is not None
+
+    def array_default_getter(self) -> str:
+        return f'GetFieldDefault{self.name}'
+
+    def array_default_json(self) -> str:
+        return json.dumps(json.dumps(self._default(), ensure_ascii=True))
+
     def get_default_cpp_type(self) -> str:
         default = self._default()
         assert default is not None
@@ -727,7 +737,10 @@ class CppStructField:
         else:
             return f'{default}'
 
-    def get_default(self) -> str:
+    def get_default(self, object_type: str | None = None) -> str:
+        if self.has_array_default():
+            getter = self.array_default_getter()
+            return f'{object_type}::{getter}()' if object_type else f'{getter}()'
         default = self._get_default()
         if not default:
             return default
@@ -788,7 +801,11 @@ class CppStructField:
             mode = f'{ch}::Optional<{type_}>'
         else:
             default_var = f'{object_type}::kFieldDefault{name}'
-            mode = f'{ch}::Defaulted<{type_}, {self.get_default_cpp_type()}, {default_var}>'
+            if self.has_array_default():
+                getter = f'&{object_type}::{self.array_default_getter()}'
+                mode = f'{ch}::DefaultedBy<{type_}, {getter}>'
+            else:
+                mode = f'{ch}::Defaulted<{type_}, {self.get_default_cpp_type()}, {default_var}>'
 
         name_var = self.property_name_holder_variable(object_type)
         return f'{ch}::Field<{object_type}, {mode}, &{object_type}::{name}, {name_var}>'
@@ -973,6 +990,7 @@ class CppArray(CppType):
     items: CppType
     container: str
     validators: CppArrayValidator
+    default: list[Any] | None = None
 
     KNOWN_X_PROPERTIES = [
         'x-usrv-cpp-type',

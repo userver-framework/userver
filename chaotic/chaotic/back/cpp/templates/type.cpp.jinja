@@ -117,6 +117,23 @@
     {% endif %}
 {% endmacro %}
 
+{% macro _generate_array_default_definitions(type) %}
+    {% for schema in type.subtypes() %}
+        {{- _generate_array_default_definitions(schema) -}}
+    {% endfor %}
+
+    {% if type.get_py_type() == 'CppStruct' %}
+        {% for field in type.fields.values() if field.has_array_default() %}
+            const {{ field.schema.cpp_user_name() }}& {{ type.cpp_global_name() }}::{{ field.array_default_getter() }}() {
+                static const auto value = {{ userver }}::formats::json::FromString({{ field.array_default_json() }}).As<
+                    {{ field.schema.parser_type('', '') }}
+                >();
+                return value;
+            }
+        {% endfor %}
+    {% endif %}
+{% endmacro %}
+
 
 {% macro _generate_cpp_struct_properties_serializer_definition(type) %}
     {% for fname, field in type.fields.items() %}
@@ -338,6 +355,8 @@
     {% endfor %}
 
     {{- _generate_string_parser_definition(type) -}}
+
+    {{- _generate_array_default_definitions(type) -}}
 
     {% if generate_serializer %}
         {{- _generate_serializer_definition(type) -}}

@@ -29,6 +29,16 @@ struct Defaulted {
     using Descriptor = DescriptorType;
 
     static constexpr const T& DefaultValue = Default;
+
+    static constexpr const T& GetDefaultValue() { return Default; }
+};
+
+template <typename DescriptorType, auto DefaultGetter>
+struct DefaultedBy {
+    using Value = TypeOfDescriptor<DescriptorType>;
+    using Descriptor = DescriptorType;
+
+    static const Value& GetDefaultValue() { return DefaultGetter(); }
 };
 
 template <typename T>
@@ -36,6 +46,9 @@ struct IsDefaulted : std::false_type {};
 
 template <typename DescriptorType, typename T, const T& Default>
 struct IsDefaulted<Defaulted<DescriptorType, T, Default>> : std::true_type {};
+
+template <typename DescriptorType, auto DefaultGetter>
+struct IsDefaulted<DefaultedBy<DescriptorType, DefaultGetter>> : std::true_type {};
 
 template <
     typename StructType,

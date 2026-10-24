@@ -107,6 +107,52 @@ definitions:
                 items:
                     type: integer
 
+    ObjectWithDefaultArrays:
+        type: object
+        additionalProperties: false
+        properties:
+            # /// [chaotic docs - array default]
+            # yaml
+            numbers:
+                type: array
+                items:
+                    type: integer
+                default: [1, 2]
+            # /// [chaotic docs - array default]
+            empty:
+                type: array
+                items:
+                    type: string
+                default: []
+            text:
+                type: array
+                items:
+                    type: string
+                default: ['a"b', 'c\d']
+            nested:
+                type: array
+                items:
+                    type: array
+                    items:
+                        type: integer
+                default: [[3, 4], [5]]
+            records:
+                type: array
+                items:
+                    type: object
+                    additionalProperties: false
+                    required: [name]
+                    properties:
+                        name:
+                            type: string
+                        enabled:
+                            type: boolean
+                            default: true
+                default:
+                  - name: first
+                  - name: second
+                    enabled: false
+
     ObjectWithAdditionalPropertiesInt:
         type: object
         additionalProperties:
