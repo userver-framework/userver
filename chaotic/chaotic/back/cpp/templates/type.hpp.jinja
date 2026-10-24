@@ -30,7 +30,7 @@
         {% endfilter %}
 
         {%- set ns = namespace(requires_newlines=false) %}
-        {% for field in type.fields.values() if field.get_default() != '' %}
+        {% for field in type.fields.values() if field.has_default_constant() %}
             {% set ns.requires_newlines = true %}
             static constexpr auto kFieldDefault{{ field.cpp_field_name() }} = {{ field.get_default_raw() }};
         {% endfor %}
