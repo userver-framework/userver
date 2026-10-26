@@ -38,6 +38,40 @@ TEST(Simple, DefaultFieldValue) {
     EXPECT_EQ(obj.int_, 1);
 }
 
+TEST(Simple, DefaultArrays) {
+    const ns::ObjectWithDefaultArrays defaults;
+    EXPECT_EQ(defaults.numbers, (std::vector{1, 2}));
+    EXPECT_TRUE(defaults.empty.empty());
+    EXPECT_EQ(defaults.text, (std::vector<std::string>{"a\"b", "c\\d"}));
+    EXPECT_EQ(defaults.nested, (std::vector<std::vector<int>>{{3, 4}, {5}}));
+    ASSERT_EQ(defaults.records.size(), 2);
+    EXPECT_EQ(defaults.records[0].name, "first");
+    EXPECT_TRUE(defaults.records[0].enabled);
+    EXPECT_EQ(defaults.records[1].name, "second");
+    EXPECT_FALSE(defaults.records[1].enabled);
+
+    const auto dom = formats::json::MakeObject().As<ns::ObjectWithDefaultArrays>();
+    const auto sax = CallSaxParser<ns::ObjectWithDefaultArrays>("{}");
+    EXPECT_EQ(dom, defaults);
+    EXPECT_EQ(sax, defaults);
+}
+
+TEST(Simple, ExplicitArraysOverrideDefaults) {
+    const auto json = formats::json::MakeObject(
+        "numbers", formats::json::MakeArray(9),
+        "empty", formats::json::MakeArray("present"),
+        "nested", formats::json::MakeArray(formats::json::MakeArray(8)),
+        "records", formats::json::MakeArray(formats::json::MakeObject("name", "override"))
+    );
+    const auto dom = json.As<ns::ObjectWithDefaultArrays>();
+    const auto sax = CallSaxParser<ns::ObjectWithDefaultArrays>(ToString(json));
+    EXPECT_EQ(dom, sax);
+    EXPECT_EQ(dom.numbers, (std::vector{9}));
+    EXPECT_EQ(dom.empty, (std::vector<std::string>{"present"}));
+    ASSERT_EQ(dom.records.size(), 1);
+    EXPECT_EQ(dom.records[0].name, "override");
+}
+
 TEST(Simple, IntegerMinimum) {
     auto json = formats::json::MakeObject("int3", 1, "int", -10);
     UEXPECT_THROW_MSG(
