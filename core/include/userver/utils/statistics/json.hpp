@@ -35,8 +35,17 @@ namespace utils::statistics {
 ///   ]
 /// }
 /// @endcode
+///
+/// @note An integer `GAUGE` and a floating-point `GAUGE` are both written as a JSON number
+/// of the same type. In practice they cannot be told apart.
+/// @note A histogram writes only @ref utils::statistics::HistogramView::GetTotalSum into `sum`.
+/// Sums of individual buckets are not written.
 std::string ToJsonFormat(const Storage& statistics, const Request& statistics_request = {});
 
+/// @note An integer `GAUGE` and a floating-point `GAUGE` are both written as a JSON number
+/// of the same type. In practice they cannot be told apart.
+/// @note A histogram writes only @ref utils::statistics::HistogramView::GetTotalSum into `sum`.
+/// Sums of individual buckets are not written.
 std::string ToJsonFormat(WriterFuncRef writer, const Request& statistics_request = {});
 
 }  // namespace utils::statistics

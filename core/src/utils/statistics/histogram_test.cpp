@@ -1,6 +1,7 @@
 #include <userver/utils/statistics/histogram.hpp>
 
 #include <limits>
+#include <memory>
 #include <ranges>
 
 #include <userver/formats/json/serialize.hpp>
@@ -126,6 +127,85 @@ UTEST(StatisticsHistogram, Add) {
     /// [HistogramAggregator]
 }
 
+UTEST(StatisticsHistogram, AddPreservesFractionalSums) {
+    utils::statistics::Histogram histogram{Bounds()};
+    histogram.Account(1.2);
+    histogram.Account(100.5);
+
+    utils::statistics::HistogramAggregator aggregator{Bounds()};
+    aggregator.Add(histogram.GetView());
+
+    EXPECT_DOUBLE_EQ(aggregator.GetView().GetSumAt(0), 1.2);
+    EXPECT_DOUBLE_EQ(aggregator.GetView().GetSumAtInf(), 100.5);
+    EXPECT_DOUBLE_EQ(aggregator.GetView().GetTotalSum(), histogram.GetView().GetTotalSum());
+}
+
+UTEST(StatisticsHistogram, AggregatorCopyBounds) {
+    utils::statistics::Histogram histogram{Bounds()};
+    AccountSome(histogram);
+
+    utils::statistics::HistogramAggregator
+        aggregator{utils::statistics::HistogramAggregator::CopyBounds{}, histogram.GetView()};
+    EXPECT_EQ(aggregator.GetView().GetTotalCount(), 0);
+
+    aggregator.Add(histogram.GetView());
+    EXPECT_EQ(aggregator.GetView(), histogram.GetView());
+}
+
+UTEST(StatisticsHistogram, ViewSurvivesMove) {
+    auto histogram = std::make_unique<utils::statistics::Histogram>(Bounds());
+    histogram->Account(1.2);
+    const auto view = histogram->GetView();
+
+    auto moved = std::move(*histogram);
+    histogram.reset();
+    moved.Account(1.2);
+
+    EXPECT_EQ(view.GetValueAt(0), 2);
+    EXPECT_EQ(view, moved.GetView());
+}
+
+UTEST(StatisticsHistogram, AggregatorViewSurvivesMove) {
+    auto aggregator = std::make_unique<utils::statistics::HistogramAggregator>(Bounds());
+    aggregator->AccountAt(0, 1);
+    const auto view = aggregator->GetView();
+
+    auto moved = std::move(*aggregator);
+    aggregator.reset();
+    moved.AccountAt(0, 1);
+
+    EXPECT_EQ(view.GetValueAt(0), 2);
+    EXPECT_EQ(view, moved.GetView());
+}
+
+UTEST(StatisticsHistogram, ViewSurvivesMoveAssign) {
+    utils::statistics::Histogram source{Bounds()};
+    source.Account(1.2);
+    const auto source_view = source.GetView();
+
+    utils::statistics::Histogram target{Bounds()};
+    target.Account(10);
+    target = std::move(source);
+    target.Account(1.2);
+
+    EXPECT_EQ(source_view.GetValueAt(0), 2);
+    EXPECT_EQ(source_view, target.GetView());
+}
+
+UTEST(StatisticsHistogram, AggregatorViewSurvivesMoveAssign) {
+    utils::statistics::HistogramAggregator source{Bounds()};
+    source.AccountAt(0, 1);
+    const auto source_view = source.GetView();
+
+    utils::statistics::HistogramAggregator target{Bounds()};
+    target.AccountAt(1, 1);
+    target = std::move(source);
+    target.AccountAt(0, 1);
+
+    EXPECT_EQ(source_view.GetValueAt(0), 2);
+    EXPECT_EQ(source_view, target.GetView());
+}
+
 UTEST(StatisticsHistogram, Reset) {
     utils::statistics::Histogram histogram{Bounds()};
     AccountSome(histogram);
@@ -144,6 +224,20 @@ UTEST(StatisticsHistogram, Sum) {
     EXPECT_EQ(histogram.GetView().GetSumAt(3), 0.0);
     EXPECT_EQ(histogram.GetView().GetSumAtInf(), 100);
     EXPECT_EQ(histogram.GetView().GetTotalSum(), 1.2 + 1.8 + 10 + 30 * 4 + 100);
+}
+
+UTEST(StatisticsHistogram, AccountInfSum) {
+    utils::statistics::HistogramAggregator histogram{Bounds()};
+    histogram.AccountInf(2);
+    histogram.AccountAt(0, 1);
+    histogram.AccountInfSum(utils::impl::InternalTag{}, 1.25);
+    histogram.AccountInfSum(utils::impl::InternalTag{}, 2.5);
+
+    EXPECT_EQ(histogram.GetView().GetValueAtInf(), 2);
+    EXPECT_EQ(histogram.GetView().GetValueAt(0), 1);
+    EXPECT_EQ(histogram.GetView().GetSumAt(0), 0);
+    EXPECT_EQ(histogram.GetView().GetSumAtInf(), 3.75);
+    EXPECT_EQ(histogram.GetView().GetTotalSum(), 3.75);
 }
 
 UTEST(StatisticsHistogram, ZeroBuckets) {

@@ -352,7 +352,7 @@ UTEST_F(GrpcCancelError, CancelByError) {
 
     const auto get_metric = [this](std::string_view name, std::vector<utils::statistics::Label> labels = {}) {
         const auto stats = GetStatistics("grpc.client.total", labels);
-        return stats.SingleMetric(std::string{name}, labels).AsRate();
+        return stats.SingleMetric(std::string{name}).AsRate();
     };
 
     {

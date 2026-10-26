@@ -5,6 +5,7 @@
 
 #include <memory>
 
+#include <userver/utils/impl/internal_tag.hpp>
 #include <userver/utils/span.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 #include <userver/utils/statistics/histogram_view.hpp>
@@ -13,7 +14,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
-/// @brief Used to aggregate multiple utils::statistics::Histogram metrics.
+/// @brief Used to aggregate multiple @ref utils::statistics::Histogram metrics.
 ///
 /// Usage example:
 /// @snippet core/src/utils/statistics/histogram_test.cpp  HistogramAggregator
@@ -25,7 +26,23 @@ public:
     /// @param upper_bounds is copied inside and is not required to be kept alive after the constructor completes.
     explicit HistogramAggregator(utils::span<const double> upper_bounds);
 
+    /// @brief Empty tag. Selects the constructor that copies bucket borders from a @ref
+    /// utils::statistics::HistogramView.
+    struct CopyBounds {};
+
+    /// @brief Copies bucket borders from @a view. Bucket counts stay zero.
+    ///
+    /// Use @ref utils::statistics::HistogramAggregator::Add to copy or merge values afterwards.
+    HistogramAggregator(CopyBounds, HistogramView view);
+
+    /// @brief Transfers ownership of the bucket buffer.
+    ///
+    /// @ref utils::statistics::HistogramView instances already taken from @a other remain valid and refer to that
+    /// buffer, now owned by this object.
     HistogramAggregator(HistogramAggregator&&) noexcept;
+
+    /// Views already taken from the left-hand side become invalid: its previous buffer is destroyed.
+    /// @see utils::statistics::HistogramAggregator::HistogramAggregator(HistogramAggregator&&)
     HistogramAggregator& operator=(HistogramAggregator&&) noexcept;
     ~HistogramAggregator();
 
@@ -43,6 +60,11 @@ public:
     /// Non-atomically increment the "infinity" bucket.
     void AccountInf(std::uint64_t count = 1) noexcept;
 
+    /// @cond
+    /// Add @a sum to the "infinity" bucket sum. The "infinity" count stays unchanged.
+    void AccountInfSum(utils::impl::InternalTag, double sum) noexcept;
+    /// @endcond
+
     /// Reset all buckets to zero.
     void Reset() noexcept;
 
@@ -50,7 +72,7 @@ public:
     HistogramView GetView() const& noexcept;
 
     /// @cond
-    // Store Histogram in a variable before taking a view on it.
+    // Store HistogramAggregator in a variable before taking a view on it.
     HistogramView GetView() && noexcept = delete;
     /// @endcond
 
@@ -58,7 +80,7 @@ private:
     std::unique_ptr<impl::histogram::Bucket[]> buckets_;
 };
 
-/// Metric serialization support for HistogramAggregator.
+/// Metric serialization support for @ref utils::statistics::HistogramAggregator.
 void DumpMetric(Writer& writer, const HistogramAggregator& histogram);
 
 }  // namespace utils::statistics

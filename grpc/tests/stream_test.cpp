@@ -144,7 +144,7 @@ UTEST_F(GrpcBidirectionalStream, BidirectionalStreamDestroy) {
     constexpr std::string_view kStatus = "status";
     const auto get_metric = [this](std::string_view name, std::vector<utils::statistics::Label> labels = {}) {
         const auto stats = GetStatistics("grpc.client.total", labels);
-        return stats.SingleMetric(std::string{name}, labels).AsRate();
+        return stats.SingleMetric(std::string{name}).AsRate();
     };
 
     EXPECT_EQ(get_metric(kStatus, {{"grpc_code", "OK"}}), 0);

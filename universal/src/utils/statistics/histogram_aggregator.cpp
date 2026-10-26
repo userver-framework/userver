@@ -15,6 +15,12 @@ HistogramAggregator::HistogramAggregator(utils::span<const double> upper_bounds)
     impl::histogram::CopyBounds(buckets_.get(), upper_bounds);
 }
 
+HistogramAggregator::HistogramAggregator(CopyBounds, HistogramView view)
+    : buckets_(std::make_unique<impl::histogram::Bucket[]>(view.GetBucketCount() + 1))
+{
+    impl::histogram::MutableView{buckets_.get()}.SetBounds(impl::histogram::Access::Bounds(view));
+}
+
 HistogramAggregator::HistogramAggregator(HistogramAggregator&&) noexcept = default;
 
 HistogramAggregator& HistogramAggregator::operator=(HistogramAggregator&&) noexcept = default;
@@ -36,6 +42,11 @@ void HistogramAggregator::AccountAt(std::size_t bucket_index, std::uint64_t coun
 void HistogramAggregator::AccountInf(std::uint64_t count) noexcept {
     UASSERT(buckets_);
     impl::histogram::AddNonAtomic(buckets_[0].counter, count);
+}
+
+void HistogramAggregator::AccountInfSum(utils::impl::InternalTag, double sum) noexcept {
+    UASSERT(buckets_);
+    impl::histogram::AddNonAtomic(buckets_[0].sum, sum);
 }
 
 void HistogramAggregator::Reset() noexcept {

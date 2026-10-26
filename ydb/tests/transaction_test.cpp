@@ -36,7 +36,8 @@ UTEST_F(YdbTransaction, DestructorRollsBackAfterCancellation) {
     });
     task.Get();
     EXPECT_EQ(GetMetrics().SingleMetric("ydb.by-query.success", {{"ydb_query", "Rollback"}}).AsRate().value, 1);
-    const auto cancelled = GetMetrics().SingleMetric("ydb.by-transaction.cancelled", {{"ydb_transaction", "cancel"}});
+    const auto metrics = GetMetrics();
+    const auto cancelled = metrics.SingleMetric("ydb.by-transaction.cancelled", {{"ydb_transaction", "cancel"}});
     EXPECT_EQ(cancelled.AsRate().value, 1);
 }
 

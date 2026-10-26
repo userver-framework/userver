@@ -42,7 +42,7 @@ inline void AddNonAtomic(std::atomic<std::uint64_t>& to, std::uint64_t x) {
     to.store(to.load(std::memory_order_relaxed) + x, std::memory_order_relaxed);
 }
 
-inline void AddNonAtomic(std::atomic<double>& to, std::uint64_t x) {
+inline void AddNonAtomic(std::atomic<double>& to, double x) {
     to.store(to.load(std::memory_order_relaxed) + x, std::memory_order_relaxed);
 }
 
