@@ -25,6 +25,8 @@ class ParserState:
     full_filepath: str = ''
     # Virtual filepath for .cpp/.hpp file generation (e.g. relative paths)
     full_vfilepath: str = ''
+    # Whether operations of the document are parsed, a document generated elsewhere provides types only
+    with_operations: bool = True
 
 
 class Parser:
@@ -34,9 +36,17 @@ class Parser:
     ) -> None:
         self._state = ParserState(service=model.Service(name=name))
 
-    def parse_schema(self, schema: dict, full_filepath: str, full_vfilepath: str) -> None:
+    def parse_schema(
+        self,
+        schema: dict,
+        full_filepath: str,
+        full_vfilepath: str,
+        *,
+        with_operations: bool = True,
+    ) -> None:
         self._state.full_filepath = full_filepath
         self._state.full_vfilepath = full_vfilepath
+        self._state.with_operations = with_operations
         parser = self._guess_parser(schema)
         try:
             parsed = parser(**schema)
@@ -513,12 +523,12 @@ class Parser:
             # components/responses
             for name, response in parsed.components.responses.items():
                 infile_path = f'/components/responses/{name}'
-                model_resp = self._convert_openapi_response(response, infile_path)
-                assert isinstance(model_resp, model.Response)
-                self._state.service.responses[self._state.full_filepath + '#' + infile_path] = model_resp
+                self._state.service.responses[self._state.full_filepath + '#' + infile_path] = (
+                    self._convert_openapi_response(response, infile_path)
+                )
 
             # paths
-            for path, path_item in parsed.paths.items():
+            for path, path_item in parsed.paths.items() if self._state.with_operations else ():
                 infile_path = f'/paths/[{path}]'
                 path_params: dict[tuple[str, model.In], model.Parameter] = {}
                 for i, path_parameter in enumerate(path_item.parameters):
@@ -592,7 +602,7 @@ class Parser:
                 )
 
             # paths
-            for sw_path, sw_path_item in parsed.paths.items():
+            for sw_path, sw_path_item in parsed.paths.items() if self._state.with_operations else ():
                 infile_path = f'/paths/[{sw_path}]'
                 sw_path_params: dict[tuple[str, model.In], model.Parameter] = {}
                 sw_path_body: list[model.RequestBody] | model.Ref = []

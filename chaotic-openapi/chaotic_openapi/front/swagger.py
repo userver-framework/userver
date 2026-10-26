@@ -219,6 +219,10 @@ class Swagger(base_model.BaseModel):
     securityDefinitions: dict[str, SecurityDef] = pydantic.Field(default_factory=dict)
     security: Security = pydantic.Field(default_factory=list)
 
+    # Read by chaotic.layout, see there
+    x_usrv_cpp_namespace: str | None = pydantic.Field(default=None, validation_alias='x-usrv-cpp-namespace')
+    x_usrv_cpp_path: str | None = pydantic.Field(default=None, validation_alias='x-usrv-cpp-path')
+
     def validate_security(self, security: Security | None) -> None:
         if not security:
             return

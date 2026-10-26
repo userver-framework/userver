@@ -18,7 +18,7 @@ Request r{};
     r.array = openapi::ReadParameter<openapi::ArrayParameter<openapi::In::kQuery, karray, ',', std::string, std::string>>(http_request);
 
                 auto json = USERVER_NAMESPACE::formats::json::FromString(http_request.RequestBody());
-r.body = json.As<int>();
+r.body = json.As<USERVER_NAMESPACE::chaotic::Primitive<int>>();
 
 return r;
 }

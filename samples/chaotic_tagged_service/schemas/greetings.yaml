@@ -1,0 +1,12 @@
+x-usrv-cpp-namespace: samples::tagged::dto
+components:
+    schemas:
+        Greeting:
+            type: object
+            additionalProperties: false
+            required: [name, text]
+            properties:
+                name:
+                    type: string
+                text:
+                    type: string

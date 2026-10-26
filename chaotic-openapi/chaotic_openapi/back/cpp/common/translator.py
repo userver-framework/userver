@@ -1,4 +1,5 @@
 import abc
+import collections
 import re
 import sys
 import traceback
@@ -6,6 +7,7 @@ import typing
 
 from chaotic import cpp_names
 from chaotic import error as chaotic_error
+from chaotic import layout
 from chaotic.back.cpp import translator as chaotic_translator
 from chaotic.back.cpp import types as cpp_types
 from chaotic.front import ref_resolver
@@ -31,6 +33,10 @@ _COMPONENTS_PARAMETER_RE = re.compile(r'/components/parameters/([-a-zA-Z0-9_]*)/
 _COMPONENTS_HEADER_RE = re.compile(r'/components/headers/([-a-zA-Z0-9]*)/schema')
 
 
+def transform_path(path: str) -> str:
+    return re.sub(DASH_IN_PATH_RE, '_', path)
+
+
 class BaseTranslator(abc.ABC):
     def __init__(
         self,
@@ -38,10 +44,14 @@ class BaseTranslator(abc.ABC):
         *,
         spec,
         include_dirs: list[str] | None,
+        closure: layout.Closure | None = None,
         extra_reraise: tuple[type[BaseException], ...] = (),
     ) -> None:
         self._spec = spec
         self._include_dirs = include_dirs
+        self._closure = closure
+        # Types of the documents generated elsewhere, only referred to
+        self._dependency_types: dict[str, cpp_types.CppType] = {}
         try:
             self._translate(service)
         except chaotic_error.BaseError:
@@ -70,21 +80,43 @@ class BaseTranslator(abc.ABC):
         return []
 
     def _transform_path(self, path: str) -> str:
-        return re.sub(DASH_IN_PATH_RE, '_', path)
+        return transform_path(path)
 
-    def _init_schemas(self, service: model.Service) -> None:
-        parsed_schemas = chaotic_types.ParsedSchemas(
-            schemas={str(schema.source_location()): schema for schema in service.schemas.values()},
-        )
-        resolved_schemas = ref_resolver.RefResolver().sort_schemas(parsed_schemas)
-        gen = chaotic_translator.Generator(
+    def _namespaces(self) -> dict[str, str]:
+        if self._closure:
+            return {path: document_layout.namespace for path, document_layout in self._closure.layouts.items()}
+        return collections.defaultdict(str)
+
+    def _make_generator(self, include_dirs: list[str] | None) -> chaotic_translator.Generator:
+        return chaotic_translator.Generator(
             chaotic_translator.GeneratorConfig(
-                namespaces={schema.source_location().filepath: '' for schema in service.schemas.values()},
+                namespaces=self._namespaces(),
                 infile_to_name_func=self.map_infile_path_to_cpp_type,
-                include_dirs=self._include_dirs,
+                include_dirs=include_dirs,
             ),
         )
-        self._spec.schemas = gen.generate_types(resolved_schemas)
+
+    def _init_schemas(self, service: model.Service) -> None:
+        inputs = set(self._closure.inputs) if self._closure else None
+        input_schemas = {}
+        dependency_schemas = {}
+        for schema in service.schemas.values():
+            if inputs is None or schema.source_location().filepath in inputs:
+                input_schemas[str(schema.source_location())] = schema
+            else:
+                dependency_schemas[str(schema.source_location())] = schema
+
+        resolver = ref_resolver.RefResolver()
+        resolved_dependencies = resolver.sort_schemas(chaotic_types.ParsedSchemas(schemas=dependency_schemas))
+        self._dependency_types = self._make_generator(None).generate_types(resolved_dependencies)
+        resolved_schemas = resolver.sort_schemas(
+            chaotic_types.ParsedSchemas(schemas=input_schemas),
+            external_schemas=resolved_dependencies,
+        )
+        self._spec.schemas = self._make_generator(self._include_dirs).generate_types(
+            resolved_schemas,
+            external_schemas=self._dependency_types,
+        )
         self._raw_schemas = {str(schema.source_location()): schema for schema in service.schemas.values()}
         self._raw_responses = {f'{name}': response for name, response in service.responses.items()}
         self._raw_request_bodies = {f'{name}': body for name, body in service.requestBodies.items()}
@@ -190,30 +222,27 @@ class BaseTranslator(abc.ABC):
             self._spec.operations.append(translated_op)
 
     def map_infile_path_to_cpp_type(self, name: str, stem: str) -> str:
-        if name.startswith('/components/schemas/'):
-            return '{}::{}'.format(
-                self._spec.cpp_namespace,
-                cpp_names.cpp_identifier(name.split('/')[-1]),
-            )
+        if self._closure:
+            # The document's namespace comes from its x-usrv-cpp-namespace
+            return self._map_infile_path(name)
+        return '{}::{}'.format(self._spec.cpp_namespace, self._map_infile_path(name))
 
-        if name.startswith('/definitions/'):
-            return '{}::{}'.format(
-                self._spec.cpp_namespace,
-                cpp_names.cpp_identifier(name.split('/')[-1]),
-            )
+    def _map_infile_path(self, name: str) -> str:
+        # Shared with chaotic-gen, so that both name a document's types alike
+        type_name = layout.type_name(name)
+        if type_name:
+            return type_name
 
         match = _REQUEST_BODY_RE.fullmatch(name)
         if match:
-            return '{}::{}::{}::Body'.format(
-                self._spec.cpp_namespace,
+            return '{}::{}::Body'.format(
                 cpp_names.namespace(match.group(1)),
                 common_types.map_method(match.group(2)),
             )
 
         match = _REQUEST_BODY_CONTENT_RE.fullmatch(name)
         if match:
-            return '{}::{}::{}::Body{}'.format(
-                self._spec.cpp_namespace,
+            return '{}::{}::Body{}'.format(
                 cpp_names.namespace(match.group(1)),
                 common_types.map_method(match.group(2)),
                 cpp_names.camel_case(
@@ -223,8 +252,7 @@ class BaseTranslator(abc.ABC):
 
         match = _RESPONSE_HEADER_RE.fullmatch(name)
         if match:
-            return '{}::{}::{}::Response{}Header{}'.format(
-                self._spec.cpp_namespace,
+            return '{}::{}::Response{}Header{}'.format(
                 cpp_names.namespace(match.group(1)),
                 common_types.map_method(match.group(2)),
                 match.group(3),
@@ -235,8 +263,7 @@ class BaseTranslator(abc.ABC):
 
         match = _COMPONENTS_RESPONSE_CONTENT_RE.fullmatch(name)
         if match:
-            return '{}::Response{}Body{}'.format(
-                self._spec.cpp_namespace,
+            return 'Response{}Body{}'.format(
                 match.group(1),
                 cpp_names.camel_case(
                     cpp_names.cpp_identifier(match.group(2)),
@@ -245,8 +272,7 @@ class BaseTranslator(abc.ABC):
 
         match = _COMPONENTS_RESPONSE_HEADER_RE.fullmatch(name)
         if match:
-            return '{}::Response{}Header{}'.format(
-                self._spec.cpp_namespace,
+            return 'Response{}Header{}'.format(
                 match.group(1),
                 cpp_names.camel_case(
                     cpp_names.cpp_identifier(match.group(2)),
@@ -255,8 +281,7 @@ class BaseTranslator(abc.ABC):
 
         match = _PARAMETER_RE.fullmatch(name)
         if match:
-            return '{}::{}::{}::Parameter{}'.format(
-                self._spec.cpp_namespace,
+            return '{}::{}::Parameter{}'.format(
                 cpp_names.namespace(match.group(1)),
                 common_types.map_method(match.group(2)),
                 match.group(3),
@@ -264,8 +289,7 @@ class BaseTranslator(abc.ABC):
 
         match = _RESPONSE_SCHEMA_RE.fullmatch(name)
         if match:
-            return '{}::{}::{}::Response{}Body'.format(
-                self._spec.cpp_namespace,
+            return '{}::{}::Response{}Body'.format(
                 cpp_names.namespace(match.group(1)),
                 common_types.map_method(match.group(2)),
                 match.group(3),
@@ -273,8 +297,7 @@ class BaseTranslator(abc.ABC):
 
         match = _RESPONSE_CONTENT_RE.fullmatch(name)
         if match:
-            return '{}::{}::{}::Response{}Body{}'.format(
-                self._spec.cpp_namespace,
+            return '{}::{}::Response{}Body{}'.format(
                 cpp_names.namespace(match.group(1)),
                 common_types.map_method(match.group(2)),
                 match.group(3),
@@ -285,8 +308,7 @@ class BaseTranslator(abc.ABC):
 
         match = _REQUEST_BODIES_RE.fullmatch(name)
         if match:
-            return '{}::{}{}'.format(
-                self._spec.cpp_namespace,
+            return '{}{}'.format(
                 cpp_names.cpp_identifier(match.group(1)),
                 cpp_names.camel_case(
                     cpp_names.cpp_identifier(match.group(2)),
@@ -295,8 +317,7 @@ class BaseTranslator(abc.ABC):
 
         match = _PARAMETERS_ROOT_RE.fullmatch(name)
         if match:
-            return '{}::Parameter{}'.format(
-                self._spec.cpp_namespace,
+            return 'Parameter{}'.format(
                 cpp_names.camel_case(
                     cpp_names.cpp_identifier(match.group(1)),
                 ),
@@ -304,16 +325,14 @@ class BaseTranslator(abc.ABC):
 
         match = _COMPONENTS_PARAMETER_RE.fullmatch(name)
         if match:
-            return '{}::Parameter{}'.format(
-                self._spec.cpp_namespace,
+            return 'Parameter{}'.format(
                 cpp_names.camel_case(
                     cpp_names.cpp_identifier(match.group(1)),
                 ),
             )
         match = _COMPONENTS_HEADER_RE.fullmatch(name)
         if match:
-            return '{}::Header{}'.format(
-                self._spec.cpp_namespace,
+            return 'Header{}'.format(
                 cpp_names.camel_case(
                     cpp_names.cpp_identifier(match.group(1)),
                 ),
@@ -333,19 +352,13 @@ class BaseTranslator(abc.ABC):
                 self._raw_schemas,
             ),
         )
-        gen = chaotic_translator.Generator(
-            chaotic_translator.GeneratorConfig(
-                namespaces={schema.source_location().filepath: ''},
-                infile_to_name_func=self.map_infile_path_to_cpp_type,
-                include_dirs=self._include_dirs,
-            ),
-        )
-        gen_types = gen.generate_types(
+        gen_types = self._make_generator(self._include_dirs).generate_types(
             resolved_schemas,
-            external_schemas=self._spec.schemas,
+            external_schemas={**self._dependency_types, **self._spec.schemas},
         )
         gen_type = list(gen_types.values())[0]
-        if not isinstance(gen_type, cpp_types.CppPrimitiveType):
+        # formats::json::Value of a schema-less body needs no declaration
+        if not isinstance(gen_type, (cpp_types.CppPrimitiveType, cpp_types.CppAnyValue)):
             assert str(gen_type.raw_cpp_type), gen_type
             self._spec.internal_schemas[str(gen_type.raw_cpp_type)] = gen_type
 
@@ -357,7 +370,16 @@ class BaseTranslator(abc.ABC):
         response: model.Response | model.Ref,
         status: int,
     ) -> common_types.Response:
-        if isinstance(response, model.Ref):
+        seen = set()
+        while isinstance(response, model.Ref):
+            if response.ref in seen:
+                raise chaotic_error.BaseError(
+                    full_filepath=response.ref.split('#', 1)[0],
+                    infile_path=response.ref.split('#', 1)[-1],
+                    schema_type='openapi/swagger',
+                    msg=f'Response aliases refer to each other in a cycle: {", ".join(sorted(seen))}',
+                )
+            seen.add(response.ref)
             response = self._raw_responses[response.ref]
 
         headers = []
@@ -452,3 +474,49 @@ class BaseTranslator(abc.ABC):
             required=parameter.required,
             query_log_mode_hide=parameter.x_query_log_mode_hide,
         )
+
+
+class TypesTranslator(BaseTranslator):
+    """Translates the types of all operations, the client and the handlers share them."""
+
+    def __init__(
+        self,
+        service: model.Service,
+        *,
+        include_dirs: list[str] | None,
+        closure: layout.Closure,
+    ) -> None:
+        super().__init__(
+            service,
+            spec=common_types.TypesSpec(closure=closure),
+            include_dirs=include_dirs,
+            closure=closure,
+        )
+
+    def should_generate_operation(self, op: model.Operation) -> bool:
+        return True
+
+    def validate_operation(self, op: common_types.Operation) -> None:
+        pass
+
+    def _translate(self, service: model.Service) -> None:
+        super()._translate(service)
+
+        # The components of the inputs belong to their types whether an operation uses them or not
+        assert self._closure
+        inputs = set(self._closure.inputs)
+
+        def is_input(ref_: str) -> bool:
+            return ref_.split('#', 1)[0] in inputs
+
+        for name, response in service.responses.items():
+            # An alias generates nothing, the types are its referent's
+            if is_input(name) and isinstance(response, model.Response):
+                self._translate_response(response, 0)
+        for name, bodies in service.requestBodies.items():
+            if is_input(name):
+                for body in bodies:
+                    self._translate_request_body(body)
+        for name, parameter in [*service.parameters.items(), *service.headers.items()]:
+            if is_input(name):
+                self._translate_parameter(parameter)
