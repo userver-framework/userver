@@ -94,4 +94,27 @@ UTEST(LazySharedPtr, AssignmentLazy) {
     ASSERT_EQ(&*cache_move, &*ptr);
 }
 
+UTEST(LazySharedPtr, CopyAssignmentReturnsDestination) {
+    Cache cache({1, 2, 3});
+    const auto source = utils::MakeLazyCachePtr(cache);
+    utils::LazySharedPtr<std::vector<int>> destination;
+
+    auto& result = (destination = source);
+
+    EXPECT_EQ(&result, &destination);
+    EXPECT_EQ(destination.Get(), cache.Get().Get());
+    EXPECT_EQ(source.Get(), cache.Get().Get());
+}
+
+UTEST(LazySharedPtr, MoveAssignmentReturnsDestination) {
+    Cache cache({1, 2, 3});
+    auto source = utils::MakeLazyCachePtr(cache);
+    utils::LazySharedPtr<std::vector<int>> destination;
+
+    auto& result = (destination = std::move(source));
+
+    EXPECT_EQ(&result, &destination);
+    EXPECT_EQ(destination.Get(), cache.Get().Get());
+}
+
 USERVER_NAMESPACE_END
