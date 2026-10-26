@@ -1,5 +1,8 @@
 #include <chrono>
+#include <cstdlib>
+
 #include <thread>
+#include <userver/utils/fast_scope_guard.hpp>
 
 #include <userver/utest/utest.hpp>
 #include <userver/utils/enumerate.hpp>
@@ -92,6 +95,31 @@ UTEST_F(YdbExecute, ExecuteDataQuery) {
     EXPECT_EQ(result_parser.ColumnParser("value_str").GetOptionalString(), "value2");
     EXPECT_EQ(result_parser.ColumnParser("value_int").GetOptionalInt32(), 2);
     ASSERT_FALSE(result_parser.TryNextRow());
+}
+
+UTEST_F(YdbExecute, SnapshotKeepsConnectionAcrossRouting) {
+    auto& client = GetTableClient();
+    CreateTable("snapshot_data", false);
+    client.ExecuteQuery(ydb::Query{"UPSERT INTO snapshot_data (key, value_str) VALUES ('key', 'home');"});
+
+    ydb::impl::DriverSettings driver_settings;
+    driver_settings.endpoint = std::getenv("YDB_ENDPOINT");
+    driver_settings.database = std::string{GetDatabasePath()} + "/missing_snapshot_database";
+    auto driver = std::make_shared<ydb::impl::Driver>("snapshot_target", std::move(driver_settings));
+    ydb::impl::TableSettings table_settings;
+    table_settings.sync_start = false;
+    ydb::TableClient target(table_settings, {}, dynamic_config::GetDefaultSource(), std::move(driver));
+    const auto home = client.GetSnapshot();
+    const utils::FastScopeGuard restore_route([&client]() noexcept { client.SwitchConnectionTo(client); });
+    const ydb::Query select{"SELECT value_str FROM snapshot_data WHERE key = 'key';"};
+
+    client.SwitchConnectionTo(target);
+    const auto routed = client.GetSnapshot();
+    EXPECT_THROW(client.ExecuteQuery(select), ydb::YdbResponseError);
+    EXPECT_EQ(home->ExecuteQuery(select).GetSingleCursor().GetFirstRow().Get<std::string>(0), "home");
+    client.SwitchConnectionTo(client);
+    EXPECT_EQ(client.ExecuteQuery(select).GetSingleCursor().GetFirstRow().Get<std::string>(0), "home");
+    EXPECT_THROW(routed->ExecuteQuery(select), ydb::YdbResponseError);
 }
 
 using MyTypes = testing::Types<ExecuteDataQuery, ExecuteQuery>;

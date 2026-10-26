@@ -84,6 +84,12 @@ public:
     ~TableClient();
     /// @endcond
 
+    /// @brief Capture the current database connection for a sequence of operations.
+    /// The returned client ignores subsequent routing updates and shares query
+    /// settings and statistics with this client. In-flight operations can finish
+    /// on the captured database while new snapshots follow the updated route.
+    std::shared_ptr<TableClient> GetSnapshot() const;
+
     /// Query for creating/deleting tables
     void ExecuteSchemeQuery(const std::string& query);
 
@@ -297,6 +303,8 @@ private:
     template <typename Settings>
     friend class impl::RequestContext;
 
+    TableClient(const TableClient& source, utils::SharedRef<impl::Connection> connection);
+
     // Currently active connection (never null after construction).
     impl::Connection& CurrentConnection() const noexcept;
 
@@ -324,7 +332,7 @@ private:
 
     dynamic_config::Source config_source_;
     const OperationSettings default_settings_;
-    std::unique_ptr<impl::Stats> stats_;
+    std::shared_ptr<impl::Stats> stats_;
 
     // Connections are permanent: none is destroyed while the component lives
     // (each is held by its home `own_connection_`), so the raw selector below is

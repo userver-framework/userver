@@ -68,7 +68,7 @@ TableClient::TableClient(
 )
     : config_source_(config_source),
       default_settings_(std::move(operation_settings)),
-      stats_(std::make_unique<impl::Stats>(
+      stats_(std::make_shared<impl::Stats>(
           settings.by_database_timings_buckets
               ? utils::span{*settings.by_database_timings_buckets}
               : impl::kDefaultPerDatabaseBounds,
@@ -84,6 +84,20 @@ TableClient::TableClient(
         LOG_DEBUG() << "Synchronously starting ydb client with name '" << own_connection_->driver->GetDbName() << "'";
         Select1();
     }
+}
+
+TableClient::TableClient(const TableClient& source, utils::SharedRef<impl::Connection> connection)
+    : config_source_(source.config_source_),
+      default_settings_(source.default_settings_),
+      stats_(source.stats_),
+      own_connection_(std::move(connection)),
+      routed_connection_(own_connection_),
+      current_connection_(utils::NotNull<impl::Connection*>{own_connection_.GetBase().get()})
+{}
+
+std::shared_ptr<TableClient> TableClient::GetSnapshot() const {
+    auto connection = utils::SharedRef<impl::Connection>{CurrentConnection().shared_from_this()};
+    return std::shared_ptr<TableClient>{new TableClient(*this, std::move(connection))};
 }
 
 TableClient::~TableClient() = default;

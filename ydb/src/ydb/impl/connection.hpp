@@ -15,7 +15,7 @@ namespace ydb::impl {
 
 NYdb::NQuery::TClientSettings MakeQuerySettings(const TableSettings& settings);
 
-struct Connection final {
+struct Connection final : public std::enable_shared_from_this<Connection> {
     std::shared_ptr<Driver> driver;
     NYdb::NScheme::TSchemeClient scheme_client;
     NYdb::NTable::TTableClient table_client;
