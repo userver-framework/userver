@@ -221,6 +221,10 @@ public:
                 );
             }
         } else if constexpr (IsDefaulted<ModeDescriptorType>::value) {
+            if (seen_[Idx]) {
+                return;
+            }
+
             using TargetType = std::decay_t<decltype(object_.*FieldType::kField)>;
             using DefaultType = std::decay_t<decltype(ModeDescriptorType::DefaultValue)>;
             if constexpr (std::is_same_v<TargetType, DefaultType>) {
