@@ -125,6 +125,7 @@ public:
     /// Replaces ordinary and external logger policies, resolving each name through
     /// @ref utils::DefaultDict independently. Applies the stricter settings to existing
     /// and subsequently registered loggers. Log levels never fall below their initial values.
+    /// @note For use only by @ref components::LoggingConfigurator.
     /// @throws std::runtime_error for invalid sampling rates, without changing the policies.
     void SetTelemetrySettings(
         utils::DefaultDict<logging::TelemetrySettings> settings,
@@ -132,6 +133,7 @@ public:
     );
 
     /// Restores levels and sampling rates captured at logger registration and clears the policies.
+    /// @note For use only by @ref components::LoggingConfigurator.
     void RestoreTelemetrySettings();
 
     /// @brief Returns a logger by its name
