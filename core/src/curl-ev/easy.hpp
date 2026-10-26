@@ -313,6 +313,9 @@ public:
     /// @note Doesn't perform a move from `url_str`, if error occurs.
     void set_url(std::string&& url_str, std::error_code& ec);
 
+    void SetUrlUserinfoAllowed(bool allowed);
+    bool IsUrlUserinfoAllowed() const noexcept { return url_userinfo_allowed_; }
+
     const std::string& get_original_url() const;
     const url& get_easy_url() const;
 
@@ -736,6 +739,7 @@ private:
     size_t request_counter_{0};
     size_t cancelled_request_max_{0};
     bool multi_registered_{false};
+    bool url_userinfo_allowed_{false};
     std::string orig_url_str_;
     url url_;
     handler_type handler_;

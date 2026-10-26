@@ -1578,6 +1578,7 @@
   "core/src/clients/http/streamed_response.cpp":"taxi/uservices/userver/core/src/clients/http/streamed_response.cpp",
   "core/src/clients/http/testsuite.hpp":"taxi/uservices/userver/core/src/clients/http/testsuite.hpp",
   "core/src/clients/http/tracing_manager_test.cpp":"taxi/uservices/userver/core/src/clients/http/tracing_manager_test.cpp",
+  "core/src/clients/http/url_userinfo_test.cpp":"taxi/uservices/userver/core/src/clients/http/url_userinfo_test.cpp",
   "core/src/clients/http/websocket_client_test.cpp":"taxi/uservices/userver/core/src/clients/http/websocket_client_test.cpp",
   "core/src/clients/http/websocket_response.cpp":"taxi/uservices/userver/core/src/clients/http/websocket_response.cpp",
   "core/src/components/common_component_list.cpp":"taxi/uservices/userver/core/src/components/common_component_list.cpp",

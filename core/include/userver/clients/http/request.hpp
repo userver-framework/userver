@@ -448,6 +448,17 @@ public:
     /// Returns HTTP body of a request, leaving it empty
     std::string ExtractData();
 
+    /// @brief Allow or reject embedded username/password in request and redirect
+    /// URLs, such as `https://user:password@example.com`. Rejected by default.
+    ///
+    /// Explicit HTTP authentication via @ref Request::http_auth_type and
+    /// credentials in proxy URLs are unaffected.
+    /// Disabling userinfo validates the current request URL and throws
+    /// @ref BadArgumentException if it contains userinfo. Setting a rejected
+    /// request URL throws @ref BadArgumentException; following a rejected
+    /// redirect throws @ref AuthFailedException.
+    void SetUrlUserinfoAllowed(bool allowed);
+
 private:
     std::shared_ptr<RequestState> pimpl_;
 };

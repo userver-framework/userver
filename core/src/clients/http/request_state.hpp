@@ -264,6 +264,8 @@ private:
 
     std::optional<std::string> url_template_;
     HttpMethod method_{HttpMethod::kGet};
+    bool follow_redirects_{false};
+    bool redirect_url_userinfo_rejected_{false};
 
     std::atomic<bool> is_cancelled_{false};
     std::atomic<bool> is_incomplete_tls_connection_close_expected_{false};

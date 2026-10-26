@@ -13,6 +13,7 @@
 #include <openssl/x509.h>
 
 #include <curl-ev/error_code.hpp>
+#include <curl-ev/url.hpp>
 #include <userver/baggage/baggage.hpp>
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/clients/http/connect_to.hpp>
@@ -286,6 +287,7 @@ RequestState::~RequestState() {
 
 void RequestState::follow_redirects(bool follow) {
     easy().set_follow_location(follow);
+    follow_redirects_ = follow;
     easy().set_post_redir(static_cast<long>(follow));
     if (follow) {
         easy().set_max_redirs(kMaxRedirectCount);
@@ -440,6 +442,9 @@ size_t RequestState::OnHeader(void* ptr, size_t size, size_t nmemb, void* userda
     const std::string_view header{static_cast<char*>(ptr), size * nmemb};
     if (self) {
         self->ParseHeader(header);
+        if (self->redirect_url_userinfo_rejected_) {
+            return 0;
+        }
     }
     return header.size();
 }
@@ -733,6 +738,15 @@ void RequestState::ParseHeader(std::string_view header) try
     // header-field   = field-name ":" OWS field-value OWS
     // OWS            = *( SP / HTAB )
     value = SkipSpaceTab(value);
+    if (follow_redirects_ && !easy().IsUrlUserinfoAllowed() &&
+        utils::StrIcaseEqual{}(key, USERVER_NAMESPACE::http::headers::kLocation))
+    {
+        const auto status = static_cast<Status>(easy().get_response_code());
+        if (status >= Status::kMultipleChoices && status < Status::kBadRequest && curl::HasUrlUserinfo(value)) {
+            redirect_url_userinfo_rejected_ = true;
+            return;
+        }
+    }
     response_->headers().emplace(key, value);
 } catch (const std::exception& e) {
     LOG_ERROR() << "Failed to parse header: " << e.what();
@@ -882,6 +896,14 @@ void RequestState::PerformRequest(curl::easy::handler_type handler) {
     UASSERT(response_);
     response_->sink_string().clear();
     response_->body().clear();
+    redirect_url_userinfo_rejected_ = false;
+
+    handler = [holder = shared_from_this(), handler = std::move(handler)](std::error_code err) mutable {
+        if (holder->redirect_url_userinfo_rejected_) {
+            err = curl::errc::EasyErrorCode::kLoginDenied;
+        }
+        handler(err);
+    };
 
     UpdateTimeoutHeader();
 

@@ -585,6 +585,13 @@ Request Request::SetTracingManager(const tracing::TracingManagerBase& tracing_ma
 
 const std::string& Request::GetUrl() const& { return pimpl_->easy().get_original_url(); }
 
+void Request::SetUrlUserinfoAllowed(bool allowed) {
+    pimpl_->easy().SetUrlUserinfoAllowed(allowed);
+    if (!allowed && !GetUrl().empty()) {
+        url(GetUrl());
+    }
+}
+
 const std::string& Request::GetData() const& { return pimpl_->easy().get_post_data(); }
 
 std::string Request::ExtractData() { return pimpl_->easy().extract_post_data(); }
