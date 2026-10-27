@@ -112,10 +112,25 @@ public:
 
     virtual void DeleteObject(std::string_view path) const = 0;
 
+    /// @brief Write JSON data without metadata if the object's ETag matches.
+    /// A missing expected_etag creates the object only if it does not exist.
+    /// An empty ETag is invalid. The default implementation throws std::logic_error.
     virtual void PutObjectConditional(
         std::string_view path,
         std::string data,
         const std::optional<std::string>& expected_etag
+    ) const;
+
+    /// @brief Conditional JSON write with the same preconditions as the overload without metadata.
+    /// @param meta User metadata keys without the `x-amz-meta-` prefix, which is added automatically.
+    /// std::nullopt and an empty map send no user metadata headers.
+    /// The default implementation delegates to the overload without metadata for absent or empty metadata,
+    /// and throws std::logic_error for nonempty metadata. Clients supporting metadata override this overload.
+    virtual void PutObjectConditional(
+        std::string_view path,
+        std::string data,
+        const std::optional<std::string>& expected_etag,
+        const std::optional<Meta>& meta
     ) const;
 
     virtual std::optional<std::string> GetObject(

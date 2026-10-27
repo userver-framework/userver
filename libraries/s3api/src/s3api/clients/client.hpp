@@ -61,6 +61,13 @@ public:
     void PutObjectConditional(std::string_view path, std::string data, const std::optional<std::string>& expected_etag)
         const final;
 
+    void PutObjectConditional(
+        std::string_view path,
+        std::string data,
+        const std::optional<std::string>& expected_etag,
+        const std::optional<Meta>& meta
+    ) const final;
+
     std::optional<std::string> GetObject(
         std::string_view path,
         std::optional<std::string> versiong,
