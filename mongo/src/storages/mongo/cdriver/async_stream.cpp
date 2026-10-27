@@ -302,6 +302,16 @@ private:
 
 engine::TaskLocalVariable<PollerDispenser> poller_dispenser;
 
+mongoc_ssl_opt_t MakeSslOpt(const mongoc_uri_t* uri) {
+    mongoc_ssl_opt_t ssl_opt = *mongoc_ssl_opt_get_default();
+    ssl_opt.pem_file = mongoc_uri_get_option_as_utf8(uri, MONGOC_URI_TLSCERTIFICATEKEYFILE, nullptr);
+    ssl_opt.pem_pwd = mongoc_uri_get_option_as_utf8(uri, MONGOC_URI_TLSCERTIFICATEKEYFILEPASSWORD, nullptr);
+    ssl_opt.ca_file = mongoc_uri_get_option_as_utf8(uri, MONGOC_URI_TLSCAFILE, nullptr);
+    ssl_opt.weak_cert_validation = mongoc_uri_get_option_as_bool(uri, MONGOC_URI_TLSALLOWINVALIDCERTIFICATES, false);
+    ssl_opt.allow_invalid_hostname = mongoc_uri_get_option_as_bool(uri, MONGOC_URI_TLSALLOWINVALIDHOSTNAMES, false);
+    return ssl_opt;
+}
+
 }  // namespace
 
 mongoc_stream_t* MakeAsyncStream(
@@ -327,9 +337,9 @@ mongoc_stream_t* MakeAsyncStream(
     const char* mechanism = mongoc_uri_get_auth_mechanism(uri);
     if (mongoc_uri_get_tls(uri) || (mechanism && !std::strcmp(mechanism, "MONGODB-X509"))) {
         {
+            auto ssl_opt = MakeSslOpt(uri);
             cdriver::StreamPtr
-                wrapped_stream(mongoc_stream_tls_new_with_hostname(stream.get(), host->host, &init_data->ssl_opt, true)
-                );
+                wrapped_stream(mongoc_stream_tls_new_with_hostname(stream.get(), host->host, &ssl_opt, true));
             if (!wrapped_stream) {
                 bson_set_error(error, MONGOC_ERROR_STREAM, MONGOC_ERROR_STREAM_SOCKET, "Cannot initialize TLS stream");
                 return nullptr;

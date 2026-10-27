@@ -153,16 +153,6 @@ UriPtr MakeUri(const std::string& pool_id, const std::string& uri_string, const 
     return uri;
 }
 
-mongoc_ssl_opt_t MakeSslOpt(const mongoc_uri_t* uri) {
-    mongoc_ssl_opt_t ssl_opt = *mongoc_ssl_opt_get_default();
-    ssl_opt.pem_file = mongoc_uri_get_option_as_utf8(uri, MONGOC_URI_TLSCERTIFICATEKEYFILE, nullptr);
-    ssl_opt.pem_pwd = mongoc_uri_get_option_as_utf8(uri, MONGOC_URI_TLSCERTIFICATEKEYFILEPASSWORD, nullptr);
-    ssl_opt.ca_file = mongoc_uri_get_option_as_utf8(uri, MONGOC_URI_TLSCAFILE, nullptr);
-    ssl_opt.weak_cert_validation = mongoc_uri_get_option_as_bool(uri, MONGOC_URI_TLSALLOWINVALIDCERTIFICATES, false);
-    ssl_opt.allow_invalid_hostname = mongoc_uri_get_option_as_bool(uri, MONGOC_URI_TLSALLOWINVALIDHOSTNAMES, false);
-    return ssl_opt;
-}
-
 std::string MakeQueueDeadlineMessage(std::optional<engine::Deadline::Duration> inherited_timeout) {
     if (!inherited_timeout) {
         return {};
@@ -339,7 +329,7 @@ CDriverPoolImpl::CDriverPoolImpl(
 )
     : PoolImpl(scopes, std::move(id), config, config_source),
       app_name_(config.app_name),
-      init_data_{dns_resolver, {}, {}},
+      init_data_{dns_resolver, {}},
       max_size_(config.pool_settings.max_size),
       idle_limit_(config.pool_settings.idle_limit),
       queue_timeout_(config.queue_timeout),
@@ -354,9 +344,6 @@ CDriverPoolImpl::CDriverPoolImpl(
     GlobalInitializer::LogInitWarningsOnce();
 
     SetConnectionString(uri_string);
-    auto uri = uri_.Read();
-
-    init_data_.ssl_opt = MakeSslOpt(&**uri);
 
     std::size_t i = 0;
     try {
