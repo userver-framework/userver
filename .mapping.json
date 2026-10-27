@@ -667,6 +667,7 @@
   "clickhouse/src/storages/tests/native_client_factory_test.cpp":"taxi/uservices/userver/clickhouse/src/storages/tests/native_client_factory_test.cpp",
   "clickhouse/src/storages/tests/nullable_chtest.cpp":"taxi/uservices/userver/clickhouse/src/storages/tests/nullable_chtest.cpp",
   "clickhouse/src/storages/tests/parameter_store_chtest.cpp":"taxi/uservices/userver/clickhouse/src/storages/tests/parameter_store_chtest.cpp",
+  "clickhouse/src/storages/tests/settings_test.cpp":"taxi/uservices/userver/clickhouse/src/storages/tests/settings_test.cpp",
   "clickhouse/src/storages/tests/uint16_chtest.cpp":"taxi/uservices/userver/clickhouse/src/storages/tests/uint16_chtest.cpp",
   "clickhouse/src/storages/tests/uint32_chtest.cpp":"taxi/uservices/userver/clickhouse/src/storages/tests/uint32_chtest.cpp",
   "clickhouse/src/storages/tests/uint64_chtest.cpp":"taxi/uservices/userver/clickhouse/src/storages/tests/uint64_chtest.cpp",

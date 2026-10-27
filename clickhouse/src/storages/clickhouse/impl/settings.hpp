@@ -1,6 +1,7 @@
 #pragma once
 
 #include <chrono>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -62,7 +63,10 @@ class ClickhouseSettingsMulti final {
 public:
     ClickhouseSettingsMulti(const formats::json::Value&);
 
-    const ClickhouseSettings& Get(const std::string& dbname) const;
+    ClickhouseSettings Get(
+        const std::string& secdist_alias,
+        const std::optional<std::string>& dbname_opt = std::nullopt
+    ) const;
 
 private:
     std::unordered_map<std::string, ClickhouseSettings> databases_;

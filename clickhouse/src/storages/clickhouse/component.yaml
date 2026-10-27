@@ -8,6 +8,11 @@ properties:
             Name of the key in secdist config.
 
             Default: '<components name>'
+    dbname:
+        type: string
+        description: |
+            Database name that overrides dbname in the selected secdist entry.
+            If omitted, the secdist dbname is used, or "default" if neither specifies it.
     initial_pool_size:
         type: integer
         description: number of connections created initially

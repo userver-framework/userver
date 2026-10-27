@@ -53,7 +53,7 @@ AuthSettings Parse(const formats::json::Value& doc, formats::parse::To<AuthSetti
     return AuthSettings{
         .user = doc["user"].As<std::string>(),
         .password = doc["password"].As<std::string>(),
-        .database = doc["dbname"].As<std::string>(),
+        .database = doc["dbname"].As<std::string>("default"),
     };
 }
 
@@ -78,7 +78,7 @@ PoolSettings::PoolSettings(
 {}
 
 ClickhouseSettings Parse(const formats::json::Value& doc, formats::parse::To<ClickhouseSettings>) {
-    auto port = doc["port"].As<uint32_t>();
+    const auto port = (doc.HasMember("port") ? doc["port"] : doc["port_client"]).As<uint32_t>();
     auto hosts = ParseHosts(doc);
 
     std::vector<EndpointSettings> endpoints;
@@ -95,22 +95,32 @@ ClickhouseSettings Parse(const formats::json::Value& doc, formats::parse::To<Cli
 
 ClickhouseSettingsMulti::ClickhouseSettingsMulti(const formats::json::Value& doc) {
     const auto clickhouse_settings = doc["clickhouse_settings"];
+    if (clickhouse_settings.IsMissing()) {
+        return;
+    }
     secdist::CheckIsObject(clickhouse_settings, "clickhouse_settings");
 
     databases_ = clickhouse_settings.As<std::unordered_map<std::string, ClickhouseSettings>>();
 }
 
-const ClickhouseSettings& ClickhouseSettingsMulti::Get(const std::string& dbname) const {
-    const auto it = databases_.find(dbname);
+ClickhouseSettings ClickhouseSettingsMulti::Get(
+    const std::string& secdist_alias,
+    const std::optional<std::string>& dbname_opt
+) const {
+    const auto it = databases_.find(secdist_alias);
     if (it == databases_.end()) {
         throw std::runtime_error{fmt::format(
             "database '{}' is not found in secdist. Available databases: [{}]",
-            dbname,
+            secdist_alias,
             fmt::join(databases_ | std::views::keys, ", ")
         )};
     }
 
-    return it->second;
+    auto settings = it->second;
+    if (dbname_opt.has_value()) {
+        settings.auth_settings.database = dbname_opt.value();
+    }
+    return settings;
 }
 
 std::string GetSecdistAlias(const components::ComponentConfig& config) {
