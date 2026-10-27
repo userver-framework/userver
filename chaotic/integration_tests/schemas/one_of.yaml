@@ -50,3 +50,51 @@ definitions:
                 type: string
                 minLength: 3
 
+    ObjectRequired:
+        type: object
+        additionalProperties: false
+        required:
+          - id
+        properties:
+            id:
+                type: integer
+            name:
+                type: string
+
+    StringKind:
+        type: string
+        enum:
+          - first
+          - second
+
+    IntKind:
+        type: integer
+        enum:
+          - 1
+          - 2
+
+    ObjectWithKind:
+        type: object
+        additionalProperties: false
+        required:
+          - kind
+        properties:
+            kind:
+                $ref: '#/definitions/StringKind'
+            optional_kind:
+                $ref: '#/definitions/IntKind'
+
+    OneOfPrechecked:
+        oneOf:
+          - $ref: '#/definitions/ObjectRequired'
+          - $ref: '#/definitions/ObjectFoo'
+          - $ref: '#/definitions/StringKind'
+          - $ref: '#/definitions/IntKind'
+
+    ObjectOneOfPrechecked:
+        type: object
+        additionalProperties: false
+        properties:
+            oneof:
+                $ref: '#/definitions/OneOfPrechecked'
+

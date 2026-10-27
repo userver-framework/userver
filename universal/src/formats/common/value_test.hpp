@@ -21,6 +21,7 @@
 #include <userver/formats/parse/time_of_day.hpp>
 #include <userver/formats/parse/to.hpp>
 #include <userver/formats/parse/variant.hpp>
+#include <userver/utest/assert_macros.hpp>
 #include <userver/utils/meta_light.hpp>
 
 namespace boost {
@@ -314,6 +315,15 @@ TYPED_TEST_P(Parsing, VariantUnambiguous) {
     EXPECT_EQ(1, converted.index());
 }
 
+TYPED_TEST_P(Parsing, VariantErrorListsAllAlternatives) {
+    using Variant = std::variant<int, bool>;
+    using ParseException = typename TestFixture::ParseException;
+
+    auto value = this->kFromString(R"~(["string"])~")[0];
+    UEXPECT_THROW_MSG(value.template As<Variant>(), ParseException, "Failed to parse as int");
+    UEXPECT_THROW_MSG(value.template As<Variant>(), ParseException, "Failed to parse as bool");
+}
+
 TYPED_TEST_P(Parsing, TimeOfDayCorrect) {
     using Minutes = utils::datetime::TimeOfDay<std::chrono::minutes>;
 
@@ -428,6 +438,7 @@ REGISTER_TYPED_TEST_SUITE_P(
     VariantOk2,
     VariantAmbiguous,
     VariantUnambiguous,
+    VariantErrorListsAllAlternatives,
 
     TimeOfDayCorrect,
     TimeOfDayIncorrect,

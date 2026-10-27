@@ -41,6 +41,10 @@ Circle Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<Circle>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<Circle>);
+
 Circle FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<Circle>);
@@ -84,6 +88,10 @@ Object Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<Object>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<Object>);
+
 Object FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<Object>);
@@ -118,6 +126,10 @@ ObjectCpp Parse(
 
 ObjectCpp Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
+    USERVER_NAMESPACE::formats::parse::To<ObjectCpp>);
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
     USERVER_NAMESPACE::formats::parse::To<ObjectCpp>);
 
 ObjectCpp FromJsonString(
@@ -166,6 +178,10 @@ Rectangle Parse(
 
 Rectangle Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
+    USERVER_NAMESPACE::formats::parse::To<Rectangle>);
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
     USERVER_NAMESPACE::formats::parse::To<Rectangle>);
 
 Rectangle FromJsonString(
@@ -233,6 +249,10 @@ Status Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<Status>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<Status>);
+
 Status Convert(
     std::string_view value,
     USERVER_NAMESPACE::chaotic::convert::To<Status>);
@@ -274,6 +294,10 @@ TreeNode Parse(
 
 TreeNode Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
+    USERVER_NAMESPACE::formats::parse::To<TreeNode>);
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
     USERVER_NAMESPACE::formats::parse::To<TreeNode>);
 
 TreeNode FromJsonString(

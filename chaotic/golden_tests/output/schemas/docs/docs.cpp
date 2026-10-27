@@ -8,6 +8,16 @@
 
 namespace ns {
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<Circle>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    return true;
+}
+
 Circle FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<Circle>)
@@ -113,6 +123,24 @@ void WriteToStream(
     }
 }
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<Object>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    if (!value.HasMember("foo")) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__Object_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
+}
+
 Object FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<Object>)
@@ -211,6 +239,21 @@ void WriteToStream(
     }
 }
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<ObjectCpp>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__ObjectCpp_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
+}
+
 ObjectCpp FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<ObjectCpp>)
@@ -296,6 +339,16 @@ void WriteToStream(
             *value.some_hyphenated_key
         }, sw);
     }
+}
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<Rectangle>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    return true;
 }
 
 Rectangle FromJsonString(
@@ -419,6 +472,14 @@ void WriteToStream(
 /* Parse(USERVER_NAMESPACE::formats::yaml::Value, To<Shape>) was not generated: ::ns::Shape has JSON-specific field "extra" */
 /* Parse(USERVER_NAMESPACE::yaml_config::Value, To<Shape>) was not generated: ::ns::Shape has JSON-specific field "extra" */
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<Status>)
+{
+    return value.IsString() &&
+        TryConvert(value.As<std::string>(), USERVER_NAMESPACE::chaotic::convert::To<Status>{}).has_value();
+}
+
 USERVER_NAMESPACE::logging::LogHelper& operator<<(
     USERVER_NAMESPACE::logging::LogHelper& lh,
     const Status& value)
@@ -495,6 +556,22 @@ std::string ToString(Status value) {
     }
     throw std::runtime_error(fmt::format("Invalid enum value: {}", static_cast<int>(value)));
 }
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<TreeNode>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__TreeNode_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
+}
+
 TreeNode FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<TreeNode>)

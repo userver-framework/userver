@@ -57,6 +57,14 @@ Enum Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<Enum>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<Enum::Foo>);
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<Enum>);
+
 Enum FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<Enum>);

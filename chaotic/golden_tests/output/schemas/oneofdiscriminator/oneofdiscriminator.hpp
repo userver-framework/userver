@@ -36,6 +36,10 @@ A Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<A>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<A>);
+
 A FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<A>);
@@ -74,6 +78,10 @@ B Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<B>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<B>);
+
 B FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<B>);
@@ -110,6 +118,10 @@ C Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<C>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<C>);
+
 C FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<C>);
@@ -144,6 +156,10 @@ D Parse(
 
 D Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
+    USERVER_NAMESPACE::formats::parse::To<D>);
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
     USERVER_NAMESPACE::formats::parse::To<D>);
 
 D FromJsonString(
@@ -195,6 +211,10 @@ IntegerOneOfDiscriminator Parse(
 
 /* Parse(USERVER_NAMESPACE::yaml_config::Value, To<IntegerOneOfDiscriminator>) was not generated: ::ns::IntegerOneOfDiscriminator::Foo has JSON-specific field "extra" */
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<IntegerOneOfDiscriminator>);
+
 IntegerOneOfDiscriminator FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<IntegerOneOfDiscriminator>);
@@ -243,6 +263,10 @@ OneOfDiscriminator Parse(
 /* Parse(USERVER_NAMESPACE::formats::yaml::Value, To<OneOfDiscriminator>) was not generated: ::ns::OneOfDiscriminator::Foo has JSON-specific field "extra" */
 
 /* Parse(USERVER_NAMESPACE::yaml_config::Value, To<OneOfDiscriminator>) was not generated: ::ns::OneOfDiscriminator::Foo has JSON-specific field "extra" */
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<OneOfDiscriminator>);
 
 OneOfDiscriminator FromJsonString(
     std::string_view json,

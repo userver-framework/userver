@@ -30,6 +30,10 @@ String Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<String>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<String>);
+
 String FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<String>);

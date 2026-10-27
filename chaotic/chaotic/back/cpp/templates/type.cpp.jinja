@@ -35,6 +35,73 @@
 {% endmacro %}
 
 
+{% macro _generate_may_parse_definition(type) %}
+    {#- handle subtypes -#}
+    {% for schema in type.subtypes() %}
+        {{- _generate_may_parse_definition(schema) -}}
+    {% endfor %}
+
+    {% set local_name = shortest_cpp_name(type) %}
+    {% if type.get_py_type() == 'CppStruct' %}
+        bool MayParseAs(
+            const {{ userver }}::formats::json::Value& value,
+            {{ userver }}::formats::parse::To<{{ local_name }}>)
+        {
+            if (!value.IsObject() && !value.IsNull()) {
+                return false;
+            }
+          {% for fname, field in type.fields.items() %}
+            {% set enum_type = field.enum_type() %}
+            {% if field.is_required_to_parse() %}
+            if (!value.HasMember("{{ fname }}")) {
+                return false;
+            }
+              {% if enum_type %}
+            if (!{{ userver }}::formats::parse::MayParseAs<{{ enum_type.cpp_global_name() }}>(value["{{ fname }}"])) {
+                return false;
+            }
+              {% endif %}
+            {% elif enum_type %}
+            if (const auto field_value = value["{{ fname }}"];
+                !field_value.IsMissing() && !field_value.IsNull() &&
+                !{{ userver }}::formats::parse::MayParseAs<{{ enum_type.cpp_global_name() }}>(field_value)) {
+                return false;
+            }
+            {% endif %}
+          {% endfor %}
+          {% if cpp_struct_is_strict_parsing(type) %}
+            for (auto it = value.begin(); it != value.end(); ++it) {
+                if (!k{{ type.cpp_global_struct_field_name() }}_PropertiesNames.Contains(it.GetName())) {
+                    return false;
+                }
+            }
+          {% endif %}
+            return true;
+        }
+
+    {% elif type.get_py_type() == 'CppStringEnum' %}
+        {# chaotic has no analog of x-taxi-with-fallback yet: when it appears, return true here for such enums #}
+        bool MayParseAs(
+            const {{ userver }}::formats::json::Value& value,
+            {{ userver }}::formats::parse::To<{{ local_name }}>)
+        {
+            return value.IsString() &&
+                TryConvert(value.As<std::string>(), {{ userver }}::chaotic::convert::To<{{ local_name }}>{}).has_value();
+        }
+
+    {% elif type.get_py_type() == 'CppIntEnum' %}
+        bool MayParseAs(
+            const {{ userver }}::formats::json::Value& value,
+            {{ userver }}::formats::parse::To<{{ local_name }}>)
+        {
+            return value.IsInt64() &&
+                TryConvert(value.As<std::int64_t>(), {{ userver }}::chaotic::convert::To<{{ local_name }}>{}).has_value();
+        }
+
+    {% endif %}
+{% endmacro %}
+
+
 {% macro _generate_from_json_string_definition(type) %}
     {% if type.get_py_type() == 'CppStruct' %}
         {{ shortest_cpp_name(type) }} FromJsonString(
@@ -323,6 +390,8 @@
     {{- common.switch_namespace(cpp_namespace(name)) -}}
 
     {% if has_json_parse(parse_formats) %}
+        {{- _generate_may_parse_definition(type) -}}
+
         {{- _generate_from_json_string_definition(type) }}
         {% if generate_serializer %}
             {{- _generate_to_json_string_definition(type) -}}

@@ -38,6 +38,16 @@
 
 namespace dynamic_config {namespace connection_pool_settings {
 
+bool MayParseAs(
+const USERVER_NAMESPACE::formats::json::Value& value,
+USERVER_NAMESPACE::formats::parse::To<PoolSettings>)
+{
+if (!value.IsObject() && !value.IsNull()) {
+return false;
+}
+return true;
+}
+
 PoolSettings FromJsonString(
 std::string_view json,
 USERVER_NAMESPACE::formats::parse::To<PoolSettings>)
@@ -100,6 +110,16 @@ USERVER_NAMESPACE::chaotic::WithType<USERVER_NAMESPACE::chaotic::Primitive<int, 
 };
 
 return vb.ExtractValue();
+}
+
+bool MayParseAs(
+const USERVER_NAMESPACE::formats::json::Value& value,
+USERVER_NAMESPACE::formats::parse::To<VariableTypeRaw>)
+{
+if (!value.IsObject() && !value.IsNull()) {
+return false;
+}
+return true;
 }
 
 VariableTypeRaw FromJsonString(

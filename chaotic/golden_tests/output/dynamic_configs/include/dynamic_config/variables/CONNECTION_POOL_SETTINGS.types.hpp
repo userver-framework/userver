@@ -40,6 +40,10 @@ PoolSettings Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<PoolSettings>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<PoolSettings>);
+
 PoolSettings FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<PoolSettings>);
@@ -69,6 +73,10 @@ VariableTypeRaw Parse(
 
 VariableTypeRaw Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
+    USERVER_NAMESPACE::formats::parse::To<VariableTypeRaw>);
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
     USERVER_NAMESPACE::formats::parse::To<VariableTypeRaw>);
 
 VariableTypeRaw FromJsonString(

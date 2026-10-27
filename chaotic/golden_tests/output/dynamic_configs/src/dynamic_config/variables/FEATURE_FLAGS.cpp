@@ -19,6 +19,19 @@
 
 namespace dynamic_config {namespace feature_flags {
 
+bool MayParseAs(
+const USERVER_NAMESPACE::formats::json::Value& value,
+USERVER_NAMESPACE::formats::parse::To<VariableTypeRaw>)
+{
+if (!value.IsObject() && !value.IsNull()) {
+return false;
+}
+if (!value.HasMember("enable_new_logic")) {
+return false;
+}
+return true;
+}
+
 VariableTypeRaw FromJsonString(
 std::string_view json,
 USERVER_NAMESPACE::formats::parse::To<VariableTypeRaw>)
