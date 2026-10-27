@@ -45,9 +45,7 @@ UTEST_F(YdbTransaction, RollbackAfterInheritedDeadline) {
     utils::impl::UserverExperimentsScope experiments;
     experiments.Set(utils::impl::kYdbDeadlinePropagationExperiment, true);
     auto transaction = GetTableClient().Begin("deadline");
-    server::request::TaskInheritedData inherited_data;
-    inherited_data.deadline = engine::Deadline::Passed();
-    server::request::kTaskInheritedData.Set(std::move(inherited_data));
+    server::request::kTaskInheritedData.Set(server::request::TaskInheritedData{.deadline = engine::Deadline::Passed()});
     EXPECT_THROW(transaction.Execute(ydb::Query{"SELECT 1"}), ydb::DeadlineExceededError);
     EXPECT_NO_THROW(transaction.Rollback());
     EXPECT_TRUE(server::request::GetTaskInheritedDeadline().IsReached());

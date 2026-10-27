@@ -34,16 +34,16 @@ private:
 /// @brief Per-request data that should be available inside handlers
 struct TaskInheritedData final {
     /// The static path of the handler
-    std::string_view path;
+    std::string_view path{};
 
     /// The method of the request
-    std::string_view method;
+    std::string_view method{};
 
     /// The time when the request started being handled
     std::chrono::steady_clock::time_point start_time{};
 
     /// The time when there is no use handling the request anymore
-    engine::Deadline deadline;
+    engine::Deadline deadline{};
 
     /// Signals when an operation has detected deadline expiration
     mutable DeadlineSignal deadline_signal{};
