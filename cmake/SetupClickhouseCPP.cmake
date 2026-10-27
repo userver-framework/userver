@@ -38,11 +38,11 @@ include(SetupAbseil)
 
 cpmaddpackage(
     NAME clickhouse-cpp
-    VERSION 2.5.1
-    URL https://github.com/ClickHouse/clickhouse-cpp/archive/f606f9a3b27d54403ebc6f7b055f4110864fb97c.tar.gz
-    URL_HASH SHA256=a068366cbe5b7ee8167fa92a6de41f61e87bf9a698766dda5a9bd6d2bbc4d3dd
+    VERSION 2.6.2
+    URL https://github.com/ClickHouse/clickhouse-cpp/archive/001025cd72d904104c15657e85e0fb6b0ec58e14.tar.gz
+    URL_HASH SHA256=d198fd39edd8d0e662bd722bdb8bed05c047b5508316b64e8d03b8b92b5f199f
     SYSTEM
-    OPTIONS "WITH_SYSTEM_ABSEIL ON" "WITH_SYSTEM_LZ4 ON" "DEBUG_DEPENDENCIES OFF"
+    OPTIONS "WITH_SYSTEM_ABSEIL ON" "WITH_SYSTEM_LZ4 ON" "WITH_SYSTEM_ZSTD ON" "DEBUG_DEPENDENCIES OFF"
 )
 
 if(NOT TARGET clickhouse-cpp-lib::clickhouse-cpp-lib)
