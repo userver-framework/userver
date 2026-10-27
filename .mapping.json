@@ -1927,6 +1927,7 @@
   "core/src/engine/single_waiting_task_mutex.cpp":"taxi/uservices/userver/core/src/engine/single_waiting_task_mutex.cpp",
   "core/src/engine/sleep.cpp":"taxi/uservices/userver/core/src/engine/sleep.cpp",
   "core/src/engine/sleep_benchmark.cpp":"taxi/uservices/userver/core/src/engine/sleep_benchmark.cpp",
+  "core/src/engine/sleep_test.cpp":"taxi/uservices/userver/core/src/engine/sleep_test.cpp",
   "core/src/engine/subprocess/child_process.cpp":"taxi/uservices/userver/core/src/engine/subprocess/child_process.cpp",
   "core/src/engine/subprocess/child_process_impl.cpp":"taxi/uservices/userver/core/src/engine/subprocess/child_process_impl.cpp",
   "core/src/engine/subprocess/child_process_impl.hpp":"taxi/uservices/userver/core/src/engine/subprocess/child_process_impl.hpp",
