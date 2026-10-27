@@ -116,10 +116,13 @@ std::optional<TskvParser::RecordStatus> TskvParser::ReadKey(std::string& result)
 }
 
 std::optional<TskvParser::RecordStatus> TskvParser::ReadValue(std::string& result) {
+    return ReadValueFrom(result, in_.find_first_of("\\\t\n"));
+}
+
+std::optional<TskvParser::RecordStatus> TskvParser::ReadValueFrom(std::string& result, std::size_t value_end) {
     result.clear();
 
     while (true) {
-        const auto value_end = in_.find_first_of("\\\t\n");
         if (value_end == std::string_view::npos) {
             return RecordStatus::kIncomplete;
         }
@@ -138,6 +141,44 @@ std::optional<TskvParser::RecordStatus> TskvParser::ReadValue(std::string& resul
         }
         result.append(in_.substr(0, value_end));
         in_.remove_prefix(value_end + Unescape(in_[value_end + 1], result));
+        value_end = in_.find_first_of("\\\t\n");
+    }
+}
+
+std::optional<TskvParser::RecordStatus> TskvParser::ReadValueView(std::string_view& result, std::string& storage) {
+    result = {};
+    const auto value_end = in_.find_first_of("\\\t\n");
+    if (value_end == std::string_view::npos) {
+        return RecordStatus::kIncomplete;
+    }
+    const auto separator = in_[value_end];
+    if (separator != '\\') {
+        result = in_.substr(0, value_end);
+        in_.remove_prefix(value_end + 1);
+        return separator == '\n' ? std::make_optional(RecordStatus::kReachedEnd) : std::nullopt;
+    }
+    const auto status = ReadValueFrom(storage, value_end);
+    if (status != RecordStatus::kIncomplete) {
+        result = storage;
+    }
+    return status;
+}
+
+std::optional<TskvParser::RecordStatus> TskvParser::SkipValue() noexcept {
+    while (true) {
+        const auto value_end = in_.find_first_of("\\\t\n");
+        if (value_end == std::string_view::npos) {
+            return RecordStatus::kIncomplete;
+        }
+        const auto separator = in_[value_end];
+        if (separator != '\\') {
+            in_.remove_prefix(value_end + 1);
+            return separator == '\n' ? std::make_optional(RecordStatus::kReachedEnd) : std::nullopt;
+        }
+        if (value_end + 1 == in_.size()) {
+            return RecordStatus::kIncomplete;
+        }
+        in_.remove_prefix(value_end + (GetUnescapedChar(in_[value_end + 1]) ? 2 : 1));
     }
 }
 
