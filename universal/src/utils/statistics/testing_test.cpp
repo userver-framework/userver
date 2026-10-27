@@ -653,13 +653,15 @@ TEST(Snapshot, SlicingRejectsTrailingDotPrefixBeforeDump) {
 TEST(Snapshot, SlicingRejectsAmbiguousEmptyPath) {
     const auto writer = [](utils::statistics::Writer& out) { out["api."] = std::int64_t{2}; };
     try {
-        const utils::statistics::Snapshot snapshot{writer, {.require_prefix = "api"}};
+        const utils::statistics::Snapshot
+            snapshot{writer, utils::statistics::SnapshotBuildOptions{.require_prefix = "api"}};
         FAIL() << "Expected ambiguous empty path to throw";
     } catch (const std::invalid_argument& exception) {
         EXPECT_THAT(exception.what(), testing::HasSubstr("indistinguishable from path 'api'"));
     }
     for (const auto& prefix : {"api", "api."}) {
-        const utils::statistics::Snapshot snapshot{writer, {.require_prefix = prefix, .sliced = false}};
+        const utils::statistics::Snapshot
+            snapshot{writer, utils::statistics::SnapshotBuildOptions{.require_prefix = prefix, .sliced = false}};
         EXPECT_EQ(snapshot.SingleMetric("api."), std::int64_t{2});
     }
     const utils::statistics::Snapshot unfiltered{writer};
@@ -672,7 +674,7 @@ TEST(Snapshot, SlicingPreservesEmptyInnerSegment) {
             out["api"] = std::int64_t{1};
             out["api..requests"] = std::int64_t{2};
         },
-        {.require_prefix = "api"},
+        utils::statistics::SnapshotBuildOptions{.require_prefix = "api"},
     };
     EXPECT_EQ(snapshot.SingleMetric(""), std::int64_t{1});
     EXPECT_EQ(snapshot.SingleMetric(".requests"), std::int64_t{2});
