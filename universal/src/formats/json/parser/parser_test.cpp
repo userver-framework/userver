@@ -1,7 +1,9 @@
 #include <userver/utest/assert_macros.hpp>
 
+#include <initializer_list>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <vector>
 
@@ -422,6 +424,15 @@ TEST(JsonStringParser, JsonValue) {
         auto value_sax = fjp::ParseToType<formats::json::Value, fjp::JsonValueParser>(input);
         EXPECT_EQ(value_str, value_sax)
             << "input: " + input + ", str='" + ToString(value_str) + "', sax='" + ToString(value_sax) + "'";
+    }
+}
+
+TEST(JsonStringParser, JsonValueInvalid) {
+    fjp::JsonValueParser parser;
+
+    for (const std::string_view input : {"{", "[", R"({"key":})", R"({"key":[1,})"}) {
+        EXPECT_THROW((fjp::impl::ParseSingle(parser, input)), fjp::ParseError);
+        EXPECT_EQ(fjp::impl::ParseSingle(parser, R"({"key":1})"), formats::json::FromString(R"({"key":1})"));
     }
 }
 
