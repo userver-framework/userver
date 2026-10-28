@@ -1,6 +1,9 @@
 #include <kafka/impl/error_buffer.hpp>
 
 #include <cstring>
+#include <stdexcept>
+
+#include <fmt/format.h>
 
 #include <userver/logging/log.hpp>
 
