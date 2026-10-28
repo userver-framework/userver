@@ -37,8 +37,12 @@ std::vector<engine::TaskProcessorConfig> ParseTaskProcessors(const yaml_config::
         formats::common::Merge(settings, options.As<formats::yaml::Value>());
         merged[name] = settings.ExtractValue();
     }
-    return yaml_config::ParseMapToArray<engine::TaskProcessorConfig>(yaml_config::YamlConfig{merged.ExtractValue(), {}}
-    );
+
+    const yaml_config::YamlConfig merged_config{
+        merged.ExtractValue().CloneWithReplacedPath(processors.GetPath()),
+        {},
+    };
+    return yaml_config::ParseMapToArray<engine::TaskProcessorConfig>(merged_config);
 }
 
 template <typename T>

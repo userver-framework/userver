@@ -278,4 +278,25 @@ TEST(ManagerConfig, MissingDefaultTaskProcessorSettingsPreserveIndividualOptions
     EXPECT_EQ(main->task_processor_queue, engine::TaskQueueType::kGlobalTaskQueue);
 }
 
+TEST(ManagerConfig, DefaultTaskProcessorSettingsKeepErrorPath) {
+    UEXPECT_THROW_MSG(
+        components::ManagerConfig::FromString(
+            R"(
+components_manager:
+  event_thread_pool: {threads: 1}
+  components: {}
+  default_task_processor_settings:
+    task-processor-queue: pull-pin-task-queue
+  task_processors:
+    main-task-processor:
+      thread_name: main-worker
+)",
+            {},
+            {}
+        ),
+        std::exception,
+        "components_manager.task_processors.main-task-processor.worker_threads"
+    );
+}
+
 USERVER_NAMESPACE_END
