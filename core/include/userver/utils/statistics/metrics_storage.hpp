@@ -3,6 +3,9 @@
 /// @file userver/utils/statistics/metrics_storage.hpp
 /// @brief @copybrief utils::statistics::MetricsStorage
 
+#include <memory>
+#include <optional>
+#include <string>
 #include <vector>
 
 #include <userver/utils/statistics/fwd.hpp>

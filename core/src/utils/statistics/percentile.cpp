@@ -1,4 +1,8 @@
-#include <userver/utils/statistics/percentile_format_json.hpp>
+#include <userver/utils/statistics/percentile.hpp>
+
+#include <string>
+
+#include <userver/utils/assert.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

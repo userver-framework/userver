@@ -6,10 +6,10 @@
 
 USERVER_NAMESPACE_BEGIN
 
-UTEST(StatisticsStorage, RegisterExtender) {
+UTEST(StatisticsStorage, RegisterWriter) {
     utils::statistics::Storage statistics_storage;
-    auto statistics_holder = statistics_storage.RegisterExtender("foo.bar.baz", [](const auto& /*prefix*/) {
-        return formats::json::ValueBuilder{42};
+    auto statistics_holder = statistics_storage.RegisterWriter("foo.bar.baz", [](utils::statistics::Writer& writer) {
+        writer = 42;
     });
 
     const auto json = formats::json::FromString(utils::statistics::ToJsonFormat(statistics_storage));

@@ -447,28 +447,4 @@ UTEST(MetricsWriter, UnsubscribingCheckWriterData) {
     }
 }
 
-UTEST(MetricsWriter, UnsubscribingCheckExtenderData) {
-    Storage storage;
-    int counter = 0;
-    auto extender_func = [&counter](const utils::statistics::StatisticsRequest&) {
-        counter++;
-        return formats::json::ValueBuilder{};
-    };
-
-    auto holder1 = storage.RegisterExtender("prefix1", extender_func);
-    {
-        auto holder2 = storage.RegisterExtender("prefix2", extender_func);
-        holder2.Unregister();
-    }
-    {
-        auto holder3 = storage.RegisterExtender("prefix3", extender_func);
-    }
-
-    if constexpr (utils::statistics::impl::kCheckSubscriptionUB) {
-        EXPECT_EQ(counter, 5);
-    } else {
-        EXPECT_EQ(counter, 0);
-    }
-}
-
 USERVER_NAMESPACE_END

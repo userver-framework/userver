@@ -151,6 +151,8 @@ UTEST_F(RedisClientTest, SampleScan) {
     auto redis_client = GetClient();
 
     /// [Sample Scan usage]
+    storages::redis::CommandControl command_control;
+    command_control.force_request_to_master = true;
     constexpr std::size_t kKeysWithSamePrefix = 100;
     for (std::size_t i = 0; i < kKeysWithSamePrefix; ++i) {
         redis_client->Set("the_key_" + std::to_string(i), "the_value", {}).Get();
@@ -158,7 +160,7 @@ UTEST_F(RedisClientTest, SampleScan) {
     }
 
     std::size_t matches_found = 0;
-    for (const std::string& field : redis_client->Scan(0, storages::redis::Match{"the_key*"}, {})) {
+    for (const std::string& field : redis_client->Scan(0, storages::redis::Match{"the_key*"}, command_control)) {
         EXPECT_EQ(field.find("the_key"), 0) << "Does not start with 'the_key'";
         ++matches_found;
     }
@@ -170,6 +172,8 @@ UTEST_F(RedisClientTest, SampleSscan) {
     auto redis_client = GetClient();
 
     /// [Sample Sadd and Sscan usage]
+    storages::redis::CommandControl command_control;
+    command_control.force_request_to_master = true;
     constexpr std::size_t kKeysWithSamePrefix = 100;
     static const std::string kKey = "key";
     for (std::size_t i = 0; i < kKeysWithSamePrefix; ++i) {
@@ -178,7 +182,7 @@ UTEST_F(RedisClientTest, SampleSscan) {
     }
 
     std::size_t matches_found = 0;
-    for (const std::string& value : redis_client->Sscan(kKey, storages::redis::Match{"the_value*"}, {})) {
+    for (const std::string& value : redis_client->Sscan(kKey, storages::redis::Match{"the_value*"}, command_control)) {
         EXPECT_EQ(value.find("the_value"), 0) << "Does not start with 'the_value'";
         ++matches_found;
     }
@@ -190,6 +194,8 @@ UTEST_F(RedisClientTest, SampleHscan) {
     auto redis_client = GetClient();
 
     /// [Sample Hscan usage]
+    storages::redis::CommandControl command_control;
+    command_control.force_request_to_master = true;
     constexpr std::size_t kKeysWithSamePrefix = 100;
     static const std::string kKey = "key";
     for (std::size_t i = 0; i < kKeysWithSamePrefix; ++i) {
@@ -198,7 +204,8 @@ UTEST_F(RedisClientTest, SampleHscan) {
     }
 
     std::size_t matches_found = 0;
-    for (const auto& [field, value] : redis_client->Hscan(kKey, storages::redis::Match{"the_field*"}, {})) {
+    for (const auto& [field, value] : redis_client->Hscan(kKey, storages::redis::Match{"the_field*"}, command_control))
+    {
         EXPECT_EQ(field.find("the_field"), 0) << "Does not start with 'the_field'";
         EXPECT_EQ(value, "the_value");
         ++matches_found;
@@ -211,6 +218,8 @@ UTEST_F(RedisClientTest, SampleZscan) {
     auto redis_client = GetClient();
 
     /// [Sample Zscan usage]
+    storages::redis::CommandControl command_control;
+    command_control.force_request_to_master = true;
     constexpr std::size_t kKeysWithSamePrefix = 100;
     static const std::string kKey = "key";
     for (std::size_t i = 0; i < kKeysWithSamePrefix; ++i) {
@@ -219,7 +228,9 @@ UTEST_F(RedisClientTest, SampleZscan) {
     }
 
     std::size_t matches_found = 0;
-    for (const storages::redis::MemberScore& ms : redis_client->Zscan(kKey, storages::redis::Match{"the_value*"}, {})) {
+    for (const storages::redis::MemberScore& ms :
+         redis_client->Zscan(kKey, storages::redis::Match{"the_value*"}, command_control))
+    {
         const auto& [member, score] = ms;
         EXPECT_EQ(member.find("the_value"), 0) << "Does not start with 'the_value'";
         ++matches_found;

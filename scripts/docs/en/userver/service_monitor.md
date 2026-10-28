@@ -26,9 +26,8 @@ Note that the @ref server::handlers::ServerMonitor handler lives on the separate
 `listener-monitor` credentials. See @ref scripts/docs/en/userver/tutorial/production_service.md
 for more info on configuration and ideas on how to change the `/service/monitor` handle path.
 
-@note `prefix` and `path` parameters may refuse to work if one of the functions
-  from @ref userver/utils/statistics/metadata.hpp was used on a node that forms the
-  path.
+@note `prefix` and `path` are matched against the metric path written by
+  @ref utils::statistics::Writer.
 
 
 ## Formats

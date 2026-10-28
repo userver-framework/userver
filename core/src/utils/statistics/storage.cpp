@@ -14,8 +14,6 @@
 #include <userver/utils/text_light.hpp>
 
 #include <utils/statistics/entry_impl.hpp>
-#include <utils/statistics/value_builder_helpers.hpp>
-#include <utils/statistics/visitation.hpp>
 #include <utils/statistics/writer_state.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -23,9 +21,6 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::statistics {
 
 namespace {
-
-const std::string kVersionField = "$version";
-constexpr int kVersion = 2;
 
 class FakeFormatBuilder final : public BaseFormatBuilder {
 public:
@@ -41,9 +36,6 @@ void WriteWithFakeFormat(impl::MetricsSource& source)
         impl::WriterState state{builder, request, {}, {}};
         auto writer = Writer{&state}[fake_prefix];
         source.writer(writer);
-    }
-    if (source.extender) {
-        source.extender(StatisticsRequest{});
     }
 }
 
@@ -61,7 +53,7 @@ void WriteWithFakeFormat(impl::MetricsSource& source)
 
 // During `Entry::Unregister` or automatic teardown (Entry destructor /
 // ResourceScopeStorage::BeforeDestruction), all variables used by the writer
-// or extender callback must still be valid. A common cause of crashes here:
+// callback must still be valid. A common cause of crashes here:
 // the holder is removed after the captured data is destroyed.
 [[maybe_unused]] void CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnregistering(impl::MetricsSource& source
 ) noexcept {
@@ -118,21 +110,6 @@ void DumpMetric(Writer& writer, const Storage& storage) {
 
 void Storage::VisitMetrics(BaseFormatBuilder& out, const Request& request) const {
     statistics::VisitMetrics(*this, out, request);
-
-    formats::json::ValueBuilder legacy_metrics;
-    legacy_metrics[kVersionField] = kVersion;
-    {
-        const std::shared_lock lock(mutex_);
-        for (const auto& entry : metrics_sources_) {
-            if (entry.writer) {
-                continue;
-            }
-
-            LOG_DEBUG() << "Getting statistics for prefix=" << entry.prefix_path;
-            SetSubField(legacy_metrics, std::vector(entry.path_segments), entry.extender(StatisticsRequest{}));
-        }
-    }
-    statistics::VisitMetrics(out, legacy_metrics.ExtractValue(), request);
 }
 
 void Storage::StopRegisteringExtenders() { may_register_extenders_ = false; }
@@ -152,12 +129,11 @@ void Storage::RegisterWriter(
 }
 
 Entry Storage::RegisterWriter(std::string prefix, WriterFunc func, std::vector<Label> add_labels) {
-    return DoRegisterExtender(impl::MetricsSource{std::move(prefix), {}, {}, std::move(func), std::move(add_labels)});
-}
-
-Entry Storage::RegisterExtender(std::string prefix, ExtenderFunc func) {
-    auto prefix_split = formats::common::SplitPathString(prefix);
-    return DoRegisterExtender(impl::MetricsSource{std::move(prefix), std::move(prefix_split), std::move(func), {}, {}});
+    return DoRegisterExtender(impl::MetricsSource{
+        .prefix_path = std::move(prefix),
+        .writer = std::move(func),
+        .writer_labels = std::move(add_labels),
+    });
 }
 
 Entry Storage::DoRegisterExtender(impl::MetricsSource&& source) {
@@ -179,7 +155,7 @@ void Storage::UnregisterExtender(impl::StorageIterator iterator, [[maybe_unused]
     noexcept {
     const std::lock_guard lock(mutex_);
     if constexpr (impl::kCheckSubscriptionUB) {
-        // fake writer and extender call to check
+        // fake writer call to check
         CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnregistering(*iterator);
     }
     metrics_sources_.erase(iterator);

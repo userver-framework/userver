@@ -2,8 +2,6 @@
 
 #include <string_view>
 
-#include <userver/utils/statistics/metadata.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace kafka::impl {

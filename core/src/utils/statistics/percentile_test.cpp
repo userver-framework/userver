@@ -89,4 +89,23 @@ TEST(Percentile, Extra100perc) {
     EXPECT_EQ(100U, p.GetPercentile(100));
 }
 
+TEST(Percentile, FieldName) {
+    EXPECT_EQ("p0", utils::statistics::GetPercentileFieldName(0));
+    EXPECT_EQ("p11_1", utils::statistics::GetPercentileFieldName(11.1));
+    EXPECT_EQ("p25", utils::statistics::GetPercentileFieldName(25));
+    EXPECT_EQ("p33_3", utils::statistics::GetPercentileFieldName(33.3));
+    EXPECT_EQ("p50", utils::statistics::GetPercentileFieldName(50.0));
+    EXPECT_EQ("p75", utils::statistics::GetPercentileFieldName(75));
+    EXPECT_EQ("p77_7", utils::statistics::GetPercentileFieldName(77.7));
+    EXPECT_EQ("p90", utils::statistics::GetPercentileFieldName(90));
+    EXPECT_EQ("p95", utils::statistics::GetPercentileFieldName(95));
+    EXPECT_EQ("p97_3", utils::statistics::GetPercentileFieldName(97.3));
+    EXPECT_EQ("p98", utils::statistics::GetPercentileFieldName(98));
+    EXPECT_EQ("p99", utils::statistics::GetPercentileFieldName(99));
+    EXPECT_EQ("p99_4", utils::statistics::GetPercentileFieldName(99.4));
+    EXPECT_EQ("p99_6", utils::statistics::GetPercentileFieldName(99.6));
+    EXPECT_EQ("p99_9", utils::statistics::GetPercentileFieldName(99.9));
+    EXPECT_EQ("p100", utils::statistics::GetPercentileFieldName(100));
+}
+
 USERVER_NAMESPACE_END

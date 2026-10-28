@@ -22,19 +22,10 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::statistics::impl {
 
 template <typename Metric>
-formats::json::ValueBuilder DumpMetric(const std::atomic<Metric>& m) {
-    static_assert(std::atomic<Metric>::is_always_lock_free, "std::atomic misuse");
-    return m.load();
-}
-
-template <typename Metric>
 void ResetMetric(std::atomic<Metric>& m) {
     static_assert(std::atomic<Metric>::is_always_lock_free, "std::atomic misuse");
     m = Metric();
 }
-
-template <typename Metric>
-concept HasDumpMetric = requires(Metric& m) { DumpMetric(m); };
 
 template <typename Metric>
 concept HasResetMetric = requires(Metric& m) { ResetMetric(m); };
@@ -53,11 +44,7 @@ public:
     MetricWrapperBase& operator=(MetricWrapperBase&&) = delete;
     virtual ~MetricWrapperBase();
 
-    virtual formats::json::ValueBuilder DeprecatedJsonDump() = 0;
-
     virtual void DumpToWriter(utils::statistics::Writer& writer) = 0;
-
-    virtual bool HasWriterSupport() const noexcept = 0;
 
     virtual void Reset() = 0;
 };
@@ -65,7 +52,7 @@ public:
 template <typename Metric>
 class MetricWrapper final : public MetricWrapperBase {
     static_assert(
-        HasDumpMetric<Metric> || utils::statistics::HasWriterSupport<Metric>,
+        utils::statistics::HasWriterSupport<Metric>,
         "Provide a `void DumpMetric(utils::statistics::Writer&, const Metric&)`"
         "function in the namespace of `Metric`."
     );
@@ -82,20 +69,7 @@ public:
         }
     }
 
-    formats::json::ValueBuilder DeprecatedJsonDump() override {
-        if constexpr (!utils::statistics::HasWriterSupport<Metric>) {
-            return DumpMetric(data_);
-        }
-        return {};
-    }
-
-    void DumpToWriter(Writer& writer) override {
-        if constexpr (utils::statistics::HasWriterSupport<Metric>) {
-            writer = data_;
-        }
-    }
-
-    bool HasWriterSupport() const noexcept override { return utils::statistics::HasWriterSupport<Metric>; }
+    void DumpToWriter(Writer& writer) override { writer = data_; }
 
     void Reset() override {
         if constexpr (HasResetMetric<Metric>) {
