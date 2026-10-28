@@ -4,6 +4,7 @@
 #include <ranges>
 
 #include <userver/components/static_config_validator.hpp>
+#include <userver/formats/common/merge.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/formats/yaml/value_builder.hpp>
@@ -22,6 +23,23 @@ namespace {
 formats::yaml::Value ParseYaml(const std::string& doc) { return formats::yaml::FromString(doc); }
 
 formats::yaml::Value ParseYaml(std::istream& is) { return formats::yaml::FromStream(is); }
+
+std::vector<engine::TaskProcessorConfig> ParseTaskProcessors(const yaml_config::YamlConfig& value) {
+    const auto processors = value["task_processors"];
+    const auto defaults = value["default_task_processor_settings"];
+    if (defaults.IsMissing()) {
+        return yaml_config::ParseMapToArray<engine::TaskProcessorConfig>(processors);
+    }
+
+    formats::yaml::ValueBuilder merged{formats::common::Type::kObject};
+    for (const auto& [name, options] : Items(processors)) {
+        formats::yaml::ValueBuilder settings{defaults.As<formats::yaml::Value>()};
+        formats::common::Merge(settings, options.As<formats::yaml::Value>());
+        merged[name] = settings.ExtractValue();
+    }
+    return yaml_config::ParseMapToArray<engine::TaskProcessorConfig>(yaml_config::YamlConfig{merged.ExtractValue(), {}}
+    );
+}
 
 template <typename T>
 ManagerConfig ParseFromAny(
@@ -157,7 +175,7 @@ properties:
     task_processors:
         type: object
         description: dictionary of task processors to create and their options
-        additionalProperties:
+        additionalProperties: &task-processor-config
             type: object
             description: task processor to create and its options
             additionalProperties: false
@@ -226,6 +244,7 @@ properties:
                       Can significantly slow down the service.
                     defaultDescription: false
         properties: {}
+    default_task_processor_settings: *task-processor-config
     default_task_processor:
         type: string
         description: name of the default task processor to use in components
@@ -318,7 +337,7 @@ ManagerConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<Man
     }
     config.components = yaml_config::ParseMapToArray<components::ComponentConfig>(value["components"]);
     config.boot_log_path = value["boot-log-path"].As<std::string>({});
-    config.task_processors = yaml_config::ParseMapToArray<engine::TaskProcessorConfig>(value["task_processors"]);
+    config.task_processors = ParseTaskProcessors(value);
     config.default_task_processor = value["default_task_processor"].As<std::string>("main-task-processor");
     config.fs_task_processor = value["fs_task_processor"].As<std::string>("fs-task-processor");
 

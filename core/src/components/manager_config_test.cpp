@@ -238,4 +238,44 @@ TEST(ManagerConfig, HandlerConfig) {
     EXPECT_EQ(conf.task_processor, "main-task-processor");
 }
 
+TEST(ManagerConfig, DefaultTaskProcessorSettingsFillOnlyMissingOptions) {
+    const auto mc = components::ManagerConfig::FromString(
+        R"(
+components_manager:
+  event_thread_pool: {threads: 1}
+  components: {}
+  default_task_processor_settings:
+    worker_threads: 3
+    task-processor-queue: pull-pin-task-queue
+  task_processors:
+    main-task-processor:
+      worker_threads: 8
+    fs-task-processor:
+      task-processor-queue: global-task-queue
+)",
+        {},
+        {}
+    );
+
+    ASSERT_EQ(mc.task_processors.size(), 2);
+    const auto main = std::ranges::find(mc.task_processors, "main-task-processor", &engine::TaskProcessorConfig::name);
+    ASSERT_NE(main, mc.task_processors.end());
+    EXPECT_EQ(main->worker_threads, 8);
+    EXPECT_EQ(main->task_processor_queue, engine::TaskQueueType::kPullPinTaskQueue);
+
+    const auto fs = std::ranges::find(mc.task_processors, "fs-task-processor", &engine::TaskProcessorConfig::name);
+    ASSERT_NE(fs, mc.task_processors.end());
+    EXPECT_EQ(fs->worker_threads, 3);
+    EXPECT_EQ(fs->task_processor_queue, engine::TaskQueueType::kGlobalTaskQueue);
+}
+
+TEST(ManagerConfig, MissingDefaultTaskProcessorSettingsPreserveIndividualOptions) {
+    const auto mc = MakeManagerConfig();
+
+    const auto main = std::ranges::find(mc.task_processors, "main-task-processor", &engine::TaskProcessorConfig::name);
+    ASSERT_NE(main, mc.task_processors.end());
+    EXPECT_EQ(main->worker_threads, 16);
+    EXPECT_EQ(main->task_processor_queue, engine::TaskQueueType::kGlobalTaskQueue);
+}
+
 USERVER_NAMESPACE_END
