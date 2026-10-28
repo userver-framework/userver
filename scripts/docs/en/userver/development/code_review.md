@@ -90,11 +90,12 @@ Identify the undocumented contract, missing or incorrect reference, or untested
 example, and explain the unclear behavior, missing API navigation, or risk of
 example drift that the author should address.
 
-## 4. Move values when it avoids unnecessary copies
+## 4. Make ownership clear and avoid unnecessary copies
 
-Make ownership clear: use values or `std::unique_ptr` for owned objects,
-and `std::shared_ptr` only when shared ownership is required. For borrowed objects,
-use references when their lifetime is guaranteed.
+Use values or `std::unique_ptr` for owned objects, and `std::shared_ptr` only when
+shared ownership is required. For every added `std::shared_ptr`, verify that more than
+one owner must extend the object's lifetime; otherwise request a value or
+`std::unique_ptr`. For borrowed objects, use references when their lifetime is guaranteed.
 
 For clients provided by component dependencies, a reference is usually sufficient,
 including as a member: the component system guarantees that these clients outlive
@@ -237,6 +238,15 @@ New functionality and bug fixes must have tests. Add or update relevant document
 For flaky failures caused by production code rather than the test itself, first
 add a test that reliably reproduces the bug without flakiness, then fix the code.
 
+Keep the test set minimal. A bug fix needs one test that fails without the fix;
+add another test only if it covers a distinct behavior of the change that no other
+new or existing test exercises. When reviewing, request removal of tests that:
+- repeat the same code path with a different API flavor (sync/async, unary/streaming,
+  retry/no retry) unless the change affects that flavor specifically;
+- check scenarios that are practically unreachable or need artificial setup
+  that does not occur in real usage;
+- duplicate assertions of existing tests.
+
 ## 12. Use userver synchronization and I/O primitives
 
 Do not use C++ standard library or libc synchronization or blocking I/O on the
@@ -252,6 +262,8 @@ documentation from this check.
 ## 14. Use fmt for formatting
 
 Use the `fmt` library for formatting instead of `std::format` and similar APIs.
+Build strings with `fmt::format` rather than chains of `operator+`, `std::to_string`,
+or `std::ostringstream`.
 
 ----------
 
