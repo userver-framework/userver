@@ -16,16 +16,18 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace server {
+struct ServerConfig;
+}  // namespace server
+
 namespace server::http {
 
 class HttpRequestHandler final : public RequestHandlerBase {
 public:
     HttpRequestHandler(
         const components::ComponentContext& component_context,
-        const std::optional<std::string>& logger_access_component,
-        const std::optional<std::string>& logger_access_tskv_component,
-        bool is_monitor,
-        std::string server_name
+        const ServerConfig& config,
+        bool is_monitor
     );
 
     using NewRequestHook = std::function<void(std::shared_ptr<http::HttpRequest>)>;
@@ -55,6 +57,7 @@ private:
 
     const bool is_monitor_;
     const std::string server_name_;
+    const bool allow_set_response_ratelimited_by_;
     NewRequestHook new_request_hook_;
     mutable utils::TokenBucket rate_limit_;
     std::atomic<HttpStatus> cc_status_code_{HttpStatus::kTooManyRequests};

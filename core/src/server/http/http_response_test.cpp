@@ -32,6 +32,50 @@ struct ResponseContext final {
     {}
 };
 
+TEST(HttpResponse, ThrottleHostnameDisabledByDefault) {
+    server::request::ResponseDataAccounter accounter;
+    const ResponseContext context{accounter};
+
+    context.response.SetThrottleReason("rate limit", std::string{http::headers::ratelimit_reason::kGlobal});
+
+    EXPECT_FALSE(context.response.HasHeader(http::headers::kXYaTaxiRatelimitedBy));
+    EXPECT_EQ(
+        context.response.GetHeader(http::headers::kXYaTaxiRatelimitReason),
+        http::headers::ratelimit_reason::kGlobal
+    );
+}
+
+TEST(HttpResponse, ThrottleHeadersExplicitlyEnabled) {
+    server::request::ResponseDataAccounter accounter;
+    const ResponseContext context{accounter};
+    context.response.AllowSetResponseRatelimitedBy(true);
+
+    context.response.SetThrottleReason("rate limit", std::string{http::headers::ratelimit_reason::kGlobal});
+
+    EXPECT_FALSE(context.response.GetHeader(http::headers::kXYaTaxiRatelimitedBy).empty());
+    EXPECT_EQ(
+        context.response.GetHeader(http::headers::kXYaTaxiRatelimitReason),
+        http::headers::ratelimit_reason::kGlobal
+    );
+}
+
+TEST(HttpResponse, ThrottleHostnameDisabledPreservesReasonAndStatus) {
+    server::request::ResponseDataAccounter accounter;
+    const ResponseContext context{accounter};
+    context.response.AllowSetResponseRatelimitedBy(false);
+    context.response.SetStatus(server::http::HttpStatus::kTooManyRequests);
+
+    context.response
+        .SetThrottleReason("pending responses", std::string{http::headers::ratelimit_reason::kMaxPendingResponses});
+
+    EXPECT_FALSE(context.response.HasHeader(http::headers::kXYaTaxiRatelimitedBy));
+    EXPECT_EQ(
+        context.response.GetHeader(http::headers::kXYaTaxiRatelimitReason),
+        http::headers::ratelimit_reason::kMaxPendingResponses
+    );
+    EXPECT_EQ(context.response.GetStatus(), server::http::HttpStatus::kTooManyRequests);
+}
+
 }  // namespace
 
 TEST(ResponseDataAccounter, StartAndStopRequest) {

@@ -39,8 +39,7 @@ bool RateLimit::CheckRateLimit(const http::HttpRequest& request, request::Reques
     if (max_requests_per_second_ != kUnlimited && !rate_limit_.Obtain()) {
         auto& response = request.GetHttpResponse();
         auto log_reason = fmt::format("reached max_requests_per_second={}", max_requests_per_second_);
-        SetThrottleReason(
-            response,
+        response.SetThrottleReason(
             std::move(log_reason),
             std::string{USERVER_NAMESPACE::http::headers::ratelimit_reason::kGlobal}
         );
@@ -53,8 +52,7 @@ bool RateLimit::CheckRateLimit(const http::HttpRequest& request, request::Reques
     if (max_requests_in_flight_ != kUnlimited && statistics.GetInFlight() > max_requests_in_flight_) {
         auto& http_response = request.GetHttpResponse();
         auto log_reason = fmt::format("reached max_requests_in_flight={}", max_requests_in_flight_);
-        SetThrottleReason(
-            http_response,
+        http_response.SetThrottleReason(
             std::move(log_reason),
             std::string{USERVER_NAMESPACE::http::headers::ratelimit_reason::kInFlight}
         );

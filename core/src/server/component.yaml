@@ -212,6 +212,11 @@ properties:
         description: set to true to add the `X-YaTaxi-Server-Hostname` header with instance name, set to false to not add the
             header
         default: false
+    allow-set-response-ratelimited-by:
+        type: boolean
+        description: set to true to add the `X-YaTaxi-Ratelimited-By` header with the instance name on throttled responses. The
+            `X-YaTaxi-Ratelimit-Reason` header is still added.
+        default: false
     middleware-pipeline-builder:
         type: string
         description: name of a component to build a server-wide middleware pipeline
