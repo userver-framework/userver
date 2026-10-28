@@ -36,9 +36,16 @@ async def test_inc_update(service_client, service_config, testpoint):
 async def test_invalid_update_is_not_cached(service_client, service_config, dynamic_config):
     await service_client.update_server_state()
     cache_before = _load_dynamic_config_cache(service_config)
+    original_value = dynamic_config.get('HTTP_CLIENT_CONNECTION_POOL_SIZE')
 
     dynamic_config.set(HTTP_CLIENT_CONNECTION_POOL_SIZE='invalid')
     with pytest.raises(http.HttpResponseError):
         await service_client.update_server_state()
 
     assert _load_dynamic_config_cache(service_config) == cache_before
+
+    # Bypass deduplication to clear the parse error before restoring the original value.
+    dynamic_config.set(HTTP_CLIENT_CONNECTION_POOL_SIZE=original_value + 1)
+    await service_client.update_server_state()
+    dynamic_config.set(HTTP_CLIENT_CONNECTION_POOL_SIZE=original_value)
+    await service_client.update_server_state()
