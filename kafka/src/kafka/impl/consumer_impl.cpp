@@ -6,6 +6,7 @@
 
 #include <fmt/ranges.h>
 
+#include <userver/engine/task/cancel.hpp>
 #include <userver/kafka/exceptions.hpp>
 #include <userver/kafka/impl/configuration.hpp>
 #include <userver/kafka/impl/stats.hpp>
@@ -142,6 +143,8 @@ std::optional<std::string_view> Message::GetHeader(utils::zstring_view name) con
 namespace impl {
 
 namespace {
+
+constexpr std::chrono::milliseconds kClosePollInterval{10};
 
 enum class RebalanceProtocol {
     kCooperative,
@@ -475,8 +478,10 @@ void ConsumerImpl::StartConsuming() {
 }
 
 void ConsumerImpl::StopConsuming() {
-    // disable EventCallback
-    rd_kafka_queue_cb_event_enable(consumer_.GetQueue(), nullptr, nullptr);
+    rd_kafka_queue_cb_event_enable(consumer_.GetQueue(), &EventCallbackProxy, this);
+    const utils::FastScopeGuard disable_event_callback{[this]() noexcept {
+        rd_kafka_queue_cb_event_enable(consumer_.GetQueue(), nullptr, nullptr);
+    }};
 
     // launch closing process
     const ErrorHolder error{rd_kafka_consumer_close_queue(consumer_.GetHandle(), consumer_.GetQueue())};
@@ -490,6 +495,9 @@ void ConsumerImpl::StopConsuming() {
         if (const EventHolder event = PollEvent()) {
             DispatchEvent(event);
             ThrowIfRestartRequired();
+        } else {
+            const engine::TaskCancellationBlocker cancellation_blocker;
+            [[maybe_unused]] const bool woken_up = queue_became_non_empty_event_.WaitForEventFor(kClosePollInterval);
         }
     }
 }
