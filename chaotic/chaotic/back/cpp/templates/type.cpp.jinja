@@ -223,7 +223,7 @@
                     = value.extra;
                 {% elif type.extra_type %}
                     {#- additionalProperties: ... #}
-                    ;
+                    = {{ userver }}::formats::common::Type::kObject;
 
                     for (const auto&[field_key, field_value]: value.extra) {
                         vb.EmplaceNocheck(field_key,
