@@ -6,7 +6,6 @@
 
 #include <server/handlers/http_server_settings.hpp>
 #include <server/middlewares/misc.hpp>
-#include <server/request/internal_request_context.hpp>
 
 #include <userver/formats/json/string_builder.hpp>
 #include <userver/formats/serialize/write_to_stream.hpp>
@@ -146,7 +145,7 @@ void HandlerAdapter::ParseRequestData(const http::HttpRequest& request, request:
 }
 
 void HandlerAdapter::LogRequest(const http::HttpRequest& request, request::RequestContext& context) const {
-    const auto& config_snapshot = context.GetInternalContext().GetConfigSnapshot();
+    const auto& config_snapshot = context.GetInitialDynamicConfig();
 
     if (config_snapshot[::dynamic_config::USERVER_LOG_REQUEST]) {
         auto log_lambda = [&](auto& logger) {

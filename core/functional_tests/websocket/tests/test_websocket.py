@@ -18,6 +18,13 @@ async def test_echo(websocket_client):
         assert response == 'hello'
 
 
+async def test_initial_dynamic_config_lifetime(websocket_client):
+    async with websocket_client.get('chat') as chat:
+        await chat.send('check-initial-dynamic-config')
+        response = await chat.recv()
+        assert response == 'ok'
+
+
 async def test_echo_with_continuation(websocket_client):
     async with websocket_client.get('chat') as chat:
         await chat.send(['First', ' second', ' third'])

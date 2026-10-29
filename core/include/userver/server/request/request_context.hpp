@@ -8,6 +8,7 @@
 #include <string_view>
 #include <type_traits>
 
+#include <userver/dynamic_config/fwd.hpp>
 #include <userver/server/request/storage_context.hpp>
 #include <userver/utils/any_movable.hpp>
 #include <userver/utils/fast_pimpl.hpp>
@@ -50,6 +51,16 @@ public:
     RequestContext(const RequestContext&) = delete;
 
     ~RequestContext();
+
+    /// @brief Returns the dynamic config snapshot captured at the start of HTTP request processing.
+    ///
+    /// The snapshot is available in the initial section of HTTP middlewares (before the `Next()` call), and in request
+    /// logging hooks. It is reset before calling a streaming handler. For non-streaming HTTP handlers, the snapshot is
+    /// available for the entire duration of request handling, including response logging hooks. For WebSocket handlers,
+    /// it is available during the HTTP handshake and reset before calling `Handle()`.
+    ///
+    /// @throws std::logic_error if the snapshot has not been initialized or has already been reset.
+    const dynamic_config::Snapshot& GetInitialDynamicConfig() const USERVER_IMPL_LIFETIME_BOUND;
 
     /// @brief Stores data under the tag if no value was previously stored.
     /// @returns Reference to the stored data.

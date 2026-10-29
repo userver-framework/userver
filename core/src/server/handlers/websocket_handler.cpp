@@ -2,6 +2,8 @@
 
 #include <cryptopp/sha.h>
 
+#include <server/request/internal_request_context.hpp>
+
 #include <userver/components/statistics_storage.hpp>
 #include <userver/crypto/base64.hpp>
 #include <userver/engine/io/socket.hpp>
@@ -78,6 +80,8 @@ void WebsocketHandlerBase::HandleWebsocketRequest(
 
     request.SetUpgradeWebsocket([context = std::make_shared<server::request::RequestContext>(std::move(context)),
                                  this](std::unique_ptr<engine::io::RwBase> socket, engine::io::Sockaddr&& peer_name) {
+        context->GetInternalContext().ResetConfigSnapshot();
+
         tracing::Span span("ws/" + HandlerName());
         auto ws = websocket::MakeServerWebSocketConnection(std::move(socket), std::move(peer_name), config_);
         try {
