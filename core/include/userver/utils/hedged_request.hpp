@@ -4,42 +4,9 @@
 /// @brief Classes and functions for performing hedged requests.
 ///
 /// To perform hedged request you need to define RequestStrategy - a class
-/// similar to following ExampleStrategy:
+/// similar to the following ExampleStrategy:
 ///
-/// class ExampleStrategy {
-///   public:
-///     /// Create request future.
-///
-///     /// Called at least once per hedged request. First time at the beginning
-///     /// of a hedged request and then every HedgingSettings::hedging_delay
-///     /// milliseconds if none of the previous requests are ready or
-///     /// ProcessReply returned non-nullopt result. If ProcessReply returned
-///     /// some interval of time, then additional request will be scheduled at
-///     /// this interval of time.
-///     /// @param attempt - increasing number for each try
-///     std::optional<RequestType> Create(std::size_t attempt);
-///
-///     /// ProcessReply is called when some request has finished. Method should
-///     /// evaluate request status and decide whether new attempt is required.
-///     /// If new attempt is required, then method must return delay for next
-///     /// attempt. If no other attempt is required, then method must return
-///     /// std::nullopt. It is expected that successful result will be stored
-///     /// somewhere internally and will be available with ExtractReply()
-///     /// method.
-///     std::optional<std::chrono::milliseconds> ProcessReply(RequestType&&);
-///
-///     std::optional<ReplyType> ExtractReply();
-///
-///     /// Method is called when system does not need request any more.
-///     /// For example, if one of the requests has been finished successfully,
-///     /// the system will finish all related subrequests.
-///     /// It is recommended to make this call as fast as possible in order
-///     /// not to block overall execution. For example, if you internally have
-///     /// some future, it is recommended to call TryCancel() here and wait
-///     /// for a cancellation in destructor, rather than call TryCancel() and
-///     /// immediately wait.
-///     void Finish(RequestType&&);
-/// };
+/// @snippet core/src/utils/hedged_request_test.cpp HedgedRequest ExampleStrategy
 ///
 /// Then call any of these functions:
 /// - HedgeRequest
@@ -49,11 +16,11 @@
 ///
 
 #include <chrono>
-#include <compare>
-#include <functional>
+#include <cstddef>
 #include <optional>
-#include <queue>
 #include <type_traits>
+#include <utility>
+#include <vector>
 
 #include <userver/compiler/impl/lifetime.hpp>
 #include <userver/engine/awaitable.hpp>
@@ -61,21 +28,12 @@
 #include <userver/engine/wait_any.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
-#include <userver/utils/datetime.hpp>
+#include <userver/utils/hedging_settings.hpp>
+#include <userver/utils/impl/hedging_plan.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::hedging {
-
-/// Class define hedging settings
-struct HedgingSettings {
-    /// Maximum requests to do
-    std::size_t max_attempts{3};
-    /// Delay between attempts
-    std::chrono::milliseconds hedging_delay{7};
-    /// Max time to wait for all requests
-    std::chrono::milliseconds timeout_all{100};
-};
 
 template <typename RequestStrategy>
 struct RequestTraits {
@@ -86,27 +44,6 @@ struct RequestTraits {
 };
 
 namespace impl {
-
-using Clock = utils::datetime::SteadyClock;
-using TimePoint = Clock::time_point;
-
-enum class Action { kStartTry, kStop };
-
-struct PlanEntry {
-    PlanEntry(TimePoint timepoint, std::size_t request_index, std::size_t attempt_id, Action action)
-        : timepoint(timepoint),
-          request_index(request_index),
-          attempt_id(attempt_id),
-          action(action)
-    {}
-
-    auto operator<=>(const PlanEntry& other) const noexcept = default;
-
-    TimePoint timepoint;
-    std::size_t request_index{0};
-    std::size_t attempt_id{0};
-    Action action;
-};
 
 /// This wrapper allows us to cancel subrequests without removing elements
 /// from vector of requests
@@ -129,12 +66,7 @@ struct SubrequestWrapper {
     }
 
     std::optional<RequestType> request;
-};
-
-struct RequestState {
-    std::vector<std::size_t> subrequest_indices;
-    std::size_t attempts_made = 0;
-    bool finished = false;
+    engine::WaitAnyContext::Handle wait_any_handle;
 };
 
 template <typename RequestStrategy>
@@ -142,65 +74,37 @@ struct Context {
     using RequestType = typename RequestTraits<RequestStrategy>::RequestType;
     using ReplyType = typename RequestTraits<RequestStrategy>::ReplyType;
 
-    Context(std::vector<RequestStrategy> inputs, HedgingSettings settings)
+    Context(std::vector<RequestStrategy> inputs, HedgingSettings settings, TimePoint start_time)
         : inputs_(std::move(inputs)),
-          settings_(std::move(settings))
+          plan_(inputs_.size(), std::move(settings), start_time)
     {
-        const std::size_t size = this->inputs_.size();
-        request_states_.resize(size);
+        subrequests_.reserve(plan_.GetMaxSubrequestsCount());
     }
     Context(Context&&) noexcept = default;
 
-    void Prepare(TimePoint start_time) {
-        const auto request_count = GetRequestsCount();
-        for (std::size_t request_id = 0; request_id < request_count; ++request_id) {
-            plan_.emplace(start_time, request_id, 0, Action::kStartTry);
-        }
-        plan_.emplace(start_time + settings_.timeout_all, 0, 0, Action::kStop);
-        subrequests_.reserve(settings_.max_attempts * request_count);
-    }
-
-    std::optional<TimePoint> NextEventTime() const {
-        if (plan_.empty()) {
-            return std::nullopt;
-        }
-        return plan_.top().timepoint;
-    }
-    std::optional<PlanEntry> PopPlan() {
-        if (plan_.empty()) {
-            return std::nullopt;
-        }
-        auto ret = plan_.top();
-        plan_.pop();
-        return ret;
-    }
-    bool IsStop() const { return stop_; }
+    HedgingPlan& GetPlan() { return plan_; }
 
     void FinishAllSubrequests(std::size_t request_index) {
-        auto& request_state = request_states_[request_index];
-        request_state.finished = true;
-        const auto& subrequest_indices = request_state.subrequest_indices;
+        plan_.FinishRequest(request_index);
         auto& strategy = inputs_[request_index];
-        for (auto i : subrequest_indices) {
-            auto& request = subrequests_[i].request;
-            if (request) {
-                strategy.Finish(std::move(*request));
-                request.reset();
+        for (auto i : plan_.GetSubrequestIndices(request_index)) {
+            auto& subrequest = subrequests_[i];
+            if (subrequest.request) {
+                // The request is going to be destroyed, so it must not be waited for
+                wait_any_.Remove(subrequest.wait_any_handle);
+                strategy.Finish(std::move(*subrequest.request));
+                subrequest.request.reset();
             }
         }
     }
 
-    const HedgingSettings& GetSettings() const { return settings_; }
-
     size_t GetRequestsCount() const { return inputs_.size(); }
-
-    size_t GetRequestIdxBySubrequestIdx(size_t subrequest_idx) const {
-        return input_by_subrequests_.at(subrequest_idx);
-    }
 
     RequestStrategy& GetStrategy(size_t index) { return inputs_[index]; }
 
     auto& GetSubRequests() { return subrequests_; }
+
+    engine::WaitAnyContext& GetWaitAny() { return wait_any_; }
 
     std::vector<std::optional<ReplyType>> ExtractAllReplies() {
         std::vector<std::optional<ReplyType>> ret;
@@ -219,56 +123,32 @@ struct Context {
         for (std::size_t i = 0; i < inputs_.size(); ++i) {
             FinishAllSubrequests(i);
         }
-        stop_ = true;
+        plan_.Stop();
     }
 
     /// Called on elapsed timeout of WaitAny when next event is Start retry of
     /// request with id equal @param request_index
     void OnActionStartTry(std::size_t request_index, std::size_t attempt_id, TimePoint now) {
-        auto& request_state = request_states_[request_index];
-        if (request_state.finished) {
-            return;
-        }
-        auto& attempts_made = request_state.attempts_made;
-        // We could have already launched attempt with this number, for example if
-        // attempt number 2 failed with retryable code, we will add it to plan with
-        // number 3. This way, there are now two planned events, both with number=3
-        // - one from retry, one from hedging. We will execute the earliest one and
-        // skip the second one.
-        if (attempt_id < attempts_made) {
-            return;
-        }
-
-        if (attempts_made >= settings_.max_attempts) {
+        if (!plan_.ShouldStartTry(request_index, attempt_id, now)) {
             return;
         }
         auto& strategy = inputs_[request_index];
-        auto request_opt = strategy.Create(attempts_made);
+        auto request_opt = strategy.Create(attempt_id);
         if (!request_opt) {
-            request_state.finished = true;
+            plan_.FinishRequest(request_index);
             // User do not want to make another request (maybe some retry budget is
             // used)
             return;
         }
+        UASSERT_MSG(
+            subrequests_.size() < subrequests_.capacity(),
+            "Subrequests are waited by wait_any_ and must not be reallocated"
+        );
         const auto idx = subrequests_.size();
-        subrequests_.emplace_back(std::move(request_opt));
-        request_state.subrequest_indices.push_back(idx);
-        input_by_subrequests_[idx] = request_index;
-        attempts_made++;
-        plan_.emplace(now + settings_.hedging_delay, request_index, attempts_made, Action::kStartTry);
-    }
-
-    /// Called on getting error in request with @param request_idx
-    void OnRetriableReply(std::size_t request_idx, std::chrono::milliseconds retry_delay, TimePoint now) {
-        const auto& request_state = request_states_[request_idx];
-        if (request_state.finished) {
-            return;
-        }
-        if (request_state.attempts_made >= settings_.max_attempts) {
-            return;
-        }
-
-        plan_.emplace(now + retry_delay, request_idx, request_state.attempts_made, Action::kStartTry);
+        auto& subrequest = subrequests_.emplace_back(std::move(request_opt));
+        UASSERT_MSG(!subrequest.GetAwaitableToken().IsEmpty(), "The created request must be awaitable");
+        subrequest.wait_any_handle = wait_any_.Append(idx, subrequest);
+        plan_.OnTryStarted(request_index, idx, now);
     }
 
     void OnNonRetriableReply(std::size_t request_idx) { FinishAllSubrequests(request_idx); }
@@ -277,15 +157,10 @@ struct Context {
 private:
     /// user provided request strategies bulk
     std::vector<RequestStrategy> inputs_;
-    HedgingSettings settings_;
-
-    /// Our plan of what we will do at what time
-    std::priority_queue<PlanEntry, std::vector<PlanEntry>, std::greater<>> plan_{};
+    HedgingPlan plan_;
     std::vector<SubrequestWrapper<RequestStrategy>> subrequests_{};
-    /// Store index of input by subrequest index
-    std::unordered_map<std::size_t, std::size_t> input_by_subrequests_{};
-    std::vector<RequestState> request_states_{};
-    bool stop_{false};
+    /// Waits for subrequests_ in flight, must be destroyed before them
+    engine::WaitAnyContext wait_any_{};
 };
 
 }  // namespace impl
@@ -360,27 +235,39 @@ auto HedgeRequestsBulk(std::vector<RequestStrategy> inputs, HedgingSettings hedg
     {
         using Action = impl::Action;
         using Clock = impl::Clock;
-        auto context = impl::Context(std::move(inputs), std::move(hedging_settings));
-
-        auto& sub_requests = context.GetSubRequests();
-
         auto wakeup_time = Clock::now();
-        context.Prepare(wakeup_time);
+        // The mocked time in testsuite may be frozen, so "now" of the plan is taken via GetPlanNow from the time of
+        // the last processed plan event too
+        auto last_event_time = wakeup_time;
+        auto context = impl::Context(std::move(inputs), std::move(hedging_settings), wakeup_time);
 
-        while (!context.IsStop()) {
-            auto wait_result = engine::WaitAnyUntil(wakeup_time, sub_requests);
+        auto& plan = context.GetPlan();
+        auto& sub_requests = context.GetSubRequests();
+        auto& wait_any = context.GetWaitAny();
+
+        while (!plan.IsStop()) {
+            const auto now = impl::GetPlanNow(last_event_time);
+            const auto wait_result = wait_any.WaitFor(wakeup_time - now);
             if (!wait_result.has_value()) {
+                if (wait_result.error() == engine::WaitAnyError::kEmpty) {
+                    if (!plan.HasStartableRequests()) {
+                        context.OnActionStop();
+                        break;
+                    }
+                    impl::InterruptibleSleepUntilIfNotReached(wakeup_time, now);
+                }
                 if (engine::current_task::ShouldCancel()) {
                     context.OnActionStop();
                     break;
                 }
                 /// timeout - need to process plan
-                auto plan_entry = context.PopPlan();
+                auto plan_entry = plan.PopPlan();
                 if (!plan_entry.has_value()) {
                     /// Timeout but we don't have planned actions any more
                     break;
                 }
                 const auto [timestamp, request_index, attempt_id, action] = *plan_entry;
+                last_event_time = timestamp;
                 switch (action) {
                     case Action::kStartTry:
                         context.OnActionStartTry(request_index, attempt_id, timestamp);
@@ -389,7 +276,7 @@ auto HedgeRequestsBulk(std::vector<RequestStrategy> inputs, HedgingSettings hedg
                         context.OnActionStop();
                         break;
                 }
-                auto next_wakeup_time = context.NextEventTime();
+                auto next_wakeup_time = plan.NextEventTime();
                 if (!next_wakeup_time.has_value()) {
                     break;
                 }
@@ -398,18 +285,19 @@ auto HedgeRequestsBulk(std::vector<RequestStrategy> inputs, HedgingSettings hedg
             }
             const auto result_idx = *wait_result;
             UASSERT(result_idx < sub_requests.size());
-            const auto request_idx = context.GetRequestIdxBySubrequestIdx(result_idx);
+            const auto request_idx = plan.GetRequestIdxBySubrequestIdx(result_idx);
             auto& strategy = context.GetStrategy(request_idx);
 
+            sub_requests[result_idx].wait_any_handle = {};
             auto& request = sub_requests[result_idx].request;
             UASSERT_MSG(request, "Finished requests must not be empty");
             auto reply = strategy.ProcessReply(std::move(*request));
             if (reply.has_value()) {
                 /// Got reply but it's not OK and user wants to retry over
                 /// some delay
-                context.OnRetriableReply(request_idx, *reply, Clock::now());
-                /// No need to check. we just added one entry
-                wakeup_time = *context.NextEventTime();
+                plan.OnRetriableReply(request_idx, *reply, impl::GetPlanNow(last_event_time));
+                /// No need to check, the stop entry is planned until the stop
+                wakeup_time = *plan.NextEventTime();
             } else {
                 context.OnNonRetriableReply(request_idx);
             }

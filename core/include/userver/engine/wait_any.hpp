@@ -130,8 +130,13 @@ enum class WaitAnyError : std::uint8_t {
 /// Works with different types of awaitables:
 /// @snippet core/src/engine/wait_any_test.cpp sample MakeWaitAny
 ///
+/// The methods are not thread-safe: they may be called from at most one task at a time.
+///
 /// No methods (except .dtor) should be called on a moved-out instance.
 class WaitAnyContext final {
+    class Impl;
+    class QueueItem;
+
 public:
     WaitAnyContext();
     ~WaitAnyContext() noexcept;
@@ -140,11 +145,36 @@ public:
     WaitAnyContext(const WaitAnyContext&) = delete;
     WaitAnyContext& operator=(const WaitAnyContext&) = delete;
 
+    /// @brief Identifies an awaitable appended to the context, see @ref Remove.
+    ///
+    /// A default-constructed handle identifies nothing. The handle may be passed only to the context
+    /// that returned it (or to the context it was moved into).
+    class Handle final {
+    public:
+        Handle() noexcept = default;
+        Handle(const Handle&) noexcept = default;
+        Handle& operator=(const Handle&) noexcept = default;
+
+    private:
+        friend class WaitAnyContext;
+
+        Handle(QueueItem* item, std::uint64_t generation) noexcept
+            : item_(item),
+              generation_(generation)
+        {}
+
+        QueueItem* item_{nullptr};
+        std::uint64_t generation_{0};
+    };
+
     /// @brief Appends a single awaitable to the context.
     ///
     /// The appended awaitable will be assigned the next id from the auto-incrementing counter;
     /// see also @ref GetNextId.
-    void Append(engine::Awaitable auto& awaitable);
+    ///
+    /// @returns the handle of the appended awaitable, see @ref Remove. An empty awaitable is not
+    /// appended, an empty handle is returned for it.
+    Handle Append(engine::Awaitable auto& awaitable);
 
     /// @brief Appends the given awaitable to the context with an explicit id.
     ///
@@ -159,7 +189,9 @@ public:
     ///
     /// @param id the id that will be returned by @ref Wait.
     /// @param awaitable the awaitable to append.
-    void Append(std::uint64_t id, engine::Awaitable auto& awaitable);
+    /// @returns the handle of the appended awaitable, see @ref Remove. An empty awaitable is not
+    /// appended, an empty handle is returned for it.
+    Handle Append(std::uint64_t id, engine::Awaitable auto& awaitable);
 
     /// @brief Waits either for the completion of any of the awaitables stored in the context
     /// or for the cancellation of the caller.
@@ -192,10 +224,25 @@ public:
         return WaitUntil(Deadline::FromTimePoint(until));
     }
 
+    /// @brief Removes the awaitable identified by the handle from the context.
+    ///
+    /// The removed awaitable will not be reported by `Wait*` and may be destroyed right after the call,
+    /// no matter whether it is ready or not. An empty handle is ignored.
+    ///
+    /// The awaitable must still be stored in the context: removing an awaitable that has already
+    /// been reported by `Wait*` or removed is not allowed. Such a call aborts the program, but this
+    /// detection is not guaranteed.
+    ///
+    /// The complexity is constant.
+    ///
+    /// @param handle the handle returned by @ref Append.
+    void Remove(Handle handle) noexcept;
+
     /// @brief Returns the number of awaitables stored in the context.
     ///
     /// These are awaitables which have been `Append`ed, but not yet retrieved by `Wait` or `WaitUntil`.
-    /// The awaitables that have already been reported using `Wait*` are dropped out.
+    /// The awaitables that have already been reported using `Wait*` or removed using @ref Remove
+    /// are dropped out.
     std::size_t GetSize() const noexcept;
 
     /// @brief Returns the next id that will be assigned by the next @ref Append call.
@@ -204,19 +251,19 @@ public:
     std::uint64_t GetNextId() const noexcept;
 
 private:
-    class Impl;
+    Handle AppendToken(engine::AwaitableToken awaitable);
 
-    void AppendToken(engine::AwaitableToken awaitable);
-
-    void AppendToken(std::uint64_t id, engine::AwaitableToken awaitable);
+    Handle AppendToken(std::uint64_t id, engine::AwaitableToken awaitable);
 
     boost::intrusive_ptr<Impl> impl_;
 };
 
-void WaitAnyContext::Append(engine::Awaitable auto& awaitable) { AppendToken(awaitable.GetAwaitableToken()); }
+WaitAnyContext::Handle WaitAnyContext::Append(engine::Awaitable auto& awaitable) {
+    return AppendToken(awaitable.GetAwaitableToken());
+}
 
-void WaitAnyContext::Append(std::uint64_t id, engine::Awaitable auto& awaitable) {
-    AppendToken(id, awaitable.GetAwaitableToken());
+WaitAnyContext::Handle WaitAnyContext::Append(std::uint64_t id, engine::Awaitable auto& awaitable) {
+    return AppendToken(id, awaitable.GetAwaitableToken());
 }
 
 /// @ingroup userver_concurrency
