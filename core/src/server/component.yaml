@@ -168,7 +168,8 @@ properties:
                         default: 100
                     keepalive_timeout:
                         type: integer
-                        description: timeout in seconds to drop connection if there's not data received from it
+                        description: timeout in seconds to drop connection if there's not data received from it; also limits the
+                            duration of the TLS handshake on TLS ports
                         default: 600
                     stream_close_check_delay:
                         type: integer

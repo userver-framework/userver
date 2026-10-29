@@ -979,6 +979,8 @@
   "core/functional_tests/https/tests-http-https-listener/test_listener.py":"taxi/uservices/userver/core/functional_tests/https/tests-http-https-listener/test_listener.py",
   "core/functional_tests/https/tests-secdist-inline/conftest.py":"taxi/uservices/userver/core/functional_tests/https/tests-secdist-inline/conftest.py",
   "core/functional_tests/https/tests-secdist-inline/test_test.py":"taxi/uservices/userver/core/functional_tests/https/tests-secdist-inline/test_test.py",
+  "core/functional_tests/https/tests-tls-handshake-timeout/conftest.py":"taxi/uservices/userver/core/functional_tests/https/tests-tls-handshake-timeout/conftest.py",
+  "core/functional_tests/https/tests-tls-handshake-timeout/test_tls_handshake_timeout.py":"taxi/uservices/userver/core/functional_tests/https/tests-tls-handshake-timeout/test_tls_handshake_timeout.py",
   "core/functional_tests/https_no_passphrase/CMakeLists.txt":"taxi/uservices/userver/core/functional_tests/https_no_passphrase/CMakeLists.txt",
   "core/functional_tests/https_no_passphrase/Readme.md":"taxi/uservices/userver/core/functional_tests/https_no_passphrase/Readme.md",
   "core/functional_tests/https_no_passphrase/cert.crt":"taxi/uservices/userver/core/functional_tests/https_no_passphrase/cert.crt",
