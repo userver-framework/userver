@@ -187,7 +187,9 @@ struct EncoderStd final {
         noexcept {
         char buffer[kBlockSize]{};
         std::memcpy(&buffer, &block, sizeof(block));
-        for (const char c : std::string_view(buffer + offset, count)) {
+        for (const unsigned char c : std::string_view(buffer + offset, count)) {
+            // c must be unsigned so bytes 0x80..0xff stay above '\r'
+            // and do not trigger unnecessary per-byte encoding.
             if (c <= '\r' || c == '\\') {
                 return true;
             }
@@ -219,11 +221,14 @@ struct EncoderSse2 {
 
     USERVER_IMPL_FORCE_INLINE static bool MayNeedValueEscaping(Block block, std::size_t offset, std::size_t count)
         noexcept {
-        // 'char c' may need TSKV value escaping iff c <= '\r' || c == '\\'
+        // Unsigned c <= '\r' <=> max(c, '\r') == '\r', as in RapidJSON's ScanWriteUnescapedString:
+        // https://github.com/Tencent/rapidjson/blob/24b5e7a8b27f42fa16b96fc70aade9106cf7102f/include/rapidjson/writer.h#L620
         // 16 lower bits of the mask contain may-need-escaping flag per block's char
-        const auto may_need_escaping_mask = _mm_movemask_epi8(
-            _mm_or_si128(_mm_cmpgt_epi8(_mm_set1_epi8('\r' + 1), block), _mm_cmpeq_epi8(block, _mm_set1_epi8('\\')))
-        );
+        const auto max_control_char = _mm_set1_epi8('\r');
+        const auto may_need_escaping_mask = _mm_movemask_epi8(_mm_or_si128(
+            _mm_cmpeq_epi8(_mm_max_epu8(block, max_control_char), max_control_char),
+            _mm_cmpeq_epi8(block, _mm_set1_epi8('\\'))
+        ));
         return static_cast<
                    std::uint32_t>(static_cast<std::uint32_t>(may_need_escaping_mask) >> offset << (32 - count)) != 0;
     }
@@ -263,10 +268,12 @@ struct EncoderAvx2 final {
 
     USERVER_IMPL_FORCE_INLINE static bool MayNeedValueEscaping(Block block, std::size_t offset, std::size_t count)
         noexcept {
-        // 'char c' may need TSKV value escaping iff c <= '\r' || c == '\\'
+        // Unsigned c <= '\r' <=> max(c, '\r') == '\r', as in RapidJSON's ScanWriteUnescapedString:
+        // https://github.com/Tencent/rapidjson/blob/24b5e7a8b27f42fa16b96fc70aade9106cf7102f/include/rapidjson/writer.h#L620
         // 32 lower bits of the mask contain may-need-escaping flag per block's char
+        const auto max_control_char = _mm256_set1_epi8('\r');
         const auto may_need_escaping_mask = _mm256_movemask_epi8(_mm256_or_si256(
-            _mm256_cmpgt_epi8(_mm256_set1_epi8('\r' + 1), block),
+            _mm256_cmpeq_epi8(_mm256_max_epu8(block, max_control_char), max_control_char),
             _mm256_cmpeq_epi8(block, _mm256_set1_epi8('\\'))
         ));
         return static_cast<
