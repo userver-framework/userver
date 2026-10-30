@@ -229,8 +229,17 @@ class Swagger(base_model.BaseModel):
                     raise ValueError(
                         f'Undefined security name="{name}". Expected one of: {self.securityDefinitions.keys()}'
                     )
-                if self.securityDefinitions[name].type != SecurityType.oauth2 and values:
-                    raise ValueError(f'For security "{name}" the array must be empty')
+                security_def = self.securityDefinitions[name]
+                if security_def.type != SecurityType.oauth2:
+                    if values:
+                        raise ValueError(f'For security "{name}" the array must be empty')
+                    continue
+                undeclared = [value for value in values if value not in security_def.scopes]
+                if undeclared:
+                    raise ValueError(
+                        f'Security "{name}" requires undeclared scopes {undeclared}. '
+                        f'Declared scopes: {sorted(security_def.scopes)}',
+                    )
 
     def model_post_init(self, context: Any, /) -> None:
         self.validate_security(self.security)

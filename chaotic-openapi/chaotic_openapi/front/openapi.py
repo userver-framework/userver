@@ -1,4 +1,5 @@
 import enum
+import re
 from typing import Any
 
 import pydantic
@@ -208,9 +209,14 @@ class SecurityScheme(base_model.BaseModel):
     bearerFormat: str | None = None
     flows: OAuthFlows | None = None
     openIdConnectUrl: str | None = None
+    # Scopes (roles) a security requirement may name for a non-OAuth scheme
+    x_usrv_scopes: dict[str, str] | None = pydantic.Field(default=None, validation_alias='x-usrv-scopes')
 
     def model_post_init(self, context: Any, /) -> None:
         super().model_post_init(context)
+
+        if self.type == SecurityType.oauth2 and self.x_usrv_scopes is not None:
+            raise ValueError('"x-usrv-scopes" is not supported for oauth2, declare the scopes in "flows"')
 
         match self.type:
             case SecurityType.apiKey:
@@ -227,6 +233,20 @@ class SecurityScheme(base_model.BaseModel):
             case SecurityType.openIdConnect:
                 if not self.openIdConnectUrl:
                     raise ValueError(errors.missing_field_msg('openIdConnectUrl'))
+
+    def declared_scopes(self) -> set[str] | None:
+        if self.type == SecurityType.oauth2:
+            assert self.flows
+            flows = (
+                self.flows.implicit,
+                self.flows.password,
+                self.flows.clientCredentials,
+                self.flows.authorizationCode,
+            )
+            return {scope for flow in flows if flow for scope in flow.scopes}
+        if self.x_usrv_scopes is not None:
+            return set(self.x_usrv_scopes)
+        return None
 
 
 SecuritySchemes = dict[str, SecurityScheme | Ref]
@@ -356,9 +376,31 @@ class OpenApi(base_model.BaseModel):
                             f'Invalid security reference "{sec_scheme.ref}". '
                             f'Expected one of: {self.components.securitySchemes.keys()}',
                         )
-                elif isinstance(sec_scheme, SecurityScheme):
-                    if sec_scheme.type not in [SecurityType.oauth2, SecurityType.openIdConnect] and values:
-                        raise ValueError(f'For security "{name}" the array must be empty')
+                    sec_scheme = self.components.securitySchemes[sec_scheme.ref.removeprefix(prefix)]
+                if isinstance(sec_scheme, SecurityScheme):
+                    self._validate_scopes(name, sec_scheme, values)
+
+    def _validate_scopes(self, name: str, sec_scheme: SecurityScheme, values: list[str]) -> None:
+        if not values:
+            return
+        if sec_scheme.type not in [SecurityType.oauth2, SecurityType.openIdConnect] and not self._allows_roles():
+            raise ValueError(
+                f'For security "{name}" the array must be empty. '
+                f'Role names for {sec_scheme.type.value} schemes require OpenAPI 3.1 or later',
+            )
+        declared = sec_scheme.declared_scopes()
+        if declared is None:
+            return
+        undeclared = [value for value in values if value not in declared]
+        if undeclared:
+            raise ValueError(
+                f'Security "{name}" requires undeclared scopes {undeclared}. Declared scopes: {sorted(declared)}',
+            )
+
+    def _allows_roles(self) -> bool:
+        # OpenAPI 3.1 allows role names in security requirements for any scheme type
+        version = tuple(int(part) for part in re.findall(r'\d+', self.openapi)[:2])
+        return version >= (3, 1)
 
     def model_post_init(self, context: Any, /) -> None:
         super().model_post_init(context)
