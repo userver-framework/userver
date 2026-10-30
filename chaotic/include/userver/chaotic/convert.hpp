@@ -75,7 +75,11 @@ template <typename T, typename U>
 constexpr U Convert(const T& value, To<U>)
 requires std::is_constructible_v<U, const T&>
 {
-    return U{value};
+    if constexpr (std::is_aggregate_v<U>) {
+        return U(value);
+    } else {
+        return U{value};
+    }
 }
 
 }  // namespace convert

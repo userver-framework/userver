@@ -473,10 +473,16 @@ class CppStringWithFormat(CppType):
             ^^^^^^^^^^^^^^^^^^^^^^^^
         """
         if self.user_cpp_type:
-            cpp_type = self.user_cpp_type.replace('@', '::')
-        else:
-            cpp_type = self.format_cpp_type.replace('@', '::')
+            return super().cpp_user_name()
+        return self.cpp_format_name()
 
+    def cpp_format_name(self) -> str:
+        """
+        C++ type the string ``format`` maps to, before ``x-usrv-cpp-type`` is applied:
+
+            format: uuid  ->  boost::uuids::uuid
+        """
+        cpp_type = self.format_cpp_type.replace('@', '::')
         if cpp_type.startswith(USERVER_COLONCOLON):
             cpp_type = 'USERVER_NAMESPACE::' + cpp_type[len(USERVER_COLONCOLON) :]
         return cpp_type
@@ -496,11 +502,8 @@ class CppStringWithFormat(CppType):
         return includes
 
     def parser_type(self, ns: str, name: str) -> str:
-        format_cpp_type = self.format_cpp_type
-        if format_cpp_type.startswith(USERVER_COLONCOLON):
-            format_cpp_type = 'USERVER_NAMESPACE::' + format_cpp_type[len(USERVER_COLONCOLON) :]
         parser_type = f'USERVER_NAMESPACE::chaotic::Primitive<{self.raw_cpp_type.in_global_scope()}>'
-        parser_type = f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, {format_cpp_type}>'
+        parser_type = f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, {self.cpp_format_name()}>'
         if self.user_cpp_type:
             parser_type = f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, {self.cpp_user_name()}>'
         return parser_type

@@ -9,6 +9,7 @@ from typing import Any
 
 import yaml
 
+from chaotic import cpp_names
 from chaotic import error
 from chaotic.back.cpp import renderer
 from chaotic.back.cpp import translator
@@ -130,9 +131,12 @@ def generate_cpp_name_func(
     erase_prefix: str,
 ) -> Callable:
     def cpp_name_func(schema_name: str, stem: str) -> str:
+        # `{stem}` lands in a C++ name, so a file like `station.internal.yaml`
+        # must not put `station.internal` there.
+        cpp_stem = cpp_names.cpp_identifier(stem)
         for item in name_map:
             s = erase_prefix + schema_name + '/'
-            cpp_name = item.match(s, stem=stem)
+            cpp_name = item.match(s, stem=cpp_stem)
             if cpp_name:
                 return cpp_name
         raise Exception(f'Cannot match name: {schema_name}')
@@ -280,7 +284,9 @@ def main() -> None:
 
     outputs = renderer.OneToOneFileRenderer(
         relative_to=args.relative_to,
-        vfilepath_to_relfilepath={file: str(pathlib.Path(file).with_suffix('')) for file in args.file},
+        # The renderer strips the extension; stripping it here as well would
+        # turn `station.internal.yaml` into `station`.
+        vfilepath_to_relfilepath={file: file for file in args.file},
         clang_format_bin=args.clang_format,
         parse_extra_formats=args.parse_extra_formats,
         generate_serializer=args.generate_serializers,
