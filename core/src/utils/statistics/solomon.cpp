@@ -151,7 +151,7 @@ std::string ToSolomonFormat(
 
         builder.Key("metrics");
         const formats::json::StringBuilder::ArrayGuard array_guard(builder);
-        statistics.VisitMetrics(solomon_json_builder, request);
+        VisitMetrics(statistics, solomon_json_builder, request);
     }
     return builder.GetString();
 }

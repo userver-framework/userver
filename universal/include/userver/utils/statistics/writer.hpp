@@ -227,8 +227,7 @@ void DumpMetric(Writer& writer, const std::atomic<Metric>& m) {
 /// attach extra labels; `request.prefix` is a match filter, not a path to write
 /// under.
 ///
-/// @ref utils::statistics::Storage::VisitMetrics uses this function to dump
-/// Writer-based metrics. It is used to implement formats such as:
+/// This function dumps Writer-based metrics. It is used to implement formats such as:
 /// - @ref utils::statistics::ToPrometheusFormat "Prometheus"
 /// - @ref utils::statistics::ToGraphiteFormat "Graphite"
 /// - @ref utils::statistics::ToJsonFormat "JSON"

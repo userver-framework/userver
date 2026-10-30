@@ -70,7 +70,7 @@ private:
 
 std::string ToGraphiteFormat(const Storage& statistics, const Request& request) {
     FormatBuilder builder{};
-    statistics.VisitMetrics(builder, request);
+    VisitMetrics(statistics, builder, request);
     return builder.Release();
 }
 

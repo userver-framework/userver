@@ -106,10 +106,6 @@ void DumpMetric(Writer& writer, const Storage& storage) {
     }
 }
 
-void Storage::VisitMetrics(BaseFormatBuilder& out, const Request& request) const {
-    statistics::VisitMetrics(*this, out, request);
-}
-
 void Storage::StopRegisteringExtenders() { may_register_extenders_ = false; }
 
 void Storage::RegisterWriter(

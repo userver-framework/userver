@@ -63,7 +63,7 @@ private:
 
 std::string ToPrettyFormat(const Storage& statistics, const Request& request) {
     FormatBuilder builder;
-    statistics.VisitMetrics(builder, request);
+    VisitMetrics(statistics, builder, request);
     return std::move(builder).Release();
 }
 

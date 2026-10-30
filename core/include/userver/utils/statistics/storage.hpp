@@ -13,7 +13,6 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/resource_scopes_fwd.hpp>
 #include <userver/utils/statistics/entry.hpp>
-#include <userver/utils/statistics/request.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -49,9 +48,6 @@ public:
     Storage();
 
     Storage(const Storage&) = delete;
-
-    /// Visits all the metrics and calls `out.HandleMetric` for each metric.
-    void VisitMetrics(BaseFormatBuilder& out, const Request& request = {}) const;
 
     /// @cond
     /// Must be called from StatisticsStorage only. Don't call it from user components.

@@ -245,7 +245,7 @@ formats::json::Value Serialize(const PortabilityWarnings& info, formats::seriali
 
 PortabilityWarnings GetPortabilityWarnings(const Storage& statistics, const Request& request) {
     PortabilityInfoCollector builder{};
-    statistics.VisitMetrics(builder, request);
+    VisitMetrics(statistics, builder, request);
     return std::move(builder).Extract();
 }
 

@@ -52,7 +52,7 @@ private:
 
 std::string ToJsonFormat(const Storage& statistics, const Request& request) {
     JsonFormat builder{};
-    statistics.VisitMetrics(builder, request);
+    VisitMetrics(statistics, builder, request);
     return std::move(builder).GetString();
 }
 

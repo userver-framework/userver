@@ -219,7 +219,7 @@ std::string ToPrometheusLabel(std::string_view name) {
 
 std::string ToPrometheusFormat(const Storage& statistics, const Request& request) {
     impl::FormatBuilder<impl::Typed::kYes> builder{};
-    statistics.VisitMetrics(builder, request);
+    VisitMetrics(statistics, builder, request);
     return builder.Release();
 }
 
@@ -231,7 +231,7 @@ std::string ToPrometheusFormat(WriterFuncRef writer, const Request& request) {
 
 std::string ToPrometheusFormatUntyped(const Storage& statistics, const Request& request) {
     impl::FormatBuilder<impl::Typed::kNo> builder{};
-    statistics.VisitMetrics(builder, request);
+    VisitMetrics(statistics, builder, request);
     return builder.Release();
 }
 
