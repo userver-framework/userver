@@ -3,7 +3,9 @@ import re
 import sys
 import traceback
 import typing
+from typing import NoReturn
 
+from chaotic import cpp_keywords
 from chaotic import cpp_names
 from chaotic import error as chaotic_error
 from chaotic.back.cpp import translator as chaotic_translator
@@ -29,6 +31,7 @@ _REQUEST_BODIES_RE = re.compile(r'/components/requestBodies/([-a-zA-Z0-9_]*)/con
 _PARAMETERS_ROOT_RE = re.compile(r'/parameters/([-a-zA-Z0-9_]*)')
 _COMPONENTS_PARAMETER_RE = re.compile(r'/components/parameters/([-a-zA-Z0-9_]*)/schema')
 _COMPONENTS_HEADER_RE = re.compile(r'/components/headers/([-a-zA-Z0-9]*)/schema')
+_CPP_IDENTIFIER_RE = re.compile(r'[A-Za-z_][A-Za-z0-9_]*')
 
 
 class BaseTranslator(abc.ABC):
@@ -186,8 +189,42 @@ class BaseTranslator(abc.ABC):
                 security=self._translate_security(op.security_requirements, op.path, op.method),
             )
 
+            self._validate_operation_id(translated_op)
+            self._validate_unique_namespace(translated_op)
             self.validate_operation(translated_op)
             self._spec.operations.append(translated_op)
+
+    @staticmethod
+    def _raise_operation_error(op: common_types.Operation, msg: str, infile_suffix: str = '') -> NoReturn:
+        raise chaotic_error.BaseError(
+            full_filepath=op.path,
+            infile_path=f'/{op.method.lower()}{infile_suffix}',
+            schema_type='openapi/swagger',
+            msg=f'Operation "{op.method} {op.path}": {msg}',
+        )
+
+    def _validate_operation_id(self, op: common_types.Operation) -> None:
+        operation_id = op.operation_id
+        if operation_id is None:
+            return
+        if not _CPP_IDENTIFIER_RE.fullmatch(operation_id) or cpp_keywords.is_cpp_keyword(operation_id):
+            self._raise_operation_error(
+                op,
+                f'operationId "{operation_id}" is not a valid C++ identifier. '
+                f'Use letters, digits and underscores, do not start with a digit and do not use a C++ keyword',
+                '/operationId',
+            )
+
+    def _validate_unique_namespace(self, op: common_types.Operation) -> None:
+        for other in self._spec.operations:
+            if other.cpp_namespace() == op.cpp_namespace():
+                self._raise_operation_error(
+                    op,
+                    f'generates the C++ namespace "{op.cpp_namespace()}" already generated for operation '
+                    f'"{other.method} {other.path}". Give the operations distinct operationIds '
+                    f'(operationIds that differ only in letter case clash)',
+                    '/operationId',
+                )
 
     def map_infile_path_to_cpp_type(self, name: str, stem: str) -> str:
         if name.startswith('/components/schemas/'):

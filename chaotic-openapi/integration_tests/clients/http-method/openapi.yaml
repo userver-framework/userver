@@ -1,0 +1,121 @@
+openapi: 3.0.0
+info:
+    title: http-method client
+    version: '1.0'
+
+paths:
+    /verb:
+        get:
+            operationId: GetWithoutBody
+            responses:
+                '200':
+                    description: OK
+        head:
+            operationId: HeadWithoutBody
+            responses:
+                '200':
+                    description: OK
+        post:
+            operationId: PostWithoutBody
+            responses:
+                '200':
+                    description: OK
+        put:
+            operationId: PutWithoutBody
+            responses:
+                '200':
+                    description: OK
+        patch:
+            operationId: PatchWithoutBody
+            responses:
+                '200':
+                    description: OK
+        delete:
+            operationId: DeleteWithoutBody
+            responses:
+                '200':
+                    description: OK
+        options:
+            operationId: OptionsWithoutBody
+            responses:
+                '200':
+                    description: OK
+    /verb/body:
+        get:
+            operationId: GetWithBody
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Payload'
+            responses:
+                '200':
+                    description: OK
+        post:
+            operationId: PostWithBody
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Payload'
+            responses:
+                '200':
+                    description: OK
+        put:
+            operationId: PutWithBody
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Payload'
+            responses:
+                '200':
+                    description: OK
+        patch:
+            operationId: PatchWithBody
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Payload'
+            responses:
+                '200':
+                    description: OK
+        delete:
+            operationId: DeleteWithBody
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '#/components/schemas/Payload'
+            responses:
+                '200':
+                    description: OK
+    /verb/{id}:
+        post:
+            operationId: PostWithParameterOnly
+            parameters:
+              - in: path
+                name: id
+                required: true
+                schema:
+                    type: string
+            responses:
+                '200':
+                    description: OK
+
+components:
+    schemas:
+        Payload:
+            type: object
+            additionalProperties: false
+            required:
+              - value
+            properties:
+                value:
+                    type: string
