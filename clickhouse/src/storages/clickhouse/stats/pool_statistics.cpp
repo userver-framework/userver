@@ -1,7 +1,5 @@
 #include "pool_statistics.hpp"
 
-#include <userver/formats/json/value_builder.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::clickhouse::stats {

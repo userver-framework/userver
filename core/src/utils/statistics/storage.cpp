@@ -5,13 +5,11 @@
 
 #include <boost/container/small_vector.hpp>
 
-#include <userver/formats/common/utils.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 #include <userver/utils/lazy_prvalue.hpp>
 #include <userver/utils/resource_scopes.hpp>
-#include <userver/utils/text_light.hpp>
 
 #include <utils/statistics/entry_impl.hpp>
 #include <utils/statistics/writer_state.hpp>

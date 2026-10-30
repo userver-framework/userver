@@ -10,7 +10,6 @@
 #include <vector>
 
 #include <userver/engine/shared_mutex.hpp>
-#include <userver/formats/json/value_builder.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/resource_scopes_fwd.hpp>
 #include <userver/utils/statistics/entry.hpp>
