@@ -21,7 +21,7 @@ import pytest
 import yaml
 
 import pytest_userver.config
-import testsuite.fixture_markers
+from pytest_userver import fixture_markers
 
 # flake8: noqa E266
 ## Prefer @ref pytest_userver.config.patch "pytest_userver.config.patch" to
@@ -415,7 +415,7 @@ def _service_config_hooked(
     config_vars = copy.deepcopy(_original_service_config.config_vars)
 
     plugin_hooks = pytestconfig.pluginmanager.get_plugin('userver_config').userver_config_hooks
-    mark_hooks = testsuite.fixture_markers.get_infos(request, pytest_userver.config._ConfigPatchInfo).keys()
+    mark_hooks = fixture_markers.get_infos(request, pytest_userver.config._ConfigPatchInfo).keys()
     local_hooks = (daemon_scoped_mark or {}).get('config_hooks', ())
 
     for hook in itertools.chain(plugin_hooks, mark_hooks, local_hooks):

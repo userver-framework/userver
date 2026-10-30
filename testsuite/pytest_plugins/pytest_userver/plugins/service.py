@@ -14,9 +14,9 @@ from typing import Any
 
 import pytest
 
-import testsuite.fixture_markers
 from testsuite.utils import url_util
 
+from pytest_userver import fixture_markers
 import pytest_userver.service
 from pytest_userver.utils import net
 
@@ -237,7 +237,7 @@ def extra_client_deps() -> None:
 
 @pytest.fixture
 def _mark_service_deps(request: pytest.FixtureRequest) -> None:
-    infos = testsuite.fixture_markers.get_infos(request, pytest_userver.service._ServiceDependencyInfo)
+    infos = fixture_markers.get_infos(request, pytest_userver.service._ServiceDependencyInfo)
     for fixture_name in infos:
         request.getfixturevalue(fixture_name)
 

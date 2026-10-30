@@ -3,7 +3,7 @@
 from collections.abc import Callable
 import dataclasses
 
-import testsuite.fixture_markers
+from pytest_userver import fixture_markers
 
 # @cond
 
@@ -23,10 +23,14 @@ def patch(func: Callable[..., object]) -> Callable[..., object]:
 
     Apply to the original function, under `@pytest.fixture`.
 
-    An override of a marked fixture must repeat this decorator.
+    Overrides inherit this mark automatically; repeating the decorator is not
+    required, even if the override does not request the original fixture.
+    The override keeps the original marked fixture's position in patch order.
 
     @snippet samples/static_service/testsuite/conftest.py  static config patch
 
+    @see @ref fixture_markers_overrides "Fixture marker inheritance"
+
     @ingroup userver_testsuite
     """
-    return testsuite.fixture_markers.mark(func, _ConfigPatchInfo())
+    return fixture_markers.mark(func, _ConfigPatchInfo())
