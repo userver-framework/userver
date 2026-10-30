@@ -6009,7 +6009,6 @@
   "testsuite/tests/fixture_markers/scoped/test_unrelated_module.py":"taxi/uservices/userver/testsuite/tests/fixture_markers/scoped/test_unrelated_module.py",
   "testsuite/tests/fixture_markers/scoped/test_visibility.py":"taxi/uservices/userver/testsuite/tests/fixture_markers/scoped/test_visibility.py",
   "testsuite/tests/fixture_markers/test_consumers.py":"taxi/uservices/userver/testsuite/tests/fixture_markers/test_consumers.py",
-  "testsuite/tests/fixture_markers/test_discovery.py":"taxi/uservices/userver/testsuite/tests/fixture_markers/test_discovery.py",
   "testsuite/tests/fixture_markers/test_documentation.py":"taxi/uservices/userver/testsuite/tests/fixture_markers/test_documentation.py",
   "testsuite/tests/fixture_markers/test_fixture_markers.py":"taxi/uservices/userver/testsuite/tests/fixture_markers/test_fixture_markers.py",
   "testsuite/tests/fixture_markers/test_guarantees.py":"taxi/uservices/userver/testsuite/tests/fixture_markers/test_guarantees.py",
