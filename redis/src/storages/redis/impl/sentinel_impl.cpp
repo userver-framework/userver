@@ -607,9 +607,7 @@ bool SentinelImpl::EnqueueCommand(SentinelCommand command) {
 
 size_t SentinelImpl::ShardsCount() const {
     const auto ptr = topology_holder_->GetTopology();
-    const auto res = ptr->GetShardsCount();
-    UASSERT(res != 0);
-    return res;
+    return ptr->GetShardsCount();
 }
 
 size_t SentinelImpl::GetClusterSlotsCalledCounter() { return ClusterTopologyHolder::GetClusterSlotsCalledCounter(); }
