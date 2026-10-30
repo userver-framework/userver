@@ -419,7 +419,8 @@ void EncodeTskv(Container& container, std::string_view str, EncodeTskvMode mode)
 }
 
 /// @cond
-inline bool ShouldKeyBeEscaped(std::string_view key) noexcept {
+USERVER_IMPL_FORCE_INLINE bool ShouldKeyBeEscaped(std::string_view key, EncodeTskvMode mode) noexcept {
+    UASSERT(mode == EncodeTskvMode::kKey || mode == EncodeTskvMode::kKeyReplacePeriod);
     for (const char ch : key) {
         switch (ch) {
             case '\t':
@@ -427,9 +428,13 @@ inline bool ShouldKeyBeEscaped(std::string_view key) noexcept {
             case '\n':
             case '\0':
             case '\\':
-            case '.':
             case '=':
                 return true;
+            case '.':
+                if (mode == EncodeTskvMode::kKeyReplacePeriod) {
+                    return true;
+                }
+                break;
             default:
                 if ('A' <= ch && ch <= 'Z') {
                     return true;
@@ -438,6 +443,10 @@ inline bool ShouldKeyBeEscaped(std::string_view key) noexcept {
         }
     }
     return false;
+}
+
+inline bool ShouldKeyBeEscaped(std::string_view key) noexcept {
+    return ShouldKeyBeEscaped(key, EncodeTskvMode::kKeyReplacePeriod);
 }
 
 inline bool ShouldValueBeEscaped(std::string_view key) noexcept {
