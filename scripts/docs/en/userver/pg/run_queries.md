@@ -53,6 +53,96 @@ auto res = trx.Execute(
 trx.Commit();
 @endcode
 
+@par Passing a structure as the parameters
+
+A statement's parameters are often the members of a structure already at hand.
+storages::postgres::io::StructView sends them without naming each one at the
+call site: one parameter per member it views, in the order it names them.
+It is declared in `userver/storages/postgres/io/struct_view.hpp`.
+
+@code
+struct User {
+  boost::uuids::uuid id;
+  std::string name;
+  std::string email;
+};
+
+namespace pg = storages::postgres;
+
+User user{/* ... */};
+
+// Every member, in declaration order: three parameters.
+trx.Execute("insert into users(id, name, email) values($1, $2, $3)",
+            pg::io::StructView<User>{user});
+
+// A subset: two parameters, and the member the view does not name is not sent.
+trx.Execute("insert into users(id, name) values($1, $2)",
+            pg::io::StructView<User, &User::id, &User::name>{user});
+
+// MakeStructView deduces the structure from the argument, so only the members
+// have to be written out.
+trx.Execute("insert into users(id, email) values($1, $2)",
+            pg::io::MakeStructView<&User::id, &User::email>(user));
+@endcode
+
+The pack is the order the parameters go out in, not the structure's layout, so
+a statement whose columns are ordered differently needs no shuffling by the
+caller:
+
+@code
+trx.Execute("insert into users(id, email, name) values($1, $2, $3)",
+            pg::io::MakeStructView<&User::id, &User::email, &User::name>(user));
+@endcode
+
+A view is accepted wherever a statement takes parameters —
+storages::postgres::Transaction, storages::postgres::Cluster and a
+non-transactional execution alike.
+
+@warning A view is the whole parameter list, not one entry in it: it cannot be
+combined with further arguments in the same call, and attempting it fails with
+`Type doesn't have mapping to Postgres type.`, which does not name the view as
+the cause. Build a view that covers every parameter instead.
+
+@warning A view borrows the structure rather than copying it, so it must not
+outlive the object it names. Constructing it in the call, as above, is the
+intended shape.
+
+@see @ref scripts/docs/en/userver/pg/user_row_types.md for reading a row back
+     through the same view.
+
+@par Passing a container of structures column by column
+
+storages::postgres::Transaction::ExecuteDecompose,
+storages::postgres::Transaction::ExecuteDecomposeBulk and
+storages::postgres::Cluster::ExecuteDecompose send a container of structures as
+one array parameter per member. To send only some of the members, or to send
+them in the order the statement expects, wrap the container in a view: each
+element stays the structure, and the view picks its columns.
+
+@code
+std::vector<User> users{/* ... */};
+
+// The view type is named explicitly.
+using UserIdName = pg::io::StructView<User, &User::id, &User::name>;
+trx.ExecuteDecompose("insert into users(id, name) select * from unnest($1, $2)",
+                     pg::io::StructViewContainer<UserIdName>(users));
+
+// The structure is deduced from the container, only the members are named.
+trx.ExecuteDecomposeBulk("insert into users(email, id) select * from unnest($1, $2)",
+                         pg::io::MakeViewContainer<&User::email, &User::id>(users));
+@endcode
+
+`MakeViewContainer<>(users)` with no members sends every member in declaration
+order, which also works for structures with an intrusive `Introspect()`.
+
+@warning A view container is accepted by the decomposing calls only.
+storages::postgres::Transaction::ExecuteBulk sends each chunk as a single array
+of the element type, and a subset of a structure's members has no PostgreSQL
+type to map to, so passing a view container there fails to compile with a hint
+to use ExecuteDecomposeBulk.
+
+@warning The view container borrows the container, so it must not outlive it.
+
 @note You may write a query in `.sql` file and generate a header file with Query from it.
       See @ref scripts/docs/en/userver/sql_files.md for more information.
 @see Transaction

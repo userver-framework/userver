@@ -1,6 +1,8 @@
 #include <userver/utils/meta.hpp>
 
 #include <array>
+#include <cstddef>
+#include <memory>
 #include <optional>
 #include <set>
 #include <string>
@@ -125,6 +127,79 @@ TEST(Meta, RangeValueType) {
     static_assert(std::is_same_v<meta::RangeValueType<std::map<int, int>>, std::pair<const int, int>>);
     static_assert(std::is_same_v<meta::RangeValueType<int[5]>, int>);
     static_assert(std::is_same_v<meta::RangeValueType<boost::filesystem::path>, boost::filesystem::path>);
+}
+
+namespace {
+
+// A conforming allocator that is **not** a template, so its rebind cannot be
+// spelled by substituting a template argument — `std::allocator_traits` has to
+// ask the allocator itself. This is the case a hand-rolled rebind gets wrong by
+// returning the allocator unchanged, which yields a container of `std::string`
+// holding an allocator that allocates `int`.
+struct StringArena;
+
+struct IntArena {
+    using value_type = int;
+    template <typename U>
+    struct rebind;
+    int* allocate(std::size_t);
+    void deallocate(int*, std::size_t) noexcept;
+};
+
+struct StringArena {
+    using value_type = std::string;
+    template <typename U>
+    struct rebind;
+    std::string* allocate(std::size_t);
+    void deallocate(std::string*, std::size_t) noexcept;
+};
+
+template <>
+struct IntArena::rebind<int> {
+    using other = IntArena;
+};
+
+template <>
+struct IntArena::rebind<std::string> {
+    using other = StringArena;
+};
+
+template <>
+struct StringArena::rebind<std::string> {
+    using other = StringArena;
+};
+
+template <>
+struct StringArena::rebind<int> {
+    using other = IntArena;
+};
+
+}  // namespace
+
+TEST(Meta, RebindContainer) {
+    // An allocator-aware container: the value type changes and the allocator is
+    // rebound with it.
+    static_assert(std::is_same_v<meta::RebindContainer<std::vector<int>, std::string>, std::vector<std::string>>);
+    static_assert(std::is_same_v<
+                  meta::RebindContainer<std::vector<int, std::allocator<int>>, std::string>,
+                  std::vector<std::string, std::allocator<std::string>>>);
+    static_assert(std::is_same_v<meta::RebindContainer<std::set<int>, std::string>, std::set<std::string>>);
+
+    // Rebinding to the type already held is the identity.
+    static_assert(std::is_same_v<meta::RebindContainer<std::vector<int>, int>, std::vector<int>>);
+
+    // A container parameterised by a value rather than an allocator keeps it.
+    static_assert(std::is_same_v<meta::RebindContainer<std::array<int, 4>, std::string>, std::array<std::string, 4>>);
+
+    // The control: the allocator is asked, not reconstructed. Substituting the
+    // first template argument cannot produce StringArena from IntArena, and
+    // carrying IntArena over would leave a vector of strings allocating ints.
+    static_assert(std::is_same_v<
+                  meta::RebindContainer<std::vector<int, IntArena>, std::string>,
+                  std::vector<std::string, StringArena>>);
+    static_assert(!std::is_same_v<
+                  meta::RebindContainer<std::vector<int, IntArena>, std::string>,
+                  std::vector<std::string, IntArena>>);
 }
 
 TEST(Meta, IsRecursiveRange) {
