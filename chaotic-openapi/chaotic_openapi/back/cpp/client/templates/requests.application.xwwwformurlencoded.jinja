@@ -2,7 +2,7 @@
   const auto &data = {{ request }};
   std::unordered_map<std::string, std::string> map;
 
-  {% for field_name, field in body.schema.fields.items() %}
+  {% for field_name, field in body.fields().items() %}
       {% if field.required %}
         map["{{ field_name }}"] = USERVER_NAMESPACE::chaotic::openapi::PrimitiveToString(data.{{ field_name }});
       {% else %}

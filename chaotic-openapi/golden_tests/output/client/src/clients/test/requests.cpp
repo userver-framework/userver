@@ -27,7 +27,9 @@ base_url + "/testme"
 openapi::WriteParameter<openapi::TrivialParameter<openapi::In::kQuery, knumber, std::string, std::string>>(request.number, sink);
 openapi::WriteParameter<openapi::ArrayParameter<openapi::In::kQuery, karray, ',', std::string, std::string>>(request.array, sink);
 
-http_request.data(ToString(USERVER_NAMESPACE::formats::json::ValueBuilder(request.body).ExtractValue()));
+sink.SetHeader(USERVER_NAMESPACE::http::headers::kContentType, "application/json");
+
+  http_request.data(ToString(USERVER_NAMESPACE::formats::json::ValueBuilder(request.body).ExtractValue()));
 
 sink.Flush();
 
