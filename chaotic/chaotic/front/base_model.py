@@ -2,6 +2,8 @@ from typing import Any
 
 import pydantic
 
+UNSUPPORTED_DEFAULT_MSG = '"default" is supported only for boolean, integer, number, string and array schemas'
+
 IGNORE_PREFIXES = {
     'x-taxi-py3',
     'x-taxi-go',
@@ -42,6 +44,9 @@ class BaseModel(pydantic.BaseModel):
             if field.startswith('x-'):
                 self.x_properties[field] = self.__pydantic_extra__[field]
                 continue
+
+            if field == 'default':
+                raise Exception(UNSUPPORTED_DEFAULT_MSG)
 
             known = [key for key in self.__pydantic_fields__ if not self.__pydantic_fields__[key].exclude]
             known.sort()

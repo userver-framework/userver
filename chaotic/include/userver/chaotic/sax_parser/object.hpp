@@ -52,6 +52,11 @@ struct FieldModeSubscriber<Defaulted<DescriptorType, T, Default>> {
     using Type = formats::json::parser::SubscriberSink<TypeOfDescriptor<DescriptorType>>;
 };
 
+template <typename DescriptorType>
+struct FieldModeSubscriber<MemberDefaulted<DescriptorType>> {
+    using Type = formats::json::parser::SubscriberSink<TypeOfDescriptor<DescriptorType>>;
+};
+
 template <typename Field>
 using FieldSubscriber = typename FieldModeSubscriber<typename Field::ModeDescriptorType>::Type;
 

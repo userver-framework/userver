@@ -41,6 +41,7 @@ class GeneratorState:
     types: dict[str, cpp_types.CppType]
     refs: dict[types.Schema, str]  # type: ignore
     ref_objects: list[cpp_types.CppRef]
+    arrays_with_default: list[cpp_types.CppArray]
     external_types: dict[types.Schema, cpp_types.CppType]  # type: ignore
     seen_includes: set[str]
 
@@ -105,6 +106,7 @@ class Generator:
             types=collections.OrderedDict(),
             refs={},
             ref_objects=[],
+            arrays_with_default=[],
             external_types={},
             seen_includes=set(),
         )
@@ -142,6 +144,7 @@ class Generator:
 
         self.fixup_refs()
         self.fixup_formats()
+        self._validate_array_defaults()
 
         return self._state.types
 
@@ -240,6 +243,14 @@ class Generator:
             ref_.indirect = ref_.json_schema.indirect
             ref_.self_ref = ref_.json_schema.self_ref
             ref_.cpp_name = name
+
+    def _validate_array_defaults(self) -> None:
+        for array in self._state.arrays_with_default:
+            try:
+                array.default_items()
+            except ValueError as exc:
+                assert array.json_schema
+                self._raise(array.json_schema, str(exc))
 
     def fixup_formats(self) -> None:
         chooser = FormatChooser(list(self._state.types.values()))
@@ -608,7 +619,7 @@ class Generator:
             container = user_cpp_type
             user_cpp_type = None
 
-        return cpp_types.CppArray(
+        array = cpp_types.CppArray(
             raw_cpp_type=name,
             json_schema=schema,
             nullable=schema.nullable,
@@ -620,7 +631,11 @@ class Generator:
                 maxItems=schema.maxItems,
                 uniqueItems=schema.uniqueItems,
             ),
+            default=schema.default,
         )
+        if schema.default is not None:
+            self._state.arrays_with_default.append(array)
+        return array
 
     def _gen_all_of(
         self,

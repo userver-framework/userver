@@ -2,6 +2,7 @@
 from collections.abc import Callable
 import dataclasses
 import itertools
+import math
 from typing import Any
 
 from chaotic.back.cpp import type_name
@@ -727,7 +728,25 @@ class CppStructField:
         else:
             return f'{default}'
 
+    def _array_with_default(self) -> 'CppArray | None':
+        schema = self.schema
+        while isinstance(schema, CppRef):
+            schema = schema.orig_cpp_type
+        if isinstance(schema, CppArray) and schema.default is not None:
+            return schema
+        return None
+
+    def has_default_constant(self) -> bool:
+        return self._default() is not None and self._array_with_default() is None
+
     def get_default(self) -> str:
+        array = self._array_with_default()
+        if array:
+            initializer = array.default_initializer()
+            if isinstance(self.schema, CppRef) and self.schema.indirect:
+                return f'{array.cpp_user_name()}{{{initializer}}}'
+            return initializer
+
         default = self._get_default()
         if not default:
             return default
@@ -741,6 +760,11 @@ class CppStructField:
             return f'USERVER_NAMESPACE::chaotic::ConvertTo<{type_}>({default})'
 
         return f'{default}'
+
+    def get_parse_default(self) -> str:
+        if self._array_with_default():
+            return f'{self.cpp_field_type()}{{{self.get_default()}}}'
+        return self.get_default()
 
     def cpp_field_type(self) -> str:
         type_ = self.schema
@@ -809,6 +833,8 @@ class CppStructField:
         elif self._default() is None:
             assert not nullable
             mode = f'{ch}::Optional<{type_}>'
+        elif self._array_with_default():
+            mode = f'{ch}::MemberDefaulted<{type_}>'
         else:
             default_var = f'{object_type}::kFieldDefault{name}'
             mode = f'{ch}::Defaulted<{type_}, {self.get_default_cpp_type()}, {default_var}>'
@@ -996,6 +1022,7 @@ class CppArray(CppType):
     items: CppType
     container: str
     validators: CppArrayValidator
+    default: list[Any] | None = None
 
     KNOWN_X_PROPERTIES = [
         'x-usrv-cpp-type',
@@ -1005,6 +1032,16 @@ class CppArray(CppType):
     ]
 
     __hash__ = CppType.__hash__
+
+    def default_items(self) -> list[str]:
+        assert self.default is not None
+        return [_array_default_item(self.items, value) for value in self.default]
+
+    def default_initializer(self) -> str:
+        items = ', '.join(self.default_items())
+        if not self.user_cpp_type:
+            return items
+        return f'USERVER_NAMESPACE::chaotic::ConvertTo<{self.cpp_user_name()}>({self._cpp_name()}{{{items}}})'
 
     def _cpp_name(self) -> str:
         return f'{self.container}<{self.items.cpp_user_name()}>'
@@ -1035,6 +1072,8 @@ class CppArray(CppType):
         includes = self.get_includes_by_cpp_type(self.container) + self.items.declaration_includes()
         if self.user_cpp_type:
             includes += self.get_includes_by_cpp_type(self.user_cpp_type)
+            if self.default is not None:
+                includes.append('userver/chaotic/convert.hpp')
         return includes
 
     def definition_includes(self) -> list[str]:
@@ -1054,6 +1093,76 @@ class CppArray(CppType):
 
     def needs_new_type(self) -> bool:
         return False
+
+
+UNSUPPORTED_ARRAY_DEFAULT_ITEMS_MSG = (
+    'non-empty "default" is supported only for arrays of booleans, integers, numbers, strings and string enums '
+    'without x-usrv-cpp-type, x-usrv-cpp-typedef-tag or format'
+)
+
+CPP_STRING_ESCAPES = {
+    '"': '\\"',
+    '\\': '\\\\',
+    '\n': '\\n',
+    '\r': '\\r',
+    '\t': '\\t',
+}
+
+ARRAY_DEFAULT_ITEM_KINDS = {
+    'bool': 'boolean',
+    'int': 'integer',
+    'std::int32_t': 'integer',
+    'std::int64_t': 'integer',
+    'double': 'number',
+    'std::string': 'string',
+}
+
+FIRST_PRINTABLE_ASCII = 0x20
+ASCII_DELETE = 0x7F
+
+
+def _cpp_string_literal(value: str) -> str:
+    escaped = []
+    for symbol in value:
+        if symbol in CPP_STRING_ESCAPES:
+            escaped.append(CPP_STRING_ESCAPES[symbol])
+        elif ord(symbol) < FIRST_PRINTABLE_ASCII or ord(symbol) == ASCII_DELETE:
+            escaped.append(f'\\{ord(symbol):03o}')
+        else:
+            escaped.append(symbol)
+    return '"' + ''.join(escaped) + '"'
+
+
+def _array_default_item(items: CppType, value: Any) -> str:
+    while isinstance(items, CppRef) and not items.indirect:
+        items = items.orig_cpp_type
+
+    if isinstance(items, CppStringEnum):
+        for enum_item in items.enums:
+            if enum_item.raw_name == value:
+                return f'{items.name}::{enum_item.cpp_name}'
+        raise ValueError(f'"default" item {value!r} is not one of {[item.raw_name for item in items.enums]}')
+
+    if not isinstance(items, CppPrimitiveType) or items.user_cpp_type:
+        raise ValueError(UNSUPPORTED_ARRAY_DEFAULT_ITEMS_MSG)
+
+    item_type = ARRAY_DEFAULT_ITEM_KINDS.get(str(items.raw_cpp_type))
+    if item_type is None:
+        raise ValueError(UNSUPPORTED_ARRAY_DEFAULT_ITEMS_MSG)
+    if item_type == 'boolean' and isinstance(value, bool):
+        return 'true' if value else 'false'
+    if item_type == 'integer' and isinstance(value, int) and not isinstance(value, bool):
+        return str(value)
+    if (
+        item_type == 'number'
+        and isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+    ):
+        return repr(float(value))
+    if item_type == 'string' and isinstance(value, str):
+        return _cpp_string_literal(value)
+    raise ValueError(f'"default" item {value!r} does not match the items type "{item_type}"')
 
 
 def flatten(data: list) -> list:

@@ -31,6 +31,12 @@ struct Defaulted {
     static constexpr const T& DefaultValue = Default;
 };
 
+template <typename DescriptorType>
+struct MemberDefaulted {
+    using Value = TypeOfDescriptor<DescriptorType>;
+    using Descriptor = DescriptorType;
+};
+
 template <typename T>
 struct IsDefaulted : std::false_type {};
 
