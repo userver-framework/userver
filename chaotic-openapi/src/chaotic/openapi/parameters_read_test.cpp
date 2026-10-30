@@ -207,4 +207,36 @@ UTEST(OpenapiParametersRead, OptionalExplodePresentReturnsVector) {
     EXPECT_EQ(*val, (std::vector<std::string>{"a", "b"}));
 }
 
+// --- Unparsable value → ClientError naming the parameter ---
+
+UTEST(OpenapiParametersRead, RequiredInvalidValueNamesParameter) {
+    auto request = server::http::HttpRequestBuilder().AddRequestArg("foo", "twelve").Build();
+    try {
+        co::ReadParameter<co::TrivialParameter<co::In::kQuery, kName, int>>(*request);
+        FAIL() << "Expected ClientError";
+    } catch (const server::handlers::ClientError& e) {
+        EXPECT_TRUE(e.GetExternalErrorBody().starts_with("Invalid parameter 'foo': ")) << e.GetExternalErrorBody();
+    }
+}
+
+UTEST(OpenapiParametersRead, OptionalInvalidValueNamesParameter) {
+    auto request = server::http::HttpRequestBuilder().AddRequestArg("foo", "twelve").Build();
+    try {
+        co::ReadParameterOptional<co::TrivialParameter<co::In::kQuery, kName, int>>(*request);
+        FAIL() << "Expected ClientError";
+    } catch (const server::handlers::ClientError& e) {
+        EXPECT_TRUE(e.GetExternalErrorBody().starts_with("Invalid parameter 'foo': ")) << e.GetExternalErrorBody();
+    }
+}
+
+UTEST(OpenapiParametersRead, InvalidArrayItemNamesParameter) {
+    auto request = server::http::HttpRequestBuilder().AddRequestArg("foo", "1,two").Build();
+    try {
+        co::ReadParameter<co::ArrayParameter<co::In::kQuery, kName, ',', int>>(*request);
+        FAIL() << "Expected ClientError";
+    } catch (const server::handlers::ClientError& e) {
+        EXPECT_TRUE(e.GetExternalErrorBody().starts_with("Invalid parameter 'foo': ")) << e.GetExternalErrorBody();
+    }
+}
+
 USERVER_NAMESPACE_END

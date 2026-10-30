@@ -37,7 +37,7 @@ Enum::Foo Parse(
     if (result.has_value()) {
         return *result;
     }
-    USERVER_NAMESPACE::chaotic::ThrowForValue(fmt::format("Invalid enum value ({}) for type ::ns::Enum::Foo", value), val);
+    USERVER_NAMESPACE::chaotic::ThrowForValue(fmt::format("Invalid enum value ({}), expected one of: {}", value, k__ns__Enum__Foo_Mapping.DescribeSecond()), val);
 }
 
 template <USERVER_NAMESPACE::formats::common::IsFormatValue Value>
