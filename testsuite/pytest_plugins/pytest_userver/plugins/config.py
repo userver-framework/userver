@@ -706,6 +706,7 @@ def userver_config_testsuite(pytestconfig, mockserver_info) -> ServiceConfigPatc
         testsuite_support = components['testsuite-support']
         testsuite_support['testsuite-increased-timeout'] = '30s'
         testsuite_support['testsuite-grpc-is-tls-enabled'] = False
+        testsuite_support['testsuite-mysql-is-tls-enabled'] = False
         _set_postgresql_options(testsuite_support)
         _set_redis_timeout(testsuite_support)
         service_runner = pytestconfig.option.service_runner_mode

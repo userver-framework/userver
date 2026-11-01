@@ -8,6 +8,8 @@
 
 #include <userver/storages/mysql/cluster.hpp>
 #include <userver/storages/secdist/component.hpp>
+#include <userver/testsuite/testsuite_support.hpp>
+#include <userver/utils/optional_ref.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #ifndef ARCADIA_ROOT
@@ -20,6 +22,15 @@ namespace storages::mysql {
 
 namespace {
 
+utils::OptionalRef<const testsuite::MysqlControl> FindTestsuiteMysqlControl(const components::ComponentContext& context
+) {
+    auto* const testsuite_support = context.FindComponentOptional<components::TestsuiteSupport>();
+    if (!testsuite_support) {
+        return std::nullopt;
+    }
+    return testsuite_support->GetMysqlControl();
+}
+
 std::shared_ptr<storages::mysql::Cluster> CreateCluster(
     clients::dns::Resolver& resolver,
     const components::ComponentConfig& config,
@@ -29,7 +40,7 @@ std::shared_ptr<storages::mysql::Cluster> CreateCluster(
     const auto& settings_multi = secdist.Get<storages::mysql::settings::MysqlSettingsMulti>();
     const auto& settings = settings_multi.Get(storages::mysql::settings::GetSecdistAlias(config));
 
-    return std::make_shared<storages::mysql::Cluster>(resolver, settings, config);
+    return std::make_shared<storages::mysql::Cluster>(resolver, settings, config, FindTestsuiteMysqlControl(context));
 }
 
 }  // namespace

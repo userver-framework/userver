@@ -9,6 +9,8 @@
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/components/component_fwd.hpp>
 #include <userver/engine/deadline.hpp>
+#include <userver/testsuite/mysql_control.hpp>
+#include <userver/utils/optional_ref.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 #include <userver/storages/mysql/cluster_host_type.hpp>
@@ -39,10 +41,14 @@ class TopologyBase;
 class Cluster final {
 public:
     /// @brief Cluster constructor
+    ///
+    /// @param testsuite_mysql_control testsuite overrides, see
+    /// @ref testsuite::MysqlControl; no overrides are applied if absent
     Cluster(
         clients::dns::Resolver& resolver,
         const settings::MysqlSettings& settings,
-        const components::ComponentConfig& config
+        const components::ComponentConfig& config,
+        utils::OptionalRef<const testsuite::MysqlControl> testsuite_mysql_control = std::nullopt
     );
     /// @brief Cluster destructor
     ~Cluster();
