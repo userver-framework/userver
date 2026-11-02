@@ -2,6 +2,7 @@
 
 #include <exception>
 #include <memory>
+#include <unordered_map>
 #include <vector>
 
 #include <server/http/request_handler_base.hpp>
@@ -56,13 +57,30 @@ private:
     struct RequestTaskContext final {
         RequestTask task;
         HttpRequestPtr request;
+        // Set for the task that runs a protocol tunnelled over an already answered
+        // stream; such a task must not produce a response of its own.
+        bool is_upgraded{false};
+    };
+
+    // An in-flight request whose response is not submitted yet. If its handler
+    // streams the body, the response is submitted upon the first streaming
+    // event instead of on handler task completion.
+    struct PendingResponseContext final {
+        HttpRequestPtr request;
+        bool submit_attempted{false};
     };
 
     void ListenForRequests();
     RequestTaskContext StartRequestTask(std::shared_ptr<http::HttpRequest>&& request_ptr) noexcept;
     void StartAllRequestTasks(engine::WaitAnyContext& wait_any);
-    void OnRequestTaskFinished(std::uint64_t event_id) noexcept;
+    void OnRequestTaskFinished(std::uint64_t event_id, engine::WaitAnyContext& wait_any) noexcept;
+    void HandleStreamingEvents();
+    void SubmitStreamedResponseIfPending(std::int32_t stream_id) noexcept;
+    void StartUpgradedTask(HttpRequestPtr&& request_ptr, engine::WaitAnyContext& wait_any) noexcept;
+    void FinishUpgradedStream(const http::HttpRequest& request) noexcept;
     void SendResponse(http::HttpRequest& request) noexcept;
+    void SubmitResponse(http::HttpRequest& request) noexcept;
+    void FinalizeResponse(http::HttpRequest& request) noexcept;
 
     std::unique_ptr<http::Http2Session> MakeParser();
     void EnsureHttp2();
@@ -82,6 +100,7 @@ private:
     engine::io::Sockaddr remote_address_;
     std::unique_ptr<http::Http2Session> parser_;
     utils::SlotMap<RequestTaskContext, std::vector> handler_tasks_;
+    std::unordered_map<std::int32_t, PendingResponseContext> pending_responses_;
 };
 
 }  // namespace server::net

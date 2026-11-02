@@ -33,6 +33,11 @@ Note that all the @ref userver_components "components" and
 @ref userver_http_handlers "handlers" have their static options additionally
 described in docs.
 
+The handler above also serves clients that bootstrap the websocket over
+HTTP/2.0 with the extended `CONNECT` method of RFC 8441, provided the listener
+enables it — see
+@ref scripts/docs/en/userver/http_server.md "the HTTP server docs".
+
 
 ### int main()
 
