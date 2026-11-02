@@ -312,18 +312,12 @@ UTEST_DEATH(StatisticsHistogramDeathTest, InvalidBuckets) {
 
 class StatisticsHistogramMetricTag : public testing::Test {
 protected:
-    StatisticsHistogramMetricTag()
-        : metrics_storage_holder_(metrics_storage_.RegisterIn(storage_))
-    {}
-
-    utils::statistics::Storage& GetStorage() { return storage_; }
+    StatisticsHistogramMetricTag() = default;
 
     utils::statistics::MetricsStorage& GetMetricsStorage() { return metrics_storage_; }
 
 private:
-    utils::statistics::Storage storage_;
     utils::statistics::MetricsStorage metrics_storage_;
-    std::vector<utils::statistics::Entry> metrics_storage_holder_;
 };
 
 void AssertAccounted10(utils::statistics::HistogramView histogram) {

@@ -52,7 +52,6 @@ public:
 private:
     utils::statistics::Storage storage_;
     utils::statistics::MetricsStoragePtr metrics_storage_;
-    std::vector<utils::statistics::Entry> metrics_storage_registration_;
 };
 
 template <>

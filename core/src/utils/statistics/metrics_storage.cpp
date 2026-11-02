@@ -1,6 +1,7 @@
 #include <userver/utils/statistics/metrics_storage.hpp>
 
 #include <functional>
+#include <optional>
 #include <typeindex>
 #include <unordered_set>
 
@@ -10,7 +11,10 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/static_registration.hpp>
+#include <userver/utils/lazy_prvalue.hpp>
+#include <userver/utils/resource_scopes.hpp>
 #include <userver/utils/statistics/storage.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -74,18 +78,23 @@ MetricsStorage::MetricsStorage(const std::optional<std::vector<std::string>>& al
     : metrics_(impl::InstantiateMetrics(allowed_metric_paths))
 {}
 
-std::vector<Entry> MetricsStorage::RegisterIn(Storage& statistics_storage) {
-    std::vector<Entry> holders;
-    holders.reserve(metrics_.size());
-
-    for (auto& [key, metric_ptr] : metrics_) {
+void DumpMetric(Writer& writer, const MetricsStorage& storage) {
+    for (const auto& [key, metric_ptr] : storage.metrics_) {
         auto& metric = *metric_ptr;
-        holders.push_back(statistics_storage.RegisterWriter(key.path, [&metric](utils::statistics::Writer& w) {
-            metric.DumpToWriter(w);
-        }));
+        try {
+            std::optional<Writer> metric_writer;
+            if (!key.path.empty()) {
+                metric_writer.emplace(utils::LazyPrvalue([&] { return writer[key.path]; }));
+            }
+            Writer& metric_path_writer = metric_writer ? *metric_writer : writer;
+            if (metric_path_writer) {
+                metric.DumpToWriter(metric_path_writer);
+            }
+        } catch (const std::exception& e) {
+            UASSERT_MSG(false, fmt::format("Failed to write metrics for path '{}': {}", key.path, e.what()));
+            LOG_ERROR() << "Failed to write metrics for path '" << key.path << "': " << e;
+        }
     }
-
-    return holders;
 }
 
 void MetricsStorage::ResetMetrics() {
@@ -94,6 +103,33 @@ void MetricsStorage::ResetMetrics() {
     for (auto& [_, value] : metrics_) {
         value->Reset();
     }
+}
+
+namespace {
+
+struct MetricsStorageHolder final {
+    MetricsStorageHolder(
+        utils::ResourceScopeStorage& scopes,
+        Storage& storage,
+        const std::optional<std::vector<std::string>>& allowed_metric_paths
+    )
+        : metrics_storage(allowed_metric_paths)
+    {
+        storage.RegisterWriter(scopes, "", [&metrics = metrics_storage](Writer& writer) { writer = metrics; });
+    }
+
+    MetricsStorage metrics_storage;
+};
+
+}  // namespace
+
+MetricsStoragePtr MakeBoundMetricsStorage(
+    Storage& storage,
+    const std::optional<std::vector<std::string>>& allowed_metric_paths
+) {
+    auto holder = utils::MakeWithResourceScopes<MetricsStorageHolder>(storage, allowed_metric_paths);
+    MetricsStorage* metrics = &holder->metrics_storage;
+    return MetricsStoragePtr(std::move(holder), metrics);
 }
 
 }  // namespace utils::statistics
