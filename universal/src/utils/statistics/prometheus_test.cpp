@@ -1,9 +1,11 @@
 #include <algorithm>
 
-#include <userver/utest/utest.hpp>
+#include <gtest/gtest.h>
+
+#include <userver/utest/assert_macros.hpp>
 #include <userver/utils/statistics/pretty_format.hpp>
 #include <userver/utils/statistics/prometheus.hpp>
-#include <userver/utils/text.hpp>
+#include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -59,7 +61,7 @@ TEST(MetricsPrometheus, ToPrometheusLabel) {
     EXPECT_EQ(ToPrometheusName("la:bel"), "la_bel");
 }
 
-UTEST(MetricsPrometheus, Tvm2TicketsCache) {
+TEST(MetricsPrometheus, Tvm2TicketsCache) {
     auto producer = [](Writer& writer) {
         const LabelView cache_name{"cache_name", "tvm2-tickets-cache"};
         writer["cache"]["full"]["update"]["attempts_count"].ValueWithLabels(56, cache_name);
@@ -107,7 +109,7 @@ cache_current_documents_count{application="processing",cache_name="tvm2-tickets-
     TestToMetricsPrometheus(producer, pretty, expected.substr(1));
 }
 
-UTEST(Converter, SolomonChildrenLabel) {
+TEST(Converter, SolomonChildrenLabel) {
     auto producer = [](Writer& writer) {
         auto some_key = writer["base_key"]["some_key"];
         some_key["ag"]["test"].ValueWithLabels(76, {"child_label_name", "label_value_1"});
@@ -139,7 +141,7 @@ base_key_some_key_field3{application="processing",overridden_label_name="overrid
     TestToMetricsPrometheus(producer, pretty, expected.substr(1));
 }
 
-UTEST(Converter, SolomonChildrenLabelEscaping) {
+TEST(Converter, SolomonChildrenLabelEscaping) {
     auto producer = [](Writer& writer) {
         auto some_key = writer["base_key"]["some_key"];
         some_key[R"(a.#$/\ _{}g)"]["test"]
@@ -177,7 +179,7 @@ base_key_some_key_field3{application="processing",overridden_label____________na
     TestToMetricsPrometheus(producer, pretty, expected.substr(1));
 }
 
-UTEST(MetricsPrometheus, LabelValueBackslashAndNewlineEscaped) {
+TEST(MetricsPrometheus, LabelValueBackslashAndNewlineEscaped) {
     auto producer = [](Writer& writer) {
         // A label value with an embedded line feed and a trailing backslash.
         writer["root"]["value"].ValueWithLabels(1, {"label_name", "a\nb\\"});
@@ -197,7 +199,7 @@ UTEST(MetricsPrometheus, LabelValueBackslashAndNewlineEscaped) {
     EXPECT_EQ(std::ranges::count(result, '\n'), 2) << result;
 }
 
-UTEST(MetricsPrometheus, SimpleStatistics) {
+TEST(MetricsPrometheus, SimpleStatistics) {
     auto producer = [](Writer& writer) {
         writer["parent"]["child1"] = 1;
         writer["parent"]["child2"] = 2;
@@ -216,7 +218,7 @@ parent_child2{application="processing"} 2
     TestToMetricsPrometheus(producer, pretty, expected.substr(1));
 }
 
-UTEST(MetricsPrometheus, SimpleParentRenamed) {
+TEST(MetricsPrometheus, SimpleParentRenamed) {
     auto producer = [](Writer& writer) { writer["parent"]["child"] = 8; };
 
     constexpr std::string_view pretty = "parent.child:\tGAUGE\t8\n";
@@ -228,7 +230,7 @@ parent_child{application="processing"} 8
     TestToMetricsPrometheus(producer, pretty, expected.substr(1));
 }
 
-UTEST(MetricsPrometheus, SimpleParentSkipped) {
+TEST(MetricsPrometheus, SimpleParentSkipped) {
     auto producer = [](Writer& writer) { writer["child"] = 8; };
 
     constexpr std::string_view pretty = "child:\tGAUGE\t8\n";
@@ -240,7 +242,7 @@ child{application="processing"} 8
     TestToMetricsPrometheus(producer, pretty, expected.substr(1));
 }
 
-UTEST(MetricsPrometheus, MetricTypes) {
+TEST(MetricsPrometheus, MetricTypes) {
     auto producer = [](Writer& writer) {
         writer["test_metric_types"]["rate-metric"] = Rate{5};
         writer["test_metric_types"]["igauge-metric"] = 6;

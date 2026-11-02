@@ -3,7 +3,6 @@
 #include <userver/formats/json/string_builder.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/overloaded.hpp>
-#include <userver/utils/statistics/storage.hpp>
 
 #include <utils/statistics/impl/histogram_serialization.hpp>
 #include <utils/statistics/solomon_limits.hpp>
@@ -137,24 +136,6 @@ private:
 };
 
 }  // namespace
-
-std::string ToSolomonFormat(
-    const Storage& statistics,
-    const std::unordered_map<std::string, std::string>& common_labels,
-    const Request& request
-) {
-    formats::json::StringBuilder builder;
-    SolomonJsonBuilder solomon_json_builder(builder);
-    {
-        const formats::json::StringBuilder::ObjectGuard object_guard(builder);
-        solomon_json_builder.AddCommonLabels(common_labels);
-
-        builder.Key("metrics");
-        const formats::json::StringBuilder::ArrayGuard array_guard(builder);
-        VisitMetrics(statistics, solomon_json_builder, request);
-    }
-    return builder.GetString();
-}
 
 std::string ToSolomonFormat(
     WriterFuncRef writer,

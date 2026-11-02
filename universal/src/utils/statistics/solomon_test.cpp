@@ -1,8 +1,10 @@
 #include <algorithm>
 
+#include <gtest/gtest.h>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
-#include <userver/utest/utest.hpp>
+
+#include <userver/utest/assert_macros.hpp>
 #include <userver/utils/statistics/pretty_format.hpp>
 #include <userver/utils/statistics/solomon.hpp>
 
@@ -44,7 +46,7 @@ void TestToMetricsSolomon(WriterFuncRef writer, std::string_view pretty_expected
 
 }  // namespace
 
-UTEST(MetricsSolomon, Tvm2TicketsCache) {
+TEST(MetricsSolomon, Tvm2TicketsCache) {
     auto producer = [](Writer& writer) {
         const LabelView cache_name{"cache_name", "tvm2-tickets-cache"};
         writer["cache"]["full"]["update"]["attempts_count"].ValueWithLabels(56, cache_name);
@@ -83,7 +85,7 @@ UTEST(MetricsSolomon, Tvm2TicketsCache) {
     TestToMetricsSolomon(producer, pretty, expected);
 }
 
-UTEST(MetricsSolomon, SolomonChildrenLabel) {
+TEST(MetricsSolomon, SolomonChildrenLabel) {
     auto producer = [](Writer& writer) {
         auto some_key = writer["base_key"]["some_key"];
         some_key["ag"]["test"].ValueWithLabels(76, {"child_label_name", "label_value_1"});
@@ -110,7 +112,7 @@ UTEST(MetricsSolomon, SolomonChildrenLabel) {
     TestToMetricsSolomon(producer, pretty, expected);
 }
 
-UTEST(MetricsSolomon, SolomonChildrenLabelEscaping) {
+TEST(MetricsSolomon, SolomonChildrenLabelEscaping) {
     auto producer = [](Writer& writer) {
         auto some_key = writer["base_key"]["some_key"];
         some_key[R"(a.#$/\ _{}g)"]["test"]
@@ -139,7 +141,7 @@ UTEST(MetricsSolomon, SolomonChildrenLabelEscaping) {
     TestToMetricsSolomon(producer, pretty, expected);
 }
 
-UTEST(MetricsSolomon, SimpleStatistics) {
+TEST(MetricsSolomon, SimpleStatistics) {
     auto producer = [](Writer& writer) {
         writer["parent"]["child1"] = 1;
         writer["parent"]["child2"] = 2;
@@ -156,7 +158,7 @@ UTEST(MetricsSolomon, SimpleStatistics) {
     TestToMetricsSolomon(producer, pretty, expected);
 }
 
-UTEST(MetricsSolomon, SimpleParentRenamed) {
+TEST(MetricsSolomon, SimpleParentRenamed) {
     auto producer = [](Writer& writer) { writer["parent"]["child"] = 8; };
 
     constexpr std::string_view pretty = "parent.child:\tGAUGE\t8\n";
@@ -167,7 +169,7 @@ UTEST(MetricsSolomon, SimpleParentRenamed) {
     TestToMetricsSolomon(producer, pretty, expected);
 }
 
-UTEST(MetricsSolomon, SimpleParentSkipped) {
+TEST(MetricsSolomon, SimpleParentSkipped) {
     auto producer = [](Writer& writer) { writer["child"] = 8; };
 
     constexpr std::string_view pretty = "child:\tGAUGE\t8\n";
@@ -178,7 +180,7 @@ UTEST(MetricsSolomon, SimpleParentSkipped) {
     TestToMetricsSolomon(producer, pretty, expected);
 }
 
-UTEST(MetricsSolomon, MetricTypes) {
+TEST(MetricsSolomon, MetricTypes) {
     auto producer = [](Writer& writer) {
         writer["test_metric_types"]["rate-metric"] = Rate{5};
         writer["test_metric_types"]["igauge-metric"] = 6;

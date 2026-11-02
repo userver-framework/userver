@@ -4,7 +4,6 @@
 
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/utils/overloaded.hpp>
-#include <userver/utils/statistics/storage.hpp>
 #include <utils/statistics/impl/histogram_serialization.hpp>
 #include <utils/statistics/impl/rate_serialization.hpp>
 
@@ -49,13 +48,6 @@ private:
 };
 
 }  // namespace
-
-std::string ToJsonFormat(const Storage& statistics, const Request& request) {
-    JsonFormat builder{};
-    VisitMetrics(statistics, builder, request);
-    return std::move(builder).GetString();
-}
-
 std::string ToJsonFormat(WriterFuncRef writer, const Request& request) {
     JsonFormat builder{};
     VisitMetrics(writer, builder, request);

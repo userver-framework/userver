@@ -7,7 +7,6 @@
 #include <unordered_map>
 
 #include <userver/utils/statistics/request.hpp>
-#include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -60,16 +59,19 @@ namespace utils::statistics {
 /// @endcode
 
 std::string ToSolomonFormat(
-    const Storage& statistics,
-    const std::unordered_map<std::string, std::string>& common_labels,
-    const Request& statistics_request = {}
-);
-
-std::string ToSolomonFormat(
     WriterFuncRef writer,
     const std::unordered_map<std::string, std::string>& common_labels,
     const Request& statistics_request = {}
 );
+
+/// @overload
+std::string ToSolomonFormat(
+    const HasWriterSupport auto& metric,
+    const std::unordered_map<std::string, std::string>& common_labels,
+    const Request& statistics_request = {}
+) {
+    return ToSolomonFormat([&metric](Writer& writer) { writer = metric; }, common_labels, statistics_request);
+}
 
 }  // namespace utils::statistics
 

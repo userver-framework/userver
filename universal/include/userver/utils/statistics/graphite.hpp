@@ -6,7 +6,6 @@
 #include <string>
 
 #include <userver/utils/statistics/request.hpp>
-#include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -14,9 +13,12 @@ USERVER_NAMESPACE_BEGIN
 namespace utils::statistics {
 
 /// Output `statistics` in Graphite format with tags (labels).
-std::string ToGraphiteFormat(const Storage& statistics, const Request& statistics_request = {});
-
 std::string ToGraphiteFormat(WriterFuncRef writer, const Request& statistics_request = {});
+
+/// @overload
+std::string ToGraphiteFormat(const HasWriterSupport auto& metric, const Request& statistics_request = {}) {
+    return ToGraphiteFormat([&metric](Writer& writer) { writer = metric; }, statistics_request);
+}
 
 }  // namespace utils::statistics
 

@@ -127,12 +127,22 @@ class SnapshotStorageSlicing : public testing::TestWithParam<bool> {};
 
 }  // namespace
 
+class ToyAndApiMetrics {
+public:
+    ToyAndApiMetrics(utils::ResourceScopeStorage& scopes, utils::statistics::Storage& storage) {
+        storage.RegisterWriter(scopes, "toy", [](utils::statistics::Writer& writer) {
+            writer["foo"] = std::int64_t{1};
+            writer["bar"] = std::int64_t{2};
+        });
+        storage.RegisterWriter(scopes, "api", [](utils::statistics::Writer& writer) {
+            writer["requests"].ValueWithLabels(std::int64_t{3}, {{"service", "orders"}, {"code", "200"}});
+        });
+    }
+};
+
 UTEST_P(SnapshotStorageSlicing, ToJsonFormatExportsStoredPathsAndLabels) {
     utils::statistics::Storage storage;
-    const utils::WithResourceScopes<ToyMetrics> toy(std::in_place, storage);
-    auto scope = storage.RegisterWriter("api", [](utils::statistics::Writer& writer) {
-        writer["requests"].ValueWithLabels(std::int64_t{3}, {{"service", "orders"}, {"code", "200"}});
-    });
+    const utils::WithResourceScopes<ToyAndApiMetrics> metrics(std::in_place, storage);
     const utils::statistics::Snapshot snapshot{
         storage,
         {

@@ -342,25 +342,22 @@ UTEST_F(StatisticsHistogramMetricTag, RuntimeSample) {
 
 class StatisticsHistogramFormat : public testing::Test {
 protected:
-    StatisticsHistogramFormat() {
-        AccountSome(histogram_);
-        statistics_holder_ = storage_.RegisterWriter("test", [&](utils::statistics::Writer& writer) {
-            writer = histogram_;
-        });
-    }
+    StatisticsHistogramFormat() { AccountSome(histogram_); }
 
-    const utils::statistics::Storage& GetStorage() const { return storage_; }
+    void WriteHistogram(utils::statistics::Writer& writer) const { writer["test"] = histogram_; }
 
-private:
-    utils::statistics::Storage storage_;
+protected:
     utils::statistics::Histogram histogram_{Bounds()};
-    utils::statistics::Entry statistics_holder_;
 };
 
 using StatisticsHistogramFormatDeathTest = StatisticsHistogramFormat;
 
 UTEST_F(StatisticsHistogramFormat, JsonFormat) {
-    EXPECT_EQ(formats::json::FromString(utils::statistics::ToJsonFormat(GetStorage())), formats::json::FromString(R"(
+    EXPECT_EQ(
+        formats::json::FromString(utils::statistics::ToJsonFormat([this](utils::statistics::Writer& writer) {
+            WriteHistogram(writer);
+        })),
+        formats::json::FromString(R"(
 {
   "test": [
     {
@@ -375,12 +372,13 @@ UTEST_F(StatisticsHistogramFormat, JsonFormat) {
     }
   ]
 }
-      )"));
+      )")
+    );
 }
 
 UTEST_F(StatisticsHistogramFormat, PrettyFormat) {
     EXPECT_EQ(
-        utils::statistics::ToPrettyFormat(GetStorage()),
+        utils::statistics::ToPrettyFormat([this](utils::statistics::Writer& writer) { WriteHistogram(writer); }),
         "test:\tHIST_RATE\t[1.5]=1,[5]=1,[42]=5,[60]=0,[inf]=1\n"
     );
 }
@@ -395,7 +393,10 @@ test_bucket{le="+Inf"} 8
 test_count{} 8
 test_sum{} 233
 )";
-    EXPECT_EQ(utils::statistics::ToPrometheusFormat(GetStorage()), expected);
+    EXPECT_EQ(
+        utils::statistics::ToPrometheusFormat([this](utils::statistics::Writer& writer) { WriteHistogram(writer); }),
+        expected
+    );
 }
 
 UTEST_F(StatisticsHistogramFormat, PrometheusUntyped) {
@@ -408,17 +409,15 @@ test_bucket{le="+Inf"} 8
 test_count{} 8
 test_sum{} 233
 )";
-    EXPECT_EQ(utils::statistics::ToPrometheusFormatUntyped(GetStorage()), expected);
+    EXPECT_EQ(
+        utils::statistics::ToPrometheusFormatUntyped([this](utils::statistics::Writer& writer) {
+            WriteHistogram(writer);
+        }),
+        expected
+    );
 }
 
 UTEST_F(StatisticsHistogramFormat, CustomLabels) {
-    utils::statistics::Storage storage;
-    utils::statistics::Histogram histogram{Bounds()};
-    AccountSome(histogram);
-    auto statistics_holder = storage.RegisterWriter("test", [&](utils::statistics::Writer& writer) {
-        writer.ValueWithLabels(histogram, {{"custom_label_1", "1"}, {"custom_label_2", "2"}});
-    });
-
     constexpr std::string_view expected = R"(# TYPE test histogram
 test_bucket{le="1.5",custom_label_1="1",custom_label_2="2"} 1
 test_bucket{le="5",custom_label_1="1",custom_label_2="2"} 2
@@ -428,18 +427,32 @@ test_bucket{le="+Inf",custom_label_1="1",custom_label_2="2"} 8
 test_count{custom_label_1="1",custom_label_2="2"} 8
 test_sum{custom_label_1="1",custom_label_2="2"} 233
 )";
-    EXPECT_EQ(utils::statistics::ToPrometheusFormat(storage), expected);
+    EXPECT_EQ(
+        utils::statistics::ToPrometheusFormat([this](utils::statistics::Writer& writer) {
+            writer["test"].ValueWithLabels(histogram_, {{"custom_label_1", "1"}, {"custom_label_2", "2"}});
+        }),
+        expected
+    );
 }
 
 // TODO support HistogramView in Graphite metrics
 UTEST_F_DEATH(StatisticsHistogramFormatDeathTest, Graphite) {
-    EXPECT_DEBUG_DEATH(EXPECT_EQ(utils::statistics::ToGraphiteFormat(GetStorage()), ""), "not supported");
+    EXPECT_DEBUG_DEATH(
+        EXPECT_EQ(
+            utils::statistics::ToGraphiteFormat([this](utils::statistics::Writer& writer) { WriteHistogram(writer); }),
+            ""
+        ),
+        "not supported"
+    );
 }
 
 UTEST_F(StatisticsHistogramFormat, SolomonFormat) {
     // Solomon does not understand 'sum'
     EXPECT_EQ(
-        formats::json::FromString(utils::statistics::ToSolomonFormat(GetStorage(), {})),
+        formats::json::FromString(utils::statistics::ToSolomonFormat(
+            [this](utils::statistics::Writer& writer) { WriteHistogram(writer); },
+            {}
+        )),
         formats::json::FromString(R"(
 {
   "metrics": [

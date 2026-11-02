@@ -10,7 +10,6 @@
 
 #include <userver/utils/mock_now.hpp>
 #include <userver/utils/statistics/fmt.hpp>
-#include <userver/utils/statistics/storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -67,12 +66,6 @@ private:
 };
 
 }  // namespace
-
-std::string ToGraphiteFormat(const Storage& statistics, const Request& request) {
-    FormatBuilder builder{};
-    VisitMetrics(statistics, builder, request);
-    return builder.Release();
-}
 
 std::string ToGraphiteFormat(WriterFuncRef writer, const Request& request) {
     FormatBuilder builder{};

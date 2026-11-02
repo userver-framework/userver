@@ -14,7 +14,6 @@
 #include <userver/formats/serialize/common_containers.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/overloaded.hpp>
-#include <userver/utils/statistics/storage.hpp>
 
 #include <utils/statistics/solomon_limits.hpp>
 
@@ -241,12 +240,6 @@ formats::json::Value Serialize(const PortabilityWarnings& info, formats::seriali
     }
 
     return builder.ExtractValue();
-}
-
-PortabilityWarnings GetPortabilityWarnings(const Storage& statistics, const Request& request) {
-    PortabilityInfoCollector builder{};
-    VisitMetrics(statistics, builder, request);
-    return std::move(builder).Extract();
 }
 
 PortabilityWarnings GetPortabilityWarnings(WriterFuncRef writer, const Request& request) {

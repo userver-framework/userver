@@ -6,7 +6,6 @@
 #include <string>
 
 #include <userver/utils/statistics/request.hpp>
-#include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -40,13 +39,12 @@ namespace utils::statistics {
 /// of the same type. In practice they cannot be told apart.
 /// @note A histogram writes only @ref utils::statistics::HistogramView::GetTotalSum into `sum`.
 /// Sums of individual buckets are not written.
-std::string ToJsonFormat(const Storage& statistics, const Request& statistics_request = {});
-
-/// @note An integer `GAUGE` and a floating-point `GAUGE` are both written as a JSON number
-/// of the same type. In practice they cannot be told apart.
-/// @note A histogram writes only @ref utils::statistics::HistogramView::GetTotalSum into `sum`.
-/// Sums of individual buckets are not written.
 std::string ToJsonFormat(WriterFuncRef writer, const Request& statistics_request = {});
+
+/// @overload
+std::string ToJsonFormat(const HasWriterSupport auto& metric, const Request& statistics_request = {}) {
+    return ToJsonFormat([&metric](Writer& writer) { writer = metric; }, statistics_request);
+}
 
 }  // namespace utils::statistics
 

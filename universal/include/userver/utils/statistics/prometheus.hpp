@@ -7,7 +7,6 @@
 #include <string_view>
 
 #include <userver/utils/statistics/request.hpp>
-#include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -30,14 +29,20 @@ std::string ToPrometheusLabel(std::string_view name);
 }  // namespace impl
 
 /// Output `statistics` in Prometheus format, each metric has `gauge` type.
-std::string ToPrometheusFormat(const Storage& statistics, const Request& request = {});
-
 std::string ToPrometheusFormat(WriterFuncRef writer, const Request& request = {});
 
-/// Output `statistics` in Prometheus format, without metric types.
-std::string ToPrometheusFormatUntyped(const Storage& statistics, const Request& request = {});
+/// @overload
+std::string ToPrometheusFormat(const HasWriterSupport auto& metric, const Request& request = {}) {
+    return ToPrometheusFormat([&metric](Writer& writer) { writer = metric; }, request);
+}
 
+/// Output `statistics` in Prometheus format, without metric types.
 std::string ToPrometheusFormatUntyped(WriterFuncRef writer, const Request& request = {});
+
+/// @overload
+std::string ToPrometheusFormatUntyped(const HasWriterSupport auto& metric, const Request& request = {}) {
+    return ToPrometheusFormatUntyped([&metric](Writer& writer) { writer = metric; }, request);
+}
 
 }  // namespace utils::statistics
 

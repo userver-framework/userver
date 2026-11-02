@@ -11,7 +11,6 @@
 #include <userver/utils/impl/transparent_hash.hpp>
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/statistics/fmt.hpp>
-#include <userver/utils/statistics/storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -217,21 +216,9 @@ std::string ToPrometheusLabel(std::string_view name) {
 
 }  // namespace impl
 
-std::string ToPrometheusFormat(const Storage& statistics, const Request& request) {
-    impl::FormatBuilder<impl::Typed::kYes> builder{};
-    VisitMetrics(statistics, builder, request);
-    return builder.Release();
-}
-
 std::string ToPrometheusFormat(WriterFuncRef writer, const Request& request) {
     impl::FormatBuilder<impl::Typed::kYes> builder{};
     VisitMetrics(writer, builder, request);
-    return builder.Release();
-}
-
-std::string ToPrometheusFormatUntyped(const Storage& statistics, const Request& request) {
-    impl::FormatBuilder<impl::Typed::kNo> builder{};
-    VisitMetrics(statistics, builder, request);
     return builder.Release();
 }
 
