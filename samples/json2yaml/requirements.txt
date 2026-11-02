@@ -1,1 +1,1 @@
- pytest < 9.2
+ pytest
