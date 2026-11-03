@@ -18,6 +18,13 @@ public:
     engine::ev::ThreadPool& GetSentinelThreadPool() const;
     const std::shared_ptr<engine::ev::ThreadPool>& GetRedisThreadPool() const;
 
+    /// For tests: synchronize Sentinel event loops, then Redis event loops.
+    /// Previously queued callbacks complete before this method returns.
+    /// Use after asynchronous settings updates and before commands relying on them.
+    /// Call from a coroutine, with no clients or connections being created
+    /// concurrently. Does not wait for network replies or future callbacks.
+    void SynchronizeEventLoops() const;
+
 private:
     // Sentinel and Redis should use separate thread pools to avoid deadlocks.
     // Sentinel waits synchronously while Redis starts and stops watchers in
