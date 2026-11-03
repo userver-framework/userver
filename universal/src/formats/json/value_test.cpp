@@ -277,4 +277,44 @@ TEST(FormatsJson, IsUint) {
     EXPECT_FALSE(json_bounds["below_min"].IsUInt());
 }
 
+TEST(FormatsJson, NegativeDoubleIsNotUInt64) {
+    const auto json = formats::json::FromString(R"({
+      "minus_one": -1.0,
+      "minus_five": -5.0,
+      "minus_thousand": -1e3
+    })");
+
+    for (const auto& key : {"minus_one", "minus_five", "minus_thousand"}) {
+        const auto& value = json[key];
+        EXPECT_FALSE(value.IsUInt64()) << key;
+        EXPECT_FALSE(value.IsUInt()) << key;
+        EXPECT_TRUE(value.IsInt64()) << key;
+        EXPECT_THROW(value.As<std::uint64_t>(), formats::json::TypeMismatchException) << key;
+        EXPECT_THROW(value.As<std::size_t>(), formats::json::TypeMismatchException) << key;
+        EXPECT_THROW(value.As<unsigned>(), formats::json::TypeMismatchException) << key;
+    }
+}
+
+TEST(FormatsJson, DoubleUInt64Bounds) {
+    const auto json = formats::json::FromString(R"({
+      "zero": 0.0,
+      "negative_zero": -0.0,
+      "below_max": 9007199254740991.0,
+      "max_exact": 9007199254740992.0,
+      "two_pow_64": 18446744073709551616.0
+    })");
+
+    EXPECT_TRUE(json["zero"].IsUInt64());
+    EXPECT_EQ(json["zero"].As<std::uint64_t>(), 0U);
+    EXPECT_TRUE(json["negative_zero"].IsUInt64());
+    EXPECT_EQ(json["negative_zero"].As<std::uint64_t>(), 0U);
+    EXPECT_TRUE(json["below_max"].IsUInt64());
+    EXPECT_EQ(json["below_max"].As<std::uint64_t>(), 9007199254740991U);
+
+    EXPECT_FALSE(json["max_exact"].IsUInt64());
+    EXPECT_THROW(json["max_exact"].As<std::uint64_t>(), formats::json::TypeMismatchException);
+    EXPECT_FALSE(json["two_pow_64"].IsUInt64());
+    EXPECT_THROW(json["two_pow_64"].As<std::uint64_t>(), formats::json::TypeMismatchException);
+}
+
 USERVER_NAMESPACE_END

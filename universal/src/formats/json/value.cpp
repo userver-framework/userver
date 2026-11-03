@@ -3,6 +3,7 @@
 #include <cmath>
 #include <functional>
 #include <limits>
+#include <type_traits>
 #include <utility>
 
 #include <rapidjson/allocators.h>
@@ -62,7 +63,9 @@ constexpr int64_t kMaxIntDouble{int64_t{1} << std::numeric_limits<double>::digit
 
 template <typename Int>
 bool IsNonOverflowingIntegral(const double val) {
-    if constexpr (sizeof(Int) >= sizeof(double)) {
+    if constexpr (std::is_unsigned_v<Int> && sizeof(Int) >= sizeof(double)) {
+        return val >= 0 && val < kMaxIntDouble && IsIntegral(val);
+    } else if constexpr (sizeof(Int) >= sizeof(double)) {
         return val > -kMaxIntDouble && val < kMaxIntDouble && IsIntegral(val);
     } else {
         return val >= std::numeric_limits<Int>::min() && val <= std::numeric_limits<Int>::max() && IsIntegral(val);
