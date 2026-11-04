@@ -152,6 +152,39 @@ of the service is reported at config update via a warning in the logs and the `i
 A dynamic value of `0` disables logging of the corresponding body. Handlers not listed in the config continue using
 their static limits.
 
+### Masking JSON request and response bodies
+
+Use `json_request_body_masking` and `json_response_body_masking` in
+@ref USERVER_HTTP_SERVER_LOGS to configure rules for an exact handler path.
+Policy options:
+
+- `paths` (required): fields to select, for example `[["user", "phone"]]`.
+- `list_mode`: `blacklist` (the default) masks selected subtrees;
+  `whitelist` preserves them and masks everything else.
+
+Masked scalars become `"..."`, objects `"{...}"`, and arrays `"[...]"`.
+See the config schema for wildcard and array path behavior.
+
+Generated handlers skip binary-only body formats. Setting a masking rule explicitly
+opts the body into JSON processing, including responses without a typed schema object
+and framework error responses.
+
+Custom logging hooks run first. Dynamic rules cannot restore values hidden by a hook.
+Hooks must return complete JSON when masking is enabled. Parsing failures produce
+`<error masking JSON body>`.
+
+Processing stops at the body log limit. The UTF-8-safe prefix may be incomplete JSON.
+Its `...(truncated, total N bytes)` suffix also fits within the limit; `N` is the byte size
+after custom hooks, before JSON masking. Very small limits may truncate the suffix itself.
+
+For handwritten handlers, opt in from the logging hooks using:
+
+- @ref server::handlers::MaskJsonRequestBodyForLogging
+- @ref server::handlers::MaskJsonResponseBodyForLogging
+
+For custom JSON masking, use @ref formats::json::MaskJson with reusable
+@ref formats::json::MaskingRules.
+
 ### Limiting the log frequency
 
 If some line of code generates too many logs and a small number of them is enough, then `LOG_*` should be
