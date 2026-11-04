@@ -283,6 +283,7 @@ private:
     void EnsureNotMissing() const;
     const impl::Value& GetNative() const;
     impl::Value& GetNative();
+    impl::Value MoveNativeOrCopy(::rapidjson::CrtAllocator& allocator) &&;
     void SetNative(impl::Value&);  // does not copy
     int GetExtendedType() const;
 

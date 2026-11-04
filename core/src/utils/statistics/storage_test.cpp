@@ -1,6 +1,16 @@
 #include <userver/utils/statistics/storage.hpp>
 
+#include <cstddef>
+#include <cstdint>
+#include <limits>
+#include <string>
+#include <vector>
+
+#include <userver/formats/json/exception.hpp>
 #include <userver/formats/json/serialize.hpp>
+#include <userver/utils/statistics/histogram.hpp>
+#include <userver/utils/statistics/rate.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 #include <memory>
 #include <userver/rcu/rcu_map.hpp>
@@ -495,6 +505,132 @@ UTEST(MetricsWriter, CustomTypesOptimization) {
 
     const auto* const expected = "a_dump{} 42\n";
     EXPECT_EQ(expected, ToPrometheusFormatUntyped(storage, Request::MakeWithPath("a.dump")));
+}
+
+UTEST(StatisticsJson, EmptyWriterAndStorage) {
+    EXPECT_EQ(utils::statistics::ToJsonFormat([](utils::statistics::Writer&) {}), "{}");
+    const utils::statistics::Storage storage;
+    EXPECT_EQ(utils::statistics::ToJsonFormat(storage), "{}");
+}
+
+UTEST(StatisticsJson, InterleavedPathsKeepFirstPositionAndSampleOrder) {
+    const auto json = utils::statistics::ToJsonFormat([](utils::statistics::Writer& writer) {
+        writer["first"] = 1;
+        writer["second"] = 2.5;
+        writer["first"] = utils::statistics::Rate{3};
+        writer["second"] = 4;
+    });
+
+    EXPECT_EQ(json, R"({"first":[{"value":1,"labels":{},"type":"GAUGE"},{"value":3,"labels":{},"type":"RATE"}],"second":[{"value":2.5,"labels":{},"type":"GAUGE"},{"value":4,"labels":{},"type":"GAUGE"}]})");
+}
+
+UTEST(StatisticsJson, DuplicateLabelsOverwriteWithoutReordering) {
+    const auto json = utils::statistics::ToJsonFormat([](utils::statistics::Writer& writer) {
+        writer["metric"].ValueWithLabels(7, {{"first", "old"}, {"second", "kept"}, {"first", "new"}});
+    });
+
+    EXPECT_EQ(json, R"({"metric":[{"value":7,"labels":{"first":"new","second":"kept"},"type":"GAUGE"}]})");
+}
+
+UTEST(StatisticsJson, RequestStorageAndMetricLabelsOverwriteInOrder) {
+    utils::statistics::Storage storage;
+    const auto holder = MakeSelfContainedMetricLambda(
+        storage,
+        "metric",
+        {{"region", "storage"}, {"middle", "kept"}},
+        [](utils::statistics::Writer& writer) { writer.ValueWithLabels(7, {{"region", "metric"}, {"last", "kept"}}); }
+    );
+    const auto request = utils::statistics::Request::MakeWithPath("metric", {{"region", "request"}});
+
+    EXPECT_EQ(
+        utils::statistics::ToJsonFormat(storage, request),
+        R"({"metric":[{"value":7,"labels":{"region":"metric","middle":"kept","last":"kept"},"type":"GAUGE"}]})"
+    );
+}
+
+UTEST(StatisticsJson, SignedGaugeAndUnsignedRateLimits) {
+    const auto json = formats::json::FromString(utils::statistics::ToJsonFormat([](utils::statistics::Writer& writer) {
+        writer["gauge"] = std::numeric_limits<std::int64_t>::min();
+        writer["rate"] = utils::statistics::Rate{std::numeric_limits<std::uint64_t>::max()};
+    }));
+
+    EXPECT_EQ(json["gauge"][0]["value"].As<std::int64_t>(), std::numeric_limits<std::int64_t>::min());
+    EXPECT_EQ(json["gauge"][0]["type"].As<std::string>(), "GAUGE");
+    EXPECT_EQ(json["rate"][0]["value"].As<std::uint64_t>(), std::numeric_limits<std::uint64_t>::max());
+    EXPECT_EQ(json["rate"][0]["type"].As<std::string>(), "RATE");
+}
+
+UTEST(StatisticsJson, LabelNamesAndValuesKeepEmbeddedNulls) {
+    const std::string name{"name\0suffix", 11};
+    const std::string value{"value\0suffix", 12};
+    const auto json = formats::json::FromString(utils::statistics::ToJsonFormat([&](utils::statistics::Writer& writer) {
+        writer["metric"].ValueWithLabels(7, {name, value});
+    }));
+
+    EXPECT_EQ(json["metric"][0]["labels"][name].As<std::string>(), value);
+}
+
+UTEST(StatisticsJson, EmptyHistogramKeepsArraysAndWireOrder) {
+    const utils::statistics::Histogram histogram{std::vector<double>{}};
+    const auto json = utils::statistics::ToJsonFormat([&](utils::statistics::Writer& writer) {
+        writer["histogram"] = histogram;
+    });
+
+    EXPECT_EQ(
+        json,
+        R"({"histogram":[{"value":{"bounds":[],"buckets":[],"inf":0,"sum":0.0},"labels":{},"type":"HIST_RATE"}]})"
+    );
+}
+
+UTEST(StatisticsJson, HistogramValuesAcrossCapacityBoundaries) {
+    constexpr double kOverflowSample = 1024.0;
+    constexpr std::uint64_t kOverflowCount = 3;
+    for (const std::size_t bucket_count : {1, 16, 17, 50, 128}) {
+        std::vector<double> bounds;
+        for (std::size_t index = 0; index < bucket_count; ++index) {
+            bounds.push_back(static_cast<double>(index + 1));
+        }
+        utils::statistics::Histogram histogram{bounds};
+        for (std::size_t index = 0; index < bucket_count; ++index) {
+            histogram.Account(bounds[index], index + 1);
+        }
+        histogram.Account(kOverflowSample, kOverflowCount);
+        const auto
+            json = formats::json::FromString(utils::statistics::ToJsonFormat([&](utils::statistics::Writer& writer) {
+                writer["histogram"] = histogram;
+            }));
+        const auto value = json["histogram"][0]["value"];
+
+        ASSERT_EQ(value["bounds"].GetSize(), bucket_count);
+        ASSERT_EQ(value["buckets"].GetSize(), bucket_count);
+        for (std::size_t index = 0; index < bucket_count; ++index) {
+            EXPECT_EQ(value["bounds"][index].As<double>(), bounds[index]);
+            EXPECT_EQ(value["buckets"][index].As<std::uint64_t>(), index + 1);
+        }
+        EXPECT_EQ(value["inf"].As<std::uint64_t>(), kOverflowCount);
+        EXPECT_EQ(value["sum"].As<double>(), histogram.GetView().GetTotalSum());
+        EXPECT_EQ(json["histogram"][0]["type"].As<std::string>(), "HIST_RATE");
+    }
+}
+
+UTEST_DEATH(StatisticsJsonDeathTest, NonFiniteGaugeIsRejected) {
+    for (const double value : {
+             std::numeric_limits<double>::infinity(),
+             -std::numeric_limits<double>::infinity(),
+             std::numeric_limits<double>::quiet_NaN(),
+         })
+    {
+        const auto serialize = [value] {
+            return utils::statistics::ToJsonFormat([value](utils::statistics::Writer& writer) {
+                writer["metric"] = value;
+            });
+        };
+#ifdef NDEBUG
+        EXPECT_THROW(serialize(), formats::json::Exception);
+#else
+        UEXPECT_DEATH(serialize(), "Floating point (inf|nan) value serialization is forbidden");
+#endif
+    }
 }
 
 USERVER_NAMESPACE_END

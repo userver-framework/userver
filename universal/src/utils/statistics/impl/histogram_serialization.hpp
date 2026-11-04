@@ -1,5 +1,8 @@
 #pragma once
 
+#include <cstddef>
+
+#include <userver/formats/common/type.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
 #include <userver/utils/statistics/histogram_view.hpp>
 #include <utils/statistics/impl/histogram_view_utils.hpp>
@@ -10,11 +13,15 @@ namespace utils::statistics {
 
 template <typename Value>
 Value Serialize(HistogramView value, formats::serialize::To<Value>) {
+    constexpr std::size_t kHistogramFieldCount = 4;
     typename Value::Builder result{formats::common::Type::kObject};
-    result["bounds"] = impl::histogram::Access::Bounds(value);
-    result["buckets"] = impl::histogram::Access::Values(value);
-    result["inf"] = value.GetValueAtInf();
-    result["sum"] = value.GetTotalSum();
+    if constexpr (requires { result.Reserve(kHistogramFieldCount); }) {
+        result.Reserve(kHistogramFieldCount);
+    }
+    result.EmplaceNocheck("bounds", impl::histogram::Access::Bounds(value));
+    result.EmplaceNocheck("buckets", impl::histogram::Access::Values(value));
+    result.EmplaceNocheck("inf", value.GetValueAtInf());
+    result.EmplaceNocheck("sum", value.GetTotalSum());
     return result.ExtractValue();
 }
 

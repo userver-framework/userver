@@ -1,6 +1,7 @@
 #include <userver/formats/json/inline.hpp>
 
 #include <type_traits>
+#include <utility>
 
 #include <rapidjson/allocators.h>
 #include <rapidjson/document.h>
@@ -93,6 +94,12 @@ void InlineObjectBuilder::Append(std::string_view key, const formats::json::Valu
     json_->AddMember(WrapStringView(key), impl::Value(value.GetNative(), g_allocator), g_allocator);
 }
 
+void InlineObjectBuilder::Append(std::string_view key, formats::json::Value&& value) {
+    auto native_key = WrapStringView(key);
+    auto native_value = std::move(value).MoveNativeOrCopy(g_allocator);
+    json_->AddMember(std::move(native_key), std::move(native_value), g_allocator);
+}
+
 InlineArrayBuilder::InlineArrayBuilder()
     : json_(VersionedValuePtr::Create(::rapidjson::Type::kArrayType))
 {}
@@ -133,6 +140,11 @@ void InlineArrayBuilder::Append(std::chrono::system_clock::time_point value) { A
 
 void InlineArrayBuilder::Append(const formats::json::Value& value) {
     json_->PushBack(impl::Value(value.GetNative(), g_allocator), g_allocator);
+}
+
+void InlineArrayBuilder::Append(formats::json::Value&& value) {
+    auto native_value = std::move(value).MoveNativeOrCopy(g_allocator);
+    json_->PushBack(std::move(native_value), g_allocator);
 }
 
 }  // namespace formats::json::impl
