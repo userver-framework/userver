@@ -470,8 +470,6 @@ TYPED_UTEST(YdbExecuteTpl, IsQueryFromCache) {
 }
 
 UTEST_F(YdbExecute, TransactionIsQueryFromCache) {
-    const utils::statistics::Storage storage;
-
     CreateTable("test_table", true);
     auto transaction = GetTableClient().Begin("test_transaction");
 
