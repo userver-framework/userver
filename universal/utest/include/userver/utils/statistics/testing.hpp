@@ -3,11 +3,13 @@
 /// @file userver/utils/statistics/testing.hpp
 /// @brief Utilities for analyzing emitted metrics in unit tests
 
+#include <concepts>
 #include <iosfwd>
 #include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include <gmock/gmock.h>
@@ -156,17 +158,26 @@ public:
     /// and `.`.
     explicit Snapshot(WriterFuncRef writer, const SnapshotBuildOptions& options = {});
 
+    // Deduce string prefixes so designated initializers only match SnapshotBuildOptions on GCC 11.
     /// @deprecated Use the constructor taking @ref utils::statistics::SnapshotBuildOptions instead.
     /// Uses slicing: @a prefix and @a require_labels are removed during collection.
     /// An empty @a prefix means no prefix filter.
-    explicit Snapshot(const HasWriterSupport auto& metric, std::string prefix, std::vector<Label> require_labels = {})
-        : Snapshot([&metric](Writer& writer) { writer = metric; }, std::move(prefix), std::move(require_labels))
+    template <std::convertible_to<std::string> Prefix = std::string>
+    explicit Snapshot(const HasWriterSupport auto& metric, Prefix&& prefix, std::vector<Label> require_labels = {})
+        : Snapshot(
+              [&metric](Writer& writer) { writer = metric; },
+              std::forward<Prefix>(prefix),
+              std::move(require_labels)
+          )
     {}
 
     /// @deprecated Use the constructor taking @ref utils::statistics::SnapshotBuildOptions instead.
     /// Uses slicing: @a prefix and @a require_labels are removed during collection.
     /// An empty @a prefix means no prefix filter.
-    explicit Snapshot(WriterFuncRef writer, std::string prefix, std::vector<Label> require_labels = {});
+    template <std::convertible_to<std::string> Prefix = std::string>
+    explicit Snapshot(WriterFuncRef writer, Prefix&& prefix, std::vector<Label> require_labels = {})
+        : Snapshot(writer, MakeLegacyBuildOptions(std::string{std::forward<Prefix>(prefix)}, std::move(require_labels)))
+    {}
 
     /// @name Copying and moving
     /// @see statistics_snapshot_view_lifetime
@@ -285,6 +296,8 @@ public:
 
 private:
     friend void PrintTo(const Snapshot& data, std::ostream*);
+
+    static SnapshotBuildOptions MakeLegacyBuildOptions(std::string prefix, std::vector<Label> require_labels);
 
     utils::SharedRef<const impl::SnapshotData> data_;
 };
