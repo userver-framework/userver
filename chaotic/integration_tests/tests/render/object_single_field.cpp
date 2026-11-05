@@ -72,6 +72,22 @@ TEST(Simple, ExplicitArraysOverrideDefaults) {
     EXPECT_EQ(dom.records[0].name, "override");
 }
 
+TEST(Simple, DefaultArrayRefs) {
+    const ns::ObjectWithDefaultArrayRefs defaults;
+    EXPECT_EQ(defaults.numbers, (std::vector{1, 2}));
+    EXPECT_EQ(*defaults.indirect, defaults.numbers);
+    EXPECT_EQ(formats::json::MakeObject().As<ns::ObjectWithDefaultArrayRefs>(), defaults);
+    EXPECT_EQ(CallSaxParser<ns::ObjectWithDefaultArrayRefs>("{}"), defaults);
+
+    const auto json = formats::json::MakeObject(
+        "numbers", formats::json::MakeArray(9), "indirect", formats::json::MakeArray()
+    );
+    const auto dom = json.As<ns::ObjectWithDefaultArrayRefs>();
+    EXPECT_EQ(dom.numbers, (std::vector{9}));
+    EXPECT_TRUE(dom.indirect->empty());
+    EXPECT_EQ(CallSaxParser<ns::ObjectWithDefaultArrayRefs>(ToString(json)), dom);
+}
+
 TEST(Simple, IntegerMinimum) {
     auto json = formats::json::MakeObject("int3", 1, "int", -10);
     UEXPECT_THROW_MSG(

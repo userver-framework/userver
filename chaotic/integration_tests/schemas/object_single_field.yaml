@@ -107,6 +107,22 @@ definitions:
                 items:
                     type: integer
 
+    DefaultNumbers:
+        type: array
+        items:
+            type: integer
+        default: [1, 2]
+
+    ObjectWithDefaultArrayRefs:
+        type: object
+        additionalProperties: false
+        properties:
+            numbers:
+                $ref: '#/definitions/DefaultNumbers'
+            indirect:
+                $ref: '#/definitions/DefaultNumbers'
+                x-usrv-cpp-indirect: true
+
     ObjectWithDefaultArrays:
         type: object
         additionalProperties: false

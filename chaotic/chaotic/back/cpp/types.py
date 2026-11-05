@@ -687,7 +687,7 @@ class CppStructField:
         return getattr(self.schema, 'default', None)
 
     def has_array_default(self) -> bool:
-        return isinstance(self.schema, CppArray) and self.schema.default is not None
+        return isinstance(self._resolved_schema(), CppArray) and self._default() is not None
 
     def array_default_getter(self) -> str:
         return f'GetFieldDefault{self.name}'
