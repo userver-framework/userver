@@ -54,6 +54,7 @@ json              | formats::json::Value                    |         |
 ^                 | storages::postgres::PlainJson           | +       |
 jsonb             | formats::json::Value                    | +       |
 ^                 | formats::json::RawString                |         |
+^                 | any type with io::kStoreAsJson          |         |
 int4range         | storages::postgres::IntegerRange        |         |
 ^                 | storages::postgres::BoundedIntegerRange |         |
 int8range         | storages::postgres::BigintRange         |         |
@@ -127,6 +128,68 @@ bind it as `json`, explicitly cast in SQL (e.g. `INSERT INTO t (data) VALUES ($1
 
 @snippet postgresql/src/storages/postgres/tests/json_types_pgtest.cpp json_raw_string_as_set_of
 
+
+@anchor pg_struct_as_json
+### Storing a C++ structure as JSON
+
+A type that already has a `formats::json` mapping can be stored in a `json` or
+`jsonb` column directly, without naming the column's shape anywhere in SQL.
+Give the type the usual `Parse`/`Serialize` pair:
+
+@snippet postgresql/src/storages/postgres/tests/struct_as_json_pgtest.cpp struct_as_json_declare
+
+and then opt in:
+
+@snippet postgresql/src/storages/postgres/tests/struct_as_json_pgtest.cpp struct_as_json_opt_in
+
+After that the structure is a parameter and a result type like any other:
+
+@snippet postgresql/src/storages/postgres/tests/struct_as_json_pgtest.cpp struct_as_json_round_trip
+
+Parameters bind as **jsonb**, the same default `formats::json::Value` has, so no
+cast is needed to write into a `jsonb` column; cast in SQL (`$1::json`) to bind
+as `json`. Reading works from either. `std::optional<T>` maps as you would
+expect, so a nullable column needs nothing extra.
+
+The opt-in is deliberately a separate declaration rather than being inferred
+from the presence of `Parse` and `Serialize`: a great many types have those and
+are not meant to live in a column. Declaring it on a type with no json mapping
+maps nothing — both halves are required.
+
+@warning **A `jsonb` column has no schema, so the structure is the only schema
+there is — and every row holds whatever the structure looked like when that row
+was written.** `ALTER TABLE` cannot migrate a document, and nothing will tell
+you that an older row no longer matches the current type: you find out when the
+read throws, which is on production data and long after the deploy.
+
+So **write `Parse` permissively**. Give every member a default rather than
+demanding it, and let an unknown member be ignored:
+
+@snippet postgresql/src/storages/postgres/tests/struct_as_json_pgtest.cpp struct_as_json_older_row
+
+That is what makes each kind of change to the structure safe, or not:
+
+| change to the structure | what happens to rows already written |
+|---|---|
+| **a member is added** | safe if `Parse` defaults it — those rows simply do not have the key |
+| **a member is removed** | safe to read; the data stays in the documents until something rewrites them |
+| **a member is renamed** | **silent data loss on read**: the old key is still in the row and the new `Parse` ignores it, so the value reads as its default. A rename is a backfill, not a rename. |
+| **a member changes type** | throws on every row written under the old type, unless `Parse` accepts both |
+| **the build is rolled back** | the older build must tolerate members it has never heard of, which permissive parsing already gives |
+
+A strict `Parse` — `json["page_size"].As<int>()` with no default — throws
+`formats::json::MemberMissingException` on any row written before that member
+existed. The driver cannot soften that, because it is the type's own `Parse`
+doing the refusing; the test beside the snippets above asserts both sides of
+that comparison.
+
+@note This is a convenience for a structure whose shape is genuinely the
+application's business — settings, a captured payload, a denormalised blob. It
+is not a way to avoid declaring columns: the database cannot check the contents,
+index them without a deliberate expression or GIN index, or join on them, and a
+query cannot see inside them without `jsonb` operators.
+
+----------
 
 @anchor pg_arrays
 ## Arrays in PostgreSQL
