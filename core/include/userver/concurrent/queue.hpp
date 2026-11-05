@@ -10,6 +10,7 @@
 #include <moodycamel/concurrentqueue.h>
 
 #include <userver/concurrent/impl/semaphore_capacity_control.hpp>
+#include <userver/concurrent/queue_fwd.hpp>
 #include <userver/concurrent/queue_helpers.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/semaphore.hpp>
@@ -772,13 +773,6 @@ using UnboundedSpmcQueue = GenericQueue<T, impl::NoMaxSizeQueuePolicy<false, tru
 /// @see @ref scripts/docs/en/userver/synchronization.md
 template <typename T>
 using UnboundedSpscQueue = GenericQueue<T, impl::NoMaxSizeQueuePolicy<false, false>>;
-
-/// @ingroup userver_concurrency
-///
-/// @brief Single producer single consumer queue of std::string which is bounded by the total bytes inside the strings.
-///
-/// @see @ref scripts/docs/en/userver/synchronization.md
-using StringStreamQueue = GenericQueue<std::string, impl::ContainerQueuePolicy<false, false>>;
 
 }  // namespace concurrent
 

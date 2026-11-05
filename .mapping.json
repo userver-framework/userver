@@ -1163,6 +1163,7 @@
   "core/include/userver/concurrent/mpsc_queue.hpp":"taxi/uservices/userver/core/include/userver/concurrent/mpsc_queue.hpp",
   "core/include/userver/concurrent/mutex_set.hpp":"taxi/uservices/userver/core/include/userver/concurrent/mutex_set.hpp",
   "core/include/userver/concurrent/queue.hpp":"taxi/uservices/userver/core/include/userver/concurrent/queue.hpp",
+  "core/include/userver/concurrent/queue_fwd.hpp":"taxi/uservices/userver/core/include/userver/concurrent/queue_fwd.hpp",
   "core/include/userver/concurrent/queue_helpers.hpp":"taxi/uservices/userver/core/include/userver/concurrent/queue_helpers.hpp",
   "core/include/userver/concurrent/striped_counter.hpp":"taxi/uservices/userver/core/include/userver/concurrent/striped_counter.hpp",
   "core/include/userver/concurrent/variable.hpp":"taxi/uservices/userver/core/include/userver/concurrent/variable.hpp",

@@ -3,21 +3,30 @@
 /// @file userver/clients/http/request.hpp
 /// @brief @copybrief clients::http::Request
 
+#include <chrono>
+#include <initializer_list>
 #include <memory>
+#include <string>
 #include <string_view>
+#include <type_traits>
+#include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include <userver/clients/dns/resolver_fwd.hpp>
+#include <userver/clients/http/cancellation_policy.hpp>
 #include <userver/clients/http/error.hpp>
 #include <userver/clients/http/response.hpp>
 #include <userver/clients/http/response_future.hpp>
-#include <userver/concurrent/queue.hpp>
+#include <userver/concurrent/queue_fwd.hpp>
 #include <userver/crypto/certificate.hpp>
 #include <userver/crypto/private_key.hpp>
 #include <userver/http/http_version.hpp>
 #include <userver/utils/impl/internal_tag_fwd.hpp>
 #include <userver/utils/impl/source_location.hpp>
 #include <userver/utils/not_null.hpp>
+#include <userver/utils/str_icase.hpp>
+#include <userver/utils/zstring_view.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -449,7 +458,7 @@ public:
     std::string ExtractData();
 
     /// @brief Allow or reject embedded username/password in request and redirect
-    /// URLs, such as `https://user:password@example.com`. Rejected by default.
+    /// URLs, such as `https://user:password@localhost`. Rejected by default.
     ///
     /// Explicit HTTP authentication via @ref Request::http_auth_type and
     /// credentials in proxy URLs are unaffected.
