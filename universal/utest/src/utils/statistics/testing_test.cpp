@@ -18,6 +18,7 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/utest/assert_macros.hpp>
 #include <userver/utils/statistics/histogram.hpp>
+#include <userver/utils/statistics/json.hpp>
 #include <userver/utils/statistics/rate.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
@@ -1036,6 +1037,83 @@ TEST(Snapshot, HistogramOutlivesItsWriter) {
         EXPECT_EQ(snapshot.SingleMetric("timings", {{"query", std::string{name}}}).AsHistogram().GetTotalCount(), 1)
             << name;
     }
+}
+
+TEST(Snapshot, Printable) {
+    const utils::statistics::Snapshot snapshot{[](utils::statistics::Writer&) {}};
+
+    EXPECT_TRUE(true) << testing::PrintToString(snapshot);
+}
+
+TEST(Snapshot, ToJsonFormatRoundTrip) {
+    utils::statistics::Histogram histogram{std::vector<double>{1.5, 5, 42, 60}};
+    histogram.Account(1.2);
+    histogram.Account(10, 5);
+    histogram.Account(100);
+
+    const utils::statistics::Snapshot snapshot{[&histogram](utils::statistics::Writer& writer) {
+        writer["handler.timings"] = histogram;
+    }};
+    const auto json =
+        formats::json::FromString(utils::statistics::ToJsonFormat([&snapshot](utils::statistics::Writer& writer) {
+            writer = snapshot;
+        }));
+    EXPECT_EQ(json["handler.timings"][0]["type"].As<std::string>(), "HIST_RATE");
+    EXPECT_FALSE(json.HasMember("test"));
+    EXPECT_FALSE(json.HasMember("test.handler.timings"));
+
+    const auto loaded = utils::statistics::Snapshot::FromJson(json);
+    EXPECT_THAT(loaded, EqualsNumerically(snapshot));
+    EXPECT_EQ(loaded.SingleMetric("handler.timings").AsHistogram().GetTotalSum(), histogram.GetView().GetTotalSum());
+}
+
+namespace {
+
+struct RoundTripMetrics {
+    std::int64_t in_flight{4};
+    double duration_seconds{1.5};
+    utils::statistics::Rate requests{3};
+};
+
+[[maybe_unused]] void DumpMetric(utils::statistics::Writer& writer, const RoundTripMetrics& metrics) {
+    writer["in_flight"] = metrics.in_flight;
+    writer["duration_seconds"] = metrics.duration_seconds;
+    writer["requests"].ValueWithLabels(metrics.requests, {"handler", "/orders"});
+}
+
+}  // namespace
+
+TEST(Snapshot, ToJsonFormatRoundTripLabels) {
+    const RoundTripMetrics metrics;
+    const utils::statistics::Snapshot snapshot{metrics};
+    const auto json =
+        formats::json::FromString(utils::statistics::ToJsonFormat([&snapshot](utils::statistics::Writer& writer) {
+            writer = snapshot;
+        }));
+
+    EXPECT_EQ(json["in_flight"][0]["type"].As<std::string>(), "GAUGE");
+    EXPECT_EQ(json["in_flight"][0]["value"].As<std::int64_t>(), 4);
+    EXPECT_EQ(json["duration_seconds"][0]["value"].As<double>(), 1.5);
+    EXPECT_EQ(json["requests"][0]["type"].As<std::string>(), "RATE");
+    EXPECT_FALSE(json.HasMember("test.in_flight"));
+
+    const auto loaded = utils::statistics::Snapshot::FromJson(json);
+    EXPECT_THAT(loaded, EqualsNumerically(snapshot));
+    EXPECT_EQ(loaded.SingleMetric("in_flight"), std::int64_t{4});
+    EXPECT_NE(loaded.SingleMetric("in_flight"), 4.0);
+    EXPECT_EQ(loaded.SingleMetric("duration_seconds"), 1.5);
+    EXPECT_EQ(loaded.SingleMetric("requests", {{"handler", "/orders"}}), utils::statistics::Rate{3});
+
+    const auto layered = utils::statistics::Snapshot::FromLayeredJson(formats::json::FromString(R"({
+        "in_flight": 4,
+        "duration_seconds": 1.5,
+        "requests": {"handler = /orders": {"type": "RATE", "value": 3}}
+    })"));
+    const auto layered_json =
+        formats::json::FromString(utils::statistics::ToJsonFormat([&layered](utils::statistics::Writer& writer) {
+            writer = layered;
+        }));
+    EXPECT_THAT(utils::statistics::Snapshot::FromJson(layered_json), EqualsNumerically(layered));
 }
 
 USERVER_NAMESPACE_END

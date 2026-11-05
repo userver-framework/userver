@@ -8,7 +8,7 @@
 #include <type_traits>
 
 #include <userver/utils/assert.hpp>
-#include <userver/utils/datetime.hpp>
+#include <userver/utils/datetime_light.hpp>
 #include <userver/utils/fixed_array.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 #include <userver/utils/statistics/recentperiod_detail.hpp>

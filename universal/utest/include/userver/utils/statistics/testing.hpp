@@ -125,11 +125,11 @@ public:
     ///
     /// @a metric is any type with @ref utils::statistics::Writer support. For simple metrics prefer
     /// a type with `DumpMetric` and pass it directly:
-    /// @snippet universal/src/utils/statistics/testing_test.cpp  metrics Snapshot DumpMetric sample
+    /// @snippet universal/utest/src/utils/statistics/testing_test.cpp  metrics Snapshot DumpMetric sample
     ///
     /// @ref utils::statistics::Storage also works — passing Storage is still
     /// a common usage when writers are registered there:
-    /// @snippet core/src/utils/statistics/testing_test.cpp  metrics Snapshot sample
+    /// @snippet core/src/utils/statistics/storage_test.cpp  metrics Snapshot sample
     ///
     /// Unlike production, a metric with an empty full path is allowed.
     /// @param options Filters and slicing mode; see @ref utils::statistics::SnapshotBuildOptions.
@@ -201,7 +201,7 @@ public:
     ///   `sum`, when present, is the total sum and is restored.
     ///   Sums of individual buckets are not part of the format and are not restored.
     /// @param options Prepended to every path and added to every metric.
-    /// @snippet universal/src/utils/statistics/testing_test.cpp  metrics Snapshot FromJson
+    /// @snippet universal/utest/src/utils/statistics/testing_test.cpp  metrics Snapshot FromJson
     /// @throws utils::statistics::InvalidMetricError if two metrics have the same path and labels,
     /// or one metric lists the same label name more than once.
     /// @throws formats::json::ExceptionWithPath if @a json does not match the format above.
@@ -221,7 +221,7 @@ public:
     ///   `sum`, when present, is the total sum and is restored.
     ///   Sums of individual buckets are not part of the format and are not restored.
     /// - `{"type": "RATE", "value": N}` is also supported, and so are `"GAUGE"` and `"HIST_RATE"`.
-    /// @snippet universal/src/utils/statistics/testing_test.cpp  metrics Snapshot EqualsNumerically
+    /// @snippet universal/utest/src/utils/statistics/testing_test.cpp  metrics Snapshot EqualsNumerically
     /// @throws utils::statistics::InvalidMetricError if two metrics have the same path and labels,
     /// or one metric lists the same label name more than once.
     /// @throws formats::json::ExceptionWithPath if @a json does not match the format above.
@@ -240,7 +240,7 @@ public:
     ///
     /// The returned vector supports building a filtered @ref utils::statistics::Snapshot through @ref
     /// utils::statistics::Snapshot(WriterFuncRef), for example:
-    /// @snippet universal/src/utils/statistics/testing_test.cpp metrics Snapshot filter by iteration
+    /// @snippet universal/utest/src/utils/statistics/testing_test.cpp metrics Snapshot filter by iteration
     std::vector<MetricView> AllMetrics() const USERVER_IMPL_LIFETIME_BOUND;
 
     /// @brief Find a single metric by the given filter.
@@ -254,7 +254,7 @@ public:
     /// @returns The value of the single found metric.
     /// @see statistics_snapshot_view_lifetime
     /// @throws utils::statistics::MetricQueryError if none or multiple metrics are found.
-    /// @snippet universal/src/utils/statistics/testing_test.cpp metrics Snapshot sliced queries
+    /// @snippet universal/utest/src/utils/statistics/testing_test.cpp metrics Snapshot sliced queries
     MetricValue SingleMetric(std::string path, std::vector<Label> require_labels = {}) const
         USERVER_IMPL_LIFETIME_BOUND;
 
@@ -328,7 +328,7 @@ void PrintTo(Rate value, std::ostream*);
 
 /// @brief GTest matcher for @ref utils::statistics::Snapshot::EqualsNumerically.
 ///
-/// @snippet universal/src/utils/statistics/testing_test.cpp  metrics Snapshot EqualsNumerically
+/// @snippet universal/utest/src/utils/statistics/testing_test.cpp  metrics Snapshot EqualsNumerically
 ::testing::Matcher<Snapshot> EqualsNumerically(const Snapshot& expected);
 
 }  // namespace utils::statistics

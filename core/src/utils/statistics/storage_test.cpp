@@ -21,6 +21,7 @@
 #include <userver/utils/statistics/json.hpp>
 #include <userver/utils/statistics/pretty_format.hpp>
 #include <userver/utils/statistics/prometheus.hpp>
+#include <userver/utils/statistics/testing.hpp>
 
 using USERVER_NAMESPACE::utils::statistics::Request;
 using USERVER_NAMESPACE::utils::statistics::Storage;
@@ -632,5 +633,80 @@ UTEST_DEATH(StatisticsJsonDeathTest, NonFiniteGaugeIsRejected) {
 #endif
     }
 }
+
+/// [metrics Snapshot sample]
+namespace {
+
+class ToyMetrics {
+public:
+    ToyMetrics(utils::ResourceScopeStorage& scopes, utils::statistics::Storage& storage) {
+        storage.RegisterWriter(scopes, "toy", [this](utils::statistics::Writer& writer) {
+            writer["foo"] = foo;
+            writer["bar"] = bar;
+        });
+    }
+
+    std::int64_t foo{1};
+    std::int64_t bar{2};
+};
+
+}  // namespace
+
+UTEST(Snapshot, FromStorage) {
+    utils::statistics::Storage storage;
+    const utils::WithResourceScopes<ToyMetrics> toy(std::in_place, storage);
+
+    const utils::statistics::Snapshot snapshot{storage};
+
+    EXPECT_EQ(snapshot.SingleMetric("toy.foo"), std::int64_t{1});
+    EXPECT_EQ(snapshot.SingleMetric("toy.bar"), std::int64_t{2});
+}
+/// [metrics Snapshot sample]
+
+namespace {
+
+class SnapshotStorageSlicing : public testing::TestWithParam<bool> {};
+
+}  // namespace
+
+class ToyAndApiMetrics {
+public:
+    ToyAndApiMetrics(utils::ResourceScopeStorage& scopes, utils::statistics::Storage& storage) {
+        storage.RegisterWriter(scopes, "toy", [](utils::statistics::Writer& writer) {
+            writer["foo"] = std::int64_t{1};
+            writer["bar"] = std::int64_t{2};
+        });
+        storage.RegisterWriter(scopes, "api", [](utils::statistics::Writer& writer) {
+            writer["requests"].ValueWithLabels(std::int64_t{3}, {{"service", "orders"}, {"code", "200"}});
+        });
+    }
+};
+
+UTEST_P(SnapshotStorageSlicing, FiltersAndSlicesRegisteredMetrics) {
+    utils::statistics::Storage storage;
+    const utils::WithResourceScopes<ToyAndApiMetrics> metrics(std::in_place, storage);
+    const utils::statistics::Snapshot snapshot{
+        storage,
+        {
+            .require_prefix = "api",
+            .require_labels = {{"service", "orders"}},
+            .sliced = GetParam(),
+        },
+    };
+
+    const std::string path = GetParam() ? "requests" : "api.requests";
+    const auto collected = snapshot.AllMetrics();
+    ASSERT_EQ(collected.size(), 1);
+    EXPECT_EQ(collected.front().path, path);
+    const std::vector<utils::statistics::LabelView> labels =
+        GetParam() ? std::vector<utils::statistics::LabelView>{{"code", "200"}}
+                   : std::vector<utils::statistics::LabelView>{{"service", "orders"}, {"code", "200"}};
+    const std::vector<utils::statistics::LabelView>
+        actual_labels{collected.front().labels.begin(), collected.front().labels.end()};
+    EXPECT_THAT(actual_labels, testing::UnorderedElementsAreArray(labels));
+    EXPECT_EQ(collected.front().value, std::int64_t{3});
+}
+
+INSTANTIATE_UTEST_SUITE_P(Snapshot, SnapshotStorageSlicing, testing::Bool());
 
 USERVER_NAMESPACE_END

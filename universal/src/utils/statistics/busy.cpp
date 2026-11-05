@@ -4,7 +4,7 @@
 #include <thread>
 #include <vector>
 
-#include <userver/utils/datetime.hpp>
+#include <userver/utils/datetime_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

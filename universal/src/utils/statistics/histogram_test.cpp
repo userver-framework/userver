@@ -4,20 +4,19 @@
 #include <memory>
 #include <ranges>
 
+#include <gtest/gtest.h>
 #include <userver/formats/json/serialize.hpp>
-#include <userver/utest/utest.hpp>
+
+#include <userver/utest/assert_macros.hpp>
 #include <userver/utils/algo.hpp>
 #include <userver/utils/enumerate.hpp>
 #include <userver/utils/statistics/fmt.hpp>
 #include <userver/utils/statistics/graphite.hpp>
 #include <userver/utils/statistics/histogram_aggregator.hpp>
 #include <userver/utils/statistics/json.hpp>
-#include <userver/utils/statistics/metric_tag.hpp>
-#include <userver/utils/statistics/metrics_storage.hpp>
 #include <userver/utils/statistics/pretty_format.hpp>
 #include <userver/utils/statistics/prometheus.hpp>
 #include <userver/utils/statistics/solomon.hpp>
-#include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/statistics/testing.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -34,7 +33,7 @@ void AccountSome(utils::statistics::Histogram& histogram) {
     histogram.Account(30, 4);
 }
 
-UTEST(StatisticsHistogram, Account) {
+TEST(StatisticsHistogram, Account) {
     utils::statistics::Histogram histogram{Bounds()};
     AccountSome(histogram);
 
@@ -52,13 +51,13 @@ UTEST(StatisticsHistogram, Account) {
     EXPECT_EQ(view.GetValueAt(3), 0);
 }
 
-UTEST(StatisticsHistogram, ValueOnBucketBorder) {
+TEST(StatisticsHistogram, ValueOnBucketBorder) {
     utils::statistics::Histogram histogram{Bounds()};
     histogram.Account(5);
     EXPECT_EQ(fmt::to_string(histogram.GetView()), "[1.5]=0,[5]=1,[42]=0,[60]=0,[inf]=0");
 }
 
-UTEST(StatisticsHistogram, AccountForEachBucketCount) {
+TEST(StatisticsHistogram, AccountForEachBucketCount) {
     constexpr double kInf = 9001;
     constexpr std::uint64_t kInfCount = 42;
 
@@ -80,14 +79,14 @@ UTEST(StatisticsHistogram, AccountForEachBucketCount) {
     }
 }
 
-UTEST(StatisticsHistogram, Total) {
+TEST(StatisticsHistogram, Total) {
     utils::statistics::Histogram histogram{Bounds()};
     AccountSome(histogram);
     EXPECT_EQ(fmt::to_string(histogram.GetView()), "[1.5]=1,[5]=1,[42]=5,[60]=0,[inf]=1");
     EXPECT_EQ(histogram.GetView().GetTotalCount(), 8);
 }
 
-UTEST(StatisticsHistogram, Sample) {
+TEST(StatisticsHistogram, Sample) {
     /// [sample]
     utils::statistics::Histogram histogram{{1.5, 5, 42, 60}};
 
@@ -102,7 +101,7 @@ UTEST(StatisticsHistogram, Sample) {
     /// [sample]
 }
 
-UTEST(StatisticsHistogram, Copy) {
+TEST(StatisticsHistogram, Copy) {
     utils::statistics::Histogram histogram{Bounds()};
     AccountSome(histogram);
 
@@ -110,7 +109,7 @@ UTEST(StatisticsHistogram, Copy) {
     EXPECT_EQ(fmt::to_string(copy.GetView()), "[1.5]=1,[5]=1,[42]=5,[60]=0,[inf]=1");
 }
 
-UTEST(StatisticsHistogram, Add) {
+TEST(StatisticsHistogram, Add) {
     /// [HistogramAggregator]
     utils::statistics::Histogram histogram1{Bounds()};
     AccountSome(histogram1);
@@ -127,7 +126,7 @@ UTEST(StatisticsHistogram, Add) {
     /// [HistogramAggregator]
 }
 
-UTEST(StatisticsHistogram, AddPreservesFractionalSums) {
+TEST(StatisticsHistogram, AddPreservesFractionalSums) {
     utils::statistics::Histogram histogram{Bounds()};
     histogram.Account(1.2);
     histogram.Account(100.5);
@@ -140,7 +139,7 @@ UTEST(StatisticsHistogram, AddPreservesFractionalSums) {
     EXPECT_DOUBLE_EQ(aggregator.GetView().GetTotalSum(), histogram.GetView().GetTotalSum());
 }
 
-UTEST(StatisticsHistogram, AggregatorCopyBounds) {
+TEST(StatisticsHistogram, AggregatorCopyBounds) {
     utils::statistics::Histogram histogram{Bounds()};
     AccountSome(histogram);
 
@@ -152,7 +151,7 @@ UTEST(StatisticsHistogram, AggregatorCopyBounds) {
     EXPECT_EQ(aggregator.GetView(), histogram.GetView());
 }
 
-UTEST(StatisticsHistogram, ViewSurvivesMove) {
+TEST(StatisticsHistogram, ViewSurvivesMove) {
     auto histogram = std::make_unique<utils::statistics::Histogram>(Bounds());
     histogram->Account(1.2);
     const auto view = histogram->GetView();
@@ -165,7 +164,7 @@ UTEST(StatisticsHistogram, ViewSurvivesMove) {
     EXPECT_EQ(view, moved.GetView());
 }
 
-UTEST(StatisticsHistogram, AggregatorViewSurvivesMove) {
+TEST(StatisticsHistogram, AggregatorViewSurvivesMove) {
     auto aggregator = std::make_unique<utils::statistics::HistogramAggregator>(Bounds());
     aggregator->AccountAt(0, 1);
     const auto view = aggregator->GetView();
@@ -178,7 +177,7 @@ UTEST(StatisticsHistogram, AggregatorViewSurvivesMove) {
     EXPECT_EQ(view, moved.GetView());
 }
 
-UTEST(StatisticsHistogram, ViewSurvivesMoveAssign) {
+TEST(StatisticsHistogram, ViewSurvivesMoveAssign) {
     utils::statistics::Histogram source{Bounds()};
     source.Account(1.2);
     const auto source_view = source.GetView();
@@ -192,7 +191,7 @@ UTEST(StatisticsHistogram, ViewSurvivesMoveAssign) {
     EXPECT_EQ(source_view, target.GetView());
 }
 
-UTEST(StatisticsHistogram, AggregatorViewSurvivesMoveAssign) {
+TEST(StatisticsHistogram, AggregatorViewSurvivesMoveAssign) {
     utils::statistics::HistogramAggregator source{Bounds()};
     source.AccountAt(0, 1);
     const auto source_view = source.GetView();
@@ -206,7 +205,7 @@ UTEST(StatisticsHistogram, AggregatorViewSurvivesMoveAssign) {
     EXPECT_EQ(source_view, target.GetView());
 }
 
-UTEST(StatisticsHistogram, Reset) {
+TEST(StatisticsHistogram, Reset) {
     utils::statistics::Histogram histogram{Bounds()};
     AccountSome(histogram);
     ResetMetric(histogram);
@@ -214,7 +213,7 @@ UTEST(StatisticsHistogram, Reset) {
     EXPECT_EQ(histogram.GetView(), zero_histogram.GetView());
 }
 
-UTEST(StatisticsHistogram, Sum) {
+TEST(StatisticsHistogram, Sum) {
     utils::statistics::Histogram histogram{Bounds()};
     AccountSome(histogram);
 
@@ -226,7 +225,7 @@ UTEST(StatisticsHistogram, Sum) {
     EXPECT_EQ(histogram.GetView().GetTotalSum(), 1.2 + 1.8 + 10 + 30 * 4 + 100);
 }
 
-UTEST(StatisticsHistogram, AccountInfSum) {
+TEST(StatisticsHistogram, AccountInfSum) {
     utils::statistics::HistogramAggregator histogram{Bounds()};
     histogram.AccountInf(2);
     histogram.AccountAt(0, 1);
@@ -240,7 +239,7 @@ UTEST(StatisticsHistogram, AccountInfSum) {
     EXPECT_EQ(histogram.GetView().GetTotalSum(), 3.75);
 }
 
-UTEST(StatisticsHistogram, ZeroBuckets) {
+TEST(StatisticsHistogram, ZeroBuckets) {
     utils::statistics::Histogram histogram{std::vector<double>{}};
     EXPECT_EQ(histogram.GetView().GetBucketCount(), 0);
     EXPECT_EQ(histogram.GetView().GetValueAtInf(), 0);
@@ -269,7 +268,7 @@ utils::statistics::Histogram MakeHistogramForNarrowing() {
     return histogram;
 }
 
-UTEST(StatisticsHistogram, BucketNarrowing) {
+TEST(StatisticsHistogram, BucketNarrowing) {
     const auto histogram = MakeHistogramForNarrowing();
     {
         utils::statistics::HistogramAggregator aggregator{std::vector<double>{2.0, 8.0}};
@@ -283,7 +282,7 @@ UTEST(StatisticsHistogram, BucketNarrowing) {
     }
 }
 
-UTEST_DEATH(StatisticsHistogramDeathTest, InvalidBuckets) {
+TEST(StatisticsHistogramDeathTest, InvalidBuckets) {
     EXPECT_UINVARIANT_FAILURE_MSG(
         (utils::statistics::Histogram{std::vector<double>{10, 5, 3}}),
         "Histogram bounds must be sorted"
@@ -310,36 +309,6 @@ UTEST_DEATH(StatisticsHistogramDeathTest, InvalidBuckets) {
     );
 }
 
-class StatisticsHistogramMetricTag : public testing::Test {
-protected:
-    StatisticsHistogramMetricTag() = default;
-
-    utils::statistics::MetricsStorage& GetMetricsStorage() { return metrics_storage_; }
-
-private:
-    utils::statistics::MetricsStorage metrics_storage_;
-};
-
-void AssertAccounted10(utils::statistics::HistogramView histogram) {
-    utils::statistics::Histogram expected{Bounds()};
-    expected.Account(10);
-    EXPECT_EQ(histogram, expected.GetView());
-}
-
-/// [metric tag]
-utils::statistics::MetricTag<utils::statistics::Histogram>
-    kRuntimeHistogramMetric{"histogram_metric_sample_runtime", Bounds()};
-
-void AccountHistogram(utils::statistics::MetricsStorage& metrics_storage) {
-    metrics_storage.GetMetric(kRuntimeHistogramMetric).Account(10);
-}
-/// [metric tag]
-
-UTEST_F(StatisticsHistogramMetricTag, RuntimeSample) {
-    AccountHistogram(GetMetricsStorage());
-    AssertAccounted10(GetMetricsStorage().GetMetric(kRuntimeHistogramMetric).GetView());
-}
-
 class StatisticsHistogramFormat : public testing::Test {
 protected:
     StatisticsHistogramFormat() { AccountSome(histogram_); }
@@ -352,7 +321,7 @@ protected:
 
 using StatisticsHistogramFormatDeathTest = StatisticsHistogramFormat;
 
-UTEST_F(StatisticsHistogramFormat, JsonFormat) {
+TEST_F(StatisticsHistogramFormat, JsonFormat) {
     EXPECT_EQ(
         formats::json::FromString(utils::statistics::ToJsonFormat([this](utils::statistics::Writer& writer) {
             WriteHistogram(writer);
@@ -376,14 +345,14 @@ UTEST_F(StatisticsHistogramFormat, JsonFormat) {
     );
 }
 
-UTEST_F(StatisticsHistogramFormat, PrettyFormat) {
+TEST_F(StatisticsHistogramFormat, PrettyFormat) {
     EXPECT_EQ(
         utils::statistics::ToPrettyFormat([this](utils::statistics::Writer& writer) { WriteHistogram(writer); }),
         "test:\tHIST_RATE\t[1.5]=1,[5]=1,[42]=5,[60]=0,[inf]=1\n"
     );
 }
 
-UTEST_F(StatisticsHistogramFormat, Prometheus) {
+TEST_F(StatisticsHistogramFormat, Prometheus) {
     constexpr std::string_view expected = R"(# TYPE test histogram
 test_bucket{le="1.5"} 1
 test_bucket{le="5"} 2
@@ -399,7 +368,7 @@ test_sum{} 233
     );
 }
 
-UTEST_F(StatisticsHistogramFormat, PrometheusUntyped) {
+TEST_F(StatisticsHistogramFormat, PrometheusUntyped) {
     constexpr std::string_view expected = R"(# TYPE test histogram
 test_bucket{le="1.5"} 1
 test_bucket{le="5"} 2
@@ -417,7 +386,7 @@ test_sum{} 233
     );
 }
 
-UTEST_F(StatisticsHistogramFormat, CustomLabels) {
+TEST_F(StatisticsHistogramFormat, CustomLabels) {
     constexpr std::string_view expected = R"(# TYPE test histogram
 test_bucket{le="1.5",custom_label_1="1",custom_label_2="2"} 1
 test_bucket{le="5",custom_label_1="1",custom_label_2="2"} 2
@@ -436,7 +405,7 @@ test_sum{custom_label_1="1",custom_label_2="2"} 233
 }
 
 // TODO support HistogramView in Graphite metrics
-UTEST_F_DEATH(StatisticsHistogramFormatDeathTest, Graphite) {
+TEST_F(StatisticsHistogramFormatDeathTest, Graphite) {
     EXPECT_DEBUG_DEATH(
         EXPECT_EQ(
             utils::statistics::ToGraphiteFormat([this](utils::statistics::Writer& writer) { WriteHistogram(writer); }),
@@ -446,7 +415,7 @@ UTEST_F_DEATH(StatisticsHistogramFormatDeathTest, Graphite) {
     );
 }
 
-UTEST_F(StatisticsHistogramFormat, SolomonFormat) {
+TEST_F(StatisticsHistogramFormat, SolomonFormat) {
     // Solomon does not understand 'sum'
     EXPECT_EQ(
         formats::json::FromString(utils::statistics::ToSolomonFormat(

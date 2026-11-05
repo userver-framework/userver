@@ -1,8 +1,13 @@
 #include <userver/utils/statistics/metrics_storage.hpp>
 
 #include <atomic>
+#include <optional>
+#include <stdexcept>
+#include <string>
+#include <vector>
 
 #include <userver/utest/utest.hpp>
+#include <userver/utils/statistics/histogram.hpp>
 #include <userver/utils/statistics/rate_counter.hpp>
 #include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/statistics/testing.hpp>
@@ -110,6 +115,38 @@ UTEST(MetricsStorage, AllowedMetricPaths) {
         utils::statistics::MetricsStorage metrics_storage{allowed_metric_paths};
         EXPECT_THROW(metrics_storage.GetMetric(kFooMetric), std::out_of_range);
     }
+}
+
+UTEST(MetricsStorage, RegistrationLifetime) {
+    utils::statistics::Storage storage;
+    auto metrics = utils::statistics::MakeBoundMetricsStorage(storage, std::vector<std::string>{kFooMetric.GetPath()});
+    auto copy = metrics;
+    metrics.reset();
+
+    copy->GetMetric(kFooMetric).store(42);
+    EXPECT_THROW(copy->GetMetric(kWriterMetric), std::out_of_range);
+    EXPECT_EQ(utils::statistics::Snapshot{storage}.SingleMetric("foo-metric").AsInt(), 42);
+
+    copy.reset();
+    EXPECT_TRUE(utils::statistics::Snapshot{storage}.AllMetrics().empty());
+}
+
+/// [metric tag]
+utils::statistics::MetricTag<utils::statistics::Histogram>
+    kRuntimeHistogramMetric{"histogram_metric_sample_runtime", std::vector<double>{1.5, 5, 42, 60}};
+
+void AccountHistogram(utils::statistics::MetricsStorage& metrics_storage) {
+    metrics_storage.GetMetric(kRuntimeHistogramMetric).Account(10);
+}
+/// [metric tag]
+
+UTEST(StatisticsHistogramMetricTag, RuntimeSample) {
+    utils::statistics::MetricsStorage metrics_storage;
+    AccountHistogram(metrics_storage);
+
+    utils::statistics::Histogram expected{std::vector<double>{1.5, 5, 42, 60}};
+    expected.Account(10);
+    EXPECT_EQ(metrics_storage.GetMetric(kRuntimeHistogramMetric).GetView(), expected.GetView());
 }
 
 USERVER_NAMESPACE_END

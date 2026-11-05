@@ -1,4 +1,4 @@
-#include <userver/utest/utest.hpp>
+#include <gtest/gtest.h>
 
 #include <condition_variable>
 #include <functional>

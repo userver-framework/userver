@@ -17,7 +17,7 @@ namespace utils::statistics {
 /// @brief Used to aggregate multiple @ref utils::statistics::Histogram metrics.
 ///
 /// Usage example:
-/// @snippet core/src/utils/statistics/histogram_test.cpp  HistogramAggregator
+/// @snippet universal/src/utils/statistics/histogram_test.cpp  HistogramAggregator
 class HistogramAggregator final {
 public:
     /// @brief Sets upper bounds for each non-"infinite" bucket. The lowest bound is

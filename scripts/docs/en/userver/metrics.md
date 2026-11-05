@@ -206,11 +206,11 @@ Key scenarios where such metrics are useful:
 To unit test (gtest) simple metrics, implement `DumpMetric` and pass the
 struct to @ref utils::statistics::Snapshot :
 
-@snippet universal/src/utils/statistics/testing_test.cpp  metrics Snapshot DumpMetric sample
+@snippet universal/utest/src/utils/statistics/testing_test.cpp  metrics Snapshot DumpMetric sample
 
 If the class registers writers in @ref utils::statistics::Storage, pass Storage:
 
-@snippet core/src/utils/statistics/testing_test.cpp  metrics Snapshot sample
+@snippet core/src/utils/statistics/storage_test.cpp  metrics Snapshot sample
 
 Prefer testing metrics in unit tests if possible. Otherwise, metrics could be tested in testsuite, see
 @ref TESTSUITE_METRICS_TESTING "Metrics testing in testsuite".
