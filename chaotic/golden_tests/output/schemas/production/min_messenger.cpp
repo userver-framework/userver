@@ -21,7 +21,7 @@ bool MayParseAs(
     if (!value.HasMember("name")) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__V1CurrentUser_PropertiesNames.Contains(it.GetName())) {
             return false;
         }
@@ -157,7 +157,7 @@ bool MayParseAs(
     if (!value.HasMember("message")) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__V1ChannelMessage_PropertiesNames.Contains(it.GetName())) {
             return false;
         }
@@ -296,7 +296,7 @@ bool MayParseAs(
     if (!value.HasMember("from")) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__V1ChannelMessageByTimestampRequest_PropertiesNames.Contains(it.GetName())) {
             return false;
         }
@@ -423,7 +423,7 @@ bool MayParseAs(
     if (!value.HasMember("messages")) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__V1ChannelMessageByTimestampResponse_PropertiesNames.Contains(it.GetName())) {
             return false;
         }
@@ -532,7 +532,7 @@ bool MayParseAs(
     if (!value.HasMember("message")) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__V1ChannelMessageNewRequest_PropertiesNames.Contains(it.GetName())) {
             return false;
         }
@@ -657,7 +657,7 @@ bool MayParseAs(
     if (!value.HasMember("message_id")) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__V1ChannelMessageNewResponse_PropertiesNames.Contains(it.GetName())) {
             return false;
         }
@@ -763,7 +763,7 @@ bool MayParseAs(
     if (!value.HasMember("channel_id")) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__V1ChannelNotificationListRequest_PropertiesNames.Contains(it.GetName())) {
             return false;
         }
@@ -877,7 +877,7 @@ bool MayParseAs(
     if (!value.HasMember("notifications")) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__V1ChannelNotificationListResponse_PropertiesNames.Contains(it.GetName())) {
             return false;
         }
@@ -986,7 +986,7 @@ bool MayParseAs(
     if (!value.HasMember("message_id")) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__V1ChannelNotificationNewRequest_PropertiesNames.Contains(it.GetName())) {
             return false;
         }
@@ -1121,7 +1121,7 @@ bool MayParseAs(
     if (!value.IsObject() && !value.IsNull()) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__V1ChannelNotificationNewResponse_PropertiesNames.Contains(it.GetName())) {
             return false;
         }
@@ -1227,7 +1227,7 @@ bool MayParseAs(
     if (!value.HasMember("message")) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__V1Error_PropertiesNames.Contains(it.GetName())) {
             return false;
         }
@@ -1423,7 +1423,7 @@ bool MayParseAs(
     if (!value.HasMember("content")) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__V1File_PropertiesNames.Contains(it.GetName())) {
             return false;
         }
@@ -1551,7 +1551,7 @@ bool MayParseAs(
     if (!value.HasMember("uri")) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__V1FileByUriRequest_PropertiesNames.Contains(it.GetName())) {
             return false;
         }
@@ -1668,7 +1668,7 @@ bool MayParseAs(
     if (!value.HasMember("uri")) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__V1FileNewResponse_PropertiesNames.Contains(it.GetName())) {
             return false;
         }
@@ -1805,7 +1805,7 @@ bool MayParseAs(
     if (!USERVER_NAMESPACE::formats::parse::MayParseAs<::ns::V1LikeTriggerRequest::Animation>(value["animation"])) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__V1LikeTriggerRequest_PropertiesNames.Contains(it.GetName())) {
             return false;
         }
@@ -2033,7 +2033,7 @@ bool MayParseAs(
     if (!value.HasMember("password")) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__V1UserAuthorizationRequest_PropertiesNames.Contains(it.GetName())) {
             return false;
         }
@@ -2147,7 +2147,7 @@ bool MayParseAs(
     if (!value.HasMember("current_user")) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__V1UserAuthorizationResponse_PropertiesNames.Contains(it.GetName())) {
             return false;
         }
@@ -2262,7 +2262,7 @@ bool MayParseAs(
     if (!value.HasMember("password")) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__V1UserRegistrationRequest_PropertiesNames.Contains(it.GetName())) {
             return false;
         }
@@ -2502,7 +2502,7 @@ bool MayParseAs(
     if (!value.HasMember("login")) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__V1UserStatusByLoginRequest_PropertiesNames.Contains(it.GetName())) {
             return false;
         }
@@ -2616,7 +2616,7 @@ bool MayParseAs(
     if (!value.HasMember("status")) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__V1UserStatusByLoginResponse_PropertiesNames.Contains(it.GetName())) {
             return false;
         }
@@ -2722,7 +2722,7 @@ bool MayParseAs(
     if (!value.HasMember("status")) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__V1UserStatusUpdateRequest_PropertiesNames.Contains(it.GetName())) {
             return false;
         }
@@ -2833,7 +2833,7 @@ bool MayParseAs(
     if (!value.IsObject() && !value.IsNull()) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__V1UserStatusUpdateResponse_PropertiesNames.Contains(it.GetName())) {
             return false;
         }

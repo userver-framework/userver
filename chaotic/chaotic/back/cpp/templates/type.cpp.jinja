@@ -70,7 +70,7 @@
             {% endif %}
           {% endfor %}
           {% if cpp_struct_is_strict_parsing(type) %}
-            for (auto it = value.begin(); it != value.end(); ++it) {
+            for (auto it = value.begin(), end = value.end(); it != end; ++it) {
                 if (!k{{ type.cpp_global_struct_field_name() }}_PropertiesNames.Contains(it.GetName())) {
                     return false;
                 }
