@@ -7,11 +7,13 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <vector>
 
 #include <clients/http/middlewares/pipeline.hpp>
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/clients/http/config.hpp>
 #include <userver/clients/http/error.hpp>
+#include <userver/clients/http/expected_status_codes.hpp>
 #include <userver/clients/http/form.hpp>
 #include <userver/clients/http/request.hpp>
 #include <userver/clients/http/response_future.hpp>
@@ -149,6 +151,8 @@ public:
     void SetIncompleteTlsConnectionCloseExpected(bool expect);
     void SetLoggedUrl(std::string url);
     void SetUrlTemplate(std::string url_template);
+
+    void SetExpectedStatusCodes(ExpectedStatusCodes status_codes);
     void SetMethod(clients::http::HttpMethod method);
     void data(std::string data);
     void SetEasyTimeout(std::chrono::milliseconds timeout);
@@ -263,6 +267,7 @@ private:
     std::optional<std::string> log_url_;
 
     std::optional<std::string> url_template_;
+    ExpectedStatusCodes expected_status_codes_;
     HttpMethod method_{HttpMethod::kGet};
     bool follow_redirects_{false};
     bool redirect_url_userinfo_rejected_{false};

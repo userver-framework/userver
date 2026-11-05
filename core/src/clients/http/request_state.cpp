@@ -764,6 +764,10 @@ void RequestState::SetLoggedUrl(std::string url) { log_url_ = std::move(url); }
 
 void RequestState::SetUrlTemplate(std::string url_template) { url_template_ = std::move(url_template); }
 
+void RequestState::SetExpectedStatusCodes(ExpectedStatusCodes status_codes) {
+    expected_status_codes_ = std::move(status_codes);
+}
+
 void RequestState::SetMethod(HttpMethod method) {
     switch (method) {
         case HttpMethod::kDelete:
@@ -1128,6 +1132,7 @@ void RequestState::ResetDataForNewRequest() {
     SetBaggageHeader(easy());
 
     response_ = std::make_shared<Response>();
+    response_->SetExpectedStatusCodes(expected_status_codes_);
     response_->SetStatusCode(Status::kInvalid);
 
     is_cancelled_ = false;

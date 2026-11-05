@@ -34,6 +34,10 @@ ClientImpl::ClientImpl(
       ) {
         auto r = http_client_.CreateRequest();
         r.SetUrlTemplate("{{ op.path }}");
+        {% if op.expected_status_codes is not none %}
+            r.SetExpectedStatusCodes({ {% for code in op.expected_status_codes %}static_cast<USERVER_NAMESPACE::http::StatusCode>({{ code }}){{ ', ' if not loop.last }}{% endfor %} });
+        {% endif %}
+
         {% if op.path != op.destination_metric_name() %}
             r.SetDestinationMetricName(
                 config_.base_url + "{{ op.destination_metric_name() }}"
@@ -84,4 +88,3 @@ ClientImpl::ClientImpl(
 {% endfor %}
 
 }  // namespace {{ namespace }}
-

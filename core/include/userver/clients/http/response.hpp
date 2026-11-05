@@ -6,6 +6,7 @@
 #include <string>
 
 #include <userver/clients/http/error.hpp>
+#include <userver/clients/http/expected_status_codes.hpp>
 #include <userver/clients/http/local_stats.hpp>
 #include <userver/http/header_map.hpp>
 #include <userver/http/status_code.hpp>
@@ -48,7 +49,11 @@ public:
     Status status_code() const;
     /// check status code
     bool IsOk() const { return status_code() == Status::kOk; }
-    bool IsError() const { return static_cast<uint16_t>(status_code()) >= 400; }
+    /// @brief Whether the HTTP status is >=400 and was not explicitly marked expected by the request.
+    /// This classification does not affect raise_for_status().
+    bool IsError() const {
+        return static_cast<uint16_t>(status_code()) >= 400 && !expected_status_codes_.Contains(status_code());
+    }
 
     static void RaiseForStatus(int code, const LocalStats& stats);
     static void RaiseForStatus(int code, const LocalStats& stats, std::string_view message);
@@ -69,11 +74,22 @@ public:
     void SetStats(const LocalStats& stats) { stats_ = stats; }
     void SetStatusCode(Status status_code) { status_code_ = status_code; }
 
+    /// @brief Replaces the expected HTTP codes used by @ref clients::http::Response::IsError.
+    /// An empty set restores the default classification of HTTP statuses >=400 as errors.
+    /// The request applies its configured set before completion middleware runs.
+    /// Changing a received response affects subsequent response classification only. It does not
+    /// update the already recorded span or retry-budget accounting, change the HTTP status,
+    /// or affect @ref clients::http::Response::raise_for_status.
+    /// To configure request tracing and retry-budget accounting, use
+    /// @ref clients::http::Request::SetExpectedStatusCodes before sending the request.
+    void SetExpectedStatusCodes(ExpectedStatusCodes status_codes) { expected_status_codes_ = status_codes; }
+
 private:
     Headers headers_;
     CookiesMap cookies_;
     std::string response_;
     Status status_code_{Status::kInvalid};
+    ExpectedStatusCodes expected_status_codes_;
     LocalStats stats_;
 };
 

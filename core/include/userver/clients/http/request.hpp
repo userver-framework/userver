@@ -16,6 +16,7 @@
 #include <userver/clients/dns/resolver_fwd.hpp>
 #include <userver/clients/http/cancellation_policy.hpp>
 #include <userver/clients/http/error.hpp>
+#include <userver/clients/http/expected_status_codes.hpp>
 #include <userver/clients/http/response.hpp>
 #include <userver/clients/http/response_future.hpp>
 #include <userver/concurrent/queue_fwd.hpp>
@@ -364,6 +365,16 @@ public:
     Request& SetLoggedUrl(std::string url) &;
     /// @overload
     Request SetLoggedUrl(std::string url) &&;
+
+    /// @brief Replace the explicitly expected HTTP response codes for this request.
+    /// Expected responses omit the span error tag, return false from Response::IsError(),
+    /// and are accounted as successful completed responses by the retry-budget middleware.
+    /// An empty set clears the previous setting. Transport errors and timeouts remain errors.
+    /// HTTP status, raise_for_status(), generated exceptions and the retry-selection policy are unchanged.
+    /// @see @ref scripts/docs/en/userver/chaotic_clients.md for generated-client defaults and overrides.
+    Request& SetExpectedStatusCodes(ExpectedStatusCodes status_codes) &;
+    /// @overload
+    Request SetExpectedStatusCodes(ExpectedStatusCodes status_codes) &&;
 
     /// Set URL template (low-cardinality) for tracing, i.e. `/v1/user/{user_id}`
     /// @see https://opentelemetry.io/docs/specs/semconv/registry/attributes/url/
