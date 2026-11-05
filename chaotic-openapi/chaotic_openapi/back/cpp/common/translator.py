@@ -183,6 +183,7 @@ class BaseTranslator(abc.ABC):
                 middlewares=self._translate_middlewares(op.x_middlewares),
                 client_generate=op.x_client_codegen,
                 handler_generate=op.x_handler_codegen,
+                expected_status_codes=op.expected_status_codes,
                 security=self._translate_security(op.security_requirements, op.path, op.method),
             )
 

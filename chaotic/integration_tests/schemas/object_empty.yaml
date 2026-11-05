@@ -6,3 +6,10 @@ definitions:
             description
         properties: {}
         additionalProperties: false
+    ObjectExtraOnly:
+        type: object
+        additionalProperties: true
+    ObjectExtraOnlyArray:
+        type: array
+        items:
+            $ref: '#/definitions/ObjectExtraOnly'

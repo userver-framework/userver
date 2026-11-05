@@ -41,6 +41,10 @@ V1CurrentUser Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<V1CurrentUser>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1CurrentUser>);
+
 V1CurrentUser FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1CurrentUser>);
@@ -78,6 +82,10 @@ V1ChannelMessage Parse(
 
 V1ChannelMessage Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
+    USERVER_NAMESPACE::formats::parse::To<V1ChannelMessage>);
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
     USERVER_NAMESPACE::formats::parse::To<V1ChannelMessage>);
 
 V1ChannelMessage FromJsonString(
@@ -118,6 +126,10 @@ V1ChannelMessageByTimestampRequest Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<V1ChannelMessageByTimestampRequest>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1ChannelMessageByTimestampRequest>);
+
 V1ChannelMessageByTimestampRequest FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1ChannelMessageByTimestampRequest>);
@@ -152,6 +164,10 @@ V1ChannelMessageByTimestampResponse Parse(
 
 V1ChannelMessageByTimestampResponse Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
+    USERVER_NAMESPACE::formats::parse::To<V1ChannelMessageByTimestampResponse>);
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
     USERVER_NAMESPACE::formats::parse::To<V1ChannelMessageByTimestampResponse>);
 
 V1ChannelMessageByTimestampResponse FromJsonString(
@@ -192,6 +208,10 @@ V1ChannelMessageNewRequest Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<V1ChannelMessageNewRequest>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1ChannelMessageNewRequest>);
+
 V1ChannelMessageNewRequest FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1ChannelMessageNewRequest>);
@@ -228,6 +248,10 @@ V1ChannelMessageNewResponse Parse(
 
 V1ChannelMessageNewResponse Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
+    USERVER_NAMESPACE::formats::parse::To<V1ChannelMessageNewResponse>);
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
     USERVER_NAMESPACE::formats::parse::To<V1ChannelMessageNewResponse>);
 
 V1ChannelMessageNewResponse FromJsonString(
@@ -267,6 +291,10 @@ V1ChannelNotificationListRequest Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<V1ChannelNotificationListRequest>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1ChannelNotificationListRequest>);
+
 V1ChannelNotificationListRequest FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1ChannelNotificationListRequest>);
@@ -301,6 +329,10 @@ V1ChannelNotificationListResponse Parse(
 
 V1ChannelNotificationListResponse Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
+    USERVER_NAMESPACE::formats::parse::To<V1ChannelNotificationListResponse>);
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
     USERVER_NAMESPACE::formats::parse::To<V1ChannelNotificationListResponse>);
 
 V1ChannelNotificationListResponse FromJsonString(
@@ -343,6 +375,10 @@ V1ChannelNotificationNewRequest Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<V1ChannelNotificationNewRequest>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1ChannelNotificationNewRequest>);
+
 V1ChannelNotificationNewRequest FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1ChannelNotificationNewRequest>);
@@ -376,6 +412,10 @@ V1ChannelNotificationNewResponse Parse(
 
 V1ChannelNotificationNewResponse Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
+    USERVER_NAMESPACE::formats::parse::To<V1ChannelNotificationNewResponse>);
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
     USERVER_NAMESPACE::formats::parse::To<V1ChannelNotificationNewResponse>);
 
 V1ChannelNotificationNewResponse FromJsonString(
@@ -446,6 +486,14 @@ V1Error Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<V1Error>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1Error::Details>);
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1Error>);
+
 V1Error FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1Error>);
@@ -494,6 +542,10 @@ V1File Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<V1File>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1File>);
+
 V1File FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1File>);
@@ -529,6 +581,10 @@ V1FileByUriRequest Parse(
 
 V1FileByUriRequest Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
+    USERVER_NAMESPACE::formats::parse::To<V1FileByUriRequest>);
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
     USERVER_NAMESPACE::formats::parse::To<V1FileByUriRequest>);
 
 V1FileByUriRequest FromJsonString(
@@ -570,6 +626,10 @@ V1FileNewResponse Parse(
 
 V1FileNewResponse Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
+    USERVER_NAMESPACE::formats::parse::To<V1FileNewResponse>);
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
     USERVER_NAMESPACE::formats::parse::To<V1FileNewResponse>);
 
 V1FileNewResponse FromJsonString(
@@ -647,6 +707,14 @@ V1LikeTriggerRequest Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<V1LikeTriggerRequest>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1LikeTriggerRequest::Animation>);
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1LikeTriggerRequest>);
+
 V1LikeTriggerRequest FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1LikeTriggerRequest>);
@@ -711,6 +779,10 @@ V1UserAuthorizationRequest Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<V1UserAuthorizationRequest>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1UserAuthorizationRequest>);
+
 V1UserAuthorizationRequest FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1UserAuthorizationRequest>);
@@ -745,6 +817,10 @@ V1UserAuthorizationResponse Parse(
 
 V1UserAuthorizationResponse Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
+    USERVER_NAMESPACE::formats::parse::To<V1UserAuthorizationResponse>);
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
     USERVER_NAMESPACE::formats::parse::To<V1UserAuthorizationResponse>);
 
 V1UserAuthorizationResponse FromJsonString(
@@ -791,6 +867,10 @@ V1UserRegistrationRequest Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<V1UserRegistrationRequest>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1UserRegistrationRequest>);
+
 V1UserRegistrationRequest FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1UserRegistrationRequest>);
@@ -830,6 +910,10 @@ V1UserStatus Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<V1UserStatus>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1UserStatus>);
+
 V1UserStatus FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1UserStatus>);
@@ -867,6 +951,10 @@ V1UserStatusByLoginRequest Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<V1UserStatusByLoginRequest>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1UserStatusByLoginRequest>);
+
 V1UserStatusByLoginRequest FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1UserStatusByLoginRequest>);
@@ -901,6 +989,10 @@ V1UserStatusByLoginResponse Parse(
 
 V1UserStatusByLoginResponse Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
+    USERVER_NAMESPACE::formats::parse::To<V1UserStatusByLoginResponse>);
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
     USERVER_NAMESPACE::formats::parse::To<V1UserStatusByLoginResponse>);
 
 V1UserStatusByLoginResponse FromJsonString(
@@ -940,6 +1032,10 @@ V1UserStatusUpdateRequest Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<V1UserStatusUpdateRequest>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1UserStatusUpdateRequest>);
+
 V1UserStatusUpdateRequest FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1UserStatusUpdateRequest>);
@@ -973,6 +1069,10 @@ V1UserStatusUpdateResponse Parse(
 
 V1UserStatusUpdateResponse Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
+    USERVER_NAMESPACE::formats::parse::To<V1UserStatusUpdateResponse>);
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
     USERVER_NAMESPACE::formats::parse::To<V1UserStatusUpdateResponse>);
 
 V1UserStatusUpdateResponse FromJsonString(

@@ -23,7 +23,10 @@ public:
     CallContext(utils::impl::InternalTag, impl::CallState& state) noexcept;
     /// @endcond
 
-    /// @returns the `ClientContext` used for this RPC
+    /// @brief Returns the context of the last RPC attempt.
+    ///
+    /// For unary RPCs, the call must have completed successfully or with @ref ugrpc::client::ErrorWithStatus.
+    /// Metadata access must follow the preconditions of the respective gRPC accessor.
     grpc::ClientContext& GetClientContext();
 
     /// @returns client name

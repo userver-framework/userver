@@ -62,7 +62,10 @@ clients::http::ClientWithMiddlewares MakeHttpClient(
     return {
         utils::impl::InternalTag{},
         core_component.GetHttpClientCore(utils::impl::InternalTag{}),
-        FindMiddlewares(component_config["middlewares"].As<middlewares::impl::MiddlewaresMap>({}), context)
+        FindMiddlewares(component_config["middlewares"].As<middlewares::impl::MiddlewaresMap>({}), context),
+        component_config["allow-url-userinfo"].As<bool>(false)
+            ? clients::http::ClientOptions::kAllowUserInfo
+            : clients::http::ClientOptions::kNone
     };
 }
 

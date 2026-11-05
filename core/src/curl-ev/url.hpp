@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string_view>
+
 #include <curl-ev/error_code.hpp>
 #include <curl-ev/native.hpp>
 #include <curl-ev/wrappers.hpp>
@@ -47,6 +49,8 @@ USERVER_NAMESPACE_BEGIN
 
 namespace curl {
 
+bool HasUrlUserinfo(std::string_view url) noexcept;
+
 class url {  // NOLINT(readability-identifier-naming)
 public:
     url();
@@ -62,7 +66,7 @@ public:
     IMPLEMENT_CURLU_PART(Url, native::CURLUPART_URL);
 
     // Always treats passed URL as an absolute one
-    void SetAbsoluteUrl(const char* url, std::error_code& ec);
+    void SetAbsoluteUrl(const char* url, std::error_code& ec, bool allow_userinfo = true);
     void SetAbsoluteUrl(const char* url);
 
     // Backup URL setter with default (https) scheme

@@ -152,7 +152,10 @@ void CallState::Commit() noexcept { committed_.store(true, std::memory_order_rel
 
 grpc::ClientContext& CallState::GetClientContextCommitted() {
     UINVARIANT(committed_.load(std::memory_order_acquire), "Call state should be committed");
-    UINVARIANT(client_context_, "GetClientContext should not be called on cancelled RPC");
+    UINVARIANT(
+        client_context_,
+        "GetClientContext should not be called after RPC cancellation or serialization failure"
+    );
     return *client_context_;
 }
 

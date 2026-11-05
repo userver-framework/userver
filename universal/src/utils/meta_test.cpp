@@ -1,9 +1,11 @@
 #include <userver/utils/meta.hpp>
 
 #include <array>
+#include <cstdint>
 #include <optional>
 #include <set>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -147,6 +149,7 @@ TEST(Meta, IsOptional) {
 TEST(Meta, IsCharacter) {
     static_assert(meta::IsCharacter<char>);
     static_assert(meta::IsCharacter<wchar_t>);
+    static_assert(meta::IsCharacter<char8_t>);
     static_assert(meta::IsCharacter<char16_t>);
     static_assert(meta::IsCharacter<char32_t>);
 
@@ -179,6 +182,7 @@ TEST(Meta, IsInteger) {
 
     static_assert(!meta::IsInteger<char>);
     static_assert(!meta::IsInteger<wchar_t>);
+    static_assert(!meta::IsInteger<char8_t>);
     static_assert(!meta::IsInteger<char16_t>);
     static_assert(!meta::IsInteger<char32_t>);
     static_assert(!meta::IsInteger<bool>);

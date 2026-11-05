@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <array>
+#include <barrier>
 #include <csignal>
+#include <cstddef>
 #include <thread>
 #include <vector>
 
@@ -51,6 +53,29 @@ __attribute__((noinline)) std::uint64_t SelfLimitingRecursiveFunction() {
 }  // namespace
 
 #if defined(__linux__) && defined(__x86_64__)
+TEST(StackUsageMonitor, ConcurrentThreadRegistrationAndLookup) {
+    if (!engine::coro::StackUsageMonitor::DebugCanUseUserfaultfd()) {
+        GTEST_SKIP() << "userfaultfd is unavailable";
+    }
+
+    constexpr std::size_t kStackSize = 64 * 1024;
+    constexpr std::size_t kThreadCount = 64;
+    engine::coro::StackUsageMonitor monitor{kStackSize};
+    std::barrier start{static_cast<std::ptrdiff_t>(kThreadCount)};
+    std::vector<std::thread> threads;
+    threads.reserve(kThreadCount);
+    for (std::size_t i = 0; i < kThreadCount; ++i) {
+        threads.emplace_back([&] {
+            start.arrive_and_wait();
+            monitor.RegisterThread();
+            EXPECT_TRUE(monitor.DebugIsCurrentThreadRegistered());
+        });
+    }
+    for (auto& thread : threads) {
+        thread.join();
+    }
+}
+
 TEST(StackUsageMonitor, PreservesExistingAlternateSignalStack) {
     if (!engine::coro::StackUsageMonitor::DebugCanUseUserfaultfd()) {
         GTEST_SKIP() << "userfaultfd is unavailable";

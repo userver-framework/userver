@@ -138,7 +138,7 @@ void Tracing::FillResponseWithTracingContext(const tracing::Span& span, http::Ht
 }
 
 Tracing::LoggingSettings Tracing::ParseLoggingSettings(request::RequestContext& context) const {
-    const auto& config_snapshot = context.GetInternalContext().GetConfigSnapshot();
+    const auto& config_snapshot = context.GetInitialDynamicConfig();
 
     return {
         config_snapshot[::dynamic_config::USERVER_LOG_REQUEST],

@@ -3,6 +3,7 @@
 #include <array>
 #include <charconv>
 #include <limits>
+#include <utility>
 
 #include <fmt/format.h>
 
@@ -328,13 +329,19 @@ void HttpResponse::SetHeadersEnd() { headers_end_.Send(); }
 
 bool HttpResponse::WaitForHeadersEnd() { return headers_end_.WaitForEvent(); }
 
-void SetThrottleReason(http::HttpResponse& http_response, std::string log_reason, std::string http_header_reason) {
-    http_response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaTaxiRatelimitedBy, impl::kHostname);
-    http_response.SetHeader(USERVER_NAMESPACE::http::headers::kXYaTaxiRatelimitReason, std::move(http_header_reason));
+void HttpResponse::SetThrottleReason(std::string log_reason, std::string http_header_reason) {
+    if (allow_set_response_ratelimited_by_) {
+        SetHeader(USERVER_NAMESPACE::http::headers::kXYaTaxiRatelimitedBy, impl::kHostname);
+    }
+    SetHeader(USERVER_NAMESPACE::http::headers::kXYaTaxiRatelimitReason, std::move(http_header_reason));
 
     if (auto* span = tracing::Span::CurrentSpanUnchecked()) {
         tracing::SetThrottleReason(*span, std::move(log_reason));
     }
+}
+
+void SetThrottleReason(http::HttpResponse& http_response, std::string log_reason, std::string http_header_reason) {
+    http_response.SetThrottleReason(std::move(log_reason), std::move(http_header_reason));
 }
 
 }  // namespace server::http

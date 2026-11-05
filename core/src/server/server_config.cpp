@@ -17,6 +17,7 @@ ServerConfig Parse(const yaml_config::YamlConfig& value, formats::parse::To<Serv
         .max_response_size_in_flight = value["max_response_size_in_flight"].As<std::optional<size_t>>(),
         .server_name = value["server-name"].As<std::string>(utils::GetUserverIdentifier()),
         .set_response_server_hostname = value["set-response-server-hostname"].As<bool>(false),
+        .allow_set_response_ratelimited_by = value["allow-set-response-ratelimited-by"].As<bool>(false),
         .middleware_pipeline_builder =
             value["middleware-pipeline-builder"].As<std::string>(middlewares::PipelineBuilder::kName),
     };

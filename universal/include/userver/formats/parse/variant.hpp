@@ -1,20 +1,28 @@
 #pragma once
 
 /// @file userver/formats/parse/variant.hpp
-/// @brief Ineffective but generic parser for std::variant type
+/// @brief Generic parser for std::variant type
 ///
-/// Parsing is performed for each of the N alternatives in variant, N-1
-/// exceptions is thrown and caught during the parsing.
+/// Parsing is performed for each of the N alternatives in variant, and an
+/// exception is thrown and caught for each alternative that fails to parse.
+/// Alternatives that @ref formats::parse::MayParseAs rejects are parsed only
+/// if no alternative fits, to report their errors.
 ///
 /// @ingroup userver_universal userver_formats_parse
 
+#include <array>
+#include <cstddef>
+#include <exception>
 #include <optional>
+#include <string>
 #include <typeinfo>
+#include <utility>
 #include <variant>
 
 #include <fmt/format.h>
 
 #include <userver/compiler/demangle.hpp>
+#include <userver/formats/parse/may_parse.hpp>
 #include <userver/formats/parse/to.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -48,8 +56,17 @@ template <class ParseException, typename Variant>
 
 namespace impl {
 
+template <class T>
+std::string FormatVariantParseError(const std::exception& e) {
+    return fmt::format("\n* Failed to parse as {}: {}", compiler::GetTypeName<T>(), e.what());
+}
+
 template <class T, class Value, typename Result>
-void ParseVariantSingle(const Value& value, std::optional<Result>& result, std::string& errors) {
+void ParseVariantSingle(const Value& value, std::optional<Result>& result, std::string& error) {
+    if (!formats::parse::MayParseAs<T>(value)) {
+        return;
+    }
+
     if (result) {
         const auto old_type = std::visit([](const auto& v) -> std::type_index { return typeid(v); }, *result);
         try {
@@ -65,9 +82,35 @@ void ParseVariantSingle(const Value& value, std::optional<Result>& result, std::
         try {
             result = value.template As<T>();
         } catch (const std::exception& e) {
-            errors = fmt::format("{}\n* Failed to parse as {}: {}", errors, compiler::GetTypeName<T>(), e.what());
+            error = impl::FormatVariantParseError<T>(e);
         }
     }
+}
+
+template <class T, class Value>
+void ParseRejectedVariantSingle(const Value& value, std::string& error) {
+    if (formats::parse::MayParseAs<T>(value)) {
+        return;
+    }
+
+    try {
+        value.template As<T>();
+    } catch (const std::exception& e) {
+        error = impl::FormatVariantParseError<T>(e);
+    }
+}
+
+template <typename... Types, class Value, typename Result, std::size_t... Indices>
+std::string
+ParseVariantAlternatives(const Value& value, std::optional<Result>& result, std::index_sequence<Indices...>) {
+    std::array<std::string, sizeof...(Types)> errors;
+    (impl::ParseVariantSingle<Types>(value, result, errors[Indices]), ...);
+    if (result) {
+        return {};
+    }
+
+    (impl::ParseRejectedVariantSingle<Types>(value, errors[Indices]), ...);
+    return (std::string{} + ... + errors[Indices]);
 }
 
 }  // namespace impl
@@ -75,16 +118,17 @@ void ParseVariantSingle(const Value& value, std::optional<Result>& result, std::
 template <class Value, typename... Types>
 std::variant<decltype(Parse(std::declval<Value>(), To<Types>{}))...>
 Parse(const Value& value, formats::parse::To<std::variant<Types...>>) {
-    std::optional<std::variant<decltype(Parse(std::declval<Value>(), To<Types>{}))...>> result;
+    using Result = std::variant<decltype(Parse(std::declval<Value>(), To<Types>{}))...>;
+    std::optional<Result> result;
 
     std::string errors;
 
     if constexpr (std::is_same_v<Value, formats::json::Value>) {
         Value value2{value};
         value2.DropRootPath();
-        (impl::ParseVariantSingle<Types>(value2, result, errors), ...);
+        errors = impl::ParseVariantAlternatives<Types...>(value2, result, std::index_sequence_for<Types...>{});
     } else {
-        (impl::ParseVariantSingle<Types>(value, result, errors), ...);
+        errors = impl::ParseVariantAlternatives<Types...>(value, result, std::index_sequence_for<Types...>{});
     }
 
     if (!result) {

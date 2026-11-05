@@ -106,7 +106,7 @@ See also @ref scripts/docs/en/userver/tutorial/tcp_full.md for a complete exampl
 Retrieve the @ref utils::statistics::Storage component and register a writer for your component via
 @ref utils::statistics::Storage::RegisterWriter :
 
-@snippet core/src/utils/statistics/pretty_format_test.cpp  Writer basic sample
+@snippet core/src/utils/statistics/storage_test.cpp  Writer basic sample
 
 See also @ref utils::statistics::Writer for more details.
 
@@ -164,11 +164,11 @@ A metric type is any class for which `DumpMetric` is defined. Such types can be 
 Instead of writing one giant `DumpMetric` or `WriteStatistics` somewhere, it is recommended to break these functions
 into pieces:
 
-@snippet core/src/utils/statistics/writer_test.cpp  DumpMetric basic
+@snippet universal/src/utils/statistics/writer_test.cpp  DumpMetric basic
 
 DumpMetric functions nest well, labels are propagated to the nested DumpMetric:
 
-@snippet core/src/utils/statistics/writer_test.cpp  DumpMetric nested
+@snippet universal/src/utils/statistics/writer_test.cpp  DumpMetric nested
 
 **Recommendation:**
 
@@ -206,11 +206,11 @@ Key scenarios where such metrics are useful:
 To unit test (gtest) simple metrics, implement `DumpMetric` and pass the
 struct to @ref utils::statistics::Snapshot :
 
-@snippet universal/src/utils/statistics/testing_test.cpp  metrics Snapshot DumpMetric sample
+@snippet universal/utest/src/utils/statistics/testing_test.cpp  metrics Snapshot DumpMetric sample
 
 If the class registers writers in @ref utils::statistics::Storage, pass Storage:
 
-@snippet core/src/utils/statistics/testing_test.cpp  metrics Snapshot sample
+@snippet core/src/utils/statistics/storage_test.cpp  metrics Snapshot sample
 
 Prefer testing metrics in unit tests if possible. Otherwise, metrics could be tested in testsuite, see
 @ref TESTSUITE_METRICS_TESTING "Metrics testing in testsuite".

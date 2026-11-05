@@ -3,6 +3,7 @@
 /// @file userver/utils/statistics/labels.hpp
 /// @brief Owning and non owning labels representations.
 
+#include <compare>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -48,7 +49,7 @@ private:
     std::string_view value_{};
 };
 
-bool operator<(const LabelView& x, const LabelView& y) noexcept;
+std::strong_ordering operator<=>(const LabelView& x, const LabelView& y) noexcept;
 bool operator==(const LabelView& x, const LabelView& y) noexcept;
 
 /// @ingroup userver_universal
@@ -79,7 +80,7 @@ private:
     std::string value_;
 };
 
-bool operator<(const Label& x, const Label& y) noexcept;
+std::strong_ordering operator<=>(const Label& x, const Label& y) noexcept;
 bool operator==(const Label& x, const Label& y) noexcept;
 
 /// @ingroup userver_universal

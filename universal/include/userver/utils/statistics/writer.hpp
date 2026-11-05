@@ -40,30 +40,30 @@ concept HasWriterSupport = std::is_arithmetic_v<Metric> || requires(Writer& writ
 ///
 /// Usage is quite straightforward:
 ///
-/// @snippet core/src/utils/statistics/pretty_format_test.cpp  Writer basic sample
+/// @snippet core/src/utils/statistics/storage_test.cpp  Writer basic sample
 ///
 /// The above sample would produce the following metrics:
 ///
-/// @snippet core/src/utils/statistics/pretty_format_test.cpp  metrics pretty
+/// @snippet core/src/utils/statistics/storage_test.cpp  metrics pretty
 ///
 /// The Writer can be customized for writing custom metric types by providing a
 /// `void DumpMetric(utils::statistics::Writer& writer, const CustomMetric& value)`
 /// function:
 ///
-/// @snippet core/src/utils/statistics/writer_test.cpp  DumpMetric basic
+/// @snippet universal/src/utils/statistics/writer_test.cpp  DumpMetric basic
 ///
 /// DumpMetric functions nest well, labels are propagated to the nested
 /// DumpMetric:
 ///
-/// @snippet core/src/utils/statistics/writer_test.cpp  DumpMetric nested
+/// @snippet universal/src/utils/statistics/writer_test.cpp  DumpMetric nested
 ///
 /// To use the above writers register the metric writer in
 /// @ref utils::statistics::Storage component:
 ///
-/// @snippet core/src/utils/statistics/writer_test.cpp  DumpMetric RegisterWriter
+/// @snippet core/src/utils/statistics/storage_test.cpp  DumpMetric RegisterWriter
 ///
 /// The above metrics in Graphite format would look like:
-/// @snippet core/src/utils/statistics/writer_test.cpp  metrics graphite
+/// @snippet core/src/utils/statistics/storage_test.cpp  metrics graphite
 ///
 /// The Writer is usable by the utils::statistics::MetricTag. For example, for
 /// the following structure:
@@ -227,8 +227,7 @@ void DumpMetric(Writer& writer, const std::atomic<Metric>& m) {
 /// attach extra labels; `request.prefix` is a match filter, not a path to write
 /// under.
 ///
-/// @ref utils::statistics::Storage::VisitMetrics uses this function to dump
-/// Writer-based metrics. It is used to implement formats such as:
+/// This function dumps Writer-based metrics. It is used to implement formats such as:
 /// - @ref utils::statistics::ToPrometheusFormat "Prometheus"
 /// - @ref utils::statistics::ToGraphiteFormat "Graphite"
 /// - @ref utils::statistics::ToJsonFormat "JSON"

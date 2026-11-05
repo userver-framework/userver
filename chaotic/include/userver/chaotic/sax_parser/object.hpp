@@ -226,17 +226,19 @@ public:
                 );
             }
         } else if constexpr (IsDefaulted<ModeDescriptorType>::value) {
-            if (!seen_[Idx]) {
-                const auto& default_value = ModeDescriptorType::GetDefaultValue();
-                using TargetType = std::decay_t<decltype(object_.*FieldType::kField)>;
-                using DefaultType = std::decay_t<decltype(default_value)>;
-                if constexpr (std::is_same_v<TargetType, DefaultType>) {
-                    object_.*FieldType::kField = default_value;
-                } else if constexpr (std::is_arithmetic_v<TargetType> && std::is_arithmetic_v<DefaultType>) {
-                    object_.*FieldType::kField = TargetType{default_value};
-                } else {
-                    object_.*FieldType::kField = chaotic::ConvertTo<TargetType>(default_value);
-                }
+            if (seen_[Idx]) {
+                return;
+            }
+
+            const auto& default_value = ModeDescriptorType::GetDefaultValue();
+            using TargetType = std::decay_t<decltype(object_.*FieldType::kField)>;
+            using DefaultType = std::decay_t<decltype(default_value)>;
+            if constexpr (std::is_same_v<TargetType, DefaultType>) {
+                object_.*FieldType::kField = default_value;
+            } else if constexpr (std::is_arithmetic_v<TargetType> && std::is_arithmetic_v<DefaultType>) {
+                object_.*FieldType::kField = TargetType{default_value};
+            } else {
+                object_.*FieldType::kField = chaotic::ConvertTo<TargetType>(default_value);
             }
         }
     }
@@ -381,6 +383,33 @@ private:
     std::string key_;
 
     FieldSubparser<StructType, Unknown, Fields...> field_subparser_{result_};
+};
+
+template <typename StructType>
+class ObjectParser<StructType, UnknownFields::StoreJson> final
+    : public formats::json::parser::TypedParser<StructType>,
+      private formats::json::parser::Subscriber<formats::json::Value> {
+public:
+    ObjectParser() { json_parser_.Subscribe(*this); }
+
+    void StartObject() override {
+        json_parser_.Reset();
+        this->parser_state_->PushParser(json_parser_);
+        json_parser_.StartObject();
+    }
+
+private:
+    void OnSend(formats::json::Value&& value) override {
+        StructType result{};
+        result.extra = std::move(value);
+        this->SetResult(std::move(result));
+    }
+
+    std::string Expected() const override { return "object"; }
+
+    std::string GetPathItem() const override { return {}; }
+
+    formats::json::parser::JsonValueParser json_parser_;
 };
 
 }  // namespace chaotic::sax::impl

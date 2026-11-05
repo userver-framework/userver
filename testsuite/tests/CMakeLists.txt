@@ -2,6 +2,7 @@ project(userver-testsuite-tests)
 
 add_subdirectory(chaos)
 add_subdirectory(config)
+add_subdirectory(fixture_markers)
 add_subdirectory(metrics)
 # add_subdirectory(s3api) TODO: TAXICOMMON-10381
 add_subdirectory(sql_coverage_empty)

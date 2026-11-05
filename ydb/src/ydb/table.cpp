@@ -68,7 +68,7 @@ TableClient::TableClient(
 )
     : config_source_(config_source),
       default_settings_(std::move(operation_settings)),
-      stats_(std::make_unique<impl::Stats>(
+      stats_(std::make_shared<impl::Stats>(
           settings.by_database_timings_buckets
               ? utils::span{*settings.by_database_timings_buckets}
               : impl::kDefaultPerDatabaseBounds,
@@ -84,6 +84,20 @@ TableClient::TableClient(
         LOG_DEBUG() << "Synchronously starting ydb client with name '" << own_connection_->driver->GetDbName() << "'";
         Select1();
     }
+}
+
+TableClient::TableClient(const TableClient& source, utils::SharedRef<impl::Connection> connection)
+    : config_source_(source.config_source_),
+      default_settings_(source.default_settings_),
+      stats_(source.stats_),
+      own_connection_(std::move(connection)),
+      routed_connection_(own_connection_),
+      current_connection_(utils::NotNull<impl::Connection*>{own_connection_.GetBase().get()})
+{}
+
+std::shared_ptr<TableClient> TableClient::GetSnapshot() const {
+    auto connection = utils::SharedRef<impl::Connection>{CurrentConnection().shared_from_this()};
+    return std::shared_ptr<TableClient>{new TableClient(*this, std::move(connection))};
 }
 
 TableClient::~TableClient() = default;
@@ -491,14 +505,14 @@ void TableClient::RetryTx(DynamicTransactionName transaction_name, RetryTxSettin
          &commit_settings = retry_settings.commit_settings,
          &rollback_settings = retry_settings.rollback_settings,
          &attempt,
-         &guard](NYdb::NQuery::TSession session, engine::Deadline deadline) mutable {
+         &guard](impl::RetryTxSession& retry_session, engine::Deadline deadline) mutable {
             ++attempt;
 
             auto tx_settings_opt = MakeTxSettings(tx_mode);
             if (!tx_settings_opt) {
                 throw std::runtime_error("ImplicitTx is meaningless for retry transaction");
             }
-            TxActor tx_actor{table_client, session, std::move(*tx_settings_opt), deadline, attempt};
+            TxActor tx_actor{table_client, retry_session.GetSession(), std::move(*tx_settings_opt), deadline, attempt};
 
             TxAction action = TxAction::kRollback;
             std::exception_ptr exception;
@@ -510,6 +524,7 @@ void TableClient::RetryTx(DynamicTransactionName transaction_name, RetryTxSettin
                     // We don't rollback a transaction when ABORTED => retry it.
                     throw;
                 }
+                retry_session.Reset();
                 LOG_WARNING() << "Transaction rollback due to exception: " << e;
                 exception = std::current_exception();
             } catch (const std::exception& e) {
@@ -543,7 +558,15 @@ void TableClient::RetryTx(DynamicTransactionName transaction_name, RetryTxSettin
                     break;
                 }
                 case TxAction::kRollback: {
-                    tx_actor.FinishTx<TxAction::kRollback>(rollback_settings);
+                    try {
+                        tx_actor.FinishTx<TxAction::kRollback>(rollback_settings);
+                    } catch (const std::exception& rollback_error) {
+                        retry_session.Reset();
+                        if (!exception) {
+                            throw;
+                        }
+                        LOG_WARNING() << "Failed to rollback transaction after callback error: " << rollback_error;
+                    }
                     break;
                 }
             }

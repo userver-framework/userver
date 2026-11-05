@@ -3,7 +3,7 @@
 from collections.abc import Callable
 import dataclasses
 
-import testsuite.fixture_markers
+from pytest_userver import fixture_markers
 
 # @cond
 
@@ -25,10 +25,14 @@ def dependency(func: Callable[..., object]) -> Callable[..., object]:
 
     Apply to the original function, under `@pytest.fixture`.
 
-    An override of a marked fixture must repeat this decorator.
+    Overrides inherit this mark automatically; repeating the decorator is not
+    required, even if the override does not request the original fixture.
+    The dependency resolves to the overriding fixture, not the original one.
 
     @snippet samples/http_caching/tests/conftest.py  service dependency
 
+    @see @ref fixture_markers_overrides "Fixture marker inheritance"
+
     @ingroup userver_testsuite
     """
-    return testsuite.fixture_markers.mark(func, _ServiceDependencyInfo())
+    return fixture_markers.mark(func, _ServiceDependencyInfo())

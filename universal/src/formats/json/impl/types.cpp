@@ -23,9 +23,29 @@ VersionedValuePtr::VersionedValuePtr(std::shared_ptr<Data>&& data) noexcept : da
 
 VersionedValuePtr::~VersionedValuePtr() = default;
 
+const VersionedValuePtr& VersionedValuePtr::SharedNull() {
+    struct NullStorage {
+        Data data{Data::SharedNullTag{}};
+        VersionedValuePtr value{std::shared_ptr<Data>{std::shared_ptr<Data>{}, &data}};
+    };
+
+    union ImmortalNullValue {
+        ImmortalNullValue()
+            : storage{}
+        {}
+        ~ImmortalNullValue() {}
+
+        NullStorage storage;
+    };
+    static const ImmortalNullValue holder;
+    return holder.storage.value;
+}
+
 VersionedValuePtr::operator bool() const { return !!data_; }
 
 bool VersionedValuePtr::IsUnique() const { return data_.use_count() == 1; }
+
+bool VersionedValuePtr::IsSharedNull() const { return data_ && data_->is_shared_null; }
 
 const Value* VersionedValuePtr::Get() const { return data_ ? &data_->native : nullptr; }
 
@@ -47,7 +67,10 @@ Value* VersionedValuePtr::operator->() { return Get(); }
 
 size_t VersionedValuePtr::Version() const { return data_ ? data_->version.load() : kInvalidVersion; }
 
-void VersionedValuePtr::BumpVersion() { ++data_->version; }
+void VersionedValuePtr::BumpVersion() {
+    UASSERT(!IsSharedNull());
+    ++data_->version;
+}
 
 }  // namespace formats::json::impl
 

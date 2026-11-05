@@ -8,6 +8,27 @@
 
 namespace ns {
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1CurrentUser>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    if (!value.HasMember("login")) {
+        return false;
+    }
+    if (!value.HasMember("name")) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__V1CurrentUser_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
+}
+
 V1CurrentUser FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1CurrentUser>)
@@ -115,6 +136,33 @@ void WriteToStream(
             value.name
         }, sw);
     }
+}
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1ChannelMessage>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    if (!value.HasMember("current_user")) {
+        return false;
+    }
+    if (!value.HasMember("id")) {
+        return false;
+    }
+    if (!value.HasMember("timestamp")) {
+        return false;
+    }
+    if (!value.HasMember("message")) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__V1ChannelMessage_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
 }
 
 V1ChannelMessage FromJsonString(
@@ -235,6 +283,27 @@ void WriteToStream(
     }
 }
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1ChannelMessageByTimestampRequest>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    if (!value.HasMember("channel_id")) {
+        return false;
+    }
+    if (!value.HasMember("from")) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__V1ChannelMessageByTimestampRequest_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
+}
+
 V1ChannelMessageByTimestampRequest FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1ChannelMessageByTimestampRequest>)
@@ -344,6 +413,24 @@ void WriteToStream(
     }
 }
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1ChannelMessageByTimestampResponse>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    if (!value.HasMember("messages")) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__V1ChannelMessageByTimestampResponse_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
+}
+
 V1ChannelMessageByTimestampResponse FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1ChannelMessageByTimestampResponse>)
@@ -427,6 +514,30 @@ void WriteToStream(
             value.messages
         }, sw);
     }
+}
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1ChannelMessageNewRequest>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    if (!value.HasMember("current_user")) {
+        return false;
+    }
+    if (!value.HasMember("channel_id")) {
+        return false;
+    }
+    if (!value.HasMember("message")) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__V1ChannelMessageNewRequest_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
 }
 
 V1ChannelMessageNewRequest FromJsonString(
@@ -536,6 +647,24 @@ void WriteToStream(
     }
 }
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1ChannelMessageNewResponse>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    if (!value.HasMember("message_id")) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__V1ChannelMessageNewResponse_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
+}
+
 V1ChannelMessageNewResponse FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1ChannelMessageNewResponse>)
@@ -619,6 +748,27 @@ void WriteToStream(
             value.message_id
         }, sw);
     }
+}
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1ChannelNotificationListRequest>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    if (!value.HasMember("current_user")) {
+        return false;
+    }
+    if (!value.HasMember("channel_id")) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__V1ChannelNotificationListRequest_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
 }
 
 V1ChannelNotificationListRequest FromJsonString(
@@ -717,6 +867,24 @@ void WriteToStream(
     }
 }
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1ChannelNotificationListResponse>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    if (!value.HasMember("notifications")) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__V1ChannelNotificationListResponse_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
+}
+
 V1ChannelNotificationListResponse FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1ChannelNotificationListResponse>)
@@ -800,6 +968,30 @@ void WriteToStream(
             value.notifications
         }, sw);
     }
+}
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1ChannelNotificationNewRequest>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    if (!value.HasMember("current_user")) {
+        return false;
+    }
+    if (!value.HasMember("channel_id")) {
+        return false;
+    }
+    if (!value.HasMember("message_id")) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__V1ChannelNotificationNewRequest_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
 }
 
 V1ChannelNotificationNewRequest FromJsonString(
@@ -922,6 +1114,21 @@ void WriteToStream(
     }
 }
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1ChannelNotificationNewResponse>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__V1ChannelNotificationNewResponse_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
+}
+
 V1ChannelNotificationNewResponse FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1ChannelNotificationNewResponse>)
@@ -995,6 +1202,37 @@ void WriteToStream(
         guard.emplace(sw);
     }
 
+}
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1Error::Details>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    return true;
+}
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1Error>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    if (!value.HasMember("code")) {
+        return false;
+    }
+    if (!value.HasMember("message")) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__V1Error_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
 }
 
 V1Error FromJsonString(
@@ -1169,6 +1407,30 @@ void WriteToStream(
     }
 }
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1File>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    if (!value.HasMember("login")) {
+        return false;
+    }
+    if (!value.HasMember("filename")) {
+        return false;
+    }
+    if (!value.HasMember("content")) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__V1File_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
+}
+
 V1File FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1File>)
@@ -1276,6 +1538,27 @@ void WriteToStream(
     }
 }
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1FileByUriRequest>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    if (!value.HasMember("current_user")) {
+        return false;
+    }
+    if (!value.HasMember("uri")) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__V1FileByUriRequest_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
+}
+
 V1FileByUriRequest FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1FileByUriRequest>)
@@ -1372,6 +1655,27 @@ void WriteToStream(
     }
 }
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1FileNewResponse>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    if (!value.HasMember("current_user")) {
+        return false;
+    }
+    if (!value.HasMember("uri")) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__V1FileNewResponse_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
+}
+
 V1FileNewResponse FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1FileNewResponse>)
@@ -1466,6 +1770,47 @@ void WriteToStream(
             value.uri
         }, sw);
     }
+}
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1LikeTriggerRequest::Animation>)
+{
+    return value.IsString() &&
+        TryConvert(value.As<std::string>(), USERVER_NAMESPACE::chaotic::convert::To<V1LikeTriggerRequest::Animation>{}).has_value();
+}
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1LikeTriggerRequest>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    if (!value.HasMember("current_user")) {
+        return false;
+    }
+    if (!value.HasMember("idempotency_token")) {
+        return false;
+    }
+    if (!value.HasMember("channel_id")) {
+        return false;
+    }
+    if (!value.HasMember("message_id")) {
+        return false;
+    }
+    if (!value.HasMember("animation")) {
+        return false;
+    }
+    if (!USERVER_NAMESPACE::formats::parse::MayParseAs<::ns::V1LikeTriggerRequest::Animation>(value["animation"])) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__V1LikeTriggerRequest_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
 }
 
 V1LikeTriggerRequest FromJsonString(
@@ -1675,6 +2020,27 @@ std::string ToString(V1LikeTriggerRequest::Animation value) {
     throw std::runtime_error(fmt::format("Invalid enum value: {}", static_cast<int>(value)));
 }
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1UserAuthorizationRequest>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    if (!value.HasMember("login")) {
+        return false;
+    }
+    if (!value.HasMember("password")) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__V1UserAuthorizationRequest_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
+}
+
 V1UserAuthorizationRequest FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1UserAuthorizationRequest>)
@@ -1771,6 +2137,24 @@ void WriteToStream(
     }
 }
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1UserAuthorizationResponse>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    if (!value.HasMember("current_user")) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__V1UserAuthorizationResponse_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
+}
+
 V1UserAuthorizationResponse FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1UserAuthorizationResponse>)
@@ -1854,6 +2238,36 @@ void WriteToStream(
             value.current_user
         }, sw);
     }
+}
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1UserRegistrationRequest>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    if (!value.HasMember("login")) {
+        return false;
+    }
+    if (!value.HasMember("name")) {
+        return false;
+    }
+    if (!value.HasMember("email")) {
+        return false;
+    }
+    if (!value.HasMember("phone")) {
+        return false;
+    }
+    if (!value.HasMember("password")) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__V1UserRegistrationRequest_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
 }
 
 V1UserRegistrationRequest FromJsonString(
@@ -1985,6 +2399,16 @@ void WriteToStream(
     }
 }
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1UserStatus>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    return true;
+}
+
 V1UserStatus FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1UserStatus>)
@@ -2063,6 +2487,27 @@ void WriteToStream(
         sw.Key(field_key);
         WriteToStream(field_value, sw);
     }
+}
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1UserStatusByLoginRequest>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    if (!value.HasMember("current_user")) {
+        return false;
+    }
+    if (!value.HasMember("login")) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__V1UserStatusByLoginRequest_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
 }
 
 V1UserStatusByLoginRequest FromJsonString(
@@ -2161,6 +2606,24 @@ void WriteToStream(
     }
 }
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1UserStatusByLoginResponse>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    if (!value.HasMember("status")) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__V1UserStatusByLoginResponse_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
+}
+
 V1UserStatusByLoginResponse FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<V1UserStatusByLoginResponse>)
@@ -2244,6 +2707,27 @@ void WriteToStream(
             value.status
         }, sw);
     }
+}
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1UserStatusUpdateRequest>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    if (!value.HasMember("current_user")) {
+        return false;
+    }
+    if (!value.HasMember("status")) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__V1UserStatusUpdateRequest_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
 }
 
 V1UserStatusUpdateRequest FromJsonString(
@@ -2340,6 +2824,21 @@ void WriteToStream(
             value.status
         }, sw);
     }
+}
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<V1UserStatusUpdateResponse>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__V1UserStatusUpdateResponse_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
 }
 
 V1UserStatusUpdateResponse FromJsonString(

@@ -3,6 +3,8 @@
 #include <userver/formats/common/meta.hpp>
 #include <userver/formats/json/string_builder_fwd.hpp>
 #include <userver/formats/json/value.hpp>
+#include <userver/formats/parse/may_parse.hpp>
+#include <userver/formats/parse/to.hpp>
 #include <userver/utils/box.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -18,6 +20,12 @@ template <typename Value, typename T>
 utils::Box<formats::common::ParseType<Value, T>> Parse(const Value& value, formats::parse::To<Ref<T>>) {
     return utils::Box<formats::common::ParseType<Value, T>>::MakeWithFactory([&value] { return value.template As<T>(); }
     );
+}
+
+/// @brief Returns `false` if parsing `T` is certain to fail, see @ref formats::parse::MayParseAs.
+template <typename Value, typename T>
+bool MayParseAs(const Value& value, formats::parse::To<Ref<T>>) {
+    return formats::parse::MayParseAs<T>(value);
 }
 
 template <typename Value, typename T>

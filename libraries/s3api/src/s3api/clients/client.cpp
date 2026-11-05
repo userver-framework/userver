@@ -246,10 +246,31 @@ void Client::PutObjectConditional(std::string_view, std::string, const std::opti
     throw std::logic_error("This S3 client does not implement conditional writes");
 }
 
+void Client::PutObjectConditional(
+    std::string_view path,
+    std::string data,
+    const std::optional<std::string>& expected_etag,
+    const std::optional<Meta>& meta
+) const {
+    if (meta && !meta->empty()) {
+        throw std::logic_error("This S3 client does not implement conditional writes with metadata");
+    }
+    PutObjectConditional(path, std::move(data), expected_etag);
+}
+
 void ClientImpl::PutObjectConditional(
     std::string_view path,
     std::string data,
     const std::optional<std::string>& expected_etag
+) const {
+    PutObjectConditional(path, std::move(data), expected_etag, std::nullopt);
+}
+
+void ClientImpl::PutObjectConditional(
+    std::string_view path,
+    std::string data,
+    const std::optional<std::string>& expected_etag,
+    const std::optional<Meta>& meta
 ) const {
     auto request = api_methods::PutObject(bucket_, path, std::move(data), "application/json", std::nullopt);
     if (expected_etag) {
@@ -259,6 +280,9 @@ void ClientImpl::PutObjectConditional(
         request.headers[http::headers::kIfMatch] = expected_etag.value();
     } else {
         request.headers[http::headers::kIfNoneMatch] = "*";
+    }
+    if (meta) {
+        SaveMeta(request.headers, *meta);
     }
     RequestApi(request, "put_object_conditional");
 }

@@ -1,5 +1,7 @@
 #include <userver/utils/statistics/labels.hpp>
 
+#include <concepts>
+
 #include <fmt/ranges.h>
 
 #include <userver/utils/assert.hpp>
@@ -21,8 +23,12 @@ LabelsSpan::LabelsSpan(const LabelView* begin, const LabelView* end) noexcept : 
     UASSERT(end != nullptr || begin == nullptr);
 }
 
-bool operator<(const LabelView& x, const LabelView& y) noexcept {
-    return x.Name() < y.Name() || (x.Name() == y.Name() && x.Value() < y.Value());
+std::strong_ordering operator<=>(const LabelView& x, const LabelView& y) noexcept {
+    const auto name_order = x.Name() <=> y.Name();
+    if (name_order != 0) {
+        return name_order;
+    }
+    return x.Value() <=> y.Value();
 }
 
 bool operator==(const LabelView& x, const LabelView& y) noexcept {
@@ -41,11 +47,18 @@ Label::Label(std::string name, std::string value)
     UASSERT(!name_.empty());
 }
 
-bool operator<(const Label& x, const Label& y) noexcept {
-    return x.Name() < y.Name() || (x.Name() == y.Name() && x.Value() < y.Value());
+std::strong_ordering operator<=>(const Label& x, const Label& y) noexcept {
+    const auto name_order = x.Name() <=> y.Name();
+    if (name_order != 0) {
+        return name_order;
+    }
+    return x.Value() <=> y.Value();
 }
 
 bool operator==(const Label& x, const Label& y) noexcept { return x.Name() == y.Name() && x.Value() == y.Value(); }
+
+static_assert(std::totally_ordered<LabelView>);
+static_assert(std::totally_ordered<Label>);
 
 }  // namespace utils::statistics
 

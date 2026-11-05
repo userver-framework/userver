@@ -9,6 +9,7 @@
 #include <server/handlers/http_server_settings.hpp>
 #include <server/http/http_response_impl.hpp>
 #include <server/request/task_inherited_request_impl.hpp>
+#include <server/server_config.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
 #include <userver/dynamic_config/value.hpp>
@@ -28,27 +29,26 @@ namespace server::http {
 
 HttpRequestHandler::HttpRequestHandler(
     const components::ComponentContext& component_context,
-    const std::optional<std::string>& logger_access_component,
-    const std::optional<std::string>& logger_access_tskv_component,
-    bool is_monitor,
-    std::string server_name
+    const ServerConfig& config,
+    bool is_monitor
 )
     : is_monitor_(is_monitor),
-      server_name_(std::move(server_name)),
+      server_name_(config.server_name),
+      allow_set_response_ratelimited_by_(config.allow_set_response_ratelimited_by),
       rate_limit_(utils::TokenBucket::MakeUnbounded()),
       metrics_(component_context.FindComponent<components::StatisticsStorage>().GetMetricsStorage()),
       config_source_(component_context.FindComponent<components::DynamicConfig>().GetSource())
 {
     auto& logging_component = component_context.FindComponent<components::Logging>();
 
-    if (logger_access_component && !logger_access_component->empty()) {
-        logger_access_ = logging_component.GetTextLogger(*logger_access_component);
+    if (config.logger_access && !config.logger_access->empty()) {
+        logger_access_ = logging_component.GetTextLogger(*config.logger_access);
     } else {
         LOG_INFO() << "Access log is disabled";
     }
 
-    if (logger_access_tskv_component && !logger_access_tskv_component->empty()) {
-        logger_access_tskv_ = logging_component.GetTextLogger(*logger_access_tskv_component);
+    if (config.logger_access_tskv && !config.logger_access_tskv->empty()) {
+        logger_access_tskv_ = logging_component.GetTextLogger(*config.logger_access_tskv);
     } else {
         LOG_INFO() << "Access_tskv log is disabled";
     }
@@ -79,6 +79,7 @@ utils::statistics::MetricTag<std::atomic<size_t>> kCcStatusCodeIsCustom{
 engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(std::shared_ptr<http::HttpRequest> http_request
 ) const {
     auto& http_response = GetHttpResponseImpl(*http_request);
+    http_response.AllowSetResponseRatelimitedBy(allow_set_response_ratelimited_by_);
     http_response.SetHeader(USERVER_NAMESPACE::http::headers::kServer, server_name_);
     if (http_response.IsReady()) {
         // Request is broken somehow, user handler must not be called
@@ -99,8 +100,7 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(std::shared_pt
     auto throttling_enabled = handler->GetConfig().throttling_enabled;
 
     if (throttling_enabled && http_response.IsLimitReached()) {
-        SetThrottleReason(
-            http_response,
+        http_response.SetThrottleReason(
             "Too many pending responses",
             std::string{USERVER_NAMESPACE::http::headers::ratelimit_reason::kMaxPendingResponses}
         );
@@ -127,8 +127,7 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(std::shared_pt
             metrics_->GetMetric(kCcStatusCodeIsCustom) = 0;
         }
 
-        SetThrottleReason(
-            http_response,
+        http_response.SetThrottleReason(
             "congestion-control",
             std::string{USERVER_NAMESPACE::http::headers::ratelimit_reason::kCC}
         );

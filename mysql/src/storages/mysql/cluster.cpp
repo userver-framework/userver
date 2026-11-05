@@ -31,13 +31,15 @@ engine::Deadline GetDeadline(OptionalCommandControl optional_cc, CommandControl 
 std::unique_ptr<infra::topology::TopologyBase> CreateTopology(
     clients::dns::Resolver& resolver,
     const settings::MysqlSettings& settings,
-    const components::ComponentConfig& config
+    const components::ComponentConfig& config,
+    utils::OptionalRef<const testsuite::MysqlControl> testsuite_mysql_control
 ) {
     std::vector<settings::PoolSettings> pools_settings{};
     pools_settings.reserve(settings.endpoints.size());
 
     for (const auto& endpoint_info : settings.endpoints) {
-        pools_settings.push_back(settings::PoolSettings::Create(config, endpoint_info, settings.auth));
+        pools_settings
+            .push_back(settings::PoolSettings::Create(config, endpoint_info, settings.auth, testsuite_mysql_control));
     }
 
     return infra::topology::TopologyBase::Create(resolver, pools_settings);
@@ -48,9 +50,10 @@ std::unique_ptr<infra::topology::TopologyBase> CreateTopology(
 Cluster::Cluster(
     clients::dns::Resolver& resolver,
     const settings::MysqlSettings& settings,
-    const components::ComponentConfig& config
+    const components::ComponentConfig& config,
+    utils::OptionalRef<const testsuite::MysqlControl> testsuite_mysql_control
 )
-    : topology_{CreateTopology(resolver, settings, config)}
+    : topology_{CreateTopology(resolver, settings, config, testsuite_mysql_control)}
 {
     const auto client_info = impl::metadata::NativeClientInfo::Get();
     LOG_INFO()

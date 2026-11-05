@@ -2,6 +2,11 @@ type: object
 description: Component that manages clients::http::ClientWithMiddlewares.
 additionalProperties: false
 properties:
+    allow-url-userinfo:
+        type: boolean
+        description: Allow embedded username/password in request and redirect URLs. Set to false to reject URL userinfo; explicit
+            HTTP authentication and proxy URL credentials remain supported.
+        default: false
     wait-for-dynamic-configs:
         type: boolean
         description: |
@@ -24,4 +29,3 @@ properties:
                 enabled:
                     type: boolean
                     description: enable middleware
-

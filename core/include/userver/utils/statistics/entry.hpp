@@ -36,7 +36,7 @@ public:
 private:
     struct Impl;
 
-    friend class Storage;  // in RegisterExtender()
+    friend class Storage;  // in RegisterWriter()
 
     explicit Entry(const Impl& impl) noexcept;
 

@@ -8,6 +8,34 @@
 
 namespace ns {
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<Enum::Foo>)
+{
+    return value.IsString() &&
+        TryConvert(value.As<std::string>(), USERVER_NAMESPACE::chaotic::convert::To<Enum::Foo>{}).has_value();
+}
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<Enum>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    if (const auto field_value = value["foo"];
+        !field_value.IsMissing() && !field_value.IsNull() &&
+        !USERVER_NAMESPACE::formats::parse::MayParseAs<::ns::Enum::Foo>(field_value)) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__Enum_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
+}
+
 Enum FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<Enum>)

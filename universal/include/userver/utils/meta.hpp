@@ -5,6 +5,7 @@
 /// @ingroup userver_universal
 
 #include <concepts>
+#include <cstdint>
 #include <iosfwd>
 #include <iterator>
 #include <optional>

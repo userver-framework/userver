@@ -35,6 +35,13 @@ You can write a single parser for all formats, just make it a template:
 
 @snippet universal/src/formats/common/value_test.cpp  Sample formats::*::Value::As<T>() usage
 
+`std::variant` is parsed by trying each alternative, and every alternative that
+fails to parse throws and catches an exception. To skip such alternatives without
+an exception, write a `MayParseAs` function next to `Parse` that returns `false`
+when parsing is certain to fail, see @ref formats::parse::MayParseAs:
+
+@snippet universal/src/formats/json/may_parse_test.cpp  Sample formats::parse::MayParseAs customization
+
 
 ### Inline helpers `formats::*::Make*`
 

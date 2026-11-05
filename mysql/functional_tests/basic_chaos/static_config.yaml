@@ -8,6 +8,7 @@ components_manager:
         key-value-db:
             initial_pool_size: 1
             max_pool_size: 1
+            use_secure_connection: false
 
         secdist: {}
         default-secdist-provider:

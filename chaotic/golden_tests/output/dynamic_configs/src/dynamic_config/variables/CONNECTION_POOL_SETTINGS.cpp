@@ -38,6 +38,16 @@
 
 namespace dynamic_config {namespace connection_pool_settings {
 
+bool MayParseAs(
+const USERVER_NAMESPACE::formats::json::Value& value,
+USERVER_NAMESPACE::formats::parse::To<PoolSettings>)
+{
+if (!value.IsObject() && !value.IsNull()) {
+return false;
+}
+return true;
+}
+
 PoolSettings FromJsonString(
 std::string_view json,
 USERVER_NAMESPACE::formats::parse::To<PoolSettings>)
@@ -102,6 +112,16 @@ USERVER_NAMESPACE::chaotic::WithType<USERVER_NAMESPACE::chaotic::Primitive<int, 
 return vb.ExtractValue();
 }
 
+bool MayParseAs(
+const USERVER_NAMESPACE::formats::json::Value& value,
+USERVER_NAMESPACE::formats::parse::To<VariableTypeRaw>)
+{
+if (!value.IsObject() && !value.IsNull()) {
+return false;
+}
+return true;
+}
+
 VariableTypeRaw FromJsonString(
 std::string_view json,
 USERVER_NAMESPACE::formats::parse::To<VariableTypeRaw>)
@@ -153,7 +173,7 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
 USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>)
 {
 USERVER_NAMESPACE::formats::json::ValueBuilder vb
-    ;
+    = USERVER_NAMESPACE::formats::common::Type::kObject;
 
     for (const auto&[field_key, field_value]: value.extra) {
         vb.EmplaceNocheck(field_key,
@@ -178,7 +198,7 @@ return vb.ExtractValue();
 namespace dynamic_config {
 
 USERVER_NAMESPACE::dynamic_config::SchemaHash connection_pool_settings::GetSchemaHash() {
-    return USERVER_NAMESPACE::dynamic_config::SchemaHash{"1b31f8984adb341bee5b51b53e44117a8fda141ee6fc89bc4eb910392a3bed37"};
+return USERVER_NAMESPACE::dynamic_config::SchemaHash{"1b31f8984adb341bee5b51b53e44117a8fda141ee6fc89bc4eb910392a3bed37"};
 }
 
 namespace {

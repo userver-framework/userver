@@ -4,6 +4,7 @@
 
 #include <userver/clients/http/component.hpp>
 #include <userver/components/component.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/formats/json.hpp>
 #include <userver/fs/read.hpp>
 #include <userver/logging/log.hpp>

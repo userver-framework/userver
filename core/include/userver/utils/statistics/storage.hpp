@@ -10,21 +10,14 @@
 #include <vector>
 
 #include <userver/engine/shared_mutex.hpp>
-#include <userver/formats/json/value_builder.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/resource_scopes_fwd.hpp>
 #include <userver/utils/statistics/entry.hpp>
-#include <userver/utils/statistics/request.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
-
-/// @brief Used in legacy statistics extenders
-struct StatisticsRequest final {};
-
-using ExtenderFunc = std::function<formats::json::ValueBuilder(const StatisticsRequest&)>;
 
 using WriterFunc = std::function<void(Writer&)>;
 
@@ -32,9 +25,6 @@ namespace impl {
 
 struct MetricsSource final {
     std::string prefix_path;
-    std::vector<std::string> path_segments;
-    ExtenderFunc extender;
-
     WriterFunc writer;
     std::vector<Label> writer_labels;
 };
@@ -58,9 +48,6 @@ public:
     Storage();
 
     Storage(const Storage&) = delete;
-
-    /// Visits all the metrics and calls `out.HandleMetric` for each metric.
-    void VisitMetrics(BaseFormatBuilder& out, const Request& request = {}) const;
 
     /// @cond
     /// Must be called from StatisticsStorage only. Don't call it from user components.
@@ -93,9 +80,6 @@ public:
     /// Store the returned @ref Entry as a member and call `Unregister` explicitly.
     Entry RegisterWriter(std::string common_prefix, WriterFunc func, std::vector<Label> add_labels = {});
 
-    /// @deprecated Use RegisterWriter instead.
-    Entry RegisterExtender(std::string prefix, ExtenderFunc func);
-
     void UnregisterExtender(impl::StorageIterator iterator, impl::UnregisteringKind kind) noexcept;
 
 private:
@@ -108,10 +92,7 @@ private:
     mutable engine::SharedMutex mutex_;
 };
 
-/// @brief Dumps Writer-based metrics registered in @a storage.
-///
-/// Legacy JSON extenders are skipped; @ref Storage::VisitMetrics dumps those
-/// as well.
+/// @brief Dumps metrics registered in @a storage.
 void DumpMetric(Writer& writer, const Storage& storage);
 
 }  // namespace utils::statistics

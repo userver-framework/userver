@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <mutex>
+#include <string_view>
 
 #include <fmt/format.h>
 #include <boost/algorithm/cxx11/all_of.hpp>
@@ -110,7 +111,7 @@ LogRecord::LogRecord(utils::impl::InternalTag, logging::Level level, std::string
         on_invalid_record();
     }
 
-    const auto status = utils::encoding::TskvReadRecord(parser, [&](const std::string& key, const std::string& value) {
+    const auto status = utils::encoding::TskvReadRecord(parser, [&](std::string_view key, std::string_view value) {
         tags_.emplace_back(key, value);
         return true;
     });

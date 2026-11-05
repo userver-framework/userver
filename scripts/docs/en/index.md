@@ -98,6 +98,7 @@ and make sure that it builds and passes tests.
 ## Testing and Benchmarking
 * @ref scripts/docs/en/userver/testing.md
 * @ref scripts/docs/en/userver/functional_testing.md
+    * @ref scripts/docs/en/userver/fixture_markers.md
     * @ref scripts/docs/en/userver/metrics_migration.md
 * @ref scripts/docs/en/userver/chaos_testing.md
 * @ref scripts/docs/en/userver/profile_context_switches.md

@@ -33,6 +33,10 @@ ObjectWithRawJsonField Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
     USERVER_NAMESPACE::formats::parse::To<ObjectWithRawJsonField>);
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<ObjectWithRawJsonField>);
+
 ObjectWithRawJsonField FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<ObjectWithRawJsonField>);
@@ -69,6 +73,10 @@ WithAnyField Parse(
 
 WithAnyField Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
+    USERVER_NAMESPACE::formats::parse::To<WithAnyField>);
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
     USERVER_NAMESPACE::formats::parse::To<WithAnyField>);
 
 WithAnyField FromJsonString(

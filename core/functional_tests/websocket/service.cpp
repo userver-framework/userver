@@ -1,3 +1,5 @@
+#include <stdexcept>
+
 #include <userver/clients/dns/component.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 
@@ -7,6 +9,7 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/server/handlers/tests_control.hpp>
 #include <userver/server/handlers/websocket_handler.hpp>
+#include <userver/server/request/request_context.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/daemon_run.hpp>
 
@@ -25,6 +28,7 @@ public:
     using WebsocketHandlerBase::WebsocketHandlerBase;
 
     bool HandleHandshake(server::http::HttpRequest& request, server::request::RequestContext& context) const override {
+        static_cast<void>(context.GetInitialDynamicConfig());
         context.EmplaceData(kHandshakeData, request.GetHeader("Origin"));
         return true;
     }
@@ -46,6 +50,16 @@ public:
             if (message.data == "close") {
                 chat.Close(websocket::CloseStatus::kGoingAway);
                 break;
+            }
+
+            if (message.data == "check-initial-dynamic-config") {
+                try {
+                    static_cast<void>(context.GetInitialDynamicConfig());
+                    chat.Send({"invalid", {}, true});
+                } catch (const std::logic_error&) {
+                    chat.Send({"ok", {}, true});
+                }
+                continue;
             }
 
             chat.Send(message);

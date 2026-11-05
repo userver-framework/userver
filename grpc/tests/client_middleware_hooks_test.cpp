@@ -107,7 +107,7 @@ protected:
     }
 
     auto GetMetric(std::string_view name, std::vector<utils::statistics::Label> labels = {}) {
-        return GetStatistics("grpc.client.total", labels).SingleMetric(std::string{name}, labels).AsRate();
+        return GetStatistics("grpc.client.total", labels).SingleMetric(std::string{name}).AsRate();
     }
 };
 

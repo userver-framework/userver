@@ -48,6 +48,7 @@ public:
     /// @returns the response on success
     /// @throws ugrpc::client::RpcError on an RPC error
     /// @throws ugrpc::client::RpcCancelledError on task cancellation
+    /// @throws ugrpc::client::RpcSerializationError if the request cannot be serialized
     Response Get() { return impl_->Get(); }
 
     /// @brief Cancel call

@@ -293,6 +293,7 @@ void easy::reset() {
 
     UASSERT(!multi_registered_);
     native::curl_easy_reset(handle_);
+    url_userinfo_allowed_ = false;
     set_private(this);
 
     LOG_TRACE() << "easy::reset finished " << this;
@@ -361,7 +362,7 @@ void easy::set_url(std::string url_str) {
 }
 
 void easy::set_url(std::string&& url_str, std::error_code& ec) {
-    url_.SetAbsoluteUrl(url_str.c_str(), ec);
+    url_.SetAbsoluteUrl(url_str.c_str(), ec, url_userinfo_allowed_);
     if (!ec) {
         ec = static_cast<
             errc::EasyErrorCode>(native::curl_easy_setopt(handle_, native::CURLOPT_CURLU, url_.native_handle()));
@@ -376,6 +377,8 @@ void easy::set_url(std::string&& url_str, std::error_code& ec) {
 }
 
 const std::string& easy::get_original_url() const { return orig_url_str_; }
+
+void easy::SetUrlUserinfoAllowed(bool allowed) { url_userinfo_allowed_ = allowed; }
 
 const url& easy::get_easy_url() const { return url_; }
 

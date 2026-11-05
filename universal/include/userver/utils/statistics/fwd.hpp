@@ -13,9 +13,6 @@ namespace utils::statistics {
 // NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
 class Storage;
 
-// TODO remove
-struct StatisticsRequest;
-
 // NOLINTNEXTLINE(bugprone-forward-declaration-namespace)
 class Request;
 

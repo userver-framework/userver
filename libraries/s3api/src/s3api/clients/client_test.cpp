@@ -19,6 +19,9 @@ USERVER_NAMESPACE_BEGIN
 namespace s3api {
 namespace {
 
+constexpr http::headers::PredefinedHeader kFormatMetadataHeader{"x-amz-meta-format"};
+constexpr http::headers::PredefinedHeader kSourceMetadataHeader{"x-amz-meta-source"};
+
 class UnusedHttpClient final : public clients::http::Client {
 public:
     clients::http::Request CreateRequest() override { throw std::logic_error("HTTP request is not expected"); }
@@ -47,6 +50,7 @@ public:
         const auto none_match = request.headers.find(http::headers::kIfNoneMatch);
         if_match = match == request.headers.end() ? "" : match->second;
         if_none_match = none_match == request.headers.end() ? "" : none_match->second;
+        headers = request.headers;
         throw std::runtime_error("Authentication captured the conditional request");
     }
 
@@ -56,6 +60,7 @@ public:
 
     mutable std::string if_match;
     mutable std::string if_none_match;
+    mutable clients::http::Headers headers;
 };
 
 UTEST(S3ConditionalWrite, SignsCreationAndReplacementPreconditions) {
@@ -78,6 +83,38 @@ UTEST(S3ConditionalWrite, SignsCreationAndReplacementPreconditions) {
     EXPECT_TRUE(authenticator->if_none_match.empty());
 
     EXPECT_THROW(client.PutObjectConditional("head", "data", ""), std::invalid_argument);
+}
+
+UTEST(S3ConditionalWrite, SignsMetadataWithCreationAndReplacementPreconditions) {
+    UnusedHttpClient http_client;
+    auto connection = std::make_shared<S3Connection>(
+        http_client,
+        S3ConnectionType::kHttps,
+        "s3.example.com",
+        ConnectionCfg{std::chrono::milliseconds{1000}}
+    );
+    auto authenticator = std::make_shared<ConditionalHeadersAuthenticator>();
+    ClientImpl client{std::move(connection), authenticator, "bucket"};
+    const Client::Meta meta{{"format", "envelope-v2"}, {"source", "test"}};
+
+    for (const auto& etag : {std::optional<std::string>{}, std::optional<std::string>{"\"previous\""}}) {
+        EXPECT_THROW(client.PutObjectConditional("head", "data", etag, meta), std::runtime_error);
+        EXPECT_EQ(authenticator->headers.at(kFormatMetadataHeader), "envelope-v2");
+        EXPECT_EQ(authenticator->headers.at(kSourceMetadataHeader), "test");
+        EXPECT_EQ(authenticator->if_match, etag.value_or(""));
+        EXPECT_EQ(authenticator->if_none_match, etag ? "" : "*");
+    }
+
+    for (const auto& empty_meta : {std::optional<Client::Meta>{}, std::optional<Client::Meta>{Client::Meta{}}}) {
+        EXPECT_THROW(client.PutObjectConditional("head", "data", std::nullopt, empty_meta), std::runtime_error);
+        EXPECT_EQ(authenticator->headers.count(kFormatMetadataHeader), 0);
+        EXPECT_EQ(authenticator->headers.count(kSourceMetadataHeader), 0);
+        EXPECT_EQ(authenticator->if_none_match, "*");
+    }
+    EXPECT_THROW(client.PutObjectConditional("head", "data", "", meta), std::invalid_argument);
+    EXPECT_THROW(client.Client::PutObjectConditional("head", "data", std::nullopt, meta), std::logic_error);
+    EXPECT_THROW(client.Client::PutObjectConditional("head", "data", std::nullopt, std::nullopt), std::runtime_error);
+    EXPECT_EQ(authenticator->if_none_match, "*");
 }
 
 TEST(S3PresignedUrl, NormalizesEndpointHostForDownloadAndUpload) {

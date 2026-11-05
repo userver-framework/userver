@@ -1,12 +1,14 @@
 #include <storages/redis/impl/thread_pools.hpp>
 
 #include <chrono>
+#include <cstddef>
 #include <string>
 #include <thread>
 
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/current_task.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 
 #include <engine/ev/thread_pool.hpp>
 #include <engine/ev/thread_pool_config.hpp>
@@ -19,6 +21,12 @@ const std::chrono::milliseconds kThreadPoolWaitingSleepTime{20};
 
 const std::string kSentinelThreadName = "redis_sentinel";
 const std::string kRedisThreadName = "redis_client";
+
+void SynchronizeThreadPool(engine::ev::ThreadPool& pool) {
+    for (std::size_t thread_idx = 0; thread_idx < pool.GetSize(); ++thread_idx) {
+        pool.NextThread().RunInEvLoopSync([] {});
+    }
+}
 
 void SleepWhileWaitingForThreadPool() {
     if (engine::current_task::IsTaskProcessorThread()) {
@@ -51,6 +59,12 @@ ThreadPools::~ThreadPools() {
 engine::ev::ThreadPool& ThreadPools::GetSentinelThreadPool() const { return *sentinel_thread_pool_; }
 
 const std::shared_ptr<engine::ev::ThreadPool>& ThreadPools::GetRedisThreadPool() const { return redis_thread_pool_; }
+
+void ThreadPools::SynchronizeEventLoops() const {
+    UASSERT(engine::current_task::IsTaskProcessorThread());
+    SynchronizeThreadPool(*sentinel_thread_pool_);
+    SynchronizeThreadPool(*redis_thread_pool_);
+}
 
 }  // namespace storages::redis::impl
 

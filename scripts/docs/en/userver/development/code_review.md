@@ -90,11 +90,12 @@ Identify the undocumented contract, missing or incorrect reference, or untested
 example, and explain the unclear behavior, missing API navigation, or risk of
 example drift that the author should address.
 
-## 4. Move values when it avoids unnecessary copies
+## 4. Make ownership clear and avoid unnecessary copies
 
-Make ownership clear: use values or `std::unique_ptr` for owned objects,
-and `std::shared_ptr` only when shared ownership is required. For borrowed objects,
-use references when their lifetime is guaranteed.
+Use values or `std::unique_ptr` for owned objects, and `std::shared_ptr` only when
+shared ownership is required. For every added `std::shared_ptr`, verify that more than
+one owner must extend the object's lifetime; otherwise request a value or
+`std::unique_ptr`. For borrowed objects, use references when their lifetime is guaranteed.
 
 For clients provided by component dependencies, a reference is usually sufficient,
 including as a member: the component system guarantees that these clients outlive
@@ -182,9 +183,26 @@ Explain the problem and resulting behavior; a linked public issue that fully
 explains the change can replace the description. Separate the description from
 the title, and optional trailers from the description, with blank lines.
 
-Prefer public issue links and a normal validation paragraph over `Relates:` and
-`Tests:` trailers; neither trailer is required. Describe the validation actually
-performed and any material limitations.
+Put any needed `Changelog entry:` and `Migration guide:` sections first.
+Omit unneeded sections entirely, without placeholders or no-entry statements.
+Keep the text consistent with the final diff and include the same sections in
+the integration commit message: the release tool reads commit messages. When
+updating a PR, preserve author-written text unless the final change makes it
+inaccurate.
+
+Separate these sections from the detailed description with a standalone `---`,
+surrounded by blank lines. If neither section is needed, start directly with the
+description. Normally use a Markdown bullet list with fully qualified entity
+names, including namespaces, in backticks. Add rationale or implementation
+explanations when they are not evident from the diff.
+
+Do not edit release changelog files or run release-wide generation just to
+prepare a PR description.
+
+Prefer public issue links over `Relates:` trailers; this trailer is not required.
+Do not add a `Validation` section or another "how tested" section to PR
+descriptions. Report performed checks and material limitations in the handover
+chat instead.
 
 ## 7. Check algorithmic complexity
 
@@ -237,6 +255,15 @@ New functionality and bug fixes must have tests. Add or update relevant document
 For flaky failures caused by production code rather than the test itself, first
 add a test that reliably reproduces the bug without flakiness, then fix the code.
 
+Keep the test set minimal. A bug fix needs one test that fails without the fix;
+add another test only if it covers a distinct behavior of the change that no other
+new or existing test exercises. When reviewing, request removal of tests that:
+- repeat the same code path with a different API flavor (sync/async, unary/streaming,
+  retry/no retry) unless the change affects that flavor specifically;
+- check scenarios that are practically unreachable or need artificial setup
+  that does not occur in real usage;
+- duplicate assertions of existing tests.
+
 ## 12. Use userver synchronization and I/O primitives
 
 Do not use C++ standard library or libc synchronization or blocking I/O on the
@@ -252,6 +279,8 @@ documentation from this check.
 ## 14. Use fmt for formatting
 
 Use the `fmt` library for formatting instead of `std::format` and similar APIs.
+Build strings with `fmt::format` rather than chains of `operator+`, `std::to_string`,
+or `std::ostringstream`.
 
 ----------
 

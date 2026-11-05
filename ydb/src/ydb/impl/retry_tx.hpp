@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 
 #include <fmt/format.h>
 
@@ -59,6 +60,20 @@ struct RetryStep {
     bool reset_session = false;
 };
 
+class RetryTxSession final {
+public:
+    bool HasSession() const { return session_.has_value(); }
+
+    NYdb::NQuery::TSession GetSession() const { return session_.value(); }
+
+    void SetSession(NYdb::NQuery::TSession session) { session_ = std::move(session); }
+
+    void Reset() { session_.reset(); }
+
+private:
+    std::optional<NYdb::NQuery::TSession> session_;
+};
+
 template <typename Fn>
 class RetryTxHandler {
 public:
@@ -79,7 +94,13 @@ public:
 
     void Execute() {
         std::exception_ptr exception;
-        for (std::uint32_t i = 0; i <= retry_settings_.retries && !deadline_.IsReached(); ++i) {
+        for (std::uint32_t i = 0; i <= retry_settings_.retries; ++i) {
+            if (deadline_.IsReached()) {
+                if (exception) {
+                    break;
+                }
+                throw DeadlineExceededError("Transaction deadline exceeded before the first attempt");
+            }
             if (i != 0 && !table_client_.GetRetryBudget().CanRetry()) {
                 break;
             }
@@ -103,24 +124,24 @@ public:
 
     std::pair<engine::Deadline, std::exception_ptr> TryExecute(std::uint32_t retry_number) {
         try {
-            if (!session_) {
+            if (!session_.HasSession()) {
                 UpdateSession(retry_number);
             }
 
-            fn_(*session_, deadline_);
+            fn_(session_, deadline_);
 
             table_client_.GetRetryBudget().AccountOk();
             return {engine::Deadline::Passed(), std::exception_ptr{}};
         } catch (const YdbResponseError& e) {
             table_client_.GetRetryBudget().AccountFail();
-            if (!table_client_.GetRetryBudget().CanRetry()) {
+            if (retry_number >= retry_settings_.retries || !table_client_.GetRetryBudget().CanRetry()) {
                 throw;
             }
 
             auto
                 [backoff, reset_session] = RetryStep::GetNext(retry_settings_, e.GetStatus().GetStatus(), retry_number);
             if (reset_session) {
-                session_.reset();
+                session_.Reset();
             }
             if (!backoff.has_value()) {
                 throw;
@@ -148,8 +169,8 @@ public:
         );
 
         auto get_session_future = native_client_.GetSession(get_session_settings);
-        session_ =
-            impl::GetFutureValueChecked(std::move(get_session_future), "GetSession", get_session_context).GetSession();
+        auto result = impl::GetFutureValueChecked(std::move(get_session_future), "GetSession", get_session_context);
+        session_.SetSession(result.GetSession());
     }
 
 private:
@@ -160,12 +181,12 @@ private:
     engine::Deadline deadline_;
     Fn fn_;
 
-    std::optional<NYdb::NQuery::TSession> session_;
+    RetryTxSession session_;
 };
 
 template <typename Fn>
 void RetryTx(const RetryTxSettings& retry_settings, TableClient& table_client, engine::Deadline deadline, Fn&& fn) {
-    static_assert(std::is_invocable_v<Fn&, NYdb::NQuery::TSession, engine::Deadline>);
+    static_assert(std::is_invocable_v<Fn&, RetryTxSession&, engine::Deadline>);
 
     RetryTxHandler<
         Fn>(table_client.GetNativeQueryClient(), table_client, retry_settings, deadline, std::forward<Fn>(fn))

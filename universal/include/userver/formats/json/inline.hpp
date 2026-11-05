@@ -7,6 +7,7 @@
 #include <chrono>
 #include <cstdint>
 #include <string_view>
+#include <utility>
 
 #include <userver/formats/json/impl/types.hpp>
 #include <userver/formats/json/value.hpp>
@@ -65,6 +66,7 @@ private:
     void Append(std::string_view key, std::chrono::system_clock::time_point);
 
     void Append(std::string_view key, const formats::json::Value&);
+    void Append(std::string_view key, formats::json::Value&&);
 
     VersionedValuePtr json_;
 };
@@ -99,6 +101,7 @@ private:
     void Append(std::chrono::system_clock::time_point);
 
     void Append(const formats::json::Value&);
+    void Append(formats::json::Value&&);
 
     VersionedValuePtr json_;
 };

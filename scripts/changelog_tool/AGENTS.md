@@ -54,32 +54,15 @@ even in an otherwise-empty batch is isolated into its own single-commit batch an
 `needs_attention=true` and, if included in the changelog, get a visible
 `⚠ analyzed without diff — verify` marker. Nothing is silently dropped or truncated.
 
-## Breaking changes: two distinct fields
+## Writing changelog entries
 
-For `breaking-change` commits the LLM produces two separate fields:
-- `changelog_line`: describes the breaking change itself;
-- `migration_guide`: a separate, actionable recipe for how to fix/migrate.
+Follow the [shared writing rules](changelog-entry.md) for `changelog_line` and
+`migration_guide`. Both LLM prompts in [prompts.py](changelog_tool/llm/prompts.py)
+load that file directly. Keep writing guidance there so PR authors and the release
+tool use the same source.
 
-Both are rendered in `changelog.md` as two parts: the `changelog_line`, followed by a nested
-`Migration:` sub-line carrying the `migration_guide`.
-
-## Doxygen-style code references in `changelog_line` and `migration_guide`
-
-Both the main pass ([`SYSTEM_PROMPT`](changelog_tool/llm/prompts.py)) and the external pass
-([`EXTERNAL_CONTRIB_SYSTEM_PROMPT`](changelog_tool/llm/prompts.py)) instruct the LLM to format all
-code references in `changelog_line` (and `migration_guide` for the main pass) using Doxygen syntax:
-
-- **userver code entities** (classes, functions, methods, namespaces, enumerations, macros, etc.):
-  `@ref` with the fully-qualified name, e.g. `@ref userver::components::ComponentBase`.
-- **Files and directories**: `@ref` with the path, e.g. `@ref userver/core/component.hpp`.
-- **Inline code fragments** (identifiers, variables, parameters, config values): backticks, e.g.
-  `config.yaml`, `max_concurrent_requests`.
-- **Multi-line code blocks**: triple backticks with the language.
-- **Markdown links** `[text](url)` and HTML tags are also acceptable when more natural than a
-  Doxygen command (e.g. linking to an external resource).
-
-The renderer ([`render_changelog()`](changelog_tool/render/changelog.py:35)) outputs these fields
-verbatim, so the Doxygen markup flows straight into the generated `changelog.md`.
+The renderer outputs those fields verbatim, with `migration_guide` as a nested
+`Migration:` sub-line for breaking changes.
 
 ## `excluded.md` and the `refine` workflow
 

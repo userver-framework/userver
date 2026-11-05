@@ -9,6 +9,7 @@
 
 #include <userver/clients/http/client.hpp>
 #include <userver/clients/http/middlewares/base.hpp>
+#include <userver/utils/flags.hpp>
 #include <userver/utils/impl/internal_tag_fwd.hpp>
 #include <userver/utils/impl/wait_token_storage.hpp>
 
@@ -17,6 +18,12 @@ USERVER_NAMESPACE_BEGIN
 namespace clients::http {
 
 class ClientCore;
+
+/// @brief Security options for requests created by ClientWithMiddlewares.
+enum class ClientOptions {
+    kNone = 0,
+    kAllowUserInfo = 1 << 0,
+};
 
 /// @ingroup userver_clients
 ///
@@ -32,7 +39,8 @@ public:
     ClientWithMiddlewares(
         utils::impl::InternalTag,
         std::shared_ptr<ClientCore> client_core,
-        std::vector<utils::NotNull<clients::http::MiddlewareBase*>> middlewares
+        std::vector<utils::NotNull<clients::http::MiddlewareBase*>> middlewares,
+        utils::Flags<ClientOptions> options = {}
     );
     /// @endcond
 
@@ -52,6 +60,7 @@ public:
 private:
     std::shared_ptr<ClientCore> client_core_;
     std::vector<utils::NotNull<clients::http::MiddlewareBase*>> middlewares_;
+    const utils::Flags<ClientOptions> options_;
     utils::impl::WaitTokenStorage wts_;
 };
 

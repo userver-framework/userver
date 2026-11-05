@@ -8,6 +8,16 @@
 
 namespace ns {
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<A>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    return true;
+}
+
 A FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<A>)
@@ -111,6 +121,16 @@ void WriteToStream(
         sw.Key(field_key);
         WriteToStream(field_value, sw);
     }
+}
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<B>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    return true;
 }
 
 B FromJsonString(
@@ -218,6 +238,21 @@ void WriteToStream(
     }
 }
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<C>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__C_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
+}
+
 C FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<C>)
@@ -303,6 +338,21 @@ void WriteToStream(
             *value.version
         }, sw);
     }
+}
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<D>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__D_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
 }
 
 D FromJsonString(
@@ -392,6 +442,21 @@ void WriteToStream(
     }
 }
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<IntegerOneOfDiscriminator>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__IntegerOneOfDiscriminator_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
+}
+
 IntegerOneOfDiscriminator FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<IntegerOneOfDiscriminator>)
@@ -465,6 +530,21 @@ void WriteToStream(
             *value.foo
         }, sw);
     }
+}
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<OneOfDiscriminator>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__OneOfDiscriminator_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
 }
 
 OneOfDiscriminator FromJsonString(

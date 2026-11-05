@@ -3,6 +3,7 @@
 #include <storages/redis/impl/thread_pools.hpp>
 #include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/utest/utest.hpp>
+#include <userver/utils/retry_budget.hpp>
 
 #include <storages/redis/impl/keyshard_impl.hpp>
 #include <storages/redis/impl/mock_server_test.hpp>
@@ -33,6 +34,9 @@ public:
     using MockRedisServerArray = std::vector<std::unique_ptr<MockRedisServer>>;
 
     storages::redis::impl::Sentinel& SentinelClient() const { return *sentinel_client_; }
+
+    // Waits until the settings are applied to all Redis connections.
+    void SetRetryBudgetSettings(const utils::RetryBudgetSettings& settings);
 
     void ResetSentinelClient() { sentinel_client_.reset(); }
 

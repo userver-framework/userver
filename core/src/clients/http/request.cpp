@@ -4,6 +4,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <vector>
 
 #include <userver/clients/http/connect_to.hpp>
 #include <userver/clients/http/error.hpp>
@@ -540,6 +541,15 @@ Request& Request::SetLoggedUrl(std::string url) & {
 }
 Request Request::SetLoggedUrl(std::string url) && { return std::move(this->SetLoggedUrl(std::move(url))); }
 
+Request& Request::SetExpectedStatusCodes(ExpectedStatusCodes status_codes) & {
+    pimpl_->SetExpectedStatusCodes(std::move(status_codes));
+    return *this;
+}
+
+Request Request::SetExpectedStatusCodes(ExpectedStatusCodes status_codes) && {
+    return std::move(this->SetExpectedStatusCodes(std::move(status_codes)));
+}
+
 Request& Request::SetUrlTemplate(std::string url_template) & {
     pimpl_->SetUrlTemplate(std::move(url_template));
     return *this;
@@ -584,6 +594,13 @@ Request Request::SetTracingManager(const tracing::TracingManagerBase& tracing_ma
 }
 
 const std::string& Request::GetUrl() const& { return pimpl_->easy().get_original_url(); }
+
+void Request::SetUrlUserinfoAllowed(bool allowed) {
+    pimpl_->easy().SetUrlUserinfoAllowed(allowed);
+    if (!allowed && !GetUrl().empty()) {
+        url(GetUrl());
+    }
+}
 
 const std::string& Request::GetData() const& { return pimpl_->easy().get_post_data(); }
 

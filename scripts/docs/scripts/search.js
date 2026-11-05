@@ -54,28 +54,35 @@ export function init_search_results_anchor() {
 }
 
 export function init_all_results_button() {
-  const searchBox = document.getElementById("MSearchResultsWindow");
+  const resultsWindow = document.getElementById("MSearchResultsWindow");
   const searchInput = document.getElementById("MSearchField");
+  if (!resultsWindow || !searchInput) return;
 
   const allResultsLink = document.createElement("a");
   allResultsLink.classList.add("all-results-link");
   allResultsLink.textContent = "All results";
   allResultsLink.target = "_blank";
 
-  const updateHref = () => {
+  const updateHref = (searchInput) => {
     const searchURL = new URL("https://yandex.ru/search/");
     const query = searchInput.value.trim();
-    if (query) {
-      searchURL.searchParams.set("text", `site:userver.tech ${query}`);
-    } else {
-      searchURL.searchParams.set("text", "site:userver.tech");
-    }
-    allResultsLink.href = searchURL.href;
+    searchURL.searchParams.set(
+      "text",
+      query ? `site:userver.tech ${query}` : "site:userver.tech"
+    );
+    // #MSearchBox is re-created from HTML markup in menu.js,
+    // so re-select the link instead of holding a ref
+    document.querySelector(".all-results-link").href = searchURL.href;
   };
 
-  searchBox.appendChild(allResultsLink);
-  updateHref();
-  searchInput.addEventListener("input", updateHref);
+  resultsWindow.appendChild(allResultsLink);
+  updateHref(searchInput);
+
+  document.addEventListener("input", (e) => {
+    if (e.target.matches("#MSearchField")) {
+      updateHref(e.target);
+    }
+  });
 }
 
 export function init_search_hotkey() {

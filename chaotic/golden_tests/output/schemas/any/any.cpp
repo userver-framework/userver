@@ -8,6 +8,21 @@
 
 namespace ns {
 
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<ObjectWithRawJsonField>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__ObjectWithRawJsonField_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
+}
+
 ObjectWithRawJsonField FromJsonString(
     std::string_view json,
     USERVER_NAMESPACE::formats::parse::To<ObjectWithRawJsonField>)
@@ -91,6 +106,21 @@ void WriteToStream(
             value.inner_object
         }, sw);
     }
+}
+
+bool MayParseAs(
+    const USERVER_NAMESPACE::formats::json::Value& value,
+    USERVER_NAMESPACE::formats::parse::To<WithAnyField>)
+{
+    if (!value.IsObject() && !value.IsNull()) {
+        return false;
+    }
+    for (auto it = value.begin(); it != value.end(); ++it) {
+        if (!k__ns__WithAnyField_PropertiesNames.Contains(it.GetName())) {
+            return false;
+        }
+    }
+    return true;
 }
 
 WithAnyField FromJsonString(

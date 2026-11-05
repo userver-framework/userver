@@ -52,7 +52,7 @@ public:
     /// Returns sum of values from the given bucket.
     double GetSumAt(std::size_t index) const;
 
-    // Returns sum of values from the "infinity" bucket
+    /// Returns the sum of values from the "infinity" bucket
     /// (greater than the largest bucket boundary).
     double GetSumAtInf() const noexcept;
 
@@ -68,6 +68,7 @@ private:
 };
 
 /// Compares equal if bounds are close and values are equal.
+/// Bucket sums are ignored.
 bool operator==(HistogramView lhs, HistogramView rhs) noexcept;
 
 }  // namespace utils::statistics

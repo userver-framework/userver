@@ -199,6 +199,48 @@ you can either disable it via the static config option coro_pool.stack_usage_mon
 components::ManagerControllerComponent, or disable it entirely at build time using USERVER_FEATURE_STACK_USAGE_MONITOR (see @ref
  scripts/docs/en/userver/build/options.md).
 
+## Reproducing allocation failures in a local debug build
+
+To investigate exception safety, use linker wrapping in a local Linux reproducer
+with a linker that supports the GNU `--wrap` option. This lets you fail a selected
+allocation without exhausting the process memory. Keep the wrapper source and link
+option in local debugging changes; normal library and unit-test targets should use
+their ordinary allocation functions.
+
+1. Identify the allocation symbol used by the reproducer. For scalar
+   `operator new(std::size_t)`, the usual Linux C++ ABI names are `_Znwm` on LP64
+   targets and `_Znwj` on 32-bit targets. Check the target's symbol with `nm` and
+   `c++filt` instead of selecting it from the debugger host's architecture.
+2. Define a wrapper with the same signature and C linkage. For `_Znwm`, the
+   wrapper is `__wrap__Znwm`, and an external declaration of `__real__Znwm` gives
+   it access to the original allocation function. When injection is inactive,
+   forward the size argument to `__real__Znwm` and return its result. Avoid
+   allocating memory or logging inside the wrapper, which could recurse into it.
+3. Control injection with a flag that is initially false. When armed, clear the
+   flag before throwing `std::bad_alloc`; subsequent allocations, including those
+   during exception handling, should use the original function. Arm it immediately
+   around the operation under investigation, after constructing input data. Use
+   @ref utils::ScopeGuard to clear it on every exit, including when the operation
+   makes no allocation. A `thread_local` flag affects an OS thread, so keep the
+   investigated operation on that thread; it does not follow a coroutine between
+   task processors.
+4. Link only the local reproducer with `-Wl,--wrap=_Znwm` (or the symbol selected
+   for its ABI). In CMake, apply the option to that executable with
+   `target_link_options` and `PRIVATE` scope. Set a GDB breakpoint on the wrapper
+   to inspect the allocation's call stack, or use `catch throw` to stop on the
+   injected exception. Check both the destination and any source objects or saved
+   child references after catching the exception.
+
+The linker redirects undefined references to the selected symbol to its
+`__wrap_` function, and references to its `__real_` function back to the original
+symbol. It does not rewrite calls already resolved within an object file or
+inside a shared library. Wrapping scalar `operator new` does not cover `new[]`,
+aligned allocation, or direct `malloc` calls; inspect the actual allocation path
+when a failure is not triggered. See the
+[GNU linker documentation](https://sourceware.org/binutils/docs/ld/Options.html#index-_002d_002dwrap_003dsymbol)
+for the symbol-resolution rules.
+
+
 ## Adding new pretty-printers and commands
 
 If you need a new pretty-printer or a GDB command, you can always implement it yourself in `userver/scripts/gdb` and

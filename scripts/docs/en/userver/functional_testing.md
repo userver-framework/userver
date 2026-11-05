@@ -236,6 +236,9 @@ passed to pytest before starting the userver based service.
 
 To apply additional modifications, mark a fixture with
 @ref pytest_userver.config.patch "pytest_userver.config.patch".
+Overrides inherit this marker without repeating the decorator. See
+@ref scripts/docs/en/userver/fixture_markers.md for marker inheritance, discovery,
+and ordering guarantees, and for defining custom metadata.
 
 Example usage:
 

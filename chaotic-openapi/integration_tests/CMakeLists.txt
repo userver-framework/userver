@@ -8,12 +8,13 @@ target_link_libraries(${PROJECT_NAME} userver-chaotic-openapi userver-universal-
 
 file(
     GLOB CLIENTS
+    CONFIGURE_DEPENDS
     RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/clients/
     ${CMAKE_CURRENT_SOURCE_DIR}/clients/*
 )
 foreach(CLIENT ${CLIENTS})
     string(REPLACE "-" "_" CLIENT_NAME ${CLIENT})
-    file(GLOB SCHEMAS ${CMAKE_CURRENT_SOURCE_DIR}/clients/${CLIENT}/*.yaml)
+    file(GLOB SCHEMAS CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/clients/${CLIENT}/*.yaml)
     userver_target_generate_openapi_client(
         ${PROJECT_NAME}-client-${CLIENT}
         NAME ${CLIENT_NAME}

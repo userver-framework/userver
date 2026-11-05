@@ -5,6 +5,7 @@
 
 #include <userver/clients/http/client.hpp>
 #include <userver/clients/http/config.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

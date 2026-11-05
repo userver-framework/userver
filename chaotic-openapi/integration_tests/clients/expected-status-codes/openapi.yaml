@@ -1,0 +1,26 @@
+openapi: 3.0.0
+info:
+    title: Expected status codes
+    version: '1.0'
+x-usrv-expected-status-codes: [404]
+paths:
+    /inherited:
+        get:
+            operationId: Inherited
+            responses:
+                '404':
+                    description: Missing item
+    /overridden:
+        get:
+            operationId: Overridden
+            x-usrv-expected-status-codes: [409]
+            responses:
+                '404':
+                    description: Unexpected missing item
+    /cleared:
+        get:
+            operationId: Cleared
+            x-usrv-expected-status-codes: []
+            responses:
+                '404':
+                    description: Unexpected missing item

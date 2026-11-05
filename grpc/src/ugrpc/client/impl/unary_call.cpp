@@ -1,5 +1,6 @@
 #include <userver/ugrpc/client/impl/unary_call.hpp>
 
+#include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/impl/tracing.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -49,6 +50,10 @@ void SetStatusForSpan(tracing::Span& span, CompletionStatus completion_status) n
                 break;
         }
     }
+}
+
+[[noreturn]] void ThrowSerializationError(std::string_view call_name, std::string_view reason) {
+    throw RpcSerializationError{call_name, reason};
 }
 
 [[noreturn]] void ThrowSpecialCaseCompletionError(

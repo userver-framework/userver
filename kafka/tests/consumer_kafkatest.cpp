@@ -10,6 +10,7 @@
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/single_use_event.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/utest/log_capture_fixture.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/fixed_array.hpp>
 
@@ -18,6 +19,8 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 class ConsumerTest : public kafka::utest::KafkaCluster {};
+
+using ConsumerTestWithLogCapture = utest::LogCaptureFixture<ConsumerTest>;
 
 const std::string kLargeTopic1{"lt-1"};
 const std::string kLargeTopic2{"lt-2"};
@@ -599,6 +602,56 @@ UTEST_F(ConsumerTest, ConsumerRecreatesAfterFatalLibrdkafkaError) {
     ASSERT_GE(received_messages.size(), 2U);
     EXPECT_EQ(received_messages.front().key, first_message.key);
     EXPECT_EQ(received_messages.back().key, second_message.key);
+}
+
+UTEST_F(ConsumerTestWithLogCapture, StopDuringRestartDelayAfterFatalLibrdkafkaError) {
+    static constexpr std::string_view kStaticGroupInstanceId{"utest-static-fence-stop-instance"};
+    static constexpr std::int32_t kHeartbeatApiKey = 12;
+    static constexpr std::int32_t kFencedInstanceIdError = 82;
+
+    const auto topic = GenerateTopic();
+
+    kafka::impl::ConsumerExecutionParams params{};
+    params.restart_after_failure_delay = utest::kMaxTestWaitTime;
+
+    kafka::impl::ConsumerConfiguration configuration{};
+    configuration.rd_kafka_options["group.instance.id"] = kStaticGroupInstanceId;
+    configuration.rd_kafka_options["session.timeout.ms"] = "6000";
+    configuration.rd_kafka_options["heartbeat.interval.ms"] = "1000";
+
+    const kafka::utest::Message message{
+        .topic = topic,
+        .key = "key-before-fatal",
+        .payload = "payload-before-fatal",
+        .partition = 0,
+    };
+    SendMessages({message});
+
+    auto consumer = MakeConsumer("kafka-consumer", {topic}, configuration, params);
+    auto consumer_scope = consumer.MakeConsumerScope();
+
+    engine::SingleUseEvent message_received;
+    consumer_scope.Start([&](kafka::MessageBatchView messages) {
+        if (messages.empty()) {
+            return;
+        }
+        consumer_scope.AsyncCommit();
+        message_received.Send();
+    });
+
+    message_received.Wait();
+
+    PushMockRequestError(kHeartbeatApiKey, kFencedInstanceIdError, /*count=*/1);
+
+    const auto delay_log = fmt::format("Restarting consumer after {}ms", params.restart_after_failure_delay.count());
+    const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+    while (GetLogCapture().Filter(delay_log).empty()) {
+        ASSERT_FALSE(deadline.IsReached()) << "Consumer has not entered restart delay";
+        engine::SleepFor(std::chrono::milliseconds{50});
+    }
+    ASSERT_THAT(GetLogCapture().Filter("Restarting consumer after fatal librdkafka error"), testing::SizeIs(1));
+
+    consumer_scope.Stop();
 }
 
 UTEST_F(ConsumerTest, HeadersSaveAfterMessageDestroy) {

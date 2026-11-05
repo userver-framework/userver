@@ -77,8 +77,7 @@ void PortInfo::Init(
             ? component_context.GetTaskProcessor(*listener_config.task_processor)
             : engine::current_task::GetTaskProcessor();
 
-    request_handler
-        .emplace(component_context, config.logger_access, config.logger_access_tskv, is_monitor, config.server_name);
+    request_handler.emplace(component_context, config, is_monitor);
 
     endpoint_info = std::make_shared<net::EndpointInfo>(listener_config, *request_handler);
 
