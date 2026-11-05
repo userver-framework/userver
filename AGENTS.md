@@ -10,8 +10,11 @@ against these rules, fix introduced violations, and rerun relevant checks.
 
 ## Scope and version control
 
-- Do **not** update changelogs unless explicitly asked.
+- Do **not** edit release changelog files unless explicitly asked.
 - Do **not** add agent attribution: no `Generated with ...` lines in PR descriptions and no `Co-Authored-By: <agent>` trailers in commit messages.
+
+When preparing or updating a PR, automatically prepare any needed changelog entry
+and migration guide following the [shared writing rules](scripts/changelog_tool/changelog-entry.md).
 
 ## Project layout
 

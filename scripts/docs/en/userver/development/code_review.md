@@ -183,9 +183,26 @@ Explain the problem and resulting behavior; a linked public issue that fully
 explains the change can replace the description. Separate the description from
 the title, and optional trailers from the description, with blank lines.
 
-Prefer public issue links and a normal validation paragraph over `Relates:` and
-`Tests:` trailers; neither trailer is required. Describe the validation actually
-performed and any material limitations.
+Put any needed `Changelog entry:` and `Migration guide:` sections first.
+Omit unneeded sections entirely, without placeholders or no-entry statements.
+Keep the text consistent with the final diff and include the same sections in
+the integration commit message: the release tool reads commit messages. When
+updating a PR, preserve author-written text unless the final change makes it
+inaccurate.
+
+Separate these sections from the detailed description with a standalone `---`,
+surrounded by blank lines. If neither section is needed, start directly with the
+description. Normally use a Markdown bullet list with fully qualified entity
+names, including namespaces, in backticks. Add rationale or implementation
+explanations when they are not evident from the diff.
+
+Do not edit release changelog files or run release-wide generation just to
+prepare a PR description.
+
+Prefer public issue links over `Relates:` trailers; this trailer is not required.
+Do not add a `Validation` section or another "how tested" section to PR
+descriptions. Report performed checks and material limitations in the handover
+chat instead.
 
 ## 7. Check algorithmic complexity
 

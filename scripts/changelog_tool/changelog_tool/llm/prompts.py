@@ -1,5 +1,9 @@
 """System prompt for LLM-based commit classification."""
 
+from pathlib import Path
+
+_CHANGELOG_ENTRY_RULES = (Path(__file__).resolve().parents[2] / 'changelog-entry.md').read_text(encoding='utf-8')
+
 SYSTEM_PROMPT = """You are an expert software engineer analyzing git commits for a changelog.
 Your task is to analyze commits since the last release and highlight important and interesting changes.
 Ignore simple bugfixes, typos, and minor refactoring.
@@ -41,11 +45,8 @@ For each commit, you MUST provide a JSON object with the following fields:
    - Optimizations with a genuine, noteworthy performance/efficiency impact
    - ANY commit where the author explicitly wrote a "Changelog entry" or "Changelog line" section - the author's intent overrides all other rules, and in that case "to_changelog" is true regardless of "classification"
    - MUST be false for: "refactor", "minor", "docs", and "unclear" classifications (these have no changelog section and are never rendered even if true), as well as minor bugfixes, typos, internal changes, and test updates
-3. "changelog_line": A concise, user-friendly description of the change suitable for a changelog. Guidance differs by category:
+3. "changelog_line": A concise, user-friendly description of the change suitable for a changelog. Follow the shared writing rules appended below.
    - CRITICAL: If the commit message contains a "Changelog entry" or "Changelog line" section, you MUST copy that text verbatim into this field. The human author is always right - do not rephrase or modify their text.
-   - For "breaking-change" commits: describe ONLY the breaking change itself - WHAT changed. Any fix/migration recipe belongs in the separate "migration_guide" field (field 6), not here.
-   - For "feature" commits: describe the component/subsystem involved and what was done (the new capability), in plain user-facing terms.
-   - For "optimization" commits: focus on NUMBERS whenever the commit provides them (percentages, nanoseconds, bytes, request counts, etc.). State WHAT was optimized, WHY, and the MEASURED effect (e.g. "Reduced X by Y% by doing Z"). If the commit provides no concrete numbers, describe the optimization qualitatively - do NOT invent figures that aren't supported by the commit.
    - Only include this if to_changelog is true.
 4. "detailed_commit_analysis": A detailed analysis of what was added, why it was added, and what impact or benefit it brings to the project.
 5. "component": The subsystem/module the commit affects, extracted from the commit title's scope (e.g. "core", "utest", "grpc") if present (e.g. `type(component): ...` conventional-commit style). If the title has no explicit scope, infer a short lowercase component name from context, or use null if none is evident.
@@ -53,24 +54,6 @@ For each commit, you MUST provide a JSON object with the following fields:
    - CRITICAL: If the commit message contains a "Migration guide" section, copy that text verbatim into this field - do not rephrase or modify it.
    - If the commit message has no explicit migration guide but the classification is "breaking-change", write a concise, actionable migration recipe based on your analysis of the diff/message.
    - "changelog_line" and "migration_guide" are two DISTINCT fields for breaking-change commits: "changelog_line" describes WHAT changed, "migration_guide" describes HOW to adapt to it. Never merge them into one field.
-
-FORMATTING - DOXYGEN-STYLE FOR ALL CODE REFERENCES (applies to "changelog_line" and "migration_guide"):
-When these fields mention code entities, files, identifiers, or configuration values, you MUST format them using
-Doxygen syntax so the rendered changelog links to the relevant documentation. Apply the following rules strictly:
-- userver code entities (classes, functions, methods, namespaces, enumerations, macros, etc.): use the @ref command
- with the fully-qualified name, e.g. @ref userver::components::ComponentBase, @ref userver::server::Server,
- @ref userver::storages::postgres::Cluster, @ref userver::cache::LruCacheComponent.
-- Files and directories: use @ref with the path, e.g. @ref userver/core/component.hpp, @ref userver/chaotic/io.hpp.
-- Arbitrary inline code fragments, identifiers, variables, parameters, and configuration values: wrap in backticks,
- e.g. `some_variable`, `config.yaml`, `max_concurrent_requests`, `ComponentSystem`.
-- Multi-line code blocks: use triple backticks with the language, e.g.
- ```cpp
- auto component = context.FindComponent<components::Foo>();
- ```
-- Use @ref for internal cross-references, backticks or @c for inline code, and \\link/\\endlink only when an extended
-  link with custom link text is needed. Markdown links ([text](url)) and HTML tags are also acceptable when they are
-  more natural than a Doxygen command (e.g. linking to an external resource). Keep the prose natural and readable;
-  only the code references themselves are marked up.
 
 You MUST return a valid JSON object where keys are commit SHAs and values are the analysis objects.
 Example output format:
@@ -101,6 +84,8 @@ Example output format:
   }
 }
 """
+
+SYSTEM_PROMPT += '\n\n' + _CHANGELOG_ENTRY_RULES
 
 #: Second, "creative" pass for external contributions that the main pass
 #: (SYSTEM_PROMPT above) did not promote to the changelog. Unlike the main
@@ -138,19 +123,6 @@ For each commit, you MUST provide a JSON object with the following fields:
    Features section instead of a bottom group. Default false. Stay conservative - most external leftovers are small
    fixes/build/doc changes and should NOT be promoted.
 
-FORMATTING - DOXYGEN-STYLE FOR ALL CODE REFERENCES (applies to "changelog_line"):
-When this field mentions code entities, files, identifiers, or configuration values, format them using Doxygen syntax
-so the rendered changelog links to the relevant documentation. Apply the following rules strictly:
-- userver code entities (classes, functions, methods, namespaces, enumerations, macros, etc.): use the @ref command
-  with the fully-qualified name, e.g. @ref userver::components::ComponentBase, @ref userver::storages::postgres::Cluster.
-- Files and directories: use @ref with the path, e.g. @ref userver/chaotic/io.hpp.
-- Arbitrary inline code fragments, identifiers, variables, parameters, and configuration values: wrap in backticks,
-  e.g. `some_variable`, `config.yaml`, `max_concurrent_requests`.
-- Use @ref for internal cross-references, backticks or @c for inline code, and \\link/\\endlink only when an extended
-  link with custom link text is needed. Markdown links ([text](url)) and HTML tags are also acceptable when they are
-  more natural than a Doxygen command (e.g. linking to an external resource). Keep the prose natural and readable;
-  only the code references themselves are marked up.
-
 You MUST return a valid JSON object where keys are commit SHAs and values are the analysis objects.
 Example output format:
 {
@@ -174,3 +146,5 @@ Example output format:
   }
 }
 """
+
+EXTERNAL_CONTRIB_SYSTEM_PROMPT += '\n\n' + _CHANGELOG_ENTRY_RULES

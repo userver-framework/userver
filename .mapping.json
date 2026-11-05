@@ -5148,6 +5148,7 @@
   "scripts/build_and_install_all.sh":"taxi/uservices/userver/scripts/build_and_install_all.sh",
   "scripts/changelog_tool/AGENTS.md":"taxi/uservices/userver/scripts/changelog_tool/AGENTS.md",
   "scripts/changelog_tool/README.md":"taxi/uservices/userver/scripts/changelog_tool/README.md",
+  "scripts/changelog_tool/changelog-entry.md":"taxi/uservices/userver/scripts/changelog_tool/changelog-entry.md",
   "scripts/changelog_tool/changelog-tool":"taxi/uservices/userver/scripts/changelog_tool/changelog-tool",
   "scripts/changelog_tool/changelog.yaml":"taxi/uservices/userver/scripts/changelog_tool/changelog.yaml",
   "scripts/changelog_tool/changelog_tool/__init__.py":"taxi/uservices/userver/scripts/changelog_tool/changelog_tool/__init__.py",
