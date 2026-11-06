@@ -1,12 +1,20 @@
+#include <atomic>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
+#include <fmt/format.h>
 #include <gtest/gtest.h>
 
 #include <userver/utest/assert_macros.hpp>
 
+#include <userver/utils/statistics/labels.hpp>
+#include <userver/utils/statistics/metric_value.hpp>
 #include <userver/utils/statistics/prometheus.hpp>
+#include <userver/utils/statistics/rate_counter.hpp>
+#include <userver/utils/statistics/request.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 using USERVER_NAMESPACE::utils::statistics::ToPrometheusFormatUntyped;
 using USERVER_NAMESPACE::utils::statistics::Writer;
@@ -14,6 +22,24 @@ using USERVER_NAMESPACE::utils::statistics::Writer;
 USERVER_NAMESPACE_BEGIN
 
 namespace {
+
+/// [VisitMetrics custom format]
+class MetricsMessageBuilder final : public utils::statistics::BaseFormatBuilder {
+public:
+    void HandleMetric(
+        std::string_view path,
+        utils::statistics::LabelsSpan labels,
+        const utils::statistics::MetricValue& value
+    ) override {
+        message_ += fmt::format("{}\t{}\t{}\n", path, labels, value);
+    }
+
+    const std::string& GetMessage() const { return message_; }
+
+private:
+    std::string message_;
+};
+/// [VisitMetrics custom format]
 
 /// [DumpMetric basic]
 struct ComponentMetricsNested {
@@ -106,6 +132,24 @@ TEST(MetricsWriter, CustomizationPointChecks) {
     EXPECT_TRUE(utils::statistics::HasWriterSupport<some::Dumpable1>);
     EXPECT_TRUE(utils::statistics::HasWriterSupport<some::Dumpable2>);
     EXPECT_TRUE(utils::statistics::HasWriterSupport<some::Dumpable3>);
+}
+
+TEST(MetricsWriter, VisitMetricsCustomFormat) {
+    /// [VisitMetrics custom format usage]
+    utils::statistics::RateCounter requests{10};
+    utils::statistics::RateCounter errors{2};
+    MetricsMessageBuilder builder;
+
+    utils::statistics::VisitMetrics(
+        [&](utils::statistics::Writer& writer) {
+            writer["requests"] = requests;
+            writer["errors"].ValueWithLabels(errors, {"kind", "timeout"});
+        },
+        builder
+    );
+
+    EXPECT_EQ(builder.GetMessage(), "requests\t\t10\nerrors\tkind=timeout\t2\n");
+    /// [VisitMetrics custom format usage]
 }
 
 USERVER_NAMESPACE_END

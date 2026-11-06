@@ -235,6 +235,12 @@ void DumpMetric(Writer& writer, const std::atomic<Metric>& m) {
 /// - @ref utils::statistics::ToSolomonFormat "Solomon"
 /// - @ref utils::statistics::GetPortabilityWarnings "portability info"
 ///
+/// To define a custom output format, implement @ref utils::statistics::BaseFormatBuilder:
+/// @snippet universal/src/utils/statistics/writer_test.cpp  VisitMetrics custom format
+///
+/// Collect metrics using the custom format builder:
+/// @snippet universal/src/utils/statistics/writer_test.cpp  VisitMetrics custom format usage
+///
 /// @param func writes metrics to the provided @ref Writer
 /// @param out receives each written metric via @ref BaseFormatBuilder::HandleMetric
 /// @param request metric filter and extra labels

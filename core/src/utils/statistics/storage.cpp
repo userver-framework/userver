@@ -10,9 +10,10 @@
 #include <userver/utils/impl/internal_tag.hpp>
 #include <userver/utils/lazy_prvalue.hpp>
 #include <userver/utils/resource_scopes.hpp>
+#include <userver/utils/statistics/request.hpp>
+#include <userver/utils/statistics/writer.hpp>
 
 #include <utils/statistics/entry_impl.hpp>
-#include <utils/statistics/writer_state.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -25,15 +26,20 @@ public:
     void HandleMetric(std::string_view, LabelsSpan, const MetricValue&) override {}
 };
 
-void WriteWithFakeFormat(impl::MetricsSource& source)
-{
-    static constexpr std::string_view fake_prefix = "fake_prefix";
+void WriteWithFakeFormat(impl::MetricsSource& source) {
     if (source.writer) {
         FakeFormatBuilder builder;
-        const Request request;
-        impl::WriterState state{builder, request, {}, {}};
-        auto writer = Writer{&state}[fake_prefix];
-        source.writer(writer);
+        VisitMetrics(
+            [&source](Writer& root_writer) {
+                std::optional<Writer> prefixed;
+                if (!source.prefix_path.empty()) {
+                    prefixed.emplace(utils::LazyPrvalue([&] { return root_writer[source.prefix_path]; }));
+                }
+                Writer& writer = prefixed ? *prefixed : root_writer;
+                source.writer(writer);
+            },
+            builder
+        );
     }
 }
 
