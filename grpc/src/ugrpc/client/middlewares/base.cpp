@@ -39,6 +39,14 @@ RpcType MiddlewareCallContext::GetRpcType() const noexcept { return state_.GetRp
 
 tracing::Span& MiddlewareCallContext::GetSpan() noexcept { return state_.GetSpan(); }
 
+std::optional<std::size_t> MiddlewareCallContext::GetLatestRequestSizeBytes() const noexcept {
+    return state_.GetRequestSizeBytes();
+}
+
+std::optional<std::size_t> MiddlewareCallContext::GetLatestResponseSizeBytes() const noexcept {
+    return state_.GetResponseSizeBytes();
+}
+
 impl::CallState& MiddlewareCallContext::GetState(utils::impl::InternalTag) { return state_; }
 
 }  // namespace ugrpc::client

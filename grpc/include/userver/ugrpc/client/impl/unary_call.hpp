@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <optional>
 #include <string_view>
 
@@ -59,18 +60,6 @@ void SetStatusForSpan(tracing::Span& span, CompletionStatus completion_status) n
     SpecialCaseCompletionType special_case_completion_type
 );
 
-template <typename Response>
-bool ParseResponse(grpc::ByteBuffer&& response_bytes, Response& response) {
-    // Trailers-only OK responses have no message; valid empty buffers still need deserialization.
-    if (!response_bytes.Valid()) {
-        response = Response{};
-        return true;
-    }
-
-    const auto deserialize_status = ugrpc::impl::DeserializeMessage(std::move(response_bytes), response);
-    return deserialize_status.ok();
-}
-
 template <typename Request, typename Response>
 class UnaryCall final {
 public:
@@ -122,6 +111,8 @@ private:
         if (!serialize_status.ok()) {
             HandleAndThrowSerializationError(serialize_status.error_message());
         }
+        UASSERT(request_bytes_.Valid());
+        state_.SetRequestSizeBytes(request_bytes_.Length());
 
         const auto inherited_deadline = USERVER_NAMESPACE::server::request::GetTaskInheritedDeadline();
         const auto deadline = std::min(call_options_.GetDeadline(), inherited_deadline);
@@ -163,6 +154,7 @@ private:
                 return completion_status;
             }
 
+            state_.SetResponseSizeBytes(std::nullopt);
             scope_time.Reset();
 
             engine::InterruptibleSleepFor(delay);
@@ -202,8 +194,17 @@ private:
                     ugrpc::impl::ClampStatusCodeToValidRange(status_);
                     return std::move(status_);
                 }
-                if (!ParseResponse(std::move(response_bytes_), response_)) {
-                    return utils::unexpected{SpecialCaseCompletionType::kNetworkError};
+                if (response_bytes_.Valid()) {
+                    state_.SetResponseSizeBytes(response_bytes_.Length());
+                    const auto
+                        deserialize_status = ugrpc::impl::DeserializeMessage(std::move(response_bytes_), response_);
+                    if (!deserialize_status.ok()) {
+                        return utils::unexpected{SpecialCaseCompletionType::kNetworkError};
+                    }
+                } else {
+                    // Trailers-only OK responses have no message.
+                    state_.SetResponseSizeBytes(0);
+                    response_ = Response{};
                 }
                 return std::move(status_);
 
