@@ -60,10 +60,10 @@ class Parameter:
     query_log_mode_hide: bool
 
     def declaration_includes(self) -> list[str]:
-        # TODO
+        includes = list(self.cpp_type.declaration_includes())
         if not self.required:
-            return ['optional']
-        return []
+            includes.append('optional')
+        return includes
 
     def _validate_schema(self, schema: cpp_types.CppType, *, is_array_allowed: bool) -> None:
         assert schema.json_schema

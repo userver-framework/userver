@@ -66,9 +66,9 @@ namespace {{ namespace }} {
 
             {% for header in response.headers %}
               {% if header.cpp_type.nullable %}
-                std::optional<{{ header.cpp_type.cpp_global_name() }}>
+                std::optional<{{ header.cpp_type.cpp_user_name() }}>
               {%- else -%}
-                {{ header.cpp_type.cpp_global_name() }}
+                {{ header.cpp_type.cpp_user_name() }}
               {% endif -%}
               {{ header.cpp_name }};
             {% endfor %}

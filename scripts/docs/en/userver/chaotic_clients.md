@@ -57,6 +57,17 @@ Fourth, get a reference to the client...
 @snippet samples/chaotic_openapi_service/src/hello_handler.cpp use
 
 
+@anchor chaotic_clients_parameter_types
+# Parameter and header types
+
+Path, query, header and cookie parameters, as well as response headers, are mapped to C++ types
+the same way as body fields: `format` and `x-usrv-cpp-type` select the type of the generated member,
+both inline and through a `$ref` to a component schema. For example, `type: string` with
+`format: uuid` produces `boost::uuids::uuid`. The value is written to and read from the HTTP
+request with the `Convert` functions of the type, see "JSON schema User types" in
+@ref scripts/docs/en/userver/chaotic.md.
+
+
 # Testing
 
 If you test a service with testsuite, you mock the client.

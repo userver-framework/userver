@@ -6,6 +6,8 @@ add_google_tests(${PROJECT_NAME})
 
 target_link_libraries(${PROJECT_NAME} userver-chaotic-openapi userver-universal-utest userver-utest)
 
+set(TEST_TYPES_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/include)
+
 file(
     GLOB CLIENTS
     CONFIGURE_DEPENDS
@@ -19,7 +21,9 @@ foreach(CLIENT ${CLIENTS})
         ${PROJECT_NAME}-client-${CLIENT}
         NAME ${CLIENT_NAME}
         SCHEMAS ${SCHEMAS}
+        ARGS -I ${TEST_TYPES_INCLUDE_DIR}
     )
+    target_include_directories(${PROJECT_NAME}-client-${CLIENT} PUBLIC ${TEST_TYPES_INCLUDE_DIR})
     target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-client-${CLIENT})
 endforeach()
 
@@ -35,6 +39,8 @@ foreach(HANDLER ${HANDLERS})
         NAME ${HANDLER}
         SCHEMAS ${SCHEMAS}
         SRC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src
+        ARGS -I ${TEST_TYPES_INCLUDE_DIR}
     )
+    target_include_directories(${PROJECT_NAME}-handler-${HANDLER} PUBLIC ${TEST_TYPES_INCLUDE_DIR})
     target_link_libraries(${PROJECT_NAME} ${PROJECT_NAME}-handler-${HANDLER})
 endforeach()
