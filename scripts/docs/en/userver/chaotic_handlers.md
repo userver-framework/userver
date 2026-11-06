@@ -98,6 +98,9 @@ src/handlers/greeter/
 config.chaotic.yaml      # static config fragment
 ```
 
+An `operationId` must be a valid C++ identifier and not a C++ keyword. The generator rejects operations whose
+C++ namespaces or handler component names clash, including `operationId`s that differ only in letter case.
+
 View stubs (written to `SRC_DIR/handlers/greeter/get_hello/`):
 
 ```
