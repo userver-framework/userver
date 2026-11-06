@@ -2,6 +2,7 @@
 
 /// @file userver/utils/statistics/portability_info.hpp
 /// @brief Portability reports.
+/// @ingroup userver_universal
 
 #include <string>
 #include <string_view>

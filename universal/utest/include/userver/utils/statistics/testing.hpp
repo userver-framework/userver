@@ -127,9 +127,19 @@ public:
     /// a type with `DumpMetric` and pass it directly:
     /// @snippet universal/utest/src/utils/statistics/testing_test.cpp  metrics Snapshot DumpMetric sample
     ///
-    /// @ref utils::statistics::Storage also works — passing Storage is still
-    /// a common usage when writers are registered there:
+    /// When metrics are split into several subgroups (different paths or label sets), dump @a metric once and take
+    /// child snapshots with @ref utils::statistics::SnapshotBuildOptions instead of repeating paths and labels in
+    /// every check:
+    /// @snippet universal/utest/src/utils/statistics/testing_test.cpp metrics Snapshot subgroup sample
+    ///
+    /// Prefer passing the concrete metric (a struct with `DumpMetric`) or @ref utils::statistics::MetricsStorage.
+    /// @ref utils::statistics::Storage also satisfies @ref utils::statistics::HasWriterSupport, but is awkward in
+    /// tests: @ref utils::statistics::Storage::RegisterWriter is usually more boilerplate than passing the metric
+    /// directly. Use Storage when the code under test is a non-component type that registers writers on Storage
+    /// internally — then snapshot Storage to exercise that wiring. Example:
     /// @snippet core/src/utils/statistics/storage_test.cpp  metrics Snapshot sample
+    ///
+    /// If the metric exposes a custom dump routine instead of `DumpMetric`, use the @ref WriterFuncRef overload below.
     ///
     /// Unlike production, a metric with an empty full path is allowed.
     /// @param options Filters and slicing mode; see @ref utils::statistics::SnapshotBuildOptions.
@@ -145,6 +155,9 @@ public:
     {}
 
     /// @brief Create a snapshot by invoking @a writer.
+    ///
+    /// Use this overload when the metric under test does not provide `DumpMetric` and you call a dedicated method
+    /// (for example `WriteStatistics`) inside @a writer.
     ///
     /// @ref utils::statistics::SnapshotBuildOptions::require_prefix is not prepended to paths emitted by @a writer;
     /// it filters them according to @ref utils::statistics::SnapshotBuildOptions::sliced.

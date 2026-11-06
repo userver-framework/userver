@@ -2,6 +2,7 @@
 
 /// @file userver/utils/statistics/graphite.hpp
 /// @brief Statistics output in Graphite format.
+/// @ingroup userver_universal
 
 #include <string>
 

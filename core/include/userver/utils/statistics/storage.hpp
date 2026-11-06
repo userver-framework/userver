@@ -59,6 +59,9 @@ public:
     ///
     /// Registration runs after construction via @ref ResourceScopeStorage::AfterConstruction.
     /// Unregister runs in @ref ResourceScopeStorage::BeforeDestruction.
+    /// The storage must outlive its registrations. If other scopes initialize or destroy data accessed by `func`
+    /// (generally discouraged), register the statistics scope after them so the data is initialized before the callback
+    /// is registered and destroyed after it is unregistered.
     ///
     /// In a component constructor prefer @ref RegisterWriterScope with @ref components::ComponentContext.
     ///

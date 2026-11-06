@@ -10,6 +10,7 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/utils/statistics/histogram.hpp>
 #include <userver/utils/statistics/rate.hpp>
+#include <userver/utils/statistics/rate_counter.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 #include <memory>
@@ -646,20 +647,22 @@ public:
         });
     }
 
-    std::int64_t foo{1};
-    std::int64_t bar{2};
+    utils::statistics::RateCounter foo;
+    utils::statistics::RateCounter bar;
 };
 
 }  // namespace
 
 UTEST(Snapshot, FromStorage) {
     utils::statistics::Storage storage;
-    const utils::WithResourceScopes<ToyMetrics> toy(std::in_place, storage);
+    utils::WithResourceScopes<ToyMetrics> toy(std::in_place, storage);
+    toy->foo = utils::statistics::Rate{1};
+    toy->bar = utils::statistics::Rate{2};
 
     const utils::statistics::Snapshot snapshot{storage};
 
-    EXPECT_EQ(snapshot.SingleMetric("toy.foo"), std::int64_t{1});
-    EXPECT_EQ(snapshot.SingleMetric("toy.bar"), std::int64_t{2});
+    EXPECT_EQ(snapshot.SingleMetric("toy.foo"), utils::statistics::Rate{1});
+    EXPECT_EQ(snapshot.SingleMetric("toy.bar"), utils::statistics::Rate{2});
 }
 /// [metrics Snapshot sample]
 

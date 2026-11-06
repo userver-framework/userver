@@ -64,12 +64,12 @@ inline constexpr auto kConfigFileMode<StatisticsStorage> = ConfigFileMode::kNotR
 
 namespace utils::statistics {
 
-/// @brief Add a writer function to @ref Storage from @ref components::StatisticsStorage.
-/// It automatically calls @ref utils::statistics::Storage::RegisterWriter() just after the component
-/// construction and @ref utils::statistics::Entry::Unregister() just before the component
-/// destructor.
+/// @brief Registers a writer in the default @ref components::StatisticsStorage.
+/// Call this helper in the component constructor. Registration is deferred until the complete component, including
+/// derived classes, has been constructed. The callback is unregistered before the component destructor starts.
+/// The callback may run concurrently with other code and must be thread-safe.
 ///
-/// @see @ref Storage::RegisterWriter.
+/// @see utils::statistics::Storage::RegisterWriter
 void RegisterWriterScope(
     const components::ComponentContext&,
     std::string common_prefix,

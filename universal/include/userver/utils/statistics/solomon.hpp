@@ -2,6 +2,7 @@
 
 /// @file userver/utils/statistics/solomon.hpp
 /// @brief Statistics output in Solomon format.
+/// @ingroup userver_universal
 
 #include <string>
 #include <unordered_map>

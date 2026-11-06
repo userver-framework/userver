@@ -2,6 +2,7 @@
 
 /// @file userver/utils/statistics/writer.hpp
 /// @brief @copybrief utils::statistics::Writer
+/// @ingroup userver_universal
 
 #include <atomic>
 #include <string_view>
@@ -72,12 +73,17 @@ concept HasWriterSupport = std::is_arithmetic_v<Metric> || requires(Writer& writ
 /// The DumpMetric function may look like:
 /// @snippet samples/tcp_full_duplex_service/main.cpp  TCP sample - Stats tag
 ///
-/// For information on metrics testing in testsuite refer to
-/// @ref TESTSUITE_METRICS_TESTING "Testsuite - Metrics".
+/// A writer and its children share mutable path and label state. Destroy a child before writing through its parent
+/// or creating a sibling. Use a nested block to delimit the child's lifetime when necessary. Writers are neither
+/// copyable nor movable; store a child in a local variable before passing it as `Writer&`.
 ///
-/// For metrics testing in unit-tests see utils::statistics::Snapshot.
+/// Emit each metric, identified by its path and labels, once per collection. Writing a metric again does not replace
+/// its previously exported value. Compute the final value before exporting it.
 ///
 /// For introduction to metrics see @ref scripts/docs/en/userver/metrics.md
+///
+/// For metrics testing in testsuite see @ref TESTSUITE_METRICS_TESTING "Testsuite - Metrics".
+/// For metrics testing in unit tests see @ref utils::statistics::Snapshot.
 class Writer final {
 public:
     /// Path parts delimiter. In other words, writer["a"]["b"] becomes "a.b"
@@ -91,10 +97,13 @@ public:
 
     ~Writer();
 
-    /// Returns a Writer with a ('.' + path) appended
+    /// Returns a child writer with `path` appended, separated by a dot. Dots in `path` are separators too:
+    /// `writer["a.b"]` and `writer["a"]["b"]` produce the same path. Output formats handle escaping; do not replace
+    /// dots with underscores manually. The path's contents are copied during the call.
+    /// See @ref utils::statistics::Writer for child lifetime restrictions.
     [[nodiscard]] Writer operator[](std::string_view path) &;
 
-    /// Returns a Writer with a ('.' + path) appended
+    /// @overload
     [[nodiscard]] Writer operator[](std::string_view path) &&;
 
     /// Write metric value to metrics builder via using DumpMetric
@@ -118,7 +127,9 @@ public:
         }
     }
 
-    /// Write metric value with labels to metrics builder
+    /// Writes a metric value with additional labels. Labels are inherited by all metrics exported by the value's
+    /// `DumpMetric`. Label strings are borrowed and must remain valid until this synchronous call returns, including
+    /// any nested exports.
     template <class T>
     void ValueWithLabels(const T& value, LabelsSpan labels) {
         auto new_writer = MakeChild();
@@ -126,13 +137,13 @@ public:
         new_writer = value;
     }
 
-    /// Write metric value with labels to metrics builder
+    /// @overload
     template <class T>
     void ValueWithLabels(const T& value, std::initializer_list<LabelView> il) {
         ValueWithLabels(value, LabelsSpan{il});
     }
 
-    /// Write metric value with label to metrics builder
+    /// @overload
     template <class T>
     void ValueWithLabels(const T& value, const LabelView& label) {
         ValueWithLabels(value, LabelsSpan{&label, &label + 1});

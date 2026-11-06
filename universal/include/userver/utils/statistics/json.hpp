@@ -2,6 +2,7 @@
 
 /// @file userver/utils/statistics/json.hpp
 /// @brief Statistics output in JSON format.
+/// @ingroup userver_universal
 
 #include <string>
 

@@ -99,7 +99,7 @@ and make sure that it builds and passes tests.
 * @ref scripts/docs/en/userver/testing.md
 * @ref scripts/docs/en/userver/functional_testing.md
     * @ref scripts/docs/en/userver/fixture_markers.md
-    * @ref scripts/docs/en/userver/metrics_migration.md
+    * @ref scripts/docs/en/userver/testsuite_metrics_testing.md
 * @ref scripts/docs/en/userver/chaos_testing.md
 * @ref scripts/docs/en/userver/profile_context_switches.md
 * @ref scripts/docs/en/userver/gdb_debugging.md
@@ -135,6 +135,7 @@ and make sure that it builds and passes tests.
 * @ref scripts/docs/en/userver/log_level_running_service.md
 * @ref scripts/docs/en/userver/requests_in_flight.md
 * @ref scripts/docs/en/userver/metrics.md
+    * @ref scripts/docs/en/userver/testsuite_metrics_testing.md
 * @ref scripts/docs/en/userver/service_monitor.md
 * @ref scripts/docs/en/userver/memory_profile_running_service.md
 * @ref scripts/docs/en/userver/dns_control.md

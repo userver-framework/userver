@@ -2,6 +2,7 @@
 
 /// @file userver/utils/statistics/fwd.hpp
 /// @brief Forward declarations for statistics entities
+/// @ingroup userver_universal
 
 #include <memory>
 

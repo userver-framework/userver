@@ -38,13 +38,13 @@ bool FloatEqualsInteger(double real, Integer integer) {
 }
 
 template <typename Lhs, typename Rhs>
-bool ValuesEqual(Lhs lhs, Rhs rhs) {
+bool ValuesEqualNumerically(Lhs lhs, Rhs rhs) {
     if constexpr (std::is_same_v<Lhs, Rhs>) {
         return lhs == rhs;
     } else if constexpr (std::is_same_v<Lhs, Rate>) {
-        return ValuesEqual(lhs.value, rhs);
+        return ValuesEqualNumerically(lhs.value, rhs);
     } else if constexpr (std::is_same_v<Rhs, Rate>) {
-        return ValuesEqual(lhs, rhs.value);
+        return ValuesEqualNumerically(lhs, rhs.value);
     } else if constexpr (std::is_integral_v<Lhs> && std::is_integral_v<Rhs>) {
         return std::cmp_equal(lhs, rhs);
     } else if constexpr (std::is_same_v<Lhs, double> && std::is_integral_v<Rhs>) {
@@ -60,7 +60,7 @@ bool ValuesEqual(Lhs lhs, Rhs rhs) {
 
 bool MetricValue::EqualsNumerically(const MetricValue& other) const noexcept {
     return Visit([&other](const auto lhs_value) {
-        return other.Visit([lhs_value](const auto rhs_value) { return ValuesEqual(lhs_value, rhs_value); });
+        return other.Visit([lhs_value](const auto rhs_value) { return ValuesEqualNumerically(lhs_value, rhs_value); });
     });
 }
 

@@ -418,86 +418,11 @@ An example on testsuite tasks could be found here:
 * C++ code: @ref samples/testsuite-support/src/tasks.cpp
 * Testcase: @ref samples/testsuite-support/tests/test_tasks.py
 
-@anchor TESTSUITE_METRICS_TESTING
-#### Metrics tesing in testsuite
+#### Metrics testing in testsuite
 
-Testsuite provides access to userver metrics written by @ref utils::statistics::Writer and
-@ref utils::statistics::MetricTag via
-@ref pytest_userver.plugins.service_client.monitor_client "monitor_client"
-, see @ref tutorial_metrics "tutorial on configuration".
-
-It allows you to:
-
-- retrieve specific service metric by path and (optionally) labels:
-  @ref pytest_userver.client.ClientMonitor.single_metric "await monitor_client.single_metric(path, labels)"
-- retrieve array of metrics by path prefix and (optionally) labels:
-  @ref pytest_userver.client.ClientMonitor.metrics "await monitor_client.metrics(path_prefix, labels)"
-- retrieve specific service metric by path and (optionally) labels or `None` if no such metric:
-  @ref pytest_userver.client.ClientMonitor.single_metric_optional "await monitor_client.single_metric_optional(path, labels)"
-- diff of metrics: @ref pytest_userver.client.ClientMonitor.metrics_diff "await monitor_client.metrics_diff()"
-- reset metrics (discouraged): @ref pytest_userver.client.Client.reset_metrics "await service_client.reset_metrics()"
-
-For migrating tests from the removed legacy metrics API, see
-@ref scripts/docs/en/userver/metrics_migration.md "Migrating tests from the removed legacy metrics API".
-
-Example usage:
-
-For a metric tag that is defined as:
-
-@snippet samples/testsuite-support/src/metrics.cpp metrics definition
-
-and used like:
-
-@snippet samples/testsuite-support/src/metrics.cpp metrics usage
-
-the metrics could be checked in the following way:
-
-@snippet samples/testsuite-support/tests/test_metrics.py  metrics diff
-
-For metrics with labels, they could be retrieved in the following way:
-
-@snippet samples/testsuite-support/tests/test_metrics.py metrics labels
-
-@note To avoid repeating a common path prefix and common labels in every subsequent call, pass
-`sliced=True` to @ref pytest_userver.client.ClientMonitor.metrics "monitor_client.metrics()".
-See @ref pytest_userver.client.ClientMonitor.metrics "metrics()" and
-@ref pytest_userver.metrics.MetricsSnapshot.sliced "MetricsSnapshot.sliced()" for details.
-
-The @ref pytest_userver.metrics.Metric "Metric" python type is hashable and
-comparable:
-
-@snippet testsuite/tests/metrics/test_metrics.py  values set
-
-A discouraged method for retrieving and resetting metrics is following:
-
-@snippet samples/testsuite-support/tests/test_metrics.py metrics reset
-
-* C++ code: @ref samples/testsuite-support/src/metrics.cpp
-* C++ header: @ref samples/testsuite-support/src/metrics.hpp
-* Testcase: @ref samples/testsuite-support/tests/test_metrics.py
-
-
-#### Metrics Portability Testing in Testsuite
-
-Different monitoring systems and time series databases have different
-limitations. To make sure that the metrics of your service could be used on
-most of the popular systems, there is special action in
-@ref server::handlers::TestsControl.
-
-To use it you could just write the following test:
-
-@code{.py}
-async def test_metrics_portability(service_client):
-    warnings = await service_client.metrics_portability()
-    assert not warnings
-@endcode
-
-Note that warnings are grouped by type, so you could check only for
-some particular warnings or skip some of them. For example:
-
-@snippet samples/production_service/tests/test_production.py metrics partial portability
-
-* Testcase: @ref samples/production_service/tests/test_production.py
+Use @ref pytest_userver.plugins.service_client.monitor_client "monitor_client" to assert on service metrics in
+functional tests. See @ref scripts/docs/en/userver/testsuite_metrics_testing.md for the API, examples, and portability
+checks. For unit tests, see @ref scripts/docs/en/userver/metrics.md.
 
 
 #### Service runner
@@ -538,18 +463,15 @@ For per-daemon fixtures see @ref pytest_userver.plugins.service.daemon_scoped_ma
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
-⇦ @ref scripts/docs/en/userver/testing.md | @ref scripts/docs/en/userver/metrics_migration.md ⇨
+⇦ @ref scripts/docs/en/userver/testing.md | @ref scripts/docs/en/userver/testsuite_metrics_testing.md ⇨
 @htmlonly </div> @endhtmlonly
 
 @example cmake/UserverTestsuite.cmake
 @example samples/testsuite-support/src/logcapture.cpp
-@example samples/testsuite-support/src/metrics.cpp
-@example samples/testsuite-support/src/metrics.hpp
 @example samples/testsuite-support/src/now.cpp
 @example samples/testsuite-support/src/tasks.cpp
 @example samples/testsuite-support/src/testpoint.cpp
 @example samples/testsuite-support/tests/test_logcapture.py
-@example samples/testsuite-support/tests/test_metrics.py
 @example samples/testsuite-support/tests/test_mocked_time.py
 @example samples/testsuite-support/tests/test_tasks.py
 @example samples/testsuite-support/tests/test_testpoint.py

@@ -2,6 +2,7 @@
 
 /// @file userver/utils/statistics/pretty_format.hpp
 /// @brief Statistics output in human-readable format.
+/// @ingroup userver_universal
 
 #include <string>
 
