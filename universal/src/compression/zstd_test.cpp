@@ -60,7 +60,47 @@ std::string CompressZerosStreamUnknownSize(std::size_t zero_bytes) {
     return compressed;
 }
 
+std::string MakeSkippableFrame() {
+    // RFC 8878, 3.1.2: little-endian magic 0x184D2A50, little-endian content size, content.
+    return std::string{"\x50\x2A\x4D\x18\x04\x00\x00\x00skip", 12};
+}
+
 }  // namespace
+
+TEST(Zstd, DecompressConcatenatedFrames) {
+    const std::string first = "abcde";
+    const std::string second = "XYZ";
+    const auto compressed = compression::zstd::Compress(first) + compression::zstd::Compress(second);
+
+    const auto decompressed = compression::zstd::Decompress(compressed, first.size() + second.size());
+
+    EXPECT_EQ(decompressed, first + second);
+    EXPECT_EQ(decompressed.c_str()[decompressed.size()], '\0');
+}
+
+TEST(Zstd, DecompressConcatenatedFramesTooBig) {
+    const std::string first = "abcde";
+    const std::string second = "XYZ";
+    const auto compressed = compression::zstd::Compress(first) + compression::zstd::Compress(second);
+
+    EXPECT_THROW(compression::zstd::Decompress(compressed, first.size()), compression::TooBigError);
+}
+
+TEST(Zstd, DecompressSkippableFrameFirst) {
+    const std::string original = "helloworld";
+    const auto compressed = MakeSkippableFrame() + compression::zstd::Compress(original);
+
+    EXPECT_EQ(compression::zstd::Decompress(compressed, original.size()), original);
+}
+
+TEST(Zstd, DecompressTruncatedFrame) {
+    const auto compressed = compression::zstd::Compress("helloworld");
+
+    EXPECT_THROW(
+        compression::zstd::Decompress(std::string_view{compressed}.substr(0, compressed.size() - 1), 10),
+        compression::ErrWithCode
+    );
+}
 
 TEST(Zstd, CompressEmpty) {
     const std::string original;
