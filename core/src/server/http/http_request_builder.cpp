@@ -98,6 +98,8 @@ HttpRequestBuilder& HttpRequestBuilder::SetFormDataArgs(
     return *this;
 }
 
+bool HttpRequestBuilder::ParseFormDataArgsFromBody() { return request_->ParseFormDataArgsFromBody(); }
+
 HttpRequestBuilder& HttpRequestBuilder::SetHttpHandler(const handlers::HttpHandlerBase& handler) {
     request_->SetHttpHandler(handler);
     return *this;

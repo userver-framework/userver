@@ -51,6 +51,8 @@ public:
         utils::impl::TransparentMap<std::string, std::vector<FormDataArg>, utils::StrCaseHash>&& form_data_args
     );
 
+    bool ParseFormDataArgsFromBody();
+
     HttpRequestBuilder& SetHttpHandler(const handlers::HttpHandlerBase& handler);
 
     HttpRequestBuilder& SetTaskProcessor(engine::TaskProcessor& task_processor);
