@@ -20,6 +20,9 @@ public:
     /// @note Requires HTTP Digest authentication. The credentials for security
     ///       scheme '{{ op.digest_scheme_name() }}' must be present in secdist
     ///       under http_digest.{{ spec.client_name }}.{{ op.digest_scheme_name() }}.
+    {% elif op.unsupported_security() %}
+    /// @note Security scheme '{{ op.unsupported_security().auth_type }}' ({{ op.unsupported_security().kind }})
+    ///       is not applied by the generated client, supply the credentials with a middleware.
     {% endif %}
     /// @throw {{ op.cpp_namespace() }}::Exception
     {% for response in op.responses if response.is_error() %}

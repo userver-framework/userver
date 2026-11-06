@@ -142,6 +142,8 @@ def render_config_yaml(spec: ServerSpec) -> str:
         entry: dict = {'path': op.path, 'method': op.method.upper()}
         if op.security:
             entry['auth'] = {'types': [op.security.auth_type]}
+            if op.security.scopes:
+                entry['auth']['scopes'] = op.security.scopes
         components[component_name(op)] = entry
     config = {
         'components_manager': {

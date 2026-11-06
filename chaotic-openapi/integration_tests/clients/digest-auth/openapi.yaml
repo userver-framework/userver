@@ -8,6 +8,13 @@ components:
         myDigestScheme:
             type: http
             scheme: digest
+        myBearerScheme:
+            type: http
+            scheme: bearer
+        myApiKeyScheme:
+            type: apiKey
+            name: X-Api-Key
+            in: header
 
 paths:
     /api/resource:
@@ -15,6 +22,22 @@ paths:
             operationId: GetResource
             security:
               - myDigestScheme: []
+            responses:
+                '200':
+                    description: OK
+    /api/bearer-resource:
+        get:
+            operationId: GetBearerResource
+            security:
+              - myBearerScheme: []
+            responses:
+                '200':
+                    description: OK
+    /api/api-key-resource:
+        get:
+            operationId: GetApiKeyResource
+            security:
+              - myApiKeyScheme: []
             responses:
                 '200':
                     description: OK

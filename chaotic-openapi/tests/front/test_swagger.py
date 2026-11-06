@@ -250,7 +250,7 @@ def test_swagger_securuty(simple_parser):
                         'security': [
                             {
                                 'api_key': [],
-                                'oauth_implicit': ['write'],
+                                'oauth_implicit': ['other'],
                                 'oauth_code': ['write'],
                             }
                         ],
@@ -312,6 +312,7 @@ def test_swagger_securuty(simple_parser):
                                 model.OAuthSecurity(
                                     name='oauth_implicit',
                                     description='',
+                                    scopes=['read'],
                                     flows=[
                                         model.ImplicitFlow(
                                             refreshUrl='',
@@ -323,6 +324,7 @@ def test_swagger_securuty(simple_parser):
                                 model.OAuthSecurity(
                                     name='oauth_code',
                                     description='',
+                                    scopes=['read'],
                                     flows=[
                                         model.AuthCodeFlow(
                                             refreshUrl='',
@@ -357,10 +359,11 @@ def test_swagger_securuty(simple_parser):
                                 model.OAuthSecurity(
                                     name='oauth_implicit',
                                     description='',
+                                    scopes=['other'],
                                     flows=[
                                         model.ImplicitFlow(
                                             refreshUrl='',
-                                            scopes={},
+                                            scopes={'other': '-'},
                                             authorizationUrl='https://example.com/api/oauth/dialog',
                                         ),
                                     ],
@@ -368,6 +371,7 @@ def test_swagger_securuty(simple_parser):
                                 model.OAuthSecurity(
                                     name='oauth_code',
                                     description='',
+                                    scopes=['write'],
                                     flows=[
                                         model.AuthCodeFlow(
                                             refreshUrl='',
@@ -402,6 +406,7 @@ def test_swagger_securuty(simple_parser):
                                 model.OAuthSecurity(
                                     name='oauth_implicit',
                                     description='',
+                                    scopes=['read'],
                                     flows=[
                                         model.ImplicitFlow(
                                             refreshUrl='',
@@ -413,6 +418,7 @@ def test_swagger_securuty(simple_parser):
                                 model.OAuthSecurity(
                                     name='oauth_code',
                                     description='',
+                                    scopes=['read', 'write'],
                                     flows=[
                                         model.AuthCodeFlow(
                                             refreshUrl='',
@@ -612,3 +618,20 @@ def test_swagger_file_in_body_wrong_consumes(simple_parser):
         exc_info.value.msg
         == '"consumes" must be either "multipart/form-data" or "application/x-www-form-urlencoded" for "type: file"'
     )
+
+
+def test_swagger_rejects_undeclared_oauth_scopes(simple_parser):
+    with pytest.raises(error.BaseError, match=r"requires undeclared scopes \['write'\]"):
+        simple_parser({
+            'swagger': '2.0',
+            'info': {},
+            'securityDefinitions': {
+                'oauth': {
+                    'type': 'oauth2',
+                    'flow': 'application',
+                    'tokenUrl': 'https://example.com/token',
+                    'scopes': {'read': '-'},
+                },
+            },
+            'paths': {'/': {'get': {'responses': {}, 'security': [{'oauth': ['write']}]}}},
+        })
