@@ -155,6 +155,44 @@ TEST(S3ApiSignatureV4, SignPresignedUrl) {
     EXPECT_EQ(params.at("X-Amz-Signature"), "aeeed9bbccd4d02ee5c0109b86d86835f995330da4c265957d157751f604d404");
 }
 
+TEST(S3ApiSignatureV4, SignPresignedUploadUrlSignsContentType) {
+    auto request = MakeRequest(clients::http::HttpMethod::kPut, "test.txt");
+    request.headers[USERVER_NAMESPACE::http::headers::kContentLength] = "21";
+    request.headers[USERVER_NAMESPACE::http::headers::kContentType] = "text/plain";
+
+    const auto params = MakeAuthenticator().Sign(request, kMockedNowEpoch + 86400);
+
+    EXPECT_EQ(params.at("X-Amz-SignedHeaders"), "content-type;host");
+    EXPECT_EQ(params.at("X-Amz-Signature"), "653d5b202899172830dfe331b817de16c682b8b1e366de1b251ae709a20e20f9");
+}
+
+TEST(S3ApiSignatureV4, SignPresignedUrlSignsAllRequestHeaders) {
+    auto request = MakeRequest(clients::http::HttpMethod::kPut, "test.txt");
+    request.headers[USERVER_NAMESPACE::http::headers::kContentType] = "image/png";
+    request.headers[USERVER_NAMESPACE::http::headers::kContentDisposition] = "attachment";
+    request.headers[std::string_view{"X-Amz-Storage-Class"}] = "REDUCED_REDUNDANCY";
+    request.headers[std::string_view{"x-amz-meta-author"}] = "  Jane   Doe ";
+
+    const auto params = MakeAuthenticator().Sign(request, kMockedNowEpoch + 86400);
+
+    EXPECT_EQ(
+        params.at("X-Amz-SignedHeaders"),
+        "content-disposition;content-type;host;x-amz-meta-author;x-amz-storage-class"
+    );
+    EXPECT_EQ(params.at("X-Amz-Signature"), "56428fdf94646cc87e3c8563b85cec6dc69dcedca025b84ed6c854540554713a");
+}
+
+TEST(S3ApiSignatureV4, SignPresignedUploadUrlWithoutContentType) {
+    auto request = MakeRequest(clients::http::HttpMethod::kPut, "test.txt");
+    request.headers[USERVER_NAMESPACE::http::headers::kContentLength] = "0";
+    request.headers[USERVER_NAMESPACE::http::headers::kContentType] = "";
+
+    const auto params = MakeAuthenticator().Sign(request, kMockedNowEpoch + 86400);
+
+    EXPECT_EQ(params.at("X-Amz-SignedHeaders"), "host");
+    EXPECT_EQ(params.at("X-Amz-Signature"), "f4db56459304dafaa603a99a23c6bea8821890259a65c18ff503a4a72a80efd9");
+}
+
 }  // namespace s3api::authenticators
 
 USERVER_NAMESPACE_END

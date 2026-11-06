@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <map>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -10,11 +11,13 @@
 #include <vector>
 
 #include <fmt/format.h>
+#include <boost/algorithm/string/case_conv.hpp>
 
 #include <userver/clients/http/request.hpp>
 #include <userver/crypto/aws.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/s3api/models/request.hpp>
+#include <userver/utils/str_icase.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -203,6 +206,33 @@ std::string GetHostHeaderValue(const Request& request) {
     return TrimAndCollapseSpaces(it->second);
 }
 
+struct CanonicalHeaders {
+    std::string headers;
+    std::string signed_headers;
+};
+
+CanonicalHeaders MakePresignedCanonicalHeaders(const Request& request) {
+    std::map<std::string, std::string> headers_to_sign;
+    for (const auto& [name, value] : request.headers) {
+        auto canonical_value = TrimAndCollapseSpaces(value);
+        if (canonical_value.empty() || utils::StrIcaseEqual{}(name, USERVER_NAMESPACE::http::headers::kContentLength)) {
+            continue;
+        }
+        headers_to_sign.emplace(boost::algorithm::to_lower_copy(name), std::move(canonical_value));
+    }
+
+    CanonicalHeaders result;
+    for (const auto& [name, value] : headers_to_sign) {
+        result.headers += fmt::format("{}:{}\n", name, value);
+        if (!result.signed_headers.empty()) {
+            result.signed_headers.push_back(';');
+        }
+        result.signed_headers += name;
+    }
+
+    return result;
+}
+
 }  // namespace
 
 std::unordered_map<std::string, std::string> SignatureV4::Auth(const Request& request) const {
@@ -241,6 +271,7 @@ std::unordered_map<std::string, std::string> SignatureV4::Sign(const Request& re
     const auto scope = crypto::aws::MakeV4TimeScope(region_, service_);
     const auto host = GetHostHeaderValue(request);
     const auto target = SplitRequestTarget(request.req);
+    const auto canonical_headers = MakePresignedCanonicalHeaders(request);
 
     const auto expires_in = std::max<std::time_t>(expires - scope.now, 1);
 
@@ -249,7 +280,7 @@ std::unordered_map<std::string, std::string> SignatureV4::Sign(const Request& re
         {"X-Amz-Credential", fmt::format("{}/{}", access_key_, scope.credential_scope)},
         {"X-Amz-Date", scope.amz_date},
         {"X-Amz-Expires", std::to_string(expires_in)},
-        {"X-Amz-SignedHeaders", "host"},
+        {"X-Amz-SignedHeaders", canonical_headers.signed_headers},
     };
 
     QueryParams query_params = ParseQuery(target.query);
@@ -259,8 +290,8 @@ std::unordered_map<std::string, std::string> SignatureV4::Sign(const Request& re
         ToStringView(request.method),
         MakeCanonicalUri(request, host, target.path),
         MakeCanonicalQueryString(std::move(query_params)),
-        fmt::format("host:{}\n", host),
-        "host",
+        canonical_headers.headers,
+        canonical_headers.signed_headers,
         crypto::aws::kUnsignedPayload
     );
 
