@@ -1,5 +1,6 @@
 #include <benchmark/benchmark.h>
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
