@@ -1,8 +1,10 @@
 #include <userver/clients/http/streamed_response.hpp>
 
 #include <algorithm>  // for std::min
+#include <utility>
 
 #include <clients/http/request_state.hpp>
+#include <userver/concurrent/queue.hpp>
 #include <userver/utils/algo.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -19,7 +21,7 @@ engine::Deadline ComputeBaseDeadline(RequestState& request_state) {
 
 StreamedResponse::StreamedResponse(
     engine::Future<void>&& headers_future,
-    Queue::Consumer&& queue_consumer,
+    concurrent::StringStreamQueueConsumer&& queue_consumer,
     std::shared_ptr<RequestState> request_state
 )
     : request_state_(std::move(request_state)),
@@ -27,6 +29,10 @@ StreamedResponse::StreamedResponse(
       headers_future_(std::move(headers_future)),
       queue_consumer_(std::move(queue_consumer))
 {}
+
+StreamedResponse::StreamedResponse(StreamedResponse&&) noexcept = default;
+StreamedResponse& StreamedResponse::operator=(StreamedResponse&&) noexcept = default;
+StreamedResponse::~StreamedResponse() = default;
 
 std::future_status StreamedResponse::WaitForHeaders(engine::Deadline deadline) {
     if (response_) {
@@ -79,7 +85,7 @@ const Response::CookiesMap& StreamedResponse::GetCookies() {
 bool StreamedResponse::ReadChunk(std::string& output, engine::Deadline deadline) {
     WaitForHeadersOrThrow(deadline_);
 
-    return queue_consumer_.Pop(output, deadline);
+    return queue_consumer_->Pop(output, deadline);
 }
 
 }  // namespace clients::http

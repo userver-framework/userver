@@ -3,12 +3,16 @@
 /// @file userver/clients/http/streamed_response.hpp
 /// @brief @copybrief clients::http::StreamedResponse
 
+#include <cstddef>
 #include <future>
+#include <memory>
+#include <string>
 
 #include <userver/clients/http/response.hpp>
-#include <userver/concurrent/queue.hpp>
+#include <userver/concurrent/queue_fwd.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/future.hpp>
+#include <userver/utils/fast_pimpl.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,11 +27,13 @@ class RequestState;
 /// to a remote Application.
 class StreamedResponse final {
 public:
-    StreamedResponse(StreamedResponse&&) = default;
+    StreamedResponse(StreamedResponse&&) noexcept;
     StreamedResponse(const StreamedResponse&) = delete;
 
-    StreamedResponse& operator=(StreamedResponse&&) = default;
+    StreamedResponse& operator=(StreamedResponse&&) noexcept;
     StreamedResponse& operator=(const StreamedResponse&) = delete;
+
+    ~StreamedResponse();
 
     /// @brief HTTP status code
     /// @note may suspend the coroutine if the code is not obtained yet.
@@ -56,7 +62,7 @@ public:
     /// @cond
     StreamedResponse(
         engine::Future<void>&& headers_future,
-        Queue::Consumer&& queue_consumer,
+        concurrent::StringStreamQueueConsumer&& queue_consumer,
         std::shared_ptr<clients::http::RequestState> request_state
     );
     /// @endcond
@@ -72,7 +78,11 @@ private:
     engine::Deadline deadline_;
 
     engine::Future<void> headers_future_;
-    Queue::Consumer queue_consumer_;
+
+    static constexpr std::size_t kQueueConsumerSize = 3 * sizeof(void*);
+    static constexpr std::size_t kQueueConsumerAlignment = alignof(void*);
+    utils::FastPimpl<concurrent::StringStreamQueueConsumer, kQueueConsumerSize, kQueueConsumerAlignment>
+        queue_consumer_;
 };
 
 }  // namespace clients::http
