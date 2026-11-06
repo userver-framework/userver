@@ -282,6 +282,19 @@ Use the `fmt` library for formatting instead of `std::format` and similar APIs.
 Build strings with `fmt::format` rather than chains of `operator+`, `std::to_string`,
 or `std::ostringstream`.
 
+## 15. Protect component-lifetime tasks from overload cancellation
+
+When a component starts a non-critical task with an `Async` variant, check
+whether the task is expected to keep running until the component is destroyed,
+for example in a loop that stops only during component shutdown. If task
+processor overload cancellation is enabled, the cancellation can make the task
+exit permanently and stop the work it performs.
+
+Report this risk when the task has no restart mechanism. Ask the author to use
+the corresponding `CriticalAsync` variant or override
+@ref USERVER_TASK_PROCESSOR_QOS for the relevant task processor so overload
+does not cancel the task.
+
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
