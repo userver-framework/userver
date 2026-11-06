@@ -1,4 +1,6 @@
 #include <exception>
+#include <memory>
+#include <string>
 #include <string_view>
 #include <vector>
 
@@ -6,10 +8,18 @@
 
 #include <userver/fs/blocking/temp_file.hpp>
 #include <userver/fs/blocking/write.hpp>
+#include <userver/http/common_headers.hpp>
 #include <userver/server/handlers/auth/digest/auth_checker_base.hpp>
 #include <userver/server/handlers/auth/digest/context.hpp>
 #include <userver/server/handlers/auth/digest/directives_parser.hpp>
 #include <userver/server/handlers/auth/digest/standalone_checker.hpp>
+#include <userver/server/handlers/exceptions.hpp>
+#include <userver/server/http/http_method.hpp>
+#include <userver/server/http/http_request.hpp>
+#include <userver/server/http/http_request_builder.hpp>
+#include <userver/server/http/http_response.hpp>
+#include <userver/server/http/http_status.hpp>
+#include <userver/server/request/request_context.hpp>
 #include <userver/storages/secdist/provider_component.hpp>
 #include <userver/utils/datetime.hpp>
 #include <userver/utils/mock_now.hpp>
@@ -30,6 +40,26 @@ constexpr std::size_t kWaySize = 25000;
 const auto kValidHA1 = HA1{"939e7578ed9e3c518a452acee763bce9"};
 const std::string kValidNonce = "dcd98b7102dd2f0e8b11d0f600bfb0c093";
 constexpr auto kNonceTTL = std::chrono::milliseconds{1000};
+
+constexpr std::string_view kUsername = "Mufasa";
+constexpr std::string_view kRequestTarget = "/dir/index.html";
+constexpr std::string_view kOtherRequestTarget = "/dir/other.html";
+
+// credentials of the example exchange of RFC 2617, 3.5 for `GET /dir/index.html`
+constexpr std::string_view kAuthorizationHeader =
+    "Digest username=\"Mufasa\", realm=\"testrealm@host.com\", "
+    "nonce=\"dcd98b7102dd2f0e8b11d0f600bfb0c093\", uri=\"/dir/index.html\", "
+    "qop=auth, nc=00000001, cnonce=\"0a4f113b\", "
+    "response=\"6629fae49393a05397450978507c4ef1\", "
+    "opaque=\"5ccc069c403ebaf9f0171e9517f40e41\"";
+
+std::shared_ptr<server::http::HttpRequest> MakeAuthorizedRequest(std::string_view request_target) {
+    return server::http::HttpRequestBuilder{}
+        .SetMethod(server::http::HttpMethod::kGet)
+        .SetUrl(std::string{request_target})
+        .AddHeader(std::string{USERVER_NAMESPACE::http::headers::kAuthorization}, std::string{kAuthorizationHeader})
+        .Build();
+}
 
 class StandAloneChecker final : public AuthStandaloneCheckerBase {
 public:
@@ -57,7 +87,8 @@ public:
 
         static constexpr std::string_view kSecdistJson = R"~(
     {
-        "server-secret-key": "some-private-key"
+        "server-secret-key": "some-private-key",
+        "http_server_digest_auth_secret": "some-private-key"
     }
     )~";
         fs::blocking::TempFile temp_file{fs::blocking::TempFile::Create()};
@@ -148,6 +179,25 @@ UTEST_F(StandAloneCheckerTest, NonceCountConvertingThrow) {
     client_context.nc = "not-a-hex-number";
     const UserData test_data{kValidHA1, kValidNonce, utils::datetime::Now(), 0};
     EXPECT_THROW(checker.ValidateUserData(client_context, test_data), std::runtime_error);
+}
+
+UTEST_F(StandAloneCheckerTest, CheckAuthUriDirectiveMatchesRequestTarget) {
+    checker.SetUserData(std::string{kUsername}, kValidNonce, 0, utils::datetime::Now());
+
+    const auto request = MakeAuthorizedRequest(kRequestTarget);
+    request::RequestContext context;
+
+    EXPECT_EQ(checker.CheckAuth(*request, context).status, AuthCheckResult::Status::kOk);
+}
+
+UTEST_F(StandAloneCheckerTest, CheckAuthUriDirectiveDiffersFromRequestTarget) {
+    checker.SetUserData(std::string{kUsername}, kValidNonce, 0, utils::datetime::Now());
+
+    const auto request = MakeAuthorizedRequest(kOtherRequestTarget);
+    request::RequestContext context;
+
+    UEXPECT_THROW((void)checker.CheckAuth(*request, context), handlers::ClientError);
+    EXPECT_EQ(request->GetHttpResponse().GetStatus(), server::http::HttpStatus::kBadRequest);
 }
 
 }  // namespace server::handlers::auth::digest::test
