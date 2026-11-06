@@ -97,6 +97,20 @@ async def test_deadline_expired(
     assert handler_metrics.value_at('cancelled-by-deadline') == 1
 
 
+@pytest.mark.parametrize(
+    'timeout_ms',
+    [
+        str(10 * 365 * 24 * 60 * 60 * 1000),
+        str(2**63),
+        str(2**64 - 1),
+    ],
+)
+async def test_too_large_timeout_ignored(call, timeout_ms):
+    response = await call(headers={**HEADERS, DP_TIMEOUT_MS: timeout_ms})
+    assert response.status == 200
+    assert DP_DEADLINE_EXPIRED not in response.headers
+
+
 @pytest.mark.config(USERVER_DEADLINE_PROPAGATION_ENABLED=False)
 async def test_deadline_propagation_disabled_dynamically(call):
     response = await call(htype='sleep', headers={DP_TIMEOUT_MS: '10'})
@@ -191,6 +205,13 @@ async def test_absolute_deadline_invalid_format(call):
         },
     )
     assert response.status == 200
+
+
+@pytest.mark.parametrize('deadline_us', [str(2**63 - 1), str(2**63), str(2**64 - 1)])
+async def test_absolute_deadline_out_of_range_ignored(call, deadline_us):
+    response = await call(headers={**HEADERS, DP_ABSOLUTE_DEADLINE: deadline_us})
+    assert response.status == 200
+    assert DP_DEADLINE_EXPIRED not in response.headers
 
 
 async def test_cancellable(service_client, testpoint):
