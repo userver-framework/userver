@@ -613,6 +613,7 @@ class Generator:
             json_schema=schema,
             nullable=schema.nullable,
             user_cpp_type=user_cpp_type,
+            default=schema.default,
             items=items,
             container=container,
             validators=cpp_types.CppArrayValidator(
