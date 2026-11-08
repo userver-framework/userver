@@ -14,6 +14,16 @@ that matter to users of userver: public API changes, performance when the PR is
 focused on it, or documentation when that is the focus. PR authors do not need
 to classify the change or produce the tool's internal JSON fields.
 
+In both changelog entries and migration guides, describe completed changes in
+the past tense, e.g. `Added`, `Improved`, `Removed`, or `Renamed`. This differs
+from PR titles, where the imperative is recommended: `add`, `improve`, `remove`,
+or `rename`.
+Keep migration instructions actionable, e.g. `Renamed ...; replace ... with ...`.
+In PR descriptions and integration commit messages, format the contents of each
+`Changelog entry:` and `Migration guide:` section as a Markdown bullet list,
+even when there is only one item. This list formatting applies to those sections,
+not to the release tool's internal JSON fields.
+
 - For breaking changes, describe ONLY the breaking change itself: WHAT changed.
   Any fix or migration recipe belongs in the separate migration guide, not in the
   changelog line.
