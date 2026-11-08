@@ -147,8 +147,9 @@ public:
     /// as an `std::string` if needed.
     std::string_view GetComponentName() const;
 
-    /// @brief Returns @ref utils::ResourceScopeStorage that can be used
-    /// (by a component or any other class) to register user resources.
+    /// @brief Returns the component's @ref utils::ResourceScopeStorage.
+    ///
+    /// See @ref resource_scopes_parameter "choosing scopes" before passing these scopes to another object.
     utils::ResourceScopeStorage& Scopes() const;
 
     /// @cond

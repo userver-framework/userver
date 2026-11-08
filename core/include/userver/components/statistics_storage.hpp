@@ -69,6 +69,9 @@ namespace utils::statistics {
 /// derived classes, has been constructed. The callback is unregistered before the component destructor starts.
 /// The callback may run concurrently with other code and must be thread-safe.
 ///
+/// Uses @ref components::ComponentContext::Scopes for the component automatically.
+/// See @ref resource_scopes_parameter "choosing scopes" for the lifetime rules.
+///
 /// @see utils::statistics::Storage::RegisterWriter
 void RegisterWriterScope(
     const components::ComponentContext&,

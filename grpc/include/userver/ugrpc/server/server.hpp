@@ -90,6 +90,7 @@ public:
     using SetupHook = utils::function_ref<void(grpc::ServerBuilder&)>;
 
     /// @brief Start building the server
+    /// @param scope_storage see @ref resource_scopes_parameter "where to obtain scopes for an object".
     explicit Server(
         utils::ResourceScopeStorage& scope_storage,
         ServerConfig&& config,

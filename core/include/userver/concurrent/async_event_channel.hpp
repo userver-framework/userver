@@ -160,6 +160,9 @@ public:
     /// @warning @a updater is not only invoked inline. It is stored and may run again after this call returns,
     /// when the scope is entered. Do not capture locals by reference: copy the pointers and values the updater
     /// needs (for example @c obj and @c func) and capture @c this explicitly.
+    ///
+    /// @param scopes storage that owns the subscription lifetime.
+    /// See @ref resource_scopes_parameter "where to obtain scopes".
     template <typename UpdaterFunc>
     void DoUpdateAndListenScoped(
         utils::ResourceScopeStorage& scopes,
@@ -197,6 +200,8 @@ public:
     }
 
     /// @overload
+    /// @param scopes storage that owns the subscription lifetime.
+    /// See @ref resource_scopes_parameter "where to obtain scopes".
     template <typename Class, typename UpdaterFunc>
     void DoUpdateAndListenScoped(
         utils::ResourceScopeStorage& scopes,

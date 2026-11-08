@@ -126,8 +126,8 @@ public:
     /// @note Callbacks occur in full accordance with
     /// `components::DynamicConfigClientUpdater` options.
     ///
-    /// @param scopes storage that owns the subscription lifetime. In a component constructor pass `context.Scopes()`
-    /// or @ref components::GetResourceScopes.
+    /// @param scopes storage that owns the subscription lifetime.
+    /// See @ref resource_scopes_parameter "where to obtain scopes".
     /// @param obj the subscriber, which is the owner of the listener method, and
     /// is also used as the unique identifier of the subscription
     /// @param name the name of the subscriber, for diagnostic purposes
@@ -187,8 +187,8 @@ public:
     /// Example usage:
     /// @snippet core/src/dynamic_config/config_test.cpp Custom subscription for dynamic config update
     ///
-    /// @param scopes storage that owns the subscription lifetime. In a component constructor pass `context.Scopes()`
-    /// or @ref components::GetResourceScopes.
+    /// @param scopes storage that owns the subscription lifetime.
+    /// See @ref resource_scopes_parameter "where to obtain scopes".
     /// @param obj the subscriber, which is the owner of the listener method, and
     /// is also used as the unique identifier of the subscription
     /// @param name the name of the subscriber, for diagnostic purposes
@@ -240,8 +240,8 @@ public:
     ///
     /// @warning To use this function, configs must have the `operator==`.
     ///
-    /// @param scopes storage that owns the subscription lifetime. In a component constructor pass `context.Scopes()`
-    /// or @ref components::GetResourceScopes.
+    /// @param scopes storage that owns the subscription lifetime.
+    /// See @ref resource_scopes_parameter "where to obtain scopes".
     /// @param obj the subscriber, which is the owner of the listener method, and
     /// is also used as the unique identifier of the subscription
     /// @param name the name of the subscriber, for diagnostic purposes
@@ -343,8 +343,8 @@ public:
     /// @warning In debug mode the last notification for any subscriber will be
     /// called with `std::nullopt` and current config snapshot.
     ///
-    /// @param scopes storage that owns the subscription lifetime. In a component constructor pass `context.Scopes()`
-    /// or @ref components::GetResourceScopes.
+    /// @param scopes storage that owns the subscription lifetime.
+    /// See @ref resource_scopes_parameter "where to obtain scopes".
     /// @param obj the subscriber, which is the owner of the listener method, and
     /// is also used as the unique identifier of the subscription
     /// @param name the name of the subscriber, for diagnostic purposes

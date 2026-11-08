@@ -65,8 +65,8 @@ public:
     ///
     /// In a component constructor prefer @ref RegisterWriterScope with @ref components::ComponentContext.
     ///
-    /// @param scopes storage that owns the writer lifetime. In a component constructor pass `context.Scopes()`
-    /// or @ref components::GetResourceScopes.
+    /// @param scopes storage that owns the writer lifetime.
+    /// See @ref resource_scopes_parameter "where to obtain scopes".
     /// @param common_prefix prefix for the metric, for example "my.metric_name"
     /// @param func function that writes metrics to @ref utils::statistics::Writer
     /// @param add_labels common labels for the metric, for example {"database", "dbname"}

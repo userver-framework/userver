@@ -68,34 +68,23 @@ using ScopePtr = std::unique_ptr<impl::ScopeBase>;
 
 }  // namespace impl
 
-/// @brief Defers subscription and callback registration until the object is fully constructed.
+/// @brief Runs resource setup after object construction and cleanup before object destruction.
 ///
-/// Components often register external subscriptions (statistics writers, config listeners,
-/// and similar) that capture `this` and run later on another thread. Registering them
-/// directly in the constructor is unsafe: the callback may fire before the constructor
-/// finishes and observe partially initialized fields. Unregistering in the destructor
-/// is equally unsafe if the callback can still run while members are already being
-/// destroyed.
+/// During construction, use @ref utils::ResourceScopeStorage::Register to queue setup functions. The component system
+/// or scope wrapper calls @ref utils::ResourceScopeStorage::AfterConstruction after all constructors, including derived
+/// constructors, finish. It calls @ref utils::ResourceScopeStorage::BeforeDestruction to destroy the returned RAII
+/// handles before the object's destructor starts.
 ///
-/// During construction, call @ref Register to queue a functor that performs the actual
-/// registration. The component system calls @ref AfterConstruction when the constructor
-/// (including derived classes) has completed, and @ref BeforeDestruction before the
-/// destructor body runs. That way registration callbacks see a fully built object, and
-/// unregistration runs before members used by the callback are torn down.
-///
-/// The same storage is available from @ref components::ComponentContext::Scopes in
-/// components, or as a standalone helper in unit tests and @ref WithResourceScopes.
-///
-/// @warning Do not store @ref ResourceScopeStorage as a field of the object that
-/// registers subscriptions on it. The storage would share that object's constructor
-/// and destructor, so @ref AfterConstruction cannot run after the object is complete
-/// and @ref BeforeDestruction cannot run before its members are destroyed. Wrap the
-/// object in @ref WithResourceScopes instead.
-/// Use @ref utils::MakeUniqueWithResourceScopes for unique ownership through a polymorphic interface.
+/// See @ref resource_scopes_parameter "choosing scopes" for ownership and wrapper selection, and
+/// @ref resource_scopes_register "using Register directly" for custom resources.
 ///
 /// @snippet core/src/components/resource_scopes_test.cpp ResourceScopeStorage - HappyPathOrder
 class ResourceScopeStorage final {
 public:
+    /// @brief Constructs an empty storage.
+    ///
+    /// Do not create @ref utils::ResourceScopeStorage manually, including in tests.
+    /// See @ref resource_scopes_parameter "choosing scopes" for how to obtain the storage.
     ResourceScopeStorage() = default;
 
     ResourceScopeStorage(ResourceScopeStorage&& other) noexcept = default;
@@ -118,6 +107,9 @@ public:
     /// @note if you don't have an existing RAII-ish class, but still want
     /// to do a cleanup, you might want to use @ref utils::FastScopeGuard
     /// to wrap the cleanup function.
+    ///
+    /// See @ref resource_scopes_parameter "where to obtain this storage" and
+    /// @ref resource_scopes_register "using Register directly" for custom resource lifetimes.
     template <std::invocable<> AfterConstructionCallback>
     void Register(AfterConstructionCallback after_construction)
     {

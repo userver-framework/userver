@@ -96,6 +96,7 @@ Now the tag could be used in component constructor to get a reference to the
 See also @ref scripts/docs/en/userver/tutorial/tcp_full.md for a complete example.
 
 
+@anchor metrics_register_writer
 **Method 2**: Register a writer callback
 
 In a component constructor, use @ref utils::statistics::RegisterWriterScope with the component context. The helper
@@ -108,39 +109,17 @@ so they can be written from `WriteStatistics` and tested independently of the co
 
 @snippet core/src/clients/dns/component.cpp RegisterWriterScope component sample
 
-In a helper class that is not a component, accept a @ref utils::ResourceScopeStorage reference as the first
-constructor argument and a @ref utils::statistics::Storage reference from the owner. Register the callback directly with
-@ref utils::statistics::Storage::RegisterWriter, passing the scopes as the first argument:
+If the metrics callback calls a method of the component itself, use `context.Scopes()`.
+@ref utils::statistics::RegisterWriterScope uses these scopes automatically. For callbacks on other objects, see
+@ref resource_scopes_parameter "where to obtain scopes".
 
-@snippet core/src/utils/statistics/storage_test.cpp  Writer basic sample
+To register directly with @ref utils::statistics::Storage, pass the chosen scopes as the first argument to
+@ref utils::statistics::Storage::RegisterWriter:
 
+@snippet core/src/utils/statistics/storage_test.cpp Writer basic sample
+
+The callback can run concurrently with other code, so access to shared data must be thread-safe.
 See also @ref utils::statistics::Writer for more details.
-
-
-#### Registration lifetime
-
-Register from the constructor. Registration follows the lifetime rules of @ref utils::ResourceScopeStorage.
-For callback requirements, see @ref utils::statistics::RegisterWriterScope and
-@ref utils::statistics::Storage::RegisterWriter.
-
-For helper objects, choose scopes according to when the helper is constructed and destroyed:
-
-- A helper created during component construction and owned by that component until its destruction can receive
-  `context.Scopes()` as its first constructor argument. One example is an `Impl` object holding the component's
-  implementation. Another is a @ref clients_from_components_lifetime "client" owned by the component and exposed to
-  other components by reference.
-- A helper created after component construction or destroyed before the component needs its own scopes. Use
-  @ref utils::WithResourceScopes, or @ref utils::MakeWithResourceScopes when shared ownership is needed. For example,
-  this applies to objects that a factory component creates while the service is running.
-
-Both wrappers pass a @ref utils::ResourceScopeStorage reference as the first constructor argument. They register the
-callback after the helper is fully constructed and unregister it before its destructor starts.
-
-Passing a factory component's scopes to the helpers it creates ties their registrations to the component's lifetime.
-If a helper is destroyed earlier, its callback remains registered and can access the destroyed helper.
-
-Do not store @ref utils::ResourceScopeStorage as a member of the helper itself: the helper's destructor has already
-started when its members are destroyed. Use the wrapper to unregister the callback before calling that destructor.
 
 
 ### Metric Types

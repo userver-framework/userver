@@ -83,6 +83,7 @@ and make sure that it builds and passes tests.
     * @ref userver_clients "Clients"
     * @ref userver_http_handlers "HTTP Handlers"
     * @ref userver_components "Other components"
+* @ref scripts/docs/en/userver/resource_scopes.md
 * @ref scripts/docs/en/userver/synchronization.md
 * @ref scripts/docs/en/userver/formats.md
 * @ref scripts/docs/en/userver/logging.md

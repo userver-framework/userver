@@ -26,6 +26,8 @@ std::string_view GetCurrentComponentName(const ComponentContext& context);
 
 /// @brief Equivalent to @ref components::ComponentContext::Scopes, but works with forward declaration of
 /// the @ref components::ComponentContext.
+///
+/// See @ref resource_scopes_parameter "choosing scopes" before passing these scopes to another object.
 utils::ResourceScopeStorage& GetResourceScopes(const ComponentContext& context);
 
 /// @brief Returns the `config["fs-task-processor"]` if it is set; otherwise returns the default blocking

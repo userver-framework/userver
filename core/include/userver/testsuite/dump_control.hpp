@@ -46,6 +46,9 @@ public:
     ///
     /// The dumper is registered after construction of the object that owns
     /// @a scopes and is unregistered just before that object is destroyed.
+    ///
+    /// @param scopes storage that owns the dumper registration lifetime.
+    /// See @ref resource_scopes_parameter "where to obtain scopes".
     void RegisterScope(utils::ResourceScopeStorage& scopes, Dumper& dumper);
 
 private:
