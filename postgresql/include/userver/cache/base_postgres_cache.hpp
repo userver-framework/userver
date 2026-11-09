@@ -7,6 +7,7 @@
 
 #include <chrono>
 #include <map>
+#include <memory>
 #include <string_view>
 #include <type_traits>
 #include <unordered_map>
@@ -29,6 +30,7 @@
 #include <userver/utils/assert.hpp>
 #include <userver/utils/cpu_relax.hpp>
 #include <userver/utils/meta.hpp>
+#include <userver/utils/shared_readable_ptr.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -214,6 +216,40 @@ void OnWritesDone(T& container) {
 }
 
 template <typename T>
+class CopyOnWriteData final {
+public:
+    explicit CopyOnWriteData(utils::SharedReadablePtr<T> current)
+        : current_data_(std::move(current))
+    {
+        if (!current_data_) {
+            new_data_ = std::make_unique<T>();
+        }
+    }
+
+    const T& GetLatestData() const { return new_data_ ? *new_data_ : *current_data_; }
+
+    bool NeedsCopy() const noexcept { return new_data_ == nullptr; }
+
+    T& GetOrCreateNewData(std::size_t cpu_relax_iterations, tracing::ScopeTime& scope) {
+        if (!new_data_) {
+            new_data_ = CopyContainer(*current_data_, cpu_relax_iterations, scope);
+        }
+        return *new_data_;
+    }
+
+    std::size_t GetCopiedSize() const noexcept { return current_data_ && new_data_ ? current_data_->size() : 0; }
+
+    std::unique_ptr<T> ReleaseNewData() && {
+        UASSERT(new_data_);
+        return std::move(new_data_);
+    }
+
+private:
+    utils::SharedReadablePtr<T> current_data_;
+    std::unique_ptr<T> new_data_;
+};
+
+template <typename T>
 concept HasCustomUpdated = requires(const DataCacheContainerType<T>& cache) { T::GetLastKnownUpdated(cache); };
 
 template <typename T>
@@ -366,7 +402,18 @@ public:
     static yaml_config::Schema GetStaticConfigSchema();
 
 private:
-    using CachedData = std::unique_ptr<DataType>;
+    using UpdateData = pg_cache::detail::CopyOnWriteData<DataType>;
+
+    struct QueryParams {
+        const storages::postgres::Query& query;
+        storages::postgres::CommandControl command_control;
+        UpdatedFieldType last_updated;
+    };
+
+    struct FirstChunk {
+        storages::postgres::ResultSet result;
+        bool is_complete;
+    };
 
     UpdatedFieldType GetLastUpdated(std::chrono::system_clock::time_point last_update, const DataType& cache) const;
 
@@ -379,10 +426,37 @@ private:
 
     bool MayReturnNull() const override;
 
-    CachedData GetDataSnapshot(cache::UpdateType type, tracing::ScopeTime& scope);
+    utils::SharedReadablePtr<DataType> GetDataSnapshot(cache::UpdateType type);
+    DataType& GetOrCreateNewData(UpdateData& data, tracing::ScopeTime& scope);
+    std::size_t UpdateFromCluster(
+        storages::postgres::Cluster& cluster,
+        const QueryParams& params,
+        UpdateData& data,
+        cache::UpdateStatisticsScope& stats_scope,
+        tracing::ScopeTime& scope
+    );
+    storages::postgres::ResultSet FetchAll(
+        storages::postgres::Cluster& cluster,
+        const QueryParams& params,
+        cache::UpdateStatisticsScope& stats_scope
+    );
+    FirstChunk FetchFirstChunk(storages::postgres::Cluster& cluster, const QueryParams& params);
+    std::size_t CacheAllChunks(
+        storages::postgres::Cluster& cluster,
+        const QueryParams& params,
+        UpdateData& data,
+        cache::UpdateStatisticsScope& stats_scope,
+        tracing::ScopeTime& scope
+    );
+    std::size_t CacheNonEmptyResults(
+        storages::postgres::ResultSet res,
+        UpdateData& data,
+        cache::UpdateStatisticsScope& stats_scope,
+        tracing::ScopeTime& scope
+    );
     void CacheResults(
         storages::postgres::ResultSet res,
-        CachedData& data_cache,
+        DataType& data_cache,
         cache::UpdateStatisticsScope& stats_scope,
         tracing::ScopeTime& scope
     );
@@ -551,67 +625,29 @@ void PostgreCache<PostgreCachePolicy>::Update(
     const std::chrono::milliseconds
         timeout = (type == cache::UpdateType::kFull) ? full_update_timeout_ : incremental_update_timeout_;
 
-    // COPY current cached data
-    auto scope = tracing::Span::CurrentSpan().CreateScopeTime(std::string{pg_cache::detail::kCopyStage});
-    auto data_cache = GetDataSnapshot(type, scope);
-    [[maybe_unused]] const auto old_size = data_cache->size();
+    auto scope = tracing::Span::CurrentSpan().CreateScopeTime(std::string{pg_cache::detail::kFetchStage});
 
-    scope.Reset(std::string{pg_cache::detail::kFetchStage});
+    UpdateData data{GetDataSnapshot(type)};
 
     size_t changes = 0;
-    // Iterate clusters
     for (auto& cluster : clusters_) {
-        if (chunk_size_ > 0) {
-            auto trx = cluster->Begin(
-                kClusterHostTypeFlags,
-                pg::Transaction::RO,
-                pg::CommandControl{timeout, pg_cache::detail::kStatementTimeoutOff}
-            );
-            auto portal = trx.MakePortal(query, GetLastUpdated(last_update, *data_cache));
-            while (portal) {
-                scope.Reset(std::string{pg_cache::detail::kFetchStage});
-                auto res = portal.Fetch(chunk_size_);
-                stats_scope.IncreaseDocumentsReadCount(res.Size());
-
-                scope.Reset(std::string{pg_cache::detail::kParseStage});
-                CacheResults(res, data_cache, stats_scope, scope);
-                changes += res.Size();
-                if (sleep_between_chunks_.count() > 0) {
-                    engine::InterruptibleSleepFor(sleep_between_chunks_);
-                }
-            }
-            trx.Commit();
-        } else {
-            const bool has_parameter = query.GetStatementView().find('$') != std::string::npos;
-            auto res =
-                has_parameter
-                    ? cluster->Execute(
-                          kClusterHostTypeFlags,
-                          pg::CommandControl{timeout, pg_cache::detail::kStatementTimeoutOff},
-                          query,
-                          GetLastUpdated(last_update, *data_cache)
-                      )
-                    : cluster->Execute(
-                          kClusterHostTypeFlags,
-                          pg::CommandControl{timeout, pg_cache::detail::kStatementTimeoutOff},
-                          query
-                      );
-            stats_scope.IncreaseDocumentsReadCount(res.Size());
-
-            scope.Reset(std::string{pg_cache::detail::kParseStage});
-            CacheResults(res, data_cache, stats_scope, scope);
-            changes += res.Size();
-        }
+        const QueryParams params{
+            .query = query,
+            .command_control = pg::CommandControl{timeout, pg_cache::detail::kStatementTimeoutOff},
+            .last_updated = GetLastUpdated(last_update, data.GetLatestData()),
+        };
+        changes += UpdateFromCluster(*cluster, params, data, stats_scope, scope);
     }
 
     scope.Reset();
 
     if constexpr (pg_cache::detail::kIsContainerCopiedByElement<DataType>) {
-        if (old_size > 0) {
+        if (const auto copied_size = data.GetCopiedSize(); copied_size > 0) {
             const auto elapsed_copy = scope.ElapsedTotal(std::string{pg_cache::detail::kCopyStage});
             if (elapsed_copy > pg_cache::detail::kCpuRelaxThreshold) {
-                cpu_relax_iterations_copy_ = static_cast<
-                    std::size_t>(static_cast<double>(old_size) / (elapsed_copy / pg_cache::detail::kCpuRelaxInterval));
+                cpu_relax_iterations_copy_ = static_cast<std::size_t>(
+                    static_cast<double>(copied_size) / (elapsed_copy / pg_cache::detail::kCpuRelaxInterval)
+                );
                 LOG_TRACE()
                     << "Elapsed time for copying " << kName << " " << elapsed_copy.count() << " for " << changes
                     << " data items is over threshold. Will relax CPU every " << cpu_relax_iterations_parse_
@@ -632,6 +668,7 @@ void PostgreCache<PostgreCachePolicy>::Update(
         }
     }
     if (changes > 0 || type == cache::UpdateType::kFull) {
+        auto data_cache = std::move(data).ReleaseNewData();
         // Set current cache
         pg_cache::detail::OnWritesDone(*data_cache);
         stats_scope.Finish(data_cache->size());
@@ -647,9 +684,104 @@ bool PostgreCache<PostgreCachePolicy>::MayReturnNull() const {
 }
 
 template <typename PostgreCachePolicy>
+std::size_t PostgreCache<PostgreCachePolicy>::UpdateFromCluster(
+    storages::postgres::Cluster& cluster,
+    const QueryParams& params,
+    UpdateData& data,
+    cache::UpdateStatisticsScope& stats_scope,
+    tracing::ScopeTime& scope
+) {
+    scope.Reset(std::string{pg_cache::detail::kFetchStage});
+    if (chunk_size_ == 0) {
+        auto res = FetchAll(cluster, params, stats_scope);
+        return CacheNonEmptyResults(std::move(res), data, stats_scope, scope);
+    }
+    if (data.NeedsCopy()) {
+        auto first_chunk = FetchFirstChunk(cluster, params);
+        if (first_chunk.is_complete) {
+            stats_scope.IncreaseDocumentsReadCount(first_chunk.result.Size());
+            return CacheNonEmptyResults(std::move(first_chunk.result), data, stats_scope, scope);
+        }
+        GetOrCreateNewData(data, scope);
+    }
+    return CacheAllChunks(cluster, params, data, stats_scope, scope);
+}
+
+template <typename PostgreCachePolicy>
+storages::postgres::ResultSet PostgreCache<PostgreCachePolicy>::FetchAll(
+    storages::postgres::Cluster& cluster,
+    const QueryParams& params,
+    cache::UpdateStatisticsScope& stats_scope
+) {
+    const bool has_parameter = params.query.GetStatementView().find('$') != std::string::npos;
+    auto res =
+        has_parameter
+            ? cluster.Execute(kClusterHostTypeFlags, params.command_control, params.query, params.last_updated)
+            : cluster.Execute(kClusterHostTypeFlags, params.command_control, params.query);
+    stats_scope.IncreaseDocumentsReadCount(res.Size());
+    return res;
+}
+
+template <typename PostgreCachePolicy>
+typename PostgreCache<PostgreCachePolicy>::FirstChunk PostgreCache<
+    PostgreCachePolicy>::FetchFirstChunk(storages::postgres::Cluster& cluster, const QueryParams& params) {
+    auto trx = cluster.Begin(kClusterHostTypeFlags, storages::postgres::Transaction::RO, params.command_control);
+    auto portal = trx.MakePortal(params.query, params.last_updated);
+    auto res = portal.Fetch(chunk_size_);
+    const bool is_complete = !portal;
+    trx.Commit();
+    return FirstChunk{
+        .result = std::move(res),
+        .is_complete = is_complete,
+    };
+}
+
+template <typename PostgreCachePolicy>
+std::size_t PostgreCache<PostgreCachePolicy>::CacheAllChunks(
+    storages::postgres::Cluster& cluster,
+    const QueryParams& params,
+    UpdateData& data,
+    cache::UpdateStatisticsScope& stats_scope,
+    tracing::ScopeTime& scope
+) {
+    scope.Reset(std::string{pg_cache::detail::kFetchStage});
+    auto trx = cluster.Begin(kClusterHostTypeFlags, storages::postgres::Transaction::RO, params.command_control);
+    auto portal = trx.MakePortal(params.query, params.last_updated);
+    std::size_t changes = 0;
+    while (portal) {
+        scope.Reset(std::string{pg_cache::detail::kFetchStage});
+        auto res = portal.Fetch(chunk_size_);
+        stats_scope.IncreaseDocumentsReadCount(res.Size());
+        changes += CacheNonEmptyResults(std::move(res), data, stats_scope, scope);
+        if (sleep_between_chunks_.count() > 0) {
+            engine::InterruptibleSleepFor(sleep_between_chunks_);
+        }
+    }
+    trx.Commit();
+    return changes;
+}
+
+template <typename PostgreCachePolicy>
+std::size_t PostgreCache<PostgreCachePolicy>::CacheNonEmptyResults(
+    storages::postgres::ResultSet res,
+    UpdateData& data,
+    cache::UpdateStatisticsScope& stats_scope,
+    tracing::ScopeTime& scope
+) {
+    if (res.IsEmpty()) {
+        return 0;
+    }
+    auto& data_cache = GetOrCreateNewData(data, scope);
+    scope.Reset(std::string{pg_cache::detail::kParseStage});
+    const auto size = res.Size();
+    CacheResults(std::move(res), data_cache, stats_scope, scope);
+    return size;
+}
+
+template <typename PostgreCachePolicy>
 void PostgreCache<PostgreCachePolicy>::CacheResults(
     storages::postgres::ResultSet res,
-    CachedData& data_cache,
+    DataType& data_cache,
     cache::UpdateStatisticsScope& stats_scope,
     tracing::ScopeTime& scope
 ) {
@@ -660,7 +792,7 @@ void PostgreCache<PostgreCachePolicy>::CacheResults(
         try {
             using pg_cache::detail::CacheInsertOrAssign;
             CacheInsertOrAssign(
-                *data_cache,
+                data_cache,
                 pg_cache::detail::ExtractValue<PostgreCachePolicy>(*p),
                 PostgreCachePolicy::kKeyMember
             );
@@ -674,15 +806,21 @@ void PostgreCache<PostgreCachePolicy>::CacheResults(
 }
 
 template <typename PostgreCachePolicy>
-typename PostgreCache<PostgreCachePolicy>::CachedData PostgreCache<
-    PostgreCachePolicy>::GetDataSnapshot(cache::UpdateType type, tracing::ScopeTime& scope) {
+utils::SharedReadablePtr<typename PostgreCache<PostgreCachePolicy>::DataType> PostgreCache<
+    PostgreCachePolicy>::GetDataSnapshot(cache::UpdateType type) {
     if (type == cache::UpdateType::kIncremental) {
-        auto data = this->Get();
-        if (data) {
-            return pg_cache::detail::CopyContainer(*data, cpu_relax_iterations_copy_, scope);
-        }
+        return this->Get();
     }
-    return std::make_unique<DataType>();
+    return nullptr;
+}
+
+template <typename PostgreCachePolicy>
+typename PostgreCache<PostgreCachePolicy>::DataType& PostgreCache<
+    PostgreCachePolicy>::GetOrCreateNewData(UpdateData& data, tracing::ScopeTime& scope) {
+    if (data.NeedsCopy()) {
+        scope.Reset(std::string{pg_cache::detail::kCopyStage});
+    }
+    return data.GetOrCreateNewData(cpu_relax_iterations_copy_, scope);
 }
 
 namespace impl {
