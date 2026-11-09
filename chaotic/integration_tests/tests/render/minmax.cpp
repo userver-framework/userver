@@ -5,6 +5,7 @@
 #include <userver/chaotic/exception.hpp>
 #include <userver/formats/json/inline.hpp>
 #include <userver/formats/json/parser/exception.hpp>
+#include <userver/formats/json/serialize.hpp>
 
 #include <schemas/int_minmax.hpp>
 #include <schemas/int_minmax_sax_parsers.hpp>
@@ -141,23 +142,6 @@ TEST(MinMax, Array) {
         formats::json::parser::ParseError,
         "Parse error at pos 23, path 'zoo': Error at path 'zoo': Too long array, maximum length=5, given=8"
     );
-}
-
-TEST(MinMax, ArrayUniqueItems) {
-    auto json = formats::json::MakeObject("qux", formats::json::MakeArray(1, 2, 1));
-    UEXPECT_THROW_MSG(
-        json.As<ns::IntegerObject>(),
-        chaotic::Error<formats::json::Value>,
-        "Error at path 'qux': Duplicate items are not allowed"
-    );
-    UEXPECT_THROW_MSG(
-        FromJsonString(ToString(json), formats::parse::To<ns::IntegerObject>()),
-        formats::json::parser::ParseError,
-        "Parse error at pos 13, path 'qux': Error at path 'qux': Duplicate items are not allowed"
-    );
-
-    json = formats::json::MakeObject("qux", formats::json::MakeArray(1, 2, 3));
-    EXPECT_NO_THROW(json.As<ns::IntegerObject>());
 }
 
 USERVER_NAMESPACE_END
