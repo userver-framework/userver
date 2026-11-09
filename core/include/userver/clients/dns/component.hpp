@@ -5,7 +5,6 @@
 
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/components/component_base.hpp>
-#include <userver/utils/statistics/entry.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

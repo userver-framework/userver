@@ -211,20 +211,22 @@ UTEST(StatisticsStorage, PrettyFormatWriterSample) {
 
 UTEST(StatisticsStorage, UnsubscribingCheckWriterData) {
     Storage storage;
-    int counter = 0;
-    const auto writer_func = [&counter](utils::statistics::Writer& writer) {
+    static int counter = 0;
+    // Reset the static counter so that --gtest_repeat works.
+    counter = 0;
+    const auto writer_func = [](utils::statistics::Writer& writer) {
         writer = 1;
         writer["a"] = 2;
         counter++;
     };
 
-    auto holder1 = storage.RegisterWriter("prefix1", writer_func);
+    auto holder1 = MakeSelfContainedMetricLambda(storage, "prefix1", {}, writer_func);
     {
-        auto holder2 = storage.RegisterWriter("prefix2", writer_func);
-        holder2.Unregister();
+        auto holder2 = MakeSelfContainedMetricLambda(storage, "prefix2", {}, writer_func);
+        holder2.reset();
     }
     {
-        auto holder3 = storage.RegisterWriter("prefix3", writer_func);
+        const auto holder3 = MakeSelfContainedMetricLambda(storage, "prefix3", {}, writer_func);
     }
 
     if constexpr (utils::statistics::impl::kCheckSubscriptionUB) {
@@ -232,6 +234,10 @@ UTEST(StatisticsStorage, UnsubscribingCheckWriterData) {
     } else {
         EXPECT_EQ(counter, 0);
     }
+
+    EXPECT_EQ(ToPrometheusFormatUntyped(storage), "prefix1{} 1\nprefix1_a{} 2\n");
+    holder1.reset();
+    EXPECT_TRUE(ToPrometheusFormatUntyped(storage).empty());
 }
 
 UTEST(MetricsWriter, Basic1) {

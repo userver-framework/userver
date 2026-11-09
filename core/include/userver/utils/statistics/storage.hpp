@@ -12,7 +12,7 @@
 #include <userver/engine/shared_mutex.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/resource_scopes_fwd.hpp>
-#include <userver/utils/statistics/entry.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -77,18 +77,11 @@ public:
         std::vector<Label> add_labels = {}
     );
 
-    /// @overload
-    /// @deprecated Use the overload that takes @ref utils::ResourceScopeStorage.
-    ///
-    /// Store the returned @ref Entry as a member and call `Unregister` explicitly.
-    Entry RegisterWriter(std::string common_prefix, WriterFunc func, std::vector<Label> add_labels = {});
-
-    void UnregisterExtender(impl::StorageIterator iterator, impl::UnregisteringKind kind) noexcept;
-
 private:
     friend void DumpMetric(Writer& writer, const Storage& storage);
 
-    Entry DoRegisterExtender(impl::MetricsSource&& source);
+    impl::StorageIterator DoRegisterWriter(impl::MetricsSource&& source);
+    void DoUnregisterWriter(impl::StorageIterator iterator) noexcept;
 
     std::atomic<bool> may_register_extenders_;
     impl::StorageData metrics_sources_;

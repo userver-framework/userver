@@ -7,7 +7,7 @@
 #include <userver/components/raw_component_base.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/utils/statistics/entry.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
