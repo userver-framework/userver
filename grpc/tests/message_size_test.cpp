@@ -24,6 +24,7 @@
 #include <userver/ugrpc/client/middlewares/base.hpp>
 #include <userver/ugrpc/server/generic_service_base.hpp>
 #include <userver/ugrpc/server/middlewares/base.hpp>
+#include <userver/ugrpc/server/server.hpp>
 #include <userver/ugrpc/tests/service_fixtures.hpp>
 
 #include <tests/client_middleware_base_gmock.hpp>
@@ -230,6 +231,8 @@ using ServerMessageSizeTestBase = tests::MiddlewaresFixture<
 
 class ServerMessageSizeTest : public ServerMessageSizeTestBase {
 protected:
+    ~ServerMessageSizeTest() override { GetServer().StopServing(); }
+
     ObservedServerSizes& ObserveSizes() {
         ON_CALL(Middleware(), PostRecvMessage)
             .WillByDefault([this](ugrpc::server::MiddlewareCallContext& context, google::protobuf::Message&) {
@@ -356,6 +359,7 @@ UTEST_F(ServerMessageSizeTest, UnaryRequestSizeIsKnownBeforeParsing) {
     const auto& observed = ObserveSizes();
 
     UEXPECT_NO_THROW(Client().SayHello(MakeRequest()));
+    WaitForCallFinish();
 
     EXPECT_THAT(observed.request_on_recv, ::testing::ElementsAre(MakeRequest().ByteSizeLong()));
 }
