@@ -1,7 +1,6 @@
 #include <userver/utest/utest.hpp>
 
 #include <atomic>
-#include <optional>
 #include <stdexcept>
 #include <utility>
 #include <vector>
@@ -335,19 +334,15 @@ public:
         concurrent::AsyncEventChannel<int>& channel,
         utils::SharedRef<std::vector<int>> updates,
         const std::atomic<int>& current,
-        std::optional<utils::function_ref<void()>> after_subscribe = std::nullopt
+        utils::function_ref<void()> after_subscribe
     )
         : current_(current),
           updates_(std::move(updates))
     {
-        const auto initial_value = current_.load();
         channel.DoUpdateAndListenScoped(scopes, this, "sub", &ScopedSubscriber::OnEvent, [this] {
             OnEvent(current_.load());
         });
-        EXPECT_THAT(*updates_, ::testing::ElementsAre(initial_value));
-        if (after_subscribe) {
-            after_subscribe.value()();
-        }
+        after_subscribe();
     }
 
 private:
@@ -361,7 +356,9 @@ UTEST(AsyncEventChannel, DoUpdateAndListenScopedCallsUpdaterOnceWithoutEvents) {
     concurrent::AsyncEventChannel<int> channel("channel");
     const auto updates = utils::MakeSharedRef<std::vector<int>>();
     const std::atomic<int> current{1};
-    auto subscriber = utils::MakeWithResourceScopes<ScopedSubscriber>(channel, updates, current);
+    auto subscriber = utils::MakeWithResourceScopes<ScopedSubscriber>(channel, updates, current, [&] {
+        EXPECT_THAT(*updates, ::testing::ElementsAre(1));
+    });
     EXPECT_THAT(*updates, ::testing::ElementsAre(1));
 
     channel.SendEvent(2);
@@ -376,14 +373,14 @@ UTEST(AsyncEventChannel, DoUpdateAndListenScopedReplaysUpdaterIfEventSkipped) {
     concurrent::AsyncEventChannel<int> channel("channel");
     const auto updates = utils::MakeSharedRef<std::vector<int>>();
     std::atomic<int> current{0};
-    const auto after_subscribe = [&] {
-        current = 5;
-        channel.SendEvent(5);
-        EXPECT_THAT(*updates, ::testing::ElementsAre(0));
-    };
     {
         const utils::WithResourceScopes<ScopedSubscriber>
-            subscriber{std::in_place, channel, updates, current, after_subscribe};
+            subscriber{std::in_place, channel, updates, current, [&] {
+                           EXPECT_THAT(*updates, ::testing::ElementsAre(0));
+                           current = 5;
+                           channel.SendEvent(5);
+                           EXPECT_THAT(*updates, ::testing::ElementsAre(0));
+                       }};
         EXPECT_THAT(*updates, ::testing::ElementsAre(0, 5));
 
         current = 7;
@@ -398,14 +395,19 @@ UTEST(AsyncEventChannel, DoUpdateAndListenScopedUnsubscribesIfConstructionFailed
     concurrent::AsyncEventChannel<int> channel("channel");
     const auto updates = utils::MakeSharedRef<std::vector<int>>();
     std::atomic<int> current{1};
-    const auto after_subscribe = [&] {
-        current = 2;
-        channel.SendEvent(2);
-        EXPECT_THAT(*updates, ::testing::ElementsAre(1));
-        throw std::runtime_error("subscriber construction failed");
-    };
-    EXPECT_THROW(
-        utils::MakeWithResourceScopes<ScopedSubscriber>(channel, updates, current, after_subscribe),
+    UEXPECT_THROW(
+        utils::MakeWithResourceScopes<ScopedSubscriber>(
+            channel,
+            updates,
+            current,
+            [&] {
+                EXPECT_THAT(*updates, ::testing::ElementsAre(1));
+                current = 2;
+                channel.SendEvent(2);
+                EXPECT_THAT(*updates, ::testing::ElementsAre(1));
+                throw std::runtime_error("subscriber construction failed");
+            }
+        ),
         std::runtime_error
     );
     channel.SendEvent(3);
