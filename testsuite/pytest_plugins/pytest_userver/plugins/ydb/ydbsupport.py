@@ -310,7 +310,7 @@ def _ydb_init(
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=len(_ydb_tables),
         ) as executer:
-            executer.map(drop_table, _ydb_tables)
+            list(executer.map(drop_table, _ydb_tables))
 
     for mark in request.node.iter_markers('ydb'):
         queries = ydb_mark_queries(**mark.kwargs)
