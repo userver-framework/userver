@@ -43,8 +43,8 @@ FORMATTING - DOXYGEN-STYLE FOR ALL CODE REFERENCES (applies to "changelog_line" 
 When these fields mention code entities, files, identifiers, or configuration values, you MUST format them using
 Doxygen syntax so the rendered changelog links to the relevant documentation. Apply the following rules strictly:
 - userver code entities (classes, functions, methods, namespaces, enumerations, macros, etc.): use the @ref command
- with the fully-qualified name, e.g. @ref userver::components::ComponentBase, @ref userver::server::Server,
- @ref userver::storages::postgres::Cluster, @ref userver::cache::LruCacheComponent.
+ with the qualified name within userver. Do not include the `userver::` namespace prefix. Examples:
+ @ref components::ComponentBase, @ref server::Server, @ref storages::postgres::Cluster, @ref cache::LruCacheComponent.
 - Files and directories: use @ref with the path, e.g. @ref userver/core/component.hpp, @ref userver/chaotic/io.hpp.
 - Arbitrary inline code fragments, identifiers, variables, parameters, and configuration values: wrap in backticks,
  e.g. `some_variable`, `config.yaml`, `max_concurrent_requests`, `ComponentSystem`.

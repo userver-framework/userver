@@ -61,7 +61,7 @@ Example output format:
   "commit_sha_1": {
     "classification": "feature",
     "to_changelog": true,
-    "changelog_line": "Added @ref userver::components::ComponentBase support for async LLM processing via the `LLMProcessor` class.",
+    "changelog_line": "Added @ref components::ComponentBase support for async LLM processing via the `LLMProcessor` class.",
     "detailed_commit_analysis": "Added a new LLMProcessor class to handle batching and async requests. This improves performance by allowing parallel processing of commits.",
     "component": "llm",
     "migration_guide": null
@@ -128,7 +128,7 @@ Example output format:
 {
   "commit_sha_1": {
     "group": "Fixes",
-    "changelog_line": "Fixed `chrono` milliseconds conversion in @ref userver::chaotic::Convert.",
+    "changelog_line": "Fixed `chrono` milliseconds conversion in @ref chaotic::Convert.",
     "component": "chaotic",
     "promote_to_feature": false
   },
@@ -140,7 +140,7 @@ Example output format:
   },
   "commit_sha_3": {
     "group": null,
-    "changelog_line": "Added a new ScyllaDB driver with full CQL support via @ref userver::storages::scylladb::Cluster.",
+    "changelog_line": "Added a new ScyllaDB driver with full CQL support via @ref storages::scylladb::Cluster.",
     "component": null,
     "promote_to_feature": true
   }
