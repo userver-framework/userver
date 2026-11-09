@@ -6,7 +6,6 @@
 #include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/enumerate.hpp>
-#include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/statistics/testing.hpp>
 
 #include <userver/ydb/coordination.hpp>
@@ -26,7 +25,13 @@ class TestClientsBase {
 public:
     std::string_view GetDatabasePath() const { return driver_->GetDbPath(); }
 
-    utils::statistics::Snapshot GetMetrics() const { return utils::statistics::Snapshot{statistics_storage_}; }
+    utils::statistics::Snapshot GetMetrics() const {
+        return utils::statistics::Snapshot{[this](utils::statistics::Writer& writer) {
+            auto ydb_writer = writer["ydb"];
+            ydb_writer = *driver_;
+            ydb_writer = *table_client_;
+        }};
+    }
 
     impl::Driver& GetDriver() { return *driver_; }
 
@@ -90,11 +95,6 @@ protected:
         federated_topic_client_ = std::make_shared<ydb::FederatedTopicClient>(driver_, ydb::impl::TopicSettings{});
 
         coordination_client_ = std::make_shared<ydb::CoordinationClient>(driver_);
-
-        statistics_holder_ = statistics_storage_.RegisterWriter("ydb", [this](utils::statistics::Writer& writer) {
-            writer = *driver_;
-            writer = *table_client_;
-        });
     }
 
 private:
@@ -105,8 +105,6 @@ private:
     std::shared_ptr<ydb::TopicClient> topic_client_;
     std::shared_ptr<ydb::FederatedTopicClient> federated_topic_client_;
     std::shared_ptr<ydb::CoordinationClient> coordination_client_;
-    utils::statistics::Storage statistics_storage_;
-    utils::statistics::Entry statistics_holder_;
 };
 
 // NOLINTNEXTLINE(fuchsia-multiple-inheritance)

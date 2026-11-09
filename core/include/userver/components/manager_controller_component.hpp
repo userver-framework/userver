@@ -7,7 +7,7 @@
 #include <userver/components/raw_component_base.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/utils/statistics/entry.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -43,6 +43,7 @@ class Manager;
 /// default_task_processor | name of the default task processor to use in components | main-task-processor
 /// fs_task_processor | name of the blocking task processor to use in components | fs-task-processor
 /// task_processors.*NAME*.*OPTIONS* | dictionary of task processors to create and their options. See description below | -
+/// default_task_processor_settings | task processor options used when individual options are absent; nested options are merged with individual values taking precedence | {}
 /// mlock_debug_info | whether to mlock(2) process debug info to prevent major page faults on unwinding | true
 /// disable_phdr_cache | whether to disable caching of phdr_info objects. Usable if rebuilding with cmake variable USERVER_DISABLE_PHDR_CACHE is off limits, and has the same effect | false
 /// static_config_validation.validate_all_components | whether to validate static config according to schema; should be `true` for all new services | true

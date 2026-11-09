@@ -8,6 +8,7 @@
 #include <userver/testsuite/dump_control.hpp>
 #include <userver/testsuite/grpc_control.hpp>
 #include <userver/testsuite/http_allowed_urls_extra.hpp>
+#include <userver/testsuite/mysql_control.hpp>
 #include <userver/testsuite/periodic_task_control.hpp>
 #include <userver/testsuite/postgres_control.hpp>
 #include <userver/testsuite/redis_control.hpp>
@@ -55,6 +56,7 @@ public:
     testsuite::TestpointControl& GetTestpointControl();
     const testsuite::PostgresControl& GetPostgresControl();
     const testsuite::RedisControl& GetRedisControl();
+    const testsuite::MysqlControl& GetMysqlControl();
     testsuite::TestsuiteTasks& GetTestsuiteTasks();
     testsuite::HttpAllowedUrlsExtra& GetHttpAllowedUrlsExtra();
     testsuite::GrpcControl& GetGrpcControl();
@@ -75,6 +77,7 @@ private:
     testsuite::TestpointControl testpoint_control_;
     testsuite::PostgresControl postgres_control_;
     testsuite::RedisControl redis_control_;
+    testsuite::MysqlControl mysql_control_;
     std::unique_ptr<testsuite::TestsuiteTasks> testsuite_tasks_;
     testsuite::HttpAllowedUrlsExtra http_allowed_urls_extra_;
     testsuite::GrpcControl grpc_control_;

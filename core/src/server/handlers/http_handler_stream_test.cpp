@@ -1,6 +1,9 @@
+#include <array>
 #include <atomic>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 
@@ -27,6 +30,7 @@
 #include <userver/server/handlers/exceptions.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
 #include <userver/server/http/http_response_body_stream.hpp>
+#include <userver/server/request/request_context.hpp>
 #include <userver/utest/http_client.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
@@ -38,6 +42,22 @@ namespace {
 constexpr auto kClientTimeout = utest::kMaxTestWaitTime;
 constexpr auto kHeadersWaitTimeout = std::chrono::seconds{2};
 constexpr auto kAbortCheckDelay = server::net::kDefaultAbortCheckDelay;
+constexpr std::string_view kInitialConfigNonStreamedMode = "initial-config-not-streamed";
+constexpr std::string_view kInitialConfigStreamedMode = "initial-config-streamed";
+
+enum class InitialConfigPoint : std::uint8_t {
+    kNonStreamingHandler,
+    kStreamingHandler,
+    kNonStreamingRequestLog,
+    kStreamingRequestLog,
+    kNonStreamingResponseLog,
+    kStreamingResponseLog,
+    kCount,
+};
+
+enum class InitialConfigState : std::uint8_t { kUnknown, kUnavailable, kAvailable };
+
+constexpr std::size_t ToIndex(InitialConfigPoint point) { return static_cast<std::size_t>(point); }
 
 std::string GetHeader(const clients::http::Response& response, std::string_view name) {
     if (!response.headers().contains(name)) {
@@ -78,19 +98,27 @@ public:
         if (mode == "throw-client-in-is-streamed") {
             throw server::handlers::ClientError(server::handlers::ExternalBody{"is-streamed-client"});
         }
-        return mode != "not-streamed";
+        return mode != "not-streamed" && mode != kInitialConfigNonStreamedMode;
     }
 
-    std::string HandleRequestThrow(const server::http::HttpRequest&, server::request::RequestContext&) const override {
+    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext& context)
+        const override {
+        if (request.GetArg("mode") == kInitialConfigNonStreamedMode) {
+            CaptureInitialConfig(InitialConfigPoint::kNonStreamingHandler, context);
+        }
         return "buffered-body";
     }
 
     void HandleStreamRequest(
         server::http::HttpRequest& request,
-        server::request::RequestContext&,
+        server::request::RequestContext& context,
         server::http::ResponseBodyStream& stream
     ) const override {
         const auto& mode = request.GetArg("mode");
+
+        if (mode == kInitialConfigStreamedMode) {
+            CaptureInitialConfig(InitialConfigPoint::kStreamingHandler, context);
+        }
 
         if (mode == "abort-check-delay") {
             engine::InterruptibleSleepFor(kAbortCheckDelay * 2);
@@ -165,12 +193,53 @@ public:
         stream.PushBodyChunk(std::string{"-world"}, engine::Deadline{});
     }
 
+    std::string GetRequestBodyForLogging(
+        const server::http::HttpRequest& request,
+        server::request::RequestContext& context,
+        const std::string& request_body
+    ) const override {
+        const auto& mode = request.GetArg("mode");
+        if (mode == kInitialConfigNonStreamedMode) {
+            CaptureInitialConfig(InitialConfigPoint::kNonStreamingRequestLog, context);
+        } else if (mode == kInitialConfigStreamedMode) {
+            CaptureInitialConfig(InitialConfigPoint::kStreamingRequestLog, context);
+        }
+        return request_body;
+    }
+
+    std::string GetResponseDataForLogging(
+        const server::http::HttpRequest& request,
+        server::request::RequestContext& context,
+        const std::string& response_data
+    ) const override {
+        const auto& mode = request.GetArg("mode");
+        if (mode == kInitialConfigNonStreamedMode) {
+            CaptureInitialConfig(InitialConfigPoint::kNonStreamingResponseLog, context);
+        } else if (mode == kInitialConfigStreamedMode) {
+            CaptureInitialConfig(InitialConfigPoint::kStreamingResponseLog, context);
+        }
+        return response_data;
+    }
+
     engine::SingleConsumerEvent& ReadyEvent() const { return ready_event_; }
     engine::SingleConsumerEvent& ContinueEvent() const { return continue_event_; }
     bool IsHolding() const { return holding_; }
     int IsStreamedCalls() const { return is_streamed_calls_.load(); }
 
+    InitialConfigState GetInitialConfigState(InitialConfigPoint point) const {
+        return initial_config_states_[ToIndex(point)].load();
+    }
+
 private:
+    void CaptureInitialConfig(InitialConfigPoint point, const server::request::RequestContext& context) const {
+        try {
+            static_cast<void>(context.GetInitialDynamicConfig());
+            initial_config_states_[ToIndex(point)].store(InitialConfigState::kAvailable);
+        } catch (const std::logic_error&) {
+            initial_config_states_[ToIndex(point)].store(InitialConfigState::kUnavailable);
+        }
+    }
+
     bool WaitForTester() const {
         ready_event_.Send();
         return continue_event_.WaitForEventFor(utest::kMaxTestWaitTime);
@@ -180,6 +249,7 @@ private:
     mutable engine::SingleConsumerEvent continue_event_;
     mutable std::atomic<bool> holding_{false};
     mutable std::atomic<int> is_streamed_calls_{0};
+    mutable std::array<std::atomic<InitialConfigState>, ToIndex(InitialConfigPoint::kCount)> initial_config_states_{};
 };
 
 class HttpStreamTester final : public components::ComponentBase {
@@ -236,6 +306,7 @@ private:
 
         TestOk();
         TestNotStreamed();
+        TestInitialDynamicConfigLifetime();
         TestSetBody();
         TestHeadersOnly();
         TestNoContent();
@@ -264,6 +335,27 @@ private:
         const auto response = Get("not-streamed");
         EXPECT_EQ(response->status_code(), clients::http::Status::kOk);
         EXPECT_EQ(response->body(), "buffered-body");
+    }
+
+    void TestInitialDynamicConfigLifetime() {
+        using Point = InitialConfigPoint;
+        using State = InitialConfigState;
+
+        const auto non_streaming_response = Get(kInitialConfigNonStreamedMode);
+        EXPECT_EQ(non_streaming_response->status_code(), clients::http::Status::kOk);
+        EXPECT_EQ(non_streaming_response->body(), "buffered-body");
+
+        EXPECT_EQ(handler_.GetInitialConfigState(Point::kNonStreamingHandler), State::kAvailable);
+        EXPECT_EQ(handler_.GetInitialConfigState(Point::kNonStreamingRequestLog), State::kAvailable);
+        EXPECT_EQ(handler_.GetInitialConfigState(Point::kNonStreamingResponseLog), State::kAvailable);
+
+        const auto streaming_response = Get(kInitialConfigStreamedMode);
+        EXPECT_EQ(streaming_response->status_code(), clients::http::Status::kOk);
+        EXPECT_EQ(streaming_response->body(), "hello-world");
+
+        EXPECT_EQ(handler_.GetInitialConfigState(Point::kStreamingRequestLog), State::kAvailable);
+        EXPECT_EQ(handler_.GetInitialConfigState(Point::kStreamingHandler), State::kUnavailable);
+        EXPECT_EQ(handler_.GetInitialConfigState(Point::kStreamingResponseLog), State::kUnavailable);
     }
 
     void TestSetBody() {
@@ -422,6 +514,12 @@ components_manager:
       path: /stream
       method: GET
       task_processor: main-task-processor
+      request_body_size_log_limit: 1024
+      response_data_size_log_limit: 1024
+    dynamic-config:
+      updates-enabled: false
+      defaults:
+        USERVER_LOG_REQUEST: true
     http-stream-tester:
       port: {1}
 )",

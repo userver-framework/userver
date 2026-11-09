@@ -1,6 +1,8 @@
 #pragma once
 
+#include <cstddef>
 #include <optional>
+#include <string_view>
 
 #include <google/protobuf/message.h>
 #include <grpcpp/support/async_unary_call.h>
@@ -23,8 +25,10 @@
 #include <userver/ugrpc/client/impl/deadline_propagation_detect.hpp>
 #include <userver/ugrpc/client/impl/middleware_hooks.hpp>
 #include <userver/ugrpc/client/impl/retry_backoff.hpp>
+#include <userver/ugrpc/client/impl/tracing.hpp>
 #include <userver/ugrpc/impl/async_method_invocation.hpp>
 #include <userver/ugrpc/impl/message_serialization.hpp>
+#include <userver/ugrpc/impl/statistics_scope.hpp>
 #include <userver/ugrpc/impl/status_utils.hpp>
 #include <userver/ugrpc/status_codes.hpp>
 #include <userver/ugrpc/time_utils.hpp>
@@ -49,22 +53,12 @@ void AccountStatistics(ugrpc::impl::RpcStatisticsScope& stats, CompletionStatus 
 
 void SetStatusForSpan(tracing::Span& span, CompletionStatus completion_status) noexcept;
 
+[[noreturn]] void ThrowSerializationError(std::string_view call_name, std::string_view reason);
+
 [[noreturn]] void ThrowSpecialCaseCompletionError(
     std::string_view call_name,
     SpecialCaseCompletionType special_case_completion_type
 );
-
-template <typename Response>
-bool ParseResponse(grpc::ByteBuffer&& response_bytes, Response& response) {
-    // Trailers-only OK responses have no message; valid empty buffers still need deserialization.
-    if (!response_bytes.Valid()) {
-        response = Response{};
-        return true;
-    }
-
-    const auto deserialize_status = ugrpc::impl::DeserializeMessage(std::move(response_bytes), response);
-    return deserialize_status.ok();
-}
 
 template <typename Request, typename Response>
 class UnaryCall final {
@@ -115,8 +109,10 @@ private:
 
         auto serialize_status = ugrpc::impl::SerializeMessage(request_, request_bytes_);
         if (!serialize_status.ok()) {
-            return serialize_status;
+            HandleAndThrowSerializationError(serialize_status.error_message());
         }
+        UASSERT(request_bytes_.Valid());
+        state_.SetRequestSizeBytes(request_bytes_.Length());
 
         const auto inherited_deadline = USERVER_NAMESPACE::server::request::GetTaskInheritedDeadline();
         const auto deadline = std::min(call_options_.GetDeadline(), inherited_deadline);
@@ -158,6 +154,7 @@ private:
                 return completion_status;
             }
 
+            state_.SetResponseSizeBytes(std::nullopt);
             scope_time.Reset();
 
             engine::InterruptibleSleepFor(delay);
@@ -171,10 +168,10 @@ private:
         // The last attempt completion is awaited in the destructor.
         finish_invocation_.emplace();
 
-        call_ = StartCall();
-
         response_bytes_.Clear();
-        call_->Finish(&response_bytes_, &status_, finish_invocation_->GetCompletionTag());
+
+        auto call = StartCall();
+        call->Finish(&response_bytes_, &status_, finish_invocation_->GetCompletionTag());
 
         const auto wait_status = finish_invocation_->Wait();
 
@@ -197,8 +194,17 @@ private:
                     ugrpc::impl::ClampStatusCodeToValidRange(status_);
                     return std::move(status_);
                 }
-                if (!ParseResponse(std::move(response_bytes_), response_)) {
-                    return utils::unexpected{SpecialCaseCompletionType::kNetworkError};
+                if (response_bytes_.Valid()) {
+                    state_.SetResponseSizeBytes(response_bytes_.Length());
+                    const auto
+                        deserialize_status = ugrpc::impl::DeserializeMessage(std::move(response_bytes_), response_);
+                    if (!deserialize_status.ok()) {
+                        return utils::unexpected{SpecialCaseCompletionType::kNetworkError};
+                    }
+                } else {
+                    // Trailers-only OK responses have no message.
+                    state_.SetResponseSizeBytes(0);
+                    response_ = Response{};
                 }
                 return std::move(status_);
 
@@ -257,6 +263,13 @@ private:
         );
     }
 
+    [[noreturn]] void HandleAndThrowSerializationError(std::string_view reason) {
+        // Serialization failures are counted as `abandoned-error`
+        state_.GetStatsScope().Flush();
+        impl::SetErrorForSpan(state_.GetSpan(), reason);
+        impl::ThrowSerializationError(state_.GetCallName(), reason);
+    }
+
     CompletionStatus HandleTaskCancellation() {
         UASSERT(engine::current_task::ShouldCancel());
 
@@ -291,11 +304,10 @@ private:
     const Request& request_;
     grpc::ByteBuffer request_bytes_;
 
-    std::unique_ptr<grpc::ClientAsyncResponseReader<grpc::ByteBuffer>> call_;
     grpc::ByteBuffer response_bytes_;
     Response response_;
     grpc::Status status_;
-    // Must go after `call_`, `response_bytes_`, `response_` and `status_` to await `Finish` completion before
+    // Must go after `response_bytes_`, `response_` and `status_` to await `Finish` completion before
     // destroying vars it needs.
     std::optional<ugrpc::impl::AsyncMethodInvocation> finish_invocation_;
 

@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <memory>
 #include <optional>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -67,33 +68,23 @@ using ScopePtr = std::unique_ptr<impl::ScopeBase>;
 
 }  // namespace impl
 
-/// @brief Defers subscription and callback registration until the object is fully constructed.
+/// @brief Runs resource setup after object construction and cleanup before object destruction.
 ///
-/// Components often register external subscriptions (statistics writers, config listeners,
-/// and similar) that capture `this` and run later on another thread. Registering them
-/// directly in the constructor is unsafe: the callback may fire before the constructor
-/// finishes and observe partially initialized fields. Unregistering in the destructor
-/// is equally unsafe if the callback can still run while members are already being
-/// destroyed.
+/// During construction, use @ref utils::ResourceScopeStorage::Register to queue setup functions. The component system
+/// or scope wrapper calls @ref utils::ResourceScopeStorage::AfterConstruction after all constructors, including derived
+/// constructors, finish. It calls @ref utils::ResourceScopeStorage::BeforeDestruction to destroy the returned RAII
+/// handles before the object's destructor starts.
 ///
-/// During construction, call @ref Register to queue a functor that performs the actual
-/// registration. The component system calls @ref AfterConstruction when the constructor
-/// (including derived classes) has completed, and @ref BeforeDestruction before the
-/// destructor body runs. That way registration callbacks see a fully built object, and
-/// unregistration runs before members used by the callback are torn down.
-///
-/// The same storage is available from @ref components::ComponentContext::Scopes in
-/// components, or as a standalone helper in unit tests and @ref WithResourceScopes.
-///
-/// @warning Do not store @ref ResourceScopeStorage as a field of the object that
-/// registers subscriptions on it. The storage would share that object's constructor
-/// and destructor, so @ref AfterConstruction cannot run after the object is complete
-/// and @ref BeforeDestruction cannot run before its members are destroyed. Wrap the
-/// object in @ref WithResourceScopes instead.
+/// See @ref resource_scopes_parameter "choosing scopes" for ownership and wrapper selection, and
+/// @ref resource_scopes_register "using Register directly" for custom resources.
 ///
 /// @snippet core/src/components/resource_scopes_test.cpp ResourceScopeStorage - HappyPathOrder
 class ResourceScopeStorage final {
 public:
+    /// @brief Constructs an empty storage.
+    ///
+    /// Do not create @ref utils::ResourceScopeStorage manually, including in tests.
+    /// See @ref resource_scopes_parameter "choosing scopes" for how to obtain the storage.
     ResourceScopeStorage() = default;
 
     ResourceScopeStorage(ResourceScopeStorage&& other) noexcept = default;
@@ -116,6 +107,9 @@ public:
     /// @note if you don't have an existing RAII-ish class, but still want
     /// to do a cleanup, you might want to use @ref utils::FastScopeGuard
     /// to wrap the cleanup function.
+    ///
+    /// See @ref resource_scopes_parameter "where to obtain this storage" and
+    /// @ref resource_scopes_register "using Register directly" for custom resource lifetimes.
     template <std::invocable<> AfterConstructionCallback>
     void Register(AfterConstructionCallback after_construction)
     {
@@ -222,6 +216,61 @@ std::shared_ptr<Wrapped> MakeWithResourceScopes(Args&&... args) {
     auto holder = std::make_shared<WithResourceScopes<Wrapped>>(std::in_place, std::forward<Args>(args)...);
     auto* const wrapped = std::addressof(**holder);
     return std::shared_ptr<Wrapped>(std::move(holder), wrapped);
+}
+
+namespace impl {
+
+struct ResourceScopeStorageHolder {
+    ResourceScopeStorage scopes;
+};
+
+template <typename Wrapped>
+class UniqueWithResourceScopes final : private ResourceScopeStorageHolder, public Wrapped {
+public:
+    template <typename... Args>
+    explicit UniqueWithResourceScopes(Args&&... args)
+        : Wrapped(ResourceScopeStorageHolder::scopes, std::forward<Args>(args)...)
+    {
+        ResourceScopeStorageHolder::scopes.AfterConstruction();
+    }
+
+    UniqueWithResourceScopes(UniqueWithResourceScopes&&) = delete;
+    UniqueWithResourceScopes& operator=(UniqueWithResourceScopes&&) = delete;
+
+    ~UniqueWithResourceScopes() override { ResourceScopeStorageHolder::scopes.BeforeDestruction(); }
+};
+
+}  // namespace impl
+
+/// @brief Constructs an object with resource scopes and returns an owning `std::unique_ptr` to it.
+///
+/// The constructor of `Wrapped` receives @ref utils::ResourceScopeStorage as its first argument,
+/// followed by the forwarded arguments. `Wrapped` must not be `final` and must have a public virtual destructor:
+/// an internal derived wrapper closes the scopes before the destructor of `Wrapped` runs, including when
+/// deleted through a pointer to a base class of `Wrapped`.
+///
+/// Scopes open after the constructor of `Wrapped` completes. If that constructor throws, queued scopes are not
+/// opened. If opening a scope throws, already opened scopes close before `Wrapped` is destroyed.
+/// Use @ref utils::WithResourceScopes or @ref utils::MakeWithResourceScopes for final types.
+///
+/// @snippet core/src/components/resource_scopes_test.cpp MakeUniqueWithResourceScopesSnippet
+template <typename Wrapped, typename... Args>
+std::unique_ptr<Wrapped> MakeUniqueWithResourceScopes(Args&&... args) {
+    static_assert(
+        !std::is_final_v<Wrapped>,
+        "utils::MakeUniqueWithResourceScopes<T> requires a non-final T; use utils::WithResourceScopes or "
+        "utils::MakeWithResourceScopes for final types"
+    );
+    static_assert(
+        std::has_virtual_destructor_v<Wrapped>,
+        "utils::MakeUniqueWithResourceScopes<T> requires T to have a virtual destructor for deletion through "
+        "std::unique_ptr<T>"
+    );
+    if constexpr (!std::is_final_v<Wrapped> && std::has_virtual_destructor_v<Wrapped>) {
+        return std::make_unique<impl::UniqueWithResourceScopes<Wrapped>>(std::forward<Args>(args)...);
+    } else {
+        return nullptr;
+    }
 }
 
 ResourceScopeStorage&

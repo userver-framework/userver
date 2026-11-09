@@ -132,9 +132,13 @@ void ListenerImpl::ProcessConnection(engine::io::Socket peer_socket, const PortC
     auto remote_address = peer_socket.Getpeername();
     if (port_config.tls) {
         UASSERT(port_config.ssl_ctx.has_value());
-        socket = std::make_unique<engine::io::TlsWrapper>(
-            engine::io::TlsWrapper::StartTlsServer(std::move(peer_socket), port_config.ssl_ctx.value(), {})
-        );
+        const auto handshake_deadline =
+            engine::Deadline::FromDuration(endpoint_info_->listener_config.connection_config.keepalive_timeout);
+        socket = std::make_unique<engine::io::TlsWrapper>(engine::io::TlsWrapper::StartTlsServer(
+            std::move(peer_socket),
+            port_config.ssl_ctx.value(),
+            handshake_deadline
+        ));
     } else {
         socket = std::make_unique<engine::io::Socket>(std::move(peer_socket));
     }

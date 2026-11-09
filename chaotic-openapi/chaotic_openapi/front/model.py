@@ -154,6 +154,7 @@ class Operation:
     x_client_codegen: bool
     x_middlewares: base_model.XMiddlewares
     x_handler_codegen: bool = True
+    expected_status_codes: list[int] | None = None
 
 
 @dataclasses.dataclass

@@ -14,7 +14,7 @@
 #include <userver/dynamic_config/source.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/testsuite/cache_control.hpp>
-#include <userver/utils/statistics/entry.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 #include <userver/yaml_config/schema.hpp>
 
 USERVER_NAMESPACE_BEGIN

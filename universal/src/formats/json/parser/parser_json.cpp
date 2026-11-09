@@ -31,6 +31,14 @@ JsonValueParser::JsonValueParser() = default;
 
 JsonValueParser::~JsonValueParser() = default;
 
+void JsonValueParser::Reset() {
+    if (impl_->level != 0) {
+        auto generator = [](const auto&) { return false; };
+        impl_->raw_value.Populate(generator);
+        impl_->level = 0;
+    }
+}
+
 void JsonValueParser::Null() {
     if (!impl_->raw_value.Null()) {
         Throw(Expected());

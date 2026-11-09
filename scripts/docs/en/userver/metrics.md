@@ -84,9 +84,7 @@ metrics.
 
 **Method 1**: Via @ref utils::statistics::MetricTag
 
-To automatically deliver the metrics they should be registered via
-@ref utils::statistics::MetricTag and `DumpMetric` + `ResetMetric` functions should be
-defined:
+Register a metric type via @ref utils::statistics::MetricTag and provide a `DumpMetric` function for exporting it:
 
 @snippet samples/tcp_full_duplex_service/main.cpp  TCP sample - Stats tag
 
@@ -95,25 +93,38 @@ Now the tag could be used in component constructor to get a reference to the
 
 @snippet samples/tcp_full_duplex_service/main.cpp  TCP sample - constructor
 
-Note that using `reset_metrics()` is discouraged, prefer using a more reliable
-@ref pytest_userver.client.ClientMonitor.metrics_diff "await monitor_client.metrics_diff()".
-
 See also @ref scripts/docs/en/userver/tutorial/tcp_full.md for a complete example.
 
 
-**Method 2**: Via @ref utils::statistics::Writer
+@anchor metrics_register_writer
+**Method 2**: Register a writer callback
 
-Retrieve the @ref utils::statistics::Storage component and register a writer for your component via
-@ref utils::statistics::Storage::RegisterWriter :
+In a component constructor, use @ref utils::statistics::RegisterWriterScope with the component context. The helper
+retrieves the default @ref components::StatisticsStorage component and registers the callback with its
+@ref utils::statistics::Storage.
 
-@snippet core/src/utils/statistics/pretty_format_test.cpp  Writer basic sample
+For a component exporting its own state, a `WriteStatistics` member called by the callback is sufficient. The component
+does not need its own `DumpMetric` just to export its state. Structures that group its metrics can provide `DumpMetric`,
+so they can be written from `WriteStatistics` and tested independently of the component.
 
+@snippet core/src/clients/dns/component.cpp RegisterWriterScope component sample
+
+If the metrics callback calls a method of the component itself, use `context.Scopes()`.
+@ref utils::statistics::RegisterWriterScope uses these scopes automatically. For callbacks on other objects, see
+@ref resource_scopes_parameter "where to obtain scopes".
+
+To register directly with @ref utils::statistics::Storage, pass the chosen scopes as the first argument to
+@ref utils::statistics::Storage::RegisterWriter:
+
+@snippet core/src/utils/statistics/storage_test.cpp Writer basic sample
+
+The callback can run concurrently with other code, so access to shared data must be thread-safe.
 See also @ref utils::statistics::Writer for more details.
 
 
 ### Metric Types
 
-A metric type is any class for which `DumpMetric` is defined. Such types can be written directly to a
+Built-in metric types and user-defined types with `DumpMetric` can be written directly to a
 @ref utils::statistics::Writer.
 
 
@@ -127,12 +138,16 @@ A metric type is any class for which `DumpMetric` is defined. Such types can be 
 
 - `std::atomic<std::uint64_t>`
   For `GAUGE` metrics (current value of a quantity).
-  Best practice: Avoid dedicated variables; instead, write live values via RegisterWriter.
+  Best practice: Avoid dedicated variables when the live value can be read directly in the registered writer callback.
   Typical use cases:
   - Current indicator value (e.g., queue length saved in a variable during a periodic task).
   - Complex aggregates (e.g., total message body lengths used to compute average message length over a
     period: (delta sizes / delta count)).
-  @warning Deprecated. Use @ref utils::statistics::RateCounter instead
+  Use @ref utils::statistics::RateCounter for monotonic event counts. Replacing a gauge with a rate counter changes
+  the exported metric type and how monitoring systems interpret it.
+
+- @ref utils::statistics::RelaxedCounter - An alternative to `std::atomic` for `GAUGE` metrics, using
+  `std::memory_order_relaxed`. Use @ref utils::statistics::RateCounter for monotonic event counts exported as `RATE`.
 
 - @ref utils::statistics::Histogram and @ref utils::statistics::HistogramAggregator
   For `HIST_RATE` metrics (statistics for events, e.g., timings).
@@ -164,26 +179,105 @@ A metric type is any class for which `DumpMetric` is defined. Such types can be 
 Instead of writing one giant `DumpMetric` or `WriteStatistics` somewhere, it is recommended to break these functions
 into pieces:
 
-@snippet core/src/utils/statistics/writer_test.cpp  DumpMetric basic
+@snippet universal/src/utils/statistics/writer_test.cpp  DumpMetric basic
 
 DumpMetric functions nest well, labels are propagated to the nested DumpMetric:
 
-@snippet core/src/utils/statistics/writer_test.cpp  DumpMetric nested
+@snippet universal/src/utils/statistics/writer_test.cpp  DumpMetric nested
 
-**Recommendation:**
+Recommendations for organizing custom metric types:
 
-* Define a `DumpMetric` for each metric type.
-* Compose the serialization of "large" metric types from smaller ones, like blocks.
-* Instead of calling `DumpMetric` directly, call utils::statistics::Writer::operator[] or
-  utils::statistics::Writer::ValueWithLabels.
+* Define a `DumpMetric` for each custom type that groups metrics.
+* Compose the serialization of complex types from the serialization of nested types.
+* Write objects through @ref utils::statistics::Writer::operator= or
+  @ref utils::statistics::Writer::ValueWithLabels rather than calling `DumpMetric` explicitly.
+
+Declare `DumpMetric` alongside the type, in the same namespace, so argument-dependent lookup (ADL) can find it.
+Define it in the corresponding `.cpp`; template and header-only types may define it in the header. A declaration
+that only mentions @ref utils::statistics::Writer can include `<userver/utils/statistics/fwd.hpp>`; code using the
+writer's operations needs `<userver/utils/statistics/writer.hpp>`.
+
+Keep the representation with the type: write a nested object as `writer["child"] = stats.child` rather than repeating
+its field-by-field export at every call site.
+
+Put loops over containers inside `DumpMetric` for your own enclosing type. Do not add overloads for third-party
+containers or aliases of those containers.
+
+If the same data needs distinct representations, use wrapper types with their own `DumpMetric` functions.
+
+Provide `ResetMetric` if the type supports resetting. It is not required for exporting metrics. For tests, prefer
+@ref pytest_userver.client.ClientMonitor.metrics_diff to resetting shared service state.
+
+Generic helpers can constrain metric arguments with @ref utils::statistics::HasWriterSupport.
+
+
+### Using a writer
+
+#### Writing values
+
+Write supported metric objects directly. Calling `.load()` or `.Load()` just to export a counter is unnecessary.
+Explicit reads are appropriate when computing a value, such as an error ratio.
+
+| Metric type | Writing its value |
+| --- | --- |
+| @ref utils::statistics::RateCounter | `writer["requests"] = requests` |
+| `std::atomic<std::uint64_t>` | `writer["active"] = active` |
+| @ref utils::statistics::RelaxedCounter | `writer["active"] = active` |
+
+Plain integers, `double`, and @ref utils::statistics::Rate can also be written directly. Integers and `double` are
+exported as `GAUGE`; `Rate` is exported as `RATE`. This is useful for computed values and for data protected by a mutex.
+Read protected data under the same mutex when exporting it. See
+@ref metrics_database_collection "Database metrics" for background collection.
+
+Other metric types from @ref utils::statistics and user-defined types with `DumpMetric` are supported too.
+Define `void DumpMetric(utils::statistics::Writer&, const T&)` in the namespace of the user-defined type `T`.
+
+Writing `writer["timings"] = timings`, where `timings` is a @ref utils::statistics::RecentPeriod, aggregates the
+configured window without the current incomplete epoch. There is no need to call `timings.GetStatsForPeriod()` just
+for this assignment. To select another interval or include the current epoch, call
+@ref utils::statistics::RecentPeriod::GetStatsForPeriod with the desired arguments and write its result.
+
+Write each metric, identified by its path and labels, once per collection. Repeated writes do not replace the previous
+value. Compute the final value before exporting it; see @ref utils::statistics::Writer for the contract.
+
+
+#### Paths
+
+Use a local child @ref utils::statistics::Writer when several metrics share a path prefix, and write only the suffixes
+through it. A single metric usually needs no local child. The registration example above groups `mc4` and `mc5`
+under the same `a.b` prefix.
+
+See @ref utils::statistics::Writer for child lifetime restrictions and
+@ref utils::statistics::Writer::operator[] for path semantics. In particular, `writer["a.b"]` and `writer["a"]["b"]`
+produce the same path; output formats handle escaping.
+
+Avoid creating temporary `std::string` copies solely to pass a path. Path forwarding helpers can take
+`std::string_view`.
+
+
+#### Labels
+
+Attach labels shared by all fields once with @ref utils::statistics::Writer::ValueWithLabels on the whole object.
+The object's `DumpMetric` propagates them to nested metrics. Labels that vary between metrics belong on those individual
+metrics. See the nested `DumpMetric` example in the custom metric types section above.
+
+Label forwarding helpers can take `std::string_view` too. Keep owning strings when storing data.
+See @ref utils::statistics::Writer::ValueWithLabels for label propagation and string lifetime requirements.
 
 
 ### Database Metrics
 
+@anchor metrics_database_collection
+
 It's common to need to expose database data in metrics. Querying the database directly from the metrics handler is
 discouraged, as metrics must be returned quickly and should not depend on external resource states
 (e.g., DB availability). Instead, use a @ref utils::PeriodicTask or DistLock to query the database and cache results
-in atomic variables in process memory. See also @ref scripts/docs/en/userver/periodics.md
+in process memory. See also @ref scripts/docs/en/userver/periodics.md.
+
+For current state computed by a periodic task, use `GAUGE` metrics stored in atomics or a @ref concurrent::Variable.
+With `concurrent::Variable`, the task updates the data and the metrics callback reads it under the same lock. Perform
+expensive work before acquiring the lock, then publish the result in a short critical section. Count events, such as
+successful task runs, separately with @ref utils::statistics::RateCounter.
 
 Key scenarios where such metrics are useful:
 1. Object count in a table:
@@ -199,38 +293,37 @@ Key scenarios where such metrics are useful:
 
 ## How to test metrics in testsuite and gtest
 
-@ref utils::statistics::MetricsStorage is easy to create in unit tests (gtest):
+Prefer gtest when the metric logic is local to a component; use testsuite when the assertion needs a running service and
+the monitor HTTP endpoint.
+
+### gtest
+
+For metrics declared through @ref utils::statistics::MetricTag, create a @ref utils::statistics::MetricsStorage
+in the test:
 
 @snippet core/src/utils/statistics/metrics_storage_test.cpp unit testing metrics
 
-To unit test (gtest) simple metrics, implement `DumpMetric` and pass the
-struct to @ref utils::statistics::Snapshot :
+To unit test a metric type with `DumpMetric`, pass an object directly to @ref utils::statistics::Snapshot:
 
-@snippet universal/src/utils/statistics/testing_test.cpp  metrics Snapshot DumpMetric sample
+@snippet universal/utest/src/utils/statistics/testing_test.cpp  metrics Snapshot DumpMetric sample
+
+Test the production `DumpMetric` directly; do not reproduce its export logic in a test-only function. There is no need
+to create a @ref utils::statistics::Storage and register a writer solely to inspect an object that already supports
+`DumpMetric`.
 
 If the class registers writers in @ref utils::statistics::Storage, pass Storage:
 
-@snippet core/src/utils/statistics/testing_test.cpp  metrics Snapshot sample
+@snippet core/src/utils/statistics/storage_test.cpp  metrics Snapshot sample
 
-Prefer testing metrics in unit tests if possible. Otherwise, metrics could be tested in testsuite, see
-@ref TESTSUITE_METRICS_TESTING "Metrics testing in testsuite".
+When the same logical metric is split across paths or label sets, dump once and compare subgroups:
 
-### Testuite Metrics Tests Short Examples for the Impatient
+@snippet universal/utest/src/utils/statistics/testing_test.cpp metrics Snapshot subgroup sample
 
-- Retrieve specific service metric by path and (optionally) labels:
-  @snippet samples/testsuite-support/tests/test_metrics.py metrics single_metric
+### testsuite
 
-- Retrieve array of metrics by path prefix and (optionally) labels:
-  @snippet samples/testsuite-support/tests/test_metrics.py metrics metrics
-
-- Retrieve specific service metric by path and (optionally) labels or `None` if no such metric:
-  @snippet samples/testsuite-support/tests/test_metrics.py metrics single_metric_optional
-
-- Diff of metrics:
-  @snippet samples/testsuite-support/tests/test_metrics.py metrics diff
-
-- Reset metrics (discouraged):
-  @snippet samples/testsuite-support/tests/test_metrics.py metrics reset
+Use @ref pytest_userver.plugins.service_client.monitor_client "monitor_client" to check metrics from a running service.
+See @ref scripts/docs/en/userver/testsuite_metrics_testing.md for the API, examples, snapshot comparisons, and
+before/after assertions with `metrics_diff()`.
 
 ----------
 

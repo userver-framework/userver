@@ -17,6 +17,7 @@
 #include <userver/testsuite/testsuite_support.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/daemon_run.hpp>
+#include <userver/utils/from_string.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #include <userver/utest/using_namespace_userver.hpp>
@@ -34,9 +35,14 @@ public:
     std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
         const override {
         LOG_INFO() << "echo-no-body handler called";
-        const auto make_request = [this] {
-            auto response =
-                http_client_.CreateRequest().get(echo_url_).retry(2).timeout(std::chrono::seconds{5}).perform();
+        const auto make_request = [this, expected_code = request.GetArg("expected_code")] {
+            auto http_request = http_client_.CreateRequest().get(echo_url_).retry(2).timeout(std::chrono::seconds{5});
+            http_request.SetUrlTemplate("/expected-status-code-test");
+            if (!expected_code.empty()) {
+                http_request.SetExpectedStatusCodes({static_cast<http::StatusCode>(utils::FromString<int>(expected_code)
+                )});
+            }
+            auto response = http_request.perform();
             response->raise_for_status();
         };
 

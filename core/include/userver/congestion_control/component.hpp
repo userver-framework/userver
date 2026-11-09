@@ -8,7 +8,7 @@
 #include <userver/server/congestion_control/limiter.hpp>
 #include <userver/server/congestion_control/sensor.hpp>
 #include <userver/utils/fast_pimpl.hpp>
-#include <userver/utils/statistics/entry.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -19,6 +19,7 @@ struct ServerConfig {
     std::optional<size_t> max_response_size_in_flight;
     std::string server_name;
     bool set_response_server_hostname{false};
+    bool allow_set_response_ratelimited_by{false};
     std::string middleware_pipeline_builder;
 };
 

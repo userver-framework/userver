@@ -41,8 +41,8 @@ public:
     /// Further updates are delivered after @ref utils::ResourceScopeStorage::AfterConstruction, including those updates
     /// that arrived before it. Unsubscribe runs in @ref utils::ResourceScopeStorage::BeforeDestruction.
     ///
-    /// @param scopes storage that owns the subscription lifetime. In a component constructor pass `context.Scopes()`
-    /// or @ref components::GetResourceScopes.
+    /// @param scopes storage that owns the subscription lifetime.
+    /// See @ref resource_scopes_parameter "where to obtain scopes".
     template <typename Class>
     void UpdateAndListen(utils::ResourceScopeStorage& scopes, Class* obj, std::string_view name, void (Class::*func)());
 

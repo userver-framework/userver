@@ -19,6 +19,8 @@
 #include <grpcpp/support/status.h>
 
 #include <userver/engine/task/cancel.hpp>
+#include <userver/utils/statistics/testing.hpp>
+
 #include <userver/ugrpc/byte_buffer_utils.hpp>
 #include <userver/ugrpc/client/call_options.hpp>
 #include <userver/ugrpc/client/exceptions.hpp>
@@ -382,19 +384,23 @@ UTEST_F(UnaryRequestSerialization, SerializationErrorTakesPrecedenceOverCancella
     request.state->on_serialize = [] { engine::current_task::RequestCancel(); };
     auto call = MakeSerializationCall(Client(), request);
 
-    UEXPECT_THROW(call.Perform(), ugrpc::client::InternalError);
+    UEXPECT_THROW(call.Perform(), ugrpc::client::RpcSerializationError);
     EXPECT_EQ(request.state->count.load(), std::size_t{1});
 }
 
 UTEST_F(UnaryRequestSerialization, SerializationErrorDoesNotStartCall) {
     EXPECT_CALL(Middleware(), PreStartCall).Times(0);
+    EXPECT_CALL(Middleware(), PostFinish).Times(0);
     EXPECT_CALL(Service(), SayHello).Times(0);
     const auto request = MakeTrackedRequest();
     request.state->status = {grpc::StatusCode::INTERNAL, grpc::string{kSerializationError}};
-    auto call = MakeSerializationCall(Client(), request);
+    ugrpc::client::CallOptions options;
+    options.SetAttempts(static_cast<int>(kAttempts));
+    auto call = MakeSerializationCall(Client(), request, std::move(options));
 
-    UEXPECT_THROW(call.Perform(), ugrpc::client::InternalError);
+    UEXPECT_THROW_MSG(call.Perform(), ugrpc::client::RpcSerializationError, kSerializationError);
     EXPECT_EQ(request.state->count.load(), std::size_t{1});
+    EXPECT_EQ(GetStatistics("grpc.client.total").SingleMetric("active").AsInt(), 0);
 }
 
 UTEST_F(UnaryRequestSerialization, SerializesOnceAcrossRetries) {

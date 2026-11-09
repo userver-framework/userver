@@ -4,6 +4,7 @@
 #include <string>
 #include <string_view>
 #include <system_error>
+#include <vector>
 
 #include <userver/clients/http/connect_to.hpp>
 #include <userver/clients/http/error.hpp>
@@ -539,6 +540,15 @@ Request& Request::SetLoggedUrl(std::string url) & {
     return *this;
 }
 Request Request::SetLoggedUrl(std::string url) && { return std::move(this->SetLoggedUrl(std::move(url))); }
+
+Request& Request::SetExpectedStatusCodes(ExpectedStatusCodes status_codes) & {
+    pimpl_->SetExpectedStatusCodes(std::move(status_codes));
+    return *this;
+}
+
+Request Request::SetExpectedStatusCodes(ExpectedStatusCodes status_codes) && {
+    return std::move(this->SetExpectedStatusCodes(std::move(status_codes)));
+}
 
 Request& Request::SetUrlTemplate(std::string url_template) & {
     pimpl_->SetUrlTemplate(std::move(url_template));

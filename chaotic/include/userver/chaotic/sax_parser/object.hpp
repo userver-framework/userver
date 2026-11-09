@@ -379,6 +379,33 @@ private:
     FieldSubparser<StructType, Unknown, Fields...> field_subparser_{result_};
 };
 
+template <typename StructType>
+class ObjectParser<StructType, UnknownFields::StoreJson> final
+    : public formats::json::parser::TypedParser<StructType>,
+      private formats::json::parser::Subscriber<formats::json::Value> {
+public:
+    ObjectParser() { json_parser_.Subscribe(*this); }
+
+    void StartObject() override {
+        json_parser_.Reset();
+        this->parser_state_->PushParser(json_parser_);
+        json_parser_.StartObject();
+    }
+
+private:
+    void OnSend(formats::json::Value&& value) override {
+        StructType result{};
+        result.extra = std::move(value);
+        this->SetResult(std::move(result));
+    }
+
+    std::string Expected() const override { return "object"; }
+
+    std::string GetPathItem() const override { return {}; }
+
+    formats::json::parser::JsonValueParser json_parser_;
+};
+
 }  // namespace chaotic::sax::impl
 
 USERVER_NAMESPACE_END

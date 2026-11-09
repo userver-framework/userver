@@ -4,7 +4,7 @@
 set -euox pipefail
 
 install_clickhouse_client() {
-  CLICKHOUSE_VERSION=${CLICKHOUSE_VERSION:=v2.5.1}
+  CLICKHOUSE_VERSION=${CLICKHOUSE_VERSION:=v2.6.2}
 
   # Installing Clickhouse C++ client libraries from sources
   git clone --depth 1 -b ${CLICKHOUSE_VERSION} https://github.com/ClickHouse/clickhouse-cpp.git

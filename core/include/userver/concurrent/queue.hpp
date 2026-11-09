@@ -10,6 +10,7 @@
 #include <moodycamel/concurrentqueue.h>
 
 #include <userver/concurrent/impl/semaphore_capacity_control.hpp>
+#include <userver/concurrent/queue_fwd.hpp>
 #include <userver/concurrent/queue_helpers.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/semaphore.hpp>
@@ -74,6 +75,13 @@ struct DefaultQueuePolicy {
 
 namespace impl {
 
+template <typename Queue>
+class QueueEmplaceEnabler final {
+    friend Queue;
+
+    explicit QueueEmplaceEnabler() = default;
+};
+
 template <bool MultipleProducer, bool MultipleConsumer>
 struct SimpleQueuePolicy : public DefaultQueuePolicy {
     static constexpr bool kIsMultipleProducer{MultipleProducer};
@@ -120,10 +128,7 @@ struct ContainerQueuePolicy : public DefaultQueuePolicy {
 /// @see @ref concurrent_queues
 template <typename T, typename QueuePolicy>
 class GenericQueue final : public std::enable_shared_from_this<GenericQueue<T, QueuePolicy>> {
-    struct EmplaceEnabler final {
-        // Disable {}-initialization in Queue's constructor
-        explicit EmplaceEnabler() = default;
-    };
+    using EmplaceEnabler = impl::QueueEmplaceEnabler<GenericQueue>;
 
     static_assert(
         std::is_base_of_v<DefaultQueuePolicy, QueuePolicy>,
@@ -691,48 +696,6 @@ private:
     concurrent::impl::SemaphoreCapacityControl element_count_control_;
 };
 
-/// @ingroup userver_concurrency
-///
-/// @brief Non FIFO multiple producers multiple consumers queue.
-///
-/// Items from the same producer are always delivered in the production order.
-/// Items from different producers (or when using a `MultiProducer` token) are
-/// delivered in an unspecified order. In other words, FIFO order is maintained
-/// only within producers, but not between them. This may lead to increased peak
-/// latency of item processing.
-///
-/// In exchange for this, the queue has lower contention and increased
-/// throughput compared to a conventional lock-free queue.
-///
-/// @see @ref scripts/docs/en/userver/synchronization.md
-template <typename T>
-using NonFifoMpmcQueue = GenericQueue<T, impl::SimpleQueuePolicy<true, true>>;
-
-/// @ingroup userver_concurrency
-///
-/// @brief Non FIFO multiple producers single consumer queue.
-///
-/// @see concurrent::NonFifoMpmcQueue for the description of what NonFifo means.
-/// @see @ref scripts/docs/en/userver/synchronization.md
-template <typename T>
-using NonFifoMpscQueue = GenericQueue<T, impl::SimpleQueuePolicy<true, false>>;
-
-/// @ingroup userver_concurrency
-///
-/// @brief Single producer multiple consumers queue.
-///
-/// @see @ref scripts/docs/en/userver/synchronization.md
-template <typename T>
-using SpmcQueue = GenericQueue<T, impl::SimpleQueuePolicy<false, true>>;
-
-/// @ingroup userver_concurrency
-///
-/// @brief Single producer single consumer queue.
-///
-/// @see @ref scripts/docs/en/userver/synchronization.md
-template <typename T>
-using SpscQueue = GenericQueue<T, impl::SimpleQueuePolicy<false, false>>;
-
 namespace impl {
 
 /// @ingroup userver_concurrency
@@ -748,37 +711,6 @@ template <typename T>
 using UnfairUnboundedNonFifoMpmcQueue = GenericQueue<T, impl::NoMaxSizeQueuePolicy<true, true>>;
 
 }  // namespace impl
-
-/// @ingroup userver_concurrency
-///
-/// @brief Like @see NonFifoMpscQueue, but does not support setting max size and is thus slightly faster.
-///
-/// @see @ref scripts/docs/en/userver/synchronization.md
-template <typename T>
-using UnboundedNonFifoMpscQueue = GenericQueue<T, impl::NoMaxSizeQueuePolicy<true, false>>;
-
-/// @ingroup userver_concurrency
-///
-/// @brief Like @see SpmcQueue, but does not support setting max size and is thus slightly faster.
-///
-/// @see @ref scripts/docs/en/userver/synchronization.md
-template <typename T>
-using UnboundedSpmcQueue = GenericQueue<T, impl::NoMaxSizeQueuePolicy<false, true>>;
-
-/// @ingroup userver_concurrency
-///
-/// @brief Like @see SpscQueue, but does not support setting max size and is thus slightly faster.
-///
-/// @see @ref scripts/docs/en/userver/synchronization.md
-template <typename T>
-using UnboundedSpscQueue = GenericQueue<T, impl::NoMaxSizeQueuePolicy<false, false>>;
-
-/// @ingroup userver_concurrency
-///
-/// @brief Single producer single consumer queue of std::string which is bounded by the total bytes inside the strings.
-///
-/// @see @ref scripts/docs/en/userver/synchronization.md
-using StringStreamQueue = GenericQueue<std::string, impl::ContainerQueuePolicy<false, false>>;
 
 }  // namespace concurrent
 

@@ -33,7 +33,7 @@ V1CurrentUser Parse(
 
     V1CurrentUser res{
         .token = value["token"].template As<
-            std::optional<USERVER_NAMESPACE::chaotic::Primitive<std::string, USERVER_NAMESPACE::chaotic::MinLength<128>, USERVER_NAMESPACE::chaotic::MaxLength<128>>>
+            std::optional<USERVER_NAMESPACE::chaotic::Primitive<std::string, USERVER_NAMESPACE::chaotic::MinMaxLength<128, 128>>>
         >(),
         .login = value["login"].template As<
             USERVER_NAMESPACE::chaotic::Primitive<std::string, USERVER_NAMESPACE::chaotic::MinLength<3>>
@@ -413,7 +413,7 @@ V1File Parse(
             USERVER_NAMESPACE::chaotic::Primitive<std::string, USERVER_NAMESPACE::chaotic::MinLength<3>>
         >(),
         .filename = value["filename"].template As<
-            USERVER_NAMESPACE::chaotic::Primitive<std::string, USERVER_NAMESPACE::chaotic::MinLength<3>, USERVER_NAMESPACE::chaotic::MaxLength<256>>
+            USERVER_NAMESPACE::chaotic::Primitive<std::string, USERVER_NAMESPACE::chaotic::MinMaxLength<3, 256>>
         >(),
         .content = value["content"].template As<
             USERVER_NAMESPACE::chaotic::Primitive<std::string>
@@ -537,7 +537,7 @@ V1LikeTriggerRequest Parse(
             USERVER_NAMESPACE::chaotic::Primitive<::ns::V1CurrentUser>
         >(),
         .idempotency_token = value["idempotency_token"].template As<
-            USERVER_NAMESPACE::chaotic::Primitive<std::string, USERVER_NAMESPACE::chaotic::MinLength<16>, USERVER_NAMESPACE::chaotic::MaxLength<256>>
+            USERVER_NAMESPACE::chaotic::Primitive<std::string, USERVER_NAMESPACE::chaotic::MinMaxLength<16, 256>>
         >(),
         .channel_id = value["channel_id"].template As<
             USERVER_NAMESPACE::chaotic::Primitive<std::int64_t>

@@ -3,11 +3,13 @@
 /// @file userver/utils/statistics/testing.hpp
 /// @brief Utilities for analyzing emitted metrics in unit tests
 
+#include <concepts>
 #include <iosfwd>
 #include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include <gmock/gmock.h>
@@ -123,11 +125,21 @@ public:
     ///
     /// @a metric is any type with @ref utils::statistics::Writer support. For simple metrics prefer
     /// a type with `DumpMetric` and pass it directly:
-    /// @snippet universal/src/utils/statistics/testing_test.cpp  metrics Snapshot DumpMetric sample
+    /// @snippet universal/utest/src/utils/statistics/testing_test.cpp  metrics Snapshot DumpMetric sample
     ///
-    /// @ref utils::statistics::Storage also works — passing Storage is still
-    /// a common usage when writers are registered there:
-    /// @snippet core/src/utils/statistics/testing_test.cpp  metrics Snapshot sample
+    /// When metrics are split into several subgroups (different paths or label sets), dump @a metric once and take
+    /// child snapshots with @ref utils::statistics::SnapshotBuildOptions instead of repeating paths and labels in
+    /// every check:
+    /// @snippet universal/utest/src/utils/statistics/testing_test.cpp metrics Snapshot subgroup sample
+    ///
+    /// Prefer passing the concrete metric (a struct with `DumpMetric`) or @ref utils::statistics::MetricsStorage.
+    /// @ref utils::statistics::Storage also satisfies @ref utils::statistics::HasWriterSupport, but is awkward in
+    /// tests: @ref utils::statistics::Storage::RegisterWriter is usually more boilerplate than passing the metric
+    /// directly. Use Storage when the code under test is a non-component type that registers writers on Storage
+    /// internally — then snapshot Storage to exercise that wiring. Example:
+    /// @snippet core/src/utils/statistics/storage_test.cpp  metrics Snapshot sample
+    ///
+    /// If the metric exposes a custom dump routine instead of `DumpMetric`, use the @ref WriterFuncRef overload below.
     ///
     /// Unlike production, a metric with an empty full path is allowed.
     /// @param options Filters and slicing mode; see @ref utils::statistics::SnapshotBuildOptions.
@@ -144,6 +156,9 @@ public:
 
     /// @brief Create a snapshot by invoking @a writer.
     ///
+    /// Use this overload when the metric under test does not provide `DumpMetric` and you call a dedicated method
+    /// (for example `WriteStatistics`) inside @a writer.
+    ///
     /// @ref utils::statistics::SnapshotBuildOptions::require_prefix is not prepended to paths emitted by @a writer;
     /// it filters them according to @ref utils::statistics::SnapshotBuildOptions::sliced.
     /// Unlike production, a metric with an empty full path is allowed.
@@ -156,17 +171,26 @@ public:
     /// and `.`.
     explicit Snapshot(WriterFuncRef writer, const SnapshotBuildOptions& options = {});
 
+    // Deduce string prefixes so designated initializers only match SnapshotBuildOptions on GCC 11.
     /// @deprecated Use the constructor taking @ref utils::statistics::SnapshotBuildOptions instead.
     /// Uses slicing: @a prefix and @a require_labels are removed during collection.
     /// An empty @a prefix means no prefix filter.
-    explicit Snapshot(const HasWriterSupport auto& metric, std::string prefix, std::vector<Label> require_labels = {})
-        : Snapshot([&metric](Writer& writer) { writer = metric; }, std::move(prefix), std::move(require_labels))
+    template <std::convertible_to<std::string> Prefix = std::string>
+    explicit Snapshot(const HasWriterSupport auto& metric, Prefix&& prefix, std::vector<Label> require_labels = {})
+        : Snapshot(
+              [&metric](Writer& writer) { writer = metric; },
+              std::forward<Prefix>(prefix),
+              std::move(require_labels)
+          )
     {}
 
     /// @deprecated Use the constructor taking @ref utils::statistics::SnapshotBuildOptions instead.
     /// Uses slicing: @a prefix and @a require_labels are removed during collection.
     /// An empty @a prefix means no prefix filter.
-    explicit Snapshot(WriterFuncRef writer, std::string prefix, std::vector<Label> require_labels = {});
+    template <std::convertible_to<std::string> Prefix = std::string>
+    explicit Snapshot(WriterFuncRef writer, Prefix&& prefix, std::vector<Label> require_labels = {})
+        : Snapshot(writer, MakeLegacyBuildOptions(std::string{std::forward<Prefix>(prefix)}, std::move(require_labels)))
+    {}
 
     /// @name Copying and moving
     /// @see statistics_snapshot_view_lifetime
@@ -190,7 +214,7 @@ public:
     ///   `sum`, when present, is the total sum and is restored.
     ///   Sums of individual buckets are not part of the format and are not restored.
     /// @param options Prepended to every path and added to every metric.
-    /// @snippet universal/src/utils/statistics/testing_test.cpp  metrics Snapshot FromJson
+    /// @snippet universal/utest/src/utils/statistics/testing_test.cpp  metrics Snapshot FromJson
     /// @throws utils::statistics::InvalidMetricError if two metrics have the same path and labels,
     /// or one metric lists the same label name more than once.
     /// @throws formats::json::ExceptionWithPath if @a json does not match the format above.
@@ -210,7 +234,7 @@ public:
     ///   `sum`, when present, is the total sum and is restored.
     ///   Sums of individual buckets are not part of the format and are not restored.
     /// - `{"type": "RATE", "value": N}` is also supported, and so are `"GAUGE"` and `"HIST_RATE"`.
-    /// @snippet universal/src/utils/statistics/testing_test.cpp  metrics Snapshot EqualsNumerically
+    /// @snippet universal/utest/src/utils/statistics/testing_test.cpp  metrics Snapshot EqualsNumerically
     /// @throws utils::statistics::InvalidMetricError if two metrics have the same path and labels,
     /// or one metric lists the same label name more than once.
     /// @throws formats::json::ExceptionWithPath if @a json does not match the format above.
@@ -229,7 +253,7 @@ public:
     ///
     /// The returned vector supports building a filtered @ref utils::statistics::Snapshot through @ref
     /// utils::statistics::Snapshot(WriterFuncRef), for example:
-    /// @snippet universal/src/utils/statistics/testing_test.cpp metrics Snapshot filter by iteration
+    /// @snippet universal/utest/src/utils/statistics/testing_test.cpp metrics Snapshot filter by iteration
     std::vector<MetricView> AllMetrics() const USERVER_IMPL_LIFETIME_BOUND;
 
     /// @brief Find a single metric by the given filter.
@@ -243,7 +267,7 @@ public:
     /// @returns The value of the single found metric.
     /// @see statistics_snapshot_view_lifetime
     /// @throws utils::statistics::MetricQueryError if none or multiple metrics are found.
-    /// @snippet universal/src/utils/statistics/testing_test.cpp metrics Snapshot sliced queries
+    /// @snippet universal/utest/src/utils/statistics/testing_test.cpp metrics Snapshot sliced queries
     MetricValue SingleMetric(std::string path, std::vector<Label> require_labels = {}) const
         USERVER_IMPL_LIFETIME_BOUND;
 
@@ -286,6 +310,8 @@ public:
 private:
     friend void PrintTo(const Snapshot& data, std::ostream*);
 
+    static SnapshotBuildOptions MakeLegacyBuildOptions(std::string prefix, std::vector<Label> require_labels);
+
     utils::SharedRef<const impl::SnapshotData> data_;
 };
 
@@ -315,7 +341,7 @@ void PrintTo(Rate value, std::ostream*);
 
 /// @brief GTest matcher for @ref utils::statistics::Snapshot::EqualsNumerically.
 ///
-/// @snippet universal/src/utils/statistics/testing_test.cpp  metrics Snapshot EqualsNumerically
+/// @snippet universal/utest/src/utils/statistics/testing_test.cpp  metrics Snapshot EqualsNumerically
 ::testing::Matcher<Snapshot> EqualsNumerically(const Snapshot& expected);
 
 }  // namespace utils::statistics

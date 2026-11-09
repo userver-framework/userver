@@ -110,6 +110,27 @@ that executes the Redis request:
 
 Valkey/Redis driver does not guarantee that the cancelled request was not executed by the server.
 
+### Retries and retry budgets
+
+The driver retries timeouts, I/O errors, closed connections, and the server errors
+`LOADING`, `MASTERDOWN`, `READONLY`, `CLUSTERDOWN`, and `TRYAGAIN` within the command's
+attempt limit and overall timeout. Other errors, including server `OOM`, local
+out-of-memory errors, protocol errors, invalid commands, and unknown server errors,
+are returned without retrying. `NOSCRIPT` is returned to the caller so that it can
+load the script before issuing another request.
+
+The dynamic option @ref REDIS_RETRY_BUDGET_SETTINGS controls a separate retry budget
+for each connection. It applies to reads, writes, requests with an explicit server
+ID, and `MOVED`/`ASK` redirects. The first attempt is allowed regardless of the
+remaining budget; further attempts require an available budget on the target
+connection. When a redirected request cannot be admitted, the original redirect
+error is returned to the caller.
+
+Successful replies replenish the budget, and retryable errors decrease it.
+Nonretryable errors and redirects leave the budget unchanged. Disabling the budget
+does not enable retries for nonretryable errors. Applications issuing manual
+retries must set @ref storages::redis::CommandControl::retry_counter.
+
 
 ### Valkey/Redis Cluster Autotopology
 

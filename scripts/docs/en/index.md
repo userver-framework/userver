@@ -83,6 +83,7 @@ and make sure that it builds and passes tests.
     * @ref userver_clients "Clients"
     * @ref userver_http_handlers "HTTP Handlers"
     * @ref userver_components "Other components"
+* @ref scripts/docs/en/userver/resource_scopes.md
 * @ref scripts/docs/en/userver/synchronization.md
 * @ref scripts/docs/en/userver/formats.md
 * @ref scripts/docs/en/userver/logging.md
@@ -98,7 +99,8 @@ and make sure that it builds and passes tests.
 ## Testing and Benchmarking
 * @ref scripts/docs/en/userver/testing.md
 * @ref scripts/docs/en/userver/functional_testing.md
-    * @ref scripts/docs/en/userver/metrics_migration.md
+    * @ref scripts/docs/en/userver/fixture_markers.md
+    * @ref scripts/docs/en/userver/testsuite_metrics_testing.md
 * @ref scripts/docs/en/userver/chaos_testing.md
 * @ref scripts/docs/en/userver/profile_context_switches.md
 * @ref scripts/docs/en/userver/gdb_debugging.md
@@ -134,6 +136,7 @@ and make sure that it builds and passes tests.
 * @ref scripts/docs/en/userver/log_level_running_service.md
 * @ref scripts/docs/en/userver/requests_in_flight.md
 * @ref scripts/docs/en/userver/metrics.md
+    * @ref scripts/docs/en/userver/testsuite_metrics_testing.md
 * @ref scripts/docs/en/userver/service_monitor.md
 * @ref scripts/docs/en/userver/memory_profile_running_service.md
 * @ref scripts/docs/en/userver/dns_control.md

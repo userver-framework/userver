@@ -96,11 +96,16 @@ void SetNativeOptions(MYSQL* mysql, const settings::ConnectionSettings& connecti
         mysql_optionsv(mysql, MYSQL_OPT_COMPRESS, nullptr);
     }
 
-    if (!connection_settings.use_secure_connection) {
+    if (connection_settings.use_secure_connection) {
+        my_bool enforce_tls = 1;
+        mysql_optionsv(mysql, MYSQL_OPT_SSL_ENFORCE, &enforce_tls);
+    } else {
         my_bool verify_server_cert = 0;
         mysql_optionsv(mysql, MYSQL_OPT_SSL_VERIFY_SERVER_CERT, &verify_server_cert);
     }
 }
+
+bool IsTlsEstablished(MYSQL* mysql) { return mysql_get_ssl_cipher(mysql) != nullptr; }
 
 compiler::ThreadLocal mysql_local_scope = [] { return MysqlThreadEnd{}; };
 
@@ -319,6 +324,20 @@ bool Connection::DoInitSocket(
         }
         LOG_WARNING() << GetNativeError("Failed to connect");
         return false;
+    }
+
+    if (connection_settings.use_secure_connection && !IsTlsEstablished(&mysql_)) {
+        Close(deadline);
+        throw MySQLException{
+            0,
+            fmt::format(
+                "Failed to establish a TLS connection to {}:{} while 'use_secure_connection' is enabled. "
+                "Enable TLS on the MySQL server or set 'use_secure_connection: false' in the component "
+                "static config to allow unencrypted connections",
+                ip,
+                port
+            )
+        };
     }
 
     return true;

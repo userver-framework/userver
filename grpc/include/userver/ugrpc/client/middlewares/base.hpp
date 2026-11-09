@@ -3,6 +3,7 @@
 /// @file userver/ugrpc/client/middlewares/base.hpp
 /// @brief @copybrief ugrpc::client::MiddlewareBase
 
+#include <cstddef>
 #include <optional>
 #include <string_view>
 
@@ -74,6 +75,26 @@ public:
 
     /// @returns RPC span
     tracing::Span& GetSpan() noexcept;
+
+    /// @brief Serialized size of the request message.
+    ///
+    /// This is the size of the wire buffer, which is cheaper than calling
+    /// `google::protobuf::Message::ByteSizeLong` on the request.
+    ///
+    /// Only unary RPCs fill it: the request is serialized once before the first `PreSendMessage` and reused by every
+    /// attempt. Streaming RPCs serialize messages inside grpcpp, so for them it is always empty.
+    std::optional<std::size_t> GetLatestRequestSizeBytes() const noexcept;
+
+    /// @brief Serialized size of the response message of the current attempt.
+    ///
+    /// This is the size of the wire buffer, which is cheaper than calling
+    /// `google::protobuf::Message::ByteSizeLong` on the parsed response.
+    ///
+    /// Only unary RPCs fill it, before `PostRecvMessage`. It stays available in `PostFinish`, including when a response
+    /// was received but could not be parsed. It is empty if the attempt finished with an error status or was
+    /// interrupted before the response arrived. Streaming RPCs parse messages inside grpcpp, so for them it is always
+    /// empty.
+    std::optional<std::size_t> GetLatestResponseSizeBytes() const noexcept;
 
     /// @cond
     // For internal use only

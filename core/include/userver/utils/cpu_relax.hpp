@@ -41,9 +41,19 @@ public:
     CpuRelax(CpuRelax&&) = delete;
 
     /// Call this method every iteration, eventually it will yield
-    void Relax();
+    void Relax() {
+        if (every_iterations_ == 0) {
+            return;
+        }
+        if (++iterations_ == every_iterations_) {
+            iterations_ = 0;
+            DoRelax();
+        }
+    }
 
 private:
+    void DoRelax();
+
     ScopeTimePause pause_;
     const std::size_t every_iterations_;
     std::size_t iterations_{0};

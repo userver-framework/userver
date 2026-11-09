@@ -39,6 +39,10 @@ void Run(const InMemoryConfig& config, const ComponentList& component_list);
 
 /// Runs the component list once with the config loaded from file.
 ///
+/// @warning Not intended for writing tests. Prefer testsuite for services and
+/// integration functional tests with a dedicated test service for libraries.
+/// See @ref scripts/docs/en/userver/functional_testing.md.
+///
 /// @see utils::DaemonMain
 void RunOnce(
     const std::string& config_path,
@@ -48,6 +52,10 @@ void RunOnce(
 );
 
 /// Runs the component list once with the config.
+///
+/// @warning Not intended for writing tests. Prefer testsuite for services and
+/// integration functional tests with a dedicated test service for libraries.
+/// See @ref scripts/docs/en/userver/functional_testing.md.
 ///
 /// @see utils::DaemonMain
 void RunOnce(const InMemoryConfig& config, const ComponentList& component_list);

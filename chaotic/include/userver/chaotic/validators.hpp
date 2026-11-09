@@ -147,6 +147,21 @@ struct MaxLength final {
     }
 };
 
+/// @brief Checks inclusive UTF-8 code point length bounds with a single count.
+template <std::int64_t Min, std::int64_t Max>
+struct MinMaxLength final {
+    template <typename ErrorReporter>
+    static void Validate(std::string_view value, ErrorReporter report_error) {
+        const auto length = utils::text::utf8::GetCodePointsCount(value);
+        if (length < Min) {
+            report_error(fmt::format("Too short string, minimum length={}, given={}", Min, length));
+        }
+        if (length > Max) {
+            report_error(fmt::format("Too long string, maximum length={}, given={}", Max, length));
+        }
+    }
+};
+
 template <typename... Validators, typename Obj, typename Value>
 void Validate(const Obj& obj, const Value& value) {
     [[maybe_unused]] const auto error_reporter = [&value](std::string_view error) {

@@ -1,8 +1,10 @@
 #include <ugrpc/client/middlewares/log/middleware.hpp>
 
+#include <cstddef>
 #include <utility>
 
 #include <fmt/format.h>
+#include <google/protobuf/message.h>
 
 #include <userver/logging/level.hpp>
 #include <userver/logging/log.hpp>
@@ -10,7 +12,9 @@
 #include <userver/tracing/tags.hpp>
 #include <userver/ugrpc/client/impl/call_state.hpp>
 #include <userver/ugrpc/protobuf_logging.hpp>
+#include <userver/ugrpc/rpc_type.hpp>
 #include <userver/ugrpc/status_codes.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
 
 #include <ugrpc/impl/logging.hpp>
@@ -54,6 +58,24 @@ std::string GetMessageForLogging(const google::protobuf::Message& message, const
         return "";
     }
     return ugrpc::ToLimitedLoggingString(message, settings.max_msg_size);
+}
+
+std::size_t GetRequestSize(const MiddlewareCallContext& context, const google::protobuf::Message& request) {
+    if (context.GetRpcType() != RpcType::kUnary) {
+        return request.ByteSizeLong();
+    }
+    const auto request_size = context.GetLatestRequestSizeBytes();
+    UASSERT(request_size.has_value());
+    return *request_size;
+}
+
+std::size_t GetResponseSize(const MiddlewareCallContext& context, const google::protobuf::Message& response) {
+    if (context.GetRpcType() != RpcType::kUnary) {
+        return response.ByteSizeLong();
+    }
+    const auto response_size = context.GetLatestResponseSizeBytes();
+    UASSERT(response_size.has_value());
+    return *response_size;
 }
 
 class SpanLogger {
@@ -114,7 +136,7 @@ void Middleware::PreSendMessage(MiddlewareCallContext& context, const google::pr
         logging::LogExtra extra{
             {ugrpc::impl::kTypeTag, "request"},
             {ugrpc::impl::kBodyTag, GetMessageForLogging(message, settings_)},
-            {ugrpc::impl::kMessageMarshalledLenTag, message.ByteSizeLong()},
+            {ugrpc::impl::kMessageMarshalledLenTag, GetRequestSize(context, message)},
         };
         log_helper
             << (IsSingleRequestMethod(context.GetRpcType()) ? "gRPC request" : "gRPC request stream message")
@@ -128,7 +150,7 @@ void Middleware::PostRecvMessage(MiddlewareCallContext& context, const google::p
         logging::LogExtra extra{
             {ugrpc::impl::kTypeTag, "response"},
             {ugrpc::impl::kBodyTag, GetMessageForLogging(message, settings_)},
-            {ugrpc::impl::kMessageMarshalledLenTag, message.ByteSizeLong()},
+            {ugrpc::impl::kMessageMarshalledLenTag, GetResponseSize(context, message)},
         };
         log_helper
             << (IsSingleResponseMethod(context.GetRpcType()) ? "gRPC response" : "gRPC response stream message")
@@ -169,6 +191,10 @@ void Middleware::PostFinish(MiddlewareCallContext& context, const CompletionStat
                  GetSpecialCaseCompletionTypeDescription(completion_type)
              )}
         };
+        // Present when a response arrived but could not be parsed.
+        if (const auto response_size = context.GetLatestResponseSizeBytes()) {
+            extra.Extend(ugrpc::impl::kMessageMarshalledLenTag, *response_size);
+        }
         logger.Log(logging::Level::kWarning, "gRPC error", std::move(extra));
     }
 }

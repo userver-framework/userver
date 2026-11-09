@@ -1,3 +1,5 @@
+#include <initializer_list>
+
 #include <userver/utest/assert_macros.hpp>
 
 #include <userver/chaotic/exception.hpp>
@@ -97,6 +99,21 @@ TEST(MinMax, String) {
         formats::json::parser::ParseError,
         "Parse error at pos 21, path 'bar': Error at path 'bar': Too long string, maximum length=5, given=12, the "
         "latest token was :\"longlonglong\""
+    );
+}
+
+TEST(MinMax, StringUtf8Boundaries) {
+    for (const auto* value : {"я🙂", "я🙂界ab"}) {
+        const auto json = formats::json::MakeObject("bar", value);
+        EXPECT_EQ(json.As<ns::IntegerObject>().bar, value);
+        EXPECT_EQ(FromJsonString(ToString(json), formats::parse::To<ns::IntegerObject>()).bar, value);
+    }
+
+    const auto json = formats::json::MakeObject("bar", "я🙂界abc");
+    UEXPECT_THROW_MSG(
+        json.As<ns::IntegerObject>(),
+        chaotic::Error<formats::json::Value>,
+        "Error at path 'bar': Too long string, maximum length=5, given=6"
     );
 }
 

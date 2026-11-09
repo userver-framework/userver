@@ -13,7 +13,31 @@ components_manager:
 
         key-value-pg-cache:
             pgcomponent: key-value-database
+            update-types: full-and-incremental
             update-interval: 10s
+            full-update-interval: 1h
+            update-correction: 0s
+
+        key-value-no-portal-cache:
+            pgcomponent: key-value-database
+            update-types: full-and-incremental
+            update-interval: 10s
+            full-update-interval: 1h
+            update-correction: 0s
+            chunk-size: 0
+
+        key-value-small-chunk-cache:
+            pgcomponent: key-value-database
+            update-types: full-and-incremental
+            update-interval: 10s
+            full-update-interval: 1h
+            update-correction: 0s
+            chunk-size: 2
+
+        handler-cache-keys:
+            path: /cache/keys
+            task_processor: main-task-processor
+            method: GET
 
         component-distlock-metrics:
             cluster: key-value-database

@@ -15,7 +15,7 @@ bool MayParseAs(
     if (!value.IsObject() && !value.IsNull()) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__ObjectWithRawJsonField_PropertiesNames.Contains(it.GetName())) {
             return false;
         }
@@ -115,7 +115,7 @@ bool MayParseAs(
     if (!value.IsObject() && !value.IsNull()) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__WithAnyField_PropertiesNames.Contains(it.GetName())) {
             return false;
         }

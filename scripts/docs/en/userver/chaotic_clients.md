@@ -203,6 +203,82 @@ No credentials are passed at the call site—the generated client performs the c
 | `-u` / `--userver` | no | userver namespace macro name (default: `USERVER_NAMESPACE`). |
 
 
+# Expected HTTP status codes in client spans
+
+Use `x-usrv-expected-status-codes` in an OpenAPI 3.x or Swagger 2.0 schema
+to mark explicitly expected HTTP responses:
+
+```yaml
+openapi: 3.0.0
+info:
+  title: Catalog
+  version: '1.0'
+x-usrv-expected-status-codes: [404]
+paths:
+  /items:
+    get:
+      x-usrv-expected-status-codes: [409]
+      responses:
+        '404':
+          description: Unexpected missing item
+        '409':
+          description: Expected conflict
+  /required-items:
+    get:
+      x-usrv-expected-status-codes: []
+      responses:
+        '404':
+          description: Unexpected missing item
+```
+
+The root extension supplies the client default for operations in that schema
+document. An operation's list replaces it. Listing a response in `responses`
+does not make its status expected. Codes must be integers in the range 100–599.
+
+For one generated-client call, set
+`chaotic::openapi::client::CommandControl::expected_status_codes`.
+Priority is `per-call > operation > client`; lists are replaced, not merged.
+An unset optional inherits the schema setting.
+
+@snippet chaotic-openapi/integration_tests/src/expected_status_codes_test.cpp expected-status-codes-per-call
+
+Pass `cc` as the generated method's last argument. An explicitly empty set clears inherited codes:
+
+@snippet chaotic-openapi/integration_tests/src/expected_status_codes_test.cpp expected-status-codes-clear
+
+Set the optional to `std::nullopt` to restore inheritance:
+
+@snippet chaotic-openapi/integration_tests/src/expected_status_codes_test.cpp expected-status-codes-inherit
+
+The set is self-contained, uses no dynamic memory,
+supports `constexpr` and dynamic modification via `Set(status, expected)`.
+Existing `constexpr` aggregate initialization of command control remains supported.
+
+For an HTTP client without code generation, set expected codes on the request before sending it:
+
+@snippet core/src/clients/http/tracing_manager_test.cpp http-client-expected-status-codes
+
+An expected response omits the outgoing span's `error` tag.
+@ref clients::http::Response::IsError returns false for it.
+The retry-budget middleware accounts a completed expected response as successful.
+Without any expected codes configured, HTTP statuses >=400 are classified as errors by default.
+
+The following remain unchanged:
+
+- the real HTTP status code;
+- @ref clients::http::Response::raise_for_status and generated exceptions;
+- response parsing;
+- the HTTP retry-selection policy;
+- HTTP-code metrics.
+
+An expected 5xx can still be retried.
+Each retry still consumes retry budget.
+Transport errors and timeouts remain errors regardless of the configured codes.
+
+Log consumers must respect the `error` field in the span. Setting expected
+status codes alone does not change a consumer that derives span status from
+the HTTP code.
+
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly

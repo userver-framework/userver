@@ -245,7 +245,7 @@ bool MayParseAs(
     if (!value.IsObject() && !value.IsNull()) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__C_PropertiesNames.Contains(it.GetName())) {
             return false;
         }
@@ -347,7 +347,7 @@ bool MayParseAs(
     if (!value.IsObject() && !value.IsNull()) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__D_PropertiesNames.Contains(it.GetName())) {
             return false;
         }
@@ -449,7 +449,7 @@ bool MayParseAs(
     if (!value.IsObject() && !value.IsNull()) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__IntegerOneOfDiscriminator_PropertiesNames.Contains(it.GetName())) {
             return false;
         }
@@ -539,7 +539,7 @@ bool MayParseAs(
     if (!value.IsObject() && !value.IsNull()) {
         return false;
     }
-    for (auto it = value.begin(); it != value.end(); ++it) {
+    for (auto it = value.begin(), end = value.end(); it != end; ++it) {
         if (!k__ns__OneOfDiscriminator_PropertiesNames.Contains(it.GetName())) {
             return false;
         }

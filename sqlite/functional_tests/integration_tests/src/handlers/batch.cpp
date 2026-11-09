@@ -1,5 +1,6 @@
 #include "batch.hpp"
 
+#include <algorithm>
 #include <vector>
 
 #include <userver/clients/http/component.hpp>

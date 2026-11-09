@@ -260,15 +260,12 @@ Snapshot::Snapshot(WriterFuncRef writer, const SnapshotBuildOptions& options)
     : data_(BuildSnapshotData(writer, options))
 {}
 
-Snapshot::Snapshot(WriterFuncRef writer, std::string prefix, std::vector<Label> require_labels)
-    : Snapshot(
-          writer,
-          SnapshotBuildOptions{
-              .require_prefix = prefix.empty() ? std::nullopt : std::make_optional(std::move(prefix)),
-              .require_labels = std::move(require_labels),
-          }
-      )
-{}
+SnapshotBuildOptions Snapshot::MakeLegacyBuildOptions(std::string prefix, std::vector<Label> require_labels) {
+    return {
+        .require_prefix = prefix.empty() ? std::nullopt : std::make_optional(std::move(prefix)),
+        .require_labels = std::move(require_labels),
+    };
+}
 
 Snapshot Snapshot::FromJson(const formats::json::Value& json, const SnapshotLoadOptions& options) {
     return Snapshot([&json, &options](Writer& writer) { WriteWithLoadOptions(writer, impl::FlatJson{json}, options); });

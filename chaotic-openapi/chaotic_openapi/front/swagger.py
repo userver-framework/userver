@@ -160,7 +160,7 @@ Parameters = list[Parameter | Ref]
 
 
 # https://spec.openapis.org/oas/v2.0.html#operation-object
-class Operation(base_model.BaseModel):
+class Operation(base_model.WithExpectedStatusCodes):
     tags: list[str] | None = None
     summary: str | None = None
     description: str = ''
@@ -204,7 +204,7 @@ Paths = dict[str, Path]
 
 
 # https://spec.openapis.org/oas/v2.0.html#schema
-class Swagger(base_model.BaseModel):
+class Swagger(base_model.WithExpectedStatusCodes):
     swagger: str = '2.0'
     info: Info | None = None
     host: str | None = None

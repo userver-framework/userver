@@ -45,7 +45,12 @@ public:
     );
     ~ClusterTopology();
 
-    size_t GetShardIndexBySlot(uint16_t slot) const { return slot_to_shard_.at(slot); }
+    size_t GetShardIndexBySlot(uint16_t slot) const {
+        if (cluster_shards_.empty()) {
+            return kUnknownShard;
+        }
+        return slot_to_shard_.at(slot);
+    }
 
     std::optional<size_t> GetShardByHostPort(const std::string& host_port) const {
         auto it = host_port_to_shard_.find(host_port);
@@ -75,10 +80,7 @@ public:
 
     const ClusterShardHostInfos& GetShardInfos() const { return infos_; }
     size_t GetVersion() const { return version_; }
-    size_t GetShardsCount() const {
-        UASSERT(!cluster_shards_.empty());
-        return cluster_shards_.size();
-    }
+    size_t GetShardsCount() const { return cluster_shards_.size(); }
     std::chrono::steady_clock::time_point GetTimestamp() const { return timestamp_; }
 
     std::unordered_map<ServerId, size_t, ServerIdHasher> GetAvailableServersWeighted(

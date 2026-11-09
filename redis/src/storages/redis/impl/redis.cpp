@@ -34,6 +34,7 @@
 
 #include "command_admission.hpp"
 #include "command_control_impl.hpp"
+#include "retry_policy.hpp"
 
 USERVER_NAMESPACE_BEGIN
 
@@ -569,10 +570,17 @@ void Redis::RedisImpl::InvokeCommand(const CommandPtr& command, ReplyPtr&& reply
     reply->server = server_;
     if (reply->status == ReplyStatus::kTimeoutError) {
         reply->log_extra.Extend("timeout_ms", cc.timeout_single.count());
-        retry_budget_.AccountFail();
     }
-    if (reply->status == ReplyStatus::kOk) {
-        retry_budget_.AccountOk();
+    switch (ClassifyReplyForRetry(*reply)) {
+        case RetryOutcome::kSuccess:
+            retry_budget_.AccountOk();
+            break;
+        case RetryOutcome::kRetryable:
+            retry_budget_.AccountFail();
+            break;
+        case RetryOutcome::kNonRetryable:
+        case RetryOutcome::kRedirect:
+            break;
     }
 
     reply->server_id = server_id_;
@@ -648,6 +656,9 @@ bool Redis::RedisImpl::AsyncCommand(const CommandPtr& command) {
     LOG_DEBUG()
         << "AsyncCommand for server_id=" << GetServerId().GetId() << " server=" << GetServerId().GetDescription()
         << " cmd=" << command->args << log_extra_;
+    if (command->counter != 0 && !CanRetry()) {
+        return false;
+    }
     auto admission_permit = command_admission_.TryAcquire();
     if (!admission_permit) {
         return false;

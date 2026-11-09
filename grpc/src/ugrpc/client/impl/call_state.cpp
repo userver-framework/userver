@@ -148,11 +148,22 @@ void CallState::SetDeadlinePropagated() noexcept {
     is_deadline_propagated_ = true;
 }
 
+void CallState::SetRequestSizeBytes(std::optional<std::size_t> size) noexcept { request_size_bytes_ = size; }
+
+std::optional<std::size_t> CallState::GetRequestSizeBytes() const noexcept { return request_size_bytes_; }
+
+void CallState::SetResponseSizeBytes(std::optional<std::size_t> size) noexcept { response_size_bytes_ = size; }
+
+std::optional<std::size_t> CallState::GetResponseSizeBytes() const noexcept { return response_size_bytes_; }
+
 void CallState::Commit() noexcept { committed_.store(true, std::memory_order_release); }
 
 grpc::ClientContext& CallState::GetClientContextCommitted() {
     UINVARIANT(committed_.load(std::memory_order_acquire), "Call state should be committed");
-    UINVARIANT(client_context_, "GetClientContext should not be called on cancelled RPC");
+    UINVARIANT(
+        client_context_,
+        "GetClientContext should not be called after RPC cancellation or serialization failure"
+    );
     return *client_context_;
 }
 

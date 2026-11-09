@@ -2,8 +2,6 @@
 
 #include <userver/components/component_config.hpp>
 #include <userver/components/component_context.hpp>
-#include <userver/utils/resource_scopes.hpp>
-
 #include <userver/yaml_config/merge_schemas.hpp>
 
 #ifndef ARCADIA_ROOT
@@ -14,18 +12,17 @@ USERVER_NAMESPACE_BEGIN
 
 namespace components {
 
-StatisticsStorage::StatisticsStorage(const ComponentConfig& config, const ComponentContext&)
+StatisticsStorage::StatisticsStorage(const ComponentConfig& config, const ComponentContext& context)
     : metrics_storage_(std::make_shared<utils::statistics::MetricsStorage>(
           config["captured-metric-tags"].As<std::optional<std::vector<std::string>>>()
-      )),
-      metrics_storage_registration_(metrics_storage_->RegisterIn(storage_))
-{}
-
-StatisticsStorage::~StatisticsStorage() {
-    for (auto& entry : metrics_storage_registration_) {
-        entry.Unregister();
-    }
+      ))
+{
+    storage_.RegisterWriter(context.Scopes(), "", [&metrics = *metrics_storage_](utils::statistics::Writer& writer) {
+        writer = metrics;
+    });
 }
+
+StatisticsStorage::~StatisticsStorage() = default;
 
 void StatisticsStorage::OnAllComponentsLoaded() { storage_.StopRegisteringExtenders(); }
 

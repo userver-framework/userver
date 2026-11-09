@@ -2,7 +2,7 @@
 
 #include <userver/components/component.hpp>
 #include <userver/components/statistics_storage.hpp>
-
+#include <userver/formats/json/value_builder.hpp>
 #include <userver/utils/statistics/portability_info.hpp>
 
 USERVER_NAMESPACE_BEGIN

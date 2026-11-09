@@ -42,6 +42,11 @@ ClusterTest::ClusterTest(
     CreateSentinelClient(std::move(key_shard));
 }
 
+void ClusterTest::SetRetryBudgetSettings(const utils::RetryBudgetSettings& settings) {
+    sentinel_client_->SetRetryBudgetSettings(settings);
+    thread_pools_->SynchronizeEventLoops();
+}
+
 void ClusterTest::InitClusterSentinelServers() {
     std::vector<MockRedisServer::MasterInfo> master_infos;
     for (const auto& master : masters_) {

@@ -249,7 +249,7 @@ class Components(base_model.BaseModel):
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#operation-object
-class Operation(base_model.BaseModel):
+class Operation(base_model.WithExpectedStatusCodes):
     tags: list[str] = pydantic.Field(default_factory=list)
     summary: str | None = None
     description: str = ''
@@ -315,7 +315,7 @@ class XTaxiClientQos(base_model.BaseModel):
 
 
 # https://spec.openapis.org/oas/v3.0.0.html#schema
-class OpenApi(base_model.BaseModel):
+class OpenApi(base_model.WithExpectedStatusCodes):
     openapi: str = '3.0.0'
     info: Info | None = None
     servers: list[Server] = pydantic.Field(default_factory=list)

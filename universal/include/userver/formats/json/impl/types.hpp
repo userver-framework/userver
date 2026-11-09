@@ -39,6 +39,8 @@ public:
     template <typename... Args>
     static VersionedValuePtr Create(Args&&... args);
 
+    static const VersionedValuePtr& SharedNull();
+
     VersionedValuePtr(const VersionedValuePtr&) = default;
     VersionedValuePtr(VersionedValuePtr&&) = default;
     VersionedValuePtr& operator=(const VersionedValuePtr&) = default;
@@ -48,6 +50,7 @@ public:
 
     explicit operator bool() const;
     bool IsUnique() const;
+    bool IsSharedNull() const;
 
     const impl::Value* Get() const;
     impl::Value* Get();

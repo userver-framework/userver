@@ -17,6 +17,14 @@
 
 #include <userver/cache/base_postgres_cache.hpp>
 
+#include <userver/formats/json/serialize.hpp>
+#include <userver/formats/json/serialize_container.hpp>
+#include <userver/formats/json/value_builder.hpp>
+
+#include <algorithm>
+#include <string>
+#include <vector>
+
 #include <fmt/format.h>
 #include <fmt/ranges.h>
 
@@ -38,6 +46,18 @@ struct KeyValueCachePolicy {
 };
 
 using KeyValueCache = components::PostgreCache<KeyValueCachePolicy>;
+
+struct KeyValueNoPortalCachePolicy : KeyValueCachePolicy {
+    static constexpr std::string_view kName = "key-value-no-portal-cache";
+};
+
+using KeyValueNoPortalCache = components::PostgreCache<KeyValueNoPortalCachePolicy>;
+
+struct KeyValueSmallChunkCachePolicy : KeyValueCachePolicy {
+    static constexpr std::string_view kName = "key-value-small-chunk-cache";
+};
+
+using KeyValueSmallChunkCache = components::PostgreCache<KeyValueSmallChunkCachePolicy>;
 
 const storages::postgres::Query kInsertValue{
     "INSERT INTO key_value_table (key, value) "
@@ -114,6 +134,53 @@ PostgresHandler::HandleRequestThrow(const server::http::HttpRequest& request, se
     return {};
 }
 
+template <typename Cache>
+std::vector<std::string> GetSortedKeys(const Cache& cache) {
+    const auto data = cache.Get();
+    std::vector<std::string> keys;
+    keys.reserve(data->size());
+    for (const auto& [key, _] : *data) {
+        keys.push_back(key);
+    }
+    std::sort(keys.begin(), keys.end());
+    return keys;
+}
+
+class CacheKeysHandler final : public server::handlers::HttpHandlerBase {
+public:
+    static constexpr std::string_view kName = "handler-cache-keys";
+
+    CacheKeysHandler(const components::ComponentConfig& config, const components::ComponentContext& context)
+        : HttpHandlerBase(config, context),
+          cache_(context.FindComponent<KeyValueCache>()),
+          no_portal_cache_(context.FindComponent<KeyValueNoPortalCache>()),
+          small_chunk_cache_(context.FindComponent<KeyValueSmallChunkCache>())
+    {}
+
+    std::string HandleRequestThrow(const server::http::HttpRequest& request, server::request::RequestContext&)
+        const override {
+        const auto& cache_name = request.GetArg("cache");
+        std::vector<std::string> keys;
+        if (cache_name == KeyValueCachePolicy::kName) {
+            keys = GetSortedKeys(cache_);
+        } else if (cache_name == KeyValueNoPortalCachePolicy::kName) {
+            keys = GetSortedKeys(no_portal_cache_);
+        } else if (cache_name == KeyValueSmallChunkCachePolicy::kName) {
+            keys = GetSortedKeys(small_chunk_cache_);
+        } else {
+            throw server::handlers::ClientError(server::handlers::ExternalBody{
+                fmt::format("Unknown 'cache' query argument: '{}'", cache_name)
+            });
+        }
+        return formats::json::ToString(formats::json::ValueBuilder{keys}.ExtractValue());
+    }
+
+private:
+    const KeyValueCache& cache_;
+    const KeyValueNoPortalCache& no_portal_cache_;
+    const KeyValueSmallChunkCache& small_chunk_cache_;
+};
+
 class DistlockMetrics final : public storages::postgres::DistLockComponentBase {
 public:
     static constexpr std::string_view kName = "component-distlock-metrics";
@@ -136,6 +203,9 @@ int main(int argc, char* argv[]) {
             .Append<server::handlers::ServerMonitor>()
             .Append<pg::metrics::PostgresHandler>()
             .Append<pg::metrics::KeyValueCache>()
+            .Append<pg::metrics::KeyValueNoPortalCache>()
+            .Append<pg::metrics::KeyValueSmallChunkCache>()
+            .Append<pg::metrics::CacheKeysHandler>()
             .Append<pg::metrics::DistlockMetrics>()
             .AppendComponentList(clients::http::ComponentList())
             .Append<components::Postgres>("key-value-database")

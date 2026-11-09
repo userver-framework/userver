@@ -168,7 +168,8 @@ properties:
                         default: 100
                     keepalive_timeout:
                         type: integer
-                        description: timeout in seconds to drop connection if there's not data received from it
+                        description: timeout in seconds to drop connection if there's not data received from it; also limits the
+                            duration of the TLS handshake on TLS ports
                         default: 600
                     stream_close_check_delay:
                         type: integer
@@ -211,6 +212,11 @@ properties:
         type: boolean
         description: set to true to add the `X-YaTaxi-Server-Hostname` header with instance name, set to false to not add the
             header
+        default: false
+    allow-set-response-ratelimited-by:
+        type: boolean
+        description: set to true to add the `X-YaTaxi-Ratelimited-By` header with the instance name on throttled responses. The
+            `X-YaTaxi-Ratelimit-Reason` header is still added.
         default: false
     middleware-pipeline-builder:
         type: string

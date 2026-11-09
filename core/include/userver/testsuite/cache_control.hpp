@@ -228,6 +228,9 @@ std::function<void(cache::UpdateType)> BindCacheResetter(
 /// Several cache resetters for the same component are invoked sequentially
 /// in registration order.
 ///
+/// Uses @ref components::ComponentContext::Scopes for the component automatically.
+/// See @ref resource_scopes_parameter "choosing scopes" for the lifetime rules.
+///
 /// Typical usage:
 /// @code
 /// testsuite::RegisterCacheResetter(context, this, &MyCache::ResetCache);
