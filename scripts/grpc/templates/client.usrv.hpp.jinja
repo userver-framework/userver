@@ -84,7 +84,7 @@ private:
     friend class USERVER_NAMESPACE::ugrpc::client::impl::ClientDataAccessor;
 
     {# All non-template related client data should be placed in ClientData #}
-    USERVER_NAMESPACE::utils::Box<USERVER_NAMESPACE::ugrpc::client::impl::ClientData> client_data_;
+    std::unique_ptr<USERVER_NAMESPACE::ugrpc::client::impl::ClientData> client_data_;
 };
 {% if params.structs %}
 

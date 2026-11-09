@@ -5,7 +5,7 @@
 //
 // Do not include this header in your code, use non-impl includes instead!
 
-#include <userver/utils/box.hpp>
+#include <memory>
 
 #include <userver/ugrpc/client/call_options.hpp>
 #include <userver/ugrpc/client/impl/fwd.hpp>

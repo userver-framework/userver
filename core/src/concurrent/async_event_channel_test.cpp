@@ -1,6 +1,8 @@
 #include <userver/utest/utest.hpp>
 
 #include <atomic>
+#include <optional>
+#include <stdexcept>
 #include <utility>
 #include <vector>
 
@@ -10,6 +12,8 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/utils/function_ref.hpp>
+#include <userver/utils/not_null.hpp>
 #include <userver/utils/resource_scopes.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -324,89 +328,88 @@ UTEST(AsyncEventChannel, SendEventConcurrent2) {
     EXPECT_EQ(calls.load(), 3);
 }
 
+class ScopedSubscriber final {
+public:
+    ScopedSubscriber(
+        utils::ResourceScopeStorage& scopes,
+        concurrent::AsyncEventChannel<int>& channel,
+        utils::SharedRef<std::vector<int>> updates,
+        const std::atomic<int>& current,
+        std::optional<utils::function_ref<void()>> after_subscribe = std::nullopt
+    )
+        : current_(current),
+          updates_(std::move(updates))
+    {
+        const auto initial_value = current_.load();
+        channel.DoUpdateAndListenScoped(scopes, this, "sub", &ScopedSubscriber::OnEvent, [this] {
+            OnEvent(current_.load());
+        });
+        EXPECT_THAT(*updates_, ::testing::ElementsAre(initial_value));
+        if (after_subscribe) {
+            after_subscribe.value()();
+        }
+    }
+
+private:
+    void OnEvent(int value) { updates_->push_back(value); }
+
+    const std::atomic<int>& current_;
+    const utils::SharedRef<std::vector<int>> updates_;
+};
+
 UTEST(AsyncEventChannel, DoUpdateAndListenScopedCallsUpdaterOnceWithoutEvents) {
     concurrent::AsyncEventChannel<int> channel("channel");
-    utils::ResourceScopeStorage scopes;
-
-    std::vector<int> updates;
-    auto updater = [&] { updates.push_back(1); };
-
-    channel.DoUpdateAndListenScoped(
-        scopes,
-        concurrent::FunctionId(&updates),
-        "sub",
-        [&](int value) { updates.push_back(value); },
-        updater
-    );
-    EXPECT_THAT(updates, ::testing::ElementsAre(1));
-
-    scopes.AfterConstruction();
-    // When the subscription is really activated, no extra notifications should be delivered,
-    // because there are no new events.
-    EXPECT_THAT(updates, ::testing::ElementsAre(1));
+    const auto updates = utils::MakeSharedRef<std::vector<int>>();
+    const std::atomic<int> current{1};
+    auto subscriber = utils::MakeWithResourceScopes<ScopedSubscriber>(channel, updates, current);
+    EXPECT_THAT(*updates, ::testing::ElementsAre(1));
 
     channel.SendEvent(2);
-    EXPECT_THAT(updates, ::testing::ElementsAre(1, 2));
+    EXPECT_THAT(*updates, ::testing::ElementsAre(1, 2));
 
-    scopes.BeforeDestruction();
+    subscriber.reset();
     channel.SendEvent(3);
-    EXPECT_THAT(updates, ::testing::ElementsAre(1, 2));
+    EXPECT_THAT(*updates, ::testing::ElementsAre(1, 2));
 }
 
 UTEST(AsyncEventChannel, DoUpdateAndListenScopedReplaysUpdaterIfEventSkipped) {
     concurrent::AsyncEventChannel<int> channel("channel");
-    utils::ResourceScopeStorage scopes;
-
+    const auto updates = utils::MakeSharedRef<std::vector<int>>();
     std::atomic<int> current{0};
-    std::vector<int> updates;
-    auto updater = [&] { updates.push_back(current.load()); };
+    const auto after_subscribe = [&] {
+        current = 5;
+        channel.SendEvent(5);
+        EXPECT_THAT(*updates, ::testing::ElementsAre(0));
+    };
+    {
+        const utils::WithResourceScopes<ScopedSubscriber>
+            subscriber{std::in_place, channel, updates, current, after_subscribe};
+        EXPECT_THAT(*updates, ::testing::ElementsAre(0, 5));
 
-    channel.DoUpdateAndListenScoped(
-        scopes,
-        concurrent::FunctionId(&updates),
-        "sub",
-        [&](int value) { updates.push_back(value); },
-        updater
-    );
-    EXPECT_THAT(updates, ::testing::ElementsAre(0));
-
-    current = 5;
-    channel.SendEvent(5);
-    // After scope registration and before AfterConstruction, it would be unsafe to deliver the update.
-    EXPECT_THAT(updates, ::testing::ElementsAre(0));
-
-    scopes.AfterConstruction();
-    EXPECT_THAT(updates, ::testing::ElementsAre(0, 5));
-
-    current = 7;
-    channel.SendEvent(7);
-    EXPECT_THAT(updates, ::testing::ElementsAre(0, 5, 7));
-
-    scopes.BeforeDestruction();
+        current = 7;
+        channel.SendEvent(7);
+        EXPECT_THAT(*updates, ::testing::ElementsAre(0, 5, 7));
+    }
+    channel.SendEvent(8);
+    EXPECT_THAT(*updates, ::testing::ElementsAre(0, 5, 7));
 }
 
 UTEST(AsyncEventChannel, DoUpdateAndListenScopedUnsubscribesIfConstructionFailed) {
-    std::vector<int> updates;
-    {
-        concurrent::AsyncEventChannel<int> channel("channel");
-        utils::ResourceScopeStorage scopes;
-
-        channel.DoUpdateAndListenScoped(
-            scopes,
-            concurrent::FunctionId(&updates),
-            "sub",
-            [&](int value) { updates.push_back(value); },
-            [&] { updates.push_back(1); }
-        );
-        EXPECT_THAT(updates, ::testing::ElementsAre(1));
-
+    concurrent::AsyncEventChannel<int> channel("channel");
+    const auto updates = utils::MakeSharedRef<std::vector<int>>();
+    std::atomic<int> current{1};
+    const auto after_subscribe = [&] {
+        current = 2;
         channel.SendEvent(2);
-        EXPECT_THAT(updates, ::testing::ElementsAre(1));
-
-        scopes.BeforeDestruction();
-        channel.SendEvent(3);
-    }
-    EXPECT_THAT(updates, ::testing::ElementsAre(1));
+        EXPECT_THAT(*updates, ::testing::ElementsAre(1));
+        throw std::runtime_error("subscriber construction failed");
+    };
+    EXPECT_THROW(
+        utils::MakeWithResourceScopes<ScopedSubscriber>(channel, updates, current, after_subscribe),
+        std::runtime_error
+    );
+    channel.SendEvent(3);
+    EXPECT_THAT(*updates, ::testing::ElementsAre(1));
 }
 
 UTEST(AsyncEventChannel, UnsibscribeWhileHandling) {

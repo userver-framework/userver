@@ -3,12 +3,11 @@
 /// @file userver/ugrpc/client/generic_client.hpp
 /// @brief @copybrief ugrpc::client::GenericClient
 
+#include <memory>
 #include <optional>
 #include <string_view>
 
 #include <grpcpp/support/byte_buffer.h>
-
-#include <userver/utils/box.hpp>
 
 #include <userver/ugrpc/client/call_options.hpp>
 #include <userver/ugrpc/client/generic_options.hpp>
@@ -88,7 +87,7 @@ public:
 private:
     friend class impl::ClientDataAccessor;
 
-    utils::Box<impl::ClientData> client_data_;
+    std::unique_ptr<impl::ClientData> client_data_;
 };
 
 }  // namespace ugrpc::client

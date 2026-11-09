@@ -5,6 +5,7 @@
 #include <grpcpp/generic/async_generic_service.h>
 
 #include <userver/utils/assert.hpp>
+#include <userver/utils/resource_scopes.hpp>
 
 #include <userver/ugrpc/client/impl/call_params.hpp>
 #include <userver/ugrpc/client/impl/client_data.hpp>
@@ -15,7 +16,11 @@ USERVER_NAMESPACE_BEGIN
 namespace ugrpc::client {
 
 GenericClient::GenericClient(impl::ClientInternals&& internals)
-    : client_data_(std::move(internals), impl::GenericClientTag{}, std::in_place_type<grpc::AsyncGenericService>)
+    : client_data_(
+          utils::MakeUniqueWithResourceScopes<
+              impl::
+                  ClientData>(std::move(internals), impl::GenericClientTag{}, std::in_place_type<grpc::AsyncGenericService>)
+      )
 {
     // There is no technical reason why QOS configs should be unsupported here.
     // However, it would be difficult to detect non-existent RPC names in QOS.
