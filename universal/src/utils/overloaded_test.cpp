@@ -146,4 +146,44 @@ TEST(OverloadedTest, NoCopying) {
     });
 }
 
+TEST(OverloadedTest, VisitExplicitReturnType) {
+    std::variant<int, double> var = 1.5;
+    const auto visit_int = [](int value) { return value; };
+    const auto visit_double = [](double value) { return value; };
+
+    static_assert(std::is_same_v<decltype(utils::Visit<double>(var, visit_int, visit_double)), double>);
+    EXPECT_DOUBLE_EQ(utils::Visit<double>(var, visit_int, visit_double), 1.5);
+}
+
+TEST(OverloadedTest, VisitExplicitReturnTypeSameAsFirstAlternative) {
+    std::variant<int, double> var = 7;
+
+    const auto
+        lvalue_result = utils::Visit<int>(var, [](int&) -> short { return 1; }, [](double&) -> long { return 2; });
+    EXPECT_EQ(lvalue_result, 1);
+
+    const auto const_lvalue_result = utils::Visit<
+        int>(std::as_const(var), [](const int&) -> short { return 3; }, [](const double&) -> long { return 4; });
+    EXPECT_EQ(const_lvalue_result, 3);
+
+    const auto rvalue_result = utils::Visit<
+        int>(std::move(var), [](int&&) -> short { return 5; }, [](double&&) -> long { return 6; });
+    EXPECT_EQ(rvalue_result, 5);
+}
+
+TEST(OverloadedTest, VisitVoidDiscardsResult) {
+    std::variant<int, double> var = 7;
+    bool int_visited = false;
+    const auto visit_int = [&int_visited](int value) {
+        int_visited = true;
+        return value;
+    };
+    const auto visit_double = [](double) { return std::string{"double"}; };
+
+    static_assert(std::is_same_v<decltype(utils::Visit<void>(var, visit_int, visit_double)), void>);
+    utils::Visit<void>(var, visit_int, visit_double);
+
+    EXPECT_TRUE(int_visited);
+}
+
 USERVER_NAMESPACE_END

@@ -3,6 +3,7 @@
 /// @file userver/utils/overloaded.hpp
 /// @brief @copybrief utils::Overloaded
 
+#include <type_traits>
 #include <variant>
 
 USERVER_NAMESPACE_BEGIN
@@ -20,19 +21,44 @@ struct Overloaded : Ts... {  // NOLINT(fuchsia-multiple-inheritance)
 template <class... Ts>
 Overloaded(Ts...) -> Overloaded<Ts...>;
 
-template <class... Args, class... Ts>
+namespace impl {
+
+struct DeduceVisitResult final {};
+
+}  // namespace impl
+
+/// @brief Calls the matching handler for the active alternative of @a var.
+/// @tparam R Return type. If omitted, it is deduced from the handlers. If `void`, the handler result is discarded.
+/// @param var Variant to visit.
+/// @param ts Handlers combined into @ref utils::Overloaded.
+/// @returns The selected handler result, converted to `R` when specified; nothing for `void` results.
+template <class R = impl::DeduceVisitResult, class... Args, class... Ts>
 constexpr decltype(auto) Visit(const std::variant<Args...>& var, Ts&&... ts) {
-    return std::visit(Overloaded{std::forward<Ts>(ts)...}, var);
+    if constexpr (std::is_same_v<R, impl::DeduceVisitResult>) {
+        return std::visit(Overloaded{std::forward<Ts>(ts)...}, var);
+    } else {
+        return std::visit<R>(Overloaded{std::forward<Ts>(ts)...}, var);
+    }
 }
 
-template <class... Args, class... Ts>
+/// @overload
+template <class R = impl::DeduceVisitResult, class... Args, class... Ts>
 constexpr decltype(auto) Visit(std::variant<Args...>& var, Ts&&... ts) {
-    return std::visit(Overloaded{std::forward<Ts>(ts)...}, var);
+    if constexpr (std::is_same_v<R, impl::DeduceVisitResult>) {
+        return std::visit(Overloaded{std::forward<Ts>(ts)...}, var);
+    } else {
+        return std::visit<R>(Overloaded{std::forward<Ts>(ts)...}, var);
+    }
 }
 
-template <class... Args, class... Ts>
+/// @overload
+template <class R = impl::DeduceVisitResult, class... Args, class... Ts>
 constexpr decltype(auto) Visit(std::variant<Args...>&& var, Ts&&... ts) {
-    return std::visit(Overloaded{std::forward<Ts>(ts)...}, std::move(var));
+    if constexpr (std::is_same_v<R, impl::DeduceVisitResult>) {
+        return std::visit(Overloaded{std::forward<Ts>(ts)...}, std::move(var));
+    } else {
+        return std::visit<R>(Overloaded{std::forward<Ts>(ts)...}, std::move(var));
+    }
 }
 
 }  // namespace utils
