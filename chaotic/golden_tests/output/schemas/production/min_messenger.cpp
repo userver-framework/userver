@@ -91,7 +91,7 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
             = USERVER_NAMESPACE::formats::common::Type::kObject;
     if (value.token) {
         vb["token"] =
-            USERVER_NAMESPACE::chaotic::Primitive<std::string, USERVER_NAMESPACE::chaotic::MinLength<128>, USERVER_NAMESPACE::chaotic::MaxLength<128>>{
+            USERVER_NAMESPACE::chaotic::Primitive<std::string, USERVER_NAMESPACE::chaotic::MinMaxLength<128, 128>>{
                 *value.token
             };
     }
@@ -120,7 +120,7 @@ void WriteToStream(
 
     if (value.token && hide_field_name != "token") {
         sw.Key("token");
-        WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<std::string, USERVER_NAMESPACE::chaotic::MinLength<128>, USERVER_NAMESPACE::chaotic::MaxLength<128>>{
+        WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<std::string, USERVER_NAMESPACE::chaotic::MinMaxLength<128, 128>>{
             *value.token
         }, sw);
     }
@@ -1496,7 +1496,7 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
             value.login
         };
     vb["filename"] =
-        USERVER_NAMESPACE::chaotic::Primitive<std::string, USERVER_NAMESPACE::chaotic::MinLength<3>, USERVER_NAMESPACE::chaotic::MaxLength<256>>{
+        USERVER_NAMESPACE::chaotic::Primitive<std::string, USERVER_NAMESPACE::chaotic::MinMaxLength<3, 256>>{
             value.filename
         };
     vb["content"] =
@@ -1526,7 +1526,7 @@ void WriteToStream(
     }
     if (hide_field_name != "filename") {
         sw.Key("filename");
-        WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<std::string, USERVER_NAMESPACE::chaotic::MinLength<3>, USERVER_NAMESPACE::chaotic::MaxLength<256>>{
+        WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<std::string, USERVER_NAMESPACE::chaotic::MinMaxLength<3, 256>>{
             value.filename
         }, sw);
     }
@@ -1938,7 +1938,7 @@ USERVER_NAMESPACE::formats::json::Value Serialize(
             value.current_user
         };
     vb["idempotency_token"] =
-        USERVER_NAMESPACE::chaotic::Primitive<std::string, USERVER_NAMESPACE::chaotic::MinLength<16>, USERVER_NAMESPACE::chaotic::MaxLength<256>>{
+        USERVER_NAMESPACE::chaotic::Primitive<std::string, USERVER_NAMESPACE::chaotic::MinMaxLength<16, 256>>{
             value.idempotency_token
         };
     vb["channel_id"] =
@@ -1988,7 +1988,7 @@ void WriteToStream(
     }
     if (hide_field_name != "idempotency_token") {
         sw.Key("idempotency_token");
-        WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<std::string, USERVER_NAMESPACE::chaotic::MinLength<16>, USERVER_NAMESPACE::chaotic::MaxLength<256>>{
+        WriteToStream(USERVER_NAMESPACE::chaotic::Primitive<std::string, USERVER_NAMESPACE::chaotic::MinMaxLength<16, 256>>{
             value.idempotency_token
         }, sw);
     }
