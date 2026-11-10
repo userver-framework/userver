@@ -319,6 +319,15 @@ passes through. Do not log unbounded data, personal data or secrets.
 Metric labels must have bounded cardinality: no user ids, request ids or other
 unbounded values. Metric names and descriptions must match what is actually measured.
 
+## 18. Follow local code formatting conventions
+
+Separate `USERVER_NAMESPACE_BEGIN` and `USERVER_NAMESPACE_END` from adjacent code,
+leave a blank line after a namespace opening, and separate member function
+declarations with a blank line.
+
+During code review or self-review, check these separators explicitly;
+formatter success alone does not establish compliance with local spacing conventions.
+
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
