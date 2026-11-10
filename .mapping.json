@@ -4182,6 +4182,7 @@
   "postgresql/src/storages/postgres/tests/json_types_pgtest.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/json_types_pgtest.cpp",
   "postgresql/src/storages/postgres/tests/landing_test.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/landing_test.cpp",
   "postgresql/src/storages/postgres/tests/non_transaction_pgtest.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/non_transaction_pgtest.cpp",
+  "postgresql/src/storages/postgres/tests/numeric_buffer_test.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/numeric_buffer_test.cpp",
   "postgresql/src/storages/postgres/tests/numeric_pgtest.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/numeric_pgtest.cpp",
   "postgresql/src/storages/postgres/tests/optional_pgtest.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/optional_pgtest.cpp",
   "postgresql/src/storages/postgres/tests/pool_pgtest.cpp":"taxi/uservices/userver/postgresql/src/storages/postgres/tests/pool_pgtest.cpp",
