@@ -1822,6 +1822,7 @@
   "core/src/engine/ev/thread_control.cpp":"taxi/uservices/userver/core/src/engine/ev/thread_control.cpp",
   "core/src/engine/ev/thread_control.hpp":"taxi/uservices/userver/core/src/engine/ev/thread_control.hpp",
   "core/src/engine/ev/thread_control_test.cpp":"taxi/uservices/userver/core/src/engine/ev/thread_control_test.cpp",
+  "core/src/engine/ev/thread_loop_benchmark.cpp":"taxi/uservices/userver/core/src/engine/ev/thread_loop_benchmark.cpp",
   "core/src/engine/ev/thread_pool.cpp":"taxi/uservices/userver/core/src/engine/ev/thread_pool.cpp",
   "core/src/engine/ev/thread_pool.hpp":"taxi/uservices/userver/core/src/engine/ev/thread_pool.hpp",
   "core/src/engine/ev/thread_pool_config.cpp":"taxi/uservices/userver/core/src/engine/ev/thread_pool_config.cpp",

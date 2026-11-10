@@ -1,8 +1,5 @@
 #pragma once
 
-#include <atomic>
-#include <memory>
-#include <mutex>
 #include <string>
 #include <thread>
 
@@ -64,18 +61,11 @@ private:
     static void BreakLoopWatcher(struct ev_loop*, ev_async* w, int) noexcept;
     void BreakLoopWatcherImpl();
 
-    static void Acquire(struct ev_loop* loop) noexcept;
-    static void Release(struct ev_loop* loop) noexcept;
-    void AcquireImpl() noexcept;
-    void ReleaseImpl() noexcept;
-
     concurrent::impl::IntrusiveMpscQueue<AsyncPayloadBase> func_queue_{};
 
     EventLoop event_loop_;
 
     std::thread thread_{};
-    std::mutex loop_mutex_{};
-    std::unique_lock<std::mutex> lock_{loop_mutex_, std::defer_lock};
 
     ev_timer defer_timer_{};
     ev_async watch_update_{};
