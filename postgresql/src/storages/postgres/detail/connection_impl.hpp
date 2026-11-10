@@ -224,6 +224,7 @@ private:
     );
 
     void LoadUserTypes(engine::Deadline deadline);
+    UserTypes QueryUserTypes(engine::Deadline deadline);
     void FillBufferCategories(ResultSet& res);
 
     template <typename Counter>

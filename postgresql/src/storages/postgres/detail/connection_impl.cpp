@@ -1282,30 +1282,41 @@ void ConnectionImpl::SetParameter(
     SendCommandNoPrepare(kSetConfigQuery, detail::QueryParameters{params}, deadline);
 }
 
+UserTypes ConnectionImpl::QueryUserTypes(engine::Deadline deadline) {
+    // kSetLocalWorkMem help users with many user types to avoid
+    // ConnectionInterrupted because there are `LEFT JOIN`s in queries
+    SendCommandNoPrepare(kSetLocalWorkMem, deadline);
+    auto types = ExecuteCommand(kGetUserTypesQuery, deadline).AsSetOf<DBTypeDescription>(kRowTag);
+    auto attribs =
+        ExecuteCommand(kGetCompositeAttribsQuery, deadline).AsContainer<UserTypes::CompositeFieldDefs>(kRowTag);
+
+    // End of definitions marker, to simplify processing
+    attribs.push_back(CompositeFieldDef::EmptyDef());
+    UserTypes db_types;
+    for (auto desc : types) {
+        db_types.AddType(std::move(desc));
+    }
+    db_types.AddCompositeFields(std::move(attribs));
+    return db_types;
+}
+
 void ConnectionImpl::LoadUserTypes(engine::Deadline deadline) {
     UASSERT(settings_.user_types != ConnectionSettings::kPredefinedTypesOnly);
     try {
-        std::optional<TypedResultSet<DBTypeDescription, RowTag>> types{};
-        UserTypes::CompositeFieldDefs attribs{};
-        {
-            const tracing::ScopeTime scope_time{"pg_load_user_types"};
+        const tracing::ScopeTime scope_time{"pg_load_user_types"};
+        if (!IsInTransaction()) {
             SendCommandNoPrepare("BEGIN", deadline);
-            // kSetLocalWorkMem help users with many user types to avoid
-            // ConnectionInterrupted because there are `LEFT JOIN`s in queries
-            SendCommandNoPrepare(kSetLocalWorkMem, deadline);
-            types.emplace(ExecuteCommand(kGetUserTypesQuery, deadline).AsSetOf<DBTypeDescription>(kRowTag));
-            attribs =
-                ExecuteCommand(kGetCompositeAttribsQuery, deadline).AsContainer<UserTypes::CompositeFieldDefs>(kRowTag);
+            auto db_types = QueryUserTypes(deadline);
             ExecuteCommandNoPrepare("COMMIT", deadline);
+            db_types_ = std::move(db_types);
+            return;
         }
 
-        // End of definitions marker, to simplify processing
-        attribs.push_back(CompositeFieldDef::EmptyDef());
-        UserTypes db_types;
-        for (auto desc : types.value()) {
-            db_types.AddType(std::move(desc));
-        }
-        db_types.AddCompositeFields(std::move(attribs));
+        const auto work_mem = ExecuteCommandNoPrepare("SHOW work_mem", deadline).AsSingleRow<std::string>();
+        auto db_types = QueryUserTypes(deadline);
+        StaticQueryParameters<1> params;
+        params.Write(db_types_, work_mem);
+        ExecuteCommandNoPrepare("SELECT set_config('work_mem', $1, true)", detail::QueryParameters{params}, deadline);
         db_types_ = std::move(db_types);
     } catch (const Error& e) {
         LOG_LIMITED_ERROR() << "Error loading user datatypes: " << e;
