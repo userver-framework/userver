@@ -3,6 +3,7 @@
 #include <ydb-cpp-sdk/client/table/table.h>
 #include <ydb-cpp-sdk/client/topic/client.h>
 
+#include <userver/dynamic_config/storage_mock.hpp>
 #include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/utest/utest.hpp>
 #include <userver/utils/enumerate.hpp>
@@ -34,6 +35,8 @@ public:
     }
 
     impl::Driver& GetDriver() { return *driver_; }
+
+    dynamic_config::StorageMock& GetConfig() { return config_; }
 
     ydb::TableClient& GetTableClient() { return *table_client_; }
 
@@ -87,8 +90,7 @@ protected:
 
         driver_ = std::make_shared<ydb::impl::Driver>(database, driver_settings);
 
-        table_client_ = std::make_shared<
-            ydb::TableClient>(table_settings, query_params, dynamic_config::GetDefaultSource(), driver_);
+        table_client_ = std::make_shared<ydb::TableClient>(table_settings, query_params, config_.GetSource(), driver_);
 
         topic_client_ = std::make_shared<ydb::TopicClient>(driver_, ydb::impl::TopicSettings{});
 
@@ -100,6 +102,7 @@ protected:
 private:
     static constexpr auto kMaxYdbBootTimeout = std::chrono::minutes{3};
 
+    dynamic_config::StorageMock config_ = dynamic_config::MakeDefaultStorage({});
     std::shared_ptr<ydb::impl::Driver> driver_;
     std::shared_ptr<ydb::TableClient> table_client_;
     std::shared_ptr<ydb::TopicClient> topic_client_;
