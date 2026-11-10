@@ -531,9 +531,9 @@ void Server::WriteMetrics(utils::statistics::Writer& writer) const {
 void ServerImpl::OnConfigUpdate(const dynamic_config::Snapshot& snapshot) {
     const auto& config = snapshot[::dynamic_config::USERVER_HTTP_SERVER_LOGS];
     std::vector<std::string_view> missing_paths{};
-    for (const auto& [path, _] : config.extra) {
-        if (available_paths_.count(path) == 0) {
-            missing_paths.emplace_back(path);
+    for (const auto& [key, _] : config.extra) {
+        if (key.starts_with('/') && available_paths_.count(key) == 0) {
+            missing_paths.emplace_back(key);
         }
     }
     if (missing_paths.empty()) {

@@ -89,9 +89,11 @@ namespace {
 
 const impl::HttpLoggingSettings* FindLoggingSettings(
     const dynamic_config::Snapshot& snapshot,
-    const HandlerConfig& config
+    const HandlerConfig& config,
+    const JsonBodyLoggingOptions& options
 ) {
-    return utils::FindOrNullptr(snapshot[impl::kHttpServerLogs], config.GetLowCardinalityRequestPath());
+    const auto handler_name = options.handler_name_override.value_or(config.GetLowCardinalityRequestPath());
+    return utils::FindOrNullptr(snapshot[impl::kHttpServerLogs], handler_name);
 }
 
 template <typename String>
@@ -111,18 +113,20 @@ std::string MaskJsonBodyForLogging(
 std::string MaskJsonRequestBodyForLogging(
     const std::string& body,
     const dynamic_config::Snapshot& snapshot,
-    const HandlerConfig& config
+    const HandlerConfig& config,
+    JsonBodyLoggingOptions options
 ) {
-    const auto* settings = FindLoggingSettings(snapshot, config);
+    const auto* settings = FindLoggingSettings(snapshot, config, options);
     return MaskJsonBodyForLogging(body, settings ? &settings->request : nullptr, config.request_body_size_log_limit);
 }
 
 std::string MaskJsonRequestBodyForLogging(
     std::string&& body,
     const dynamic_config::Snapshot& snapshot,
-    const HandlerConfig& config
+    const HandlerConfig& config,
+    JsonBodyLoggingOptions options
 ) {
-    const auto* settings = FindLoggingSettings(snapshot, config);
+    const auto* settings = FindLoggingSettings(snapshot, config, options);
     return MaskJsonBodyForLogging(
         std::move(body),
         settings ? &settings->request : nullptr,
@@ -133,18 +137,20 @@ std::string MaskJsonRequestBodyForLogging(
 std::string MaskJsonResponseBodyForLogging(
     const std::string& body,
     const dynamic_config::Snapshot& snapshot,
-    const HandlerConfig& config
+    const HandlerConfig& config,
+    JsonBodyLoggingOptions options
 ) {
-    const auto* settings = FindLoggingSettings(snapshot, config);
+    const auto* settings = FindLoggingSettings(snapshot, config, options);
     return MaskJsonBodyForLogging(body, settings ? &settings->response : nullptr, config.response_data_size_log_limit);
 }
 
 std::string MaskJsonResponseBodyForLogging(
     std::string&& body,
     const dynamic_config::Snapshot& snapshot,
-    const HandlerConfig& config
+    const HandlerConfig& config,
+    JsonBodyLoggingOptions options
 ) {
-    const auto* settings = FindLoggingSettings(snapshot, config);
+    const auto* settings = FindLoggingSettings(snapshot, config, options);
     return MaskJsonBodyForLogging(
         std::move(body),
         settings ? &settings->response : nullptr,

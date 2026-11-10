@@ -1,18 +1,24 @@
 default: {}
 description: |
-    Controls request and response body logging in HTTP handlers. Map from a handler path to logging settings.
-    The key is the low cardinality request path. Query parameters are not included.
-    Path parameters are included in their raw form as written in the handler config.
-    Example of key: `/v1/orders/{order_id}`.
+    Controls request and response body logging in HTTP handlers. Map from a handler lookup key to logging settings.
+    By default, the key is the low cardinality request path. Query parameters are not included, and path parameters
+    are included in their raw form as written in the handler config. Handwritten handlers may explicitly select
+    JSON masking settings by a custom handler name instead. Slash-prefixed keys are validated against registered
+    static handler paths; other custom names are not validated. Examples of keys: `/v1/orders/{order_id}` and
+    `dynamic-proxy-orders`.
     The value contains optional size limits and independent JSON masking policies for requests and responses.
+    For custom names, a size limit is applied only when the corresponding JSON masking policy is configured.
 schema:
     type: object
     description: |
-        Controls request and response body logging in HTTP handlers. Map from a handler path to logging settings.
-        The key is the low cardinality request path. Query parameters are not included.
-        Path parameters are included in their raw form as written in the handler config.
-        Example of key: `/v1/orders/{order_id}`.
+        Controls request and response body logging in HTTP handlers. Map from a handler lookup key to logging settings.
+        By default, the key is the low cardinality request path. Query parameters are not included, and path parameters
+        are included in their raw form as written in the handler config. Handwritten handlers may explicitly select
+        JSON masking settings by a custom handler name instead. Slash-prefixed keys are validated against registered
+        static handler paths; other custom names are not validated. Examples of keys: `/v1/orders/{order_id}` and
+        `dynamic-proxy-orders`.
         The value contains optional size limits and independent JSON masking policies for requests and responses.
+        For custom names, a size limit is applied only when the corresponding JSON masking policy is configured.
     example:
         /v1/orders/{order_id}:
             request_body_size_log_limit: 128
@@ -25,6 +31,11 @@ schema:
                 paths:
                   - [status]
                   - [user, id]
+        dynamic-proxy-orders:
+            request_body_size_log_limit: 512
+            json_request_body_masking:
+                paths:
+                  - [user, phone]
     additionalProperties:
         type: object
         additionalProperties: false
