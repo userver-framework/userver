@@ -144,7 +144,7 @@ CacheUpdateTrait::Impl::Impl(CacheDependencies&& dependencies, CacheUpdateTrait&
     // AfterConstruction follows component dependencies, so sequential testsuite
     // reset updates this cache before caches that FindComponent it. See
     // ComponentList.SequentialResetUpdatesDependencyBeforeDependent.
-    dependencies.scopes.Register([this] { return cache_control_.RegisterPeriodicCache(customized_trait_); });
+    cache_control_.RegisterPeriodicCache(dependencies.scopes, customized_trait_);
 }
 
 CacheUpdateTrait::Impl::~Impl() {

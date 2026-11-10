@@ -6,12 +6,14 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_set>
 
 #include <userver/cache/update_type.hpp>
 #include <userver/components/component_fwd.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/impl/internal_tag.hpp>
+#include <userver/utils/resource_scopes_fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -34,8 +36,6 @@ using CacheReverseDependencies = std::unordered_set<std::string>;
 CacheReverseDependencies GetDefaultCacheReverseDependencies();
 
 }  // namespace impl
-
-class CacheResetRegistration;
 
 /// @brief Testsuite interface for caches and cache-like components.
 ///
@@ -109,15 +109,18 @@ public:
     bool IsPeriodicUpdateEnabled(const cache::Config& cache_config, const std::string& cache_name) const;
 
     // For internal use only.
-    CacheResetRegistration RegisterPeriodicCache(cache::CacheUpdateTrait& cache);
+    void RegisterPeriodicCache(utils::ResourceScopeStorage& scopes, cache::CacheUpdateTrait& cache);
 
     // For internal use only. Use testsuite::RegisterCacheResetter instead
-    CacheResetRegistration RegisterCache(
+    void RegisterCache(
         utils::impl::InternalTag,
+        utils::ResourceScopeStorage& scopes,
         std::string_view name,
         std::function<void(cache::UpdateType)> reset
     );
 
+    /// @endcond
+private:
     struct CacheInfo final {
         std::string name;
         std::function<void(cache::UpdateType)> reset;
@@ -126,11 +129,7 @@ public:
     struct CacheInfoNode;
     using CacheInfoIterator = CacheInfoNode*;
 
-    // For internal use only.
     CacheInfoIterator DoRegisterCache(CacheInfo&& info);
-    /// @endcond
-private:
-    friend class CacheResetRegistration;
 
     class CacheResetJob;
 
@@ -159,37 +158,6 @@ private:
 
     struct Impl;
     std::unique_ptr<Impl> impl_;
-};
-
-/// @brief RAII helper for testsuite registration.
-///
-/// Removes the associated resetter automatically on destruction.
-///
-/// Prefer @ref RegisterCacheResetter so that the resetter is registered after
-/// the component constructor and unregistered just before the destructor.
-/// Otherwise store the registration as a member after the rest of
-/// the component's fields.
-/// @see testsuite::CacheControl
-class [[nodiscard]] CacheResetRegistration final {
-public:
-    CacheResetRegistration() noexcept;
-
-    CacheResetRegistration(CacheResetRegistration&&) noexcept;
-    CacheResetRegistration& operator=(CacheResetRegistration&&) noexcept;
-    ~CacheResetRegistration();
-
-    /// Unregister the cache component explicitly.
-    /// `Unregister` is called in the destructor automatically.
-    void Unregister() noexcept;
-
-    /// @cond
-    // For internal use only.
-    CacheResetRegistration(CacheControl&, CacheControl::CacheInfoIterator);
-    /// @endcond
-
-private:
-    CacheControl* cache_control_{nullptr};
-    CacheControl::CacheInfoIterator cache_info_iterator_{};
 };
 
 /// The method for acquiring testsuite::CacheControl in the component system.
@@ -265,26 +233,6 @@ void RegisterCacheResetter(
     void (Component::*reset_method)(cache::UpdateType)
 ) {
     impl::DoRegisterCacheScope(context, impl::BindCacheResetter(self, reset_method));
-}
-
-/// @deprecated Use @ref RegisterCacheResetter instead.
-/// The returned handle must be kept alive to keep supporting cache resetting.
-///
-/// @warning The function should be called in the component's constructor
-/// *after* all FindComponent calls. This ensures that reset will first be
-/// called for dependencies, then for dependent components.
-template <typename Component>
-CacheResetRegistration RegisterCache(
-    const components::ComponentContext& context,
-    Component* self,
-    void (Component::*reset_method)()
-) {
-    auto& cc = testsuite::FindCacheControl(context);
-    return cc.RegisterCache(
-        utils::impl::InternalTag{},
-        components::GetCurrentComponentName(context),
-        impl::BindCacheResetter(self, reset_method)
-    );
 }
 
 }  // namespace testsuite
