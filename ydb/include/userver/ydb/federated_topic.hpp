@@ -4,7 +4,7 @@
 /// @brief YDB Federated Topic client
 ///
 /// Federated Topic SDK serves as a wrapper over Topic SDK, coordinates
-/// reading from federated YDB installations topics, has a subset of functions
+/// reading from and writing to federated YDB installations topics, has a subset of functions
 /// of usual Topic SDK
 ///
 /// @ref userver/ydb/topic.hpp
@@ -17,6 +17,7 @@
 #include <ydb-cpp-sdk/client/types/executor/executor.h>
 
 #include <userver/compiler/impl/lifetime.hpp>
+#include <userver/ydb/topic.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -87,6 +88,10 @@ public:
 
     /// Create read session
     FederatedTopicReadSession CreateReadSession(const NYdb::NFederatedTopic::TFederatedReadSessionSettings& settings);
+
+    /// @brief Create a write session with the provided Federated Topic SDK settings.
+    /// Use @ref ydb::TopicWriteSession to write messages, receive acknowledgements and close the session.
+    TopicWriteSession CreateWriteSession(const NYdb::NFederatedTopic::TFederatedWriteSessionSettings& settings);
 
     /// Get native topic client
     /// @warning Use with care! Facilities from

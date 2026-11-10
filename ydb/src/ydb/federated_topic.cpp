@@ -71,6 +71,12 @@ FederatedTopicReadSession FederatedTopicClient::CreateReadSession(
     return FederatedTopicReadSession{topic_client_->CreateReadSession(settings)};
 }
 
+TopicWriteSession FederatedTopicClient::CreateWriteSession(
+    const NYdb::NFederatedTopic::TFederatedWriteSessionSettings& settings
+) {
+    return TopicWriteSession{topic_client_->CreateWriteSession(settings)};
+}
+
 NYdb::NFederatedTopic::TFederatedTopicClient& FederatedTopicClient::GetNativeTopicClient() USERVER_IMPL_LIFETIME_BOUND {
     UASSERT(topic_client_);
     return *topic_client_;
