@@ -5984,6 +5984,7 @@
   "testsuite/tests/config/conftest.py":"taxi/uservices/userver/testsuite/tests/config/conftest.py",
   "testsuite/tests/config/test_config_substitutions.py":"taxi/uservices/userver/testsuite/tests/config/test_config_substitutions.py",
   "testsuite/tests/config/test_listener_ports.py":"taxi/uservices/userver/testsuite/tests/config/test_listener_ports.py",
+  "testsuite/tests/config/test_mysql.py":"taxi/uservices/userver/testsuite/tests/config/test_mysql.py",
   "testsuite/tests/fixture_markers/CMakeLists.txt":"taxi/uservices/userver/testsuite/tests/fixture_markers/CMakeLists.txt",
   "testsuite/tests/fixture_markers/__init__.py":"taxi/uservices/userver/testsuite/tests/fixture_markers/__init__.py",
   "testsuite/tests/fixture_markers/conftest.py":"taxi/uservices/userver/testsuite/tests/fixture_markers/conftest.py",
