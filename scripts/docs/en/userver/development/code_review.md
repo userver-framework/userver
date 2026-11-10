@@ -229,7 +229,7 @@ visible when required by template instantiation or `constexpr` evaluation, and
 preserve the public API and semantics. Identify the state or methods that can be
 extracted and explain why they can move out of the header.
 
-## 9. Prefer meaningful enums to bool parameters
+## 9. Prefer meaningful enums and structs to ambiguous parameters
 
 Avoid `bool` function parameters where possible: boolean arguments make call sites
 hard to read because their meaning is hidden in the function declaration.
@@ -237,12 +237,18 @@ Use enums with meaningful values instead. As an illustrative example, replace
 `Call(true, false)` with `Call(kHighPriority, kReadOnly)`, where `kHighPriority`
 and `kReadOnly` are enum values describing the requested behavior.
 
+If a function, a method or a constructor takes parameters that tune its behavior,
+pass them as one struct with named fields. Then a call site names every value,
+for example `Connect(host, {.timeout = 1s, .max_retries = 3})`.
+
 ## 10. Write clear and defensive code
 
 Use modern C++20 and established project practices. Make contracts explicit and
 use defensive checks. Check invariants with @ref UASSERT and @ref UASSERT_MSG
 from `<userver/utils/assert.hpp>`. Configuration errors must be informative and
 include hints on how to fix them where possible. Avoid no-op code, which can be misleading.
+Do not conflate absent, null and empty values when they mean different things,
+e.g. a missing JSON field, an explicit `null` and `""`.
 
 Keep code simple and self-explanatory: use clear names and small, focused functions.
 Replace magic numbers and strings with named `constexpr` constants or equivalents.
@@ -294,6 +300,24 @@ Report this risk when the task has no restart mechanism. Ask the author to use
 the corresponding `CriticalAsync` variant or override
 @ref USERVER_TASK_PROCESSOR_QOS for the relevant task processor so overload
 does not cancel the task.
+
+## 16. Check behavior on errors, cancellation and concurrency
+
+For added or changed code paths, check that:
+- task cancellation and deadline expiration are observed, do not hang the code,
+  and leave the state consistent;
+- shared state is properly synchronized, and data read before a suspension
+  point is not assumed to be still valid after it;
+- an error or exception in the middle of an operation does not leave partially
+  applied changes unless the contract allows it;
+- retries do not repeat a non-idempotent side effect.
+
+## 17. Keep logs and metrics useful
+
+Log a failure once, at the level that handles it, rather than on every layer it
+passes through. Do not log unbounded data, personal data or secrets.
+Metric labels must have bounded cardinality: no user ids, request ids or other
+unbounded values. Metric names and descriptions must match what is actually measured.
 
 ----------
 
