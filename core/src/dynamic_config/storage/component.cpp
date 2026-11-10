@@ -376,12 +376,13 @@ void DynamicConfig::Impl::UpdateIfHasConfigAndListen(
     std::string_view name,
     concurrent::AsyncEventSource<const dynamic_config::Diff&>::Function&& func
 ) {
-    scopes.Register([this, id, name = std::string(name), func = std::move(func)]() mutable {
+    scopes.Register([this, &scopes, id, name = std::string(name), func = std::move(func)]() mutable {
         const std::lock_guard lock{loaded_mutex_};
         if (is_loaded_) {
-            return cache_.DoUpdateAndListen(id, name, std::move(func));
+            cache_.DoUpdateAndListenScoped(scopes, id, name, std::move(func));
+        } else {
+            GetDiffChannel().AddListener(scopes, id, name, std::move(func));
         }
-        return GetDiffChannel().AddListener(id, name, std::move(func));
     });
 }
 

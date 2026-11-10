@@ -1,6 +1,7 @@
 #include <userver/utest/utest.hpp>
 
 #include <string_view>
+#include <utility>
 #include <vector>
 
 #include <userver/dynamic_config/snapshot.hpp>
@@ -9,6 +10,7 @@
 #include <userver/dynamic_config/test_helpers.hpp>
 #include <userver/formats/json/inline.hpp>
 #include <userver/formats/json/serialize.hpp>
+#include <userver/utils/resource_scopes.hpp>
 #include <userver/utils/trivial_map.hpp>
 
 using namespace std::chrono_literals;
@@ -317,8 +319,8 @@ UTEST(DynamicConfig, GetEventChannel) {
     dynamic_config::StorageMock storage;
     storage.Extend(vars1);
     auto source = storage.GetSource();
-    Subscriber subscribers[4];
-    concurrent::AsyncEventSubscriberScope scopes[4];
+    Subscriber subscribers[3];
+    concurrent::AsyncEventSubscriberScope scopes[3];
 
     scopes[0] = source.UpdateAndListen(&subscribers[0], "", &Subscriber::OnConfigUpdate);
     scopes[1] = source.UpdateAndListen(&subscribers[1], "", &Subscriber::OnConfigUpdate, kIntConfig);
@@ -330,18 +332,28 @@ UTEST(DynamicConfig, GetEventChannel) {
     EXPECT_EQ(subscribers[2].GetCounter(), 2);
 
     auto& main_channel = source.GetEventChannel();
-    scopes[3] =
-        main_channel
-            .AddListener(concurrent::FunctionId(&subscribers[3]), "", [&](const dynamic_config::Snapshot& snapshot) {
-                subscribers[3].OnConfigUpdate(snapshot);
-                subscribers[3].OnConfigUpdate(snapshot);
-            });
+    struct DoubleSubscriber {
+        DoubleSubscriber(utils::ResourceScopeStorage& scopes, dynamic_config::Source::SnapshotEventSource& channel) {
+            channel.AddListener(
+                scopes,
+                concurrent::FunctionId(this),
+                "double",
+                [this](const dynamic_config::Snapshot& snapshot) {
+                    subscriber.OnConfigUpdate(snapshot);
+                    subscriber.OnConfigUpdate(snapshot);
+                }
+            );
+        }
+
+        Subscriber subscriber;
+    };
+    utils::WithResourceScopes<DoubleSubscriber> double_subscriber(std::in_place, main_channel);
 
     storage.Extend(vars3);
     EXPECT_EQ(subscribers[0].GetCounter(), 3);
     EXPECT_EQ(subscribers[1].GetCounter(), 2);
     EXPECT_EQ(subscribers[2].GetCounter(), 2);
-    EXPECT_EQ(subscribers[3].GetCounter(), 2);
+    EXPECT_EQ(double_subscriber->subscriber.GetCounter(), 2);
 }
 
 UTEST(DynamicConfig, SubsetSubscription) {

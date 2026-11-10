@@ -38,8 +38,35 @@ class Processor final {
 public:
     explicit Processor(engine::TaskProcessor& task_processor);
 
+    /// @brief Listens for a specific signal during the resource scope lifetime.
+    /// @param scopes storage that owns the subscription lifetime.
+    /// See @ref resource_scopes_parameter "where to obtain scopes".
+    template <class Class>
+    void AddListener(
+        utils::ResourceScopeStorage& scopes,
+        Class* obj,
+        std::string_view name,
+        int signum,
+        void (Class::*func)()
+    ) {
+        channel_.AddListener(scopes, concurrent::FunctionId(obj), name, [obj, func, signum](int sig) {
+            if (sig == signum) {
+                (obj->*func)();
+            }
+        });
+    }
+
+    /// @brief Listens for all OS signals during the resource scope lifetime.
+    /// @param scopes storage that owns the subscription lifetime.
+    /// See @ref resource_scopes_parameter "where to obtain scopes".
+    template <class Class>
+    void AddListener(utils::ResourceScopeStorage& scopes, Class* obj, std::string_view name, void (Class::*func)(int)) {
+        channel_.AddListener(scopes, obj, name, func);
+    }
+
     /// Listen for a specific signal `signum`. See the other overload for
     /// subscription to both signals.
+    /// @deprecated Use the overload that takes @ref utils::ResourceScopeStorage.
     template <class Class>
     Subscriber AddListener(Class* obj, std::string_view name, int signum, void (Class::*func)()) {
         auto execute = [obj, func, signum](int sig) {
@@ -52,6 +79,7 @@ public:
     }
 
     /// Listen for all the OS signals.
+    /// @deprecated Use the overload that takes @ref utils::ResourceScopeStorage.
     template <class Class>
     Subscriber AddListener(Class* obj, std::string_view name, void (Class::*func)(int /*signum*/)) {
         auto execute = [obj, func](int sig) { (obj->*func)(sig); };
