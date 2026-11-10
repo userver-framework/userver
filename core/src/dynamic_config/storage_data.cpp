@@ -111,7 +111,7 @@ void StorageData::DoUpdateAndListenScoped(
     SnapshotChannel::Function&& func
 ) {
     auto updater = [this, func_copy = func] { func_copy(GetSnapshot()); };
-    snapshot_channel_.DoUpdateAndListenScoped(scopes, id, name, std::move(func), std::move(updater));
+    snapshot_channel_.DoUpdateAndListen(scopes, id, name, std::move(func), std::move(updater));
 }
 
 void StorageData::DoUpdateAndListenScoped(
@@ -125,7 +125,7 @@ void StorageData::DoUpdateAndListenScoped(
         const Diff diff{std::nullopt, GetSnapshot()};
         func_copy(diff);
     };
-    diff_channel_.DoUpdateAndListenScoped(scopes, id, name, std::move(func), std::move(updater));
+    diff_channel_.DoUpdateAndListen(scopes, id, name, std::move(func), std::move(updater));
 }
 
 }  // namespace dynamic_config::impl

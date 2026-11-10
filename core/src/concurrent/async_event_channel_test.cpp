@@ -159,7 +159,7 @@ public:
         std::string_view name,
         void (Class::*func)(WeatherKind)
     ) {
-        channel_.DoUpdateAndListenScoped(scopes, obj, name, func, [this, obj, func] { (obj->*func)(Get()); });
+        channel_.DoUpdateAndListen(scopes, obj, name, func, [this, obj, func] { (obj->*func)(Get()); });
     }
 
     /// @overload
@@ -339,7 +339,7 @@ public:
         : current_(current),
           updates_(std::move(updates))
     {
-        channel.DoUpdateAndListenScoped(scopes, this, "sub", &ScopedSubscriber::OnEvent, [this] {
+        channel.DoUpdateAndListen(scopes, this, "sub", &ScopedSubscriber::OnEvent, [this] {
             OnEvent(current_.load());
         });
         after_subscribe();
@@ -352,7 +352,7 @@ private:
     const utils::SharedRef<std::vector<int>> updates_;
 };
 
-UTEST(AsyncEventChannel, DoUpdateAndListenScopedCallsUpdaterOnceWithoutEvents) {
+UTEST(AsyncEventChannel, DoUpdateAndListenCallsUpdaterOnceWithoutEvents) {
     concurrent::AsyncEventChannel<int> channel("channel");
     const auto updates = utils::MakeSharedRef<std::vector<int>>();
     const std::atomic<int> current{1};
@@ -369,7 +369,7 @@ UTEST(AsyncEventChannel, DoUpdateAndListenScopedCallsUpdaterOnceWithoutEvents) {
     EXPECT_THAT(*updates, ::testing::ElementsAre(1, 2));
 }
 
-UTEST(AsyncEventChannel, DoUpdateAndListenScopedReplaysUpdaterIfEventSkipped) {
+UTEST(AsyncEventChannel, DoUpdateAndListenReplaysUpdaterIfEventSkipped) {
     concurrent::AsyncEventChannel<int> channel("channel");
     const auto updates = utils::MakeSharedRef<std::vector<int>>();
     std::atomic<int> current{0};
@@ -391,7 +391,7 @@ UTEST(AsyncEventChannel, DoUpdateAndListenScopedReplaysUpdaterIfEventSkipped) {
     EXPECT_THAT(*updates, ::testing::ElementsAre(0, 5, 7));
 }
 
-UTEST(AsyncEventChannel, DoUpdateAndListenScopedUnsubscribesIfConstructionFailed) {
+UTEST(AsyncEventChannel, DoUpdateAndListenUnsubscribesIfConstructionFailed) {
     concurrent::AsyncEventChannel<int> channel("channel");
     const auto updates = utils::MakeSharedRef<std::vector<int>>();
     std::atomic<int> current{1};

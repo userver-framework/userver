@@ -77,7 +77,7 @@ void ConflatedEventChannel::UpdateAndListen(
     std::string_view name,
     void (Class::*func)()
 ) {
-    DoUpdateAndListenScoped(scopes, obj, name, func, [obj, func] { (obj->*func)(); });
+    DoUpdateAndListen(scopes, obj, name, func, [obj, func] { (obj->*func)(); });
 }
 
 template <typename Class>

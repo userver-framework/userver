@@ -164,7 +164,7 @@ public:
     /// @param scopes storage that owns the subscription lifetime.
     /// See @ref resource_scopes_parameter "where to obtain scopes".
     template <typename UpdaterFunc>
-    void DoUpdateAndListenScoped(
+    void DoUpdateAndListen(
         utils::ResourceScopeStorage& scopes,
         FunctionId id,
         std::string_view name,
@@ -203,14 +203,14 @@ public:
     /// @param scopes storage that owns the subscription lifetime.
     /// See @ref resource_scopes_parameter "where to obtain scopes".
     template <typename Class, typename UpdaterFunc>
-    void DoUpdateAndListenScoped(
+    void DoUpdateAndListen(
         utils::ResourceScopeStorage& scopes,
         Class* obj,
         std::string_view name,
         void (Class::*func)(Args...),
         UpdaterFunc&& updater
     ) {
-        DoUpdateAndListenScoped(
+        DoUpdateAndListen(
             scopes,
             FunctionId(obj),
             name,
@@ -218,6 +218,34 @@ public:
             std::forward<UpdaterFunc>(updater)
         );
     }
+
+#ifndef ARCADIA_ROOT
+
+    /// @deprecated Use @ref concurrent::AsyncEventChannel::DoUpdateAndListen instead.
+    template <typename UpdaterFunc>
+    void DoUpdateAndListenScoped(
+        utils::ResourceScopeStorage& scopes,
+        FunctionId id,
+        std::string_view name,
+        Function&& func,
+        UpdaterFunc&& updater
+    ) {
+        DoUpdateAndListen(scopes, id, name, std::move(func), std::forward<UpdaterFunc>(updater));
+    }
+
+    /// @deprecated Use @ref concurrent::AsyncEventChannel::DoUpdateAndListen instead.
+    template <typename Class, typename UpdaterFunc>
+    void DoUpdateAndListenScoped(
+        utils::ResourceScopeStorage& scopes,
+        Class* obj,
+        std::string_view name,
+        void (Class::*func)(Args...),
+        UpdaterFunc&& updater
+    ) {
+        DoUpdateAndListen(scopes, obj, name, func, std::forward<UpdaterFunc>(updater));
+    }
+
+#endif
 
     /// Send the next event and wait until all the listeners process it.
     ///

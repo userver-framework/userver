@@ -282,7 +282,7 @@ void CachingComponentBase<T>::UpdateAndListen(
     std::string name,
     void (Class::*func)(const std::shared_ptr<const T>&)
 ) {
-    event_channel_.DoUpdateAndListenScoped(scopes, obj, std::move(name), func, [this, obj, func] {
+    event_channel_.DoUpdateAndListen(scopes, obj, std::move(name), func, [this, obj, func] {
         auto ptr = Get();  // TODO: extra ref
         (obj->*func)(ptr);
     });

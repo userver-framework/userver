@@ -155,7 +155,7 @@ void Secdist::Impl::DoUpdateAndListen(
         const auto snapshot = GetSnapshot();
         func_copy(*snapshot);
     };
-    channel_.DoUpdateAndListenScoped(scopes, id, name, std::move(func), std::move(updater));
+    channel_.DoUpdateAndListen(scopes, id, name, std::move(func), std::move(updater));
 }
 
 void Secdist::Impl::StartUpdateTask() {
