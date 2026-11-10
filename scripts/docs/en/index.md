@@ -200,6 +200,7 @@ and make sure that it builds and passes tests.
 * @ref scripts/docs/en/userver/clickhouse/driver.md
 
 ## Libraries
+* @ref scripts/docs/en/userver/libraries/jwt.md
 * @ref scripts/docs/en/userver/libraries/easy.md
 * @ref scripts/docs/en/userver/libraries/s3api.md
 * @ref scripts/docs/en/userver/libraries/sqs.md
