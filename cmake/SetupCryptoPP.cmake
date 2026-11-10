@@ -32,11 +32,11 @@ cpmaddpackage(
             "CRYPTOPP_USE_OPENMP OFF" "CRYPTOPP_DATA_DIR"
 )
 
-# Crypto++ exports its unprefixed source dir, whose zlib.h, config.h, etc. shadow system headers.
 include(FetchContent)
 FetchContent_GetProperties(cryptopp)
 get_target_property(cryptopp_include_dirs cryptopp INTERFACE_INCLUDE_DIRECTORIES)
-list(REMOVE_ITEM cryptopp_include_dirs "$<BUILD_INTERFACE:${cryptopp_SOURCE_DIR}>")
+set(cryptopp_dir_shadowing_system_headers "$<BUILD_INTERFACE:${cryptopp_SOURCE_DIR}>")
+list(REMOVE_ITEM cryptopp_include_dirs "${cryptopp_dir_shadowing_system_headers}")
 set_target_properties(cryptopp PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${cryptopp_include_dirs}")
 
 add_library(CryptoPP INTERFACE)
