@@ -1,3 +1,4 @@
+import copy
 import json
 
 import pytest
@@ -26,8 +27,15 @@ SECDIST_CONFIG = {
 
 
 @pytest.fixture(scope='session')
-def service_env():
-    return {'SECDIST_CONFIG': json.dumps(SECDIST_CONFIG)}
+def service_env(mysql_conninfo):
+    secdist_config = copy.deepcopy(SECDIST_CONFIG)
+    secdist_config['mysql_settings']['sample-sql-component'].update(
+        hosts=[mysql_conninfo.hostname],
+        port=mysql_conninfo.port,
+        user=mysql_conninfo.user,
+        password=mysql_conninfo.password or '',
+    )
+    return {'SECDIST_CONFIG': json.dumps(secdist_config)}
 
 
 @pytest.fixture(scope='session')
