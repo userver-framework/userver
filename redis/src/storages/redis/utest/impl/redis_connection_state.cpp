@@ -1,5 +1,7 @@
 #include <storages/redis/utest/impl/redis_connection_state.hpp>
 
+#include <utility>
+
 #include <fmt/format.h>
 
 #include <userver/dynamic_config/storage_mock.hpp>
@@ -185,15 +187,15 @@ RedisConnectionState::RedisConnectionState() {
     WaitConnectedWithRetries(sentinel_);
     client_ = std::make_shared<ClientImpl>(sentinel_);
 
-    subscribe_sentinel_ = SubscribeSentinel::Create(
+    auto subscribe_sentinel = SubscribeSentinel::Create(
         thread_pools_,
         GetRedisSettings(),
         "none",
         configs_source,
         storages::redis::impl::SubscribeSentinelStaticConfig{"pub", KeyShardFactory{sharding_strategy}, {}, {}}
     );
-    WaitConnectedWithRetries(subscribe_sentinel_);
-    subscribe_client_ = std::make_shared<SubscribeClientImpl>(subscribe_sentinel_);
+    WaitConnectedWithRetries(subscribe_sentinel);
+    subscribe_client_ = std::make_shared<SubscribeClientImpl>(std::move(subscribe_sentinel));
 }
 
 RedisConnectionState::RedisConnectionState(InClusterMode) {
@@ -221,7 +223,7 @@ RedisConnectionState::RedisConnectionState(InClusterMode) {
 
     client_ = std::make_shared<ClientImpl>(sentinel_);
 
-    subscribe_sentinel_ = storages::redis::impl::SubscribeSentinel::Create(
+    auto subscribe_sentinel = SubscribeSentinel::Create(
         thread_pools_,
         GetRedisClusterSettings(),
         "none",
@@ -233,8 +235,8 @@ RedisConnectionState::RedisConnectionState(InClusterMode) {
             {},
         }
     );
-    WaitConnectedWithRetries(subscribe_sentinel_);
-    subscribe_client_ = std::make_shared<storages::redis::SubscribeClientImpl>(subscribe_sentinel_);
+    WaitConnectedWithRetries(subscribe_sentinel);
+    subscribe_client_ = std::make_shared<SubscribeClientImpl>(std::move(subscribe_sentinel));
 }
 
 }  // namespace storages::redis::utest::impl

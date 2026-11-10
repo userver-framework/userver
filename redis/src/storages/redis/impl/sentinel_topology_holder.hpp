@@ -1,4 +1,8 @@
 #pragma once
+
+#include <optional>
+
+#include <storages/redis/impl/shard.hpp>
 #include <storages/redis/impl/topology_holder_base.hpp>
 #include <userver/engine/pulse_event.hpp>
 #include <userver/rcu/rcu.hpp>
@@ -115,7 +119,7 @@ private:
     ClusterShardHostInfos new_shard_host_info_;
     NodesStorage nodes_;
 
-    std::shared_ptr<Shard> sentinels_;
+    std::optional<Shard> sentinels_;
     std::unordered_map<HostPort, utils::datetime::SteadyCoarseClock::time_point> nodes_last_seen_time_;
     rcu::RcuMap<std::string, std::string, SingleWriterRcuMapTraits<std::string>> ip_by_fqdn_;
 

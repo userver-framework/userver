@@ -250,7 +250,7 @@ void ClusterTopologyHolder::Init() {
         }
     };
 
-    sentinels_ = std::make_shared<Shard>(std::move(shard_options), ev_thread_);
+    sentinels_.emplace(std::move(shard_options), ev_thread_);
 
     sentinels_->SignalInstanceStateChange().connect([this, callback_token](ServerId id, Redis::State state) {
         if (!AreCallbacksEnabled(callback_token)) {

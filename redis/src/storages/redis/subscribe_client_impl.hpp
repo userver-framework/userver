@@ -31,7 +31,8 @@ namespace storages::redis {
 /// `Psubscribe()` return as it happens in a separate task.
 class SubscribeClientImpl final : public SubscribeClient {
 public:
-    explicit SubscribeClientImpl(std::shared_ptr<impl::SubscribeSentinel> subscribe_sentinel);
+    explicit SubscribeClientImpl(std::unique_ptr<impl::SubscribeSentinel> subscribe_sentinel);
+    ~SubscribeClientImpl() override;
 
     SubscriptionToken Subscribe(
         std::string channel,
@@ -79,7 +80,7 @@ public:
     impl::SubscribeSentinel& GetNative() const;
 
 private:
-    std::shared_ptr<impl::SubscribeSentinel> redis_client_;
+    std::unique_ptr<impl::SubscribeSentinel> redis_client_;
 };
 
 }  // namespace storages::redis

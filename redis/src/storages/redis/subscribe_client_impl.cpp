@@ -9,9 +9,11 @@ namespace storages::redis {
 
 SubscribeClient::~SubscribeClient() = default;
 
-SubscribeClientImpl::SubscribeClientImpl(std::shared_ptr<impl::SubscribeSentinel> subscribe_sentinel)
+SubscribeClientImpl::SubscribeClientImpl(std::unique_ptr<impl::SubscribeSentinel> subscribe_sentinel)
     : redis_client_(std::move(subscribe_sentinel))
 {}
+
+SubscribeClientImpl::~SubscribeClientImpl() = default;
 
 SubscriptionToken SubscribeClientImpl::Subscribe(
     std::string channel,

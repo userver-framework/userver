@@ -41,13 +41,10 @@ protected:
     void SetUp() override {
         constexpr std::size_t kShardsCount = 1;
         if (GetParam().cluster) {
-            storage_ = std::make_shared<ClusterSubscriptionStorage>(thread_pool_.NextThread(), kShardsCount);
+            storage_ = std::make_unique<ClusterSubscriptionStorage>(thread_pool_.NextThread(), kShardsCount);
         } else {
-            storage_ = std::make_shared<SubscriptionStorage>(
-                thread_pool_.NextThread(),
-                kShardsCount,
-                std::make_shared<const std::vector<std::string>>(std::vector<std::string>{"shard0"})
-            );
+            storage_ = std::make_unique<
+                SubscriptionStorage>(thread_pool_.NextThread(), std::vector<std::string>{"shard0"});
         }
         storage_->SetSubscribeCallback([this](std::size_t, CommandPtr command) {
             subscribe_commands_.push_back(std::move(command));
@@ -191,7 +188,7 @@ protected:
 private:
     static constexpr const char* kChannel = "recovery-channel";
     engine::ev::ThreadPool thread_pool_{engine::ev::ThreadPoolConfig{1, "redis_recovery_test"}};
-    std::shared_ptr<SubscriptionStorageBase> storage_;
+    std::unique_ptr<SubscriptionStorageBase> storage_;
     std::optional<SubscriptionToken> token_;
     std::vector<CommandPtr> subscribe_commands_;
     std::vector<CommandPtr> unsubscribe_commands_;

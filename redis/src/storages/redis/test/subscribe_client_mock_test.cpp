@@ -1,42 +1,45 @@
 #include <userver/storages/redis/mock_subscribe_client.hpp>
 
+#include <memory>
+#include <utility>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis::test {
 
 /// Here, we test that our Mock is correct
 TEST(MockSubscribeClientTest, Basic) {
-    const std::shared_ptr<MockSubscribeClient> client_mock = std::make_shared<MockSubscribeClient>();
+    MockSubscribeClient client_mock;
 
     using testing::_;
 
     {
         const testing::InSequence seq;
-        EXPECT_CALL(*client_mock, Subscribe("test_subscribe", _, _))
+        EXPECT_CALL(client_mock, Subscribe("test_subscribe", _, _))
             .Times(1)
             .WillRepeatedly([](std::string, SubscriptionToken::OnMessageCb, const CommandControl&) {
                 return SubscriptionToken{};
             });
 
-        EXPECT_CALL(*client_mock, Psubscribe("test_psubscribe", _, _))
+        EXPECT_CALL(client_mock, Psubscribe("test_psubscribe", _, _))
             .Times(1)
             .WillRepeatedly([](std::string, SubscriptionToken::OnPmessageCb, const CommandControl&) {
                 return SubscriptionToken{};
             });
     }
     // check that wrong calls aren't there
-    EXPECT_CALL(*client_mock, Subscribe("test_psubscribe", _, _)).Times(0);
-    EXPECT_CALL(*client_mock, Psubscribe("test_subscribe", _, _)).Times(0);
+    EXPECT_CALL(client_mock, Subscribe("test_psubscribe", _, _)).Times(0);
+    EXPECT_CALL(client_mock, Psubscribe("test_subscribe", _, _)).Times(0);
 
-    [[maybe_unused]] const auto subscription1 = client_mock->Subscribe("test_subscribe", {}, {});
-    [[maybe_unused]] const auto subscription2 = client_mock->Psubscribe("test_psubscribe", {}, {});
+    [[maybe_unused]] const auto subscription1 = client_mock.Subscribe("test_subscribe", {}, {});
+    [[maybe_unused]] const auto subscription2 = client_mock.Psubscribe("test_psubscribe", {}, {});
 }
 
 /// Here, we test that our Mock is correct
 TEST(MockSubscribeClientTest, SubscriptionToken) {
     //! [SbTknExmpl1]
     // Create a mocked subscribe client
-    auto client_mock = std::make_shared<MockSubscribeClient>();
+    MockSubscribeClient client_mock;
     // Create a mocked token explicitly to set expectations on it.
     auto token_mock = std::make_unique<MockSubscriptionTokenImpl>();
 
@@ -47,16 +50,16 @@ TEST(MockSubscribeClientTest, SubscriptionToken) {
 
     // Here is how to return a mocked token from Subscribe method.
     // Beware that after this line of code, token_mock will be nullptr!
-    EXPECT_CALL(*client_mock, Subscribe("test_subscribe", _, _))
+    EXPECT_CALL(client_mock, Subscribe("test_subscribe", _, _))
         .Times(1)
         .WillOnce(testing::Return(::testing::ByMove(SubscriptionToken{std::move(token_mock)})));
 
     // Check that wrong calls aren't there
-    EXPECT_CALL(*client_mock, Psubscribe("test_subscribe", _, _)).Times(0);
+    EXPECT_CALL(client_mock, Psubscribe("test_subscribe", _, _)).Times(0);
 
     // Call Subscribe, get token. Inside this token there should be
     // our token_mock impl
-    auto token = client_mock->Subscribe("test_subscribe", {}, {});
+    auto token = client_mock.Subscribe("test_subscribe", {}, {});
     // Can't get access to it, but we can check that something is actually
     // inside the token.
     EXPECT_FALSE(token.IsEmpty());

@@ -755,13 +755,12 @@ template class SubscriptionStorageBase::SubscriptionStorageImpl<
 
 SubscriptionStorage::SubscriptionStorage(
     const engine::ev::ThreadControl& thread_control,
-    size_t shards_count,
-    std::shared_ptr<const std::vector<std::string>> shard_names
+    std::vector<std::string> shard_names
 )
-    : storage_impl_(thread_control, shards_count, *this),
+    : storage_impl_(thread_control, shard_names.size(), *this),
       shard_names_(std::move(shard_names))
 {
-    for (size_t shard_idx = 0; shard_idx < shards_count; shard_idx++) {
+    for (size_t shard_idx = 0; shard_idx < shard_names_.size(); shard_idx++) {
         rebalance_schedulers_
             .emplace_back(std::make_unique<SubscriptionRebalanceScheduler>(thread_control, *this, shard_idx));
     }
@@ -932,10 +931,7 @@ void SubscriptionStorage::PsubscribeImpl(
     );
 }
 
-const std::string& SubscriptionStorage::GetShardName(size_t shard_idx) const {
-    UASSERT(shard_names_);
-    return shard_names_->at(shard_idx);
-}
+const std::string& SubscriptionStorage::GetShardName(size_t shard_idx) const { return shard_names_.at(shard_idx); }
 
 }  // namespace storages::redis::impl
 

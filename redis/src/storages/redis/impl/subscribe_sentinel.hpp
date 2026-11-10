@@ -29,7 +29,7 @@ public:
     );
     ~SubscribeSentinel() override;
 
-    static std::shared_ptr<SubscribeSentinel> Create(
+    static std::unique_ptr<SubscribeSentinel> Create(
         const std::shared_ptr<ThreadPools>& thread_pools,
         const USERVER_NAMESPACE::secdist::RedisSettings& settings,
         std::string shard_group_name,

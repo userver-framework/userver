@@ -319,11 +319,7 @@ protected:
 
 class SubscriptionStorage : public SubscriptionStorageBase {
 public:
-    SubscriptionStorage(
-        const engine::ev::ThreadControl& thread_control,
-        size_t shards_count,
-        std::shared_ptr<const std::vector<std::string>> shard_names
-    );
+    SubscriptionStorage(const engine::ev::ThreadControl& thread_control, std::vector<std::string> shard_names);
     ~SubscriptionStorage() override;
 
     void SetSubscribeCallback(CommandCb) override;
@@ -415,7 +411,7 @@ private:
     using PcallbackMap = std::map<std::string, PChannelInfo>;
 
     SubscriptionStorageImpl<CallbackMap, PcallbackMap> storage_impl_;
-    std::shared_ptr<const std::vector<std::string>> shard_names_;
+    const std::vector<std::string> shard_names_;
     std::vector<std::unique_ptr<SubscriptionRebalanceScheduler>> rebalance_schedulers_;
 };
 

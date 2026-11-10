@@ -117,9 +117,9 @@ void MockRedisServerBase::HandleConnection(ConnectionPtr connection) {
 
         void* hiredis_reply = nullptr;
         while (redisReaderGetReply(connection->reader.get(), &hiredis_reply) == REDIS_OK && hiredis_reply) {
-            auto reply = std::make_shared<
-                storages::redis::Reply>("", static_cast<redisReply*>(hiredis_reply), storages::redis::ReplyStatus::kOk);
-            LOG_DEBUG() << "command: " << reply->data.ToDebugString();
+            const storages::redis::Reply
+                reply{"", static_cast<redisReply*>(hiredis_reply), storages::redis::ReplyStatus::kOk};
+            LOG_DEBUG() << "command: " << reply.data.ToDebugString();
 
             OnCommand(connection, reply);
             freeReplyObject(hiredis_reply);
@@ -326,9 +326,9 @@ MockRedisServer::HandlerPtr MockRedisServer::RegisterClusterNodes(
     return handler;
 }
 
-void MockRedisServer::OnCommand(ConnectionPtr connection, std::shared_ptr<storages::redis::Reply> cmd) {
-    ASSERT_TRUE(cmd->data.IsArray());
-    auto array = cmd->data.GetArray();
+void MockRedisServer::OnCommand(ConnectionPtr connection, const storages::redis::Reply& cmd) {
+    ASSERT_TRUE(cmd.data.IsArray());
+    auto array = cmd.data.GetArray();
     ASSERT_GT(array.size(), 0UL);
     ASSERT_TRUE(array[0].IsString());
 
