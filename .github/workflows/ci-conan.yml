@@ -27,7 +27,7 @@ jobs:
                     container: ubuntu:22.04
                     conanflags: ''
                     tests-env: 'JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64'
-                  - os: macos-14
+                  - os: macos-15
                     conanflags: ''
                     tests-env: ''
 
@@ -48,7 +48,7 @@ jobs:
                    python3 python3-pip python3-venv
 
           - name: Install MacOS packages
-            if: matrix.os == 'macos-14'
+            if: matrix.os == 'macos-15'
             run: |
                 brew update
                 brew trust --formula azure/bicep/bicep
