@@ -560,7 +560,7 @@ void RequestState::OnCompleted(std::shared_ptr<RequestState> holder, std::error_
             LOG_DEBUG() << "cURL error details: " << holder->errorbuffer_.data();
         }
 
-        holder->span_storage_.reset();
+        holder->FinishSpan();
 
         const utils::Overloaded visitor{
             [&holder, &err](FullBufferedData& buffered_data) {
@@ -597,7 +597,7 @@ void RequestState::OnCompleted(std::shared_ptr<RequestState> holder, std::error_
 
         holder->middlewares_pipeline_.HookOnCompleted(*holder, *holder->response());
 
-        holder->span_storage_.reset();
+        holder->FinishSpan();
 
         const utils::Overloaded visitor{
             [&holder](FullBufferedData& buffered_data) {
@@ -916,10 +916,17 @@ void RequestState::PerformRequest(curl::easy::handler_type handler) {
     if (resolver_ && retry_.current == 1) {
         engine::DetachUnscopedUnsafe(
             engine::AsyncNoTracing([this, holder = shared_from_this(), handler = std::move(handler)]() mutable {
-                auto exception_handler = utils::Overloaded{
-                    [](FullBufferedData& data) { data.promise.set_exception(std::current_exception()); },
-                    [](WebSocketHandshakeData& data) { data.promise.set_exception(std::current_exception()); },
-                    [](StreamData&) {},
+                const auto complete_with_exception = [this] {
+                    FinishSpan();
+                    std::visit(
+                        utils::Overloaded{
+                            [](FullBufferedData& data) { data.promise.set_exception(std::current_exception()); },
+                            [](WebSocketHandshakeData& data) { data.promise.set_exception(std::current_exception()); },
+                            [](StreamData&) {},
+                        },
+                        data_
+                    );
+                    RequestCompleted();
                 };
 
                 try {
@@ -928,12 +935,10 @@ void RequestState::PerformRequest(curl::easy::handler_type handler) {
                     return;
                 } catch (const clients::dns::ResolverException& ex) {
                     // TODO: should retry - TAXICOMMON-4932
-                    std::visit(exception_handler, data_);
+                    complete_with_exception();
                 } catch (const BaseException& ex) {
-                    std::visit(exception_handler, data_);
+                    complete_with_exception();
                 }
-                span_storage_.reset();
-                RequestCompleted();
             })
         );
     } else {
@@ -1023,7 +1028,7 @@ void RequestState::HandleDeadlineAlreadyPassed() {
 
     WithRequestStats([](RequestStats& stats) { stats.AccountCancelledByDeadline(); });
 
-    span_storage_.reset();
+    FinishSpan();
 
     auto exc = PrepareDeadlinePassedException(GetLoggedOriginalUrl(), easy().get_local_stats());
 
@@ -1256,6 +1261,11 @@ void RequestState::StartNewSpan(utils::impl::SourceLocation location) {
 
     // Span is local to a Request, it is not related to current coroutine
     span.DetachFromCoroStack();
+}
+
+void RequestState::FinishSpan() {
+    middlewares_pipeline_.HookOnRequestFinished(*this, span_storage_->Get());
+    span_storage_.reset();
 }
 
 void RequestState::StartStats() {

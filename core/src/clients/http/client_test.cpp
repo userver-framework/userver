@@ -14,6 +14,7 @@
 #include <userver/clients/dns/resolver.hpp>
 #include <userver/clients/http/client_core.hpp>
 #include <userver/clients/http/connect_to.hpp>
+#include <userver/clients/http/middlewares/base.hpp>
 #include <userver/clients/http/streamed_response.hpp>
 #include <userver/concurrent/queue.hpp>
 #include <userver/crypto/certificate.hpp>
@@ -45,6 +46,22 @@ constexpr auto kTimeout = utest::kMaxTestWaitTime;
 // timeout sometimes expires just because the server was not fast enough to
 // process the request (test may very rarely pass as a false positive).
 constexpr auto kSmallTimeout = std::chrono::milliseconds{50};
+
+class RequestTimingMiddleware final : public clients::http::MiddlewareBase {
+public:
+    void HookOnRequestFinished(const clients::http::MiddlewareRequest& request, const tracing::Span& span)
+        noexcept override {
+        ++finished_count;
+        elapsed = std::chrono::steady_clock::now() - span.GetStartSteadyTime();
+        method = request.GetMethod();
+        saw_timeout_template = request.GetUrlTemplate() == "/timeout";
+    }
+
+    unsigned finished_count{0};
+    std::chrono::steady_clock::duration elapsed{};
+    clients::http::HttpMethod method{clients::http::HttpMethod::kGet};
+    bool saw_timeout_template{false};
+};
 
 constexpr char kTestData[] = "Test Data";
 constexpr unsigned kRepetitions = 200;
@@ -654,6 +671,8 @@ UTEST(HttpClient, PostEcho) {
 UTEST(HttpClient, StatsOnTimeout) {
     const int retries = 5;
     const utest::SimpleServer http_server{&SleepCallback};
+    RequestTimingMiddleware timing;
+    const std::vector<utils::NotNull<clients::http::MiddlewareBase*>> middlewares{timing};
     auto http_client_ptr = utest::CreateHttpClient();
 
     auto request =
@@ -663,6 +682,8 @@ UTEST(HttpClient, StatsOnTimeout) {
             .verify(true)
             .http_version(USERVER_NAMESPACE::http::HttpVersion::k11)
             .timeout(kSmallTimeout);
+    request.SetMiddlewaresList(middlewares);
+    request.SetUrlTemplate("/timeout");
 
     try {
         auto res = request.perform();
@@ -673,7 +694,11 @@ UTEST(HttpClient, StatsOnTimeout) {
 
         EXPECT_GE(e.GetStats().time_to_process, kSmallTimeout);
         EXPECT_LT(e.GetStats().time_to_process, kSmallTimeout * retries);
+        EXPECT_GT(timing.elapsed, e.GetStats().time_to_process);
     }
+    EXPECT_EQ(timing.finished_count, 1);
+    EXPECT_EQ(timing.method, clients::http::HttpMethod::kPost);
+    EXPECT_TRUE(timing.saw_timeout_template);
 
     try {
         auto res = request.perform();
@@ -685,6 +710,7 @@ UTEST(HttpClient, StatsOnTimeout) {
         EXPECT_GE(e.GetStats().time_to_process, kSmallTimeout);
         EXPECT_LT(e.GetStats().time_to_process, kSmallTimeout * retries);
     }
+    EXPECT_EQ(timing.finished_count, 2);
 }
 
 UTEST(HttpClient, CancelPre) {
@@ -1488,6 +1514,8 @@ UTEST(HttpClient, ReuseWithResolverError) {
     const utest::SimpleServer http_server{EchoCallback{}, utest::SimpleServer::kTcpIpV6};
 
     ResolverWrapper resolver_wrapper;
+    RequestTimingMiddleware timing;
+    const std::vector<utils::NotNull<clients::http::MiddlewareBase*>> middlewares{timing};
     auto http_client_ptr = utest::impl::CreateHttpClientCore(resolver_wrapper.fs_task_processor);
     http_client_ptr->SetDnsResolver(&resolver_wrapper.resolver);
 
@@ -1498,13 +1526,16 @@ UTEST(HttpClient, ReuseWithResolverError) {
             .verify(true)
             .http_version(USERVER_NAMESPACE::http::HttpVersion::k11)
             .timeout(kTimeout);
+    request.SetMiddlewaresList(middlewares);
 
     UEXPECT_THROW(request.perform()->status_code(), clients::dns::ResolverException);
+    EXPECT_EQ(timing.finished_count, 1);
 
     const auto server_url = "http://[::1]:" + std::to_string(http_server.GetPort());
     auto res = request.post(server_url, kTestData).perform();
 
     EXPECT_EQ(res->body(), kTestData);
+    EXPECT_EQ(timing.finished_count, 2);
 }
 
 UTEST(HttpClient, RequestReuseBasic) {

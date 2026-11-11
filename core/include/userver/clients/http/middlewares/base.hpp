@@ -4,7 +4,9 @@
 /// @brief @copybrief clients::http::MiddlewareBase
 
 #include <chrono>
+#include <optional>
 #include <string>
+#include <string_view>
 #include <system_error>
 
 #include <userver/utils/not_null.hpp>
@@ -19,6 +21,7 @@ class Span;
 
 namespace clients::http {
 
+enum class HttpMethod;
 class RequestState;
 class Response;
 
@@ -41,6 +44,13 @@ public:
     bool IsProxySet() const;
 
     const std::string& GetOriginalUrl() const;
+
+    /// @brief Returns the HTTP method of the request.
+    HttpMethod GetMethod() const noexcept;
+
+    /// @brief Returns the URL template set by the client, if any.
+    /// The view is valid only during the middleware hook.
+    std::optional<std::string_view> GetUrlTemplate() const noexcept;
 
 private:
     RequestState& state_;
@@ -88,6 +98,13 @@ public:
     /// @warning The hook is called in libev thread, not in coroutine context! Do
     ///          not do any heavy work here, offload it to other hooks.
     virtual void HookOnError(MiddlewareRequest& request, std::error_code ec);
+
+    /// @brief Called once at the end of the request, after all retries.
+    ///        Includes HTTP responses, transport errors, and deadline failures before sending.
+    ///        The span covers the entire request and can be used to measure its duration.
+    ///
+    /// @warning The hook can run outside a coroutine. Do not do heavy work here.
+    virtual void HookOnRequestFinished(const MiddlewareRequest& request, const tracing::Span& span) noexcept;
 
     /// @brief The hook is called before every call attempt except the first one.
     ///        The hook allows retry by default.
