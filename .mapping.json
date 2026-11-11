@@ -1657,6 +1657,8 @@
   "core/src/concurrent/conflated_event_channel_test.cpp":"taxi/uservices/userver/core/src/concurrent/conflated_event_channel_test.cpp",
   "core/src/concurrent/fast_variable.hpp":"taxi/uservices/userver/core/src/concurrent/fast_variable.hpp",
   "core/src/concurrent/impl/asymmetric_fence.cpp":"taxi/uservices/userver/core/src/concurrent/impl/asymmetric_fence.cpp",
+  "core/src/concurrent/impl/asymmetric_fence_coalescer.hpp":"taxi/uservices/userver/core/src/concurrent/impl/asymmetric_fence_coalescer.hpp",
+  "core/src/concurrent/impl/asymmetric_fence_test.cpp":"taxi/uservices/userver/core/src/concurrent/impl/asymmetric_fence_test.cpp",
   "core/src/concurrent/impl/fast_atomic.hpp":"taxi/uservices/userver/core/src/concurrent/impl/fast_atomic.hpp",
   "core/src/concurrent/impl/intrusive_mpsc_queue.cpp":"taxi/uservices/userver/core/src/concurrent/impl/intrusive_mpsc_queue.cpp",
   "core/src/concurrent/impl/intrusive_mpsc_queue_benchmark.cpp":"taxi/uservices/userver/core/src/concurrent/impl/intrusive_mpsc_queue_benchmark.cpp",

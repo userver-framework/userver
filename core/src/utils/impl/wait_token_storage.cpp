@@ -111,15 +111,13 @@ void WaitTokenStorage::WaitForAllTokens() noexcept {
         return;
     }
 
+    // Heavy may suspend, so keep the initial token until it returns and acquire
+    // the thread-bound mutex only afterwards to release that token.
+    impl_.shutdown_started.store(true, std::memory_order_seq_cst);
+    concurrent::impl::AsymmetricThreadFenceHeavy();
+
     {
         const std::lock_guard lock{impl_.shutdown_mutex};
-
-        impl_.shutdown_started.store(true, std::memory_order_seq_cst);
-
-        // To make sure all tokens_.lock_shared() that saw `shutdown_started == false` reach us according to total
-        // order. New DoUnlock calls will synchronize using `shutdown_mutex` instead.
-        concurrent::impl::AsymmetricThreadFenceHeavy();
-
         impl_.tokens.unlock();  // std::memory_order_release
     }
 
@@ -157,15 +155,12 @@ void WaitTokenStorage::DoUnlock() noexcept {
 
     if (impl.shutdown_started.load(std::memory_order_seq_cst)) {
         // This mutex lock serves two purposes:
-        // 1. AsymmetricThreadFenceHeavy in WaitForAllTokens is guaranteed to happen-before our mutex lock.
-        //    Thus, all `impl.tokens.unlock()` calls with `shutdown_started == false` happen-before.
+        // 1. If IsFree() can return true, WaitForAllTokens has released the initial token under shutdown_mutex.
+        //    Thus, its Heavy and all unlocks with shutdown_started == false happen-before this IsFree().
         // 2. Of all `tokens` unlockers with `shutdown_started == true`, including WaitForAllTokens,
         //    there will be the last one to acquire `shutdown_mutex` lock. It will see all the previous
         //    `impl.tokens.unlock()` calls due to acquire-release ordering in `std::mutex` lock-unlock.
-        {
-            const std::lock_guard lock{impl.shutdown_mutex};
-        }
-
+        const std::lock_guard lock{impl.shutdown_mutex};
         if (impl.tokens.IsFree()) {
             impl.tokens_is_free_event.Send();
         }

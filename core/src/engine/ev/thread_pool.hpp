@@ -29,6 +29,8 @@ public:
 
     ThreadControl& NextThread();
 
+    ThreadControl& GetFirstThread();
+
     TimerThreadControl& NextTimerThread();
 
     /// Controls remain valid until pool destruction; used to flush every timer loop.

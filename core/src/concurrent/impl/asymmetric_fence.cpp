@@ -9,8 +9,13 @@
 #include <atomic>
 #include <cstdint>
 
+#include <userver/engine/task/current_task.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/utils/assert.hpp>
+
+#include <concurrent/impl/asymmetric_fence_coalescer.hpp>
+#include <engine/ev/thread_pool.hpp>
+#include <engine/task/task_processor.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -30,6 +35,46 @@ enum class MembarrierRegistrationStatus : std::uint8_t {
 };
 
 thread_local constinit auto thread_registration_status = MembarrierRegistrationStatus::kNotCheckedYet;
+
+// The union avoids destroying the coalescer: global RCU objects may still issue
+// heavy fences during static destruction. constinit avoids initialization order issues.
+union ImmortalFenceCoalescer {
+    constexpr ImmortalFenceCoalescer()
+        : coalescer{}
+    {}
+    ~ImmortalFenceCoalescer() {}
+
+    AsymmetricFenceCoalescer coalescer;
+};
+
+constinit ImmortalFenceCoalescer heavy_fence;
+
+void PerformMembarrier() noexcept {
+    const auto ret = syscall(__NR_membarrier, kMembarrierCmdPrivateExpedited, 0);
+    if (ret != 0) {
+        utils::AbortWithStacktrace("membarrier usage failed");
+    }
+}
+
+void PerformHeavyFence() noexcept {
+    if (!engine::current_task::IsTaskProcessorThread()) {
+        heavy_fence.coalescer.Perform(PerformMembarrier);
+        return;
+    }
+    if (heavy_fence.coalescer.TryPerform(PerformMembarrier)) {
+        return;
+    }
+
+    heavy_fence.coalescer.Enqueue();
+    auto& ev_thread = engine::current_task::GetTaskProcessor().EventThreadPool().GetFirstThread();
+    ev_thread.RunInEvLoopSync([]() noexcept { heavy_fence.coalescer.PerformPending(PerformMembarrier); });
+    // The completion event carries the delegated barrier's effects back to this task.
+    // In the P1202 model, this SC fence follows the delegated heavy fence in the SC
+    // order. On x86_64, it also provides a full barrier on the CPU where the task
+    // resumed, even if it migrated. It does not replace the event's release/acquire
+    // synchronization.
+    std::atomic_thread_fence(std::memory_order_seq_cst);
+}
 
 bool IsMembarrierAvailable() noexcept {
     const auto ret = syscall(__NR_membarrier, MEMBARRIER_CMD_QUERY, 0);
@@ -80,10 +125,7 @@ void AsymmetricThreadFenceLight() noexcept {
 
 void AsymmetricThreadFenceHeavy() noexcept {
     if (TryRegisterThreadCached()) {
-        const auto ret = syscall(__NR_membarrier, kMembarrierCmdPrivateExpedited, 0);
-        if (ret != 0) {
-            utils::AbortWithStacktrace("membarrier usage failed");
-        }
+        PerformHeavyFence();
     } else {
         std::atomic_thread_fence(std::memory_order_seq_cst);
     }

@@ -9,6 +9,8 @@ namespace concurrent::impl {
 //
 // Light version is very fast (~1ns) and Heavy version is quite slow
 // (1 context switch per CPU core ~1us).
+// Heavy may suspend the current coroutine on contention; do not hold a
+// thread-bound lock across it. Calls outside coroutines block the OS thread.
 //
 // Supported systems: x86_64 Linux with kernel version 4.14+.
 // On other systems, these are implemented as
