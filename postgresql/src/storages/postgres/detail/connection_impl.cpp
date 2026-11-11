@@ -1304,7 +1304,8 @@ void ConnectionImpl::LoadUserTypes(engine::Deadline deadline) {
     UASSERT(settings_.user_types != ConnectionSettings::kPredefinedTypesOnly);
     try {
         const tracing::ScopeTime scope_time{"pg_load_user_types"};
-        if (!IsInTransaction()) {
+
+        if (!in_transaction_) {
             SendCommandNoPrepare("BEGIN", deadline);
             auto db_types = QueryUserTypes(deadline);
             ExecuteCommandNoPrepare("COMMIT", deadline);
