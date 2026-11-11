@@ -252,8 +252,9 @@ e.g. a missing JSON field, an explicit `null` and `""`.
 
 Keep code simple and self-explanatory: use clear names and small, focused functions.
 Replace magic numbers and strings with named `constexpr` constants or equivalents.
-Do not add comments to production code; express behavior through code instead.
-In tests, add comments only when names and code structure cannot convey the behavior.
+Code comments should clarify intent, rationale, and contracts rather than paraphrase
+the implementation. Explanations of how the implementation works are appropriate
+for non-obvious implementation details.
 
 ## 11. Cover new behavior and bug fixes with tests
 
