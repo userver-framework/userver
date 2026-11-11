@@ -2969,6 +2969,7 @@
   "grpc/tests/cancel_test.cpp":"taxi/uservices/userver/grpc/tests/cancel_test.cpp",
   "grpc/tests/channels_test.cpp":"taxi/uservices/userver/grpc/tests/channels_test.cpp",
   "grpc/tests/client_cancel_test.cpp":"taxi/uservices/userver/grpc/tests/client_cancel_test.cpp",
+  "grpc/tests/client_factory_config_test.cpp":"taxi/uservices/userver/grpc/tests/client_factory_config_test.cpp",
   "grpc/tests/client_factory_test.cpp":"taxi/uservices/userver/grpc/tests/client_factory_test.cpp",
   "grpc/tests/client_middleware_hooks_dp_test.cpp":"taxi/uservices/userver/grpc/tests/client_middleware_hooks_dp_test.cpp",
   "grpc/tests/client_middleware_hooks_test.cpp":"taxi/uservices/userver/grpc/tests/client_middleware_hooks_test.cpp",

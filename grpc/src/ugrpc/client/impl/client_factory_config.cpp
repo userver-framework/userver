@@ -1,5 +1,8 @@
 #include <ugrpc/client/impl/client_factory_config.hpp>
 
+#include <grpc/compression.h>
+#include <grpc/slice.h>
+
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/fs/blocking/read.hpp>
 #include <userver/logging/log.hpp>
@@ -32,8 +35,24 @@ grpc::SslCredentialsOptions MakeCredentialsOptions(const yaml_config::YamlConfig
     return result;
 }
 
+void SetSupportedCompressionAlgorithms(const yaml_config::YamlConfig& channel_args, grpc::ChannelArguments& args) {
+    grpc_compression_algorithm zstd_algorithm{};
+    if (channel_args[GRPC_COMPRESSION_CHANNEL_ENABLED_ALGORITHMS_BITSET].IsMissing() &&
+        grpc_compression_algorithm_parse(grpc_slice_from_static_string("zstd"), &zstd_algorithm))
+    {
+        grpc_compression_options compression_options{};
+        grpc_compression_options_init(&compression_options);
+        grpc_compression_options_enable_algorithm(&compression_options, zstd_algorithm);
+        args.SetInt(
+            GRPC_COMPRESSION_CHANNEL_ENABLED_ALGORITHMS_BITSET,
+            static_cast<int>(compression_options.enabled_algorithms_bitset)
+        );
+    }
+}
+
 grpc::ChannelArguments MakeChannelArgs(const yaml_config::YamlConfig& channel_args) {
     grpc::ChannelArguments args;
+    SetSupportedCompressionAlgorithms(channel_args, args);
     if (!channel_args.IsMissing()) {
         LOG_INFO()
             << "Set client ChannelArguments: " << formats::yaml::ToString(channel_args.As<formats::yaml::Value>());
