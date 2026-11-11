@@ -194,7 +194,6 @@ if(USERVER_CONAN)
 else()
     include(SetupRe2)
 endif()
-target_link_libraries(${PROJECT_NAME} PRIVATE re2::re2)
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE CRYPTOPP_ENABLE_NAMESPACE_WEAK=1)
 
@@ -233,7 +232,7 @@ endif()
 target_link_libraries(
     ${PROJECT_NAME}
     PUBLIC Threads::Threads userver-internal-sanitize-options userver-internal-compile-options
-    PRIVATE Boost::filesystem Boost::program_options OpenSSL::SSL OpenSSL::Crypto
+    PRIVATE Boost::filesystem Boost::program_options OpenSSL::SSL OpenSSL::Crypto re2::re2
 )
 if(BOOST_CPM)
     # Boost from CPM
