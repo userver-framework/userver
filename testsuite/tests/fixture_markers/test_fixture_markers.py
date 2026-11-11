@@ -70,3 +70,31 @@ def test_plugin_fixture_is_visible_outside_subtree(request):
     assert 'conftest_visibility' not in infos
     assert 'module_visibility' not in infos
     assert 'nested_conftest_visibility' not in infos
+
+
+def test_lookup_key_is_resolved_once_per_call(request, monkeypatch):
+    manager = request.session._fixturemanager
+    original_lookup = manager.getfixturedefs
+    original_signature = fixture_markers.inspect.signature
+    expected = fixture_markers.get_infos(request, VisibilityMark)
+    signature_calls = []
+
+    def count_signature(func, *args, **kwargs):
+        if func == manager.getfixturedefs:
+            signature_calls.append(func)
+        return original_signature(func, *args, **kwargs)
+
+    def node_lookup(argname, node):
+        assert node is request._pyfuncitem
+        return original_lookup(argname, node)
+
+    def nodeid_lookup(argname, nodeid):
+        assert nodeid == request._pyfuncitem.nodeid
+        return original_lookup(argname, request._pyfuncitem)
+
+    monkeypatch.setattr(fixture_markers.inspect, 'signature', count_signature)
+    for lookup in (node_lookup, nodeid_lookup):
+        monkeypatch.setattr(manager, 'getfixturedefs', lookup)
+        signature_calls.clear()
+        assert list(fixture_markers.get_infos(request, VisibilityMark).items()) == list(expected.items())
+        assert len(signature_calls) == 1
