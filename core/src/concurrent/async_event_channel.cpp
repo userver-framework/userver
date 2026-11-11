@@ -1,15 +1,26 @@
 #include <userver/concurrent/async_event_channel.hpp>
 
 #include <chrono>
+#include <mutex>
+#include <shared_mutex>
 
 #include <fmt/format.h>
 
+#include <userver/engine/shared_mutex.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/async.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace concurrent::impl {
+
+std::shared_lock<engine::SharedMutex> DowngradeLock(std::unique_lock<engine::SharedMutex> lock) {
+    UASSERT(lock.owns_lock());
+    auto& mutex = *lock.release();
+    mutex.unlock_and_lock_shared();
+    return std::shared_lock{mutex, std::adopt_lock};
+}
 
 void WaitForTask(std::string_view name, engine::TaskWithResult<void>& task) {
     constexpr std::chrono::seconds kSubscriberTimeout(30);

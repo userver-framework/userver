@@ -33,6 +33,8 @@ namespace impl {
 
 struct AsyncEventChannelTestAccessor;
 
+std::shared_lock<engine::SharedMutex> DowngradeLock(std::unique_lock<engine::SharedMutex> lock);
+
 void WaitForTask(std::string_view name, engine::TaskWithResult<void>& task);
 
 [[noreturn]] void ReportAlreadySubscribed(std::string_view channel_name, std::string_view listener_name);
@@ -273,12 +275,7 @@ public:
             auto data = data_.Lock();
             ++event_generation_;
 
-            // Now downgrade the lock to shared to allow new subscriptions
-            lock.release();
-            event_mutex_.unlock_and_lock_shared();
-
-            // And ensure the lock releases in case of an exception
-            tmp_lock = std::shared_lock{event_mutex_, std::adopt_lock};
+            tmp_lock = impl::DowngradeLock(std::move(lock));
 
             // Now we want to create N subtasks for callbacks,
             // which must hold event_mutex_'s std::shared_lock.

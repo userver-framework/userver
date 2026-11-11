@@ -218,8 +218,9 @@ whose construction failed is not called, and the component system or wrapper onl
 initialized members have been destroyed.
 
 The scoped `UpdateAndListen` overloads therefore call the initial callback synchronously, then pause further
-notifications until the scopes open. Scopes open only after the most-derived constructor succeeds. If events were
-sent during this pause, the initial callback is called again with the current state before notifications start.
+notifications until the scopes open. Scopes open only after the most-derived constructor succeeds.
+If events were sent during the pause, the initial callback runs again before notifications start.
+It uses the latest state available at that moment.
 Without such events, there is no second initialization call.
 
 If construction throws, the scopes never open, so the user callback cannot run again after its initial synchronous
