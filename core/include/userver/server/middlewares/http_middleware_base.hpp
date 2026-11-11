@@ -3,6 +3,7 @@
 /// @file userver/server/middlewares/http_middleware_base.hpp
 /// @brief Base classes for implementing custom middlewares
 
+#include <functional>
 #include <memory>
 
 #include <userver/components/component_base.hpp>
@@ -25,11 +26,16 @@ class HttpHandlerBase;
 /// HTTP server middlewares
 namespace middlewares {
 
+class HandlerAdapter;
+
 /// @ingroup userver_middlewares userver_base_classes
 ///
 /// @brief Base class for a http middleware
 class HttpMiddlewareBase {
 public:
+    /// @brief A callback executed after request parsing by the handler adapter.
+    using PostParseCallback = std::function<void(const http::HttpRequest&, request::RequestContext&)>;
+
     HttpMiddlewareBase();
     virtual ~HttpMiddlewareBase();
 
@@ -40,8 +46,17 @@ protected:
     /// @brief The method to invoke the next middleware in a pipeline
     void Next(http::HttpRequest& request, request::RequestContext& context) const;
 
+    /// @brief Register a callback before @ref server::middlewares::HttpMiddlewareBase::Next.
+    /// The handler adapter calls it after successful parsing and before request handling.
+    /// Callbacks run in registration order. A parsing failure or a short-circuit in the pipeline
+    /// skips them. Callback exceptions are logged and do not interrupt request handling.
+    static void RegisterPostParseCallback(request::RequestContext& context, PostParseCallback callback);
+
 private:
     friend class handlers::HttpHandlerBase;
+    friend class HandlerAdapter;
+
+    static void RunPostParseCallbacks(const http::HttpRequest& request, request::RequestContext& context);
 
     std::unique_ptr<HttpMiddlewareBase> next_{nullptr};
 };

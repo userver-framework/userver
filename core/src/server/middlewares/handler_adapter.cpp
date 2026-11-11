@@ -136,6 +136,7 @@ void HandlerAdapter::HandleRequest(http::HttpRequest& request, request::RequestC
         ParseRequestData(request, context);
     }
 
+    RunPostParseCallbacks(request, context);
     handler_.HandleHttpRequest(request, context);
 }
 

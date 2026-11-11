@@ -1,8 +1,11 @@
 #include <userver/utest/using_namespace_userver.hpp>
 
+#include <string>
+
 #include <userver/components/minimal_server_component_list.hpp>
 #include <userver/formats/yaml/serialize.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
+#include <userver/server/request/request_context.hpp>
 #include <userver/utils/daemon_run.hpp>
 #include <userver/utils/scope_guard.hpp>
 
@@ -11,11 +14,29 @@
 
 namespace samples::http_middlewares {
 
+const utils::AnyStorageDataTag<server::request::StorageContext, std::string> kParsedName;
+
 class Handler final : public server::handlers::HttpHandlerBase {
 public:
     using HttpHandlerBase::HttpHandlerBase;
 
-    std::string HandleRequest(server::http::HttpRequest&, server::request::RequestContext&) const override {
+    void ParseRequestData(const server::http::HttpRequest& request, server::request::RequestContext& context)
+        const override {
+        if (request.HasArg("name")) {
+            const auto& name = request.GetArg("name");
+            if (name.empty()) {
+                throw ClientError(ExternalBody{"Empty name"});
+            }
+            context.SetData(kParsedName, name);
+        }
+    }
+
+    std::string HandleRequest(server::http::HttpRequest&, server::request::RequestContext& context) const override {
+        if (const auto* name = context.GetDataOptional(kParsedName)) {
+            auto response = "Hello " + *name + "!\n";
+            context.EraseData(kParsedName);
+            return response;
+        }
         return "Hello world!\n";
     }
 };
@@ -58,11 +79,19 @@ public:
 
 private:
     void HandleRequest(server::http::HttpRequest& request, server::request::RequestContext& context) const override {
+        /// [Middlewares sample - post-parse callback]
+        RegisterPostParseCallback(context, [](const auto& parsed_request, auto& parsed_context) {
+            parsed_request.GetHttpResponse().SetHeader(kCustomServerHeader, "1");
+            if (const auto* name = parsed_context.GetDataOptional(kParsedName)) {
+                parsed_request.GetHttpResponse().SetHeader(kParsedNameHeader, *name);
+            }
+        });
+        /// [Middlewares sample - post-parse callback]
         Next(request, context);
-        request.GetHttpResponse().SetHeader(kCustomServerHeader, "1");
     }
 
     static constexpr http::headers::PredefinedHeader kCustomServerHeader{"X-Some-Server-Header"};
+    static constexpr http::headers::PredefinedHeader kParsedNameHeader{"X-Parsed-Name"};
 };
 /// [Middlewares sample - some middleware implementation]
 /// [Middlewares sample - some middleware factory implementation]
