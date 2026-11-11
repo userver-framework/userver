@@ -342,6 +342,7 @@ bool ParseMultipartFormDataBody(
     FormDataArgs& form_data_args,
     bool strict_cr_lf
 ) {
+    std::size_t remaining_charset_bytes = body.size();
     LOG_TRACE() << "body=" << body << ", body.size()=" << body.size();
     std::string_view crlf = "\r\n";
     if (boundary.size() + 2 <= body.size() && body[0] == '-' && body[1] == '-' &&
@@ -393,6 +394,11 @@ bool ParseMultipartFormDataBody(
                 UASSERT(!args.empty());
                 for (auto& arg : args) {
                     if (charset) {
+                        // Every field owns its charset string; bound the total copies by the input size.
+                        if (charset->size() > remaining_charset_bytes) {
+                            return false;
+                        }
+                        remaining_charset_bytes -= charset->size();
                         arg.default_charset = charset;
                     }
                     LOG_TRACE() << "form_data arg, name: " << name << ", arg: " << arg.ToDebugString();
