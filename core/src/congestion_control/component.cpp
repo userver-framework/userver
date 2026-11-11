@@ -10,7 +10,7 @@
 #include <userver/dynamic_config/value.hpp>
 #include <userver/hostinfo/cpu_limit.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/server/component.hpp>
+#include <userver/server/component_base.hpp>
 #include <userver/server/server.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -64,7 +64,7 @@ void FormatStats(const Controller& c, size_t activated_factor, utils::statistics
 
 struct Component::Impl {
     dynamic_config::Source dynamic_config;
-    server::Server& server;
+    server::ServerBase& server;
     server::congestion_control::Sensor server_sensor;
     server::congestion_control::Limiter server_limiter;
     Controller server_controller;
@@ -77,7 +77,7 @@ struct Component::Impl {
     Watchdog wd;
     // See the comment above before adding new fields.
 
-    Impl(dynamic_config::Source dynamic_config, server::Server& server, engine::TaskProcessor& tp, bool fake_mode)
+    Impl(dynamic_config::Source dynamic_config, server::ServerBase& server, engine::TaskProcessor& tp, bool fake_mode)
         : dynamic_config(dynamic_config),
           server(server),
           server_sensor(tp),
@@ -93,7 +93,7 @@ Component::Component(const components::ComponentConfig& config, const components
     : components::ComponentBase(config, context),
       pimpl_(
           context.FindComponent<components::DynamicConfig>().GetSource(),
-          context.FindComponent<components::Server>().GetServer(),
+          context.FindComponent<server::Component>().GetServer(),
           engine::current_task::GetTaskProcessor(),
           config["fake-mode"].As<bool>(false)
       )

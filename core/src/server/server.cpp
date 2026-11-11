@@ -14,6 +14,7 @@
 #include <engine/ev/thread_pool.hpp>
 #include <engine/task/task_processor.hpp>
 #include <server/handlers/http_handler_base_statistics.hpp>
+#include <server/handlers/http_server_settings.hpp>
 #include <server/http/http_request_handler.hpp>
 #include <server/net/endpoint_info.hpp>
 #include <server/net/listener.hpp>
@@ -451,6 +452,10 @@ const ServerConfig& Server::GetConfig() const { return pimpl_->GetServerConfig()
 
 std::vector<std::string> Server::GetCommonMiddlewares() const { return pimpl_->GetMiddlewares(); }
 
+std::vector<std::string> Server::GetCommonMiddlewares(bool) const { return GetCommonMiddlewares(); }
+
+bool Server::GetResponseHostnameDefault(bool) const { return GetConfig().set_response_server_hostname; }
+
 void Server::WriteMonitorData(utils::statistics::Writer& writer) const {
     const auto server_stats = pimpl_->GetServerStats();
     if (auto conn_stats = writer["connections"]) {
@@ -546,6 +551,8 @@ void ServerImpl::OnConfigUpdate(const dynamic_config::Snapshot& snapshot) {
         );
     }
 }
+
+const alerts::Source& handlers::GetInvalidRequestPathAlert() { return kInvalidRequestPath; }
 
 }  // namespace server
 

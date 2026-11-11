@@ -5,8 +5,8 @@
 
 #include <memory>
 
-#include <userver/components/component_base.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
+#include <userver/server/component_base.hpp>
 #include <userver/server/server.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 
@@ -45,10 +45,9 @@ namespace components {
 /// @include{doc} scripts/docs/en/components_schema/core/src/components/impl/component_base.md
 ///
 /// @see @ref scripts/docs/en/userver/http_server.md
-class Server final : public ComponentBase {
+class Server final : public server::Component {
 public:
-    /// @ingroup userver_component_names
-    /// @brief The default name of @ref components::Server component
+    /// @copydoc server::Component::kName
     static constexpr std::string_view kName = "server";
 
     Server(const components::ComponentConfig& component_config, const components::ComponentContext& component_context);
@@ -59,9 +58,9 @@ public:
 
     void OnAllComponentsAreStopping() override;
 
-    const server::Server& GetServer() const;
+    const server::Server& GetServer() const override;
 
-    server::Server& GetServer();
+    server::Server& GetServer() override;
 
     void AddHandler(const server::handlers::HttpHandlerBase& handler, engine::TaskProcessor& task_processor);
 

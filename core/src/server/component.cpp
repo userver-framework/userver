@@ -30,7 +30,7 @@ Server::Server(
     const components::ComponentConfig& component_config,
     const components::ComponentContext& component_context
 )
-    : ComponentBase(component_config, component_context),
+    : server::Component(component_config, component_context),
       server_(std::make_unique<server::Server>(
           component_config.As<server::ServerConfig>(),
           GetSecdist(component_context),

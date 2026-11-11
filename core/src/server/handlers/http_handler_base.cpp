@@ -23,7 +23,7 @@
 #include <userver/http/common_headers.hpp>
 #include <userver/logging/level_serialization.hpp>
 #include <userver/logging/log.hpp>
-#include <userver/server/component.hpp>
+#include <userver/server/component_base.hpp>
 #include <userver/server/http/http_error.hpp>
 #include <userver/server/http/http_method.hpp>
 #include <userver/server/http/http_response_body_stream.hpp>
@@ -181,7 +181,7 @@ HttpHandlerBase::HttpHandlerBase(
         LOG_WARNING() << "empty allowed methods list in " << config.Name();
     }
 
-    auto& server = context.FindComponent<components::Server>().GetServer();
+    auto& server = context.FindComponent<server::Component>().GetServer();
 
     engine::TaskProcessor& task_processor =
         GetConfig().task_processor
@@ -196,7 +196,7 @@ HttpHandlerBase::HttpHandlerBase(
             server.AddHandler(*this, task_processor);
 
             // Note: no need to call RemoveHandler on scope exit,
-            // PortInfo::Stop() automatically removes all handlers
+            // server shutdown stops dispatch before handlers are destroyed.
         } catch (const std::exception& ex) {
             throw std::runtime_error(std::string("can't add handler to server: ") + ex.what());
         }
@@ -232,7 +232,7 @@ HttpHandlerBase::HttpHandlerBase(
     }
 
     set_response_server_hostname_ =
-        GetConfig().set_response_server_hostname.value_or(server.GetConfig().set_response_server_hostname);
+        GetConfig().set_response_server_hostname.value_or(server.GetResponseHostnameDefault(IsMonitor()));
 }
 
 HttpHandlerBase::~HttpHandlerBase() = default;
@@ -551,7 +551,7 @@ void HttpHandlerBase::BuildMiddlewarePipeline(
                                                  .As<std::string>(middlewares::HandlerPipelineBuilder::kName));
     const auto handler_middlewares =
         handler_pipeline_builder
-            .BuildPipeline(context.FindComponent<components::Server>().GetServer().GetCommonMiddlewares());
+            .BuildPipeline(context.FindComponent<server::Component>().GetServer().GetCommonMiddlewares(IsMonitor()));
 
     ValidateMiddlewaresConfiguration(middlewares_config, handler_middlewares);
 

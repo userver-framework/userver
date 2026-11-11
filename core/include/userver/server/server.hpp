@@ -8,10 +8,10 @@
 #include <userver/components/component_context.hpp>
 #include <userver/engine/deadline.hpp>
 #include <userver/engine/task/task_processor_fwd.hpp>
-#include <userver/server/congestion_control/limiter.hpp>
 #include <userver/server/congestion_control/sensor.hpp>
 #include <userver/server/handlers/fallback_handlers.hpp>
 #include <userver/server/handlers/http_handler_base.hpp>
+#include <userver/server/server_base.hpp>
 #include <userver/storages/secdist/component.hpp>
 #include <userver/utils/resource_scopes.hpp>
 #include <userver/utils/statistics/fwd.hpp>
@@ -34,7 +34,7 @@ class ServerImpl;
 struct ServerConfig;
 
 /// @brief Main HTTP server instance
-class Server final : public congestion_control::Limitee, public congestion_control::RequestsSource {
+class Server final : public ServerBase {
 public:
     Server(
         ServerConfig config,
@@ -43,9 +43,13 @@ public:
     );
     ~Server() override;
 
-    const ServerConfig& GetConfig() const;
+    const ServerConfig& GetConfig() const override;
 
     std::vector<std::string> GetCommonMiddlewares() const;
+
+    std::vector<std::string> GetCommonMiddlewares(bool is_monitor) const override;
+
+    bool GetResponseHostnameDefault(bool is_monitor) const override;
 
     void WriteMonitorData(utils::statistics::Writer& writer) const;
 
@@ -53,7 +57,7 @@ public:
 
     net::StatsAggregation GetServerStats() const;
 
-    void AddHandler(const handlers::HttpHandlerBase& handler, engine::TaskProcessor& task_processor);
+    void AddHandler(const handlers::HttpHandlerBase& handler, engine::TaskProcessor& task_processor) override;
 
     const http::HttpRequestHandler& GetHttpRequestHandler(bool is_monitor = false) const;
 
@@ -73,7 +77,7 @@ public:
 
     void SetRpsRatelimit(std::optional<size_t> rps);
 
-    void SetRpsRatelimitStatusCode(http::HttpStatus status_code);
+    void SetRpsRatelimitStatusCode(http::HttpStatus status_code) override;
 
     std::uint64_t GetTotalRequests() const override;
 
