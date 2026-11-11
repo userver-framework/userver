@@ -1,6 +1,7 @@
 #include <gmock/gmock.h>
 
 #include <memory>
+#include <type_traits>
 
 #include <userver/components/component_base.hpp>
 #include <userver/components/component_context.hpp>
@@ -14,6 +15,8 @@
 #include <components/component_list_test.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+static_assert(!std::is_default_constructible_v<utils::ResourceScopeStorage>);
 
 using ResourceScopeStorage = ComponentList;
 
@@ -500,7 +503,7 @@ auto MakeTraceScope(std::vector<int>& after, std::vector<int>& before, int id) {
 
 TEST(ResourceScopeStorageUnit, PriorityOrder)
 {
-    utils::ResourceScopeStorage scopes;
+    utils::ResourceScopeStorage scopes{utils::UnsafeManualResourceScopes{}};
     std::vector<int> after;
     std::vector<int> before;
 
@@ -517,7 +520,7 @@ TEST(ResourceScopeStorageUnit, PriorityOrder)
 
 TEST(ResourceScopeStorageUnit, EqualPriorityKeepsRegistrationOrder)
 {
-    utils::ResourceScopeStorage scopes;
+    utils::ResourceScopeStorage scopes{utils::UnsafeManualResourceScopes{}};
     std::vector<int> after;
     std::vector<int> before;
 
@@ -534,7 +537,7 @@ TEST(ResourceScopeStorageUnit, EqualPriorityKeepsRegistrationOrder)
 
 TEST(ResourceScopeStorageUnit, DefaultPriorityIsZero)
 {
-    utils::ResourceScopeStorage scopes;
+    utils::ResourceScopeStorage scopes{utils::UnsafeManualResourceScopes{}};
     std::vector<int> after;
     std::vector<int> before;
 
@@ -551,7 +554,7 @@ TEST(ResourceScopeStorageUnit, DefaultPriorityIsZero)
 
 TEST(ResourceScopeStorageUnit, PriorityOnUnusedFactories)
 {
-    utils::ResourceScopeStorage scopes;
+    utils::ResourceScopeStorage scopes{utils::UnsafeManualResourceScopes{}};
     std::vector<int> before;
 
     scopes.Register(utils::impl::InternalTag{}, 1, [guard = utils::FastScopeGuard([&before]() noexcept {
@@ -567,7 +570,7 @@ TEST(ResourceScopeStorageUnit, PriorityOnUnusedFactories)
 
 TEST(ResourceScopeStorageUnit, AfterConstructionThrowRunsBeforeDestruction)
 {
-    utils::ResourceScopeStorage scopes;
+    utils::ResourceScopeStorage scopes{utils::UnsafeManualResourceScopes{}};
     std::vector<int> trace;
 
     scopes.Register([&trace] {
@@ -586,7 +589,7 @@ TEST(ResourceScopeStorageUnit, AfterConstructionThrowRunsBeforeDestruction)
 
 TEST(ResourceScopeStorageUnit, NestedRegisterDuringAfterConstruction)
 {
-    utils::ResourceScopeStorage scopes;
+    utils::ResourceScopeStorage scopes{utils::UnsafeManualResourceScopes{}};
     std::vector<int> trace;
 
     scopes.Register([&scopes, &trace] {
@@ -607,7 +610,7 @@ TEST(ResourceScopeStorageUnit, NestedRegisterDuringAfterConstruction)
 
 TEST(ResourceScopeStorageUnit, NestedRegisterThrowSwallowed)
 {
-    utils::ResourceScopeStorage scopes;
+    utils::ResourceScopeStorage scopes{utils::UnsafeManualResourceScopes{}};
     std::vector<int> trace;
 
     scopes.Register([&scopes, &trace] {
@@ -633,7 +636,7 @@ TEST(ResourceScopeStorageUnit, NestedRegisterThrowSwallowed)
 
 TEST(ResourceScopeStorageUnit, NestedRegisterThrowPropagates)
 {
-    utils::ResourceScopeStorage scopes;
+    utils::ResourceScopeStorage scopes{utils::UnsafeManualResourceScopes{}};
     std::vector<int> trace;
 
     scopes.Register([&scopes, &trace] {
@@ -652,7 +655,7 @@ TEST(ResourceScopeStorageUnit, NestedRegisterThrowPropagates)
 
 TEST(ResourceScopeStorageUnit, NestedRegisterCleansUpOnLaterThrow)
 {
-    utils::ResourceScopeStorage scopes;
+    utils::ResourceScopeStorage scopes{utils::UnsafeManualResourceScopes{}};
     std::vector<int> trace;
 
     scopes.Register([&scopes, &trace] {
@@ -675,7 +678,7 @@ TEST(ResourceScopeStorageUnit, NestedRegisterCleansUpOnLaterThrow)
 
 TEST(ResourceScopeStorageUnit, RegisterAfterReady)
 {
-    utils::ResourceScopeStorage scopes;
+    utils::ResourceScopeStorage scopes{utils::UnsafeManualResourceScopes{}};
     std::vector<int> trace;
 
     scopes.Register([&trace] {
@@ -696,7 +699,7 @@ TEST(ResourceScopeStorageUnit, RegisterAfterReady)
 
 TEST(ResourceScopeStorageUnit, NestedRegisterDuringReady)
 {
-    utils::ResourceScopeStorage scopes;
+    utils::ResourceScopeStorage scopes{utils::UnsafeManualResourceScopes{}};
     std::vector<int> trace;
 
     scopes.AfterConstruction();
@@ -716,7 +719,7 @@ TEST(ResourceScopeStorageUnit, NestedRegisterDuringReady)
 
 TEST(ResourceScopeStorageUnit, NestedRegisterDuringReadyThrowSwallowed)
 {
-    utils::ResourceScopeStorage scopes;
+    utils::ResourceScopeStorage scopes{utils::UnsafeManualResourceScopes{}};
     std::vector<int> trace;
 
     scopes.AfterConstruction();
@@ -741,7 +744,7 @@ TEST(ResourceScopeStorageUnit, NestedRegisterDuringReadyThrowSwallowed)
 
 TEST(ResourceScopeStorageUnit, RegisterDuringReadyThrowDoesNotCloseOthers)
 {
-    utils::ResourceScopeStorage scopes;
+    utils::ResourceScopeStorage scopes{utils::UnsafeManualResourceScopes{}};
     std::vector<int> trace;
 
     scopes.Register([&trace] {
@@ -767,7 +770,7 @@ TEST(ResourceScopeStorageUnit, RegisterDuringReadyThrowDoesNotCloseOthers)
 
 TEST(ResourceScopeStorageUnit, RegisterDuringBeforeDestruction)
 {
-    utils::ResourceScopeStorage scopes;
+    utils::ResourceScopeStorage scopes{utils::UnsafeManualResourceScopes{}};
     std::vector<int> trace;
 
     scopes.Register([&scopes, &trace] {
@@ -789,7 +792,7 @@ TEST(ResourceScopeStorageUnit, RegisterDuringBeforeDestruction)
 
 TEST(ResourceScopeStorageUnit, NestedRegisterDuringBeforeDestruction)
 {
-    utils::ResourceScopeStorage scopes;
+    utils::ResourceScopeStorage scopes{utils::UnsafeManualResourceScopes{}};
     std::vector<int> trace;
 
     scopes.Register([&scopes, &trace] {
@@ -817,7 +820,7 @@ TEST(ResourceScopeStorageUnit, RegisterDuringDestructionOpensAndCloses) {
     GTEST_SKIP() << "UASSERT aborts in debug builds";
 #endif
 
-    utils::ResourceScopeStorage scopes;
+    utils::ResourceScopeStorage scopes{utils::UnsafeManualResourceScopes{}};
     std::vector<int> trace;
 
     scopes.AfterConstruction();
@@ -834,7 +837,7 @@ TEST(ResourceScopeStorageDeathTest, RegisterDuringDestructionAborts) {
     GTEST_SKIP() << "UASSERT is a no-op in release builds";
 #endif
 
-    utils::ResourceScopeStorage scopes;
+    utils::ResourceScopeStorage scopes{utils::UnsafeManualResourceScopes{}};
     scopes.AfterConstruction();
     scopes.BeforeDestruction();
     UEXPECT_DEATH(scopes.Register([] { return utils::FastScopeGuard([]() noexcept {}); }), "partially destroyed");

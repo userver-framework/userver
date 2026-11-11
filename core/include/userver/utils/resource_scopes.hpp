@@ -68,6 +68,13 @@ using ScopePtr = std::unique_ptr<impl::ScopeBase>;
 
 }  // namespace impl
 
+/// @brief Explicit opt-in to managing resource-scope lifetime manually.
+/// Prefer @ref utils::WithResourceScopes, @ref utils::MakeWithResourceScopes or
+/// @ref utils::MakeUniqueWithResourceScopes instead.
+struct UnsafeManualResourceScopes final {
+    constexpr explicit UnsafeManualResourceScopes() noexcept = default;
+};
+
 /// @brief Runs resource setup after object construction and cleanup before object destruction.
 ///
 /// During construction, use @ref utils::ResourceScopeStorage::Register to queue setup functions. The component system
@@ -83,9 +90,8 @@ class ResourceScopeStorage final {
 public:
     /// @brief Constructs an empty storage.
     ///
-    /// Do not create @ref utils::ResourceScopeStorage manually, including in tests.
-    /// See @ref resource_scopes_parameter "choosing scopes" for how to obtain the storage.
-    ResourceScopeStorage() = default;
+    /// Prefer a scope wrapper, including in tests; see @ref resource_scopes_parameter "choosing scopes".
+    explicit ResourceScopeStorage(UnsafeManualResourceScopes) noexcept {}
 
     ResourceScopeStorage(ResourceScopeStorage&& other) noexcept = default;
     ResourceScopeStorage& operator=(ResourceScopeStorage&& other) noexcept = default;
@@ -200,7 +206,7 @@ public:
     const Wrapped* operator->() const noexcept USERVER_IMPL_LIFETIME_BOUND { return &wrapped_; }
 
 private:
-    ResourceScopeStorage resource_scope_storage_;
+    ResourceScopeStorage resource_scope_storage_{UnsafeManualResourceScopes{}};
     Wrapped wrapped_;
 };
 
@@ -221,7 +227,7 @@ std::shared_ptr<Wrapped> MakeWithResourceScopes(Args&&... args) {
 namespace impl {
 
 struct ResourceScopeStorageHolder {
-    ResourceScopeStorage scopes;
+    ResourceScopeStorage scopes{UnsafeManualResourceScopes{}};
 };
 
 template <typename Wrapped>
