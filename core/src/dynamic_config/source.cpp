@@ -38,7 +38,7 @@ void Source::DoUpdateAndListen(
     std::string_view name,
     SnapshotEventSource::Function&& func
 ) {
-    storage_->DoUpdateAndListenScoped(scopes, id, name, std::move(func));
+    storage_->DoUpdateAndListen(scopes, id, name, std::move(func));
 }
 
 void Source::DoUpdateAndListen(
@@ -47,7 +47,7 @@ void Source::DoUpdateAndListen(
     std::string_view name,
     DiffEventSource::Function&& func
 ) {
-    storage_->DoUpdateAndListenScoped(scopes, id, name, std::move(func));
+    storage_->DoUpdateAndListen(scopes, id, name, std::move(func));
 }
 
 }  // namespace dynamic_config

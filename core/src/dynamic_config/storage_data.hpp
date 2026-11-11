@@ -41,14 +41,14 @@ public:
         DiffChannel::Function&& func
     );
 
-    void DoUpdateAndListenScoped(
+    void DoUpdateAndListen(
         utils::ResourceScopeStorage& scopes,
         concurrent::FunctionId id,
         std::string_view name,
         SnapshotChannel::Function&& func
     );
 
-    void DoUpdateAndListenScoped(
+    void DoUpdateAndListen(
         utils::ResourceScopeStorage& scopes,
         concurrent::FunctionId id,
         std::string_view name,

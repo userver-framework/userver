@@ -104,7 +104,7 @@ concurrent::AsyncEventSubscriberScope StorageData::DoUpdateAndListen(
     return diff_channel_.DoUpdateAndListen(id, name, std::move(func), std::move(updater));
 }
 
-void StorageData::DoUpdateAndListenScoped(
+void StorageData::DoUpdateAndListen(
     utils::ResourceScopeStorage& scopes,
     concurrent::FunctionId id,
     std::string_view name,
@@ -114,7 +114,7 @@ void StorageData::DoUpdateAndListenScoped(
     snapshot_channel_.DoUpdateAndListen(scopes, id, name, std::move(func), std::move(updater));
 }
 
-void StorageData::DoUpdateAndListenScoped(
+void StorageData::DoUpdateAndListen(
     utils::ResourceScopeStorage& scopes,
     concurrent::FunctionId id,
     std::string_view name,

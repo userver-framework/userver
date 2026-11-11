@@ -379,7 +379,7 @@ void DynamicConfig::Impl::UpdateIfHasConfigAndListen(
     scopes.Register([this, &scopes, id, name = std::string(name), func = std::move(func)]() mutable {
         const std::lock_guard lock{loaded_mutex_};
         if (is_loaded_) {
-            cache_.DoUpdateAndListenScoped(scopes, id, name, std::move(func));
+            cache_.DoUpdateAndListen(scopes, id, name, std::move(func));
         } else {
             GetDiffChannel().AddListener(scopes, id, name, std::move(func));
         }
