@@ -1,6 +1,7 @@
 #pragma once
 
 #include <atomic>
+#include <span>
 #include <vector>
 
 #include <engine/ev/thread_control.hpp>
@@ -29,6 +30,9 @@ public:
     ThreadControl& NextThread();
 
     TimerThreadControl& NextTimerThread();
+
+    /// Controls remain valid until pool destruction; used to flush every timer loop.
+    std::span<TimerThreadControl> GetTimerThreads() noexcept;
 
     ThreadControl& GetEvDefaultLoopThread();
 
