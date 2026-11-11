@@ -90,9 +90,13 @@ For example, the wrapped object owns data that its subscription accesses:
 
 #### Data ownership
 
-The helper must own the data accessed by its callback. Do not move registration into a separate object that only holds
-references to that data: the wrapper controls that object's lifetime, but does not protect the referenced data from
-destruction.
+Choose the registering object according to the subscription's lifetime:
+
+- The subscription must last for the lifetime of an existing object. Wrap that object in resource scopes.
+  Register the subscription in its constructor. Do not move registration into a separate object that only references
+  the existing object's state.
+- The subscription must end before the main object is destroyed. Create a separate object with its own scopes.
+  It may reference the main object's data. The referenced data must outlive the subscription object.
 
 Do not make @ref utils::ResourceScopeStorage a member of the helper itself: the member's destructor is called from the
 helper's destructor, when the helper's state may already be partially destroyed. Use one of the wrappers above to
@@ -125,7 +129,8 @@ The event-subscription example uses `WeatherStorage` and the weather types from 
 Members are destroyed in reverse declaration order. If a subscription handle is declared before the data its callback
 uses, that data is destroyed first. The callback can still run until the handle unsubscribes.
 
-The following illustrative pseudocode uses a hypothetical RAII `SubscriptionHandle` and shows the incorrect order:
+The following illustrative pseudocode assumes a hypothetical `UpdateAndListen` API returning a RAII
+`SubscriptionHandle`. It shows the incorrect member order:
 
 ```cpp
 class WeatherHistory {
@@ -142,20 +147,21 @@ private:
 };
 ```
 
-Declaring the handle last makes it unsubscribe before the other members are destroyed. Another option is to call
-`SubscriptionHandle::Unsubscribe()` explicitly in the destructor body, while those members are
-still alive. Both approaches require keeping the handle's lifetime in the correct order as the class changes.
+For this hypothetical API, declaring the handle last makes it unsubscribe before the other members are destroyed.
+Another option is to call `SubscriptionHandle::Unsubscribe()` explicitly in the destructor body, while those members
+are still alive. Both approaches require keeping the handle's lifetime in the correct order as the class changes.
 
 A handle declared last in a base class only protects that base class's members. If the callback uses members of a
 derived class, those members are already destroyed when the base destructor runs.
 
-With scopes, the object owns its callback data and passes its scopes to the subscription API:
+Component scopes and the scope wrappers close the subscription before the most-derived destructor starts.
+Unsubscribing waits for running callbacks while the object's members, including derived members, are still available.
+
+In this example, the callback updates a member of the object:
 
 @snippet core/src/concurrent/async_event_channel_test.cpp Resource scopes subscription state
 
-Component scopes and the scope wrappers close the subscription before the most-derived destructor starts. Member
-declaration order therefore does not determine when the subscription is removed, and the derived members are protected
-too.
+Member declaration order therefore does not affect when the subscription is removed.
 
 ### Calling virtual methods from callbacks
 
@@ -188,8 +194,8 @@ A concurrent collector can invoke the callback while the derived object is being
 Unregistering in the base destructor is too late: the derived members have already been destroyed, and a concurrent
 callback can still access them before the base handle unregisters.
 
-Pass scopes directly to @ref utils::statistics::Storage::RegisterWriter to defer the entire registration until
-construction is complete. The derived object owns the metric's value:
+The scoped @ref utils::statistics::Storage::RegisterWriter overload defers the entire registration until construction
+is complete. The derived object owns the metric's value:
 
 @snippet core/src/utils/statistics/storage_test.cpp Resource scopes virtual callback
 

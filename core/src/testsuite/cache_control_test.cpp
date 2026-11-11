@@ -24,7 +24,6 @@
 #include <userver/fs/blocking/temp_directory.hpp>
 #include <userver/fs/blocking/write.hpp>
 #include <userver/testsuite/cache_control.hpp>
-#include <userver/utils/not_null.hpp>
 #include <userver/utils/resource_scopes.hpp>
 #include <userver/yaml_config/yaml_config.hpp>
 
@@ -177,18 +176,18 @@ struct ScopedCacheResetter final {
         testsuite::CacheControl& cache_control,
         const std::string_view cache_name,
         std::string name,
-        utils::SharedRef<std::vector<std::string>> call_order
+        std::vector<std::string>& call_order
     )
         : name(std::move(name)),
-          call_order(std::move(call_order))
+          call_order(call_order)
     {
         cache_control.RegisterCache(utils::impl::InternalTag{}, scopes, cache_name, [this](cache::UpdateType) {
-            this->call_order->push_back(this->name);
+            this->call_order.push_back(this->name);
         });
     }
 
     const std::string name;
-    const utils::SharedRef<std::vector<std::string>> call_order;
+    std::vector<std::string>& call_order;
 };
 
 }  // namespace
@@ -198,7 +197,7 @@ UTEST(CacheControl, AllResettersForNameAreCalled) {
         testsuite::impl::PeriodicUpdatesMode::kDisabled,
         testsuite::CacheControl::UnitTests{},
     };
-    const auto call_order = utils::MakeSharedRef<std::vector<std::string>>();
+    std::vector<std::string> call_order;
 
     {
         const utils::WithResourceScopes<ScopedCacheResetter>
@@ -213,24 +212,24 @@ UTEST(CacheControl, AllResettersForNameAreCalled) {
             {"dup-cache"},
             /*force_incremental_names=*/{}
         );
-        EXPECT_THAT(*call_order, ::testing::ElementsAre("first", "last"));
+        EXPECT_THAT(call_order, ::testing::ElementsAre("first", "last"));
 
-        call_order->clear();
+        call_order.clear();
         cache_control.ResetAllCaches(
             cache::UpdateType::kFull,
             /*force_incremental_names=*/{},
             /*exclude_names=*/{}
         );
-        EXPECT_THAT(*call_order, ::testing::ElementsAre("first", "last", "other"));
+        EXPECT_THAT(call_order, ::testing::ElementsAre("first", "last", "other"));
     }
 
-    call_order->clear();
+    call_order.clear();
     cache_control.ResetAllCaches(
         cache::UpdateType::kFull,
         /*force_incremental_names=*/{},
         /*exclude_names=*/{}
     );
-    EXPECT_THAT(*call_order, ::testing::IsEmpty());
+    EXPECT_THAT(call_order, ::testing::IsEmpty());
 }
 
 UTEST_DEATH(CacheControlDeathTest, MissingCache) {
