@@ -95,6 +95,35 @@ public:
     }
 };
 
+/// [Resource scopes virtual callback] BEGIN
+class MetricsBase {
+public:
+    MetricsBase(utils::ResourceScopeStorage& scopes, utils::statistics::Storage& storage) {
+        storage.RegisterWriter(scopes, "worker", [this](utils::statistics::Writer& writer) {
+            writer["value"] = GetValue();
+        });
+    }
+
+    virtual ~MetricsBase() = default;
+
+private:
+    virtual std::int64_t GetValue() const = 0;
+};
+
+class WorkerMetrics final : public MetricsBase {
+public:
+    WorkerMetrics(utils::ResourceScopeStorage& scopes, utils::statistics::Storage& storage, std::int64_t value)
+        : MetricsBase(scopes, storage),
+          value_(value)
+    {}
+
+private:
+    std::int64_t GetValue() const override { return value_; }
+
+    const std::int64_t value_;
+};
+/// [Resource scopes virtual callback] END
+
 class SampleMetricsHolder {
 public:
     SampleMetricsHolder(utils::ResourceScopeStorage& scopes, Storage& storage) {
@@ -190,6 +219,17 @@ UTEST(StatisticsStorage, RegisterWriter) {
 
     const auto json = formats::json::FromString(utils::statistics::ToJsonFormat(statistics_storage));
     EXPECT_EQ(json["foo.bar.baz"][0]["value"].As<int>(), 42);
+}
+
+UTEST(StatisticsStorage, ScopedWriterVirtualCallbackAfterDerivedConstruction) {
+    utils::statistics::Storage storage;
+    {
+        const utils::WithResourceScopes<WorkerMetrics> metrics(std::in_place, storage, 42);
+        const utils::statistics::Snapshot snapshot{storage};
+        EXPECT_EQ(snapshot.SingleMetric("worker.value"), std::int64_t{42});
+    }
+    const utils::statistics::Snapshot snapshot{storage};
+    EXPECT_TRUE(snapshot.AllMetrics().empty());
 }
 
 UTEST(StatisticsStorage, PrettyFormatWriterSample) {

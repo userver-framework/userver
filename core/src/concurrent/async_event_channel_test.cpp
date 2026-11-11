@@ -1,6 +1,8 @@
 #include <userver/utest/utest.hpp>
 
 #include <atomic>
+#include <cstdint>
+#include <mutex>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -13,11 +15,25 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/task/current_task.hpp>
+#include <userver/engine/task/task_with_result.hpp>
 #include <userver/utils/function_ref.hpp>
 #include <userver/utils/not_null.hpp>
 #include <userver/utils/resource_scopes.hpp>
+#include <userver/utils/scope_guard.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace concurrent::impl {
+
+struct AsyncEventChannelTestAccessor {
+    template <typename... Args>
+    static auto LockListeners(AsyncEventChannel<Args...>& channel) {
+        return std::unique_lock(channel.data_.GetMutexUnsafe());
+    }
+};
+
+}  // namespace concurrent::impl
 
 TEST(AsyncEventChannel, Ctr) { const concurrent::AsyncEventChannel<int> channel("channel"); }
 
@@ -204,6 +220,7 @@ private:
 
 enum class CoatKind { kJacket, kRaincoat };
 
+/// [Resource scopes subscription state] BEGIN
 class CoatStorage final {
 public:
     explicit CoatStorage(utils::ResourceScopeStorage& scopes, WeatherStorage& weather_storage) {
@@ -219,6 +236,7 @@ private:
 
     std::atomic<CoatKind> value_{};
 };
+/// [Resource scopes subscription state] END
 
 UTEST(AsyncEventChannel, UpdateAndListenSample) {
     WeatherStorage weather_storage(WeatherKind::kSunny);
@@ -441,6 +459,34 @@ UTEST(AsyncEventChannel, DoUpdateAndListenReplaysUpdaterIfEventSkipped) {
     EXPECT_THAT(*updates, ::testing::ElementsAre(0, 5, 7));
 }
 
+UTEST(AsyncEventChannel, DoUpdateAndListenReplaysUpdaterAfterListenerSnapshot) {
+    // Regression test: a race could run both the updater and the callback for the same event, possibly concurrently.
+    ASSERT_EQ(engine::current_task::GetWorkerCount(), 1);
+
+    concurrent::AsyncEventChannel<int> channel("channel");
+    const auto updates = utils::MakeSharedRef<std::vector<int>>();
+    std::atomic<int> current{0};
+    engine::SingleConsumerEvent sending_event;
+    engine::TaskWithResult<void> sender_task;
+
+    const auto subscriber = utils::MakeWithResourceScopes<ScopedSubscriber>(channel, updates, current, [&] {
+        const auto listeners_lock = concurrent::impl::AsyncEventChannelTestAccessor::LockListeners(channel);
+        // Simulate an external source sending an update concurrently with subscriber construction.
+        sender_task = engine::AsyncNoTracing([&] {
+            current = 1;
+            sending_event.Send();
+            channel.SendEvent(1);
+        });
+        // On the single worker, the sender blocks on listeners_lock before this wait returns.
+        EXPECT_TRUE(sending_event.WaitForEvent());
+    });
+    sender_task.Get();
+    EXPECT_THAT(*updates, ::testing::ElementsAre(0, 1));
+
+    channel.SendEvent(2);
+    EXPECT_THAT(*updates, ::testing::ElementsAre(0, 1, 2));
+}
+
 UTEST(AsyncEventChannel, DoUpdateAndListenUnsubscribesIfConstructionFailed) {
     concurrent::AsyncEventChannel<int> channel("channel");
     const auto updates = utils::MakeSharedRef<std::vector<int>>();
@@ -462,6 +508,93 @@ UTEST(AsyncEventChannel, DoUpdateAndListenUnsubscribesIfConstructionFailed) {
     );
     channel.SendEvent(3);
     EXPECT_THAT(*updates, ::testing::ElementsAre(1));
+}
+
+UTEST(AsyncEventChannel, UpdateAndListenUnsubscribesIfConstructionFailed) {
+    /// [Resource scopes constructor failure] BEGIN
+    class ScopedWeatherSubscriber final {
+    public:
+        ScopedWeatherSubscriber(
+            utils::ResourceScopeStorage& scopes,
+            WeatherStorage& weather_storage,
+            utils::ScopeGuard::Callback send_event_on_unwind,
+            utils::SharedRef<std::vector<WeatherKind>> updates
+        )
+            : send_event_on_unwind_(std::move(send_event_on_unwind)),
+              updates_(std::move(updates))
+        {
+            weather_storage.UpdateAndListen(scopes, this, "sub", &ScopedWeatherSubscriber::OnWeatherUpdate);
+            throw std::runtime_error("subscriber construction failed");
+        }
+
+    private:
+        void OnWeatherUpdate(WeatherKind weather) { updates_->push_back(weather); }
+
+        utils::ScopeGuard send_event_on_unwind_;
+        const utils::SharedRef<std::vector<WeatherKind>> updates_;
+    };
+    /// [Resource scopes constructor failure] END
+
+    WeatherStorage weather_storage(WeatherKind::kSunny);
+    const auto updates = utils::MakeSharedRef<std::vector<WeatherKind>>();
+    UEXPECT_THROW_MSG(
+        utils::MakeWithResourceScopes<ScopedWeatherSubscriber>(
+            weather_storage,
+            [&weather_storage] { weather_storage.Set(WeatherKind::kRainy); },
+            updates
+        ),
+        std::runtime_error,
+        "subscriber construction failed"
+    );
+    EXPECT_EQ(weather_storage.Get(), WeatherKind::kRainy);
+    EXPECT_THAT(*updates, ::testing::ElementsAre(WeatherKind::kSunny));
+    weather_storage.Set(WeatherKind::kSunny);
+    EXPECT_THAT(*updates, ::testing::ElementsAre(WeatherKind::kSunny));
+}
+
+UTEST(AsyncEventChannel, DoUpdateAndListenOwnedChannelConstructorFailure) {
+    enum class Event : std::uint8_t { kInitialUpdate, kChannelDestroyed, kListenerRemoved };
+    const auto events = utils::MakeSharedRef<std::vector<Event>>();
+
+    class Channel final : public concurrent::AsyncEventChannel<int> {
+    public:
+        explicit Channel(utils::SharedRef<std::vector<Event>> events)
+            : concurrent::AsyncEventChannel<
+                  int>("owned-channel", [events](const Function&) { events->push_back(Event::kListenerRemoved); }),
+              events_(std::move(events))
+        {}
+
+        ~Channel() override { events_->push_back(Event::kChannelDestroyed); }
+
+    private:
+        const utils::SharedRef<std::vector<Event>> events_;
+    };
+
+    class SubscriberWithOwnedChannel final {
+    public:
+        SubscriberWithOwnedChannel(utils::ResourceScopeStorage& scopes, utils::SharedRef<std::vector<Event>> events)
+            : events_(std::move(events)),
+              channel_(events_)
+        {
+            channel_.DoUpdateAndListen(scopes, this, "sub", &SubscriberWithOwnedChannel::OnEvent, [this] {
+                OnEvent(1);
+            });
+            throw std::runtime_error("owned-channel subscriber construction failed");
+        }
+
+    private:
+        void OnEvent(int) { events_->push_back(Event::kInitialUpdate); }
+
+        const utils::SharedRef<std::vector<Event>> events_;
+        Channel channel_;
+    };
+
+    UEXPECT_THROW_MSG(
+        utils::WithResourceScopes<SubscriberWithOwnedChannel>(std::in_place, events),
+        std::runtime_error,
+        "owned-channel subscriber construction failed"
+    );
+    EXPECT_THAT(*events, ::testing::ElementsAre(Event::kInitialUpdate, Event::kChannelDestroyed));
 }
 
 UTEST(AsyncEventChannel, UnsibscribeWhileHandling) {

@@ -3,10 +3,6 @@
 Resource scopes tie resources such as subscriptions and background tasks to an object's lifetime. The object's scopes
 are stored in @ref utils::ResourceScopeStorage.
 
-A callback registered directly in a constructor may run before the object is fully initialized. Unregistering in the
-destructor can also be too late: the callback may access state that is already being destroyed. Scopes provide hooks
-after construction and before destruction. APIs use these hooks to start and stop access to the object.
-
 ## APIs that use scopes
 
 Pass scopes to the API that manages the resource:
@@ -54,7 +50,6 @@ completed. It closes them before the component's destructor starts, while the co
 
 Scopes manage registration lifetime, but do not synchronize access to data. If a callback runs concurrently with
 other code, access to shared data must be thread-safe.
-
 
 ### Scopes for other objects
 
@@ -115,3 +110,117 @@ value up to date for the subscription's lifetime. If a metrics callback reads th
 calling `UpdateAndListen`. This initializes the field before the metrics callback is registered and unregisters that
 callback before removing the config subscription.
 
+
+## Problems solved by resource scopes
+
+A callback registered directly in a constructor may run before the object is fully initialized. Unregistering in a
+destructor can also be too late: the callback may access state that is already being destroyed. Scopes provide hooks
+after construction and before destruction to keep registration within the lifetime of the data it uses.
+
+The event-subscription example uses `WeatherStorage` and the weather types from the
+@ref concurrent::AsyncEventChannel example.
+
+### Managing subscription and data lifetimes
+
+Members are destroyed in reverse declaration order. If a subscription handle is declared before the data its callback
+uses, that data is destroyed first. The callback can still run until the handle unsubscribes.
+
+The following illustrative pseudocode uses a hypothetical RAII `SubscriptionHandle` and shows the incorrect order:
+
+```cpp
+class WeatherHistory {
+public:
+    explicit WeatherHistory(WeatherStorage& weather_storage) {
+        subscription_ = weather_storage.UpdateAndListen(this, "history", &WeatherHistory::OnWeatherUpdate);
+    }
+
+private:
+    void OnWeatherUpdate(WeatherKind weather) { history_.push_back(weather); }
+
+    SubscriptionHandle subscription_;
+    std::vector<WeatherKind> history_;
+};
+```
+
+Declaring the handle last makes it unsubscribe before the other members are destroyed. Another option is to call
+`SubscriptionHandle::Unsubscribe()` explicitly in the destructor body, while those members are
+still alive. Both approaches require keeping the handle's lifetime in the correct order as the class changes.
+
+A handle declared last in a base class only protects that base class's members. If the callback uses members of a
+derived class, those members are already destroyed when the base destructor runs.
+
+With scopes, the object owns its callback data and passes its scopes to the subscription API:
+
+@snippet core/src/concurrent/async_event_channel_test.cpp Resource scopes subscription state
+
+Component scopes and the scope wrappers close the subscription before the most-derived destructor starts. Member
+declaration order therefore does not determine when the subscription is removed, and the derived members are protected
+too.
+
+### Calling virtual methods from callbacks
+
+A metrics callback may run in a parallel collector. Registering it from a base constructor can expose the object before
+the derived constructor finishes. If the callback calls a virtual method, it can reach a pure virtual function or
+access derived state that has not been initialized.
+
+The following incorrect illustrative pseudocode assumes a hypothetical `RegisterWriter` overload without scopes. The
+current API does not provide this overload; `SubscriptionHandle` denotes its imagined RAII handle:
+
+```cpp
+class MetricsBase {
+public:
+    explicit MetricsBase(utils::statistics::Storage& storage) {
+        subscription_ = storage.RegisterWriter("worker", [this](utils::statistics::Writer& writer) {
+            writer["value"] = GetValue();
+        });
+    }
+
+    virtual ~MetricsBase() = default;
+
+private:
+    virtual std::int64_t GetValue() const = 0;
+
+    SubscriptionHandle subscription_;
+};
+```
+
+A concurrent collector can invoke the callback while the derived object is being constructed or destroyed.
+Unregistering in the base destructor is too late: the derived members have already been destroyed, and a concurrent
+callback can still access them before the base handle unregisters.
+
+Pass scopes directly to @ref utils::statistics::Storage::RegisterWriter to defer the entire registration until
+construction is complete. The derived object owns the metric's value:
+
+@snippet core/src/utils/statistics/storage_test.cpp Resource scopes virtual callback
+
+The component system or wrapper opens the scopes after the most-derived constructor finishes, so a collector's
+virtual call reaches a valid derived object. Scopes close and wait for running callbacks before the most-derived
+destructor starts, while the derived state is still available.
+
+### Pausing notifications until construction completes
+
+Consider a subscriber to an external event source. Immediately after `UpdateAndListen`, its constructor throws:
+
+@snippet core/src/concurrent/async_event_channel_test.cpp Resource scopes constructor failure
+
+After the exception, stack unwinding destroys the subscriber's initialized members. The external source may send
+an update concurrently with this destruction. If the subscription delivered such updates, the callback could access
+`updates_` while that member is being destroyed or afterwards, until scope cleanup.
+
+Scoped `UpdateAndListen` cannot detect when the constructor body exits with an exception. The destructor of the object
+whose construction failed is not called, and the component system or wrapper only cleans up the scopes after the
+initialized members have been destroyed.
+
+The scoped `UpdateAndListen` overloads therefore call the initial callback synchronously, then pause further
+notifications until the scopes open. Scopes open only after the most-derived constructor succeeds. If events were
+sent during this pause, the initial callback is called again with the current state before notifications start.
+Without such events, there is no second initialization call.
+
+If construction throws, the scopes never open, so the user callback cannot run again after its initial synchronous
+invocation. Pausing notifications thus protects the subscriber's data throughout constructor unwinding.
+
+@note This pause breaks the usual single update frontier of subscriptions through @ref concurrent::AsyncEventChannel:
+other subscribers may have already processed an update while the component being constructed still uses the previous
+state. A long-running constructor may therefore use outdated configuration or cache values. We chose this tradeoff
+because the component has no users until construction completes, and the pause protects its data if construction
+throws.

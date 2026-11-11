@@ -3,8 +3,11 @@
 /// @file userver/concurrent/async_event_channel.hpp
 /// @brief @copybrief concurrent::AsyncEventChannel
 
+#include <cstdint>
 #include <functional>
 #include <memory>
+#include <mutex>
+#include <shared_mutex>
 #include <string>
 #include <string_view>
 #include <typeindex>
@@ -27,6 +30,8 @@ USERVER_NAMESPACE_BEGIN
 namespace concurrent {
 
 namespace impl {
+
+struct AsyncEventChannelTestAccessor;
 
 void WaitForTask(std::string_view name, engine::TaskWithResult<void>& task);
 
@@ -153,9 +158,9 @@ public:
 
     /// @brief Like @ref DoUpdateAndListen, but binds the subscription to @a scopes.
     ///
-    /// Synchronously calls @a updater and subscribes with a stub that only records whether an event arrived during
-    /// construction. When the scope is entered, @a updater is called again if an event was skipped, and the stub is
-    /// replaced with @a func. Unsubscribe runs in @ref utils::ResourceScopeStorage::BeforeDestruction.
+    /// Synchronously calls @a updater and records the channel's event generation. When the scope is entered,
+    /// @a updater is called again if an event was sent during construction, then @a func is subscribed atomically
+    /// with that check. Unsubscribes on scope exit.
     ///
     /// @warning @a updater is not only invoked inline. It is stored and may run again after this call returns,
     /// when the scope is entered. Do not capture locals by reference: copy the pointers and values the updater
@@ -171,15 +176,11 @@ public:
         Function&& func,
         UpdaterFunc&& updater
     ) {
-        auto state = std::make_unique<ResourceScopeState>();
-
-        {
+        const auto initial_generation = [this, &updater] {
             const std::shared_lock lock(event_mutex_);
             updater();
-            state->scope = DoAddListener(id, name, [&state_ref = *state](Args...) { state_ref.event_skipped = true; });
-            auto data = data_.Lock();
-            state->listener = data->listeners.at(id);
-        }
+            return event_generation_;
+        }();
 
         // The first callback runs synchronously in the constructor, so the subscription
         // lifetime must be longer than that of other scope types.
@@ -187,14 +188,17 @@ public:
         scopes.Register(
             utils::impl::InternalTag{},
             kPriority,
-            [state = std::move(state), func = std::move(func), updater = std::forward<UpdaterFunc>(updater)]() mutable {
-                const std::shared_lock sema_lock(state->listener->sema);
-                // listener callback cannot run in parallel here.
-                if (state->event_skipped) {
+            [this,
+             id,
+             name = std::string{name},
+             initial_generation,
+             func = std::move(func),
+             updater = std::forward<UpdaterFunc>(updater)]() mutable {
+                const std::shared_lock lock(event_mutex_);
+                if (event_generation_ != initial_generation) {
                     updater();
                 }
-                state->listener->callback = std::move(func);
-                return std::move(state->scope);
+                return DoAddListener(id, name, std::move(func));
             }
         );
     }
@@ -259,24 +263,27 @@ public:
         };
         std::vector<Task> tasks;
 
-        // Try to obtain unique lock for event_mutex_ to serialize
-        // calls to SendEvent()
-        event_mutex_.lock();
-
-        // Now downgrade the lock to shared to allow new subscriptions
-        event_mutex_.unlock_and_lock_shared();
-
-        // And ensure the lock releases in case of an exception
-        std::shared_lock<engine::SharedMutex> tmp_lock{event_mutex_, std::adopt_lock};
-
-        // Now we want to create N subtasks for callbacks,
-        // which must hold event_mutex_'s std::shared_lock.
-        // A naive implementation would create std::shared_lock{event_mutex_} for each subtask,
-        // however, it might deadlock if any parallel SendEvent() is called and is blocked on
-        // event_mutex_.lock(). It happens due to strict prioritization of writers above readers
-        // in SharedMutex: if there is any pending writer, nobody may lock the mutex for read.
+        std::shared_lock<engine::SharedMutex> tmp_lock;
         {
+            // Try to obtain unique lock for event_mutex_ to serialize
+            // calls to SendEvent()
+            std::unique_lock lock(event_mutex_);
             auto data = data_.Lock();
+            ++event_generation_;
+
+            // Now downgrade the lock to shared to allow new subscriptions
+            lock.release();
+            event_mutex_.unlock_and_lock_shared();
+
+            // And ensure the lock releases in case of an exception
+            tmp_lock = std::shared_lock{event_mutex_, std::adopt_lock};
+
+            // Now we want to create N subtasks for callbacks,
+            // which must hold event_mutex_'s std::shared_lock.
+            // A naive implementation would create std::shared_lock{event_mutex_} for each subtask,
+            // however, it might deadlock if any parallel SendEvent() is called and is blocked on
+            // event_mutex_.lock(). It happens due to strict prioritization of writers above readers
+            // in SharedMutex: if there is any pending writer, nobody may lock the mutex for read.
             auto& listeners = data->listeners;
             tasks.reserve(listeners.size());
 
@@ -303,12 +310,14 @@ public:
     const std::string& Name() const noexcept { return name_; }
 
 private:
+    friend struct impl::AsyncEventChannelTestAccessor;
+
     struct Listener final {
         // 'sema' with data_.Lock() are used to synchronize removal 'Listener' from ListenersData::listeners
         mutable engine::Semaphore sema;
 
         std::string name;
-        mutable Function callback;
+        Function callback;
         std::string task_name;
 
         Listener(std::string name, Function callback, std::string task_name)
@@ -317,13 +326,6 @@ private:
               callback(std::move(callback)),
               task_name(std::move(task_name))
         {}
-    };
-
-    struct ResourceScopeState {
-        bool event_skipped{false};
-        std::shared_ptr<const Listener> listener;
-        // Must be the last field: while the subscription is alive, the fields above remain valid for the stub callback.
-        AsyncEventSubscriberScope scope;
     };
 
     struct ListenersData final {
@@ -390,13 +392,13 @@ private:
     const std::string name_;
     concurrent::Variable<ListenersData> data_;
 
-    // event_mutex_ is required only for event serialization,
-    // it doesn't protect any data. The mutex is unique locked
+    // The mutex is unique locked
     // for new event publishing, and is shared locked for calling callbacks.
     // If any callback is working, no new event publishing is possible.
     // It *is* possible to re-subscribe on async channel while another callback
     // operates.
     mutable engine::SharedMutex event_mutex_;
+    mutable std::uint64_t event_generation_{0};
 };
 
 }  // namespace concurrent
