@@ -149,6 +149,7 @@ public:
         );
     }
 
+#ifndef ARCADIA_ROOT
     /// @overload
     /// @deprecated Use the overloads that take @ref utils::ResourceScopeStorage.
     ///
@@ -165,6 +166,7 @@ public:
             [obj, func](const dynamic_config::Snapshot& config) { (obj->*func)(config); }
         );
     }
+#endif
 
     /// @brief Subscribes to dynamic-config updates with information about the
     /// current and previous states.
@@ -209,6 +211,7 @@ public:
         });
     }
 
+#ifndef ARCADIA_ROOT
     /// @overload
     /// @deprecated Use the overloads that take @ref utils::ResourceScopeStorage.
     ///
@@ -223,6 +226,7 @@ public:
             (obj->*func)(diff);
         });
     }
+#endif
 
     /// @brief Subscribes to updates of a subset of all configs.
     ///
@@ -266,6 +270,7 @@ public:
         DoUpdateAndListen(scopes, concurrent::FunctionId(obj), name, std::move(wrapper));
     }
 
+#ifndef ARCADIA_ROOT
     /// @overload
     /// @deprecated Use the overloads that take @ref utils::ResourceScopeStorage.
     ///
@@ -285,10 +290,12 @@ public:
         };
         return DoUpdateAndListen(concurrent::FunctionId(obj), name, std::move(wrapper));
     }
+#endif
 
     SnapshotEventSource& GetEventChannel();
 
 private:
+#ifndef ARCADIA_ROOT
     concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
         concurrent::FunctionId id,
         std::string_view name,
@@ -300,6 +307,7 @@ private:
         std::string_view name,
         DiffEventSource::Function&& func
     );
+#endif
 
     void DoUpdateAndListen(
         utils::ResourceScopeStorage& scopes,

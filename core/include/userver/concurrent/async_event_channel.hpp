@@ -117,6 +117,7 @@ public:
           data_(ListenersData{{}, std::move(on_listener_removal)})
     {}
 
+#ifndef ARCADIA_ROOT
     /// @brief For use in `UpdateAndListen` of specific event channels
     ///
     /// Atomically calls `updater`, which should invoke `func` with the previously
@@ -155,6 +156,7 @@ public:
             std::forward<UpdaterFunc>(updater)
         );
     }
+#endif
 
     /// @brief Like @ref DoUpdateAndListen, but binds the subscription to @a scopes.
     ///

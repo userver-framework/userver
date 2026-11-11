@@ -192,17 +192,6 @@ public:
         channel_.DoUpdateAndListen(scopes, obj, name, func, [this, obj, func] { (obj->*func)(Get()); });
     }
 
-    /// @overload
-    /// @deprecated Use the overload that takes @ref utils::ResourceScopeStorage.
-    template <typename Class>
-    concurrent::AsyncEventSubscriberScope UpdateAndListen(
-        Class* obj,
-        std::string_view name,
-        void (Class::*func)(WeatherKind)
-    ) {
-        return channel_.DoUpdateAndListen(obj, name, func, [&] { (obj->*func)(Get()); });
-    }
-
     void Set(WeatherKind value) {
         value_.store(value);
         channel_.SendEvent(value);

@@ -48,12 +48,14 @@ public:
     template <typename Class>
     void UpdateAndListen(utils::ResourceScopeStorage& scopes, Class* obj, std::string_view name, void (Class::*func)());
 
+#ifndef ARCADIA_ROOT
     /// @overload
     /// @deprecated Use the overload that takes @ref utils::ResourceScopeStorage.
     ///
     /// Store the returned scope as a member and call `Unsubscribe` explicitly.
     template <typename Class>
     concurrent::AsyncEventSubscriberScope UpdateAndListen(Class* obj, std::string_view name, void (Class::*func)());
+#endif
 
     void SendEvent();
 
@@ -95,6 +97,7 @@ void ConflatedEventChannel::UpdateAndListen(
     DoUpdateAndListen(scopes, obj, name, func, [obj, func] { (obj->*func)(); });
 }
 
+#ifndef ARCADIA_ROOT
 template <typename Class>
 concurrent::AsyncEventSubscriberScope ConflatedEventChannel::UpdateAndListen(
     Class* obj,
@@ -103,6 +106,7 @@ concurrent::AsyncEventSubscriberScope ConflatedEventChannel::UpdateAndListen(
 ) {
     return DoUpdateAndListen(obj, name, func, [&] { (obj->*func)(); });
 }
+#endif
 
 }  // namespace concurrent
 

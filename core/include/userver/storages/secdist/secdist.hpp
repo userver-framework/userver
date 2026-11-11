@@ -138,6 +138,7 @@ public:
         void (Class::*func)(const storages::secdist::SecdistConfig& secdist)
     );
 
+#ifndef ARCADIA_ROOT
     /// @overload
     /// @deprecated Use the overload that takes @ref utils::ResourceScopeStorage.
     ///
@@ -148,17 +149,20 @@ public:
         std::string_view name,
         void (Class::*func)(const storages::secdist::SecdistConfig& secdist)
     );
+#endif
 
     bool IsPeriodicUpdateEnabled() const noexcept;
 
 private:
     using EventSource = concurrent::AsyncEventSource<const SecdistConfig&>;
 
+#ifndef ARCADIA_ROOT
     concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
         concurrent::FunctionId id,
         std::string_view name,
         EventSource::Function&& func
     );
+#endif
 
     void DoUpdateAndListen(
         utils::ResourceScopeStorage& scopes,
@@ -183,6 +187,7 @@ void Secdist::UpdateAndListen(
     });
 }
 
+#ifndef ARCADIA_ROOT
 template <typename Class>
 concurrent::AsyncEventSubscriberScope Secdist::UpdateAndListen(
     Class* obj,
@@ -193,6 +198,7 @@ concurrent::AsyncEventSubscriberScope Secdist::UpdateAndListen(
         (obj->*func)(config);
     });
 }
+#endif
 
 namespace detail {
 

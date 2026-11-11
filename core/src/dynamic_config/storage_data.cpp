@@ -68,6 +68,7 @@ StorageData::SnapshotChannel& StorageData::GetChannel() { return snapshot_channe
 
 StorageData::DiffChannel& StorageData::GetDiffChannel() { return diff_channel_; }
 
+#ifndef ARCADIA_ROOT
 concurrent::AsyncEventSubscriberScope StorageData::DoUpdateAndListen(
     concurrent::FunctionId id,
     std::string_view name,
@@ -103,6 +104,7 @@ concurrent::AsyncEventSubscriberScope StorageData::DoUpdateAndListen(
     };
     return diff_channel_.DoUpdateAndListen(id, name, std::move(func), std::move(updater));
 }
+#endif
 
 void StorageData::DoUpdateAndListen(
     utils::ResourceScopeStorage& scopes,

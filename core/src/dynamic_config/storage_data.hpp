@@ -29,6 +29,7 @@ public:
 
     DiffChannel& GetDiffChannel();
 
+#ifndef ARCADIA_ROOT
     concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
         concurrent::FunctionId id,
         std::string_view name,
@@ -40,6 +41,7 @@ public:
         std::string_view name,
         DiffChannel::Function&& func
     );
+#endif
 
     void DoUpdateAndListen(
         utils::ResourceScopeStorage& scopes,

@@ -250,6 +250,13 @@ UTEST(DynamicConfig, Extend2) {
 
 class Subscriber final {
 public:
+    Subscriber() = default;
+
+    template <typename... Keys>
+    Subscriber(utils::ResourceScopeStorage& scopes, dynamic_config::Source& source, const Keys&... keys) {
+        source.UpdateAndListen(scopes, this, "", &Subscriber::OnConfigUpdate, keys...);
+    }
+
     void OnConfigUpdate(const dynamic_config::Snapshot&) { counter_++; }
     int GetCounter() const { return counter_; }
 
@@ -270,36 +277,35 @@ UTEST(DynamicConfig, SingleSubscription) {
 
     dynamic_config::StorageMock storage;
     auto source = storage.GetSource();
-    Subscriber subscribers[3];
-    concurrent::AsyncEventSubscriberScope scopes[3];
+    utils::WithResourceScopes<Subscriber> subscribers[]{
+        utils::WithResourceScopes<Subscriber>{std::in_place, source, kDummyConfig},
+        utils::WithResourceScopes<Subscriber>{std::in_place, source, kIntConfig},
+        utils::WithResourceScopes<Subscriber>{std::in_place, source, kBoolConfig},
+    };
 
-    scopes[0] = source.UpdateAndListen(&subscribers[0], "", &Subscriber::OnConfigUpdate, kDummyConfig);
-    scopes[1] = source.UpdateAndListen(&subscribers[1], "", &Subscriber::OnConfigUpdate, kIntConfig);
-    scopes[2] = source.UpdateAndListen(&subscribers[2], "", &Subscriber::OnConfigUpdate, kBoolConfig);
-
-    EXPECT_EQ(subscribers[0].GetCounter(), 1);
-    EXPECT_EQ(subscribers[1].GetCounter(), 1);
-    EXPECT_EQ(subscribers[2].GetCounter(), 1);
-
-    storage.Extend(vars1);
-    EXPECT_EQ(subscribers[0].GetCounter(), 2);
-    EXPECT_EQ(subscribers[1].GetCounter(), 2);
-    EXPECT_EQ(subscribers[2].GetCounter(), 2);
+    EXPECT_EQ(subscribers[0]->GetCounter(), 1);
+    EXPECT_EQ(subscribers[1]->GetCounter(), 1);
+    EXPECT_EQ(subscribers[2]->GetCounter(), 1);
 
     storage.Extend(vars1);
-    EXPECT_EQ(subscribers[0].GetCounter(), 2);
-    EXPECT_EQ(subscribers[1].GetCounter(), 2);
-    EXPECT_EQ(subscribers[2].GetCounter(), 2);
+    EXPECT_EQ(subscribers[0]->GetCounter(), 2);
+    EXPECT_EQ(subscribers[1]->GetCounter(), 2);
+    EXPECT_EQ(subscribers[2]->GetCounter(), 2);
+
+    storage.Extend(vars1);
+    EXPECT_EQ(subscribers[0]->GetCounter(), 2);
+    EXPECT_EQ(subscribers[1]->GetCounter(), 2);
+    EXPECT_EQ(subscribers[2]->GetCounter(), 2);
 
     storage.Extend(vars2);
-    EXPECT_EQ(subscribers[0].GetCounter(), 3);
-    EXPECT_EQ(subscribers[1].GetCounter(), 3);
-    EXPECT_EQ(subscribers[2].GetCounter(), 2);
+    EXPECT_EQ(subscribers[0]->GetCounter(), 3);
+    EXPECT_EQ(subscribers[1]->GetCounter(), 3);
+    EXPECT_EQ(subscribers[2]->GetCounter(), 2);
 
     storage.Extend(vars3);
-    EXPECT_EQ(subscribers[0].GetCounter(), 4);
-    EXPECT_EQ(subscribers[1].GetCounter(), 3);
-    EXPECT_EQ(subscribers[2].GetCounter(), 3);
+    EXPECT_EQ(subscribers[0]->GetCounter(), 4);
+    EXPECT_EQ(subscribers[1]->GetCounter(), 3);
+    EXPECT_EQ(subscribers[2]->GetCounter(), 3);
 }
 
 UTEST(DynamicConfig, GetEventChannel) {
@@ -319,17 +325,16 @@ UTEST(DynamicConfig, GetEventChannel) {
     dynamic_config::StorageMock storage;
     storage.Extend(vars1);
     auto source = storage.GetSource();
-    Subscriber subscribers[3];
-    concurrent::AsyncEventSubscriberScope scopes[3];
-
-    scopes[0] = source.UpdateAndListen(&subscribers[0], "", &Subscriber::OnConfigUpdate);
-    scopes[1] = source.UpdateAndListen(&subscribers[1], "", &Subscriber::OnConfigUpdate, kIntConfig);
-    scopes[2] = source.UpdateAndListen(&subscribers[2], "", &Subscriber::OnConfigUpdate, kBoolConfig);
+    utils::WithResourceScopes<Subscriber> subscribers[]{
+        utils::WithResourceScopes<Subscriber>{std::in_place, source},
+        utils::WithResourceScopes<Subscriber>{std::in_place, source, kIntConfig},
+        utils::WithResourceScopes<Subscriber>{std::in_place, source, kBoolConfig},
+    };
 
     storage.Extend(vars2);
-    EXPECT_EQ(subscribers[0].GetCounter(), 2);
-    EXPECT_EQ(subscribers[1].GetCounter(), 1);
-    EXPECT_EQ(subscribers[2].GetCounter(), 2);
+    EXPECT_EQ(subscribers[0]->GetCounter(), 2);
+    EXPECT_EQ(subscribers[1]->GetCounter(), 1);
+    EXPECT_EQ(subscribers[2]->GetCounter(), 2);
 
     auto& main_channel = source.GetEventChannel();
     struct DoubleSubscriber {
@@ -350,9 +355,9 @@ UTEST(DynamicConfig, GetEventChannel) {
     utils::WithResourceScopes<DoubleSubscriber> double_subscriber(std::in_place, main_channel);
 
     storage.Extend(vars3);
-    EXPECT_EQ(subscribers[0].GetCounter(), 3);
-    EXPECT_EQ(subscribers[1].GetCounter(), 2);
-    EXPECT_EQ(subscribers[2].GetCounter(), 2);
+    EXPECT_EQ(subscribers[0]->GetCounter(), 3);
+    EXPECT_EQ(subscribers[1]->GetCounter(), 2);
+    EXPECT_EQ(subscribers[2]->GetCounter(), 2);
     EXPECT_EQ(double_subscriber->subscriber.GetCounter(), 2);
 }
 
@@ -375,34 +380,37 @@ UTEST(DynamicConfig, SubsetSubscription) {
 
     dynamic_config::StorageMock storage;
     auto source = storage.GetSource();
-    Subscriber subscribers[2];
-    concurrent::AsyncEventSubscriberScope scopes[2];
+    utils::WithResourceScopes<Subscriber> subscribers[]{
+        utils::WithResourceScopes<Subscriber>{std::in_place, source, kIntConfig, kBoolConfig},
+        utils::WithResourceScopes<Subscriber>{std::in_place, source, kDummyConfig, kBoolConfig},
+    };
 
-    scopes[0] = source.UpdateAndListen(&subscribers[0], "", &Subscriber::OnConfigUpdate, kIntConfig, kBoolConfig);
-    scopes[1] = source.UpdateAndListen(&subscribers[1], "", &Subscriber::OnConfigUpdate, kDummyConfig, kBoolConfig);
-
-    EXPECT_EQ(subscribers[0].GetCounter(), 1);
-    EXPECT_EQ(subscribers[1].GetCounter(), 1);
+    EXPECT_EQ(subscribers[0]->GetCounter(), 1);
+    EXPECT_EQ(subscribers[1]->GetCounter(), 1);
 
     storage.Extend(vars1);
-    EXPECT_EQ(subscribers[0].GetCounter(), 2);
-    EXPECT_EQ(subscribers[1].GetCounter(), 2);
+    EXPECT_EQ(subscribers[0]->GetCounter(), 2);
+    EXPECT_EQ(subscribers[1]->GetCounter(), 2);
 
     storage.Extend(vars2);
-    EXPECT_EQ(subscribers[0].GetCounter(), 3);
-    EXPECT_EQ(subscribers[1].GetCounter(), 3);
+    EXPECT_EQ(subscribers[0]->GetCounter(), 3);
+    EXPECT_EQ(subscribers[1]->GetCounter(), 3);
 
     storage.Extend(vars3);
-    EXPECT_EQ(subscribers[0].GetCounter(), 4);
-    EXPECT_EQ(subscribers[1].GetCounter(), 3);
+    EXPECT_EQ(subscribers[0]->GetCounter(), 4);
+    EXPECT_EQ(subscribers[1]->GetCounter(), 3);
 
     storage.Extend(vars3);
-    EXPECT_EQ(subscribers[0].GetCounter(), 4);
-    EXPECT_EQ(subscribers[1].GetCounter(), 3);
+    EXPECT_EQ(subscribers[0]->GetCounter(), 4);
+    EXPECT_EQ(subscribers[1]->GetCounter(), 3);
 }
 
 class CustomSubscriber final {
 public:
+    CustomSubscriber(utils::ResourceScopeStorage& scopes, dynamic_config::Source& source) {
+        source.UpdateAndListen(scopes, this, "", &CustomSubscriber::OnConfigUpdate);
+    }
+
     void OnConfigUpdate(const dynamic_config::Diff&) { counter_++; }
     int GetCounter() const { return counter_; }
 
@@ -413,17 +421,19 @@ private:
 UTEST(DynamicConfig, CustomSubscription) {
     dynamic_config::StorageMock storage;
     auto source = storage.GetSource();
-    CustomSubscriber subscriber;
-
-    auto scope = source.UpdateAndListen(&subscriber, "", &CustomSubscriber::OnConfigUpdate);
-    EXPECT_EQ(subscriber.GetCounter(), 1);
+    utils::WithResourceScopes<CustomSubscriber> subscriber(std::in_place, source);
+    EXPECT_EQ(subscriber->GetCounter(), 1);
 
     storage.Extend({});
-    EXPECT_EQ(subscriber.GetCounter(), 2);
+    EXPECT_EQ(subscriber->GetCounter(), 2);
 }
 
 class ConfigSubscriber final {
 public:
+    ConfigSubscriber(utils::ResourceScopeStorage& scopes, dynamic_config::Source& source) {
+        source.UpdateAndListen(scopes, this, "", &ConfigSubscriber::OnConfigUpdate);
+    }
+
     /*! [Custom subscription for dynamic config update] */
     void OnConfigUpdate(const dynamic_config::Diff& diff_data) {
         if (!diff_data.previous) {
@@ -454,21 +464,19 @@ private:
 UTEST(DynamicConfigSubscription, Snippet) {
     dynamic_config::StorageMock storage;
     auto source = storage.GetSource();
-    ConfigSubscriber subscriber;
-
-    auto scope = source.UpdateAndListen(&subscriber, "", &ConfigSubscriber::OnConfigUpdate);
+    utils::WithResourceScopes<ConfigSubscriber> subscriber(std::in_place, source);
 
     storage.Extend({{kIntConfig, 1}, {kBoolConfig, false}, {kDummyConfig, {1, "bar"}}});
-    EXPECT_EQ(subscriber.GetBoolConfigChangeCounter(), 0);
-    EXPECT_EQ(subscriber.GetFooInterestingEventCounter(), 0);
+    EXPECT_EQ(subscriber->GetBoolConfigChangeCounter(), 0);
+    EXPECT_EQ(subscriber->GetFooInterestingEventCounter(), 0);
 
     storage.Extend({{kIntConfig, 0}, {kBoolConfig, true}, {kDummyConfig, {1, "bar"}}});
-    EXPECT_EQ(subscriber.GetBoolConfigChangeCounter(), 1);
-    EXPECT_EQ(subscriber.GetFooInterestingEventCounter(), 0);
+    EXPECT_EQ(subscriber->GetBoolConfigChangeCounter(), 1);
+    EXPECT_EQ(subscriber->GetFooInterestingEventCounter(), 0);
 
     storage.Extend({{kIntConfig, 1}, {kBoolConfig, true}, {kDummyConfig, {0, "bar"}}});
-    EXPECT_EQ(subscriber.GetBoolConfigChangeCounter(), 1);
-    EXPECT_EQ(subscriber.GetFooInterestingEventCounter(), 1);
+    EXPECT_EQ(subscriber->GetBoolConfigChangeCounter(), 1);
+    EXPECT_EQ(subscriber->GetFooInterestingEventCounter(), 1);
 }
 
 const dynamic_config::Key<formats::json::Value> kJsonConfig{dynamic_config::ConstantConfig{}, {}};
@@ -504,25 +512,36 @@ UTEST(DynamicConfig, DeadlockOnSubscribeInCallback) {
     dynamic_config::StorageMock storage{{kDummyConfig, {42, "what"}}, {kIntConfig, 5}};
     auto source = storage.GetSource();
 
-    Subscriber sub1;
-
     struct RecursiveSubscriber {
+        RecursiveSubscriber(utils::ResourceScopeStorage& scopes, dynamic_config::Source& source)
+            : scopes(scopes),
+              source(source)
+        {}
+
         void OnConfigUpdate(const dynamic_config::Snapshot&) {
-            subscriber = source.UpdateAndListen(&sub, "test", &Subscriber::OnConfigUpdate);
+            if (nested_subscribed) {
+                return;
+            }
+            nested_subscribed = true;
+            source.UpdateAndListen(scopes, &nested, "test", &Subscriber::OnConfigUpdate);
         }
 
-        Subscriber& sub;
+        utils::ResourceScopeStorage& scopes;
         dynamic_config::Source& source;
-        concurrent::AsyncEventSubscriberScope subscriber;
+        Subscriber nested;
+        bool nested_subscribed{false};
     };
-    RecursiveSubscriber sub{sub1, source, {}};
 
-    auto subscriber = source.UpdateAndListen(&sub, "test", &RecursiveSubscriber::OnConfigUpdate);
-    sub.subscriber.Unsubscribe();
+    utils::WithResourceScopes<RecursiveSubscriber> subscriber(std::in_place, source);
+    source.UpdateAndListen(subscriber->scopes, &*subscriber, "test", &RecursiveSubscriber::OnConfigUpdate);
 }
 
 UTEST(DynamicConfig, DeadlockOnSubscribeInSendEvent) {
     struct LocalSubscriber {
+        explicit LocalSubscriber(utils::ResourceScopeStorage& scopes)
+            : scopes(scopes)
+        {}
+
         // NOLINTNEXTLINE(readability-make-member-function-const)
         void OnConfigUpdate(const dynamic_config::Snapshot&) {
             if (cb) {
@@ -530,30 +549,33 @@ UTEST(DynamicConfig, DeadlockOnSubscribeInSendEvent) {
             }
         }
 
+        utils::ResourceScopeStorage& scopes;
         std::function<void()> cb;
     };
 
     dynamic_config::StorageMock storage{{kDummyConfig, {42, "what"}}, {kIntConfig, 5}};
     auto source = storage.GetSource();
-    LocalSubscriber subscriber;
+    utils::WithResourceScopes<LocalSubscriber> subscriber(std::in_place);
+    source.UpdateAndListen(subscriber->scopes, &*subscriber, "test", &LocalSubscriber::OnConfigUpdate);
 
-    auto scope = source.UpdateAndListen(&subscriber, "test", &LocalSubscriber::OnConfigUpdate);
-
-    LocalSubscriber subscriber2;
-    concurrent::AsyncEventSubscriberScope subscriber2_scope;
-    subscriber.cb = [&] {
+    utils::WithResourceScopes<LocalSubscriber> subscriber2(std::in_place);
+    subscriber->cb = [&] {
         // Subscribe inside of callback
-        subscriber2_scope = source.UpdateAndListen(&subscriber2, "test2", &LocalSubscriber::OnConfigUpdate);
+        source.UpdateAndListen(subscriber2->scopes, &*subscriber2, "test2", &LocalSubscriber::OnConfigUpdate);
     };
 
     // emit SendEvent() which calls callback which subscribes
     storage.Extend({});
 
-    subscriber.cb = {};  // cleanup to avoid UAF in dtr (in debug)
+    subscriber->cb = {};  // cleanup to avoid UAF in dtr (in debug)
 }
 
 UTEST(DynamicConfig, DeadlockOnSubscribeInSendEventDiff) {
     struct LocalSubscriber {
+        explicit LocalSubscriber(utils::ResourceScopeStorage& scopes)
+            : scopes(scopes)
+        {}
+
         // NOLINTNEXTLINE(readability-make-member-function-const)
         void OnDiffUpdate(const dynamic_config::Diff&) {
             if (cb) {
@@ -561,26 +583,25 @@ UTEST(DynamicConfig, DeadlockOnSubscribeInSendEventDiff) {
             }
         }
 
+        utils::ResourceScopeStorage& scopes;
         std::function<void()> cb;
     };
 
     dynamic_config::StorageMock storage{{kDummyConfig, {42, "what"}}, {kIntConfig, 5}};
     auto source = storage.GetSource();
-    LocalSubscriber subscriber;
+    utils::WithResourceScopes<LocalSubscriber> subscriber(std::in_place);
+    source.UpdateAndListen(subscriber->scopes, &*subscriber, "test", &LocalSubscriber::OnDiffUpdate);
 
-    auto scope = source.UpdateAndListen(&subscriber, "test", &LocalSubscriber::OnDiffUpdate);
-
-    LocalSubscriber subscriber2;
-    concurrent::AsyncEventSubscriberScope subscriber2_scope;
-    subscriber.cb = [&] {
+    utils::WithResourceScopes<LocalSubscriber> subscriber2(std::in_place);
+    subscriber->cb = [&] {
         // Subscribe inside of callback
-        subscriber2_scope = source.UpdateAndListen(&subscriber2, "test2", &LocalSubscriber::OnDiffUpdate);
+        source.UpdateAndListen(subscriber2->scopes, &*subscriber2, "test2", &LocalSubscriber::OnDiffUpdate);
     };
 
     // emit SendEvent() which calls callback which subscribes
     storage.Extend({});
 
-    subscriber.cb = {};  // cleanup to avoid UAF in dtr (in debug)
+    subscriber->cb = {};  // cleanup to avoid UAF in dtr (in debug)
 }
 
 const dynamic_config::Key<DummyConfig> kMyConfig{"DOC_MY_CONFIG", DummyConfig{.foo = 0, .bar = ""}};
