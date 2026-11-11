@@ -168,4 +168,19 @@ UTEST(ConflatedEventChannel, UpdateAndListen) {
     EXPECT_EQ(subscriber->times_called, 2);
 }
 
+UTEST(ConflatedEventChannel, ForwardingDataLivesUntilUnsubscribe) {
+    int removals = 0;
+    concurrent::AsyncEventChannel<> source("source", [&removals](const auto& callback) {
+        ++removals;
+        callback();
+    });
+    {
+        concurrent::ConflatedEventChannel channel("conflated");
+        concurrent::AsyncEventSource<>& event_source = source;
+        channel.AddChannel(event_source);
+    }
+    EXPECT_EQ(removals, concurrent::impl::kCheckSubscriptionUB ? 1 : 0);
+    source.SendEvent();
+}
+
 USERVER_NAMESPACE_END

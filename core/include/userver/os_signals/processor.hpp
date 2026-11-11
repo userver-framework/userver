@@ -64,6 +64,7 @@ public:
         channel_.AddListener(scopes, obj, name, func);
     }
 
+#ifndef ARCADIA_ROOT
     /// Listen for a specific signal `signum`. See the other overload for
     /// subscription to both signals.
     /// @deprecated Use the overload that takes @ref utils::ResourceScopeStorage.
@@ -85,6 +86,8 @@ public:
         auto execute = [obj, func](int sig) { (obj->*func)(sig); };
         return channel_.AddListener(concurrent::FunctionId(obj), name, std::move(execute));
     }
+
+#endif
 
     /// @cond
     // For internal use

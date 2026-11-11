@@ -4,11 +4,13 @@
 /// @brief @copybrief concurrent::ConflatedEventChannel
 
 #include <atomic>
-#include <vector>
+#include <string>
+#include <utility>
 
 #include <userver/concurrent/async_event_channel.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/task/task_with_result.hpp>
+#include <userver/utils/resource_scopes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -29,7 +31,7 @@ public:
     explicit ConflatedEventChannel(std::string name, OnRemoveCallback on_listener_removal = {});
     ~ConflatedEventChannel() override;
 
-    /// For convenient forwarding of events from other channels
+    /// @brief Forwards new events from an @ref concurrent::AsyncEventSource without replaying past events.
     template <typename... Args>
     void AddChannel(concurrent::AsyncEventSource<Args...>& channel);
 
@@ -56,18 +58,31 @@ public:
     void SendEvent();
 
 private:
-    template <typename... Args>
-    void OnChannelEvent(Args...);
+    struct Data final {
+        Data(utils::ResourceScopeStorage& scopes, AsyncEventChannel<>& channel);
+        ~Data();
 
-    std::atomic<bool> stop_flag_;
-    engine::TaskWithResult<void> task_;
-    std::vector<concurrent::AsyncEventSubscriberScope> subscriptions_;
-    engine::SingleConsumerEvent event_;
+        void SendEvent();
+
+        template <typename... Args>
+        void OnChannelEvent(Args...) {
+            SendEvent();
+        }
+
+        utils::ResourceScopeStorage& scopes;
+        const std::string name;
+        std::atomic<bool> stop_flag{false};
+        engine::SingleConsumerEvent event;
+        engine::TaskWithResult<void> task;
+    };
+
+    utils::WithResourceScopes<Data> data_;
 };
 
 template <typename... Args>
 void ConflatedEventChannel::AddChannel(concurrent::AsyncEventSource<Args...>& channel) {
-    subscriptions_.push_back(channel.AddListener(this, Name(), &ConflatedEventChannel::OnChannelEvent<Args...>));
+    auto& data = *data_;
+    channel.AddListener(data.scopes, &data, data.name, &Data::OnChannelEvent<Args...>);
 }
 
 template <typename Class>
@@ -87,11 +102,6 @@ concurrent::AsyncEventSubscriberScope ConflatedEventChannel::UpdateAndListen(
     void (Class::*func)()
 ) {
     return DoUpdateAndListen(obj, name, func, [&] { (obj->*func)(); });
-}
-
-template <typename... Args>
-void ConflatedEventChannel::OnChannelEvent(Args...) {
-    SendEvent();
 }
 
 }  // namespace concurrent

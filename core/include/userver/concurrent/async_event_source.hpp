@@ -157,6 +157,7 @@ public:
         });
     }
 
+#ifndef ARCADIA_ROOT
     /// @overload
     /// @deprecated Use the overload that takes @ref utils::ResourceScopeStorage.
     /// Store the returned scope as a member and call `Unsubscribe` explicitly.
@@ -174,6 +175,8 @@ public:
     AsyncEventSubscriberScope AddListener(FunctionId id, std::string_view name, Function&& func) {
         return DoAddListener(id, name, std::move(func));
     }
+
+#endif
 
     /// Used by AsyncEventSubscriberScope to cancel an event subscription
     void RemoveListener(FunctionId, UnsubscribingKind) noexcept override = 0;
