@@ -1,7 +1,9 @@
 #include <userver/formats/json/masking.hpp>
 
 #include <algorithm>
+#include <limits>
 #include <optional>
+#include <stdexcept>
 #include <utility>
 
 #include <fmt/format.h>
@@ -43,11 +45,13 @@ public:
     MaskingHandler(
         const std::vector<Node>& nodes,
         MaskingListMode mode,
+        const std::optional<std::string>& replacement,
         rapidjson::StringBuffer& output,
         std::size_t limit
     )
         : nodes_(nodes),
           mode_(mode),
+          replacement_(replacement),
           output_(output),
           limit_(limit),
           writer_(output),
@@ -126,6 +130,14 @@ private:
         return !limit_reached_;
     }
 
+    bool WriteMask(const char* default_mask) {
+        if (!replacement_) {
+            return writer_.String(default_mask);
+        }
+        const auto length = static_cast<rapidjson::SizeType>(replacement_->size());
+        return writer_.String(replacement_->data(), GetStringLengthForBudget(replacement_->data(), length));
+    }
+
     State Select(const Node* node) const {
         if (node && !node->terminal && node->children.empty() && !node->wildcard) {
             node = nullptr;
@@ -155,7 +167,7 @@ private:
         if (state.action == Action::kMask ||
             (state.action == Action::kTraverse && mode_ == MaskingListMode::kWhitelist))
         {
-            return writer_.String("...") && CheckLimit();
+            return WriteMask("...") && CheckLimit();
         }
         return write() && CheckLimit();
     }
@@ -170,7 +182,7 @@ private:
         if (!suppressed) {
             bool written = false;
             if (state.action == Action::kMask) {
-                written = writer_.String(is_array ? "[...]" : "{...}");
+                written = WriteMask(is_array ? "[...]" : "{...}");
             } else if (is_array) {
                 written = writer_.StartArray();
             } else {
@@ -197,6 +209,7 @@ private:
 
     const std::vector<Node>& nodes_;
     const MaskingListMode mode_;
+    const std::optional<std::string>& replacement_;
     rapidjson::StringBuffer& output_;
     const std::size_t limit_;
     rapidjson::Writer<rapidjson::StringBuffer> writer_;
@@ -210,10 +223,18 @@ private:
 struct MaskingRules::Impl final {
     std::vector<Node> nodes{1};
     MaskingListMode mode;
+    std::optional<std::string> replacement;
 
-    Impl(const std::vector<MaskingPath>& paths, MaskingListMode list_mode)
-        : mode(list_mode)
+    Impl(const std::vector<MaskingPath>& paths, MaskingListMode list_mode, std::optional<std::string> replacement_value)
+        : mode(list_mode),
+          replacement(std::move(replacement_value))
     {
+        if (replacement &&
+            (replacement->size() > std::numeric_limits<rapidjson::SizeType>::max() || !utils::text::IsUtf8(*replacement)
+            ))
+        {
+            throw std::invalid_argument("JSON masking replacement must be a UTF-8 string of representable length");
+        }
         for (const auto& path : paths) {
             std::size_t index = 0;
             for (const auto& segment : path) {
@@ -240,7 +261,15 @@ struct MaskingRules::Impl final {
 };
 
 MaskingRules::MaskingRules(const std::vector<MaskingPath>& paths, MaskingListMode mode)
-    : impl_(std::make_shared<const Impl>(paths, mode))
+    : MaskingRules(paths, mode, std::nullopt)
+{}
+
+MaskingRules::MaskingRules(
+    const std::vector<MaskingPath>& paths,
+    MaskingListMode mode,
+    std::optional<std::string> replacement
+)
+    : impl_(std::make_shared<const Impl>(paths, mode, std::move(replacement)))
 {}
 
 MaskedJson MaskJson(std::string_view input, const MaskingRules& rules, std::size_t log_limit) {
@@ -248,7 +277,7 @@ MaskedJson MaskJson(std::string_view input, const MaskingRules& rules, std::size
         return {{}, true};
     }
     rapidjson::StringBuffer output;
-    MaskingHandler handler(rules.impl_->nodes, rules.impl_->mode, output, log_limit);
+    MaskingHandler handler(rules.impl_->nodes, rules.impl_->mode, rules.impl_->replacement, output, log_limit);
     rapidjson::MemoryStream stream(input.data(), input.size());
     rapidjson::Reader reader;
     constexpr auto kFlags =

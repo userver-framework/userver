@@ -161,8 +161,9 @@ Policy options:
 - `paths` (required): fields to select, for example `[["user", "phone"]]`.
 - `list_mode`: `blacklist` (the default) masks selected subtrees;
   `whitelist` preserves them and masks everything else.
+- `replacement`: a single string to use in place of every masked JSON value.
 
-Masked scalars become `"..."`, objects `"{...}"`, and arrays `"[...]"`.
+By default, masked scalars become `"..."`, objects `"{...}"`, and arrays `"[...]"`.
 See the config schema for wildcard and array path behavior.
 
 Generated handlers skip binary-only body formats. Setting a masking rule explicitly

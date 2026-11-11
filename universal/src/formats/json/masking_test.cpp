@@ -39,6 +39,18 @@ TEST(JsonMasking, ValueTypesAndSubtrees) {
     EXPECT_EQ(Mask("[]", {{}}), R"("[...]")");
 }
 
+TEST(JsonMasking, ConfiguredReplacementIsEscapedAndBounded) {
+    const MaskingRules rules{{{"scalar"}, {"object"}, {"array"}}, MaskingListMode::kBlacklist, "¢\""};
+    constexpr std::string_view kInput = R"({"scalar":42,"object":{"a":1},"array":[1],"public":"..."})";
+    const auto result = MaskJson(kInput, rules, kUnlimited);
+    EXPECT_FALSE(result.limit_reached);
+    EXPECT_EQ(result.text, R"({"scalar":"¢\"","object":"¢\"","array":"¢\"","public":"..."})");
+
+    const auto truncated = MaskJson(kInput, rules, 12);
+    EXPECT_TRUE(truncated.limit_reached);
+    EXPECT_EQ(truncated.text, R"({"scalar":")");
+}
+
 TEST(JsonMasking, PathsThroughArrays) {
     EXPECT_EQ(
         Mask(R"([[{"user":{"token":"a","ok":1}}],{"user":{"token":"b"}}])", {{"user", "token"}}),

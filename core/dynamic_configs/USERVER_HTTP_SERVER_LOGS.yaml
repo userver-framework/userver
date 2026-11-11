@@ -104,9 +104,12 @@ schema:
                         ["users", "alice", "id"] and ["users", "*", "phone"], users.alice.id and
                         users.bob.phone are selected, but users.alice.phone is not: after choosing
                         "alice", matching never returns to the '*' branch, even if "id" is absent.
-
-                        Masked scalars become "...", objects "{...}", and arrays "[...]".
                     items:
                         type: array
                         items:
                             type: string
+                replacement:
+                    type: string
+                    description: |-
+                        String written in place of any masked JSON value. When omitted, masked scalars
+                        become "...", objects "{...}", and arrays "[...]".

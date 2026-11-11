@@ -28,8 +28,8 @@ TEST(HttpServerLogs, IndependentPoliciesAndLimits) {
         "handler-override": {
             "request_body_size_log_limit":100,
             "response_body_size_log_limit":100,
-            "json_request_body_masking":{"paths":[["id"]]},
-            "json_response_body_masking":{"list_mode":"whitelist","paths":[["id"]]}
+            "json_request_body_masking":{"paths":[["id"]],"replacement":"*****"},
+            "json_response_body_masking":{"list_mode":"whitelist","paths":[["id"]],"replacement":"*****"}
         },
         "limit-only-override": {
             "request_body_size_log_limit":1
@@ -50,15 +50,15 @@ TEST(HttpServerLogs, IndependentPoliciesAndLimits) {
 
     constexpr std::string_view kHandlerName{"handler-override"};
     constexpr JsonBodyLoggingOptions kOptions{.handler_name_override = kHandlerName};
-    EXPECT_EQ(MaskJsonRequestBodyForLogging(body, snapshot, config, kOptions), R"({"id":"...","token":2})");
-    EXPECT_EQ(MaskJsonResponseBodyForLogging(body, snapshot, config, kOptions), R"({"id":1,"token":"..."})");
+    EXPECT_EQ(MaskJsonRequestBodyForLogging(body, snapshot, config, kOptions), R"({"id":"*****","token":2})");
+    EXPECT_EQ(MaskJsonResponseBodyForLogging(body, snapshot, config, kOptions), R"({"id":1,"token":"*****"})");
     EXPECT_EQ(
         MaskJsonRequestBodyForLogging(std::string{body}, snapshot, config, kOptions),
-        R"({"id":"...","token":2})"
+        R"({"id":"*****","token":2})"
     );
     EXPECT_EQ(
         MaskJsonResponseBodyForLogging(std::string{body}, snapshot, config, kOptions),
-        R"({"id":1,"token":"..."})"
+        R"({"id":1,"token":"*****"})"
     );
     EXPECT_EQ(
         MaskJsonRequestBodyForLogging(body, snapshot, config, {.handler_name_override = "missing-handler"}),

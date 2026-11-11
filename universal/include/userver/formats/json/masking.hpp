@@ -5,6 +5,7 @@
 
 #include <cstddef>
 #include <memory>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -37,6 +38,10 @@ public:
         MaskingListMode mode = MaskingListMode::kBlacklist
     );
 
+    /// @brief Use the same UTF-8 replacement string for every masked value when provided.
+    /// @throws std::invalid_argument If the replacement is invalid UTF-8 or too large for the JSON writer.
+    MaskingRules(const std::vector<MaskingPath>& paths, MaskingListMode mode, std::optional<std::string> replacement);
+
 private:
     struct Impl;
     std::shared_ptr<const Impl> impl_;
@@ -51,7 +56,7 @@ struct MaskedJson final {
 };
 
 /// @brief Mask JSON using RapidJSON streaming parsing and serialization.
-/// Scalars become "...", objects "{...}", and arrays "[...]".
+/// By default, scalars become "...", objects "{...}", and arrays "[...]".
 /// Output is compact JSON until @p log_limit bytes are produced; then parsing
 /// stops and the result may be incomplete JSON. No suffix is added.
 /// Reaching the budget, even exactly, sets @ref formats::json::MaskedJson::limit_reached;
