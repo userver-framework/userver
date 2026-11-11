@@ -235,9 +235,13 @@ target_link_libraries(
     PUBLIC Threads::Threads userver-internal-sanitize-options userver-internal-compile-options
     PRIVATE Boost::filesystem Boost::program_options OpenSSL::SSL OpenSSL::Crypto
 )
-if(TARGET Boost::algorithm)
+if(BOOST_CPM)
     # Boost from CPM
-    target_link_libraries(${PROJECT_NAME} PUBLIC Boost::algorithm Boost::uuid Boost::random Boost::container)
+    target_link_libraries(
+        ${PROJECT_NAME}
+        PUBLIC Boost::uuid Boost::random Boost::container
+        PRIVATE Boost::exception
+    )
 endif()
 
 if(USERVER_CONAN)

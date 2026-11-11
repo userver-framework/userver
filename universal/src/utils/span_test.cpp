@@ -7,8 +7,6 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
-#include <boost/range/adaptor/transformed.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 TEST(UtilsSpan, NonConst) {
@@ -37,11 +35,11 @@ TEST(UtilsSpan, RvalueContainer) {
     static_assert(std::is_convertible_v<std::vector<int>&&, utils::span<const int>>);
 }
 
-TEST(UtilsSpan, BoostAdapters) {
+TEST(UtilsSpan, RangeAdapters) {
     const int array[] = {1, 2, 3};
     const utils::span span = array;
-    const auto transformed = span | boost::adaptors::transformed([](int x) { return x * 2; });
-    EXPECT_THAT(transformed, testing::ElementsAre(2, 4, 6));
+    const auto transformed = span | std::views::transform([](int x) { return x * 2; });
+    EXPECT_THAT(std::vector(transformed.begin(), transformed.end()), testing::ElementsAre(2, 4, 6));
 }
 
 TEST(UtilsSpan, DangerousInitializerListConversions) {

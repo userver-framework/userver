@@ -1,14 +1,16 @@
 #include <userver/utils/text_light.hpp>
 
 #include <algorithm>
+#include <array>
+#include <cctype>
+#include <climits>
 #include <iomanip>
 #include <sstream>
 #include <unordered_map>
+#include <utility>
 
-#include <boost/algorithm/string/constants.hpp>
-#include <boost/algorithm/string/join.hpp>
-#include <boost/algorithm/string/split.hpp>
-#include <boost/algorithm/string/trim.hpp>
+#include <fmt/format.h>
+#include <fmt/ranges.h>
 
 #include <userver/utils/assert.hpp>
 
@@ -18,51 +20,62 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::text {
 
+namespace {
+
+template <typename String>
+std::vector<String> SplitImpl(std::string_view str, std::string_view sep, SplitFlags split_flags) {
+    std::vector<String> result;
+
+    std::array<bool, UCHAR_MAX + 1> is_separator{};
+    for (const unsigned char ch : sep) {
+        is_separator[ch] = true;
+    }
+
+    std::size_t token_begin = 0;
+    for (std::size_t pos = 0; pos < str.size(); ++pos) {
+        if (!is_separator[static_cast<unsigned char>(str[pos])]) {
+            continue;
+        }
+        result.emplace_back(str.substr(token_begin, pos - token_begin));
+        if (split_flags == SplitFlags::kCompressAdjacentSeparators) {
+            while (pos + 1 < str.size() && is_separator[static_cast<unsigned char>(str[pos + 1])]) {
+                ++pos;
+            }
+        }
+        token_begin = pos + 1;
+    }
+    result.emplace_back(str.substr(token_begin));
+    return result;
+}
+
+}  // namespace
+
 std::string Trim(std::string_view str) { return std::string(TrimView(str)); }
 
 std::string Trim(std::string&& str) {
-    boost::algorithm::trim(str);
+    str = TrimView(str);
     return std::move(str);
 }
 
-std::string_view TrimView(std::string_view str)
-{
-    // boost::algorithm::trim*() doesn't support std::string_view in some versions :(
-    auto start = std::find_if_not(str.begin(), str.end(), ::isspace);
-    auto end = std::find_if_not(str.rbegin(), str.rend(), ::isspace).base();
-    if (start >= end) {
+std::string_view TrimView(std::string_view str) {
+    const auto start = std::find_if_not(str.begin(), str.end(), IsAsciiSpace);
+    if (start == str.end()) {
         return {};
     }
+    const auto end = std::find_if_not(str.rbegin(), str.rend(), IsAsciiSpace).base();
     return str.substr(start - str.begin(), end - start);
 }
 
 std::vector<std::string> Split(std::string_view str, std::string_view sep, SplitFlags split_flags) {
-    const auto boost_token_compress_mode =
-        split_flags == SplitFlags::kCompressAdjacentSeparators ? boost::token_compress_on : boost::token_compress_off;
-
-    std::vector<std::string> result;
-    // FP, m_Size does not change
-    // NOLINTNEXTLINE(clang-analyzer-cplusplus.NewDeleteLeaks)
-    boost::algorithm::split(result, str, boost::algorithm::is_any_of(sep), boost_token_compress_mode);
-    return result;
+    return SplitImpl<std::string>(str, sep, split_flags);
 }
 
 std::vector<std::string_view> SplitIntoStringViewVector(std::string_view str, std::string_view sep) {
-    using string_view_split_iterator = boost::split_iterator<std::string_view::const_iterator>;
-
-    std::vector<std::string_view> result;
-    auto it =
-        boost::make_split_iterator(str, boost::token_finder([&sep](const char c) {
-                                       return sep.find(c) != std::string_view::npos;
-                                   }));
-    for (; it != string_view_split_iterator(); ++it) {
-        result.emplace_back(it->begin(), it->size());
-    }
-    return result;
+    return SplitImpl<std::string_view>(str, sep, SplitFlags::kNone);
 }
 
 std::string Join(const std::vector<std::string>& strs, std::string_view sep) {
-    return boost::algorithm::join(strs, sep);
+    return fmt::format("{}", fmt::join(strs, sep));
 }
 
 std::string Format(double value, int ndigits) {
