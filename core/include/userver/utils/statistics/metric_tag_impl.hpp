@@ -28,15 +28,6 @@ void ResetMetric(std::atomic<Metric>& m) {
 template <typename Metric>
 concept HasResetMetric = requires(Metric& m) { ResetMetric(m); };
 
-// TODO remove after C++20 atomic value-initialization
-template <typename T>
-void InitializeAtomic(T& /*value*/) {}
-
-template <typename T>
-void InitializeAtomic(std::atomic<T>& value) {
-    value.store(T(), std::memory_order_relaxed);
-}
-
 class MetricWrapperBase {
 public:
     MetricWrapperBase& operator=(MetricWrapperBase&&) = delete;
@@ -61,11 +52,7 @@ public:
     template <typename... Args>
     explicit MetricWrapper(std::in_place_t, const Args&... args)
         : data_(args...)
-    {
-        if constexpr (sizeof...(Args) == 0) {
-            InitializeAtomic(data_);
-        }
-    }
+    {}
 
     void DumpToWriter(Writer& writer) override { writer = data_; }
 
