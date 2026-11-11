@@ -101,8 +101,8 @@ UTEST(DestinationStatistics, Multiple) {
     auto url = http_server.GetBaseUrl();
     auto url2 = http_server2.GetBaseUrl();
 
-    auto response = client->CreateRequest().post(url).retry(1).timeout(std::chrono::milliseconds(100)).perform();
-    response = client->CreateRequest().post(url2).retry(1).timeout(std::chrono::milliseconds(100)).perform();
+    auto response = client->CreateRequest().post(url).retry(1).timeout(utest::kMaxTestWaitTime).perform();
+    response = client->CreateRequest().post(url2).retry(1).timeout(utest::kMaxTestWaitTime).perform();
 
     size_t size = 0;
     std::unordered_set<std::string> expected_urls{url, url2};

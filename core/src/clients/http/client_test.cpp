@@ -1540,7 +1540,7 @@ UTEST(HttpClient, RequestReuseBasic) {
 UTEST(HttpClient, RequestReuseSample) {
     const EchoCallback shared_echo_callback{};
     const utest::SimpleServer http_server{shared_echo_callback, utest::SimpleServer::kTcpIpV6};
-    const utest::SimpleServer http_sleep_server{SleepCallback1s};
+    const utest::SimpleServer unavailable_server{Response503WithConnDrop{}};
 
     std::string data = "Some long long request";
     for (unsigned i = 0; i < kFewRepetitions; ++i) {
@@ -1552,10 +1552,10 @@ UTEST(HttpClient, RequestReuseSample) {
     auto resp = sample::DifferentUrlsRetry(
         data,
         *http_client_ptr,
-        kSmallTimeout,
+        kTimeout,
         {
-            http_sleep_server.GetBaseUrl(),
-            http_sleep_server.GetBaseUrl(),
+            unavailable_server.GetBaseUrl(),
+            unavailable_server.GetBaseUrl(),
             http_server.GetBaseUrl(),
             http_server.GetBaseUrl(),
         }
@@ -1567,10 +1567,10 @@ UTEST(HttpClient, RequestReuseSample) {
     resp = sample2::DifferentUrlsRetry(
         data,
         *http_client_ptr,
-        kSmallTimeout,
+        kTimeout,
         {
-            http_sleep_server.GetBaseUrl(),
-            http_sleep_server.GetBaseUrl(),
+            unavailable_server.GetBaseUrl(),
+            unavailable_server.GetBaseUrl(),
             http_server.GetBaseUrl(),
             http_server.GetBaseUrl(),
         }
