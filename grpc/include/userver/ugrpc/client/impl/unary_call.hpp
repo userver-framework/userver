@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <optional>
+#include <string>
 #include <string_view>
 
 #include <google/protobuf/message.h>
@@ -54,6 +55,8 @@ void AccountStatistics(ugrpc::impl::RpcStatisticsScope& stats, CompletionStatus 
 void SetStatusForSpan(tracing::Span& span, CompletionStatus completion_status) noexcept;
 
 [[noreturn]] void ThrowSerializationError(std::string_view call_name, std::string_view reason);
+
+std::string MakeAttemptScopeName(int attempt, std::string_view stage);
 
 [[noreturn]] void ThrowSpecialCaseCompletionError(
     std::string_view call_name,
@@ -124,18 +127,18 @@ private:
 
         while (!engine::current_task::ShouldCancel()) {
             ++attempt;
-            auto scope_time = state_.GetSpan().CreateScopeTime(fmt::format("attempt.{}.pre_call", attempt));
+            auto scope_time = state_.GetSpan().CreateScopeTime(MakeAttemptScopeName(attempt, "pre_call"));
 
             state_.GetSpan().AddTag(tracing::kAttempts, attempt);
             impl::SetupClientContext(state_, call_options_, attempt);
 
             RunStartCallHooks();
 
-            scope_time.Reset(fmt::format("attempt.{}.call", attempt));
+            scope_time.Reset(MakeAttemptScopeName(attempt, "call"));
 
             auto completion_status = PerformAttempt();
 
-            scope_time.Reset(fmt::format("attempt.{}.post_finish", attempt));
+            scope_time.Reset(MakeAttemptScopeName(attempt, "post_finish"));
 
             RunFinishHooks(completion_status);
 

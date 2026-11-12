@@ -50,7 +50,7 @@ ScopeTime::Duration ScopeTime::Reset() {
     }
 
     const auto duration = std::chrono::steady_clock::now() - start_;
-    ts_.PushLap(scope_name_, duration);
+    ts_.PushLap(std::move(scope_name_), duration);
     scope_name_.clear();
     return duration;
 }

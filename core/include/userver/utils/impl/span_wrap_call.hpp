@@ -7,6 +7,7 @@
 #include <string>
 #include <utility>
 
+#include <userver/compiler/select.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/impl/source_location.hpp>
 #include <userver/utils/lazy_prvalue.hpp>
@@ -40,7 +41,7 @@ private:
 
     struct Impl;
 
-    static constexpr std::size_t kImplSize = 4392;
+    static constexpr std::size_t kImplSize = compiler::SelectSize().For64Bit(4584).ForLibCpp64(3760).For32Bit(4632);
     static constexpr std::size_t kImplAlign = 8;
     utils::FastPimpl<Impl, kImplSize, kImplAlign> pimpl_;
 };

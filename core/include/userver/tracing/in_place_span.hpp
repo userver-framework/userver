@@ -3,8 +3,10 @@
 /// @file userver/tracing/in_place_span.hpp
 /// @brief @copybrief tracing::InPlaceSpan
 
+#include <cstddef>
 #include <string>
 
+#include <userver/compiler/select.hpp>
 #include <userver/tracing/span.hpp>
 #include <userver/utils/fast_pimpl.hpp>
 
@@ -47,7 +49,9 @@ public:
 
 private:
     struct Impl;
-    utils::FastPimpl<Impl, 4392, 8> impl_;
+
+    static constexpr std::size_t kImplSize = compiler::SelectSize().For64Bit(4584).ForLibCpp64(3760).For32Bit(4632);
+    utils::FastPimpl<Impl, kImplSize, 8> impl_;
 };
 
 }  // namespace tracing
