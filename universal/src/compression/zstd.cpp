@@ -3,83 +3,64 @@
 #include <memory>
 
 #include <zstd.h>
-#include <zstd_errors.h>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace compression::zstd {
 
-namespace {
-// The same size as in ZSTD_DStreamOutSize();
-const size_t kDecompressBufferSize = ZSTD_DStreamOutSize();
-}  // namespace
-
 const int kDefaultCompressionLevel = ZSTD_CLEVEL_DEFAULT;
 
-std::string DecompressStream(std::string_view compressed, size_t max_size) {
-    std::string decompressed;
-    std::string buf(kDecompressBufferSize, '\0');
+namespace {
 
-    auto* stream = ZSTD_createDStream();
-    if (stream == nullptr) {
-        throw std::runtime_error("Couldn't create ZSTD decompression stream");
+size_t CheckZstdResult(size_t result) {
+    if (ZSTD_isError(result)) {
+        throw ErrWithCode(ZSTD_getErrorName(result));
     }
-    auto stream_del = [](ZSTD_DStream* ptr) { ZSTD_freeDStream(ptr); };
-    auto stream_guard = std::unique_ptr<ZSTD_DStream, decltype(stream_del)>(stream, stream_del);
-
-    {
-        const auto err_code = ZSTD_DCtx_reset(stream, ZSTD_ResetDirective::ZSTD_reset_session_and_parameters);
-        if (ZSTD_isError(err_code)) {
-            throw ErrWithCode(ZSTD_getErrorName(err_code));
-        }
-    }
-
-    for (size_t cur_pos(0); cur_pos < compressed.size();) {
-        ZSTD_inBuffer
-            input{compressed.data() + cur_pos, std::min(kDecompressBufferSize, compressed.size() - cur_pos), 0};
-
-        while (input.pos < input.size) {
-            ZSTD_outBuffer output{buf.data(), buf.size(), 0};
-
-            if (const auto ret = ZSTD_decompressStream(stream, &output, &input); ZSTD_isError(ret)) {
-                throw ErrWithCode(ZSTD_getErrorName(ret));
-            }
-
-            // Must check before append: one input chunk may expand far past max_size.
-            if (decompressed.size() + output.pos > max_size) {
-                throw TooBigError();
-            }
-
-            decompressed.append(static_cast<char*>(output.dst), output.pos);
-        }
-
-        cur_pos += input.size;
-    }
-
-    return decompressed;
+    return result;
 }
 
-std::string Decompress(std::string_view compressed, size_t max_size) {
-    const auto decompressed_size = ZSTD_getFrameContentSize(compressed.data(), compressed.size());
+}  // namespace
 
-    switch (decompressed_size) {
-        case ZSTD_CONTENTSIZE_UNKNOWN:
-            return DecompressStream(compressed, max_size);
-        case ZSTD_CONTENTSIZE_ERROR:
+std::string Decompress(std::string_view compressed, size_t max_size) {
+    std::string decompressed;
+    const std::unique_ptr<ZSTD_DCtx, decltype(&ZSTD_freeDCtx)> stream{ZSTD_createDCtx(), &ZSTD_freeDCtx};
+    if (!stream) {
+        throw std::runtime_error("Couldn't create ZSTD decompression stream");
+    }
+
+    std::string buf;
+    do {
+        const auto frame_size = CheckZstdResult(ZSTD_findFrameCompressedSize(compressed.data(), compressed.size()));
+        const auto frame = compressed.substr(0, frame_size);
+        compressed.remove_prefix(frame_size);
+
+        const auto size = ZSTD_getFrameContentSize(frame.data(), frame.size());
+        if (size == ZSTD_CONTENTSIZE_ERROR) {
             throw std::runtime_error("Error while getting size");
-        default:
-            if (decompressed_size > max_size) {
+        }
+        if (size != ZSTD_CONTENTSIZE_UNKNOWN) {
+            const auto offset = decompressed.size();
+            if (size > max_size - offset) {
                 throw TooBigError();
             }
-    }
+            decompressed.resize(offset + size);
+            CheckZstdResult(
+                ZSTD_decompressDCtx(stream.get(), decompressed.data() + offset, size, frame.data(), frame.size())
+            );
+            continue;
+        }
 
-    std::string decompressed(decompressed_size, '\0');
-    if (const auto
-            ret = ZSTD_decompress(decompressed.data(), decompressed.capacity(), compressed.data(), compressed.size());
-        ZSTD_isError(ret))
-    {
-        throw ErrWithCode(ZSTD_getErrorName(ret));
-    }
+        buf.resize(ZSTD_DStreamOutSize());
+        ZSTD_inBuffer input{frame.data(), frame.size(), 0};
+        while (input.pos < input.size) {
+            ZSTD_outBuffer output{buf.data(), buf.size(), 0};
+            CheckZstdResult(ZSTD_decompressStream(stream.get(), &output, &input));
+            if (output.pos > max_size - decompressed.size()) {
+                throw TooBigError();
+            }
+            decompressed.append(buf.data(), output.pos);
+        }
+    } while (!compressed.empty());
 
     return decompressed;
 }

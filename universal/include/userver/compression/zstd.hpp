@@ -15,8 +15,9 @@ namespace compression::zstd {
 
 extern const int kDefaultCompressionLevel;
 
-/// @brief Decompresses the string.
-/// @throws DecompressionError
+/// @brief Decompresses all Zstandard frames in the input, ignoring skippable frames.
+/// @throws std::runtime_error if the input is invalid or truncated.
+/// @throws compression::TooBigError if the combined output exceeds `max_size`.
 std::string Decompress(std::string_view compressed, size_t max_size);
 
 /// @brief Compresses the string using the specified compression level.
