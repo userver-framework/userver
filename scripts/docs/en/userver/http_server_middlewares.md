@@ -96,13 +96,6 @@ the factory implementation is just this:
 Do not forget to add components configs:
 @snippet samples/http_middleware_service/static_config.yaml  http mw components config
 
-### Callbacks after request parsing
-
-To inspect the parsed request before the handler runs, register a callback using
-@ref server::middlewares::HttpMiddlewareBase::RegisterPostParseCallback before passing execution downstream.
-The handler adapter skips callbacks if parsing fails.
-@snippet samples/http_middleware_service/main.cpp  Middlewares sample - post-parse callback
-
 ### Global middleware configuration
 
 Normally, the process of configuring a middleware is the same as configuring any other component,

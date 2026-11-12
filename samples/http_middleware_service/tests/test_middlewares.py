@@ -7,17 +7,6 @@ async def test_server_middleware(service_client):
     assert 'X-Some-Handler-Header' not in response.headers.keys()
 
 
-async def test_post_parse_callback(service_client):
-    response = await service_client.get('/hello', params={'name': 'user'})
-    assert response.status == 200
-    assert response.content == b'Hello user!\n'
-    assert response.headers['X-Parsed-Name'] == 'user'
-
-    response = await service_client.get('/hello', params={'name': ''})
-    assert response.status == 400
-    assert 'X-Some-Server-Header' not in response.headers
-
-
 async def _check_handler_with_custom_middleware(
     service_client,
     uri,
