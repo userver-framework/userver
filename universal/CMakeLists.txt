@@ -54,6 +54,10 @@ else()
     include(SetupCCTZ)
 endif()
 
+if(USERVER_FEATURE_SIMD_BASE64)
+    include(SetupBase64)
+endif()
+
 # Compiler flags for userver code. Flags for all the code including third_party are in
 # cmake/UserverSetupEnvironment.cmake
 add_library(userver-internal-compile-options INTERFACE)
@@ -196,6 +200,11 @@ else()
 endif()
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE CRYPTOPP_ENABLE_NAMESPACE_WEAK=1)
+if(USERVER_FEATURE_SIMD_BASE64)
+    target_link_libraries(${PROJECT_NAME} PRIVATE aklomp::base64)
+else()
+    target_compile_definitions(${PROJECT_NAME} PRIVATE USERVER_NO_SIMD_BASE64)
+endif()
 
 set(USERVER_LOG_LEVEL_ENUM "trace, info, debug, warning, error")
 set(USERVER_FEATURE_ERASE_LOG_WITH_LEVEL_DEFAULT "")
@@ -324,6 +333,9 @@ if(USERVER_BUILD_TESTS)
         PUBLIC ${PROJECT_NAME}
         PRIVATE Boost::program_options ${PROJECT_NAME}-utest
     )
+    if(NOT USERVER_FEATURE_SIMD_BASE64)
+        target_compile_definitions(${PROJECT_NAME}-unittest PRIVATE USERVER_NO_SIMD_BASE64)
+    endif()
     add_google_tests(${PROJECT_NAME}-unittest)
 
     add_executable(${PROJECT_NAME}-benchmark ${BENCH_SOURCES} "${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/main.cpp")

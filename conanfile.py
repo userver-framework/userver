@@ -122,6 +122,7 @@ class UserverConan(ConanFile):
             aws_options.sqs = True
 
     def requirements(self):
+        self.requires('base64/[>=0.5.2 <0.6]')
         self.requires('boost/[>=1.83 <1.88]', transitive_headers=True)
         self.requires('c-ares/[^1.33]')
         self.requires('cctz/[^2.4]', transitive_headers=True)

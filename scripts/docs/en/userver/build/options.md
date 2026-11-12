@@ -111,6 +111,7 @@ The exact format of setting cmake options varies depending on the method of buil
 | `USERVER_FEATURE_CRYPTOPP_BLAKE2`      | Provide wrappers for blake2 algorithms of crypto++                                                                | `ON`                                        |
 | `USERVER_FEATURE_PATCH_LIBPQ`          | Apply patches to the libpq (add portals support), requires `libpq.a`                                              | `ON`                                        |
 | `USERVER_FEATURE_CRYPTOPP_BASE64_URL`  | Provide wrappers for Base64 URL decoding and encoding algorithms of crypto++                                      | `ON`                                        |
+| `USERVER_FEATURE_SIMD_BASE64`          | Use SIMD-accelerated aklomp/base64 for Base64 encoding and decoding instead of crypto++                           | `ON`                                        |
 | `USERVER_FEATURE_REDIS_TLS`            | SSL/TLS support for Redis driver. Use with `"secure_connection": true` secdist option for @ref components::Redis  | `OFF`                                       |
 | `USERVER_FEATURE_STACKTRACE`           | Allow capturing stacktraces using `boost::stacktrace`                                                             | `ON` except for macOS, `*BSD`, old Boost, or when `Boost::stacktrace_backtrace` is missing |
 | `USERVER_FEATURE_JEMALLOC`             | Use jemalloc memory allocator                                                                                     | `ON`                                        |
@@ -129,6 +130,7 @@ The exact format of setting cmake options varies depending on the method of buil
 |------------------------------------------|-----------------------------------------------------------------------------------------|--------------------------------------|
 | `USERVER_DOWNLOAD_PACKAGES`              | Download missing third party packages and use the downloaded versions                   | `ON`                                 |
 | `USERVER_DOWNLOAD_PACKAGE_BOOST`         | Download and setup Boost C++ if no Boost of matching version was found                  | `${USERVER_DOWNLOAD_PACKAGES}`       |
+| `USERVER_DOWNLOAD_PACKAGE_BASE64`        | Download and setup aklomp/base64 if no aklomp/base64 of matching version was found      | `${USERVER_DOWNLOAD_PACKAGES}`       |
 | `USERVER_DOWNLOAD_PACKAGE_BROTLI`        | Download and setup Brotli if no Brotli of matching version was found                    | `${USERVER_DOWNLOAD_PACKAGES}`       |
 | `USERVER_DOWNLOAD_PACKAGE_CARES`         | Download and setup c-ares if no c-ares of matching version was found                    | `${USERVER_DOWNLOAD_PACKAGES}`       |
 | `USERVER_DOWNLOAD_PACKAGE_CCTZ`          | Download and setup cctz if no cctz of matching version was found                        | `${USERVER_DOWNLOAD_PACKAGES}`       |

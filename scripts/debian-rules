@@ -33,6 +33,9 @@ endif
 # but a user may still fetch testsuite via cmake
 CMAKE_OPTS += -DUSERVER_FEATURE_TESTSUITE=OFF
 
+# aklomp/base64 is packaged only since Ubuntu 26.10, so Base64 falls back to crypto++.
+CMAKE_OPTS += -DUSERVER_FEATURE_SIMD_BASE64=OFF
+
 # Launchpad builders are offline. The chaotic venv uses system packages where
 # available; Jammy and Noble additionally use wheels from debian/vendor-wheels.
 # USERVER_PIP_USE_UV=OFF is mandatory: uv ignores --system-site-packages under --no-index
