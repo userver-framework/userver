@@ -4,6 +4,7 @@
 #include <userver/components/dump_configurator.hpp>
 #include <userver/components/statistics_storage.hpp>
 #include <userver/dynamic_config/storage/component.hpp>
+#include <userver/engine/task/current_task.hpp>
 #include <userver/testsuite/testsuite_support.hpp>
 
 USERVER_NAMESPACE_BEGIN

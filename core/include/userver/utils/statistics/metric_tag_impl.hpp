@@ -1,17 +1,15 @@
 #pragma once
 
 /// @file userver/utils/statistics/metric_tag_impl.hpp
-/// @brief MetricTag implementation details and metric map utilities
+/// @brief Implementation details of @ref utils::statistics::MetricTag.
 
 #include <atomic>
-#include <cstddef>
 #include <functional>
 #include <memory>
 #include <string>
 #include <type_traits>
 #include <typeindex>
-#include <typeinfo>
-#include <unordered_map>
+#include <utility>
 
 #include <userver/utils/statistics/writer.hpp>
 
@@ -100,18 +98,7 @@ struct MetricKey final {
     bool operator==(const MetricKey& other) const noexcept { return idx == other.idx && path == other.path; }
 };
 
-struct MetricKeyHash final {
-    std::size_t operator()(const MetricKey& key) const noexcept;
-};
-
-using MetricMap = std::unordered_map<MetricKey, std::unique_ptr<MetricWrapperBase>, MetricKeyHash>;
-
 void RegisterMetricInfo(const MetricKey& key, MetricFactory factory);
-
-template <typename Metric>
-Metric& GetMetric(MetricMap& metrics, const MetricKey& key) {
-    return dynamic_cast<impl::MetricWrapper<Metric>&>(*metrics.at(key)).Get();
-}
 
 }  // namespace utils::statistics::impl
 

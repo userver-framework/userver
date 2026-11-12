@@ -1,15 +1,38 @@
 #include <userver/utils/statistics/metric_value.hpp>
 
 #include <cstdint>
+#include <iterator>
 #include <limits>
+#include <string>
 #include <vector>
 
+// Intentionally omit <fmt/format.h> to verify that the tested header
+// supplies all dependencies required by its formatters.
+#include <fmt/core.h>
 #include <gtest/gtest.h>
 
 #include <userver/utils/statistics/histogram.hpp>
 #include <userver/utils/statistics/rate.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+TEST(MetricValue, Fmt) {
+    utils::statistics::Histogram histogram{{1.5}};
+    histogram.Account(1.0);
+    histogram.Account(2.0);
+    const utils::statistics::MetricValue histogram_value{histogram.GetView()};
+
+    std::string result;
+    fmt::format_to(
+        std::back_inserter(result),
+        "{};{};{};{}",
+        utils::statistics::MetricValue{std::int64_t{-42}},
+        utils::statistics::MetricValue{3.5},
+        utils::statistics::MetricValue{utils::statistics::Rate{7}},
+        histogram_value
+    );
+    EXPECT_EQ("-42;3.5;7;[1.5]=1,[inf]=1", result);
+}
 
 TEST(MetricValue, EqualityDoesNotRoundIntegers) {
     constexpr auto kExactInDouble = std::int64_t{1} << 53;

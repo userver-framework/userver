@@ -1,5 +1,12 @@
 #include <userver/utils/statistics/labels.hpp>
 
+#include <compare>
+#include <iterator>
+#include <string>
+
+// Intentionally omit <fmt/format.h> to verify that the tested header
+// supplies all dependencies required by its formatters.
+#include <fmt/core.h>
 #include <gtest/gtest.h>
 
 USERVER_NAMESPACE_BEGIN
@@ -27,6 +34,28 @@ TEST(LabelView, OrderIsNameThenValue) {
     EXPECT_LT(handler_list, handler_orders);
     EXPECT_EQ(handler_late <=> query_early, std::strong_ordering::less);
     EXPECT_EQ(handler_list <=> handler_list, std::strong_ordering::equal);
+}
+
+TEST(Label, Fmt) {
+    const Label label{"method", "GET"};
+    std::string result;
+    fmt::format_to(std::back_inserter(result), "{}", label);
+    EXPECT_EQ("method=GET", result);
+}
+
+TEST(LabelView, Fmt) {
+    const LabelView label{"kind", "timeout"};
+    std::string result;
+    fmt::format_to(std::back_inserter(result), "{}", label);
+    EXPECT_EQ("kind=timeout", result);
+}
+
+TEST(LabelsSpan, Fmt) {
+    const LabelView labels[] = {{"method", "GET"}, {"kind", "timeout"}};
+    const LabelsSpan span{std::begin(labels), std::end(labels)};
+    std::string result;
+    fmt::format_to(std::back_inserter(result), "{}", span);
+    EXPECT_EQ("method=GET;kind=timeout", result);
 }
 
 }  // namespace utils::statistics

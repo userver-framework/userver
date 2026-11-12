@@ -1,10 +1,16 @@
 #include <userver/utils/statistics/storage.hpp>
 
+#include <atomic>
+#include <list>
+#include <mutex>
 #include <optional>
+#include <shared_mutex>
 #include <utility>
 
+#include <fmt/format.h>
 #include <boost/container/small_vector.hpp>
 
+#include <userver/engine/shared_mutex.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
@@ -12,11 +18,25 @@
 #include <userver/utils/lazy_prvalue.hpp>
 #include <userver/utils/resource_scopes.hpp>
 #include <userver/utils/statistics/request.hpp>
+#include <userver/utils/statistics/visit.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
+
+namespace impl {
+
+struct MetricsSource final {
+    std::string prefix_path;
+    WriterFunc writer;
+    std::vector<Label> writer_labels;
+};
+
+using StorageData = std::list<MetricsSource>;
+using StorageIterator = StorageData::iterator;
+
+}  // namespace impl
 
 namespace {
 
@@ -72,15 +92,28 @@ void WriteWithFakeFormat(impl::MetricsSource& source) {
 
 }  // namespace
 
+struct Storage::Impl final {
+    impl::StorageIterator DoRegisterWriter(impl::MetricsSource&& source);
+
+    void DoUnregisterWriter(impl::StorageIterator iterator) noexcept;
+
+    std::atomic<bool> may_register_extenders{true};
+    impl::StorageData metrics_sources;
+    mutable engine::SharedMutex mutex;
+};
+
 Storage::Storage()
-    : may_register_extenders_(true)
+    : impl_(std::make_unique<Impl>())
 {}
+
+Storage::~Storage() = default;
 
 void DumpMetric(Writer& writer, const Storage& storage) {
     boost::container::small_vector<LabelView, 16> labels_vector;
 
-    const std::shared_lock lock(storage.mutex_);
-    for (const auto& entry : storage.metrics_sources_) {
+    const auto& storage_impl = *storage.impl_;
+    const std::shared_lock lock(storage_impl.mutex);
+    for (const auto& entry : storage_impl.metrics_sources) {
         if (!entry.writer) {
             continue;
         }
@@ -110,7 +143,7 @@ void DumpMetric(Writer& writer, const Storage& storage) {
     }
 }
 
-void Storage::StopRegisteringExtenders() { may_register_extenders_ = false; }
+void Storage::StopRegisteringExtenders() { impl_->may_register_extenders = false; }
 
 void Storage::RegisterWriter(
     ResourceScopeStorage& scopes,
@@ -118,7 +151,7 @@ void Storage::RegisterWriter(
     WriterFunc func,
     std::vector<Label> add_labels
 ) {
-    scopes.Register([&storage = *this,
+    scopes.Register([&storage = *impl_,
                      common_prefix = std::move(common_prefix),
                      func = std::move(func),
                      add_labels = std::move(add_labels)]() mutable {
@@ -131,27 +164,27 @@ void Storage::RegisterWriter(
     });
 }
 
-impl::StorageIterator Storage::DoRegisterWriter(impl::MetricsSource&& source) {
+impl::StorageIterator Storage::Impl::DoRegisterWriter(impl::MetricsSource&& source) {
     UASSERT_MSG(
-        may_register_extenders_.load(),
+        may_register_extenders.load(),
         "You may not register statistics extender outside of component "
         "constructors"
     );
 
-    const std::lock_guard lock(mutex_);
+    const std::lock_guard lock(mutex);
     if constexpr (impl::kCheckSubscriptionUB) {
         CheckDataUsedByCallbackIsValidBeforeRegistering(source);
     }
-    return metrics_sources_.insert(metrics_sources_.end(), std::move(source));
+    return metrics_sources.insert(metrics_sources.end(), std::move(source));
 }
 
-void Storage::DoUnregisterWriter(impl::StorageIterator iterator) noexcept {
-    const std::lock_guard lock(mutex_);
+void Storage::Impl::DoUnregisterWriter(impl::StorageIterator iterator) noexcept {
+    const std::lock_guard lock(mutex);
     if constexpr (impl::kCheckSubscriptionUB) {
         // fake writer call to check
         CheckDataUsedByCallbackHasNotBeenDestroyedBeforeUnregistering(*iterator);
     }
-    metrics_sources_.erase(iterator);
+    metrics_sources.erase(iterator);
 }
 
 }  // namespace utils::statistics

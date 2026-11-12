@@ -4,6 +4,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <userver/utest/utest.hpp>
@@ -60,6 +61,34 @@ UTEST(MetricsStorage, Smoke) {
         const utils::statistics::Snapshot snap2{metrics_storage};
         EXPECT_EQ(snap2.SingleMetric("foo-metric").AsInt(), 42);
     }
+}
+
+UTEST(MetricsStorage, MovePreservesMetrics) {
+    const std::vector<std::string> allowed_metric_paths{kSampleMetric.GetPath()};
+    const utils::statistics::SnapshotBuildOptions snapshot_options{.require_prefix = "sample-metrics"};
+    utils::statistics::MetricsStorage original{allowed_metric_paths};
+    auto* const metric_ptr = &original.GetMetric(kSampleMetric);
+    metric_ptr->store(42);
+
+    utils::statistics::MetricsStorage moved{std::move(original)};
+    EXPECT_EQ(&moved.GetMetric(kSampleMetric), metric_ptr);
+    const utils::statistics::Snapshot moved_snapshot{moved, snapshot_options};
+    EXPECT_EQ(moved_snapshot.SingleMetric("total").AsInt(), 42);
+
+    utils::statistics::MetricsStorage assigned{allowed_metric_paths};
+    assigned = std::move(moved);
+    EXPECT_EQ(&assigned.GetMetric(kSampleMetric), metric_ptr);
+
+    utils::statistics::MetricsStorage* const moved_from_storages[] = {&original, &moved};
+    for (auto* const moved_from_storage_ptr : moved_from_storages) {
+        const utils::statistics::Snapshot empty_snapshot{*moved_from_storage_ptr, snapshot_options};
+        EXPECT_TRUE(empty_snapshot.AllMetrics().empty());
+        EXPECT_NO_THROW(moved_from_storage_ptr->ResetMetrics());
+        EXPECT_THROW(moved_from_storage_ptr->GetMetric(kSampleMetric), std::out_of_range);
+    }
+
+    const utils::statistics::Snapshot assigned_snapshot{assigned, snapshot_options};
+    EXPECT_EQ(assigned_snapshot.SingleMetric("total").AsInt(), 42);
 }
 
 /// [metrics storage Snapshot require_prefix]

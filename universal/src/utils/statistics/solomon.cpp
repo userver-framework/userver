@@ -3,6 +3,7 @@
 #include <userver/formats/json/string_builder.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/utils/overloaded.hpp>
+#include <userver/utils/statistics/visit.hpp>
 
 #include <utils/statistics/impl/histogram_serialization.hpp>
 #include <utils/statistics/solomon_limits.hpp>

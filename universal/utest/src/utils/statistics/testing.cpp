@@ -18,6 +18,8 @@
 #include <userver/utils/rand.hpp>
 #include <userver/utils/statistics/fmt.hpp>
 #include <userver/utils/statistics/histogram_aggregator.hpp>
+#include <userver/utils/statistics/request.hpp>
+#include <userver/utils/statistics/visit.hpp>
 #include <utils/statistics/testing_formats.hpp>
 
 USERVER_NAMESPACE_BEGIN

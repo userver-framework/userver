@@ -10,6 +10,7 @@
 
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/statistics/fmt.hpp>
+#include <userver/utils/statistics/visit.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -16,6 +16,7 @@
 
 #include <userver/compiler/impl/lifetime.hpp>
 #include <userver/formats/json_fwd.hpp>
+#include <userver/utils/function_ref.hpp>
 #include <userver/utils/not_null.hpp>
 #include <userver/utils/statistics/labels.hpp>
 #include <userver/utils/statistics/metric_value.hpp>
@@ -24,6 +25,9 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
+
+// Keep in sync with the primary definition in userver/utils/statistics/visit.hpp.
+using WriterFuncRef = utils::function_ref<void(Writer&) const>;
 
 namespace impl {
 struct SnapshotData;

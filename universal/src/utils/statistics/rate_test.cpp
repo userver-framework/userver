@@ -1,11 +1,13 @@
 #include <userver/utils/statistics/rate.hpp>
 
+#include <iterator>
+#include <string>
 #include <type_traits>
 
+// Intentionally omit <fmt/format.h> to verify that the tested header
+// supplies all dependencies required by its formatters.
+#include <fmt/core.h>
 #include <gtest/gtest.h>
-#include <userver/formats/json/value.hpp>
-#include <userver/formats/json/value_builder.hpp>
-#include <userver/utils/statistics/fmt.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -27,7 +29,11 @@ TEST(Rate, Basic) {
     }
 }
 
-TEST(Rate, Fmt) { EXPECT_EQ("10", fmt::format("{}", Rate{10})); }
+TEST(Rate, Fmt) {
+    std::string result;
+    fmt::format_to(std::back_inserter(result), "{}", Rate{10});
+    EXPECT_EQ("10", result);
+}
 
 }  // namespace utils::statistics
 

@@ -8,7 +8,7 @@
 #include <unordered_map>
 
 #include <userver/utils/statistics/request.hpp>
-#include <userver/utils/statistics/writer.hpp>
+#include <userver/utils/statistics/visit.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

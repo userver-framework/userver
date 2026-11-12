@@ -3,17 +3,20 @@
 /// @file userver/utils/statistics/storage.hpp
 /// @brief @copybrief utils::statistics::Storage
 
-#include <atomic>
 #include <functional>
-#include <list>
+#include <memory>
 #include <string>
 #include <vector>
 
-#include <userver/engine/shared_mutex.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/resource_scopes_fwd.hpp>
 #include <userver/utils/statistics/fwd.hpp>
 #include <userver/utils/statistics/writer.hpp>
+
+// TODO(USERVER-1855) remove extra includes
+#include <atomic>
+#include <list>
+#include <userver/engine/shared_mutex.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,15 +25,6 @@ namespace utils::statistics {
 using WriterFunc = std::function<void(Writer&)>;
 
 namespace impl {
-
-struct MetricsSource final {
-    std::string prefix_path;
-    WriterFunc writer;
-    std::vector<Label> writer_labels;
-};
-
-using StorageData = std::list<MetricsSource>;
-using StorageIterator = StorageData::iterator;
 
 inline constexpr bool kCheckSubscriptionUB = utils::impl::kEnableAssert;
 
@@ -48,6 +42,8 @@ public:
     Storage();
 
     Storage(const Storage&) = delete;
+    Storage& operator=(const Storage&) = delete;
+    ~Storage();
 
     /// @cond
     /// Must be called from StatisticsStorage only. Don't call it from user components.
@@ -80,12 +76,8 @@ public:
 private:
     friend void DumpMetric(Writer& writer, const Storage& storage);
 
-    impl::StorageIterator DoRegisterWriter(impl::MetricsSource&& source);
-    void DoUnregisterWriter(impl::StorageIterator iterator) noexcept;
-
-    std::atomic<bool> may_register_extenders_;
-    impl::StorageData metrics_sources_;
-    mutable engine::SharedMutex mutex_;
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
 };
 
 /// @brief Dumps metrics registered in @a storage.

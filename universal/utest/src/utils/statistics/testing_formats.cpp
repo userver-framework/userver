@@ -16,6 +16,7 @@
 #include <userver/utils/algo.hpp>
 #include <userver/utils/enumerate.hpp>
 #include <userver/utils/statistics/histogram_aggregator.hpp>
+#include <userver/utils/statistics/metric_value.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN

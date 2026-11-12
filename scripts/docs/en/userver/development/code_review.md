@@ -70,8 +70,9 @@ report unsuitable alternatives or request changes to unchanged code outside the 
 
 Keep documentation concise and easy to understand; use `@brief` where possible.
 
-Check that each new public method, including overloads, documents its contract,
-and each added or changed enum value documents its meaning. Update documentation
+Check that each new public method, including overloads, documents its contract.
+Special member functions may omit doc comments under the rule in section 18.
+Check that each added or changed enum value documents its meaning. Update documentation
 when contracts change. Read declarations, implementations, tests, and documentation
 before reporting gaps. Accept inherited documentation or working Doxygen references
 that fully cover the contract instead of requiring duplicate prose.
@@ -192,9 +193,21 @@ inaccurate.
 
 Separate these sections from the detailed description with a standalone `---`,
 surrounded by blank lines. If neither section is needed, start directly with the
-description. Normally use a Markdown bullet list with fully qualified entity
-names, including namespaces, in backticks. Add rationale or implementation
-explanations when they are not evident from the diff.
+description.
+
+Write the detailed description after `---` in Markdown. When the optional sections
+are omitted, use Markdown for the entire description:
+
+- Use bullet lists to enumerate distinct changes, with one change per item.
+- Wrap code fragments and names of C++ entities in backticks. Use fully qualified
+  entity names, including namespaces, such as `utils::statistics::VisitMetrics`.
+- Markdown links may point to userver source code in the
+  [GitHub repository](https://github.com/userver-framework/userver) or to external
+  sources.
+
+Add context, rationale, or implementation explanations in paragraphs when they
+are not evident from the diff. Keep the prescribed Doxygen syntax in the
+`Changelog entry:` and `Migration guide:` sections.
 
 Do not edit release changelog files or run release-wide generation just to
 prepare a PR description.
@@ -324,7 +337,12 @@ unbounded values. Metric names and descriptions must match what is actually meas
 
 Separate `USERVER_NAMESPACE_BEGIN` and `USERVER_NAMESPACE_END` from adjacent code,
 leave a blank line after a namespace opening, and separate member function
-declarations with a blank line.
+declarations with a blank line, except for the special member functions below.
+
+Special member functions may omit doc comments when they have no special behavior
+that needs explaining. Place them consecutively after ordinary constructors, in
+this order: copy constructor, move constructor, copy assignment, move assignment,
+destructor. Do not put blank lines within this group.
 
 During code review or self-review, check these separators explicitly;
 formatter success alone does not establish compliance with local spacing conventions.

@@ -8,7 +8,7 @@
 #include <string_view>
 #include <type_traits>
 
-#include <fmt/format.h>
+#include <fmt/core.h>
 
 #include <userver/utils/assert.hpp>
 
