@@ -154,10 +154,10 @@ listings; clarity takes precedence over this recommendation.
 | ---- | ------- |
 | `bug` | Fixing a noticeable bug. |
 | `fix` | Fixing a bug. |
-| `feat` | Adding functionality or tests. |
+| `feat` | Adding publicly visible functionality. |
 | `refactor` | Substantially changing code without adding functionality. |
 | `typo` | Trivial typos or minor corrections that do not belong in release notes. |
-| `cc` | Coding conventions, comments, or documentation. |
+| `cc` | Coding conventions, comments, documentation, or userver's own tests. |
 
 Choose the component primarily affected:
 
