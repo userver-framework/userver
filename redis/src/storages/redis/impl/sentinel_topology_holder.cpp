@@ -46,13 +46,15 @@ SentinelTopologyHolder::SentinelTopologyHolder(
     std::size_t database_index,
     const std::vector<std::string>& shard_names,
     const std::vector<ConnectionInfo>& conns,
-    ConnectionSecurity connection_security
+    ConnectionSecurity connection_security,
+    std::chrono::seconds max_disconnect_time
 )
     : ev_thread_(sentinel_thread_control),
       redis_thread_pool_(redis_thread_pool),
       shard_group_name_(shard_group_name),
       credentials_(credentials),
       database_index_(database_index),
+      max_disconnect_time_(max_disconnect_time),
       name_by_shard_(shard_names),
       conns_(conns),
       statistics_holder_(),
@@ -304,7 +306,9 @@ std::shared_ptr<RedisConnectionHolder> SentinelTopologyHolder::CreateRedisInstan
         monitoring_settings_,
         retry_budget_settings_,
         statistics_holder_.MakeInstanceStats(),
-        creation_settings
+        creation_settings,
+        Hysteresis::Config{},
+        max_disconnect_time_
     );
 }
 

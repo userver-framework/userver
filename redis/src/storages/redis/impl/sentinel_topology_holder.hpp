@@ -1,5 +1,6 @@
 #pragma once
 
+#include <chrono>
 #include <optional>
 
 #include <storages/redis/impl/shard.hpp>
@@ -32,7 +33,8 @@ public:
         std::size_t database_index,
         const std::vector<std::string>& shard_names,
         const std::vector<ConnectionInfo>& conns,
-        ConnectionSecurity connection_security
+        ConnectionSecurity connection_security,
+        std::chrono::seconds max_disconnect_time
     );
 
     ~SentinelTopologyHolder() override;
@@ -81,6 +83,7 @@ private:
     logging::LogExtra log_extra_;
     Credentials credentials_;
     const std::size_t database_index_;
+    const std::chrono::seconds max_disconnect_time_;
 
     // maps shard_name to shard_idx
     std::unordered_map<std::string, size_t> shard_by_name_;

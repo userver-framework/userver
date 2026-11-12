@@ -294,7 +294,8 @@ SentinelImpl::SentinelImpl(
             database_index_,
             shards,
             conns,
-            connection_security
+            connection_security,
+            creation_config.max_disconnect_time
         );
     }();
 }

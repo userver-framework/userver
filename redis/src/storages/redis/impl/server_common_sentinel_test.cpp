@@ -106,9 +106,11 @@ SentinelTest::SentinelTest(
     int magic_value_add_master,
     int magic_value_add_slave,
     size_t redis_thread_count,
-    storages::redis::impl::KeyShardFactory key_shard
+    storages::redis::impl::KeyShardFactory key_shard,
+    std::chrono::seconds max_disconnect_time
 )
-    : masters_(InitServerArray(master_count, "masters", magic_value_add_master)),
+    : max_disconnect_time_(max_disconnect_time),
+      masters_(InitServerArray(master_count, "masters", magic_value_add_master)),
       slaves_(InitServerArray(slave_count, "slaves", magic_value_add_slave)),
       sentinels_(InitServerArray(sentinel_count, "sentinels")),
       thread_pools_(std::make_shared<storages::redis::impl::ThreadPools>(1, redis_thread_count))
@@ -117,6 +119,24 @@ SentinelTest::SentinelTest(
     InitSentinelServers();
     CreateSentinelClient(std::move(key_shard));
 }
+
+SentinelTest::SentinelTest(
+    size_t sentinel_count,
+    size_t master_count,
+    size_t slave_count,
+    std::chrono::seconds max_disconnect_time
+)
+    : SentinelTest(
+          sentinel_count,
+          master_count,
+          slave_count,
+          0,
+          0,
+          1,
+          {storages::redis::ShardingStrategy::kKeyShardTaximeterCrc32},
+          max_disconnect_time
+      )
+{}
 
 void SentinelTest::InitSentinelServers() {
     std::vector<MockRedisServer::SlaveInfo> slave_infos;
@@ -137,12 +157,14 @@ void SentinelTest::CreateSentinelClient(storages::redis::impl::KeyShardFactory k
         settings.sentinels.emplace_back(kLocalhost, sentinel->GetPort());
     }
 
+    storages::redis::impl::SentinelStaticConfig config{"test_client_name", std::move(key_shard), {}, {}};
+    config.max_disconnect_time = max_disconnect_time_;
     sentinel_client_ = storages::redis::impl::Sentinel::CreateSentinel(
         thread_pools_,
         settings,
         "test_shard_group_name",
         dynamic_config::GetDefaultSource(),
-        storages::redis::impl::SentinelStaticConfig{"test_client_name", std::move(key_shard), {}, {}}
+        config
     );
     sentinel_client_->WaitConnectedDebug(slaves_.empty());
 

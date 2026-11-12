@@ -64,7 +64,8 @@ properties:
                     type: integer
                     description: |
                         The maximum allowed time in seconds for a database host to be disconnected before it is considered unhealthy.
-                        It depends on the `cluster-node-timeout` setting in the Redis/Valkey config and should be greater than 2x that value plus some additional time.
+                        Supported for Redis Cluster and Sentinel connections.
+                        For Redis Cluster, it should be greater than 2x `cluster-node-timeout` plus some additional time.
                     minimum: 0
                     maximum: 1000
                     default: 35
