@@ -6,9 +6,7 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/current_task.hpp>
 #include <userver/engine/wait_all_checked.hpp>
-#include <userver/utest/stress.hpp>
 #include <userver/utils/impl/userver_experiments.hpp>
-#include <userver/utils/rand.hpp>
 
 using namespace std::chrono_literals;
 
@@ -210,23 +208,6 @@ UTEST(WaitAllChecked, DeadlineTimeoutUntil) {
         engine::WaitAllCheckedUntil(std::chrono::steady_clock::now() + 10ms, task),
         engine::FutureStatus::kTimeout
     );
-}
-
-UTEST_MT(WaitAllChecked, ExceptionStressTest, 16) {
-    for (auto _ : utest::StressLoop()) {
-        const std::size_t task_count = utils::RandRange(100u, 500u);
-        const std::size_t failing = utils::RandRange(std::size_t{0}, task_count);
-        std::vector<engine::Task> tasks;
-        tasks.reserve(task_count);
-        for (std::size_t i = 0; i < failing; ++i) {
-            tasks.push_back(FastSuccessfulTask());
-        }
-        tasks.push_back(FastFailingTask());
-        for (std::size_t i = failing + 1; i < task_count; ++i) {
-            tasks.push_back(FastSuccessfulTask());
-        }
-        UEXPECT_THROW(engine::WaitAllChecked(tasks), std::runtime_error);
-    }
 }
 
 USERVER_NAMESPACE_END

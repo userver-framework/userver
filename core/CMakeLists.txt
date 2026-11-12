@@ -19,7 +19,9 @@ file(GLOB_RECURSE SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/include/
 
 file(GLOB_RECURSE UNIT_TEST_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*_test.cpp)
 
-list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES})
+file(GLOB_RECURSE STRESS_TEST_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/*_stresstest.cpp)
+
+list(REMOVE_ITEM SOURCES ${UNIT_TEST_SOURCES} ${STRESS_TEST_SOURCES})
 
 file(GLOB_RECURSE BENCH_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/src/*_benchmark.cpp)
 file(GLOB_RECURSE LIBUBENCH_SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/benchmarks/main.cpp)
@@ -301,6 +303,12 @@ if(USERVER_BUILD_TESTS)
     target_link_libraries(${PROJECT_NAME}-unittest PRIVATE userver-utest)
 
     add_google_tests(${PROJECT_NAME}-unittest)
+
+    add_executable(${PROJECT_NAME}-stresstest ${STRESS_TEST_SOURCES})
+    target_include_directories(${PROJECT_NAME}-stresstest PRIVATE $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
+    target_link_libraries(${PROJECT_NAME}-stresstest PRIVATE userver-utest)
+    add_google_tests(${PROJECT_NAME}-stresstest)
+
     add_subdirectory(functional_tests)
 endif()
 
