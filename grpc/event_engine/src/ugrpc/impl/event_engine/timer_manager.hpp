@@ -7,7 +7,6 @@
 
 #include <atomic>
 #include <chrono>
-#include <cstddef>
 #include <cstdint>
 #include <optional>
 
@@ -17,9 +16,10 @@
 #include <userver/engine/single_use_event.hpp>
 #include <userver/utils/assert.hpp>
 
-#include <concurrent/intrusive_walkable_pool.hpp>
 #include <engine/ev/async_payload_base.hpp>
 #include <engine/ev/thread_control.hpp>
+
+#include <ugrpc/impl/event_engine/timer_storage.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -65,8 +65,8 @@ struct TimerPool {
     };
 
     struct TimerData {
-        explicit TimerData(TimerPool& owner)
-            : timer_pool(&owner)
+        explicit TimerData(TimerPool& timer_pool)
+            : timer_pool(&timer_pool)
         {}
 
         TaskHandle GetHandle() const;
@@ -89,34 +89,15 @@ struct TimerPool {
 
         TimerPool* const timer_pool;
 
-        concurrent::impl::IntrusiveWalkablePoolHook<TimerData> hook;
+        event_engine::TimerStorageHook<TimerData> hook;
     };
 
-#if defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Winvalid-offsetof"
-#elif defined(__GNUC__)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Winvalid-offsetof"
-#endif
-
-    using Pool = concurrent::impl::IntrusiveWalkablePool<
-        TimerData,
-        concurrent::impl::MemberHook<&TimerData::hook>,
-        offsetof(TimerData, hook)>;
-
-#if defined(__clang__)
-#pragma clang diagnostic pop
-#elif defined(__GNUC__)
-#pragma GCC diagnostic pop
-#endif
-
     Executor& executor;
-    Pool pool;
+    event_engine::TimerStorage<TimerData, concurrent::impl::MemberHook<&TimerData::hook>> storage;
 };
 
 inline TimerPool::TimerData& Acquire(TimerPool& timer_pool) {
-    return timer_pool.pool.Acquire([&] { return TimerPool::TimerData{timer_pool}; });
+    return timer_pool.storage.Acquire([&] { return TimerPool::TimerData{timer_pool}; });
 }
 
 inline void Release(TimerPool::TimerData& timerd) {
@@ -124,7 +105,7 @@ inline void Release(TimerPool::TimerData& timerd) {
     UASSERT(!timerd.timer_init_payload.has_value());
     UASSERT(!timerd.closure);
     UASSERT(!ev_is_active(&timerd.timer));
-    timerd.timer_pool->pool.Release(timerd);
+    timerd.timer_pool->storage.Release(timerd);
 }
 
 /// Native libev timers with callbacks dispatched to Executor.

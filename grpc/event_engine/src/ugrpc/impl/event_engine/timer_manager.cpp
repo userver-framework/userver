@@ -193,7 +193,7 @@ void TimerManager::Shutdown() {
     Executor::RunInCallbackScope([this] {
         const grpc_core::ApplicationCallbackExecCtx callback_exec_ctx;
         const grpc_core::ExecCtx exec_ctx;
-        timer_pool_.pool.Walk([this](TimerPool::TimerData& timerd) { CancelTimer(timerd.GetHandle()); });
+        timer_pool_.storage.Walk([this](TimerPool::TimerData& timerd) { CancelTimer(timerd.GetHandle()); });
     });
     FlushDeferredPayload(ev_thread_pool_);
     state_.store(State::kStopped);
