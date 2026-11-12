@@ -2657,6 +2657,7 @@
   "grpc/functional_tests/middleware_client/tests/test_install_servicer.py":"taxi/uservices/userver/grpc/functional_tests/middleware_client/tests/test_install_servicer.py",
   "grpc/functional_tests/middleware_client/tests/test_invalid_mock_handler.py":"taxi/uservices/userver/grpc/functional_tests/middleware_client/tests/test_invalid_mock_handler.py",
   "grpc/functional_tests/middleware_client/tests/test_mocked_fail.py":"taxi/uservices/userver/grpc/functional_tests/middleware_client/tests/test_mocked_fail.py",
+  "grpc/functional_tests/middleware_client/tests/test_mockserver_keepalive.py":"taxi/uservices/userver/grpc/functional_tests/middleware_client/tests/test_mockserver_keepalive.py",
   "grpc/functional_tests/middleware_server/CMakeLists.txt":"taxi/uservices/userver/grpc/functional_tests/middleware_server/CMakeLists.txt",
   "grpc/functional_tests/middleware_server/config_vars.yaml":"taxi/uservices/userver/grpc/functional_tests/middleware_server/config_vars.yaml",
   "grpc/functional_tests/middleware_server/proto/samples/greeter.proto":"taxi/uservices/userver/grpc/functional_tests/middleware_server/proto/samples/greeter.proto",
