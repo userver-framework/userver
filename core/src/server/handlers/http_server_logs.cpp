@@ -38,7 +38,7 @@ std::optional<formats::json::MaskingRules> CompileMasking(const std::optional<Ma
     if (!policy) {
         return std::nullopt;
     }
-    return formats::json::MaskingRules{policy->paths, ConvertListMode(policy->list_mode), policy->replacement};
+    return formats::json::MaskingRules{policy->paths, ConvertListMode(policy->list_mode)};
 }
 
 HttpServerLogs ParseHttpServerLogs(const dynamic_config::DocsMap& docs) {
