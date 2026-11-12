@@ -3,11 +3,14 @@
 #include <numeric>
 #include <string>
 #include <string_view>
+#include <type_traits>
+#include <unordered_map>
 #include <utility>
 #include <variant>
 #include <vector>
 
 #include <benchmark/benchmark.h>
+#include <fmt/format.h>
 #include <rapidjson/document.h>
 
 #include <userver/formats/json/impl/types.hpp>
@@ -20,6 +23,9 @@
 #include <userver/formats/serialize/common_containers.hpp>
 #include <userver/formats/serialize/to.hpp>
 #include <userver/formats/serialize/variant.hpp>
+#include <userver/formats/yaml/serialize.hpp>
+#include <userver/formats/yaml/value.hpp>
+#include <userver/utils/strong_typedef.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -1453,6 +1459,61 @@ BENCHMARK(JsonBuilderValueMove)->Arg(8)->Arg(128)->Arg(1024);
 BENCHMARK(JsonBuilderValueSharedMove)->Arg(8)->Arg(128)->Arg(1024);
 BENCHMARK(JsonBuilderMove)->Arg(8)->Arg(128)->Arg(1024);
 BENCHMARK(JsonBuilderExtractReuse)->Arg(8)->Arg(128)->Arg(1024);
+
+enum class MapSerialization { kCommon, kAutomatic, kStrongTypedef };
+
+template <MapSerialization Mode>
+void JsonSerializeUnorderedMap(benchmark::State& state) {
+    using Key = std::conditional_t<
+        Mode == MapSerialization::kStrongTypedef,
+        utils::StrongTypedef<struct BenchmarkMapKeyTag, std::string>,
+        std::string>;
+    std::unordered_map<Key, int> source;
+    const auto size = static_cast<std::size_t>(state.range(0));
+    for (std::size_t index = 0; index < size; ++index) {
+        source.emplace(Key{fmt::format("{}", index)}, index);
+    }
+    for ([[maybe_unused]] auto _ : state) {
+        if constexpr (Mode == MapSerialization::kCommon) {
+            benchmark::DoNotOptimize(
+                formats::serialize::Serialize(source, formats::serialize::To<formats::json::Value>{})
+            );
+        } else {
+            benchmark::DoNotOptimize(formats::json::ValueBuilder{source}.ExtractValue());
+        }
+    }
+    state.SetItemsProcessed(state.iterations() * size);
+}
+
+BENCHMARK_TEMPLATE(JsonSerializeUnorderedMap, MapSerialization::kCommon)->Arg(0)->Arg(8)->Arg(128)->Arg(1024);
+BENCHMARK_TEMPLATE(JsonSerializeUnorderedMap, MapSerialization::kAutomatic)->Arg(0)->Arg(8)->Arg(128)->Arg(1024);
+BENCHMARK_TEMPLATE(JsonSerializeUnorderedMap, MapSerialization::kStrongTypedef)->Arg(0)->Arg(8)->Arg(128)->Arg(1024);
+
+template <formats::json::Type ContainerType>
+void YamlToJsonContainers(benchmark::State& state) {
+    const auto size = static_cast<std::size_t>(state.range(0));
+    formats::json::ValueBuilder fixture{ContainerType};
+    fixture.Reserve(size);
+    for (std::size_t index = 0; index < size; ++index) {
+        if constexpr (ContainerType == formats::json::Type::kArray) {
+            fixture.PushBack(index);
+        } else {
+            fixture.EmplaceNocheck(fmt::format("field_{}", index), index);
+        }
+    }
+    const auto input = fixture.ExtractValue().As<formats::yaml::Value>();
+    {
+        const formats::json::ValueBuilder output{input.As<formats::json::Value>()};
+        state.counters["capacity"] = output.GetCapacity();
+    }
+    for ([[maybe_unused]] auto _ : state) {
+        benchmark::DoNotOptimize(input.As<formats::json::Value>());
+    }
+    state.SetItemsProcessed(state.iterations() * size);
+}
+
+BENCHMARK_TEMPLATE(YamlToJsonContainers, formats::json::Type::kArray)->Arg(0)->Arg(8)->Arg(128)->Arg(1024);
+BENCHMARK_TEMPLATE(YamlToJsonContainers, formats::json::Type::kObject)->Arg(0)->Arg(8)->Arg(128)->Arg(1024);
 
 }  // namespace
 

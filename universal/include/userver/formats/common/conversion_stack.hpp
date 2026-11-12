@@ -119,14 +119,21 @@ public:
                     UINVARIANT(false, "Type mismatch");
                 }
             }
-            if (stack_.back().current_parsing_elem) {
-                ++*stack_.back().current_parsing_elem;
-            } else {
+            const bool is_first_item = !stack_.back().current_parsing_elem;
+            if (is_first_item) {
                 stack_.back().current_parsing_elem = stack_.back().from.begin();
+            } else {
+                ++*stack_.back().current_parsing_elem;
             }
             if (stack_.back().current_parsing_elem.value() == stack_.back().from.end()) {
                 stack_.back().is_parsed = true;
                 return;
+            }
+            if (is_first_item) {
+                auto& frame = stack_.back();
+                if constexpr (requires { frame.to->Reserve(frame.from.GetSize()); }) {
+                    frame.to->Reserve(frame.from.GetSize());
+                }
             }
             auto new_from = *stack_.back().current_parsing_elem.value();
             stack_.emplace_back(std::move(new_from));

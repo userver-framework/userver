@@ -6,10 +6,12 @@
 #include <chrono>
 #include <cstdint>
 #include <initializer_list>
+#include <ranges>
 #include <string>
 #include <string_view>
 #include <type_traits>
 #include <utility>
+#include <variant>
 
 #include <userver/compiler/impl/nodebug.hpp>
 #include <userver/formats/common/meta.hpp>
@@ -35,6 +37,9 @@ template <typename T>
 concept IsNativeArithmetic =
     meta::IsCharacter<T> || std::is_same_v<T, bool> || meta::IsInteger<T> ||
     std::is_same_v<std::remove_cv_t<T>, float> || std::is_same_v<std::remove_cv_t<T>, double>;
+
+template <typename T>
+concept IsWrappedValue = meta::IsOptional<T> || meta::IsInstantiationOf<T, std::variant>;
 
 template <typename T>
 concept IsNormalizedArithmetic =
@@ -226,6 +231,14 @@ public:
         }
     }
 
+    /// @brief Serializes and inserts a std::optional or std::variant without constructing a temporary builder.
+    /// Uses the same serialization customization as the universal constructor.
+    /// @overload
+    template <impl::IsWrappedValue T>
+    USERVER_IMPL_NODEBUG_INLINE_FUNC void EmplaceNocheck(std::string_view key, const T& value) {
+        EmplaceNocheck(key, DoSerialize(value));
+    }
+
     /// @overload
     template <typename T>
     requires(impl::IsNativeArithmetic<T> && !meta::IsCharacter<std::remove_cv_t<T>>)
@@ -340,6 +353,14 @@ public:
         } else {
             PushBack(ValueBuilder{value});
         }
+    }
+
+    /// @brief Serializes and appends a std::optional or std::variant without constructing a temporary builder.
+    /// Uses the same serialization customization as the universal constructor.
+    /// @throw formats::json::TypeMismatchException if the builder is neither an array nor null.
+    template <impl::IsWrappedValue T>
+    USERVER_IMPL_NODEBUG_INLINE_FUNC void PushBack(const T& value) {
+        PushBack(DoSerialize(value));
     }
 
     /// @brief Appends an arithmetic value directly, without constructing a temporary `ValueBuilder`.
@@ -514,6 +535,9 @@ template <typename T>
 requires(meta::IsUniqueMap<T> && utils::IsStrongTypedefLoggable(T::key_type::kOps))
 Value Serialize(const T& value, formats::serialize::To<Value>) {
     json::ValueBuilder builder(formats::common::Type::kObject);
+    if constexpr (requires { std::ranges::size(value); }) {
+        builder.Reserve(std::ranges::size(value));
+    }
     for (const auto& [key, value] : value) {
         builder.EmplaceNocheck(key.GetUnderlying(), value);
     }
@@ -525,6 +549,9 @@ template <typename T>
 requires meta::IsUniqueMap<T> && std::is_convertible_v<typename T::key_type, std::string>
 Value Serialize(const T& value, formats::serialize::To<Value>) {
     json::ValueBuilder builder(formats::common::Type::kObject);
+    if constexpr (requires { std::ranges::size(value); }) {
+        builder.Reserve(std::ranges::size(value));
+    }
     for (const auto& [key, value] : value) {
         builder.EmplaceNocheck(key, value);
     }

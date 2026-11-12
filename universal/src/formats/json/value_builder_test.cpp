@@ -14,6 +14,7 @@
 #include <string_view>
 #include <type_traits>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #if defined(__linux__)
@@ -29,6 +30,7 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/formats/serialize/to.hpp>
+#include <userver/formats/serialize/variant.hpp>
 #include <userver/utest/death_tests.hpp>
 #include <userver/utils/string_literal.hpp>
 
@@ -194,6 +196,40 @@ formats::json::Value Serialize(const SerializableStringViewUnion& value, formats
 formats::json::Value Serialize(const SerializableValue& value, formats::serialize::To<formats::json::Value>) {
     ++value.calls;
     return value.make_value();
+}
+
+formats::json::Value Serialize(
+    const std::optional<SerializableValue>& value,
+    formats::serialize::To<formats::json::Value> to
+) {
+    return value ? Serialize(*value, to) : formats::json::Value{};
+}
+
+struct CustomWrappedValue {};
+
+formats::json::Value
+Serialize(const std::optional<CustomWrappedValue>& value, formats::serialize::To<formats::json::Value>) {
+    return formats::json::MakeObject("optional", value.has_value());
+}
+
+formats::json::Value
+Serialize(const std::variant<CustomWrappedValue, int>& value, formats::serialize::To<formats::json::Value>) {
+    return formats::json::MakeObject("variant", value.index());
+}
+
+template <typename T>
+void CheckSerializedInsertion(const T& input, const formats::json::Value& expected) {
+    formats::json::ValueBuilder assigned;
+    assigned = input;
+    EXPECT_EQ(assigned.ExtractValue(), expected);
+
+    formats::json::ValueBuilder array{formats::json::Type::kArray};
+    array.PushBack(input);
+    EXPECT_EQ(array.ExtractValue(), formats::json::MakeArray(expected));
+
+    formats::json::ValueBuilder object{formats::json::Type::kObject};
+    object.EmplaceNocheck("value", input);
+    EXPECT_EQ(object.ExtractValue(), formats::json::MakeObject("value", expected));
 }
 
 template <typename T>
@@ -917,6 +953,60 @@ TEST(JsonValueBuilder, EmplaceNocheckCustomSerialization) {
     EXPECT_TRUE(value["optional"].IsNull());
 }
 
+TEST(JsonValueBuilder, WrappedScalarInsertion) {
+    CheckSerializedInsertion(std::optional<int>{42}, formats::json::ValueBuilder{42}.ExtractValue());
+    CheckSerializedInsertion(std::optional<int>{}, formats::json::Value{});
+    using Variant = std::variant<int, std::string>;
+    CheckSerializedInsertion(Variant{42}, formats::json::ValueBuilder{42}.ExtractValue());
+    CheckSerializedInsertion(Variant{std::string{"text"}}, formats::json::ValueBuilder{"text"}.ExtractValue());
+}
+
+TEST(JsonValueBuilder, WrappedInsertionUsesWrapperSerializer) {
+    CheckSerializedInsertion(std::optional<CustomWrappedValue>{}, formats::json::MakeObject("optional", false));
+    CheckSerializedInsertion(
+        std::optional<CustomWrappedValue>{CustomWrappedValue{}},
+        formats::json::MakeObject("optional", true)
+    );
+    using Variant = std::variant<CustomWrappedValue, int>;
+    CheckSerializedInsertion(Variant{CustomWrappedValue{}}, formats::json::MakeObject("variant", 0));
+    CheckSerializedInsertion(Variant{42}, formats::json::MakeObject("variant", 1));
+}
+
+TEST(JsonValueBuilder, SerializedInsertionPreservesSharedValues) {
+    const auto source = formats::json::FromString(R"({"nested": {"value": 42}})");
+    const auto original = source.Clone();
+    for (const bool child : {false, true}) {
+        const auto expected = child ? source["nested"] : source;
+        const std::optional<SerializableValue> input{SerializableValue{[&expected] { return expected; }}};
+        CheckSerializedInsertion(input, expected);
+        EXPECT_EQ(input->calls, 3);
+        EXPECT_EQ(source, original);
+    }
+    const std::optional<SerializableValue> unique_child{SerializableValue{[] {
+        const auto parent = formats::json::MakeObject("nested", formats::json::MakeObject("value", 42));
+        return parent["nested"];
+    }}};
+    CheckSerializedInsertion(unique_child, formats::json::MakeObject("value", 42));
+    EXPECT_EQ(unique_child->calls, 3);
+}
+
+TEST(JsonValueBuilder, SerializedInsertionMissingValueLeavesDestinationUnchanged) {
+    const auto source = formats::json::FromString(R"({"nested": {}})");
+    const std::optional<SerializableValue> input{SerializableValue{[&source] { return source["nested"]["missing"]; }}};
+    formats::json::ValueBuilder assigned{42};
+    EXPECT_THROW(assigned = input, formats::json::MemberMissingException);
+    EXPECT_EQ(assigned.ExtractValue().As<int>(), 42);
+
+    formats::json::ValueBuilder array{formats::json::MakeArray(42)};
+    EXPECT_THROW(array.PushBack(input), formats::json::MemberMissingException);
+    EXPECT_EQ(array.ExtractValue(), formats::json::MakeArray(42));
+
+    formats::json::ValueBuilder object{formats::json::MakeObject("existing", 42)};
+    EXPECT_THROW(object.EmplaceNocheck("value", input), formats::json::MemberMissingException);
+    EXPECT_EQ(object.ExtractValue(), formats::json::MakeObject("existing", 42));
+    EXPECT_EQ(input->calls, 3);
+}
+
 TEST(JsonValueBuilder, DecimalSerializationUsesTranslationUnitOverloads) {
     const decimal64::Decimal<4> raw{"42"};
     const std::optional<decimal64::Decimal<4>> optional{decimal64::Decimal<4>{"32"}};
@@ -936,6 +1026,14 @@ TEST(JsonValueBuilder, DecimalSerializationUsesTranslationUnitOverloads) {
         custom.ExtractValue(),
         formats::json::MakeObject("raw", kRawUnbiased, "optional", kOptionalUnbiased, "empty", nullptr)
     );
+
+    formats::json::ValueBuilder array{formats::json::Type::kArray};
+    array.PushBack(optional);
+    EXPECT_EQ(array.ExtractValue(), formats::json::MakeArray(kOptionalUnbiased));
+
+    formats::json::ValueBuilder object{formats::json::Type::kObject};
+    object.EmplaceNocheck("optional", optional);
+    EXPECT_EQ(object.ExtractValue(), formats::json::MakeObject("optional", kOptionalUnbiased));
 }
 
 TEST(JsonValueBuilder, SerializedFreshRoots) {

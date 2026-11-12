@@ -1,4 +1,7 @@
+#include <cstddef>
+#include <cstdint>
 #include <unordered_map>
+#include <vector>
 
 #include <benchmark/benchmark.h>
 
@@ -202,6 +205,21 @@ void JsonObjectParseToUnorderedMap(benchmark::State& state) {
     state.SetItemsProcessed(state.iterations() * state.range(0));
 }
 BENCHMARK(JsonObjectParseToUnorderedMap)->RangeMultiplier(4)->Range(1, 1024);
+
+void JsonArrayParseToVector(benchmark::State& state) {
+    const auto size = static_cast<std::size_t>(state.range(0));
+    formats::json::ValueBuilder builder{formats::json::Type::kArray};
+    builder.Reserve(size);
+    for (std::size_t index = 0; index < size; ++index) {
+        builder.PushBack(index);
+    }
+    const auto json = builder.ExtractValue();
+    for ([[maybe_unused]] auto _ : state) {
+        benchmark::DoNotOptimize(json.As<std::vector<std::int64_t>>());
+    }
+    state.SetItemsProcessed(state.iterations() * size);
+}
+BENCHMARK(JsonArrayParseToVector)->Arg(8)->Arg(128)->Arg(1024);
 
 void JsonObjectWideObjectOperatorEquals(benchmark::State& state) {
     const std::size_t size = state.range(0);
