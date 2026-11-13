@@ -10,6 +10,7 @@
 
 #include <userver/clients/http/client.hpp>
 #include <userver/clients/http/error.hpp>
+#include <userver/formats/json/serialize.hpp>
 #include <userver/utest/assert_macros.hpp>
 #include <userver/utest/http_client.hpp>
 #include <userver/utest/http_server_mock.hpp>
@@ -28,12 +29,18 @@ constexpr std::string_view kConfigsValuesPath = "/configs/values";
 
 class ConfigsServerMock final {
 public:
-    ConfigsServerMock(int response_status, std::string updated_at)
+    ConfigsServerMock(
+        int response_status,
+        std::string updated_at,
+        std::string_view expected_body = R"({"service":"service"})"
+    )
         : server_([this,
                    response_status,
+                   expected_body = formats::json::FromString(expected_body),
                    updated_at = std::move(updated_at)](const utest::HttpServerMock::HttpRequest& request) {
               ++requests_count_;
               EXPECT_EQ(request.path, kConfigsValuesPath);
+              EXPECT_EQ(formats::json::FromString(request.body), expected_body);
               return utest::HttpServerMock::HttpResponse{
                   response_status,
                   {},
@@ -84,6 +91,34 @@ UTEST(DynamicConfigClient, UsesConfigUrlWhenItSucceeds) {
 
     EXPECT_EQ(client.FetchJson(std::nullopt, {}).timestamp, "primary");
     EXPECT_EQ(fallback.GetRequestsCount(), 0);
+}
+
+UTEST(DynamicConfigClient, SendsAdditionalRequestParams) {
+    const ConfigsServerMock server{
+        kStatusOk,
+        "now",
+        R"({"service":"service","updated_since":"previous","region":"eu","options":[true,3,{"tag":null}]})"
+    };
+    auto http_client = utest::CreateHttpClient();
+    auto config = MakeClientConfig(server.GetBaseUrl(), {});
+    config.additional_request_params = {
+        {"region", formats::json::FromString(R"("eu")")},
+        {"options", formats::json::FromString(R"([true,3,{"tag":null}])")},
+    };
+    Client client{*http_client, config};
+
+    EXPECT_EQ(client.FetchJson("previous", {}).timestamp, "now");
+}
+
+UTEST_DEATH(ClientConfigDeathTest, AdditionalRequestParamsConflictWithStandardField) {
+    auto http_client = utest::CreateHttpClient();
+    auto config = MakeClientConfig("http://configs", {});
+    config.additional_request_params.emplace("ids", formats::json::FromString("[]"));
+
+    EXPECT_UINVARIANT_FAILURE_MSG(
+        (Client{*http_client, config}),
+        "additional-request-params contains standard request field 'ids'"
+    );
 }
 
 UTEST(DynamicConfigClient, FallsBackOnServerError) {
