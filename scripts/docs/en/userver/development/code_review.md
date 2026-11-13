@@ -347,6 +347,14 @@ destructor. Do not put blank lines within this group.
 During code review or self-review, check these separators explicitly;
 formatter success alone does not establish compliance with local spacing conventions.
 
+## 19. Qualify free function calls in headers
+
+In header files, qualify calls to free functions with their namespace, even when
+the function is declared in the current namespace, to prevent unintended
+argument-dependent lookup (ADL). Unqualified calls can find unrelated overloads
+in argument types' namespaces, causing ambiguity or changing behavior.
+Keep unqualified calls only where ADL is an intentional customization mechanism.
+
 ----------
 
 @htmlonly <div class="bottom-nav"> @endhtmlonly
