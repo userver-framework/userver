@@ -16,6 +16,9 @@ namespace server::request::impl {
 
 namespace {
 
+constexpr auto kMaxOriginalDeadline = std::chrono::time_point_cast<
+    TaskInheritedOriginalDeadline::duration>(std::chrono::system_clock::time_point::max());
+
 bool IsClockSkewAcceptable(
     const TaskInheritedOriginalDeadline& absolute_tp,
     std::chrono::milliseconds deadline_duration,
@@ -57,6 +60,10 @@ std::optional<TaskInheritedOriginalDeadline> ParseXRequestDeadlineString(const s
     const auto parsed = utils::FromStringNoThrow<std::uint64_t>(timestring);
     if (!parsed.has_value()) {
         LOG_LIMITED_INFO() << "Can't parse X-Request-Deadline: " << utils::ToString(parsed.error());
+        return std::nullopt;
+    }
+    if (parsed.value() > static_cast<std::uint64_t>(kMaxOriginalDeadline.time_since_epoch().count())) {
+        LOG_LIMITED_INFO() << "X-Request-Deadline is out of the system clock range: " << parsed.value();
         return std::nullopt;
     }
     return TaskInheritedOriginalDeadline{std::chrono::microseconds{parsed.value()}};
