@@ -71,6 +71,16 @@ TEST(DatetimeUtils, BigTimestampToNanoseconds) {
     );
 }
 
+TEST(DatetimeUtils, NegativeBigTimestampToNanoseconds) {
+    const google::protobuf::Timestamp negative_big = MakeTimestamp(-10'000'000'000, 0);
+    ASSERT_TRUE(ugrpc::IsValid(negative_big));
+    UEXPECT_THROW_MSG(
+        ugrpc::ToTimePoint<std::chrono::nanoseconds>(negative_big),
+        ugrpc::TimestampConversionError,
+        "grpc_ts does not fit the output type"
+    );
+}
+
 TEST(DatetimeUtils, InvalidTimestampToSystemClock) {
     UEXPECT_THROW_MSG(
         ugrpc::ToTimePoint(MakeTimestamp(1e15, 0)),
@@ -270,6 +280,16 @@ TEST(DatetimeUtils, BigDurationToMilliseconds) {
 TEST(DatetimeUtils, BigDurationToNanoseconds) {
     UEXPECT_THROW_MSG(
         ugrpc::ToDuration<std::chrono::nanoseconds>(kBigGrpcDuration),
+        ugrpc::DurationConversionError,
+        "grpc_duration does not fit the output type"
+    );
+}
+
+TEST(DatetimeUtils, NegativeBigDurationToNanoseconds) {
+    const google::protobuf::Duration negative_big = MakeDuration(-100'000'000'000, 0);
+    ASSERT_TRUE(ugrpc::IsValid(negative_big));
+    UEXPECT_THROW_MSG(
+        ugrpc::ToDuration<std::chrono::nanoseconds>(negative_big),
         ugrpc::DurationConversionError,
         "grpc_duration does not fit the output type"
     );
