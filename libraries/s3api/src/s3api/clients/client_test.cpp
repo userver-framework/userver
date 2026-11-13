@@ -7,8 +7,11 @@
 #include <string>
 #include <unordered_map>
 
+#include <gmock/gmock.h>
+
 #include <userver/clients/http/client.hpp>
 #include <userver/http/common_headers.hpp>
+#include <userver/s3api/authenticators/signature_v4.hpp>
 #include <userver/s3api/models/request.hpp>
 #include <userver/utest/utest.hpp>
 
@@ -168,6 +171,35 @@ TEST(S3PresignedUrl, NormalizesEndpointHostForDownloadAndUpload) {
             EXPECT_EQ(authenticator->signed_host, expected_host);
         }
     }
+}
+
+TEST(S3PresignedUrl, SignatureV4UploadUrlSignsContentType) {
+    UnusedHttpClient http_client;
+    auto connection = std::make_shared<S3Connection>(
+        http_client,
+        S3ConnectionType::kHttps,
+        "s3.example.com",
+        ConnectionCfg{std::chrono::milliseconds{1000}}
+    );
+    const Secret secret_key{std::string{"secret-key"}};
+    auto authenticator = std::make_shared<authenticators::SignatureV4>("access-key", secret_key, "us-east-1");
+    ClientImpl client{std::move(connection), authenticator, "bucket"};
+    const auto expires_at = std::chrono::system_clock::now() + std::chrono::hours{1};
+
+    EXPECT_THAT(
+        client.GenerateUploadUrlVirtualHostAddressing(
+            "content",
+            "text/plain",
+            "path/to/object",
+            expires_at,
+            "https://"
+        ),
+        testing::HasSubstr("X-Amz-SignedHeaders=content-type%3Bhost")
+    );
+    EXPECT_THAT(
+        client.GenerateDownloadUrlVirtualHostAddressing("path/to/object", expires_at, "https://"),
+        testing::ContainsRegex("X-Amz-SignedHeaders=host(&|$)")
+    );
 }
 
 }  // namespace
