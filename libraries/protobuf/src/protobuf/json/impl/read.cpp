@@ -15,6 +15,7 @@
 #include <protobuf/json/impl/convert_utils.hpp>
 #include <protobuf/json/impl/field_error.hpp>
 #include <userver/crypto/base64.hpp>
+#include <userver/crypto/exception.hpp>
 #include <userver/formats/common/items.hpp>
 #include <userver/protobuf/datetime.hpp>
 #include <userver/utils/assert.hpp>
@@ -974,8 +975,15 @@ void ReadAnyMessage(
             throw FieldError(ParseErrorCode::kInvalidValue, "'value' field is not a string");
         }
 
+        std::string value;
+        try {
+            value = crypto::base64::Base64Decode(json["value"].As<std::string>());
+        } catch (const crypto::CryptoException&) {
+            throw FieldError(ParseErrorCode::kInvalidValue, "'value' is not valid base64");
+        }
+
         reflection.SetString(&message, &type_url_desc, json[type_url_field].As<std::string>());
-        reflection.SetString(&message, &value_desc, crypto::base64::Base64Decode(json["value"].As<std::string>()));
+        reflection.SetString(&message, &value_desc, std::move(value));
         return;
     }
 

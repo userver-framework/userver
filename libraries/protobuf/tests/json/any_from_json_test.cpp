@@ -303,6 +303,13 @@ INSTANTIATE_TEST_SUITE_P(
             ParseErrorCode::kInvalidValue,
             "field1",
             {.nonportable_raw_any = true}
+        },
+        // nonportable_raw_any: 'value' is not valid base64
+        AnyFromJsonFailureTestParam{
+            R"({"field1":{"typeUrl":"x","value":"Q"}})",
+            ParseErrorCode::kInvalidValue,
+            "field1",
+            {.nonportable_raw_any = true}
         }
     )
 );
