@@ -16,6 +16,9 @@ information of an authorized user (it's name) is passed to the HTTP handler.
 
 Creation of tokens and user registration is out of scope of this tutorial.
 
+For signed JWTs, use @ref crypto::jwt::Verify inside a custom auth checker;
+see @ref scripts/docs/en/userver/libraries/jwt.md for signature and claim validation.
+
 @warning Authorization scheme from this sample is vulnerable to the MITM-attack
   unless you are using a secure connection (HTTPS).
 
