@@ -62,6 +62,16 @@ bool Decompression::DecompressRequestBody(http::HttpRequest& request, request::R
             if (parse_args_from_body_) {
                 request.ParseArgsFromBody();
             }
+            if (!request.ParseFormDataArgsFromBody()) {
+                handler_.HandleCustomHandlerException(
+                    request,
+                    context,
+                    handlers::RequestParseError{
+                        handlers::InternalMessage{"invalid body of multipart/form-data request"}
+                    }
+                );
+                return false;
+            }
             return true;
         }
     } catch (const compression::TooBigError&) {
