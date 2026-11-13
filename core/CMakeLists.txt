@@ -107,7 +107,7 @@ target_link_libraries(
 )
 if(TARGET Boost::endian)
     # Boost from CPM
-    target_link_libraries(${PROJECT_NAME} PUBLIC userver-universal Boost::endian Boost::lockfree)
+    target_link_libraries(${PROJECT_NAME} PUBLIC Boost::endian Boost::lockfree)
 endif()
 
 list(
@@ -305,7 +305,9 @@ if(USERVER_BUILD_TESTS)
     add_google_tests(${PROJECT_NAME}-unittest)
 
     add_executable(${PROJECT_NAME}-stresstest ${STRESS_TEST_SOURCES})
-    target_include_directories(${PROJECT_NAME}-stresstest PRIVATE $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>)
+    target_include_directories(
+        ${PROJECT_NAME}-stresstest PRIVATE $<TARGET_PROPERTY:${PROJECT_NAME},INCLUDE_DIRECTORIES>
+    )
     target_link_libraries(${PROJECT_NAME}-stresstest PRIVATE userver-utest)
     add_google_tests(${PROJECT_NAME}-stresstest)
 
