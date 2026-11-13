@@ -113,11 +113,7 @@ public:
 
     /// @brief Subscribes to updates from this event source
     ///
-    /// The listener won't be called immediately. To process the current value and
-    /// then listen to updates, use `UpdateAndListen` of specific event channels.
-    ///
-    /// @warning Listeners should not be added or removed while processing the
-    /// event inside another listener.
+    /// The listener won't be called immediately.
     ///
     /// Example usage:
     /// @snippet core/src/concurrent/async_event_channel_test.cpp  AddListener sample
@@ -135,6 +131,27 @@ public:
     /// @param name the name of the subscriber, for diagnostic purposes
     /// @param func the listener method, usually called `On<DataName>Update`, e.g.
     /// `OnConfigUpdate` or `OnCacheUpdate`
+    ///
+    /// ## Possible races when using AddListener
+    ///
+    /// Manually processing the current value and subscribing in separate steps introduces a race. The following
+    /// pseudocode assumes that `scopes` is already active:
+    ///
+    /// ```cpp
+    /// OnCacheUpdate(cache.Get());
+    /// source.AddListener(scopes, this, "cache-listener", &MyClass::OnCacheUpdate);
+    /// ```
+    /// An update between reading the cache and subscribing is missed. Reversing the order also introduces a race:
+    ///
+    /// ```cpp
+    /// source.AddListener(scopes, this, "cache-listener", &MyClass::OnCacheUpdate);
+    /// OnCacheUpdate(cache.Get());
+    /// ```
+    /// The event callback may run concurrently with the manual call, possibly processing the same cache value twice.
+    ///
+    /// To process the current value and then listen to updates, use `UpdateAndListen` on the concrete data source, e.g.
+    /// @ref components::CachingComponentBase::UpdateAndListen. If only @ref concurrent::AsyncEventChannel is available,
+    /// use @ref concurrent::AsyncEventChannel::DoUpdateAndListen.
     template <class Class>
     void AddListener(
         utils::ResourceScopeStorage& scopes,
