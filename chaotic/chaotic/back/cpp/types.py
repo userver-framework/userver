@@ -859,13 +859,13 @@ class CppStruct(CppType):
     def cpp_user_name(self) -> str:
         if self._is_default_dict():
             assert isinstance(self.extra_type, CppType)
-            return f'USERVER_NAMESPACE::utils::DefaultDict<{self.extra_type.cpp_user_name()}>'
+            return f'USERVER_NAMESPACE::utils::DefaultDict<{self.extra_value_cpp_type()}>'
         return super().cpp_user_name()
 
     def parser_type(self, ns: str, name: str) -> str:
         if self._is_default_dict():
             assert isinstance(self.extra_type, CppType)
-            dict_type = f'USERVER_NAMESPACE::utils::DefaultDict<{self.extra_type.cpp_user_name()}>'
+            dict_type = f'USERVER_NAMESPACE::utils::DefaultDict<{self.extra_value_cpp_type()}>'
             parser_type = self._primitive_parser_type()
             return f'USERVER_NAMESPACE::chaotic::WithType<{parser_type}, {dict_type}>'
 
@@ -886,7 +886,7 @@ class CppStruct(CppType):
             case False:
                 unknown_fields = f'{ch}::UnknownFields::Forbid'
             case _:
-                unknown_fields = f'{ch}::UnknownFields::StoreTyped<{self.extra_type.parser_type(ch, name)}>'
+                unknown_fields = f'{ch}::UnknownFields::StoreTyped<{self.extra_parser_type(ch, name)}>'
 
         fields = [
             self.fields[field].descriptor_type(
@@ -907,6 +907,21 @@ class CppStruct(CppType):
         if isinstance(self.extra_type, CppType) and not self._is_default_dict():
             types.append(self.extra_type)
         return types
+
+    def extra_value_cpp_type(self) -> str:
+        """C++ type of an additionalProperties value, std::optional of the type if it is nullable"""
+        assert isinstance(self.extra_type, CppType)
+        cpp_type = self.extra_type.cpp_user_name()
+        if self.extra_type.nullable:
+            return f'std::optional<{cpp_type}>'
+        return cpp_type
+
+    def extra_parser_type(self, ns: str, name: str) -> str:
+        assert isinstance(self.extra_type, CppType)
+        parser_type = self.extra_type.parser_type(ns, name)
+        if self.extra_type.nullable:
+            return f'USERVER_NAMESPACE::chaotic::Nullable<{parser_type}>'
+        return parser_type
 
     def extra_container(self) -> str:
         kwargs = self.json_schema.x_properties
@@ -952,6 +967,8 @@ class CppStruct(CppType):
             includes.extend(field.schema.definition_includes())
         if isinstance(self.extra_type, CppType):
             includes.extend(self.extra_type.definition_includes())
+            if self.extra_type.nullable:
+                includes.append('userver/chaotic/nullable.hpp')
         if self._is_default_dict():
             includes += self.get_includes_by_cpp_type(
                 'userver::utils::DefaultDict<>',

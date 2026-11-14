@@ -274,7 +274,8 @@ struct X {
 `additionalProperties` with non-false value is handled in a special way.
 It adds a member `extra` which holds all non-enumerated fields.
 In case of `true` it holds raw `formats::json::Value`.
-In case of more specific types it holds a map of this type.
+In case of more specific types it holds a map of this type. A `nullable` schema of `additionalProperties` makes the
+values `std::optional`, a JSON `null` value is `std::nullopt`.
 If you don't need `extra` member, you may disable its generation via `x-usrv-extra-member: false`.
 
 You may change the container type of `extra` field with `x-usrv-cpp-extra-type`:
