@@ -45,6 +45,8 @@ class BaseTranslator(abc.ABC):
     ) -> None:
         self._spec = spec
         self._include_dirs = include_dirs
+        # (what is generated, its name) -> the operation that generates it
+        self._generated_names: dict[tuple[str, str], common_types.Operation] = {}
         try:
             self._translate(service)
         except chaotic_error.BaseError:
@@ -216,15 +218,22 @@ class BaseTranslator(abc.ABC):
             )
 
     def _validate_unique_namespace(self, op: common_types.Operation) -> None:
-        for other in self._spec.operations:
-            if other.cpp_namespace() == op.cpp_namespace():
-                self._raise_operation_error(
-                    op,
-                    f'generates the C++ namespace "{op.cpp_namespace()}" already generated for operation '
-                    f'"{other.method} {other.path}". Give the operations distinct operationIds '
-                    f'(operationIds that differ only in letter case clash)',
-                    '/operationId',
-                )
+        self._claim_generated_name(
+            op,
+            'C++ namespace',
+            op.cpp_namespace(),
+            ' (operationIds that differ only in letter case clash)',
+        )
+
+    def _claim_generated_name(self, op: common_types.Operation, what: str, name: str, hint: str = '') -> None:
+        other = self._generated_names.setdefault((what, name), op)
+        if other is not op:
+            self._raise_operation_error(
+                op,
+                f'generates the {what} "{name}" already generated for operation '
+                f'"{other.method} {other.path}". Give the operations distinct operationIds{hint}',
+                '/operationId',
+            )
 
     def map_infile_path_to_cpp_type(self, name: str, stem: str) -> str:
         if name.startswith('/components/schemas/'):

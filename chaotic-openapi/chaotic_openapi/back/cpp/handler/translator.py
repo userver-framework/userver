@@ -23,11 +23,4 @@ class HandlerTranslator(BaseTranslator):
         return op.x_handler_codegen
 
     def validate_operation(self, op: common_types.Operation) -> None:
-        for other in self._spec.operations:
-            if renderer.component_name(other) == renderer.component_name(op):
-                self._raise_operation_error(
-                    op,
-                    f'generates the handler component "{renderer.component_name(op)}" already generated for '
-                    f'operation "{other.method} {other.path}". Give the operations distinct operationIds',
-                    '/operationId',
-                )
+        self._claim_generated_name(op, 'handler component', renderer.component_name(op))

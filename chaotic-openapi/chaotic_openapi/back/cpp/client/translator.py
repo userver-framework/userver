@@ -44,14 +44,7 @@ class Translator(BaseTranslator):
             )
         if op.method == common_types.HTTP_METHOD_WITHOUT_REQUEST_BODY and op.sends_request_body():
             self._raise_operation_error(op, 'a HEAD request cannot carry a request body, remove "requestBody"')
-        for other in self._spec.operations:
-            if other.cpp_method_name() == op.cpp_method_name():
-                self._raise_operation_error(
-                    op,
-                    f'generates the client method "{op.cpp_method_name()}" already generated for operation '
-                    f'"{other.method} {other.path}". Give the operations distinct operationIds',
-                    '/operationId',
-                )
+        self._claim_generated_name(op, 'client method', op.cpp_method_name())
 
     def _translate_middlewares(self, middlewares: base_model.XMiddlewares) -> list[middleware.Middleware]:
         extra_members = middlewares.__pydantic_extra__ or {}
