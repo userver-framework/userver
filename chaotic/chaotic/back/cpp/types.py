@@ -2,7 +2,9 @@
 from collections.abc import Callable
 import dataclasses
 import itertools
+import json
 import math
+import typing
 from typing import Any
 
 from chaotic.back.cpp import type_name
@@ -739,8 +741,28 @@ class CppStructField:
     def has_default_constant(self) -> bool:
         return self._default() is not None and self._array_with_default() is None
 
+    def has_json_default(self) -> bool:
+        """The default is parsed once from JSON by the static FieldDefault<name>() of the structure"""
+        array = self._array_with_default()
+        return array is not None and array.has_json_default()
+
+    def json_default_function(self) -> str:
+        return f'FieldDefault{self.cpp_field_name()}'
+
+    def json_default_literal(self) -> str:
+        array = self._array_with_default()
+        assert array
+        literal = array.default_json()
+        assert ')chaotic_default"' not in literal
+        return f'R"chaotic_default({literal})chaotic_default"'
+
+    def json_default_parser_type(self) -> str:
+        return self.schema.parser_type('TODO', self.name.title())
+
     def get_default(self) -> str:
         array = self._array_with_default()
+        if array and array.has_json_default():
+            return f'{self.json_default_function()}()'
         if array:
             initializer = array.default_initializer()
             if isinstance(self.schema, CppRef) and self.schema.indirect:
@@ -761,7 +783,9 @@ class CppStructField:
 
         return f'{default}'
 
-    def get_parse_default(self) -> str:
+    def get_parse_default(self, struct_name: str) -> str:
+        if self.has_json_default():
+            return f'{struct_name}::{self.json_default_function()}()'
         if self._array_with_default():
             return f'{self.cpp_field_type()}{{{self.get_default()}}}'
         return self.get_default()
@@ -1010,12 +1034,29 @@ class CppArray(CppType):
 
     __hash__ = CppType.__hash__
 
-    def default_items(self) -> list[str]:
+    def default_items(self) -> list[str] | None:
+        """C++ literals of the "default" items, None if the items have no literal"""
         assert self.default is not None
-        return [_array_default_item(self.items, value) for value in self.default]
+        items = [_array_default_item(self.items, value) for value in self.default]
+        if any(item is None for item in items):
+            return None
+        return typing.cast(list[str], items)
+
+    def has_json_default(self) -> bool:
+        """The "default" is parsed from JSON, as its items have no C++ literal"""
+        return self.default is not None and self.default_items() is None
+
+    def validate_default(self) -> None:
+        if self.has_json_default():
+            _check_default_value(self, self.default)
+
+    def default_json(self) -> str:
+        return json.dumps(self.default, ensure_ascii=False, separators=(',', ':'))
 
     def default_initializer(self) -> str:
-        items = ', '.join(self.default_items())
+        literals = self.default_items()
+        assert literals is not None
+        items = ', '.join(literals)
         if not self.user_cpp_type:
             return items
         return f'USERVER_NAMESPACE::chaotic::ConvertTo<{self.cpp_user_name()}>({self._cpp_name()}{{{items}}})'
@@ -1054,10 +1095,13 @@ class CppArray(CppType):
         return includes
 
     def definition_includes(self) -> list[str]:
-        return [
+        includes = [
             'userver/chaotic/array.hpp',
             'userver/chaotic/with_type.hpp',
         ] + self.items.definition_includes()
+        if self.has_json_default():
+            includes.append('userver/formats/json/serialize.hpp')
+        return includes
 
     def sax_parser_includes(self) -> list[str]:
         return super().sax_parser_includes() + self.items.sax_parser_includes()
@@ -1071,11 +1115,6 @@ class CppArray(CppType):
     def needs_new_type(self) -> bool:
         return False
 
-
-UNSUPPORTED_ARRAY_DEFAULT_ITEMS_MSG = (
-    'non-empty "default" is supported only for arrays of booleans, integers, numbers, strings and string enums '
-    'without x-usrv-cpp-type, x-usrv-cpp-typedef-tag or format'
-)
 
 CPP_STRING_ESCAPES = {
     '"': '\\"',
@@ -1110,7 +1149,8 @@ def _cpp_string_literal(value: str) -> str:
     return '"' + ''.join(escaped) + '"'
 
 
-def _array_default_item(items: CppType, value: Any) -> str:
+def _array_default_item(items: CppType, value: Any) -> str | None:
+    """C++ literal of a "default" item, None if the items have no literal"""
     while isinstance(items, CppRef) and not items.indirect:
         items = items.orig_cpp_type
 
@@ -1121,25 +1161,76 @@ def _array_default_item(items: CppType, value: Any) -> str:
         raise ValueError(f'"default" item {value!r} is not one of {[item.raw_name for item in items.enums]}')
 
     if not isinstance(items, CppPrimitiveType) or items.user_cpp_type:
-        raise ValueError(UNSUPPORTED_ARRAY_DEFAULT_ITEMS_MSG)
+        return None
 
     item_type = ARRAY_DEFAULT_ITEM_KINDS.get(str(items.raw_cpp_type))
     if item_type is None:
-        raise ValueError(UNSUPPORTED_ARRAY_DEFAULT_ITEMS_MSG)
-    if item_type == 'boolean' and isinstance(value, bool):
+        return None
+    _check_json_kind(item_type, value)
+    if item_type == 'boolean':
         return 'true' if value else 'false'
-    if item_type == 'integer' and isinstance(value, int) and not isinstance(value, bool):
+    if item_type == 'integer':
         return str(value)
-    if (
-        item_type == 'number'
-        and isinstance(value, (int, float))
-        and not isinstance(value, bool)
-        and math.isfinite(value)
-    ):
+    if item_type == 'number':
         return repr(float(value))
-    if item_type == 'string' and isinstance(value, str):
-        return _cpp_string_literal(value)
-    raise ValueError(f'"default" item {value!r} does not match the items type "{item_type}"')
+    return _cpp_string_literal(value)
+
+
+def _check_json_kind(kind: str, value: Any) -> None:
+    matches = {
+        'boolean': isinstance(value, bool),
+        'integer': isinstance(value, int) and not isinstance(value, bool),
+        'number': isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value),
+        'string': isinstance(value, str),
+    }[kind]
+    if not matches:
+        raise ValueError(f'"default" item {value!r} does not match the items type "{kind}"')
+
+
+def _check_default_value(cpp_type: CppType, value: Any) -> None:
+    """Checks the JSON "default" value of a type without a C++ literal.
+
+    The value is parsed by the type's own parser on the first use, the check reports the mistakes
+    of a schema at code generation instead.
+    """
+    while isinstance(cpp_type, CppRef):
+        cpp_type = cpp_type.orig_cpp_type
+
+    if value is None:
+        if not cpp_type.nullable:
+            raise ValueError('"default" item null is not allowed for a non-nullable type')
+        return
+
+    if isinstance(cpp_type, CppArray):
+        if not isinstance(value, list):
+            raise ValueError(f'"default" item {value!r} is not an array')
+        for item in value:
+            _check_default_value(cpp_type.items, item)
+    elif isinstance(cpp_type, CppStruct):
+        if not isinstance(value, dict):
+            raise ValueError(f'"default" item {value!r} is not an object')
+        missing = [name for name, field in cpp_type.fields.items() if field.required and name not in value]
+        if missing:
+            raise ValueError(f'"default" item {value!r} misses required properties {missing}')
+        for name, item in value.items():
+            field = cpp_type.fields.get(name)
+            if field is not None:
+                _check_default_value(field.schema, item)
+            elif cpp_type.extra_type is False or cpp_type.extra_type is None:
+                raise ValueError(f'"default" item {value!r} has unknown property "{name}"')
+    elif isinstance(cpp_type, CppStringEnum):
+        if value not in [item.raw_name for item in cpp_type.enums]:
+            raise ValueError(f'"default" item {value!r} is not one of {[item.raw_name for item in cpp_type.enums]}')
+    elif isinstance(cpp_type, CppIntEnum):
+        if value not in [item.value for item in cpp_type.enums]:
+            raise ValueError(f'"default" item {value!r} is not one of {[item.value for item in cpp_type.enums]}')
+    elif isinstance(cpp_type, CppStringWithFormat):
+        _check_json_kind('string', value)
+    elif isinstance(cpp_type, CppPrimitiveType):
+        kind = ARRAY_DEFAULT_ITEM_KINDS.get(str(cpp_type.raw_cpp_type))
+        if kind:
+            _check_json_kind(kind, value)
+    # Other types (oneOf, allOf, any value) are left to their parser
 
 
 def flatten(data: list) -> list:

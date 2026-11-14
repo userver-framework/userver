@@ -48,10 +48,11 @@
 
 
 {% macro _generate_cpp_struct_aggregate_initialization(type, extra_variable) %}
+    {% set local_name = shortest_cpp_name(type, blacklist=['Value']) %}
     {% for property_name, field in type.fields.items() %}
         .{{ field.cpp_field_name() }} = value["{{ property_name }}"].template As<
             {{ field.cpp_field_parse_type() }}
-        >({{ field.get_parse_default() }}),
+        >({{ field.get_parse_default(local_name) }}),
     {% endfor %}
     {% if type.extra_type %}
         .extra={{ extra_variable }},

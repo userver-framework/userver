@@ -247,7 +247,7 @@ class Generator:
     def _validate_array_defaults(self) -> None:
         for array in self._state.arrays_with_default:
             try:
-                array.default_items()
+                array.validate_default()
             except ValueError as exc:
                 assert array.json_schema
                 self._raise(array.json_schema, str(exc))

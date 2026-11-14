@@ -4,6 +4,7 @@
 #include <type_traits>
 #include <vector>
 
+#include <boost/uuid/string_generator.hpp>
 #include <gtest/gtest.h>
 
 #include <userver/formats/json/inline.hpp>
@@ -37,6 +38,17 @@ void ExpectDeclaredDefaults(const ns::ArrayDefaults& obj) {
     EXPECT_EQ(*obj.indirect_default, Strings{"tagged"});
     EXPECT_EQ(obj.custom_empty_default.s, Strings{});
     EXPECT_EQ(obj.custom_default.s, Strings{"custom"});
+    EXPECT_EQ(obj.nested_default, (std::vector<std::vector<int>>{{1, 2}, {}}));
+    ASSERT_EQ(obj.object_default.size(), 2);
+    EXPECT_EQ(obj.object_default[0].x, 1);
+    EXPECT_EQ(obj.object_default[0].y, 0);
+    EXPECT_EQ(obj.object_default[1].x, 2);
+    EXPECT_EQ(obj.object_default[1].y, 3);
+    EXPECT_EQ(
+        obj.uuid_default,
+        std::vector{boost::uuids::string_generator{}("6ba7b810-9dad-11d1-80b4-00c04fd430c8")}
+    );
+    EXPECT_EQ(obj.custom_items_default, std::vector{my::CustomString{"custom"}});
 }
 
 }  // namespace
@@ -50,6 +62,8 @@ TEST(ArrayDefault, MemberTypes) {
     static_assert(std::is_same_v<decltype(ns::ArrayDefaults::set_default), std::set<std::string>>);
     static_assert(std::is_same_v<decltype(ns::ArrayDefaults::ref_default), ns::Tags>);
     static_assert(std::is_same_v<decltype(ns::ArrayDefaults::custom_default), my::CustomArray<std::string>>);
+    static_assert(std::is_same_v<decltype(ns::ArrayDefaults::nested_default), std::vector<std::vector<int>>>);
+    static_assert(std::is_same_v<decltype(ns::ArrayDefaults::object_default), std::vector<ns::Coord>>);
 }
 
 TEST(ArrayDefault, MemberInitializers) {
@@ -113,6 +127,10 @@ TEST(ArrayDefault, DefaultedKeysAreWritten) {
         EXPECT_EQ(json["string_default"], formats::json::MakeArray("sports", "quoted \"news\"\n"));
         EXPECT_EQ(json["custom_empty_default"], formats::json::MakeArray());
         EXPECT_EQ(json["indirect_default"], formats::json::MakeArray("tagged"));
+        EXPECT_EQ(json["nested_default"], formats::json::FromString("[[1,2],[]]"));
+        EXPECT_EQ(json["object_default"], formats::json::FromString(R"([{"x":1,"y":0},{"x":2,"y":3}])"));
+        EXPECT_EQ(json["uuid_default"], formats::json::MakeArray("6ba7b810-9dad-11d1-80b4-00c04fd430c8"));
+        EXPECT_EQ(json["custom_items_default"], formats::json::MakeArray("custom"));
         EXPECT_EQ(json.As<ns::ArrayDefaults>(), obj);
     }
 }

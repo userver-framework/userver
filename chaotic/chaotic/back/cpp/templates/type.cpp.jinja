@@ -240,6 +240,29 @@
 {% endmacro %}
 
 
+{% macro _generate_json_defaults_definition(type) %}
+    {#- handle subtypes -#}
+    {% for schema in type.subtypes() %}
+        {{- _generate_json_defaults_definition(schema) }}
+    {% endfor %}
+
+    {% if type.get_py_type() == 'CppStruct' %}
+        {% set local_name = shortest_cpp_name(type) %}
+        {% for field in type.fields.values() if field.has_json_default() %}
+            const {{ field.cpp_field_type() }}& {{ local_name }}::{{ field.json_default_function() }}() {
+                // Parsed once by the parser of the field, a "default" that does not parse throws here
+                static const {{ field.cpp_field_type() }} kDefault(
+                    {{ userver }}::formats::json::FromString(
+                        {{ field.json_default_literal() }}
+                    ).As<{{ field.json_default_parser_type() }}>()
+                );
+                return kDefault;
+            }
+        {% endfor %}
+    {% endif %}
+{% endmacro %}
+
+
 {% macro _generate_operator_eq_definition(type) %}
     {% set local_name = shortest_cpp_name(type) %}
 
@@ -328,6 +351,8 @@
             {{- _generate_to_json_string_definition(type) -}}
         {% endif %}
     {% endif %}
+
+    {{- _generate_json_defaults_definition(type) -}}
 
     {{- _generate_operator_eq_definition(type) -}}
 
