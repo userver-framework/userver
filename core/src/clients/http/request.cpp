@@ -131,12 +131,28 @@ bool IsUserAgentHeader(std::string_view header_name) {
     return utils::StrIcaseEqual{}(header_name, USERVER_NAMESPACE::http::headers::kUserAgent);
 }
 
-void SetUserAgent(curl::easy& easy, utils::zstring_view value) { easy.set_user_agent(value); }
+void CheckHeaderPart(const curl::easy& easy, std::string_view value) {
+    if (!curl::IsValidHeaderPart(value)) {
+        throw BadArgumentException(
+            curl::errc::EasyErrorCode::kBadFunctionArgument,
+            "CR, LF or NUL in a request header",
+            easy.get_original_url(),
+            {}
+        );
+    }
+}
+
+void SetUserAgent(curl::easy& easy, utils::zstring_view value) {
+    CheckHeaderPart(easy, value);
+    easy.set_user_agent(value);
+}
 
 template <class Range>
 void SetHeaders(curl::easy& easy, const Range& headers_range) {
     for (const auto& [name, value] : headers_range) {
         if (!IsUserAgentHeader(name)) {
+            CheckHeaderPart(easy, name);
+            CheckHeaderPart(easy, value);
             easy.add_header(name, value);
         } else {
             clients::http::SetUserAgent(easy, value);
@@ -155,12 +171,15 @@ void SetCookies(curl::easy& easy, const Range& cookies_range) {
         cookie_str += '=';
         cookie_str += value;
     }
+    CheckHeaderPart(easy, cookie_str);
     easy.set_cookie(cookie_str);
 }
 
 template <class Range>
 void SetProxyHeaders(curl::easy& easy, const Range& headers_range) {
     for (const auto& [name, value] : headers_range) {
+        CheckHeaderPart(easy, name);
+        CheckHeaderPart(easy, value);
         easy.add_proxy_header(name, value);
     }
 }
@@ -411,7 +430,7 @@ Request Request::proxy_headers(const std::initializer_list<std::pair<utils::zstr
 }
 
 Request& Request::user_agent(utils::zstring_view value) & {
-    pimpl_->easy().set_user_agent(value.c_str());
+    SetUserAgent(pimpl_->easy(), value);
     return *this;
 }
 Request Request::user_agent(utils::zstring_view value) && { return std::move(this->user_agent(value)); }

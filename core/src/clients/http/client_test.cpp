@@ -1205,6 +1205,34 @@ UTEST(HttpClient, Cookies) {
     test({{"a", "B"}, {"A", "b"}}, {"a=B", "A=b"});
 }
 
+UTEST(HttpClient, HeadersWithLineBreaksRejected) {
+    auto http_client_ptr = utest::CreateHttpClient();
+
+    const std::string bad_parts[] = {
+        "a\r\nX-Injected: 1",
+        "a\nb",
+        "a\rb",
+        std::string{"a\0b", 3},
+    };
+
+    for (const auto& bad : bad_parts) {
+        clients::http::Headers bad_value;
+        bad_value.emplace(kTestHeader, bad);
+        clients::http::Headers bad_name;
+        bad_name.emplace(std::string{kTestHeader} + bad, "test");
+        clients::http::Headers bad_user_agent;
+        bad_user_agent.emplace(std::string_view{http::headers::kUserAgent}, bad);
+        const clients::http::Request::Cookies bad_cookie{{"a", bad}};
+
+        UEXPECT_THROW(http_client_ptr->CreateRequest().headers(bad_value), clients::http::BadArgumentException);
+        UEXPECT_THROW(http_client_ptr->CreateRequest().headers(bad_name), clients::http::BadArgumentException);
+        UEXPECT_THROW(http_client_ptr->CreateRequest().headers(bad_user_agent), clients::http::BadArgumentException);
+        UEXPECT_THROW(http_client_ptr->CreateRequest().proxy_headers(bad_value), clients::http::BadArgumentException);
+        UEXPECT_THROW(http_client_ptr->CreateRequest().user_agent(bad), clients::http::BadArgumentException);
+        UEXPECT_THROW(http_client_ptr->CreateRequest().cookies(bad_cookie), clients::http::BadArgumentException);
+    }
+}
+
 UTEST(HttpClient, DuplicateSetCookieOverwrites) {
     const utest::SimpleServer http_server{[](const utest::SimpleServer::Request&) {
         static const utest::SimpleServer::Response kResponse{
