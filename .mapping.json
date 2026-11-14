@@ -551,6 +551,7 @@
   "chaotic/tests/front/test_ref.py":"taxi/uservices/userver/chaotic/tests/front/test_ref.py",
   "chaotic/tests/front/test_string.py":"taxi/uservices/userver/chaotic/tests/front/test_string.py",
   "chaotic/tests/test_main.py":"taxi/uservices/userver/chaotic/tests/test_main.py",
+  "chaotic/ya.make.ext":"taxi/uservices/userver/chaotic/ya.make.ext",
   "clickhouse/CMakeLists.txt":"taxi/uservices/userver/clickhouse/CMakeLists.txt",
   "clickhouse/README.md":"taxi/uservices/userver/clickhouse/README.md",
   "clickhouse/functional_tests/CMakeLists.txt":"taxi/uservices/userver/clickhouse/functional_tests/CMakeLists.txt",
