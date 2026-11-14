@@ -381,3 +381,24 @@ def test_extra_member_nonboolean(simple_gen):
         assert False
     except error.BaseError as exc:
         assert exc.msg == ('"x-usrv-extra-member: false" is not allowed for non-boolean "additionalProperties"')
+
+
+@pytest.mark.parametrize('nullable', [False, True])
+def test_extra_nullable(simple_gen, nullable):
+    schemas = simple_gen({
+        'type': 'object',
+        'properties': {},
+        'additionalProperties': {'type': 'number', 'nullable': nullable},
+    })
+    struct = schemas['::type']
+    assert isinstance(struct, cpp_types.CppStruct)
+    parser_type = 'USERVER_NAMESPACE::chaotic::Primitive<double>'
+    if nullable:
+        assert struct.extra_value_cpp_type() == 'std::optional<double>'
+        assert struct.extra_parser_type('', '') == f'USERVER_NAMESPACE::chaotic::Nullable<{parser_type}>'
+        assert 'userver/chaotic/nullable.hpp' in struct.definition_includes()
+    else:
+        assert struct.extra_value_cpp_type() == 'double'
+        assert struct.extra_parser_type('', '') == parser_type
+        assert 'userver/chaotic/nullable.hpp' not in struct.definition_includes()
+    assert f'StoreTyped<{struct.extra_parser_type("USERVER_NAMESPACE::chaotic", "::type")}>' in struct.descriptor_type()

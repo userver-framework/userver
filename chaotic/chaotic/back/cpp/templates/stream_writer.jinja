@@ -64,7 +64,7 @@
     {% elif type.extra_type %}
             for (const auto& [field_key, field_value]: value.extra) {
                 sw.Key(field_key);
-                WriteToStream({{ type.extra_type.parser_type('', '') }}{ field_value }, sw);
+                WriteToStream({{ type.extra_parser_type('', '') }}{ field_value }, sw);
             }
     {% else %}
             {#- additionalProperties: false -#}

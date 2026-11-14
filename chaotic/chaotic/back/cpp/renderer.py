@@ -121,12 +121,7 @@ def extra_cpp_type(type_: cpp_types.CppStruct) -> str:
     else:
         assert isinstance(extra_type, cpp_types.CppType)
         container = type_.extra_container()
-        return f'{container}<std::string, {extra_type.cpp_user_name()}>'
-
-
-def extra_cpp_parser_type(extra_type: cpp_types.CppType) -> str:
-    assert isinstance(extra_type, cpp_types.CppType)
-    return extra_type.parser_type(ns='TODO', name='Extra')
+        return f'{container}<std::string, {type_.extra_value_cpp_type()}>'
 
 
 def cpp_struct_is_strict_parsing(struct: cpp_types.CppStruct) -> bool:
@@ -152,7 +147,6 @@ def make_env() -> jinja2.Environment:
     env.globals['cpp_type'] = cpp_type
 
     env.globals['extra_cpp_type'] = extra_cpp_type
-    env.globals['extra_cpp_parser_type'] = extra_cpp_parser_type
 
     env.globals['open_namespace'] = open_namespace
     env.globals['close_namespace'] = close_namespace

@@ -227,7 +227,7 @@
 
                     for (const auto&[field_key, field_value]: value.extra) {
                         vb.EmplaceNocheck(field_key,
-                            {{ type.extra_type.parser_type('', '') }}{
+                            {{ type.extra_parser_type('', '') }}{
                                 field_value
                             }
                         );
