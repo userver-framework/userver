@@ -3,13 +3,18 @@
 #include <chrono>
 #include <cstdint>
 #include <optional>
+#include <stdexcept>
 #include <string>
 #include <string_view>
 #include <vector>
 
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 
+#include <userver/chaotic/openapi/client/digest_auth.hpp>
+#include <userver/clients/http/request.hpp>
 #include <userver/crypto/hash.hpp>
+#include <userver/formats/json/inline.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/utest/http_client.hpp>
 #include <userver/utest/http_server_mock.hpp>
@@ -150,13 +155,22 @@ UTEST(DigestAuth, CredentialsPassedAndServerValidatesDigest) {
         return response;
     }};
 
+    const chaotic::openapi::client::DigestAuthSecdistConfig secdist{formats::json::MakeObject(
+        "http_digest",
+        formats::json::MakeObject(
+            "digest_auth",
+            formats::json::MakeObject(
+                "myDigestScheme", formats::json::MakeObject("username", kUsername, "password", kPassword)
+            )
+        )
+    )};
+    chaotic::openapi::client::DigestAuthProvider provider{secdist};
+    provider.Prepare("digest_auth", "myDigestScheme");
+
     chaotic::openapi::client::Config config;
     config.base_url = http_server.GetBaseUrl() + "/";
     config.timeout = std::chrono::duration_cast<std::chrono::milliseconds>(utest::kMaxTestWaitTime);
-    config.digest_auth_credentials["myDigestScheme"] = chaotic::openapi::client::DigestAuthCredentials{
-        std::string{kUsername},
-        chaotic::openapi::client::DigestAuthCredentials::Password{std::string{kPassword}},
-    };
+    config.auth_providers["myDigestScheme"] = &provider;
 
     auto http_client_ptr = utest::CreateHttpClient();
     client_ns::ClientImpl client(config, *http_client_ptr);
@@ -175,29 +189,91 @@ UTEST(DigestAuth, CredentialsPassedAndServerValidatesDigest) {
     EXPECT_EQ(successful_auth_count, 2);
 }
 
-// Schemes the generated client does not implement are left to the caller:
-// the request goes out without credentials and without a digest challenge.
-UTEST(DigestAuth, UnsupportedSchemesSendNoCredentials) {
-    std::vector<std::string> received_paths;
+// A provider written by the service: it learns the client, the scheme and the scopes of each request
+class TokenProvider final : public chaotic::openapi::client::AuthProvider {
+public:
+    void Prepare(std::string_view client_name, std::string_view scheme_name) override {
+        prepared.push_back(fmt::format("{}/{}", client_name, scheme_name));
+    }
+
+    void Apply(clients::http::Request& request, const chaotic::openapi::client::SecurityRequirement& requirement)
+        override {
+        applied.push_back(fmt::format(
+            "{}/{}:{}",
+            requirement.client_name,
+            requirement.scheme_name,
+            fmt::join(requirement.scopes, ",")
+        ));
+        if (requirement.scheme_name == "myBearerScheme") {
+            request.headers({{"Authorization", "Bearer token"}});
+        } else {
+            request.headers({{"X-Api-Key", "key"}});
+        }
+    }
+
+    std::vector<std::string> prepared;
+    std::vector<std::string> applied;
+};
+
+UTEST(DigestAuth, ProviderAppliesOtherSchemes) {
+    std::vector<std::string> received;
     const utest::HttpServerMock http_server{[&](const utest::HttpServerMock::HttpRequest& request) {
-        EXPECT_EQ(request.headers.find(http::headers::kAuthorization), request.headers.end());
-        EXPECT_EQ(request.headers.find(std::string_view{"X-Api-Key"}), request.headers.end());
-        received_paths.push_back(request.path);
+        const auto authorization = request.headers.find(http::headers::kAuthorization);
+        const auto api_key = request.headers.find(std::string_view{"X-Api-Key"});
+        received.push_back(fmt::format(
+            "{} {} {}",
+            request.path,
+            authorization == request.headers.end() ? "-" : authorization->second,
+            api_key == request.headers.end() ? "-" : api_key->second
+        ));
         utest::HttpServerMock::HttpResponse response;
         response.response_status = 200;
         return response;
     }};
 
+    TokenProvider provider;
     chaotic::openapi::client::Config config;
     config.base_url = http_server.GetBaseUrl();
     config.timeout = std::chrono::duration_cast<std::chrono::milliseconds>(utest::kMaxTestWaitTime);
+    config.auth_providers["myBearerScheme"] = &provider;
+    config.auth_providers["myApiKeyScheme"] = &provider;
 
     auto http_client_ptr = utest::CreateHttpClient();
     client_ns::ClientImpl client(config, *http_client_ptr);
 
     client.GetBearerResource();
     client.GetApiKeyResource();
-    EXPECT_EQ(received_paths, (std::vector<std::string>{"/api/bearer-resource", "/api/api-key-resource"}));
+    EXPECT_EQ(
+        received,
+        (std::vector<std::string>{"/api/bearer-resource Bearer token -", "/api/api-key-resource - key"})
+    );
+    EXPECT_EQ(
+        provider.applied,
+        (std::vector<std::string>{"digest_auth/myBearerScheme:items:read,items:write", "digest_auth/myApiKeyScheme:"})
+    );
+}
+
+UTEST(DigestAuth, MissingProviderIsReported) {
+    chaotic::openapi::client::Config config;
+    config.base_url = "http://localhost:1";
+    auto http_client_ptr = utest::CreateHttpClient();
+    client_ns::ClientImpl client(config, *http_client_ptr);
+
+    UEXPECT_THROW_MSG(
+        client.GetBearerResource(),
+        std::runtime_error,
+        "chaotic-openapi client 'digest_auth' has no auth provider for security scheme 'myBearerScheme'"
+    );
+}
+
+UTEST(DigestAuth, DigestProviderReportsMissingCredentials) {
+    const chaotic::openapi::client::DigestAuthSecdistConfig secdist{formats::json::MakeObject()};
+    chaotic::openapi::client::DigestAuthProvider provider{secdist};
+    UEXPECT_THROW_MSG(
+        provider.Prepare("digest_auth", "myDigestScheme"),
+        std::runtime_error,
+        "no secdist entry for client 'digest_auth'"
+    );
 }
 
 }  // namespace

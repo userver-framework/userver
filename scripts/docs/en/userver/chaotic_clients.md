@@ -132,10 +132,35 @@ If you want to follow redirects, use `follow-redirects` middleware:
 
 # Authentication
 
+The generated client applies the security scheme of an operation with an auth provider,
+chaotic::openapi::client::AuthProvider. A provider is the part of the service that knows its credentials: it may read
+them from secdist, mint or refresh tokens, or pick an API key that grants the scopes of the operation. For every
+request the provider gets the client name, the scheme name and the scopes of the requirement, see
+chaotic::openapi::client::SecurityRequirement, and adds the credentials to the request.
+
+The client takes the provider of each scheme its operations use at service start, from the component named in its
+static config under `auth-providers`, by the `securitySchemes` key. The component derives from
+chaotic::openapi::client::AuthProviderComponentBase. A scheme without a provider stops the service from starting,
+and so do credentials the provider reports missing from chaotic::openapi::client::AuthProvider::Prepare.
+
+```
+# yaml
+    my-client:
+        auth-providers:
+            bearerAuth: my-token-provider  # a component derived from AuthProviderComponentBase
+```
+
+userver ships the provider of HTTP Digest, the clients take it for a digest scheme unless `auth-providers` names
+another one. The providers of the other schemes (`http` with a scheme other than `digest`, `apiKey`, `oauth2` and
+`openIdConnect`) belong to the service, as the way to obtain the credentials is specific to it.
+
+An operation must use at most one security requirement with at most one scheme in it; alternative (OR) and combined
+(AND) requirements are rejected.
+
 ## HTTP Digest Authentication
 
-If an operation in the OpenAPI schema is annotated with a `securityScheme` of type `http` and scheme `digest`,
-the generated client will automatically apply HTTP Digest authentication for that operation.
+An operation secured by a `securityScheme` of type `http` and scheme `digest` is authenticated with HTTP Digest by
+chaotic::openapi::client::DigestAuthProviderComponent.
 
 ### OpenAPI schema
 
@@ -145,7 +170,7 @@ Declare the security scheme in `components.securitySchemes` and reference it on 
 
 @snippet samples/chaotic_openapi_service/clients/secure.yaml security requirement
 
-Generate and register the client in the same way as an unauthenticated client:
+Generate the client in the same way as an unauthenticated client, and register it along with the provider:
 
 @snippet samples/chaotic_openapi_service/CMakeLists.txt digest-client-cmake
 
@@ -183,18 +208,6 @@ Configure the client URL as usual; the testsuite may redirect it to mockserver:
 No credentials are passed at the call site—the generated client performs the challenge/response exchange:
 
 @snippet samples/chaotic_openapi_service/src/handlers/insecure/callsecretget/view.cpp client-use
-
-## Other security schemes
-
-HTTP Digest is the only scheme the generated client applies itself. An operation secured by any other scheme
-(`http` with a scheme other than `digest`, `apiKey`, `oauth2` or `openIdConnect`) is generated as well, but sends
-no credentials; the generated method's documentation names the scheme. Supply the credentials with a client
-middleware, see `chaotic::openapi::client::Middleware`.
-
-An operation must use at most one security requirement with at most one scheme in it; alternative (OR) and combined
-(AND) requirements are rejected. Scopes named by the requirement do not change the generated client: the credentials
-the caller supplies either grant them or not.
-
 
 # Direct CLI reference
 

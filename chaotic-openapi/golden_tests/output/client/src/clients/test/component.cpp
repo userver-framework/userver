@@ -88,6 +88,15 @@ properties:
         description: Middlewares configuration
         additionalProperties: true
         properties: {}
+    auth-providers:
+        type: object
+        description: |
+            Names of the components that provide the credentials of security schemes, by the securitySchemes key.
+            A digest scheme takes chaotic-digest-auth-provider unless another provider is named
+        additionalProperties:
+            type: string
+            description: name of a component derived from chaotic::openapi::client::AuthProviderComponentBase
+        properties: {}
 )";
 
     return USERVER_NAMESPACE::yaml_config::MergeSchemas<USERVER_NAMESPACE::components::ComponentBase>(base_schema);

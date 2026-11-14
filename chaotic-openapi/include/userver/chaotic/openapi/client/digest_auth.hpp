@@ -4,8 +4,10 @@
 /// @brief Digest authentication credentials for chaotic-openapi generated clients.
 
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
+#include <userver/chaotic/openapi/client/auth.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
@@ -49,6 +51,23 @@ public:
 private:
     // client_name -> scheme_name -> credentials
     std::unordered_map<std::string, DigestAuthCredentialsByScheme> credentials_;
+};
+
+/// @brief Auth provider of HTTP Digest, takes the credentials of a client and a scheme from
+/// chaotic::openapi::client::DigestAuthSecdistConfig.
+///
+/// See chaotic::openapi::client::DigestAuthProviderComponent for the component that gives it to generated clients.
+class DigestAuthProvider final : public AuthProvider {
+public:
+    explicit DigestAuthProvider(const DigestAuthSecdistConfig& credentials);
+
+    /// @throws std::runtime_error if the secdist has no credentials for the client and the scheme
+    void Prepare(std::string_view client_name, std::string_view scheme_name) override;
+
+    void Apply(clients::http::Request& request, const SecurityRequirement& requirement) override;
+
+private:
+    const DigestAuthSecdistConfig& credentials_;
 };
 
 }  // namespace chaotic::openapi::client

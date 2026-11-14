@@ -2,6 +2,7 @@
 
 #include <fmt/format.h>
 
+#include <userver/clients/http/request.hpp>
 #include <userver/formats/json/value.hpp>
 #include <userver/utils/algo.hpp>
 
@@ -57,6 +58,23 @@ const DigestAuthCredentials& DigestAuthSecdistConfig::GetCredentialsOrThrow(
         )};
     }
     return *credentials;
+}
+
+DigestAuthProvider::DigestAuthProvider(const DigestAuthSecdistConfig& credentials) : credentials_(credentials) {}
+
+void DigestAuthProvider::Prepare(std::string_view client_name, std::string_view scheme_name) {
+    credentials_.GetCredentialsOrThrow(std::string{client_name}, std::string{scheme_name});
+}
+
+void DigestAuthProvider::Apply(clients::http::Request& request, const SecurityRequirement& requirement) {
+    const auto& credentials =
+        credentials_.GetCredentialsOrThrow(std::string{requirement.client_name}, std::string{requirement.scheme_name});
+    request.http_auth_type(
+        clients::http::HttpAuthType::kDigest,
+        /*auth_only=*/false,
+        credentials.username,
+        credentials.password.GetUnderlying()
+    );
 }
 
 }  // namespace chaotic::openapi::client
