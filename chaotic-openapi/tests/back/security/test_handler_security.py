@@ -92,3 +92,49 @@ def test_handler_config_yaml_mixed_ops():
     components = config['components_manager']['components']
     assert components['handler-get-secured']['auth'] == {'types': ['myDigest']}
     assert 'auth' not in components['handler-get-public']
+
+
+def test_handler_config_yaml_with_unsupported_security():
+    """A scheme without generated support still names its auth checker in config.chaotic.yaml."""
+    doc = dict(_BASE)
+    doc['components'] = {'securitySchemes': {'myApiKey': {'type': 'apiKey', 'name': 'X-Api-Key', 'in': 'header'}}}
+    doc['paths'] = {
+        '/secure': {
+            'get': {
+                'responses': {'200': {'description': 'OK'}},
+                'security': [{'myApiKey': []}],
+            },
+        },
+    }
+    config = yaml.safe_load(handler_renderer.render_config_yaml(_translate_handler(doc)))
+    (entry,) = config['components_manager']['components'].values()
+    assert entry['auth'] == {'types': ['myApiKey']}
+
+
+def test_handler_config_yaml_with_scopes():
+    """Scopes named by the security requirement are passed to the auth checker config."""
+    doc = {
+        'openapi': '3.1.0',
+        'info': {'title': '', 'version': '1.0'},
+        'components': {
+            'securitySchemes': {
+                'permissions': {
+                    'type': 'apiKey',
+                    'name': 'X-Permissions',
+                    'in': 'header',
+                    'x-usrv-scopes': {'accounts:manage': 'Manage accounts'},
+                },
+            },
+        },
+        'paths': {
+            '/secure': {
+                'get': {
+                    'responses': {'200': {'description': 'OK'}},
+                    'security': [{'permissions': ['accounts:manage']}],
+                },
+            },
+        },
+    }
+    config = yaml.safe_load(handler_renderer.render_config_yaml(_translate_handler(doc)))
+    (entry,) = config['components_manager']['components'].values()
+    assert entry['auth'] == {'types': ['permissions'], 'scopes': ['accounts:manage']}

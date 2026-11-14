@@ -2,7 +2,6 @@ from collections.abc import Callable
 import dataclasses
 import enum
 from typing import Any
-from typing import Literal
 
 from chaotic.front import types
 from chaotic_openapi.front import base_model
@@ -79,6 +78,8 @@ class SecurityIn(str, enum.Enum):
 class Security:
     name: str
     description: str
+    # Scopes (roles) the operation's security requirement names
+    scopes: list[str] = dataclasses.field(default_factory=list, kw_only=True)
 
 
 @dataclasses.dataclass
@@ -121,7 +122,7 @@ class OAuthSecurity(Security):
 
 @dataclasses.dataclass
 class HttpSecurity(Security):
-    scheme: Literal['digest', 'bearer', 'basic']
+    scheme: str
     bearerFormat: str | None = None
 
 
