@@ -248,7 +248,13 @@ Array supports the following validators:
 * `maxItems`
 * `uniqueItems`
 
-Example:
+An optional array field may specify `default`, including an empty array or an array of objects. The generated C++ field receives that value when the property is absent. Chaotic parses the default with
+the field's schema, so item conversions and validators apply to it as they do to a JSON input value.
+For example:
+
+@snippet chaotic/integration_tests/schemas/object_single_field.yaml chaotic docs - array default
+
+Another array example:
 
 @snippet chaotic/golden_tests/schemas/docs/docs.yaml chaotic docs - type array
 

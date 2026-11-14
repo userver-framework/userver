@@ -52,6 +52,11 @@ struct FieldModeSubscriber<Defaulted<DescriptorType, T, Default>> {
     using Type = formats::json::parser::SubscriberSink<TypeOfDescriptor<DescriptorType>>;
 };
 
+template <typename DescriptorType, auto DefaultGetter>
+struct FieldModeSubscriber<DefaultedBy<DescriptorType, DefaultGetter>> {
+    using Type = formats::json::parser::SubscriberSink<TypeOfDescriptor<DescriptorType>>;
+};
+
 template <typename Field>
 using FieldSubscriber = typename FieldModeSubscriber<typename Field::ModeDescriptorType>::Type;
 
@@ -225,14 +230,15 @@ public:
                 return;
             }
 
+            const auto& default_value = ModeDescriptorType::GetDefaultValue();
             using TargetType = std::decay_t<decltype(object_.*FieldType::kField)>;
-            using DefaultType = std::decay_t<decltype(ModeDescriptorType::DefaultValue)>;
+            using DefaultType = std::decay_t<decltype(default_value)>;
             if constexpr (std::is_same_v<TargetType, DefaultType>) {
-                object_.*FieldType::kField = ModeDescriptorType::DefaultValue;
+                object_.*FieldType::kField = default_value;
             } else if constexpr (std::is_arithmetic_v<TargetType> && std::is_arithmetic_v<DefaultType>) {
-                object_.*FieldType::kField = TargetType{ModeDescriptorType::DefaultValue};
+                object_.*FieldType::kField = TargetType{default_value};
             } else {
-                object_.*FieldType::kField = chaotic::ConvertTo<TargetType>(ModeDescriptorType::DefaultValue);
+                object_.*FieldType::kField = chaotic::ConvertTo<TargetType>(default_value);
             }
         }
     }
