@@ -23,6 +23,16 @@ _RESPONSE_HEADER_RE = re.compile(r'/paths/\[([^\]]*)\]/([a-zA-Z]*)/responses/([0
 _COMPONENTS_RESPONSE_CONTENT_RE = re.compile(r'/components/responses/([-a-zA-Z_0-9]*)/content/(.*)/schema')
 _COMPONENTS_RESPONSE_HEADER_RE = re.compile(r'/components/responses/([-a-zA-Z_0-9]*)/headers/([^/]*)/schema')
 _PARAMETER_RE = re.compile(r'/paths/\[([^\]]*)\]/([a-zA-Z]*)/parameters/([0-9]*)(/schema)?')
+# A parameter declared on the **path item** rather than on an operation, which
+# OpenAPI allows and requires to apply to every operation on that path. It
+# arrives with no method segment, so `_PARAMETER_RE` above cannot match it —
+# its `([a-zA-Z]*)` group is the method — and it used to reach the bare
+# `assert False` at the end of `map_infile_path_to_cpp_type`.
+#
+# A separate pattern rather than making that group optional: `([a-zA-Z]*)`
+# already matches the empty string, so loosening it would also accept
+# `/paths/[x]//parameters/0` and hand `''` to `map_method`.
+_PATH_PARAMETER_RE = re.compile(r'/paths/\[([^\]]*)\]/parameters/([0-9]*)(/schema)?')
 _RESPONSE_SCHEMA_RE = re.compile(r'/paths/\[([^\]]*)\]/([a-zA-Z]*)/responses/([0-9]*)/schema')
 _RESPONSE_CONTENT_RE = re.compile(r'/paths/\[([^\]]*)\]/([a-zA-Z]*)/responses/([0-9]*)/content/(.*)/schema')
 _REQUEST_BODIES_RE = re.compile(r'/components/requestBodies/([-a-zA-Z0-9_]*)/content/\[([^\]]*)\]/schema')
@@ -263,6 +273,18 @@ class BaseTranslator(abc.ABC):
                 match.group(3),
             )
 
+        # Shared by every operation on the path, so it is named one level
+        # shallower than the per-operation form above — there is no method to
+        # put in the namespace, and generating a copy per method would claim
+        # the parameter is several different types.
+        match = _PATH_PARAMETER_RE.fullmatch(name)
+        if match:
+            return '{}::{}::Parameter{}'.format(
+                self._spec.cpp_namespace,
+                cpp_names.namespace(match.group(1)),
+                match.group(2),
+            )
+
         match = _RESPONSE_SCHEMA_RE.fullmatch(name)
         if match:
             return '{}::{}::{}::Response{}Body'.format(
@@ -406,6 +428,31 @@ class BaseTranslator(abc.ABC):
                     msg='"application/x-www-form-urlencoded" body must contain only bool/integer/number/string fields',
                 )
 
+    @staticmethod
+    def _parameter_value_types(cpp_type: cpp_types.CppType) -> list[str]:
+        raw_type = cpp_type.cpp_global_name()
+        user_type = cpp_type.cpp_user_name()
+
+        target = cpp_type
+        while isinstance(target, cpp_types.CppRef):
+            target = target.orig_cpp_type
+        if isinstance(target, cpp_types.CppStringWithFormat) and target.cpp_format_name() != user_type:
+            return [raw_type, user_type, target.cpp_format_name()]
+        return [raw_type, user_type]
+
+    @staticmethod
+    def _array_parameter_value_types(cpp_type: cpp_types.CppArray) -> list[str]:
+        value_types = BaseTranslator._parameter_value_types(cpp_type.items)
+
+        # x-usrv-cpp-container and x-usrv-cpp-type of the array follow the item types
+        container_type = cpp_type.cpp_global_name()
+        user_type = cpp_type.cpp_user_name()
+        if container_type == f'std::vector<{value_types[1]}>' and user_type == container_type:
+            return value_types
+        if len(value_types) == 2:
+            value_types.append(value_types[0])
+        return value_types + [container_type, user_type]
+
     def _translate_parameter(self, parameter: model.Parameter) -> common_types.Parameter:
         in_ = parameter.in_
         in_str = in_[0].title() + in_[1:]
@@ -426,15 +473,14 @@ class BaseTranslator(abc.ABC):
             cpp_type = self._translate_single_schema(parameter.schema)
             cpp_type = typing.cast(cpp_types.CppArray, cpp_type)
 
-            raw_item_type = cpp_type.items.cpp_global_name()
-            user_item_type = cpp_type.items.cpp_user_name()
+            item_types = ', '.join(self._array_parameter_value_types(cpp_type))
 
-            parser = f"openapi::ArrayParameter<openapi::In::k{in_str}, k{cpp_name}, '{delimiter}', {raw_item_type}, {user_item_type}>"
+            parser = f"openapi::ArrayParameter<openapi::In::k{in_str}, k{cpp_name}, '{delimiter}', {item_types}>"
         else:
             cpp_type = self._translate_single_schema(parameter.schema)
-            user_type = cpp_type
+            value_types = ', '.join(self._parameter_value_types(cpp_type))
 
-            parser = f'openapi::TrivialParameter<openapi::In::k{in_str}, k{cpp_name}, {cpp_type.cpp_global_name()}, {user_type.cpp_global_name()}>'
+            parser = f'openapi::TrivialParameter<openapi::In::k{in_str}, k{cpp_name}, {value_types}>'
 
         if not parameter.required:
             cpp_type.nullable = True

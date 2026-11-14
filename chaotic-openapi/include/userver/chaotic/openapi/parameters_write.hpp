@@ -1,6 +1,8 @@
 #pragma once
 
 #include <concepts>
+#include <iterator>
+#include <type_traits>
 
 #include <fmt/args.h>
 #include <fmt/ranges.h>
@@ -131,38 +133,75 @@ struct SerializeParameter {
     }
 };
 
-template <typename T>
-struct SerializeParameter<TrivialParameterBase<T, T>> {
-    static auto Serialize(const T& value) { return ToStrParameter(T{value}); }
+template <typename RawType, typename UserType, typename FormatType>
+struct SerializeParameter<TrivialParameterBase<RawType, UserType, FormatType>> {
+    static auto Serialize(const UserType& value) {
+        return ToStrParameter(impl::UserToRaw<TrivialParameterBase<RawType, UserType, FormatType>>(value));
+    }
 };
 
-template <typename RawType, typename UserType>
-struct SerializeParameter<TrivialParameterBase<RawType, UserType>> {
-    static auto Serialize(const UserType& value) { return ToStrParameter(Convert(value, convert::To<RawType>{})); }
-};
+namespace impl {
 
-template <char Delimiter, typename T, typename U>
-struct SerializeParameter<ArrayParameterBase<In::kQueryExplode, Delimiter, T, U>> {
-    static std::vector<std::string> Serialize(const std::vector<U>& collection) {
+/// The container of an array parameter's items, converted from the user type if it differs
+template <typename Base>
+decltype(auto) ArrayItems(const typename Base::UserType& value) {
+    if constexpr (std::is_same_v<typename Base::UserType, typename Base::ContainerType>) {
+        return (value);
+    } else {
+        return Convert(value, convert::To<typename Base::ContainerType>{});
+    }
+}
+
+}  // namespace impl
+
+template <
+    char Delimiter,
+    typename RawType,
+    typename UserItemType,
+    typename FormatType,
+    typename ContainerType,
+    typename UserType>
+struct SerializeParameter<
+    ArrayParameterBase<In::kQueryExplode, Delimiter, RawType, UserItemType, FormatType, ContainerType, UserType>> {
+    using Base =
+        ArrayParameterBase<In::kQueryExplode, Delimiter, RawType, UserItemType, FormatType, ContainerType, UserType>;
+
+    static std::vector<std::string> Serialize(const UserType& value) {
         // Note: ignore Delimiter
+        const auto& collection = impl::ArrayItems<Base>(value);
         std::vector<std::string> result;
-        result.reserve(collection.size());
+        result.reserve(std::size(collection));
         for (const auto& item : collection) {
-            result.emplace_back(SerializeParameter<TrivialParameterBase<T, U>>().Serialize(item));
+            result.emplace_back(
+                SerializeParameter<TrivialParameterBase<RawType, UserItemType, FormatType>>::Serialize(item)
+            );
         }
         return result;
     }
 };
 
-template <In TIn, char Delimiter, typename RawType, typename UserType>
-struct SerializeParameter<ArrayParameterBase<TIn, Delimiter, RawType, UserType>> {
+template <
+    In TIn,
+    char Delimiter,
+    typename RawType,
+    typename UserItemType,
+    typename FormatType,
+    typename ContainerType,
+    typename UserType>
+struct SerializeParameter<
+    ArrayParameterBase<TIn, Delimiter, RawType, UserItemType, FormatType, ContainerType, UserType>> {
     static_assert(TIn != In::kQueryExplode);
 
-    std::string operator()(const UserType& item) const { return ToStrParameter(Convert(item, convert::To<RawType>{})); }
+    using Base = ArrayParameterBase<TIn, Delimiter, RawType, UserItemType, FormatType, ContainerType, UserType>;
 
-    static std::string Serialize(const std::vector<UserType>& value) {
-        using ProjectingView = utils::impl::ProjectingView<const std::vector<UserType>, SerializeParameter>;
-        return fmt::to_string(fmt::join(ProjectingView{value, SerializeParameter{}}, std::string(1, Delimiter)));
+    std::string operator()(const UserItemType& item) const {
+        return SerializeParameter<TrivialParameterBase<RawType, UserItemType, FormatType>>::Serialize(item);
+    }
+
+    static std::string Serialize(const UserType& value) {
+        const auto& collection = impl::ArrayItems<Base>(value);
+        using ProjectingView = utils::impl::ProjectingView<const ContainerType, SerializeParameter>;
+        return fmt::to_string(fmt::join(ProjectingView{collection, SerializeParameter{}}, std::string(1, Delimiter)));
     }
 };
 
