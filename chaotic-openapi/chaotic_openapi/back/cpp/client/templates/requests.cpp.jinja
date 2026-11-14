@@ -11,7 +11,16 @@
 #include <userver/utils/trivial_map.hpp>
 #include <userver/http/url.hpp>
 #include <userver/clients/http/form.hpp>
+#include <userver/clients/http/request.hpp>
 #include <userver/chaotic/openapi/form.hpp>
+
+{% macro set_http_method(op) %}
+  {% if op.cpp_http_method() %}
+    http_request.method(USERVER_NAMESPACE::clients::http::HttpMethod::{{ op.cpp_http_method() }});
+  {% else %}
+    http_request.set_custom_http_request_method("{{ op.method }}");
+  {% endif %}
+{% endmacro %}
 
 namespace {{ namespace }} {
 
@@ -96,6 +105,7 @@ void SerializeRequest(const Request& request, const std::string& base_url, USERV
     }
   {% endif %}
 
+  {{ set_http_method(op) }}
   sink.Flush();
 
   {# middlewares #}
@@ -114,6 +124,7 @@ void SerializeRequest(const Request&, const std::string& base_url, USERVER_NAMES
     base_url + "{{ op.path }}"
   );
 
+  {{ set_http_method(op) }}
   sink.Flush();
 
   {# middlewares #}
