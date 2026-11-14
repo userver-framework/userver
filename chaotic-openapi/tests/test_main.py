@@ -105,3 +105,39 @@ def test_handler_codegen_preserves_client_qos_header(monkeypatch, tmp_path):
     _run_codegen(monkeypatch, schema_path, output_dir, gen='handlers')
 
     assert qos_header.read_text() == original_qos
+
+
+def _generate_handlers(monkeypatch, tmp_path: pathlib.Path) -> pathlib.Path:
+    output_dir = tmp_path / 'generated'
+    monkeypatch.setattr(
+        sys,
+        'argv',
+        [
+            'chaotic-openapi',
+            '--name',
+            'test_service',
+            '--gen',
+            'handlers',
+            '--output-dir',
+            str(output_dir),
+            '--clang-format',
+            '',
+            '--no-check-includes',
+            str(_prepare_schema(tmp_path)),
+        ],
+    )
+    main.do_main()
+    return output_dir / 'include' / 'handlers' / 'test_service' / 'testget' / 'handler.hpp'
+
+
+def test_handlers_take_policy_at_registration(monkeypatch, tmp_path):
+    handler_path = _generate_handlers(monkeypatch, tmp_path)
+    handler = ''.join(handler_path.read_text().split())
+    handlers_list = ''.join((handler_path.parent.parent / 'chaotic_handlers_list.hpp').read_text().split())
+
+    assert 'template<typenamePolicy=USERVER_NAMESPACE::chaotic::openapi::server::DefaultHandlerPolicy>' in handler
+    # No hidden query arguments: their slot is filled with void before the policy
+    assert 'View,void,Policy>;' in handler
+    assert 'usingHandler=HandlerFor<>;' in handler
+    assert '::ComponentListChaoticHandlersList(){' in handlers_list
+    assert '.templateAppend<handlers::test_service::testget::HandlerFor<Policy>>()' in handlers_list
