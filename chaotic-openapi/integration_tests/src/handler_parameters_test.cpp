@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <cstdint>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -13,10 +14,14 @@
 
 #include <userver/chaotic/io/test/account_id.hpp>
 #include <userver/chaotic/io/test/count.hpp>
+#include <userver/chaotic/io/test/counts.hpp>
 #include <userver/chaotic/io/test/label.hpp>
 #include <userver/chaotic/io/test/station_id.hpp>
 #include <userver/server/http/http_request_builder.hpp>
 
+#include <handlers/simple/arraysget/handler.hpp>
+#include <handlers/simple/arraysget/requests.hpp>
+#include <handlers/simple/arraysget/responses.hpp>
 #include <handlers/simple/sharedget/handler.hpp>
 #include <handlers/simple/sharedget/requests.hpp>
 #include <handlers/simple/sharedput/handler.hpp>
@@ -32,6 +37,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace {
 
+namespace arraysget = ::handlers::simple::arraysget;
 namespace sharedget = ::handlers::simple::sharedget;
 namespace sharedput = ::handlers::simple::sharedput;
 namespace strongget = ::handlers::simple::strongget;
@@ -116,6 +122,31 @@ UTEST(HandlerParameters, StrongTypedefAndChronoHeadersAreSerialized) {
 
     EXPECT_EQ(builder.GetHttpResponse().GetHeader("X-Account-Id"), kAccount);
     EXPECT_EQ(builder.GetHttpResponse().GetHeader("X-Retry-After"), "30");
+}
+
+UTEST(HandlerParameters, ArrayUserTypeAndContainerAreParsed) {
+    auto request = server::http::HttpRequestBuilder{}
+                       .AddRequestArg("counts", "1,2,3")
+                       .AddRequestArg("tags", "b")
+                       .AddRequestArg("tags", "a")
+                       .AddRequestArg("tags", "b")
+                       .Build();
+
+    const auto parsed = arraysget::ParseRequest(*request, chaotic::openapi::To<arraysget::Request>{});
+
+    EXPECT_EQ(parsed.counts, (::test::Counts{{1, 2, 3}}));
+    EXPECT_EQ(parsed.tags, (std::set<std::string>{"a", "b"}));
+}
+
+UTEST(HandlerParameters, ArrayUserTypeHeaderIsSerialized) {
+    auto builder = server::http::HttpRequestBuilder{};
+    auto request = builder.Build();
+
+    arraysget::Response200 response;
+    response.X_Counts = ::test::Counts{{4, 5}};
+    arraysget::SerializeResponse(response, *request);
+
+    EXPECT_EQ(builder.GetHttpResponse().GetHeader("X-Counts"), "4,5");
 }
 
 UTEST(HandlerParameters, PathItemParametersAreSharedByOperations) {

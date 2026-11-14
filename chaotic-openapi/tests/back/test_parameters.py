@@ -446,6 +446,58 @@ def test_parameter_array_items_user_cpp_type_over_string_format(translate_single
     )
 
 
+ARRAY_USER_TYPE = 'my::Ids'
+ARRAY_USER_TYPE_INCLUDE = 'userver/chaotic/io/my/ids.hpp'
+
+
+@pytest.mark.parametrize('in_', ['query', 'header'])
+def test_parameter_array_user_cpp_type(translate_single_schema, user_type_include_dir, tmp_path, in_):
+    header = tmp_path / ARRAY_USER_TYPE_INCLUDE
+    header.touch()
+    schema = _single_parameter_schema({
+        'in': in_,
+        'name': 'param',
+        'schema': {'type': 'array', 'items': {'type': 'integer'}, 'x-usrv-cpp-type': ARRAY_USER_TYPE},
+    })
+
+    parameter = translate_single_schema(schema, [user_type_include_dir]).operations[0].parameters[0]
+
+    assert parameter.cpp_type.cpp_user_name() == ARRAY_USER_TYPE
+    assert parameter.parser == (
+        f"openapi::ArrayParameter<openapi::In::k{in_.title()}, kparam, ',', int, int, int, "
+        f'std::vector<int>, {ARRAY_USER_TYPE}>'
+    )
+    assert ARRAY_USER_TYPE_INCLUDE in parameter.declaration_includes()
+
+
+def test_parameter_array_container(translate_single_schema):
+    schema = _single_parameter_schema({
+        'in': 'query',
+        'name': 'param',
+        'schema': {'type': 'array', 'items': {'type': 'string'}, 'x-usrv-cpp-container': 'std::set'},
+    })
+
+    parameter = translate_single_schema(schema).operations[0].parameters[0]
+
+    assert parameter.cpp_type.cpp_user_name() == 'std::set<std::string>'
+    assert parameter.parser == (
+        "openapi::ArrayParameter<openapi::In::kQuery, kparam, ',', std::string, std::string, std::string, "
+        'std::set<std::string>, std::set<std::string>>'
+    )
+
+
+def test_parameter_array_of_vector_keeps_short_parser(translate_single_schema):
+    schema = _single_parameter_schema({
+        'in': 'query',
+        'name': 'param',
+        'schema': {'type': 'array', 'items': {'type': 'integer'}},
+    })
+
+    parameter = translate_single_schema(schema).operations[0].parameters[0]
+
+    assert parameter.parser == "openapi::ArrayParameter<openapi::In::kQuery, kparam, ',', int, int>"
+
+
 def test_path_item_parameters(translate_single_schema):
     """A parameter on the path item applies to every operation on that path.
 
@@ -483,8 +535,5 @@ def test_path_item_parameters(translate_single_schema):
     for operation in operations:
         assert [p.raw_name for p in operation.parameters] == ['id']
 
-    namespaces = {
-        operation.parameters[0].cpp_type.validators.namespace
-        for operation in operations
-    }
+    namespaces = {operation.parameters[0].cpp_type.validators.namespace for operation in operations}
     assert namespaces == {'::test_namespace::thing_id'}

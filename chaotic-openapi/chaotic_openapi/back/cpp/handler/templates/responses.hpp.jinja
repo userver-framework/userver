@@ -53,10 +53,6 @@ struct Response{{ response.status }} final {
     {% endif %}
 
     {% for header in response.headers %}
-        {% if header.is_array() %}
-            {{ NOT_IMPLEMENTED(header) }}
-        {% endif %}
-
         {% if header.cpp_type.nullable %}
             std::optional<{{ header.cpp_type.cpp_user_name() }}> {{ header.cpp_name }};
         {% else %}

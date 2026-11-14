@@ -57,12 +57,20 @@ struct TrivialParameter {
     static_assert(kIn != In::kQueryExplode);
 };
 
+/// @brief Value types of an array parameter.
+///
+/// Each item is converted as a scalar parameter with `TRawItemType`, `TUserItemType` and
+/// `TFormatItemType`. The items are collected into `TContainerType` (`x-usrv-cpp-container`), and the
+/// container is converted to `TUserType` (`x-usrv-cpp-type` of the array) and back with `Convert`
+/// functions, the same way as in bodies.
 template <
     In TIn,
     char Delimiter,
     typename TRawItemType,
     typename TUserItemType = TRawItemType,
-    typename TFormatItemType = TRawItemType>
+    typename TFormatItemType = TRawItemType,
+    typename TContainerType = std::vector<TUserItemType>,
+    typename TUserType = TContainerType>
 struct ArrayParameterBase {
     static constexpr char kDelimiter = Delimiter;
     static constexpr auto kIn = TIn;
@@ -70,8 +78,9 @@ struct ArrayParameterBase {
     using RawType = std::vector<std::string>;
     using RawItemType = TRawItemType;
     using FormatItemType = TFormatItemType;
-    using UserType = std::vector<TUserItemType>;
     using UserItemType = TUserItemType;
+    using ContainerType = TContainerType;
+    using UserType = TUserType;
 };
 
 template <
@@ -80,12 +89,15 @@ template <
     char Delimiter,
     typename TRawItemType,
     typename TUserItemType = TRawItemType,
-    typename TFormatItemType = TRawItemType>
+    typename TFormatItemType = TRawItemType,
+    typename TContainerType = std::vector<TUserItemType>,
+    typename TUserType = TContainerType>
 struct ArrayParameter {
     static constexpr auto& kName = Name;
     static constexpr auto kIn = TIn;
 
-    using Base = ArrayParameterBase<TIn, Delimiter, TRawItemType, TUserItemType, TFormatItemType>;
+    using Base =
+        ArrayParameterBase<TIn, Delimiter, TRawItemType, TUserItemType, TFormatItemType, TContainerType, TUserType>;
 };
 
 namespace impl {

@@ -306,6 +306,41 @@ paths:
                                 type: integer
                                 x-usrv-cpp-type: std::chrono::seconds
 
+    /arrays:
+        get:
+            operationId: arraysGet
+            parameters:
+              - name: counts
+                in: query
+                required: true
+                schema:
+                    type: array
+                    items:
+                        type: integer
+                        format: int64
+                    x-usrv-cpp-type: test::Counts
+              - name: tags
+                in: query
+                required: true
+                explode: true
+                schema:
+                    type: array
+                    items:
+                        type: string
+                    x-usrv-cpp-container: std::set
+            responses:
+                '200':
+                    description: OK
+                    headers:
+                        X-Counts:
+                            required: true
+                            schema:
+                                type: array
+                                items:
+                                    type: integer
+                                    format: int64
+                                x-usrv-cpp-type: test::Counts
+
 components:
     schemas:
         AccountId:

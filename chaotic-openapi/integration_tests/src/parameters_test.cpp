@@ -1,6 +1,7 @@
 #include <userver/utest/utest.hpp>
 
 #include <chrono>
+#include <set>
 #include <string>
 #include <string_view>
 
@@ -11,6 +12,7 @@
 #include <clients/parameters/responses.hpp>
 #include <userver/chaotic/io/test/account_id.hpp>
 #include <userver/chaotic/io/test/count.hpp>
+#include <userver/chaotic/io/test/counts.hpp>
 #include <userver/chaotic/io/test/label.hpp>
 #include <userver/chaotic/io/test/station_id.hpp>
 #include <userver/clients/http/client.hpp>
@@ -25,6 +27,7 @@ namespace {
 namespace client = ::clients::parameters::test1::post;
 namespace typed_client = ::clients::parameters::test1_typed_id::get;
 namespace strong_client = ::clients::parameters::test1_strong_account::get;
+namespace arrays_client = ::clients::parameters::test1_arrays::get;
 namespace shared_get_client = ::clients::parameters::test1_shared_spot::get;
 namespace shared_put_client = ::clients::parameters::test1_shared_spot::put;
 
@@ -163,6 +166,34 @@ UTEST(Parameters, StrongTypedefAndChronoHeadersAreParsed) {
 
     EXPECT_EQ(response.X_Account_Id, ::test::AccountId{ToUuid(kAccount)});
     EXPECT_EQ(response.X_Retry_After, std::chrono::seconds{30});
+}
+
+UTEST(Parameters, ArrayUserTypeAndContainerAreSerialized) {
+    std::string received_url;
+    const utest::HttpServerMock http_server([&](const utest::HttpServerMock::HttpRequest& request) {
+        received_url = request.path;
+        for (const auto& [name, value] : request.query) {
+            received_url += fmt::format(" {}={}", name, value);
+        }
+        utest::HttpServerMock::HttpResponse r;
+        r.response_status = 200;
+        r.headers[std::string{"X-Counts"}] = "4,5";
+        return r;
+    });
+    auto http_client_ptr = utest::CreateHttpClient();
+    auto http_request = http_client_ptr->CreateRequest();
+
+    arrays_client::Request request;
+    request.counts = ::test::Counts{{1, 2, 3}};
+    request.tags = std::set<std::string>{"b", "a"};
+    arrays_client::SerializeRequest(request, http_server.GetBaseUrl(), http_request);
+    const auto http_response = http_request.perform();
+    EXPECT_TRUE(http_response->IsOk());
+
+    EXPECT_EQ(received_url, "/test1/arrays counts=1%2C2%2C3 tags=a tags=b");
+
+    const auto response = arrays_client::ParseResponse(*http_response);
+    EXPECT_EQ(response.X_Counts, (::test::Counts{{4, 5}}));
 }
 
 UTEST(Parameters, PathItemParametersAreSharedByOperations) {

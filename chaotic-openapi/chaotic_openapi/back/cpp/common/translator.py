@@ -428,7 +428,7 @@ class BaseTranslator(abc.ABC):
                 )
 
     @staticmethod
-    def _parameter_value_types(cpp_type: cpp_types.CppType) -> str:
+    def _parameter_value_types(cpp_type: cpp_types.CppType) -> list[str]:
         raw_type = cpp_type.cpp_global_name()
         user_type = cpp_type.cpp_user_name()
 
@@ -436,8 +436,21 @@ class BaseTranslator(abc.ABC):
         while isinstance(target, cpp_types.CppRef):
             target = target.orig_cpp_type
         if isinstance(target, cpp_types.CppStringWithFormat) and target.cpp_format_name() != user_type:
-            return f'{raw_type}, {user_type}, {target.cpp_format_name()}'
-        return f'{raw_type}, {user_type}'
+            return [raw_type, user_type, target.cpp_format_name()]
+        return [raw_type, user_type]
+
+    @staticmethod
+    def _array_parameter_value_types(cpp_type: cpp_types.CppArray) -> list[str]:
+        value_types = BaseTranslator._parameter_value_types(cpp_type.items)
+
+        # x-usrv-cpp-container and x-usrv-cpp-type of the array follow the item types
+        container_type = cpp_type.cpp_global_name()
+        user_type = cpp_type.cpp_user_name()
+        if container_type == f'std::vector<{value_types[1]}>' and user_type == container_type:
+            return value_types
+        if len(value_types) == 2:
+            value_types.append(value_types[0])
+        return value_types + [container_type, user_type]
 
     def _translate_parameter(self, parameter: model.Parameter) -> common_types.Parameter:
         in_ = parameter.in_
@@ -459,12 +472,12 @@ class BaseTranslator(abc.ABC):
             cpp_type = self._translate_single_schema(parameter.schema)
             cpp_type = typing.cast(cpp_types.CppArray, cpp_type)
 
-            item_types = self._parameter_value_types(cpp_type.items)
+            item_types = ', '.join(self._array_parameter_value_types(cpp_type))
 
             parser = f"openapi::ArrayParameter<openapi::In::k{in_str}, k{cpp_name}, '{delimiter}', {item_types}>"
         else:
             cpp_type = self._translate_single_schema(parameter.schema)
-            value_types = self._parameter_value_types(cpp_type)
+            value_types = ', '.join(self._parameter_value_types(cpp_type))
 
             parser = f'openapi::TrivialParameter<openapi::In::k{in_str}, k{cpp_name}, {value_types}>'
 

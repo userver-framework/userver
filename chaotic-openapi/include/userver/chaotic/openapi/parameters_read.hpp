@@ -119,30 +119,43 @@ void SplitByDelimiter(std::string_view str, char delimiter, utils::function_ref<
 
 }
 
-template <In kIn, char Delimiter, typename RawType, typename UserType, typename FormatType>
-struct ParameterParser<ArrayParameterBase<kIn, Delimiter, RawType, UserType, FormatType>> {
-    static auto Parse(std::string&& str_value) {
-        openapi::ParameterParser<TrivialParameterBase<RawType, UserType, FormatType>> parser;
+template <
+    In kIn,
+    char Delimiter,
+    typename RawType,
+    typename UserItemType,
+    typename FormatType,
+    typename ContainerType,
+    typename UserType>
+struct ParameterParser<ArrayParameterBase<kIn, Delimiter, RawType, UserItemType, FormatType, ContainerType, UserType>> {
+    static UserType Parse(std::string&& str_value) {
+        openapi::ParameterParser<TrivialParameterBase<RawType, UserItemType, FormatType>> parser;
 
-        std::vector<UserType> result;
+        ContainerType result;
         impl::SplitByDelimiter(str_value, Delimiter, [&result, &parser](std::string str) {
-            result.emplace_back(parser.Parse(std::move(str)));
+            result.insert(result.end(), parser.Parse(std::move(str)));
         });
-        return result;
+        return impl::ConvertIfNeeded<UserType>(std::move(result));
     }
 };
 
-template <char Delimiter, typename RawType, typename UserType, typename FormatType>
-struct ParameterParser<ArrayParameterBase<In::kQueryExplode, Delimiter, RawType, UserType, FormatType>> {
-    static auto Parse(std::vector<std::string>&& str_value) {
-        openapi::ParameterParser<TrivialParameterBase<RawType, UserType, FormatType>> parser;
+template <
+    char Delimiter,
+    typename RawType,
+    typename UserItemType,
+    typename FormatType,
+    typename ContainerType,
+    typename UserType>
+struct ParameterParser<
+    ArrayParameterBase<In::kQueryExplode, Delimiter, RawType, UserItemType, FormatType, ContainerType, UserType>> {
+    static UserType Parse(std::vector<std::string>&& str_value) {
+        openapi::ParameterParser<TrivialParameterBase<RawType, UserItemType, FormatType>> parser;
 
-        std::vector<UserType> result;
-        result.reserve(str_value.size());
+        ContainerType result;
         for (auto&& str_item : str_value) {
-            result.emplace_back(parser.Parse(std::move(str_item)));
+            result.insert(result.end(), parser.Parse(std::move(str_item)));
         }
-        return result;
+        return impl::ConvertIfNeeded<UserType>(std::move(result));
     }
 };
 
