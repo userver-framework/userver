@@ -1,5 +1,6 @@
 #include <userver/utest/utest.hpp>
 
+#include <userver/formats/json/exception.hpp>
 #include <userver/http/common_headers.hpp>
 #include <userver/server/http/http_request_builder.hpp>
 #include <userver/utest/assert_macros.hpp>
@@ -47,6 +48,20 @@ UTEST(HandlerBodyMultiContentType, DispatchesJsonWithCharsetParam) {
     auto parsed = multipost::ParseRequest(*request, chaotic::openapi::To<multipost::Request>{});
     ASSERT_TRUE(std::holds_alternative<std::string>(parsed.body));
     EXPECT_EQ(std::get<std::string>(parsed.body), "world");
+}
+
+UTEST(HandlerBodyMultiContentType, ValidatesJson) {
+    // The body is parsed with the validators of its schema
+    auto request =
+        server::http::HttpRequestBuilder{}
+            .SetBody("\"\"")
+            .AddHeader(std::string{http::headers::kContentType}, "application/json")
+            .Build();
+
+    UEXPECT_THROW(
+        multipost::ParseRequest(*request, chaotic::openapi::To<multipost::Request>{}),
+        formats::json::Exception
+    );
 }
 
 UTEST(HandlerBodyMultiContentType, ThrowsOnUnknownContentType) {

@@ -22,7 +22,7 @@ Request r{};
     r.id = openapi::ReadParameter<openapi::TrivialParameter<openapi::In::kPath, kid, int, int>>(http_request);
 
                 auto json = USERVER_NAMESPACE::formats::json::FromString(http_request.RequestBody());
-r.body = json.As<::golden::dto::Item>();
+r.body = json.As<USERVER_NAMESPACE::chaotic::Primitive<::golden::dto::Item>>();
 
 return r;
 }

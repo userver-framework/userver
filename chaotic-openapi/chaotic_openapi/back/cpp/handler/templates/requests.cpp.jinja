@@ -16,7 +16,7 @@ namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }} {
 
 {% macro _parse_json(body, result_expr) %}
     auto json = {{ userver }}::formats::json::FromString(http_request.RequestBody());
-    {{ result_expr }} = json.As<{{ body.schema.cpp_user_name() }}>();
+    {{ result_expr }} = json.As<{{ body.schema.parser_type('TODO', 'TODO') }}>();
 {% endmacro %}
 
 {% macro _parse_octet_stream(prefix) %}
