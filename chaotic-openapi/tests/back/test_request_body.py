@@ -160,31 +160,3 @@ def test_request_body_nonrequired(translate_single_schema):
             ),
         ],
     )
-
-
-def test_request_body_free_form(translate_single_schema):
-    schema = {
-        'openapi': '3.0.0',
-        'info': {'title': '', 'version': '1.0'},
-        'paths': {
-            '/': {
-                'post': {
-                    'requestBody': {
-                        'required': True,
-                        'content': {
-                            'application/json': {
-                                'schema': {'type': 'object', 'additionalProperties': True},
-                            },
-                        },
-                    },
-                    'responses': {},
-                },
-            },
-        },
-    }
-    spec = translate_single_schema(schema)
-    body = spec.operations[0].request_bodies[0].schema
-    # A free-form body is a type of its own, so that parsing it checks for an object
-    assert isinstance(body, cpp_types.CppAnyValue)
-    assert body.raw_cpp_type == type_name.TypeName('USERVER_NAMESPACE::chaotic::FreeFormObject')
-    assert 'userver/chaotic/free_form_object.hpp' in spec.requests_declaration_includes()

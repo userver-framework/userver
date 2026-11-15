@@ -370,11 +370,6 @@ class CppPrimitiveType(CppType):
 class CppAnyValue(CppType):
     KNOWN_X_PROPERTIES = ['x-usrv-cpp-type', 'x-taxi-cpp-type']
 
-    # A free-form object: any JSON object, not any JSON value
-    object_only: bool = False
-
-    FREE_FORM_OBJECT = 'USERVER_NAMESPACE::chaotic::FreeFormObject'
-
     __hash__ = CppType.__hash__
 
     def __post_init__(self) -> None:
@@ -384,24 +379,12 @@ class CppAnyValue(CppType):
     def declaration_includes(self) -> list[str]:
         if self._is_raw_json_string():
             return ['userver/formats/json/raw_string.hpp']
-        if self.is_free_form_object():
-            return ['userver/chaotic/free_form_object.hpp']
         return ['userver/formats/json/value.hpp']
 
     def definition_includes(self) -> list[str]:
-        if self.object_only and not self.is_free_form_object():
-            return ['userver/chaotic/primitive.hpp', 'userver/chaotic/validators.hpp']
         return []
 
-    def is_free_form_object(self) -> bool:
-        """A named free-form object, chaotic::FreeFormObject checks for an object by itself"""
-        return self.raw_cpp_type.in_global_scope() == self.FREE_FORM_OBJECT
-
     def parser_type(self, ns: str, name: str) -> str:
-        if self.object_only and not self.is_free_form_object():
-            return (
-                f'USERVER_NAMESPACE::chaotic::Primitive<{self.cpp_global_name()}, USERVER_NAMESPACE::chaotic::IsObject>'
-            )
         return self.cpp_global_name()
 
     def need_using_type(self) -> bool:

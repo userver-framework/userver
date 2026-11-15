@@ -333,6 +333,11 @@ V1ChannelNotificationNewResponse Parse(
     return res;
 }
 
+constexpr USERVER_NAMESPACE::utils::TrivialSet k__ns__V1Error__Details_PropertiesNames = [](auto selector) {
+    return selector().template Type<std::string_view>()
+    ;
+};
+
 constexpr USERVER_NAMESPACE::utils::TrivialSet k__ns__V1Error_PropertiesNames = [](auto selector) {
     return selector().template Type<std::string_view>()
         .Case("code")
@@ -340,6 +345,25 @@ constexpr USERVER_NAMESPACE::utils::TrivialSet k__ns__V1Error_PropertiesNames = 
         .Case("details")
     ;
 };
+
+template <USERVER_NAMESPACE::formats::common::IsFormatValue Value>
+V1Error::Details Parse(
+    Value value,
+    USERVER_NAMESPACE::formats::parse::To<V1Error::Details>)
+{
+    value.CheckNotMissing();
+    value.CheckObjectOrNull();
+
+    auto extra = USERVER_NAMESPACE::chaotic::ExtractAdditionalPropertiesTrue(
+        value, k__ns__V1Error__Details_PropertiesNames
+    );
+
+    V1Error::Details res{
+        .extra=std::move(extra),
+    };
+
+    return res;
+}
 
 template <USERVER_NAMESPACE::formats::common::IsFormatValue Value>
 V1Error Parse(
@@ -357,7 +381,7 @@ V1Error Parse(
             USERVER_NAMESPACE::chaotic::Primitive<std::string>
         >(),
         .details = value["details"].template As<
-            std::optional<USERVER_NAMESPACE::chaotic::Primitive<USERVER_NAMESPACE::formats::json::Value, USERVER_NAMESPACE::chaotic::IsObject>>
+            std::optional<USERVER_NAMESPACE::chaotic::Primitive<::ns::V1Error::Details>>
         >(),
     };
 
@@ -634,6 +658,30 @@ V1UserRegistrationRequest Parse(
     return res;
 }
 
+constexpr USERVER_NAMESPACE::utils::TrivialSet k__ns__V1UserStatus_PropertiesNames = [](auto selector) {
+    return selector().template Type<std::string_view>()
+    ;
+};
+
+template <USERVER_NAMESPACE::formats::common::IsFormatValue Value>
+V1UserStatus Parse(
+    Value value,
+    USERVER_NAMESPACE::formats::parse::To<V1UserStatus>)
+{
+    value.CheckNotMissing();
+    value.CheckObjectOrNull();
+
+    auto extra = USERVER_NAMESPACE::chaotic::ExtractAdditionalPropertiesTrue(
+        value, k__ns__V1UserStatus_PropertiesNames
+    );
+
+    V1UserStatus res{
+        .extra=std::move(extra),
+    };
+
+    return res;
+}
+
 constexpr USERVER_NAMESPACE::utils::TrivialSet k__ns__V1UserStatusByLoginRequest_PropertiesNames = [](auto selector) {
     return selector().template Type<std::string_view>()
         .Case("current_user")
@@ -681,7 +729,7 @@ V1UserStatusByLoginResponse Parse(
 
     V1UserStatusByLoginResponse res{
         .status = value["status"].template As<
-            USERVER_NAMESPACE::chaotic::FreeFormObject
+            USERVER_NAMESPACE::chaotic::Primitive<::ns::V1UserStatus>
         >(),
     };
 
@@ -712,7 +760,7 @@ V1UserStatusUpdateRequest Parse(
             USERVER_NAMESPACE::chaotic::Primitive<::ns::V1CurrentUser>
         >(),
         .status = value["status"].template As<
-            USERVER_NAMESPACE::chaotic::FreeFormObject
+            USERVER_NAMESPACE::chaotic::Primitive<::ns::V1UserStatus>
         >(),
     };
 

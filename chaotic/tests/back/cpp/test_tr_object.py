@@ -60,43 +60,6 @@ def test_additional_properties_true(simple_gen):
         'properties': {},
         'additionalProperties': True,
     })
-    # A named free-form object is any JSON object, a type of its own that checks for an object
-    assert schemas == {
-        '::type': cpp_types.CppAnyValue(
-            raw_cpp_type=type_name.TypeName('USERVER_NAMESPACE::chaotic::FreeFormObject'),
-            json_schema=front_types.Schema(),
-            nullable=False,
-            user_cpp_type=None,
-            object_only=True,
-        ),
-    }, f'Generated schema is: {schemas}'
-    assert schemas['::type'].parser_type('', '') == 'USERVER_NAMESPACE::chaotic::FreeFormObject'
-    assert schemas['::type'].declaration_includes() == ['userver/chaotic/free_form_object.hpp']
-
-
-def test_additional_properties_true_field(simple_gen):
-    schemas = simple_gen({
-        'type': 'object',
-        'properties': {'payload': {'type': 'object', 'additionalProperties': True}},
-        'additionalProperties': False,
-    })
-    # A free-form field is a formats::json::Value, its parser checks for an object
-    payload = schemas['::type'].fields['payload'].schema
-    assert isinstance(payload, cpp_types.CppAnyValue)
-    assert payload.object_only
-    assert payload.raw_cpp_type == type_name.TypeName('USERVER_NAMESPACE::formats::json::Value')
-    assert payload.parser_type('', '') == (
-        'USERVER_NAMESPACE::chaotic::Primitive<USERVER_NAMESPACE::formats::json::Value, USERVER_NAMESPACE::chaotic::IsObject>'
-    )
-
-
-def test_additional_properties_true_with_extra_member(simple_gen):
-    schemas = simple_gen({
-        'type': 'object',
-        'properties': {},
-        'additionalProperties': True,
-        'x-usrv-extra-member': True,
-    })
     assert schemas == {
         '::type': cpp_types.CppStruct(
             raw_cpp_type=type_name.TypeName('::type'),

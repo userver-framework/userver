@@ -6,7 +6,6 @@
 #include <fmt/core.h>
 #include <optional>
 #include <string>
-#include <userver/chaotic/free_form_object.hpp>
 #include <userver/chaotic/io/std/vector.hpp>
 #include <userver/chaotic/object.hpp>
 #include <userver/formats/json/value.hpp>
@@ -405,22 +404,43 @@ void WriteToStream(
 //    server::handlers::InternalMessage{"User sent a 42 key"}     // goes to server logs
 //);
 struct V1Error {
+    // Any additional info
+    struct Details {
+        USERVER_NAMESPACE::formats::json::Value extra{};
+    };
+
     std::string code{};
     std::string message{};
-    std::optional<USERVER_NAMESPACE::formats::json::Value> details{};
+    std::optional<::ns::V1Error::Details> details{};
 };
+
+bool operator==(const V1Error::Details & lhs,const V1Error::Details & rhs);
 
 bool operator==(const V1Error & lhs,const V1Error & rhs);
 
+USERVER_NAMESPACE::logging::LogHelper& operator<<(USERVER_NAMESPACE::logging::LogHelper& lh, const V1Error::Details& value);
+
 USERVER_NAMESPACE::logging::LogHelper& operator<<(USERVER_NAMESPACE::logging::LogHelper& lh, const V1Error& value);
+
+V1Error::Details Parse(
+    USERVER_NAMESPACE::formats::json::Value json,
+    USERVER_NAMESPACE::formats::parse::To<V1Error::Details>);
 
 V1Error Parse(
     USERVER_NAMESPACE::formats::json::Value json,
     USERVER_NAMESPACE::formats::parse::To<V1Error>);
 
+V1Error::Details Parse(
+    USERVER_NAMESPACE::formats::yaml::Value json,
+    USERVER_NAMESPACE::formats::parse::To<V1Error::Details>);
+
 V1Error Parse(
     USERVER_NAMESPACE::formats::yaml::Value json,
     USERVER_NAMESPACE::formats::parse::To<V1Error>);
+
+V1Error::Details Parse(
+    USERVER_NAMESPACE::yaml_config::Value json,
+    USERVER_NAMESPACE::formats::parse::To<V1Error::Details>);
 
 V1Error Parse(
     USERVER_NAMESPACE::yaml_config::Value json,
@@ -433,8 +453,18 @@ V1Error FromJsonString(
 std::string ToJsonString(const V1Error& value);
 
 USERVER_NAMESPACE::formats::json::Value Serialize(
+    const V1Error::Details& value,
+    USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
+
+USERVER_NAMESPACE::formats::json::Value Serialize(
     const V1Error& value,
     USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
+
+void WriteToStream(
+    const V1Error::Details& value,
+    USERVER_NAMESPACE::formats::json::StringBuilder& sw,
+    bool hide_brackets = false,
+    std::string_view hide_field_name = {});
 
 void WriteToStream(
     const V1Error& value,
@@ -779,7 +809,42 @@ void WriteToStream(
 
 using V1UserRegistrationResponse = ::ns::V1UserAuthorizationResponse;
 
-using V1UserStatus = USERVER_NAMESPACE::chaotic::FreeFormObject;
+// Key-values of arbitrary types (in other words, just JSON without a schema)
+struct V1UserStatus {
+    USERVER_NAMESPACE::formats::json::Value extra{};
+};
+
+bool operator==(const V1UserStatus & lhs,const V1UserStatus & rhs);
+
+USERVER_NAMESPACE::logging::LogHelper& operator<<(USERVER_NAMESPACE::logging::LogHelper& lh, const V1UserStatus& value);
+
+V1UserStatus Parse(
+    USERVER_NAMESPACE::formats::json::Value json,
+    USERVER_NAMESPACE::formats::parse::To<V1UserStatus>);
+
+V1UserStatus Parse(
+    USERVER_NAMESPACE::formats::yaml::Value json,
+    USERVER_NAMESPACE::formats::parse::To<V1UserStatus>);
+
+V1UserStatus Parse(
+    USERVER_NAMESPACE::yaml_config::Value json,
+    USERVER_NAMESPACE::formats::parse::To<V1UserStatus>);
+
+V1UserStatus FromJsonString(
+    std::string_view json,
+    USERVER_NAMESPACE::formats::parse::To<V1UserStatus>);
+
+std::string ToJsonString(const V1UserStatus& value);
+
+USERVER_NAMESPACE::formats::json::Value Serialize(
+    const V1UserStatus& value,
+    USERVER_NAMESPACE::formats::serialize::To<USERVER_NAMESPACE::formats::json::Value>);
+
+void WriteToStream(
+    const V1UserStatus& value,
+    USERVER_NAMESPACE::formats::json::StringBuilder& sw,
+    bool hide_brackets = false,
+    std::string_view hide_field_name = {});
 
 struct V1UserStatusByLoginRequest {
     ::ns::V1CurrentUser current_user{};
