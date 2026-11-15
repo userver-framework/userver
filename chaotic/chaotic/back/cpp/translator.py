@@ -135,10 +135,14 @@ class Generator:
                 raise Exception(f'Duplicate type name: {fq_cpp_name}, generated from {path1} and {path2}')
 
             self._state.refs[schema] = fq_cpp_name
-            self._state.types[fq_cpp_name] = self._generate_type(
+            cpp_type = self._generate_type(
                 type_name.TypeName(fq_cpp_name),
                 schema,
             )
+            if isinstance(cpp_type, cpp_types.CppAnyValue) and cpp_type.object_only:
+                # A named free-form object is a type of its own, so that parsing it checks for an object
+                cpp_type.raw_cpp_type = type_name.TypeName(cpp_types.CppAnyValue.FREE_FORM_OBJECT)
+            self._state.types[fq_cpp_name] = cpp_type
 
         self.fixup_refs()
         self.fixup_formats()

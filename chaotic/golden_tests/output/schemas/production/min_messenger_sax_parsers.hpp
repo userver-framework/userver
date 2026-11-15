@@ -140,13 +140,13 @@ constexpr inline USERVER_NAMESPACE::utils::StringLiteral k_ns_V1UserStatusByLogi
 
 constexpr inline USERVER_NAMESPACE::utils::StringLiteral k_ns_V1UserStatusByLoginResponseFieldNamestatus = "status";
 
-[[maybe_unused]] USERVER_NAMESPACE::chaotic::sax::Parser<USERVER_NAMESPACE::chaotic::Object<::ns::V1UserStatusByLoginResponse, USERVER_NAMESPACE::chaotic::UnknownFields::Forbid, USERVER_NAMESPACE::chaotic::Field<::ns::V1UserStatusByLoginResponse, USERVER_NAMESPACE::chaotic::Required<USERVER_NAMESPACE::chaotic::Primitive<USERVER_NAMESPACE::formats::json::Value, USERVER_NAMESPACE::chaotic::IsObject>>, &::ns::V1UserStatusByLoginResponse::status, k_ns_V1UserStatusByLoginResponseFieldNamestatus>>>
+[[maybe_unused]] USERVER_NAMESPACE::chaotic::sax::Parser<USERVER_NAMESPACE::chaotic::Object<::ns::V1UserStatusByLoginResponse, USERVER_NAMESPACE::chaotic::UnknownFields::Forbid, USERVER_NAMESPACE::chaotic::Field<::ns::V1UserStatusByLoginResponse, USERVER_NAMESPACE::chaotic::Required<USERVER_NAMESPACE::chaotic::FreeFormObject>, &::ns::V1UserStatusByLoginResponse::status, k_ns_V1UserStatusByLoginResponseFieldNamestatus>>>
     ParserOf(USERVER_NAMESPACE::chaotic::sax::Type<V1UserStatusByLoginResponse>);
 
 constexpr inline USERVER_NAMESPACE::utils::StringLiteral k_ns_V1UserStatusUpdateRequestFieldNamecurrent_user = "current_user";
 constexpr inline USERVER_NAMESPACE::utils::StringLiteral k_ns_V1UserStatusUpdateRequestFieldNamestatus = "status";
 
-[[maybe_unused]] USERVER_NAMESPACE::chaotic::sax::Parser<USERVER_NAMESPACE::chaotic::Object<::ns::V1UserStatusUpdateRequest, USERVER_NAMESPACE::chaotic::UnknownFields::Forbid, USERVER_NAMESPACE::chaotic::Field<::ns::V1UserStatusUpdateRequest, USERVER_NAMESPACE::chaotic::Required<USERVER_NAMESPACE::chaotic::Primitive<::ns::V1CurrentUser>>, &::ns::V1UserStatusUpdateRequest::current_user, k_ns_V1UserStatusUpdateRequestFieldNamecurrent_user>, USERVER_NAMESPACE::chaotic::Field<::ns::V1UserStatusUpdateRequest, USERVER_NAMESPACE::chaotic::Required<USERVER_NAMESPACE::chaotic::Primitive<USERVER_NAMESPACE::formats::json::Value, USERVER_NAMESPACE::chaotic::IsObject>>, &::ns::V1UserStatusUpdateRequest::status, k_ns_V1UserStatusUpdateRequestFieldNamestatus>>>
+[[maybe_unused]] USERVER_NAMESPACE::chaotic::sax::Parser<USERVER_NAMESPACE::chaotic::Object<::ns::V1UserStatusUpdateRequest, USERVER_NAMESPACE::chaotic::UnknownFields::Forbid, USERVER_NAMESPACE::chaotic::Field<::ns::V1UserStatusUpdateRequest, USERVER_NAMESPACE::chaotic::Required<USERVER_NAMESPACE::chaotic::Primitive<::ns::V1CurrentUser>>, &::ns::V1UserStatusUpdateRequest::current_user, k_ns_V1UserStatusUpdateRequestFieldNamecurrent_user>, USERVER_NAMESPACE::chaotic::Field<::ns::V1UserStatusUpdateRequest, USERVER_NAMESPACE::chaotic::Required<USERVER_NAMESPACE::chaotic::FreeFormObject>, &::ns::V1UserStatusUpdateRequest::status, k_ns_V1UserStatusUpdateRequestFieldNamestatus>>>
     ParserOf(USERVER_NAMESPACE::chaotic::sax::Type<V1UserStatusUpdateRequest>);
 
 [[maybe_unused]] USERVER_NAMESPACE::chaotic::sax::Parser<USERVER_NAMESPACE::chaotic::Object<::ns::V1UserStatusUpdateResponse, USERVER_NAMESPACE::chaotic::UnknownFields::Forbid>>

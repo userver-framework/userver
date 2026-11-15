@@ -681,7 +681,7 @@ V1UserStatusByLoginResponse Parse(
 
     V1UserStatusByLoginResponse res{
         .status = value["status"].template As<
-            USERVER_NAMESPACE::chaotic::Primitive<USERVER_NAMESPACE::formats::json::Value, USERVER_NAMESPACE::chaotic::IsObject>
+            USERVER_NAMESPACE::chaotic::FreeFormObject
         >(),
     };
 
@@ -712,7 +712,7 @@ V1UserStatusUpdateRequest Parse(
             USERVER_NAMESPACE::chaotic::Primitive<::ns::V1CurrentUser>
         >(),
         .status = value["status"].template As<
-            USERVER_NAMESPACE::chaotic::Primitive<USERVER_NAMESPACE::formats::json::Value, USERVER_NAMESPACE::chaotic::IsObject>
+            USERVER_NAMESPACE::chaotic::FreeFormObject
         >(),
     };
 

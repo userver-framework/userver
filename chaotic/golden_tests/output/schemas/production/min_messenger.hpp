@@ -6,6 +6,7 @@
 #include <fmt/core.h>
 #include <optional>
 #include <string>
+#include <userver/chaotic/free_form_object.hpp>
 #include <userver/chaotic/io/std/vector.hpp>
 #include <userver/chaotic/object.hpp>
 #include <userver/formats/json/value.hpp>
@@ -778,7 +779,7 @@ void WriteToStream(
 
 using V1UserRegistrationResponse = ::ns::V1UserAuthorizationResponse;
 
-using V1UserStatus = USERVER_NAMESPACE::formats::json::Value;
+using V1UserStatus = USERVER_NAMESPACE::chaotic::FreeFormObject;
 
 struct V1UserStatusByLoginRequest {
     ::ns::V1CurrentUser current_user{};

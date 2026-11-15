@@ -12,3 +12,7 @@ definitions:
                 additionalProperties: true
             ref:
                 $ref: '#/definitions/ObjectFreeForm'
+    ObjectFreeFormArray:
+        type: array
+        items:
+            $ref: '#/definitions/ObjectFreeForm'
