@@ -20,7 +20,6 @@ struct V1LikeTriggerRequest;
 struct V1UserAuthorizationRequest;
 struct V1UserAuthorizationResponse;
 struct V1UserRegistrationRequest;
-struct V1UserStatus;
 struct V1UserStatusByLoginRequest;
 struct V1UserStatusByLoginResponse;
 struct V1UserStatusUpdateRequest;

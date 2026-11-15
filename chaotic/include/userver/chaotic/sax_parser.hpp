@@ -1,6 +1,10 @@
 #pragma once
 
+#include <optional>
+#include <string>
+
 #include <userver/chaotic/array.hpp>
+#include <userver/chaotic/free_form_object.hpp>
 #include <userver/chaotic/object.hpp>
 #include <userver/chaotic/oneof_with_discriminator.hpp>
 #include <userver/chaotic/primitive.hpp>
@@ -153,10 +157,42 @@ private:
     formats::json::parser::Subscriber<ResultType>* subscriber_{nullptr};
 };
 
+// Takes an object only, as a whole JSON value
+class FreeFormObjectParser final
+    : public formats::json::parser::TypedParser<FreeFormObject>,
+      private formats::json::parser::Subscriber<formats::json::Value> {
+public:
+    FreeFormObjectParser() { Reset(); }
+
+    void Reset() override {
+        // JsonValueParser keeps the state of an unfinished value, a fresh one starts over
+        value_parser_.emplace();
+        value_parser_->Subscribe(*this);
+    }
+
+    void StartObject() override {
+        formats::json::parser::BaseParser& value_parser = *value_parser_;
+        this->parser_state_->PushParser(value_parser);
+        value_parser.StartObject();
+    }
+
+    std::string GetPathItem() const override { return {}; }
+
+protected:
+    std::string Expected() const override { return "object"; }
+
+private:
+    void OnSend(formats::json::Value&& value) override { this->SetResult(FreeFormObject{std::move(value)}); }
+
+    std::optional<formats::json::parser::JsonValueParser> value_parser_;
+};
+
 }  // namespace impl
 
 template <typename T>
 sax::Parser<T> ParserOf(Type<Primitive<T>>);
+
+impl::FreeFormObjectParser ParserOf(Type<FreeFormObject>);
 
 template <const auto& Value>
 impl::JsonDomParser<ConstValue<Value>> ParserOf(Type<ConstValue<Value>>);

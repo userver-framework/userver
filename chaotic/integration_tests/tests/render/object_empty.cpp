@@ -37,8 +37,9 @@ TEST(Simple, ExtraOnlySax) {
          })
     {
         const auto json = formats::json::FromString(input);
+        // A free-form object is the JSON value itself
         const auto obj = CallSaxParser<ns::ObjectExtraOnly>(input);
-        EXPECT_EQ(obj.extra, json);
+        EXPECT_EQ(obj, json);
         EXPECT_EQ(TestWriteToStream(obj), json);
     }
 }
@@ -48,16 +49,16 @@ TEST(Simple, ExtraOnlySaxInvalidAndReuse) {
     for (const std::string_view input : {"null", "true", "42", R"("text")", "[]", "{", R"({"key":[1,})"}) {
         EXPECT_THROW((formats::json::parser::impl::ParseSingle(parser, input)), formats::json::parser::ParseError);
         const auto result = formats::json::parser::impl::ParseSingle(parser, R"({"ok":true})");
-        EXPECT_EQ(result.extra, formats::json::FromString(R"({"ok":true})"));
+        EXPECT_EQ(result, formats::json::FromString(R"({"ok":true})"));
     }
 }
 
 TEST(Simple, ExtraOnlySaxArray) {
     const auto objects = CallSaxParser<ns::ObjectExtraOnlyArray>(R"([{"first":[1,2]}, {}, {"second":false}])");
     ASSERT_EQ(objects.size(), 3);
-    EXPECT_EQ(objects[0].extra, formats::json::FromString(R"({"first":[1,2]})"));
-    EXPECT_EQ(objects[1].extra, formats::json::MakeObject());
-    EXPECT_EQ(objects[2].extra, formats::json::FromString(R"({"second":false})"));
+    EXPECT_EQ(objects[0], formats::json::FromString(R"({"first":[1,2]})"));
+    EXPECT_EQ(objects[1], formats::json::MakeObject());
+    EXPECT_EQ(objects[2], formats::json::FromString(R"({"second":false})"));
 }
 
 USERVER_NAMESPACE_END

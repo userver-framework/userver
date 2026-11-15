@@ -135,10 +135,14 @@ class Generator:
                 raise Exception(f'Duplicate type name: {fq_cpp_name}, generated from {path1} and {path2}')
 
             self._state.refs[schema] = fq_cpp_name
-            self._state.types[fq_cpp_name] = self._generate_type(
+            cpp_type = self._generate_type(
                 type_name.TypeName(fq_cpp_name),
                 schema,
             )
+            if isinstance(cpp_type, cpp_types.CppAnyValue) and cpp_type.object_only:
+                # A named free-form object is a type of its own, so that parsing it checks for an object
+                cpp_type.raw_cpp_type = type_name.TypeName(cpp_types.CppAnyValue.FREE_FORM_OBJECT)
+            self._state.types[fq_cpp_name] = cpp_type
 
         self.fixup_refs()
         self.fixup_formats()
@@ -699,6 +703,14 @@ class Generator:
         schema: types.SchemaObject,
     ) -> cpp_types.CppType:
         assert schema.properties is not None
+        if self._is_free_form_object(schema):
+            return cpp_types.CppAnyValue(
+                json_schema=schema,
+                nullable=schema.nullable,
+                raw_cpp_type=type_name.TypeName('USERVER_NAMESPACE::formats::json::Value'),
+                user_cpp_type=None,
+                object_only=True,
+            )
         required = schema.required or []
 
         fields = {
@@ -781,6 +793,17 @@ class Generator:
             autodiscover_default_dict=self._config.autodiscover_default_dict,
             strict_parsing=strict_parsing,
         )
+
+    @staticmethod
+    def _is_free_form_object(schema: types.SchemaObject) -> bool:
+        """An object of any fields only, its C++ type is formats::json::Value."""
+        if schema.properties or schema.additionalProperties is not True:
+            return False
+        # A user type converts from the struct, the extra member may be customised or turned off
+        for prop in ('cpp-type', 'cpp-extra-type', 'extra-member'):
+            if f'x-usrv-{prop}' in schema.x_properties or f'x-taxi-{prop}' in schema.x_properties:
+                return False
+        return True
 
     def _gen_const(
         self,
