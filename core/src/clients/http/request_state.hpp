@@ -151,9 +151,11 @@ public:
     void SetIncompleteTlsConnectionCloseExpected(bool expect);
     void SetLoggedUrl(std::string url);
     void SetUrlTemplate(std::string url_template);
+    std::optional<std::string_view> GetUrlTemplate() const noexcept { return url_template_; }
 
     void SetExpectedStatusCodes(ExpectedStatusCodes status_codes);
     void SetMethod(clients::http::HttpMethod method);
+    HttpMethod GetMethod() const noexcept { return method_; }
     void data(std::string data);
     void SetEasyTimeout(std::chrono::milliseconds timeout);
 
@@ -204,6 +206,7 @@ private:
     void ResetDataForNewRequest();
     void ApplyTestsuiteConfig();
     void StartNewSpan(utils::impl::SourceLocation location);
+    void FinishSpan();
     void StartStats();
 
     template <typename Func>

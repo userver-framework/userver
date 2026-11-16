@@ -2,7 +2,7 @@
 
 #include <server/server_config.hpp>
 #include <userver/components/component.hpp>
-#include <userver/server/component.hpp>
+#include <userver/server/component_base.hpp>
 #include <userver/server/handlers/handler_config.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -23,7 +23,7 @@ HandlerBase::HandlerBase(
       is_monitor_(config["monitor-handler"].As<bool>(is_monitor)),
       config_(ParseHandlerConfigsWithDefaults(
           config,
-          context.FindComponent<components::Server>().GetServer().GetConfig(),
+          context.FindComponent<server::Component>().GetServer().GetConfig(),
           is_monitor_
       ))
 {}

@@ -3,6 +3,7 @@
 #include <array>
 #include <chrono>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -114,6 +115,33 @@ TEST(CmdArgsMsetex, KeepTtl) {
     const auto args = GetWireArgs(CmdArgs{"msetex", 1, KeyValues{{"key", "value"}}, MsetexOptions::KeepTtl()});
 
     EXPECT_EQ(args, (std::vector<std::string>{"msetex", "1", "key", "value", "KEEPTTL"}));
+}
+
+using ScoredMembers = std::vector<std::pair<double, std::string>>;
+
+TEST(CmdArgsVectors, CopiesLvalues) {
+    const std::vector<std::string> keys{"key1", "key2"};
+    const KeyValues key_values{{"key3", "value3"}};
+    const ScoredMembers scored_members{{1.5, "member"}};
+    const auto args = GetWireArgs(CmdArgs{"cmd", keys, key_values, scored_members});
+
+    const std::vector<std::string> expected{"cmd", "key1", "key2", "key3", "value3", std::to_string(1.5), "member"};
+    EXPECT_EQ(args, expected);
+    EXPECT_EQ(keys, (std::vector<std::string>{"key1", "key2"}));
+    EXPECT_EQ(key_values, (KeyValues{{"key3", "value3"}}));
+    EXPECT_EQ(scored_members, (ScoredMembers{{1.5, "member"}}));
+}
+
+TEST(CmdArgsVectors, MovesRvalues) {
+    std::vector<std::string> keys{"key1", "key2"};
+    KeyValues key_values{{"key3", "value3"}, {"key4", "value4"}};
+    ScoredMembers scored_members{{1.5, "member"}};
+    const CmdArgs command{"cmd", std::move(keys), "arg", std::move(key_values), 42, std::move(scored_members)};
+    const auto args = GetWireArgs(command);
+
+    const std::vector<std::string>
+        expected{"cmd", "key1", "key2", "arg", "key3", "value3", "key4", "value4", "42", std::to_string(1.5), "member"};
+    EXPECT_EQ(args, expected);
 }
 
 }  // namespace

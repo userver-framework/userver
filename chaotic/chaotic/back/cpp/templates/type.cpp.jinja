@@ -70,7 +70,7 @@
             {% endif %}
           {% endfor %}
           {% if cpp_struct_is_strict_parsing(type) %}
-            for (auto it = value.begin(); it != value.end(); ++it) {
+            for (auto it = value.begin(), end = value.end(); it != end; ++it) {
                 if (!k{{ type.cpp_global_struct_field_name() }}_PropertiesNames.Contains(it.GetName())) {
                     return false;
                 }
@@ -80,13 +80,16 @@
         }
 
     {% elif type.get_py_type() == 'CppStringEnum' %}
-        {# chaotic has no analog of x-taxi-with-fallback yet: when it appears, return true here for such enums #}
         bool MayParseAs(
             const {{ userver }}::formats::json::Value& value,
             {{ userver }}::formats::parse::To<{{ local_name }}>)
         {
+          {% if type.with_fallback %}
+            return value.IsString();
+          {% else %}
             return value.IsString() &&
                 TryConvert(value.As<std::string>(), {{ userver }}::chaotic::convert::To<{{ local_name }}>{}).has_value();
+          {% endif %}
         }
 
     {% elif type.get_py_type() == 'CppIntEnum' %}
@@ -167,7 +170,11 @@
             if (result.has_value()) {
                 return *result;
             }
+          {% if type.with_fallback %}
+            return {{ local_name }}::{{ type.enums[0].cpp_name }};
+          {% else %}
             throw std::runtime_error(fmt::format("Invalid enum value ({}) for type {{ type.cpp_global_name() }}", value));
+          {% endif %}
         }
 
         std::optional<{{ local_name }}> TryConvert(

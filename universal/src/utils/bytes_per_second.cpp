@@ -1,42 +1,39 @@
 #include <userver/utils/bytes_per_second.hpp>
 
-#include <cstdlib>
+#include <limits>
 #include <stdexcept>
+#include <string_view>
 
-#include <boost/algorithm/string/case_conv.hpp>
+#include <fmt/format.h>
+
+#include <userver/utils/str_icase.hpp>
+#include <userver/utils/trivial_map.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
 
 namespace {
-struct PrefixToMultiplier {
-    const char* const prefix;
-    long long multiplier;
-};
 
-constexpr PrefixToMultiplier kPrefixes[] = {
-    {.prefix = "b/s", .multiplier = 1},
-
-    {.prefix = "kbit/s", .multiplier = 125},
-    {.prefix = "kibit/s", .multiplier = 128},
-    {.prefix = "kb/s", .multiplier = 1000},
-    {.prefix = "kib/s", .multiplier = 1024},
-
-    {.prefix = "mbit/s", .multiplier = 125000},
-    {.prefix = "mibit/s", .multiplier = 131072},
-    {.prefix = "mb/s", .multiplier = 1000000},
-    {.prefix = "mib/s", .multiplier = 1048576},
-
-    {.prefix = "gbit/s", .multiplier = 125000000},
-    {.prefix = "gibit/s", .multiplier = 134217728},
-    {.prefix = "gb/s", .multiplier = 1000000000},
-    {.prefix = "gib/s", .multiplier = 1073741824},
-
-    {.prefix = "tbit/s", .multiplier = 125000000000},
-    {.prefix = "tibit/s", .multiplier = 137438953472},
-    {.prefix = "tb/s", .multiplier = 1000000000000},
-    {.prefix = "tib/s", .multiplier = 1099511627776},
+constexpr TrivialBiMap kPrefixes = [](auto selector) {
+    return selector()
+        .Case("b/s", 1LL)
+        .Case("kbit/s", 125LL)
+        .Case("kibit/s", 128LL)
+        .Case("kb/s", 1000LL)
+        .Case("kib/s", 1024LL)
+        .Case("mbit/s", 125000LL)
+        .Case("mibit/s", 131072LL)
+        .Case("mb/s", 1000000LL)
+        .Case("mib/s", 1048576LL)
+        .Case("gbit/s", 125000000LL)
+        .Case("gibit/s", 134217728LL)
+        .Case("gb/s", 1000000000LL)
+        .Case("gib/s", 1073741824LL)
+        .Case("tbit/s", 125000000000LL)
+        .Case("tibit/s", 137438953472LL)
+        .Case("tb/s", 1000000000000LL)
+        .Case("tib/s", 1099511627776LL);
 };
 
 }  // namespace
@@ -46,33 +43,29 @@ BytesPerSecond StringToBytesPerSecond(const std::string& data) {
     const auto new_to = std::stoll(data, &parsed_size, 10);
 
     if (new_to < 0) {
-        throw std::logic_error("StringToBytesPerSecond: '" + data + "' is negative");
+        throw std::logic_error(fmt::format("StringToBytesPerSecond: '{}' is negative", data));
     }
 
-    std::string remained{data.c_str() + parsed_size};
-    boost::algorithm::to_lower(remained, std::locale::classic());
-
-    for (auto v : kPrefixes) {
-        if (v.prefix == remained) {
-            static constexpr auto kMax = std::numeric_limits<long long>::max();
-            if (kMax / v.multiplier < new_to) {
-                throw std::runtime_error(data + " can not be represented as B/s without precision loss");
-            }
-
-            return BytesPerSecond{new_to * v.multiplier};
+    const std::string_view remained{data.c_str() + parsed_size};
+    if (const auto multiplier = kPrefixes.TryFindICase(remained)) {
+        static constexpr auto kMax = std::numeric_limits<long long>::max();
+        if (kMax / *multiplier < new_to) {
+            throw std::runtime_error(fmt::format("{} can not be represented as B/s without precision loss", data));
         }
+
+        return BytesPerSecond{new_to * *multiplier};
     }
 
-    if (remained == "bit/s") {
+    if (StrIcaseEqual{}(remained, "bit/s")) {
         if (new_to / 8 * 8 != new_to) {
-            throw std::runtime_error(std::to_string(new_to) + "bit/s can not be represented as B/s");
+            throw std::runtime_error(fmt::format("{}bit/s can not be represented as B/s", new_to));
         }
 
         return BytesPerSecond{new_to / 8};
     }
 
     throw std::logic_error(
-        "StringToBytesPerSecond: unknown format specifier '" + remained + "' in string '" + data + "'"
+        fmt::format("StringToBytesPerSecond: unknown format specifier '{}' in string '{}'", remained, data)
     );
 }
 

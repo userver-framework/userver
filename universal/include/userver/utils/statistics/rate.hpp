@@ -5,7 +5,7 @@
 
 #include <cstdint>
 
-#include <fmt/format.h>
+#include <fmt/core.h>
 
 USERVER_NAMESPACE_BEGIN
 

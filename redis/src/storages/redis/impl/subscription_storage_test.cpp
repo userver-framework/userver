@@ -35,15 +35,15 @@ struct StorageSettings {
 class SubscriptionStorageTest : public ::testing::TestWithParam<StorageSettings> {
 protected:
     void SetUp() override {
-        auto names = std::make_shared<std::vector<std::string>>();
+        std::vector<std::string> names;
         for (size_t shard = 0; shard < GetParam().shards; ++shard) {
-            names->push_back("shard" + std::to_string(shard));
+            names.push_back("shard" + std::to_string(shard));
             server_ids_.push_back(ServerId::Generate());
         }
         if (GetParam().cluster) {
             storage_ = std::make_unique<ClusterSubscriptionStorage>(thread_control_, GetParam().shards);
         } else {
-            storage_ = std::make_unique<SubscriptionStorage>(thread_control_, GetParam().shards, std::move(names));
+            storage_ = std::make_unique<SubscriptionStorage>(thread_control_, std::move(names));
         }
         storage_->SetSubscribeCallback([this](size_t shard, CommandPtr cmd) {
             subscriptions_.push_back({shard, std::move(cmd)});

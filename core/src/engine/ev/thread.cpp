@@ -94,7 +94,6 @@ void Thread::Start() {
 
     UASSERT(loop);
     ev_set_userdata(loop, this);
-    ev_set_loop_release_cb(loop, Release, Acquire);
 
     // NOLINTNEXTLINE(cppcoreguidelines-pro-type-cstyle-cast)
     ev_async_init(&watch_update_, UpdateLoopWatcher);
@@ -135,11 +134,9 @@ void Thread::StopEventLoop() {
 
 void Thread::RunEvLoop() {
     while (is_running_) {
-        AcquireImpl();
         event_loop_.RunOnce();
         UpdateLoopWatcherImpl();
         cpu_stats_storage_.Collect();
-        ReleaseImpl();
     }
 
     ev_async_stop(GetEvLoop(), &watch_update_);
@@ -180,21 +177,6 @@ void Thread::BreakLoopWatcherImpl() {
     UpdateLoopWatcherImpl();
     ev_break(GetEvLoop(), EVBREAK_ALL);
 }
-
-void Thread::Acquire(struct ev_loop* loop) noexcept {
-    auto* ev_thread = static_cast<Thread*>(ev_userdata(loop));
-    UASSERT(ev_thread != nullptr);
-    ev_thread->AcquireImpl();
-}
-
-void Thread::Release(struct ev_loop* loop) noexcept {
-    auto* ev_thread = static_cast<Thread*>(ev_userdata(loop));
-    UASSERT(ev_thread != nullptr);
-    ev_thread->ReleaseImpl();
-}
-
-void Thread::AcquireImpl() noexcept { lock_.lock(); }
-void Thread::ReleaseImpl() noexcept { lock_.unlock(); }
 
 }  // namespace engine::ev
 

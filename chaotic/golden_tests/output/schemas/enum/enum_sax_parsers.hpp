@@ -15,8 +15,9 @@
 namespace ns {
 
 constexpr inline USERVER_NAMESPACE::utils::StringLiteral k_ns_EnumFieldNamefoo = "foo";
+constexpr inline USERVER_NAMESPACE::utils::StringLiteral k_ns_EnumFieldNamewith_fallback = "with_fallback";
 
-[[maybe_unused]] USERVER_NAMESPACE::chaotic::sax::Parser<USERVER_NAMESPACE::chaotic::Object<::ns::Enum, USERVER_NAMESPACE::chaotic::UnknownFields::Forbid, USERVER_NAMESPACE::chaotic::Field<::ns::Enum, USERVER_NAMESPACE::chaotic::Optional<USERVER_NAMESPACE::chaotic::Primitive<::ns::Enum::Foo>>, &::ns::Enum::foo, k_ns_EnumFieldNamefoo>>>
+[[maybe_unused]] USERVER_NAMESPACE::chaotic::sax::Parser<USERVER_NAMESPACE::chaotic::Object<::ns::Enum, USERVER_NAMESPACE::chaotic::UnknownFields::Forbid, USERVER_NAMESPACE::chaotic::Field<::ns::Enum, USERVER_NAMESPACE::chaotic::Optional<USERVER_NAMESPACE::chaotic::Primitive<::ns::Enum::Foo>>, &::ns::Enum::foo, k_ns_EnumFieldNamefoo>, USERVER_NAMESPACE::chaotic::Field<::ns::Enum, USERVER_NAMESPACE::chaotic::Optional<USERVER_NAMESPACE::chaotic::Primitive<::ns::Enum::With_Fallback>>, &::ns::Enum::with_fallback, k_ns_EnumFieldNamewith_fallback>>>
     ParserOf(USERVER_NAMESPACE::chaotic::sax::Type<Enum>);
 
 }  // namespace ns

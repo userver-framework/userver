@@ -11,6 +11,7 @@
 #include <userver/utils/overloaded.hpp>
 #include <userver/utils/statistics/histogram_view.hpp>
 #include <userver/utils/statistics/rate.hpp>
+#include <userver/utils/statistics/visit.hpp>
 #include <utils/statistics/impl/histogram_serialization.hpp>
 #include <utils/statistics/impl/rate_serialization.hpp>
 

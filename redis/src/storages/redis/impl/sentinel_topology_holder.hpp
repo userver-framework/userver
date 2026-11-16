@@ -1,4 +1,9 @@
 #pragma once
+
+#include <chrono>
+#include <optional>
+
+#include <storages/redis/impl/shard.hpp>
 #include <storages/redis/impl/topology_holder_base.hpp>
 #include <userver/engine/pulse_event.hpp>
 #include <userver/rcu/rcu.hpp>
@@ -28,7 +33,8 @@ public:
         std::size_t database_index,
         const std::vector<std::string>& shard_names,
         const std::vector<ConnectionInfo>& conns,
-        ConnectionSecurity connection_security
+        ConnectionSecurity connection_security,
+        std::chrono::seconds max_disconnect_time
     );
 
     ~SentinelTopologyHolder() override;
@@ -77,6 +83,7 @@ private:
     logging::LogExtra log_extra_;
     Credentials credentials_;
     const std::size_t database_index_;
+    const std::chrono::seconds max_disconnect_time_;
 
     // maps shard_name to shard_idx
     std::unordered_map<std::string, size_t> shard_by_name_;
@@ -115,7 +122,7 @@ private:
     ClusterShardHostInfos new_shard_host_info_;
     NodesStorage nodes_;
 
-    std::shared_ptr<Shard> sentinels_;
+    std::optional<Shard> sentinels_;
     std::unordered_map<HostPort, utils::datetime::SteadyCoarseClock::time_point> nodes_last_seen_time_;
     rcu::RcuMap<std::string, std::string, SingleWriterRcuMapTraits<std::string>> ip_by_fqdn_;
 

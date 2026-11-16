@@ -40,6 +40,15 @@ void MiddlewaresPipeline::HookOnError(RequestState& request_state, std::error_co
     }
 }
 
+void MiddlewaresPipeline::HookOnRequestFinished(RequestState& request_state, const tracing::Span& span) noexcept {
+    const MiddlewareRequest req(request_state);
+
+    // NOLINTNEXTLINE(modernize-loop-convert)
+    for (const auto& middleware : middlewares_ | std::views::reverse) {
+        middleware->HookOnRequestFinished(req, span);
+    }
+}
+
 bool MiddlewaresPipeline::HookOnRetry(RequestState& request_state) {
     MiddlewareRequest req(request_state);
 

@@ -4,6 +4,7 @@
 
 #include <userver/engine/sleep.hpp>
 #include <userver/logging/log.hpp>
+#include <userver/storages/redis/health_check_param.hpp>
 #include <userver/storages/redis/reply.hpp>
 #include <userver/utils/scope_guard.hpp>
 
@@ -87,6 +88,28 @@ UTEST(Redis, SentinelSingleMaster) {
     auto res = MakeGetRequest(sentinel, "value").Get();
     ASSERT_TRUE(res->data.IsInt());
     EXPECT_TRUE(res->data.GetInt() == magic_value);
+}
+
+UTEST(Redis, SentinelConfiguredDisconnectGrace) {
+    const size_t master_count = 1;
+    const size_t slave_count = 0;
+    const size_t sentinel_count = 1;
+
+    SentinelTest default_test(sentinel_count, master_count, slave_count);
+    SentinelTest sentinel_test(sentinel_count, master_count, slave_count, std::chrono::seconds::zero());
+    auto& sentinel = sentinel_test.SentinelClient();
+    const storages::redis::HealthCheckParams health{storages::redis::WaitConnectedMode::kMaster};
+    ASSERT_TRUE(sentinel.IsReady(health));
+
+    default_test.Masters().clear();
+    sentinel_test.Masters().clear();
+    const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
+    while (sentinel.IsReady(health) && !deadline.IsReached()) {
+        engine::SleepFor(std::chrono::milliseconds(10));
+    }
+
+    EXPECT_FALSE(sentinel.IsReady(health));
+    EXPECT_TRUE(default_test.SentinelClient().IsReady(health));
 }
 
 UTEST(Redis, SentinelMastersChanging) {

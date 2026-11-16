@@ -1,4 +1,5 @@
 HANDLER_PATH = '/chaos/httpserver'
+HANDLER_NAME = 'dynamic-proxy-orders'
 STATIC_BODY_LOG_LIMIT = 512
 DYNAMIC_REQUEST_BODY_LOG_LIMIT = 2
 DYNAMIC_RESPONSE_BODY_LOG_LIMIT = 3
@@ -125,3 +126,24 @@ async def test_no_warn_on_valid_request_path(service_client, monitor_client, dyn
         text='Typo in USERVER_HTTP_SERVER_LOGS',
     )
     assert len(warning_logs) == 0, f'Unexpected WARNING about USERVER_HTTP_SERVER_LOGS for a valid path: {warning_logs}'
+
+
+async def test_no_warn_on_custom_handler_name(service_client, monitor_client, dynamic_config):
+    async with service_client.capture_logs() as capture:
+        dynamic_config.set(
+            USERVER_HTTP_SERVER_LOGS={
+                HANDLER_NAME: {
+                    'request_body_size_log_limit': 128,
+                    'response_body_size_log_limit': 256,
+                },
+            },
+        )
+        await service_client.update_server_state()
+
+    assert (await monitor_client.single_metric('alerts.invalid_request_path')).value == 0
+
+    warning_logs = capture.select(
+        level='WARNING',
+        text='Typo in USERVER_HTTP_SERVER_LOGS',
+    )
+    assert len(warning_logs) == 0, f'Unexpected WARNING about USERVER_HTTP_SERVER_LOGS for a valid name: {warning_logs}'

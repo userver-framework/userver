@@ -3,6 +3,7 @@
 #include <atomic>
 #include <cstdlib>
 #include <optional>
+#include <utility>
 
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/subprocess/environment_variables.hpp>
@@ -19,6 +20,7 @@
 #include <userver/crypto/algorithm.hpp>
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/utils/algo.hpp>
+#include <userver/utils/resource_scopes.hpp>
 #include <userver/utils/strong_typedef.hpp>
 
 class UserPasswords {
@@ -249,6 +251,10 @@ UTEST(Secdist, DynamicUpdate) {
   )~";
 
     struct SecdistConfigStorage {
+        SecdistConfigStorage(utils::ResourceScopeStorage& scopes, storages::secdist::Secdist& secdist) {
+            secdist.UpdateAndListen(scopes, this, "test/update_secdist", &SecdistConfigStorage::OnSecdistUpdate);
+        }
+
         void OnSecdistUpdate(const storages::secdist::SecdistConfig& secdist_config_update) {
             if (updates_counter == 1) {
                 // prevents test flaps
@@ -268,8 +274,6 @@ UTEST(Secdist, DynamicUpdate) {
         std::atomic<bool> file_updated{false};
     };
 
-    SecdistConfigStorage storage;
-
     auto temp_file = fs::blocking::TempFile::Create();
     fs::blocking::RewriteFileContents(temp_file.GetPath(), secdist_init_json);
 
@@ -283,7 +287,8 @@ UTEST(Secdist, DynamicUpdate) {
     };
     storages::secdist::Secdist secdist{{&provider, std::chrono::milliseconds(100)}};
 
-    auto subscriber = secdist.UpdateAndListen(&storage, "test/update_secdist", &SecdistConfigStorage::OnSecdistUpdate);
+    utils::WithResourceScopes<SecdistConfigStorage> scoped_storage(std::in_place, secdist);
+    auto& storage = *scoped_storage;
     EXPECT_EQ(storage.updates_counter.load(), 1);
     const auto& secdist_config = secdist.Get();
 
@@ -322,8 +327,6 @@ UTEST(Secdist, DynamicUpdate) {
     EXPECT_TRUE(updated_user_passwords.IsMatching("username", password_updated));
     EXPECT_TRUE(updated_user_passwords.IsMatching("username_new", password_xyz));
     EXPECT_FALSE(updated_user_passwords.IsMatching("another username", another_password));
-
-    subscriber.Unsubscribe();
 }
 
 USERVER_NAMESPACE_END

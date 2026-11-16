@@ -5,9 +5,6 @@
 
 #include <fmt/format.h>
 
-#include <userver/protobuf/impl/descriptor_collector.hpp>
-#include <userver/utils/assert.hpp>
-
 namespace {
 
 std::string GetFieldName(const buf::validate::Violation& violation) {
@@ -86,21 +83,3 @@ USERVER_NAMESPACE::logging::LogHelper& operator<<(
 }
 
 }  // namespace buf::validate
-
-USERVER_NAMESPACE_BEGIN
-
-namespace grpc_protovalidate::impl {
-
-std::unique_ptr<buf::validate::ValidatorFactory> CreateProtoValidatorFactory() {
-    auto result = buf::validate::ValidatorFactory::New();
-    UINVARIANT(result.ok(), "Failed to create validator factory");
-    std::unique_ptr<buf::validate::ValidatorFactory> factory = std::move(result).value();
-    for (const google::protobuf::Descriptor* descriptor : protobuf::impl::GetGeneratedMessages()) {
-        factory->Add(descriptor);
-    }
-    return factory;
-}
-
-}  // namespace grpc_protovalidate::impl
-
-USERVER_NAMESPACE_END

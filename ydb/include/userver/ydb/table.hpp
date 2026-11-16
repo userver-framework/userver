@@ -91,7 +91,7 @@ public:
     std::shared_ptr<TableClient> GetSnapshot() const;
 
     /// Query for creating/deleting tables
-    void ExecuteSchemeQuery(const std::string& query);
+    void ExecuteSchemeQuery(const Query& query);
 
     void MakeDirectory(const std::string& path, MakeDirectorySettings query_settings = {});
     void RemoveDirectory(const std::string& path, RemoveDirectorySettings query_settings = {});

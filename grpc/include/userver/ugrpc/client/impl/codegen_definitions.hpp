@@ -13,3 +13,4 @@
 #include <userver/ugrpc/client/impl/call_params.hpp>
 #include <userver/ugrpc/client/impl/client_data.hpp>
 #include <userver/ugrpc/client/impl/perform_unary_call.hpp>
+#include <userver/utils/resource_scopes.hpp>

@@ -2,11 +2,12 @@
 
 /// @file userver/utils/statistics/pretty_format.hpp
 /// @brief Statistics output in human-readable format.
+/// @ingroup userver_universal
 
 #include <string>
 
 #include <userver/utils/statistics/request.hpp>
-#include <userver/utils/statistics/writer.hpp>
+#include <userver/utils/statistics/visit.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

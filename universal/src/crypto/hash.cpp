@@ -2,7 +2,6 @@
 
 #include <array>
 
-#include <cryptopp/base64.h>
 #ifndef USERVER_NO_CRYPTOPP_BLAKE2
 #include <cryptopp/blake2.h>
 #endif
@@ -11,6 +10,7 @@
 #include <cryptopp/hmac.h>
 #include <cryptopp/sha.h>
 
+#include <userver/crypto/base64.hpp>
 #include <userver/crypto/exception.hpp>
 
 #include <cryptopp/md5.h>
@@ -45,8 +45,7 @@ std::string EncodeArray(const byte* ptr, size_t length, crypto::hash::OutputEnco
             break;
         }
         case crypto::hash::OutputEncoding::kBase64: {
-            CryptoPP::Base64Encoder encoder(new CryptoPP::StringSink(response), false);
-            encoder.PutMessageEnd(ptr, length);
+            response = crypto::base64::Base64Encode(std::string_view(reinterpret_cast<const char*>(ptr), length));
             break;
         }
     }

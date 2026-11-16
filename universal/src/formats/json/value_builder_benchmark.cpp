@@ -1,14 +1,18 @@
 #include <cstddef>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <string_view>
 #include <utility>
+#include <variant>
 #include <vector>
 
 #include <benchmark/benchmark.h>
 
 #include <userver/formats/json/value_builder.hpp>
+#include <userver/formats/serialize/common_containers.hpp>
 #include <userver/formats/serialize/to.hpp>
+#include <userver/formats/serialize/variant.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,6 +26,21 @@ constexpr std::string_view kStringValue = "value_for_direct_string_push_back";
 struct SerializableInteger {
     std::int64_t value;
 };
+
+struct SerializableSharedValue {
+    formats::json::Value value;
+};
+
+formats::json::Value Serialize(const SerializableSharedValue& value, formats::serialize::To<formats::json::Value>) {
+    return value.value;
+}
+
+formats::json::Value Serialize(
+    const std::optional<SerializableSharedValue>& value,
+    formats::serialize::To<formats::json::Value> to
+) {
+    return value ? Serialize(*value, to) : formats::json::Value{};
+}
 
 formats::json::Value Serialize(const SerializableInteger& value, formats::serialize::To<formats::json::Value>) {
     return formats::json::ValueBuilder{value.value}.ExtractValue();
@@ -336,6 +355,40 @@ void EmplaceNocheckBorrowedObjectsDirectly(benchmark::State& state) {
         result.EmplaceNocheck(key, value);
     });
 }
+
+void PushBackOptionalIntegers(benchmark::State& state) {
+    BenchmarkGeneratedScalars<std::int64_t>(state, [](auto& result, std::int64_t value, std::string_view) {
+        result.PushBack(std::optional{value});
+    });
+}
+
+void EmplaceNocheckVariantIntegers(benchmark::State& state) {
+    BenchmarkGeneratedScalars<
+        std::int64_t,
+        formats::json::Type::kObject>(state, [](auto& result, std::int64_t value, std::string_view key) {
+        result.EmplaceNocheck(key, std::variant<std::int64_t, bool>{value});
+    });
+}
+
+void PushBackSerializedSharedScalars(benchmark::State& state) {
+    const auto source = MakeScalarArray(state.range(0));
+    BenchmarkBorrowedValues(state, source, [](auto& result, const auto& value, std::string_view) {
+        result.PushBack(std::optional{SerializableSharedValue{value}});
+    });
+}
+
+void EmplaceNocheckSerializedSharedScalars(benchmark::State& state) {
+    const auto source = MakeScalarArray(state.range(0));
+    BenchmarkBorrowedValues<
+        formats::json::Type::kObject>(state, source, [](auto& result, const auto& value, std::string_view key) {
+        result.EmplaceNocheck(key, std::optional{SerializableSharedValue{value}});
+    });
+}
+
+BENCHMARK(PushBackOptionalIntegers)->Arg(kSmallArraySize)->Arg(kMediumArraySize)->Arg(kLargeArraySize);
+BENCHMARK(EmplaceNocheckVariantIntegers)->Arg(kSmallArraySize)->Arg(kMediumArraySize)->Arg(kLargeArraySize);
+BENCHMARK(PushBackSerializedSharedScalars)->Arg(kSmallArraySize)->Arg(kMediumArraySize)->Arg(kLargeArraySize);
+BENCHMARK(EmplaceNocheckSerializedSharedScalars)->Arg(kSmallArraySize)->Arg(kMediumArraySize)->Arg(kLargeArraySize);
 
 BENCHMARK(PushBackBorrowedScalarsViaBuilder)->Arg(kSmallArraySize)->Arg(kMediumArraySize)->Arg(kLargeArraySize);
 BENCHMARK(PushBackBorrowedScalarsDirectly)->Arg(kSmallArraySize)->Arg(kMediumArraySize)->Arg(kLargeArraySize);

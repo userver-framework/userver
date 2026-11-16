@@ -11,6 +11,15 @@ USERVER_NAMESPACE_BEGIN
 
 namespace engine::ev {
 
+UTEST(ThreadControl, FirstThreadIsStableWithoutDefaultLoop) {
+    ThreadPool thread_pool{ThreadPoolConfig{2, "first_thread_test"}};
+    auto& first = thread_pool.GetFirstThread();
+    EXPECT_EQ(&first, &thread_pool.NextThread());
+    EXPECT_NE(&first, &thread_pool.NextThread());
+    EXPECT_EQ(&first, &thread_pool.GetFirstThread());
+    first.RunInEvLoopSync([&first]() noexcept { EXPECT_TRUE(first.IsInEvThread()); });
+}
+
 UTEST(ThreadControl, RunInEvLoopSyncWithResult) {
     engine::ev::ThreadPool thread_pool{engine::ev::ThreadPoolConfig{1, "thread_control_test"}};
     auto thread_control = thread_pool.NextThread();

@@ -1,0 +1,66 @@
+definitions:
+    UniqueItemsObject:
+        type: object
+        additionalProperties: false
+        properties:
+            integers:
+                type: array
+                uniqueItems: true
+                items:
+                    type: integer
+            strings:
+                type: array
+                uniqueItems: true
+                items:
+                    type: string
+            numbers:
+                type: array
+                uniqueItems: true
+                items:
+                    type: number
+            booleans:
+                type: array
+                uniqueItems: true
+                items:
+                    type: boolean
+            integer_set:
+                type: array
+                x-taxi-cpp-type: std::set
+                uniqueItems: true
+                items:
+                    type: integer
+            string_unordered_set:
+                type: array
+                x-taxi-cpp-type: std::unordered_set
+                uniqueItems: true
+                items:
+                    type: string
+            boolean_set:
+                type: array
+                x-taxi-cpp-type: std::set
+                uniqueItems: true
+                items:
+                    type: boolean
+            arrays:
+                type: array
+                uniqueItems: true
+                items:
+                    type: array
+                    items:
+                        type: integer
+            string_arrays:
+                type: array
+                uniqueItems: true
+                items:
+                    type: array
+                    items:
+                        type: string
+            nested_arrays:
+                type: array
+                uniqueItems: true
+                items:
+                    type: array
+                    items:
+                        type: array
+                        items:
+                            type: integer

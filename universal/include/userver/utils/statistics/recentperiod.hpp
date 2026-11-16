@@ -184,7 +184,9 @@ private:
     mutable utils::FixedArray<EpochBucket> items_;
 };
 
-/// @a Writer support for @a RecentPeriod
+/// @brief Exports the full configured window of @ref utils::statistics::RecentPeriod, excluding the current epoch.
+/// Use @ref utils::statistics::RecentPeriod::GetStatsForPeriod explicitly when a different window or inclusion of the
+/// current epoch is required.
 template <typename Counter, typename Result, typename Timer>
 void DumpMetric(Writer& writer, const RecentPeriod<Counter, Result, Timer>& recent_period) {
     writer = recent_period.GetStatsForPeriod();

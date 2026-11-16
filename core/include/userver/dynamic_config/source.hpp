@@ -126,8 +126,8 @@ public:
     /// @note Callbacks occur in full accordance with
     /// `components::DynamicConfigClientUpdater` options.
     ///
-    /// @param scopes storage that owns the subscription lifetime. In a component constructor pass `context.Scopes()`
-    /// or @ref components::GetResourceScopes.
+    /// @param scopes storage that owns the subscription lifetime.
+    /// See @ref resource_scopes_parameter "where to obtain scopes".
     /// @param obj the subscriber, which is the owner of the listener method, and
     /// is also used as the unique identifier of the subscription
     /// @param name the name of the subscriber, for diagnostic purposes
@@ -149,6 +149,7 @@ public:
         );
     }
 
+#ifndef ARCADIA_ROOT
     /// @overload
     /// @deprecated Use the overloads that take @ref utils::ResourceScopeStorage.
     ///
@@ -165,6 +166,7 @@ public:
             [obj, func](const dynamic_config::Snapshot& config) { (obj->*func)(config); }
         );
     }
+#endif
 
     /// @brief Subscribes to dynamic-config updates with information about the
     /// current and previous states.
@@ -187,8 +189,8 @@ public:
     /// Example usage:
     /// @snippet core/src/dynamic_config/config_test.cpp Custom subscription for dynamic config update
     ///
-    /// @param scopes storage that owns the subscription lifetime. In a component constructor pass `context.Scopes()`
-    /// or @ref components::GetResourceScopes.
+    /// @param scopes storage that owns the subscription lifetime.
+    /// See @ref resource_scopes_parameter "where to obtain scopes".
     /// @param obj the subscriber, which is the owner of the listener method, and
     /// is also used as the unique identifier of the subscription
     /// @param name the name of the subscriber, for diagnostic purposes
@@ -209,6 +211,7 @@ public:
         });
     }
 
+#ifndef ARCADIA_ROOT
     /// @overload
     /// @deprecated Use the overloads that take @ref utils::ResourceScopeStorage.
     ///
@@ -223,6 +226,7 @@ public:
             (obj->*func)(diff);
         });
     }
+#endif
 
     /// @brief Subscribes to updates of a subset of all configs.
     ///
@@ -240,8 +244,8 @@ public:
     ///
     /// @warning To use this function, configs must have the `operator==`.
     ///
-    /// @param scopes storage that owns the subscription lifetime. In a component constructor pass `context.Scopes()`
-    /// or @ref components::GetResourceScopes.
+    /// @param scopes storage that owns the subscription lifetime.
+    /// See @ref resource_scopes_parameter "where to obtain scopes".
     /// @param obj the subscriber, which is the owner of the listener method, and
     /// is also used as the unique identifier of the subscription
     /// @param name the name of the subscriber, for diagnostic purposes
@@ -266,6 +270,7 @@ public:
         DoUpdateAndListen(scopes, concurrent::FunctionId(obj), name, std::move(wrapper));
     }
 
+#ifndef ARCADIA_ROOT
     /// @overload
     /// @deprecated Use the overloads that take @ref utils::ResourceScopeStorage.
     ///
@@ -285,10 +290,12 @@ public:
         };
         return DoUpdateAndListen(concurrent::FunctionId(obj), name, std::move(wrapper));
     }
+#endif
 
     SnapshotEventSource& GetEventChannel();
 
 private:
+#ifndef ARCADIA_ROOT
     concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
         concurrent::FunctionId id,
         std::string_view name,
@@ -300,6 +307,7 @@ private:
         std::string_view name,
         DiffEventSource::Function&& func
     );
+#endif
 
     void DoUpdateAndListen(
         utils::ResourceScopeStorage& scopes,
@@ -343,8 +351,8 @@ public:
     /// @warning In debug mode the last notification for any subscriber will be
     /// called with `std::nullopt` and current config snapshot.
     ///
-    /// @param scopes storage that owns the subscription lifetime. In a component constructor pass `context.Scopes()`
-    /// or @ref components::GetResourceScopes.
+    /// @param scopes storage that owns the subscription lifetime.
+    /// See @ref resource_scopes_parameter "where to obtain scopes".
     /// @param obj the subscriber, which is the owner of the listener method, and
     /// is also used as the unique identifier of the subscription
     /// @param name the name of the subscriber, for diagnostic purposes

@@ -182,6 +182,12 @@ For handwritten handlers, opt in from the logging hooks using:
 - @ref server::handlers::MaskJsonRequestBodyForLogging
 - @ref server::handlers::MaskJsonResponseBodyForLogging
 
+Set @ref server::handlers::JsonBodyLoggingOptions::handler_name_override to select masking settings by a custom name
+instead of the handler path. This is useful for handlers that dispatch multiple logical routes internally.
+Slash-prefixed keys are validated against registered static handler paths when @ref USERVER_HTTP_SERVER_LOGS is
+updated; other custom names are not validated. The override limit is applied while masking; final limiting of unmasked
+bodies still uses the configured handler path.
+
 For custom JSON masking, use @ref formats::json::MaskJson with reusable
 @ref formats::json::MaskingRules.
 

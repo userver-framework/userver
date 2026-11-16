@@ -178,23 +178,21 @@ AuthCheckResult AuthCheckerBase::CheckAuth(const http::HttpRequest& request, req
     }
 
     const auto& user_data = user_data_opt.value();
+    auto digest = CalculateDigest(user_data.ha1, request.GetMethod(), client_context);
+
+    if (!crypto::algorithm::AreStringsEqualConstTime(digest, client_context.response)) {
+        return StartNewAuthSession(digest_hasher_.GenerateNonce(etag), false, response);
+    }
+
     auto validate_result = ValidateUserData(client_context, user_data);
     switch (validate_result) {
         case ValidateResult::kWrongUserData:
-            return StartNewAuthSession(client_context.username, digest_hasher_.GenerateNonce(etag), true, response);
+            return StartNewAuthSession(digest_hasher_.GenerateNonce(etag), true, response);
         case ValidateResult::kDuplicateRequest:
             response.SetStatus(unauthorized_status_);
             return AuthCheckResult{AuthCheckResult::Status::kTokenNotFound};
         case ValidateResult::kOk:
             break;
-    }
-
-    auto digest = CalculateDigest(user_data.ha1, request.GetMethod(), client_context);
-
-    if (!crypto::algorithm::AreStringsEqualConstTime(digest, client_context.response)) {
-        response.SetStatus(unauthorized_status_);
-        response.SetHeader(authenticate_header_, ConstructResponseDirectives(client_context.nonce, false));
-        return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
     }
 
     // RFC 2617, 3.2.3
@@ -210,23 +208,26 @@ AuthCheckerBase::ValidateResult AuthCheckerBase::ValidateUserData(
     const ContextFromClient& client_context,
     const UserData& user_data
 ) const {
+    auto nonce_creation_time = user_data.timestamp;
+    auto nonce_count = user_data.nonce_count;
     const bool are_nonces_equal = crypto::algorithm::AreStringsEqualConstTime(user_data.nonce, client_context.nonce);
     if (!are_nonces_equal) {
         // "nonce" may be in temporary storage.
-        auto nonce_creation_time = GetUnnamedNonceCreationTime(client_context.nonce);
-        if (!nonce_creation_time.has_value()) {
+        const auto unnamed_nonce_creation_time = GetUnnamedNonceCreationTime(client_context.nonce);
+        if (!unnamed_nonce_creation_time.has_value()) {
             LOG_WARNING()
                 << "Nonces aren't equal and no equivalent nonce found in "
                    "\"nonce pool\".";
             return ValidateResult::kWrongUserData;
         }
 
-        SetUserData(client_context.username, client_context.nonce, 0, nonce_creation_time.value());
+        nonce_creation_time = *unnamed_nonce_creation_time;
+        nonce_count = 0;
     }
 
-    const bool is_nonce_expired = user_data.timestamp + nonce_ttl_ < utils::datetime::Now();
+    const bool is_nonce_expired = nonce_creation_time + nonce_ttl_ < utils::datetime::Now();
     if (is_nonce_expired) {
-        LOG_WARNING() << "Nonces are equal, but expired.";
+        LOG_WARNING() << "Nonce is expired.";
         return ValidateResult::kWrongUserData;
     }
 
@@ -239,12 +240,12 @@ AuthCheckerBase::ValidateResult AuthCheckerBase::ValidateUserData(
         LOG_WARNING() << "Nonce_count from string to std::int64_t casting error: " << ex;
         throw server::handlers::ClientError();
     }
-    if (user_data.nonce_count >= client_nc) {
+    if (nonce_count >= client_nc) {
         LOG_WARNING() << "The current request is a duplicate.";
         return ValidateResult::kDuplicateRequest;
     }
 
-    SetUserData(client_context.username, user_data.nonce, client_nc, user_data.timestamp);
+    SetUserData(client_context.username, client_context.nonce, client_nc, nonce_creation_time);
 
     LOG_DEBUG() << "Nonce_count is OK";
     return ValidateResult::kOk;
@@ -258,16 +259,12 @@ std::string AuthCheckerBase::ConstructAuthInfoHeader(const ContextFromClient& cl
     return fmt::format("{}=\"{}\"", directives::kNextNonce, std::move(next_nonce));
 }
 
-AuthCheckResult AuthCheckerBase::StartNewAuthSession(
-    std::string username,
-    std::string&& nonce,
-    bool stale,
-    http::HttpResponse& response
-) const {
+AuthCheckResult AuthCheckerBase::StartNewAuthSession(std::string&& nonce, bool stale, http::HttpResponse& response)
+    const {
     response.SetStatus(unauthorized_status_);
     response.SetHeader(authenticate_header_, ConstructResponseDirectives(nonce, stale));
 
-    SetUserData(std::move(username), std::move(nonce), 0, utils::datetime::Now());
+    PushUnnamedNonce(std::move(nonce));
 
     return AuthCheckResult{AuthCheckResult::Status::kInvalidToken};
 }

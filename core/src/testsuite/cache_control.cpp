@@ -191,19 +191,22 @@ void CacheControl::ResetCaches(
     DoResetCaches(update_type, &reset_only_names, force_incremental_names, nullptr);
 }
 
-CacheResetRegistration CacheControl::RegisterPeriodicCache(cache::CacheUpdateTrait& cache) {
-    CacheInfo info;
-    info.name = std::string{cache.Name()};
-    info.reset = [&cache](cache::UpdateType update_type) { cache.UpdateSyncDebug(update_type); };
-    info.needs_span = false;
+void CacheControl::RegisterPeriodicCache(utils::ResourceScopeStorage& scopes, cache::CacheUpdateTrait& cache) {
+    scopes.Register([this, &cache] {
+        CacheInfo info;
+        info.name = std::string{cache.Name()};
+        info.reset = [&cache](const cache::UpdateType update_type) { cache.UpdateSyncDebug(update_type); };
+        info.needs_span = false;
 
-    auto iter = DoRegisterCache(std::move(info));
-    return CacheResetRegistration(*this, std::move(iter));
+        const auto iterator = DoRegisterCache(std::move(info));
+        return utils::FastScopeGuard{[this, iterator]() noexcept { UnregisterCache(iterator); }};
+    });
 }
 
-CacheResetRegistration CacheControl::RegisterCache(
+void CacheControl::RegisterCache(
     utils::impl::InternalTag,
-    std::string_view name,
+    utils::ResourceScopeStorage& scopes,
+    const std::string_view name,
     std::function<void(cache::UpdateType)> reset
 ) {
     UASSERT(reset);
@@ -214,8 +217,10 @@ CacheResetRegistration CacheControl::RegisterCache(
         .needs_span = true,
     };
 
-    auto iter = DoRegisterCache(std::move(info));
-    return CacheResetRegistration(*this, std::move(iter));
+    scopes.Register([this, info = std::move(info)]() mutable {
+        const auto iterator = DoRegisterCache(std::move(info));
+        return utils::FastScopeGuard{[this, iterator]() noexcept { UnregisterCache(iterator); }};
+    });
 }
 
 void CacheControl::DoResetCaches(
@@ -359,47 +364,16 @@ void CacheControl::UnregisterCache(CacheInfoIterator iterator) noexcept {
     caches->erase(Impl::List::s_iterator_to(*ptr));
 }
 
-CacheResetRegistration::CacheResetRegistration() noexcept = default;
-
-CacheResetRegistration::CacheResetRegistration(
-    CacheControl& cache_control,
-    CacheControl::CacheInfoIterator cache_info_iterator
-)
-    : cache_control_(&cache_control),
-      cache_info_iterator_(std::move(cache_info_iterator))
-{}
-
-CacheResetRegistration::CacheResetRegistration(CacheResetRegistration&& other) noexcept
-    : cache_control_(std::exchange(other.cache_control_, nullptr)),
-      cache_info_iterator_(std::move(other.cache_info_iterator_)) {}
-
-CacheResetRegistration& CacheResetRegistration::operator=(CacheResetRegistration&& other) noexcept {
-    if (&other == this) {
-        return *this;
-    }
-    Unregister();
-    cache_control_ = std::exchange(other.cache_control_, nullptr);
-    cache_info_iterator_ = std::move(other.cache_info_iterator_);
-    return *this;
-}
-
-CacheResetRegistration::~CacheResetRegistration() { Unregister(); }
-
-void CacheResetRegistration::Unregister() noexcept {
-    if (cache_control_) {
-        cache_control_->UnregisterCache(std::move(cache_info_iterator_));
-        cache_control_ = nullptr;
-    }
-}
-
 namespace impl {
 
 void DoRegisterCacheScope(const components::ComponentContext& context, std::function<void(cache::UpdateType)> reset) {
     auto& cc = testsuite::FindCacheControl(context);
-    auto name = std::string{components::GetCurrentComponentName(context)};
-    context.Scopes().Register([&cc, name = std::move(name), reset = std::move(reset)]() mutable {
-        return cc.RegisterCache(utils::impl::InternalTag{}, name, std::move(reset));
-    });
+    cc.RegisterCache(
+        utils::impl::InternalTag{},
+        context.Scopes(),
+        components::GetCurrentComponentName(context),
+        std::move(reset)
+    );
 }
 
 }  // namespace impl

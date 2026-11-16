@@ -10,7 +10,7 @@
 #include <userver/components/component_base.hpp>
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/engine/multi_consumer_event.hpp>
-#include <userver/utils/statistics/entry.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

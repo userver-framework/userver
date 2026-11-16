@@ -1,6 +1,5 @@
 #include <userver/utils/statistics/testing.hpp>
 
-#include <atomic>
 #include <cstdint>
 #include <initializer_list>
 #include <optional>
@@ -20,6 +19,7 @@
 #include <userver/utils/statistics/histogram.hpp>
 #include <userver/utils/statistics/json.hpp>
 #include <userver/utils/statistics/rate.hpp>
+#include <userver/utils/statistics/rate_counter.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -28,8 +28,8 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 struct SampleMetrics {
-    std::atomic<int> foo{1};
-    std::atomic<int> bar{2};
+    utils::statistics::RateCounter foo;
+    utils::statistics::RateCounter bar;
 };
 
 [[maybe_unused]] void DumpMetric(utils::statistics::Writer& writer, const SampleMetrics& metrics) {
@@ -40,20 +40,93 @@ struct SampleMetrics {
 }  // namespace
 
 TEST(Snapshot, FromMetric) {
-    const SampleMetrics metrics;
+    SampleMetrics metrics;
+    metrics.foo = utils::statistics::Rate{1};
+    metrics.bar = utils::statistics::Rate{2};
 
     const utils::statistics::Snapshot snapshot{metrics};
 
-    EXPECT_EQ(snapshot.SingleMetric("foo"), std::int64_t{1});
-    EXPECT_EQ(snapshot.SingleMetric("bar", {{"kind", "x"}}), std::int64_t{2});
+    EXPECT_EQ(snapshot.SingleMetric("foo"), utils::statistics::Rate{1});
+    EXPECT_EQ(snapshot.SingleMetric("bar", {{"kind", "x"}}), utils::statistics::Rate{2});
     EXPECT_EQ(snapshot.SingleMetricOptional("missing"), std::nullopt);
 }
 /// [metrics Snapshot DumpMetric sample]
 
 namespace {
 
+SampleMetrics MakePopulatedSampleMetrics() {
+    SampleMetrics metrics;
+    metrics.foo = utils::statistics::Rate{1};
+    metrics.bar = utils::statistics::Rate{2};
+    return metrics;
+}
+
+}  // namespace
+
+/// [metrics Snapshot subgroup sample]
+namespace {
+
+struct PathOnlySubgroup {
+    utils::statistics::RateCounter queued;
+    utils::statistics::RateCounter dropped;
+};
+
+[[maybe_unused]] void DumpMetric(utils::statistics::Writer& writer, const PathOnlySubgroup& subgroup) {
+    writer["queued"] = subgroup.queued;
+    writer["dropped"] = subgroup.dropped;
+}
+
+struct PathAndLabelSubgroup {
+    utils::statistics::RateCounter processed;
+    utils::statistics::RateCounter failed;
+};
+
+[[maybe_unused]] void DumpMetric(utils::statistics::Writer& writer, const PathAndLabelSubgroup& subgroup) {
+    writer["processed"] = subgroup.processed;
+    writer["failed"] = subgroup.failed;
+}
+
+struct SubgroupSampleMetrics {
+    PathOnlySubgroup ingress;
+    PathAndLabelSubgroup handler;
+};
+
+[[maybe_unused]] void DumpMetric(utils::statistics::Writer& writer, const SubgroupSampleMetrics& metrics) {
+    writer["ingress"] = metrics.ingress;
+    writer["handler"].ValueWithLabels(metrics.handler, {"handler", "/create"});
+}
+
+}  // namespace
+
+TEST(Snapshot, SubgroupSlicesFromMetricSnapshot) {
+    SubgroupSampleMetrics metrics;
+    metrics.ingress.queued = utils::statistics::Rate{2};
+    metrics.ingress.dropped = utils::statistics::Rate{1};
+    metrics.handler.processed = utils::statistics::Rate{7};
+    metrics.handler.failed = utils::statistics::Rate{3};
+
+    const utils::statistics::Snapshot all{metrics};
+
+    const utils::statistics::Snapshot ingress{
+        all,
+        {.require_prefix = "ingress"},
+    };
+    EXPECT_EQ(ingress.SingleMetric("queued"), utils::statistics::Rate{2});
+    EXPECT_EQ(ingress.SingleMetric("dropped"), utils::statistics::Rate{1});
+
+    const utils::statistics::Snapshot handler{
+        all,
+        {.require_prefix = "handler", .require_labels = {{"handler", "/create"}}},
+    };
+    EXPECT_EQ(handler.SingleMetric("processed"), utils::statistics::Rate{7});
+    EXPECT_EQ(handler.SingleMetric("failed"), utils::statistics::Rate{3});
+}
+/// [metrics Snapshot subgroup sample]
+
+namespace {
+
 struct LeafMetric {
-    int value{7};
+    utils::statistics::RateCounter value;
 };
 
 [[maybe_unused]] void DumpMetric(utils::statistics::Writer& writer, const LeafMetric& metric) {
@@ -63,13 +136,16 @@ struct LeafMetric {
 }  // namespace
 
 TEST(Snapshot, FromLeafMetric) {
-    const utils::statistics::Snapshot snapshot{LeafMetric{}};
+    LeafMetric metric;
+    metric.value = utils::statistics::Rate{7};
 
-    EXPECT_EQ(snapshot.SingleMetric({}, {{"kind", "x"}}), std::int64_t{7});
+    const utils::statistics::Snapshot snapshot{metric};
+
+    EXPECT_EQ(snapshot.SingleMetric({}, {{"kind", "x"}}), utils::statistics::Rate{7});
 }
 
 TEST(Snapshot, CopyAndMoveAssignment) {
-    const utils::statistics::Snapshot source{SampleMetrics{}};
+    const utils::statistics::Snapshot source{MakePopulatedSampleMetrics()};
     utils::statistics::Snapshot copied{[](utils::statistics::Writer& writer) { writer["old"] = std::int64_t{42}; }};
     EXPECT_EQ(&(copied = source), &copied);
     EXPECT_THAT(copied, EqualsNumerically(source));
@@ -83,26 +159,28 @@ TEST(Snapshot, CopyAndMoveAssignment) {
 }
 
 TEST(Snapshot, FromMetricPrefix) {
-    const SampleMetrics metrics;
+    const SampleMetrics metrics = MakePopulatedSampleMetrics();
     const utils::statistics::Snapshot snapshot{metrics, "foo"};
 
-    EXPECT_EQ(snapshot.SingleMetric({}), std::int64_t{1});
+    EXPECT_EQ(snapshot.SingleMetric({}), utils::statistics::Rate{1});
     EXPECT_EQ(snapshot.SingleMetricOptional("bar", {{"kind", "x"}}), std::nullopt);
 
-    const utils::statistics::Snapshot only_foo{[](utils::statistics::Writer& writer) { writer = std::int64_t{1}; }};
+    const utils::statistics::Snapshot only_foo{[](utils::statistics::Writer& writer) {
+        writer = utils::statistics::Rate{1};
+    }};
     EXPECT_THAT(snapshot, EqualsNumerically(only_foo));
 }
 
 TEST(Snapshot, FromMetricRequireLabels) {
-    const SampleMetrics metrics;
+    const SampleMetrics metrics = MakePopulatedSampleMetrics();
     const utils::statistics::Snapshot snapshot{metrics, {}, {{"kind", "x"}}};
 
-    EXPECT_EQ(snapshot.SingleMetric("bar"), std::int64_t{2});
+    EXPECT_EQ(snapshot.SingleMetric("bar"), utils::statistics::Rate{2});
     EXPECT_EQ(snapshot.SingleMetricOptional("foo"), std::nullopt);
 }
 
 TEST(Snapshot, BuildOptionsForMetricAndWriter) {
-    const SampleMetrics metrics;
+    const SampleMetrics metrics = MakePopulatedSampleMetrics();
     const auto writer = [&metrics](utils::statistics::Writer& out) { out = metrics; };
     const utils::statistics::SnapshotBuildOptions cases[] = {
         {},
@@ -128,8 +206,8 @@ TEST(Snapshot, BuildOptionsForMetricAndWriter) {
     const utils::statistics::Snapshot
         from_metric{metrics, {.require_prefix = "bar", .require_labels = {{"kind", "x"}}}};
     const utils::statistics::Snapshot from_writer{writer, {.require_prefix = "bar", .require_labels = {{"kind", "x"}}}};
-    EXPECT_EQ(from_metric.SingleMetric({}), std::int64_t{2});
-    EXPECT_EQ(from_writer.SingleMetric({}), std::int64_t{2});
+    EXPECT_EQ(from_metric.SingleMetric({}), utils::statistics::Rate{2});
+    EXPECT_EQ(from_writer.SingleMetric({}), utils::statistics::Rate{2});
     EXPECT_THAT(utils::statistics::Snapshot{writer}, EqualsNumerically(utils::statistics::Snapshot{metrics}));
 }
 
@@ -442,11 +520,11 @@ TEST(Snapshot, FromLayeredJson) {
 namespace {
 
 struct DbMetrics {
-    utils::statistics::Rate queries{0};
+    utils::statistics::RateCounter queries;
 };
 
 struct HandlerMetrics {
-    std::int64_t requests{0};
+    utils::statistics::RateCounter requests;
     double duration_seconds{0};
 };
 
@@ -475,7 +553,7 @@ static_assert(utils::statistics::HasWriterSupport<ServiceMetrics>);
 
 TEST(Snapshot, NestedMetricsMatchLayeredReference) {
     ServiceMetrics metrics;
-    metrics.handler.requests = 120;
+    metrics.handler.requests = utils::statistics::Rate{120};
     metrics.handler.duration_seconds = 1.5;
     metrics.db.queries = utils::statistics::Rate{3};
 
@@ -824,7 +902,12 @@ INSTANTIATE_TEST_SUITE_P(
             "Unknown metric type 'COUNTER'"
         },
         MalformedCase{"[]", "/", std::nullopt},
-        MalformedCase{R"({"in_flight":{"type":"GAUGE","value":1}})", "in_flight", std::nullopt}
+        MalformedCase{R"({"in_flight":{"type":"GAUGE","value":1}})", "in_flight", std::nullopt},
+        MalformedCase{
+            R"({"requests":[{"type":"GAUGE","value":1,"labels":{"": "x"}}]})",
+            "requests[0].labels.",
+            "Label name must not be empty"
+        }
     )
 );
 
@@ -983,7 +1066,7 @@ TEST(Snapshot, MetricViewValidAfterAllMetricsResultDestroyed) {
 
 /// [metrics Snapshot filter by iteration]
 TEST(Snapshot, FilterByIteratingAllMetrics) {
-    const SampleMetrics metrics;
+    const SampleMetrics metrics = MakePopulatedSampleMetrics();
     const utils::statistics::Snapshot source{metrics};
 
     const utils::statistics::Snapshot filtered{[&source](utils::statistics::Writer& writer) {
@@ -996,7 +1079,7 @@ TEST(Snapshot, FilterByIteratingAllMetrics) {
     }};
 
     EXPECT_EQ(std::ranges::distance(filtered.AllMetrics()), 1);
-    EXPECT_EQ(filtered.SingleMetric("foo"), std::int64_t{1});
+    EXPECT_EQ(filtered.SingleMetric("foo"), utils::statistics::Rate{1});
     EXPECT_EQ(filtered.SingleMetricOptional("bar", {{"kind", "x"}}), std::nullopt);
 }
 /// [metrics Snapshot filter by iteration]
@@ -1072,7 +1155,9 @@ namespace {
 struct RoundTripMetrics {
     std::int64_t in_flight{4};
     double duration_seconds{1.5};
-    utils::statistics::Rate requests{3};
+    utils::statistics::RateCounter requests;
+
+    RoundTripMetrics() { requests = utils::statistics::Rate{3}; }
 };
 
 [[maybe_unused]] void DumpMetric(utils::statistics::Writer& writer, const RoundTripMetrics& metrics) {

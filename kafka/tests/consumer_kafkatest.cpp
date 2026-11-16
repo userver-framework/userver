@@ -1,18 +1,23 @@
 #include <userver/kafka/utest/kafka_fixture.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cstdint>
+#include <string>
 #include <unordered_set>
 #include <vector>
 
 #include <gmock/gmock-matchers.h>
 
 #include <userver/engine/deadline.hpp>
+#include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/single_use_event.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/kafka/exceptions.hpp>
 #include <userver/utest/log_capture_fixture.hpp>
 #include <userver/utils/async.hpp>
 #include <userver/utils/fixed_array.hpp>
+#include <userver/utils/span.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -130,45 +135,68 @@ UTEST_F(ConsumerTest, OneConsumerLargeTopics) {
     EXPECT_THAT(received_messages, ::testing::UnorderedElementsAreArray(test_messages));
 }
 
-UTEST_F(ConsumerTest, ManyConsumersLargeTopics) {
-    constexpr std::size_t kMessagesCount{2 * 2 * kNumPartitionsLargeTopic};
+UTEST_F(ConsumerTest, RedeliveryAfterRebalance) {
+    const auto topic = GenerateTopic(/*partition_cnt=*/2);
+    const std::array messages{
+        kafka::utest::Message{.topic = topic, .key = "key-1", .payload = "msg-1", .partition = 0},
+        kafka::utest::Message{.topic = topic, .key = "key-2", .payload = "msg-2", .partition = 1},
+        kafka::utest::Message{.topic = topic, .key = "key-3", .payload = "msg-3", .partition = 0},
+    };
+    SendMessages(utils::span{messages}.first(messages.size() - 1));
 
-    std::vector<kafka::utest::Message> test_messages{kMessagesCount};
-    std::generate_n(test_messages.begin(), kMessagesCount, [i = 0]() mutable {
-        i += 1;
-        return kafka::utest::Message{
-            .topic = i % 2 == 0 ? kLargeTopic1 : kLargeTopic2,
-            .key = fmt::format("key-{}", i),
-            .payload = fmt::format("msg-{}", i),
-            .partition = i % kNumPartitionsLargeTopic,
-        };
+    std::unordered_set<std::string> received_keys;
+    engine::SingleConsumerEvent messages_received;
+    bool redelivered = false;
+    // The mock broker derives its rebalance election delay from the session timeout.
+    kafka::impl::ConsumerConfiguration configuration{};
+    configuration.rd_kafka_options["session.timeout.ms"] = "6000";
+    configuration.rd_kafka_options["heartbeat.interval.ms"] = "1000";
+    auto consumer1 = MakeConsumer("kafka-consumer-first", {topic}, configuration);
+    auto consumer2 = MakeConsumer("kafka-consumer-second", {topic}, configuration);
+    auto scope1 = consumer1.MakeConsumerScope();
+    auto scope2 = consumer2.MakeConsumerScope();
+    const auto on_message_batch = [&](kafka::MessageBatchView batch) {
+        for (const auto& message : batch) {
+            const kafka::utest::Message received{
+                .topic = message.GetTopic(),
+                .key = std::string{message.GetKey()},
+                .payload = std::string{message.GetPayload()},
+                .partition = message.GetPartition(),
+            };
+            EXPECT_THAT(messages, ::testing::Contains(received));
+            received_keys.insert(received.key);
+        }
+        messages_received.Send();
+    };
+
+    // Leave both offsets uncommitted for the joining consumer to reread.
+    scope1.Start(on_message_batch);
+    ASSERT_EQ(
+        messages_received.WaitUntil(
+            engine::Deadline::FromDuration(utest::kMaxTestWaitTime),
+            [&] { return received_keys.size() == messages.size() - 1; }
+        ),
+        engine::FutureStatus::kReady
+    );
+    scope2.Start([&, on_message_batch](kafka::MessageBatchView batch) {
+        redelivered = true;
+        on_message_batch(batch);
     });
-    SendMessages(test_messages);
+    ASSERT_EQ(
+        messages_received
+            .WaitUntil(engine::Deadline::FromDuration(utest::kMaxTestWaitTime), [&] { return redelivered; }),
+        engine::FutureStatus::kReady
+    );
+    ASSERT_EQ(received_keys.size(), messages.size() - 1);
 
-    auto task1 = utils::Async("receive1", [this] {
-        auto consumer = MakeConsumer(
-            "kafka-consumer-first",
-            /*topics=*/{kLargeTopic1, kLargeTopic2}
-        );
-        return ReceiveMessages(consumer, kMessagesCount / 2);
-    });
-    auto task2 = utils::Async("receive2", [this] {
-        auto consumer = MakeConsumer(
-            "kafka-consumer-second",
-            /*topics=*/{kLargeTopic1, kLargeTopic2}
-        );
-        return ReceiveMessages(consumer, kMessagesCount / 2);
-    });
-
-    auto received1 = task1.Get();
-    auto received2 = task2.Get();
-
-    std::vector<kafka::utest::Message> received_messages;
-    received_messages.reserve(kMessagesCount);
-    std::move(received1.begin(), received1.end(), std::back_inserter(received_messages));
-    std::move(received2.begin(), received2.end(), std::back_inserter(received_messages));
-
-    EXPECT_THAT(received_messages, ::testing::UnorderedElementsAreArray(test_messages));
+    SendMessages(utils::span{messages}.last(1));
+    ASSERT_EQ(
+        messages_received.WaitUntil(
+            engine::Deadline::FromDuration(utest::kMaxTestWaitTime),
+            [&] { return received_keys.size() == messages.size(); }
+        ),
+        engine::FutureStatus::kReady
+    );
 }
 
 UTEST_F(ConsumerTest, OneConsumerPartitionDistribution) {
@@ -521,6 +549,111 @@ UTEST_F(ConsumerTest, SeekToEnd) {
 
     ASSERT_EQ(messages.size(), after_seemessages.size());
     EXPECT_EQ(messages[0].key, after_seemessages[0].key);
+}
+
+UTEST_F(ConsumerTest, SeekDoesNotLoseMessagesOfOtherPartitions) {
+    static constexpr std::uint32_t kSoughtPartition{0};
+    static constexpr std::uint32_t kPartitionWithMessages{1};
+    constexpr std::size_t kMessagesCount{5};
+
+    const auto topic = GenerateTopic(/*partition_cnt=*/2);
+    const auto messages = utils::GenerateFixedArray(kMessagesCount, [&topic](std::size_t i) {
+        return kafka::utest::Message{
+            .topic = topic,
+            .key = fmt::format("key-{}", i),
+            .payload = fmt::format("msg-{}", i),
+            .partition = kPartitionWithMessages,
+        };
+    });
+    SendMessages(messages);
+
+    std::vector<kafka::utest::Message> actual_messages;
+    engine::SingleUseEvent all_messages_received;
+    engine::SingleUseEvent seek_completed;
+
+    auto consumer = MakeConsumer("kafka-consumer", {topic});
+    auto consumer_scope = consumer.MakeConsumerScope();
+
+    auto rebalance_callback =
+        [&consumer_scope,
+         &seek_completed](kafka::TopicPartitionBatchView partitions, kafka::RebalanceEventType event_type) {
+            if (event_type != kafka::RebalanceEventType::kAssigned) {
+                return;
+            }
+            for (const auto& topic_partition : partitions) {
+                if (topic_partition.partition_id == kSoughtPartition) {
+                    UEXPECT_NO_THROW(consumer_scope.SeekToBeginning(
+                        topic_partition.topic,
+                        topic_partition.partition_id,
+                        utest::kMaxTestWaitTime
+                    ));
+                    seek_completed.Send();
+                }
+            }
+        };
+    consumer_scope.SetRebalanceCallback(std::move(rebalance_callback));
+
+    consumer_scope.Start([&](kafka::MessageBatchView batch) {
+        for (const auto& message : batch) {
+            actual_messages.push_back(kafka::utest::Message{
+                message.GetTopic(),
+                std::string{message.GetKey()},
+                std::string{message.GetPayload()},
+                message.GetPartition(),
+            });
+        }
+        consumer_scope.AsyncCommit();
+        if (actual_messages.size() >= kMessagesCount && !all_messages_received.IsReady()) {
+            all_messages_received.Send();
+        }
+    });
+
+    static_cast<void>(all_messages_received.WaitUntil(engine::Deadline::FromDuration(utest::kMaxTestWaitTime)));
+    consumer_scope.Stop();
+
+    EXPECT_TRUE(seek_completed.IsReady());
+    ASSERT_EQ(actual_messages.size(), kMessagesCount);
+    for (std::size_t i = 0; i < kMessagesCount; ++i) {
+        EXPECT_EQ(actual_messages[i].key, messages[i].key);
+        EXPECT_EQ(actual_messages[i].partition.value(), kPartitionWithMessages);
+    }
+}
+
+UTEST_F(ConsumerTest, SeekOfUnknownPartitionThrows) {
+    static constexpr std::uint32_t kUnknownPartition{42};
+    static constexpr std::chrono::milliseconds kSeekTimeout{100};
+
+    const auto topic = GenerateTopic();
+    const std::array messages{
+        kafka::utest::Message{.topic = topic, .key = "key-1", .payload = "value-1", .partition = 0},
+    };
+    SendMessages(messages);
+
+    auto consumer = MakeConsumer("kafka-consumer", {topic});
+    auto consumer_scope = consumer.MakeConsumerScope();
+
+    engine::SingleUseEvent seek_completed;
+    auto rebalance_callback =
+        [&consumer_scope,
+         &seek_completed,
+         &topic](kafka::TopicPartitionBatchView, kafka::RebalanceEventType event_type) {
+            if (event_type != kafka::RebalanceEventType::kAssigned) {
+                return;
+            }
+            UEXPECT_THROW(consumer_scope.SeekToBeginning(topic, kUnknownPartition, kSeekTimeout), kafka::SeekException);
+            seek_completed.Send();
+        };
+    consumer_scope.SetRebalanceCallback(std::move(rebalance_callback));
+
+    const auto received_messages = ReceiveMessages(
+        consumer_scope,
+        /*expected_messages_count=*/messages.size(),
+        /*commit_after_receive=*/true
+    );
+
+    seek_completed.Wait();
+    ASSERT_EQ(received_messages.size(), messages.size());
+    EXPECT_EQ(received_messages[0].key, messages[0].key);
 }
 
 UTEST_F(ConsumerTest, ConsumerRecreatesAfterFatalLibrdkafkaError) {

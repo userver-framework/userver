@@ -93,14 +93,11 @@ Logging::Logging(const ComponentConfig& config, const ComponentContext& context)
 
         /// [Signals sample - init]
         auto& signals_processor = context.FindComponent<os_signals::ProcessorComponent>().Get();
-        context.Scopes().Register([this, &signals_processor] {
-            auto holder = signals_processor.AddListener(this, kName, os_signals::kSigUsr1, &Logging::OnLogRotate);
-
+        signals_processor.AddListener(context.Scopes(), this, kName, os_signals::kSigUsr1, &Logging::OnLogRotate);
+        context.Scopes().Register([this] {
             // Force logrotate just after signal subscription to be sure we haven't lost signals during the loading.
             // If there were no signals, it's OK to re-open log files one more time.
             OnLogRotate();
-
-            return holder;
         });
         /// [Signals sample - init]
     } catch (const std::exception&) {

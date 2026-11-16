@@ -17,7 +17,7 @@
 #include <userver/storages/redis/wait_connected_mode.hpp>
 #include <userver/testsuite/redis_control.hpp>
 #include <userver/utils/not_null.hpp>
-#include <userver/utils/statistics/entry.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

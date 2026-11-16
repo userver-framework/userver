@@ -13,6 +13,7 @@
 #include <userver/testsuite/cache_control.hpp>
 #include <userver/testsuite/dump_control.hpp>
 #include <userver/utils/resource_scopes.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 #include <userver/utils/statistics/storage.hpp>
 
 USERVER_NAMESPACE_BEGIN

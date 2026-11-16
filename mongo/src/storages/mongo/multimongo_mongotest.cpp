@@ -51,6 +51,15 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
   )~";
 
     struct SecdistConfigStorage {
+        SecdistConfigStorage(utils::ResourceScopeStorage& scopes, storages::secdist::Secdist& secdist) {
+            secdist.UpdateAndListen(
+                scopes,
+                this,
+                "test/multimongo_update_secdist",
+                &SecdistConfigStorage::OnSecdistUpdate
+            );
+        }
+
         void OnSecdistUpdate(const storages::secdist::SecdistConfig& secdist_config_update) {
             if (updates_counter == 1) {
                 // prevents test flaps
@@ -72,7 +81,6 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
         engine::SingleConsumerEvent updated_twice{engine::SingleConsumerEvent::NoAutoReset{}};
     };
 
-    SecdistConfigStorage storage;
     auto dns_resolver = MakeDnsResolver();
 
     auto temp_file = fs::blocking::TempFile::Create();
@@ -87,8 +95,8 @@ UTEST(MultiMongo, DynamicSecdistUpdate) {
          {}}
     };
     storages::secdist::Secdist secdist{{&provider, std::chrono::milliseconds(100)}};
-    auto subscriber =
-        secdist.UpdateAndListen(&storage, "test/multimongo_update_secdist", &SecdistConfigStorage::OnSecdistUpdate);
+    utils::WithResourceScopes<SecdistConfigStorage> scoped_storage(std::in_place, secdist);
+    auto& storage = *scoped_storage;
     EXPECT_EQ(storage.updates_counter.load(), 1);
 
     const auto dynamic_config = MakeDynamicConfig();

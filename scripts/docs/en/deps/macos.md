@@ -1,3 +1,4 @@
+aklomp-base64
 aws-sdk-cpp
 boost
 c-ares

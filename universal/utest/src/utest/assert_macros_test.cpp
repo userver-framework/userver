@@ -2,21 +2,22 @@
 
 #include <cstdlib>
 #include <stdexcept>
+#include <string_view>
 #include <type_traits>
 
 #include <gtest/gtest-spi.h>
-#include <boost/algorithm/string/trim.hpp>
 
 #include <userver/logging/stacktrace_cache.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/text_light.hpp>
 #include <userver/utils/traceful_exception.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
-namespace {
+using namespace std::literals;
+using utils::text::Trim;
 
-// To make formatting of code with multiline raw strings palatable
-std::string Trim(std::string_view string) { return boost::algorithm::trim_copy(std::string{string}); }
+namespace {
 
 void BarrelRoll() {}
 
@@ -42,17 +43,17 @@ TEST(AssertMacros, ExpectThrowMsg) {
     EXPECT_NONFATAL_FAILURE(UEXPECT_THROW_MSG(throw std::length_error("what"), std::logic_error, "foo"), Trim(R"~(
   Expected: 'throw std::length_error("what")' throws 'std::logic_error' with message containing 'foo'.
   Actual: it throws an exception of type 'std::length_error' with message 'what'.
-  )~"));
+  )~"sv));
 
     EXPECT_NONFATAL_FAILURE(UEXPECT_THROW_MSG(throw std::runtime_error("what"), std::logic_error, "what"), Trim(R"~(
   Expected: 'throw std::runtime_error("what")' throws 'std::logic_error' with message containing 'what'.
   Actual: it throws an exception of a different type 'std::runtime_error' with message 'what'.
-  )~"));
+  )~"sv));
 
     EXPECT_NONFATAL_FAILURE(UEXPECT_THROW_MSG(BarrelRoll(), std::runtime_error, "what"), Trim(R"~(
   Expected: 'BarrelRoll()' throws 'std::runtime_error' with message containing 'what'.
   Actual: it does not throw.
-  )~"));
+  )~"sv));
 
     // NOLINTNEXTLINE(hicpp-exception-baseclass)
     EXPECT_NONFATAL_FAILURE(
@@ -67,7 +68,7 @@ TEST(AssertMacros, AssertThrowMsg) {
     EXPECT_FATAL_FAILURE(UASSERT_THROW_MSG(throw std::length_error("what"), std::logic_error, "foo"), Trim(R"~(
   Expected: 'throw std::length_error("what")' throws 'std::logic_error' with message containing 'foo'.
   Actual: it throws an exception of type 'std::length_error' with message 'what'.
-  )~"));
+  )~"sv));
 }
 
 TEST(AssertMacros, ExpectThrow) {
@@ -76,12 +77,12 @@ TEST(AssertMacros, ExpectThrow) {
     EXPECT_NONFATAL_FAILURE(UEXPECT_THROW(throw std::runtime_error("what"), std::logic_error), Trim(R"~(
   Expected: 'throw std::runtime_error("what")' throws 'std::logic_error'.
   Actual: it throws an exception of a different type 'std::runtime_error' with message 'what'.
-  )~"));
+  )~"sv));
 
     EXPECT_NONFATAL_FAILURE(UEXPECT_THROW(BarrelRoll(), std::runtime_error), Trim(R"~(
   Expected: 'BarrelRoll()' throws 'std::runtime_error'.
   Actual: it does not throw.
-  )~"));
+  )~"sv));
 
     // NOLINTNEXTLINE(hicpp-exception-baseclass)
     EXPECT_NONFATAL_FAILURE(UEXPECT_THROW(throw 0, std::logic_error), "'throw 0' throws a non-std::exception");
@@ -93,7 +94,7 @@ TEST(AssertMacros, AssertThrow) {
     EXPECT_FATAL_FAILURE(UASSERT_THROW(throw std::runtime_error("what"), std::logic_error), Trim(R"~(
   Expected: 'throw std::runtime_error("what")' throws 'std::logic_error'.
   Actual: it throws an exception of a different type 'std::runtime_error' with message 'what'.
-  )~"));
+  )~"sv));
 }
 
 TEST(AssertMacros, ExpectNoThrow) {
@@ -102,7 +103,7 @@ TEST(AssertMacros, ExpectNoThrow) {
     EXPECT_NONFATAL_FAILURE(UEXPECT_NO_THROW(throw std::runtime_error("what")), Trim(R"~(
   Expected: 'throw std::runtime_error("what")' does not throw.
   Actual: it throws an exception of type 'std::runtime_error' with message 'what'.
-  )~"));
+  )~"sv));
 
     // NOLINTNEXTLINE(hicpp-exception-baseclass)
     EXPECT_NONFATAL_FAILURE(UEXPECT_NO_THROW(throw 0), "'throw 0' throws a non-std::exception");
@@ -114,7 +115,7 @@ TEST(AssertMacros, AssertNoThrow) {
     EXPECT_FATAL_FAILURE(UASSERT_NO_THROW(throw std::runtime_error("what")), Trim(R"~(
   Expected: 'throw std::runtime_error("what")' does not throw.
   Actual: it throws an exception of type 'std::runtime_error' with message 'what'.
-  )~"));
+  )~"sv));
 }
 
 TEST(AssertMacros, LocalVariables) {
@@ -147,7 +148,7 @@ TEST(AssertMacros, TracefulException) {
 
     EXPECT_NONFATAL_FAILURE(
         UEXPECT_THROW(DummyWrapperFunction(), std::runtime_error),
-        Trim("with message 'what' and trace:\n 0# ")
+        Trim("with message 'what' and trace:\n 0# "sv)
     );
 
     EXPECT_NONFATAL_FAILURE(UEXPECT_THROW(DummyWrapperFunction(), std::runtime_error), "DummyTracedException");

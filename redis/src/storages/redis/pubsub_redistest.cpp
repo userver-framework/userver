@@ -12,6 +12,7 @@
 #include <userver/engine/sleep.hpp>
 #include <userver/engine/task/task.hpp>
 #include <userver/utils/async.hpp>
+#include <userver/utils/uuid4.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -165,7 +166,6 @@ UTEST_P_MT(RedisPubsubTestBasic, MultiPatternPsubscribe, 2) {
 // common token and queue implementation from mixing the two subscription modes. Runs only in Arcadia.
 UTEST_F_MT(RedisClusterPubsubTest, RegularAndShardedSubscriptionsAreIndependent, 2) {
 #ifdef ARCADIA_ROOT
-    const std::string channel = "shared-pubsub-channel";
     const std::string regular_message = "regular-message";
     const std::string sharded_message = "sharded-message";
     const std::string regular_after_unsubscribe = "regular-after-unsubscribe";
@@ -173,6 +173,7 @@ UTEST_F_MT(RedisClusterPubsubTest, RegularAndShardedSubscriptionsAreIndependent,
     constexpr auto kPublishInterval = std::chrono::milliseconds{100};
 
     for (const bool unsubscribe_regular : {true, false}) {
+        const std::string channel = utils::generators::GenerateUuid();
         engine::SingleConsumerEvent regular_received;
         engine::SingleConsumerEvent sharded_received;
         engine::SingleConsumerEvent after_unsubscribe_received;

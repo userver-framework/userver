@@ -70,21 +70,14 @@ if(NOT "abseil-cpp" IN_LIST CPM_PACKAGES AND (TARGET absl::base OR absl_FOUND))
     cpmregisterpackage(abseil-cpp "${USERVER_ABSEIL_VERSION}")
 endif()
 
-cpmaddpackage(
-    NAME base64
-    VERSION 0.5.2
-    URL https://github.com/aklomp/base64/archive/v0.5.2.tar.gz
-    URL_HASH SHA256=723a0f9f4cf44cf79e97bcc315ec8f85e52eb104c8882942c3f2fba95acc080d
-    OPTIONS "CMAKE_SKIP_INSTALL_RULES ON"
-)
-write_package_stub(base64)
-add_library(aklomp::base64 ALIAS base64)
+include(SetupBase64)
 
 cpmaddpackage(
     NAME jwt-cpp
     VERSION 0.7.0
     URL https://github.com/Thalhammer/jwt-cpp/archive/v0.7.0.tar.gz
     URL_HASH SHA256=b9eb270e3ba8221e4b2bc38723c9a1cb4fa6c241a42908b9a334daff31137406
+    EXCLUDE_FROM_ALL YES
     OPTIONS "JWT_BUILD_EXAMPLES OFF" "CMAKE_SKIP_INSTALL_RULES ON"
 )
 write_package_stub(jwt-cpp)

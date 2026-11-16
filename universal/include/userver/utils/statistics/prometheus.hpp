@@ -2,12 +2,13 @@
 
 /// @file userver/utils/statistics/prometheus.hpp
 /// @brief Statistics output in Prometheus format.
+/// @ingroup userver_universal
 
 #include <string>
 #include <string_view>
 
 #include <userver/utils/statistics/request.hpp>
-#include <userver/utils/statistics/writer.hpp>
+#include <userver/utils/statistics/visit.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

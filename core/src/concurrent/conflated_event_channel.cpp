@@ -9,48 +9,52 @@ namespace concurrent {
 
 ConflatedEventChannel::ConflatedEventChannel(std::string name, OnRemoveCallback on_listener_removal)
     : AsyncEventChannel<>(std::move(name), std::move(on_listener_removal)),
-      stop_flag_(false)
+      data_(std::in_place, static_cast<AsyncEventChannel<>&>(*this))
+{}
+
+ConflatedEventChannel::~ConflatedEventChannel() = default;
+
+ConflatedEventChannel::Data::Data(utils::ResourceScopeStorage& scopes, AsyncEventChannel<>& channel)
+    : scopes(scopes),
+      name(channel.Name())
 {
-    LOG_DEBUG() << Name() << ": start event listener task";
-    task_ = utils::Async(Name() + "/event_listener", [this] {
-        while (event_.WaitForEvent()) {
-            if (stop_flag_) {
+    LOG_DEBUG() << name << ": start event listener task";
+    task = utils::CriticalAsync(name + "/event_listener", [this, &channel] {
+        while (event.WaitForEvent()) {
+            if (stop_flag) {
                 break;
             }
-            LOG_TRACE() << Name() << ": send event";
+            LOG_TRACE() << name << ": send event";
             try {
-                AsyncEventChannel<>::SendEvent();
+                channel.SendEvent();
             } catch (const std::exception& e) {
-                LOG_ERROR() << Name() << ": unexpected exception in SendEvent: " << e;
+                LOG_ERROR() << name << ": unexpected exception in SendEvent: " << e;
             }
         }
-        LOG_DEBUG() << Name() << ": event listener task ends";
+        LOG_DEBUG() << name << ": event listener task ends";
     });
 }
 
-ConflatedEventChannel::~ConflatedEventChannel() {
-    LOG_DEBUG() << Name() << ": stop event listener task";
-    for (auto& s : subscriptions_) {
-        s.Unsubscribe();
-    }
-    subscriptions_.clear();
-
-    stop_flag_ = true;
-    event_.Send();
+ConflatedEventChannel::Data::~Data() {
+    LOG_DEBUG() << name << ": stop event listener task";
+    stop_flag = true;
+    event.Send();
     try {
-        task_.Get();
+        task.Get();
     } catch (const std::exception& e) {
-        LOG_ERROR() << Name() << ": unexpected exception in task_.Get: " << e;
+        LOG_ERROR() << name << ": unexpected exception in task.Get: " << e;
     }
 }
 
-void ConflatedEventChannel::SendEvent() {
-    LOG_TRACE() << Name() << ": channel event received";
-    event_.Send();
-    if (task_.IsFinished()) {
-        throw std::runtime_error(Name() + ": event listener died unexpectedly");
+void ConflatedEventChannel::Data::SendEvent() {
+    LOG_TRACE() << name << ": channel event received";
+    event.Send();
+    if (task.IsFinished()) {
+        throw std::runtime_error(name + ": event listener died unexpectedly");
     }
 }
+
+void ConflatedEventChannel::SendEvent() { data_->SendEvent(); }
 
 }  // namespace concurrent
 

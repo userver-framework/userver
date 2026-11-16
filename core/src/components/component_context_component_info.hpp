@@ -116,7 +116,7 @@ private:
     mutable engine::Mutex mutex_;
     mutable engine::ConditionVariable cv_;
     std::unique_ptr<RawComponentBase> component_;
-    utils::ResourceScopeStorage resource_scopes_;
+    utils::ResourceScopeStorage resource_scopes_{utils::UnsafeManualResourceScopes{}};
     std::set<ComponentInfoRef> it_depends_on_;
     std::set<ComponentInfoRef> depends_on_it_;
     ComponentLifetimeStage stage_ = ComponentLifetimeStage::kNull;

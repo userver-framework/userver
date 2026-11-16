@@ -76,11 +76,13 @@ public:
 
     bool IsPeriodicUpdateEnabled() const;
 
+#ifndef ARCADIA_ROOT
     concurrent::AsyncEventSubscriberScope DoUpdateAndListen(
         concurrent::FunctionId id,
         std::string_view name,
         EventSource::Function&& func
     );
+#endif
 
     void DoUpdateAndListen(
         utils::ResourceScopeStorage& scopes,
@@ -133,6 +135,7 @@ bool Secdist::Impl::IsPeriodicUpdateEnabled() const {
     return settings_.update_period != std::chrono::milliseconds::zero();
 }
 
+#ifndef ARCADIA_ROOT
 concurrent::AsyncEventSubscriberScope Secdist::Impl::DoUpdateAndListen(
     concurrent::FunctionId id,
     std::string_view name,
@@ -144,6 +147,7 @@ concurrent::AsyncEventSubscriberScope Secdist::Impl::DoUpdateAndListen(
         func_copy(*snapshot);
     });
 }
+#endif
 
 void Secdist::Impl::DoUpdateAndListen(
     utils::ResourceScopeStorage& scopes,
@@ -155,7 +159,7 @@ void Secdist::Impl::DoUpdateAndListen(
         const auto snapshot = GetSnapshot();
         func_copy(*snapshot);
     };
-    channel_.DoUpdateAndListenScoped(scopes, id, name, std::move(func), std::move(updater));
+    channel_.DoUpdateAndListen(scopes, id, name, std::move(func), std::move(updater));
 }
 
 void Secdist::Impl::StartUpdateTask() {
@@ -184,6 +188,7 @@ rcu::ReadablePtr<SecdistConfig> Secdist::GetSnapshot() const { return impl_->Get
 
 bool Secdist::IsPeriodicUpdateEnabled() const noexcept { return impl_->IsPeriodicUpdateEnabled(); }
 
+#ifndef ARCADIA_ROOT
 concurrent::AsyncEventSubscriberScope Secdist::DoUpdateAndListen(
     concurrent::FunctionId id,
     std::string_view name,
@@ -191,6 +196,7 @@ concurrent::AsyncEventSubscriberScope Secdist::DoUpdateAndListen(
 ) {
     return impl_->DoUpdateAndListen(id, name, std::move(func));
 }
+#endif
 
 void Secdist::DoUpdateAndListen(
     utils::ResourceScopeStorage& scopes,

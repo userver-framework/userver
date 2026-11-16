@@ -1,6 +1,8 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
+#include <cstddef>
+#include <functional>
 #include <limits>
 #include <map>
 #include <optional>
@@ -9,10 +11,12 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include <boost/container/flat_map.hpp>
 #include <boost/container/flat_set.hpp>
+#include <boost/container/static_vector.hpp>
 #include <boost/optional.hpp>
 
 #include <userver/formats/common/type.hpp>
@@ -23,6 +27,7 @@
 #include <userver/formats/parse/variant.hpp>
 #include <userver/utest/assert_macros.hpp>
 #include <userver/utils/meta_light.hpp>
+#include <userver/utils/str_icase.hpp>
 
 namespace boost {
 template <class T>
@@ -38,6 +43,31 @@ void PrintTo(const optional<T>& from, std::ostream* os) {
 USERVER_NAMESPACE_BEGIN
 
 namespace testing_namespace {
+
+struct MoveCountingType {
+    explicit MoveCountingType(int value)
+        : value(value)
+    {}
+
+    MoveCountingType(MoveCountingType&& other) noexcept : value(other.value) {
+        ++moves;
+    }
+
+    MoveCountingType& operator=(MoveCountingType&& other) noexcept {
+        value = other.value;
+        ++moves;
+        return *this;
+    }
+
+    int value;
+    inline static std::size_t moves{0};
+};
+
+template <class Value>
+MoveCountingType Parse(const Value& value, formats::parse::To<MoveCountingType>) {
+    return MoveCountingType{value.template As<int>()};
+}
+
 struct TestType {
     int i;
 };
@@ -95,6 +125,17 @@ TYPED_TEST_P(Parsing, VectorInt) {
     EXPECT_EQ((std::vector<int>{1, 2, 3}), v);
 }
 
+TYPED_TEST_P(Parsing, VectorWithoutElementRelocation) {
+    const auto value = this->kFromString("[0,1,2,3,4]");
+    testing_namespace::MoveCountingType::moves = 0;
+    const auto result = value.template As<std::vector<testing_namespace::MoveCountingType>>();
+    ASSERT_EQ(result.size(), 5);
+    EXPECT_EQ(testing_namespace::MoveCountingType::moves, result.size());
+    for (std::size_t index = 0; index < result.size(); ++index) {
+        EXPECT_EQ(result[index].value, index);
+    }
+}
+
 TYPED_TEST_P(Parsing, VectorIntNull) {
     auto value = this->kFromString(R"({"null": null})")["null"];
     auto v = value.template As<std::vector<int>>();
@@ -133,12 +174,48 @@ TYPED_TEST_P(Parsing, BoostContainerFlatSet) {
     }
 }
 
+TYPED_TEST_P(Parsing, BoostContainerStaticFlatSet) {
+    using Set = boost::container::flat_set<int, std::less<int>, boost::container::static_vector<int, 2>>;
+    const auto value = this->kFromString("[1,2,1,2]");
+    EXPECT_THAT(value.template As<Set>(), testing::ElementsAre(1, 2));
+    if constexpr (requires { value.template ConvertTo<Set>(); }) {
+        EXPECT_THAT(value.template ConvertTo<Set>(), testing::ElementsAre(1, 2));
+    }
+}
+
+TYPED_TEST_P(Parsing, BoostContainerStaticFlatSetOverflow) {
+    using Set = boost::container::flat_set<int, std::less<int>, boost::container::static_vector<int, 2>>;
+    const auto value = this->kFromString("[1,2,3]");
+    EXPECT_THROW(value.template As<Set>(), std::exception);
+    if constexpr (requires { value.template ConvertTo<Set>(); }) {
+        EXPECT_THROW(value.template ConvertTo<Set>(), std::exception);
+    }
+}
+
 TYPED_TEST_P(Parsing, BoostContainerFlatMap) {
     auto value = this->kFromString(R"({"b":1, "a":0})");
     auto v = value.template As<boost::container::flat_map<std::string, int>>();
     EXPECT_EQ(2, v.size());
     for (std::size_t i = 0; i < v.size(); ++i) {
         EXPECT_EQ(v.nth(i)->second, i) << i;
+    }
+}
+
+TYPED_TEST_P(Parsing, BoostContainerStaticFlatMap) {
+    using Map = boost::container::flat_map<
+        std::string,
+        int,
+        utils::StrIcaseLess,
+        boost::container::static_vector<std::pair<std::string, int>, 2>>;
+    const auto value = this->kFromString(R"({"a":1,"A":1,"b":2,"B":2})");
+    const auto check = [](const Map& result) {
+        EXPECT_EQ(result.size(), 2);
+        EXPECT_EQ(result.at("a"), 1);
+        EXPECT_EQ(result.at("b"), 2);
+    };
+    check(value.template As<Map>());
+    if constexpr (requires { value.template ConvertTo<Map>(); }) {
+        check(value.template ConvertTo<Map>());
     }
 }
 
@@ -407,6 +484,7 @@ REGISTER_TYPED_TEST_SUITE_P(
 
     ContainersCtr,
     VectorInt,
+    VectorWithoutElementRelocation,
     VectorIntNull,
     VectorIntErrorObj,
     VectorVectorInt,
@@ -415,7 +493,10 @@ REGISTER_TYPED_TEST_SUITE_P(
     MapWithCustomKey,
 
     BoostContainerFlatSet,
+    BoostContainerStaticFlatSet,
+    BoostContainerStaticFlatSetOverflow,
     BoostContainerFlatMap,
+    BoostContainerStaticFlatMap,
 
     BoostOptionalIntNone,
     BoostOptionalInt,

@@ -1,4 +1,9 @@
+#include <cstdint>
+#include <string>
+#include <vector>
+
 #include <benchmark/benchmark.h>
+#include <fmt/format.h>
 
 #include <userver/engine/run_standalone.hpp>
 #include <userver/logging/impl/logger_base.hpp>
@@ -50,6 +55,25 @@ void TracingOpentracingCtr(benchmark::State& state) {
     });
 }
 BENCHMARK(TracingOpentracingCtr);
+
+void TracingScopeTimeLaps(benchmark::State& state) {
+    const logging::DefaultLoggerGuard guard{logging::impl::MakeNoopLoggerForTests()};
+    std::vector<std::string> scope_names;
+    for (std::int64_t i = 0; i < state.range(0); ++i) {
+        scope_names.push_back(fmt::format("attempt.{}.call", i));
+    }
+
+    engine::RunStandalone([&] {
+        for ([[maybe_unused]] auto _ : state) {
+            auto span = tracing::Span::MakeRootSpan("name");
+            for (const auto& scope_name : scope_names) {
+                const auto scope_time = span.CreateScopeTime(scope_name);
+            }
+            benchmark::DoNotOptimize(span.GetSpanId());
+        }
+    });
+}
+BENCHMARK(TracingScopeTimeLaps)->Arg(1)->Arg(3)->Arg(6)->Arg(12);
 
 }  // namespace
 

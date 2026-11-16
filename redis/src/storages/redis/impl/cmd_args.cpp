@@ -50,6 +50,12 @@ void CmdWithArgs::PutArg(const std::vector<std::string>& arg) {
     }
 }
 
+void CmdWithArgs::PutArg(std::vector<std::string>&& arg) {
+    for (auto& str : arg) {
+        args_.emplace_back(std::move(str));
+    }
+}
+
 void CmdWithArgs::PutArg(const std::vector<std::pair<std::string, std::string>>& arg) {
     for (const auto& pair : arg) {
         args_.emplace_back(pair.first);
@@ -57,10 +63,24 @@ void CmdWithArgs::PutArg(const std::vector<std::pair<std::string, std::string>>&
     }
 }
 
+void CmdWithArgs::PutArg(std::vector<std::pair<std::string, std::string>>&& arg) {
+    for (auto& pair : arg) {
+        args_.emplace_back(std::move(pair.first));
+        args_.emplace_back(std::move(pair.second));
+    }
+}
+
 void CmdWithArgs::PutArg(const std::vector<std::pair<double, std::string>>& arg) {
     for (const auto& pair : arg) {
         args_.emplace_back(std::to_string(pair.first));
         args_.emplace_back(pair.second);
+    }
+}
+
+void CmdWithArgs::PutArg(std::vector<std::pair<double, std::string>>&& arg) {
+    for (auto& pair : arg) {
+        args_.emplace_back(std::to_string(pair.first));
+        args_.emplace_back(std::move(pair.second));
     }
 }
 

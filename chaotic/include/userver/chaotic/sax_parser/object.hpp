@@ -1,13 +1,17 @@
 #pragma once
 
 #include <array>
+#include <optional>
+#include <type_traits>
 #include <unordered_map>
 
 #include <userver/chaotic/object.hpp>
 #include <userver/chaotic/primitive.hpp>
 #include <userver/chaotic/sax_parser/primitive.hpp>
+#include <userver/chaotic/sax_parser_join.hpp>
 #include <userver/formats/json/parser/array_parser.hpp>
 #include <userver/formats/json/parser/dummy_parser.hpp>
+#include <userver/formats/json/parser/nullable_item_parser.hpp>
 #include <userver/formats/json/parser/parser_json.hpp>
 #include <userver/formats/json/value_builder.hpp>
 #include <userver/utils/constexpr_indices.hpp>
@@ -55,6 +59,21 @@ struct FieldModeSubscriber<Defaulted<DescriptorType, T, Default>> {
 template <typename DescriptorType, auto DefaultGetter>
 struct FieldModeSubscriber<DefaultedBy<DescriptorType, DefaultGetter>> {
     using Type = formats::json::parser::SubscriberSink<TypeOfDescriptor<DescriptorType>>;
+};
+
+template <typename Mode>
+struct FieldModeParser {
+    using Type = Parser<typename Mode::Descriptor>;
+};
+
+// Handle null before the enum's string/integer parser rejects it.
+// Required enum fields keep using the non-nullable parser.
+template <typename Enum>
+requires std::is_enum_v<Enum>
+struct FieldModeParser<Optional<Primitive<Enum>>> {
+    using ValueParser = Parser<Primitive<Enum>>;
+    using NullableParser = formats::json::parser::NullableItemParser<std::optional<Enum>, ValueParser>;
+    using Type = JoinedParser<NullableParser, ValueParser>;
 };
 
 template <typename Field>
@@ -253,7 +272,7 @@ public:
 
 private:
     std::array<bool, sizeof...(Field)> seen_ = {};
-    std::variant<std::monostate, Parser<typename Field::Descriptor>...> parser_{};
+    std::variant<std::monostate, typename FieldModeParser<typename Field::ModeDescriptorType>::Type...> parser_{};
     std::variant<std::monostate, FieldSubscriber<Field>...> subscriber_{};
     Struct& object_;
 

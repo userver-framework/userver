@@ -76,6 +76,60 @@ utils::statistics::MetricTag<std::atomic<size_t>> kCcStatusCodeIsCustom{
 
 }  // namespace
 
+bool HttpRequestHandler::CheckRequestAdmission(HttpRequest& http_request) const {
+    const auto* handler = http_request.GetHttpHandler();
+    UASSERT(handler);
+    auto& http_response = GetHttpResponseImpl(http_request);
+    const auto throttling_enabled = handler->GetConfig().throttling_enabled;
+
+    if (throttling_enabled && http_response.IsLimitReached()) {
+        http_response.SetThrottleReason(
+            "Too many pending responses",
+            std::string{USERVER_NAMESPACE::http::headers::ratelimit_reason::kMaxPendingResponses}
+        );
+
+        http_request.SetResponseStatus(HttpStatus::kTooManyRequests);
+        GetHttpResponseImpl(http_request).SetReady();
+        LOG_LIMITED_ERROR()
+            << "Request throttled (too many pending responses, "
+               "limit via 'server.max_response_size_in_flight')";
+        return false;
+    }
+
+    if (throttling_enabled && !rate_limit_.Obtain()) {
+        const auto config = config_source_.GetSnapshot();
+        auto config_var = config[::dynamic_config::USERVER_RPS_CCONTROL_CUSTOM_STATUS];
+        const auto& delta = config_var.max_time_ms;
+
+        auto status = HttpStatus::kTooManyRequests;
+        if (cc_enabled_tp_.load() > std::chrono::steady_clock::now() - delta) {
+            status = static_cast<http::HttpStatus>(config_var.initial_status_code);
+            metrics_->GetMetric(kCcStatusCodeIsCustom) = 1;
+        } else {
+            status = cc_status_code_.load();
+            metrics_->GetMetric(kCcStatusCodeIsCustom) = 0;
+        }
+
+        http_response.SetThrottleReason(
+            "congestion-control",
+            std::string{USERVER_NAMESPACE::http::headers::ratelimit_reason::kCC}
+        );
+
+        http_response.SetStatus(status);
+        http_response.SetReady();
+
+        LOG_LIMITED_ERROR()
+            << "Request throttled (congestion control, "
+               "limit via USERVER_RPS_CCONTROL and USERVER_RPS_CCONTROL_ENABLED), "
+            << "limit=" << rate_limit_.GetRatePs() << "/sec, "
+            << "handler=" << handler->HandlerName() << ", status_code=" << static_cast<size_t>(status);
+
+        return false;
+    }
+
+    return true;
+}
+
 engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(std::shared_ptr<http::HttpRequest> http_request
 ) const {
     auto& http_response = GetHttpResponseImpl(*http_request);
@@ -97,52 +151,10 @@ engine::TaskWithResult<void> HttpRequestHandler::StartRequestTask(std::shared_pt
         // by HttpRequestConstructor::CheckStatus
         return StartFailsafeTask(std::move(http_request));
     }
-    auto throttling_enabled = handler->GetConfig().throttling_enabled;
-
-    if (throttling_enabled && http_response.IsLimitReached()) {
-        http_response.SetThrottleReason(
-            "Too many pending responses",
-            std::string{USERVER_NAMESPACE::http::headers::ratelimit_reason::kMaxPendingResponses}
-        );
-
-        http_request->SetResponseStatus(HttpStatus::kTooManyRequests);
-        GetHttpResponseImpl(*http_request).SetReady();
-        LOG_LIMITED_ERROR()
-            << "Request throttled (too many pending responses, "
-               "limit via 'server.max_response_size_in_flight')";
+    if (!CheckRequestAdmission(*http_request)) {
         return StartFailsafeTask(std::move(http_request));
     }
-
-    if (throttling_enabled && !rate_limit_.Obtain()) {
-        const auto config = config_source_.GetSnapshot();
-        auto config_var = config[::dynamic_config::USERVER_RPS_CCONTROL_CUSTOM_STATUS];
-        const auto& delta = config_var.max_time_ms;
-
-        auto status = HttpStatus::kTooManyRequests;
-        if (cc_enabled_tp_ > std::chrono::steady_clock::now() - delta) {
-            status = static_cast<http::HttpStatus>(config_var.initial_status_code);
-            metrics_->GetMetric(kCcStatusCodeIsCustom) = 1;
-        } else {
-            status = cc_status_code_.load();
-            metrics_->GetMetric(kCcStatusCodeIsCustom) = 0;
-        }
-
-        http_response.SetThrottleReason(
-            "congestion-control",
-            std::string{USERVER_NAMESPACE::http::headers::ratelimit_reason::kCC}
-        );
-
-        http_response.SetStatus(status);
-        http_response.SetReady();
-
-        LOG_LIMITED_ERROR()
-            << "Request throttled (congestion control, "
-               "limit via USERVER_RPS_CCONTROL and USERVER_RPS_CCONTROL_ENABLED), "
-            << "limit=" << rate_limit_.GetRatePs() << "/sec, "
-            << "url=" << http_request->GetUrl() << ", status_code=" << static_cast<size_t>(status);
-
-        return StartFailsafeTask(std::move(http_request));
-    }
+    const auto throttling_enabled = handler->GetConfig().throttling_enabled;
 
     auto payload = [request = std::move(http_request), handler] {
         server::request::kTaskInheritedRequest.Set(std::static_pointer_cast<HttpRequest>(request));
@@ -182,7 +194,7 @@ void HttpRequestHandler::SetNewRequestHook(NewRequestHook hook) { new_request_ho
 void HttpRequestHandler::SetRpsRatelimit(std::optional<size_t> rps) {
     if (rps) {
         if (rate_limit_.IsUnbounded()) {
-            cc_enabled_tp_ = std::chrono::steady_clock::now();
+            cc_enabled_tp_.store(std::chrono::steady_clock::now());
             metrics_->GetMetric(kCcStatusCodeIsCustom) = 0;
         }
 

@@ -45,8 +45,9 @@ inline const bool k{{service.name}}TypesRegistration =
     false);
 
 {{service.name}}Client::{{service.name}}Client(USERVER_NAMESPACE::ugrpc::client::impl::ClientInternals&& internals)
-    : client_data_(std::move(internals), GetMetadata(USERVER_NAMESPACE::utils::impl::InternalTag{}),
-            std::in_place_type<{{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>) {
+    : client_data_(USERVER_NAMESPACE::utils::MakeUniqueWithResourceScopes<USERVER_NAMESPACE::ugrpc::client::impl::ClientData>(
+            std::move(internals), GetMetadata(USERVER_NAMESPACE::utils::impl::InternalTag{}),
+            std::in_place_type<{{utils.namespace_with_colons(proto.namespace)}}::{{service.name}}>)) {
     }
 
 {{service.name}}Client::{{service.name}}Client({{service.name}}Client&&) noexcept = default;

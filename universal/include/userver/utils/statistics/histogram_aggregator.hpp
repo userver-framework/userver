@@ -2,6 +2,7 @@
 
 /// @file userver/utils/statistics/histogram_aggregator.hpp
 /// @brief @copybrief utils::statistics::HistogramAggregator
+/// @ingroup userver_universal
 
 #include <memory>
 

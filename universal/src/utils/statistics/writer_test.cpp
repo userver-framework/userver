@@ -1,10 +1,12 @@
+#include <userver/utils/statistics/writer.hpp>
+
+#include <atomic>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <unordered_map>
 
 #include <gtest/gtest.h>
-
-#include <userver/utest/assert_macros.hpp>
 
 #include <userver/utils/statistics/prometheus.hpp>
 

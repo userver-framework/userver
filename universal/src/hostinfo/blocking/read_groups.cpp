@@ -1,9 +1,9 @@
 #include <userver/hostinfo/blocking/read_groups.hpp>
 
-#include <boost/algorithm/string/erase.hpp>
-#include <boost/algorithm/string/split.hpp>
-
 #include <fstream>
+#include <stdexcept>
+
+#include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -25,7 +25,7 @@ std::vector<std::string> ReadConductorGroups() {
 
     try {
         while (std::getline(ifs, line)) {
-            boost::algorithm::erase_all(line, " ");
+            std::erase(line, ' ');
             if (line.find("groups=") != 0) {
                 continue;
             }
@@ -36,12 +36,7 @@ std::vector<std::string> ReadConductorGroups() {
                 line = line.substr(sizeof("groups"));
             }
 
-            boost::algorithm::split(
-                split_result,
-                line,
-                [](char c) { return c == ','; },
-                boost::algorithm::token_compress_on
-            );
+            split_result = utils::text::Split(line, ",");
             break;
         }
     } catch (const std::exception& e) {

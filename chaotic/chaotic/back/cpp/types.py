@@ -342,9 +342,13 @@ class CppPrimitiveType(CppType):
                 f', USERVER_NAMESPACE::chaotic::ExclusiveMaximum<{type_name_ns}::k{type_name_decl}ExclusiveMaximum>'
             )
 
-        if self.validators.minLength is not None:
+        if self.validators.minLength is not None and self.validators.maxLength is not None:
+            validators += (
+                f', USERVER_NAMESPACE::chaotic::MinMaxLength<{self.validators.minLength}, {self.validators.maxLength}>'
+            )
+        elif self.validators.minLength is not None:
             validators += f', USERVER_NAMESPACE::chaotic::MinLength<{self.validators.minLength}>'
-        if self.validators.maxLength is not None:
+        elif self.validators.maxLength is not None:
             validators += f', USERVER_NAMESPACE::chaotic::MaxLength<{self.validators.maxLength}>'
 
         if self.validators.pattern is not None:
@@ -647,6 +651,7 @@ class CppStringEnum(CppType):
     name: str
     enums: list[CppStringEnumItem]
     default: EnumItemName | None
+    with_fallback: bool = False
 
     __hash__ = CppType.__hash__
 

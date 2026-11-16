@@ -35,7 +35,7 @@ void ResponseDataAccounter::ReaccountRequest(
 ) {
     UASSERT(old_create_time <= new_create_time);
     pending_responses_size_in_bytes_ += new_size - old_size;
-    time_sum_.Add(std::chrono::duration_cast<std::chrono::milliseconds>(new_create_time - old_create_time).count());
+    time_sum_.Add((ToMsFromStart(new_create_time) - ToMsFromStart(old_create_time)).count());
 }
 
 std::chrono::milliseconds ResponseDataAccounter::GetAvgRequestTime() const {

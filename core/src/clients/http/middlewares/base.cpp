@@ -40,6 +40,10 @@ bool MiddlewareRequest::IsProxySet() const { return state_.IsProxySet(); }
 
 const std::string& MiddlewareRequest::GetOriginalUrl() const { return state_.easy().get_original_url(); }
 
+HttpMethod MiddlewareRequest::GetMethod() const noexcept { return state_.GetMethod(); }
+
+std::optional<std::string_view> MiddlewareRequest::GetUrlTemplate() const noexcept { return state_.GetUrlTemplate(); }
+
 MiddlewareBase::MiddlewareBase() = default;
 
 MiddlewareBase::~MiddlewareBase() = default;
@@ -51,6 +55,8 @@ void MiddlewareBase::HookCreateSpan(MiddlewareRequest&, tracing::Span&) {}
 void MiddlewareBase::HookOnCompleted(MiddlewareRequest&, Response&) {}
 
 void MiddlewareBase::HookOnError(MiddlewareRequest&, std::error_code) {}
+
+void MiddlewareBase::HookOnRequestFinished(const MiddlewareRequest&, const tracing::Span&) noexcept {}
 
 bool MiddlewareBase::HookOnRetry(MiddlewareRequest&) { return true; }
 

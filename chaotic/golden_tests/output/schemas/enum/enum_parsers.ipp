@@ -21,9 +21,18 @@ constexpr USERVER_NAMESPACE::utils::TrivialBiMap k__ns__Enum__Foo_Mapping = [](a
     ;
 };
 
+constexpr USERVER_NAMESPACE::utils::TrivialBiMap k__ns__Enum__With_Fallback_Mapping = [](auto selector) {
+    return selector().template Type<Enum::With_Fallback, std::string_view>()
+        .Case(Enum::With_Fallback::kUnknown, "unknown")
+        .Case(Enum::With_Fallback::kOne, "one")
+        .Case(Enum::With_Fallback::kTwo, "two")
+    ;
+};
+
 constexpr USERVER_NAMESPACE::utils::TrivialSet k__ns__Enum_PropertiesNames = [](auto selector) {
     return selector().template Type<std::string_view>()
         .Case("foo")
+        .Case("with_fallback")
     ;
 };
 
@@ -41,6 +50,19 @@ Enum::Foo Parse(
 }
 
 template <USERVER_NAMESPACE::formats::common::IsFormatValue Value>
+Enum::With_Fallback Parse(
+    Value val,
+    USERVER_NAMESPACE::formats::parse::To<Enum::With_Fallback>)
+{
+    const auto value = val.template As<std::string>();
+    const auto result = k__ns__Enum__With_Fallback_Mapping.TryFindBySecond(value);
+    if (result.has_value()) {
+        return *result;
+    }
+    return Enum::With_Fallback::kUnknown;
+}
+
+template <USERVER_NAMESPACE::formats::common::IsFormatValue Value>
 Enum Parse(
     Value value,
     USERVER_NAMESPACE::formats::parse::To<Enum>)
@@ -51,6 +73,9 @@ Enum Parse(
     Enum res{
         .foo = value["foo"].template As<
             std::optional<USERVER_NAMESPACE::chaotic::Primitive<::ns::Enum::Foo>>
+        >(),
+        .with_fallback = value["with_fallback"].template As<
+            std::optional<USERVER_NAMESPACE::chaotic::Primitive<::ns::Enum::With_Fallback>>
         >(),
     };
 

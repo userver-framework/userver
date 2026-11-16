@@ -6,6 +6,8 @@
 #include <atomic>
 #include <cstddef>
 
+#include <userver/yaml_config/fwd.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
@@ -70,6 +72,10 @@ private:
     std::atomic<double> beta_;
     std::atomic<double> current_limit_;
 };
+
+/// @brief Parse the required `min-limit`, `alpha` and `beta` YAML fields.
+/// Numeric policy constraints are checked by @ref utils::AimdLimiter.
+AimdLimiter::Policy Parse(const yaml_config::YamlConfig& config, formats::parse::To<AimdLimiter::Policy>);
 
 }  // namespace utils
 

@@ -62,7 +62,8 @@ def create_table(client, schema):
     version = schema.get('syntax_version', None)
     client.session.create_table(
         '/{}/{}'.format(client.database, schema['path']),
-        ydb_native_client.TableDescription()
+        ydb_native_client
+        .TableDescription()
         .with_primary_keys(*schema['primary_key'])
         .with_columns(*[_prepare_column(column, version) for column in schema['schema']])
         .with_indexes(*[_prepare_index(index) for index in schema.get('indexes', [])]),

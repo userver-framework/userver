@@ -121,7 +121,12 @@ public:
           serialized_initial_request_(serialized_initial_request),
           service_(service),
           service_method_(service_method)
-    {}
+    {
+        if constexpr (IsSingleRequestMethod(CallTraits::kRpcType)) {
+            UASSERT(serialized_initial_request_.Valid());
+            state_.latest_request_size_bytes = serialized_initial_request_.Length();
+        }
+    }
 
     void ProcessCall() {
         auto scope_time = state_.GetSpan().CreateScopeTime("pre_call");

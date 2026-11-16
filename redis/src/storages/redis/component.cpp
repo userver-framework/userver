@@ -86,7 +86,7 @@ RedisPools Parse(const yaml_config::YamlConfig& value, formats::parse::To<RedisP
 
 Redis::Redis(const ComponentConfig& config, const ComponentContext& component_context)
     : ComponentBase(config, component_context),
-      health_check_manager_(std::make_shared<storages::redis::impl::HealthCheckManager>()),
+      health_check_manager_(std::make_unique<storages::redis::impl::HealthCheckManager>()),
       config_(component_context.FindComponent<DynamicConfig>().GetSource())
 {
     const auto&

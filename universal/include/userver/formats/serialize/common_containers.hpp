@@ -6,6 +6,8 @@
 
 #include <optional>
 #include <ranges>
+#include <string>
+#include <string_view>
 #include <type_traits>
 
 #include <userver/compiler/impl/nodebug.hpp>
@@ -52,12 +54,19 @@ Value Serialize(const T& value, To<Value>) {
 /// Mappings serialization
 template <meta::IsUniqueMap T, typename Value>
 Value Serialize(const T& value, To<Value>) {
+    using Key = typename T::key_type;
     typename Value::Builder builder(formats::common::Type::kObject);
     if constexpr (requires { builder.Reserve(std::ranges::size(value)); }) {
         builder.Reserve(std::ranges::size(value));
     }
     for (const auto& [key, value] : value) {
-        builder[key] = value;
+        if constexpr ((std::is_same_v<Key, std::string> || std::is_same_v<Key, std::string_view>) &&
+                      requires { builder.EmplaceNocheck(key, value); })
+        {
+            builder.EmplaceNocheck(key, value);
+        } else {
+            builder[key] = value;
+        }
     }
     return builder.ExtractValue();
 }

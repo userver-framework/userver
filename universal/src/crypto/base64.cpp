@@ -1,8 +1,15 @@
 #include <userver/crypto/base64.hpp>
 
+#include <cstdint>
+#include <optional>
+#include <utility>
+
 #include <cryptopp/base64.h>
 
 #include <userver/crypto/exception.hpp>
+
+#include <crypto/impl/base64_cryptopp.hpp>
+#include <crypto/impl/base64_simd.hpp>
 
 #ifdef CRYPTOPP_NO_GLOBAL_BYTE
 using CryptoPP::byte;
@@ -77,18 +84,118 @@ std::string Base64Decode(std::string_view data) {
     return response;
 }
 
+// Unused bits of the last character are not checked: crypto++ ignores them, and so do the SIMD decoders
+template <char Char62, char Char63>
+bool IsCanonical(std::string_view data) noexcept {
+    if (data.size() % 4 == 1) {
+        return false;
+    }
+    const auto chars = data.find_last_not_of('=') + 1;  // 0 if the data is empty or consists of '='
+    const auto padding = (data.size() - chars) + (4 - data.size() % 4) % 4;
+    if (padding > 2) {
+        return false;
+    }
+    for (const char c : data.substr(0, chars)) {
+        const bool is_alphanumeric = (c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9');
+        if (!is_alphanumeric && c != Char62 && c != Char63) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// Decodes the alphabet with optional '=' padding at the end, returns std::nullopt for any other input
+std::optional<std::string> DecodeCanonical(std::string_view data, impl::Alphabet alphabet) {
+#ifndef USERVER_NO_SIMD_BASE64
+    return impl::SimdBase64Decode(data, alphabet);
+#else
+    if (alphabet == impl::Alphabet::kStandard) {
+        if (impl::IsCanonicalBase64(data)) {
+            return impl::CryptoPPBase64Decode(data);
+        }
+        return std::nullopt;
+    }
+#ifndef USERVER_NO_CRYPTOPP_BASE64_URL
+    if (impl::IsCanonicalBase64Url(data)) {
+        return impl::CryptoPPBase64UrlDecode(data);
+    }
+#endif
+    return std::nullopt;
+#endif
+}
+
+// As in Go encoding/base64, line breaks are skipped anywhere in the input: Base64 is often wrapped into lines
+std::optional<std::string> Decode(std::string_view data, impl::Alphabet alphabet) {
+    if (auto result = DecodeCanonical(data, alphabet)) {
+        return result;
+    }
+    if (data.find_first_of("\r\n") == std::string_view::npos) {
+        return std::nullopt;
+    }
+    std::string without_line_breaks;
+    without_line_breaks.reserve(data.size());
+    for (const char c : data) {
+        if (c != '\r' && c != '\n') {
+            without_line_breaks.push_back(c);
+        }
+    }
+    return DecodeCanonical(without_line_breaks, alphabet);
+}
+
 }  // namespace
 
-std::string Base64Encode(std::string_view data, Pad pad) { return Base64Encode<CryptoPP::Base64Encoder>(data, pad); }
+namespace impl {
 
-std::string Base64Decode(std::string_view data) { return Base64Decode<CryptoPP::Base64Decoder>(data); }
+std::string CryptoPPBase64Encode(std::string_view data, Pad pad) {
+    return Base64Encode<CryptoPP::Base64Encoder>(data, pad);
+}
+
+std::string CryptoPPBase64Decode(std::string_view data) { return Base64Decode<CryptoPP::Base64Decoder>(data); }
+
+bool IsCanonicalBase64(std::string_view data) noexcept { return IsCanonical<'+', '/'>(data); }
 
 #ifndef USERVER_NO_CRYPTOPP_BASE64_URL
-std::string Base64UrlEncode(std::string_view data, Pad pad) {
+std::string CryptoPPBase64UrlEncode(std::string_view data, Pad pad) {
     return Base64Encode<CryptoPP::Base64URLEncoder>(data, pad);
 }
 
-std::string Base64UrlDecode(std::string_view data) { return Base64Decode<CryptoPP::Base64URLDecoder>(data); }
+std::string CryptoPPBase64UrlDecode(std::string_view data) { return Base64Decode<CryptoPP::Base64URLDecoder>(data); }
+
+bool IsCanonicalBase64Url(std::string_view data) noexcept { return IsCanonical<'-', '_'>(data); }
+#endif
+
+}  // namespace impl
+
+std::string Base64Encode(std::string_view data, Pad pad) {
+#ifndef USERVER_NO_SIMD_BASE64
+    return impl::SimdBase64Encode(data, pad, impl::Alphabet::kStandard);
+#else
+    return impl::CryptoPPBase64Encode(data, pad);
+#endif
+}
+
+std::string Base64Decode(std::string_view data) {
+    if (auto result = Decode(data, impl::Alphabet::kStandard)) {
+        return *std::move(result);
+    }
+    throw CryptoException("Invalid Base64 input");
+}
+
+#ifndef USERVER_NO_CRYPTOPP_BASE64_URL
+std::string Base64UrlEncode(std::string_view data, Pad pad) {
+#ifndef USERVER_NO_SIMD_BASE64
+    return impl::SimdBase64Encode(data, pad, impl::Alphabet::kUrl);
+#else
+    return impl::CryptoPPBase64UrlEncode(data, pad);
+#endif
+}
+
+std::string Base64UrlDecode(std::string_view data) {
+    if (auto result = Decode(data, impl::Alphabet::kUrl)) {
+        return *std::move(result);
+    }
+    throw CryptoException("Invalid Base64 URL input");
+}
 #endif
 
 bool Base64UniversalDecodeInPlace(std::string& data) noexcept {

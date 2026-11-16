@@ -386,10 +386,9 @@ Transaction TableClient::Begin(DynamicTransactionName transaction_name, Operatio
     return Transaction(*this, status.GetTransaction(), transaction_name.GetUnderlying(), std::move(settings));
 }
 
-void TableClient::ExecuteSchemeQuery(const std::string& query) {
-    const Query nameless_query{query};
+void TableClient::ExecuteSchemeQuery(const Query& query) {
     OperationSettings settings{};
-    auto context = MakeRequestContext(nameless_query, std::move(settings));
+    auto context = MakeRequestContext(query, std::move(settings));
 
     auto retry_future = impl::RetryOperation(
         context,
@@ -399,7 +398,7 @@ void TableClient::ExecuteSchemeQuery(const std::string& query) {
          trace_id = std::string{context.span.GetTraceId()}](NYdb::NTable::TSession session) {
             const auto exec_settings = impl::PrepareRequestSettings<
                 NYdb::NTable::TExecSchemeQuerySettings>(settings, deadline, trace_id);
-            return session.ExecuteSchemeQuery(impl::ToString(query), exec_settings);
+            return session.ExecuteSchemeQuery(impl::ToString(query.GetStatementView()), exec_settings);
         }
     );
 

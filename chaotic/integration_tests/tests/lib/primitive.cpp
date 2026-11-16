@@ -2,7 +2,7 @@
 
 #include <userver/chaotic/primitive.hpp>
 #include <userver/chaotic/validators.hpp>
-#include <userver/chaotic/validators_pattern.hpp>
+#include <userver/chaotic/validators/pattern.hpp>
 #include <userver/chaotic/with_type.hpp>
 #include <userver/formats/json/inline.hpp>
 #include <userver/formats/json/value_builder.hpp>

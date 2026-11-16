@@ -353,7 +353,6 @@ Here is a reasonable static config for those:
 
 @snippet samples/production_service/static_config.yaml Production service sample - static config dynamic configs
 
-
 @anchor dynamic_config_client_schema
 #### Schema of the dynamic config client
 
@@ -390,7 +389,7 @@ definitions:
     Request:
         type: object
         description: Request configs/values
-        additionalProperties: false
+        additionalProperties: true
         properties:
             stage_name:
                 type: string

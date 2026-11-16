@@ -45,10 +45,7 @@ public:
 
     void Finish(const grpc::Status& status) { reactor_.Finish(status); }
 
-    void FinishWithError(const grpc::Status& status) {
-        UASSERT(!status.ok());
-        reactor_.Finish(status);
-    }
+    void FinishWithError(const grpc::Status& status) { reactor_.Finish(status); }
 
     void WriteAndFinish(grpc::ByteBuffer&& response, grpc::WriteOptions options, const grpc::Status& status) {
         write_and_finish_response_storage_.Swap(&response);

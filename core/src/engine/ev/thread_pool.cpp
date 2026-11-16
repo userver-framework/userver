@@ -50,7 +50,16 @@ std::size_t ThreadPool::GetSize() const { return threads_.size(); }
 
 ThreadControl& ThreadPool::NextThread() { return default_controls_.Next(); }
 
+ThreadControl& ThreadPool::GetFirstThread() {
+    UASSERT(!default_controls_.Empty());
+    return default_controls_.controls[0];
+}
+
 TimerThreadControl& ThreadPool::NextTimerThread() { return timer_controls_.Next(); }
+
+std::span<TimerThreadControl> ThreadPool::GetTimerThreads() noexcept {
+    return {timer_controls_.controls.data(), timer_controls_.controls.size()};
+}
 
 ThreadControl& ThreadPool::GetEvDefaultLoopThread() {
     UINVARIANT(!default_controls_.Empty() && use_ev_default_loop_, "no ev_default_loop in current thread_pool");

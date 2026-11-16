@@ -1,17 +1,15 @@
 #pragma once
 
 /// @file userver/utils/statistics/metric_tag_impl.hpp
-/// @brief MetricTag implementation details and metric map utilities
+/// @brief Implementation details of @ref utils::statistics::MetricTag.
 
 #include <atomic>
-#include <cstddef>
 #include <functional>
 #include <memory>
 #include <string>
 #include <type_traits>
 #include <typeindex>
-#include <typeinfo>
-#include <unordered_map>
+#include <utility>
 
 #include <userver/utils/statistics/writer.hpp>
 
@@ -27,15 +25,6 @@ void ResetMetric(std::atomic<Metric>& m) {
 
 template <typename Metric>
 concept HasResetMetric = requires(Metric& m) { ResetMetric(m); };
-
-// TODO remove after C++20 atomic value-initialization
-template <typename T>
-void InitializeAtomic(T& /*value*/) {}
-
-template <typename T>
-void InitializeAtomic(std::atomic<T>& value) {
-    value.store(T(), std::memory_order_relaxed);
-}
 
 class MetricWrapperBase {
 public:
@@ -61,11 +50,7 @@ public:
     template <typename... Args>
     explicit MetricWrapper(std::in_place_t, const Args&... args)
         : data_(args...)
-    {
-        if constexpr (sizeof...(Args) == 0) {
-            InitializeAtomic(data_);
-        }
-    }
+    {}
 
     void DumpToWriter(Writer& writer) override { writer = data_; }
 
@@ -113,18 +98,7 @@ struct MetricKey final {
     bool operator==(const MetricKey& other) const noexcept { return idx == other.idx && path == other.path; }
 };
 
-struct MetricKeyHash final {
-    std::size_t operator()(const MetricKey& key) const noexcept;
-};
-
-using MetricMap = std::unordered_map<MetricKey, std::unique_ptr<MetricWrapperBase>, MetricKeyHash>;
-
 void RegisterMetricInfo(const MetricKey& key, MetricFactory factory);
-
-template <typename Metric>
-Metric& GetMetric(MetricMap& metrics, const MetricKey& key) {
-    return dynamic_cast<impl::MetricWrapper<Metric>&>(*metrics.at(key)).Get();
-}
 
 }  // namespace utils::statistics::impl
 

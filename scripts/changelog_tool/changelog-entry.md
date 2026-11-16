@@ -14,6 +14,16 @@ that matter to users of userver: public API changes, performance when the PR is
 focused on it, or documentation when that is the focus. PR authors do not need
 to classify the change or produce the tool's internal JSON fields.
 
+In both changelog entries and migration guides, describe completed changes in
+the past tense, e.g. `Added`, `Improved`, `Removed`, or `Renamed`. This differs
+from PR titles, where the imperative is recommended: `add`, `improve`, `remove`,
+or `rename`.
+Keep migration instructions actionable, e.g. `Renamed ...; replace ... with ...`.
+In PR descriptions and integration commit messages, format the contents of each
+`Changelog entry:` and `Migration guide:` section as a Markdown bullet list,
+even when there is only one item. This list formatting applies to those sections,
+not to the release tool's internal JSON fields.
+
 - For breaking changes, describe ONLY the breaking change itself: WHAT changed.
   Any fix or migration recipe belongs in the separate migration guide, not in the
   changelog line.
@@ -33,8 +43,8 @@ FORMATTING - DOXYGEN-STYLE FOR ALL CODE REFERENCES (applies to "changelog_line" 
 When these fields mention code entities, files, identifiers, or configuration values, you MUST format them using
 Doxygen syntax so the rendered changelog links to the relevant documentation. Apply the following rules strictly:
 - userver code entities (classes, functions, methods, namespaces, enumerations, macros, etc.): use the @ref command
- with the fully-qualified name, e.g. @ref userver::components::ComponentBase, @ref userver::server::Server,
- @ref userver::storages::postgres::Cluster, @ref userver::cache::LruCacheComponent.
+ with the qualified name within userver. Do not include the `userver::` namespace prefix. Examples:
+ @ref components::ComponentBase, @ref server::Server, @ref storages::postgres::Cluster, @ref cache::LruCacheComponent.
 - Files and directories: use @ref with the path, e.g. @ref userver/core/component.hpp, @ref userver/chaotic/io.hpp.
 - Arbitrary inline code fragments, identifiers, variables, parameters, and configuration values: wrap in backticks,
  e.g. `some_variable`, `config.yaml`, `max_concurrent_requests`, `ComponentSystem`.

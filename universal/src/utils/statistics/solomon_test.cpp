@@ -7,6 +7,7 @@
 #include <userver/utest/assert_macros.hpp>
 #include <userver/utils/statistics/pretty_format.hpp>
 #include <userver/utils/statistics/solomon.hpp>
+#include <userver/utils/statistics/visit.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

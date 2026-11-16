@@ -165,7 +165,7 @@ private:
     std::unordered_map<std::string, std::shared_ptr<storages::redis::Client>> clients_;
     std::unordered_map<std::string, std::shared_ptr<storages::redis::SubscribeClientImpl>> subscribe_clients_;
 
-    std::shared_ptr<storages::redis::impl::HealthCheckManager> health_check_manager_;
+    std::unique_ptr<storages::redis::impl::HealthCheckManager> health_check_manager_;
 
     dynamic_config::Source config_;
 

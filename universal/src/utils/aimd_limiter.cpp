@@ -4,6 +4,8 @@
 #include <cmath>
 #include <stdexcept>
 
+#include <userver/yaml_config/yaml_config.hpp>
+
 USERVER_NAMESPACE_BEGIN
 
 namespace utils {
@@ -91,6 +93,14 @@ void AimdLimiter::OnFailure() noexcept {
     do {
         updated = std::max(min_limit, expected * beta);
     } while (!current_limit_.compare_exchange_weak(expected, updated));
+}
+
+AimdLimiter::Policy Parse(const yaml_config::YamlConfig& config, formats::parse::To<AimdLimiter::Policy>) {
+    return {
+        .min_limit = config["min-limit"].As<std::size_t>(),
+        .alpha = config["alpha"].As<double>(),
+        .beta = config["beta"].As<double>(),
+    };
 }
 
 }  // namespace utils

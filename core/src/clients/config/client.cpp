@@ -22,6 +22,15 @@ namespace dynamic_config {
 namespace {
 
 constexpr std::string_view kConfigsValues = "/configs/values";
+constexpr std::string_view kStandardRequestParams[] = {
+    "ids",
+    "updated_since",
+    "stage_name",
+    "service_overrides",
+    "service",
+    "is_prestable",
+    "circuit",
+};
 
 std::string MakeConfigsValuesUrl(const ClientConfig& config, const std::string& base_url) {
     return config.append_path_to_url ? utils::StrCat(base_url, kConfigsValues) : base_url;
@@ -63,6 +72,12 @@ Client::Client(clients::http::Client& http_client, const ClientConfig& config)
         "dynamic_config::ClientConfig cannot use 'service' and 'service_overrides' together; "
         "set get_configs_overrides_for_service to false when service_overrides is non-empty"
     );
+    for (const auto& [name, _] : config_.additional_request_params) {
+        UINVARIANT(
+            !utils::Contains(kStandardRequestParams, name),
+            fmt::format("additional-request-params contains standard request field '{}'", name)
+        );
+    }
     for (const auto& fallback_url : config_.fallback_config_urls) {
         UINVARIANT(!fallback_url.empty(), "Empty URL in 'fallback-config-urls'");
         UINVARIANT(
@@ -176,6 +191,11 @@ formats::json::Value Client::FetchConfigs(
         if (!config_.circuit.empty()) {
             body.Key("circuit");
             WriteToStream(config_.circuit, body);
+        }
+
+        for (const auto& [name, value] : config_.additional_request_params) {
+            body.Key(name);
+            WriteToStream(value, body);
         }
     }
 

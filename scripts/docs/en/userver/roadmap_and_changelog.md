@@ -36,7 +36,7 @@ Cool features:
   `context.Scopes()` (or @ref components::GetResourceScopes); manual lifetime via `RegisterWriter` `Entry` and
   `RegisterWriterScope` is deprecated.
 * Extended testsuite @ref pytest_userver.metrics.MetricsSnapshot with `sliced`, `common_prefix`/`common_labels`, and
-  `from_layered_dict` for compact metric assertions (see @ref scripts/docs/en/userver/metrics_migration.md);
+  `from_layered_dict` for compact metric assertions (see @ref scripts/docs/en/userver/testsuite_metrics_testing.md);
   @ref pytest_userver.client.ClientMonitor.metrics also accepts `sliced`.
 * Named PostgreSQL queries no longer log full statement text (see @ref storages::Query).
 * Added @ref postgres_transaction_poolin_balancer "transaction pooling with a PostgreSQL balancer" via
@@ -87,7 +87,8 @@ Breaking Change:
 * Dropped support for libpq versions prior to `14.0`.
 
 * Removed legacy `monitor_client.get_metric` and `monitor_client.get_metrics` methods from testsuite.
-  * Migration: Please follow @ref scripts/docs/en/userver/metrics_migration.md for migration steps.
+  * Migration: Rewrite tests with @ref pytest_userver.client.ClientMonitor.metrics,
+    `MetricsSnapshot`, and `metrics_diff()` — see @ref scripts/docs/en/userver/testsuite_metrics_testing.md.
 
 * Changed @ref ydb::TopicProducer `Write` behavior from potentially blocking to immediately failing when the buffer is
   overloaded.
@@ -248,7 +249,7 @@ Features:
   * Added automatic ctest `RESOURCE_LOCK` assignment for test targets, enabling parallel test execution without
     database races.
   * Extended testsuite @ref pytest_userver.metrics.MetricsSnapshot with `sliced`, `common_prefix`/`common_labels`, and
-    `from_layered_dict` for compact metric assertions (see @ref scripts/docs/en/userver/metrics_migration.md);
+    `from_layered_dict` for compact metric assertions (see @ref scripts/docs/en/userver/testsuite_metrics_testing.md);
     @ref pytest_userver.client.ClientMonitor.metrics also accepts `sliced`.
   * Fixed YDB test startup scripts to handle database creation and added a timeout for YDB startup. Many thanks to
     [Lemit](https://github.com/lemito) for the PR!

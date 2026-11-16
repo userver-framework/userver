@@ -53,8 +53,8 @@ protected:
 
     virtual void OnDisconnected(ConnectionPtr /*connection*/) {}
 
-    virtual void OnCommand(ConnectionPtr /*connection*/, std::shared_ptr<storages::redis::Reply> cmd) {
-        LOG_DEBUG() << "Got command: " << cmd->data.ToDebugString();
+    virtual void OnCommand(ConnectionPtr /*connection*/, const storages::redis::Reply& cmd) {
+        LOG_DEBUG() << "Got command: " << cmd.data.ToDebugString();
     }
 
 private:
@@ -132,7 +132,7 @@ public:
     bool WaitForFirstPingReply(const std::chrono::duration<Rep, Period>& duration) const;
 
 protected:
-    void OnCommand(ConnectionPtr connection, std::shared_ptr<storages::redis::Reply> cmd) override;
+    void OnCommand(ConnectionPtr connection, const storages::redis::Reply& cmd) override;
 
 private:
     struct CommonMasterSlaveInfo;

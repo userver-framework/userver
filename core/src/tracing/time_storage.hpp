@@ -1,12 +1,11 @@
 #pragma once
 
 #include <chrono>
+#include <cstddef>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 
-#include <userver/logging/log_extra.hpp>
-#include <userver/utils/impl/transparent_hash.hpp>
+#include <boost/container/small_vector.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -27,7 +26,7 @@ public:
     TimeStorage(const TimeStorage&) = delete;
     TimeStorage(TimeStorage&&) noexcept = default;
 
-    void PushLap(std::string_view key, Duration value);
+    void PushLap(std::string key, Duration value);
 
     /// Accumulated time for a certain key. If the key is not there, returns 0
     Duration DurationTotal(std::string_view key) const;
@@ -35,7 +34,14 @@ public:
     void MergeInto(logging::impl::TagWriter writer);
 
 private:
-    utils::impl::TransparentMap<std::string, Duration> data_;
+    struct Lap {
+        std::string key;
+        Duration duration;
+    };
+
+    static constexpr std::size_t kExpectedLapsCount = 6;
+
+    boost::container::small_vector<Lap, kExpectedLapsCount> laps_;
 };
 
 }  // namespace tracing::impl

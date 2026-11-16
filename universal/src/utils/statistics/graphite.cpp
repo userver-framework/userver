@@ -10,6 +10,7 @@
 
 #include <userver/utils/mock_now.hpp>
 #include <userver/utils/statistics/fmt.hpp>
+#include <userver/utils/statistics/visit.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

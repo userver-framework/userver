@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <array>
+#include <optional>
 #include <string_view>
 
 #include <boost/algorithm/string/trim.hpp>
@@ -46,6 +47,17 @@ constexpr std::int64_t kPowersOfTen[]{
 };
 
 constexpr auto kMaxPowerOfTen = sizeof(kPowersOfTen) / sizeof(kPowersOfTen[0]) - 1;
+
+std::optional<std::int64_t> CheckedMulAdd(std::int64_t value, std::int64_t multiplier, std::int64_t addend) {
+    std::int64_t result = 0;
+    if (__builtin_mul_overflow(value, multiplier, &result)) {
+        return std::nullopt;
+    }
+    if (__builtin_add_overflow(result, addend, &result)) {
+        return std::nullopt;
+    }
+    return result;
+}
 
 constexpr std::uint16_t kDscaleMask = 0x3fff;
 
@@ -97,24 +109,23 @@ void ConvertDecimalToBinary(std::string_view dec_digits, int left_padding, std::
 }
 
 /// Calculate number of decimal digits
-int Log10(std::int64_t number) {
+int Log10(std::uint64_t number) {
     for (auto p = 0U; p < kMaxPowerOfTen; ++p) {
-        if (number < kPowersOfTen[p]) {
+        if (number < static_cast<std::uint64_t>(kPowersOfTen[p])) {
             return p;
         }
     }
     return kMaxPowerOfTen;
 }
 
-void IntegralToBinary(std::int64_t integral_part, Smallint digits, std::vector<std::int16_t>& target) {
-    // Left pad
-    if (digits % kDigitWidth) {
-        digits += kDigitWidth - digits % kDigitWidth;
-    }
-    while (digits > 0) {
+void IntegralToBinary(std::uint64_t integral_part, Smallint digits, std::vector<std::int16_t>& target) {
+    while (digits >= kDigitWidth) {
         digits -= kDigitWidth;
         target.push_back(integral_part / kPowersOfTen[digits]);
         integral_part %= kPowersOfTen[digits];
+    }
+    if (digits > 0) {
+        target.push_back(integral_part * kPowersOfTen[kDigitWidth - digits]);
     }
 }
 
@@ -358,26 +369,26 @@ void NumericData::Parse(USERVER_NAMESPACE::utils::zstring_view str) {
 }
 
 IntegralRepresentation NumericData::ToInt64() const {
-    const std::uint64_t int64_t_max = std::numeric_limits<std::int64_t>::max();
     if (sign == kNumericNan) {
         throw ValueIsNaN{"PostgreSQL buffer for decimal/numeric contains a NaN value"};
     }
     IntegralRepresentation rep{0, dscale};
+    const auto digit_sign = sign == kNumericNegative ? -1 : 1;
     auto bin_dig_pos = 0;
     if (weight < 0) {
         bin_dig_pos = weight + 1;
     } else {
         for (bin_dig_pos = 0; bin_dig_pos <= weight; ++bin_dig_pos) {
             auto dig = (bin_dig_pos < ndigits) ? digits[bin_dig_pos] : 0;
-            const std::uint64_t new_val = (rep.value * kBinEncodingBase) + dig;
-            if (rep.value > static_cast<std::int64_t>(new_val) || new_val > int64_t_max) {
+            const auto new_val = CheckedMulAdd(rep.value, kBinEncodingBase, dig * digit_sign);
+            if (!new_val) {
                 throw NumericOverflow{
-                    "PosrgreSQL buffer contains a value that is too big to fit into "
+                    "PostgreSQL buffer contains a value that is too big to fit into "
                     "int64 + '" +
                     ToString() + "'"
                 };
             }
-            rep.value = static_cast<std::int64_t>(new_val);
+            rep.value = *new_val;
         }
     }
 
@@ -392,19 +403,16 @@ IntegralRepresentation NumericData::ToInt64() const {
                 power = kBinEncodingBase / kPowersOfTen[truncate_count];
                 dig /= kPowersOfTen[truncate_count];
             }
-            const std::uint64_t new_val = (rep.value * power) + dig;
-            if (rep.value > static_cast<std::int64_t>(new_val) || new_val > int64_t_max) {
+            const auto new_val = CheckedMulAdd(rep.value, power, dig * digit_sign);
+            if (!new_val) {
                 throw NumericOverflow{
-                    "PosrgreSQL buffer contains a value that is too big to fit into "
+                    "PostgreSQL buffer contains a value that is too big to fit into "
                     "int64 + '" +
                     ToString() + "'"
                 };
             }
-            rep.value = static_cast<std::int64_t>(new_val);
+            rep.value = *new_val;
         }
-    }
-    if (sign == kNumericNegative) {
-        rep.value *= -1;
     }
     return rep;
 }
@@ -420,8 +428,9 @@ void NumericData::FromInt64(IntegralRepresentation rep) {
     }
 
     sign = rep.value < 0 ? kNumericNegative : kNumericPositive;
-    const std::uint64_t abs_value = std::abs(rep.value);
-    const std::int64_t integral_part = abs_value / kPowersOfTen[rep.fractional_digit_count];
+    const auto unsigned_value = static_cast<std::uint64_t>(rep.value);
+    const std::uint64_t abs_value = rep.value < 0 ? std::uint64_t{0} - unsigned_value : unsigned_value;
+    const std::uint64_t integral_part = abs_value / kPowersOfTen[rep.fractional_digit_count];
     std::int64_t fractional_part = abs_value % kPowersOfTen[rep.fractional_digit_count];
 
     auto integral_digits = Log10(integral_part);
@@ -435,12 +444,6 @@ void NumericData::FromInt64(IntegralRepresentation rep) {
     }
     // Here are the actual fractional digits
     dscale = fractional_digits;
-    // Right pad fractional part to 4 digits boundary
-    if (fractional_digits % kDigitWidth) {
-        auto right_pad = kDigitWidth - (fractional_digits % kDigitWidth);
-        fractional_digits += right_pad;
-        fractional_part *= kPowersOfTen[right_pad];
-    }
 
     std::int32_t dec_weight = integral_digits - 1;
     if (integral_part == 0) {
@@ -448,14 +451,15 @@ void NumericData::FromInt64(IntegralRepresentation rep) {
     }
 
     // Convert to binary digits
-    digits.reserve((integral_digits + fractional_digits) / kDigitWidth + 1);
+    const auto integral_group_count = (integral_digits + kDigitWidth - 1) / kDigitWidth;
+    digits.reserve(integral_group_count + (fractional_digits + kDigitWidth - 1) / kDigitWidth);
     if (dec_weight >= 0) {
         weight = dec_weight / kDigitWidth;
     } else {
         weight = -((-dec_weight - 1) / kDigitWidth + 1);
     }
     if (weight >= 0) {
-        IntegralToBinary(integral_part, integral_digits, digits);
+        IntegralToBinary(integral_part, integral_group_count * kDigitWidth, digits);
     }
     IntegralToBinary(fractional_part, fractional_digits, digits);
 

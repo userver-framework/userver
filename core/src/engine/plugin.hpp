@@ -19,10 +19,6 @@ class PluginBase {
 public:
     virtual ~PluginBase() = default;
 
-    virtual void HookTaskCreate(impl::TaskContext& /*task*/) noexcept {}
-
-    virtual void HookTaskDestroy(impl::TaskContext& /*task*/) noexcept {}
-
     /// Callback that is called in coroutine just before falling asleep
     /// and switching execution to another coroutine.
     virtual void HookBeforeSleep(impl::TaskContext& /*task*/) noexcept {}

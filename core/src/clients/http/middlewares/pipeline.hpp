@@ -19,6 +19,8 @@ public:
 
     void HookOnError(RequestState& request, std::error_code ec);
 
+    void HookOnRequestFinished(RequestState& request, const tracing::Span& span) noexcept;
+
     bool HookOnRetry(RequestState& request);
 
 private:

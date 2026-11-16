@@ -1,11 +1,18 @@
 #include <userver/ugrpc/client/impl/unary_call.hpp>
 
+#include <fmt/compile.h>
+#include <fmt/format.h>
+
 #include <userver/ugrpc/client/exceptions.hpp>
 #include <userver/ugrpc/client/impl/tracing.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace ugrpc::client::impl {
+
+std::string MakeAttemptScopeName(int attempt, std::string_view stage) {
+    return fmt::format(FMT_COMPILE("attempt.{}.{}"), attempt, stage);
+}
 
 void AccountStatistics(ugrpc::impl::RpcStatisticsScope& stats, CompletionStatus completion_status) noexcept {
     if (completion_status.has_value()) {

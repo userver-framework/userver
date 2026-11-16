@@ -20,8 +20,10 @@ enum class Pad { kWith, kWithout };
 /// @throws CryptoException internal library exception
 std::string Base64Encode(std::string_view data, Pad pad = Pad::kWith);
 
-/// @brief Decodes data from Base64
-/// @throws CryptoException internal library exception
+/// @brief Decodes data from Base64, padding is optional, line breaks are skipped, unused bits of the last character
+/// are ignored
+/// @throws CryptoException if @a data contains other characters outside of the alphabet (including spaces and
+/// the URL alphabet), '=' not at the end, more than two '=' or if the number of characters before '=' is 1 modulo 4
 std::string Base64Decode(std::string_view data);
 
 #ifndef USERVER_NO_CRYPTOPP_BASE64_URL
@@ -32,8 +34,11 @@ std::string Base64Decode(std::string_view data);
 /// @throws CryptoException internal library exception
 std::string Base64UrlEncode(std::string_view data, Pad pad = Pad::kWith);
 
-/// @brief Decodes data from Base64 (using URL alphabet)
-/// @throws CryptoException internal library exception
+/// @brief Decodes data from Base64 (using URL alphabet), padding is optional, line breaks are skipped, unused bits
+/// of the last character are ignored
+/// @throws CryptoException if @a data contains other characters outside of the URL alphabet (including spaces and
+/// the standard alphabet), '=' not at the end, more than two '=' or if the number of characters before '=' is
+/// 1 modulo 4
 std::string Base64UrlDecode(std::string_view data);
 
 /// @brief Decodes @a data in-place and returns `true` on success.

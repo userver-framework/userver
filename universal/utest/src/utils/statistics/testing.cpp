@@ -11,7 +11,6 @@
 
 #include <fmt/format.h>
 #include <fmt/ranges.h>
-#include <boost/algorithm/cxx11/all_of.hpp>
 #include <boost/container/flat_set.hpp>
 
 #include <userver/utils/algo.hpp>
@@ -19,6 +18,8 @@
 #include <userver/utils/rand.hpp>
 #include <userver/utils/statistics/fmt.hpp>
 #include <userver/utils/statistics/histogram_aggregator.hpp>
+#include <userver/utils/statistics/request.hpp>
+#include <userver/utils/statistics/visit.hpp>
 #include <utils/statistics/testing_formats.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -208,7 +209,7 @@ std::optional<FoundMetric> GetSingleOptional(
     }
 
     for (const auto& entry : metrics_it->second) {
-        const bool matches = boost::algorithm::all_of(required_labels, [&entry = entry](const auto& needle) {
+        const bool matches = std::ranges::all_of(required_labels, [&entry = entry](const auto& needle) {
             return entry.labels.count(needle) != 0;
         });
 

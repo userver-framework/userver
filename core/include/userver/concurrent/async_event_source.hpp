@@ -5,11 +5,13 @@
 
 #include <cstddef>
 #include <functional>
+#include <string>
 #include <string_view>
 #include <typeinfo>
 #include <utility>
 
 #include <userver/utils/impl/internal_tag.hpp>
+#include <userver/utils/resource_scopes.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -111,29 +113,78 @@ public:
 
     /// @brief Subscribes to updates from this event source
     ///
-    /// The listener won't be called immediately. To process the current value and
-    /// then listen to updates, use `UpdateAndListen` of specific event channels.
-    ///
-    /// @warning Listeners should not be added or removed while processing the
-    /// event inside another listener.
+    /// The listener won't be called immediately.
     ///
     /// Example usage:
     /// @snippet core/src/concurrent/async_event_channel_test.cpp  AddListener sample
     ///
+    /// Subscription starts after @ref utils::ResourceScopeStorage::AfterConstruction.
+    /// Events sent before that are not delivered to the listener.
+    /// Unsubscribe runs in @ref utils::ResourceScopeStorage::BeforeDestruction.
+    /// This event source must outlive the resource scopes.
+    ///
+    /// @param scopes storage that owns the subscription lifetime.
+    /// See @ref resource_scopes_parameter "where to obtain scopes".
     /// @param obj the subscriber, which is the owner of the listener method, and
     /// is also used as the unique identifier of the subscription for this
     /// AsyncEventSource
     /// @param name the name of the subscriber, for diagnostic purposes
     /// @param func the listener method, usually called `On<DataName>Update`, e.g.
     /// `OnConfigUpdate` or `OnCacheUpdate`
-    /// @returns a AsyncEventSubscriberScope controlling the subscription.
-    /// Store the scope as a member and call `Unsubscribe` explicitly.
+    ///
+    /// ## Possible races when using AddListener
+    ///
+    /// Manually processing the current value and subscribing in separate steps introduces a race. The following
+    /// pseudocode assumes that `scopes` is already active:
+    ///
+    /// ```cpp
+    /// OnCacheUpdate(cache.Get());
+    /// source.AddListener(scopes, this, "cache-listener", &MyClass::OnCacheUpdate);
+    /// ```
+    /// An update between reading the cache and subscribing is missed. Reversing the order also introduces a race:
+    ///
+    /// ```cpp
+    /// source.AddListener(scopes, this, "cache-listener", &MyClass::OnCacheUpdate);
+    /// OnCacheUpdate(cache.Get());
+    /// ```
+    /// The event callback may run concurrently with the manual call, possibly processing the same cache value twice.
+    ///
+    /// To process the current value and then listen to updates, use `UpdateAndListen` on the concrete data source, e.g.
+    /// @ref components::CachingComponentBase::UpdateAndListen. If only @ref concurrent::AsyncEventChannel is available,
+    /// use @ref concurrent::AsyncEventChannel::DoUpdateAndListen.
+    template <class Class>
+    void AddListener(
+        utils::ResourceScopeStorage& scopes,
+        Class* obj,
+        std::string_view name,
+        void (Class::*func)(Args...)
+    ) {
+        AddListener(scopes, FunctionId(obj), name, [obj, func](Args... args) { (obj->*func)(args...); });
+    }
+
+    /// @brief A type-erased version of @ref concurrent::AsyncEventSource::AddListener.
+    /// @param scopes storage that owns the subscription lifetime.
+    /// See @ref resource_scopes_parameter "where to obtain scopes".
+    /// @param id the unique identifier of the subscription
+    /// @param name the name of the subscriber, for diagnostic purposes
+    /// @param func the callback used for event notifications
+    void AddListener(utils::ResourceScopeStorage& scopes, FunctionId id, std::string_view name, Function&& func) {
+        scopes.Register([this, id, name = std::string{name}, func = std::move(func)]() mutable {
+            return DoAddListener(id, name, std::move(func));
+        });
+    }
+
+#ifndef ARCADIA_ROOT
+    /// @overload
+    /// @deprecated Use the overload that takes @ref utils::ResourceScopeStorage.
+    /// Store the returned scope as a member and call `Unsubscribe` explicitly.
     template <class Class>
     AsyncEventSubscriberScope AddListener(Class* obj, std::string_view name, void (Class::*func)(Args...)) {
         return AddListener(FunctionId(obj), name, [obj, func](Args... args) { (obj->*func)(args...); });
     }
 
-    /// @brief A type-erased version of AddListener
+    /// @brief A type-erased version of @ref concurrent::AsyncEventSource::AddListener.
+    /// @deprecated Use the overload that takes @ref utils::ResourceScopeStorage.
     ///
     /// @param id the unique identifier of the subscription
     /// @param name the name of the subscriber, for diagnostic purposes
@@ -141,6 +192,8 @@ public:
     AsyncEventSubscriberScope AddListener(FunctionId id, std::string_view name, Function&& func) {
         return DoAddListener(id, name, std::move(func));
     }
+
+#endif
 
     /// Used by AsyncEventSubscriberScope to cancel an event subscription
     void RemoveListener(FunctionId, UnsubscribingKind) noexcept override = 0;

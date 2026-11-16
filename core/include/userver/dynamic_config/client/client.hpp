@@ -6,9 +6,11 @@
 #include <chrono>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include <userver/dynamic_config/value.hpp>
+#include <userver/formats/json/value.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -33,6 +35,8 @@ struct ClientConfig {
     std::string circuit;
     /// Ordered service names sent as `service_overrides`. Mutually exclusive with `service`.
     std::vector<std::string> service_overrides;
+    /// Extra top-level JSON fields sent with every request. Names must differ from the standard request fields.
+    std::unordered_map<std::string, formats::json::Value> additional_request_params{};
 };
 
 /// @ingroup userver_clients

@@ -6,6 +6,7 @@
 
 #include <fmt/ranges.h>
 
+#include <userver/engine/sleep.hpp>
 #include <userver/engine/task/cancel.hpp>
 #include <userver/kafka/exceptions.hpp>
 #include <userver/kafka/impl/configuration.hpp>
@@ -13,9 +14,11 @@
 #include <userver/logging/log.hpp>
 #include <userver/testsuite/testpoint.hpp>
 #include <userver/tracing/span.hpp>
+#include <userver/utils/assert.hpp>
 #include <userver/utils/encoding/hex.hpp>
 #include <userver/utils/fast_scope_guard.hpp>
 #include <userver/utils/numeric_cast.hpp>
+#include <userver/utils/rand.hpp>
 #include <userver/utils/span.hpp>
 
 #include <kafka/impl/error_buffer.hpp>
@@ -73,6 +76,65 @@ const rd_kafka_headers_t* ParseHeaders(const rd_kafka_message_t* message) {
 
 int ToRdKafkaTimeout(engine::Deadline deadline) {
     return static_cast<int>(std::chrono::duration_cast<std::chrono::milliseconds>(deadline.TimeLeft()).count());
+}
+
+constexpr std::chrono::milliseconds kSeekRetryInitialInterval{10};
+constexpr std::chrono::milliseconds kSeekRetryMaxInterval{500};
+constexpr int kSeekRetryIntervalMultiplier{2};
+constexpr int kMinSynchronousSeekTimeoutMs{1};
+
+bool IsPartitionFetchNotStarted(rd_kafka_resp_err_t seek_error) { return seek_error == RD_KAFKA_RESP_ERR__STATE; }
+
+rd_kafka_resp_err_t SeekSinglePartition(
+    rd_kafka_t* consumer,
+    rd_kafka_topic_partition_list_t* topic_partitions_list,
+    engine::Deadline deadline
+) {
+    UASSERT(topic_partitions_list->cnt == 1);
+
+    const int timeout_ms = std::max(ToRdKafkaTimeout(deadline), kMinSynchronousSeekTimeoutMs);
+    const impl::ErrorHolder error{rd_kafka_seek_partitions(consumer, topic_partitions_list, timeout_ms)};
+    if (error) {
+        return rd_kafka_error_code(error.GetHandle());
+    }
+
+    return topic_partitions_list->elems[0].err;
+}
+
+std::chrono::milliseconds WithJitter(std::chrono::milliseconds interval) {
+    return std::chrono::milliseconds{utils::RandRange(interval.count() / 2, interval.count() + 1)};
+}
+
+class SeekRetryBackoff final {
+public:
+    explicit SeekRetryBackoff(engine::Deadline deadline)
+        : deadline_(deadline)
+    {}
+
+    bool TryWaitBeforeSeekRetry() {
+        const auto sleep_deadline = engine::Deadline::FromDuration(WithJitter(interval_));
+        engine::InterruptibleSleepUntil(std::min(deadline_, sleep_deadline));
+        interval_ = std::min(interval_ * kSeekRetryIntervalMultiplier, kSeekRetryMaxInterval);
+        return !deadline_.IsReached() && !engine::current_task::ShouldCancel();
+    }
+
+private:
+    engine::Deadline deadline_;
+    std::chrono::milliseconds interval_{kSeekRetryInitialInterval};
+};
+
+rd_kafka_resp_err_t SeekSinglePartitionWhenFetchStarted(
+    rd_kafka_t* consumer,
+    rd_kafka_topic_partition_list_t* topic_partitions_list,
+    engine::Deadline deadline
+) {
+    SeekRetryBackoff backoff{deadline};
+    auto seek_error = SeekSinglePartition(consumer, topic_partitions_list, deadline);
+    while (IsPartitionFetchNotStarted(seek_error) && backoff.TryWaitBeforeSeekRetry()) {
+        seek_error = SeekSinglePartition(consumer, topic_partitions_list, deadline);
+    }
+
+    return seek_error;
 }
 
 }  // namespace
@@ -791,13 +853,6 @@ void ConsumerImpl::SeekToOffset(
 
     const auto deadline = engine::Deadline::FromDuration(timeout);
 
-    // Here, `rd_kafka_queue_poll` call is required to activate the assign operation
-    // Namely, after `rd_kafka_assign` called, poll must be called to process the operation
-    // and assignment take effect
-    {
-        EventHolder event{rd_kafka_queue_poll(consumer_.GetQueue(), ToRdKafkaTimeout(deadline))};
-    }
-
     TopicPartitionsListHolder topic_partitions_list{rd_kafka_topic_partition_list_new(1)};
     rd_kafka_topic_partition_t* part = rd_kafka_topic_partition_list_add(
         topic_partitions_list.GetHandle(),
@@ -815,9 +870,9 @@ void ConsumerImpl::SeekToOffset(
         );
     });
 
-    const auto* err =
-        rd_kafka_seek_partitions(consumer_.GetHandle(), topic_partitions_list.GetHandle(), ToRdKafkaTimeout(deadline));
-    if (err == nullptr) {
+    const auto seek_error =
+        SeekSinglePartitionWhenFetchStarted(consumer_.GetHandle(), topic_partitions_list.GetHandle(), deadline);
+    if (seek_error == RD_KAFKA_RESP_ERR_NO_ERROR) {
         LOG_INFO("Sought to offset: {} for partition: {} topic: {} successfully", offset, partition_id, topic);
         return;
     }
@@ -826,7 +881,7 @@ void ConsumerImpl::SeekToOffset(
         "Failed to seek topic: {} partition_id: {} to a given offset. err: {}",
         topic,
         partition_id,
-        rd_kafka_error_string(err)
+        rd_kafka_err2str(seek_error)
     ));
 }
 
@@ -862,16 +917,19 @@ void ConsumerImpl::SeekToOffsets(utils::span<const SeekParams> params, std::chro
         );
     });
 
-    const auto* err =
-        rd_kafka_seek_partitions(consumer_.GetHandle(), topic_partitions_list.GetHandle(), ToRdKafkaTimeout(deadline));
-    if (err == nullptr) {
+    const ErrorHolder err{
+        rd_kafka_seek_partitions(consumer_.GetHandle(), topic_partitions_list.GetHandle(), ToRdKafkaTimeout(deadline))
+    };
+    if (!err) {
         LOG_INFO("MultiSeek: sought {} partition(s) successfully", params.size());
         return;
     }
 
-    throw SeekException(
-        fmt::format("Failed to multi-seek {} partition(s). err: {}", params.size(), rd_kafka_error_string(err))
-    );
+    throw SeekException(fmt::format(
+        "Failed to multi-seek {} partition(s). err: {}",
+        params.size(),
+        rd_kafka_error_string(err.GetHandle())
+    ));
 }
 
 void ConsumerImpl::SeekToEnd(utils::zstring_view topic, std::uint32_t partition_id, std::chrono::milliseconds timeout)

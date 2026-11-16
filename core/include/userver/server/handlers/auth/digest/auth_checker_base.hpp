@@ -130,12 +130,7 @@ private:
 
     std::string ConstructResponseDirectives(std::string_view nonce, bool stale) const;
 
-    AuthCheckResult StartNewAuthSession(
-        std::string username,
-        std::string&& nonce,
-        bool stale,
-        http::HttpResponse& response
-    ) const;
+    AuthCheckResult StartNewAuthSession(std::string&& nonce, bool stale, http::HttpResponse& response) const;
 
     const std::string qops_;
     const std::string realm_;

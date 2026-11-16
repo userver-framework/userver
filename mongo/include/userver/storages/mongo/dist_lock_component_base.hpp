@@ -7,7 +7,6 @@
 #include <userver/dist_lock/dist_locked_worker.hpp>
 #include <userver/storages/mongo/collection.hpp>
 #include <userver/storages/mongo/dist_lock_strategy.hpp>
-#include <userver/utils/statistics/entry.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

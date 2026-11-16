@@ -31,6 +31,11 @@ properties:
         items:
             type: string
             description: HTTP URL of the fallback dynamic configs service
+    additional-request-params:
+        type: object
+        description: Extra top-level JSON fields to send with every request to the dynamic configs server.
+        additionalProperties: true
+        properties: {}
     configs-stage-filepath:
         type: string
         description: |

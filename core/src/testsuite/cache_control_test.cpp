@@ -168,44 +168,60 @@ UTEST(CacheControl, Smoke) {
     EXPECT_EQ(dump::FilenamesInDirectory(env.dump_root, kCacheName).size(), 1);
 }
 
+namespace {
+
+struct ScopedCacheResetter final {
+    ScopedCacheResetter(
+        utils::ResourceScopeStorage& scopes,
+        testsuite::CacheControl& cache_control,
+        const std::string_view cache_name,
+        std::string name,
+        std::vector<std::string>& call_order
+    )
+        : name(std::move(name)),
+          call_order(call_order)
+    {
+        cache_control.RegisterCache(utils::impl::InternalTag{}, scopes, cache_name, [this](cache::UpdateType) {
+            this->call_order.push_back(this->name);
+        });
+    }
+
+    const std::string name;
+    std::vector<std::string>& call_order;
+};
+
+}  // namespace
+
 UTEST(CacheControl, AllResettersForNameAreCalled) {
     testsuite::CacheControl cache_control{
         testsuite::impl::PeriodicUpdatesMode::kDisabled,
         testsuite::CacheControl::UnitTests{},
     };
-
     std::vector<std::string> call_order;
 
-    testsuite::CacheControl::CacheInfo first{
-        .name = "dup-cache",
-        .reset = [&call_order](cache::UpdateType) { call_order.emplace_back("first"); },
-        .needs_span = false,
-    };
-    const auto
-        first_reg = testsuite::CacheResetRegistration(cache_control, cache_control.DoRegisterCache(std::move(first)));
+    {
+        const utils::WithResourceScopes<ScopedCacheResetter>
+            first{std::in_place, cache_control, "dup-cache", "first", call_order};
+        const utils::WithResourceScopes<ScopedCacheResetter>
+            last{std::in_place, cache_control, "dup-cache", "last", call_order};
+        const utils::WithResourceScopes<ScopedCacheResetter>
+            other{std::in_place, cache_control, "other-cache", "other", call_order};
 
-    testsuite::CacheControl::CacheInfo last{
-        .name = "dup-cache",
-        .reset = [&call_order](cache::UpdateType) { call_order.emplace_back("last"); },
-        .needs_span = false,
-    };
-    const auto
-        last_reg = testsuite::CacheResetRegistration(cache_control, cache_control.DoRegisterCache(std::move(last)));
+        cache_control.ResetCaches(
+            cache::UpdateType::kFull,
+            {"dup-cache"},
+            /*force_incremental_names=*/{}
+        );
+        EXPECT_THAT(call_order, ::testing::ElementsAre("first", "last"));
 
-    testsuite::CacheControl::CacheInfo other{
-        .name = "other-cache",
-        .reset = [&call_order](cache::UpdateType) { call_order.emplace_back("other"); },
-        .needs_span = false,
-    };
-    const auto
-        other_reg = testsuite::CacheResetRegistration(cache_control, cache_control.DoRegisterCache(std::move(other)));
-
-    cache_control.ResetCaches(
-        cache::UpdateType::kFull,
-        {"dup-cache"},
-        /*force_incremental_names=*/{}
-    );
-    EXPECT_THAT(call_order, ::testing::ElementsAre("first", "last"));
+        call_order.clear();
+        cache_control.ResetAllCaches(
+            cache::UpdateType::kFull,
+            /*force_incremental_names=*/{},
+            /*exclude_names=*/{}
+        );
+        EXPECT_THAT(call_order, ::testing::ElementsAre("first", "last", "other"));
+    }
 
     call_order.clear();
     cache_control.ResetAllCaches(
@@ -213,7 +229,7 @@ UTEST(CacheControl, AllResettersForNameAreCalled) {
         /*force_incremental_names=*/{},
         /*exclude_names=*/{}
     );
-    EXPECT_THAT(call_order, ::testing::ElementsAre("first", "last", "other"));
+    EXPECT_THAT(call_order, ::testing::IsEmpty());
 }
 
 UTEST_DEATH(CacheControlDeathTest, MissingCache) {

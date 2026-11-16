@@ -3,8 +3,11 @@
 /// @file userver/concurrent/async_event_channel.hpp
 /// @brief @copybrief concurrent::AsyncEventChannel
 
+#include <cstdint>
 #include <functional>
 #include <memory>
+#include <mutex>
+#include <shared_mutex>
 #include <string>
 #include <string_view>
 #include <typeindex>
@@ -27,6 +30,10 @@ USERVER_NAMESPACE_BEGIN
 namespace concurrent {
 
 namespace impl {
+
+struct AsyncEventChannelTestAccessor;
+
+std::shared_lock<engine::SharedMutex> DowngradeLock(std::unique_lock<engine::SharedMutex> lock);
 
 void WaitForTask(std::string_view name, engine::TaskWithResult<void>& task);
 
@@ -112,6 +119,7 @@ public:
           data_(ListenersData{{}, std::move(on_listener_removal)})
     {}
 
+#ifndef ARCADIA_ROOT
     /// @brief For use in `UpdateAndListen` of specific event channels
     ///
     /// Atomically calls `updater`, which should invoke `func` with the previously
@@ -150,16 +158,78 @@ public:
             std::forward<UpdaterFunc>(updater)
         );
     }
+#endif
 
     /// @brief Like @ref DoUpdateAndListen, but binds the subscription to @a scopes.
     ///
-    /// Synchronously calls @a updater and subscribes with a stub that only records whether an event arrived during
-    /// construction. When the scope is entered, @a updater is called again if an event was skipped, and the stub is
-    /// replaced with @a func. Unsubscribe runs in @ref utils::ResourceScopeStorage::BeforeDestruction.
+    /// Synchronously calls @a updater and records the channel's event generation. When the scope is entered,
+    /// @a updater is called again if an event was sent during construction, then @a func is subscribed atomically
+    /// with that check. Unsubscribes on scope exit.
     ///
     /// @warning @a updater is not only invoked inline. It is stored and may run again after this call returns,
     /// when the scope is entered. Do not capture locals by reference: copy the pointers and values the updater
     /// needs (for example @c obj and @c func) and capture @c this explicitly.
+    ///
+    /// @param scopes storage that owns the subscription lifetime.
+    /// See @ref resource_scopes_parameter "where to obtain scopes".
+    template <typename UpdaterFunc>
+    void DoUpdateAndListen(
+        utils::ResourceScopeStorage& scopes,
+        FunctionId id,
+        std::string_view name,
+        Function&& func,
+        UpdaterFunc&& updater
+    ) {
+        const auto initial_generation = [this, &updater] {
+            const std::shared_lock lock(event_mutex_);
+            updater();
+            return event_generation_;
+        }();
+
+        // The first callback runs synchronously in the constructor, so the subscription
+        // lifetime must be longer than that of other scope types.
+        constexpr utils::ResourceScopeStorage::Priority kPriority{-1};
+        scopes.Register(
+            utils::impl::InternalTag{},
+            kPriority,
+            [this,
+             id,
+             name = std::string{name},
+             initial_generation,
+             func = std::move(func),
+             updater = std::forward<UpdaterFunc>(updater)]() mutable {
+                const std::shared_lock lock(event_mutex_);
+                if (event_generation_ != initial_generation) {
+                    updater();
+                }
+                return DoAddListener(id, name, std::move(func));
+            }
+        );
+    }
+
+    /// @overload
+    /// @param scopes storage that owns the subscription lifetime.
+    /// See @ref resource_scopes_parameter "where to obtain scopes".
+    template <typename Class, typename UpdaterFunc>
+    void DoUpdateAndListen(
+        utils::ResourceScopeStorage& scopes,
+        Class* obj,
+        std::string_view name,
+        void (Class::*func)(Args...),
+        UpdaterFunc&& updater
+    ) {
+        DoUpdateAndListen(
+            scopes,
+            FunctionId(obj),
+            name,
+            [obj, func](Args... args) { (obj->*func)(args...); },
+            std::forward<UpdaterFunc>(updater)
+        );
+    }
+
+#ifndef ARCADIA_ROOT
+
+    /// @deprecated Use @ref concurrent::AsyncEventChannel::DoUpdateAndListen instead.
     template <typename UpdaterFunc>
     void DoUpdateAndListenScoped(
         utils::ResourceScopeStorage& scopes,
@@ -168,35 +238,10 @@ public:
         Function&& func,
         UpdaterFunc&& updater
     ) {
-        auto state = std::make_unique<ResourceScopeState>();
-
-        {
-            const std::shared_lock lock(event_mutex_);
-            updater();
-            state->scope = DoAddListener(id, name, [&state_ref = *state](Args...) { state_ref.event_skipped = true; });
-            auto data = data_.Lock();
-            state->listener = data->listeners.at(id);
-        }
-
-        // The first callback runs synchronously in the constructor, so the subscription
-        // lifetime must be longer than that of other scope types.
-        constexpr utils::ResourceScopeStorage::Priority kPriority{-1};
-        scopes.Register(
-            utils::impl::InternalTag{},
-            kPriority,
-            [state = std::move(state), func = std::move(func), updater = std::forward<UpdaterFunc>(updater)]() mutable {
-                const std::shared_lock sema_lock(state->listener->sema);
-                // listener callback cannot run in parallel here.
-                if (state->event_skipped) {
-                    updater();
-                }
-                state->listener->callback = std::move(func);
-                return std::move(state->scope);
-            }
-        );
+        DoUpdateAndListen(scopes, id, name, std::move(func), std::forward<UpdaterFunc>(updater));
     }
 
-    /// @overload
+    /// @deprecated Use @ref concurrent::AsyncEventChannel::DoUpdateAndListen instead.
     template <typename Class, typename UpdaterFunc>
     void DoUpdateAndListenScoped(
         utils::ResourceScopeStorage& scopes,
@@ -205,14 +250,10 @@ public:
         void (Class::*func)(Args...),
         UpdaterFunc&& updater
     ) {
-        DoUpdateAndListenScoped(
-            scopes,
-            FunctionId(obj),
-            name,
-            [obj, func](Args... args) { (obj->*func)(args...); },
-            std::forward<UpdaterFunc>(updater)
-        );
+        DoUpdateAndListen(scopes, obj, name, func, std::forward<UpdaterFunc>(updater));
     }
+
+#endif
 
     /// Send the next event and wait until all the listeners process it.
     ///
@@ -226,24 +267,22 @@ public:
         };
         std::vector<Task> tasks;
 
-        // Try to obtain unique lock for event_mutex_ to serialize
-        // calls to SendEvent()
-        event_mutex_.lock();
-
-        // Now downgrade the lock to shared to allow new subscriptions
-        event_mutex_.unlock_and_lock_shared();
-
-        // And ensure the lock releases in case of an exception
-        std::shared_lock<engine::SharedMutex> tmp_lock{event_mutex_, std::adopt_lock};
-
-        // Now we want to create N subtasks for callbacks,
-        // which must hold event_mutex_'s std::shared_lock.
-        // A naive implementation would create std::shared_lock{event_mutex_} for each subtask,
-        // however, it might deadlock if any parallel SendEvent() is called and is blocked on
-        // event_mutex_.lock(). It happens due to strict prioritization of writers above readers
-        // in SharedMutex: if there is any pending writer, nobody may lock the mutex for read.
+        std::shared_lock<engine::SharedMutex> tmp_lock;
         {
+            // Try to obtain unique lock for event_mutex_ to serialize
+            // calls to SendEvent()
+            std::unique_lock lock(event_mutex_);
             auto data = data_.Lock();
+            ++event_generation_;
+
+            tmp_lock = impl::DowngradeLock(std::move(lock));
+
+            // Now we want to create N subtasks for callbacks,
+            // which must hold event_mutex_'s std::shared_lock.
+            // A naive implementation would create std::shared_lock{event_mutex_} for each subtask,
+            // however, it might deadlock if any parallel SendEvent() is called and is blocked on
+            // event_mutex_.lock(). It happens due to strict prioritization of writers above readers
+            // in SharedMutex: if there is any pending writer, nobody may lock the mutex for read.
             auto& listeners = data->listeners;
             tasks.reserve(listeners.size());
 
@@ -270,12 +309,14 @@ public:
     const std::string& Name() const noexcept { return name_; }
 
 private:
+    friend struct impl::AsyncEventChannelTestAccessor;
+
     struct Listener final {
         // 'sema' with data_.Lock() are used to synchronize removal 'Listener' from ListenersData::listeners
         mutable engine::Semaphore sema;
 
         std::string name;
-        mutable Function callback;
+        Function callback;
         std::string task_name;
 
         Listener(std::string name, Function callback, std::string task_name)
@@ -284,13 +325,6 @@ private:
               callback(std::move(callback)),
               task_name(std::move(task_name))
         {}
-    };
-
-    struct ResourceScopeState {
-        bool event_skipped{false};
-        std::shared_ptr<const Listener> listener;
-        // Must be the last field: while the subscription is alive, the fields above remain valid for the stub callback.
-        AsyncEventSubscriberScope scope;
     };
 
     struct ListenersData final {
@@ -357,13 +391,13 @@ private:
     const std::string name_;
     concurrent::Variable<ListenersData> data_;
 
-    // event_mutex_ is required only for event serialization,
-    // it doesn't protect any data. The mutex is unique locked
+    // The mutex is unique locked
     // for new event publishing, and is shared locked for calling callbacks.
     // If any callback is working, no new event publishing is possible.
     // It *is* possible to re-subscribe on async channel while another callback
     // operates.
     mutable engine::SharedMutex event_mutex_;
+    mutable std::uint64_t event_generation_{0};
 };
 
 }  // namespace concurrent

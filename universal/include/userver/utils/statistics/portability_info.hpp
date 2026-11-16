@@ -2,6 +2,7 @@
 
 /// @file userver/utils/statistics/portability_info.hpp
 /// @brief Portability reports.
+/// @ingroup userver_universal
 
 #include <string>
 #include <string_view>
@@ -11,7 +12,7 @@
 #include <userver/formats/json/value.hpp>
 #include <userver/utils/statistics/labels.hpp>
 #include <userver/utils/statistics/request.hpp>
-#include <userver/utils/statistics/writer.hpp>
+#include <userver/utils/statistics/visit.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

@@ -131,14 +131,12 @@ TaskContext::TaskContext(
         local_storage_->InheritFrom(*current_task_context->local_storage_, inherited_variables_priority);
     }
 
-    task_processor_.HookTaskCreate(*this);
     LOG_TRACE()
         << "task with task_id=" << ReadableTaskId(current_task::GetCurrentTaskContextUnchecked())
         << " created task with task_id=" << ReadableTaskId(this) << logging::LogExtra::Stacktrace();
 }
 
 TaskContext::~TaskContext() noexcept {
-    task_processor_.HookTaskDestroy(*this);
     LOG_TRACE() << "Task with task_id=" << ReadableTaskId(this) << " stopped" << logging::LogExtra::Stacktrace();
     UASSERT(magic_ == kMagic);
 
@@ -239,6 +237,7 @@ void TaskContext::DoStep(boost::intrusive_ptr<TaskContext>&& self) {
     switch (yield_reason_) {
         case YieldReason::kTaskComplete: {
             std::move(coro_).ReturnToPool();
+            UASSERT(pending_final_state_ != Task::State::kInvalid);
             const auto new_state = pending_final_state_;
             if (cancellation_reason_.load(std::memory_order_relaxed) != TaskCancellationReason::kNone) {
                 GetTaskProcessor().GetTaskCounter().AccountTaskCancel();
@@ -582,7 +581,7 @@ void TaskContext::CoroFunc(TaskPipe& task_pipe) {
                     // Awaitable::GetErrorResult() even when the owning
                     // task is destroyed (and payload_ is reset to nullptr).
                     context->exception_ = context->payload_->GetException();
-                    UASSERT(context->pending_final_state_ == Task::State::kCompleted);
+                    context->pending_final_state_ = Task::State::kCompleted;
                 } catch (const CoroUnwinder&) {
                     context->pending_final_state_ = Task::State::kCancelled;
                 } catch (...) {

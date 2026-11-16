@@ -12,7 +12,13 @@
 
 USERVER_NAMESPACE_BEGIN
 
+namespace alerts {
+class Source;
+}
+
 namespace server::handlers {
+
+const alerts::Source& GetInvalidRequestPathAlert();
 
 using HeadersWhitelist = std::unordered_set<std::string>;
 

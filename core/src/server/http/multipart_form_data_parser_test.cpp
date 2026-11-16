@@ -514,4 +514,43 @@ TEST(MultipartFormDataParser, ParseErrors) {
     EXPECT_TRUE(form_data_args.empty());
 }
 
+TEST(MultipartFormDataParser, RejectsDefaultCharsetFieldExpansion) {
+    std::string body =
+        "--boundary\r\nContent-Disposition: form-data; name=\"_charset_\"\r\n\r\n" + std::string(1024, 'x') + "\r\n";
+    for (unsigned i = 0; i < 8; ++i) {
+        body += "--boundary\r\nContent-Disposition: form-data; name=\"field\"\r\n\r\nx\r\n";
+    }
+    body += "--boundary--\r\n";
+    server::http::FormDataArgs fields;
+    EXPECT_FALSE(ParseMultipartFormData("multipart/form-data; boundary=boundary", body, fields));
+}
+
+TEST(MultipartFormDataParser, RejectsContentTypeCharsetExpansion) {
+    const std::string body =
+        "--boundary\r\nContent-Disposition: form-data; "
+        "name=\"field\"\r\n\r\nx\r\n--boundary--\r\n";
+    server::http::FormDataArgs fields;
+    EXPECT_FALSE(ParseMultipartFormData(
+        "multipart/form-data; boundary=boundary; charset=" + std::string(1024, 'x'),
+        body,
+        fields
+    ));
+}
+
+TEST(MultipartFormDataParser, PreservesRepeatedDefaultCharsetsWithinBodyBudget) {
+    std::string body;
+    for (unsigned i = 0; i < 8; ++i) {
+        body += "--boundary\r\nContent-Disposition: form-data; name=\"field\"\r\n\r\nx\r\n";
+    }
+    body += "--boundary--\r\n";
+    server::http::FormDataArgs fields;
+    ASSERT_TRUE(ParseMultipartFormData("multipart/form-data; boundary=boundary; charset=utf-8", body, fields));
+    ASSERT_EQ(fields.size(), 1);
+    ASSERT_EQ(fields.at("field").size(), 8);
+    for (const auto& field : fields.at("field")) {
+        EXPECT_EQ(field.Charset(), "utf-8");
+        EXPECT_EQ(field.value, "x");
+    }
+}
+
 USERVER_NAMESPACE_END

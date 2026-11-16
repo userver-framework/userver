@@ -2,10 +2,10 @@
 
 #include <iterator>
 #include <ranges>
+#include <vector>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
-#include <boost/range/adaptor/transformed.hpp>
 
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/value_builder.hpp>
@@ -132,22 +132,25 @@ TEST(FormatsItems, IsForwardRange) {
     static_assert(std::forward_iterator<typename ConstItems::const_iterator>);
 }
 
-TEST(FormatsItems, BoostRanges) {
+TEST(FormatsItems, RangeAdapters) {
     auto value = formats::json::FromString(R"({"key1": "v1", "key2": "v2"})");
+    const auto items = Items(value);
+    const auto keys =
+        items |
+        std::views::transform(
+            // Must return by value since kv is temporary and stores key.
+            [](auto kv) { return std::move(kv.key); }
+        );
+    EXPECT_THAT(std::vector(keys.begin(), keys.end()), testing::UnorderedElementsAreArray({"key1", "key2"}));
+
+    const auto values =
+        items |
+        std::views::transform(
+            // Can return by reference since kv only stores value&.
+            [](auto kv) -> const auto& { return kv.value; }
+        );
     EXPECT_THAT(
-        Items(value) |
-            boost::adaptors::transformed(
-                // Must return by value since kv is temporary and stores key.
-                [](auto kv) { return std::move(kv.key); }
-            ),
-        testing::UnorderedElementsAreArray({"key1", "key2"})
-    );
-    EXPECT_THAT(
-        Items(value) |
-            boost::adaptors::transformed(
-                // Can return by reference since kv only stores value&.
-                [](auto kv) -> const auto& { return kv.value; }
-            ),
+        std::vector(values.begin(), values.end()),
         testing::UnorderedElementsAreArray(
             {formats::json::ValueBuilder{"v1"}.ExtractValue(), formats::json::ValueBuilder{"v2"}.ExtractValue()}
         )

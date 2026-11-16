@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstddef>
 #include <memory>
 #include <optional>
 #include <string_view>
@@ -87,6 +88,14 @@ public:
 
     void SetDeadlinePropagated() noexcept;
 
+    void SetRequestSizeBytes(std::optional<std::size_t> size) noexcept;
+
+    std::optional<std::size_t> GetRequestSizeBytes() const noexcept;
+
+    void SetResponseSizeBytes(std::optional<std::size_t> size) noexcept;
+
+    std::optional<std::size_t> GetResponseSizeBytes() const noexcept;
+
     void Commit() noexcept;
 
     grpc::ClientContext& GetClientContextCommitted();
@@ -105,6 +114,10 @@ private:
     std::unique_ptr<grpc::ClientContext> client_context_;
 
     bool is_deadline_propagated_{false};
+
+    std::optional<std::size_t> request_size_bytes_;
+
+    std::optional<std::size_t> response_size_bytes_;
 
     std::optional<tracing::InPlaceSpan> span_;
 

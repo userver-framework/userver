@@ -88,6 +88,9 @@ component is guaranteed to outlive the component that is being constructed.
 ## Service lifetime stages and component hooks
 Please see docs on @ref components::ServiceLifetimeStage.
 
+For subscriptions and callbacks tied to an object's construction and destruction, see
+@ref scripts/docs/en/userver/resource_scopes.md.
+
 ## Components construction and destruction order
 @ref utils::DaemonMain, @ref components::Run or @ref components::RunOnce
 start all the components from the passed @ref components::ComponentList.

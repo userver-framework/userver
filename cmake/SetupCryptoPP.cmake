@@ -32,6 +32,13 @@ cpmaddpackage(
             "CRYPTOPP_USE_OPENMP OFF" "CRYPTOPP_DATA_DIR"
 )
 
+include(FetchContent)
+FetchContent_GetProperties(cryptopp)
+get_target_property(cryptopp_include_dirs cryptopp INTERFACE_INCLUDE_DIRECTORIES)
+set(cryptopp_dir_shadowing_system_headers "$<BUILD_INTERFACE:${cryptopp_SOURCE_DIR}>")
+list(REMOVE_ITEM cryptopp_include_dirs "${cryptopp_dir_shadowing_system_headers}")
+set_target_properties(cryptopp PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${cryptopp_include_dirs}")
+
 add_library(CryptoPP INTERFACE)
 target_link_libraries(CryptoPP INTERFACE cryptopp)
 get_filename_component(cryptopp_parent_directory "${cryptopp_SOURCE_DIR}" DIRECTORY)

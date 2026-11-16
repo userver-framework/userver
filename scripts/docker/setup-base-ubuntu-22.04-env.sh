@@ -121,6 +121,9 @@ export POSTGRESQL_VERSION=${POSTGRESQL_VERSION:=14}
 # Installing gRPC library from sources
 ./ubuntu_install_grpc.sh
 
+# Installing aklomp/base64 library from sources
+./ubuntu_install_base64.sh
+
 # Installing amqp/rabbitmq client libraries from sources
 ./ubuntu_install_rabbitmq_dev.sh
 

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <optional>
+
 #include <engine/ev/watcher.hpp>
 #include <engine/ev/watcher/async_watcher.hpp>
 #include <engine/ev/watcher/periodic_watcher.hpp>
@@ -7,6 +9,7 @@
 #include <userver/logging/log.hpp>
 #include <userver/utils/datetime/steady_coarse_clock.hpp>
 
+#include <storages/redis/impl/shard.hpp>
 #include <storages/redis/impl/statistics_holder.hpp>
 #include <storages/redis/impl/topology_holder_base.hpp>
 #include <userver/storages/redis/topology_update_method.hpp>
@@ -72,7 +75,7 @@ private:
     std::shared_ptr<const std::vector<std::string>> shards_names_;
     const std::vector<ConnectionInfo> conns_;
     const TopologyUpdateMethod topology_update_method_;
-    std::shared_ptr<Shard> sentinels_;
+    std::optional<Shard> sentinels_;
 
     StatisticsHolder statistics_holder_;
 

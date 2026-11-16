@@ -14,7 +14,6 @@ set(BOOST_INCLUDE_LIBRARIES_FIND_PACKAGE
     atomic
     program_options
     filesystem
-    regex
     locale
     iostreams
     context

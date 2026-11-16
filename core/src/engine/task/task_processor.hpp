@@ -96,10 +96,6 @@ public:
 
     void HookAfterWakeup(impl::TaskContext& task) noexcept;
 
-    void HookTaskCreate(impl::TaskContext& task) noexcept;
-
-    void HookTaskDestroy(impl::TaskContext& task) noexcept;
-
     void HookTaskStart(impl::TaskContext& task) noexcept;
 
     void HookTaskStop(impl::TaskContext& task) noexcept;

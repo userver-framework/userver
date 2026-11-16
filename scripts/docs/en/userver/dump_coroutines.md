@@ -22,7 +22,7 @@ components_manager:
             trace-coroutines: true
 ```
 
-It turns on runtime hooks for coroutines lifetime events, including creation/destruction/awaits/etc.
+The tracer records coroutine stack traces before suspension and removes tasks when their payload finishes.
 
 2) Register dump coroutines handler into `main`:
 

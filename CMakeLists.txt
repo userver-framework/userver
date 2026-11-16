@@ -111,6 +111,12 @@ if(NOT USERVER_FEATURE_CRYPTOPP_BASE64_URL)
     add_compile_definitions("USERVER_NO_CRYPTOPP_BASE64_URL=1")
 endif()
 
+# Requires aklomp/base64. Turn off for offline builds on distributions without the package.
+# @ingroup some_platforms
+option(USERVER_FEATURE_SIMD_BASE64
+       "Use SIMD-accelerated aklomp/base64 for Base64 encoding and decoding instead of crypto++" ON
+)
+
 if(CMAKE_SYSTEM_NAME MATCHES "BSD")
     set(JEMALLOC_DEFAULT OFF)
 else()

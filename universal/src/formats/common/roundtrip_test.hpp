@@ -1,11 +1,15 @@
 #include <gmock/gmock.h>
 #include <gtest/gtest-typed-test.h>
 
+#include <fmt/format.h>
+
 #include <array>
 #include <cstddef>
 #include <cstdint>
 #include <forward_list>
+#include <initializer_list>
 #include <iterator>
+#include <map>
 #include <optional>
 #include <ranges>
 #include <sstream>
@@ -18,10 +22,16 @@
 
 #include <userver/formats/parse/common_containers.hpp>
 #include <userver/formats/serialize/common_containers.hpp>
+#include <userver/utils/strong_typedef.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace {
+
+template <typename Key>
+struct SerializationUnsizedMap : std::map<Key, int> {
+    void size() const = delete;
+};
 
 class SerializationSinglePassRange {
 public:
@@ -123,6 +133,72 @@ TYPED_TEST_P(Roundtrip, EmptyArrays) {
 
 TYPED_TEST_P(Roundtrip, UnorderedMap) { this->Check(std::unordered_map<std::string, int>{{"one", 2}, {"three", 4}}); }
 
+TYPED_TEST_P(Roundtrip, CommonMapSerialization) {
+    using Value = decltype(TypeParam{}.ExtractValue());
+    for (const std::size_t size : {0, 1, 128}) {
+        std::unordered_map<std::string, int> source;
+        for (std::size_t index = 0; index < size; ++index) {
+            source.emplace(fmt::format("{}", index), index);
+        }
+        const auto value = formats::serialize::Serialize(source, formats::serialize::To<Value>{});
+        EXPECT_TRUE(value.IsObject());
+        EXPECT_EQ(value.GetSize(), size);
+        EXPECT_EQ((value.template As<decltype(source)>()), source);
+        this->Check(source);
+    }
+}
+
+TYPED_TEST_P(Roundtrip, StrongTypedefMapSerialization) {
+    using Key = utils::StrongTypedef<struct MapKeyTag, std::string>;
+    using Value = decltype(TypeParam{}.ExtractValue());
+    for (const std::size_t size : {0, 1, 128}) {
+        std::map<Key, int> source;
+        for (std::size_t index = 0; index < size; ++index) {
+            source.emplace(Key{fmt::format("{}", index)}, index);
+        }
+        const auto common = formats::serialize::Serialize(source, formats::serialize::To<Value>{});
+        const auto automatic = TypeParam{source}.ExtractValue();
+        EXPECT_TRUE(common.IsObject());
+        EXPECT_TRUE(automatic.IsObject());
+        EXPECT_EQ(common.GetSize(), size);
+        EXPECT_EQ(automatic.GetSize(), size);
+        for (const auto& [key, expected] : source) {
+            EXPECT_EQ(common[key.GetUnderlying()].template As<int>(), expected);
+            EXPECT_EQ(automatic[key.GetUnderlying()].template As<int>(), expected);
+        }
+    }
+}
+
+TYPED_TEST_P(Roundtrip, UnsizedMapSerialization) {
+    using Key = utils::StrongTypedef<struct UnsizedMapKeyTag, std::string>;
+    const auto check = [](const auto& source) {
+        static_assert(!std::ranges::sized_range<decltype(source)>);
+        using Value = decltype(TypeParam{}.ExtractValue());
+        const auto common = formats::serialize::Serialize(source, formats::serialize::To<Value>{});
+        const auto automatic = TypeParam{source}.ExtractValue();
+        EXPECT_EQ(common.GetSize(), 1);
+        EXPECT_EQ(automatic.GetSize(), 1);
+        EXPECT_EQ(common["key"].template As<int>(), 42);
+        EXPECT_EQ(automatic["key"].template As<int>(), 42);
+    };
+    SerializationUnsizedMap<std::string> plain;
+    plain["key"] = 42;
+    check(plain);
+    SerializationUnsizedMap<Key> strong;
+    strong[Key{"key"}] = 42;
+    check(strong);
+}
+
+TYPED_TEST_P(Roundtrip, MapWithDuplicateSerializedKeys) {
+    const char first[] = "key";
+    const char second[] = "key";
+    const std::map<const char*, int> source{{first, 1}, {second, 2}};
+    using Value = decltype(TypeParam{}.ExtractValue());
+    const auto value = formats::serialize::Serialize(source, formats::serialize::To<Value>{});
+    EXPECT_EQ(value.GetSize(), 1);
+    EXPECT_EQ(value["key"].template As<int>(), source.rbegin()->second);
+}
+
 TYPED_TEST_P(Roundtrip, UnorderedSet) { this->Check(std::unordered_set<int>{1, 2, 3}); }
 
 TYPED_TEST_P(Roundtrip, VectorOfStringView) {
@@ -150,6 +226,10 @@ REGISTER_TYPED_TEST_SUITE_P(
     SinglePassArray,
     EmptyArrays,
     UnorderedMap,
+    CommonMapSerialization,
+    StrongTypedefMapSerialization,
+    UnsizedMapSerialization,
+    MapWithDuplicateSerializedKeys,
     UnorderedSet,
     VectorOfStringView
 );

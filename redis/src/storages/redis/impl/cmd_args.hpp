@@ -1,7 +1,10 @@
 #pragma once
 
+#include <cstddef>
 #include <optional>
 #include <string>
+#include <type_traits>
+#include <utility>
 #include <vector>
 
 #include <fmt/ranges.h>
@@ -17,6 +20,19 @@
 USERVER_NAMESPACE_BEGIN
 
 namespace storages::redis::impl {
+
+namespace detail {
+
+template <typename T>
+inline constexpr std::size_t kWireArgsPerItem = 1;
+
+template <typename First, typename Second>
+inline constexpr std::size_t kWireArgsPerItem<std::pair<First, Second>> = 2;
+
+template <>
+inline constexpr std::size_t kWireArgsPerItem<GeoaddArg> = 3;
+
+}  // namespace detail
 
 class CmdArgs;
 
@@ -39,7 +55,8 @@ public:
     CmdWithArgs(std::string&& command_name, Args&&... arguments) {
         UASSERT(!command_name.empty());
         UASSERT(command_name.size() == std::strlen(command_name.c_str()));
-        args_.reserve(1 + sizeof...(Args));
+        const std::size_t args_count = (std::size_t{1} + ... + GetArgsCount(arguments));
+        args_.reserve(args_count);
         PutArg(std::move(command_name));
         (this->PutArg(std::forward<Args>(arguments)), ...);
     }
@@ -128,10 +145,13 @@ private:
     void PutArg(std::string&& arg);
 
     void PutArg(const std::vector<std::string>& arg);
+    void PutArg(std::vector<std::string>&& arg);
 
     void PutArg(const std::vector<std::pair<std::string, std::string>>& arg);
+    void PutArg(std::vector<std::pair<std::string, std::string>>&& arg);
 
     void PutArg(const std::vector<std::pair<double, std::string>>& arg);
+    void PutArg(std::vector<std::pair<double, std::string>>&& arg);
 
     void PutArg(std::optional<ScanOptionsGeneric::Match> arg);
     void PutArg(std::optional<ScanOptionsGeneric::Count> arg);
@@ -154,6 +174,16 @@ private:
     requires std::is_arithmetic_v<Arg>
     void PutArg(const Arg& arg) {
         args_.emplace_back(std::to_string(arg));
+    }
+
+    template <typename Arg>
+    static constexpr std::size_t GetArgsCount(const Arg&) noexcept {
+        return detail::kWireArgsPerItem<Arg>;
+    }
+
+    template <typename T>
+    static std::size_t GetArgsCount(const std::vector<T>& arg) noexcept {
+        return arg.size() * detail::kWireArgsPerItem<T>;
     }
 
     static constexpr std::size_t kTypicalArgsCount = 4;

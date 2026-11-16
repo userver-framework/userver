@@ -143,9 +143,14 @@ def get_infos(
         The dict is a fresh copy; mutating it has no effect on stored
         data.
     """
+    fixture_manager = request.session._fixturemanager
+    item = request._pyfuncitem
+    params = inspect.signature(fixture_manager.getfixturedefs).parameters
+    key = item if list(params)[1] == 'node' else item.nodeid
+
     collected: list[_MarkedFixture[I]] = []
-    for fixturedef in _iter_visible_fixtures(request):
-        marked = _marked_fixture_for_name(request, fixturedef.argname, info_type)
+    for fixturedef in _iter_visible_fixtures(request, key):
+        marked = _marked_fixture_for_name(request, fixturedef.argname, info_type, key)
         if marked is not None:
             collected.append(marked)
     plugin_key_order: dict[str, int] = {}
@@ -170,16 +175,14 @@ def _is_pytest_fixture_wrapper(func: object) -> bool:
 def _get_fixturedefs(
     fixture_manager: Any,
     name: str,
-    request: pytest.FixtureRequest,
+    key: Any,
 ) -> Sequence[pytest.FixtureDef[object]] | None:
-    item = request._pyfuncitem
-    params = inspect.signature(fixture_manager.getfixturedefs).parameters
-    key = item if list(params)[1] == 'node' else item.nodeid
     return fixture_manager.getfixturedefs(name, key)
 
 
 def _iter_visible_fixtures(
     request: pytest.FixtureRequest,
+    key: Any,
 ) -> Iterator[pytest.FixtureDef[object]]:
     fixture_manager = request.session._fixturemanager
     invoking_rank = _SCOPE_RANK[request.scope]
@@ -192,7 +195,7 @@ def _iter_visible_fixtures(
         fixture_names = fixture_manager._arg2fixturedefs
 
     for name in fixture_names:
-        matched = _get_fixturedefs(fixture_manager, name, request)
+        matched = _get_fixturedefs(fixture_manager, name, key)
         if not matched:
             continue
         winning = matched[-1]
@@ -205,9 +208,10 @@ def _marked_fixture_for_name(
     request: pytest.FixtureRequest,
     name: str,
     info_type: type[I],
+    key: Any,
 ) -> _MarkedFixture[I] | None:
     fixture_manager = request.session._fixturemanager
-    matched = _get_fixturedefs(fixture_manager, name, request)
+    matched = _get_fixturedefs(fixture_manager, name, key)
     if not matched:
         return None
     info = _inherited_info(matched, info_type)

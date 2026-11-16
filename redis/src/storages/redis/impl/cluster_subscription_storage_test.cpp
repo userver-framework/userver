@@ -52,7 +52,7 @@ public:
     static void TearDownTestSuite() {}
 
     void SetUp() override {
-        storage_ = std::make_shared<
+        storage_ = std::make_unique<
             storages::redis::impl::ClusterSubscriptionStorage>(thread_pool_.NextThread(), kShardsCount_);
         auto sharded_subscribe_callback = [&](const std::string& /*channel*/, storages::redis::impl::CommandPtr cmd) {
             ASSERT_TRUE(cmd->control.force_server_id);
@@ -177,7 +177,7 @@ private:
     };
 
     const size_t kShardsCount_ = 3;
-    std::shared_ptr<storages::redis::impl::ClusterSubscriptionStorage> storage_;
+    std::unique_ptr<storages::redis::impl::ClusterSubscriptionStorage> storage_;
     std::unordered_map<std::string, size_t> subscriptions_by_host_;
     std::unordered_map<std::string, size_t> ssubscriptions_by_host_;
     std::vector<std::string> sunsubscribed_channels_;

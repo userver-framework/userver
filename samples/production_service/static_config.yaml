@@ -155,6 +155,7 @@ components_manager:
             http-retries: 5
             http-timeout: 20s
             service-name: $service-name
+            additional-request-params: {}  # Extra JSON fields for POST /configs/values.
         dynamic-config-client-updater:
             config-settings: false
             first-update-fail-ok: true

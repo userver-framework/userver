@@ -1,8 +1,10 @@
 #include <userver/utils/statistics/metrics_storage.hpp>
 
+#include <cstddef>
 #include <functional>
 #include <optional>
 #include <typeindex>
+#include <unordered_map>
 #include <unordered_set>
 
 #include <fmt/format.h>
@@ -23,6 +25,12 @@ namespace utils::statistics {
 namespace impl {
 
 namespace {
+
+struct MetricKeyHash final {
+    std::size_t operator()(const MetricKey& key) const noexcept;
+};
+
+using MetricMap = std::unordered_map<MetricKey, std::unique_ptr<MetricWrapperBase>, MetricKeyHash>;
 
 using MetricMetadataMap = std::unordered_map<MetricKey, MetricFactory, MetricKeyHash>;
 
@@ -51,13 +59,13 @@ MetricMap InstantiateMetrics(const std::optional<std::vector<std::string>>& allo
     return metrics;
 }
 
-}  // namespace
-
 std::size_t MetricKeyHash::operator()(const MetricKey& key) const noexcept {
     auto seed = std::hash<std::type_index>()(key.idx);
     boost::hash_combine(seed, std::hash<std::string>()(key.path));
     return seed;
 }
+
+}  // namespace
 
 MetricWrapperBase::~MetricWrapperBase() = default;
 
@@ -70,16 +78,34 @@ void RegisterMetricInfo(const MetricKey& key, MetricFactory factory) {
 
 }  // namespace impl
 
+struct MetricsStorage::Impl final {
+    explicit Impl(const std::optional<std::vector<std::string>>& allowed_metric_paths)
+        : metrics(impl::InstantiateMetrics(allowed_metric_paths))
+    {}
+
+    impl::MetricMap metrics;
+};
+
 MetricsStorage::MetricsStorage()
     : MetricsStorage(std::nullopt)
 {}
 
 MetricsStorage::MetricsStorage(const std::optional<std::vector<std::string>>& allowed_metric_paths)
-    : metrics_(impl::InstantiateMetrics(allowed_metric_paths))
+    : impl_(allowed_metric_paths)
 {}
 
+MetricsStorage::MetricsStorage(MetricsStorage&&) noexcept = default;
+
+MetricsStorage& MetricsStorage::operator=(MetricsStorage&&) noexcept = default;
+
+MetricsStorage::~MetricsStorage() = default;
+
+impl::MetricWrapperBase& MetricsStorage::GetMetricWrapper(const impl::MetricKey& key) {
+    return *impl_->metrics.at(key);
+}
+
 void DumpMetric(Writer& writer, const MetricsStorage& storage) {
-    for (const auto& [key, metric_ptr] : storage.metrics_) {
+    for (const auto& [key, metric_ptr] : storage.impl_->metrics) {
         auto& metric = *metric_ptr;
         try {
             std::optional<Writer> metric_writer;
@@ -100,7 +126,7 @@ void DumpMetric(Writer& writer, const MetricsStorage& storage) {
 void MetricsStorage::ResetMetrics() {
     LOG_DEBUG() << "resetting custom metric";
 
-    for (auto& [_, value] : metrics_) {
+    for (auto& [_, value] : impl_->metrics) {
         value->Reset();
     }
 }

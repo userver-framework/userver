@@ -4,10 +4,10 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <unordered_map>
 
 #include <userver/dynamic_config/snapshot.hpp>
 #include <userver/formats/json/masking.hpp>
+#include <userver/utils/impl/transparent_hash.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -23,7 +23,7 @@ struct HttpLoggingSettings final {
     HttpBodyLoggingSettings response;
 };
 
-using HttpServerLogs = std::unordered_map<std::string, HttpLoggingSettings>;
+using HttpServerLogs = utils::impl::TransparentMap<std::string, HttpLoggingSettings>;
 
 extern const dynamic_config::Key<HttpServerLogs> kHttpServerLogs;
 

@@ -5,13 +5,13 @@ USERVER_NAMESPACE_BEGIN
 namespace storages::redis::test {
 
 TEST(MockClientTest, Basic) {
-    auto client_mock = std::make_shared<GMockClient>();
+    GMockClient client_mock;
 
     using testing::_;
 
-    EXPECT_CALL(*client_mock, ShardByKey("test_shard")).Times(1).WillRepeatedly([](const std::string&) { return 1; });
+    EXPECT_CALL(client_mock, ShardByKey("test_shard")).Times(1).WillRepeatedly([](const std::string&) { return 1; });
 
-    const size_t shard_count = client_mock->ShardByKey("test_shard");
+    const size_t shard_count = client_mock.ShardByKey("test_shard");
     ASSERT_EQ(shard_count, 1);
 }
 

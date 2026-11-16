@@ -1,3 +1,5 @@
+import pytest
+
 from chaotic.back.cpp import type_name
 from chaotic.back.cpp import types as cpp_types
 from chaotic.front import types as front_types
@@ -119,3 +121,35 @@ def test_response_ref(translate_single_schema):
             ),
         ],
     )
+
+
+@pytest.mark.parametrize('tag', ['x-usrv-with-fallback', 'x-taxi-with-fallback'])
+def test_response_enum_with_fallback(translate_single_schema, tag):
+    schema = {
+        'openapi': '3.0.0',
+        'info': {'title': '', 'version': '1.0'},
+        'paths': {
+            '/': {
+                'get': {
+                    'responses': {
+                        '200': {
+                            'description': 'OK',
+                            'content': {
+                                'application/json': {
+                                    'schema': {
+                                        'type': 'string',
+                                        'enum': ['unknown', 'order'],
+                                        tag: True,
+                                    },
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        },
+    }
+    response = translate_single_schema(schema).operations[0].responses[0].body['application/json']
+    assert isinstance(response, cpp_types.CppStringEnum)
+    assert response.with_fallback
+    assert [item.cpp_name for item in response.enums] == ['kUnknown', 'kOrder']

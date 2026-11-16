@@ -3,17 +3,20 @@
 /// @file userver/utils/statistics/storage.hpp
 /// @brief @copybrief utils::statistics::Storage
 
-#include <atomic>
 #include <functional>
-#include <list>
+#include <memory>
 #include <string>
 #include <vector>
 
-#include <userver/engine/shared_mutex.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/resource_scopes_fwd.hpp>
-#include <userver/utils/statistics/entry.hpp>
+#include <userver/utils/statistics/fwd.hpp>
 #include <userver/utils/statistics/writer.hpp>
+
+// TODO(USERVER-1855) remove extra includes
+#include <atomic>
+#include <list>
+#include <userver/engine/shared_mutex.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
@@ -22,15 +25,6 @@ namespace utils::statistics {
 using WriterFunc = std::function<void(Writer&)>;
 
 namespace impl {
-
-struct MetricsSource final {
-    std::string prefix_path;
-    WriterFunc writer;
-    std::vector<Label> writer_labels;
-};
-
-using StorageData = std::list<MetricsSource>;
-using StorageIterator = StorageData::iterator;
 
 inline constexpr bool kCheckSubscriptionUB = utils::impl::kEnableAssert;
 
@@ -48,6 +42,8 @@ public:
     Storage();
 
     Storage(const Storage&) = delete;
+    Storage& operator=(const Storage&) = delete;
+    ~Storage();
 
     /// @cond
     /// Must be called from StatisticsStorage only. Don't call it from user components.
@@ -59,11 +55,14 @@ public:
     ///
     /// Registration runs after construction via @ref ResourceScopeStorage::AfterConstruction.
     /// Unregister runs in @ref ResourceScopeStorage::BeforeDestruction.
+    /// The storage must outlive its registrations. If other scopes initialize or destroy data accessed by `func`
+    /// (generally discouraged), register the statistics scope after them so the data is initialized before the callback
+    /// is registered and destroyed after it is unregistered.
     ///
     /// In a component constructor prefer @ref RegisterWriterScope with @ref components::ComponentContext.
     ///
-    /// @param scopes storage that owns the writer lifetime. In a component constructor pass `context.Scopes()`
-    /// or @ref components::GetResourceScopes.
+    /// @param scopes storage that owns the writer lifetime.
+    /// See @ref resource_scopes_parameter "where to obtain scopes".
     /// @param common_prefix prefix for the metric, for example "my.metric_name"
     /// @param func function that writes metrics to @ref utils::statistics::Writer
     /// @param add_labels common labels for the metric, for example {"database", "dbname"}
@@ -74,22 +73,11 @@ public:
         std::vector<Label> add_labels = {}
     );
 
-    /// @overload
-    /// @deprecated Use the overload that takes @ref utils::ResourceScopeStorage.
-    ///
-    /// Store the returned @ref Entry as a member and call `Unregister` explicitly.
-    Entry RegisterWriter(std::string common_prefix, WriterFunc func, std::vector<Label> add_labels = {});
-
-    void UnregisterExtender(impl::StorageIterator iterator, impl::UnregisteringKind kind) noexcept;
-
 private:
     friend void DumpMetric(Writer& writer, const Storage& storage);
 
-    Entry DoRegisterExtender(impl::MetricsSource&& source);
-
-    std::atomic<bool> may_register_extenders_;
-    impl::StorageData metrics_sources_;
-    mutable engine::SharedMutex mutex_;
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
 };
 
 /// @brief Dumps metrics registered in @a storage.

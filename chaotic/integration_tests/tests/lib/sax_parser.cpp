@@ -1,7 +1,7 @@
 #include <userver/utest/assert_macros.hpp>
 
 #include <userver/chaotic/sax_parser.hpp>
-#include <userver/chaotic/validators_pattern.hpp>
+#include <userver/chaotic/validators/pattern.hpp>
 #include <userver/formats/json/inline.hpp>
 
 USERVER_NAMESPACE_BEGIN

@@ -10,6 +10,7 @@
 #include <userver/formats/json/serialize.hpp>
 #include <userver/utils/statistics/histogram.hpp>
 #include <userver/utils/statistics/rate.hpp>
+#include <userver/utils/statistics/rate_counter.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 #include <memory>
@@ -93,6 +94,35 @@ public:
         storage.RegisterWriter(scopes, "foo.bar.baz", [](utils::statistics::Writer& writer) { writer = 42; });
     }
 };
+
+/// [Resource scopes virtual callback] BEGIN
+class MetricsBase {
+public:
+    MetricsBase(utils::ResourceScopeStorage& scopes, utils::statistics::Storage& storage) {
+        storage.RegisterWriter(scopes, "worker", [this](utils::statistics::Writer& writer) {
+            writer["value"] = GetValue();
+        });
+    }
+
+    virtual ~MetricsBase() = default;
+
+private:
+    virtual std::int64_t GetValue() const = 0;
+};
+
+class WorkerMetrics final : public MetricsBase {
+public:
+    WorkerMetrics(utils::ResourceScopeStorage& scopes, utils::statistics::Storage& storage, std::int64_t value)
+        : MetricsBase(scopes, storage),
+          value_(value)
+    {}
+
+private:
+    std::int64_t GetValue() const override { return value_; }
+
+    const std::int64_t value_;
+};
+/// [Resource scopes virtual callback] END
 
 class SampleMetricsHolder {
 public:
@@ -191,6 +221,17 @@ UTEST(StatisticsStorage, RegisterWriter) {
     EXPECT_EQ(json["foo.bar.baz"][0]["value"].As<int>(), 42);
 }
 
+UTEST(StatisticsStorage, ScopedWriterVirtualCallbackAfterDerivedConstruction) {
+    utils::statistics::Storage storage;
+    {
+        const utils::WithResourceScopes<WorkerMetrics> metrics(std::in_place, storage, 42);
+        const utils::statistics::Snapshot snapshot{storage};
+        EXPECT_EQ(snapshot.SingleMetric("worker.value"), std::int64_t{42});
+    }
+    const utils::statistics::Snapshot snapshot{storage};
+    EXPECT_TRUE(snapshot.AllMetrics().empty());
+}
+
 UTEST(StatisticsStorage, PrettyFormatWriterSample) {
     Storage storage;
     const utils::WithResourceScopes<SampleMetricsHolder> metrics(std::in_place, storage);
@@ -210,20 +251,22 @@ UTEST(StatisticsStorage, PrettyFormatWriterSample) {
 
 UTEST(StatisticsStorage, UnsubscribingCheckWriterData) {
     Storage storage;
-    int counter = 0;
-    const auto writer_func = [&counter](utils::statistics::Writer& writer) {
+    static int counter = 0;
+    // Reset the static counter so that --gtest_repeat works.
+    counter = 0;
+    const auto writer_func = [](utils::statistics::Writer& writer) {
         writer = 1;
         writer["a"] = 2;
         counter++;
     };
 
-    auto holder1 = storage.RegisterWriter("prefix1", writer_func);
+    auto holder1 = MakeSelfContainedMetricLambda(storage, "prefix1", {}, writer_func);
     {
-        auto holder2 = storage.RegisterWriter("prefix2", writer_func);
-        holder2.Unregister();
+        auto holder2 = MakeSelfContainedMetricLambda(storage, "prefix2", {}, writer_func);
+        holder2.reset();
     }
     {
-        auto holder3 = storage.RegisterWriter("prefix3", writer_func);
+        const auto holder3 = MakeSelfContainedMetricLambda(storage, "prefix3", {}, writer_func);
     }
 
     if constexpr (utils::statistics::impl::kCheckSubscriptionUB) {
@@ -231,6 +274,10 @@ UTEST(StatisticsStorage, UnsubscribingCheckWriterData) {
     } else {
         EXPECT_EQ(counter, 0);
     }
+
+    EXPECT_EQ(ToPrometheusFormatUntyped(storage), "prefix1{} 1\nprefix1_a{} 2\n");
+    holder1.reset();
+    EXPECT_TRUE(ToPrometheusFormatUntyped(storage).empty());
 }
 
 UTEST(MetricsWriter, Basic1) {
@@ -646,20 +693,22 @@ public:
         });
     }
 
-    std::int64_t foo{1};
-    std::int64_t bar{2};
+    utils::statistics::RateCounter foo;
+    utils::statistics::RateCounter bar;
 };
 
 }  // namespace
 
 UTEST(Snapshot, FromStorage) {
     utils::statistics::Storage storage;
-    const utils::WithResourceScopes<ToyMetrics> toy(std::in_place, storage);
+    utils::WithResourceScopes<ToyMetrics> toy(std::in_place, storage);
+    toy->foo = utils::statistics::Rate{1};
+    toy->bar = utils::statistics::Rate{2};
 
     const utils::statistics::Snapshot snapshot{storage};
 
-    EXPECT_EQ(snapshot.SingleMetric("toy.foo"), std::int64_t{1});
-    EXPECT_EQ(snapshot.SingleMetric("toy.bar"), std::int64_t{2});
+    EXPECT_EQ(snapshot.SingleMetric("toy.foo"), utils::statistics::Rate{1});
+    EXPECT_EQ(snapshot.SingleMetric("toy.bar"), utils::statistics::Rate{2});
 }
 /// [metrics Snapshot sample]
 

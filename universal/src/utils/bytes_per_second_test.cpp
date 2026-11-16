@@ -29,6 +29,8 @@ INSTANTIATE_TEST_SUITE_P(
         {.name = "bytes", .data = "103B/s", .ethalon = 103},
         {.name = "megaBytes", .data = "3MiB/s", .ethalon = 3 * 1024 * 1024},
         {.name = "mb", .data = "3mb/s", .ethalon = 3 * 1000 * 1000},
+        {.name = "bitsMixedCase", .data = "24BiT/S", .ethalon = 3},
+        {.name = "tebibytes", .data = "2TiB/S", .ethalon = 2199023255552ULL},
     }),
     ::testing::PrintToStringParamName()
 );
@@ -36,7 +38,7 @@ INSTANTIATE_TEST_SUITE_P(
 TEST_P(StringToBytesPerSecond, Basic) {
     const auto p = GetParam();
     auto val = utils::StringToBytesPerSecond(p.data);
-    EXPECT_EQ(static_cast<std::size_t>(val), p.ethalon);
+    EXPECT_EQ(utils::ToLongLong(val), p.ethalon);
 }
 
 USERVER_NAMESPACE_END

@@ -1,3 +1,5 @@
+import pytest
+
 from chaotic.back.cpp import type_name
 from chaotic.back.cpp import types as cpp_types
 from chaotic.front import types as front_types
@@ -122,3 +124,18 @@ def test_datetime_isobasic(simple_gen):
             default=None,
         ),
     }
+
+
+@pytest.mark.parametrize(
+    'bounds, validator',
+    [
+        ({}, ''),
+        ({'minLength': 0}, ', USERVER_NAMESPACE::chaotic::MinLength<0>'),
+        ({'maxLength': 0}, ', USERVER_NAMESPACE::chaotic::MaxLength<0>'),
+        ({'minLength': 0, 'maxLength': 0}, ', USERVER_NAMESPACE::chaotic::MinMaxLength<0, 0>'),
+        ({'minLength': 2, 'maxLength': 5}, ', USERVER_NAMESPACE::chaotic::MinMaxLength<2, 5>'),
+    ],
+)
+def test_length_validator(simple_gen, bounds, validator):
+    cpp_type = simple_gen({'type': 'string', **bounds})['::type']
+    assert cpp_type.parser_type('', '') == f'USERVER_NAMESPACE::chaotic::Primitive<std::string{validator}>'

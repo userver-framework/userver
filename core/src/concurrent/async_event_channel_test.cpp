@@ -1,6 +1,11 @@
 #include <userver/utest/utest.hpp>
 
 #include <atomic>
+#include <cstdint>
+#include <mutex>
+#include <optional>
+#include <stdexcept>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -10,9 +15,24 @@
 #include <userver/engine/async.hpp>
 #include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/sleep.hpp>
+#include <userver/engine/task/current_task.hpp>
+#include <userver/engine/task/task_with_result.hpp>
+#include <userver/utils/function_ref.hpp>
 #include <userver/utils/resource_scopes.hpp>
+#include <userver/utils/scope_guard.hpp>
 
 USERVER_NAMESPACE_BEGIN
+
+namespace concurrent::impl {
+
+struct AsyncEventChannelTestAccessor {
+    template <typename... Args>
+    static auto LockListeners(AsyncEventChannel<Args...>& channel) {
+        return std::unique_lock(channel.data_.GetMutexUnsafe());
+    }
+};
+
+}  // namespace concurrent::impl
 
 TEST(AsyncEventChannel, Ctr) { const concurrent::AsyncEventChannel<int> channel("channel"); }
 
@@ -20,82 +40,98 @@ namespace {
 
 class Subscriber final {
 public:
-    Subscriber(int& x)
-        : x_(x)
-    {}
+    Subscriber(utils::ResourceScopeStorage& scopes, concurrent::AsyncEventSource<int>& channel, int& value)
+        : value_(value)
+    {
+        channel.AddListener(scopes, this, "subscriber", &Subscriber::OnEvent);
+    }
 
-    void OnEvent(int x) { x_ = x; }
+    void OnEvent(int value) { value_ = value; }
 
 private:
-    int& x_;
+    int& value_;
+};
+
+class BlockingSubscriber final {
+public:
+    BlockingSubscriber(utils::ResourceScopeStorage& scopes, concurrent::AsyncEventSource<>& channel) {
+        channel.AddListener(scopes, concurrent::FunctionId(this), "blocking", [this] {
+            if (skip) {
+                return;
+            }
+            inside_callback.Send();
+            EXPECT_TRUE(may_exit.WaitForEvent());
+        });
+    }
+
+    engine::SingleConsumerEvent inside_callback;
+    engine::SingleConsumerEvent may_exit;
+    std::atomic<bool> skip{false};
+};
+
+class CountingSubscriber final {
+public:
+    CountingSubscriber(utils::ResourceScopeStorage& scopes, concurrent::AsyncEventSource<>& channel) {
+        channel.AddListener(scopes, concurrent::FunctionId(this), "counter", [this] { ++calls; });
+    }
+
+    std::atomic<std::size_t> calls{0};
 };
 
 }  // namespace
 
 UTEST(AsyncEventChannel, Publish) {
     concurrent::AsyncEventChannel<int> channel("channel");
-
-    int value{0};
-    Subscriber s(value);
+    int value = 0;
     EXPECT_EQ(value, 0);
 
-    auto sub = channel.AddListener(&s, "sub", &Subscriber::OnEvent);
+    utils::WithResourceScopes<Subscriber> sub(std::in_place, channel, value);
     EXPECT_EQ(value, 0);
 
     channel.SendEvent(1);
     EXPECT_EQ(value, 1);
-
-    sub.Unsubscribe();
 }
 
 UTEST(AsyncEventChannel, Unsubscribe) {
     concurrent::AsyncEventChannel<int> channel("channel");
-
-    int value{0};
-    Subscriber s(value);
-    auto sub = channel.AddListener(&s, "", &Subscriber::OnEvent);
+    int value = 0;
+    std::optional<utils::WithResourceScopes<Subscriber>> sub(std::in_place, std::in_place, channel, value);
 
     channel.SendEvent(1);
     EXPECT_EQ(value, 1);
 
-    sub.Unsubscribe();
+    sub.reset();
     channel.SendEvent(2);
     EXPECT_EQ(value, 1);
 }
 
 UTEST(AsyncEventChannel, PublishTwoSubscribers) {
     concurrent::AsyncEventChannel<int> channel("channel");
-
-    int value1{0};
-    int value2{0};
-    Subscriber s1(value1);
-    Subscriber s2(value2);
-
-    auto sub1 = channel.AddListener(&s1, "", &Subscriber::OnEvent);
-    auto sub2 = channel.AddListener(&s2, "", &Subscriber::OnEvent);
+    int value1 = 0;
+    int value2 = 0;
+    utils::WithResourceScopes<Subscriber> sub1(std::in_place, channel, value1);
+    utils::WithResourceScopes<Subscriber> sub2(std::in_place, channel, value2);
     EXPECT_EQ(value1, 0);
     EXPECT_EQ(value2, 0);
 
     channel.SendEvent(1);
     EXPECT_EQ(value1, 1);
     EXPECT_EQ(value2, 1);
-
-    sub1.Unsubscribe();
-    sub2.Unsubscribe();
 }
 
 UTEST(AsyncEventChannel, PublishException) {
     concurrent::AsyncEventChannel<int> channel("channel");
 
     struct X {
+        X(utils::ResourceScopeStorage& scopes, concurrent::AsyncEventSource<int>& source) {
+            source.AddListener(scopes, this, "subscriber", &X::OnEvent);
+        }
+
         // NOLINTNEXTLINE(readability-convert-member-functions-to-static)
         void OnEvent(int) { throw std::runtime_error("error msg"); }
     };
-    X x;
-
-    auto sub1 = channel.AddListener(&x, "subscriber", &X::OnEvent);
+    utils::WithResourceScopes<X> sub(std::in_place, channel);
     UEXPECT_NO_THROW(channel.SendEvent(1));
-    sub1.Unsubscribe();
 }
 
 UTEST(AsyncEventChannel, OnListenerRemoval) {
@@ -106,19 +142,16 @@ UTEST(AsyncEventChannel, OnListenerRemoval) {
     };
     concurrent::AsyncEventChannel<int> channel("channel", on_remove);
 
-    int value1{0};
-    int value2{0};
-    int value3{0};
-    Subscriber s1(value1);
-    auto sub1 = channel.AddListener(&s1, "", &Subscriber::OnEvent);
+    int value1 = 0;
+    int value2 = 0;
+    int value3 = 0;
+    utils::WithResourceScopes<Subscriber> sub1(std::in_place, channel, value1);
     {
-        Subscriber s2(value2);
-        auto sub2 = channel.AddListener(&s2, "", &Subscriber::OnEvent);
-        sub2.Unsubscribe();
+        std::optional<utils::WithResourceScopes<Subscriber>> sub2(std::in_place, std::in_place, channel, value2);
+        sub2.reset();
     }
     {
-        Subscriber s3(value3);
-        auto sub3 = channel.AddListener(&s3, "", &Subscriber::OnEvent);
+        utils::WithResourceScopes<Subscriber> sub3(std::in_place, channel, value3);
     }
 
     EXPECT_EQ(value1, 0);
@@ -156,18 +189,7 @@ public:
         std::string_view name,
         void (Class::*func)(WeatherKind)
     ) {
-        channel_.DoUpdateAndListenScoped(scopes, obj, name, func, [this, obj, func] { (obj->*func)(Get()); });
-    }
-
-    /// @overload
-    /// @deprecated Use the overload that takes @ref utils::ResourceScopeStorage.
-    template <typename Class>
-    concurrent::AsyncEventSubscriberScope UpdateAndListen(
-        Class* obj,
-        std::string_view name,
-        void (Class::*func)(WeatherKind)
-    ) {
-        return channel_.DoUpdateAndListen(obj, name, func, [&] { (obj->*func)(Get()); });
+        channel_.DoUpdateAndListen(scopes, obj, name, func, [this, obj, func] { (obj->*func)(Get()); });
     }
 
     void Set(WeatherKind value) {
@@ -182,6 +204,7 @@ private:
 
 enum class CoatKind { kJacket, kRaincoat };
 
+/// [Resource scopes subscription state] BEGIN
 class CoatStorage final {
 public:
     explicit CoatStorage(utils::ResourceScopeStorage& scopes, WeatherStorage& weather_storage) {
@@ -197,6 +220,7 @@ private:
 
     std::atomic<CoatKind> value_{};
 };
+/// [Resource scopes subscription state] END
 
 UTEST(AsyncEventChannel, UpdateAndListenSample) {
     WeatherStorage weather_storage(WeatherKind::kSunny);
@@ -218,24 +242,64 @@ CoatKind CoatStorage::ComputeCoat(WeatherKind weather) {
 }
 
 /// [AddListener sample]
-UTEST(AsyncEventChannel, AddListenerSample) {
-    WeatherStorage weather_storage(WeatherKind::kSunny);
-    std::vector<WeatherKind> recorded_weather;
-
-    concurrent::AsyncEventSubscriberScope recorder =
+class WeatherRecorder final {
+public:
+    WeatherRecorder(utils::ResourceScopeStorage& scopes, WeatherStorage& weather_storage) {
         weather_storage.GetSource()
-            .AddListener(concurrent::FunctionId(&recorder), "recorder", [&](WeatherKind weather) {
+            .AddListener(scopes, concurrent::FunctionId(this), "recorder", [this](WeatherKind weather) {
                 recorded_weather.push_back(weather);
             });
+    }
+
+    std::vector<WeatherKind> recorded_weather;
+};
+
+UTEST(AsyncEventChannel, AddListenerSample) {
+    WeatherStorage weather_storage(WeatherKind::kSunny);
+    utils::WithResourceScopes<WeatherRecorder> recorder(std::in_place, weather_storage);
 
     weather_storage.Set(WeatherKind::kRainy);
     weather_storage.Set(WeatherKind::kSunny);
     weather_storage.Set(WeatherKind::kSunny);
-    EXPECT_EQ(recorded_weather, (std::vector{WeatherKind::kRainy, WeatherKind::kSunny, WeatherKind::kSunny}));
-
-    recorder.Unsubscribe();
+    EXPECT_EQ(recorder->recorded_weather, (std::vector{WeatherKind::kRainy, WeatherKind::kSunny, WeatherKind::kSunny}));
 }
 /// [AddListener sample]
+
+class ScopedListener final {
+public:
+    ScopedListener(utils::ResourceScopeStorage& scopes, concurrent::AsyncEventChannel<int>& channel)
+        : channel_(channel)
+    {
+        concurrent::AsyncEventSource<int>& source = channel_;
+        source.AddListener(scopes, this, std::string{"subscriber"}, &ScopedListener::OnEvent);
+        channel_.SendEvent(1);
+        EXPECT_EQ(value, 0);
+    }
+
+    ~ScopedListener() {
+        const auto previous = value;
+        channel_.SendEvent(3);
+        EXPECT_EQ(value, previous);
+    }
+
+    void OnEvent(int event) { value = event; }
+
+    int value{0};
+
+private:
+    concurrent::AsyncEventChannel<int>& channel_;
+};
+
+UTEST(AsyncEventChannel, ScopedListenerLifetime) {
+    concurrent::AsyncEventChannel<int> channel("channel");
+    {
+        utils::WithResourceScopes<ScopedListener> subscriber(std::in_place, channel);
+        EXPECT_EQ(subscriber->value, 0);
+        channel.SendEvent(2);
+        EXPECT_EQ(subscriber->value, 2);
+    }
+    channel.SendEvent(4);
+}
 
 UTEST(AsyncEventChannel, OnListenerRemovalSample) {
     /*! [OnListenerRemoval sample] */
@@ -243,11 +307,21 @@ UTEST(AsyncEventChannel, OnListenerRemovalSample) {
 
     concurrent::AsyncEventChannel<int> channel("channel", on_remove);
 
+    struct Recorder {
+        Recorder(utils::ResourceScopeStorage& scopes, concurrent::AsyncEventSource<int>& source, int& value)
+            : value(value)
+        {
+            source.AddListener(scopes, concurrent::FunctionId(this), "recorder", [this](int new_value) {
+                this->value = new_value;
+            });
+        }
+
+        int& value;
+    };
+
     int value = 0;
     {
-        concurrent::AsyncEventSubscriberScope sub =
-            channel.AddListener(concurrent::FunctionId(&sub), "sub", [&value](int new_value) { value = new_value; });
-        sub.Unsubscribe();
+        utils::WithResourceScopes<Recorder> sub(std::in_place, channel, value);
     }
 
     if constexpr (concurrent::impl::kCheckSubscriptionUB) {
@@ -260,171 +334,279 @@ UTEST(AsyncEventChannel, OnListenerRemovalSample) {
 
 UTEST(AsyncEventChannel, SendEventConcurrent) {
     concurrent::AsyncEventChannel<> channel("channel");
-    engine::SingleConsumerEvent inside_callback;
-    engine::SingleConsumerEvent may_exit;
-    std::atomic<bool> skip{false};
+    utils::WithResourceScopes<BlockingSubscriber> sub(std::in_place, channel);
+    utils::WithResourceScopes<CountingSubscriber> sub2(std::in_place, channel);
 
-    auto sub = channel.AddListener(concurrent::FunctionId(&channel), "test", [&] {
-        if (skip) {
-            return;
-        }
+    auto first_task = engine::AsyncNoTracing([&channel] { channel.SendEvent(); });
+    EXPECT_TRUE(sub->inside_callback.WaitForEvent());
+    sub->skip = true;
 
-        inside_callback.Send();
-        EXPECT_TRUE(may_exit.WaitForEvent());
-    });
+    auto task1 = engine::AsyncNoTracing([&channel] { channel.SendEvent(); });
+    auto task2 = engine::AsyncNoTracing([&channel] { channel.SendEvent(); });
 
-    // This callback invocation may result in deadlock
-    auto sub2 = channel.AddListener(concurrent::FunctionId(&may_exit), "test2", [] {});
-
-    auto first_task = engine::AsyncNoTracing([&] { channel.SendEvent(); });
-
-    EXPECT_TRUE(inside_callback.WaitForEvent());
-
-    skip = true;
-
-    auto task1 = engine::AsyncNoTracing([&] { channel.SendEvent(); });
-    auto task2 = engine::AsyncNoTracing([&] { channel.SendEvent(); });
-
-    // Make sure task1 & task2 are waiting on SharedMutex::lock()
+    // Make sure task1 & task2 are waiting on SharedMutex::lock().
     engine::SleepFor(std::chrono::milliseconds(100));
-
-    // One task is inside critical section while another is still waiting
-    // on SharedMutex::lock()
-    may_exit.Send();
-
-    first_task.Get();
-}
-
-UTEST(AsyncEventChannel, SendEventConcurrent2) {
-    concurrent::AsyncEventChannel<> channel("channel");
-    engine::SingleConsumerEvent inside_callback;
-    engine::SingleConsumerEvent may_exit;
-
-    auto sub = channel.AddListener(concurrent::FunctionId(&channel), "test", [&] {
-        inside_callback.Send();
-        EXPECT_TRUE(may_exit.WaitForEvent());
-    });
-
-    std::atomic<std::size_t> calls{0};
-    auto sub2 = channel.AddListener(concurrent::FunctionId(&may_exit), "test2", [&calls] { ++calls; });
-
-    auto first_task = engine::AsyncNoTracing([&] { channel.SendEvent(); });
-
-    EXPECT_TRUE(inside_callback.WaitForEvent());
-
-    auto may_exit_task = engine::AsyncNoTracing([&] { may_exit.Send(); });
-    sub.Unsubscribe();
-
-    auto task1 = engine::AsyncNoTracing([&] { channel.SendEvent(); });
-    auto task2 = engine::AsyncNoTracing([&] { channel.SendEvent(); });
+    sub->may_exit.Send();
 
     first_task.Get();
     task1.Get();
     task2.Get();
-    EXPECT_EQ(calls.load(), 3);
 }
 
-UTEST(AsyncEventChannel, DoUpdateAndListenScopedCallsUpdaterOnceWithoutEvents) {
+UTEST(AsyncEventChannel, SendEventConcurrent2) {
+    concurrent::AsyncEventChannel<> channel("channel");
+    std::optional<utils::WithResourceScopes<BlockingSubscriber>> sub(std::in_place, std::in_place, channel);
+    auto& subscriber = *sub.value();
+    utils::WithResourceScopes<CountingSubscriber> sub2(std::in_place, channel);
+
+    auto first_task = engine::AsyncNoTracing([&channel] { channel.SendEvent(); });
+    EXPECT_TRUE(subscriber.inside_callback.WaitForEvent());
+
+    auto may_exit_task = engine::AsyncNoTracing([&subscriber] { subscriber.may_exit.Send(); });
+    may_exit_task.Get();
+    sub.reset();
+
+    auto task1 = engine::AsyncNoTracing([&channel] { channel.SendEvent(); });
+    auto task2 = engine::AsyncNoTracing([&channel] { channel.SendEvent(); });
+
+    first_task.Get();
+    task1.Get();
+    task2.Get();
+    EXPECT_EQ(sub2->calls.load(), 3);
+}
+
+class ScopedSubscriber final {
+public:
+    ScopedSubscriber(
+        utils::ResourceScopeStorage& scopes,
+        concurrent::AsyncEventChannel<int>& channel,
+        std::vector<int>& updates,
+        const std::atomic<int>& current,
+        utils::function_ref<void()> after_subscribe
+    )
+        : current_(current),
+          updates_(updates)
+    {
+        channel.DoUpdateAndListen(scopes, this, "sub", &ScopedSubscriber::OnEvent, [this] {
+            OnEvent(current_.load());
+        });
+        after_subscribe();
+    }
+
+private:
+    void OnEvent(int value) { updates_.push_back(value); }
+
+    const std::atomic<int>& current_;
+    std::vector<int>& updates_;
+};
+
+UTEST(AsyncEventChannel, DoUpdateAndListenCallsUpdaterOnceWithoutEvents) {
     concurrent::AsyncEventChannel<int> channel("channel");
-    utils::ResourceScopeStorage scopes;
-
     std::vector<int> updates;
-    auto updater = [&] { updates.push_back(1); };
-
-    channel.DoUpdateAndListenScoped(
-        scopes,
-        concurrent::FunctionId(&updates),
-        "sub",
-        [&](int value) { updates.push_back(value); },
-        updater
-    );
-    EXPECT_THAT(updates, ::testing::ElementsAre(1));
-
-    scopes.AfterConstruction();
-    // When the subscription is really activated, no extra notifications should be delivered,
-    // because there are no new events.
+    const std::atomic<int> current{1};
+    auto subscriber = utils::MakeWithResourceScopes<ScopedSubscriber>(channel, updates, current, [&] {
+        EXPECT_THAT(updates, ::testing::ElementsAre(1));
+    });
     EXPECT_THAT(updates, ::testing::ElementsAre(1));
 
     channel.SendEvent(2);
     EXPECT_THAT(updates, ::testing::ElementsAre(1, 2));
 
-    scopes.BeforeDestruction();
+    subscriber.reset();
     channel.SendEvent(3);
     EXPECT_THAT(updates, ::testing::ElementsAre(1, 2));
 }
 
-UTEST(AsyncEventChannel, DoUpdateAndListenScopedReplaysUpdaterIfEventSkipped) {
+UTEST(AsyncEventChannel, DoUpdateAndListenReplaysUpdaterIfEventSkipped) {
     concurrent::AsyncEventChannel<int> channel("channel");
-    utils::ResourceScopeStorage scopes;
-
-    std::atomic<int> current{0};
     std::vector<int> updates;
-    auto updater = [&] { updates.push_back(current.load()); };
+    std::atomic<int> current{0};
+    {
+        const utils::WithResourceScopes<ScopedSubscriber>
+            subscriber{std::in_place, channel, updates, current, [&] {
+                           EXPECT_THAT(updates, ::testing::ElementsAre(0));
+                           current = 5;
+                           channel.SendEvent(5);
+                           EXPECT_THAT(updates, ::testing::ElementsAre(0));
+                       }};
+        EXPECT_THAT(updates, ::testing::ElementsAre(0, 5));
 
-    channel.DoUpdateAndListenScoped(
-        scopes,
-        concurrent::FunctionId(&updates),
-        "sub",
-        [&](int value) { updates.push_back(value); },
-        updater
-    );
-    EXPECT_THAT(updates, ::testing::ElementsAre(0));
-
-    current = 5;
-    channel.SendEvent(5);
-    // After scope registration and before AfterConstruction, it would be unsafe to deliver the update.
-    EXPECT_THAT(updates, ::testing::ElementsAre(0));
-
-    scopes.AfterConstruction();
-    EXPECT_THAT(updates, ::testing::ElementsAre(0, 5));
-
-    current = 7;
-    channel.SendEvent(7);
+        current = 7;
+        channel.SendEvent(7);
+        EXPECT_THAT(updates, ::testing::ElementsAre(0, 5, 7));
+    }
+    channel.SendEvent(8);
     EXPECT_THAT(updates, ::testing::ElementsAre(0, 5, 7));
-
-    scopes.BeforeDestruction();
 }
 
-UTEST(AsyncEventChannel, DoUpdateAndListenScopedUnsubscribesIfConstructionFailed) {
+UTEST(AsyncEventChannel, DoUpdateAndListenReplaysUpdaterAfterListenerSnapshot) {
+    // Regression test: a race could run both the updater and the callback for the same event, possibly concurrently.
+    ASSERT_EQ(engine::current_task::GetWorkerCount(), 1);
+
+    concurrent::AsyncEventChannel<int> channel("channel");
     std::vector<int> updates;
-    {
-        concurrent::AsyncEventChannel<int> channel("channel");
-        utils::ResourceScopeStorage scopes;
+    std::atomic<int> current{0};
+    engine::SingleConsumerEvent sending_event;
+    engine::TaskWithResult<void> sender_task;
 
-        channel.DoUpdateAndListenScoped(
-            scopes,
-            concurrent::FunctionId(&updates),
-            "sub",
-            [&](int value) { updates.push_back(value); },
-            [&] { updates.push_back(1); }
-        );
-        EXPECT_THAT(updates, ::testing::ElementsAre(1));
+    const auto subscriber = utils::MakeWithResourceScopes<ScopedSubscriber>(channel, updates, current, [&] {
+        const auto listeners_lock = concurrent::impl::AsyncEventChannelTestAccessor::LockListeners(channel);
+        // Simulate an external source sending an update concurrently with subscriber construction.
+        sender_task = engine::AsyncNoTracing([&] {
+            current = 1;
+            sending_event.Send();
+            channel.SendEvent(1);
+        });
+        // On the single worker, the sender blocks on listeners_lock before this wait returns.
+        EXPECT_TRUE(sending_event.WaitForEvent());
+    });
+    sender_task.Get();
+    EXPECT_THAT(updates, ::testing::ElementsAre(0, 1));
 
-        channel.SendEvent(2);
-        EXPECT_THAT(updates, ::testing::ElementsAre(1));
+    channel.SendEvent(2);
+    EXPECT_THAT(updates, ::testing::ElementsAre(0, 1, 2));
+}
 
-        scopes.BeforeDestruction();
-        channel.SendEvent(3);
-    }
+UTEST(AsyncEventChannel, DoUpdateAndListenUnsubscribesIfConstructionFailed) {
+    concurrent::AsyncEventChannel<int> channel("channel");
+    std::vector<int> updates;
+    std::atomic<int> current{1};
+    UEXPECT_THROW(
+        utils::MakeWithResourceScopes<ScopedSubscriber>(
+            channel,
+            updates,
+            current,
+            [&] {
+                EXPECT_THAT(updates, ::testing::ElementsAre(1));
+                current = 2;
+                channel.SendEvent(2);
+                EXPECT_THAT(updates, ::testing::ElementsAre(1));
+                throw std::runtime_error("subscriber construction failed");
+            }
+        ),
+        std::runtime_error
+    );
+    channel.SendEvent(3);
     EXPECT_THAT(updates, ::testing::ElementsAre(1));
 }
 
+UTEST(AsyncEventChannel, UpdateAndListenUnsubscribesIfConstructionFailed) {
+    /// [Resource scopes constructor failure] BEGIN
+    class ScopedWeatherSubscriber final {
+    public:
+        ScopedWeatherSubscriber(
+            utils::ResourceScopeStorage& scopes,
+            WeatherStorage& weather_storage,
+            utils::ScopeGuard::Callback send_event_on_unwind,
+            std::vector<WeatherKind>& updates
+        )
+            : send_event_on_unwind_(std::move(send_event_on_unwind)),
+              updates_(updates)
+        {
+            weather_storage.UpdateAndListen(scopes, this, "sub", &ScopedWeatherSubscriber::OnWeatherUpdate);
+            throw std::runtime_error("subscriber construction failed");
+        }
+
+    private:
+        void OnWeatherUpdate(WeatherKind weather) { updates_.push_back(weather); }
+
+        utils::ScopeGuard send_event_on_unwind_;
+        std::vector<WeatherKind>& updates_;
+    };
+    /// [Resource scopes constructor failure] END
+
+    WeatherStorage weather_storage(WeatherKind::kSunny);
+    std::vector<WeatherKind> updates;
+    UEXPECT_THROW_MSG(
+        utils::MakeWithResourceScopes<ScopedWeatherSubscriber>(
+            weather_storage,
+            [&weather_storage] { weather_storage.Set(WeatherKind::kRainy); },
+            updates
+        ),
+        std::runtime_error,
+        "subscriber construction failed"
+    );
+    EXPECT_EQ(weather_storage.Get(), WeatherKind::kRainy);
+    EXPECT_THAT(updates, ::testing::ElementsAre(WeatherKind::kSunny));
+    weather_storage.Set(WeatherKind::kSunny);
+    EXPECT_THAT(updates, ::testing::ElementsAre(WeatherKind::kSunny));
+}
+
+UTEST(AsyncEventChannel, DoUpdateAndListenOwnedChannelConstructorFailure) {
+    enum class Event : std::uint8_t { kInitialUpdate, kChannelDestroyed, kListenerRemoved };
+    std::vector<Event> events;
+
+    class Channel final : public concurrent::AsyncEventChannel<int> {
+    public:
+        explicit Channel(std::vector<Event>& events)
+            : concurrent::AsyncEventChannel<
+                  int>("owned-channel", [&events](const Function&) { events.push_back(Event::kListenerRemoved); }),
+              events_(events)
+        {}
+
+        ~Channel() override { events_.push_back(Event::kChannelDestroyed); }
+
+    private:
+        std::vector<Event>& events_;
+    };
+
+    class SubscriberWithOwnedChannel final {
+    public:
+        SubscriberWithOwnedChannel(utils::ResourceScopeStorage& scopes, std::vector<Event>& events)
+            : events_(events),
+              channel_(events_)
+        {
+            channel_.DoUpdateAndListen(scopes, this, "sub", &SubscriberWithOwnedChannel::OnEvent, [this] {
+                OnEvent(1);
+            });
+            throw std::runtime_error("owned-channel subscriber construction failed");
+        }
+
+    private:
+        void OnEvent(int) { events_.push_back(Event::kInitialUpdate); }
+
+        std::vector<Event>& events_;
+        Channel channel_;
+    };
+
+    UEXPECT_THROW_MSG(
+        utils::WithResourceScopes<SubscriberWithOwnedChannel>(std::in_place, events),
+        std::runtime_error,
+        "owned-channel subscriber construction failed"
+    );
+    EXPECT_THAT(events, ::testing::ElementsAre(Event::kInitialUpdate, Event::kChannelDestroyed));
+}
+
 UTEST(AsyncEventChannel, UnsibscribeWhileHandling) {
-    engine::SingleConsumerEvent started;
-    std::atomic<bool> unsubscribe_has_finished{false};
+    struct SlowSubscriber {
+        SlowSubscriber(
+            utils::ResourceScopeStorage& scopes,
+            concurrent::AsyncEventSource<>& channel,
+            std::atomic<bool>& finished
+        )
+            : unsubscribe_has_finished(finished)
+        {
+            channel.AddListener(scopes, concurrent::FunctionId(this), "test", [this] {
+                started.Send();
+                engine::SleepFor(std::chrono::milliseconds(5));
+                EXPECT_FALSE(unsubscribe_has_finished.load());
+            });
+        }
+
+        engine::SingleConsumerEvent started;
+        std::atomic<bool>& unsubscribe_has_finished;
+    };
+
     concurrent::AsyncEventChannel<> channel("channel");
+    std::atomic<bool> unsubscribe_has_finished{false};
+    std::optional<utils::WithResourceScopes<SlowSubscriber>>
+        sub(std::in_place, std::in_place, channel, unsubscribe_has_finished);
+    auto send_task = engine::AsyncNoTracing([&channel] { channel.SendEvent(); });
+    EXPECT_TRUE(sub.value()->started.WaitForEvent());
 
-    auto sub = channel.AddListener(concurrent::FunctionId(&channel), "test", [&] {
-        started.Send();
-        engine::SleepFor(std::chrono::milliseconds(5));
-        EXPECT_FALSE(unsubscribe_has_finished);
-    });
-
-    auto send_task = engine::AsyncNoTracing([&] { channel.SendEvent(); });
-    (void)started.WaitForEvent();
-
-    sub.Unsubscribe();
+    sub.reset();
     unsubscribe_has_finished = true;
+    send_task.Get();
 }
 
 }  // namespace

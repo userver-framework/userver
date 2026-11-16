@@ -29,7 +29,6 @@ private:
     std::shared_ptr<storages::redis::impl::ThreadPools> thread_pools_;
     std::shared_ptr<storages::redis::impl::Sentinel> sentinel_;
     ClientPtr client_;
-    std::shared_ptr<storages::redis::impl::SubscribeSentinel> subscribe_sentinel_;
     SubscribeClientPtr subscribe_client_;
 };
 

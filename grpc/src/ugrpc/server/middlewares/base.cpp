@@ -35,6 +35,14 @@ ugrpc::impl::RpcStatisticsScope& MiddlewareCallContext::GetStatistics(utils::imp
     return GetCallState(utils::impl::InternalTag{}).statistics_scope;
 }
 
+std::optional<std::size_t> MiddlewareCallContext::GetLatestRequestSizeBytes() const noexcept {
+    return GetCallState(utils::impl::InternalTag{}).latest_request_size_bytes;
+}
+
+std::optional<std::size_t> MiddlewareCallContext::GetLatestResponseSizeBytes() const noexcept {
+    return GetCallState(utils::impl::InternalTag{}).latest_response_size_bytes;
+}
+
 MiddlewareBase::MiddlewareBase() = default;
 
 MiddlewareBase::~MiddlewareBase() = default;

@@ -3,27 +3,14 @@
 
 #include <climits>
 
-#include <boost/algorithm/hex.hpp>
-#include <boost/algorithm/string/case_conv.hpp>
-
 #include <userver/utest/assert_macros.hpp>
+#include <userver/utils/encoding/hex.hpp>
 #include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
+using utils::encoding::ToHex;
 using utils::text::RemoveQuotes;
-
-namespace {
-
-std::string ToHex(std::string_view view) {
-    std::string result;
-    result.reserve(view.size() * 2);
-    boost::algorithm::hex(view.begin(), view.end(), std::back_inserter(result));
-    boost::algorithm::to_lower(result);
-    return result;
-}
-
-}  // namespace
 
 TEST(RemoveQuotes, One) {
     EXPECT_STREQ("", RemoveQuotes("").c_str());
@@ -59,9 +46,17 @@ TEST(Text, EndsWith) {
 }
 
 TEST(Text, TrimView) {
+    EXPECT_EQ(utils::text::TrimView({}), "");
     EXPECT_EQ(utils::text::TrimView("foo"), "foo");
     EXPECT_EQ(utils::text::TrimView(" 1 "), "1");
-    EXPECT_EQ(utils::text::TrimView("  "), "");
+    EXPECT_EQ(utils::text::TrimView(" \t\r\n\f\v"), "");
+    EXPECT_EQ(utils::text::TrimView(" \t\r\n\f\v\xa0 \xa0\v\f\n\r\t "), "\xa0 \xa0");
+}
+
+TEST(Text, TrimMovedString) {
+    EXPECT_EQ(utils::text::Trim(std::string{}), "");
+    EXPECT_EQ(utils::text::Trim(std::string{" \t\r\n\f\v"}), "");
+    EXPECT_EQ(utils::text::Trim(std::string{" \tfoo bar\r\n"}), "foo bar");
 }
 
 TEST(Text, ICaseStartsWith) {
@@ -198,6 +193,27 @@ TEST(Text, SplitMultiple) {
         EXPECT_EQ(tokens[1], "");
         EXPECT_EQ(tokens[2], "2");
     }
+}
+
+TEST(Text, SplitBoundaries) {
+    EXPECT_THAT(utils::text::Split({}, ","), ::testing::ElementsAre(""));
+    EXPECT_THAT(utils::text::Split(",,", ","), ::testing::ElementsAre("", ""));
+    EXPECT_THAT(utils::text::Split(",,a,#b##", ",#"), ::testing::ElementsAre("", "a", "b", ""));
+    EXPECT_THAT(utils::text::Split("a,b", ""), ::testing::ElementsAre("a,b"));
+    EXPECT_THAT(utils::text::SplitIntoStringViewVector({}, ","), ::testing::ElementsAre(""));
+}
+
+TEST(Text, SplitBinarySeparators) {
+    const std::string_view input{"a\0b\xff", 4};
+    const std::string_view separators{"\0\xff", 2};
+    EXPECT_THAT(utils::text::Split(input, separators), ::testing::ElementsAre("a", "b", ""));
+}
+
+TEST(Text, Join) {
+    EXPECT_EQ(utils::text::Join({}, ","), "");
+    EXPECT_EQ(utils::text::Join({"", "a", "", "b", ""}, ","), ",a,,b,");
+    EXPECT_EQ(utils::text::Join({"a", "b"}, ""), "ab");
+    EXPECT_EQ(utils::text::Join({"a", "b"}, std::string_view{"\0", 1}), std::string("a\0b", 3));
 }
 
 TEST(TestIsAscii, IsAscii) {

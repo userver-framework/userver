@@ -54,7 +54,7 @@ async def grpc_mockserver_session(grpc_mockserver_endpoint) -> AsyncIterator[pyt
 
     @ingroup userver_testsuite_fixtures
     """
-    server = grpc.aio.server()
+    server = grpc.aio.server(options=[('grpc.http2.max_ping_strikes', 0)])
     server.add_insecure_port(grpc_mockserver_endpoint)
 
     async with pytest_userver.grpc.MockserverSession(server=server, experimental=True) as mockserver:

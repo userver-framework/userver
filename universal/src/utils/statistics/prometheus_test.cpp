@@ -5,6 +5,7 @@
 #include <userver/utest/assert_macros.hpp>
 #include <userver/utils/statistics/pretty_format.hpp>
 #include <userver/utils/statistics/prometheus.hpp>
+#include <userver/utils/statistics/visit.hpp>
 #include <userver/utils/text_light.hpp>
 
 USERVER_NAMESPACE_BEGIN

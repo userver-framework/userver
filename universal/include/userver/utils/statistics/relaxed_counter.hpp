@@ -11,7 +11,10 @@ USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
 
-/// @brief Atomic counter of type T with relaxed memory ordering
+/// @brief Atomic counter of type T with relaxed memory ordering.
+///
+/// Serialized as a GAUGE metric. For a monotonic RATE metric, use
+/// @ref utils::statistics::RateCounter instead.
 template <class T>
 class RelaxedCounter final {
 public:

@@ -16,6 +16,7 @@
 #include <userver/utils/algo.hpp>
 #include <userver/utils/enumerate.hpp>
 #include <userver/utils/statistics/histogram_aggregator.hpp>
+#include <userver/utils/statistics/metric_value.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -46,6 +47,9 @@ std::vector<Label> ParseLabels(const formats::json::Value& labels) {
     std::vector<Label> result;
     result.reserve(labels.GetSize());
     for (const auto& [name, value] : formats::common::Items(labels)) {
+        if (name.empty()) {
+            throw formats::json::ConversionException("Label name must not be empty", value.GetPath());
+        }
         result.emplace_back(name, value.As<std::string>());
     }
     return result;

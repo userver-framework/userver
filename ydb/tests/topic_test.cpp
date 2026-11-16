@@ -2,10 +2,12 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstdint>
 #include <functional>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <variant>
 #include <vector>
 
@@ -110,7 +112,9 @@ private:
     std::optional<NYdb::NTopic::TWriteSessionEvent::TReadyToAcceptEvent> buffered_ready_;
 };
 
-std::optional<std::string> ReadFirstMessage(ydb::TopicReadSession& session) {
+using ReadMessage = NYdb::NTopic::TReadSessionEvent::TDataReceivedEvent::TMessage;
+
+std::optional<ReadMessage> ReadFirstMessage(ydb::TopicReadSession& session) {
     const auto deadline = engine::Deadline::FromDuration(utest::kMaxTestWaitTime);
 
     while (!deadline.IsReached()) {
@@ -119,13 +123,12 @@ std::optional<std::string> ReadFirstMessage(ydb::TopicReadSession& session) {
         }
 
         for (auto& event : session.GetNativeTopicReadSession().GetEvents(/*block=*/false, std::nullopt)) {
-            std::optional<std::string> result;
+            std::optional<ReadMessage> result;
             std::visit(
                 utils::Overloaded{
                     [&result](NYdb::NTopic::TReadSessionEvent::TDataReceivedEvent& e) {
-                        for (auto& message : e.GetMessages()) {
-                            result = message.GetData();
-                            break;
+                        if (!e.GetMessages().empty()) {
+                            result.emplace(std::move(e.GetMessages().front()));
                         }
                         e.Commit();
                     },
@@ -230,6 +233,13 @@ protected:
 
     ydb::TopicWriteSession CreateWriteSession() {
         return YdbTopicFixture::CreateWriteSession(kWriteTopic, kWriteProducerId);
+    }
+
+    ydb::TopicWriteSession CreateFederatedWriteSession() {
+        const auto producer = ydb::impl::ToString(kWriteProducerId);
+        NYdb::NFederatedTopic::TFederatedWriteSessionSettings settings;
+        settings.Path(ydb::impl::ToString(kWriteTopic)).ProducerId(producer).MessageGroupId(producer);
+        return GetFederatedTopicClient().CreateWriteSession(settings);
     }
 
     ydb::TopicSimpleWriteSession CreateSimpleWriteSession() {
@@ -513,6 +523,41 @@ UTEST_F(YdbTopicWriteSessionFixture, TopicWriteSessionTryGetEventEmpty) {
     session.Close(std::chrono::milliseconds{1000});
 }
 
+UTEST_F(YdbTopicWriteSessionFixture, FederatedWriteSessionCreateClose) {
+    auto session = CreateFederatedWriteSession();
+    EXPECT_TRUE(session.Close(std::chrono::seconds{1}));
+}
+
+UTEST_F(YdbTopicWriteSessionFixture, FederatedWriteSessionWriteAckAndRead) {
+    constexpr std::uint64_t kSeqNo = 42;
+    constexpr std::string_view kPayload = "federated write session message";
+    auto reader = CreateReadSession();
+    auto session = CreateFederatedWriteSession();
+    TopicWriter events{session};
+
+    auto task = engine::AsyncNoTracing([&] {
+        auto ready = events.AwaitReadyToAcceptEvent();
+        NYdb::NTopic::TWriteMessage message{std::string{kPayload}};
+        message.SeqNo(kSeqNo);
+        session.Write(std::move(ready.ContinuationToken), std::move(message));
+
+        const auto acks = events.AwaitAcksEvent();
+        ASSERT_EQ(acks.Acks.size(), 1);
+        EXPECT_EQ(acks.Acks.front().SeqNo, kSeqNo);
+        EXPECT_EQ(acks.Acks.front().State, NYdb::NTopic::TWriteSessionEvent::TWriteAck::EES_WRITTEN);
+    });
+    task.WaitFor(utest::kMaxTestWaitTime);
+    ASSERT_TRUE(task.IsFinished());
+    UASSERT_NO_THROW(task.Get());
+    EXPECT_TRUE(session.Close(std::chrono::seconds{1}));
+
+    const auto message = ReadFirstMessage(reader);
+    ASSERT_TRUE(message.has_value());
+    EXPECT_EQ(message->GetData(), kPayload);
+    EXPECT_EQ(message->GetSeqNo(), kSeqNo);
+    EXPECT_TRUE(reader.Close(std::chrono::seconds{1}));
+}
+
 UTEST_F(YdbTopicWriteSessionFixture, TopicSimpleWriteSessionWriteSingle) {
     constexpr std::string_view kPayload = "simple-writer-message";
 
@@ -530,7 +575,7 @@ UTEST_F(YdbTopicWriteSessionFixture, TopicSimpleWriteSessionWriteSingle) {
 
     const auto message = ReadFirstMessage(read_session);
     ASSERT_TRUE(message.has_value());
-    EXPECT_EQ(*message, kPayload);
+    EXPECT_EQ(message->GetData(), kPayload);
 
     read_session.Close(std::chrono::milliseconds{1000});
 }

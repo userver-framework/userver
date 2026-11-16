@@ -358,6 +358,30 @@ UTEST_P(PostgreConnection, UserDefinedRange) {
     UEXPECT_NO_THROW(GetConn()->Execute(kDropTestSchema)) << "Drop schema";
 }
 
+UTEST_P(PostgreConnection, ReloadUserTypesPreservesWorkMem) {
+    CheckConnection(GetConn());
+    const auto initial_work_mem = GetConn()->Execute("SHOW work_mem").AsSingleRow<std::string>();
+
+    UASSERT_NO_THROW(GetConn()->ReloadUserTypes());
+    EXPECT_FALSE(GetConn()->IsInTransaction());
+    EXPECT_EQ(initial_work_mem, GetConn()->Execute("SHOW work_mem").AsSingleRow<std::string>());
+}
+
+UTEST_P(PostgreConnection, ReloadUserTypesInsideTransaction) {
+    CheckConnection(GetConn());
+    const auto initial_work_mem = GetConn()->Execute("SHOW work_mem").AsSingleRow<std::string>();
+
+    UASSERT_NO_THROW(GetConn()->Begin({}, {}));
+    for (const auto* work_mem : {"64kB", "512MB"}) {
+        UASSERT_NO_THROW(GetConn()->Execute("SELECT set_config('work_mem', $1, true)", work_mem));
+        UASSERT_NO_THROW(GetConn()->ReloadUserTypes());
+        EXPECT_TRUE(GetConn()->IsInTransaction());
+        EXPECT_EQ(work_mem, GetConn()->Execute("SHOW work_mem").AsSingleRow<std::string>());
+    }
+    UASSERT_NO_THROW(GetConn()->Commit());
+    EXPECT_EQ(initial_work_mem, GetConn()->Execute("SHOW work_mem").AsSingleRow<std::string>());
+}
+
 UTEST_P(PostgreConnection, UnknownParserExceptionReadability) {
     UEXPECT_THROW_MSG(
         GetConn()->Execute("SELECT 'fat & (rat | cat)'::tsquery"),

@@ -35,6 +35,11 @@ find_package(cryptopp REQUIRED)
 find_package(zstd REQUIRED)
 find_package(yaml-cpp REQUIRED)
 
+if(USERVER_IMPL_FEATURE_SIMD_BASE64)
+    # Not found if aklomp/base64 was downloaded and installed along with userver
+    find_package(base64 CONFIG QUIET)
+endif()
+
 if(USERVER_CONAN)
     find_package(RapidJSON REQUIRED)
 endif()

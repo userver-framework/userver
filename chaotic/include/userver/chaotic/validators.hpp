@@ -1,12 +1,11 @@
 #pragma once
 
 #include <cstdint>
-#include <functional>
 #include <string_view>
-#include <unordered_set>
+#include <type_traits>
 
 #include <userver/chaotic/exception.hpp>
-#include <userver/utils/meta.hpp>
+#include <userver/chaotic/validators/unique_items.hpp>
 #include <userver/utils/text_light.hpp>
 
 #include <fmt/format.h>
@@ -83,48 +82,6 @@ struct MaxItems final {
     }
 };
 
-namespace impl {
-
-template <typename T>
-struct RefHash {
-    std::size_t operator()(std::reference_wrapper<const T> ref) const { return std::hash<T>{}(ref.get()); }
-};
-
-template <typename T>
-struct RefEqual {
-    bool operator()(std::reference_wrapper<const T> a, std::reference_wrapper<const T> b) const {
-        return a.get() == b.get();
-    }
-};
-
-template <typename T>
-auto MakeReferenceSet(std::size_t reserve_size) {
-    using Ref = std::reference_wrapper<const T>;
-    std::unordered_set<Ref, RefHash<T>, RefEqual<T>> seen;
-    seen.reserve(reserve_size);
-    return seen;
-}
-
-}  // namespace impl
-
-struct UniqueItems final {
-    template <typename T, typename ErrorReporter>
-    static void Validate(const T& value, ErrorReporter report_error) {
-        using Item = typename T::value_type;
-        static_assert(
-            meta::IsStdHashable<Item>,
-            "UniqueItems requires a hashable item type (integer, string, or boolean)"
-        );
-        auto seen = impl::MakeReferenceSet<Item>(value.size());
-        for (const auto& item : value) {
-            if (!seen.insert(std::cref(item)).second) {
-                report_error(fmt::format("Duplicate items are not allowed ({})", item));
-                return;
-            }
-        }
-    }
-};
-
 template <std::int64_t Value>
 struct MinLength final {
     template <typename ErrorReporter>
@@ -143,6 +100,21 @@ struct MaxLength final {
         const auto length = utils::text::utf8::GetCodePointsCount(value);
         if (length > Value) {
             report_error(fmt::format("Too long string, maximum length={}, given={}", Value, length));
+        }
+    }
+};
+
+/// @brief Checks inclusive UTF-8 code point length bounds with a single count.
+template <std::int64_t Min, std::int64_t Max>
+struct MinMaxLength final {
+    template <typename ErrorReporter>
+    static void Validate(std::string_view value, ErrorReporter report_error) {
+        const auto length = utils::text::utf8::GetCodePointsCount(value);
+        if (length < Min) {
+            report_error(fmt::format("Too short string, minimum length={}, given={}", Min, length));
+        }
+        if (length > Max) {
+            report_error(fmt::format("Too long string, maximum length={}, given={}", Max, length));
         }
     }
 };

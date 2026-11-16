@@ -14,6 +14,7 @@
 #include <userver/formats/serialize/common_containers.hpp>
 #include <userver/utils/assert.hpp>
 #include <userver/utils/overloaded.hpp>
+#include <userver/utils/statistics/visit.hpp>
 
 #include <utils/statistics/solomon_limits.hpp>
 

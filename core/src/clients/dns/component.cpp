@@ -9,6 +9,7 @@ USERVER_NAMESPACE_BEGIN
 
 namespace clients::dns {
 
+/// [RegisterWriterScope component sample]
 Component::Component(const components::ComponentConfig& config, const components::ComponentContext& context)
     : ComponentBase{config, context},
       resolver_{GetFsTaskProcessor(config, context), config.As<::userver::static_config::DnsClient>()}
@@ -17,6 +18,7 @@ Component::Component(const components::ComponentConfig& config, const components
         resolver_.WriteMetrics(writer);
     });
 }
+/// [RegisterWriterScope component sample]
 
 Resolver& Component::GetResolver() { return resolver_; }
 

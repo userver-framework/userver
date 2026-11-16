@@ -51,7 +51,10 @@ properties:
                 minimum: 1
     channel-args:
         type: object
-        description: a map of channel arguments, see gRPC Core docs
+        description: |
+            A map of channel arguments, see gRPC Core docs.
+            If zstd is supported by gRPC, it is enabled in addition to the default compression algorithms
+            unless grpc.compression_enabled_algorithms_bitset is explicitly set.
         default: {}
         additionalProperties:
             type: string

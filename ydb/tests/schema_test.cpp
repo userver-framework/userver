@@ -1,3 +1,8 @@
+#include <string>
+
+#include <dynamic_config/variables/YDB_QUERIES_COMMAND_CONTROL.hpp>
+#include <userver/formats/json.hpp>
+#include <userver/utest/log_capture_fixture.hpp>
 #include <userver/utest/utest.hpp>
 
 #include <ydb-cpp-sdk/client/types/status/status.h>
@@ -12,6 +17,7 @@ USERVER_NAMESPACE_BEGIN
 namespace {
 
 using YdbSchemaNoPredefinedTables = ydb::ClientFixtureBase;
+using YdbNamedSchemeQuery = utest::LogCaptureFixture<ydb::ClientFixtureBase>;
 
 NYdb::NTable::TDescribeTableResult DescribeTableNative(ydb::TestClientsBase& clients, std::string_view table_name) {
     // We cannot test our CreateTable using our DescribeTable, because they both
@@ -81,6 +87,40 @@ UTEST_F(YdbSchemaNoPredefinedTables, CreateAndDropTable) {
 
     // Step 4. check that the table is no more.
     UASSERT_THROW(DescribeTableNative(*this, kTableName), ydb::YdbResponseError);
+}
+
+UTEST_F(YdbNamedSchemeQuery, UsesQueryNameForCommandControl) {
+    GetConfig().Extend({{::dynamic_config::YDB_QUERIES_COMMAND_CONTROL, formats::json::FromString(R"({
+             "CreateNamedSchemeTable": {
+                 "client-timeout-ms": 12345,
+                 "get-session-timeout-ms": 23456,
+                 "attempts": 2
+             }
+         })")}});
+    const ydb::Query query{
+        "CREATE TABLE named_scheme_table (id Utf8, PRIMARY KEY (id));",
+        ydb::Query::Name{"CreateNamedSchemeTable"},
+        ydb::Query::LogMode::kNameOnly
+    };
+    GetTableClient().ExecuteSchemeQuery(query);
+    EXPECT_EQ(DescribeTableNative(*this, "named_scheme_table").GetTableDescription().GetColumns().size(), 1);
+    const std::string drop_statement = "DROP TABLE named_scheme_table;";
+    GetTableClient().ExecuteSchemeQuery(drop_statement);
+
+    const auto logs = GetLogCapture().Filter([](const utest::LogRecord& record) {
+        return record.GetTagOptional("query_name") == "CreateNamedSchemeTable" &&
+               record.GetTagOptional("stopwatch_name") == "ydb_query";
+    });
+    ASSERT_EQ(logs.size(), 1);
+    EXPECT_EQ(logs.front().GetTag("client_timeout_ms"), "12345");
+    EXPECT_EQ(logs.front().GetTag("get_session_timeout_ms"), "23456");
+    EXPECT_EQ(logs.front().GetTag("max_retries"), "1");
+}
+
+UTEST_F(YdbSchemaNoPredefinedTables, SchemeQueryStringLiteral) {
+    GetTableClient().ExecuteSchemeQuery("CREATE TABLE literal_scheme_table (id Utf8, PRIMARY KEY (id));");
+    EXPECT_EQ(DescribeTableNative(*this, "literal_scheme_table").GetTableDescription().GetColumns().size(), 1);
+    GetTableClient().ExecuteSchemeQuery("DROP TABLE literal_scheme_table;");
 }
 
 USERVER_NAMESPACE_END

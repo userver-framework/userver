@@ -2,12 +2,13 @@
 
 /// @file userver/utils/statistics/solomon.hpp
 /// @brief Statistics output in Solomon format.
+/// @ingroup userver_universal
 
 #include <string>
 #include <unordered_map>
 
 #include <userver/utils/statistics/request.hpp>
-#include <userver/utils/statistics/writer.hpp>
+#include <userver/utils/statistics/visit.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
