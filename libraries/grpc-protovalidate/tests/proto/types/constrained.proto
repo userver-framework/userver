@@ -80,3 +80,121 @@ message InvalidConstraints {
 
     int32 field = 1;
 }
+
+// Same shape as ConstrainedMessage, without validation rules (benchmark baseline).
+message UnconstrainedMessage {
+    int32 required_rule = 1;
+    optional bool const_rule = 2;
+    optional google.protobuf.Duration lt_rule = 3;
+    optional double gt_rule = 4;
+    optional int32 in_rule = 5;
+    optional string not_in_rule = 6;
+    optional string uuid_rule = 7;
+    optional string regex_rule = 8;
+    optional TestEnum defined_only_rule = 9;
+    repeated int32 unique_gt_rule = 10;
+    map<string, int32> keys_values_rule = 11;
+}
+
+message UnconstrainedRequest {
+    optional int32 field = 1;
+    repeated UnconstrainedMessage messages = 2;
+}
+
+message ValidationLeaf {
+    int32 value = 1 [(buf.validate.field).int32.gt = 0];
+    string payload = 2;
+}
+
+message TypeRuleLeaf {
+    option (buf.validate.message).cel = {
+        id: "type_rule_leaf.positive",
+        expression: "this.value > 0",
+    };
+    int32 value = 1;
+}
+
+// Exactly one annotated field in one nested object; the remaining populated subtrees have no rules.
+message SparseRequest {
+    message Branch {
+        ValidationLeaf checked = 1;
+        repeated UnconstrainedMessage noise = 2;
+    }
+    Branch branch = 1;
+    repeated UnconstrainedMessage siblings = 2;
+    map<string, UnconstrainedMessage> lookup = 3;
+    string payload = 4;
+}
+
+message TraversalRoot {
+    // Deliberately declared out of field-number order to check fail_fast traversal order.
+    ValidationLeaf singular = 8;
+    repeated ValidationLeaf repeated = 2;
+    map<string, ValidationLeaf> string_map = 3;
+    map<int64, ValidationLeaf> integer_map = 4;
+    map<bool, ValidationLeaf> bool_map = 5;
+    TypeRuleLeaf type_rule = 6;
+    TraversalRoot recursive = 7;
+    UnconstrainedRequest noise = 9;
+    ValidationLeaf ignored = 10 [(buf.validate.field).ignore = IGNORE_ALWAYS];
+    repeated ValidationLeaf ignored_items = 11 [
+        (buf.validate.field).repeated.min_items = 2,
+        (buf.validate.field).repeated.items.ignore = IGNORE_ALWAYS
+    ];
+    map<string, ValidationLeaf> ignored_values = 12 [
+        (buf.validate.field).map.min_pairs = 2,
+        (buf.validate.field).map.values.ignore = IGNORE_ALWAYS
+    ];
+    repeated ValidationLeaf ignored_repeated = 13 [(buf.validate.field).ignore = IGNORE_ALWAYS];
+    map<string, ValidationLeaf> ignored_map = 14 [(buf.validate.field).ignore = IGNORE_ALWAYS];
+}
+
+message AbsentRules {
+    ValidationLeaf required = 1 [(buf.validate.field).required = true];
+    int32 scalar = 2 [(buf.validate.field).int32.gt = 0];
+    repeated int32 items = 3 [(buf.validate.field).repeated.min_items = 1];
+    map<string, int32> entries = 4 [(buf.validate.field).map.min_pairs = 1];
+    oneof choice {
+        option (buf.validate.oneof).required = true;
+        string first = 5;
+        int32 second = 6;
+    }
+}
+
+message DisabledRules {
+    option (buf.validate.message).disabled = true;
+    string ignored = 1 [(buf.validate.field).string.min_len = 1];
+    ValidationLeaf nested = 2;
+}
+
+message RulelessCycle {
+    RulelessCycle next = 1;
+    UnconstrainedMessage noise = 2;
+}
+
+message ValidationCycleA {
+    ValidationCycleB child = 1;
+}
+
+message ValidationCycleB {
+    ValidationCycleA back = 1;
+    ValidationLeaf checked = 2;
+}
+
+message InvalidRuleLeaf {
+    int32 value = 1 [(buf.validate.field).cel = { id: "invalid", expression: "(" }];
+}
+
+message InvalidRuleParent {
+    InvalidRuleLeaf child = 1;
+    InvalidRuleLeaf ignored = 2 [(buf.validate.field).ignore = IGNORE_ALWAYS];
+}
+
+message CrossFieldRules {
+    option (buf.validate.message).cel = {
+        id: "cross_field_rules.equal",
+        expression: "this.limit == this.noise.required_rule",
+    };
+    int32 limit = 1;
+    UnconstrainedMessage noise = 2;
+}

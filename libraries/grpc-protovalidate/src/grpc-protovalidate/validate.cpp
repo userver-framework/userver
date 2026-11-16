@@ -1,5 +1,6 @@
 #include <userver/grpc-protovalidate/validate.hpp>
 
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -8,15 +9,17 @@
 #include <algorithm>
 
 #include <fmt/format.h>
-#include <google/protobuf/arena.h>
 #include <google/protobuf/message.h>
 #include <google/protobuf/repeated_ptr_field.h>
 #include <google/rpc/status.pb.h>
 #include <grpcpp/support/status.h>
 
 #include <grpc-protovalidate/impl/utils.hpp>
+#include <grpc-protovalidate/impl/validation_visitor.hpp>
 #include <userver/compiler/thread_local.hpp>
+#include <userver/engine/task/task_processor_fwd.hpp>
 #include <userver/grpc-protovalidate/buf_validate.hpp>
+#include <userver/protobuf/impl/descriptor_collector.hpp>
 #include <userver/ugrpc/status_utils.hpp>
 #include <userver/utils/assert.hpp>
 
@@ -26,7 +29,25 @@ namespace grpc_protovalidate {
 
 namespace {
 
-compiler::ThreadLocal kValidatorFactory = [] { return impl::CreateProtoValidatorFactory(); };
+compiler::ThreadLocal kValidationVisitor = [] {
+    auto visitor = std::make_unique<impl::ValidationVisitor>();
+    for (const auto* descriptor : protobuf::impl::GetGeneratedMessages()) {
+        visitor->Compile(*descriptor);
+    }
+    return visitor;
+};
+
+class ValidationVisitorWarmupRegistrator final {
+public:
+    ValidationVisitorWarmupRegistrator() {
+        engine::RegisterThreadStartedHook([] {
+            // Initialize and compile the thread-local visitor before this worker starts processing tasks.
+            const auto visitor = kValidationVisitor.Use();
+        });
+    }
+};
+
+const ValidationVisitorWarmupRegistrator kWarmupRegistrator{};
 
 }  // namespace
 
@@ -119,10 +140,9 @@ ValidationError&& ValidationResult::GetError() && {
 }
 
 ValidationResult ValidateMessage(const google::protobuf::Message& message, const ValidationParams& params) {
-    auto validator_factory = kValidatorFactory.Use();
-    google::protobuf::Arena arena;
-    auto validator = (*validator_factory)->NewValidator(&arena, params.fail_fast);
-    auto result = validator.Validate(message);
+    (void)kWarmupRegistrator;  // odr-use
+    auto visitor = kValidationVisitor.Use();
+    auto result = (*visitor)->Validate(message, {.fail_fast = params.fail_fast});
     if (!result.ok()) {
         return ValidationError(
             ValidationError::Type::kInternal,
