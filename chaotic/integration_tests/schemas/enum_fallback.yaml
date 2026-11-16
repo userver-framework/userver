@@ -1,0 +1,72 @@
+definitions:
+    # [enum fallback schema]
+    FallbackEnum:
+        type: string
+        enum:
+          - unknown
+          - order
+          - shipment
+        x-usrv-with-fallback: true
+    # [enum fallback schema]
+
+    TaxiFallbackEnum:
+        type: string
+        enum:
+          - other
+          - order
+        x-taxi-with-fallback: true
+
+    ClosedEnum:
+        type: string
+        enum:
+          - order
+          - shipment
+
+    DisabledFallbackEnum:
+        type: string
+        enum:
+          - order
+          - shipment
+        x-usrv-with-fallback: false
+
+    FallbackEvent:
+        type: object
+        additionalProperties: false
+        required:
+          - value
+          - nullable
+        properties:
+            value:
+                $ref: '#/definitions/FallbackEnum'
+            history:
+                type: array
+                items:
+                    $ref: '#/definitions/FallbackEnum'
+            defaulted:
+                type: string
+                enum:
+                  - unknown
+                  - order
+                  - shipment
+                x-usrv-with-fallback: true
+                default: shipment
+            nullable:
+                type: string
+                enum:
+                  - unknown
+                  - order
+                x-usrv-with-fallback: true
+                nullable: true
+
+    StrictNullableEnumEvent:
+        type: object
+        additionalProperties: false
+        required:
+          - value
+        properties:
+            value:
+                type: string
+                enum:
+                  - order
+                  - shipment
+                nullable: true

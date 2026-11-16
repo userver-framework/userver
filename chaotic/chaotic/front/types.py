@@ -233,6 +233,13 @@ class String(Schema):
     maxLength: int | None = None
     deprecated: bool = False
 
+    @classmethod
+    def model_userver_tags(cls) -> list[str]:
+        return Schema.model_userver_tags() + [
+            'x-usrv-with-fallback',
+            'x-taxi-with-fallback',
+        ]
+
     def model_post_init(self, context: Any) -> None:
         super().model_post_init(context)
         if self.enum:

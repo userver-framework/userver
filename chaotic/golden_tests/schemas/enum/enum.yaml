@@ -10,3 +10,10 @@ components:
                       - one
                       - two
                       - three
+                with_fallback:
+                    type: string
+                    enum:
+                      - unknown
+                      - one
+                      - two
+                    x-usrv-with-fallback: true

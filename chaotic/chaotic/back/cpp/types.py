@@ -650,6 +650,7 @@ class CppStringEnum(CppType):
     name: str
     enums: list[CppStringEnumItem]
     default: EnumItemName | None
+    with_fallback: bool = False
 
     __hash__ = CppType.__hash__
 

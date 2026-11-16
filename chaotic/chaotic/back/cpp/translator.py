@@ -250,11 +250,26 @@ class Generator:
         fq_cpp_name: type_name.TypeName,
         schema: types.Schema,
     ) -> cpp_types.CppType:
+        self._validate_enum_fallback(schema)
         method = SCHEMA_GENERATORS[type(schema)]
         cpp_type = method(self, fq_cpp_name, schema)  # type: ignore
         self._validate_type(cpp_type)
         self._validate_x_properties(cpp_type)
         return cpp_type
+
+    def _validate_enum_fallback(self, schema: types.Schema) -> None:
+        flags = {
+            key: schema.x_properties[key]
+            for key in ('x-usrv-with-fallback', 'x-taxi-with-fallback')
+            if key in schema.x_properties
+        }
+        for key, value in flags.items():
+            if not isinstance(value, bool):
+                self._raise(schema, f'{key} must be a boolean')
+        if len(set(flags.values())) > 1:
+            self._raise(schema, 'x-usrv-with-fallback and x-taxi-with-fallback must have the same value')
+        if any(flags.values()) and (not isinstance(schema, types.String) or not schema.enum):
+            self._raise(schema, 'with-fallback requires type: string and a non-empty enum')
 
     def _gen_fq_cpp_name(self, jsonschema_name: str) -> str:
         reference = ref.Ref(jsonschema_name)
@@ -444,6 +459,9 @@ class Generator:
                 name=name.in_global_scope(),
                 enums=enums,
                 default=default,
+                with_fallback=schema.x_properties.get(
+                    'x-usrv-with-fallback', schema.x_properties.get('x-taxi-with-fallback', False)
+                ),
             )
 
         validators = cpp_types.CppPrimitiveValidator(
