@@ -1,12 +1,15 @@
 #include <userver/utils/encoding/tskv.hpp>
 
 #include <algorithm>
+#include <iterator>
 #include <optional>
+#include <vector>
 
 #include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include <userver/utils/enumerate.hpp>
+#include <userver/utils/small_string.hpp>
 #include <utils/encoding/tskv_testdata_bin.hpp>
 
 using namespace std::string_literals;
@@ -43,6 +46,32 @@ TEST(Tskv, TAXICOMMON1362) {
     EXPECT_EQ(0, std::ranges::count(result, '\n')) << "Result: " << result;
     EXPECT_EQ(0, std::ranges::count(result, '\t')) << "Result: " << result;
     EXPECT_EQ(0, std::ranges::count(result, '\0')) << "Result: " << result;
+}
+
+TEST(Tskv, BufferedAppendAllModes) {
+    using utils::encoding::EncodeTskvMode;
+    for (const auto mode : {EncodeTskvMode::kKey, EncodeTskvMode::kValue, EncodeTskvMode::kKeyReplacePeriod}) {
+        for (const std::size_t size : {0, 1, 15, 16, 17, 31, 32, 33, 128, 512}) {
+            for (std::size_t offset = 0; offset < 32; ++offset) {
+                const std::string prefix(offset, 'p');
+                std::string source;
+                for (std::size_t i = 0; i < size; ++i) {
+                    source += "A.\t\r\n\0\\"sv[i % 7];
+                }
+                std::string expected = prefix;
+                for (const char c : source) {
+                    utils::encoding::EncodeTskv(std::back_inserter(expected), c, mode);
+                }
+                utils::SmallString<32> result{prefix};
+                utils::encoding::EncodeTskv(result, source, mode);
+                EXPECT_EQ(std::string_view{result}, expected);
+
+                std::vector<char> resize_only_result(prefix.begin(), prefix.end());
+                utils::encoding::EncodeTskv(resize_only_result, source, mode);
+                EXPECT_EQ(std::string(resize_only_result.begin(), resize_only_result.end()), expected);
+            }
+        }
+    }
 }
 
 namespace {
@@ -124,6 +153,11 @@ void DoTestValueBuffered(
     std::string result;
     utils::encoding::impl::tskv::EncodeFullyBuffered<
         Encoder>(result, embedded_source, utils::encoding::EncodeTskvMode::kValue);
+
+    utils::SmallString<16> small_result{"prefix:"};
+    utils::encoding::impl::tskv::EncodeFullyBuffered<
+        Encoder>(small_result, embedded_source, utils::encoding::EncodeTskvMode::kValue);
+    EXPECT_EQ(std::string_view{small_result}, "prefix:" + expected_encoded_result);
 
     EXPECT_EQ(result, expected_encoded_result)
         << "test_set_name=\"" << test_set_name << "\" test_id_base1=" << test_id_base1 << " offset=" << offset

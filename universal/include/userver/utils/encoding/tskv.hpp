@@ -353,8 +353,9 @@ template <typename Encoder>
 }
 
 // BufferPtr must be passed around by value to avoid aliasing issues.
+// Alignment reduces layout-sensitive loop-branch mispredictions.
 template <typename Encoder>
-[[nodiscard]] __attribute__((noinline)) BufferPtr<Encoder> EncodeValue(
+[[nodiscard]] __attribute__((noinline, aligned(64))) BufferPtr<Encoder> EncodeValue(
     BufferPtr<Encoder> destination,
     std::string_view str
 ) {
@@ -403,12 +404,19 @@ inline std::size_t MaxEncodedSize(std::size_t source_size) noexcept { return sou
 template <typename Encoder, typename Container>
 void EncodeFullyBuffered(Container& container, std::string_view str, EncodeTskvMode mode) {
     const auto old_size = container.size();
-    container.resize(old_size + impl::tskv::MaxEncodedSize(str.size()) + impl::tskv::PaddingSize<Encoder>());
-    BufferPtr<Encoder> buffer_ptr{container.data() + old_size};
-
-    buffer_ptr = impl::tskv::DoEncode(buffer_ptr, str, mode);
-
-    container.resize(buffer_ptr.current - container.data());
+    const auto max_size = old_size + impl::tskv::MaxEncodedSize(str.size()) + impl::tskv::PaddingSize<Encoder>();
+    const auto encode = [&](char* data, std::size_t) {
+        BufferPtr<Encoder> buffer_ptr{data + old_size};
+        buffer_ptr = impl::tskv::DoEncode(buffer_ptr, str, mode);
+        return static_cast<std::size_t>(buffer_ptr.current - data);
+    };
+    if constexpr (requires { container.resize_and_overwrite(max_size, encode); }) {
+        container.resize_and_overwrite(max_size, encode);
+    } else {
+        // Preserve the resize-only contract of the generic container API.
+        container.resize(max_size);
+        container.resize(encode(container.data(), max_size));
+    }
 }
 
 }  // namespace impl::tskv
