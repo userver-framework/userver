@@ -25,6 +25,8 @@ cpmaddpackage(
     VERSION 0.5.2
     URL https://github.com/aklomp/base64/archive/v0.5.2.tar.gz
     URL_HASH SHA256=723a0f9f4cf44cf79e97bcc315ec8f85e52eb104c8882942c3f2fba95acc080d
+    # Install through userver without including the disabled upstream install script.
+    EXCLUDE_FROM_ALL YES
     OPTIONS "CMAKE_SKIP_INSTALL_RULES ON" "BASE64_BUILD_CLI OFF" "BASE64_BUILD_TESTS OFF" "BASE64_WITH_OpenMP OFF"
             "BASE64_WERROR OFF"
 )

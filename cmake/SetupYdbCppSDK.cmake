@@ -77,6 +77,7 @@ cpmaddpackage(
     VERSION 0.7.0
     URL https://github.com/Thalhammer/jwt-cpp/archive/v0.7.0.tar.gz
     URL_HASH SHA256=b9eb270e3ba8221e4b2bc38723c9a1cb4fa6c241a42908b9a334daff31137406
+    EXCLUDE_FROM_ALL YES
     OPTIONS "JWT_BUILD_EXAMPLES OFF" "CMAKE_SKIP_INSTALL_RULES ON"
 )
 write_package_stub(jwt-cpp)
