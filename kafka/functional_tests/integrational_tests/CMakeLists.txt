@@ -8,5 +8,5 @@ userver_chaos_testsuite_add(
         "TESTSUITE_KAFKA_SERVER_HOST=[::1]"
         "TESTSUITE_KAFKA_SERVER_PORT=8099"
         "TESTSUITE_KAFKA_CONTROLLER_PORT=8100"
-        "TESTSUITE_KAFKA_CUSTOM_TOPICS=test-topic-send:1,test-topic-consume-1:1,test-topic-consume-2:1,test-topic-consume-produced-1:1,test-topic-consume-produced-2:1"
+        "TESTSUITE_KAFKA_CUSTOM_TOPICS=test-topic-seek-1000:1,test-topic-seek-3000:1,test-topic-send:1,test-topic-consume-1:1,test-topic-consume-2:1,test-topic-consume-produced-1:1,test-topic-consume-produced-2:1"
 )

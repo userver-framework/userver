@@ -3,6 +3,7 @@
 /// @file userver/kafka/consumer_scope.hpp
 /// @brief @copybrief kafka::ConsumerScope
 
+#include <chrono>
 #include <functional>
 
 #include <userver/kafka/message.hpp>
@@ -179,6 +180,26 @@ public:
         utils::zstring_view topic,
         std::uint32_t partition_id,
         std::uint64_t offset,
+        std::chrono::milliseconds timeout
+    ) const;
+
+    /// @brief Seeks to the earliest offset whose Kafka record timestamp is at least `timestamp`.
+    /// @details The timestamp is truncated to milliseconds since the Unix epoch. If no record matches
+    /// (including an empty partition), seeks to the end. This does not commit offsets or filter subsequent
+    /// records by timestamp. Record timestamps follow the topic's CreateTime or LogAppendTime configuration.
+    /// @warning Call only from the assignment event of @ref kafka::ConsumerRebalanceCallback, between
+    /// @ref kafka::ConsumerScope::Start and @ref kafka::ConsumerScope::Stop, for an assigned partition.
+    /// This is a blocking operation.
+    /// @param topic The name of the topic.
+    /// @param partition_id The partition ID, must fit in a signed 32-bit integer.
+    /// @param timestamp A time point at or after the Unix epoch.
+    /// @param timeout Positive timeout shared by lookup and seek, at most std::int32_t::max() milliseconds.
+    /// @throws kafka::SeekInvalidArgumentException if an argument is outside the documented range.
+    /// @throws kafka::SeekException if lookup or seek fails, including timeout expiration.
+    void SeekToTimestamp(
+        utils::zstring_view topic,
+        std::uint32_t partition_id,
+        std::chrono::system_clock::time_point timestamp,
         std::chrono::milliseconds timeout
     ) const;
 

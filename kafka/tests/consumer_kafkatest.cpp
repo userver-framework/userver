@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cstdint>
+#include <limits>
 #include <string>
 #include <unordered_set>
 #include <vector>
@@ -490,6 +492,58 @@ UTEST_F(ConsumerTest, SeekToOffset) {
     // checks that callback was called after assign of partitions.
     event.Wait();
     EXPECT_EQ(received_messages[0].key, messages[kMessagesToSkip].key);
+}
+
+UTEST_F(ConsumerTest, SeekToTimestampInvalidArgumentsAndLookupError) {
+    const auto topic = GenerateTopic();
+    const std::array messages{
+        kafka::utest::Message{.topic = topic, .key = "key", .payload = "value", .partition = 0},
+    };
+    SendMessages(messages);
+
+    auto consumer = MakeConsumer("kafka-consumer", {topic});
+    auto scope = consumer.MakeConsumerScope();
+    bool checked = false;
+    scope.SetRebalanceCallback([&](kafka::TopicPartitionBatchView, kafka::RebalanceEventType event_type) {
+        if (event_type != kafka::RebalanceEventType::kAssigned) {
+            return;
+        }
+        const auto timestamp = std::chrono::system_clock::now();
+        UEXPECT_THROW(
+            scope.SeekToTimestamp(topic, 0, timestamp, std::chrono::milliseconds{0}),
+            kafka::SeekInvalidArgumentException
+        );
+        UEXPECT_THROW(
+            scope.SeekToTimestamp(
+                topic,
+                0,
+                std::chrono::system_clock::time_point{} - std::chrono::milliseconds{1},
+                utest::kMaxTestWaitTime
+            ),
+            kafka::SeekInvalidArgumentException
+        );
+        UEXPECT_THROW(
+            scope.SeekToTimestamp(topic, std::numeric_limits<std::uint32_t>::max(), timestamp, utest::kMaxTestWaitTime),
+            kafka::SeekInvalidArgumentException
+        );
+        UEXPECT_THROW(
+            scope.SeekToTimestamp(
+                topic,
+                0,
+                timestamp,
+                std::chrono::milliseconds{std::numeric_limits<std::int32_t>::max()} + std::chrono::milliseconds{1}
+            ),
+            kafka::SeekInvalidArgumentException
+        );
+        UEXPECT_THROW(
+            scope.SeekToTimestamp(topic, 42, timestamp, std::chrono::milliseconds{100}),
+            kafka::SeekException
+        );
+        checked = true;
+    });
+    const auto received = ReceiveMessages(scope, messages.size());
+    EXPECT_TRUE(checked);
+    EXPECT_THAT(received, ::testing::ElementsAreArray(messages));
 }
 
 UTEST_F(ConsumerTest, SeekToEnd) {

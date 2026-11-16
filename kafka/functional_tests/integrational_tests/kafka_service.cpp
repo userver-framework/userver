@@ -1,4 +1,7 @@
 #include <algorithm>
+#include <chrono>
+#include <cstdint>
+#include <mutex>
 #include <sstream>
 #include <unordered_map>
 
@@ -12,6 +15,8 @@
 #include <userver/clients/dns/component.hpp>
 #include <userver/clients/http/component_list.hpp>
 #include <userver/concurrent/variable.hpp>
+#include <userver/engine/mutex.hpp>
+#include <userver/engine/single_consumer_event.hpp>
 #include <userver/engine/wait_all_checked.hpp>
 #include <userver/formats/json/serialize.hpp>
 #include <userver/formats/json/serialize_container.hpp>
@@ -29,6 +34,7 @@
 
 #include <userver/testsuite/testsuite_support.hpp>
 
+#include <userver/utils/assert.hpp>
 #include <userver/utils/daemon_run.hpp>
 #include <userver/yaml_config/merge_schemas.hpp>
 
@@ -86,7 +92,7 @@ private:
 
     std::vector<formats::json::Value> ReleaseMessages(const std::string& topic) const;
 
-    void Consume(kafka::MessageBatchView messages);
+    void Consume(kafka::MessageBatchView messages) const;
 
     void DumpCurrentConsumed(
         const MessagesByTopic& messages_by_topic,
@@ -94,9 +100,11 @@ private:
     ) const;
 
     mutable concurrent::Variable<MessagesByTopic> messages_by_topic_;
+    mutable engine::Mutex consumer_mutex_;
+    mutable engine::SingleConsumerEvent seek_completed_;
 
     // Subscriptions must be the last fields! Add new fields above this comment.
-    kafka::ConsumerScope consumer_;
+    mutable kafka::ConsumerScope consumer_;
 };
 
 class HandlerKafkaProducers final : public server::handlers::HttpHandlerJsonBase {
@@ -189,10 +197,45 @@ HandlerKafkaConsumer::HandlerKafkaConsumer(
 
 formats::json::Value HandlerKafkaConsumer::HandleRequestJsonThrow(
     const server::http::HttpRequest& request,
-    [[maybe_unused]] const formats::json::Value& request_json,
+    const formats::json::Value& request_json,
     [[maybe_unused]] server::request::RequestContext& context
 ) const {
     const auto& topic = request.GetPathArg(kReqTopicArgName);
+    const std::lock_guard lock{consumer_mutex_};
+    if (request_json.HasMember("seek_timestamp_ms")) {
+        const auto timestamp = std::chrono::system_clock::time_point{
+            std::chrono::milliseconds{request_json["seek_timestamp_ms"].As<std::int64_t>()}
+        };
+        consumer_.Stop();
+        seek_completed_.Reset();
+        {
+            auto messages = messages_by_topic_.Lock();
+            messages->clear();
+        }
+        consumer_.SetRebalanceCallback(
+            [this, timestamp, topic](kafka::TopicPartitionBatchView partitions, kafka::RebalanceEventType event_type) {
+                if (event_type != kafka::RebalanceEventType::kAssigned) {
+                    return;
+                }
+                for (const auto& partition : partitions) {
+                    if (partition.topic == topic) {
+                        consumer_.SeekToTimestamp(
+                            partition.topic,
+                            partition.partition_id,
+                            timestamp,
+                            std::chrono::seconds{10}
+                        );
+                    }
+                }
+                seek_completed_.Send();
+            }
+        );
+        consumer_.Start([this](kafka::MessageBatchView messages) {
+            Consume(messages);
+            consumer_.AsyncCommit();
+        });
+        UINVARIANT(seek_completed_.WaitForEventFor(std::chrono::seconds{10}), "Timestamp seek did not complete");
+    }
 
     formats::json::ValueBuilder builder{formats::common::Type::kObject};
     builder["messages"] = ReleaseMessages(topic);
@@ -237,7 +280,7 @@ std::vector<formats::json::Value> HandlerKafkaConsumer::ReleaseMessages(const st
     return consumed_messages;
 }
 
-void HandlerKafkaConsumer::Consume(kafka::MessageBatchView messages) {
+void HandlerKafkaConsumer::Consume(kafka::MessageBatchView messages) const {
     auto this_messages = messages_by_topic_.Lock();
 
     for (const auto& message : messages) {

@@ -37,6 +37,7 @@ in separate task processor.
 - Balanced consumer groups support;
 - Automatic rollback to last committed message when batch processing failed;
 - Partition offsets asynchronous commit;
+- Seeking by record timestamp with @ref kafka::ConsumerScope::SeekToTimestamp;
 
 ## Metrics
 

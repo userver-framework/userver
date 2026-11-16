@@ -280,6 +280,24 @@ void Consumer::MultiSeek(utils::span<const SeekParams> params, std::chrono::mill
     }).Get();
 }
 
+void Consumer::SeekToTimestamp(
+    utils::zstring_view topic,
+    std::uint32_t partition_id,
+    std::chrono::system_clock::time_point timestamp,
+    std::chrono::milliseconds timeout
+) const {
+    UINVARIANT(processing_.load(), "Message processing is not currently started");
+
+    utils::Async(
+        consumer_blocking_task_processor_,
+        "consumer_seek_to_timestamp",
+        [this, topic, partition_id, timestamp, timeout] {
+            ExtendCurrentSpan();
+            consumer_->SeekToTimestamp(topic, partition_id, timestamp, timeout);
+        }
+    ).Get();
+}
+
 void Consumer::SeekToBeginning(utils::zstring_view topic, std::uint32_t partition_id, std::chrono::milliseconds timeout)
     const {
     UINVARIANT(processing_.load(), "Message processing is not currently started");
