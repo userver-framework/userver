@@ -119,3 +119,30 @@ def test_response_ref(translate_single_schema):
             ),
         ],
     )
+
+
+def test_media_type_without_schema(translate_single_schema):
+    schema = {
+        'openapi': '3.0.0',
+        'info': {'title': '', 'version': '1.0'},
+        'paths': {
+            '/': {
+                'post': {
+                    'requestBody': {'required': True, 'content': {'application/json': {}}},
+                    'responses': {
+                        '200': {'description': 'OK', 'content': {'application/json': {}}},
+                        '204': {'description': 'No body'},
+                    },
+                },
+            },
+        },
+    }
+    spec = translate_single_schema(schema)
+    operation = spec.operations[0]
+    # A media type without a schema carries any value, a response without content has no body
+    assert operation.request_bodies[0].cpp_type() == 'USERVER_NAMESPACE::formats::json::Value'
+    body, no_body = operation.responses
+    assert isinstance(body.single_body(), cpp_types.CppAnyValue)
+    assert body.single_body().cpp_user_name() == 'USERVER_NAMESPACE::formats::json::Value'
+    assert no_body.body == {}
+    assert spec.internal_schemas == {}

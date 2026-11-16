@@ -164,7 +164,8 @@ class Service:
     operations: list[Operation] = dataclasses.field(default_factory=list)
 
     schemas: dict[str, types.Schema] = dataclasses.field(default_factory=dict)
-    responses: dict[str, Response] = dataclasses.field(default_factory=dict)
+    # A Ref is an alias of a response of another document
+    responses: dict[str, Response | Ref] = dataclasses.field(default_factory=dict)
     parameters: dict[str, Parameter] = dataclasses.field(default_factory=dict)
     headers: dict[str, Parameter] = dataclasses.field(default_factory=dict)
     requestBodies: dict[str, list[RequestBody]] = dataclasses.field(default_factory=dict)
@@ -194,6 +195,8 @@ class Service:
                 callback(b.schema)
                 b.schema.visit_children(callback2)
         for response in self.responses.values():
+            if isinstance(response, Ref):
+                continue
             clear_response(response)
         for parameter in self.parameters.values():
             callback(parameter.schema)

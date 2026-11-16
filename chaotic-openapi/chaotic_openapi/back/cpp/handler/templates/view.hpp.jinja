@@ -8,8 +8,8 @@
 {% if op.request_bodies | selectattr('content_type', 'equalto', 'application/json') | list %}
 #include <userver/formats/json/value.hpp>
 {% endif %}
-#include <handlers/{{ spec.service_name }}/{{ make_op_relpath(op) }}/requests.hpp>
-#include <handlers/{{ spec.service_name }}/{{ make_op_relpath(op) }}/responses.hpp>
+#include <{{ spec.include_dir }}/{{ make_op_relpath(op) }}/requests.hpp>
+#include <{{ spec.include_dir }}/{{ make_op_relpath(op) }}/responses.hpp>
 
 namespace {{ spec.cpp_namespace }}::{{ op.cpp_namespace() }} {
 

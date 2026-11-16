@@ -58,6 +58,13 @@ with section('parse'):  # noqa: F821
             },
         },
         '_userver_detect_phdr_cache_default': {},
+        '_userver_chaotic_query': {'pargs': '2+'},
+        '_userver_chaotic_is_tagged': {'pargs': '1+'},
+        '_userver_generate_tagged_chaotic': {'pargs': 1},
+        '_userver_chaotic_types_targets': {
+            'pargs': 2,
+            'kwargs': {'OUTPUT_DIR': 1, 'FORMAT': 1, 'SCHEMAS': '+'},
+        },
         '_userver_directory_install': {
             'kwargs': {
                 'COMPONENT': '*',

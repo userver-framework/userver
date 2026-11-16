@@ -1,7 +1,7 @@
 #pragma once
 
 {% for op in spec.operations %}
-#include <handlers/{{ spec.service_name }}/{{ make_op_relpath(op) }}/handler.hpp>
+#include <{{ spec.include_dir }}/{{ make_op_relpath(op) }}/handler.hpp>
 {% endfor %}
 #include <userver/chaotic/openapi/server/dependencies.hpp>
 #include <userver/components/component_list.hpp>

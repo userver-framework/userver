@@ -22,6 +22,9 @@ if(USERVER_FEATURE_CHAOTIC)
         add_subdirectory(chaotic_openapi_service)
         add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-chaotic-openapi_service)
 
+        add_subdirectory(chaotic_tagged_service)
+        add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}-chaotic-tagged_service)
+
     endif()
 endif()
 

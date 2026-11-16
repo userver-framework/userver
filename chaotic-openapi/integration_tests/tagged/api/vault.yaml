@@ -1,0 +1,51 @@
+openapi: 3.0.0
+info:
+    title: tagged api
+    version: '1.0'
+x-usrv-cpp-namespace: test::tagged::api
+
+paths:
+    /api/credentials:
+        put:
+            operationId: writeCredential
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '../schemas/credentials.yaml#/components/schemas/Credential'
+            responses:
+                '200':
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                additionalProperties: false
+                                properties:
+                                    written:
+                                        type: boolean
+                '400':
+                    description: Bad request
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '../common/errors.yaml#/components/schemas/Error'
+    /api/credentials/{name}/use:
+        post:
+            operationId: useCredential
+            parameters:
+              - in: path
+                name: name
+                required: true
+                schema:
+                    type: string
+            requestBody:
+                required: true
+                content:
+                    application/json: {}
+            responses:
+                '200':
+                    description: The credential payload, its shape is the credential class's
+                    content:
+                        application/json: {}

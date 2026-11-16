@@ -1,0 +1,14 @@
+# /// [tags]
+x-usrv-cpp-namespace: samples::tagged::errors
+components:
+    schemas:
+        Error:
+            type: object
+            additionalProperties: false
+            required: [code, message]
+            properties:
+                code:
+                    type: string
+                message:
+                    type: string
+# /// [tags]

@@ -1,6 +1,7 @@
 import collections
 from typing import Any
 
+from chaotic import error
 from chaotic.front import parser as chaotic_parser
 from chaotic.front import ref
 from chaotic.front import ref_resolver
@@ -52,4 +53,13 @@ def sort_openapis(contents: dict[str, Any]) -> list[tuple[str, Any]]:
             edges[filepath].append(ref_)
 
     sorted_nodes = ref_resolver.sort_dfs(nodes, edges)
+    for filepath in sorted_nodes:
+        if filepath not in contents:
+            referrers = sorted(referrer for referrer, refs in edges.items() if filepath in refs)
+            raise error.BaseError(
+                full_filepath=referrers[0],
+                infile_path='',
+                schema_type='openapi',
+                msg=f'$ref to "{filepath}", which is not among the input files',
+            )
     return [(filepath, contents[filepath]) for filepath in sorted_nodes]

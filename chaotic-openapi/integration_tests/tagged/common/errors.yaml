@@ -1,0 +1,10 @@
+x-usrv-cpp-namespace: test::tagged::errors
+components:
+    schemas:
+        Error:
+            type: object
+            additionalProperties: false
+            required: [code]
+            properties:
+                code:
+                    type: string

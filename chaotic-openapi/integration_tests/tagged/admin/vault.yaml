@@ -1,0 +1,33 @@
+openapi: 3.0.0
+info:
+    title: tagged admin
+    version: '1.0'
+x-usrv-cpp-namespace: test::tagged::admin
+
+paths:
+    /admin/credentials:
+        put:
+            operationId: writeCredential
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: '../schemas/credentials.yaml#/components/schemas/Credential'
+            responses:
+                '200':
+                    description: OK
+                    content:
+                        application/json:
+                            schema:
+                                type: object
+                                additionalProperties: false
+                                properties:
+                                    written:
+                                        type: boolean
+                '400':
+                    description: Bad request
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '../common/errors.yaml#/components/schemas/Error'

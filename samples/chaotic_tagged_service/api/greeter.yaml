@@ -1,0 +1,31 @@
+# /// [paths document]
+openapi: 3.0.0
+info:
+    title: Greeter
+    version: '1.0'
+x-usrv-cpp-namespace: samples::tagged::greeter
+
+paths:
+    /greetings/{name}:
+        get:
+            operationId: getGreeting
+            parameters:
+              - in: path
+                name: name
+                required: true
+                schema:
+                    type: string
+            responses:
+                '200':
+                    description: The greeting
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '../schemas/greetings.yaml#/components/schemas/Greeting'
+                '404':
+                    description: Nobody to greet
+                    content:
+                        application/json:
+                            schema:
+                                $ref: '../schemas/errors.yaml#/components/schemas/Error'
+# /// [paths document]
