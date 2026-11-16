@@ -352,10 +352,6 @@ void TaskProcessor::HookBeforeSleep(impl::TaskContext& task) noexcept { plugin_m
 
 void TaskProcessor::HookAfterWakeup(impl::TaskContext& task) noexcept { plugin_manager_.HookAfterWakeup(task); }
 
-void TaskProcessor::HookTaskCreate(impl::TaskContext& task) noexcept { plugin_manager_.HookTaskCreate(task); }
-
-void TaskProcessor::HookTaskDestroy(impl::TaskContext& task) noexcept { plugin_manager_.HookTaskDestroy(task); }
-
 void TaskProcessor::HookTaskStart(impl::TaskContext& task) noexcept { plugin_manager_.HookTaskStart(task); }
 
 void TaskProcessor::HookTaskStop(impl::TaskContext& task) noexcept { plugin_manager_.HookTaskStop(task); }

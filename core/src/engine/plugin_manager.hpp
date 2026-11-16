@@ -50,38 +50,6 @@ public:
         }
     }
 
-    void HookTaskCreate(impl::TaskContext& task) {
-        if (!has_any_plugin_) {
-            return;
-        }
-
-        // TaskContext() can be called outside of coroutine.
-        // Fallback to "lock all mutexes" if so.
-        if (mutex_set_.MayReadLock()) {
-            auto lock = mutex_set_.ReadLockFromCoroutine();
-            DoHookTaskCreate(task);
-        } else {
-            auto lock = mutex_set_.WriteLock();
-            DoHookTaskCreate(task);
-        }
-    }
-
-    void HookTaskDestroy(impl::TaskContext& task) {
-        if (!has_any_plugin_) {
-            return;
-        }
-
-        // ~TaskContext() can be called outside of coroutine.
-        // Fallback to "lock all mutexes" if so.
-        if (mutex_set_.MayReadLock()) {
-            auto lock = mutex_set_.ReadLockFromCoroutine();
-            DoHookTaskDestroy(task);
-        } else {
-            auto lock = mutex_set_.WriteLock();
-            DoHookTaskDestroy(task);
-        }
-    }
-
     void HookBeforeSleep(impl::TaskContext& task) {
         if (!has_any_plugin_) {
             return;
@@ -127,18 +95,6 @@ public:
     }
 
 private:
-    void DoHookTaskDestroy(impl::TaskContext& task) {
-        for (auto* const plugin : plugins_ | std::views::reverse) {
-            plugin->HookTaskDestroy(task);
-        }
-    }
-
-    void DoHookTaskCreate(impl::TaskContext& task) {
-        for (auto* const plugin : plugins_) {
-            plugin->HookTaskCreate(task);
-        }
-    }
-
     std::atomic<bool> has_any_plugin_{false};
 
     // mutex_set_ protects plugins_ from parallel access from multiple threads.
@@ -146,8 +102,6 @@ private:
     // If accessed from a task processor worker thread, it can be locked for read very quickly using
     // thread_local std::mutex. Different worker threads don't conflict on read.
     // However, if anyone wants to get a write lock, he has to lock ALL std::Mutex'es belonging to every worker thread.
-    // The same for obtaining read lock from non-task processor thread: any worker thread may try to get a read lock, so
-    // you have to lock every mutex to prevent it.
     TaskProcessorMutexSet mutex_set_;
     std::vector<PluginBase*> plugins_;
 };

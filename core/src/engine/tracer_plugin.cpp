@@ -6,6 +6,7 @@
 #include <boost/stacktrace/stacktrace.hpp>
 
 #include <userver/concurrent/variable.hpp>
+#include <userver/engine/task/task.hpp>
 #include <userver/logging/log.hpp>
 #include <userver/logging/stacktrace_cache.hpp>
 #include <userver/tracing/span.hpp>
@@ -23,12 +24,16 @@ TracePlugin::TracePlugin(std::size_t worker_count)
     : alive_tasks_(worker_count)
 {}
 
-void TracePlugin::HookTaskDestroy(impl::TaskContext& task) noexcept {
+void TracePlugin::HookTaskStop(impl::TaskContext& task) noexcept {
     auto tasks = LockForTask(task);
     tasks->erase(&task);
 }
 
 void TracePlugin::HookBeforeSleep(impl::TaskContext& task) noexcept {
+    if (task.GetPendingFinalState() != engine::Task::State::kInvalid) {
+        return;
+    }
+
     // stacktrace is slow, not under lock
     auto bt = boost::stacktrace::stacktrace();
 

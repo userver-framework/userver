@@ -105,8 +105,8 @@ public:
 
     Task::State GetState() const { return state_; }
 
-    // The terminal state the task is finishing with (kCompleted or kCancelled).
-    // Only meaningful once the task body has finished, e.g. from HookTaskStop.
+    // kInvalid until the payload finishes, then kCompleted or kCancelled, including
+    // during task-local destruction. Read from this task's coroutine only.
     Task::State GetPendingFinalState() const noexcept { return pending_final_state_; }
 
     // whether this task is the one currently executing on the calling thread
@@ -267,7 +267,7 @@ private:
     CountedCoroutinePtr coro_;
     TaskPipe* task_pipe_{nullptr};
     YieldReason yield_reason_{YieldReason::kNone};
-    Task::State pending_final_state_{Task::State::kCompleted};
+    Task::State pending_final_state_{Task::State::kInvalid};
 
     std::optional<task_local::Storage> local_storage_{};
 

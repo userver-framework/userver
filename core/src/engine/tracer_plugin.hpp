@@ -26,7 +26,7 @@ class TracePlugin final : public PluginBase {
 public:
     explicit TracePlugin(std::size_t worker_count);
 
-    void HookTaskDestroy(impl::TaskContext& task) noexcept override;
+    void HookTaskStop(impl::TaskContext& task) noexcept override;
 
     void HookBeforeSleep(impl::TaskContext& task) noexcept override;
 
