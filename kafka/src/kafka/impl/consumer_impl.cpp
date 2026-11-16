@@ -857,10 +857,23 @@ void ConsumerImpl::SeekToTimestamp(
     if (error == RD_KAFKA_RESP_ERR_NO_ERROR) {
         error = partition->err;
     }
+    if (error == RD_KAFKA_RESP_ERR_NO_ERROR && partition->offset == RD_KAFKA_OFFSET_END) {
+        // Resolve the end now: a symbolic end is resolved asynchronously and could skip records
+        // produced after SeekToTimestamp returns.
+        std::int64_t low_offset{};
+        error = rd_kafka_query_watermark_offsets(
+            consumer_.GetHandle(),
+            topic.c_str(),
+            static_cast<std::int32_t>(partition_id),
+            &low_offset,
+            &partition->offset,
+            std::max(0, ToRdKafkaTimeout(deadline))
+        );
+    }
     if (error != RD_KAFKA_RESP_ERR_NO_ERROR) {
         throw SeekException(
             fmt::format(
-                "Failed to look up timestamp offset for topic '{}' partition {}: {}",
+                "Failed to resolve timestamp offset for topic '{}' partition {}: {}",
                 topic,
                 partition_id,
                 rd_kafka_err2str(error)
@@ -868,7 +881,6 @@ void ConsumerImpl::SeekToTimestamp(
         );
     }
 
-    // librdkafka returns RD_KAFKA_OFFSET_END when no record matches the timestamp.
     SeekToOffset(topic, partition_id, partition->offset, deadline);
 }
 
