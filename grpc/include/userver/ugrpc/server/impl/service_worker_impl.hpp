@@ -392,6 +392,8 @@ class Reactor final
     using SerializedFinalResponse = typename CallbackTraits::SerializedFinalResponse;
 
 public:
+    using CallbackTraits::ReactorBase::Finish;
+
     Reactor(
         const MethodData<GrpcppService, CallbackTraits>& method_data,
         ServerContext& server_context,
@@ -411,6 +413,15 @@ public:
           }
     {
         intrusive_ptr_add_ref(this);
+
+        if constexpr (!std::is_same_v<SerializedInitialRequest, NoSerializedInitialRequest>) {
+            // The Callback API may accept a call without an initial request message.
+            if (!serialized_initial_request.Valid()) [[unlikely]] {
+                FinishWithError(grpc::Status{grpc::StatusCode::INTERNAL, "No valid request byte buffer"});
+                return;
+            }
+        }
+
         async_call_processor_.ProcessAsync(*this);
     }
 
@@ -429,7 +440,10 @@ public:
     // NOLINTNEXTLINE(modernize-use-override,cppcoreguidelines-explicit-virtual-functions,hicpp-use-override)
     void OnWriteDone(bool ok) { callback_responder_.NotifyWrite(ok); }
 
-    void FinishWithError(grpc::Status status) { callback_responder_.FinishWithError(status); }
+    void FinishWithError(grpc::Status status) {
+        UASSERT(!status.ok());
+        Finish(status);
+    }
 
 private:
     const utils::impl::WaitTokenStorageLock wait_token_;
