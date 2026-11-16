@@ -11,6 +11,7 @@ from typing import NoReturn
 import pydantic
 
 from chaotic import error
+from chaotic.front import base_model
 from chaotic.front import ref
 from chaotic.front import types
 
@@ -332,7 +333,7 @@ class SchemaParser:
 
             items = self._parse_schema(input_['items'])
             del input_['items']
-            return types.Array(items=items, **input_)
+        return types.Array(items=items, **input_)
 
     def _parse_object(self, input_: dict) -> types.SchemaObject:
         fields = input_.copy()
@@ -520,6 +521,8 @@ class SchemaParser:
         fields.discard('x-usrv-cpp-name')
         fields.discard('x-taxi-cpp-name')
 
+        if 'default' in fields:
+            self._raise(base_model.UNSUPPORTED_DEFAULT_MSG)
         if fields:
             self._raise(f'Unknown field(s) {list(fields)}')
 

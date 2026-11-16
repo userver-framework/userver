@@ -250,6 +250,7 @@ class Array(Schema):
     # validated in SchemaParser._parse_array()
     items: Schema
     type: str = 'array'
+    default: list[Any] | None = None
     nullable: bool = False
     minItems: int | None = None
     maxItems: int | None = None
