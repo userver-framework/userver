@@ -9,6 +9,7 @@
 #include <fmt/chrono.h>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
+#include <openssl/asn1.h>
 #include <openssl/ssl.h>
 #include <openssl/x509.h>
 
@@ -346,12 +347,18 @@ void RequestState::client_key_cert(crypto::PrivateKey pkey, crypto::Certificate 
         X509_get0_signature(&cert_sig, nullptr, cert_.GetNative());
         UINVARIANT(cert_sig, "Cannot get X509 certificate signature");
 
+#if OPENSSL_VERSION_NUMBER >= 0x010100000L
+        const auto* cert_sig_data = ASN1_STRING_get0_data(cert_sig);
+#else
+        const auto* cert_sig_data = ASN1_STRING_data(cert_sig);
+#endif
+
         std::string cert_id;
         cert_id.reserve(kCertIdLength);
         utils::encoding::ToHex(
             std::string_view{
-                reinterpret_cast<const char*>(cert_sig->data),
-                std::min<size_t>(cert_sig->length, kCertIdLength / 2)
+                reinterpret_cast<const char*>(cert_sig_data),
+                std::min<size_t>(ASN1_STRING_length(cert_sig), kCertIdLength / 2)
             },
             cert_id
         );
