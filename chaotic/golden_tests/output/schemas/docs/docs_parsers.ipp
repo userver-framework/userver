@@ -162,7 +162,7 @@ Status Parse(
     if (result.has_value()) {
         return *result;
     }
-    USERVER_NAMESPACE::chaotic::ThrowForValue(fmt::format("Invalid enum value ({}) for type ::ns::Status", value), val);
+    USERVER_NAMESPACE::chaotic::ThrowForValue(fmt::format("Invalid enum value ({}), expected one of: {}", value, k__ns__Status_Mapping.DescribeSecond()), val);
 }
 
 constexpr USERVER_NAMESPACE::utils::TrivialSet k__ns__TreeNode_PropertiesNames = [](auto selector) {

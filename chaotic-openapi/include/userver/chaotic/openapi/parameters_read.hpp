@@ -1,7 +1,9 @@
 #pragma once
 
 #include <concepts>
+#include <exception>
 #include <optional>
+#include <utility>
 
 #include <fmt/format.h>
 
@@ -137,8 +139,23 @@ struct ParameterParser<ArrayParameterBase<In::kQueryExplode, Delimiter, RawType,
     }
 };
 
+namespace impl {
+
+template <typename Parameter, typename Value>
+typename Parameter::Base::UserType ParseParameterValue(Value&& str_or_array_value) {
+    try {
+        return openapi::ParameterParser<typename Parameter::Base>::Parse(std::forward<Value>(str_or_array_value));
+    } catch (const std::exception& e) {
+        throw USERVER_NAMESPACE::server::handlers::ClientError(USERVER_NAMESPACE::server::handlers::ExternalBody{
+            fmt::format("Invalid parameter '{}': {}", Parameter::kName, e.what())
+        });
+    }
+}
+
+}  // namespace impl
+
 /// Reads a required parameter. Throws USERVER_NAMESPACE::server::handlers::ClientError if the
-/// parameter is absent from the request.
+/// parameter is absent from the request or its value does not parse.
 template <typename Parameter>
 typename Parameter::Base::UserType ReadParameter(const USERVER_NAMESPACE::server::http::HttpRequest& source) {
     if (!openapi::IsParameterPresent<Parameter::kIn>(Parameter::kName, source)) {
@@ -146,13 +163,13 @@ typename Parameter::Base::UserType ReadParameter(const USERVER_NAMESPACE::server
             fmt::format("Required parameter '{}' is missing", Parameter::kName)
         });
     }
-    auto str_or_array_value = openapi::GetParameter<Parameter::kIn>(Parameter::kName, source);
-    return openapi::ParameterParser<typename Parameter::Base>::Parse(std::move(str_or_array_value));
+    return impl::ParseParameterValue<Parameter>(openapi::GetParameter<Parameter::kIn>(Parameter::kName, source));
 }
 
 /// Reads an optional parameter. Returns std::nullopt if the parameter is
 /// absent; returns the parsed value (even if the raw string is empty) if
-/// present.
+/// present. Throws USERVER_NAMESPACE::server::handlers::ClientError if the
+/// value does not parse.
 template <typename Parameter>
 std::optional<typename Parameter::Base::UserType> ReadParameterOptional(
     const USERVER_NAMESPACE::server::http::HttpRequest& source
@@ -160,8 +177,7 @@ std::optional<typename Parameter::Base::UserType> ReadParameterOptional(
     if (!openapi::IsParameterPresent<Parameter::kIn>(Parameter::kName, source)) {
         return std::nullopt;
     }
-    auto str_or_array_value = openapi::GetParameter<Parameter::kIn>(Parameter::kName, source);
-    return openapi::ParameterParser<typename Parameter::Base>::Parse(std::move(str_or_array_value));
+    return impl::ParseParameterValue<Parameter>(openapi::GetParameter<Parameter::kIn>(Parameter::kName, source));
 }
 
 }  // namespace chaotic::openapi

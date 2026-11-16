@@ -255,7 +255,7 @@ TEST(Simple, IntegerEnum) {
     UEXPECT_THROW_MSG(
         json2["one"].As<ns::IntegerEnum>(),
         chaotic::Error<formats::json::Value>,
-        "Error at path 'one': Invalid enum value (5) for type ::ns::IntegerEnum"
+        "Error at path 'one': Invalid enum value (5), expected one of: '1', '2', '3'"
     );
 
     EXPECT_EQ(std::size(ns::kIntegerEnumValues), 3);
@@ -284,7 +284,7 @@ TEST(Simple, IntegerEnumSax) {
     UEXPECT_THROW_MSG(
         CallSaxParser<ns::IntegerEnum>("5"),
         formats::json::parser::ParseError,
-        "Parse error at pos 1, path '': Invalid enum value (5) for type ::ns::IntegerEnum, the latest token was 5"
+        "Parse error at pos 1, path '': Invalid enum value (5), expected one of: '1', '2', '3', the latest token was 5"
     );
 }
 
@@ -300,7 +300,7 @@ TEST(Simple, StringEnum) {
     UEXPECT_THROW_MSG(
         json2["one"].As<ns::StringEnum>(),
         chaotic::Error<formats::json::Value>,
-        "Error at path 'one': Invalid enum value (zoo) for type ::ns::StringEnum"
+        "Error at path 'one': Invalid enum value (zoo), expected one of: 'foo', 'bar', 'some!thing'"
     );
 
     EXPECT_EQ("foo", ToString(ns::StringEnum::kFoo));
@@ -320,14 +320,14 @@ TEST(Simple, StringEnum) {
     UEXPECT_THROW_MSG(
         Convert("zoo", chaotic::convert::To<ns::StringEnum>{}),
         std::runtime_error,
-        "Invalid enum value (zoo) for type ::ns::StringEnum"
+        "Invalid enum value (zoo), expected one of: 'foo', 'bar', 'some!thing'"
     );
 
     EXPECT_EQ(Parse("foo", formats::parse::To<ns::StringEnum>{}), ns::StringEnum::kFoo);
     UEXPECT_THROW_MSG(
         Parse("zoo", formats::parse::To<ns::StringEnum>{}),
         std::runtime_error,
-        "Invalid enum value (zoo) for type ::ns::StringEnum"
+        "Invalid enum value (zoo), expected one of: 'foo', 'bar', 'some!thing'"
     );
 
     EXPECT_EQ(std::size(ns::kStringEnumValues), 3);
@@ -350,7 +350,7 @@ TEST(Simple, StringEnumSax) {
     UEXPECT_THROW_MSG(
         CallSaxParser<ns::StringEnum>("\"zoo\""),
         formats::json::parser::ParseError,
-        "Parse error at pos 5, path '': Invalid enum value (zoo) for type ::ns::StringEnum, the "
+        "Parse error at pos 5, path '': Invalid enum value (zoo), expected one of: 'foo', 'bar', 'some!thing', the "
         "latest token was \"zoo\""
     );
 }
