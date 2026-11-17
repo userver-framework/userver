@@ -10,17 +10,17 @@
 
 #include <userver/utils/fast_pimpl.hpp>
 #include <userver/utils/statistics/fwd.hpp>
-#include <userver/utils/statistics/metric_tag.hpp>
-#include <userver/utils/statistics/metric_tag_impl.hpp>
-
-// TODO(USERVER-1855) remove extra includes
-#include <cstddef>
-#include <typeinfo>
-#include <unordered_map>
+#include <userver/utils/statistics/impl/metric_wrapper.hpp>
 
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {
+
+namespace impl {
+
+struct MetricKey;
+
+}  // namespace impl
 
 /// @brief Storage of metrics registered with MetricTag<Metric>
 /// @note The class is thread-safe. See also the note about thread-safety

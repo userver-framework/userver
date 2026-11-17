@@ -19,6 +19,9 @@ class Request;
 
 class Writer;
 
+template <typename Metric>
+class MetricTag;
+
 class MetricsStorage;
 using MetricsStoragePtr = std::shared_ptr<MetricsStorage>;
 

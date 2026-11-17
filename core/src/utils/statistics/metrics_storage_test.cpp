@@ -9,6 +9,7 @@
 
 #include <userver/utest/utest.hpp>
 #include <userver/utils/statistics/histogram.hpp>
+#include <userver/utils/statistics/metric_tag.hpp>
 #include <userver/utils/statistics/rate_counter.hpp>
 #include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/statistics/testing.hpp>

@@ -20,6 +20,7 @@
 #include <userver/server/http/http_response.hpp>
 #include <userver/server/request/task_inherited_request.hpp>
 #include <userver/utils/assert.hpp>
+#include <userver/utils/statistics/metric_tag.hpp>
 
 #include <dynamic_config/variables/USERVER_RPS_CCONTROL_CUSTOM_STATUS.hpp>
 

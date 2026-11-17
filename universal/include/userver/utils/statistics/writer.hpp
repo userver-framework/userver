@@ -15,11 +15,6 @@
 #include <userver/utils/statistics/labels.hpp>
 #include <userver/utils/statistics/rate.hpp>
 
-// TODO(USERVER-1855) remove extra includes
-#include <fmt/format.h>
-#include <userver/utils/function_ref.hpp>
-#include <userver/utils/statistics/request.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {

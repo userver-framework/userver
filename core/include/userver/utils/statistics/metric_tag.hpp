@@ -7,7 +7,7 @@
 #include <typeinfo>
 #include <utility>
 
-#include <userver/utils/statistics/metric_tag_impl.hpp>
+#include <userver/utils/statistics/impl/metric_tag.hpp>
 
 USERVER_NAMESPACE_BEGIN
 

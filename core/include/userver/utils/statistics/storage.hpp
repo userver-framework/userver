@@ -13,11 +13,6 @@
 #include <userver/utils/statistics/fwd.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
-// TODO(USERVER-1855) remove extra includes
-#include <atomic>
-#include <list>
-#include <userver/engine/shared_mutex.hpp>
-
 USERVER_NAMESPACE_BEGIN
 
 namespace utils::statistics {

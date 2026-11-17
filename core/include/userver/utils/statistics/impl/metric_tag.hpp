@@ -1,16 +1,13 @@
 #pragma once
 
-/// @file userver/utils/statistics/metric_tag_impl.hpp
-/// @brief Implementation details of @ref utils::statistics::MetricTag.
-
 #include <atomic>
 #include <functional>
 #include <memory>
 #include <string>
 #include <type_traits>
 #include <typeindex>
-#include <utility>
 
+#include <userver/utils/statistics/impl/metric_wrapper.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
 USERVER_NAMESPACE_BEGIN
@@ -26,44 +23,18 @@ void ResetMetric(std::atomic<Metric>& m) {
 template <typename Metric>
 concept HasResetMetric = requires(Metric& m) { ResetMetric(m); };
 
-class MetricWrapperBase {
-public:
-    MetricWrapperBase& operator=(MetricWrapperBase&&) = delete;
-    virtual ~MetricWrapperBase();
-
-    virtual void DumpToWriter(utils::statistics::Writer& writer) = 0;
-
-    virtual void Reset() = 0;
-};
-
 template <typename Metric>
-class MetricWrapper final : public MetricWrapperBase {
-    static_assert(
-        utils::statistics::HasWriterSupport<Metric>,
-        "Provide a `void DumpMetric(utils::statistics::Writer&, const Metric&)`"
-        "function in the namespace of `Metric`."
-    );
-
-    static_assert(!std::is_arithmetic_v<Metric>, "Type is not atomic, use std::atomic<T> instead");
-
+class MetricWrapperImpl final : public MetricWrapper<Metric> {
 public:
-    template <typename... Args>
-    explicit MetricWrapper(std::in_place_t, const Args&... args)
-        : data_(args...)
-    {}
+    using MetricWrapper<Metric>::MetricWrapper;
 
-    void DumpToWriter(Writer& writer) override { writer = data_; }
+    void DumpToWriter(Writer& writer) override { writer = this->Get(); }
 
     void Reset() override {
         if constexpr (HasResetMetric<Metric>) {
-            ResetMetric(data_);
+            ResetMetric(this->Get());
         }
     }
-
-    Metric& Get() { return data_; }
-
-private:
-    Metric data_;
 };
 
 using MetricFactory = std::function<std::unique_ptr<MetricWrapperBase>()>;
@@ -71,6 +42,13 @@ using MetricFactory = std::function<std::unique_ptr<MetricWrapperBase>()>;
 template <typename Metric, typename... Args>
 // NOLINTNEXTLINE(cppcoreguidelines-missing-std-forward)
 MetricFactory MakeMetricFactory(Args&&... args) {
+    static_assert(!std::is_arithmetic_v<Metric>, "Type is not atomic, use std::atomic<T> instead");
+    static_assert(
+        utils::statistics::HasWriterSupport<Metric>,
+        "Provide a `void DumpMetric(utils::statistics::Writer&, const Metric&)`"
+        "function in the namespace of `Metric`."
+    );
+
     if constexpr (sizeof...(Args) == 0) {
         static_assert(
             std::is_default_constructible_v<Metric>,
@@ -88,7 +66,7 @@ MetricFactory MakeMetricFactory(Args&&... args) {
         );
     }
 
-    return [args...] { return std::make_unique<MetricWrapper<Metric>>(std::in_place, args...); };
+    return [args...] { return std::make_unique<MetricWrapperImpl<Metric>>(args...); };
 }
 
 struct MetricKey final {

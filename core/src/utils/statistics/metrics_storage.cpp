@@ -15,6 +15,7 @@
 #include <userver/utils/impl/static_registration.hpp>
 #include <userver/utils/lazy_prvalue.hpp>
 #include <userver/utils/resource_scopes.hpp>
+#include <userver/utils/statistics/impl/metric_tag.hpp>
 #include <userver/utils/statistics/storage.hpp>
 #include <userver/utils/statistics/writer.hpp>
 
