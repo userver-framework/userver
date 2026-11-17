@@ -126,7 +126,7 @@ void Statement::Bind(const int index, const std::string_view value) {
     const int ret_code = sqlite3_bind_text(
         prepare_statement_.get(),
         index,
-        value.data(),
+        value.empty() ? "" : value.data(),
         static_cast<int>(value.size()),
         SQLITE_TRANSIENT  // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
     );
@@ -148,7 +148,7 @@ void Statement::Bind(const int index, const std::vector<std::uint8_t>& value) {
     const int ret_code = sqlite3_bind_blob(
         prepare_statement_.get(),
         index,
-        value.data(),
+        value.empty() ? static_cast<const void*>("") : value.data(),
         value.size(),
         SQLITE_TRANSIENT  // NOLINT(cppcoreguidelines-pro-type-cstyle-cast)
     );

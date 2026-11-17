@@ -216,6 +216,28 @@ struct MismatchTypesTestRowCorrect {
 
 }  // namespace
 
+UTEST_F(SQLiteTypesTest, EmptyBlobIsNotNull) {
+    const auto client = CreateClient();
+    client->Execute(OperationType::kReadWrite, "CREATE TABLE required_blob(value BLOB NOT NULL)");
+    client->Execute(OperationType::kReadWrite, "INSERT INTO required_blob VALUES (?)", std::vector<std::uint8_t>{});
+
+    const auto value =
+        client->Execute(OperationType::kReadOnly, "SELECT value FROM required_blob")
+            .AsSingleField<std::optional<std::vector<std::uint8_t>>>();
+    ASSERT_TRUE(value.has_value());
+    EXPECT_TRUE(value->empty());
+}
+
+UTEST_F(SQLiteTypesStringViewTest, EmptyStringViewIsNotNull) {
+    const auto client = CreateClient();
+    client->Execute(OperationType::kReadWrite, "INSERT INTO test VALUES (?)", std::string_view{});
+
+    const auto value =
+        client->Execute(OperationType::kReadOnly, "SELECT strvw FROM test").AsSingleField<std::optional<std::string>>();
+    ASSERT_TRUE(value.has_value());
+    EXPECT_TRUE(value->empty());
+}
+
 UTEST_F(SQLiteTypesTest, BindExtract) {
     ClientPtr client;
     UEXPECT_NO_THROW(client = CreateClient());
