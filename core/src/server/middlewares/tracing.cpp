@@ -162,15 +162,14 @@ void Tracing::EnrichLogs(
                 ? *forced_log_level_opt
                 : handler_.GetLogLevelForResponseStatus(status_code)
         );
+        if (!span.ShouldLogDefault()) {
+            return;
+        }
 
         int response_code = static_cast<int>(status_code);
         span.AddTag(tracing::kHttpResponseStatusCode, response_code);
         if (response_code >= 500) {
             span.AddTag(tracing::kErrorFlag, true);
-        }
-
-        if (!span.ShouldLogDefault()) {
-            return;
         }
 
         if (logging_settings.need_log_response) {

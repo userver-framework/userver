@@ -261,7 +261,6 @@ void DeadlinePropagation::CompleteDeadlinePropagation(
         dp_scope.shared_dp_context.SetCancelledByDeadline();
 
         const auto& original_body = response.GetData();
-        // A later sampling change does not backfill this diagnostic snapshot.
         if (!original_body.empty() && span_opt && span_opt->ShouldLogDefault()) {
             span_opt->AddNonInheritableTag("dp_original_body_size", original_body.size());
             if (dp_scope.need_log_response) {
