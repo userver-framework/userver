@@ -126,7 +126,11 @@ public:
     template <typename Tag, typename Key>
     bool erase(const Key& key) {
         auto it = find_no_update<Tag, Key>(key);
-        return erase(it) != end<Tag>();
+        if (it == end<Tag>()) {
+            return false;
+        }
+        erase(it);
+        return true;
     }
 
     std::size_t size() const noexcept { return container_.size(); }

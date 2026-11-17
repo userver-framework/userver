@@ -44,6 +44,19 @@ protected:
                 boost::multi_index::member<User, std::string, &User::name>>>>;
 };
 
+UTEST_F(LRUUsersTest, EraseByKeyReportsPresence) {
+    UserCache cache(2);
+    cache.insert({.id = 1, .email = "a", .name = "A"});
+    cache.insert({.id = 2, .email = "b", .name = "B"});
+
+    EXPECT_TRUE(cache.erase<IdTag>(2));
+    EXPECT_EQ(cache.size(), 1);
+    EXPECT_FALSE(cache.erase<IdTag>(2));
+    EXPECT_TRUE(cache.erase<IdTag>(1));
+    EXPECT_TRUE(cache.empty());
+    EXPECT_FALSE(cache.erase<IdTag>(1));
+}
+
 UTEST_F(LRUUsersTest, BasicOperations) {
     UserCache cache(3);  // capacity == 3
 
