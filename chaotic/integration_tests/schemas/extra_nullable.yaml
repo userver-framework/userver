@@ -1,0 +1,16 @@
+definitions:
+    NullableNumbers:
+        type: object
+        properties: {}
+        additionalProperties:
+            type: number
+            nullable: true
+
+    NullableNumbersWithField:
+        type: object
+        additionalProperties:
+            type: number
+            nullable: true
+        properties:
+            name:
+                type: string

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <userver/chaotic/array.hpp>
+#include <userver/chaotic/nullable.hpp>
 #include <userver/chaotic/object.hpp>
 #include <userver/chaotic/oneof_with_discriminator.hpp>
 #include <userver/chaotic/primitive.hpp>
@@ -11,6 +12,7 @@
 #include <userver/chaotic/variant.hpp>
 #include <userver/chaotic/with_type.hpp>
 #include <userver/formats/json/parser/dummy_parser.hpp>
+#include <userver/formats/json/parser/nullable_item_parser.hpp>
 #include <userver/formats/json/parser/parser_json.hpp>
 #include <userver/utils/box.hpp>
 #include <userver/utils/constexpr_indices.hpp>
@@ -130,6 +132,29 @@ private:
 template <typename T, typename ResultType>
 RefParser<T, ResultType>::~RefParser() noexcept = default;
 
+template <typename Descriptor>
+class NullableParser final {
+public:
+    using ResultType = std::optional<TypeOfDescriptor<Descriptor>>;
+
+    NullableParser()
+        : parser_(item_parser_)
+    {}
+
+    NullableParser(const NullableParser&) = delete;
+    NullableParser& operator=(const NullableParser&) = delete;
+
+    void Reset() {}
+
+    void Subscribe(formats::json::parser::Subscriber<ResultType>& subscriber) { parser_.Subscribe(subscriber); }
+
+    formats::json::parser::BaseParser& GetParser() { return parser_; }
+
+private:
+    sax::Parser<Descriptor> item_parser_;
+    formats::json::parser::NullableItemParser<ResultType, sax::Parser<Descriptor>> parser_;
+};
+
 template <typename T>
 class JsonDomParser final : private formats::json::parser::Subscriber<formats::json::Value> {
 public:
@@ -170,6 +195,9 @@ auto ParserOf(Type<WithType<RawType, UserType>>)
 
 template <typename T>
 sax::impl::RefParser<T> ParserOf(Type<Ref<T>>);
+
+template <typename Descriptor>
+sax::impl::NullableParser<Descriptor> ParserOf(Type<Nullable<Descriptor>>);
 
 template <typename T, typename Validator0, typename... Validator>
 auto ParserOf(Type<Primitive<T, Validator0, Validator...>>)

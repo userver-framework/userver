@@ -81,7 +81,7 @@
             );
             {% elif type.extra_type %}
             auto extra = {{ userver }}::chaotic::ExtractAdditionalProperties<
-                {{ extra_cpp_parser_type(type.extra_type) }},
+                {{ type.extra_parser_type('TODO', 'Extra') }},
                 {{ type.extra_container() }}
             >(value, k{{type.cpp_global_struct_field_name()}}_PropertiesNames);
             {% endif %}
