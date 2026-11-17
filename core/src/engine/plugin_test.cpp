@@ -10,7 +10,6 @@
 #include <userver/engine/task/current_task.hpp>
 #include <userver/engine/task/local_variable.hpp>
 #include <userver/utest/utest.hpp>
-#include <userver/utils/fast_scope_guard.hpp>
 
 #include <engine/task/task_context.hpp>
 #include <engine/task/task_processor.hpp>
@@ -57,16 +56,24 @@ private:
     const engine::impl::TaskContext* task_{nullptr};
 };
 
+class EnginePluginPendingFinalState : public ::testing::Test {
+protected:
+    EnginePluginPendingFinalState() {
+        [] { ASSERT_EQ(engine::current_task::GetWorkerCount(), 1); }();
+        engine::current_task::GetTaskProcessor().RegisterPlugin(plugin_);
+    }
+
+    ~EnginePluginPendingFinalState() override { engine::current_task::GetTaskProcessor().UnregisterPlugin(plugin_); }
+
+    const PendingFinalStateProbe& GetPlugin() const { return plugin_; }
+
+private:
+    PendingFinalStateProbe plugin_;
+};
+
 }  // namespace
 
-UTEST(EnginePlugin, PendingFinalStateCompleted) {
-    ASSERT_EQ(engine::current_task::GetWorkerCount(), 1);
-
-    auto& task_processor = engine::current_task::GetTaskProcessor();
-    PendingFinalStateProbe plugin;
-    task_processor.RegisterPlugin(plugin);
-    const utils::FastScopeGuard unregister{[&]() noexcept { task_processor.UnregisterPlugin(plugin); }};
-
+UTEST_F(EnginePluginPendingFinalState, Completed) {
     auto task = engine::AsyncNoTracing([] {
         EXPECT_EQ(engine::current_task::GetCurrentTaskContext().GetPendingFinalState(), TaskState::kInvalid);
         engine::Yield();
@@ -74,38 +81,24 @@ UTEST(EnginePlugin, PendingFinalStateCompleted) {
     task.Wait();
 
     EXPECT_THAT(
-        plugin.GetSleepPendingFinalStates(),
+        GetPlugin().GetSleepPendingFinalStates(),
         ::testing::ElementsAre(TaskState::kInvalid, TaskState::kCompleted)
     );
-    EXPECT_THAT(plugin.GetStopPendingFinalStates(), ::testing::ElementsAre(TaskState::kCompleted));
+    EXPECT_THAT(GetPlugin().GetStopPendingFinalStates(), ::testing::ElementsAre(TaskState::kCompleted));
     EXPECT_EQ(task.GetState(), TaskState::kCompleted);
 }
 
-UTEST(EnginePlugin, PendingFinalStateCancelledBeforeStart) {
-    ASSERT_EQ(engine::current_task::GetWorkerCount(), 1);
-
-    auto& task_processor = engine::current_task::GetTaskProcessor();
-    PendingFinalStateProbe plugin;
-    task_processor.RegisterPlugin(plugin);
-    const utils::FastScopeGuard unregister{[&]() noexcept { task_processor.UnregisterPlugin(plugin); }};
-
+UTEST_F(EnginePluginPendingFinalState, CancelledBeforeStart) {
     auto task = engine::AsyncNoTracing([] { ADD_FAILURE() << "The task body should not start"; });
     task.RequestCancel();
     task.Wait();
 
-    EXPECT_THAT(plugin.GetSleepPendingFinalStates(), ::testing::ElementsAre(TaskState::kCancelled));
-    EXPECT_THAT(plugin.GetStopPendingFinalStates(), ::testing::ElementsAre(TaskState::kCancelled));
+    EXPECT_THAT(GetPlugin().GetSleepPendingFinalStates(), ::testing::ElementsAre(TaskState::kCancelled));
+    EXPECT_THAT(GetPlugin().GetStopPendingFinalStates(), ::testing::ElementsAre(TaskState::kCancelled));
     EXPECT_EQ(task.GetState(), TaskState::kCancelled);
 }
 
-UTEST(EnginePlugin, PendingFinalStateCancelledInBody) {
-    ASSERT_EQ(engine::current_task::GetWorkerCount(), 1);
-
-    auto& task_processor = engine::current_task::GetTaskProcessor();
-    PendingFinalStateProbe plugin;
-    task_processor.RegisterPlugin(plugin);
-    const utils::FastScopeGuard unregister{[&]() noexcept { task_processor.UnregisterPlugin(plugin); }};
-
+UTEST_F(EnginePluginPendingFinalState, CancelledInBody) {
     auto task = engine::AsyncNoTracing([] {
         EXPECT_EQ(engine::current_task::GetCurrentTaskContext().GetPendingFinalState(), TaskState::kInvalid);
         engine::Yield();
@@ -115,10 +108,10 @@ UTEST(EnginePlugin, PendingFinalStateCancelledInBody) {
     task.Wait();
 
     EXPECT_THAT(
-        plugin.GetSleepPendingFinalStates(),
+        GetPlugin().GetSleepPendingFinalStates(),
         ::testing::ElementsAre(TaskState::kInvalid, TaskState::kCancelled)
     );
-    EXPECT_THAT(plugin.GetStopPendingFinalStates(), ::testing::ElementsAre(TaskState::kCancelled));
+    EXPECT_THAT(GetPlugin().GetStopPendingFinalStates(), ::testing::ElementsAre(TaskState::kCancelled));
     EXPECT_EQ(task.GetState(), TaskState::kCancelled);
 }
 
