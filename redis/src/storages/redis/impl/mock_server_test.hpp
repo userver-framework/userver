@@ -82,6 +82,8 @@ public:
 
     using HandlerFunc = std::function<void(ConnectionPtr, const std::vector<std::string>&)>;
 
+    void RegisterHandlerFunc(std::string cmd, const std::vector<std::string>& args_prefix, HandlerFunc handler);
+
     class Handler;
     using HandlerPtr = std::shared_ptr<Handler>;
 
@@ -141,8 +143,6 @@ private:
         std::map<std::string, HandlerNode> next_arg;
         HandlerFunc handler;
     };
-
-    void RegisterHandlerFunc(std::string cmd, const std::vector<std::string>& args_prefix, HandlerFunc handler);
 
     static void AddHandlerFunc(HandlerNode& root, const std::vector<std::string>& args, HandlerFunc handler);
 
